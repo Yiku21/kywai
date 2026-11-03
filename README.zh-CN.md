@@ -4,9 +4,9 @@
 
 # AI Cowork
 
-### 你专属的 AI 智能体团队，协同工作，全程看得见。
+### 任意提供商的任意 AI 智能体，想要多少就加多少，作为一支团队协同工作。
 
-只需说一次。协调者会规划工作，把每项任务交给最擅长的智能体（Claude、Codex、Gemini、Muse、本地模型等等），你可以在实时 3D 世界里看着每个机器人干活。最后，结果会回到你手中，而且已经过检查。
+只需说一次。协调者会规划工作，把每项任务交给最擅长的智能体：Claude、Codex、Gemini、DeepSeek、Qwen、Copilot、Cursor、本地模型，或你添加的任何命令行智能体。你可以在实时 3D 世界里看着每个机器人干活，最后，结果会回到你手中，而且已经过检查。
 
 [English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · **简体中文**
 
@@ -27,7 +27,7 @@
 <img src="src/renderer/src/assets/robots/qwen.png" alt="本地模型" width="72" title="本地模型">
 <img src="src/renderer/src/assets/robots/becario.png" alt="实习生" width="72" title="实习生：同一个智能体，投入更少的精力">
 
-[简介](#-简介) · [为什么](#-为什么选择-ai-cowork) · [工作原理](#-工作原理) · [功能](#-功能) · [随时随地](#-随时随地使用) · [主题](#-主题) · [安装](#-安装) · [隐私](#-隐私与安全)
+[简介](#-简介) · [任意智能体](#-支持任意提供商的任意智能体) · [为什么](#-为什么选择-ai-cowork) · [工作原理](#-工作原理) · [功能](#-功能) · [随时随地](#-随时随地使用) · [主题](#-主题) · [安装](#-安装) · [隐私](#-隐私与安全)
 
 </div>
 
@@ -37,15 +37,26 @@
 
 ## ✨ 简介
 
-AI Cowork 把你已经在付费的 AI 订阅（Claude、ChatGPT、Gemini、Meta 等）变成**一支协同工作的团队**。你不必在各个应用之间来回切换、到处复制上下文，只需说一次：
+AI Cowork 把你已有的 AI 智能体和订阅（无论来自哪家提供商）变成**一支协同工作的团队**。你不必在各个应用之间来回切换、到处复制上下文，只需说一次：
 
 1. **🧭 协调者 Hermes** 理解你的需求并提出计划：有哪些任务、每项任务由哪个智能体负责，以及原因。
 2. **✅ 你来批准**，或者直接用大白话告诉它要改什么。
-3. **⚙️ 智能体开始工作**，值得时会并行进行，就在你的项目文件夹里，每个都使用自己的官方程序和你本人的登录。
+3. **⚙️ 智能体开始工作**，值得时会并行进行，就在你的项目文件夹里，每个都使用自己的程序，以及你本人的登录或 API 密钥。
 4. **🔍 另一个智能体检查结果**，然后才交到你手上，发现的问题由原作者修复。
 5. **📦 你在聊天中收到交付成果**，分好组、随时可打开，并附有完成内容和花费的摘要。
 
 目标很简单：**交代一项任务，回来时看到的是成果，而不是一个毫无产出的报错。**
+
+## 🔌 支持任意提供商的任意智能体
+
+AI Cowork 并不绑定于一组固定的模型。它是一个让你**组建自己团队**的平台：
+
+- **想加多少智能体就加多少**：在 ⋮ →“配置智能体…”→“添加智能体”中操作。目录已经知道如何启动 30 多个智能体，以及每个智能体使用的账号或订阅：Claude Code、Codex CLI、Gemini CLI、Antigravity CLI、Muse Code、Aider、DeepSeek、Qwen Code、Kimi Code、MiniMax Code、Mistral Vibe、Grok Build、GitHub Copilot CLI、Cursor、Amp、Goose、OpenCode、Cline、Continue、OpenHands、Factory Droid、Auggie、Junie、Kiro、Rovo Dev、Qoder CLI、Crush、Open Interpreter、gptme、Letta Code、ForgeCode、OpenClaw 等等。
+- **也可以接入任何其他程序**：选择“其他程序…”，填写它的命令、接收任务的方式（stdin、文件或参数）以及参数，它就会加入团队。
+- **订阅或 API 密钥皆可。** 智能体使用你在其自身程序中已有的登录运行。需要 API 密钥的智能体（DeepSeek、Kiro、Junie、Factory Droid、Amp…）只会询问一次；密钥通过系统钥匙串加密，并且只会传给对应的智能体。
+- **本地模型同样支持。** 你在 LM Studio 或 Ollama 中运行的任何模型都可以使用，免费且数据不离开你的电脑。
+- **由谁来协调由你决定。** 默认由 Hermes 协调，但任何智能体都可以负责规划和分配（“设为协调者”）。如果它不可用，下一个会接手。
+- **每个智能体都是正式的团队成员**，在 3D 世界里拥有自己的机器人和工位、自己的表现统计，并和其他成员一样经过计划、审查和撤销流程。
 
 ## 💡 为什么选择 AI Cowork
 
@@ -53,8 +64,8 @@ AI Cowork 把你已经在付费的 AI 订阅（Claude、ChatGPT、Gemini、Meta 
 <tr>
 <td width="50%" valign="top">
 
-**💳 用你的订阅，而不是付费 API**<br>
-它通过你自己的会话驱动官方 CLI（Claude Code、Codex CLI、Gemini CLI、Muse Code…），因此消耗的是你套餐里的额度。顶栏会显示 Claude 和 GPT 的**真实剩余额度**。
+**💳 用你已经付费的智能体**<br>
+它通过你自己的会话驱动每个智能体自身的程序，因此消耗的是你套餐里的额度，而不会产生额外的 API 费用；API 密钥或免费的本地模型同样可用。顶栏会显示 Claude 和 GPT 的**真实剩余额度**。
 
 </td>
 <td width="50%" valign="top">
@@ -107,13 +118,16 @@ flowchart TD
     R --> G["Gemini<br/>阅读、总结、翻译"]
     R --> M["Muse<br/>视频和备援"]
     R --> L["本地模型<br/>简短任务，免费"]
-    C & X & G & M & L --> V["由另一家族的<br/>智能体审查"]
+    R --> A["你添加的任何智能体<br/>DeepSeek、Qwen、Copilot、Cursor…"]
+    C & X & G & M & L & A --> V["由另一家族的<br/>智能体审查"]
     V -- "发现问题" --> F["原作者修复"]
     F --> V
     V -- "通过" --> E(["交付成果存入你的项目<br/>并在聊天中附上摘要"])
 ```
 
-### 团队成员
+### 默认团队
+
+这是开箱即用的团队。你可以移除其中任何一个，也可以随意添加更多智能体。
 
 | | 智能体 | 运行于 | 擅长 |
 |---|---|---|---|
@@ -124,7 +138,7 @@ flowchart TD
 | <img src="src/renderer/src/assets/robots/muse.png" width="40"> | **Muse** | Muse Code（你的 Meta 订阅） | 理解视频。其他智能体额度用完时作为备援。 |
 | <img src="src/renderer/src/assets/robots/qwen.png" width="40"> | **本地** | LM Studio 或 Ollama | 免费处理简短、简单的任务，数据不离开你的电脑。配合 LM Studio 时，还能读取、创建和编辑文件。 |
 
-**接入你自己的智能体。** 目录里还能用你现有的账号连接更多智能体：Aider、DeepSeek、OpenCode、GitHub Copilot CLI、Cursor、Amp、Goose、Kimi Code、Mistral Vibe、Grok Build、Cline、Continue、OpenHands、Factory Droid、Auggie、Junie、Crush、Open Interpreter、gptme、Letta Code、ForgeCode、OpenClaw、Kiro、Qwen Code、Antigravity CLI、Rovo Dev、MiniMax Code、Qoder CLI 等等。每个智能体都会在 3D 世界里拥有自己的机器人和工位，由谁来协调也由你决定。
+你从目录中或通过“其他程序…”添加的任何智能体，都和它们完全一样：协调者了解它、给它分配任务，它也会出现在 3D 世界里。参见[支持任意提供商的任意智能体](#-支持任意提供商的任意智能体)。
 
 ## 🚀 功能
 
@@ -241,7 +255,7 @@ flowchart TD
 
 - **Windows 10/11 或 macOS**（Apple 芯片或 Intel）。
 - **Node.js** `^22.22.2 || ^24.15.0 || >=26.0.0`。如果缺少，设置助手会自动安装。
-- 至少登录一个智能体：**Claude Code**、**Codex CLI**、**Gemini CLI**、**Muse Code** 或目录中的任意智能体。负责协调的是 **Hermes Agent**；没有它时，由 Claude 来规划。
+- 至少一个智能体：目录中的任意智能体（Claude Code、Codex CLI、Gemini CLI、DeepSeek、Qwen Code、Copilot…）、本地模型或任何命令行智能体。默认由 **Hermes Agent** 负责协调，但任何智能体都可以担任。
 - 可选：用于本地智能体的 **LM Studio** 或 **Ollama**，用于撤销功能的 **git**，以及用于在其他设备上使用的 **Tailscale**。
 
 > **注意：** 目前应用界面为西班牙语。本 README 中的菜单名称均为译名。

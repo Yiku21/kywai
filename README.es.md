@@ -4,9 +4,9 @@
 
 # AI Cowork
 
-### Tu propio equipo de agentes de IA, trabajando juntos y a la vista.
+### Cualquier agente de IA, de cualquier proveedor, todos los que quieras, trabajando como un solo equipo.
 
-Pídelo una vez. Un coordinador planifica el trabajo, le da cada tarea al agente que mejor la hace (Claude, Codex, Gemini, Muse, un modelo local y muchos más) y tú ves a cada robot trabajar en un mundo 3D en directo. Después, los resultados te llegan ya revisados.
+Pídelo una vez. Un coordinador planifica el trabajo y le da cada tarea al agente que mejor la hace: Claude, Codex, Gemini, DeepSeek, Qwen, Copilot, Cursor, un modelo local o cualquier agente de línea de comandos que añadas. Tú ves a cada robot trabajar en un mundo 3D en directo, y los resultados te llegan ya revisados.
 
 [English](README.md) · **Español** · [Português](README.pt-BR.md) · [Français](README.fr.md) · [简体中文](README.zh-CN.md)
 
@@ -27,7 +27,7 @@ Pídelo una vez. Un coordinador planifica el trabajo, le da cada tarea al agente
 <img src="src/renderer/src/assets/robots/qwen.png" alt="Modelo local" width="72" title="Modelo local">
 <img src="src/renderer/src/assets/robots/becario.png" alt="Becario" width="72" title="El becario: el mismo agente con menos esfuerzo">
 
-[Qué es](#-qué-es) · [Por qué](#-por-qué-ai-cowork) · [Cómo funciona](#-cómo-funciona) · [Funciones](#-funciones) · [Desde donde estés](#-úsalo-desde-donde-estés) · [Temas](#-temas) · [Instalar](#-instalar) · [Privacidad](#-privacidad-y-seguridad)
+[Qué es](#-qué-es) · [Cualquier agente](#-cualquier-agente-de-cualquier-proveedor) · [Por qué](#-por-qué-ai-cowork) · [Cómo funciona](#-cómo-funciona) · [Funciones](#-funciones) · [Desde donde estés](#-úsalo-desde-donde-estés) · [Temas](#-temas) · [Instalar](#-instalar) · [Privacidad](#-privacidad-y-seguridad)
 
 </div>
 
@@ -37,15 +37,26 @@ Pídelo una vez. Un coordinador planifica el trabajo, le da cada tarea al agente
 
 ## ✨ Qué es
 
-AI Cowork convierte las suscripciones de IA que ya pagas (Claude, ChatGPT, Gemini, Meta y otras) en **un solo equipo que trabaja junto**. En vez de saltar de una app a otra copiando el contexto, lo pides una sola vez:
+AI Cowork convierte los agentes de IA y las suscripciones que ya tienes, de cualquier proveedor, en **un solo equipo que trabaja junto**. En vez de saltar de una app a otra copiando el contexto, lo pides una sola vez:
 
 1. **🧭 Hermes, el coordinador,** entiende lo que quieres y te propone un plan: qué tareas hay, qué agente hará cada una y por qué.
 2. **✅ Tú le das el visto bueno,** o le dices con tus palabras qué cambiar.
-3. **⚙️ Los agentes trabajan,** en paralelo cuando compensa, en la carpeta de tu proyecto, cada uno con su programa oficial y tu propia sesión.
+3. **⚙️ Los agentes trabajan,** en paralelo cuando compensa, en la carpeta de tu proyecto, cada uno con su propio programa y tu propia sesión o clave de API.
 4. **🔍 Otro agente revisa el resultado** antes de que te llegue, y el autor corrige lo que encuentre.
 5. **📦 Recibes los entregables** en el chat, agrupados y listos para abrir, con un resumen de lo que se hizo y de lo que costó.
 
 La idea es sencilla: **deja una tarea y vuelve a encontrarte un resultado, nunca un error con las manos vacías.**
+
+## 🔌 Cualquier agente, de cualquier proveedor
+
+AI Cowork no está atado a un conjunto fijo de modelos. Es una plataforma en la que **tú montas tu propio equipo**:
+
+- **Añade todos los agentes que quieras** desde ⋮ → «Configurar agentes…» → «Añadir un agente». El catálogo ya sabe lanzar más de 30, cada uno con la cuenta o suscripción que usa: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw y más.
+- **O conecta cualquier otro programa** con «Otro programa…»: indica su comando, cómo recibe la tarea (por stdin, en un archivo o como argumento) y sus argumentos, y pasa a formar parte del equipo.
+- **Suscripciones o claves de API.** Los agentes funcionan con la sesión que ya tienes iniciada en su propio programa. Los que usan una clave de API (DeepSeek, Kiro, Junie, Factory Droid, Amp…) te la piden una sola vez; se cifra con el llavero del sistema y solo se le pasa a ese agente.
+- **También modelos locales.** Cualquier modelo que ejecutes en LM Studio u Ollama, gratis y sin salir de tu ordenador.
+- **Tú eliges quién coordina.** Hermes es el coordinador por defecto, pero cualquier agente puede planificar y repartir («Hacer coordinador»). Si no está disponible, toma el relevo el siguiente.
+- **Cada agente es un miembro de pleno derecho del equipo,** con su propio robot y su puesto en el mundo 3D, sus estadísticas de rendimiento y el mismo plan, la misma revisión y el mismo Deshacer que los demás.
 
 ## 💡 Por qué AI Cowork
 
@@ -53,8 +64,8 @@ La idea es sencilla: **deja una tarea y vuelve a encontrarte un resultado, nunca
 <tr>
 <td width="50%" valign="top">
 
-**💳 Tus suscripciones, no APIs de pago**<br>
-Maneja las CLI oficiales (Claude Code, Codex CLI, Gemini CLI, Muse Code…) con tu propia sesión, así que funciona con la cuota de tus planes. La cabecera muestra la **cuota real que te queda** de Claude y GPT.
+**💳 Los agentes que ya pagas**<br>
+Maneja el propio programa de cada agente con tu sesión, así que funciona con la cuota de tus planes en lugar de con costes extra de API, y también valen las claves de API o los modelos locales gratuitos. La cabecera muestra la **cuota real que te queda** de Claude y GPT.
 
 </td>
 <td width="50%" valign="top">
@@ -107,13 +118,16 @@ flowchart TD
     R --> G["Gemini<br/>leer, resumir, traducir"]
     R --> M["Muse<br/>vídeo y refuerzo"]
     R --> L["Modelo local<br/>tareas cortas, gratis"]
-    C & X & G & M & L --> V["Revisión por un agente<br/>de otra familia"]
+    R --> A["Cualquier agente que añadas<br/>DeepSeek, Qwen, Copilot, Cursor…"]
+    C & X & G & M & L & A --> V["Revisión por un agente<br/>de otra familia"]
     V -- "hay problemas" --> F["El autor los corrige"]
     F --> V
     V -- "aprobado" --> E(["Entregables en tu proyecto<br/>y un resumen en el chat"])
 ```
 
-### El equipo
+### El equipo por defecto
+
+Este es el equipo que viene de serie. Puedes quitar a cualquiera de ellos y añadir todos los demás que quieras.
 
 | | Agente | Funciona con | En qué destaca |
 |---|---|---|---|
@@ -124,7 +138,7 @@ flowchart TD
 | <img src="src/renderer/src/assets/robots/muse.png" width="40"> | **Muse** | Muse Code (tu suscripción de Meta) | Entender vídeos. De refuerzo cuando los demás se quedan sin cuota. |
 | <img src="src/renderer/src/assets/robots/qwen.png" width="40"> | **Local** | LM Studio u Ollama | Tareas cortas y sencillas, gratis y sin salir de tu ordenador. Con LM Studio también puede leer, crear y editar archivos. |
 
-**Trae tus propios agentes.** El catálogo conecta muchos más con la cuenta que ya tienes: Aider, DeepSeek, OpenCode, GitHub Copilot CLI, Cursor, Amp, Goose, Kimi Code, Mistral Vibe, Grok Build, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw, Kiro, Qwen Code, Antigravity CLI, Rovo Dev, MiniMax Code, Qoder CLI y más. Cada uno tiene su propio robot y su puesto en el mundo 3D, y tú eliges quién coordina.
+Cualquier agente que añadas desde el catálogo o con «Otro programa…» funciona exactamente igual que estos: el coordinador lo conoce, le asigna tareas y aparece en el mundo 3D. Consulta [Cualquier agente, de cualquier proveedor](#-cualquier-agente-de-cualquier-proveedor).
 
 ## 🚀 Funciones
 
@@ -241,7 +255,7 @@ Y cuatro que decoran el mundo, cambian la forma de su núcleo y, en los de fiest
 
 - **Windows 10/11 o macOS** (chip Apple o Intel).
 - **Node.js** `^22.22.2 || ^24.15.0 || >=26.0.0`. Si falta, lo instala el asistente.
-- Al menos un agente con la sesión iniciada: **Claude Code**, **Codex CLI**, **Gemini CLI**, **Muse Code** o cualquier agente del catálogo. Para coordinar, **Hermes Agent**; sin él, planifica Claude.
+- Al menos un agente: cualquiera del catálogo (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), un modelo local o cualquier agente de línea de comandos. **Hermes Agent** coordina por defecto, pero puede hacerlo cualquier agente.
 - Opcional: **LM Studio** u **Ollama** para el agente local, **git** para Deshacer y **Tailscale** para usarlo desde otros dispositivos.
 
 ### Windows
