@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Notas de voz del chat: se graban en el móvil y las pasa a texto el dictado del ordenador. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Órbita se actualiza desde el ordenador (Ajustes → «Buscar actualizaciones»); Android pide permiso la primera vez. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Android 12+: las siguientes versiones se instalan sin preguntar (Órbita se actualiza a sí misma). -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+    <!-- Android 13+: notificaciones de «Te necesita» (la app lo pide una vez; sin él, los avisos siguen en la bandeja). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:name=".CoworkApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AICowork">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboard|keyboardHidden|navigation|uiMode"
+            android:windowSoftInputMode="adjustResize">
+            <!-- Plegar o desplegar no recrea la actividad: el mundo, el panel abierto y lo que escribes siguen igual. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- Resultado de instalar la versión nueva de Órbita. -->
+        <receiver android:name=".data.update.InstallResultReceiver" android:exported="false" />
+    </application>
+</manifest>

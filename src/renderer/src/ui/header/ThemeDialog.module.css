@@ -1,0 +1,316 @@
+.dialog {
+  width: min(980px, calc(100vw - 32px));
+}
+
+/* Siete temas: la lista se desplaza si la ventana es baja. */
+.grid {
+  display: grid;
+  max-height: min(70vh, 720px);
+  overflow-y: auto;
+  padding: 4px 22px 18px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 10px 14px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+}
+
+.cardOn {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus), 0 0 22px var(--cyan-soft);
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 4px;
+}
+
+.cardName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.default {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.cardHint {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.check {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--cyan);
+  color: var(--on-accent, #04121c);
+}
+
+/* ---------- Miniaturas (con los colores de cada tema) ---------- */
+
+.preview {
+  --pv-app: #060a12;
+  --pv-panel: #0b111c;
+  --pv-border: rgba(150, 180, 230, 0.12);
+  --pv-line: rgba(163, 176, 198, 0.35);
+  --pv-bubble: #101828;
+  --pv-accent: #38d6ff;
+  --pv-radius: 6px;
+  --pv-stage: #050913;
+  --pv-glow: rgba(92, 200, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 124px;
+  padding: 7px;
+  border-radius: 10px;
+  background: var(--pv-app);
+  overflow: hidden;
+}
+
+.preview[data-preview='orbita'] {
+  --pv-app: #050a17;
+  --pv-panel: linear-gradient(180deg, rgba(26, 42, 76, 0.85), rgba(10, 18, 38, 0.85));
+  --pv-border: rgba(120, 175, 255, 0.45);
+  --pv-line: rgba(176, 192, 220, 0.4);
+  --pv-bubble: rgba(40, 62, 108, 0.6);
+  --pv-accent: #5cc8ff;
+  --pv-radius: 9px;
+  background:
+    radial-gradient(220px 130px at 75% -10%, rgba(70, 120, 255, 0.35), transparent 65%),
+    radial-gradient(180px 120px at 0% 110%, rgba(96, 70, 220, 0.3), transparent 65%),
+    var(--pv-app);
+}
+
+.pvHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 14px;
+}
+
+.pvLogo {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--pv-accent);
+  opacity: 0.85;
+}
+
+.pvChips {
+  display: flex;
+  gap: 4px;
+}
+
+.pvChips > span {
+  width: 26px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--pv-border);
+}
+
+.pvBody {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 34% 1fr;
+  gap: 6px;
+  min-height: 0;
+}
+
+.pvLeft,
+.pvSpace {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  border-radius: var(--pv-radius);
+  border: 1px solid var(--pv-border);
+  background: var(--pv-panel);
+}
+
+.preview[data-preview='orbita'] .pvLeft,
+.preview[data-preview='orbita'] .pvSpace {
+  box-shadow: 0 0 12px rgba(64, 132, 255, 0.25);
+}
+
+.pvLine {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--pv-line);
+}
+
+.pvShort {
+  width: 60%;
+}
+
+.pvBubble {
+  height: 16px;
+  border-radius: 4px;
+  background: var(--pv-bubble);
+  border: 1px solid var(--pv-border);
+}
+
+.pvBubbleSmall {
+  height: 10px;
+  width: 75%;
+}
+
+.pvStage {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  border-radius: calc(var(--pv-radius) - 2px);
+  background: var(--pv-stage);
+  box-shadow: inset 0 0 0 1px var(--pv-border);
+}
+
+.pvCore {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--pv-accent);
+  background: radial-gradient(circle at 40% 35%, var(--pv-glow), color-mix(in srgb, var(--pv-accent) 15%, transparent) 70%);
+  box-shadow: 0 0 14px var(--pv-glow);
+}
+
+.preview[data-preview='marfil'] {
+  --pv-app: #e9e3d6;
+  --pv-panel: #f6f2ea;
+  --pv-border: rgba(90, 78, 54, 0.2);
+  --pv-line: rgba(60, 52, 36, 0.3);
+  --pv-bubble: #ffffff;
+  --pv-accent: #2f8f68;
+  --pv-stage: #ece7dc;
+  --pv-glow: rgba(196, 154, 74, 0.55);
+}
+
+.preview[data-preview='grafito'] {
+  --pv-app: #0a0a0c;
+  --pv-panel: #121315;
+  --pv-border: rgba(205, 200, 190, 0.14);
+  --pv-line: rgba(205, 200, 190, 0.3);
+  --pv-bubble: #1f2024;
+  --pv-accent: #e0a34a;
+  --pv-stage: #0c0d0f;
+  --pv-glow: rgba(224, 163, 74, 0.5);
+}
+
+.preview[data-preview='bosque'] {
+  --pv-app: #06100b;
+  --pv-panel: #0b1812;
+  --pv-border: rgba(160, 215, 180, 0.16);
+  --pv-line: rgba(166, 195, 177, 0.35);
+  --pv-bubble: #152d21;
+  --pv-accent: #d4af5a;
+  --pv-stage: #07120d;
+  --pv-glow: rgba(127, 214, 160, 0.5);
+}
+
+.preview[data-preview='matrix'] {
+  --pv-app: #000000;
+  --pv-panel: #030a05;
+  --pv-border: rgba(43, 255, 106, 0.3);
+  --pv-line: rgba(43, 255, 106, 0.35);
+  --pv-bubble: #0a190e;
+  --pv-accent: #2bff6a;
+  --pv-stage: #010502;
+  --pv-glow: rgba(43, 255, 106, 0.55);
+}
+
+.preview[data-preview='eva'] {
+  --pv-app: #110620;
+  --pv-panel: #190b2d;
+  --pv-border: rgba(190, 160, 255, 0.2);
+  --pv-line: rgba(192, 176, 224, 0.35);
+  --pv-bubble: #291646;
+  --pv-accent: #a6ff3a;
+  --pv-stage: #130822;
+  --pv-glow: rgba(166, 255, 58, 0.5);
+}
+
+.preview[data-preview='relicario'] {
+  --pv-app: #07080a;
+  --pv-panel: #101216;
+  --pv-border: rgba(232, 194, 122, 0.3);
+  --pv-line: rgba(210, 215, 228, 0.32);
+  --pv-bubble: #1d2027;
+  --pv-accent: #e8c27a;
+  --pv-stage: #07080b;
+  --pv-glow: rgba(255, 241, 201, 0.55);
+}
+
+.preview[data-preview='relicario'] .pvCore {
+  border-radius: 4px;
+  transform: rotate(45deg) scale(0.8);
+}
+
+.preview[data-preview='telar'] {
+  --pv-app: #0a0b0f;
+  --pv-panel: #111319;
+  --pv-border: rgba(200, 208, 228, 0.22);
+  --pv-line: rgba(200, 208, 228, 0.32);
+  --pv-bubble: #1e212a;
+  --pv-accent: #b8c4e0;
+  --pv-stage: repeating-linear-gradient(45deg, rgba(200, 208, 228, 0.07) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-45deg, rgba(200, 208, 228, 0.07) 0 1px, transparent 1px 7px), #0b0c10;
+  --pv-glow: rgba(240, 194, 122, 0.45);
+}
+
+.preview[data-preview='halloween'] {
+  --pv-app: #0b0610;
+  --pv-panel: #130c19;
+  --pv-border: rgba(255, 138, 31, 0.28);
+  --pv-line: rgba(220, 190, 230, 0.32);
+  --pv-bubble: #22162b;
+  --pv-accent: #ff8a1f;
+  --pv-stage: radial-gradient(60px 40px at 80% 10%, rgba(255, 207, 128, 0.25), transparent 70%), #0d0714;
+  --pv-glow: rgba(255, 138, 31, 0.6);
+}
+
+.preview[data-preview='halloween'] .pvCore {
+  border-radius: 46% 46% 42% 42%;
+  transform: scaleY(0.82);
+}
+
+.preview[data-preview='navidad'] {
+  --pv-app: #07110f;
+  --pv-panel: #0d1a18;
+  --pv-border: rgba(240, 192, 80, 0.26);
+  --pv-line: rgba(190, 225, 210, 0.32);
+  --pv-bubble: #172c27;
+  --pv-accent: #f0c050;
+  --pv-stage: radial-gradient(circle at 20% 30%, #fff 0 1px, transparent 1.5px) 0 0 / 14px 14px,
+    radial-gradient(circle at 70% 70%, #fff 0 1px, transparent 1.5px) 0 0 / 18px 18px, linear-gradient(180deg, #0a1220 55%, #6a7686);
+  --pv-glow: rgba(240, 192, 80, 0.5);
+}

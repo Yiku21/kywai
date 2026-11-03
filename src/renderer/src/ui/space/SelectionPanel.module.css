@@ -1,0 +1,491 @@
+.panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+  width: 330px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong);
+  background: rgba(var(--float-rgb, 11, 17, 28), 0.88);
+  backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: var(--shadow-pop);
+  color: var(--text-1);
+  font-size: 13px;
+  animation: slideIn var(--dur-slow) var(--ease);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+/* ---------- Cabecera ---------- */
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.headInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+  padding-top: 2px;
+}
+
+.kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+
+.sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.model {
+  color: color-mix(in srgb, var(--agent, var(--cyan)) 60%, var(--text-1));
+  font-weight: 500;
+}
+
+.dotSep {
+  color: var(--text-3);
+}
+
+.parent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.close {
+  margin: -4px -6px 0 0;
+}
+
+/* ---------- Estado ---------- */
+
+.statusRow {
+  --tone: var(--live);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tone) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 24%, transparent);
+}
+
+.statusIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--tone);
+}
+
+.statusInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.statusText {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--tone) 50%, var(--text-1));
+}
+
+.reason {
+  font-size: 12px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.location {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+/* «Reiniciar agente» cuando falla. */
+.reset {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-top: 8px;
+}
+
+.resetBtn {
+  flex: none;
+}
+
+.resetNote {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+.resetBad {
+  color: var(--alert);
+}
+
+.role {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+/* ---------- Secciones ---------- */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.muted {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.task {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(var(--wash-rgb, 255, 255, 255), 0.03);
+  border: 1px solid var(--border);
+}
+
+.taskLink {
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+.taskLink:hover {
+  border-color: color-mix(in srgb, var(--agent) 45%, var(--border));
+  background: rgba(var(--wash-rgb, 255, 255, 255), 0.05);
+}
+
+.traceBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px -4px -2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--agent);
+  text-align: left;
+}
+
+.traceBtn:hover,
+.traceBtn:focus-visible {
+  background: var(--bg-hover);
+}
+
+.traceBtn .resultGo {
+  margin-left: auto;
+}
+
+.traceBtn:hover .resultGo {
+  transform: translateX(2px);
+  color: var(--text-1);
+}
+
+.recentRow {
+  width: 100%;
+  margin: 0 -6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  text-align: left;
+  box-sizing: content-box;
+}
+
+.recentRow:hover,
+.recentRow:focus-visible {
+  background: var(--bg-hover);
+}
+
+.taskHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.taskHead > :first-child {
+  margin-top: 2px;
+}
+
+.taskTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-1);
+}
+
+.taskDesc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.taskModel {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.taskFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progressRow > :first-child {
+  flex: 1;
+}
+
+.pct {
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+
+.pctMuted {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.depRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.depTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-1);
+}
+
+.when {
+  flex: none;
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.resultRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  text-align: left;
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.resultRow:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.resultRow:disabled {
+  cursor: default;
+}
+
+.resultName {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultGo {
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease);
+}
+
+.resultRow:hover .resultGo {
+  transform: translateX(2px);
+  color: var(--text-1);
+}
+
+.fileIcon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(var(--wash-rgb, 255, 255, 255), 0.04);
+  border: 1px solid var(--border);
+}
+
+.footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---------- Transferencia ---------- */
+
+.route {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.routeArrow {
+  color: var(--text-3);
+  flex: none;
+}
+
+.endpoint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px 0 5px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--agent) 55%, var(--text-1));
+  background: color-mix(in srgb, var(--agent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--agent) 26%, transparent);
+}
+
+.endpointIcon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--agent);
+  background: color-mix(in srgb, var(--agent) 18%, transparent);
+}
+
+.summary {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+@media (max-width: 760px) {
+  .panel {
+    top: 8px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100% - 16px);
+  }
+}
+
+/* Tema Órbita: cristal esmerilado sobre el espacio. */
+:global(:root[data-theme='orbita']) .panel {
+  border-color: rgba(130, 185, 255, 0.3);
+  background: rgba(10, 18, 40, 0.5);
+  box-shadow: inset 0 1px 0 rgba(190, 220, 255, 0.12), 0 0 30px rgba(64, 132, 255, 0.16), 0 18px 50px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(24px) saturate(160%);
+}

@@ -1,0 +1,196 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(var(--scrim-rgb, 3, 5, 14), 0.66);
+  backdrop-filter: blur(5px);
+}
+
+.dialog {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-pop);
+  padding-bottom: 18px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 22px 6px;
+}
+
+.headIcon {
+  margin-top: 3px;
+  color: var(--cyan);
+  flex: none;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--text-1);
+}
+
+.subtitle {
+  margin: 5px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.close {
+  margin-left: auto;
+  flex: none;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 22px 0;
+}
+
+.muted {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  text-align: left;
+}
+
+.row:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rowLabel {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.rowHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.code {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--code-bg, #05070f);
+  border: 1px solid var(--border);
+  color: var(--code-text, #b9c8e6);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.regen {
+  align-self: flex-start;
+}
+
+.warn {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.error {
+  margin: 12px 22px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--alert);
+  background: var(--alert-soft);
+}
+
+/* Código de 6 cifras para emparejar el móvil. */
+.pin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+}
+
+.pinCode {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-1);
+}
+
+/* Tema Órbita: las ventanas son de cristal esmerilado sobre lo de detrás, apenas oscurecido. */
+:global(:root[data-theme='orbita']) .backdrop {
+  background: rgba(3, 6, 16, 0.38);
+  backdrop-filter: blur(6px);
+}
+
+:global(:root[data-theme='orbita']) .dialog {
+  border-color: rgba(130, 185, 255, 0.32);
+  background: rgba(12, 22, 46, 0.58);
+  box-shadow: inset 0 1px 0 rgba(190, 220, 255, 0.14), 0 0 34px rgba(64, 132, 255, 0.2), 0 24px 70px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(28px) saturate(170%);
+}

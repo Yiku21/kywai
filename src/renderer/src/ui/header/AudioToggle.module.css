@@ -1,0 +1,117 @@
+.control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+/* Volumen: oculto hasta pasar el ratón por el botón, pulsarlo o llegar con el teclado. */
+.volume {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-ctl);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-pop);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    visibility 0s linear var(--dur);
+}
+
+/* Puente invisible entre el botón y el volumen, para no perder el «hover» al bajar el ratón. */
+.volume::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 8px;
+}
+
+.open .volume,
+.control:has(:focus-visible) .volume {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    visibility 0s;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+}
+
+.rowIcon,
+.rowBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-ctl);
+  background: none;
+  color: var(--text-2);
+}
+
+.rowBtn {
+  cursor: pointer;
+}
+
+.rowBtn:hover {
+  color: var(--text-1);
+}
+
+.muted .rowIcon,
+.muted .rowBtn {
+  color: var(--text-3);
+}
+
+.slider {
+  width: 110px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+
+.value {
+  min-width: 4ch;
+  color: var(--text-2);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.muted .slider {
+  accent-color: var(--text-3);
+}
+
+.muted .value {
+  color: var(--text-3);
+}
+
+/* En el móvil el botón queda a la izquierda de su fila: el volumen se abre hacia la derecha. */
+@media (max-width: 759.98px) {
+  .volume {
+    right: auto;
+    left: 0;
+  }
+}

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo en la versión de depuración: vista previa del mundo 3D Órbita para probarlo en el emulador (plegar, cristal, eventos). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".orbita.WorldPreviewActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboard|keyboardHidden|navigation|uiMode"
+            android:exported="true"
+            android:label="Órbita (vista previa)"
+            android:theme="@style/Theme.AICowork" />
+    </application>
+</manifest>

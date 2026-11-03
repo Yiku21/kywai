@@ -1,0 +1,48 @@
+.status {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  line-height: 0;
+}
+
+.running {
+  color: var(--cyan);
+}
+.done {
+  color: var(--live);
+}
+.failed {
+  color: var(--alert);
+}
+.cancelled {
+  color: var(--text-3);
+}
+.pending {
+  color: var(--text-3);
+}
+.blocked {
+  color: var(--warn);
+}
+
+.tile {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 10px;
+  color: var(--k);
+  background: color-mix(in srgb, var(--k) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--k) 22%, transparent);
+}
+
+.pdf {
+  color: var(--alert);
+  flex: none;
+}
+.image {
+  color: var(--live);
+  flex: none;
+}
+.other {
+  color: var(--text-2);
+  flex: none;
+}

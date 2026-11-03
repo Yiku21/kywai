@@ -1,0 +1,131 @@
+/* Tabla de «Cómo rinde cada agente»: la base es la de Consumo (UsageDialog.module.css). */
+
+.table td {
+  vertical-align: top;
+}
+
+.table thead th {
+  white-space: normal;
+  min-width: 64px;
+  line-height: 1.3;
+  vertical-align: bottom;
+}
+
+.pct {
+  display: block;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.of {
+  display: block;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.none {
+  color: var(--text-3);
+}
+
+.few {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.agentRow th,
+.agentRow td {
+  background: var(--bg-surface);
+}
+
+.subRow th {
+  padding-left: 22px !important;
+  font-weight: 500 !important;
+  color: var(--text-2) !important;
+}
+
+.subRow td {
+  font-size: 12px;
+}
+
+/* La fila de dificultad ya va debajo de su agente: en la tabla no hace falta repetir el nombre. */
+.subName {
+  display: none;
+}
+
+/* Móvil: cada fila es una tarjeta y cada dato lleva su nombre delante (sin desplazamiento lateral). */
+@media (max-width: 640px) {
+  .wrap {
+    overflow: visible;
+    border: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table th,
+  .table td {
+    display: block;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 12px;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+  }
+
+  .subRow {
+    margin-left: 14px;
+    background: transparent !important;
+  }
+
+  .table tr th {
+    grid-column: 1 / -1;
+    padding: 0 0 4px !important;
+    border: none;
+    background: transparent;
+    font-size: 13.5px;
+  }
+
+  .subRow th {
+    font-size: 12.5px !important;
+  }
+
+  .subName {
+    display: inline;
+  }
+
+  .table td {
+    padding: 4px 0;
+    text-align: left;
+    white-space: normal;
+    border: none;
+    background: transparent;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  .pct,
+  .of {
+    display: inline;
+  }
+
+  .of::before {
+    content: ' · ';
+  }
+}

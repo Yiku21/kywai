@@ -1,0 +1,63 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem@2026.8.31",
+        "E:/AI Cowork/src",
+        "E:/AI Cowork/scripts",
+        "E:/AI Cowork/artifacts"
+      ]
+    },
+    "fetch": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "mcp-server-fetch==2026.8.18",
+        "mcp-server-fetch"
+      ],
+      "env": {
+        "PYTHONIOENCODING": "utf-8"
+      }
+    },
+    "memory": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-memory@2026.8.31"
+      ],
+      "env": {
+        "MEMORY_FILE_PATH": "E:/AI Cowork/workspace/mcp-memory-claude.jsonl"
+      }
+    },
+    "browser": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/c",
+        "npx",
+        "-y",
+        "@playwright/mcp@0.0.83",
+        "--browser",
+        "msedge",
+        "--headless",
+        "--isolated",
+        "--allowed-origins",
+        "http://localhost:5199;http://127.0.0.1:5199",
+        "--output-dir",
+        "E:/AI Cowork/artifacts/mcp-browser"
+      ]
+    }
+  }
+}

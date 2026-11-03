@@ -1,0 +1,120 @@
+{
+  "name": "ai-cowork",
+  "productName": "AI Cowork",
+  "version": "0.1.0",
+  "description": "Tu equipo de agentes de IA trabajando juntos",
+  "main": "./out/main/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "web": "vite --config vite.web.config.ts",
+    "accesos": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/crear-accesos.ps1",
+    "icono": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generar-icono.ps1 && node scripts/empaquetar-icono.mjs",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "fuente": "node scripts/empaquetar-fuente.mjs",
+    "publicar-cliente": "node scripts/publicar-cliente.mjs"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.1",
+    "@react-three/postprocessing": "^3.2.0",
+    "@types/howler": "^2.2.13",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/ui": "^5.0.3",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "howler": "^2.2.4",
+    "jsdom": "^30.1.2",
+    "lucide-react": "^1.55.0",
+    "postprocessing": "^6.39.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "three": "^0.186.1",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.7",
+    "vitest": "^5.0.3",
+    "zustand": "^5.0.15"
+  },
+  "author": "AI Cowork",
+  "build": {
+    "appId": "com.aicowork.app",
+    "productName": "AI Cowork",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AI Cowork",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "language": "3082",
+      "artifactName": "AI-Cowork-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.developer-tools",
+      "artifactName": "AI-Cowork-${version}-${arch}.${ext}",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "AI Cowork usa el micrófono para dictar tareas (la voz se convierte en texto en este equipo).",
+        "NSAppleEventsUsageDescription": "Los agentes de AI Cowork pueden manejar otras apps de este Mac cuando una tarea lo necesita.",
+        "NSDesktopFolderUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en el Escritorio.",
+        "NSDocumentsFolderUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en Documentos.",
+        "NSDownloadsFolderUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en Descargas.",
+        "NSRemovableVolumesUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en discos externos.",
+        "NSNetworkVolumesUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en discos de red."
+      }
+    },
+    "dmg": {
+      "title": "AI Cowork"
+    }
+  }
+}

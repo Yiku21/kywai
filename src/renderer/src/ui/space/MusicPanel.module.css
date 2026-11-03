@@ -1,0 +1,732 @@
+/* Encima de etiquetas y del panel de selección: YouTube no permite tapar su reproductor. */
+.panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 430px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong);
+  background: rgba(var(--float-rgb, 11, 17, 28), 0.92);
+  backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: var(--shadow-pop);
+  color: var(--text-1);
+  font-size: 13px;
+  animation: slideIn var(--dur-slow) var(--ease);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.headIcon {
+  flex: none;
+  color: var(--cyan);
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.headHint {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Enlace ---------- */
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.formError,
+.error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--alert-text, #ffc2ca);
+}
+
+.error {
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--alert-soft);
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+/* ---------- Reproductor (16:9, nunca menos de 200 px de alto: norma de YouTube) ---------- */
+
+.playerBox {
+  position: relative;
+  width: 100%;
+  min-width: 200px;
+  aspect-ratio: 16 / 9;
+  min-height: 200px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+
+.player,
+.player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ---------- Canción ---------- */
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.trackNames {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.trackTitle {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trackArtist {
+  font-size: 12px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- Ritmo ---------- */
+
+.sync {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(var(--line-rgb, 150, 180, 230), 0.04);
+  border: 1px solid var(--border);
+}
+
+.syncHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.beatDot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  opacity: 0.35;
+  will-change: transform, opacity;
+}
+
+.bpm {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  --c: var(--text-2);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--c) 85%, var(--mix-to, #fff));
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+}
+
+.badge_alta {
+  --c: var(--live);
+}
+
+.badge_media {
+  --c: var(--cyan);
+}
+
+.badge_baja {
+  --c: var(--warn);
+}
+
+.badge_manual {
+  --c: var(--c-qwen);
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--text-2);
+  text-decoration: none;
+}
+
+.source:hover {
+  color: var(--text-1);
+}
+
+.lightsSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.label {
+  margin-right: 2px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.bpmInput {
+  flex: none;
+  width: 76px;
+  height: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.small {
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.value {
+  min-width: 52px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+
+.tap {
+  margin-left: auto;
+  touch-action: manipulation;
+}
+
+/* ---------- Limitaciones ---------- */
+
+.limits {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.limits summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--text-2);
+}
+
+.limits ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+
+.limits li + li {
+  margin-top: 4px;
+}
+
+@media (max-width: 759.98px) {
+  .panel {
+    top: 10px;
+    left: 10px;
+    max-width: calc(100% - 20px);
+    max-height: calc(100% - 20px);
+  }
+}
+
+/* ---------- Buscar (como YouTube Music) ---------- */
+
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.searchField {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-left: 32px;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.resultsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.resultsHead > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resultList,
+.queueList {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.resultRow,
+.queueRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 8px;
+}
+
+.resultRow:hover,
+.queueRow:hover {
+  background: var(--bg-hover);
+}
+
+.resultCurrent,
+.queueCurrent {
+  background: color-mix(in srgb, var(--cyan) 12%, transparent);
+}
+
+.result,
+.queueItem {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--text-1);
+}
+
+.thumb {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--bg-elevated);
+}
+
+.resultMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resultTitle,
+.resultSub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultTitle {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.resultSub {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.resultTime {
+  flex: none;
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Atrás / pausa / adelante ---------- */
+
+.transport {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time {
+  flex: none;
+  min-width: 34px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.seek,
+.volumeSlider {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+
+.seek:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.navBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+}
+
+.playBtn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  color: var(--on-accent, #071019);
+  background: var(--text-1);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+.playBtn:hover {
+  background: #fff;
+}
+
+.playBtn:active {
+  transform: scale(0.94);
+}
+
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 120px;
+  margin-left: 6px;
+}
+
+/* ---------- Cola ---------- */
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.queueList {
+  max-height: 200px;
+}
+
+.queuePast {
+  opacity: 0.55;
+}
+
+.queueNum {
+  flex: none;
+  width: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.queueCurrent .queueNum {
+  color: var(--cyan);
+}
+
+/* ---------- Luces (plegadas) ---------- */
+
+.lights > summary {
+  cursor: pointer;
+  padding: 4px 2px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.lights[open] > summary {
+  margin-bottom: 8px;
+}
+
+.lightsSummary {
+  font-weight: 500;
+}
+
+@media (max-width: 759.98px) {
+  .volume {
+    width: 96px;
+  }
+}
+
+/* Luces con el sonido real */
+.live {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* ---------- Minimizado: pequeño en una esquina, sigue sonando ---------- */
+/* YouTube exige que su reproductor siga a la vista y mida al menos 200 × 200. */
+.mini {
+  top: auto;
+  bottom: 16px;
+  left: 16px;
+  width: 236px;
+  max-height: none;
+  overflow: visible;
+  gap: 8px;
+  padding: 10px;
+}
+
+.mini .playerBox {
+  border-radius: 8px;
+}
+
+.mini .volume {
+  display: none;
+}
+
+.mini .buttons {
+  gap: 6px;
+}
+
+.miniHead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.miniTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.miniArtist {
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+/* ---------- Solo los botones: una barra con la carátula (el vídeo en pequeño, a la vista) ---------- */
+.bar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  width: auto;
+  gap: 8px;
+  padding: 6px 8px 6px 6px;
+}
+
+.bar .playerBox {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: auto;
+  border-radius: 8px;
+}
+
+/* El vídeo, recortado al centro como una carátula; los botones de YouTube no caben, así que no se tocan. */
+.bar .player {
+  left: 50%;
+  right: auto;
+  width: 79px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.bar .buttons {
+  gap: 4px;
+}
+
+.bar .navBtn {
+  width: 34px;
+  height: 34px;
+}
+
+.bar .playBtn {
+  width: 38px;
+  height: 38px;
+}
+
+/* Los avisos van debajo de la barra sin ensancharla. */
+.bar .error,
+.bar .note {
+  order: 1;
+  flex-basis: 100%;
+  contain: inline-size;
+}
+
+@media (max-width: 759.98px) {
+  .mini {
+    bottom: 10px;
+    left: 10px;
+  }
+}
+
+/* Tema Órbita: cristal esmerilado sobre el espacio. */
+:global(:root[data-theme='orbita']) .panel {
+  border-color: rgba(130, 185, 255, 0.3);
+  background: rgba(10, 18, 40, 0.52);
+  backdrop-filter: blur(24px) saturate(160%);
+}

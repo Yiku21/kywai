@@ -1,0 +1,27 @@
+node_modules/
+out/
+dist/
+workspace/
+*.log
+.DS_Store
+*.tsbuildinfo
+/release/
+
+# Credenciales y configuración local
+.env
+.env.*
+*.jks
+*.keystore
+*.pem
+android/local.properties
+
+# Entregas binarias e informes generados (las capturas de referencia sí se conservan)
+artifacts/*.apk
+artifacts/*.apk.sha256
+artifacts/*-tests.xml
+artifacts/*-results.xml
+artifacts/apk-runtime-check.txt
+artifacts/integracion-progreso.md
+
+# Copias de trabajo temporales de los agentes de Claude Code
+.claude/worktrees/
