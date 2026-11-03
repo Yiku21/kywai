@@ -1,0 +1,248 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  margin: 10px;
+  min-height: 56px;
+  padding: 8px 10px 8px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(var(--float-rgb, 11, 17, 28), 0.86);
+  backdrop-filter: blur(12px);
+  container-type: inline-size;
+  container-name: bottombar;
+}
+
+/* ---------- Estado ---------- */
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+.agents,
+.transfers {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.statusIcon {
+  flex: none;
+  color: var(--text-2);
+  transition: color var(--dur) var(--ease);
+}
+
+.transferOn {
+  color: var(--cyan);
+}
+
+.dots {
+  display: flex;
+  align-items: center;
+}
+
+.dotBtn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 26px;
+  border-radius: 6px;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.dotBtn:hover {
+  background: var(--bg-hover);
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--agent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--agent) 18%, transparent);
+  transition:
+    opacity var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+/* Trabajando: halo marcado (además del pulso, si los efectos están activos). */
+.dotBusy {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--agent) 30%, transparent);
+}
+
+/* No disponible: hueco y atenuado (forma distinta, no solo color). */
+.dotOff {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--agent) 55%, transparent);
+  opacity: 0.55;
+}
+
+.dotError {
+  box-shadow: 0 0 0 2px var(--alert);
+}
+
+.text {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.divider {
+  flex: none;
+  width: 1px;
+  height: 22px;
+  background: var(--border-strong);
+}
+
+/* ---------- Controles ---------- */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.ctl:hover {
+  color: var(--text-1);
+  background: var(--bg-hover);
+}
+
+.ctl:active {
+  background: var(--bg-active);
+}
+
+.ctl[aria-pressed='true'] {
+  color: var(--text-1);
+}
+
+.ctlPrimary {
+  color: var(--text-1);
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+.ctlPrimary:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+}
+
+.ctlIconOnly {
+  padding: 0 10px;
+}
+
+.ctlMuted {
+  color: var(--text-3);
+}
+
+.ctlDivider {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+@container bottombar (max-width: 1180px) {
+  .ctlLabelWide {
+    display: none;
+  }
+}
+
+@container bottombar (max-width: 860px) {
+  .ctlLabel {
+    display: none;
+  }
+  .ctl {
+    padding: 0 10px;
+  }
+}
+
+.short {
+  display: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+@container bottombar (max-width: 640px) {
+  .status {
+    gap: 10px;
+  }
+  .transfers .text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .transfers .short {
+    display: inline;
+  }
+}
+
+@container bottombar (max-width: 520px) {
+  .agents .text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .agents .short {
+    display: inline;
+  }
+  .ctlDivider {
+    display: none;
+  }
+  .ctl {
+    padding: 0 8px;
+  }
+}
+
+@container bottombar (max-width: 430px) {
+  .bar {
+    gap: 6px;
+    padding-left: 12px;
+  }
+  .dots,
+  .divider {
+    display: none;
+  }
+}
+
+/* Tema Órbita: cristal esmerilado sobre el espacio. */
+:global(:root[data-theme='orbita']) .bar {
+  border-color: rgba(130, 185, 255, 0.26);
+  background: rgba(8, 14, 32, 0.42);
+  box-shadow: inset 0 1px 0 rgba(190, 220, 255, 0.12);
+  backdrop-filter: blur(22px) saturate(160%);
+}

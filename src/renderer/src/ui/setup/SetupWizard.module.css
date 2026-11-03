@@ -1,0 +1,496 @@
+/* Asistente de configuración (ventana modal sobre toda la app) */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(var(--scrim-rgb, 3, 5, 14), 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: min(820px, calc(100vh - 40px));
+  max-height: min(820px, calc(100dvh - 40px));
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 24px 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  color: var(--text-1);
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+.close {
+  margin-left: auto;
+  flex: none;
+}
+
+.steps {
+  display: flex;
+  gap: 6px;
+  margin: 10px 24px 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  color: var(--text-3);
+  background: var(--bg-surface);
+  border: 1px solid transparent;
+}
+
+.stepNow {
+  color: var(--text-1);
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+}
+
+.stepDone {
+  color: var(--text-2);
+}
+
+.stepNum {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 650;
+  background: var(--bg-active);
+  color: var(--text-2);
+  flex: none;
+}
+
+.stepNow .stepNum {
+  background: var(--cyan);
+  color: var(--on-accent, #04121c);
+}
+
+.stepDone .stepNum {
+  background: var(--live-soft);
+  color: var(--live);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 24px 8px;
+}
+
+/* Paso 1: tarjetas de agentes */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  --agent: var(--cyan);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition:
+    border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+.cardOn {
+  border-color: color-mix(in srgb, var(--agent) 60%, transparent);
+  background: color-mix(in srgb, var(--agent) 7%, var(--bg-surface));
+}
+
+.cardMain {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: inherit;
+}
+
+.cardMain:hover {
+  background: var(--bg-hover);
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cardName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.tag {
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--agent);
+  background: color-mix(in srgb, var(--agent) 15%, transparent);
+}
+
+.cardWhat {
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.cardAccount {
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.check {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid var(--border-strong);
+  color: var(--on-accent, #04121c);
+}
+
+.checkOn {
+  border-color: var(--agent);
+  background: var(--agent);
+}
+
+.engines {
+  display: flex;
+  gap: 6px;
+  padding: 0 14px 12px 78px;
+}
+
+.engine {
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.engineOn {
+  border-color: var(--agent);
+  color: var(--text-1);
+  background: color-mix(in srgb, var(--agent) 14%, transparent);
+}
+
+/* Pasos 2 a 4: filas */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lead {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.sectionHead .lead {
+  flex: 1;
+}
+
+.muted {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.rowTall {
+  align-items: flex-start;
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rowName {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.rowDetail {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+
+.okText {
+  color: var(--live);
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.rowSpin {
+  margin-top: 4px;
+  color: var(--text-3);
+}
+
+.state {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.stateOk {
+  color: var(--live);
+  background: var(--live-soft);
+}
+
+.stateMissing {
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.okIcon {
+  color: var(--live);
+  flex: none;
+}
+
+.warnIcon {
+  color: var(--warn);
+  flex: none;
+}
+
+.allBtn {
+  align-self: flex-start;
+}
+
+.log {
+  margin: 0;
+  max-height: 210px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--code-bg, #05070f);
+  color: var(--code-text, #9fb0cf);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.keyForm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.keyIcon {
+  color: var(--text-3);
+  flex: none;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.localBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.error {
+  margin: 0 24px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--alert);
+  background: var(--alert-soft);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+@media (max-width: 560px) {
+  .steps {
+    display: none;
+  }
+  .engines {
+    padding-left: 14px;
+  }
+}
+
+/* Añadir y quitar agentes, y elegir quién coordina. */
+.tagSoft {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--bg-hover);
+}
+
+.cardTools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 10px;
+}
+
+.cardTool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.cardTool:hover {
+  color: var(--text-1);
+  background: var(--bg-hover);
+}
+
+.cardToolDanger {
+  color: var(--alert);
+  border-color: color-mix(in srgb, var(--alert) 55%, transparent);
+  background: var(--alert-soft);
+}
+
+.addCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  text-align: left;
+  border-style: dashed;
+  cursor: pointer;
+  color: var(--text-1);
+}
+
+.addCard:hover {
+  border-color: var(--cyan);
+}
+
+.addIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  color: var(--cyan);
+  background: var(--cyan-soft);
+}

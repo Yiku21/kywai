@@ -1,0 +1,226 @@
+.dialog {
+  width: min(760px, 100%);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 22px 0;
+}
+
+.note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.note code,
+.body code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.current {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 35%, transparent);
+  background: color-mix(in srgb, var(--cyan) 6%, var(--bg-surface));
+}
+
+.currentInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.currentLabel {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.currentModel {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+
+.currentSub {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.picker {
+  display: grid;
+  grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+@media (max-width: 620px) {
+  .picker {
+    grid-template-columns: 1fr;
+  }
+}
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.provider {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  text-align: left;
+  color: var(--text-2);
+}
+
+.provider:hover {
+  background: var(--bg-hover);
+}
+
+.providerOn {
+  border-color: var(--border-strong);
+  background: var(--bg-active);
+  color: var(--text-1);
+}
+
+.providerName {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.providerCount {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.models {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-3);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.modelList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.model {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.model:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+.modelPicked {
+  border-color: color-mix(in srgb, var(--cyan) 50%, transparent);
+  background: var(--cyan-soft);
+  color: var(--text-1);
+}
+
+.modelCurrent {
+  color: var(--live);
+}
+
+.saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--live);
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--alert);
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* La nota ocupa lo que sobra y el botón queda a la derecha aunque el nombre del modelo sea largo. */
+.foot .note {
+  display: block;
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.foot > button {
+  margin-left: auto;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,284 @@
+.header {
+  position: relative;
+  min-width: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 68px;
+  padding: 8px 20px;
+  background: var(--bg-app);
+}
+
+/* ---------- Marca ---------- */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+.divider {
+  flex: none;
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: var(--border-strong);
+}
+
+.team {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--text-2);
+  font-size: 14.5px;
+  white-space: nowrap;
+}
+
+.teamDot {
+  --pulse: var(--live);
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition:
+    background-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+/* Ocupado: verde + halo (no depende solo del color). */
+.teamDotBusy {
+  background: var(--live);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 22%, transparent);
+}
+
+.subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.demoPill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--demo);
+  background: var(--demo-soft);
+  border: 1px solid color-mix(in srgb, var(--demo) 40%, transparent);
+}
+
+/* ---------- Acciones ---------- */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.quotaBlock {
+  position: relative;
+  margin-right: 6px;
+}
+
+/* El rótulo flota sobre las cuotas: así los chips (40 px) quedan centrados con los botones de la derecha. */
+.quotaCaption {
+  position: absolute;
+  bottom: calc(100% + 1px);
+  left: 0;
+  font-size: 11.5px;
+  line-height: 12px;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+}
+
+.chipItem {
+  display: flex;
+}
+
+.headerBtn {
+  width: 40px;
+  height: 40px;
+  border-color: var(--border);
+  background: var(--bg-surface);
+}
+
+/* ---------- Selector Chat | Espacio (móvil) ---------- */
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 11px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+}
+
+.segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.segment:hover {
+  color: var(--text-1);
+}
+
+.segment[aria-pressed='true'] {
+  background: var(--bg-active);
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1099.98px) {
+  .subtitle {
+    display: none;
+  }
+  .team {
+    gap: 0;
+  }
+}
+
+@media (max-width: 899.98px) {
+  .header {
+    padding: 8px 14px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 759.98px) {
+  .header {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    min-height: 0;
+  }
+  .brand {
+    gap: 10px;
+  }
+  .title {
+    font-size: 17px;
+  }
+  .segmented {
+    order: 3;
+    flex: 1 0 100%;
+  }
+  .segment {
+    flex: 1;
+  }
+  .actions {
+    gap: 6px;
+  }
+  .headerBtn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 600px) {
+  .divider {
+    display: none;
+  }
+}
+
+/* Cuotas siempre a la vista y en una sola fila: en ventanas estrechas los chips se aprietan (hasta recortar el
+   nombre) en vez de plegarse en un botón o bajar de fila. */
+@media (max-width: 1149.98px) {
+  .header {
+    gap: 10px;
+  }
+  .actions {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 6px;
+  }
+  .headerBtn {
+    width: 36px;
+    height: 36px;
+  }
+  .quotaBlock {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-right: 0;
+  }
+  .chips {
+    gap: 4px;
+  }
+  .chipItem {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .chips .chipItem > * {
+    width: 100%;
+    min-width: 0;
+    padding: 0 7px;
+    overflow: hidden;
+  }
+  .chips .chipItem > * * {
+    font-size: 12px;
+  }
+}
+
+/* Muy estrecho: el nombre de la app cede su sitio a las cuotas (queda el logo). */
+@media (max-width: 999.98px) {
+  .title,
+  .divider {
+    display: none;
+  }
+  .chips .chipItem > * * {
+    font-size: 11.5px;
+  }
+}
+
+/*
+ * Tema Órbita: la cabecera es de cristal y deja ver el espacio difuminado. El cristal va en una capa aparte: con
+ * backdrop-filter en la propia cabecera, las ventanas que abre (fixed) se colocarían respecto a ella.
+ */
+:global(:root[data-theme='orbita']) .header {
+  background: transparent;
+}
+
+:global(:root[data-theme='orbita']) .header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(6, 12, 28, 0.55), rgba(6, 12, 28, 0.3));
+  border-bottom: 1px solid rgba(130, 185, 255, 0.14);
+  backdrop-filter: blur(20px) saturate(150%);
+}

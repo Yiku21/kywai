@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Órbita es siempre oscuro: el fondo de la ventana es el del mundo (sin destello blanco al abrir). -->
+    <style name="Theme.AICowork" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+</resources>

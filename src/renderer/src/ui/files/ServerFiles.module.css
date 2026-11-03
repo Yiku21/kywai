@@ -1,0 +1,254 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(var(--scrim-rgb, 3, 5, 14), 0.66);
+  backdrop-filter: blur(5px);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(780px, 100%);
+  height: min(640px, calc(100dvh - 40px));
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px 8px;
+}
+
+.headIcon {
+  margin-top: 3px;
+  color: var(--cyan);
+  flex: none;
+}
+
+.headText {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--text-1);
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.close {
+  margin-left: auto;
+  flex: none;
+}
+
+.roots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 20px 2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.chip:hover,
+.chipOn {
+  color: var(--text-1);
+  background: var(--bg-hover);
+  border-color: color-mix(in srgb, var(--cyan) 45%, transparent);
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 8px 20px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.up {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.up:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.crumbWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.crumb {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.crumb:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+.crumbLast {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 12px;
+  border-top: 1px solid var(--border);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.itemMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 9px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itemMain:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.itemMain:disabled {
+  color: var(--text-3);
+  cursor: default;
+}
+
+.dirIcon {
+  flex: none;
+  color: var(--cyan);
+}
+
+.fileIcon {
+  flex: none;
+  color: var(--text-3);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  flex: none;
+  min-width: 70px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.dl {
+  flex: none;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 18px 10px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.error {
+  margin: 0 20px 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--alert);
+  background: var(--alert-soft);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+@media (max-width: 600px) {
+  .meta:last-of-type {
+    display: none;
+  }
+}

@@ -1,0 +1,40 @@
+/*
+ * Tema Órbita: cristal azulado con brillos, como la app del móvil. Cambia las variables de tokens.css; el cristal de
+ * los paneles grandes está en sus propios estilos (:global(:root[data-theme='orbita']) …).
+ */
+:root[data-theme='orbita'] {
+  --bg-app: #050a17;
+  --bg-panel: rgba(14, 24, 48, 0.58);
+  --bg-surface: rgba(28, 44, 78, 0.5);
+  --bg-elevated: rgba(22, 36, 66, 0.94);
+  --bg-hover: rgba(110, 170, 255, 0.1);
+  --bg-active: rgba(110, 170, 255, 0.16);
+  --bg-input: rgba(8, 16, 34, 0.62);
+
+  --border: rgba(110, 165, 255, 0.2);
+  --border-strong: rgba(130, 185, 255, 0.36);
+  --border-focus: rgba(92, 200, 255, 0.75);
+
+  --text-1: #eef4ff;
+  --text-2: #b0c0dc;
+  --text-3: #7488aa;
+
+  --cyan: #5cc8ff;
+  --cyan-soft: rgba(92, 200, 255, 0.16);
+
+  --radius-panel: 20px;
+  --radius-card: 14px;
+  --radius-ctl: 12px;
+
+  --shadow-pop: 0 18px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(120, 175, 255, 0.18), 0 0 32px rgba(70, 140, 255, 0.18);
+  --glow: 0 0 0 1px rgba(120, 175, 255, 0.08) inset, 0 0 34px rgba(64, 132, 255, 0.22), 0 14px 44px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme='orbita'] body {
+  background:
+    radial-gradient(1100px 700px at 72% -12%, rgba(70, 120, 255, 0.2), transparent 62%),
+    radial-gradient(900px 640px at -6% 108%, rgba(96, 70, 220, 0.18), transparent 60%),
+    radial-gradient(700px 420px at 30% 40%, rgba(40, 150, 255, 0.07), transparent 70%),
+    var(--bg-app);
+  background-attachment: fixed;
+}

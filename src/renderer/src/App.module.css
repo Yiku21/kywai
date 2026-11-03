@@ -1,0 +1,203 @@
+.app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  /* En el móvil, 100vh incluye la zona que tapa la barra del navegador: dvh es la altura visible real. */
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--bg-app);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(340px, 28%) minmax(0, 1fr);
+  gap: 14px;
+  padding: 0 14px 14px;
+  min-height: 0;
+  transition: grid-template-columns var(--dur-slow) var(--ease), gap var(--dur-slow) var(--ease);
+}
+
+.body[data-expanded='true'] {
+  grid-template-columns: 0 minmax(0, 1fr);
+  gap: 0;
+}
+
+.left {
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+  transition: opacity var(--dur-slow) var(--ease);
+}
+
+.body[data-expanded='true'] .left {
+  opacity: 0;
+  pointer-events: none;
+  border-width: 0;
+}
+
+.space {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 0 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--stage, #050913);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 8%, transparent);
+}
+
+.stage canvas {
+  display: block;
+  outline: none;
+}
+
+/* El modo Demo se distingue visualmente de los datos reales. */
+.space[data-demo='true'] .stage {
+  box-shadow: inset 0 0 0 1px rgba(245, 177, 61, 0.42);
+}
+
+.demoRibbon {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--badge-bg, rgba(30, 20, 4, 0.78));
+  border: 1px solid rgba(245, 177, 61, 0.45);
+  color: var(--badge-text, #ffd38a);
+  font-size: 11.5px;
+  font-weight: 500;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+
+@media (max-width: 1100px) {
+  .body {
+    grid-template-columns: minmax(300px, 36%) minmax(0, 1fr);
+    gap: 10px;
+    padding: 0 10px 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  .body,
+  .body[data-expanded='true'] {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .body[data-mobile='chat'] .space {
+    display: none;
+  }
+  .body[data-mobile='space'] .left {
+    display: none;
+  }
+  .body[data-expanded='true'] .left {
+    opacity: 1;
+    pointer-events: auto;
+    border-width: 1px;
+  }
+}
+
+/* ---------- Tema Órbita: cristal esmerilado sobre el espacio ---------- */
+
+/* El espacio 3D ocupa toda la ventana, detrás de la interfaz. */
+.world {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.world canvas {
+  display: block;
+  outline: none;
+}
+
+:global(:root[data-theme='orbita']) .app {
+  background: transparent;
+}
+
+/*
+ * El chat deja ver el espacio difuminado detrás. El cristal va en una capa aparte (::before): con backdrop-filter en
+ * el propio panel, lo que se abre dentro con position: fixed quedaría encerrado en él.
+ */
+:global(:root[data-theme='orbita']) .left {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border-color: rgba(130, 185, 255, 0.32);
+  box-shadow: inset 0 1px 0 rgba(190, 220, 255, 0.16), 0 0 30px rgba(64, 132, 255, 0.16), 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
+:global(:root[data-theme='orbita']) .left::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(20, 34, 66, 0.42), rgba(6, 12, 28, 0.5));
+  backdrop-filter: blur(26px) saturate(160%);
+}
+
+/* La zona del espacio es una ventana al mundo: transparente y sin marco (solo sus barras son de cristal). */
+:global(:root[data-theme='orbita']) .space {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+:global(:root[data-theme='orbita']) .space > * {
+  pointer-events: auto;
+}
+
+:global(:root[data-theme='orbita']) .stage {
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+:global(:root[data-theme='orbita']) .stage > * {
+  pointer-events: auto;
+}
+
+/* ---------- Navidad: nieve en el borde de arriba de los paneles ---------- */
+
+:global(:root[data-theme='navidad']) .left,
+:global(:root[data-theme='navidad']) .space {
+  position: relative;
+}
+
+:global(:root[data-theme='navidad']) .left::after,
+:global(:root[data-theme='navidad']) .space::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 13px;
+  z-index: 6;
+  pointer-events: none;
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 20' preserveAspectRatio='none'%3E%3Cpath d='M0 0H200V7Q192 13 182 8Q172 3 162 10Q151 17 140 9Q131 3 119 11Q107 18 96 9Q87 3 75 10Q63 17 51 9Q41 3 31 11Q21 17 11 9Q5 5 0 8Z' fill='%23eef4fa'/%3E%3C/svg%3E")
+    repeat-x 0 0 / 200px 13px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}

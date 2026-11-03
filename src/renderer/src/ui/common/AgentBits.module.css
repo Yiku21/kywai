@@ -1,0 +1,62 @@
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  line-height: 0;
+}
+
+.avatar svg {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  max-width: 100%;
+  padding: 0 10px 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--agent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--agent) 22%, transparent);
+  color: color-mix(in srgb, var(--agent) 55%, var(--text-1));
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sm {
+  height: 22px;
+  gap: 5px;
+  padding: 0 8px 0 4px;
+  font-size: 12px;
+}
+
+.pillRobot {
+  display: inline-grid;
+  place-items: center;
+  line-height: 0;
+  flex: none;
+}
+
+.pillName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dot,
+.dotStandalone {
+  display: inline-block;
+  flex: none;
+  border-radius: 50%;
+  background: var(--agent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--agent) 22%, transparent);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+}

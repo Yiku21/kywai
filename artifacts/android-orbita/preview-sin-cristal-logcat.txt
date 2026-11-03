@@ -1,0 +1,4 @@
+10-11 18:00:09.642  6499  6518 I SpaceRenderer: Contexto OpenGL nuevo (OpenGL ES 3.1 (4.5.0 Core Profile Context 26.8.1.260810)): recursos de la GPU rehechos; el mundo sigue en t=0.00 s con 0 robots
+10-11 18:00:09.644  6499  6518 I SpaceRenderer: Superficie de 1848×2448 (t=0.00 s, 0 robots)
+10-11 18:00:18.499  6499  6518 I SpaceRenderer: Superficie de 1248×1972 (t=8.11 s, 6 robots)
+10-11 18:00:27.138  6499  6518 I SpaceRenderer: Superficie de 1848×2448 (t=16.85 s, 6 robots)

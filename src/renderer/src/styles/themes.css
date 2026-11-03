@@ -1,0 +1,359 @@
+/*
+ * Temas con la distribución del clásico y sus propios colores (⋮ → «Temas…»): Marfil, Grafito, Bosque, Matrix,
+ * EVA-01, Relicario, Telar, Halloween y Navidad (estos cuatro, además, con decoración en el espacio). Cambian las variables de tokens.css y las de los estilos que tienen un valor de reserva (var(--x, clásico)).
+ * Los colores del espacio digital están en scene/palette.ts.
+ */
+
+/* ---------- Marfil: claro y cálido, con verde y oro ---------- */
+:root[data-theme='marfil'] {
+  --bg-app: #e9e3d6;
+  --bg-panel: #f6f2ea;
+  --bg-surface: #fbf8f2;
+  --bg-elevated: #ffffff;
+  --bg-hover: rgba(70, 58, 34, 0.06);
+  --bg-active: rgba(47, 143, 104, 0.12);
+  --bg-input: #fffdf8;
+
+  --line-rgb: 90, 78, 54;
+  --wash-rgb: 70, 58, 34;
+  --border: rgba(90, 78, 54, 0.14);
+  --border-strong: rgba(90, 78, 54, 0.26);
+
+  --text-1: #26231d;
+  --text-2: #5a5446;
+  --text-3: #8a8270;
+
+  --cyan: #2f8f68;
+  --live: #1f9d5a;
+  --demo: #b4761a;
+  --warn: #b4761a;
+  --alert: #cf3448;
+
+  --float-rgb: 250, 247, 240;
+  --popover-rgb: 255, 253, 248;
+  --bubble-rgb: 255, 255, 255;
+  --label-rgb: 253, 250, 244;
+  --scrim-rgb: 60, 52, 36;
+  --stage: #ece7dc;
+  --code-bg: #f1ece1;
+  --code-text: #2f2b23;
+  --accent-text: #1c5a41;
+  --on-accent: #ffffff;
+  --send-hover: #000000;
+  --mix-to: #000000;
+  --alert-text: #b0223a;
+  --label-text: #26231d;
+  --label-dim: #6c6555;
+  --label-ok: #1d8a52;
+  --avatar-bg: linear-gradient(160deg, #ebe4d5, #d9cfbb);
+  --logo-bg: linear-gradient(160deg, #ffffff, #ede5d6);
+  --hover-mix: #d9cfbb;
+  --title-shadow: none;
+  --badge-bg: rgba(255, 246, 226, 0.92);
+  --badge-text: #8a5a10;
+
+  --shadow-pop: 0 18px 50px rgba(70, 58, 34, 0.2), 0 2px 8px rgba(70, 58, 34, 0.12);
+  color-scheme: light;
+}
+
+/* ---------- Grafito: negro neutro con oro ---------- */
+:root[data-theme='grafito'] {
+  --bg-app: #0a0a0c;
+  --bg-panel: #121315;
+  --bg-surface: #18191c;
+  --bg-elevated: #1f2024;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(224, 163, 74, 0.1);
+  --bg-input: #0f1012;
+
+  --line-rgb: 205, 200, 190;
+  --border: rgba(205, 200, 190, 0.09);
+  --border-strong: rgba(205, 200, 190, 0.17);
+
+  --text-1: #edebe7;
+  --text-2: #aba79f;
+  --text-3: #76736c;
+
+  --cyan: #e0a34a;
+
+  --float-rgb: 18, 19, 21;
+  --popover-rgb: 26, 27, 30;
+  --bubble-rgb: 31, 32, 36;
+  --label-rgb: 16, 17, 19;
+  --scrim-rgb: 3, 3, 4;
+  --stage: #0c0d0f;
+  --code-bg: #08080a;
+  --code-text: #ddd9d1;
+  --accent-text: #ffe7c2;
+  --on-accent: #1c1306;
+  --label-text: #edebe7;
+  --label-dim: #a29e96;
+  --avatar-bg: linear-gradient(160deg, #2d2e32, #1b1c1f);
+  --logo-bg: linear-gradient(160deg, #27282c, #121315);
+  --hover-mix: #36383d;
+}
+
+/* ---------- Bosque: verde profundo con oro ---------- */
+:root[data-theme='bosque'] {
+  --bg-app: #06100b;
+  --bg-panel: #0b1812;
+  --bg-surface: #102219;
+  --bg-elevated: #152d21;
+  --bg-hover: rgba(160, 230, 190, 0.06);
+  --bg-active: rgba(212, 175, 90, 0.11);
+  --bg-input: #091510;
+
+  --line-rgb: 160, 215, 180;
+  --border: rgba(160, 215, 180, 0.1);
+  --border-strong: rgba(160, 215, 180, 0.18);
+
+  --text-1: #e8f3ec;
+  --text-2: #a6c3b1;
+  --text-3: #6b8a77;
+
+  --cyan: #d4af5a;
+
+  --float-rgb: 11, 24, 18;
+  --popover-rgb: 16, 34, 25;
+  --bubble-rgb: 20, 42, 31;
+  --label-rgb: 10, 22, 16;
+  --scrim-rgb: 2, 8, 5;
+  --stage: #07120d;
+  --code-bg: #050e09;
+  --code-text: #d3e8db;
+  --accent-text: #fff0c9;
+  --on-accent: #1a1405;
+  --label-text: #e8f3ec;
+  --label-dim: #9dbba8;
+  --avatar-bg: linear-gradient(160deg, #25402f, #15281d);
+  --logo-bg: linear-gradient(160deg, #1d3427, #0c1913);
+  --hover-mix: #2a4535;
+}
+
+/* ---------- Matrix: negro y verde neón ---------- */
+:root[data-theme='matrix'] {
+  --bg-app: #000000;
+  --bg-panel: #030a05;
+  --bg-surface: #061108;
+  --bg-elevated: #0a190e;
+  --bg-hover: rgba(43, 255, 106, 0.06);
+  --bg-active: rgba(43, 255, 106, 0.12);
+  --bg-input: #020803;
+
+  --line-rgb: 43, 255, 106;
+  --border: rgba(43, 255, 106, 0.16);
+  --border-strong: rgba(43, 255, 106, 0.3);
+
+  --text-1: #c9ffd8;
+  --text-2: #70d991;
+  --text-3: #3d8b56;
+
+  --cyan: #2bff6a;
+  --live: #2bff6a;
+
+  --float-rgb: 2, 10, 4;
+  --popover-rgb: 3, 14, 6;
+  --bubble-rgb: 4, 20, 9;
+  --label-rgb: 1, 8, 3;
+  --scrim-rgb: 0, 0, 0;
+  --stage: #010502;
+  --code-bg: #000000;
+  --code-text: #8dffb0;
+  --accent-text: #d6ffe2;
+  --on-accent: #001a07;
+  --label-text: #c9ffd8;
+  --label-dim: #5fbf7d;
+  --avatar-bg: linear-gradient(160deg, #0b2a14, #04140a);
+  --logo-bg: linear-gradient(160deg, #08200f, #020a04);
+  --hover-mix: #0f3a1c;
+
+  --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.7), 0 0 24px rgba(43, 255, 106, 0.12);
+}
+
+/* ---------- EVA-01: morado y verde lima ---------- */
+:root[data-theme='eva'] {
+  --bg-app: #110620;
+  --bg-panel: #190b2d;
+  --bg-surface: #21113a;
+  --bg-elevated: #291646;
+  --bg-hover: rgba(200, 170, 255, 0.07);
+  --bg-active: rgba(166, 255, 58, 0.1);
+  --bg-input: #140826;
+
+  --line-rgb: 190, 160, 255;
+  --border: rgba(190, 160, 255, 0.12);
+  --border-strong: rgba(190, 160, 255, 0.22);
+
+  --text-1: #f2ebff;
+  --text-2: #c0b0e0;
+  --text-3: #8a78ad;
+
+  --cyan: #a6ff3a;
+  --warn: #ff8a1f;
+
+  --float-rgb: 25, 11, 45;
+  --popover-rgb: 33, 17, 58;
+  --bubble-rgb: 41, 22, 70;
+  --label-rgb: 22, 10, 40;
+  --scrim-rgb: 8, 3, 16;
+  --stage: #130822;
+  --code-bg: #0d0518;
+  --code-text: #e2d6ff;
+  --accent-text: #efffd6;
+  --on-accent: #142000;
+  --label-text: #f2ebff;
+  --label-dim: #b6a3d8;
+  --avatar-bg: linear-gradient(160deg, #3d2566, #26143f);
+  --logo-bg: linear-gradient(160deg, #3a2360, #1c0e32);
+  --hover-mix: #4a2d78;
+}
+
+/* ---------- Relicario: cristal oscuro y oro ---------- */
+:root[data-theme='relicario'] {
+  --bg-app: #07080a;
+  --bg-panel: #101216;
+  --bg-surface: #16191e;
+  --bg-elevated: #1d2027;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(232, 194, 122, 0.11);
+  --bg-input: #0d0f12;
+
+  --line-rgb: 210, 215, 228;
+  --border: rgba(210, 215, 228, 0.1);
+  --border-strong: rgba(210, 215, 228, 0.19);
+
+  --text-1: #eef0f4;
+  --text-2: #adb2be;
+  --text-3: #767c88;
+
+  --cyan: #e8c27a;
+
+  --float-rgb: 16, 18, 22;
+  --popover-rgb: 24, 27, 33;
+  --bubble-rgb: 29, 32, 39;
+  --label-rgb: 14, 16, 20;
+  --scrim-rgb: 3, 3, 5;
+  --stage: #07080b;
+  --code-bg: #08090b;
+  --code-text: #dfe2e8;
+  --accent-text: #fff0cc;
+  --on-accent: #1c1406;
+  --label-text: #eef0f4;
+  --label-dim: #a6abb6;
+  --avatar-bg: linear-gradient(160deg, #2c2f37, #1a1c22);
+  --logo-bg: linear-gradient(160deg, #262930, #111317);
+  --hover-mix: #353944;
+}
+
+/* ---------- Telar: pizarra con hilos de plata ---------- */
+:root[data-theme='telar'] {
+  --bg-app: #0a0b0f;
+  --bg-panel: #111319;
+  --bg-surface: #171a21;
+  --bg-elevated: #1e212a;
+  --bg-hover: rgba(200, 208, 228, 0.06);
+  --bg-active: rgba(184, 196, 224, 0.12);
+  --bg-input: #0d0f14;
+
+  --line-rgb: 200, 208, 228;
+  --border: rgba(200, 208, 228, 0.11);
+  --border-strong: rgba(200, 208, 228, 0.2);
+
+  --text-1: #eef0f6;
+  --text-2: #acb2c2;
+  --text-3: #737a8c;
+
+  --cyan: #b8c4e0;
+
+  --float-rgb: 17, 19, 25;
+  --popover-rgb: 25, 28, 36;
+  --bubble-rgb: 30, 33, 42;
+  --label-rgb: 15, 17, 22;
+  --scrim-rgb: 4, 4, 7;
+  --stage: #0b0c10;
+  --code-bg: #090a0d;
+  --code-text: #dde1ea;
+  --accent-text: #f2f5ff;
+  --on-accent: #10131c;
+  --label-text: #eef0f6;
+  --label-dim: #a3aabb;
+  --avatar-bg: linear-gradient(160deg, #2d313c, #1b1e25);
+  --logo-bg: linear-gradient(160deg, #272a33, #121419);
+  --hover-mix: #363a47;
+}
+
+/* ---------- Halloween: noche morada y naranja ---------- */
+:root[data-theme='halloween'] {
+  --bg-app: #0b0610;
+  --bg-panel: #130c19;
+  --bg-surface: #1a1122;
+  --bg-elevated: #22162b;
+  --bg-hover: rgba(255, 170, 110, 0.06);
+  --bg-active: rgba(255, 138, 31, 0.12);
+  --bg-input: #100a15;
+
+  --line-rgb: 220, 190, 230;
+  --border: rgba(220, 190, 230, 0.1);
+  --border-strong: rgba(220, 190, 230, 0.19);
+
+  --text-1: #f6eef4;
+  --text-2: #c2b0bf;
+  --text-3: #87768a;
+
+  --cyan: #ff8a1f;
+  --warn: #ffc15a;
+
+  --float-rgb: 19, 12, 25;
+  --popover-rgb: 28, 18, 36;
+  --bubble-rgb: 34, 22, 43;
+  --label-rgb: 17, 10, 22;
+  --scrim-rgb: 6, 2, 9;
+  --stage: #0d0714;
+  --code-bg: #0b0610;
+  --code-text: #ecdfe8;
+  --accent-text: #ffe2c4;
+  --on-accent: #1f0d00;
+  --label-text: #f6eef4;
+  --label-dim: #b8a5b6;
+  --avatar-bg: linear-gradient(160deg, #3a2440, #22152a);
+  --logo-bg: linear-gradient(160deg, #33203a, #170e1d);
+  --hover-mix: #43294c;
+}
+
+/* ---------- Navidad: verde abeto, oro y rojo ---------- */
+:root[data-theme='navidad'] {
+  --bg-app: #07110f;
+  --bg-panel: #0d1a18;
+  --bg-surface: #12231f;
+  --bg-elevated: #172c27;
+  --bg-hover: rgba(200, 235, 220, 0.06);
+  --bg-active: rgba(240, 192, 80, 0.12);
+  --bg-input: #0a1513;
+
+  --line-rgb: 190, 225, 210;
+  --border: rgba(190, 225, 210, 0.1);
+  --border-strong: rgba(190, 225, 210, 0.19);
+
+  --text-1: #eef6f2;
+  --text-2: #aac2b8;
+  --text-3: #6f8a80;
+
+  --cyan: #f0c050;
+  --alert: #ff5a5a;
+
+  --float-rgb: 13, 26, 24;
+  --popover-rgb: 18, 36, 32;
+  --bubble-rgb: 22, 43, 38;
+  --label-rgb: 11, 23, 21;
+  --scrim-rgb: 2, 7, 6;
+  --stage: #0a1220;
+  --code-bg: #071010;
+  --code-text: #dceee6;
+  --accent-text: #fff1c8;
+  --on-accent: #1f1600;
+  --label-text: #eef6f2;
+  --label-dim: #a0bab0;
+  --avatar-bg: linear-gradient(160deg, #24423a, #142824);
+  --logo-bg: linear-gradient(160deg, #1f3a33, #0d1a18);
+  --hover-mix: #2b4a42;
+}

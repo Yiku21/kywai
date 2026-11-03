@@ -1,0 +1,223 @@
+.bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px 8px 18px;
+  container-type: inline-size;
+  container-name: spaceheader;
+}
+
+.titleWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.titleIcon {
+  flex: none;
+  color: var(--text-2);
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text-1);
+  white-space: nowrap;
+  text-shadow: var(--title-shadow, 0 1px 8px rgba(0, 0, 0, 0.6));
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  min-width: 0;
+}
+
+/* ---------- Píldoras de estado ---------- */
+
+.pill {
+  --c: var(--live);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--c) 80%, var(--mix-to, #fff));
+  background: color-mix(in srgb, var(--c) 10%, rgba(var(--float-rgb, 11, 17, 28), 0.85));
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+
+.pillLive {
+  --c: var(--live);
+}
+
+.pillDemo {
+  --c: var(--demo);
+}
+
+.pillDot {
+  --pulse: var(--c);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--c);
+}
+
+.pillShort {
+  display: none;
+}
+
+/* ---------- Música ---------- */
+
+.music {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: rgba(var(--float-rgb, 11, 17, 28), 0.85);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.music:hover {
+  color: var(--text-1);
+  border-color: var(--border-strong);
+}
+
+.musicOn {
+  color: var(--accent-text, #dff7ff);
+  background: color-mix(in srgb, var(--cyan) 14%, rgba(var(--float-rgb, 11, 17, 28), 0.85));
+  border-color: color-mix(in srgb, var(--cyan) 40%, transparent);
+}
+
+.musicDot {
+  --pulse: var(--cyan);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+}
+
+/* ---------- Controles de la demo ---------- */
+
+.demo {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 2px 0 10px;
+  border-radius: 10px;
+  background: rgba(var(--float-rgb, 11, 17, 28), 0.85);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+
+.scene {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 240px;
+  margin-right: 6px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sceneDot {
+  --pulse: var(--demo);
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--demo);
+}
+
+.ctl {
+  width: 26px;
+  height: 26px;
+}
+
+@container spaceheader (max-width: 620px) {
+  .scene {
+    display: none;
+  }
+  .demo {
+    padding-left: 2px;
+  }
+  .pillLong {
+    display: none;
+  }
+  .pillShort {
+    display: inline;
+  }
+  .musicLabel {
+    display: none;
+  }
+  .music {
+    padding: 0 9px;
+  }
+}
+
+@container spaceheader (max-width: 420px) {
+  .title {
+    font-size: 16px;
+  }
+}
+
+@container spaceheader (max-width: 400px) {
+  .titleIcon,
+  .pill {
+    display: none;
+  }
+  .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Tema Órbita: barra de cristal sobre el espacio. */
+:global(:root[data-theme='orbita']) .bar {
+  margin: 10px 10px 0;
+  border-radius: 14px;
+  border: 1px solid rgba(130, 185, 255, 0.26);
+  box-shadow: inset 0 1px 0 rgba(190, 220, 255, 0.12);
+}
+
+/* El cristal, en una capa aparte (lo que se abra desde la barra se sigue colocando respecto a la ventana). */
+:global(:root[data-theme='orbita']) .bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(8, 14, 32, 0.42);
+  backdrop-filter: blur(22px) saturate(160%);
+}

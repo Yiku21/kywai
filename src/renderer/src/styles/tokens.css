@@ -1,0 +1,139 @@
+/* Tokens de diseño de AI Cowork. Toda la interfaz usa estas variables. */
+:root {
+  --bg-app: #060a12;
+  --bg-panel: #0b111c;
+  --bg-surface: #101828;
+  --bg-elevated: #152033;
+  --bg-hover: rgba(140, 180, 255, 0.06);
+  --bg-active: rgba(140, 180, 255, 0.1);
+  --bg-input: #0d1422;
+
+  --border: rgba(var(--line-rgb, 150, 180, 230), 0.09);
+  --border-strong: rgba(var(--line-rgb, 150, 180, 230), 0.16);
+  --border-focus: color-mix(in srgb, var(--cyan) 55%, transparent);
+
+  --text-1: #e9eef8;
+  --text-2: #a3b0c6;
+  --text-3: #6b7890;
+
+  --cyan: #38d6ff;
+  --cyan-soft: color-mix(in srgb, var(--cyan) 12%, transparent);
+  --live: #2fd27a;
+  --live-soft: rgba(47, 210, 122, 0.12);
+  --demo: #f5b13d;
+  --demo-soft: rgba(245, 177, 61, 0.12);
+  --warn: #ffb547;
+  --warn-soft: rgba(255, 181, 71, 0.14);
+  --alert: #ff5468;
+  --alert-soft: rgba(255, 84, 104, 0.14);
+
+  --c-gemini: #2a7bff;
+  --c-qwen: #8a55ff;
+  --c-claude: #ff7a1f;
+  --c-codex: #21c07c;
+  --c-sub: #ffc21a;
+
+  --radius-panel: 16px;
+  --radius-card: 12px;
+  --radius-ctl: 10px;
+  --radius-chip: 8px;
+
+  --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
+
+  --font: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 380ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+    --dur-slow: 0ms;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* Sin el «rebote» del móvil que desplaza toda la app al arrastrar. */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--text-1);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible,
+textarea:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--cyan) 28%, transparent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--line-rgb, 150, 180, 230), 0.14);
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--line-rgb, 150, 180, 230), 0.24);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -1,0 +1,5899 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "AI Cowork Mobile API",
+    "version": "1.0.0",
+    "description": "Capa móvil del servidor existente. Fuente de verdad compartida con Electron y la interfaz web. Cuerpos POST JSON estrictos, máximo 256 KiB. Fechas del dominio: milisegundos Unix; expiresAt: ISO-8601. Véase README.md para TLS y sincronización."
+  },
+  "servers": [
+    {
+      "url": "https://{host}:{port}",
+      "description": "HTTPS propio existente (puerto web + 1), usando el certificado confirmado explícitamente por el cliente.",
+      "variables": {
+        "host": {
+          "default": "127.0.0.1"
+        },
+        "port": {
+          "default": "8788"
+        }
+      }
+    },
+    {
+      "url": "https://{tailscaleHost}",
+      "description": "Dirección HTTPS de Tailscale Serve ya configurada.",
+      "variables": {
+        "tailscaleHost": {
+          "default": "equipo.red.ts.net"
+        }
+      }
+    },
+    {
+      "url": "http://127.0.0.1:{port}",
+      "description": "HTTP local para pruebas; no desactivar TLS en clientes remotos.",
+      "variables": {
+        "port": {
+          "default": "8787"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "name": "Mobile",
+      "description": "Contrato móvil v1."
+    }
+  ],
+  "security": [
+    {
+      "mobileBearer": []
+    }
+  ],
+  "paths": {
+    "/api/mobile/v1/pair": {
+      "post": {
+        "operationId": "pairMobileDevice",
+        "summary": "Emparejar con el código de acceso web actual",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "429": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairRequest"
+              }
+            }
+          }
+        },
+        "security": [],
+        "description": "Token opaco firmado. No caduca (expiresAt, a 100 años, solo por compatibilidad) y sobrevive a reinicios y actualizaciones; generar un código de acceso nuevo revoca los tokens emitidos."
+      }
+    },
+    "/api/mobile/v1/snapshot": {
+      "get": {
+        "operationId": "getMobileSnapshot",
+        "summary": "Leer el estado actual sin modificarlo",
+        "description": "tasks[].trace lleva solo las 40 últimas entradas (traceCount = total; el resto en GET /tasks/{taskId}/trace). usage.runs lleva las 100 ejecuciones más recientes; totals y byAgent cubren todas.",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            },
+            "description": "Proyecto existente; si se omite, se elige el actualizado más recientemente."
+          }
+        ]
+      }
+    },
+    "/api/mobile/v1/chat/messages": {
+      "post": {
+        "operationId": "sendMobileMessage",
+        "summary": "Enviar texto con reintentos idempotentes",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "202": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "description": "conversationId=null selecciona el proyecto más reciente; busca previamente el clientMessageId en todos los proyectos. El identificador persiste en el mensaje del almacén original. Reutilizarlo con otro texto devuelve 409. Un reintento aceptado también devuelve 202. attachmentIds (opcional, hasta 20) adjunta al mensaje adjuntos que ya están en la conversación; un reintento con el mismo clientMessageId y texto devuelve el recibo original sin volver a comprobarlos."
+      }
+    },
+    "/api/mobile/v1/conversations": {
+      "post": {
+        "operationId": "createMobileConversation",
+        "summary": "Crear un proyecto/conversación mediante el almacén existente",
+        "description": "Acepta {} o {\"name\":\"…\"} (name: 1–120 caracteres no vacío; se quitan los espacios de los extremos). Sin name se llama «Conversación móvil».",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "201": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/requests/{requestId}/stop": {
+      "post": {
+        "operationId": "stopMobileRequest",
+        "summary": "Detener tareas de forma reanudable",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestControl"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "Repetir stop sobre una petición cancelada o resume sobre una activa devuelve 200. La cancelación definitiva de escritorio se conserva. Reanudar una petición sin tareas interrumpidas devuelve 409."
+      }
+    },
+    "/api/mobile/v1/requests/{requestId}/resume": {
+      "post": {
+        "operationId": "resumeMobileRequest",
+        "summary": "Reanudar tareas interrumpidas de la misma petición",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestControl"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "Repetir stop sobre una petición cancelada o resume sobre una activa devuelve 200. La cancelación definitiva de escritorio se conserva. Reanudar una petición sin tareas interrumpidas devuelve 409."
+      }
+    },
+    "/api/mobile/v1/requests/{requestId}/discard": {
+      "post": {
+        "operationId": "discardMobileRequest",
+        "summary": "Quitar las tareas en pausa de una petición sin reanudarlas",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestControl"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "description": "Las tareas interrumpidas pasan a canceladas por el usuario y dejan de ofrecerse para reanudar; lo terminado se queda. Devuelve 409 si la petición está en marcha o no tiene tareas en pausa."
+      }
+    },
+    "/api/mobile/v1/plans/{messageId}/approve": {
+      "post": {
+        "operationId": "approveMobilePlan",
+        "summary": "Dar el visto bueno al plan propuesto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationIdRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDecision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "messageId es el mensaje del coordinador con proposal.status = pending. Crea las tareas y empiezan (message.upsert con taskIds y proposal.status = approved, run.started, task.upsert). También desde el chat: responder solo «sí», «ok, adelante»… lo aprueba; cualquier otra respuesta se toma como cambios y el coordinador propone otro plan (el anterior pasa a revised). 404 PLAN_NOT_FOUND; 409 PLAN_NOT_PENDING si ya se aprobó, descartó o cambió."
+      }
+    },
+    "/api/mobile/v1/plans/{messageId}/reject": {
+      "post": {
+        "operationId": "rejectMobilePlan",
+        "summary": "Descartar el plan propuesto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationIdRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDecision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "No se hace nada: el mensaje pasa a proposal.status = rejected (message.upsert). 404 PLAN_NOT_FOUND; 409 PLAN_NOT_PENDING."
+      }
+    },
+    "/api/mobile/v1/events": {
+      "get": {
+        "operationId": "openMobileEvents",
+        "summary": "Abrir un WebSocket autenticado con Bearer en las cabeceras",
+        "tags": [
+          "Mobile"
+        ],
+        "description": "Requiere Upgrade WebSocket RFC 6455 versión 13. HTTP normal devuelve 426. Cada mensaje de texto es EventEnvelope. El primer hello anuncia bootId y el watermark; después las secuencias aumentan en uno, comunes a todos los sockets. No hay replay: conectar, cargar snapshot y aplicar eventos posteriores a snapshot.sequence. En reconexión/hueco/cambio de bootId, sincronizar otra vez. Eventos de todos los proyectos: filtrar por projectId/conversationId. usage.run se expone como usage.updated con payload.usage (runs recortado a las 100 más recientes, como en snapshot). attachments.updated (payload AttachmentsUpdatedPayload: projectId, conversationId y la lista completa de adjuntos) se emite al cambiar los adjuntos de un proyecto: subida desde el móvil o mensaje con adjuntos desde el escritorio. El canal solo admite control ping/pong/close; los comandos usan HTTP.",
+        "responses": {
+          "101": {
+            "description": "WebSocket abierto; eventos JSON descritos por x-websocket."
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "426": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "x-websocket": {
+          "message": {
+            "$ref": "#/components/schemas/EventEnvelope"
+          },
+          "authentication": "Authorization: Bearer <accessToken>",
+          "heartbeatMs": 20000,
+          "replay": false,
+          "maxBufferedBytes": 1048576
+        }
+      }
+    },
+    "/api/mobile/v1/projects": {
+      "get": {
+        "operationId": "listMobileProjects",
+        "summary": "Proyectos/conversaciones, del más reciente al más antiguo",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Mismo formato que snapshot.projects. No admite parámetros de consulta."
+      }
+    },
+    "/api/mobile/v1/tasks/{taskId}/trace": {
+      "get": {
+        "operationId": "getMobileTaskTrace",
+        "summary": "Registro completo de una tarea",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Busca la tarea en todos los proyectos. 404 TASK_NOT_FOUND si no está en ninguno. Las entradas nuevas siguen llegando por el evento task.trace."
+      }
+    },
+    "/api/mobile/v1/memory": {
+      "post": {
+        "operationId": "addMobileMemory",
+        "summary": "Añadir una entrada confirmada a la memoria del proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Queda confirmada y con autor el usuario. 409 MEMORY_DUPLICATE si ya hay una entrada vigente con el mismo texto; 404 CONVERSATION_NOT_FOUND. Emite memory.updated."
+      }
+    },
+    "/api/mobile/v1/memory/{memoryId}": {
+      "post": {
+        "operationId": "updateMobileMemory",
+        "summary": "Cambiar texto, tipo o estado de una entrada",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "memoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "404 MEMORY_NOT_FOUND si la entrada no está en ese proyecto; 404 CONVERSATION_NOT_FOUND. Pasar status a confirmed o provisional quita supersededBy. Emite memory.updated."
+      }
+    },
+    "/api/mobile/v1/memory/{memoryId}/delete": {
+      "post": {
+        "operationId": "deleteMobileMemory",
+        "summary": "Borrar una entrada de la memoria",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "memoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationIdRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "404 MEMORY_NOT_FOUND si ya no existe (un reintento puede tratarlo como borrada). Emite memory.updated."
+      }
+    },
+    "/api/mobile/v1/instructions": {
+      "post": {
+        "operationId": "setMobileInstructions",
+        "summary": "Instrucciones del proyecto para todos los agentes",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstructionsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstructionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Sustituye las instrucciones; \"\" las borra. Emite memory.updated (lleva instructions)."
+      }
+    },
+    "/api/mobile/v1/artifacts/{artifactId}/raw": {
+      "get": {
+        "operationId": "getMobileArtifactRaw",
+        "summary": "Contenido de un resultado (bytes)",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            },
+            "description": "Proyecto existente."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bytes del resultado. Content-Type por extensión: html/htm text/html; md/markdown text/markdown; txt/log text/plain; csv text/csv; json application/json; js/mjs/cjs text/javascript; css text/css; xml application/xml (todos con charset=utf-8); png, jpg/jpeg, gif, webp, svg (image/svg+xml), bmp, ico; pdf; zip; mp3, wav, ogg, mp4. El resto del código y texto con extensión (ts, py, kt…) text/plain; charset=utf-8; lo demás (y sin extensión) application/octet-stream. Máximo 25 MB (413 FILE_TOO_LARGE).",
+            "headers": {
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "inline; filename*=UTF-8''<nombre codificado según RFC 5987>"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "const": "sandbox allow-scripts"
+                }
+              }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "artifactId es conversation.artifacts[].id. Se busca su relPath en la carpeta del proyecto y luego en la de trabajo (como /api/file), sin salir de ellas (tampoco por enlaces simbólicos). 404 ARTIFACT_NOT_FOUND si no está en el proyecto o el archivo ya no existe. Los errores son JSON."
+      }
+    },
+    "/api/mobile/v1/files": {
+      "get": {
+        "operationId": "listMobileFiles",
+        "summary": "Adjuntos y archivos de la carpeta de trabajo",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            },
+            "description": "Proyecto existente."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "description": "Filtro sin distinguir mayúsculas: subcadena de path (carpeta) o de name (adjuntos). Se quitan los espacios de los extremos."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "folder es null si el proyecto no tiene carpeta de trabajo. El recorrido omite carpetas ocultas (.git, .venv…), node_modules, dist, build, out, release y __pycache__; llega hasta 8 niveles; como mucho 2000 archivos (truncated=true si había más)."
+      },
+      "post": {
+        "operationId": "uploadMobileFile",
+        "summary": "Subir un archivo como adjunto del proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            },
+            "description": "Proyecto existente."
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Nombre del archivo. Se toma el último tramo (tras / o \\), se quitan caracteres de control, se cambian <>:\"|?* por _, se quitan puntos y espacios finales y se recorta a 200 caracteres conservando la extensión. Vacío → 400."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Bytes del archivo, con cualquier Content-Type, sin Content-Encoding. Máximo 25 MB (413 PAYLOAD_TOO_LARGE).",
+          "content": {
+            "*/*": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Adjunto creado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Lo añade a los adjuntos del proyecto (attachments/) sin enviar ningún mensaje. attachment.name es el nombre ya saneado; relPath usa una versión ASCII y única. Emite attachments.updated."
+      }
+    },
+    "/api/mobile/v1/files/raw": {
+      "get": {
+        "operationId": "getMobileFileRaw",
+        "summary": "Contenido de un adjunto o de un archivo de la carpeta de trabajo (bytes)",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            },
+            "description": "Proyecto existente."
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "attachment",
+                "folder",
+                "project"
+              ]
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "description": "attachment: relPath del adjunto (empieza por attachments/). folder: path de FolderFile. Relativa con /, sin segmentos vacíos, . ni .., sin \\ y no absoluta (400 si no). project: cualquier archivo del proyecto (su carpeta interna o su carpeta de trabajo) por la ruta con que lo nombró un agente en el chat: relativa (artifacts/mapa.png) o absoluta del equipo servidor; una ruta que no cae dentro del proyecto da 404."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bytes del archivo. Content-Type por extensión: html/htm text/html; md/markdown text/markdown; txt/log text/plain; csv text/csv; json application/json; js/mjs/cjs text/javascript; css text/css; xml application/xml (todos con charset=utf-8); png, jpg/jpeg, gif, webp, svg (image/svg+xml), bmp, ico; pdf; zip; apk (application/vnd.android.package-archive); mp3, wav, ogg, mp4. El resto del código y texto con extensión (ts, py, kt…) text/plain; charset=utf-8; lo demás (y sin extensión) application/octet-stream. Máximo 25 MB (413 FILE_TOO_LARGE).",
+            "headers": {
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "inline; filename*=UTF-8''<nombre codificado según RFC 5987>"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string",
+                  "const": "sandbox allow-scripts"
+                }
+              }
+            },
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "404 FILE_NOT_FOUND si no existe, si sale de la carpeta (también por enlaces simbólicos) o si el proyecto no tiene carpeta de trabajo (source=folder). Los errores son JSON."
+      }
+    },
+    "/api/mobile/v1/settings/agent-access": {
+      "post": {
+        "operationId": "setMobileAgentAccess",
+        "summary": "Permiso de los agentes: todo el equipo o solo la carpeta del proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentAccessRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentAccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Mismo ajuste que en el escritorio. Emite config.updated (sin webAccess.token)."
+      }
+    },
+    "/api/mobile/v1/settings/plan-approval": {
+      "post": {
+        "operationId": "setMobilePlanApproval",
+        "summary": "Pedir (o no) el visto bueno antes de ejecutar cada plan",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanApprovalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanApprovalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Mismo ajuste que ⋮ → «Pedir mi visto bueno a cada plan» en el escritorio. Emite config.updated."
+      }
+    },
+    "/api/mobile/v1/usage/refresh": {
+      "post": {
+        "operationId": "refreshMobileUsage",
+        "summary": "Volver a consultar las cuotas",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotasResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Como el botón de actualizar del escritorio (puede tardar unos segundos: consulta a los proveedores). Emite quota.update."
+      }
+    },
+    "/api/mobile/v1/quality": {
+      "get": {
+        "operationId": "getAgentQuality",
+        "summary": "Cómo rinde cada agente: calidad por agente y dificultad",
+        "tags": [
+          "Mobile"
+        ],
+        "description": "Lo mismo que ⋮ → «Cómo rinde cada agente…» en el escritorio, calculado del registro de consumo: tareas, 👍 sobre las valoradas, verificación a la primera, correcciones, fallos o relevos, y tiempo y tokens medianos. Una tarea cuenta una vez por agente; los becarios cuentan para su jefe; lo cancelado no cuenta.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,2}$"
+            },
+            "description": "Días hacia atrás (1–999). Por defecto 30, los que mira el coordinador."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calidad de cada agente, de más a menos tareas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Quality"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/voice/transcribe": {
+      "post": {
+        "operationId": "transcribeMobileVoiceNote",
+        "summary": "Convertir una nota de voz en texto en el propio equipo",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z]{2}$",
+              "default": "es"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "audio/wav": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/mp4": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/ogg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/webm": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/mpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Texto reconocido (vacío si no se entendió nada).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Igual que el dictado del escritorio: Whisper (faster-whisper, modelo small) en el propio equipo, sin servicios externos; el audio se borra al terminar. Hasta 25 MB. La primera vez prepara el dictado (instala uv y descarga el modelo, ~480 MB) y puede tardar varios minutos; después, unos segundos por nota. 500 TRANSCRIPTION_FAILED (reintentable) si Whisper falla."
+      }
+    },
+    "/api/mobile/v1/app/android": {
+      "get": {
+        "operationId": "getOrbitaRelease",
+        "summary": "Última versión de Órbita que ofrece el ordenador",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Versión publicada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrbitaRelease"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Ajustes → «Buscar actualizaciones» en Órbita. 404 NO_ORBITA_RELEASE si el ordenador no tiene ninguna (o está incompleta: sin APK o con una huella distinta de la anotada)."
+      }
+    },
+    "/api/mobile/v1/app/android/apk": {
+      "get": {
+        "operationId": "getOrbitaApk",
+        "summary": "APK de la versión publicada de Órbita (bytes)",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "La APK firmada con la clave de siempre (Android la rechaza si no coincide con la instalada). Content-Type application/vnd.android.package-archive; su SHA-256 es el de /app/android.",
+            "content": {
+              "application/vnd.android.package-archive": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/hermes/models": {
+      "get": {
+        "operationId": "getHermesModels",
+        "summary": "Modelo de Hermes y los disponibles («/model»)",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Modelos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HermesModelsInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/hermes/model": {
+      "post": {
+        "operationId": "setHermesModel",
+        "summary": "Cambiar el modelo de Hermes",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HermesModelRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Los modelos con el elegido como actual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HermesModelsInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Mismo cambio que «/model» en el escritorio: Hermes lo usa desde el próximo encargo (AI Cowork se lo pasa con -m y --provider, sin tocar su config.yaml). Emite config.updated."
+      }
+    },
+    "/api/mobile/v1/agents/{agentId}/reset": {
+      "post": {
+        "operationId": "resetAgent",
+        "summary": "Reiniciar un agente que falla",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado del agente tras reiniciarlo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentResetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Lo mismo que «Reiniciar agente» en su panel del escritorio: olvida su bloqueo (cuota, sesión, error de la API) y los modelos que se le dieron por rotos, comprueba que su CLI responde (sin llamadas de pago) y lo deja disponible; lo que esperaba por él puede empezar. 404 AGENT_NOT_FOUND si no existe. Emite agent.runtime."
+      }
+    },
+    "/api/mobile/v1/device": {
+      "get": {
+        "operationId": "getCurrentDevice",
+        "summary": "Datos de este dispositivo emparejado",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "device es null si el token es anterior a la lista de dispositivos. La lista completa solo se ve y se gestiona desde el equipo que hace de servidor."
+      }
+    },
+    "/api/mobile/v1/device/revoke": {
+      "post": {
+        "operationId": "revokeCurrentDevice",
+        "summary": "Cerrar la sesión de este dispositivo",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceRevokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRevokeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Revoca el token de este dispositivo y cierra sus conexiones abiertas. 409 LEGACY_DEVICE si el emparejamiento es anterior a la lista de dispositivos (se quita generando un código de acceso nuevo)."
+      }
+    },
+    "/api/mobile/v1/server/update": {
+      "get": {
+        "operationId": "getServerUpdate",
+        "summary": "Si el servidor tiene versión nueva en GitHub (como ⋮ → «Buscar actualizaciones…»)",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado de la actualización.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileServerUpdate"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "startServerUpdate",
+        "summary": "Descargar, compilar e instalar la versión nueva del servidor y reiniciarlo",
+        "description": "Responde en cuanto empieza: lleva minutos y, si va bien, el servidor se reinicia (la conexión se corta y vuelve). Si falla, vuelve a la versión anterior y el motivo sale en lastError de GET. 409 si ya está al día, si no se puede (sin GitHub, cambios hechos en el servidor sin setAside) o si ya se está actualizando. Con setAside: true, lo hecho en el servidor que no está en GitHub se aparta antes (se guarda en git, no se borra).",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La actualización ha empezado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerUpdateStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/tasks/{taskId}/changes": {
+      "get": {
+        "operationId": "getMobileTaskChanges",
+        "summary": "Lo que cambió una tarea en la carpeta del proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivos con líneas +/− y el parche (recortado).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskChanges"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Sale de las instantáneas que AI Cowork guarda antes y después de cada tarea (en un repositorio git propio, nunca el del proyecto). Sin cambios guardados, files está vacío."
+      }
+    },
+    "/api/mobile/v1/tasks/{taskId}/undo": {
+      "post": {
+        "operationId": "undoMobileTask",
+        "summary": "Deshacer una tarea",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lo que se hizo, en una frase para el usuario (también si no se pudo deshacer porque algo choca).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskUndo"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Como «Deshacer» en el escritorio: fusión a tres bandas sobre lo que hay ahora. Si alguna línea que tocó la tarea cambió después, no toca nada y message lo explica. Emite task.upsert (changes.undoneAt) y message.upsert."
+      }
+    },
+    "/api/mobile/v1/inbox": {
+      "get": {
+        "operationId": "getMobileInbox",
+        "summary": "Bandeja «Te necesita»",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Avisos abiertos y los últimos cerrados, del más reciente al más antiguo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inbox"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Planes que esperan tu visto bueno, agentes callados (suele ser un aviso de permisos en la pantalla del servidor), permisos de macOS, preguntas del equipo, fallos tras verificar, choques al integrar, tareas fallidas y peticiones terminadas. Los cambios llegan con el evento inbox.updated (payload.items: los abiertos)."
+      }
+    },
+    "/api/mobile/v1/inbox/{id}/{actionId}": {
+      "post": {
+        "operationId": "actMobileInbox",
+        "summary": "Pulsar un botón de un aviso",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "actionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,39}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "El aviso tras la acción y, si lo hay, un texto para el usuario.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxActionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "approve/reject aprueban o descartan el plan, undo deshace la tarea, dismiss solo lo cierra. Un botón con url (Compartir pantalla) lo abre el móvil y no se envía aquí."
+      }
+    },
+    "/api/mobile/v1/routines": {
+      "get": {
+        "operationId": "listRoutines",
+        "summary": "Rutinas del proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rutinas del proyecto, sin los secretos de sus webhooks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutinesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Lo mismo que la pestaña Rutinas: cada rutina con su disparador, su próxima hora y sus últimas ejecuciones. 404 CONVERSATION_NOT_FOUND si no existe el proyecto. Los cambios llegan por el evento routines.updated (también sin secretos). Crear y editar rutinas se hace en el escritorio o el navegador."
+      }
+    },
+    "/api/mobile/v1/routines/{routineId}/run": {
+      "post": {
+        "operationId": "runRoutine",
+        "summary": "Ejecutar ahora una rutina",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "routineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La ejecución apuntada en su historial.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "«Ejecutar ahora»: envía su petición al chat como una normal del usuario, con la marca de la rutina. Si su ejecución anterior sigue en marcha (o su plan espera tu visto bueno), no se lanza otra: vuelve con status skipped. 404 ROUTINE_NOT_FOUND si no existe."
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "mobileBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Opaque signed token"
+      }
+    },
+    "responses": {
+      "MobileError": {
+        "description": "Error móvil uniforme. Los mensajes no exponen excepciones internas.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "additionalProperties": false
+      },
+      "EmptyRequest": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "PairRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "\\S",
+            "description": "Texto no vacío; no admite NUL. Longitud en unidades UTF-16."
+          },
+          "deviceName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "pattern": "\\S",
+            "description": "Texto no vacío; no admite NUL. Longitud en unidades UTF-16."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "mobile",
+              "client"
+            ],
+            "description": "Tipo de dispositivo. Por defecto mobile. Un cliente de escritorio de AI Cowork envía client."
+          },
+          "platform": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "\\S",
+            "description": "Sistema del dispositivo (android, win32, darwin…). Solo informativo."
+          }
+        },
+        "required": [
+          "code",
+          "deviceName"
+        ],
+        "additionalProperties": false
+      },
+      "PairResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string",
+            "description": "Identificador del dispositivo en la lista del servidor. Los tokens anteriores a la lista no lo tienen."
+          }
+        },
+        "required": [
+          "accessToken",
+          "expiresAt",
+          "serverName"
+        ],
+        "additionalProperties": false
+      },
+      "ChatRequest": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50000,
+            "pattern": "\\S",
+            "description": "Texto no vacío; no admite NUL. Longitud en unidades UTF-16."
+          },
+          "clientMessageId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            },
+            "maxItems": 20,
+            "description": "Opcional. ids de conversation.attachments (p. ej. los subidos con POST /files) que van con el mensaje: quedan en message.attachments y los agentes los reciben como los adjuntos del escritorio, sin copiarlos ni duplicarlos. Los repetidos se ignoran. Un id que no es de la conversación → 400 INVALID_INPUT (el mensaje lo nombra)."
+          }
+        },
+        "required": [
+          "conversationId",
+          "text",
+          "clientMessageId"
+        ],
+        "additionalProperties": false
+      },
+      "Author": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "user",
+              "agent",
+              "system"
+            ]
+          },
+          "agentId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "additionalProperties": true
+      },
+      "Attachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "relPath": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "relPath",
+          "mime",
+          "size"
+        ],
+        "additionalProperties": true
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "runId": {
+            "type": "string"
+          },
+          "clientMessageId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128
+          },
+          "author": {
+            "$ref": "#/components/schemas/Author"
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "streaming": {
+            "type": "boolean"
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "error"
+            ]
+          },
+          "rating": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "description": "Valoración del usuario al resultado (👍 up / 👎 down); ausente si no lo valoró."
+          },
+          "taskIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "artifactIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            }
+          },
+          "contract": {
+            "type": "string"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/PlanProposal"
+          },
+          "work": {
+            "$ref": "#/components/schemas/TaskWork"
+          },
+          "routine": {
+            "type": "object",
+            "description": "El mensaje lo lanzó una rutina (no lo escribió el usuario en ese momento): la interfaz enseña «Rutina: <name>».",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "author",
+          "text",
+          "createdAt"
+        ],
+        "additionalProperties": true
+      },
+      "Artifact": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "relPath": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "html",
+              "markdown",
+              "code",
+              "image",
+              "text",
+              "other"
+            ]
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "name",
+          "relPath",
+          "kind",
+          "size",
+          "createdAt"
+        ],
+        "additionalProperties": true
+      },
+      "Conversation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Artifact"
+            }
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "activeRequestId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "activeRequestIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            },
+            "description": "Adjuntos del proyecto (los de los mensajes y los subidos con POST /files)."
+          },
+          "folder": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Folder"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Carpeta de trabajo del proyecto; null si no tiene."
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "createdAt",
+          "messages",
+          "artifacts",
+          "instructions",
+          "activeRequestId",
+          "activeRequestIds",
+          "attachments",
+          "folder"
+        ],
+        "additionalProperties": false
+      },
+      "ConversationResponse": {
+        "type": "object",
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/Conversation"
+          }
+        },
+        "required": [
+          "conversation"
+        ],
+        "additionalProperties": false
+      },
+      "ChatReceipt": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128
+          },
+          "clientMessageId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          }
+        },
+        "required": [
+          "conversationId",
+          "requestId",
+          "clientMessageId",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "RequestControl": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128
+          },
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "stopped",
+              "running",
+              "discarded"
+            ]
+          }
+        },
+        "required": [
+          "requestId",
+          "conversationId",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "TokenUsage": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "number",
+            "minimum": 0
+          },
+          "output": {
+            "type": "number",
+            "minimum": 0
+          },
+          "cached": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "input",
+          "output"
+        ],
+        "additionalProperties": true
+      },
+      "Context": {
+        "type": "object",
+        "properties": {
+          "used": {
+            "type": "number"
+          },
+          "capacity": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "used"
+        ],
+        "additionalProperties": true
+      },
+      "Runtime": {
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "thinking",
+              "working",
+              "waiting",
+              "error",
+              "offline"
+            ]
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "lastActivity": {
+            "type": "string"
+          },
+          "lastActivityAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "waitingFor": {
+            "type": "string"
+          },
+          "context": {
+            "$ref": "#/components/schemas/Context"
+          },
+          "location": {
+            "type": "string",
+            "enum": [
+              "station",
+              "core"
+            ]
+          }
+        },
+        "required": [
+          "agentId",
+          "activity",
+          "location"
+        ],
+        "additionalProperties": true
+      },
+      "Agent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelLabel": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "stationId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "strengths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "plannerOnly": {
+            "type": "boolean"
+          },
+          "isSubagent": {
+            "type": "boolean"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "thinking",
+              "working",
+              "waiting",
+              "error",
+              "offline"
+            ]
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "lastActivity": {
+            "type": "string"
+          },
+          "lastActivityAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "context": {
+            "$ref": "#/components/schemas/Context"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "provider",
+          "model",
+          "modelLabel",
+          "color",
+          "stationId",
+          "role",
+          "strengths",
+          "enabled",
+          "activity"
+        ],
+        "additionalProperties": true
+      },
+      "TraceEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "thinking",
+              "text",
+              "tool",
+              "note",
+              "error",
+              "files"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "ts",
+          "kind",
+          "title"
+        ],
+        "additionalProperties": true
+      },
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "runId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "blocked",
+              "running",
+              "done",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ]
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "startedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "finishedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "artifactIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "progress": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "lastActivity": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/TokenUsage"
+          },
+          "continues": {
+            "type": "boolean",
+            "description": "Continúa o corrige lo que ese mismo agente hizo en la petición anterior (retoma su sesión del CLI)."
+          },
+          "acceptance": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "changes": {
+            "type": "object",
+            "description": "Lo que cambió en la carpeta del proyecto (instantáneas de antes y después): GET /tasks/{taskId}/changes para el detalle y POST /tasks/{taskId}/undo para deshacerla.",
+            "properties": {
+              "before": {
+                "type": "string"
+              },
+              "after": {
+                "type": "string"
+              },
+              "files": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "add": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "del": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "isolated": {
+                "type": "boolean"
+              },
+              "conflicts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "undoneAt": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "before",
+              "after",
+              "files",
+              "add",
+              "del"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "runId",
+          "title",
+          "description",
+          "agentId",
+          "dependsOn",
+          "status",
+          "difficulty",
+          "createdAt",
+          "artifactIds"
+        ],
+        "additionalProperties": true
+      },
+      "MemoryEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "decision",
+              "fact",
+              "preference",
+              "pending"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "provisional",
+              "superseded"
+            ]
+          },
+          "by": {
+            "type": "string"
+          },
+          "byName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "supersededBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "text",
+          "status",
+          "by",
+          "byName",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": true
+      },
+      "Quota": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "usage",
+              "tokens",
+              "requests",
+              "local"
+            ]
+          },
+          "agentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "remainingPct": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "remaining": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "limit": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "resetsAt": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "real",
+              "estimate",
+              "config",
+              "demo",
+              "none"
+            ]
+          },
+          "unlimited": {
+            "type": "boolean"
+          },
+          "period": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "agentIds",
+          "remainingPct",
+          "source"
+        ],
+        "additionalProperties": true
+      },
+      "UsageCall": {
+        "type": "object",
+        "properties": {
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "task",
+              "verify"
+            ],
+            "description": "plan: planificar; task: hacer la tarea; verify: comprobar el resultado (otro agente, solo lectura)."
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "agentName": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "input": {
+            "type": "number"
+          },
+          "output": {
+            "type": "number"
+          },
+          "cached": {
+            "type": "number"
+          },
+          "durationMs": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "description": "Llamadas de tarea: dificultad que puso el coordinador. Falta en registros antiguos."
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail"
+            ],
+            "description": "Llamadas de verificar: veredicto (pass: cumple; fail: vio fallos). Falta si no pudo verificar."
+          },
+          "cancelled": {
+            "type": "boolean",
+            "description": "La detuvo el usuario (no cuenta como fallo del agente)."
+          }
+        },
+        "required": [
+          "ts",
+          "kind",
+          "agentId",
+          "agentName",
+          "provider",
+          "input",
+          "output",
+          "cached",
+          "durationMs",
+          "ok"
+        ],
+        "additionalProperties": true
+      },
+      "UsageRun": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "request": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "finishedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "ok",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "tasks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tasksDone": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsageCall"
+            }
+          }
+        },
+        "required": [
+          "runId",
+          "projectId",
+          "projectName",
+          "request",
+          "startedAt",
+          "status",
+          "tasks",
+          "tasksDone",
+          "calls"
+        ],
+        "additionalProperties": true
+      },
+      "AgentUsage": {
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "input": {
+            "type": "number"
+          },
+          "output": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "agentId",
+          "input",
+          "output"
+        ],
+        "additionalProperties": false
+      },
+      "Usage": {
+        "type": "object",
+        "properties": {
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsageRun"
+            },
+            "description": "Las 100 ejecuciones más recientes, en orden cronológico. totals y byAgent se calculan con todas."
+          },
+          "quotas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Quota"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TokenUsage"
+          },
+          "byAgent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentUsage"
+            }
+          }
+        },
+        "required": [
+          "runs",
+          "quotas",
+          "totals",
+          "byAgent"
+        ],
+        "additionalProperties": false
+      },
+      "Capabilities": {
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string",
+            "const": "v1"
+          },
+          "chat": {
+            "type": "boolean"
+          },
+          "conversations": {
+            "type": "boolean"
+          },
+          "stop": {
+            "type": "boolean"
+          },
+          "resume": {
+            "type": "boolean"
+          },
+          "events": {
+            "type": "string",
+            "const": "websocket"
+          },
+          "bootId": {
+            "type": "string"
+          },
+          "eventSequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxMessageLength": {
+            "type": "integer",
+            "const": 50000
+          },
+          "attachments": {
+            "type": "boolean"
+          },
+          "stopRequests": {
+            "type": "boolean"
+          },
+          "resumeRequests": {
+            "type": "boolean"
+          },
+          "discardRequests": {
+            "type": "boolean",
+            "description": "POST /requests/{requestId}/discard: quitar lo que quedó en pausa."
+          },
+          "newConversation": {
+            "type": "boolean"
+          },
+          "taskTrace": {
+            "type": "boolean"
+          },
+          "projects": {
+            "type": "boolean"
+          },
+          "memoryEdit": {
+            "type": "boolean"
+          },
+          "files": {
+            "type": "boolean"
+          },
+          "upload": {
+            "type": "boolean"
+          },
+          "artifacts": {
+            "type": "boolean"
+          },
+          "traceEndpoint": {
+            "type": "boolean"
+          },
+          "agentAccess": {
+            "type": "boolean"
+          },
+          "usageRefresh": {
+            "type": "boolean"
+          },
+          "voice": {
+            "type": "boolean",
+            "description": "POST /voice/transcribe disponible (el equipo tiene el dictado con Whisper)."
+          },
+          "planApproval": {
+            "type": "boolean",
+            "description": "POST /plans/{messageId}/approve|reject y /settings/plan-approval disponibles."
+          },
+          "appUpdate": {
+            "type": "boolean",
+            "description": "Órbita se actualiza desde el ordenador: GET /app/android y /app/android/apk."
+          },
+          "hermesModel": {
+            "type": "boolean",
+            "description": "«/model»: GET /hermes/models y POST /hermes/model."
+          },
+          "agentReset": {
+            "type": "boolean",
+            "description": "«Reiniciar agente»: POST /agents/{agentId}/reset."
+          },
+          "serverUpdate": {
+            "type": "boolean",
+            "description": "Actualizar el servidor desde el móvil: GET y POST /server/update."
+          },
+          "agentQuality": {
+            "type": "boolean",
+            "description": "GET /quality: calidad de cada agente (👍, verificación a la primera, correcciones, fallos) por dificultad."
+          },
+          "inbox": {
+            "type": "boolean",
+            "description": "Bandeja «Te necesita»: GET /inbox y POST /inbox/{id}/{actionId}; los cambios llegan con el evento inbox.updated."
+          },
+          "taskChanges": {
+            "type": "boolean",
+            "description": "Cambios de cada tarea: GET /tasks/{taskId}/changes y POST /tasks/{taskId}/undo."
+          },
+          "routines": {
+            "type": "boolean",
+            "description": "Rutinas: GET /routines y POST /routines/{routineId}/run."
+          }
+        },
+        "required": [
+          "apiVersion",
+          "chat",
+          "conversations",
+          "stop",
+          "resume",
+          "events",
+          "bootId",
+          "eventSequence",
+          "maxMessageLength",
+          "attachments",
+          "stopRequests",
+          "resumeRequests",
+          "discardRequests",
+          "newConversation",
+          "taskTrace",
+          "projects",
+          "memoryEdit",
+          "files",
+          "upload",
+          "artifacts",
+          "traceEndpoint",
+          "agentAccess",
+          "usageRefresh",
+          "voice",
+          "planApproval",
+          "appUpdate",
+          "hermesModel",
+          "agentReset",
+          "serverUpdate",
+          "agentQuality",
+          "inbox",
+          "taskChanges",
+          "routines"
+        ],
+        "additionalProperties": false
+      },
+      "Snapshot": {
+        "type": "object",
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/Conversation"
+          },
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Agent"
+            }
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileTask"
+            }
+          },
+          "memory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemoryEntry"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Project"
+            }
+          },
+          "stations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Station"
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/Settings"
+          }
+        },
+        "required": [
+          "conversation",
+          "agents",
+          "tasks",
+          "memory",
+          "usage",
+          "capabilities",
+          "sequence",
+          "projects",
+          "stations",
+          "settings"
+        ],
+        "additionalProperties": false
+      },
+      "EventEnvelope": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type",
+          "sequence",
+          "payload"
+        ],
+        "additionalProperties": false
+      },
+      "Folder": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de la carpeta de trabajo."
+          },
+          "path": {
+            "type": "string",
+            "description": "Ruta completa en el equipo."
+          }
+        },
+        "required": [
+          "name",
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "ConversationRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "pattern": "\\S",
+            "description": "Opcional. Texto no vacío de hasta 120 caracteres (se quitan los espacios de los extremos); el almacén une espacios y lo recorta a 80. Sin name: «Conversación móvil»."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "running": {
+            "type": "boolean",
+            "description": "Tiene peticiones en marcha."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt",
+          "running"
+        ],
+        "additionalProperties": false
+      },
+      "ProjectsResponse": {
+        "type": "object",
+        "properties": {
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Project"
+            },
+            "description": "Del actualizado más recientemente al más antiguo."
+          }
+        },
+        "required": [
+          "projects"
+        ],
+        "additionalProperties": false
+      },
+      "Station": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "position": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "[x, z] en el plano del suelo del espacio digital (unidades de mundo)."
+          },
+          "forSubagents": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "position"
+        ],
+        "additionalProperties": true
+      },
+      "Settings": {
+        "type": "object",
+        "properties": {
+          "agentAccess": {
+            "type": "string",
+            "enum": [
+              "full",
+              "project"
+            ]
+          },
+          "planApproval": {
+            "type": "boolean",
+            "description": "El coordinador espera el visto bueno antes de ejecutar cada plan."
+          }
+        },
+        "required": [
+          "agentAccess",
+          "planApproval"
+        ],
+        "additionalProperties": false
+      },
+      "MobileTask": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Task"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "trace": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TraceEntry"
+                },
+                "maxItems": 40,
+                "description": "Solo las 40 últimas entradas; el registro completo está en GET /tasks/{taskId}/trace."
+              },
+              "traceCount": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Entradas totales del registro."
+              }
+            },
+            "required": [
+              "trace",
+              "traceCount"
+            ]
+          }
+        ]
+      },
+      "TraceResponse": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceEntry"
+            }
+          }
+        },
+        "required": [
+          "taskId",
+          "entries"
+        ],
+        "additionalProperties": false
+      },
+      "MemoryCreateRequest": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "decision",
+              "fact",
+              "preference",
+              "pending"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "pattern": "\\S",
+            "description": "Texto no vacío de hasta 2000 caracteres, con al menos 3 al unir espacios. El almacén une espacios y lo recorta a 400."
+          }
+        },
+        "required": [
+          "conversationId",
+          "kind",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "MemoryUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "pattern": "\\S",
+            "description": "Como en MemoryCreateRequest."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "decision",
+              "fact",
+              "preference",
+              "pending"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "provisional",
+              "superseded"
+            ]
+          }
+        },
+        "required": [
+          "conversationId"
+        ],
+        "minProperties": 2,
+        "additionalProperties": false,
+        "description": "conversationId y al menos uno de text, kind o status."
+      },
+      "ConversationIdRequest": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          }
+        },
+        "required": [
+          "conversationId"
+        ],
+        "additionalProperties": false
+      },
+      "InstructionsRequest": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 8000,
+            "description": "Puede ser \"\" para borrarlas. No admite NUL."
+          }
+        },
+        "required": [
+          "conversationId",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "MemoryEntryResponse": {
+        "type": "object",
+        "properties": {
+          "entry": {
+            "$ref": "#/components/schemas/MemoryEntry"
+          }
+        },
+        "required": [
+          "entry"
+        ],
+        "additionalProperties": false
+      },
+      "DeletedResponse": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "additionalProperties": false
+      },
+      "InstructionsResponse": {
+        "type": "object",
+        "properties": {
+          "instructions": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instructions"
+        ],
+        "additionalProperties": false
+      },
+      "FolderFile": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Relativa a la carpeta de trabajo, con «/». Es el path de GET /files/raw?source=folder."
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "modifiedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "html",
+              "markdown",
+              "code",
+              "image",
+              "text",
+              "other"
+            ]
+          }
+        },
+        "required": [
+          "path",
+          "name",
+          "size",
+          "modifiedAt",
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "FolderListing": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FolderFile"
+            },
+            "description": "Del modificado más recientemente al más antiguo."
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "Había más archivos (más de 2000) o se agotó el recorrido (20.000 entradas): la lista está incompleta."
+          }
+        },
+        "required": [
+          "name",
+          "path",
+          "files",
+          "truncated"
+        ],
+        "additionalProperties": false
+      },
+      "FilesResponse": {
+        "type": "object",
+        "properties": {
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            }
+          },
+          "folder": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FolderListing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "attachments",
+          "folder"
+        ],
+        "additionalProperties": false
+      },
+      "AttachmentResponse": {
+        "type": "object",
+        "properties": {
+          "attachment": {
+            "$ref": "#/components/schemas/Attachment"
+          }
+        },
+        "required": [
+          "attachment"
+        ],
+        "additionalProperties": false
+      },
+      "AgentAccessRequest": {
+        "type": "object",
+        "properties": {
+          "access": {
+            "type": "string",
+            "enum": [
+              "full",
+              "project"
+            ]
+          }
+        },
+        "required": [
+          "access"
+        ],
+        "additionalProperties": false
+      },
+      "AgentAccessResponse": {
+        "type": "object",
+        "properties": {
+          "agentAccess": {
+            "type": "string",
+            "enum": [
+              "full",
+              "project"
+            ]
+          }
+        },
+        "required": [
+          "agentAccess"
+        ],
+        "additionalProperties": false
+      },
+      "QuotasResponse": {
+        "type": "object",
+        "properties": {
+          "quotas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Quota"
+            }
+          }
+        },
+        "required": [
+          "quotas"
+        ],
+        "additionalProperties": false
+      },
+      "AttachmentsUpdatedPayload": {
+        "type": "object",
+        "description": "payload del evento WebSocket attachments.updated: la lista completa de adjuntos del proyecto tras el cambio.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "projectId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "ts",
+          "projectId",
+          "conversationId",
+          "attachments"
+        ],
+        "additionalProperties": false
+      },
+      "ProposedTask": {
+        "type": "object",
+        "description": "Tarea del plan propuesto: aún no existe; se crea al aprobar el plan.",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ]
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "keys de las tareas de este plan que tienen que terminar antes."
+          },
+          "deliverable": {
+            "type": "string",
+            "enum": [
+              "file",
+              "text"
+            ]
+          },
+          "continues": {
+            "type": "boolean",
+            "description": "Continúa o corrige lo que ese mismo agente hizo en la petición anterior (retoma su sesión del CLI)."
+          },
+          "acceptance": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "description",
+          "agentId",
+          "difficulty",
+          "dependsOn",
+          "deliverable"
+        ],
+        "additionalProperties": true
+      },
+      "PlanProposal": {
+        "type": "object",
+        "description": "Plan del coordinador a la espera del visto bueno. pending: espera respuesta; approved: aprobado (el mensaje ya tiene taskIds); revised: el usuario pidió cambios y hay otro plan después; rejected: descartado.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "revised",
+              "rejected"
+            ]
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProposedTask"
+            }
+          },
+          "request": {
+            "type": "string",
+            "description": "Petición completa (con los cambios pedidos al revisarlo)."
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "contract": {
+            "type": "string"
+          },
+          "memory": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "decidedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          }
+        },
+        "required": [
+          "status",
+          "tasks",
+          "request"
+        ],
+        "additionalProperties": true
+      },
+      "PlanDecision": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "messageId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128
+          },
+          "requestId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "conversationId",
+          "messageId",
+          "requestId",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "PlanApprovalRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "PlanApprovalResponse": {
+        "type": "object",
+        "properties": {
+          "planApproval": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "planApproval"
+        ],
+        "additionalProperties": false
+      },
+      "OrbitaRelease": {
+        "type": "object",
+        "description": "Última versión de Órbita publicada en el ordenador (android/release/ del código de AI Cowork).",
+        "properties": {
+          "versionCode": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Órbita solo la ofrece si es mayor que la instalada (Android no instala encima una más antigua)."
+          },
+          "versionName": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Bytes de la APK."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Huella de la APK que sirve /app/android/apk (comprobada por el ordenador al leerla)."
+          },
+          "builtAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Cuándo se compiló (ISO 8601), si se sabe."
+          }
+        },
+        "required": [
+          "versionCode",
+          "versionName",
+          "size",
+          "sha256",
+          "builtAt"
+        ],
+        "additionalProperties": false
+      },
+      "HermesProvider": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Lo que se le pasa a Hermes con --provider."
+          },
+          "label": {
+            "type": "string"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "models"
+        ],
+        "additionalProperties": false
+      },
+      "HermesModelsInfo": {
+        "type": "object",
+        "description": "El modelo de Hermes y los de cada proveedor con el que tiene sesión (de su caché, como «hermes model»; sin llamadas de pago).",
+        "properties": {
+          "installed": {
+            "type": "boolean"
+          },
+          "current": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string",
+                "description": "Vacío si no se sabe."
+              },
+              "fromApp": {
+                "type": "boolean",
+                "description": "true: lo eligió el usuario en AI Cowork; false: el de la configuración de Hermes."
+              }
+            },
+            "required": [
+              "provider",
+              "model",
+              "fromApp"
+            ],
+            "additionalProperties": false
+          },
+          "hermesDefault": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "provider": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "provider",
+              "model"
+            ],
+            "additionalProperties": false
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HermesProvider"
+            },
+            "description": "El actual primero."
+          },
+          "updatedAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Cuándo actualizó Hermes estas listas (ms); se refrescan con «hermes model --refresh»."
+          }
+        },
+        "required": [
+          "installed",
+          "current",
+          "hermesDefault",
+          "providers",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "HermesModelRequest": {
+        "type": "object",
+        "description": "{provider, model} lo elige; {reset: true} vuelve al de la configuración de Hermes.",
+        "oneOf": [
+          {
+            "properties": {
+              "provider": {
+                "type": "string",
+                "pattern": "^[\\w.\\-:]{1,120}$"
+              },
+              "model": {
+                "type": "string",
+                "pattern": "^[\\w.:\\-/@]{1,200}$"
+              }
+            },
+            "required": [
+              "provider",
+              "model"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "reset": {
+                "type": "boolean",
+                "const": true
+              }
+            },
+            "required": [
+              "reset"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "WorkStep": {
+        "description": "Un paso de lo que cuenta un agente: una frase suya (note) varias herramientas seguidas en una línea (tools) o los archivos que acaba de crear o abrir (files).",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "note"
+              },
+              "text": {
+                "type": "string",
+                "description": "Una o dos frases (hasta ~400 caracteres, Markdown en línea)."
+              }
+            },
+            "required": [
+              "kind",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "tools"
+              },
+              "summary": {
+                "type": "string",
+                "description": "«Ejecutó 3 comandos y editó 2 archivos»."
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "description": "Cada herramienta («Ejecutando: npm test»), para desplegarla."
+              },
+              "more": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Las que no caben en items."
+              },
+              "failed": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Las que fallaron."
+              },
+              "refs": {
+                "type": "array",
+                "maxItems": 12,
+                "description": "Una por cada item, en su mismo orden: con su id se pide el detalle de la herramienta (comando, cambios, resultado) en GET /tasks/{taskId}/trace.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Id de su entrada en el registro de la tarea."
+                    },
+                    "tool": {
+                      "type": "string",
+                      "enum": [
+                        "command",
+                        "edit",
+                        "write",
+                        "read",
+                        "search",
+                        "web",
+                        "todo",
+                        "agent",
+                        "other"
+                      ]
+                    },
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Resultado; sin indicar, todavía sin resultado."
+                    },
+                    "add": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Líneas que añade, si cambia un archivo."
+                    },
+                    "del": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Líneas que quita."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "tool"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "add": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Líneas que añade el grupo entero."
+              },
+              "del": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Líneas que quita el grupo entero."
+              }
+            },
+            "required": [
+              "kind",
+              "summary",
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "files"
+              },
+              "files": {
+                "type": "array",
+                "maxItems": 12,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "relPath": {
+                      "type": "string",
+                      "description": "Ruta relativa al proyecto (su carpeta de trabajo o la interna). Se pide con GET /files/raw?source=project."
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "image": {
+                      "type": "boolean",
+                      "description": "true: una imagen que se puede mostrar en el chat."
+                    },
+                    "size": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "relPath",
+                    "name",
+                    "image",
+                    "size"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Archivos que el agente acaba de crear o abrir mientras trabaja: capturas y documentos, para ver por dónde va."
+              }
+            },
+            "required": [
+              "kind",
+              "files"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "TaskWork": {
+        "type": "object",
+        "description": "Mensaje de una tarea: aparece al empezar, va contando lo que hace el agente (se actualiza con message.upsert, como mucho una vez por segundo) y al acabar su text es el resultado.",
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "done",
+              "failed",
+              "stopped"
+            ],
+            "description": "running solo es «trabajando» si la tarea sigue en marcha (tras reiniciar, stopped)."
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkStep"
+            },
+            "maxItems": 40
+          },
+          "hidden": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Pasos del principio que ya no caben (en GET /tasks/{taskId}/trace)."
+          },
+          "totals": {
+            "type": "object",
+            "description": "Todo lo que hizo hasta ahora, también lo que ya no cabe en steps: el resumen de una línea que se despliega.",
+            "properties": {
+              "summary": {
+                "type": "string",
+                "description": "«Ejecutó 14 comandos, editó 3 archivos y creó 2 archivos»."
+              },
+              "failed": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "add": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "del": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "taskId",
+          "title",
+          "status",
+          "steps"
+        ],
+        "additionalProperties": false
+      },
+      "AgentResetResponse": {
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "thinking",
+              "working",
+              "waiting",
+              "error",
+              "offline"
+            ],
+            "description": "idle si quedó disponible; offline si su CLI sigue sin responder (reason dice por qué); si estaba trabajando, no se toca."
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "agentId",
+          "activity",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "DeviceInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "mobile",
+              "client"
+            ]
+          },
+          "platform": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Milisegundos Unix."
+          },
+          "lastSeenAt": {
+            "type": "integer",
+            "description": "Milisegundos Unix."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "createdAt",
+          "lastSeenAt"
+        ],
+        "additionalProperties": false
+      },
+      "DeviceResponse": {
+        "type": "object",
+        "properties": {
+          "device": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeviceInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "device"
+        ],
+        "additionalProperties": false
+      },
+      "DeviceRevokeRequest": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "DeviceRevokeResponse": {
+        "type": "object",
+        "properties": {
+          "revoked": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "revoked"
+        ],
+        "additionalProperties": false
+      },
+      "MobileServerUpdate": {
+        "type": "object",
+        "properties": {
+          "canUpdate": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Por qué no se puede (sin conexión con GitHub, cambios hechos en el servidor…)."
+          },
+          "current": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "hash": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string"
+                  },
+                  "subject": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "hash",
+                  "date",
+                  "subject"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commits": {
+            "type": "array",
+            "maxItems": 30,
+            "items": {
+              "type": "object",
+              "properties": {
+                "hash": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string"
+                },
+                "subject": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "hash",
+                "date",
+                "subject"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Cambios nuevos en GitHub, del más reciente al más antiguo."
+          },
+          "commitCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "localChanges": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Archivos cambiados en el servidor que no están en GitHub."
+          },
+          "localCommits": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Commits hechos en el servidor que no están en GitHub."
+          },
+          "pendingInstall": {
+            "type": "boolean",
+            "description": "El código descargado es más nuevo que la app instalada."
+          },
+          "updating": {
+            "type": "boolean"
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Por qué falló la última actualización pedida desde el móvil."
+          }
+        },
+        "required": [
+          "canUpdate",
+          "reason",
+          "current",
+          "commits",
+          "commitCount",
+          "localChanges",
+          "localCommits",
+          "pendingInstall",
+          "updating",
+          "lastError"
+        ],
+        "additionalProperties": false
+      },
+      "ServerUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "setAside": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServerUpdateStarted": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "started"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "AgentQuality": {
+        "type": "object",
+        "description": "Calidad de un agente (sus becarios incluidos) en el periodo.",
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "agentName": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "tasks": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Tareas en las que trabajó (una tarea con varios intentos suyos cuenta una vez)."
+          },
+          "rated": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Valoradas por el usuario con 👍/👎."
+          },
+          "liked": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Valoradas con 👍."
+          },
+          "verified": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Comprobadas por un agente de otra familia."
+          },
+          "firstPass": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Cumplían a la primera."
+          },
+          "fixed": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "El primer veredicto vio fallos y tuvo que corregir."
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Fallaron con él: no pudo hacerla o la terminó otro agente."
+          },
+          "likedPct": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "liked / rated; null sin valoradas."
+          },
+          "firstPassPct": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "firstPass / verified; null sin verificadas."
+          },
+          "fixedPct": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "fixed / verified; null sin verificadas."
+          },
+          "failedPct": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "failed / tasks."
+          },
+          "medianMs": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Tiempo mediano de trabajo por tarea (incluida su corrección)."
+          },
+          "medianTokens": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Tokens medianos (entrada + salida) por tarea; null si el agente no informa de sus tokens."
+          },
+          "byDifficulty": {
+            "type": "array",
+            "description": "Por dificultad (hard, medium, easy, unknown), solo las que tienen tareas. unknown: tareas anteriores a que se guardara la dificultad.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "difficulty": {
+                  "type": "string",
+                  "enum": [
+                    "easy",
+                    "medium",
+                    "hard",
+                    "unknown"
+                  ]
+                },
+                "tasks": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Tareas en las que trabajó (una tarea con varios intentos suyos cuenta una vez)."
+                },
+                "rated": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Valoradas por el usuario con 👍/👎."
+                },
+                "liked": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Valoradas con 👍."
+                },
+                "verified": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Comprobadas por un agente de otra familia."
+                },
+                "firstPass": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Cumplían a la primera."
+                },
+                "fixed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "El primer veredicto vio fallos y tuvo que corregir."
+                },
+                "failed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Fallaron con él: no pudo hacerla o la terminó otro agente."
+                },
+                "likedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "liked / rated; null sin valoradas."
+                },
+                "firstPassPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "firstPass / verified; null sin verificadas."
+                },
+                "fixedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "fixed / verified; null sin verificadas."
+                },
+                "failedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "failed / tasks."
+                },
+                "medianMs": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "description": "Tiempo mediano de trabajo por tarea (incluida su corrección)."
+                },
+                "medianTokens": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "description": "Tokens medianos (entrada + salida) por tarea; null si el agente no informa de sus tokens."
+                }
+              },
+              "required": [
+                "difficulty",
+                "tasks",
+                "rated",
+                "liked",
+                "verified",
+                "firstPass",
+                "fixed",
+                "failed",
+                "likedPct",
+                "firstPassPct",
+                "fixedPct",
+                "failedPct",
+                "medianMs",
+                "medianTokens"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "agentId",
+          "agentName",
+          "provider",
+          "tasks",
+          "rated",
+          "liked",
+          "verified",
+          "firstPass",
+          "fixed",
+          "failed",
+          "likedPct",
+          "firstPassPct",
+          "fixedPct",
+          "failedPct",
+          "medianMs",
+          "medianTokens",
+          "byDifficulty"
+        ],
+        "additionalProperties": false
+      },
+      "Quality": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minTasks": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Desde cuántas tareas en 30 días ve el coordinador estas cifras en la ficha del agente."
+          },
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentQuality"
+            }
+          }
+        },
+        "required": [
+          "days",
+          "minTasks",
+          "agents"
+        ],
+        "additionalProperties": false
+      },
+      "InboxAction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "InboxItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "stalled",
+              "mac-permission",
+              "question",
+              "verify-failed",
+              "conflict",
+              "failed",
+              "done"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "string"
+          },
+          "messageId": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxAction"
+            }
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "resolvedAt": {
+            "type": "integer"
+          },
+          "resolution": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "actions",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "description": "projectId es el id de la conversación."
+      },
+      "Inbox": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxItem"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "InboxActionResult": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/InboxItem"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item"
+        ],
+        "additionalProperties": false
+      },
+      "TaskChanges": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "A",
+                    "M",
+                    "D"
+                  ]
+                },
+                "add": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "del": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "binary": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "path",
+                "status",
+                "add",
+                "del"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "patch": {
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "undoneAt": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "taskId",
+          "files",
+          "patch",
+          "truncated"
+        ],
+        "additionalProperties": false
+      },
+      "TaskUndo": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "RoutineRun": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "waiting",
+              "ok",
+              "failed",
+              "skipped",
+              "interrupted"
+            ],
+            "description": "running: en marcha · waiting: su plan espera tu visto bueno · skipped: no se lanzó porque la anterior seguía en marcha · interrupted: se cerró la app mientras trabajaba."
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "schedule",
+              "catchup",
+              "webhook",
+              "folder",
+              "manual"
+            ],
+            "description": "catchup: no se lanzó a su hora (app cerrada o equipo en reposo) y se lanzó una vez al volver."
+          },
+          "runId": {
+            "type": "string",
+            "description": "Petición que lanzó (requestId en el resto de la API)."
+          },
+          "note": {
+            "type": "string"
+          },
+          "finishedAt": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "at",
+          "status",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "RoutinesResponse": {
+        "type": "object",
+        "properties": {
+          "routines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Routine"
+            }
+          }
+        },
+        "required": [
+          "routines"
+        ],
+        "additionalProperties": false
+      },
+      "Routine": {
+        "type": "object",
+        "description": "Una rutina del proyecto: una petición que se envía sola al chat. Nunca incluye el secreto de su webhook (hasSecret dice si lo tiene; la dirección se ve en el escritorio o el navegador).",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "request": {
+            "type": "string",
+            "description": "Texto que se envía al chat como si lo escribiera el usuario."
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/RoutineTrigger"
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "scheduleFrom": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lastSlotAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "nextAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Próxima hora programada (milisegundos Unix); null si no va por horario o está desactivada."
+          },
+          "hasSecret": {
+            "type": "boolean"
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutineRun"
+            },
+            "description": "Últimas ejecuciones, la más reciente al final."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "request",
+          "enabled",
+          "trigger",
+          "createdAt",
+          "updatedAt",
+          "runs"
+        ],
+        "not": {
+          "required": [
+            "webhookSecret"
+          ]
+        },
+        "additionalProperties": true
+      },
+      "RoutineTrigger": {
+        "type": "object",
+        "description": "Cuándo se lanza: daily (cada día a time, HH:MM), weekly (days: 0 = domingo … 6 = sábado, a time), interval (cada hours horas), webhook (al llegar un POST a su dirección con secreto) o folder (al cambiar archivos de path, relativa a la carpeta del proyecto). Las horas son las del reloj del servidor.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "weekly",
+              "interval",
+              "webhook",
+              "folder"
+            ]
+          },
+          "time": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            }
+          },
+          "hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 168
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "RoutineRunResponse": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/RoutineRun"
+          }
+        },
+        "required": [
+          "run"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

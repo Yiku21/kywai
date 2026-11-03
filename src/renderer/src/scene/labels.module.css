@@ -1,0 +1,254 @@
+/* Etiquetas HTML ancladas a objetos 3D */
+
+.robot {
+  --agent: #38d6ff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 132px;
+  max-width: 200px;
+  padding: 7px 11px 8px;
+  border-radius: 11px;
+  background: rgba(var(--label-rgb, 9, 14, 25), 0.84);
+  border: 1px solid rgba(var(--line-rgb, 150, 180, 230), 0.16);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+  color: var(--label-text, #e9eef8);
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.25;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(6px);
+  transition:
+    border-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    opacity var(--dur-slow) var(--ease),
+    background var(--dur) var(--ease);
+  white-space: nowrap;
+}
+
+.robot:hover,
+.hovered {
+  border-color: color-mix(in srgb, var(--agent) 55%, transparent);
+  background: rgba(var(--label-rgb, 12, 19, 33), 0.92);
+}
+
+.selected {
+  border-color: var(--agent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--agent) 40%, transparent),
+    0 8px 26px rgba(0, 0, 0, 0.5);
+}
+
+.dim {
+  opacity: 0.62;
+}
+
+.leaving {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--agent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--agent) 70%, transparent);
+  flex: none;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+.model {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 10.5px;
+  color: var(--label-dim, #8f9cb4);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--label-dim, #b7c2d6);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status svg {
+  flex: none;
+}
+
+.statusText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.error .status {
+  color: var(--alert-text, #ff9aa6);
+}
+
+.reason {
+  color: var(--alert-text, #ffb3bc);
+  font-size: 11px;
+  white-space: normal;
+  max-width: 190px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bar {
+  position: relative;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(var(--line-rgb, 150, 180, 230), 0.14);
+  overflow: hidden;
+}
+
+.barFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--agent);
+  transition: width 600ms var(--ease);
+}
+
+.barIndeterminate {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 38%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--agent), transparent);
+  animation: slide 1.6s ease-in-out infinite;
+}
+
+.static .barIndeterminate {
+  animation: none;
+  left: 31%;
+  opacity: 0.7;
+}
+
+@keyframes slide {
+  from {
+    left: -40%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+.pct {
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  color: var(--label-dim, #8f9cb4);
+  font-size: 10.5px;
+}
+
+.tone-send .status {
+  color: var(--label-text, #cfe9ff);
+}
+.tone-receive .status {
+  color: var(--label-text, #d9f7ff);
+}
+.tone-done .status {
+  color: var(--label-ok, #7ff0b4);
+}
+
+/* Etiqueta de transferencia */
+.transfer {
+  --agent: #38d6ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(var(--label-rgb, 9, 14, 25), 0.88);
+  border: 1px solid color-mix(in srgb, var(--agent) 50%, transparent);
+  color: var(--label-text, #e9eef8);
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition:
+    opacity var(--dur-slow) var(--ease),
+    transform var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+  user-select: none;
+}
+
+.transfer:hover {
+  border-color: var(--agent);
+  transform: scale(1.04);
+}
+
+.transferArrived {
+  border-color: color-mix(in srgb, var(--label-ok, #7ff0b4) 60%, transparent);
+}
+
+.transferHidden {
+  opacity: 0;
+}
+
+/* Etiqueta del núcleo */
+.core {
+  font-family: var(--font);
+  color: var(--label-text, #e9f6ff);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--cyan) 55%, transparent);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.coreSub {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--label-dim, #8fb3cc);
+  text-shadow: none;
+}
+
+/* Capa de etiquetas */
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+}
+
+.anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+
+.anchor > * {
+  pointer-events: auto;
+}
+
+.anchor > .core {
+  pointer-events: none;
+}

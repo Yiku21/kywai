@@ -1,0 +1,354 @@
+.backdrop {
+  z-index: 200;
+}
+
+.dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(820px, 100%);
+  height: min(860px, calc(100dvh - 40px));
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.headInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--text-1);
+}
+
+.sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.agentName {
+  font-weight: 600;
+  color: var(--agent);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
+}
+
+.close {
+  flex: none;
+}
+
+/* ---------- Pasos ---------- */
+
+.feed {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 18px 18px;
+  overscroll-behavior: contain;
+}
+
+.empty {
+  margin: 18px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.brief {
+  border-radius: var(--radius-chip);
+  border: 1px dashed var(--border-strong);
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.brief > summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.brief[open] > summary {
+  margin-bottom: 6px;
+}
+
+.briefLine {
+  margin: 6px 0 2px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.briefLine b {
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.noteError {
+  color: var(--alert);
+}
+
+.text {
+  padding: 2px 2px 2px 12px;
+  border-left: 2px solid var(--agent);
+  font-size: 14px;
+  color: var(--text-1);
+}
+
+/* Razonamiento: plegado, con una línea de vista previa. */
+.thinking {
+  border-radius: var(--radius-chip);
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.thinking > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: var(--radius-chip);
+  cursor: pointer;
+  list-style: none;
+}
+
+.thinking > summary::-webkit-details-marker {
+  display: none;
+}
+
+.thinking > summary:hover {
+  background: var(--bg-hover);
+}
+
+.thinking > summary svg {
+  flex: none;
+  color: var(--cyan);
+}
+
+.thinkLabel {
+  flex: none;
+  font-style: italic;
+  color: var(--text-2);
+}
+
+.thinkPreview {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thinking[open] .thinkPreview {
+  display: none;
+}
+
+.thinkBody {
+  margin: 2px 0 4px 27px;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+/* Herramientas: una fila por paso; se despliega el detalle (comando, cambios, resultado). */
+.tool {
+  border-radius: var(--radius-chip);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.toolHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--text-1);
+  list-style: none;
+}
+
+summary.toolHead {
+  cursor: pointer;
+}
+
+summary.toolHead::-webkit-details-marker {
+  display: none;
+}
+
+summary.toolHead:hover {
+  background: var(--bg-hover);
+  border-radius: var(--radius-chip);
+}
+
+.toolIcon {
+  flex: none;
+  color: var(--agent);
+}
+
+.toolTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.ok {
+  flex: none;
+  color: var(--live);
+}
+
+.bad {
+  flex: none;
+  color: var(--alert);
+}
+
+.pending {
+  flex: none;
+  color: var(--cyan);
+}
+
+.toolBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 10px 10px;
+}
+
+.outLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+
+.code {
+  margin: 0;
+  max-height: 340px;
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.codeBad {
+  border-color: color-mix(in srgb, var(--alert) 35%, transparent);
+}
+
+.add {
+  color: var(--label-ok, #6ee7a8);
+  background: rgba(47, 210, 122, 0.08);
+}
+
+.del {
+  color: var(--alert-text, #ff9aa6);
+  background: rgba(255, 84, 104, 0.08);
+}
+
+.live {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.live svg {
+  color: var(--agent);
+}
+
+.jump {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-pop);
+  font-size: 12.5px;
+  color: var(--text-1);
+}
+
+.jump:hover {
+  background: var(--bg-active);
+}
+
+/* En el móvil ocupa toda la pantalla. */
+@media (max-width: 759.98px) {
+  .backdrop {
+    padding: 0;
+  }
+  .dialog {
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+  }
+  .head {
+    padding: 12px 14px 10px;
+  }
+  .feed {
+    padding: 12px 14px 24px;
+  }
+}

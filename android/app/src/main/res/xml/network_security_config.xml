@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Solo HTTPS con los certificados del sistema. La app NO añade certificados de confianza globales: el certificado
+  propio de AI Cowork se acepta únicamente para su servidor y después de que el usuario confirme su huella SHA-256
+  (ver PinningTrustManager). HTTP sin cifrar solo se permite hacia este dispositivo o hacia el ordenador visto
+  desde el emulador (10.0.2.2), para desarrollar con el servidor simulado.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

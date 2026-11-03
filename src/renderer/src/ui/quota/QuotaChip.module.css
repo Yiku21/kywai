@@ -1,0 +1,134 @@
+.chip {
+  --q: var(--cyan);
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-width: 102px;
+  height: 40px;
+  padding: 0 11px;
+  border-radius: var(--radius-chip);
+  border: 1px solid color-mix(in srgb, var(--q) 34%, transparent);
+  background: color-mix(in srgb, var(--q) 8%, var(--bg-panel));
+  text-align: left;
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.chip:hover {
+  background: color-mix(in srgb, var(--q) 14%, var(--bg-panel));
+  border-color: color-mix(in srgb, var(--q) 55%, transparent);
+}
+
+.chip[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--q) 16%, var(--bg-panel));
+  border-color: color-mix(in srgb, var(--q) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--q) 14%, transparent);
+}
+
+.block {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.icon {
+  flex: none;
+  color: var(--q);
+}
+
+.label {
+  font-weight: 500;
+  color: color-mix(in srgb, var(--q) 50%, var(--text-1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.value {
+  margin-left: auto;
+  padding-left: 6px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--q) 78%, var(--mix-to, #fff));
+}
+
+.infinity {
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.track {
+  position: relative;
+  display: block;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(var(--line-rgb, 150, 180, 230), 0.12);
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--pct);
+  border-radius: inherit;
+  background: var(--q);
+  transition:
+    width calc(var(--dur-slow) * 1.6) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+/* Estimaciones: barra a rayas. */
+.estimate .fill {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--q) 0 3px,
+    color-mix(in srgb, var(--q) 40%, transparent) 3px 6px
+  );
+}
+
+/* Alerta / agotada: fondo rojo más presente. */
+.alert,
+.empty {
+  background: color-mix(in srgb, var(--q) 14%, var(--bg-panel));
+  border-color: color-mix(in srgb, var(--q) 50%, transparent);
+}
+
+.empty .value {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Sin datos: pista discontinua. */
+.unknown .track {
+  background: repeating-linear-gradient(90deg, rgba(var(--line-rgb, 150, 180, 230), 0.2) 0 4px, transparent 4px 7px);
+}
+
+.unknown .label {
+  color: var(--text-2);
+}
+
+.unknown .value {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+/* Ilimitada / local: barra llena suave. */
+.unlimited .fill,
+.local .fill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--q) 85%, transparent), color-mix(in srgb, var(--q) 35%, transparent));
+}
+
+.local .value {
+  font-size: 12px;
+}

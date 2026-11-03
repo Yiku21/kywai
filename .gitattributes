@@ -1,0 +1,6 @@
+# Los scripts de macOS necesitan finales de línea LF aunque se editen en Windows.
+*.sh text eol=lf
+android/gradlew.bat text eol=crlf
+
+# Las APK publicadas de Órbita son binarias.
+*.apk binary

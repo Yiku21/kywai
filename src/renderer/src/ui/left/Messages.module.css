@@ -1,0 +1,1266 @@
+.msg {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+  animation: msgIn var(--dur-slow) var(--ease);
+}
+
+@keyframes msgIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.userAvatar {
+  color: var(--text-1);
+  background: var(--avatar-bg, linear-gradient(160deg, #2a3650, #172033));
+  border: 1px solid var(--border-strong);
+  width: 36px;
+  height: 36px;
+  margin: 2px;
+}
+
+.robot {
+  margin-top: -2px;
+}
+
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 22px;
+  padding-top: 2px;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.nameBtn {
+  border-radius: 4px;
+  transition: color var(--dur) var(--ease);
+}
+
+.nameBtn:hover {
+  color: color-mix(in srgb, var(--agent, var(--cyan)) 70%, var(--mix-to, #fff));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--agent, var(--cyan)) 50%, transparent);
+}
+
+.time {
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Burbujas ---------- */
+
+.bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-1);
+  min-width: 0;
+}
+
+.userBubble {
+  background: var(--bg-surface);
+  border-top-left-radius: 4px;
+}
+
+.userText {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Datos que trajo una rutina (cuerpo del webhook, archivos cambiados): plegados bajo la petición. */
+.routineData {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.routineData > summary {
+  cursor: pointer;
+  color: var(--text-3);
+}
+
+.routineData > pre {
+  margin: 6px 0 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.agentBubble {
+  background: rgba(var(--bubble-rgb, 16, 24, 40), 0.55);
+  border-top-left-radius: 4px;
+}
+
+.errorBubble {
+  background: var(--alert-soft);
+  border-color: color-mix(in srgb, var(--alert) 35%, transparent);
+}
+
+.textRow {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.textRow > div {
+  flex: 1;
+}
+
+.errorIcon {
+  flex: none;
+  margin-top: 3px;
+  color: var(--alert);
+}
+
+/* Cursor de escritura (streaming). */
+.streaming > :last-child::after,
+.streaming > :is(ul, ol):last-child > li:last-child::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: -0.15em;
+  border-radius: 1px;
+  background: var(--cyan);
+}
+
+.streaming > :is(ul, ol, pre, table, div):last-child::after {
+  content: none;
+}
+
+.caretBlink > :last-child::after,
+.caretBlink > :is(ul, ol):last-child > li:last-child::after {
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caretBlink > :last-child::after,
+  .caretBlink > :is(ul, ol):last-child > li:last-child::after {
+    animation: none;
+  }
+}
+
+.typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+}
+
+.typing > span:not(:global(.sr-only)) {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+
+.typingAnim > span:nth-child(1) {
+  animation: dot 1.2s ease-in-out infinite;
+}
+.typingAnim > span:nth-child(2) {
+  animation: dot 1.2s ease-in-out 0.15s infinite;
+}
+.typingAnim > span:nth-child(3) {
+  animation: dot 1.2s ease-in-out 0.3s infinite;
+}
+
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: none;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typingAnim > span {
+    animation: none !important;
+  }
+}
+
+/* ---------- Adjuntos ---------- */
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.att {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  height: 34px;
+  padding: 0 12px 0 6px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-size: 13px;
+  color: var(--text-1);
+}
+
+.attBtn {
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.attBtn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+}
+
+.attIcon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(var(--wash-rgb, 255, 255, 255), 0.04);
+}
+
+.attName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Plan ---------- */
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.taskList {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) auto;
+  row-gap: 6px;
+  column-gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.taskRow {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  min-height: 26px;
+}
+
+.taskTitle {
+  font-size: 13.5px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.planHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.planIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  color: var(--text-1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+.planDone .planIcon {
+  color: var(--live);
+  background: var(--live-soft);
+  border-color: color-mix(in srgb, var(--live) 30%, transparent);
+}
+
+.planFailed .planIcon {
+  color: var(--alert);
+  background: var(--alert-soft);
+}
+
+.planInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.planTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planSub {
+  font-size: 12.5px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planBtn {
+  flex: none;
+}
+
+.planFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.planPct {
+  font-weight: 600;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.planActivity {
+  color: var(--cyan);
+}
+
+.planFail {
+  color: var(--alert);
+}
+
+/* Lo que costó la petición (tiempo, tokens, cuota): abre ⋮ → Consumo. */
+.planUsage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 2px 0;
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.planUsage:hover {
+  color: var(--text-1);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.planUsage svg {
+  flex: none;
+}
+
+@container leftpanel (max-width: 470px) {
+  .planBtnLabel {
+    display: none;
+  }
+  .planBtn {
+    width: 28px;
+    padding: 0;
+  }
+}
+
+/* ---------- Tarjetas de resultado ---------- */
+
+.artifacts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.artifact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition: border-color var(--dur) var(--ease);
+}
+
+.artifact:hover {
+  border-color: var(--border-strong);
+}
+
+.artifactInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.artifactName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artifactBy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.byDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--agent);
+}
+
+/* ---------- Carpeta de entregables (varios archivos de una tarea) ---------- */
+
+.folder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition: border-color var(--dur) var(--ease);
+}
+
+.folder:hover,
+.folderOpen {
+  border-color: var(--border-strong);
+}
+
+.folderHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.folderToggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.folderToggle:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.folderIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--agent, var(--cyan));
+  background: color-mix(in srgb, var(--agent, var(--cyan)) 14%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--agent, var(--cyan)) 30%, transparent);
+}
+
+.folderChevron {
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease);
+}
+
+.folderOpen .folderChevron {
+  transform: rotate(180deg);
+}
+
+.folderList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 10px;
+  list-style: none;
+  border-left: 2px solid var(--border);
+}
+
+.folderList .artifact {
+  padding: 8px 10px;
+  background: var(--bg-panel);
+}
+
+/* ---------- Plan propuesto (espera tu visto bueno) ---------- */
+
+.proposal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 35%, transparent);
+  background: color-mix(in srgb, var(--cyan) 6%, var(--bg-panel));
+}
+
+.proposal .planIcon {
+  color: var(--cyan);
+  background: var(--cyan-soft);
+  border-color: color-mix(in srgb, var(--cyan) 30%, transparent);
+}
+
+.proposalClosed {
+  border-color: var(--border);
+  background: var(--bg-panel);
+  opacity: 0.8;
+}
+
+.proposalClosed .planIcon {
+  color: var(--text-3);
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+.proposalTasks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proposalTask > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.proposalTask > summary::-webkit-details-marker {
+  display: none;
+}
+
+.proposalTask > summary:hover {
+  background: var(--bg-hover);
+}
+
+.proposalNum {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+.proposalTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proposalTask[open] .proposalTitle {
+  white-space: normal;
+}
+
+.proposalAfter {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.proposalDetail {
+  margin: 4px 0 6px 34px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.proposalMeta {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.proposalActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.proposalHint {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+/* ---------- Cambios de una tarea (ver, pedir cambios, deshacer) ---------- */
+
+.changes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 4px;
+  min-width: 0;
+}
+
+.changesHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.changesBtn {
+  padding: 2px 8px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.changesBtn:hover:not(:disabled) {
+  background: var(--bg-surface);
+  color: var(--text-1);
+}
+
+.changesBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.changesNote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.changesBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.changesFiles {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.changesFiles li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.changesFiles code {
+  overflow-wrap: anywhere;
+}
+
+.changesStatus {
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+/* ---------- 👍/👎 bajo un resultado ---------- */
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding-left: 4px;
+}
+
+.ratingBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.ratingBtn:hover {
+  background: var(--bg-surface);
+  color: var(--text-1);
+}
+
+.ratingBtn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ratingOn {
+  color: var(--text-1);
+  border-color: var(--border);
+  background: var(--bg-surface);
+}
+
+.ratingNote {
+  margin-left: 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* ---------- Sistema ---------- */
+
+.system {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.system::before,
+.system::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.system > span {
+  max-width: 80%;
+}
+
+/* Tareas que se quedaron a medias al cerrar la app. */
+.resume {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  background: var(--warn-soft);
+  font-size: 12.5px;
+  color: var(--text-1);
+}
+
+.resumeError {
+  color: var(--alert);
+}
+
+/* Contrato común del plan (plegado). */
+.contract {
+  border-radius: 10px;
+  border: 1px dashed var(--border-strong);
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.contract > summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.contract[open] > summary {
+  margin-bottom: 6px;
+}
+
+/* ---------- Lo que cuenta un agente mientras trabaja ---------- */
+
+.work {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workHead {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workHead:hover .workTitle {
+  color: var(--text-1);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.workSpin {
+  flex: none;
+  color: var(--agent, var(--cyan));
+}
+
+.workTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workState {
+  flex: none;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.workState::before {
+  content: '· ';
+}
+
+.workFailed {
+  color: var(--alert);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 12px;
+  list-style: none;
+  border-left: 2px solid color-mix(in srgb, var(--agent, var(--text-3)) 40%, transparent);
+}
+
+.note {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-1);
+}
+
+.note p {
+  margin: 0;
+}
+
+.toolsHead,
+.stepsHidden {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 1px 0;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toolsHead:hover,
+.stepsHidden:hover {
+  color: var(--text-2);
+}
+
+.toolsFailed {
+  color: var(--alert);
+}
+
+.toolsChev {
+  flex: none;
+  transition: transform var(--dur) var(--ease);
+}
+
+.toolsChevOpen {
+  transform: rotate(90deg);
+}
+
+.toolItems {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 4px 0 2px 6px;
+  padding: 0;
+  list-style: none;
+  color: var(--text-3);
+}
+
+/* Una herramienta: su línea y, desplegada, el comando, los cambios o el resultado. */
+.toolItem {
+  min-width: 0;
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 4px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-3);
+  font-size: 12px;
+  text-align: left;
+}
+
+button.itemHead {
+  cursor: pointer;
+}
+
+button.itemHead:hover {
+  background: var(--bg-hover);
+  color: var(--text-2);
+}
+
+.itemIcon {
+  flex: none;
+}
+
+.itemTitle {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMono {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.itemOk {
+  flex: none;
+  color: var(--live);
+}
+
+.itemBad {
+  flex: none;
+  color: var(--alert);
+}
+
+.itemMore {
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.itemBody {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 3px 0 6px 22px;
+}
+
+.itemNote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.outLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.code {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-2);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.codeBad {
+  border-color: color-mix(in srgb, var(--alert) 35%, transparent);
+}
+
+.codeAdd {
+  display: block;
+  color: var(--label-ok, #6ee7a8);
+  background: rgba(47, 210, 122, 0.08);
+}
+
+.codeDel {
+  display: block;
+  color: var(--alert-text, #ff9aa6);
+  background: rgba(255, 84, 104, 0.08);
+}
+
+/* «+393 −7» */
+.diffStat {
+  display: inline-flex;
+  flex: none;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.statAdd {
+  color: var(--label-ok, #6ee7a8);
+}
+
+.statDel {
+  color: var(--alert-text, #ff9aa6);
+}
+
+/* El resumen de todo lo que hizo, con la flecha que lo despliega. */
+.moreHead {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  gap: 4px 6px;
+  max-width: 100%;
+  padding: 1px 0;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.moreHead:hover {
+  color: var(--text-2);
+}
+
+.liveLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.liveLine > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Tema Órbita: burbujas de cristal ---------- */
+
+:global(:root[data-theme='orbita']) .agentBubble {
+  background: linear-gradient(180deg, rgba(44, 70, 122, 0.42), rgba(20, 34, 66, 0.42));
+  border-color: rgba(120, 175, 255, 0.24);
+  box-shadow: inset 0 1px 0 rgba(190, 220, 255, 0.08);
+}
+
+:global(:root[data-theme='orbita']) .userBubble {
+  background: linear-gradient(180deg, rgba(54, 92, 160, 0.4), rgba(28, 50, 96, 0.4));
+  border-color: rgba(130, 185, 255, 0.3);
+}
+
+/* Capturas y documentos que el agente va creando: se ven en el chat sin esperar al final. */
+.filesStep {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 4px 19px;
+  list-style: none;
+}
+
+.thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.thumb {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  overflow: hidden;
+  cursor: zoom-in;
+  text-align: left;
+  color: var(--text-2);
+}
+
+.thumb:hover {
+  border-color: color-mix(in srgb, var(--cyan) 55%, transparent);
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--bg-input);
+}
+
+.thumb span {
+  padding: 0 8px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+}
+
+.docChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.docChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.docChip:hover {
+  color: var(--text-1);
+  background: var(--bg-hover);
+}
+
+.docChip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
