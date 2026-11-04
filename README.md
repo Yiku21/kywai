@@ -12,6 +12,8 @@ Ask once. A coordinator plans the work and gives each task to the agent that doe
 
 <a href="docs/video/ai-cowork-presentacion.mp4" title="Watch AI Cowork in 44 seconds"><img src="docs/img/video-presentacion.gif" alt="Watch AI Cowork in 44 seconds" width="800"></a>
 
+
+
 <sub><a href="docs/video/ai-cowork-presentacion.mp4">▶ Watch the 44-second intro (with sound)</a></sub>
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
