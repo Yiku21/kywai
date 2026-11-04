@@ -10,6 +10,10 @@
 
 [English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · **简体中文**
 
+<a href="docs/video/ai-cowork-presentacion.mp4" title="44 秒了解 AI Cowork"><img src="docs/img/video-presentacion.gif" alt="44 秒了解 AI Cowork" width="800"></a>
+
+<sub><a href="docs/video/ai-cowork-presentacion.mp4">▶ 观看 44 秒介绍视频（有声音）</a></sub>
+
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)
 ![浏览器](https://img.shields.io/badge/%E6%B5%8F%E8%A7%88%E5%99%A8-%E9%80%9A%E8%BF%87%20Tailscale-242E4C?logo=tailscale&logoColor=white)
