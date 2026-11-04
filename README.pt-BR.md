@@ -10,9 +10,7 @@ Peça uma vez. Um coordenador planeja o trabalho e entrega cada tarefa ao agente
 
 [English](README.md) · [Español](README.es.md) · **Português** · [Français](README.fr.md) · [简体中文](README.zh-CN.md)
 
-<a href="docs/video/ai-cowork-presentacion.mp4" title="Veja o AI Cowork em 44 segundos"><img src="docs/img/video-presentacion.gif" alt="Veja o AI Cowork em 44 segundos" width="800"></a>
-
-<sub><a href="docs/video/ai-cowork-presentacion.mp4">▶ Assista à apresentação de 44 segundos (com som)</a></sub>
+https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)

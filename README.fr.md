@@ -10,9 +10,7 @@ Une seule demande suffit. Un coordinateur planifie le travail et confie chaque t
 
 [English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · **Français** · [简体中文](README.zh-CN.md)
 
-<a href="docs/video/ai-cowork-presentacion.mp4" title="Découvrez AI Cowork en 44 secondes"><img src="docs/img/video-presentacion.gif" alt="Découvrez AI Cowork en 44 secondes" width="800"></a>
-
-<sub><a href="docs/video/ai-cowork-presentacion.mp4">▶ Regardez la présentation de 44 secondes (avec le son)</a></sub>
+https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)

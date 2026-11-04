@@ -10,9 +10,7 @@ Pídelo una vez. Un coordinador planifica el trabajo y le da cada tarea al agent
 
 [English](README.md) · **Español** · [Português](README.pt-BR.md) · [Français](README.fr.md) · [简体中文](README.zh-CN.md)
 
-<a href="docs/video/ai-cowork-presentacion.mp4" title="Mira AI Cowork en 44 segundos"><img src="docs/img/video-presentacion.gif" alt="Mira AI Cowork en 44 segundos" width="800"></a>
-
-<sub><a href="docs/video/ai-cowork-presentacion.mp4">▶ Mira la presentación de 44 segundos (con sonido)</a></sub>
+https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20e%20Intel-111111?logo=apple&logoColor=white)
