@@ -152,7 +152,7 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 - **Varias peticiones a la vez.** El trabajo nuevo va a los agentes libres sin tocar los archivos que otro agente está editando.
 - **Criterios de aceptación por tarea**, y un aviso si un agente toca archivos que no eran suyos.
 - **Dos manos para los trabajos de gusto.** Dos agentes de familias distintas hacen lo mismo por separado (opción A y opción B), y un tercero prueba las dos, las compara con tu petición y te dice cuál gana y por qué.
-- **Revisión entre pares.** Cuando una tarea cambia archivos, un agente de otra familia la revisa en modo solo lectura, ejecuta las pruebas si puede y responde *aprobado* o *hay problemas*. El autor los corrige y el resultado se vuelve a revisar.
+- **Revisión entre pares.** Cuando una tarea cambia archivos, un agente de otra familia la revisa en modo solo lectura, ejecuta las pruebas si puede y responde *aprobado* o *hay problemas*. El autor los corrige (hasta dos veces) y cada corrección se vuelve a revisar. Si sigue fallando, otro agente fuerte la retoma una vez; si tampoco, llega a «Te necesita» como *requiere intervención*. Solo un *aprobado* explícito aprueba una tarea: una revisión sin veredicto claro se pide otra vez y, si no, queda *sin verificar*, nunca aprobada.
 - **Reanudar y tomar el relevo.** Las tareas interrumpidas se reanudan donde se quedaron. Si un agente falla, otro agente potente se encarga de la tarea, nunca uno más flojo. Los agentes también retoman su propia sesión en los encargos de seguimiento.
 - **Interruptor «Acceso completo».** Deja que los agentes instalen cosas y usen internet sin pedir permiso, o limítalos a editar la carpeta del proyecto.
 

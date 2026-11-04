@@ -13,6 +13,7 @@ import type { ChatMessage, CoworkEvent, ProjectState, Task } from '@shared/types
 import { SUBAGENT_COLOR } from '@shared/defaults'
 import type { RunAgentOptions, RunAgentResult } from '../agents/types'
 import { getConfig, loadConfig } from '../config'
+import { listInbox } from '../inbox'
 import { tapEvents } from '../events'
 import {
   __clearBlocksForChecks,
@@ -1138,6 +1139,71 @@ async function main(): Promise<void> {
         __setUiCapturerForChecks(null)
         workBehaviour = () => null
       }
+    })
+
+    await check('U2: sin veredicto se pide otra vez y si no llega queda «sin verificar»; con fallos, 2 correcciones, un relevo y «requiere intervención»', async () => {
+      hermesOnline = false
+      await refreshPresence()
+      const pr = store.createProject('Revisión estricta')
+      planResponses = {
+        claude: plan('Codex lo hace.', [
+          { key: 't1', title: 'Formulario de pago', description: 'Crea artifacts/pago.html con validación.', agent: 'codex', difficulty: 'medium', deliverable: 'file', acceptance: 'la tarjeta se valida' }
+        ])
+      }
+      workBehaviour = () => null
+      const go = async (text: string) => {
+        const from = calls.length
+        const { runId } = await sendMessage({ projectId: pr.id, text, filePaths: [] })
+        await waitFor(() => !!finished(runId), 20000, text)
+        const task = store.snapshotProject(pr.id).tasks.find((t) => t.runId === runId)!
+        const done = store.snapshotProject(pr.id).messages.filter((m) => m.runId === runId && m.work?.status === 'done').pop()
+        return { runId, task, done: done?.text ?? '', seq: calls.slice(from).map((c) => `${c.mode}:${c.agentId}`), calls: calls.slice(from) }
+      }
+      const verdictsOf = (runId: string) => usageRuns().find((r) => r.runId === runId)!.calls.filter((c) => c.kind === 'verify').map((c) => c.verdict ?? '-')
+
+      // 1. Responde sin veredicto dos veces: no se da por buena. Se pide una vez más con su respuesta y queda sin verificar.
+      verdicts = ['Lo revisé y parece que está bien.', 'Sí, está bien.']
+      const a = await go('Haz el formulario de pago')
+      assert.deepEqual(a.seq, ['plan:claude', 'work:codex', 'plan:claude', 'plan:claude'])
+      assert.ok(a.calls[3].prompt.includes('## Tu respuesta anterior') && a.calls[3].prompt.includes('Lo revisé y parece que está bien.'), 'conserva lo que ya revisó')
+      assert.equal(a.task.status, 'done', 'la ejecución terminó: los archivos se quedan')
+      assert.deepEqual([a.task.verification?.status, a.task.verification?.ok], ['unverified', false])
+      assert.ok(a.done.includes('⚠ Sin verificar') && !a.done.includes('cumple.'), a.done)
+      assert.deepEqual(verdictsOf(a.runId), ['-', 'unverified'])
+
+      // 2. Sin veredicto y al pedírselo otra vez, «CUMPLE»: aprobada.
+      verdicts = ['Todo correcto.', 'VEREDICTO: CUMPLE\nValida la tarjeta.']
+      const b = await go('Haz el formulario de pago otra vez')
+      assert.deepEqual(b.task.verification?.status, 'passed')
+      assert.ok(b.done.includes('✔ Claude comprobó el resultado: cumple.'), b.done)
+
+      // 3. Dos correcciones y a la tercera revisión cumple: no hay relevo.
+      verdicts = ['VEREDICTO: FALLOS\n- falta el CVV', 'VEREDICTO: FALLOS\n- el CVV acepta letras', 'VEREDICTO: CUMPLE\nok']
+      const c = await go('Haz el formulario de pago con CVV')
+      assert.deepEqual(c.seq, ['plan:claude', 'work:codex', 'plan:claude', 'work:codex', 'plan:claude', 'work:codex', 'plan:claude'])
+      assert.deepEqual([c.task.verification?.status, c.task.verification?.fixes, c.task.verification?.relayedTo], ['passed', 2, undefined])
+      assert.ok(c.done.includes('tras 2 correcciones: cumple.'), c.done)
+      assert.ok(store.snapshotProject(pr.id).messages.some((m) => m.runId === c.runId && m.text.includes('(corrección 2 de 2)')))
+
+      // 4. Sigue fallando: un relevo a otro agente fuerte con las notas, y si tampoco pasa, «requiere intervención».
+      verdicts = ['VEREDICTO: FALLOS\n- uno', 'VEREDICTO: FALLOS\n- dos', 'VEREDICTO: FALLOS\n- tres', 'VEREDICTO: FALLOS\n- cuatro: sigue sin validar']
+      const d = await go('Haz el formulario de pago con todo')
+      const works = d.calls.filter((x) => x.mode === 'work')
+      assert.deepEqual(works.slice(0, 3).map((x) => x.agentId), ['codex', 'codex', 'codex'], 'el autor corrige dos veces')
+      assert.equal(works.length, 4, 'un solo relevo y ninguna corrección más: el límite es por tarea')
+      const relay = works[3]
+      assert.ok(relay.agentId !== 'codex' && !relay.agentId.startsWith('qwen'), `relevo a otro agente fuerte: ${relay.agentId}`)
+      assert.equal(relay.resume, undefined, 'otro CLI: no retoma la sesión del autor')
+      assert.ok(relay.prompt.includes('- tres') && relay.prompt.includes('### Archivos que cambió Codex') && relay.prompt.includes('Hecho por codex'), 'el relevo recibe notas, cambios y lo que contó el autor')
+      assert.equal(d.calls.filter(isVerifyCall).length, 4)
+      assert.equal(d.task.status, 'done', 'los archivos se conservan')
+      assert.deepEqual([d.task.verification?.status, d.task.verification?.fixes, d.task.verification?.needsAttention], ['failed', 2, true])
+      assert.ok(d.task.verification?.relayedTo, 'se sabe que hubo relevo')
+      assert.ok(d.done.includes('⚠ Requiere intervención') && d.done.includes('cuatro: sigue sin validar'), d.done)
+      const item = listInbox().find((i) => i.taskId === d.task.id && i.kind === 'verify-failed')
+      assert.ok(item && item.title.startsWith('Requiere intervención') && item.detail?.includes('cuatro'), 'queda en «Te necesita» con las notas')
+      assert.deepEqual(verdictsOf(d.runId), ['fail', 'fail', 'fail', 'fail'])
+      verdicts = []
     })
 
     await check('V: «a dos manos» — otra familia hace la misma tarea en su carpeta y una tercera elige', async () => {

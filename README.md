@@ -152,7 +152,7 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 - **Several requests at once.** New work goes to free agents without touching files another agent is editing.
 - **Acceptance criteria per task**, plus a warning if an agent touches files that were not its own.
 - **Two hands for taste-driven work.** Two agents from different families build the same thing separately (option A and option B), and a third one tests both, compares them against your request and tells you which one wins and why.
-- **Peer review.** When a task changes files, an agent from another family checks it in read-only mode, runs the tests if it can and answers *passes* or *issues*. The author fixes them, and the result is checked again.
+- **Peer review.** When a task changes files, an agent from another family checks it in read-only mode, runs the tests if it can and answers *passes* or *issues*. The author fixes them (up to twice), and each fix is checked again. If it still fails, another strong agent takes over once; if that also fails, it lands in "Needs you" as *needs attention*. Only an explicit *passes* approves a task: a review with no clear verdict is asked again and otherwise marked *unverified*, never approved.
 - **Resume and hand-off.** Interrupted tasks resume where they stopped. If an agent fails, another strong agent takes over the task, never a weaker one. Agents also resume their own session on follow-ups.
 - **Full access switch.** Let agents install things and use the internet without asking, or limit them to editing the project folder.
 

@@ -152,7 +152,7 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 - **Vários pedidos ao mesmo tempo.** O trabalho novo vai para agentes livres sem mexer em arquivos que outro agente está editando.
 - **Critérios de aceitação por tarefa**, além de um aviso se um agente mexer em arquivos que não eram dele.
 - **Duas mãos para trabalhos de gosto.** Dois agentes de famílias diferentes constroem a mesma coisa separadamente (opção A e opção B), e um terceiro testa as duas, compara com o seu pedido e diz qual vence e por quê.
-- **Revisão por pares.** Quando uma tarefa altera arquivos, um agente de outra família a revisa em modo somente leitura, roda os testes se puder e responde *aprovado* ou *problemas*. O autor corrige, e o resultado é revisado de novo.
+- **Revisão por pares.** Quando uma tarefa altera arquivos, um agente de outra família a revisa em modo somente leitura, roda os testes se puder e responde *aprovado* ou *problemas*. O autor corrige (até duas vezes), e cada correção é revisada de novo. Se ainda falhar, outro agente forte assume uma vez; se também falhar, vai para "Precisa de você" como *requer intervenção*. Só um *aprovado* explícito aprova uma tarefa: uma revisão sem veredito claro é pedida de novo e, se não vier, fica *sem verificar*, nunca aprovada.
 - **Retomada e repasse.** Tarefas interrompidas continuam de onde pararam. Se um agente falha, outro agente forte assume a tarefa, nunca um mais fraco. Os agentes também retomam a própria sessão nos acompanhamentos.
 - **Chave de acesso total.** Deixe os agentes instalarem coisas e usarem a internet sem perguntar, ou limite-os a editar a pasta do projeto.
 

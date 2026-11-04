@@ -18,7 +18,7 @@ const task = (agentId: string, taskId: string, ok: boolean, extra: Partial<Usage
   difficulty: 'medium',
   ...extra
 })
-const verify = (taskId: string, verdict?: 'pass' | 'fail'): UsageCall => ({
+const verify = (taskId: string, verdict?: 'pass' | 'fail' | 'unverified'): UsageCall => ({
   ts: (clock += 1000),
   kind: 'verify',
   taskId,
@@ -76,6 +76,9 @@ describe('calidad por agente', () => {
       firstPassPct: 50,
       fixed: 1,
       fixedPct: 50,
+      passedAfterFix: 1,
+      reviewFailed: 0,
+      unverified: 0,
       failed: 1,
       failedPct: 33,
       medianMs: 60_000,
@@ -88,6 +91,37 @@ describe('calidad por agente', () => {
     // La tarea corregida cuenta su tiempo y sus tokens de las dos llamadas.
     expect(codex.byDifficulty[0]).toMatchObject({ medianMs: 90_000, medianTokens: 3000, fixed: 1 })
     expect(claude).toMatchObject({ tasks: 1, liked: 1, rated: 1, failed: 0, verified: 0, firstPassPct: null })
+  })
+
+  it('separa aprobada a la primera, tras corregir, sin superar la revisión y sin verificar; el relevo tiene sus veredictos', () => {
+    const runs = [
+      run([
+        // a: dos correcciones y aprobada después.
+        task('codex', 'a', true),
+        verify('a', 'fail'),
+        task('codex', 'a', true),
+        verify('a', 'fail'),
+        task('codex', 'a', true),
+        verify('a', 'pass'),
+        // b: sin veredicto ni al pedirlo otra vez (la primera llamada no deja veredicto, la segunda «unverified»).
+        task('codex', 'b', true),
+        verify('b'),
+        verify('b', 'unverified'),
+        // c: Codex agota sus correcciones y la releva Claude, que tampoco pasa la revisión.
+        task('codex', 'c', true),
+        verify('c', 'fail'),
+        task('codex', 'c', true),
+        verify('c', 'fail'),
+        task('codex', 'c', true),
+        verify('c', 'fail'),
+        task('claude', 'c', true),
+        verify('c', 'fail')
+      ])
+    ]
+    const [codex, claude] = agentQuality(runs)
+    // «sin verificar» no cuenta como verificada (ni aprobada ni suspendida).
+    expect(codex).toMatchObject({ tasks: 3, verified: 2, firstPass: 0, fixed: 2, passedAfterFix: 1, reviewFailed: 1, unverified: 1, unverifiedPct: 33 })
+    expect(claude).toMatchObject({ tasks: 1, verified: 1, firstPass: 0, fixed: 1, passedAfterFix: 0, reviewFailed: 1, unverified: 0 })
   })
 
   it('los becarios cuentan para su jefe; lo cancelado no cuenta; registros antiguos sin dificultad ni veredicto', () => {
@@ -123,20 +157,26 @@ describe('calidad por agente', () => {
       verified: 8,
       firstPass: 6,
       fixed: 2,
+      passedAfterFix: 1,
+      reviewFailed: 1,
+      unverified: 1,
       failed: 1,
       likedPct: 78,
       firstPassPct: 75,
       fixedPct: 25,
+      passedAfterFixPct: 13,
+      reviewFailedPct: 13,
+      unverifiedPct: 8,
       failedPct: 8,
       medianMs: 4 * 60_000,
       medianTokens: 120_000,
       byDifficulty: [
-        { difficulty: 'hard', tasks: 4, rated: 3, liked: 1, verified: 4, firstPass: 2, fixed: 2, failed: 1, likedPct: 33, firstPassPct: 50, fixedPct: 50, failedPct: 25, medianMs: 1, medianTokens: 1 },
-        { difficulty: 'medium', tasks: 8, rated: 6, liked: 6, verified: 4, firstPass: 4, fixed: 0, failed: 0, likedPct: 100, firstPassPct: 100, fixedPct: 0, failedPct: 0, medianMs: 1, medianTokens: 1 }
+        { difficulty: 'hard', tasks: 4, rated: 3, liked: 1, verified: 4, firstPass: 2, fixed: 2, passedAfterFix: 1, reviewFailed: 1, unverified: 0, failed: 1, likedPct: 33, firstPassPct: 50, fixedPct: 50, passedAfterFixPct: 25, reviewFailedPct: 25, unverifiedPct: 0, failedPct: 25, medianMs: 1, medianTokens: 1 },
+        { difficulty: 'medium', tasks: 8, rated: 6, liked: 6, verified: 4, firstPass: 4, fixed: 0, passedAfterFix: 0, reviewFailed: 0, unverified: 1, failed: 0, likedPct: 100, firstPassPct: 100, fixedPct: 0, passedAfterFixPct: 0, reviewFailedPct: 0, unverifiedPct: 13, failedPct: 0, medianMs: 1, medianTokens: 1 }
       ]
     }
     expect(qualityLine(q)).toBe(
-      'calidad (30 días, 12 tareas): le sirvieron al usuario 7 de 9 valoradas; verificación: 6 de 8 a la primera, 2 necesitaron corrección; 1 falló o pasó a otro (8 %); mediana unos 4 min y 120 k tokens por tarea · por dificultad → difíciles 4: le sirvieron al usuario 1 de 3 valoradas; verificación: 2 de 4 a la primera, 2 necesitaron corrección; 1 falló o pasó a otro (25 %)'
+      'calidad (30 días, 12 tareas): le sirvieron al usuario 7 de 9 valoradas; verificación: 6 de 8 a la primera, 2 necesitaron corrección (1 aprobada después), 1 sin superar la revisión; 1 sin verificar; 1 falló o pasó a otro (8 %); mediana unos 4 min y 120 k tokens por tarea · por dificultad → difíciles 4: le sirvieron al usuario 1 de 3 valoradas; verificación: 2 de 4 a la primera, 2 necesitaron corrección (1 aprobada después), 1 sin superar la revisión; 1 falló o pasó a otro (25 %) · normales 8: le sirvieron al usuario 6 de 6 valoradas; verificación: 4 de 4 a la primera; 1 sin verificar; ninguna falló'
     )
     expect(qualityLine({ ...q, tasks: 4 })).toBeNull()
     expect(qualityLine(null)).toBeNull()

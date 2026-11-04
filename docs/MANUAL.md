@@ -528,7 +528,8 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
 - **Un permiso de macOS** (Documentos, Escritorio…) que solo se acepta delante del servidor: «Abrir Compartir
   pantalla» lo abre desde el móvil o el portátil. Para que no vuelva a pasar, da «Acceso total al disco» a AI Cowork.
 - **Un agente callado** desde hace rato (suele ser un aviso así en la pantalla del servidor).
-- **Una pregunta** del equipo, una **verificación** que sigue viendo fallos, **choques** al integrar una copia
+- **Una pregunta** del equipo, una tarea que **requiere intervención** (la verificación sigue viendo fallos tras 2
+  correcciones y un relevo; sus archivos se quedan y «Deshacer la tarea» los quita), **choques** al integrar una copia
   aparte o una tarea que **no se pudo hacer** («Deshacer» deja sus archivos como estaban).
 - **Lo terminado**: la última petición acabada de cada proyecto, para enterarte desde el móvil.
 
@@ -584,11 +585,23 @@ Cuando una tarea que crea o cambia archivos termina, **otro agente de otra famil
 revés; nunca el autor ni un modelo local) comprueba el resultado con ojos nuevos y en modo de solo lectura: recibe
 tu petición, la tarea, el criterio de aceptación, los archivos que cambió y lo que dijo el autor; los lee, ejecuta
 las pruebas si puede y responde «VEREDICTO: CUMPLE» o «VEREDICTO: FALLOS» con hasta cinco fallos concretos. Se le
-pide ceñirse a la corrección y a lo pedido, nada de gustos. Si ve fallos, **el autor corrige una vez** sobre lo que
-ya hay (recibe la lista) y se vuelve a verificar; después se da por buena con el veredicto que tenga. En el chat lo
-ves en el mensaje de la tarea («Claude comprobó … y vio fallos; Codex los corrige», y al final «✔ Claude comprobó el
-resultado: cumple» o «⚠ … sigue viendo fallos», que además queda en la memoria como pendiente). La verificación
-cuenta en «Consumo y tokens…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
+pide ceñirse a la corrección y a lo pedido, nada de gustos. **Solo un «CUMPLE» explícito aprueba una tarea.**
+
+| Situación | Qué hace AI Cowork |
+|---|---|
+| El verificador responde sin veredicto reconocible | Se lo pide una vez más, conservando lo que ya revisó (retoma su sesión del CLI si puede; si no, su respuesta va en el encargo) |
+| Tampoco lo da la segunda vez | La tarea queda **«sin verificar»**: «⚠ Sin verificar» en el resultado y no cuenta como aprobada ni como suspendida en las cifras |
+| Veredicto «FALLOS» | El autor corrige sobre lo que ya hay (recibe la lista), **hasta 2 veces**, y cada corrección se vuelve a verificar |
+| Sigue fallando tras las 2 correcciones | **Un relevo** a otro agente fuerte libre (nunca el autor ni un modelo local para lo que no es fácil), con las notas del verificador, los archivos que cambió el autor y lo que contó (sus pruebas). No retoma la sesión del autor: es otro CLI |
+| El relevo tampoco supera la revisión (o no hay a quién pasársela) | **«Requiere intervención»**: aviso en la campana [«Te necesita»](#te-necesita-lo-que-espera-una-decisión-tuya) con las notas y queda en la memoria como pendiente |
+| Veredicto «CUMPLE» | Terminada y verificada: «✔ Claude comprobó el resultado: cumple» (o «tras 2 correcciones», «y el relevo a…») |
+
+Las correcciones **cuentan por tarea**: el relevo no reinicia la cuenta, ni retomar la tarea tras cerrar la app, así
+que no hay bucles. **Ejecución y verificación van por separado**: una tarea «sin verificar» o que «requiere
+intervención» está terminada y sus archivos se quedan (los abres, los ves en «N archivos cambiados» y puedes
+deshacerla), pero no se presenta como aprobada. En el chat lo ves en el mensaje de la tarea («Claude comprobó … y vio
+fallos; Codex los corrige (corrección 1 de 2)», el relevo y el veredicto final). La verificación cuenta en «Consumo y
+tokens…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
 petición, si la tarea es solo de texto o si no hay ningún otro agente de otra familia disponible.
 
 **Si la tarea toca una web** (HTML, CSS, componentes…), AI Cowork la abre antes en una ventana oculta, a tamaño
@@ -926,16 +939,19 @@ abierto:
 | Le sirvió 👍 | De las que [valoraste](#valorar-un-resultado-), cuántas con 👍. La valoración es de quien terminó la tarea, no de quien falló antes |
 | Verificada a la primera | De las que comprobó [otro agente](#verificación-por-otro-agente), cuántas cumplían en el primer veredicto |
 | Necesitó corrección | De las comprobadas, cuántas tuvo que corregir porque el verificador vio fallos |
+| Aprobada tras corregir | De las comprobadas, las que tuvieron fallos y acabaron con «CUMPLE» tras sus correcciones |
+| Sin superar la revisión | De las comprobadas, las que acabaron con fallos en su trabajo: se pasaron a otro agente o requieren intervención |
+| Sin verificar | De todas, las que el verificador no aprobó ni suspendió (no dio veredicto ni al pedírselo otra vez). No cuentan en las tres columnas de arriba |
 | Falló o pasó a otro | No pudo hacerla (error, «BLOQUEADA», sin cuota…) y la terminó otro agente o se dio por fallida |
 | Tiempo y tokens (mediana) | Lo que suele tardar y gastar en una tarea, con su corrección incluida. «—» si no informa de tokens (Hermes, Muse, agentes de catálogo) |
 
 Cada cifra lleva su base («7 de 9»), y en rojo lo que conviene mirar (le sirvió menos del 60 %, corrigió el 40 % o
-más, falló el 20 % o más). Con menos de 5 tareas pone «pocos datos». En el móvil (navegador), cada agente y cada
+más, falló, no superó la revisión o quedó sin verificar el 20 % o más). Con menos de 5 tareas pone «pocos datos». En el móvil (navegador), cada agente y cada
 dificultad se ven como una tarjeta, sin tabla que desplazar. Las tareas que detienes no cuentan.
 
 **El coordinador lo usa al repartir.** Cuando un agente tiene 5 tareas o más en 30 días, su ficha lleva una línea
 como «calidad (30 días, 12 tareas): le sirvieron al usuario 7 de 9 valoradas; verificación: 6 de 8 a la primera, 2
-necesitaron corrección; 1 falló o pasó a otro (8 %); mediana unos 4 min y 120 k tokens por tarea», y por dificultad
+necesitaron corrección (1 aprobada después), 1 sin superar la revisión; 1 sin verificar; 1 falló o pasó a otro (8 %); mediana unos 4 min y 120 k tokens por tarea», y por dificultad
 las filas que se apartan del total. Se le pide que, entre los que pueden hacer la tarea, elija al de mejor calidad
 en esa dificultad aunque tarde o gaste más: la calidad pesa más que la velocidad y el coste; la cuota y estar libre
 deciden solo entre agentes parecidos.

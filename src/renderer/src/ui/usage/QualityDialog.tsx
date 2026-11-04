@@ -48,6 +48,15 @@ function Cells({ st }: { st: QualityStats }) {
       <td data-label="Necesitó corrección">
         <Pct value={st.fixedPct} part={st.fixed} total={st.verified} bad={st.fixedPct != null && st.fixedPct >= 40} />
       </td>
+      <td data-label="Aprobada tras corregir">
+        <Pct value={st.passedAfterFixPct} part={st.passedAfterFix} total={st.verified} />
+      </td>
+      <td data-label="Sin superar la revisión">
+        <Pct value={st.reviewFailedPct} part={st.reviewFailed} total={st.verified} bad={st.reviewFailedPct != null && st.reviewFailedPct >= 20} />
+      </td>
+      <td data-label="Sin verificar">
+        <Pct value={st.unverifiedPct} part={st.unverified} total={st.tasks} bad={st.unverifiedPct != null && st.unverifiedPct >= 20} />
+      </td>
       <td data-label="Falló o pasó a otro">
         <Pct value={st.failedPct} part={st.failed} total={st.tasks} bad={st.failedPct != null && st.failedPct >= 20} />
       </td>
@@ -102,8 +111,8 @@ export function QualityDialog({ onClose }: { onClose: () => void }) {
               Cómo rinde cada agente
             </h2>
             <p className={r.subtitle}>
-              Lo que te sirvió, lo que pasó la verificación de otro agente a la primera, lo que hubo que corregir y lo que falló. Por agente y por
-              dificultad.
+              Lo que te sirvió, lo que pasó la verificación de otro agente a la primera o tras corregir, lo que no la superó, lo que quedó sin
+              verificar y lo que falló. Por agente y por dificultad.
             </p>
           </div>
           <button type="button" className={cx(u.iconBtn, r.close)} aria-label="Cerrar" onClick={onClose}>
@@ -146,6 +155,15 @@ export function QualityDialog({ onClose }: { onClose: () => void }) {
                       </th>
                       <th scope="col" title="De las que comprobó otro agente, las que tuvo que corregir">
                         Necesitó corrección
+                      </th>
+                      <th scope="col" title="De las que comprobó otro agente con fallos, las que pasaron tras corregirlas">
+                        Aprobada tras corregir
+                      </th>
+                      <th scope="col" title="De las que comprobó otro agente, las que acabaron con fallos (relevo o «requiere intervención»)">
+                        Sin superar la revisión
+                      </th>
+                      <th scope="col" title="El verificador no dio un veredicto claro ni al pedírselo otra vez: ni aprobada ni suspendida">
+                        Sin verificar
                       </th>
                       <th scope="col" title="No pudo hacerla, o la terminó otro agente">
                         Falló o pasó a otro

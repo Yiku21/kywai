@@ -5283,6 +5283,21 @@
             "minimum": 0,
             "description": "El primer veredicto vio fallos y tuvo que corregir."
           },
+          "passedAfterFix": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "El primer veredicto vio fallos y el último dijo CUMPLE (aprobada tras corregir)."
+          },
+          "reviewFailed": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "El último veredicto sobre su trabajo vio fallos (pasó a otro agente o requiere intervención)."
+          },
+          "unverified": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "El verificador no dio un veredicto reconocible ni al pedírselo otra vez. No cuenta como verificada."
+          },
           "failed": {
             "type": "integer",
             "minimum": 0,
@@ -5314,6 +5329,33 @@
             "minimum": 0,
             "maximum": 100,
             "description": "fixed / verified; null sin verificadas."
+          },
+          "passedAfterFixPct": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "passedAfterFix / verified; null sin verificadas."
+          },
+          "reviewFailedPct": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "reviewFailed / verified; null sin verificadas."
+          },
+          "unverifiedPct": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "unverified / tasks; null sin tareas."
           },
           "failedPct": {
             "type": [
@@ -5385,6 +5427,21 @@
                   "minimum": 0,
                   "description": "El primer veredicto vio fallos y tuvo que corregir."
                 },
+                "passedAfterFix": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "El primer veredicto vio fallos y el último dijo CUMPLE (aprobada tras corregir)."
+                },
+                "reviewFailed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "El último veredicto sobre su trabajo vio fallos (pasó a otro agente o requiere intervención)."
+                },
+                "unverified": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "El verificador no dio un veredicto reconocible ni al pedírselo otra vez. No cuenta como verificada."
+                },
                 "failed": {
                   "type": "integer",
                   "minimum": 0,
@@ -5416,6 +5473,33 @@
                   "minimum": 0,
                   "maximum": 100,
                   "description": "fixed / verified; null sin verificadas."
+                },
+                "passedAfterFixPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "passedAfterFix / verified; null sin verificadas."
+                },
+                "reviewFailedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "reviewFailed / verified; null sin verificadas."
+                },
+                "unverifiedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "unverified / tasks; null sin tareas."
                 },
                 "failedPct": {
                   "type": [
@@ -5451,10 +5535,16 @@
                 "verified",
                 "firstPass",
                 "fixed",
+                "passedAfterFix",
+                "reviewFailed",
+                "unverified",
                 "failed",
                 "likedPct",
                 "firstPassPct",
                 "fixedPct",
+                "passedAfterFixPct",
+                "reviewFailedPct",
+                "unverifiedPct",
                 "failedPct",
                 "medianMs",
                 "medianTokens"
@@ -5473,10 +5563,16 @@
           "verified",
           "firstPass",
           "fixed",
+          "passedAfterFix",
+          "reviewFailed",
+          "unverified",
           "failed",
           "likedPct",
           "firstPassPct",
           "fixedPct",
+          "passedAfterFixPct",
+          "reviewFailedPct",
+          "unverifiedPct",
           "failedPct",
           "medianMs",
           "medianTokens",
