@@ -23,6 +23,7 @@ import { createHash, randomBytes as randomId } from 'node:crypto'
 import { createWriteStream, mkdirSync as makeDir, renameSync as renameFile, rmSync as removeFile, utimesSync } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import { isExcluded } from '@shared/sync'
+import { acceptsGzip, gzipStatic } from './staticGzip'
 import { listDirectory, listRoots, normalizePath, walkTree, withinAny, writeZip, type AccessEntry } from './serverFiles'
 import { MAX_INSTALLER_BYTES, currentRelease, isFeedFile, pruneInstallers, validDescriptor, writeFeedFile } from './clientRelease'
 
@@ -379,7 +380,7 @@ function rendererDir(): string {
 }
 
 /** Archivos de la interfaz (sin salir de out/renderer). index.html avisa a la interfaz de que va por web. */
-function serveStatic(res: ServerResponse, pathname: string): void {
+function serveStatic(res: ServerResponse, pathname: string, acceptEncoding?: string | string[]): void {
   const root = rendererDir()
   const rel = pathname === '/' ? 'index.html' : decodeURIComponent(pathname.slice(1))
   const abs = normalize(join(root, rel))
@@ -395,11 +396,19 @@ function serveStatic(res: ServerResponse, pathname: string): void {
     const html = readFileSync(abs, 'utf8').replace('<script type="module"', '<script src="/__cowork_web.js"></script>\n    <script type="module"')
     return send(res, 200, html, TYPES['.html'])
   }
-  res.writeHead(200, {
+  const headers = {
     'Content-Type': TYPES[extname(abs).toLowerCase()] ?? 'application/octet-stream',
-    'Content-Length': st.size,
-    'Cache-Control': rel.startsWith('assets/') ? 'public, max-age=31536000, immutable' : 'no-cache'
-  })
+    'Cache-Control': rel.startsWith('assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+    Vary: 'Accept-Encoding'
+  }
+  // Comprimida: la interfaz baja en menos de un tercio (cuenta por Tailscale: navegador y clientes).
+  const gz = acceptsGzip(acceptEncoding) ? gzipStatic(abs, st) : null
+  if (gz) {
+    res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip', 'Content-Length': gz.length })
+    res.end(gz)
+    return
+  }
+  res.writeHead(200, { ...headers, 'Content-Length': st.size })
   createReadStream(abs).pipe(res)
 }
 
@@ -574,7 +583,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     }
   }
 
-  if (req.method === 'GET' && !path.startsWith('/api/')) return serveStatic(res, path)
+  if (req.method === 'GET' && !path.startsWith('/api/')) return serveStatic(res, path, req.headers['accept-encoding'])
   return send(res, 404, 'Not found')
 }
 
