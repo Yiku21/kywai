@@ -22,6 +22,7 @@ import { HermesModelDialog } from '@/ui/space/HermesModelDialog'
 import { useTheme } from '@/lib/theme'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
+import { t } from '@/lib/i18n'
 
 // El espacio 3D (Three.js y compañía, la mayor parte del código) se carga aparte: el chat aparece sin esperarlo.
 const World = lazy(() => import('@/scene/World').then((m) => ({ default: m.World })))
@@ -123,10 +124,10 @@ export function App() {
       )}
       <Header />
       <div className={s.body} data-expanded={expanded} data-mobile={mobileView}>
-        <aside ref={left} className={s.left} aria-label="Chat, archivos, tareas y resultados" aria-hidden={expanded || undefined}>
+        <aside ref={left} className={s.left} aria-label={t('Chat, archivos, tareas y resultados')} aria-hidden={expanded || undefined}>
           <LeftPanel />
         </aside>
-        <section className={s.space} data-demo={mode === 'demo'} aria-label="Espacio digital">
+        <section className={s.space} data-demo={mode === 'demo'} aria-label={t('Espacio digital')}>
           <SpaceHeader />
           <div className={s.stage}>
             {!glass && (
@@ -140,7 +141,7 @@ export function App() {
             {mode === 'demo' && (
               <div className={s.demoRibbon}>
                 <FlaskConical size={13} aria-hidden="true" />
-                Demo · datos simulados
+                {t('Demo · datos simulados')}
               </div>
             )}
           </div>

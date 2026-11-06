@@ -15,14 +15,15 @@ import type { ArtifactKind, TaskStatus } from '@shared/types'
 import { cx, fileKind } from './util'
 import u from './ui.module.css'
 import s from './icons.module.css'
+import { t } from '@/lib/i18n'
 
 export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
-  pending: 'Pendiente',
-  blocked: 'Bloqueada',
-  running: 'En curso',
-  done: 'Completada',
-  failed: 'Con error',
-  cancelled: 'Cancelada'
+  pending: t('Pendiente'),
+  blocked: t('Bloqueada'),
+  running: t('En curso'),
+  done: t('Completada'),
+  failed: t('Con error'),
+  cancelled: t('Cancelada')
 }
 
 /** Icono de estado de tarea con etiqueta accesible (no depende solo del color). */
@@ -63,12 +64,12 @@ export function TaskStatusIcon({ status, size = 15, className }: { status: TaskS
 }
 
 export const ARTIFACT_KIND_LABEL: Record<ArtifactKind, string> = {
-  html: 'Página web',
-  markdown: 'Documento',
-  code: 'Código',
-  image: 'Imagen',
-  text: 'Texto',
-  other: 'Archivo'
+  html: t('Página web'),
+  markdown: t('Documento'),
+  code: t('Código'),
+  image: t('Imagen'),
+  text: t('Texto'),
+  other: t('Archivo')
 }
 
 const KIND_ICON: Record<ArtifactKind, LucideIcon> = {

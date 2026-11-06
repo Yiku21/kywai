@@ -6,6 +6,7 @@ import { fileSize, relativeTime } from '@/lib/format'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './ServerFiles.module.css'
+import { t } from '@/lib/i18n'
 
 interface Entry {
   name: string
@@ -45,7 +46,7 @@ const q = (p: string): string => encodeURIComponent(p)
 async function openRemote(path: string): Promise<void> {
   if (clientBridge()?.openRemotePath) return clientBridge()!.openRemotePath!(path)
   // Un cliente anterior no sabe abrir archivos del servidor y su navegador externo no tendría la llave.
-  if (isClient) throw new Error('Esta versión del cliente no puede abrir archivos: instala la nueva con ⋮ → «Actualizar este equipo…». Mientras, usa el botón de descargar.')
+  if (isClient) throw new Error(t('Esta versión del cliente no puede abrir archivos: instala la nueva con ⋮ → «Actualizar este equipo…». Mientras, usa el botón de descargar.'))
   window.open(`/api/fs/read?path=${q(path)}`, '_blank', 'noopener')
 }
 
@@ -136,24 +137,24 @@ export function ServerFiles() {
           <FolderOpen size={20} aria-hidden="true" className={s.headIcon} />
           <div className={s.headText}>
             <h2 id="serverfiles-title" className={s.title}>
-              {pick ? 'Elegir la carpeta de trabajo' : 'Archivos del servidor'}
+              {pick ? t('Elegir la carpeta de trabajo') : t('Archivos del servidor')}
             </h2>
             <p className={s.subtitle}>
               {pick
-                ? 'Elige la carpeta del servidor en la que trabajarán los agentes de este proyecto.'
+                ? t('Elige la carpeta del servidor en la que trabajarán los agentes de este proyecto.')
                 : isClient
-                  ? 'Los archivos del equipo servidor. Al abrir uno se descarga a una carpeta temporal y se abre con tu aplicación.'
-                  : 'Los archivos del equipo servidor.'}
-              {roots?.restricted ? ' El servidor limita el acceso a las carpetas de los proyectos.' : ''}
+                  ? t('Los archivos del equipo servidor. Al abrir uno se descarga a una carpeta temporal y se abre con tu aplicación.')
+                  : t('Los archivos del equipo servidor.')}
+              {roots?.restricted ? t(' El servidor limita el acceso a las carpetas de los proyectos.') : ''}
             </p>
           </div>
-          <button type="button" className={cx(u.iconBtn, s.close)} aria-label="Cerrar" onClick={() => closeFilesRequest(null)}>
+          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={() => closeFilesRequest(null)}>
             <X size={18} />
           </button>
         </header>
 
         {roots && roots.roots.length > 1 && (
-          <div className={s.roots} role="group" aria-label="Lugares">
+          <div className={s.roots} role="group" aria-label={t('Lugares')}>
             {roots.roots.map((r) => {
               const Icon = r.kind === 'home' ? Home : r.kind === 'project' ? Folder : HardDrive
               return (
@@ -166,8 +167,8 @@ export function ServerFiles() {
           </div>
         )}
 
-        <div className={s.crumbs} aria-label="Ruta">
-          <button type="button" className={s.up} disabled={!listing?.parent || loading} onClick={() => listing?.parent && void go(listing.parent)} aria-label="Subir una carpeta" title="Subir una carpeta">
+        <div className={s.crumbs} aria-label={t('Ruta')}>
+          <button type="button" className={s.up} disabled={!listing?.parent || loading} onClick={() => listing?.parent && void go(listing.parent)} aria-label={t('Subir una carpeta')} title={t('Subir una carpeta')}>
             <ArrowUp size={15} aria-hidden="true" />
           </button>
           {listing &&
@@ -184,10 +185,10 @@ export function ServerFiles() {
         <div className={s.list} aria-busy={loading}>
           {loading && !listing ? (
             <p className={s.empty}>
-              <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> Cargando…
+              <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> {t('Cargando…')}
             </p>
           ) : listing && listing.entries.length === 0 ? (
-            <p className={s.empty}>Esta carpeta está vacía.</p>
+            <p className={s.empty}>{t('Esta carpeta está vacía.')}</p>
           ) : (
             listing?.entries.map((e) => {
               const full = childPath(listing.path, e.name, sep)
@@ -200,7 +201,7 @@ export function ServerFiles() {
                     className={s.itemMain}
                     disabled={pick && !dir}
                     onClick={() => (dir ? void go(full) : void act(key, () => openRemote(full)))}
-                    title={dir ? 'Abrir la carpeta' : pick ? 'Elige una carpeta' : 'Abrir con tu aplicación'}
+                    title={dir ? t('Abrir la carpeta') : pick ? t('Elige una carpeta') : t('Abrir con tu aplicación')}
                   >
                     {dir ? <Folder size={16} aria-hidden="true" className={s.dirIcon} /> : <FileIcon size={16} aria-hidden="true" className={s.fileIcon} />}
                     <span className={s.name}>{e.name}</span>
@@ -211,8 +212,8 @@ export function ServerFiles() {
                     <button
                       type="button"
                       className={cx(u.iconBtn, s.dl)}
-                      aria-label={dir ? `Descargar ${e.name} como zip` : `Descargar ${e.name}`}
-                      title={dir ? 'Descargar como zip' : 'Descargar'}
+                      aria-label={dir ? t('Descargar {name} como zip', { name: e.name }) : t('Descargar {name}', { name: e.name })}
+                      title={dir ? t('Descargar como zip') : t('Descargar')}
                       disabled={busy === `dl:${key}`}
                       onClick={() => void act(`dl:${key}`, () => downloadRemote(full, dir ? 'dir' : 'file'))}
                     >
@@ -223,7 +224,7 @@ export function ServerFiles() {
               )
             })
           )}
-          {listing?.truncated && <p className={s.empty}>Hay más elementos de los que se enseñan aquí.</p>}
+          {listing?.truncated && <p className={s.empty}>{t('Hay más elementos de los que se enseñan aquí.')}</p>}
         </div>
 
         {error && (
@@ -238,7 +239,7 @@ export function ServerFiles() {
           </span>
           {pick ? (
             <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!listing || loading} onClick={() => closeFilesRequest(listing?.path ?? null)}>
-              Usar esta carpeta
+              {t('Usar esta carpeta')}
             </button>
           ) : (
             <button
@@ -248,7 +249,7 @@ export function ServerFiles() {
               onClick={() => listing && void act('zip', () => downloadRemote(listing.path, 'dir'))}
             >
               {busy === 'zip' ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : <Download size={14} aria-hidden="true" />}
-              Descargar esta carpeta (.zip)
+              {t('Descargar esta carpeta (.zip)')}
             </button>
           )}
         </footer>

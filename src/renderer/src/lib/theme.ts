@@ -4,21 +4,22 @@
 // scene/palette.ts) y se recuerdan en cada dispositivo.
 import { useSyncExternalStore } from 'react'
 import { setScenePalette } from '@/scene/palette'
+import { t } from '@/lib/i18n'
 
 export type ThemeId = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'relicario' | 'telar' | 'halloween' | 'navidad'
 
 export const THEMES: ReadonlyArray<{ id: ThemeId; name: string; hint: string }> = [
-  { id: 'clasico', name: 'Clásico', hint: 'Paneles oscuros y sobrios, el de siempre' },
-  { id: 'orbita', name: 'Órbita', hint: 'Cristal azulado con brillos, como la app del móvil' },
-  { id: 'marfil', name: 'Marfil', hint: 'Claro y cálido: marfil, verde y oro' },
-  { id: 'grafito', name: 'Grafito', hint: 'Negro grafito con detalles dorados' },
-  { id: 'bosque', name: 'Bosque', hint: 'Verde bosque profundo con oro' },
-  { id: 'matrix', name: 'Matrix', hint: 'Negro y verde neón' },
-  { id: 'eva', name: 'EVA-01', hint: 'Morado y verde lima, como la Unidad 01' },
-  { id: 'relicario', name: 'Relicario', hint: 'Cristal y oro: un núcleo tallado y plataformas de vidrio' },
-  { id: 'telar', name: 'Telar', hint: 'Hilos de plata tejidos en el espacio, con destellos dorados' },
-  { id: 'halloween', name: 'Halloween', hint: 'Calabazas, velas, luna y murciélagos en una noche morada' },
-  { id: 'navidad', name: 'Navidad', hint: 'Nieve, regalos, árboles con luces y una bola de nieve' }
+  { id: 'clasico', name: t('Clásico'), hint: t('Paneles oscuros y sobrios, el de siempre') },
+  { id: 'orbita', name: t('Órbita'), hint: t('Cristal azulado con brillos, como la app del móvil') },
+  { id: 'marfil', name: t('Marfil'), hint: t('Claro y cálido: marfil, verde y oro') },
+  { id: 'grafito', name: t('Grafito'), hint: t('Negro grafito con detalles dorados') },
+  { id: 'bosque', name: t('Bosque'), hint: t('Verde bosque profundo con oro') },
+  { id: 'matrix', name: 'Matrix', hint: t('Negro y verde neón') },
+  { id: 'eva', name: 'EVA-01', hint: t('Morado y verde lima, como la Unidad 01') },
+  { id: 'relicario', name: t('Relicario'), hint: t('Cristal y oro: un núcleo tallado y plataformas de vidrio') },
+  { id: 'telar', name: t('Telar'), hint: t('Hilos de plata tejidos en el espacio, con destellos dorados') },
+  { id: 'halloween', name: 'Halloween', hint: t('Calabazas, velas, luna y murciélagos en una noche morada') },
+  { id: 'navidad', name: t('Navidad'), hint: t('Nieve, regalos, árboles con luces y una bola de nieve') }
 ]
 
 const KEY = 'aicowork.theme'

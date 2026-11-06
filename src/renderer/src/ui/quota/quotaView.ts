@@ -1,5 +1,6 @@
 import type { QuotaInfo, QuotaKind, QuotaSource, QuotaThresholds } from '@shared/types'
 import { quotaLevel, type QuotaLevel } from '@shared/defaults'
+import { t } from '@/lib/i18n'
 
 /** Variante visual del chip: los niveles de quotaLevel + 'local' (ejecución local sin presupuesto). */
 export type QuotaVariant = QuotaLevel | 'local'
@@ -20,26 +21,26 @@ export interface QuotaView {
 }
 
 export const SOURCE_LABEL: Record<QuotaSource, string> = {
-  real: 'Dato real',
-  estimate: 'Estimación',
-  config: 'Según tu configuración',
+  real: t('Dato real'),
+  estimate: t('Estimación'),
+  config: t('Según tu configuración'),
   demo: 'Demo',
-  none: 'No disponible'
+  none: t('No disponible')
 }
 
 const SOURCE_SENTENCE: Record<QuotaSource, string> = {
-  real: 'dato real',
-  estimate: 'estimación',
-  config: 'según tu configuración',
-  demo: 'dato de demostración',
-  none: 'sin datos'
+  real: t('dato real'),
+  estimate: t('estimación'),
+  config: t('según tu configuración'),
+  demo: t('dato de demostración'),
+  none: t('sin datos')
 }
 
 export const KIND_LABEL: Record<QuotaKind, string> = {
-  usage: 'Cuota de uso de la suscripción',
-  tokens: 'Presupuesto de tokens',
-  requests: 'Presupuesto de solicitudes',
-  local: 'Ejecución local'
+  usage: t('Cuota de uso de la suscripción'),
+  tokens: t('Presupuesto de tokens'),
+  requests: t('Presupuesto de solicitudes'),
+  local: t('Ejecución local')
 }
 
 export function levelColor(variant: QuotaVariant, agentColor: string | undefined): string {
@@ -56,32 +57,32 @@ export function levelColor(variant: QuotaVariant, agentColor: string | undefined
   }
 }
 
-export function describeQuota(q: QuotaInfo, t: QuotaThresholds, agentColor: string | undefined): QuotaView {
-  let variant: QuotaVariant = quotaLevel(q.remainingPct, t, q.unlimited)
+export function describeQuota(q: QuotaInfo, th: QuotaThresholds, agentColor: string | undefined): QuotaView {
+  let variant: QuotaVariant = quotaLevel(q.remainingPct, th, q.unlimited)
   if (variant === 'unknown' && q.kind === 'local') variant = 'local'
   const estimate = q.source === 'estimate'
   const color = levelColor(variant, agentColor)
   const pct = q.remainingPct != null && !Number.isNaN(q.remainingPct) ? Math.max(0, Math.min(100, q.remainingPct)) : null
-  const src = SOURCE_SENTENCE[q.source] ?? 'sin datos'
-  const approx = estimate ? 'aproximadamente ' : ''
+  const src = SOURCE_SENTENCE[q.source] ?? t('sin datos')
+  const approx = estimate ? t('aproximadamente ') : ''
 
   switch (variant) {
     case 'unlimited':
-      return { variant, color, pct: null, barPct: 100, estimate, fixedValue: '∞', sentence: `${q.label}: ejecución local sin límite de cuota` }
+      return { variant, color, pct: null, barPct: 100, estimate, fixedValue: '∞', sentence: t('{label}: ejecución local sin límite de cuota', { label: q.label }) }
     case 'local':
-      return { variant, color, pct: null, barPct: 100, estimate, fixedValue: 'Local', sentence: `${q.label}: ejecución local, sin presupuesto configurado` }
+      return { variant, color, pct: null, barPct: 100, estimate, fixedValue: 'Local', sentence: t('{label}: ejecución local, sin presupuesto configurado', { label: q.label }) }
     case 'unknown': {
       // Sin dato de cuota (p. ej. Gemini con clave de API): al menos, cuánto se ha usado hoy desde la app.
       const used = q.usedRequests ?? 0
       return used > 0
-        ? { variant, color, pct: null, barPct: 0, estimate, fixedValue: `${used} hoy`, sentence: `${q.label}: cuota no disponible; ${used} ${used === 1 ? 'uso' : 'usos'} hoy desde AI Cowork` }
-        : { variant, color, pct: null, barPct: 0, estimate, fixedValue: 'N/D', sentence: `${q.label}: cuota no disponible` }
+        ? { variant, color, pct: null, barPct: 0, estimate, fixedValue: t('{used} hoy', { used }), sentence: used === 1 ? t('{label}: cuota no disponible; 1 uso hoy desde AI Cowork', { label: q.label }) : t('{label}: cuota no disponible; {used} usos hoy desde AI Cowork', { label: q.label, used }) }
+        : { variant, color, pct: null, barPct: 0, estimate, fixedValue: 'N/D', sentence: t('{label}: cuota no disponible', { label: q.label }) }
     }
     case 'empty':
-      return { variant, color, pct: 0, barPct: 0, estimate, fixedValue: 'Agotada', sentence: `${q.label}: cuota agotada, ${src}` }
+      return { variant, color, pct: 0, barPct: 0, estimate, fixedValue: t('Agotada'), sentence: t('{label}: cuota agotada, {src}', { label: q.label, src }) }
     default: {
       const p = pct ?? 0
-      const extra = variant === 'warn' ? ', cuota baja' : variant === 'alert' ? ', cuota casi agotada' : ''
+      const extra = variant === 'warn' ? t(', cuota baja') : variant === 'alert' ? t(', cuota casi agotada') : ''
       return {
         variant,
         color,
@@ -89,7 +90,7 @@ export function describeQuota(q: QuotaInfo, t: QuotaThresholds, agentColor: stri
         barPct: p,
         estimate,
         fixedValue: null,
-        sentence: `${q.label}: ${approx}${Math.round(p)}% de cuota restante, ${src}${extra}`
+        sentence: t('{label}: {approx}{Math}% de cuota restante, {src}{extra}', { label: q.label, approx, Math: Math.round(p), src, extra })
       }
     }
   }

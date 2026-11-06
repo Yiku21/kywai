@@ -167,6 +167,8 @@ pruebas en emulador). Tras publicar, se commitea `android/release` junto con el 
 - **README = presentación; MANUAL = funciones en detalle** (con su índice). Mantener la sección «Instalar» del
   README: `selfUpdate.ts` envía ahí a quien tiene que instalar a mano.
 - **Lo que Hermes debe saber** va en `coordinatorGuide.ts`, no solo en la documentación.
+- **Idiomas**: todo texto nuevo de la interfaz pasa por `t('…')` (`@/lib/i18n`) y lleva su traducción en
+  `src/renderer/src/lib/i18n/en.ts`; `i18n.test.ts` avisa si falta. Ver «Idioma» en el MANUAL.
 - **Seguridad**: el texto del usuario nunca va en la línea de órdenes de un agente; las claves de API se guardan
   cifradas con el llavero del sistema, solo en el servidor (nunca por web, API móvil ni `config.json`). El código de
   acceso (`?t=`) y las llaves de dispositivo no se escriben en documentos ni en commits.

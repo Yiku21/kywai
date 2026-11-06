@@ -26,6 +26,7 @@ import { agentVars, basename, cx, errorText, kTokens } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SelectionPanel.module.css'
 import { AgentModels, HermesModelRow } from './AgentModels'
+import { t } from '@/lib/i18n'
 
 /** Panel flotante con el detalle del agente o la transferencia seleccionados en el espacio. */
 export function SelectionPanel() {
@@ -40,7 +41,7 @@ export function SelectionPanel() {
     <aside
       key={`${selection.type}:${selection.id}`}
       className={s.panel}
-      aria-label={selection.type === 'agent' ? 'Detalle del agente' : 'Detalle de la transferencia'}
+      aria-label={selection.type === 'agent' ? t('Detalle del agente') : t('Detalle de la transferencia')}
     >
       {selection.type === 'agent' ? (
         <AgentDetails id={selection.id} onClose={close} />
@@ -53,7 +54,7 @@ export function SelectionPanel() {
 
 function CloseButton({ onClose }: { onClose: () => void }) {
   return (
-    <button type="button" className={cx(u.iconBtn, u.iconBtnSm, s.close)} onClick={onClose} aria-label="Cerrar panel" title="Cerrar (Esc)">
+    <button type="button" className={cx(u.iconBtn, u.iconBtnSm, s.close)} onClick={onClose} aria-label={t('Cerrar panel')} title={t('Cerrar (Esc)')}>
       <X size={16} aria-hidden="true" />
     </button>
   )
@@ -113,17 +114,17 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const now = useNow(2000)
   const look = lookup(id)
 
-  const agentTasks = useMemo(() => Object.values(tasks).filter((t) => t.agentId === id), [tasks, id])
+  const agentTasks = useMemo(() => Object.values(tasks).filter((task) => task.agentId === id), [tasks, id])
 
   const current: Task | undefined = useMemo(() => {
     if (runtime?.taskId && tasks[runtime.taskId]) return tasks[runtime.taskId]
     return agentTasks
-      .filter((t) => t.status === 'running')
+      .filter((task) => task.status === 'running')
       .sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0))[0]
   }, [runtime?.taskId, tasks, agentTasks])
 
   const results = useMemo(() => {
-    const ids = new Set(agentTasks.map((t) => t.id))
+    const ids = new Set(agentTasks.map((task) => task.id))
     return Object.values(artifacts)
       .filter((a) => a.agentId === id || (!!a.taskId && ids.has(a.taskId)))
       .sort((a, b) => b.createdAt - a.createdAt)
@@ -132,7 +133,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const recent = useMemo(
     () =>
       agentTasks
-        .filter((t) => (t.status === 'done' || t.status === 'failed' || t.status === 'cancelled') && t.id !== current?.id)
+        .filter((task) => (task.status === 'done' || task.status === 'failed' || task.status === 'cancelled') && task.id !== current?.id)
         .sort((a, b) => (b.finishedAt ?? b.createdAt) - (a.finishedAt ?? a.createdAt))
         .slice(0, 5),
     [agentTasks, current?.id]
@@ -145,7 +146,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
           <AgentAvatar look={look} size={44} dim />
           <div className={s.headInfo}>
             <h2 className={s.name}>{look.name}</h2>
-            <p className={s.sub}>Este agente ya no está en el espacio.</p>
+            <p className={s.sub}>{t('Este agente ya no está en el espacio.')}</p>
           </div>
           <CloseButton onClose={onClose} />
         </div>
@@ -156,9 +157,9 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const activity: AgentActivity = runtime?.activity ?? 'offline'
   const parent = agent.isSubagent && agent.parentId ? lookup(agent.parentId) : null
   let statusText: string = ACTIVITY_LABEL[activity]
-  if (activity === 'waiting') statusText = runtime?.waitingFor ? `Esperando a ${lookup(runtime.waitingFor).name}` : 'Esperando'
+  if (activity === 'waiting') statusText = runtime?.waitingFor ? t('Esperando a {name}', { name: lookup(runtime.waitingFor).name }) : t('Esperando')
   const reason = (activity === 'error' || activity === 'offline') && runtime?.reason ? runtime.reason : null
-  const deps = current ? current.dependsOn.map((d) => tasks[d]).filter((t): t is Task => !!t) : []
+  const deps = current ? current.dependsOn.map((d) => tasks[d]).filter((task): task is Task => !!task) : []
   const prog = current ? taskProgress(current, Object.values(tasks), now) : null
   const silent = isSilent(runtime, now)
   const ctx = runtime?.context
@@ -170,7 +171,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
         <div className={s.headInfo}>
           <h2 className={s.name}>{agent.name}</h2>
           <p className={s.sub}>
-            <span className={s.model}>{agent.modelLabel || 'Modelo predeterminado'}</span>
+            <span className={s.model}>{agent.modelLabel || t('Modelo predeterminado')}</span>
             <span className={s.dotSep} aria-hidden="true">
               ·
             </span>
@@ -178,7 +179,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
           </p>
           {parent && (
             <p className={s.parent}>
-              Sub-agente de <AgentPill look={parent} size="sm" />
+              {t('Sub-agente de')} <AgentPill look={parent} size="sm" />
             </p>
           )}
         </div>
@@ -193,7 +194,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
           <span className={s.statusText}>{statusText}</span>
           {reason && <span className={s.reason}>{reason}</span>}
         </div>
-        <span className={s.location}>{runtime?.location === 'core' ? 'En el núcleo' : 'En su estación'}</span>
+        <span className={s.location}>{runtime?.location === 'core' ? t('En el núcleo') : t('En su estación')}</span>
       </div>
 
       {!!api && mode === 'live' && (activity === 'error' || activity === 'offline') && <ResetAgent agentId={agent.id} />}
@@ -201,23 +202,23 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
       {agent.role && <p className={s.role}>{agent.role}</p>}
 
       {!!api && mode === 'live' && !agent.isSubagent && !agent.plannerOnly && agent.provider !== 'ollama' && agent.provider !== 'lmstudio' && (
-        <Section title="Modelos según la dificultad">
+        <Section title={t('Modelos según la dificultad')}>
           <AgentModels agent={agent} />
         </Section>
       )}
 
       {!!api && mode === 'live' && agent.provider === 'hermes' && (
-        <Section title="Modelo">
+        <Section title={t('Modelo')}>
           <HermesModelRow agent={agent} />
         </Section>
       )}
 
-      <Section title="Tarea actual">
+      <Section title={t('Tarea actual')}>
         {current ? (
           // Toda la tarjeta abre la ventana con lo que hace (el botón de abajo es el acceso por teclado).
           <div
             className={cx(s.task, s.taskLink)}
-            title="Ver qué está haciendo, paso a paso"
+            title={t('Ver qué está haciendo, paso a paso')}
             onClick={(e) => {
               if (!(e.target as HTMLElement).closest('button')) openTrace(current.id)
             }}
@@ -232,7 +233,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
                 <div
                   className={u.track}
                   role="progressbar"
-                  aria-label={prog.real ? 'Progreso de la tarea' : 'Progreso estimado de la tarea'}
+                  aria-label={prog.real ? t('Progreso de la tarea') : t('Progreso estimado de la tarea')}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={prog.pct}
@@ -246,34 +247,34 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
               </div>
             ) : current.status === 'running' ? (
               <div className={s.progressRow}>
-                <div className={u.track} role="progressbar" aria-label="Tarea en curso" aria-valuetext="En curso, sin medida de progreso">
+                <div className={u.track} role="progressbar" aria-label={t('Tarea en curso')} aria-valuetext={t('En curso, sin medida de progreso')}>
                   <span className={reduced ? u.shimmerStatic : u.shimmer} style={{ '--bar': look.color } as CSSProperties} />
                 </div>
-                <span className={s.pctMuted}>En curso</span>
+                <span className={s.pctMuted}>{t('En curso')}</span>
               </div>
             ) : null}
             {current.status === 'running' && prog && (
               <span className={s.taskModel}>
-                {prog.real ? 'Progreso real (lista de pasos del agente)' : 'Progreso estimado: el agente no informa sus pasos'}
-                {silent ? ' · razonando, sin novedades por ahora' : ''}
+                {prog.real ? t('Progreso real (lista de pasos del agente)') : t('Progreso estimado: el agente no informa sus pasos')}
+                {silent ? t(' · razonando, sin novedades por ahora') : ''}
               </span>
             )}
             {current.model && (
-              <span className={s.taskModel}>Modelo: {modelLabelFor(current.model, agent)}</span>
+              <span className={s.taskModel}>{t('Modelo:')} {modelLabelFor(current.model, agent)}</span>
             )}
             <button type="button" className={s.traceBtn} onClick={() => openTrace(current.id)}>
               <SquareTerminal size={14} aria-hidden="true" />
-              {current.status === 'running' ? 'Ver qué está haciendo' : 'Ver lo que hizo'}
+              {current.status === 'running' ? t('Ver qué está haciendo') : t('Ver lo que hizo')}
               <ArrowRight size={14} aria-hidden="true" className={s.resultGo} />
             </button>
           </div>
         ) : (
-          <p className={s.muted}>Sin tarea asignada ahora mismo.</p>
+          <p className={s.muted}>{t('Sin tarea asignada ahora mismo.')}</p>
         )}
       </Section>
 
       {deps.length > 0 && (
-        <Section title="Depende de">
+        <Section title={t('Depende de')}>
           <ul className={s.list}>
             {deps.map((d) => (
               <li key={d.id} className={s.depRow}>
@@ -288,22 +289,22 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
         </Section>
       )}
 
-      <Section title="Última actividad">
+      <Section title={t('Última actividad')}>
         {runtime?.lastActivity ? (
           <p className={s.activity}>
             <span>{runtime.lastActivity}</span>
             {runtime.lastActivityAt ? <span className={s.when}>{relativeTime(runtime.lastActivityAt, now)}</span> : null}
           </p>
         ) : (
-          <p className={s.muted}>Sin actividad registrada.</p>
+          <p className={s.muted}>{t('Sin actividad registrada.')}</p>
         )}
       </Section>
 
       {ctx && (
-        <Section title="Contexto">
+        <Section title={t('Contexto')}>
           <p className={s.activity}>
             <span>
-              {kTokens(ctx.used)} tokens usados{ctx.capacity ? ` de ${kTokens(ctx.capacity)}` : ''}
+              {t('{kTokens} tokens usados{v2}', { kTokens: kTokens(ctx.used), v2: ctx.capacity ? t(' de {capacity}', { capacity: kTokens(ctx.capacity) }) : '' })}
             </span>
           </p>
           {ctx.capacity ? (
@@ -318,7 +319,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
       )}
 
       {results.length > 0 && (
-        <Section title="Resultados disponibles" aside={<span className={u.count}>{results.length}</span>}>
+        <Section title={t('Resultados disponibles')} aside={<span className={u.count}>{results.length}</span>}>
           <ul className={s.list}>
             {results.slice(0, 6).map((a) => (
               <li key={a.id}>
@@ -330,14 +331,14 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
       )}
 
       {recent.length > 0 && (
-        <Section title="Tareas recientes">
+        <Section title={t('Tareas recientes')}>
           <ul className={s.list}>
-            {recent.map((t) => (
-              <li key={t.id}>
-                <button type="button" className={cx(s.depRow, s.recentRow)} title={`Ver lo que hizo en «${t.title}»`} onClick={() => openTrace(t.id)}>
-                  <TaskStatusIcon status={t.status} size={14} />
-                  <span className={s.depTitle}>{t.title}</span>
-                  <span className={s.when}>{t.finishedAt ? relativeTime(t.finishedAt, now) : TASK_STATUS_LABEL[t.status]}</span>
+            {recent.map((task) => (
+              <li key={task.id}>
+                <button type="button" className={cx(s.depRow, s.recentRow)} title={t('Ver lo que hizo en «{title}»', { title: task.title })} onClick={() => openTrace(task.id)}>
+                  <TaskStatusIcon status={task.status} size={14} />
+                  <span className={s.depTitle}>{task.title}</span>
+                  <span className={s.when}>{task.finishedAt ? relativeTime(task.finishedAt, now) : TASK_STATUS_LABEL[task.status]}</span>
                 </button>
               </li>
             ))}
@@ -348,7 +349,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
       {agent.isSubagent && parent?.present && (
         <div className={s.footer}>
           <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => select({ type: 'agent', id: parent.id })}>
-            Ver a {parent.name}
+            {t('Ver a')} {parent.name}
           </button>
         </div>
       )}
@@ -358,7 +359,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
 
 function ResultRow({ artifact, onOpen }: { artifact: Artifact; onOpen: () => void }) {
   return (
-    <button type="button" className={s.resultRow} onClick={onOpen} title={`Abrir ${artifact.name}`}>
+    <button type="button" className={s.resultRow} onClick={onOpen} title={t('Abrir {name}', { name: artifact.name })}>
       <KindTile kind={artifact.kind} size={30} />
       <span className={s.resultName}>{artifact.name}</span>
       <ArrowRight size={14} aria-hidden="true" className={s.resultGo} />
@@ -389,7 +390,7 @@ function Endpoint({ id, lookup }: { id: string; lookup: (id: string) => AgentLoo
 }
 
 function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
-  const transfer = useData((d) => d.transfers.find((t) => t.id === id))
+  const transfer = useData((d) => d.transfers.find((task) => task.id === id))
   const tasks = useData((d) => d.tasks)
   const mode = useCowork((st) => st.mode)
   const project = useCowork((st) => st.live.project)
@@ -400,8 +401,8 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
     return (
       <div className={s.head}>
         <div className={s.headInfo}>
-          <h2 className={s.name}>Transferencia</h2>
-          <p className={s.sub}>Esta transferencia ya no está disponible.</p>
+          <h2 className={s.name}>{t('Transferencia')}</h2>
+          <p className={s.sub}>{t('Esta transferencia ya no está disponible.')}</p>
         </div>
         <CloseButton onClose={onClose} />
       </div>
@@ -416,7 +417,7 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
     <div>
       <div className={s.head}>
         <div className={s.headInfo}>
-          <span className={s.kicker}>Transferencia</span>
+          <span className={s.kicker}>{t('Transferencia')}</span>
           <h2 className={s.name}>{transfer.payload.title || transfer.label}</h2>
           <p className={s.sub}>
             <time dateTime={new Date(transfer.createdAt).toISOString()}>{timeHM(transfer.createdAt)}</time>
@@ -429,7 +430,7 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
         <CloseButton onClose={onClose} />
       </div>
 
-      <div className={s.route} aria-label="Origen y destino">
+      <div className={s.route} aria-label={t('Origen y destino')}>
         <Endpoint id={transfer.fromId} lookup={lookup} />
         <ArrowRight size={16} aria-label="hacia" className={s.routeArrow} />
         <Endpoint id={transfer.toId} lookup={lookup} />
@@ -438,13 +439,13 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
       {transfer.label && transfer.label !== transfer.payload.title && <p className={s.role}>{transfer.label}</p>}
 
       {transfer.payload.summary && (
-        <Section title="Resumen">
+        <Section title={t('Resumen')}>
           <p className={s.summary}>{transfer.payload.summary}</p>
         </Section>
       )}
 
       {files.length > 0 && (
-        <Section title="Archivos" aside={<span className={u.count}>{files.length}</span>}>
+        <Section title={t('Archivos')} aside={<span className={u.count}>{files.length}</span>}>
           <ul className={s.list}>
             {files.map((f) => {
               const name = basename(f)
@@ -454,7 +455,7 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
                     type="button"
                     className={s.resultRow}
                     disabled={!canOpen}
-                    title={canOpen ? `Abrir ${name}` : f}
+                    title={canOpen ? t('Abrir {name}', { name }) : f}
                     onClick={() => {
                       if (api && project) api.openPath(project.id, f).catch(() => {})
                     }}
@@ -472,7 +473,7 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
       )}
 
       {task && (
-        <Section title="Tarea relacionada">
+        <Section title={t('Tarea relacionada')}>
           <div className={s.task}>
             <div className={s.taskHead}>
               <TaskStatusIcon status={task.status} size={15} />
@@ -501,8 +502,8 @@ function ResetAgent({ agentId }: { agentId: string }) {
       const rt = await api.resetAgent(agentId)
       setNote(
         rt.activity === 'offline'
-          ? { text: `Sigue sin responder${rt.reason ? `: ${rt.reason}` : ''}. Revisa su instalación o su sesión.`, ok: false }
-          : { text: 'Reiniciado: vuelve a estar disponible y lo pendiente puede empezar.', ok: true }
+          ? { text: t('Sigue sin responder{reason}. Revisa su instalación o su sesión.', { reason: rt.reason ? `: ${rt.reason}` : '' }), ok: false }
+          : { text: t('Reiniciado: vuelve a estar disponible y lo pendiente puede empezar.'), ok: true }
       )
     } catch (e) {
       setNote({ text: errorText(e), ok: false })
@@ -514,10 +515,10 @@ function ResetAgent({ agentId }: { agentId: string }) {
     <div className={s.reset}>
       <button type="button" className={cx(u.btn, u.btnSm, s.resetBtn)} disabled={busy} onClick={() => void reset()}>
         {busy ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : <RotateCcw size={14} aria-hidden="true" />}
-        Reiniciar agente
+        {t('Reiniciar agente')}
       </button>
       <span className={cx(s.resetNote, note && !note.ok && s.resetBad)} role="status">
-        {note?.text ?? 'Olvida el error, comprueba que responde y lo deja disponible.'}
+        {note?.text ?? t('Olvida el error, comprueba que responde y lo deja disponible.')}
       </span>
     </div>
   )

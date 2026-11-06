@@ -6,6 +6,7 @@ import { fileSize, relativeTime } from '@/lib/format'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './RemoteAccess.module.css'
+import { t } from '@/lib/i18n'
 
 /** Panel del Mac para abrir AI Cowork desde el móvil o el portátil (red de Tailscale). */
 export function RemoteAccess({ onClose }: { onClose: () => void }) {
@@ -48,7 +49,7 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
       setCopied(text)
       window.setTimeout(() => setCopied(null), 1600)
     } catch {
-      setError('No se pudo copiar: selecciona el enlace y cópialo a mano')
+      setError(t('No se pudo copiar: selecciona el enlace y cópialo a mano'))
     }
   }
 
@@ -77,25 +78,25 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
           <Smartphone size={20} aria-hidden="true" className={s.headIcon} />
           <div>
             <h2 id="remote-title" className={s.title}>
-              Acceso desde otros dispositivos
+              {t('Acceso desde otros dispositivos')}
             </h2>
-            <p className={s.subtitle}>Usa AI Cowork desde el móvil o el portátil, con este equipo como servidor. Solo dentro de tu red de Tailscale.</p>
+            <p className={s.subtitle}>{t('Usa AI Cowork desde el móvil o el portátil, con este equipo como servidor. Solo dentro de tu red de Tailscale.')}</p>
           </div>
-          <button type="button" className={cx(u.iconBtn, s.close)} aria-label="Cerrar" onClick={onClose}>
+          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={onClose}>
             <X size={18} />
           </button>
         </header>
 
         {!info ? (
           <p className={s.muted}>
-            <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> Cargando…
+            <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> {t('Cargando…')}
           </p>
         ) : (
           <div className={s.body}>
             <button type="button" role="switch" aria-checked={info.enabled} className={s.row} onClick={() => void change({ enabled: !info.enabled })} disabled={busy}>
               <span className={s.rowText}>
-                <span className={s.rowLabel}>Permitir el acceso por Tailscale</span>
-                <span className={s.rowHint}>Mientras esté activo, el equipo no suspende AI Cowork.</span>
+                <span className={s.rowLabel}>{t('Permitir el acceso por Tailscale')}</span>
+                <span className={s.rowHint}>{t('Mientras esté activo, el equipo no suspende AI Cowork.')}</span>
               </span>
               <span className={cx(u.switch, info.enabled && u.switchOn)} aria-hidden="true" />
             </button>
@@ -103,7 +104,7 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
             {info.enabled && (
               <>
                 {!info.tailscaleIp && (
-                  <p className={s.warn}>No encuentro Tailscale conectado en este equipo. Ábrelo e inicia sesión; el acceso se activará solo en cuanto conecte.</p>
+                  <p className={s.warn}>{t('No encuentro Tailscale conectado en este equipo. Ábrelo e inicia sesión; el acceso se activará solo en cuanto conecte.')}</p>
                 )}
                 {https && (
                   <button
@@ -115,16 +116,16 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
                     disabled={busy || (!https.active && !!https.problem)}
                   >
                     <span className={s.rowText}>
-                      <span className={s.rowLabel}>HTTPS para usar el micrófono desde el móvil</span>
+                      <span className={s.rowLabel}>{t('HTTPS para usar el micrófono desde el móvil')}</span>
                       <span className={s.rowHint}>
                         {httpsBusy
-                          ? 'Preparando HTTPS con Tailscale…'
+                          ? t('Preparando HTTPS con Tailscale…')
                           : https.active
-                            ? 'Activo: usa el enlace https. El navegador solo deja grabar notas de voz en páginas HTTPS.'
+                            ? t('Activo: usa el enlace https. El navegador solo deja grabar notas de voz en páginas HTTPS.')
                             : (https.problem ??
                               (info.secureUrl
-                                ? 'Opcional: con Tailscale Serve el navegador no avisa. Sin él ya tienes la versión https de arriba, con el certificado propio de AI Cowork (el navegador avisa la primera vez).'
-                                : 'Lo publica Tailscale Serve con su certificado, solo dentro de tu red. El navegador solo deja grabar notas de voz con HTTPS.'))}
+                                ? t('Opcional: con Tailscale Serve el navegador no avisa. Sin él ya tienes la versión https de arriba, con el certificado propio de AI Cowork (el navegador avisa la primera vez).')
+                                : t('Lo publica Tailscale Serve con su certificado, solo dentro de tu red. El navegador solo deja grabar notas de voz con HTTPS.')))}
                       </span>
                     </span>
                     {httpsBusy ? (
@@ -136,27 +137,27 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
                 )}
                 {https?.enableUrl && (
                   <div className={s.warn}>
-                    Tu red de Tailscale todavía no permite HTTPS. Ábrelo, acepta y vuelve a activar el interruptor.{' '}
+                    {t('Tu red de Tailscale todavía no permite HTTPS. Ábrelo, acepta y vuelve a activar el interruptor.')}{' '}
                     <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void api?.openExternal(https.enableUrl!)}>
-                      Permitir HTTPS en Tailscale
+                      {t('Permitir HTTPS en Tailscale')}
                     </button>
                   </div>
                 )}
                 <div className={s.links}>
-                  <p className={s.rowLabel}>Enlace de acceso</p>
-                  <p className={s.rowHint}>Ábrelo una vez en cada dispositivo (con Tailscale activo). Es tu llave: no lo compartas.</p>
+                  <p className={s.rowLabel}>{t('Enlace de acceso')}</p>
+                  <p className={s.rowHint}>{t('Ábrelo una vez en cada dispositivo (con Tailscale activo). Es tu llave: no lo compartas.')}</p>
                   {urls.map((url) => (
                     <div key={url} className={s.link}>
                       <code className={s.code}>{link(url)}</code>
                       <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void copy(link(url))}>
                         {copied === link(url) ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-                        {copied === link(url) ? 'Copiado' : 'Copiar'}
+                        {copied === link(url) ? t('Copiado') : t('Copiar')}
                       </button>
                     </div>
                   ))}
                   <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost, s.regen)} onClick={() => void change({ regenerateToken: true })} disabled={busy}>
                     <RefreshCw size={13} aria-hidden="true" />
-                    Cambiar el código (anula los enlaces anteriores)
+                    {t('Cambiar el código (anula los enlaces anteriores)')}
                   </button>
                 </div>
                 <MobilePairing token={info.token} copied={copied} onCopy={(t) => void copy(t)} />
@@ -170,11 +171,11 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
                   disabled={busy}
                 >
                   <span className={s.rowText}>
-                    <span className={s.rowLabel}>Restringir los clientes a las carpetas de los proyectos</span>
+                    <span className={s.rowLabel}>{t('Restringir los clientes a las carpetas de los proyectos')}</span>
                     <span className={s.rowHint}>
                       {info.restrictClients
-                        ? 'Los clientes de escritorio solo ven las carpetas de los proyectos.'
-                        : 'Los clientes pueden ver todo el disco de este equipo: eres tú desde otro sitio.'}
+                        ? t('Los clientes de escritorio solo ven las carpetas de los proyectos.')
+                        : t('Los clientes pueden ver todo el disco de este equipo: eres tú desde otro sitio.')}
                     </span>
                   </span>
                   <span className={cx(u.switch, info.restrictClients && u.switchOn)} aria-hidden="true" />
@@ -192,14 +193,14 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
               disabled={busy}
             >
               <span className={s.rowText}>
-                <span className={s.rowLabel}>Abrir AI Cowork al iniciar sesión</span>
-                <span className={s.rowHint}>Para usarlo 24/7: si el equipo se reinicia, vuelve a estar disponible.</span>
+                <span className={s.rowLabel}>{t('Abrir AI Cowork al iniciar sesión')}</span>
+                <span className={s.rowHint}>{t('Para usarlo 24/7: si el equipo se reinicia, vuelve a estar disponible.')}</span>
               </span>
               <span className={cx(u.switch, info.openAtLogin && u.switchOn)} aria-hidden="true" />
             </button>
 
             <p className={s.note}>
-              En un Mac que haga de servidor, evita que se duerma: Ajustes del Sistema → Energía → «Evitar que el Mac entre en reposo automáticamente».
+              {t('En un Mac que haga de servidor, evita que se duerma: Ajustes del Sistema → Energía → «Evitar que el Mac entre en reposo automáticamente».')}
             </p>
           </div>
         )}
@@ -235,7 +236,7 @@ function MobilePairing({ token, copied, onCopy }: { token: string; copied: strin
     setProblem(null)
     try {
       const p = await a.mobilePairingPin()
-      if (!p) setProblem('Activa antes el acceso por Tailscale.')
+      if (!p) setProblem(t('Activa antes el acceso por Tailscale.'))
       setPin(p)
       setNow(Date.now())
     } catch (e) {
@@ -247,30 +248,30 @@ function MobilePairing({ token, copied, onCopy }: { token: string; copied: strin
 
   return (
     <div className={s.links}>
-      <p className={s.rowLabel}>App del móvil (Android)</p>
-      <p className={s.rowHint}>Para emparejarla, escribe en la app uno de estos códigos.</p>
+      <p className={s.rowLabel}>{t('App del móvil (Android)')}</p>
+      <p className={s.rowHint}>{t('Para emparejarla, escribe en la app uno de estos códigos.')}</p>
       {pin && left > 0 ? (
         <div className={s.pin}>
-          <span className={s.pinCode} aria-label={`Código ${pin.pin.split('').join(' ')}`}>
+          <span className={s.pinCode} aria-label={t('Código {pin}', { pin: pin.pin.split('').join(' ') })}>
             {pin.pin.slice(0, 3)} {pin.pin.slice(3)}
           </span>
           <span className={s.rowHint}>
-            Válido {Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')} min y una sola vez.
+            {t('Válido {time} min y una sola vez.', { time: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` })}
           </span>
         </div>
       ) : (
         <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary, s.regen)} onClick={() => void generate()} disabled={busy}>
           {busy ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : <Smartphone size={13} aria-hidden="true" />}
-          {pin ? 'Generar otro código de 6 cifras' : 'Generar código de 6 cifras'}
+          {pin ? t('Generar otro código de 6 cifras') : t('Generar código de 6 cifras')}
         </button>
       )}
       {problem && <p className={s.warn}>{problem}</p>}
-      <p className={s.rowHint}>O el código de acceso entero (distingue mayúsculas; también vale siempre):</p>
+      <p className={s.rowHint}>{t('O el código de acceso entero (distingue mayúsculas; también vale siempre):')}</p>
       <div className={s.link}>
         <code className={s.code}>{token}</code>
         <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => onCopy(token)}>
           {copied === token ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-          {copied === token ? 'Copiado' : 'Copiar'}
+          {copied === token ? t('Copiado') : t('Copiar')}
         </button>
       </div>
     </div>
@@ -309,9 +310,9 @@ function PairedDevices() {
   if (!devices?.length && !problem) return null
   return (
     <div className={s.links}>
-      <p className={s.rowLabel}>Dispositivos emparejados</p>
+      <p className={s.rowLabel}>{t('Dispositivos emparejados')}</p>
       <p className={s.rowHint}>
-        Cada móvil o cliente tiene su propia llave. Revocar uno lo desempareja sin tocar los demás; los que llevan 90 días sin usarse dejan de valer solos.
+        {t('Cada móvil o cliente tiene su propia llave. Revocar uno lo desempareja sin tocar los demás; los que llevan 90 días sin usarse dejan de valer solos.')}
       </p>
       {devices?.map((d) => {
         const Icon = d.kind === 'client' ? Monitor : Smartphone
@@ -325,21 +326,21 @@ function PairedDevices() {
                 {d.platform ? ` · ${d.platform}` : ''}
               </span>
               <span className={s.rowHint}>
-                {revoked ? 'Revocado' : `Visto ${relativeTime(d.lastSeenAt)}`}
+                {revoked ? t('Revocado') : t('Visto {when}', { when: relativeTime(d.lastSeenAt) })}
                 {d.lastIp && !revoked ? ` · ${d.lastIp}` : ''}
               </span>
             </span>
             {revoked ? (
               <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void run('forget', d.id)}>
-                Quitar
+                {t('Quitar')}
               </button>
             ) : confirming === d.id ? (
               <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} onClick={() => void run('revoke', d.id)}>
-                Confirmar
+                {t('Confirmar')}
               </button>
             ) : (
               <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setConfirming(d.id)}>
-                Revocar
+                {t('Revocar')}
               </button>
             )}
           </div>
@@ -351,14 +352,14 @@ function PairedDevices() {
 }
 
 const ACTION_LABEL: Record<AccessLogEntry['action'], string> = {
-  list: 'Vio la carpeta',
-  read: 'Abrió o bajó',
-  zip: 'Bajó como zip',
-  folder: 'Puso la carpeta de trabajo',
-  write: 'Escribió',
-  mkdir: 'Creó la carpeta',
-  trash: 'Mandó a la papelera',
-  denied: 'Se le negó'
+  list: t('Vio la carpeta'),
+  read: t('Abrió o bajó'),
+  zip: t('Bajó como zip'),
+  folder: t('Puso la carpeta de trabajo'),
+  write: t('Escribió'),
+  mkdir: t('Creó la carpeta'),
+  trash: t('Mandó a la papelera'),
+  denied: t('Se le negó')
 }
 
 /** Lo que han hecho los clientes y navegadores con los archivos de este equipo, lo más reciente primero. */
@@ -380,11 +381,11 @@ function AccessLogList() {
   return (
     <div className={s.links}>
       <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost, s.regen)} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        {open ? 'Ocultar el registro de accesos' : 'Ver el registro de accesos a los archivos'}
+        {open ? t('Ocultar el registro de accesos') : t('Ver el registro de accesos a los archivos')}
       </button>
       {open && (
         <>
-          {entries && entries.length === 0 && <p className={s.rowHint}>Todavía no ha entrado ningún cliente a los archivos.</p>}
+          {entries && entries.length === 0 && <p className={s.rowHint}>{t('Todavía no ha entrado ningún cliente a los archivos.')}</p>}
           {entries?.map((e, i) => (
             <div key={`${e.t}-${i}`} className={s.rowText}>
               <span className={s.rowLabel}>

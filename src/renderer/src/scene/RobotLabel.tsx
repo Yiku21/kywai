@@ -8,6 +8,7 @@ import { useSceneHover } from './anchors'
 import { hash01 } from './layout'
 import { ESTIMATE_HINT, REAL_HINT, isSilent, progressText, taskProgress } from '@/lib/progress'
 import s from './labels.module.css'
+import { t } from '@/lib/i18n'
 
 /** Mismo umbral que el cerebro de animación (26 s + desfase por agente). */
 const restAfterMs = (id: string) => 26000 + hash01(id) * 10000
@@ -43,32 +44,32 @@ export function RobotLabel({ agent }: Props) {
   const resting = activity === 'idle' && !override && Date.now() - Math.max(lastAt, mountedAt) > restAfterMs(agent.id)
 
   let icon = <Sparkles size={12} />
-  let text = 'Disponible'
+  let text = t('Disponible')
   switch (activity) {
     case 'thinking':
       icon = <Brain size={12} />
-      text = rt?.lastActivity || 'Pensando'
+      text = rt?.lastActivity || t('Pensando')
       break
     case 'working':
       icon = <Loader size={12} />
-      text = isSilent(rt) ? 'Razonando…' : rt?.lastActivity || 'Trabajando'
+      text = isSilent(rt) ? t('Razonando…') : rt?.lastActivity || t('Trabajando')
       break
     case 'waiting':
       icon = <Hourglass size={12} />
-      text = waitingName ? `Esperando a ${waitingName}` : 'En espera'
+      text = waitingName ? t('Esperando a {waitingName}', { waitingName }) : t('En espera')
       break
     case 'error':
       icon = <AlertTriangle size={12} />
-      text = 'Bloqueado'
+      text = t('Bloqueado')
       break
     case 'offline':
       icon = <PowerOff size={12} />
-      text = 'No disponible'
+      text = t('No disponible')
       break
     default:
       if (resting) {
         icon = <Moon size={12} />
-        text = 'En reposo'
+        text = t('En reposo')
       }
   }
   if (override) {

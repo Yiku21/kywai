@@ -12,6 +12,7 @@ import { MarkdownView } from './common/MarkdownView'
 import { agentVars, cx, errorText, shortTime } from './common/util'
 import u from './common/ui.module.css'
 import s from './ArtifactViewer.module.css'
+import { t } from '@/lib/i18n'
 
 /** Visor modal de resultados. Se muestra cuando `viewerArtifactId` está definido. */
 export function ArtifactViewer() {
@@ -58,7 +59,7 @@ function ViewerDialog({ artifact }: { artifact: Artifact }) {
     if (isDemo) return
     const a = api
     if (!a) {
-      setContent({ status: 'error', message: 'Sin motor de agentes: no se puede leer el archivo.' })
+      setContent({ status: 'error', message: t('Sin motor de agentes: no se puede leer el archivo.') })
       return
     }
     let alive = true
@@ -123,7 +124,7 @@ function ViewerDialog({ artifact }: { artifact: Artifact }) {
               </span>
               <span className={s.agent}>
                 <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
-                Creado por {look.name}
+                {t('Creado por')} {look.name}
               </span>
               {!isDemo && artifact.size > 0 && (
                 <>
@@ -142,7 +143,7 @@ function ViewerDialog({ artifact }: { artifact: Artifact }) {
           {isDemo && (
             <span className={s.demoBadge}>
               <FlaskConical size={13} aria-hidden="true" />
-              Contenido de demostración
+              {t('Contenido de demostración')}
             </span>
           )}
           <div className={s.headActions}>
@@ -152,25 +153,25 @@ function ViewerDialog({ artifact }: { artifact: Artifact }) {
               disabled={!canOpenFolder}
               title={
                 canOpenFolder
-                  ? 'Mostrar el archivo en su carpeta'
+                  ? t('Mostrar el archivo en su carpeta')
                   : isDemo
-                    ? 'Los archivos de demostración no existen en disco'
-                    : 'Sin motor de agentes'
+                    ? t('Los archivos de demostración no existen en disco')
+                    : t('Sin motor de agentes')
               }
               onClick={() => {
                 if (api) api.openPath(artifact.projectId, artifact.relPath).catch(() => {})
               }}
             >
               <FolderOpen size={15} aria-hidden="true" />
-              <span className={s.folderLabel}>Abrir en carpeta</span>
+              <span className={s.folderLabel}>{t('Abrir en carpeta')}</span>
             </button>
             <button
               ref={closeRef}
               type="button"
               className={u.iconBtn}
               onClick={close}
-              aria-label="Cerrar visor"
-              title="Cerrar (Esc)"
+              aria-label={t('Cerrar visor')}
+              title={t('Cerrar (Esc)')}
             >
               <X size={18} aria-hidden="true" />
             </button>
@@ -181,17 +182,17 @@ function ViewerDialog({ artifact }: { artifact: Artifact }) {
           {content.status === 'loading' ? (
             <div className={s.state} role="status">
               <LoaderCircle size={22} className={u.spin} aria-hidden="true" />
-              <span>Cargando contenido…</span>
+              <span>{t('Cargando contenido…')}</span>
             </div>
           ) : content.status === 'error' ? (
             <div className={cx(s.state, s.stateError)} role="alert">
               <AlertCircle size={22} aria-hidden="true" />
-              <span className={s.stateTitle}>No se pudo abrir el resultado</span>
+              <span className={s.stateTitle}>{t('No se pudo abrir el resultado')}</span>
               <span className={s.stateText}>{content.message}</span>
               {!!api && (
                 <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setReload((n) => n + 1)}>
                   <RotateCcw size={13} aria-hidden="true" />
-                  Reintentar
+                  {t('Reintentar')}
                 </button>
               )}
             </div>
@@ -205,7 +206,7 @@ function ViewerDialog({ artifact }: { artifact: Artifact }) {
 }
 
 function ArtifactContent({ artifact, text, url, demo }: { artifact: Artifact; text?: string; url?: string; demo: boolean }) {
-  const title = `Vista previa de ${artifact.name}`
+  const title = t('Vista previa de {name}', { name: artifact.name })
   if (demo && text != null) {
     return (
       <div className={s.doc}>
@@ -251,48 +252,20 @@ function ArtifactContent({ artifact, text, url, demo }: { artifact: Artifact; te
   return (
     <div className={s.state}>
       <AlertCircle size={22} aria-hidden="true" />
-      <span className={s.stateTitle}>Vista previa no disponible</span>
-      <span className={s.stateText}>Usa «Abrir en carpeta» para verlo con otra aplicación.</span>
+      <span className={s.stateTitle}>{t('Vista previa no disponible')}</span>
+      <span className={s.stateText}>{t('Usa «Abrir en carpeta» para verlo con otra aplicación.')}</span>
     </div>
   )
 }
 
 /** Documento de ejemplo para resultados de la demo (no existen en disco). */
 function demoMarkdown(a: Artifact, agentName: string): string {
-  const base = a.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() || 'Resultado'
+  const base = a.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() || t('Resultado')
   const title = base.charAt(0).toUpperCase() + base.slice(1)
   const kind = ARTIFACT_KIND_LABEL[a.kind].toLowerCase()
   const code =
     a.kind === 'code'
-      ? `\n## Fragmento\n\n\`\`\`ts\n// ${a.name}\nexport function ordenarPorFecha(fotos: Foto[]): Foto[] {\n  return [...fotos].sort((x, y) => x.fecha - y.fecha)\n}\n\`\`\`\n`
+      ? `\n## ${t('Fragmento')}\n\n\`\`\`ts\n// ${a.name}\nexport function ordenarPorFecha(fotos: Foto[]): Foto[] {\n  return [...fotos].sort((x, y) => x.fecha - y.fecha)\n}\n\`\`\`\n`
       : ''
-  return `# ${title}
-
-> Contenido de demostración: este ${kind} lo ha "creado" **${agentName}** en una simulación. Ningún agente real ha generado este archivo.
-
-## Resumen
-
-El equipo dividió el encargo en tareas, cada agente trabajó en su especialidad y los resultados se reunieron en el núcleo del proyecto.
-
-## Qué incluye
-
-- Estructura propuesta y decisiones principales
-- Notas de revisión entre agentes
-- Próximos pasos sugeridos
-${code}
-## Estado
-
-| Parte | Responsable | Estado |
-| --- | --- | --- |
-| Análisis | Gemini | Completado |
-| Organización | Qwen | Completado |
-| Diseño | Claude | Completado |
-| Implementación | Codex | Completado |
-
-## Próximos pasos
-
-- [x] Revisar el borrador
-- [ ] Ajustar textos y colores
-- [ ] Publicar la primera versión
-`
+  return t('# {title}\n\n> Contenido de demostración: este {kind} lo ha "creado" **{agentName}** en una simulación. Ningún agente real ha generado este archivo.\n\n## Resumen\n\nEl equipo dividió el encargo en tareas, cada agente trabajó en su especialidad y los resultados se reunieron en el núcleo del proyecto.\n\n## Qué incluye\n\n- Estructura propuesta y decisiones principales\n- Notas de revisión entre agentes\n- Próximos pasos sugeridos\n{code}\n## Estado\n\n| Parte | Responsable | Estado |\n| --- | --- | --- |\n| Análisis | Gemini | Completado |\n| Organización | Qwen | Completado |\n| Diseño | Claude | Completado |\n| Implementación | Codex | Completado |\n\n## Próximos pasos\n\n- [x] Revisar el borrador\n- [ ] Ajustar textos y colores\n- [ ] Publicar la primera versión\n', { title, kind, agentName, code })
 }

@@ -136,11 +136,11 @@ describe('isPlanApproval', () => {
   })
 
   it('un «sí» al plan lo aprueba sin volver a planificar', () => {
-    for (const t of ['Sí', 'sí, adelante', 'Ok, dale!', 'Perfecto, empieza', 'de acuerdo', 'Me parece bien, gracias', 'Vale, manos a la obra', 'adelante con el plan'])
+    for (const t of ['Sí', 'sí, adelante', 'Ok, dale!', 'Perfecto, empieza', 'de acuerdo', 'Me parece bien, gracias', 'Vale, manos a la obra', 'adelante con el plan', 'Yes', 'yes, go ahead', 'Looks good, thanks', 'sure, start', 'LGTM'])
       expect(isPlanApproval(t), t).toBe(true)
   })
   it('cualquier cambio, duda o negativa se toma como respuesta al plan', () => {
-    for (const t of ['no', 'sí, pero que lo haga Claude', 'Cambia el agente de la interfaz', '¿Cuánto tardará?', 'ok pero en TypeScript', '', 'sí sí sí sí sí sí sí sí sí'])
+    for (const t of ['no', 'sí, pero que lo haga Claude', 'Cambia el agente de la interfaz', '¿Cuánto tardará?', 'ok pero en TypeScript', '', 'sí sí sí sí sí sí sí sí sí', 'yes but use Claude', 'no, change the design'])
       expect(isPlanApproval(t), t).toBe(false)
   })
 })

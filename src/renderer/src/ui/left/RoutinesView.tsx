@@ -8,35 +8,36 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import v from './Views.module.css'
 import s from './RoutinesView.module.css'
+import { locale, t } from '@/lib/i18n'
 
 const TYPE_LABEL: Record<RoutineTriggerType, string> = {
-  daily: 'Cada día a una hora',
-  weekly: 'Unos días de la semana',
-  interval: 'Cada N horas',
-  webhook: 'Al llegar un webhook',
-  folder: 'Al cambiar archivos de una carpeta'
+  daily: t('Cada día a una hora'),
+  weekly: t('Unos días de la semana'),
+  interval: t('Cada N horas'),
+  webhook: t('Al llegar un webhook'),
+  folder: t('Al cambiar archivos de una carpeta')
 }
 const TYPES: RoutineTriggerType[] = ['daily', 'weekly', 'interval', 'webhook', 'folder']
 
 const STATUS_LABEL: Record<RoutineRun['status'], string> = {
-  running: 'En marcha',
-  waiting: 'Esperando tu visto bueno',
-  ok: 'Hecha',
-  failed: 'Falló',
-  skipped: 'Saltada',
-  interrupted: 'Interrumpida'
+  running: t('En marcha'),
+  waiting: t('Esperando tu visto bueno'),
+  ok: t('Hecha'),
+  failed: t('Falló'),
+  skipped: t('Saltada'),
+  interrupted: t('Interrumpida')
 }
 
 const REASON_LABEL: Record<RoutineRun['reason'], string> = {
-  schedule: 'a su hora',
-  catchup: 'hora perdida',
+  schedule: t('a su hora'),
+  catchup: t('hora perdida'),
   webhook: 'webhook',
-  folder: 'cambios en la carpeta',
-  manual: 'a mano'
+  folder: t('cambios en la carpeta'),
+  manual: t('a mano')
 }
 
 function when(ts: number): string {
-  return new Date(ts).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return new Date(ts).toLocaleString(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 /** Copia al portapapeles; en http (sin contexto seguro, como el navegador del móvil por Tailscale) con execCommand. */
@@ -55,7 +56,7 @@ async function copyText(text: string): Promise<void> {
   ta.setSelectionRange(0, text.length)
   const ok = document.execCommand('copy')
   ta.remove()
-  if (!ok) throw new Error('No se pudo copiar: mantén pulsada la dirección y cópiala a mano')
+  if (!ok) throw new Error(t('No se pudo copiar: mantén pulsada la dirección y cópiala a mano'))
 }
 
 /** Pestaña Rutinas: peticiones que se lanzan solas (a una hora, por webhook o al cambiar archivos) y su historial. */
@@ -82,14 +83,12 @@ export function RoutinesView() {
   return (
     <div className={v.scroll}>
       <p className={s.intro}>
-        Peticiones que se envían solas al chat de este proyecto, como si las escribieras tú: pasan por el plan, los agentes y la verificación. Se
-        lanzan a una hora, al llegar un webhook o al cambiar archivos, mientras AI Cowork esté abierto en el servidor. Nunca hay dos a la vez de la
-        misma rutina. También puedes escribir <b>/rutina cada día a las 9:00: …</b> en el chat.
+        {t('Peticiones que se envían solas al chat de este proyecto, como si las escribieras tú: pasan por el plan, los agentes y la verificación. Se lanzan a una hora, al llegar un webhook o al cambiar archivos, mientras AI Cowork esté abierto en el servidor. Nunca hay dos a la vez de la misma rutina. También puedes escribir')} <b>{t('/rutina cada día a las 9:00: …')}</b> {t('en el chat.')}
       </p>
 
       <section className={v.section} aria-labelledby={idL}>
         <h3 className={u.sectionLabel} id={idL}>
-          Rutinas <span className={u.count}>{routines.length}</span>
+          {t('Rutinas')} <span className={u.count}>{routines.length}</span>
         </h3>
 
         {error && (
@@ -111,7 +110,7 @@ export function RoutinesView() {
           ) : (
             <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary, s.newBtn)} onClick={() => setCreating(true)}>
               <Plus size={14} aria-hidden="true" />
-              Nueva rutina
+              {t('Nueva rutina')}
             </button>
           ))}
 
@@ -120,11 +119,11 @@ export function RoutinesView() {
             <span className={u.emptyIcon}>
               <CalendarClock size={20} aria-hidden="true" />
             </span>
-            <span className={u.emptyTitle}>Sin rutinas</span>
+            <span className={u.emptyTitle}>{t('Sin rutinas')}</span>
             <span className={u.emptyText}>
               {mode === 'demo'
-                ? 'En la demo no hay rutinas: aparecen con los agentes reales.'
-                : 'Por ejemplo: cada mañana a las 8:30, «revisa las dependencias y avísame de las que tengan fallos de seguridad»; o, al llegar un PR de GitHub, «revísalo».'}
+                ? t('En la demo no hay rutinas: aparecen con los agentes reales.')
+                : t('Por ejemplo: cada mañana a las 8:30, «revisa las dependencias y avísame de las que tengan fallos de seguridad»; o, al llegar un PR de GitHub, «revísalo».')}
             </span>
           </div>
         ) : (
@@ -175,7 +174,7 @@ function RoutineCard({ r, projectId, editable, call }: { r: Routine; projectId: 
           <span className={s.name}>{r.name}</span>
           <span className={s.trigger}>
             {describeTrigger(r.trigger)}
-            {r.enabled ? (next ? ` · próxima ${describeWhen(next)}` : '') : ' · desactivada'}
+            {r.enabled ? (next ? t(' · próxima {when}', { when: describeWhen(next) }) : '') : t(' · desactivada')}
           </span>
         </div>
         {editable && (
@@ -183,8 +182,8 @@ function RoutineCard({ r, projectId, editable, call }: { r: Routine; projectId: 
             type="button"
             role="switch"
             aria-checked={r.enabled}
-            aria-label={r.enabled ? 'Desactivar la rutina' : 'Activar la rutina'}
-            title={r.enabled ? 'Activa: pulsa para desactivarla' : 'Desactivada: pulsa para activarla'}
+            aria-label={r.enabled ? t('Desactivar la rutina') : t('Activar la rutina')}
+            title={r.enabled ? t('Activa: pulsa para desactivarla') : t('Desactivada: pulsa para activarla')}
             className={s.switchBtn}
             onClick={() => void call(() => api!.updateRoutine(projectId, r.id, { enabled: !r.enabled }))}
           >
@@ -197,7 +196,7 @@ function RoutineCard({ r, projectId, editable, call }: { r: Routine; projectId: 
 
       {last && (
         <p className={s.lastRun}>
-          Última: <StatusPill status={last.status} /> {when(last.at)} · {REASON_LABEL[last.reason]}
+          {t('Última:')} <StatusPill status={last.status} /> {when(last.at)} · {REASON_LABEL[last.reason]}
         </p>
       )}
 
@@ -212,16 +211,16 @@ function RoutineCard({ r, projectId, editable, call }: { r: Routine; projectId: 
               setRan(null)
               void call(() => api!.runRoutineNow(projectId, r.id)).then((run) => {
                 setRunning(false)
-                if (run) setRan(run.status === 'skipped' ? 'Saltada: la anterior sigue en marcha' : run.status === 'failed' ? (run.note ?? 'No se pudo lanzar') : 'Lanzada: mírala en el chat')
+                if (run) setRan(run.status === 'skipped' ? t('Saltada: la anterior sigue en marcha') : run.status === 'failed' ? (run.note ?? t('No se pudo lanzar')) : t('Lanzada: mírala en el chat'))
               })
             }}
           >
             {running ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />}
-            Ejecutar ahora
+            {t('Ejecutar ahora')}
           </button>
           <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setEditing(true)}>
             <Pencil size={13} aria-hidden="true" />
-            Editar
+            {t('Editar')}
           </button>
           {r.trigger.type === 'webhook' && (
             <button type="button" className={cx(u.btn, u.btnSm)} aria-expanded={showHook} onClick={() => setShowHook((x) => !x)}>
@@ -239,7 +238,7 @@ function RoutineCard({ r, projectId, editable, call }: { r: Routine; projectId: 
             }}
           >
             <Trash2 size={13} aria-hidden="true" />
-            {confirmDelete ? 'Pulsa otra vez para borrarla' : 'Borrar'}
+            {confirmDelete ? t('Pulsa otra vez para borrarla') : t('Borrar')}
           </button>
         </div>
       )}
@@ -255,7 +254,7 @@ function RoutineCard({ r, projectId, editable, call }: { r: Routine; projectId: 
         <>
           <button type="button" className={s.historyToggle} aria-expanded={showHistory} onClick={() => setShowHistory((x) => !x)}>
             <ChevronDown size={14} className={cx(s.chev, showHistory && s.chevOpen)} aria-hidden="true" />
-            Historial ({r.runs.length})
+            {t('Historial ({n})', { n: r.runs.length })}
           </button>
           {showHistory && (
             <ol className={s.history}>
@@ -311,7 +310,7 @@ function WebhookBox({ projectId, routineId, call }: { projectId: string; routine
   if (!info) {
     return (
       <div className={s.hook}>
-        <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> Cargando…
+        <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> {t('Cargando…')}
       </div>
     )
   }
@@ -319,34 +318,32 @@ function WebhookBox({ projectId, routineId, call }: { projectId: string; routine
     <div className={s.hook}>
       {!info.webAccess ? (
         <p className={s.warn}>
-          El acceso web está apagado: actívalo en ⋮ → «Acceso desde otros dispositivos…» para que este webhook reciba avisos.
+          {t('El acceso web está apagado: actívalo en ⋮ → «Acceso desde otros dispositivos…» para que este webhook reciba avisos.')}
         </p>
       ) : (
         <>
           <p className={s.hint}>
-            Envía un <b>POST</b> a esta dirección (lleva el secreto: no la compartas). El cuerpo (por ejemplo, el evento de un PR de GitHub) se
-            añade a la petición como datos externos, recortado. Solo llega desde tu red de Tailscale.
+            {t('Envía un')} <b>POST</b> {t('a esta dirección (lleva el secreto: no la compartas). El cuerpo (por ejemplo, el evento de un PR de GitHub) se añade a la petición como datos externos, recortado. Solo llega desde tu red de Tailscale.')}
           </p>
           {info.urls.map((url) => (
             <div key={url} className={s.urlRow}>
-              <input className={s.url} value={url} readOnly aria-label="Dirección del webhook" onFocus={(e) => e.currentTarget.select()} />
-              <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} aria-label="Copiar la dirección" title="Copiar" onClick={() => void copy(url)}>
+              <input className={s.url} value={url} readOnly aria-label={t('Dirección del webhook')} onFocus={(e) => e.currentTarget.select()} />
+              <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} aria-label={t('Copiar la dirección')} title={t('Copiar')} onClick={() => void copy(url)}>
                 {copied === url ? <Check size={15} /> : <Copy size={15} />}
               </button>
             </div>
           ))}
           <p className={s.hint}>
-            Para GitHub: usa la dirección sin el secreto ({info.bareUrls[0] ?? '…'}), tipo de contenido <b>application/json</b> y el secreto en
-            «Secret» (se comprueba la firma). Otros servicios pueden mandarlo en la cabecera <b>X-Cowork-Secret</b>.
+            {t('Para GitHub: usa la dirección sin el secreto (')}{info.bareUrls[0] ?? '…'}{t('), tipo de contenido')} <b>application/json</b> {t('y el secreto en «Secret» (se comprueba la firma). Otros servicios pueden mandarlo en la cabecera')} <b>X-Cowork-Secret</b>.
           </p>
           <div className={s.urlRow}>
             <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void copy(info.bareUrls[0] ?? '')} disabled={!info.bareUrls[0]}>
               {copied === info.bareUrls[0] ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-              Copiar sin secreto
+              {t('Copiar sin secreto')}
             </button>
             <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void copy(info.secret)}>
               {copied === info.secret ? <Check size={13} aria-hidden="true" /> : <KeyRound size={13} aria-hidden="true" />}
-              Copiar el secreto
+              {t('Copiar el secreto')}
             </button>
           </div>
         </>
@@ -370,7 +367,7 @@ function WebhookBox({ projectId, routineId, call }: { projectId: string; routine
         }}
       >
         <KeyRound size={13} aria-hidden="true" />
-        {confirmNew ? 'Pulsa otra vez: la dirección anterior dejará de valer' : 'Cambiar el secreto'}
+        {confirmNew ? t('Pulsa otra vez: la dirección anterior dejará de valer') : t('Cambiar el secreto')}
       </button>
     </div>
   )
@@ -409,43 +406,43 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
   return (
     <form className={s.form} onSubmit={submit}>
       <label className={s.field} htmlFor={`${id}-name`}>
-        <span className={s.label}>Nombre</span>
+        <span className={s.label}>{t('Nombre')}</span>
         <input
           id={`${id}-name`}
           className={s.input}
           value={name}
           maxLength={MAX_ROUTINE_NAME}
-          placeholder="Revisión de dependencias"
+          placeholder={t('Revisión de dependencias')}
           autoFocus
           onChange={(e) => setName(e.target.value)}
         />
       </label>
       <label className={s.field} htmlFor={`${id}-req`}>
-        <span className={s.label}>Petición (lo que se enviará al chat)</span>
+        <span className={s.label}>{t('Petición (lo que se enviará al chat)')}</span>
         <textarea
           id={`${id}-req`}
           className={s.textarea}
           value={request}
           rows={4}
           maxLength={MAX_ROUTINE_REQUEST}
-          placeholder="Revisa las dependencias del proyecto y dime cuáles tienen fallos de seguridad o versiones nuevas importantes."
+          placeholder={t('Revisa las dependencias del proyecto y dime cuáles tienen fallos de seguridad o versiones nuevas importantes.')}
           onChange={(e) => setRequest(e.target.value)}
         />
       </label>
       <label className={s.field} htmlFor={`${id}-type`}>
-        <span className={s.label}>Cuándo se lanza</span>
+        <span className={s.label}>{t('Cuándo se lanza')}</span>
         <select id={`${id}-type`} className={s.input} value={trigger.type} onChange={(e) => setTrigger(defaultTrigger(e.target.value as RoutineTriggerType, trigger))}>
-          {TYPES.map((t) => (
-            <option key={t} value={t}>
-              {TYPE_LABEL[t]}
+          {TYPES.map((trigger) => (
+            <option key={trigger} value={trigger}>
+              {TYPE_LABEL[trigger]}
             </option>
           ))}
         </select>
       </label>
 
       {trigger.type === 'weekly' && (
-        <div className={s.field} role="group" aria-label="Días de la semana">
-          <span className={s.label}>Días</span>
+        <div className={s.field} role="group" aria-label={t('Días de la semana')}>
+          <span className={s.label}>{t('Días')}</span>
           <div className={s.days}>
             {WEEK_ORDER.map((d) => {
               const on = trigger.days.includes(d)
@@ -468,13 +465,13 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
       )}
       {(trigger.type === 'daily' || trigger.type === 'weekly') && (
         <label className={s.field} htmlFor={`${id}-time`}>
-          <span className={s.label}>Hora (la del servidor)</span>
+          <span className={s.label}>{t('Hora (la del servidor)')}</span>
           <input id={`${id}-time`} type="time" className={cx(s.input, s.short)} value={trigger.time} required onChange={(e) => setTrigger({ ...trigger, time: e.target.value })} />
         </label>
       )}
       {trigger.type === 'interval' && (
         <label className={s.field} htmlFor={`${id}-hours`}>
-          <span className={s.label}>Cada cuántas horas</span>
+          <span className={s.label}>{t('Cada cuántas horas')}</span>
           <input
             id={`${id}-hours`}
             type="number"
@@ -488,11 +485,11 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
         </label>
       )}
       {trigger.type === 'webhook' && (
-        <p className={s.hint}>Al guardarla tendrá su propia dirección con un secreto (botón «Webhook»). El cuerpo que llegue se añade a la petición como datos.</p>
+        <p className={s.hint}>{t('Al guardarla tendrá su propia dirección con un secreto (botón «Webhook»). El cuerpo que llegue se añade a la petición como datos.')}</p>
       )}
       {trigger.type === 'folder' && (
         <label className={s.field} htmlFor={`${id}-folder`}>
-          <span className={s.label}>Carpeta (dentro de la del proyecto; vacío = toda)</span>
+          <span className={s.label}>{t('Carpeta (dentro de la del proyecto; vacío = toda)')}</span>
           <input
             id={`${id}-folder`}
             className={s.input}
@@ -500,23 +497,23 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
             placeholder="entrada/"
             onChange={(e) => setTrigger({ ...trigger, path: e.target.value })}
           />
-          <span className={s.hint}>Se lanza cuando cambian archivos y llevan un minuto quietos (no mientras el equipo trabaja en el proyecto); como mucho una vez cada 5 minutos.</span>
+          <span className={s.hint}>{t('Se lanza cuando cambian archivos y llevan un minuto quietos (no mientras el equipo trabaja en el proyecto); como mucho una vez cada 5 minutos.')}</span>
         </label>
       )}
       <p className={s.hint}>{describeTriggerSafe(trigger)}</p>
       <div className={s.formRow}>
         <button type="button" className={cx(u.btn, u.btnSm)} onClick={onCancel}>
-          Cancelar
+          {t('Cancelar')}
         </button>
         <button type="submit" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !name.trim() || request.trim().length < 3}>
-          {initial ? 'Guardar' : 'Crear rutina'}
+          {initial ? t('Guardar') : t('Crear rutina')}
         </button>
       </div>
     </form>
   )
 }
 
-function describeTriggerSafe(t: RoutineTrigger): string {
-  if (t.type === 'weekly' && !t.days.length) return 'Elige al menos un día.'
-  return `${describeTrigger(t)}.`
+function describeTriggerSafe(trigger: RoutineTrigger): string {
+  if (trigger.type === 'weekly' && !trigger.days.length) return t('Elige al menos un día.')
+  return `${describeTrigger(trigger)}.`
 }

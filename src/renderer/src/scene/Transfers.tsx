@@ -13,6 +13,7 @@ import { usePackets, type PacketSpec, type Trace } from './packetStore'
 import { ROBOT_Y, hash01, stationTracePoints, stationVec } from './layout'
 import { glowBlending, onPalette, palette, tone } from './palette'
 import { GlowPoints } from './GlowPoints'
+import { t } from '@/lib/i18n'
 
 const CYAN = new THREE.Color()
 onPalette(() => CYAN.set(tone('#4f8dff')))
@@ -120,20 +121,20 @@ export function Transfers({ stations }: { stations: StationConfig[] }) {
         arc = { geo: new THREE.TubeGeometry(curve, 72, 0.02, 6, false), len: curve.getLength() }
       }
       const duration = THREE.MathUtils.clamp(curve.getLength() / 4.6, 1.5, 3.0)
-      const t = registry.time
+      const now = registry.time
       const toAgent = toIsCore ? null : tr.toId
 
       // El emisor se orienta y emite; el receptor mira lo que llega.
-      if (!fromIsCore) registry.brains.get(tr.fromId)?.onSend(toPos, t)
-      if (toAgent) registry.brains.get(toAgent)?.onExpect(fromPos, t, t + duration)
+      if (!fromIsCore) registry.brains.get(tr.fromId)?.onSend(toPos, now)
+      if (toAgent) registry.brains.get(toAgent)?.onExpect(fromPos, now, now + duration)
       if (!fromIsCore) {
         const st = stationOf(tr.fromId, stations)
         if (st) registry.stations.get(st.id)?.pulse(color.getStyle(), 0.45)
       } else registry.core?.pulse(color.getStyle(), 0.3)
 
       const overrides = useLabelOverrides.getState()
-      if (!fromIsCore) overrides.set(tr.fromId, { text: `Enviando: ${tr.payload.title || tr.label}`, tone: 'send' }, duration * 1000)
-      if (toAgent) overrides.set(toAgent, { text: 'Recibiendo tarea', tone: 'receive' }, duration * 1000 + 300)
+      if (!fromIsCore) overrides.set(tr.fromId, { text: t('Enviando: {title}', { title: tr.payload.title || tr.label }), tone: 'send' }, duration * 1000)
+      if (toAgent) overrides.set(toAgent, { text: t('Recibiendo tarea'), tone: 'receive' }, duration * 1000 + 300)
 
       usePackets.getState().add({
         id: tr.id,
@@ -163,7 +164,7 @@ export function Transfers({ stations }: { stations: StationConfig[] }) {
           const st = stationOf(e.agentId, stations)
           const agent = currentData().agents[e.agentId]
           if (st && agent) registry.stations.get(st.id)?.pulse(agent.color, 1)
-          useLabelOverrides.getState().set(e.agentId, { text: 'Completado', tone: 'done' }, 1800)
+          useLabelOverrides.getState().set(e.agentId, { text: t('Completado'), tone: 'done' }, 1800)
         }
       }),
     [spawn, stations]
@@ -178,12 +179,12 @@ export function Transfers({ stations }: { stations: StationConfig[] }) {
 
   const arrive = useCallback(
     (p: PacketSpec) => {
-      const t = registry.time
+      const now = registry.time
       if (p.toAgent) {
-        registry.brains.get(p.toAgent)?.onReceive(t)
+        registry.brains.get(p.toAgent)?.onReceive(now)
         const st = stationOf(p.toAgent, stations)
         if (st) registry.stations.get(st.id)?.pulse(p.colorHex, 1)
-        useLabelOverrides.getState().set(p.toAgent, { text: 'Recibido', tone: 'done' }, 1300)
+        useLabelOverrides.getState().set(p.toAgent, { text: t('Recibido'), tone: 'done' }, 1300)
       } else if (p.toCore) registry.core?.pulse(p.colorHex, 1)
       if (p.trace) p.trace.users = Math.max(0, p.trace.users - 1)
     },

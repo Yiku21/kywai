@@ -9,6 +9,7 @@ import codexPng from '@/assets/robots/codex.png'
 import becarioPng from '@/assets/robots/becario.png'
 import hermesPng from '@/assets/robots/hermes.png'
 import musePng from '@/assets/robots/muse.png'
+import { t } from '@/lib/i18n'
 
 /** Ilustraciones de los robots (según el logo de su avatar). */
 const ROBOT_IMAGES: Record<string, string> = {
@@ -51,7 +52,7 @@ export function RobotAvatar({ agent, size = 32, dim, className }: Props) {
         src={img}
         width={size}
         height={size}
-        alt={`Robot ${agent.name}`}
+        alt={t('Robot {name}', { name: agent.name })}
         draggable={false}
         style={{ objectFit: 'contain', flex: 'none', opacity: dim ? 0.45 : 1, filter: dim ? 'grayscale(0.7)' : undefined }}
       />
@@ -119,7 +120,7 @@ export function RobotAvatar({ agent, size = 32, dim, className }: Props) {
       height={size}
       viewBox="0 0 64 64"
       role="img"
-      aria-label={`Robot ${agent.name}`}
+      aria-label={t('Robot {name}', { name: agent.name })}
       style={{ opacity: dim ? 0.45 : 1, flex: 'none' }}
     >
       <defs>

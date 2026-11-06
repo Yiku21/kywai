@@ -10,18 +10,19 @@ import { TaskStatusIcon } from '../common/icons'
 import { cx, formatDuration } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './Views.module.css'
+import { t } from '@/lib/i18n'
 
 type GroupId = 'running' | 'waiting' | 'done' | 'error'
 
 const GROUPS: Array<{ id: GroupId; label: string }> = [
-  { id: 'running', label: 'En curso' },
-  { id: 'waiting', label: 'En espera' },
-  { id: 'done', label: 'Completadas' },
-  { id: 'error', label: 'Con error' }
+  { id: 'running', label: t('En curso') },
+  { id: 'waiting', label: t('En espera') },
+  { id: 'done', label: t('Completadas') },
+  { id: 'error', label: t('Con error') }
 ]
 
-function groupOf(t: Task): GroupId {
-  switch (t.status) {
+function groupOf(task: Task): GroupId {
+  switch (task.status) {
     case 'running':
       return 'running'
     case 'pending':
@@ -45,7 +46,7 @@ export function TasksView() {
 
   const groups = useMemo(() => {
     const g: Record<GroupId, Task[]> = { running: [], waiting: [], done: [], error: [] }
-    for (const t of Object.values(tasks)) g[groupOf(t)].push(t)
+    for (const task of Object.values(tasks)) g[groupOf(task)].push(task)
     g.running.sort((a, b) => (a.startedAt ?? a.createdAt) - (b.startedAt ?? b.createdAt))
     g.waiting.sort((a, b) => a.createdAt - b.createdAt)
     g.done.sort((a, b) => (b.finishedAt ?? b.createdAt) - (a.finishedAt ?? a.createdAt))
@@ -65,9 +66,9 @@ export function TasksView() {
           <span className={u.emptyIcon}>
             <ClipboardList size={20} aria-hidden="true" />
           </span>
-          <span className={u.emptyTitle}>Sin tareas todavía</span>
+          <span className={u.emptyTitle}>{t('Sin tareas todavía')}</span>
           <span className={u.emptyText}>
-            Cuando pidas algo, el planificador lo dividirá en tareas y aquí verás quién hace qué.
+            {t('Cuando pidas algo, el planificador lo dividirá en tareas y aquí verás quién hace qué.')}
           </span>
         </div>
       </div>
@@ -85,19 +86,19 @@ export function TasksView() {
               {label} <span className={u.count}>{list.length}</span>
             </h3>
             <ul className={s.rows}>
-              {list.map((t) => (
-                <li key={t.id}>
+              {list.map((task) => (
+                <li key={task.id}>
                   <TaskRow
-                    task={t}
-                    look={lookup(t.agentId)}
+                    task={task}
+                    look={lookup(task.agentId)}
                     tasks={tasks}
-                    runtime={runtimes[t.agentId]}
-                    now={t.status === 'running' ? now : 0}
-                    selected={selectedAgent === t.agentId}
+                    runtime={runtimes[task.agentId]}
+                    now={task.status === 'running' ? now : 0}
+                    selected={selectedAgent === task.agentId}
                     onSelect={() => {
-                      select({ type: 'agent', id: t.agentId })
+                      select({ type: 'agent', id: task.agentId })
                       // Si ya empezó, se abre lo que está haciendo (o lo que hizo), paso a paso.
-                      if (t.startedAt) openTrace(t.id)
+                      if (task.startedAt) openTrace(task.id)
                     }}
                   />
                 </li>
@@ -111,7 +112,7 @@ export function TasksView() {
 }
 
 function TaskRow({
-  task: t,
+  task: task,
   look,
   tasks,
   runtime,
@@ -128,26 +129,26 @@ function TaskRow({
   onSelect: () => void
 }) {
   const waitingFor =
-    t.status === 'pending' || t.status === 'blocked'
-      ? t.dependsOn.map((id) => tasks[id]).filter((d): d is Task => !!d && d.status !== 'done')
+    task.status === 'pending' || task.status === 'blocked'
+      ? task.dependsOn.map((id) => tasks[id]).filter((d): d is Task => !!d && d.status !== 'done')
       : []
-  const model = modelLabelFor(t.model, look.config)
+  const model = modelLabelFor(task.model, look.config)
   let duration: string | null = null
-  if (t.status === 'running' && t.startedAt) duration = formatDuration(Math.max(0, (now || Date.now()) - t.startedAt))
-  else if (t.startedAt && t.finishedAt) duration = formatDuration(t.finishedAt - t.startedAt)
-  const prog = t.status === 'running' ? taskProgress(t, Object.values(tasks), now || Date.now()) : null
-  const silent = t.status === 'running' && isSilent(runtime, now || Date.now())
+  if (task.status === 'running' && task.startedAt) duration = formatDuration(Math.max(0, (now || Date.now()) - task.startedAt))
+  else if (task.startedAt && task.finishedAt) duration = formatDuration(task.finishedAt - task.startedAt)
+  const prog = task.status === 'running' ? taskProgress(task, Object.values(tasks), now || Date.now()) : null
+  const silent = task.status === 'running' && isSilent(runtime, now || Date.now())
 
   return (
     <button
       type="button"
       className={cx(s.taskRow, selected && s.taskSelected)}
       onClick={onSelect}
-      title={t.startedAt ? `Ver lo que ${t.status === 'running' ? 'está haciendo' : 'hizo'} ${look.name}, paso a paso` : `Ver a ${look.name} en el espacio`}
+      title={task.startedAt ? (task.status === 'running' ? t('Ver lo que está haciendo {name}, paso a paso', { name: look.name }) : t('Ver lo que hizo {name}, paso a paso', { name: look.name })) : t('Ver a {name} en el espacio', { name: look.name })}
     >
-      <TaskStatusIcon status={t.status} size={16} className={s.taskStatus} />
+      <TaskStatusIcon status={task.status} size={16} className={s.taskStatus} />
       <span className={s.taskMain}>
-        <span className={s.taskTitle}>{t.title}</span>
+        <span className={s.taskTitle}>{task.title}</span>
         <span className={s.taskMeta}>
           <AgentPill look={look} size="sm" />
           {model && <span className={s.model}>{model}</span>}
@@ -161,22 +162,22 @@ function TaskRow({
         {waitingFor.length > 0 && (
           <span className={s.deps}>
             <Link2 size={12} aria-hidden="true" />
-            Espera a: {waitingFor.map((d) => d.title).join(', ')}
+            {t('Espera a:')} {waitingFor.map((d) => d.title).join(', ')}
           </span>
         )}
-        {t.status === 'failed' && t.error ? (
-          <span className={s.taskError}>{t.error}</span>
+        {task.status === 'failed' && task.error ? (
+          <span className={s.taskError}>{task.error}</span>
         ) : silent ? (
-          <span className={s.activity}>Razonando… (sin novedades por ahora)</span>
-        ) : t.lastActivity && t.status !== 'done' ? (
-          <span className={s.activity}>{t.lastActivity}</span>
+          <span className={s.activity}>{t('Razonando… (sin novedades por ahora)')}</span>
+        ) : task.lastActivity && task.status !== 'done' ? (
+          <span className={s.activity}>{task.lastActivity}</span>
         ) : null}
         {prog && (
           <span className={cx(s.progressRow, !prog.real && s.progressEstimate)} title={prog.real ? REAL_HINT : ESTIMATE_HINT}>
             <span
               className={cx(u.track, u.trackThin, s.progress)}
               role="progressbar"
-              aria-label={`Progreso de ${t.title}${prog.real ? '' : ' (estimado)'}`}
+              aria-label={t('Progreso de {title}{v2}', { title: task.title, v2: prog.real ? '' : t(' (estimado)') })}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={prog.pct}

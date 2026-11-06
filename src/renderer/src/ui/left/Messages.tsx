@@ -47,6 +47,7 @@ import u from '../common/ui.module.css'
 import { ESTIMATE_HINT, REAL_HINT, planProgress } from '@/lib/progress'
 import { useNow } from '../common/hooks'
 import s from './Messages.module.css'
+import { t } from '@/lib/i18n'
 
 export const MessageItem = memo(function MessageItem({ message }: { message: ChatMessage }) {
   switch (message.author.type) {
@@ -96,17 +97,17 @@ function UserMessage({ m }: { m: ChatMessage }) {
         {m.routine ? <CalendarClock size={18} /> : <User size={18} />}
       </span>
       <div className={s.main}>
-        <Meta name={m.routine ? `Rutina: ${m.routine.name}` : 'Tú'} ts={m.createdAt} />
+        <Meta name={m.routine ? t('Rutina: {name}', { name: m.routine.name }) : t('Tú')} ts={m.createdAt} />
         <div className={cx(s.bubble, s.userBubble)}>
           {parts.request && <p className={s.userText}>{parts.request}</p>}
           {parts.data && (
             <details className={s.routineData}>
-              <summary>Datos que trajo la rutina</summary>
+              <summary>{t('Datos que trajo la rutina')}</summary>
               <pre>{parts.data}</pre>
             </details>
           )}
           {m.attachments && m.attachments.length > 0 && (
-            <ul className={s.attachments} aria-label="Adjuntos">
+            <ul className={s.attachments} aria-label={t('Adjuntos')}>
               {m.attachments.map((a) => (
                 <li key={a.id}>
                   <AttachmentChip a={a} projectId={m.projectId} />
@@ -142,8 +143,8 @@ function AttachmentChip({ a, projectId }: { a: Attachment; projectId: string }) 
     <button
       type="button"
       className={cx(s.att, s.attBtn)}
-      title={`Abrir ${a.name} (${fileSize(a.size)})`}
-      aria-label={`Abrir ${a.name}`}
+      title={t('Abrir {name} ({size})', { name: a.name, size: fileSize(a.size) })}
+      aria-label={t('Abrir {name}', { name: a.name })}
       onClick={() => {
         api?.openPath(projectId, a.relPath).catch(() => {})
       }}
@@ -177,7 +178,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
           name={look.name}
           ts={m.createdAt}
           onName={look.present ? () => select({ type: 'agent', id: agentId }) : undefined}
-          nameTitle={`Ver a ${look.name} en el espacio`}
+          nameTitle={t('Ver a {name} en el espacio', { name: look.name })}
         />
         {(showText || hasTasks || proposal || m.work) && (
           <div className={cx(s.bubble, s.agentBubble, isError && s.errorBubble)}>
@@ -227,7 +228,7 @@ function ChangesRow({ projectId, taskId }: { projectId: string; taskId: string }
   }
   const undo = (): void => {
     if (!api || busy) return
-    if (!window.confirm(`¿Deshacer «${task.title}»? Sus ${ch.files} archivo${ch.files === 1 ? '' : 's'} vuelven a como estaban antes; lo que se cambió después en otros archivos se queda.`)) return
+    if (!window.confirm(t('¿Deshacer «{title}»? Sus {files} archivo{s} vuelven a como estaban antes; lo que se cambió después en otros archivos se queda.', { title: task.title, files: ch.files, s: ch.files === 1 ? '' : 's' }))) return
     setBusy(true)
     api
       .undoTask(projectId, taskId)
@@ -235,52 +236,52 @@ function ChangesRow({ projectId, taskId }: { projectId: string; taskId: string }
       .finally(() => setBusy(false))
   }
   const ask = (): void => {
-    setText(`Sobre «${task.title}»: `)
+    setText(t('Sobre «{title}»: ', { title: task.title }))
     focus()
   }
   return (
     <div className={s.changes}>
       <div className={s.changesHead}>
-        <button type="button" className={s.moreHead} aria-expanded={open} aria-controls={listId} onClick={toggle} title="Ver qué cambió en cada archivo">
+        <button type="button" className={s.moreHead} aria-expanded={open} aria-controls={listId} onClick={toggle} title={t('Ver qué cambió en cada archivo')}>
           <FilePen size={13} aria-hidden="true" />
           <span>
-            {undone ? 'Deshecha: ' : ''}
-            {plural(ch.files, 'archivo cambiado', 'archivos cambiados')}
-            {ch.isolated ? ' (en una copia aparte, ya integrada)' : ''}
+            {undone ? t('Deshecha: ') : ''}
+            {plural(ch.files, t('archivo cambiado'), t('archivos cambiados'))}
+            {ch.isolated ? t(' (en una copia aparte, ya integrada)') : ''}
           </span>
           <DiffStat add={ch.add} del={ch.del} />
           <ChevronRight size={14} className={cx(s.toolsChev, open && s.toolsChevOpen)} aria-hidden="true" />
         </button>
         {!undone && (
           <>
-            <button type="button" className={s.changesBtn} onClick={ask} title="Escribir al equipo qué cambiar de esta tarea">
-              Pedir cambios
+            <button type="button" className={s.changesBtn} onClick={ask} title={t('Escribir al equipo qué cambiar de esta tarea')}>
+              {t('Pedir cambios')}
             </button>
-            <button type="button" className={s.changesBtn} onClick={undo} disabled={busy || task.status === 'running'} title="Volver a dejar sus archivos como estaban antes">
-              {busy ? 'Deshaciendo…' : 'Deshacer'}
+            <button type="button" className={s.changesBtn} onClick={undo} disabled={busy || task.status === 'running'} title={t('Volver a dejar sus archivos como estaban antes')}>
+              {busy ? t('Deshaciendo…') : t('Deshacer')}
             </button>
           </>
         )}
       </div>
-      {!!ch.conflicts?.length && <p className={s.changesNote}>Al integrar chocó con otra tarea en {ch.conflicts.join(', ')}.</p>}
+      {!!ch.conflicts?.length && <p className={s.changesNote}>{t('Al integrar chocó con otra tarea en')} {ch.conflicts.join(', ')}.</p>}
       {note && <p className={s.changesNote}>{note}</p>}
       {open && (
         <div id={listId} className={s.changesBody}>
           {!set ? (
-            <p className={s.changesNote}>Cargando…</p>
+            <p className={s.changesNote}>{t('Cargando…')}</p>
           ) : (
             <>
               <ul className={s.changesFiles}>
                 {set.files.map((f) => (
                   <li key={f.path}>
-                    <span className={s.changesStatus}>{f.status === 'A' ? 'nuevo' : f.status === 'D' ? 'borrado' : 'cambiado'}</span>
+                    <span className={s.changesStatus}>{f.status === 'A' ? t('nuevo') : f.status === 'D' ? t('borrado') : t('cambiado')}</span>
                     <code>{f.path}</code>
-                    {f.binary ? <span className={s.changesStatus}>binario</span> : <DiffStat add={f.add} del={f.del} />}
+                    {f.binary ? <span className={s.changesStatus}>{t('binario')}</span> : <DiffStat add={f.add} del={f.del} />}
                   </li>
                 ))}
               </ul>
               {set.patch && <CodeBlock text={set.patch} diff />}
-              {set.truncated && <p className={s.changesNote}>El parche es muy largo: se muestra solo el principio.</p>}
+              {set.truncated && <p className={s.changesNote}>{t('El parche es muy largo: se muestra solo el principio.')}</p>}
             </>
           )}
         </div>
@@ -313,17 +314,17 @@ function RatingRow({ m }: { m: ChatMessage }) {
     </button>
   )
   return (
-    <div className={s.rating} aria-label="¿Te sirvió este resultado?">
-      {btn('up', ThumbsUp, 'Me sirvió')}
-      {btn('down', ThumbsDown, 'No me sirvió')}
-      {m.rating && <span className={s.ratingNote}>{m.rating === 'up' ? 'Te sirvió' : 'No te sirvió'}: lo tendrá en cuenta el coordinador.</span>}
+    <div className={s.rating} aria-label={t('¿Te sirvió este resultado?')}>
+      {btn('up', ThumbsUp, t('Me sirvió'))}
+      {btn('down', ThumbsDown, t('No me sirvió'))}
+      {m.rating && <span className={s.ratingNote}>{m.rating === 'up' ? t('Te sirvió: lo tendrá en cuenta el coordinador.') : t('No te sirvió: lo tendrá en cuenta el coordinador.')}</span>}
     </div>
   )
 }
 
 // ---------- Lo que cuenta un agente mientras trabaja ----------
 
-const WORK_STATE: Record<TaskWork['status'], string> = { running: 'Trabajando', done: 'Hecha', failed: 'No pudo hacerla', stopped: 'Detenida' }
+const WORK_STATE: Record<TaskWork['status'], string> = { running: t('Trabajando'), done: t('Hecha'), failed: t('No pudo hacerla'), stopped: t('Detenida') }
 
 const TOOL_ICON: Record<TraceTool, typeof Wrench> = {
   command: SquareTerminal,
@@ -359,7 +360,7 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
   const listId = useId()
   // Solo sigue «trabajando» si la tarea sigue en marcha (tras reiniciar la app, ya no).
   const live = work.status === 'running' && task?.status === 'running'
-  const state = work.status === 'running' && !live ? 'Detenida' : WORK_STATE[work.status]
+  const state = work.status === 'running' && !live ? t('Detenida') : WORK_STATE[work.status]
   const count = work.steps.length + (work.hidden ?? 0)
   const totals = work.totals
 
@@ -382,8 +383,8 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
   const toggle =
     count > 0 ? (
       <button type="button" className={s.moreHead} aria-expanded={open} aria-controls={listId} onClick={() => setOpen((o) => !o)}>
-        <span>{totals?.summary ?? plural(count, 'paso', 'pasos')}</span>
-        {!!totals?.failed && <span className={s.toolsFailed}>· {totals.failed} con error</span>}
+        <span>{totals?.summary ?? plural(count, t('paso'), t('pasos'))}</span>
+        {!!totals?.failed && <span className={s.toolsFailed}>· {totals.failed} {t('con error')}</span>}
         <DiffStat add={totals?.add} del={totals?.del} />
         <ChevronRight size={14} className={cx(s.toolsChev, open && s.toolsChevOpen)} aria-hidden="true" />
       </button>
@@ -395,7 +396,7 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
         type="button"
         className={s.workHead}
         onClick={() => (count > 0 ? setOpen((o) => !o) : openTrace(work.taskId))}
-        title={count > 0 ? (open ? 'Ocultar lo que hizo' : 'Ver lo que hizo') : 'Ver todo lo que hizo, paso a paso'}
+        title={count > 0 ? (open ? t('Ocultar lo que hizo') : t('Ver lo que hizo')) : t('Ver todo lo que hizo, paso a paso')}
       >
         {live ? <LoaderCircle size={14} className={cx(s.workSpin, !reduced && u.spin)} aria-hidden="true" /> : <ListChecks size={14} aria-hidden="true" />}
         <span className={s.workTitle}>{work.title}</span>
@@ -414,7 +415,7 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
           {!!work.hidden && (
             <li>
               <button type="button" className={s.stepsHidden} onClick={() => openTrace(work.taskId)}>
-                {plural(work.hidden, 'paso anterior', 'pasos anteriores')}: ver todo
+                {plural(work.hidden, t('paso anterior'), t('pasos anteriores'))}{t(': ver todo')}
               </button>
             </li>
           )}
@@ -430,7 +431,7 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
           {liveLine}
           <li>
             <button type="button" className={s.stepsHidden} onClick={() => openTrace(work.taskId)}>
-              Abrir el registro completo
+              {t('Abrir el registro completo')}
             </button>
           </li>
         </ol>
@@ -443,7 +444,7 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
 function DiffStat({ add, del }: { add?: number; del?: number }) {
   if (!add && !del) return null
   return (
-    <span className={s.diffStat} aria-label={`${add ?? 0} líneas añadidas y ${del ?? 0} quitadas`}>
+    <span className={s.diffStat} aria-label={t('{add} líneas añadidas y {del} quitadas', { add: add ?? 0, del: del ?? 0 })}>
       <span className={s.statAdd}>+{add ?? 0}</span>
       <span className={s.statDel}>−{del ?? 0}</span>
     </span>
@@ -479,7 +480,7 @@ function FilesStep({ projectId, files }: { projectId: string; files: WorkFile[] 
       {images.length > 0 && (
         <div className={s.thumbs}>
           {images.map((f) => (
-            <button key={f.relPath} type="button" className={s.thumb} title={`Abrir ${f.name}`} onClick={() => open(f)}>
+            <button key={f.relPath} type="button" className={s.thumb} title={t('Abrir {name}', { name: f.name })} onClick={() => open(f)}>
               <img src={projectFileUrl(projectId, f.relPath, isWeb)} alt={f.name} loading="lazy" />
               <span>{f.name}</span>
             </button>
@@ -489,7 +490,7 @@ function FilesStep({ projectId, files }: { projectId: string; files: WorkFile[] 
       {docs.length > 0 && (
         <div className={s.docChips}>
           {docs.map((f) => (
-            <button key={f.relPath} type="button" className={s.docChip} title={`Abrir ${f.name} (${fileSize(f.size)})`} onClick={() => open(f)}>
+            <button key={f.relPath} type="button" className={s.docChip} title={t('Abrir {name} ({size})', { name: f.name, size: fileSize(f.size) })} onClick={() => open(f)}>
               <FileTypeIcon name={f.name} size={13} />
               <span>{f.name}</span>
             </button>
@@ -509,7 +510,7 @@ function ToolsStep({ taskId, step }: { taskId: string; step: Extract<WorkStep, {
       <button type="button" className={s.toolsHead} aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}>
         <Wrench size={13} aria-hidden="true" />
         <span>{step.summary}</span>
-        {!!step.failed && <span className={s.toolsFailed}>· {plural(step.failed, 'con error', 'con error')}</span>}
+        {!!step.failed && <span className={s.toolsFailed}>· {plural(step.failed, t('con error'), t('con error'))}</span>}
         <DiffStat add={step.add} del={step.del} />
         <ChevronRight size={14} className={cx(s.toolsChev, open && s.toolsChevOpen)} aria-hidden="true" />
       </button>
@@ -518,7 +519,7 @@ function ToolsStep({ taskId, step }: { taskId: string; step: Extract<WorkStep, {
           {step.items.map((item, i) => (
             <ToolRow key={i} taskId={taskId} title={item} info={step.refs?.[i]} />
           ))}
-          {!!step.more && <li className={s.itemMore}>y {step.more} más (en el registro completo)</li>}
+          {!!step.more && <li className={s.itemMore}>{t('y {n} más (en el registro completo)', { n: step.more })}</li>}
         </ul>
       )}
     </li>
@@ -534,8 +535,8 @@ function ToolRow({ taskId, title, info }: { taskId: string; title: string; info?
     <>
       <Icon size={13} aria-hidden="true" className={s.itemIcon} />
       <span className={cx(s.itemTitle, info?.tool === 'command' && s.itemMono)}>{title}</span>
-      {info?.ok === true && <CircleCheck size={13} aria-label="Bien" className={s.itemOk} />}
-      {info?.ok === false && <CircleX size={13} aria-label="Con error" className={s.itemBad} />}
+      {info?.ok === true && <CircleCheck size={13} aria-label={t('Bien')} className={s.itemOk} />}
+      {info?.ok === false && <CircleX size={13} aria-label={t('Con error')} className={s.itemBad} />}
       <DiffStat add={info?.add} del={info?.del} />
     </>
   )
@@ -574,15 +575,15 @@ function ToolDetail({ id, taskId, info }: { id: string; taskId: string; info: Wo
   return (
     <div id={id} className={s.itemBody}>
       {entry === undefined ? (
-        <p className={s.itemNote}>Cargando…</p>
+        <p className={s.itemNote}>{t('Cargando…')}</p>
       ) : !entry || (!entry.body && !entry.output) ? (
-        <p className={s.itemNote}>{info.ok === undefined ? 'En marcha…' : 'Este paso no tiene más detalle.'}</p>
+        <p className={s.itemNote}>{info.ok === undefined ? t('En marcha…') : t('Este paso no tiene más detalle.')}</p>
       ) : (
         <>
           {entry.body && <CodeBlock text={info.tool === 'command' ? `$ ${entry.body}` : entry.body} diff={info.tool === 'edit'} />}
           {entry.output && (
             <>
-              <span className={s.outLabel}>Resultado</span>
+              <span className={s.outLabel}>{t('Resultado')}</span>
               <pre className={cx(s.code, entry.ok === false && s.codeBad)}>{entry.output}</pre>
             </>
           )}
@@ -613,14 +614,14 @@ function TypingDots({ reduced }: { reduced: boolean }) {
       <span />
       <span />
       <span />
-      <span className="sr-only">Escribiendo…</span>
+      <span className="sr-only">{t('Escribiendo…')}</span>
     </span>
   )
 }
 
 // ---------- Plan propuesto (espera tu visto bueno) ----------
 
-const DIFFICULTY_LABEL: Record<string, string> = { easy: 'fácil', medium: 'normal', hard: 'difícil' }
+const DIFFICULTY_LABEL: Record<string, string> = { easy: t('fácil'), medium: 'normal', hard: t('difícil') }
 
 /** El plan que propone el coordinador: qué hará cada agente. Nada empieza hasta que lo apruebes. */
 function ProposalBlock({ m, proposal }: { m: ChatMessage; proposal: PlanProposal }) {
@@ -630,8 +631,8 @@ function ProposalBlock({ m, proposal }: { m: ChatMessage; proposal: PlanProposal
   const [error, setError] = useState<string | null>(null)
   const pending = proposal.status === 'pending'
   const canAct = !!api && live && pending
-  const agents = new Set(proposal.tasks.map((t) => t.agentId)).size
-  const index = new Map(proposal.tasks.map((t, i) => [t.key, i + 1]))
+  const agents = new Set(proposal.tasks.map((task) => task.agentId)).size
+  const index = new Map(proposal.tasks.map((task, i) => [task.key, i + 1]))
 
   function act(kind: 'approve' | 'reject'): void {
     const a = api
@@ -649,23 +650,23 @@ function ProposalBlock({ m, proposal }: { m: ChatMessage; proposal: PlanProposal
   }
 
   const tasks = (
-    <ol className={s.proposalTasks} aria-label="Tareas propuestas">
-      {proposal.tasks.map((t, i) => {
-        const after = t.dependsOn.map((k) => index.get(k)).filter((x): x is number => !!x)
+    <ol className={s.proposalTasks} aria-label={t('Tareas propuestas')}>
+      {proposal.tasks.map((task, i) => {
+        const after = task.dependsOn.map((k) => index.get(k)).filter((x): x is number => !!x)
         return (
-          <li key={t.key}>
+          <li key={task.key}>
             <details className={s.proposalTask}>
               <summary>
                 <span className={s.proposalNum}>{i + 1}</span>
-                <AgentPill look={lookup(t.agentId)} size="sm" />
-                <span className={s.proposalTitle}>{t.title}</span>
-                {after.length > 0 && <span className={s.proposalAfter}>tras {after.join(', ')}</span>}
+                <AgentPill look={lookup(task.agentId)} size="sm" />
+                <span className={s.proposalTitle}>{task.title}</span>
+                {after.length > 0 && <span className={s.proposalAfter}>{t('tras')} {after.join(', ')}</span>}
               </summary>
               <div className={s.proposalDetail}>
-                <MarkdownView text={t.description} />
+                <MarkdownView text={task.description} />
                 <p className={s.proposalMeta}>
-                  Dificultad {DIFFICULTY_LABEL[t.difficulty] ?? t.difficulty}
-                  {t.acceptance && <> · Hecha cuando: {t.acceptance}</>}
+                  {t('Dificultad')} {DIFFICULTY_LABEL[task.difficulty] ?? task.difficulty}
+                  {task.acceptance && <> {t('· Hecha cuando:')} {task.acceptance}</>}
                 </p>
               </div>
             </details>
@@ -683,10 +684,10 @@ function ProposalBlock({ m, proposal }: { m: ChatMessage; proposal: PlanProposal
         </span>
         <div className={s.planInfo}>
           <span className={s.planTitle}>
-            {pending ? 'Plan propuesto: espera tu visto bueno' : proposal.status === 'revised' ? 'Plan cambiado por tu respuesta' : 'Plan descartado'}
+            {pending ? t('Plan propuesto: espera tu visto bueno') : proposal.status === 'revised' ? t('Plan cambiado por tu respuesta') : t('Plan descartado')}
           </span>
           <span className={s.planSub}>
-            {plural(agents, 'agente', 'agentes')} · {plural(proposal.tasks.length, 'tarea', 'tareas')}
+            {plural(agents, t('agente'), t('agentes'))} · {plural(proposal.tasks.length, t('tarea'), t('tareas'))}
           </span>
         </div>
       </div>
@@ -695,20 +696,20 @@ function ProposalBlock({ m, proposal }: { m: ChatMessage; proposal: PlanProposal
           {tasks}
           {proposal.contract && (
             <details className={s.contract}>
-              <summary>Contrato común del equipo</summary>
+              <summary>{t('Contrato común del equipo')}</summary>
               <MarkdownView text={proposal.contract} />
             </details>
           )}
           <div className={s.proposalActions}>
             <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!canAct || !!busy} onClick={() => act('approve')}>
               {busy === 'approve' ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <Play size={14} aria-hidden="true" />}
-              Aprobar y empezar
+              {t('Aprobar y empezar')}
             </button>
             <button type="button" className={u.btn} disabled={!canAct || !!busy} onClick={() => act('reject')}>
               {busy === 'reject' && <LoaderCircle size={14} aria-hidden="true" className={u.spin} />}
-              Descartar
+              {t('Descartar')}
             </button>
-            <span className={s.proposalHint}>¿Algo no encaja? Escríbele en el chat qué cambiar.</span>
+            <span className={s.proposalHint}>{t('¿Algo no encaja? Escríbele en el chat qué cambiar.')}</span>
           </div>
           {error && (
             <p className={s.resumeError} role="alert">
@@ -718,7 +719,7 @@ function ProposalBlock({ m, proposal }: { m: ChatMessage; proposal: PlanProposal
         </>
       ) : (
         <details className={s.contract}>
-          <summary>Ver el plan</summary>
+          <summary>{t('Ver el plan')}</summary>
           {tasks}
         </details>
       )}
@@ -735,8 +736,8 @@ function PlanBlock({ taskIds, runId, contract }: { taskIds: string[]; runId?: st
   const reduced = useCowork((st) => st.reducedEffects)
   const setLeftTab = useCowork((st) => st.setLeftTab)
 
-  const list = useMemo(() => taskIds.map((id) => tasks[id]).filter((t): t is Task => !!t), [taskIds, tasks])
-  const anyRunning = list.some((t) => t.status === 'running')
+  const list = useMemo(() => taskIds.map((id) => tasks[id]).filter((task): task is Task => !!task), [taskIds, tasks])
+  const anyRunning = list.some((task) => task.status === 'running')
   const now = useNow(2000, anyRunning)
   if (list.length === 0) return null
 
@@ -744,35 +745,35 @@ function PlanBlock({ taskIds, runId, contract }: { taskIds: string[]; runId?: st
   let done = 0
   let failed = 0
   let running = 0
-  for (const t of list) {
-    if (t.status === 'done') done++
-    else if (t.status === 'failed' || t.status === 'cancelled') failed++
-    else if (t.status === 'running') running++
+  for (const task of list) {
+    if (task.status === 'done') done++
+    else if (task.status === 'failed' || task.status === 'cancelled') failed++
+    else if (task.status === 'running') running++
   }
   const active = total - done - failed
-  const agentCount = new Set(list.map((t) => t.agentId)).size
+  const agentCount = new Set(list.map((task) => task.agentId)).size
   const plan = planProgress(list, Object.values(tasks), now)
   const pct = plan.pct
   const allDone = done === total
   const finished = active === 0
 
-  const title = allDone ? 'Plan completado' : finished ? 'Plan finalizado con errores' : 'Plan en marcha'
+  const title = allDone ? t('Plan completado') : finished ? t('Plan finalizado con errores') : t('Plan en marcha')
   let caption: string
-  if (done > 0) caption = `${done}/${total} tareas completadas`
-  else if (active > 0) caption = `${plural(total, 'tarea', 'tareas')} en marcha`
-  else caption = `${plural(failed, 'tarea', 'tareas')} con error`
+  if (done > 0) caption = t('{done}/{total} tareas completadas', { done, total })
+  else if (active > 0) caption = t('{plural} en marcha', { plural: plural(total, t('tarea'), t('tareas')) })
+  else caption = t('{plural} con error', { plural: plural(failed, t('tarea'), t('tareas')) })
   const measurable = done > 0 || finished || running > 0
 
   return (
     <div className={s.plan}>
-      <ul className={s.taskList} aria-label="Tareas del plan">
-        {list.map((t) => (
-          <li key={t.id} className={s.taskRow}>
-            <AgentPill look={lookup(t.agentId)} size="sm" />
-            <span className={s.taskTitle} title={t.title}>
-              {t.title}
+      <ul className={s.taskList} aria-label={t('Tareas del plan')}>
+        {list.map((task) => (
+          <li key={task.id} className={s.taskRow}>
+            <AgentPill look={lookup(task.agentId)} size="sm" />
+            <span className={s.taskTitle} title={task.title}>
+              {task.title}
             </span>
-            <TaskStatusIcon status={t.status} size={15} />
+            <TaskStatusIcon status={task.status} size={15} />
           </li>
         ))}
       </ul>
@@ -785,25 +786,25 @@ function PlanBlock({ taskIds, runId, contract }: { taskIds: string[]; runId?: st
           <div className={s.planInfo}>
             <span className={s.planTitle}>{title}</span>
             <span className={s.planSub}>
-              {plural(agentCount, 'agente', 'agentes')} · {plural(total, 'tarea', 'tareas')}
-              {running > 0 && ` · ${running} en curso`}
+              {plural(agentCount, t('agente'), t('agentes'))} · {plural(total, t('tarea'), t('tareas'))}
+              {running > 0 && t(' · {running} en curso', { running })}
             </span>
           </div>
           <button
             type="button"
             className={cx(u.btn, u.btnSm, s.planBtn)}
             onClick={() => setLeftTab('tasks')}
-            aria-label="Ver tareas"
-            title="Ver tareas"
+            aria-label={t('Ver tareas')}
+            title={t('Ver tareas')}
           >
-            <span className={s.planBtnLabel}>Ver tareas</span>
+            <span className={s.planBtnLabel}>{t('Ver tareas')}</span>
             <ArrowRight size={13} aria-hidden="true" />
           </button>
         </div>
         <div
           className={u.track}
           role="progressbar"
-          aria-label="Progreso del plan"
+          aria-label={t('Progreso del plan')}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={measurable ? pct : undefined}
@@ -819,21 +820,21 @@ function PlanBlock({ taskIds, runId, contract }: { taskIds: string[]; runId?: st
         <div className={s.planFoot}>
           <span>
             {caption}
-            {failed > 0 && done > 0 && <span className={s.planFail}> · {failed} con error</span>}
+            {failed > 0 && done > 0 && <span className={s.planFail}> · {failed} {t('con error')}</span>}
           </span>
           {measurable ? (
             <span className={s.planPct} title={plan.real ? REAL_HINT : ESTIMATE_HINT}>
               {plan.real ? `${pct}%` : `≈ ${pct}%`}
             </span>
           ) : (
-            <span className={s.planActivity}>En curso</span>
+            <span className={s.planActivity}>{t('En curso')}</span>
           )}
         </div>
       </div>
       {runId && <ResumeRow runId={runId} list={list} />}
       {contract && (
         <details className={s.contract}>
-          <summary>Contrato común del equipo</summary>
+          <summary>{t('Contrato común del equipo')}</summary>
           <MarkdownView text={contract} />
         </details>
       )}
@@ -849,20 +850,20 @@ function ResumeRow({ runId, list }: { runId: string; list: Task[] }) {
   const live = useCowork((st) => st.mode === 'live')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const halfDone = list.filter((t) => t.status === 'cancelled' && t.error === INTERRUPTED_ERROR)
+  const halfDone = list.filter((task) => task.status === 'cancelled' && task.error === INTERRUPTED_ERROR)
   if (!halfDone.length || active || !api || !live || !project) return null
   const a = api
   return (
     <div className={s.resume} role="status">
       <span>
-        {halfDone.length === 1 ? 'Una tarea se quedó' : `${halfDone.length} tareas se quedaron`} a medias al cerrar la app.
+        {halfDone.length === 1 ? t('Una tarea se quedó a medias al cerrar la app.') : t('{n} tareas se quedaron a medias al cerrar la app.', { n: halfDone.length })}
         {error && <span className={s.resumeError}> {error}</span>}
       </span>
       <button
         type="button"
         className={cx(u.btn, u.btnSm, u.btnPrimary)}
         disabled={busy}
-        title="Vuelve a lanzar lo que quedó a medias, con el mismo agente: sigue desde los archivos que ya hay"
+        title={t('Vuelve a lanzar lo que quedó a medias, con el mismo agente: sigue desde los archivos que ya hay')}
         onClick={() => {
           setBusy(true)
           setError(null)
@@ -876,7 +877,7 @@ function ResumeRow({ runId, list }: { runId: string; list: Task[] }) {
         }}
       >
         {busy ? <LoaderCircle size={13} aria-hidden="true" className={u.spin} /> : <Play size={13} aria-hidden="true" />}
-        Reanudar
+        {t('Reanudar')}
       </button>
     </div>
   )
@@ -889,7 +890,7 @@ function RunUsageLine({ run, now }: { run: UsageRun; now: number }) {
   const parts = [
     shortDuration(runDuration(run, now)),
     // Los tokens de cada tarea se suman cuando termina (y Hermes no informa de los suyos).
-    run.status === 'running' && tokens === 0 ? 'tokens al terminar cada tarea' : `${compactTokens(tokens)} tokens${run.status === 'running' ? ' hasta ahora' : ''}`,
+    run.status === 'running' && tokens === 0 ? t('tokens al terminar cada tarea') : t('{n} tokens', { n: compactTokens(tokens) }) + (run.status === 'running' ? t(' hasta ahora') : ''),
     ...deltas.map(deltaText)
   ]
   return (
@@ -897,7 +898,7 @@ function RunUsageLine({ run, now }: { run: UsageRun; now: number }) {
       type="button"
       className={s.planUsage}
       onClick={() => useCowork.setState({ usageOpen: true })}
-      title="Ver el consumo (tokens, tiempo y cuota) de cada petición"
+      title={t('Ver el consumo (tokens, tiempo y cuota) de cada petición')}
     >
       <Gauge size={13} aria-hidden="true" />
       {parts.join(' · ')}
@@ -914,7 +915,7 @@ function ArtifactCards({ ids, projectId }: { ids: string[]; projectId: string })
   if (list.length === 0) return null
   if (list.length === 1) {
     return (
-      <ul className={s.artifacts} aria-label="Resultados">
+      <ul className={s.artifacts} aria-label={t('Resultados')}>
         <ArtifactRow a={list[0]} />
       </ul>
     )
@@ -935,11 +936,11 @@ function ArtifactRow({ a }: { a: Artifact }) {
         </span>
         <span className={s.artifactBy}>
           <span className={s.byDot} style={agentVars(look.color)} aria-hidden="true" />
-          Creado por {look.name}
+          {t('Creado por')} {look.name}
         </span>
       </div>
-      <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => openViewer(a.id)} aria-label={`Abrir ${a.name}`}>
-        Abrir
+      <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => openViewer(a.id)} aria-label={t('Abrir {name}', { name: a.name })}>
+        {t('Abrir')}
       </button>
     </li>
   )
@@ -981,13 +982,13 @@ function DeliverablesFolder({ list, projectId }: { list: Artifact[]; projectId: 
           <button
             type="button"
             className={cx(u.btn, u.btnSm)}
-            title={`Abrir ${folder} en el Finder`}
+            title={t('Abrir {folder} en el Finder', { folder })}
             onClick={() => {
               setError(null)
               api?.openPath(projectId, folder).catch((e) => setError(errorText(e)))
             }}
           >
-            Abrir carpeta
+            {t('Abrir carpeta')}
           </button>
         )}
       </div>
@@ -997,7 +998,7 @@ function DeliverablesFolder({ list, projectId }: { list: Artifact[]; projectId: 
         </p>
       )}
       {open && (
-        <ul id={listId} className={s.folderList} aria-label={`Archivos de ${name}`}>
+        <ul id={listId} className={s.folderList} aria-label={t('Archivos de {name}', { name })}>
           {list.map((a) => (
             <ArtifactRow key={a.id} a={a} />
           ))}

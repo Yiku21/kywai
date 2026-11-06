@@ -6,12 +6,13 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import r from '../header/RemoteAccess.module.css'
 import s from './HermesModelDialog.module.css'
+import { locale, t } from '@/lib/i18n'
 
 /** Cuántos modelos se pintan a la vez (OmniRoute tiene cientos: el buscador filtra). */
 const SHOWN = 250
 
 const when = (ts: number): string =>
-  new Date(ts).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  new Date(ts).toLocaleString(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 /**
  * «/model» en el chat o el panel de Hermes: con qué modelo coordina y los de sus proveedores con sesión, como
@@ -28,7 +29,7 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     if (!api) {
-      setError('Sin motor de agentes: abre la app de escritorio')
+      setError(t('Sin motor de agentes: abre la app de escritorio'))
       return
     }
     api.getHermesModels().then(
@@ -64,7 +65,7 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
       const next = await a.setHermesModel(choice)
       setInfo(next)
       setPicked(null)
-      setSaved(choice ? `Hermes usará ${choice.model} (${choice.provider}) desde el próximo encargo.` : 'Hermes vuelve a usar el modelo de su configuración.')
+      setSaved(choice ? t('Hermes usará {model} ({provider}) desde el próximo encargo.', { model: choice.model, provider: choice.provider }) : t('Hermes vuelve a usar el modelo de su configuración.'))
     } catch (e) {
       setError(errorText(e))
     } finally {
@@ -79,14 +80,14 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
           <Cpu size={20} aria-hidden="true" className={r.headIcon} />
           <div>
             <h2 id="hermes-model-title" className={r.title}>
-              Modelo de Hermes
+              {t('Modelo de Hermes')}
             </h2>
             <p className={r.subtitle}>
-              Con el que Hermes planifica y reparte el trabajo. Los proveedores son los que tienes con sesión en Hermes, como en{' '}
+              {t('Con el que Hermes planifica y reparte el trabajo. Los proveedores son los que tienes con sesión en Hermes, como en')}{' '}
               <code>hermes model</code>.
             </p>
           </div>
-          <button type="button" className={cx(u.iconBtn, r.close)} aria-label="Cerrar" onClick={onClose}>
+          <button type="button" className={cx(u.iconBtn, r.close)} aria-label={t('Cerrar')} onClick={onClose}>
             <X size={18} aria-hidden="true" />
           </button>
         </header>
@@ -94,17 +95,17 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
         <div className={s.body}>
           {!info && !error && (
             <p className={s.note}>
-              <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> Leyendo los modelos de Hermes…
+              <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> {t('Leyendo los modelos de Hermes…')}
             </p>
           )}
-          {info && !info.installed && <p className={s.note}>Hermes Agent no está instalado en este equipo.</p>}
+          {info && !info.installed && <p className={s.note}>{t('Hermes Agent no está instalado en este equipo.')}</p>}
           {current && (
             <div className={s.current}>
               <div className={s.currentInfo}>
-                <span className={s.currentLabel}>Ahora</span>
-                <span className={s.currentModel}>{current.model || 'El de su configuración'}</span>
+                <span className={s.currentLabel}>{t('Ahora')}</span>
+                <span className={s.currentModel}>{current.model || t('El de su configuración')}</span>
                 <span className={s.currentSub}>
-                  {current.provider || 'proveedor de su configuración'} · {current.fromApp ? 'elegido en AI Cowork' : 'el de la configuración de Hermes'}
+                  {current.provider || t('proveedor de su configuración')} · {current.fromApp ? t('elegido en AI Cowork') : t('el de la configuración de Hermes')}
                 </span>
               </div>
               {current.fromApp && (
@@ -112,11 +113,11 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
                   type="button"
                   className={cx(u.btn, u.btnSm)}
                   disabled={saving}
-                  title={info?.hermesDefault ? `Volver a ${info.hermesDefault.model} (${info.hermesDefault.provider})` : undefined}
+                  title={info?.hermesDefault ? t('Volver a {model} ({provider})', { model: info.hermesDefault.model, provider: info.hermesDefault.provider }) : undefined}
                   onClick={() => void choose(null)}
                 >
                   <RotateCcw size={13} aria-hidden="true" />
-                  Volver al de Hermes
+                  {t('Volver al de Hermes')}
                 </button>
               )}
             </div>
@@ -124,13 +125,13 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
 
           {info && info.providers.length === 0 && info.installed && (
             <p className={s.note}>
-              Hermes todavía no tiene listas de modelos. Abre <code>hermes model</code> una vez en la terminal del Mac y vuelve aquí.
+              {t('Hermes todavía no tiene listas de modelos. Abre')} <code>hermes model</code> {t('una vez en la terminal del Mac y vuelve aquí.')}
             </p>
           )}
 
           {info && info.providers.length > 0 && (
             <div className={s.picker}>
-              <ul className={s.providers} aria-label="Proveedores">
+              <ul className={s.providers} aria-label={t('Proveedores')}>
                 {info.providers.map((p) => (
                   <li key={p.id}>
                     <button
@@ -145,7 +146,7 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
                     >
                       <span className={s.providerName}>{p.label}</span>
                       <span className={s.providerCount}>
-                        {p.models.length} {p.id === current?.provider ? '· actual' : ''}
+                        {p.models.length} {p.id === current?.provider ? t('· actual') : ''}
                       </span>
                     </button>
                   </li>
@@ -157,13 +158,13 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
                   <input
                     type="search"
                     value={query}
-                    placeholder={`Buscar entre ${list.length} modelos…`}
-                    aria-label="Buscar modelo"
+                    placeholder={t('Buscar entre {length} modelos…', { length: list.length })}
+                    aria-label={t('Buscar modelo')}
                     onChange={(e) => setQuery(e.target.value)}
                     autoFocus
                   />
                 </label>
-                <ul className={s.modelList} aria-label="Modelos">
+                <ul className={s.modelList} aria-label={t('Modelos')}>
                   {filtered.slice(0, SHOWN).map((m) => {
                     const isCurrent = provider === current?.provider && m === current?.model
                     return (
@@ -176,13 +177,13 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
                           onDoubleClick={() => provider && void choose({ provider, model: m })}
                         >
                           <span>{m}</span>
-                          {isCurrent && <Check size={14} aria-label="Actual" />}
+                          {isCurrent && <Check size={14} aria-label={t('Actual')} />}
                         </button>
                       </li>
                     )
                   })}
-                  {filtered.length === 0 && <li className={s.note}>Ningún modelo coincide.</li>}
-                  {filtered.length > SHOWN && <li className={s.note}>Y {filtered.length - SHOWN} más: escribe para buscar.</li>}
+                  {filtered.length === 0 && <li className={s.note}>{t('Ningún modelo coincide.')}</li>}
+                  {filtered.length > SHOWN && <li className={s.note}>{t('Y {n} más: escribe para buscar.', { n: filtered.length - SHOWN })}</li>}
                 </ul>
               </div>
             </div>
@@ -201,8 +202,8 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
 
           <div className={s.foot}>
             <span className={s.note}>
-              {info?.updatedAt ? `Listas de Hermes del ${when(info.updatedAt)}. ` : ''}
-              Para actualizarlas: <code>hermes model --refresh</code> en la terminal.
+              {info?.updatedAt ? t('Listas de Hermes del {when}. ', { when: when(info.updatedAt) }) : ''}
+              {t('Para actualizarlas:')} <code>hermes model --refresh</code> {t('en la terminal.')}
             </span>
             <button
               type="button"
@@ -211,7 +212,7 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
               onClick={() => picked && provider && void choose({ provider, model: picked })}
             >
               {saving ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : <Check size={14} aria-hidden="true" />}
-              {picked ? `Usar ${picked}` : 'Elige un modelo'}
+              {picked ? t('Usar {model}', { model: picked }) : t('Elige un modelo')}
             </button>
           </div>
         </div>

@@ -234,14 +234,15 @@ export function routineNameFrom(request: string): string {
   return name ? name.charAt(0).toUpperCase() + name.slice(1) : 'Rutina'
 }
 
-const TIME = String.raw`(?:a\s+las?\s+)?(\d{1,2}(?:[:.h]\d{2})?)\s*(?:h(?:oras)?\b)?`
+const TIME = String.raw`(?:(?:a\s+las?|at)\s+)?(\d{1,2}(?:[:.h]\d{2})?)\s*(?:h(?:oras)?\b)?`
 const SEP = String.raw`\s*(?:[:,—–-]\s*|\s)`
 
 /**
  * «/rutina …» → la rutina que hay que crear, o un mensaje de ayuda si no se entiende. El texto después del horario
  * es la petición (lo que se enviará al chat). Acepta: «cada día / todos los días / a diario a las 9:00»,
  * «<días> a las 8:30» (lunes y jueves, de lunes a viernes, laborables, fines de semana), «cada N horas», «cada hora»,
- * «webhook» y «al cambiar archivos [de carpeta]».
+ * «webhook» y «al cambiar archivos [de carpeta]». También en inglés: «every day at 9:00», «every 6 hours», «on webhook»,
+ * «when files change [in carpeta]».
  */
 export function parseRoutineCommand(input: string): RoutineCommand | { error: string } {
   const text = input.replace(/^\s*\/(rutina|rutinas|routine)\b/i, '').trim()
@@ -253,21 +254,21 @@ export function parseRoutineCommand(input: string): RoutineCommand | { error: st
     if (request.length < 3) return { error: `Falta lo que tiene que hacer la rutina. ${ROUTINE_COMMAND_HELP}` }
     return { name: routineNameFrom(request), request: request.slice(0, MAX_ROUTINE_REQUEST), trigger }
   }
-  let m = new RegExp(String.raw`^(?:cada\s+dia|todos\s+los\s+dias|a\s+diario|diariamente|cada\s+manana|todas\s+las\s+mananas)\s+${TIME}${SEP}`).exec(f)
+  let m = new RegExp(String.raw`^(?:cada\s+dia|todos\s+los\s+dias|a\s+diario|diariamente|cada\s+manana|todas\s+las\s+mananas|every\s+day|everyday|daily|every\s+morning)\s+${TIME}${SEP}`).exec(f)
   if (m) {
     const time = normalizeTime(m[1])
     return time ? finish({ type: 'daily', time }, m[0].length) : { error: `Hora no válida. ${ROUTINE_COMMAND_HELP}` }
   }
-  m = /^cada\s+(?:(\d{1,3})\s+)?horas?\b\s*(?:[:,—–-]\s*)?/.exec(f)
+  m = /^(?:cada|every)\s+(?:(\d{1,3})\s+)?(?:horas?|hours?)\b\s*(?:[:,—–-]\s*)?/.exec(f)
   if (m) {
     const hours = m[1] ? Number(m[1]) : 1
     if (hours < MIN_INTERVAL_HOURS || hours > MAX_INTERVAL_HOURS) return { error: `Cada cuántas horas: entre ${MIN_INTERVAL_HOURS} y ${MAX_INTERVAL_HOURS}.` }
     return finish({ type: 'interval', hours }, m[0].length)
   }
-  m = /^(?:(?:con|por|al\s+(?:llegar|recibir)(?:\s+un)?)\s+)?webhook\b\s*(?:[:,—–-]\s*)?/.exec(f)
+  m = /^(?:(?:con|por|al\s+(?:llegar|recibir)(?:\s+un)?|on|via|by|when\s+a)\s+)?(?:a\s+)?webhook\b\s*(?:[:,—–-]\s*)?/.exec(f)
   if (m) return finish({ type: 'webhook' }, m[0].length)
   // Sobre el original (esas palabras no llevan tildes): la carpeta conserva mayúsculas y tildes.
-  const folder = /^(?:al|cuando)\s+cambi(?:ar|en)\s+(?:los\s+)?archivos(?:\s+(?:de|en)\s+([^\s:,]+))?\s*(?:[:,—–-]\s*)?/i.exec(text)
+  const folder = /^(?:(?:al|cuando)\s+cambi(?:ar|en)\s+(?:los\s+)?archivos|when\s+files\s+change)(?:\s+(?:de|en|in)\s+([^\s:,]+))?\s*(?:[:,—–-]\s*)?/i.exec(text)
   if (folder) {
     try {
       const request = text.slice(folder[0].length).trim()

@@ -8,24 +8,25 @@ import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import s from '../Header.module.css'
 import b from './InboxButton.module.css'
+import { t } from '@/lib/i18n'
 
 const KIND_LABEL: Record<string, string> = {
   plan: 'Plan',
-  stalled: 'Agente parado',
-  'mac-permission': 'Permiso de macOS',
-  question: 'Pregunta',
-  'verify-failed': 'Revisión',
-  conflict: 'Choque',
-  failed: 'Fallo',
-  done: 'Terminado'
+  stalled: t('Agente parado'),
+  'mac-permission': t('Permiso de macOS'),
+  question: t('Pregunta'),
+  'verify-failed': t('Revisión'),
+  conflict: t('Choque'),
+  failed: t('Fallo'),
+  done: t('Terminado')
 }
 
 function ago(ts: number): string {
   const m = Math.round((Date.now() - ts) / 60_000)
-  if (m < 1) return 'ahora'
-  if (m < 60) return `hace ${m} min`
+  if (m < 1) return t('ahora')
+  if (m < 60) return t('hace {m} min', { m })
   const h = Math.round(m / 60)
-  return h < 24 ? `hace ${h} h` : `hace ${Math.round(h / 24)} d`
+  return h < 24 ? t('hace {h} h', { h }) : t('hace {Math} d', { Math: Math.round(h / 24) })
 }
 
 /**
@@ -42,7 +43,7 @@ export function InboxButton() {
   if (!api) return null
   const count = items.length
   const Icon = count ? BellDot : Bell
-  const label = count ? `Te necesita: ${count} ${count === 1 ? 'aviso' : 'avisos'}` : 'Te necesita: nada pendiente'
+  const label = count ? (count === 1 ? t('Te necesita: 1 aviso') : t('Te necesita: {count} avisos', { count })) : t('Te necesita: nada pendiente')
 
   async function act(item: InboxItem, actionId: string): Promise<void> {
     if (!api || busy) return
@@ -87,11 +88,11 @@ export function InboxButton() {
           </span>
         )}
       </button>
-      <Popover open={open} onClose={() => setOpen(false)} anchorRef={anchor} align="end" ariaLabel="Te necesita" className={b.panel}>
-        <div className={b.head}>Te necesita</div>
+      <Popover open={open} onClose={() => setOpen(false)} anchorRef={anchor} align="end" ariaLabel={t('Te necesita')} className={b.panel}>
+        <div className={b.head}>{t('Te necesita')}</div>
         {note && <div className={b.note} role="status">{note}</div>}
         {count === 0 ? (
-          <p className={b.empty}>Nada pendiente. Aquí saldrá lo que espere una decisión tuya.</p>
+          <p className={b.empty}>{t('Nada pendiente. Aquí saldrá lo que espere una decisión tuya.')}</p>
         ) : (
           <ul className={b.list}>
             {items.map((item) => (
@@ -100,7 +101,7 @@ export function InboxButton() {
                   <span className={b.kind}>{KIND_LABEL[item.kind] ?? item.kind}</span>
                   <span>{ago(item.createdAt)}</span>
                 </div>
-                <button type="button" className={b.title} onClick={() => void goTo(item)} title={item.projectId ? 'Ir al proyecto' : undefined}>
+                <button type="button" className={b.title} onClick={() => void goTo(item)} title={item.projectId ? t('Ir al proyecto') : undefined}>
                   {item.title}
                 </button>
                 {item.detail && <p className={b.detail}>{item.detail}</p>}
