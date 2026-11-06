@@ -6,6 +6,7 @@
  */
 import { create } from 'zustand'
 import { isWeb } from './api'
+import { t } from '@/lib/i18n'
 
 export type AudioSyncState = 'off' | 'starting' | 'on' | 'error'
 
@@ -177,9 +178,9 @@ function cleanup(): void {
 
 function explain(e: unknown): string {
   const name = (e as { name?: string })?.name
-  if (name === 'NotAllowedError') return isWeb ? 'No se dio permiso para compartir la pestaña.' : 'La app no pudo escuchar su propio sonido.'
-  if (name === 'NotSupportedError' || name === 'TypeError') return 'Este navegador no puede compartir el sonido de la pestaña.'
-  return (e as Error)?.message || 'No se pudo escuchar el sonido.'
+  if (name === 'NotAllowedError') return isWeb ? t('No se dio permiso para compartir la pestaña.') : t('La app no pudo escuchar su propio sonido.')
+  if (name === 'NotSupportedError' || name === 'TypeError') return t('Este navegador no puede compartir el sonido de la pestaña.')
+  return (e as Error)?.message || t('No se pudo escuchar el sonido.')
 }
 
 /** Empieza a escuchar (en el navegador pide compartir esta pestaña con su audio). Necesita un clic del usuario. */
@@ -187,7 +188,7 @@ export async function startAudioSync(): Promise<void> {
   const st = useAudioSync.getState()
   if (st.state === 'on' || st.state === 'starting') return
   if (!canSyncWithAudio()) {
-    useAudioSync.setState({ state: 'error', error: 'Este navegador no puede compartir el sonido de la pestaña.' })
+    useAudioSync.setState({ state: 'error', error: t('Este navegador no puede compartir el sonido de la pestaña.') })
     return
   }
   useAudioSync.setState({ state: 'starting', error: null, wanted: true })
@@ -202,7 +203,7 @@ export async function startAudioSync(): Promise<void> {
     for (const t of stream.getVideoTracks()) t.stop()
     const track = stream.getAudioTracks()[0]
     if (!track) {
-      throw new Error(isWeb ? 'No se compartió el audio: al elegir la pestaña, deja marcado «Compartir también el audio de la pestaña».' : 'No llegó el sonido de la app.')
+      throw new Error(isWeb ? t('No se compartió el audio: al elegir la pestaña, deja marcado «Compartir también el audio de la pestaña».') : t('No llegó el sonido de la app.'))
     }
     track.addEventListener('ended', () => stopAudioSync())
     ctx = new AudioContext()

@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import type { AgentActivity, AgentConfig, AgentId, ProviderKind } from '@shared/types'
 import { SUBAGENT_COLOR } from '@shared/defaults'
 import { useCowork, useData } from '@/store/cowork'
+import { t } from '@/lib/i18n'
 
 /** Datos mínimos que necesita <RobotAvatar>. */
 export type RobotAgent = Pick<AgentConfig, 'avatar' | 'provider' | 'isSubagent' | 'color' | 'name'>
@@ -20,12 +21,12 @@ export interface AgentLook {
 }
 
 export const ACTIVITY_LABEL: Record<AgentActivity, string> = {
-  idle: 'Disponible',
-  thinking: 'Pensando',
-  working: 'Trabajando',
-  waiting: 'Esperando',
+  idle: t('Disponible'),
+  thinking: t('Pensando'),
+  working: t('Trabajando'),
+  waiting: t('Esperando'),
   error: 'Error',
-  offline: 'No disponible'
+  offline: t('No disponible')
 }
 
 export const PROVIDER_LABEL: Record<ProviderKind, string> = {
@@ -33,11 +34,11 @@ export const PROVIDER_LABEL: Record<ProviderKind, string> = {
   codex: 'OpenAI · Codex CLI',
   gemini: 'Google · Gemini CLI',
   qwen: 'Qwen Code',
-  ollama: 'Ollama · local',
+  ollama: t('Ollama · local'),
   lmstudio: 'LM Studio · local',
   hermes: 'Nous Research · Hermes Agent',
   muse: 'Meta · Muse Code',
-  cli: 'Agente conectado · tu suscripción'
+  cli: t('Agente conectado · tu suscripción')
 }
 
 const FALLBACK_COLOR = '#38d6ff'
@@ -67,7 +68,7 @@ export function lookupAgent(
   const cfg = inSlice ?? configAgents.find((a) => a.id === id)
   if (cfg) {
     const color = cfg.color || (cfg.isSubagent ? SUBAGENT_COLOR : FALLBACK_COLOR)
-    const name = cfg.name || 'Agente'
+    const name = cfg.name || t('Agente')
     return {
       id,
       name,
@@ -92,8 +93,8 @@ export function useAgentLookup(): (id: string | null | undefined) => AgentLook {
 
 /** Extremo de una transferencia: agente, núcleo del proyecto o el usuario. */
 export function endpointLook(id: string, lookup: (id: string) => AgentLook): AgentLook | { id: string; name: string; color: string; special: 'core' | 'user' } {
-  if (id === 'core') return { id, name: 'Proyecto', color: FALLBACK_COLOR, special: 'core' }
-  if (id === 'user') return { id, name: 'Tú', color: '#a3b0c6', special: 'user' }
+  if (id === 'core') return { id, name: t('Proyecto'), color: FALLBACK_COLOR, special: 'core' }
+  if (id === 'user') return { id, name: t('Tú'), color: '#a3b0c6', special: 'user' }
   return lookup(id)
 }
 

@@ -6,6 +6,7 @@ import { useDemoLabel, useDemoRunning } from '../common/useDemoEngine'
 import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SpaceHeader.module.css'
+import { t } from '@/lib/i18n'
 
 /** Fila superior del panel del espacio digital (la demo se activa en ⋮ → «Modo demo»). */
 export function SpaceHeader() {
@@ -17,7 +18,7 @@ export function SpaceHeader() {
     <div className={s.bar}>
       <div className={s.titleWrap}>
         <Building2 size={20} aria-hidden="true" className={s.titleIcon} />
-        <h2 className={s.title}>Espacio digital</h2>
+        <h2 className={s.title}>{t('Espacio digital')}</h2>
       </div>
 
       <div className={s.right}>
@@ -25,16 +26,16 @@ export function SpaceHeader() {
         {isDemo ? (
           <>
             <DemoControls reduced={reduced} />
-            <span className={cx(s.pill, s.pillDemo)} title="Datos simulados: ninguna llamada a los agentes reales">
+            <span className={cx(s.pill, s.pillDemo)} title={t('Datos simulados: ninguna llamada a los agentes reales')}>
               <span className={s.pillDot} aria-hidden="true" />
-              <span className={s.pillLong}>Demo · datos simulados</span>
-              <span className={s.pillShort}>Demo</span>
+              <span className={s.pillLong}>{t('Demo · datos simulados')}</span>
+              <span className={s.pillShort}>{t('Demo')}</span>
             </span>
           </>
         ) : (
-          <span className={cx(s.pill, s.pillLive)} title="Mostrando la actividad real de los agentes">
+          <span className={cx(s.pill, s.pillLive)} title={t('Mostrando la actividad real de los agentes')}>
             <span className={cx(s.pillDot, !reduced && u.pulse)} aria-hidden="true" />
-            En vivo
+            {t('En vivo')}
           </span>
         )}
 
@@ -49,7 +50,7 @@ function MusicButton({ reduced }: { reduced: boolean }) {
   const mini = useMusic((st) => st.mini)
   const hasSong = useMusic((st) => !!st.videoId)
   const playing = useMusic((st) => st.status === 'playing')
-  const label = !open ? 'Música de YouTube con luces al ritmo' : mini ? 'Abrir el reproductor' : hasSong ? 'Minimizar el reproductor (sigue sonando)' : 'Cerrar la música'
+  const label = !open ? t('Música de YouTube con luces al ritmo') : mini ? t('Abrir el reproductor') : hasSong ? t('Minimizar el reproductor (sigue sonando)') : t('Cerrar la música')
   return (
     <button
       type="button"
@@ -60,7 +61,7 @@ function MusicButton({ reduced }: { reduced: boolean }) {
       title={label}
     >
       <Music size={15} aria-hidden="true" />
-      <span className={s.musicLabel}>Música</span>
+      <span className={s.musicLabel}>{t('Música')}</span>
       {playing && <span className={cx(s.musicDot, !reduced && u.pulse)} aria-hidden="true" />}
     </button>
   )
@@ -70,7 +71,7 @@ function DemoControls({ reduced }: { reduced: boolean }) {
   const running = useDemoRunning()
   const label = useDemoLabel()
   return (
-    <div className={s.demo} role="group" aria-label="Controles de la demo">
+    <div className={s.demo} role="group" aria-label={t('Controles de la demo')}>
       {label && (
         <span className={s.scene} title={label} aria-live="polite">
           {running && <span className={cx(s.sceneDot, !reduced && u.pulse)} aria-hidden="true" />}
@@ -81,8 +82,8 @@ function DemoControls({ reduced }: { reduced: boolean }) {
         type="button"
         className={cx(u.iconBtn, u.iconBtnSm, s.ctl)}
         onClick={() => (running ? demoEngine.stop() : demoEngine.start())}
-        aria-label={running ? 'Pausar la demo' : 'Reproducir la demo'}
-        title={running ? 'Pausar la demo' : 'Reproducir la demo'}
+        aria-label={running ? t('Pausar la demo') : t('Reproducir la demo')}
+        title={running ? t('Pausar la demo') : t('Reproducir la demo')}
       >
         {running ? <Pause size={15} aria-hidden="true" /> : <Play size={15} aria-hidden="true" />}
       </button>
@@ -90,8 +91,8 @@ function DemoControls({ reduced }: { reduced: boolean }) {
         type="button"
         className={cx(u.iconBtn, u.iconBtnSm, s.ctl)}
         onClick={() => demoEngine.restart()}
-        aria-label="Reiniciar la demo"
-        title="Reiniciar la demo"
+        aria-label={t('Reiniciar la demo')}
+        title={t('Reiniciar la demo')}
       >
         <RotateCcw size={15} aria-hidden="true" />
       </button>

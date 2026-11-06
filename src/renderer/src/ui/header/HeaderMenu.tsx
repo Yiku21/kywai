@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { ArrowLeftRight, Award, BarChart3, ChevronDown, Download, DownloadCloud, Eraser, FolderOpen, FolderSync, Globe, HardDrive, Info, LogOut, Monitor, MoreVertical, Palette, RefreshCw, RotateCcw, RotateCw, Server, SlidersHorizontal, Smartphone, Wand2 } from 'lucide-react'
+import { ArrowLeftRight, Award, BarChart3, ChevronDown, Download, DownloadCloud, Eraser, FolderOpen, FolderSync, Globe, HardDrive, Info, Languages, LogOut, Monitor, MoreVertical, Palette, RefreshCw, RotateCcw, RotateCw, Server, SlidersHorizontal, Smartphone, Wand2 } from 'lucide-react'
 import { useCowork } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
@@ -15,6 +15,7 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import h from '../Header.module.css'
 import s from './HeaderMenu.module.css'
+import { LANGS, lang, setLang, t } from '@/lib/i18n'
 
 const SETTINGS_OPEN_KEY = 'aicowork.menu.settingsOpen'
 
@@ -128,16 +129,16 @@ export function HeaderMenu() {
   }
 
   const clientUpdateHint = !client?.checkUpdate
-    ? 'Esta app es una versión anterior: instala la nueva una vez a mano'
+    ? t('Esta app es una versión anterior: instala la nueva una vez a mano')
     : clientUpdateBusy
-      ? 'Un momento…'
+      ? t('Un momento…')
       : clientUpdate?.state === 'available'
-        ? `Hay la versión ${clientUpdate.latest}: pulsa otra vez para instalarla y reiniciar`
+        ? t('Hay la versión {latest}: pulsa otra vez para instalarla y reiniciar', { latest: clientUpdate.latest })
         : clientUpdate?.state === 'current'
-          ? `Tienes la última versión (${clientUpdate.current})${clientUpdate.message ? ` · ${clientUpdate.message}` : ''}`
+          ? t('Tienes la última versión ({current}){message}', { current: clientUpdate.current, message: clientUpdate.message ? ` · ${clientUpdate.message}` : '' })
           : clientUpdate
-            ? (clientUpdate.message ?? 'No se pudo comprobar')
-            : `Versión instalada: ${clientVersion ?? '—'} · se descarga de tu servidor`
+            ? (clientUpdate.message ?? t('No se pudo comprobar'))
+            : t('Versión instalada: {version} · se descarga de tu servidor', { version: clientVersion ?? '—' })
   function toggleSettings(): void {
     setSettingsOpen((open) => {
       try {
@@ -149,12 +150,16 @@ export function HeaderMenu() {
     })
   }
 
+  const currentLang = LANGS.find((l) => l.id === lang()) ?? LANGS[0]
+  const nextLang = LANGS[(LANGS.indexOf(currentLang) + 1) % LANGS.length]
+
   /** Lo que dicen los interruptores, para verlo sin desplegar. */
   const settingsSummary = [
+    currentLang.name,
     mode === 'demo' ? 'Demo' : null,
-    reduced ? 'Efectos reducidos' : null,
-    hasBackend ? (access === 'full' ? 'Acceso completo' : 'Solo la carpeta del proyecto') : null,
-    hasBackend ? (approval ? 'Con tu visto bueno' : 'Sin visto bueno') : null
+    reduced ? t('Efectos reducidos') : null,
+    hasBackend ? (access === 'full' ? t('Acceso completo') : t('Solo la carpeta del proyecto')) : null,
+    hasBackend ? (approval ? t('Con tu visto bueno') : t('Sin visto bueno')) : null
   ]
     .filter(Boolean)
     .join(' · ')
@@ -206,8 +211,8 @@ export function HeaderMenu() {
         ref={btnRef}
         type="button"
         className={cx(u.iconBtn, h.headerBtn, s.trigger)}
-        aria-label="Más opciones"
-        title="Más opciones"
+        aria-label={t('Más opciones')}
+        title={t('Más opciones')}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -225,7 +230,7 @@ export function HeaderMenu() {
         anchorRef={btnRef}
         align="end"
         role="menu"
-        ariaLabel="Más opciones"
+        ariaLabel={t('Más opciones')}
         id={menuId}
         className={s.menu}
         initialFocus="first"
@@ -267,14 +272,29 @@ export function HeaderMenu() {
         >
           <SlidersHorizontal size={16} aria-hidden="true" className={s.itemIcon} />
           <span className={s.itemText}>
-            <span className={s.itemLabel}>Ajustes</span>
-            <span className={s.itemHint}>{settingsSummary || 'Modo demo, efectos, permisos de los agentes…'}</span>
+            <span className={s.itemLabel}>{t('Ajustes')}</span>
+            <span className={s.itemHint}>{settingsSummary || t('Modo demo, efectos, permisos de los agentes…')}</span>
           </span>
           <ChevronDown size={16} aria-hidden="true" className={cx(s.chevron, settingsOpen && s.chevronOpen)} />
         </button>
 
         {settingsOpen && (
-          <div className={s.group} role="group" aria-label="Ajustes">
+          <div className={s.group} role="group" aria-label={t('Ajustes')}>
+            <button
+              type="button"
+              role="menuitem"
+              className={s.item}
+              onClick={() => setLang(nextLang.id)}
+            >
+              <span className={s.itemText}>
+                <span className={s.itemLabel}>Idioma · Language</span>
+                <span className={s.itemHint}>
+                  {t('{current} · pulsa para pasar a {next}', { current: currentLang.name, next: nextLang.name })}
+                </span>
+              </span>
+              <Languages size={16} aria-hidden="true" className={s.itemIcon} />
+            </button>
+
             {hasBackend ? (
               <button
                 type="button"
@@ -284,8 +304,8 @@ export function HeaderMenu() {
                 onClick={() => setMode(mode === 'demo' ? 'live' : 'demo')}
               >
                 <span className={s.itemText}>
-                  <span className={s.itemLabel}>Modo demo</span>
-                  <span className={s.itemHint}>Simulación reproducible, sin llamadas reales</span>
+                  <span className={s.itemLabel}>{t('Modo demo')}</span>
+                  <span className={s.itemHint}>{t('Simulación reproducible, sin llamadas reales')}</span>
                 </span>
                 <span
                   className={cx(u.switch, mode === 'demo' && u.switchOn)}
@@ -298,12 +318,12 @@ export function HeaderMenu() {
                 role="menuitem"
                 aria-disabled="true"
                 className={cx(s.item, s.static)}
-                title="Sin motor de agentes: abre la app de escritorio"
+                title={t('Sin motor de agentes: abre la app de escritorio')}
               >
                 <Info size={16} aria-hidden="true" className={s.itemIcon} />
                 <span className={s.itemText}>
-                  <span className={s.itemLabel}>Solo demo (sin motor)</span>
-                  <span className={s.itemHint}>Abre la app de escritorio para usar agentes reales</span>
+                  <span className={s.itemLabel}>{t('Solo demo (sin motor)')}</span>
+                  <span className={s.itemHint}>{t('Abre la app de escritorio para usar agentes reales')}</span>
                 </span>
               </div>
             )}
@@ -316,8 +336,8 @@ export function HeaderMenu() {
               onClick={() => setReducedEffects(!reduced)}
             >
               <span className={s.itemText}>
-                <span className={s.itemLabel}>Reducir efectos ambientales</span>
-                <span className={s.itemHint}>Menos animaciones y brillos en el espacio</span>
+                <span className={s.itemLabel}>{t('Reducir efectos ambientales')}</span>
+                <span className={s.itemHint}>{t('Menos animaciones y brillos en el espacio')}</span>
               </span>
               <span className={cx(u.switch, reduced && u.switchOn)} aria-hidden="true" />
             </button>
@@ -331,11 +351,11 @@ export function HeaderMenu() {
                 onClick={toggleAccess}
               >
                 <span className={s.itemText}>
-                  <span className={s.itemLabel}>Acceso completo para los agentes</span>
+                  <span className={s.itemLabel}>{t('Acceso completo para los agentes')}</span>
                   <span className={s.itemHint}>
                     {access === 'full'
-                      ? 'Ejecutan comandos, instalan y usan internet sin pedir permiso'
-                      : 'Solo editan la carpeta del proyecto; no instalan ni usan internet'}
+                      ? t('Ejecutan comandos, instalan y usan internet sin pedir permiso')
+                      : t('Solo editan la carpeta del proyecto; no instalan ni usan internet')}
                   </span>
                 </span>
                 <span className={cx(u.switch, access === 'full' && u.switchOn)} aria-hidden="true" />
@@ -351,11 +371,11 @@ export function HeaderMenu() {
                 onClick={togglePlanApproval}
               >
                 <span className={s.itemText}>
-                  <span className={s.itemLabel}>Pedir mi visto bueno a cada plan</span>
+                  <span className={s.itemLabel}>{t('Pedir mi visto bueno a cada plan')}</span>
                   <span className={s.itemHint}>
                     {approval
-                      ? 'Hermes te enseña qué hará cada agente y espera a que lo apruebes'
-                      : 'Las tareas empiezan en cuanto Hermes reparte el trabajo'}
+                      ? t('Hermes te enseña qué hará cada agente y espera a que lo apruebes')
+                      : t('Las tareas empiezan en cuanto Hermes reparte el trabajo')}
                   </span>
                 </span>
                 <span className={cx(u.switch, approval && u.switchOn)} aria-hidden="true" />
@@ -378,8 +398,8 @@ export function HeaderMenu() {
         >
           <Palette size={16} aria-hidden="true" className={s.itemIcon} />
           <span className={s.itemText}>
-            <span className={s.itemLabel}>Temas…</span>
-            <span className={s.itemHint}>El aspecto de la app · ahora {THEMES.find((t) => t.id === theme)?.name}</span>
+            <span className={s.itemLabel}>{t('Temas…')}</span>
+            <span className={s.itemHint}>{t('El aspecto de la app · ahora')} {THEMES.find((t) => t.id === theme)?.name}</span>
           </span>
         </button>
 
@@ -389,16 +409,16 @@ export function HeaderMenu() {
             role="menuitem"
             className={s.item}
             disabled={!live || !project}
-            title={!live ? 'No disponible en modo demo' : !project ? 'Abre o crea un proyecto primero' : undefined}
+            title={!live ? t('No disponible en modo demo') : !project ? t('Abre o crea un proyecto primero') : undefined}
             onClick={() => void clearChat()}
           >
             <Eraser size={16} aria-hidden="true" className={s.itemIcon} />
             <span className={s.itemText}>
-              <span className={s.itemLabel}>{confirmClear ? 'Pulsa otra vez para limpiar el chat' : 'Limpiar el chat'}</span>
+              <span className={s.itemLabel}>{confirmClear ? t('Pulsa otra vez para limpiar el chat') : t('Limpiar el chat')}</span>
               <span className={s.itemHint}>
                 {confirmClear
-                  ? 'Se guarda una copia en la carpeta historial del proyecto'
-                  : 'Conversación nueva en este proyecto; los archivos y resultados se quedan'}
+                  ? t('Se guarda una copia en la carpeta historial del proyecto')
+                  : t('Conversación nueva en este proyecto; los archivos y resultados se quedan')}
               </span>
             </span>
           </button>
@@ -408,9 +428,9 @@ export function HeaderMenu() {
           <button type="button" role="menuitem" className={s.item} onClick={() => void restart()}>
             <RotateCcw size={16} aria-hidden="true" className={s.itemIcon} />
             <span className={s.itemText}>
-              <span className={s.itemLabel}>{confirmRestart ? 'Pulsa otra vez para reiniciar' : 'Reiniciar AI Cowork'}</span>
+              <span className={s.itemLabel}>{confirmRestart ? t('Pulsa otra vez para reiniciar') : t('Reiniciar AI Cowork')}</span>
               <span className={s.itemHint}>
-                {confirmRestart ? 'Se detendrán las tareas en curso' : 'Por si se queda pillada: la cierra y la vuelve a abrir'}
+                {confirmRestart ? t('Se detendrán las tareas en curso') : t('Por si se queda pillada: la cierra y la vuelve a abrir')}
               </span>
             </span>
           </button>
@@ -428,8 +448,8 @@ export function HeaderMenu() {
           >
             <BarChart3 size={16} aria-hidden="true" className={s.itemIcon} />
             <span className={s.itemText}>
-              <span className={s.itemLabel}>Consumo y tokens…</span>
-              <span className={s.itemHint}>Lo que gasta cada petición, para ver si compensa</span>
+              <span className={s.itemLabel}>{t('Consumo y tokens…')}</span>
+              <span className={s.itemHint}>{t('Lo que gasta cada petición, para ver si compensa')}</span>
             </span>
           </button>
         )}
@@ -446,8 +466,8 @@ export function HeaderMenu() {
           >
             <Award size={16} aria-hidden="true" className={s.itemIcon} />
             <span className={s.itemText}>
-              <span className={s.itemLabel}>Cómo rinde cada agente…</span>
-              <span className={s.itemHint}>Lo que te sirvió, lo que pasó la verificación y lo que falló</span>
+              <span className={s.itemLabel}>{t('Cómo rinde cada agente…')}</span>
+              <span className={s.itemHint}>{t('Lo que te sirvió, lo que pasó la verificación y lo que falló')}</span>
             </span>
           </button>
         )}
@@ -464,8 +484,8 @@ export function HeaderMenu() {
           >
             <Download size={16} aria-hidden="true" className={s.itemIcon} />
             <span className={s.itemText}>
-              <span className={s.itemLabel}>Buscar actualizaciones…</span>
-              <span className={s.itemHint}>Descargar la última versión desde GitHub</span>
+              <span className={s.itemLabel}>{t('Buscar actualizaciones…')}</span>
+              <span className={s.itemHint}>{t('Descargar la última versión desde GitHub')}</span>
             </span>
           </button>
         )}
@@ -482,8 +502,8 @@ export function HeaderMenu() {
           >
             <HardDrive size={16} aria-hidden="true" className={s.itemIcon} />
             <span className={s.itemText}>
-              <span className={s.itemLabel}>Archivos del servidor…</span>
-              <span className={s.itemHint}>Explorar su disco, abrir archivos y bajar carpetas como zip</span>
+              <span className={s.itemLabel}>{t('Archivos del servidor…')}</span>
+              <span className={s.itemHint}>{t('Explorar su disco, abrir archivos y bajar carpetas como zip')}</span>
             </span>
           </button>
         )}
@@ -500,8 +520,8 @@ export function HeaderMenu() {
           >
             <Smartphone size={16} aria-hidden="true" className={s.itemIcon} />
             <span className={s.itemText}>
-              <span className={s.itemLabel}>Acceso desde otros dispositivos…</span>
-              <span className={s.itemHint}>Usar AI Cowork desde el móvil o el portátil (Tailscale)</span>
+              <span className={s.itemLabel}>{t('Acceso desde otros dispositivos…')}</span>
+              <span className={s.itemHint}>{t('Usar AI Cowork desde el móvil o el portátil (Tailscale)')}</span>
             </span>
           </button>
         )}
@@ -518,8 +538,8 @@ export function HeaderMenu() {
           >
             <Wand2 size={16} aria-hidden="true" className={s.itemIcon} />
             <span className={s.itemText}>
-              <span className={s.itemLabel}>Configurar agentes…</span>
-              <span className={s.itemHint}>Elegir agentes, instalar sus programas e iniciar sesión</span>
+              <span className={s.itemLabel}>{t('Configurar agentes…')}</span>
+              <span className={s.itemHint}>{t('Elegir agentes, instalar sus programas e iniciar sesión')}</span>
             </span>
           </button>
         )}
@@ -529,11 +549,11 @@ export function HeaderMenu() {
           role="menuitem"
           className={s.item}
           disabled={!canRefresh || refreshing}
-          title={!api ? 'Sin motor de agentes' : !live ? 'No disponible en modo demo' : 'Consultar de nuevo las cuotas'}
+          title={!api ? t('Sin motor de agentes') : !live ? t('No disponible en modo demo') : t('Consultar de nuevo las cuotas')}
           onClick={refresh}
         >
           <RefreshCw size={16} aria-hidden="true" className={cx(s.itemIcon, refreshing && u.spin)} />
-          <span className={s.itemLabel}>{refreshing ? 'Actualizando cuotas…' : 'Actualizar cuotas'}</span>
+          <span className={s.itemLabel}>{refreshing ? t('Actualizando cuotas…') : t('Actualizar cuotas')}</span>
         </button>
 
         <button
@@ -542,7 +562,7 @@ export function HeaderMenu() {
           className={s.item}
           disabled={!canOpenFolder}
           title={
-            !api ? 'Sin motor de agentes' : !live ? 'No disponible en modo demo' : !project ? 'Abre o crea un proyecto primero' : undefined
+            !api ? t('Sin motor de agentes') : !live ? t('No disponible en modo demo') : !project ? t('Abre o crea un proyecto primero') : undefined
           }
           onClick={() => {
             if (api && project) api.openPath(project.id).catch(() => {})
@@ -550,7 +570,7 @@ export function HeaderMenu() {
           }}
         >
           <FolderOpen size={16} aria-hidden="true" className={s.itemIcon} />
-          <span className={s.itemLabel}>Abrir carpeta del proyecto</span>
+          <span className={s.itemLabel}>{t('Abrir carpeta del proyecto')}</span>
         </button>
 
         {client && (
@@ -567,8 +587,8 @@ export function HeaderMenu() {
             >
               <FolderSync size={16} aria-hidden="true" className={s.itemIcon} />
               <span className={s.itemText}>
-                <span className={s.itemLabel}>Sincronizar carpetas…</span>
-                <span className={s.itemHint}>Mantener una carpeta de este equipo igual que una del servidor</span>
+                <span className={s.itemLabel}>{t('Sincronizar carpetas…')}</span>
+                <span className={s.itemHint}>{t('Mantener una carpeta de este equipo igual que una del servidor')}</span>
               </span>
             </button>
             <button
@@ -581,7 +601,7 @@ export function HeaderMenu() {
               <DownloadCloud size={16} aria-hidden="true" className={s.itemIcon} />
               <span className={s.itemText}>
                 <span className={s.itemLabel}>
-                  {clientUpdate?.state === 'available' ? 'Instalar la versión nueva de este equipo' : 'Actualizar este equipo…'}
+                  {clientUpdate?.state === 'available' ? t('Instalar la versión nueva de este equipo') : t('Actualizar este equipo…')}
                 </span>
                 <span className={s.itemHint}>{clientUpdateHint}</span>
               </span>
@@ -597,8 +617,8 @@ export function HeaderMenu() {
             >
               <RotateCw size={16} aria-hidden="true" className={s.itemIcon} />
               <span className={s.itemText}>
-                <span className={s.itemLabel}>Recargar la interfaz</span>
-                <span className={s.itemHint}>Vuelve a cargarla desde el servidor (Ctrl+R)</span>
+                <span className={s.itemLabel}>{t('Recargar la interfaz')}</span>
+                <span className={s.itemHint}>{t('Vuelve a cargarla desde el servidor (Ctrl+R)')}</span>
               </span>
             </button>
             <button
@@ -612,8 +632,8 @@ export function HeaderMenu() {
             >
               <ArrowLeftRight size={16} aria-hidden="true" className={s.itemIcon} />
               <span className={s.itemText}>
-                <span className={s.itemLabel}>Cambiar de servidor…</span>
-                <span className={s.itemHint}>Conectar este equipo con otro AI Cowork</span>
+                <span className={s.itemLabel}>{t('Cambiar de servidor…')}</span>
+                <span className={s.itemHint}>{t('Conectar este equipo con otro AI Cowork')}</span>
               </span>
             </button>
             <button
@@ -627,8 +647,8 @@ export function HeaderMenu() {
             >
               <LogOut size={16} aria-hidden="true" className={s.itemIcon} />
               <span className={s.itemText}>
-                <span className={s.itemLabel}>Olvidar este dispositivo y desconectar</span>
-                <span className={s.itemHint}>Deja de estar emparejado; para volver hará falta un código nuevo</span>
+                <span className={s.itemLabel}>{t('Olvidar este dispositivo y desconectar')}</span>
+                <span className={s.itemHint}>{t('Deja de estar emparejado; para volver hará falta un código nuevo')}</span>
               </span>
             </button>
           </>

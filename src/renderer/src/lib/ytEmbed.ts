@@ -5,6 +5,7 @@
  * su propio origen y solo puede hablar con la app mediante estos mensajes, que aquí se validan.
  */
 import { YT_STATE, type YtPlayer, type YtVideoData } from './youtube'
+import { t } from '@/lib/i18n'
 
 export interface EmbedEvents {
   onReady?: () => void
@@ -53,7 +54,7 @@ export function createEmbedPlayer(container: HTMLElement, opts: EmbedOptions): Y
   const web = location.protocol === 'http:' || location.protocol === 'https:'
   const iframe = document.createElement('iframe')
   iframe.src = embedUrl(id, opts, web ? location.origin : null)
-  iframe.title = 'Reproductor de YouTube'
+  iframe.title = t('Reproductor de YouTube')
   iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'
   iframe.referrerPolicy = 'strict-origin-when-cross-origin'
   iframe.style.cssText = 'width:100%;height:100%;border:0;display:block'

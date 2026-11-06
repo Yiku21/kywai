@@ -8,12 +8,13 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import v from './Views.module.css'
 import s from './MemoryView.module.css'
+import { locale, t } from '@/lib/i18n'
 
 export const MEMORY_KIND_LABEL: Record<MemoryKind, string> = {
-  decision: 'Decisión',
-  fact: 'Hecho',
-  preference: 'Preferencia',
-  pending: 'Pendiente'
+  decision: t('Decisión'),
+  fact: t('Hecho'),
+  preference: t('Preferencia'),
+  pending: t('Pendiente')
 }
 
 const KIND_TONE: Record<MemoryKind, string> = {
@@ -25,10 +26,10 @@ const KIND_TONE: Record<MemoryKind, string> = {
 
 const KINDS: MemoryKind[] = ['decision', 'preference', 'fact', 'pending']
 
-const day = (ts: number): string => new Date(ts).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+const day = (ts: number): string => new Date(ts).toLocaleDateString(locale(), { day: 'numeric', month: 'short' })
 
 function source(e: MemoryEntry): string {
-  if (e.by === 'user') return e.via ? `Tú (lo anotó ${e.via})` : 'Tú'
+  if (e.by === 'user') return e.via ? t('Tú (lo anotó {via})', { via: e.via }) : t('Tú')
   return e.taskTitle ? `${e.byName} · «${e.taskTitle}»` : e.byName
 }
 
@@ -70,21 +71,20 @@ export function MemoryView() {
   return (
     <div className={v.scroll}>
       <p className={s.intro}>
-        Lo que el equipo debe recordar en este proyecto. El coordinador y los agentes lo leen en cada encargo, también después de limpiar el
-        chat o reiniciar. Lo que dices tú queda <b>confirmado</b>; lo que anotan los agentes, <b>provisional</b> hasta que lo confirmes.
+        {t('Lo que el equipo debe recordar en este proyecto. El coordinador y los agentes lo leen en cada encargo, también después de limpiar el chat o reiniciar. Lo que dices tú queda')} <b>{t('confirmado')}</b>{t('; lo que anotan los agentes,')} <b>{t('provisional')}</b> {t('hasta que lo confirmes.')}
       </p>
 
       <section className={v.section} aria-labelledby={idI}>
         <h3 className={u.sectionLabel} id={idI}>
-          Instrucciones para los agentes
+          {t('Instrucciones para los agentes')}
         </h3>
         <Instructions text={instructions} editable={editable} onSave={(t) => call(() => api!.setInstructions(pid, t))} />
       </section>
 
       <section className={v.section} aria-labelledby={idM}>
         <h3 className={u.sectionLabel} id={idM}>
-          Memoria <span className={u.count}>{active.length}</span>
-          {toReview > 0 && <span className={s.review}>{toReview} por revisar</span>}
+          {t('Memoria')} <span className={u.count}>{active.length}</span>
+          {toReview > 0 && <span className={s.review}>{toReview} {t('por revisar')}</span>}
         </h3>
 
         {editable && <AddForm onAdd={(kind, text) => call(() => api!.addMemory(pid, { kind, text }))} />}
@@ -99,11 +99,11 @@ export function MemoryView() {
             <span className={u.emptyIcon}>
               <Brain size={20} aria-hidden="true" />
             </span>
-            <span className={u.emptyTitle}>La memoria está vacía</span>
+            <span className={u.emptyTitle}>{t('La memoria está vacía')}</span>
             <span className={u.emptyText}>
               {mode === 'demo'
-                ? 'En la demo no hay memoria: aparece con los agentes reales.'
-                : 'Se llena sola: el coordinador anota lo que decides o prefieres en tus mensajes y los agentes lo que descubren («Para la memoria»). También puedes añadirlo tú o escribir «/recuerda …» en el chat.'}
+                ? t('En la demo no hay memoria: aparece con los agentes reales.')
+                : t('Se llena sola: el coordinador anota lo que decides o prefieres en tus mensajes y los agentes lo que descubren («Para la memoria»). También puedes añadirlo tú o escribir «/recuerda …» en el chat.')}
             </span>
           </div>
         ) : (
@@ -122,7 +122,7 @@ export function MemoryView() {
 
         {old.length > 0 && (
           <button type="button" className={s.toggleOld} onClick={() => setShowOld((x) => !x)} aria-expanded={showOld}>
-            {showOld ? 'Ocultar' : 'Ver'} lo sustituido ({old.length})
+            {showOld ? t('Ocultar lo sustituido ({n})', { n: old.length }) : t('Ver lo sustituido ({n})', { n: old.length })}
           </button>
         )}
         {showOld && (
@@ -165,8 +165,8 @@ function Instructions({ text, editable, onSave }: { text: string; editable: bool
           autoFocus
           rows={6}
           maxLength={8000}
-          placeholder={'Por ejemplo:\n- Todo en TypeScript.\n- Antes de terminar, ejecuta npm test.\n- No toques la carpeta legacy/.'}
-          aria-label="Instrucciones para los agentes"
+          placeholder={t('Por ejemplo:\n- Todo en TypeScript.\n- Antes de terminar, ejecuta npm test.\n- No toques la carpeta legacy/.')}
+          aria-label={t('Instrucciones para los agentes')}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
@@ -177,10 +177,10 @@ function Instructions({ text, editable, onSave }: { text: string; editable: bool
         />
         <div className={s.formRow}>
           <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setDraft(null)}>
-            Cancelar
+            {t('Cancelar')}
           </button>
           <button type="submit" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy}>
-            Guardar
+            {t('Guardar')}
           </button>
         </div>
       </form>
@@ -191,12 +191,12 @@ function Instructions({ text, editable, onSave }: { text: string; editable: bool
       {text.trim() ? (
         <MarkdownView text={text} className={s.instrText} />
       ) : (
-        <p className={s.instrEmpty}>Sin instrucciones. Añade normas que todos los agentes deban seguir siempre en este proyecto: cómo probar, estilo, qué no tocar…</p>
+        <p className={s.instrEmpty}>{t('Sin instrucciones. Añade normas que todos los agentes deban seguir siempre en este proyecto: cómo probar, estilo, qué no tocar…')}</p>
       )}
       {editable && (
         <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setDraft(text)}>
           <Pencil size={13} aria-hidden="true" />
-          {text.trim() ? 'Editar' : 'Escribir instrucciones'}
+          {text.trim() ? t('Editar') : t('Escribir instrucciones')}
         </button>
       )}
     </div>
@@ -230,17 +230,17 @@ function AddForm({ onAdd }: { onAdd: (kind: MemoryKind, text: string) => Promise
   }
   return (
     <form className={s.add} onSubmit={submit}>
-      <KindSelect value={kind} onChange={setKind} label="Tipo de la nueva entrada" />
+      <KindSelect value={kind} onChange={setKind} label={t('Tipo de la nueva entrada')} />
       <input
         className={s.input}
         value={text}
         maxLength={400}
-        placeholder="Añadir a la memoria…"
-        aria-label="Texto de la nueva entrada"
+        placeholder={t('Añadir a la memoria…')}
+        aria-label={t('Texto de la nueva entrada')}
         onChange={(e) => setText(e.target.value)}
       />
       <button type="submit" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || text.trim().length < 3}>
-        Añadir
+        {t('Añadir')}
       </button>
     </form>
   )
@@ -271,13 +271,13 @@ function Entry({
             void onUpdate({ text: edit.text, kind: edit.kind }).then((ok) => ok && setEdit(null))
           }}
         >
-          <KindSelect value={edit.kind} onChange={(kind) => setEdit({ ...edit, kind })} label="Tipo" />
+          <KindSelect value={edit.kind} onChange={(kind) => setEdit({ ...edit, kind })} label={t('Tipo')} />
           <input
             className={s.input}
             value={edit.text}
             autoFocus
             maxLength={400}
-            aria-label="Texto de la entrada"
+            aria-label={t('Texto de la entrada')}
             onChange={(ev) => setEdit({ ...edit, text: ev.target.value })}
             onKeyDown={(ev) => {
               if (ev.key === 'Escape') {
@@ -286,10 +286,10 @@ function Entry({
               }
             }}
           />
-          <button type="submit" className={cx(u.iconBtn, u.iconBtnSm)} aria-label="Guardar" title="Guardar">
+          <button type="submit" className={cx(u.iconBtn, u.iconBtnSm)} aria-label={t('Guardar')} title={t('Guardar')}>
             <Check size={15} />
           </button>
-          <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} aria-label="Cancelar" title="Cancelar" onClick={() => setEdit(null)}>
+          <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} aria-label={t('Cancelar')} title={t('Cancelar')} onClick={() => setEdit(null)}>
             <X size={15} />
           </button>
         </form>
@@ -304,7 +304,7 @@ function Entry({
         <span className={s.text}>{e.text}</span>
         <span className={s.meta}>
           <span className={cx(s.status, e.status === 'confirmed' && s.statusOk, e.status === 'provisional' && s.statusProv)}>
-            {e.status === 'confirmed' ? 'Confirmado' : e.status === 'provisional' ? 'Provisional' : `Sustituido${e.supersededBy ? ` por ${e.supersededBy}` : ''}`}
+            {e.status === 'confirmed' ? t('Confirmado') : e.status === 'provisional' ? t('Provisional') : (e.supersededBy ? t('Sustituido por {id}', { id: e.supersededBy }) : t('Sustituido'))}
           </span>
           <span>{source(e)}</span>
           <span>{day(e.createdAt)}</span>
@@ -314,25 +314,25 @@ function Entry({
       {editable && (
         <div className={s.actions}>
           {e.status === 'provisional' && (
-            <button type="button" className={cx(s.act, s.actOk)} title="Confirmar (lo validas tú)" aria-label="Confirmar" onClick={() => void onUpdate({ status: 'confirmed' })}>
+            <button type="button" className={cx(s.act, s.actOk)} title={t('Confirmar (lo validas tú)')} aria-label={t('Confirmar')} onClick={() => void onUpdate({ status: 'confirmed' })}>
               <Check size={15} />
             </button>
           )}
           {!old && (
-            <button type="button" className={s.act} title="Editar" aria-label="Editar" onClick={() => setEdit({ text: e.text, kind: e.kind })}>
+            <button type="button" className={s.act} title={t('Editar')} aria-label={t('Editar')} onClick={() => setEdit({ text: e.text, kind: e.kind })}>
               <Pencil size={14} />
             </button>
           )}
           {old ? (
-            <button type="button" className={s.act} title="Volver a usarla" aria-label="Volver a usarla" onClick={() => void onUpdate({ status: 'provisional' })}>
+            <button type="button" className={s.act} title={t('Volver a usarla')} aria-label={t('Volver a usarla')} onClick={() => void onUpdate({ status: 'provisional' })}>
               <RotateCcw size={14} />
             </button>
           ) : (
             <button
               type="button"
               className={s.act}
-              title="Ya no vale (pasa a «sustituido»: los agentes dejan de verla)"
-              aria-label="Marcar como sustituida"
+              title={t('Ya no vale (pasa a «sustituido»: los agentes dejan de verla)')}
+              aria-label={t('Marcar como sustituida')}
               onClick={() => void onUpdate({ status: 'superseded' })}
             >
               <Archive size={14} />
@@ -341,8 +341,8 @@ function Entry({
           <button
             type="button"
             className={cx(s.act, confirmDelete && s.actDanger)}
-            title={confirmDelete ? 'Pulsa otra vez para borrarla' : 'Borrar'}
-            aria-label={confirmDelete ? 'Confirmar borrado' : 'Borrar'}
+            title={confirmDelete ? t('Pulsa otra vez para borrarla') : t('Borrar')}
+            aria-label={confirmDelete ? t('Confirmar borrado') : t('Borrar')}
             onBlur={() => setConfirmDelete(false)}
             onClick={() => {
               if (!confirmDelete) setConfirmDelete(true)

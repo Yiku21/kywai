@@ -6,11 +6,12 @@ import { useAgentLookup } from '../common/agents'
 import { MessageItem } from './Messages'
 import { useComposer } from './composerStore'
 import s from './ChatView.module.css'
+import { t } from '@/lib/i18n'
 
 const EXAMPLES = [
-  'Crea una landing page para mi tienda',
-  'Resume este PDF y propón tareas',
-  'Escribe un script que ordene mis fotos'
+  t('Crea una landing page para mi tienda'),
+  t('Resume este PDF y propón tareas'),
+  t('Escribe un script que ordene mis fotos')
 ]
 
 /** Lista de mensajes con autodesplazamiento (salvo si el usuario ha subido). */
@@ -81,7 +82,7 @@ export function ChatView() {
         role="log"
         aria-live="polite"
         aria-relevant="additions"
-        aria-label="Conversación"
+        aria-label={t('Conversación')}
       >
         <div ref={contentRef} className={s.list}>
           {messages.map((m) => (
@@ -99,7 +100,7 @@ export function ChatView() {
             scrollToBottom()
           }}
         >
-          Nuevos mensajes
+          {t('Nuevos mensajes')}
           <ArrowDown size={14} aria-hidden="true" />
         </button>
       )}
@@ -131,9 +132,9 @@ function EmptyChat() {
             </span>
           )}
         </div>
-        <h2 className={s.emptyTitle}>Pide algo a tu equipo</h2>
+        <h2 className={s.emptyTitle}>{t('Pide algo a tu equipo')}</h2>
         <p className={s.emptyText}>
-          Describe una tarea: el equipo la dividirá en partes y cada agente se encargará de lo que mejor hace.
+          {t('Describe una tarea: el equipo la dividirá en partes y cada agente se encargará de lo que mejor hace.')}
         </p>
         <div className={s.examples}>
           {EXAMPLES.map((ex) => (
@@ -143,7 +144,7 @@ function EmptyChat() {
             </button>
           ))}
         </div>
-        {mode === 'demo' && <p className={s.demoNote}>Modo demo: verás una simulación, sin coste.</p>}
+        {mode === 'demo' && <p className={s.demoNote}>{t('Modo demo: verás una simulación, sin coste.')}</p>}
       </div>
     </div>
   )

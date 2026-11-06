@@ -7,6 +7,7 @@ import { requestServerFolder } from '@/lib/serverFiles'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SyncDialog.module.css'
+import { t } from '@/lib/i18n'
 
 /** Carpetas sincronizadas con el servidor (solo en el cliente de escritorio: el motor corre en este equipo). */
 export function SyncDialog({ onClose }: { onClose: () => void }) {
@@ -72,21 +73,20 @@ export function SyncDialog({ onClose }: { onClose: () => void }) {
           <FolderSync size={20} aria-hidden="true" className={s.headIcon} />
           <div>
             <h2 id="sync-title" className={s.title}>
-              Sincronizar carpetas
+              {t('Sincronizar carpetas')}
             </h2>
             <p className={s.subtitle}>
-              Mantiene una carpeta de este equipo igual que una del servidor, en los dos sentidos. Si el mismo archivo cambia en los dos
-              lados se conservan las dos versiones, y lo que se borra en un lado va a la papelera del otro (con un aviso).
+              {t('Mantiene una carpeta de este equipo igual que una del servidor, en los dos sentidos. Si el mismo archivo cambia en los dos lados se conservan las dos versiones, y lo que se borra en un lado va a la papelera del otro (con un aviso).')}
             </p>
           </div>
-          <button type="button" className={cx(u.iconBtn, s.close)} aria-label="Cerrar" onClick={onClose}>
+          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={onClose}>
             <X size={18} />
           </button>
         </header>
 
         <div className={s.body}>
-          {!supported && <p className={s.warn}>Esta versión del cliente no sincroniza carpetas: instala la nueva con ⋮ → «Actualizar este equipo…».</p>}
-          {supported && pairs && pairs.length === 0 && <p className={s.empty}>Todavía no sincronizas ninguna carpeta.</p>}
+          {!supported && <p className={s.warn}>{t('Esta versión del cliente no sincroniza carpetas: instala la nueva con ⋮ → «Actualizar este equipo…».')}</p>}
+          {supported && pairs && pairs.length === 0 && <p className={s.empty}>{t('Todavía no sincronizas ninguna carpeta.')}</p>}
           {pairs?.map((p) => (
             <article key={p.id} className={s.pair}>
               <div className={s.pairHead}>
@@ -97,14 +97,14 @@ export function SyncDialog({ onClose }: { onClose: () => void }) {
                 </span>
               </div>
               <p className={s.path} title={p.localDir}>
-                Este equipo: {p.localDir}
+                {t('Este equipo:')} {p.localDir}
               </p>
               <p className={s.path} title={p.remoteDir}>
-                Servidor: {p.remoteDir}
+                {t('Servidor:')} {p.remoteDir}
               </p>
               <p className={s.meta}>
-                {p.files} {p.files === 1 ? 'archivo' : 'archivos'}
-                {p.lastSyncAt ? ` · última vez ${relativeTime(p.lastSyncAt)}` : ' · todavía sin terminar una ronda'}
+                {p.files} {p.files === 1 ? t('archivo') : t('archivos')}
+                {p.lastSyncAt ? t(' · última vez {relativeTime}', { relativeTime: relativeTime(p.lastSyncAt) }) : t(' · todavía sin terminar una ronda')}
                 {p.activity ? ` · ${p.activity}` : ''}
               </p>
               {p.problem && (
@@ -115,18 +115,18 @@ export function SyncDialog({ onClose }: { onClose: () => void }) {
               <div className={s.actions}>
                 {p.phase === 'paused' && (
                   <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} onClick={() => void act(() => bridge!.syncConfirm!(p.id))}>
-                    Sí, continuar
+                    {t('Sí, continuar')}
                   </button>
                 )}
                 <button type="button" className={cx(u.btn, u.btnSm)} disabled={!p.enabled} onClick={() => void act(() => bridge!.syncNow!(p.id))}>
-                  <RefreshCw size={13} aria-hidden="true" /> Ahora
+                  <RefreshCw size={13} aria-hidden="true" /> {t('Ahora')}
                 </button>
                 <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void act(() => bridge!.syncToggle!(p.id, !p.enabled))}>
                   {p.enabled ? <Pause size={13} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />}
-                  {p.enabled ? 'Pausar' : 'Reanudar'}
+                  {p.enabled ? t('Pausar') : t('Reanudar')}
                 </button>
-                <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void act(() => bridge!.syncRemove!(p.id))} title="Deja de sincronizarla; no borra nada">
-                  <Trash2 size={13} aria-hidden="true" /> Quitar
+                <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void act(() => bridge!.syncRemove!(p.id))} title={t('Deja de sincronizarla; no borra nada')}>
+                  <Trash2 size={13} aria-hidden="true" /> {t('Quitar')}
                 </button>
               </div>
               {p.notices.length > 0 && (
@@ -149,10 +149,10 @@ export function SyncDialog({ onClose }: { onClose: () => void }) {
         )}
 
         <footer className={s.foot}>
-          <p className={s.hint}>No se sincronizan .git, node_modules, cachés ni temporales.</p>
+          <p className={s.hint}>{t('No se sincronizan .git, node_modules, cachés ni temporales.')}</p>
           <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!supported || adding} onClick={() => void add()}>
             {adding ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : <FolderPlus size={14} aria-hidden="true" />}
-            Añadir una carpeta…
+            {t('Añadir una carpeta…')}
           </button>
         </footer>
       </div>
@@ -161,9 +161,9 @@ export function SyncDialog({ onClose }: { onClose: () => void }) {
 }
 
 const PHASE_LABEL: Record<SyncPairStatus['phase'], string> = {
-  idle: 'Al día',
-  syncing: 'Sincronizando',
-  paused: 'Parada: necesita tu OK',
-  error: 'Con un problema',
-  disabled: 'En pausa'
+  idle: t('Al día'),
+  syncing: t('Sincronizando'),
+  paused: t('Parada: necesita tu OK'),
+  error: t('Con un problema'),
+  disabled: t('En pausa')
 }

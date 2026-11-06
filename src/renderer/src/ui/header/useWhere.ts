@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, clientInfo, isClient, isWeb } from '@/lib/api'
+import { t } from '@/lib/i18n'
 
 export type Role = 'server' | 'client' | 'browser'
 
@@ -11,15 +12,15 @@ export interface Where {
   device?: string
 }
 
-export const ROLE_TITLE: Record<Role, string> = { server: 'Este equipo es el servidor', client: 'Cliente de escritorio', browser: 'Navegador' }
+export const ROLE_TITLE: Record<Role, string> = { server: t('Este equipo es el servidor'), client: t('Cliente de escritorio'), browser: t('Navegador') }
 
 /** Qué significa estar ahí: dónde corren los agentes y se guardan los proyectos. */
 export function explainWhere(w: Where): string {
   if (w.role === 'client') {
-    return `Este equipo${w.device ? ` (${w.device})` : ''} está conectado a ${w.host || 'tu servidor'}: los agentes, los proyectos y los archivos están allí.`
+    return t('Este equipo{device} está conectado a {host}: los agentes, los proyectos y los archivos están allí.', { device: w.device ? ` (${w.device})` : '', host: w.host || t('tu servidor') })
   }
-  if (w.role === 'browser') return `Estás en el navegador: los agentes, los proyectos y los archivos están en ${w.host || 'el servidor'}.`
-  return `Aquí corren los agentes y se guardan los proyectos${w.host ? ` (${w.host})` : ''}.`
+  if (w.role === 'browser') return t('Estás en el navegador: los agentes, los proyectos y los archivos están en {host}.', { host: w.host || t('el servidor') })
+  return t('Aquí corren los agentes y se guardan los proyectos{host}.', { host: w.host ? ` (${w.host})` : '' })
 }
 
 /**

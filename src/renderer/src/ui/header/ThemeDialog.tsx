@@ -5,6 +5,7 @@ import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import r from './RemoteAccess.module.css'
 import s from './ThemeDialog.module.css'
+import { t } from '@/lib/i18n'
 
 /** ⋮ → «Temas…»: el aspecto de AI Cowork en este dispositivo. Se aplica al momento. */
 export function ThemeDialog({ onClose }: { onClose: () => void }) {
@@ -17,33 +18,33 @@ export function ThemeDialog({ onClose }: { onClose: () => void }) {
           <Palette size={20} aria-hidden="true" className={r.headIcon} />
           <div>
             <h2 id="theme-title" className={r.title}>
-              Temas
+              {t('Temas')}
             </h2>
-            <p className={r.subtitle}>El aspecto de AI Cowork en este dispositivo. Se aplica al momento y se recuerda.</p>
+            <p className={r.subtitle}>{t('El aspecto de AI Cowork en este dispositivo. Se aplica al momento y se recuerda.')}</p>
           </div>
-          <button type="button" className={cx(u.iconBtn, r.close)} aria-label="Cerrar" onClick={onClose}>
+          <button type="button" className={cx(u.iconBtn, r.close)} aria-label={t('Cerrar')} onClick={onClose}>
             <X size={18} aria-hidden="true" />
           </button>
         </header>
-        <div className={s.grid} role="radiogroup" aria-label="Tema">
-          {THEMES.map((t) => (
+        <div className={s.grid} role="radiogroup" aria-label={t('Tema')}>
+          {THEMES.map((th) => (
             <button
-              key={t.id}
+              key={th.id}
               type="button"
               role="radio"
-              aria-checked={theme === t.id}
-              className={cx(s.card, theme === t.id && s.cardOn)}
-              onClick={() => setTheme(t.id)}
+              aria-checked={theme === th.id}
+              className={cx(s.card, theme === th.id && s.cardOn)}
+              onClick={() => setTheme(th.id)}
             >
-              <Preview id={t.id} />
+              <Preview id={th.id} />
               <span className={s.cardText}>
                 <span className={s.cardName}>
-                  {t.name}
-                  {t.id === 'clasico' && <span className={s.default}>predeterminado</span>}
+                  {th.name}
+                  {th.id === 'clasico' && <span className={s.default}>{t('predeterminado')}</span>}
                 </span>
-                <span className={s.cardHint}>{t.hint}</span>
+                <span className={s.cardHint}>{th.hint}</span>
               </span>
-              {theme === t.id && (
+              {theme === th.id && (
                 <span className={s.check} aria-hidden="true">
                   <Check size={14} />
                 </span>

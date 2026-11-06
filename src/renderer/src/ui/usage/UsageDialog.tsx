@@ -19,14 +19,15 @@ import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import r from '../header/RemoteAccess.module.css'
 import s from './UsageDialog.module.css'
+import { locale, t } from '@/lib/i18n'
 
 type Period = 'today' | '7d' | '30d' | 'all'
 
 const PERIODS: { id: Period; label: string }[] = [
-  { id: 'today', label: 'Hoy' },
-  { id: '7d', label: '7 días' },
-  { id: '30d', label: '30 días' },
-  { id: 'all', label: 'Todo' }
+  { id: 'today', label: t('Hoy') },
+  { id: '7d', label: t('7 días') },
+  { id: '30d', label: t('30 días') },
+  { id: 'all', label: t('Todo') }
 ]
 
 const DAY = 24 * 3600_000
@@ -42,11 +43,11 @@ function periodStart(p: Period, now: number): number {
 }
 
 const when = (ts: number): string =>
-  new Date(ts).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+  new Date(ts).toLocaleString(locale(), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 /** Minuto en que empezó una llamada, contado desde la petición («5,9»): los huecos entre pasos son esperas. */
 const startMinute = (run: UsageRun, c: UsageCall): string =>
-  (Math.max(0, c.ts - c.durationMs - run.startedAt) / 60_000).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  (Math.max(0, c.ts - c.durationMs - run.startedAt) / 60_000).toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 const pct = (part: number, total: number): string => (total > 0 ? `${Math.round((part / total) * 100)} %` : '—')
 
@@ -88,7 +89,7 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
         .sort((a, b) => b.startedAt - a.startedAt),
     [all, from, onlyProject, project?.id]
   )
-  const t = useMemo(() => summarize(runs, now), [runs, now])
+  const sum = useMemo(() => summarize(runs, now), [runs, now])
 
   function exportCsv(): void {
     const csv = usageCsv([...runs].reverse())
@@ -103,12 +104,12 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
     window.setTimeout(() => URL.revokeObjectURL(url), 2000)
   }
 
-  const parallel = t.wallMs > 0 ? t.agentMs / t.wallMs : 0
+  const parallel = sum.wallMs > 0 ? sum.agentMs / sum.wallMs : 0
   const counts = [
-    t.ok && `${t.ok} bien`,
-    t.failed && `${t.failed} con errores`,
-    t.cancelled && `${t.cancelled} ${t.cancelled === 1 ? 'cancelada' : 'canceladas'}`,
-    t.running && `${t.running} en marcha`
+    sum.ok && t('{ok} bien', { ok: sum.ok }),
+    sum.failed && t('{failed} con errores', { failed: sum.failed }),
+    sum.cancelled && (sum.cancelled === 1 ? t('1 cancelada') : t('{n} canceladas', { n: sum.cancelled })),
+    sum.running && t('{running} en marcha', { running: sum.running })
   ].filter(Boolean)
 
   return (
@@ -118,18 +119,18 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
           <BarChart3 size={20} aria-hidden="true" className={r.headIcon} />
           <div>
             <h2 id="usage-title" className={r.title}>
-              Consumo
+              {t('Consumo')}
             </h2>
-            <p className={r.subtitle}>Lo que gasta cada petición: tokens, tiempo y cuota de tus suscripciones. Para ver si compensa.</p>
+            <p className={r.subtitle}>{t('Lo que gasta cada petición: tokens, tiempo y cuota de tus suscripciones. Para ver si compensa.')}</p>
           </div>
-          <button type="button" className={cx(u.iconBtn, r.close)} aria-label="Cerrar" onClick={onClose}>
+          <button type="button" className={cx(u.iconBtn, r.close)} aria-label={t('Cerrar')} onClick={onClose}>
             <X size={18} />
           </button>
         </header>
 
         <div className={s.body}>
           <div className={s.controls}>
-            <div className={s.seg} role="group" aria-label="Periodo">
+            <div className={s.seg} role="group" aria-label={t('Periodo')}>
               {PERIODS.map((p) => (
                 <button key={p.id} type="button" className={cx(s.segBtn, period === p.id && s.segOn)} aria-pressed={period === p.id} onClick={() => setPeriod(p.id)}>
                   {p.label}
@@ -139,78 +140,77 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
             {project && (
               <label className={s.check}>
                 <input type="checkbox" checked={onlyProject} onChange={(e) => setOnlyProject(e.target.checked)} />
-                Solo «{project.name}»
+                {t('Solo «{name}»', { name: project.name })}
               </label>
             )}
             <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost, s.export)} onClick={exportCsv} disabled={!runs.length}>
               <Download size={13} aria-hidden="true" />
-              Exportar CSV
+              {t('Exportar CSV')}
             </button>
           </div>
 
           {!runs.length ? (
             <p className={s.empty}>
-              Todavía no hay peticiones en este periodo. Desde ahora, cada petición queda registrada con sus tokens, su tiempo y la cuota que gastó.
+              {t('Todavía no hay peticiones en este periodo. Desde ahora, cada petición queda registrada con sus tokens, su tiempo y la cuota que gastó.')}
             </p>
           ) : (
             <>
               <div className={s.cards}>
-                <Card label="Peticiones" big={String(t.runs)} sub={counts.join(' · ')} />
+                <Card label={t('Peticiones')} big={String(sum.runs)} sub={counts.join(' · ')} />
                 <Card
-                  label="Tiempo"
-                  big={shortDuration(t.wallMs)}
-                  sub={`${shortDuration(t.agentMs)} de trabajo de agentes${parallel >= 1.15 ? ` (×${parallel.toLocaleString('es-ES', { maximumFractionDigits: 1 })} en paralelo)` : ''}`}
+                  label={t('Tiempo')}
+                  big={shortDuration(sum.wallMs)}
+                  sub={t('{shortDuration} de trabajo de agentes{v2}', { shortDuration: shortDuration(sum.agentMs), v2: parallel >= 1.15 ? t(' (×{n} en paralelo)', { n: parallel.toLocaleString(locale(), { maximumFractionDigits: 1 }) }) : '' })}
                 />
-                <Card label="Tokens" big={compactTokens(t.tokens)} sub={`${compactTokens(t.freshTokens)} sin contar caché`} />
-                <Card label="Coordinar" big={pct(t.planTokens, t.tokens)} sub={`de los tokens en planificar · ${pct(t.wastedTokens, t.tokens)} en intentos fallidos`} />
+                <Card label="Tokens" big={compactTokens(sum.tokens)} sub={t('{compactTokens} sin contar caché', { compactTokens: compactTokens(sum.freshTokens) })} />
+                <Card label={t('Coordinar')} big={pct(sum.planTokens, sum.tokens)} sub={t('de los tokens en planificar · {pct} en intentos fallidos', { pct: pct(sum.wastedTokens, sum.tokens) })} />
               </div>
 
               <section className={s.section} aria-labelledby="usage-quota">
                 <h3 id="usage-quota" className={s.h3}>
-                  Cuota de tus suscripciones gastada
+                  {t('Cuota de tus suscripciones gastada')}
                 </h3>
-                {t.quota.length ? (
+                {sum.quota.length ? (
                   <ul className={s.quotaList}>
-                    {t.quota.map((q) => (
+                    {sum.quota.map((q) => (
                       <li key={q.key}>
                         <strong>
                           {q.group} · {q.label}
                         </strong>
-                        <span className={s.quotaDelta}>+{q.delta.toLocaleString('es-ES')} %</span>
+                        <span className={s.quotaDelta}>+{q.delta.toLocaleString(locale())} %</span>
                         <span className={s.muted}>
-                          en {q.runs} {q.runs === 1 ? 'petición medida' : 'peticiones medidas'}
+                          {t('en')} {q.runs} {q.runs === 1 ? t('petición medida') : t('peticiones medidas')}
                         </span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className={s.muted}>Aún no hay medidas: se toma la cuota de Claude y GPT antes y después de cada petición.</p>
+                  <p className={s.muted}>{t('Aún no hay medidas: se toma la cuota de Claude y GPT antes y después de cada petición.')}</p>
                 )}
                 <p className={s.note}>
-                  Se mide antes y después de cada petición, así que incluye cualquier otro uso de la misma cuenta en ese rato (por ejemplo, Claude
-                  Code en otro equipo). Una petición corta puede no llegar a mover el porcentaje.
+                  {t('Se mide antes y después de cada petición, así que incluye cualquier otro uso de la misma cuenta en ese rato (por ejemplo, Claude Code en otro equipo). Una petición corta puede no llegar a mover el porcentaje.')}
                 </p>
               </section>
 
               <section className={s.section} aria-labelledby="usage-agents">
                 <h3 id="usage-agents" className={s.h3}>
-                  Por agente
+                  {t('Por agente')}
                 </h3>
                 <div className={s.tableWrap}>
                   <table className={s.table}>
                     <thead>
                       <tr>
-                        <th scope="col">Agente</th>
-                        <th scope="col">Llamadas</th>
-                        <th scope="col">Entrada</th>
-                        <th scope="col">Salida</th>
-                        <th scope="col">De caché</th>
-                        <th scope="col">Tiempo</th>
-                        <th scope="col">Fallos</th>
+                        <th scope="col">{t('Agente')}</th>
+                        <th scope="col">{t('Llamadas')}</th>
+                        <th scope="col">{t('Entrada')}</th>
+                        <th scope="col">{t('Salida')}</th>
+                        <th scope="col">{t('De caché')}</th>
+                        <th scope="col">{t('Tiempo')}</th>
+                        <th scope="col">{t('Fallos')}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {t.byAgent.map((a) => (
+                      {sum.byAgent.map((a) => (
                         <tr key={a.key}>
                           <th scope="row">{a.name}</th>
                           <td>{a.calls}</td>
@@ -225,20 +225,20 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
                   </table>
                 </div>
                 <p className={s.note}>
-                  ¿Y la calidad?{' '}
+                  {t('¿Y la calidad?')}{' '}
                   <button type="button" className={s.link} onClick={() => useCowork.setState({ usageOpen: false, qualityOpen: true })}>
-                    Cómo rinde cada agente
+                    {t('Cómo rinde cada agente')}
                   </button>
-                  : lo que te sirvió, lo que pasó la verificación a la primera y lo que falló.
+                  {t(': lo que te sirvió, lo que pasó la verificación a la primera y lo que falló.')}
                 </p>
-                {t.noTokenCalls > 0 && (
-                  <p className={s.note}>Hermes no informa sus tokens (pasa por OmniRoute): sus llamadas cuentan, pero sus tokens no.</p>
+                {sum.noTokenCalls > 0 && (
+                  <p className={s.note}>{t('Hermes no informa sus tokens (pasa por OmniRoute): sus llamadas cuentan, pero sus tokens no.')}</p>
                 )}
               </section>
 
               <section className={s.section} aria-labelledby="usage-runs">
                 <h3 id="usage-runs" className={s.h3}>
-                  Peticiones
+                  {t('Peticiones')}
                 </h3>
                 <ul className={s.runs}>
                   {runs.slice(0, 150).map((run) => (
@@ -246,8 +246,7 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
                   ))}
                 </ul>
                 <p className={s.note}>
-                  Para comparar con un solo agente (por ejemplo, Codex aparte), haz la misma petición allí y compárala con su fila: tiempo, tokens
-                  (en Codex, «/status») y cuota gastada.
+                  {t('Para comparar con un solo agente (por ejemplo, Codex aparte), haz la misma petición allí y compárala con su fila: tiempo, tokens (en Codex, «/status») y cuota gastada.')}
                 </p>
               </section>
             </>
@@ -277,11 +276,11 @@ function RunItem({ run, now }: { run: UsageRun; now: number }) {
         <summary className={s.runSummary}>
           <span className={s.runWhen}>{when(run.startedAt)}</span>
           <span className={s.runText} title={run.request}>
-            {run.request || '(sin texto)'}
+            {run.request || t('(sin texto)')}
           </span>
           <span className={cx(s.status, s[`st_${run.status}`])}>{statusLabel(run.status)}</span>
           <span className={s.runNums}>
-            {shortDuration(runDuration(run, now))} · {compactTokens(tokens)} tokens
+            {shortDuration(runDuration(run, now))} · {compactTokens(tokens)} {t('tokens')}
             {deltas.map((d) => ` · ${deltaText(d)}`).join('')}
           </span>
         </summary>
@@ -289,39 +288,39 @@ function RunItem({ run, now }: { run: UsageRun; now: number }) {
           <table className={s.table}>
             <thead>
               <tr>
-                <th scope="col">Paso</th>
-                <th scope="col">Agente</th>
-                <th scope="col">Modelo</th>
-                <th scope="col">Entrada</th>
-                <th scope="col">Salida</th>
-                <th scope="col">De caché</th>
-                <th scope="col" title="Minuto en que empezó, contado desde la petición: los huecos son esperas">
-                  Empieza
+                <th scope="col">{t('Paso')}</th>
+                <th scope="col">{t('Agente')}</th>
+                <th scope="col">{t('Modelo')}</th>
+                <th scope="col">{t('Entrada')}</th>
+                <th scope="col">{t('Salida')}</th>
+                <th scope="col">{t('De caché')}</th>
+                <th scope="col" title={t('Minuto en que empezó, contado desde la petición: los huecos son esperas')}>
+                  {t('Empieza')}
                 </th>
-                <th scope="col">Tiempo</th>
-                <th scope="col">Resultado</th>
+                <th scope="col">{t('Tiempo')}</th>
+                <th scope="col">{t('Resultado')}</th>
               </tr>
             </thead>
             <tbody>
               {run.calls.map((c, i) => (
                 <tr key={i}>
-                  <td>{c.kind === 'plan' ? 'Planificar' : c.kind === 'verify' ? 'Verificar' : 'Tarea'}</td>
+                  <td>{c.kind === 'plan' ? t('Planificar') : c.kind === 'verify' ? t('Verificar') : t('Tarea')}</td>
                   <th scope="row">{c.agentName}</th>
                   <td>{c.model ?? '—'}</td>
                   <td>{c.noTokens ? '—' : compactTokens(c.input)}</td>
                   <td>{c.noTokens ? '—' : compactTokens(c.output)}</td>
                   <td>{c.noTokens ? '—' : compactTokens(c.cached)}</td>
-                  <td>min {startMinute(run, c)}</td>
+                  <td>{t('min')} {startMinute(run, c)}</td>
                   <td>{shortDuration(c.durationMs)}</td>
-                  <td className={c.ok ? undefined : s.bad}>{c.ok ? 'Bien' : 'Falló'}</td>
+                  <td className={c.ok ? undefined : s.bad}>{c.ok ? t('Bien') : t('Falló')}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <p className={s.runFoot}>
-          {run.projectName} · {run.tasksDone}/{run.tasks} tareas completadas
-          {run.status !== 'running' && !run.quotaAfter && ' · cuota final sin medir'}
+          {run.projectName} · {run.tasksDone}/{run.tasks} {t('tareas completadas')}
+          {run.status !== 'running' && !run.quotaAfter && t(' · cuota final sin medir')}
         </p>
       </details>
     </li>

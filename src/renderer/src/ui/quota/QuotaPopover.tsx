@@ -14,8 +14,9 @@ import { LocalConfig } from './LocalConfig'
 import { ClaudeDirectFix } from './ClaudeDirectFix'
 import u from '../common/ui.module.css'
 import s from './QuotaPopover.module.css'
+import { t } from '@/lib/i18n'
 
-const NA = 'No disponible'
+const NA = t('No disponible')
 
 interface Props {
   quota: QuotaInfo
@@ -34,7 +35,7 @@ export function QuotaPopover({ quota, anchorRef, open, onClose, id }: Props) {
       anchorRef={anchorRef}
       align="end"
       role="dialog"
-      ariaLabel={`Detalle de cuota: ${quota.label}`}
+      ariaLabel={t('Detalle de cuota: {label}', { label: quota.label })}
       id={id}
       className={s.pop}
     >
@@ -44,9 +45,9 @@ export function QuotaPopover({ quota, anchorRef, open, onClose, id }: Props) {
 }
 
 const PERIOD_LABEL: Record<QuotaBudget['period'], string> = {
-  diario: 'Diario',
-  '5h': 'Ventana de 5 h',
-  semanal: 'Semanal'
+  diario: t('Diario'),
+  '5h': t('Ventana de 5 h'),
+  semanal: t('Semanal')
 }
 
 function QuotaDetails({ quota }: { quota: QuotaInfo }) {
@@ -77,15 +78,15 @@ function QuotaDetails({ quota }: { quota: QuotaInfo }) {
   const unit = quota.unit ? ` ${quota.unit}` : ''
 
   const remainingText = quota.unlimited
-    ? 'Sin límite (∞)'
+    ? t('Sin límite (∞)')
     : view.pct != null
       ? `${est}${Math.round(view.pct)}%`
       : NA
   const balance = quota.remaining != null ? `${est}${amount(quota.remaining)}${unit}` : NA
-  const limit = quota.limit != null ? `${amount(quota.limit)}${unit}` : quota.unlimited ? 'Sin límite' : NA
+  const limit = quota.limit != null ? `${amount(quota.limit)}${unit}` : quota.unlimited ? t('Sin límite') : NA
   const used: string[] = []
-  if (quota.usedTokens != null) used.push(`${kTokens(quota.usedTokens)} tokens`)
-  if (quota.usedRequests != null) used.push(`${amount(quota.usedRequests)} ${quota.usedRequests === 1 ? 'solicitud' : 'solicitudes'}`)
+  if (quota.usedTokens != null) used.push(t('{n} tokens', { n: kTokens(quota.usedTokens) }))
+  if (quota.usedRequests != null) used.push(`${amount(quota.usedRequests)} ${quota.usedRequests === 1 ? t('solicitud') : t('solicitudes')}`)
 
   const StatusIcon =
     view.variant === 'warn' || view.variant === 'alert'
@@ -112,11 +113,11 @@ function QuotaDetails({ quota }: { quota: QuotaInfo }) {
       <header className={s.head}>
         <div className={s.titleRow}>
           <h3 className={s.title}>{quota.label}</h3>
-          <span className={cx(s.source, s[`src_${quota.source}`])} title="Origen del dato">
+          <span className={cx(s.source, s[`src_${quota.source}`])} title={t('Origen del dato')}>
             {SOURCE_LABEL[quota.source] ?? NA}
           </span>
         </div>
-        <p className={s.kind}>{KIND_LABEL[quota.kind] ?? 'Cuota'}</p>
+        <p className={s.kind}>{KIND_LABEL[quota.kind] ?? t('Cuota')}</p>
       </header>
 
       <div className={s.hero}>
@@ -125,14 +126,14 @@ function QuotaDetails({ quota }: { quota: QuotaInfo }) {
           <span className={s.heroNumber}>{view.fixedValue ?? `${est}${Math.round(view.pct ?? 0)}%`}</span>
           <span className={s.heroCaption}>
             {view.variant === 'unlimited'
-              ? 'sin límite'
+              ? t('sin límite')
               : view.variant === 'local'
-                ? 'sin presupuesto'
+                ? t('sin presupuesto')
                 : view.variant === 'unknown'
-                  ? 'sin datos de cuota'
+                  ? t('sin datos de cuota')
                   : view.variant === 'empty'
-                    ? 'cuota agotada'
-                    : 'restante'}
+                    ? t('cuota agotada')
+                    : t('restante')}
           </span>
         </div>
         <div className={cx(u.track, s.heroTrack, view.estimate && s.striped, view.variant === 'unknown' && s.dashed)}>
@@ -141,15 +142,15 @@ function QuotaDetails({ quota }: { quota: QuotaInfo }) {
       </div>
 
       <dl className={s.rows}>
-        <Row label="Restante" value={remainingText} />
-        <Row label="Saldo" value={balance} />
-        <Row label="Límite" value={limit} />
-        <Row label="Periodo" value={quota.period || NA} />
-        <Row label="Renovación" value={quota.resetsAt ? untilTime(quota.resetsAt, now) : NA} />
-        <Row label="Última actualización" value={quota.updatedAt ? relativeTime(quota.updatedAt, now) : NA} />
-        <Row label="Usado por la app" value={used.length ? used.join(' · ') : NA} />
+        <Row label={t('Restante')} value={remainingText} />
+        <Row label={t('Saldo')} value={balance} />
+        <Row label={t('Límite')} value={limit} />
+        <Row label={t('Periodo')} value={quota.period || NA} />
+        <Row label={t('Renovación')} value={quota.resetsAt ? untilTime(quota.resetsAt, now) : NA} />
+        <Row label={t('Última actualización')} value={quota.updatedAt ? relativeTime(quota.updatedAt, now) : NA} />
+        <Row label={t('Usado por la app')} value={used.length ? used.join(' · ') : NA} />
         <div className={s.row}>
-          <dt>Agentes que la comparten</dt>
+          <dt>{t('Agentes que la comparten')}</dt>
           <dd>
             {groupAgentIds.length === 0 ? (
               <span className={s.na}>{NA}</span>
@@ -180,10 +181,10 @@ function QuotaDetails({ quota }: { quota: QuotaInfo }) {
 
       <section className={s.context} aria-labelledby={ctxId}>
         <h4 className={s.sectionTitle} id={ctxId}>
-          Capacidad de contexto
+          {t('Capacidad de contexto')}
         </h4>
         <p className={s.muted}>
-          Es por tarea: indica cuánto cabe en la conversación actual de cada agente. No es lo mismo que la cuota.
+          {t('Es por tarea: indica cuánto cabe en la conversación actual de cada agente. No es lo mismo que la cuota.')}
         </p>
         {groupAgentIds.length === 0 ? (
           <p className={s.na}>{NA}</p>
@@ -201,7 +202,7 @@ function QuotaDetails({ quota }: { quota: QuotaInfo }) {
                   </span>
                   <span className={s.ctxValue}>
                     {ctx
-                      ? `${kTokens(ctx.used)} tokens usados${ctx.capacity ? ` de ${kTokens(ctx.capacity)}` : ''}`
+                      ? t('{kTokens} tokens usados{v2}', { kTokens: kTokens(ctx.used), v2: ctx.capacity ? t(' de {capacity}', { capacity: kTokens(ctx.capacity) }) : '' })
                       : NA}
                   </span>
                   {pct != null && (
@@ -259,7 +260,7 @@ function BudgetForm({ groupId, existing }: { groupId: string; existing: QuotaBud
       await a.setQuotaBudget(groupId, budget)
       setSaved(budget)
       setEditing(false)
-      setMsg({ tone: 'ok', text: 'Presupuesto guardado' })
+      setMsg({ tone: 'ok', text: t('Presupuesto guardado') })
     } catch (err) {
       setMsg({ tone: 'error', text: errorText(err) })
     } finally {
@@ -277,7 +278,7 @@ function BudgetForm({ groupId, existing }: { groupId: string; existing: QuotaBud
       setSaved(null)
       setEditing(false)
       setLimit('')
-      setMsg({ tone: 'ok', text: 'Presupuesto quitado' })
+      setMsg({ tone: 'ok', text: t('Presupuesto quitado') })
     } catch (err) {
       setMsg({ tone: 'error', text: errorText(err) })
     } finally {
@@ -289,7 +290,7 @@ function BudgetForm({ groupId, existing }: { groupId: string; existing: QuotaBud
     <section className={s.budget}>
       <div className={s.budgetHead}>
         <h4 className={s.sectionTitle}>
-          <Settings2 size={13} aria-hidden="true" /> Presupuesto
+          <Settings2 size={13} aria-hidden="true" /> {t('Presupuesto')}
         </h4>
         {current && !editing && (
           <span className={s.budgetSummary}>
@@ -301,21 +302,21 @@ function BudgetForm({ groupId, existing }: { groupId: string; existing: QuotaBud
       {!editing ? (
         <div className={s.budgetActions}>
           <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setEditing(true)} disabled={busy}>
-            {current ? 'Editar presupuesto' : 'Configurar presupuesto'}
+            {current ? t('Editar presupuesto') : t('Configurar presupuesto')}
           </button>
           {current && (
             <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={remove} disabled={busy}>
-              Quitar presupuesto
+              {t('Quitar presupuesto')}
             </button>
           )}
         </div>
       ) : (
         <form className={s.form} onSubmit={submit}>
           <p className={s.muted}>
-            Sin datos reales de este proveedor: define un límite y la app estimará el saldo con el consumo registrado.
+            {t('Sin datos reales de este proveedor: define un límite y la app estimará el saldo con el consumo registrado.')}
           </p>
           <label className={s.field}>
-            <span>Límite</span>
+            <span>{t('Límite')}</span>
             <input
               className={s.input}
               type="number"
@@ -331,27 +332,27 @@ function BudgetForm({ groupId, existing }: { groupId: string; existing: QuotaBud
           </label>
           <div className={s.fieldRow}>
             <label className={s.field}>
-              <span>Unidad</span>
+              <span>{t('Unidad')}</span>
               <select className={s.input} value={unit} onChange={(e) => setUnit(e.target.value as QuotaBudget['unit'])}>
-                <option value="tokens">tokens</option>
-                <option value="solicitudes">solicitudes</option>
+                <option value="tokens">{t('tokens')}</option>
+                <option value="solicitudes">{t('solicitudes')}</option>
               </select>
             </label>
             <label className={s.field}>
-              <span>Periodo</span>
+              <span>{t('Periodo')}</span>
               <select className={s.input} value={period} onChange={(e) => setPeriod(e.target.value as QuotaBudget['period'])}>
-                <option value="diario">Diario</option>
-                <option value="5h">Ventana de 5 h</option>
-                <option value="semanal">Semanal</option>
+                <option value="diario">{t('Diario')}</option>
+                <option value="5h">{t('Ventana de 5 h')}</option>
+                <option value="semanal">{t('Semanal')}</option>
               </select>
             </label>
           </div>
           <div className={s.budgetActions}>
             <button type="submit" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={!valid || busy}>
-              {busy ? 'Guardando…' : 'Guardar'}
+              {busy ? t('Guardando…') : t('Guardar')}
             </button>
             <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => setEditing(false)} disabled={busy}>
-              Cancelar
+              {t('Cancelar')}
             </button>
           </div>
         </form>

@@ -1,4 +1,5 @@
 import type { AgentRuntime, Task } from '@shared/types'
+import { t } from '@/lib/i18n'
 
 /** Progreso de una tarea en porcentaje. `real` = viene de la lista de pasos del agente. */
 export interface TaskProgress {
@@ -6,8 +7,8 @@ export interface TaskProgress {
   real: boolean
 }
 
-export const REAL_HINT = 'Progreso real: pasos completados de la lista de trabajo del agente'
-export const ESTIMATE_HINT = 'Estimación (≈): este agente no informa sus pasos; se calcula con lo que tardaron tareas parecidas'
+export const REAL_HINT = t('Progreso real: pasos completados de la lista de trabajo del agente')
+export const ESTIMATE_HINT = t('Estimación (≈): este agente no informa sus pasos; se calcula con lo que tardaron tareas parecidas')
 
 /** Duración por defecto (s) cuando aún no hay historial. */
 const DEFAULT_SECONDS: Record<Task['difficulty'], number> = { easy: 60, medium: 180, hard: 420 }

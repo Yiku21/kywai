@@ -9,6 +9,7 @@ import { Popover } from '../common/Popover'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './ProjectSelector.module.css'
+import { t } from '@/lib/i18n'
 
 /** Selector de proyecto (solo con motor de agentes y en modo real). */
 export function ProjectSelector() {
@@ -182,7 +183,7 @@ export function ProjectSelector() {
     }
   }
 
-  const label = project?.name ?? 'Sin proyecto'
+  const label = project?.name ?? t('Sin proyecto')
 
   return (
     <>
@@ -193,13 +194,13 @@ export function ProjectSelector() {
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? popId : undefined}
-        aria-label={`Proyecto: ${label}. Cambiar de proyecto`}
-        title={disabled ? 'Los proyectos están disponibles en modo real' : `Proyecto: ${label}`}
+        aria-label={t('Proyecto: {label}. Cambiar de proyecto', { label })}
+        title={disabled ? t('Los proyectos están disponibles en modo real') : t('Proyecto: {label}', { label })}
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
       >
         {!disabled && project?.workDir && <FolderOpen size={14} aria-hidden="true" className={s.triggerIcon} />}
-        <span className={s.triggerLabel}>{disabled ? 'Proyecto de demostración' : label}</span>
+        <span className={s.triggerLabel}>{disabled ? t('Proyecto de demostración') : label}</span>
         <ChevronDown size={14} aria-hidden="true" className={s.chevron} />
       </button>
 
@@ -209,38 +210,37 @@ export function ProjectSelector() {
         anchorRef={btnRef}
         align="start"
         role="dialog"
-        ariaLabel="Proyectos"
+        ariaLabel={t('Proyectos')}
         id={popId}
         className={s.pop}
         initialFocus="first"
       >
-        <div className={s.head}>Proyectos</div>
+        <div className={s.head}>{t('Proyectos')}</div>
         {projects.length === 0 ? (
-          <p className={s.empty}>Todavía no hay proyectos.</p>
+          <p className={s.empty}>{t('Todavía no hay proyectos.')}</p>
         ) : (
           <ul className={s.list}>
             {projects.map((p) => {
               const current = p.id === project?.id
               if (deleting === p.id) {
                 return (
-                  <li key={p.id} className={s.confirmRow} role="alertdialog" aria-label={`Eliminar «${p.name}»`}>
+                  <li key={p.id} className={s.confirmRow} role="alertdialog" aria-label={t('Eliminar «{name}»', { name: p.name })}>
                     <p className={s.confirmText}>
-                      <b>¿Eliminar «{p.name}»?</b> Se borra todo lo suyo: chat, tareas, adjuntos, resultados, historial y memoria (va a la
-                      Papelera de este equipo).
+                      <b>{t('¿Eliminar «{name}»?', { name: p.name })}</b> {t('Se borra todo lo suyo: chat, tareas, adjuntos, resultados, historial y memoria (va a la Papelera de este equipo).')}
                       {p.workDir && (
                         <>
                           {' '}
-                          Tu carpeta <code>{p.workDir}</code> no se toca: solo su subcarpeta <code>.ai-cowork</code>.
+                          {t('Tu carpeta')} <code>{p.workDir}</code> {t('no se toca: solo su subcarpeta')} <code>.ai-cowork</code>.
                         </>
                       )}
                     </p>
                     <div className={s.confirmActions}>
                       <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setDeleting(null)} disabled={busy === p.id} autoFocus>
-                        Cancelar
+                        {t('Cancelar')}
                       </button>
                       <button type="button" className={cx(u.btn, u.btnSm, u.btnDanger)} onClick={() => void remove(p)} disabled={!!busy}>
                         {busy === p.id ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : <Trash2 size={13} aria-hidden="true" />}
-                        Eliminar
+                        {t('Eliminar')}
                       </button>
                     </div>
                   </li>
@@ -268,7 +268,7 @@ export function ProjectSelector() {
                             stopRename()
                           }
                         }}
-                        aria-label={`Nuevo nombre para ${p.name}`}
+                        aria-label={t('Nuevo nombre para {name}', { name: p.name })}
                         maxLength={80}
                         autoFocus
                       />
@@ -282,7 +282,7 @@ export function ProjectSelector() {
                     type="button"
                     className={cx(s.item, current && s.current)}
                     aria-current={current ? 'true' : undefined}
-                    title={current ? 'Proyecto abierto' : `Abrir «${p.name}»`}
+                    title={current ? t('Proyecto abierto') : t('Abrir «{name}»', { name: p.name })}
                     onClick={() => (current ? setOpen(false) : openProject(p.id))}
                     disabled={!!busy && busy !== p.id}
                   >
@@ -299,8 +299,8 @@ export function ProjectSelector() {
                   <button
                     type="button"
                     className={s.renameBtn}
-                    aria-label={`Renombrar «${p.name}»`}
-                    title="Renombrar"
+                    aria-label={t('Renombrar «{name}»', { name: p.name })}
+                    title={t('Renombrar')}
                     onClick={() => startRename(p)}
                     disabled={!!busy}
                   >
@@ -309,8 +309,8 @@ export function ProjectSelector() {
                   <button
                     type="button"
                     className={cx(s.renameBtn, s.deleteBtn)}
-                    aria-label={`Eliminar «${p.name}»`}
-                    title="Eliminar el proyecto"
+                    aria-label={t('Eliminar «{name}»', { name: p.name })}
+                    title={t('Eliminar el proyecto')}
                     onClick={() => {
                       setError(null)
                       setDeleting(p.id)
@@ -325,10 +325,10 @@ export function ProjectSelector() {
           </ul>
         )}
         {project && (
-          <section className={s.folder} aria-label="Carpeta de trabajo del proyecto">
+          <section className={s.folder} aria-label={t('Carpeta de trabajo del proyecto')}>
             <div className={s.folderHead}>
               <FolderOpen size={14} aria-hidden="true" />
-              Carpeta de trabajo
+              {t('Carpeta de trabajo')}
             </div>
             {project.workDir ? (
               <>
@@ -337,28 +337,27 @@ export function ProjectSelector() {
                 </code>
                 <p className={s.folderNote}>
                   <ShieldCheck size={13} aria-hidden="true" />
-                  Los agentes pueden leer y editar los archivos de esta carpeta.
+                  {t('Los agentes pueden leer y editar los archivos de esta carpeta.')}
                 </p>
                 <div className={s.folderActions}>
                   <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void pickFolder()} disabled={!!busy}>
                     {busy === 'folder' ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : null}
-                    Cambiar carpeta
+                    {t('Cambiar carpeta')}
                   </button>
                   <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void clearFolder()} disabled={!!busy}>
-                    Quitar acceso
+                    {t('Quitar acceso')}
                   </button>
                 </div>
               </>
             ) : (
               <>
                 <p className={s.folderNote}>
-                  Ahora los agentes trabajan en una carpeta interna de AI Cowork. Elige la carpeta de tu proyecto (el código de
-                  un juego, una web…) para que puedan leer y editar sus archivos.
+                  {t('Ahora los agentes trabajan en una carpeta interna de AI Cowork. Elige la carpeta de tu proyecto (el código de un juego, una web…) para que puedan leer y editar sus archivos.')}
                 </p>
                 <div className={s.folderActions}>
                   <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} onClick={() => void pickFolder()} disabled={!!busy}>
                     {busy === 'folder' ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : <FolderOpen size={13} aria-hidden="true" />}
-                    Elegir carpeta…
+                    {t('Elegir carpeta…')}
                   </button>
                 </div>
               </>
@@ -372,8 +371,8 @@ export function ProjectSelector() {
                 className={s.input}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nombre del proyecto"
-                aria-label="Nombre del nuevo proyecto"
+                placeholder={t('Nombre del proyecto')}
+                aria-label={t('Nombre del nuevo proyecto')}
                 maxLength={80}
                 autoFocus
                 onKeyDown={(e) => {
@@ -389,13 +388,13 @@ export function ProjectSelector() {
                 className={cx(u.btn, u.btnSm, u.btnPrimary)}
                 disabled={!name.trim() || busy === 'new'}
               >
-                {busy === 'new' ? 'Creando…' : 'Crear'}
+                {busy === 'new' ? t('Creando…') : t('Crear')}
               </button>
             </form>
           ) : (
             <button type="button" className={s.newBtn} onClick={() => setCreating(true)}>
               <FolderPlus size={15} aria-hidden="true" />
-              Nuevo proyecto
+              {t('Nuevo proyecto')}
             </button>
           )}
           {error && (

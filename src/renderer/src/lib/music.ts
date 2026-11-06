@@ -6,6 +6,7 @@ import { getVolume, isMuted, setAmbientMusicSuppressed, subscribeAudio } from '.
 import { audioLightLevel } from './audioSync'
 import { addTap, MusicClock, pulseEnvelope, tempoFromTaps, wrapOffset } from './musicClock'
 import { YT_STATE, type YtPlayer } from './youtube'
+import { t } from '@/lib/i18n'
 
 /**
  * Música del espacio digital: un vídeo de YouTube en su reproductor oficial y un reloj musical estimado que
@@ -286,7 +287,7 @@ async function requestTempo(query: TempoQuery): Promise<TempoLookupResult> {
     const res = await fetch(`cowork://music/tempo?${params}`)
     return (await res.json()) as TempoLookupResult
   }
-  return { match: null, note: 'Sin la app de escritorio no se puede consultar el BPM' }
+  return { match: null, note: t('Sin la app de escritorio no se puede consultar el BPM') }
 }
 
 /** Busca el BPM publicado de la canción actual (Deezer, a través de AI Cowork). */
@@ -299,7 +300,7 @@ export async function lookupTempo(): Promise<void> {
     const result = await requestTempo({ artist: track.artist, title: track.title, durationSec: track.durationSec })
     patchTrack(videoId, { match: result.match, note: result.note, lookedUpAt: Date.now() })
   } catch (e) {
-    patchTrack(videoId, { note: `No se pudo consultar el BPM: ${(e as Error).message || 'sin conexión'}` })
+    patchTrack(videoId, { note: t('No se pudo consultar el BPM: {error}', { error: (e as Error).message || t('sin conexión') }) })
   } finally {
     useMusic.setState({ lookup: 'idle' })
   }
@@ -644,10 +645,10 @@ export async function recoverFromError(code: number, message: string): Promise<v
     const skipping = UNPLAYABLE.has(code) && hasNext() && !tooMany
     const why = tooMany
       ? isWeb
-        ? ' Desde el navegador, YouTube no deja oír estas canciones fuera de su web; en la app de escritorio del Mac sí suenan.'
-        : ' Varias seguidas no se pueden oír aquí: elige otra canción.'
+        ? t(' Desde el navegador, YouTube no deja oír estas canciones fuera de su web; en la app de escritorio del Mac sí suenan.')
+        : t(' Varias seguidas no se pueden oír aquí: elige otra canción.')
       : ''
-    useMusic.setState({ status: 'error', error: `${text}${skipping ? ' Pasando a la siguiente…' : ''}${why}`, notice: null })
+    useMusic.setState({ status: 'error', error: `${text}${skipping ? t(' Pasando a la siguiente…') : ''}${why}`, notice: null })
     if (skipping) window.setTimeout(() => stillHere() && next(), 2000)
   }
   if (!EMBED_BLOCKED.has(code) || !item || item.videoId !== failedId || !item.title) return giveUp(message)
@@ -658,10 +659,10 @@ export async function recoverFromError(code: number, message: string): Promise<v
   saveBlocked()
   const attempts = [...(tried.get(key) ?? []), failedId]
   tried.set(key, attempts)
-  const blockedText = `«${item.title}» no se puede oír fuera de YouTube (no lo permite su discográfica).`
+  const blockedText = t('«{title}» no se puede oír fuera de YouTube (no lo permite su discográfica).', { title: item.title })
   if (attempts.length > MAX_ATTEMPTS || !api) return giveUp(blockedText)
 
-  useMusic.setState({ status: 'loading', error: null, notice: `${blockedText} Buscando otra versión…` })
+  useMusic.setState({ status: 'loading', error: null, notice: t('{blockedText} Buscando otra versión…', { blockedText }) })
   let candidates: MusicResult[] = []
   try {
     candidates = await api.searchMusic(`${item.artist} ${item.title}`.trim(), 'videos')
@@ -672,10 +673,10 @@ export async function recoverFromError(code: number, message: string): Promise<v
   // Primero las de otros canales: las del artista o su discográfica suelen estar bloqueadas igual.
   const usable = candidates.filter((c) => !attempts.includes(c.videoId) && !blocked.has(c.videoId) && sameSong(c, item))
   const pick = usable.find((c) => !officialUpload(c, item)) ?? usable[0]
-  if (!pick) return giveUp(`${blockedText} No encontré otra versión que se pueda oír aquí.`)
+  if (!pick) return giveUp(t('{blockedText} No encontré otra versión que se pueda oír aquí.', { blockedText }))
   const alt: QueueItem = { ...item, videoId: pick.videoId, via: pick.artist || 'YouTube', origId: key, thumbnail: pick.thumbnail ?? item.thumbnail }
   useMusic.setState((s) => ({ queue: s.queue.map((q, i) => (i === s.index ? alt : q)) }))
   nameTrack(alt)
   chooseVideo(alt.videoId, 0, true)
-  useMusic.setState({ notice: `Suena otra versión de «${item.title}» (subida por ${alt.via}): la original no se puede oír fuera de YouTube.` })
+  useMusic.setState({ notice: t('Suena otra versión de «{title}» (subida por {via}): la original no se puede oír fuera de YouTube.', { title: item.title, via: alt.via }) })
 }

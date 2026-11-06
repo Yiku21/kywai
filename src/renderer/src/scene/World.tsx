@@ -21,6 +21,7 @@ import { Robot } from './Robot'
 import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
 import { LabelProjector } from './LabelProjector'
+import { t } from '@/lib/i18n'
 
 /** Reloj de la escena y pulso de la música: se actualizan antes que cualquier otra animación. */
 function SceneClock() {
@@ -173,7 +174,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
       camera={{ fov: 30, position: [0, 15.4, 19.8], near: 0.5, far: 150 }}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false, stencil: false }}
       onPointerMissed={() => useCowork.getState().select(null)}
-      aria-label="Espacio digital con los agentes trabajando"
+      aria-label={t('Espacio digital con los agentes trabajando')}
     >
       <color key={`bg-${theme}`} attach="background" args={[p.bg]} />
       <fog key={`fog-${theme}`} attach="fog" args={[p.fog, FOG_NEAR, FOG_FAR]} />

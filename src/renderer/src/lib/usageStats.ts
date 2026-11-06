@@ -1,5 +1,6 @@
 // Cuentas del registro de consumo: totales, reparto por agente, cuota gastada y exportación a CSV.
 import type { QuotaSnapshot, UsageCall, UsageRun } from '@shared/types'
+import { locale, t } from '@/lib/i18n'
 
 /** Tokens de una llamada (entrada + salida). */
 export const callTokens = (c: UsageCall): number => c.input + c.output
@@ -42,13 +43,13 @@ export function shortWindow(label: string): string {
   if (/5\s*h/i.test(label)) return '5 h'
   if (/^ventana semanal$/i.test(label)) return 'semana'
   const m = label.match(/^semanal \((.+)\)$/i)
-  if (m) return `semana ${m[1]}`
+  if (m) return t('semana {n}', { n: m[1] })
   return label.replace(/^ventana de /i, '')
 }
 
 /** «Claude 5 h +5 %» (con espacios que no se parten). */
 export function deltaText(d: QuotaDelta): string {
-  return `${d.group} ${shortWindow(d.label)} +${d.delta.toLocaleString('es-ES')} %`.replace(/ (?=\+)/, ' ')
+  return `${d.group} ${shortWindow(d.label)} +${d.delta.toLocaleString(locale())} %`.replace(/ (?=\+)/, ' ')
 }
 
 export interface AgentTotals {
@@ -181,9 +182,9 @@ export function summarize(runs: UsageRun[], now = Date.now()): UsageTotals {
 
 /** «1,2 M», «184 k», «950». */
 export function compactTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString('es-ES', { maximumFractionDigits: 1 })} M`
-  if (n >= 10_000) return `${Math.round(n / 1000).toLocaleString('es-ES')} k`
-  if (n >= 1000) return `${(n / 1000).toLocaleString('es-ES', { maximumFractionDigits: 1 })} k`
+  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString(locale(), { maximumFractionDigits: 1 })} M`
+  if (n >= 10_000) return `${Math.round(n / 1000).toLocaleString(locale())} k`
+  if (n >= 1000) return `${(n / 1000).toLocaleString(locale(), { maximumFractionDigits: 1 })} k`
   return String(n)
 }
 
@@ -196,7 +197,7 @@ export function shortDuration(ms: number): string {
   return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`
 }
 
-const STATUS_LABEL: Record<UsageRun['status'], string> = { running: 'en marcha', ok: 'bien', failed: 'con errores', cancelled: 'cancelada' }
+const STATUS_LABEL: Record<UsageRun['status'], string> = { running: t('en marcha'), ok: t('bien'), failed: t('con errores'), cancelled: t('cancelada') }
 
 export function statusLabel(s: UsageRun['status']): string {
   return STATUS_LABEL[s]

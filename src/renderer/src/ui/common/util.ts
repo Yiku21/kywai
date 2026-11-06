@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { timeHM } from '@/lib/format'
+import { locale, t } from '@/lib/i18n'
 
 export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ')
@@ -12,8 +13,8 @@ export function agentVars(color: string): CSSProperties {
 
 /** Mensaje legible de un error (quita el prefijo de IPC de Electron). */
 export function errorText(e: unknown): string {
-  const raw = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Error desconocido'
-  return raw.replace(/^Error invoking remote method '[^']*':\s*/, '').replace(/^Error:\s*/, '') || 'Error desconocido'
+  const raw = e instanceof Error ? e.message : typeof e === 'string' ? e : t('Error desconocido')
+  return raw.replace(/^Error invoking remote method '[^']*':\s*/, '').replace(/^Error:\s*/, '') || t('Error desconocido')
 }
 
 export function basename(p: string): string {
@@ -44,13 +45,13 @@ export function formatDuration(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000))
   if (s < 60) return `${s} s`
   const m = Math.floor(s / 60)
-  if (m < 60) return `${m} min ${String(s % 60).padStart(2, '0')} s`
+  if (m < 60) return t('{m} min {s} s', { m, s: String(s % 60).padStart(2, '0') })
   const h = Math.floor(m / 60)
   return `${h} h ${String(m % 60).padStart(2, '0')} min`
 }
 
-const nf1 = new Intl.NumberFormat('es', { maximumFractionDigits: 1 })
-const nf0 = new Intl.NumberFormat('es', { maximumFractionDigits: 0 })
+const nf1 = new Intl.NumberFormat(locale(), { maximumFractionDigits: 1 })
+const nf0 = new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 })
 
 /** 12400 → "12,4 k". */
 export function kTokens(n: number): string {
@@ -69,7 +70,7 @@ export function amount(n: number): string {
 export function shortTime(ts: number): string {
   const d = new Date(ts)
   if (d.toDateString() === new Date().toDateString()) return timeHM(ts)
-  return `${d.toLocaleDateString('es', { day: 'numeric', month: 'short' })} · ${timeHM(ts)}`
+  return `${d.toLocaleDateString(locale(), { day: 'numeric', month: 'short' })} · ${timeHM(ts)}`
 }
 
 export function isoTime(ts: number): string {

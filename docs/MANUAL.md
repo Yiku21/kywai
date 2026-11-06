@@ -41,6 +41,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Cómo rinde cada agente](#cómo-rinde-cada-agente)
   - [Dónde se guardan las cosas](#dónde-se-guardan-las-cosas)
 - **[Comodidades](#comodidades)**
+  - [Idioma (español / English)](#idioma-español--english)
   - [Temas](#temas)
   - [Voces de los agentes](#voces-de-los-agentes)
   - [Música (como YouTube Music)](#música-como-youtube-music)
@@ -991,6 +992,24 @@ bien en una petición cancelada se toma como cancelada. La API móvil lo da en `
 - `workspace/web-cert/`: certificado propio de la versión HTTPS del acceso web.
 
 ## Comodidades
+
+### Idioma (español / English)
+
+La interfaz está en **español** e **inglés**. ⋮ → **Ajustes** → **«Idioma · Language»** cambia de uno a otro (la
+ventana se recarga para que todo salga ya traducido). Se recuerda en cada dispositivo, como el tema: la app del Mac,
+el navegador y cada cliente pueden tener el suyo. Si nunca se ha elegido, se usa el idioma del sistema (español si es
+cualquier variante de español; si no, inglés). Las fechas y los números siguen el idioma elegido.
+
+Se traduce todo lo que pinta la interfaz, incluido el modo Demo. Los comandos del chat funcionan en los dos idiomas
+(`/remember …`, `/routine every day at 9:00: …`, `/model`, `/usage`…) y un «yes» / «looks good» aprueba un plan igual
+que un «sí». De momento siguen en español los textos que vienen del motor (avisos de «Te necesita», errores de los
+agentes, el resumen de cada tarea) y Órbita; van en las siguientes fases.
+
+Para desarrolladores: el texto en español del código es la clave. `t('Ajustes')` (de `@/lib/i18n`) devuelve «Ajustes»
+en español y lo que diga `src/renderer/src/lib/i18n/en.ts` en inglés; los huecos van entre llaves:
+`t('Hace {n} min', { n })`. Cada texto nuevo de la interfaz pasa por `t()` y se añade a `en.ts`;
+`lib/i18n.test.ts` falla si a un texto le falta su traducción, si una traducción no conserva los `{huecos}` o si
+queda alguna sin usar.
 
 ### Temas
 

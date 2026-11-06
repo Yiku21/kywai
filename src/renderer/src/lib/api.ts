@@ -1,6 +1,7 @@
 import type { ClientUpdateState, CoworkApi, CoworkEvent, ProjectSummary } from '@shared/types'
 import type { SyncPairStatus } from '@shared/sync'
 import { requestServerFolder } from './serverFiles'
+import { t } from '@/lib/i18n'
 
 const w = window as unknown as {
   cowork?: CoworkApi
@@ -107,7 +108,7 @@ async function call(method: string, args: unknown[]): Promise<unknown> {
   if (res.status === 401) {
     // El código de acceso cambió o caducó la cookie: vuelve a la pantalla de acceso.
     location.reload()
-    throw new Error('Sin acceso')
+    throw new Error(t('Sin acceso'))
   }
   const data = (await res.json().catch(() => ({}))) as { result?: unknown; error?: string }
   if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`)
@@ -118,7 +119,7 @@ async function call(method: string, args: unknown[]): Promise<unknown> {
 async function upload(name: string, body: Blob): Promise<string> {
   const res = await fetch(`/api/upload?name=${encodeURIComponent(name)}`, { method: 'POST', credentials: 'same-origin', body })
   const data = (await res.json().catch(() => ({}))) as { path?: string; error?: string }
-  if (!res.ok || !data.path) throw new Error(data.error ?? 'No se pudo subir el archivo')
+  if (!res.ok || !data.path) throw new Error(data.error ?? t('No se pudo subir el archivo'))
   return data.path
 }
 
@@ -167,7 +168,7 @@ function createWebApi(): CoworkApi {
       return r.url ? { ...r, url: webFileUrl(projectId, relPath) } : r
     },
     openPath: async (projectId: string, relPath?: string) => {
-      if (!relPath) throw new Error('La carpeta del proyecto se abre desde el Mac')
+      if (!relPath) throw new Error(t('La carpeta del proyecto se abre desde el Mac'))
       // En el cliente de escritorio se abre con la aplicación de este equipo; en el navegador, en otra pestaña.
       if (w.coworkClient?.openFile) return w.coworkClient.openFile(projectId, relPath)
       window.open(webFileUrl(projectId, relPath), '_blank', 'noopener')

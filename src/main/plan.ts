@@ -229,11 +229,15 @@ export function parsePlan(text: string): { reply: string; tasks: unknown[]; vali
 const APPROVE_CORE = new Set([
   'si', 'ok', 'okay', 'okey', 'vale', 'dale', 'adelante', 'aprobado', 'apruebo', 'apruebalo', 'perfecto', 'procede',
   'hazlo', 'venga', 'correcto', 'bien', 'acuerdo', 'genial', 'claro', 'listo', 'excelente', 'empieza', 'empezad',
-  'comienza', 'arranca', 'sigue', 'continua', 'go', 'yes', 'ejecuta', 'ejecutalo', 'manos'
+  'comienza', 'arranca', 'sigue', 'continua', 'go', 'yes', 'ejecuta', 'ejecutalo', 'manos',
+  // En inglés (la interfaz puede estar en inglés): «yes, go ahead», «looks good», «sure, start».
+  'yep', 'yeah', 'sure', 'approve', 'approved', 'proceed', 'start', 'perfect', 'great', 'good', 'fine', 'lgtm', 'alright'
 ])
 const APPROVE_FILLER = new Set([
   'y', 'pues', 'entonces', 'por', 'favor', 'gracias', 'todo', 'ya', 'lo', 'el', 'plan', 'asi', 'eso', 'me', 'parece',
-  'esta', 'de', 'puedes', 'podeis', 'empezar', 'a', 'la', 'obra', 'con', 'muy', 'super', 'tal', 'cual', 'como', 'dices'
+  'esta', 'de', 'puedes', 'podeis', 'empezar', 'a', 'la', 'obra', 'con', 'muy', 'super', 'tal', 'cual', 'como', 'dices',
+  'it', 'ahead', 'please', 'thanks', 'thank', 'you', 'the', 'that', 'this', 'looks', 'sounds', 'do', 'let', 'lets', 's',
+  'all', 'right', 'with', 'on', 'very'
 ])
 
 /**

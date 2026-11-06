@@ -114,6 +114,12 @@ describe('«/rutina …» en el chat', () => {
       trigger: { type: 'folder', path: 'Entrada/Facturas' },
       request: 'ordénalas por mes'
     })
+    // En inglés (la interfaz puede estar en inglés).
+    expect(parseRoutineCommand('/routine every day at 9:00: check the dependencies')).toMatchObject({ trigger: { type: 'daily', time: '09:00' }, request: 'check the dependencies' })
+    expect(parseRoutineCommand('/routine every 6 hours: check the site responds')).toMatchObject({ trigger: { type: 'interval', hours: 6 } })
+    expect(parseRoutineCommand('/routine every hour: look at the logs')).toMatchObject({ trigger: { type: 'interval', hours: 1 } })
+    expect(parseRoutineCommand('/routine on webhook: review the incoming PR')).toMatchObject({ trigger: { type: 'webhook' }, request: 'review the incoming PR' })
+    expect(parseRoutineCommand('/routine when files change in Inbox: sort them')).toMatchObject({ trigger: { type: 'folder', path: 'Inbox' }, request: 'sort them' })
   })
 
   it('lo que no entiende da la ayuda; días sueltos', () => {

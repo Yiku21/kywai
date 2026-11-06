@@ -26,6 +26,7 @@ import { sceneBus } from '@/lib/bus'
 import { api } from '@/lib/api'
 import { playSfx, playVoice, voiceProfile } from '@/lib/audio'
 import { createEventAudio } from '@/lib/audioEvents'
+import { t } from '@/lib/i18n'
 
 export type Mode = 'live' | 'demo'
 
@@ -316,7 +317,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
   mode: api ? 'live' : 'demo',
   hasBackend: !!api,
   config: DEFAULT_CONFIG,
-  live: emptySlice(DEFAULT_CONFIG, api ? undefined : 'Sin motor de agentes'),
+  live: emptySlice(DEFAULT_CONFIG, api ? undefined : t('Sin motor de agentes')),
   demo: emptySlice(DEFAULT_CONFIG),
   projects: [],
   localPull: null,

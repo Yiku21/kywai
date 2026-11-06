@@ -6,6 +6,7 @@ import { api, isClient } from '@/lib/api'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './RemoteAccess.module.css'
+import { t } from '@/lib/i18n'
 
 /** Buscar e instalar actualizaciones desde GitHub (⋮ → Buscar actualizaciones). */
 export function UpdateDialog({ onClose }: { onClose: () => void }) {
@@ -76,13 +77,13 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
           <Download size={20} aria-hidden="true" className={s.headIcon} />
           <div>
             <h2 id="update-title" className={s.title}>
-              Actualizaciones
+              {t('Actualizaciones')}
             </h2>
             <p className={s.subtitle}>
-              {status?.current ? `Versión actual: ${status.current.hash} · ${status.current.date} · ${status.current.subject}` : 'Comprueba si hay cambios nuevos en GitHub.'}
+              {status?.current ? t('Versión actual: {hash} · {date} · {subject}', { hash: status.current.hash, date: status.current.date, subject: status.current.subject }) : t('Comprueba si hay cambios nuevos en GitHub.')}
             </p>
           </div>
-          <button type="button" className={cx(u.iconBtn, s.close)} aria-label="Cerrar" onClick={onClose} disabled={updating}>
+          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={onClose} disabled={updating}>
             <X size={18} />
           </button>
         </header>
@@ -90,31 +91,30 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
         <div className={s.body}>
           {isClient && (
             <p className={s.note}>
-              Esto actualiza el <strong>servidor</strong> al que estás conectado. Para actualizar este equipo (la app instalada
-              aquí) usa «Actualizar este equipo…» en el menú ⋮.
+              {t('Esto actualiza el')} <strong>{t('servidor')}</strong> {t('al que estás conectado. Para actualizar este equipo (la app instalada aquí) usa «Actualizar este equipo…» en el menú ⋮.')}
             </p>
           )}
           {checking && !status ? (
             <p className={s.rowHint}>
-              <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> Consultando GitHub…
+              <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> {t('Consultando GitHub…')}
             </p>
           ) : status && !status.canUpdate && !n && !blockedLocal ? (
             <p className={s.warn}>{status.reason}</p>
           ) : n === 0 && !blockedLocal ? (
             <p className={cx(s.rowLabel)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <CircleCheck size={18} style={{ color: 'var(--live)' }} aria-hidden="true" />
-              Tienes la última versión.
+              {t('Tienes la última versión.')}
             </p>
           ) : (
             <div className={s.links}>
               <p className={s.rowLabel}>
                 {n === 0
-                  ? 'No hay cambios nuevos en GitHub'
+                  ? t('No hay cambios nuevos en GitHub')
                   : status?.pendingInstall
-                    ? `Hay código descargado sin instalar (${n} ${n === 1 ? 'cambio' : 'cambios'})`
+                    ? (n === 1 ? t('Hay código descargado sin instalar (1 cambio)') : t('Hay código descargado sin instalar ({n} cambios)', { n }))
                     : n === 1
-                      ? 'Hay 1 cambio nuevo'
-                      : `Hay ${n} cambios nuevos`}
+                      ? t('Hay 1 cambio nuevo')
+                      : t('Hay {n} cambios nuevos', { n })}
               </p>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {status!.commits.slice(0, 12).map((c) => (
@@ -129,16 +129,14 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
               {status && !status.canUpdate && <p className={s.warn}>{status.reason}</p>}
               {!!status?.localChanges?.length && (
                 <p className={s.note}>
-                  Cambiados aquí: {status.localChanges.slice(0, 8).join(', ')}
-                  {status.localChanges.length > 8 ? ` y ${status.localChanges.length - 8} más` : ''}. Quedarán guardados en git
-                  (<code>git stash list</code> en la carpeta del código) por si quieres recuperarlos.
+                  {t('Cambiados aquí:')} {status.localChanges.slice(0, 8).join(', ')}
+                  {status.localChanges.length > 8 ? t(' y {n} más', { n: status.localChanges.length - 8 }) : ''}{t('. Quedarán guardados en git (')}<code>git stash list</code> {t('en la carpeta del código) por si quieres recuperarlos.')}
                 </p>
               )}
               {localCommits.length > 0 && (
                 <p className={s.note}>
-                  Commits hechos aquí: {localCommits.slice(0, 4).map((c) => `«${c.subject}»`).join(', ')}
-                  {localCommits.length > 4 ? ` y ${localCommits.length - 4} más` : ''}. Se guardan en una rama <code>apartado/…</code> del
-                  código (no se borran) y la app queda como en GitHub.
+                  {t('Commits hechos aquí:')} {localCommits.slice(0, 4).map((c) => `«${c.subject}»`).join(', ')}
+                  {localCommits.length > 4 ? t(' y {n} más', { n: localCommits.length - 4 }) : ''}{t('. Se guardan en una rama')} <code>apartado/…</code> {t('del código (no se borran) y la app queda como en GitHub.')}
                 </p>
               )}
             </div>
@@ -146,29 +144,29 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
 
           {(updating || lines.length > 0) && (
             <pre className={s.code} style={{ maxHeight: 200, overflow: 'auto', whiteSpace: 'pre-wrap', margin: 0 }} aria-live="polite">
-              {lines.slice(-14).join('\n') || 'Preparando…'}
+              {lines.slice(-14).join('\n') || t('Preparando…')}
             </pre>
           )}
 
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" className={cx(u.btn, u.btnGhost)} onClick={() => void check()} disabled={checking || updating}>
               <RefreshCw size={14} className={cx(checking && u.spin)} aria-hidden="true" />
-              Comprobar de nuevo
+              {t('Comprobar de nuevo')}
             </button>
             {n > 0 && status?.canUpdate && (
               <button type="button" className={cx(u.btn, u.btnPrimary)} onClick={() => void update()} disabled={updating}>
                 {updating ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : <Download size={14} aria-hidden="true" />}
-                {updating ? 'Actualizando…' : 'Actualizar y reiniciar'}
+                {updating ? t('Actualizando…') : t('Actualizar y reiniciar')}
               </button>
             )}
             {blockedLocal && (
               <button type="button" className={cx(u.btn, u.btnPrimary)} onClick={() => void update(true)} disabled={updating}>
                 {updating ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : <Download size={14} aria-hidden="true" />}
-                {updating ? 'Actualizando…' : 'Apartar cambios y actualizar'}
+                {updating ? t('Actualizando…') : t('Apartar cambios y actualizar')}
               </button>
             )}
           </div>
-          {updating && <p className={s.note}>AI Cowork se reiniciará al terminar (unos minutos si hay que compilar). Las tareas en curso se detendrán.</p>}
+          {updating && <p className={s.note}>{t('AI Cowork se reiniciará al terminar (unos minutos si hay que compilar). Las tareas en curso se detendrán.')}</p>}
         </div>
 
         {error && (

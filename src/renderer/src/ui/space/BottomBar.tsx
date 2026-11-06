@@ -5,6 +5,7 @@ import { ACTIVITY_LABEL, useAgentLookup } from '../common/agents'
 import { cx, plural } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './BottomBar.module.css'
+import { t } from '@/lib/i18n'
 
 /** Una transferencia cuenta como activa durante este tiempo desde su creación. */
 const ACTIVE_WINDOW_MS = 4000
@@ -82,7 +83,7 @@ export function BottomBar() {
                   type="button"
                   className={s.dotBtn}
                   onClick={() => select({ type: 'agent', id })}
-                  aria-label={`${label}. Ver en el espacio`}
+                  aria-label={t('{label}. Ver en el espacio', { label })}
                   title={label}
                 >
                   <span
@@ -100,7 +101,7 @@ export function BottomBar() {
             })}
           </div>
           <span className={s.text}>
-            {connected === 1 ? '1 agente conectado' : `${connected} agentes conectados`}
+            {connected === 1 ? t('1 agente conectado') : t('{connected} agentes conectados', { connected })}
           </span>
           <span className={s.short} aria-hidden="true">
             {connected}
@@ -110,7 +111,7 @@ export function BottomBar() {
         <div className={s.transfers}>
           <ArrowLeftRight size={16} aria-hidden="true" className={cx(s.statusIcon, activeTransfers > 0 && s.transferOn)} />
           <span className={s.text}>
-            {activeTransfers === 1 ? '1 transferencia activa' : `${plural(activeTransfers, 'transferencia', 'transferencias')} activas`}
+            {activeTransfers === 1 ? t('1 transferencia activa') : t('{n} transferencias activas', { n: activeTransfers })}
           </span>
           <span className={s.short} aria-hidden="true">
             {activeTransfers}
@@ -118,16 +119,16 @@ export function BottomBar() {
         </div>
       </div>
 
-      <div className={s.controls} role="group" aria-label="Controles de vista">
-        <button type="button" className={cx(s.ctl, s.ctlPrimary)} onClick={overview} title="Vista general" aria-label="Vista general">
+      <div className={s.controls} role="group" aria-label={t('Controles de vista')}>
+        <button type="button" className={cx(s.ctl, s.ctlPrimary)} onClick={overview} title={t('Vista general')} aria-label={t('Vista general')}>
           <LayoutGrid size={16} aria-hidden="true" />
-          <span className={s.ctlLabel}>Vista general</span>
+          <span className={s.ctlLabel}>{t('Vista general')}</span>
         </button>
-        <button type="button" className={s.ctl} onClick={() => zoom(1)} title="Acercar" aria-label="Acercar">
+        <button type="button" className={s.ctl} onClick={() => zoom(1)} title={t('Acercar')} aria-label={t('Acercar')}>
           <ZoomIn size={16} aria-hidden="true" />
-          <span className={s.ctlLabel}>Acercar</span>
+          <span className={s.ctlLabel}>{t('Acercar')}</span>
         </button>
-        <button type="button" className={cx(s.ctl, s.ctlIconOnly)} onClick={() => zoom(-1)} title="Alejar" aria-label="Alejar">
+        <button type="button" className={cx(s.ctl, s.ctlIconOnly)} onClick={() => zoom(-1)} title={t('Alejar')} aria-label={t('Alejar')}>
           <ZoomOut size={16} aria-hidden="true" />
         </button>
         <button
@@ -135,11 +136,11 @@ export function BottomBar() {
           className={s.ctl}
           onClick={() => setSpaceExpanded(!expanded)}
           aria-pressed={expanded}
-          title={expanded ? 'Salir de pantalla completa' : 'Pantalla completa'}
-          aria-label={expanded ? 'Salir de pantalla completa' : 'Pantalla completa'}
+          title={expanded ? t('Salir de pantalla completa') : t('Pantalla completa')}
+          aria-label={expanded ? t('Salir de pantalla completa') : t('Pantalla completa')}
         >
           {expanded ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
-          <span className={s.ctlLabel}>{expanded ? 'Salir' : 'Pantalla completa'}</span>
+          <span className={s.ctlLabel}>{expanded ? t('Salir') : t('Pantalla completa')}</span>
         </button>
         <span className={s.ctlDivider} aria-hidden="true" />
         <button
@@ -147,11 +148,11 @@ export function BottomBar() {
           className={cx(s.ctl, reduced && s.ctlMuted)}
           onClick={() => setReducedEffects(!reduced)}
           aria-pressed={!reduced}
-          title={reduced ? 'Efectos reducidos: pulsa para activar los efectos completos' : 'Efectos completos: pulsa para reducirlos'}
-          aria-label="Efectos completos"
+          title={reduced ? t('Efectos reducidos: pulsa para activar los efectos completos') : t('Efectos completos: pulsa para reducirlos')}
+          aria-label={t('Efectos completos')}
         >
           {reduced ? <Sparkle size={16} aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}
-          <span className={cx(s.ctlLabel, s.ctlLabelWide)}>{reduced ? 'Efectos reducidos' : 'Efectos completos'}</span>
+          <span className={cx(s.ctlLabel, s.ctlLabelWide)}>{reduced ? t('Efectos reducidos') : t('Efectos completos')}</span>
         </button>
       </div>
     </div>

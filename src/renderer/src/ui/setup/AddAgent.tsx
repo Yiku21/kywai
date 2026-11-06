@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './AddAgent.module.css'
+import { t } from '@/lib/i18n'
 
 /** Los argumentos como los escribe una persona: separados por espacios, sin comillas ni símbolos de consola. */
 function splitArgs(text: string): string[] | null {
@@ -56,7 +57,7 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
     if (!a || busy) return
     const args = splitArgs(form.args)
     if (!args) {
-      setError('Los argumentos solo pueden llevar letras, números y . : - / = , @ (separados por espacios).')
+      setError(t('Los argumentos solo pueden llevar letras, números y . : - / = , @ (separados por espacios).'))
       return
     }
     setBusy('custom')
@@ -89,14 +90,13 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
         <header className={s.head}>
           <div>
             <h2 id="addagent-title" className={s.title}>
-              Añadir un agente
+              {t('Añadir un agente')}
             </h2>
             <p className={s.subtitle}>
-              Conecta los agentes que ya usas con tu suscripción: AI Cowork los lanza con la sesión que tengas iniciada en ellos y les reparte
-              trabajo como a los demás.
+              {t('Conecta los agentes que ya usas con tu suscripción: AI Cowork los lanza con la sesión que tengas iniciada en ellos y les reparte trabajo como a los demás.')}
             </p>
           </div>
-          <button type="button" className={cx(u.iconBtn, s.close)} aria-label="Cerrar" onClick={onClose}>
+          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={onClose}>
             <X size={18} />
           </button>
         </header>
@@ -105,7 +105,7 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
           <>
             <label className={s.search}>
               <Search size={15} aria-hidden="true" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar un agente…" aria-label="Buscar un agente" autoFocus />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Buscar un agente…')} aria-label={t('Buscar un agente')} autoFocus />
             </label>
             <ul className={s.list}>
               {list.map((e) => (
@@ -116,8 +116,8 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
                       {e.name}
                       {e.kind === 'cli' && <code className={s.cmd}>{e.cli?.command}</code>}
                       {e.kind === 'cli' && !e.verified && (
-                        <span className={s.warn} title={e.note ?? 'Su forma de lanzarlo no se ha comprobado a fondo: puede necesitar ajustes.'}>
-                          <AlertTriangle size={11} aria-hidden="true" /> sin comprobar
+                        <span className={s.warn} title={e.note ?? t('Su forma de lanzarlo no se ha comprobado a fondo: puede necesitar ajustes.')}>
+                          <AlertTriangle size={11} aria-hidden="true" /> {t('sin comprobar')}
                         </span>
                       )}
                     </span>
@@ -127,34 +127,34 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
                   </span>
                   <span className={s.itemActions}>
                     {e.cli?.url && (
-                      <button type="button" className={cx(u.iconBtn, s.link)} title="Más información" aria-label={`Más información sobre ${e.name}`} onClick={() => void api?.openExternal(e.cli!.url!)}>
+                      <button type="button" className={cx(u.iconBtn, s.link)} title={t('Más información')} aria-label={t('Más información sobre {name}', { name: e.name })} onClick={() => void api?.openExternal(e.cli!.url!)}>
                         <ExternalLink size={14} />
                       </button>
                     )}
                     <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={!!busy} onClick={() => void add(e)}>
                       {busy === e.id ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : <Plus size={13} aria-hidden="true" />}
-                      Añadir
+                      {t('Añadir')}
                     </button>
                   </span>
                 </li>
               ))}
-              {list.length === 0 && <li className={s.empty}>No hay ningún agente que coincida. Prueba con «Otro programa…».</li>}
+              {list.length === 0 && <li className={s.empty}>{t('No hay ningún agente que coincida. Prueba con «Otro programa…».')}</li>}
             </ul>
             <footer className={s.foot}>
-              <p className={s.hint}>¿No está el tuyo? Cualquier programa de terminal que atienda un encargo sirve.</p>
+              <p className={s.hint}>{t('¿No está el tuyo? Cualquier programa de terminal que atienda un encargo sirve.')}</p>
               <button type="button" className={u.btn} onClick={() => setCustom(true)}>
-                <Terminal size={14} aria-hidden="true" /> Otro programa…
+                <Terminal size={14} aria-hidden="true" /> {t('Otro programa…')}
               </button>
             </footer>
           </>
         ) : (
           <form className={s.form} onSubmit={(e) => void addCustom(e)}>
             <label>
-              <span>Nombre</span>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Mi agente" maxLength={40} />
+              <span>{t('Nombre')}</span>
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('Mi agente')} maxLength={40} />
             </label>
             <label>
-              <span>Programa (el comando que escribirías en la terminal)</span>
+              <span>{t('Programa (el comando que escribirías en la terminal)')}</span>
               <input
                 value={form.command}
                 onChange={(e) => setForm({ ...form, command: e.target.value })}
@@ -165,31 +165,31 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
               />
             </label>
             <label>
-              <span>Cómo recibe el encargo</span>
+              <span>{t('Cómo recibe el encargo')}</span>
               <select value={form.promptVia} onChange={(e) => setForm({ ...form, promptVia: e.target.value as 'stdin' | 'file' | 'arg' })}>
-                <option value="stdin">Por la entrada estándar (stdin)</option>
-                <option value="file">En un archivo ({'{promptFile}'} en los argumentos)</option>
-                <option value="arg">Como argumento ({'{prompt}'}: se le pide leer el archivo del encargo)</option>
+                <option value="stdin">{t('Por la entrada estándar (stdin)')}</option>
+                <option value="file">{t('En un archivo (')}{'{promptFile}'} {t('en los argumentos)')}</option>
+                <option value="arg">{t('Como argumento (')}{'{prompt}'}{t(': se le pide leer el archivo del encargo)')}</option>
               </select>
             </label>
             <label>
-              <span>Argumentos de una consulta no interactiva</span>
+              <span>{t('Argumentos de una consulta no interactiva')}</span>
               <input value={form.args} onChange={(e) => setForm({ ...form, args: e.target.value })} placeholder="run --yes {promptFile}" autoComplete="off" />
             </label>
             <label>
-              <span>Para iniciar sesión (opcional)</span>
-              <input value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} placeholder="miagente login" autoComplete="off" />
+              <span>{t('Para iniciar sesión (opcional)')}</span>
+              <input value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} placeholder={t('miagente login')} autoComplete="off" />
             </label>
             <p className={s.hint}>
-              Se ejecuta en la carpeta del proyecto, con la sesión que ya tengas en él. El texto del encargo nunca va en la línea de órdenes.
+              {t('Se ejecuta en la carpeta del proyecto, con la sesión que ya tengas en él. El texto del encargo nunca va en la línea de órdenes.')}
             </p>
             <div className={s.formActions}>
               <button type="button" className={cx(u.btn, u.btnGhost)} onClick={() => setCustom(false)}>
-                Volver al catálogo
+                {t('Volver al catálogo')}
               </button>
               <button type="submit" className={cx(u.btn, u.btnPrimary)} disabled={!!busy || !form.command.trim()}>
                 {busy === 'custom' && <LoaderCircle size={14} className={u.spin} aria-hidden="true" />}
-                Añadir
+                {t('Añadir')}
               </button>
             </div>
           </form>

@@ -10,6 +10,7 @@ import { SnowPanel } from './navidad'
 import { TombPanel } from './halloween'
 import { RelicPanel } from './relicario'
 import { LoomPanel } from './telar'
+import { t } from '@/lib/i18n'
 
 /** Centro (x, z) de cada zona en el suelo. */
 export const ZONE_SPOTS = {
@@ -87,7 +88,7 @@ function listText(ctx: CanvasRenderingContext2D, items: string[], x: number, y: 
 
 const tasksTexture = (): THREE.CanvasTexture =>
   canvasTexture(512, 620, (ctx) => {
-    titleText(ctx, ['Nuevas', 'tareas'], 44, 104, 72)
+    titleText(ctx, [t('Nuevas'), t('tareas')], 44, 104, 72)
     ctx.strokeStyle = 'rgba(235,245,255,0.95)'
     ctx.lineWidth = 10
     ctx.beginPath()
@@ -324,7 +325,7 @@ function TasksZone() {
       onClick={() => {
         useCowork.getState().setLeftTab('chat')
         useCowork.getState().setMobileView('chat')
-        window.setTimeout(() => document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Escribe una tarea para el equipo"]')?.focus(), 60)
+        window.setTimeout(() => document.querySelector<HTMLTextAreaElement>('textarea[data-composer]')?.focus(), 60)
       }}
     >
       {(hover) => (
@@ -344,7 +345,7 @@ function FilesZone() {
   const folder = project?.workDir ? project.workDir.split(/[\\/]/).filter(Boolean).pop() : null
   const map = useMemo(
     () =>
-      iconTitleTexture('Archivos', [`Adjuntos · ${attachments}`, `Resultados · ${artifacts}`, folder ? `Carpeta · ${folder}` : 'Carpeta del proyecto', 'Abrir archivos'], folderIcon),
+      iconTitleTexture(t('Archivos'), [t('Adjuntos · {n}', { n: attachments }), t('Resultados · {n}', { n: artifacts }), folder ? t('Carpeta · {folder}', { folder }) : t('Carpeta del proyecto'), t('Abrir archivos')], folderIcon),
     [attachments, artifacts, folder]
   )
   useEffect(() => () => map.dispose(), [map])
@@ -389,7 +390,7 @@ const TOOL_KINDS = ['terminal', 'web', 'code', 'plug'] as const
 const toolColors = (): string[] => [palette.accent, palette.primary, '#5ff0a6', palette.secondary]
 
 function ToolsZone() {
-  const title = useMemo(() => titleOnly('Herramientas'), [])
+  const title = useMemo(() => titleOnly(t('Herramientas')), [])
   const icons = useMemo(() => TOOL_KINDS.map(toolIcon), [])
   const mats = useMemo(
     () => icons.map((t, i) => new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(toolColors()[i]).multiplyScalar(1.5), transparent: true, depthWrite: false, toneMapped: false })),
@@ -450,7 +451,7 @@ function MemoryZone() {
   })
   const map = useMemo(() => {
     const [dec, pref, fact, pend] = counts.split('|')
-    return iconTitleTexture('Memoria', [`Decisiones · ${dec}`, `Preferencias · ${pref}`, `Hechos · ${fact}`, `Pendientes · ${pend}`], brainIcon)
+    return iconTitleTexture(t('Memoria'), [t('Decisiones · {n}', { n: dec }), t('Preferencias · {n}', { n: pref }), t('Hechos · {n}', { n: fact }), t('Pendientes · {n}', { n: pend })], brainIcon)
   }, [counts])
   useEffect(() => () => map.dispose(), [map])
   // Caras un poco hacia atrás en profundidad: las aristas luminosas no pelean con ellas (parpadeo).

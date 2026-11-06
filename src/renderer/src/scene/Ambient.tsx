@@ -6,6 +6,7 @@ import { cityFrag, cityVert, floorFrag, floorVert, holoVert, panelFrag, particle
 import { FOG_FAR, FOG_NEAR, cityUniforms, floorUniforms, glowBlending, palette, panelInk, tone } from './palette'
 import { registry } from './registry'
 import type { QualitySettings } from './quality'
+import { t } from '@/lib/i18n'
 
 /** Generador con semilla: el escenario es siempre el mismo. */
 function seeded(seed: number): () => number {
@@ -238,8 +239,8 @@ interface WallSpec {
 }
 
 const WALLS: WallSpec[] = [
-  { pos: [-10.6, 2.6, -10.4], rotY: 0.45, size: [2.6, 3.6], title: [], lines: ['IDEAS', 'PERSONAS', 'PROYECTOS', 'RESULTADOS'], align: 'left', seed: 0.1 },
-  { pos: [10.8, 2.6, -10.6], rotY: -0.45, size: [2.6, 3.6], title: [], lines: ['UN MUNDO', 'DE IA', 'TRABAJANDO', 'JUNTOS'], align: 'right', seed: 0.5 }
+  { pos: [-10.6, 2.6, -10.4], rotY: 0.45, size: [2.6, 3.6], title: [], lines: [t('IDEAS'), t('PERSONAS'), t('PROYECTOS'), t('RESULTADOS')], align: 'left', seed: 0.1 },
+  { pos: [10.8, 2.6, -10.6], rotY: -0.45, size: [2.6, 3.6], title: [], lines: [t('UN MUNDO'), t('DE IA'), t('TRABAJANDO'), t('JUNTOS')], align: 'right', seed: 0.5 }
 ]
 
 function HoloWalls({ reduced }: { reduced: boolean }) {

@@ -28,6 +28,7 @@ import { agentVars, cx, formatDuration } from '../common/util'
 import u from '../common/ui.module.css'
 import r from '../header/RemoteAccess.module.css'
 import s from './TaskTraceDialog.module.css'
+import { locale, t } from '@/lib/i18n'
 
 const TOOL_ICON: Record<TraceTool, typeof Wrench> = {
   command: SquareTerminal,
@@ -41,7 +42,7 @@ const TOOL_ICON: Record<TraceTool, typeof Wrench> = {
   other: Wrench
 }
 
-const clock = (ts: number): string => new Date(ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+const clock = (ts: number): string => new Date(ts).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
 /** Cuerpo de una herramienta: diff con colores en las ediciones, texto tal cual en lo demás. */
 function Code({ text, diff }: { text: string; diff?: boolean }) {
@@ -62,11 +63,11 @@ function ToolItem({ e, live }: { e: TraceEntry; live: boolean }) {
   const Icon = TOOL_ICON[e.tool ?? 'other']
   const status =
     e.ok === true ? (
-      <CircleCheck size={14} aria-label="Bien" className={s.ok} />
+      <CircleCheck size={14} aria-label={t('Bien')} className={s.ok} />
     ) : e.ok === false ? (
-      <CircleX size={14} aria-label="Con error" className={s.bad} />
+      <CircleX size={14} aria-label={t('Con error')} className={s.bad} />
     ) : live && e.tool !== 'todo' ? (
-      <LoaderCircle size={14} aria-label="En curso" className={cx(u.spin, s.pending)} />
+      <LoaderCircle size={14} aria-label={t('En curso')} className={cx(u.spin, s.pending)} />
     ) : null
   const head = (
     <>
@@ -91,7 +92,7 @@ function ToolItem({ e, live }: { e: TraceEntry; live: boolean }) {
         {e.body && <Code text={e.tool === 'command' ? `$ ${e.body}` : e.body} diff={e.tool === 'edit'} />}
         {e.output && (
           <>
-            <span className={s.outLabel}>Resultado</span>
+            <span className={s.outLabel}>{t('Resultado')}</span>
             <pre className={cx(s.code, e.ok === false && s.codeBad)}>{e.output}</pre>
           </>
         )}
@@ -109,7 +110,7 @@ function Item({ e, live }: { e: TraceEntry; live: boolean }) {
         <details className={s.thinking}>
           <summary title={clock(e.ts)}>
             <Sparkles size={14} aria-hidden="true" />
-            <span className={s.thinkLabel}>Razonando</span>
+            <span className={s.thinkLabel}>{t('Razonando')}</span>
             <span className={s.thinkPreview}>{preview}</span>
           </summary>
           <MarkdownView text={body} className={s.thinkBody} />
@@ -193,11 +194,11 @@ function TraceWindow({ trace }: { trace: TraceView }) {
 
   let empty: ReactNode = null
   if (!entries.length) {
-    if (trace.loading) empty = <p className={s.empty}>Cargando…</p>
-    else if (mode !== 'live') empty = <p className={s.empty}>En la demo no hay registro de pasos: aparece con los agentes reales.</p>
-    else if (running) empty = <p className={s.empty}>Esperando el primer paso del agente…</p>
-    else if (task?.status === 'pending' || task?.status === 'blocked') empty = <p className={s.empty}>La tarea aún no ha empezado.</p>
-    else empty = <p className={s.empty}>No hay registro de esta tarea (las tareas hechas antes de esta versión no lo guardaban).</p>
+    if (trace.loading) empty = <p className={s.empty}>{t('Cargando…')}</p>
+    else if (mode !== 'live') empty = <p className={s.empty}>{t('En la demo no hay registro de pasos: aparece con los agentes reales.')}</p>
+    else if (running) empty = <p className={s.empty}>{t('Esperando el primer paso del agente…')}</p>
+    else if (task?.status === 'pending' || task?.status === 'blocked') empty = <p className={s.empty}>{t('La tarea aún no ha empezado.')}</p>
+    else empty = <p className={s.empty}>{t('No hay registro de esta tarea (las tareas hechas antes de esta versión no lo guardaban).')}</p>
   }
 
   return (
@@ -207,7 +208,7 @@ function TraceWindow({ trace }: { trace: TraceView }) {
           <AgentAvatar look={look} size={38} />
           <div className={s.headInfo}>
             <h2 id="trace-title" className={s.title}>
-              {task?.title ?? 'Tarea'}
+              {task?.title ?? t('Tarea')}
             </h2>
             <p className={s.sub}>
               <span className={s.agentName}>{look.name}</span>
@@ -221,7 +222,7 @@ function TraceWindow({ trace }: { trace: TraceView }) {
               {duration && <span>{duration}</span>}
             </p>
           </div>
-          <button type="button" className={cx(u.iconBtn, s.close)} aria-label="Cerrar" title="Cerrar (Esc)" onClick={close}>
+          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} title={t('Cerrar (Esc)')} onClick={close}>
             <X size={18} />
           </button>
         </header>
@@ -229,16 +230,16 @@ function TraceWindow({ trace }: { trace: TraceView }) {
         <div ref={feed} className={s.feed} onScroll={onScroll} aria-live="polite" aria-busy={running}>
           {task?.description && (
             <details className={s.brief}>
-              <summary>Encargo{task.acceptance ? ' y criterio de aceptación' : ''}</summary>
+              <summary>{task.acceptance ? t('Encargo y criterio de aceptación') : t('Encargo')}</summary>
               <MarkdownView text={task.description} />
               {task.acceptance && (
                 <p className={s.briefLine}>
-                  <b>Hecha cuando:</b> {task.acceptance}
+                  <b>{t('Hecha cuando:')}</b> {task.acceptance}
                 </p>
               )}
               {!!task.files?.length && (
                 <p className={s.briefLine}>
-                  <b>Sus archivos:</b> {task.files.join(', ')}
+                  <b>{t('Sus archivos:')}</b> {task.files.join(', ')}
                 </p>
               )}
             </details>
@@ -250,7 +251,7 @@ function TraceWindow({ trace }: { trace: TraceView }) {
           {running && (
             <p className={s.live}>
               <LoaderCircle size={14} aria-hidden="true" className={u.spin} />
-              {task?.lastActivity ?? runtime?.lastActivity ?? 'Trabajando'}…
+              {task?.lastActivity ?? runtime?.lastActivity ?? t('Trabajando')}…
             </p>
           )}
         </div>
@@ -258,7 +259,7 @@ function TraceWindow({ trace }: { trace: TraceView }) {
         {!atBottom && (
           <button type="button" className={s.jump} onClick={toBottom}>
             <ArrowDown size={14} aria-hidden="true" />
-            Ir a lo último
+            {t('Ir a lo último')}
           </button>
         )}
       </div>
