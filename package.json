@@ -17,6 +17,7 @@
     "test:ui": "vitest --ui",
     "dist:win": "electron-vite build && electron-builder --win",
     "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:linux": "electron-vite build && electron-builder --linux",
     "fuente": "node scripts/empaquetar-fuente.mjs",
     "publicar-cliente": "node scripts/publicar-cliente.mjs"
   },
@@ -115,6 +116,22 @@
     },
     "dmg": {
       "title": "AI Cowork"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "executableName": "ai-cowork",
+      "category": "Development",
+      "synopsis": "Tu equipo de agentes de IA trabajando juntos",
+      "artifactName": "AI-Cowork-${version}-${arch}.${ext}"
     }
   }
 }
