@@ -253,11 +253,14 @@ export async function detectTools(): Promise<SetupTool[]> {
   await refreshPath()
   const ctx = await context()
   // Los programas de fábrica y los de los agentes de catálogo que haya en este equipo.
-  const catalog: SetupToolId[] = getConfig()
-    .agents.filter((a) => a.provider === 'cli' && a.cli)
-    .map((a) => `cli:${a.id}` as SetupToolId)
+  const cliAgents = getConfig().agents.filter((a) => a.provider === 'cli' && a.cli)
+  const catalog: SetupToolId[] = cliAgents.map((a) => `cli:${a.id}` as SetupToolId)
+  // Python solo se mira si algún agente de catálogo lo necesita (Mistral Vibe, gptme…): sin él en la lista, el
+  // asistente no lo enseñaba ni lo instalaba y esos agentes se quedaban en «Primero instala Python». No se mira
+  // siempre porque, en un Mac sin herramientas de desarrollo, «python3» abre una ventana para instalarlas.
+  const python: SetupToolId[] = cliAgents.some((a) => a.cli?.install?.needs === 'python') ? ['python'] : []
   return Promise.all(
-    [...PLATFORM_TOOLS, ...catalog].map(async (id) => {
+    [...PLATFORM_TOOLS, ...python, ...catalog].map(async (id) => {
       const t = toolDef(id)!
       const p = await probe(id)
       const plan = t.install(ctx)
