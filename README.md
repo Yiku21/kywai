@@ -14,6 +14,7 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-x64%20%26%20ARM-FCC624?logo=linux&logoColor=black)
 ![Browser](https://img.shields.io/badge/Browser-over%20Tailscale-242E4C?logo=tailscale&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-%C3%93rbita-3DDC84?logo=android&logoColor=white)
 ![Electron](https://img.shields.io/badge/Electron-React%2019%20%2B%20Three.js-47848F?logo=electron&logoColor=white)
@@ -208,7 +209,7 @@ The computer where AI Cowork is installed (for example a Mac mini that is always
 
 | | 🖥️ **Desktop** | 💻 **Desktop client** | 🌐 **Browser** | 📱 **Órbita (Android)** |
 |---|---|---|---|---|
-| **What it is** | The full app for Windows and macOS | The app on another computer, connected to your main AI Cowork | The same interface from any device on your Tailscale network | A native Android app made for the phone |
+| **What it is** | The full app for Windows, macOS and Linux | The app on another computer, connected to your main AI Cowork | The same interface from any device on your Tailscale network | A native Android app made for the phone |
 | **How you get in** | Open the app | Pair once with a 6-digit code | A link with an access code, once | Pair once with a 6-digit code |
 | **What you can do** | Everything | Everything, plus browsing the server's files and **syncing folders** both ways | Chat, 3D world, files, results and plan approval | Chat, plans, tasks, files, memory, usage and a native 3D world |
 | **Updates** | ⋮ → "Check for updates…" | Signed updates from your own server | Always the latest | From Settings, without reinstalling |
@@ -255,7 +256,7 @@ And four that decorate the world, reshape its core and, in the festive ones, dre
 
 ### Requirements
 
-- **Windows 10/11 or macOS** (Apple silicon or Intel).
+- **Windows 10/11, macOS** (Apple silicon or Intel) **or Linux** (x64 or ARM; Ubuntu, Debian, Fedora, Arch, openSUSE…).
 - **Node.js** `^22.22.2 || ^24.15.0 || >=26.0.0`. The assistant installs it if it is missing.
 - At least one agent: any from the catalog (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), a local model or any command-line agent. **Hermes Agent** coordinates by default, but any agent can.
 - Optional: **LM Studio** or **Ollama** for the local agent, **git** for Undo, and **Tailscale** to use it from other devices.
@@ -285,6 +286,16 @@ bash scripts/instalar-mac.sh
 
 It builds the app for that Mac, copies it to `/Applications` (or wherever you choose) and opens it.
 
+### Linux
+
+With Node.js and git installed, clone the repository and run this inside the folder:
+
+```bash
+bash scripts/instalar-linux.sh
+```
+
+It builds the app for that computer, puts it in `~/.local/share/ai-cowork` without asking for admin rights, adds it to the applications menu and creates the `ai-cowork` command. You can also build an AppImage with `npm run dist:linux`. Details in the [manual](docs/MANUAL.md#linux-se-compila-en-el-propio-equipo) (in Spanish).
+
 ### First run
 
 The **setup assistant** opens on first launch (also under ⋮ → "Configure agents…"):
@@ -298,7 +309,7 @@ To use it from your phone or laptop, open ⋮ → "Access from other devices…"
 
 ## 🔐 Privacy and security
 
-- **On your computer.** Projects, memory, logs and usage live in your user data folder (`%APPDATA%\AI Cowork` on Windows, `~/Library/Application Support/AI Cowork` on macOS).
+- **On your computer.** Projects, memory, logs and usage live in your user data folder (`%APPDATA%\AI Cowork` on Windows, `~/Library/Application Support/AI Cowork` on macOS, `~/.config/AI Cowork` on Linux).
 - **Closed remote access.** The server listens only on your Tailscale IP and `127.0.0.1`, never on the local network or the internet, and asks for a code on every request. Each paired device has its own key, which you can revoke on its own (it also expires after 90 days unused), or you can revoke all of them at once with a new code. Pairing codes expire after 10 minutes and allow only a few attempts.
 - **Signed client updates.** Desktop clients only install updates signed with your own private key, which never leaves the computer that publishes them.
 - **No passwords.** Each agent uses its official program's own login. API keys you add are encrypted with the system keychain.

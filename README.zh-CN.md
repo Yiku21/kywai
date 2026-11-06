@@ -14,6 +14,7 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-x64%20%26%20ARM-FCC624?logo=linux&logoColor=black)
 ![浏览器](https://img.shields.io/badge/%E6%B5%8F%E8%A7%88%E5%99%A8-%E9%80%9A%E8%BF%87%20Tailscale-242E4C?logo=tailscale&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-%C3%93rbita-3DDC84?logo=android&logoColor=white)
 ![Electron](https://img.shields.io/badge/Electron-React%2019%20%2B%20Three.js-47848F?logo=electron&logoColor=white)
@@ -208,7 +209,7 @@ flowchart TD
 
 | | 🖥️ **桌面版** | 💻 **桌面客户端** | 🌐 **浏览器** | 📱 **Órbita（Android）** |
 |---|---|---|---|---|
-| **是什么** | 适用于 Windows 和 macOS 的完整应用 | 在另一台电脑上运行的应用，连接到你的主 AI Cowork | 在你 Tailscale 网络中的任何设备上使用同样的界面 | 专为手机打造的原生 Android 应用 |
+| **是什么** | 适用于 Windows、macOS 和 Linux 的完整应用 | 在另一台电脑上运行的应用，连接到你的主 AI Cowork | 在你 Tailscale 网络中的任何设备上使用同样的界面 | 专为手机打造的原生 Android 应用 |
 | **如何进入** | 打开应用 | 用 6 位数代码配对一次 | 一个带访问码的链接，只需一次 | 用 6 位数代码配对一次 |
 | **能做什么** | 全部功能 | 全部功能，外加浏览服务器上的文件和双向**同步文件夹** | 聊天、3D 世界、文件、结果和批准计划 | 聊天、计划、任务、文件、记忆、用量和原生 3D 世界 |
 | **更新方式** | ⋮ →“检查更新…” | 来自你自己服务器的签名更新 | 始终是最新版本 | 在“设置”中更新，无需重新安装 |
@@ -255,7 +256,7 @@ flowchart TD
 
 ### 系统要求
 
-- **Windows 10/11 或 macOS**（Apple 芯片或 Intel）。
+- **Windows 10/11、macOS**（Apple 芯片或 Intel）**或 Linux**（x64 或 ARM；Ubuntu、Debian、Fedora、Arch、openSUSE 等）。
 - **Node.js** `^22.22.2 || ^24.15.0 || >=26.0.0`。如果缺少，设置助手会自动安装。
 - 至少一个智能体：目录中的任意智能体（Claude Code、Codex CLI、Gemini CLI、DeepSeek、Qwen Code、Copilot…）、本地模型或任何命令行智能体。默认由 **Hermes Agent** 负责协调，但任何智能体都可以担任。
 - 可选：用于本地智能体的 **LM Studio** 或 **Ollama**，用于撤销功能的 **git**，以及用于在其他设备上使用的 **Tailscale**。
@@ -285,6 +286,16 @@ bash scripts/instalar-mac.sh
 
 它会为这台 Mac 构建应用，将其复制到 `/Applications`（或你选择的任意位置）并打开。
 
+### Linux
+
+安装好 Node.js 和 git 后，克隆仓库，并在该文件夹内运行：
+
+```bash
+bash scripts/instalar-linux.sh
+```
+
+它会为这台电脑构建应用，无需管理员权限即可安装到 `~/.local/share/ai-cowork`，将其加入应用程序菜单，并创建 `ai-cowork` 命令。也可以用 `npm run dist:linux` 生成 AppImage。详情见[手册](docs/MANUAL.md#linux-se-compila-en-el-propio-equipo)（西班牙语）。
+
 ### 首次运行
 
 首次启动时会打开**设置助手**（也可以在 ⋮ →“配置智能体…”中找到）：
@@ -298,7 +309,7 @@ bash scripts/instalar-mac.sh
 
 ## 🔐 隐私与安全
 
-- **数据在你的电脑上。** 项目、记忆、日志和用量都保存在你的用户数据文件夹中（Windows 上为 `%APPDATA%\AI Cowork`，macOS 上为 `~/Library/Application Support/AI Cowork`）。
+- **数据在你的电脑上。** 项目、记忆、日志和用量都保存在你的用户数据文件夹中（Windows 上为 `%APPDATA%\AI Cowork`，macOS 上为 `~/Library/Application Support/AI Cowork`，Linux 上为 `~/.config/AI Cowork`）。
 - **封闭的远程访问。** 服务器只监听你的 Tailscale IP 和 `127.0.0.1`，绝不监听局域网或互联网，并且每个请求都要求提供代码。每台配对设备都有自己的密钥，你可以单独吊销（闲置 90 天后也会自动过期），也可以通过生成新代码一次性全部吊销。配对码 10 分钟后过期，并且只允许尝试少数几次。
 - **签名的客户端更新。** 桌面客户端只会安装用你自己的私钥签名的更新，而私钥从不离开发布更新的那台电脑。
 - **无需密码。** 每个智能体都使用其官方程序自身的登录方式。你添加的 API 密钥会通过系统钥匙串加密。

@@ -14,6 +14,7 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20e%20Intel-111111?logo=apple&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-x64%20y%20ARM-FCC624?logo=linux&logoColor=black)
 ![Navegador](https://img.shields.io/badge/Navegador-por%20Tailscale-242E4C?logo=tailscale&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-%C3%93rbita-3DDC84?logo=android&logoColor=white)
 ![Electron](https://img.shields.io/badge/Electron-React%2019%20%2B%20Three.js-47848F?logo=electron&logoColor=white)
@@ -208,7 +209,7 @@ El ordenador donde está instalado AI Cowork (por ejemplo, un Mac mini siempre e
 
 | | 🖥️ **Escritorio** | 💻 **Cliente de escritorio** | 🌐 **Navegador** | 📱 **Órbita (Android)** |
 |---|---|---|---|---|
-| **Qué es** | La app completa para Windows y macOS | La app en otro ordenador, conectada a tu AI Cowork principal | La misma interfaz desde cualquier dispositivo de tu red Tailscale | Una app nativa de Android hecha para el móvil |
+| **Qué es** | La app completa para Windows, macOS y Linux | La app en otro ordenador, conectada a tu AI Cowork principal | La misma interfaz desde cualquier dispositivo de tu red Tailscale | Una app nativa de Android hecha para el móvil |
 | **Cómo se entra** | Abriendo la app | Emparejando una vez con un código de 6 cifras | Con un enlace y un código de acceso, una sola vez | Emparejando una vez con un código de 6 cifras |
 | **Qué puedes hacer** | Todo | Todo, y además explorar los archivos del servidor y **sincronizar carpetas** en los dos sentidos | Chat, mundo 3D, archivos, resultados y aprobación de planes | Chat, planes, tareas, archivos, memoria, consumo y un mundo 3D nativo |
 | **Actualizaciones** | ⋮ → «Buscar actualizaciones…» | Actualizaciones firmadas desde tu propio servidor | Siempre la última versión | Desde Ajustes, sin reinstalar |
@@ -255,7 +256,7 @@ Y cuatro que decoran el mundo, cambian la forma de su núcleo y, en los de fiest
 
 ### Requisitos
 
-- **Windows 10/11 o macOS** (chip Apple o Intel).
+- **Windows 10/11, macOS** (chip Apple o Intel) **o Linux** (x64 o ARM; Ubuntu, Debian, Fedora, Arch, openSUSE…).
 - **Node.js** `^22.22.2 || ^24.15.0 || >=26.0.0`. Si falta, lo instala el asistente.
 - Al menos un agente: cualquiera del catálogo (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), un modelo local o cualquier agente de línea de comandos. **Hermes Agent** coordina por defecto, pero puede hacerlo cualquier agente.
 - Opcional: **LM Studio** u **Ollama** para el agente local, **git** para Deshacer y **Tailscale** para usarlo desde otros dispositivos.
@@ -283,6 +284,16 @@ bash scripts/instalar-mac.sh
 
 Compila la app para ese Mac, la copia a `/Applications` (o donde elijas) y la abre.
 
+### Linux
+
+Con Node.js y git instalados, clona el repositorio y ejecuta esto dentro de la carpeta:
+
+```bash
+bash scripts/instalar-linux.sh
+```
+
+Compila la app para ese equipo, la deja en `~/.local/share/ai-cowork` sin pedir administrador, la añade al menú de aplicaciones y crea la orden `ai-cowork`. También puedes generar una AppImage con `npm run dist:linux`. Detalles en el [manual](docs/MANUAL.md#linux-se-compila-en-el-propio-equipo).
+
 ### Primera vez
 
 La primera vez que la abres aparece el **asistente de configuración** (también en ⋮ → «Configurar agentes…»):
@@ -296,7 +307,7 @@ Para usarla desde el móvil o el portátil, abre ⋮ → «Acceso desde otros di
 
 ## 🔐 Privacidad y seguridad
 
-- **En tu ordenador.** Proyectos, memoria, registros y consumo se guardan en tu carpeta de datos de usuario (`%APPDATA%\AI Cowork` en Windows, `~/Library/Application Support/AI Cowork` en macOS).
+- **En tu ordenador.** Proyectos, memoria, registros y consumo se guardan en tu carpeta de datos de usuario (`%APPDATA%\AI Cowork` en Windows, `~/Library/Application Support/AI Cowork` en macOS, `~/.config/AI Cowork` en Linux).
 - **Acceso remoto cerrado.** El servidor escucha solo en tu IP de Tailscale y en `127.0.0.1`, nunca en la red local ni en internet, y pide un código en cada petición. Cada dispositivo emparejado tiene su propia llave, que puedes revocar por separado (además caduca tras 90 días sin usarse), o puedes revocarlas todas a la vez con un código nuevo. Los códigos de emparejamiento caducan a los 10 minutos y solo admiten unos pocos intentos.
 - **Actualizaciones firmadas para los clientes.** Los clientes de escritorio solo instalan actualizaciones firmadas con tu propia clave privada, que nunca sale del ordenador que las publica.
 - **Sin contraseñas.** Cada agente usa el inicio de sesión de su programa oficial. Las claves de API que añadas se cifran con el llavero del sistema.
