@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { AlertTriangle, Check, CircleCheck, Crown, Download, ExternalLink, KeyRound, LoaderCircle, LogIn, Plus, RefreshCw, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Check, CircleCheck, Crown, Download, ExternalLink, KeyRound, LoaderCircle, LogIn, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import type { AgentConfig, SetupAuth, SetupTool, SetupToolId } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
@@ -64,6 +64,8 @@ export function SetupWizard() {
   const [geminiKey, setGeminiKey] = useState('')
   const [agentKeys, setAgentKeys] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
+  // Sesiones que el usuario ha pedido cambiar (lápiz): se enseñan como si faltaran hasta la siguiente comprobación.
+  const [changing, setChanging] = useState<ReadonlySet<SetupToolId>>(new Set())
   const [busy, setBusy] = useState(false)
   const [adding, setAdding] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
@@ -139,12 +141,14 @@ export function SetupWizard() {
   const pendingLogins = useRef<SetupToolId[]>([])
   pendingLogins.current = loginTools.filter((id) => {
     const st = auth[id]
-    return !st || (st !== 'checking' && !st.ok)
+    return !st || (st !== 'checking' && !st.ok) || changing.has(id)
   })
   useEffect(() => {
     if (step !== 2) return
     const onFocus = () => {
-      if (pendingLogins.current.length) void checkAuth(pendingLogins.current)
+      if (!pendingLogins.current.length) return
+      // Al volver con la sesión cambiada se enseña la nueva (correo o proveedor) y el lápiz otra vez.
+      void Promise.resolve(checkAuth(pendingLogins.current)).finally(() => setChanging(new Set()))
     }
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
@@ -260,6 +264,7 @@ export function SetupWizard() {
     try {
       const r = await a.setAgentKey(agentId, key)
       setAuth((prev) => ({ ...prev, [id]: r }))
+      if (r.ok) setChanging((prev) => new Set([...prev].filter((x) => x !== id)))
       setAgentKeys((prev) => ({ ...prev, [agentId]: '' }))
     } catch (err) {
       setError(errorText(err))
@@ -276,6 +281,7 @@ export function SetupWizard() {
     try {
       const r = await a.setupGeminiKey(geminiKey)
       setAuth((prev) => ({ ...prev, gemini: r }))
+      if (r.ok) setChanging((prev) => new Set([...prev].filter((x) => x !== 'gemini')))
       setGeminiKey('')
     } catch (err) {
       setError(errorText(err))
@@ -476,6 +482,14 @@ export function SetupWizard() {
                   const agent = selected.find((a) => toolFor(a, engine) === id)
                   const checking = st === 'checking'
                   const ok = !!st && st !== 'checking' && st.ok
+                  const isChanging = changing.has(id)
+                  const showFix = !ok || isChanging
+                  const stopChanging = () =>
+                    setChanging((prev) => {
+                      const next = new Set(prev)
+                      next.delete(id)
+                      return next
+                    })
                   return (
                     <li key={id} className={cx(s.row, s.rowTall)}>
                       {agent && <RobotAvatar agent={agent} size={34} />}
@@ -484,7 +498,7 @@ export function SetupWizard() {
                         <span className={cx(s.rowDetail, ok && s.okText)}>
                           {st === 'checking' ? 'Comprobando…' : st ? st.detail : '—'}
                         </span>
-                        {agent?.cli?.apiKey && !ok && (
+                        {agent?.cli?.apiKey && showFix && (
                           <form className={s.keyForm} onSubmit={(e) => void saveAgentApiKey(agent.id, e)}>
                             <KeyRound size={13} aria-hidden="true" className={s.keyIcon} />
                             <input
@@ -504,7 +518,7 @@ export function SetupWizard() {
                             </button>
                           </form>
                         )}
-                        {id === 'gemini' && !ok && (
+                        {id === 'gemini' && showFix && (
                           <form className={s.keyForm} onSubmit={(e) => void saveKey(e)}>
                             <KeyRound size={13} aria-hidden="true" className={s.keyIcon} />
                             <input
@@ -524,19 +538,35 @@ export function SetupWizard() {
                       </span>
                       {checking ? (
                         <LoaderCircle size={16} className={cx(u.spin, s.rowSpin)} aria-hidden="true" />
-                      ) : ok ? (
-                        <CircleCheck size={18} className={s.okIcon} aria-label="Listo" />
+                      ) : ok && !isChanging ? (
+                        <span className={s.rowActions}>
+                          <CircleCheck size={18} className={s.okIcon} aria-label="Listo" />
+                          <button
+                            type="button"
+                            className={cx(u.btn, u.btnSm, u.btnGhost)}
+                            onClick={() => setChanging((prev) => new Set(prev).add(id))}
+                            title={id === 'hermes' ? 'Cambiar proveedor o modelo' : 'Cambiar de cuenta'}
+                            aria-label={`${id === 'hermes' ? 'Cambiar proveedor de' : 'Cambiar la sesión de'} ${agent?.name ?? id}`}
+                          >
+                            <Pencil size={13} aria-hidden="true" />
+                          </button>
+                        </span>
                       ) : (
                         <span className={s.rowActions}>
                           {!(agent?.cli?.apiKey && !agent.cli.login) && (
                             <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} onClick={() => void login(id)}>
                               <LogIn size={13} aria-hidden="true" />
-                              {id === 'hermes' ? 'Configurar' : 'Iniciar sesión'}
+                              {id === 'hermes' ? 'Configurar' : isChanging ? 'Cambiar cuenta' : 'Iniciar sesión'}
                             </button>
                           )}
                           <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void checkAuth([id])}>
                             Comprobar
                           </button>
+                          {isChanging && (
+                            <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={stopChanging}>
+                              Cancelar
+                            </button>
+                          )}
                         </span>
                       )}
                     </li>
