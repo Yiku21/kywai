@@ -29,6 +29,18 @@ function initialLevel(): QualityLevel {
 
 const ORDER: QualityLevel[] = ['low', 'medium', 'high']
 
+/**
+ * Ajustes que usa la escena en cada momento. El bloom y las luces de los puestos dependen del equipo ([max]) y no
+ * cambian con el ajuste automático: quitarlos o ponerlos cambia las luces o el destino del dibujo y obliga a
+ * recompilar todos los materiales de golpe (un tirón visible justo cuando el equipo ya iba justo). El ajuste automático
+ * mueve lo que sale barato de cambiar: resolución, partículas, estructuras y suavizado.
+ */
+export function sceneQuality(level: QualityLevel, max: QualityLevel): QualitySettings {
+  const now = QUALITY[level]
+  const device = QUALITY[max]
+  return { ...now, bloom: device.bloom, stationLights: device.stationLights }
+}
+
 interface QualityState {
   level: QualityLevel
   max: QualityLevel

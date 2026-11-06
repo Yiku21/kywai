@@ -7,7 +7,7 @@ import type { AgentConfig, StationConfig } from '@shared/types'
 import { useCowork, useData } from '@/store/cowork'
 import { musicLightLevel } from '@/lib/music'
 import { useTheme } from '@/lib/theme'
-import { QUALITY, useQuality } from './quality'
+import { sceneQuality, useQuality } from './quality'
 import { registry } from './registry'
 import { Ambient } from './Ambient'
 import { Backdrop } from './Backdrop'
@@ -119,7 +119,8 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   const level = useQuality((s) => s.level)
   const lower = useQuality((s) => s.lower)
   const raise = useQuality((s) => s.raise)
-  const q = QUALITY[level]
+  const max = useQuality((s) => s.max)
+  const q = useMemo(() => sceneQuality(level, max), [level, max])
   const reduced = useCowork((s) => s.reducedEffects)
   const stations = useCowork((s) => s.config.stations)
   const [visible, setVisible] = useState(() => !document.hidden)
