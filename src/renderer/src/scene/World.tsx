@@ -114,6 +114,35 @@ function ViewShift({ view }: { view?: ViewInsets }) {
   return null
 }
 
+/** Fotogramas por segundo con la ventana sin foco (sigue viéndose moverse, pero gasta mucho menos). */
+const IDLE_FPS = 20
+
+/** Sin foco, la escena se dibuja a [IDLE_FPS] en vez de a la frecuencia de la pantalla. */
+function IdleFrames({ active }: { active: boolean }) {
+  const invalidate = useThree((st) => st.invalidate)
+  useEffect(() => {
+    if (!active) return
+    const id = window.setInterval(() => invalidate(), 1000 / IDLE_FPS)
+    return () => window.clearInterval(id)
+  }, [active, invalidate])
+  return null
+}
+
+/** ¿Tiene foco la ventana? (un iframe propio, como el reproductor de música, cuenta como foco). */
+function useWindowFocus(): boolean {
+  const [focused, setFocused] = useState(() => document.hasFocus())
+  useEffect(() => {
+    const update = () => window.setTimeout(() => setFocused(document.hasFocus()), 0)
+    window.addEventListener('focus', update)
+    window.addEventListener('blur', update)
+    return () => {
+      window.removeEventListener('focus', update)
+      window.removeEventListener('blur', update)
+    }
+  }, [])
+  return focused
+}
+
 /** Espacio digital 3D. [view]: lo que tapa la interfaz cuando ocupa toda la ventana (tema Órbita). */
 export function World({ view }: { view?: ViewInsets } = {}) {
   const level = useQuality((s) => s.level)
@@ -124,6 +153,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   const reduced = useCowork((s) => s.reducedEffects)
   const stations = useCowork((s) => s.config.stations)
   const [visible, setVisible] = useState(() => !document.hidden)
+  const focused = useWindowFocus()
   // Cada tema tiene sus colores (palette.ts, ya aplicados al cambiarlo): la escena se vuelve a montar con ellos.
   const theme = useTheme()
   const p = palette
@@ -139,7 +169,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   return (
     <Canvas
       dpr={q.dpr}
-      frameloop={visible ? 'always' : 'never'}
+      frameloop={!visible ? 'never' : focused ? 'always' : 'demand'}
       camera={{ fov: 30, position: [0, 15.4, 19.8], near: 0.5, far: 150 }}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false, stencil: false }}
       onPointerMissed={() => useCowork.getState().select(null)}
@@ -148,7 +178,9 @@ export function World({ view }: { view?: ViewInsets } = {}) {
       <color key={`bg-${theme}`} attach="background" args={[p.bg]} />
       <fog key={`fog-${theme}`} attach="fog" args={[p.fog, FOG_NEAR, FOG_FAR]} />
       <SceneClock />
-      <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />
+      <IdleFrames active={visible && !focused} />
+      {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. */}
+      {focused && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />}
 
       <group key={theme}>
         <hemisphereLight args={[L.sky, L.ground, L.hemi]} />
