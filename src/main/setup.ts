@@ -11,6 +11,7 @@ import { emit } from './events'
 import { getConfig } from './config'
 import { agentKey, keys } from './keys'
 import { lmsPath } from './agents/lmstudio'
+import { findTerminal, terminalArgs } from './linuxDesktop'
 
 const IS_WIN = process.platform === 'win32'
 const IS_MAC = process.platform === 'darwin'
@@ -323,7 +324,12 @@ export async function openLogin(id: SetupToolId): Promise<void> {
     const child = spawn('osascript', ['-e', script], { detached: true, stdio: 'ignore' })
     child.unref()
   } else {
-    throw new Error(`Abre una terminal y ejecuta: ${cmd}`)
+    // Linux: la terminal del escritorio ($TERMINAL, x-terminal-emulator, GNOME, KDE, Xfce…).
+    const terminal = findTerminal()
+    if (!terminal) throw new Error(`No se encontró ninguna terminal. Abre una y ejecuta: ${cmd}`)
+    const child = spawn(terminal, terminalArgs(terminal, cmd), { detached: true, stdio: 'ignore' })
+    child.on('error', () => undefined)
+    child.unref()
   }
 }
 
