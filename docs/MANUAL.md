@@ -45,6 +45,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Voces de los agentes](#voces-de-los-agentes)
   - [Música (como YouTube Music)](#música-como-youtube-music)
   - [Modo Demo](#modo-demo)
+  - [Rendimiento](#rendimiento)
 - **[Para desarrolladores](#para-desarrolladores)**
   - [Desarrollo](#desarrollo)
   - [Comprobaciones](#comprobaciones)
@@ -1059,6 +1060,24 @@ Menú ⋮ → **Modo demo**, o el interruptor en la cabecera del Espacio digital
 todos los estados: disponible, trabajo individual, espera, desplazamiento, delegación y recepción, sub-agente,
 error, cuota baja y finalización. No hace ninguna llamada a los CLIs. Se reconoce por el borde ámbar y la
 etiqueta «Demo · datos simulados».
+
+### Rendimiento
+
+Lo que hace AI Cowork para ir fluido sin que tengas que tocar nada:
+
+- **Calidad del 3D automática, sin tirones.** Al abrir elige alta, media o baja según el equipo, y mientras lo usas
+  la ajusta si los fotogramas no llegan. Ese ajuste solo cambia lo que sale barato de cambiar (resolución,
+  partículas, estructuras y suavizado). El brillo (bloom) y las luces de los puestos dependen del equipo y no se
+  quitan ni se ponen sobre la marcha: hacerlo obligaba a recompilar todos los materiales de golpe y daba un tirón
+  justo cuando el equipo ya iba justo (`sceneQuality` en `scene/quality.ts`).
+- **El 3D descansa cuando no lo miras.** Con la ventana o la pestaña oculta (minimizada, o tapada del todo si el sistema lo avisa) se para.
+  Con la ventana a la vista pero sin foco (estás en otra app) se dibuja a 20 fotogramas por segundo: se sigue viendo
+  a los robots trabajar y gasta mucho menos. Al volver a la ventana recupera la fluidez normal.
+- **El chat aparece antes.** El espacio 3D (Three.js y compañía) se carga aparte, después de la interfaz, y todo
+  el código de la interfaz va reducido: lo que hay que cargar al abrir pasó de 4,6 MB a 1,3 MB.
+- **Menos descarga por la red.** El servidor entrega la interfaz comprimida (gzip) al navegador y a los clientes de
+  escritorio: unos 0,6 MB en vez de 4,6 MB la primera vez. Después se queda guardada hasta la siguiente
+  actualización (`src/main/staticGzip.ts`).
 
 ## Para desarrolladores
 
