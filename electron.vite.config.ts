@@ -28,6 +28,9 @@ export default defineConfig({
   },
   renderer: {
     resolve: { alias: { ...shared, '@': resolve('src/renderer/src') } },
-    plugins: [react()]
+    plugins: [react()],
+    // electron-vite no reduce la interfaz por defecto: sin esto pesa el doble y tarda más en abrir (y en llegar al
+    // navegador y a los clientes, que la descargan del servidor).
+    build: { minify: 'esbuild' }
   }
 })
