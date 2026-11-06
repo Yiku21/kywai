@@ -3,7 +3,8 @@ import { copyFileSync, existsSync, promises as fsp, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { hostname } from 'node:os'
 import { pathToFileURL } from 'node:url'
-import type { AddAgentInput, AgentId, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetupToolId, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { AddAgentInput, AgentId, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import { parseSetupToolId } from '@shared/setupTool'
 import {
   finishSetup,
   getConfig,
@@ -599,10 +600,7 @@ function registerIpc(): void {
     emit({ kind: 'config.updated', config: getConfig() })
   })
   // ---- Asistente de configuración ----
-  const toolId = (v: unknown): SetupToolId => {
-    if (typeof v !== 'string' || !/^(node|brew|claude|codex|gemini|hermes|lmstudio|ollama)$/.test(v)) throw new Error('Programa no válido')
-    return v as SetupToolId
-  }
+  const toolId = parseSetupToolId
   handle('setupDetect', () => detectTools())
   ipcMain.handle('cowork:setupInstall', async (_e, id: unknown) => {
     const r = await installTool(toolId(id))
