@@ -5,6 +5,7 @@ import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { RobotAvatar } from '@/lib/RobotAvatar'
 import { catalogEntry } from '@shared/agentCatalog'
+import { installOrder } from '@shared/setupTool'
 import { LocalConfig } from '../quota/LocalConfig'
 import { AddAgent } from './AddAgent'
 import { cx, errorText } from '../common/util'
@@ -230,9 +231,8 @@ export function SetupWizard() {
   }
 
   async function installMissing(): Promise<void> {
-    // Primero lo que necesitan los demás (Node.js), luego cada CLI.
-    const order = [...shownTools].sort((x, y) => Number(y.id === 'node') - Number(x.id === 'node'))
-    for (const t of order) {
+    // Primero lo que necesitan los demás (Homebrew, Node.js, Python), luego cada CLI.
+    for (const t of installOrder(shownTools)) {
       if (t.installed || !t.canInstall) continue
       if (!(await install(t.id))) break
     }
