@@ -758,6 +758,8 @@ buscador. Elige uno y **«Usar …»** (o doble clic): Hermes lo usa desde el pr
 en cada encargo (`-m` y `--provider`) sin tocar el `config.yaml` de Hermes; **«Volver al de Hermes»** deja el de
 su configuración. Las listas salen de la caché de Hermes, sin llamadas de pago: para actualizarlas, ejecuta
 `hermes model --refresh` en la terminal del equipo donde corre AI Cowork (el Mac).
+Los servidores propios de `providers:` (OmniRoute…) salen con su nombre de `config.yaml`; se reconocen aunque
+la caché de Hermes guarde su dirección con una huella al final (`…/v1#…`) o con `localhost` en vez de `127.0.0.1`.
 
 ### Muse (Meta)
 

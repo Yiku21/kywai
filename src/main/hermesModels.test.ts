@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { hermesArgs } from './agents/hermes'
-import { hermesModelLabel, hermesModelsInfo, parseHermesConfig } from './hermesModels'
+import { hermesModelLabel, hermesModelsInfo, hermesProviders, parseHermesConfig } from './hermesModels'
 
 // Como el config.yaml y la caché reales de Hermes (sin claves).
 const CONFIG = `model:
@@ -56,6 +56,29 @@ describe('modelos de Hermes («/model»)', () => {
       ['anthropic', 'Anthropic', 2]
     ])
     expect(info.updatedAt).toBe(1791686531740)
+  })
+
+  it('reconoce la clave nueva de la caché de Hermes («…/v1#huella») aunque config.yaml diga 127.0.0.1', () => {
+    const cfg = parseHermesConfig(`model:
+  base_url: http://127.0.0.1:20128/v1
+  default: cx/gpt-5.6-sol
+  provider: omniroute
+providers:
+  omniroute:
+    base_url: http://127.0.0.1:20128/v1
+`)
+    const providers = hermesProviders(
+      {
+        anthropic: { models: ['claude-fable-5-1'] },
+        'custom:http://127.0.0.1:20128/v1#aff94a1a7f730464': { models: ['cx/gpt-5.6-sol', 'claude/claude-fable-5-1'] },
+        'custom:http://localhost:20128/v1/#otra': { models: ['repetido'] }
+      },
+      cfg
+    )
+    expect(providers.map((p) => [p.id, p.models.length])).toEqual([
+      ['anthropic', 1],
+      ['omniroute', 2]
+    ])
   })
 
   it('lo elegido en AI Cowork manda y se le pasa a Hermes con -m y --provider', () => {
