@@ -82,7 +82,7 @@ Al abrir la app instalada por primera vez aparece el **asistente de configuraci�
 4. **Listo**: resumen de lo que queda pendiente.
 
 Los datos de cada equipo (configuración y proyectos) se guardan en la carpeta de datos del usuario
-(`%APPDATA%\AI Cowork` en Windows, `~/Library/Application Support/AI Cowork` en Mac).
+(`%APPDATA%\AI Cowork` en Windows, `~/Library/Application Support/AI Cowork` en Mac, `~/.config/AI Cowork` en Linux).
 
 #### Windows
 
@@ -117,6 +117,33 @@ ventanas. Lo usan la instalación y cada actualización. Así macOS reconoce la 
 olvida sus permisos de Privacidad (Acceso total al disco, Automatización…) ni vuelve a preguntar por el llavero.
 Si algo falla, firma «ad hoc» como antes y avisa. Al pasar de la firma ad hoc a esta, macOS pide los permisos una
 última vez.
+
+#### Linux (se compila en el propio equipo)
+
+Necesita Node.js 22 o más nuevo y git. Clona el repositorio (para que «Buscar actualizaciones» funcione) y, dentro
+de la carpeta:
+
+```bash
+bash scripts/instalar-linux.sh
+```
+
+Compila la app para ese equipo (x64 o ARM), la deja en `~/.local/share/ai-cowork` (o donde elijas) sin pedir
+administrador, la añade al menú de aplicaciones y crea la orden `ai-cowork` en `~/.local/bin`. Si el sistema
+restringe el aislamiento de Chromium (Ubuntu 24.04 y otros), pide la contraseña para hacer de root el archivo
+`chrome-sandbox` de la app; si no se puede, la app se abre con `--no-sandbox` y lo avisa. Probado en Linux x64.
+
+En Linux:
+- El asistente instala Node.js, Python (con pipx) y Ollama con el gestor de paquetes de la distribución (apt, dnf,
+  pacman o zypper) y la ventana de contraseña del sistema (pkexec); en Debian y Ubuntu, Node.js LTS oficial. Hace
+  falta un escritorio para esa ventana. LM Studio se descarga desde su web. Si la carpeta global de npm es de root,
+  los CLIs que se instalan con npm van a `~/.npm-global`.
+- El inicio de sesión de cada CLI se abre en la terminal del escritorio (`$TERMINAL`, `x-terminal-emulator`,
+  GNOME, Konsole, Xfce, kitty, xterm…).
+- «Abrir AI Cowork al iniciar sesión» crea `~/.config/autostart/ai-cowork.desktop`.
+- «Buscar actualizaciones» compila para Linux y cambia la carpeta instalada (`scripts/actualizar-linux.sh`).
+- También se puede generar una AppImage con `npm run dist:linux` (`release/AI-Cowork-<versión>-<arch>.AppImage`);
+  esa no se actualiza sola.
+- Tailscale se busca en `/usr/bin/tailscale` o `/usr/local/bin/tailscale`.
 
 ### Abrir la app (este equipo, versión de desarrollo)
 
@@ -194,7 +221,7 @@ ver resultados; elegir carpetas, instalar CLIs e iniciar sesión en ellos se hac
 
 ### Cliente de escritorio (conectar con tu AI Cowork principal)
 
-Puedes instalar AI Cowork en otro Mac o Windows y usarlo como **cliente** de tu AI Cowork principal (el que está
+Puedes instalar AI Cowork en otro Mac, Windows o Linux y usarlo como **cliente** de tu AI Cowork principal (el que está
 siempre encendido): no ejecuta agentes ni guarda proyectos, enseña la interfaz del servidor, con sus agentes, su
 chat, sus proyectos y sus archivos, desde una app instalada y no desde el navegador.
 
@@ -291,7 +318,8 @@ cuenta:
   **«Actualizar este equipo…»** (primero busca; si la hay, un segundo toque la descarga del servidor, la instala y
   reinicia). El emparejamiento se mantiene.
 
-Hoy es solo para clientes Windows; en el Mac el cliente se actualiza con `scripts/actualizar-mac.sh`. Un cliente
+Hoy es solo para clientes Windows; en el Mac el cliente se actualiza con `scripts/actualizar-mac.sh` y en Linux con
+`scripts/actualizar-linux.sh`. Un cliente
 instalado antes de este sistema hay que cambiarlo una vez a mano.
 
 ### Dictado por voz
@@ -1126,7 +1154,7 @@ src/
     ui/        cabecera, chat, archivos, tareas, resultados, cuotas, asistente y paneles
 android/       Órbita (Kotlin + Compose); android/release/ lleva la APK que se publica
 docs/          este manual, la guía de modelos y el contrato de la API móvil (mobile-api/openapi.json)
-scripts/       instalación y actualización en Mac, accesos de Windows, publicar el cliente
+scripts/       instalación y actualización en Mac y Linux, accesos de Windows, publicar el cliente
 ```
 
 Para retomar el desarrollo desde otro chat u otro equipo (arquitectura, reglas del repositorio, trampas conocidas y

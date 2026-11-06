@@ -14,6 +14,7 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-x64%20e%20ARM-FCC624?logo=linux&logoColor=black)
 ![Navegador](https://img.shields.io/badge/Navegador-via%20Tailscale-242E4C?logo=tailscale&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-%C3%93rbita-3DDC84?logo=android&logoColor=white)
 ![Electron](https://img.shields.io/badge/Electron-React%2019%20%2B%20Three.js-47848F?logo=electron&logoColor=white)
@@ -208,7 +209,7 @@ O computador onde o AI Cowork está instalado (por exemplo, um Mac mini sempre l
 
 | | 🖥️ **Desktop** | 💻 **Cliente desktop** | 🌐 **Navegador** | 📱 **Órbita (Android)** |
 |---|---|---|---|---|
-| **O que é** | O app completo para Windows e macOS | O app em outro computador, conectado ao seu AI Cowork principal | A mesma interface a partir de qualquer dispositivo da sua rede Tailscale | Um app nativo para Android feito para o celular |
+| **O que é** | O app completo para Windows, macOS e Linux | O app em outro computador, conectado ao seu AI Cowork principal | A mesma interface a partir de qualquer dispositivo da sua rede Tailscale | Um app nativo para Android feito para o celular |
 | **Como você entra** | Abra o app | Pareie uma vez com um código de 6 dígitos | Um link com código de acesso, uma única vez | Pareie uma vez com um código de 6 dígitos |
 | **O que você pode fazer** | Tudo | Tudo, além de navegar pelos arquivos do servidor e **sincronizar pastas** nos dois sentidos | Chat, mundo 3D, arquivos, resultados e aprovação de planos | Chat, planos, tarefas, arquivos, memória, uso e um mundo 3D nativo |
 | **Atualizações** | ⋮ → "Verificar atualizações…" | Atualizações assinadas a partir do seu próprio servidor | Sempre a versão mais recente | Pelas Configurações, sem reinstalar |
@@ -255,7 +256,7 @@ E quatro que decoram o mundo, remodelam o seu núcleo e, nos festivos, vestem os
 
 ### Requisitos
 
-- **Windows 10/11 ou macOS** (Apple silicon ou Intel).
+- **Windows 10/11, macOS** (Apple silicon ou Intel) **ou Linux** (x64 ou ARM; Ubuntu, Debian, Fedora, Arch, openSUSE…).
 - **Node.js** `^22.22.2 || ^24.15.0 || >=26.0.0`. O assistente o instala se estiver faltando.
 - Pelo menos um agente: qualquer um do catálogo (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), um modelo local ou qualquer agente de linha de comando. O **Hermes Agent** coordena por padrão, mas qualquer agente pode fazer isso.
 - Opcional: **LM Studio** ou **Ollama** para o agente local, **git** para o Desfazer e **Tailscale** para usar a partir de outros dispositivos.
@@ -285,6 +286,16 @@ bash scripts/instalar-mac.sh
 
 Ele compila o app para esse Mac, copia-o para `/Applications` (ou para onde você escolher) e o abre.
 
+### Linux
+
+Com Node.js e git instalados, clone o repositório e execute isto dentro da pasta:
+
+```bash
+bash scripts/instalar-linux.sh
+```
+
+Ele compila o app para esse computador, instala-o em `~/.local/share/ai-cowork` sem pedir permissões de administrador, adiciona-o ao menu de aplicativos e cria o comando `ai-cowork`. Também dá para gerar uma AppImage com `npm run dist:linux`. Detalhes no [manual](docs/MANUAL.md#linux-se-compila-en-el-propio-equipo) (em espanhol).
+
 ### Primeira execução
 
 O **assistente de configuração** abre na primeira inicialização (também em ⋮ → "Configurar agentes…"):
@@ -298,7 +309,7 @@ Para usá-lo a partir do celular ou do notebook, abra ⋮ → "Acesso a partir d
 
 ## 🔐 Privacidade e segurança
 
-- **No seu computador.** Projetos, memória, logs e uso ficam na sua pasta de dados de usuário (`%APPDATA%\AI Cowork` no Windows, `~/Library/Application Support/AI Cowork` no macOS).
+- **No seu computador.** Projetos, memória, logs e uso ficam na sua pasta de dados de usuário (`%APPDATA%\AI Cowork` no Windows, `~/Library/Application Support/AI Cowork` no macOS, `~/.config/AI Cowork` no Linux).
 - **Acesso remoto fechado.** O servidor escuta apenas no seu IP do Tailscale e em `127.0.0.1`, nunca na rede local nem na internet, e pede um código em cada requisição. Cada dispositivo pareado tem sua própria chave, que você pode revogar individualmente (ela também expira após 90 dias sem uso), ou você pode revogar todas de uma vez com um novo código. Os códigos de pareamento expiram após 10 minutos e permitem apenas algumas tentativas.
 - **Atualizações assinadas do cliente.** Os clientes desktop só instalam atualizações assinadas com a sua própria chave privada, que nunca sai do computador que as publica.
 - **Sem senhas.** Cada agente usa o login do seu próprio programa oficial. As chaves de API que você adiciona são criptografadas com o chaveiro do sistema.
