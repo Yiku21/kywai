@@ -78,7 +78,9 @@ Al abrir la app instalada por primera vez aparece el **asistente de configuraci�
    oficial (y Node.js si hace falta). En Mac conviene tener [Homebrew](https://brew.sh).
 3. **Sesiones**: abre el inicio de sesión oficial de cada CLI en una ventana aparte (normalmente en el
    navegador) y comprueba que quedó hecho. AI Cowork no ve ni guarda contraseñas; para Gemini también puedes
-   pegar una clave de API de Google AI Studio.
+   pegar una clave de API de Google AI Studio. Una sesión ya conectada lleva un lápiz para **cambiarla**
+   (otra cuenta, otra clave o, en Hermes, otro proveedor): abre el mismo inicio de sesión y, al volver a la app,
+   se comprueba y enseña la nueva. En Gemini, dentro se cambia de cuenta con `/auth`.
 4. **Listo**: resumen de lo que queda pendiente.
 
 Los datos de cada equipo (configuración y proyectos) se guardan en la carpeta de datos del usuario
