@@ -10,6 +10,7 @@ import { runQwen } from './qwen'
 import { runGeneric } from './generic'
 import { commandExists } from './spawn'
 import type { RunAgentOptions, RunAgentResult } from './types'
+import { tr } from '@shared/i18n'
 
 export type { RunAgentOptions, RunAgentResult, RateLimitInfo, AgentErrorKind } from './types'
 
@@ -59,7 +60,7 @@ export function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
         text: '',
         usage: { input: 0, output: 0 },
         errorKind: 'missing',
-        errorMessage: `Proveedor desconocido: ${String(opts.agent.provider)}`
+        errorMessage: tr('Proveedor desconocido: {String}', { String: String(opts.agent.provider) })
       })
   }
 }
@@ -70,20 +71,20 @@ const cliCache = new Map<string, Promise<boolean>>()
 export async function checkAgentPresence(agent: AgentConfig, fresh = false): Promise<string | null> {
   if (agent.provider === 'ollama') {
     const r = await checkOllama(agent.model)
-    return r.ok ? null : (r.reason ?? 'Ollama no disponible')
+    return r.ok ? null : (r.reason ?? tr('Ollama no disponible'))
   }
   if (agent.provider === 'lmstudio') {
     const r = await checkLmStudio(agent.model)
-    return r.ok ? null : (r.reason ?? 'LM Studio no disponible')
+    return r.ok ? null : (r.reason ?? tr('LM Studio no disponible'))
   }
   // Agente de catálogo: su programa es el que dice su ficha.
   const cli = agent.provider === 'cli' ? (agent.cli ? { command: agent.cli.command, label: agent.name } : undefined) : CLI[agent.provider]
-  if (!cli) return agent.provider === 'cli' ? `${agent.name} no tiene configurado cómo lanzarlo` : `Proveedor desconocido: ${String(agent.provider)}`
+  if (!cli) return agent.provider === 'cli' ? tr('{name} no tiene configurado cómo lanzarlo', { name: agent.name }) : tr('Proveedor desconocido: {String}', { String: String(agent.provider) })
   if (fresh) cliCache.delete(cli.command)
   let p = cliCache.get(cli.command)
   if (!p) {
     p = commandExists(cli.command)
     cliCache.set(cli.command, p)
   }
-  return (await p) ? null : `No se encontró el CLI de ${cli.label}`
+  return (await p) ? null : tr('No se encontró el CLI de {label}', { label: cli.label })
 }

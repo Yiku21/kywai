@@ -1,12 +1,13 @@
 import type { TokenUsage } from '@shared/types'
 import { clip, num, obj, str } from './spawn'
 import type { RunAgentOptions, RunAgentResult } from './types'
+import { tr } from '@shared/i18n'
 
 export const OLLAMA_URL = 'http://127.0.0.1:11434'
 export const OLLAMA_OFFLINE = 'Ollama no está en ejecución'
 
 export function ollamaPullReason(model: string): string {
-  return `Modelo local no descargado: ejecuta \`ollama pull ${model}\``
+  return tr('Modelo local no descargado: ejecuta `ollama pull {model}`', { model })
 }
 
 function modelMatches(installed: string, wanted: string): boolean {
@@ -21,17 +22,17 @@ export async function checkOllama(model: string): Promise<{ ok: boolean; reason?
   try {
     res = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(2500) })
   } catch {
-    return { ok: false, reason: OLLAMA_OFFLINE }
+    return { ok: false, reason: tr(OLLAMA_OFFLINE) }
   }
-  if (!res.ok) return { ok: false, reason: OLLAMA_OFFLINE }
+  if (!res.ok) return { ok: false, reason: tr(OLLAMA_OFFLINE) }
   let names: string[] = []
   try {
     const j = (await res.json()) as { models?: { name?: string; model?: string }[] }
     names = (j.models ?? []).flatMap((m) => [m.name, m.model]).filter((n): n is string => typeof n === 'string')
   } catch {
-    return { ok: false, reason: OLLAMA_OFFLINE }
+    return { ok: false, reason: tr(OLLAMA_OFFLINE) }
   }
-  if (!model) return { ok: false, reason: 'No hay un modelo local configurado' }
+  if (!model) return { ok: false, reason: tr('No hay un modelo local configurado') }
   if (!names.some((n) => modelMatches(n, model))) return { ok: false, reason: ollamaPullReason(model) }
   return { ok: true }
 }
@@ -69,7 +70,7 @@ export class ThinkSplitter {
 export async function runOllama(opts: RunAgentOptions): Promise<RunAgentResult> {
   const usage: TokenUsage = { input: 0, output: 0 }
   const model = opts.model
-  if (!model) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: 'No hay un modelo local configurado' }
+  if (!model) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr('No hay un modelo local configurado') }
   let res: Response
   try {
     res = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -80,7 +81,7 @@ export async function runOllama(opts: RunAgentOptions): Promise<RunAgentResult> 
     })
   } catch {
     if (opts.signal.aborted) return { ok: false, text: '', usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
-    return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: OLLAMA_OFFLINE }
+    return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr(OLLAMA_OFFLINE) }
   }
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => '')
@@ -152,10 +153,10 @@ export async function runOllama(opts: RunAgentOptions): Promise<RunAgentResult> 
     if (buf) handle(buf)
   } catch {
     if (opts.signal.aborted) return { ok: false, text: splitter.visible, usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
-    return { ok: false, text: splitter.visible, usage, errorKind: 'offline', errorMessage: 'Se perdió la conexión con Ollama' }
+    return { ok: false, text: splitter.visible, usage, errorKind: 'offline', errorMessage: tr('Se perdió la conexión con Ollama') }
   }
 
   if (error) return { ok: false, text: splitter.visible, usage, errorKind: 'failed', errorMessage: clip(`Ollama: ${error}`, 200) }
-  if (!done) return { ok: false, text: splitter.visible, usage, errorKind: 'failed', errorMessage: 'Ollama cortó la respuesta' }
+  if (!done) return { ok: false, text: splitter.visible, usage, errorKind: 'failed', errorMessage: tr('Ollama cortó la respuesta') }
   return { ok: true, text: splitter.visible.trim(), usage, model }
 }

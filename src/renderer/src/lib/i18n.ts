@@ -1,25 +1,15 @@
-// Idiomas de la interfaz. El texto en español del código es la clave: t('Ajustes') devuelve «Ajustes» en español y
-// lo que diga el diccionario del idioma elegido (i18n/en.ts…) en los demás; si falta, se queda en español (la prueba
-// i18n.test.ts avisa de cada texto sin traducir). Los huecos van entre llaves: t('Hace {n} min', { n: 5 }).
+// Idioma de la interfaz en este dispositivo. El motor de traducción (t, diccionarios) está en @shared/i18n; aquí se
+// elige y se recuerda el idioma, como el tema.
 //
-// El idioma se elige en ⋮ → Ajustes → Idioma y se recuerda en cada dispositivo (como el tema). Si nunca se ha elegido,
-// se usa el del sistema (español si empieza por «es»; si no, inglés). Al cambiarlo, la ventana se recarga: así los
-// textos calculados al cargar cada módulo (listas de temas, nombres de zonas…) salen ya en el idioma nuevo.
-import { en } from './i18n/en'
+// El idioma se elige en ⋮ → Ajustes → Idioma y se recuerda en cada dispositivo. Si nunca se ha elegido, se usa el del
+// sistema (español si empieza por «es»; si no, inglés). Al cambiarlo se avisa al motor (para los avisos y las
+// respuestas de Hermes) y la ventana se recarga: así los textos calculados al cargar cada módulo (listas de temas,
+// nombres de zonas…) salen ya en el idioma nuevo.
+import { isLang, lang, LANGS, locale, setCurrentLang, t, type Lang } from '@shared/i18n'
 
-export type Lang = 'es' | 'en'
-
-export const LANGS: ReadonlyArray<{ id: Lang; name: string }> = [
-  { id: 'es', name: 'Español' },
-  { id: 'en', name: 'English' }
-]
+export { lang, LANGS, locale, t, type Lang }
 
 const KEY = 'aicowork.lang'
-const DICTS: Record<Exclude<Lang, 'es'>, Record<string, string>> = { en }
-
-function isLang(value: unknown): value is Lang {
-  return LANGS.some((l) => l.id === value)
-}
 
 /** El idioma del sistema (o del navegador): español si empieza por «es»; si no, inglés. */
 export function systemLang(): Lang {
@@ -43,52 +33,43 @@ export function storedLang(): Lang {
   return systemLang()
 }
 
-let current: Lang = storedLang()
-
-export function lang(): Lang {
-  return current
-}
-
-/** Código BCP 47 para fechas y números (toLocaleString, Intl…). */
-export function locale(): string {
-  return current === 'en' ? 'en-US' : 'es-ES'
-}
-
-/** Traduce un texto escrito en español. Los {huecos} se rellenan con vars. */
-export function t(text: string, vars?: Record<string, string | number | null | undefined>): string {
-  const dict = current === 'es' ? undefined : DICTS[current]
-  const out = dict?.[text] ?? text
-  if (!vars) return out
-  return out.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k] ?? '') : m))
-}
+setCurrentLang(storedLang())
 
 /** Pone el atributo lang de la página (lectores de pantalla, corrector, guiones). */
 export function applyLang(): void {
-  if (typeof document !== 'undefined') document.documentElement.lang = current
+  if (typeof document !== 'undefined') document.documentElement.lang = lang()
 }
 
-/** Cambia el idioma de este dispositivo y recarga la ventana para que todo salga ya traducido. */
-export function setLang(id: Lang): void {
-  if (!isLang(id) || id === current) return
+/**
+ * Cambia el idioma de este dispositivo, se lo dice al motor (si lo hay) y recarga la ventana para que todo salga ya
+ * traducido. `tellEngine` recibe el idioma nuevo (por ejemplo, api.setLanguage).
+ */
+export async function setLang(id: Lang, tellEngine?: (id: Lang) => Promise<unknown>): Promise<void> {
+  if (!isLang(id) || id === lang()) return
   try {
     localStorage.setItem(KEY, id)
   } catch {
     /* sin almacenamiento: dura hasta cerrar */
   }
-  current = id
+  setCurrentLang(id)
   applyLang()
+  try {
+    await tellEngine?.(id)
+  } catch {
+    /* motor antiguo o sin conexión: la interfaz cambia igual */
+  }
   if (import.meta.env?.MODE !== 'test') window.location.reload()
 }
 
 /** Solo para pruebas: cambia el idioma sin guardar ni recargar. */
 export function __setLangForTests(id: Lang): void {
-  current = id
+  setCurrentLang(id)
 }
 
 // Otra ventana (otra pestaña del navegador) cambió el idioma: recargar para seguirla.
 if (typeof window !== 'undefined' && import.meta.env?.MODE !== 'test') {
   window.addEventListener('storage', (e) => {
     if (e.key !== KEY) return
-    if (storedLang() !== current) window.location.reload()
+    if (storedLang() !== lang()) window.location.reload()
   })
 }

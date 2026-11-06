@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { CalendarClock, Check, ChevronDown, Copy, KeyRound, LoaderCircle, Pencil, Play, Plus, Trash2, Webhook } from 'lucide-react'
 import type { Routine, RoutineInput, RoutineRun, RoutineTrigger, RoutineTriggerType, RoutineWebhookInfo } from '@shared/types'
-import { DAY_SHORT, DAY_NAMES, describeTrigger, describeWhen, MAX_INTERVAL_HOURS, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, WEEK_ORDER } from '@shared/routines'
+import { dayName, dayShort, describeTrigger, describeWhen, MAX_INTERVAL_HOURS, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, WEEK_ORDER } from '@shared/routines'
 import { useCowork, useData } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { cx, errorText } from '../common/util'
@@ -452,11 +452,11 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
                   type="button"
                   className={cx(s.day, on && s.dayOn)}
                   aria-pressed={on}
-                  aria-label={DAY_NAMES[d]}
-                  title={DAY_NAMES[d]}
+                  aria-label={dayName(d)}
+                  title={dayName(d)}
                   onClick={() => setTrigger({ ...trigger, days: on ? trigger.days.filter((x) => x !== d) : [...trigger.days, d].sort() })}
                 >
-                  {DAY_SHORT[d]}
+                  {dayShort(d)}
                 </button>
               )
             })}

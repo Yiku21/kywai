@@ -1,6 +1,7 @@
 // Rutinas: lo que no depende del motor (cálculo de la próxima ejecución, textos legibles y la orden «/rutina …»).
 // Lo usan el motor (src/main/routines.ts) y la interfaz (pestaña Rutinas, cuadro de texto). Las horas son siempre
 // las locales del equipo donde corre (el servidor): se construyen con new Date(año, mes, día, h, m).
+import { lang, tr } from './i18n'
 import type { Routine, RoutineTrigger } from './types'
 
 export const HOUR_MS = 3_600_000
@@ -13,6 +14,12 @@ export const MAX_ROUTINE_REQUEST = 8000
 /** Nombres de los días como Date.getDay(): 0 = domingo. */
 export const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'] as const
 export const DAY_SHORT = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'] as const
+const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const
+const DAY_SHORT_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
+/** Nombre del día en el idioma de la app (0 = domingo). */
+export const dayName = (d: number): string => (lang() === 'en' ? DAY_NAMES_EN : DAY_NAMES)[d]
+/** Abreviatura del día en el idioma de la app. */
+export const dayShort = (d: number): string => (lang() === 'en' ? DAY_SHORT_EN : DAY_SHORT)[d]
 /** Orden en que se enseñan (la semana empieza el lunes). */
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const
 
@@ -38,20 +45,20 @@ export function cleanTrigger(raw: unknown): RoutineTrigger {
   switch (t.type) {
     case 'daily': {
       const time = normalizeTime(t.time)
-      if (!time) throw new Error('Escribe la hora como 09:00')
+      if (!time) throw new Error(tr('Escribe la hora como 09:00'))
       return { type: 'daily', time }
     }
     case 'weekly': {
       const time = normalizeTime(t.time)
-      if (!time) throw new Error('Escribe la hora como 09:00')
+      if (!time) throw new Error(tr('Escribe la hora como 09:00'))
       const days = Array.isArray(t.days) ? [...new Set(t.days.filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6))].sort() : []
-      if (!days.length) throw new Error('Elige al menos un día de la semana')
+      if (!days.length) throw new Error(tr('Elige al menos un día de la semana'))
       return { type: 'weekly', days, time }
     }
     case 'interval': {
       const hours = Number(t.hours)
       if (!Number.isInteger(hours) || hours < MIN_INTERVAL_HOURS || hours > MAX_INTERVAL_HOURS) {
-        throw new Error(`Cada cuántas horas: un número entero entre ${MIN_INTERVAL_HOURS} y ${MAX_INTERVAL_HOURS}`)
+        throw new Error(tr('Cada cuántas horas: un número entero entre {MIN_INTERVAL_HOURS} y {MAX_INTERVAL_HOURS}', { MIN_INTERVAL_HOURS, MAX_INTERVAL_HOURS }))
       }
       return { type: 'interval', hours }
     }
@@ -60,12 +67,12 @@ export function cleanTrigger(raw: unknown): RoutineTrigger {
     case 'folder': {
       const path = typeof t.path === 'string' ? t.path.trim().replace(/\\/g, '/').replace(/^\.?\/+|\/+$/g, '') : ''
       if (path.length > 300 || path.includes('\0') || path.split('/').some((s) => s === '..') || /^[a-z]:/i.test(path)) {
-        throw new Error('La carpeta tiene que estar dentro de la del proyecto (ruta relativa, sin «..»)')
+        throw new Error(tr('La carpeta tiene que estar dentro de la del proyecto (ruta relativa, sin «..»)'))
       }
       return { type: 'folder', path }
     }
     default:
-      throw new Error('Disparador no válido')
+      throw new Error(tr('Disparador no válido'))
   }
 }
 
@@ -131,11 +138,12 @@ function plural(n: number, one: string, many: string): string {
 /** «lunes, miércoles y viernes», «de lunes a viernes», «los fines de semana». */
 export function describeDays(days: number[]): string {
   const set = new Set(days)
-  if (set.size === 7) return 'todos los días'
+  if (set.size === 7) return tr('todos los días')
   const workdays = [1, 2, 3, 4, 5]
-  if (set.size === 5 && workdays.every((d) => set.has(d))) return 'de lunes a viernes'
-  if (set.size === 2 && set.has(0) && set.has(6)) return 'los fines de semana'
-  const names = WEEK_ORDER.filter((d) => set.has(d)).map((d) => DAY_NAMES[d])
+  if (set.size === 5 && workdays.every((d) => set.has(d))) return tr('de lunes a viernes')
+  if (set.size === 2 && set.has(0) && set.has(6)) return tr('los fines de semana')
+  const names = WEEK_ORDER.filter((d) => set.has(d)).map(dayName)
+  if (lang() === 'en') return names.length === 1 ? `on ${names[0]}s` : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   if (names.length === 1) return `los ${names[0]}${names[0].endsWith('s') ? '' : 's'}`
   return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`
 }
@@ -144,17 +152,17 @@ export function describeDays(days: number[]): string {
 export function describeTrigger(t: RoutineTrigger): string {
   switch (t.type) {
     case 'daily':
-      return `Cada día a las ${t.time}`
+      return tr('Cada día a las {time}', { time: t.time })
     case 'weekly': {
       const days = describeDays(t.days)
-      return `${days.charAt(0).toUpperCase()}${days.slice(1)} a las ${t.time}`
+      return tr('{days} a las {time}', { days: `${days.charAt(0).toUpperCase()}${days.slice(1)}`, time: t.time })
     }
     case 'interval':
-      return t.hours === 1 ? 'Cada hora' : `Cada ${t.hours} ${plural(t.hours, 'hora', 'horas')}`
+      return t.hours === 1 ? tr('Cada hora') : tr('Cada {hours} {plural}', { hours: t.hours, plural: plural(t.hours, tr('hora'), tr('horas')) })
     case 'webhook':
-      return 'Al llegar un webhook'
+      return tr('Al llegar un webhook')
     case 'folder':
-      return t.path ? `Al cambiar archivos de ${t.path}` : 'Al cambiar archivos del proyecto'
+      return t.path ? tr('Al cambiar archivos de {path}', { path: t.path }) : tr('Al cambiar archivos del proyecto')
   }
 }
 
@@ -164,10 +172,10 @@ export function describeWhen(ts: number, now = Date.now()): string {
   const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   const day = (x: number): number => new Date(new Date(x).getFullYear(), new Date(x).getMonth(), new Date(x).getDate()).getTime()
   const diff = Math.round((day(ts) - day(now)) / 86_400_000)
-  if (diff === 0) return `hoy a las ${time}`
-  if (diff === 1) return `mañana a las ${time}`
-  if (diff === -1) return `ayer a las ${time}`
-  return `el ${DAY_NAMES[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1} a las ${time}`
+  if (diff === 0) return tr('hoy a las {time}', { time })
+  if (diff === 1) return tr('mañana a las {time}', { time })
+  if (diff === -1) return tr('ayer a las {time}', { time })
+  return tr('el {day} {date} a las {time}', { day: dayName(d.getDay()), date: lang() === 'en' ? `${d.getMonth() + 1}/${d.getDate()}` : `${d.getDate()}/${d.getMonth() + 1}`, time })
 }
 
 // ---------- «/rutina …» en el chat ----------
@@ -223,8 +231,9 @@ export interface RoutineCommand {
   trigger: RoutineTrigger
 }
 
-export const ROUTINE_COMMAND_HELP =
-  'Escribe, por ejemplo: «/rutina cada día a las 9:00: revisa las dependencias», «/rutina de lunes a viernes a las 8:30: …», «/rutina cada 6 horas: …» o «/rutina webhook: revisa el PR que llega». También puedes crearla en la pestaña Rutinas.'
+/** Ayuda de «/rutina» (función: el texto sigue el idioma de la app). */
+export const routineCommandHelp = (): string =>
+  tr('Escribe, por ejemplo: «/rutina cada día a las 9:00: revisa las dependencias», «/rutina de lunes a viernes a las 8:30: …», «/rutina cada 6 horas: …» o «/rutina webhook: revisa el PR que llega». También puedes crearla en la pestaña Rutinas.')
 
 /** Nombre corto a partir de la petición (la primera frase, sin pasar de 48 caracteres). */
 export function routineNameFrom(request: string): string {
@@ -246,23 +255,23 @@ const SEP = String.raw`\s*(?:[:,—–-]\s*|\s)`
  */
 export function parseRoutineCommand(input: string): RoutineCommand | { error: string } {
   const text = input.replace(/^\s*\/(rutina|rutinas|routine)\b/i, '').trim()
-  if (!text) return { error: ROUTINE_COMMAND_HELP }
+  if (!text) return { error: routineCommandHelp() }
   const f = fold(text)
   const finish = (trigger: RoutineTrigger, consumed: number): RoutineCommand | { error: string } => {
     // fold() no cambia la longitud del texto salvo por las tildes descompuestas: se recorta por palabras en el original.
     const request = cutPrefix(text, consumed).replace(/^[\s:,—–-]+/, '').trim()
-    if (request.length < 3) return { error: `Falta lo que tiene que hacer la rutina. ${ROUTINE_COMMAND_HELP}` }
+    if (request.length < 3) return { error: tr('Falta lo que tiene que hacer la rutina. {ROUTINE_COMMAND_HELP}', { ROUTINE_COMMAND_HELP: routineCommandHelp() }) }
     return { name: routineNameFrom(request), request: request.slice(0, MAX_ROUTINE_REQUEST), trigger }
   }
   let m = new RegExp(String.raw`^(?:cada\s+dia|todos\s+los\s+dias|a\s+diario|diariamente|cada\s+manana|todas\s+las\s+mananas|every\s+day|everyday|daily|every\s+morning)\s+${TIME}${SEP}`).exec(f)
   if (m) {
     const time = normalizeTime(m[1])
-    return time ? finish({ type: 'daily', time }, m[0].length) : { error: `Hora no válida. ${ROUTINE_COMMAND_HELP}` }
+    return time ? finish({ type: 'daily', time }, m[0].length) : { error: tr('Hora no válida. {ROUTINE_COMMAND_HELP}', { ROUTINE_COMMAND_HELP: routineCommandHelp() }) }
   }
   m = /^(?:cada|every)\s+(?:(\d{1,3})\s+)?(?:horas?|hours?)\b\s*(?:[:,—–-]\s*)?/.exec(f)
   if (m) {
     const hours = m[1] ? Number(m[1]) : 1
-    if (hours < MIN_INTERVAL_HOURS || hours > MAX_INTERVAL_HOURS) return { error: `Cada cuántas horas: entre ${MIN_INTERVAL_HOURS} y ${MAX_INTERVAL_HOURS}.` }
+    if (hours < MIN_INTERVAL_HOURS || hours > MAX_INTERVAL_HOURS) return { error: tr('Cada cuántas horas: entre {MIN_INTERVAL_HOURS} y {MAX_INTERVAL_HOURS}.', { MIN_INTERVAL_HOURS, MAX_INTERVAL_HOURS }) }
     return finish({ type: 'interval', hours }, m[0].length)
   }
   m = /^(?:(?:con|por|al\s+(?:llegar|recibir)(?:\s+un)?|on|via|by|when\s+a)\s+)?(?:a\s+)?webhook\b\s*(?:[:,—–-]\s*)?/.exec(f)
@@ -272,7 +281,7 @@ export function parseRoutineCommand(input: string): RoutineCommand | { error: st
   if (folder) {
     try {
       const request = text.slice(folder[0].length).trim()
-      if (request.length < 3) return { error: `Falta lo que tiene que hacer la rutina. ${ROUTINE_COMMAND_HELP}` }
+      if (request.length < 3) return { error: tr('Falta lo que tiene que hacer la rutina. {ROUTINE_COMMAND_HELP}', { ROUTINE_COMMAND_HELP: routineCommandHelp() }) }
       return { name: routineNameFrom(request), request: request.slice(0, MAX_ROUTINE_REQUEST), trigger: cleanTrigger({ type: 'folder', path: folder[1] ?? '' }) }
     } catch (e) {
       return { error: (e as Error).message }
@@ -284,7 +293,7 @@ export function parseRoutineCommand(input: string): RoutineCommand | { error: st
     const time = normalizeTime(m[2])
     if (days && time) return finish(days.length === 7 ? { type: 'daily', time } : { type: 'weekly', days, time }, m[0].length)
   }
-  return { error: `No entendí cuándo debe lanzarse. ${ROUTINE_COMMAND_HELP}` }
+  return { error: tr('No entendí cuándo debe lanzarse. {ROUTINE_COMMAND_HELP}', { ROUTINE_COMMAND_HELP: routineCommandHelp() }) }
 }
 
 /** Quita del original los primeros `n` caracteres de su versión sin tildes (cuentan igual letra a letra). */

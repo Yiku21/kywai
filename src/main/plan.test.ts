@@ -121,6 +121,7 @@ describe('isPlanApproval', () => {
     expect(tasks[1].description).toContain('Codex hace la misma tarea por su cuenta')
     expect(tasks[2].description).toMatch(/opción A en artifacts\/opcion-a\/ \(de Codex\)[\s\S]*en los dos órdenes/)
     expect(WINNER_RE.exec('GANA: B\n\nPorque…')?.[1]).toBe('B')
+    expect(WINNER_RE.exec('**WINNER: A**\n\nBecause…')?.[1]).toBe('A')
     expect(change).toBe('«Landing de la panadería» a dos manos: Codex (A) y Claude (B); Gemini elige')
     // Sin tercera familia, juzga el autor (y se le avisa); sin otra familia, no hay dos manos.
     const two = twoHandsPlan([landing], 'a dos manos', agents.slice(0, 1).concat(agents[2]), 'artifacts/')

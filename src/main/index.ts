@@ -13,6 +13,7 @@ import {
   setAgentModels,
   setHermesModel,
   setPlanApproval,
+  setLanguage,
   addAgent,
   removeAgent,
   setCoordinator,
@@ -80,6 +81,7 @@ import { initSkills } from './skills'
 import { deleteTraces, flushTaskTraces, getTaskTrace, initTaskTraces } from './taskTrace'
 import { onMacPermissionPrompt, startMacPermissionWatch, stopMacPermissionWatch } from './macPermissions'
 import { launchCommand, linuxAutostartEnabled, setLinuxAutostart } from './linuxDesktop'
+import { tr } from '@shared/i18n'
 
 // Must happen before 'ready'.
 protocol.registerSchemesAsPrivileged([
@@ -107,7 +109,7 @@ if (!app.requestSingleInstanceLock()) {
   })
   app.whenReady().then(boot).catch((e) => {
     console.error('[cowork] fallo al arrancar', e)
-    dialog.showErrorBox('AI Cowork', `No se pudo iniciar: ${(e as Error).message}`)
+    dialog.showErrorBox('AI Cowork', tr('No se pudo iniciar: {message}', { message: (e as Error).message }))
     app.quit()
   })
 }
@@ -233,10 +235,10 @@ function encodeRel(relPath: string): string {
 const TEXT_CAP = 400 * 1024
 
 async function readArtifact(projectId: unknown, relPath: unknown): Promise<{ text?: string; url?: string }> {
-  if (!store.isValidProjectId(projectId) || typeof relPath !== 'string') throw new Error('Ruta no válida')
+  if (!store.isValidProjectId(projectId) || typeof relPath !== 'string') throw new Error(tr('Ruta no válida'))
   const rel = relPath.replace(/\\/g, '/')
   const abs = store.resolveProjectFile(projectId, rel)
-  if (!abs) throw new Error('No se encontró el archivo en el proyecto')
+  if (!abs) throw new Error(tr('No se encontró el archivo en el proyecto'))
   const st = await fsp.stat(abs)
   if (!st.isFile()) throw new Error('No es un archivo')
   const kind = store.artifactKind(rel)
@@ -249,7 +251,7 @@ async function readArtifact(projectId: unknown, relPath: unknown): Promise<{ tex
     await fh.read(buf, 0, len, 0)
     if (kind === 'other' && buf.includes(0)) return { url } // binary
     let text = buf.toString('utf8')
-    if (st.size > TEXT_CAP) text += '\n\n…(archivo truncado)'
+    if (st.size > TEXT_CAP) text += tr('\n\n…(archivo truncado)')
     return { text }
   } finally {
     await fh.close()
@@ -347,7 +349,7 @@ function registerIpc(): void {
   handle('listProjects', () => store.listProjects())
   handle('createProject', (name: unknown) => store.createProject(typeof name === 'string' ? name : ''))
   handle('loadProject', (projectId: unknown) => {
-    if (!store.isValidProjectId(projectId)) throw new Error('Proyecto no válido')
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     const active = activeRunsFor(projectId)
     const snap = store.snapshotProject(projectId)
     // Las rutinas van sin el secreto de su webhook (se pide aparte con getRoutineWebhook).
@@ -355,8 +357,8 @@ function registerIpc(): void {
   })
   // Eliminar un proyecto: va a la Papelera de este equipo todo lo suyo (si no se puede, se borra del todo).
   handle('deleteProject', async (projectId: unknown) => {
-    if (!store.isValidProjectId(projectId)) throw new Error('Proyecto no válido')
-    if (activeRunsFor(projectId).length) throw new Error('Este proyecto tiene trabajo en marcha: detenlo antes de eliminarlo')
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
+    if (activeRunsFor(projectId).length) throw new Error(tr('Este proyecto tiene trabajo en marcha: detenlo antes de eliminarlo'))
     const { dirs, taskIds } = store.forgetProject(projectId)
     deleteTraces(taskIds)
     for (const dir of dirs) {
@@ -371,7 +373,7 @@ function registerIpc(): void {
     return store.listProjects()
   })
   handle('renameProject', (projectId: unknown, name: unknown) => {
-    if (!store.isValidProjectId(projectId)) throw new Error('Proyecto no válido')
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     return store.renameProject(projectId, name)
   })
   handle('getRuntime', () => {
@@ -379,14 +381,14 @@ function registerIpc(): void {
     return { runtimes: runtimeSnapshot(), quotas }
   })
   handle('clearChat', (projectId: unknown) => {
-    if (!store.isValidProjectId(projectId)) throw new Error('Proyecto no válido')
-    if (activeRunFor(projectId)) throw new Error('El equipo está trabajando en este proyecto: detenlo antes de limpiar el chat')
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
+    if (activeRunFor(projectId)) throw new Error(tr('El equipo está trabajando en este proyecto: detenlo antes de limpiar el chat'))
     const saved = store.clearChat(projectId)
     emit({ kind: 'chat.cleared', projectId })
     return saved
   })
   handle('sendMessage', (input: SendMessageInput) => {
-    if (!input || typeof input !== 'object') throw new Error('Mensaje no válido')
+    if (!input || typeof input !== 'object') throw new Error(tr('Mensaje no válido'))
     return sendMessage(input)
   })
   handle('cancelRun', (runId: unknown) => {
@@ -394,12 +396,12 @@ function registerIpc(): void {
   })
   // La pausa móvil usa la reanudación existente; cancelar desde escritorio conserva su comportamiento.
   webMethods.set('mobileStopRun', (runId: unknown) => {
-    if (typeof runId !== 'string') throw new Error('Petición no válida')
+    if (typeof runId !== 'string') throw new Error(tr('Petición no válida'))
     cancelRun(runId, 'pause')
   })
   // «Quitar» en Órbita: lo que quedó en pausa no se reanudará.
   webMethods.set('mobileDiscardRun', (projectId: unknown, runId: unknown) => {
-    if (typeof runId !== 'string') throw new Error('Petición no válida')
+    if (typeof runId !== 'string') throw new Error(tr('Petición no válida'))
     discardRun(projectArg(projectId), runId)
   })
   // Proyectos con peticiones en marcha (lista de conversaciones del móvil).
@@ -411,26 +413,26 @@ function registerIpc(): void {
       filters:
         kind === 'image'
           ? [{ name: 'Imágenes', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'] }]
-          : [{ name: 'Todos los archivos', extensions: ['*'] }]
+          : [{ name: tr('Todos los archivos'), extensions: ['*'] }]
     }
     const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
     return r.canceled ? [] : r.filePaths
   })
   handle('readArtifact', (projectId: unknown, relPath: unknown) => readArtifact(projectId, relPath))
   ipcMain.handle('cowork:openPath', async (_e, projectId: unknown, relPath?: unknown) => {
-    if (!store.isValidProjectId(projectId)) throw new Error('Proyecto no válido')
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     let target = store.workRoot(projectId)
     if (typeof relPath === 'string' && relPath) {
       const abs = store.resolveProjectFile(projectId, relPath.replace(/\\/g, '/'))
-      if (!abs) throw new Error('No se encontró el archivo en el proyecto')
+      if (!abs) throw new Error(tr('No se encontró el archivo en el proyecto'))
       target = abs
     }
     const err = await shell.openPath(target)
     if (err) throw new Error(err)
   })
   handle('setQuotaBudget', async (groupId: unknown, budget: unknown) => {
-    if (typeof groupId !== 'string') throw new Error('Grupo no válido')
-    if (budget !== null && !validBudget(budget)) throw new Error('Presupuesto no válido')
+    if (typeof groupId !== 'string') throw new Error(tr('Grupo no válido'))
+    if (budget !== null && !validBudget(budget)) throw new Error(tr('Presupuesto no válido'))
     setQuotaBudget(groupId, budget as QuotaBudget | null)
     await refreshQuotas()
   })
@@ -441,34 +443,34 @@ function registerIpc(): void {
   handle('getUsageRuns', () => usageRuns())
   handle('getTaskTrace', (taskId: unknown) => (typeof taskId === 'string' ? getTaskTrace(taskId) : []))
   handle('getTaskChanges', (projectId: unknown, taskId: unknown) => {
-    if (typeof taskId !== 'string') throw new Error('Tarea no válida')
+    if (typeof taskId !== 'string') throw new Error(tr('Tarea no válida'))
     return getTaskChanges(projectArg(projectId), taskId)
   })
   handle('undoTask', (projectId: unknown, taskId: unknown) => {
-    if (typeof taskId !== 'string') throw new Error('Tarea no válida')
+    if (typeof taskId !== 'string') throw new Error(tr('Tarea no válida'))
     return undoTask(projectArg(projectId), taskId)
   })
   handle('listInbox', () => listInbox())
   handle('actInbox', (id: unknown, actionId: unknown) => {
-    if (typeof id !== 'string' || typeof actionId !== 'string') throw new Error('Aviso no válido')
+    if (typeof id !== 'string' || typeof actionId !== 'string') throw new Error(tr('Aviso no válido'))
     return actInbox(id, actionId)
   })
   handle('resetAgent', (id: unknown) => {
-    if (typeof id !== 'string') throw new Error('Agente no válido')
+    if (typeof id !== 'string') throw new Error(tr('Agente no válido'))
     return resetAgent(id)
   })
   // Memoria e instrucciones del proyecto (lo que escribe el usuario queda confirmado).
   const projectArg = (projectId: unknown): string => {
-    if (!store.isValidProjectId(projectId)) throw new Error('Proyecto no válido')
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     return projectId
   }
   handle('addMemory', (projectId: unknown, input: unknown) => {
     const i = (input ?? {}) as { kind?: unknown; text?: unknown }
-    if (typeof i.text !== 'string' || !isMemoryKind(i.kind)) throw new Error('Entrada no válida')
+    if (typeof i.text !== 'string' || !isMemoryKind(i.kind)) throw new Error(tr('Entrada no válida'))
     return addMemory(projectArg(projectId), { kind: i.kind, text: i.text }, { status: 'confirmed', by: 'user', byName: 'Tú' })
   })
   handle('updateMemory', (projectId: unknown, id: unknown, patch: unknown) => {
-    if (typeof id !== 'string' || !patch || typeof patch !== 'object') throw new Error('Cambio no válido')
+    if (typeof id !== 'string' || !patch || typeof patch !== 'object') throw new Error(tr('Cambio no válido'))
     const p = patch as { kind?: unknown; text?: unknown; status?: unknown }
     updateMemory(projectArg(projectId), id, {
       text: typeof p.text === 'string' ? p.text : undefined,
@@ -477,16 +479,16 @@ function registerIpc(): void {
     })
   })
   handle('deleteMemory', (projectId: unknown, id: unknown) => {
-    if (typeof id !== 'string') throw new Error('Entrada no válida')
+    if (typeof id !== 'string') throw new Error(tr('Entrada no válida'))
     deleteMemory(projectArg(projectId), id)
   })
   handle('setInstructions', (projectId: unknown, text: unknown) => {
-    if (typeof text !== 'string') throw new Error('Instrucciones no válidas')
+    if (typeof text !== 'string') throw new Error(tr('Instrucciones no válidas'))
     setInstructions(projectArg(projectId), text)
   })
   // Rutinas del proyecto (peticiones que se lanzan solas). El secreto del webhook solo sale con getRoutineWebhook.
   handle('createRoutine', (projectId: unknown, input: unknown) => {
-    if (!input || typeof input !== 'object') throw new Error('Rutina no válida')
+    if (!input || typeof input !== 'object') throw new Error(tr('Rutina no válida'))
     const i = input as { name?: unknown; request?: unknown; trigger?: unknown; enabled?: unknown }
     return createRoutine(projectArg(projectId), {
       name: typeof i.name === 'string' ? i.name : '',
@@ -496,7 +498,7 @@ function registerIpc(): void {
     })
   })
   handle('updateRoutine', (projectId: unknown, id: unknown, patch: unknown) => {
-    if (typeof id !== 'string' || !patch || typeof patch !== 'object') throw new Error('Cambio no válido')
+    if (typeof id !== 'string' || !patch || typeof patch !== 'object') throw new Error(tr('Cambio no válido'))
     const p = patch as { name?: unknown; request?: unknown; trigger?: unknown; enabled?: unknown }
     return updateRoutine(projectArg(projectId), id, {
       ...(typeof p.name === 'string' ? { name: p.name } : {}),
@@ -506,24 +508,24 @@ function registerIpc(): void {
     })
   })
   handle('deleteRoutine', (projectId: unknown, id: unknown) => {
-    if (typeof id !== 'string') throw new Error('Rutina no válida')
+    if (typeof id !== 'string') throw new Error(tr('Rutina no válida'))
     deleteRoutine(projectArg(projectId), id)
   })
   handle('runRoutineNow', (projectId: unknown, id: unknown) => {
-    if (typeof id !== 'string') throw new Error('Rutina no válida')
+    if (typeof id !== 'string') throw new Error(tr('Rutina no válida'))
     return runRoutineNow(projectArg(projectId), id)
   })
   handle('getRoutineWebhook', (projectId: unknown, id: unknown, regenerate?: unknown) => {
-    if (typeof id !== 'string') throw new Error('Rutina no válida')
+    if (typeof id !== 'string') throw new Error(tr('Rutina no válida'))
     return routineWebhook(projectArg(projectId), id, regenerate === true)
   })
   handle('resumeRun', (projectId: unknown, runId: unknown) => {
-    if (typeof runId !== 'string') throw new Error('Petición no válida')
+    if (typeof runId !== 'string') throw new Error(tr('Petición no válida'))
     return resumeRun(projectArg(projectId), runId)
   })
   // Plan que propone el coordinador: tu visto bueno lo pone en marcha; descartarlo no hace nada.
   handle('approvePlan', (projectId: unknown, messageId: unknown) => {
-    if (typeof messageId !== 'string') throw new Error('Plan no válido')
+    if (typeof messageId !== 'string') throw new Error(tr('Plan no válido'))
     return approvePlan(projectArg(projectId), messageId)
   })
   handle('rateMessage', (projectId: unknown, messageId: unknown, rating: unknown) => {
@@ -531,7 +533,7 @@ function registerIpc(): void {
     rateMessage(projectArg(projectId), messageId, rating === 'up' || rating === 'down' ? rating : null)
   })
   handle('rejectPlan', (projectId: unknown, messageId: unknown) => {
-    if (typeof messageId !== 'string') throw new Error('Plan no válido')
+    if (typeof messageId !== 'string') throw new Error(tr('Plan no válido'))
     rejectPlan(projectArg(projectId), messageId)
   })
   // Claude Code desviado a otro servidor (OmniRoute…): se quita el desvío para que use tu cuenta y dé la cuota.
@@ -541,15 +543,15 @@ function registerIpc(): void {
     const quotas = await refreshQuotas({ probe: true })
     const claude = quotas.find((q) => q.agentIds.includes('claude'))
     const parts: string[] = []
-    if (r.removed.length) parts.push(`Quitado de ~/.claude/settings.json: ${r.removed.join(', ')} (copia en ${basename(r.backup ?? '')}).`)
-    else parts.push('En ~/.claude/settings.json no había nada que desviara a Claude Code.')
-    if (r.stillInEnv.length) parts.push(`Siguen definidas en el entorno de la app: ${r.stillInEnv.join(', ')} (quítalas de donde las configuraste).`)
+    if (r.removed.length) parts.push(tr('Quitado de ~/.claude/settings.json: {v1} (copia en {basename}).', { v1: r.removed.join(', '), basename: basename(r.backup ?? '') }))
+    else parts.push(tr('En ~/.claude/settings.json no había nada que desviara a Claude Code.'))
+    if (r.stillInEnv.length) parts.push(tr('Siguen definidas en el entorno de la app: {v1} (quítalas de donde las configuraste).', { v1: r.stillInEnv.join(', ') }))
     if (!auth.loggedIn || auth.method !== 'claude.ai') {
-      parts.push('Falta iniciar sesión en Claude Code con tu cuenta de Claude: en el Terminal del equipo, «claude auth login».')
+      parts.push(tr('Falta iniciar sesión en Claude Code con tu cuenta de Claude: en el Terminal del equipo, «claude auth login».'))
     } else if (claude?.remainingPct != null) {
-      parts.push(`Listo: Claude va directo a tu cuenta. Cuota restante: ${Math.round(claude.remainingPct)}%.`)
+      parts.push(tr('Listo: Claude va directo a tu cuenta. Cuota restante: {v1}%.', { v1: Math.round(claude.remainingPct) }))
     } else {
-      parts.push('Claude ya va directo a tu cuenta; la cuota aparecerá en unos minutos.')
+      parts.push(tr('Claude ya va directo a tu cuenta; la cuota aparecerá en unos minutos.'))
     }
     return parts.join(' ')
   })
@@ -562,12 +564,12 @@ function registerIpc(): void {
   }
   handle('listLocalEngines', () => listLocalEngines())
   handle('startLocalServer', async (engine: unknown) => {
-    if (engine !== 'lmstudio' && engine !== 'ollama') throw new Error('Motor no válido')
+    if (engine !== 'lmstudio' && engine !== 'ollama') throw new Error(tr('Motor no válido'))
     await startLocalServer(engine)
     await checkPresence(true, true)
   })
   handle('pullLocalModel', (model: unknown, agentId?: unknown) => {
-    if (typeof model !== 'string') throw new Error('Modelo no válido')
+    if (typeof model !== 'string') throw new Error(tr('Modelo no válido'))
     const target = typeof agentId === 'string' ? (agentId as AgentId) : undefined
     pullOllamaModel(
       model,
@@ -580,18 +582,18 @@ function registerIpc(): void {
   })
   handle('cancelLocalPull', () => cancelLocalPull())
   handle('setLocalAgent', async (input: SetLocalAgentInput) => {
-    if (!input || typeof input !== 'object') throw new Error('Datos no válidos')
+    if (!input || typeof input !== 'object') throw new Error(tr('Datos no válidos'))
     setLocalAgent(input)
     await afterLocalChange()
   })
   handle('setQuotaUnlimited', async (groupId: unknown, unlimited: unknown) => {
-    if (typeof groupId !== 'string') throw new Error('Grupo no válido')
+    if (typeof groupId !== 'string') throw new Error(tr('Grupo no válido'))
     setQuotaUnlimited(groupId, unlimited === true)
     emit({ kind: 'config.updated', config: getConfig() })
     await refreshQuotas()
   })
   handle('setAgentAccess', (access: unknown) => {
-    if (access !== 'full' && access !== 'project') throw new Error('Permiso no válido')
+    if (access !== 'full' && access !== 'project') throw new Error(tr('Permiso no válido'))
     setAgentAccess(access)
     emit({ kind: 'config.updated', config: getConfig() })
   })
@@ -600,13 +602,18 @@ function registerIpc(): void {
   handle('getHermesModels', () => hermesModelsInfo(hermesAgent()))
   handle('setHermesModel', (choice: unknown) => {
     const c = choice && typeof choice === 'object' ? (choice as { provider?: unknown; model?: unknown }) : null
-    if (c && (typeof c.provider !== 'string' || typeof c.model !== 'string')) throw new Error('Modelo no válido')
+    if (c && (typeof c.provider !== 'string' || typeof c.model !== 'string')) throw new Error(tr('Modelo no válido'))
     setHermesModel(c ? { provider: c.provider as string, model: c.model as string } : null, hermesModelLabel)
     emit({ kind: 'config.updated', config: getConfig() })
     return hermesModelsInfo(hermesAgent())
   })
+  handle('setLanguage', (id: unknown) => {
+    if (id !== 'es' && id !== 'en') throw new Error(tr('Idioma no válido'))
+    setLanguage(id)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
   handle('setPlanApproval', (on: unknown) => {
-    if (typeof on !== 'boolean') throw new Error('Valor no válido')
+    if (typeof on !== 'boolean') throw new Error(tr('Valor no válido'))
     setPlanApproval(on)
     emit({ kind: 'config.updated', config: getConfig() })
   })
@@ -628,27 +635,27 @@ function registerIpc(): void {
   })
   // La clave de API de un agente solo se escribe desde la app de escritorio del servidor (no por web ni por móvil).
   ipcMain.handle('cowork:setAgentKey', async (_e, agentId: unknown, key: unknown) => {
-    if (typeof agentId !== 'string' || typeof key !== 'string') throw new Error('Datos no válidos')
+    if (typeof agentId !== 'string' || typeof key !== 'string') throw new Error(tr('Datos no válidos'))
     const r = await saveAgentKey(agentId, key)
     await refreshPresence()
     return r
   })
   handle('setAgentsEnabled', async (ids: unknown) => {
-    if (!Array.isArray(ids) || ids.some((x) => typeof x !== 'string')) throw new Error('Lista de agentes no válida')
+    if (!Array.isArray(ids) || ids.some((x) => typeof x !== 'string')) throw new Error(tr('Lista de agentes no válida'))
     setAgentsEnabled(ids as AgentId[])
     emit({ kind: 'config.updated', config: getConfig() })
     await refreshPresence()
   })
   // Agentes que el usuario añade o quita, y cuál coordina (la lista de agentes es suya, no solo la de fábrica).
   handle('addAgent', async (input: unknown) => {
-    if (!input || typeof input !== 'object') throw new Error('Datos no válidos')
+    if (!input || typeof input !== 'object') throw new Error(tr('Datos no válidos'))
     const cfg = addAgent(input as AddAgentInput)
     emit({ kind: 'config.updated', config: cfg })
     await refreshPresence()
     return cfg
   })
   handle('removeAgent', async (agentId: unknown) => {
-    if (typeof agentId !== 'string') throw new Error('Agente no válido')
+    if (typeof agentId !== 'string') throw new Error(tr('Agente no válido'))
     const cfg = removeAgent(agentId)
     emit({ kind: 'config.updated', config: cfg })
     emit({ kind: 'agent.removed', agentId })
@@ -656,7 +663,7 @@ function registerIpc(): void {
     return cfg
   })
   handle('setCoordinator', (agentId: unknown) => {
-    if (typeof agentId !== 'string') throw new Error('Agente no válido')
+    if (typeof agentId !== 'string') throw new Error(tr('Agente no válido'))
     const cfg = setCoordinator(agentId)
     emit({ kind: 'config.updated', config: cfg })
     return cfg
@@ -666,7 +673,7 @@ function registerIpc(): void {
     emit({ kind: 'config.updated', config: getConfig() })
   })
   ipcMain.handle('cowork:openExternal', async (_e, url: unknown) => {
-    if (typeof url !== 'string' || !/^https:\/\/[\w.-]+(\/\S*)?$/.test(url)) throw new Error('Enlace no válido')
+    if (typeof url !== 'string' || !/^https:\/\/[\w.-]+(\/\S*)?$/.test(url)) throw new Error(tr('Enlace no válido'))
     await shell.openExternal(url)
   })
   // ---- Actualizaciones desde GitHub (también desde el móvil, por el acceso web) ----
@@ -697,11 +704,11 @@ function registerIpc(): void {
   // Dispositivos emparejados: solo se ven y se gestionan desde este equipo (nunca por la API remota).
   ipcMain.handle('cowork:listDevices', () => devices().list())
   ipcMain.handle('cowork:revokeDevice', (_e, id: unknown) => {
-    if (typeof id !== 'string') throw new Error('Dispositivo no válido')
-    if (!revokeMobileDevice(id) && !devices().revoke(id)) throw new Error('Ese dispositivo ya no está en la lista')
+    if (typeof id !== 'string') throw new Error(tr('Dispositivo no válido'))
+    if (!revokeMobileDevice(id) && !devices().revoke(id)) throw new Error(tr('Ese dispositivo ya no está en la lista'))
   })
   ipcMain.handle('cowork:forgetDevice', (_e, id: unknown) => {
-    if (typeof id !== 'string') throw new Error('Dispositivo no válido')
+    if (typeof id !== 'string') throw new Error(tr('Dispositivo no válido'))
     revokeMobileDevice(id)
     devices().revoke(id)
     devices().forget(id)
@@ -720,7 +727,7 @@ function registerIpc(): void {
     return port && h ? { url: `https://${h}:${port}${t}`, selfSigned: true } : null
   })
   ipcMain.handle('cowork:setWebAccess', async (_e, input: SetWebAccessInput) => {
-    if (!input || typeof input !== 'object') throw new Error('Datos no válidos')
+    if (!input || typeof input !== 'object') throw new Error(tr('Datos no válidos'))
     if (typeof input.openAtLogin === 'boolean') setOpenAtLogin(input.openAtLogin)
     if (typeof input.restrictClients === 'boolean') {
       setRestrictClients(input.restrictClients)
@@ -740,7 +747,7 @@ function registerIpc(): void {
         // Puerto ocupado u otro fallo: se deja apagado y se explica.
         setWebAccessConfig(false, false, newWebToken)
         await applyWebAccess()
-        throw new Error(`No se pudo abrir el acceso web: ${(e as Error).message}`)
+        throw new Error(tr('No se pudo abrir el acceso web: {message}', { message: (e as Error).message }))
       }
     }
     return currentWebAccess()
@@ -753,18 +760,18 @@ function registerIpc(): void {
     return a ? modelOptions(a) : []
   })
   handle('setAgentModels', (input: SetAgentModelsInput) => {
-    if (!input || typeof input !== 'object') throw new Error('Datos no válidos')
+    if (!input || typeof input !== 'object') throw new Error(tr('Datos no válidos'))
     setAgentModels(input)
     emit({ kind: 'config.updated', config: getConfig() })
   })
 
   // ---- Carpeta de trabajo del proyecto (acceso concedido por el usuario) ----
   ipcMain.handle('cowork:pickProjectFolder', async (e, projectId: unknown) => {
-    if (!store.isValidProjectId(projectId)) throw new Error('Proyecto no válido')
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow
     const opts: OpenDialogOptions = {
-      title: 'Carpeta en la que trabajarán los agentes',
-      buttonLabel: 'Dar acceso a esta carpeta',
+      title: tr('Carpeta en la que trabajarán los agentes'),
+      buttonLabel: tr('Dar acceso a esta carpeta'),
       properties: ['openDirectory'],
       defaultPath: store.getProject(projectId).project.workDir
     }
@@ -774,18 +781,18 @@ function registerIpc(): void {
   })
   // Desde un cliente o el navegador: la carpeta se elige en el explorador del servidor y llega aquí.
   handle('setProjectFolder', (projectId: unknown, dir: unknown) => {
-    if (!store.isValidProjectId(projectId)) throw new Error('Proyecto no válido')
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     const abs = normalizePath(dir)
-    if (!abs) throw new Error('Ruta no válida')
+    if (!abs) throw new Error(tr('Ruta no válida'))
     if (getConfig().webAccess.restrictClients && !withinAny(abs, projectFolders())) {
-      throw new Error('Este servidor limita a los clientes a las carpetas de los proyectos')
+      throw new Error(tr('Este servidor limita a los clientes a las carpetas de los proyectos'))
     }
     const summary = store.setWorkDir(projectId, abs)
-    accessLog().append({ device: 'Interfaz remota o local', action: 'folder', path: abs, note: `carpeta de trabajo del proyecto ${summary.name}` })
+    accessLog().append({ device: 'Interfaz remota o local', action: 'folder', path: abs, note: tr('carpeta de trabajo del proyecto {name}', { name: summary.name }) })
     return summary
   })
   handle('clearProjectFolder', (projectId: unknown) => {
-    if (!store.isValidProjectId(projectId)) throw new Error('Proyecto no válido')
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     return store.setWorkDir(projectId, null)
   })
 }
@@ -855,7 +862,7 @@ async function boot(): Promise<void> {
       const w = getConfig().webAccess
       if (!w.enabled) return []
       const info = webAccessInfo(true, w.port, w.token)
-      return [...info.urls, ...(info.secureUrl ? [`${info.secureUrl} (con micrófono)`] : [])]
+      return [...info.urls, ...(info.secureUrl ? [tr('{secureUrl} (con micrófono)', { secureUrl: info.secureUrl })] : [])]
     }
   })
   initOrchestrator()

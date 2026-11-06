@@ -26,6 +26,7 @@ import type {
   RunAgentResult
 } from './types'
 import { claudeToolTrace, resultText } from './traceText'
+import { locale, tr } from '@shared/i18n'
 
 export const CLAUDE_AUTH_MESSAGE = 'Sesión de Claude expirada: abre una terminal, ejecuta `claude` e inicia sesión'
 
@@ -69,21 +70,21 @@ export function claudeToolActivity(name: string, input: Record<string, unknown> 
     case 'Glob':
     case 'Grep':
     case 'LS':
-      return 'Buscando archivos'
+      return tr('Buscando archivos')
     case 'WebSearch':
-      return 'Buscando en la web'
+      return tr('Buscando en la web')
     case 'WebFetch':
-      return 'Consultando una web'
+      return tr('Consultando una web')
     case 'Bash':
     case 'PowerShell':
-      return 'Ejecutando un comando'
+      return tr('Ejecutando un comando')
     case 'Task':
     case 'Agent':
-      return 'Delegando una subtarea'
+      return tr('Delegando una subtarea')
     case 'TodoWrite':
-      return 'Organizando las tareas'
+      return tr('Organizando las tareas')
     case 'ExitPlanMode':
-      return 'Presentando el plan'
+      return tr('Presentando el plan')
     default:
       return `Usando ${name || 'una herramienta'}`
   }
@@ -137,8 +138,8 @@ function resetText(ms: number | null | undefined): string {
   if (!ms) return ''
   const d = new Date(ms)
   const sameDay = new Date().toDateString() === d.toDateString()
-  const time = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
-  return sameDay ? ` (se renueva a las ${time})` : ` (se renueva el ${d.toLocaleDateString('es')} a las ${time})`
+  const time = d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
+  return sameDay ? tr(' (se renueva a las {time})', { time }) : tr(' (se renueva el {v1} a las {time})', { v1: d.toLocaleDateString(locale()), time })
 }
 
 export function createClaudeParser(cb: ParserCallbacks): JsonlParser {
@@ -266,7 +267,7 @@ export function createClaudeParser(cb: ParserCallbacks): JsonlParser {
         return { ok: false, text: lastText, usage, errorKind: 'cancelled', errorMessage: 'Cancelada', model }
       }
       if (!result && looksMissing(outcome)) {
-        return { ok: false, text: '', usage, errorKind: 'missing', errorMessage: 'No se encontró el CLI de Claude' }
+        return { ok: false, text: '', usage, errorKind: 'missing', errorMessage: tr('No se encontró el CLI de Claude') }
       }
 
       let text = result ? str(result.result) : ''
@@ -290,13 +291,13 @@ export function createClaudeParser(cb: ParserCallbacks): JsonlParser {
         .join(' ')
 
       if (rateRejected || apiStatus === 429) {
-        return { ok: false, text, usage, model, errorKind: 'quota', errorMessage: `Claude alcanzó su límite de uso${resetText(rateResets)}` }
+        return { ok: false, text, usage, model, errorKind: 'quota', errorMessage: tr('Claude alcanzó su límite de uso{resetText}', { resetText: resetText(rateResets) }) }
       }
       if (apiStatus === 401 || apiStatus === 403 || AUTH_RE.test(errText)) {
-        return { ok: false, text, usage, model, errorKind: 'auth', errorMessage: CLAUDE_AUTH_MESSAGE }
+        return { ok: false, text, usage, model, errorKind: 'auth', errorMessage: tr(CLAUDE_AUTH_MESSAGE) }
       }
       if (QUOTA_RE.test(errText)) {
-        return { ok: false, text, usage, model, errorKind: 'quota', errorMessage: `Claude alcanzó su límite de uso${resetText(rateResets)}` }
+        return { ok: false, text, usage, model, errorKind: 'quota', errorMessage: tr('Claude alcanzó su límite de uso{resetText}', { resetText: resetText(rateResets) }) }
       }
       if (MODEL_UNAVAILABLE_RE.test(errText)) {
         return {
@@ -306,17 +307,17 @@ export function createClaudeParser(cb: ParserCallbacks): JsonlParser {
           model,
           errorKind: 'failed',
           modelUnavailable: true,
-          errorMessage: `El modelo no está disponible: ${clip(errText, 160)}`
+          errorMessage: tr('El modelo no está disponible: {clip}', { clip: clip(errText, 160) })
         }
       }
       if (outcome.timedOut) {
-        return { ok: false, text, usage, model, errorKind: 'failed', errorMessage: 'El CLI dejó de responder (sin salida durante 20 min)' }
+        return { ok: false, text, usage, model, errorKind: 'failed', errorMessage: tr('El CLI dejó de responder (sin salida durante 20 min)') }
       }
       const msg = errText
         ? clip(errText, 200)
         : result && str(result.subtype) === 'error_max_turns'
-          ? 'Se alcanzó el máximo de turnos'
-          : outcome.spawnError ? `No se pudo lanzar: ${clip(outcome.spawnError.message, 180)}` : `Claude terminó con un error (código ${outcome.code ?? '?'})`
+          ? tr('Se alcanzó el máximo de turnos')
+          : outcome.spawnError ? tr('No se pudo lanzar: {clip}', { clip: clip(outcome.spawnError.message, 180) }) : tr('Claude terminó con un error (código {v1})', { v1: outcome.code ?? '?' })
       return { ok: false, text, usage, model, errorKind: 'failed', errorMessage: msg }
   }
 }

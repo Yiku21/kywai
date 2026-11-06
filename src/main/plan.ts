@@ -1,4 +1,5 @@
 import { balancedObject } from './agents/codex'
+import { tr } from '@shared/i18n'
 
 /** First balanced {...} that parses as JSON and looks like a plan (fenced ```json blocks first). */
 export function extractJsonObject(text: string): Record<string, unknown> | null {
@@ -158,7 +159,7 @@ export interface HandTask extends PlanItem {
   continues: boolean
 }
 
-export const WINNER_RE = /\bGANA:\s*([AB])\b/i
+export const WINNER_RE = /\b(?:GANA|WINNER|WINS)\s*:\s*\**\s*(?:OPCI[OÓ]N\s+|OPTION\s+)?([AB])\b/i
 
 /**
  * «A dos manos»: el usuario lo pidió y el plan es una sola tarea con archivos → otro agente de otra familia hace la
@@ -186,7 +187,7 @@ export function twoHandsPlan<T extends HandTask>(tasks: T[], userText: string, a
   const judgeTask: T = {
     ...a,
     key: `${a.key}-juez`,
-    title: `Elegir la mejor opción de «${a.title}»`,
+    title: tr('Elegir la mejor opción de «{title}»', { title: a.title }),
     agentId: judge.id,
     difficulty: 'medium',
     dependsOn: [handA.key, handB.key],

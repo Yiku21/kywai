@@ -65,9 +65,9 @@ export function AgentModels({ agent }: { agent: AgentConfig }) {
       <select className={s.select} value={value} disabled={busy || !options} onChange={(e) => void save(tier, e.target.value)}>
         {noneLabel && <option value={NONE}>{noneLabel}</option>}
         {list.map((o) => (
-          <option key={o.id || 'auto'} value={o.id} title={o.note}>
+          <option key={o.id || 'auto'} value={o.id} title={o.note ? t(o.note) : undefined}>
             {o.label}
-            {o.note ? ` · ${o.note}` : ''}
+            {o.note ? ` · ${t(o.note)}` : ''}
           </option>
         ))}
       </select>

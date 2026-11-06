@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { tr } from '@shared/i18n'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { AgentConfig, AppConfig, QuotaBudget, QuotaGroupConfig, QuotaInfo, QuotaSnapshot } from '@shared/types'
@@ -167,19 +168,19 @@ function clampPct(n: number): number {
 }
 
 function minutesLabel(min: number | null): string {
-  if (min === 300) return 'Ventana de 5 h'
-  if (min === 10080) return 'Ventana semanal'
-  if (min == null) return 'Ventana de uso'
+  if (min === 300) return tr('Ventana de 5 h')
+  if (min === 10080) return tr('Ventana semanal')
+  if (min == null) return tr('Ventana de uso')
   const h = Math.round(min / 60)
-  return `Ventana de ${h} h`
+  return tr('Ventana de {h} h', { h })
 }
 
 function claudeWindowLabel(name: string): string {
   switch (name) {
     case 'five_hour':
-      return 'Ventana de 5 h'
+      return tr('Ventana de 5 h')
     case 'seven_day':
-      return 'Ventana semanal'
+      return tr('Ventana semanal')
     case 'seven_day_opus':
       return 'Semanal (Opus)'
     case 'seven_day_sonnet':
@@ -206,7 +207,7 @@ function periodWindow(period: QuotaBudget['period'], groupId: string, now: numbe
     const start = d.getTime()
     const next = new Date(start)
     next.setDate(next.getDate() + 1)
-    return { start, label: 'Diario', resetsAt: next.getTime() }
+    return { start, label: tr('Diario'), resetsAt: next.getTime() }
   }
   const span = period === '5h' ? 5 * HOUR : 7 * DAY
   const start = now - span
@@ -246,7 +247,7 @@ function estimate(g: QuotaGroupConfig, budget: QuotaBudget, now: number): Partia
     resetsAt: w.resetsAt,
     updatedAt: now,
     source: 'estimate',
-    note: 'Estimación con el consumo registrado por la app y tu presupuesto.',
+    note: tr('Estimación con el consumo registrado por la app y tu presupuesto.'),
     usedTokens: used.tokens,
     usedRequests: used.requests
   }
@@ -262,7 +263,7 @@ function codexReal(rl: CodexRateLimits, now: number): Partial<QuotaInfo> | null 
       remainingPct: null,
       source: 'none',
       updatedAt: rl.updatedAt,
-      note: 'La ventana de uso de Codex se renovó; se actualizará con el próximo uso de Codex.'
+      note: tr('La ventana de uso de Codex se renovó; se actualizará con el próximo uso de Codex.')
     }
   }
   const scored = live.map((w) => ({ w, remaining: clampPct(100 - w.usedPercent), label: minutesLabel(w.windowMinutes) }))
@@ -270,9 +271,9 @@ function codexReal(rl: CodexRateLimits, now: number): Partial<QuotaInfo> | null 
   const min = scored[0]
   const notes: string[] = []
   if (scored.length > 1) notes.push(scored.map((s) => `${s.label}: ${Math.round(s.remaining)}% restante`).join(' · '))
-  if (rl.reachedType) notes.push('Límite alcanzado')
+  if (rl.reachedType) notes.push(tr('Límite alcanzado'))
   if (rl.planType) notes.push(`Plan ${rl.planType}`)
-  notes.push('Dato real de Codex (última sesión registrada).')
+  notes.push(tr('Dato real de Codex (última sesión registrada).'))
   return {
     kind: 'usage',
     remainingPct: rl.reachedType ? 0 : min.remaining,
@@ -296,7 +297,7 @@ function claudeReal(info: RateLimitInfo, now: number): Partial<QuotaInfo> | null
       resetsAt: info.resetsAt ?? null,
       updatedAt: info.receivedAt,
       source: 'real',
-      note: 'Claude rechazó la última solicitud por límite de uso.'
+      note: tr('Claude rechazó la última solicitud por límite de uso.')
     }
   }
   const scored = live.map((w) => ({ w, remaining: clampPct(100 - (w.usedPct ?? 0)), label: claudeWindowLabel(w.name) }))
@@ -304,8 +305,8 @@ function claudeReal(info: RateLimitInfo, now: number): Partial<QuotaInfo> | null
   const min = scored[0]
   const notes: string[] = []
   if (scored.length > 1) notes.push(scored.map((s) => `${s.label}: ${Math.round(s.remaining)}% restante`).join(' · '))
-  if (rejected) notes.push('Límite alcanzado')
-  notes.push('Dato real informado por Claude Code en la última ejecución.')
+  if (rejected) notes.push(tr('Límite alcanzado'))
+  notes.push(tr('Dato real informado por Claude Code en la última ejecución.'))
   return {
     kind: 'usage',
     remainingPct: rejected ? 0 : min.remaining,
@@ -331,12 +332,12 @@ function geminiAuthType(): string | null {
 function geminiNote(): string {
   const t = geminiAuthType()
   if (t === 'gemini-api-key') {
-    return 'Gemini CLI usa una API key (gemini-api-key) y no informa la cuota restante. Puedes configurar un presupuesto para estimarla.'
+    return tr('Gemini CLI usa una API key (gemini-api-key) y no informa la cuota restante. Puedes configurar un presupuesto para estimarla.')
   }
   if (t === 'oauth-personal') {
-    return 'Gemini CLI (cuenta de Google) no informa la cuota restante. Puedes configurar un presupuesto para estimarla.'
+    return tr('Gemini CLI (cuenta de Google) no informa la cuota restante. Puedes configurar un presupuesto para estimarla.')
   }
-  return 'Gemini CLI no informa la cuota restante. Puedes configurar un presupuesto para estimarla.'
+  return tr('Gemini CLI no informa la cuota restante. Puedes configurar un presupuesto para estimarla.')
 }
 
 export function computeQuotas(cfg: AppConfig, agents: AgentConfig[], now = Date.now()): QuotaInfo[] {
@@ -361,9 +362,9 @@ export function computeQuotas(cfg: AppConfig, agents: AgentConfig[], now = Date.
 
     if (g.provider === 'local') {
       if (g.unlimited) {
-        return { ...base, kind: 'local', source: 'config', unlimited: true, note: 'Ejecución local en tu PC: sin cuota' }
+        return { ...base, kind: 'local', source: 'config', unlimited: true, note: tr('Ejecución local en tu PC: sin cuota') }
       }
-      return g.budget ? { ...base, ...estimate(g, g.budget, now) } : { ...base, kind: 'local', note: 'Sin cuota configurada' }
+      return g.budget ? { ...base, ...estimate(g, g.budget, now) } : { ...base, kind: 'local', note: tr('Sin cuota configurada') }
     }
     if (g.provider === 'codex') {
       const real = codexRate ? codexReal(codexRate, now) : null
@@ -375,13 +376,13 @@ export function computeQuotas(cfg: AppConfig, agents: AgentConfig[], now = Date.
       const real = claudeRate ? claudeReal(claudeRate, now) : null
       if (real) return { ...base, ...real }
       const fallback = withBudgetOr(
-        claudeProblem ?? 'Claude Code no informa la cuota restante en modo automático. Puedes configurar un presupuesto para estimarla.'
+        claudeProblem ?? tr('Claude Code no informa la cuota restante en modo automático. Puedes configurar un presupuesto para estimarla.')
       )
       return claudeOverride ? { ...fallback, fix: 'claude-direct' } : fallback
     }
     if (g.provider === 'gemini') return withBudgetOr(geminiNote())
     if (g.provider === 'muse') {
-      return withBudgetOr('Muse Code no informa la cuota restante de la suscripción (límites cada 5 horas). Puedes configurar un presupuesto para estimarla.')
+      return withBudgetOr(tr('Muse Code no informa la cuota restante de la suscripción (límites cada 5 horas). Puedes configurar un presupuesto para estimarla.'))
     }
     return withBudgetOr('No disponible')
   })

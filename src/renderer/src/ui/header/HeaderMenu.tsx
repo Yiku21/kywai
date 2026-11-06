@@ -284,7 +284,7 @@ export function HeaderMenu() {
               type="button"
               role="menuitem"
               className={s.item}
-              onClick={() => setLang(nextLang.id)}
+              onClick={() => void setLang(nextLang.id, (id) => api?.setLanguage?.(id) ?? Promise.resolve())}
             >
               <span className={s.itemText}>
                 <span className={s.itemLabel}>Idioma · Language</span>

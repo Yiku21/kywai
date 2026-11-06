@@ -251,7 +251,7 @@ function TraceWindow({ trace }: { trace: TraceView }) {
           {running && (
             <p className={s.live}>
               <LoaderCircle size={14} aria-hidden="true" className={u.spin} />
-              {task?.lastActivity ?? runtime?.lastActivity ?? t('Trabajando')}…
+              {t(task?.lastActivity ?? runtime?.lastActivity ?? 'Trabajando')}…
             </p>
           )}
         </div>

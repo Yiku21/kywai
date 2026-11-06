@@ -8,6 +8,7 @@
 import { spawn } from 'node:child_process'
 import { homedir } from 'node:os'
 import { sep } from 'node:path'
+import { tr } from '@shared/i18n'
 
 export const APP_BUNDLE_ID = 'com.aicowork.app'
 
@@ -18,11 +19,11 @@ const LABELS: Record<string, string> = {
   kTCCServiceSystemPolicyDocumentsFolder: 'Documentos',
   kTCCServiceSystemPolicyDesktopFolder: 'Escritorio',
   kTCCServiceSystemPolicyDownloadsFolder: 'Descargas',
-  kTCCServiceSystemPolicyRemovableVolumes: 'discos externos',
-  kTCCServiceSystemPolicyNetworkVolumes: 'discos de red',
-  kTCCServiceSystemPolicyAllFiles: 'acceso total al disco',
-  kTCCServiceAppleEvents: 'controlar otras apps',
-  kTCCServiceScreenCapture: 'grabación de pantalla',
+  kTCCServiceSystemPolicyRemovableVolumes: tr('discos externos'),
+  kTCCServiceSystemPolicyNetworkVolumes: tr('discos de red'),
+  kTCCServiceSystemPolicyAllFiles: tr('acceso total al disco'),
+  kTCCServiceAppleEvents: tr('controlar otras apps'),
+  kTCCServiceScreenCapture: tr('grabación de pantalla'),
   kTCCServiceMicrophone: 'micrófono',
   kTCCServiceCamera: 'cámara',
   kTCCServiceAccessibility: 'accesibilidad',
@@ -70,7 +71,7 @@ export function parsePromptLine(line: string, bundleId = APP_BUNDLE_ID): MacPerm
   if (!msg.includes('AUTHREQ_PROMPTING') || !msg.includes(`identifier=${bundleId},`)) return null
   const service = /service=(kTCCService\w+)/.exec(msg)?.[1]
   if (!service) return null
-  return { service, serviceLabel: serviceLabel(service), detail: `macOS pide permiso para ${serviceLabel(service)} en la pantalla del Mac` }
+  return { service, serviceLabel: serviceLabel(service), detail: tr('macOS pide permiso para {serviceLabel} en la pantalla del Mac', { serviceLabel: serviceLabel(service) }) }
 }
 
 // ---------- avisos en directo ----------
@@ -161,8 +162,8 @@ export function waitForFolderAccess(dir: string, hooks: FolderAccessHooks, waitM
     const label = serviceLabel(folderService(dir) ?? 'kTCCServiceSystemPolicyAllFiles')
     const timer = setTimeout(() => {
       const service = folderService(dir) ?? 'kTCCServiceSystemPolicyAllFiles'
-      hooks.onWaiting?.(`Esperando a que aceptes en la pantalla del Mac el permiso de macOS para ${label}`)
-      emitPrompt({ service, serviceLabel: serviceLabel(service), detail: `Un agente espera para entrar en ${dir}` })
+      hooks.onWaiting?.(tr('Esperando a que aceptes en la pantalla del Mac el permiso de macOS para {label}', { label }))
+      emitPrompt({ service, serviceLabel: serviceLabel(service), detail: tr('Un agente espera para entrar en {dir}', { dir }) })
     }, waitMs)
     const end = (msg: string | null): void => {
       if (done) return
@@ -185,7 +186,7 @@ export function waitForFolderAccess(dir: string, hooks: FolderAccessHooks, waitM
       // Una carpeta que no existe no es cosa de permisos: lo dirá el propio agente.
       if (code !== 0 && /not permitted/i.test(stderr)) {
         end(
-          `macOS no deja a AI Cowork entrar en ${label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → AI Cowork`
+          tr('macOS no deja a AI Cowork entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → AI Cowork', { label })
         )
       } else end(null)
     })

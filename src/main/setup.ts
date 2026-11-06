@@ -12,6 +12,7 @@ import { getConfig } from './config'
 import { agentKey, keys } from './keys'
 import { lmsPath } from './agents/lmstudio'
 import { asAdmin, detectPackageManager, findTerminal, LINUX_PACKAGES, nodeInstall, packageInstall, terminalArgs, which, withUserNpmPrefix, type LinuxPackageManager } from './linuxDesktop'
+import { tr } from '@shared/i18n'
 
 const IS_WIN = process.platform === 'win32'
 const IS_MAC = process.platform === 'darwin'
@@ -42,7 +43,7 @@ export function sh(command: string, timeoutMs: number, onLine?: (line: string) =
     child.stderr?.on('data', take)
     const timer = setTimeout(() => {
       child.kill()
-      resolve({ code: null, out: `${out}\n(tiempo de espera agotado)` })
+      resolve({ code: null, out: tr('{out}\n(tiempo de espera agotado)', { out }) })
     }, timeoutMs)
     child.on('error', (e) => {
       clearTimeout(timer)
@@ -325,28 +326,28 @@ let installing: Promise<SetupInstallResult> | null = null
 /** Instala un programa mostrando su salida en el asistente (una instalación a la vez). */
 export async function installTool(id: SetupToolId): Promise<SetupInstallResult> {
   const def = toolDef(id)
-  if (!def) throw new Error('Programa desconocido')
-  if (installing) throw new Error('Ya hay una instalación en curso; espera a que termine')
+  if (!def) throw new Error(tr('Programa desconocido'))
+  if (installing) throw new Error(tr('Ya hay una instalación en curso; espera a que termine'))
   const run = async (): Promise<SetupInstallResult> => {
     const ctx = await context()
     const plan = def.install(ctx)
-    if (!plan) return { ok: false, message: `${def.label} se instala desde su web` }
-    if (plan.needs === 'node' && !ctx.node) return { ok: false, message: 'Primero instala Node.js' }
-    if (plan.needs === 'python' && !(await probe('python')).installed) return { ok: false, message: 'Primero instala Python' }
+    if (!plan) return { ok: false, message: tr('{label} se instala desde su web', { label: def.label }) }
+    if (plan.needs === 'node' && !ctx.node) return { ok: false, message: tr('Primero instala Node.js') }
+    if (plan.needs === 'python' && !(await probe('python')).installed) return { ok: false, message: tr('Primero instala Python') }
     const log = (line: string) => emit({ kind: 'setup.log', toolId: id, line: line.slice(0, 400) })
     const cmd = IS_LINUX && /\bnpm (install|i) -g\b/.test(plan.cmd) && !(await npmGlobalWritable()) ? withUserNpmPrefix(plan.cmd) : plan.cmd
     log(`$ ${cmd}`)
-    if (cmd.startsWith('pkexec ')) log('Escribe tu contraseña en la ventana del sistema para continuar…')
+    if (cmd.startsWith('pkexec ')) log(tr('Escribe tu contraseña en la ventana del sistema para continuar…'))
     const r = await sh(cmd, 25 * 60 * 1000, log)
     await refreshPath()
     const after = await probe(id)
     if (after.installed) {
       log(`✓ ${def.label} instalado${after.version ? ` (${after.version})` : ''}`)
-      return { ok: true, message: `${def.label} instalado` }
+      return { ok: true, message: tr('{label} instalado', { label: def.label }) }
     }
-    const reason = r.code === 0 ? 'terminó, pero no aparece todavía (puede que haga falta reiniciar la app)' : `falló (código ${r.code ?? '—'})`
+    const reason = r.code === 0 ? tr('terminó, pero no aparece todavía (puede que haga falta reiniciar la app)') : tr('falló (código {v1})', { v1: r.code ?? '—' })
     log(`✗ La instalación ${reason}`)
-    return { ok: false, message: `La instalación de ${def.label} ${reason}` }
+    return { ok: false, message: tr('La instalación de {label} {reason}', { label: def.label, reason }) }
   }
   installing = run()
   try {
@@ -362,7 +363,7 @@ export async function installTool(id: SetupToolId): Promise<SetupInstallResult> 
 export async function openLogin(id: SetupToolId): Promise<void> {
   const def = toolDef(id)
   const cmd = def?.login
-  if (!def || !cmd) throw new Error('Este agente no necesita iniciar sesión')
+  if (!def || !cmd) throw new Error(tr('Este agente no necesita iniciar sesión'))
   const title = `AI Cowork - ${def.label}`
   if (IS_WIN) {
     const child = spawn('cmd.exe', ['/d', '/c', `start "${title}" cmd /k ${cmd}`], {
@@ -378,7 +379,7 @@ export async function openLogin(id: SetupToolId): Promise<void> {
   } else {
     // Linux: la terminal del escritorio ($TERMINAL, x-terminal-emulator, GNOME, KDE, Xfce…).
     const terminal = findTerminal()
-    if (!terminal) throw new Error(`No se encontró ninguna terminal. Abre una y ejecuta: ${cmd}`)
+    if (!terminal) throw new Error(tr('No se encontró ninguna terminal. Abre una y ejecuta: {cmd}', { cmd }))
     const child = spawn(terminal, terminalArgs(terminal, cmd), { detached: true, stdio: 'ignore' })
     child.on('error', () => undefined)
     child.unref()
@@ -416,20 +417,20 @@ export async function checkAuth(id: SetupToolId): Promise<SetupAuth> {
     // Agente de catálogo: su orden de comprobación, si la tiene; si no, no se puede saber sin hacer una consulta.
     const spec = getConfig().agents.find((a) => a.id === id.slice(4))?.cli
     if (spec?.apiKey) {
-      if (agentKey(id.slice(4))) return res(true, 'Clave de API guardada')
-      if (process.env[spec.apiKey.env]) return res(true, `Usa la variable ${spec.apiKey.env} de este equipo`)
+      if (agentKey(id.slice(4))) return res(true, tr('Clave de API guardada'))
+      if (process.env[spec.apiKey.env]) return res(true, tr('Usa la variable {env} de este equipo', { env: spec.apiKey.env }))
       // Sin clave, vale también la sesión de su programa si sabe decir que la tiene (Kiro: kiro-cli login).
       if (spec.authCheck) {
         const r = await sh(spec.authCheck, 30000)
-        if (r.code === 0) return res(true, 'Sesión iniciada')
+        if (r.code === 0) return res(true, tr('Sesión iniciada'))
       }
-      return res(false, `Falta la clave de API (${spec.apiKey.label})`)
+      return res(false, tr('Falta la clave de API ({label})', { label: spec.apiKey.label }))
     }
     if (spec?.authCheck) {
       const r = await sh(spec.authCheck, 30000)
-      return r.code === 0 ? res(true, 'Sesión iniciada') : res(false, 'Sin sesión')
+      return r.code === 0 ? res(true, tr('Sesión iniciada')) : res(false, tr('Sin sesión'))
     }
-    return res(true, 'No se puede comprobar de antemano: si pide iniciar sesión, ábrelo una vez en una terminal')
+    return res(true, tr('No se puede comprobar de antemano: si pide iniciar sesión, ábrelo una vez en una terminal'))
   }
   switch (id) {
     case 'claude': {
@@ -437,52 +438,52 @@ export async function checkAuth(id: SetupToolId): Promise<SetupAuth> {
       const m = r.out.match(/\{[\s\S]*\}/)
       try {
         const j = m ? (JSON.parse(m[0]) as { loggedIn?: boolean; email?: string; authMethod?: string }) : null
-        if (j?.loggedIn) return res(true, j.email ? `Sesión iniciada: ${j.email}` : 'Sesión iniciada')
+        if (j?.loggedIn) return res(true, j.email ? tr('Sesión iniciada: {email}', { email: j.email }) : tr('Sesión iniciada'))
       } catch {
         // Salida inesperada: se trata como sin sesión.
       }
-      return res(false, r.code === null || r.code === -1 ? 'Claude Code no responde' : 'Sin sesión')
+      return res(false, r.code === null || r.code === -1 ? tr('Claude Code no responde') : tr('Sin sesión'))
     }
     case 'codex': {
       const r = await sh('codex login status', 20000)
       // Un config.toml con opciones antiguas o mal escritas impide arrancar a Codex: se muestra el motivo.
       const broken = r.out.match(/(Error loading configuration[^\n]*|invalid type[^\n]*)(\n[^\n]+)?/i)
-      if (broken) return res(false, `Configuración de Codex con errores (~/.codex/config.toml): ${broken[0].replace(/\s+/g, ' ').trim()}`)
+      if (broken) return res(false, tr('Configuración de Codex con errores (~/.codex/config.toml): {v1}', { v1: broken[0].replace(/\s+/g, ' ').trim() }))
       return /logged in/i.test(r.out) && !/not logged in/i.test(r.out)
-        ? res(true, r.out.trim().split(/\r?\n/).pop()?.replace(/^Logged in using/i, 'Sesión iniciada con') ?? 'Sesión iniciada')
-        : res(false, 'Sin sesión')
+        ? res(true, r.out.trim().split(/\r?\n/).pop()?.replace(/^Logged in using/i, tr('Sesión iniciada con')) ?? tr('Sesión iniciada'))
+        : res(false, tr('Sin sesión'))
     }
     case 'gemini': {
       const s = readJson(join(HOME, '.gemini', 'settings.json'))
       const security = (s?.security as { auth?: { selectedType?: string } } | undefined)?.auth?.selectedType
       const type = security ?? (typeof s?.selectedAuthType === 'string' ? s.selectedAuthType : undefined)
-      if (type === 'oauth-personal' && existsSync(join(HOME, '.gemini', 'oauth_creds.json'))) return res(true, 'Sesión iniciada con Google')
-      if (type === 'gemini-api-key' && (await geminiKeyConfigured())) return res(true, 'Usa una clave de API de Gemini')
-      if (type === 'vertex-ai') return res(true, 'Usa Vertex AI')
-      return res(false, 'Sin sesión')
+      if (type === 'oauth-personal' && existsSync(join(HOME, '.gemini', 'oauth_creds.json'))) return res(true, tr('Sesión iniciada con Google'))
+      if (type === 'gemini-api-key' && (await geminiKeyConfigured())) return res(true, tr('Usa una clave de API de Gemini'))
+      if (type === 'vertex-ai') return res(true, tr('Usa Vertex AI'))
+      return res(false, tr('Sin sesión'))
     }
     case 'hermes': {
       const r = await sh('hermes status', 60000)
       const provider = r.out.match(/Provider:\s*(\S+)/i)?.[1]
       const model = r.out.match(/Model:\s*(\S+)/i)?.[1]
       if (provider && !/^(none|—|-|not)/i.test(provider)) return res(true, `Proveedor: ${provider}${model ? ` · ${model}` : ''}`)
-      return res(false, r.code === 0 ? 'Sin proveedor de modelos configurado' : 'Hermes no responde')
+      return res(false, r.code === 0 ? tr('Sin proveedor de modelos configurado') : tr('Hermes no responde'))
     }
     case 'muse': {
       // Muse Code no tiene una orden de «estado de sesión»: se mira si ya se ha usado en este equipo (guarda
       // ahí su configuración y sus sesiones). Si la sesión caduca, la primera tarea lo detecta y lo dice.
       const used = [join(HOME, '.config', 'muse'), join(HOME, '.local', 'share', 'muse')].some((d) => existsSync(d))
-      return used ? res(true, 'Muse Code ya se ha usado en este equipo') : res(false, 'Sin usar todavía: ábrelo para iniciar sesión')
+      return used ? res(true, tr('Muse Code ya se ha usado en este equipo')) : res(false, tr('Sin usar todavía: ábrelo para iniciar sesión'))
     }
     default:
-      return res(true, 'No necesita iniciar sesión')
+      return res(true, tr('No necesita iniciar sesión'))
   }
 }
 
 /** Guarda la clave de API de un agente de catálogo (cifrada, en este equipo) y comprueba su estado. */
 export async function saveAgentKey(agentId: string, key: string): Promise<SetupAuth> {
   const agent = getConfig().agents.find((a) => a.id === agentId)
-  if (!agent?.cli?.apiKey) throw new Error('Este agente no usa una clave de API')
+  if (!agent?.cli?.apiKey) throw new Error(tr('Este agente no usa una clave de API'))
   keys().set(agentId, typeof key === 'string' ? key : '')
   return checkAuth(`cli:${agentId}`)
 }
@@ -490,7 +491,7 @@ export async function saveAgentKey(agentId: string, key: string): Promise<SetupA
 /** Guarda la clave de API de Gemini donde la lee Gemini CLI y la selecciona como método de acceso. */
 export async function saveGeminiKey(key: string): Promise<SetupAuth> {
   const clean = typeof key === 'string' ? key.trim() : ''
-  if (!/^[\w-]{20,200}$/.test(clean)) throw new Error('Esa clave no parece válida')
+  if (!/^[\w-]{20,200}$/.test(clean)) throw new Error(tr('Esa clave no parece válida'))
   const dir = join(HOME, '.gemini')
   mkdirSync(dir, { recursive: true })
   const envFile = join(dir, '.env')

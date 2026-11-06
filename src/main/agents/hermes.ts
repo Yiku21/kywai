@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { AUTH_RE, QUOTA_RE, clip, looksMissing, runCli, safeModel, stderrSummary } from './spawn'
 import { EMPTY_USAGE, type JsonlParser, type RunAgentOptions, type RunAgentResult } from './types'
+import { tr } from '@shared/i18n'
 
 /** Para planificar, solo herramientas de consulta: nada de archivos, terminal ni subagentes propios. */
 export const HERMES_PLAN_TOOLSETS = 'web,memory,skills,todo,session_search'
@@ -49,17 +50,17 @@ export function createHermesParser(): JsonlParser {
       const usage = { ...EMPTY_USAGE }
       if (outcome.cancelled) return { ok: false, text, usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
       if (outcome.spawnError || looksMissing(outcome)) {
-        return { ok: false, text, usage, errorKind: 'missing', errorMessage: 'No se encontró Hermes Agent (comando `hermes`)' }
+        return { ok: false, text, usage, errorKind: 'missing', errorMessage: tr('No se encontró Hermes Agent (comando `hermes`)') }
       }
       const all = `${text}\n${outcome.stderrTail}`
       if (outcome.code !== 0 || !text) {
         if (AUTH_RE.test(all) || /\b401\b|unauthori[sz]ed/i.test(all)) {
-          return { ok: false, text, usage, errorKind: 'auth', errorMessage: 'Hermes no pudo autenticarse con su proveedor de modelos (revisa OmniRoute o `hermes model`)' }
+          return { ok: false, text, usage, errorKind: 'auth', errorMessage: tr('Hermes no pudo autenticarse con su proveedor de modelos (revisa OmniRoute o `hermes model`)') }
         }
         if (/connection refused|connecterror|failed to connect|unreachable|ECONNREFUSED|timed? ?out/i.test(all)) {
-          return { ok: false, text, usage, errorKind: 'offline', errorMessage: 'Hermes no puede conectar con su proveedor de modelos (¿OmniRoute está apagado?)' }
+          return { ok: false, text, usage, errorKind: 'offline', errorMessage: tr('Hermes no puede conectar con su proveedor de modelos (¿OmniRoute está apagado?)') }
         }
-        if (QUOTA_RE.test(all)) return { ok: false, text, usage, errorKind: 'quota', errorMessage: 'El proveedor de Hermes alcanzó su límite de uso' }
+        if (QUOTA_RE.test(all)) return { ok: false, text, usage, errorKind: 'quota', errorMessage: tr('El proveedor de Hermes alcanzó su límite de uso') }
         return {
           ok: false,
           text,
@@ -79,7 +80,7 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
   mkdirSync(dir, { recursive: true })
   const file = join(dir, `${randomUUID()}.txt`)
   writeFileSync(file, opts.prompt, 'utf8')
-  opts.onActivity?.(opts.mode === 'plan' ? 'Planificando el trabajo' : 'Trabajando', 'tool')
+  opts.onActivity?.(opts.mode === 'plan' ? tr('Planificando el trabajo') : tr('Trabajando'), 'tool')
   const slow = new AbortController()
   const timer = opts.mode === 'plan' ? setTimeout(() => slow.abort(), HERMES_PLAN_TIMEOUT_MS) : null
   try {
@@ -98,7 +99,7 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
         ...res,
         ok: false,
         errorKind: 'failed',
-        errorMessage: 'Hermes no respondió en ' + minutes + ' minutos: su modelo es demasiado lento o no responde (revísalo con «hermes status»)'
+        errorMessage: tr('Hermes no respondió en {minutes} minutos: su modelo es demasiado lento o no responde (revísalo con «hermes status»)', { minutes })
       }
     }
     return res

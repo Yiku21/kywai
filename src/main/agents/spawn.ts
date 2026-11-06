@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { waitForFolderAccess } from '../macPermissions'
 import type { JsonlParser, ProcessOutcome, RunAgentResult } from './types'
+import { tr } from '@shared/i18n'
 
 const IS_WIN = process.platform === 'win32'
 const STDERR_KEEP = 4096
@@ -37,11 +38,11 @@ const QUOTABLE_ARG = /^[\p{L}\p{N}_.:\-\/=,@ ]+$/u
 export function quoteArg(arg: string): string {
   if (PLAIN_ARG.test(arg)) return arg
   if (QUOTABLE_ARG.test(arg)) return `"${arg}"`
-  throw new Error(`Argumento no permitido para el CLI: ${JSON.stringify(arg)}`)
+  throw new Error(tr('Argumento no permitido para el CLI: {v1}', { v1: JSON.stringify(arg) }))
 }
 
 export function buildCommandLine(command: string, args: string[]): string {
-  if (!/^[\w.\-]+$/.test(command)) throw new Error(`Comando no permitido: ${command}`)
+  if (!/^[\w.\-]+$/.test(command)) throw new Error(tr('Comando no permitido: {command}', { command }))
   return [command, ...args.map(quoteArg)].join(' ')
 }
 
@@ -210,11 +211,11 @@ function runCliProcess(run: CliRun): Promise<RunAgentResult> {
           text: '',
           usage: { input: 0, output: 0 },
           errorKind: 'failed',
-          errorMessage: `Error interno: ${(e as Error).message}`
+          errorMessage: tr('Error interno: {message}', { message: (e as Error).message })
         }
       }
       if (timedOut && result.ok === false && result.errorKind === 'failed') {
-        result.errorMessage = 'El CLI dejó de responder (sin salida durante 20 min)'
+        result.errorMessage = tr('El CLI dejó de responder (sin salida durante 20 min)')
       }
       resolve(result)
     }

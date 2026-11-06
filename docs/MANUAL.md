@@ -1002,14 +1002,33 @@ cualquier variante de español; si no, inglés). Las fechas y los números sigue
 
 Se traduce todo lo que pinta la interfaz, incluido el modo Demo. Los comandos del chat funcionan en los dos idiomas
 (`/remember …`, `/routine every day at 9:00: …`, `/model`, `/usage`…) y un «yes» / «looks good» aprueba un plan igual
-que un «sí». De momento siguen en español los textos que vienen del motor (avisos de «Te necesita», errores de los
-agentes, el resumen de cada tarea) y Órbita; van en las siguientes fases.
+que un «sí».
+
+El idioma también vale para el motor (lo que se elige en Ajustes se guarda en `config.json` como `language`; si
+aún no se ha elegido, el del sistema). En inglés:
+
+- **Hermes y los agentes** contestan en inglés: el plan («reply», títulos y criterios de cada tarea), lo que cuentan
+  mientras trabajan, el resultado y la respuesta final. Las instrucciones internas que les da AI Cowork siguen en
+  español; solo se les pide escribir en el idioma del usuario.
+- **Los avisos del motor** salen en inglés: los mensajes del chat (plan repartido, verificación, correcciones, relevo,
+  «requiere intervención», deshacer), «Te necesita», lo que hace cada agente (paso a paso y actividad), los errores
+  de los agentes, la cuota, el asistente de instalación y de sesiones, las rutinas, la actualización, el menú del
+  botón derecho y la pantalla de conexión del cliente. El catálogo de agentes y las notas de los modelos, también.
+- **El veredicto del verificador** se entiende en los dos idiomas: «VEREDICTO: CUMPLE/FALLOS» o «VERDICT:
+  PASS/FAIL»; y en «a dos manos», «GANA: A» o «WINNER: A».
+- **El dictado** transcribe en el idioma de la app.
+
+Lo que ya estaba escrito (mensajes de antes, tareas guardadas) se queda en el idioma en que se escribió. Órbita va en
+la fase siguiente.
 
 Para desarrolladores: el texto en español del código es la clave. `t('Ajustes')` (de `@/lib/i18n`) devuelve «Ajustes»
-en español y lo que diga `src/renderer/src/lib/i18n/en.ts` en inglés; los huecos van entre llaves:
-`t('Hace {n} min', { n })`. Cada texto nuevo de la interfaz pasa por `t()` y se añade a `en.ts`;
-`lib/i18n.test.ts` falla si a un texto le falta su traducción, si una traducción no conserva los `{huecos}` o si
-queda alguna sin usar.
+en español y lo que diga `src/shared/i18n-en.ts` en inglés; los huecos van entre llaves: `t('Hace {n} min', { n })`.
+El motor usa lo mismo (`src/shared/i18n.ts`) con el nombre `tr()`, porque allí `t` suele ser una tarea. Cada texto
+nuevo que vea el usuario pasa por `t()`/`tr()` y se añade a `i18n-en.ts`; `lib/i18n.test.ts` falla si a un texto le
+falta su traducción, si una traducción no conserva los `{huecos}` o si queda alguna sin usar (cuentan también las que
+se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cual en el código). Lo que va a los agentes
+(encargos, planes, verificación) no se traduce: para el idioma de su respuesta están `replyLanguage()` y
+`userLanguageName()`. No se llama a `tr()` al cargar un módulo (el idioma aún no está fijado): dentro de funciones.
 
 ### Temas
 
