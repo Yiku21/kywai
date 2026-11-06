@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { InboxAction, InboxItem, InboxKind } from '@shared/types'
 import { emit } from './events'
+import { tr } from '@shared/i18n'
 
 /** Avisos que se guardan (los cerrados se van borrando, los más antiguos primero). */
 const KEEP = 150
@@ -33,7 +34,7 @@ export function initInbox(workspaceRoot: string): void {
   }
   // Al arrancar no hay tareas vivas: lo que dependía de una tarea en marcha ya no espera nada.
   const now = Date.now()
-  for (const i of items) if (!i.resolvedAt && (i.kind === 'stalled' || i.kind === 'mac-permission')) Object.assign(i, { resolvedAt: now, resolution: 'La app se reinició' })
+  for (const i of items) if (!i.resolvedAt && (i.kind === 'stalled' || i.kind === 'mac-permission')) Object.assign(i, { resolvedAt: now, resolution: tr('La app se reinició') })
 }
 
 function save(): void {
@@ -114,7 +115,7 @@ export function addInbox(input: InboxInput): InboxItem {
     ...(input.messageId ? { messageId: input.messageId } : {}),
     ...(input.agentId ? { agentId: input.agentId } : {}),
     ...(input.key ? { key: input.key } : {}),
-    actions: input.actions ?? [{ id: 'dismiss', label: 'Entendido' }],
+    actions: input.actions ?? [{ id: 'dismiss', label: tr('Entendido') }],
     createdAt: Date.now()
   }
   items.push(item)
@@ -144,10 +145,10 @@ export function onInboxAction(actionId: string, fn: (item: InboxItem) => Promise
 /** Pulsar un botón de un aviso: hace lo suyo y lo cierra. Devuelve el texto para el usuario (si lo hay). */
 export async function actInbox(id: string, actionId: string): Promise<{ item: InboxItem; message?: string }> {
   const item = items.find((i) => i.id === id)
-  if (!item) throw new Error('Ese aviso ya no existe')
+  if (!item) throw new Error(tr('Ese aviso ya no existe'))
   const action = item.actions.find((a) => a.id === actionId)
-  if (!action) throw new Error('Esa acción no está en el aviso')
-  if (item.resolvedAt) return { item: { ...item }, message: 'Ese aviso ya estaba resuelto' }
+  if (!action) throw new Error(tr('Esa acción no está en el aviso'))
+  if (item.resolvedAt) return { item: { ...item }, message: tr('Ese aviso ya estaba resuelto') }
   const fn = handlers.get(actionId)
   const message = fn ? ((await fn(item)) ?? undefined) : undefined
   // «Abrir» (un enlace) no resuelve nada por sí mismo: el aviso sigue hasta que se confirme.
@@ -181,13 +182,13 @@ export function notifyMacPermission(p: { service: string; serviceLabel: string; 
   addInbox({
     kind: 'mac-permission',
     key: `mac:${p.service}`,
-    title: `macOS pide permiso para «${p.serviceLabel}» en la pantalla del servidor`,
+    title: tr('macOS pide permiso para «{serviceLabel}» en la pantalla del servidor', { serviceLabel: p.serviceLabel }),
     detail:
       p.detail ??
-      'Un agente está esperando a que se acepte el aviso de Privacidad de macOS, y solo se puede aceptar delante del Mac. Ábrelo con Compartir pantalla y pulsa «Permitir»; para que no vuelva a pasar, activa «Acceso total al disco» para AI Cowork (Ajustes del Sistema → Privacidad y seguridad).',
+      tr('Un agente está esperando a que se acepte el aviso de Privacidad de macOS, y solo se puede aceptar delante del Mac. Ábrelo con Compartir pantalla y pulsa «Permitir»; para que no vuelva a pasar, activa «Acceso total al disco» para AI Cowork (Ajustes del Sistema → Privacidad y seguridad).'),
     taskId: p.taskId,
     agentId: p.agentId,
     projectId: p.projectId,
-    actions: [...(url ? [{ id: 'open', label: 'Abrir Compartir pantalla', url }] : []), { id: 'dismiss', label: 'Ya lo he aceptado' }]
+    actions: [...(url ? [{ id: 'open', label: tr('Abrir Compartir pantalla'), url }] : []), { id: 'dismiss', label: tr('Ya lo he aceptado') }]
   })
 }

@@ -199,7 +199,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
 
       {!!api && mode === 'live' && (activity === 'error' || activity === 'offline') && <ResetAgent agentId={agent.id} />}
 
-      {agent.role && <p className={s.role}>{agent.role}</p>}
+      {agent.role && <p className={s.role}>{t(agent.role)}</p>}
 
       {!!api && mode === 'live' && !agent.isSubagent && !agent.plannerOnly && agent.provider !== 'ollama' && agent.provider !== 'lmstudio' && (
         <Section title={t('Modelos según la dificultad')}>
@@ -292,7 +292,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
       <Section title={t('Última actividad')}>
         {runtime?.lastActivity ? (
           <p className={s.activity}>
-            <span>{runtime.lastActivity}</span>
+            <span>{t(runtime.lastActivity)}</span>
             {runtime.lastActivityAt ? <span className={s.when}>{relativeTime(runtime.lastActivityAt, now)}</span> : null}
           </p>
         ) : (

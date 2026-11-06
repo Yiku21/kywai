@@ -14,7 +14,7 @@ import { useComposer } from './composerStore'
 import { describeTrigger, describeWhen, parseRoutineCommand } from '@shared/routines'
 import u from '../common/ui.module.css'
 import s from './Composer.module.css'
-import { t } from '@/lib/i18n'
+import { lang, t } from '@/lib/i18n'
 
 const LINE = 20
 const PAD_Y = 20
@@ -303,7 +303,7 @@ export function Composer() {
       const wav = await cur.r.stop()
       const stamp = new Date().toTimeString().slice(0, 8).replace(/:/g, '')
       const path = await a.savePastedFile(`nota-de-voz-${stamp}.wav`, wav)
-      const said = await a.transcribeAudio(path, 'es')
+      const said = await a.transcribeAudio(path, lang())
       if (said) {
         const prev = useComposer.getState().text.trimEnd()
         setText(prev ? `${prev} ${said}` : said)

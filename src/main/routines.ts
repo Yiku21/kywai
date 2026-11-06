@@ -12,6 +12,7 @@ import type { CoworkEvent, Routine, RoutineInput, RoutineRun, RoutineRunReason, 
 import { cleanTrigger, describeWhen, isScheduled, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, nextRoutineRun, slotsBetween } from '@shared/routines'
 import { emit, tapEvents } from './events'
 import * as store from './projects'
+import { tr } from '@shared/i18n'
 
 /** Cada cuánto se mira si toca lanzar alguna rutina. */
 export const TICK_MS = 30_000
@@ -87,7 +88,7 @@ function routinesOf(projectId: string): Routine[] {
 
 function findRoutine(projectId: string, id: string): Routine {
   const r = routinesOf(projectId).find((x) => x.id === id)
-  if (!r) throw new Error('Esa rutina ya no existe')
+  if (!r) throw new Error(tr('Esa rutina ya no existe'))
   return r
 }
 
@@ -107,11 +108,11 @@ function addRun(projectId: string, r: Routine, run: RoutineRun): void {
 
 export function createRoutine(projectId: string, input: RoutineInput, now = Date.now()): Routine {
   const list = routinesOf(projectId)
-  if (list.length >= MAX_ROUTINES) throw new Error(`Como mucho ${MAX_ROUTINES} rutinas por proyecto`)
+  if (list.length >= MAX_ROUTINES) throw new Error(tr('Como mucho {MAX_ROUTINES} rutinas por proyecto', { MAX_ROUTINES }))
   const name = clean(input?.name, MAX_ROUTINE_NAME).replace(/\s+/g, ' ')
   const request = clean(input?.request, MAX_ROUTINE_REQUEST)
-  if (!name) throw new Error('Ponle un nombre a la rutina')
-  if (request.length < 3) throw new Error('Escribe lo que tiene que hacer la rutina (lo que se enviará al chat)')
+  if (!name) throw new Error(tr('Ponle un nombre a la rutina'))
+  if (request.length < 3) throw new Error(tr('Escribe lo que tiene que hacer la rutina (lo que se enviará al chat)'))
   const trigger = cleanTrigger(input?.trigger)
   const r: Routine = {
     id: newId(list),
@@ -132,15 +133,15 @@ export function createRoutine(projectId: string, input: RoutineInput, now = Date
 
 export function updateRoutine(projectId: string, id: string, patch: Partial<RoutineInput>, now = Date.now()): Routine {
   const r = findRoutine(projectId, id)
-  if (!patch || typeof patch !== 'object') throw new Error('Cambio no válido')
+  if (!patch || typeof patch !== 'object') throw new Error(tr('Cambio no válido'))
   if (patch.name !== undefined) {
     const name = clean(patch.name, MAX_ROUTINE_NAME).replace(/\s+/g, ' ')
-    if (!name) throw new Error('Ponle un nombre a la rutina')
+    if (!name) throw new Error(tr('Ponle un nombre a la rutina'))
     r.name = name
   }
   if (patch.request !== undefined) {
     const request = clean(patch.request, MAX_ROUTINE_REQUEST)
-    if (request.length < 3) throw new Error('Escribe lo que tiene que hacer la rutina (lo que se enviará al chat)')
+    if (request.length < 3) throw new Error(tr('Escribe lo que tiene que hacer la rutina (lo que se enviará al chat)'))
     r.request = request
   }
   if (patch.trigger !== undefined) {
@@ -178,7 +179,7 @@ export function deleteRoutine(projectId: string, id: string): void {
 /** Dirección del webhook con su secreto (para enseñarla y copiarla). Con regenerate, secreto nuevo. */
 export function routineWebhook(projectId: string, id: string, regenerate = false): RoutineWebhookInfo {
   const r = findRoutine(projectId, id)
-  if (r.trigger.type !== 'webhook') throw new Error('Esta rutina no se lanza por webhook')
+  if (r.trigger.type !== 'webhook') throw new Error(tr('Esta rutina no se lanza por webhook'))
   if (regenerate || !r.webhookSecret) {
     r.webhookSecret = newSecret()
     r.updatedAt = Date.now()
@@ -217,13 +218,13 @@ export async function fireRoutine(
   const entry: RoutineRun = { at: now, status: 'running', reason, ...(extra.note ? { note: extra.note } : {}) }
   if (routineBusy(projectId, r)) {
     entry.status = 'skipped'
-    entry.note = [extra.note, 'No se lanzó: la ejecución anterior de esta rutina seguía en marcha.'].filter(Boolean).join(' ')
+    entry.note = [extra.note, tr('No se lanzó: la ejecución anterior de esta rutina seguía en marcha.')].filter(Boolean).join(' ')
     addRun(projectId, r, entry)
     return entry
   }
   if (!deps) {
     entry.status = 'failed'
-    entry.note = 'El motor de rutinas no está en marcha'
+    entry.note = tr('El motor de rutinas no está en marcha')
     addRun(projectId, r, entry)
     return entry
   }
@@ -240,7 +241,7 @@ export async function fireRoutine(
     }
   } catch (e) {
     entry.status = 'failed'
-    entry.note = [extra.note, `No se pudo lanzar: ${(e as Error).message}`].filter(Boolean).join(' ')
+    entry.note = [extra.note, tr('No se pudo lanzar: {message}', { message: (e as Error).message })].filter(Boolean).join(' ')
     entry.finishedAt = Date.now()
   } finally {
     launching.delete(r.id)
@@ -277,8 +278,8 @@ export function scheduleDecision(r: Routine, now: number): ScheduleDecision {
 }
 
 function lateNote(d: ScheduleDecision, now: number): string {
-  const times = d.missed === 1 ? 'una vez' : `${d.missed} veces`
-  return `No se lanzó a su hora (${times}; la última, ${describeWhen(d.slot!, now)}) porque AI Cowork estaba cerrado o el equipo en reposo. Se lanza una sola vez ahora; las demás no se recuperan.`
+  const times = d.missed === 1 ? tr('una vez') : tr('{missed} veces', { missed: d.missed })
+  return tr('No se lanzó a su hora ({times}; la última, {describeWhen}) porque AI Cowork estaba cerrado o el equipo en reposo. Se lanza una sola vez ahora; las demás no se recuperan.', { times, describeWhen: describeWhen(d.slot!, now) })
 }
 
 function notice(projectId: string, r: Routine, text: string): void {
@@ -469,7 +470,7 @@ export function initRoutines(d: RoutineDeps, opts: { firstCheckMs?: number } = {
       for (const run of r.runs) {
         if (run.status === 'running') {
           run.status = 'interrupted'
-          run.note = [run.note, 'Se cerró AI Cowork mientras trabajaba.'].filter(Boolean).join(' ')
+          run.note = [run.note, tr('Se cerró AI Cowork mientras trabajaba.')].filter(Boolean).join(' ')
           touched = true
         }
       }
@@ -625,7 +626,7 @@ export async function handleRoutineWebhook(req: IncomingMessage, res: ServerResp
     return true
   }
   if (!body) {
-    reply(res, 413, { error: `El cuerpo pasa de ${WEBHOOK_MAX_BYTES} bytes` })
+    reply(res, 413, { error: tr('El cuerpo pasa de {WEBHOOK_MAX_BYTES} bytes', { WEBHOOK_MAX_BYTES }) })
     return true
   }
   // GitHub manda un «ping» al crear el webhook: se contesta sin lanzar nada.
@@ -634,7 +635,7 @@ export async function handleRoutineWebhook(req: IncomingMessage, res: ServerResp
     return true
   }
   if (!r.enabled) {
-    reply(res, 409, { status: 'disabled', error: 'La rutina está desactivada' })
+    reply(res, 409, { status: 'disabled', error: tr('La rutina está desactivada') })
     return true
   }
   const run = await fireRoutine(projectId, r, 'webhook', { data: webhookData(body, req.headers) })

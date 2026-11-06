@@ -377,7 +377,7 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
   const liveLine = live ? (
     <li className={s.liveLine}>
       <TypingDots reduced={reduced} />
-      {task?.lastActivity && <span>{task.lastActivity}</span>}
+      {task?.lastActivity && <span>{t(task.lastActivity)}</span>}
     </li>
   ) : null
   const toggle =

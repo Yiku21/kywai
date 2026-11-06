@@ -722,6 +722,8 @@ export interface AppConfig {
   planApproval: boolean
   /** El asistente de configuración ya se completó (o se omitió) en este equipo. */
   setupDone: boolean
+  /** Idioma de los avisos del motor y de las respuestas de los agentes (el último elegido en Ajustes; si no, español). */
+  language?: 'es' | 'en'
   /** Acceso desde otros dispositivos de Tailscale (navegador del móvil o del portátil). */
   webAccess: WebAccessConfig
 }
@@ -1120,6 +1122,8 @@ export interface CoworkApi {
   rejectPlan(projectId: string, messageId: string): Promise<void>
   /** Pedir (o no) tu visto bueno antes de ejecutar cada plan. */
   setPlanApproval(on: boolean): Promise<void>
+  /** Idioma de los avisos del motor y de las respuestas de Hermes y los agentes (lo cambia el selector de Ajustes). */
+  setLanguage(lang: 'es' | 'en'): Promise<void>
   /** «/model»: modelo con el que coordina Hermes y los que puede usar (según sus proveedores con sesión). */
   getHermesModels(): Promise<HermesModelsInfo>
   /** Cambia el modelo de Hermes en AI Cowork (null: volver al de su configuración). */

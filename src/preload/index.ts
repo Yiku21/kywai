@@ -51,6 +51,7 @@ const api: CoworkApi = {
   rateMessage: (projectId, messageId, rating) => ipcRenderer.invoke('cowork:rateMessage', projectId, messageId, rating),
   rejectPlan: (projectId, messageId) => ipcRenderer.invoke('cowork:rejectPlan', projectId, messageId),
   setPlanApproval: (on) => ipcRenderer.invoke('cowork:setPlanApproval', on),
+  setLanguage: (lang) => ipcRenderer.invoke('cowork:setLanguage', lang),
   getHermesModels: () => ipcRenderer.invoke('cowork:getHermesModels'),
   setHermesModel: (choice) =>
     ipcRenderer.invoke('cowork:setHermesModel', choice ? { provider: choice.provider, model: choice.model } : null),

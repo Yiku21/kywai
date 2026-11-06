@@ -22,6 +22,7 @@ import {
   type ClientFile,
   type ClientServer
 } from './clientConfig'
+import { lang, setCurrentLang, tr } from '@shared/i18n'
 
 const COOKIE = 'cowork_token'
 const APP_ICON = join(app.getAppPath(), 'build', 'icon.ico')
@@ -51,6 +52,39 @@ export function prepareClientSwitches(): void {
 }
 
 // ---------- Llave de este dispositivo ----------
+
+// Textos de la página de arriba que cambian con el idioma: [trozo tal cual en PAGE, texto en español que se traduce].
+// Las traducciones no llevan comillas simples: van dentro de cadenas de JavaScript de la página.
+const PAGE_TEXTS: Array<[string, string]> = [
+  ['>Bienvenido a AI Cowork<', 'Bienvenido a AI Cowork'],
+  ['¿Cómo vas a usar este equipo?', '¿Cómo vas a usar este equipo?'],
+  ['Este equipo es mi servidor<', 'Este equipo es mi servidor'],
+  ['Aquí corren los agentes y se guardan los proyectos. Lo normal en el equipo que está siempre encendido.', 'Aquí corren los agentes y se guardan los proyectos. Lo normal en el equipo que está siempre encendido.'],
+  ['Conectar con mi AI Cowork principal', 'Conectar con mi AI Cowork principal'],
+  ['Se empareja con tu servidor y usa su espacio, sus proyectos y sus archivos desde aquí.', 'Se empareja con tu servidor y usa su espacio, sus proyectos y sus archivos desde aquí.'],
+  ['>Conectar con tu AI Cowork<', 'Conectar con tu AI Cowork'],
+  ['En el equipo servidor abre ⋮ → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.', 'En el equipo servidor abre ⋮ → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.'],
+  ['>Dirección del servidor<', 'Dirección del servidor'],
+  ['"100.101.102.103 o mac-mini"', '100.101.102.103 o mac-mini'],
+  ['>Código de 6 cifras (o el código de acceso)<', 'Código de 6 cifras (o el código de acceso)'],
+  ['>Conectar</button>', 'Conectar'],
+  ["textContent = 'Conectar'", 'Conectar'],
+  ["textContent = 'Conectando…'", 'Conectando…'],
+  ['También puedes pegar el enlace de acceso completo en la dirección: trae el código.', 'También puedes pegar el enlace de acceso completo en la dirección: trae el código.'],
+  ['>Sin conexión con ', 'Sin conexión con'],
+  ["'No se llega al servidor.'", 'No se llega al servidor.'],
+  ['Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que AI Cowork está abierto en el servidor.', 'Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que AI Cowork está abierto en el servidor.'],
+  ['>Reintentar<', 'Reintentar'],
+  ['>Cambiar de servidor<', 'Cambiar de servidor'],
+  ['>Abriendo ', 'Abriendo']
+]
+
+/** La página en el idioma de la app. */
+function localizedPage(): string {
+  let html = PAGE.replace('<html lang="es">', `<html lang="${lang()}">`)
+  for (const [chunk, text] of PAGE_TEXTS) html = html.split(chunk).join(chunk.replace(text, tr(text).replace(/'/g, '’')))
+  return html
+}
 
 function sealToken(token: string): { token: string; encrypted: boolean } {
   try {
@@ -156,7 +190,7 @@ function showView(next: View): void {
   const w = ensureWindow()
   const onLocal = w.webContents.getURL().startsWith('data:')
   if (onLocal) sendView()
-  else void w.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(PAGE)}`)
+  else void w.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(localizedPage())}`)
   if (next.name === 'offline') retryTimer = setInterval(() => void openServer(), 5000)
 }
 
@@ -212,12 +246,12 @@ function ensureWindow(): BrowserWindow {
   // El servidor ya no reconoce este dispositivo (se revocó o caducó): hay que emparejarlo de nuevo.
   w.webContents.on('did-navigate', (_e, _url, status) => {
     if (status === 401 && current) {
-      showView({ name: 'connect', address: current.server.origin, message: 'Este dispositivo ya no está emparejado con el servidor. Genera un código nuevo y vuelve a conectar.' })
+      showView({ name: 'connect', address: current.server.origin, message: tr('Este dispositivo ya no está emparejado con el servidor. Genera un código nuevo y vuelve a conectar.') })
     }
   })
   w.webContents.on('did-fail-load', (_e, code, _desc, url, isMainFrame) => {
     if (!isMainFrame || code === -3 || url.startsWith('data:')) return
-    if (current) showView({ name: 'offline', server: { name: current.server.name, origin: current.server.origin }, message: 'No se pudo cargar AI Cowork desde el servidor.' })
+    if (current) showView({ name: 'offline', server: { name: current.server.name, origin: current.server.origin }, message: tr('No se pudo cargar AI Cowork desde el servidor.') })
   })
   w.on('closed', () => {
     if (win === w) win = null
@@ -245,18 +279,18 @@ async function openServer(): Promise<void> {
   const server = saved.server
   const token = openToken(server)
   if (!token) {
-    showView({ name: 'connect', address: server.origin, message: 'No se pudo leer la llave guardada de este dispositivo. Vuelve a conectar.' })
+    showView({ name: 'connect', address: server.origin, message: tr('No se pudo leer la llave guardada de este dispositivo. Vuelve a conectar.') })
     return
   }
   current = { server, token }
   const result = await probe(server.origin, token)
   if (!win || win.isDestroyed()) ensureWindow()
   if (result === 'denied') {
-    showView({ name: 'connect', address: server.origin, message: 'El servidor ya no reconoce este dispositivo (se revocó, caducó o el servidor es una versión anterior). Genera un código nuevo y vuelve a conectar.' })
+    showView({ name: 'connect', address: server.origin, message: tr('El servidor ya no reconoce este dispositivo (se revocó, caducó o el servidor es una versión anterior). Genera un código nuevo y vuelve a conectar.') })
     return
   }
   if (result === 'down') {
-    if (view.name !== 'offline') showView({ name: 'offline', server: { name: server.name, origin: server.origin }, message: `No se llega a ${server.origin}.` })
+    if (view.name !== 'offline') showView({ name: 'offline', server: { name: server.name, origin: server.origin }, message: tr('No se llega a {origin}.', { origin: server.origin }) })
     return
   }
   if (retryTimer) clearInterval(retryTimer)
@@ -278,9 +312,9 @@ async function openServer(): Promise<void> {
 
 async function pairWith(addressInput: string, codeInput: string): Promise<{ error?: string }> {
   const addr = parseServerAddress(String(addressInput ?? ''))
-  if (!addr) return { error: 'Escribe la dirección del servidor, por ejemplo 100.101.102.103 o mac-mini.' }
+  if (!addr) return { error: tr('Escribe la dirección del servidor, por ejemplo 100.101.102.103 o mac-mini.') }
   const code = String(codeInput ?? '').trim() || addr.code || ''
-  if (!code) return { error: 'Escribe el código de 6 cifras que muestra el servidor.' }
+  if (!code) return { error: tr('Escribe el código de 6 cifras que muestra el servidor.') }
   let res: Response
   try {
     res = await fetch(`${addr.origin}/api/mobile/v1/pair`, {
@@ -290,7 +324,7 @@ async function pairWith(addressInput: string, codeInput: string): Promise<{ erro
       signal: AbortSignal.timeout(10_000)
     })
   } catch {
-    return { error: `No se pudo conectar con ${addr.origin}. Comprueba que Tailscale está conectado en este equipo, que AI Cowork está abierto en el servidor y que tiene activado el acceso desde otros dispositivos.` }
+    return { error: tr('No se pudo conectar con {origin}. Comprueba que Tailscale está conectado en este equipo, que AI Cowork está abierto en el servidor y que tiene activado el acceso desde otros dispositivos.', { origin: addr.origin }) }
   }
   const data = (await res.json().catch(() => ({}))) as { accessToken?: string; deviceId?: string; serverName?: string; code?: string }
   if (!res.ok || !data.accessToken) return { error: pairingProblem(res.status, data.code) }
@@ -305,7 +339,7 @@ async function pairWith(addressInput: string, codeInput: string): Promise<{ erro
   writeClientFile(clientFilePath(), { mode: 'client', server })
   // La dirección del servidor se declara «segura» (micrófono) al arrancar: si es otra, hay que arrancar de nuevo.
   if (startedWith !== addr.origin) {
-    showView({ name: 'opening', server: { name: server.name, origin: server.origin }, message: 'Emparejado. Reiniciando para terminar…' })
+    showView({ name: 'opening', server: { name: server.name, origin: server.origin }, message: tr('Emparejado. Reiniciando para terminar…') })
     setTimeout(() => {
       app.relaunch()
       app.exit(0)
@@ -355,10 +389,10 @@ async function checkUpdate(): Promise<ClientUpdateState> {
     return {
       state: 'unsupported',
       current: installed,
-      message: process.platform === 'darwin' ? 'En el Mac el cliente se actualiza con scripts/actualizar-mac.sh.' : 'Este equipo no se actualiza desde el servidor.'
+      message: process.platform === 'darwin' ? tr('En el Mac el cliente se actualiza con scripts/actualizar-mac.sh.') : tr('Este equipo no se actualiza desde el servidor.')
     }
   }
-  if (!current) return { state: 'error', current: installed, message: 'Sin conexión con el servidor.' }
+  if (!current) return { state: 'error', current: installed, message: tr('Sin conexión con el servidor.') }
   try {
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = false
@@ -374,7 +408,7 @@ async function checkUpdate(): Promise<ClientUpdateState> {
   } catch (e) {
     const text = e instanceof Error ? e.message : String(e)
     // Sin instalador publicado en el servidor: no hay nada que actualizar (no es un fallo).
-    if (/404|latest\.yml/i.test(text)) return { state: 'current', current: installed, message: 'El servidor todavía no ofrece una versión nueva del cliente.' }
+    if (/404|latest\.yml/i.test(text)) return { state: 'current', current: installed, message: tr('El servidor todavía no ofrece una versión nueva del cliente.') }
     return { state: 'error', current: installed, message: text.split('\n')[0].slice(0, 200) }
   }
 }
@@ -392,12 +426,12 @@ async function installUpdate(): Promise<void> {
   installing = true
   try {
     const checked = await checkUpdate()
-    if (checked.state !== 'available') throw new Error(checked.message ?? 'No hay una versión nueva que instalar.')
-    showView({ name: 'opening', message: `Descargando la versión ${checked.latest} del servidor…` })
+    if (checked.state !== 'available') throw new Error(checked.message ?? tr('No hay una versión nueva que instalar.'))
+    showView({ name: 'opening', message: tr('Descargando la versión {latest} del servidor…', { latest: checked.latest }) })
     const files = await autoUpdater.downloadUpdate()
     // Solo se instala lo que firmó el dueño con su clave (quien tenga el código del servidor puede subir archivos).
     const exe = files.find((f) => /\.exe$/i.test(f))
-    const problem = exe && availableRelease ? verifyRelease(availableRelease, await sha512Of(exe), CLIENT_RELEASE_PUBLIC_KEY) : 'No se encontró el instalador descargado.'
+    const problem = exe && availableRelease ? verifyRelease(availableRelease, await sha512Of(exe), CLIENT_RELEASE_PUBLIC_KEY) : tr('No se encontró el instalador descargado.')
     if (problem) throw new Error(problem)
     autoUpdater.quitAndInstall(true, true)
   } catch (e) {
@@ -416,14 +450,14 @@ function scheduleUpdateChecks(): void {
     offeredVersion = r.latest
     const options: Electron.MessageBoxOptions = {
       type: 'info',
-      buttons: ['Instalar y reiniciar', 'Más tarde'],
+      buttons: [tr('Instalar y reiniciar'), tr('Más tarde')],
       defaultId: 0,
       cancelId: 1,
-      message: `Hay una versión nueva de AI Cowork para este equipo (${r.latest})`,
-      detail: `Tienes la ${r.current}. Se descarga de tu servidor y la app se reinicia sola al terminar.`
+      message: tr('Hay una versión nueva de AI Cowork para este equipo ({latest})', { latest: r.latest }),
+      detail: tr('Tienes la {current}. Se descarga de tu servidor y la app se reinicia sola al terminar.', { current: r.current })
     }
     const answer = win && !win.isDestroyed() ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options)
-    if (answer.response === 0) await installUpdate().catch((e) => dialog.showErrorBox('AI Cowork', `No se pudo actualizar: ${(e as Error).message}`))
+    if (answer.response === 0) await installUpdate().catch((e) => dialog.showErrorBox('AI Cowork', tr('No se pudo actualizar: {message}', { message: (e as Error).message })))
   }
   setTimeout(() => void run(), 15_000).unref()
   updateTimer = setInterval(() => void run(), UPDATE_EVERY_MS)
@@ -434,15 +468,15 @@ function scheduleUpdateChecks(): void {
 
 /** Descarga un archivo del proyecto a una carpeta temporal y lo abre con la aplicación de este equipo. */
 async function openRemoteFile(projectId: unknown, relPath: unknown): Promise<void> {
-  if (!current) throw new Error('Sin conexión con el servidor')
+  if (!current) throw new Error(tr('Sin conexión con el servidor'))
   if (typeof projectId !== 'string' || !/^[a-z0-9][a-z0-9-]{0,80}$/.test(projectId) || typeof relPath !== 'string' || !relPath) {
-    throw new Error('Archivo no válido')
+    throw new Error(tr('Archivo no válido'))
   }
   const parts = relPath.split('/').filter(Boolean)
-  if (!parts.length || parts.some((p) => p === '..' || p.includes('\\') || p.includes('\0'))) throw new Error('Archivo no válido')
+  if (!parts.length || parts.some((p) => p === '..' || p.includes('\\') || p.includes('\0'))) throw new Error(tr('Archivo no válido'))
   const url = `${current.server.origin}/api/file/${encodeURIComponent(projectId)}/${parts.map(encodeURIComponent).join('/')}`
   const res = await fetch(url, { headers: { Authorization: `Bearer ${current.token}` }, signal: AbortSignal.timeout(120_000) })
-  if (!res.ok) throw new Error(res.status === 404 ? 'El archivo ya no está en el servidor' : `El servidor respondió ${res.status}`)
+  if (!res.ok) throw new Error(res.status === 404 ? tr('El archivo ya no está en el servidor') : tr('El servidor respondió {status}', { status: res.status }))
   const dir = join(app.getPath('temp'), 'ai-cowork-cliente', projectId)
   mkdirSync(dir, { recursive: true })
   const file = join(dir, basename(parts[parts.length - 1]))
@@ -453,13 +487,13 @@ async function openRemoteFile(projectId: unknown, relPath: unknown): Promise<voi
 
 /** Abre un archivo cualquiera del servidor: lo descarga a una carpeta temporal y lo abre con la aplicación de este equipo. */
 async function openRemotePath(path: unknown): Promise<void> {
-  if (!current) throw new Error('Sin conexión con el servidor')
-  if (typeof path !== 'string' || !path || path.length > 4096 || path.includes('\0')) throw new Error('Ruta no válida')
+  if (!current) throw new Error(tr('Sin conexión con el servidor'))
+  if (typeof path !== 'string' || !path || path.length > 4096 || path.includes('\0')) throw new Error(tr('Ruta no válida'))
   const res = await fetch(`${current.server.origin}/api/fs/read?path=${encodeURIComponent(path)}&download=1`, {
     headers: { Authorization: `Bearer ${current.token}` },
     signal: AbortSignal.timeout(10 * 60_000)
   })
-  if (!res.ok) throw new Error((await res.json().catch(() => ({ error: '' })) as { error?: string }).error || `El servidor respondió ${res.status}`)
+  if (!res.ok) throw new Error((await res.json().catch(() => ({ error: '' })) as { error?: string }).error || tr('El servidor respondió {status}', { status: res.status }))
   const name = basename(path.replace(/\\/g, '/')) || 'archivo'
   const dir = join(app.getPath('temp'), 'ai-cowork-cliente', 'servidor')
   mkdirSync(dir, { recursive: true })
@@ -471,17 +505,17 @@ async function openRemotePath(path: unknown): Promise<void> {
 
 /** Baja una carpeta del servidor como zip: pregunta dónde guardarla y la deja ahí. */
 async function saveRemoteFolder(path: unknown): Promise<string | null> {
-  if (!current) throw new Error('Sin conexión con el servidor')
-  if (typeof path !== 'string' || !path || path.length > 4096 || path.includes('\0')) throw new Error('Ruta no válida')
+  if (!current) throw new Error(tr('Sin conexión con el servidor'))
+  if (typeof path !== 'string' || !path || path.length > 4096 || path.includes('\0')) throw new Error(tr('Ruta no válida'))
   const base = basename(path.replace(/\\/g, '/').replace(/\/+$/, '')) || 'disco'
-  const options: Electron.SaveDialogOptions = { title: 'Guardar la carpeta como zip', defaultPath: join(app.getPath('downloads'), `${base}.zip`), filters: [{ name: 'Zip', extensions: ['zip'] }] }
+  const options: Electron.SaveDialogOptions = { title: tr('Guardar la carpeta como zip'), defaultPath: join(app.getPath('downloads'), `${base}.zip`), filters: [{ name: tr('Zip'), extensions: ['zip'] }] }
   const chosen = win && !win.isDestroyed() ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
   if (chosen.canceled || !chosen.filePath) return null
   const res = await fetch(`${current.server.origin}/api/fs/zip?path=${encodeURIComponent(path)}`, {
     headers: { Authorization: `Bearer ${current.token}` },
     signal: AbortSignal.timeout(60 * 60_000)
   })
-  if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({ error: '' })) as { error?: string }).error || `El servidor respondió ${res.status}`)
+  if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({ error: '' })) as { error?: string }).error || tr('El servidor respondió {status}', { status: res.status }))
   const { Readable } = await import('node:stream')
   const { createWriteStream } = await import('node:fs')
   const { pipeline } = await import('node:stream/promises')
@@ -507,8 +541,8 @@ async function forgetServer(): Promise<void> {
     buttons: ['Olvidar', 'Cancelar'],
     defaultId: 1,
     cancelId: 1,
-    message: '¿Olvidar la conexión con este servidor?',
-    detail: 'Este equipo dejará de estar emparejado. Para volver a usarlo tendrás que pedir un código nuevo en el servidor.'
+    message: tr('¿Olvidar la conexión con este servidor?'),
+    detail: tr('Este equipo dejará de estar emparejado. Para volver a usarlo tendrás que pedir un código nuevo en el servidor.')
   }
   const r = win && !win.isDestroyed() ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options)
   if (r.response !== 0) return
@@ -532,11 +566,11 @@ function buildMenu(): void {
   const template: Electron.MenuItemConstructorOptions[] = [
     { role: 'appMenu' },
     {
-      label: 'Servidor',
+      label: tr('Servidor'),
       submenu: [
-        { label: 'Recargar', accelerator: 'CmdOrCtrl+R', click: () => void openServer() },
-        { label: 'Cambiar de servidor…', click: () => showView({ name: 'connect', address: current?.server.origin }) },
-        { label: 'Olvidar este dispositivo y desconectar', click: () => void forgetServer() }
+        { label: tr('Recargar'), accelerator: 'CmdOrCtrl+R', click: () => void openServer() },
+        { label: tr('Cambiar de servidor…'), click: () => showView({ name: 'connect', address: current?.server.origin }) },
+        { label: tr('Olvidar este dispositivo y desconectar'), click: () => void forgetServer() }
       ]
     },
     { role: 'editMenu' },
@@ -575,16 +609,16 @@ function registerClientIpc(): void {
   )
   // Sincronización de carpetas (la interfaz del servidor las gestiona; el motor corre aquí, junto a los archivos).
   const id = (v: unknown): string => {
-    if (typeof v !== 'string' || !v || v.length > 80) throw new Error('Pareja no válida')
+    if (typeof v !== 'string' || !v || v.length > 80) throw new Error(tr('Pareja no válida'))
     return v
   }
   ipcMain.handle('client:syncList', (e) => (fromServerPage(e) ? syncManager().list() : []))
   ipcMain.handle('client:syncAdd', async (e, remoteDir: unknown) => {
     if (!fromServerPage(e)) throw new Error('No permitido')
-    if (typeof remoteDir !== 'string' || !remoteDir || remoteDir.length > 4096 || remoteDir.includes('\0')) throw new Error('Carpeta del servidor no válida')
+    if (typeof remoteDir !== 'string' || !remoteDir || remoteDir.length > 4096 || remoteDir.includes('\0')) throw new Error(tr('Carpeta del servidor no válida'))
     const options: Electron.OpenDialogOptions = {
-      title: 'Carpeta de este equipo con la que sincronizar',
-      buttonLabel: 'Sincronizar con esta carpeta',
+      title: tr('Carpeta de este equipo con la que sincronizar'),
+      buttonLabel: tr('Sincronizar con esta carpeta'),
       properties: ['openDirectory', 'createDirectory']
     }
     const chosen = win && !win.isDestroyed() ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options)
@@ -628,7 +662,13 @@ function setup(): void {
 }
 
 /** Pregunta cómo se va a usar este equipo (solo en una instalación nueva). */
+/** El cliente y la primera pantalla no tienen config.json del motor: siguen el idioma del sistema. */
+function useSystemLang(): void {
+  setCurrentLang(/^es\b/i.test(app.getLocale()) ? 'es' : 'en')
+}
+
 export function chooseMode(): Promise<AppMode> {
+  useSystemLang()
   setup()
   return new Promise((resolve) => {
     chooserDone = (mode) => {
@@ -642,10 +682,11 @@ export function chooseMode(): Promise<AppMode> {
 
 /** Arranca AI Cowork como cliente: ventana con la interfaz del servidor al que está emparejado este equipo. */
 export async function bootClient(): Promise<void> {
+  useSystemLang()
   setup()
   buildMenu()
   startedWith = readClientFile(clientFilePath())?.server?.origin ?? null
-  showView({ name: 'opening', message: 'Conectando con el servidor…' })
+  showView({ name: 'opening', message: tr('Conectando con el servidor…') })
   await openServer()
 }
 

@@ -116,14 +116,14 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
                       {e.name}
                       {e.kind === 'cli' && <code className={s.cmd}>{e.cli?.command}</code>}
                       {e.kind === 'cli' && !e.verified && (
-                        <span className={s.warn} title={e.note ?? t('Su forma de lanzarlo no se ha comprobado a fondo: puede necesitar ajustes.')}>
+                        <span className={s.warn} title={e.note ? t(e.note) : t('Su forma de lanzarlo no se ha comprobado a fondo: puede necesitar ajustes.')}>
                           <AlertTriangle size={11} aria-hidden="true" /> {t('sin comprobar')}
                         </span>
                       )}
                     </span>
-                    <span className={s.itemWhat}>{e.summary}</span>
-                    <span className={s.itemAccount}>{e.account}</span>
-                    {e.note && <span className={s.itemNote}>{e.note}</span>}
+                    <span className={s.itemWhat}>{t(e.summary)}</span>
+                    <span className={s.itemAccount}>{t(e.account)}</span>
+                    {e.note && <span className={s.itemNote}>{t(e.note)}</span>}
                   </span>
                   <span className={s.itemActions}>
                     {e.cli?.url && (

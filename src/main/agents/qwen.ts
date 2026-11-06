@@ -6,6 +6,7 @@ import { createClaudeParser } from './claude'
 import { createGeminiParser } from './gemini'
 import { runCli, safeModel, str } from './spawn'
 import type { JsonlParser, ParserCallbacks, RunAgentOptions, RunAgentResult } from './types'
+import { tr } from '@shared/i18n'
 
 export function qwenArgs(model: string, mode: 'plan' | 'work', access: AgentAccess = 'project'): string[] {
   const approval = mode === 'plan' ? 'plan' : access === 'full' ? 'yolo' : 'auto-edit'
@@ -31,9 +32,9 @@ export function createQwenParser(cb: ParserCallbacks): JsonlParser {
     },
     finish(outcome) {
       const r = (active ?? gemini).finish(outcome)
-      if (r.errorKind === 'missing') r.errorMessage = 'No se encontró el CLI de Qwen Code'
-      if (r.errorKind === 'auth') r.errorMessage = 'Qwen Code no está autenticado: ejecuta `qwen` en una terminal e inicia sesión'
-      if (r.errorKind === 'quota') r.errorMessage = 'Qwen Code alcanzó su límite de uso'
+      if (r.errorKind === 'missing') r.errorMessage = tr('No se encontró el CLI de Qwen Code')
+      if (r.errorKind === 'auth') r.errorMessage = tr('Qwen Code no está autenticado: ejecuta `qwen` en una terminal e inicia sesión')
+      if (r.errorKind === 'quota') r.errorMessage = tr('Qwen Code alcanzó su límite de uso')
       return r
     }
   }

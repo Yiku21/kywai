@@ -1,0 +1,60 @@
+// Idiomas de AI Cowork, común a la interfaz y al motor. El texto en español del código es la clave: t('Ajustes')
+// devuelve «Ajustes» en español y lo que diga el diccionario del idioma (i18n-en.ts) en los demás; si falta, se queda
+// en español (src/renderer/src/lib/i18n.test.ts avisa de cada texto sin traducir). Los huecos van entre llaves:
+// t('Hace {n} min', { n: 5 }).
+//
+// Cada proceso fija su idioma: la interfaz, el de su dispositivo (lib/i18n.ts); el motor, el de config.json
+// («language»), que la interfaz cambia al elegir idioma en Ajustes. En el motor, donde «t» suele ser una tarea, se
+// importa como «tr».
+import { en } from './i18n-en'
+
+export type Lang = 'es' | 'en'
+
+export const LANGS: ReadonlyArray<{ id: Lang; name: string }> = [
+  { id: 'es', name: 'Español' },
+  { id: 'en', name: 'English' }
+]
+
+const DICTS: Record<Exclude<Lang, 'es'>, Record<string, string>> = { en }
+
+let current: Lang = 'es'
+
+export function isLang(value: unknown): value is Lang {
+  return LANGS.some((l) => l.id === value)
+}
+
+export function lang(): Lang {
+  return current
+}
+
+export function setCurrentLang(id: Lang): void {
+  if (isLang(id)) current = id
+}
+
+/** Código BCP 47 para fechas y números (toLocaleString, Intl…). */
+export function locale(): string {
+  return current === 'en' ? 'en-US' : 'es-ES'
+}
+
+/** Traduce un texto escrito en español. Los {huecos} se rellenan con vars. */
+export function t(text: string, vars?: Record<string, string | number | null | undefined>): string {
+  const dict = current === 'es' ? undefined : DICTS[current]
+  const out = dict?.[text] ?? text
+  if (!vars) return out
+  return out.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k] ?? '') : m))
+}
+
+/** Lo mismo que t(), para el motor (allí «t» suele ser una tarea). */
+export const tr = t
+
+/** Para las instrucciones a los agentes: en qué idioma deben escribir lo que verá el usuario. */
+export function replyLanguage(): string {
+  return current === 'en'
+    ? 'Responde en inglés: el usuario usa AI Cowork en inglés. Todo lo que vaya a ver (respuestas, títulos, resúmenes, avisos) va en inglés, aunque estas instrucciones estén en español.'
+    : 'Responde en español.'
+}
+
+/** Nombre del idioma del usuario, dentro de una frase en español («mensaje breve en inglés…»). */
+export function userLanguageName(): string {
+  return current === 'en' ? 'inglés' : 'español'
+}

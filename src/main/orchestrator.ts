@@ -38,6 +38,7 @@ import { agentHistory, agentQualityFor, profileLines } from './agentProfile'
 import { EFFORT_LABEL, effortFor, planEffortFor } from '@shared/modelCatalog'
 import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpdate } from './taskTrace'
 import { withoutClosingNotes, workSteps } from '@shared/work'
+import { lang, replyLanguage, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
 import { addMemory, KIND_LABEL, memoryPromptSections, parseMemoryNotes, planMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
@@ -215,23 +216,23 @@ async function prepareWorkplace(run: Run, t: Task, meta: TaskMeta, exec: AgentCo
     const other = occupies(run.projectId, t.id)
     if (!other) {
       mainOccupant.set(run.projectId, t.id)
-      if (!meta.before) meta.before = await withGit(run.projectId, (sh) => sh.snapshot(main, 'main', `Antes de «${t.title}»`))
+      if (!meta.before) meta.before = await withGit(run.projectId, (sh) => sh.snapshot(main, 'main', tr('Antes de «{title}»', { title: t.title })))
       return main
     }
     const key = `copia-${t.id}`
     const dir = join(dataRoot(), 'aislado', t.id)
     const base = await withGit(run.projectId, async (sh) => {
-      const c = await sh.snapshot(main, 'main', `Copia para «${t.title}»`)
+      const c = await sh.snapshot(main, 'main', tr('Copia para «{title}»', { title: t.title }))
       await sh.makeCopy(c, dir, main, key)
       return c
     })
     meta.copy = { dir, key, base }
     meta.before = base
-    traceNote(t.id, `Trabaja en una copia aparte de la carpeta: «${other.title}» la está usando. Al terminar, sus cambios se integran en la carpeta del proyecto.`)
+    traceNote(t.id, tr('Trabaja en una copia aparte de la carpeta: «{title}» la está usando. Al terminar, sus cambios se integran en la carpeta del proyecto.', { title: other.title }))
     return dir
   } catch (e) {
     console.warn('[cowork] instantáneas desactivadas para este proyecto', e)
-    traceNote(t.id, `Sin instantáneas (no se podrá deshacer esta tarea): ${(e as Error).message}`)
+    traceNote(t.id, tr('Sin instantáneas (no se podrá deshacer esta tarea): {message}', { message: (e as Error).message }))
     if ((e as Error).message.includes('demasiados archivos')) return main
     return main
   }
@@ -273,7 +274,7 @@ async function settleChanges(run: Run, t: Task, exec: AgentConfig, parent: Agent
       meta.copy = undefined
       await recordChanges(run.projectId, t, copy.base, after, true, r.conflicts)
       if (r.conflicts.length) {
-        traceNote(t.id, `Al integrar chocó con otra tarea en: ${r.conflicts.join(', ')}`, true)
+        traceNote(t.id, tr('Al integrar chocó con otra tarea en: {v1}', { v1: r.conflicts.join(', ') }), true)
         if ((meta.mergeFixes ?? 0) === 0) {
           meta.mergeFixes = 1
           requeueForMerge(run, t, exec, parent, r.conflicts)
@@ -282,14 +283,14 @@ async function settleChanges(run: Run, t: Task, exec: AgentConfig, parent: Agent
         addInbox({
           kind: 'conflict',
           key: `conflict:${t.id}`,
-          title: `Choques sin resolver al integrar «${t.title}»`,
-          detail: `Estos archivos llevan marcas <<<<<<< de dos tareas que cambiaron lo mismo a la vez: ${r.conflicts.join(', ')}.`,
+          title: tr('Choques sin resolver al integrar «{title}»', { title: t.title }),
+          detail: tr('Estos archivos llevan marcas <<<<<<< de dos tareas que cambiaron lo mismo a la vez: {v1}.', { v1: r.conflicts.join(', ') }),
           projectId: run.projectId,
           runId: run.id,
           taskId: t.id,
-          actions: [{ id: 'dismiss', label: 'Lo reviso yo' }]
+          actions: [{ id: 'dismiss', label: tr('Lo reviso yo') }]
         })
-        systemMessage(run, `Aviso: al integrar «${t.title}» quedaron choques sin resolver en ${r.conflicts.map((f) => `\`${f}\``).join(', ')} (llevan marcas <<<<<<<). Revísalos.`, 'error')
+        systemMessage(run, tr('Aviso: al integrar «{title}» quedaron choques sin resolver en {v2} (llevan marcas <<<<<<<). Revísalos.', { title: t.title, v2: r.conflicts.map((f) => `\`${f}\``).join(', ') }), 'error')
       }
       return true
     }
@@ -297,7 +298,7 @@ async function settleChanges(run: Run, t: Task, exec: AgentConfig, parent: Agent
     await recordChanges(run.projectId, t, meta.before, after, false, [])
   } catch (e) {
     console.warn('[cowork] no se pudieron guardar los cambios de la tarea', e)
-    traceNote(t.id, `No se pudo guardar la instantánea de después: ${(e as Error).message}`)
+    traceNote(t.id, tr('No se pudo guardar la instantánea de después: {message}', { message: (e as Error).message }))
   }
   return true
 }
@@ -320,7 +321,7 @@ async function recordChanges(projectId: string, t: Task, before: string, after: 
     ...(conflicts.length ? { conflicts: conflicts.slice(0, 30) } : {})
   }
   t.changes = changes
-  traceNote(t.id, `Cambios guardados: ${changes.files} archivo${changes.files === 1 ? '' : 's'} (+${changes.add} −${changes.del}). Se pueden ver y deshacer desde el chat.`)
+  traceNote(t.id, tr('Cambios guardados: {files} archivo{v2} (+{add} −{del}). Se pueden ver y deshacer desde el chat.', { files: changes.files, v2: changes.files === 1 ? '' : 's', add: changes.add, del: changes.del }))
 }
 
 /** Al integrar su copia chocó con otra tarea: el mismo agente resuelve las marcas en la carpeta del proyecto. */
@@ -335,12 +336,12 @@ function requeueForMerge(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   // La sesión del CLI era de la copia (otra carpeta): no se puede retomar.
   meta.resume = undefined
   meta.before = undefined
-  closeWork(run, t, 'stopped', { text: `Al integrar «${t.title}» chocó con otra tarea en ${conflicts.map((f) => `\`${f}\``).join(', ')}; ${owner.name} lo resuelve.` })
+  closeWork(run, t, 'stopped', { text: tr('Al integrar «{title}» chocó con otra tarea en {v2}; {name} lo resuelve.', { title: t.title, v2: conflicts.map((f) => `\`${f}\``).join(', '), name: owner.name }) })
   if (parent) {
     removeBecario(exec.id)
     t.agentId = parent.id
   }
-  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: `Resolviendo choques: ${t.title}` })
+  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Resolviendo choques: {title}', { title: t.title }) })
   t.status = 'pending'
   t.startedAt = undefined
   t.lastActivity = undefined
@@ -362,7 +363,7 @@ function findStoredTask(projectId: string, taskId: string): Task {
   const live = tasks.get(taskId)
   if (live && live.projectId === projectId) return live
   const t = store.getProject(projectId).tasks.find((x) => x.id === taskId)
-  if (!t) throw new Error('No encuentro esa tarea')
+  if (!t) throw new Error(tr('No encuentro esa tarea'))
   return t
 }
 
@@ -378,13 +379,13 @@ export async function getTaskChanges(projectId: string, taskId: string): Promise
 export async function undoTask(projectId: string, taskId: string): Promise<string> {
   const t = findStoredTask(projectId, taskId)
   const ch = t.changes
-  if (!ch) return 'Esta tarea no cambió archivos (o se hizo antes de que existieran las instantáneas): no hay nada que deshacer.'
-  if (ch.undoneAt) return 'Esta tarea ya se deshizo.'
-  if (t.status === 'running') return 'La tarea sigue trabajando: detenla antes de deshacerla.'
+  if (!ch) return tr('Esta tarea no cambió archivos (o se hizo antes de que existieran las instantáneas): no hay nada que deshacer.')
+  if (ch.undoneAt) return tr('Esta tarea ya se deshizo.')
+  if (t.status === 'running') return tr('La tarea sigue trabajando: detenla antes de deshacerla.')
   const main = store.workRoot(projectId)
   const r = await withGit(projectId, (sh) => sh.apply(main, 'main', ch.after, ch.before, { strict: true, label: `Deshacer «${t.title}»` }))
   if (r.conflicts.length) {
-    return `No he deshecho nada: después de «${t.title}» se cambiaron las mismas líneas de ${r.conflicts.map((f) => `\`${f}\``).join(', ')}. Pide al equipo que lo revierta a mano o deshaz antes lo que vino después.`
+    return tr('No he deshecho nada: después de «{title}» se cambiaron las mismas líneas de {v2}. Pide al equipo que lo revierta a mano o deshaz antes lo que vino después.', { title: t.title, v2: r.conflicts.map((f) => `\`${f}\``).join(', ') })
   }
   t.changes = { ...ch, undoneAt: Date.now() }
   store.upsertTask(t)
@@ -399,7 +400,7 @@ export async function undoTask(projectId: string, taskId: string): Promise<strin
       else known.delete(rel)
     }
   }
-  const text = `Deshecha «${t.title}»: ${r.applied.length} archivo${r.applied.length === 1 ? '' : 's'} vuelven a como estaban antes (${r.applied.slice(0, 8).map((f) => `\`${f}\``).join(', ')}${r.applied.length > 8 ? '…' : ''}).`
+  const text = tr('Deshecha «{title}»: {length} archivo{v3} vuelven a como estaban antes ({v4}{v5}).', { title: t.title, length: r.applied.length, v3: r.applied.length === 1 ? '' : 's', v4: r.applied.slice(0, 8).map((f) => `\`${f}\``).join(', '), v5: r.applied.length > 8 ? '…' : '' })
   const m: ChatMessage = { id: randomUUID(), projectId, runId: t.runId, author: { type: 'system' }, text, createdAt: Date.now(), tone: 'normal' }
   pushMessage(m)
   return text
@@ -423,7 +424,7 @@ let presenceCheck: typeof checkAgentPresence = checkAgentPresence
 export function unblockProvider(provider: AgentConfig['provider']): void {
   for (const a of baseAgents()) {
     if (a.provider !== provider || !blocked.delete(a.id)) continue
-    if (!busy.has(a.id)) setRuntime(a.id, { activity: 'idle', reason: undefined, lastActivity: 'Disponible de nuevo' })
+    if (!busy.has(a.id)) setRuntime(a.id, { activity: 'idle', reason: undefined, lastActivity: tr('Disponible de nuevo') })
   }
 }
 
@@ -469,7 +470,7 @@ function isBlocked(id: AgentId): boolean {
   if (!b) return false
   if (Date.now() < b.until) return true
   blocked.delete(id)
-  if (!busy.has(id)) setRuntime(id, { activity: 'idle', reason: undefined, lastActivity: 'Disponible de nuevo' })
+  if (!busy.has(id)) setRuntime(id, { activity: 'idle', reason: undefined, lastActivity: tr('Disponible de nuevo') })
   return false
 }
 
@@ -581,36 +582,36 @@ function planInbox(m: ChatMessage): void {
   addInbox({
     kind: 'plan',
     key: `plan:${m.id}`,
-    title: `${who} propone un plan de ${p.tasks.length} tarea${p.tasks.length === 1 ? '' : 's'}: ${oneLine(p.request, 120)}`,
+    title: tr('{who} propone un plan de {length} tarea{v3}: {oneLine}', { who, length: p.tasks.length, v3: p.tasks.length === 1 ? '' : 's', oneLine: oneLine(p.request, 120) }),
     detail: p.tasks.map((t) => `• ${t.title} (${agentName(t.agentId)})`).join('\n'),
     projectId: m.projectId,
     runId: m.runId,
     messageId: m.id,
     actions: [
-      { id: 'approve', label: 'Aprobar' },
-      { id: 'reject', label: 'Descartar' }
+      { id: 'approve', label: tr('Aprobar') },
+      { id: 'reject', label: tr('Descartar') }
     ]
   })
 }
 
 /** Al dejar de trabajar una tarea, sus avisos de «esperando» ya no esperan nada. */
 function taskInboxDone(t: Task): void {
-  resolveInboxWhere((i) => i.taskId === t.id && (i.kind === 'stalled' || i.kind === 'mac-permission'), 'La tarea siguió o terminó')
+  resolveInboxWhere((i) => i.taskId === t.id && (i.kind === 'stalled' || i.kind === 'mac-permission'), tr('La tarea siguió o terminó'))
 }
 
 /** Lo que hace cada botón de la bandeja que toca al equipo. */
 function registerInboxActions(): void {
   onInboxAction('approve', async (i) => {
-    if (!i.projectId || !i.messageId) return 'Ese plan ya no existe'
+    if (!i.projectId || !i.messageId) return tr('Ese plan ya no existe')
     await approvePlan(i.projectId, i.messageId)
-    return 'Plan aprobado: el equipo empieza'
+    return tr('Plan aprobado: el equipo empieza')
   })
   onInboxAction('reject', (i) => {
-    if (!i.projectId || !i.messageId) return 'Ese plan ya no existe'
+    if (!i.projectId || !i.messageId) return tr('Ese plan ya no existe')
     rejectPlan(i.projectId, i.messageId)
-    return 'Plan descartado'
+    return tr('Plan descartado')
   })
-  onInboxAction('undo', (i) => (i.projectId && i.taskId ? undoTask(i.projectId, i.taskId) : 'No sé qué tarea deshacer'))
+  onInboxAction('undo', (i) => (i.projectId && i.taskId ? undoTask(i.projectId, i.taskId) : tr('No sé qué tarea deshacer')))
 }
 
 /**
@@ -622,11 +623,11 @@ function runInbox(run: Run, ok: boolean): void {
     const st = store.getProject(run.projectId)
     const msgs = st.messages.filter((m) => m.runId === run.id && m.author.type === 'agent' && !!m.text.trim() && !m.proposal)
     const last = msgs[msgs.length - 1]
-    resolveInboxWhere((i) => i.projectId === run.projectId && (i.kind === 'done' || i.kind === 'question'), 'Hay una petición más reciente')
+    resolveInboxWhere((i) => i.projectId === run.projectId && (i.kind === 'done' || i.kind === 'question'), tr('Hay una petición más reciente'))
     const q = last ? asksUser(last.text) : null
     const who = last?.author.type === 'agent' ? agentName(last.author.agentId) : 'El equipo'
     if (q) {
-      addInbox({ kind: 'question', title: `${who} te pregunta (${st.project.name})`, detail: q, projectId: run.projectId, runId: run.id, messageId: last!.id, actions: [{ id: 'dismiss', label: 'Lo contesto en el chat' }] })
+      addInbox({ kind: 'question', title: tr('{who} te pregunta ({name})', { who, name: st.project.name }), detail: q, projectId: run.projectId, runId: run.id, messageId: last!.id, actions: [{ id: 'dismiss', label: tr('Lo contesto en el chat') }] })
       return
     }
     addInbox({
@@ -635,7 +636,7 @@ function runInbox(run: Run, ok: boolean): void {
       detail: last ? oneLine(last.text, 400) : undefined,
       projectId: run.projectId,
       runId: run.id,
-      actions: [{ id: 'dismiss', label: 'Entendido' }]
+      actions: [{ id: 'dismiss', label: tr('Entendido') }]
     })
   } catch (e) {
     console.warn('[cowork] bandeja: no se pudo anotar el final de la petición', e)
@@ -904,7 +905,7 @@ function spawnBecario(parent: AgentConfig, stationId: string, model: string): Ag
     modelLabel: light ? (parent.lightModelLabel ?? parent.lightModel ?? parent.modelLabel) : parent.modelLabel,
     color: SUBAGENT_COLOR,
     stationId,
-    role: `Sub-agente de ${parent.name}`,
+    role: tr('Sub-agente de {name}', { name: parent.name }),
     strengths: [],
     enabled: true,
     quotaGroupId: parent.quotaGroupId,
@@ -962,12 +963,12 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   const reused: Attachment[] = []
   for (const id of Array.isArray(input.attachmentIds) ? input.attachmentIds : []) {
     const a = st.attachments.find((x) => x.id === id)
-    if (!a) throw new Error(`No existe el adjunto ${String(id)}`)
+    if (!a) throw new Error(tr('No existe el adjunto {String}', { String: String(id) }))
     if (!reused.includes(a)) reused.push(a)
   }
   const paths = Array.isArray(input.filePaths) ? input.filePaths.filter((p): p is string => typeof p === 'string') : []
   const atts = [...reused, ...store.copyAttachments(projectId, paths)]
-  if (!text.trim() && !atts.length) throw new Error('El mensaje está vacío')
+  if (!text.trim() && !atts.length) throw new Error(tr('El mensaje está vacío'))
 
   // «/model» es de la app (abre la lista de modelos de Hermes), no un encargo: si llega como mensaje (desde una
   // versión de Órbita que aún no lo abre), se contesta aquí sin gastar una llamada a Hermes.
@@ -979,7 +980,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
       ...base,
       id: randomUUID(),
       author: { type: 'system' },
-      text: '«/model» abre la lista de modelos de Hermes para cambiarlo: escríbelo en el chat del ordenador o en Órbita (actualízala en Ajustes → Órbita), o pulsa a Hermes en el espacio → «Modelo».'
+      text: tr('«/model» abre la lista de modelos de Hermes para cambiarlo: escríbelo en el chat del ordenador o en Órbita (actualízala en Ajustes → Órbita), o pulsa a Hermes en el espacio → «Modelo».')
     })
     return { runId }
   }
@@ -1052,7 +1053,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   void executeRun(run).catch((e) => {
     console.error('[cowork] run failed', e)
     if (!run.finished && !run.cancelled) {
-      systemMessage(run, `Error interno del motor: ${(e as Error).message}`, 'error')
+      systemMessage(run, tr('Error interno del motor: {message}', { message: (e as Error).message }), 'error')
       void finishRun(run, false)
     }
   })
@@ -1083,9 +1084,9 @@ function pendingProposal(projectId: string): ChatMessage | undefined {
 /** Un plan propuesto y guardado en su mensaje (sigue ahí aunque se reinicie la app). */
 function proposalMessage(projectId: string, messageId: string): ChatMessage & { proposal: PlanProposal; runId: string } {
   const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
-  if (!m?.proposal || !m.runId) throw new Error('No se encontró ese plan')
-  if (m.proposal.status === 'approved' || runs.has(m.runId)) throw new Error('Ese plan ya está en marcha')
-  if (m.proposal.status !== 'pending') throw new Error('Ese plan ya no está pendiente')
+  if (!m?.proposal || !m.runId) throw new Error(tr('No se encontró ese plan'))
+  if (m.proposal.status === 'approved' || runs.has(m.runId)) throw new Error(tr('Ese plan ya está en marcha'))
+  if (m.proposal.status !== 'pending') throw new Error(tr('Ese plan ya no está pendiente'))
   return m as ChatMessage & { proposal: PlanProposal; runId: string }
 }
 
@@ -1159,9 +1160,9 @@ export async function approvePlan(projectId: string, messageId: string): Promise
 export function rateMessage(projectId: string, messageId: string, rating: MessageRating | null): void {
   const st = store.getProject(projectId)
   const m = st.messages.find((x) => x.id === messageId)
-  if (!m) throw new Error('No se encontró ese mensaje')
-  if (m.author.type !== 'agent') throw new Error('Solo se valoran los resultados de los agentes')
-  if (rating !== 'up' && rating !== 'down' && rating !== null) throw new Error('Valoración no válida')
+  if (!m) throw new Error(tr('No se encontró ese mensaje'))
+  if (m.author.type !== 'agent') throw new Error(tr('Solo se valoran los resultados de los agentes'))
+  if (rating !== 'up' && rating !== 'down' && rating !== null) throw new Error(tr('Valoración no válida'))
   const next: ChatMessage = { ...m }
   if (rating) next.rating = rating
   else delete next.rating
@@ -1182,11 +1183,11 @@ export function rejectPlan(projectId: string, messageId: string): void {
  * queda como está y sirve de resultado previo para lo que dependía de ello.
  */
 export async function resumeRun(projectId: string, runId: string): Promise<void> {
-  if (runs.has(runId)) throw new Error('Esa petición ya está en marcha')
+  if (runs.has(runId)) throw new Error(tr('Esa petición ya está en marcha'))
   const st = store.getProject(projectId)
   const all = st.tasks.filter((t) => t.runId === runId)
   const todo = all.filter((t) => t.status === 'cancelled' && t.error === INTERRUPTED_ERROR)
-  if (!todo.length) throw new Error('No hay tareas interrumpidas que reanudar en esa petición')
+  if (!todo.length) throw new Error(tr('No hay tareas interrumpidas que reanudar en esa petición'))
   const userMsg = st.messages.find((m) => m.runId === runId && m.author.type === 'user')
   const planMsg = st.messages.find((m) => m.runId === runId && !!m.taskIds?.length)
   const atts = userMsg?.attachments ?? []
@@ -1236,7 +1237,7 @@ export async function resumeRun(projectId: string, runId: string): Promise<void>
   } catch {
     /* ignore */
   }
-  systemMessage(run, `Reanudando la petición: ${todo.length === 1 ? 'queda 1 tarea' : `quedan ${todo.length} tareas`} a medias (${todo.map((t) => `«${t.title}»`).join(', ')}).`)
+  systemMessage(run, tr('Reanudando la petición: {v1} a medias ({v2}).', { v1: todo.length === 1 ? tr('queda 1 tarea') : tr('quedan {length} tareas', { length: todo.length }), v2: todo.map((t) => `«${t.title}»`).join(', ') }))
   schedule()
 }
 
@@ -1245,11 +1246,11 @@ export async function resumeRun(projectId: string, runId: string): Promise<void>
  * canceladas por el usuario y dejan de ofrecerse (y de avisar); lo terminado se queda como está.
  */
 export function discardRun(projectId: string, runId: string): void {
-  if (runs.has(runId)) throw new Error('Esa petición ya está en marcha')
+  if (runs.has(runId)) throw new Error(tr('Esa petición ya está en marcha'))
   const todo = store.getProject(projectId).tasks.filter((t) => t.runId === runId && t.status === 'cancelled' && t.error === INTERRUPTED_ERROR)
-  if (!todo.length) throw new Error('No hay tareas interrumpidas que reanudar en esa petición')
+  if (!todo.length) throw new Error(tr('No hay tareas interrumpidas que reanudar en esa petición'))
   for (const t of todo) {
-    t.error = 'Cancelada por el usuario'
+    t.error = tr('Cancelada por el usuario')
     pushTask(t)
   }
   pushMessage({
@@ -1257,7 +1258,7 @@ export function discardRun(projectId: string, runId: string): void {
     projectId,
     runId,
     author: { type: 'system' },
-    text: `Has quitado lo que quedaba en pausa (${todo.map((t) => `«${t.title}»`).join(', ')}): no se reanudará.`,
+    text: tr('Has quitado lo que quedaba en pausa ({v1}): no se reanudará.', { v1: todo.map((t) => `«${t.title}»`).join(', ') }),
     createdAt: Date.now(),
     tone: 'normal'
   })
@@ -1275,20 +1276,20 @@ export function cancelRun(runId: string, reason: 'user' | 'quit' | 'pause' = 'us
     if (!t || !['pending', 'blocked', 'running'].includes(t.status)) continue
     const wasRunning = t.status === 'running'
     t.status = 'cancelled'
-    t.error = reason !== 'user' ? INTERRUPTED_ERROR : 'Cancelada por el usuario'
+    t.error = reason !== 'user' ? INTERRUPTED_ERROR : tr('Cancelada por el usuario')
     t.finishedAt = now
     pushTask(t)
     if (wasRunning) {
       if (busy.get(t.agentId) === t.id) busy.delete(t.agentId)
       if (subagents.has(t.agentId)) removeBecario(t.agentId, 0)
-      else if (!isBlocked(t.agentId)) setRuntime(t.agentId, { activity: 'idle', taskId: undefined, lastActivity: 'Cancelada', context: undefined })
+      else if (!isBlocked(t.agentId)) setRuntime(t.agentId, { activity: 'idle', taskId: undefined, lastActivity: tr('Cancelada'), context: undefined })
     }
   }
   if (run.plannerId && planningAgents.get(run.plannerId) === run.id) {
     planningAgents.delete(run.plannerId)
-    if (!busy.has(run.plannerId) && !isBlocked(run.plannerId)) setRuntime(run.plannerId, { activity: 'idle', lastActivity: 'Cancelada' })
+    if (!busy.has(run.plannerId) && !isBlocked(run.plannerId)) setRuntime(run.plannerId, { activity: 'idle', lastActivity: tr('Cancelada') })
   }
-  systemMessage(run, reason === 'quit' ? 'Ejecución interrumpida al cerrar la app.' : reason === 'pause' ? 'Has detenido la ejecución. Puedes reanudar sus tareas pendientes.' : 'Has cancelado la ejecución.')
+  systemMessage(run, reason === 'quit' ? tr('Ejecución interrumpida al cerrar la app.') : reason === 'pause' ? tr('Has detenido la ejecución. Puedes reanudar sus tareas pendientes.') : tr('Has cancelado la ejecución.'))
   run.finished = true
   // Al cerrar la app no se consulta la cuota (no da tiempo y dejaría procesos sueltos).
   usageEnded(run, 'cancelled', reason !== 'quit')
@@ -1334,7 +1335,7 @@ async function executeRun(run: Run): Promise<void> {
   const created = createTasks(run, planned)
   const replyText =
     (reply.trim() ||
-      (created.length ? `He repartido el trabajo en ${created.length} ${created.length === 1 ? 'tarea' : 'tareas'}.` : 'Hecho.')) +
+      (created.length ? (created.length === 1 ? tr('He repartido el trabajo en 1 tarea.') : tr('He repartido el trabajo en {n} tareas.', { n: created.length })) : tr('Hecho.'))) +
     noteMemory(run, planner.name, memory)
   agentMessage(run, planner.id, replyText, {
     ...(created.length ? { taskIds: created.map((t) => t.id) } : {}),
@@ -1390,7 +1391,7 @@ function noteMemory(run: Run, via: string, notes: MemoryNote[]): string {
       addMemory(run.projectId, { kind: n.kind, text: n.text }, { status: 'confirmed', by: 'user', byName: 'Tú', via, runId: run.id, replaces: n.replaces })
     )
     .filter((e) => !!e)
-  return noted.length ? `\n\n*Anotado en la memoria del proyecto:* ${noted.map((e) => `${KIND_LABEL[e.kind]} «${e.text}»`).join('; ')}.` : ''
+  return noted.length ? tr('\n\n*Anotado en la memoria del proyecto:* {v1}.', { v1: noted.map((e) => `${tr(KIND_LABEL[e.kind])} «${e.text}»`).join('; ') }) : ''
 }
 
 /**
@@ -1460,8 +1461,8 @@ async function planRun(
       systemMessage(
         run,
         failures.length
-          ? `Ningún agente pudo planificar el trabajo.${detail}`
-          : 'No hay ningún agente disponible para planificar. Revisa que los CLI estén instalados y con la sesión iniciada.',
+          ? tr('Ningún agente pudo planificar el trabajo.{detail}', { detail })
+          : tr('No hay ningún agente disponible para planificar. Revisa que los CLI estén instalados y con la sesión iniciada.'),
         'error'
       )
       return null
@@ -1473,7 +1474,7 @@ async function planRun(
       planningAgents.set(planner.id, run.id)
       setRuntime(planner.id, {
         activity: 'thinking',
-        lastActivity: 'Planificando el trabajo',
+        lastActivity: tr('Planificando el trabajo'),
         taskId: undefined,
         waitingFor: undefined,
         reason: undefined,
@@ -1511,13 +1512,13 @@ async function planRun(
 
     if (!res.ok) {
       const kind = res.errorKind ?? 'failed'
-      const msg = res.errorMessage ?? 'Error desconocido'
+      const msg = res.errorMessage ?? tr('Error desconocido')
       failures.push(`${planner.name}: ${msg}`)
       if (BLOCKING_KINDS.includes(kind)) blockAgent(planner, kind, msg)
       // Un coordinador que falla (lento, sin respuesta) se aparta un rato: las siguientes peticiones no lo esperan.
       else if (planner.plannerOnly) blockAgent(planner, kind, msg, COORDINATOR_REST_MS)
-      else if (!sharedAgent) setRuntime(planner.id, { activity: 'error', reason: msg, lastActivity: 'No pudo planificar' })
-      agentMessage(run, planner.id, `No pude planificar: ${msg}`, { tone: 'error' })
+      else if (!sharedAgent) setRuntime(planner.id, { activity: 'error', reason: msg, lastActivity: tr('No pudo planificar') })
+      agentMessage(run, planner.id, tr('No pude planificar: {msg}', { msg }), { tone: 'error' })
       continue
     }
 
@@ -1525,20 +1526,20 @@ async function planRun(
     // Sin el JSON pedido (modelo débil o con poco contexto, como Hermes con un modelo local pequeño),
     // planifica el siguiente de la lista; si no hay otro, su texto se usa como respuesta.
     if (!parsed.valid && pickPlanner(tried, imageAttachments(run).length > 0)) {
-      failures.push(`${planner.name}: no devolvió un plan válido`)
-      if (planner.plannerOnly) blockAgent(planner, 'failed', 'No devolvió un plan válido (su modelo puede ser demasiado pequeño)', COORDINATOR_REST_MS)
-      else if (!sharedAgent) setRuntime(planner.id, { activity: 'idle', lastActivity: 'Plan no válido', context: undefined })
+      failures.push(tr('{name}: no devolvió un plan válido', { name: planner.name }))
+      if (planner.plannerOnly) blockAgent(planner, 'failed', tr('No devolvió un plan válido (su modelo puede ser demasiado pequeño)'), COORDINATOR_REST_MS)
+      else if (!sharedAgent) setRuntime(planner.id, { activity: 'idle', lastActivity: tr('Plan no válido'), context: undefined })
       console.warn(`[cowork] ${planner.id} no devolvió un plan JSON: ${res.text.slice(0, 200)}`)
       continue
     }
-    if (!sharedAgent) setRuntime(planner.id, { activity: 'idle', lastActivity: 'Plan listo', context: undefined })
+    if (!sharedAgent) setRuntime(planner.id, { activity: 'idle', lastActivity: tr('Plan listo'), context: undefined })
     const { tasks: planned, changes } = validatePlan(parsed.tasks, `${run.userText}`, run.projectId)
     let reply = parsed.reply
     if (parsed.tasks.length && !planned.length) {
-      reply = `${reply}\n\n(No hay agentes disponibles para ejecutar las tareas propuestas.)`.trim()
+      reply = tr('{reply}\n\n(No hay agentes disponibles para ejecutar las tareas propuestas.)', { reply }).trim()
     }
     // Lo que se ve en el plan es lo que se hará: si AI Cowork lo ajustó, se dice.
-    if (planned.length && changes.length) reply = `${reply.trim()}\n\n*Ajustes de AI Cowork al plan:* ${changes.join('; ')}.`.trim()
+    if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de AI Cowork al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
     return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory) }
   }
 }
@@ -1748,7 +1749,8 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false}]}',
     '',
     'Reglas:',
-    '- "reply": mensaje breve en español para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.',
+    `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
+    ...(lang() === 'es' ? [] : [`- El usuario usa AI Cowork en ${userLanguageName()}: escribe en ${userLanguageName()} todo lo que verá ("reply", "title", "acceptance" y lo que pidas a los agentes que le cuenten), aunque estas instrucciones estén en español.`]),
     '- Si es charla o una duda sobre AI Cowork, responde tú en "reply" y deja "tasks": []. Si la pregunta va del proyecto o de su código («¿qué me recomiendas para…?», «¿por qué falla…?», «¿cómo está hecho…?»), NO la contestes de memoria: tú no puedes abrir sus archivos; crea UNA tarea de texto ("deliverable": "text", "medium") para un agente que sí los lee y que responda él.',
     '- Lo que importa es que el resultado sea el mejor posible y cumpla exactamente lo pedido: el tiempo y el gasto son secundarios. Elige para cada parte al agente y la dificultad que den el mejor resultado, no los más rápidos ni los más baratos. Eso sí, cada tarea arranca un agente desde cero y cada traspaso pierde contexto: una cadena de tareas suele salir peor que un solo agente que lo hace entero.',
     '- Trabajo pequeño o muy enlazado (un script, un documento, un arreglo, algo de menos de unos 20 minutos): UNA sola tarea para el agente más adecuado, que lo hace y lo prueba. Nunca crees tareas aparte de «diseñar», «arquitectura» o «contratos».',
@@ -1826,7 +1828,7 @@ function validatePlan(raw: unknown[], context: string, projectId: string): { tas
     if (p.difficulty !== 'hard' || !locals.has(p.agentId)) continue
     const alt = bestAgentFor(`${p.title} ${p.description}`, locals)
     if (!alt) continue
-    changes.push(`«${p.title}» la hace ${alt.name} (el modelo local es lento para lo difícil)`)
+    changes.push(tr('«{title}» la hace {name} (el modelo local es lento para lo difícil)', { title: p.title, name: alt.name }))
     p.agentId = alt.id
   }
   // «A dos manos»: si el usuario lo pidió y el coordinador no lo hizo, se hace aquí (otra familia y un juez).
@@ -1855,7 +1857,7 @@ function cancelDependents(run: Run, failedId: string): void {
     if (!t || (t.status !== 'pending' && t.status !== 'blocked')) continue
     if (!t.dependsOn.includes(failedId)) continue
     t.status = 'cancelled'
-    t.error = 'Depende de una tarea fallida'
+    t.error = tr('Depende de una tarea fallida')
     t.finishedAt = Date.now()
     pushTask(t)
     cancelDependents(run, t.id)
@@ -1866,7 +1868,7 @@ function reassign(t: Task, from: AgentId, to: AgentConfig, assignedBy: AgentId =
   transfer({
     fromId: from,
     toId: to.id,
-    label: `Reasignada: ${t.title}`,
+    label: tr('Reasignada: {title}', { title: t.title }),
     taskId: t.id,
     payload: { title: t.title, summary: oneLine(t.description, 200) }
   })
@@ -1892,7 +1894,7 @@ export function schedule(): void {
       const deps = t.dependsOn.map((d) => tasks.get(d))
       if (deps.some((d) => !d || d.status === 'failed' || d.status === 'cancelled')) {
         t.status = 'cancelled'
-        t.error = 'Depende de una tarea fallida'
+        t.error = tr('Depende de una tarea fallida')
         t.finishedAt = Date.now()
         pushTask(t)
         cancelDependents(run, t.id)
@@ -1917,7 +1919,7 @@ export function schedule(): void {
         const alt = bestAgentFor(`${t.title} ${t.description}`, new Set([t.agentId]))
         if (!alt) {
           t.status = 'failed'
-          t.error = agent ? `${agent.name} no está disponible y no hay otro agente libre` : 'No hay ningún agente disponible'
+          t.error = agent ? tr('{name} no está disponible y no hay otro agente libre', { name: agent.name }) : tr('No hay ningún agente disponible')
           t.finishedAt = Date.now()
           pushTask(t)
           cancelDependents(run, t.id)
@@ -1978,7 +1980,7 @@ function updateWaiting(): void {
     const w = waitingFor.get(a.id)
     if (w) {
       if (rt.activity !== 'waiting' || rt.waitingFor !== w) {
-        setRuntime(a.id, { activity: 'waiting', waitingFor: w, lastActivity: `Esperando a ${agentName(w)}`, reason: undefined })
+        setRuntime(a.id, { activity: 'waiting', waitingFor: w, lastActivity: tr('Esperando a {agentName}', { agentName: agentName(w) }), reason: undefined })
       }
     } else if (rt.activity === 'waiting') {
       setRuntime(a.id, { activity: 'idle', waitingFor: undefined })
@@ -2093,7 +2095,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       ]
 
   const lines = [
-    `Eres ${exec.name}${parent ? ` (becario de ${parent.name})` : ''}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". Responde en español.`,
+    `Eres ${exec.name}${parent ? ` (becario de ${parent.name})` : ''}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". ${replyLanguage()}`,
     '',
     '## Petición original del usuario',
     run.userText,
@@ -2214,7 +2216,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     transfer({
       fromId: 'core',
       toId: parent ? parent.id : exec.id,
-      label: 'Nueva tarea',
+      label: tr('Nueva tarea'),
       taskId: t.id,
       payload: { title: t.title, summary: oneLine(t.description, 200) }
     })
@@ -2223,7 +2225,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     transfer({
       fromId: parent.id,
       toId: exec.id,
-      label: `Delegada: ${t.title}`,
+      label: tr('Delegada: {title}', { title: t.title }),
       taskId: t.id,
       payload: { title: t.title, summary: oneLine(t.description, 200) }
     })
@@ -2233,14 +2235,14 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   t.startedAt = Date.now()
   t.finishedAt = undefined
   t.model = model || undefined
-  t.lastActivity = 'Leyendo la tarea'
+  t.lastActivity = tr('Leyendo la tarea')
   t.error = undefined
   t.progress = undefined
   pushTask(t)
   setRuntime(exec.id, {
     activity: 'thinking',
     taskId: t.id,
-    lastActivity: 'Leyendo la tarea',
+    lastActivity: tr('Leyendo la tarea'),
     reason: undefined,
     waitingFor: undefined,
     context: undefined,
@@ -2270,13 +2272,13 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
       addInbox({
         kind: 'stalled',
         key: `stall:${t.id}`,
-        title: `${exec.name} lleva 3 minutos sin dar señales en «${t.title}»`,
-        detail: 'Puede que esté esperando un aviso de permisos en la pantalla del servidor (macOS o el llavero), que solo se contesta delante del equipo. Si no vuelve a dar señales en 20 minutos, se corta.',
+        title: tr('{name} lleva 3 minutos sin dar señales en «{title}»', { name: exec.name, title: t.title }),
+        detail: tr('Puede que esté esperando un aviso de permisos en la pantalla del servidor (macOS o el llavero), que solo se contesta delante del equipo. Si no vuelve a dar señales en 20 minutos, se corta.'),
         projectId: run.projectId,
         runId: run.id,
         taskId: t.id,
         agentId: exec.id,
-        actions: [{ id: 'dismiss', label: 'Entendido' }]
+        actions: [{ id: 'dismiss', label: tr('Entendido') }]
       })
     } else if (t.lastActivity === STALL_NOTICE) taskInboxDone(t)
     if (!working) {
@@ -2301,8 +2303,8 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   startTrace(t.id, run.projectId)
   openWork(run, t, parent ?? exec)
   const progress = watchProgress(run, t, dir, taskStart)
-  traceNote(t.id, `${exec.name} empieza con ${modelNameFor(exec, model)}${effort ? ` · ${EFFORT_LABEL[effort]}` : ''}`)
-  if (resume) traceNote(t.id, `${exec.name} retoma su sesión anterior en este proyecto`)
+  traceNote(t.id, tr('{name} empieza con {modelNameFor}{v3}', { name: exec.name, modelNameFor: modelNameFor(exec, model), v3: effort ? ` · ${tr(EFFORT_LABEL[effort])}` : '' }))
+  if (resume) traceNote(t.id, tr('{name} retoma su sesión anterior en este proyecto', { name: exec.name }))
   // Herramientas de AI Cowork (memoria, equipo, preguntas, habilidades). Solo Claude: lee la configuración de un
   // archivo; Codex solo la admite con valores TOML entre comillas, que no pueden ir por la consola.
   const mcp: McpLaunch | null = exec.provider === 'claude'
@@ -2364,7 +2366,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
       : await attempt(resume)
     // La sesión anterior no se pudo retomar (borrada, de otra versión del CLI…): desde cero antes de darla por fallida.
     if (resume && !res.ok && res.errorKind === 'failed' && !ctrl.signal.aborted && meta.touched.size === 0 && Date.now() - taskStart < RESUME_RETRY_MS) {
-      traceNote(t.id, `No se pudo retomar la sesión anterior (${res.errorMessage ?? 'error'}): ${exec.name} empieza de cero`, true)
+      traceNote(t.id, tr('No se pudo retomar la sesión anterior ({v1}): {name} empieza de cero', { v1: res.errorMessage ?? 'error', name: exec.name }), true)
       res = await attempt(undefined)
     }
   } catch (e) {
@@ -2411,7 +2413,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     console.error('[cowork] task post-processing failed', e)
     if (t.status === 'running') {
       t.status = 'failed'
-      t.error = `Error interno: ${(e as Error).message}`
+      t.error = tr('Error interno: {message}', { message: (e as Error).message })
       t.finishedAt = Date.now()
       pushTask(t)
       closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
@@ -2424,7 +2426,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
 
 /** Nombre legible del modelo con el que trabaja un agente. */
 function modelNameFor(a: AgentConfig, model: string): string {
-  if (!model) return 'su modelo predeterminado'
+  if (!model) return tr('su modelo predeterminado')
   if (model === a.model) return a.modelLabel || model
   if (model === a.lightModel) return a.lightModelLabel || model
   if (model === a.strongModel) return a.strongModelLabel || model
@@ -2438,8 +2440,8 @@ function endTrace(taskId: string, res: RunAgentResult, start: number): void {
   const spent = `${secs < 60 ? `${secs} s` : `${Math.round(secs / 60)} min`}${tokens >= 1000 ? ` · ${Math.round(tokens / 1000)} k tokens` : ''}`
   const blocked = res.ok ? blockedReason(res.text) : null
   if (blocked) traceNote(taskId, blocked, true)
-  else if (res.ok) traceNote(taskId, `Terminó en ${spent}`)
-  else if (res.errorKind === 'cancelled') traceNote(taskId, `Detenida tras ${spent}`)
+  else if (res.ok) traceNote(taskId, tr('Terminó en {spent}', { spent }))
+  else if (res.errorKind === 'cancelled') traceNote(taskId, tr('Detenida tras {spent}', { spent }))
   else traceNote(taskId, res.errorMessage ?? 'Falló', true)
   finishTrace(taskId)
 }
@@ -2523,7 +2525,8 @@ function shouldVerify(run: Run, t: Task, exec: AgentConfig, changed: string[]): 
   return !!meta && (meta.deliverable === 'file' || changed.length > 0)
 }
 
-const VERDICT_RE = /VEREDICTO\s*[:\-–—]\s*\**\s*(CUMPLE|FALLOS?)/i
+// También en inglés (VERDICT: PASS/FAIL): con la app en inglés el verificador escribe en inglés y a veces traduce la línea.
+const VERDICT_RE = /(?:VEREDICTO|VERDICT)\s*[:\-–—]\s*\**\s*(CUMPLE|FALLOS?|PASS(?:ES|ED)?|FAIL(?:S|ED|URES?)?)\b/i
 
 /** Encargo del verificador: solo corrección y lo pedido, nada de gustos; veredicto en la primera línea. */
 function buildVerifyPrompt(run: Run, t: Task, author: AgentConfig, verifier: AgentConfig, changed: string[], resultText: string, ui: UiShots | null = null): string {
@@ -2579,22 +2582,22 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   const wantsEyes = pagesToShoot(dir, changed).length > 0
   const verifier = pickVerifier(owner, wantsEyes)
   if (!verifier) {
-    traceNote(t.id, 'Sin verificador: ningún otro agente de otra familia disponible')
+    traceNote(t.id, tr('Sin verificador: ningún otro agente de otra familia disponible'))
     return null
   }
   // La web que tocó la tarea se abre y se captura a tamaño de escritorio y de móvil para que el verificador la vea.
   const ui = wantsEyes && seesImages(verifier) ? await captureUi(dir, changed, t.id.slice(0, 8)) : null
-  if (ui) traceNote(t.id, `Capturas de la interfaz para la verificación: ${ui.shots.map((s) => s.path).join(', ')}${ui.errors.length ? ` · ${ui.errors.length} errores al abrirla` : ''}`)
+  if (ui) traceNote(t.id, tr('Capturas de la interfaz para la verificación: {v1}{v2}', { v1: ui.shots.map((s) => s.path).join(', '), v2: ui.errors.length ? tr(' · {length} errores al abrirla', { length: ui.errors.length }) : '' }))
   const previous = meta.verification
   const fixes = previous ? previous.fixes + 1 : 0
-  t.lastActivity = `${verifier.name} comprueba el resultado`
+  t.lastActivity = tr('{name} comprueba el resultado', { name: verifier.name })
   taskDirty(t)
-  traceNote(t.id, `${verifier.name} comprueba el resultado contra la petición${fixes ? ' (tras la corrección)' : ''}`)
+  traceNote(t.id, tr('{name} comprueba el resultado contra la petición{v2}', { name: verifier.name, v2: fixes ? tr(' (tras la corrección)') : '' }))
   workDirty(run, t)
   const wasIdle = !busy.has(verifier.id) && !planningAgents.has(verifier.id) && !integrating.has(verifier.id)
   if (wasIdle) {
     integrating.add(verifier.id)
-    setRuntime(verifier.id, { activity: 'working', lastActivity: `Verificando «${t.title}»`, reason: undefined, waitingFor: undefined })
+    setRuntime(verifier.id, { activity: 'working', lastActivity: tr('Verificando «{title}»', { title: t.title }), reason: undefined, waitingFor: undefined })
   }
   const ctrl = run.controllers.get(t.id) ?? new AbortController()
   const start = Date.now()
@@ -2617,25 +2620,25 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   }
   if (wasIdle) {
     integrating.delete(verifier.id)
-    if (!busy.has(verifier.id)) setRuntime(verifier.id, { activity: 'idle', lastActivity: `Verificó: ${t.title}` })
+    if (!busy.has(verifier.id)) setRuntime(verifier.id, { activity: 'idle', lastActivity: tr('Verificó: {title}', { title: t.title }) })
   }
   const stopped = run.cancelled || ctrl.signal.aborted
   const m = out.ok ? VERDICT_RE.exec(out.text) : null
   // Sin veredicto claro no se bloquea nada: se da por buena y se deja constancia.
-  const ok = !m || /^cumple$/i.test(m[1])
+  const ok = !m || /^(cumple|pass)/i.test(m[1])
   // El veredicto queda en el registro: es la base de «pasó la verificación a la primera» en la calidad por agente.
   logCall(run, 'verify', verifier, verifier.model, out, start, t.id, effort, out.ok && !stopped ? { verdict: ok ? 'pass' : 'fail' } : {})
   recordUsage(verifier.quotaGroupId, out.usage.input + out.usage.output, 1)
   if (stopped) return null
   if (!out.ok) {
-    traceNote(t.id, `${verifier.name} no pudo verificar: ${out.errorMessage ?? 'error'}`, true)
+    traceNote(t.id, tr('{name} no pudo verificar: {v2}', { name: verifier.name, v2: out.errorMessage ?? 'error' }), true)
     return null
   }
   const notes = clip(out.text.replace(VERDICT_RE, '').trim(), 2500)
   const v: TaskVerification = { by: verifier.id, byName: verifier.name, ok, notes: notes || undefined, fixes }
   meta.verification = v
   t.verification = v
-  traceNote(t.id, ok ? `${verifier.name}: cumple` : `${verifier.name} vio fallos: ${oneLine(notes, 300)}`, !ok)
+  traceNote(t.id, ok ? tr('{name}: cumple', { name: verifier.name }) : tr('{name} vio fallos: {oneLine}', { name: verifier.name, oneLine: oneLine(notes, 300) }), !ok)
   return v
 }
 
@@ -2647,13 +2650,13 @@ function requeueForFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   meta.forceMainModel = true
   // Corrige en la misma sesión del CLI: recuerda lo que hizo y por qué.
   meta.resume = meta.sessionId
-  closeWork(run, t, 'stopped', { text: `${v.byName} comprobó «${t.title}» y vio fallos; ${owner.name} los corrige:\n\n${clip(v.notes, 1500)}` })
+  closeWork(run, t, 'stopped', { text: tr('{byName} comprobó «{title}» y vio fallos; {name} los corrige:\n\n{clip}', { byName: v.byName, title: t.title, name: owner.name, clip: clip(v.notes, 1500) }) })
   if (parent) {
-    transfer({ fromId: exec.id, toId: parent.id, label: `Corregir: ${t.title}`, taskId: t.id, payload: { title: t.title, summary: oneLine(v.notes, 200) } })
+    transfer({ fromId: exec.id, toId: parent.id, label: tr('Corregir: {title}', { title: t.title }), taskId: t.id, payload: { title: t.title, summary: oneLine(v.notes, 200) } })
     removeBecario(exec.id)
     t.agentId = parent.id
   }
-  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: `Corrigiendo: ${t.title}` })
+  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Corrigiendo: {title}', { title: t.title }) })
   t.status = 'pending'
   t.startedAt = undefined
   t.lastActivity = undefined
@@ -2671,7 +2674,7 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     meta.touched.add(savedTo)
   }
   const arts = await collectArtifacts(run, t, owner)
-  if (!text) text = arts.length ? 'Tarea completada.' : 'Tarea completada (sin texto de respuesta).'
+  if (!text) text = arts.length ? tr('Tarea completada.') : tr('Tarea completada (sin texto de respuesta).')
 
   t.status = 'done'
   t.result = clip(text, RESULT_KEEP)
@@ -2686,13 +2689,15 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
   transfer({
     fromId: exec.id,
     toId: parent ? parent.id : 'core',
-    label: `Resultado: ${t.title}`,
+    label: tr('Resultado: {title}', { title: t.title }),
     taskId: t.id,
     payload: { title: t.title, summary: oneLine(text, 200), files }
   })
   const v = meta.verification
-  const verified = v ? `\n\n${v.ok ? `✔ ${v.byName} comprobó el resultado${v.fixes ? ' tras una corrección' : ''}: cumple.` : `⚠ ${v.byName} comprobó el resultado tras la corrección y sigue viendo fallos: ${clip(v.notes, 800)}`}` : ''
-  const msgText = (savedTo ? `Guardé el resultado de «${t.title}» en \`${savedTo}\`.\n\n${clip(text, 600)}` : clip(text, 8000)) + verified
+  const verified = v
+    ? `\n\n${v.ok ? tr('✔ {byName} comprobó el resultado{v2}: cumple.', { byName: v.byName, v2: v.fixes ? tr(' tras una corrección') : '' }) : tr('⚠ {byName} comprobó el resultado tras la corrección y sigue viendo fallos: {clip}', { byName: v.byName, clip: clip(v.notes, 800) })}`
+    : ''
+  const msgText = (savedTo ? tr('Guardé el resultado de «{title}» en `{savedTo}`.\n\n{clip}', { title: t.title, savedTo, clip: clip(text, 600) }) : clip(text, 8000)) + verified
   const delivered = arts.length ? { artifactIds: arts.map((a) => a.id) } : {}
   if (!closeWork(run, t, 'done', { text: msgText, ...delivered }, !!res.text.trim())) agentMessage(run, owner.id, msgText, delivered)
 
@@ -2708,22 +2713,22 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     addInbox({
       kind: 'verify-failed',
       key: `verify:${t.id}`,
-      title: `${v.byName} sigue viendo fallos en «${t.title}» tras la corrección`,
+      title: tr('{byName} sigue viendo fallos en «{title}» tras la corrección', { byName: v.byName, title: t.title }),
       detail: clip(v.notes, 1500),
       projectId: run.projectId,
       runId: run.id,
       taskId: t.id,
       agentId: owner.id,
-      actions: [...(t.changes ? [{ id: 'undo', label: 'Deshacer la tarea' }] : []), { id: 'dismiss', label: 'Lo reviso yo' }]
+      actions: [...(t.changes ? [{ id: 'undo', label: tr('Deshacer la tarea') }] : []), { id: 'dismiss', label: tr('Lo reviso yo') }]
     })
     addMemory(
       run.projectId,
-      { kind: 'pending', text: `«${t.title}»: ${v.byName} aún veía fallos tras la corrección: ${oneLine(v.notes, 250)}` },
+      { kind: 'pending', text: tr('«{title}»: {byName} aún veía fallos tras la corrección: {oneLine}', { title: t.title, byName: v.byName, oneLine: oneLine(v.notes, 250) }) },
       { status: 'provisional', by: v.by, byName: v.byName, taskId: t.id, taskTitle: t.title, runId: run.id }
     )
   }
   warnOutOfScope(run, t, owner, files)
-  setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: `Terminó: ${t.title}`, context: undefined })
+  setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Terminó: {title}', { title: t.title }), context: undefined })
   if (parent) removeBecario(exec.id)
 }
 
@@ -2740,9 +2745,9 @@ function warnOutOfScope(run: Run, t: Task, owner: AgentConfig, changed: string[]
     return `\`${f}\`${theirs ? ` (de «${theirs.title}»)` : ''}`
   })
   const more = outside.length > t.outOfScope.length ? ` y ${outside.length - t.outOfScope.length} más` : ''
-  const text = `Aviso: ${owner.name} cambió archivos que no eran de su tarea «${t.title}»: ${desc.join(', ')}${more}. Revísalos si algo no encaja.`
+  const text = tr('Aviso: {name} cambió archivos que no eran de su tarea «{title}»: {v3}{more}. Revísalos si algo no encaja.', { name: owner.name, title: t.title, v3: desc.join(', '), more })
   systemMessage(run, text, 'error')
-  traceNote(t.id, `Cambió archivos fuera de su tarea: ${t.outOfScope.join(', ')}${more}`, true)
+  traceNote(t.id, tr('Cambió archivos fuera de su tarea: {v1}{more}', { v1: t.outOfScope.join(', '), more }), true)
 }
 
 /** Si el agente declaró que no pudo hacer la tarea («BLOQUEADA: motivo»), devuelve el motivo. */
@@ -2750,22 +2755,22 @@ export function blockedReason(text: string): string | null {
   const m = /^[\s>*_#`]*BLOQUEADA\s*[:.\-–—]\s*([\s\S]*)/i.exec(text ?? '')
   if (!m) return null
   const reason = m[1].replace(/^[*_`\s]+/, '').replace(/\s+/g, ' ').trim()
-  return clip(reason ? `Bloqueada: ${reason}` : 'Bloqueada: el agente no pudo hacer la tarea', 400)
+  return clip(reason ? tr('Bloqueada: {reason}', { reason }) : tr('Bloqueada: el agente no pudo hacer la tarea'), 400)
 }
 
 function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): void {
   const meta = run.meta.get(t.id)!
   const owner = parent ?? exec
   const kind = res.errorKind ?? 'failed'
-  const msg = res.errorMessage ?? 'Error desconocido'
+  const msg = res.errorMessage ?? tr('Error desconocido')
 
   // Light model rejected by the CLI → same task on the parent with its main model.
   // Modelo rechazado por el CLI (p. ej. no disponible para tu cuenta) → se reintenta un nivel más abajo.
   if (res.modelUnavailable && t.model && t.model === owner.model && !meta.forceCliDefault && !parent) {
     meta.forceCliDefault = true
     console.warn(`[cowork] modelo habitual ${t.model} de ${owner.id} rechazado: ${msg}`)
-    closeWork(run, t, 'stopped', { text: `El modelo ${t.model} no está disponible: lo repito con el predeterminado.` })
-    setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: 'Cambiando al modelo predeterminado' })
+    closeWork(run, t, 'stopped', { text: tr('El modelo {model} no está disponible: lo repito con el predeterminado.', { model: t.model }) })
+    setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Cambiando al modelo predeterminado') })
     t.status = 'pending'
     t.startedAt = undefined
     t.lastActivity = undefined
@@ -2778,14 +2783,14 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
     if (t.model === owner.lightModel) lightModelBroken.add(owner.id)
     else strongModelBroken.add(owner.id)
     console.warn(`[cowork] light model ${t.model} of ${owner.id} rejected: ${msg}`)
-    closeWork(run, t, 'stopped', { text: `El modelo ${t.model} no está disponible: lo repito con el principal.` })
+    closeWork(run, t, 'stopped', { text: tr('El modelo {model} no está disponible: lo repito con el principal.', { model: t.model }) })
     if (parent) {
-      transfer({ fromId: exec.id, toId: parent.id, label: `Devuelta: ${t.title}`, taskId: t.id, payload: { title: t.title, summary: msg } })
+      transfer({ fromId: exec.id, toId: parent.id, label: tr('Devuelta: {title}', { title: t.title }), taskId: t.id, payload: { title: t.title, summary: msg } })
       setRuntime(exec.id, { activity: 'error', taskId: undefined, reason: msg })
       removeBecario(exec.id)
       t.agentId = parent.id
     } else {
-      setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: 'Cambiando al modelo principal' })
+      setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Cambiando al modelo principal') })
     }
     t.status = 'pending'
     t.startedAt = undefined
@@ -2800,7 +2805,7 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
     activity: kind === 'offline' || kind === 'missing' ? 'offline' : 'error',
     reason: msg,
     taskId: undefined,
-    lastActivity: `Falló: ${t.title}`,
+    lastActivity: tr('Falló: {title}', { title: t.title }),
     context: undefined
   })
   // Antes de dar la tarea por fallida, otro agente lo intenta una vez. Si el problema es del agente
@@ -2821,9 +2826,7 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
       noStrongAlt = !alt && exclude.size > 2
     }
   }
-  const failText = `No pude completar «${t.title}»: ${msg}${
-    alt ? ` Se la paso a ${alt.name}.` : noStrongAlt ? ' No hay otro agente fuerte libre para relevarme (el modelo local no sirve para esta tarea): pídemela de nuevo cuando quieras.' : ''
-  }`
+  const failText = tr('No pude completar «{title}»: {msg}{v3}', { title: t.title, msg, v3: alt ? tr(' Se la paso a {name}.', { name: alt.name }) : noStrongAlt ? tr(' No hay otro agente fuerte libre para relevarme (el modelo local no sirve para esta tarea): pídemela de nuevo cuando quieras.') : '' })
   if (!closeWork(run, t, 'failed', { text: failText, tone: 'error' })) agentMessage(run, owner.id, failText, { tone: 'error' })
   if (alt) {
     meta.retried = true
@@ -2842,13 +2845,13 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   addInbox({
     kind: 'failed',
     key: `failed:${t.id}`,
-    title: `No se pudo hacer «${t.title}»`,
+    title: tr('No se pudo hacer «{title}»', { title: t.title }),
     detail: msg,
     projectId: run.projectId,
     runId: run.id,
     taskId: t.id,
     agentId: owner.id,
-    actions: [{ id: 'dismiss', label: 'Entendido' }]
+    actions: [{ id: 'dismiss', label: tr('Entendido') }]
   })
 }
 
@@ -2932,7 +2935,7 @@ async function finalAnswer(run: Run, planner: AgentConfig, ts: Task[]): Promise<
     return `### «${t.title}» (${agentName(liveOwner(t))}, ${state})\n${clip(t.result, RESULT_KEEP) || t.error || '(sin texto)'}${files.length ? `\nArchivos: ${files.join(', ')}` : ''}${v}`
   })
   const prompt = [
-    `Eres ${planner.name}, el coordinador del equipo de agentes del proyecto "${st.project.name}". El equipo ha terminado la petición del usuario y tú le respondes. Responde en español.`,
+    `Eres ${planner.name}, el coordinador del equipo de agentes del proyecto "${st.project.name}". El equipo ha terminado la petición del usuario y tú le respondes. ${replyLanguage()}`,
     '',
     '## Petición del usuario',
     run.userText,
@@ -2973,12 +2976,12 @@ async function integrate(run: Run, ts: Task[]): Promise<void> {
     !planningAgents.has(planner.id)
   if (planner && canMove) {
     integrating.add(planner.id)
-    emit({ kind: 'agent.moved', agentId: planner.id, to: 'core', reason: 'Integrando resultados' })
-    setRuntime(planner.id, { activity: 'working', location: 'core', lastActivity: 'Integrando resultados', taskId: undefined, waitingFor: undefined })
+    emit({ kind: 'agent.moved', agentId: planner.id, to: 'core', reason: tr('Integrando resultados') })
+    setRuntime(planner.id, { activity: 'working', location: 'core', lastActivity: tr('Integrando resultados'), taskId: undefined, waitingFor: undefined })
   }
 
   const st = store.getProject(run.projectId)
-  const lines: string[] = ['**Resumen del trabajo**', '']
+  const lines: string[] = [tr('**Resumen del trabajo**'), '']
   for (const t of ts) {
     const who = agentName(liveOwner(t))
     if (t.status === 'done') lines.push(`✓ ${t.title} — ${who}`)
@@ -2998,7 +3001,7 @@ async function integrate(run: Run, ts: Task[]): Promise<void> {
   if (planner && canMove) {
     emit({ kind: 'agent.moved', agentId: planner.id, to: 'station' })
     integrating.delete(planner.id)
-    if (!busy.has(planner.id)) setRuntime(planner.id, { activity: 'idle', location: 'station', lastActivity: 'Resultados integrados' })
+    if (!busy.has(planner.id)) setRuntime(planner.id, { activity: 'idle', location: 'station', lastActivity: tr('Resultados integrados') })
     else setRuntime(planner.id, { location: 'station' })
   }
 }
@@ -3011,12 +3014,12 @@ async function integrate(run: Run, ts: Task[]): Promise<void> {
  */
 export async function resetAgent(id: AgentId): Promise<AgentRuntime> {
   const a = findAgent(id)
-  if (!a) throw new Error('No existe ese agente')
+  if (!a) throw new Error(tr('No existe ese agente'))
   const target = ownerOf(a)
   blocked.delete(target.id)
   lightModelBroken.delete(target.id)
   strongModelBroken.delete(target.id)
-  if (!busy.has(target.id)) setRuntime(target.id, { activity: 'idle', reason: undefined, taskId: undefined, waitingFor: undefined, lastActivity: 'Reiniciado' })
+  if (!busy.has(target.id)) setRuntime(target.id, { activity: 'idle', reason: undefined, taskId: undefined, waitingFor: undefined, lastActivity: tr('Reiniciado') })
   try {
     applyPresence(target, await presenceCheck(target, true))
   } catch (e) {

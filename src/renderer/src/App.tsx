@@ -22,7 +22,7 @@ import { HermesModelDialog } from '@/ui/space/HermesModelDialog'
 import { useTheme } from '@/lib/theme'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
-import { t } from '@/lib/i18n'
+import { lang, t } from '@/lib/i18n'
 
 // El espacio 3D (Three.js y compañía, la mayor parte del código) se carga aparte: el chat aparece sin esperarlo.
 const World = lazy(() => import('@/scene/World').then((m) => ({ default: m.World })))
@@ -38,6 +38,8 @@ function useBoot(): void {
       const [config, runtime, projects] = await Promise.all([api.getConfig(), api.getRuntime(), api.listProjects()])
       if (!alive) return
       st.hydrateLive(config, runtime.runtimes, runtime.quotas)
+      // El motor aún no sabe en qué idioma escribir los avisos y las respuestas: el de esta interfaz.
+      if (!config.language) api.setLanguage?.(lang()).catch(() => {})
       st.setProjects(projects)
       // Bandeja «Te necesita» (lo nuevo llega por eventos inbox.updated).
       api.listInbox().then(

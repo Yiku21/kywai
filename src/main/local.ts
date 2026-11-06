@@ -6,6 +6,7 @@ import { OLLAMA_URL } from './agents/ollama'
 import { lmsListModels, lmsPath, lmsServerRunning, lmsStartServer } from './agents/lmstudio'
 import { commandExists, num, obj, str } from './agents/spawn'
 import { emit } from './events'
+import { tr } from '@shared/i18n'
 
 // ---------- Estado de los motores locales ----------
 
@@ -47,7 +48,7 @@ export async function listLocalEngines(): Promise<LocalEngineStatus[]> {
 }
 
 export async function startLocalServer(engine: LocalEngine): Promise<void> {
-  if (engine !== 'lmstudio') throw new Error('Este motor se inicia desde su propia aplicación')
+  if (engine !== 'lmstudio') throw new Error(tr('Este motor se inicia desde su propia aplicación'))
   await lmsStartServer()
 }
 
@@ -65,8 +66,8 @@ function pullEvent(p: LocalPullState): void {
  * `onDone` se llama al terminar con éxito (p. ej. para asignarlo a un agente).
  */
 export function pullOllamaModel(model: string, onDone: (model: string, agentId?: AgentId) => Promise<void>, agentId?: AgentId): void {
-  if (typeof model !== 'string' || !MODEL_RE.test(model)) throw new Error('Nombre de modelo no válido')
-  if (pullCtl) throw new Error('Ya hay una descarga en curso')
+  if (typeof model !== 'string' || !MODEL_RE.test(model)) throw new Error(tr('Nombre de modelo no válido'))
+  if (pullCtl) throw new Error(tr('Ya hay una descarga en curso'))
   const ctl = new AbortController()
   pullCtl = ctl
   pullEvent({ model, status: 'starting' })
@@ -81,7 +82,7 @@ export function pullOllamaModel(model: string, onDone: (model: string, agentId?:
         body: JSON.stringify({ model, stream: true }),
         signal: ctl.signal
       })
-      if (!res.ok || !res.body) throw new Error((await res.text().catch(() => '')) || `Ollama respondió ${res.status}`)
+      if (!res.ok || !res.body) throw new Error((await res.text().catch(() => '')) || tr('Ollama respondió {status}', { status: res.status }))
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buf = ''
@@ -120,14 +121,14 @@ export function pullOllamaModel(model: string, onDone: (model: string, agentId?:
           }
         }
       }
-      if (!success) throw new Error('La descarga terminó sin confirmar')
+      if (!success) throw new Error(tr('La descarga terminó sin confirmar'))
       await onDone(model, agentId)
       pullEvent({ model, status: 'done' })
     } catch (e) {
       if (ctl.signal.aborted) pullEvent({ model, status: 'cancelled' })
       else {
-        const msg = (e as Error).message || 'Error desconocido'
-        pullEvent({ model, status: 'error', message: /fetch failed|ECONNREFUSED/i.test(msg) ? 'Ollama no está en ejecución' : msg.slice(0, 200) })
+        const msg = (e as Error).message || tr('Error desconocido')
+        pullEvent({ model, status: 'error', message: /fetch failed|ECONNREFUSED/i.test(msg) ? tr('Ollama no está en ejecución') : msg.slice(0, 200) })
       }
     } finally {
       if (pullCtl === ctl) pullCtl = null
@@ -144,8 +145,8 @@ export function cancelLocalPull(): void {
 const MAX_PASTE = 25 * 1024 * 1024
 
 export function savePastedFile(name: unknown, data: unknown): string {
-  if (!(data instanceof Uint8Array)) throw new Error('Datos no válidos')
-  if (data.byteLength === 0 || data.byteLength > MAX_PASTE) throw new Error('El archivo pegado es demasiado grande (máx. 25 MB)')
+  if (!(data instanceof Uint8Array)) throw new Error(tr('Datos no válidos'))
+  if (data.byteLength === 0 || data.byteLength > MAX_PASTE) throw new Error(tr('El archivo pegado es demasiado grande (máx. 25 MB)'))
   const raw = typeof name === 'string' && name.trim() ? name.trim() : 'pegado.png'
   const ext = extname(raw).toLowerCase().replace(/[^.\w]/g, '').slice(0, 8) || '.png'
   const base = raw

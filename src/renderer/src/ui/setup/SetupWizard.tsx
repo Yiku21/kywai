@@ -36,7 +36,7 @@ function aboutAgent(a: AgentConfig): { what: string; account: string } {
   if (ABOUT[key]) return ABOUT[key]
   const entry = a.cli?.presetId ? catalogEntry(a.cli.presetId) : undefined
   if (entry) return { what: entry.summary, account: entry.account }
-  return { what: a.role || t('Agente conectado.'), account: a.provider === 'cli' ? t('Con la sesión que tengas iniciada en su programa.') : '' }
+  return { what: a.role ? t(a.role) : t('Agente conectado.'), account: a.provider === 'cli' ? t('Con la sesión que tengas iniciada en su programa.') : '' }
 }
 
 function toolFor(a: AgentConfig, engine: LocalEngine): SetupToolId | null {

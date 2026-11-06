@@ -5,6 +5,7 @@ import type { AgentAccess, TraceTool } from '@shared/types'
 import { AUTH_RE, MODEL_UNAVAILABLE_RE, QUOTA_RE, baseName, clip, looksMissing, num, obj, runCli, safeModel, stderrSummary, str } from './spawn'
 import { EMPTY_USAGE } from './types'
 import type { Effort, JsonlParser, ParserCallbacks, ProcessOutcome, RunAgentOptions, RunAgentResult } from './types'
+import { tr } from '@shared/i18n'
 
 export const MUSE_AUTH_MESSAGE = 'Sesión de Muse Code caducada: abre `muse` en una terminal y usa /login'
 
@@ -47,15 +48,15 @@ interface ToolLook {
 /** Cómo se ve cada herramienta de Muse (task_kind «tool.<nombre>»). */
 function toolLook(name: string): ToolLook {
   const n = name.toLowerCase()
-  if (/bash|shell|exec|command|powershell/.test(n)) return { tool: 'command', title: 'Ejecutando un comando' }
-  if (/write/.test(n)) return { tool: 'write', title: 'Escribiendo un archivo' }
-  if (/edit|patch/.test(n)) return { tool: 'edit', title: 'Editando un archivo' }
-  if (/read|view|open/.test(n)) return { tool: 'read', title: 'Leyendo un archivo' }
-  if (/web|search_web|browse|fetch|url/.test(n)) return { tool: 'web', title: 'Buscando en la web' }
-  if (/grep|glob|search|find|list|ls/.test(n)) return { tool: 'search', title: 'Buscando en el proyecto' }
-  if (/todo|plan/.test(n)) return { tool: 'todo', title: 'Organizando las tareas' }
-  if (/agent|delegat|spawn|subagent/.test(n)) return { tool: 'agent', title: 'Encargando una parte a un ayudante' }
-  return { tool: 'other', title: `Usando ${name.replace(/_/g, ' ')}` }
+  if (/bash|shell|exec|command|powershell/.test(n)) return { tool: 'command', title: tr('Ejecutando un comando') }
+  if (/write/.test(n)) return { tool: 'write', title: tr('Escribiendo un archivo') }
+  if (/edit|patch/.test(n)) return { tool: 'edit', title: tr('Editando un archivo') }
+  if (/read|view|open/.test(n)) return { tool: 'read', title: tr('Leyendo un archivo') }
+  if (/web|search_web|browse|fetch|url/.test(n)) return { tool: 'web', title: tr('Buscando en la web') }
+  if (/grep|glob|search|find|list|ls/.test(n)) return { tool: 'search', title: tr('Buscando en el proyecto') }
+  if (/todo|plan/.test(n)) return { tool: 'todo', title: tr('Organizando las tareas') }
+  if (/agent|delegat|spawn|subagent/.test(n)) return { tool: 'agent', title: tr('Encargando una parte a un ayudante') }
+  return { tool: 'other', title: tr('Usando {v1}', { v1: name.replace(/_/g, ' ') }) }
 }
 
 /** Avisos de Muse en stderr que no son errores (carpeta de trabajo, delegación sin confianza). */
@@ -122,12 +123,12 @@ export function createMuseParser(cb: ParserCallbacks): JsonlParser {
           }
           const cmd = str(res?.command)
           if (cmd) {
-            cb.onTrace?.({ type: 'tool', id, tool: 'command', title: `Ejecutando: ${clip(cmd, 70)}`, body: cmd })
+            cb.onTrace?.({ type: 'tool', id, tool: 'command', title: tr('Ejecutando: {v1}', { v1: clip(cmd, 70) }), body: cmd })
             cb.onActivity?.(`Ejecutando: ${clip(cmd, 40)}`, 'tool')
           }
           const code = typeof res?.exit_code === 'number' ? (res.exit_code as number) : null
           const out = res ? str(res.output) : chunk
-          cb.onTrace?.({ type: 'result', id, ok: code == null || code === 0, output: code ? `${out}${out ? '\n' : ''}(código de salida ${code})` : out })
+          cb.onTrace?.({ type: 'result', id, ok: code == null || code === 0, output: code ? tr('{out}{v2}(código de salida {code})', { out, v2: out ? '\n' : '', code }) : out })
         } else if (ev.final_result === true) {
           cb.onTrace?.({ type: 'result', id, ok: true, output: clip(chunk, 4000) })
         }
@@ -170,7 +171,7 @@ export function createMuseParser(cb: ParserCallbacks): JsonlParser {
         for (const f of facets.map(obj)) {
           const kind = str(f?.error_kind)
           if (kind && kind !== 'stream_succeeded') errors.push(`${str(ev.message)} (${kind})`)
-          if (num(f?.attempt) > 1 && /opening/i.test(str(ev.message))) cb.onTrace?.({ type: 'note', text: `Reintentando la conexión con Meta (intento ${num(f?.attempt)})` })
+          if (num(f?.attempt) > 1 && /opening/i.test(str(ev.message))) cb.onTrace?.({ type: 'note', text: tr('Reintentando la conexión con Meta (intento {num})', { num: num(f?.attempt) }) })
         }
         return
       }
@@ -201,28 +202,28 @@ export function createMuseParser(cb: ParserCallbacks): JsonlParser {
       if (outcome.cancelled) return { ok: false, text, usage, errorKind: 'cancelled', errorMessage: 'Cancelada', model }
       if (terminal === 'completed') return { ok: true, text, usage, model }
       if (!terminal && looksMissing(outcome)) {
-        return { ok: false, text: '', usage, errorKind: 'missing', errorMessage: 'No se encontró el CLI de Muse Code' }
+        return { ok: false, text: '', usage, errorKind: 'missing', errorMessage: tr('No se encontró el CLI de Muse Code') }
       }
       const stderr = stderrSummary(outcome.stderrTail.replace(STDERR_NOISE, ''))
       const errText = [reason, ...errors.slice(-3), stderr].filter(Boolean).join(' ')
       if (MODEL_UNAVAILABLE_RE.test(errText)) {
-        return { ok: false, text, usage, model, errorKind: 'failed', modelUnavailable: true, errorMessage: `El modelo no está disponible para tu cuenta: ${clip(errText, 160)}` }
+        return { ok: false, text, usage, model, errorKind: 'failed', modelUnavailable: true, errorMessage: tr('El modelo no está disponible para tu cuenta: {clip}', { clip: clip(errText, 160) }) }
       }
       if (QUOTA_RE.test(errText)) {
-        return { ok: false, text, usage, model, errorKind: 'quota', errorMessage: 'Muse Code alcanzó el límite de su plan (se renueva cada 5 horas)' }
+        return { ok: false, text, usage, model, errorKind: 'quota', errorMessage: tr('Muse Code alcanzó el límite de su plan (se renueva cada 5 horas)') }
       }
-      if (AUTH_RE.test(errText)) return { ok: false, text, usage, model, errorKind: 'auth', errorMessage: MUSE_AUTH_MESSAGE }
+      if (AUTH_RE.test(errText)) return { ok: false, text, usage, model, errorKind: 'auth', errorMessage: tr(MUSE_AUTH_MESSAGE) }
       if (outcome.timedOut) {
-        return { ok: false, text, usage, model, errorKind: 'failed', errorMessage: 'El CLI dejó de responder (sin salida durante 20 min)' }
+        return { ok: false, text, usage, model, errorKind: 'failed', errorMessage: tr('El CLI dejó de responder (sin salida durante 20 min)') }
       }
-      const what = terminal && terminal !== 'completed' ? `Muse terminó «${terminal}»` : ''
+      const what = terminal && terminal !== 'completed' ? tr('Muse terminó «{terminal}»', { terminal }) : ''
       return {
         ok: false,
         text,
         usage,
         model,
         errorKind: terminal === 'cancelled' ? 'cancelled' : 'failed',
-        errorMessage: clip([what, errText].filter(Boolean).join(': '), 200) || `Muse Code terminó con un error (código ${outcome.code ?? '?'})`
+        errorMessage: clip([what, errText].filter(Boolean).join(': '), 200) || tr('Muse Code terminó con un error (código {v1})', { v1: outcome.code ?? '?' })
       }
     }
   }

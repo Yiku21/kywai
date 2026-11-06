@@ -170,7 +170,7 @@ function TaskRow({
         ) : silent ? (
           <span className={s.activity}>{t('Razonando… (sin novedades por ahora)')}</span>
         ) : task.lastActivity && task.status !== 'done' ? (
-          <span className={s.activity}>{task.lastActivity}</span>
+          <span className={s.activity}>{t(task.lastActivity)}</span>
         ) : null}
         {prog && (
           <span className={cx(s.progressRow, !prog.real && s.progressEstimate)} title={prog.real ? REAL_HINT : ESTIMATE_HINT}>

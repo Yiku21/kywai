@@ -8,6 +8,7 @@ import { ThinkSplitter } from './ollama'
 import { clip, num, obj, str } from './spawn'
 import type { RunAgentOptions, RunAgentResult } from './types'
 import { runTool, toolDefinitions, type ToolContext } from './localTools'
+import { tr } from '@shared/i18n'
 
 export const LMSTUDIO_URL = 'http://127.0.0.1:1234'
 export const LMSTUDIO_OFFLINE = 'Servidor de LM Studio apagado: enciéndelo desde la configuración local o en LM Studio (Developer → Start server)'
@@ -21,7 +22,7 @@ export function lmsPath(): string | null {
 
 function lms(args: string[], timeoutMs = 20_000): Promise<string> {
   const bin = lmsPath()
-  if (!bin) return Promise.reject(new Error('LM Studio no está instalado'))
+  if (!bin) return Promise.reject(new Error(tr('LM Studio no está instalado')))
   return new Promise((resolve, reject) => {
     execFile(bin, args, { timeout: timeoutMs, windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) reject(new Error(clip(stderr || err.message, 300)))
@@ -62,20 +63,20 @@ export async function lmsStartServer(): Promise<void> {
 
 /** ¿Servidor activo y modelo descargado? (sin generar nada). */
 export async function checkLmStudio(model: string): Promise<{ ok: boolean; reason?: string }> {
-  if (!lmsPath()) return { ok: false, reason: 'LM Studio no está instalado' }
-  if (!model) return { ok: false, reason: 'No hay un modelo local configurado' }
+  if (!lmsPath()) return { ok: false, reason: tr('LM Studio no está instalado') }
+  if (!model) return { ok: false, reason: tr('No hay un modelo local configurado') }
   let ids: string[] = []
   try {
     const res = await fetch(`${LMSTUDIO_URL}/v1/models`, { signal: AbortSignal.timeout(2500) })
-    if (!res.ok) return { ok: false, reason: LMSTUDIO_OFFLINE }
+    if (!res.ok) return { ok: false, reason: tr(LMSTUDIO_OFFLINE) }
     const j = (await res.json()) as { data?: { id?: string }[] }
     ids = (j.data ?? []).map((d) => d.id).filter((x): x is string => typeof x === 'string')
   } catch {
-    return { ok: false, reason: LMSTUDIO_OFFLINE }
+    return { ok: false, reason: tr(LMSTUDIO_OFFLINE) }
   }
   const base = model.split('@')[0]
   if (!ids.some((id) => id === model || id === base || id.split('@')[0] === base)) {
-    return { ok: false, reason: `Modelo no descargado en LM Studio: ${model}` }
+    return { ok: false, reason: tr('Modelo no descargado en LM Studio: {model}', { model }) }
   }
   return { ok: true }
 }
@@ -102,7 +103,7 @@ async function ensureContext(model: string, onActivity?: (t: string) => void): P
       contextReady.add(model)
       return
     }
-    onActivity?.('Preparando el modelo local')
+    onActivity?.(tr('Preparando el modelo local'))
     if (inst) await lms(['unload', str(inst.identifier) || base], 60_000).catch(() => '')
     await lms(['load', base, '-c', String(TARGET_CONTEXT), '-y'], 240_000)
     contextReady.add(model)
@@ -169,7 +170,7 @@ export function postJson(url: string, body: string, signal: AbortSignal): Promis
 export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult> {
   const usage: TokenUsage = { input: 0, output: 0 }
   const model = opts.model
-  if (!model) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: 'No hay un modelo local configurado' }
+  if (!model) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr('No hay un modelo local configurado') }
   await ensureContext(model, (t) => opts.onActivity?.(t, 'tool'))
   if (opts.signal.aborted) return { ok: false, text: '', usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
 
@@ -187,7 +188,7 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: opts.prompt }
   ]
-  opts.onActivity?.('Leyendo la tarea', 'tool')
+  opts.onActivity?.(tr('Leyendo la tarea'), 'tool')
 
   for (let step = 0; step < MAX_STEPS; step++) {
     prune(messages)
@@ -201,8 +202,8 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     } catch (e) {
       if (opts.signal.aborted) return { ok: false, text: '', usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
       // Solo «conexión rechazada» es que el servidor está apagado; lo demás es que se cortó a mitad.
-      if ((e as NodeJS.ErrnoException).code === 'ECONNREFUSED') return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: LMSTUDIO_OFFLINE }
-      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: clip(`LM Studio cortó la respuesta: ${(e as Error).message}`, 200) }
+      if ((e as NodeJS.ErrnoException).code === 'ECONNREFUSED') return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr(LMSTUDIO_OFFLINE) }
+      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: clip(tr('LM Studio cortó la respuesta: {message}', { message: (e as Error).message }), 200) }
     }
     const body = res.text
     if (!res.ok) {
@@ -213,7 +214,7 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
         /* texto plano */
       }
       if (/not found|no models? loaded|does not exist/i.test(msg)) {
-        return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: `Modelo no disponible en LM Studio: ${model}` }
+        return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr('Modelo no disponible en LM Studio: {model}', { model }) }
       }
       if (/context/i.test(msg)) contextReady.delete(model)
       return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: clip(`LM Studio: ${msg || res.statusText}`, 200) }
@@ -222,7 +223,7 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     try {
       data = JSON.parse(body) as Record<string, unknown>
     } catch {
-      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: 'LM Studio devolvió una respuesta no válida' }
+      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: tr('LM Studio devolvió una respuesta no válida') }
     }
     const u = obj(data.usage)
     if (u) {
@@ -272,5 +273,5 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     }
     return { ok: true, text, usage, model }
   }
-  return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: `El modelo local no terminó tras ${MAX_STEPS} pasos` }
+  return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: tr('El modelo local no terminó tras {MAX_STEPS} pasos', { MAX_STEPS }) }
 }
