@@ -3,7 +3,7 @@
 // su propia ventana (normalmente en el navegador). La única credencial que se escribe es la clave de API
 // de Gemini, si el usuario la introduce, en el archivo donde la lee el propio Gemini CLI.
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import type { SetupAuth, SetupInstallResult, SetupTool, SetupToolId } from '@shared/types'
@@ -11,10 +11,11 @@ import { emit } from './events'
 import { getConfig } from './config'
 import { agentKey, keys } from './keys'
 import { lmsPath } from './agents/lmstudio'
-import { findTerminal, terminalArgs } from './linuxDesktop'
+import { asAdmin, detectPackageManager, findTerminal, LINUX_PACKAGES, nodeInstall, packageInstall, terminalArgs, which, withUserNpmPrefix, type LinuxPackageManager } from './linuxDesktop'
 
 const IS_WIN = process.platform === 'win32'
 const IS_MAC = process.platform === 'darwin'
+const IS_LINUX = process.platform === 'linux'
 const HOME = homedir()
 
 interface Output {
@@ -102,13 +103,21 @@ export async function refreshPath(): Promise<void> {
 
 // ---------- Programas ----------
 
+interface InstallContext {
+  brew: boolean
+  winget: boolean
+  node: boolean
+  /** Linux: gestor de paquetes de la distribución, si se puede usar como administrador (con pkexec). */
+  linuxPm: LinuxPackageManager | null
+}
+
 interface ToolDef {
   label: string
   /** Orden que imprime la versión (vacío: se comprueba de otra forma). */
   version: string
   url: string
   /** Orden de instalación en esta plataforma, o null si hay que descargarlo a mano. */
-  install(ctx: { brew: boolean; winget: boolean; node: boolean }): { cmd: string; needs?: SetupToolId } | null
+  install(ctx: InstallContext): { cmd: string; needs?: SetupToolId } | null
   /** Inicio de sesión interactivo (se abre en una terminal). */
   login?: string
 }
@@ -124,13 +133,23 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
     label: 'Python',
     version: IS_WIN ? 'python --version' : 'python3 --version',
     url: 'https://www.python.org/downloads/',
-    install: ({ brew, winget: wg }) => (IS_WIN ? (wg ? { cmd: winget('Python.Python.3.12') } : null) : brew ? { cmd: 'brew install python' } : null)
+    install: ({ brew, winget: wg, linuxPm }) =>
+      IS_WIN
+        ? wg
+          ? { cmd: winget('Python.Python.3.12') }
+          : null
+        : linuxPm
+          ? { cmd: asAdmin(packageInstall(linuxPm, LINUX_PACKAGES.python[linuxPm])) }
+          : brew
+            ? { cmd: 'brew install python' }
+            : null
   },
   node: {
     label: 'Node.js',
     version: 'node --version',
     url: 'https://nodejs.org/',
-    install: ({ brew, winget: wg }) => (IS_WIN ? (wg ? { cmd: winget('OpenJS.NodeJS.LTS') } : null) : brew ? { cmd: 'brew install node' } : null)
+    install: ({ brew, winget: wg, linuxPm }) =>
+      IS_WIN ? (wg ? { cmd: winget('OpenJS.NodeJS.LTS') } : null) : linuxPm ? { cmd: asAdmin(nodeInstall(linuxPm)) } : brew ? { cmd: 'brew install node' } : null
   },
   brew: {
     label: 'Homebrew',
@@ -198,8 +217,17 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
     label: 'Ollama',
     version: 'ollama --version',
     url: 'https://ollama.com/download',
-    install: ({ brew, winget: wg }) =>
-      IS_WIN ? (wg ? { cmd: winget('Ollama.Ollama') } : null) : brew ? { cmd: 'brew install ollama && brew services start ollama' } : null
+    // En Linux, el instalador oficial (deja Ollama como servicio del sistema; pide la contraseña con pkexec).
+    install: ({ brew, winget: wg, linuxPm }) =>
+      IS_WIN
+        ? wg
+          ? { cmd: winget('Ollama.Ollama') }
+          : null
+        : linuxPm
+          ? { cmd: asAdmin('curl -fsSL https://ollama.com/install.sh | sh') }
+          : brew
+            ? { cmd: 'brew install ollama && brew services start ollama' }
+            : null
   }
 }
 
@@ -236,13 +264,35 @@ async function probe(id: SetupToolId): Promise<{ installed: boolean; version?: s
   return { installed: true, version: r.out.match(VERSION_RE)?.[0] }
 }
 
-async function context(): Promise<{ brew: boolean; winget: boolean; node: boolean }> {
+/**
+ * Linux: se instala como administrador con pkexec, que enseña la ventana del sistema para la contraseña. Hace falta
+ * un escritorio (sin pantalla no hay quien la conteste); si no, esos programas se instalan desde su web.
+ */
+function linuxAdminPm(): LinuxPackageManager | null {
+  if (!IS_LINUX || !which('pkexec') || !(process.env.DISPLAY || process.env.WAYLAND_DISPLAY)) return null
+  return detectPackageManager()
+}
+
+/** Linux con el Node.js del sistema: la carpeta global de npm es de root, así que `npm -g` va a ~/.npm-global. */
+async function npmGlobalWritable(): Promise<boolean> {
+  const r = await sh('npm prefix -g', 10000)
+  const prefix = r.out.trim().split(/\r?\n/).pop() ?? ''
+  if (r.code !== 0 || !prefix) return true
+  try {
+    accessSync(existsSync(join(prefix, 'lib')) ? join(prefix, 'lib') : prefix, constants.W_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function context(): Promise<InstallContext> {
   const [brew, wg, node] = await Promise.all([
     IS_MAC ? probe('brew') : Promise.resolve({ installed: false }),
     IS_WIN ? sh('winget --version', 10000).then((r) => ({ installed: r.code === 0 })) : Promise.resolve({ installed: false }),
     probe('node')
   ])
-  return { brew: brew.installed, winget: wg.installed, node: node.installed }
+  return { brew: brew.installed, winget: wg.installed, node: node.installed, linuxPm: linuxAdminPm() }
 }
 
 const PLATFORM_TOOLS: SetupToolId[] = IS_MAC
@@ -284,8 +334,10 @@ export async function installTool(id: SetupToolId): Promise<SetupInstallResult> 
     if (plan.needs === 'node' && !ctx.node) return { ok: false, message: 'Primero instala Node.js' }
     if (plan.needs === 'python' && !(await probe('python')).installed) return { ok: false, message: 'Primero instala Python' }
     const log = (line: string) => emit({ kind: 'setup.log', toolId: id, line: line.slice(0, 400) })
-    log(`$ ${plan.cmd}`)
-    const r = await sh(plan.cmd, 25 * 60 * 1000, log)
+    const cmd = IS_LINUX && /\bnpm (install|i) -g\b/.test(plan.cmd) && !(await npmGlobalWritable()) ? withUserNpmPrefix(plan.cmd) : plan.cmd
+    log(`$ ${cmd}`)
+    if (cmd.startsWith('pkexec ')) log('Escribe tu contraseña en la ventana del sistema para continuar…')
+    const r = await sh(cmd, 25 * 60 * 1000, log)
     await refreshPath()
     const after = await probe(id)
     if (after.installed) {
