@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { FlaskConical } from 'lucide-react'
 import { api, isWeb } from '@/lib/api'
 import { initAudio } from '@/lib/audio'
 import { lastProjectId, useCowork } from '@/store/cowork'
 import { demoEngine } from '@/demo/engine'
-import { World } from '@/scene/World'
 import { SceneLabels } from '@/scene/SceneLabels'
 import { Header } from '@/ui/Header'
 import { LeftPanel } from '@/ui/left/LeftPanel'
@@ -23,6 +22,9 @@ import { HermesModelDialog } from '@/ui/space/HermesModelDialog'
 import { useTheme } from '@/lib/theme'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
+
+// El espacio 3D (Three.js y compañía, la mayor parte del código) se carga aparte: el chat aparece sin esperarlo.
+const World = lazy(() => import('@/scene/World').then((m) => ({ default: m.World })))
 
 /** Conecta con el motor de agentes (Electron) o arranca la demo si no hay motor. */
 function useBoot(): void {
@@ -113,7 +115,9 @@ export function App() {
       {glass && (
         <div className={s.world}>
           {/* El centro del mundo, en la zona que deja libre el chat. */}
-          <World view={narrow ? undefined : { left: inset, top: 140, bottom: 76 }} />
+          <Suspense fallback={null}>
+            <World view={narrow ? undefined : { left: inset, top: 140, bottom: 76 }} />
+          </Suspense>
           <SceneLabels />
         </div>
       )}
@@ -125,7 +129,11 @@ export function App() {
         <section className={s.space} data-demo={mode === 'demo'} aria-label="Espacio digital">
           <SpaceHeader />
           <div className={s.stage}>
-            {!glass && <World />}
+            {!glass && (
+              <Suspense fallback={null}>
+                <World />
+              </Suspense>
+            )}
             {!glass && <SceneLabels />}
             <SelectionPanel />
             <MusicPanel />
