@@ -79,6 +79,7 @@ import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
 import { deleteTraces, flushTaskTraces, getTaskTrace, initTaskTraces } from './taskTrace'
 import { onMacPermissionPrompt, startMacPermissionWatch, stopMacPermissionWatch } from './macPermissions'
+import { launchCommand, linuxAutostartEnabled, setLinuxAutostart } from './linuxDesktop'
 
 // Must happen before 'ready'.
 protocol.registerSchemesAsPrivileged([
@@ -312,12 +313,22 @@ async function applyWebAccess(): Promise<WebAccessInfo> {
   return currentWebAccess()
 }
 
+// Abrir al iniciar sesión: Electron lo hace en Windows y macOS; en Linux, con una entrada en ~/.config/autostart.
+function openAtLogin(): boolean {
+  return process.platform === 'linux' ? linuxAutostartEnabled() : app.getLoginItemSettings().openAtLogin
+}
+
+function setOpenAtLogin(on: boolean): void {
+  if (process.platform === 'linux') setLinuxAutostart(on, launchCommand(process.execPath, process.argv))
+  else app.setLoginItemSettings({ openAtLogin: on })
+}
+
 async function currentWebAccess(https?: WebHttpsInfo): Promise<WebAccessInfo> {
   const w = getConfig().webAccess
   return {
     ...webAccessInfo(w.enabled, w.port, w.token),
     restrictClients: w.restrictClients === true,
-    openAtLogin: app.getLoginItemSettings().openAtLogin,
+    openAtLogin: openAtLogin(),
     https: w.enabled ? (https ?? (await httpsInfo(w.port))) : undefined
   }
 }
@@ -710,7 +721,7 @@ function registerIpc(): void {
   })
   ipcMain.handle('cowork:setWebAccess', async (_e, input: SetWebAccessInput) => {
     if (!input || typeof input !== 'object') throw new Error('Datos no válidos')
-    if (typeof input.openAtLogin === 'boolean') app.setLoginItemSettings({ openAtLogin: input.openAtLogin })
+    if (typeof input.openAtLogin === 'boolean') setOpenAtLogin(input.openAtLogin)
     if (typeof input.restrictClients === 'boolean') {
       setRestrictClients(input.restrictClients)
       return currentWebAccess()
