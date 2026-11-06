@@ -1,5 +1,5 @@
 // Actualizar AI Cowork desde GitHub. El código vive en un clon de git (en desarrollo, la propia carpeta del
-// proyecto; en el Mac, la carpeta que instaló scripts/instalar-mac.sh). Buscar = git fetch y comparar.
+// proyecto; en el Mac y en Linux, la carpeta desde la que se instaló con scripts/instalar-mac.sh o instalar-linux.sh). Buscar = git fetch y comparar.
 // Actualizar = git pull + dependencias (si cambiaron) + compilar + reinstalar y reiniciar. Si algo falla
 // después de descargar, se vuelve a la versión anterior.
 import { spawn } from 'node:child_process'
@@ -9,8 +9,10 @@ import { app } from 'electron'
 import type { UpdateCommit, UpdateStatus } from '@shared/types'
 import { emit } from './events'
 import { sh } from './setup'
+import { launchCommand } from './linuxDesktop'
 
 const IS_MAC = process.platform === 'darwin'
+const IS_LINUX = process.platform === 'linux'
 
 declare const __BUILD_COMMIT__: string | undefined
 /** Commit con el que se compiló esta app ('' si no se sabe, como en las versiones anteriores a esto). */
@@ -18,7 +20,7 @@ function buildCommit(): string {
   return typeof __BUILD_COMMIT__ === 'string' ? __BUILD_COMMIT__ : (process.env.AICW_CHECK_BUILD_COMMIT ?? '')
 }
 
-/** Carpeta del código: la del proyecto en desarrollo o la que dejó anotada el instalador del Mac. */
+/** Carpeta del código: la del proyecto en desarrollo o la que dejó anotada el instalador del Mac o de Linux. */
 export function sourceDir(): string | null {
   if (!app.isPackaged) return existsSync(join(app.getAppPath(), '.git')) ? app.getAppPath() : null
   try {
@@ -155,7 +157,15 @@ async function step(label: string, command: string, cwd: string, timeoutMs = 20 
 function buildCommand(): string {
   if (!app.isPackaged) return 'npx electron-vite build'
   const arch = process.arch === 'arm64' ? '--arm64' : '--x64'
+  if (IS_LINUX) return `npx electron-vite build && npx electron-builder --linux dir ${arch}`
   return `npx electron-vite build && CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --mac dir ${arch}`
+}
+
+/** Linux: carpeta instalada (la del ejecutable), si es una instalación de scripts/instalar-linux.sh. */
+function runningLinuxDir(): string | null {
+  if (!IS_LINUX || process.env.APPIMAGE) return null
+  const dir = dirname(process.execPath)
+  return existsSync(join(dir, 'ai-cowork')) ? dir : null
 }
 
 /** Carpeta .app que se está ejecutando (solo macOS empaquetado). */
@@ -180,7 +190,8 @@ export async function applyUpdate(setAside = false): Promise<string> {
   }
   if (!status.canUpdate) return status.reason ?? 'No se puede actualizar'
   if (!status.commits.length) return 'Ya tienes la última versión'
-  if (app.isPackaged && !IS_MAC) return 'En Windows, actualiza con el instalador nuevo (por ahora)'
+  if (app.isPackaged && !IS_MAC && !IS_LINUX) return 'En Windows, actualiza con el instalador nuevo (por ahora)'
+  if (app.isPackaged && IS_LINUX && !runningLinuxDir()) return 'La AppImage no se actualiza sola: descarga o compila la nueva (npm run dist:linux)'
   const dir = sourceDir()!
   running = true
   const before = (await git(dir, 'rev-parse HEAD')).out
@@ -201,8 +212,19 @@ export async function applyUpdate(setAside = false): Promise<string> {
   }
 
   emit({ kind: 'update.log', line: '✓ Listo. Reiniciando AI Cowork…' })
-  const bundle = app.isPackaged ? runningBundle() : null
-  if (bundle) {
+  const bundle = app.isPackaged && IS_MAC ? runningBundle() : null
+  const linuxDir = app.isPackaged ? runningLinuxDir() : null
+  if (linuxDir) {
+    // Linux: igual que en el Mac, un script aparte cambia la carpeta instalada y vuelve a abrir la app.
+    const built = join(dir, 'release', process.arch === 'arm64' ? 'linux-arm64-unpacked' : 'linux-unpacked')
+    const child = spawn(
+      'bash',
+      [join(dir, 'scripts', 'actualizar-linux.sh'), String(process.pid), linuxDir, built, ...launchCommand(process.execPath, process.argv)],
+      { detached: true, stdio: 'ignore', cwd: dirname(linuxDir) }
+    )
+    child.unref()
+    setTimeout(() => app.quit(), 800)
+  } else if (bundle) {
     // macOS: un script aparte espera a que se cierre la app, cambia la .app y la vuelve a abrir.
     const built = join(dir, 'release', process.arch === 'arm64' ? 'mac-arm64' : 'mac', 'AI Cowork.app')
     const child = spawn('bash', [join(dir, 'scripts', 'actualizar-mac.sh'), String(process.pid), bundle, built], {
