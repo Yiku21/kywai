@@ -585,7 +585,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
       login: 'gptme-auth openai-subscription',
       url: 'https://gptme.org/docs/getting-started.html',
       install: {
-        mac: 'pipx install gptme',
+        mac: 'brew install pipx && pipx install gptme',
         linux: 'pipx install gptme',
         needs: 'python'
       }
