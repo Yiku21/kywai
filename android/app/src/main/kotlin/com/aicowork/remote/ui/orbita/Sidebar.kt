@@ -101,7 +101,7 @@ private val SidebarMore = listOf(Section.Files, Section.Memory, Section.Tools, S
  * [onCollapse]: plegarla (desplegado) o cerrar el cajón (plegado).
  */
 @Composable
-fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, modifier: Modifier = Modifier) {
+fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, modifier: Modifier = Modifier, solid: Boolean = false) {
     val snapshot = state.snapshot
     val current = snapshot?.conversation?.id
     var moreOpen by remember { mutableStateOf(false) }
@@ -120,7 +120,8 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
         modifier
             .width(SidebarWidth)
             .fillMaxHeight()
-            .glass(radius = 28.dp)
+            // Como cajón, cristal más tupido: lo de detrás se intuye un poco, sin llegar a leerse.
+            .glass(radius = 28.dp, tint = if (solid) Orbita.GlassSolid else null)
             .padding(horizontal = 10.dp, vertical = 12.dp)
             .testTag("sidebar"),
     ) {
@@ -502,7 +503,8 @@ fun SidebarDrawer(model: OrbitaModel, state: CoworkUiState) {
         exit = fadeOut() + slideOutHorizontally { -it / 2 },
     ) {
         Box(Modifier.fillMaxHeight().windowInsetsPadding(WindowInsets.safeDrawing).padding(10.dp)) {
-            Sidebar(model, state, onCollapse = { model.drawerOpen = false })
+            // Como cajón va por encima de la interfaz: cristal más tupido para que lo de debajo apenas se vea.
+            Sidebar(model, state, onCollapse = { model.drawerOpen = false }, solid = true)
         }
     }
 }

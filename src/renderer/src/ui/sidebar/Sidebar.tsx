@@ -101,9 +101,10 @@ export function Sidebar() {
   )
 
   if (!narrow || !drawerOpen) return panel
+  // Con la barra entera abierta encima, la columna de iconos se oculta (sin mover el chat) para no verse a través.
   return (
     <>
-      {panel}
+      <div style={{ display: 'contents', visibility: 'hidden' }}>{panel}</div>
       <div className={s.scrim} onPointerDown={(e) => e.target === e.currentTarget && closeDrawer()}>
         <nav className={cx(s.bar, s.drawer)} aria-label={t('Barra lateral: conversaciones y proyectos')}>
           <div className={s.top}>
