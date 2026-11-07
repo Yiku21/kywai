@@ -318,7 +318,7 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
         SideEffect {
             with(density) {
                 val top = (topBlock + 24.dp).toPx()
-                val bottom = (20.dp + if (panelOpen) panelHeight else if (model.selectedAgentId != null) 200.dp else 0.dp).toPx()
+                val bottom = (20.dp + if (panelOpen) panelHeight else if (model.selectedAgentId != null) 272.dp else 72.dp).toPx()
                 model.world.insets = WorldInsets(top = top, bottom = bottom.coerceAtMost(constraints.maxHeight * 0.8f))
                 model.world.covered = full
             }
@@ -353,10 +353,13 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
             compact = true,
         )
 
-        // Tarjeta del agente elegido (sin panel abierto).
+        // En el Espacio: un agente a la vez (‹ ›) y, encima, su ficha.
+        if (!panelOpen && snapshot != null) {
+            AgentSwitcher(snapshot, model, onFocus = { a -> model.world.focusAgent(SpaceSceneBuilder.build(snapshot), a.id) }, modifier = Modifier.align(Alignment.BottomCenter))
+        }
         AnimatedVisibility(
             visible = !panelOpen && model.selectedAgentId != null && snapshot != null,
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp),
             enter = fadeIn() + slideInVertically { it / 3 },
             exit = fadeOut() + slideOutVertically { it / 3 },
         ) {
@@ -431,7 +434,7 @@ private fun WideLayout(
         }
         PanelHost(model, state, panelModifier, compact = false)
 
-        // Selector del Equipo y tarjeta del agente, sobre el mundo.
+        // Un agente a la vez (‹ ›) y su ficha, sobre el mundo.
         val worldEnd = if (panelOpen && tabletop == null) panelWidth + gap else 0.dp
         val worldBottom = if (tabletop != null) with(density) { (constraints.maxHeight - tabletop.hingeTop).toDp() } else 0.dp
         if (snapshot != null && !(model.expanded && panelOpen && tabletop == null)) {
@@ -447,11 +450,7 @@ private fun WideLayout(
                     val agent = snapshot.agents.firstOrNull { it.id == model.selectedAgentId }
                     if (agent != null) AgentCard(snapshot, agent, model, attention, Modifier.widthIn(max = 440.dp).padding(bottom = 10.dp))
                 }
-                TeamBar(snapshot, model, onSelect = { a ->
-                    val again = model.selectedAgentId == a.id
-                    model.selectAgent(if (again) null else a.id)
-                    if (!again) focusAgent(model, snapshot, a.id, aspect)
-                })
+                AgentSwitcher(snapshot, model, onFocus = { a -> focusAgent(model, snapshot, a.id, aspect) })
             }
         }
 

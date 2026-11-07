@@ -69,7 +69,7 @@ class OrbitaLayoutTest {
         val controller = FakeController(SampleData.state())
         val model = show(controller)
         compose.onNodeWithTag("sidebar").assertIsDisplayed()
-        compose.onNodeWithTag("team-bar").assertIsDisplayed()
+        compose.onNodeWithTag("agent-switcher").assertIsDisplayed()
         compose.onNodeWithTag("nav-Tasks").performClick()
         compose.onNodeWithTag("panel").assertIsDisplayed()
         compose.onNodeWithText("Construir pantallas").assertIsDisplayed()
