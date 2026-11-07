@@ -29,6 +29,14 @@ export interface CatalogEntry {
   cli?: CliAgentSpec
   /** Una advertencia (por ejemplo, que solo funciona con clave de API). */
   note?: string
+  /**
+   * Cómo se puede usar gratis (sin suscripción de pago), si se puede: una frase con el límite y la condición.
+   * Sale como etiqueta «Gratis» en el catálogo y en el asistente. Comprobado en sus páginas oficiales en nov. de 2026.
+   */
+  free?: string
+  /** Modelo con el que empieza al añadirlo (por ejemplo, uno gratuito cuando el suyo por defecto es de pago). */
+  model?: string
+  modelLabel?: string
 }
 
 /** Los agentes con adaptador propio: salen de los de fábrica. */
@@ -37,7 +45,8 @@ const BUILTINS: CatalogEntry[] = [
     id: 'hermes',
     name: 'Hermes',
     summary: 'Coordinador: planifica y reparte el trabajo entre los demás, con memoria entre sesiones.',
-    account: 'Necesita un proveedor de modelos (OmniRoute, Nous Portal u otra cuenta).',
+    account: 'Necesita un proveedor de modelos (OmniRoute, Nous Portal, OpenRouter u otra cuenta).',
+    free: 'Gratis con una clave de OpenRouter y sus modelos «:free»: unas 50 peticiones al día (1000 si alguna vez compraste 10 $ de saldo).',
     kind: 'builtin',
     verified: true,
     template: 'hermes',
@@ -73,7 +82,8 @@ const BUILTINS: CatalogEntry[] = [
     id: 'gemini',
     name: 'Gemini',
     summary: 'Análisis, investigación y documentos largos.',
-    account: 'Con tu cuenta de Google o una clave de API.',
+    account: 'Con una clave de API de Google AI Studio (gratis) o una cuenta de empresa de Gemini Code Assist. Desde junio de 2026, las cuentas personales de Google usan Antigravity CLI.',
+    free: 'Gratis con una clave de API de Google AI Studio: sin tarjeta, solo modelos Flash y unas 250 peticiones al día. Google usa lo que le envías para mejorar sus productos.',
     kind: 'builtin',
     verified: true,
     template: 'gemini',
@@ -215,8 +225,8 @@ export function buildAgent(input: AddAgentInput, existingAgents: AgentConfig[], 
     id,
     name,
     provider,
-    model: '',
-    modelLabel: 'Auto',
+    model: entry?.model ?? '',
+    modelLabel: entry?.modelLabel ?? 'Auto',
     color,
     avatar: generatedAvatar(id, color),
     stationId,
