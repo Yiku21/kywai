@@ -56,6 +56,7 @@ fun AttachFinishedUploads(model: OrbitaModel, state: CoworkUiState) {
         state.uploads.filter { it.done && it.attachmentId != null }.forEach { u ->
             model.pendingAttachments = model.pendingAttachments + u.attachmentId!!
             model.feedback.play(Sfx.FileCreated)
+            if (u.queued) model.toast(t("Sin conexión: {name} se enviará con tu mensaje al volver", "name" to u.name))
             delay(2_500)
             model.controller.dismissUpload(u.id)
         }

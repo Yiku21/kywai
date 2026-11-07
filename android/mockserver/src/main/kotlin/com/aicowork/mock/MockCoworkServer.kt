@@ -165,6 +165,7 @@ class MockCoworkServer(
             route == "/events" && method == "GET" -> upgrade()
             route == "/snapshot" && method == "GET" -> ok(synchronized(lock) { snapshot() })
             route == "/chat/messages" && method == "POST" -> postMessage(request)
+            route == "/files" && method == "POST" -> upload(request)
             route == "/conversations" && method == "POST" -> newConversation()
             route.startsWith("/requests/") && method == "POST" -> requestAction(route)
             route == "/inbox" && method == "GET" -> ok(synchronized(lock) { buildJsonObject { put("items", JsonArray(inbox.sortedByDescending { it.createdAt }.map { it.toJson() })) } })
@@ -201,6 +202,24 @@ class MockCoworkServer(
         })
     }
 
+    /** Archivos subidos (nombre y bytes), en orden. */
+    val uploads: List<Pair<String, Long>> get() = synchronized(lock) { uploaded.map { it.second to it.third } }
+    private val uploaded = mutableListOf<Triple<String, String, Long>>()
+
+    /** Adjuntos que llevó cada mensaje recibido (por su texto). */
+    fun attachmentsOf(text: String): List<String> = synchronized(lock) { sentAttachments[text].orEmpty() }
+    private val sentAttachments = mutableMapOf<String, List<String>>()
+
+    private fun upload(request: RecordedRequest): MockResponse = synchronized(lock) {
+        val name = request.requestUrl?.queryParameter("name") ?: "archivo"
+        val id = newId("att")
+        val size = request.bodySize
+        uploaded += Triple(id, name, size)
+        ok(buildJsonObject {
+            put("attachment", buildJsonObject { put("id", id); put("name", name); put("size", size) })
+        })
+    }
+
     private fun postMessage(request: RecordedRequest): MockResponse {
         val body = body(request) ?: return error(400, "bad_request", "Cuerpo JSON no válido", false)
         val text = body.str("text")?.trim().orEmpty()
@@ -219,6 +238,9 @@ class MockCoworkServer(
                     put("message", msg.toJson())
                     put("requestId", msg.requestId)
                 }, status = 202)
+            }
+            body["attachmentIds"]?.let { ids ->
+                sentAttachments[text] = (ids as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content }.orEmpty()
             }
             val req = Req(id = "r${++requestCounter}-" + newId("").takeLast(4), prompt = text)
             val msg = Msg(
