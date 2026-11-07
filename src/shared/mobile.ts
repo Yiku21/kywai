@@ -43,8 +43,11 @@ export interface MobileSnapshot {
   memory: MemoryEntry[]
   usage: MobileUsage
   /** planApproval: el coordinador espera tu visto bueno antes de ejecutar cada plan. */
-  /** theme: el tema elegido en el escritorio (id de lib/theme.ts), para que Órbita se vea igual. */
-  settings: { agentAccess: AgentAccess; planApproval: boolean; theme?: string }
+  /**
+   * theme: el tema elegido en el escritorio (id de lib/theme.ts), para que Órbita se vea igual. serverName: el nombre
+   * que le puso el usuario al ordenador (sin él, el de la red).
+   */
+  settings: { agentAccess: AgentAccess; planApproval: boolean; theme?: string; serverName?: string }
   sequence: number
   capabilities: {
     apiVersion: 'v1'
@@ -97,6 +100,8 @@ export interface MobileSnapshot {
     chats?: boolean
     /** Buscador de todos los proyectos (GET /search). */
     search?: boolean
+    /** POST /settings/server-name: cambiar el nombre del ordenador que se ve en la barra lateral. */
+    serverName?: boolean
     /** GET /music/search: radios de SomaFM y canciones de Audius para escuchar en el móvil. */
     music?: boolean
     /** Razonamiento del modelo local: POST /agents/{agentId}/thinking. */

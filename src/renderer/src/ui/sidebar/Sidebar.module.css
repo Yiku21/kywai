@@ -419,6 +419,58 @@
   font-size: 13px;
 }
 
+/* El nombre del ordenador se puede cambiar: botón sin aspecto de botón y un lápiz que aparece al pasar. */
+.whereRename {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.whereEdit {
+  flex: none;
+  color: var(--text-3);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.whereRename:hover .whereEdit,
+.whereRename:focus-visible .whereEdit {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .whereEdit {
+    opacity: 1;
+  }
+}
+
+.whereForm {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.whereInput {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctl);
+  background: var(--bg-input, var(--bg-hover));
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .whereHint {
   overflow: hidden;
   text-overflow: ellipsis;
