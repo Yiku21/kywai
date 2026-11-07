@@ -280,7 +280,7 @@ Y cuatro que decoran el mundo, cambian la forma de su núcleo y, en los de fiest
 
 Baja el instalador de tu sistema desde la **[última versión](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` para Windows, `.dmg` para macOS (Apple silicon o Intel) y `.AppImage` para Linux. Una vez instalada, la app busca una versión nueva cada vez que se abre y se actualiza sola (en macOS te avisa y abre la descarga).
 
-Aún no van firmadas: en Windows pulsa «Más información» → «Ejecutar de todas formas»; en macOS, la primera vez, clic derecho en la app → Abrir (si dice que está dañada, ejecuta `xattr -cr "/Applications/AI Cowork.app"`); en Linux dale permiso de ejecución al AppImage con `chmod +x`.
+Aún no van firmadas: en Windows pulsa «Más información» → «Ejecutar de todas formas»; en macOS, la primera vez, clic derecho en la app → Abrir (si dice que está dañada, ejecuta `xattr -cr "/Applications/kywai.app"`); en Linux dale permiso de ejecución al AppImage con `chmod +x`.
 
 O compílala tú:
 
@@ -291,7 +291,7 @@ npm install
 npm run dist:win
 ```
 
-Esto genera `release/AI-Cowork-Setup-<version>.exe`. El instalador te deja elegir la carpeta y crea los accesos directos. Como no está firmado, puede que Windows te avise: «Más información» → «Ejecutar de todas formas».
+Esto genera `release/kywai-Setup-<version>.exe`. El instalador te deja elegir la carpeta y crea los accesos directos. Como no está firmado, puede que Windows te avise: «Más información» → «Ejecutar de todas formas».
 
 ### macOS
 
@@ -299,7 +299,7 @@ Esto genera `release/AI-Cowork-Setup-<version>.exe`. El instalador te deja elegi
 npm run fuente
 ```
 
-Esto genera `release/AI-Cowork-fuente.zip`. En el Mac, descomprímelo y ejecuta esto dentro de la carpeta:
+Esto genera `release/kywai-fuente.zip`. En el Mac, descomprímelo y ejecuta esto dentro de la carpeta:
 
 ```bash
 bash scripts/instalar-mac.sh

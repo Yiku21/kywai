@@ -280,7 +280,7 @@ flowchart TD
 
 从 **[最新版本](https://github.com/Yiku21/kywai/releases/latest)** 下载适合你系统的安装包：Windows 用 `.exe`，macOS（Apple 芯片或 Intel）用 `.dmg`，Linux 用 `.AppImage`。安装后，应用每次打开都会检查新版本并自动更新（在 macOS 上会提示你并打开下载页面）。
 
-目前还没有代码签名：在 Windows 上点击“更多信息”→“仍要运行”；在 macOS 上第一次打开时右键点击应用 → 打开（如果提示已损坏，在终端运行 `xattr -cr "/Applications/AI Cowork.app"`）；在 Linux 上用 `chmod +x` 让 AppImage 可执行。
+目前还没有代码签名：在 Windows 上点击“更多信息”→“仍要运行”；在 macOS 上第一次打开时右键点击应用 → 打开（如果提示已损坏，在终端运行 `xattr -cr "/Applications/kywai.app"`）；在 Linux 上用 `chmod +x` 让 AppImage 可执行。
 
 或者自己编译：
 
@@ -291,7 +291,7 @@ npm install
 npm run dist:win
 ```
 
-这会生成 `release/AI-Cowork-Setup-<version>.exe`。安装程序允许你选择安装文件夹，并会创建快捷方式。由于没有代码签名，Windows 可能会发出警告：点击“更多信息”→“仍要运行”。
+这会生成 `release/kywai-Setup-<version>.exe`。安装程序允许你选择安装文件夹，并会创建快捷方式。由于没有代码签名，Windows 可能会发出警告：点击“更多信息”→“仍要运行”。
 
 ### macOS
 
@@ -299,7 +299,7 @@ npm run dist:win
 npm run fuente
 ```
 
-这会生成 `release/AI-Cowork-fuente.zip`。在 Mac 上解压后，在该文件夹内运行：
+这会生成 `release/kywai-fuente.zip`。在 Mac 上解压后，在该文件夹内运行：
 
 ```bash
 bash scripts/instalar-mac.sh
