@@ -11,7 +11,7 @@ import { useBubbles } from './bubbleStore'
 import { useComposer } from '@/ui/left/composerStore'
 import { buildCostume } from './costumes'
 import { palette } from './palette'
-import { RobotBrain } from './robotBrain'
+import { RobotBrain, chatPoint } from './robotBrain'
 import { registry } from './registry'
 import { GEO, checkTexture, questionTexture, warnTexture, zzzTexture } from './assets'
 import { ROBOT_Y, consoleOffset, consoleSide, coreBay, stationVec } from './layout'
@@ -224,6 +224,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
 
   useFrame((state, dt) => {
     const t = registry.time
+    chatPoint(state.camera, t, brain.chatPos)
     brain.update(t, dt, state.camera.position)
     const g = outer.current
     g.position.copy(brain.pos)
