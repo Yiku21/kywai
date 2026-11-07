@@ -113,6 +113,23 @@ jobs:
           echo "::error::No se pudo subir la APK a master."
           exit 1
 
+      # En el repositorio público la APK también se descarga desde GitHub Releases y kywai.app: se sube (o se
+      # sustituye) en la última Release como kywai-orbita.apk, así releases/latest/download/kywai-orbita.apk da
+      # siempre la última. Las Releases nuevas del escritorio ya la llevan (publicar-escritorio.yml).
+      - name: Poner la APK en la última Release
+        if: github.repository_owner == 'Yiku21' && github.event.repository.name == 'kywai'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          etiqueta=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || true)
+          if [ -z "$etiqueta" ]; then
+            echo "::warning::Aún no hay ninguna Release: la APK saldrá en la próxima del escritorio."
+            exit 0
+          fi
+          cp android/release/orbita.apk "$RUNNER_TEMP/kywai-orbita.apk"
+          gh release upload "$etiqueta" "$RUNNER_TEMP/kywai-orbita.apk" --repo "$GITHUB_REPOSITORY" --clobber
+          echo "APK subida a la Release $etiqueta."
+
       - name: Borrar la clave de firma
         if: always()
         run: rm -rf "$RUNNER_TEMP/firma-orbita"
