@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { AlertTriangle, ExternalLink, LoaderCircle, Plus, Search, Terminal, X } from 'lucide-react'
+import { AlertTriangle, ExternalLink, Gift, LoaderCircle, Plus, Search, Terminal, X } from 'lucide-react'
 import type { AgentConfig } from '@shared/types'
 import { AGENT_CATALOG, type CatalogEntry } from '@shared/agentCatalog'
 import { api } from '@/lib/api'
@@ -18,8 +18,20 @@ function splitArgs(text: string): string[] | null {
  * Elegir un agente para añadir: del catálogo (los que ya tienes con tu suscripción) o cualquier otro programa de
  * terminal. Al añadirlo se le da su robot y su estación; luego el asistente se encarga de instalarlo y de iniciar sesión.
  */
-export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig[]; onClose: () => void; onAdded: (id: string) => void }) {
+export function AddAgent({
+  existing,
+  onClose,
+  onAdded,
+  freeOnly: startFree = false
+}: {
+  existing: AgentConfig[]
+  onClose: () => void
+  onAdded: (id: string) => void
+  /** Abrirlo mostrando solo los que se pueden usar gratis. */
+  freeOnly?: boolean
+}) {
   const [query, setQuery] = useState('')
+  const [freeOnly, setFreeOnly] = useState(startFree)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [custom, setCustom] = useState(false)
@@ -28,10 +40,10 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
   const have = useMemo(() => new Set(existing.map((a) => a.cli?.presetId ?? a.id)), [existing])
   const list = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return AGENT_CATALOG.filter((e) => e.repeatable || !have.has(e.id)).filter(
-      (e) => !q || `${e.name} ${e.summary} ${e.account} ${e.cli?.command ?? ''}`.toLowerCase().includes(q)
-    )
-  }, [have, query])
+    return AGENT_CATALOG.filter((e) => e.repeatable || !have.has(e.id))
+      .filter((e) => !freeOnly || !!e.free)
+      .filter((e) => !q || `${e.name} ${t(e.summary)} ${t(e.account)} ${e.free ? `${t('Gratis')} ${t(e.free)}` : ''} ${e.cli?.command ?? ''}`.toLowerCase().includes(q))
+  }, [have, query, freeOnly])
 
   async function add(entry: CatalogEntry): Promise<void> {
     const a = api
@@ -103,10 +115,21 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
 
         {!custom ? (
           <>
-            <label className={s.search}>
-              <Search size={15} aria-hidden="true" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Buscar un agente…')} aria-label={t('Buscar un agente')} autoFocus />
-            </label>
+            <div className={s.searchRow}>
+              <label className={s.search}>
+                <Search size={15} aria-hidden="true" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Buscar un agente…')} aria-label={t('Buscar un agente')} autoFocus />
+              </label>
+              <button
+                type="button"
+                className={cx(s.freeToggle, freeOnly && s.freeToggleOn)}
+                aria-pressed={freeOnly}
+                title={t('Solo los que se pueden usar sin pagar una suscripción')}
+                onClick={() => setFreeOnly((v) => !v)}
+              >
+                <Gift size={14} aria-hidden="true" /> {t('Solo gratis')}
+              </button>
+            </div>
             <ul className={s.list}>
               {list.map((e) => (
                 <li key={e.id} className={s.item} style={{ ['--agent' as string]: e.color }}>
@@ -115,6 +138,7 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
                     <span className={s.itemName}>
                       {e.name}
                       {e.kind === 'cli' && <code className={s.cmd}>{e.cli?.command}</code>}
+                      {e.free && <span className={s.free}>{t('Gratis')}</span>}
                       {e.kind === 'cli' && !e.verified && (
                         <span className={s.warn} title={e.note ? t(e.note) : t('Su forma de lanzarlo no se ha comprobado a fondo: puede necesitar ajustes.')}>
                           <AlertTriangle size={11} aria-hidden="true" /> {t('sin comprobar')}
@@ -123,6 +147,7 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
                     </span>
                     <span className={s.itemWhat}>{t(e.summary)}</span>
                     <span className={s.itemAccount}>{t(e.account)}</span>
+                    {e.free && <span className={s.itemFree}>{t(e.free)}</span>}
                     {e.note && <span className={s.itemNote}>{t(e.note)}</span>}
                   </span>
                   <span className={s.itemActions}>
@@ -138,7 +163,15 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
                   </span>
                 </li>
               ))}
-              {list.length === 0 && <li className={s.empty}>{t('No hay ningún agente que coincida. Prueba con «Otro programa…».')}</li>}
+              {list.length === 0 && (
+                <li className={s.empty}>
+                  {freeOnly && query.trim()
+                    ? t('Ningún agente gratis coincide. Quita «Solo gratis» para ver todos.')
+                    : freeOnly
+                      ? t('Ya tienes en tu equipo todos los agentes gratis del catálogo.')
+                      : t('No hay ningún agente que coincida. Prueba con «Otro programa…».')}
+                </li>
+              )}
             </ul>
             <footer className={s.foot}>
               <p className={s.hint}>{t('¿No está el tuyo? Cualquier programa de terminal que atienda un encargo sirve.')}</p>
