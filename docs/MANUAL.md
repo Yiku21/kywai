@@ -2,7 +2,7 @@
 
 Todo lo que hace kywai, en detalle. Para una presentación rápida, ver el [README](../README.md).
 
-El [vídeo de 30 segundos](https://kywai.app/es/#video) muestra la app trabajando de verdad, con música original y textos en inglés. El MP4, la portada y los detalles de la grabación están en [docs/video](video/README.md).
+El [vídeo de 30 segundos](https://kywai.app/es/#video) muestra un proyecto repartido entre varios agentes, cuatro escenarios y un prototipo funcionando dentro de la app, con música original y textos en inglés. Las tomas resumen distintas fases del trabajo. El MP4, la portada y los detalles de la grabación están en [docs/video](video/README.md).
 
 kywai (se pronuncia «ki-wai»; web: https://kywai.app) se llamaba antes **AI Cowork**. El nombre nuevo sale en todo lo
 que se ve: interfaz, avisos, Órbita, ventana, instalador de Windows (`kywai-Setup-<versión>.exe`, «kywai Setup»), sus
@@ -2154,7 +2154,7 @@ push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
 
 - `node web/build.mjs` genera la web; `node web/build.mjs --preview` la genera con enlaces `index.html` para abrirla sin servidor.
 - La primera visita a la raíz lleva al idioma del navegador; elegir idioma en el menú se recuerda.
-- El vídeo de la web (`web/assets/video/presentacion.mp4`, 58 s, 1280×720, unos 4 MB) es la versión comprimida del vídeo de presentación de kywai hecho con HyperFrames; su portada es `portada.jpg`. Para cambiarlo, comprimir el vídeo nuevo a 720p con un tamaño parecido y ajustar `video.title` en `web/textos.mjs` si cambia la duración.
+- El vídeo de la web (`web/assets/video/presentacion.mp4`, 30 s, 1920×1080, unos 16 MB) está montado con Remotion a partir de grabaciones reales de Launch Lab: agentes trabajando en distintas fases, cuatro escenarios y un prototipo interactivo. Su portada es `portada.jpg`; los detalles están en [docs/video](video/README.md). Para cambiarlo, sustituir ambos archivos y actualizar `video.caption` en los cinco idiomas de `web/textos.mjs`.
 - Las descargas se leen de la última Release de GitHub al abrir la página y enlazan el instalador del sistema de quien la visita. Si GitHub no responde, enlazan a la página de versiones.
 - La fila «Android (Órbita)» enlaza a `releases/latest/download/kywai-orbita.apk`, un enlace fijo que funciona aunque la API de GitHub no responda. Desde un móvil Android, el botón grande de la portada descarga la APK; en iPhone no se marca nada porque Órbita es solo para Android.
 - Al generar la web, cada enlace a `assets/` lleva `?v=` con una huella de su contenido. Así, al cambiar una imagen o el vídeo, el navegador pide la nueva enseguida en vez de enseñar la que tenía guardada (GitHub Pages deja guardar 10 minutos). No hay que hacer nada a mano: basta con sustituir el archivo.
