@@ -386,3 +386,18 @@
     font-size: 16px;
   }
 }
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.check input {
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}

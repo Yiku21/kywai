@@ -29,8 +29,9 @@ import {
   X
 } from 'lucide-react'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
+import { describeTrigger } from '@shared/routines'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
-import type { Artifact, Attachment, ChatMessage, MessageRating, PlanProposal, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
+import type { Artifact, Attachment, ChatMessage, MessageRating, PlanProposal, RoutineProposal, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
 import { useCowork, useData } from '@/store/cowork'
 import { revealKey, useRevealed } from '@/lib/reveal'
@@ -186,7 +187,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
           onName={look.present ? () => select({ type: 'agent', id: agentId }) : undefined}
           nameTitle={t('Ver a {name} en el espacio', { name: look.name })}
         />
-        {(showText || hasTasks || proposal || m.work) && (
+        {(showText || hasTasks || proposal || m.work || m.routineProposal) && (
           <div className={cx(s.bubble, s.agentBubble, isError && s.errorBubble)}>
             {m.work && <WorkBlock messageId={m.id} projectId={m.projectId} work={m.work} reduced={reduced} />}
             {showText && (
@@ -200,6 +201,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
               </div>
             )}
             {proposal && <ProposalBlock m={m} proposal={proposal} />}
+            {m.routineProposal && <RoutineProposalBlock m={m} proposal={m.routineProposal} />}
             {hasTasks && <PlanBlock taskIds={m.taskIds!} runId={m.runId} contract={m.contract} />}
           </div>
         )}
@@ -728,6 +730,82 @@ function ProposalBlock({ m, proposal }: { m: ChatMessage; proposal: PlanProposal
           <summary>{t('Ver el plan')}</summary>
           {tasks}
         </details>
+      )}
+    </div>
+  )
+}
+
+/** Rutina que propone Hermes: se crea con un toque, se cambia en el cuadro de texto («/rutina …») o se descarta. */
+function RoutineProposalBlock({ m, proposal }: { m: ChatMessage; proposal: RoutineProposal }) {
+  const live = useCowork((st) => st.mode === 'live')
+  const setLeftTab = useCowork((st) => st.setLeftTab)
+  const [busy, setBusy] = useState<'create' | 'dismiss' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const pending = proposal.status === 'pending'
+  const canAct = !!api && live && pending
+
+  function act(kind: 'create' | 'dismiss'): void {
+    const a = api
+    if (!a || busy) return
+    setBusy(kind)
+    setError(null)
+    a.decideRoutineProposal(m.projectId, m.id, kind).then(
+      () => setBusy(null),
+      (e) => {
+        setBusy(null)
+        setError(errorText(e))
+      }
+    )
+  }
+
+  function edit(): void {
+    const c = useComposer.getState()
+    c.setText(proposal.command)
+    c.requestFocus()
+  }
+
+  return (
+    <div className={cx(s.proposal, s.routineProposal, !pending && s.proposalClosed)}>
+      <div className={s.planHead}>
+        <span className={s.planIcon} aria-hidden="true">
+          {proposal.status === 'dismissed' ? <X size={18} /> : proposal.status === 'created' ? <CircleCheck size={18} /> : <CalendarClock size={18} />}
+        </span>
+        <div className={s.planInfo}>
+          <span className={s.planTitle}>
+            {pending ? t('Rutina propuesta: {name}', { name: proposal.name }) : proposal.status === 'created' ? t('Rutina creada: {name}', { name: proposal.name }) : t('Rutina descartada: {name}', { name: proposal.name })}
+          </span>
+          <span className={s.planSub}>{describeTrigger(proposal.trigger)}</span>
+        </div>
+      </div>
+      {pending && <p className={s.routineRequest}>{proposal.request}</p>}
+      {pending ? (
+        <div className={s.proposalActions}>
+          <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!canAct || !!busy} onClick={() => act('create')}>
+            {busy === 'create' ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <CalendarClock size={14} aria-hidden="true" />}
+            {t('Crear rutina')}
+          </button>
+          <button type="button" className={u.btn} disabled={!canAct || !!busy} onClick={edit}>
+            <PenLine size={14} aria-hidden="true" />
+            {t('Cambiar')}
+          </button>
+          <button type="button" className={u.btn} disabled={!canAct || !!busy} onClick={() => act('dismiss')}>
+            {busy === 'dismiss' && <LoaderCircle size={14} aria-hidden="true" className={u.spin} />}
+            {t('Descartar')}
+          </button>
+        </div>
+      ) : (
+        proposal.status === 'created' && (
+          <div className={s.proposalActions}>
+            <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setLeftTab('routines')}>
+              {t('Ver en Rutinas')}
+            </button>
+          </div>
+        )
+      )}
+      {error && (
+        <p className={s.resumeError} role="alert">
+          {error}
+        </p>
       )}
     </div>
   )

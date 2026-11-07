@@ -103,6 +103,10 @@ export interface MobileSnapshot {
      * /templates/restore; en POST /chat/messages, templateId. Los cambios llegan con el evento templates.updated.
      */
     templates?: boolean
+    /** Crear, cambiar y borrar rutinas: POST /routines, POST /routines/{routineId} y POST /routines/{routineId}/delete. */
+    routinesEdit?: boolean
+    /** Tarjeta «Crear rutina» que propone Hermes: POST /messages/{messageId}/routine-proposal/(create|dismiss). */
+    routineProposals?: boolean
     /** «@Agente …» o «/directo Agente …» en el chat: el texto va tal cual a ese agente, sin pasar por Hermes. */
     directMessages: boolean
     /** Varios chats por proyecto, retomables (GET/POST /chats, /chats/:id/open|rename|delete). */

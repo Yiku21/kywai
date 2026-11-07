@@ -13,6 +13,7 @@ import type {
   MessageRating,
   PlanProposal,
   ProposedTask,
+  RoutineProposal,
   SendMessageInput,
   Task,
   TaskChanges,
@@ -56,6 +57,8 @@ import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, rem
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
 import { parseDirect } from '@shared/directMessage'
+import { createRoutine } from './routines'
+import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
 
 type Deliverable = 'file' | 'text'
 
@@ -107,6 +110,8 @@ interface Run {
   routine?: string
   /** Lanzada con una plantilla que pide tu visto bueno al plan (aunque en Ajustes esté apagado). */
   askPlan?: boolean
+  /** Esa rutina pide tu visto bueno a su plan (si no, una rutina no espera aunque esté encendido para el chat). */
+  routineApproval?: boolean
   /** Nuevo plan para uno que el coordinador propuso y al que el usuario respondió con cambios. */
   revision?: { request: string; tasks: ProposedTask[]; feedback: string; memory: MemoryNote[] }
   taskIds: string[]
@@ -960,13 +965,35 @@ function removeBecario(id: AgentId, delayMs = BECARIO_LINGER_MS): void {
 
 /** «/model» y sus variantes, como en el cuadro de texto del escritorio y de Órbita. */
 const MODEL_COMMAND = /^\/(model|models|modelo|modelos)$/i
+/** «/rutina …»: crea una rutina (src/shared/routines.ts entiende el horario), no es un encargo para el equipo. */
+const ROUTINE_COMMAND = /^\/(rutina|rutinas|routine)\b/i
+
+/**
+ * «/rutina …» que llega como mensaje (desde Órbita, el MCP o cualquier cliente que no la cree él mismo): se crea
+ * aquí la rutina y se contesta en el chat, sin gastar una llamada a Hermes. Sola, «/rutina» explica cómo se escribe.
+ */
+function routineCommandReply(projectId: string, text: string): { text: string; routine?: { id: string; name: string } } {
+  if (/^\/\w+\s*$/.test(text)) return { text: routineCommandHelp() }
+  const cmd = parseRoutineCommand(text)
+  if ('error' in cmd) return { text: cmd.error }
+  try {
+    const r = createRoutine(projectId, { ...cmd, enabled: true })
+    const next = r.nextAt ?? null
+    return {
+      text: tr('Rutina creada: «{name}» · {when}{next}. Está en la pestaña Rutinas.', { name: r.name, when: describeTrigger(r.trigger), next: next ? tr(' (la próxima, {when})', { when: describeWhen(next) }) : '' }),
+      routine: { id: r.id, name: r.name }
+    }
+  } catch (e) {
+    return { text: (e as Error).message }
+  }
+}
 
 /**
  * Una petición al chat. Con `routine`, la lanza una rutina (src/main/routines.ts): es una petición normal (plan,
  * agentes, verificación), pero el mensaje lleva la marca de la rutina y no cuenta como respuesta a un plan pendiente.
  * La marca solo la pone el motor: no llega desde la interfaz ni desde la API.
  */
-export async function sendMessage(input: SendMessageInput, opts: { routine?: { id: string; name: string } } = {}): Promise<{ runId: string }> {
+export async function sendMessage(input: SendMessageInput, opts: { routine?: { id: string; name: string; askApproval?: boolean } } = {}): Promise<{ runId: string }> {
   const routine = opts.routine
   const projectId = input?.projectId
   const st = store.getProject(projectId)
@@ -1002,6 +1029,15 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
       author: { type: 'system' },
       text: tr('«/model» abre la lista de modelos de Hermes para cambiarlo: escríbelo en el chat del ordenador o en Órbita (actualízala en Ajustes → Órbita), o pulsa a Hermes en el espacio → «Modelo».')
     })
+    return { runId }
+  }
+
+  if (!routine && !atts.length && ROUTINE_COMMAND.test(text.trim())) {
+    const runId = randomUUID()
+    const base = { projectId, runId, createdAt: Date.now() }
+    pushMessage({ ...base, id: randomUUID(), ...(input.clientMessageId ? { clientMessageId: input.clientMessageId } : {}), author: { type: 'user' }, text })
+    const reply = routineCommandReply(projectId, text.trim())
+    pushMessage({ ...base, id: randomUUID(), author: { type: 'system' }, text: reply.text, ...(reply.routine ? { routine: reply.routine } : {}) })
     return { runId }
   }
 
@@ -1072,7 +1108,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     projectId,
     userText,
     revision,
-    ...(routine ? { routine: routine.name } : {}),
+    ...(routine ? { routine: routine.name, ...(routine.askApproval ? { routineApproval: true } : {}) } : {}),
     ...(tpl?.template.askPlan ? { askPlan: true } : {}),
     attachments: runAtts,
     attPaths: store.stageAttachments(projectId, runAtts),
@@ -1290,6 +1326,47 @@ export function rateMessage(projectId: string, messageId: string, rating: Messag
 }
 
 /** Descarta el plan propuesto: no se hace nada. */
+/**
+ * Hermes propone dejar programado algo que le pediste («cada mañana…», «mañana a las 7…»): sale en el chat como una
+ * tarjeta con «Crear rutina». Solo si la orden se entiende y no la propone una rutina (no se encadenan). Va antes de
+ * su respuesta para que se lea a la vez que el plan.
+ */
+export function routineProposalFrom(command: string, now = Date.now()): RoutineProposal | null {
+  const raw = command.trim()
+  if (!raw) return null
+  const full = /^\/(rutina|rutinas|routine)\b/i.test(raw) ? raw : `/rutina ${raw}`
+  const cmd = parseRoutineCommand(full, now)
+  if ('error' in cmd) return null
+  return { status: 'pending', name: cmd.name, request: cmd.request, trigger: cmd.trigger, command: full }
+}
+
+function proposeRoutine(run: Run, planner: AgentConfig, command: string): void {
+  if (run.routine || !command) return
+  const proposal = routineProposalFrom(command)
+  if (!proposal) {
+    console.warn(`[cowork] ${planner.id} propuso una rutina que no se entiende: ${command.slice(0, 200)}`)
+    return
+  }
+  agentMessage(run, planner.id, tr('¿Lo dejo programado? Con «Crear rutina» se lanzará solo: {when}.', { when: describeTrigger(proposal.trigger) }), { routineProposal: proposal })
+}
+
+/** «Crear rutina» o «Descartar» en la tarjeta que propuso Hermes. */
+export function decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): ChatMessage {
+  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const p = m?.routineProposal
+  if (!m || !p) throw new Error(tr('No se encontró esa propuesta de rutina'))
+  if (p.status !== 'pending') throw new Error(p.status === 'created' ? tr('Esa rutina ya está creada') : tr('Esa propuesta ya se descartó'))
+  if (action !== 'create' && action !== 'dismiss') throw new Error(tr('Acción no válida'))
+  let next: RoutineProposal
+  if (action === 'create') {
+    const r = createRoutine(projectId, { name: p.name, request: p.request, trigger: p.trigger, enabled: true })
+    next = { ...p, status: 'created', routineId: r.id, decidedAt: Date.now() }
+  } else next = { ...p, status: 'dismissed', decidedAt: Date.now() }
+  const updated = { ...m, routineProposal: next }
+  pushMessage(updated)
+  return updated
+}
+
 export function rejectPlan(projectId: string, messageId: string): void {
   const msg = proposalMessage(projectId, messageId)
   pushMessage({ ...msg, proposal: { ...msg.proposal, status: 'rejected', decidedAt: Date.now() } })
@@ -1434,6 +1511,15 @@ function cleanupRun(run: Run): void {
 
 // ---------- planning ----------
 
+/**
+ * ¿El plan espera tu visto bueno? Lo que escribes tú, según «Pedir mi visto bueno a cada plan». Lo que lanza una
+ * rutina, solo si esa rutina lo pide: nadie está delante y, si no, se quedaría parada hasta que volvieras.
+ */
+export function needsApproval(run: Pick<Run, 'routine' | 'routineApproval' | 'askPlan'>): boolean {
+  if (run.askPlan) return true
+  return run.routine ? run.routineApproval === true : getConfig().planApproval
+}
+
 async function executeRun(run: Run): Promise<void> {
   const plan = await planRun(run)
   if (run.cancelled) return
@@ -1443,8 +1529,9 @@ async function executeRun(run: Run): Promise<void> {
     return
   }
   const { planner, reply, planned, contract, memory } = plan
+  proposeRoutine(run, planner, plan.routine)
   // Con tareas, primero tu visto bueno: el plan se enseña y nada empieza hasta que lo apruebes.
-  if (planned.length && (getConfig().planApproval || run.askPlan)) {
+  if (planned.length && needsApproval(run)) {
     proposePlan(run, planner, reply, planned, contract, memory)
     return
   }
@@ -1567,7 +1654,7 @@ function pickPlanner(tried: Set<AgentId>, images = false): AgentConfig | null {
 
 async function planRun(
   run: Run
-): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[] } | null> {
+): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string } | null> {
   const tried = new Set<AgentId>()
   const failures: string[] = []
   const st = store.getProject(run.projectId)
@@ -1658,7 +1745,7 @@ async function planRun(
     }
     // Lo que se ve en el plan es lo que se hará: si kywai lo ajustó, se dice.
     if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de kywai al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
-    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory) }
+    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine }
   }
 }
 
@@ -1835,7 +1922,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     ...coordinatorGuide({
       projectDir: store.workRoot(run.projectId),
       fullAccess: getConfig().agentAccess === 'full',
-      planApproval: getConfig().planApproval || !!run.askPlan,
+      planApproval: needsApproval(run),
       routine: run.routine,
       extraTools: extraToolLines(),
       // La lista de funciones de la app solo si la conversación va de kywai: si no, son 5 000 caracteres de ruido.
@@ -1865,7 +1952,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '',
     '## Qué debes responder',
     'Responde ÚNICAMENTE con un objeto JSON (puede ir dentro de un bloque ```json), sin ningún otro texto, con esta forma:',
-    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false}]}',
+    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\""}',
     '',
     'Reglas:',
     `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
@@ -1892,7 +1979,12 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '- "files": archivos o carpetas que la tarea puede crear o modificar (por ejemplo ["artifacts/app/motor/"]). Obligatorio si varias tareas trabajan a la vez: cada archivo, de una sola tarea. «Integrar y probar» puede tocarlo todo: [].',
     '- "continues": true cuando la tarea continúa, amplía o corrige lo que ESE MISMO agente hizo en la petición anterior de este proyecto (mira «Lo que se hizo en la petición anterior»): dásela al mismo agente y márcala así, y retomará su sesión del CLI con todo lo que leyó, hizo y decidió. Si lo anterior lo hizo otro agente o es trabajo nuevo, false.',
     '- "memory": SOLO lo que el usuario ha decidido, preferido o pedido EN ESTE MENSAJE y convenga recordar en futuras peticiones (por ejemplo «todo en TypeScript», «el servidor en Python»). Nada de suposiciones tuyas ni de detalles de esta tarea. Si contradice una entrada de la memoria, pon su id en "replaces". Si no hay nada, [].',
-    '- Respeta las instrucciones y la memoria del proyecto. Si la petición contradice algo confirmado, lo que pide ahora manda (y anótalo en "memory" con "replaces").'
+    '- Respeta las instrucciones y la memoria del proyecto. Si la petición contradice algo confirmado, lo que pide ahora manda (y anótalo en "memory" con "replaces").',
+    ...(run.routine
+      ? ['- "routine": "" (esta petición ya la lanza una rutina).']
+      : [
+          '- "routine": si el usuario pide algo que se repite o para más tarde («cada mañana revisa…», «todos los lunes prepara…», «mañana a las 7 recuérdame…», «dentro de 2 horas comprueba…», «cuando llegue un PR, revísalo»), escribe aquí la orden de la rutina, con el horario y luego la petición que se enviará sola, completa y en la voz del usuario: «/rutina de lunes a viernes a las 8:30: revisa las dependencias y avísame de las que tengan fallos de seguridad». Horarios que se entienden: «cada día a las 9:00», «de lunes a viernes a las 8:30», «lunes y jueves a las 7:00», «cada 6 horas», «mañana a las 7:00», «el viernes a las 18:00», «el 15/11 a las 9:00», «dentro de 2 horas», «webhook», «al cambiar archivos de <carpeta>». kywai le enseña una tarjeta «Crear rutina»: no la des por creada en "reply" ni crees tareas para montar un cron o un script. Si además conviene hacerlo ya, añade las tareas de esta vez. Si no pide nada periódico ni para más tarde, "".'
+        ])
   ].join('\n')
 }
 

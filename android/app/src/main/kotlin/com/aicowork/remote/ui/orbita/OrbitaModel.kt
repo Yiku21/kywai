@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.runtime.getValue
@@ -55,6 +56,7 @@ enum class Section(val label: String, val icon: ImageVector) {
     Files(t("Archivos"), Icons.Outlined.Description),
     Results(t("Resultados"), Icons.Outlined.Inventory2),
     Memory(t("Memoria"), Icons.Outlined.Psychology),
+    Routines(t("Rutinas"), Icons.Outlined.Schedule),
     Tools(t("Herramientas"), Icons.Outlined.Build),
     Usage(t("Uso y coste"), Icons.Outlined.DataUsage),
     Settings(t("Ajustes"), Icons.Outlined.Settings),
@@ -239,6 +241,12 @@ class OrbitaModel(
     fun close() {
         section = Section.World
         expanded = false
+    }
+
+    /** «Cambiar» de una rutina que propone Hermes: su orden «/rutina …» al cuadro de texto del chat, para retocarla. */
+    fun editInChat(text: String) {
+        chatDraft = TextFieldValue(text, androidx.compose.ui.text.TextRange(text.length))
+        open(Section.Chat)
     }
 
     /**
