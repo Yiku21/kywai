@@ -11,11 +11,19 @@ plugins {
 }
 
 // Número de versión: los commits del repositorio. Así cada versión publicada es mayor que la anterior (Órbita solo
-// ofrece una mayor que la suya y Android no instala encima una más antigua) sin tener que acordarse de subirlo. -PorbitaVersionCode=N lo fija (pruebas).
-val orbitaVersionCode: Int = providers.gradleProperty("orbitaVersionCode").orNull?.toIntOrNull() ?: runCatching {
+// ofrece una mayor que la suya y Android no instala encima una más antigua) sin tener que acordarse de subirlo. Nunca
+// baja de la ya publicada en release/orbita.json + 1: en una copia con menos historial (el repositorio público) contar
+// commits daría un número menor y el móvil no la vería nunca. -PorbitaVersionCode=N lo fija (pruebas).
+val gitCommitCount: Int? = runCatching {
     val git = ProcessBuilder("git", "rev-list", "--count", "HEAD").directory(rootDir).redirectErrorStream(true).start()
     git.inputStream.bufferedReader().readText().trim().toInt().also { git.waitFor() }
-}.getOrDefault(1)
+}.getOrNull()
+val publishedVersionCode: Int = runCatching {
+    val json = rootDir.resolve("release/orbita.json").readText()
+    Regex("\"versionCode\"\\s*:\\s*(\\d+)").find(json)!!.groupValues[1].toInt()
+}.getOrDefault(0)
+val orbitaVersionCode: Int = providers.gradleProperty("orbitaVersionCode").orNull?.toIntOrNull()
+    ?: maxOf(gitCommitCount ?: 1, publishedVersionCode + 1)
 val orbitaVersionName = "1.$orbitaVersionCode"
 
 android {

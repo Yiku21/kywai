@@ -26,7 +26,8 @@ JDK 17 o superior (probado con 21) y Android SDK 35 (`local.properties` → `sdk
 Después de cambiar la app: `./gradlew :app:publishOrbita` y sube `android/release/` con el resto del código. La
 compila firmada con la clave estable (`aicoworkSigning` en `~/.gradle/gradle.properties`, fuera del repositorio) y
 deja `orbita.apk` y `orbita.json` (número de versión, huella SHA-256 y fecha). El número de versión son los commits
-del repositorio, así que cada versión es mayor que la anterior sin tocar nada (`-PorbitaVersionCode=N` lo fija para
+del repositorio y nunca baja de la versión ya publicada + 1 (así el repositorio público, con menos historial, tampoco
+publica una menor), de modo que cada versión es mayor que la anterior sin tocar nada (`-PorbitaVersionCode=N` lo fija para
 pruebas; no lo publiques así). El ordenador la recibe al actualizarse y Órbita la instala desde Ajustes → Órbita →
 «Buscar actualizaciones» (`AppUpdater`: comprueba la huella y la instala con `PackageInstaller`). Con la misma firma y
 `UPDATE_PACKAGES_WITHOUT_USER_ACTION`, Android 12+ la instala sin preguntar (probado en el emulador, también cuando la

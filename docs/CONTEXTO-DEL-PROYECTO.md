@@ -141,7 +141,7 @@ export JAVA_HOME="C:/Users/usuario/AppData/Local/Programs/Temurin/jdk-21.0.12.1+
 ./gradlew :app:publishOrbita --offline        # firma y publica android/release/orbita.apk + orbita.json
 ```
 
-El `versionCode` es el **número de commits** de git: nunca se publica con `-PorbitaVersionCode` (eso es solo para
+El `versionCode` es el **número de commits** de git, y nunca menos que el de `android/release/orbita.json` + 1 (el repositorio público tiene poco historial): nunca se publica con `-PorbitaVersionCode` (eso es solo para
 pruebas en emulador). Tras publicar, se commitea `android/release` junto con el código.
 
 ### Después de cambiar algo
