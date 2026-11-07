@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { BadgeCheck, BookOpen, ExternalLink, Globe, Pencil, Plus, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
+import { BadgeCheck, BookOpen, ExternalLink, Globe, Package, Pencil, Plus, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
 import type { ProviderKind } from '@shared/types'
-import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpServerInfo, type McpServerInput, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
+import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpServerInfo, type McpServerInput, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { t } from '@/lib/i18n'
@@ -63,7 +63,7 @@ function ago(at: number): string {
   return h < 48 ? t('hace {n} h', { n: h }) : t('hace {n} días', { n: Math.round(h / 24) })
 }
 
-type Section = 'mcp' | 'skills'
+type Section = 'mcp' | 'skills' | 'plugins'
 
 /**
  * Ajustes › Extensiones: los servidores MCP que añades tú y a qué agentes llegan (un chip por agente), y las
@@ -86,8 +86,12 @@ export function ExtensionsTab() {
           <BookOpen size={14} aria-hidden="true" />
           {t('Habilidades')}
         </button>
+        <button type="button" role="tab" aria-selected={section === 'plugins'} className={cx(s.segBtn, section === 'plugins' && s.segOn)} onClick={() => setSection('plugins')}>
+          <Package size={14} aria-hidden="true" />
+          {t('Plugins')}
+        </button>
       </div>
-      {section === 'mcp' ? <McpSection /> : <SkillsSection />}
+      {section === 'mcp' ? <McpSection /> : section === 'skills' ? <SkillsSection /> : <PluginsSection />}
     </>
   )
 }
@@ -263,6 +267,7 @@ function McpSection() {
                 <span className={s.name}>
                   {x.title}
                   {x.title !== x.id && <small>{x.id}</small>}
+                  {x.plugin && <span className={s.tag}>{t('Plugin: {name}', { name: x.plugin })}</span>}
                 </span>
                 <span className={s.cmd} title={x.transport === 'http' ? x.url : lineOf(x.command, x.args)}>
                   {x.transport === 'http' ? x.url : lineOf(x.command, x.args)}
@@ -621,6 +626,192 @@ function SkillsSection() {
         </ul>
       </div>
       <p className={s.note}>{t('Las habilidades son instrucciones que siguen los agentes: instala solo las de fuentes en las que confíes. Los servidores MCP ejecutan programas en este equipo: revisa la orden antes de guardar.')}</p>
+    </>
+  )
+}
+
+/** Plugins con el formato de Claude Code: los instalados (y lo que trajo cada uno) y los de sus catálogos. */
+function PluginsSection() {
+  const live = useCowork((st) => st.mode === 'live') && !!api
+  const [plugins, setPlugins] = useState<PluginInfo[]>([])
+  const [items, setItems] = useState<PluginCatalogItem[]>([])
+  const [markets, setMarkets] = useState<string[]>([])
+  const [failed, setFailed] = useState<string[]>([])
+  const [query, setQuery] = useState('')
+  const [link, setLink] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState<string | null>(null)
+  const [shown, setShown] = useState(30)
+
+  async function search(q: string): Promise<void> {
+    const r = await api!.pluginCatalog(q)
+    setItems(r.items)
+    setMarkets(r.marketplaces)
+    setFailed(r.errors)
+    setShown(30)
+  }
+
+  useEffect(() => {
+    if (!live) return
+    api!.listPlugins().then(setPlugins, (e) => setError(errorText(e)))
+    search('').catch((e) => setError(errorText(e)))
+  }, [live])
+
+  async function run(key: string, fn: () => Promise<void>): Promise<void> {
+    setBusy(key)
+    setError(null)
+    setDone(null)
+    try {
+      await fn()
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const parts = (p: PluginInfo): string =>
+    [p.skills.length && t('{n} habilidades', { n: p.skills.length }), p.mcp.length && t('{n} servidores MCP (apagados hasta que los enciendas)', { n: p.mcp.length })].filter(Boolean).join(' · ')
+
+  const installedOk = (list: PluginInfo[], name: string): void => {
+    setPlugins(list)
+    const p = list.find((x) => x.name === name)
+    if (p) setDone(t('Instalado {name}: {parts}', { name: p.title, parts: parts(p) || '—' }))
+  }
+
+  return (
+    <>
+      <p className={s.muted}>{t('Paquetes con el formato de los plugins de Claude Code. Sus habilidades, órdenes y subagentes llegan a todos los agentes como habilidades; sus servidores MCP se añaden apagados para que elijas a quién darlos.')}</p>
+
+      {live && plugins.length === 0 && <p className={s.muted}>{t('Aún no hay ninguno instalado.')}</p>}
+      <ul className={s.list}>
+        {plugins.map((p) => (
+          <li key={p.name} className={s.item}>
+            <span className={s.icon} aria-hidden="true">
+              <Package size={18} />
+            </span>
+            <span className={s.text}>
+              <span className={s.name}>
+                {p.title}
+                {p.version && <small>{p.version}</small>}
+              </span>
+              {p.description && <span className={s.desc}>{p.description}</span>}
+              <span className={s.status}>{parts(p) || t('Nada que kywai pueda usar')}</span>
+              {p.skipped.length > 0 && <span className={s.status}>{t('Sin usar: {list}', { list: p.skipped.join('; ') })}</span>}
+            </span>
+            <span className={s.tools}>
+              <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} disabled={!!busy} title={t('Ver su página')} aria-label={t('Ver su página')} onClick={() => void api!.openExternal(`https://github.com/${p.source.repo}${p.source.path ? `/tree/${p.source.ref}/${p.source.path}` : ''}`)}>
+                <ExternalLink size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className={cx(u.iconBtn, u.iconBtnSm)}
+                disabled={!!busy}
+                title={t('Quitar')}
+                aria-label={t('Quitar')}
+                onClick={() => {
+                  if (window.confirm(t('¿Quitar «{name}»? Se borran sus habilidades y sus servidores MCP.', { name: p.title }))) void run(`rm:${p.name}`, async () => setPlugins(await api!.removePlugin(p.name)))
+                }}
+              >
+                <Trash2 size={15} aria-hidden="true" />
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className={s.catalog}>
+        <span className={s.section}>{t('Instalar plugins')}</span>
+        <form
+          className={s.searchRow}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void run('search', () => search(query))
+          }}
+        >
+          <input className={s.input} value={query} disabled={!live} placeholder={t('Buscar plugins (github, figma, seguridad, ventas…)')} aria-label={t('Buscar')} onChange={(e) => setQuery(e.target.value)} />
+          <button type="submit" className={cx(u.btn, u.btnSm)} disabled={!live || !!busy}>
+            {t('Buscar')}
+          </button>
+        </form>
+        <form
+          className={s.searchRow}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void run('link', async () => {
+              const r = await api!.addPluginLink(link)
+              setLink('')
+              if (r.kind === 'marketplace') {
+                await search(query)
+                setDone(t('Catálogo añadido: {name}. Sus plugins ya salen en la lista.', { name: r.name }))
+              } else installedOk(r.plugins, r.name)
+            })
+          }}
+        >
+          <input className={cx(s.input, s.mono)} value={link} disabled={!live} spellCheck={false} placeholder="https://github.com/dueño/repositorio" aria-label={t('Enlace de GitHub')} onChange={(e) => setLink(e.target.value)} />
+          <button type="submit" className={cx(u.btn, u.btnSm)} disabled={!live || !!busy || !link.trim()}>
+            {busy === 'link' ? t('Instalando…') : t('Añadir el enlace')}
+          </button>
+        </form>
+        <p className={s.hint}>{t('Del catálogo oficial de plugins de Anthropic y del de plugins de trabajo. Pega el enlace de un plugin para instalarlo, o el de otro catálogo (marketplace) para añadirlo.')} {t('{n} plugins', { n: items.length })}</p>
+        {markets.length > 2 && <p className={s.hint}>{t('Catálogos: {list}', { list: markets.join(', ') })}</p>}
+        {failed.length > 0 && <p className={s.warnNote}>{t('No se pudo leer: {list}', { list: failed.join('; ') })}</p>}
+        {error && (
+          <p className={s.error} role="alert">
+            {error}
+          </p>
+        )}
+        {done && <p className={s.okNote}>{done}</p>}
+        <ul className={s.list}>
+          {items.slice(0, shown).map((x) => {
+            const key = `${x.marketplace}/${x.name}`
+            const have = plugins.some((p) => p.name === x.name.toLowerCase())
+            return (
+              <li key={key} className={s.item}>
+                <span className={s.icon} aria-hidden="true">
+                  <Package size={18} />
+                </span>
+                <span className={s.text}>
+                  <span className={s.name}>
+                    {x.title}
+                    {x.verified && <BadgeCheck size={14} className={s.verified} aria-label={t('Verificado')} />}
+                    <small>{x.author ?? x.marketplace}</small>
+                  </span>
+                  {x.description && (
+                    <span className={cx(s.desc, s.clamp)} title={x.description}>
+                      {x.description}
+                    </span>
+                  )}
+                  {x.category && <span className={s.status}>{x.category}</span>}
+                </span>
+                <span className={s.tools}>
+                  {(x.homepage || x.source) && (
+                    <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} title={t('Ver su página')} aria-label={t('Ver su página')} onClick={() => void api!.openExternal(x.homepage ?? `https://github.com/${x.source!.repo}`)}>
+                      <ExternalLink size={15} aria-hidden="true" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={cx(u.btn, u.btnSm, !have && u.btnPrimary)}
+                    disabled={!live || !!busy || !x.source}
+                    title={x.source ? undefined : t('No está en GitHub: kywai aún no sabe descargarlo')}
+                    onClick={() => void run(key, async () => installedOk(await api!.installPlugin(x.marketplace, x.name), x.name.toLowerCase()))}
+                  >
+                    {busy === key ? t('Instalando…') : have ? t('Instalar otra vez') : t('Instalar')}
+                  </button>
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+        {items.length > shown && (
+          <button type="button" className={cx(u.btn, u.btnSm, s.more)} onClick={() => setShown((n) => n + 30)}>
+            {t('Más resultados')}
+          </button>
+        )}
+      </div>
+      <p className={s.note}>{t('Los hooks y los servidores de lenguaje de un plugin no se instalan (los cambios de comportamiento llegarán con los mods). Los servidores MCP que solo admiten iniciar sesión en el navegador tampoco: aún no se pueden usar en las tareas.')}</p>
     </>
   )
 }

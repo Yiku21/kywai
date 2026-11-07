@@ -13,7 +13,9 @@ export interface Skill {
   file: string
 }
 
-const MAX_SKILLS = 40
+// Con plugins y catálogos se juntan muchas: se listan todas (hasta 150) con la descripción recortada.
+const MAX_SKILLS = 150
+const MAX_DESC_IN_PROMPT = 160
 const MAX_SKILL_CHARS = 20_000
 const NAME_RE = /^[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}$/u
 
@@ -120,6 +122,9 @@ export function skillPromptLines(withTool: boolean, dir = root): string[] {
     '',
     '## Habilidades del equipo',
     `Procedimientos que el equipo ya tiene escritos. Si uno encaja con tu tarea, léelo antes de empezar y síguelo${withTool ? ' (herramienta «leer_habilidad» de ai-cowork, con su nombre)' : ''}:`,
-    ...list.map((s) => `- ${s.name}: ${s.description || '(sin descripción)'}${withTool ? '' : ` — ${s.file}`}`)
+    ...list.map((s) => {
+      const d = s.description.length > MAX_DESC_IN_PROMPT ? `${s.description.slice(0, MAX_DESC_IN_PROMPT - 1)}…` : s.description
+      return `- ${s.name}: ${d || '(sin descripción)'}${withTool ? '' : ` — ${s.file}`}`
+    })
   ]
 }

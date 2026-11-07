@@ -1,5 +1,5 @@
 import type { Lang } from './i18n'
-import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, SkillCatalogItem, SkillInfo } from './extensions'
+import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
 // Todo lo que cruza IPC está definido aquí.
 
@@ -1236,6 +1236,18 @@ export interface CoworkApi {
   /** Instala las de un enlace de GitHub (una carpeta con SKILL.md o todo un repositorio). */
   installSkillLink(url: string): Promise<{ installed: string[]; skills: SkillInfo[] }>
   removeSkill(name: string): Promise<SkillInfo[]>
+  /** Plugins instalados y lo que trajo cada uno. */
+  listPlugins(): Promise<PluginInfo[]>
+  /** Plugins de todos los catálogos (sin búsqueda: todos, los verificados primero). */
+  pluginCatalog(query: string): Promise<{ items: PluginCatalogItem[]; errors: string[]; marketplaces: string[] }>
+  /** Descarga e instala un plugin de un catálogo: sus habilidades, órdenes, subagentes y servidores MCP (apagados). */
+  installPlugin(marketplace: string, name: string): Promise<PluginInfo[]>
+  /** Un enlace de GitHub: si es un catálogo se añade; si es un plugin, se instala. */
+  addPluginLink(url: string): Promise<{ kind: 'marketplace' | 'plugin'; name: string; plugins: PluginInfo[] }>
+  /** Quita un plugin y todo lo que trajo. */
+  removePlugin(name: string): Promise<PluginInfo[]>
+  /** Quita un catálogo añadido con un enlace. */
+  removeMarketplace(repo: string): Promise<string[]>
   /** Idioma de los avisos del motor y de las respuestas de Hermes y los agentes (lo cambia el selector de Ajustes). */
   setLanguage(lang: Lang): Promise<void>
   /** Tema elegido en este equipo: el servidor lo guarda para que Órbita se vea igual. */
