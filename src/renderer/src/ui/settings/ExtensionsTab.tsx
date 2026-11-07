@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { BadgeCheck, BookOpen, ExternalLink, Globe, Package, Pencil, Plus, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
+import { BadgeCheck, BookOpen, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
 import type { ProviderKind } from '@shared/types'
-import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpServerInfo, type McpServerInput, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
+import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpServerInfo, type McpServerInput, type ModInfo, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { t } from '@/lib/i18n'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './ExtensionsTab.module.css'
+import { MODS_CHANGED } from '../left/ModsView'
 
 const KIND_LABEL: Record<string, string> = { claude: 'Claude', codex: 'Codex', gemini: 'Gemini', hermes: 'Hermes', qwen: 'Qwen' }
 
@@ -63,7 +64,7 @@ function ago(at: number): string {
   return h < 48 ? t('hace {n} h', { n: h }) : t('hace {n} días', { n: Math.round(h / 24) })
 }
 
-type Section = 'mcp' | 'skills' | 'plugins'
+type Section = 'mcp' | 'skills' | 'plugins' | 'mods'
 
 /**
  * Ajustes › Extensiones: los servidores MCP que añades tú y a qué agentes llegan (un chip por agente), y las
@@ -90,8 +91,12 @@ export function ExtensionsTab() {
           <Package size={14} aria-hidden="true" />
           {t('Plugins')}
         </button>
+        <button type="button" role="tab" aria-selected={section === 'mods'} className={cx(s.segBtn, section === 'mods' && s.segOn)} onClick={() => setSection('mods')}>
+          <Puzzle size={14} aria-hidden="true" />
+          {t('Mods')}
+        </button>
       </div>
-      {section === 'mcp' ? <McpSection /> : section === 'skills' ? <SkillsSection /> : <PluginsSection />}
+      {section === 'mcp' ? <McpSection /> : section === 'skills' ? <SkillsSection /> : section === 'plugins' ? <PluginsSection /> : <ModsSection />}
     </>
   )
 }
@@ -812,6 +817,180 @@ function PluginsSection() {
         )}
       </div>
       <p className={s.note}>{t('Los hooks y los servidores de lenguaje de un plugin no se instalan (los cambios de comportamiento llegarán con los mods). Los servidores MCP que solo admiten iniciar sesión en el navegador tampoco: aún no se pueden usar en las tareas.')}</p>
+    </>
+  )
+}
+
+const HOOK_LABEL: Record<string, string> = {
+  'request.started': 'Al empezar una petición',
+  'request.finished': 'Al acabar una petición',
+  'task.started': 'Al empezar una tarea',
+  'task.done': 'Al acabar bien una tarea',
+  'task.failed': 'Al fallar una tarea'
+}
+
+/** Mods: cambian kywai en sí (órdenes «/…», hooks y paneles junto al chat). */
+function ModsSection() {
+  const live = useCowork((st) => st.mode === 'live') && !!api
+  const [mods, setMods] = useState<ModInfo[]>([])
+  const [link, setLink] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (live) api!.listMods().then(setMods, (e) => setError(errorText(e)))
+  }, [live])
+
+  async function run(key: string, fn: () => Promise<ModInfo[]>, ok?: (list: ModInfo[]) => string): Promise<void> {
+    setBusy(key)
+    setError(null)
+    setDone(null)
+    try {
+      const list = await fn()
+      setMods(list)
+      if (ok) setDone(ok(list))
+      window.dispatchEvent(new Event(MODS_CHANGED))
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const isFolder = (v: string): boolean => /^(\/|~|[A-Za-z]:[\\/])/.test(v.trim())
+
+  return (
+    <>
+      <p className={s.muted}>{t('Cambian kywai en sí: órdenes «/algo» para el chat, hooks que hacen algo al empezar o acabar una petición o una tarea, y paneles que se abren junto al chat (pestaña «Mods»). Cada mod es una carpeta con su kywai-mod.json.')}</p>
+
+      <form
+        className={s.searchRow}
+        onSubmit={(e) => {
+          e.preventDefault()
+          const v = link.trim()
+          void run('add', () => (isFolder(v) ? api!.installModFolder(v) : api!.installModLink(v)), (list) => {
+            setLink('')
+            const last = list[list.length - 1]
+            return t('Instalado: {name}', { name: last?.title ?? v })
+          })
+        }}
+      >
+        <input className={cx(s.input, s.mono)} value={link} disabled={!live} spellCheck={false} placeholder={t('https://github.com/dueño/repo/tree/main/mi-mod o una carpeta de este equipo')} aria-label={t('Enlace de GitHub o carpeta')} onChange={(e) => setLink(e.target.value)} />
+        <button type="submit" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={!live || !!busy || !link.trim()}>
+          {busy === 'add' ? t('Instalando…') : t('Instalar mod')}
+        </button>
+      </form>
+      <p className={s.hint}>
+        {t('Prueba con el de ejemplo:')}{' '}
+        <button type="button" className={s.linkBtn} onClick={() => setLink('https://github.com/Yiku21/kywai/tree/master/docs/mods/notas-rapidas')}>
+          notas-rapidas
+        </button>
+        {' · '}
+        {t('Cómo se hace uno: MANUAL, «Extensiones: mods».')}
+      </p>
+      {error && (
+        <p className={s.error} role="alert">
+          {error}
+        </p>
+      )}
+      {done && <p className={s.okNote}>{done}</p>}
+
+      {live && mods.length === 0 && <p className={s.muted}>{t('Aún no hay ninguno instalado.')}</p>}
+      <ul className={s.list}>
+        {mods.map((m) => (
+          <li key={m.name} className={cx(s.item, s.modItem, !m.enabled && s.off)}>
+            <span className={s.icon} aria-hidden="true">
+              <Puzzle size={18} />
+            </span>
+            <span className={s.text}>
+              <span className={s.name}>
+                {m.title}
+                {m.version && <small>{m.version}</small>}
+                {!m.enabled && <span className={s.tag}>{t('Apagado')}</span>}
+              </span>
+              {m.description && <span className={s.desc}>{m.description}</span>}
+              {m.commands.length > 0 && (
+                <span className={s.modBlock}>
+                  <span className={s.modLabel}>{t('Órdenes')}</span>
+                  {m.commands.map((c) => (
+                    <span key={c.name} className={s.modRow}>
+                      <code>/{c.name}</code> {c.description}
+                      {m.shadowed.includes(c.name) && <span className={s.warnInline}> {t('(no se usa: ese nombre ya lo tiene otro mod o kywai)')}</span>}
+                    </span>
+                  ))}
+                </span>
+              )}
+              {m.panels.length > 0 && (
+                <span className={s.modBlock}>
+                  <span className={s.modLabel}>{t('Paneles (pestaña «Mods» junto al chat)')}</span>
+                  <span className={s.modRow}>{m.panels.map((p) => p.title).join(', ')}</span>
+                </span>
+              )}
+              {m.hooks.length > 0 && (
+                <span className={s.modBlock}>
+                  <span className={s.modLabel}>{m.hooksAllowed ? t('Hooks (con tu permiso)') : t('Hooks (no se ejecutan hasta que des permiso)')}</span>
+                  {m.hooks.map((h, i) => (
+                    <span key={i} className={s.modRow}>
+                      {t(HOOK_LABEL[h.on] ?? h.on)}: <code>{h.run}</code>
+                    </span>
+                  ))}
+                  {m.lastHook && (
+                    <span className={cx(s.modRow, m.lastHook.ok ? s.okText : s.badText)} title={m.lastHook.output}>
+                      {m.lastHook.ok ? t('Última vez bien ({when})', { when: ago(m.lastHook.at) }) : t('Última vez falló ({when})', { when: ago(m.lastHook.at) })}
+                      {m.lastHook.output && `: ${m.lastHook.output.split('\n').slice(-1)[0].slice(0, 120)}`}
+                    </span>
+                  )}
+                </span>
+              )}
+              {m.permissions.length > 0 && (
+                <span className={s.status}>
+                  {t('Permisos: {list}', {
+                    list: m.permissions.map((p) => (p === 'network' ? t('sus paneles pueden conectarse a internet') : p === 'chat' ? t('sus paneles pueden proponer mensajes al chat (tú confirmas)') : p)).join('; ')
+                  })}
+                </span>
+              )}
+              <span className={s.modActions}>
+                <button type="button" className={cx(u.btn, u.btnSm)} disabled={!!busy} onClick={() => void run(`en:${m.name}`, () => api!.setModEnabled(m.name, !m.enabled))}>
+                  {m.enabled ? t('Apagar') : t('Encender')}
+                </button>
+                {m.hooks.length > 0 && (
+                  <button
+                    type="button"
+                    className={cx(u.btn, u.btnSm, !m.hooksAllowed && u.btnPrimary)}
+                    disabled={!!busy}
+                    onClick={() => {
+                      if (m.hooksAllowed) void run(`hk:${m.name}`, () => api!.allowModHooks(m.name, false))
+                      else if (window.confirm(t('Los hooks de «{name}» ejecutarán estas órdenes en este equipo, en la carpeta del proyecto:\n\n{list}\n\n¿Das permiso?', { name: m.title, list: m.hooks.map((h) => `• ${h.run}`).join('\n') })))
+                        void run(`hk:${m.name}`, () => api!.allowModHooks(m.name, true))
+                    }}
+                  >
+                    {m.hooksAllowed ? t('Quitar permiso a los hooks') : t('Permitir sus hooks')}
+                  </button>
+                )}
+                {m.source.startsWith('https://') && (
+                  <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} title={t('Ver su página')} aria-label={t('Ver su página')} onClick={() => void api!.openExternal(m.source)}>
+                    <ExternalLink size={15} aria-hidden="true" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={cx(u.iconBtn, u.iconBtnSm)}
+                  disabled={!!busy}
+                  title={t('Quitar')}
+                  aria-label={t('Quitar')}
+                  onClick={() => {
+                    if (window.confirm(t('¿Quitar «{name}»?', { name: m.title }))) void run(`rm:${m.name}`, () => api!.removeMod(m.name))
+                  }}
+                >
+                  <Trash2 size={15} aria-hidden="true" />
+                </button>
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className={s.note}>{t('Los hooks ejecutan órdenes en este equipo: solo das permiso viendo cuáles son, y si una actualización del mod las cambia, hay que volver a darlo. Los paneles no pueden tocar el resto de kywai.')}</p>
     </>
   )
 }

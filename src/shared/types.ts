@@ -1,5 +1,5 @@
 import type { Lang } from './i18n'
-import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
+import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
 // Todo lo que cruza IPC está definido aquí.
 
@@ -1248,6 +1248,18 @@ export interface CoworkApi {
   removePlugin(name: string): Promise<PluginInfo[]>
   /** Quita un catálogo añadido con un enlace. */
   removeMarketplace(repo: string): Promise<string[]>
+  /** Mods instalados: sus órdenes «/…», hooks y paneles. */
+  listMods(): Promise<ModInfo[]>
+  /** Instala un mod desde un enlace de GitHub a su carpeta (con kywai-mod.json). */
+  installModLink(url: string): Promise<ModInfo[]>
+  /** Instala un mod desde una carpeta de este equipo (la del servidor). */
+  installModFolder(folder: string): Promise<ModInfo[]>
+  removeMod(name: string): Promise<ModInfo[]>
+  setModEnabled(name: string, enabled: boolean): Promise<ModInfo[]>
+  /** Permiso para sus hooks tal como están ahora (si cambian, hay que volver a darlo). */
+  allowModHooks(name: string, allow: boolean): Promise<ModInfo[]>
+  /** El HTML de un panel, preparado para una caja aislada. */
+  modPanel(name: string, panelId: string): Promise<{ html: string; title: string; chat: boolean }>
   /** Idioma de los avisos del motor y de las respuestas de Hermes y los agentes (lo cambia el selector de Ajustes). */
   setLanguage(lang: Lang): Promise<void>
   /** Tema elegido en este equipo: el servidor lo guarda para que Órbita se vea igual. */
