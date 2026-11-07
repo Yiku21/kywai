@@ -31,7 +31,7 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 <img src="src/renderer/src/assets/robots/qwen.png" alt="Modelo local" width="72" title="Modelo local">
 <img src="src/renderer/src/assets/robots/becario.png" alt="Becario" width="72" title="El becario: el mismo agente con menos esfuerzo">
 
-[Qué es](#-qué-es) · [Cualquier agente](#-cualquier-agente-de-cualquier-proveedor) · [Por qué](#-por-qué-ai-cowork) · [Cómo funciona](#-cómo-funciona) · [Funciones](#-funciones) · [Desde donde estés](#-úsalo-desde-donde-estés) · [Temas](#-temas) · [Instalar](#-instalar) · [Privacidad](#-privacidad-y-seguridad)
+[Qué es](#-qué-es) · [Cualquier agente](#-cualquier-agente-de-cualquier-proveedor) · [Por qué](#-por-qué-ai-cowork) · [Cómo funciona](#-cómo-funciona) · [Funciones](#-funciones) · [Desde donde estés](#-úsalo-desde-donde-estés) · [Temas](#-temas) · [Instalar](#-instalar) · [Privacidad](#-privacidad-y-seguridad) · [Apoyar](#-apoya-el-proyecto)
 
 </div>
 
@@ -55,10 +55,11 @@ La idea es sencilla: **deja una tarea y vuelve a encontrarte un resultado, nunca
 
 AI Cowork no está atado a un conjunto fijo de modelos. Es una plataforma en la que **tú montas tu propio equipo**:
 
-- **Añade todos los agentes que quieras** desde ⋮ → «Configurar agentes…» → «Añadir un agente». El catálogo ya sabe lanzar más de 30, cada uno con la cuenta o suscripción que usa: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw y más.
+- **Añade todos los agentes que quieras** desde ⚙ → «Configurar agentes…» → «Añadir un agente». El catálogo ya sabe lanzar más de 30, cada uno con la cuenta o suscripción que usa: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw y más.
 - **O conecta cualquier otro programa** con «Otro programa…»: indica su comando, cómo recibe la tarea (por stdin, en un archivo o como argumento) y sus argumentos, y pasa a formar parte del equipo.
 - **Suscripciones o claves de API.** Los agentes funcionan con la sesión que ya tienes iniciada en su propio programa. Los que usan una clave de API (DeepSeek, Kiro, Junie, Factory Droid, Amp…) te la piden una sola vez; se cifra con el llavero del sistema y solo se le pasa a ese agente.
 - **También modelos locales.** Cualquier modelo que ejecutes en LM Studio u Ollama, gratis y sin salir de tu ordenador.
+- **El agente local se las apaña solo.** Enciende LM Studio por sí mismo cuando lo necesita, y el interruptor «Razonamiento (think)» de su tarjeta deja que el modelo piense antes de responder solo cuando tú quieras (apagado por defecto, así responde mucho más rápido).
 - **Tú eliges quién coordina.** Hermes es el coordinador por defecto, pero cualquier agente puede planificar y repartir («Hacer coordinador»). Si no está disponible, toma el relevo el siguiente.
 - **Cada agente es un miembro de pleno derecho del equipo,** con su propio robot y su puesto en el mundo 3D, sus estadísticas de rendimiento y el mismo plan, la misma revisión y el mismo Deshacer que los demás.
 
@@ -150,6 +151,7 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 
 - **Planes con tu visto bueno.** Nada empieza sin tu OK, y puedes cambiar el plan con una frase («mejor que lo haga Codex», «sáltate la investigación»). Apruébalo con un toque o simplemente respondiendo «sí». Si lo prefieres, desactiva la aprobación y deja que el equipo se ponga manos a la obra directamente.
 - **Varias peticiones a la vez.** El trabajo nuevo va a los agentes libres sin tocar los archivos que otro agente está editando.
+- **Habla directo con un agente.** Escribe `@Claude …` (o `/directo Claude …`) y tu texto le llega tal cual a ese agente, sin plan, revisión ni resumen de Hermes. Al teclear `@` sale la lista de agentes, en el escritorio, en el navegador y en Órbita.
 - **Criterios de aceptación por tarea**, y un aviso si un agente toca archivos que no eran suyos.
 - **Dos manos para los trabajos de gusto.** Dos agentes de familias distintas hacen lo mismo por separado (opción A y opción B), y un tercero prueba las dos, las compara con tu petición y te dice cuál gana y por qué.
 - **Revisión entre pares.** Cuando una tarea cambia archivos, un agente de otra familia la revisa en modo solo lectura, ejecuta las pruebas si puede y responde *aprobado* o *hay problemas*. El autor los corrige y el resultado se vuelve a revisar.
@@ -163,6 +165,9 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 - **Progreso a la vista.** Las capturas e imágenes nuevas aparecen como miniaturas en el chat, y los documentos como tarjetas, mientras la tarea sigue en marcha.
 - **Campana «Te necesita»**, que reúne todo lo que espera una decisión tuya (un plan, una pregunta, un permiso, un agente que no da señales) con sus botones, además de notificaciones en el móvil.
 - **Espacio digital 3D** con todos los estados: trabajando, esperando a otro agente, delegando en un becario, sin cuota o con errores, y con los archivos viajando de un robot a otro.
+- **Robots con carácter.** Sus ojos muestran lo que hace de verdad cada uno (concentrado, pensando, cansado, dormido, con un error, terminado), cada uno tiene su personalidad y sus bocadillos en tu idioma, y cuando escribes en el chat se despiertan y se giran a mirarte.
+
+<p align="center"><img src="docs/img/es/robots.jpg" alt="El espacio digital 3D: los robots en sus puestos, con bocadillos y su estado en cada etiqueta" width="700"></p>
 
 ### ↩️ Control y red de seguridad
 
@@ -173,6 +178,7 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 
 ### 🧩 Contexto y automatización
 
+- **Conversaciones como en Claude.** Una barra lateral con tus proyectos, los fijados y los chats recientes. «Nuevo chat» empieza una conversación nueva sin perder la anterior, y cualquiera se retoma después con sus tareas y la sesión de cada agente. Ctrl+K busca en conversaciones, tareas, resultados y memoria de todos los proyectos.
 - **Memoria del proyecto** con instrucciones, decisiones, preferencias y pendientes, cada una con su autor y su estado. Todos los agentes la leen en cada tarea, aunque limpies el chat.
 - **Un solo AGENTS.md para todo el equipo.** Cada CLI lee solo su propio archivo; AI Cowork les pasa los demás, así que con un único `AGENTS.md` todos los agentes siguen las mismas reglas.
 - **Habilidades compartidas.** Procedimientos reutilizables en la carpeta `habilidades`, con el mismo formato `SKILL.md` que las skills de Claude.
@@ -187,10 +193,11 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 
 ### 🎨 Comodidades
 
+- **El chat, lo primero.** En ventanas pequeñas ocupa más sitio, puedes arrastrar su borde al ancho que quieras (doble clic para volver al automático) y en ventanas estrechas el chat y el mundo 3D pasan a ser dos pestañas.
 - **Dictado por voz en local** con Whisper en tu propio ordenador. Sin servicios externos, y el audio se borra después.
 - **Once temas** que también cambian el estilo del mundo 3D. Algunos lo decoran y disfrazan a los robots.
 - **Voces de los agentes,** cada una con su timbre, y texto que se escribe al ritmo de la voz, como en Animal Crossing.
-- **Reproductor de música** con búsqueda en YouTube Music y cola de reproducción, y luces que siguen el BPM de la canción sin micrófono.
+- **Reproductor de música** con búsqueda en YouTube Music, Audius y radios de SomaFM sin anuncios, y cola de reproducción, y luces que siguen el BPM de la canción sin micrófono.
 - **Asistente de configuración** que instala los programas que falten con sus instaladores oficiales y abre el inicio de sesión oficial de cada uno.
 - **Modo demo** para enseñar la app sin gastar nada.
 
@@ -203,6 +210,7 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 | `/recuerda …` | Guardar algo en la memoria del proyecto (`decisión:`, `pendiente:`, `preferencia:`) |
 | `/rutina …` | Crear o gestionar una rutina |
 | `/new` | Empezar una conversación nueva, guardando una copia de la anterior |
+| `@Agente …` | Mandar el texto tal cual a un agente, sin pasar por Hermes (también `/directo Agente …`) |
 
 ## 🌍 Úsalo desde donde estés
 
@@ -213,7 +221,7 @@ El ordenador donde está instalado AI Cowork (por ejemplo, un Mac mini siempre e
 | **Qué es** | La app completa para Windows, macOS y Linux | La app en otro ordenador, conectada a tu AI Cowork principal | La misma interfaz desde cualquier dispositivo de tu red Tailscale | Una app nativa de Android hecha para el móvil |
 | **Cómo se entra** | Abriendo la app | Emparejando una vez con un código de 6 cifras | Con un enlace y un código de acceso, una sola vez | Emparejando una vez con un código de 6 cifras |
 | **Qué puedes hacer** | Todo | Todo, y además explorar los archivos del servidor y **sincronizar carpetas** en los dos sentidos | Chat, mundo 3D, archivos, resultados y aprobación de planes | Chat, planes, tareas, archivos, memoria, consumo y un mundo 3D nativo |
-| **Actualizaciones** | ⋮ → «Buscar actualizaciones…» | Actualizaciones firmadas desde tu propio servidor | Siempre la última versión | Desde Ajustes, sin reinstalar |
+| **Actualizaciones** | ⚙ → «Buscar actualizaciones…» | Actualizaciones firmadas desde tu propio servidor | Siempre la última versión | Desde Ajustes, sin reinstalar. Las versiones nuevas se publican solas |
 
 <p align="center">
   <img src="docs/img/movil-chat.jpg" alt="Órbita en un móvil plegado: el mundo 3D con el chat encima" height="460">
@@ -225,7 +233,7 @@ El ordenador donde está instalado AI Cowork (por ejemplo, un Mac mini siempre e
 
 ## 🎨 Temas
 
-⋮ → «Temas…» cambia al momento el aspecto de la app y de su mundo 3D.
+⚙ → «Temas…» cambia al momento el aspecto de la app y de su mundo 3D.
 
 <table>
   <tr>
@@ -262,7 +270,7 @@ Y cuatro que decoran el mundo, cambian la forma de su núcleo y, en los de fiest
 - Al menos un agente: cualquiera del catálogo (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), un modelo local o cualquier agente de línea de comandos. **Hermes Agent** coordina por defecto, pero puede hacerlo cualquier agente.
 - Opcional: **LM Studio** u **Ollama** para el agente local, **git** para Deshacer y **Tailscale** para usarlo desde otros dispositivos.
 
-> **Idioma:** la app está en español, inglés, portugués, francés y chino. Se abre en el idioma del sistema y se cambia en ⋮ → Ajustes → «Idioma · Language». El portugués, el francés y el chino se tradujeron a máquina; se agradecen correcciones.
+> **Idioma:** la app está en español, inglés, portugués, francés y chino. Se abre en el idioma del sistema y se cambia en ⚙ → Ajustes → «Idioma · Language». El portugués, el francés y el chino se tradujeron a máquina; se agradecen correcciones.
 
 ### Descargar (lo más fácil)
 
@@ -307,14 +315,14 @@ Compila la app para ese equipo, la deja en `~/.local/share/ai-cowork` sin pedir 
 
 ### Primera vez
 
-La primera vez que la abres aparece el **asistente de configuración** (también en ⋮ → «Configurar agentes…»):
+La primera vez que la abres aparece el **asistente de configuración** (también en ⚙ → «Configurar agentes…»):
 
 1. Eliges qué agentes usar.
 2. Comprueba sus programas e instala los que falten con sus instaladores oficiales.
 3. Abre el inicio de sesión oficial de cada agente. AI Cowork nunca ve ni guarda contraseñas.
 4. Te resume lo que quede pendiente.
 
-Para usarla desde el móvil o el portátil, abre ⋮ → «Acceso desde otros dispositivos…».
+Para usarla desde el móvil o el portátil, abre ⚙ → «Acceso desde otros dispositivos…».
 
 ## 🔐 Privacidad y seguridad
 
@@ -353,6 +361,12 @@ docs/          manual, guía de modelos y API móvil
 - **[Guía de modelos](docs/GUIA-MODELOS.md)**: qué modelo y esfuerzo usa cada agente según la dificultad, con fuentes.
 - **[Órbita](android/README.md)**: la app de Android, y cómo compilarla y publicarla.
 - **[API móvil](docs/mobile-api/README.md)**: el contrato entre el servidor y Órbita.
+
+## ☕ Apoya el proyecto
+
+AI Cowork es gratis y de código abierto. Si te ahorra tiempo y quieres darme las gracias, puedes **[invitarme a un café en Ko-fi](https://ko-fi.com/yilsander)**. También lo tienes en la app: ⚙ → «Apoyar AI Cowork ☕» en el escritorio, y al final de Ajustes en Órbita.
+
+[![Invítame a un café en Ko-fi](https://img.shields.io/badge/Ko--fi-Inv%C3%ADtame%20a%20un%20caf%C3%A9-FF5E5B?logo=ko-fi&logoColor=white&style=for-the-badge)](https://ko-fi.com/yilsander)
 
 ## 📄 Licencia
 
