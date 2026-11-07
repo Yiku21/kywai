@@ -507,7 +507,7 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                     modifier = Modifier.padding(start = 4.dp, top = 8.dp),
                 )
             }
-            if (tab == SettingsTab.General) item { ThemeSection(state) }
+            if (tab == SettingsTab.General) item { ThemeSection(model, state) }
             if (tab == SettingsTab.General) item {
                 SectionLabel(t("Respuesta al tacto"))
                 Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp)) {
@@ -643,19 +643,71 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
     }
 }
 
-/** Tema: el mismo que en kywai del ordenador (se elige allí, en ⚙ → Ajustes → Tema). */
+/**
+ * Tema: el mismo en todos los dispositivos del ordenador. Se puede elegir aquí (el ordenador lo guarda y lo siguen el
+ * escritorio, los clientes y el navegador) o marcar «Tema propio en este móvil» para tener otro solo en Órbita.
+ */
 @Composable
-private fun ThemeSection(state: CoworkUiState) {
+private fun ThemeSection(model: OrbitaModel, state: CoworkUiState) {
+    val p = model.preferences
+    val server = state.snapshot?.settings?.theme
+    val current = OrbitaThemes.effective(server, p.ownTheme, p.localTheme)
+    val canShare = state.snapshot?.capabilities?.theme == true && state.connection == Connection.Online
+    val canPick = p.ownTheme || canShare
+    var open by remember { mutableStateOf(false) }
     SectionLabel(t("Tema"))
-    Column(Modifier.fillMaxWidth().card().padding(14.dp).testTag("settings-theme")) {
-        val id = state.snapshot?.settings?.theme
-        Text(OrbitaThemes.displayName(id) ?: t("Órbita (el de siempre)"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
-        Text(
-            if (id == null) t("Actualiza kywai en el ordenador para que Órbita use su mismo tema.") else t("Se elige en kywai del ordenador y Órbita lo sigue: colores de la app y del espacio."),
-            color = Orbita.TextSoft,
-            style = MaterialTheme.typography.bodySmall,
-        )
+    Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp).testTag("settings-theme")) {
+        Row(
+            Modifier.fillMaxWidth()
+                .then(if (canPick) Modifier.tappable(haptic = Haptic.Select) { open = !open } else Modifier)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .testTag("theme-picker"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(OrbitaThemes.displayName(current) ?: t("Órbita (el de siempre)"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            if (canPick) Icon(Icons.Outlined.ExpandMore, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.rotate(if (open) 180f else 0f))
+        }
+        if (open && canPick) {
+            OrbitaThemes.groups().forEach { (group, ids) ->
+                Text(group, color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = 28.dp, top = 8.dp, bottom = 2.dp))
+                ids.forEach { id ->
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .tappable(role = Role.RadioButton, haptic = Haptic.Confirm) {
+                                open = false
+                                if (id != current) {
+                                    if (p.ownTheme) model.updatePreferences { it.copy(localTheme = id) }
+                                    else model.run({ model.controller.setTheme(id) })
+                                }
+                            }
+                            .padding(start = 28.dp, end = 14.dp, top = 10.dp, bottom = 10.dp)
+                            .testTag("theme-$id"),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(OrbitaThemes.displayName(id) ?: id, color = if (id == current) Orbita.Text else Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        if (id == current) Icon(Icons.Outlined.Check, contentDescription = null, tint = Orbita.Accent)
+                    }
+                }
+            }
+        }
+        ToggleRow(
+            t("Tema propio en este móvil"),
+            if (p.ownTheme) t("Órbita tiene su tema y no cambia cuando lo cambias en el ordenador.") else t("Desmarcado, Órbita sigue el tema del ordenador como los demás dispositivos."),
+            p.ownTheme,
+            "settings-own-theme",
+        ) { on -> model.updatePreferences { it.copy(ownTheme = on, localTheme = if (on) it.localTheme ?: server else it.localTheme) } }
     }
+    Text(
+        when {
+            p.ownTheme -> t("Solo cambia Órbita en este móvil. Los mapas con escenario propio se ven con sus colores.")
+            server == null -> t("Actualiza kywai en el ordenador para que Órbita use su mismo tema.")
+            canShare -> t("Al elegirlo aquí cambia en todos tus dispositivos: el ordenador, los clientes, el navegador y Órbita. Los mapas con escenario propio se ven en el móvil con sus colores.")
+            else -> t("Se elige en kywai del ordenador y Órbita lo sigue: colores de la app y del espacio.")
+        },
+        color = Orbita.TextSoft,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+    )
 }
 
 /** Página de Ko-fi del autor; la misma que ⋮ → «Apoyar kywai ☕» en el ordenador. */

@@ -25,7 +25,8 @@ import { MusicPanel } from '@/ui/space/MusicPanel'
 import { HermesModelDialog } from '@/ui/space/HermesModelDialog'
 import { Sidebar } from '@/ui/sidebar/Sidebar'
 import { SearchDialog } from '@/ui/sidebar/SearchDialog'
-import { onThemeChosen, storedTheme, useUiTheme } from '@/lib/theme'
+import { followServerTheme, onThemeChosen, ownTheme, storedTheme, useUiTheme } from '@/lib/theme'
+import { HistoryDialog } from '@/ui/sidebar/HistoryDialog'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
 import { lang, t } from '@/lib/i18n'
@@ -38,7 +39,11 @@ function useBoot(): void {
   useEffect(() => {
     if (!api) return
     const st = useCowork.getState()
-    const off = api.onEvent((e) => useCowork.getState().applyEvent(e))
+    const off = api.onEvent((e) => {
+      useCowork.getState().applyEvent(e)
+      // Otro dispositivo cambió el tema: este lo sigue al momento (salvo que use un tema propio).
+      if (e.kind === 'config.updated') followServerTheme(e.config.uiTheme)
+    })
     let alive = true
     ;(async () => {
       const [config, runtime, projects] = await Promise.all([api.getConfig(), api.getRuntime(), api.listProjects()])
@@ -46,9 +51,10 @@ function useBoot(): void {
       st.hydrateLive(config, runtime.runtimes, runtime.quotas)
       // El motor aún no sabe en qué idioma escribir los avisos y las respuestas: el de esta interfaz.
       if (!config.language) api.setLanguage?.(lang()).catch(() => {})
-      // El tema que se elija se guarda también en el servidor, para que Órbita (el móvil) se vea igual.
+      // El tema lo guarda el servidor y lo siguen todos sus dispositivos (escritorio, clientes, navegador y Órbita).
       onThemeChosen((id) => void api?.setUiTheme?.(id).catch(() => {}))
-      if (!config.uiTheme) api.setUiTheme?.(storedTheme()).catch(() => {})
+      if (config.uiTheme) followServerTheme(config.uiTheme)
+      else if (!ownTheme()) api.setUiTheme?.(storedTheme()).catch(() => {})
       st.setProjects(projects)
       // Bandeja «Te necesita» (lo nuevo llega por eventos inbox.updated).
       api.listInbox().then(
@@ -103,6 +109,8 @@ export function App() {
   const qualityOpen = useCowork((st) => st.qualityOpen)
   const hermesModelOpen = useCowork((st) => st.hermesModelOpen)
   const searchOpen = useCowork((st) => st.searchOpen)
+  const searchSeed = useCowork((st) => st.searchSeed)
+  const historyOpen = useCowork((st) => st.historyOpen)
   const showSetup = useCowork((st) => !isWeb && st.hasBackend && st.configLoaded && (!st.config.setupDone || st.setupOpen))
   // Tema Órbita: el espacio 3D ocupa toda la ventana y la interfaz flota encima como cristal esmerilado.
   const glass = useUiTheme() === 'orbita'
@@ -186,7 +194,8 @@ export function App() {
         </section>
       </div>
       </div>
-      {searchOpen && <SearchDialog onClose={() => useCowork.setState({ searchOpen: false })} />}
+      {searchOpen && <SearchDialog initialQuery={searchSeed} onClose={() => useCowork.setState({ searchOpen: false, searchSeed: '' })} />}
+      {historyOpen && <HistoryDialog onClose={() => useCowork.setState({ historyOpen: false })} />}
       <ArtifactViewer />
       {showSetup && <SetupWizard />}
       {usageOpen && <UsageDialog onClose={() => useCowork.setState({ usageOpen: false })} />}

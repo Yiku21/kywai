@@ -38,7 +38,7 @@ const base = /:\d+$/.test(origin) ? origin : `${origin}:8787`
 const git = spawnSync('git', ['rev-list', '--count', 'HEAD'], { cwd: root, encoding: 'utf8' })
 if (git.status !== 0) fail('No se pudo contar los commits (¿es una copia con git?).')
 const version = `0.1.${git.stdout.trim()}`
-const installer = `AI-Cowork-Setup-${version}.exe`
+const installer = `kywai-Setup-${version}.exe`
 const out = join(root, 'release')
 
 // Clave de firma: la pública va dentro del cliente compilado, así que se prepara antes de compilar.

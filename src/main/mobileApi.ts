@@ -11,6 +11,7 @@ import { MobileError, mobileErrorBody, mobileJson } from './mobileErrors'
 import { receiveUpload, sendFile, uploadName } from './mobileFiles'
 import { MobileWebSocket, rejectUpgrade } from './mobileWebSocket'
 import { orbitaRelease } from './orbitaRelease'
+import { UI_THEME_RE } from './config'
 
 export const MOBILE_PREFIX = '/api/mobile/v1'
 const MAX_BODY = 256 * 1024
@@ -30,6 +31,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/conversations$/, 'conversations', ['POST']],
   [/^\/chats$/, 'chats', ['GET', 'POST']],
   [/^\/chats\/pinned$/, 'pinnedChats', ['GET']],
+  [/^\/chats\/all$/, 'allChats', ['GET']],
   [/^\/chats\/([^/]+)\/(open|rename|delete|pin|fork|move)$/, 'chatAction', ['POST']],
   [/^\/search$/, 'search', ['GET']],
   [/^\/music\/search$/, 'musicSearch', ['GET']],
@@ -50,6 +52,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/settings\/agent-access$/, 'agentAccess', ['POST']],
   [/^\/settings\/plan-approval$/, 'planApproval', ['POST']],
   [/^\/settings\/server-name$/, 'serverName', ['POST']],
+  [/^\/settings\/theme$/, 'theme', ['POST']],
   [/^\/usage\/refresh$/, 'usageRefresh', ['POST']],
   [/^\/quality$/, 'quality', ['GET']],
   [/^\/inbox$/, 'inbox', ['GET']],
@@ -283,11 +286,27 @@ export class MobileApi {
           query(url, [])
           mobileJson(res, 200, await this.backend.pinnedChats())
           break
+        // Historial: todos los chats de todos los proyectos (la ventana «Historial»).
+        case 'allChats':
+          query(url, [])
+          mobileJson(res, 200, await this.backend.allChats())
+          break
         case 'search': {
-          const params = query(url, ['q', 'conversationId'], ['q'])
+          const params = query(url, ['q', 'conversationId', 'since', 'author', 'limit'], ['q'])
           const q = params.q!.trim()
           if (!q || q.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'q debe ser texto de hasta 200 caracteres')
-          mobileJson(res, 200, await this.backend.search(q, params.conversationId === undefined ? undefined : projectId(params.conversationId)))
+          if (params.since !== undefined && !/^[0-9]{1,15}$/.test(params.since)) throw new MobileError(400, 'INVALID_INPUT', 'since debe ser una fecha en milisegundos')
+          if (params.author !== undefined && !/^[a-z0-9][a-z0-9_-]{0,60}$/.test(params.author)) throw new MobileError(400, 'INVALID_INPUT', 'author no es válido')
+          if (params.limit !== undefined && !/^[0-9]{1,3}$/.test(params.limit)) throw new MobileError(400, 'INVALID_INPUT', 'limit debe ser un número hasta 400')
+          mobileJson(
+            res,
+            200,
+            await this.backend.search(q, params.conversationId === undefined ? undefined : projectId(params.conversationId), {
+              since: params.since === undefined ? undefined : Number(params.since),
+              author: params.author,
+              limit: params.limit === undefined ? undefined : Number(params.limit)
+            })
+          )
           break
         }
         case 'musicSearch': {
@@ -444,6 +463,13 @@ export class MobileApi {
           fields(input, ['name'])
           if (typeof input.name !== 'string' || input.name.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'name debe ser un texto de hasta 200 caracteres')
           mobileJson(res, 200, await this.backend.setServerName(input.name))
+          break
+        }
+        case 'theme': {
+          const input = await body(req)
+          fields(input, ['theme'])
+          if (typeof input.theme !== 'string' || !UI_THEME_RE.test(input.theme)) throw new MobileError(400, 'INVALID_INPUT', 'theme debe ser un id de tema («mundo-bosque», «grafito»…)')
+          mobileJson(res, 200, await this.backend.setTheme(input.theme))
           break
         }
         case 'planApproval': {

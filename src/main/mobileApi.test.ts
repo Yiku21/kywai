@@ -207,6 +207,8 @@ beforeAll(() => {
   webMethods.set('deleteConversation', (id, cid) => { conversations.deleteConversation(id as string, cid as string); return conversations.listConversations(id as string) })
   webMethods.set('setConversationPinned', (id, cid, pinned) => { conversations.setConversationPinned(id as string, cid as string, pinned === true); return conversations.listConversations(id as string) })
   webMethods.set('pinnedConversations', () => conversations.pinnedConversations())
+  webMethods.set('searchHistory', (q, opts) => conversations.searchHistory(q, opts as never))
+  webMethods.set('allConversations', () => conversations.allConversations())
   webMethods.set('forkConversation', (id, cid) => conversations.forkConversation(id as string, cid as string))
   webMethods.set('moveConversation', (id, cid, to) => conversations.moveConversation(id as string, cid as string, to as string))
   // Proyectos: como index.ts, pero borrando la carpeta en vez de mandarla a la Papelera.
@@ -262,6 +264,10 @@ beforeAll(() => {
     setServerName(name as string)
     emit({ kind: 'config.updated', config: getConfig() })
   })
+  webMethods.set('setUiTheme', (id) => {
+    setUiTheme(id as string)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
 })
 
 beforeEach(async () => {
@@ -298,7 +304,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
   it.each([
     ...GET_ROUTES, '/chat/messages', '/conversations', '/requests/abc/stop', '/requests/abc/resume', '/requests/abc/discard', '/memory', '/memory/m1', '/memory/m1/delete',
     '/instructions', '/files?conversationId=x&name=a.txt', '/settings/agent-access', '/usage/refresh', '/voice/transcribe',
-    '/plans/abc/approve', '/plans/abc/reject', '/settings/plan-approval', '/settings/server-name', '/server/update'
+    '/plans/abc/approve', '/plans/abc/reject', '/settings/plan-approval', '/settings/server-name', '/settings/theme', '/server/update'
   ])('exige Bearer en %s', async (path) => {
     const result = await api(path, GET_ROUTES.includes(path) ? undefined : {}, '')
     expect(result.status).toBe(401)
@@ -359,6 +365,20 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect(found.status).toBe(200)
     schemaFormat('SearchResponse', found.body)
     expect(found.body.hits.some((h: { projectId: string }) => h.projectId === project.id)).toBe(true)
+    // Historial: el total, el mensaje exacto y los filtros por autor y fecha.
+    const hit = found.body.hits.find((h: { projectId: string; kind: string }) => h.projectId === project.id && h.kind === 'conversation')
+    expect(hit).toMatchObject({ messageId: 'm-chat-1', matchCount: 1 })
+    expect(found.body.total).toBeGreaterThanOrEqual(1)
+    const mine = await api(`/search?q=seguridad&author=user&since=1&limit=5`)
+    expect(mine.status).toBe(200)
+    schemaFormat('SearchResponse', mine.body)
+    expect(mine.body.hits.length).toBeGreaterThan(0)
+    expect((await api(`/search?q=seguridad&author=claude`)).body.hits.filter((h: { projectId: string }) => h.projectId === project.id)).toEqual([])
+    expect((await api(`/search?q=seguridad&limit=abc`)).status).toBe(400)
+    const history = await api('/chats/all')
+    expect(history.status).toBe(200)
+    schemaFormat('ChatsResponse', history.body)
+    expect(history.body.chats.some((c: { projectId: string }) => c.projectId === project.id)).toBe(true)
 
     const back = await api(`/chats/${original.id}/open`, { conversationId: project.id })
     expect(back.status).toBe(200)
@@ -497,6 +517,8 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     ['/settings/plan-approval', { enabled: 'sí' }],
     ['/settings/server-name', { name: 7 }],
     ['/settings/server-name', { name: 'Mac', extra: 1 }],
+    ['/settings/theme', { theme: '../../etc' }],
+    ['/settings/theme', { theme: 'bosque', extra: 1 }],
     ['/plans/m1/approve', {}],
     ['/plans/m1/reject', { conversationId: 'proyecto', extra: 1 }],
     ['/plans/m.1/approve', { conversationId: 'proyecto' }],
@@ -1463,6 +1485,17 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       delete getConfig().uiTheme
     }
     expect((await api('/snapshot')).body.settings.theme).toBe('clasico')
+  })
+
+  it('Órbita elige el tema y lo guarda el servidor para todos los dispositivos', async () => {
+    try {
+      expect((await api('/snapshot')).body.capabilities.theme).toBe(true)
+      expect(await api('/settings/theme', { theme: 'mundo-matrix' })).toEqual({ status: 200, body: { theme: 'mundo-matrix' } })
+      expect(getConfig().uiTheme).toBe('mundo-matrix')
+      expect((await api('/snapshot')).body.settings.theme).toBe('mundo-matrix')
+    } finally {
+      delete getConfig().uiTheme
+    }
   })
 
   it('el nombre del ordenador se cambia desde Órbita y llega a la instantánea', async () => {

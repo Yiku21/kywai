@@ -1,9 +1,11 @@
+// Primero: fija la carpeta de datos («AI Cowork») antes de que ningún módulo la lea.
+import { migrateWindowsLoginItem } from './dataDir'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, net, powerSaveBlocker, protocol, session, shell, systemPreferences, type OpenDialogOptions } from 'electron'
 import { copyFileSync, existsSync, promises as fsp, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { hostname } from 'node:os'
 import { pathToFileURL } from 'node:url'
-import type { AddAgentInput, AgentId, ProjectState, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { AddAgentInput, AgentId, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
@@ -466,6 +468,8 @@ function registerIpc(): void {
     return { ...store.getProject(projectId).project }
   })
   handle('search', (query: unknown, projectId?: unknown) => conversations.search(query, typeof projectId === 'string' ? projectId : undefined))
+  handle('searchHistory', (query: unknown, options?: unknown) => conversations.searchHistory(query, options && typeof options === 'object' ? (options as SearchOptions) : {}))
+  handle('allConversations', () => conversations.allConversations())
   handle('sendMessage', (input: SendMessageInput) => {
     if (!input || typeof input !== 'object') throw new Error(tr('Mensaje no válido'))
     return sendMessage(input)
@@ -920,6 +924,7 @@ function registerIpc(): void {
 }
 
 async function boot(): Promise<void> {
+  migrateWindowsLoginItem()
   // Una instalación nueva pregunta si este equipo es el servidor o se conecta con otro kywai.
   let mode = savedMode()?.mode
   if (!mode) mode = await chooseMode()

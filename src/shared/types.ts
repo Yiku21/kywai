@@ -733,6 +733,42 @@ export interface SearchHit {
   at: number
   /** Id de la tarea o del resultado, para abrirlo. */
   ref?: string
+  /** Conversaciones: el mensaje encontrado (al abrir, el chat baja hasta él y lo resalta). */
+  messageId?: string
+  /** Conversaciones: cuántos mensajes de esa conversación coinciden. */
+  matchCount?: number
+  /** Conversaciones: los primeros mensajes que coinciden (hasta 5), para elegir a cuál ir. */
+  matches?: SearchMatch[]
+}
+
+/** Un mensaje que coincide dentro de una conversación encontrada. */
+export interface SearchMatch {
+  messageId: string
+  snippet: string
+  at: number
+  /** Quién lo escribió: 'user', 'system' o el id del agente. */
+  by: string
+}
+
+/** Quién escribió lo buscado: tú, cualquier agente o uno en concreto (su id). */
+export type SearchAuthor = 'user' | 'agents' | AgentId
+
+/** Opciones del buscador del historial. */
+export interface SearchOptions {
+  /** Solo en este proyecto. */
+  projectId?: string
+  /** Solo lo de esta fecha en adelante (ms). */
+  since?: number
+  /** Solo mensajes de quien sea (con esto no salen resultados, memoria ni nombres de proyecto). */
+  author?: SearchAuthor
+  /** Cuántos resultados como mucho (40 si no se dice; hasta 400). */
+  limit?: number
+}
+
+/** Resultado del buscador: los primeros `limit` y cuántos hay en total (para «Ver más»). */
+export interface SearchResult {
+  hits: SearchHit[]
+  total: number
 }
 
 export interface ProjectState {
@@ -1177,6 +1213,10 @@ export interface CoworkApi {
   setProjectPinned(projectId: string, pinned: boolean): Promise<ProjectSummary>
   /** Busca en conversaciones, tareas, resultados y memoria (de un proyecto o de todos). */
   search(query: string, projectId?: string): Promise<SearchHit[]>
+  /** Buscador del historial: varias palabras, «frase exacta», fecha y autor, con el total para «Ver más». */
+  searchHistory(query: string, options?: SearchOptions): Promise<SearchResult>
+  /** Historial: todas las conversaciones con mensajes de todos los proyectos, de la más reciente a la más antigua. */
+  allConversations(): Promise<ConversationSummary[]>
   loadProject(projectId: string): Promise<ProjectState>
   /** Estado actual de agentes y cuotas (para pintar al arrancar). */
   getRuntime(): Promise<{ runtimes: AgentRuntime[]; quotas: QuotaInfo[] }>

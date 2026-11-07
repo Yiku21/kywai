@@ -123,8 +123,8 @@ fun OrbitaApp(model: OrbitaModel, deviceName: String, demoServer: DemoServer?) {
     SideEffect { model.feedback.view = view }
     // Lo subido (desde el chat o desde Archivos) va con el próximo mensaje aunque el panel se cierre.
     AttachFinishedUploads(model, state)
-    // El mismo tema que el ordenador: colores de la interfaz y del espacio 3D.
-    val themeId = state.snapshot?.settings?.theme
+    // El mismo tema que el ordenador (o el propio de este móvil): colores de la interfaz y del espacio 3D.
+    val themeId = OrbitaThemes.effective(state.snapshot?.settings?.theme, model.preferences.ownTheme, model.preferences.localTheme)
     SideEffect {
         val tokens = OrbitaThemes.tokens(themeId)
         if (Orbita.palette.tokens != tokens) Orbita.palette = OrbitaPalette(tokens)
@@ -178,9 +178,10 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
     val blur = model.worldAvailable && scene != null && model.preferences.effects != EffectsPreference.Soft && glassActive
     val glass = remember(blur) { GlassContext(model.world.glass, blur) }
 
-    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.musicOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
+    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.historyOpen || model.musicOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
         when {
             model.searchOpen -> model.searchOpen = false
+            model.historyOpen -> model.historyOpen = false
             model.musicOpen -> model.musicOpen = false
             model.drawerOpen -> model.drawerOpen = false
             model.viewer != null -> model.viewer = null

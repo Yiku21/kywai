@@ -280,7 +280,7 @@ And four that decorate the world, reshape its core and, in the festive ones, dre
 
 Get the installer for your system from the **[latest release](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` for Windows, `.dmg` for macOS (Apple silicon or Intel) and `.AppImage` for Linux. Once installed, the app checks for a newer version every time it opens and updates itself (on macOS it tells you and opens the download).
 
-They are not code-signed yet: on Windows click "More info" → "Run anyway"; on macOS right-click the app → Open the first time (if it says it is damaged, run `xattr -cr "/Applications/AI Cowork.app"`); on Linux make the AppImage executable with `chmod +x`.
+They are not code-signed yet: on Windows click "More info" → "Run anyway"; on macOS right-click the app → Open the first time (if it says it is damaged, run `xattr -cr "/Applications/kywai.app"`); on Linux make the AppImage executable with `chmod +x`.
 
 Or build it yourself:
 
@@ -291,7 +291,7 @@ npm install
 npm run dist:win
 ```
 
-This creates `release/AI-Cowork-Setup-<version>.exe`. The installer lets you choose the folder and creates the shortcuts. Because it is not code-signed, Windows may warn you: "More info" → "Run anyway".
+This creates `release/kywai-Setup-<version>.exe`. The installer lets you choose the folder and creates the shortcuts. Because it is not code-signed, Windows may warn you: "More info" → "Run anyway".
 
 ### macOS
 
@@ -299,7 +299,7 @@ This creates `release/AI-Cowork-Setup-<version>.exe`. The installer lets you cho
 npm run fuente
 ```
 
-This creates `release/AI-Cowork-fuente.zip`. On the Mac, unzip it and run this inside the folder:
+This creates `release/kywai-fuente.zip`. On the Mac, unzip it and run this inside the folder:
 
 ```bash
 bash scripts/instalar-mac.sh

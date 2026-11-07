@@ -105,6 +105,8 @@ class PrefsPreferencesStore(context: Context) : PreferencesStore {
         voices = prefs.getBoolean("voices", true),
         voiceVolume = prefs.getFloat("voiceVolume", 0.7f).coerceIn(0f, 1f),
         language = runCatching { AppLanguage.valueOf(prefs.getString("language", null) ?: "System") }.getOrDefault(AppLanguage.System),
+        ownTheme = prefs.getBoolean("ownTheme", false),
+        localTheme = prefs.getString("localTheme", null),
     )
 
     override fun update(transform: (Preferences) -> Preferences) {
@@ -122,6 +124,8 @@ class PrefsPreferencesStore(context: Context) : PreferencesStore {
             putBoolean("voices", next.voices)
             putFloat("voiceVolume", next.voiceVolume)
             putString("language", next.language.name)
+            putBoolean("ownTheme", next.ownTheme)
+            if (next.localTheme != null) putString("localTheme", next.localTheme) else remove("localTheme")
         }
         state.value = next
     }

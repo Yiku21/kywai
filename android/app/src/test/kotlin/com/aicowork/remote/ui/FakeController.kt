@@ -117,6 +117,20 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
         return Result.success(com.aicowork.remote.data.model.ModPanelPage("<!doctype html><p>hola</p>", "Equipo", chat = true))
     }
 
+    override suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): Result<com.aicowork.remote.data.model.SearchResponse> {
+        calls += "searchHistory:$query:${author ?: ""}:${since != null}:$limit"
+        val matches = listOf(
+            com.aicowork.remote.data.model.SearchMatch("m-a", "el informe semanal de lunes", 1, "user"),
+            com.aicowork.remote.data.model.SearchMatch("m-b", "aquí va el informe pedido", 2, "claude"),
+        )
+        val hit = com.aicowork.remote.data.model.SearchHit("conversation", "c1", "Proyecto demo", "ch0", "Informe semanal", "…el informe semanal…", 1, messageId = "m-a", matchCount = 2, matches = matches)
+        return Result.success(com.aicowork.remote.data.model.SearchResponse(listOf(hit), total = 1))
+    }
+    var allChatsList = listOf(
+        com.aicowork.remote.data.model.ChatSummary("ch0", "c1", "Informe semanal", 1, System.currentTimeMillis(), 4),
+        com.aicowork.remote.data.model.ChatSummary("ch9", "c2", "Plan del lanzamiento", 1, System.currentTimeMillis() - 40L * 86_400_000, 2),
+    )
+    override suspend fun allChats(): Result<List<com.aicowork.remote.data.model.ChatSummary>> { calls += "allChats"; return Result.success(allChatsList) }
     override suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> {
         calls += "trace:$taskId"
         return Result.success(state.value.snapshot?.tasks?.firstOrNull { it.id == taskId }?.trace.orEmpty())
@@ -140,6 +154,7 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     override suspend fun decidePlan(messageId: String, approve: Boolean): ActionResult { calls += "plan:$messageId:${if (approve) "approve" else "reject"}"; return nextResult }
     override suspend fun setPlanApproval(enabled: Boolean): ActionResult { calls += "planApproval:$enabled"; return nextResult }
     override suspend fun setServerName(name: String): ActionResult { calls += "serverName:$name"; return nextResult }
+    override suspend fun setTheme(id: String): ActionResult { calls += "theme:$id"; return nextResult }
 
     // «/model»: los modelos de Hermes.
     var hermes = com.aicowork.remote.data.model.HermesModelsInfo(

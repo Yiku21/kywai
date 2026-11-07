@@ -113,6 +113,12 @@ interface CoworkState {
   conversationsTick: number
   /** Buscador (Ctrl+K) abierto. */
   searchOpen: boolean
+  /** Ventana «Historial» (todas las conversaciones) abierta. */
+  historyOpen: boolean
+  /** Texto con el que se abre el buscador (desde el Historial: «Buscar … dentro de los mensajes»). */
+  searchSeed: string
+  /** Mensaje al que el chat tiene que bajar y resaltar (lo pide el buscador al abrir un resultado). */
+  focusMessage: { id: string; terms: string[]; nonce: number } | null
   /** Ventana estrecha: la barra lateral abierta por encima del chat (en ventanas anchas siempre está). */
   drawerOpen: boolean
 
@@ -350,6 +356,9 @@ export const useCowork = create<CoworkState>((set, get) => ({
   trace: null,
   conversationsTick: 0,
   searchOpen: false,
+  historyOpen: false,
+  searchSeed: '',
+  focusMessage: null,
   drawerOpen: false,
 
   selection: null,

@@ -5,7 +5,8 @@
 // - cuatro con decoración propia (Relicario, Telar, Halloween y Navidad).
 // Se aplican al momento con data-theme en <html> (las variables de tokens.css cambian; un mapa usa los colores de la
 // interfaz del color con su nombre) y data-world (solo en los mapas), y con la paleta del espacio digital
-// (scene/palette.ts). Se recuerdan en cada dispositivo.
+// (scene/palette.ts). El tema lo guarda el servidor y lo siguen todos los dispositivos conectados a él (escritorio,
+// clientes, navegador y Órbita), salvo los que marquen «Usar un tema propio en este dispositivo».
 import { useSyncExternalStore } from 'react'
 import { setScenePalette } from '@/scene/palette'
 import type { WorldStyle } from '@/scene/worlds/models'
@@ -113,7 +114,7 @@ export function applyTheme(id: ThemeId): void {
   setScenePalette(id)
 }
 
-/** Quien guarda el tema en el servidor (para que Órbita, la app del móvil, se vea igual). */
+/** Quien guarda el tema en el servidor (para que los demás dispositivos y Órbita se vean igual). */
 let tellEngine: ((id: ThemeId) => void) | null = null
 
 /** Al elegir un tema, se le dice también al motor (App lo conecta con api.setUiTheme). */
@@ -121,16 +122,69 @@ export function onThemeChosen(fn: ((id: ThemeId) => void) | null): void {
   tellEngine = fn
 }
 
-export function setTheme(id: ThemeId): void {
-  if (!isTheme(id)) return
+/** «Usar un tema propio en este dispositivo»: si está marcado, este dispositivo ni sigue ni cambia el del servidor. */
+const OWN_KEY = 'aicowork.themeOwn'
+
+export function ownTheme(): boolean {
+  try {
+    return localStorage.getItem(OWN_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+/** El último tema que se sabe que tiene el servidor (para volver a él al desmarcar el tema propio). */
+let serverTheme: ThemeId | null = null
+
+/** Lo pone y lo recuerda en este dispositivo, sin decírselo al servidor. */
+function keep(id: ThemeId): void {
   applyTheme(id)
-  tellEngine?.(id)
   try {
     localStorage.setItem(KEY, id)
   } catch {
     /* sin almacenamiento: dura hasta cerrar */
   }
   listeners.forEach((l) => l())
+}
+
+export function setTheme(id: ThemeId): void {
+  if (!isTheme(id)) return
+  if (!ownTheme()) {
+    serverTheme = id
+    tellEngine?.(id)
+  }
+  keep(id)
+}
+
+/**
+ * El tema que tiene el servidor (al conectar y cada vez que alguien lo cambia en otro dispositivo): se aplica al
+ * momento, salvo que este dispositivo use un tema propio. Un id que esta versión no conoce se ignora.
+ */
+export function followServerTheme(id: unknown): void {
+  if (!isTheme(id)) return
+  serverTheme = id
+  if (ownTheme() || id === current) return
+  if (isCityColor(id)) rememberCity(id)
+  keep(id)
+}
+
+/** Marca o desmarca el tema propio. Al desmarcarlo, vuelve al del servidor (o le pasa el suyo si aún no tiene). */
+export function setOwnTheme(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(OWN_KEY, '1')
+    else localStorage.removeItem(OWN_KEY)
+  } catch {
+    /* sin almacenamiento */
+  }
+  if (!on) {
+    if (serverTheme && serverTheme !== current) followServerTheme(serverTheme)
+    else if (!serverTheme) setTheme(current)
+  }
+  listeners.forEach((l) => l())
+}
+
+export function useOwnTheme(): boolean {
+  return useSyncExternalStore(subscribe, ownTheme)
 }
 
 /** El color de la Ciudad digital que se eligió la última vez (para volver a él al pulsar la tarjeta). */
@@ -147,12 +201,16 @@ export function lastCityColor(): CityColor {
 }
 
 /** Elige un color de la Ciudad digital (y lo recuerda para la próxima vez que se pulse la tarjeta). */
-export function setCityColor(id: CityColor): void {
+function rememberCity(id: CityColor): void {
   try {
     localStorage.setItem(CITY_KEY, id)
   } catch {
     /* sin almacenamiento */
   }
+}
+
+export function setCityColor(id: CityColor): void {
+  rememberCity(id)
   setTheme(id)
 }
 
@@ -173,7 +231,7 @@ export function useUiTheme(): CityColor | DecorTheme {
 // Otra ventana (otra pestaña del navegador) cambió el tema.
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
-    if (e.key !== KEY && e.key !== null) return
+    if (e.key !== KEY && e.key !== OWN_KEY && e.key !== null) return
     applyTheme(storedTheme())
     listeners.forEach((l) => l())
   })

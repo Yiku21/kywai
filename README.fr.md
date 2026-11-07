@@ -280,7 +280,7 @@ Et quatre qui décorent le monde, remodèlent son noyau et, pour les thèmes fes
 
 Récupérez l’installateur de votre système dans la **[dernière version](https://github.com/Yiku21/kywai/releases/latest)** : `.exe` pour Windows, `.dmg` pour macOS (Apple silicon ou Intel) et `.AppImage` pour Linux. Une fois installée, l’app cherche une nouvelle version à chaque ouverture et se met à jour toute seule (sur macOS, elle vous prévient et ouvre le téléchargement).
 
-Elles ne sont pas encore signées : sous Windows, cliquez sur « Informations complémentaires » → « Exécuter quand même » ; sur macOS, la première fois, clic droit sur l’app → Ouvrir (si elle est dite endommagée, lancez `xattr -cr "/Applications/AI Cowork.app"`) ; sous Linux, rendez l’AppImage exécutable avec `chmod +x`.
+Elles ne sont pas encore signées : sous Windows, cliquez sur « Informations complémentaires » → « Exécuter quand même » ; sur macOS, la première fois, clic droit sur l’app → Ouvrir (si elle est dite endommagée, lancez `xattr -cr "/Applications/kywai.app"`) ; sous Linux, rendez l’AppImage exécutable avec `chmod +x`.
 
 Ou compilez-la vous-même :
 
@@ -291,7 +291,7 @@ npm install
 npm run dist:win
 ```
 
-Cela crée `release/AI-Cowork-Setup-<version>.exe`. L'installateur vous laisse choisir le dossier et crée les raccourcis. Comme il n'est pas signé numériquement, Windows peut afficher un avertissement : « Informations complémentaires » → « Exécuter quand même ».
+Cela crée `release/kywai-Setup-<version>.exe`. L'installateur vous laisse choisir le dossier et crée les raccourcis. Comme il n'est pas signé numériquement, Windows peut afficher un avertissement : « Informations complémentaires » → « Exécuter quand même ».
 
 ### macOS
 
@@ -299,7 +299,7 @@ Cela crée `release/AI-Cowork-Setup-<version>.exe`. L'installateur vous laisse c
 npm run fuente
 ```
 
-Cela crée `release/AI-Cowork-fuente.zip`. Sur le Mac, décompressez-le et exécutez ceci dans le dossier :
+Cela crée `release/kywai-fuente.zip`. Sur le Mac, décompressez-le et exécutez ceci dans le dossier :
 
 ```bash
 bash scripts/instalar-mac.sh
