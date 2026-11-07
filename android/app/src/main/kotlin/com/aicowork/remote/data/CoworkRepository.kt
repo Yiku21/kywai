@@ -34,6 +34,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import com.aicowork.remote.data.store.InMemoryOutboxStore
+import com.aicowork.remote.data.store.OutboxStore
 import com.aicowork.remote.data.store.Session
 import com.aicowork.remote.data.store.SessionStore
 import com.aicowork.remote.data.store.SnapshotCache
@@ -47,6 +49,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -70,9 +75,14 @@ sealed interface Connection {
     data class Offline(val reason: String, val retryAt: Long?) : Connection
 }
 
+@Serializable
 enum class OutgoingStatus { Sending, Queued, Failed }
 
-/** Mensaje escrito en el móvil que el servidor aún no ha confirmado. */
+/**
+ * Mensaje escrito en el móvil que el servidor aún no ha confirmado. La cola se guarda en el móvil
+ * ([com.aicowork.remote.data.store.OutboxStore]): sobrevive a cerrar la app o reiniciar el teléfono.
+ */
+@Serializable
 data class OutgoingMessage(
     val clientMessageId: String,
     val text: String,
@@ -81,6 +91,8 @@ data class OutgoingMessage(
     val error: String? = null,
     /** Adjuntos del proyecto que van con este mensaje. */
     val attachmentIds: List<String> = emptyList(),
+    /** Proyecto donde se escribió: se envía ahí aunque al volver la conexión estés mirando otro. */
+    val conversationId: String? = null,
 )
 
 /** Archivo que se está subiendo al proyecto desde el móvil. */
@@ -116,6 +128,9 @@ data class CoworkUiState(
 )
 
 data class ActionResult(val ok: Boolean, val message: String)
+
+/** Resultado de vaciar la cola: cuántos salieron y cuántos siguen esperando (sin contar los rechazados). */
+data class OutboxDrain(val sent: Int, val waiting: Int)
 
 /**
  * Actividad real recibida en directo por el WebSocket (nunca de una instantánea ni de una resincronización):
@@ -237,6 +252,8 @@ class CoworkRepository(
     private val clientFactory: ClientFactory = { url, pin, token -> CoworkApiClient(url, pin, token) },
     private val now: () -> Long = System::currentTimeMillis,
     private val backoff: (attempt: Int) -> Long = ::defaultBackoff,
+    /** Dónde se guarda la cola de mensajes sin enviar. */
+    private val outbox: OutboxStore = InMemoryOutboxStore(),
 ) : CoworkController {
 
     private val _state = MutableStateFlow(CoworkUiState())
@@ -252,9 +269,15 @@ class CoworkRepository(
     private val syncMutex = Mutex()
     private var lastSequence: Long? = null
     private val foreignMessages = mutableSetOf<String>()
+    /** Los mensajes salen de uno en uno y en el orden en que se escribieron. */
+    private val sendMutex = Mutex()
 
     init {
         restore()
+        // Cada cambio de la cola se guarda en el móvil (y una cola vacía borra el archivo).
+        scope.launch {
+            _state.map { it.outgoing }.distinctUntilChanged().collect { outbox.save(it) }
+        }
     }
 
     private fun restore() {
@@ -266,6 +289,7 @@ class CoworkRepository(
             sessions.clear()
             tokens.clear()
             cache.clear()
+            outbox.clear()
             _state.value = CoworkUiState(
                 previousSession = session,
                 notice = if (session.demo) t("Empareja con tu ordenador para usar el servidor real de kywai.") else null,
@@ -280,6 +304,8 @@ class CoworkRepository(
             snapshot = cached?.snapshot,
             syncedAt = cached?.savedAt,
             fromCache = cached != null,
+            // Lo que se estaba enviando cuando se cerró la app vuelve a la cola (el servidor ignora los repetidos).
+            outgoing = outbox.load().map { if (it.status == OutgoingStatus.Sending) it.copy(status = OutgoingStatus.Queued) else it },
         )
     }
 
@@ -545,48 +571,67 @@ class CoworkRepository(
     override fun sendMessage(text: String, attachmentIds: List<String>) {
         val trimmed = text.trim()
         if (trimmed.isEmpty() && attachmentIds.isEmpty()) return
-        val online = _state.value.connection == Connection.Online
         val message = OutgoingMessage(
             clientMessageId = UUID.randomUUID().toString(),
             text = trimmed,
             createdAt = now(),
-            status = if (online) OutgoingStatus.Sending else OutgoingStatus.Queued,
+            status = OutgoingStatus.Queued,
             attachmentIds = attachmentIds,
+            conversationId = currentConversation(),
         )
         _state.update { it.copy(outgoing = it.outgoing + message) }
-        if (online) scope.launch { deliver(message.clientMessageId) } else retryNow()
+        if (_state.value.connection == Connection.Online) pump() else retryNow()
     }
 
     override fun retryMessage(clientMessageId: String) {
-        setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Sending, error = null) }
-        if (_state.value.connection == Connection.Online) {
-            scope.launch { deliver(clientMessageId) }
-        } else {
-            setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued) }
-            retryNow()
-        }
+        setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued, error = null) }
+        if (_state.value.connection == Connection.Online) pump() else retryNow()
     }
 
     override fun discardMessage(clientMessageId: String) {
         _state.update { s -> s.copy(outgoing = s.outgoing.filterNot { it.clientMessageId == clientMessageId }) }
     }
 
-    private fun flushQueued() {
-        _state.value.outgoing.filter { it.status == OutgoingStatus.Queued }.forEach { message ->
-            setOutgoing(message.clientMessageId) { it.copy(status = OutgoingStatus.Sending) }
-            scope.launch { deliver(message.clientMessageId) }
-        }
+    private fun flushQueued() = pump()
+
+    /** Envía lo que haya en la cola (en segundo plano; las llamadas a la vez esperan su turno). */
+    private fun pump() {
+        scope.launch { drainOutbox() }
     }
 
-    private suspend fun deliver(clientMessageId: String) {
-        val c = client ?: return
-        val message = _state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId } ?: return
+    /**
+     * Envía la cola de uno en uno, en orden, cada mensaje a su proyecto. Para al primer fallo de red (lo que queda se
+     * reintenta al volver la conexión); un mensaje que el servidor rechaza se queda como «No se envió» y sigue con el
+     * siguiente. Sirve también sin el tiempo real abierto (el envío en segundo plano).
+     */
+    suspend fun drainOutbox(): OutboxDrain = sendMutex.withLock {
+        var sent = 0
+        while (client != null) {
+            val next = _state.value.outgoing.firstOrNull { it.status == OutgoingStatus.Queued || it.status == OutgoingStatus.Sending } ?: break
+            setOutgoing(next.clientMessageId) { it.copy(status = OutgoingStatus.Sending) }
+            when (deliver(next.clientMessageId)) {
+                Delivery.Sent -> sent++
+                Delivery.Rejected -> Unit
+                Delivery.Later -> break
+            }
+        }
+        OutboxDrain(sent = sent, waiting = _state.value.outgoing.count { it.status != OutgoingStatus.Failed })
+    }
+
+    private enum class Delivery { Sent, Rejected, Later }
+
+    private suspend fun deliver(clientMessageId: String): Delivery {
+        val c = client ?: return Delivery.Later
+        val message = _state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId } ?: return Delivery.Rejected
         try {
-            val response = c.sendMessage(_state.value.snapshot?.conversation?.id, message.text, clientMessageId, message.attachmentIds)
+            val target = message.conversationId ?: currentConversation()
+            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds)
             syncMutex.withLock {
                 _state.update { s ->
                     val snapshot = s.snapshot
-                    val updated = if (snapshot != null && response.message != null) {
+                    // El acuse solo se pinta si el mensaje es del proyecto que estás viendo.
+                    val here = target == null || snapshot?.conversation?.id == target
+                    val updated = if (snapshot != null && response.message != null && here) {
                         val conversation = snapshot.conversation.upsert(response.message)
                         val active = response.requestId?.let { id ->
                             if (id in conversation.activeRequestIds) conversation.activeRequestIds else conversation.activeRequestIds + id
@@ -601,14 +646,23 @@ class CoworkRepository(
                 }
             }
             if (response.message == null) refresh()
+            return Delivery.Sent
         } catch (e: ApiException) {
-            when {
-                e.isUnauthorized -> expire(e.message)
+            return when {
+                e.isUnauthorized -> {
+                    expire(e.message)
+                    Delivery.Later
+                }
                 e.retryable || e.isNetwork -> {
                     setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued, error = e.message) }
-                    retryNow()
+                    // Solo adelanta el reintento si el tiempo real está abierto: el envío en segundo plano no lo abre.
+                    if (loopJob?.isActive == true) retrySignal.trySend(Unit)
+                    Delivery.Later
                 }
-                else -> setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Failed, error = e.message) }
+                else -> {
+                    setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Failed, error = e.message) }
+                    Delivery.Rejected
+                }
             }
         }
     }

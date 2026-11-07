@@ -48,6 +48,8 @@ class MockCoworkServer(
     private val tickMillis: Long = 900,
     private val heldCertificate: HeldCertificate? = null,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Id del proyecto simulado (para que un servidor «reiniciado» en las pruebas conserve el mismo). */
+    initialConversationId: String? = null,
 ) : Closeable {
 
     private val server = MockWebServer()
@@ -64,7 +66,10 @@ class MockCoworkServer(
     // ---- Estado simulado ----
     private var sequence = 0L
     private val tokens = mutableSetOf<String>()
-    private var conversationId = newId("c")
+    private var conversationId = initialConversationId ?: newId("c")
+
+    /** El proyecto que está abierto ahora. */
+    val currentConversationId: String get() = synchronized(lock) { conversationId }
     private var conversationCreatedAt = clock()
     private val messages = mutableListOf<Msg>()
     private val seenClientIds = mutableMapOf<String, String>()
