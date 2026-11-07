@@ -262,7 +262,7 @@ Et quatre qui décorent le monde, remodèlent son noyau et, pour les thèmes fes
 - Au moins un agent : n'importe lequel du catalogue (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), un modèle local ou n'importe quel agent en ligne de commande. **Hermes Agent** coordonne par défaut, mais n'importe quel agent peut le faire.
 - Facultatif : **LM Studio** ou **Ollama** pour l'agent local, **git** pour Annuler, et **Tailscale** pour l'utiliser depuis d'autres appareils.
 
-> **Remarque :** l'interface de l'application est pour l'instant en espagnol. Les noms des menus sont traduits dans ce README.
+> **Langue :** l'application est disponible en anglais, espagnol, portugais, français et chinois. Elle s'ouvre dans la langue du système et se change dans ⋮ → Réglages → « Idioma · Language ». Le portugais, le français et le chinois ont été traduits automatiquement ; les corrections sont les bienvenues.
 
 ### Télécharger (le plus simple)
 

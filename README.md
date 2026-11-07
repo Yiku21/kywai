@@ -262,7 +262,7 @@ And four that decorate the world, reshape its core and, in the festive ones, dre
 - At least one agent: any from the catalog (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), a local model or any command-line agent. **Hermes Agent** coordinates by default, but any agent can.
 - Optional: **LM Studio** or **Ollama** for the local agent, **git** for Undo, and **Tailscale** to use it from other devices.
 
-> **Note:** the app's interface is in Spanish for now. The menu names in this README are translated.
+> **Language:** the app comes in English, Spanish, Portuguese, French and Chinese. It starts in your system's language and you can change it in ⋮ → Settings → "Idioma · Language". Portuguese, French and Chinese were machine-translated; corrections are welcome.
 
 ### Download (easiest)
 
