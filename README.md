@@ -35,7 +35,7 @@ https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
 <img src="src/renderer/src/assets/robots/qwen.png" alt="Local model" width="72" title="Local model">
 <img src="src/renderer/src/assets/robots/becario.png" alt="Intern" width="72" title="The intern: the same agent with less effort">
 
-[What it is](#-what-it-is) · [Any agent](#-any-agent-any-provider) · [Why](#-why-kywai) · [How it works](#-how-it-works) · [Features](#-features) · [Anywhere](#-use-it-from-anywhere) · [Themes](#-themes) · [Install](#-install) · [Privacy](#-privacy-and-security) · [Support](#-support-the-project)
+[What it is](#-what-it-is) · [Any agent](#-any-agent-any-provider) · [Why](#-why-kywai) · [How it works](#-how-it-works) · [Features](#-features) · [Extensions](#-extensions-mcp-skills-plugins-and-mods) · [Anywhere](#-use-it-from-anywhere) · [Themes](#-themes) · [Install](#-install) · [Privacy](#-privacy-and-security) · [Support](#-support-the-project)
 
 </div>
 
@@ -59,7 +59,8 @@ The goal is simple: **leave a task and come back to a result, never to an error 
 
 kywai is not tied to a fixed set of models. It is a platform where **you build your own team**:
 
-- **Add as many agents as you want** from ⚙ → "Configure agents…" → "Add an agent". The catalog already knows how to launch 30+ of them, with the account or subscription each one uses: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw and more.
+- **Add as many agents as you want** from ⚙ → "Configure agents…" → "Add an agent". The catalog already knows how to launch 30+ of them, with the account or subscription each one uses: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw, Kilo CLI and more.
+- **Find free options.** The catalog’s “Free only” filter highlights agents with free options, including Kilo CLI with Kilo Auto Free. Each entry explains the provider’s requirements and limits.
 - **Or connect any other program** with "Other program…": give its command, how it receives the task (stdin, a file or an argument) and its arguments, and it joins the team.
 - **Subscriptions or API keys.** Agents run with the login you already have in their own program. The ones that use an API key (DeepSeek, Kiro, Junie, Factory Droid, Amp…) ask for it once; it is encrypted with the system keychain and only passed to that agent.
 - **Local models too.** Any model you run in LM Studio or Ollama, free and without leaving your computer.
@@ -185,21 +186,34 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 - **Conversations like in Claude.** A sidebar with your projects, pinned ones and recent chats. "New chat" starts a fresh conversation without losing the previous one, and any of them can be resumed later with its tasks and each agent's session. Ctrl+K searches conversations, tasks, results and memory across all projects.
 - **Project memory** with instructions, decisions, preferences and to-dos, each with its author and status. Every agent reads it on every task, even after you clear the chat.
 - **One AGENTS.md for the whole team.** Each CLI reads only its own file; kywai passes the others along, so one `AGENTS.md` gives every agent the same rules.
-- **Shared skills.** Reusable procedures in the `habilidades` folder, in the same `SKILL.md` format as Claude skills.
-- **kywai MCP server.** Agents get tools to read and add to the project memory, see the team's status, load a skill and ask you a question, with a token per task.
-- **Routines.** Requests that launch by themselves: at a set time, on chosen weekdays, every N hours, from a webhook (with GitHub signatures) or when files change in a folder. They go through the same plan, agents and review as anything you type.
+- **Routines.** Schedule a request once, at a fixed time, on chosen days, every N hours, from a signed GitHub webhook or when files in a folder change. Create them with /rutina, review their history and choose whether approval is required. Coordinator proposals are only saved after you confirm them.
+- **Task templates.** Cards above the chat box for reviewing PRs, summarizing folders, finding bugs or creating your own requests. Fill in fields, use their /… command, send them to the team or directly to an agent, and turn eligible templates into routines.
+- **Downloadable deliverables.** Open or download each file from the chat and Results, or save a set as a ZIP. Works on desktop, desktop client, browser and Órbita, so you can take the result with you from your phone too.
+
+### 🧰 Extensions: MCP, skills, plugins and mods
+
+Open **⚙ → Settings → Extensions** to expand your agents’ tools and customize kywai:
+
+- **MCP servers.** Search the catalog or add a command, JSON configuration or URL. Choose which agents can use each server: kywai checks that it responds and lists its tools before enabling it. Install missing uv or Node.js from its card.
+- **Shared skills.** Find skills on skills.sh or install them from a GitHub repository or folder. `SKILL.md`, scripts and references stay together, and the whole team can consult those skills when needed.
+- **Plugins.** Browse Anthropic’s plugin catalogs or add another GitHub catalog or plugin. kywai turns skills, commands and subagent profiles into shared skills, and imports MCP servers disabled so you decide which agents get them.
+- **Mods.** Install kywai extensions from GitHub or a local folder, with /… chat commands, hooks when work starts or finishes, and custom panels. Hooks require your permission; panels run in isolation on desktop, web and Órbita.
+
+**Compatibility:** user MCP servers connect to Claude, Codex, Gemini and Hermes; unsupported agents are disabled. Remote servers requiring authorization need a token: OAuth and SSE are not supported yet. Plugins import compatible components; their hooks and LSP do not run as they do in Claude Code. kywai’s internal MCP is currently offered to Claude in coordinated tasks.
+
+Details and a sample mod in the [manual](docs/MANUAL.md#extensiones-tus-servidores-mcp-para-los-agentes) and [Quick notes](docs/mods/notas-rapidas).
 
 ### 📊 Quota and cost
 
-- **Real quota** for Claude and GPT in the header, plus quota groups with budgets.
-- **Usage per request:** time, tokens and how much quota it used, so you can see whether a team beats a single agent. Export to CSV.
+- **Quotas that follow your team.** The header updates when you add, remove, enable or disable agents. It shows real Claude and GPT data and distinguishes other providers’ budgets or estimates and local models.
+- **Usage and cost.** Check time and tokens per request, cost by agent, subscription, API, free or local plans, and compare usage with what you pay. Configure prices and a monthly budget alert; export usage to CSV. Estimates are identified as such.
 - **Model and effort by difficulty,** models you can swap from each robot's panel, and `/model` to change Hermes's model.
 
 ### 🎨 Comfort
 
 - **The chat comes first.** In smaller windows it takes more room, you can drag its edge to the width you like (double-click to go back to automatic), and in narrow windows the chat and the 3D world become two tabs.
 - **Local voice dictation** with Whisper on your own computer. No external services, and the audio is deleted afterwards.
-- **Eleven themes** that also restyle the 3D world. Some decorate it and dress up the robots.
+- **Maps, colors and decorations.** Seven 3D maps, the Digital City in seven colors and four decorated worlds. Follow the server’s theme or choose one per device; Órbita adapts its palette without reproducing the desktop maps.
 - **Agent voices,** each with its own timbre, and text that types out at the pace of the voice, like in Animal Crossing.
 - **Music player** with YouTube Music search, ad-free Audius and SomaFM radio stations, and a queue, and lights that follow the song's BPM without a microphone.
 - **Setup assistant** that installs missing programs with their official installers and opens each official login.
@@ -237,18 +251,18 @@ The computer where kywai is installed (for example a Mac mini that is always on)
 
 ## 🎨 Themes
 
-⚙ → "Themes…" changes the look of the app and its 3D world instantly.
+The **Settings → Themes** gallery includes seven maps (Clásico, Órbita, Marfil, Grafito, Bosque, Matrix and EVA-01), the Digital City in seven colors and four decorated worlds. Follow the server’s theme or choose one per device. Órbita adapts its palette, rather than the desktop scenery. These images show some colors and decorations:
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/en/tema-orbita.jpg" alt="Órbita theme" width="260"><br><b>Órbita</b>: frosted glass</td>
-    <td align="center"><img src="docs/img/en/tema-marfil.jpg" alt="Marfil theme" width="260"><br><b>Marfil</b>: light and warm</td>
-    <td align="center"><img src="docs/img/en/tema-grafito.jpg" alt="Grafito theme" width="260"><br><b>Grafito</b>: black and gold</td>
+    <td align="center"><img src="docs/img/en/tema-orbita.jpg" alt="Frost Glass theme" width="260"><br><b>Frost Glass</b>: frosted glass</td>
+    <td align="center"><img src="docs/img/en/tema-marfil.jpg" alt="Pearl theme" width="260"><br><b>Pearl</b>: light and warm</td>
+    <td align="center"><img src="docs/img/en/tema-grafito.jpg" alt="Onyx theme" width="260"><br><b>Onyx</b>: black and gold</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/en/tema-bosque.jpg" alt="Bosque theme" width="260"><br><b>Bosque</b>: deep green and gold</td>
-    <td align="center"><img src="docs/img/en/tema-matrix.jpg" alt="Matrix theme" width="260"><br><b>Matrix</b>: black and neon green</td>
-    <td align="center"><img src="docs/img/en/tema-eva.jpg" alt="EVA-01 theme" width="260"><br><b>EVA-01</b>: purple and lime</td>
+    <td align="center"><img src="docs/img/en/tema-bosque.jpg" alt="Emerald theme" width="260"><br><b>Emerald</b>: deep green and gold</td>
+    <td align="center"><img src="docs/img/en/tema-matrix.jpg" alt="Neon theme" width="260"><br><b>Neon</b>: black and neon green</td>
+    <td align="center"><img src="docs/img/en/tema-eva.jpg" alt="Ultraviolet theme" width="260"><br><b>Ultraviolet</b>: purple and lime</td>
   </tr>
 </table>
 

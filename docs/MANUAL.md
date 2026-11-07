@@ -1195,7 +1195,7 @@ si una tarea las necesita, se la da a uno que las tenga, y si ninguno las tiene 
 no puede usarlas.
 
 **Límites de ahora.** Los servidores remotos que solo admiten iniciar sesión en el navegador (OAuth) aún no se
-pueden usar en las tareas: hace falta un token. Hermes y los agentes de catálogo todavía no reciben estos servidores.
+pueden usar en las tareas: hace falta un token. Los agentes de catálogo todavía no reciben estos servidores; Hermes sí, con las condiciones de la tabla anterior.
 Las direcciones `http://` solo se admiten si son de este equipo (`localhost`).
 
 ### Extensiones: catálogo de servidores MCP y de habilidades

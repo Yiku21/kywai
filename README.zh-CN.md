@@ -35,7 +35,7 @@ https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
 <img src="src/renderer/src/assets/robots/qwen.png" alt="本地模型" width="72" title="本地模型">
 <img src="src/renderer/src/assets/robots/becario.png" alt="实习生" width="72" title="实习生：同一个智能体，投入更少的精力">
 
-[简介](#-简介) · [任意智能体](#-支持任意提供商的任意智能体) · [为什么](#-为什么选择-kywai) · [工作原理](#-工作原理) · [功能](#-功能) · [随时随地](#-随时随地使用) · [主题](#-主题) · [安装](#-安装) · [隐私](#-隐私与安全) · [支持](#-支持这个项目)
+[简介](#-简介) · [任意智能体](#-支持任意提供商的任意智能体) · [为什么](#-为什么选择-kywai) · [工作原理](#-工作原理) · [功能](#-功能) · [扩展](#-扩展mcpskillsplugins-和-mods) · [随时随地](#-随时随地使用) · [主题](#-主题) · [安装](#-安装) · [隐私](#-隐私与安全) · [支持](#-支持这个项目)
 
 </div>
 
@@ -60,6 +60,7 @@ kywai 把你已有的 AI 智能体和订阅（无论来自哪家提供商）变�
 kywai 并不绑定于一组固定的模型。它是一个让你**组建自己团队**的平台：
 
 - **想加多少智能体就加多少**：在 ⚙ →“配置智能体…”→“添加智能体”中操作。目录已经知道如何启动 30 多个智能体，以及每个智能体使用的账号或订阅：Claude Code、Codex CLI、Gemini CLI、Antigravity CLI、Muse Code、Aider、DeepSeek、Qwen Code、Kimi Code、MiniMax Code、Mistral Vibe、Grok Build、GitHub Copilot CLI、Cursor、Amp、Goose、OpenCode、Cline、Continue、OpenHands、Factory Droid、Auggie、Junie、Kiro、Rovo Dev、Qoder CLI、Crush、Open Interpreter、gptme、Letta Code、ForgeCode、OpenClaw 等等。
+- **寻找免费选项。** 目录的“仅免费”筛选显示提供免费选项的智能体，包括使用 Kilo Auto Free 的 Kilo CLI。各条目会说明提供商的要求和限制。
 - **也可以接入任何其他程序**：选择“其他程序…”，填写它的命令、接收任务的方式（stdin、文件或参数）以及参数，它就会加入团队。
 - **订阅或 API 密钥皆可。** 智能体使用你在其自身程序中已有的登录运行。需要 API 密钥的智能体（DeepSeek、Kiro、Junie、Factory Droid、Amp…）只会询问一次；密钥通过系统钥匙串加密，并且只会传给对应的智能体。
 - **本地模型同样支持。** 你在 LM Studio 或 Ollama 中运行的任何模型都可以使用，免费且数据不离开你的电脑。
@@ -185,21 +186,34 @@ flowchart TD
 - **像 Claude 一样的对话。** 侧边栏列出你的项目、置顶项目和最近的聊天。“新聊天”会开始一段新对话，而不会丢失之前的对话；任何一段都可以稍后恢复，连同它的任务和每个智能体的会话。Ctrl+K 可在所有项目的对话、任务、结果和记忆中搜索。
 - **项目记忆**：包含指令、决定、偏好和待办事项，每条都标明作者和状态。每个智能体在每项任务中都会读取它，即使你清空了聊天也不例外。
 - **全队共用一个 AGENTS.md。** 每个 CLI 只读取自己的文件；kywai 会把其他文件一并传递过去，因此一个 `AGENTS.md` 就能让所有智能体遵循同样的规则。
-- **共享技能。** 可复用的流程存放在 `habilidades` 文件夹中，采用与 Claude 技能相同的 `SKILL.md` 格式。
-- **kywai MCP 服务器。** 智能体可以获得一些工具，用来读取和补充项目记忆、查看团队状态、加载技能以及向你提问，每项任务都有独立的令牌。
-- **例行任务。** 能自动启动的请求：在设定的时间、选定的星期几、每隔 N 小时、通过 webhook（支持 GitHub 签名）或在某个文件夹中的文件发生变化时触发。它们和你手动输入的请求一样，经过相同的计划、智能体和审查流程。
+- **例行任务。** 可设置仅运行一次、固定时间、指定星期、每隔 N 小时、通过带签名的 GitHub webhook 或文件夹变化触发。使用 /rutina 创建，查看历史并决定是否需要批准。协调者的建议只有在你确认后才会保存。
+- **任务模板。** 聊天框上方的卡片用于审查 PR、总结文件夹、查找问题或创建自己的请求。填写字段、使用 /… 命令、发送给团队或直接发送给智能体，并将符合条件的模板转换为例行任务。
+- **可下载的交付文件。** 在聊天和“结果”中打开或下载单个文件，或将一组文件保存为 ZIP。支持桌面、桌面客户端、浏览器和 Órbita，也能从手机带走结果。
+
+### 🧰 扩展：MCP、skills、plugins 和 mods
+
+打开 **⚙ → 设置 → 扩展**，为智能体添加工具并自定义 kywai：
+
+- **MCP 服务器.** 从目录搜索，或添加命令、JSON 配置或地址。选择哪些智能体可以使用各服务器：kywai 会先检查连接并列出工具，再启用服务器。缺少 uv 或 Node.js 时，可以从卡片安装。
+- **共享 skills.** 在 skills.sh 搜索技能，或从 GitHub 仓库或文件夹安装。`SKILL.md` 与脚本、参考资料一同保留，整个团队都可以在需要时查阅这些技能。
+- **Plugins.** 浏览 Anthropic 的插件目录，或添加其他 GitHub 目录或插件。kywai 将技能、命令和子智能体配置转换为共享技能，并以关闭状态导入 MCP，由你选择向哪些智能体启用。
+- **Mods.** 从 GitHub 或本地文件夹安装 kywai 扩展，添加聊天 /… 命令、工作开始或结束时的 hooks，以及自定义面板。Hooks 需要你的授权；面板在桌面、网页和 Órbita 中隔离运行。
+
+**兼容性：** 用户 MCP 支持 Claude、Codex、Gemini 和 Hermes；不兼容的智能体会显示为不可选。需要授权的远程服务器必须使用令牌，目前不支持 OAuth 和 SSE。插件只导入兼容组件，不会像 Claude Code 那样执行插件 hooks 和 LSP。kywai 内部 MCP 目前提供给协调任务中的 Claude。
+
+详情及 mod 示例见[手册](docs/MANUAL.md#extensiones-tus-servidores-mcp-para-los-agentes)和[快速笔记](docs/mods/notas-rapidas)。
 
 ### 📊 额度与成本
 
-- 顶栏显示 Claude 和 GPT 的**真实额度**，并支持带预算的额度分组。
-- **每次请求的用量：** 耗时、token 数以及消耗的额度，方便你判断团队协作是否胜过单个智能体。可导出为 CSV。
+- **随团队更新的额度。** 添加、移除、启用或停用智能体时，顶部栏会更新。显示 Claude 和 GPT 的真实额度，并区分其他提供商的预算或估算以及本地模型。
+- **用量与成本。** 查看每次请求的时间与 token、各智能体成本、订阅、API、免费或本地方案，并比较用量与支出。可设置价格和月度预算提醒，导出 CSV；估算数据会明确标注。
 - **按难度选择模型和投入程度**，可以在每个机器人的面板中更换模型，用 `/model` 更换 Hermes 的模型。
 
 ### 🎨 舒适体验
 
 - **聊天优先。** 窗口较小时聊天区会占更多空间；你可以拖动它的边缘调整到想要的宽度（双击恢复自动）；窗口很窄时，聊天和 3D 世界会变成两个标签页。
 - **本地语音听写**：在你自己的电脑上使用 Whisper。不依赖任何外部服务，音频用完即删。
-- **十一款主题**，同时改变 3D 世界的风格。其中一些还会装饰世界、给机器人换装。
+- **地图、配色与装饰。** 七款 3D 地图、七种配色的数字城市和四款装饰场景。可跟随服务器主题或为每台设备单独设置；Órbita 使用对应配色，不复现桌面地图。
 - **智能体语音**，每个都有自己的音色，文字会随着语音的节奏逐字显示，就像《集合啦！动物森友会》里那样。
 - **音乐播放器**：支持 YouTube Music 搜索、无广告的 Audius 和 SomaFM 电台，以及播放队列，灯光会跟随歌曲的 BPM 变化，无需麦克风。
 - **设置助手**：用官方安装程序安装缺失的程序，并打开每个官方登录页面。
@@ -237,18 +251,18 @@ flowchart TD
 
 ## 🎨 主题
 
-⚙ →“主题…”可以立即改变应用及其 3D 世界的外观。
+**设置 → 主题** 中包含七款地图（Clásico、Órbita、Marfil、Grafito、Bosque、Matrix 和 EVA-01）、七种配色的数字城市和四款装饰场景。可以跟随服务器主题或为每台设备单独选择。Órbita 使用对应配色，不复现桌面场景。以下图片展示部分配色和装饰：
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/zh/tema-orbita.jpg" alt="Órbita 主题" width="260"><br><b>Órbita</b>：磨砂玻璃</td>
-    <td align="center"><img src="docs/img/zh/tema-marfil.jpg" alt="Marfil 主题" width="260"><br><b>Marfil</b>：明亮温暖</td>
-    <td align="center"><img src="docs/img/zh/tema-grafito.jpg" alt="Grafito 主题" width="260"><br><b>Grafito</b>：黑与金</td>
+    <td align="center"><img src="docs/img/zh/tema-orbita.jpg" alt="Frost Glass 主题" width="260"><br><b>Frost Glass</b>：磨砂玻璃</td>
+    <td align="center"><img src="docs/img/zh/tema-marfil.jpg" alt="珍珠 主题" width="260"><br><b>珍珠</b>：明亮温暖</td>
+    <td align="center"><img src="docs/img/zh/tema-grafito.jpg" alt="缟玛瑙 主题" width="260"><br><b>缟玛瑙</b>：黑与金</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/zh/tema-bosque.jpg" alt="Bosque 主题" width="260"><br><b>Bosque</b>：深绿与金</td>
-    <td align="center"><img src="docs/img/zh/tema-matrix.jpg" alt="Matrix 主题" width="260"><br><b>Matrix</b>：黑与霓虹绿</td>
-    <td align="center"><img src="docs/img/zh/tema-eva.jpg" alt="EVA-01 主题" width="260"><br><b>EVA-01</b>：紫与青柠绿</td>
+    <td align="center"><img src="docs/img/zh/tema-bosque.jpg" alt="翡翠 主题" width="260"><br><b>翡翠</b>：深绿与金</td>
+    <td align="center"><img src="docs/img/zh/tema-matrix.jpg" alt="霓虹 主题" width="260"><br><b>霓虹</b>：黑与霓虹绿</td>
+    <td align="center"><img src="docs/img/zh/tema-eva.jpg" alt="紫外 主题" width="260"><br><b>紫外</b>：紫与青柠绿</td>
   </tr>
 </table>
 
