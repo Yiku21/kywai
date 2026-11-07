@@ -1190,6 +1190,8 @@ Lo que hace AI Cowork para ir fluido sin que tengas que tocar nada:
 - **El 3D descansa cuando no lo miras.** Con la ventana o la pestaña oculta (minimizada, o tapada del todo si el sistema lo avisa) se para.
   Con la ventana a la vista pero sin foco (estás en otra app) se dibuja a 20 fotogramas por segundo: se sigue viendo
   a los robots trabajar y gasta mucho menos. Al volver a la ventana recupera la fluidez normal.
+  Al volver, las animaciones siguen justo donde se quedaron: el reloj de la escena no se reinicia al pausar (antes
+  un archivo que ya había llegado aparecía gigante y se iba encogiendo poco a poco).
 - **El chat aparece antes.** El espacio 3D (Three.js y compañía) se carga aparte, después de la interfaz, y todo
   el código de la interfaz va reducido: lo que hay que cargar al abrir pasó de 4,6 MB a 1,3 MB.
 - **Menos descarga por la red.** El servidor entrega la interfaz comprimida (gzip) al navegador y a los clientes de
