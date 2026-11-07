@@ -108,6 +108,11 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   «AI Cowork» por dentro, y lo compilado en el propio equipo (`npm run dist:*`) mantiene `AI-Cowork-*`, porque el
   cliente de Windows que reparte el servidor (`clientRelease.ts`, `publicar-cliente.mjs`) depende de ese nombre.
 - El workflow solo corre en el repositorio público; en kywai-original no hace nada.
+- **Órbita (Android) también está en la Release**, como `kywai-orbita.apk`: cada Release nueva adjunta la última APK
+  firmada que hay en `master` (`android/release/orbita.apk`), y cuando sale una Órbita nueva «Publicar Órbita» la sube
+  encima de la Release más reciente. Así, https://github.com/Yiku21/kywai/releases/latest/download/kywai-orbita.apk
+  da siempre la última. Es la misma APK y la misma firma que reparte el servidor, así que después se actualiza sola
+  desde el ordenador.
 - **Nombres de los repositorios (desde el 7 nov 2026):** el público es `Yiku21/kywai` (antes `ai-cowork`/`Ai-cowork`) y el
   privado `Yiku21/kywai-original` (antes `ai-cowork-original`). GitHub redirige los nombres viejos, así que las apps ya
   instaladas y los clones con el remote antiguo siguen funcionando; no hay que crear nunca un repo con un nombre viejo.
@@ -241,6 +246,11 @@ dispositivos de Tailscale:
 2. Copia el **enlace de acceso** (`http://<ip-de-tailscale>:8787/?t=<código>`) y ábrelo una vez en el móvil o
    el portátil con Tailscale activo. Queda recordado; el código es tu llave (puedes cambiarlo y anular los
    enlaces anteriores).
+   Cada enlace lleva encima su nombre y una línea con su uso: **Seguro (Órbita y micrófono)** es el `https://…:8788`
+   que pide Órbita y deja grabar notas de voz (con Tailscale Serve activo pasa a ser **Seguro con Tailscale**,
+   `https://….ts.net`, sin avisos del navegador); **Navegador por IP** es el `http://…:8787`, el más directo pero sin
+   micrófono; y **Navegador por nombre del equipo** es el mismo con el nombre de Tailscale, que sigue valiendo si
+   cambia la IP. El nombre se deduce de la propia dirección (`linkAbout` en `RemoteAccess.tsx`).
 3. Para que esté siempre disponible: activa «Abrir kywai al iniciar sesión» y evita que el Mac se duerma
    (Ajustes del Sistema → Energía). Mientras el acceso está activo, kywai no se suspende.
 4. Para dictar notas de voz desde otro dispositivo hace falta la versión `https://` (ver «Dictado por voz»):
@@ -252,9 +262,20 @@ entero) y queda emparejada para siempre, aunque kywai se reinicie o se actualice
 acceso se guarda en `mobile-key`, en la carpeta de datos de la app). Para desemparejar todos los móviles, genera
 un código de acceso nuevo.
 
-En el chat de la app (y en «Nueva tarea») el micrófono graba **notas de voz**: el móvil las envía al ordenador
-por Tailscale y este las pasa a texto con su propio dictado (Whisper, igual que el escritorio: sin servicios
-externos y el audio se borra). Al terminar se elige revisar el texto antes de enviarlo o enviarlo directamente.
+En el chat de la app (y en «Nueva tarea») el micrófono, al lado de la cámara, tiene dos usos:
+
+- **Un toque: dictado en directo.** El texto va saliendo en la caja mientras hablas, con el reconocimiento de voz
+  del propio móvil y en el idioma de la app. Las pausas no cortan: sigue escuchando hasta que vuelvas a tocar el
+  botón (sale un cuadrado y un anillo que crece con tu voz) o te calles un buen rato. Lo dictado se queda en la caja
+  para corregirlo antes de enviar; si escribes a mano o envías mientras dictas, el dictado se para. Según el móvil,
+  este reconocimiento puede usar los servidores de Google (Android decide); si quieres que nada salga de tu red,
+  usa la nota de voz.
+- **Mantener pulsado: nota de voz.** El móvil graba la nota, la envía al ordenador por Tailscale y este la pasa a
+  texto con su propio dictado (Whisper, igual que el escritorio: sin servicios externos y el audio se borra). Al
+  terminar se elige revisar el texto antes de enviarlo o enviarlo directamente.
+
+Si el móvil no tiene reconocimiento de voz, un toque graba la nota de voz como antes. Si el dictado del móvil falla
+(sin internet, o sin ese idioma), el aviso recuerda que puedes mantener pulsado para grabar una nota.
 
 **Actualizar la app del móvil:** ☰ → Ajustes → Acerca de → **Órbita** → «Buscar actualizaciones». Al abrir Ajustes ya
 dice si hay una versión nueva; «Instalar la versión …» la descarga del ordenador (por Tailscale, solo a móviles
@@ -272,6 +293,8 @@ instalaría encima) y sube `android/release/` a `master`. Así da igual desde d�
 la nube): al actualizar el servidor, el móvil ya la encuentra. Si falla, la pestaña **Actions** del repositorio dice
 por qué; «Run workflow» la vuelve a lanzar a mano. El número de versión son los commits del repositorio y nunca baja
 de la versión ya publicada + 1.
+En el repositorio público, además, la APK se sube a la última Release de GitHub como `kywai-orbita.apk`, que es
+la que enlaza la web kywai.app (ver «Descargar la versión lista»).
 
 Para que funcione, la clave se guarda una vez en cada repositorio (Settings → Secrets and variables → Actions →
 New repository secret), con los datos del archivo que indica `aicoworkSigning` en `~/.gradle/gradle.properties` del PC:
@@ -333,6 +356,33 @@ completa**: sin la barra de abajo ni la de arriba, todo el sitio para el chat. S
 app) hasta que vuelvas a pulsarlas; atrás o ✕ cierran el panel. Desplegado, las flechas siguen ampliando el panel
 sobre el mundo.
 
+**Sin conexión.** Órbita se puede usar aunque no llegue al ordenador (sin cobertura, en el metro, con el Mac
+reiniciándose). Enseña lo último que recibió y lo que escribas se queda **en cola** hasta que vuelva la conexión:
+
+- **La cola se guarda en el móvil** (`outbox.json` en los datos privados de la app, `FileOutboxStore`): si cierras
+  Órbita, Android la cierra o reinicias el teléfono, los mensajes siguen ahí y salen al volver.
+- **Salen de uno en uno y en el orden en que los escribiste**, cada uno **al proyecto donde lo escribiste** aunque al
+  volver estés mirando otro. Nunca llegan dos veces: cada mensaje lleva su `clientMessageId` y el servidor ignora el
+  repetido. Si el servidor rechaza uno (por ejemplo, su proyecto ya no existe) queda como «No se envió» con
+  Reintentar y Descartar, y los siguientes salen igual.
+- **Fotos y archivos también.** Si haces una foto, eliges una de la galería o adjuntas un archivo sin conexión, Órbita
+  guarda una copia en el móvil (carpeta privada `cola-archivos`), avisa «Sin conexión: foto.jpg se enviará con tu
+  mensaje al volver» y la deja adjunta al mensaje que escribes (con un reloj en vez del clip). Al volver la conexión
+  la sube al proyecto del mensaje y después envía el mensaje con ella; si se corta a medias no la sube dos veces. La
+  copia se borra en cuanto el ordenador tiene el mensaje (o al descartarlo).
+- **Se envían aunque Órbita esté cerrada.** Si dejas mensajes en cola y sales de la app, Android los manda en cuanto
+  vuelve la red (WorkManager, `OutboxWorker`), y avisa con la notificación «Se enviaron tus 3 mensajes» (canal
+  «Mensajes enviados», se puede apagar en los ajustes de Android). Si la red vuelve pero el ordenador aún no responde,
+  lo reintenta solo cada vez más espaciado. Con la app abierta y conectada no sale ningún aviso: ya lo ves en el chat.
+- **Se ve lo que espera.** Arriba, en vez de «Sin conexión», sale **«Sin conexión · 2 en cola»**. Cada mensaje en cola
+  lleva un reloj, sus adjuntos y dos botones: **Editar** lo devuelve al cuadro de texto con sus fotos (lo cambias y lo
+  vuelves a enviar) y **Descartar** lo quita de la cola. Mientras uno se está enviando ya no se puede editar.
+- Las acciones (aprobar un plan, detener una tarea, los botones de «Te necesita») siguen necesitando conexión: hacerlas
+  a destiempo podría aprobar algo que ya cambió.
+- Para desarrolladores: `CoworkRepository.drainOutbox()` vacía la cola (con un `Mutex`, de uno en uno) y no abre el
+  tiempo real, así que vale igual para el envío en segundo plano; las pruebas
+  están en `MockServerIntegrationTest`.
+
 **Dispositivos emparejados:** en ⚙ → Ajustes → «Acceso desde otros dispositivos…» aparece la lista de móviles y clientes
 emparejados, con cuándo se usó cada uno por última vez. **Revocar** uno lo desempareja sin tocar los demás (y corta
 sus conexiones abiertas); el que lleva 90 días sin usarse deja de valer solo. Cambiar el código de acceso los revoca
@@ -363,6 +413,18 @@ enlace a la versión HTTPS), así que al revocarlo se queda fuera de verdad. La 
 no responde, el cliente lo dice y reintenta solo; si ya no lo reconoce, vuelve a pedir un código. La ventana no lleva barra de
 menús: en ⚙ → «Ajustes…» están **Recargar la interfaz** (pestaña Acerca de; también Ctrl+R o F5), y **Cambiar de
 servidor…** y **Olvidar este dispositivo y desconectar** (pestaña Conexión).
+
+**Pasar un cliente a servidor.** Al actualizar, kywai se queda con el modo que tenía (se guarda en `client.json`,
+en su carpeta de datos, que el instalador no borra). Si un equipo era cliente y ahora quieres que sea el servidor,
+pulsa **«Usar este equipo como servidor»**: está en la pantalla de conectar, en la de «Sin conexión», en ⚙ → Ajustes →
+Conexión y, en el Mac, en el menú Servidor. Pide confirmación, olvida la conexión con el otro kywai y reinicia la app en
+modo servidor. Con una versión anterior que no tenga el botón: cierra kywai, borra `client.json` de su carpeta de datos
+(en Windows, `%APPDATA%\AI Cowork`; en el Mac, `~/Library/Application Support/AI Cowork`; no toques la carpeta
+`workspace`) y ábrelo otra vez.
+
+**Si el servidor ya no reconoce el dispositivo** (la llave caducó tras 90 días sin uso, se revocó o el servidor es
+una versión anterior), el cliente olvida esa llave, que ya no sirve, y se queda solo con la dirección: basta con
+generar un código nuevo en el servidor y escribirlo.
 
 **Para no confundir un equipo con otro**, la primera fila del menú ⚙ dice dónde estás: **Este equipo es el
 servidor** (cian, con su nombre), **Cliente de escritorio → nombre-del-servidor** (violeta) o **Navegador**, con la
@@ -1854,6 +1916,7 @@ push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
 - La primera visita a la raíz lleva al idioma del navegador; elegir idioma en el menú se recuerda.
 - El vídeo de la web (`web/assets/video/presentacion.mp4`, 58 s, 1280×720, unos 4 MB) es la versión comprimida del vídeo de presentación de kywai hecho con HyperFrames; su portada es `portada.jpg`. Para cambiarlo, comprimir el vídeo nuevo a 720p con un tamaño parecido y ajustar `video.title` en `web/textos.mjs` si cambia la duración.
 - Las descargas se leen de la última Release de GitHub al abrir la página y enlazan el instalador del sistema de quien la visita. Si GitHub no responde, enlazan a la página de versiones.
+- La fila «Android (Órbita)» enlaza a `releases/latest/download/kywai-orbita.apk`, un enlace fijo que funciona aunque la API de GitHub no responda. Desde un móvil Android, el botón grande de la portada descarga la APK; en iPhone no se marca nada porque Órbita es solo para Android.
 - Al generar la web, cada enlace a `assets/` lleva `?v=` con una huella de su contenido. Así, al cambiar una imagen o el vídeo, el navegador pide la nueva enseguida en vez de enseñar la que tenía guardada (GitHub Pages deja guardar 10 minutos). No hay que hacer nada a mano: basta con sustituir el archivo.
 - La sección de apoyo tiene dos tarjetas de Ko-fi: «Una vez» lleva a https://ko-fi.com/yilsander (donación única; quien quiera puede marcar allí «Make this monthly») y «Cada mes» lleva a https://ko-fi.com/yilsander/tiers (membresías mensuales estilo Patreon). Para que la segunda funcione hay que tener activadas las Memberships en el panel de Ko-fi (Settings → Memberships) con al menos un nivel. Ko-fi cobra un 5 % en membresías sin Ko-fi Gold; las donaciones únicas no tienen comisión de Ko-fi.
 - El dominio kywai.app está en Hostinger con los registros de GitHub Pages (A y AAAA de GitHub, CNAME `www` → `yiku21.github.io`) y verificado en la cuenta. En el repo: Settings → Pages → Source «GitHub Actions», Custom domain `kywai.app` y «Enforce HTTPS».

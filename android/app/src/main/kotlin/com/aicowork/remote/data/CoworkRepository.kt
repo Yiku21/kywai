@@ -36,6 +36,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import com.aicowork.remote.data.store.InMemoryOutboxStore
+import com.aicowork.remote.data.store.OutboxStore
 import com.aicowork.remote.data.store.Session
 import com.aicowork.remote.data.store.SessionStore
 import com.aicowork.remote.data.store.SnapshotCache
@@ -49,6 +51,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -72,9 +77,14 @@ sealed interface Connection {
     data class Offline(val reason: String, val retryAt: Long?) : Connection
 }
 
+@Serializable
 enum class OutgoingStatus { Sending, Queued, Failed }
 
-/** Mensaje escrito en el móvil que el servidor aún no ha confirmado. */
+/**
+ * Mensaje escrito en el móvil que el servidor aún no ha confirmado. La cola se guarda en el móvil
+ * ([com.aicowork.remote.data.store.OutboxStore]): sobrevive a cerrar la app o reiniciar el teléfono.
+ */
+@Serializable
 data class OutgoingMessage(
     val clientMessageId: String,
     val text: String,
@@ -83,7 +93,31 @@ data class OutgoingMessage(
     val error: String? = null,
     /** Adjuntos del proyecto que van con este mensaje. */
     val attachmentIds: List<String> = emptyList(),
+    /** Proyecto donde se escribió: se envía ahí aunque al volver la conexión estés mirando otro. */
+    val conversationId: String? = null,
+    /** Fotos y archivos elegidos sin conexión: se suben justo antes de enviar el mensaje. */
+    val files: List<QueuedFile> = emptyList(),
 )
+
+/** Copia en el móvil de un archivo elegido sin conexión, que espera a subirse al proyecto. */
+@Serializable
+data class QueuedFile(
+    val id: String,
+    val name: String,
+    val size: Long,
+    val mime: String? = null,
+    /** Ruta de la copia en los datos privados de la app. */
+    val path: String,
+    /** Adjunto que creó en el proyecto, cuando ya se subió (para no subirlo dos veces). */
+    val attachmentId: String? = null,
+) {
+    /** Id con el que se adjunta al mensaje mientras no está en el servidor. */
+    val localId: String get() = LOCAL_ATTACHMENT + id
+
+    companion object {
+        const val LOCAL_ATTACHMENT = "local:"
+    }
+}
 
 /** Archivo que se está subiendo al proyecto desde el móvil. */
 data class Upload(
@@ -95,6 +129,8 @@ data class Upload(
     val error: String? = null,
     /** Adjunto que creó en el proyecto (al terminar). */
     val attachmentId: String? = null,
+    /** Sin conexión: se guardó una copia en el móvil y se subirá con el mensaje al volver. */
+    val queued: Boolean = false,
 )
 
 data class CoworkUiState(
@@ -113,11 +149,16 @@ data class CoworkUiState(
     /** Mensajes escritos en este móvil que el ordenador ya recibió (para marcarlos como entregados). */
     val delivered: Set<String> = emptySet(),
     val uploads: List<Upload> = emptyList(),
+    /** Fotos y archivos guardados sin conexión que esperan a ir con el próximo mensaje. */
+    val queuedFiles: List<QueuedFile> = emptyList(),
     /** Bandeja «Te necesita»: los avisos abiertos, del más reciente al más antiguo (vacía si el servidor no la tiene). */
     val inbox: List<InboxItem> = emptyList(),
 )
 
 data class ActionResult(val ok: Boolean, val message: String)
+
+/** Resultado de vaciar la cola: cuántos salieron y cuántos siguen esperando (sin contar los rechazados). */
+data class OutboxDrain(val sent: Int, val waiting: Int)
 
 /**
  * Actividad real recibida en directo por el WebSocket (nunca de una instantánea ni de una resincronización):
@@ -154,6 +195,8 @@ interface CoworkController {
     fun sendMessage(text: String, attachmentIds: List<String>) = sendMessage(text)
     fun retryMessage(clientMessageId: String)
     fun discardMessage(clientMessageId: String)
+    /** Saca de la cola un mensaje aún sin enviar para editarlo (null si ya se está enviando o no está). */
+    fun takeBackMessage(clientMessageId: String): OutgoingMessage? = null
     suspend fun newConversation(): ActionResult
     suspend fun stopRequest(requestId: String): ActionResult
     suspend fun resumeRequest(requestId: String): ActionResult
@@ -241,6 +284,10 @@ class CoworkRepository(
     private val clientFactory: ClientFactory = { url, pin, token -> CoworkApiClient(url, pin, token) },
     private val now: () -> Long = System::currentTimeMillis,
     private val backoff: (attempt: Int) -> Long = ::defaultBackoff,
+    /** Dónde se guarda la cola de mensajes sin enviar. */
+    private val outbox: OutboxStore = InMemoryOutboxStore(),
+    /** Carpeta para las copias de los archivos elegidos sin conexión (null: sin conexión no se pueden adjuntar). */
+    private val spoolDir: java.io.File? = null,
 ) : CoworkController {
 
     private val _state = MutableStateFlow(CoworkUiState())
@@ -256,9 +303,15 @@ class CoworkRepository(
     private val syncMutex = Mutex()
     private var lastSequence: Long? = null
     private val foreignMessages = mutableSetOf<String>()
+    /** Los mensajes salen de uno en uno y en el orden en que se escribieron. */
+    private val sendMutex = Mutex()
 
     init {
         restore()
+        // Cada cambio de la cola se guarda en el móvil (y una cola vacía borra el archivo).
+        scope.launch {
+            _state.map { it.outgoing }.distinctUntilChanged().collect { outbox.save(it) }
+        }
     }
 
     private fun restore() {
@@ -270,6 +323,7 @@ class CoworkRepository(
             sessions.clear()
             tokens.clear()
             cache.clear()
+            outbox.clear()
             _state.value = CoworkUiState(
                 previousSession = session,
                 notice = if (session.demo) t("Empareja con tu ordenador para usar el servidor real de kywai.") else null,
@@ -284,7 +338,12 @@ class CoworkRepository(
             snapshot = cached?.snapshot,
             syncedAt = cached?.savedAt,
             fromCache = cached != null,
+            // Lo que se estaba enviando cuando se cerró la app vuelve a la cola (el servidor ignora los repetidos).
+            outgoing = outbox.load().map { if (it.status == OutgoingStatus.Sending) it.copy(status = OutgoingStatus.Queued) else it },
         )
+        // Copias de archivos que ya no van con ningún mensaje (se quitaron del borrador antes de cerrar la app).
+        val kept = _state.value.outgoing.flatMap { m -> m.files.map { it.path } }.toSet()
+        spoolDir?.listFiles()?.filter { it.path !in kept }?.forEach { it.delete() }
     }
 
     // ------------------------------------------------------------------ Emparejamiento
@@ -549,48 +608,91 @@ class CoworkRepository(
     override fun sendMessage(text: String, attachmentIds: List<String>) {
         val trimmed = text.trim()
         if (trimmed.isEmpty() && attachmentIds.isEmpty()) return
-        val online = _state.value.connection == Connection.Online
+        val (local, remote) = attachmentIds.partition { it.startsWith(QueuedFile.LOCAL_ATTACHMENT) }
+        val files = _state.value.queuedFiles.filter { it.localId in local }
         val message = OutgoingMessage(
             clientMessageId = UUID.randomUUID().toString(),
             text = trimmed,
             createdAt = now(),
-            status = if (online) OutgoingStatus.Sending else OutgoingStatus.Queued,
-            attachmentIds = attachmentIds,
+            status = OutgoingStatus.Queued,
+            attachmentIds = remote,
+            conversationId = currentConversation(),
+            files = files,
         )
-        _state.update { it.copy(outgoing = it.outgoing + message) }
-        if (online) scope.launch { deliver(message.clientMessageId) } else retryNow()
+        _state.update { s -> s.copy(outgoing = s.outgoing + message, queuedFiles = s.queuedFiles - files.toSet()) }
+        if (_state.value.connection == Connection.Online) pump() else retryNow()
     }
 
     override fun retryMessage(clientMessageId: String) {
-        setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Sending, error = null) }
-        if (_state.value.connection == Connection.Online) {
-            scope.launch { deliver(clientMessageId) }
-        } else {
-            setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued) }
-            retryNow()
+        setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued, error = null) }
+        if (_state.value.connection == Connection.Online) pump() else retryNow()
+    }
+
+    override fun takeBackMessage(clientMessageId: String): OutgoingMessage? {
+        var taken: OutgoingMessage? = null
+        _state.update { s ->
+            taken = null
+            val message = s.outgoing.firstOrNull { it.clientMessageId == clientMessageId }
+            if (message == null || message.status == OutgoingStatus.Sending) return@update s
+            taken = message
+            // Sus fotos y archivos guardados vuelven al borrador (las ya subidas siguen siendo adjuntos del proyecto).
+            s.copy(
+                outgoing = s.outgoing - message,
+                queuedFiles = s.queuedFiles + message.files.filter { it.attachmentId == null },
+            )
         }
+        return taken
     }
 
     override fun discardMessage(clientMessageId: String) {
+        val message = _state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId }
         _state.update { s -> s.copy(outgoing = s.outgoing.filterNot { it.clientMessageId == clientMessageId }) }
+        message?.files?.forEach { java.io.File(it.path).delete() }
     }
 
-    private fun flushQueued() {
-        _state.value.outgoing.filter { it.status == OutgoingStatus.Queued }.forEach { message ->
-            setOutgoing(message.clientMessageId) { it.copy(status = OutgoingStatus.Sending) }
-            scope.launch { deliver(message.clientMessageId) }
+    private fun flushQueued() = pump()
+
+    /** Envía lo que haya en la cola (en segundo plano; las llamadas a la vez esperan su turno). */
+    private fun pump() {
+        scope.launch { drainOutbox() }
+    }
+
+    /**
+     * Envía la cola de uno en uno, en orden, cada mensaje a su proyecto. Para al primer fallo de red (lo que queda se
+     * reintenta al volver la conexión); un mensaje que el servidor rechaza se queda como «No se envió» y sigue con el
+     * siguiente. Sirve también sin el tiempo real abierto (el envío en segundo plano).
+     */
+    suspend fun drainOutbox(): OutboxDrain = sendMutex.withLock {
+        var sent = 0
+        while (client != null) {
+            val next = _state.value.outgoing.firstOrNull { it.status == OutgoingStatus.Queued || it.status == OutgoingStatus.Sending } ?: break
+            setOutgoing(next.clientMessageId) { it.copy(status = OutgoingStatus.Sending) }
+            when (deliver(next.clientMessageId)) {
+                Delivery.Sent -> sent++
+                Delivery.Rejected -> Unit
+                Delivery.Later -> break
+            }
         }
+        OutboxDrain(sent = sent, waiting = _state.value.outgoing.count { it.status != OutgoingStatus.Failed })
     }
 
-    private suspend fun deliver(clientMessageId: String) {
-        val c = client ?: return
-        val message = _state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId } ?: return
+    private enum class Delivery { Sent, Rejected, Later }
+
+    private suspend fun deliver(clientMessageId: String): Delivery {
+        val c = client ?: return Delivery.Later
+        val message = _state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId } ?: return Delivery.Rejected
         try {
-            val response = c.sendMessage(_state.value.snapshot?.conversation?.id, message.text, clientMessageId, message.attachmentIds)
+            val target = message.conversationId ?: currentConversation()
+            val uploaded = uploadQueuedFiles(c, message, target) ?: return Delivery.Rejected
+            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded)
+            // Ya está en el ordenador: las copias del móvil sobran.
+            message.files.forEach { java.io.File(it.path).delete() }
             syncMutex.withLock {
                 _state.update { s ->
                     val snapshot = s.snapshot
-                    val updated = if (snapshot != null && response.message != null) {
+                    // El acuse solo se pinta si el mensaje es del proyecto que estás viendo.
+                    val here = target == null || snapshot?.conversation?.id == target
+                    val updated = if (snapshot != null && response.message != null && here) {
                         val conversation = snapshot.conversation.upsert(response.message)
                         val active = response.requestId?.let { id ->
                             if (id in conversation.activeRequestIds) conversation.activeRequestIds else conversation.activeRequestIds + id
@@ -605,16 +707,57 @@ class CoworkRepository(
                 }
             }
             if (response.message == null) refresh()
+            return Delivery.Sent
         } catch (e: ApiException) {
-            when {
-                e.isUnauthorized -> expire(e.message)
+            return when {
+                e.isUnauthorized -> {
+                    expire(e.message)
+                    Delivery.Later
+                }
                 e.retryable || e.isNetwork -> {
                     setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued, error = e.message) }
-                    retryNow()
+                    // Solo adelanta el reintento si el tiempo real está abierto: el envío en segundo plano no lo abre.
+                    if (loopJob?.isActive == true) retrySignal.trySend(Unit)
+                    Delivery.Later
                 }
-                else -> setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Failed, error = e.message) }
+                else -> {
+                    setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Failed, error = e.message) }
+                    Delivery.Rejected
+                }
             }
         }
+    }
+
+    /**
+     * Sube las copias de los archivos elegidos sin conexión (las que no se subieron ya) y da los ids de sus adjuntos;
+     * null si falta una copia (el mensaje queda como «No se envió»).
+     */
+    private suspend fun uploadQueuedFiles(c: CoworkApiClient, message: OutgoingMessage, target: String?): List<String>? {
+        if (message.files.isEmpty()) return emptyList()
+        val project = target ?: needConversation()
+        val ids = mutableListOf<String>()
+        for (file in message.files) {
+            val done = file.attachmentId
+            if (done != null) {
+                ids += done
+                continue
+            }
+            val copy = java.io.File(file.path)
+            if (!copy.isFile) {
+                setOutgoing(message.clientMessageId) {
+                    it.copy(status = OutgoingStatus.Failed, error = t("Ya no está la copia de {name} en el móvil", "name" to file.name))
+                }
+                return null
+            }
+            val attachment = c.upload(project, file.name, copy.length(), file.mime, { copy.inputStream() })
+                ?: throw ApiException(502, "upload_failed", t("No se pudo subir {name}", "name" to file.name), true)
+            ids += attachment.id
+            // Se apunta enseguida: si luego falla la red, al reintentar no se sube otra vez.
+            setOutgoing(message.clientMessageId) { m ->
+                m.copy(files = m.files.map { if (it.id == file.id) it.copy(attachmentId = attachment.id) else it })
+            }
+        }
+        return ids
     }
 
     private fun setOutgoing(id: String, transform: (OutgoingMessage) -> OutgoingMessage) {
@@ -811,6 +954,8 @@ class CoworkRepository(
                 set { it.copy(error = t("No hay ningún ordenador emparejado")) }
                 return@launch
             }
+            // Sin conexión no se intenta: se guarda una copia y se sube con el mensaje al volver.
+            if (_state.value.connection != Connection.Online && spool(id, name, mime, open, ::set)) return@launch
             try {
                 val conversation = needConversation()
                 var shown = 0f
@@ -831,11 +976,39 @@ class CoworkRepository(
                 }
             } catch (e: ApiException) {
                 if (e.isUnauthorized) expire(e.message)
+                else if ((e.isNetwork || e.retryable) && spool(id, name, mime, open, ::set)) return@launch
                 set { it.copy(error = e.message) }
             } catch (e: java.io.IOException) {
                 set { it.copy(error = t("No se pudo leer el archivo: {v1}", "v1" to (e.message ?: "error"))) }
             }
         }
+    }
+
+    /** Guarda una copia del archivo para enviarlo más tarde. false si no se puede (sin carpeta o sin poder leerlo). */
+    private suspend fun spool(
+        id: String,
+        name: String,
+        mime: String?,
+        open: () -> java.io.InputStream,
+        set: ((Upload) -> Upload) -> Unit,
+    ): Boolean {
+        val dir = spoolDir ?: return false
+        val copy = java.io.File(dir, id + "-" + name.replace(Regex("[^\\w.\\-]+"), "_").takeLast(80))
+        val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                dir.mkdirs()
+                open().use { input -> copy.outputStream().use { input.copyTo(it) } }
+            }.isSuccess
+        }
+        if (!ok) {
+            copy.delete()
+            set { it.copy(error = t("No se pudo guardar {name} para enviarlo luego", "name" to name)) }
+            return true
+        }
+        val file = QueuedFile(id = id, name = name, size = copy.length(), mime = mime, path = copy.path)
+        _state.update { s -> s.copy(queuedFiles = s.queuedFiles + file) }
+        set { it.copy(progress = 1f, done = true, queued = true, attachmentId = file.localId, error = null) }
+        return true
     }
 
     override fun dismissUpload(id: String) {

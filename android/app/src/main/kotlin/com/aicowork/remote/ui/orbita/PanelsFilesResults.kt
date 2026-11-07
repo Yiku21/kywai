@@ -193,7 +193,7 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                         Icon(if (u.error != null) Icons.Outlined.ErrorOutline else if (u.done) Icons.Outlined.CheckCircle else Icons.Outlined.AttachFile, contentDescription = null, tint = if (u.error != null) Orbita.Danger else if (u.done) Orbita.Success else Orbita.Accent, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(10.dp))
                         Text(u.name, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        Text(when { u.error != null -> t("Falló"); u.done -> t("Subido"); else -> "${(u.progress * 100).toInt()} %" }, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                        Text(when { u.error != null -> t("Falló"); u.queued -> t("En cola"); u.done -> t("Subido"); else -> "${(u.progress * 100).toInt()} %" }, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
                     }
                     if (u.error == null && !u.done) {
                         Spacer(Modifier.height(8.dp))
@@ -203,6 +203,8 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                         Spacer(Modifier.height(6.dp))
                         Text(u.error, color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                         Text(t("Quitar"), color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.dismissUpload(u.id) }.padding(vertical = 8.dp))
+                    } else if (u.queued) {
+                        Text(t("Sin conexión: se subirá con tu próximo mensaje al volver"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     } else if (u.done) {
                         Text(t("Irá al equipo con tu próximo mensaje"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     }

@@ -1,5 +1,6 @@
 package com.aicowork.remote.data.store
 
+import com.aicowork.remote.data.OutgoingMessage
 import com.aicowork.remote.data.model.CoworkJson
 import com.aicowork.remote.i18n.AppLanguage
 import com.aicowork.remote.data.model.Snapshot
@@ -45,6 +46,16 @@ interface SnapshotCache {
 
 @Serializable
 data class CachedSnapshot(val snapshot: Snapshot, val savedAt: Long)
+
+/** Cola de mensajes escritos sin conexión: se guarda en el móvil para que no se pierda al cerrar la app. */
+interface OutboxStore {
+    fun load(): List<OutgoingMessage>
+    fun save(messages: List<OutgoingMessage>)
+    fun clear()
+}
+
+@Serializable
+private data class SavedOutbox(val messages: List<OutgoingMessage> = emptyList())
 
 enum class ThemeMode { System, Light, Dark }
 
@@ -101,6 +112,12 @@ class InMemorySnapshotCache : SnapshotCache {
     override fun clear() { cached = null }
 }
 
+class InMemoryOutboxStore(private var messages: List<OutgoingMessage> = emptyList()) : OutboxStore {
+    override fun load() = messages
+    override fun save(messages: List<OutgoingMessage>) { this.messages = messages }
+    override fun clear() { messages = emptyList() }
+}
+
 class InMemoryPreferencesStore(initial: Preferences = Preferences()) : PreferencesStore {
     private val state = MutableStateFlow(initial)
     override val preferences: StateFlow<Preferences> = state.asStateFlow()
@@ -123,5 +140,38 @@ class FileSnapshotCache(private val file: File) : SnapshotCache {
 
     override fun clear() {
         file.delete()
+    }
+}
+
+/** La cola de mensajes en disco (escritura atómica: primero a un .tmp y luego se renombra). */
+class FileOutboxStore(private val file: File) : OutboxStore {
+    private val lock = Any()
+
+    override fun load(): List<OutgoingMessage> = synchronized(lock) {
+        runCatching {
+            if (!file.exists()) emptyList() else CoworkJson.decodeFromString(SavedOutbox.serializer(), file.readText()).messages
+        }.getOrDefault(emptyList())
+    }
+
+    override fun save(messages: List<OutgoingMessage>) = synchronized(lock) {
+        runCatching {
+            if (messages.isEmpty()) {
+                file.delete()
+                return@runCatching
+            }
+            file.parentFile?.mkdirs()
+            val tmp = File(file.parentFile, file.name + ".tmp")
+            tmp.writeText(CoworkJson.encodeToString(SavedOutbox.serializer(), SavedOutbox(messages)))
+            if (!tmp.renameTo(file)) {
+                file.delete()
+                tmp.renameTo(file)
+            }
+        }
+        Unit
+    }
+
+    override fun clear() = synchronized(lock) {
+        file.delete()
+        Unit
     }
 }

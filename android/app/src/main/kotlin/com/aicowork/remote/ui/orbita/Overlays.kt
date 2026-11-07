@@ -448,8 +448,8 @@ private fun NewTaskSheet(model: OrbitaModel, state: CoworkUiState) {
         Row(verticalAlignment = Alignment.Top) {
             OrbitaField(
                 model.newTaskDraft.text,
-                { model.newTaskDraft = TextFieldValue(it) },
-                t("¿Qué necesitas?"),
+                { model.editDraft(VoiceTarget.NewTask, TextFieldValue(it, androidx.compose.ui.text.TextRange(it.length))) },
+                if (model.dictation?.target == VoiceTarget.NewTask) t("Habla, te escucho…") else t("¿Qué necesitas?"),
                 singleLine = false,
                 minLines = 3,
                 maxLines = 8,
@@ -457,9 +457,10 @@ private fun NewTaskSheet(model: OrbitaModel, state: CoworkUiState) {
                 autoFocus = true,
                 modifier = Modifier.weight(1f).testTag("new-task-text"),
             )
-            if (state.snapshot?.capabilities?.voice == true && model.canRecord && !voiceHere) {
+            val note = model.canRecordNote(state.snapshot?.capabilities?.voice == true)
+            if ((note || model.canDictate) && !voiceHere) {
                 Spacer(Modifier.width(4.dp))
-                MicButton(model, VoiceTarget.NewTask)
+                MicButton(model, VoiceTarget.NewTask, note)
             }
         }
         val attachments = state.snapshot?.conversation?.attachments.orEmpty().filter { it.id in model.pendingAttachments }
@@ -470,6 +471,7 @@ private fun NewTaskSheet(model: OrbitaModel, state: CoworkUiState) {
         OrbitaButton(
             t("Enviar a {v1}", "v1" to (hermes?.name ?: "Hermes")),
             onClick = {
+                model.cancelDictation()
                 model.controller.sendMessage(model.newTaskDraft.text, model.pendingAttachments.toList())
                 model.pendingAttachments = emptySet()
                 model.newTaskDraft = TextFieldValue("")

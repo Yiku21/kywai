@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
                     installer = PackageInstallerAppInstaller(app),
                     voices = AgentVoices(),
                     onInboxVisible = { app.container.inboxNotifier.sheetVisible = it },
+                    liveDictation = com.aicowork.remote.ui.orbita.AndroidLiveDictation(app),
                 )
             }
         }

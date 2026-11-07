@@ -48,6 +48,17 @@ describe('archivo del cliente', () => {
     }
   })
 
+  it('si la llave dejó de valer recuerda solo la dirección del servidor', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cowork-client-'))
+    try {
+      const file = join(dir, 'client.json')
+      writeClientFile(file, { mode: 'client', lastOrigin: 'http://mac-mini:8787' })
+      expect(readClientFile(file)).toEqual({ mode: 'client', lastOrigin: 'http://mac-mini:8787' })
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it('un archivo con otro contenido se ignora', () => {
     const dir = mkdtempSync(join(tmpdir(), 'cowork-client-'))
     try {

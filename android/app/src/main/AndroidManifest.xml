@@ -3,7 +3,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Notas de voz del chat: se graban en el móvil y las pasa a texto el dictado del ordenador. -->
+    <!-- Micrófono del chat: dictado en directo del móvil y notas de voz que pasa a texto el dictado del ordenador. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Órbita se actualiza desde el ordenador (Ajustes → «Buscar actualizaciones»); Android pide permiso la primera vez. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -11,6 +11,13 @@
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <!-- Android 13+: notificaciones de «Te necesita» (la app lo pide una vez; sin él, los avisos siguen en la bandeja). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Android 11+: para ver si el móvil tiene reconocimiento de voz (dictado en directo del chat). -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
         android:name=".CoworkApplication"

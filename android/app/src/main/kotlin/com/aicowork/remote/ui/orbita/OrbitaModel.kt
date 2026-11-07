@@ -1,6 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
 import com.aicowork.remote.i18n.t
+import com.aicowork.remote.i18n.I18n
 
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
@@ -83,6 +84,14 @@ data class Toast(val id: Long, val text: String, val tone: Tone = Tone.Info, val
 /** Dónde va el texto de una nota de voz. */
 enum class VoiceTarget { Chat, NewTask }
 
+/**
+ * Dictado en directo: el texto que había antes ([base]), las frases ya cerradas ([heard]) y la que estás diciendo
+ * ([partial]). [level]: volumen de la voz de 0 a 1.
+ */
+data class DictationState(val target: VoiceTarget, val base: String, val heard: String = "", val partial: String = "", val level: Float = 0f) {
+    val text: String get() = listOf(base.trimEnd(), heard, partial).filter { it.isNotBlank() }.joinToString(" ")
+}
+
 /** Nota de voz: grabando, pasando a texto en el ordenador o fallida (se puede reintentar sin volver a grabar). */
 sealed interface VoiceState {
     data object Idle : VoiceState
@@ -117,6 +126,8 @@ class OrbitaModel(
     private val voices: AgentVoices? = null,
     /** Avisa de si la bandeja «Te necesita» está a la vista (mientras lo está, no salen notificaciones del sistema). */
     private val onInboxVisible: (Boolean) -> Unit = {},
+    /** Dictado en directo con el reconocimiento de voz del móvil (null en pruebas: solo notas de voz). */
+    private val liveDictation: LiveDictation? = null,
 ) : ViewModel() {
 
     /** Ajustes → «Buscar actualizaciones». */
@@ -572,6 +583,100 @@ class OrbitaModel(
         }
     }
 
+    // ------------------------------------------------------------------ Dictado en directo
+
+    var dictation by mutableStateOf<DictationState?>(null)
+        private set
+
+    /** Si se puede dictar en directo con el reconocimiento de voz del móvil. */
+    val canDictate: Boolean get() = liveDictation?.available == true
+
+    /** Hay nota de voz (el ordenador pasa el audio a texto) para cuando el dictado del móvil no sirve. */
+    fun canRecordNote(snapshotVoice: Boolean): Boolean = snapshotVoice && canRecord
+
+    private fun draftOf(target: VoiceTarget) = when (target) {
+        VoiceTarget.Chat -> chatDraft
+        VoiceTarget.NewTask -> newTaskDraft
+    }
+
+    private fun setDraft(target: VoiceTarget, text: String) {
+        val value = TextFieldValue(text, androidx.compose.ui.text.TextRange(text.length))
+        when (target) {
+            VoiceTarget.Chat -> chatDraft = value
+            VoiceTarget.NewTask -> newTaskDraft = value
+        }
+    }
+
+    /** Empieza a dictar en directo en [target] (requiere el permiso RECORD_AUDIO); [noteFallback] para los avisos. */
+    fun startDictation(target: VoiceTarget, noteFallback: Boolean) {
+        val engine = liveDictation ?: return
+        if (dictation != null || voice is VoiceState.Recording || voice is VoiceState.Transcribing) return
+        val started = DictationState(target, draftOf(target).text)
+        val listener = object : LiveDictation.Listener {
+            fun mine() = dictation?.takeIf { it.target == target }
+
+            override fun onLevel(level: Float) {
+                mine()?.let { dictation = it.copy(level = level) }
+            }
+
+            override fun onPartial(text: String) {
+                val d = mine() ?: return
+                dictation = d.copy(partial = text)
+                setDraft(target, dictation!!.text)
+            }
+
+            override fun onFinal(text: String) {
+                val d = mine() ?: return
+                dictation = d.copy(heard = listOf(d.heard, text.trim()).filter { it.isNotBlank() }.joinToString(" "), partial = "")
+                setDraft(target, dictation!!.text)
+            }
+
+            override fun onError(error: DictationError, heardNothing: Boolean) {
+                if (mine() == null) return
+                feedback.reject()
+                toast(error.message(noteFallback), Toast.Tone.Error)
+            }
+
+            override fun onEnd() {
+                if (mine() == null) return
+                dictation = null
+                feedback.select()
+            }
+        }
+        dictation = started
+        try {
+            engine.start(I18n.locale.toLanguageTag(), listener)
+        } catch (e: Exception) {
+            dictation = null
+            feedback.reject()
+            toast(e.message ?: t("No se pudo dictar"), Toast.Tone.Error)
+            return
+        }
+        feedback.confirm()
+    }
+
+    /** Deja de dictar: lo último que se oyó todavía se añade. */
+    fun stopDictation() {
+        if (dictation == null) return
+        liveDictation?.stop()
+    }
+
+    /** Corta el dictado sin añadir nada más (al enviar o al escribir a mano mientras dictas). */
+    fun cancelDictation() {
+        if (dictation == null) return
+        liveDictation?.cancel()
+        dictation = null
+    }
+
+    /** El usuario escribe en la caja: si estaba dictando ahí, el dictado se corta para no pisarle el texto. */
+    fun editDraft(target: VoiceTarget, value: TextFieldValue) {
+        if (dictation?.target == target && value.text != draftOf(target).text) cancelDictation()
+        when (target) {
+            VoiceTarget.Chat -> chatDraft = value
+            VoiceTarget.NewTask -> newTaskDraft = value
+        }
+    }
+
     // ------------------------------------------------------------------ Notas de voz
 
     var voice by mutableStateOf<VoiceState>(VoiceState.Idle)
@@ -586,6 +691,7 @@ class OrbitaModel(
     fun startVoice(target: VoiceTarget) {
         val dir = voiceDir ?: return
         if (voice is VoiceState.Recording || voice is VoiceState.Transcribing) return
+        cancelDictation()
         voiceFile?.delete()
         val file = java.io.File(dir, "nota-${System.currentTimeMillis()}.wav")
         val rec = VoiceRecorder(file)
@@ -689,6 +795,7 @@ class OrbitaModel(
     }
 
     override fun onCleared() {
+        liveDictation?.release()
         recorder?.cancel()
         voiceFile?.delete()
         sounds?.release()
