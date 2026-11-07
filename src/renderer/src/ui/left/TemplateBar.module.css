@@ -1,0 +1,293 @@
+/* ---------- Fila de plantillas (encima del cuadro del chat) ---------- */
+
+.bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: -2px -2px 0;
+  padding: 2px;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+}
+
+.bar::-webkit-scrollbar {
+  display: none;
+}
+
+.chip,
+.add {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-size: 12.5px;
+  color: var(--text-2);
+  white-space: nowrap;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.chip:hover:not(:disabled),
+.add:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text-1);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+}
+
+.pinned {
+  border-color: var(--cyan);
+  color: var(--text-1);
+}
+
+.chipName {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.add {
+  padding: 0 8px;
+  color: var(--text-3);
+  border-style: dashed;
+}
+
+.error {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--alert);
+}
+
+/* ---------- Menú de una plantilla ---------- */
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+  padding: 6px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text-1);
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: var(--bg-hover);
+}
+
+.menuDanger {
+  color: var(--alert-text, #ffc2ca);
+}
+
+/* ---------- Rellenar los huecos ---------- */
+
+.fill {
+  width: min(360px, calc(100vw - 32px));
+  padding: 12px;
+}
+
+.fillForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fillTitle {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.preview {
+  margin: 0;
+  max-height: 110px;
+  overflow-y: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fillRow,
+.editorRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Formularios (rellenar y editar) ---------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+}
+
+.input {
+  height: 36px;
+}
+
+.textarea {
+  min-height: 110px;
+  padding: 8px 10px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.input:focus-visible,
+.textarea:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+/* ---------- Editor ---------- */
+
+.editor {
+  width: min(600px, 100%);
+}
+
+.editorForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 22px 0;
+}
+
+.nameRow,
+.twoCols {
+  display: flex;
+  gap: 10px;
+}
+
+.twoCols > * {
+  flex: 1;
+}
+
+.iconField {
+  flex: none;
+  width: 64px;
+}
+
+.iconInput {
+  text-align: center;
+  font-size: 18px;
+}
+
+.grow {
+  flex: 1;
+}
+
+.cmdWrap {
+  position: relative;
+}
+
+.cmdSlash {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  font-family: var(--font-mono, monospace);
+  pointer-events: none;
+}
+
+.cmdInput {
+  padding-left: 20px;
+  font-family: var(--font-mono, monospace);
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.check input {
+  margin-top: 2px;
+}
+
+.checkOff {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.restore {
+  margin-right: auto;
+}
+
+@media (max-width: 520px) {
+  .twoCols {
+    flex-direction: column;
+  }
+
+  .editorRow {
+    flex-wrap: wrap;
+  }
+}
+
+/* 16px en pantallas táctiles: así el navegador del móvil no amplía la página al escribir. */
+@media (pointer: coarse) {
+  .input,
+  .textarea {
+    font-size: 16px;
+  }
+}

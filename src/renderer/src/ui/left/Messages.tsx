@@ -89,6 +89,12 @@ function routineParts(text: string): { request: string; data: string | null } {
   return i < 0 ? { request: text, data: null } : { request: text.slice(0, i).trimEnd(), data: text.slice(i + 5).trim() }
 }
 
+/** Quién lo envió: tú, una rutina, directo a un agente; y con qué plantilla, si fue con una. */
+function userLabel(m: ChatMessage): string {
+  const who = m.routine ? t('Rutina: {name}', { name: m.routine.name }) : m.direct ? t('Tú → {name} (directo, sin Hermes)', { name: m.direct.name }) : t('Tú')
+  return m.template ? t('{who} · plantilla «{name}»', { who, name: m.template.name }) : who
+}
+
 function UserMessage({ m }: { m: ChatMessage }) {
   const parts = m.routine ? routineParts(m.text) : { request: m.text, data: null }
   return (
@@ -97,7 +103,7 @@ function UserMessage({ m }: { m: ChatMessage }) {
         {m.routine ? <CalendarClock size={18} /> : <User size={18} />}
       </span>
       <div className={s.main}>
-        <Meta name={m.routine ? t('Rutina: {name}', { name: m.routine.name }) : m.direct ? t('Tú → {name} (directo, sin Hermes)', { name: m.direct.name }) : t('Tú')} ts={m.createdAt} />
+        <Meta name={userLabel(m)} ts={m.createdAt} />
         <div className={cx(s.bubble, s.userBubble)}>
           {parts.request && <p className={s.userText}>{parts.request}</p>}
           {parts.data && (
