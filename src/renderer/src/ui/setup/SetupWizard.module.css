@@ -427,6 +427,16 @@
 }
 
 /* Añadir y quitar agentes, y elegir quién coordina. */
+.tagFree {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--live);
+  background: color-mix(in srgb, var(--live) 15%, transparent);
+}
+
 .tagSoft {
   margin-left: 8px;
   padding: 1px 7px;
