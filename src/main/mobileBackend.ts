@@ -1,6 +1,6 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
+import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
 import type { MobileChatReceipt, MobileConversation, MobileFiles, MobileMusicResult, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
 import { isLive, streamUrlOf } from '@shared/musicSources'
@@ -125,6 +125,7 @@ export class MobileBackend {
         chatActions: this.methods.has('forkConversation') && this.methods.has('moveConversation') && this.methods.has('pinnedConversations'),
         projectActions: this.methods.has('renameProject') && this.methods.has('deleteProject') && this.methods.has('setProjectPinned'),
         search: this.methods.has('search'),
+        history: this.methods.has('allConversations') && this.methods.has('searchHistory'),
         serverName: this.methods.has('setServerName'),
         theme: this.methods.has('setUiTheme'),
         music: this.methods.has('searchMusic'),
@@ -254,8 +255,16 @@ export class MobileBackend {
   }
 
   /** Buscador de la barra lateral: chats, tareas, resultados y memoria de todos los proyectos (o de uno). */
-  async search(q: string, projectId?: string): Promise<{ hits: SearchHit[] }> {
-    return { hits: (await this.call<SearchHit[]>('search', q, projectId)).slice(0, 60) }
+  async search(q: string, projectId?: string, opts: { since?: number; author?: string; limit?: number } = {}): Promise<{ hits: SearchHit[]; total?: number }> {
+    const limit = Math.max(1, Math.min(400, opts.limit ?? 60))
+    if (!this.methods.has('searchHistory')) return { hits: (await this.call<SearchHit[]>('search', q, projectId)).slice(0, limit) }
+    const r = await this.call<SearchResult>('searchHistory', q, { projectId, since: opts.since, author: opts.author, limit })
+    return { hits: r.hits.slice(0, limit), total: r.total }
+  }
+
+  /** Historial: todos los chats con mensajes de todos los proyectos, del más reciente al más antiguo. */
+  async allChats(): Promise<{ chats: ConversationSummary[] }> {
+    return { chats: await this.call<ConversationSummary[]>('allConversations') }
   }
 
   /**

@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { ChatMessage, ConversationSummary, ProjectState, SearchHit, Task } from '@shared/types'
+import type { ChatMessage, ConversationSummary, ProjectState, SearchHit, SearchOptions, SearchResult, Task } from '@shared/types'
 import { exportSessions, replaceSessions, type AgentSession } from './agentSessions'
 import { getProject, isValidProjectId, listProjects, scheduleSave } from './projects'
 
@@ -168,6 +168,11 @@ export function listConversations(projectId: string): ConversationSummary[] {
 
 /** Las conversaciones con mensajes más recientes de todos los proyectos. */
 export function recentConversations(limit = 12): ConversationSummary[] {
+  return allConversations().slice(0, Math.max(1, Math.min(50, limit)))
+}
+
+/** Historial: todas las conversaciones con mensajes de todos los proyectos, de la más reciente a la más antigua. */
+export function allConversations(): ConversationSummary[] {
   const all: ConversationSummary[] = []
   for (const p of listProjects()) {
     try {
@@ -176,7 +181,7 @@ export function recentConversations(limit = 12): ConversationSummary[] {
       /* un proyecto que no carga no deja la lista vacía */
     }
   }
-  return all.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, Math.max(1, Math.min(50, limit)))
+  return all.sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 /** Guarda la abierta en conversaciones/ (si tiene mensajes) y deja el proyecto sin conversación abierta. */
@@ -378,28 +383,112 @@ function norm(s: string): string {
     .toLowerCase()
 }
 
+/**
+ * Lo que se busca, ya normalizado: cada palabra por separado (en cualquier orden) y lo que va entre comillas
+ * («frase exacta», "frase exacta" o “frase exacta”) como un solo trozo. Sin palabras de menos de dos letras sueltas.
+ */
+export function parseQuery(raw: unknown): string[] {
+  const text = norm(typeof raw === 'string' ? raw : '').slice(0, 200)
+  const terms: string[] = []
+  const rest = text.replace(/["“”«»]([^"“”«»]+)["“”«»]?/g, (_m, phrase: string) => {
+    const p = phrase.replace(/\s+/g, ' ').trim()
+    if (p) terms.push(p)
+    return ' '
+  })
+  for (const w of rest.split(/\s+/)) {
+    const word = w.replace(/^[.,;:¿?¡!()]+|[.,;:¿?¡!()]+$/g, '')
+    if (word.length >= 2 || (word.length === 1 && /\d/.test(word))) terms.push(word)
+  }
+  return [...new Set(terms)]
+}
+
 /** Trozo del texto alrededor de lo encontrado (o el principio si no está). */
-export function snippetOf(text: string, q: string, size = 120): string {
+export function snippetOf(text: string, q: string | string[], size = 120): string {
   const flat = text.replace(/\s+/g, ' ').trim()
-  const i = norm(flat).indexOf(q)
+  const folded = norm(flat)
+  const terms = Array.isArray(q) ? q : [q]
+  const found = terms.map((t) => folded.indexOf(t)).filter((x) => x >= 0)
+  const i = found.length ? Math.min(...found) : -1
   if (i < 0) return flat.slice(0, size)
   const start = Math.max(0, i - Math.floor(size / 3))
   const end = Math.min(flat.length, start + size)
   return `${start > 0 ? '…' : ''}${flat.slice(start, end)}${end < flat.length ? '…' : ''}`
 }
 
-const MAX_HITS = 40
+/*
+ * Índice en memoria: el texto normalizado de cada mensaje se calcula una vez (mientras no cambie) y las
+ * conversaciones guardadas se leen del disco solo cuando su archivo cambia. Así buscar a cada tecla no relee
+ * todos los archivos de todos los proyectos.
+ */
+const folded = new WeakMap<object, { text: string; norm: string }>()
+
+function normOf(owner: object, text: string | undefined): string {
+  if (!text) return ''
+  const hit = folded.get(owner)
+  if (hit && hit.text === text) return hit.norm
+  const n = norm(text)
+  folded.set(owner, { text, norm: n })
+  return n
+}
+
+const fileCache = new Map<string, { stamp: string; conv: StoredConversation }>()
+
+function readCached(st: ProjectState, cid: string): StoredConversation {
+  const file = fileOf(st, cid)
+  let stamp = ''
+  try {
+    const info = statSync(file)
+    stamp = `${info.mtimeMs}:${info.size}`
+  } catch {
+    fileCache.delete(file)
+    throw new Error('No se encuentra esa conversación')
+  }
+  const hit = fileCache.get(file)
+  if (hit && hit.stamp === stamp) return hit.conv
+  const conv = readConversation(st, cid)
+  fileCache.set(file, { stamp, conv })
+  return conv
+}
+
+/** Vacía el índice (pruebas). */
+export function resetSearchIndex(): void {
+  fileCache.clear()
+}
+
+const DEFAULT_HITS = 40
+const MAX_LIMIT = 400
+const MAX_MATCHES = 5
+
+function byOf(m: ChatMessage): string {
+  return m.author.type === 'agent' ? m.author.agentId : m.author.type
+}
+
+function authorOk(by: string, author: string | undefined): boolean {
+  if (!author) return true
+  if (author === 'user') return by === 'user'
+  if (author === 'agents') return by !== 'user' && by !== 'system'
+  return by === author
+}
 
 /**
- * Busca un texto (sin distinguir mayúsculas ni tildes) en las conversaciones (abierta y guardadas), tareas,
- * resultados y memoria de un proyecto o de todos. Los títulos que coinciden van antes que el texto de dentro.
+ * Busca en el historial (sin distinguir mayúsculas ni tildes): conversaciones (abierta y guardadas), tareas,
+ * resultados, memoria y nombres de proyecto, de uno o de todos. Con varias palabras, todas tienen que estar (en
+ * cualquier orden) en el mismo mensaje, tarea o nota; lo que va entre comillas, tal cual. Los títulos que coinciden
+ * van antes que el texto de dentro, y luego lo más reciente. Devuelve los primeros `limit` y el total.
  */
-export function search(query: unknown, onlyProject?: unknown): SearchHit[] {
-  const q = norm(typeof query === 'string' ? query : '').trim()
-  if (q.length < 2) return []
+export function searchHistory(query: unknown, options: SearchOptions = {}): SearchResult {
+  const terms = parseQuery(query)
+  if (!terms.length || terms.join('').length < 2) return { hits: [], total: 0 }
+  const onlyProject = typeof options.projectId === 'string' && options.projectId ? options.projectId : undefined
+  const since = typeof options.since === 'number' && Number.isFinite(options.since) ? options.since : 0
+  const author = typeof options.author === 'string' && options.author ? options.author : undefined
+  const limit = Math.max(1, Math.min(MAX_LIMIT, typeof options.limit === 'number' ? Math.floor(options.limit) : DEFAULT_HITS))
   const projects = listProjects().filter((p) => !onlyProject || p.id === onlyProject)
   const hits: Array<SearchHit & { score: number }> = []
-  const has = (s: string | undefined): boolean => !!s && norm(s).includes(q)
+  const all = (n: string): boolean => terms.every((t) => n.includes(t))
+  const has = (owner: object, s: string | undefined): boolean => !!s && all(normOf(owner, s))
+  const hasPlain = (s: string | undefined): boolean => !!s && all(norm(s))
+  const recent = (at: number | undefined): boolean => !since || (at ?? 0) >= since
 
   for (const p of projects) {
     let st: ProjectState
@@ -409,15 +498,15 @@ export function search(query: unknown, onlyProject?: unknown): SearchHit[] {
       continue
     }
     const base = { projectId: p.id, projectName: p.name }
-    if (has(p.name)) hits.push({ ...base, kind: 'project', title: p.name, snippet: '', at: p.updatedAt, score: 3 })
+    if (!author && hasPlain(p.name) && recent(p.updatedAt)) hits.push({ ...base, kind: 'project', title: p.name, snippet: '', at: p.updatedAt, score: 3 })
 
-    const convs: Array<{ id: string; title: string; updatedAt: number; messages: ChatMessage[]; tasks: Task[]; current: boolean }> = []
+    const convs: Array<{ id: string; title: string; updatedAt: number; messages: ChatMessage[]; tasks: Task[] }> = []
     const cur = currentSummary(st)
-    convs.push({ id: cur.id, title: cur.title, updatedAt: cur.updatedAt, messages: st.messages, tasks: st.tasks, current: true })
+    convs.push({ id: cur.id, title: cur.title, updatedAt: cur.updatedAt, messages: st.messages, tasks: st.tasks })
     for (const c of st.conversations ?? []) {
       try {
-        const full = readConversation(st, c.id)
-        convs.push({ id: c.id, title: c.title, updatedAt: c.updatedAt, messages: full.messages, tasks: full.tasks, current: false })
+        const full = readCached(st, c.id)
+        convs.push({ id: c.id, title: c.title, updatedAt: c.updatedAt, messages: full.messages, tasks: full.tasks })
       } catch {
         /* sin archivo: se salta */
       }
@@ -425,45 +514,54 @@ export function search(query: unknown, onlyProject?: unknown): SearchHit[] {
 
     for (const c of convs) {
       if (!c.messages.length) continue
-      const titleHit = has(c.title)
-      const msg = titleHit ? undefined : c.messages.find((m) => has(m.text))
-      if (titleHit || msg) {
+      const titleHit = !author && hasPlain(c.title) && recent(c.updatedAt)
+      const found = c.messages.filter((m) => recent(m.createdAt) && authorOk(byOf(m), author) && has(m, m.text))
+      if (titleHit || found.length) {
+        const first = found[0]
+        const matches = found.slice(0, MAX_MATCHES).map((m) => ({ messageId: m.id, snippet: snippetOf(m.text, terms), at: m.createdAt, by: byOf(m) }))
         hits.push({
           ...base,
           kind: 'conversation',
           conversationId: c.id,
           title: c.title,
-          snippet: msg ? snippetOf(msg.text, q) : snippetOf(c.messages.find((m) => m.author.type === 'user')?.text ?? '', q),
-          at: msg?.createdAt ?? c.updatedAt,
+          snippet: first ? snippetOf(first.text, terms) : snippetOf(c.messages.find((m) => m.author.type === 'user')?.text ?? '', terms),
+          at: found.length ? found[found.length - 1].createdAt : c.updatedAt,
+          ...(first ? { messageId: first.id, matchCount: found.length, matches } : {}),
           score: titleHit ? 2 : 1
         })
       }
+      if (author === 'user') continue
       for (const t of c.tasks) {
-        const where = has(t.title) ? t.title : has(t.result) ? t.result : has(t.description) ? t.description : undefined
+        if (!recent(t.finishedAt ?? t.createdAt) || !authorOk(t.agentId, author)) continue
+        const where = has(t, t.title) ? t.title : hasPlain(t.result) ? t.result : hasPlain(t.description) ? t.description : undefined
         if (!where) continue
         hits.push({
           ...base,
           kind: 'task',
           conversationId: c.id,
           title: t.title,
-          snippet: where === t.title ? snippetOf(t.result ?? t.description, q) : snippetOf(where, q),
+          snippet: where === t.title ? snippetOf(t.result ?? t.description, terms) : snippetOf(where, terms),
           at: t.finishedAt ?? t.createdAt,
           ref: t.id,
-          score: has(t.title) ? 2 : 1
+          score: where === t.title ? 2 : 1
         })
       }
     }
+    if (author) continue
     for (const a of st.artifacts) {
-      if (!has(a.name) && !has(a.relPath)) continue
+      if (!recent(a.createdAt) || (!hasPlain(a.name) && !hasPlain(a.relPath))) continue
       hits.push({ ...base, kind: 'artifact', title: a.name, snippet: a.relPath, at: a.createdAt, ref: a.id, score: 2 })
     }
     for (const m of st.memory ?? []) {
-      if (m.status === 'superseded' || !has(m.text)) continue
+      if (m.status === 'superseded' || !recent(m.updatedAt ?? m.createdAt) || !has(m, m.text)) continue
       hits.push({ ...base, kind: 'memory', title: m.text.slice(0, 90), snippet: m.byName, at: m.updatedAt ?? m.createdAt, ref: m.id, score: 1 })
     }
   }
-  return hits
-    .sort((a, b) => b.score - a.score || b.at - a.at)
-    .slice(0, MAX_HITS)
-    .map(({ score: _s, ...h }) => h)
+  const sorted = hits.sort((a, b) => b.score - a.score || b.at - a.at)
+  return { hits: sorted.slice(0, limit).map(({ score: _s, ...h }) => h), total: sorted.length }
+}
+
+/** El buscador de antes (Órbita y clientes antiguos): una sola caja, de uno o de todos los proyectos, 40 resultados. */
+export function search(query: unknown, onlyProject?: unknown): SearchHit[] {
+  return searchHistory(query, { projectId: typeof onlyProject === 'string' ? onlyProject : undefined }).hits
 }
