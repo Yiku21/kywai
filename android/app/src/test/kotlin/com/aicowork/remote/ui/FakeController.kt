@@ -70,6 +70,19 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     }
     override suspend fun selectConversation(id: String): ActionResult { calls += "select:$id"; return nextResult }
     override suspend fun createProject(name: String): ActionResult { calls += "create:$name"; return nextResult }
+    var chatList = listOf(
+        com.aicowork.remote.data.model.ChatSummary("ch1", "c1", "Pantallas de la app", updatedAt = 5, messageCount = 3, current = true),
+        com.aicowork.remote.data.model.ChatSummary("ch0", "c1", "Informe semanal", updatedAt = 1, messageCount = 2),
+    )
+    override suspend fun listChats(projectId: String): Result<List<com.aicowork.remote.data.model.ChatSummary>> { calls += "chats:$projectId"; return Result.success(chatList.filter { it.projectId == projectId }) }
+    override suspend fun newChat(): ActionResult { calls += "newChat"; return nextResult }
+    override suspend fun openChat(projectId: String, chatId: String): ActionResult { calls += "openChat:$projectId:$chatId"; return nextResult }
+    override suspend fun renameChat(projectId: String, chatId: String, title: String): ActionResult { calls += "renameChat:$chatId:$title"; return nextResult }
+    override suspend fun deleteChat(projectId: String, chatId: String): ActionResult { calls += "deleteChat:$chatId"; return nextResult }
+    override suspend fun search(query: String): Result<List<com.aicowork.remote.data.model.SearchHit>> {
+        calls += "search:$query"
+        return Result.success(listOf(com.aicowork.remote.data.model.SearchHit("conversation", "c1", "Proyecto demo", "ch0", "Informe semanal", "…el informe semanal…", 1)))
+    }
     override suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> {
         calls += "trace:$taskId"
         return Result.success(state.value.snapshot?.tasks?.firstOrNull { it.id == taskId }?.trace.orEmpty())

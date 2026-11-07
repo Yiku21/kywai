@@ -3,6 +3,11 @@ package com.aicowork.remote.data.net
 import com.aicowork.remote.i18n.t
 
 import com.aicowork.remote.data.model.AgentAccessRequest
+import com.aicowork.remote.data.model.ChatRenameRequest
+import com.aicowork.remote.data.model.ChatSummary
+import com.aicowork.remote.data.model.ChatsResponse
+import com.aicowork.remote.data.model.SearchHit
+import com.aicowork.remote.data.model.SearchResponse
 import com.aicowork.remote.data.model.AgentAccessResponse
 import com.aicowork.remote.data.model.AgentResetResponse
 import com.aicowork.remote.data.model.AgentThinkingResponse
@@ -191,6 +196,38 @@ class CoworkApiClient(
         name?.let { CoworkJson.encodeToString(NewConversationRequest.serializer(), NewConversationRequest(it)) } ?: "{}",
         ConversationResponse.serializer(),
     ).conversation
+
+    // ---- Chats de cada proyecto (conversationId es el proyecto) ----
+
+    suspend fun chats(projectId: String): List<ChatSummary> =
+        get("/chats?conversationId=${projectId.encodeQuery()}", ChatsResponse.serializer()).chats
+
+    suspend fun newChat(projectId: String): Conversation? = post(
+        "/chats",
+        CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
+        ConversationResponse.serializer(),
+    ).conversation
+
+    suspend fun openChat(projectId: String, chatId: String): Conversation? = post(
+        "/chats/${chatId.encodeSegment()}/open",
+        CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
+        ConversationResponse.serializer(),
+    ).conversation
+
+    suspend fun renameChat(projectId: String, chatId: String, title: String): List<ChatSummary> = post(
+        "/chats/${chatId.encodeSegment()}/rename",
+        CoworkJson.encodeToString(ChatRenameRequest.serializer(), ChatRenameRequest(projectId, title)),
+        ChatsResponse.serializer(),
+    ).chats
+
+    suspend fun deleteChat(projectId: String, chatId: String): List<ChatSummary> = post(
+        "/chats/${chatId.encodeSegment()}/delete",
+        CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
+        ChatsResponse.serializer(),
+    ).chats
+
+    suspend fun search(query: String): List<SearchHit> =
+        get("/search?q=${query.trim().encodeQuery()}", SearchResponse.serializer()).hits
 
     suspend fun projects(): List<ProjectSummary> = get("/projects", ProjectsResponse.serializer()).projects
 

@@ -103,7 +103,7 @@ import java.io.File
 /** Capas que se abren encima de todo: lector, actividad de una tarea y nueva tarea. */
 @Composable
 fun Overlays(model: OrbitaModel, state: CoworkUiState) {
-    val covering = model.viewer != null || model.traceTaskId != null || model.newTaskOpen || model.hermesModelOpen || model.inboxOpen
+    val covering = model.viewer != null || model.traceTaskId != null || model.newTaskOpen || model.hermesModelOpen || model.inboxOpen || model.searchOpen
     // Velo oscuro detrás de lo que se abre (tocarlo cierra).
     AnimatedVisibility(covering, enter = fadeIn(), exit = fadeOut()) {
         Box(
@@ -117,6 +117,7 @@ fun Overlays(model: OrbitaModel, state: CoworkUiState) {
                         model.newTaskOpen = false
                         model.hermesModelOpen = false
                         model.closeInbox()
+                        model.searchOpen = false
                     })
                 },
         )
@@ -137,6 +138,9 @@ fun Overlays(model: OrbitaModel, state: CoworkUiState) {
         }
         AnimatedVisibility(model.inboxOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
             InboxSheet(model, state)
+        }
+        AnimatedVisibility(model.searchOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+            SearchSheet(model)
         }
     }
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).windowInsetsPadding(WindowInsets.ime).padding(12.dp), contentAlignment = Alignment.BottomCenter) {
