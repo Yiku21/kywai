@@ -1,4 +1,4 @@
-// Crea release/AI-Cowork-fuente.zip con el código (sin node_modules, compilados ni datos de workspace/)
+// Crea release/kywai-fuente.zip con el código (sin node_modules, compilados ni datos de workspace/)
 // para llevarlo a otro equipo, p. ej. un Mac, y ejecutar allí scripts/instalar-mac.sh.
 // Uso: npm run fuente
 import { execFileSync } from 'node:child_process'
@@ -16,10 +16,10 @@ const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclud
   .filter(Boolean)
 const list = join(out, 'fuente.txt')
 writeFileSync(list, files.join('\n'))
-const zip = join(out, 'AI-Cowork-fuente.zip')
+const zip = join(out, 'kywai-fuente.zip')
 rmSync(zip, { force: true })
 // bsdtar crea .zip con -a (el tar de Git Bash es GNU y no sabe): en Windows se usa el del sistema.
 const tar = process.platform === 'win32' ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar'
-execFileSync(tar, ['-a', '-c', '-f', 'release/AI-Cowork-fuente.zip', '-T', 'release/fuente.txt'], { cwd: root, stdio: 'inherit' })
+execFileSync(tar, ['-a', '-c', '-f', 'release/kywai-fuente.zip', '-T', 'release/fuente.txt'], { cwd: root, stdio: 'inherit' })
 rmSync(list, { force: true })
 console.log(`creado ${zip} (${files.length} archivos)`)

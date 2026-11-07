@@ -1,12 +1,12 @@
-# API móvil de AI Cowork v1
+# API móvil de kywai v1
 
 La especificación verificable está en [openapi.json](./openapi.json). La API vive en el servidor web actual, bajo `/api/mobile/v1`, en los mismos puertos HTTP/HTTPS, direcciones Tailscale y certificado que la interfaz web. No hay otro servidor, almacén de proyectos ni motor de agentes.
 
 ## Conexión y autenticación
 
-1. En AI Cowork, activa «Acceso desde otros dispositivos» y copia su dirección y código actual. `POST /pair` recibe `{"code":"…","deviceName":"Pixel"}` con `Content-Type: application/json`.
+1. En kywai, activa «Acceso desde otros dispositivos» y copia su dirección y código actual. `POST /pair` recibe `{"code":"…","deviceName":"Pixel"}` con `Content-Type: application/json`.
 2. La respuesta es `{"accessToken":"…","expiresAt":"2026-11-10T10:00:00.000Z","serverName":"…"}`. Usa `Authorization: Bearer <accessToken>` en las demás rutas, incluido el handshake WebSocket. El código web, las cookies y los tokens en la URL no autentican la API móvil.
-3. El token no caduca por fecha: `expiresAt` (100 años) se mantiene por compatibilidad y no se aplica. Sobrevive a reinicios y actualizaciones de AI Cowork (la clave de firma se guarda en `mobile-key`, en la carpeta de datos de la app). Cada emparejamiento queda anotado como un dispositivo (`deviceId` en la respuesta; `kind` `mobile` por defecto o `client` para un cliente de escritorio, y `platform` opcional): se revoca por separado (`POST /device/revoke` desde el propio dispositivo, o desde el equipo servidor en el panel de acceso) y deja de valer si pasan 90 días sin usarse (`401 DEVICE_REVOKED`). Regenerar el código de acceso revoca todos. Un `401` requiere volver a emparejar. Los emparejamientos anteriores a la lista de dispositivos (sin `deviceId`) siguen valiendo hasta que se genere un código nuevo. Diez códigos incorrectos por dirección en un minuto provocan `429` hasta que termina esa ventana.
+3. El token no caduca por fecha: `expiresAt` (100 años) se mantiene por compatibilidad y no se aplica. Sobrevive a reinicios y actualizaciones de kywai (la clave de firma se guarda en `mobile-key`, en la carpeta de datos de la app). Cada emparejamiento queda anotado como un dispositivo (`deviceId` en la respuesta; `kind` `mobile` por defecto o `client` para un cliente de escritorio, y `platform` opcional): se revoca por separado (`POST /device/revoke` desde el propio dispositivo, o desde el equipo servidor en el panel de acceso) y deja de valer si pasan 90 días sin usarse (`401 DEVICE_REVOKED`). Regenerar el código de acceso revoca todos. Un `401` requiere volver a emparejar. Los emparejamientos anteriores a la lista de dispositivos (sin `deviceId`) siguen valiendo hasta que se genere un código nuevo. Diez códigos incorrectos por dirección en un minuto provocan `429` hasta que termina esa ventana.
 
 Android conserva el token en Android Keystore. Las direcciones del servidor deben ser configurables: IP de Tailscale, MagicDNS o dirección de Tailscale Serve. Para HTTPS propio usa el puerto HTTP + 1; Tailscale Serve usa su dirección HTTPS existente.
 
@@ -30,6 +30,13 @@ Todas las peticiones POST llevan JSON (salvo la subida de archivos, `POST /files
 | `POST /plans/{messageId}/reject` | `200`, `conversationId`, `messageId`, `requestId`, `status:"rejected"` |
 | `GET /events` con Upgrade WebSocket | `101`, canal de eventos autenticado |
 | `GET /projects` | `200`, `{"projects":[…]}` |
+| `POST /projects/{projectId}/rename` | `200`, `{"projects":[…]}`; cuerpo `{"name"}` |
+| `POST /projects/{projectId}/pin` | `200`, `{"projects":[…]}`; cuerpo `{"pinned":true\|false}` |
+| `POST /projects/{projectId}/delete` | `200`, `{"projects":[…]}` (lo suyo va a la Papelera); `409 PROJECT_BUSY` con trabajo en marcha |
+| `GET /chats/pinned` | `200`, `{"chats":[…]}`: los fijados de todos los proyectos |
+| `POST /chats/{chatId}/pin` | `200`, `{"chats":[…]}`; cuerpo `{"conversationId","pinned"}` |
+| `POST /chats/{chatId}/fork` | `200`, `{"chatId","chats":[…]}` con la copia |
+| `POST /chats/{chatId}/move` | `200`, `{"chatId","chats":[…]}`; cuerpo `{"conversationId","toConversationId"}` |
 | `GET /tasks/{taskId}/trace` | `200`, `{"taskId":"…","entries":[…]}` |
 | `POST /memory` | `201`, `{"entry":{…}}` |
 | `POST /memory/{memoryId}` | `200`, `{"entry":{…}}` |
@@ -43,6 +50,7 @@ Todas las peticiones POST llevan JSON (salvo la subida de archivos, `POST /files
 | `POST /settings/plan-approval` | `200`, `{"planApproval":true\|false}` |
 | `POST /usage/refresh` | `200`, `{"quotas":[…]}` |
 | `GET /quality?days=` | `200`, `{"days":30,"minTasks":5,"agents":[AgentQuality…]}` |
+| `GET /usage/cost?days=` | `200`, `{"currency":"EUR","days":30,"paid":…,"api":…,"budget":…\|null,"byAgent":[…],"subscriptions":[…]}` |
 | `POST /agents/{agentId}/reset` | `200`, `{"agentId","activity","reason"}`; `404 AGENT_NOT_FOUND` |
 | `GET /app/android` | `200`, `{"versionCode":…,"versionName":"…","size":…,"sha256":"…","builtAt":"…"\|null}`; `404 NO_ORBITA_RELEASE` si no hay |
 | `GET /app/android/apk` | `200`, la APK (`application/vnd.android.package-archive`) |
@@ -63,7 +71,7 @@ La pausa reutiliza `cancelRun(..., 'pause')`: aborta los procesos actuales y mar
 
 La instantánea también incluye:
 
-- `projects`: `[{id, name, createdAt, updatedAt, running}]`, del actualizado más recientemente al más antiguo; `running` indica peticiones en marcha. Es lo mismo que devuelve `GET /projects`.
+- `projects`: `[{id, name, createdAt, updatedAt, running, pinned?}]`, del actualizado más recientemente al más antiguo; `running` indica peticiones en marcha. Es lo mismo que devuelve `GET /projects`.
 - `stations`: las estaciones del espacio digital (`{id, label, position:[x, z], forSubagents?}`), tal cual en la configuración.
 - `settings`: `{"agentAccess":"full"|"project","planApproval":true|false}`.
 - `conversation.attachments`: los adjuntos del proyecto (`{id, name, relPath, mime, size}`), y `conversation.folder`: `{name, path}` de su carpeta de trabajo (nombre y ruta completa) o `null` si no tiene. `POST /conversations` devuelve la conversación con estos dos campos.
@@ -86,9 +94,9 @@ La petición que planificó termina con `run.finished` (`ok:true`) al proponer e
 
 `404 PLAN_NOT_FOUND` si el mensaje no tiene plan; `409 PLAN_NOT_PENDING` si ya se aprobó, descartó o cambió. `POST /settings/plan-approval` `{"enabled":true|false}` → `{"planApproval":…}` es el mismo ajuste que ⋮ → «Pedir mi visto bueno a cada plan» en el escritorio y emite `config.updated`.
 
-Órbita se actualiza desde el ordenador, sin pasar la APK a mano: la versión firmada se publica en el código de AI Cowork (`android/release/orbita.apk` y `orbita.json`, con `./gradlew :app:publishOrbita`) y llega al ordenador con «Buscar actualizaciones». `GET /app/android` dice cuál es (`versionCode`: Órbita solo la ofrece si es mayor que la suya); `GET /app/android/apk` la entrega, y Órbita comprueba su `sha256` antes de instalarla. Si falta la APK o su huella no es la anotada, `404 NO_ORBITA_RELEASE`.
+Órbita se actualiza desde el ordenador, sin pasar la APK a mano: la versión firmada se publica en el código de kywai (`android/release/orbita.apk` y `orbita.json`, con `./gradlew :app:publishOrbita`) y llega al ordenador con «Buscar actualizaciones». `GET /app/android` dice cuál es (`versionCode`: Órbita solo la ofrece si es mayor que la suya); `GET /app/android/apk` la entrega, y Órbita comprueba su `sha256` antes de instalarla. Si falta la APK o su huella no es la anotada, `404 NO_ORBITA_RELEASE`.
 
-«/model» en el chat de Órbita abre la lista de modelos de Hermes: `GET /hermes/models` da el actual (`fromApp`: lo eligió el usuario en AI Cowork; si no, el de la configuración de Hermes) y los de cada proveedor con el que Hermes tiene sesión, de su caché (sin llamadas de pago). `POST /hermes/model` con `{"provider","model"}` lo cambia (Hermes lo usa desde el próximo encargo, con `-m` y `--provider`) y `{"reset":true}` vuelve al de su configuración; emite `config.updated`. Si «/model» llega como mensaje (`POST /chat/messages`), no se le pasa a Hermes: el ordenador contesta en el chat cómo abrir la lista.
+«/model» en el chat de Órbita abre la lista de modelos de Hermes: `GET /hermes/models` da el actual (`fromApp`: lo eligió el usuario en kywai; si no, el de la configuración de Hermes) y los de cada proveedor con el que Hermes tiene sesión, de su caché (sin llamadas de pago). `POST /hermes/model` con `{"provider","model"}` lo cambia (Hermes lo usa desde el próximo encargo, con `-m` y `--provider`) y `{"reset":true}` vuelve al de su configuración; emite `config.updated`. Si «/model» llega como mensaje (`POST /chat/messages`), no se le pasa a Hermes: el ordenador contesta en el chat cómo abrir la lista.
 
 Cada tarea tiene su mensaje en el chat (`work`): aparece cuando el agente empieza, va contando lo que hace y al acabar su `text` es el resultado (con sus `artifactIds`). `work` es `{taskId, title, status: running|done|failed|stopped, steps, hidden?}`; cada paso es una frase del agente `{"kind":"note","text"}` o varias herramientas seguidas en una línea `{"kind":"tools","summary","items":[…],"more"?,"failed"?}` («Ejecutó 3 comandos y editó 2 archivos»). Llega con `message.upsert` (el mismo id, como mucho una vez por segundo). `running` solo es «trabajando» si la tarea sigue en marcha; `hidden` son los pasos del principio que ya no caben (están en `GET /tasks/{taskId}/trace`).
 
@@ -107,6 +115,7 @@ En todas estas rutas `conversationId` es obligatorio (no admite `null`) y un pro
 - `POST /settings/agent-access` `{"access":"full"|"project"}` → `{"agentAccess":"…"}`. Es el mismo ajuste del escritorio y emite `config.updated`.
 - `POST /usage/refresh` `{}` → `{"quotas":[…]}` tras volver a consultar las cuotas como el botón del escritorio (puede tardar unos segundos). Emite `quota.update`.
 - `GET /quality` (opcional `days`, de 1 a 999; por defecto 30) → lo mismo que ⋮ → «Cómo rinde cada agente…»: por agente (de más a menos tareas) y por dificultad (`byDifficulty`: `hard`, `medium`, `easy` y `unknown` para registros antiguos) `tasks`, `rated`/`liked`/`likedPct` (👍 sobre las valoradas), `verified`/`firstPass`/`firstPassPct` (verificación a la primera), `fixed`/`fixedPct` (necesitó corrección), `failed`/`failedPct` (falló o pasó a otro), `medianMs` y `medianTokens` (`null` si el agente no informa de tokens). Los porcentajes son `null` sin base. `capabilities.agentQuality` indica que el servidor lo tiene.
+- `GET /usage/cost` (opcional `days`, de 1 a 999; por defecto 30) → la sección «Coste» de ⚙ → «Uso y coste…», con los importes ya en la moneda elegida (`currency`, `USD` o `EUR`): `paid` (lo pagado por los agentes que van por API), `api` (todo lo usado a precios de API; `estimated` es la parte que sale de tokens estimados de Hermes y los agentes de catálogo), `unpricedCalls`, `budget` (`{limit, spent, pct}` del mes en curso, o `null`), `byAgent` (`agentId`, `name`, `mode`: `subscription`/`api`/`free`/`local`/`null`, `calls`, `api` y `estimated` si va con ≈) y `subscriptions` (`monthly`, `api30` de los últimos 30 días, `runs30` y `verdict`: `worth` si por API habría costado más, `cheaper-api` si saldría más barato, `null` sin precio al mes). La instantánea lleva lo mismo de 30 días en `usage.cost`; `capabilities.usageCost` indica que el servidor lo tiene. Cada llamada del registro puede traer `costUsd` (lo dio Claude Code) y `estInput`/`estOutput`. La bandeja tiene el tipo `budget` (aviso al 80 % del presupuesto y al pasarlo).
 
 Los cambios de memoria e instrucciones emiten `memory.updated` (`projectId`, `memory` completa e `instructions`) a todos los clientes, también al escritorio.
 

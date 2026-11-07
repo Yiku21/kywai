@@ -8,6 +8,7 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import q from './QuotaPopover.module.css'
 import s from './LocalConfig.module.css'
+import { t } from '@/lib/i18n'
 
 const ENGINE_LABEL: Record<LocalEngine, string> = { lmstudio: 'LM Studio', ollama: 'Ollama' }
 
@@ -100,7 +101,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
     setMsg(null)
     try {
       await api.setLocalAgent({ agentId: agent!.id, engine, model: selected.id, modelLabel: shortLabel(engine, selected), name: name.trim() || undefined })
-      setMsg({ tone: 'ok', text: `Listo: ${name.trim() || agent!.name} usará ${selected.label} con ${ENGINE_LABEL[engine]}.` })
+      setMsg({ tone: 'ok', text: t('Listo: {agent} usará {label} con {engine}.', { agent: name.trim() || agent!.name, label: selected.label, engine: ENGINE_LABEL[engine] }) })
     } catch (e) {
       setMsg({ tone: 'error', text: errorText(e) })
     } finally {
@@ -115,7 +116,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
     try {
       await api.startLocalServer(engine)
       await refresh()
-      setMsg({ tone: 'ok', text: `Servidor de ${ENGINE_LABEL[engine]} encendido.` })
+      setMsg({ tone: 'ok', text: t('Servidor de {engine} encendido.', { engine: ENGINE_LABEL[engine] }) })
     } catch (e) {
       setMsg({ tone: 'error', text: errorText(e) })
     } finally {
@@ -151,18 +152,18 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
   }
 
   return (
-    <section className={q.budget} aria-label="Configuración del agente local">
+    <section className={q.budget} aria-label={t('Configuración del agente local')}>
       <div className={q.budgetHead}>
         <h4 className={q.sectionTitle}>
-          <Cpu size={13} aria-hidden="true" /> Agente local
+          <Cpu size={13} aria-hidden="true" /> {t('Agente local')}
         </h4>
-        <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void refresh()} disabled={loading} title="Volver a comprobar">
+        <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void refresh()} disabled={loading} title={t('Volver a comprobar')}>
           <RefreshCw size={13} aria-hidden="true" className={loading ? s.spin : undefined} />
-          <span className="sr-only">Volver a comprobar</span>
+          <span className="sr-only">{t('Volver a comprobar')}</span>
         </button>
       </div>
 
-      <div className={s.engines} role="tablist" aria-label="Motor local">
+      <div className={s.engines} role="tablist" aria-label={t('Motor local')}>
         {(['lmstudio', 'ollama'] as LocalEngine[]).map((en) => {
           const st = engines?.find((e) => e.engine === en)
           const state = !st ? 'unknown' : !st.installed ? 'missing' : st.running ? 'on' : 'off'
@@ -182,7 +183,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
               <span className={cx(s.dot, s[`dot_${state}`])} aria-hidden="true" />
               {ENGINE_LABEL[en]}
               <span className={s.engineState}>
-                {state === 'on' ? 'activo' : state === 'off' ? 'apagado' : state === 'missing' ? 'no instalado' : '…'}
+                {state === 'on' ? t('activo') : state === 'off' ? t('apagado') : state === 'missing' ? t('no instalado') : '…'}
               </span>
             </button>
           )
@@ -190,31 +191,31 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
       </div>
 
       {status && !status.installed && (
-        <p className={q.muted}>{ENGINE_LABEL[engine]} no está instalado en este equipo.</p>
+        <p className={q.muted}>{ENGINE_LABEL[engine]} {t('no está instalado en este equipo.')}</p>
       )}
       {status?.installed && !status.running && (
         <div className={s.notice}>
           <span>
             {engine === 'lmstudio'
-              ? 'El servidor local de LM Studio está apagado: el agente no puede trabajar hasta encenderlo.'
-              : 'Ollama no está en ejecución: abre la aplicación de Ollama.'}
+              ? t('El servidor local de LM Studio está apagado: el agente no puede trabajar hasta encenderlo.')
+              : t('Ollama no está en ejecución: abre la aplicación de Ollama.')}
           </span>
           {status.canStart && (
             <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void startServer()} disabled={!!busy}>
               {busy === 'start' ? <Loader2 size={13} className={s.spin} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />}
-              Encender
+              {t('Encender')}
             </button>
           )}
         </div>
       )}
 
       {status?.installed && (
-        <div className={s.models} role="radiogroup" aria-label={`Modelos de ${ENGINE_LABEL[engine]}`}>
+        <div className={s.models} role="radiogroup" aria-label={t('Modelos de {engine}', { engine: ENGINE_LABEL[engine] })}>
           {models.length === 0 ? (
             <p className={q.muted}>
               {engine === 'lmstudio'
-                ? 'No hay modelos descargados. Descárgalos desde la aplicación de LM Studio y pulsa ⟳.'
-                : 'No hay modelos descargados. Escribe uno abajo para descargarlo.'}
+                ? t('No hay modelos descargados. Descárgalos desde la aplicación de LM Studio y pulsa ⟳.')
+                : t('No hay modelos descargados. Escribe uno abajo para descargarlo.')}
             </p>
           ) : (
             models.map((m) => {
@@ -238,7 +239,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
                       {[m.params, m.quantization, m.sizeBytes ? fileSize(m.sizeBytes) : null].filter(Boolean).join(' · ') || m.id}
                     </span>
                   </span>
-                  {isCurrent && <span className={s.badge}>En uso</span>}
+                  {isCurrent && <span className={s.badge}>{t('En uso')}</span>}
                 </button>
               )
             })
@@ -249,7 +250,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
       {engine === 'ollama' && status?.canPull && (
         <div className={s.pull}>
           <label className={q.field}>
-            <span>Descargar modelo</span>
+            <span>{t('Descargar modelo')}</span>
             <div className={s.pullRow}>
               <input
                 className={q.input}
@@ -266,16 +267,16 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
               </datalist>
               {pulling ? (
                 <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void api!.cancelLocalPull()}>
-                  <X size={13} aria-hidden="true" /> Cancelar
+                  <X size={13} aria-hidden="true" /> {t('Cancelar')}
                 </button>
               ) : (
                 <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void startPull()} disabled={!download.trim() || !!busy}>
-                  <Download size={13} aria-hidden="true" /> Descargar
+                  <Download size={13} aria-hidden="true" /> {t('Descargar')}
                 </button>
               )}
             </div>
           </label>
-          <p className={q.muted}>Los modelos grandes razonan mejor pero necesitan más memoria de vídeo.</p>
+          <p className={q.muted}>{t('Los modelos grandes razonan mejor pero necesitan más memoria de vídeo.')}</p>
         </div>
       )}
 
@@ -284,12 +285,12 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
           <div className={s.progressHead}>
             <span>
               {pull.status === 'error'
-                ? `No se pudo descargar ${pull.model}`
+                ? t('No se pudo descargar {model}', { model: pull.model })
                 : pull.status === 'cancelled'
-                  ? `Descarga de ${pull.model} cancelada`
+                  ? t('Descarga de {model} cancelada', { model: pull.model })
                   : pull.status === 'verifying'
-                    ? `Verificando ${pull.model}…`
-                    : `Descargando ${pull.model}…`}
+                    ? t('Verificando {model}…', { model: pull.model })
+                    : t('Descargando {model}…', { model: pull.model })}
             </span>
             {pct != null && pulling && <span className={s.pct}>{Math.round(pct)}%</span>}
           </div>
@@ -300,7 +301,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
           )}
           {pull.total && pulling ? (
             <span className={q.muted}>
-              {fileSize(pull.completed ?? 0)} de {fileSize(pull.total)}
+              {fileSize(pull.completed ?? 0)} {t('de')} {fileSize(pull.total)}
             </span>
           ) : null}
           {pull.status === 'error' && pull.message && <span className={cx(q.formMsg, q.formError)}>{pull.message}</span>}
@@ -310,12 +311,12 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
       {status?.installed && models.length > 0 && (
         <>
           <label className={q.field}>
-            <span>Nombre del agente</span>
+            <span>{t('Nombre del agente')}</span>
             <input className={q.input} value={name} maxLength={24} onChange={(e) => setName(e.target.value)} placeholder={agent.name} />
           </label>
           <div className={q.budgetActions}>
             <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} onClick={() => void save()} disabled={!dirty || !!busy}>
-              {busy === 'save' ? 'Guardando…' : 'Usar este modelo'}
+              {busy === 'save' ? t('Guardando…') : t('Usar este modelo')}
             </button>
           </div>
         </>
@@ -323,14 +324,14 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
 
       <div className={s.limit}>
         <div>
-          <span className={s.limitTitle}>Sin límite de uso</span>
-          <span className={q.muted}>{unlimited ? 'Corre en tu PC: no gasta cuota.' : 'Puedes fijar un presupuesto abajo.'}</span>
+          <span className={s.limitTitle}>{t('Sin límite de uso')}</span>
+          <span className={q.muted}>{unlimited ? t('Corre en tu PC: no gasta cuota.') : t('Puedes fijar un presupuesto abajo.')}</span>
         </div>
         <button
           type="button"
           role="switch"
           aria-checked={unlimited}
-          aria-label="Sin límite de uso"
+          aria-label={t('Sin límite de uso')}
           className={s.switchBtn}
           onClick={() => void toggleUnlimited()}
           disabled={!!busy}

@@ -1,8 +1,9 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -74,7 +75,7 @@ import java.util.Locale
 // ---------------------------------------------------------------------------------------------- Utilidades
 
 fun sizeLabel(bytes: Long): String = when {
-    bytes >= 1_048_576 -> String.format(Locale.getDefault(), "%.1f MB", bytes / 1_048_576.0)
+    bytes >= 1_048_576 -> String.format(com.aicowork.remote.i18n.I18n.locale, "%.1f MB", bytes / 1_048_576.0)
     bytes >= 1024 -> "${bytes / 1024} KB"
     else -> "$bytes B"
 }
@@ -82,20 +83,20 @@ fun sizeLabel(bytes: Long): String = when {
 /** Tipo legible a partir del tipo del motor (html, markdown, code, image, text, other) o del nombre. */
 fun kindLabel(kind: String, name: String = ""): String = when {
     name.endsWith(".pdf", true) -> "PDF"
-    kind == "html" -> "Página web"
-    kind == "markdown" -> "Documento"
-    kind == "code" -> "Código"
-    kind == "image" -> "Imagen"
-    kind == "text" -> "Texto"
-    else -> "Archivo"
+    kind == "html" -> t("Página web")
+    kind == "markdown" -> t("Documento")
+    kind == "code" -> t("Código")
+    kind == "image" -> t("Imagen")
+    kind == "text" -> t("Texto")
+    else -> t("Archivo")
 }
 
 fun kindIcon(kind: String, name: String = ""): Pair<ImageVector, Color> = when {
-    name.endsWith(".pdf", true) -> Icons.Outlined.PictureAsPdf to Color(0xFFFF6B6B)
-    kind == "image" -> Icons.Outlined.Image to Color(0xFFB08CFF)
-    kind == "code" -> Icons.Outlined.Code to Color(0xFF63DCA4)
-    kind == "html" -> Icons.Outlined.Language to Color(0xFF6FB1FF)
-    else -> Icons.Outlined.Description to Color(0xFFC9D6EA)
+    name.endsWith(".pdf", true) -> Icons.Outlined.PictureAsPdf to Orbita.TextSoft
+    kind == "image" -> Icons.Outlined.Image to Orbita.TextSoft
+    kind == "code" -> Icons.Outlined.Code to Orbita.TextSoft
+    kind == "html" -> Icons.Outlined.Language to Orbita.TextSoft
+    else -> Icons.Outlined.Description to Orbita.TextSoft
 }
 
 /** Tipo del motor para un adjunto (por su MIME o su extensión). */
@@ -164,37 +165,17 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
         model.controller.listFiles(model.filesQuery).fold({ listing = it; error = null }, { error = it.message })
         loading = false
     }
-    // Lo subido va al equipo con el próximo mensaje.
-    LaunchedEffect(state.uploads) {
-        state.uploads.filter { it.done && it.attachmentId != null }.forEach { u ->
-            model.pendingAttachments = model.pendingAttachments + u.attachmentId!!
-            model.feedback.play(Sfx.FileCreated)
-            delay(2_500)
-            model.controller.dismissUpload(u.id)
-        }
-    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
-        uris.forEach { uri ->
-            val resolver = context.contentResolver
-            var name = "archivo"
-            var size = -1L
-            resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
-                if (c.moveToFirst()) {
-                    name = c.getString(0) ?: name
-                    if (!c.isNull(1)) size = c.getLong(1)
-                }
-            }
-            model.controller.upload(name, size, resolver.getType(uri)) { resolver.openInputStream(uri) ?: throw java.io.IOException("No se puede abrir $name") }
-        }
+        uris.forEach { uploadUri(context, model, it) }
     }
     val query = model.filesQuery.trim().lowercase()
     val attachments = (listing?.attachments ?: snapshot?.conversation?.attachments.orEmpty())
         .filter { query.isEmpty() || it.name.lowercase().contains(query) }
     val folder = listing?.folder
     PanelColumn {
-        PanelHeader(model, "Archivos", icon = Icons.Outlined.Description)
+        PanelHeader(model, t("Archivos"), icon = Icons.Outlined.Description)
         if (caps?.files == true) {
-            OrbitaField(model.filesQuery, { model.filesQuery = it }, "Buscar archivos", leading = Icons.Outlined.Search, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).testTag("files-search"))
+            OrbitaField(model.filesQuery, { model.filesQuery = it }, t("Buscar archivos"), leading = Icons.Outlined.Search, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).testTag("files-search"))
         }
         Segmented(FilesTab.entries.map { it to it.label }, model.filesTab, { model.filesTab = it }, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         LazyColumn(
@@ -204,7 +185,7 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (caps?.files != true) item {
-                Note(Icons.Outlined.Info, "Actualiza AI Cowork en el ordenador", "Esta versión del ordenador aún no comparte la carpeta del proyecto ni deja subir archivos desde el móvil.")
+                Note(Icons.Outlined.Info, t("Actualiza kywai en el ordenador"), t("Esta versión del ordenador aún no comparte la carpeta del proyecto ni deja subir archivos desde el móvil."))
             }
             items(state.uploads, key = { "up-${it.id}" }) { u ->
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
@@ -212,7 +193,7 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                         Icon(if (u.error != null) Icons.Outlined.ErrorOutline else if (u.done) Icons.Outlined.CheckCircle else Icons.Outlined.AttachFile, contentDescription = null, tint = if (u.error != null) Orbita.Danger else if (u.done) Orbita.Success else Orbita.Accent, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(10.dp))
                         Text(u.name, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        Text(when { u.error != null -> "Falló"; u.done -> "Subido"; else -> "${(u.progress * 100).toInt()} %" }, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                        Text(when { u.error != null -> t("Falló"); u.queued -> t("En cola"); u.done -> t("Subido"); else -> "${(u.progress * 100).toInt()} %" }, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
                     }
                     if (u.error == null && !u.done) {
                         Spacer(Modifier.height(8.dp))
@@ -221,16 +202,18 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                     if (u.error != null) {
                         Spacer(Modifier.height(6.dp))
                         Text(u.error, color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
-                        Text("Quitar", color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.dismissUpload(u.id) }.padding(vertical = 8.dp))
+                        Text(t("Quitar"), color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.dismissUpload(u.id) }.padding(vertical = 8.dp))
+                    } else if (u.queued) {
+                        Text(t("Sin conexión: se subirá con tu próximo mensaje al volver"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     } else if (u.done) {
-                        Text("Irá al equipo con tu próximo mensaje", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                        Text(t("Irá al equipo con tu próximo mensaje"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
             when (model.filesTab) {
                 FilesTab.Attachments -> {
                     if (attachments.isEmpty() && state.uploads.isEmpty()) item {
-                        Note(Icons.Outlined.AttachFile, if (query.isEmpty()) "Sin adjuntos" else "Nada coincide", if (query.isEmpty()) "Añade documentos, imágenes o notas para dárselos al equipo." else null)
+                        Note(Icons.Outlined.AttachFile, if (query.isEmpty()) t("Sin adjuntos") else t("Nada coincide"), if (query.isEmpty()) t("Añade documentos, imágenes o notas para dárselos al equipo.") else null)
                     }
                     items(attachments, key = { "att-${it.id}" }) { a ->
                         val kind = attachmentKind(a)
@@ -238,11 +221,11 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                         var menu by remember { mutableStateOf(false) }
                         FileRow(a.name, "${kindLabel(kind, a.name)} · ${sizeLabel(a.size)}${if (pending) " · irá con tu próximo mensaje" else ""}", kind, selected = pending, trailing = {
                             Box {
-                                IconAction(Icons.Outlined.MoreHoriz, "Opciones de ${a.name}", onClick = { menu = true }, size = 40.dp)
-                                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Color(0xF00E1730)) {
-                                    DropdownMenuItem(text = { Text("Abrir") }, onClick = { menu = false; model.viewer = ViewerTarget.File("attachment", a.relPath, a.name, kind) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, null) })
+                                IconAction(Icons.Outlined.MoreHoriz, t("Opciones de {name}", "name" to a.name), onClick = { menu = true }, size = 40.dp)
+                                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
+                                    DropdownMenuItem(text = { Text(t("Abrir")) }, onClick = { menu = false; model.viewer = ViewerTarget.File("attachment", a.relPath, a.name, kind) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, null) })
                                     DropdownMenuItem(
-                                        text = { Text(if (pending) "No enviar con mi próximo mensaje" else "Enviar con mi próximo mensaje") },
+                                        text = { Text(if (pending) t("No enviar con mi próximo mensaje") else t("Enviar con mi próximo mensaje")) },
                                         onClick = { menu = false; model.pendingAttachments = if (pending) model.pendingAttachments - a.id else model.pendingAttachments + a.id; model.feedback.select() },
                                         leadingIcon = { Icon(Icons.Outlined.AttachFile, null) },
                                     )
@@ -255,40 +238,40 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                     when {
                         caps?.files != true -> Unit
                         loading && folder == null -> item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Orbita.Accent) } }
-                        error != null -> item { Note(Icons.Outlined.ErrorOutline, "No se pudo leer la carpeta", error, tint = Orbita.Danger) }
-                        folder == null -> item { Note(Icons.Outlined.Folder, "Este proyecto no tiene carpeta propia", "Los agentes trabajan en la carpeta interna del proyecto. Puedes elegir una carpeta desde AI Cowork en el ordenador.") }
-                        folder.files.isEmpty() -> item { Note(Icons.Outlined.Folder, if (query.isEmpty()) "La carpeta está vacía" else "Nada coincide", null) }
+                        error != null -> item { Note(Icons.Outlined.ErrorOutline, t("No se pudo leer la carpeta"), error, tint = Orbita.Danger) }
+                        folder == null -> item { Note(Icons.Outlined.Folder, t("Este proyecto no tiene carpeta propia"), t("Los agentes trabajan en la carpeta interna del proyecto. Puedes elegir una carpeta desde kywai en el ordenador.")) }
+                        folder.files.isEmpty() -> item { Note(Icons.Outlined.Folder, if (query.isEmpty()) t("La carpeta está vacía") else t("Nada coincide"), null) }
                         else -> {
                             items(folder.files, key = { "f-${it.path}" }) { f: FolderFile ->
                                 FileRow(f.name, listOfNotNull(f.path.substringBeforeLast('/', "").ifBlank { null }, sizeLabel(f.size)).joinToString(" · "), f.kind) {
                                     model.viewer = ViewerTarget.File("folder", f.path, f.name, f.kind)
                                 }
                             }
-                            if (folder.truncated) item { Text("Hay más archivos: busca por nombre para encontrarlos.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(4.dp)) }
+                            if (folder.truncated) item { Text(t("Hay más archivos: busca por nombre para encontrarlos."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(4.dp)) }
                         }
                     }
                 }
             }
             item {
                 val name = snapshot?.conversation?.folder?.name
-                Text("Carpeta del proyecto", color = Orbita.TextSoft, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp))
+                Text(t("Carpeta del proyecto"), color = Orbita.TextSoft, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp))
                 Row(
                     Modifier.fillMaxWidth().heightIn(min = 60.dp).card().tappable { model.filesTab = FilesTab.Project }.padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Outlined.Folder, contentDescription = null, tint = Color(0xFF6FA0E8), modifier = Modifier.size(28.dp))
+                    Icon(Icons.Outlined.Folder, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(28.dp))
                     Spacer(Modifier.width(12.dp))
-                    Text(name ?: "Sin carpeta propia", color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    Text(name ?: t("Sin carpeta propia"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                 }
             }
         }
         if (caps?.upload == true) {
-            OrbitaButton("Añadir archivos", onClick = { picker.launch(arrayOf("*/*")) }, icon = Icons.Outlined.Add, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp).testTag("add-files"))
+            OrbitaButton(t("Añadir archivos"), onClick = { picker.launch(arrayOf("*/*")) }, icon = Icons.Outlined.Add, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp).testTag("add-files"))
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.Info, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Los adjuntos van al equipo con tu próximo mensaje", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+            Text(t("Los adjuntos van al equipo con tu próximo mensaje"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -315,7 +298,7 @@ fun ResultsPanel(model: OrbitaModel, state: CoworkUiState) {
     val artifacts = snapshot?.conversation?.artifacts.orEmpty().sortedByDescending { it.createdAt ?: 0 }
     val shown = artifacts.filter { matches(model.resultFilter, it) }
     PanelColumn {
-        PanelHeader(model, "Resultados", "Lo que ha creado el equipo", icon = Icons.Outlined.Inventory2)
+        PanelHeader(model, t("Resultados"), t("Lo que ha creado el equipo"), icon = Icons.Outlined.Inventory2)
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth().testTag("results-list"),
             state = model.resultsList,
@@ -323,7 +306,7 @@ fun ResultsPanel(model: OrbitaModel, state: CoworkUiState) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (shown.isEmpty()) item {
-                Note(Icons.Outlined.Inventory2, if (artifacts.isEmpty()) "Todavía no hay resultados" else "Nada en este filtro", if (artifacts.isEmpty()) "Cuando un agente cree un documento, una página o código, aparecerá aquí." else null)
+                Note(Icons.Outlined.Inventory2, if (artifacts.isEmpty()) t("Todavía no hay resultados") else t("Nada en este filtro"), if (artifacts.isEmpty()) t("Cuando un agente cree un documento, una página o código, aparecerá aquí.") else null)
             }
             items(shown, key = { it.id }) { a -> ResultCard(a, model, snapshot!!) }
         }
@@ -349,7 +332,7 @@ private fun ResultCard(a: Artifact, model: OrbitaModel, snapshot: com.aicowork.r
                         var sample = 1
                         while (opts.outWidth / sample > 720) sample *= 2
                         BitmapFactory.decodeByteArray(raw.bytes, 0, raw.bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
-                            ?.let { Preview.Picture(it.asImageBitmap()) } ?: Preview.None("Imagen ilegible")
+                            ?.let { Preview.Picture(it.asImageBitmap()) } ?: Preview.None(t("Imagen ilegible"))
                     } else Preview.Text(raw.text().take(700))
                 }
             },
@@ -365,16 +348,17 @@ private fun ResultCard(a: Artifact, model: OrbitaModel, snapshot: com.aicowork.r
                 Text(a.name, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("${agent?.name ?: "Equipo"} · ${kindLabel(a.kind, a.name)}", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
+            ArtifactDownloadButton(listOf(a), model, enabled = canFetch)
             Box {
-                IconAction(Icons.Outlined.MoreHoriz, "Opciones de ${a.name}", onClick = { menu = true }, size = 40.dp)
-                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Color(0xF00E1730)) {
-                    DropdownMenuItem(text = { Text("Abrir") }, onClick = { menu = false; model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, null) })
-                    a.taskId?.let { id -> DropdownMenuItem(text = { Text("Ver la tarea") }, onClick = { menu = false; model.openTask(id) }, leadingIcon = { Icon(Icons.Outlined.Description, null) }) }
+                IconAction(Icons.Outlined.MoreHoriz, t("Opciones de {name}", "name" to a.name), onClick = { menu = true }, size = 40.dp)
+                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
+                    DropdownMenuItem(text = { Text(t("Abrir")) }, onClick = { menu = false; model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, null) })
+                    a.taskId?.let { id -> DropdownMenuItem(text = { Text(t("Ver la tarea")) }, onClick = { menu = false; model.openTask(id) }, leadingIcon = { Icon(Icons.Outlined.Description, null) }) }
                 }
             }
         }
         Spacer(Modifier.height(10.dp))
-        Box(Modifier.fillMaxWidth().height(132.dp).clip(RoundedCornerShape(16.dp)).background(Color(0x5A0A1222)), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().height(132.dp).clip(RoundedCornerShape(16.dp)).background(Orbita.Card), contentAlignment = Alignment.Center) {
             when (preview) {
                 is Preview.Picture -> Image(preview.image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                 is Preview.Text -> Text(
@@ -395,9 +379,9 @@ private fun ResultCard(a: Artifact, model: OrbitaModel, snapshot: com.aicowork.r
             }
         }
         Spacer(Modifier.height(10.dp))
-        OrbitaButton("Abrir resultado", onClick = { model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, icon = Icons.AutoMirrored.Outlined.OpenInNew, haptic = Haptic.Tap, height = 46.dp, enabled = snapshot.capabilities.artifacts, modifier = Modifier.fillMaxWidth())
+        OrbitaButton(t("Abrir resultado"), onClick = { model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, icon = Icons.AutoMirrored.Outlined.OpenInNew, haptic = Haptic.Tap, height = 46.dp, enabled = snapshot.capabilities.artifacts, modifier = Modifier.fillMaxWidth())
         if (!snapshot.capabilities.artifacts) {
-            Text("Para abrirlo desde el móvil, actualiza AI Cowork en el ordenador.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
+            Text(t("Para abrirlo desde el móvil, actualiza kywai en el ordenador."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
         }
     }
 }

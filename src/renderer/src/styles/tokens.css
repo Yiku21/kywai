@@ -1,4 +1,4 @@
-/* Tokens de diseño de AI Cowork. Toda la interfaz usa estas variables. */
+/* Tokens de diseño de kywai. Toda la interfaz usa estas variables. */
 :root {
   --bg-app: #060a12;
   --bg-panel: #0b111c;
@@ -136,4 +136,10 @@ input:focus-visible {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Lo buscado dentro del mensaje al que llevó el buscador (API de resaltado de CSS, sin tocar el texto). */
+::highlight(cowork-search) {
+  background-color: color-mix(in srgb, var(--cyan) 35%, transparent);
+  color: inherit;
 }

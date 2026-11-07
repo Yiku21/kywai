@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.DpSize
@@ -65,11 +66,11 @@ class OrbitaLayoutTest {
     }
 
     @Test
-    fun unfoldedShowsRailWorldTeamAndAPanelThatExpandsAndCloses() {
+    fun unfoldedShowsSidebarWorldTeamAndAPanelThatExpandsAndCloses() {
         val controller = FakeController(SampleData.state())
         val model = show(controller)
-        compose.onNodeWithTag("rail").assertIsDisplayed()
-        compose.onNodeWithTag("team-bar").assertIsDisplayed()
+        compose.onNodeWithTag("sidebar").assertIsDisplayed()
+        compose.onNodeWithTag("agent-switcher").assertIsDisplayed()
         compose.onNodeWithTag("nav-Tasks").performClick()
         compose.onNodeWithTag("panel").assertIsDisplayed()
         compose.onNodeWithText("Construir pantallas").assertIsDisplayed()
@@ -101,32 +102,33 @@ class OrbitaLayoutTest {
         val model = show(controller, size = size)
         compose.onNodeWithTag("nav-Chat").performClick()
         compose.onNodeWithTag("composer").performTextInput("Borrador que no se pierde")
-        compose.onNodeWithTag("rail").assertIsDisplayed()
+        compose.onNodeWithTag("sidebar").assertIsDisplayed()
 
         size.value = folded
         compose.waitForIdle()
-        compose.onNodeWithTag("bottom-nav").assertIsDisplayed()
-        compose.onAllNodesWithTag("rail").assertCountEquals(0)
+        compose.onNodeWithTag("panel-tabs").assertIsDisplayed()
+        compose.onAllNodesWithTag("sidebar").assertCountEquals(0)
         compose.onNodeWithTag("composer").assertTextContains("Borrador que no se pierde")
         assertEquals(Section.Chat, model.section)
 
         size.value = unfolded
         compose.waitForIdle()
-        compose.onNodeWithTag("rail").assertIsDisplayed()
+        compose.onNodeWithTag("sidebar").assertIsDisplayed()
         compose.onNodeWithTag("composer").assertTextContains("Borrador que no se pierde")
     }
 
     @Test
     @Config(qualifiers = "w475dp-h751dp")
-    fun foldedMoreOpensAPanelAndAConfirmationWaitsForTheComputer() {
+    fun foldedMenuOpensAPanelAndAConfirmationWaitsForTheComputer() {
         val controller = FakeController(SampleData.state())
         show(controller)
-        compose.onNodeWithTag("bottom-nav").assertIsDisplayed()
-        compose.onNodeWithTag("nav-more").performClick()
-        compose.onNodeWithTag("more-panels").assertIsDisplayed()
-        compose.onNodeWithTag("more-Memory").performClick()
+        // Plegado: pestañas arriba y el resto en la barra lateral (botón de menú).
+        compose.onNodeWithTag("panel-tabs").assertIsDisplayed()
+        compose.onNodeWithTag("menu-button").performClick()
+        compose.onNodeWithTag("side-more").performClick()
+        compose.onNodeWithTag("nav-Memory").performClick()
         compose.waitForIdle()
-        compose.onAllNodesWithTag("more-panels").assertCountEquals(0)
+        compose.onAllNodesWithTag("sidebar").assertCountEquals(0)
         compose.onNodeWithTag("memory-list").performScrollToNode(hasTestTag("memory-confirm-m2"))
         compose.onNodeWithTag("memory-confirm-m2").performClick()
         compose.waitUntil(5_000) { "memoryStatus:m2:confirmed" in controller.calls }
@@ -169,7 +171,7 @@ class OrbitaLayoutTest {
         compose.onNodeWithTag("nav-Settings").performClick()
         compose.onNodeWithTag("toggle-sound").performClick()
         compose.onNodeWithTag("toggle-ambient").performClick()
-        compose.onNodeWithText("Suave").performClick()
+        compose.onNodeWithText("Suave").performScrollTo().performClick()
         compose.waitForIdle()
         assertFalse(prefs.preferences.value.sound)
         assertFalse(model.feedback.sound)
@@ -194,7 +196,7 @@ class OrbitaLayoutTest {
     fun projectsResultsAndFilesComeFromTheComputer() {
         val controller = FakeController(SampleData.state())
         show(controller)
-        compose.onNodeWithTag("project-chip").performClick()
+        // Los proyectos están en la barra lateral: tocar uno lo abre.
         compose.onNodeWithText("Otro proyecto").performClick()
         compose.waitUntil(5_000) { "select:c2" in controller.calls }
 
@@ -205,6 +207,8 @@ class OrbitaLayoutTest {
         compose.onNodeWithText("Hola").assertIsDisplayed()
         compose.onNodeWithTag("viewer-close").performClick()
 
+        // Archivos está en «Más».
+        compose.onNodeWithTag("side-more").performClick()
         compose.onNodeWithTag("nav-Files").performClick()
         compose.onNodeWithText("brief.pdf").assertIsDisplayed()
         compose.onNodeWithText("Proyecto").performClick()

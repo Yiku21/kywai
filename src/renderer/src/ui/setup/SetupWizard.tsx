@@ -1,31 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { AlertTriangle, Check, CircleCheck, Crown, Download, ExternalLink, KeyRound, LoaderCircle, LogIn, Plus, RefreshCw, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Check, CircleCheck, Crown, Download, ExternalLink, Gift, KeyRound, LoaderCircle, LogIn, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import type { AgentConfig, SetupAuth, SetupTool, SetupToolId } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { RobotAvatar } from '@/lib/RobotAvatar'
 import { catalogEntry } from '@shared/agentCatalog'
+import { installOrder } from '@shared/setupTool'
 import { LocalConfig } from '../quota/LocalConfig'
 import { AddAgent } from './AddAgent'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SetupWizard.module.css'
+import { t } from '@/lib/i18n'
 
 type Step = 0 | 1 | 2 | 3
 type LocalEngine = 'lmstudio' | 'ollama'
 
-const STEPS = ['Agentes', 'Programas', 'Sesiones', 'Listo']
+const STEPS = [t('Agentes'), t('Programas'), t('Sesiones'), t('Listo')]
 
 const isLocal = (a: AgentConfig): boolean => a.provider === 'ollama' || a.provider === 'lmstudio'
 
 /** Qué hace cada agente y qué cuenta necesita (texto de las tarjetas). */
 const ABOUT: Record<string, { what: string; account: string }> = {
-  hermes: { what: 'Coordinador: planifica y reparte el trabajo entre los demás.', account: 'Necesita un proveedor de modelos (OmniRoute, Nous Portal u otra cuenta).' },
-  claude: { what: 'Diseño, textos y código de calidad.', account: 'Con tu suscripción de Claude (Pro o Max).' },
-  codex: { what: 'Programación y tareas técnicas.', account: 'Con tu cuenta de ChatGPT.' },
-  gemini: { what: 'Análisis, investigación y documentos largos.', account: 'Con tu cuenta de Google o una clave de API.' },
-  muse: { what: 'Vídeos y refuerzo cuando los demás no tienen cuota.', account: 'Con tu suscripción de Muse Code (cuenta de Meta).' },
-  local: { what: 'Tareas sencillas gratis, en tu propio equipo.', account: 'Sin cuenta: LM Studio u Ollama con un modelo descargado.' }
+  hermes: { what: t('Coordinador: planifica y reparte el trabajo entre los demás.'), account: t('Necesita un proveedor de modelos (OmniRoute, Nous Portal, OpenRouter u otra cuenta).') },
+  claude: { what: t('Diseño, textos y código de calidad.'), account: t('Con tu suscripción de Claude (Pro o Max).') },
+  codex: { what: t('Programación y tareas técnicas.'), account: t('Con tu cuenta de ChatGPT.') },
+  gemini: { what: t('Análisis, investigación y documentos largos.'), account: t('Con una clave de API de Google AI Studio (gratis) o una cuenta de empresa de Gemini Code Assist. Desde junio de 2026, las cuentas personales de Google usan Antigravity CLI.') },
+  muse: { what: t('Vídeos y refuerzo cuando los demás no tienen cuota.'), account: t('Con tu suscripción de Muse Code (cuenta de Meta).') },
+  local: { what: t('Tareas sencillas gratis, en tu propio equipo.'), account: t('Sin cuenta: LM Studio u Ollama con un modelo descargado.') }
 }
 
 /** Qué hace y con qué cuenta funciona: el texto de fábrica, el del catálogo o, si no, su rol. */
@@ -34,7 +36,15 @@ function aboutAgent(a: AgentConfig): { what: string; account: string } {
   if (ABOUT[key]) return ABOUT[key]
   const entry = a.cli?.presetId ? catalogEntry(a.cli.presetId) : undefined
   if (entry) return { what: entry.summary, account: entry.account }
-  return { what: a.role || 'Agente conectado.', account: a.provider === 'cli' ? 'Con la sesión que tengas iniciada en su programa.' : '' }
+  return { what: a.role ? t(a.role) : t('Agente conectado.'), account: a.provider === 'cli' ? t('Con la sesión que tengas iniciada en su programa.') : '' }
+}
+
+/** Cómo se usa gratis (la etiqueta «Gratis»): el agente local siempre; los demás, según el catálogo. */
+function freeOf(a: AgentConfig): string | undefined {
+  if (isLocal(a)) return t('Gratis: funciona en tu propio equipo, sin cuenta ni límites.')
+  // Uno a medida (sin presetId) no es del catálogo aunque su programa se llame igual.
+  const entry = a.cli ? (a.cli.presetId ? catalogEntry(a.cli.presetId) : undefined) : catalogEntry(a.id)
+  return entry?.free ? t(entry.free) : undefined
 }
 
 function toolFor(a: AgentConfig, engine: LocalEngine): SetupToolId | null {
@@ -44,7 +54,7 @@ function toolFor(a: AgentConfig, engine: LocalEngine): SetupToolId | null {
   return null
 }
 
-/** Asistente de primer arranque (y desde el menú ⋮): agentes, programas, inicio de sesión. */
+/** Asistente de primer arranque (y desde el menú ⚙): agentes, programas, inicio de sesión. */
 export function SetupWizard() {
   const configAgents = useCowork((st) => st.config.agents)
   const coordinatorId = useCowork((st) => st.config.plannerOrder[0])
@@ -63,8 +73,11 @@ export function SetupWizard() {
   const [geminiKey, setGeminiKey] = useState('')
   const [agentKeys, setAgentKeys] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
+  // Sesiones que el usuario ha pedido cambiar (lápiz): se enseñan como si faltaran hasta la siguiente comprobación.
+  const [changing, setChanging] = useState<ReadonlySet<SetupToolId>>(new Set())
   const [busy, setBusy] = useState(false)
-  const [adding, setAdding] = useState(false)
+  // Catálogo abierto: con todos o solo con los gratis.
+  const [adding, setAdding] = useState<false | 'all' | 'free'>(false)
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
 
   // Un agente que se acaba de añadir entra elegido.
@@ -76,27 +89,27 @@ export function SetupWizard() {
   }, [main])
 
   const selected = main.filter((a) => chosen.has(a.id))
-  const agentTools = selected.map((a) => toolFor(a, engine)).filter((t): t is SetupToolId => !!t)
-  const loginTools: SetupToolId[] = agentTools.filter((t) => {
-    if (t.startsWith('cli:')) {
-      const spec = selected.find((a) => a.id === t.slice(4))?.cli
+  const agentTools = selected.map((a) => toolFor(a, engine)).filter((tool): tool is SetupToolId => !!tool)
+  const loginTools: SetupToolId[] = agentTools.filter((tool) => {
+    if (tool.startsWith('cli:')) {
+      const spec = selected.find((a) => a.id === tool.slice(4))?.cli
       return !!(spec?.login || spec?.authCheck || spec?.apiKey)
     }
-    return t === 'claude' || t === 'codex' || t === 'gemini' || t === 'hermes' || t === 'muse'
+    return tool === 'claude' || tool === 'codex' || tool === 'gemini' || tool === 'hermes' || tool === 'muse'
   })
 
   // Programas a mostrar: los de los agentes elegidos y lo que necesiten antes (Node.js, Homebrew).
   const shownTools = useMemo(() => {
     if (!tools) return []
-    const byId = new Map(tools.map((t) => [t.id, t]))
+    const byId = new Map(tools.map((tool) => [tool.id, tool]))
     const ids = new Set<SetupToolId>()
     if (byId.has('brew')) ids.add('brew')
     for (const id of agentTools) {
-      const t = byId.get(id)
-      if (t?.needs && !t.installed) ids.add(t.needs)
+      const tool = byId.get(id)
+      if (tool?.needs && !tool.installed) ids.add(tool.needs)
       ids.add(id)
     }
-    return [...ids].map((id) => byId.get(id)).filter((t): t is SetupTool => !!t)
+    return [...ids].map((id) => byId.get(id)).filter((tool): tool is SetupTool => !!tool)
   }, [tools, agentTools.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const detect = useCallback(async () => {
@@ -138,12 +151,14 @@ export function SetupWizard() {
   const pendingLogins = useRef<SetupToolId[]>([])
   pendingLogins.current = loginTools.filter((id) => {
     const st = auth[id]
-    return !st || (st !== 'checking' && !st.ok)
+    return !st || (st !== 'checking' && !st.ok) || changing.has(id)
   })
   useEffect(() => {
     if (step !== 2) return
     const onFocus = () => {
-      if (pendingLogins.current.length) void checkAuth(pendingLogins.current)
+      if (!pendingLogins.current.length) return
+      // Al volver con la sesión cambiada se enseña la nueva (correo o proveedor) y el lápiz otra vez.
+      void Promise.resolve(checkAuth(pendingLogins.current)).finally(() => setChanging(new Set()))
     }
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
@@ -230,11 +245,10 @@ export function SetupWizard() {
   }
 
   async function installMissing(): Promise<void> {
-    // Primero lo que necesitan los demás (Node.js), luego cada CLI.
-    const order = [...shownTools].sort((x, y) => Number(y.id === 'node') - Number(x.id === 'node'))
-    for (const t of order) {
-      if (t.installed || !t.canInstall) continue
-      if (!(await install(t.id))) break
+    // Primero lo que necesitan los demás (Homebrew, Node.js, Python), luego cada CLI.
+    for (const tool of installOrder(shownTools)) {
+      if (tool.installed || !tool.canInstall) continue
+      if (!(await install(tool.id))) break
     }
   }
 
@@ -260,6 +274,7 @@ export function SetupWizard() {
     try {
       const r = await a.setAgentKey(agentId, key)
       setAuth((prev) => ({ ...prev, [id]: r }))
+      if (r.ok) setChanging((prev) => new Set([...prev].filter((x) => x !== id)))
       setAgentKeys((prev) => ({ ...prev, [agentId]: '' }))
     } catch (err) {
       setError(errorText(err))
@@ -276,6 +291,7 @@ export function SetupWizard() {
     try {
       const r = await a.setupGeminiKey(geminiKey)
       setAuth((prev) => ({ ...prev, gemini: r }))
+      if (r.ok) setChanging((prev) => new Set([...prev].filter((x) => x !== 'gemini')))
       setGeminiKey('')
     } catch (err) {
       setError(errorText(err))
@@ -293,13 +309,13 @@ export function SetupWizard() {
     }
   }
 
-  const missing = shownTools.filter((t) => !t.installed)
+  const missing = shownTools.filter((tool) => !tool.installed)
   const localGroup = quotaGroups.find((g) => g.id === 'local')
   const ready = (id: SetupToolId): boolean => {
-    const t = tools?.find((x) => x.id === id)
+    const tool = tools?.find((x) => x.id === id)
     const au = auth[id]
     const loggedIn = !loginTools.includes(id) || (!!au && au !== 'checking' && au.ok)
-    return !!t?.installed && loggedIn
+    return !!tool?.installed && loggedIn
   }
 
   return (
@@ -308,11 +324,11 @@ export function SetupWizard() {
         <header className={s.head}>
           <div>
             <h2 id="setup-title" className={s.title}>
-              Configura AI Cowork
+              {t('Configura kywai')}
             </h2>
-            <p className={s.subtitle}>Elige tu equipo, instala lo que falte e inicia sesión. Puedes repetirlo cuando quieras desde el menú ⋮.</p>
+            <p className={s.subtitle}>{t('Elige tu equipo, instala lo que falte e inicia sesión. Puedes repetirlo cuando quieras desde el menú ⚙.')}</p>
           </div>
-          <button type="button" className={cx(u.iconBtn, s.close)} aria-label="Cerrar el asistente" title="Cerrar (podrás volver desde el menú ⋮)" onClick={() => void finish()}>
+          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar el asistente')} title={t('Cerrar (podrás volver desde el menú ⚙)')} onClick={() => void finish()}>
             <X size={18} />
           </button>
         </header>
@@ -328,129 +344,175 @@ export function SetupWizard() {
 
         <div className={s.body}>
           {step === 0 && (
-            <div className={s.cards}>
-              {main.map((a) => {
-                const about = aboutAgent(a)
-                const on = chosen.has(a.id)
-                const isCoordinator = coordinatorId === a.id
-                return (
-                  <div key={a.id} className={cx(s.card, on && s.cardOn)} style={{ ['--agent' as string]: a.color }}>
-                    <button type="button" className={s.cardMain} aria-pressed={on} onClick={() => toggle(a.id)}>
-                      <RobotAvatar agent={a} size={52} />
-                      <span className={s.cardText}>
-                        <span className={s.cardName}>
-                          {isLocal(a) ? 'Agente local' : a.name}
-                          {isCoordinator && <span className={s.tag}>Coordinador</span>}
-                          {a.provider === 'cli' && a.cli && !a.cli.presetId && <span className={s.tagSoft}>a medida</span>}
+            <>
+              <div className={s.cards}>
+                {main.map((a) => {
+                  const about = aboutAgent(a)
+                  const on = chosen.has(a.id)
+                  const isCoordinator = coordinatorId === a.id
+                  return (
+                    <div key={a.id} className={cx(s.card, on && s.cardOn)} style={{ ['--agent' as string]: a.color }}>
+                      <button type="button" className={s.cardMain} aria-pressed={on} onClick={() => toggle(a.id)}>
+                        <RobotAvatar agent={a} size={52} />
+                        <span className={s.cardText}>
+                          <span className={s.cardName}>
+                            {isLocal(a) ? t('Agente local') : a.name}
+                            {isCoordinator && <span className={s.tag}>{t('Coordinador')}</span>}
+                            {freeOf(a) && (
+                              <span className={s.tagFree} title={freeOf(a)}>
+                                {t('Gratis')}
+                              </span>
+                            )}
+                            {a.provider === 'cli' && a.cli && !a.cli.presetId && <span className={s.tagSoft}>{t('a medida')}</span>}
+                          </span>
+                          <span className={s.cardWhat}>{about.what}</span>
+                          <span className={s.cardAccount}>{about.account}</span>
                         </span>
-                        <span className={s.cardWhat}>{about.what}</span>
-                        <span className={s.cardAccount}>{about.account}</span>
-                      </span>
-                      <span className={cx(s.check, on && s.checkOn)} aria-hidden="true">
-                        {on && <Check size={14} />}
-                      </span>
-                    </button>
-                    <div className={s.cardTools}>
-                      {on && !isCoordinator && (
-                        <button type="button" className={s.cardTool} onClick={() => void makeCoordinator(a.id)} title="Que este agente planifique y reparta el trabajo">
-                          <Crown size={12} aria-hidden="true" /> Hacer coordinador
-                        </button>
-                      )}
-                      {main.length > 1 && (
-                        <button
-                          type="button"
-                          className={cx(s.cardTool, confirmRemove === a.id && s.cardToolDanger)}
-                          onClick={() => void removeAgent(a.id)}
-                          onBlur={() => setConfirmRemove((c) => (c === a.id ? null : c))}
-                          title="Quitar este agente de tu equipo"
-                        >
-                          <Trash2 size={12} aria-hidden="true" /> {confirmRemove === a.id ? 'Pulsa otra vez para quitarlo' : 'Quitar'}
-                        </button>
+                        <span className={cx(s.check, on && s.checkOn)} aria-hidden="true">
+                          {on && <Check size={14} />}
+                        </span>
+                      </button>
+                      <div className={s.cardTools}>
+                        {on && !isCoordinator && (
+                          <button type="button" className={s.cardTool} onClick={() => void makeCoordinator(a.id)} title={t('Que este agente planifique y reparta el trabajo')}>
+                            <Crown size={12} aria-hidden="true" /> {t('Hacer coordinador')}
+                          </button>
+                        )}
+                        {main.length > 1 && (
+                          <button
+                            type="button"
+                            className={cx(s.cardTool, confirmRemove === a.id && s.cardToolDanger)}
+                            onClick={() => void removeAgent(a.id)}
+                            onBlur={() => setConfirmRemove((c) => (c === a.id ? null : c))}
+                            title={t('Quitar este agente de tu equipo')}
+                          >
+                            <Trash2 size={12} aria-hidden="true" /> {confirmRemove === a.id ? t('Pulsa otra vez para quitarlo') : t('Quitar')}
+                          </button>
+                        )}
+                      </div>
+                      {isLocal(a) && on && (
+                        <div className={s.engines} role="radiogroup" aria-label={t('Programa del agente local')}>
+                          {(['lmstudio', 'ollama'] as const).map((eng) => (
+                            <button
+                              key={eng}
+                              type="button"
+                              role="radio"
+                              aria-checked={engine === eng}
+                              className={cx(s.engine, engine === eng && s.engineOn)}
+                              onClick={() => setEngine(eng)}
+                            >
+                              {eng === 'lmstudio' ? 'LM Studio' : 'Ollama'}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    {isLocal(a) && on && (
-                      <div className={s.engines} role="radiogroup" aria-label="Programa del agente local">
-                        {(['lmstudio', 'ollama'] as const).map((eng) => (
-                          <button
-                            key={eng}
-                            type="button"
-                            role="radio"
-                            aria-checked={engine === eng}
-                            className={cx(s.engine, engine === eng && s.engineOn)}
-                            onClick={() => setEngine(eng)}
-                          >
-                            {eng === 'lmstudio' ? 'LM Studio' : 'Ollama'}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-              <button type="button" className={cx(s.card, s.addCard)} onClick={() => setAdding(true)}>
-                <span className={s.addIcon} aria-hidden="true">
-                  <Plus size={22} />
-                </span>
-                <span className={s.cardText}>
-                  <span className={s.cardName}>Añadir un agente</span>
-                  <span className={s.cardWhat}>Conecta otro de los que ya usas con tu suscripción: Aider, OpenCode, Copilot, Cursor… o cualquier programa de terminal.</span>
-                </span>
-              </button>
-            </div>
+                  )
+                })}
+                <button type="button" className={cx(s.card, s.addCard)} onClick={() => setAdding('all')}>
+                  <span className={s.addIcon} aria-hidden="true">
+                    <Plus size={22} />
+                  </span>
+                  <span className={s.cardText}>
+                    <span className={s.cardName}>{t('Añadir un agente')}</span>
+                    <span className={s.cardWhat}>{t('Conecta otro de los que ya usas con tu suscripción: Aider, OpenCode, Copilot, Cursor… o cualquier programa de terminal.')}</span>
+                  </span>
+                </button>
+              </div>
+              <details className={s.freeBox}>
+                <summary className={s.freeSummary}>
+                  <Gift size={15} aria-hidden="true" /> {t('¿No pagas ninguna suscripción? Así puedes usar kywai gratis')}
+                </summary>
+                <p className={s.rowDetail}>
+                  {t('Los agentes con la etiqueta «Gratis» funcionan sin suscripción de pago, cada uno con su límite. Para empezar:')}
+                </p>
+                <ul className={s.freeList}>
+                  <li>
+                    <span>
+                      <strong>{t('Para trabajar')}</strong>: {t('Kilo CLI, gratis y sin cuenta; también OpenCode, Copilot CLI (con Copilot Free) o Cline.')}
+                    </span>
+                    <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setAdding('free')}>
+                      <Plus size={13} aria-hidden="true" /> {t('Ver los agentes gratis')}
+                    </button>
+                  </li>
+                  <li>
+                    <span>
+                      <strong>Gemini</strong>: {t('con una clave gratis de Google AI Studio (sin tarjeta). Pégala en el paso «Sesiones».')}
+                    </span>
+                    <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void api?.openExternal('https://aistudio.google.com/apikey')}>
+                      <ExternalLink size={13} aria-hidden="true" /> {t('Conseguir la clave')}
+                    </button>
+                  </li>
+                  <li>
+                    <span>
+                      <strong>{t('Para coordinar (Hermes)')}</strong>: {t('con una clave gratis de OpenRouter. En «Sesiones», pulsa «Configurar» en Hermes, elige OpenRouter y un modelo que acabe en «:free» (unas 50 peticiones al día).')}
+                    </span>
+                    <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void api?.openExternal('https://openrouter.ai/settings/keys')}>
+                      <ExternalLink size={13} aria-hidden="true" /> {t('Conseguir la clave')}
+                    </button>
+                  </li>
+                  <li>
+                    <span>
+                      <strong>{t('Agente local')}</strong>: {t('siempre gratis y sin límites, con LM Studio u Ollama en tu propio equipo.')}
+                    </span>
+                  </li>
+                </ul>
+              </details>
+            </>
           )}
 
           {step === 1 && (
             <div className={s.section}>
               <div className={s.sectionHead}>
-                <p className={s.lead}>Cada agente funciona con su programa oficial (CLI). Lo que falte se instala desde aquí.</p>
+                <p className={s.lead}>{t('Cada agente funciona con su programa oficial (CLI). Lo que falte se instala desde aquí.')}</p>
                 <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void detect()} disabled={detecting || !!installing}>
                   <RefreshCw size={13} className={cx(detecting && u.spin)} aria-hidden="true" />
-                  Comprobar de nuevo
+                  {t('Comprobar de nuevo')}
                 </button>
               </div>
               {!tools ? (
                 <p className={s.muted}>
-                  <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> Buscando programas…
+                  <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> {t('Buscando programas…')}
                 </p>
               ) : (
                 <ul className={s.rows}>
-                  {shownTools.map((t) => (
-                    <li key={t.id} className={s.row}>
-                      <span className={cx(s.state, t.installed ? s.stateOk : s.stateMissing)} aria-hidden="true">
-                        {t.installed ? <Check size={13} /> : <X size={13} />}
+                  {shownTools.map((tool) => (
+                    <li key={tool.id} className={s.row}>
+                      <span className={cx(s.state, tool.installed ? s.stateOk : s.stateMissing)} aria-hidden="true">
+                        {tool.installed ? <Check size={13} /> : <X size={13} />}
                       </span>
                       <span className={s.rowText}>
-                        <span className={s.rowName}>{t.label}</span>
+                        <span className={s.rowName}>{tool.label}</span>
                         <span className={s.rowDetail}>
-                          {t.installed
-                            ? `Instalado${t.version ? ` · ${t.version}` : ''}`
-                            : t.id === 'brew'
-                              ? 'Recomendado en Mac: instala programas sin pedirte nada más'
-                              : t.needs && !tools.find((x) => x.id === t.needs)?.installed
-                                ? `Falta · necesita ${tools.find((x) => x.id === t.needs)?.label ?? t.needs}`
-                                : 'No instalado'}
+                          {tool.installed
+                            ? t('Instalado') + (tool.version ? ` · ${tool.version}` : '')
+                            : tool.id === 'brew'
+                              ? t('Recomendado en Mac: instala programas sin pedirte nada más')
+                              : tool.needs && !tools.find((x) => x.id === tool.needs)?.installed
+                                ? t('Falta · necesita {tool}', { tool: tools.find((x) => x.id === tool.needs)?.label ?? tool.needs })
+                                : t('No instalado')}
                         </span>
                       </span>
-                      {!t.installed &&
-                        (t.canInstall ? (
-                          <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} onClick={() => void install(t.id)} disabled={!!installing}>
-                            {installing === t.id ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : <Download size={13} aria-hidden="true" />}
-                            {installing === t.id ? 'Instalando…' : 'Instalar'}
+                      {!tool.installed &&
+                        (tool.canInstall ? (
+                          <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} onClick={() => void install(tool.id)} disabled={!!installing}>
+                            {installing === tool.id ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : <Download size={13} aria-hidden="true" />}
+                            {installing === tool.id ? t('Instalando…') : t('Instalar')}
                           </button>
                         ) : (
-                          <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void api?.openExternal(t.url)}>
+                          <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void api?.openExternal(tool.url)}>
                             <ExternalLink size={13} aria-hidden="true" />
-                            Descargar
+                            {t('Descargar')}
                           </button>
                         ))}
                     </li>
                   ))}
                 </ul>
               )}
-              {missing.some((t) => t.canInstall) && (
+              {missing.some((tool) => tool.canInstall) && (
                 <button type="button" className={cx(u.btn, u.btnPrimary, s.allBtn)} onClick={() => void installMissing()} disabled={!!installing}>
                   <Download size={14} aria-hidden="true" />
-                  Instalar todo lo que falta
+                  {t('Instalar todo lo que falta')}
                 </button>
               )}
               {(installing || log.length > 0) && (
@@ -467,8 +529,7 @@ export function SetupWizard() {
           {step === 2 && (
             <div className={s.section}>
               <p className={s.lead}>
-                Cada agente inicia sesión con su propia cuenta en una ventana aparte (normalmente se abre el navegador). AI Cowork no ve ni guarda
-                tus contraseñas. Al volver aquí se comprueba solo.
+                {t('Cada agente inicia sesión con su propia cuenta en una ventana aparte (normalmente se abre el navegador). kywai no ve ni guarda tus contraseñas. Al volver aquí se comprueba solo.')}
               </p>
               <ul className={s.rows}>
                 {loginTools.map((id) => {
@@ -476,15 +537,23 @@ export function SetupWizard() {
                   const agent = selected.find((a) => toolFor(a, engine) === id)
                   const checking = st === 'checking'
                   const ok = !!st && st !== 'checking' && st.ok
+                  const isChanging = changing.has(id)
+                  const showFix = !ok || isChanging
+                  const stopChanging = () =>
+                    setChanging((prev) => {
+                      const next = new Set(prev)
+                      next.delete(id)
+                      return next
+                    })
                   return (
                     <li key={id} className={cx(s.row, s.rowTall)}>
                       {agent && <RobotAvatar agent={agent} size={34} />}
                       <span className={s.rowText}>
                         <span className={s.rowName}>{agent?.name ?? id}</span>
                         <span className={cx(s.rowDetail, ok && s.okText)}>
-                          {st === 'checking' ? 'Comprobando…' : st ? st.detail : '—'}
+                          {st === 'checking' ? t('Comprobando…') : st ? st.detail : '—'}
                         </span>
-                        {agent?.cli?.apiKey && !ok && (
+                        {agent?.cli?.apiKey && showFix && (
                           <form className={s.keyForm} onSubmit={(e) => void saveAgentApiKey(agent.id, e)}>
                             <KeyRound size={13} aria-hidden="true" className={s.keyIcon} />
                             <input
@@ -492,19 +561,19 @@ export function SetupWizard() {
                               type="password"
                               value={agentKeys[agent.id] ?? ''}
                               onChange={(e) => setAgentKeys((prev) => ({ ...prev, [agent.id]: e.target.value }))}
-                              placeholder={`Pega aquí ${agent.cli.apiKey.label}`}
+                              placeholder={t('Pega aquí {label}', { label: agent.cli.apiKey.label })}
                               aria-label={agent.cli.apiKey.label}
                               autoComplete="off"
                             />
                             <button type="submit" className={cx(u.btn, u.btnSm)} disabled={!(agentKeys[agent.id] ?? '').trim()}>
-                              Guardar
+                              {t('Guardar')}
                             </button>
                             <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void api?.openExternal(agent.cli!.apiKey!.url)}>
-                              Conseguir una
+                              {t('Conseguir una')}
                             </button>
                           </form>
                         )}
-                        {id === 'gemini' && !ok && (
+                        {id === 'gemini' && showFix && (
                           <form className={s.keyForm} onSubmit={(e) => void saveKey(e)}>
                             <KeyRound size={13} aria-hidden="true" className={s.keyIcon} />
                             <input
@@ -512,31 +581,47 @@ export function SetupWizard() {
                               type="password"
                               value={geminiKey}
                               onChange={(e) => setGeminiKey(e.target.value)}
-                              placeholder="…o pega aquí una clave de API de Google AI Studio"
-                              aria-label="Clave de API de Gemini"
+                              placeholder={t('…o pega aquí una clave de API de Google AI Studio')}
+                              aria-label={t('Clave de API de Gemini')}
                               autoComplete="off"
                             />
                             <button type="submit" className={cx(u.btn, u.btnSm)} disabled={!geminiKey.trim()}>
-                              Guardar
+                              {t('Guardar')}
                             </button>
                           </form>
                         )}
                       </span>
                       {checking ? (
                         <LoaderCircle size={16} className={cx(u.spin, s.rowSpin)} aria-hidden="true" />
-                      ) : ok ? (
-                        <CircleCheck size={18} className={s.okIcon} aria-label="Listo" />
+                      ) : ok && !isChanging ? (
+                        <span className={s.rowActions}>
+                          <CircleCheck size={18} className={s.okIcon} aria-label={t('Listo')} />
+                          <button
+                            type="button"
+                            className={cx(u.btn, u.btnSm, u.btnGhost)}
+                            onClick={() => setChanging((prev) => new Set(prev).add(id))}
+                            title={id === 'hermes' ? t('Cambiar proveedor o modelo') : t('Cambiar de cuenta')}
+                            aria-label={(id === 'hermes' ? t('Cambiar proveedor de {name}', { name: agent?.name ?? id }) : t('Cambiar la sesión de {name}', { name: agent?.name ?? id }))}
+                          >
+                            <Pencil size={13} aria-hidden="true" />
+                          </button>
+                        </span>
                       ) : (
                         <span className={s.rowActions}>
                           {!(agent?.cli?.apiKey && !agent.cli.login) && (
                             <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} onClick={() => void login(id)}>
                               <LogIn size={13} aria-hidden="true" />
-                              {id === 'hermes' ? 'Configurar' : 'Iniciar sesión'}
+                              {id === 'hermes' ? t('Configurar') : isChanging ? t('Cambiar cuenta') : t('Iniciar sesión')}
                             </button>
                           )}
                           <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void checkAuth([id])}>
-                            Comprobar
+                            {t('Comprobar')}
                           </button>
+                          {isChanging && (
+                            <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={stopChanging}>
+                              {t('Cancelar')}
+                            </button>
+                          )}
                         </span>
                       )}
                     </li>
@@ -545,18 +630,18 @@ export function SetupWizard() {
               </ul>
               {localAgent && chosen.has(localAgent.id) && (
                 <div className={s.localBox}>
-                  <p className={s.rowName}>Agente local</p>
-                  <p className={s.rowDetail}>Elige el programa y el modelo (en LM Studio, descárgalo desde su app; en Ollama, desde aquí).</p>
+                  <p className={s.rowName}>{t('Agente local')}</p>
+                  <p className={s.rowDetail}>{t('Elige el programa y el modelo (en LM Studio, descárgalo desde su app; en Ollama, desde aquí).')}</p>
                   <LocalConfig groupId="local" unlimited={!!localGroup?.unlimited} />
                 </div>
               )}
-              {loginTools.length === 0 && !localAgent && <p className={s.muted}>Ningún agente elegido necesita iniciar sesión.</p>}
+              {loginTools.length === 0 && !localAgent && <p className={s.muted}>{t('Ningún agente elegido necesita iniciar sesión.')}</p>}
             </div>
           )}
 
           {step === 3 && (
             <div className={s.section}>
-              <p className={s.lead}>Así queda tu equipo en este ordenador:</p>
+              <p className={s.lead}>{t('Así queda tu equipo en este ordenador:')}</p>
               <ul className={s.rows}>
                 {selected.map((a) => {
                   const id = toolFor(a, engine)
@@ -565,9 +650,9 @@ export function SetupWizard() {
                     <li key={a.id} className={s.row}>
                       <RobotAvatar agent={a} size={30} />
                       <span className={s.rowText}>
-                        <span className={s.rowName}>{isLocal(a) ? 'Agente local' : a.name}</span>
+                        <span className={s.rowName}>{isLocal(a) ? t('Agente local') : a.name}</span>
                         <span className={cx(s.rowDetail, ok && s.okText)}>
-                          {ok ? 'Listo' : 'Pendiente: vuelve a los pasos anteriores o termínalo más tarde desde ⋮ → Configurar agentes'}
+                          {ok ? t('Listo') : t('Pendiente: vuelve a los pasos anteriores o termínalo más tarde desde ⚙ → Ajustes → Configurar agentes')}
                         </span>
                       </span>
                       {ok ? <CircleCheck size={18} className={s.okIcon} aria-hidden="true" /> : <AlertTriangle size={17} className={s.warnIcon} aria-hidden="true" />}
@@ -585,26 +670,26 @@ export function SetupWizard() {
           </p>
         )}
 
-        {adding && <AddAgent existing={main} onClose={() => setAdding(false)} onAdded={(id) => setChosen((prev) => new Set(prev).add(id))} />}
+        {adding && <AddAgent existing={main} freeOnly={adding === 'free'} onClose={() => setAdding(false)} onAdded={(id) => setChosen((prev) => new Set(prev).add(id))} />}
 
         <footer className={s.foot}>
           <button type="button" className={cx(u.btn, u.btnGhost)} onClick={() => void finish()}>
-            {step === 3 ? 'Cerrar' : 'Omitir por ahora'}
+            {step === 3 ? t('Cerrar') : t('Omitir por ahora')}
           </button>
           <span className={s.spacer} />
           {step > 0 && (
             <button type="button" className={u.btn} onClick={() => setStep((st) => (st - 1) as Step)} disabled={!!installing}>
-              Atrás
+              {t('Atrás')}
             </button>
           )}
           {step < 3 ? (
             <button type="button" className={cx(u.btn, u.btnPrimary)} onClick={() => void next()} disabled={busy || !!installing || chosen.size === 0}>
               {busy && <LoaderCircle size={14} className={u.spin} aria-hidden="true" />}
-              Siguiente
+              {t('Siguiente')}
             </button>
           ) : (
             <button type="button" className={cx(u.btn, u.btnPrimary)} onClick={() => void finish()}>
-              Empezar a usar AI Cowork
+              {t('Empezar a usar kywai')}
             </button>
           )}
         </footer>

@@ -110,7 +110,7 @@ export async function sendFile(res: ServerResponse, abs: string, missing: Mobile
       'Content-Disposition': disposition(basename(abs)),
       'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'no-store',
-      // Un HTML creado por un agente no puede usar nada de AI Cowork aunque se abra directamente.
+      // Un HTML creado por un agente no puede usar nada de kywai aunque se abra directamente.
       'Content-Security-Policy': 'sandbox allow-scripts'
     })
     await pipeline(handle.createReadStream({ autoClose: false }), res)
@@ -126,7 +126,7 @@ export async function sendFile(res: ServerResponse, abs: string, missing: Mobile
 export async function listFolder(dir: string, q: string): Promise<{ files: MobileFolderFile[]; truncated: boolean }> {
   const files: MobileFolderFile[] = []
   const needle = q.toLowerCase()
-  // Si la carpeta contiene los datos de AI Cowork (p. ej. la propia app), se ignoran.
+  // Si la carpeta contiene los datos de kywai (p. ej. la propia app), se ignoran.
   const internal = projectsRoot() ? resolve(projectsRoot(), '..').toLowerCase() : ''
   const queue: Array<{ rel: string; depth: number }> = [{ rel: '', depth: 0 }]
   let scanned = 0

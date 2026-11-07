@@ -1,11 +1,12 @@
 /**
- * Luces con el sonido real, sin micrófono: AI Cowork escucha lo que suena en su propia ventana (en la app de
+ * Luces con el sonido real, sin micrófono: kywai escucha lo que suena en su propia ventana (en la app de
  * escritorio) o, desde el navegador del PC, en su pestaña si se comparte, y detecta los golpes (bombo y bajo) para
  * que las luces caigan en cada uno. No se graba ni se guarda nada: solo se mide la energía de los graves en cada
  * momento.
  */
 import { create } from 'zustand'
 import { isWeb } from './api'
+import { t } from '@/lib/i18n'
 
 export type AudioSyncState = 'off' | 'starting' | 'on' | 'error'
 
@@ -177,9 +178,9 @@ function cleanup(): void {
 
 function explain(e: unknown): string {
   const name = (e as { name?: string })?.name
-  if (name === 'NotAllowedError') return isWeb ? 'No se dio permiso para compartir la pestaña.' : 'La app no pudo escuchar su propio sonido.'
-  if (name === 'NotSupportedError' || name === 'TypeError') return 'Este navegador no puede compartir el sonido de la pestaña.'
-  return (e as Error)?.message || 'No se pudo escuchar el sonido.'
+  if (name === 'NotAllowedError') return isWeb ? t('No se dio permiso para compartir la pestaña.') : t('La app no pudo escuchar su propio sonido.')
+  if (name === 'NotSupportedError' || name === 'TypeError') return t('Este navegador no puede compartir el sonido de la pestaña.')
+  return (e as Error)?.message || t('No se pudo escuchar el sonido.')
 }
 
 /** Empieza a escuchar (en el navegador pide compartir esta pestaña con su audio). Necesita un clic del usuario. */
@@ -187,7 +188,7 @@ export async function startAudioSync(): Promise<void> {
   const st = useAudioSync.getState()
   if (st.state === 'on' || st.state === 'starting') return
   if (!canSyncWithAudio()) {
-    useAudioSync.setState({ state: 'error', error: 'Este navegador no puede compartir el sonido de la pestaña.' })
+    useAudioSync.setState({ state: 'error', error: t('Este navegador no puede compartir el sonido de la pestaña.') })
     return
   }
   useAudioSync.setState({ state: 'starting', error: null, wanted: true })
@@ -202,7 +203,7 @@ export async function startAudioSync(): Promise<void> {
     for (const t of stream.getVideoTracks()) t.stop()
     const track = stream.getAudioTracks()[0]
     if (!track) {
-      throw new Error(isWeb ? 'No se compartió el audio: al elegir la pestaña, deja marcado «Compartir también el audio de la pestaña».' : 'No llegó el sonido de la app.')
+      throw new Error(isWeb ? t('No se compartió el audio: al elegir la pestaña, deja marcado «Compartir también el audio de la pestaña».') : t('No llegó el sonido de la app.'))
     }
     track.addEventListener('ended', () => stopAudioSync())
     ctx = new AudioContext()
@@ -237,16 +238,86 @@ export function ensureAudioSync(): void {
   void startAudioSync()
 }
 
+// ---------- Audio propio (Audius y radios): se escucha directamente, sin compartir nada ----------
+
+interface ElementTap {
+  ctx: AudioContext
+  analyser: AnalyserNode
+  detector: BeatDetector
+  data: Uint8Array<ArrayBuffer>
+  bass: [number, number]
+  lastSample: number
+}
+
+let elementTap: ElementTap | null = null
+let tappedElement: HTMLMediaElement | null = null
+let elementActive = false
+
+/**
+ * Engancha el reproductor de audio propio al detector de golpes. Su audio llega con CORS abierto, así que se puede
+ * analizar sin micrófono ni compartir la pestaña (también desde el navegador). Se llama una vez por elemento.
+ */
+export function tapAudioElement(el: HTMLMediaElement): void {
+  if (tappedElement === el) return
+  try {
+    const actx = new AudioContext()
+    const an = actx.createAnalyser()
+    an.fftSize = 2048
+    an.smoothingTimeConstant = 0.2
+    const src = actx.createMediaElementSource(el)
+    // El sonido pasa por el analizador y sigue hacia los altavoces (el volumen del elemento se respeta).
+    src.connect(an)
+    src.connect(actx.destination)
+    const hz = actx.sampleRate / an.fftSize
+    elementTap = {
+      ctx: actx,
+      analyser: an,
+      detector: new BeatDetector(),
+      data: new Uint8Array(new ArrayBuffer(an.frequencyBinCount)),
+      bass: [Math.max(1, Math.floor(40 / hz)), Math.max(2, Math.ceil(160 / hz))],
+      lastSample: 0
+    }
+    tappedElement = el
+    // Si el navegador aún no deja sonar el audio de la página, en cuanto empieza a reproducirse.
+    el.addEventListener('play', () => void elementTap?.ctx.resume().catch(() => undefined))
+  } catch {
+    elementTap = null
+  }
+}
+
+/** Suena el reproductor de audio propio (no YouTube): las luces lo escuchan a él. */
+export function setAudioElementActive(active: boolean): void {
+  elementActive = active
+  if (active) void elementTap?.ctx.resume().catch(() => undefined)
+}
+
+function sample(an: AnalyserNode, buf: Uint8Array<ArrayBuffer>, range: [number, number], det: BeatDetector, now: number): void {
+  an.getByteFrequencyData(buf)
+  let sum = 0
+  for (let i = range[0]; i <= range[1]; i++) sum += buf[i] ?? 0
+  const v = sum / ((range[1] - range[0] + 1) * 255)
+  det.push(v * v, now)
+}
+
 /** Intensidad de las luces según el sonido real (null si no se está escuchando: entonces se usa el tempo estimado). */
 export function audioLightLevel(now: number, soft: boolean): number | null {
+  if (elementActive && elementTap) {
+    const tap = elementTap
+    if (now - tap.lastSample >= 12) {
+      sample(tap.analyser, tap.data, tap.bass, tap.detector, now)
+      tap.lastSample = now
+    }
+    return tap.detector.level(now, soft)
+  }
   if (!analyser || !detector) return null
   if (now - lastSample >= 12) {
-    analyser.getByteFrequencyData(data)
-    let sum = 0
-    for (let i = bass[0]; i <= bass[1]; i++) sum += data[i] ?? 0
-    const v = sum / ((bass[1] - bass[0] + 1) * 255)
-    detector.push(v * v, now)
+    sample(analyser, data, bass, detector, now)
     lastSample = now
   }
   return detector.level(now, soft)
+}
+
+/** Las luces escuchan el sonido real ahora mismo (compartiendo la ventana o directamente el audio propio). */
+export function hearingRealSound(): boolean {
+  return (elementActive && !!elementTap) || (!!analyser && !!detector)
 }

@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { AUTH_RE, QUOTA_RE, clip, looksMissing, runCli, safeModel, stderrSummary } from './spawn'
 import { EMPTY_USAGE, type JsonlParser, type RunAgentOptions, type RunAgentResult } from './types'
+import { tr } from '@shared/i18n'
 
 /** Para planificar, solo herramientas de consulta: nada de archivos, terminal ni subagentes propios. */
 export const HERMES_PLAN_TOOLSETS = 'web,memory,skills,todo,session_search'
@@ -25,12 +26,14 @@ export const HERMES_PLAN_TIMEOUT_MS = 6 * 60_000
 /** Nombre de un proveedor de Hermes (propio, como «anthropic», o de `providers:` en su config, como «omnirouter»). */
 const PROVIDER_RE = /^[\w.\-:]+$/
 
-export function hermesArgs(queryFile: string, model: string, mode: 'plan' | 'work', provider?: string): string[] {
+export function hermesArgs(queryFile: string, model: string, mode: 'plan' | 'work', provider?: string, mcpNames: string[] = []): string[] {
   const args = ['chat', '-Q', '--query-file', queryFile.replace(/\\/g, '/'), '--ignore-rules']
-  args.push('-t', mode === 'plan' ? HERMES_PLAN_TOOLSETS : HERMES_WORK_TOOLSETS)
+  // Los servidores MCP de Extensiones entran como «toolsets» con su nombre (solo al trabajar, no al planificar).
+  const extra = mode === 'work' ? mcpNames.filter((n) => /^[a-z][a-z0-9_-]{0,30}$/.test(n)) : []
+  args.push('-t', [mode === 'plan' ? HERMES_PLAN_TOOLSETS : HERMES_WORK_TOOLSETS, ...extra].join(','))
   const m = safeModel(model)
   if (m) args.push('-m', m)
-  // El modelo elegido con «/model» en AI Cowork, con su proveedor (sin tocar la configuración de Hermes).
+  // El modelo elegido con «/model» en kywai, con su proveedor (sin tocar la configuración de Hermes).
   if (m && provider && PROVIDER_RE.test(provider)) args.push('--provider', provider)
   return args
 }
@@ -49,17 +52,17 @@ export function createHermesParser(): JsonlParser {
       const usage = { ...EMPTY_USAGE }
       if (outcome.cancelled) return { ok: false, text, usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
       if (outcome.spawnError || looksMissing(outcome)) {
-        return { ok: false, text, usage, errorKind: 'missing', errorMessage: 'No se encontró Hermes Agent (comando `hermes`)' }
+        return { ok: false, text, usage, errorKind: 'missing', errorMessage: tr('No se encontró Hermes Agent (comando `hermes`)') }
       }
       const all = `${text}\n${outcome.stderrTail}`
       if (outcome.code !== 0 || !text) {
         if (AUTH_RE.test(all) || /\b401\b|unauthori[sz]ed/i.test(all)) {
-          return { ok: false, text, usage, errorKind: 'auth', errorMessage: 'Hermes no pudo autenticarse con su proveedor de modelos (revisa OmniRoute o `hermes model`)' }
+          return { ok: false, text, usage, errorKind: 'auth', errorMessage: tr('Hermes no pudo autenticarse con su proveedor de modelos (revisa OmniRoute o `hermes model`)') }
         }
         if (/connection refused|connecterror|failed to connect|unreachable|ECONNREFUSED|timed? ?out/i.test(all)) {
-          return { ok: false, text, usage, errorKind: 'offline', errorMessage: 'Hermes no puede conectar con su proveedor de modelos (¿OmniRoute está apagado?)' }
+          return { ok: false, text, usage, errorKind: 'offline', errorMessage: tr('Hermes no puede conectar con su proveedor de modelos (¿OmniRoute está apagado?)') }
         }
-        if (QUOTA_RE.test(all)) return { ok: false, text, usage, errorKind: 'quota', errorMessage: 'El proveedor de Hermes alcanzó su límite de uso' }
+        if (QUOTA_RE.test(all)) return { ok: false, text, usage, errorKind: 'quota', errorMessage: tr('El proveedor de Hermes alcanzó su límite de uso') }
         return {
           ok: false,
           text,
@@ -79,13 +82,14 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
   mkdirSync(dir, { recursive: true })
   const file = join(dir, `${randomUUID()}.txt`)
   writeFileSync(file, opts.prompt, 'utf8')
-  opts.onActivity?.(opts.mode === 'plan' ? 'Planificando el trabajo' : 'Trabajando', 'tool')
+  opts.onActivity?.(opts.mode === 'plan' ? tr('Planificando el trabajo') : tr('Trabajando'), 'tool')
   const slow = new AbortController()
   const timer = opts.mode === 'plan' ? setTimeout(() => slow.abort(), HERMES_PLAN_TIMEOUT_MS) : null
   try {
     const res = await runCli({
       command: 'hermes',
-      args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider),
+      args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, opts.extraMcp?.names),
+      ...(opts.mode === 'work' && opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
       cwd: opts.cwd,
       stdin: '',
       signal: AbortSignal.any([opts.signal, slow.signal]),
@@ -98,7 +102,7 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
         ...res,
         ok: false,
         errorKind: 'failed',
-        errorMessage: 'Hermes no respondió en ' + minutes + ' minutos: su modelo es demasiado lento o no responde (revísalo con «hermes status»)'
+        errorMessage: tr('Hermes no respondió en {minutes} minutos: su modelo es demasiado lento o no responde (revísalo con «hermes status»)', { minutes })
       }
     }
     return res

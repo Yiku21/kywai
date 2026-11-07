@@ -5,9 +5,12 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, ren
 import { join } from 'node:path'
 import { createPublicKey, verify } from 'node:crypto'
 
-/** Solo estos archivos: el descriptor y el instalador de Windows (nada con rutas ni extensiones raras). */
-const FEED_FILE = /^(latest\.yml|AI-Cowork-Setup-[0-9][0-9A-Za-z.+-]{0,40}\.exe)$/
-const INSTALLER = /^AI-Cowork-Setup-[0-9][0-9A-Za-z.+-]{0,40}\.exe$/
+/**
+ * Solo estos archivos: el descriptor y el instalador de Windows (nada con rutas ni extensiones raras). El instalador
+ * se llama kywai-Setup-<versión>.exe; también vale el nombre antiguo (AI-Cowork-Setup-…) de lo ya publicado.
+ */
+const FEED_FILE = /^(latest\.yml|(?:kywai|AI-Cowork)-Setup-[0-9][0-9A-Za-z.+-]{0,40}\.exe)$/
+const INSTALLER = /^(?:kywai|AI-Cowork)-Setup-[0-9][0-9A-Za-z.+-]{0,40}\.exe$/
 
 export const MAX_INSTALLER_BYTES = 400 * 1024 * 1024
 
@@ -50,6 +53,7 @@ export function validDescriptor(dir: string, yml: string): string | null {
  * Así, quien tenga el código del servidor puede subir archivos, pero no un instalador que los clientes acepten.
  */
 export function releaseMessage(version: string, file: string, sha512: string): string {
+  // Texto interno: los clientes ya instalados comprueban exactamente este, así que no cambia con el nombre kywai.
   return `AI Cowork cliente\n${version}\n${file}\n${sha512}`
 }
 

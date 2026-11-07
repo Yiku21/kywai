@@ -1,6 +1,6 @@
 // Instrucciones del repositorio para todos los CLI. Cada uno lee de forma nativa solo su archivo (Claude, CLAUDE.md;
 // Codex y otros, AGENTS.md; Gemini, GEMINI.md), así que un proyecto con AGENTS.md dejaba a Claude sin esas reglas y
-// uno con CLAUDE.md dejaba sin ellas a Codex y Gemini. AI Cowork añade al encargo los que el CLI no lee por sí mismo.
+// uno con CLAUDE.md dejaba sin ellas a Codex y Gemini. kywai añade al encargo los que el CLI no lee por sí mismo.
 import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import type { AgentConfig } from '@shared/types'

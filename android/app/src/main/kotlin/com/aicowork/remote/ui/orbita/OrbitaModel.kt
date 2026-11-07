@@ -1,16 +1,20 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+import com.aicowork.remote.i18n.I18n
+
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.runtime.getValue
@@ -25,6 +29,7 @@ import androidx.lifecycle.viewModelScope
 import com.aicowork.remote.data.ActionResult
 import com.aicowork.remote.data.CoworkController
 import com.aicowork.remote.data.LiveEvent
+import com.aicowork.remote.data.model.ChatSummary
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.InboxAction
 import com.aicowork.remote.data.model.InboxItem
@@ -45,21 +50,26 @@ import kotlinx.coroutines.launch
 
 /** Secciones de Órbita. El Equipo es aparte de la navegación (selector propio), pero también tiene panel. */
 enum class Section(val label: String, val icon: ImageVector) {
-    World("Mundo", Icons.Outlined.Home),
-    Chat("Chat", Icons.AutoMirrored.Outlined.Chat),
-    Tasks("Tareas", Icons.Outlined.TaskAlt),
-    Files("Archivos", Icons.Outlined.Description),
-    Results("Resultados", Icons.Outlined.Inventory2),
-    Memory("Memoria", Icons.Outlined.Psychology),
-    Tools("Herramientas", Icons.Outlined.Build),
-    Usage("Consumo", Icons.Outlined.DataUsage),
-    Settings("Ajustes", Icons.Outlined.Settings),
-    Team("Equipo", Icons.Outlined.Groups),
+    World(t("Mundo"), Icons.Outlined.Home),
+    Chat(t("Chat"), Icons.AutoMirrored.Outlined.Chat),
+    Tasks(t("Tareas"), Icons.Outlined.TaskAlt),
+    Files(t("Archivos"), Icons.Outlined.Description),
+    Results(t("Resultados"), Icons.Outlined.Inventory2),
+    Memory(t("Memoria"), Icons.Outlined.Psychology),
+    Routines(t("Rutinas"), Icons.Outlined.Schedule),
+    Tools(t("Herramientas"), Icons.Outlined.Build),
+    Usage(t("Uso y coste"), Icons.Outlined.DataUsage),
+    Settings(t("Ajustes"), Icons.Outlined.Settings),
+    Team(t("Equipo"), Icons.Outlined.Groups),
+    Mods(t("Mods"), Icons.Outlined.Extension),
 }
 
-enum class TaskFilter(val label: String) { Active("En curso"), Review("Por revisar"), Done("Hechas") }
-enum class ResultFilter(val label: String) { All("Todos"), Documents("Documentos"), Code("Código") }
-enum class FilesTab(val label: String) { Attachments("Adjuntos"), Project("Proyecto") }
+/** Pestañas de Ajustes, como en el escritorio. */
+enum class SettingsTab(val label: String) { General(t("General")), Agents(t("Agentes")), Connection(t("Conexión")), About(t("Acerca de")) }
+
+enum class TaskFilter(val label: String) { Active(t("En curso")), Review(t("Por revisar")), Done(t("Hechas")) }
+enum class ResultFilter(val label: String) { All(t("Todos")), Documents(t("Documentos")), Code(t("Código")) }
+enum class FilesTab(val label: String) { Attachments(t("Adjuntos")), Project(t("Proyecto")) }
 
 /** Lo que se abre a pantalla completa para leerlo. */
 sealed interface ViewerTarget {
@@ -75,6 +85,14 @@ data class Toast(val id: Long, val text: String, val tone: Tone = Tone.Info, val
 
 /** Dónde va el texto de una nota de voz. */
 enum class VoiceTarget { Chat, NewTask }
+
+/**
+ * Dictado en directo: el texto que había antes ([base]), las frases ya cerradas ([heard]) y la que estás diciendo
+ * ([partial]). [level]: volumen de la voz de 0 a 1.
+ */
+data class DictationState(val target: VoiceTarget, val base: String, val heard: String = "", val partial: String = "", val level: Float = 0f) {
+    val text: String get() = listOf(base.trimEnd(), heard, partial).filter { it.isNotBlank() }.joinToString(" ")
+}
 
 /** Nota de voz: grabando, pasando a texto en el ordenador o fallida (se puede reintentar sin volver a grabar). */
 sealed interface VoiceState {
@@ -110,6 +128,8 @@ class OrbitaModel(
     private val voices: AgentVoices? = null,
     /** Avisa de si la bandeja «Te necesita» está a la vista (mientras lo está, no salen notificaciones del sistema). */
     private val onInboxVisible: (Boolean) -> Unit = {},
+    /** Dictado en directo con el reconocimiento de voz del móvil (null en pruebas: solo notas de voz). */
+    private val liveDictation: LiveDictation? = null,
 ) : ViewModel() {
 
     /** Ajustes → «Buscar actualizaciones». */
@@ -117,9 +137,28 @@ class OrbitaModel(
 
     var section by mutableStateOf(Section.World)
         private set
+    /** Desplegado: la barra lateral a la vista (se pliega con su botón). */
+    var sidebarOpen by mutableStateOf(true)
+    /** Plegado: la barra lateral abierta como cajón por encima de todo. */
+    var drawerOpen by mutableStateOf(false)
+    /** «Buscar» de la barra lateral. */
+    var searchOpen by mutableStateOf(false)
+    /** Texto con el que se abre «Buscar» (desde el Historial: «Buscar … dentro de los mensajes»). */
+    var searchSeed by mutableStateOf("")
+    /** «Historial»: todos los chats de todos los proyectos. */
+    var historyOpen by mutableStateOf(false)
+    /** Mensaje al que el chat tiene que bajar (lo pide el buscador al abrir un resultado). */
+    var focusMessageId by mutableStateOf<String?>(null)
+    /** Mensaje resaltado un momento después de llegar a él desde el buscador. */
+    var flashMessageId by mutableStateOf<String?>(null)
+    /** «Música»: radios y canciones sin anuncios. */
+    var musicOpen by mutableStateOf(false)
+    val music = MusicPlayer()
+    /** Chats de cada proyecto ya pedidos al ordenador (se vuelven a pedir al abrir la barra o cambiar de chat). */
+    val chats = mutableStateMapOf<String, List<ChatSummary>>()
+    /** Proyecto desplegado en la barra lateral (por defecto, el abierto). */
+    var expandedProject by mutableStateOf<String?>(null)
     var expanded by mutableStateOf(false)
-    var moreOpen by mutableStateOf(false)
-    var projectMenu by mutableStateOf(false)
     var selectedAgentId by mutableStateOf<String?>(null)
     var selectedTaskId by mutableStateOf<String?>(null)
     var taskFilter by mutableStateOf(TaskFilter.Active)
@@ -173,8 +212,9 @@ class OrbitaModel(
     val toolsList = LazyListState()
     val usageList = LazyListState()
     val settingsList = LazyListState()
+    /** Pestaña abierta de Ajustes (como la ventana de Ajustes del escritorio). */
+    var settingsTab by mutableStateOf(SettingsTab.General)
     val teamList = LazyListState()
-    val moreGrid = LazyGridState()
 
     /** Vistas previas de los resultados ya descargadas. */
     val previews = mutableStateMapOf<String, Preview>()
@@ -193,7 +233,6 @@ class OrbitaModel(
     // ------------------------------------------------------------------ Navegación
 
     fun open(target: Section) {
-        moreOpen = false
         if (target == section && target != Section.World) return
         section = target
         if (target == Section.World) expanded = false
@@ -202,6 +241,12 @@ class OrbitaModel(
     fun close() {
         section = Section.World
         expanded = false
+    }
+
+    /** «Cambiar» de una rutina que propone Hermes: su orden «/rutina …» al cuadro de texto del chat, para retocarla. */
+    fun editInChat(text: String) {
+        chatDraft = TextFieldValue(text, androidx.compose.ui.text.TextRange(text.length))
+        open(Section.Chat)
     }
 
     /**
@@ -235,11 +280,148 @@ class OrbitaModel(
         open(Section.Tasks)
     }
 
+    // ------------------------------------------------------------------ Chats (barra lateral)
+
+    fun chatsSupported(): Boolean = snapshot()?.capabilities?.chats == true
+
+    fun loadChats(projectId: String) {
+        if (!chatsSupported()) return
+        viewModelScope.launch { controller.listChats(projectId).onSuccess { chats[projectId] = it } }
+    }
+
+    /** Chat nuevo en el proyecto abierto; sin chats en el ordenador (versión anterior), limpia la conversación. */
+    fun newChat() {
+        drawerOpen = false
+        run({ if (chatsSupported()) controller.newChat() else controller.newConversation() }) { r ->
+            if (r.ok) {
+                open(Section.Chat)
+                snapshot()?.conversation?.id?.let(::loadChats)
+            }
+        }
+    }
+
+    fun openChat(projectId: String, chatId: String) {
+        val s = snapshot()
+        if (s?.conversation?.id == projectId && s.conversation.chat?.id == chatId) {
+            drawerOpen = false
+            open(Section.Chat)
+            return
+        }
+        run({ controller.openChat(projectId, chatId) }) { r ->
+            if (r.ok) {
+                drawerOpen = false
+                open(Section.Chat)
+                loadChats(projectId)
+            }
+        }
+    }
+
+    fun renameChat(projectId: String, chatId: String, title: String) {
+        run({ controller.renameChat(projectId, chatId, title) }) { if (it.ok) { loadChats(projectId); loadPinned() } }
+    }
+
+    fun deleteChat(projectId: String, chatId: String) {
+        run({ controller.deleteChat(projectId, chatId) }) { if (it.ok) { loadChats(projectId); loadPinned() } }
+    }
+
+    // ------------------------------------------------------------------ Menú de mantener pulsado (como el clic derecho del escritorio)
+
+    /** Chats fijados de todos los proyectos (sección «Fijados» de la barra lateral). */
+    var pinnedChats by mutableStateOf<List<ChatSummary>>(emptyList())
+
+    /** El ordenador sabe fijar, bifurcar, mover y borrar el chat abierto (servidores anteriores, no). */
+    fun chatActionsSupported(): Boolean = snapshot()?.capabilities?.chatActions == true
+
+    /** El ordenador sabe renombrar, fijar y eliminar proyectos desde aquí. */
+    fun projectActionsSupported(): Boolean = snapshot()?.capabilities?.projectActions == true
+
+    /** El ordenador tiene el Historial (todos los chats, filtros de búsqueda y el mensaje exacto). */
+    fun historySupported(): Boolean = snapshot()?.capabilities?.history == true
+
+    fun openHistory() {
+        drawerOpen = false
+        searchOpen = false
+        historyOpen = true
+    }
+
+    fun loadPinned() {
+        if (!chatActionsSupported()) return
+        viewModelScope.launch { controller.pinnedChats().onSuccess { pinnedChats = it } }
+    }
+
+    fun pinChat(projectId: String, chatId: String, pinned: Boolean) {
+        run({ controller.pinChat(projectId, chatId, pinned) }) { if (it.ok) { loadChats(projectId); loadPinned() } }
+    }
+
+    /** Copia aparte del chat; se abre sola, salvo si el equipo está trabajando en ese proyecto (entonces queda en la lista). */
+    fun forkChat(projectId: String, chatId: String) {
+        val busy = snapshot()?.projects?.firstOrNull { it.id == projectId }?.running == true
+        run({ controller.forkChat(projectId, chatId, open = !busy) }) { r ->
+            if (r.ok) {
+                loadChats(projectId)
+                if (!busy) {
+                    drawerOpen = false
+                    open(Section.Chat)
+                }
+            }
+        }
+    }
+
+    fun moveChat(projectId: String, chatId: String, toProjectId: String) {
+        run({ controller.moveChat(projectId, chatId, toProjectId) }) {
+            if (it.ok) {
+                loadChats(projectId)
+                loadChats(toProjectId)
+                loadPinned()
+            }
+        }
+    }
+
+    /** «Nuevo chat en este proyecto»: lo abre (si no lo estaba) y empieza uno vacío. */
+    fun newChatIn(projectId: String) {
+        drawerOpen = false
+        expandedProject = projectId
+        run({
+            if (snapshot()?.conversation?.id == projectId) controller.newChat()
+            else controller.selectConversation(projectId).let { if (it.ok) controller.newChat() else it }
+        }) { r ->
+            if (r.ok) {
+                open(Section.Chat)
+                loadChats(projectId)
+            }
+        }
+    }
+
+    fun renameProject(projectId: String, name: String) {
+        run({ controller.renameProject(projectId, name) }) { if (it.ok) loadPinned() }
+    }
+
+    fun pinProject(projectId: String, pinned: Boolean) {
+        run({ controller.pinProject(projectId, pinned) })
+    }
+
+    fun deleteProject(projectId: String) {
+        run({ controller.deleteProject(projectId) }) {
+            if (it.ok) {
+                chats.remove(projectId)
+                if (expandedProject == projectId) expandedProject = null
+                loadPinned()
+            }
+        }
+    }
+
+    /** Abre un proyecto desde la barra lateral (su chat abierto). */
+    fun openProject(projectId: String) {
+        expandedProject = projectId
+        loadChats(projectId)
+        if (snapshot()?.conversation?.id == projectId) return
+        run({ controller.selectConversation(projectId) })
+    }
+
     // ------------------------------------------------------------------ Bandeja «Te necesita»
 
     fun openInbox() {
-        moreOpen = false
-        projectMenu = false
+        drawerOpen = false
         inboxOpen = true
         onInboxVisible(true)
         controller.refreshInbox()
@@ -262,7 +444,7 @@ class OrbitaModel(
     fun openInboxItem(item: InboxItem) {
         val projectId = item.projectId ?: return
         if (!inboxTargetExists(item)) {
-            toast("Esa conversación ya no está en el ordenador", Toast.Tone.Error)
+            toast(t("Esa conversación ya no está en el ordenador"), Toast.Tone.Error)
             return
         }
         fun show() {
@@ -305,7 +487,7 @@ class OrbitaModel(
 
     /** Muestra de las voces (al activarlas o cambiar su volumen): Hermes saluda. */
     fun previewVoice() {
-        if (preferences.sound && preferences.voices) voices?.speak("hermes", Voices.profile("hermes"), "¡Hola! Así suena Hermes.")
+        if (preferences.sound && preferences.voices) voices?.speak("hermes", Voices.profile("hermes"), t("¡Hola! Así suena Hermes."))
     }
 
     private fun applyPreferences(p: Preferences) {
@@ -362,9 +544,16 @@ class OrbitaModel(
 
     private fun snapshot(): Snapshot? = controller.state.value.snapshot
 
+    /** Quién escribió un mensaje encontrado: «Tú», «Aviso» o el nombre del agente. */
+    fun authorName(by: String): String = when (by) {
+        "user" -> t("Tú")
+        "system" -> t("Aviso")
+        else -> snapshot()?.agents?.firstOrNull { it.id == by }?.name ?: by
+    }
+
     private fun agentName(id: String?): String = snapshot()?.agents?.firstOrNull { it.id == id }?.name ?: when (id) {
-        "core" -> "el proyecto"
-        "user" -> "tú"
+        "core" -> t("el proyecto")
+        "user" -> t("tú")
         else -> id ?: "?"
     }
 
@@ -382,17 +571,17 @@ class OrbitaModel(
             is LiveEvent.TaskCompleted -> {
                 world.post(WorldEvent.TaskCompleted(event.taskId, event.agentId))
                 feedback.play(Sfx.TaskComplete)
-                toast("${agentName(event.agentId)} terminó «${event.title ?: "una tarea"}»", Toast.Tone.Success, "Ver") { openTask(event.taskId) }
+                toast(t("{v1} terminó «{v2}»", "v1" to (agentName(event.agentId)), "v2" to (event.title ?: t("una tarea"))), Toast.Tone.Success, t("Ver")) { openTask(event.taskId) }
             }
             is LiveEvent.TaskFailed -> {
                 world.post(WorldEvent.TaskFailed(event.task.id, event.task.agentId))
                 feedback.play(Sfx.Error)
-                toast("Falló «${event.task.title}»: ${event.task.error ?: "sin detalle"}", Toast.Tone.Error, "Revisar") { openTask(event.task.id) }
+                toast(t("Falló «{title}»: {v1}", "title" to event.task.title, "v1" to (event.task.error ?: t("sin detalle"))), Toast.Tone.Error, t("Revisar")) { openTask(event.task.id) }
             }
             is LiveEvent.ArtifactCreated -> {
                 feedback.play(Sfx.FileCreated)
                 val a = event.artifact
-                toast("Nuevo resultado: ${a.name}", Toast.Tone.Info, "Abrir") { viewer = ViewerTarget.Result(a.id, a.name, a.kind) }
+                toast(t("Nuevo resultado: {name}", "name" to a.name), Toast.Tone.Info, t("Abrir")) { viewer = ViewerTarget.Result(a.id, a.name, a.kind) }
             }
             is LiveEvent.AgentSpoke -> {
                 // Cada agente con su voz, y lo que dice se escribe a su ritmo; «Sonidos» apaga también las voces.
@@ -414,15 +603,109 @@ class OrbitaModel(
                 if (m.tone == "error" || fromCoordinator || !m.author.isAgent) {
                     feedback.play(if (m.tone == "error") Sfx.Error else Sfx.Message)
                     if (section != Section.Chat && m.proposal?.isPending == true) {
-                        toast("${m.author.agentId?.let { agentName(it) } ?: "Hermes"} te propone un plan: revísalo antes de empezar", Toast.Tone.Info, "Ver el plan") { open(Section.Chat) }
+                        toast(t("{v1} te propone un plan: revísalo antes de empezar", "v1" to (m.author.agentId?.let { agentName(it) } ?: "Hermes")), Toast.Tone.Info, t("Ver el plan")) { open(Section.Chat) }
                     } else if (section != Section.Chat) {
-                        val who = m.author.agentId?.let { agentName(it) } ?: "AI Cowork"
+                        val who = m.author.agentId?.let { agentName(it) } ?: "kywai"
                         val line = inline(m.text.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty().trimStart('#', ' ')).text
-                        toast("$who: ${line.take(90)}", if (m.tone == "error") Toast.Tone.Error else Toast.Tone.Info, "Abrir chat") { open(Section.Chat) }
+                        toast("$who: ${line.take(90)}", if (m.tone == "error") Toast.Tone.Error else Toast.Tone.Info, t("Abrir chat")) { open(Section.Chat) }
                     }
                 }
             }
             is LiveEvent.RequestFinished -> Unit
+        }
+    }
+
+    // ------------------------------------------------------------------ Dictado en directo
+
+    var dictation by mutableStateOf<DictationState?>(null)
+        private set
+
+    /** Si se puede dictar en directo con el reconocimiento de voz del móvil. */
+    val canDictate: Boolean get() = liveDictation?.available == true
+
+    /** Hay nota de voz (el ordenador pasa el audio a texto) para cuando el dictado del móvil no sirve. */
+    fun canRecordNote(snapshotVoice: Boolean): Boolean = snapshotVoice && canRecord
+
+    private fun draftOf(target: VoiceTarget) = when (target) {
+        VoiceTarget.Chat -> chatDraft
+        VoiceTarget.NewTask -> newTaskDraft
+    }
+
+    private fun setDraft(target: VoiceTarget, text: String) {
+        val value = TextFieldValue(text, androidx.compose.ui.text.TextRange(text.length))
+        when (target) {
+            VoiceTarget.Chat -> chatDraft = value
+            VoiceTarget.NewTask -> newTaskDraft = value
+        }
+    }
+
+    /** Empieza a dictar en directo en [target] (requiere el permiso RECORD_AUDIO); [noteFallback] para los avisos. */
+    fun startDictation(target: VoiceTarget, noteFallback: Boolean) {
+        val engine = liveDictation ?: return
+        if (dictation != null || voice is VoiceState.Recording || voice is VoiceState.Transcribing) return
+        val started = DictationState(target, draftOf(target).text)
+        val listener = object : LiveDictation.Listener {
+            fun mine() = dictation?.takeIf { it.target == target }
+
+            override fun onLevel(level: Float) {
+                mine()?.let { dictation = it.copy(level = level) }
+            }
+
+            override fun onPartial(text: String) {
+                val d = mine() ?: return
+                dictation = d.copy(partial = text)
+                setDraft(target, dictation!!.text)
+            }
+
+            override fun onFinal(text: String) {
+                val d = mine() ?: return
+                dictation = d.copy(heard = listOf(d.heard, text.trim()).filter { it.isNotBlank() }.joinToString(" "), partial = "")
+                setDraft(target, dictation!!.text)
+            }
+
+            override fun onError(error: DictationError, heardNothing: Boolean) {
+                if (mine() == null) return
+                feedback.reject()
+                toast(error.message(noteFallback), Toast.Tone.Error)
+            }
+
+            override fun onEnd() {
+                if (mine() == null) return
+                dictation = null
+                feedback.select()
+            }
+        }
+        dictation = started
+        try {
+            engine.start(I18n.locale.toLanguageTag(), listener)
+        } catch (e: Exception) {
+            dictation = null
+            feedback.reject()
+            toast(e.message ?: t("No se pudo dictar"), Toast.Tone.Error)
+            return
+        }
+        feedback.confirm()
+    }
+
+    /** Deja de dictar: lo último que se oyó todavía se añade. */
+    fun stopDictation() {
+        if (dictation == null) return
+        liveDictation?.stop()
+    }
+
+    /** Corta el dictado sin añadir nada más (al enviar o al escribir a mano mientras dictas). */
+    fun cancelDictation() {
+        if (dictation == null) return
+        liveDictation?.cancel()
+        dictation = null
+    }
+
+    /** El usuario escribe en la caja: si estaba dictando ahí, el dictado se corta para no pisarle el texto. */
+    fun editDraft(target: VoiceTarget, value: TextFieldValue) {
+        if (dictation?.target == target && value.text != draftOf(target).text) cancelDictation()
+        when (target) {
+            VoiceTarget.Chat -> chatDraft = value
+            VoiceTarget.NewTask -> newTaskDraft = value
         }
     }
 
@@ -440,6 +723,7 @@ class OrbitaModel(
     fun startVoice(target: VoiceTarget) {
         val dir = voiceDir ?: return
         if (voice is VoiceState.Recording || voice is VoiceState.Transcribing) return
+        cancelDictation()
         voiceFile?.delete()
         val file = java.io.File(dir, "nota-${System.currentTimeMillis()}.wav")
         val rec = VoiceRecorder(file)
@@ -447,7 +731,7 @@ class OrbitaModel(
             rec.start(onLimit = { viewModelScope.launch { finishVoice(send = false) } })
         } catch (e: Exception) {
             feedback.reject()
-            toast(e.message ?: "No se pudo usar el micrófono", Toast.Tone.Error)
+            toast(e.message ?: t("No se pudo usar el micrófono"), Toast.Tone.Error)
             return
         }
         recorder = rec
@@ -479,7 +763,7 @@ class OrbitaModel(
                 voiceFile = null
                 voice = VoiceState.Idle
                 feedback.reject()
-                toast(e.message ?: "No se grabó nada", Toast.Tone.Error)
+                toast(e.message ?: t("No se grabó nada"), Toast.Tone.Error)
                 return@launch
             }
             voiceFile = file
@@ -509,7 +793,7 @@ class OrbitaModel(
                     voice = VoiceState.Idle
                     if (said.isBlank()) {
                         feedback.reject()
-                        toast("No se entendió nada en la nota de voz", Toast.Tone.Error)
+                        toast(t("No se entendió nada en la nota de voz"), Toast.Tone.Error)
                         return@fold
                     }
                     when (target) {
@@ -536,13 +820,14 @@ class OrbitaModel(
                 },
                 { e ->
                     feedback.reject()
-                    voice = VoiceState.Failed(target, send, e.message ?: "No se pudo pasar a texto")
+                    voice = VoiceState.Failed(target, send, e.message ?: t("No se pudo pasar a texto"))
                 },
             )
         }
     }
 
     override fun onCleared() {
+        liveDictation?.release()
         recorder?.cancel()
         voiceFile?.delete()
         sounds?.release()
@@ -568,21 +853,21 @@ class OrbitaModel(
             val active = snapshot.conversation.activeRequestIds.toSet()
             val messages = snapshot.conversation.messages
             // Un plan que espera tu visto bueno: nada empieza hasta que respondas.
-            if (messages.any { it.proposal?.isPending == true }) return Attention(hermes.id, "Hermes espera tu visto bueno al plan")
+            if (messages.any { it.proposal?.isPending == true }) return Attention(hermes.id, t("Hermes espera tu visto bueno al plan"))
             val lastUser = messages.indexOfLast { it.author.isUser }
             val question = messages.withIndex().lastOrNull { (i, m) ->
                 i > lastUser && m.author.agentId == hermes.id && m.text.trimEnd().endsWith("?")
             }
-            if (question != null && active.isEmpty()) return Attention(hermes.id, "Hermes te ha hecho una pregunta")
+            if (question != null && active.isEmpty()) return Attention(hermes.id, t("Hermes te ha hecho una pregunta"))
             // Dice cuál es (la más reciente) y tocarlo lleva a ella, para reanudarla o quitarla.
             val paused = snapshot.tasks.filter { it.isPaused && it.requestId !in active }
             paused.maxByOrNull { it.startedAt ?: it.createdAt ?: 0 }?.let { task ->
-                val reason = if (paused.size == 1) "En pausa: «${task.title.ifBlank { "una tarea" }}»" else "${paused.size} tareas en pausa: revísalas"
-                return Attention(hermes.id, reason, task.id, "Trabajo en pausa")
+                val reason = if (paused.size == 1) t("En pausa: «{v1}»", "v1" to task.title.ifBlank { t("una tarea") }) else t("{size} tareas en pausa: revísalas", "size" to paused.size)
+                return Attention(hermes.id, reason, task.id, t("Trabajo en pausa"))
             }
             val lastRequest = snapshot.tasks.maxByOrNull { it.createdAt ?: 0 }?.requestId
             val failed = snapshot.tasks.firstOrNull { it.status == "failed" && it.requestId == lastRequest && it.requestId !in active }
-            if (failed != null) return Attention(hermes.id, "Una tarea falló: revísala", failed.id, "Una tarea falló")
+            if (failed != null) return Attention(hermes.id, t("Una tarea falló: revísala"), failed.id, t("Una tarea falló"))
             return null
         }
     }

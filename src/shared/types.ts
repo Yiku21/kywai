@@ -1,3 +1,7 @@
+import type { Lang } from './i18n'
+import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
+import type { TaskTemplate, TaskTemplateInput } from './templates'
+export type { TaskTemplate, TaskTemplateInput } from './templates'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
 // Todo lo que cruza IPC está definido aquí.
 
@@ -6,7 +10,7 @@ export type ProviderKind = 'claude' | 'codex' | 'gemini' | 'qwen' | 'ollama' | '
 
 /**
  * Cómo se lanza un agente «de catálogo» (cualquier programa de terminal que atienda un encargo y devuelva texto):
- * AI Cowork lo ejecuta en la carpeta del proyecto con la sesión que el usuario ya tiene iniciada en él.
+ * kywai lo ejecuta en la carpeta del proyecto con la sesión que el usuario ya tiene iniciada en él.
  */
 export interface CliAgentSpec {
   /** Id del catálogo del que viene (vacío: un agente a medida). */
@@ -43,7 +47,7 @@ export interface CliAgentSpec {
   /** Orden no interactiva que termina bien (código 0) si ya hay sesión iniciada. */
   authCheck?: string
   /**
-   * Funciona con una clave de API: la variable de entorno donde la lee el programa y dónde se consigue. AI Cowork
+   * Funciona con una clave de API: la variable de entorno donde la lee el programa y dónde se consigue. kywai
    * guarda la clave en este equipo (cifrada) y se la pasa solo a este agente al lanzarlo.
    */
   apiKey?: { env: string; label: string; url: string }
@@ -110,6 +114,11 @@ export interface AgentConfig {
   modelProvider?: string
   /** Cómo se lanza (solo en los agentes de catálogo, con proveedor 'cli'). */
   cli?: CliAgentSpec
+  /**
+   * Solo el agente de LM Studio: razonamiento («think») del modelo. Sin indicar o false, apagado (responde antes);
+   * se enciende desde su tarjeta para lo que necesite pensar más.
+   */
+  thinking?: boolean
   /** Solo en sub-agentes creados en tiempo de ejecución. */
   isSubagent?: boolean
   parentId?: AgentId
@@ -187,6 +196,11 @@ export interface Task {
   continues?: boolean
   /** Lo que cambió en la carpeta del proyecto (instantáneas de antes y después): se puede ver y deshacer. */
   changes?: TaskChanges
+  /**
+   * Mensaje directo del usuario a este agente («@Qwen …»): recibe el texto tal cual, sin plan de Hermes, sin
+   * verificador y sin relevo a otro agente si falla. Su respuesta sale en el chat sin retocar.
+   */
+  direct?: boolean
 }
 
 /** Cambios de una tarea en la carpeta del proyecto, guardados como dos instantáneas (ver checkpoints.ts). */
@@ -277,6 +291,7 @@ export interface MemoryInput {
  * - daily: cada día a una hora («09:00»).
  * - weekly: unos días de la semana a una hora (0 = domingo … 6 = sábado, como Date.getDay()).
  * - interval: cada N horas (contando desde la última vez).
+ * - once: una sola vez, un día («2026-11-08») a una hora; al lanzarse se desactiva sola.
  * - webhook: cuando llega una petición a su dirección propia en el acceso web (con su secreto).
  * - folder: cuando cambian archivos de una carpeta del proyecto (ruta relativa a su carpeta de trabajo; '' = toda).
  */
@@ -284,6 +299,7 @@ export type RoutineTrigger =
   | { type: 'daily'; time: string }
   | { type: 'weekly'; days: number[]; time: string }
   | { type: 'interval'; hours: number }
+  | { type: 'once'; date: string; time: string }
   | { type: 'webhook' }
   | { type: 'folder'; path: string }
 
@@ -324,6 +340,11 @@ export interface Routine {
   /** Últimas ejecuciones, la más reciente al final. */
   runs: RoutineRun[]
   /**
+   * Su plan espera tu visto bueno antes de empezar. Por defecto no (nadie está delante cuando se lanza sola), aunque
+   * «Pedir mi visto bueno a cada plan» esté encendido: esa opción es para lo que escribes tú.
+   */
+  askApproval?: boolean
+  /**
    * Secreto del webhook. Solo lo guarda el motor (project.json): a la interfaz llega sin él (hasSecret) y se pide
    * aparte con getRoutineWebhook. Nunca se escribe en documentos, registros ni mensajes.
    */
@@ -338,6 +359,8 @@ export interface RoutineInput {
   request: string
   trigger: RoutineTrigger
   enabled?: boolean
+  /** Ver Routine.askApproval. */
+  askApproval?: boolean
 }
 
 /** Direcciones del webhook de una rutina (con su secreto): solo se piden para enseñarlas o copiarlas. */
@@ -355,6 +378,10 @@ export interface TokenUsage {
   input: number
   output: number
   cached?: number
+  /** Coste en dólares que informa el propio CLI (Claude Code lo da al terminar, a precios de API). */
+  costUsd?: number
+  /** Los tokens no los dio el CLI: se calcularon por la longitud del encargo y la respuesta (Hermes, catálogo). */
+  estimated?: boolean
 }
 
 // ---------- Registro de lo que hace un agente en una tarea ----------
@@ -430,6 +457,12 @@ export interface ChatMessage {
   rating?: MessageRating
   /** Mensaje que lanzó una rutina (no lo escribiste tú en ese momento): el chat enseña «Rutina: <nombre>». */
   routine?: { id: string; name: string }
+  /** Rutina que Hermes propone crear porque le pediste algo que se repite o para más tarde («Crear rutina»). */
+  routineProposal?: RoutineProposal
+  /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
+  direct?: { agentId: AgentId; name: string }
+  /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
+  template?: { id: string; name: string }
 }
 
 /** Te sirvió (up) o no (down). */
@@ -525,7 +558,7 @@ export interface HermesProvider {
 export interface HermesModelsInfo {
   /** Hermes Agent está instalado (tiene su config.yaml). */
   installed: boolean
-  /** fromApp: elegido con «/model» en AI Cowork; si no, el de la configuración de Hermes. */
+  /** fromApp: elegido con «/model» en kywai; si no, el de la configuración de Hermes. */
   current: { provider: string; model: string; fromApp: boolean }
   /** El de su configuración (lo que eliges con `hermes model` en la terminal). */
   hermesDefault: { provider: string; model: string } | null
@@ -538,6 +571,20 @@ export interface HermesModelsInfo {
  * Plan del coordinador a la espera de tu visto bueno. pending: espera tu respuesta; approved: aprobado (ya en
  * marcha); revised: le pediste cambios y propuso otro; rejected: lo descartaste.
  */
+/**
+ * Rutina que propone Hermes. pending: espera que la crees o la descartes · created: creada (routineId) ·
+ * dismissed: descartada. `command` es la orden «/rutina …» equivalente (para cambiarla en el cuadro de texto).
+ */
+export interface RoutineProposal {
+  status: 'pending' | 'created' | 'dismissed'
+  name: string
+  request: string
+  trigger: RoutineTrigger
+  command: string
+  routineId?: string
+  decidedAt?: number
+}
+
 export interface PlanProposal {
   status: 'pending' | 'approved' | 'revised' | 'rejected'
   tasks: ProposedTask[]
@@ -696,10 +743,87 @@ export interface ProjectSummary {
   workDir?: string
   createdAt: number
   updatedAt: number
+  /** Fijado en la barra lateral (arriba del todo, en «Fijados»). */
+  pinned?: boolean
+  /** El equipo está trabajando en él ahora (solo en la lista de proyectos; no se guarda). */
+  busy?: boolean
+}
+
+/** Una conversación de un proyecto. La abierta vive en el proyecto; las demás, guardadas en conversaciones/. */
+export interface ConversationSummary {
+  id: string
+  projectId: string
+  /** Sale del primer mensaje del usuario; se puede renombrar. */
+  title: string
+  createdAt: number
+  updatedAt: number
+  /** Mensajes que tiene (para no listar conversaciones vacías como si tuvieran algo). */
+  messageCount: number
+  /** Es la abierta ahora en el proyecto. */
+  current?: boolean
+  /** Fijada arriba en la barra lateral. */
+  pinned?: boolean
+}
+
+/** Un resultado del buscador (Ctrl+K): conversaciones, tareas, resultados y memoria de todos los proyectos. */
+export interface SearchHit {
+  kind: 'conversation' | 'task' | 'artifact' | 'memory' | 'project'
+  projectId: string
+  projectName: string
+  /** Conversación donde está (las tareas y los mensajes); vacío si es la abierta o no aplica. */
+  conversationId?: string
+  title: string
+  /** Trozo del texto alrededor de lo encontrado. */
+  snippet: string
+  at: number
+  /** Id de la tarea o del resultado, para abrirlo. */
+  ref?: string
+  /** Conversaciones: el mensaje encontrado (al abrir, el chat baja hasta él y lo resalta). */
+  messageId?: string
+  /** Conversaciones: cuántos mensajes de esa conversación coinciden. */
+  matchCount?: number
+  /** Conversaciones: los primeros mensajes que coinciden (hasta 5), para elegir a cuál ir. */
+  matches?: SearchMatch[]
+}
+
+/** Un mensaje que coincide dentro de una conversación encontrada. */
+export interface SearchMatch {
+  messageId: string
+  snippet: string
+  at: number
+  /** Quién lo escribió: 'user', 'system' o el id del agente. */
+  by: string
+}
+
+/** Quién escribió lo buscado: tú, cualquier agente o uno en concreto (su id). */
+export type SearchAuthor = 'user' | 'agents' | AgentId
+
+/** Opciones del buscador del historial. */
+export interface SearchOptions {
+  /** Solo en este proyecto. */
+  projectId?: string
+  /** Solo lo de esta fecha en adelante (ms). */
+  since?: number
+  /** Solo mensajes de quien sea (con esto no salen resultados, memoria ni nombres de proyecto). */
+  author?: SearchAuthor
+  /** Cuántos resultados como mucho (40 si no se dice; hasta 400). */
+  limit?: number
+}
+
+/** Resultado del buscador: los primeros `limit` y cuántos hay en total (para «Ver más»). */
+export interface SearchResult {
+  hits: SearchHit[]
+  total: number
 }
 
 export interface ProjectState {
   project: ProjectSummary
+  /** Conversación abierta: su id, título y cuándo empezó (los proyectos antiguos no lo tienen hasta el primer cambio). */
+  conversation?: { id: string; title: string; createdAt: number; pinned?: boolean }
+  /** Conversaciones guardadas (no la abierta), de la más reciente a la más antigua. */
+  conversations?: ConversationSummary[]
+  /** Ya se pasaron a conversaciones las copias antiguas de historial/ (las de «Limpiar el chat»). */
+  historyImported?: boolean
   messages: ChatMessage[]
   tasks: Task[]
   artifacts: Artifact[]
@@ -734,8 +858,60 @@ export interface AppConfig {
   planApproval: boolean
   /** El asistente de configuración ya se completó (o se omitió) en este equipo. */
   setupDone: boolean
+  /** Idioma de los avisos del motor y de las respuestas de los agentes (el último elegido en Ajustes; si no, español). */
+  language?: Lang
+  /**
+   * Tema de la interfaz y del espacio (el id de lib/theme.ts: «grafito», «mundo-bosque»…). Lo elige el escritorio y lo
+   * sigue Órbita, para que el móvil se vea igual. Sin él, el clásico.
+   */
+  uiTheme?: string
+  /**
+   * Nombre que el usuario le ha puesto a este ordenador (el servidor), para verlo así abajo en la barra lateral del
+   * escritorio, la web y Órbita. Sin él, el nombre del equipo en la red («macmini.lan»).
+   */
+  serverName?: string
   /** Acceso desde otros dispositivos de Tailscale (navegador del móvil o del portátil). */
   webAccess: WebAccessConfig
+  /** Cómo pagas cada agente, precios por modelo y presupuesto del mes (panel «Uso y coste»). */
+  costs?: CostSettings
+}
+
+// ---------- Uso y coste ----------
+
+/** subscription: cuota fija al mes · api: pagas lo que gastas · free: gratis · local: en tu equipo. */
+export type BillingMode = 'subscription' | 'api' | 'free' | 'local'
+
+export type CostCurrency = 'USD' | 'EUR'
+
+/** Cómo pagas una suscripción o un agente (la clave es su grupo de cuota o, si no tiene, el id del agente). */
+export interface BillingPlan {
+  mode: BillingMode
+  /** Solo suscripciones: lo que pagas al mes, en `currency`. */
+  monthly?: number
+  currency?: CostCurrency
+}
+
+/** Precio de un modelo en dólares por millón de tokens. */
+export interface ModelPrice {
+  input: number
+  output: number
+  /** Entrada leída de caché (sin indicar: la décima parte de la entrada). */
+  cached?: number
+}
+
+export interface CostSettings {
+  /** Moneda en la que se enseña todo (los precios de API van en dólares y se convierten). */
+  currency: CostCurrency
+  /** Euros por dólar, para convertir. */
+  usdToEur: number
+  plans: Record<string, BillingPlan>
+  /** Precios que cambiaste o añadiste (clave: el id de la tabla o el nombre de un modelo). */
+  prices?: Record<string, ModelPrice>
+  /** Presupuesto del mes para lo que pagas por uso (API), en `budgetCurrency`. */
+  monthlyBudget?: number
+  budgetCurrency?: CostCurrency
+  /** Último aviso de presupuesto dado («2026-11:80»), para no repetirlo. */
+  budgetAlerted?: string
 }
 
 export interface WebAccessConfig {
@@ -747,7 +923,7 @@ export interface WebAccessConfig {
   token: string
 }
 
-/** Un móvil o cliente de escritorio emparejado con este AI Cowork. */
+/** Un móvil o cliente de escritorio emparejado con este kywai. */
 export interface PairedDevice {
   id: string
   name: string
@@ -773,7 +949,7 @@ export interface ClientUpdateState {
 
 /** El equipo donde corre el motor: para distinguir el servidor de un cliente o un navegador. */
 export interface HostInfo {
-  /** Nombre del equipo (sin «.local»). */
+  /** Nombre del equipo: el que le puso el usuario o, si no, el de la red (sin «.local»). */
   name: string
   platform: string
 }
@@ -786,7 +962,7 @@ export interface WebAccessInfo {
   port: number
   token: string
   tailscaleIp: string | null
-  /** Direcciones para abrir AI Cowork (sin el código). */
+  /** Direcciones para abrir kywai (sin el código). */
   urls: string[]
   listeningOnTailscale: boolean
   /** La app se abre sola al iniciar sesión en el equipo. */
@@ -794,7 +970,7 @@ export interface WebAccessInfo {
   /** HTTPS con Tailscale Serve (necesario para el micrófono en el navegador del móvil). */
   https?: WebHttpsInfo
   /**
-   * Versión HTTPS con el certificado propio de AI Cowork (https://<ip>:<puerto+1>, sin el código). Funciona sin
+   * Versión HTTPS con el certificado propio de kywai (https://<ip>:<puerto+1>, sin el código). Funciona sin
    * Tailscale Serve y deja usar el micrófono, pero el navegador avisa la primera vez.
    */
   secureUrl?: string | null
@@ -803,14 +979,14 @@ export interface WebAccessInfo {
 /** Enlace a la versión HTTPS (con el código): la de Tailscale Serve o, si no está, la del certificado propio. */
 export interface HttpsLink {
   url: string
-  /** Certificado propio de AI Cowork: el navegador avisa la primera vez y hay que aceptarlo. */
+  /** Certificado propio de kywai: el navegador avisa la primera vez y hay que aceptarlo. */
   selfSigned: boolean
 }
 
 export interface WebHttpsInfo {
   /** Se encontró el programa de Tailscale en este equipo (hace falta para activar HTTPS). */
   available: boolean
-  /** Tailscale Serve ya publica AI Cowork por HTTPS. */
+  /** Tailscale Serve ya publica kywai por HTTPS. */
   active: boolean
   /** https://<equipo>.<red>.ts.net (sin el código), si está activo. */
   url: string | null
@@ -843,6 +1019,14 @@ export interface UsageCall {
   ok: boolean
   /** El CLI no informa tokens (Hermes): la llamada cuenta, los tokens no. */
   noTokens?: boolean
+  /**
+   * Si no informa tokens: estimación por la longitud del encargo y de la respuesta (unos 4 caracteres por token). Es
+   * un mínimo: no cuenta lo que el agente leyó o pensó por dentro. Solo sirve para estimar el coste.
+   */
+  estInput?: number
+  estOutput?: number
+  /** Coste en dólares que dio el propio CLI (a precios de API, también si pagas suscripción). */
+  costUsd?: number
   /** Valoración del usuario del resultado de esta tarea (👍/👎 en el chat). */
   rating?: MessageRating
   /** Llamadas de tarea: dificultad que le puso el coordinador (para la calidad por agente; falta en registros antiguos). */
@@ -877,7 +1061,12 @@ export interface MusicResult {
   thumbnail?: string
   /** Suena otra subida de la misma canción (la original no se puede oír fuera de YouTube): su canal. */
   via?: string
+  /** Audius: ruta de la canción en audius.co (para abrirla allí). */
+  permalink?: string
 }
+
+/** Dónde buscar: canciones de YouTube Music, vídeos de YouTube, Audius o las radios de SomaFM. */
+export type MusicSearchKind = 'songs' | 'videos' | 'audius' | 'radio'
 
 export interface UsageRun {
   runId: string
@@ -958,7 +1147,7 @@ export interface SetWebAccessInput {
 // ---------- Asistente de configuración ----------
 
 /** Programas que el asistente comprueba e instala. */
-export type SetupToolId = 'node' | 'brew' | 'python' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | `cli:${string}`
+export type SetupToolId = 'node' | 'brew' | 'python' | 'uv' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | `cli:${string}`
 
 export interface SetupTool {
   id: SetupToolId
@@ -1011,11 +1200,13 @@ export type CoworkEvent = EventBase &
     | { kind: 'quota.update'; quotas: QuotaInfo[] }
     | { kind: 'run.started'; runId: string; projectId: string }
     | { kind: 'run.finished'; runId: string; projectId: string; ok: boolean }
-    | { kind: 'chat.cleared'; projectId: string }
+    | { kind: 'chat.cleared'; projectId: string; conversationId?: string }
+    | { kind: 'conversations.updated'; projectId: string }
     | { kind: 'usage.run'; run: UsageRun }
     | { kind: 'task.trace'; taskId: string; projectId: string; entry: TraceEntry }
     | { kind: 'memory.updated'; projectId: string; memory: MemoryEntry[]; instructions: string }
     | { kind: 'routines.updated'; projectId: string; routines: Routine[] }
+    | { kind: 'templates.updated'; templates: TaskTemplate[] }
     | { kind: 'project.deleted'; projectId: string }
     | { kind: 'local.pull'; pull: LocalPullState }
     | { kind: 'setup.log'; toolId: SetupToolId; line: string }
@@ -1032,9 +1223,9 @@ export type CoworkEventKind = CoworkEvent['kind']
  * plan: un plan espera tu visto bueno · stalled: un agente lleva rato callado (suele ser un aviso de permisos en la
  * pantalla del servidor) · mac-permission: macOS pide un permiso de Privacidad · question: el equipo te pregunta algo ·
  * verify-failed: el verificador sigue viendo fallos · conflict: choques al integrar · failed: una tarea no se pudo
- * hacer · done: terminó una petición.
+ * hacer · done: terminó una petición · budget: el gasto por API del mes llega al 80 % o pasa del presupuesto.
  */
-export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'done'
+export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'done' | 'budget'
 
 export interface InboxAction {
   /** approve, reject, undo, open, dismiss… */
@@ -1079,6 +1270,11 @@ export interface SendMessageInput {
   filePaths: string[]
   /** Adjuntos que ya están en el proyecto (subidos antes desde el móvil): van con el mensaje sin copiarlos otra vez. */
   attachmentIds?: string[]
+  /**
+   * Se lanza con esta plantilla de tareas (el texto ya llega con sus huecos rellenos): el chat la nombra y se aplican
+   * sus opciones (agente directo, pedir visto bueno al plan).
+   */
+  templateId?: string
 }
 
 export interface CoworkApi {
@@ -1096,6 +1292,33 @@ export interface CoworkApi {
    * resultados se quedan). Guarda antes una copia en historial/ dentro del proyecto y devuelve su ruta.
    */
   clearChat(projectId: string): Promise<string>
+  /** Conversaciones de un proyecto (la abierta y las guardadas), de la más reciente a la más antigua. */
+  listConversations(projectId: string): Promise<ConversationSummary[]>
+  /** Las conversaciones más recientes de todos los proyectos (para «Recientes» en la barra lateral). */
+  recentConversations(limit?: number): Promise<ConversationSummary[]>
+  /** Conversación nueva: guarda la abierta (si tiene algo) y deja el chat vacío. Devuelve el estado del proyecto. */
+  newConversation(projectId: string): Promise<ProjectState>
+  /** Vuelve a una conversación guardada para seguir en ella (guarda antes la abierta). Devuelve el estado del proyecto. */
+  openConversation(projectId: string, conversationId: string): Promise<ProjectState>
+  renameConversation(projectId: string, conversationId: string, title: string): Promise<ConversationSummary[]>
+  /** Borra una conversación guardada (va a conversaciones/borradas/ dentro del proyecto). */
+  deleteConversation(projectId: string, conversationId: string): Promise<ConversationSummary[]>
+  /** Fija o suelta una conversación en la barra lateral. */
+  setConversationPinned(projectId: string, conversationId: string, pinned: boolean): Promise<ConversationSummary[]>
+  /** Las conversaciones fijadas de todos los proyectos. */
+  pinnedConversations(): Promise<ConversationSummary[]>
+  /** Bifurca: copia aparte de la conversación (mensajes y tareas, sin las sesiones de los agentes). Devuelve el id de la copia. */
+  forkConversation(projectId: string, conversationId: string): Promise<string>
+  /** Pasa la conversación a otro proyecto (los agentes empiezan sesión nueva allí). Devuelve el id que tiene en el destino. */
+  moveConversation(projectId: string, conversationId: string, toProjectId: string): Promise<string>
+  /** Fija o suelta un proyecto en la barra lateral. */
+  setProjectPinned(projectId: string, pinned: boolean): Promise<ProjectSummary>
+  /** Busca en conversaciones, tareas, resultados y memoria (de un proyecto o de todos). */
+  search(query: string, projectId?: string): Promise<SearchHit[]>
+  /** Buscador del historial: varias palabras, «frase exacta», fecha y autor, con el total para «Ver más». */
+  searchHistory(query: string, options?: SearchOptions): Promise<SearchResult>
+  /** Historial: todas las conversaciones con mensajes de todos los proyectos, de la más reciente a la más antigua. */
+  allConversations(): Promise<ConversationSummary[]>
   loadProject(projectId: string): Promise<ProjectState>
   /** Estado actual de agentes y cuotas (para pintar al arrancar). */
   getRuntime(): Promise<{ runtimes: AgentRuntime[]; quotas: QuotaInfo[] }>
@@ -1105,6 +1328,8 @@ export interface CoworkApi {
   /** Ruta absoluta de un archivo soltado en la ventana. */
   pathForFile(file: File): string
   readArtifact(projectId: string, relPath: string): Promise<{ text?: string; url?: string }>
+  /** Guarda un entregable, o varios como zip, en el dispositivo desde el que se usa la app. */
+  downloadArtifacts(projectId: string, artifactIds: string[]): Promise<void>
   openPath(projectId: string, relPath?: string): Promise<void>
   setQuotaBudget(groupId: string, budget: QuotaBudget | null): Promise<void>
   refreshQuotas(): Promise<void>
@@ -1121,12 +1346,22 @@ export interface CoworkApi {
   /** Cambia nombre, petición, disparador o la activa/desactiva. */
   updateRoutine(projectId: string, id: string, patch: Partial<RoutineInput>): Promise<Routine>
   deleteRoutine(projectId: string, id: string): Promise<void>
+  /** Plantillas de tareas de todos los proyectos (los cambios llegan por el evento templates.updated). */
+  listTemplates(): Promise<TaskTemplate[]>
+  createTemplate(input: TaskTemplateInput): Promise<TaskTemplate>
+  /** Cambia lo que se indique (projectId o agentId a null: general / por Hermes). */
+  updateTemplate(id: string, patch: Partial<TaskTemplateInput>): Promise<TaskTemplate>
+  deleteTemplate(id: string): Promise<void>
+  /** Vuelve a poner las de serie que se hayan borrado. */
+  restoreTemplates(): Promise<TaskTemplate[]>
   /** «Ejecutar ahora»: la lanza ya (si la anterior sigue en marcha, se apunta como saltada). */
   runRoutineNow(projectId: string, id: string): Promise<RoutineRun>
   /** Dirección del webhook con su secreto (regenerate: secreto nuevo; la dirección anterior deja de valer). */
   getRoutineWebhook(projectId: string, id: string, regenerate?: boolean): Promise<RoutineWebhookInfo>
   /** Retoma una petición interrumpida al cerrar la app: vuelve a lanzar sus tareas sin terminar. */
   resumeRun(projectId: string, runId: string): Promise<void>
+  /** Rutina que propuso Hermes (mensaje con routineProposal): «create» la crea (activa), «dismiss» la descarta. */
+  decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): Promise<ChatMessage>
   /** Da el visto bueno al plan que propone el coordinador (mensaje con proposal): sus tareas empiezan. */
   /** 👍/👎 en un resultado del chat (null lo quita): queda en el mensaje, en el registro de consumo y en la ficha del agente. */
   rateMessage(projectId: string, messageId: string, rating: MessageRating | null): Promise<void>
@@ -1135,12 +1370,66 @@ export interface CoworkApi {
   rejectPlan(projectId: string, messageId: string): Promise<void>
   /** Pedir (o no) tu visto bueno antes de ejecutar cada plan. */
   setPlanApproval(on: boolean): Promise<void>
+  /** Cómo pagas cada agente, precios por modelo y presupuesto (panel «Uso y coste»). */
+  setCostSettings(costs: CostSettings): Promise<void>
+  /** Extensiones (Ajustes › Extensiones): servidores MCP del usuario, sin sus claves. */
+  listMcpServers(): Promise<McpServerInfo[]>
+  /** Añade o cambia un servidor (`replaces`: su nombre anterior, si se renombra). Devuelve la lista nueva. */
+  saveMcpServer(input: McpServerInput, replaces?: string): Promise<McpServerInfo[]>
+  removeMcpServer(id: string): Promise<McpServerInfo[]>
+  /** Lo arranca y le pide sus herramientas; guarda el resultado (si falla, lo apaga para todos). */
+  testMcpServer(id: string): Promise<McpServerInfo[]>
+  /** Instala lo que le falta a un servidor para arrancar (uv o Node.js) en el equipo de los agentes y lo vuelve a probar. */
+  installMcpRuntime(id: string): Promise<{ ok: boolean; message: string; servers: McpServerInfo[] }>
+  /** A qué agentes llega. Al encenderlo para uno nuevo se prueba antes: si falla, se queda apagado. */
+  setMcpServerAgents(id: string, agents: McpAgentKind[]): Promise<McpServerInfo[]>
+  /** Catálogo de servidores: sin búsqueda, los destacados; con ella, el registro oficial de MCP (por páginas). */
+  mcpCatalog(query: string, cursor?: string): Promise<{ items: McpCatalogItem[]; next?: string }>
+  /** Catálogo de habilidades: sin búsqueda, las destacadas; con ella, skills.sh. */
+  skillCatalog(query: string): Promise<SkillCatalogItem[]>
+  /** Habilidades instaladas (carpeta «habilidades»). */
+  listSkills(): Promise<SkillInfo[]>
+  /** Instala una del catálogo (skillId vacío: todas las de su repositorio). */
+  installSkill(source: string, skillId: string): Promise<{ installed: string[]; skills: SkillInfo[] }>
+  /** Instala las de un enlace de GitHub (una carpeta con SKILL.md o todo un repositorio). */
+  installSkillLink(url: string): Promise<{ installed: string[]; skills: SkillInfo[] }>
+  removeSkill(name: string): Promise<SkillInfo[]>
+  /** Plugins instalados y lo que trajo cada uno. */
+  listPlugins(): Promise<PluginInfo[]>
+  /** Plugins de todos los catálogos (sin búsqueda: todos, los verificados primero). */
+  pluginCatalog(query: string): Promise<{ items: PluginCatalogItem[]; errors: string[]; marketplaces: string[] }>
+  /** Descarga e instala un plugin de un catálogo: sus habilidades, órdenes, subagentes y servidores MCP (apagados). */
+  installPlugin(marketplace: string, name: string): Promise<PluginInfo[]>
+  /** Un enlace de GitHub: si es un catálogo se añade; si es un plugin, se instala. */
+  addPluginLink(url: string): Promise<{ kind: 'marketplace' | 'plugin'; name: string; plugins: PluginInfo[] }>
+  /** Quita un plugin y todo lo que trajo. */
+  removePlugin(name: string): Promise<PluginInfo[]>
+  /** Quita un catálogo añadido con un enlace. */
+  removeMarketplace(repo: string): Promise<string[]>
+  /** Mods instalados: sus órdenes «/…», hooks y paneles. */
+  listMods(): Promise<ModInfo[]>
+  /** Instala un mod desde un enlace de GitHub a su carpeta (con kywai-mod.json). */
+  installModLink(url: string): Promise<ModInfo[]>
+  /** Instala un mod desde una carpeta de este equipo (la del servidor). */
+  installModFolder(folder: string): Promise<ModInfo[]>
+  removeMod(name: string): Promise<ModInfo[]>
+  setModEnabled(name: string, enabled: boolean): Promise<ModInfo[]>
+  /** Permiso para sus hooks tal como están ahora (si cambian, hay que volver a darlo). */
+  allowModHooks(name: string, allow: boolean): Promise<ModInfo[]>
+  /** El HTML de un panel, preparado para una caja aislada. */
+  modPanel(name: string, panelId: string): Promise<{ html: string; title: string; chat: boolean }>
+  /** Idioma de los avisos del motor y de las respuestas de Hermes y los agentes (lo cambia el selector de Ajustes). */
+  setLanguage(lang: Lang): Promise<void>
+  /** Tema elegido en este equipo: el servidor lo guarda para que Órbita se vea igual. */
+  setUiTheme?(id: string): Promise<void>
+  /** Nombre del ordenador que se ve en la barra lateral («» vuelve al nombre del equipo en la red). */
+  setServerName?(name: string): Promise<void>
   /** «/model»: modelo con el que coordina Hermes y los que puede usar (según sus proveedores con sesión). */
   getHermesModels(): Promise<HermesModelsInfo>
-  /** Cambia el modelo de Hermes en AI Cowork (null: volver al de su configuración). */
+  /** Cambia el modelo de Hermes en kywai (null: volver al de su configuración). */
   setHermesModel(choice: { provider: string; model: string } | null): Promise<HermesModelsInfo>
   /** Busca canciones para el reproductor de música (YouTube Music y, si no, YouTube). */
-  searchMusic(query: string, kind?: 'songs' | 'videos'): Promise<MusicResult[]>
+  searchMusic(query: string, kind?: MusicSearchKind): Promise<MusicResult[]>
   /** Lo que ha hecho el agente en una tarea, paso a paso (lo nuevo llega por eventos task.trace). */
   getTaskTrace(taskId: string): Promise<TraceEntry[]>
   /** Qué cambió una tarea en la carpeta del proyecto (archivos con +/− y el parche). */
@@ -1156,6 +1445,8 @@ export interface CoworkApi {
   actInbox(id: string, actionId: string): Promise<{ item: InboxItem; message?: string }>
   /** «Reiniciar agente» tras un fallo: olvida su bloqueo, comprueba que responde y lo deja disponible. */
   resetAgent(agentId: string): Promise<AgentRuntime>
+  /** Enciende o apaga el razonamiento («think») del modelo local de LM Studio. */
+  setAgentThinking(agentId: AgentId, enabled: boolean): Promise<void>
   /**
    * Quita de ~/.claude/settings.json lo que desvía Claude Code a otro servidor (con copia antes), para que use
    * directamente tu cuenta de Claude y pueda dar la cuota. Devuelve un mensaje con lo hecho y lo que falta.
@@ -1203,7 +1494,7 @@ export interface CoworkApi {
   /** Enlace de acceso por HTTPS (con el código), si está activo: desde el navegador, para pasar a la versión con micrófono. */
   getHttpsLink(host?: string): Promise<HttpsLink | null>
   checkForUpdates(): Promise<UpdateStatus>
-  /** Cierra y vuelve a abrir AI Cowork (también desde el navegador del móvil). */
+  /** Cierra y vuelve a abrir kywai (también desde el navegador del móvil). */
   restartApp(): Promise<void>
   /** Nota de voz (guardada con savePastedFile) → texto, con Whisper en el propio equipo. */
   transcribeAudio(path: string, language?: string): Promise<string>

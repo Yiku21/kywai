@@ -1,4 +1,4 @@
-// Agentes de terminal que se pueden conectar con tu suscripción (los de «cli»: AI Cowork los lanza con la sesión que
+// Agentes de terminal que se pueden conectar con tu suscripción (los de «cli»: kywai los lanza con la sesión que
 // ya tienes iniciada en ellos). Cada entrada dice cómo se ejecuta de forma no interactiva y cómo se instala; todo sale
 // de su documentación oficial. `verified: false` = alguna pieza no está confirmada y puede necesitar ajustes.
 import type { CatalogEntry } from './agentCatalog'
@@ -18,13 +18,14 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
     name: 'Aider',
     summary: 'Programa en pareja con IA: edita los archivos de tu repositorio con el modelo que elijas.',
     account: 'Solo con claves de API (OpenAI, Anthropic, Google, OpenRouter…): no usa tu suscripción de ChatGPT ni de Claude.',
+    free: 'Gratis con una clave de OpenRouter y uno de sus modelos «:free»: unas 50 peticiones al día (1000 si alguna vez compraste 10 $ de saldo).',
     kind: 'cli',
     verified: true,
     color: '#38d98a',
     role: 'Agente conectado: edita el repositorio del proyecto con el modelo que le hayas configurado',
     strengths: ['cambios concretos en archivos de un repositorio, con el mapa del repositorio como contexto'],
     avoid: [...GENERIC_AVOID, 'no tiene permisos ni sandbox: siempre edita archivos salvo en su modo de solo preguntas'],
-    note: 'Deja sus archivos .aider* en la carpeta del proyecto. No hace commits solo (AI Cowork se lo desactiva).',
+    note: 'Deja sus archivos .aider* en la carpeta del proyecto. No hace commits solo (kywai se lo desactiva).',
     cli: {
       command: 'aider',
       versionArgs: ['--version'],
@@ -105,6 +106,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
     name: 'OpenCode',
     summary: 'Agente de programación de código abierto para la terminal, con muchos proveedores.',
     account: 'Con tu suscripción de ChatGPT Plus/Pro, GitHub Copilot, GitLab Duo o SuperGrok (opencode auth login), o claves de API.',
+    free: 'Gratis con los modelos gratuitos de OpenCode Zen, que solo funcionan desde OpenCode: el límite se reparte entre todos sus usuarios y algunos usan lo que envías para entrenar.',
     kind: 'cli',
     verified: false,
     color: '#6ea8fe',
@@ -136,6 +138,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
     name: 'GitHub Copilot CLI',
     summary: 'El agente de programación de GitHub Copilot en la terminal.',
     account: 'Con tu suscripción de GitHub Copilot (copilot login).',
+    free: 'Gratis con el plan Copilot Free de GitHub, que incluye Copilot CLI con un cupo mensual pequeño.',
     kind: 'cli',
     verified: true,
     color: '#a371f7',
@@ -287,6 +290,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
     name: 'Mistral Vibe',
     summary: 'Agente de código de Mistral en la terminal.',
     account: 'Con tu cuenta de Mistral (Le Chat Pro o Team) o una clave de API de Mistral; también con modelos locales.',
+    free: 'Gratis con una clave del plan gratuito de Mistral (Experiment), con límites bajos y pensado para probar.',
     kind: 'cli',
     verified: true,
     color: '#ff7000',
@@ -344,6 +348,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
     name: 'Cline',
     summary: 'Agente de programación autónomo en la terminal, con muchos proveedores de modelos.',
     account: 'Con tu cuenta de Cline o tu suscripción de ChatGPT Plus/Pro (inicio de sesión en el navegador), o una clave de API propia.',
+    free: 'Gratis con los modelos marcados como FREE en tu cuenta de Cline.',
     kind: 'cli',
     verified: false,
     color: '#7bd88f',
@@ -585,7 +590,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
       login: 'gptme-auth openai-subscription',
       url: 'https://gptme.org/docs/getting-started.html',
       install: {
-        mac: 'pipx install gptme',
+        mac: 'brew install pipx && pipx install gptme',
         linux: 'pipx install gptme',
         needs: 'python'
       }
@@ -746,12 +751,13 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
   {
     id: 'antigravity',
     name: 'Antigravity CLI',
-    summary: 'El agente de Google Antigravity en la terminal (agy); sustituye a Gemini CLI en las cuentas de Google AI Pro y Ultra.',
-    account: 'Con tu cuenta de Google con Google AI Pro o Ultra (inicio de sesión de Google en el navegador la primera vez que abres agy).',
+    summary: 'El agente de Google Antigravity en la terminal (agy); desde junio de 2026 sustituye a Gemini CLI en las cuentas personales de Google.',
+    account: 'Con tu cuenta de Google: gratis con un límite semanal, o con más cuota en Google AI Pro o Ultra (inicio de sesión de Google en el navegador la primera vez que abres agy).',
+    free: 'Gratis con tu cuenta personal de Google, con un límite semanal (lee la nota sobre sus condiciones).',
     kind: 'cli',
     verified: false,
     color: '#4285f4',
-    role: 'Agente conectado: programa en la terminal con tu suscripción de Google AI',
+    role: 'Agente conectado: programa en la terminal con tu cuenta de Google',
     strengths: GENERIC_STRENGTHS,
     avoid: [
       ...GENERIC_AVOID,
@@ -759,7 +765,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
       'no tiene un modo de solo lectura documentado: al planificar solo se le pide por instrucción que no toque nada'
     ],
     note:
-      'La versión 1.0.6 falla con -p cuando no hay terminal (así lo lanza AI Cowork): actualízalo. Sus condiciones adicionales (§6) prohíben acceder al servicio con software de terceros y Google no ha aclarado si eso incluye lanzarlo así con una cuenta personal. La dirección del instalador no está confirmada en su documentación.',
+      'La versión 1.0.6 falla con -p cuando no hay terminal (así lo lanza kywai): actualízalo. Sus condiciones adicionales (§6) prohíben acceder al servicio con software de terceros (su ejemplo es OpenClaw con el inicio de sesión de Antigravity) y avisan de que pueden suspender la cuenta de Antigravity y la de Gemini CLI. kywai lanza el programa oficial, pero Google no ha aclarado si eso cuenta. La dirección del instalador no está confirmada en su documentación.',
     cli: {
       command: 'agy',
       versionArgs: ['--version'],
@@ -787,7 +793,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
     strengths: [...GENERIC_STRENGTHS, 'tareas ligadas a Jira, Confluence o Bitbucket de tu sitio de Atlassian'],
     avoid: [...GENERIC_AVOID, 'no tiene un modo de solo lectura documentado: al planificar solo se le pide por instrucción que no toque nada'],
     note:
-      'Una guía de terceros dice que el encargo de «acli rovodev run» no puede pasar de 256 caracteres: AI Cowork solo le pasa la instrucción de leer el archivo del encargo, pero con rutas muy largas podría no caber (sin comprobar). En Windows y Linux, instala la CLI de Atlassian (acli) desde su página.',
+      'Una guía de terceros dice que el encargo de «acli rovodev run» no puede pasar de 256 caracteres: kywai solo le pasa la instrucción de leer el archivo del encargo, pero con rutas muy largas podría no caber (sin comprobar). En Windows y Linux, instala la CLI de Atlassian (acli) desde su página.',
     cli: {
       command: 'acli',
       versionArgs: ['--version'],
@@ -861,6 +867,42 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
         windows: 'npm install -g @qoder-ai/qodercli',
         mac: 'npm install -g @qoder-ai/qodercli',
         linux: 'npm install -g @qoder-ai/qodercli',
+        needs: 'node'
+      }
+    }
+  },
+  {
+    id: 'kilo',
+    name: 'Kilo CLI',
+    summary: 'Agente de programación de código abierto de Kilo en la terminal, con cientos de modelos y varios gratuitos.',
+    account: 'Sin cuenta con sus modelos gratuitos; con tu cuenta de Kilo (kilo auth login) para los de pago, o tus propias claves de API.',
+    free: 'Gratis, sin tarjeta y sin cuenta, con sus modelos gratuitos (empieza con Kilo Auto Free).',
+    kind: 'cli',
+    verified: true,
+    color: '#f5d33f',
+    role: 'Agente conectado: programa en la terminal con los modelos de Kilo (gratuitos o de tu cuenta)',
+    strengths: GENERIC_STRENGTHS,
+    avoid: GENERIC_AVOID,
+    note: 'Empieza con el modelo gratuito Kilo Auto Free (kilo/kilo-auto/free): sin él, su modelo por defecto es de pago y pide cuenta. Los gratuitos cambian cuando acaban sus promociones; la lista sale con «kilo models kilo».',
+    // Sin cuenta, su modelo por defecto es de pago: se empieza con el enrutado gratuito de Kilo.
+    model: 'kilo/kilo-auto/free',
+    modelLabel: 'Kilo Auto Free',
+    cli: {
+      command: 'kilo',
+      versionArgs: ['--version'],
+      promptVia: 'arg',
+      args: ['run', '{prompt}'],
+      // El agente «plan» no edita archivos ni ejecuta comandos que cambien nada (probado con kilo 7.8).
+      planArgs: ['--agent', 'plan'],
+      // Sin --auto, lo que pediría permiso se rechaza solo; las ediciones del proyecto ya están permitidas.
+      fullAccessArgs: ['--auto'],
+      modelArgs: ['-m', '{model}'],
+      login: 'kilo auth login',
+      url: 'https://kilo.ai/docs/cli',
+      install: {
+        windows: 'npm install -g @kilocode/cli',
+        mac: 'npm install -g @kilocode/cli',
+        linux: 'npm install -g @kilocode/cli',
         needs: 'node'
       }
     }

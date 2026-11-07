@@ -5,6 +5,7 @@ import { createDeflateRaw } from 'node:zlib'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { Writable } from 'node:stream'
+import { tr } from '@shared/i18n'
 
 export interface FsEntry {
   name: string
@@ -175,24 +176,35 @@ const FOUR_GB = 0xffffffff
 /**
  * Escribe `root` (carpeta o archivo) como zip en `out`, sin cargarlo en memoria. No sigue enlaces simbólicos, salta lo
  * ilegible y no admite más de 4 GB en total (zip clásico).
+ * Con `entries`, incluye solo esos archivos con nombres relativos explícitos, sin recorrer carpetas.
  */
-export async function writeZip(root: string, out: Writable, options: { skip?: (abs: string) => boolean } = {}): Promise<{ files: number; bytes: number; skipped: number }> {
+export async function writeZip(root: string, out: Writable, options: { skip?: (abs: string) => boolean; entries?: { path: string; name: string }[] } = {}): Promise<{ files: number; bytes: number; skipped: number }> {
   const base = dirname(root)
+  const entryNames = new Map<string, string>()
+  const takenNames = new Set<string>()
+  for (const entry of options.entries ?? []) {
+    const name = entry.name.replace(/\\/g, '/')
+    if (!name || name.startsWith('/') || name.includes(':') || name.includes('\0') || name.split('/').some((p) => !p || p === '..' || p === '.') || takenNames.has(name)) {
+      throw new Error(tr('Archivo no válido'))
+    }
+    entryNames.set(entry.path, name)
+    takenNames.add(name)
+  }
   const central: CentralEntry[] = []
   let offset = 0
   let files = 0
   let bytes = 0
   let skipped = 0
 
+  // Los fallos se devuelven por los callbacks de escritura; también hay que atender el evento del stream.
+  out.once('error', () => {})
   const write = (buf: Buffer): Promise<void> =>
     new Promise((res, rej) => {
       offset += buf.length
-      if (out.write(buf)) return res()
-      out.once('drain', res)
-      out.once('error', rej)
+      out.write(buf, (error) => error ? rej(error) : res())
     })
 
-  const nameOf = (abs: string, dir: boolean): Buffer => Buffer.from(relative(base, abs).split(sep).join('/') + (dir ? '/' : ''), 'utf8')
+  const nameOf = (abs: string, dir: boolean): Buffer => Buffer.from((entryNames.get(abs) ?? relative(base, abs).split(sep).join('/')) + (dir ? '/' : ''), 'utf8')
 
   async function addDirectory(abs: string, mtime: number): Promise<void> {
     const name = nameOf(abs, true)
@@ -308,7 +320,13 @@ export async function writeZip(root: string, out: Writable, options: { skip?: (a
     } else skipped++
   }
 
-  await walk(root)
+  if (options.entries) {
+    for (const entry of options.entries) {
+      const st = await fsp.lstat(entry.path)
+      if (!st.isFile() || st.isSymbolicLink()) throw new Error(tr('Archivo no válido'))
+      await addFile(entry.path, st.size, st.mtimeMs)
+    }
+  } else await walk(root)
 
   const cdStart = offset
   for (const e of central) {
@@ -336,7 +354,7 @@ export async function writeZip(root: string, out: Writable, options: { skip?: (a
   end.writeUInt32LE(cdSize, 12)
   end.writeUInt32LE(cdStart, 16)
   await write(end)
-  await new Promise<void>((res) => out.end(res))
+  await new Promise<void>((res, rej) => out.end((error?: Error | null) => error ? rej(error) : res()))
   return { files, bytes, skipped }
 }
 

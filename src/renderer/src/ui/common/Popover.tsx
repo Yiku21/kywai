@@ -16,9 +16,11 @@ import s from './Popover.module.css'
 export interface PopoverProps {
   open: boolean
   onClose: () => void
-  /** Elemento bajo el que se ancla (sus clics no cuentan como "fuera"). */
+  /** Elemento al que se ancla (sus clics no cuentan como "fuera"). */
   anchorRef: RefObject<HTMLElement | null>
   align?: 'start' | 'end'
+  /** 'below' (por defecto) abre debajo; 'above', encima; 'right', a la derecha (desde la barra lateral). */
+  side?: 'below' | 'above' | 'right'
   role?: 'dialog' | 'menu'
   ariaLabel?: string
   id?: string
@@ -43,6 +45,7 @@ function PopoverSurface({
   onClose,
   anchorRef,
   align = 'start',
+  side = 'below',
   role = 'dialog',
   ariaLabel,
   id,
@@ -59,7 +62,7 @@ function PopoverSurface({
   })
   const [style, setStyle] = useState<CSSProperties>({ top: 0, left: 0, visibility: 'hidden' })
 
-  // Posición fija bajo el ancla, ajustada al viewport.
+  // Posición fija junto al ancla, ajustada al viewport.
   useLayoutEffect(() => {
     const place = (e?: Event): void => {
       const el = ref.current
@@ -70,14 +73,27 @@ function PopoverSurface({
       const vw = window.innerWidth
       const vh = window.innerHeight
       const w = el.offsetWidth
-      const top = Math.round(r.bottom + 8)
-      const maxHeight = Math.max(200, vh - top - 12)
-      const next: CSSProperties =
-        align === 'end'
-          ? { top, right: Math.round(Math.min(Math.max(8, vw - r.right), Math.max(8, vw - w - 8))), maxHeight }
-          : { top, left: Math.round(Math.min(Math.max(8, r.left), Math.max(8, vw - w - 8))), maxHeight }
+      if (side === 'right') {
+        // A la derecha del ancla, alineado con su parte de arriba y metido en la ventana (el de abajo crece hacia arriba).
+        const h = el.offsetHeight
+        const maxHeight = vh - 16
+        const top = Math.round(Math.max(8, Math.min(r.top, vh - Math.min(h, maxHeight) - 8)))
+        const left = Math.round(Math.min(r.right + 10, Math.max(8, vw - w - 8)))
+        setStyle((prev) => (prev.top === top && prev.left === left && prev.maxHeight === maxHeight ? prev : { top, left, maxHeight }))
+        return
+      }
+      // Al abrir encima, el borde inferior queda unido al ancla aunque crezca el contenido.
+      const edge = Math.round(side === 'above' ? Math.max(8, Math.min(vh - 8, r.top - 8)) : r.bottom + 8)
+      const next: CSSProperties = {
+        ...(side === 'above'
+          ? { bottom: vh - edge, maxHeight: Math.max(0, edge - 8) }
+          : { top: edge, maxHeight: Math.max(200, vh - edge - 12) }),
+        ...(align === 'end'
+          ? { right: Math.round(Math.min(Math.max(8, vw - r.right), Math.max(8, vw - w - 8))) }
+          : { left: Math.round(Math.min(Math.max(8, r.left), Math.max(8, vw - w - 8))) })
+      }
       setStyle((prev) =>
-        prev.top === next.top && prev.left === next.left && prev.right === next.right && prev.maxHeight === next.maxHeight
+        prev.top === next.top && prev.bottom === next.bottom && prev.left === next.left && prev.right === next.right && prev.maxHeight === next.maxHeight
           ? prev
           : next
       )
@@ -92,7 +108,7 @@ function PopoverSurface({
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', place, true)
     }
-  }, [anchorRef, align])
+  }, [anchorRef, align, side])
 
   // Clic fuera. Los eventos de React atraviesan portales, así que un pointerdown dentro de un
   // popover anidado también marca `inside` en este.

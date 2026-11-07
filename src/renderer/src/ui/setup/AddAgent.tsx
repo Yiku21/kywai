@@ -1,11 +1,12 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { AlertTriangle, ExternalLink, LoaderCircle, Plus, Search, Terminal, X } from 'lucide-react'
+import { AlertTriangle, ExternalLink, Gift, LoaderCircle, Plus, Search, Terminal, X } from 'lucide-react'
 import type { AgentConfig } from '@shared/types'
 import { AGENT_CATALOG, type CatalogEntry } from '@shared/agentCatalog'
 import { api } from '@/lib/api'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './AddAgent.module.css'
+import { t } from '@/lib/i18n'
 
 /** Los argumentos como los escribe una persona: separados por espacios, sin comillas ni símbolos de consola. */
 function splitArgs(text: string): string[] | null {
@@ -13,12 +14,28 @@ function splitArgs(text: string): string[] | null {
   return parts.every((p) => /^[\p{L}\p{N}_.:\-\/=,@{}]+$/u.test(p)) ? parts : null
 }
 
+/** Orden de los gratis: de lo más fácil (sin cuenta ni tarjeta) a lo que pide más condiciones. */
+const FREE_FIRST = ['kilo', 'gemini', 'opencode', 'copilot', 'cline', 'aider', 'mistral-vibe', 'antigravity']
+const freeRank = (id: string): number => (FREE_FIRST.includes(id) ? FREE_FIRST.indexOf(id) : FREE_FIRST.length)
+
 /**
  * Elegir un agente para añadir: del catálogo (los que ya tienes con tu suscripción) o cualquier otro programa de
  * terminal. Al añadirlo se le da su robot y su estación; luego el asistente se encarga de instalarlo y de iniciar sesión.
  */
-export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig[]; onClose: () => void; onAdded: (id: string) => void }) {
+export function AddAgent({
+  existing,
+  onClose,
+  onAdded,
+  freeOnly: startFree = false
+}: {
+  existing: AgentConfig[]
+  onClose: () => void
+  onAdded: (id: string) => void
+  /** Abrirlo mostrando solo los que se pueden usar gratis. */
+  freeOnly?: boolean
+}) {
   const [query, setQuery] = useState('')
+  const [freeOnly, setFreeOnly] = useState(startFree)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [custom, setCustom] = useState(false)
@@ -27,10 +44,12 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
   const have = useMemo(() => new Set(existing.map((a) => a.cli?.presetId ?? a.id)), [existing])
   const list = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return AGENT_CATALOG.filter((e) => e.repeatable || !have.has(e.id)).filter(
-      (e) => !q || `${e.name} ${e.summary} ${e.account} ${e.cli?.command ?? ''}`.toLowerCase().includes(q)
-    )
-  }, [have, query])
+    return AGENT_CATALOG.filter((e) => e.repeatable || !have.has(e.id))
+      .filter((e) => !freeOnly || !!e.free)
+      .filter((e) => !q || `${e.name} ${t(e.summary)} ${t(e.account)} ${e.free ? `${t('Gratis')} ${t(e.free)}` : ''} ${e.cli?.command ?? ''}`.toLowerCase().includes(q))
+      // Con «Solo gratis», primero los que menos piden (Kilo ni siquiera necesita cuenta).
+      .sort((x, y) => (freeOnly ? freeRank(x.id) - freeRank(y.id) : 0))
+  }, [have, query, freeOnly])
 
   async function add(entry: CatalogEntry): Promise<void> {
     const a = api
@@ -56,7 +75,7 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
     if (!a || busy) return
     const args = splitArgs(form.args)
     if (!args) {
-      setError('Los argumentos solo pueden llevar letras, números y . : - / = , @ (separados por espacios).')
+      setError(t('Los argumentos solo pueden llevar letras, números y . : - / = , @ (separados por espacios).'))
       return
     }
     setBusy('custom')
@@ -89,24 +108,34 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
         <header className={s.head}>
           <div>
             <h2 id="addagent-title" className={s.title}>
-              Añadir un agente
+              {t('Añadir un agente')}
             </h2>
             <p className={s.subtitle}>
-              Conecta los agentes que ya usas con tu suscripción: AI Cowork los lanza con la sesión que tengas iniciada en ellos y les reparte
-              trabajo como a los demás.
+              {t('Conecta los agentes que ya usas con tu suscripción: kywai los lanza con la sesión que tengas iniciada en ellos y les reparte trabajo como a los demás.')}
             </p>
           </div>
-          <button type="button" className={cx(u.iconBtn, s.close)} aria-label="Cerrar" onClick={onClose}>
+          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={onClose}>
             <X size={18} />
           </button>
         </header>
 
         {!custom ? (
           <>
-            <label className={s.search}>
-              <Search size={15} aria-hidden="true" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar un agente…" aria-label="Buscar un agente" autoFocus />
-            </label>
+            <div className={s.searchRow}>
+              <label className={s.search}>
+                <Search size={15} aria-hidden="true" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Buscar un agente…')} aria-label={t('Buscar un agente')} autoFocus />
+              </label>
+              <button
+                type="button"
+                className={cx(s.freeToggle, freeOnly && s.freeToggleOn)}
+                aria-pressed={freeOnly}
+                title={t('Solo los que se pueden usar sin pagar una suscripción')}
+                onClick={() => setFreeOnly((v) => !v)}
+              >
+                <Gift size={14} aria-hidden="true" /> {t('Solo gratis')}
+              </button>
+            </div>
             <ul className={s.list}>
               {list.map((e) => (
                 <li key={e.id} className={s.item} style={{ ['--agent' as string]: e.color }}>
@@ -115,46 +144,56 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
                     <span className={s.itemName}>
                       {e.name}
                       {e.kind === 'cli' && <code className={s.cmd}>{e.cli?.command}</code>}
+                      {e.free && <span className={s.free}>{t('Gratis')}</span>}
                       {e.kind === 'cli' && !e.verified && (
-                        <span className={s.warn} title={e.note ?? 'Su forma de lanzarlo no se ha comprobado a fondo: puede necesitar ajustes.'}>
-                          <AlertTriangle size={11} aria-hidden="true" /> sin comprobar
+                        <span className={s.warn} title={e.note ? t(e.note) : t('Su forma de lanzarlo no se ha comprobado a fondo: puede necesitar ajustes.')}>
+                          <AlertTriangle size={11} aria-hidden="true" /> {t('sin comprobar')}
                         </span>
                       )}
                     </span>
-                    <span className={s.itemWhat}>{e.summary}</span>
-                    <span className={s.itemAccount}>{e.account}</span>
-                    {e.note && <span className={s.itemNote}>{e.note}</span>}
+                    <span className={s.itemWhat}>{t(e.summary)}</span>
+                    <span className={s.itemAccount}>{t(e.account)}</span>
+                    {e.free && <span className={s.itemFree}>{t(e.free)}</span>}
+                    {e.note && <span className={s.itemNote}>{t(e.note)}</span>}
                   </span>
                   <span className={s.itemActions}>
                     {e.cli?.url && (
-                      <button type="button" className={cx(u.iconBtn, s.link)} title="Más información" aria-label={`Más información sobre ${e.name}`} onClick={() => void api?.openExternal(e.cli!.url!)}>
+                      <button type="button" className={cx(u.iconBtn, s.link)} title={t('Más información')} aria-label={t('Más información sobre {name}', { name: e.name })} onClick={() => void api?.openExternal(e.cli!.url!)}>
                         <ExternalLink size={14} />
                       </button>
                     )}
                     <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={!!busy} onClick={() => void add(e)}>
                       {busy === e.id ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : <Plus size={13} aria-hidden="true" />}
-                      Añadir
+                      {t('Añadir')}
                     </button>
                   </span>
                 </li>
               ))}
-              {list.length === 0 && <li className={s.empty}>No hay ningún agente que coincida. Prueba con «Otro programa…».</li>}
+              {list.length === 0 && (
+                <li className={s.empty}>
+                  {freeOnly && query.trim()
+                    ? t('Ningún agente gratis coincide. Quita «Solo gratis» para ver todos.')
+                    : freeOnly
+                      ? t('Ya tienes en tu equipo todos los agentes gratis del catálogo.')
+                      : t('No hay ningún agente que coincida. Prueba con «Otro programa…».')}
+                </li>
+              )}
             </ul>
             <footer className={s.foot}>
-              <p className={s.hint}>¿No está el tuyo? Cualquier programa de terminal que atienda un encargo sirve.</p>
+              <p className={s.hint}>{t('¿No está el tuyo? Cualquier programa de terminal que atienda un encargo sirve.')}</p>
               <button type="button" className={u.btn} onClick={() => setCustom(true)}>
-                <Terminal size={14} aria-hidden="true" /> Otro programa…
+                <Terminal size={14} aria-hidden="true" /> {t('Otro programa…')}
               </button>
             </footer>
           </>
         ) : (
           <form className={s.form} onSubmit={(e) => void addCustom(e)}>
             <label>
-              <span>Nombre</span>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Mi agente" maxLength={40} />
+              <span>{t('Nombre')}</span>
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('Mi agente')} maxLength={40} />
             </label>
             <label>
-              <span>Programa (el comando que escribirías en la terminal)</span>
+              <span>{t('Programa (el comando que escribirías en la terminal)')}</span>
               <input
                 value={form.command}
                 onChange={(e) => setForm({ ...form, command: e.target.value })}
@@ -165,31 +204,31 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
               />
             </label>
             <label>
-              <span>Cómo recibe el encargo</span>
+              <span>{t('Cómo recibe el encargo')}</span>
               <select value={form.promptVia} onChange={(e) => setForm({ ...form, promptVia: e.target.value as 'stdin' | 'file' | 'arg' })}>
-                <option value="stdin">Por la entrada estándar (stdin)</option>
-                <option value="file">En un archivo ({'{promptFile}'} en los argumentos)</option>
-                <option value="arg">Como argumento ({'{prompt}'}: se le pide leer el archivo del encargo)</option>
+                <option value="stdin">{t('Por la entrada estándar (stdin)')}</option>
+                <option value="file">{t('En un archivo (')}{'{promptFile}'} {t('en los argumentos)')}</option>
+                <option value="arg">{t('Como argumento (')}{'{prompt}'}{t(': se le pide leer el archivo del encargo)')}</option>
               </select>
             </label>
             <label>
-              <span>Argumentos de una consulta no interactiva</span>
+              <span>{t('Argumentos de una consulta no interactiva')}</span>
               <input value={form.args} onChange={(e) => setForm({ ...form, args: e.target.value })} placeholder="run --yes {promptFile}" autoComplete="off" />
             </label>
             <label>
-              <span>Para iniciar sesión (opcional)</span>
-              <input value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} placeholder="miagente login" autoComplete="off" />
+              <span>{t('Para iniciar sesión (opcional)')}</span>
+              <input value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} placeholder={t('miagente login')} autoComplete="off" />
             </label>
             <p className={s.hint}>
-              Se ejecuta en la carpeta del proyecto, con la sesión que ya tengas en él. El texto del encargo nunca va en la línea de órdenes.
+              {t('Se ejecuta en la carpeta del proyecto, con la sesión que ya tengas en él. El texto del encargo nunca va en la línea de órdenes.')}
             </p>
             <div className={s.formActions}>
               <button type="button" className={cx(u.btn, u.btnGhost)} onClick={() => setCustom(false)}>
-                Volver al catálogo
+                {t('Volver al catálogo')}
               </button>
               <button type="submit" className={cx(u.btn, u.btnPrimary)} disabled={!!busy || !form.command.trim()}>
                 {busy === 'custom' && <LoaderCircle size={14} className={u.spin} aria-hidden="true" />}
-                Añadir
+                {t('Añadir')}
               </button>
             </div>
           </form>

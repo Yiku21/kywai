@@ -1,6 +1,29 @@
-# Manual de AI Cowork
+# Manual de kywai
 
-Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [README](../README.md).
+Todo lo que hace kywai, en detalle. Para una presentación rápida, ver el [README](../README.md).
+
+kywai (se pronuncia «ki-wai»; web: https://kywai.app) se llamaba antes **AI Cowork**. El nombre nuevo sale en todo lo
+que se ve: interfaz, avisos, Órbita, ventana, instalador de Windows (`kywai-Setup-<versión>.exe`, «kywai Setup»), sus
+accesos directos, «Aplicaciones instaladas», `kywai.exe` y la app del Mac (`kywai.app`). Lo interno conserva el
+antiguo para que las instalaciones que ya hay no pierdan nada: la carpeta de datos (`AI Cowork`, fijada en
+`src/main/dataDir.ts` aunque la app se llame kywai), los identificadores (`com.aicowork…`, `ai-cowork`), el
+certificado propio del Mac y el texto que firma las actualizaciones del cliente.
+
+**Paso de «AI Cowork» a «kywai» al actualizar (noviembre de 2026):**
+- **Windows:** el instalador reconoce la instalación anterior por su identificador (`com.aicowork.app`), así que la
+  actualiza en la misma carpeta (`…\Programs\AI Cowork`, que no cambia de nombre) y no aparece duplicada. Los accesos
+  directos «AI Cowork» pasan a llamarse «kywai» y el exe pasa a `kywai.exe`. Si estaba activado «Abrir kywai al
+  iniciar sesión», la primera vez que se abre la versión nueva lo apunta a `kywai.exe` (`migrateWindowsLoginItem`).
+  Un anclaje a la barra de tareas del exe viejo deja de funcionar: hay que volver a anclar kywai.
+- **Acceso directo en el Escritorio (Windows):** el instalador lo crea siempre, también al actualizar
+  (`createDesktopShortcut: "always"`): si se borró, la siguiente actualización lo vuelve a poner.
+- **Mac (compilada en el equipo, como el Mac mini):** «Buscar actualizaciones» compila `kywai.app`, la deja en la misma
+  carpeta que la instalada y quita la `AI Cowork.app` (`scripts/actualizar-mac.sh`, que también entiende la ruta vieja
+  que le pasa una versión anterior). `instalar-mac.sh` hace lo mismo. Como el identificador y el certificado no
+  cambian, macOS debería conservar los permisos de Privacidad; si vuelve a preguntar, se aceptan una vez. Si kywai
+  estaba en el Dock, hay que volver a ponerlo.
+- **Mac (descargada de la Release):** se arrastra `kywai.app` a Aplicaciones y se borra la `AI Cowork.app` vieja; los
+  datos se conservan.
 
 ## Índice
 
@@ -13,7 +36,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Dictado por voz](#dictado-por-voz)
 - **[Cómo trabaja el equipo](#cómo-trabaja-el-equipo)**
   - [Reparto, modelos y permisos](#reparto-modelos-y-permisos)
-  - [Lo que sabe el coordinador de AI Cowork](#lo-que-sabe-el-coordinador-de-ai-cowork)
+  - [Lo que sabe el coordinador de kywai](#lo-que-sabe-el-coordinador-de-kywai)
   - [Tu visto bueno a cada plan](#tu-visto-bueno-a-cada-plan)
   - [«Te necesita»: lo que espera una decisión tuya](#te-necesita-lo-que-espera-una-decisión-tuya)
   - [Criterio de aceptación y archivos de cada tarea](#criterio-de-aceptación-y-archivos-de-cada-tarea)
@@ -28,23 +51,39 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Entregables en una carpeta](#entregables-en-una-carpeta)
   - [Reanudar lo interrumpido](#reanudar-lo-interrumpido)
   - [Reiniciar un agente que falla](#reiniciar-un-agente-que-falla)
+  - [Hablar directamente con un agente (@Agente)](#hablar-directamente-con-un-agente-agente)
+  - [Razonamiento (think) del modelo local](#razonamiento-think-del-modelo-local)
   - [El modelo de Hermes (/model)](#el-modelo-de-hermes-model)
   - [Muse (Meta)](#muse-meta)
 - **[Proyectos, memoria y consumo](#proyectos-memoria-y-consumo)**
   - [Memoria e instrucciones del proyecto](#memoria-e-instrucciones-del-proyecto)
-  - [AGENTS.md, habilidades y herramientas de AI Cowork](#agentsmd-habilidades-y-herramientas-de-ai-cowork)
+  - [AGENTS.md, habilidades y herramientas de kywai](#agentsmd-habilidades-y-herramientas-de-kywai)
+  - [Extensiones: tus servidores MCP para los agentes](#extensiones-tus-servidores-mcp-para-los-agentes)
+  - [Extensiones: catálogo de servidores MCP y de habilidades](#extensiones-catálogo-de-servidores-mcp-y-de-habilidades)
+  - [Extensiones: plugins](#extensiones-plugins)
+  - [Extensiones: mods](#extensiones-mods)
+  - [Plantillas de tareas: lo que repites, con un toque](#plantillas-de-tareas-lo-que-repites-con-un-toque)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
-  - [Limpiar el chat](#limpiar-el-chat)
+  - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
+  - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
+  - [Buscar (Ctrl+K)](#buscar-ctrlk)
+  - [Historial](#historial)
   - [Eliminar un proyecto](#eliminar-un-proyecto)
   - [Cuotas](#cuotas)
   - [Consumo: ¿compensa?](#consumo-compensa)
+  - [Uso y coste: dinero por agente](#uso-y-coste-dinero-por-agente)
   - [Cómo rinde cada agente](#cómo-rinde-cada-agente)
   - [Dónde se guardan las cosas](#dónde-se-guardan-las-cosas)
 - **[Comodidades](#comodidades)**
+  - [Ancho del chat y ventanas pequeñas](#ancho-del-chat-y-ventanas-pequeñas)
+  - [Idioma](#idioma)
   - [Temas](#temas)
   - [Voces de los agentes](#voces-de-los-agentes)
-  - [Música (como YouTube Music)](#música-como-youtube-music)
+  - [Música (YouTube, Audius y radios)](#música-youtube-audius-y-radios)
+  - [Expresiones de los robots](#expresiones-de-los-robots)
   - [Modo Demo](#modo-demo)
+  - [Rendimiento](#rendimiento)
+  - [Apoyar kywai (donaciones)](#apoyar-kywai-donaciones)
 - **[Para desarrolladores](#para-desarrolladores)**
   - [Desarrollo](#desarrollo)
   - [Comprobaciones](#comprobaciones)
@@ -69,19 +108,62 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
 
 ### Instalar en otro equipo
 
+#### Descargar la versión lista (GitHub Releases)
+
+Con cada cambio en master del repositorio público, `.github/workflows/publicar-escritorio.yml` compila el instalador
+de Windows (`.exe`), el de macOS (`.dmg` y `.zip`, Apple silicon e Intel) y el AppImage de Linux (x64 y ARM) y los
+sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yiku21/kywai/releases/latest.
+
+- **Se actualiza sola.** Esas versiones traen `app-update.yml` y, al abrirse (y cada 6 horas), buscan la última
+  Release (`src/main/updater.ts`). En Windows y en el AppImage la descargan y, si llega en los primeros 5 minutos
+  desde que se abrió, la instalan y la app se reabre sola; si llega más tarde, se instala al cerrar. En el Mac, como
+  no va firmada por Apple, no puede reemplazarse sola: avisa con «Descargar» y abre la página de la Release.
+- **«Buscar actualizaciones…»** en esas versiones no usa git: dice que se actualiza sola y lanza la comprobación.
+- **Sin firma de código:** Windows avisa con SmartScreen («Más información» → «Ejecutar de todas formas»). En el Mac
+  va firmada «ad hoc»: la primera vez, clic derecho → Abrir; si dice que está dañada,
+  `xattr -cr "/Applications/kywai.app"`.
+- Las compiladas en el propio equipo (`instalar-mac.sh`, `instalar-linux.sh`, `npm run dist:*`) no traen
+  `app-update.yml` y siguen actualizándose desde su clon de git. Es lo que usa el servidor (Mac mini).
+- Las descargas de la Release se llaman `kywai-Setup-<versión>.exe`, `kywai-<versión>-<arch>.dmg/.zip` y
+  `kywai-<versión>-<arch>.AppImage`, igual que lo compilado en el propio equipo (`npm run dist:*`). El servidor acepta
+  para sus clientes de Windows tanto `kywai-Setup-*` como el nombre antiguo `AI-Cowork-Setup-*` (`clientRelease.ts`).
+- El workflow solo corre en el repositorio público; en kywai-original no hace nada.
+- **Órbita (Android) también está en la Release**, como `kywai-orbita.apk`: cada Release nueva adjunta la última APK
+  firmada que hay en `master` (`android/release/orbita.apk`), y cuando sale una Órbita nueva «Publicar Órbita» la sube
+  encima de la Release más reciente. Así, https://github.com/Yiku21/kywai/releases/latest/download/kywai-orbita.apk
+  da siempre la última. Es la misma APK y la misma firma que reparte el servidor, así que después se actualiza sola
+  desde el ordenador.
+- **Nombres de los repositorios (desde el 7 nov 2026):** el público es `Yiku21/kywai` (antes `ai-cowork`/`Ai-cowork`) y el
+  privado `Yiku21/kywai-original` (antes `ai-cowork-original`). GitHub redirige los nombres viejos, así que las apps ya
+  instaladas y los clones con el remote antiguo siguen funcionando; no hay que crear nunca un repo con un nombre viejo.
+  Para apuntar un clon al nombre nuevo: `git remote set-url origin https://github.com/Yiku21/kywai-original.git`.
+
 Al abrir la app instalada por primera vez aparece el **asistente de configuración** (también desde
-⋮ → «Configurar agentes…»):
+⚙ → Ajustes → «Configurar agentes…»):
 
 1. **Agentes**: eliges cuáles usar (Hermes, Claude, Codex, Gemini, Muse y el agente local con LM Studio u Ollama).
+   Debajo, el recuadro plegable **«¿No pagas ninguna suscripción? Así puedes usar kywai gratis»** explica cómo
+   montar un equipo sin pagar: «Ver los agentes gratis» abre el catálogo con «Solo gratis» (Kilo CLI primero, que ni
+   siquiera pide cuenta), «Conseguir la clave» abre la página de la clave gratis de Google AI Studio (para Gemini) o
+   la de OpenRouter (para que Hermes coordine con un modelo `:free`; se elige en «Sesiones» → «Configurar»), y
+   recuerda que el agente local siempre es gratis.
 2. **Programas**: comprueba si están sus CLIs y, si falta alguno, lo instala desde ahí con su instalador
    oficial (y Node.js si hace falta). En Mac conviene tener [Homebrew](https://brew.sh).
 3. **Sesiones**: abre el inicio de sesión oficial de cada CLI en una ventana aparte (normalmente en el
-   navegador) y comprueba que quedó hecho. AI Cowork no ve ni guarda contraseñas; para Gemini también puedes
-   pegar una clave de API de Google AI Studio.
+   navegador) y comprueba que quedó hecho. kywai no ve ni guarda contraseñas; para Gemini también puedes
+   pegar una clave de API de Google AI Studio (gratis y sin tarjeta). Desde el 18 de junio de 2026, Google ya no deja
+   usar Gemini CLI con una cuenta personal de Google sin pagar (la pasó a Antigravity CLI): con cuenta personal, usa
+   la clave de AI Studio. Valen las claves de antes («AIza…») y las nuevas que crea AI Studio desde junio de 2026
+   («AQ.…», con un punto). Si Gemini sigue con la sesión de Google, suele quedarse «pensando» sin dar error: a los
+   3 minutos de silencio la tarea y «Te necesita» lo dicen y piden la clave, en vez del aviso de permisos.
+   Si con la clave tampoco responde, mira en AI Studio «Límite de frecuencia»: a algunas cuentas les da cuota 0
+   en el nivel gratuito. Una sesión ya conectada lleva un lápiz para **cambiarla**
+   (otra cuenta, otra clave o, en Hermes, otro proveedor): abre el mismo inicio de sesión y, al volver a la app,
+   se comprueba y enseña la nueva. En Gemini, dentro se cambia de cuenta con `/auth`.
 4. **Listo**: resumen de lo que queda pendiente.
 
 Los datos de cada equipo (configuración y proyectos) se guardan en la carpeta de datos del usuario
-(`%APPDATA%\AI Cowork` en Windows, `~/Library/Application Support/AI Cowork` en Mac).
+(`%APPDATA%\AI Cowork` en Windows, `~/Library/Application Support/AI Cowork` en Mac, `~/.config/AI Cowork` en Linux).
 
 #### Windows
 
@@ -89,7 +171,7 @@ Los datos de cada equipo (configuración y proyectos) se guardan en la carpeta d
 npm run dist:win
 ```
 
-Genera `release/AI-Cowork-Setup-<versión>.exe`. Cópialo al otro PC y ejecútalo: te deja elegir la carpeta de
+Genera `release/kywai-Setup-<versión>.exe`. Cópialo al otro PC y ejecútalo: te deja elegir la carpeta de
 instalación y crea los accesos directos. Como no está firmado, Windows puede avisar («Windows protegió tu PC»):
 «Más información» → «Ejecutar de todas formas».
 
@@ -99,7 +181,7 @@ instalación y crea los accesos directos. Como no está firmado, Windows puede a
 npm run fuente
 ```
 
-Genera `release/AI-Cowork-fuente.zip` con el código. Llévalo al Mac, descomprímelo y, en Terminal, dentro de esa
+Genera `release/kywai-fuente.zip` con el código. Llévalo al Mac, descomprímelo y, en Terminal, dentro de esa
 carpeta:
 
 ```bash
@@ -117,72 +199,217 @@ olvida sus permisos de Privacidad (Acceso total al disco, Automatización…) ni
 Si algo falla, firma «ad hoc» como antes y avisa. Al pasar de la firma ad hoc a esta, macOS pide los permisos una
 última vez.
 
+#### Linux (se compila en el propio equipo)
+
+Necesita Node.js 22 o más nuevo y git. Clona el repositorio (para que «Buscar actualizaciones» funcione) y, dentro
+de la carpeta:
+
+```bash
+bash scripts/instalar-linux.sh
+```
+
+Compila la app para ese equipo (x64 o ARM), la deja en `~/.local/share/ai-cowork` (o donde elijas) sin pedir
+administrador, la añade al menú de aplicaciones y crea la orden `ai-cowork` en `~/.local/bin`. Si el sistema
+restringe el aislamiento de Chromium (Ubuntu 24.04 y otros), pide la contraseña para hacer de root el archivo
+`chrome-sandbox` de la app; si no se puede, la app se abre con `--no-sandbox` y lo avisa. Probado en Linux x64.
+
+En Linux:
+- El asistente instala Node.js, Python (con pipx) y Ollama con el gestor de paquetes de la distribución (apt, dnf,
+  pacman o zypper) y la ventana de contraseña del sistema (pkexec); en Debian y Ubuntu, Node.js LTS oficial. Hace
+  falta un escritorio para esa ventana. LM Studio se descarga desde su web. Si la carpeta global de npm es de root,
+  los CLIs que se instalan con npm van a `~/.npm-global`.
+- El inicio de sesión de cada CLI se abre en la terminal del escritorio (`$TERMINAL`, `x-terminal-emulator`,
+  GNOME, Konsole, Xfce, kitty, xterm…).
+- «Abrir kywai al iniciar sesión» crea `~/.config/autostart/ai-cowork.desktop`.
+- «Buscar actualizaciones» compila para Linux y cambia la carpeta instalada (`scripts/actualizar-linux.sh`).
+- También se puede generar una AppImage con `npm run dist:linux` (`release/kywai-<versión>-<arch>.AppImage`);
+  esa no se actualiza sola.
+- Tailscale se busca en `/usr/bin/tailscale` o `/usr/local/bin/tailscale`.
+
 ### Abrir la app (este equipo, versión de desarrollo)
 
 Usa el acceso directo **AI Cowork** del Escritorio o del menú Inicio. Si el código cambió desde la última vez
-(porque lo editaste tú o tus agentes), primero verás «Actualizando AI Cowork…» unos segundos y luego se abre.
+(porque lo editaste tú o tus agentes), primero verás «Actualizando kywai…» unos segundos y luego se abre.
 
 Para volver a crear los accesos directos: `npm run accesos`. Para regenerar el icono: `npm run icono`.
 
+**Logo (kywai).** El logo son tres gotas (azul `#207EFE`, naranja `#FE7C13`, verde `#08BA7D`) que giran juntas.
+Los originales en vector están en `docs/img/logo/`: `kywai-simbolo.svg` (solo el símbolo, para tamaños pequeños),
+`kywai-logo.svg` (símbolo y texto blanco, para fondo oscuro) y `kywai-logo-oscuro.svg` (texto oscuro, para fondo
+claro). El icono de la app sale de `build/icono.svg`: tras cambiarlo, `npm run icono` rehace los PNG y el `.ico` en
+cualquier sistema. La cabecera (`LogoMark.tsx`), el favicon de la web (`src/renderer/index.html`) y Órbita
+(`res/drawable/logo_kywai.xml` y el icono adaptativo `ic_launcher_*`) llevan el mismo dibujo; si cambia el símbolo,
+hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a mano en los ajustes del repositorio.
+
 ### Actualizar y reiniciar
 
-- **⋮ → «Buscar actualizaciones…»** compara con GitHub y, si hay cambios, los descarga, instala lo que haga
+- **⚙ → «Buscar actualizaciones…»** compara con GitHub y, si hay cambios, los descarga, instala lo que haga
   falta, compila y reinicia. Si el código de ese equipo tiene cambios hechos allí (por ejemplo, por tus agentes),
   aparece **«Apartar cambios y actualizar»**: se guardan con `git stash` (no se borran; `git stash list` en la
   carpeta del código) y se actualiza. Si alguien hizo commits en ese equipo que no están en GitHub, también se
   apartan, en una rama `apartado/<fecha>`, y el código vuelve a ser el de GitHub. Y si el código descargado es
   más nuevo que la app instalada (por ejemplo, porque se subió desde ese mismo equipo sin recompilar), ofrece
   instalarlo: la app sabe con qué commit se compiló.
-- **Desde Órbita**: Más → Ajustes → **Servidor** hace lo mismo en el servidor al que está emparejada. Al abrir
+- **Desde Órbita**: ☰ → Ajustes → Conexión → **Servidor** hace lo mismo en el servidor al que está emparejada. Al abrir
   Ajustes ya dice si hay cambios nuevos en GitHub (con los últimos títulos); «Actualizar el servidor» (pide
   confirmación) lo descarga, compila, instala y reinicia. Mientras tanto Órbita se queda sin conexión unos minutos y
   se reconecta sola; lo que estuviera trabajando queda en pausa para reanudarlo. Si el servidor tiene cambios hechos
   allí, el botón es «Apartar sus cambios y actualizar» (igual que arriba: se guardan en git, no se borran). Si la
   actualización falla, el servidor vuelve a su versión y «Ver cómo va» o la próxima consulta dicen por qué. El
   servidor tiene que tener ya esta función: la primera vez se actualiza desde el ordenador.
-- **⋮ → «Reiniciar AI Cowork»** (pulsa dos veces para confirmar) cierra y vuelve a abrir la app si se queda
+- **⚙ → «Reiniciar kywai»** (pulsa dos veces para confirmar) cierra y vuelve a abrir la app si se queda
   pillada; también desde el navegador del móvil, que se recarga solo cuando vuelve. Si la app está cerrada del
   todo, no hay nada que responda al enlace: hay que abrirla en el equipo.
 
 ### Acceso desde el móvil o el portátil (Tailscale)
 
-Un equipo con AI Cowork abierto (por ejemplo el Mac mini, encendido 24/7) puede servir la app a tus otros
+Un equipo con kywai abierto (por ejemplo el Mac mini, encendido 24/7) puede servir la app a tus otros
 dispositivos de Tailscale:
 
-1. En ese equipo: ⋮ → «Acceso desde otros dispositivos…» → activa «Permitir el acceso por Tailscale».
+1. En ese equipo: ⚙ → Ajustes → «Acceso desde otros dispositivos…» → activa «Permitir el acceso por Tailscale».
 2. Copia el **enlace de acceso** (`http://<ip-de-tailscale>:8787/?t=<código>`) y ábrelo una vez en el móvil o
    el portátil con Tailscale activo. Queda recordado; el código es tu llave (puedes cambiarlo y anular los
    enlaces anteriores).
-3. Para que esté siempre disponible: activa «Abrir AI Cowork al iniciar sesión» y evita que el Mac se duerma
-   (Ajustes del Sistema → Energía). Mientras el acceso está activo, AI Cowork no se suspende.
+   Cada enlace lleva encima su nombre y una línea con su uso: **Seguro (Órbita y micrófono)** es el `https://…:8788`
+   que pide Órbita y deja grabar notas de voz (con Tailscale Serve activo pasa a ser **Seguro con Tailscale**,
+   `https://….ts.net`, sin avisos del navegador); **Navegador por IP** es el `http://…:8787`, el más directo pero sin
+   micrófono; y **Navegador por nombre del equipo** es el mismo con el nombre de Tailscale, que sigue valiendo si
+   cambia la IP. El nombre se deduce de la propia dirección (`linkAbout` en `RemoteAccess.tsx`).
+3. Para que esté siempre disponible: activa «Abrir kywai al iniciar sesión» y evita que el Mac se duerma
+   (Ajustes del Sistema → Energía). Mientras el acceso está activo, kywai no se suspende.
 4. Para dictar notas de voz desde otro dispositivo hace falta la versión `https://` (ver «Dictado por voz»):
-   AI Cowork la sirve siempre en el puerto siguiente (`https://<ip-de-tailscale>:8788`) con un certificado
+   kywai la sirve siempre en el puerto siguiente (`https://<ip-de-tailscale>:8788`) con un certificado
    propio, y opcionalmente con Tailscale Serve («HTTPS para usar el micrófono desde el móvil»), que no da aviso.
 
 **App del móvil (Android):** se empareja una vez con el código de 6 cifras de ese menú (o el código de acceso
-entero) y queda emparejada para siempre, aunque AI Cowork se reinicie o se actualice (la clave que firma su
+entero) y queda emparejada para siempre, aunque kywai se reinicie o se actualice (la clave que firma su
 acceso se guarda en `mobile-key`, en la carpeta de datos de la app). Para desemparejar todos los móviles, genera
 un código de acceso nuevo.
 
-En el chat de la app (y en «Nueva tarea») el micrófono graba **notas de voz**: el móvil las envía al ordenador
-por Tailscale y este las pasa a texto con su propio dictado (Whisper, igual que el escritorio: sin servicios
-externos y el audio se borra). Al terminar se elige revisar el texto antes de enviarlo o enviarlo directamente.
+En el chat de la app (y en «Nueva tarea») el micrófono, al lado de la cámara, tiene dos usos:
 
-**Actualizar la app del móvil:** Más → Ajustes → **Órbita** → «Buscar actualizaciones». Al abrir Ajustes ya
+- **Un toque: dictado en directo.** El texto va saliendo en la caja mientras hablas, con el reconocimiento de voz
+  del propio móvil y en el idioma de la app. Las pausas no cortan: sigue escuchando hasta que vuelvas a tocar el
+  botón (sale un cuadrado y un anillo que crece con tu voz) o te calles un buen rato. Lo dictado se queda en la caja
+  para corregirlo antes de enviar; si escribes a mano o envías mientras dictas, el dictado se para. Según el móvil,
+  este reconocimiento puede usar los servidores de Google (Android decide); si quieres que nada salga de tu red,
+  usa la nota de voz.
+- **Mantener pulsado: nota de voz.** El móvil graba la nota, la envía al ordenador por Tailscale y este la pasa a
+  texto con su propio dictado (Whisper, igual que el escritorio: sin servicios externos y el audio se borra). Al
+  terminar se elige revisar el texto antes de enviarlo o enviarlo directamente.
+
+Si el móvil no tiene reconocimiento de voz, un toque graba la nota de voz como antes. Si el dictado del móvil falla
+(sin internet, o sin ese idioma), el aviso recuerda que puedes mantener pulsado para grabar una nota.
+
+**Actualizar la app del móvil:** ☰ → Ajustes → Acerca de → **Órbita** → «Buscar actualizaciones». Al abrir Ajustes ya
 dice si hay una versión nueva; «Instalar la versión …» la descarga del ordenador (por Tailscale, solo a móviles
 emparejados), comprueba que es exactamente la anunciada y la instala encima: sigue emparejada. La primera vez
 Android pide permitir que Órbita instale apps («Permitir de esta fuente»); después se instala sola, sin
-preguntar. Órbita se cierra al instalarse: vuelve a abrirla. La versión sale del código de AI Cowork
+preguntar. Órbita se cierra al instalarse: vuelve a abrirla. La versión sale del código de kywai
 (`android/release/`, publicada con `./gradlew :app:publishOrbita` y firmada con la clave de siempre), así que
-basta con actualizar AI Cowork en el ordenador (⋮ → «Buscar actualizaciones…») para que el móvil la vea. Solo
+basta con actualizar kywai en el ordenador (⚙ → «Buscar actualizaciones…») para que el móvil la vea. Solo
 hay que instalar la APK a mano una vez: la primera versión que trae este botón.
+
+**La APK se publica sola desde GitHub.** Cada vez que cambia el código de Órbita en `master`, GitHub Actions
+(«Publicar Órbita», `.github/workflows/publicar-orbita.yml`) pasa las pruebas de Android, compila la app firmada con
+la clave de siempre, comprueba que el certificado es el mismo de la versión anterior (si no, se para: el móvil no la
+instalaría encima) y sube `android/release/` a `master`. Así da igual desde dónde se haga el cambio (PC, Mac mini o
+la nube): al actualizar el servidor, el móvil ya la encuentra. Si falla, la pestaña **Actions** del repositorio dice
+por qué; «Run workflow» la vuelve a lanzar a mano. El número de versión son los commits del repositorio y nunca baja
+de la versión ya publicada + 1.
+En el repositorio público, además, la APK se sube a la última Release de GitHub como `kywai-orbita.apk`, que es
+la que enlaza la web kywai.app (ver «Descargar la versión lista»).
+
+Para que funcione, la clave se guarda una vez en cada repositorio (Settings → Secrets and variables → Actions →
+New repository secret), con los datos del archivo que indica `aicoworkSigning` en `~/.gradle/gradle.properties` del PC:
+
+| Secreto | Valor |
+|---|---|
+| `ORBITA_KEYSTORE_BASE64` | el archivo `.jks` en base64. En PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("ruta\al\archivo.jks")) \| Set-Clipboard` y se pega |
+| `ORBITA_KEYSTORE_PASSWORD` | `storePassword` |
+| `ORBITA_KEY_ALIAS` | `keyAlias` |
+| `ORBITA_KEY_PASSWORD` | `keyPassword` |
+
+Sin esos secretos la publicación se para con el aviso «Falta el secreto de la clave de Órbita». Publicar a mano
+desde el PC (`./gradlew :app:publishOrbita` y subir `android/release/`) sigue funcionando igual.
+
+**Cómo es Órbita.** El mundo 3D ocupa toda la pantalla y todo lo demás flota encima en cristal, sin recuadros que
+lo corten:
+
+- **Barra lateral**, como en el escritorio: «Nuevo chat», el buscador (busca en los títulos y en los mensajes de todos
+  los chats, con filtros y salto al mensaje), «Historial» (todos los chats por fechas, ver [Historial](#historial)), «Fijados», los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
+  con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Historial, Te necesita con su número, Chat,
+  Tareas, Resultados, Música, Más y Ajustes abajo). En la tableta cada icono lleva su nombre debajo; en el móvil en
+  vertical es una columna fina solo de iconos. El logo o el botón de debajo la despliegan entera (en el móvil, como
+  cajón por encima). Lo hace `SidebarRail` en `ui/orbita/Sidebar.kt`.
+- **Nombre del ordenador:** abajo en la barra lateral sale a qué ordenador estás conectado («macmini.lan»). Tócalo para
+  ponerle el nombre que quieras (vacío vuelve al de la red). Se guarda en el ordenador, así que se ve igual en Órbita,
+  la web y el escritorio (ver [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)).
+- **Mantén el dedo sobre un proyecto o un chat** de la barra lateral y sale su menú, el mismo que el clic derecho del
+  escritorio (ver [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)):
+  - **Proyecto:** Nuevo chat en este proyecto, Fijar (o Soltar de Fijados), Cambiar nombre y Eliminar proyecto (pide
+    confirmación; todo lo suyo va a la Papelera del ordenador).
+  - **Chat:** Fijar, Cambiar nombre, Bifurcar (se abre la copia), Mover a otro proyecto (sale la lista de proyectos)
+    y Eliminar (pide confirmación; va a `conversaciones/borradas/`). También se elimina el chat abierto: antes se
+    empieza uno nuevo en su proyecto.
+  - Lo fijado sale arriba en **Fijados**, igual que en el escritorio y el navegador.
+  - «Abrir carpeta del proyecto» no está en el móvil. Mientras el equipo trabaja en un proyecto no se puede eliminar
+    ni empezar otro chat en él, ni mover o eliminar el chat en el que trabaja (la opción sale apagada y dice por qué).
+  - Con un ordenador de versión anterior solo salen Cambiar nombre y Eliminar en los chats (no el abierto) y Nuevo
+    chat en los proyectos. Para tenerlo todo, actualiza kywai en el ordenador (servidor). Para desarrolladores: la
+    API móvil anuncia `capabilities.chatActions` (`POST /chats/{id}/pin|fork|move`, `GET /chats/pinned`) y
+    `capabilities.projectActions` (`POST /projects/{id}/rename|pin|delete`); ver `docs/mobile-api/`.
+- **Pestañas Chat · Archivos · Tareas · Resultados** en la cabecera del panel (en el móvil: Chat · Espacio · Tareas ·
+  Resultados, bajo la barra de arriba). La pestaña Tareas lleva el número de tareas en marcha.
+- **Un agente a la vez:** abajo, en vez de la barra del Equipo, sale la ficha de un agente con **‹ ›** (o deslizando)
+  para pasar al siguiente; tocarla abre su tarjeta. Las tareas en pausa avisan arriba.
+- **Controles de la cámara** (acercar, alejar, centrar) flotando abajo a la derecha en la tableta.
+- **Música sin anuncios:** ☰ → Música abre las radios de SomaFM y Audius con buscador y volumen. Mientras suena
+  queda un reproductor pequeño en la barra de arriba; se para al salir de la app.
+- **Ajustes en pestañas:** General (idioma, tema, tacto y mundo 3D), Agentes (planes de Hermes, ver el equipo), Conexión
+  (ordenador, servidor y este móvil) y Acerca de (actualizaciones de Órbita y apoyar kywai).
+- **Mismo tema que el escritorio:** el tema que eliges en kywai (⚙ → Ajustes → General → Tema) se guarda en el
+  servidor y Órbita lo aplica sola: colores de la interfaz y del mundo 3D (los robots conservan los suyos). También
+  se puede elegir desde Órbita (Ajustes → General → Tema) y cambia en todos los dispositivos, o marcar «Tema propio en
+  este móvil» para tener otro solo en Órbita (ver [Temas](#temas)). Los mapas con escenario propio no se pasan al
+  móvil, solo sus colores. Para desarrolladores: `config.uiTheme`
+  (`setUiTheme`), `settings.theme` en la API móvil, `OrbitaThemes`/`OrbitaPalette` y `ui/space/SpaceGrade.kt`, que
+  recolorea en el sombreador.
+- **Iconos de un solo estilo y color:** el color se reserva para avisos y estados.
 
 Con el móvil plegado (pantalla exterior), las flechas de arriba a la derecha de un panel lo ponen **a pantalla
 completa**: sin la barra de abajo ni la de arriba, todo el sitio para el chat. Se recuerda (también al cerrar la
 app) hasta que vuelvas a pulsarlas; atrás o ✕ cierran el panel. Desplegado, las flechas siguen ampliando el panel
 sobre el mundo.
 
-**Dispositivos emparejados:** en ⋮ → «Acceso desde otros dispositivos…» aparece la lista de móviles y clientes
+**Sin conexión.** Órbita se puede usar aunque no llegue al ordenador (sin cobertura, en el metro, con el Mac
+reiniciándose). Enseña lo último que recibió y lo que escribas se queda **en cola** hasta que vuelva la conexión:
+
+- **La cola se guarda en el móvil** (`outbox.json` en los datos privados de la app, `FileOutboxStore`): si cierras
+  Órbita, Android la cierra o reinicias el teléfono, los mensajes siguen ahí y salen al volver.
+- **Salen de uno en uno y en el orden en que los escribiste**, cada uno **al proyecto donde lo escribiste** aunque al
+  volver estés mirando otro. Nunca llegan dos veces: cada mensaje lleva su `clientMessageId` y el servidor ignora el
+  repetido. Si el servidor rechaza uno (por ejemplo, su proyecto ya no existe) queda como «No se envió» con
+  Reintentar y Descartar, y los siguientes salen igual.
+- **Fotos y archivos también.** Si haces una foto, eliges una de la galería o adjuntas un archivo sin conexión, Órbita
+  guarda una copia en el móvil (carpeta privada `cola-archivos`), avisa «Sin conexión: foto.jpg se enviará con tu
+  mensaje al volver» y la deja adjunta al mensaje que escribes (con un reloj en vez del clip). Al volver la conexión
+  la sube al proyecto del mensaje y después envía el mensaje con ella; si se corta a medias no la sube dos veces. La
+  copia se borra en cuanto el ordenador tiene el mensaje (o al descartarlo).
+- **Se envían aunque Órbita esté cerrada.** Si dejas mensajes en cola y sales de la app, Android los manda en cuanto
+  vuelve la red (WorkManager, `OutboxWorker`), y avisa con la notificación «Se enviaron tus 3 mensajes» (canal
+  «Mensajes enviados», se puede apagar en los ajustes de Android). Si la red vuelve pero el ordenador aún no responde,
+  lo reintenta solo cada vez más espaciado. Con la app abierta y conectada no sale ningún aviso: ya lo ves en el chat.
+- **Se ve lo que espera.** Arriba, en vez de «Sin conexión», sale **«Sin conexión · 2 en cola»**. Cada mensaje en cola
+  lleva un reloj, sus adjuntos y dos botones: **Editar** lo devuelve al cuadro de texto con sus fotos (lo cambias y lo
+  vuelves a enviar) y **Descartar** lo quita de la cola. Mientras uno se está enviando ya no se puede editar.
+- Las acciones (aprobar un plan, detener una tarea, los botones de «Te necesita») siguen necesitando conexión: hacerlas
+  a destiempo podría aprobar algo que ya cambió.
+- Para desarrolladores: `CoworkRepository.drainOutbox()` vacía la cola (con un `Mutex`, de uno en uno) y no abre el
+  tiempo real, así que vale igual para el envío en segundo plano; las pruebas
+  están en `MockServerIntegrationTest`.
+
+**Dispositivos emparejados:** en ⚙ → Ajustes → «Acceso desde otros dispositivos…» aparece la lista de móviles y clientes
 emparejados, con cuándo se usó cada uno por última vez. **Revocar** uno lo desempareja sin tocar los demás (y corta
 sus conexiones abiertas); el que lleva 90 días sin usarse deja de valer solo. Cambiar el código de acceso los revoca
 todos. Un móvil emparejado antes de esta lista sigue funcionando hasta que se cambie el código.
@@ -191,15 +418,15 @@ El servidor (8787 y la versión HTTPS en 8788) escucha solo en la IP de Tailscal
 internet) y exige el código en cada petición. Desde la web se puede chatear, ver el espacio, subir archivos y
 ver resultados; elegir carpetas, instalar CLIs e iniciar sesión en ellos se hace en el propio equipo.
 
-### Cliente de escritorio (conectar con tu AI Cowork principal)
+### Cliente de escritorio (conectar con tu kywai principal)
 
-Puedes instalar AI Cowork en otro Mac o Windows y usarlo como **cliente** de tu AI Cowork principal (el que está
+Puedes instalar kywai en otro Mac, Windows o Linux y usarlo como **cliente** de tu kywai principal (el que está
 siempre encendido): no ejecuta agentes ni guarda proyectos, enseña la interfaz del servidor, con sus agentes, su
 chat, sus proyectos y sus archivos, desde una app instalada y no desde el navegador.
 
-1. En el servidor: ⋮ → «Acceso desde otros dispositivos…» → activa el acceso y pulsa «Generar código de 6 cifras».
-2. En el otro equipo, con **Tailscale conectado**: instala AI Cowork y ábrelo. La primera vez pregunta cómo vas a
-   usarlo: elige **«Conectar con mi AI Cowork principal»**. (Un equipo que ya tenía AI Cowork como servidor no
+1. En el servidor: ⚙ → Ajustes → «Acceso desde otros dispositivos…» → activa el acceso y pulsa «Generar código de 6 cifras».
+2. En el otro equipo, con **Tailscale conectado**: instala kywai y ábrelo. La primera vez pregunta cómo vas a
+   usarlo: elige **«Conectar con mi kywai principal»**. (Un equipo que ya tenía kywai como servidor no
    pregunta nada: para convertirlo en cliente, cierra la app y crea en su carpeta de datos un archivo `client.json`
    con `{"mode":"client"}`.)
 3. Escribe la dirección del servidor (la IP de Tailscale o su nombre, p. ej. `100.101.102.103` o `mac-mini`; vale
@@ -210,17 +437,29 @@ dispositivos emparejados del servidor y se revoca desde allí sin tocar los dem�
 usarse. El cliente nunca recibe el código de acceso del servidor (ni en la configuración, ni en los avisos, ni en el
 enlace a la versión HTTPS), así que al revocarlo se queda fuera de verdad. La interfaz siempre es la del servidor, así que cliente y servidor nunca quedan desfasados. Si el servidor
 no responde, el cliente lo dice y reintenta solo; si ya no lo reconoce, vuelve a pedir un código. La ventana no lleva barra de
-menús: en el menú ⋮, al final, están **Recargar la interfaz** (también Ctrl+R o F5), **Cambiar de servidor…** y
-**Olvidar este dispositivo y desconectar**.
+menús: en ⚙ → «Ajustes…» están **Recargar la interfaz** (pestaña Acerca de; también Ctrl+R o F5), y **Cambiar de
+servidor…** y **Olvidar este dispositivo y desconectar** (pestaña Conexión).
 
-**Para no confundir un equipo con otro**, la primera fila del menú ⋮ dice dónde estás: **Este equipo es el
+**Pasar un cliente a servidor.** Al actualizar, kywai se queda con el modo que tenía (se guarda en `client.json`,
+en su carpeta de datos, que el instalador no borra). Si un equipo era cliente y ahora quieres que sea el servidor,
+pulsa **«Usar este equipo como servidor»**: está en la pantalla de conectar, en la de «Sin conexión», en ⚙ → Ajustes →
+Conexión y, en el Mac, en el menú Servidor. Pide confirmación, olvida la conexión con el otro kywai y reinicia la app en
+modo servidor. Con una versión anterior que no tenga el botón: cierra kywai, borra `client.json` de su carpeta de datos
+(en Windows, `%APPDATA%\AI Cowork`; en el Mac, `~/Library/Application Support/AI Cowork`; no toques la carpeta
+`workspace`) y ábrelo otra vez.
+
+**Si el servidor ya no reconoce el dispositivo** (la llave caducó tras 90 días sin uso, se revocó o el servidor es
+una versión anterior), el cliente olvida esa llave, que ya no sirve, y se queda solo con la dirección: basta con
+generar un código nuevo en el servidor y escribirlo.
+
+**Para no confundir un equipo con otro**, la primera fila del menú ⚙ dice dónde estás: **Este equipo es el
 servidor** (cian, con su nombre), **Cliente de escritorio → nombre-del-servidor** (violeta) o **Navegador**, con la
 explicación de dónde están los agentes y los proyectos. En el cliente, además, una franja violeta fina recorre lo alto
 de la ventana. El título de la ventana del cliente también lleva el nombre del servidor.
 
 #### Archivos del servidor
 
-En el cliente (y en el navegador), ⋮ → **«Archivos del servidor…»** abre un explorador del disco del equipo servidor:
+En el cliente (y en el navegador), ⚙ → **«Archivos del servidor…»** abre un explorador del disco del equipo servidor:
 
 - **Navegar** por sus discos, la carpeta del usuario y las carpetas de los proyectos, con las migas de pan y «subir».
 - **Abrir** un archivo: en el cliente se descarga a una carpeta temporal y se abre con tu aplicación; en el navegador,
@@ -231,7 +470,7 @@ En el cliente (y en el navegador), ⋮ → **«Archivos del servidor…»** abre
 
 Por defecto el cliente ve **todo el disco** del servidor (eres tú desde otro sitio). Hay dos cosas más:
 
-- **Interruptor** en ⋮ → «Acceso desde otros dispositivos…» → «Restringir los clientes a las carpetas de los
+- **Interruptor** en ⚙ → Ajustes → «Acceso desde otros dispositivos…» → «Restringir los clientes a las carpetas de los
   proyectos» (apagado por defecto): con él, un cliente solo ve las carpetas de los proyectos y de sus adjuntos y
   resultados.
 - **Registro de accesos** (en ese mismo panel): quién (dispositivo o navegador) vio, abrió, bajó o puso como carpeta de
@@ -242,7 +481,7 @@ dispositivos, el `config.json` con el código de acceso y el certificado propio.
 
 #### Sincronizar carpetas
 
-En el cliente de escritorio, ⋮ → **«Sincronizar carpetas…»** mantiene una carpeta de este equipo **igual que una del
+En el cliente de escritorio, ⚙ → **«Sincronizar carpetas…»** mantiene una carpeta de este equipo **igual que una del
 servidor**, en los dos sentidos (la sincronización corre en el cliente; el servidor solo sirve y guarda). «Añadir una
 carpeta…» pide primero la del servidor (el explorador de arriba) y luego la de este equipo.
 
@@ -267,7 +506,7 @@ los archivos protegidos y queda en el registro de accesos.
 
 #### Actualizar el cliente
 
-«Buscar actualizaciones…» del menú ⋮ actualiza el **servidor** (y con él la interfaz que ves). La app instalada en el
+«Buscar actualizaciones…» del menú ⚙ actualiza el **servidor** (y con él la interfaz que ves). La app instalada en el
 cliente, su ventana y su puente con el sistema, se actualiza aparte y **desde tu servidor**, sin GitHub ni ninguna
 cuenta:
 
@@ -286,11 +525,12 @@ cuenta:
   escribe en `src/main/clientReleaseKey.ts`: **súbela con un commit** y **guarda una copia de la privada** (sin ella,
   los clientes instalados no aceptan versiones nuevas y habría que reinstalarlos a mano). La privada nunca va al
   repositorio. Un cliente compilado sin clave pública no se actualiza desde el servidor.
-- **Instalar** (en cada cliente): al abrirse y cada 6 horas pregunta si hay una versión más nueva; también desde ⋮ →
+- **Instalar** (en cada cliente): al abrirse y cada 6 horas pregunta si hay una versión más nueva; también desde ⚙ →
   **«Actualizar este equipo…»** (primero busca; si la hay, un segundo toque la descarga del servidor, la instala y
   reinicia). El emparejamiento se mantiene.
 
-Hoy es solo para clientes Windows; en el Mac el cliente se actualiza con `scripts/actualizar-mac.sh`. Un cliente
+Hoy es solo para clientes Windows; en el Mac el cliente se actualiza con `scripts/actualizar-mac.sh` y en Linux con
+`scripts/actualizar-linux.sh`. Un cliente
 instalado antes de este sistema hay que cambiarlo una vez a mano.
 
 ### Dictado por voz
@@ -302,12 +542,12 @@ borra al terminar. El texto se añade al cuadro para revisarlo antes de enviarlo
 En macOS pide permiso para el micrófono. Desde otro dispositivo, el navegador solo deja usar el micrófono en
 páginas **HTTPS**. Si entras por el enlace `http://`, al tocar el micrófono aparece **«Abrir la versión segura»**:
 
-- Sin hacer nada más, lleva a `https://<ip>:8788`, la versión HTTPS que AI Cowork sirve con su **certificado
+- Sin hacer nada más, lleva a `https://<ip>:8788`, la versión HTTPS que kywai sirve con su **certificado
   propio** (se crea solo, en `web-cert/` dentro de la carpeta de datos, para las IPs y el nombre del equipo). La
   primera vez el navegador avisa de que la conexión no es privada, porque ese certificado no lo firma ninguna
   autoridad: pulsa «Configuración avanzada» → «Continuar» (en iPhone, «Mostrar detalles» → «visitar este sitio
   web»). Después ya deja grabar. Guarda ese enlace en el móvil.
-- Si en el Mac activas «HTTPS para usar el micrófono desde el móvil» (⋮ → «Acceso desde otros dispositivos…»),
+- Si en el Mac activas «HTTPS para usar el micrófono desde el móvil» (⚙ → Ajustes → «Acceso desde otros dispositivos…»),
   lo publica Tailscale Serve en `https://<equipo>.<red>.ts.net` con un certificado válido, sin aviso, y el botón
   lleva ahí.
 
@@ -315,16 +555,35 @@ páginas **HTTPS**. Si entras por el enlace `http://`, al tocar el micrófono ap
 
 ### Tu equipo: añadir, quitar y elegir quién coordina
 
-AI Cowork no es solo para los agentes de fábrica: es una plataforma donde conectas **los agentes que ya pagas**. En
-⋮ → «Configurar agentes…» (paso «Agentes»):
+kywai no es solo para los agentes de fábrica: es una plataforma donde conectas **los agentes que ya pagas**. En
+⚙ → Ajustes → «Configurar agentes…» (paso «Agentes»):
 
 - **Añadir un agente**: «Añadir un agente» abre el catálogo con los que se pueden conectar (Aider, **DeepSeek**, OpenCode,
   GitHub Copilot CLI, Cursor, Amp, Goose, Kimi Code, Mistral Vibe, Grok Build, Cline, Continue, OpenHands, Factory Droid,
   Auggie, Junie, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw, Kiro, **Qwen Code**, **Antigravity CLI**,
-  **Rovo Dev**, **MiniMax Code**, **Qoder CLI**… y los de fábrica que hayas
+  **Rovo Dev**, **MiniMax Code**, **Qoder CLI**, **Kilo CLI**… y los de fábrica que hayas
   quitado), con la cuenta o suscripción con la que funciona cada uno. Elige uno y se añade con su robot y su estación en el
   espacio digital. **«Otro programa…»** conecta cualquiera: el comando, cómo recibe el encargo (por stdin, en un
   archivo o como argumento) y sus argumentos.
+- **Agentes gratis**: los que se pueden usar sin pagar una suscripción llevan la etiqueta verde **«Gratis»** en el
+  catálogo y en las tarjetas del asistente, con la condición y el límite (pasa el ratón por encima en el asistente). El
+  botón **«Solo gratis»** del catálogo deja solo esos. Comprobado en sus páginas oficiales en noviembre de 2026:
+  - **Kilo CLI**: sin tarjeta y sin cuenta, con sus modelos gratuitos (empieza con Kilo Auto Free).
+  - **Gemini** (de fábrica): con una clave de API de Google AI Studio, sin tarjeta, solo modelos Flash y unas 250
+    peticiones al día. Google usa lo que le envías para mejorar sus productos.
+  - **OpenCode**: con los modelos gratuitos de OpenCode Zen (solo desde OpenCode; límite compartido y sin cifra).
+  - **GitHub Copilot CLI**: con el plan Copilot Free (GitHub no publica el cupo).
+  - **Cline**: con los modelos marcados FREE de una cuenta de Cline.
+  - **Aider** y **Hermes**: con una clave de OpenRouter y sus modelos `:free`: 50 peticiones al día, o 1000 si
+    alguna vez compraste 10 $ de saldo.
+  - **Mistral Vibe**: con una clave del plan gratuito Experiment de Mistral.
+  - **Antigravity CLI**: con una cuenta personal de Google y un límite semanal (ojo con sus condiciones, más abajo).
+  - El **agente local** (LM Studio u Ollama) siempre es gratis.
+
+  No llevan la etiqueta: Qwen Code (su acceso gratis cerró el 15 de abril de 2026), Kiro (con el plan gratis no hay
+  modo sin pantalla: la clave es de Pro o superior), Amp (Amp Free está en pausa y su modo de scripts es de pago) y los
+  de suscripción (Claude, Codex, Muse…). Las capas gratis cambian a menudo: el texto vive en el campo `free` de
+  `src/shared/agentCatalog.ts` y `src/shared/agentCatalogData.ts`.
 - **Quitar un agente**: «Quitar» (se pulsa dos veces) lo saca del equipo y de la lista de quienes pueden coordinar; el
   de fábrica no vuelve a aparecer al actualizar, y se puede añadir otra vez desde el catálogo. Siempre tiene que
   quedar al menos uno que trabaje.
@@ -333,7 +592,7 @@ AI Cowork no es solo para los agentes de fábrica: es una plataforma donde conec
 - **Instalar e iniciar sesión**: los pasos «Programas» y «Sesiones» del asistente instalan cada agente con su
   instalador oficial y abren su inicio de sesión, igual que con los de fábrica.
 
-Cómo trabaja un agente de catálogo: AI Cowork lo lanza en la carpeta del proyecto, con la sesión que ya tengas
+Cómo trabaja un agente de catálogo: kywai lo lanza en la carpeta del proyecto, con la sesión que ya tengas
 iniciada en su programa (tu suscripción), le entrega el encargo por stdin o por un archivo (el texto nunca va en la
 línea de órdenes) y recoge lo que responde. **DeepSeek** no tiene programa de terminal ni suscripción propios (es un modelo con clave de API, de pago por uso):
 se conecta a través de Aider con el modelo de DeepSeek fijado. Los agentes que funcionan con una **clave de API**
@@ -348,10 +607,13 @@ Los añadidos en octubre de 2026, con lo que hay que saber de cada uno:
   `coding-intl` fuera de China) u otro proveedor: «Iniciar sesión» abre `qwen`, y dentro se elige con `/auth`. Es
   distinto del agente local «Qwen» de Ollama. Al planificar va en modo `plan`; en el proyecto, `auto-edit`; con acceso
   completo, `yolo`.
-- **Antigravity CLI** (`agy`, de Google): sustituye a Gemini CLI en las cuentas de Google AI Pro y Ultra. La sesión se
+- **Antigravity CLI** (`agy`, de Google): desde junio de 2026 sustituye a Gemini CLI en las cuentas personales de
+  Google. Tiene un plan gratis con un límite semanal y más cuota con Google AI Pro o Ultra. La sesión se
   inicia con Google la primera vez que se abre `agy`. Sin acceso completo no puede editar (en modo sin pantalla deniega
   lo que pediría permiso) y la versión 1.0.6 falla con `-p` sin terminal: actualízalo. Ojo: sus condiciones adicionales
-  prohíben acceder al servicio con software de terceros y Google no ha aclarado si eso incluye lanzarlo así.
+  prohíben acceder al servicio con software de terceros (su ejemplo es OpenClaw con el inicio de sesión de Antigravity)
+  y avisan de que pueden suspender la cuenta de Antigravity y la de Gemini CLI. kywai lanza el programa oficial, pero
+  Google no ha aclarado si eso cuenta: por eso no es el agente gratis que se recomienda primero.
 - **Rovo Dev** (Atlassian): va dentro de la CLI de Atlassian (`acli rovodev run`), con tu cuenta de Atlassian y
   `acli rovodev auth login`. Con acceso completo, `--yolo`.
 - **MiniMax Code** (`mcode exec`, encargo por stdin): necesita Node.js 22.19 o superior; «Iniciar sesión» usa una
@@ -360,8 +622,17 @@ Los añadidos en octubre de 2026, con lo que hay que saber de cada uno:
   `qodercli login` o un token `QODER_PERSONAL_ACCESS_TOKEN`. Planifica en modo `plan`, edita con `accept_edits` y con
   acceso completo va con `--yolo`.
 
+Añadido en noviembre de 2026:
+
+- **Kilo CLI** (`kilo run`, de Kilo): funciona **gratis y sin cuenta** con sus modelos gratuitos. Al añadirlo empieza
+  con **Kilo Auto Free** (`kilo/kilo-auto/free`), porque su modelo por defecto es de pago y pide cuenta (sin él falla
+  con «Authorization header is badly formatted»). Para los de pago, «Iniciar sesión» abre `kilo auth login`. Planifica
+  con su agente `plan` (no edita ni ejecuta nada que cambie archivos), en el proyecto edita sin preguntar y con acceso
+  completo va con `--auto`. Probado con kilo 7.8. Los modelos gratuitos cambian cuando acaban sus promociones:
+  `kilo models kilo` los lista (los que terminan en `:free`).
+
 Ninguno de los de catálogo retoma su sesión anterior en una continuación (eso solo lo hacen Claude y Codex): aunque
-sus programas tengan `--continue` o `--resume`, AI Cowork les da cada encargo con el contexto completo. Un agente que
+sus programas tengan `--continue` o `--resume`, kywai les da cada encargo con el contexto completo. Un agente que
 ya estaba en tu equipo conserva la forma de lanzarlo de cuando lo añadiste: para coger una corrección del catálogo
 (como la de Kiro), quítalo y vuelve a añadirlo. Con «Acceso completo» se le añaden sus argumentos de aprobar todo; al
 planificar, los de solo lectura si los tiene. No informa de tokens ni de cuota, y su salida es texto (sin el paso a
@@ -413,7 +684,7 @@ documentación no confirma y pueden necesitar ajustes.
 - **Gemini CLI** está configurado con una clave de API: si esa clave tiene facturación activa, su uso puede tener coste.
 - **Agente local**: se configura desde el indicador **Local** de la cabecera → «Agente local». Puedes elegir
   **LM Studio** u **Ollama**, el modelo, el nombre del agente y si su uso es sin límite. Con Ollama se pueden
-  descargar modelos desde ahí mismo; con LM Studio se descargan en su aplicación y AI Cowork puede encender su
+  descargar modelos desde ahí mismo; con LM Studio se descargan en su aplicación y kywai puede encender su
   servidor local. Ahora mismo está configurado como **Gemma** (Gemma 4 12B QAT en LM Studio).
 - **El agente local trabaja con herramientas** (solo con LM Studio): lista, busca, lee, crea y edita archivos de la
   carpeta del proyecto, busca en internet y lee páginas web (nunca direcciones de tu red local). Si LM Studio tiene
@@ -421,7 +692,14 @@ documentación no confirma y pueden necesitar ajustes.
   Cada respuesta del modelo se espera el tiempo que haga falta (un modelo local que razona mucho puede tardar más de
   5 minutos en una sola respuesta); solo se dice «Servidor de LM Studio apagado» cuando LM Studio rechaza la conexión.
   Si la corta a mitad, la tarea dice «LM Studio cortó la respuesta» con el motivo.
-- **Permisos de los agentes** (menú ⋮ → «Acceso completo para los agentes», activado por defecto): Claude, Codex y
+- **LM Studio se enciende solo**: si su servidor está apagado, kywai lo enciende (con `lms server start`) al
+  arrancar, al pulsar ⟳ en las cuotas (o pedir /cuota) y, si se apagó entre medias, antes de que el agente local
+  empiece una tarea; y deja el modelo cargándose
+  con 32 k de contexto. La comprobación automática de cada 30 s no lo enciende, para respetar que lo apagues a mano.
+  Si aun así sale «No disponible: Servidor de LM Studio apagado», la tarjeta del agente (clic en su robot) tiene el
+  botón **Encender LM Studio**: enciende el servidor, carga el modelo y deja el agente disponible. Si no puede, dice
+  por qué (por ejemplo, que LM Studio no está instalado).
+- **Permisos de los agentes** (menú ⚙ → Ajustes → «Acceso completo para los agentes», activado por defecto): Claude, Codex y
   Gemini ejecutan comandos, instalan dependencias y usan internet sin pedir permiso, para no quedarse parados.
   Se les indica que trabajen en la carpeta del proyecto y que no borren nada fuera de ella ni hagan acciones
   irreversibles que no se hayan pedido, pero no hay nada que se lo impida: desactívalo si prefieres que solo editen la
@@ -432,7 +710,7 @@ documentación no confirma y pueden necesitar ajustes.
   por las buenas, se le fuerza: la tarea no queda colgada más allá de ese corte). Para que no pase, mira
   «Permisos de macOS en el servidor».
 - **Ventanas de permisos de macOS, al momento**: antes de lanzar un agente, la app prueba a abrir la carpeta del
-  proyecto. Si en 4 segundos no lo consigue es que macOS está preguntando en la pantalla del Mac (p. ej. «AI Cowork
+  proyecto. Si en 4 segundos no lo consigue es que macOS está preguntando en la pantalla del Mac (p. ej. «kywai
   quiere acceder a Documentos»): la tarea lo dice enseguida («Esperando a que aceptes en la pantalla del Mac…») y
   espera la respuesta en vez de lanzar al agente a ciegas; si macOS lo deniega, la tarea dice dónde activarlo. Además
   la app lee en directo el registro de privacidad de macOS y avisa de cada ventana que ella o sus agentes dejan
@@ -441,7 +719,7 @@ documentación no confirma y pueden necesitar ajustes.
   pantalla. Código: `src/main/macPermissions.ts` (la comprobación la hace `runCli` en `agents/spawn.ts`).
 - **Permisos de macOS en el servidor**: los agentes heredan los permisos de la app. Para que nunca se queden
   esperando una ventana que solo se contesta delante del Mac, en Ajustes del Sistema → Privacidad y seguridad activa
-  para «AI Cowork» (y para Terminal, si lanzas cosas desde ahí): **Acceso total al disco** (Escritorio, Documentos,
+  para «kywai» (y para Terminal, si lanzas cosas desde ahí): **Acceso total al disco** (Escritorio, Documentos,
   Descargas, iCloud y discos externos) y, solo si quieres que los agentes manejen otras apps, **Automatización** y
   **Accesibilidad**. La primera vez que salga el aviso del llavero, pulsa «Permitir siempre». La app trae los textos
   que macOS pide para mostrar esas ventanas, y se firma con un certificado propio de este Mac (ver «Firma en Mac»)
@@ -459,18 +737,18 @@ documentación no confirma y pueden necesitar ajustes.
 - **Pegar imágenes**: Ctrl+V en el cuadro de texto adjunta las capturas del portapapeles.
 
 **Cuánto se espera a Hermes.** Un plan normal le lleva entre 20 y 60 segundos, y uno grande, más de 2 minutos solo
-en escribirse. Como Hermes no enseña nada hasta terminar, AI Cowork le espera hasta 6 minutos y después planifica el
+en escribirse. Como Hermes no enseña nada hasta terminar, kywai le espera hasta 6 minutos y después planifica el
 siguiente coordinador. Se le piden planes escuetos (cada tarea en 2 a 6 frases, sin repetir la petición, que los
 agentes ya reciben completa), así que se escriben antes.
 
-### Lo que sabe el coordinador de AI Cowork
+### Lo que sabe el coordinador de kywai
 
-En cada petición, el coordinador recibe una guía de cómo funciona AI Cowork
+En cada petición, el coordinador recibe una guía de cómo funciona kywai
 ([src/main/coordinatorGuide.ts](../src/main/coordinatorGuide.ts)), con datos del momento, para reaccionar bien:
 
-- **Cambios en AI Cowork en sí** (su música, su interfaz, sus funciones): no son trabajo del equipo, que solo
+- **Cambios en kywai en sí** (su música, su interfaz, sus funciones): no son trabajo del equipo, que solo
   trabaja en la carpeta del proyecto. Lo explica en vez de lanzar tareas. Sabe en qué carpeta está el código de
-  AI Cowork en ese equipo: ninguna tarea debe tocarlo (los cambios locales bloquean las actualizaciones), y si la
+  kywai en ese equipo: ninguna tarea debe tocarlo (los cambios locales bloquean las actualizaciones), y si la
   carpeta del proyecto es ese código, avisa antes de tocar nada.
 - **Capturas adjuntas**: Hermes solo lee texto, así que si tu mensaje lleva imágenes planifica y responde quien
   puede verlas (Claude; si no está, Codex o Gemini). Si solo queda Hermes, encarga a Claude o Codex que las miren
@@ -480,19 +758,19 @@ En cada petición, el coordinador recibe una guía de cómo funciona AI Cowork
   Los modelos locales son lentos y flojos investigando o creando: si se piden, avisa de qué saldrá.
 - **Instalar y usar internet**: sabe si está activado «Acceso completo para los agentes». Sin él, no lanza lo que
   necesita instalar (una APK necesita el SDK de Android, Java y Gradle) y pide que se active antes.
-- **Ficha automática del proyecto**: en cada planificación recibe una ficha de la carpeta que AI Cowork hace sin
+- **Ficha automática del proyecto**: en cada planificación recibe una ficha de la carpeta que kywai hace sin
   llamar a ningún modelo: el principio del README, con qué se construye y se prueba (`package.json` y otros
   manifiestos, el comando de pruebas detectado), qué archivos se tocaron en los últimos días y el árbol de carpetas
   (hasta 150 entradas, sin `node_modules`, compilados ni datos de la app). Así el plan y el contrato no salen de
   suposiciones aunque el coordinador no pueda abrir archivos.
 - **Preguntas sobre el proyecto**: Hermes no puede leer los archivos, así que las preguntas que dependen del código
   («¿qué me recomiendas para…?», «¿por qué falla…?») no las contesta de memoria: crea una tarea de texto para Claude
-  o Codex, que sí los leen, y responde él. Hermes contesta directamente solo la charla y las dudas sobre AI Cowork.
+  o Codex, que sí los leen, y responde él. Hermes contesta directamente solo la charla y las dudas sobre kywai.
 - **Peticiones ambiguas**: si no está claro sobre qué trabajar y equivocarse tiraría un trabajo largo (¿la app del
-  proyecto o AI Cowork?), pregunta antes.
-- **Funciones de AI Cowork**: para responder dudas (acceso desde el móvil y sus direcciones, micrófono, órdenes
+  proyecto o kywai?), pregunta antes.
+- **Funciones de kywai**: para responder dudas (acceso desde el móvil y sus direcciones, micrófono, órdenes
   del chat, memoria, consumo…) sin crear tareas. Esta lista (unos 5 000 caracteres) solo se le envía cuando tu
-  petición o tus últimos mensajes hablan de AI Cowork (la app, el móvil, Hermes, las cuotas, los temas…); en una
+  petición o tus últimos mensajes hablan de kywai (la app, el móvil, Hermes, las cuotas, los temas…); en una
   petición de trabajo normal se omite para que el coordinador se concentre en lo que pides.
 - **Agentes con muy poca cuota** (como Muse): solo les da lo que los demás no pueden hacer o trabajo cuando los
   demás están sin cuota.
@@ -500,13 +778,13 @@ En cada petición, el coordinador recibe una guía de cómo funciona AI Cowork
   qué hará cada agente y por qué ese, y lo que da por supuesto (para que lo corrijas). Si le pides cambios, recibe
   su plan anterior y tu respuesta.
 
-Cada tarea recibe además dos reglas: no entregar audio o imágenes de mentira y no tocar el código de AI Cowork.
+Cada tarea recibe además dos reglas: no entregar audio o imágenes de mentira y no tocar el código de kywai.
 Para normas de un proyecto concreto, usa sus instrucciones (pestaña Memoria).
 
 ### Tu visto bueno a cada plan
 
 Antes de que nadie empiece, Hermes (o el coordinador que planifique) te enseña su plan en el chat: qué ha
-entendido, cada tarea con el agente que la hará y por qué ese, y si AI Cowork lo ha ajustado (por ejemplo, juntar
+entendido, cada tarea con el agente que la hará y por qué ese, y si kywai lo ha ajustado (por ejemplo, juntar
 «diseñar» con «construir»). Toca una tarea para ver sus instrucciones. Entonces:
 
 - **«Aprobar y empezar»** (o responder solo «sí», «ok, adelante»…) crea las tareas y el equipo se pone en marcha.
@@ -514,9 +792,9 @@ entendido, cada tarea con el agente que la hará y por qué ese, y si AI Cowork 
   anterior y tu respuesta; el anterior queda plegado como «Plan cambiado por tu respuesta».
 - **«Descartar»** no hace nada.
 
-El plan queda guardado en su mensaje: se puede aprobar aunque AI Cowork se haya reiniciado entre medias. Lo que
+El plan queda guardado en su mensaje: se puede aprobar aunque kywai se haya reiniciado entre medias. Lo que
 dijiste que conviene recordar se anota en la memoria al aprobarlo. Las preguntas y respuestas directas no
-necesitan visto bueno. Para que las tareas empiecen sin esperar, desactiva ⋮ → «Pedir mi visto bueno a cada
+necesitan visto bueno. Para que las tareas empiecen sin esperar, desactiva ⚙ → Ajustes → «Pedir mi visto bueno a cada
 plan» (también en la app del móvil: Ajustes o Herramientas → Planes de Hermes).
 
 ### «Te necesita»: lo que espera una decisión tuya
@@ -526,7 +804,7 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
 
 - **Un plan** pendiente de tu visto bueno: «Aprobar» o «Descartar» sin ir al chat.
 - **Un permiso de macOS** (Documentos, Escritorio…) que solo se acepta delante del servidor: «Abrir Compartir
-  pantalla» lo abre desde el móvil o el portátil. Para que no vuelva a pasar, da «Acceso total al disco» a AI Cowork.
+  pantalla» lo abre desde el móvil o el portátil. Para que no vuelva a pasar, da «Acceso total al disco» a kywai.
 - **Un agente callado** desde hace rato (suele ser un aviso así en la pantalla del servidor).
 - **Una pregunta** del equipo, una tarea que **requiere intervención** (la verificación sigue viendo fallos tras 2
   correcciones y un relevo; sus archivos se quedan y «Deshacer la tarea» los quita), **choques** al integrar una copia
@@ -559,7 +837,7 @@ cambiaría de la ganadora. La respuesta final te dice dónde está cada opción 
 la que quieras y puedes pedir que se siga con ella.
 
 Lo pides tú mismo con **«a dos manos»** o **«dos opciones»** en la petición (vale para cualquier cosa, no solo lo
-visual: si el coordinador no lo hace, AI Cowork lo hace por él, siempre que el plan sea una sola tarea con archivos
+visual: si el coordinador no lo hace, kywai lo hace por él, siempre que el plan sea una sola tarea con archivos
 y haya otro agente de otra familia disponible). Con **«a una mano»** o **«una sola versión»** no se hace nunca.
 Tampoco en continuaciones ni correcciones. Gasta el doble, pero es lo que pediste: calidad antes que coste.
 
@@ -587,7 +865,7 @@ tu petición, la tarea, el criterio de aceptación, los archivos que cambió y l
 las pruebas si puede y responde «VEREDICTO: CUMPLE» o «VEREDICTO: FALLOS» con hasta cinco fallos concretos. Se le
 pide ceñirse a la corrección y a lo pedido, nada de gustos. **Solo un «CUMPLE» explícito aprueba una tarea.**
 
-| Situación | Qué hace AI Cowork |
+| Situación | Qué hace kywai |
 |---|---|
 | El verificador responde sin veredicto reconocible | Se lo pide una vez más, conservando lo que ya revisó (retoma su sesión del CLI si puede; si no, su respuesta va en el encargo) |
 | Tampoco lo da la segunda vez | La tarea queda **«sin verificar»**: «⚠ Sin verificar» en el resultado y no cuenta como aprobada ni como suspendida en las cifras |
@@ -600,11 +878,11 @@ Las correcciones **cuentan por tarea**: el relevo no reinicia la cuenta, ni reto
 que no hay bucles. **Ejecución y verificación van por separado**: una tarea «sin verificar» o que «requiere
 intervención» está terminada y sus archivos se quedan (los abres, los ves en «N archivos cambiados» y puedes
 deshacerla), pero no se presenta como aprobada. En el chat lo ves en el mensaje de la tarea («Claude comprobó … y vio
-fallos; Codex los corrige (corrección 1 de 2)», el relevo y el veredicto final). La verificación cuenta en «Consumo y
-tokens…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
+fallos; Codex los corrige (corrección 1 de 2)», el relevo y el veredicto final). La verificación cuenta en «Uso y
+coste…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
 petición, si la tarea es solo de texto o si no hay ningún otro agente de otra familia disponible.
 
-**Si la tarea toca una web** (HTML, CSS, componentes…), AI Cowork la abre antes en una ventana oculta, a tamaño
+**Si la tarea toca una web** (HTML, CSS, componentes…), kywai la abre antes en una ventana oculta, a tamaño
 de escritorio (1280 px) y de móvil (390 px), con un servidor local de solo lectura y sin acceso a la red ni a tus
 datos. Guarda las capturas en `.ai-cowork/verificacion/` del proyecto y apunta los errores de la consola y lo que
 no cargó. El verificador (uno que vea imágenes: Claude, Codex o Gemini) recibe las capturas y esos errores, así
@@ -614,12 +892,15 @@ o `index.html`). Lo ves en «Ver qué está haciendo» de la tarea.
 
 ### Cambios de cada tarea: verlos, deshacerlos y copias aparte
 
-Antes de que una tarea que cambia archivos empiece, AI Cowork guarda una **instantánea** de la carpeta del proyecto,
+Antes de que una tarea que cambia archivos empiece, kywai guarda una **instantánea** de la carpeta del proyecto,
 y otra al terminar. Las guarda en un repositorio git propio (`workspace/instantaneas/<proyecto>.git`), **nunca en el
 `.git` de tu proyecto**, que no se toca: funciona igual si tu carpeta es un repositorio git o no. Respeta sus
 `.gitignore` y deja fuera `node_modules`, compilados (`dist`, `build`…), los datos internos y los archivos de más de
 25 MB. Hace falta tener git instalado (en el Mac viene con las herramientas de Xcode); sin git todo sigue como antes,
 sin deshacer.
+
+Las instantáneas aíslan la configuración global de Git. En Windows usan el dispositivo `NUL` que entiende Git,
+para que una ruta de dispositivo de Node.js no impida guardar los cambios ni deshacerlos.
 
 Bajo el mensaje de cada tarea terminada sale **«N archivos cambiados +a −b»**:
 
@@ -646,7 +927,7 @@ Bajo cada resultado del chat (el mensaje de una tarea terminada o la respuesta f
 **👍 «Me sirvió»** y **👎 «No me sirvió»**. Pulsar uno guarda tu valoración; volver a pulsarlo la quita. Es la medida
 que faltaba: el registro de consumo sabe cuánto costó cada tarea y si el agente dijo que había terminado, pero no si
 el resultado te sirvió a ti. La valoración queda en `usage-runs.json`, en la llamada de esa tarea (o del plan), y
-entra en la ficha que ve el coordinador: a «historial en AI Cowork (30 días)» se añade «al usuario le sirvieron 7
+entra en la ficha que ve el coordinador: a «historial en kywai (30 días)» se añade «al usuario le sirvieron 7
 de 9 que valoró (2 no)», así que Hermes tiene en cuenta a quién le salen bien las cosas de verdad al repartir. Con
 varios intentos, una tarea cuenta una vez. Con 5 tareas o más, va en la línea «calidad» junto a la verificación y
 los fallos (ver [Cómo rinde cada agente](#cómo-rinde-cada-agente)). De momento se valora desde el escritorio (en
@@ -686,6 +967,15 @@ adjuntos ni los datos de la app. Se les pide que guarden dentro del proyecto las
 para seleccionarla; arrastra los tiradores para coger más palabras y pulsa **Copiar**. En la caja de escribir,
 mantén el dedo y pulsa **Pegar**. Los botones de los mensajes se siguen pulsando igual.
 
+**Fotos desde Órbita.** En el chat, al lado del clip, está el botón de la **cámara**. Al tocarlo se abre un menú:
+**«Hacer una foto»** abre la cámara del móvil o la tableta, y **«Elegir de la galería»** abre el selector de fotos
+de Android (no pide permisos y deja elegir hasta 10 fotos o vídeos). Mientras se sube sale «Subiendo foto…» encima
+de la caja de escribir; al terminar queda adjunta y va con tu próximo mensaje (se quita con la ✕). Para otros
+archivos (PDF, documentos, Drive…) sigue estando el clip. Las fotos de la cámara se guardan solo en la caché de
+Órbita y se borran al hacer la siguiente. Para desarrolladores: `ui/orbita/PhotoAttach.kt` (el botón, la subida y
+`AttachFinishedUploads`, que adjunta lo subido aunque el panel se cierre) y el `FileProvider` `<paquete>.fotos` del
+manifiesto.
+
 ### Ver qué está haciendo un agente
 
 Pulsa la tarjeta de **«Tarea actual»** en el panel de un agente (o «Ver qué está haciendo»), o una tarea de la
@@ -710,6 +1000,13 @@ archivos son, de qué tipo y quién los hizo) en vez de ponerlos uno detrás de 
 abrir cada uno; en el escritorio, «Abrir carpeta» la abre en el Finder. El resumen final del trabajo junta todos
 los archivos de la petición en otra carpeta. Igual en la app del móvil.
 
+Cada archivo tiene **Descargar**, junto a Abrir. La carpeta permite **Descargar como zip**: incluye únicamente los
+entregables de esa tarjeta, con sus nombres y subcarpetas, sin añadir otros archivos del proyecto. En el navegador
+(también desde el móvil) y en la app de escritorio como cliente, se guardan en el dispositivo que estás usando;
+en el escritorio del servidor se elige dónde guardar una copia. Órbita ofrece el mismo botón en el chat y en
+Resultados, con el selector de destino de Android. Cancelar el selector no guarda ninguna copia. Los archivos originales
+se conservan en el servidor. Para obtenerlo en Órbita hay que actualizar la app del móvil.
+
 ### Reanudar lo interrumpido
 
 Si la app se cierra con trabajo a medias (al actualizar, reiniciar o por un fallo), el plan de esa petición
@@ -732,14 +1029,74 @@ aparece **«Reiniciar agente»** (en Órbita, en su tarjeta): olvida el error y 
 vuelve a comprobar que su CLI responde (sin llamadas de pago) y, si responde, queda disponible y lo que esperaba por
 él empieza. Si sigue sin responder, lo dice. Si está trabajando no se toca: para eso está «Detener».
 
+### Hablar directamente con un agente (`@Agente`)
+
+Normalmente todo lo que escribes pasa primero por Hermes, que decide qué hacer y a quién dárselo. Si quieres que
+un agente concreto reciba tu texto **tal cual**, sin que Hermes lo lea, lo reinterprete ni lo filtre, empieza el
+mensaje con su nombre:
+
+- `@Qwen escribe un cuento corto` (también vale su id o el nombre sin espacios: `@LMStudio …`).
+- `/directo Qwen escribe un cuento corto` (o `/direct`, `/dm`).
+
+Al teclear `@` al principio del cuadro sale la lista de agentes (en el escritorio, la web y Órbita): elige uno con
+las flechas e Intro o Tab (o tocándolo) y escribe el mensaje detrás. En el chat, tu mensaje sale como
+«Tú → Qwen (directo, sin Hermes)».
+
+Lo que cambia frente a una petición normal:
+
+- **Sin Hermes**: no hay plan ni visto bueno, ni resumen final. Es una sola tarea para ese agente.
+- **Texto literal**: el agente recibe solo lo que escribiste detrás de su nombre, sin las instrucciones del equipo
+  (si adjuntas archivos, se añade dónde están). Al modelo de LM Studio tampoco se le pone su mensaje de sistema de
+  «agente del equipo» ni se le dan herramientas: es como escribirle en el chat de LM Studio. Si solo razona y no
+  escribe nada, se le pide una vez «Escribe ahora tu respuesta.»; si sigue sin escribir, sale lo que razonó, y si
+  no hay ni eso, la tarea falla con «terminó sin escribir ninguna respuesta». Si la plantilla del modelo ya abre
+  `<think>`, lo que llega antes de `</think>` se trata como razonamiento.
+- **Su respuesta tal cual**: sin verificador de otra familia; un «BLOQUEADA: …» no se trata como fallo.
+- **Solo ese agente**: si está apagado, sin cuota o falla, la tarea queda fallida con el motivo y **no** se pasa a
+  otro agente.
+- **Conversación seguida**: si tu mensaje anterior en el proyecto también fue directo al mismo agente, Claude y
+  Codex retoman su sesión (recuerdan lo anterior). LM Studio y Ollama reciben cada mensaje suelto.
+
+Un `@` que no es el nombre de ningún agente (un correo, «@alguien») no cuenta: el mensaje va a Hermes como siempre.
+`/directo` con un nombre que no existe da un error con la pista de escribir `@` para ver la lista. El agente
+trabaja en la carpeta del proyecto con el mismo permiso de siempre (⚙ → Ajustes → «Acceso completo para los agentes»).
+
+Para desarrolladores: las reglas están en `src/shared/directMessage.ts` (y su copia en Órbita,
+`android/.../ui/orbita/DirectMention.kt`); el motor las aplica en `sendDirect` de `src/main/orchestrator.ts`
+(la tarea lleva `direct: true`). La API móvil lo anuncia con `capabilities.directMessages`.
+
+### Razonamiento (think) del modelo local
+
+Los modelos que «piensan» (Qwen 3, Qwen 3.5…) escriben un razonamiento largo antes de responder, y eso hace que
+tarden bastante más. Por eso el agente de LM Studio va **con el razonamiento apagado** y responde directamente.
+Cuando quieras que piense (algo que necesita mucha información o pasos), pulsa su robot en el espacio (o su
+tarjeta en el Equipo de Órbita) y enciende **«Razonamiento (think)»**; apágalo igual. Se guarda en la
+configuración y vale para todo lo que le mandes después, tanto con `@Agente` como en tareas normales.
+
+- **Cómo se aplica**: kywai manda a LM Studio `enable_thinking` (en `chat_template_kwargs` y suelto) con el
+  valor del interruptor. Funciona con los modelos cuya plantilla lo admite (la de Qwen sí). Si con el interruptor
+  apagado el modelo sigue pensando, tu versión de LM Studio o la plantilla de ese modelo lo ignoran: en LM Studio,
+  en los ajustes del modelo, apaga «Enable Thinking» (o «Reasoning») si aparece, o pon `/no_think` al principio
+  del mensaje con los modelos Qwen 3.
+- **«Usó una herramienta» que no era tal**: «Preparando el modelo local» y «Leyendo la tarea» salían en la
+  tarjeta como si el agente hubiera usado una herramienta. Eran pasos de kywai: ahora salen como texto
+  normal. En un mensaje directo el modelo local no tiene herramientas.
+
+Para desarrolladores: el ajuste es `thinking` del agente (solo `provider: 'lmstudio'`; sin indicar, apagado),
+se cambia con `setAgentThinking` (IPC y web) o `POST /api/mobile/v1/agents/{agentId}/thinking` con
+`{"enabled": true|false}`, y la API móvil lo anuncia con `capabilities.agentThinking`. Lo manda
+`thinkingFields` en `src/main/agents/lmstudio.ts`.
+
 ### El modelo de Hermes (`/model`)
 
 Escribe `/model` (o `/modelo`) en el chat, o pulsa a Hermes en el espacio → **«Modelo»**: ves el que usa ahora y
 la lista de modelos de cada proveedor con el que Hermes tiene sesión (como en `hermes model` en la terminal), con
-buscador. Elige uno y **«Usar …»** (o doble clic): Hermes lo usa desde el próximo encargo. AI Cowork se lo pasa
+buscador. Elige uno y **«Usar …»** (o doble clic): Hermes lo usa desde el próximo encargo. kywai se lo pasa
 en cada encargo (`-m` y `--provider`) sin tocar el `config.yaml` de Hermes; **«Volver al de Hermes»** deja el de
 su configuración. Las listas salen de la caché de Hermes, sin llamadas de pago: para actualizarlas, ejecuta
-`hermes model --refresh` en la terminal del equipo donde corre AI Cowork (el Mac).
+`hermes model --refresh` en la terminal del equipo donde corre kywai (el Mac).
+Los servidores propios de `providers:` (OmniRoute…) salen con su nombre de `config.yaml`; se reconocen aunque
+la caché de Hermes guarde su dirección con una huella al final (`…/v1#…`) o con `localhost` en vez de `127.0.0.1`.
 
 ### Muse (Meta)
 
@@ -751,7 +1108,7 @@ con el navegador.
 - **Para qué se usa**: solo lo que los demás no pueden hacer (ver vídeos) y de refuerzo cuando Claude o Codex se
   quedan sin cuota. Imágenes, capturas, PDFs, búsquedas en internet y código son de Claude y Codex: lo hacen igual
   de bien y así no se gasta la cuota de Muse, que es muy pequeña.
-- **Solo con la suscripción**: AI Cowork le oculta `META_API_KEY` y no fuerza el modelo, así que usa la sesión de
+- **Solo con la suscripción**: kywai le oculta `META_API_KEY` y no fuerza el modelo, así que usa la sesión de
   Muse Code y el que tenga configurado (con el modo Contributor, Meta puede usar lo que le envías para mejorar sus
   modelos; se cambia en `muse` → `/settings`). Muse Image y Muse Voice solo van por API de pago: no se usan.
 - **Permisos**: con «Acceso completo» trabaja sin sandbox (`--yolo`); si no, dentro de su sandbox, sin red para los
@@ -767,7 +1124,7 @@ con el navegador.
 ### Memoria e instrucciones del proyecto
 
 La pestaña **Memoria** (o el edificio «Memoria» del espacio) guarda lo que el equipo debe recordar en ese
-proyecto. El coordinador y cada agente la leen en cada encargo, así que sobrevive a «Limpiar el chat» y a los
+proyecto. El coordinador y cada agente la leen en cada encargo, así que sobrevive a un «Nuevo chat» y a los
 reinicios:
 
 - **Instrucciones para los agentes**: normas tuyas que todos siguen siempre (cómo probar, estilo, qué no tocar…).
@@ -785,32 +1142,245 @@ reinicios:
 
 Se guarda en el `project.json` del proyecto.
 
-### AGENTS.md, habilidades y herramientas de AI Cowork
+### AGENTS.md, habilidades y herramientas de kywai
 
 **Instrucciones del repositorio.** Cada CLI lee por su cuenta solo su archivo (Claude, `CLAUDE.md`; Codex,
-`AGENTS.md`; Gemini, `GEMINI.md`). AI Cowork añade al encargo de cada tarea los que ese CLI no lee, así que basta
+`AGENTS.md`; Gemini, `GEMINI.md`). kywai añade al encargo de cada tarea los que ese CLI no lee, así que basta
 con un `AGENTS.md` en la carpeta del proyecto para que todo el equipo siga las mismas reglas. Si dos archivos
 dicen lo mismo (o `CLAUDE.md` solo contiene `@AGENTS.md`), se pone una vez. Se recortan a 6 000 caracteres.
 
 **Habilidades compartidas.** Procedimientos que el equipo reutiliza («cómo publicamos una versión», «informes en
-tres niveles»…). Van en la carpeta `habilidades` de la carpeta de trabajo de AI Cowork: una carpeta por habilidad
+tres niveles»…). Van en la carpeta `habilidades` de la carpeta de trabajo de kywai: una carpeta por habilidad
 con su `SKILL.md` (el mismo formato que las skills de Claude: `name` y `description` en el encabezado y los pasos
 debajo) o un `.md` suelto. Puedes copiar ahí las de `~/.claude/skills`. El encargo de cada tarea lista su nombre y
 para qué sirven, y el agente lee la que encaje.
 
-**Herramientas de AI Cowork (servidor MCP).** Claude trabaja con un servidor MCP propio de AI Cowork
+**Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),
 `anotar_memoria` (queda provisional, como «Para la memoria»), `estado_equipo` (qué hacen ahora los compañeros,
 para no pisarlos), `preguntar_usuario` (deja la pregunta en «Te necesita» y el agente sigue con lo razonable; como
 mucho tres por tarea) y `leer_habilidad`. El servidor solo escucha en 127.0.0.1 y cada tarea lleva su propio
 token, que se anula al terminar. El script lo escribe la app en `mcp/ai-cowork-mcp.cjs` de la carpeta de trabajo
-y lo ejecuta el propio AI Cowork como Node; la configuración de cada tarea va en un archivo `mcp/tarea-….json`
+y lo ejecuta el propio kywai como Node; la configuración de cada tarea va en un archivo `mcp/tarea-….json`
 que se borra al terminar. Codex, Gemini y los agentes de catálogo no lo reciben (no se les puede pasar esa
 configuración por la línea de comandos) y siguen con lo que trae el encargo.
 
+### Extensiones: tus servidores MCP para los agentes
+
+En **⚙ → Ajustes → Extensiones** añades servidores MCP (herramientas como Playwright, GitHub, Notion, buscar en la
+web…) y eliges con un clic a qué agentes llegan. Cada tarea recibe solo los que su agente tiene encendidos, además
+de las herramientas propias de kywai. Los servidores que tengas configurados en tu Claude, Codex o Gemini no
+cuentan: solo los de esta pestaña.
+
+**Añadir uno a mano.** «Añadir a mano» y pega lo que trae su README: la línea de instalación
+(`npx -y @playwright/mcp@latest`), su JSON (`{"mcpServers": {…}}` o una sola entrada), la orden `claude mcp add …`
+o su dirección (`https://…/mcp`). kywai lo entiende y te enseña el nombre, la orden o la dirección y sus claves
+(variables como `GITHUB_PERSONAL_ACCESS_TOKEN`, o la cabecera `Authorization: Bearer …` de los remotos) para que
+lo revises. Al guardarlo se prueba.
+
+**Probarlo.** kywai lo arranca (o se conecta), le saluda y le pide sus herramientas, como hará el agente en una
+tarea. Debajo de cada servidor se ve el resultado: «Responde: 25 herramientas» o por qué falla («No se encontró
+"uvx" en este equipo», «Pide autorización…»). La primera vez puede tardar: npx y uvx descargan el servidor.
+
+**Dárselo a un agente.** Un chip por agente: Claude, Codex, Gemini y Hermes se pueden encender; los demás salen
+en gris (aún no pueden recibirlos). Si un servidor no arranca porque falta el programa que lo lanza (`uvx` viene con **uv**,
+`npx` con **Node.js**), debajo sale **«Instalar uv»** o **«Instalar Node.js»**: lo instala en el equipo donde trabajan
+los agentes (aunque lo pulses desde la web, Órbita u otro equipo) con su instalador oficial, sin administrador, y vuelve
+a probar el servidor. Al encender un chip se vuelve a probar: si falla, se queda apagado y dice por
+qué, así que ninguna tarea se rompe por una extensión. Si al probarlo más tarde falla, se apaga para todos. Cambiar
+cómo se arranca (orden, dirección o claves) también lo apaga: se vuelve a encender tras probarlo.
+
+**Cómo le llega a cada CLI** (en la traza de la tarea sale «Herramientas de Extensiones: …»):
+
+| Agente | Cómo |
+|---|---|
+| Claude | En el mismo archivo `--mcp-config` de la tarea que el servidor de kywai, con sus herramientas permitidas sin preguntar. En la línea de comandos la ruta usa `/` también en Windows y admite espacios, manteniendo las restricciones de caracteres del lanzador. Se borra al terminar. |
+| Codex | Con `-c mcp_servers.<nombre>.…`. Los locales se arrancan con un lanzador pequeño (`mcp/ext-….sh` o `.cmd` en la carpeta de trabajo, con sus variables) que se borra al terminar; los remotos llevan sus cabeceras en variables del propio Codex. Si una dirección lleva caracteres que la consola no admite (`?`, `&`), ese servidor no se le pasa y la traza lo dice. |
+| Gemini | Con una extensión **kywai** en `~/.gemini/extensions/kywai` que lista los servidores encendidos para Gemini (sin sus claves: van como `${KYWAI_MCP_…}` y kywai se las pasa al lanzar la tarea) y `--allowed-mcp-server-names` con los de la tarea. Esa extensión también la verá tu Gemini cuando lo uses a mano (sin las claves). Los archivos de sistema de Gemini no sirven: solo los lee si son de root. |
+| Hermes | Solo en sus tareas de trabajo (al planificar sigue con herramientas de consulta). Hermes lee los servidores de su `config.yaml`, pero mezcla encima los de su «ámbito gestionado» (`HERMES_MANAGED_DIR`): kywai escribe ahí, en `mcp/hermes-…/config.yaml` de la carpeta de trabajo, solo `mcp_servers` (con sus claves; se borra al terminar), y añade sus nombres a `-t`. Tu configuración de Hermes no se toca. Si el equipo ya tiene un ámbito gestionado de verdad (`/etc/hermes`), no se pisa y la traza lo dice. Probado con Hermes Agent 0.19, que necesita su soporte MCP instalado (`hermes-agent[mcp]`, viene con `[all]`); sin él, o con un Hermes viejo, simplemente trabaja sin ellos. |
+
+**Las claves** se guardan en `mcp-servers.json` de la carpeta de datos de este equipo, cifradas con el llavero del
+sistema si se puede, y nunca vuelven a la interfaz: al cambiar un servidor salen como «Guardada»; déjala vacía para
+no cambiarla.
+
+**Hermes lo sabe.** La guía del coordinador lleva qué herramientas tiene cada agente («Claude: playwright (…)»):
+si una tarea las necesita, se la da a uno que las tenga, y si ninguno las tiene lo dice en vez de mandarla a quien
+no puede usarlas.
+
+**Límites de ahora.** Los servidores remotos que solo admiten iniciar sesión en el navegador (OAuth) aún no se
+pueden usar en las tareas: hace falta un token. Los agentes de catálogo todavía no reciben estos servidores; Hermes sí, con las condiciones de la tabla anterior.
+Las direcciones `http://` solo se admiten si son de este equipo (`localhost`).
+
+### Extensiones: catálogo de servidores MCP y de habilidades
+
+La pestaña **Extensiones** tiene dos partes: **Servidores MCP** y **Habilidades**.
+
+**Catálogo de servidores.** «Explorar catálogo» enseña primero unos destacados con su orden comprobada (Playwright,
+GitHub, Context7, DeepWiki, Fetch, Sequential Thinking). Al buscar (notion, postgres, slack…) se consulta el
+**registro oficial de MCP** (registry.modelcontextprotocol.io, el directorio abierto del estándar, con miles de
+servidores) y «Más resultados» trae la página siguiente. Cada ficha dice si es **remoto** o **en este equipo**, qué
+claves pide y lleva el enlace a su página. «Instalar» no instala nada aún: rellena el formulario de «Añadir a mano»
+con la orden (`npx -y paquete@versión`, `uvx paquete==versión` o `docker run -i --rm …`) o la dirección y las claves
+con su explicación debajo, para que lo revises; al guardar se prueba como cualquier otro. Si la ficha deja algo por
+rellenar (`<carpeta>`, `{región}`), sale un aviso amarillo. Los que solo funcionan por SSE no se pueden instalar.
+
+**Verificados (✓).** En el registro puede publicar cualquiera, así que solo llevan ✓ los de publicadores conocidos
+(Microsoft, GitHub, Notion, Stripe, Cloudflare, Google… lista `TRUSTED_MCP_PUBLISHERS` en `src/main/catalog.ts`) y
+salen primero. El resto se puede instalar, pero revisa su orden.
+
+**Habilidades.** Arriba, las instaladas (las de la carpeta «habilidades», que leen todos los agentes sean del
+programa que sean) con su papelera. Debajo:
+- **Buscar** en **skills.sh**, el directorio grande de skills (el mismo formato SKILL.md de Claude, Codex y Gemini),
+  con cuántas veces se ha instalado cada una. Sin buscar salen destacadas (Superpowers, Impeccable, la auditoría de
+  seguridad de Cloudflare, las de Anthropic, HyperFrames).
+- **Instalar desde el enlace** de GitHub: un repositorio entero (`https://github.com/dueño/repo`: instala todas sus
+  carpetas con SKILL.md, sin las de pruebas y sin partir las anidadas) o una carpeta (`…/tree/main/skills/pdf`).
+
+Se copia la carpeta de la skill entera (scripts, referencias…) a `habilidades/<nombre>`, con un máximo de 40
+archivos de 400 KB. Para saber qué archivos tiene se usa la API de GitHub sin sesión (60 consultas por hora); si no
+responde, se buscan en los sitios de siempre (`skills/`, `.claude/skills/`…) y se traen los que cita su SKILL.md.
+Nada de lo descargado se ejecuta al instalar, y ningún nombre puede escribir fuera de la carpeta de habilidades.
+Las habilidades son instrucciones que siguen los agentes: instala solo las de fuentes en las que confíes.
+
+### Extensiones: plugins
+
+La tercera parte de **Extensiones** es **Plugins**: paquetes con el formato de los plugins de Claude Code. kywai no
+los ejecuta como Claude Code; reparte lo que traen para que lo usen todos sus agentes:
+
+| Lo que trae el plugin | Qué hace kywai |
+|---|---|
+| `skills/<nombre>/SKILL.md` | Lo copia a «habilidades» con sus archivos. Si ya hay una con ese nombre, la del plugin va como `plugin-nombre`. |
+| `commands/*.md` (órdenes «/algo») | Una habilidad `plugin-orden` con su texto y una nota: «donde ponga $ARGUMENTS van los detalles de la petición». |
+| `agents/*.md` (subagentes) | Una habilidad `plugin-subagente`: «sigue estas instrucciones como si fueras él». |
+| `.mcp.json` o `mcpServers` | Servidores MCP en «Servidores MCP», con la etiqueta «Plugin: …» y **apagados**: los enciendes por agente (se prueban antes). `${CLAUDE_PLUGIN_ROOT}` pasa a ser su carpeta, y las claves `${TOKEN}` quedan vacías para rellenarlas con el lápiz. |
+| hooks, servidores de lenguaje (LSP), estilos | No se instalan: el plugin lo dice en «Sin usar». Los cambios de comportamiento serán los mods. |
+
+Los remotos que solo admiten **iniciar sesión en el navegador** (OAuth; responden 401 sin token) y los que solo
+van por SSE no se añaden: salen en «Sin usar» con el motivo.
+
+**Catálogos.** Salen los dos de Anthropic (el oficial, `anthropics/claude-plugins-official`, unos 300 plugins, y
+el de plugins de trabajo, `anthropics/knowledge-work-plugins`), con ✓, y se buscan por nombre, descripción,
+categoría o autor. Con «Añadir el enlace» pegas:
+- el enlace de **otro catálogo** (un repositorio con `.claude-plugin/marketplace.json`): se añade y sus plugins salen en la lista;
+- el de **un plugin** (`https://github.com/dueño/repo` o una carpeta `…/tree/main/plugins/x`): se instala.
+
+**Cómo se descarga.** Cada plugin baja de GitHub en un solo `.tar.gz` (codeload.github.com, sin el límite de la
+API), se lee en memoria y se guarda entero en `plugins/<nombre>` de la carpeta de datos (sus servidores locales
+arrancan desde ahí). Límites: 60 MB el repositorio, 40 MB el plugin, 60 habilidades por plugin. Los que no están en
+GitHub (GitLab, npm…) salen sin poder instalarse. Nada se ejecuta al instalar.
+
+**Quitar** borra sus habilidades, sus servidores MCP y su carpeta. **Instalar otra vez** lo actualiza y conserva sus
+servidores con sus claves y sus agentes encendidos (si el servidor sigue en el plugin).
+
+**Muchas habilidades.** El encargo de cada tarea lista hasta 150 habilidades con la descripción recortada a 160
+caracteres; el texto entero lo leen cuando lo necesitan.
+
+### Extensiones: mods
+
+La cuarta parte de **Extensiones** son los **mods**: cambian kywai en sí, no a los agentes. Un mod es una carpeta con
+un manifiesto `kywai-mod.json` y puede traer tres cosas:
+
+- **Órdenes `/nombre`** para el chat. Al escribir `/revisa el login`, en el chat se ve eso y al equipo le llega el
+  texto de la orden con `{args}` cambiado por «el login» (si la orden no usa `{args}`, lo de detrás va al final).
+  Valen en el escritorio, la web, Órbita y las rutinas. `/directo`, `/dm`, `/rutina` y `/model` son de kywai y no
+  se pueden tapar; si dos mods usan el mismo nombre, gana el primero instalado y el otro lo dice en su ficha.
+- **Hooks**: una orden del sistema que se ejecuta al empezar o acabar una petición (`request.started`,
+  `request.finished`) o una tarea (`task.started`, `task.done`, `task.failed`). Corre en la carpeta del proyecto,
+  en segundo plano (nunca frena una tarea), con un tiempo máximo (60 s por defecto, hasta 600) y con las variables
+  `KYWAI_EVENT`, `KYWAI_PROJECT`, `KYWAI_PROJECT_DIR`, `KYWAI_PROJECT_ID`, `KYWAI_MOD_DIR`, `KYWAI_OK` (peticiones) y
+  `KYWAI_TASK_TITLE`, `KYWAI_TASK_STATUS`, `KYWAI_TASK_AGENT`, `KYWAI_TASK_RESULT` (tareas). **No se ejecuta nada
+  hasta que pulses «Permitir sus hooks»**, que enseña las órdenes; si una versión nueva del mod las cambia, el
+  permiso se pierde y hay que darlo otra vez. La ficha del mod dice cómo fue la última vez.
+- **Paneles**: páginas HTML que se abren junto al chat, en la pestaña **Mods** del panel izquierdo (solo sale si
+  algún mod encendido trae paneles). Van en una caja aislada (iframe sin acceso a la app, sus datos ni su
+  almacenamiento) y sin internet salvo el permiso `network`; nunca pueden enviar formularios ni cambiarse por otra página. Sus imágenes, estilos y scripts con ruta relativa se
+  meten dentro. Para hablar con kywai usan mensajes:
+  - kywai les manda `{kywai: 'context', project: {name}, tasks: [{title, status, agent, result}], messages: [{author, text}]}`
+    al abrirse, cada vez que algo cambia y cuando lo piden con `parent.postMessage({kywai: 'context'}, '*')`;
+  - con el permiso `chat`, `parent.postMessage({kywai: 'send', text: '…'}, '*')` propone un mensaje al chat, que
+    tú confirmas antes de enviarlo.
+  - En **Órbita** salen en ☰ → Más → **Mods** (solo si el ordenador los admite). La página va en un WebView sin
+    archivos ni navegación a otras páginas, y el mismo código funciona sin cambios: un guion que pone kywai delante
+    lleva `parent.postMessage` al puente de la app (`KywaiBridge`), y lo que se propone al chat también se confirma.
+
+**El manifiesto** (`kywai-mod.json`):
+
+```json
+{
+  "name": "notas-rapidas",
+  "title": "Notas rápidas",
+  "description": "Para qué sirve",
+  "version": "1.0.0",
+  "commands": [{ "name": "revisa", "description": "Revisión crítica", "prompt": "Revisa con ojo crítico {args}…" }],
+  "hooks": [{ "on": "request.finished", "run": "echo Petición terminada", "timeout": 10 }],
+  "panels": [{ "id": "equipo", "title": "Estado del equipo", "file": "panel.html" }],
+  "permissions": ["chat"]
+}
+```
+
+Hay uno de ejemplo completo en `docs/mods/notas-rapidas` (dos órdenes, un panel con el estado de las tareas y un
+botón que pide un resumen, y un hook): en la pestaña Mods, «Prueba con el de ejemplo».
+
+Los hooks usan la consola del equipo: `cmd.exe` en Windows (`%KYWAI_PROJECT%`) y `/bin/sh` en macOS y Linux
+(`$KYWAI_PROJECT`). Para compartir un hook entre sistemas puedes lanzar un script que lea las variables de entorno.
+Si supera su tiempo máximo, kywai corta su árbol de procesos y espera al cierre antes de darlo por terminado.
+
+**Instalar.** Pega el enlace de GitHub de la carpeta del mod (`https://github.com/dueño/repo/tree/main/mi-mod`, se
+descarga como los plugins) o la ruta de una carpeta del equipo donde corre kywai (para probar uno que estás
+haciendo; vuelve a instalarlo tras cambiarlo). Se guarda en `mods/<nombre>` de la carpeta de datos. «Apagar» lo deja
+instalado sin órdenes, hooks ni paneles; la papelera lo borra.
+
+### Plantillas de tareas: lo que repites, con un toque
+
+Encima del cuadro del chat hay una fila de botones con las peticiones que repites a menudo. Un toque la envía al
+equipo como si la escribieras. Está en el escritorio, en el navegador (también el del móvil) y en Órbita, y todos ven
+las mismas porque las guarda el servidor (`templates.json` en la carpeta de datos de kywai).
+
+En el escritorio y el navegador, los formularios y menús de estas plantillas se abren **encima del botón**,
+dentro de la ventana. Si falta altura, se puede desplazar su contenido sin que quede cortado por abajo.
+
+- **Huecos**: si el texto lleva algo entre llaves, como `{pr}` o `{carpeta}`, al tocarla se abre un cuadrito para
+  rellenarlo (con una vista previa del texto) y luego se envía. Sin huecos se envía al momento. Un hueco empieza por
+  una letra y lleva letras, cifras, `_` o `-`; como mucho 6 por plantilla. `{"a": 1}` o `{ b }` no son huecos.
+- **Con una orden**: cada plantilla tiene su orden, `/revisar-pr 42`. Al escribir `/` sale la lista de las que
+  encajan. Lo que va detrás rellena el hueco; con varios huecos, separados por `|` en orden
+  (`/traducir hola | francés`); sin huecos, va al final del texto. En el chat se ve lo que escribiste y al equipo le
+  llega el texto de la plantilla. También vale en las rutinas: una rutina cuya petición sea `/revisar-pr 42` la lanza.
+- **Los archivos** que tengas preparados en el cuadro van con la plantilla; lo que hubieras escrito se queda.
+- En el chat, el mensaje dice con qué plantilla se lanzó («Tú · plantilla «Revisar PR»»).
+
+**Crear y cambiar.** «+» al final de la fila crea una: emoji, nombre del botón, lo que se envía, la orden (si la dejas
+vacía sale del nombre: «Revisar PR» → `/revisar-pr`, y lo sigue si le cambias el nombre), dónde sale (en todos los
+proyectos o solo en el abierto) y quién la hace:
+
+- **Hermes reparte el trabajo** (lo normal): pasa por el plan, los agentes y la verificación.
+- **Directo a un agente**: como `@Agente …`, va tal cual a ese agente sin pasar por Hermes. Si quitas ese agente del
+  equipo, la plantilla avisa al lanzarla para que elijas otro.
+- **Pedir mi visto bueno al plan**: el coordinador enseña el plan y espera, aunque en Ajustes esté apagado (solo
+  para esa plantilla). Sin efecto si va directa a un agente.
+
+Clic derecho en una plantilla (o mantenerla pulsada en el móvil): **Editar**, **Fijar al principio** (las fijadas van
+primero, con el borde de color), **Convertir en rutina** (deja `/rutina cada día a las 9:00: <su texto>` en el
+cuadro para que cambies el horario y lo envíes; solo en las que no tienen huecos ni van directas a un agente) y
+**Borrar** (hay que pulsarlo dos veces). Al eliminar un proyecto se borran sus plantillas.
+
+**Las de serie**: Revisar PR, Resumir carpeta, Buscar fallos, Escribir pruebas, Actualizar dependencias y Explicar
+código. Mientras no las cambies, su nombre, su orden y su texto siguen el idioma de la app (en inglés, `/review-pr`).
+Si las borras no vuelven solas; «Volver a poner las de serie» (en la ventana de crear o editar) pone las que falten.
+
+**Límites**: 100 plantillas, 60 caracteres el nombre, 8 000 el texto; la orden, de 1 a 30 letras sin acentos, cifras
+o guiones, empezando por letra, y no puede ser una de kywai (`/rutina`, `/directo`, `/model`, `/new`, `/usage`,
+`/recuerda`…) ni repetir la de otra plantilla del mismo sitio (una general y una de proyecto sí pueden coincidir: en
+ese proyecto gana la suya). Una plantilla gana a la orden de un mod con el mismo nombre.
+
+**Órbita / API móvil**: el snapshot trae `templates` (todas, con su `projectId` si son de un proyecto) y la capacidad
+`templates`; `GET/POST /templates`, `POST /templates/{id}` (cambiar), `POST /templates/{id}/delete` y
+`POST /templates/restore`. Para lanzar una con un toque, `POST /chat/messages` con el texto ya relleno y `templateId`.
+Los cambios llegan con el evento `templates.updated`.
+
 ### Rutinas: peticiones que se lanzan solas
 
-Como AI Cowork corre 24/7 en el servidor, cada proyecto puede tener **rutinas**: una petición que se envía sola al
+Como kywai corre 24/7 en el servidor, cada proyecto puede tener **rutinas**: una petición que se envía sola al
 chat, igual que si la escribieras tú (pasa por el plan del coordinador, los agentes y la verificación). En el chat
 aparece con «**Rutina: <nombre>**» en lugar de «Tú». Se gestionan en la pestaña **Rutinas** del proyecto (también
 desde el navegador del móvil) o escribiendo `/rutina …` en el chat.
@@ -822,28 +1392,50 @@ desde el navegador del móvil) o escribiendo `/rutina …` en el chat.
 | Cada día a una hora | «Cada día a las 09:00» |
 | Unos días de la semana a una hora | «De lunes a viernes a las 08:30», «Los sábados a las 10:00» |
 | Cada N horas (1 a 168) | «Cada 6 horas» (contando desde la última vez) |
+| Una sola vez | «Una vez: mañana a las 07:00»: se lanza ese día a esa hora y se desactiva sola |
 | Webhook | Al llegar un `POST` a su dirección propia (ver abajo) |
 | Al cambiar archivos de una carpeta | Una carpeta del proyecto (o toda): cuando cambian archivos y llevan un minuto quietos |
 
 **Desde el chat**: `/rutina cada día a las 9:00: revisa las dependencias`, `/rutina de lunes a viernes a las 8:30: …`,
 `/rutina lunes y jueves 7h: …`, `/rutina laborables a las 8: …`, `/rutina cada 6 horas: …`, `/rutina cada hora: …`,
-`/rutina webhook: revisa el PR que llega` o `/rutina al cambiar archivos de Entrada: …`. Lo que va después del
+`/rutina webhook: revisa el PR que llega` o `/rutina al cambiar archivos de Entrada: …`. De **una sola vez**:
+`/rutina mañana a las 7: …`, `/rutina hoy a las 21:00: …`, `/rutina esta noche a las 9: …` (las 21:00),
+`/rutina pasado mañana a las 10: …`, `/rutina el viernes a las 18:00: …` (el próximo viernes; «los viernes» es
+cada semana), `/rutina el 15/11 a las 9: …`, `/rutina el 3 de enero a las 9:30: …`, `/rutina el 2026-12-24 a las 8: …`,
+`/rutina dentro de 2 horas: …`, `/rutina en 45 minutos: …` o `/rutina una vez a las 9: …` (hoy, o mañana si ya
+pasó). En inglés: `tomorrow at 7`, `on friday at 18:00`, `in 3 hours`. Una hora que ya pasó da error. Lo que va después del
 horario es la petición; el nombre sale de su primera frase (se cambia en la pestaña). `/rutina` sola abre la pestaña.
 No va a los agentes: se crea la rutina (activa) y debajo del cuadro de texto se ve cuándo será la próxima.
+Desde **Órbita** (o cualquier cliente que mande el texto tal cual) funciona igual: el servidor crea la rutina y
+contesta en el chat con su horario y la próxima vez, o con la ayuda si no entiende el horario; tampoco pasa por Hermes.
+
+**Hermes te la propone**: si le pides algo que se repite o para más tarde («cada mañana revisa los PR», «mañana a
+las 7 comprueba la web», «cuando llegue un PR, revísalo»), además de su respuesta (y, si tiene sentido, de hacerlo ya
+la primera vez) sale en el chat una tarjeta verde **Rutina propuesta** con el nombre, el horario y la petición:
+**Crear rutina** la crea activa (pasa a «Rutina creada», con «Ver en Rutinas»), **Cambiar** pone su orden
+`/rutina …` en el cuadro de texto para que la retoques y la envíes, y **Descartar** no crea nada. Hermes nunca la crea
+por su cuenta, y lo que lanza una rutina no propone otra.
 
 **En la pestaña Rutinas**: crear y editar (nombre, petición y disparador), activar o desactivar con el interruptor,
 **Ejecutar ahora**, ver la próxima hora, la última ejecución y el **historial** (las 20 últimas: hora, por qué se
 lanzó —a su hora, hora perdida, webhook, carpeta, a mano— y cómo acabó). Estados: *En marcha*, *Esperando tu visto
-bueno* (con «Pedir mi visto bueno a cada plan», su plan también espera), *Hecha*, *Falló*, *Saltada* e
+bueno* (solo si la rutina tiene marcada su casilla, ver abajo), *Hecha*, *Falló*, *Saltada* e
 *Interrumpida* (se cerró la app mientras trabajaba; se reanuda desde el chat como cualquier petición).
 
 Reglas:
 
 - **Nunca dos a la vez**: si la ejecución anterior de la rutina sigue en marcha (o su plan espera tu visto bueno),
   no se lanza otra: queda apuntada como *Saltada*. Vale también para «Ejecutar ahora» y para los webhooks.
-- **Horas perdidas**: si a la hora de una rutina AI Cowork estaba cerrado (o el equipo en reposo), al volver **no**
+- **Horas perdidas**: si a la hora de una rutina kywai estaba cerrado (o el equipo en reposo), al volver **no**
   se lanza todo lo atrasado: se lanza **una sola vez** y un aviso en el chat dice cuántas veces no se lanzó.
   Al desactivar y volver a activar una rutina, o al cambiarle el horario, cuenta desde ese momento.
+- **Visto bueno al plan**: una rutina **no espera** tu visto bueno, aunque tengas encendido «Pedir mi visto bueno
+  a cada plan» (esa opción es para lo que escribes tú): nadie está delante y se quedaría parada hasta que volvieras.
+  Si una rutina concreta sí debe esperarlo, marca en ella «Pedir mi visto bueno a su plan antes de empezar» (en la
+  tarjeta pone «con tu visto bueno»); su plan sale en el chat y en «Te necesita» como cualquier otro.
+- La rutina de **una sola vez** se desactiva al lanzarse (también si se lanzó tarde, al volver kywai) y queda en la
+  lista con su historial y «ya se lanzó». Para repetirla, edítala y elige otro día: al guardar vuelve a quedar activa.
+  No se puede crear ni activar para una hora que ya pasó.
 - La rutina de **carpeta** no mira mientras el equipo trabaja en el proyecto (los cambios de los agentes no
   cuentan; al terminar se toma una foto nueva) y no se lanza más de una vez cada 5 minutos. La petición lleva la
   lista de archivos nuevos (+), cambiados (~) y borrados (-).
@@ -851,7 +1443,7 @@ Reglas:
   una pregunta, hace lo razonable y explica lo que dio por supuesto.
 
 **Webhook**: cada rutina de webhook tiene su dirección propia en el acceso web (hace falta tenerlo encendido:
-⋮ → «Acceso desde otros dispositivos…») con un **secreto aleatorio** suyo, que no es el código de acceso de la app.
+⚙ → Ajustes → «Acceso desde otros dispositivos…») con un **secreto aleatorio** suyo, que no es el código de acceso de la app.
 El botón «Webhook» de la rutina la enseña con botones para copiarla (también en el móvil):
 
 - `POST http://<ip-de-tailscale>:8787/hooks/<proyecto>/<rutina>/<secreto>`, o
@@ -873,20 +1465,152 @@ servicios de Tailscale. Para que llegue GitHub (que está en internet) hace falt
 Funnel; ten en cuenta que entonces todo el acceso web queda en internet (sigue pidiendo el código de acceso, salvo
 en `/hooks/`, que pide el secreto de cada rutina).
 
-**Órbita / API móvil**: `GET /api/mobile/v1/routines?conversationId=…` lista las rutinas (sin secretos) y
-`POST /api/mobile/v1/routines/{routineId}/run` es «Ejecutar ahora» (capacidad `routines`); los cambios llegan por el
-evento `routines.updated` y los mensajes de una rutina llevan `routine: { id, name }`. Crear y editar se hace desde
-el escritorio o el navegador.
+**En Órbita**: barra lateral → **Rutinas** (menú «Más»). Lista las rutinas del proyecto con su horario, la próxima
+vez y la última ejecución, con interruptor para activarla, **Ejecutar ahora**, editar y borrar; **Nueva rutina** abre
+un formulario con los mismos tipos que el escritorio (una vez, cada día, ciertos días, cada N horas, webhook, al
+cambiar archivos) y la casilla del visto bueno. La tarjeta «Rutina propuesta» de Hermes también sale en el chat de
+Órbita con **Crear rutina**, **Cambiar** (pone la orden `/rutina …` en el cuadro de texto) y **Descartar**. Con un
+servidor antiguo, Órbita solo deja verlas o avisa de que hay que actualizar kywai en el ordenador.
+
+**API móvil**: `GET /api/mobile/v1/routines?conversationId=…` lista las rutinas (sin secretos) y
+`POST /api/mobile/v1/routines/{routineId}/run` es «Ejecutar ahora» (capacidad `routines`). Con la capacidad
+`routinesEdit`: `POST /routines` crea, `POST /routines/{routineId}` cambia (los campos que mandes) y
+`POST /routines/{routineId}/delete` borra. Con `routineProposals`:
+`POST /messages/{messageId}/routine-proposal/create` o `/dismiss` decide la tarjeta de Hermes (404 si no existe, 409 si
+ya se decidió). Los cambios llegan por el evento `routines.updated` y los mensajes de una rutina llevan
+`routine: { id, name }`. El secreto del webhook no sale nunca por la API móvil.
 
 Se guardan en el `project.json` del proyecto (`routines`) y las lanza `src/main/routines.ts`, que mira cada 30 s.
 
-### Limpiar el chat
+### Barra lateral y conversaciones
 
-⋮ → **«Limpiar el chat»** (pulsa dos veces), o escribe `/new`, `/nuevo`, `/limpiar` o `/clear` en el cuadro de
-texto: empieza una conversación nueva en el proyecto, también para los agentes, que dejan de ver los mensajes
-anteriores. Se vacían el chat y las tareas terminadas; los archivos y resultados se quedan. Antes se guarda una
-copia en `historial/chat-<fecha>.json` dentro de la carpeta del proyecto. No se puede mientras el equipo está
-trabajando en ese proyecto.
+A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
+
+- **Nuevo chat** (Ctrl+Mayús+O; ⌘⇧O en el Mac), o escribir `/new`, `/nuevo`, `/limpiar` o `/clear` en el cuadro de
+  texto: empieza una conversación nueva en el proyecto abierto, también para los agentes, que dejan de ver los
+  mensajes anteriores. La conversación anterior **no se pierde**: queda guardada en la lista de su proyecto. Los
+  archivos, los resultados y la memoria del proyecto se quedan; las tareas que estaban en pausa siguen a la vista.
+- **Buscar** (Ctrl+K): ver [Buscar](#buscar-ctrlk).
+- **Historial**: todas las conversaciones de todos los proyectos, por fechas: ver [Historial](#historial).
+- **Te necesita**: la bandeja de avisos (antes era la campana de arriba a la derecha).
+- **Tareas**, **Resultados** y **Rutinas** abren esa pestaña del panel del chat (con el número de tareas en curso).
+- **Fijados**: los proyectos y las conversaciones que fijas (clic derecho → «Fijar»). Se guarda en el proyecto,
+  así que se ve igual en el navegador y en los clientes.
+- **Proyectos**: todos, con **+** para crear uno. La flecha de cada proyecto despliega sus conversaciones (el abierto
+  se despliega solo); un punto azul que late indica que el equipo está trabajando en él.
+- **Recientes**: las últimas conversaciones de todos los proyectos; al final, «Ver todo el historial».
+- Abajo, **dónde estás conectado** (el servidor) y la **rueda ⚙**: ver [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes).
+
+
+**Retomar una conversación**: pulsa cualquiera de la lista y vuelve con sus mensajes, sus tareas terminadas y la
+sesión de cada agente (Claude y Codex siguen donde lo dejaron, si no han pasado más de 14 días). La que estaba
+abierta se guarda antes. **No se puede cambiar de conversación ni
+empezar otra mientras el equipo trabaja en ese proyecto**: espera a que termine o detenlo. En otro proyecto sí.
+
+**Clic derecho** (o el botón **⋯** que sale al pasar el ratón) abre el menú de lo que tocas, como en Claude. Con el
+menú abierto, la letra de la derecha hace esa acción sin el ratón.
+Los botones **⋯** y la flecha de desplegar no llevan bloque de fondo propio: el nombre se desvanece antes de
+llegar a ellos y la hora o el punto de «trabajando» se apartan mientras están a la vista, así quedan sobre la
+misma tarjeta y con el color del tema que tengas.
+
+- En una **conversación**: **Fijar** (P), **Cambiar nombre** (R; por defecto es el principio de tu primer mensaje),
+  **Bifurcar** (F: una copia aparte, con los mensajes y las tareas, para seguir por otro camino sin tocar la
+  original; se abre sola y los agentes empiezan sesión nueva en ella), **Mover a otro proyecto** (M; los agentes
+  empiezan sesión nueva allí; si era la abierta, su proyecto queda con una conversación nueva) y **Eliminar** (D,
+  pulsa dos veces; va a `conversaciones/borradas/` dentro del proyecto, no se pierde del todo; si es la abierta,
+  antes se empieza una nueva). Mover y eliminar la abierta no se puede mientras el equipo trabaja en ella.
+- En un **proyecto**: **Nuevo chat en este proyecto** (N), **Fijar** (P), **Cambiar nombre** (R), **Abrir carpeta
+  del proyecto** (O) y **Eliminar proyecto** (D, pulsa dos veces; ver [Eliminar un proyecto](#eliminar-un-proyecto)).
+
+No hay «Marcar como no leído» ni «Archivar» como en Claude: aquí todas las conversaciones se guardan solas y no hay
+estado de leído.
+
+El botón de arriba de la barra la **pliega** a una columna de iconos (con los números de los avisos); se recuerda en
+cada dispositivo. Si nunca la has tocado, en ventanas de menos de 1300 px empieza plegada. En ventanas estrechas
+(navegador del móvil, tableta en vertical o menos de 950 px) la barra **siempre queda plegada en su columna de iconos**
+a lo largo de la izquierda, bajo el logo de la cabecera, y se usa sin abrirla; su botón de arriba abre la barra entera
+por encima del chat.
+
+**Nombre del ordenador.** Abajo en la barra sale dónde corren los agentes: el nombre del equipo en la red
+(«macmini.lan») o el que tú le pongas. Pulsa el nombre (sale un lápiz al pasar por encima), escribe uno nuevo (hasta
+40 caracteres) e Intro; Esc cancela y dejarlo vacío vuelve al nombre de la red. Se guarda en el servidor
+(`config.serverName`, `setServerName`; `getHostInfo` lo devuelve como `name`), así que se ve igual en el escritorio,
+la web, los clientes y Órbita (`settings.serverName` en la instantánea móvil y `POST /settings/server-name`).
+
+Dónde se guarda: la conversación abierta va en el `project.json` del proyecto, como siempre; las demás en
+`conversaciones/<id>.json` (con sus tareas y las sesiones de los agentes) y su lista en `project.json`
+(`conversations`). Las copias que dejaba antes «Limpiar el chat» en `historial/chat-<fecha>.json` se importan solas
+la primera vez que se abre la lista, así que también se pueden retomar. Lo hace `src/main/conversations.ts`; en la
+API son `listConversations`, `recentConversations`, `newConversation`, `openConversation`, `renameConversation`,
+`deleteConversation`, `setConversationPinned`, `pinnedConversations`, `forkConversation`, `moveConversation`,
+`setProjectPinned` y `search`. Al cambiar de conversación se emite `chat.cleared` (con
+`conversationId`) y `conversations.updated`: los otros dispositivos y Órbita vuelven a cargar el chat solos.
+
+### La rueda ⚙ y los Ajustes
+
+La **rueda ⚙** (abajo en la barra lateral) abre un menú corto, como en Claude: arriba dice dónde estás y debajo
+están **Ajustes…** (también **Ctrl+,**; ⌘, en el Mac), **Uso y coste…**, **Cómo rinde cada agente…**,
+**Archivos del servidor…** (desde el navegador), **Abrir carpeta del proyecto**, **Buscar actualizaciones…**,
+**Reiniciar kywai** (pulsa dos veces) y **Apoyar kywai ☕**.
+
+**Ajustes…** abre una ventana con pestañas a la izquierda:
+
+- **General**: idioma, sonido (con los volúmenes de la música y de las voces), reducir efectos, modo demo y el tema.
+- **Agentes**: configurar agentes, acceso completo para los agentes, pedir tu visto bueno a cada plan y actualizar
+  las cuotas.
+- **Conexión**: dónde estás, acceso desde otros dispositivos (en el servidor) y, en un cliente de escritorio,
+  sincronizar carpetas, cambiar de servidor y olvidar este dispositivo.
+- **Acerca de**: buscar actualizaciones, actualizar este equipo y recargar la interfaz (cliente), reiniciar y
+  apoyar kywai.
+
+Lo que tiene ventana propia (acceso desde otros dispositivos, actualizaciones, sincronizar) se abre en lugar de
+Ajustes, y al cerrarla vuelves a la misma pestaña. Esc o la ✕ cierran. Lo hacen `ui/settings/SettingsDialog.tsx` y
+`ui/header/HeaderMenu.tsx` (el menú corto).
+
+### Buscar (Ctrl+K)
+
+**Buscar** en la barra lateral, o Ctrl+K (⌘K en el Mac), abre un buscador que mira a la vez en **todas las
+conversaciones** (abiertas y guardadas), las **tareas** (título, encargo y resultado), los **resultados** (nombre del
+archivo), la **memoria** y los nombres de los proyectos, de todos los proyectos o, con «Solo este proyecto», del
+abierto. No distingue mayúsculas ni tildes.
+
+- **Varias palabras**: tienen que estar **todas** en el mismo mensaje (o tarea, o nota), en cualquier orden.
+  `barra oscuro` encuentra «pon el modo oscuro en la barra».
+- **Entre comillas** («…», "…" o “…”): la **frase exacta**. `"modo oscuro"` no encuentra «oscuro el modo».
+- **Fecha**: cualquier fecha, hoy, últimos 7 días o últimos 30 días.
+- **Quién lo escribió**: cualquiera, tú, cualquier agente o uno en concreto. Con este filtro solo salen mensajes (y
+  las tareas de ese agente), no resultados, memoria ni proyectos.
+- Los chips filtran por tipo; ↑↓ y ↵ para abrir: lleva al proyecto y a la conversación donde está, en la pestaña que
+  toca (una tarea abre Tareas; un resultado, su visor; una nota, Memoria).
+- **Al mensaje exacto**: al abrir una conversación, el chat baja hasta el mensaje encontrado, lo resalta un momento y
+  marca lo buscado dentro de él.
+- **«N coincidencias»**: si en una conversación coinciden varios mensajes, el botón despliega los primeros cinco (quién
+  lo dijo, el trozo y la fecha) para ir directo al que quieras.
+- Salen 40 resultados; **«Ver más»** trae otros 40 (abajo se ve el total).
+
+Por dentro, el ordenador guarda en memoria el texto ya preparado de cada mensaje y solo vuelve a leer una conversación
+guardada si su archivo cambió, así que buscar a cada tecla no relee todos los proyectos
+(`searchHistory` en `src/main/conversations.ts`).
+
+### Historial
+
+**Historial** en la barra lateral (o «Ver todo el historial» al pie de Recientes y en el buscador vacío) abre una
+ventana con **todas las conversaciones de todos los proyectos**, agrupadas por **Hoy, Ayer, Últimos 7 días, Últimos
+30 días** y, las de antes, por **meses**. Cada una dice su proyecto, cuántos mensajes tiene y cuándo se habló por última
+vez (y «abierta» la que tienes abierta).
+
+- Arriba se **filtra por nombre** (el de la conversación o el del proyecto) y por **proyecto**.
+- «**Buscar «…» dentro de los mensajes**» pasa lo escrito al buscador.
+- ↑↓ y ↵, o un clic, abren la conversación.
+
+**En Órbita** es igual: «Historial» en la barra lateral (y en la columna de iconos), con los mismos grupos, el filtro
+por nombre y por proyecto. El «Buscar» de Órbita tiene los mismos filtros (fecha, tú o agentes), «N coincidencias» para
+elegir el mensaje, «Ver más» y, al abrir un chat, baja hasta el mensaje encontrado y lo resalta. Necesita un ordenador
+con esta versión (si no, se ve el buscador de antes).
+
+API móvil: `GET /chats/all` (el historial) y `GET /search` con `since` (ms), `author` (`user`, `agents` o el id de un
+agente) y `limit` (hasta 400); la respuesta trae `total` y, en cada chat, `messageId`, `matchCount` y `matches`. La
+capacidad `history` del snapshot dice si el ordenador lo tiene.
 
 ### Eliminar un proyecto
 
@@ -898,6 +1622,14 @@ se borra la subcarpeta `.ai-cowork` que creó la app dentro. No se puede elimina
 
 ### Cuotas
 
+La barra sigue al equipo activo: al añadir, quitar, activar o desactivar un agente, sus indicadores se actualizan
+al momento en el escritorio, el navegador y los clientes. Los agentes ya añadidos también reciben un indicador
+al actualizar la app. Los que comparten una cuota mantienen un único indicador y aparecen juntos en su detalle.
+Los agentes del catálogo, los personalizados y Hermes tienen un grupo propio si no estaban vinculados a otro.
+Si su programa no informa del límite, se muestra **N/D** (o los usos registrados de hoy), y puedes configurar un
+presupuesto para estimarlo. No se deduce una cuota ilimitada por ser un agente gratuito. Si los indicadores no
+caben en la cabecera, la fila se puede desplazar horizontalmente.
+
 | Indicador | Fuente |
 |---|---|
 | GPT (Codex) | **Dato real**: se pregunta a Codex al abrir la app y cada 5 min (su `app-server`, no gasta uso), y tras cada tarea |
@@ -905,7 +1637,7 @@ se borra la subcarpeta `.ai-cowork` que creó la app dentro. No se puede elimina
 | Gemini | Con clave de API, Google no informa la cuota: se muestran los usos de hoy («3 hoy»), o una estimación si configuras un presupuesto (clic en el indicador) |
 | Local | Sin cuota (ejecución en tu PC) |
 
-⋮ → «Actualizar cuotas», o escribir `/usage` (también `/uso` o `/cuotas`) en el chat, las vuelve a consultar en el
+⚙ → Ajustes → «Actualizar cuotas», o escribir `/usage` (también `/uso` o `/cuotas`) en el chat, las vuelve a consultar en el
 momento; `/usage` las muestra bajo el cuadro de texto y no crea ninguna tarea para los agentes.
 
 Los umbrales (advertencia ≤ 20 %, alerta < 10 %) se cambian en `workspace/config.json`.
@@ -917,7 +1649,7 @@ entrada, salida y la parte leída de caché), cuánto tardó, si salió bien y c
 (se mide antes y después). Se ve en dos sitios:
 
 - Bajo cada plan del chat: «14 min · 339 k tokens · Claude 5 h +5 % · GPT semana +2 %».
-- ⋮ → **«Consumo y tokens…»**: totales de hoy, 7 o 30 días (peticiones, tiempo real y tiempo de agentes en
+- ⚙ → **«Uso y coste…»** (antes «Consumo y tokens…»): totales de hoy, 7 o 30 días (peticiones, tiempo real y tiempo de agentes en
   paralelo, tokens, qué parte se fue en planificar y en intentos fallidos), cuota gastada de cada suscripción,
   reparto por agente y el detalle de cada petición. Se puede exportar a CSV.
 
@@ -926,10 +1658,66 @@ Para comparar con un solo agente (por ejemplo Codex aparte), haz la misma petici
 `usage-runs.json`, dentro de la carpeta de datos, y lleva también tu 👍/👎 de cada resultado (ver
 [Valorar un resultado](#valorar-un-resultado-)): así se puede comparar no solo lo que costó, sino lo que sirvió.
 
+### Uso y coste: dinero por agente
+
+El mismo panel (⚙ → **«Uso y coste…»**) dice también cuánto dinero supone lo que haces, para cada agente:
+
+- **Pagado por uso**: lo que pagaste en el periodo por los agentes que van **por API** (pagas lo que gastas).
+- **A precios de API**: lo que valdría todo lo usado si lo pagaras por API, también lo de tus suscripciones. Lo que
+  sale de tokens estimados lleva «≈» (Hermes, ver abajo) y se avisa de las llamadas que no tienen precio.
+- **Presupuesto del mes** (si lo pones): lo pagado por API desde el día 1, con su barra. Al llegar al **80 %** sale un
+  aviso en **«Te necesita»** (escritorio, web y Órbita) y otro al **pasarlo**; cada uno una vez al mes. No para a
+  los agentes: solo avisa.
+- **Gráfico por día** (7 días, 30 días o todo; como mucho los últimos 30 días): la barra es lo que valió a precios de
+  API y la parte naranja lo que pagaste por uso.
+- **¿Te compensan tus suscripciones?**: para cada suscripción con precio, compara lo que pagas al mes con lo que
+  habría costado por API lo que hiciste con ella en los **últimos 30 días** (sea cual sea el periodo elegido), y
+  cuánto te sale cada petición. Solo cuenta lo hecho desde kywai: si usas la misma cuenta en otros sitios, te rinde
+  más de lo que sale.
+- En **«Por agente»** hay dos columnas más: cómo pagas ese agente y su coste a precios de API. En el detalle de cada
+  petición, el coste de cada paso (con «≈» si es estimado y «—» si no tiene precio). El CSV lleva `coste_api_usd` y
+  `coste_origen` (cli, tabla, estimado, gratis o sin_precio).
+
+**Cómo pagas cada agente, precios y presupuesto** (desplegable al final de la sección «Coste»):
+
+- **Moneda**: euros o dólares; con euros, cuántos euros es 1 $ (0,87 de fábrica; cámbialo si quieres el cambio del
+  día). Los precios de API van en dólares y se convierten.
+- **Cómo pagas**: una línea por suscripción (los grupos de cuota: Claude, GPT, Gemini, Muse, Local) y por cada agente
+  suelto (Hermes y los de catálogo). Suscripción (con su precio al mes), pago por uso (API), gratis o en tu equipo.
+  Una suscripción vale para todos los agentes de su grupo, también sus becarios. Lo local ya sale «En tu equipo» y
+  un agente con un modelo gratis (Kilo con `kilo/…/free`, OpenRouter `…:free`) sale «Gratis». Los agentes sin indicar
+  cuentan a precios de API, pero no como pagado.
+- **Presupuesto al mes por API** (vacío: sin límite).
+- **Precios por millón de tokens (en dólares)**: entrada, entrada leída de caché y salida de cada modelo. Vienen los
+  oficiales comprobados el 7 nov 2026 (Claude, GPT y Gemini); los que salen de una fuente no oficial o son de
+  promoción lo dicen al lado. Se pueden cambiar (el cambiado sale en otro color, con «Original» para volver) y
+  añadir otros modelos por su nombre o parte de él («deepseek» vale para «deepseek-v4-chat»). Los alias de Claude
+  Code (opus, sonnet, haiku, fable) son el modelo actual. Sin modelo elegido se usa el de fábrica del CLI (Codex:
+  GPT-6.1 Sol; Gemini: 3.8 Flash).
+
+De dónde sale cada cifra:
+
+| Agente | Coste |
+|---|---|
+| Claude Code | **Dato real**: lo dice el propio Claude Code al terminar (`total_cost_usd`, a precios de API también con suscripción) |
+| Codex, Gemini, Qwen | Sus tokens × la tabla de precios |
+| Hermes, Muse y los de catálogo | No dicen sus tokens: se **estiman** por la longitud del encargo y de la respuesta (unos 4 caracteres por token) × la tabla. Es un mínimo: no cuenta lo que el agente leyó o pensó por dentro |
+| Ollama, LM Studio, modelos gratis | 0 |
+
+**En Órbita**, el panel **«Uso y coste»** (antes «Consumo») enseña lo mismo de los últimos 30 días arriba del
+todo: pagado por uso y a precios de API, el presupuesto del mes con su barra y si compensa cada suscripción; y en
+«Por agente», debajo de los tokens, su coste a precios de API. Lo que pagas y los precios se cambian en el
+escritorio o la web. La API móvil lo da en `GET /usage/cost` y en `usage.cost` de la instantánea (ver
+[docs/mobile-api](mobile-api/README.md)).
+
+Se guarda en `config.json` (`costs`) y en cada llamada del registro (`costUsd` del CLI y, si no dio tokens,
+`estInput`/`estOutput`). Las peticiones de antes de esta versión salen con el coste calculado con la tabla (las de
+Claude, sin su dato real).
+
 ### Cómo rinde cada agente
 
-⋮ → **«Cómo rinde cada agente…»** (también desde el enlace «¿Y la calidad?» de «Consumo y tokens…») enseña, para
-cada agente y por dificultad (difíciles, normales y fáciles, la que pone el coordinador a cada tarea; AI Cowork no
+⚙ → **«Cómo rinde cada agente…»** (también desde el enlace «¿Y la calidad?» de «Uso y coste…») enseña, para
+cada agente y por dificultad (difíciles, normales y fáciles, la que pone el coordinador a cada tarea; kywai no
 clasifica las tareas por tipo), en los últimos 7 o 30 días o en todo el registro, y si quieres solo del proyecto
 abierto:
 
@@ -956,7 +1744,7 @@ las filas que se apartan del total. Se le pide que, entre los que pueden hacer l
 en esa dificultad aunque tarde o gaste más: la calidad pesa más que la velocidad y el coste; la cuota y estar libre
 deciden solo entre agentes parecidos.
 
-Sale del mismo registro que «Consumo y tokens…» (`usage-runs.json`): para ello cada llamada de tarea guarda su
+Sale del mismo registro que «Uso y coste…» (`usage-runs.json`): para ello cada llamada de tarea guarda su
 dificultad, cada verificación su veredicto y cada llamada si la detuviste. Los registros de antes de esta versión
 no tenían esos datos: sus tareas salen como dificultad «Sin dato», sin verificación, y una llamada que no salió
 bien en una petición cancelada se toma como cancelada. La API móvil lo da en `GET /quality` (ver
@@ -975,21 +1763,143 @@ bien en una petición cancelada se toma como cancelada. La API móvil lo da en `
 
 ## Comodidades
 
+### Ancho del chat y ventanas pequeñas
+
+El chat es lo importante; el espacio 3D es el escenario. Por eso, cuanto más pequeña es la ventana, más sitio se lleva
+el chat:
+
+- **Pantalla grande:** el chat ocupa alrededor del 30 % (entre 380 y 640 px) y el 3D el resto.
+- **Ventana mediana** (menos de 1440 px de ancho, lo normal sin pantalla completa): el chat pasa a un 42 % (entre 400
+  y 600 px); por debajo de 1100 px, a algo más de la mitad.
+- **Ventana estrecha** (menos de 950 px): el chat ocupa toda la ventana y el 3D pasa a la pestaña **Espacio** de la
+  cabecera (los botones **Chat / Espacio**, como en el móvil). El 3D no se pierde: está a un toque.
+- **Elegir el ancho a mano:** arrastra el **borde derecho del chat** (al pasar el ratón sale una raya azul). El ancho
+  se recuerda en ese equipo al volver a abrir la app; si luego estrechas la ventana, se ajusta solo para dejar al 3D
+  al menos 320 px. **Doble clic** en el borde vuelve al ancho automático. Con el teclado: Tab hasta el borde, flechas
+  izquierda/derecha para ensanchar o estrechar e Inicio para volver al automático.
+- **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
+  el ancho, en vez de dejar libre la columna del avatar.
+
+- **Barra lateral:** ocupa unos 250 px abierta y 58 px plegada; los porcentajes de arriba se reparten en lo que deja.
+- **Controles de la cámara:** vista general, acercar, alejar y pantalla completa flotan en la esquina de abajo a la
+  derecha del espacio 3D (ya no hay barra debajo; «Reducir efectos ambientales» está en ⚙ → Ajustes).
+
+Para desarrolladores: los cortes están en `App.module.css` (y `TABS_QUERY` en `ui/left/chatWidth.ts`, que debe
+coincidir con el `@media (max-width: 949.98px)`); el asa es `ui/left/ChatResizer.tsx` y el ancho elegido se guarda en
+`localStorage` (`ai-cowork.chatWidth`).
+
+### Idioma
+
+La interfaz está en **español**, **inglés**, **portugués**, **francés** y **chino** (simplificado). ⚙ → **Ajustes…** → General →
+**«Idioma · Language»** es una lista con cada idioma en su propio idioma (Español, English, Português, Français,
+中文); al elegir otro, la ventana se recarga para que todo salga ya
+traducido. Se recuerda en cada dispositivo (a diferencia del tema, que es el mismo en todos): la app del Mac,
+el navegador y cada cliente pueden tener el suyo. Si nunca se ha elegido, se usa el idioma del sistema si es uno de
+esos cinco (cualquier variante: es-MX cuenta como español, pt-PT como portugués); si no, inglés. Las fechas y los números siguen el idioma elegido.
+
+Se traduce todo lo que pinta la interfaz, incluido el modo Demo. Los comandos del chat funcionan en los dos idiomas
+(`/remember …`, `/routine every day at 9:00: …`, `/model`, `/usage`…) y un «yes» / «looks good» aprueba un plan igual
+que un «sí».
+
+El idioma también vale para el motor (lo que se elige en Ajustes se guarda en `config.json` como `language`; si
+aún no se ha elegido, el del sistema). En cualquier idioma que no sea el español:
+
+- **Hermes y los agentes** contestan en ese idioma: el plan («reply», títulos y criterios de cada tarea), lo que cuentan
+  mientras trabajan, el resultado y la respuesta final. Las instrucciones internas que les da kywai siguen en
+  español; solo se les pide escribir en el idioma del usuario.
+- **Los avisos del motor** salen en ese idioma: los mensajes del chat (plan repartido, verificación, correcciones, relevo,
+  «requiere intervención», deshacer), «Te necesita», lo que hace cada agente (paso a paso y actividad), los errores
+  de los agentes, la cuota, el asistente de instalación y de sesiones, las rutinas, la actualización, el menú del
+  botón derecho y la pantalla de conexión del cliente. El catálogo de agentes y las notas de los modelos, también.
+- **El veredicto del verificador** se entiende en español y en inglés: «VEREDICTO: CUMPLE/FALLOS» o «VERDICT:
+  PASS/FAIL»; y en «a dos manos», «GANA: A» o «WINNER: A».
+- **El dictado** transcribe en el idioma de la app.
+
+Lo que ya estaba escrito (mensajes de antes, tareas guardadas) se queda en el idioma en que se escribió. Los
+comandos del chat y la aprobación de planes entienden español e inglés en cualquier idioma de la interfaz.
+
+El portugués, el francés y el chino están traducidos a partir del inglés con IA: conviene que los revise alguien
+nativo. Si a un texto le falta la traducción, sale en inglés.
+
+**En Órbita** (el móvil) el idioma se elige aparte: ☰ → Ajustes → General → **«Idioma · Language»**: al tocarlo se despliega la
+lista (Del sistema, Español, English, Português, Français, 中文) y se elige uno. «Del sistema» sigue al del teléfono
+si es uno de esos cinco; si no, inglés. Al cambiarlo la app se
+reinicia sola y sigue emparejada. Cambia los textos de Órbita (pantallas, avisos, notificaciones y el mundo 3D); lo
+que escriben Hermes y los agentes sigue el idioma elegido en el ordenador.
+
+Para desarrolladores de Órbita: igual que en el escritorio, `t("Ajustes")` (de `com.aicowork.remote.i18n`) con el
+texto en español como clave y las traducciones en `android/app/src/main/kotlin/com/aicowork/remote/i18n/I18nEn.kt` (y `I18nPt.kt`, `I18nFr.kt`,
+`I18nZh.kt`);
+los huecos van así: `t("Hace {n} min", "n" to 5)`. La prueba `I18nTest` falla si un texto no tiene traducción, si
+sobra alguna, si no coinciden los huecos o si el portugués, el francés o el chino no tienen las mismas entradas que el
+inglés.
+
+Para desarrolladores: el texto en español del código es la clave. `t('Ajustes')` (de `@/lib/i18n`) devuelve «Ajustes»
+en español y lo que diga `src/shared/i18n-en.ts` en inglés (`i18n-pt.ts`, `i18n-fr.ts` e `i18n-zh.ts` para los
+demás); los huecos van entre llaves: `t('Hace {n} min', { n })`.
+El motor usa lo mismo (`src/shared/i18n.ts`) con el nombre `tr()`, porque allí `t` suele ser una tarea. Cada texto
+nuevo que vea el usuario pasa por `t()`/`tr()` y se añade a `i18n-en.ts` y a los otros tres; `lib/i18n.test.ts` falla si a un texto le
+falta su traducción, si los otros idiomas no tienen las mismas entradas que el inglés, si una traducción no conserva los `{huecos}` o si queda alguna sin usar (cuentan también las que
+se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cual en el código). Lo que va a los agentes
+(encargos, planes, verificación) no se traduce: para el idioma de su respuesta están `replyLanguage()` y
+`userLanguageName()`. No se llama a `tr()` al cargar un módulo (el idioma aún no está fijado): dentro de funciones.
+
 ### Temas
 
-⋮ → **«Temas…»** cambia el aspecto de la app: **Clásico** (el predeterminado, paneles oscuros y sobrios) u
-**Órbita** (cristal esmerilado, como la app del móvil: el espacio 3D ocupa toda la ventana y el chat, la cabecera,
-las barras, los menús y las ventanas flotan encima como cristal que lo deja ver difuminado; el mundo se centra en la
-zona que deja libre el chat). Y cinco más con la distribución del clásico y sus propios colores, en la interfaz
-y en el espacio 3D (suelo, ciudad, estaciones, circuitos, núcleo y luces):
+⚙ → Ajustes → General → **Tema** (justo debajo del idioma; se despliega con la flecha) cambia el aspecto de la app.
+Los temas van en dos grupos: los mapas (con la Ciudad digital) y los decorados.
 
-- **Marfil:** claro y cálido; suelo de piedra, ciudad blanca, circuitos verdes y aros dorados.
-- **Grafito:** negro neutro con detalles dorados.
-- **Bosque:** verde bosque profundo con oro.
-- **Matrix:** negro y verde neón.
-- **EVA-01:** morado y verde lima.
+**El mismo tema en todos tus dispositivos.** El tema lo guarda el servidor: al cambiarlo en la app del Mac, en un
+cliente de escritorio, en el navegador o en Órbita, cambia al momento en todos los que están conectados a ese servidor
+(y los que se conecten después lo cogen al entrar). Si quieres otro solo en un equipo, marca debajo **«Usar un tema
+propio en este dispositivo»** (en Órbita, Ajustes → General → **«Tema propio en este móvil»**): ese dispositivo deja de
+seguir al servidor y lo que elijas en él no cambia a los demás. Al desmarcarlo vuelve al tema del servidor. En el móvil
+los mapas con escenario propio se ven con sus colores (el escenario 3D de cada mapa es solo del escritorio y la web).
+Para desarrolladores: `config.uiTheme` en el servidor (`setUiTheme`, que emite `config.updated`), `followServerTheme`
+y `aicowork.themeOwn` en `lib/theme.ts`, `POST /settings/theme` y `capabilities.theme` en la API móvil, y
+`ownTheme`/`localTheme` en las preferencias de Órbita.
 
-Y cuatro que además decoran el espacio, cambian la forma del núcleo y, en los de fiesta, disfrazan a los robots:
+**Mapas.** Siete escenarios, cada uno con su entorno, sus plataformas y su núcleo propios (`scene/worlds/`). La
+interfaz toma los colores del color de la Ciudad que le corresponde (Clásico → Índigo, Órbita → Frost Glass, Marfil →
+Perla, Grafito → Ónix, Bosque → Esmeralda, Matrix → Neón, EVA-01 → Ultravioleta):
+
+- **Clásico:** centro de operaciones del ciberespacio, con racks de servidores, un núcleo holográfico y tráfico de
+  datos por la red del suelo.
+- **Órbita:** estación sobre la Tierra (texturas reales con día, noche y nubes), con muelles flotantes, la Luna,
+  Júpiter, Saturno y el Sol, y un planetario en el centro.
+- **Marfil:** jardín del Olimpo de piedra clara, con arcos, árboles, canales y fuentes de agua.
+- **Grafito:** fábrica térmica con engranajes, grúa, vapor y un reactor ámbar en el centro.
+- **Bosque:** claro élfico con árboles que se mecen, plataformas de madera, haces de luz, niebla y luciérnagas.
+- **Matrix:** ciudad entre código y niebla, con naves que patrullan el horizonte y un núcleo de datos de vóxeles.
+- **EVA-01:** cámara de contención con compuertas y una cápsula de energía que se carga.
+
+Los mapas **reaccionan al trabajo del equipo**: cuando hay agentes pensando o trabajando, Grafito y EVA cargan su
+reactor y su cápsula, la lluvia de código de Matrix y el tráfico del Clásico van más deprisa, las fuentes de Marfil
+corren más, las luciérnagas del Bosque se avivan y en Órbita se encienden más las luces de las ciudades de la
+Tierra. Con dos agentes ocupados ya van a tope, y se calman poco a poco al terminar. Las sombras y el sombreado de
+contacto solo se ven en equipos que aguantan la calidad gráfica alta. Las texturas de Órbita son de Solar System
+Scope (CC BY 4.0) y del NASA SVS; los créditos están al pie del selector de temas y en `assets/orbit/CREDITS.md`.
+
+**Ciudad digital.** El espacio de siempre, como una tarjeta más al final de los mapas. Al elegirla se despliega
+debajo la fila de sus siete colores (y al pulsarla vuelve al último color elegido). El color cambia la interfaz y el
+espacio 3D (suelo, ciudad, estaciones, circuitos, núcleo y luces). Tienen nombres propios para no repetir los de los
+mapas; entre paréntesis, cómo se llamaban cuando eran temas sueltos:
+
+- **Índigo** (Clásico): el predeterminado, paneles oscuros y sobrios.
+- **Frost Glass** (Órbita): cristal esmerilado, como la app del móvil. El espacio 3D ocupa toda la ventana y el
+  chat, la cabecera, las barras, los menús y las ventanas flotan encima como cristal que lo deja ver difuminado; el
+  mundo se centra en la zona que deja libre el chat.
+- **Perla** (Marfil): claro y cálido; suelo de piedra, ciudad blanca, circuitos verdes y aros dorados.
+- **Ónix** (Grafito): negro neutro con detalles dorados.
+- **Esmeralda** (Bosque): verde bosque profundo con oro.
+- **Neón** (Matrix): negro y verde neón.
+- **Ultravioleta** (EVA-01): morado y verde lima.
+
+Quien tenía elegido uno de estos colores cuando eran temas sueltos lo sigue viendo igual: el tema guardado
+(`aicowork.theme`) conserva los mismos nombres internos (`clasico` es Índigo, `orbita` Frost Glass, `marfil` Perla, `grafito` Ónix, `bosque` Esmeralda, `matrix` Neón y `eva` Ultravioleta) y los mapas usan otros
+(`mundo-clasico`, `mundo-orbita`…).
+
+**Decorados.** Cuatro que además decoran el espacio, cambian la forma del núcleo y, en los de fiesta, disfrazan a los robots:
 
 - **Relicario:** cristal y oro sobre piedra negra pulida. El núcleo es una gema tallada con otra más pequeña que
   brilla dentro, dos anillos de oro a su alrededor y un haz de luz que sube. Las estaciones se apoyan en tres discos
@@ -1028,23 +1938,36 @@ resultado (sin repetir la última frase); lo que ya había contado antes de abri
 Lo que llega de golpe **se escribe letra a letra al ritmo de su voz** (como en Animal Crossing): una letra por
 sílaba mientras balbucea y, cuando calla, lo que queda sale deprisa. Con las voces silenciadas, el texto sale entero.
 
-Tienen **su propio volumen y su propio silencio**: pasa el ratón por el botón de sonido (o púlsalo) y bajo el
-volumen de la música y los efectos aparece el de las voces, con el botón de la burbuja para silenciarlas sin
-tocar la música. El botón del altavoz silencia todo, voces incluidas. Se recuerda en cada dispositivo.
+Tienen **su propio volumen y su propio silencio**: en ⚙ → Ajustes → General → **Sonido**, bajo el volumen
+de la música y los efectos está el de las voces, con el botón de la burbuja para silenciarlas sin tocar la música.
+«Sonido» silencia todo, voces incluidas. Se recuerda en cada dispositivo.
 
 En **Órbita** suenan igual (mismos timbres, sintetizados en el móvil): Ajustes → Respuesta al tacto → **«Voces de
 los agentes»**, con su propio volumen; «Sonidos» apagado las silencia también.
 
-### Música (como YouTube Music)
+### Música (YouTube, Audius y radios)
 
-El botón **Música** del espacio digital abre un reproductor:
-- **Buscar:** canciones y artistas en YouTube Music. También puedes pegar un enlace de YouTube.
+El botón **Música** del espacio digital abre un reproductor con tres fuentes, en pestañas encima del buscador (se
+recuerda la última elegida):
+- **YouTube:** canciones y artistas de YouTube Music, en su reproductor oficial. Tiene sus anuncios.
+- **Audius:** música que suben los propios artistas para que se escuche gratis. Sin anuncios y sin cuenta. Solo
+  salen las canciones que se pueden escuchar enteras sin pagar.
+- **Radios:** las emisoras de SomaFM (lofi, ambient, jazz, electrónica…), sin anuncios: las mantienen sus oyentes.
+  Al elegir la pestaña salen todas; lo que escribas las filtra. En la carátula hay un enlace para apoyarlas.
+
+Audius y las radios suenan en el reproductor de audio de kywai, directamente desde sus servidores públicos
+(api.audius.co y somafm.com). En el sitio del vídeo se ve la carátula y quién la hizo. Una radio no tiene duración
+ni se puede saltar dentro de ella, y no se le busca el BPM (cambia de canción sola).
+
+Lo que hace el reproductor en cualquier fuente:
+- **Buscar:** en la fuente elegida. Un enlace de YouTube pegado suena siempre.
 - **Controles:** atrás, pausa, adelante, barra de posición y volumen.
 - **Cola:** al elegir un resultado, los demás quedan en la cola y suenan después. El «+» añade una canción al final.
 - **Luces al ritmo:** el espacio sigue el BPM de la canción, sin micrófono. Sus ajustes están plegados.
 
-Suena en el reproductor oficial de YouTube, que tiene que estar a la vista. Va aislado en su propio marco, sin
-ningún script de YouTube en la ventana de AI Cowork.
+YouTube suena en su reproductor oficial, que tiene que estar a la vista. Va aislado en su propio marco, sin ningún
+script de YouTube en la ventana de kywai. No se descarga ni se saca el audio de YouTube ni de ningún otro
+servicio: por eso no se le pueden quitar los anuncios (para eso están Audius y las radios).
 
 **Minimizar:** con una canción sonando, el botón «Música» (o Esc, o el icono de minimizar) lo deja pequeño en una
 esquina: el vídeo, la canción y atrás / pausa / adelante. Sigue sonando. «Música» otra vez lo abre entero, y la ×
@@ -1052,14 +1975,23 @@ lo cierra y lo pausa. El icono de reducir de esa tarjeta lo deja en una barra co
 vídeo en pequeño como carátula (al pasar el ratón por encima se ve la canción); el icono de ampliar de la barra
 vuelve a la tarjeta. Se recuerda cómo se dejó la última vez.
 
-**Luces con el sonido real (sin micrófono):** en la app de escritorio, AI Cowork escucha lo que suena en su propia
+**Volumen en el reproductor pequeño:** la tarjeta y la barra llevan un altavoz junto a los botones. Al pasar el ratón
+por encima sale el deslizador con el porcentaje; un clic en el altavoz silencia o vuelve a dar sonido (en el móvil, el
+primer toque enseña el deslizador y el segundo silencia). Mover el deslizador con el sonido quitado lo activa otra vez.
+Es el mismo volumen de «música y efectos» de la cabecera y de Ajustes → General, así que vale igual para YouTube,
+Audius y las radios.
+
+**Luces con el sonido real (sin micrófono):** en la app de escritorio, kywai escucha lo que suena en su propia
 ventana y detecta los golpes:
 - **El pulso:** la luz entera cae en cada golpe del pulso de la canción, y las notas de bajo de en medio dan un
   destello.
 - **Siempre a tiempo:** también con intros, directos y cambios de ritmo.
 - **Nada guardado:** no se graba nada.
 
-Se activa solo al poner música y se puede apagar en «Luces al ritmo». Desde el navegador del PC, el botón
+Con **Audius y las radios** no hace falta nada de eso: su audio llega directamente a kywai y las luces lo
+escuchan tal cual, también desde el navegador y sin compartir la pestaña.
+
+Con YouTube se activa solo al poner música y se puede apagar en «Luces al ritmo». Desde el navegador del PC, el botón
 «Sincronizar con el sonido de esta pestaña» hace lo mismo, compartiendo la pestaña con su audio. En el móvil, o si
 se apaga, las luces van con el tempo estimado: BPM publicado en Deezer, desfase y «Marcar pulso».
 
@@ -1069,12 +2001,105 @@ de su web muchas canciones de discográficas (error 150). Entonces:
 - **Si tampoco hay:** pasa a la siguiente. Tras tres seguidas que no suenan, se para y ofrece abrirla en YouTube
   Music.
 
+Si una canción de Audius o una radio no llega (sin conexión, o el servidor no responde), pasa a la siguiente de la
+cola y ofrece abrirla en su web. Desde el navegador, SomaFM puede rechazar sus radios según la dirección desde la
+que se abre kywai (en una prueba desde «localhost» las rechazó); en la app de escritorio suenan.
+
+### Expresiones de los robots
+
+Todos los robots tienen el mismo juego de ojos, cada uno con su color, y la forma cuenta lo que está haciendo de
+verdad: ojos redondos (normal), «> <» (esfuerzo), párpados caídos (cansado o aburrido), rayitas (dormido o
+apagado), «× ×» en rojo (error) y arcos felices «◠ ◠» (terminado). Junto a la cabeza aparecen «?» cuando duda,
+«zzz» cuando duerme y «⚠» con un error. Además hacen gestos cada pocos segundos; cada robot los elige al azar con su
+propia semilla, así que no van todos a la vez:
+
+- **Disponible:** alterna entre tranquilo, curioso (ladea la cabeza y abre más un ojo), distraído (se queda
+  mirando a otro lado), doble parpadeo, aburrido (párpados a media altura), juguetón (guiño «<»), somnoliento
+  (cierra los ojos con «zzz» y vuelve) y contento (ojos felices).
+- **Pensando:** un ojo entornado, mira hacia arriba, la mirada da vueltas, duda con «?» y a veces abre mucho los
+  ojos («¡ajá!»).
+- **Trabajando:** ojos «> <» de concentración; a ratos «lee» de izquierda a derecha con los ojos redondos y aprieta
+  con esfuerzo. Se esfuerza más cuanto más difícil es la tarea y cuanto más tiempo lleva con ella.
+- **Esperando a otro:** mira hacia ese agente y vuelve, impaciente. Si la espera se alarga, se aburre: párpados
+  caídos y bostezos.
+- **En reposo:** párpados caídos, bostezos y cabezadas. Tras un rato largo se duerme (rayitas y «zzz») y de vez en
+  cuando abre un ojo. Si le llega trabajo, se despierta de golpe.
+- **Cansado:** si a su cuenta le queda poca cuota (por debajo del umbral de aviso de Cuotas) o tiene el contexto casi
+  lleno: párpados caídos, ojos inclinados hacia fuera, parpadeos lentos y algún bostezo.
+- **Error:** «× ×» en rojo que tiemblan, con «⚠». **Apagado** (p. ej. LM Studio sin encender): rayitas grises,
+  que se siguen viendo. **Terminado:** ojos felices y «✓».
+
+Solo se mueven los ojos y unos símbolos sencillos (escalas, posiciones y color): no cuesta rendimiento. Con «Efectos
+reducidos» los gestos son más suaves y menos frecuentes. El código está en `scene/robotBrain.ts` (gestos),
+`scene/robotEyes.ts` (formas de los ojos) y `scene/Robot.tsx` (cansancio y esfuerzo a partir del estado real).
+La forma de ojos de cada avatar (`avatar.eyes`) ya solo se usa en el avatar 2D de la interfaz.
+
+**Cada robot tiene su carácter.** Cambia sus frases, sus gestos favoritos, cuánto tarda en quedarse en reposo y
+dormirse y lo hablador que es, así que no hacen lo mismo ni se duermen a la vez:
+
+- **Hermes, el jefe:** casi nunca duerme y vigila al equipo («¡Equipo, a lo nuestro!»).
+- **Claude, el reflexivo:** educado y pensativo («Déjame pensarlo bien…»).
+- **Codex, el programador:** seco y práctico, lee mucho y apenas sonríe («Vale. Al código.»).
+- **Gemini, el entusiasta:** el más juguetón y hablador («¡Por fin otra tarea! jajaja»).
+- **Modelos locales (Ollama, Qwen, LM Studio), el perezoso:** se duerme enseguida y bosteza («¿Más trabajo? De
+  acuerdo…»).
+- **Muse, el soñador:** se distrae mirando las nubes («Esto me inspira…»).
+- **Los demás agentes y los sub-agentes, el novato:** con ganas de ayudar («¡A sus órdenes!»).
+
+**Bocadillos:** sobre la etiqueta del robot aparece lo que dice cuando le llega una tarea, al terminar, con un error
+(en rojo), cuando lleva mucho esperando, al dormirse o despertarse, cuando le queda poca cuota y, alguna vez, algo
+suelto mientras está libre. Lo de tarea, terminado y error se dice siempre; lo demás, como mucho dos a la vez y no
+más de una frase cada 14 s por robot. Las frases están en los cinco idiomas de la app (`scene/personality.ts`; los
+bocadillos, en `scene/bubbleStore.ts`).
+
+**Cuando escribes en el chat**, los que duermen o están en reposo se despiertan de golpe y todos los libres giran el cuerpo y miran
+hacia el chat unos segundos, esperando el siguiente encargo; alguno dice algo como «¿Sí? Te escucho.» o «¡Presente!».
+
 ### Modo Demo
 
-Menú ⋮ → **Modo demo**, o el interruptor en la cabecera del Espacio digital. Reproduce un guion fijo que muestra
+Menú ⚙ → **Modo demo**, o el interruptor en la cabecera del Espacio digital. Reproduce un guion fijo que muestra
 todos los estados: disponible, trabajo individual, espera, desplazamiento, delegación y recepción, sub-agente,
 error, cuota baja y finalización. No hace ninguna llamada a los CLIs. Se reconoce por el borde ámbar y la
 etiqueta «Demo · datos simulados».
+
+**Capturas de los README.** Cada README (inglés, español, portugués, francés y chino) enseña la app en su idioma:
+las capturas están en `docs/img/<idioma>/` (`escritorio.jpg`, `robots.jpg` y una `tema-*.jpg` por tema) y salen del
+modo demo. Para rehacerlas tras un cambio visible: `npm run web` en una terminal y `node scripts/capturas-readme.mjs`
+en otra (o solo algunos idiomas: `node scripts/capturas-readme.mjs en es`). Necesita Playwright con Chromium y Python
+con Pillow. Las dos de Órbita (`docs/img/movil-*.jpg`) se hacen a mano en un móvil.
+
+### Rendimiento
+
+Lo que hace kywai para ir fluido sin que tengas que tocar nada:
+
+- **Calidad del 3D automática, sin tirones.** Al abrir elige alta, media o baja según el equipo, y mientras lo usas
+  la ajusta si los fotogramas no llegan. Ese ajuste solo cambia lo que sale barato de cambiar (resolución,
+  partículas, estructuras y suavizado). El brillo (bloom) y las luces de los puestos dependen del equipo y no se
+  quitan ni se ponen sobre la marcha: hacerlo obligaba a recompilar todos los materiales de golpe y daba un tirón
+  justo cuando el equipo ya iba justo (`sceneQuality` en `scene/quality.ts`).
+- **El 3D descansa cuando no lo miras.** Con la ventana o la pestaña oculta (minimizada, o tapada del todo si el sistema lo avisa) se para.
+  Con la ventana a la vista pero sin foco (estás en otra app) se dibuja a 20 fotogramas por segundo: se sigue viendo
+  a los robots trabajar y gasta mucho menos. Al volver a la ventana recupera la fluidez normal.
+  Al volver, las animaciones siguen justo donde se quedaron: el reloj de la escena no se reinicia al pausar (antes
+  un archivo que ya había llegado aparecía gigante y se iba encogiendo poco a poco).
+- **El chat aparece antes.** El espacio 3D (Three.js y compañía) se carga aparte, después de la interfaz, y todo
+  el código de la interfaz va reducido: lo que hay que cargar al abrir pasó de 4,6 MB a 1,3 MB.
+- **Menos descarga por la red.** El servidor entrega la interfaz comprimida (gzip) al navegador y a los clientes de
+  escritorio: unos 0,6 MB en vez de 4,6 MB la primera vez. Después se queda guardada hasta la siguiente
+  actualización (`src/main/staticGzip.ts`).
+
+### Apoyar kywai (donaciones)
+
+kywai es gratis. Quien quiera agradecerlo puede invitar al autor a un café en Ko-fi
+(https://ko-fi.com/yilsander). El enlace está en cuatro sitios:
+
+- **Escritorio y navegador:** ⚙ → **Apoyar kywai ☕**. Abre la página de Ko-fi en el navegador.
+- **Órbita:** Ajustes → **Apoyar kywai** (al final) → **Invitar a un café ☕**.
+- **GitHub:** el botón **Sponsor** de arriba del repositorio (`.github/FUNDING.yml`) y la insignia Ko-fi de los
+  README.
+
+Si cambia el enlace, hay que cambiarlo en `DONATE_URL` (`src/renderer/src/ui/header/HeaderMenu.tsx` y
+`android/.../ui/orbita/PanelsMore.kt`), en `.github/FUNDING.yml` y en las insignias de los README.
 
 ## Para desarrolladores
 
@@ -1123,8 +2148,35 @@ src/
     ui/        cabecera, chat, archivos, tareas, resultados, cuotas, asistente y paneles
 android/       Órbita (Kotlin + Compose); android/release/ lleva la APK que se publica
 docs/          este manual, la guía de modelos y el contrato de la API móvil (mobile-api/openapi.json)
-scripts/       instalación y actualización en Mac, accesos de Windows, publicar el cliente
+scripts/       instalación y actualización en Mac y Linux, accesos de Windows, publicar el cliente
 ```
 
 Para retomar el desarrollo desde otro chat u otro equipo (arquitectura, reglas del repositorio, trampas conocidas y
 pendientes), ver [CONTEXTO-DEL-PROYECTO.md](CONTEXTO-DEL-PROYECTO.md).
+
+### La web kywai.app
+
+La web pública vive en `web/` y se publica sola en GitHub Pages (`.github/workflows/publicar-web.yml`) con cada
+push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
+
+| Archivo | Qué es |
+|---|---|
+| `web/textos.mjs` | Todos los textos en inglés, español, portugués, francés y chino. El generador falla si a un idioma le falta una clave |
+| `web/plantilla.html` | La página (estilos y script incluidos), con huecos `{{clave}}` |
+| `web/build.mjs` | Genera `web/dist/`: inglés en la raíz y `/es/`, `/pt/`, `/fr/`, `/zh/`, más CNAME, sitemap y robots |
+| `web/assets/` | Logo, fuentes, capturas por idioma, robots y el vídeo comprimido |
+
+- `node web/build.mjs` genera la web; `node web/build.mjs --preview` la genera con enlaces `index.html` para abrirla sin servidor.
+- La primera visita a la raíz lleva al idioma del navegador; elegir idioma en el menú se recuerda.
+- El vídeo de la web (`web/assets/video/presentacion.mp4`, 58 s, 1280×720, unos 4 MB) es la versión comprimida del vídeo de presentación de kywai hecho con HyperFrames; su portada es `portada.jpg`. Para cambiarlo, comprimir el vídeo nuevo a 720p con un tamaño parecido y ajustar `video.title` en `web/textos.mjs` si cambia la duración.
+- Las descargas se leen de la última Release de GitHub al abrir la página y enlazan el instalador del sistema de quien la visita. Si GitHub no responde, enlazan a la página de versiones.
+- La fila «Android (Órbita)» enlaza a `releases/latest/download/kywai-orbita.apk`, un enlace fijo que funciona aunque la API de GitHub no responda. Desde un móvil Android, el botón grande de la portada descarga la APK; en iPhone no se marca nada porque Órbita es solo para Android.
+- Al generar la web, cada enlace a `assets/` lleva `?v=` con una huella de su contenido. Así, al cambiar una imagen o el vídeo, el navegador pide la nueva enseguida en vez de enseñar la que tenía guardada (GitHub Pages deja guardar 10 minutos). No hay que hacer nada a mano: basta con sustituir el archivo.
+- La sección de apoyo tiene dos tarjetas de Ko-fi: «Una vez» lleva a https://ko-fi.com/yilsander (donación única; quien quiera puede marcar allí «Make this monthly») y «Cada mes» lleva a https://ko-fi.com/yilsander/tiers (membresías mensuales estilo Patreon). Para que la segunda funcione hay que tener activadas las Memberships en el panel de Ko-fi (Settings → Memberships) con al menos un nivel. Ko-fi cobra un 5 % en membresías sin Ko-fi Gold; las donaciones únicas no tienen comisión de Ko-fi.
+- El dominio kywai.app está en Hostinger con los registros de GitHub Pages (A y AAAA de GitHub, CNAME `www` → `yiku21.github.io`) y verificado en la cuenta. En el repo: Settings → Pages → Source «GitHub Actions», Custom domain `kywai.app` y «Enforce HTTPS».
+
+### Licencia
+
+kywai se publica con licencia MIT (archivo `LICENSE` en la raíz, también `"license": "MIT"` en `package.json`):
+cualquiera puede usarlo, cambiarlo y compartirlo siempre que mantenga el aviso de copyright. Cada README lo dice en
+su sección final.

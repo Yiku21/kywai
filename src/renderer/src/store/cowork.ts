@@ -17,6 +17,7 @@ import type {
   Routine,
   SetupToolId,
   Task,
+  TaskTemplate,
   TraceEntry,
   Transfer,
   UsageRun
@@ -26,6 +27,7 @@ import { sceneBus } from '@/lib/bus'
 import { api } from '@/lib/api'
 import { playSfx, playVoice, voiceProfile } from '@/lib/audio'
 import { createEventAudio } from '@/lib/audioEvents'
+import { t } from '@/lib/i18n'
 
 export type Mode = 'live' | 'demo'
 
@@ -52,6 +54,8 @@ export interface DataSlice {
   /** Rutinas del proyecto (sin el secreto de los webhooks). En la demo, siempre vacío. */
   routines: Routine[]
   project: ProjectSummary | null
+  /** Conversación abierta del proyecto (id y título; null en la demo o en proyectos que aún no la tienen). */
+  conversation: { id: string; title: string; createdAt: number } | null
 }
 
 export type Selection =
@@ -65,7 +69,10 @@ export type CameraCommand =
   | { type: 'zoom'; dir: 1 | -1; nonce: number }
   | { type: 'focus'; x: number; z: number; nonce: number }
 
-export type LeftTab = 'chat' | 'files' | 'tasks' | 'results' | 'memory' | 'routines'
+/** Pestañas de la ventana de Ajustes. */
+export type SettingsTab = 'general' | 'agents' | 'extensions' | 'connection' | 'about'
+
+export type LeftTab = 'chat' | 'files' | 'tasks' | 'results' | 'memory' | 'routines' | 'mods'
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
 export type CameraInput = DistributiveOmit<CameraCommand, 'nonce'>
@@ -81,6 +88,8 @@ interface CoworkState {
   localPull: LocalPullState | null
   /** Bandeja «Te necesita»: avisos abiertos (de todos los proyectos), del más reciente al más antiguo. */
   inbox: InboxItem[]
+  /** Plantillas de tareas (de todos los proyectos): la fila de botones de encima del chat. Llegan por templates.updated. */
+  templates: TaskTemplate[]
   /** Ya llegó la configuración real del motor (antes solo hay valores por defecto). */
   configLoaded: boolean
   /** Asistente de configuración abierto a mano (en el primer arranque se abre solo). */
@@ -93,14 +102,28 @@ interface CoworkState {
   restarting: boolean
   /** Registro de consumo por petición (runId → uso), para el panel de consumo y el resumen de cada plan. */
   usageRuns: Record<string, UsageRun>
-  /** Panel ⋮ → Consumo abierto (también desde el resumen de cada plan). */
+  /** Panel ⚙ → Consumo abierto (también desde el resumen de cada plan). */
   usageOpen: boolean
-  /** Panel ⋮ → Cómo rinde cada agente (calidad por agente y dificultad). */
+  /** Panel ⚙ → Cómo rinde cada agente (calidad por agente y dificultad). */
   qualityOpen: boolean
+  /** Ventana de Ajustes (⚙ → «Ajustes…» o Ctrl+,) abierta en esa pestaña. */
+  settingsTab: SettingsTab | null
   /** Ventana del modelo de Hermes («/model» en el chat o su panel en el espacio). */
   hermesModelOpen: boolean
   /** Ventana con lo que hace el agente en una tarea (paso a paso, en directo). */
   trace: TraceView | null
+  /** Sube cada vez que cambian las conversaciones o los proyectos (la barra lateral vuelve a pedir sus listas). */
+  conversationsTick: number
+  /** Buscador (Ctrl+K) abierto. */
+  searchOpen: boolean
+  /** Ventana «Historial» (todas las conversaciones) abierta. */
+  historyOpen: boolean
+  /** Texto con el que se abre el buscador (desde el Historial: «Buscar … dentro de los mensajes»). */
+  searchSeed: string
+  /** Mensaje al que el chat tiene que bajar y resaltar (lo pide el buscador al abrir un resultado). */
+  focusMessage: { id: string; terms: string[]; nonce: number } | null
+  /** Ventana estrecha: la barra lateral abierta por encima del chat (en ventanas anchas siempre está). */
+  drawerOpen: boolean
 
   // Interfaz
   selection: Selection
@@ -171,7 +194,8 @@ export function emptySlice(config: AppConfig, offlineReason?: string): DataSlice
     memory: [],
     instructions: '',
     routines: [],
-    project: null
+    project: null,
+    conversation: null
   }
 }
 
@@ -266,6 +290,8 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
     case 'task.trace':
     case 'project.deleted':
     case 'inbox.updated':
+    case 'conversations.updated':
+    case 'templates.updated':
       return d
   }
 }
@@ -316,11 +342,12 @@ export const useCowork = create<CoworkState>((set, get) => ({
   mode: api ? 'live' : 'demo',
   hasBackend: !!api,
   config: DEFAULT_CONFIG,
-  live: emptySlice(DEFAULT_CONFIG, api ? undefined : 'Sin motor de agentes'),
+  live: emptySlice(DEFAULT_CONFIG, api ? undefined : t('Sin motor de agentes')),
   demo: emptySlice(DEFAULT_CONFIG),
   projects: [],
   localPull: null,
   inbox: [],
+  templates: [],
   configLoaded: false,
   setupOpen: false,
   setupLog: [],
@@ -329,8 +356,15 @@ export const useCowork = create<CoworkState>((set, get) => ({
   usageRuns: {},
   usageOpen: false,
   qualityOpen: false,
+  settingsTab: null,
   hermesModelOpen: false,
   trace: null,
+  conversationsTick: 0,
+  searchOpen: false,
+  historyOpen: false,
+  searchSeed: '',
+  focusMessage: null,
+  drawerOpen: false,
 
   selection: null,
   leftTab: 'chat',
@@ -364,6 +398,20 @@ export const useCowork = create<CoworkState>((set, get) => ({
       }
       return
     }
+    if (e.kind === 'conversations.updated') {
+      set((s) => ({ conversationsTick: s.conversationsTick + 1 }))
+      return
+    }
+    if (e.kind === 'chat.cleared' && !e.demo && e.conversationId) {
+      // Se cambió de conversación (aquí o en otro dispositivo): si es el proyecto abierto, se carga la que quedó abierta.
+      const a = api
+      const cur = get().live
+      if (a && cur.project?.id === e.projectId && cur.conversation?.id !== e.conversationId) {
+        void a.loadProject(e.projectId).then((st) => get().loadProjectState(st), () => undefined)
+      }
+      set((s) => ({ conversationsTick: s.conversationsTick + 1 }))
+      return
+    }
     if (e.kind === 'task.trace') {
       const tr = get().trace
       if (tr && tr.taskId === e.taskId) set({ trace: { ...tr, entries: mergeTrace(tr.entries, e.entry) } })
@@ -379,6 +427,10 @@ export const useCowork = create<CoworkState>((set, get) => ({
     }
     if (e.kind === 'setup.log') {
       set((s) => ({ setupLog: [...s.setupLog, { toolId: e.toolId, line: e.line }].slice(-400) }))
+      return
+    }
+    if (e.kind === 'templates.updated') {
+      if (!e.demo) set({ templates: e.templates })
       return
     }
     if (e.kind === 'config.updated') {
@@ -398,6 +450,8 @@ export const useCowork = create<CoworkState>((set, get) => ({
       })
       return
     }
+    // La barra lateral marca qué proyectos están trabajando: se refresca al empezar y acabar cada petición.
+    if ((e.kind === 'run.started' || e.kind === 'run.finished') && !e.demo) set((s) => ({ conversationsTick: s.conversationsTick + 1 }))
     // Con varios proyectos, lo que pasa en otro (que puede seguir trabajando) no entra en el que estás viendo.
     const open = get().live.project?.id
     const pid = eventProject(e)
@@ -452,8 +506,10 @@ export const useCowork = create<CoworkState>((set, get) => ({
         activeRunIds: state.activeRunIds ?? (state.activeRunId ? [state.activeRunId] : []),
         memory: state.memory ?? [],
         instructions: state.instructions ?? '',
-        routines: state.routines ?? []
-      }
+        routines: state.routines ?? [],
+        conversation: state.conversation ?? null
+      },
+      conversationsTick: s.conversationsTick + 1
     }))
     rememberProject(state.project.id)
     if (get().mode === 'live' && previousProjectId && previousProjectId !== state.project.id) playSfx('click')

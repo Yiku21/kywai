@@ -104,6 +104,10 @@ class WorldController(val camera: OrbitCamera = OrbitCamera()) {
     @Volatile
     var covered: Boolean = false
 
+    /** Tema elegido en el ordenador («grafito», «mundo-bosque»…): el espacio se pinta con sus colores ([SpaceGrade]). */
+    @Volatile
+    var theme: String? = null
+
     /**
      * El mundo está dibujando el cristal esmerilado bajo las regiones de [glass]. Es false con efectos «Suave», sin
      * OpenGL o si el dispositivo no puede: entonces conviene que los paneles usen tintes más opacos.

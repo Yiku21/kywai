@@ -12,6 +12,8 @@ import type { AgentConfig, CoworkEvent, WebAccessInfo } from '@shared/types'
 import { tapEvents, tapMobileEvents } from './events'
 import { savePastedFile } from './local'
 import * as store from './projects'
+import { prepareArtifactDownload, writeArtifactDownload } from './artifactDownloads'
+import { modPanelResponse } from './mods'
 import type { TlsPair } from './selfCert'
 import { MobileApi } from './mobileApi'
 import { handleRoutineWebhook } from './routines'
@@ -23,6 +25,7 @@ import { createHash, randomBytes as randomId } from 'node:crypto'
 import { createWriteStream, mkdirSync as makeDir, renameSync as renameFile, rmSync as removeFile, utimesSync } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import { isExcluded } from '@shared/sync'
+import { acceptsGzip, gzipStatic } from './staticGzip'
 import { listDirectory, listRoots, normalizePath, walkTree, withinAny, writeZip, type AccessEntry } from './serverFiles'
 import { MAX_INSTALLER_BYTES, currentRelease, isFeedFile, pruneInstallers, validDescriptor, writeFeedFile } from './clientRelease'
 
@@ -367,11 +370,11 @@ function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
 }
 
 const LOGIN_PAGE = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Cowork</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#060a12;color:#e9eef8;font:15px system-ui,sans-serif}
+<title>kywai</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#060a12;color:#e9eef8;font:15px system-ui,sans-serif}
 form{width:min(340px,90vw);padding:28px;border-radius:16px;background:#0e1524;border:1px solid #23324d}h1{margin:0 0 6px;font-size:20px}
 p{margin:0 0 18px;color:#9aa8bf;line-height:1.45}input{width:100%;box-sizing:border-box;height:42px;padding:0 12px;border-radius:10px;border:1px solid #2c3d5c;background:#0a101d;color:#e9eef8;font-size:15px}
 button{margin-top:12px;width:100%;height:42px;border:0;border-radius:10px;background:#38d6ff;color:#04121c;font-weight:650;font-size:15px}</style></head>
-<body><form method="get" action="/"><h1>AI Cowork</h1><p>Abre el enlace de acceso que muestra AI Cowork en el Mac (⋮ → Acceso desde otros dispositivos), o pega aquí su código.</p>
+<body><form method="get" action="/"><h1>kywai</h1><p>Abre el enlace de acceso que muestra kywai en el Mac (⚙ → Ajustes → Acceso desde otros dispositivos), o pega aquí su código.</p>
 <input name="t" placeholder="Código de acceso" autocomplete="off" autofocus required><button>Entrar</button></form></body></html>`
 
 function rendererDir(): string {
@@ -379,7 +382,7 @@ function rendererDir(): string {
 }
 
 /** Archivos de la interfaz (sin salir de out/renderer). index.html avisa a la interfaz de que va por web. */
-function serveStatic(res: ServerResponse, pathname: string): void {
+function serveStatic(res: ServerResponse, pathname: string, acceptEncoding?: string | string[]): void {
   const root = rendererDir()
   const rel = pathname === '/' ? 'index.html' : decodeURIComponent(pathname.slice(1))
   const abs = normalize(join(root, rel))
@@ -395,11 +398,19 @@ function serveStatic(res: ServerResponse, pathname: string): void {
     const html = readFileSync(abs, 'utf8').replace('<script type="module"', '<script src="/__cowork_web.js"></script>\n    <script type="module"')
     return send(res, 200, html, TYPES['.html'])
   }
-  res.writeHead(200, {
+  const headers = {
     'Content-Type': TYPES[extname(abs).toLowerCase()] ?? 'application/octet-stream',
-    'Content-Length': st.size,
-    'Cache-Control': rel.startsWith('assets/') ? 'public, max-age=31536000, immutable' : 'no-cache'
-  })
+    'Cache-Control': rel.startsWith('assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+    Vary: 'Accept-Encoding'
+  }
+  // Comprimida: la interfaz baja en menos de un tercio (cuenta por Tailscale: navegador y clientes).
+  const gz = acceptsGzip(acceptEncoding) ? gzipStatic(abs, st) : null
+  if (gz) {
+    res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip', 'Content-Length': gz.length })
+    res.end(gz)
+    return
+  }
+  res.writeHead(200, { ...headers, 'Content-Length': st.size })
   createReadStream(abs).pipe(res)
 }
 
@@ -423,7 +434,7 @@ function serveProjectFile(res: ServerResponse, pathname: string): void {
     'Content-Type': TYPES[extname(abs).toLowerCase()] ?? 'application/octet-stream',
     'Content-Length': st.size,
     'X-Content-Type-Options': 'nosniff',
-    // Un HTML creado por un agente no puede usar la sesión de AI Cowork aunque se abra directamente.
+    // Un HTML creado por un agente no puede usar la sesión de kywai aunque se abra directamente.
     'Content-Security-Policy': 'sandbox allow-scripts',
     'Cache-Control': 'no-cache'
   })
@@ -495,7 +506,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   }
 
   if (!authorized(req)) {
-    if (path.startsWith('/api/')) return json(res, 401, { error: 'Sin acceso: abre el enlace de acceso de AI Cowork' })
+    if (path.startsWith('/api/')) return json(res, 401, { error: 'Sin acceso: abre el enlace de acceso de kywai' })
     return send(res, 401, LOGIN_PAGE, TYPES['.html'])
   }
 
@@ -504,7 +515,30 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   }
   if (path === '/api/ping' && req.method === 'GET') return json(res, 200, { boot: BOOT_ID })
   if (path === '/api/events' && req.method === 'GET') return openEvents(req, res)
+  if (path.startsWith('/api/artifact-download/') && req.method === 'GET') {
+    try {
+      const projectId = decodeURIComponent(path.slice('/api/artifact-download/'.length))
+      const download = prepareArtifactDownload(projectId, (url.searchParams.get('ids') ?? '').split(','))
+      res.writeHead(200, {
+        'Content-Type': download.files.length === 1 ? 'application/octet-stream' : 'application/zip',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(download.name)}`,
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'no-store'
+      })
+      await writeArtifactDownload(download, res)
+    } catch (e) {
+      if (res.headersSent) res.destroy()
+      else json(res, 400, { error: (e as Error).message })
+    }
+    return
+  }
   if (path.startsWith('/api/file/') && req.method === 'GET') return serveProjectFile(res, path)
+  if (path.startsWith('/api/mod-panel/') && req.method === 'GET') {
+    const r = modPanelResponse(path.slice('/api/mod-panel/'.length))
+    res.writeHead(r.status, r.headers)
+    res.end(r.body)
+    return
+  }
 
   if (path.startsWith('/api/fs/')) return handleFs(req, res, url)
 
@@ -574,7 +608,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     }
   }
 
-  if (req.method === 'GET' && !path.startsWith('/api/')) return serveStatic(res, path)
+  if (req.method === 'GET' && !path.startsWith('/api/')) return serveStatic(res, path, req.headers['accept-encoding'])
   return send(res, 404, 'Not found')
 }
 
@@ -696,7 +730,7 @@ export async function stopWebServer(): Promise<void> {
   current = null
 }
 
-/** Direcciones para abrir AI Cowork desde otros dispositivos de Tailscale. */
+/** Direcciones para abrir kywai desde otros dispositivos de Tailscale. */
 export function webAccessInfo(enabled: boolean, port: number, token: string): WebAccessInfo {
   const ip = boundIp ?? tailscaleIPv4()
   // Nombre MagicDNS habitual: el del equipo en minúsculas, sin «.local».

@@ -1469,6 +1469,112 @@
         "description": "Mismo ajuste que ⋮ → «Pedir mi visto bueno a cada plan» en el escritorio. Emite config.updated."
       }
     },
+    "/api/mobile/v1/settings/server-name": {
+      "post": {
+        "operationId": "setMobileServerName",
+        "summary": "Cambiar el nombre del ordenador que se ve en la barra lateral",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerNameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerNameResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "El mismo nombre que se cambia abajo en la barra lateral del escritorio y la web. Vacío vuelve al nombre del equipo en la red. Emite config.updated."
+      }
+    },
+    "/api/mobile/v1/settings/theme": {
+      "post": {
+        "operationId": "setMobileTheme",
+        "summary": "Elegir el tema de kywai desde el móvil",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThemeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Guarda el tema en el servidor (config.uiTheme, el mismo de settings.theme). Lo siguen al momento el escritorio, los clientes y el navegador que no usen un tema propio. Emite config.updated."
+      }
+    },
     "/api/mobile/v1/usage/refresh": {
       "post": {
         "operationId": "refreshMobileUsage",
@@ -1899,6 +2005,82 @@
           }
         },
         "description": "Lo mismo que «Reiniciar agente» en su panel del escritorio: olvida su bloqueo (cuota, sesión, error de la API) y los modelos que se le dieron por rotos, comprueba que su CLI responde (sin llamadas de pago) y lo deja disponible; lo que esperaba por él puede empezar. 404 AGENT_NOT_FOUND si no existe. Emite agent.runtime."
+      }
+    },
+    "/api/mobile/v1/agents/{agentId}/thinking": {
+      "post": {
+        "operationId": "setAgentThinking",
+        "summary": "Encender o apagar el razonamiento del modelo local",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cómo queda.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentThinkingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Lo mismo que el interruptor «Razonamiento (think)» de la tarjeta del agente de LM Studio en el escritorio. 404 AGENT_NOT_FOUND si no existe; 400 INVALID_INPUT si no es el agente de LM Studio. Emite config.updated."
       }
     },
     "/api/mobile/v1/device": {
@@ -2363,7 +2545,95 @@
             "$ref": "#/components/responses/MobileError"
           }
         },
-        "description": "Lo mismo que la pestaña Rutinas: cada rutina con su disparador, su próxima hora y sus últimas ejecuciones. 404 CONVERSATION_NOT_FOUND si no existe el proyecto. Los cambios llegan por el evento routines.updated (también sin secretos). Crear y editar rutinas se hace en el escritorio o el navegador."
+        "description": "Lo mismo que la pestaña Rutinas: cada rutina con su disparador, su próxima hora y sus últimas ejecuciones. 404 CONVERSATION_NOT_FOUND si no existe el proyecto. Los cambios llegan por el evento routines.updated (también sin secretos). Crear, cambiar y borrar: POST /routines, POST /routines/{routineId} y POST /routines/{routineId}/delete (capability routinesEdit)."
+      },
+      "post": {
+        "operationId": "createRoutine",
+        "summary": "Crear una rutina",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "request": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 9000,
+                    "description": "Lo que se enviará al chat."
+                  },
+                  "trigger": {
+                    "$ref": "#/components/schemas/RoutineTrigger"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "askApproval": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "conversationId",
+                  "name",
+                  "request",
+                  "trigger"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Crea una rutina en el proyecto (activa salvo enabled: false), con las mismas reglas que el escritorio: nombre y petición obligatorios, hora HH:MM, al menos un día, carpeta dentro del proyecto y, en las de una sola vez, una hora por llegar. 400 INVALID_ROUTINE con el motivo si algo no vale. Responde sin el secreto del webhook."
       }
     },
     "/api/mobile/v1/routines/{routineId}/run": {
@@ -2442,6 +2712,1835 @@
           }
         },
         "description": "«Ejecutar ahora»: envía su petición al chat como una normal del usuario, con la marca de la rutina. Si su ejecución anterior sigue en marcha (o su plan espera tu visto bueno), no se lanza otra: vuelve con status skipped. 404 ROUTINE_NOT_FOUND si no existe."
+      }
+    },
+    "/api/mobile/v1/chats": {
+      "get": {
+        "operationId": "listChats",
+        "summary": "Chats del proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "El abierto (current) y los guardados, del más reciente al más antiguo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Las conversaciones retomables del proyecto, como en la barra lateral del escritorio. conversationId es el proyecto. Los cambios llegan por el evento conversations.updated."
+      },
+      "post": {
+        "operationId": "newChat",
+        "summary": "Chat nuevo",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "El proyecto con el chat nuevo (vacío) abierto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Guarda el chat abierto (si tiene algo) y abre uno vacío. 409 PROJECT_BUSY mientras el equipo trabaja en el proyecto."
+      }
+    },
+    "/api/mobile/v1/chats/{chatId}/open": {
+      "post": {
+        "operationId": "openChat",
+        "summary": "Volver a un chat",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,60}$",
+              "maxLength": 61
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "El proyecto con ese chat abierto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Abre un chat guardado con sus mensajes y tareas (el abierto se guarda). 404 CHAT_NOT_FOUND; 409 PROJECT_BUSY mientras el equipo trabaja."
+      }
+    },
+    "/api/mobile/v1/chats/{chatId}/rename": {
+      "post": {
+        "operationId": "renameChat",
+        "summary": "Renombrar un chat",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,60}$",
+              "maxLength": 61
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "conversationId",
+                  "title"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La lista de chats al día.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/chats/{chatId}/delete": {
+      "post": {
+        "operationId": "deleteChat",
+        "summary": "Borrar un chat",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,60}$",
+              "maxLength": 61
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La lista de chats al día.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Pasa a conversaciones/borradas/ en el servidor. Si es el abierto, antes se empieza uno nuevo en el proyecto (409 PROJECT_BUSY si el equipo trabaja en él)."
+      }
+    },
+    "/api/mobile/v1/search": {
+      "get": {
+        "operationId": "search",
+        "summary": "Buscar",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "description": "Solo lo de esta fecha en adelante (ms Unix).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{1,15}$"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "required": false,
+            "description": "Quién lo escribió: user, agents o el id de un agente.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,60}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Cuántos resultados como mucho (60 si no se dice; hasta 400).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{1,3}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Las primeras coincidencias (60 si no se pide limit) y el total.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Lo mismo que «Buscar» en la barra lateral: chats, tareas, resultados y memoria de todos los proyectos, o solo del indicado. Varias palabras: todas en el mismo mensaje, en cualquier orden; entre comillas, la frase exacta."
+      }
+    },
+    "/api/mobile/v1/music/search": {
+      "get": {
+        "operationId": "musicSearch",
+        "summary": "Música sin anuncios",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "radio",
+                "audius"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Radios (sin q, todas, las más escuchadas primero) o canciones de Audius.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "502": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Las mismas fuentes que el reproductor del escritorio: radios de SomaFM y canciones de Audius. El móvil escucha stream directamente desde sus servidores públicos. 502 MUSIC_UNAVAILABLE si la fuente no responde."
+      }
+    },
+    "/api/mobile/v1/chats/{chatId}/pin": {
+      "post": {
+        "operationId": "pinChat",
+        "summary": "Fijar o soltar un chat",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,60}$",
+              "maxLength": 61
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "conversationId",
+                  "pinned"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La lista al día.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Lo pone o lo quita de «Fijados»."
+      }
+    },
+    "/api/mobile/v1/chats/{chatId}/fork": {
+      "post": {
+        "operationId": "forkChat",
+        "summary": "Bifurcar un chat",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,60}$",
+              "maxLength": 61
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La lista al día.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCopyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Copia aparte con sus mensajes y tareas terminadas; los agentes empiezan sesión nueva en ella."
+      }
+    },
+    "/api/mobile/v1/chats/{chatId}/move": {
+      "post": {
+        "operationId": "moveChat",
+        "summary": "Mover un chat a otro proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,60}$",
+              "maxLength": 61
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  },
+                  "toConversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId",
+                  "toConversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La lista al día.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCopyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Si era el abierto, su proyecto queda con un chat nuevo. 409 PROJECT_BUSY si el equipo trabaja en él."
+      }
+    },
+    "/api/mobile/v1/chats/pinned": {
+      "get": {
+        "operationId": "listPinnedChats",
+        "summary": "Chats fijados de todos los proyectos",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Del más reciente al más antiguo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "La sección «Fijados» de la barra lateral. No admite parámetros de consulta."
+      }
+    },
+    "/api/mobile/v1/chats/all": {
+      "get": {
+        "operationId": "listAllChats",
+        "summary": "Historial: todos los chats de todos los proyectos",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Del más reciente al más antiguo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "La ventana «Historial»: todos los chats con mensajes, de todos los proyectos. No admite parámetros de consulta."
+      }
+    },
+    "/api/mobile/v1/projects/{projectId}/rename": {
+      "post": {
+        "operationId": "renameProject",
+        "summary": "Cambiar el nombre de un proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Los proyectos al día.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "El mismo nombre que ve el escritorio."
+      }
+    },
+    "/api/mobile/v1/projects/{projectId}/pin": {
+      "post": {
+        "operationId": "pinProject",
+        "summary": "Fijar o soltar un proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pinned": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "pinned"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Los proyectos al día.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Lo pone o lo quita de «Fijados»."
+      }
+    },
+    "/api/mobile/v1/projects/{projectId}/delete": {
+      "post": {
+        "operationId": "deleteProject",
+        "summary": "Eliminar un proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Los proyectos que quedan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Todo lo suyo va a la Papelera del ordenador. 409 PROJECT_BUSY si tiene trabajo en marcha. Si era el último, queda uno vacío."
+      }
+    },
+    "/api/mobile/v1/usage/cost": {
+      "get": {
+        "operationId": "getUsageCost",
+        "summary": "Uso y coste: dinero por agente, suscripciones y presupuesto",
+        "tags": [
+          "Mobile"
+        ],
+        "description": "Lo mismo que la sección «Coste» de ⚙ → «Uso y coste…»: lo pagado por uso (agentes por API), lo que vale todo a precios de API, el presupuesto del mes y si compensa cada suscripción (precio al mes frente a lo hecho en 30 días). Los importes van en la moneda elegida.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,2}$"
+            },
+            "description": "Días hacia atrás (1–999). Por defecto 30."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coste del periodo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageCost"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/mods/panels": {
+      "get": {
+        "operationId": "getMobileModPanels",
+        "summary": "Paneles de los mods encendidos",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Los paneles, como la pestaña «Mods» del escritorio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModPanels"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/mods/panel": {
+      "get": {
+        "operationId": "getMobileModPanel",
+        "summary": "Página de un panel de mod",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "mod",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La página lista para un WebView sin acceso a archivos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModPanel"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "La app debe cargarla sin dirección base, exponer KywaiBridge.send(text) (pide confirmación y exige chat=true) y KywaiBridge.context(), y mandar el contexto con window.postMessage({kywai:'context', project, tasks, messages}, '*'). No debe dejar navegar a otras páginas."
+      }
+    },
+    "/api/mobile/v1/templates": {
+      "get": {
+        "operationId": "listTemplates",
+        "summary": "Plantillas de tareas",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Todas las plantillas (de todos los proyectos).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Las mismas que la fila de encima del chat del escritorio. Las de un proyecto llevan projectId."
+      },
+      "post": {
+        "operationId": "createTemplate",
+        "summary": "Crear una plantilla",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plantilla creada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "400 INVALID_INPUT con el motivo si el nombre o el texto faltan, la orden no es válida, ya es de kywai o la usa otra plantilla del mismo ámbito, o el proyecto no existe. Como mucho 100."
+      }
+    },
+    "/api/mobile/v1/templates/restore": {
+      "post": {
+        "operationId": "restoreTemplates",
+        "summary": "Volver a poner las de serie",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Todas las plantillas, con las de serie que faltaban.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/templates/{templateId}/delete": {
+      "post": {
+        "operationId": "deleteTemplate",
+        "summary": "Borrar una plantilla",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Borrada (o ya no existía).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/templates/{templateId}": {
+      "post": {
+        "operationId": "updateTemplate",
+        "summary": "Cambiar una plantilla",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La plantilla cambiada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "404 TEMPLATE_NOT_FOUND si ya no existe."
+      }
+    },
+    "/api/mobile/v1/routines/{routineId}": {
+      "post": {
+        "operationId": "updateRoutine",
+        "summary": "Cambiar una rutina",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "routineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "request": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 9000,
+                    "description": "Lo que se enviará al chat."
+                  },
+                  "trigger": {
+                    "$ref": "#/components/schemas/RoutineTrigger"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "askApproval": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Cambia nombre, petición, disparador, askApproval o la activa/desactiva (enabled). Al cambiar el horario o volver a activarla cuenta desde ese momento. 404 ROUTINE_NOT_FOUND si no existe; 400 INVALID_ROUTINE si algo no vale."
+      }
+    },
+    "/api/mobile/v1/routines/{routineId}/delete": {
+      "post": {
+        "operationId": "deleteRoutine",
+        "summary": "Borrar una rutina",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "routineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Borra la rutina y su historial. 404 ROUTINE_NOT_FOUND si no existe."
+      }
+    },
+    "/api/mobile/v1/messages/{messageId}/routine-proposal/create": {
+      "post": {
+        "operationId": "routineProposalCreate",
+        "summary": "Crear la rutina que propone Hermes",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "La crea activa con el nombre, la petición y el horario de la tarjeta, y devuelve el mensaje con status created y routineId. 404 ROUTINE_PROPOSAL_NOT_FOUND si el mensaje no la tiene; 409 ROUTINE_PROPOSAL_NOT_PENDING si ya se creó o descartó."
+      }
+    },
+    "/api/mobile/v1/messages/{messageId}/routine-proposal/dismiss": {
+      "post": {
+        "operationId": "routineProposalDismiss",
+        "summary": "Descartar la rutina que propone Hermes",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "No crea nada: el mensaje queda con status dismissed. 404 ROUTINE_PROPOSAL_NOT_FOUND o 409 ROUTINE_PROPOSAL_NOT_PENDING como en create."
       }
     }
   },
@@ -2588,6 +4687,12 @@
             },
             "maxItems": 20,
             "description": "Opcional. ids de conversation.attachments (p. ej. los subidos con POST /files) que van con el mensaje: quedan en message.attachments y los agentes los reciben como los adjuntos del escritorio, sin copiarlos ni duplicarlos. Los repetidos se ignoran. Un id que no es de la conversación → 400 INVALID_INPUT (el mensaje lo nombra)."
+          },
+          "templateId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128,
+            "description": "Opcional. Se lanza con esa plantilla (text ya va con los huecos rellenos): el mensaje lleva template y se aplican sus opciones (agentId, askPlan). Una plantilla que no existe → 400 INVALID_INPUT. Sin templateId, un text que empieza por «/command …» de una plantilla también la lanza (lo de detrás rellena el hueco; con varios, separados por «|»)."
           }
         },
         "required": [
@@ -2742,6 +4847,43 @@
               "name"
             ],
             "additionalProperties": false
+          },
+          "direct": {
+            "type": "object",
+            "description": "Mensaje del usuario enviado directo a un agente («@Qwen …»): no pasó por Hermes. La interfaz enseña «Tú → <name>».",
+            "properties": {
+              "agentId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "agentId",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "template": {
+            "type": "object",
+            "description": "Mensaje lanzado con una plantilla de tareas: la interfaz enseña su nombre.",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "routineProposal": {
+            "$ref": "#/components/schemas/RoutineProposal"
           }
         },
         "required": [
@@ -2864,6 +5006,30 @@
               }
             ],
             "description": "Carpeta de trabajo del proyecto; null si no tiene."
+          },
+          "chat": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "title"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "El chat abierto en el proyecto; los demás se piden con GET /chats."
           }
         },
         "required": [
@@ -3115,6 +5281,10 @@
           },
           "context": {
             "$ref": "#/components/schemas/Context"
+          },
+          "thinking": {
+            "type": "boolean",
+            "description": "Solo el agente de LM Studio: razonamiento («think») encendido. Sin indicar, apagado."
           }
         },
         "required": [
@@ -3323,6 +5493,10 @@
               "del"
             ],
             "additionalProperties": false
+          },
+          "direct": {
+            "type": "boolean",
+            "description": "Mensaje directo del usuario a este agente: sin plan de Hermes, sin verificador y sin relevo."
           }
         },
         "required": [
@@ -3537,6 +5711,24 @@
           "cancelled": {
             "type": "boolean",
             "description": "La detuvo el usuario (no cuenta como fallo del agente)."
+          },
+          "costUsd": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Coste en dólares que dio el propio CLI (Claude Code), a precios de API."
+          },
+          "estInput": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Si el CLI no da tokens (Hermes, catálogo): tokens de entrada estimados por longitud, solo para el coste."
+          },
+          "estOutput": {
+            "type": "number",
+            "minimum": 0
+          },
+          "noTokens": {
+            "type": "boolean",
+            "description": "El CLI no informa tokens: input/output valen 0."
           }
         },
         "required": [
@@ -3661,6 +5853,10 @@
             "items": {
               "$ref": "#/components/schemas/AgentUsage"
             }
+          },
+          "cost": {
+            "$ref": "#/components/schemas/UsageCost",
+            "description": "Dinero de los últimos 30 días (como GET /usage/cost). Falta en servidores anteriores."
           }
         },
         "required": [
@@ -3787,6 +5983,66 @@
           "routines": {
             "type": "boolean",
             "description": "Rutinas: GET /routines y POST /routines/{routineId}/run."
+          },
+          "directMessages": {
+            "type": "boolean",
+            "description": "«@Agente …» o «/directo Agente …» en el chat: el texto va tal cual a ese agente, sin pasar por Hermes."
+          },
+          "agentThinking": {
+            "type": "boolean",
+            "description": "Razonamiento del modelo local: POST /agents/{agentId}/thinking."
+          },
+          "chats": {
+            "type": "boolean",
+            "description": "Varios chats por proyecto: GET/POST /chats y POST /chats/{chatId}/open|rename|delete."
+          },
+          "search": {
+            "type": "boolean",
+            "description": "GET /search: buscador de chats, tareas, resultados y memoria."
+          },
+          "music": {
+            "type": "boolean",
+            "description": "GET /music/search: radios de SomaFM y canciones de Audius."
+          },
+          "serverName": {
+            "type": "boolean",
+            "description": "POST /settings/server-name: cambiar el nombre del ordenador que se ve en la barra lateral."
+          },
+          "theme": {
+            "type": "boolean",
+            "description": "POST /settings/theme: elegir el tema desde el móvil (lo siguen el escritorio, los clientes y el navegador)."
+          },
+          "chatActions": {
+            "type": "boolean",
+            "description": "Menú de un chat: POST /chats/{chatId}/pin|fork|move, GET /chats/pinned y borrar también el abierto."
+          },
+          "projectActions": {
+            "type": "boolean",
+            "description": "Menú de un proyecto: POST /projects/{projectId}/rename|pin|delete."
+          },
+          "history": {
+            "type": "boolean",
+            "description": "GET /chats/all (historial de todos los chats) y GET /search con since, author y limit."
+          },
+          "usageCost": {
+            "type": "boolean",
+            "description": "GET /usage/cost y usage.cost en la instantánea: dinero por agente, suscripciones y presupuesto."
+          },
+          "modPanels": {
+            "type": "boolean",
+            "description": "Paneles de los mods: GET /mods/panels y GET /mods/panel."
+          },
+          "templates": {
+            "type": "boolean",
+            "description": "Plantillas de tareas: GET/POST /templates, POST /templates/{templateId}, /templates/{templateId}/delete y /templates/restore; templateId en POST /chat/messages."
+          },
+          "routinesEdit": {
+            "type": "boolean",
+            "description": "Crear, cambiar y borrar rutinas: POST /routines, POST /routines/{routineId} y POST /routines/{routineId}/delete."
+          },
+          "routineProposals": {
+            "type": "boolean",
+            "description": "Tarjeta «Crear rutina» de Hermes: POST /messages/{messageId}/routine-proposal/create y …/dismiss."
           }
         },
         "required": [
@@ -3822,7 +6078,11 @@
           "agentQuality",
           "inbox",
           "taskChanges",
-          "routines"
+          "routines",
+          "directMessages",
+          "agentThinking",
+          "usageCost",
+          "modPanels"
         ],
         "additionalProperties": false
       },
@@ -3874,6 +6134,13 @@
           },
           "settings": {
             "$ref": "#/components/schemas/Settings"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskTemplate"
+            },
+            "description": "Plantillas de tareas de todos los proyectos (filtrar por projectId). Los cambios llegan con el evento templates.updated ({templates})."
           }
         },
         "required": [
@@ -3968,6 +6235,10 @@
           "running": {
             "type": "boolean",
             "description": "Tiene peticiones en marcha."
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "Fijado en la barra lateral (sección «Fijados»)."
           }
         },
         "required": [
@@ -4037,6 +6308,16 @@
           "planApproval": {
             "type": "boolean",
             "description": "El coordinador espera el visto bueno antes de ejecutar cada plan."
+          },
+          "theme": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,39}$",
+            "description": "Tema elegido en el escritorio (id de lib/theme.ts: «grafito», «mundo-bosque»…). Órbita se pinta igual."
+          },
+          "serverName": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "Nombre que le puso el usuario al ordenador. Sin él, el de la red."
           }
         },
         "required": [
@@ -4601,6 +6882,61 @@
         },
         "required": [
           "planApproval"
+        ],
+        "additionalProperties": false
+      },
+      "ServerNameRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "ServerNameResponse": {
+        "type": "object",
+        "properties": {
+          "serverName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "serverName"
+        ],
+        "additionalProperties": false
+      },
+      "ThemeRequest": {
+        "type": "object",
+        "properties": {
+          "theme": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,39}$"
+          }
+        },
+        "required": [
+          "theme"
+        ],
+        "additionalProperties": false
+      },
+      "ThemeResponse": {
+        "type": "object",
+        "properties": {
+          "theme": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,39}$"
+          }
+        },
+        "required": [
+          "theme"
         ],
         "additionalProperties": false
       },
@@ -5641,7 +7977,8 @@
               "verify-failed",
               "conflict",
               "failed",
-              "done"
+              "done",
+              "budget"
             ]
           },
           "title": {
@@ -5919,6 +8256,10 @@
               "$ref": "#/components/schemas/RoutineRun"
             },
             "description": "Últimas ejecuciones, la más reciente al final."
+          },
+          "askApproval": {
+            "type": "boolean",
+            "description": "Su plan espera el visto bueno del usuario. Si falta o es false, la rutina sigue sola aunque «Pedir mi visto bueno a cada plan» esté encendido."
           }
         },
         "required": [
@@ -5940,7 +8281,7 @@
       },
       "RoutineTrigger": {
         "type": "object",
-        "description": "Cuándo se lanza: daily (cada día a time, HH:MM), weekly (days: 0 = domingo … 6 = sábado, a time), interval (cada hours horas), webhook (al llegar un POST a su dirección con secreto) o folder (al cambiar archivos de path, relativa a la carpeta del proyecto). Las horas son las del reloj del servidor.",
+        "description": "Cuándo se lanza: daily (cada día a time, HH:MM), weekly (days: 0 = domingo … 6 = sábado, a time), interval (cada hours horas), once (una sola vez el día date a time; al lanzarse se desactiva sola), webhook (al llegar un POST a su dirección con secreto) o folder (al cambiar archivos de path, relativa a la carpeta del proyecto). Las horas son las del reloj del servidor.",
         "properties": {
           "type": {
             "type": "string",
@@ -5948,6 +8289,7 @@
               "daily",
               "weekly",
               "interval",
+              "once",
               "webhook",
               "folder"
             ]
@@ -5971,6 +8313,11 @@
           },
           "path": {
             "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Día de una rutina once (AAAA-MM-DD, del calendario del servidor)."
           }
         },
         "required": [
@@ -5987,6 +8334,759 @@
         },
         "required": [
           "run"
+        ],
+        "additionalProperties": false
+      },
+      "AgentThinkingResponse": {
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "thinking": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "agentId",
+          "thinking"
+        ],
+        "additionalProperties": false
+      },
+      "Chat": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "messageCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "pinned": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "title",
+          "createdAt",
+          "updatedAt",
+          "messageCount"
+        ],
+        "additionalProperties": false
+      },
+      "ChatsResponse": {
+        "type": "object",
+        "properties": {
+          "chats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Chat"
+            }
+          }
+        },
+        "required": [
+          "chats"
+        ],
+        "additionalProperties": false
+      },
+      "SearchHit": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "conversation",
+              "task",
+              "artifact",
+              "memory",
+              "project"
+            ]
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "at": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ref": {
+            "type": "string"
+          },
+          "messageId": {
+            "type": "string",
+            "description": "Conversaciones: el mensaje encontrado; al abrir el chat se baja hasta él."
+          },
+          "matchCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Conversaciones: cuántos mensajes coinciden."
+          },
+          "matches": {
+            "type": "array",
+            "maxItems": 5,
+            "description": "Conversaciones: los primeros mensajes que coinciden.",
+            "items": {
+              "$ref": "#/components/schemas/SearchMatch"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "projectId",
+          "projectName",
+          "title",
+          "snippet",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "maxItems": 400
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Cuántas coincidencias hay en total (para «Ver más»). Servidores antiguos no lo envían."
+          }
+        },
+        "required": [
+          "hits"
+        ],
+        "additionalProperties": false
+      },
+      "MusicResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^(radio|audius):[A-Za-z0-9]{1,40}$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "artist": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "durationSec": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "thumbnail": {
+            "type": "string",
+            "pattern": "^https://"
+          },
+          "stream": {
+            "type": "string",
+            "pattern": "^https://"
+          },
+          "live": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "artist",
+          "stream",
+          "live"
+        ],
+        "additionalProperties": false
+      },
+      "MusicResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MusicResult"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "additionalProperties": false
+      },
+      "ChatCopyResponse": {
+        "type": "object",
+        "properties": {
+          "chatId": {
+            "type": "string",
+            "description": "Id del chat copiado o movido (en su proyecto de destino)."
+          },
+          "chats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Chat"
+            },
+            "description": "Los chats del proyecto de origen, al día."
+          }
+        },
+        "required": [
+          "chatId",
+          "chats"
+        ],
+        "additionalProperties": false
+      },
+      "SearchMatch": {
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "at": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "by": {
+            "type": "string",
+            "description": "'user', 'system' o el id del agente."
+          }
+        },
+        "required": [
+          "messageId",
+          "snippet",
+          "at",
+          "by"
+        ],
+        "additionalProperties": false
+      },
+      "UsageCost": {
+        "type": "object",
+        "description": "Lo mismo que la sección «Coste» de ⚙ → «Uso y coste…». Importes en la moneda elegida (currency); los precios de API van convertidos.",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "enum": [
+              "USD",
+              "EUR"
+            ]
+          },
+          "days": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "paid": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Pagado por uso (agentes que van por API) en el periodo."
+          },
+          "api": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Todo lo usado, a precios de API (también lo de las suscripciones)."
+          },
+          "estimated": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Parte de api que sale de tokens estimados (Hermes y agentes de catálogo)."
+          },
+          "unpricedCalls": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "budget": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "spent": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "pct": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "limit",
+                  "spent",
+                  "pct"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "Presupuesto del mes de lo que se paga por API; null si no hay."
+          },
+          "byAgent": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "agentId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "subscription",
+                    "api",
+                    "free",
+                    "local",
+                    null
+                  ]
+                },
+                "calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "api": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "estimated": {
+                  "type": "boolean",
+                  "description": "El valor sale sobre todo de tokens estimados (se enseña con ≈)."
+                }
+              },
+              "required": [
+                "agentId",
+                "name",
+                "mode",
+                "calls",
+                "api",
+                "estimated"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "monthly": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "api30": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "runs30": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "verdict": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "worth",
+                    "cheaper-api",
+                    null
+                  ],
+                  "description": "worth: por API habría costado más (compensa); cheaper-api: por API saldría más barato; null sin precio al mes."
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "monthly",
+                "api30",
+                "runs30",
+                "verdict"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pricesChecked": {
+            "type": "string",
+            "description": "Día en que se comprobaron los precios de fábrica (AAAA-MM-DD)."
+          }
+        },
+        "required": [
+          "currency",
+          "days",
+          "paid",
+          "api",
+          "estimated",
+          "unpricedCalls",
+          "budget",
+          "byAgent",
+          "subscriptions",
+          "pricesChecked"
+        ],
+        "additionalProperties": false
+      },
+      "ModPanels": {
+        "type": "object",
+        "properties": {
+          "panels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "mod": {
+                  "type": "string"
+                },
+                "modTitle": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "chat": {
+                  "type": "boolean",
+                  "description": "Si el panel puede proponer mensajes al chat (con confirmación)."
+                }
+              },
+              "required": [
+                "mod",
+                "modTitle",
+                "id",
+                "title",
+                "chat"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "panels"
+        ],
+        "additionalProperties": false
+      },
+      "ModPanel": {
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string",
+            "description": "La página con su política de seguridad y el puente KywaiBridge (send, context) para el WebView."
+          },
+          "title": {
+            "type": "string"
+          },
+          "chat": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "html",
+          "title",
+          "chat"
+        ],
+        "additionalProperties": false
+      },
+      "TaskTemplate": {
+        "type": "object",
+        "description": "Una plantilla de tareas: una petición que se repite, lanzable con un toque desde la fila de encima del chat o escribiendo «/command …». Sus huecos van entre llaves ({pr}, {carpeta}): letras, cifras, «_» o «-», empezando por letra; como mucho 6. Las de serie (builtin) siguen el idioma de la app mientras no se cambien.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "icon": {
+            "type": "string",
+            "description": "Emoji del botón."
+          },
+          "command": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,29}$",
+            "description": "Se lanza también escribiendo «/command …» en el chat."
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 8000,
+            "description": "Texto que se envía, con sus huecos."
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Solo sale en ese proyecto (conversationId). Sin él, en todos."
+          },
+          "agentId": {
+            "type": "string",
+            "description": "Va directa a ese agente, sin pasar por Hermes."
+          },
+          "askPlan": {
+            "type": "boolean",
+            "description": "Pide el visto bueno al plan aunque settings.planApproval esté apagado."
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "Sale la primera de la fila."
+          },
+          "builtin": {
+            "type": "string",
+            "description": "Id de la plantilla de serie de la que viene."
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "command",
+          "prompt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "TemplatesResponse": {
+        "type": "object",
+        "properties": {
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskTemplate"
+            }
+          }
+        },
+        "required": [
+          "templates"
+        ],
+        "additionalProperties": false
+      },
+      "TemplateResponse": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "$ref": "#/components/schemas/TaskTemplate"
+          }
+        },
+        "required": [
+          "template"
+        ],
+        "additionalProperties": false
+      },
+      "TemplateCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "command": {
+            "type": "string",
+            "maxLength": 31,
+            "description": "Sin ella (o vacía) sale del nombre."
+          },
+          "projectId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null: general (en todos los proyectos)."
+          },
+          "agentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null: pasa por Hermes."
+          },
+          "askPlan": {
+            "type": "boolean"
+          },
+          "pinned": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "prompt"
+        ],
+        "additionalProperties": false
+      },
+      "TemplateUpdateRequest": {
+        "type": "object",
+        "description": "Solo lo que cambia.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "command": {
+            "type": "string",
+            "maxLength": 31,
+            "description": "Sin ella (o vacía) sale del nombre."
+          },
+          "projectId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null: general (en todos los proyectos)."
+          },
+          "agentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null: pasa por Hermes."
+          },
+          "askPlan": {
+            "type": "boolean"
+          },
+          "pinned": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutineProposal": {
+        "type": "object",
+        "description": "Rutina que propone Hermes en un mensaje del chat (tarjeta «Crear rutina»). pending: espera que se cree o descarte; created: creada (routineId); dismissed: descartada. command es la orden «/rutina …» equivalente, para cambiarla y enviarla como mensaje.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "created",
+              "dismissed"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "request": {
+            "type": "string"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/RoutineTrigger"
+          },
+          "command": {
+            "type": "string"
+          },
+          "routineId": {
+            "type": "string"
+          },
+          "decidedAt": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "status",
+          "name",
+          "request",
+          "trigger",
+          "command"
+        ],
+        "additionalProperties": false
+      },
+      "RoutineResponse": {
+        "type": "object",
+        "properties": {
+          "routine": {
+            "$ref": "#/components/schemas/Routine"
+          }
+        },
+        "required": [
+          "routine"
+        ],
+        "additionalProperties": false
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          }
+        },
+        "required": [
+          "message"
         ],
         "additionalProperties": false
       }

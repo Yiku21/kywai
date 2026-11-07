@@ -2,7 +2,7 @@
 // informes»…). Cada una es una carpeta con su SKILL.md (el mismo formato que las skills de Claude: un encabezado con
 // name y description, y el procedimiento debajo) dentro de la carpeta «habilidades» de la carpeta de trabajo. Las ven
 // todos los agentes, sea cual sea su CLI: el encargo de cada tarea lista su nombre y para qué sirven, y la leen con
-// la herramienta «leer_habilidad» de AI Cowork (o abriendo el archivo).
+// la herramienta «leer_habilidad» de kywai (o abriendo el archivo).
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -13,13 +13,15 @@ export interface Skill {
   file: string
 }
 
-const MAX_SKILLS = 40
+// Con plugins y catálogos se juntan muchas: se listan todas (hasta 150) con la descripción recortada.
+const MAX_SKILLS = 150
+const MAX_DESC_IN_PROMPT = 160
 const MAX_SKILL_CHARS = 20_000
 const NAME_RE = /^[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}$/u
 
 let root = ''
 
-const README = `# Habilidades compartidas de AI Cowork
+const README = `# Habilidades compartidas de kywai
 
 Cada habilidad es una carpeta con un archivo SKILL.md (o un .md suelto en esta carpeta):
 
@@ -120,6 +122,9 @@ export function skillPromptLines(withTool: boolean, dir = root): string[] {
     '',
     '## Habilidades del equipo',
     `Procedimientos que el equipo ya tiene escritos. Si uno encaja con tu tarea, léelo antes de empezar y síguelo${withTool ? ' (herramienta «leer_habilidad» de ai-cowork, con su nombre)' : ''}:`,
-    ...list.map((s) => `- ${s.name}: ${s.description || '(sin descripción)'}${withTool ? '' : ` — ${s.file}`}`)
+    ...list.map((s) => {
+      const d = s.description.length > MAX_DESC_IN_PROMPT ? `${s.description.slice(0, MAX_DESC_IN_PROMPT - 1)}…` : s.description
+      return `- ${s.name}: ${d || '(sin descripción)'}${withTool ? '' : ` — ${s.file}`}`
+    })
   ]
 }

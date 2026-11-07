@@ -1,6 +1,6 @@
-# AI Cowork — contexto para seguir trabajando desde cualquier sitio
+# kywai — contexto para seguir trabajando desde cualquier sitio
 
-Documento de traspaso: lo que hace falta saber para retomar el desarrollo de AI Cowork en un chat nuevo, en otro
+Documento de traspaso: lo que hace falta saber para retomar el desarrollo de kywai en un chat nuevo, en otro
 equipo o desde el móvil, sin depender de la memoria de ninguna conversación anterior. Complementa al
 [README](../README.md) (la presentación) y al [MANUAL](MANUAL.md) (cada función en detalle).
 
@@ -10,7 +10,7 @@ Estado: **12–13 de octubre de 2026**. Rama de trabajo: `master`, publicada en 
 
 ## 1. Qué es y quién lo usa
 
-AI Cowork es una app de escritorio (Electron + React + Three.js) que junta las suscripciones de IA que el usuario
+kywai es una app de escritorio (Electron + React + Three.js) que junta las suscripciones de IA que el usuario
 ya paga (Claude Code, Codex CLI, Gemini CLI, Muse Code, un modelo local por Ollama…) en **un equipo de agentes**:
 
 1. El usuario escribe lo que necesita en el chat.
@@ -33,7 +33,7 @@ quitar agentes y elegir quién coordina (no tiene por qué ser Hermes).
 
 | Pieza | Dónde corre | Qué es | Cómo se actualiza |
 |---|---|---|---|
-| **Servidor** («AI Cowork principal») | Mac mini `mac-mini`, encendido 24/7, por Tailscale | La app de escritorio con el motor: lanza los agentes, guarda proyectos, sirve la web y la API móvil | ⋮ → «Buscar actualizaciones…» (descarga de GitHub, instala y reinicia) |
+| **Servidor** («kywai principal») | Mac mini `mac-mini`, encendido 24/7, por Tailscale | La app de escritorio con el motor: lanza los agentes, guarda proyectos, sirve la web y la API móvil | ⋮ → «Buscar actualizaciones…» (descarga de GitHub, instala y reinicia) |
 | **Escritorio** | Windows (este PC de desarrollo) / Mac | La misma app, con su propio motor | Igual que el servidor |
 | **Cliente** | Otro Windows/Mac | App instalada que se conecta al servidor: ve sus proyectos, abre sus carpetas y archivos, sincroniza carpetas | La interfaz viene del servidor (se actualiza con él). La parte nativa (ventana y puente) se publica con `npm run publicar-cliente` y los clientes la bajan **del servidor** (⋮ → «Actualizar este equipo…») |
 | **Navegador** | Cualquiera, por Tailscale | La misma interfaz servida por el servidor (`?t=<código>` en el enlace) | Con el servidor |
@@ -46,7 +46,7 @@ Reglas que se derivan de esto:
   `src/main/client.ts`, `src/main/clientConfig.ts`) o el empaquetado exige publicar e instalar de nuevo el cliente.
 - Cambios en `android/` **no llegan** hasta publicar la APK en `android/release/` y que el Mac la sirva.
 - Un cliente instalado antes del sistema de actualización por servidor hay que cambiarlo una vez a mano
-  (instalador en `release/AI-Cowork-Setup-<versión>.exe`).
+  (instalador en `release/kywai-Setup-<versión>.exe`).
 
 ---
 
@@ -63,8 +63,9 @@ src/
     orchestrator.ts   planificación, reparto, ejecución de tareas, mensajes de trabajo, avances
     agents/           un lector por programa (claude, codex, gemini, muse, ollama…) y generic.ts (catálogo)
     taskTrace.ts      registro paso a paso de cada tarea (workspace/traces, 30 días)
+    artifactDownloads.ts  descarga de entregables originales o selección en zip, por IPC y web; Órbita usa ArtifactDownloads.kt con la API existente
     progressFiles.ts  qué archivos nuevos merecen enseñarse en el chat mientras una tarea trabaja
-    coordinatorGuide.ts  lo que Hermes sabe de AI Cowork (se inyecta en cada planificación) + test
+    coordinatorGuide.ts  lo que Hermes sabe de kywai (se inyecta en cada planificación) + test
     projectBrief.ts   ficha automática de la carpeta del proyecto para el coordinador (README, pruebas, árbol) + test
     agentSessions.ts  última sesión de CLI de cada agente por proyecto, para retomarla en continuaciones y correcciones + test
     routines.ts       rutinas por proyecto: peticiones que se lanzan solas (horario, webhook /hooks/…, carpeta) + test
@@ -73,6 +74,10 @@ src/
     inbox.ts          bandeja «Te necesita» (avisos con botones, inbox.json, evento inbox.updated)
     uiShots.ts        capturas de la web (escritorio y móvil) y errores de consola para el verificador + test
     coworkMcp.ts      servidor MCP «ai-cowork» para Claude (memoria, equipo, preguntas, habilidades) + test
+    extensions.ts     Extensiones: servidores MCP del usuario por agente (Claude, Codex, Gemini, Hermes), su prueba y claves; si falta uvx o npx, el botón «Instalar uv / Node.js» lo instala con setup.ts + test
+    catalog.ts        catálogo de Extensiones: registro oficial de MCP, skills.sh e instalar skills desde GitHub + test
+    plugins.ts        plugins con formato de Claude Code (marketplaces, .tar.gz de GitHub): skills, órdenes y subagentes → habilidades; .mcp.json → servidores apagados + test
+    mods.ts           mods (kywai-mod.json): órdenes «/…» del chat, hooks con permiso (tapEvents) y paneles aislados (pestaña Mods; en Órbita, ui/orbita/PanelsMods.kt por GET /mods/panels con el puente KywaiBridge) + test; ejemplo en docs/mods/notas-rapidas
     skills.ts / repoInstructions.ts   habilidades compartidas (workspace/habilidades) y AGENTS.md/CLAUDE.md/GEMINI.md
     macPermissions.ts ventanas de permisos de macOS pendientes (van a «Te necesita»)
     webServer.ts / mobileApi.ts / mobileBackend.ts   acceso web, API `/api/call/*`, `/api/fs/*`, API móvil v1
@@ -141,7 +146,7 @@ export JAVA_HOME="C:/Users/usuario/AppData/Local/Programs/Temurin/jdk-21.0.12.1+
 ./gradlew :app:publishOrbita --offline        # firma y publica android/release/orbita.apk + orbita.json
 ```
 
-El `versionCode` es el **número de commits** de git: nunca se publica con `-PorbitaVersionCode` (eso es solo para
+El `versionCode` es el **número de commits** de git, y nunca menos que el de `android/release/orbita.json` + 1 (el repositorio público tiene poco historial): nunca se publica con `-PorbitaVersionCode` (eso es solo para
 pruebas en emulador). Tras publicar, se commitea `android/release` junto con el código.
 
 ### Después de cambiar algo
@@ -150,7 +155,7 @@ pruebas en emulador). Tras publicar, se commitea `android/release` junto con el 
 2. Si cambia la API móvil: actualizar `docs/mobile-api/openapi.json` (lo valida `mobileApi.test.ts`).
 3. Si cambia lo que Hermes debe saber o cómo reaccionar: `src/main/coordinatorGuide.ts` + test.
 4. Documentar la función en `docs/MANUAL.md` (el README solo cambia con titulares nuevos).
-5. Si se tocó Android: `publishOrbita` y commitear la APK.
+5. Si se tocó Android: al subirlo a `master`, GitHub Actions («Publicar Órbita») compila, firma y sube la APK solo; no hace falta `publishOrbita` a mano (desde el PC sigue valiendo).
 6. Un commit por mejora, `git push` a `master` sin esperar a que lo pidan.
 
 ---
@@ -167,6 +172,11 @@ pruebas en emulador). Tras publicar, se commitea `android/release` junto con el 
 - **README = presentación; MANUAL = funciones en detalle** (con su índice). Mantener la sección «Instalar» del
   README: `selfUpdate.ts` envía ahí a quien tiene que instalar a mano.
 - **Lo que Hermes debe saber** va en `coordinatorGuide.ts`, no solo en la documentación.
+- **Idiomas**: todo texto nuevo que vea el usuario pasa por `t('…')` (`@/lib/i18n` en la interfaz) o `tr('…')`
+  (`@shared/i18n` en el motor) y lleva su traducción en `src/shared/i18n-en.ts` y en `i18n-pt.ts`, `i18n-fr.ts` e `i18n-zh.ts`; `i18n.test.ts`
+  avisa si falta. Las
+  instrucciones a los agentes siguen en español y llevan `replyLanguage()`. En Órbita, `t("…")` de
+  `com.aicowork.remote.i18n` con la traducción en `I18nEn.kt`, `I18nPt.kt`, `I18nFr.kt` e `I18nZh.kt` (lo comprueba `I18nTest`). Ver «Idioma» en el MANUAL.
 - **Seguridad**: el texto del usuario nunca va en la línea de órdenes de un agente; las claves de API se guardan
   cifradas con el llavero del sistema, solo en el servidor (nunca por web, API móvil ni `config.json`). El código de
   acceso (`?t=`) y las llaves de dispositivo no se escriben en documentos ni en commits.
@@ -233,7 +243,7 @@ pruebas en emulador). Tras publicar, se commitea `android/release` junto con el 
   cubiertos con pruebas y con un mensaje simulado en el navegador).
 - Probar con **agentes reales** lo de calidad: retomar sesiones (`codex exec resume` se implementó por su
   documentación: no había Codex en el PATH del Mac para comprobar la ayuda), la verificación, «a dos manos» y la
-  respuesta final; y mirar en «Consumo y tokens…» cuánto suben el gasto y el tiempo.
+  respuesta final; y mirar en «Uso y coste…» cuánto suben el gasto y el tiempo.
 - **👍/👎 desde Órbita** (hoy solo en el escritorio; la API móvil ya expone `rating`).
 - Compilar y probar en el Mac la **bandeja de Órbita** (escrita sin SDK de Android) y publicarla desde el PC;
   dar el **servidor MCP** también a Codex (sus `-c` con comillas no pasan por la consola: haría falta otra vía).
@@ -250,7 +260,7 @@ pruebas en emulador). Tras publicar, se commitea `android/release` junto con el 
 **Con acceso al repositorio** (Claude Code en cualquier equipo):
 
 ```bash
-git clone <repositorio de AI Cowork> && cd "AI Cowork"
+git clone <repositorio de kywai> && cd "kywai"
 npm install
 git log --oneline | head -20      # qué se hizo último
 ```
@@ -263,6 +273,6 @@ con el archivo y la función afectados; el cambio real se aplica desde una sesi�
 
 **Plantilla para empezar un chat nuevo:**
 
-> Trabajamos en AI Cowork (Electron + React + Three.js, con la app Android Órbita). Lee `docs/CONTEXTO-DEL-PROYECTO.md`
+> Trabajamos en kywai (Electron + React + Three.js, con la app Android Órbita). Lee `docs/CONTEXTO-DEL-PROYECTO.md`
 > y la sección relevante de `docs/MANUAL.md`. Hoy quiero: <qué>. Sigue las reglas del documento (commits por mejora,
 > subir a master, archivos uno a uno, documentar en el MANUAL).

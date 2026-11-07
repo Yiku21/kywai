@@ -13,13 +13,34 @@ internal object Shaders {
         #else
         precision mediump float;
         #endif
+        // Colores del tema (SpaceGrade): 1.0 en uKeep los deja como están (los robots).
+        uniform float uKeep;
+        vec3 themeHsv(vec3 c) {
+            vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+            vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+            vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+            float d = q.x - min(q.w, q.y);
+            return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + 1e-10)), d / (q.x + 1e-10), q.x);
+        }
+        vec3 themeRgb(vec3 c) {
+            vec3 p = abs(fract(c.xxx + vec3(1.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
+            return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+        }
+        vec3 themeGrade(vec3 c) {
+            /*THEME*/return c;
+        }
         vec3 toSrgb(vec3 c) {
             c = clamp(c, 0.0, 1.0);
-            return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
+            vec3 s = mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
+            return mix(themeGrade(s), s, uKeep);
         }
         float hash11(float n) { return fract(sin(n) * 43758.5453123); }
         float hash21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
     """
+
+    /** El sombreador [src] con los colores de un tema (sin [grade], tal cual). */
+    fun themed(src: String, grade: com.aicowork.remote.ui.space.SpaceGrade?): String =
+        if (grade == null) src else src.replace("/*THEME*/return c;", grade.glsl())
 
     /** Cabecera para usar `fwidth` si el dispositivo lo permite (si no, [DERIV_FALLBACK]). */
     const val DERIV_EXT = "#extension GL_OES_standard_derivatives : enable\n#define HAS_DERIV 1\n"

@@ -1,5 +1,6 @@
 // Lo que un agente va contando en el chat mientras hace una tarea (escritorio, web y app del móvil): sus frases
 // cortas y, entre ellas, las herramientas que usó resumidas en una línea, como hace Claude en su app.
+import { tr } from './i18n'
 import type { TraceEntry, TraceTool, WorkFile, WorkStep, WorkToolRef, WorkTotals } from './types'
 
 /** Pasos que se ven en el chat; los anteriores quedan en el registro completo de la tarea. */
@@ -10,23 +11,23 @@ const MAX_ITEMS = 12
 const MAX_NOTE = 400
 
 const VERBS: Array<[TraceTool, string, string]> = [
-  ['command', 'ejecutó un comando', 'ejecutó # comandos'],
-  ['edit', 'editó un archivo', 'editó # archivos'],
-  ['write', 'creó un archivo', 'creó # archivos'],
-  ['read', 'leyó un archivo', 'leyó # archivos'],
-  ['search', 'hizo una búsqueda', 'hizo # búsquedas'],
-  ['web', 'consultó internet', 'consultó internet # veces'],
-  ['agent', 'lanzó un subagente', 'lanzó # subagentes'],
-  ['other', 'usó una herramienta', 'usó # herramientas']
+  ['command', 'ejecutó un comando', 'ejecutó {n} comandos'],
+  ['edit', 'editó un archivo', 'editó {n} archivos'],
+  ['write', 'creó un archivo', 'creó {n} archivos'],
+  ['read', 'leyó un archivo', 'leyó {n} archivos'],
+  ['search', 'hizo una búsqueda', 'hizo {n} búsquedas'],
+  ['web', 'consultó internet', 'consultó internet {n} veces'],
+  ['agent', 'lanzó un subagente', 'lanzó {n} subagentes'],
+  ['other', 'usó una herramienta', 'usó {n} herramientas']
 ]
 
 /** «Ejecutó 3 comandos, editó 2 archivos y leyó un archivo». */
 export function toolsSummary(counts: Partial<Record<TraceTool, number>>): string {
   const parts = VERBS.filter(([tool]) => (counts[tool] ?? 0) > 0).map(([tool, one, many]) =>
-    counts[tool] === 1 ? one : many.replace('#', String(counts[tool]))
+    counts[tool] === 1 ? tr(one) : tr(many, { n: counts[tool] ?? 0 })
   )
   if (!parts.length) return ''
-  const text = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}`
+  const text = parts.length === 1 ? parts[0] : tr('{list} y {last}', { list: parts.slice(0, -1).join(', '), last: parts[parts.length - 1] })
   return text[0].toUpperCase() + text.slice(1)
 }
 

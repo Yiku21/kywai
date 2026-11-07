@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import android.annotation.SuppressLint
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -25,11 +27,11 @@ class VoiceRecorder(private val file: File, private val maxMillis: Long = 5 * 60
     @SuppressLint("MissingPermission")
     fun start(onLimit: () -> Unit) {
         val min = AudioRecord.getMinBufferSize(RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-        if (min <= 0) throw IllegalStateException("El micrófono no está disponible")
+        if (min <= 0) throw IllegalStateException(t("El micrófono no está disponible"))
         val record = AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, min * 4)
         if (record.state != AudioRecord.STATE_INITIALIZED) {
             record.release()
-            throw IllegalStateException("No se pudo abrir el micrófono")
+            throw IllegalStateException(t("No se pudo abrir el micrófono"))
         }
         file.parentFile?.mkdirs()
         val out = RandomAccessFile(file, "rw").apply { setLength(0); write(ByteArray(44)) }
@@ -76,7 +78,7 @@ class VoiceRecorder(private val file: File, private val maxMillis: Long = 5 * 60
         running = false
         thread?.join(2_000)
         failure?.let { throw it }
-        if (elapsedMillis < 300) throw IllegalStateException("La nota es demasiado corta")
+        if (elapsedMillis < 300) throw IllegalStateException(t("La nota es demasiado corta"))
         return file
     }
 

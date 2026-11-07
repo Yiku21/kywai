@@ -1,25 +1,29 @@
 <div align="center">
 
-<img src="build/icon-256.png" alt="AI Cowork" width="112" height="112">
+<img src="docs/img/logo/kywai-simbolo.svg" alt="kywai" width="112" height="112">
 
-# AI Cowork
+# kywai
+
+<sub>读作 “ki-wai”。原名 <i>AI Cowork</i>。</sub>
 
 ### 任意提供商的任意 AI 智能体，想要多少就加多少，作为一支团队协同工作。
 
 只需说一次。协调者会规划工作，把每项任务交给最擅长的智能体：Claude、Codex、Gemini、DeepSeek、Qwen、Copilot、Cursor、本地模型，或你添加的任何命令行智能体。你可以在实时 3D 世界里看着每个机器人干活，最后，结果会回到你手中，而且已经过检查。
 
-[English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · **简体中文**
+[English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · **简体中文** · 🌐 [kywai.app](https://kywai.app)
 
-<a href="docs/video/ai-cowork-presentacion.mp4" title="44 秒了解 AI Cowork"><img src="docs/img/video-presentacion.gif" alt="44 秒了解 AI Cowork" width="800"></a>
+https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
 
-<sub><a href="docs/video/ai-cowork-presentacion.mp4">▶ 观看 44 秒介绍视频（有声音）</a></sub>
+[![官网: kywai.app](https://img.shields.io/badge/%E5%AE%98%E7%BD%91-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-x64%20%26%20ARM-FCC624?logo=linux&logoColor=black)
 ![浏览器](https://img.shields.io/badge/%E6%B5%8F%E8%A7%88%E5%99%A8-%E9%80%9A%E8%BF%87%20Tailscale-242E4C?logo=tailscale&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-%C3%93rbita-3DDC84?logo=android&logoColor=white)
 ![Electron](https://img.shields.io/badge/Electron-React%2019%20%2B%20Three.js-47848F?logo=electron&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-%E8%AF%B7%E6%88%91%E5%96%9D%E6%9D%AF%E5%92%96%E5%95%A1-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/yilsander)
 
 <br>
 
@@ -31,17 +35,17 @@
 <img src="src/renderer/src/assets/robots/qwen.png" alt="本地模型" width="72" title="本地模型">
 <img src="src/renderer/src/assets/robots/becario.png" alt="实习生" width="72" title="实习生：同一个智能体，投入更少的精力">
 
-[简介](#-简介) · [任意智能体](#-支持任意提供商的任意智能体) · [为什么](#-为什么选择-ai-cowork) · [工作原理](#-工作原理) · [功能](#-功能) · [随时随地](#-随时随地使用) · [主题](#-主题) · [安装](#-安装) · [隐私](#-隐私与安全)
+[简介](#-简介) · [任意智能体](#-支持任意提供商的任意智能体) · [为什么](#-为什么选择-kywai) · [工作原理](#-工作原理) · [功能](#-功能) · [扩展](#-扩展mcpskillsplugins-和-mods) · [随时随地](#-随时随地使用) · [主题](#-主题) · [安装](#-安装) · [隐私](#-隐私与安全) · [支持](#-支持这个项目)
 
 </div>
 
 <br>
 
-![AI Cowork：左侧是包含 Hermes 计划的聊天，右侧是智能体正在工作的 3D 数字空间](docs/img/escritorio.jpg)
+![kywai：左侧是包含 Hermes 计划的聊天，右侧是智能体正在工作的 3D 数字空间](docs/img/zh/escritorio.jpg)
 
 ## ✨ 简介
 
-AI Cowork 把你已有的 AI 智能体和订阅（无论来自哪家提供商）变成**一支协同工作的团队**。你不必在各个应用之间来回切换、到处复制上下文，只需说一次：
+kywai 把你已有的 AI 智能体和订阅（无论来自哪家提供商）变成**一支协同工作的团队**。你不必在各个应用之间来回切换、到处复制上下文，只需说一次：
 
 1. **🧭 协调者 Hermes** 理解你的需求并提出计划：有哪些任务、每项任务由哪个智能体负责，以及原因。
 2. **✅ 你来批准**，或者直接用大白话告诉它要改什么。
@@ -53,16 +57,18 @@ AI Cowork 把你已有的 AI 智能体和订阅（无论来自哪家提供商）
 
 ## 🔌 支持任意提供商的任意智能体
 
-AI Cowork 并不绑定于一组固定的模型。它是一个让你**组建自己团队**的平台：
+kywai 并不绑定于一组固定的模型。它是一个让你**组建自己团队**的平台：
 
-- **想加多少智能体就加多少**：在 ⋮ →“配置智能体…”→“添加智能体”中操作。目录已经知道如何启动 30 多个智能体，以及每个智能体使用的账号或订阅：Claude Code、Codex CLI、Gemini CLI、Antigravity CLI、Muse Code、Aider、DeepSeek、Qwen Code、Kimi Code、MiniMax Code、Mistral Vibe、Grok Build、GitHub Copilot CLI、Cursor、Amp、Goose、OpenCode、Cline、Continue、OpenHands、Factory Droid、Auggie、Junie、Kiro、Rovo Dev、Qoder CLI、Crush、Open Interpreter、gptme、Letta Code、ForgeCode、OpenClaw 等等。
+- **想加多少智能体就加多少**：在 ⚙ →“配置智能体…”→“添加智能体”中操作。目录已经知道如何启动 30 多个智能体，以及每个智能体使用的账号或订阅：Claude Code、Codex CLI、Gemini CLI、Antigravity CLI、Muse Code、Aider、DeepSeek、Qwen Code、Kimi Code、MiniMax Code、Mistral Vibe、Grok Build、GitHub Copilot CLI、Cursor、Amp、Goose、OpenCode、Cline、Continue、OpenHands、Factory Droid、Auggie、Junie、Kiro、Rovo Dev、Qoder CLI、Crush、Open Interpreter、gptme、Letta Code、ForgeCode、OpenClaw 等等。
+- **寻找免费选项。** 目录的“仅免费”筛选显示提供免费选项的智能体，包括使用 Kilo Auto Free 的 Kilo CLI。各条目会说明提供商的要求和限制。
 - **也可以接入任何其他程序**：选择“其他程序…”，填写它的命令、接收任务的方式（stdin、文件或参数）以及参数，它就会加入团队。
 - **订阅或 API 密钥皆可。** 智能体使用你在其自身程序中已有的登录运行。需要 API 密钥的智能体（DeepSeek、Kiro、Junie、Factory Droid、Amp…）只会询问一次；密钥通过系统钥匙串加密，并且只会传给对应的智能体。
 - **本地模型同样支持。** 你在 LM Studio 或 Ollama 中运行的任何模型都可以使用，免费且数据不离开你的电脑。
+- **本地智能体会自己照顾自己。** 需要时它会自动启动 LM Studio；它卡片上的“推理（think）”开关让模型只在你需要时先思考再回答（默认关闭，回答快得多）。
 - **由谁来协调由你决定。** 默认由 Hermes 协调，但任何智能体都可以负责规划和分配（“设为协调者”）。如果它不可用，下一个会接手。
 - **每个智能体都是正式的团队成员**，在 3D 世界里拥有自己的机器人和工位、自己的表现统计，并和其他成员一样经过计划、审查和撤销流程。
 
-## 💡 为什么选择 AI Cowork
+## 💡 为什么选择 kywai
 
 <table>
 <tr>
@@ -103,7 +109,7 @@ AI Cowork 并不绑定于一组固定的模型。它是一个让你**组建自�
 <td valign="top">
 
 **🔒 从设计上保护隐私**<br>
-一切都在你的电脑上运行。远程访问只经过你自己的 Tailscale 网络，语音听写在本地运行，AI Cowork 从不查看或存储密码。
+一切都在你的电脑上运行。远程访问只经过你自己的 Tailscale 网络，语音听写在本地运行，kywai 从不查看或存储密码。
 
 </td>
 </tr>
@@ -150,6 +156,7 @@ flowchart TD
 
 - **由你批准的计划。** 没有你的同意，什么都不会开始；你只需一句话就能修改计划（“让 Codex 来做”“跳过调研”）。点一下即可批准，或者直接回复“是”。如果你愿意，也可以关闭批准环节，让团队直接开工。
 - **同时处理多个请求。** 新工作会分配给空闲的智能体，并且不会碰到其他智能体正在编辑的文件。
+- **直接和某个智能体对话。** 输入 `@Claude …`（或 `/directo Claude …`），你的文字会原样发给这个智能体，不经过 Hermes 的计划、审查和总结。输入 `@` 会弹出智能体列表，桌面端、浏览器和 Órbita 都支持。
 - **每项任务都有验收标准**，如果某个智能体动了不属于它的文件，还会发出警告。
 - **看重品味的工作由两人分头做。** 两个来自不同家族的智能体分别构建同一样东西（方案 A 和方案 B），再由第三个智能体测试两者、对照你的需求进行比较，并告诉你哪个胜出以及原因。
 - **同行评审。** 当任务修改了文件时，另一个家族的智能体会以只读模式检查，能跑测试就跑测试，并给出*通过*或*有问题*的结论。原作者最多修复两次，每次修复后都会重新检查。如果仍未通过，会交给另一个强力智能体接手一次；若仍失败，则作为*需要介入*进入“需要你处理”列表。只有明确的*通过*才算批准：没有明确结论的评审会再问一次，仍没有就标记为*未验证*，绝不算通过。
@@ -163,6 +170,9 @@ flowchart TD
 - **看得见的进度。** 任务还在运行时，新的截图和图像就会以缩略图出现在聊天中，文档则以卡片形式呈现。
 - **“需要你处理”铃铛**：汇集所有等待你决定的事项（计划、问题、权限请求、沉默的智能体）及其按钮，并会向你的手机推送通知。
 - **3D 数字空间**：展示每一种状态，包括工作中、等待其他智能体、委派给实习生、额度用尽或出错，还能看到文件在机器人之间传递。
+- **有性格的机器人。** 它们的眼睛会显示每个机器人真正在做什么（专注、思考、疲惫、睡着、出错、完成），每个都有自己的性格和用你的语言说话的对话气泡；你在聊天框打字时，它们会醒来并转身看向你。
+
+<p align="center"><img src="docs/img/zh/robots.jpg" alt="3D 数字空间：机器人在各自的工位上，带有对话气泡，标签上显示状态" width="700"></p>
 
 ### ↩️ 控制与安全网
 
@@ -173,24 +183,39 @@ flowchart TD
 
 ### 🧩 上下文与自动化
 
+- **像 Claude 一样的对话。** 侧边栏列出你的项目、置顶项目和最近的聊天。“新聊天”会开始一段新对话，而不会丢失之前的对话；任何一段都可以稍后恢复，连同它的任务和每个智能体的会话。Ctrl+K 可在所有项目的对话、任务、结果和记忆中搜索。
 - **项目记忆**：包含指令、决定、偏好和待办事项，每条都标明作者和状态。每个智能体在每项任务中都会读取它，即使你清空了聊天也不例外。
-- **全队共用一个 AGENTS.md。** 每个 CLI 只读取自己的文件；AI Cowork 会把其他文件一并传递过去，因此一个 `AGENTS.md` 就能让所有智能体遵循同样的规则。
-- **共享技能。** 可复用的流程存放在 `habilidades` 文件夹中，采用与 Claude 技能相同的 `SKILL.md` 格式。
-- **AI Cowork MCP 服务器。** 智能体可以获得一些工具，用来读取和补充项目记忆、查看团队状态、加载技能以及向你提问，每项任务都有独立的令牌。
-- **例行任务。** 能自动启动的请求：在设定的时间、选定的星期几、每隔 N 小时、通过 webhook（支持 GitHub 签名）或在某个文件夹中的文件发生变化时触发。它们和你手动输入的请求一样，经过相同的计划、智能体和审查流程。
+- **全队共用一个 AGENTS.md。** 每个 CLI 只读取自己的文件；kywai 会把其他文件一并传递过去，因此一个 `AGENTS.md` 就能让所有智能体遵循同样的规则。
+- **例行任务。** 可设置仅运行一次、固定时间、指定星期、每隔 N 小时、通过带签名的 GitHub webhook 或文件夹变化触发。使用 /rutina 创建，查看历史并决定是否需要批准。协调者的建议只有在你确认后才会保存。
+- **任务模板。** 聊天框上方的卡片用于审查 PR、总结文件夹、查找问题或创建自己的请求。填写字段、使用 /… 命令、发送给团队或直接发送给智能体，并将符合条件的模板转换为例行任务。
+- **可下载的交付文件。** 在聊天和“结果”中打开或下载单个文件，或将一组文件保存为 ZIP。支持桌面、桌面客户端、浏览器和 Órbita，也能从手机带走结果。
+
+### 🧰 扩展：MCP、skills、plugins 和 mods
+
+打开 **⚙ → 设置 → 扩展**，为智能体添加工具并自定义 kywai：
+
+- **MCP 服务器.** 从目录搜索，或添加命令、JSON 配置或地址。选择哪些智能体可以使用各服务器：kywai 会先检查连接并列出工具，再启用服务器。缺少 uv 或 Node.js 时，可以从卡片安装。
+- **共享 skills.** 在 skills.sh 搜索技能，或从 GitHub 仓库或文件夹安装。`SKILL.md` 与脚本、参考资料一同保留，整个团队都可以在需要时查阅这些技能。
+- **Plugins.** 浏览 Anthropic 的插件目录，或添加其他 GitHub 目录或插件。kywai 将技能、命令和子智能体配置转换为共享技能，并以关闭状态导入 MCP，由你选择向哪些智能体启用。
+- **Mods.** 从 GitHub 或本地文件夹安装 kywai 扩展，添加聊天 /… 命令、工作开始或结束时的 hooks，以及自定义面板。Hooks 需要你的授权；面板在桌面、网页和 Órbita 中隔离运行。
+
+**兼容性：** 用户 MCP 支持 Claude、Codex、Gemini 和 Hermes；不兼容的智能体会显示为不可选。需要授权的远程服务器必须使用令牌，目前不支持 OAuth 和 SSE。插件只导入兼容组件，不会像 Claude Code 那样执行插件 hooks 和 LSP。kywai 内部 MCP 目前提供给协调任务中的 Claude。
+
+详情及 mod 示例见[手册](docs/MANUAL.md#extensiones-tus-servidores-mcp-para-los-agentes)和[快速笔记](docs/mods/notas-rapidas)。
 
 ### 📊 额度与成本
 
-- 顶栏显示 Claude 和 GPT 的**真实额度**，并支持带预算的额度分组。
-- **每次请求的用量：** 耗时、token 数以及消耗的额度，方便你判断团队协作是否胜过单个智能体。可导出为 CSV。
+- **随团队更新的额度。** 添加、移除、启用或停用智能体时，顶部栏会更新。显示 Claude 和 GPT 的真实额度，并区分其他提供商的预算或估算以及本地模型。
+- **用量与成本。** 查看每次请求的时间与 token、各智能体成本、订阅、API、免费或本地方案，并比较用量与支出。可设置价格和月度预算提醒，导出 CSV；估算数据会明确标注。
 - **按难度选择模型和投入程度**，可以在每个机器人的面板中更换模型，用 `/model` 更换 Hermes 的模型。
 
 ### 🎨 舒适体验
 
+- **聊天优先。** 窗口较小时聊天区会占更多空间；你可以拖动它的边缘调整到想要的宽度（双击恢复自动）；窗口很窄时，聊天和 3D 世界会变成两个标签页。
 - **本地语音听写**：在你自己的电脑上使用 Whisper。不依赖任何外部服务，音频用完即删。
-- **十一款主题**，同时改变 3D 世界的风格。其中一些还会装饰世界、给机器人换装。
+- **地图、配色与装饰。** 七款 3D 地图、七种配色的数字城市和四款装饰场景。可跟随服务器主题或为每台设备单独设置；Órbita 使用对应配色，不复现桌面地图。
 - **智能体语音**，每个都有自己的音色，文字会随着语音的节奏逐字显示，就像《集合啦！动物森友会》里那样。
-- **音乐播放器**：支持 YouTube Music 搜索和播放队列，灯光会跟随歌曲的 BPM 变化，无需麦克风。
+- **音乐播放器**：支持 YouTube Music 搜索、无广告的 Audius 和 SomaFM 电台，以及播放队列，灯光会跟随歌曲的 BPM 变化，无需麦克风。
 - **设置助手**：用官方安装程序安装缺失的程序，并打开每个官方登录页面。
 - **演示模式**：无需任何花费即可展示应用。
 
@@ -203,17 +228,18 @@ flowchart TD
 | `/recuerda …` | 将内容保存到项目记忆（`decisión:`、`pendiente:`、`preferencia:`） |
 | `/rutina …` | 创建或管理例行任务 |
 | `/new` | 开始新对话，并保留上一段对话的副本 |
+| `@智能体 …` | 把文字原样直接发给某个智能体，不经过 Hermes（也可用 `/directo 智能体 …`） |
 
 ## 🌍 随时随地使用
 
-安装了 AI Cowork 的电脑（例如一台始终开机的 Mac mini）负责干活。你可以通过四种方式随身使用它：
+安装了 kywai 的电脑（例如一台始终开机的 Mac mini）负责干活。你可以通过四种方式随身使用它：
 
 | | 🖥️ **桌面版** | 💻 **桌面客户端** | 🌐 **浏览器** | 📱 **Órbita（Android）** |
 |---|---|---|---|---|
-| **是什么** | 适用于 Windows 和 macOS 的完整应用 | 在另一台电脑上运行的应用，连接到你的主 AI Cowork | 在你 Tailscale 网络中的任何设备上使用同样的界面 | 专为手机打造的原生 Android 应用 |
+| **是什么** | 适用于 Windows、macOS 和 Linux 的完整应用 | 在另一台电脑上运行的应用，连接到你的主 kywai | 在你 Tailscale 网络中的任何设备上使用同样的界面 | 专为手机打造的原生 Android 应用 |
 | **如何进入** | 打开应用 | 用 6 位数代码配对一次 | 一个带访问码的链接，只需一次 | 用 6 位数代码配对一次 |
 | **能做什么** | 全部功能 | 全部功能，外加浏览服务器上的文件和双向**同步文件夹** | 聊天、3D 世界、文件、结果和批准计划 | 聊天、计划、任务、文件、记忆、用量和原生 3D 世界 |
-| **更新方式** | ⋮ →“检查更新…” | 来自你自己服务器的签名更新 | 始终是最新版本 | 在“设置”中更新，无需重新安装 |
+| **更新方式** | ⚙ →“检查更新…” | 来自你自己服务器的签名更新 | 始终是最新版本 | 在“设置”中更新，无需重新安装；新版本会自动发布 |
 
 <p align="center">
   <img src="docs/img/movil-chat.jpg" alt="折叠状态手机上的 Órbita：3D 世界上方叠加聊天" height="460">
@@ -225,18 +251,18 @@ flowchart TD
 
 ## 🎨 主题
 
-⋮ →“主题…”可以立即改变应用及其 3D 世界的外观。
+**设置 → 主题** 中包含七款地图（Clásico、Órbita、Marfil、Grafito、Bosque、Matrix 和 EVA-01）、七种配色的数字城市和四款装饰场景。可以跟随服务器主题或为每台设备单独选择。Órbita 使用对应配色，不复现桌面场景。以下图片展示部分配色和装饰：
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-orbita.jpg" alt="Órbita 主题" width="260"><br><b>Órbita</b>：磨砂玻璃</td>
-    <td align="center"><img src="docs/img/tema-marfil.jpg" alt="Marfil 主题" width="260"><br><b>Marfil</b>：明亮温暖</td>
-    <td align="center"><img src="docs/img/tema-grafito.jpg" alt="Grafito 主题" width="260"><br><b>Grafito</b>：黑与金</td>
+    <td align="center"><img src="docs/img/zh/tema-orbita.jpg" alt="Frost Glass 主题" width="260"><br><b>Frost Glass</b>：磨砂玻璃</td>
+    <td align="center"><img src="docs/img/zh/tema-marfil.jpg" alt="珍珠 主题" width="260"><br><b>珍珠</b>：明亮温暖</td>
+    <td align="center"><img src="docs/img/zh/tema-grafito.jpg" alt="缟玛瑙 主题" width="260"><br><b>缟玛瑙</b>：黑与金</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-bosque.jpg" alt="Bosque 主题" width="260"><br><b>Bosque</b>：深绿与金</td>
-    <td align="center"><img src="docs/img/tema-matrix.jpg" alt="Matrix 主题" width="260"><br><b>Matrix</b>：黑与霓虹绿</td>
-    <td align="center"><img src="docs/img/tema-eva.jpg" alt="EVA-01 主题" width="260"><br><b>EVA-01</b>：紫与青柠绿</td>
+    <td align="center"><img src="docs/img/zh/tema-bosque.jpg" alt="翡翠 主题" width="260"><br><b>翡翠</b>：深绿与金</td>
+    <td align="center"><img src="docs/img/zh/tema-matrix.jpg" alt="霓虹 主题" width="260"><br><b>霓虹</b>：黑与霓虹绿</td>
+    <td align="center"><img src="docs/img/zh/tema-eva.jpg" alt="紫外 主题" width="260"><br><b>紫外</b>：紫与青柠绿</td>
   </tr>
 </table>
 
@@ -244,12 +270,12 @@ flowchart TD
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-relicario.jpg" alt="Relicario 主题" width="400"><br><b>Relicario</b>：切割水晶核心与玻璃镶金平台</td>
-    <td align="center"><img src="docs/img/tema-telar.jpg" alt="Telar 主题" width="400"><br><b>Telar</b>：银丝薄膜与金色火花</td>
+    <td align="center"><img src="docs/img/zh/tema-relicario.jpg" alt="Relicario 主题" width="400"><br><b>Relicario</b>：切割水晶核心与玻璃镶金平台</td>
+    <td align="center"><img src="docs/img/zh/tema-telar.jpg" alt="Telar 主题" width="400"><br><b>Telar</b>：银丝薄膜与金色火花</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-halloween.jpg" alt="Halloween 主题" width="400"><br><b>Halloween</b>：南瓜、蜡烛、月亮、蝙蝠、女巫和吸血鬼</td>
-    <td align="center"><img src="docs/img/tema-navidad.jpg" alt="圣诞主题" width="400"><br><b>Navidad</b>：雪花、圣诞树、礼物、雪花水晶球和圣诞帽</td>
+    <td align="center"><img src="docs/img/zh/tema-halloween.jpg" alt="Halloween 主题" width="400"><br><b>Halloween</b>：南瓜、蜡烛、月亮、蝙蝠、女巫和吸血鬼</td>
+    <td align="center"><img src="docs/img/zh/tema-navidad.jpg" alt="圣诞主题" width="400"><br><b>Navidad</b>：雪花、圣诞树、礼物、雪花水晶球和圣诞帽</td>
   </tr>
 </table>
 
@@ -257,12 +283,20 @@ flowchart TD
 
 ### 系统要求
 
-- **Windows 10/11 或 macOS**（Apple 芯片或 Intel）。
+- **Windows 10/11、macOS**（Apple 芯片或 Intel）**或 Linux**（x64 或 ARM；Ubuntu、Debian、Fedora、Arch、openSUSE 等）。
 - **Node.js** `^22.22.2 || ^24.15.0 || >=26.0.0`。如果缺少，设置助手会自动安装。
 - 至少一个智能体：目录中的任意智能体（Claude Code、Codex CLI、Gemini CLI、DeepSeek、Qwen Code、Copilot…）、本地模型或任何命令行智能体。默认由 **Hermes Agent** 负责协调，但任何智能体都可以担任。
 - 可选：用于本地智能体的 **LM Studio** 或 **Ollama**，用于撤销功能的 **git**，以及用于在其他设备上使用的 **Tailscale**。
 
-> **注意：** 目前应用界面为西班牙语。本 README 中的菜单名称均为译名。
+> **语言：** 应用支持英语、西班牙语、葡萄牙语、法语和中文。默认使用系统语言，可在 ⚙ → 设置 →“Idioma · Language”中更改。葡萄牙语、法语和中文为机器翻译，欢迎指正。
+
+### 下载（最简单）
+
+从 **[最新版本](https://github.com/Yiku21/kywai/releases/latest)** 下载适合你系统的安装包：Windows 用 `.exe`，macOS（Apple 芯片或 Intel）用 `.dmg`，Linux 用 `.AppImage`。安装后，应用每次打开都会检查新版本并自动更新（在 macOS 上会提示你并打开下载页面）。
+
+目前还没有代码签名：在 Windows 上点击“更多信息”→“仍要运行”；在 macOS 上第一次打开时右键点击应用 → 打开（如果提示已损坏，在终端运行 `xattr -cr "/Applications/kywai.app"`）；在 Linux 上用 `chmod +x` 让 AppImage 可执行。
+
+或者自己编译：
 
 ### Windows
 
@@ -271,7 +305,7 @@ npm install
 npm run dist:win
 ```
 
-这会生成 `release/AI-Cowork-Setup-<version>.exe`。安装程序允许你选择安装文件夹，并会创建快捷方式。由于没有代码签名，Windows 可能会发出警告：点击“更多信息”→“仍要运行”。
+这会生成 `release/kywai-Setup-<version>.exe`。安装程序允许你选择安装文件夹，并会创建快捷方式。由于没有代码签名，Windows 可能会发出警告：点击“更多信息”→“仍要运行”。
 
 ### macOS
 
@@ -279,7 +313,7 @@ npm run dist:win
 npm run fuente
 ```
 
-这会生成 `release/AI-Cowork-fuente.zip`。在 Mac 上解压后，在该文件夹内运行：
+这会生成 `release/kywai-fuente.zip`。在 Mac 上解压后，在该文件夹内运行：
 
 ```bash
 bash scripts/instalar-mac.sh
@@ -287,20 +321,30 @@ bash scripts/instalar-mac.sh
 
 它会为这台 Mac 构建应用，将其复制到 `/Applications`（或你选择的任意位置）并打开。
 
+### Linux
+
+安装好 Node.js 和 git 后，克隆仓库，并在该文件夹内运行：
+
+```bash
+bash scripts/instalar-linux.sh
+```
+
+它会为这台电脑构建应用，无需管理员权限即可安装到 `~/.local/share/ai-cowork`，将其加入应用程序菜单，并创建 `ai-cowork` 命令。也可以用 `npm run dist:linux` 生成 AppImage。详情见[手册](docs/MANUAL.md#linux-se-compila-en-el-propio-equipo)（西班牙语）。
+
 ### 首次运行
 
-首次启动时会打开**设置助手**（也可以在 ⋮ →“配置智能体…”中找到）：
+首次启动时会打开**设置助手**（也可以在 ⚙ →“配置智能体…”中找到）：
 
 1. 选择要使用哪些智能体。
 2. 它会检查这些智能体的程序，并用官方安装程序安装缺失的部分。
-3. 它会打开每个智能体的官方登录页面。AI Cowork 从不查看或存储密码。
+3. 它会打开每个智能体的官方登录页面。kywai 从不查看或存储密码。
 4. 它会汇总所有尚未完成的事项。
 
-要在手机或笔记本电脑上使用，请打开 ⋮ →“从其他设备访问…”。
+要在手机或笔记本电脑上使用，请打开 ⚙ →“从其他设备访问…”。
 
 ## 🔐 隐私与安全
 
-- **数据在你的电脑上。** 项目、记忆、日志和用量都保存在你的用户数据文件夹中（Windows 上为 `%APPDATA%\AI Cowork`，macOS 上为 `~/Library/Application Support/AI Cowork`）。
+- **数据在你的电脑上。** 项目、记忆、日志和用量都保存在你的用户数据文件夹中（Windows 上为 `%APPDATA%\AI Cowork`，macOS 上为 `~/Library/Application Support/AI Cowork`，Linux 上为 `~/.config/AI Cowork`）。
 - **封闭的远程访问。** 服务器只监听你的 Tailscale IP 和 `127.0.0.1`，绝不监听局域网或互联网，并且每个请求都要求提供代码。每台配对设备都有自己的密钥，你可以单独吊销（闲置 90 天后也会自动过期），也可以通过生成新代码一次性全部吊销。配对码 10 分钟后过期，并且只允许尝试少数几次。
 - **签名的客户端更新。** 桌面客户端只会安装用你自己的私钥签名的更新，而私钥从不离开发布更新的那台电脑。
 - **无需密码。** 每个智能体都使用其官方程序自身的登录方式。你添加的 API 密钥会通过系统钥匙串加密。
@@ -337,6 +381,16 @@ docs/          使用手册、模型指南和移动端 API
 - **[模型指南](docs/GUIA-MODELOS.md)**：每个智能体在不同难度下使用的模型和投入程度，并附有来源。
 - **[Órbita](android/README.md)**：Android 应用，以及如何构建和发布它。
 - **[移动端 API](docs/mobile-api/README.md)**：服务器与 Órbita 之间的契约。
+
+## ☕ 支持这个项目
+
+kywai 免费且开源。如果它帮你节省了时间，想表示感谢，可以 **[在 Ko-fi 上请我喝杯咖啡](https://ko-fi.com/yilsander)**。应用里也有入口：桌面端 ⚙ →“支持 kywai ☕”，Órbita 在“设置”的最底部。
+
+[![在 Ko-fi 上请我喝杯咖啡](https://img.shields.io/badge/Ko--fi-%E8%AF%B7%E6%88%91%E5%96%9D%E6%9D%AF%E5%92%96%E5%95%A1-FF5E5B?logo=ko-fi&logoColor=white&style=for-the-badge)](https://ko-fi.com/yilsander)
+
+## 📄 许可证
+
+[MIT](LICENSE)。你可以自由使用、修改和分享 kywai，只需保留版权声明。
 
 <div align="center">
 <br>

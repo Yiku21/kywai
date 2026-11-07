@@ -13,14 +13,15 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { MobileChatReceipt, MobileEventEnvelope, MobileFolderFile, MobileSnapshot } from '@shared/mobile'
 import type { Attachment, ChatMessage, UpdateStatus } from '@shared/types'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
-import { getConfig, loadConfig, setAgentAccess, setPlanApproval } from './config'
+import { getConfig, loadConfig, setAgentAccess, setAgentThinking, setPlanApproval, setServerName, setUiTheme } from './config'
 import { emit, setRuntime } from './events'
 import { addMemory, deleteMemory, setInstructions, updateMemory } from './memory'
 import { MAX_FILE_BYTES, __setFileLimitsForChecks } from './mobileFiles'
 import { __setOrbitaReleaseDirForChecks } from './orbitaRelease'
-import { __setBackendsForChecks, activeRunsFor, allAgents, approvePlan, cancelAll, getTaskChanges, undoTask, cancelRun, discardRun, rejectPlan, resetAgent, resumeRun, runtimeSnapshot, sendMessage } from './orchestrator'
+import { __setBackendsForChecks, activeRunsFor, allAgents, approvePlan, cancelAll, decideRoutineProposal, getTaskChanges, undoTask, cancelRun, discardRun, rejectPlan, resetAgent, resumeRun, runtimeSnapshot, sendMessage } from './orchestrator'
 import { actInbox, listInbox } from './inbox'
 import * as store from './projects'
+import * as conversations from './conversations'
 import { selfSignedCert } from './selfCert'
 import { flushTaskTraces, initTaskTraces } from './taskTrace'
 import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
@@ -29,7 +30,8 @@ import type { AccessEntry } from './serverFiles'
 import { localIO, syncOnce } from './syncEngine'
 import { connectRemote } from './syncRemote'
 import { DEVICE_INACTIVE_MS, DeviceRegistry } from './devices'
-import { createRoutine, initRoutines, runRoutineNow, stopRoutines } from './routines'
+import { createRoutine, deleteRoutine, initRoutines, runRoutineNow, stopRoutines, updateRoutine } from './routines'
+import { createTemplate, deleteTemplate, initTemplates, listTemplates, restoreBuiltinTemplates, updateTemplate } from './templates'
 
 const env = vi.hoisted(() => ({ root: '' }))
 vi.mock('electron', () => ({ app: { isPackaged: false, getAppPath: () => env.root, getPath: () => env.root } }))
@@ -75,7 +77,7 @@ async function api(path: string, data?: unknown, access = token): Promise<{ stat
   const response = { status: res.status, body: await res.json() }
   if (res.status >= 400) schemaFormat('Error', response.body)
   else {
-    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/')
+    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/templates\/(?!restore$)[^/]+/, '/templates/{templateId}').replace(/^\/routines\/[^/]+$/, '/routines/{routineId}').replace(/^\/messages\/[^/]+\//, '/messages/{messageId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/')
     const operation = openapi.paths[route][data === undefined ? 'get' : 'post']
     const schemaName = operation.responses[String(res.status)].content['application/json'].schema.$ref.split('/').at(-1)
     schemaFormat(schemaName, response.body)
@@ -177,6 +179,8 @@ beforeAll(() => {
     presence: async () => null,
     run: async (o) => {
       prompts.push(o.prompt)
+      // «PRUEBA-RUTINA …»: el coordinador propone además dejarlo programado (la tarjeta «Crear rutina»).
+      if (o.mode === 'plan' && o.prompt.includes('PRUEBA-RUTINA')) return { ok: true, text: JSON.stringify({ reply: 'Lo reviso ahora y te propongo la rutina.', tasks: [], routine: o.prompt.includes('PRUEBA-RUTINA-MAL') ? 'cuando quieras: algo' : '/rutina de lunes a viernes a las 8:30: revisa los PR abiertos' }), usage: { input: 1, output: 1 } }
       if (o.mode === 'plan') return { ok: true, text: JSON.stringify({ reply: 'Plan', tasks: [{ key: 't1', title: 'Prueba móvil', description: 'Trabajo de prueba', agent: 'codex', difficulty: 'medium', dependsOn: [], deliverable: 'text' }] }), usage: { input: 1, output: 1 } }
       return new Promise((resolve) => {
         const completion = process.env.AI_COWORK_ANDROID_INTEGRATION === '1' ? setTimeout(() => {
@@ -198,6 +202,37 @@ beforeAll(() => {
     return { ...store.snapshotProject(id as string), activeRunId: active.at(-1), activeRunIds: active }
   })
   webMethods.set('getRuntime', () => ({ runtimes: runtimeSnapshot(), quotas: [] }))
+  // Chats de cada proyecto: igual que index.ts, sin la comprobación de «el equipo está trabajando».
+  webMethods.set('listConversations', (id) => conversations.listConversations(id as string))
+  webMethods.set('newConversation', (id) => conversations.newConversation(id as string))
+  webMethods.set('openConversation', (id, cid) => conversations.openConversation(id as string, cid as string))
+  webMethods.set('renameConversation', (id, cid, title) => { conversations.renameConversation(id as string, cid as string, title); return conversations.listConversations(id as string) })
+  webMethods.set('deleteConversation', (id, cid) => { conversations.deleteConversation(id as string, cid as string); return conversations.listConversations(id as string) })
+  webMethods.set('setConversationPinned', (id, cid, pinned) => { conversations.setConversationPinned(id as string, cid as string, pinned === true); return conversations.listConversations(id as string) })
+  webMethods.set('pinnedConversations', () => conversations.pinnedConversations())
+  webMethods.set('searchHistory', (q, opts) => conversations.searchHistory(q, opts as never))
+  webMethods.set('allConversations', () => conversations.allConversations())
+  webMethods.set('forkConversation', (id, cid) => conversations.forkConversation(id as string, cid as string))
+  webMethods.set('moveConversation', (id, cid, to) => conversations.moveConversation(id as string, cid as string, to as string))
+  // Proyectos: como index.ts, pero borrando la carpeta en vez de mandarla a la Papelera.
+  webMethods.set('renameProject', (id, name) => store.renameProject(id as string, name))
+  webMethods.set('setProjectPinned', (id, pinned) => { conversations.setPinned(id as string, pinned === true); return { ...store.getProject(id as string).project } })
+  webMethods.set('deleteProject', (id) => {
+    if (activeRunsFor(id as string).length) throw new Error('Este proyecto tiene trabajo en marcha: detenlo antes de eliminarlo')
+    for (const dir of store.forgetProject(id as string).dirs) rmSync(dir, { recursive: true, force: true })
+    store.ensureFirstProject()
+    return store.listProjects()
+  })
+  webMethods.set('search', (q, id) => conversations.search(q, id))
+  // Música: como musicSearch.ts, sin salir a internet.
+  webMethods.set('searchMusic', (q, kind) => {
+    if (q === 'falla') throw new Error('Audius respondió 503')
+    if (kind === 'radio') return [{ videoId: 'radio:groovesalad', title: 'Groove Salad', artist: 'SomaFM', album: 'Ambient', thumbnail: 'https://somafm.com/img/gs.png' }]
+    return [
+      { videoId: 'audius:Ab12', title: 'Canción', artist: 'Artista', durationSec: 200 },
+      { videoId: 'dQw4w9WgXcQ', title: 'De YouTube', artist: 'Otro' }
+    ]
+  })
   webMethods.set('getUsageRuns', usageRuns)
   webMethods.set('sendMessage', (input) => sendMessage(input as Parameters<typeof sendMessage>[0]))
   webMethods.set('mobileStopRun', (id) => cancelRun(id as string, 'pause'))
@@ -206,6 +241,10 @@ beforeAll(() => {
   // Igual que index.ts.
   webMethods.set('mobileRunningProjects', () => store.listProjects().filter((p) => activeRunsFor(p.id).length).map((p) => p.id))
   webMethods.set('resetAgent', (id) => resetAgent(id as string))
+  webMethods.set('setAgentThinking', (id, enabled) => {
+    setAgentThinking(id, enabled)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
   webMethods.set('addMemory', (id, input) => addMemory(id as string, input as Parameters<typeof addMemory>[1], { status: 'confirmed', by: 'user', byName: 'Tú' }))
   webMethods.set('updateMemory', (id, memoryId, patch) => updateMemory(id as string, memoryId as string, patch as Parameters<typeof updateMemory>[2]))
   webMethods.set('deleteMemory', (id, memoryId) => deleteMemory(id as string, memoryId as string))
@@ -222,6 +261,14 @@ beforeAll(() => {
   webMethods.set('undoTask', (id, taskId) => undoTask(id as string, taskId as string))
   webMethods.set('setPlanApproval', (on) => {
     setPlanApproval(on as boolean)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
+  webMethods.set('setServerName', (name) => {
+    setServerName(name as string)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
+  webMethods.set('setUiTheme', (id) => {
+    setUiTheme(id as string)
     emit({ kind: 'config.updated', config: getConfig() })
   })
 })
@@ -260,7 +307,8 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
   it.each([
     ...GET_ROUTES, '/chat/messages', '/conversations', '/requests/abc/stop', '/requests/abc/resume', '/requests/abc/discard', '/memory', '/memory/m1', '/memory/m1/delete',
     '/instructions', '/files?conversationId=x&name=a.txt', '/settings/agent-access', '/usage/refresh', '/voice/transcribe',
-    '/plans/abc/approve', '/plans/abc/reject', '/settings/plan-approval', '/server/update'
+    '/plans/abc/approve', '/plans/abc/reject', '/settings/plan-approval', '/settings/server-name', '/settings/theme', '/server/update',
+    '/routines', '/routines/r1', '/routines/r1/delete', '/messages/m1/routine-proposal/create'
   ])('exige Bearer en %s', async (path) => {
     const result = await api(path, GET_ROUTES.includes(path) ? undefined : {}, '')
     expect(result.status).toBe(401)
@@ -278,10 +326,24 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect(mobileForWeb.status).toBe(401)
   })
 
+  it('descarga entregables por web con nombre, bytes originales y autenticación', async () => {
+    const project = store.createProject('Descarga web')
+    const payload = Buffer.from([0, 255, 3, 0, 128])
+    writeFileSync(join(project.dir, 'artifacts', 'imagen ñ.png'), payload)
+    store.upsertArtifact({ id: 'descarga', projectId: project.id, name: 'imagen ñ.png', relPath: 'artifacts/imagen ñ.png', kind: 'image', size: payload.length, createdAt: 1 })
+    const url = `${base}/api/artifact-download/${project.id}?ids=descarga`
+    expect((await fetch(url)).status).toBe(401)
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${CODE}` } })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-disposition')).toContain("attachment; filename*=UTF-8''imagen%20%C3%B1.png")
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(payload)
+    expect((await fetch(`${url},ajeno`, { headers: { Authorization: `Bearer ${CODE}` } })).status).toBe(400)
+  })
+
   it('crea una conversación en el almacén existente y proyecta agentes, tareas, memoria y consumo actuales', async () => {
     const created = await api('/conversations', {})
     expect(created.status).toBe(201)
-    expect(created.body).toEqual({ conversation: { id: expect.any(String), title: 'Conversación móvil', createdAt: expect.any(Number), messages: [], artifacts: [], instructions: '', activeRequestId: null, activeRequestIds: [], attachments: [], folder: null } })
+    expect(created.body).toEqual({ conversation: { id: expect.any(String), title: 'Conversación móvil', createdAt: expect.any(Number), messages: [], artifacts: [], instructions: '', activeRequestId: null, activeRequestIds: [], attachments: [], folder: null, chat: null } })
     addMemory(created.body.conversation.id, { kind: 'fact', text: 'Memoria compartida' }, { status: 'confirmed', by: 'user', byName: 'Tú' })
     const snapshot = await api(`/snapshot?conversationId=${created.body.conversation.id}`)
     expect(snapshot.status).toBe(200)
@@ -292,6 +354,103 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect(state.usage).toMatchObject({ runs: usageRuns(), quotas: [], totals: { input: expect.any(Number), output: expect.any(Number), cached: expect.any(Number) }, byAgent: expect.any(Array) })
     expect(state.capabilities).toMatchObject({ apiVersion: 'v1', events: 'websocket', stop: true, resume: true, eventSequence: expect.any(Number) })
     expect(JSON.stringify(state)).not.toContain(CODE)
+  })
+
+  it('varios chats por proyecto: lista, nuevo, volver, renombrar, borrar y buscar', async () => {
+    const project = store.createProject('Chats del móvil')
+    const st = store.getProject(project.id)
+    st.messages.push({ id: 'm-chat-1', projectId: project.id, author: { type: 'user', name: 'Tú' }, text: 'Revisa la ficha de seguridad', createdAt: Date.now() } as ChatMessage)
+    const first = await api(`/chats?conversationId=${project.id}`)
+    expect(first.status).toBe(200)
+    schemaFormat('ChatsResponse', first.body)
+    const original = first.body.chats.find((c: { current?: boolean }) => c.current)
+    expect(original).toMatchObject({ messageCount: 1 })
+
+    const fresh = await api('/chats', { conversationId: project.id })
+    expect(fresh.status).toBe(200)
+    schemaFormat('ConversationResponse', fresh.body)
+    expect(fresh.body.conversation.messages).toEqual([])
+    expect(fresh.body.conversation.chat.id).not.toBe(original.id)
+
+    const listed = await api(`/chats?conversationId=${project.id}`)
+    expect(listed.body.chats.map((c: { id: string }) => c.id)).toContain(original.id)
+
+    const renamed = await api(`/chats/${original.id}/rename`, { conversationId: project.id, title: 'Fichas CLP' })
+    expect(renamed.status).toBe(200)
+    expect(renamed.body.chats.find((c: { id: string }) => c.id === original.id).title).toBe('Fichas CLP')
+
+    const found = await api(`/search?q=${encodeURIComponent('ficha de seguridad')}`)
+    expect(found.status).toBe(200)
+    schemaFormat('SearchResponse', found.body)
+    expect(found.body.hits.some((h: { projectId: string }) => h.projectId === project.id)).toBe(true)
+    // Historial: el total, el mensaje exacto y los filtros por autor y fecha.
+    const hit = found.body.hits.find((h: { projectId: string; kind: string }) => h.projectId === project.id && h.kind === 'conversation')
+    expect(hit).toMatchObject({ messageId: 'm-chat-1', matchCount: 1 })
+    expect(found.body.total).toBeGreaterThanOrEqual(1)
+    const mine = await api(`/search?q=seguridad&author=user&since=1&limit=5`)
+    expect(mine.status).toBe(200)
+    schemaFormat('SearchResponse', mine.body)
+    expect(mine.body.hits.length).toBeGreaterThan(0)
+    expect((await api(`/search?q=seguridad&author=claude`)).body.hits.filter((h: { projectId: string }) => h.projectId === project.id)).toEqual([])
+    expect((await api(`/search?q=seguridad&limit=abc`)).status).toBe(400)
+    const history = await api('/chats/all')
+    expect(history.status).toBe(200)
+    schemaFormat('ChatsResponse', history.body)
+    expect(history.body.chats.some((c: { projectId: string }) => c.projectId === project.id)).toBe(true)
+
+    const back = await api(`/chats/${original.id}/open`, { conversationId: project.id })
+    expect(back.status).toBe(200)
+    expect(back.body.conversation.messages.map((m: { text: string }) => m.text)).toEqual(['Revisa la ficha de seguridad'])
+    expect(back.body.conversation.chat).toEqual({ id: original.id, title: 'Fichas CLP' })
+
+    const missing = await api(`/chats/c-no-existe/open`, { conversationId: project.id })
+    expect(missing.status).toBe(404)
+    expect((await api('/chats/..%2Fx/open', { conversationId: project.id })).status).toBe(400)
+    expect((await api(`/chats?conversationId=${project.id}&otro=1`)).status).toBe(400)
+  })
+
+  it('menú de mantener pulsado: fijar, bifurcar, mover y borrar chats (también el abierto) y renombrar, fijar y eliminar proyectos', async () => {
+    const project = store.createProject('Menú del móvil')
+    const other = store.createProject('Destino del menú')
+    store.getProject(project.id).messages.push({ id: 'm-menu-1', projectId: project.id, author: { type: 'user', name: 'Tú' }, text: 'Plan de obra', createdAt: Date.now() } as ChatMessage)
+    const open = (await api(`/chats?conversationId=${project.id}`)).body.chats.find((c: { current?: boolean }) => c.current)
+
+    const caps = (await api(`/snapshot?conversationId=${project.id}`)).body.capabilities
+    expect(caps).toMatchObject({ chatActions: true, projectActions: true })
+
+    const pinned = await api(`/chats/${open.id}/pin`, { conversationId: project.id, pinned: true })
+    expect(pinned.status).toBe(200)
+    expect(pinned.body.chats.find((c: { id: string }) => c.id === open.id).pinned).toBe(true)
+    expect((await api('/chats/pinned')).body.chats.map((c: { id: string }) => c.id)).toContain(open.id)
+    expect((await api(`/chats/${open.id}/pin`, { conversationId: project.id, pinned: 'sí' })).status).toBe(400)
+
+    const fork = await api(`/chats/${open.id}/fork`, { conversationId: project.id })
+    expect(fork.status).toBe(200)
+    expect(fork.body.chats.map((c: { id: string }) => c.id)).toContain(fork.body.chatId)
+
+    const moved = await api(`/chats/${fork.body.chatId}/move`, { conversationId: project.id, toConversationId: other.id })
+    expect(moved.status).toBe(200)
+    expect(moved.body.chats.map((c: { id: string }) => c.id)).not.toContain(fork.body.chatId)
+    expect((await api(`/chats?conversationId=${other.id}`)).body.chats.map((c: { id: string }) => c.id)).toContain(moved.body.chatId)
+
+    // El abierto también se borra: antes se empieza uno nuevo.
+    const deleted = await api(`/chats/${open.id}/delete`, { conversationId: project.id })
+    expect(deleted.status).toBe(200)
+    expect(deleted.body.chats.map((c: { id: string }) => c.id)).not.toContain(open.id)
+    expect(deleted.body.chats.find((c: { current?: boolean }) => c.current)).toBeTruthy()
+
+    const renamed = await api(`/projects/${project.id}/rename`, { name: 'Obra nueva' })
+    expect(renamed.status).toBe(200)
+    expect(renamed.body.projects.find((p: { id: string }) => p.id === project.id).name).toBe('Obra nueva')
+    const pin = await api(`/projects/${project.id}/pin`, { pinned: true })
+    expect(pin.body.projects.find((p: { id: string }) => p.id === project.id).pinned).toBe(true)
+    expect((await api(`/projects/${project.id}/rename`, { name: '' })).status).toBe(400)
+    expect((await api('/projects/NO_VALE/pin', { pinned: true })).status).toBe(400)
+
+    const gone = await api(`/projects/${project.id}/delete`, {})
+    expect(gone.status).toBe(200)
+    expect(gone.body.projects.map((p: { id: string }) => p.id)).not.toContain(project.id)
+    expect((await api(`/projects/${project.id}/delete`, {})).status).toBe(404)
   })
 
   it('envía y deduplica reintentos concurrentes, persiste clientMessageId y rechaza reutilizarlo con otro texto', async () => {
@@ -374,6 +533,10 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     ['/instructions', { conversationId: 'proyecto' }],
     ['/settings/agent-access', { access: 'todo' }],
     ['/settings/plan-approval', { enabled: 'sí' }],
+    ['/settings/server-name', { name: 7 }],
+    ['/settings/server-name', { name: 'Mac', extra: 1 }],
+    ['/settings/theme', { theme: '../../etc' }],
+    ['/settings/theme', { theme: 'bosque', extra: 1 }],
     ['/plans/m1/approve', {}],
     ['/plans/m1/reject', { conversationId: 'proyecto', extra: 1 }],
     ['/plans/m.1/approve', { conversationId: 'proyecto' }],
@@ -494,7 +657,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     const key = Buffer.alloc(32, 7)
     await startWebServer(port, CODE, undefined, allAgents, key)
     const paired = (await api('/pair', { code: CODE, deviceName: 'Pixel' }, '')).body.accessToken
-    // Reinicio de AI Cowork (o actualización): misma clave, mismo código.
+    // Reinicio de kywai (o actualización): misma clave, mismo código.
     await startWebServer(port, CODE, undefined, allAgents, key)
     expect((await api('/snapshot', undefined, paired)).status).toBe(200)
     // «Generar un código nuevo»: los móviles tienen que volver a emparejarse.
@@ -974,7 +1137,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       expect(state.projects.map((p) => p.id)).toEqual(store.listProjects().map((p) => p.id))
       expect(state.projects.find((p) => p.id === id)).toEqual({ id, name: 'Conversación móvil', createdAt: expect.any(Number), updatedAt: expect.any(Number), running: false })
       expect(state.stations).toEqual(getConfig().stations)
-      expect(state.settings).toEqual({ agentAccess: getConfig().agentAccess, planApproval: false })
+      expect(state.settings).toEqual({ agentAccess: getConfig().agentAccess, planApproval: false, theme: 'clasico' })
       expect(state.conversation.attachments).toEqual([])
       expect(state.conversation.folder).toEqual({ name: basename(folder), path: folder })
       expect(state.capabilities).toMatchObject({ attachments: true, projects: true, memoryEdit: true, files: true, upload: true, artifacts: true, traceEndpoint: true, agentAccess: true, usageRefresh: true })
@@ -1314,6 +1477,61 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     }
   })
 
+  it('música sin anuncios para el móvil: radios de SomaFM y canciones de Audius con su stream', async () => {
+    expect((await api('/snapshot')).body.capabilities.music).toBe(true)
+    expect(await api('/music/search?kind=radio')).toEqual({
+      status: 200,
+      body: { results: [{ id: 'radio:groovesalad', title: 'Groove Salad', artist: 'SomaFM', detail: 'Ambient', thumbnail: 'https://somafm.com/img/gs.png', stream: 'https://ice2.somafm.com/groovesalad-128-mp3', live: true }] }
+    })
+    // Lo que no suena directo (YouTube) no se manda.
+    expect((await api('/music/search?kind=audius&q=lofi')).body).toEqual({
+      results: [{ id: 'audius:Ab12', title: 'Canción', artist: 'Artista', durationSec: 200, stream: 'https://api.audius.co/v1/tracks/Ab12/stream?app_name=AICowork', live: false }]
+    })
+    expect((await api('/music/search?kind=youtube')).status).toBe(400)
+    const down = await api('/music/search?kind=audius&q=falla')
+    expect([down.status, down.body.code]).toEqual([502, 'MUSIC_UNAVAILABLE'])
+  })
+
+  it('el tema elegido en el escritorio llega a Órbita en la instantánea', async () => {
+    try {
+      setUiTheme('mundo-bosque')
+      expect((await api('/snapshot')).body.settings.theme).toBe('mundo-bosque')
+      // Un id raro no se guarda (el escritorio solo manda los suyos).
+      setUiTheme('../../etc')
+      expect(getConfig().uiTheme).toBe('mundo-bosque')
+    } finally {
+      delete getConfig().uiTheme
+    }
+    expect((await api('/snapshot')).body.settings.theme).toBe('clasico')
+  })
+
+  it('Órbita elige el tema y lo guarda el servidor para todos los dispositivos', async () => {
+    try {
+      expect((await api('/snapshot')).body.capabilities.theme).toBe(true)
+      expect(await api('/settings/theme', { theme: 'mundo-matrix' })).toEqual({ status: 200, body: { theme: 'mundo-matrix' } })
+      expect(getConfig().uiTheme).toBe('mundo-matrix')
+      expect((await api('/snapshot')).body.settings.theme).toBe('mundo-matrix')
+    } finally {
+      delete getConfig().uiTheme
+    }
+  })
+
+  it('el nombre del ordenador se cambia desde Órbita y llega a la instantánea', async () => {
+    try {
+      expect((await api('/snapshot')).body.capabilities.serverName).toBe(true)
+      expect(await api('/settings/server-name', { name: '  Mac   mini\n de casa  ' })).toEqual({ status: 200, body: { serverName: 'Mac mini de casa' } })
+      expect(getConfig().serverName).toBe('Mac mini de casa')
+      expect((await api('/snapshot')).body.settings.serverName).toBe('Mac mini de casa')
+      expect((await api('/settings/server-name', { name: 'x'.repeat(60) })).body).toEqual({ serverName: 'x'.repeat(40) })
+      // Vacío: vuelve al nombre de la red (y la instantánea deja de traerlo).
+      expect(await api('/settings/server-name', { name: '' })).toEqual({ status: 200, body: { serverName: null } })
+      expect(getConfig().serverName).toBeUndefined()
+      expect((await api('/snapshot')).body.settings.serverName).toBeUndefined()
+    } finally {
+      delete getConfig().serverName
+    }
+  })
+
   it('cambia el permiso de los agentes como el escritorio y actualiza las cuotas a petición', async () => {
     const client = await websocket(token)
     try {
@@ -1321,7 +1539,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       expect(getConfig().agentAccess).toBe('project')
       const update = await event(client.frames, 'config.updated')
       expect((update.payload.config as { agentAccess: string }).agentAccess).toBe('project')
-      expect((await api('/snapshot')).body.settings).toEqual({ agentAccess: 'project', planApproval: false })
+      expect((await api('/snapshot')).body.settings).toEqual({ agentAccess: 'project', planApproval: false, theme: 'clasico' })
     } finally {
       expect(await api('/settings/agent-access', { access: 'full' })).toEqual({ status: 200, body: { agentAccess: 'full' } })
     }
@@ -1364,6 +1582,35 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       for (const bad of ['?days=0', '?days=abc', '?days=1000', '?otro=1']) expect([bad, (await api(`/quality${bad}`)).status]).toEqual([bad, 400])
       expect((await api('/quality', {})).status).toBe(405)
     } finally { webMethods.set('getUsageRuns', original) }
+  })
+
+  it('uso y coste desde el móvil: dinero por agente, suscripciones y presupuesto, en la moneda elegida', async () => {
+    const original = webMethods.get('getUsageRuns')!
+    const cfg = getConfig()
+    const before = cfg.costs
+    const now = Date.now()
+    const call = (extra: Record<string, unknown>) => ({ ts: now, kind: 'task' as const, agentId: 'codex', agentName: 'Codex', provider: 'codex' as const, model: 'gpt-6.1-sol', input: 1_000_000, output: 0, cached: 0, durationMs: 60_000, ok: true, ...extra })
+    const run = {
+      runId: 'cost-run', projectId: 'project-1', projectName: 'Prueba', request: 'Trabajo', startedAt: now, status: 'ok' as const, tasks: 1, tasksDone: 1,
+      calls: [call({}), call({ agentId: 'claude', agentName: 'Claude', provider: 'claude', model: 'sonnet', costUsd: 10 }), call({ agentId: 'hermes', agentName: 'Hermes', provider: 'hermes', kind: 'plan', input: 0, output: 0, noTokens: true, estInput: 500_000, estOutput: 0 })]
+    }
+    webMethods.set('getUsageRuns', () => [run])
+    cfg.costs = { currency: 'EUR', usdToEur: 0.5, plans: { openai: { mode: 'api' }, anthropic: { mode: 'subscription', monthly: 4, currency: 'EUR' } }, monthlyBudget: 10, budgetCurrency: 'EUR' }
+    try {
+      const snap = (await api('/snapshot')).body
+      expect(snap.capabilities.usageCost).toBe(true)
+      expect(snap.usage.cost).toMatchObject({ currency: 'EUR', paid: 1, api: 6.5 })
+      const result = await api('/usage/cost')
+      expect(result.status).toBe(200)
+      expect(result.body).toMatchObject({ currency: 'EUR', days: 30, paid: 1, api: 6.5, estimated: 0.5, unpricedCalls: 0, budget: { limit: 10, spent: 1, pct: 10 } })
+      expect(result.body.byAgent.map((a: { name: string; mode: string | null; estimated: boolean }) => [a.name, a.mode, a.estimated])).toEqual([['Claude', 'subscription', false], ['Codex', 'api', false], ['Hermes', null, true]])
+      expect(result.body.subscriptions).toEqual([{ key: 'anthropic', label: 'Claude', monthly: 4, api30: 5, runs30: 1, verdict: 'worth' }])
+      for (const bad of ['?days=0', '?days=abc', '?otro=1']) expect([bad, (await api(`/usage/cost${bad}`)).status]).toEqual([bad, 400])
+      expect((await api('/usage/cost', {})).status).toBe(405)
+    } finally {
+      webMethods.set('getUsageRuns', original)
+      cfg.costs = before
+    }
   })
 
   it('bandeja «Te necesita»: el plan que espera tu visto bueno sale ahí y se aprueba desde el móvil', async () => {
@@ -1454,7 +1701,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       expect((await api('/server/update')).body.updating).toBe(true)
       expect((await api('/server/update', {})).body.code).toBe('UPDATE_RUNNING')
       // Si falla (vuelve a la versión anterior), se cuenta por qué.
-      finish('No se pudo actualizar: Compilando AI Cowork: falló')
+      finish('No se pudo actualizar: Compilando kywai: falló')
       await vi.waitFor(async () => expect((await api('/server/update')).body).toMatchObject({ updating: false, lastError: expect.stringContaining('No se pudo actualizar') }))
       status = { canUpdate: true, branch: 'master', commits: [] }
       expect((await api('/server/update', {})).body.code).toBe('UP_TO_DATE')
@@ -1481,6 +1728,25 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect((await api('/agents/nadie/reset', {})).body.code).toBe('AGENT_NOT_FOUND')
     expect((await api('/agents/codex/reset', { force: true })).status).toBe(400)
     expect((await api('/agents/codex/reset')).status).toBe(405)
+  })
+
+  it('razonamiento del modelo local desde el móvil: solo en el agente de LM Studio', async () => {
+    expect((await api('/snapshot')).body.capabilities.agentThinking).toBe(true)
+    const local = getConfig().agents.find((a) => a.id === 'codex')!
+    const before = local.provider
+    local.provider = 'lmstudio'
+    try {
+      expect(await api('/agents/codex/thinking', { enabled: true })).toEqual({ status: 200, body: { agentId: 'codex', thinking: true } })
+      expect(getConfig().agents.find((a) => a.id === 'codex')?.thinking).toBe(true)
+      expect((await api('/snapshot')).body.agents.find((a: { id: string }) => a.id === 'codex').thinking).toBe(true)
+      expect(await api('/agents/codex/thinking', { enabled: false })).toEqual({ status: 200, body: { agentId: 'codex', thinking: false } })
+      expect(getConfig().agents.find((a) => a.id === 'codex')?.thinking).toBeUndefined()
+      expect((await api('/agents/codex/thinking', { enabled: 'sí' })).status).toBe(400)
+    } finally {
+      local.provider = before
+    }
+    expect((await api('/agents/codex/thinking', { enabled: true })).body.code).toBe('INVALID_INPUT')
+    expect((await api('/agents/nadie/thinking', { enabled: true })).body.code).toBe('AGENT_NOT_FOUND')
   })
 
   it('rutinas desde el móvil: las ve sin el secreto del webhook y las lanza («Ejecutar ahora»), sin duplicar', async () => {
@@ -1528,6 +1794,87 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     } finally {
       stopRoutines()
       webMethods.delete('runRoutineNow')
+    }
+  })
+
+  it('paneles de los mods en Órbita: la lista de los encendidos y su página con el puente del WebView', async () => {
+    const mods = [
+      { name: 'notas', title: 'Notas', enabled: true, permissions: ['chat'], panels: [{ id: 'equipo', title: 'Equipo', file: 'p.html' }] },
+      { name: 'apagado', title: 'Apagado', enabled: false, permissions: [], panels: [{ id: 'x', title: 'X', file: 'x.html' }] }
+    ]
+    webMethods.set('listMods', () => mods)
+    webMethods.set('modPanel', (name, id) => {
+      if (name !== 'notas' || id !== 'equipo') throw new Error('Ese panel no existe')
+      return { html: '<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src \'none\'"><p>hola</p>', title: 'Equipo', chat: true }
+    })
+    try {
+      expect((await api('/snapshot')).body.capabilities.modPanels).toBe(true)
+      expect((await api('/mods/panels')).body).toEqual({ panels: [{ mod: 'notas', modTitle: 'Notas', id: 'equipo', title: 'Equipo', chat: true }] })
+      const page = await api('/mods/panel?mod=notas&id=equipo')
+      expect(page.status).toBe(200)
+      expect(page.body.html).toContain('KywaiBridge')
+      expect(page.body.html.indexOf('KywaiBridge')).toBeLessThan(page.body.html.indexOf('<p>hola</p>'))
+      expect((await api('/mods/panel?mod=notas&id=otro')).status).toBe(404)
+      expect((await api('/mods/panel?mod=notas')).status).toBe(400)
+    } finally {
+      webMethods.delete('listMods')
+      webMethods.delete('modPanel')
+    }
+  })
+
+  it('plantillas de tareas desde el móvil: las ve, las crea, las cambia y las lanza con un toque o con «/orden»', async () => {
+    expect((await api('/snapshot')).body.capabilities.templates).toBe(false)
+    const dir = mkdtempSync(join(tmpdir(), 'aicw-plantillas-'))
+    initTemplates(dir, { isProject: (pid) => store.listProjects().some((p) => p.id === pid) })
+    webMethods.set('listTemplates', () => listTemplates())
+    webMethods.set('createTemplate', (input) => createTemplate(input))
+    webMethods.set('updateTemplate', (tid, patch) => updateTemplate(tid, patch))
+    webMethods.set('deleteTemplate', (tid) => deleteTemplate(tid))
+    webMethods.set('restoreTemplates', () => restoreBuiltinTemplates())
+    try {
+      const id = (await api('/conversations', {})).body.conversation.id as string
+      const snap = (await api(`/snapshot?conversationId=${id}`)).body as MobileSnapshot
+      expect(snap.capabilities.templates).toBe(true)
+      // Vienen las de serie.
+      expect(snap.templates!.map((x) => x.command)).toContain('revisar-pr')
+      const created = await api('/templates', { name: 'Resumen diario', prompt: 'Resume lo de {tema} en tres frases', icon: '📝', projectId: id })
+      expect(created.status).toBe(201)
+      expect(created.body.template).toEqual(expect.objectContaining({ name: 'Resumen diario', command: 'resumen-diario', projectId: id, icon: '📝' }))
+      const tid = created.body.template.id as string
+      expect((await api('/templates', { name: 'Otra', prompt: 'x', command: 'rutina' })).body).toEqual(expect.objectContaining({ code: 'INVALID_INPUT' }))
+      expect((await api('/templates', { name: 'Otra', prompt: 'x', projectId: 'no-existe' })).status).toBe(400)
+      expect((await api('/templates', { name: 'Otra', prompt: 'x', pinned: 'sí' })).status).toBe(400)
+      expect((await api(`/templates/${tid}`, { pinned: true, askPlan: false })).body.template.pinned).toBe(true)
+      expect((await api('/templates/noexiste', { name: 'x' })).body.code).toBe('TEMPLATE_NOT_FOUND')
+
+      // Con un toque: el texto llega relleno y el mensaje nombra la plantilla.
+      let seen = prompts.length
+      const sent = await api('/chat/messages', { conversationId: id, text: 'Resume lo de los pagos en tres frases', clientMessageId: 'client-plantilla', templateId: tid })
+      expect(sent.status).toBe(202)
+      expect(sent.body.message.template).toEqual({ id: tid, name: 'Resumen diario' })
+      await vi.waitFor(() => expect(prompts.slice(seen).some((p) => p.includes('Resume lo de los pagos en tres frases'))).toBe(true))
+      cancelAll()
+      expect((await api('/chat/messages', { conversationId: id, text: 'x', clientMessageId: 'client-plantilla-2', templateId: 'noexiste' })).body.code).toBe('INVALID_INPUT')
+
+      // Escribiendo la orden: en el chat se ve lo escrito; al equipo le llega el texto de la plantilla.
+      seen = prompts.length
+      const typed = await api('/chat/messages', { conversationId: id, text: '/resumen-diario las ventas', clientMessageId: 'client-plantilla-3' })
+      expect(typed.body.message.text).toBe('/resumen-diario las ventas')
+      expect(typed.body.message.template.name).toBe('Resumen diario')
+      await vi.waitFor(() => expect(prompts.slice(seen).some((p) => p.includes('Resume lo de las ventas en tres frases'))).toBe(true))
+      cancelAll()
+
+      expect((await api(`/templates/${tid}/delete`, {})).body).toEqual({ deleted: true })
+      const builtin = listTemplates().find((x) => x.builtin === 'review-pr')!
+      await api(`/templates/${builtin.id}/delete`, {})
+      expect(listTemplates().some((x) => x.builtin === 'review-pr')).toBe(false)
+      expect((await api('/templates/restore', {})).body.templates.some((x: { builtin?: string }) => x.builtin === 'review-pr')).toBe(true)
+      expect((await api('/templates')).body.templates.length).toBe(6)
+    } finally {
+      cancelAll()
+      for (const m of ['listTemplates', 'createTemplate', 'updateTemplate', 'deleteTemplate', 'restoreTemplates']) webMethods.delete(m)
+      initTemplates('')
+      rmSync(dir, { recursive: true, force: true, maxRetries: 3 })
     }
   })
 
@@ -1629,6 +1976,125 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     } finally {
       cancelAll()
       expect(await api('/settings/plan-approval', { enabled: false })).toEqual({ status: 200, body: { planApproval: false } })
+    }
+  })
+
+  it('«/rutina …» desde el móvil crea la rutina en el servidor y contesta en el chat, sin pasar por Hermes', async () => {
+    const conversation = (await api('/conversations', {})).body.conversation.id as string
+    prompts.length = 0
+    const sentOk = await api('/chat/messages', { conversationId: conversation, text: '/rutina cada día a las 8:30: revisa las dependencias', clientMessageId: 'rutina-1' })
+    expect(sentOk.status).toBe(202)
+    const routines = store.getProject(conversation).routines ?? []
+    expect(routines).toEqual([expect.objectContaining({ name: 'Revisa las dependencias', request: 'revisa las dependencias', enabled: true, trigger: { type: 'daily', time: '08:30' } })])
+    const msgs = store.snapshotProject(conversation).messages
+    expect(msgs.map((m) => m.author.type)).toEqual(['user', 'system'])
+    expect(msgs[1]).toMatchObject({ text: expect.stringMatching(/^Rutina creada: «Revisa las dependencias» · Cada día a las 08:30/), routine: { id: routines[0].id, name: 'Revisa las dependencias' } })
+    // Lo que no entiende da la ayuda; «/rutina» sola explica cómo se escribe. Nada de eso va a Hermes.
+    await api('/chat/messages', { conversationId: conversation, text: '/rutina revisa 3 cosas', clientMessageId: 'rutina-2' })
+    await api('/chat/messages', { conversationId: conversation, text: '/rutina', clientMessageId: 'rutina-3' })
+    const replies = store.snapshotProject(conversation).messages.filter((m) => m.author.type === 'system').map((m) => m.text)
+    expect(replies.slice(1)).toEqual([expect.stringMatching(/^No entendí cuándo/), expect.stringMatching(/^Escribe, por ejemplo/)])
+    expect(store.getProject(conversation).routines).toHaveLength(1)
+    expect(prompts).toEqual([])
+    expect(activeRunsFor(conversation)).toEqual([])
+  })
+
+  it('rutinas desde Órbita: crear, cambiar, activar, borrar y la tarjeta de Hermes, con los mismos errores que el escritorio', async () => {
+    const names = ['createRoutine', 'updateRoutine', 'deleteRoutine', 'decideRoutineProposal'] as const
+    expect((await api('/snapshot')).body.capabilities).toMatchObject({ routinesEdit: false, routineProposals: false })
+    webMethods.set('createRoutine', (id, input) => createRoutine(id as string, input as never))
+    webMethods.set('updateRoutine', (id, rid, patch) => updateRoutine(id as string, rid as string, patch as never))
+    webMethods.set('deleteRoutine', (id, rid) => deleteRoutine(id as string, rid as string))
+    webMethods.set('decideRoutineProposal', (id, mid, action) => decideRoutineProposal(id as string, mid as string, action as 'create' | 'dismiss'))
+    try {
+      expect((await api('/snapshot')).body.capabilities).toMatchObject({ routinesEdit: true, routineProposals: true })
+      const conversationId = (await api('/conversations', {})).body.conversation.id as string
+      const made = await api('/routines', { conversationId, name: 'Copia', request: 'Haz la copia de seguridad', trigger: { type: 'once', date: '2099-01-02', time: '07:00' }, askApproval: true })
+      expect(made.status).toBe(201)
+      expect(made.body.routine).toMatchObject({ name: 'Copia', enabled: true, askApproval: true, trigger: { type: 'once', date: '2099-01-02', time: '07:00' }, nextAt: new Date(2099, 0, 2, 7).getTime() })
+      const rid = made.body.routine.id as string
+      // Las reglas del motor llegan como 400 con su motivo.
+      const past = await api('/routines', { conversationId, name: 'Tarde', request: 'Haz algo', trigger: { type: 'once', date: '2020-01-02', time: '07:00' } })
+      expect([past.status, past.body.code, past.body.message]).toEqual([400, 'INVALID_ROUTINE', expect.stringMatching(/ya ha pasado/)])
+      expect((await api('/routines', { conversationId, name: 'X', request: 'Haz algo', trigger: { type: 'weekly', days: [], time: '09:00' } })).body.code).toBe('INVALID_ROUTINE')
+      expect((await api('/routines', { conversationId, name: 'X', request: 'Haz algo', trigger: 'cada día' })).body.code).toBe('INVALID_INPUT')
+      expect((await api('/routines', { conversationId, name: 'X', request: 'Haz algo', trigger: { type: 'daily', time: '09:00' }, extra: 1 })).body.code).toBe('INVALID_INPUT')
+      // Cambiar y desactivar.
+      const changed = await api(`/routines/${rid}`, { conversationId, name: 'Copia diaria', trigger: { type: 'daily', time: '06:30' }, askApproval: false })
+      expect(changed.body.routine).toMatchObject({ name: 'Copia diaria', trigger: { type: 'daily', time: '06:30' } })
+      expect(changed.body.routine.askApproval).toBeUndefined()
+      expect((await api(`/routines/${rid}`, { conversationId, enabled: false })).body.routine).toMatchObject({ enabled: false, nextAt: null })
+      expect((await api(`/routines/${rid}`, { conversationId })).status).toBe(400)
+      expect((await api('/routines/rnoexiste', { conversationId, enabled: true })).body.code).toBe('ROUTINE_NOT_FOUND')
+      // Un webhook creado desde el móvil tampoco enseña su secreto.
+      const hook = await api('/routines', { conversationId, name: 'PR', request: 'Revisa el PR', trigger: { type: 'webhook' } })
+      expect(hook.body.routine.hasSecret).toBe(true)
+      expect(JSON.stringify(hook.body)).not.toContain(store.getProject(conversationId).routines!.find((r) => r.id === hook.body.routine.id)!.webhookSecret!)
+      // Borrar.
+      expect(await api(`/routines/${rid}/delete`, { conversationId })).toEqual({ status: 200, body: { deleted: true } })
+      expect((await api(`/routines/${rid}/delete`, { conversationId })).body.code).toBe('ROUTINE_NOT_FOUND')
+      // La tarjeta de Hermes.
+      await sendMessage({ projectId: conversationId, text: 'PRUEBA-RUTINA cada mañana', filePaths: [] })
+      await vi.waitFor(() => expect(store.snapshotProject(conversationId).messages.some((m) => m.routineProposal)).toBe(true))
+      const card = store.snapshotProject(conversationId).messages.find((m) => m.routineProposal)!
+      const snapMsg = ((await api(`/snapshot?conversationId=${conversationId}`)).body as MobileSnapshot).conversation.messages.find((m) => m.id === card.id)
+      expect(snapMsg?.routineProposal?.status).toBe('pending')
+      const created = await api(`/messages/${card.id}/routine-proposal/create`, { conversationId })
+      expect(created.body.message.routineProposal).toMatchObject({ status: 'created', routineId: expect.any(String) })
+      expect((await api(`/messages/${card.id}/routine-proposal/dismiss`, { conversationId })).body.code).toBe('ROUTINE_PROPOSAL_NOT_PENDING')
+      expect((await api('/messages/nada/routine-proposal/create', { conversationId })).body.code).toBe('ROUTINE_PROPOSAL_NOT_FOUND')
+      expect(store.getProject(conversationId).routines!.map((r) => r.name)).toEqual(['PR', 'Revisa los PR abiertos'])
+    } finally {
+      for (const n of names) webMethods.delete(n)
+    }
+  })
+
+  it('Hermes propone una rutina: sale como tarjeta y se crea (o se descarta) con un toque, una sola vez', async () => {
+    const conversation = (await api('/conversations', {})).body.conversation.id as string
+    const proposalMsg = (): ChatMessage | undefined => store.snapshotProject(conversation).messages.find((m) => m.routineProposal)
+    await sendMessage({ projectId: conversation, text: 'PRUEBA-RUTINA cada mañana de diario revisa los PR', filePaths: [] })
+    await vi.waitFor(() => expect(proposalMsg()).toBeTruthy())
+    const m = proposalMsg()!
+    expect(m.author).toEqual({ type: 'agent', agentId: 'codex' })
+    expect(m.routineProposal).toEqual({ status: 'pending', name: 'Revisa los PR abiertos', request: 'revisa los PR abiertos', trigger: { type: 'weekly', days: [1, 2, 3, 4, 5], time: '08:30' }, command: '/rutina de lunes a viernes a las 8:30: revisa los PR abiertos' })
+    expect(m.text).toMatch(/Crear rutina.*De lunes a viernes a las 08:30/)
+    // Nadie la crea sola: hasta pulsar «Crear rutina» no hay rutina.
+    expect(store.getProject(conversation).routines ?? []).toEqual([])
+    const created = decideRoutineProposal(conversation, m.id, 'create')
+    const routines = store.getProject(conversation).routines!
+    expect(routines).toEqual([expect.objectContaining({ name: 'Revisa los PR abiertos', enabled: true, trigger: { type: 'weekly', days: [1, 2, 3, 4, 5], time: '08:30' } })])
+    expect(created.routineProposal).toMatchObject({ status: 'created', routineId: routines[0].id })
+    expect(() => decideRoutineProposal(conversation, m.id, 'create')).toThrow(/ya está creada/)
+    expect(() => decideRoutineProposal(conversation, 'no-existe', 'dismiss')).toThrow(/No se encontró/)
+    // Una orden que no se entiende no saca tarjeta.
+    await sendMessage({ projectId: conversation, text: 'PRUEBA-RUTINA-MAL otra', filePaths: [] })
+    await vi.waitFor(() => expect(activeRunsFor(conversation)).toEqual([]))
+    expect(store.snapshotProject(conversation).messages.filter((x) => x.routineProposal)).toHaveLength(1)
+    // Lo que lanza una rutina no propone otra (y su guía se lo dice).
+    prompts.length = 0
+    await sendMessage({ projectId: conversation, text: 'PRUEBA-RUTINA desde una rutina', filePaths: [] }, { routine: { id: routines[0].id, name: 'R' } })
+    await vi.waitFor(() => expect(activeRunsFor(conversation)).toEqual([]))
+    expect(store.snapshotProject(conversation).messages.filter((x) => x.routineProposal)).toHaveLength(1)
+    expect(prompts.find((p) => p.includes('Ahora SOLO tienes que planificar') || p.includes('"routine"'))).toContain('"routine": "" (esta petición ya la lanza una rutina)')
+  })
+
+  it('con «Pedir mi visto bueno» encendido, una rutina sigue sola; solo espera si esa rutina lo pide', async () => {
+    expect((await api('/settings/plan-approval', { enabled: true })).body).toEqual({ planApproval: true })
+    try {
+      const conversation = (await api('/conversations', {})).body.conversation.id as string
+      const snap = (): ReturnType<typeof store.snapshotProject> => store.snapshotProject(conversation)
+      // La rutina sin casilla: el plan se pone en marcha sin esperar.
+      const alone = await sendMessage({ projectId: conversation, text: 'Rutina sola', filePaths: [] }, { routine: { id: 'r1', name: 'Sola' } })
+      await vi.waitFor(() => expect(snap().tasks.some((t) => t.runId === alone.runId)).toBe(true))
+      expect(snap().messages.some((m) => m.runId === alone.runId && m.proposal)).toBe(false)
+      cancelAll()
+      // La que pide tu visto bueno: queda esperando como lo que escribes tú.
+      const asks = await sendMessage({ projectId: conversation, text: 'Rutina con visto bueno', filePaths: [] }, { routine: { id: 'r2', name: 'Con visto bueno', askApproval: true } })
+      await vi.waitFor(() => expect(snap().messages.find((m) => m.runId === asks.runId && m.proposal)?.proposal?.status).toBe('pending'))
+      expect(snap().tasks.filter((t) => t.runId === asks.runId)).toEqual([])
+    } finally {
+      cancelAll()
+      expect((await api('/settings/plan-approval', { enabled: false })).body).toEqual({ planApproval: false })
     }
   })
 

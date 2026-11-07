@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -11,8 +13,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -39,8 +39,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -119,6 +121,15 @@ fun OrbitaApp(model: OrbitaModel, deviceName: String, demoServer: DemoServer?) {
     val state by model.controller.state.collectAsStateWithLifecycle()
     val view = LocalView.current
     SideEffect { model.feedback.view = view }
+    // Lo subido (desde el chat o desde Archivos) va con el próximo mensaje aunque el panel se cierre.
+    AttachFinishedUploads(model, state)
+    // El mismo tema que el ordenador (o el propio de este móvil): colores de la interfaz y del espacio 3D.
+    val themeId = OrbitaThemes.effective(state.snapshot?.settings?.theme, model.preferences.ownTheme, model.preferences.localTheme)
+    SideEffect {
+        val tokens = OrbitaThemes.tokens(themeId)
+        if (Orbita.palette.tokens != tokens) Orbita.palette = OrbitaPalette(tokens)
+        model.world.theme = themeId
+    }
     OrbitaTheme {
         CompositionLocalProvider(LocalFeedback provides model.feedback, LocalMarkdownImages provides remember(model) { MarkdownImages(model) }) {
             if (state.session == null) {
@@ -167,15 +178,17 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
     val blur = model.worldAvailable && scene != null && model.preferences.effects != EffectsPreference.Soft && glassActive
     val glass = remember(blur) { GlassContext(model.world.glass, blur) }
 
-    BackHandler(enabled = model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.moreOpen || model.projectMenu || model.section != Section.World || model.selectedAgentId != null) {
+    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.historyOpen || model.musicOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
         when {
+            model.searchOpen -> model.searchOpen = false
+            model.historyOpen -> model.historyOpen = false
+            model.musicOpen -> model.musicOpen = false
+            model.drawerOpen -> model.drawerOpen = false
             model.viewer != null -> model.viewer = null
             model.traceTaskId != null -> model.traceTaskId = null
             model.hermesModelOpen -> model.hermesModelOpen = false
             model.inboxOpen -> model.closeInbox()
             model.newTaskOpen -> model.newTaskOpen = false
-            model.projectMenu -> model.projectMenu = false
-            model.moreOpen -> model.moreOpen = false
             // Plegado, la pantalla completa se recuerda: atrás cierra el panel (como cualquier pantalla).
             model.expanded && with(density) { rootSize.width.toDp() } >= 600.dp -> model.expanded = false
             model.section != Section.World -> model.close()
@@ -187,7 +200,11 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     androidx.compose.runtime.DisposableEffect(lifecycle) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP && model.voice is VoiceState.Recording) model.finishVoice(send = false)
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+                if (model.voice is VoiceState.Recording) model.finishVoice(send = false)
+                // Sin reproductor en segundo plano: la música se pausa y sigue al volver con ▶.
+                model.music.pause()
+            }
         }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
@@ -269,16 +286,16 @@ private fun WorldPlaceholder(status: SpaceStatus, onRetry: () -> Unit) {
             is SpaceStatus.Unavailable -> {
                 Icon(Icons.Outlined.CloudOff, contentDescription = null, tint = Orbita.Accent, modifier = Modifier.size(44.dp))
                 Spacer(Modifier.height(12.dp))
-                Text("Sin conexión con el ordenador", color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
+                Text(t("Sin conexión con el ordenador"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(4.dp))
-                Text("${status.reason}. El mundo aparecerá en cuanto vuelva la conexión.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium)
+                Text(t("{reason}. El mundo aparecerá en cuanto vuelva la conexión.", "reason" to status.reason), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(16.dp))
-                OrbitaButton("Reintentar", onClick = onRetry, haptic = Haptic.Tap)
+                OrbitaButton(t("Reintentar"), onClick = onRetry, haptic = Haptic.Tap)
             }
             else -> {
                 CircularProgressIndicator(color = Orbita.Accent)
                 Spacer(Modifier.height(16.dp))
-                Text("Entrando en el mundo de AI Cowork…", color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
+                Text(t("Entrando en el mundo de kywai…"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -295,16 +312,16 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
     val panelOpen = model.section != Section.World
     // Pantalla completa (las flechas del panel): sin barra de arriba ni navegación, todo el sitio para el panel.
     val full = panelOpen && model.isExpanded(compact = true)
-    val badges = badgesOf(snapshot)
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsets.ime)).padding(horizontal = if (full) 6.dp else 12.dp, vertical = if (full) 4.dp else 8.dp)) {
-        val navHeight = 76.dp
-        val topBlock = 104.dp
-        val panelMax = maxHeight - navHeight - 12.dp - topBlock
+        // Arriba: barra (menú, chat abierto, avisos) y las pestañas Chat · Espacio · Tareas · Resultados.
+        val topBlock = 112.dp
+        // A la izquierda, a lo largo, la barra plegada en columna fina de iconos (el logo arriba); lo demás va a su lado.
+        val railPad = if (full) 0.dp else RailWidthSlim + 8.dp
         val panelHeight by animateDpAsState(
             when {
                 full -> maxHeight
                 ime -> maxHeight - 58.dp
-                else -> panelMax * 0.86f
+                else -> (maxHeight - topBlock) * 0.74f
             },
             tween(260),
             label = "panelH",
@@ -314,54 +331,51 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
         SideEffect {
             with(density) {
                 val top = (topBlock + 24.dp).toPx()
-                val bottom = (navHeight + 20.dp + if (panelOpen) panelHeight else if (model.selectedAgentId != null) 200.dp else 0.dp).toPx()
-                model.world.insets = WorldInsets(top = top, bottom = bottom.coerceAtMost(constraints.maxHeight * 0.8f))
+                val bottom = (20.dp + if (panelOpen) panelHeight else if (model.selectedAgentId != null) 272.dp else 72.dp).toPx()
+                model.world.insets = WorldInsets(left = railPad.toPx(), top = top, bottom = bottom.coerceAtMost(constraints.maxHeight * 0.8f))
                 model.world.covered = full
             }
         }
 
-        // Barra superior: proyecto, estado en vivo y quién trabaja.
-        if (!full) Column(Modifier.align(Alignment.TopStart).fillMaxWidth()) {
+        // Con la barra entera abierta encima, la columna se aparta para que no se transparente por detrás.
+        AnimatedVisibility(!full && !model.drawerOpen, modifier = Modifier.align(Alignment.TopStart), enter = fadeIn(), exit = fadeOut()) {
+            SidebarRail(model, state, labels = false, onOpen = { model.drawerOpen = true }, openTag = "menu-button")
+        }
+        if (!full) Column(Modifier.align(Alignment.TopStart).padding(start = railPad).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ProjectChip(state, model, Modifier.weight(1f, fill = false))
+                ChatTitleChip(state, Modifier.weight(1f, fill = false))
                 Spacer(Modifier.weight(1f))
-                if (inboxSupported(state)) {
-                    InboxButton(state, model)
+                if (model.music.current != null) {
+                    MiniPlayer(model, compact = true)
                     Spacer(Modifier.width(8.dp))
                 }
-                LiveStatus(state, onRetry = model.controller::retryNow)
+                LiveStatus(state, onRetry = model.controller::retryNow, compact = true)
             }
             Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val working = workingCount(snapshot)
-                if (working > 0) {
-                    Row(Modifier.padding(start = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Groups, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("$working trabajando", color = Orbita.Text, style = MaterialTheme.typography.labelLarge)
-                    }
-                    Spacer(Modifier.width(10.dp))
-                }
-                AttentionChip(attention, onClick = { attention?.let(model::openAttention) })
-            }
+            PanelTabs(model, compact = true, modifier = Modifier.fillMaxWidth().glass(radius = 22.dp))
+            Spacer(Modifier.height(8.dp))
+            if (!panelOpen) AttentionChip(attention, onClick = { attention?.let(model::openAttention) })
         }
 
-        // Panel: sube desde abajo hasta encima de la navegación (o del teclado).
+        // Panel: ocupa lo que queda debajo de las pestañas (o sube hasta el teclado).
         PanelHost(
             model, state,
             Modifier
                 .align(Alignment.BottomCenter)
+                .padding(start = railPad)
                 .fillMaxWidth()
                 .height(panelHeight)
-                .padding(bottom = if (ime || full) 0.dp else navHeight + 12.dp)
                 .windowInsetsPadding(WindowInsets.ime),
             compact = true,
         )
 
-        // Tarjeta del agente elegido (sin panel abierto).
+        // En el Espacio: un agente a la vez (‹ ›) y, encima, su ficha.
+        if (!panelOpen && snapshot != null) {
+            AgentSwitcher(snapshot, model, onFocus = { a -> model.world.focusAgent(SpaceSceneBuilder.build(snapshot), a.id) }, modifier = Modifier.align(Alignment.BottomCenter).padding(start = railPad))
+        }
         AnimatedVisibility(
-            visible = !panelOpen && !model.moreOpen && model.selectedAgentId != null && snapshot != null,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navHeight + 12.dp),
+            visible = !panelOpen && model.selectedAgentId != null && snapshot != null,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(start = railPad, bottom = 72.dp),
             enter = fadeIn() + slideInVertically { it / 3 },
             exit = fadeOut() + slideOutVertically { it / 3 },
         ) {
@@ -369,24 +383,10 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
             if (agent != null) AgentCard(snapshot, agent, model, attention, Modifier.fillMaxWidth())
         }
 
-        AnimatedVisibility(
-            visible = model.moreOpen,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navHeight + 12.dp),
-            enter = fadeIn() + slideInVertically { it / 3 },
-            exit = fadeOut() + slideOutVertically { it / 3 },
-        ) { MorePanels(model, badges) }
-
-        if (!ime && !full) BottomNav(model, badges, Modifier.align(Alignment.BottomCenter))
-
-        // Menú de proyectos y avisos, debajo de la barra superior.
-        Column(Modifier.align(Alignment.TopCenter).padding(top = 54.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            AnimatedVisibility(model.projectMenu, enter = fadeIn() + scaleIn(initialScale = 0.96f), exit = fadeOut() + scaleOut(targetScale = 0.96f)) {
-                ProjectMenu(state, model, Modifier.fillMaxWidth())
-            }
-            Spacer(Modifier.height(8.dp))
-            ToastHost(model, Modifier.fillMaxWidth())
-        }
+        ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = topBlock, start = railPad).fillMaxWidth())
     }
+    // La barra lateral entera como cajón, por encima de todo (se abre desde la columna de la izquierda).
+    SidebarDrawer(model, state)
 }
 
 // ---------------------------------------------------------------------------------------------- Desplegado
@@ -401,12 +401,12 @@ private fun WideLayout(
     width: Dp,
     density: androidx.compose.ui.unit.Density,
 ) {
-    val badges = badgesOf(snapshot)
     val panelOpen = model.section != Section.World
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsets.ime)).padding(12.dp)) {
         val gap = 12.dp
         val aspect = maxWidth / maxHeight
-        val free = maxWidth - RailWidth - gap
+        val side = if (model.sidebarOpen) SidebarWidth else RailWidth
+        val free = maxWidth - side - gap
         val sideWidth = (maxWidth * 0.42f).coerceIn(340.dp, 460.dp)
         // Sobre la mesa: arriba el mundo, abajo el panel a todo lo ancho (debajo de la bisagra).
         val hingeTopDp = tabletop?.let { with(density) { it.hingeTop.toDp() } }
@@ -414,7 +414,7 @@ private fun WideLayout(
 
         SideEffect {
             with(density) {
-                val left = (RailWidth + gap * 2).toPx()
+                val left = (side + gap * 2).toPx()
                 val right = if (panelOpen && tabletop == null) (panelWidth + gap * 2).toPx() else gap.toPx()
                 val bottom = if (tabletop != null) (constraints.maxHeight - hingeTopDp!!.toPx() + 60.dp.toPx()) else 120.dp.toPx()
                 model.world.insets = WorldInsets(left = left, top = 74.dp.toPx(), right = right, bottom = bottom)
@@ -422,25 +422,21 @@ private fun WideLayout(
             }
         }
 
-        Rail(model, badges, Modifier.align(Alignment.TopStart))
+        if (model.sidebarOpen) {
+            Sidebar(model, state, onCollapse = { model.sidebarOpen = false }, modifier = Modifier.align(Alignment.TopStart))
+        } else {
+            // Plegada no desaparece: queda la columna estrecha con el logo y los accesos (con su nombre debajo).
+            SidebarRail(model, state, labels = true, onOpen = { model.sidebarOpen = true }, openTag = "sidebar-toggle", modifier = Modifier.align(Alignment.TopStart))
+        }
 
         // Barra superior sobre el mundo: marca, proyecto, estado en vivo (se adapta al hueco que deja el panel).
         val topEnd = if (panelOpen && tabletop == null) panelWidth + gap else 0.dp
-        val topWidth = maxWidth - RailWidth - gap - 8.dp - topEnd
-        Column(Modifier.align(Alignment.TopStart).padding(start = RailWidth + gap + 8.dp, end = topEnd).fillMaxWidth()) {
+        Column(Modifier.align(Alignment.TopStart).padding(start = side + gap, end = topEnd).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LogoMark(32.dp)
-                if (topWidth >= 560.dp) {
-                    Spacer(Modifier.width(10.dp))
-                    Text("AI Cowork", color = Orbita.Text, style = MaterialTheme.typography.titleLarge, maxLines = 1)
-                }
-                Spacer(Modifier.width(12.dp))
-                ProjectChip(state, model, Modifier.weight(1f, fill = false))
-                Spacer(Modifier.width(8.dp))
-                LiveStatus(state, onRetry = model.controller::retryNow, glassy = false, compact = topWidth < 400.dp)
-                if (inboxSupported(state)) {
+                ChatTitleChip(state, Modifier.weight(1f, fill = false))
+                if (model.music.current != null) {
                     Spacer(Modifier.width(8.dp))
-                    InboxButton(state, model)
+                    MiniPlayer(model)
                 }
             }
             AttentionChip(attention, onClick = { attention?.let(model::openAttention) }, modifier = Modifier.padding(top = 8.dp))
@@ -454,12 +450,12 @@ private fun WideLayout(
         }
         PanelHost(model, state, panelModifier, compact = false)
 
-        // Selector del Equipo y tarjeta del agente, sobre el mundo.
+        // Un agente a la vez (‹ ›) y su ficha, sobre el mundo.
         val worldEnd = if (panelOpen && tabletop == null) panelWidth + gap else 0.dp
         val worldBottom = if (tabletop != null) with(density) { (constraints.maxHeight - tabletop.hingeTop).toDp() } else 0.dp
         if (snapshot != null && !(model.expanded && panelOpen && tabletop == null)) {
             Column(
-                Modifier.align(Alignment.BottomStart).padding(start = RailWidth + gap, end = worldEnd, bottom = worldBottom).fillMaxWidth(),
+                Modifier.align(Alignment.BottomStart).padding(start = side + gap, end = worldEnd, bottom = worldBottom).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 AnimatedVisibility(
@@ -470,22 +466,15 @@ private fun WideLayout(
                     val agent = snapshot.agents.firstOrNull { it.id == model.selectedAgentId }
                     if (agent != null) AgentCard(snapshot, agent, model, attention, Modifier.widthIn(max = 440.dp).padding(bottom = 10.dp))
                 }
-                TeamBar(snapshot, model, onSelect = { a ->
-                    val again = model.selectedAgentId == a.id
-                    model.selectAgent(if (again) null else a.id)
-                    if (!again) focusAgent(model, snapshot, a.id, aspect)
-                })
+                AgentSwitcher(snapshot, model, onFocus = { a -> focusAgent(model, snapshot, a.id, aspect) })
             }
         }
 
-        Column(
-            Modifier.align(Alignment.TopStart).padding(start = RailWidth + gap * 2, top = 56.dp).widthIn(max = 420.dp),
-        ) {
-            AnimatedVisibility(model.projectMenu, enter = fadeIn() + scaleIn(initialScale = 0.96f), exit = fadeOut() + scaleOut(targetScale = 0.96f)) {
-                ProjectMenu(state, model)
-            }
+        // Controles de la cámara, flotando abajo a la derecha del mundo (como en el escritorio).
+        if (scene3d(model) && !(model.expanded && panelOpen && tabletop == null)) {
+            CameraControls(model, Modifier.align(Alignment.BottomEnd).padding(end = worldEnd, bottom = worldBottom))
         }
-        ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = RailWidth + gap, end = if (panelOpen) panelWidth + gap else 0.dp).fillMaxWidth())
+        ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = side + gap, end = if (panelOpen) panelWidth + gap else 0.dp).fillMaxWidth())
     }
 }
 
@@ -493,15 +482,6 @@ private fun WideLayout(
 @Suppress("UNUSED_PARAMETER")
 fun focusAgent(model: OrbitaModel, snapshot: Snapshot, agentId: String, aspect: Float) {
     model.world.focusAgent(SpaceSceneBuilder.build(snapshot), agentId)
-}
-
-/** Avisos numéricos de la navegación. */
-private fun badgesOf(snapshot: Snapshot?): Map<Section, Int> {
-    if (snapshot == null) return emptyMap()
-    return mapOf(
-        Section.Tasks to snapshot.tasks.count { it.isActive },
-        Section.Memory to snapshot.memory.count { it.status == "provisional" },
-    )
 }
 
 // ---------------------------------------------------------------------------------------------- Panel
@@ -512,7 +492,7 @@ private fun badgesOf(snapshot: Snapshot?): Map<Section, Int> {
  */
 @Composable
 fun PanelHost(model: OrbitaModel, state: CoworkUiState, modifier: Modifier, compact: Boolean) {
-    val visible = model.section != Section.World && !(compact && model.moreOpen)
+    val visible = model.section != Section.World
     var shown by remember { mutableStateOf(Section.Chat) }
     if (visible) shown = model.section
     val reduced = model.reducedMotion()
@@ -547,10 +527,25 @@ private fun PanelContent(section: Section, model: OrbitaModel, state: CoworkUiSt
         Section.Files -> FilesPanel(model, state)
         Section.Results -> ResultsPanel(model, state)
         Section.Memory -> MemoryPanel(model, state)
+        Section.Routines -> RoutinesPanel(model, state)
         Section.Tools -> ToolsPanel(model, state)
         Section.Usage -> UsagePanel(model, state)
         Section.Settings -> SettingsPanel(model, state)
         Section.Team -> TeamPanel(model, state)
+        Section.Mods -> ModsPanel(model, state)
         Section.World -> Unit
+    }
+}
+
+/** El mundo 3D se está dibujando (hay OpenGL): solo entonces tienen sentido los controles de la cámara. */
+private fun scene3d(model: OrbitaModel) = model.worldAvailable
+
+/** Acercar, alejar y vista general: botones de cristal sobre el mundo. */
+@Composable
+private fun CameraControls(model: OrbitaModel, modifier: Modifier = Modifier) {
+    Column(modifier.glass(radius = 22.dp).padding(2.dp).testTag("camera-controls")) {
+        IconAction(Icons.Outlined.Add, t("Acercar"), onClick = { model.world.camera.dolly(1) })
+        IconAction(Icons.Outlined.Remove, t("Alejar"), onClick = { model.world.camera.dolly(-1) })
+        IconAction(Icons.Outlined.CenterFocusStrong, t("Vista general"), onClick = { model.world.overview() })
     }
 }

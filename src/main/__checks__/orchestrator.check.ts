@@ -695,12 +695,12 @@ async function main(): Promise<void> {
       assert.match(task1.prompt, /## Instrucciones del proyecto[^\n]*\nAntes de terminar, ejecuta npm test\./)
       assert.match(task1.prompt, /## Memoria del proyecto[\s\S]*- m1 · preferencia · confirmado · el usuario, [^:]+: Todo en TypeScript/)
       assert.match(task1.prompt, /«## Para la memoria»/)
-      // Lo que sabe de AI Cowork: el coordinador, la guía entera; cada tarea, que no toque su código.
-      assert.ok(task1.prompt.includes(`No modifiques nada en ${codeDir}: es el código de AI Cowork`))
+      // Lo que sabe de kywai: el coordinador, la guía entera; cada tarea, que no toque su código.
+      assert.ok(task1.prompt.includes(`No modifiques nada en ${codeDir}: es el código de kywai`))
       const planner1 = calls.slice(fromCalls).find((c) => c.mode === 'plan')!
-      assert.match(planner1.prompt, /## Cómo funciona AI Cowork[\s\S]*Ahora los agentes tienen acceso completo/)
-      // La petición no habla de AI Cowork: la lista de funciones de la app (con el enlace del acceso web) no va en el prompt.
-      assert.ok(!planner1.prompt.includes('### Funciones de AI Cowork') && !planner1.prompt.includes('Ahora mismo: http://100.64.0.9:8787'), 'sin la lista de funciones de la app')
+      assert.match(planner1.prompt, /## Cómo funciona kywai[\s\S]*Ahora los agentes tienen acceso completo/)
+      // La petición no habla de kywai: la lista de funciones de la app (con el enlace del acceso web) no va en el prompt.
+      assert.ok(!planner1.prompt.includes('### Funciones de kywai') && !planner1.prompt.includes('Ahora mismo: http://100.64.0.9:8787'), 'sin la lista de funciones de la app')
       // La siguiente petición la ve entera.
       workBehaviour = () => null
       const p2 = plan('Decidimos SQLite y TypeScript.', [])
@@ -713,12 +713,12 @@ async function main(): Promise<void> {
       assert.match(planner2.prompt, /- m2 · decisión · provisional · Claude \(«Base de datos»\), [^:]+: Las reservas se guardan en SQLite\./)
       assert.match(planner2.prompt, /- m3 · pendiente · provisional · Claude/)
       assert.match(planner2.prompt, /"memory": \[\{"kind"/)
-      // Si la conversación habla de AI Cowork, sí lleva la lista de funciones (con el enlace del acceso web).
+      // Si la conversación habla de kywai, sí lleva la lista de funciones (con el enlace del acceso web).
       const from3 = calls.length
       const r3 = await sendMessage({ projectId: project.id, text: '¿Cómo entro desde el móvil?', filePaths: [] })
       await waitFor(() => !!finished(r3.runId), 8000, 'run L3')
       const planner3 = calls.slice(from3).find((c) => c.mode === 'plan')!
-      assert.match(planner3.prompt, /### Funciones de AI Cowork[\s\S]*Ahora mismo: http:\/\/100\.64\.0\.9:8787\./)
+      assert.match(planner3.prompt, /### Funciones de kywai[\s\S]*Ahora mismo: http:\/\/100\.64\.0\.9:8787\./)
     })
 
     await check('M: cada tarea con su criterio de aceptación y sus archivos; si toca los de otra, se avisa', async () => {
@@ -943,7 +943,7 @@ async function main(): Promise<void> {
         assert.equal(lastTasks(fromReject).size, 0)
         assert.throws(() => rejectPlan(qp.id, third.id), /ya no está pendiente/)
 
-        // Lo que se aprueba es lo que se ve: si AI Cowork ajusta el plan del coordinador, el mensaje lo dice.
+        // Lo que se aprueba es lo que se ve: si kywai ajusta el plan del coordinador, el mensaje lo dice.
         const p4 = plan('Claude diseña la API y Codex la programa.', [
           { key: 'd', title: 'Diseñar la API', description: 'Rutas y formatos', agent: 'claude', difficulty: 'medium', dependsOn: [], deliverable: 'text' },
           { key: 'p', title: 'Programar la API', description: 'Crea server.js', agent: 'codex', difficulty: 'medium', dependsOn: ['d'], deliverable: 'file' }
@@ -953,7 +953,7 @@ async function main(): Promise<void> {
         await waitFor(() => !!finished(r4.runId), 5000, 'plan ajustado')
         const fourth = proposals().at(-1)!
         assert.deepEqual(fourth.proposal!.tasks.map((t) => t.title), ['Programar la API'])
-        assert.match(fourth.text, /\*Ajustes de AI Cowork al plan:\* «Diseñar la API» lo hace quien construye \(«Programar la API»\)\./)
+        assert.match(fourth.text, /\*Ajustes de kywai al plan:\* «Diseñar la API» lo hace quien construye \(«Programar la API»\)\./)
         rejectPlan(qp.id, fourth.id)
       } finally {
         getConfig().planApproval = false
@@ -1177,8 +1177,8 @@ async function main(): Promise<void> {
       assert.deepEqual(b.task.verification?.status, 'passed')
       assert.ok(b.done.includes('✔ Claude comprobó el resultado: cumple.'), b.done)
 
-      // 3. Dos correcciones y a la tercera revisión cumple: no hay relevo.
-      verdicts = ['VEREDICTO: FALLOS\n- falta el CVV', 'VEREDICTO: FALLOS\n- el CVV acepta letras', 'VEREDICTO: CUMPLE\nok']
+      // 3. Dos correcciones y a la tercera revisión cumple: no hay relevo. Conserva los veredictos en inglés de master.
+      verdicts = ['VERDICT: FAIL\n- falta el CVV', 'VEREDICTO: FALLOS\n- el CVV acepta letras', 'VERDICT: PASS\nok']
       const c = await go('Haz el formulario de pago con CVV')
       assert.deepEqual(c.seq, ['plan:claude', 'work:codex', 'plan:claude', 'work:codex', 'plan:claude', 'work:codex', 'plan:claude'])
       assert.deepEqual([c.task.verification?.status, c.task.verification?.fixes, c.task.verification?.relayedTo], ['passed', 2, undefined])
@@ -1362,6 +1362,52 @@ async function main(): Promise<void> {
       assert.equal(readFileSync(join(dir, 'comun.txt'), 'utf8'), 'a\nb\nc\nd\ne\nF\n')
       assert.ok(existsSync(join(dir, 'abajo.txt')))
       assert.match(await undoTask(project.id, arriba.id), /ya se deshizo/)
+      workBehaviour = () => null
+    })
+
+    await check('mensaje directo: «@Codex …» llega tal cual, sin Hermes, sin verificador y sin relevo', async () => {
+      __clearBlocksForChecks()
+      // Respuesta que en una tarea normal contaría como fallo y pasaría a otro agente.
+      workBehaviour = (o) =>
+        o.mode === 'work' && o.agent.id === 'codex' ? Promise.resolve({ ok: true, text: 'BLOQUEADA: respuesta tal cual', usage: { input: 5, output: 5 } }) : null
+      planResponses = {}
+      const fromCalls = calls.length
+      const fromEv = events.length
+      const r = await sendMessage({ projectId: project.id, text: '  @codex: hola, ¿qué tal?  ', filePaths: [] })
+      await waitFor(() => !!finished(r.runId), 10000, 'directo a Codex')
+      const mine = calls.slice(fromCalls)
+      assert.deepEqual(mine.map((c) => `${c.agentId}:${c.mode}`), ['codex:work'], 'solo trabaja Codex: ni plan ni verificación')
+      assert.equal(mine[0].prompt, 'hola, ¿qué tal?', 'el texto llega sin la mención y sin instrucciones')
+      const t = [...lastTasks(fromEv).values()].find((x) => x.runId === r.runId)!
+      assert.ok(t.direct && t.status === 'done' && t.agentId === 'codex')
+      assert.equal(t.result, 'BLOQUEADA: respuesta tal cual')
+      const msgs = store.getProject(project.id).messages.filter((m) => m.runId === r.runId)
+      assert.deepEqual(msgs.find((m) => m.author.type === 'user')?.direct, { agentId: 'codex', name: 'Codex' })
+      assert.ok(msgs.some((m) => m.author.type === 'agent' && m.text.includes('BLOQUEADA: respuesta tal cual')), 'la respuesta sale sin retocar')
+
+      // Si falla, no se le pasa a otro agente.
+      workBehaviour = (o) =>
+        o.mode === 'work' ? Promise.resolve({ ok: false, text: '', usage: { input: 0, output: 0 }, errorKind: 'failed', errorMessage: 'se cayó' }) : null
+      const fromCalls2 = calls.length
+      const fromEv2 = events.length
+      const r2 = await sendMessage({ projectId: project.id, text: '/directo Gemini cuéntame algo', filePaths: [] })
+      await waitFor(() => !!finished(r2.runId), 10000, 'directo a Gemini')
+      assert.deepEqual(calls.slice(fromCalls2).map((c) => c.agentId), ['gemini'], 'nadie más lo intenta')
+      assert.equal([...lastTasks(fromEv2).values()].find((x) => x.runId === r2.runId)!.status, 'failed')
+
+      // Un agente apagado no recibe nada y tampoco se reparte a otro.
+      const fromCalls3 = calls.length
+      const fromEv3 = events.length
+      const r3 = await sendMessage({ projectId: project.id, text: '@Qwen hola', filePaths: [] })
+      await waitFor(() => !!finished(r3.runId), 10000, 'directo a Qwen apagado')
+      assert.equal(calls.length, fromCalls3, 'no se llama a ningún agente')
+      const t3 = [...lastTasks(fromEv3).values()].find((x) => x.runId === r3.runId)!
+      assert.equal(t3.status, 'failed')
+      assert.match(t3.error ?? '', /Qwen no está disponible/)
+
+      // «/directo» con un agente que no existe es un error; «@algo» que no es un agente va al equipo como siempre.
+      await assert.rejects(sendMessage({ projectId: project.id, text: '/directo Nadie hola', filePaths: [] }), /No hay ningún agente «Nadie»/)
+      await assert.rejects(sendMessage({ projectId: project.id, text: '@Codex', filePaths: [] }), /Escribe el mensaje para Codex/)
       workBehaviour = () => null
     })
 

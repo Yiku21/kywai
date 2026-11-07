@@ -69,7 +69,19 @@ const LABELS: Record<string, string> = {
   ollama: 'Ollama'
 }
 
-const sameUrl = (a: string, b: string): boolean => a.replace(/\/+$/, '').toLowerCase() === b.replace(/\/+$/, '').toLowerCase()
+/**
+ * La misma dirección aunque se escriba distinto: sin barra final, sin el «#…» que añaden las versiones nuevas de
+ * Hermes a la clave de su caché («custom:http://127.0.0.1:20128/v1#aff94a1a…») y con localhost igual a 127.0.0.1.
+ */
+function urlKey(u: string): string {
+  return u
+    .trim()
+    .replace(/#.*$/, '')
+    .replace(/\/+$/, '')
+    .toLowerCase()
+    .replace(/^(https?:\/\/)(localhost|0\.0\.0\.0|\[::1\])(?=[:/]|$)/, '$1127.0.0.1')
+}
+const sameUrl = (a: string, b: string): boolean => urlKey(a) === urlKey(b)
 
 /** Proveedores con sus modelos según la caché del selector de Hermes (provider_models_cache.json). */
 export function hermesProviders(cache: Record<string, unknown>, cfg: ReturnType<typeof parseHermesConfig>): HermesProvider[] {
@@ -103,7 +115,7 @@ function readJson(file: string): Record<string, unknown> {
   }
 }
 
-/** Lo que verá «/model»: el modelo con el que coordina Hermes en AI Cowork y todos los que puede usar. */
+/** Lo que verá «/model»: el modelo con el que coordina Hermes en kywai y todos los que puede usar. */
 export function hermesModelsInfo(agent: AgentConfig | undefined, home = hermesHome()): HermesModelsInfo {
   const cfgFile = join(home, 'config.yaml')
   const cfg = existsSync(cfgFile) ? parseHermesConfig(readFileSync(cfgFile, 'utf8')) : { model: null, named: new Map<string, string>() }

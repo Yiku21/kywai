@@ -1,5 +1,5 @@
 /*
- * Temas con la distribución del clásico y sus propios colores (⋮ → «Temas…»): Marfil, Grafito, Bosque, Matrix,
+ * Temas con la distribución del clásico y sus propios colores (⚙ → «Temas…»): Marfil, Grafito, Bosque, Matrix,
  * EVA-01, Relicario, Telar, Halloween y Navidad (estos cuatro, además, con decoración en el espacio). Cambian las variables de tokens.css y las de los estilos que tienen un valor de reserva (var(--x, clásico)).
  * Los colores del espacio digital están en scene/palette.ts.
  */

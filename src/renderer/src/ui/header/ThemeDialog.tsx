@@ -1,65 +1,126 @@
-import { Check, Palette, X } from 'lucide-react'
-import { THEMES, setTheme, useTheme, type ThemeId } from '@/lib/theme'
-import { useEscape } from '../common/hooks'
+import type { ReactNode } from 'react'
+import { Check } from 'lucide-react'
+import {
+  CITY_COLORS,
+  DECORS,
+  DEFAULT_THEME,
+  WORLDS,
+  isCityColor,
+  lastCityColor,
+  setCityColor,
+  setTheme,
+  uiThemeOf,
+  useTheme,
+  worldOf,
+  type ThemeId,
+  type ThemeInfo
+} from '@/lib/theme'
 import { cx } from '../common/util'
-import u from '../common/ui.module.css'
-import r from './RemoteAccess.module.css'
 import s from './ThemeDialog.module.css'
+import { t } from '@/lib/i18n'
+import { WorldPreview } from './WorldPreview'
 
-/** ⋮ → «Temas…»: el aspecto de AI Cowork en este dispositivo. Se aplica al momento. */
-export function ThemeDialog({ onClose }: { onClose: () => void }) {
+/**
+ * Los temas (Ajustes → General), en dos grupos: los mapas (con la Ciudad digital como una tarjeta más, que al elegirla
+ * despliega debajo la fila de sus colores) y los decorados. Cada tarjeta es un botón de opción; los colores, otro grupo.
+ */
+export function ThemeGrid() {
   const theme = useTheme()
-  useEscape(true, onClose)
+  const inCity = isCityColor(theme)
+  const cityPreview = inCity ? theme : lastCityColor()
   return (
-    <div className={r.backdrop} role="dialog" aria-modal="true" aria-labelledby="theme-title" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={cx(r.dialog, s.dialog)}>
-        <header className={r.head}>
-          <Palette size={20} aria-hidden="true" className={r.headIcon} />
-          <div>
-            <h2 id="theme-title" className={r.title}>
-              Temas
-            </h2>
-            <p className={r.subtitle}>El aspecto de AI Cowork en este dispositivo. Se aplica al momento y se recuerda.</p>
+    <div className={s.groups}>
+      <Group title={t('Mapas')} hint={t('Cada uno con su entorno, sus plataformas y su núcleo')}>
+        {WORLDS.map((th) => (
+          <Card key={th.id} info={th} on={theme === th.id} onPick={() => setTheme(th.id)} />
+        ))}
+        {/* La Ciudad digital, una tarjeta más; al elegirla se despliega debajo la fila de sus colores. */}
+        <Card
+          info={{ id: cityPreview, name: t('Ciudad digital'), hint: t('El espacio de siempre, con el color que elijas') }}
+          on={inCity}
+          isDefault={DEFAULT_THEME === cityPreview}
+          onPick={() => setCityColor(cityPreview)}
+        />
+        {inCity && (
+          <div className={s.colors} role="radiogroup" aria-label={t('Color de la ciudad')}>
+            <span className={s.colorsTitle}>{t('Color de la ciudad')}</span>
+            {CITY_COLORS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                role="radio"
+                aria-checked={theme === c.id}
+                className={cx(s.color, theme === c.id && s.colorOn)}
+                onClick={() => setCityColor(c.id)}
+                title={c.hint}
+              >
+                <span className={s.swatch} style={{ background: `linear-gradient(135deg, ${c.swatch[0]} 50%, ${c.swatch[1]} 50%)` }} aria-hidden="true" />
+                {c.name}
+              </button>
+            ))}
           </div>
-          <button type="button" className={cx(u.iconBtn, r.close)} aria-label="Cerrar" onClick={onClose}>
-            <X size={18} aria-hidden="true" />
-          </button>
-        </header>
-        <div className={s.grid} role="radiogroup" aria-label="Tema">
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="radio"
-              aria-checked={theme === t.id}
-              className={cx(s.card, theme === t.id && s.cardOn)}
-              onClick={() => setTheme(t.id)}
-            >
-              <Preview id={t.id} />
-              <span className={s.cardText}>
-                <span className={s.cardName}>
-                  {t.name}
-                  {t.id === 'clasico' && <span className={s.default}>predeterminado</span>}
-                </span>
-                <span className={s.cardHint}>{t.hint}</span>
-              </span>
-              {theme === t.id && (
-                <span className={s.check} aria-hidden="true">
-                  <Check size={14} />
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+        )}
+      </Group>
+      <Group title={t('Decorados')} hint={t('La ciudad con decoración de temporada o de fantasía')}>
+        {DECORS.map((th) => (
+          <Card key={th.id} info={th} on={theme === th.id} onPick={() => setTheme(th.id)} />
+        ))}
+      </Group>
+      <p className={s.credits}>
+        {t('Texturas de Órbita')}:{' '}
+        <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noreferrer">
+          Solar System Scope
+        </a>{' '}
+        (
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
+          CC BY 4.0
+        </a>
+        ) ·{' '}
+        <a href="https://svs.gsfc.nasa.gov/4720/" target="_blank" rel="noreferrer">
+          NASA SVS
+        </a>
+      </p>
     </div>
+  )
+}
+
+function Group({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+  return (
+    <section className={s.group}>
+      <h3 className={s.groupTitle}>
+        {title} <span className={s.groupHint}>{hint}</span>
+      </h3>
+      <div className={s.grid} role="radiogroup" aria-label={title}>
+        {children}
+      </div>
+    </section>
+  )
+}
+
+function Card({ info, on, isDefault, onPick }: { info: ThemeInfo; on: boolean; isDefault?: boolean; onPick: () => void }) {
+  return (
+    <button type="button" role="radio" aria-checked={on} className={cx(s.card, on && s.cardOn)} onClick={onPick}>
+      <Preview id={info.id} />
+      <span className={s.cardText}>
+        <span className={s.cardName}>
+          {info.name}
+          {isDefault && <span className={s.default}>{t('predeterminado')}</span>}
+        </span>
+        <span className={s.cardHint}>{info.hint}</span>
+      </span>
+      {on && (
+        <span className={s.check} aria-hidden="true">
+          <Check size={14} />
+        </span>
+      )}
+    </button>
   )
 }
 
 /** Miniatura de la app con cada tema (sus colores propios, sea cual sea el actual). */
 function Preview({ id }: { id: ThemeId }) {
   return (
-    <span className={s.preview} data-preview={id} aria-hidden="true">
+    <span className={s.preview} data-preview={uiThemeOf(id)} aria-hidden="true">
       <span className={s.pvHeader}>
         <span className={s.pvLogo} />
         <span className={s.pvChips}>
@@ -78,7 +139,7 @@ function Preview({ id }: { id: ThemeId }) {
         </span>
         <span className={s.pvSpace}>
           <span className={s.pvStage}>
-            <span className={s.pvCore} />
+            {worldOf(id) ? <WorldPreview id={worldOf(id)!} /> : <span className={s.pvCore} />}
           </span>
         </span>
       </span>

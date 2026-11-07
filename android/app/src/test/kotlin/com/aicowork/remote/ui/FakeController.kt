@@ -56,6 +56,12 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     }
     override fun retryMessage(clientMessageId: String) { calls += "retryMessage:$clientMessageId" }
     override fun discardMessage(clientMessageId: String) { calls += "discard:$clientMessageId" }
+    override fun takeBackMessage(clientMessageId: String): OutgoingMessage? {
+        calls += "takeBack:$clientMessageId"
+        val message = state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId } ?: return null
+        state.value = state.value.copy(outgoing = state.value.outgoing - message)
+        return message
+    }
     override suspend fun newConversation(): ActionResult { calls += "newConversation"; return ActionResult(true, "Conversación nueva") }
     override suspend fun stopRequest(requestId: String): ActionResult { calls += "stop:$requestId"; return ActionResult(true, "Petición detenida") }
     override suspend fun resumeRequest(requestId: String): ActionResult { calls += "resume:$requestId"; return ActionResult(true, "Petición reanudada") }
@@ -68,8 +74,68 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     override fun sendMessage(text: String, attachmentIds: List<String>) {
         if (attachmentIds.isEmpty()) sendMessage(text) else calls += "send:$text:${attachmentIds.joinToString()}"
     }
+    override fun sendTemplate(text: String, templateId: String, attachmentIds: List<String>) { calls += "template:$templateId:$text:${attachmentIds.joinToString()}" }
+    override suspend fun createTemplate(input: com.aicowork.remote.data.model.TaskTemplateInput): ActionResult { calls += "createTemplate:${input.name}:${input.prompt}:${input.projectId}"; return nextResult }
+    override suspend fun updateTemplate(templateId: String, input: com.aicowork.remote.data.model.TaskTemplateInput, success: String?): ActionResult { calls += "updateTemplate:$templateId:${input.pinned}"; return nextResult }
+    override suspend fun deleteTemplate(templateId: String): ActionResult { calls += "deleteTemplate:$templateId"; return nextResult }
+    override suspend fun restoreTemplates(): ActionResult { calls += "restoreTemplates"; return nextResult }
     override suspend fun selectConversation(id: String): ActionResult { calls += "select:$id"; return nextResult }
     override suspend fun createProject(name: String): ActionResult { calls += "create:$name"; return nextResult }
+    var chatList = listOf(
+        com.aicowork.remote.data.model.ChatSummary("ch1", "c1", "Pantallas de la app", updatedAt = 5, messageCount = 3, current = true),
+        com.aicowork.remote.data.model.ChatSummary("ch0", "c1", "Informe semanal", updatedAt = 1, messageCount = 2),
+    )
+    override suspend fun listChats(projectId: String): Result<List<com.aicowork.remote.data.model.ChatSummary>> { calls += "chats:$projectId"; return Result.success(chatList.filter { it.projectId == projectId }) }
+    override suspend fun newChat(): ActionResult { calls += "newChat"; return nextResult }
+    override suspend fun openChat(projectId: String, chatId: String): ActionResult { calls += "openChat:$projectId:$chatId"; return nextResult }
+    override suspend fun renameChat(projectId: String, chatId: String, title: String): ActionResult { calls += "renameChat:$chatId:$title"; return nextResult }
+    override suspend fun deleteChat(projectId: String, chatId: String): ActionResult { calls += "deleteChat:$chatId"; return nextResult }
+    override suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): ActionResult { calls += "pinChat:$chatId:$pinned"; return nextResult }
+    override suspend fun forkChat(projectId: String, chatId: String, open: Boolean): ActionResult { calls += "forkChat:$chatId:$open"; return nextResult }
+    override suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ActionResult { calls += "moveChat:$chatId:$toProjectId"; return nextResult }
+    var pinnedList = emptyList<com.aicowork.remote.data.model.ChatSummary>()
+    override suspend fun pinnedChats(): Result<List<com.aicowork.remote.data.model.ChatSummary>> { calls += "pinnedChats"; return Result.success(pinnedList) }
+    override suspend fun renameProject(projectId: String, name: String): ActionResult { calls += "renameProject:$projectId:$name"; return nextResult }
+    override suspend fun pinProject(projectId: String, pinned: Boolean): ActionResult { calls += "pinProject:$projectId:$pinned"; return nextResult }
+    override suspend fun deleteProject(projectId: String): ActionResult { calls += "deleteProject:$projectId"; return nextResult }
+    override suspend fun music(kind: String, query: String): Result<List<com.aicowork.remote.data.model.MusicResult>> {
+        calls += "music:$kind:$query"
+        return Result.success(
+            if (kind == "radio") listOf(com.aicowork.remote.data.model.MusicResult("radio:groovesalad", "Groove Salad", "SomaFM", "Ambient", stream = "https://ice2.somafm.com/groovesalad-128-mp3", live = true))
+            else listOf(com.aicowork.remote.data.model.MusicResult("audius:Ab12", "Canción", "Artista", stream = "https://api.audius.co/v1/tracks/Ab12/stream?app_name=AICowork")),
+        )
+    }
+
+    override suspend fun search(query: String): Result<List<com.aicowork.remote.data.model.SearchHit>> {
+        calls += "search:$query"
+        return Result.success(listOf(com.aicowork.remote.data.model.SearchHit("conversation", "c1", "Proyecto demo", "ch0", "Informe semanal", "…el informe semanal…", 1)))
+    }
+    var modPanelsList: List<com.aicowork.remote.data.model.ModPanelInfo> = emptyList()
+
+    override suspend fun modPanels(): Result<List<com.aicowork.remote.data.model.ModPanelInfo>> {
+        calls += "modPanels"
+        return Result.success(modPanelsList)
+    }
+
+    override suspend fun modPanel(mod: String, id: String): Result<com.aicowork.remote.data.model.ModPanelPage> {
+        calls += "modPanel:$mod:$id"
+        return Result.success(com.aicowork.remote.data.model.ModPanelPage("<!doctype html><p>hola</p>", "Equipo", chat = true))
+    }
+
+    override suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): Result<com.aicowork.remote.data.model.SearchResponse> {
+        calls += "searchHistory:$query:${author ?: ""}:${since != null}:$limit"
+        val matches = listOf(
+            com.aicowork.remote.data.model.SearchMatch("m-a", "el informe semanal de lunes", 1, "user"),
+            com.aicowork.remote.data.model.SearchMatch("m-b", "aquí va el informe pedido", 2, "claude"),
+        )
+        val hit = com.aicowork.remote.data.model.SearchHit("conversation", "c1", "Proyecto demo", "ch0", "Informe semanal", "…el informe semanal…", 1, messageId = "m-a", matchCount = 2, matches = matches)
+        return Result.success(com.aicowork.remote.data.model.SearchResponse(listOf(hit), total = 1))
+    }
+    var allChatsList = listOf(
+        com.aicowork.remote.data.model.ChatSummary("ch0", "c1", "Informe semanal", 1, System.currentTimeMillis(), 4),
+        com.aicowork.remote.data.model.ChatSummary("ch9", "c2", "Plan del lanzamiento", 1, System.currentTimeMillis() - 40L * 86_400_000, 2),
+    )
+    override suspend fun allChats(): Result<List<com.aicowork.remote.data.model.ChatSummary>> { calls += "allChats"; return Result.success(allChatsList) }
     override suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> {
         calls += "trace:$taskId"
         return Result.success(state.value.snapshot?.tasks?.firstOrNull { it.id == taskId }?.trace.orEmpty())
@@ -92,6 +158,8 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     override suspend fun refreshUsage(): ActionResult { calls += "refreshUsage"; return nextResult }
     override suspend fun decidePlan(messageId: String, approve: Boolean): ActionResult { calls += "plan:$messageId:${if (approve) "approve" else "reject"}"; return nextResult }
     override suspend fun setPlanApproval(enabled: Boolean): ActionResult { calls += "planApproval:$enabled"; return nextResult }
+    override suspend fun setServerName(name: String): ActionResult { calls += "serverName:$name"; return nextResult }
+    override suspend fun setTheme(id: String): ActionResult { calls += "theme:$id"; return nextResult }
 
     // «/model»: los modelos de Hermes.
     var hermes = com.aicowork.remote.data.model.HermesModelsInfo(
@@ -112,6 +180,7 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     }
 
     override suspend fun resetAgent(agentId: String): ActionResult { calls += "reset:$agentId"; return nextResult }
+    override suspend fun setAgentThinking(agentId: String, enabled: Boolean): ActionResult { calls += "thinking:$agentId:$enabled"; return nextResult }
 
     // La versión de Órbita que ofrece el ordenador y su APK.
     var release: Result<com.aicowork.remote.data.model.AppRelease> = Result.failure(IllegalStateException("Sin versión"))

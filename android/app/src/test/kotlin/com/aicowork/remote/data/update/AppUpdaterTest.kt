@@ -102,12 +102,27 @@ class AppUpdaterTest {
     }
 
     @Test
+    fun ifTheComputerHasANewerVersionSinceItWasAnnouncedItInstallsThatOne() {
+        // Se anunció la 1.52, pero el ordenador se actualizó y ya sirve la APK de la 1.60.
+        val installer = FakeInstaller(dir).apply { allowed = true }
+        val controller = controller(release(code = 52, sha256 = "0".repeat(64)))
+        val updater = AppUpdater(controller, installer, scope)
+        updater.check()
+        updater.await { it is UpdateState.Available }
+        controller.release = Result.success(release(code = 60))
+        updater.install()
+        assertEquals(UpdateState.Installing(release(code = 60)), updater.await { it is UpdateState.Installing || it is UpdateState.Failed })
+        runBlocking { withTimeout(5_000) { while (installer.installed.isEmpty()) kotlinx.coroutines.delay(10) } }
+        assertTrue(installer.installed.single().contentEquals(apk))
+    }
+
+    @Test
     fun explainsWhyItCannotUpdate() {
         // El ordenador aún no ofrece actualizaciones.
         val old = FakeController(SampleData.state())
         val updater = AppUpdater(old, FakeInstaller(dir), scope)
         updater.check()
-        assertTrue((updater.state.value as UpdateState.Failed).message.contains("actualiza AI Cowork"))
+        assertTrue((updater.state.value as UpdateState.Failed).message.contains("actualiza kywai"))
         assertFalse("appRelease" in old.calls)
 
         // La versión de desarrollo es otro paquete: no se actualiza desde el ordenador.

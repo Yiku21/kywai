@@ -9,7 +9,7 @@ const PROMPT =
   'AUTHREQ_PROMPTING: msgID=25516.15, service=kTCCServiceSystemPolicyDocumentsFolder, subject=Sub:{com.aicowork.app}Resp:{TCCDProcess: identifier=com.aicowork.app, pid=25454, auid=501, euid=501, responsible_path=/Applications/AI Cowork.app/Contents/MacOS/AI Cowork}'
 
 describe('avisos de privacidad de macOS', () => {
-  it('reconoce la ventana que AI Cowork tiene pendiente y la nombra en español', () => {
+  it('reconoce la ventana que kywai tiene pendiente y la nombra en español', () => {
     expect(parsePromptLine(line(PROMPT))).toEqual({
       service: 'kTCCServiceSystemPolicyDocumentsFolder',
       serviceLabel: 'Documentos',

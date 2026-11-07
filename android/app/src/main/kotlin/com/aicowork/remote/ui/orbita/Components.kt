@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -119,8 +121,8 @@ fun OrbitaButton(
     val shape = RoundedCornerShape(height / 2)
     val (bg, fg, edge) = when (style) {
         ButtonStyle.Primary -> Triple(Brush.verticalGradient(listOf(Orbita.AccentButtonTop, Orbita.AccentButton)), Color.White, Orbita.AccentEdge)
-        ButtonStyle.Secondary -> Triple(Brush.verticalGradient(listOf(Color(0x33223654), Color(0x33223654))), Orbita.Text, Color(0x33B4CCF5))
-        ButtonStyle.Ghost -> Triple(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent)), Orbita.TextSoft, Color(0x26B4CCF5))
+        ButtonStyle.Secondary -> Triple(Brush.verticalGradient(listOf(Orbita.Card, Orbita.Card)), Orbita.Text, Orbita.GlassEdgeTop)
+        ButtonStyle.Ghost -> Triple(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent)), Orbita.TextSoft, Orbita.Divider)
         ButtonStyle.Danger -> Triple(Brush.verticalGradient(listOf(Color(0x40FF6D7C), Color(0x33FF6D7C))), Color(0xFFFFC9CF), Color(0x66FF6D7C))
     }
     val alpha = if (enabled) 1f else 0.45f
@@ -182,8 +184,8 @@ fun <T> Segmented(
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { (value, label) ->
             val on = value == selected
-            val bg by animateColorAsState(if (on) Orbita.AccentSoft else Color(0x1A223654), tween(180), label = "seg")
-            val edge by animateColorAsState(if (on) Orbita.AccentEdge else Color(0x26B4CCF5), tween(180), label = "segEdge")
+            val bg by animateColorAsState(if (on) Orbita.AccentSoft else Orbita.Card, tween(180), label = "seg")
+            val edge by animateColorAsState(if (on) Orbita.AccentEdge else Orbita.Divider, tween(180), label = "segEdge")
             Row(
                 Modifier
                     .weight(1f)
@@ -197,7 +199,7 @@ fun <T> Segmented(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {
-                Text(label, color = if (on) Color.White else Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(label, color = if (on) Orbita.Text else Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 counts[value]?.takeIf { it > 0 }?.let {
                     Spacer(Modifier.width(6.dp))
                     CountBadge(it, accent = on)
@@ -213,7 +215,7 @@ fun CountBadge(count: Int, accent: Boolean = true) {
         Modifier
             .heightIn(min = 20.dp)
             .clip(Orbita.PillShape)
-            .background(if (accent) Orbita.Accent.copy(alpha = 0.85f) else Color(0x40B4CCF5))
+            .background(if (accent) Orbita.Accent.copy(alpha = 0.85f) else Orbita.Divider)
             .padding(horizontal = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -255,7 +257,7 @@ fun ProgressLine(progress: Float?, color: Color, modifier: Modifier = Modifier, 
     val shown by animateFloatAsState(progress ?: 0f, tween(400), label = "progress")
     Canvas(modifier.fillMaxWidth().height(4.dp)) {
         val r = CornerRadius(size.height / 2)
-        drawRoundRect(Color(0x26B4CCF5), cornerRadius = r)
+        drawRoundRect(Orbita.Divider, cornerRadius = r)
         if (progress != null) {
             drawRoundRect(color, size = Size(size.width * shown.coerceIn(0f, 1f), size.height), cornerRadius = r)
         } else {
@@ -299,21 +301,10 @@ fun Note(icon: ImageVector, title: String, text: String?, modifier: Modifier = M
     }
 }
 
-/** Marca de AI Cowork: tres nodos conectados (azul, verde, naranja). */
+/** Marca de kywai: las tres gotas del logo (res/drawable/logo_kywai.xml). */
 @Composable
 fun LogoMark(size: Dp = 30.dp) {
-    Canvas(Modifier.size(size).semantics { contentDescription = "AI Cowork" }) {
-        val s = this.size.minDimension / 32f
-        fun p(x: Float, y: Float) = Offset(x * s, y * s)
-        val line = Color(0xB3E9EEF8)
-        drawLine(line, p(16f, 9f), p(8.5f, 22.5f), strokeWidth = 2.2f * s, cap = StrokeCap.Round)
-        drawLine(line, p(16f, 9f), p(23.5f, 22.5f), strokeWidth = 2.2f * s, cap = StrokeCap.Round)
-        drawLine(line, p(9f, 23f), p(23f, 23f), strokeWidth = 2.2f * s, cap = StrokeCap.Round)
-        drawCircle(Color(0xFF2A7BFF), 5.6f * s, p(16f, 8.5f))
-        drawCircle(Color(0xFF21C07C), 5f * s, p(8.3f, 23.2f))
-        drawCircle(Color(0xFFFF7A1F), 5f * s, p(23.7f, 23.2f))
-        drawCircle(Color.White.copy(alpha = 0.45f), 1.6f * s, p(14.4f, 6.9f))
-    }
+    Image(painterResource(R.drawable.logo_kywai), contentDescription = "kywai", modifier = Modifier.size(size))
 }
 
 /** Fondo sutil para una fila seleccionable dentro de un panel. */
@@ -343,7 +334,7 @@ fun OrbitaField(
     val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     if (autoFocus) androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    val edge by animateColorAsState(if (focused) Orbita.AccentEdge else Color(0x2EB4CCF5), tween(160), label = "field")
+    val edge by animateColorAsState(if (focused) Orbita.AccentEdge else Orbita.GlassEdgeTop, tween(160), label = "field")
     val shape = RoundedCornerShape(if (singleLine) 26.dp else 22.dp)
     androidx.compose.foundation.text.BasicTextField(
         value = value,
@@ -367,7 +358,7 @@ fun OrbitaField(
             Row(
                 Modifier
                     .clip(shape)
-                    .background(Color(0x40101A30))
+                    .background(Orbita.Card)
                     .border(1.dp, edge, shape)
                     .heightIn(min = 52.dp)
                     .padding(horizontal = 16.dp, vertical = 12.dp),

@@ -1,18 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { FlaskConical } from 'lucide-react'
 import { api, isWeb } from '@/lib/api'
 import { initAudio } from '@/lib/audio'
 import { lastProjectId, useCowork } from '@/store/cowork'
 import { demoEngine } from '@/demo/engine'
-import { World } from '@/scene/World'
 import { SceneLabels } from '@/scene/SceneLabels'
 import { Header } from '@/ui/Header'
 import { LeftPanel } from '@/ui/left/LeftPanel'
+import { ChatResizer } from '@/ui/left/ChatResizer'
+import { readChatWidth, saveChatWidth, TABS_QUERY } from '@/ui/left/chatWidth'
 import { ArtifactViewer } from '@/ui/ArtifactViewer'
 import { SetupWizard } from './ui/setup/SetupWizard'
 import { RestartOverlay } from './ui/RestartOverlay'
 import { UsageDialog } from './ui/usage/UsageDialog'
 import { QualityDialog } from './ui/usage/QualityDialog'
+import { SettingsDialog } from './ui/settings/SettingsDialog'
 import { ServerFiles } from './ui/files/ServerFiles'
 import { TaskTraceDialog } from './ui/trace/TaskTraceDialog'
 import { SpaceHeader } from '@/ui/space/SpaceHeader'
@@ -20,21 +23,38 @@ import { BottomBar } from '@/ui/space/BottomBar'
 import { SelectionPanel } from '@/ui/space/SelectionPanel'
 import { MusicPanel } from '@/ui/space/MusicPanel'
 import { HermesModelDialog } from '@/ui/space/HermesModelDialog'
-import { useTheme } from '@/lib/theme'
+import { Sidebar } from '@/ui/sidebar/Sidebar'
+import { SearchDialog } from '@/ui/sidebar/SearchDialog'
+import { followServerTheme, onThemeChosen, ownTheme, storedTheme, useUiTheme } from '@/lib/theme'
+import { HistoryDialog } from '@/ui/sidebar/HistoryDialog'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
+import { lang, t } from '@/lib/i18n'
+
+// El espacio 3D (Three.js y compañía, la mayor parte del código) se carga aparte: el chat aparece sin esperarlo.
+const World = lazy(() => import('@/scene/World').then((m) => ({ default: m.World })))
 
 /** Conecta con el motor de agentes (Electron) o arranca la demo si no hay motor. */
 function useBoot(): void {
   useEffect(() => {
     if (!api) return
     const st = useCowork.getState()
-    const off = api.onEvent((e) => useCowork.getState().applyEvent(e))
+    const off = api.onEvent((e) => {
+      useCowork.getState().applyEvent(e)
+      // Otro dispositivo cambió el tema: este lo sigue al momento (salvo que use un tema propio).
+      if (e.kind === 'config.updated') followServerTheme(e.config.uiTheme)
+    })
     let alive = true
     ;(async () => {
       const [config, runtime, projects] = await Promise.all([api.getConfig(), api.getRuntime(), api.listProjects()])
       if (!alive) return
       st.hydrateLive(config, runtime.runtimes, runtime.quotas)
+      // El motor aún no sabe en qué idioma escribir los avisos y las respuestas: el de esta interfaz.
+      if (!config.language) api.setLanguage?.(lang()).catch(() => {})
+      // El tema lo guarda el servidor y lo siguen todos sus dispositivos (escritorio, clientes, navegador y Órbita).
+      onThemeChosen((id) => void api?.setUiTheme?.(id).catch(() => {}))
+      if (config.uiTheme) followServerTheme(config.uiTheme)
+      else if (!ownTheme()) api.setUiTheme?.(storedTheme()).catch(() => {})
       st.setProjects(projects)
       // Bandeja «Te necesita» (lo nuevo llega por eventos inbox.updated).
       api.listInbox().then(
@@ -43,7 +63,14 @@ function useBoot(): void {
         },
         () => undefined
       )
-      // Registro de consumo (para el resumen bajo cada plan y el panel ⋮ → Consumo).
+      // Plantillas de tareas (la fila de encima del chat; los cambios llegan por templates.updated).
+      api.listTemplates?.().then(
+        (list) => {
+          if (alive) useCowork.setState({ templates: list })
+        },
+        () => undefined
+      )
+      // Registro de consumo (para el resumen bajo cada plan y el panel ⚙ → Consumo).
       api.getUsageRuns().then(
         (list) => {
           if (!alive) return
@@ -82,17 +109,29 @@ export function App() {
   const mode = useCowork((st) => st.mode)
   const expanded = useCowork((st) => st.spaceExpanded)
   const mobileView = useCowork((st) => st.mobileView)
-  // Primer arranque en este equipo (o abierto desde el menú ⋮): asistente de configuración.
+  // Primer arranque en este equipo (o abierto desde el menú ⚙): asistente de configuración.
   // Solo en el propio equipo: instala programas y abre ventanas de inicio de sesión allí.
   const restarting = useCowork((st) => st.restarting)
   const usageOpen = useCowork((st) => st.usageOpen)
   const qualityOpen = useCowork((st) => st.qualityOpen)
   const hermesModelOpen = useCowork((st) => st.hermesModelOpen)
+  const searchOpen = useCowork((st) => st.searchOpen)
+  const searchSeed = useCowork((st) => st.searchSeed)
+  const historyOpen = useCowork((st) => st.historyOpen)
   const showSetup = useCowork((st) => !isWeb && st.hasBackend && st.configLoaded && (!st.config.setupDone || st.setupOpen))
   // Tema Órbita: el espacio 3D ocupa toda la ventana y la interfaz flota encima como cristal esmerilado.
-  const glass = useTheme() === 'orbita'
-  const narrow = useMediaQuery('(max-width: 760px)')
+  const glass = useUiTheme() === 'orbita'
+  // Ventana estrecha: el chat ocupa todo y el 3D pasa a la pestaña «Espacio» de la cabecera (el chat manda).
+  const narrow = useMediaQuery(TABS_QUERY)
   const left = useRef<HTMLElement>(null)
+  // Ancho del chat elegido arrastrando su borde (null = automático). Mientras se arrastra no hay animación.
+  const [chatWidth, setChatWidth] = useState<number | null>(readChatWidth)
+  const [resizing, setResizing] = useState(false)
+  const onResize = (width: number | null, done: boolean): void => {
+    setChatWidth(width)
+    setResizing(!done)
+    if (done) saveChatWidth(width)
+  }
   const [inset, setInset] = useState(0)
   useEffect(() => {
     const el = left.current
@@ -113,36 +152,62 @@ export function App() {
       {glass && (
         <div className={s.world}>
           {/* El centro del mundo, en la zona que deja libre el chat. */}
-          <World view={narrow ? undefined : { left: inset, top: 140, bottom: 76 }} />
+          <Suspense fallback={null}>
+            <World view={narrow ? undefined : { left: inset, top: 140, bottom: 14 }} />
+          </Suspense>
           <SceneLabels />
         </div>
       )}
       <Header />
-      <div className={s.body} data-expanded={expanded} data-mobile={mobileView}>
-        <aside ref={left} className={s.left} aria-label="Chat, archivos, tareas y resultados" aria-hidden={expanded || undefined}>
-          <LeftPanel />
-        </aside>
-        <section className={s.space} data-demo={mode === 'demo'} aria-label="Espacio digital">
+      <div className={s.main}>
+      {!expanded && (
+        <div className={s.side}>
+          <Sidebar />
+        </div>
+      )}
+      <div
+        className={s.body}
+        data-expanded={expanded}
+        data-mobile={mobileView}
+        data-custom-width={chatWidth != null || undefined}
+        data-resizing={resizing || undefined}
+        style={chatWidth != null ? ({ '--chat-w': `${chatWidth}px` } as CSSProperties) : undefined}
+      >
+        <div className={s.leftCol}>
+          <aside ref={left} className={s.left} aria-label={t('Chat, archivos, tareas y resultados')} aria-hidden={expanded || undefined}>
+            <LeftPanel />
+          </aside>
+          {!narrow && !expanded && <ChatResizer panel={left} width={chatWidth} onResize={onResize} />}
+        </div>
+        <section className={s.space} data-demo={mode === 'demo'} aria-label={t('Espacio digital')}>
           <SpaceHeader />
           <div className={s.stage}>
-            {!glass && <World />}
+            {!glass && (
+              <Suspense fallback={null}>
+                <World />
+              </Suspense>
+            )}
             {!glass && <SceneLabels />}
             <SelectionPanel />
             <MusicPanel />
+            <BottomBar />
             {mode === 'demo' && (
               <div className={s.demoRibbon}>
                 <FlaskConical size={13} aria-hidden="true" />
-                Demo · datos simulados
+                {t('Demo · datos simulados')}
               </div>
             )}
           </div>
-          <BottomBar />
         </section>
       </div>
+      </div>
+      {searchOpen && <SearchDialog initialQuery={searchSeed} onClose={() => useCowork.setState({ searchOpen: false, searchSeed: '' })} />}
+      {historyOpen && <HistoryDialog onClose={() => useCowork.setState({ historyOpen: false })} />}
       <ArtifactViewer />
       {showSetup && <SetupWizard />}
       {usageOpen && <UsageDialog onClose={() => useCowork.setState({ usageOpen: false })} />}
       {qualityOpen && <QualityDialog onClose={() => useCowork.setState({ qualityOpen: false })} />}
+      <SettingsDialog />
       <ServerFiles />
       {hermesModelOpen && <HermesModelDialog onClose={() => useCowork.setState({ hermesModelOpen: false })} />}
       <TaskTraceDialog />

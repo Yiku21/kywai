@@ -230,6 +230,38 @@ export function coreShape(style: CoreStyle, R: number): CoreShape {
   if (hit) return hit
   let shape: CoreShape
   switch (style) {
+    case 'hologram': {
+      const shell = new THREE.OctahedronGeometry(R * 0.95)
+      shape = { shell, wire: new THREE.EdgesGeometry(shell), nodes: false }
+      break
+    }
+    case 'voxel': {
+      const shell = new THREE.BoxGeometry(R * 1.25, R * 1.25, R * 1.25, 3, 3, 3)
+      const pts: number[] = [], r = R * 0.625
+      for (let i = 0; i <= 3; i++) for (const side of [-r, r]) {
+        const p = -r + i * 2 * r / 3
+        pts.push(-r,p,side,r,p,side, p,-r,side,p,r,side,
+          -r,side,p,r,side,p, p,side,-r,p,side,r,
+          side,-r,p,side,r,p, side,p,-r,side,p,r)
+      }
+      shape = { shell, wire: lines(pts), nodes: false }
+      break
+    }
+    case 'reactor': {
+      const shell = new THREE.CylinderGeometry(R * 0.56, R * 0.56, R * 1.4, 24, 4, true)
+      shape = { shell, wire: new THREE.EdgesGeometry(shell), nodes: false }
+      break
+    }
+    case 'capsule': {
+      const shell = new THREE.CapsuleGeometry(R * 0.53, R * 0.83, 8, 24)
+      shape = { shell, wire: new THREE.EdgesGeometry(shell, 25), nodes: false }
+      break
+    }
+    case 'planetarium':
+    case 'sculpture':
+    case 'tree':
+      shape = { shell: new THREE.SphereGeometry(R, 32, 24), wire: lines([]), nodes: false }
+      break
     case 'crystal': {
       const shell = crystalGeometry(R)
       shape = { shell, wire: new THREE.EdgesGeometry(shell), nodes: false }

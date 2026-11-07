@@ -14,8 +14,10 @@ const fake = vi.hoisted(() => {
     },
     approvePlan: async (p, m) => void calls.push(`approve:${p}:${m}`),
     rejectPlan: async (p, m) => void calls.push(`reject:${p}:${m}`),
+    decideRoutineProposal: async (p, m, a) => void calls.push(`routine:${p}:${m}:${String(a)}`),
     rateMessage: async (p, m, r) => void calls.push(`rate:${p}:${m}:${String(r)}`),
-    openPath: async (p, rel) => void calls.push(`open:${p}:${rel}`)
+    openPath: async (p, rel) => void calls.push(`open:${p}:${rel}`),
+    downloadArtifacts: async (p, ids) => void calls.push(`download:${p}:${(ids as string[]).join(',')}`)
   }
   ;(window as unknown as { cowork: unknown }).cowork = new Proxy(methods, {
     get: (t, k: string) => t[k] ?? (async () => undefined)
@@ -25,6 +27,7 @@ const fake = vi.hoisted(() => {
 
 import { useCowork } from '@/store/cowork'
 import { MessageItem } from './Messages'
+import { useComposer } from './composerStore'
 
 let root: Root
 let host: HTMLDivElement
@@ -83,6 +86,12 @@ describe('chat del escritorio', () => {
     }
   }
 
+  it('un mensaje directo a un agente dice a quién fue y que no pasó por Hermes', async () => {
+    await show({ id: 'md', projectId: 'p1', runId: 'r8', author: { type: 'user' }, text: 'hola', createdAt: 1, direct: { agentId: 'qwen', name: 'Qwen' } })
+    expect(host.textContent).toContain('Tú → Qwen (directo, sin Hermes)')
+    expect(host.querySelector('p')?.textContent).toBe('hola')
+  })
+
   it('un mensaje que lanzó una rutina lleva «Rutina: <nombre>» y sus datos externos van plegados', async () => {
     await show({
       id: 'mr',
@@ -113,6 +122,32 @@ describe('chat del escritorio', () => {
     expect(fake.calls).toEqual(['approve:p1:m1', 'reject:p1:m1'])
   })
 
+  it('la rutina que propone Hermes se crea, se cambia en el cuadro de texto o se descarta', async () => {
+    const m: ChatMessage = {
+      id: 'm9',
+      projectId: 'p1',
+      runId: 'r9',
+      author: { type: 'agent', agentId: 'hermes' },
+      text: '¿Lo dejo programado?',
+      createdAt: 1,
+      routineProposal: { status: 'pending', name: 'Revisa los PR', request: 'revisa los PR abiertos', trigger: { type: 'daily', time: '08:30' }, command: '/rutina cada día a las 8:30: revisa los PR abiertos' }
+    }
+    await show(m)
+    expect(host.textContent).toContain('Rutina propuesta: Revisa los PR')
+    expect(host.textContent).toContain('Cada día a las 08:30')
+    await act(async () => button('Crear rutina').click())
+    await act(async () => button('Descartar').click())
+    expect(fake.calls).toEqual(['routine:p1:m9:create', 'routine:p1:m9:dismiss'])
+    await act(async () => button('Cambiar').click())
+    expect(useComposer.getState().text).toBe('/rutina cada día a las 8:30: revisa los PR abiertos')
+    // Creada: sin botones de decidir, con «Ver en Rutinas».
+    await show({ ...m, routineProposal: { ...m.routineProposal!, status: 'created', routineId: 'r1' } })
+    expect(host.textContent).toContain('Rutina creada: Revisa los PR')
+    expect(button('Crear rutina')).toBeUndefined()
+    await act(async () => button('Ver en Rutinas').click())
+    expect(useCowork.getState().leftTab).toBe('routines')
+  })
+
   it('un plan cambiado o descartado se queda plegado y sin botones', async () => {
     await show({ ...proposal, proposal: { ...proposal.proposal!, status: 'revised' } })
     expect(host.textContent).toContain('Plan cambiado por tu respuesta')
@@ -135,6 +170,10 @@ describe('chat del escritorio', () => {
     expect(host.querySelectorAll('li').length).toBe(3)
     await act(async () => button('Abrir carpeta').click())
     expect(fake.calls).toEqual(['open:p1:artifacts/conceptos'])
+    await act(async () => button('Descargar 01.png').click())
+    expect(fake.calls.at(-1)).toBe('download:p1:a1')
+    await act(async () => button('Descargar conceptos como zip').click())
+    expect(fake.calls.at(-1)).toBe('download:p1:a1,a2,a3')
   })
 
   it('mientras trabaja, el chat enseña en corto qué hace y todo lo demás se despliega en tres niveles', async () => {

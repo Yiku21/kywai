@@ -1,11 +1,15 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import com.aicowork.remote.data.CoworkUiState
 import com.aicowork.remote.data.OutgoingMessage
 import com.aicowork.remote.data.OutgoingStatus
+import com.aicowork.remote.data.QueuedFile
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.ChatMessage
 import com.aicowork.remote.data.model.Snapshot
@@ -95,6 +100,25 @@ fun PanelHeader(
     icon: ImageVector? = null,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
+    val compact = LocalCompactPanel.current
+    // Chat, Archivos, Tareas y Resultados comparten pestañas (desplegado, aquí arriba; plegado, bajo la barra superior).
+    val tabbed = model.section in panelTabs(compact)
+    if (tabbed) {
+        Row(Modifier.fillMaxWidth().padding(start = if (compact) 16.dp else 8.dp, end = 8.dp, top = if (compact) 6.dp else 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Plegado a pantalla completa no hay barra de arriba: las pestañas pasan aquí.
+            if (compact && !model.isExpanded(true)) {
+                Text(listOfNotNull(subtitle?.takeIf { it.isNotBlank() }, title).first(), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).semantics { heading() })
+            } else {
+                PanelTabs(model, compact = compact, modifier = Modifier.weight(1f))
+            }
+            trailing()
+            PanelWindowActions(model, compact)
+        }
+        if (!compact && !subtitle.isNullOrBlank()) {
+            Text(subtitle, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 4.dp).semantics { heading() })
+        }
+        return
+    }
     Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         if (icon != null) {
             Icon(icon, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(28.dp))
@@ -105,21 +129,26 @@ fun PanelHeader(
             if (!subtitle.isNullOrBlank()) Text(subtitle, color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         trailing()
-        val compact = LocalCompactPanel.current
-        val expanded = model.isExpanded(compact)
-        IconAction(
-            if (expanded) Icons.Outlined.CloseFullscreen else Icons.Outlined.OpenInFull,
-            when {
-                compact && expanded -> "Salir de pantalla completa"
-                compact -> "Pantalla completa"
-                expanded -> "Reducir el panel"
-                else -> "Ampliar el panel"
-            },
-            onClick = { model.toggleExpanded(compact) },
-            modifier = Modifier.testTag("panel-expand"),
-        )
-        IconAction(Icons.Outlined.Close, "Cerrar el panel", onClick = { model.close() }, modifier = Modifier.testTag("panel-close"))
+        PanelWindowActions(model, compact)
     }
+}
+
+/** Ampliar/reducir y cerrar el panel. */
+@Composable
+private fun PanelWindowActions(model: OrbitaModel, compact: Boolean) {
+    val expanded = model.isExpanded(compact)
+    IconAction(
+        if (expanded) Icons.Outlined.CloseFullscreen else Icons.Outlined.OpenInFull,
+        when {
+            compact && expanded -> t("Salir de pantalla completa")
+            compact -> t("Pantalla completa")
+            expanded -> t("Reducir el panel")
+            else -> t("Ampliar el panel")
+        },
+        onClick = { model.toggleExpanded(compact) },
+        modifier = Modifier.testTag("panel-expand"),
+    )
+    IconAction(Icons.Outlined.Close, t("Cerrar el panel"), onClick = { model.close() }, modifier = Modifier.testTag("panel-close"))
 }
 
 /** Columna de un panel: cabecera, contenido desplazable y acción principal abajo. */
@@ -164,13 +193,32 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
     LaunchedEffect(growing) {
         if (rows.isNotEmpty() && model.chatPositioned && atBottom) list.animateScrollToItem(rows.size - 1, Int.MAX_VALUE / 2)
     }
+    // Lo pide el buscador: bajar hasta el mensaje encontrado y resaltarlo un momento.
+    val focus = model.focusMessageId
+    LaunchedEffect(focus, rows) {
+        if (focus == null) return@LaunchedEffect
+        val i = rows.indexOfFirst { it is ChatRow.Server && it.message.id == focus }
+        if (i < 0) return@LaunchedEffect
+        model.chatPositioned = true
+        list.scrollToItem(i)
+        model.flashMessageId = focus
+        model.focusMessageId = null
+    }
+    LaunchedEffect(model.flashMessageId) {
+        if (model.flashMessageId != null) {
+            kotlinx.coroutines.delay(2600)
+            model.flashMessageId = null
+        }
+    }
     // Lo que acabas de enviar siempre se ve.
     LaunchedEffect(model.chatSends) {
         if (model.chatSends > 0 && rows.isNotEmpty()) list.animateScrollToItem(rows.size - 1)
     }
-    val pending = snapshot?.conversation?.attachments.orEmpty().filter { it.id in model.pendingAttachments }
+    // Lo que va con el próximo mensaje: adjuntos ya en el proyecto y copias guardadas sin conexión (id y nombre).
+    val pending = snapshot?.conversation?.attachments.orEmpty().filter { it.id in model.pendingAttachments }.map { it.id to it.name } +
+        state.queuedFiles.filter { it.localId in model.pendingAttachments }.map { it.localId to it.name }
     PanelColumn {
-        PanelHeader(model, "Chat", snapshot?.conversation?.title ?: "Hermes y el equipo")
+        PanelHeader(model, t("Chat"), snapshot?.conversation?.let { c -> listOfNotNull(c.title, c.chat?.title).joinToString(" › ") } ?: t("Hermes y el equipo"))
         ActiveRequestStrip(model, snapshot)
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth().testTag("chat-list"),
@@ -179,24 +227,49 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (rows.isEmpty()) item {
-                Note(Icons.Outlined.TaskAlt, "Pide algo al equipo", "Hermes lo reparte entre los agentes y verás a cada uno trabajar en el mundo.")
+                Note(Icons.Outlined.TaskAlt, t("Pide algo al equipo"), t("Hermes lo reparte entre los agentes y verás a cada uno trabajar en el mundo."))
             }
             items(rows, key = { it.key }) { row ->
                 when (row) {
                     // Manteniendo el dedo sobre una palabra se selecciona (y se amplía con los tiradores) para copiarla.
-                    is ChatRow.Server -> SelectionContainer { ServerMessage(row.message, snapshot!!, state, model) }
+                    is ChatRow.Server -> Box(
+                        Modifier
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(if (model.flashMessageId == row.message.id) Orbita.AccentSoft else androidx.compose.ui.graphics.Color.Transparent)
+                            .testTag("msg-${row.message.id}"),
+                    ) { SelectionContainer { ServerMessage(row.message, snapshot!!, state, model) } }
                     is ChatRow.Local -> SelectionContainer { LocalMessage(row.message, model) }
                     ChatRow.Planning -> PlanningBubble(hermes)
                 }
             }
         }
+        // Fotos que se están subiendo (o que fallaron) desde el botón de cámara.
+        val uploading = state.uploads.filter { !it.done || it.error != null }
+        if (uploading.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp).testTag("chat-uploads"), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                uploading.forEach { u ->
+                    val failed = u.error != null
+                    Row(Modifier.clip(Orbita.PillShape).background(if (failed) Orbita.Danger.copy(alpha = 0.18f) else Orbita.AccentSoft).padding(start = 10.dp, end = if (failed) 4.dp else 12.dp, top = 2.dp, bottom = 2.dp).heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (failed) Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = Orbita.Danger, modifier = Modifier.size(16.dp))
+                        else CircularProgressIndicator(progress = { u.progress }, color = Orbita.Accent, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (failed) t("No se pudo subir {name}", "name" to u.name) else t("Subiendo {name}…", "name" to u.name),
+                            color = Orbita.Text, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp),
+                        )
+                        if (failed) IconAction(Icons.Outlined.Close, t("Quitar {name}", "name" to u.name), onClick = { model.controller.dismissUpload(u.id) }, size = 32.dp)
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
         if (pending.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                pending.take(3).forEach { a ->
+                pending.take(3).forEach { (id, name) ->
                     Row(Modifier.clip(Orbita.PillShape).background(Orbita.AccentSoft).padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.AttachFile, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(16.dp))
-                        Text(a.name, color = Orbita.Text, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 140.dp))
-                        IconAction(Icons.Outlined.Close, "Quitar ${a.name}", onClick = { model.pendingAttachments = model.pendingAttachments - a.id }, size = 32.dp)
+                        Icon(if (id.startsWith(QueuedFile.LOCAL_ATTACHMENT)) Icons.Outlined.Schedule else Icons.Outlined.AttachFile, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(16.dp))
+                        Text(name, color = Orbita.Text, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 140.dp))
+                        IconAction(Icons.Outlined.Close, t("Quitar {name}", "name" to name), onClick = { model.pendingAttachments = model.pendingAttachments - id }, size = 32.dp)
                     }
                 }
                 if (pending.size > 3) Text("+${pending.size - 3}", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, modifier = Modifier.align(Alignment.CenterVertically))
@@ -210,16 +283,50 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             is VoiceState.Failed -> voice.target == VoiceTarget.Chat
             VoiceState.Idle -> false
         }
+        // «@» al principio: los agentes, para escribirle a uno directamente sin pasar por Hermes.
+        val directTargets = snapshot?.takeIf { it.capabilities.directMessages }?.let { DirectMention.targets(it.agents) }.orEmpty()
+        val mention = if (!voiceHere && directTargets.isNotEmpty()) DirectMention.query(model.chatDraft.text) else null
+        val mentionList = mention?.let { DirectMention.matches(it.query, directTargets) }.orEmpty()
+        if (mention != null && mentionList.isNotEmpty()) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).testTag("mentions")) {
+                Text(t("Directo, sin pasar por Hermes: recibe tu texto tal cual"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    mentionList.forEach { a ->
+                        Row(
+                            Modifier.clip(Orbita.PillShape).background(Orbita.AccentSoft).tappable {
+                                val next = DirectMention.text(mention.prefix, a)
+                                model.chatDraft = TextFieldValue(next, selection = androidx.compose.ui.text.TextRange(next.length))
+                            }.padding(horizontal = 12.dp, vertical = 8.dp).testTag("mention-${a.id}"),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Dot(parseColor(a.color), 8.dp)
+                            Spacer(Modifier.width(6.dp))
+                            Text(a.name, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+        }
+        // Plantillas de tareas: la lista de órdenes al escribir «/» y la fila de botones encima del cuadro.
+        if (!voiceHere) {
+            TemplateCommandList(model, snapshot)
+            TemplateRow(model, snapshot, pending.map { it.first })
+        }
         if (voiceHere) {
             VoiceBar(model, voice, allowSend = true, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp))
         } else Composer(
             value = model.chatDraft,
-            onValue = { model.chatDraft = it },
+            onValue = { model.editDraft(VoiceTarget.Chat, it) },
             // Con un plan esperando tu visto bueno, lo que escribas son cambios a ese plan (o «sí» para aprobarlo).
-            placeholder = if (messages.any { it.proposal?.isPending == true }) "Qué cambiar del plan, o «sí»…" else "Escribe una tarea o una pregunta…",
+            placeholder = if (model.dictation?.target == VoiceTarget.Chat) t("Habla, te escucho…") else if (messages.any { it.proposal?.isPending == true }) t("Qué cambiar del plan, o «sí»…") else t("Escribe una tarea o una pregunta…"),
             canSend = model.chatDraft.text.isNotBlank() || pending.isNotEmpty(),
             onAttach = if (snapshot?.capabilities?.upload == true) ({ model.open(Section.Files); model.filesTab = FilesTab.Attachments }) else null,
-            mic = if (snapshot?.capabilities?.voice == true && model.canRecord) ({ MicButton(model, VoiceTarget.Chat, Modifier.padding(bottom = 4.dp)) }) else null,
+            photo = if (snapshot?.capabilities?.upload == true) ({ PhotoButton(model, Modifier.padding(bottom = 4.dp)) }) else null,
+            mic = model.canRecordNote(snapshot?.capabilities?.voice == true).let { note ->
+                if (note || model.canDictate) ({ MicButton(model, VoiceTarget.Chat, note, Modifier.padding(bottom = 4.dp)) }) else null
+            },
         ) {
             val text = model.chatDraft.text
             if (OrbitaModel.isModelCommand(text) && pending.isEmpty()) {
@@ -229,15 +336,17 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
                     model.hermesModelOpen = true
                 } else {
                     model.feedback.reject()
-                    model.toast("Actualiza AI Cowork en el ordenador para cambiar el modelo de Hermes desde aquí", Toast.Tone.Error)
+                    model.toast(t("Actualiza kywai en el ordenador para cambiar el modelo de Hermes desde aquí"), Toast.Tone.Error)
                 }
                 return@Composer
             }
+            model.cancelDictation()
             model.feedback.confirm()
-            model.controller.sendMessage(text, pending.map { it.id })
+            model.controller.sendMessage(text, pending.map { it.first })
             model.pendingAttachments = emptySet()
             model.chatDraft = TextFieldValue("")
-            model.awaitingPlanSince = System.currentTimeMillis()
+            // Un mensaje directo no pasa por Hermes: no hay plan que esperar.
+            if (DirectMention.target(text, directTargets) == null) model.awaitingPlanSince = System.currentTimeMillis()
             model.chatSends++
         }
     }
@@ -251,10 +360,10 @@ private fun ActiveRequestStrip(model: OrbitaModel, snapshot: Snapshot?) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).card(radius = 18.dp).padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Dot(Orbita.Accent, pulse = true)
             Spacer(Modifier.width(10.dp))
-            Text(if (working > 0) "Trabajando · $working ${if (working == 1) "tarea" else "tareas"}" else "Hermes está repartiendo el trabajo…", color = Orbita.Text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+            Text(if (working > 0) t("Trabajando · {working} {v1}", "working" to working, "v1" to (if (working == 1) t("tarea") else t("tareas"))) else t("Hermes está repartiendo el trabajo…"), color = Orbita.Text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
             if (snapshot.capabilities.stopRequests) {
                 var busy by remember { mutableStateOf(false) }
-                OrbitaButton("Detener", onClick = {
+                OrbitaButton(t("Detener"), onClick = {
                     busy = true
                     model.run({ model.controller.stopRequest(active.last()) }) { busy = false }
                 }, icon = Icons.Outlined.Pause, style = ButtonStyle.Danger, busy = busy, height = 40.dp)
@@ -268,7 +377,7 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
     val author = message.author
     when {
         author.isUser -> Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
-            Column(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(Color(0x662A6F86)).border(1.dp, Color(0x334FC3D6), RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Column(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(Orbita.UserBubble).border(1.dp, Orbita.AccentEdge.copy(alpha = 0.25f), RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).padding(horizontal = 14.dp, vertical = 10.dp)) {
                 if (message.text.isNotBlank()) Text(message.text, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge)
                 message.attachments.forEach { a ->
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
@@ -278,11 +387,19 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                 }
             }
             Row(Modifier.padding(top = 3.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                message.direct?.let { d ->
+                    Text(t("Tú → {name} (directo, sin Hermes)", "name" to d.name), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.width(6.dp))
+                }
+                message.template?.let { tp ->
+                    Text(t("Plantilla «{name}»", "name" to tp.name), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp))
+                    Spacer(Modifier.width(6.dp))
+                }
                 Text(Format.time(message.createdAt), color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium)
                 if (message.clientMessageId != null && message.clientMessageId in state.delivered) {
                     Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Outlined.DoneAll, contentDescription = "Entregado", tint = Orbita.Accent, modifier = Modifier.size(16.dp))
-                    Text(" Entregado", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                    Icon(Icons.Outlined.DoneAll, contentDescription = t("Entregado"), tint = Orbita.Accent, modifier = Modifier.size(16.dp))
+                    Text(t(" Entregado"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -293,7 +410,7 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(agent?.name ?: author.name ?: "Agente", color = agent?.let { parseColor(it.color) } ?: Orbita.Accent, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        Text(agent?.name ?: author.name ?: t("Agente"), color = agent?.let { parseColor(it.color) } ?: Orbita.Accent, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.width(8.dp))
                         Text(Format.time(message.createdAt), color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium)
                     }
@@ -313,6 +430,8 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                     // Plan de Hermes: a la espera de tu visto bueno (o ya en marcha, con sus tareas en vivo).
                     val proposal = message.proposal
                     if (proposal != null && proposal.status != "approved") ProposalCard(message, proposal, snapshot, model)
+                    // Rutina que propone Hermes («Crear rutina»).
+                    message.routineProposal?.let { RoutineProposalCard(message, it, snapshot, model) }
                     if (message.taskIds.isNotEmpty()) PlanTasksCard(message.taskIds, snapshot, model)
                     // Lo que entrega una tarea, junto en una carpeta que se despliega.
                     if (message.artifactIds.isNotEmpty()) DeliverablesCard(message.id, message.artifactIds, snapshot, model)
@@ -329,30 +448,59 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
     }
 }
 
+/** Devuelve un mensaje en cola al cuadro de texto, con sus adjuntos, para cambiarlo antes de que salga. */
+private fun editQueued(message: OutgoingMessage, model: OrbitaModel) {
+    val taken = model.controller.takeBackMessage(message.clientMessageId)
+    if (taken == null) {
+        model.toast(t("Ya se está enviando"))
+        return
+    }
+    val text = listOf(taken.text, model.chatDraft.text).filter { it.isNotBlank() }.joinToString("\n")
+    model.chatDraft = TextFieldValue(text, selection = androidx.compose.ui.text.TextRange(text.length))
+    model.pendingAttachments = model.pendingAttachments + taken.attachmentIds +
+        taken.files.map { it.attachmentId ?: it.localId }
+    model.feedback.select()
+}
+
 @Composable
 private fun LocalMessage(message: OutgoingMessage, model: OrbitaModel) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
         val failed = message.status == OutgoingStatus.Failed
-        Box(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(if (failed) Color(0x40FF6D7C) else Color(0x40456A80)).padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text(message.text.ifBlank { "(adjuntos)" }, color = Orbita.Text.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyLarge)
+        Box(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(if (failed) Color(0x40FF6D7C) else Orbita.UserBubble.copy(alpha = 0.5f)).padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Column {
+                Text(message.text.ifBlank { t("(adjuntos)") }, color = Orbita.Text.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyLarge)
+                message.files.forEach { f ->
+                    Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.AttachFile, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(14.dp))
+                        Text(" " + f.name, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
         }
         Row(Modifier.padding(top = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             when (message.status) {
                 OutgoingStatus.Sending -> {
                     CircularProgressIndicator(Modifier.size(14.dp), color = Orbita.TextSoft, strokeWidth = 2.dp)
-                    Text("  Enviando…", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                    Text(t("  Enviando…"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
                 }
                 OutgoingStatus.Queued -> {
                     Icon(Icons.Outlined.Schedule, contentDescription = null, tint = Orbita.Warn, modifier = Modifier.size(16.dp))
-                    Text("  En cola: se enviará al reconectar", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                    Text(t("  En cola: se enviará al reconectar"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
                 }
                 OutgoingStatus.Failed -> {
                     Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = Orbita.Danger, modifier = Modifier.size(16.dp))
-                    Text("  No se envió", color = Orbita.Danger, style = MaterialTheme.typography.labelMedium)
+                    Text(t("  No se envió"), color = Orbita.Danger, style = MaterialTheme.typography.labelMedium)
                     Spacer(Modifier.width(8.dp))
-                    Text("Reintentar", color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.retryMessage(message.clientMessageId) }.padding(8.dp))
-                    Text("Descartar", color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.discardMessage(message.clientMessageId) }.padding(8.dp))
+                    Text(t("Reintentar"), color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.retryMessage(message.clientMessageId) }.padding(8.dp))
+                    Text(t("Descartar"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.discardMessage(message.clientMessageId) }.padding(8.dp))
                 }
+            }
+        }
+        if (message.status == OutgoingStatus.Queued) {
+            // Mientras no sale, se puede volver a editar (vuelve al cuadro de texto) o quitar de la cola.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(t("Editar"), color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { editQueued(message, model) }.padding(8.dp).testTag("queued-edit"))
+                Text(t("Descartar"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.discardMessage(message.clientMessageId) }.padding(8.dp).testTag("queued-discard"))
             }
         }
         if (message.error != null && message.status == OutgoingStatus.Failed) {
@@ -373,7 +521,7 @@ private fun PlanningBubble(hermes: Agent?) {
             Spacer(Modifier.width(5.dp))
             Dot(Orbita.Accent, 7.dp, pulse = true)
             Spacer(Modifier.width(10.dp))
-            Text("${hermes?.name ?: "Hermes"} está preparando el plan…", color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium)
+            Text(t("{v1} está preparando el plan…", "v1" to (hermes?.name ?: "Hermes")), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -386,13 +534,15 @@ fun Composer(
     placeholder: String,
     canSend: Boolean,
     onAttach: (() -> Unit)? = null,
+    photo: (@Composable () -> Unit)? = null,
     mic: (@Composable () -> Unit)? = null,
     onSend: () -> Unit,
 ) {
     Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp), verticalAlignment = Alignment.Bottom) {
         if (onAttach != null) {
-            IconAction(Icons.Outlined.AttachFile, "Añadir archivos", onClick = onAttach, modifier = Modifier.padding(bottom = 4.dp))
+            IconAction(Icons.Outlined.AttachFile, t("Añadir archivos"), onClick = onAttach, modifier = Modifier.padding(bottom = 4.dp))
         }
+        if (photo != null) photo()
         val shape = RoundedCornerShape(24.dp)
         androidx.compose.foundation.text.BasicTextField(
             value = value,
@@ -403,7 +553,7 @@ fun Composer(
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences, imeAction = ImeAction.Default),
             modifier = Modifier.weight(1f).testTag("composer"),
             decorationBox = { inner ->
-                Box(Modifier.clip(shape).background(Color(0x40101A30)).border(1.dp, Color(0x2EB4CCF5), shape).heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 14.dp)) {
+                Box(Modifier.clip(shape).background(Orbita.Card).border(1.dp, Orbita.GlassEdgeTop, shape).heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 14.dp)) {
                     if (value.text.isEmpty()) Text(placeholder, color = Orbita.TextFaint, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                     inner()
                 }
@@ -414,9 +564,9 @@ fun Composer(
             Modifier
                 .size(52.dp)
                 .clip(CircleShape)
-                .background(if (canSend) Orbita.AccentButtonTop else Color(0x26B4CCF5))
+                .background(if (canSend) Orbita.AccentButtonTop else Orbita.Divider)
                 .tappable(enabled = canSend, haptic = Haptic.None, onClick = onSend)
-                .semantics { contentDescription = "Enviar" }
+                .semantics { contentDescription = t("Enviar") }
                 .testTag("send"),
             contentAlignment = Alignment.Center,
         ) {
@@ -453,7 +603,7 @@ fun TasksPanel(model: OrbitaModel, state: CoworkUiState) {
         }
     }
     PanelColumn {
-        PanelHeader(model, "Tareas", when (tasks.size) { 0 -> "Sin tareas"; 1 -> "1 tarea"; else -> "${tasks.size} tareas" })
+        PanelHeader(model, t("Tareas"), when (tasks.size) { 0 -> t("Sin tareas"); 1 -> t("1 tarea"); else -> t("{size} tareas", "size" to tasks.size) })
         Segmented(
             TaskFilter.entries.map { it to it.label },
             model.taskFilter,
@@ -473,10 +623,10 @@ fun TasksPanel(model: OrbitaModel, state: CoworkUiState) {
             if (shown.isEmpty()) item(key = "empty") {
                 Note(
                     Icons.Outlined.TaskAlt,
-                    when (model.taskFilter) { TaskFilter.Active -> "Nada en curso"; TaskFilter.Review -> "Nada por revisar"; TaskFilter.Done -> "Aún no hay tareas hechas" },
+                    when (model.taskFilter) { TaskFilter.Active -> t("Nada en curso"); TaskFilter.Review -> t("Nada por revisar"); TaskFilter.Done -> t("Aún no hay tareas hechas") },
                     when (model.taskFilter) {
-                        TaskFilter.Active -> "Crea una tarea y Hermes la repartirá."
-                        TaskFilter.Review -> "Aquí aparecen las tareas que fallaron, las que están en pausa y las que tocaron archivos de otras."
+                        TaskFilter.Active -> t("Crea una tarea y Hermes la repartirá.")
+                        TaskFilter.Review -> t("Aquí aparecen las tareas que fallaron, las que están en pausa y las que tocaron archivos de otras.")
                         TaskFilter.Done -> null
                     },
                 )
@@ -487,7 +637,7 @@ fun TasksPanel(model: OrbitaModel, state: CoworkUiState) {
             if (selected != null) item(key = "selected") { SelectedTask(selected, snapshot!!, model) }
         }
         OrbitaButton(
-            "Nueva tarea",
+            t("Nueva tarea"),
             onClick = { model.newTaskOpen = true },
             icon = Icons.Outlined.Add,
             haptic = Haptic.Tap,
@@ -522,9 +672,9 @@ private fun TaskCard(task: TaskItem, snapshot: Snapshot, selected: Boolean, mode
                     Text(label, color = color, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            if (task.status == "done") Icon(Icons.Outlined.CheckCircle, contentDescription = "Hecha", tint = Orbita.Success, modifier = Modifier.size(24.dp))
+            if (task.status == "done") Icon(Icons.Outlined.CheckCircle, contentDescription = t("Hecha"), tint = Orbita.Success, modifier = Modifier.size(24.dp))
             Box {
-                IconAction(Icons.Outlined.MoreHoriz, "Opciones de la tarea", onClick = { menu = true }, size = 40.dp)
+                IconAction(Icons.Outlined.MoreHoriz, t("Opciones de la tarea"), onClick = { menu = true }, size = 40.dp)
                 TaskMenu(menu, onDismiss = { menu = false }, task, snapshot, model)
             }
         }
@@ -540,30 +690,30 @@ private fun TaskCard(task: TaskItem, snapshot: Snapshot, selected: Boolean, mode
 }
 
 fun statusOf(task: TaskItem, active: List<String>): Pair<String, Color> = when {
-    task.isPaused && task.requestId !in active -> "En pausa" to Orbita.Warn
-    task.status == "running" -> "En curso" to Orbita.Accent
-    task.status == "done" && task.outOfScope.isNotEmpty() -> "Hecha · tocó otros archivos" to Orbita.Warn
-    task.status == "done" -> "Completada" to Orbita.Success
-    task.status == "failed" -> "Falló" to Orbita.Danger
-    task.status == "blocked" -> "Esperando a otra tarea" to Orbita.TextSoft
-    task.status == "pending" -> "Pendiente" to Orbita.TextSoft
+    task.isPaused && task.requestId !in active -> t("En pausa") to Orbita.Warn
+    task.status == "running" -> t("En curso") to Orbita.Accent
+    task.status == "done" && task.outOfScope.isNotEmpty() -> t("Hecha · tocó otros archivos") to Orbita.Warn
+    task.status == "done" -> t("Completada") to Orbita.Success
+    task.status == "failed" -> t("Falló") to Orbita.Danger
+    task.status == "blocked" -> t("Esperando a otra tarea") to Orbita.TextSoft
+    task.status == "pending" -> t("Pendiente") to Orbita.TextSoft
     else -> Labels.taskStatus(task.status) to Orbita.TextSoft
 }
 
 @Composable
 private fun TaskMenu(open: Boolean, onDismiss: () -> Unit, task: TaskItem, snapshot: Snapshot, model: OrbitaModel) {
     val active = snapshot.conversation.activeRequestIds
-    DropdownMenu(open, onDismissRequest = onDismiss, containerColor = Color(0xF00E1730)) {
-        DropdownMenuItem(text = { Text("Ver actividad") }, onClick = { onDismiss(); model.traceTaskId = task.id }, leadingIcon = { Icon(Icons.Outlined.Description, null) })
+    DropdownMenu(open, onDismissRequest = onDismiss, containerColor = Orbita.GlassPopover) {
+        DropdownMenuItem(text = { Text(t("Ver actividad")) }, onClick = { onDismiss(); model.traceTaskId = task.id }, leadingIcon = { Icon(Icons.Outlined.Description, null) })
         val requestId = task.requestId
         if (requestId != null && requestId in active && snapshot.capabilities.stopRequests) {
-            DropdownMenuItem(text = { Text("Detener la petición") }, onClick = { onDismiss(); model.run({ model.controller.stopRequest(requestId) }) }, leadingIcon = { Icon(Icons.Outlined.Pause, null) })
+            DropdownMenuItem(text = { Text(t("Detener la petición")) }, onClick = { onDismiss(); model.run({ model.controller.stopRequest(requestId) }) }, leadingIcon = { Icon(Icons.Outlined.Pause, null) })
         }
         if (requestId != null && task.isPaused && requestId !in active && snapshot.capabilities.resumeRequests) {
-            DropdownMenuItem(text = { Text("Reanudar") }, onClick = { onDismiss(); model.run({ model.controller.resumeRequest(requestId) }) }, leadingIcon = { Icon(Icons.Outlined.PlayArrow, null) })
+            DropdownMenuItem(text = { Text(t("Reanudar")) }, onClick = { onDismiss(); model.run({ model.controller.resumeRequest(requestId) }) }, leadingIcon = { Icon(Icons.Outlined.PlayArrow, null) })
         }
         snapshot.conversation.artifacts.filter { it.taskId == task.id }.take(3).forEach { a ->
-            DropdownMenuItem(text = { Text("Abrir ${a.name}", maxLines = 1, overflow = TextOverflow.Ellipsis) }, onClick = { onDismiss(); model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, leadingIcon = { Icon(Icons.Outlined.Description, null) })
+            DropdownMenuItem(text = { Text(t("Abrir {name}", "name" to a.name), maxLines = 1, overflow = TextOverflow.Ellipsis) }, onClick = { onDismiss(); model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, leadingIcon = { Icon(Icons.Outlined.Description, null) })
         }
     }
 }
@@ -573,21 +723,21 @@ private fun SelectedTask(task: TaskItem, snapshot: Snapshot, model: OrbitaModel)
     val agent = snapshot.agents.firstOrNull { it.id == task.agentId }
     val active = snapshot.conversation.activeRequestIds
     Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Text("Seleccionada", color = Orbita.TextSoft, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+        Text(t("Seleccionada"), color = Orbita.TextSoft, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
         Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RobotFace(agent, 52.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(task.title, color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
-                    Text("Responsable: ${agent?.name ?: task.agentId}", color = Orbita.Accent.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium)
+                    Text(t("Responsable: {v1}", "v1" to (agent?.name ?: task.agentId)), color = Orbita.Accent.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             val now = when {
-                task.status == "failed" -> task.error ?: "Falló sin más detalle"
-                task.isPaused && snapshot.capabilities.discardRequests -> "En pausa: puedes reanudarla o quitarla"
-                task.isPaused -> "En pausa: puedes reanudarla"
-                task.status == "done" -> task.result?.lineSequence()?.firstOrNull { it.isNotBlank() } ?: "Terminada"
+                task.status == "failed" -> task.error ?: t("Falló sin más detalle")
+                task.isPaused && snapshot.capabilities.discardRequests -> t("En pausa: puedes reanudarla o quitarla")
+                task.isPaused -> t("En pausa: puedes reanudarla")
+                task.status == "done" -> task.result?.lineSequence()?.firstOrNull { it.isNotBlank() } ?: t("Terminada")
                 else -> task.lastActivity ?: Labels.taskStatus(task.status)
             }
             Spacer(Modifier.height(10.dp))
@@ -598,14 +748,14 @@ private fun SelectedTask(task: TaskItem, snapshot: Snapshot, model: OrbitaModel)
             }
             task.acceptance?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(8.dp))
-                Text("Hecha cuando: $it", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                Text(t("Hecha cuando: {it}", "it" to it), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
             if (task.outOfScope.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.Top) {
                     Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = Orbita.Warn, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Modificó archivos de otras tareas: ${task.outOfScope.take(4).joinToString()}", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                    Text(t("Modificó archivos de otras tareas: {v1}", "v1" to (task.outOfScope.take(4).joinToString())), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -615,31 +765,31 @@ private fun SelectedTask(task: TaskItem, snapshot: Snapshot, model: OrbitaModel)
             ) {
                 Icon(Icons.Outlined.Description, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(12.dp))
-                Text("Ver actividad", color = Orbita.Text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text(t("Ver actividad"), color = Orbita.Text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(20.dp))
             }
             val requestId = task.requestId
             if (requestId != null && requestId in active && snapshot.capabilities.stopRequests) {
                 Spacer(Modifier.height(10.dp))
                 var busy by remember { mutableStateOf(false) }
-                OrbitaButton("Detener la petición", onClick = { busy = true; model.run({ model.controller.stopRequest(requestId) }) { busy = false } }, icon = Icons.Outlined.Pause, style = ButtonStyle.Danger, busy = busy, modifier = Modifier.fillMaxWidth())
+                OrbitaButton(t("Detener la petición"), onClick = { busy = true; model.run({ model.controller.stopRequest(requestId) }) { busy = false } }, icon = Icons.Outlined.Pause, style = ButtonStyle.Danger, busy = busy, modifier = Modifier.fillMaxWidth())
             } else if (requestId != null && task.isPaused && snapshot.capabilities.resumeRequests) {
                 Spacer(Modifier.height(10.dp))
                 var busy by remember { mutableStateOf(false) }
                 var confirmDiscard by remember { mutableStateOf(false) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OrbitaButton("Reanudar", onClick = { busy = true; model.run({ model.controller.resumeRequest(requestId) }) { busy = false } }, icon = Icons.Outlined.PlayArrow, busy = busy, modifier = Modifier.weight(1f).testTag("task-resume"))
+                    OrbitaButton(t("Reanudar"), onClick = { busy = true; model.run({ model.controller.resumeRequest(requestId) }) { busy = false } }, icon = Icons.Outlined.PlayArrow, busy = busy, modifier = Modifier.weight(1f).testTag("task-resume"))
                     // Quitar: deja de estar en pausa (y de avisar) sin reanudarse; lo ya hecho se queda.
                     if (snapshot.capabilities.discardRequests) {
-                        OrbitaButton("Quitar", onClick = { confirmDiscard = true }, icon = Icons.Outlined.Close, style = ButtonStyle.Secondary, enabled = !busy, modifier = Modifier.weight(1f).testTag("task-discard"))
+                        OrbitaButton(t("Quitar"), onClick = { confirmDiscard = true }, icon = Icons.Outlined.Close, style = ButtonStyle.Secondary, enabled = !busy, modifier = Modifier.weight(1f).testTag("task-discard"))
                     }
                 }
                 if (confirmDiscard) {
                     val halfDone = snapshot.tasks.count { it.requestId == requestId && it.isPaused }
                     ConfirmDialog(
-                        title = "¿Quitar lo que quedó en pausa?",
-                        text = (if (halfDone == 1) "La tarea no se reanudará." else "Las $halfDone tareas en pausa de esta petición no se reanudarán.") + " Lo que ya se hizo y los archivos se quedan como están.",
-                        confirm = "Quitar",
+                        title = t("¿Quitar lo que quedó en pausa?"),
+                        text = (if (halfDone == 1) t("La tarea no se reanudará.") else t("Las {halfDone} tareas en pausa de esta petición no se reanudarán.", "halfDone" to halfDone)) + t(" Lo que ya se hizo y los archivos se quedan como están."),
+                        confirm = t("Quitar"),
                         danger = true,
                         onConfirm = {
                             confirmDiscard = false

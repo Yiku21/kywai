@@ -1,8 +1,26 @@
 package com.aicowork.remote.data.net
 
+import com.aicowork.remote.i18n.t
+
 import com.aicowork.remote.data.model.AgentAccessRequest
+import com.aicowork.remote.data.model.ChatRenameRequest
+import com.aicowork.remote.data.model.ModPanelInfo
+import com.aicowork.remote.data.model.ModPanelPage
+import com.aicowork.remote.data.model.ModPanelsResponse
+import com.aicowork.remote.data.model.ChatCopyResponse
+import com.aicowork.remote.data.model.ChatMoveRequest
+import com.aicowork.remote.data.model.ChatPinRequest
+import com.aicowork.remote.data.model.PinRequest
+import com.aicowork.remote.data.model.ProjectRenameRequest
+import com.aicowork.remote.data.model.ChatSummary
+import com.aicowork.remote.data.model.ChatsResponse
+import com.aicowork.remote.data.model.MusicResponse
+import com.aicowork.remote.data.model.MusicResult
+import com.aicowork.remote.data.model.SearchHit
+import com.aicowork.remote.data.model.SearchResponse
 import com.aicowork.remote.data.model.AgentAccessResponse
 import com.aicowork.remote.data.model.AgentResetResponse
+import com.aicowork.remote.data.model.AgentThinkingResponse
 import com.aicowork.remote.data.model.ApiErrorBody
 import com.aicowork.remote.data.model.AppRelease
 import com.aicowork.remote.data.model.Attachment
@@ -25,10 +43,19 @@ import com.aicowork.remote.data.model.MemoryAddRequest
 import com.aicowork.remote.data.model.MemoryEntry
 import com.aicowork.remote.data.model.MemoryEntryResponse
 import com.aicowork.remote.data.model.MemoryUpdateRequest
+import com.aicowork.remote.data.model.Routine
+import com.aicowork.remote.data.model.RoutineInput
+import com.aicowork.remote.data.model.RoutineResponse
+import com.aicowork.remote.data.model.RoutineTrigger
+import com.aicowork.remote.data.model.RoutinesResponse
 import com.aicowork.remote.data.model.NewConversationRequest
 import com.aicowork.remote.data.model.PairRequest
 import com.aicowork.remote.data.model.PairResponse
 import com.aicowork.remote.data.model.PlanApprovalRequest
+import com.aicowork.remote.data.model.ServerNameRequest
+import com.aicowork.remote.data.model.ServerNameResponse
+import com.aicowork.remote.data.model.ThemeRequest
+import com.aicowork.remote.data.model.ThemeResponse
 import com.aicowork.remote.data.model.PlanApprovalResponse
 import com.aicowork.remote.data.model.ProjectSummary
 import com.aicowork.remote.data.model.ProjectsResponse
@@ -37,6 +64,10 @@ import com.aicowork.remote.data.model.QuotasResponse
 import com.aicowork.remote.data.model.SendMessageRequest
 import com.aicowork.remote.data.model.SendMessageResponse
 import com.aicowork.remote.data.model.Snapshot
+import com.aicowork.remote.data.model.TaskTemplate
+import com.aicowork.remote.data.model.TaskTemplateInput
+import com.aicowork.remote.data.model.TemplateResponse
+import com.aicowork.remote.data.model.TemplatesResponse
 import com.aicowork.remote.data.model.TraceEntry
 import com.aicowork.remote.data.model.TraceResponse
 import com.aicowork.remote.data.model.TranscriptResponse
@@ -82,7 +113,7 @@ class ApiException(
         fun network(cause: Throwable) = ApiException(
             status = 0,
             code = "network",
-            message = "No se puede conectar con el ordenador. Comprueba que AI Cowork está abierto y que Tailscale está activo.",
+            message = t("No se puede conectar con el ordenador. Comprueba que kywai está abierto y que Tailscale está activo."),
             retryable = true,
             cause = cause,
         )
@@ -148,9 +179,9 @@ class CoworkApiClient(
             // Sin token el servidor responde 401: basta para saber que está ahí y que el TLS es de confianza.
             e.isUnauthorized || e.status == 403 ->
                 if (e.code == "unknown" || e.code.startsWith("http_"))
-                    ProbeResult.Failed("Ese servidor todavía no ofrece la API móvil. Actualiza o ejecuta la nueva versión de AI Cowork en el ordenador.")
+                    ProbeResult.Failed(t("Ese servidor todavía no ofrece la API móvil. Actualiza o ejecuta la nueva versión de kywai en el ordenador."))
                 else ProbeResult.Reachable
-            e.status == 404 -> ProbeResult.Failed("Ese servidor no ofrece la API móvil de AI Cowork. Revisa la dirección y el puerto, o actualiza AI Cowork.")
+            e.status == 404 -> ProbeResult.Failed(t("Ese servidor no ofrece la API móvil de kywai. Revisa la dirección y el puerto, o actualiza kywai."))
             !e.isNetwork -> ProbeResult.Failed(e.message)
             else -> trustManager.rejected?.let { ProbeResult.NeedsConfirmation(it) } ?: ProbeResult.Failed(e.message)
         }
@@ -158,7 +189,7 @@ class CoworkApiClient(
         val rejected = trustManager.rejected ?: e.findCause<UntrustedCertificateException>()?.certificate
         when {
             rejected != null -> ProbeResult.NeedsConfirmation(rejected)
-            e is SSLException -> ProbeResult.Failed("La conexión segura falló: ${e.message ?: "error TLS"}")
+            e is SSLException -> ProbeResult.Failed(t("La conexión segura falló: {v1}", "v1" to (e.message ?: "error TLS")))
             else -> ProbeResult.Failed(ApiException.network(e).message)
         }
     }
@@ -170,24 +201,142 @@ class CoworkApiClient(
     suspend fun snapshot(conversationId: String? = null): Snapshot =
         get(if (conversationId == null) "/snapshot" else "/snapshot?conversationId=${conversationId.encodeQuery()}", Snapshot.serializer())
 
-    /** [attachmentIds]: adjuntos del proyecto (subidos antes) que se entregan al equipo con esta petición. */
-    suspend fun sendMessage(conversationId: String?, text: String, clientMessageId: String, attachmentIds: List<String> = emptyList()): SendMessageResponse = post(
+    /**
+     * [attachmentIds]: adjuntos del proyecto (subidos antes) que se entregan al equipo con esta petición.
+     * [templateId]: se lanza con esa plantilla de tareas ([text] ya va con sus huecos rellenos).
+     */
+    suspend fun sendMessage(conversationId: String?, text: String, clientMessageId: String, attachmentIds: List<String> = emptyList(), templateId: String? = null): SendMessageResponse = post(
         "/chat/messages",
-        if (attachmentIds.isEmpty()) CoworkJson.encodeToString(SendMessageRequest.serializer(), SendMessageRequest(conversationId, text, clientMessageId))
+        if (attachmentIds.isEmpty() && templateId == null) CoworkJson.encodeToString(SendMessageRequest.serializer(), SendMessageRequest(conversationId, text, clientMessageId))
         else buildJsonObject {
             put("conversationId", conversationId)
             put("text", text)
             put("clientMessageId", clientMessageId)
-            putJsonArray("attachmentIds") { attachmentIds.forEach { add(it) } }
+            if (attachmentIds.isNotEmpty()) putJsonArray("attachmentIds") { attachmentIds.forEach { add(it) } }
+            if (templateId != null) put("templateId", templateId)
         }.toString(),
         SendMessageResponse.serializer(),
     )
+
+    // ---- Plantillas de tareas (todas; las de un proyecto llevan su projectId) ----
+
+    /** Solo los campos con valor: así un cambio no toca lo demás. */
+    private fun templateBody(input: TaskTemplateInput): String = buildJsonObject {
+        input.name?.let { put("name", it) }
+        input.prompt?.let { put("prompt", it) }
+        input.icon?.let { put("icon", it) }
+        input.command?.let { put("command", it) }
+        input.projectId?.let { put("projectId", it) }
+        input.agentId?.let { put("agentId", it) }
+        input.askPlan?.let { put("askPlan", it) }
+        input.pinned?.let { put("pinned", it) }
+    }.toString()
+
+    suspend fun createTemplate(input: TaskTemplateInput): TaskTemplate =
+        post("/templates", templateBody(input), TemplateResponse.serializer()).template
+
+    suspend fun updateTemplate(templateId: String, input: TaskTemplateInput): TaskTemplate =
+        post("/templates/${templateId.encodeSegment()}", templateBody(input), TemplateResponse.serializer()).template
+
+    suspend fun deleteTemplate(templateId: String) {
+        withContext(Dispatchers.IO) { postRaw("/templates/${templateId.encodeSegment()}/delete", "{}").close() }
+    }
+
+    suspend fun restoreTemplates(): List<TaskTemplate> =
+        post("/templates/restore", "{}", TemplatesResponse.serializer()).templates
 
     suspend fun newConversation(name: String? = null): Conversation? = post(
         "/conversations",
         name?.let { CoworkJson.encodeToString(NewConversationRequest.serializer(), NewConversationRequest(it)) } ?: "{}",
         ConversationResponse.serializer(),
     ).conversation
+
+    // ---- Chats de cada proyecto (conversationId es el proyecto) ----
+
+    suspend fun chats(projectId: String): List<ChatSummary> =
+        get("/chats?conversationId=${projectId.encodeQuery()}", ChatsResponse.serializer()).chats
+
+    suspend fun newChat(projectId: String): Conversation? = post(
+        "/chats",
+        CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
+        ConversationResponse.serializer(),
+    ).conversation
+
+    suspend fun openChat(projectId: String, chatId: String): Conversation? = post(
+        "/chats/${chatId.encodeSegment()}/open",
+        CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
+        ConversationResponse.serializer(),
+    ).conversation
+
+    suspend fun renameChat(projectId: String, chatId: String, title: String): List<ChatSummary> = post(
+        "/chats/${chatId.encodeSegment()}/rename",
+        CoworkJson.encodeToString(ChatRenameRequest.serializer(), ChatRenameRequest(projectId, title)),
+        ChatsResponse.serializer(),
+    ).chats
+
+    suspend fun deleteChat(projectId: String, chatId: String): List<ChatSummary> = post(
+        "/chats/${chatId.encodeSegment()}/delete",
+        CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
+        ChatsResponse.serializer(),
+    ).chats
+
+    suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): List<ChatSummary> = post(
+        "/chats/${chatId.encodeSegment()}/pin",
+        CoworkJson.encodeToString(ChatPinRequest.serializer(), ChatPinRequest(projectId, pinned)),
+        ChatsResponse.serializer(),
+    ).chats
+
+    suspend fun forkChat(projectId: String, chatId: String): ChatCopyResponse = post(
+        "/chats/${chatId.encodeSegment()}/fork",
+        CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
+        ChatCopyResponse.serializer(),
+    )
+
+    suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ChatCopyResponse = post(
+        "/chats/${chatId.encodeSegment()}/move",
+        CoworkJson.encodeToString(ChatMoveRequest.serializer(), ChatMoveRequest(projectId, toProjectId)),
+        ChatCopyResponse.serializer(),
+    )
+
+    /** Los chats fijados de todos los proyectos (sección «Fijados»). */
+    suspend fun pinnedChats(): List<ChatSummary> = get("/chats/pinned", ChatsResponse.serializer()).chats
+
+    // ---- Menú de un proyecto ----
+
+    suspend fun renameProject(projectId: String, name: String): List<ProjectSummary> = post(
+        "/projects/${projectId.encodeSegment()}/rename",
+        CoworkJson.encodeToString(ProjectRenameRequest.serializer(), ProjectRenameRequest(name)),
+        ProjectsResponse.serializer(),
+    ).projects
+
+    suspend fun pinProject(projectId: String, pinned: Boolean): List<ProjectSummary> = post(
+        "/projects/${projectId.encodeSegment()}/pin",
+        CoworkJson.encodeToString(PinRequest.serializer(), PinRequest(pinned)),
+        ProjectsResponse.serializer(),
+    ).projects
+
+    suspend fun deleteProject(projectId: String): List<ProjectSummary> =
+        post("/projects/${projectId.encodeSegment()}/delete", "{}", ProjectsResponse.serializer()).projects
+
+    suspend fun search(query: String): List<SearchHit> =
+        get("/search?q=${query.trim().encodeQuery()}", SearchResponse.serializer()).hits
+
+    /** Buscador del historial: desde [since] (ms), de [author] («user», «agents» o un agente) y hasta [limit] resultados. */
+    suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): SearchResponse {
+        val params = buildString {
+            append("q=").append(query.trim().encodeQuery())
+            if (since != null) append("&since=").append(since)
+            if (!author.isNullOrBlank()) append("&author=").append(author.encodeQuery())
+            append("&limit=").append(limit.coerceIn(1, 400))
+        }
+        return get("/search?$params", SearchResponse.serializer())
+    }
+
+    /** Historial: todos los chats con mensajes de todos los proyectos. */
+    suspend fun allChats(): List<ChatSummary> = get("/chats/all", ChatsResponse.serializer()).chats
+
+    suspend fun music(kind: String, query: String): List<MusicResult> =
+        get("/music/search?kind=${kind.encodeQuery()}&q=${query.trim().encodeQuery()}", MusicResponse.serializer()).results
 
     suspend fun projects(): List<ProjectSummary> = get("/projects", ProjectsResponse.serializer()).projects
 
@@ -262,6 +411,64 @@ class CoworkApiClient(
 
     suspend fun refreshUsage(): List<Quota> = post("/usage/refresh", "{}", QuotasResponse.serializer()).quotas
 
+    // ---- Rutinas ----
+
+    suspend fun routines(conversationId: String): List<Routine> =
+        get("/routines?conversationId=${conversationId.encodeQuery()}", RoutinesResponse.serializer()).routines
+
+    suspend fun runRoutine(conversationId: String, routineId: String) {
+        withContext(Dispatchers.IO) {
+            postRaw("/routines/${routineId.encodeSegment()}/run", CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(conversationId))).close()
+        }
+    }
+
+    private fun triggerJson(t: RoutineTrigger) = buildJsonObject {
+        put("type", t.type)
+        t.time?.let { put("time", it) }
+        t.days?.let { days -> putJsonArray("days") { days.forEach { add(it) } } }
+        t.hours?.let { put("hours", it) }
+        t.date?.let { put("date", it) }
+        t.path?.let { put("path", it) }
+    }
+
+    /** Nueva rutina (activa). Con [routineId], cambia esa (sin tocar si está activa). */
+    suspend fun saveRoutine(conversationId: String, routineId: String?, input: RoutineInput): Routine? = post(
+        if (routineId == null) "/routines" else "/routines/${routineId.encodeSegment()}",
+        buildJsonObject {
+            put("conversationId", conversationId)
+            put("name", input.name)
+            put("request", input.request)
+            put("trigger", triggerJson(input.trigger))
+            put("askApproval", input.askApproval)
+        }.toString(),
+        RoutineResponse.serializer(),
+    ).routine
+
+    suspend fun setRoutineEnabled(conversationId: String, routineId: String, enabled: Boolean): Routine? = post(
+        "/routines/${routineId.encodeSegment()}",
+        buildJsonObject {
+            put("conversationId", conversationId)
+            put("enabled", enabled)
+        }.toString(),
+        RoutineResponse.serializer(),
+    ).routine
+
+    suspend fun deleteRoutine(conversationId: String, routineId: String) {
+        withContext(Dispatchers.IO) {
+            postRaw("/routines/${routineId.encodeSegment()}/delete", CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(conversationId))).close()
+        }
+    }
+
+    /** «Crear rutina» ([create]) o «Descartar» en la tarjeta que propone Hermes en el mensaje [messageId]. */
+    suspend fun decideRoutineProposal(conversationId: String, messageId: String, create: Boolean) {
+        withContext(Dispatchers.IO) {
+            postRaw(
+                "/messages/${messageId.encodeSegment()}/routine-proposal/${if (create) "create" else "dismiss"}",
+                CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(conversationId)),
+            ).close()
+        }
+    }
+
     /** Visto bueno ([approve]) o descarte del plan que propone Hermes en el mensaje [messageId]. */
     suspend fun decidePlan(conversationId: String, messageId: String, approve: Boolean) {
         withContext(Dispatchers.IO) {
@@ -272,6 +479,20 @@ class CoworkApiClient(
         }
     }
 
+    /** Nombre del ordenador que se ve en la barra lateral («» vuelve al de la red). Devuelve el que queda guardado. */
+    suspend fun setServerName(name: String): String? = post(
+        "/settings/server-name",
+        CoworkJson.encodeToString(ServerNameRequest.serializer(), ServerNameRequest(name)),
+        ServerNameResponse.serializer(),
+    ).serverName
+
+    /** Tema de kywai para todos los dispositivos del ordenador. Devuelve el que queda guardado. */
+    suspend fun setTheme(id: String): String? = post(
+        "/settings/theme",
+        CoworkJson.encodeToString(ThemeRequest.serializer(), ThemeRequest(id)),
+        ThemeResponse.serializer(),
+    ).theme
+
     suspend fun setPlanApproval(enabled: Boolean): Boolean = post(
         "/settings/plan-approval",
         CoworkJson.encodeToString(PlanApprovalRequest.serializer(), PlanApprovalRequest(enabled)),
@@ -279,7 +500,7 @@ class CoworkApiClient(
     ).planApproval
 
     /** Nota de voz (WAV) → texto con el dictado del propio ordenador (Whisper, sin servicios externos). */
-    suspend fun transcribe(file: java.io.File, language: String = "es"): String {
+    suspend fun transcribe(file: java.io.File, language: String = com.aicowork.remote.i18n.I18n.lang): String {
         val request = Request.Builder()
             .url(url("/voice/transcribe?language=${language.encodeQuery()}"))
             .post(file.asRequestBody("audio/wav".toMediaType()))
@@ -304,6 +525,10 @@ class CoworkApiClient(
     /** «Reiniciar agente» tras un fallo: olvida su bloqueo, comprueba que responde y lo deja disponible. */
     suspend fun resetAgent(agentId: String): AgentResetResponse = post("/agents/${agentId.encodeSegment()}/reset", "{}", AgentResetResponse.serializer())
 
+    /** Enciende o apaga el razonamiento («think») del agente de LM Studio. */
+    suspend fun setAgentThinking(agentId: String, enabled: Boolean): AgentThinkingResponse =
+        post("/agents/${agentId.encodeSegment()}/thinking", "{\"enabled\":$enabled}", AgentThinkingResponse.serializer())
+
     /** «/model»: el modelo de Hermes y los disponibles. */
     suspend fun hermesModels(): HermesModelsInfo = get("/hermes/models", HermesModelsInfo.serializer())
 
@@ -314,6 +539,13 @@ class CoworkApiClient(
         else CoworkJson.encodeToString(HermesChoice.serializer(), choice),
         HermesModelsInfo.serializer(),
     )
+
+    /** Paneles de los mods encendidos en el ordenador. */
+    suspend fun modPanels(): List<ModPanelInfo> = get("/mods/panels", ModPanelsResponse.serializer()).panels
+
+    /** La página de un panel de mod (404 si el mod ya no existe o se apagó). */
+    suspend fun modPanel(mod: String, id: String): ModPanelPage =
+        get("/mods/panel?mod=${mod.encodeQuery()}&id=${id.encodeQuery()}", ModPanelPage.serializer())
 
     /** Bandeja «Te necesita»: los abiertos y los últimos cerrados, del más reciente al más antiguo. */
     suspend fun inbox(): List<InboxItem> = get("/inbox", InboxResponse.serializer()).items
@@ -340,9 +572,9 @@ class CoworkApiClient(
         val response = execute(Request.Builder().url(url("/app/android/apk")).get().authorized().build(), slow = true)
         withContext(Dispatchers.IO) {
             response.use {
-                val body = it.body ?: throw ApiException(it.code, "bad_response", "El ordenador no envió la APK.", true)
+                val body = it.body ?: throw ApiException(it.code, "bad_response", t("El ordenador no envió la APK."), true)
                 val total = body.contentLength()
-                if (total > MAX_DOWNLOAD) throw ApiException(413, "TOO_LARGE", "La APK es demasiado grande (${total / 1_048_576} MB).", false)
+                if (total > MAX_DOWNLOAD) throw ApiException(413, "TOO_LARGE", t("La APK es demasiado grande ({v1} MB).", "v1" to total / 1_048_576), false)
                 target.parentFile?.mkdirs()
                 var read = 0L
                 body.byteStream().use { input ->
@@ -353,7 +585,7 @@ class CoworkApiClient(
                             if (n < 0) break
                             output.write(buffer, 0, n)
                             read += n
-                            if (read > MAX_DOWNLOAD) throw ApiException(413, "TOO_LARGE", "La APK es demasiado grande.", false)
+                            if (read > MAX_DOWNLOAD) throw ApiException(413, "TOO_LARGE", t("La APK es demasiado grande."), false)
                             if (total > 0) onProgress((read.toFloat() / total).coerceIn(0f, 1f))
                         }
                     }
@@ -401,9 +633,9 @@ class CoworkApiClient(
             try {
                 CoworkJson.decodeFromString(strategy, text)
             } catch (e: SerializationException) {
-                throw ApiException(it.code, "bad_response", "El servidor respondió algo que esta versión de la app no entiende.", false, e)
+                throw ApiException(it.code, "bad_response", t("El servidor respondió algo que esta versión de la app no entiende."), false, e)
             } catch (e: IllegalArgumentException) {
-                throw ApiException(it.code, "bad_response", "El servidor respondió algo que esta versión de la app no entiende.", false, e)
+                throw ApiException(it.code, "bad_response", t("El servidor respondió algo que esta versión de la app no entiende."), false, e)
             }
         }
     }
@@ -412,13 +644,13 @@ class CoworkApiClient(
         val response = execute(Request.Builder().url(url(path)).get().authorized().build(), slow = true)
         return withContext(Dispatchers.IO) {
             response.use {
-                val body = it.body ?: throw ApiException(it.code, "bad_response", "El ordenador no envió el contenido.", true)
+                val body = it.body ?: throw ApiException(it.code, "bad_response", t("El ordenador no envió el contenido."), true)
                 val declared = body.contentLength()
-                if (declared > maxBytes) throw ApiException(413, "TOO_LARGE", "Es demasiado grande para verlo en el móvil (${declared / 1_048_576} MB).", false)
+                if (declared > maxBytes) throw ApiException(413, "TOO_LARGE", t("Es demasiado grande para verlo en el móvil ({v1} MB).", "v1" to declared / 1_048_576), false)
                 val bytes = body.source().use { source ->
                     val buffer = okio.Buffer()
                     while (source.read(buffer, 64 * 1024) != -1L) {
-                        if (buffer.size > maxBytes) throw ApiException(413, "TOO_LARGE", "Es demasiado grande para verlo en el móvil.", false)
+                        if (buffer.size > maxBytes) throw ApiException(413, "TOO_LARGE", t("Es demasiado grande para verlo en el móvil."), false)
                     }
                     buffer.readByteArray()
                 }
@@ -449,12 +681,12 @@ class CoworkApiClient(
     }
 
     private fun defaultMessage(status: Int) = when (status) {
-        401 -> "La sesión no es válida. Vuelve a emparejar el dispositivo."
-        403 -> "Este dispositivo no tiene permiso para hacerlo."
-        404 -> "El servidor no ofrece la API móvil. Actualiza AI Cowork en el ordenador."
-        429 -> "Demasiadas peticiones seguidas. Espera un momento."
-        in 500..599 -> "El ordenador tuvo un problema ($status). Inténtalo de nuevo."
-        else -> "Error $status del servidor"
+        401 -> t("La sesión no es válida. Vuelve a emparejar el dispositivo.")
+        403 -> t("Este dispositivo no tiene permiso para hacerlo.")
+        404 -> t("El servidor no ofrece la API móvil. Actualiza kywai en el ordenador.")
+        429 -> t("Demasiadas peticiones seguidas. Espera un momento.")
+        in 500..599 -> t("El ordenador tuvo un problema ({status}). Inténtalo de nuevo.", "status" to status)
+        else -> t("Error {status} del servidor", "status" to status)
     }
 
     private fun String.encodeSegment() = java.net.URLEncoder.encode(this, "UTF-8").replace("+", "%20")

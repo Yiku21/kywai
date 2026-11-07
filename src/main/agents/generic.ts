@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import type { CliAgentSpec } from '@shared/types'
 import { AUTH_RE, QUOTA_RE, clip, looksMissing, runCli, safeModel, stderrSummary } from './spawn'
 import { EMPTY_USAGE, type JsonlParser, type ParserCallbacks, type RunAgentOptions, type RunAgentResult } from './types'
+import { tr } from '@shared/i18n'
 
 /** De dónde sale la clave de API de un agente (la app la pone al arrancar; en las pruebas no hay ninguna). */
 let keyOf: (agentId: string) => string | null = () => null
@@ -76,13 +77,13 @@ export function createGenericParser(spec: CliAgentSpec, name: string, cb: Parser
       const all = `${text}\n${outcome.stderrTail}`
       if (outcome.code !== 0 || !text) {
         if (auth ? auth.test(all) : AUTH_RE.test(all)) {
-          return { ok: false, text, usage, errorKind: 'auth', errorMessage: `${name} no tiene la sesión iniciada: ábrelo en una terminal e inicia sesión` }
+          return { ok: false, text, usage, errorKind: 'auth', errorMessage: tr('{name} no tiene la sesión iniciada: ábrelo en una terminal e inicia sesión', { name }) }
         }
         if (quota ? quota.test(all) : QUOTA_RE.test(all)) {
-          return { ok: false, text, usage, errorKind: 'quota', errorMessage: `${name} alcanzó su límite de uso` }
+          return { ok: false, text, usage, errorKind: 'quota', errorMessage: tr('{name} alcanzó su límite de uso', { name }) }
         }
         if (outcome.timedOut) {
-          return { ok: false, text, usage, errorKind: 'failed', errorMessage: `${name} dejó de responder` }
+          return { ok: false, text, usage, errorKind: 'failed', errorMessage: tr('{name} dejó de responder', { name }) }
         }
         return {
           ok: false,
@@ -100,7 +101,7 @@ export function createGenericParser(spec: CliAgentSpec, name: string, cb: Parser
 export async function runGeneric(opts: RunAgentOptions): Promise<RunAgentResult> {
   const spec = opts.agent.cli
   if (!spec) {
-    return { ok: false, text: '', usage: { ...EMPTY_USAGE }, errorKind: 'missing', errorMessage: `${opts.agent.name} no tiene configurado cómo lanzarlo` }
+    return { ok: false, text: '', usage: { ...EMPTY_USAGE }, errorKind: 'missing', errorMessage: tr('{name} no tiene configurado cómo lanzarlo', { name: opts.agent.name }) }
   }
   const name = opts.agent.name
   let promptFile = ''
@@ -116,7 +117,7 @@ export async function runGeneric(opts: RunAgentOptions): Promise<RunAgentResult>
     const file = promptFile.replace(/\\/g, '/')
     const instruction = `Read the file ${file} and carry out exactly the instructions in it. It is your complete task. Reply with the final result.`
     const args = genericArgs(spec, { mode: opts.mode, access: opts.access, model: opts.model }, { prompt: instruction, promptFile: file })
-    opts.onActivity?.(opts.mode === 'plan' ? 'Planificando el trabajo' : 'Trabajando', 'tool')
+    opts.onActivity?.(opts.mode === 'plan' ? tr('Planificando el trabajo') : tr('Trabajando'), 'tool')
     return await runCli({
       command: spec.command,
       args,

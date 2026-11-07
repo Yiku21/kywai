@@ -1,4 +1,4 @@
-// Modo cliente de AI Cowork: esta instalación no ejecuta agentes, se conecta con otro AI Cowork (el principal,
+// Modo cliente de kywai: esta instalación no ejecuta agentes, se conecta con otro kywai (el principal,
 // por ejemplo un Mac mini encendido 24/7) y muestra su interfaz. Aquí, lo que no necesita Electron: la dirección
 // del servidor y el archivo donde se recuerda a qué servidor está emparejado este equipo.
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
@@ -16,7 +16,7 @@ export interface ServerAddress {
 
 /**
  * Acepta lo que la gente escribe: `100.101.1.2`, `mac-mini`, `mac-mini:8787`, `http://100.101.1.2:8787` o el
- * enlace de acceso entero (`http://…:8787/?t=código`). Sin puerto, el de AI Cowork (8787).
+ * enlace de acceso entero (`http://…:8787/?t=código`). Sin puerto, el de kywai (8787).
  */
 export function parseServerAddress(input: string): ServerAddress | null {
   const text = input.trim()
@@ -51,6 +51,8 @@ export interface ClientServer {
 export interface ClientFile {
   mode: AppMode
   server?: ClientServer
+  /** Dirección del último servidor cuando su llave dejó de valer: para no tener que escribirla otra vez. */
+  lastOrigin?: string
 }
 
 export function readClientFile(file: string): ClientFile | null {
@@ -62,7 +64,8 @@ export function readClientFile(file: string): ClientFile | null {
       s && typeof s.origin === 'string' && typeof s.token === 'string' && typeof s.name === 'string'
         ? { origin: s.origin, name: s.name, token: s.token, encrypted: s.encrypted === true, ...(typeof s.deviceId === 'string' ? { deviceId: s.deviceId } : {}) }
         : undefined
-    return { mode: data.mode, ...(server ? { server } : {}) }
+    const lastOrigin = typeof data.lastOrigin === 'string' && data.lastOrigin ? data.lastOrigin : undefined
+    return { mode: data.mode, ...(server ? { server } : {}), ...(lastOrigin ? { lastOrigin } : {}) }
   } catch {
     return null
   }
@@ -77,7 +80,7 @@ export function writeClientFile(file: string, data: ClientFile): void {
 
 /** Qué se le dice a quien intenta conectar según lo que respondió el servidor al emparejar. */
 export function pairingProblem(status: number, code?: string): string {
-  if (status === 401 || code === 'INVALID_PAIRING_CODE') return 'El código no es correcto. Genera uno nuevo en el servidor (⋮ → Acceso desde otros dispositivos).'
+  if (status === 401 || code === 'INVALID_PAIRING_CODE') return 'El código no es correcto. Genera uno nuevo en el servidor (⚙ → Ajustes → Acceso desde otros dispositivos).'
   if (status === 429) return 'Demasiados intentos con un código incorrecto. Espera un minuto.'
   if (status === 404 || status === 503) return 'El servidor no tiene activado el acceso desde otros dispositivos.'
   return `El servidor respondió con un error (${status}).`

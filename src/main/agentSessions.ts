@@ -93,3 +93,16 @@ export function forgetSessions(projectId?: string): void {
   cache.delete(projectId)
   save(projectId, {})
 }
+
+/** Las sesiones de un proyecto tal cual (para guardarlas con una conversación al cambiar a otra). */
+export function exportSessions(projectId: string): Record<string, AgentSession> {
+  return { ...load(projectId) }
+}
+
+/** Pone las sesiones de una conversación al volver a ella (sustituyen a las que hubiera). */
+export function replaceSessions(projectId: string, data: Record<string, AgentSession> | undefined): void {
+  const clean: Record<string, AgentSession> = {}
+  for (const [k, v] of Object.entries(data ?? {})) if (v && typeof v.sessionId === 'string') clean[k] = v
+  cache.set(projectId, clean)
+  save(projectId, clean)
+}

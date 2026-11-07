@@ -160,6 +160,17 @@ class ApiClientRequestsTest {
     }
 
     @Test
+    fun theLocalAgentThinkingSwitchSendsOnlyEnabled() = runBlocking {
+        server.enqueue(json("""{"agentId":"lmstudio","thinking":true}"""))
+        val r = client.setAgentThinking("lmstudio", true)
+        assertTrue(r.thinking)
+        val req = server.takeRequest()
+        assertEquals("POST", req.method)
+        assertEquals("/api/mobile/v1/agents/lmstudio/thinking", req.requestUrl!!.encodedPath)
+        assertEquals("""{"enabled":true}""", req.body.readUtf8())
+    }
+
+    @Test
     fun orbitaAsksForTheNewVersionAndDownloadsItsApkToAFile() = runBlocking {
         server.enqueue(json("""{"versionCode":812,"versionName":"1.812","size":5,"sha256":"ab","builtAt":null}"""))
         val release = client.appRelease()

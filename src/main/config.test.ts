@@ -17,6 +17,15 @@ const firstMuse = {
 }
 
 describe('configuración guardada', () => {
+  it('conserva el tema y el nombre del ordenador al volver a abrir la app', () => {
+    const cfg = mergeConfig({ configVersion: 10, uiTheme: 'mundo-bosque', serverName: '  Mac   mini  ' }, '/tmp/aicw')
+    expect(cfg.uiTheme).toBe('mundo-bosque')
+    expect(cfg.serverName).toBe('Mac mini')
+    const bad = mergeConfig({ configVersion: 10, uiTheme: 'Tema <raro>', serverName: '   ' }, '/tmp/aicw')
+    expect(bad.uiTheme).toBeUndefined()
+    expect(bad.serverName).toBeUndefined()
+  })
+
   it('Muse con su primera ficha pasa a vídeo y refuerzo (su cuota es muy pequeña)', () => {
     const cfg = mergeConfig({ configVersion: 8, agents: [firstMuse] }, '/tmp/aicw')
     const muse = cfg.agents.find((a) => a.id === 'muse')!
@@ -62,5 +71,18 @@ describe('configuración guardada', () => {
     const muse = mergeConfig({ configVersion: 8, agents: [] }, '/tmp/aicw').agents.find((a) => a.id === 'muse')!
     expect(muse.strengths).toEqual(museDefault.strengths)
     expect(muse.quotaGroupId).toBe('meta')
+  })
+})
+
+describe('razonamiento del modelo local', () => {
+  it('se guarda solo en el agente de LM Studio y solo si está encendido', () => {
+    const qwen = DEFAULT_AGENTS.find((a) => a.id === 'qwen')!
+    const cfg = mergeConfig(
+      { agents: [{ ...qwen, provider: 'lmstudio', thinking: true }, { ...DEFAULT_AGENTS.find((a) => a.id === 'claude')!, thinking: true }] },
+      '/tmp/aicw'
+    )
+    expect(cfg.agents.find((a) => a.id === 'qwen')?.thinking).toBe(true)
+    expect(cfg.agents.find((a) => a.id === 'claude')?.thinking).toBeUndefined()
+    expect(mergeConfig({ agents: [{ ...qwen, provider: 'lmstudio', thinking: 'sí' }] }, '/tmp/aicw').agents.find((a) => a.id === 'qwen')?.thinking).toBeUndefined()
   })
 })

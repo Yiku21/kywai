@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import type { AgentAccess, TokenUsage } from '@shared/types'
 import {
   AUTH_RE,
@@ -10,26 +13,64 @@ import {
   obj,
   runCli,
   safeModel,
+  STALL_NOTICE,
   stderrSummary,
   str,
   todoProgress
 } from './spawn'
 import type { JsonlParser, ParserCallbacks, ProcessOutcome, RunAgentOptions, RunAgentResult } from './types'
 import { geminiToolTrace, resultText } from './traceText'
+import { tr } from '@shared/i18n'
 
 export const GEMINI_AUTH_MESSAGE =
   'Gemini CLI no está autenticado: revisa tu API key (GEMINI_API_KEY) o ejecuta `gemini` para iniciar sesión'
 
+/**
+ * Clave de API de Google AI Studio. Las de antes empiezan por «AIza»; desde junio de 2026 AI Studio solo crea
+ * claves «AQ.…», que llevan un punto. Se admiten las dos (sin espacios ni nada que pueda romper el archivo .env).
+ */
+export const GEMINI_KEY_RE = /^[\w.-]{20,300}$/
+
+export function isGeminiKey(key: string): boolean {
+  return GEMINI_KEY_RE.test(key)
+}
+
+/**
+ * Aviso de silencio para Gemini cuando entra con la sesión de Google: ese acceso dejó de ser gratis en junio de 2026
+ * y Gemini CLI se queda «pensando» sin fin (sin error ni salida). Lo que lo arregla es una clave de API.
+ */
+export const GEMINI_LOGIN_STALL_NOTICE =
+  'Gemini lleva 3 min sin dar señales con tu sesión de Google, que suele quedarse colgada: pon una clave de API de Google AI Studio (⚙ → Ajustes → Configurar agentes → Sesiones)'
+
+/** Método de acceso elegido en ~/.gemini/settings.json («oauth-personal», «gemini-api-key», «vertex-ai»…). */
+export function geminiAuthType(home = homedir()): string | undefined {
+  try {
+    const s = JSON.parse(readFileSync(join(home, '.gemini', 'settings.json'), 'utf8')) as Record<string, unknown>
+    const auth = (s?.security as { auth?: { selectedType?: unknown } } | undefined)?.auth?.selectedType
+    const type = auth ?? s?.selectedAuthType
+    return typeof type === 'string' ? type : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** El aviso de silencio que toca: el de la sesión de Google si Gemini entra así, y si no el de siempre. */
+export function geminiStallNotice(text: string, authType = geminiAuthType()): string {
+  return text === STALL_NOTICE && authType === 'oauth-personal' ? GEMINI_LOGIN_STALL_NOTICE : text
+}
+
 /** `-p` is appended to stdin; the real prompt goes through stdin. Fixed ASCII text only. */
 export const GEMINI_P_TEXT = 'Follow the instructions above.'
 
-export function geminiArgs(model: string, mode: 'plan' | 'work', access: AgentAccess = 'project'): string[] {
+export function geminiArgs(model: string, mode: 'plan' | 'work', access: AgentAccess = 'project', mcpNames: string[] = []): string[] {
   const approval = mode === 'plan' ? 'plan' : access === 'full' ? 'yolo' : 'auto_edit'
   const args = ['-p', GEMINI_P_TEXT, '-o', 'stream-json', '--skip-trust', '--approval-mode', approval]
   const m = safeModel(model)
   if (m) args.push('-m', m)
-  // Same policy as Claude's --strict-mcp-config: no user MCP servers in automated runs.
-  args.push('--allowed-mcp-server-names', 'none')
+  // Same policy as Claude's --strict-mcp-config: none of the user's own Gemini servers in automated runs, only the
+  // ones turned on for Gemini in kywai (Ajustes › Extensiones: they come from kywai's «kywai» Gemini extension).
+  const names = mcpNames.filter((n) => /^[a-z][a-z0-9_-]{0,30}$/.test(n))
+  args.push('--allowed-mcp-server-names', names.length ? names.join(',') : 'none')
   return args
 }
 
@@ -38,7 +79,7 @@ export function geminiToolActivity(name: string, params: Record<string, unknown>
   switch (name) {
     case 'read_file':
     case 'read_many_files':
-      return name === 'read_many_files' ? 'Leyendo archivos' : `Leyendo ${baseName(file)}`
+      return name === 'read_many_files' ? tr('Leyendo archivos') : tr('Leyendo {baseName}', { baseName: baseName(file) })
     case 'write_file':
       return `Creando ${baseName(file)}`
     case 'replace':
@@ -50,18 +91,18 @@ export function geminiToolActivity(name: string, params: Record<string, unknown>
     case 'search_file_content':
     case 'grep':
     case 'grep_search':
-      return 'Buscando archivos'
+      return tr('Buscando archivos')
     case 'run_shell_command':
-      return 'Ejecutando un comando'
+      return tr('Ejecutando un comando')
     case 'google_web_search':
     case 'web_search':
-      return 'Buscando en la web'
+      return tr('Buscando en la web')
     case 'web_fetch':
-      return 'Consultando una web'
+      return tr('Consultando una web')
     case 'write_todos':
-      return 'Organizando las tareas'
+      return tr('Organizando las tareas')
     case 'update_topic':
-      return 'Organizando el trabajo'
+      return tr('Organizando el trabajo')
     default:
       return `Usando ${name || 'una herramienta'}`
   }
@@ -145,7 +186,7 @@ export function createGeminiParser(cb: ParserCallbacks, cliName = 'Gemini'): Jso
         return { ok: false, text, usage, model, errorKind: 'cancelled', errorMessage: 'Cancelada' }
       }
       if (!sawInit && !result && looksMissing(outcome)) {
-        return { ok: false, text: '', usage, errorKind: 'missing', errorMessage: `No se encontró el CLI de ${cliName}` }
+        return { ok: false, text: '', usage, errorKind: 'missing', errorMessage: tr('No se encontró el CLI de {cliName}', { cliName }) }
       }
       const status = result ? str(result.status) : ''
       if (status === 'success') return { ok: true, text: text.trim(), usage, model }
@@ -159,11 +200,11 @@ export function createGeminiParser(cb: ParserCallbacks, cliName = 'Gemini'): Jso
           model,
           errorKind: 'failed',
           modelUnavailable: true,
-          errorMessage: `El modelo no está disponible: ${clip(errText, 160)}`
+          errorMessage: tr('El modelo no está disponible: {clip}', { clip: clip(errText, 160) })
         }
       }
       if (QUOTA_RE.test(errText)) {
-        return { ok: false, text, usage, model, errorKind: 'quota', errorMessage: `${cliName} alcanzó su límite de uso` }
+        return { ok: false, text, usage, model, errorKind: 'quota', errorMessage: tr('{cliName} alcanzó su límite de uso', { cliName }) }
       }
       // La cuenta de Google no entra en el plan gratuito (o pide un proyecto de Google Cloud): con traza ilegible.
       if (/IneligibleOrProjectId|GOOGLE_CLOUD_PROJECT|not eligible/i.test(errText)) {
@@ -174,7 +215,7 @@ export function createGeminiParser(cb: ParserCallbacks, cliName = 'Gemini'): Jso
           model,
           errorKind: 'auth',
           errorMessage:
-            'Tu cuenta de Google no puede usar Gemini CLI con inicio de sesión: usa una clave de API de Google AI Studio (⋮ → Configurar agentes → Sesiones)'
+            tr('Tu cuenta de Google no puede usar Gemini CLI con inicio de sesión: usa una clave de API de Google AI Studio (⚙ → Ajustes → Configurar agentes → Sesiones)')
         }
       }
       if (AUTH_RE.test(errText)) {
@@ -184,11 +225,11 @@ export function createGeminiParser(cb: ParserCallbacks, cliName = 'Gemini'): Jso
           usage,
           model,
           errorKind: 'auth',
-          errorMessage: cliName === 'Gemini' ? GEMINI_AUTH_MESSAGE : `${cliName} no está autenticado: ejecuta \`qwen\` en una terminal e inicia sesión`
+          errorMessage: cliName === 'Gemini' ? tr(GEMINI_AUTH_MESSAGE) : tr('{cliName} no está autenticado: ejecuta `qwen` en una terminal e inicia sesión', { cliName })
         }
       }
       if (outcome.timedOut) {
-        return { ok: false, text, usage, model, errorKind: 'failed', errorMessage: 'El CLI dejó de responder (sin salida durante 20 min)' }
+        return { ok: false, text, usage, model, errorKind: 'failed', errorMessage: tr('El CLI dejó de responder (sin salida durante 20 min)') }
       }
       return {
         ok: false,
@@ -196,7 +237,7 @@ export function createGeminiParser(cb: ParserCallbacks, cliName = 'Gemini'): Jso
         usage,
         model,
         errorKind: 'failed',
-        errorMessage: errText ? clip(errText, 200) : outcome.spawnError ? `No se pudo lanzar: ${clip(outcome.spawnError.message, 180)}` : `${cliName} terminó con un error (código ${outcome.code ?? '?'})`
+        errorMessage: errText ? clip(errText, 200) : outcome.spawnError ? tr('No se pudo lanzar: {clip}', { clip: clip(outcome.spawnError.message, 180) }) : tr('{cliName} terminó con un error (código {v2})', { cliName, v2: outcome.code ?? '?' })
       }
     }
   }
@@ -205,11 +246,12 @@ export function createGeminiParser(cb: ParserCallbacks, cliName = 'Gemini'): Jso
 export function runGemini(opts: RunAgentOptions): Promise<RunAgentResult> {
   return runCli({
     command: 'gemini',
-    args: geminiArgs(opts.model, opts.mode, opts.access),
+    args: geminiArgs(opts.model, opts.mode, opts.access, opts.extraMcp?.names),
     cwd: opts.cwd,
+    ...(opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
     stdin: opts.prompt,
     signal: opts.signal,
     parser: createGeminiParser(opts),
-    onStall: (text) => opts.onActivity?.(text, 'tool')
+    onStall: (text) => opts.onActivity?.(geminiStallNotice(text), 'tool')
   })
 }

@@ -80,7 +80,7 @@ describe('ficha de cada agente', () => {
     )
     expect(lines).toMatch(/cómo son: Haiku 5\.5: muy rápido[^·]+· Sonnet 5\.5: rápido[^·]+· Opus 5\.5: moderado/)
     expect(lines).toContain('cuota restante: 81 % (ventana semanal)')
-    expect(lines).toContain('historial en AI Cowork (30 días): 12 tareas, 92 % bien, unos 6 min cada una')
+    expect(lines).toContain('historial en kywai (30 días): 12 tareas, 92 % bien, unos 6 min cada una')
     expect(lines).not.toMatch(/revisión/)
   })
 

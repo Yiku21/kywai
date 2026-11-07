@@ -1,4 +1,4 @@
-# Guía de modelos y agentes para AI Cowork
+# Guía de modelos y agentes para kywai
 
 Investigación del **11 de octubre de 2026**, con fuentes al final. Es la base de las fichas que ve el coordinador
 (`src/shared/defaults.ts`), del catálogo de modelos (`src/shared/modelCatalog.ts`) y del esfuerzo por dificultad.
@@ -16,7 +16,7 @@ Las cifras cambian con cada versión de los modelos: conviene repasarla cada poc
 - **Los modelos pequeños no son más rápidos como agentes de código**: dan más vueltas. GPT-6.1 Sol con esfuerzo
   bajo hace una tarea fácil en 8,6 min (nota 57); GPT-6 Luna, en 21,4 min (nota 41).
 
-## 2. Qué usa AI Cowork en cada dificultad
+## 2. Qué usa kywai en cada dificultad
 
 | Agente | Fácil | Normal | Difícil |
 |---|---|---|---|
@@ -57,7 +57,7 @@ Las cifras cambian con cada versión de los modelos: conviene repasarla cada poc
 | Fable 5.1 | ~55–67 t/s | 10 / 50 | Razonamiento muy exigente | **En Pro se cobra con créditos desde el primer mensaje** (y sin preguntar en modo `-p`); en Max gasta su propia cuota semanal. Opus 5.5 le gana en casi todo |
 
 - Esfuerzo: `--effort low|medium|high|xhigh|max` (por defecto, medium). La variable `CLAUDE_CODE_EFFORT_LEVEL`
-  manda sobre la opción: AI Cowork fija las dos.
+  manda sobre la opción: kywai fija las dos.
 - Límites del plan: ventana de 5 h y semanal, compartidas con Claude; Fable tiene además la suya en Max.
 
 ### Codex (cuenta de ChatGPT)
@@ -70,7 +70,7 @@ Las cifras cambian con cada versión de los modelos: conviene repasarla cada poc
 | GPT-6 Astra | ~50 t/s; ~29 min por tarea | 5 veces Sol | Solo si 6.1 Sol en xhigh no basta | Casi siempre: 6.1 Sol en xhigh lo iguala con menos del 15 % del coste |
 
 - Esfuerzo: `-c model_reasoning_effort=low|medium|high|xhigh|max|ultra` (por defecto, medium). «Ultra» lanza sus
-  propios subagentes: no conviene con el reparto de AI Cowork.
+  propios subagentes: no conviene con el reparto de kywai.
 - Plan «prolite» = Pro de 100 $: sin ventana de 5 h, con límite semanal. «Fast» gasta 2,5 veces más.
 
 ### Gemini (Gemini CLI)
@@ -84,7 +84,7 @@ Las cifras cambian con cada versión de los modelos: conviene repasarla cada poc
 
 - Desde el 18-6-2026, Gemini CLI solo funciona con **clave de API** (o cuentas profesionales). Con clave gratuita:
   solo Flash y Flash-Lite, unas 250 peticiones al día y **sin búsqueda en Google**.
-- «Auto» puede intentar Pro, que no tiene nivel gratuito: AI Cowork fija 3.8 Flash.
+- «Auto» puede intentar Pro, que no tiene nivel gratuito: kywai fija 3.8 Flash.
 
 ### Modelos locales (Mac mini M4 de 16 GB)
 

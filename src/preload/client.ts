@@ -19,7 +19,9 @@ contextBridge.exposeInMainWorld('coworkClient', {
   pair: (address: string, code: string): Promise<{ error?: string }> => ipcRenderer.invoke('client:pair', address, code),
   retry: (): Promise<void> => ipcRenderer.invoke('client:retry'),
   switchServer: (): Promise<void> => ipcRenderer.invoke('client:switchServer'),
-  /** Interfaz del servidor (menú ⋮). */
+  /** Deja de ser cliente: la app se reinicia como servidor (pide confirmación). */
+  useAsServer: (): Promise<void> => ipcRenderer.invoke('client:useAsServer'),
+  /** Interfaz del servidor (menú ⚙). */
   reload: (): Promise<void> => ipcRenderer.invoke('client:reload'),
   forget: (): Promise<void> => ipcRenderer.invoke('client:forget'),
   openFile: (projectId: string, relPath: string): Promise<void> => ipcRenderer.invoke('client:openFile', projectId, relPath),

@@ -2,7 +2,7 @@ import { isUtf8 } from 'node:buffer'
 import { promises as fsp } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Duplex } from 'node:stream'
-import type { CoworkEvent, MemoryKind, MemoryStatus, MobileOnlyEvent } from '@shared/types'
+import type { CoworkEvent, MemoryKind, MemoryStatus, MobileOnlyEvent, RoutineInput } from '@shared/types'
 import type { MobileEventEnvelope } from '@shared/mobile'
 import type { DeviceKind, DeviceRegistry } from './devices'
 import { MobileAuth } from './mobileAuth'
@@ -11,6 +11,7 @@ import { MobileError, mobileErrorBody, mobileJson } from './mobileErrors'
 import { receiveUpload, sendFile, uploadName } from './mobileFiles'
 import { MobileWebSocket, rejectUpgrade } from './mobileWebSocket'
 import { orbitaRelease } from './orbitaRelease'
+import { UI_THEME_RE } from './config'
 
 export const MOBILE_PREFIX = '/api/mobile/v1'
 const MAX_BODY = 256 * 1024
@@ -28,24 +29,43 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/events$/, 'events', ['GET']],
   [/^\/chat\/messages$/, 'chat', ['POST']],
   [/^\/conversations$/, 'conversations', ['POST']],
+  [/^\/chats$/, 'chats', ['GET', 'POST']],
+  [/^\/chats\/pinned$/, 'pinnedChats', ['GET']],
+  [/^\/chats\/all$/, 'allChats', ['GET']],
+  [/^\/chats\/([^/]+)\/(open|rename|delete|pin|fork|move)$/, 'chatAction', ['POST']],
+  [/^\/search$/, 'search', ['GET']],
+  [/^\/music\/search$/, 'musicSearch', ['GET']],
   [/^\/requests\/([^/]+)\/(stop|resume|discard)$/, 'control', ['POST']],
   [/^\/plans\/([^/]+)\/(approve|reject)$/, 'plan', ['POST']],
   [/^\/projects$/, 'projects', ['GET']],
+  [/^\/projects\/([^/]+)\/(rename|pin|delete)$/, 'projectAction', ['POST']],
   [/^\/tasks\/([^/]+)\/trace$/, 'trace', ['GET']],
   [/^\/memory$/, 'memoryAdd', ['POST']],
   [/^\/memory\/([^/]+)$/, 'memoryUpdate', ['POST']],
   [/^\/memory\/([^/]+)\/delete$/, 'memoryDelete', ['POST']],
   [/^\/instructions$/, 'instructions', ['POST']],
-  [/^\/routines$/, 'routines', ['GET']],
+  [/^\/routines$/, 'routines', ['GET', 'POST']],
   [/^\/routines\/([^/]+)\/run$/, 'routineRun', ['POST']],
+  [/^\/templates$/, 'templates', ['GET', 'POST']],
+  [/^\/templates\/restore$/, 'templatesRestore', ['POST']],
+  [/^\/templates\/([^/]+)\/delete$/, 'templateDelete', ['POST']],
+  [/^\/templates\/([^/]+)$/, 'templateUpdate', ['POST']],
+  [/^\/routines\/([^/]+)\/delete$/, 'routineDelete', ['POST']],
+  [/^\/routines\/([^/]+)$/, 'routineUpdate', ['POST']],
+  [/^\/messages\/([^/]+)\/routine-proposal\/(create|dismiss)$/, 'routineProposal', ['POST']],
   [/^\/artifacts\/([^/]+)\/raw$/, 'artifactRaw', ['GET']],
   [/^\/files$/, 'files', ['GET', 'POST']],
   [/^\/files\/raw$/, 'fileRaw', ['GET']],
   [/^\/settings\/agent-access$/, 'agentAccess', ['POST']],
   [/^\/settings\/plan-approval$/, 'planApproval', ['POST']],
+  [/^\/settings\/server-name$/, 'serverName', ['POST']],
+  [/^\/settings\/theme$/, 'theme', ['POST']],
   [/^\/usage\/refresh$/, 'usageRefresh', ['POST']],
   [/^\/quality$/, 'quality', ['GET']],
+  [/^\/usage\/cost$/, 'usageCost', ['GET']],
   [/^\/inbox$/, 'inbox', ['GET']],
+  [/^\/mods\/panels$/, 'modPanels', ['GET']],
+  [/^\/mods\/panel$/, 'modPanel', ['GET']],
   [/^\/inbox\/([^/]+)\/([a-z][a-z0-9-]{0,39})$/, 'inboxAction', ['POST']],
   [/^\/tasks\/([^/]+)\/changes$/, 'taskChanges', ['GET']],
   [/^\/tasks\/([^/]+)\/undo$/, 'taskUndo', ['POST']],
@@ -55,6 +75,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/hermes\/models$/, 'hermesModels', ['GET']],
   [/^\/hermes\/model$/, 'hermesModel', ['POST']],
   [/^\/agents\/([^/]+)\/reset$/, 'agentReset', ['POST']],
+  [/^\/agents\/([^/]+)\/thinking$/, 'agentThinking', ['POST']],
   [/^\/server\/update$/, 'serverUpdate', ['GET', 'POST']]
 ]
 
@@ -137,9 +158,55 @@ function projectId(input: unknown): string {
   return conversationId(input)!
 }
 
+/** Id de un chat de un proyecto (el mismo formato que admite conversations.ts). */
+function chatId(input: string): string {
+  if (!/^[a-z0-9][a-z0-9-]{0,60}$/.test(input)) throw new MobileError(400, 'INVALID_INPUT', 'chatId no válido')
+  return input
+}
+
 function id(input: string, name: string): string {
   if (!ID.test(input)) throw new MobileError(400, 'INVALID_INPUT', `${name} no válido`)
   return input
+}
+
+const TEMPLATE_OPTIONAL = ['icon', 'command', 'projectId', 'agentId', 'askPlan', 'pinned']
+
+/** Los campos de una plantilla con su tipo (el motor comprueba el resto: largos, orden, proyecto…). */
+function templateInput(input: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const k of ['name', 'prompt', 'icon', 'command'] as const) {
+    if (input[k] === undefined) continue
+    if (typeof input[k] !== 'string') throw new MobileError(400, 'INVALID_INPUT', `${k} debe ser texto`)
+    out[k] = input[k]
+  }
+  for (const k of ['projectId', 'agentId'] as const) {
+    if (input[k] === undefined) continue
+    if (input[k] !== null && typeof input[k] !== 'string') throw new MobileError(400, 'INVALID_INPUT', `${k} debe ser texto o null`)
+    out[k] = input[k]
+  }
+  for (const k of ['askPlan', 'pinned'] as const) {
+    if (input[k] === undefined) continue
+    if (typeof input[k] !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', `${k} debe ser true o false`)
+    out[k] = input[k]
+  }
+  return out
+}
+
+/** Campos de una rutina tal como llegan (el motor los valida igual que en el escritorio: hora, días, carpeta…). */
+function routineInput(input: Record<string, unknown>): Partial<RoutineInput> {
+  const out: Partial<RoutineInput> = {}
+  if (input.name !== undefined) out.name = string(input.name, 'name', 200)
+  if (input.request !== undefined) out.request = string(input.request, 'request', 9000)
+  if (input.trigger !== undefined) {
+    if (!input.trigger || typeof input.trigger !== 'object' || Array.isArray(input.trigger)) throw new MobileError(400, 'INVALID_INPUT', 'trigger debe ser un objeto')
+    out.trigger = input.trigger as RoutineInput['trigger']
+  }
+  for (const key of ['enabled', 'askApproval'] as const) {
+    if (input[key] === undefined) continue
+    if (typeof input[key] !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', `${key} debe ser true o false`)
+    out[key] = input[key] as boolean
+  }
+  return out
 }
 
 /** El almacén une espacios, descarta lo que queda con menos de 3 caracteres y recorta a 400. */
@@ -201,7 +268,7 @@ export class MobileApi {
         case 'deviceRevoke': {
           const input = await body(req)
           fields(input, [])
-          if (!caller?.deviceId || !this.devices) throw new MobileError(409, 'LEGACY_DEVICE', 'Este emparejamiento es anterior a la lista de dispositivos: se quita generando un código de acceso nuevo en AI Cowork')
+          if (!caller?.deviceId || !this.devices) throw new MobileError(409, 'LEGACY_DEVICE', 'Este emparejamiento es anterior a la lista de dispositivos: se quita generando un código de acceso nuevo en kywai')
           this.revokeDevice(caller.deviceId)
           mobileJson(res, 200, { revoked: true })
           break
@@ -214,12 +281,13 @@ export class MobileApi {
           throw new MobileError(426, 'WEBSOCKET_REQUIRED', 'Abre este endpoint con WebSocket y Authorization: Bearer')
         case 'chat': {
           const input = await body(req)
-          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds'])
+          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds', 'templateId'])
           const clientMessageId = string(input.clientMessageId, 'clientMessageId', 128)
           if (!ID.test(clientMessageId)) throw new MobileError(400, 'INVALID_INPUT', 'clientMessageId no válido')
           const attachmentIds = input.attachmentIds ?? []
           if (!Array.isArray(attachmentIds) || attachmentIds.length > 20 || attachmentIds.some((a) => typeof a !== 'string' || !ID.test(a))) throw new MobileError(400, 'INVALID_INPUT', 'attachmentIds debe ser una lista de hasta 20 identificadores de adjunto')
-          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[]))
+          const templateId = input.templateId === undefined || input.templateId === null ? undefined : id(String(input.templateId), 'templateId')
+          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[], templateId))
           break
         }
         case 'conversations': {
@@ -227,6 +295,75 @@ export class MobileApi {
           fields(input, [], ['name'])
           const name = input.name === undefined ? undefined : string(input.name, 'name', 120).trim()
           mobileJson(res, 201, { conversation: await this.backend.createConversation(name) })
+          break
+        }
+        // Chats de un proyecto (las conversaciones retomables de la barra lateral); conversationId es el proyecto.
+        case 'chats': {
+          if (req.method === 'GET') {
+            mobileJson(res, 200, await this.backend.chats(projectId(query(url, ['conversationId'], ['conversationId']).conversationId)))
+          } else {
+            const input = await body(req)
+            fields(input, ['conversationId'])
+            mobileJson(res, 200, { conversation: await this.backend.newChat(projectId(input.conversationId)) })
+          }
+          break
+        }
+        case 'chatAction': {
+          const chat = chatId(param)
+          const input = await body(req)
+          if (action === 'rename') {
+            fields(input, ['conversationId', 'title'])
+            mobileJson(res, 200, await this.backend.renameChat(projectId(input.conversationId), chat, string(input.title, 'title', 80)))
+          } else if (action === 'pin') {
+            fields(input, ['conversationId', 'pinned'])
+            if (typeof input.pinned !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', 'pinned debe ser true o false')
+            mobileJson(res, 200, await this.backend.pinChat(projectId(input.conversationId), chat, input.pinned))
+          } else if (action === 'move') {
+            fields(input, ['conversationId', 'toConversationId'])
+            mobileJson(res, 200, await this.backend.moveChat(projectId(input.conversationId), chat, projectId(input.toConversationId)))
+          } else {
+            fields(input, ['conversationId'])
+            const project = projectId(input.conversationId)
+            if (action === 'open') mobileJson(res, 200, { conversation: await this.backend.openChat(project, chat) })
+            else if (action === 'fork') mobileJson(res, 200, await this.backend.forkChat(project, chat))
+            else mobileJson(res, 200, await this.backend.deleteChat(project, chat))
+          }
+          break
+        }
+        // Fijadas de todos los proyectos (la sección «Fijados» de la barra lateral).
+        case 'pinnedChats':
+          query(url, [])
+          mobileJson(res, 200, await this.backend.pinnedChats())
+          break
+        // Historial: todos los chats de todos los proyectos (la ventana «Historial»).
+        case 'allChats':
+          query(url, [])
+          mobileJson(res, 200, await this.backend.allChats())
+          break
+        case 'search': {
+          const params = query(url, ['q', 'conversationId', 'since', 'author', 'limit'], ['q'])
+          const q = params.q!.trim()
+          if (!q || q.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'q debe ser texto de hasta 200 caracteres')
+          if (params.since !== undefined && !/^[0-9]{1,15}$/.test(params.since)) throw new MobileError(400, 'INVALID_INPUT', 'since debe ser una fecha en milisegundos')
+          if (params.author !== undefined && !/^[a-z0-9][a-z0-9_-]{0,60}$/.test(params.author)) throw new MobileError(400, 'INVALID_INPUT', 'author no es válido')
+          if (params.limit !== undefined && !/^[0-9]{1,3}$/.test(params.limit)) throw new MobileError(400, 'INVALID_INPUT', 'limit debe ser un número hasta 400')
+          mobileJson(
+            res,
+            200,
+            await this.backend.search(q, params.conversationId === undefined ? undefined : projectId(params.conversationId), {
+              since: params.since === undefined ? undefined : Number(params.since),
+              author: params.author,
+              limit: params.limit === undefined ? undefined : Number(params.limit)
+            })
+          )
+          break
+        }
+        case 'musicSearch': {
+          const params = query(url, ['kind', 'q'], ['kind'])
+          if (params.kind !== 'radio' && params.kind !== 'audius') throw new MobileError(400, 'INVALID_INPUT', 'kind debe ser radio o audius')
+          const q = (params.q ?? '').trim()
+          if (q.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'q debe tener hasta 200 caracteres')
+          mobileJson(res, 200, await this.backend.musicSearch(params.kind, q))
           break
         }
         case 'control':
@@ -244,6 +381,23 @@ export class MobileApi {
           query(url, [])
           mobileJson(res, 200, { projects: await this.backend.projects() })
           break
+        // Menú de un proyecto en la barra lateral: renombrar, fijar o eliminar (va a la Papelera del ordenador).
+        case 'projectAction': {
+          const project = projectId(param)
+          const input = await body(req)
+          if (action === 'rename') {
+            fields(input, ['name'])
+            mobileJson(res, 200, { projects: await this.backend.renameProject(project, string(input.name, 'name', 80).trim()) })
+          } else if (action === 'pin') {
+            fields(input, ['pinned'])
+            if (typeof input.pinned !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', 'pinned debe ser true o false')
+            mobileJson(res, 200, { projects: await this.backend.pinProject(project, input.pinned) })
+          } else {
+            fields(input, [])
+            mobileJson(res, 200, { projects: await this.backend.deleteProject(project) })
+          }
+          break
+        }
         case 'trace':
           query(url, [])
           mobileJson(res, 200, await this.backend.trace(id(param, 'taskId')))
@@ -256,6 +410,15 @@ export class MobileApi {
           fields(await body(req), [])
           mobileJson(res, 200, await this.backend.undoTask(id(param, 'taskId')))
           break
+        case 'modPanels':
+          query(url, [])
+          mobileJson(res, 200, await this.backend.modPanels())
+          break
+        case 'modPanel': {
+          const q = query(url, ['mod', 'id'], ['mod', 'id'])
+          mobileJson(res, 200, await this.backend.modPanel(string(q.mod, 'mod', 80), string(q.id, 'id', 80)))
+          break
+        }
         case 'inbox':
           query(url, [])
           mobileJson(res, 200, await this.backend.inbox())
@@ -304,14 +467,72 @@ export class MobileApi {
           mobileJson(res, 200, await this.backend.setInstructions(project, input.text))
           break
         }
-        case 'routines':
-          mobileJson(res, 200, await this.backend.routines(projectId(query(url, ['conversationId'], ['conversationId']).conversationId)))
+        case 'routines': {
+          if (req.method === 'GET') {
+            mobileJson(res, 200, await this.backend.routines(projectId(query(url, ['conversationId'], ['conversationId']).conversationId)))
+            break
+          }
+          const input = await body(req)
+          fields(input, ['conversationId', 'name', 'request', 'trigger'], ['enabled', 'askApproval'])
+          mobileJson(res, 201, await this.backend.createRoutine(projectId(input.conversationId), routineInput(input) as RoutineInput))
           break
+        }
+        case 'routineUpdate': {
+          const routineId = id(param, 'routineId')
+          const input = await body(req)
+          fields(input, ['conversationId'], ['name', 'request', 'trigger', 'enabled', 'askApproval'])
+          const patch = routineInput(input)
+          if (!Object.keys(patch).length) throw new MobileError(400, 'INVALID_INPUT', 'Indica name, request, trigger, enabled o askApproval')
+          mobileJson(res, 200, await this.backend.updateRoutine(projectId(input.conversationId), routineId, patch))
+          break
+        }
+        case 'routineDelete': {
+          const routineId = id(param, 'routineId')
+          const input = await body(req)
+          fields(input, ['conversationId'])
+          mobileJson(res, 200, await this.backend.deleteRoutine(projectId(input.conversationId), routineId))
+          break
+        }
+        case 'routineProposal': {
+          const messageId = id(param, 'messageId')
+          const input = await body(req)
+          fields(input, ['conversationId'])
+          mobileJson(res, 200, await this.backend.routineProposal(projectId(input.conversationId), messageId, action as 'create' | 'dismiss'))
+          break
+        }
         case 'routineRun': {
           const routineId = id(param, 'routineId')
           const input = await body(req)
           fields(input, ['conversationId'])
           mobileJson(res, 200, await this.backend.runRoutine(projectId(input.conversationId), routineId))
+          break
+        }
+        // Plantillas de tareas (de todos los proyectos; projectId null = general). Los cambios llegan por templates.updated.
+        case 'templates':
+          if (req.method === 'GET') {
+            query(url, [])
+            mobileJson(res, 200, await this.backend.templates())
+          } else {
+            const input = await body(req)
+            fields(input, ['name', 'prompt'], TEMPLATE_OPTIONAL)
+            mobileJson(res, 201, await this.backend.createTemplate(templateInput(input)))
+          }
+          break
+        case 'templatesRestore':
+          fields(await body(req), [])
+          mobileJson(res, 200, await this.backend.restoreTemplates())
+          break
+        case 'templateUpdate': {
+          const templateId = id(param, 'templateId')
+          const input = await body(req)
+          fields(input, [], ['name', 'prompt', ...TEMPLATE_OPTIONAL])
+          mobileJson(res, 200, await this.backend.updateTemplate(templateId, templateInput(input)))
+          break
+        }
+        case 'templateDelete': {
+          const templateId = id(param, 'templateId')
+          fields(await body(req), [])
+          mobileJson(res, 200, await this.backend.deleteTemplate(templateId))
           break
         }
         case 'artifactRaw': {
@@ -344,6 +565,20 @@ export class MobileApi {
           mobileJson(res, 200, await this.backend.setAgentAccess(input.access))
           break
         }
+        case 'serverName': {
+          const input = await body(req)
+          fields(input, ['name'])
+          if (typeof input.name !== 'string' || input.name.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'name debe ser un texto de hasta 200 caracteres')
+          mobileJson(res, 200, await this.backend.setServerName(input.name))
+          break
+        }
+        case 'theme': {
+          const input = await body(req)
+          fields(input, ['theme'])
+          if (typeof input.theme !== 'string' || !UI_THEME_RE.test(input.theme)) throw new MobileError(400, 'INVALID_INPUT', 'theme debe ser un id de tema («mundo-bosque», «grafito»…)')
+          mobileJson(res, 200, await this.backend.setTheme(input.theme))
+          break
+        }
         case 'planApproval': {
           const input = await body(req)
           fields(input, ['enabled'])
@@ -355,6 +590,13 @@ export class MobileApi {
           fields(await body(req), [])
           mobileJson(res, 200, await this.backend.resetAgent(id(param, 'agentId')))
           break
+        case 'agentThinking': {
+          const input = await body(req)
+          fields(input, ['enabled'])
+          if (typeof input.enabled !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', 'enabled debe ser true o false')
+          mobileJson(res, 200, await this.backend.setAgentThinking(id(param, 'agentId'), input.enabled))
+          break
+        }
         case 'serverUpdate':
           if (req.method === 'GET') {
             query(url, [])
@@ -374,6 +616,12 @@ export class MobileApi {
           const { days } = query(url, ['days'])
           if (days !== undefined && !/^(?:[1-9]\d{0,2})$/.test(days)) throw new MobileError(400, 'INVALID_INPUT', 'days debe ser un número de días entre 1 y 999')
           mobileJson(res, 200, await this.backend.quality(days === undefined ? 30 : Number(days)))
+          break
+        }
+        case 'usageCost': {
+          const { days } = query(url, ['days'])
+          if (days !== undefined && !/^(?:[1-9]\d{0,2})$/.test(days)) throw new MobileError(400, 'INVALID_INPUT', 'days debe ser un número de días entre 1 y 999')
+          mobileJson(res, 200, await this.backend.usageCost(days === undefined ? 30 : Number(days)))
           break
         }
         case 'voice':
@@ -401,7 +649,7 @@ export class MobileApi {
         case 'orbitaApk': {
           query(url, [])
           const release = await orbitaRelease()
-          if (!release) throw new MobileError(404, 'NO_ORBITA_RELEASE', 'El ordenador aún no tiene ninguna versión de Órbita para descargar: actualiza AI Cowork en él (⋮ → «Buscar actualizaciones…»).')
+          if (!release) throw new MobileError(404, 'NO_ORBITA_RELEASE', 'El ordenador aún no tiene ninguna versión de Órbita para descargar: actualiza kywai en él (⚙ → «Buscar actualizaciones…»).')
           if (target.name === 'orbitaRelease') mobileJson(res, 200, release.info)
           else await sendFile(res, release.apk, new MobileError(404, 'NO_ORBITA_RELEASE', 'La APK de Órbita ya no está en el ordenador'))
           break

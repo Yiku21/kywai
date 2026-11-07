@@ -5,6 +5,7 @@ import { setAnchorElement } from './anchors'
 import { usePackets } from './packetStore'
 import { RobotLabel } from './RobotLabel'
 import s from './labels.module.css'
+import { t } from '@/lib/i18n'
 
 function Anchored({ id, children }: { id: string; children: ReactNode }) {
   return (
@@ -39,7 +40,7 @@ export function SceneLabels() {
             style={{ ['--agent' as string]: p.colorHex }}
             role="button"
             tabIndex={0}
-            aria-label={`Transferencia: ${p.transfer.label}`}
+            aria-label={t('Transferencia: {label}', { label: p.transfer.label })}
             onClick={(ev) => {
               ev.stopPropagation()
               select({ type: 'transfer', id: p.transfer.id })
@@ -55,7 +56,7 @@ export function SceneLabels() {
       ))}
       <Anchored id="core">
         <div className={s.core}>
-          Proyecto
+          {t('Proyecto')}
           <span className={s.coreSub}>{mode === 'demo' ? 'Demo' : (projectName ?? '')}</span>
         </div>
       </Anchored>

@@ -34,7 +34,7 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 /**
- * Servidor simulado que cumple el contrato móvil `/api/mobile/v1` de AI Cowork.
+ * Servidor simulado que cumple el contrato móvil `/api/mobile/v1` de kywai.
  *
  * Sirve para desarrollar y probar la app sin depender del backend real: empareja con un código,
  * devuelve la instantánea, acepta mensajes, detiene y reanuda peticiones y emite eventos por WebSocket
@@ -48,6 +48,8 @@ class MockCoworkServer(
     private val tickMillis: Long = 900,
     private val heldCertificate: HeldCertificate? = null,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Id del proyecto simulado (para que un servidor «reiniciado» en las pruebas conserve el mismo). */
+    initialConversationId: String? = null,
 ) : Closeable {
 
     private val server = MockWebServer()
@@ -64,7 +66,10 @@ class MockCoworkServer(
     // ---- Estado simulado ----
     private var sequence = 0L
     private val tokens = mutableSetOf<String>()
-    private var conversationId = newId("c")
+    private var conversationId = initialConversationId ?: newId("c")
+
+    /** El proyecto que está abierto ahora. */
+    val currentConversationId: String get() = synchronized(lock) { conversationId }
     private var conversationCreatedAt = clock()
     private val messages = mutableListOf<Msg>()
     private val seenClientIds = mutableMapOf<String, String>()
@@ -160,6 +165,7 @@ class MockCoworkServer(
             route == "/events" && method == "GET" -> upgrade()
             route == "/snapshot" && method == "GET" -> ok(synchronized(lock) { snapshot() })
             route == "/chat/messages" && method == "POST" -> postMessage(request)
+            route == "/files" && method == "POST" -> upload(request)
             route == "/conversations" && method == "POST" -> newConversation()
             route.startsWith("/requests/") && method == "POST" -> requestAction(route)
             route == "/inbox" && method == "GET" -> ok(synchronized(lock) { buildJsonObject { put("items", JsonArray(inbox.sortedByDescending { it.createdAt }.map { it.toJson() })) } })
@@ -185,14 +191,32 @@ class MockCoworkServer(
             return error(400, "bad_request", "Faltan code o deviceName", false)
         }
         if (code != pairingCode) {
-            return error(401, "invalid_code", "El código no es válido o ha caducado. Genera otro en AI Cowork.", false)
+            return error(401, "invalid_code", "El código no es válido o ha caducado. Genera otro en kywai.", false)
         }
         val token = "mock_" + UUID.randomUUID().toString().replace("-", "")
         synchronized(lock) { tokens += token }
         return ok(buildJsonObject {
             put("accessToken", token)
             put("expiresAt", Instant.ofEpochMilli(clock()).plus(30, ChronoUnit.DAYS).toString())
-            put("serverName", "AI Cowork (simulado)")
+            put("serverName", "kywai (simulado)")
+        })
+    }
+
+    /** Archivos subidos (nombre y bytes), en orden. */
+    val uploads: List<Pair<String, Long>> get() = synchronized(lock) { uploaded.map { it.second to it.third } }
+    private val uploaded = mutableListOf<Triple<String, String, Long>>()
+
+    /** Adjuntos que llevó cada mensaje recibido (por su texto). */
+    fun attachmentsOf(text: String): List<String> = synchronized(lock) { sentAttachments[text].orEmpty() }
+    private val sentAttachments = mutableMapOf<String, List<String>>()
+
+    private fun upload(request: RecordedRequest): MockResponse = synchronized(lock) {
+        val name = request.requestUrl?.queryParameter("name") ?: "archivo"
+        val id = newId("att")
+        val size = request.bodySize
+        uploaded += Triple(id, name, size)
+        ok(buildJsonObject {
+            put("attachment", buildJsonObject { put("id", id); put("name", name); put("size", size) })
         })
     }
 
@@ -214,6 +238,9 @@ class MockCoworkServer(
                     put("message", msg.toJson())
                     put("requestId", msg.requestId)
                 }, status = 202)
+            }
+            body["attachmentIds"]?.let { ids ->
+                sentAttachments[text] = (ids as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content }.orEmpty()
             }
             val req = Req(id = "r${++requestCounter}-" + newId("").takeLast(4), prompt = text)
             val msg = Msg(
@@ -295,7 +322,7 @@ class MockCoworkServer(
             sockets += webSocket
             synchronized(lock) {
                 webSocket.send(envelope("hello", buildJsonObject {
-                    put("serverName", "AI Cowork (simulado)")
+                    put("serverName", "kywai (simulado)")
                     put("sequence", sequence)
                 }, sequence).toString())
             }
@@ -559,7 +586,7 @@ class MockCoworkServer(
 
     private fun conversationJson() = buildJsonObject {
         put("id", conversationId)
-        put("title", "Proyecto AI Cowork")
+        put("title", "Proyecto kywai")
         put("createdAt", conversationCreatedAt)
         put("messages", JsonArray(messages.map { it.toJson() }))
         putJsonArray("activeRequestIds") { requests.values.filter { it.active }.forEach { add(JsonPrimitive(it.id)) } }
@@ -706,9 +733,9 @@ class MockCoworkServer(
         const val PREFIX = "/api/mobile/v1"
         const val DEFAULT_CODE = "246810"
 
-        /** Certificado propio como el que genera AI Cowork para su puerto HTTPS. */
+        /** Certificado propio como el que genera kywai para su puerto HTTPS. */
         fun selfSigned(hosts: List<String>): HeldCertificate = HeldCertificate.Builder()
-            .commonName("AI Cowork (simulado)")
+            .commonName("kywai (simulado)")
             .apply { hosts.forEach { addSubjectAlternativeName(it) } }
             .duration(365, TimeUnit.DAYS)
             .build()

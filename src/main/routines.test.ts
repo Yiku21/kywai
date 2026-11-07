@@ -114,6 +114,12 @@ describe('«/rutina …» en el chat', () => {
       trigger: { type: 'folder', path: 'Entrada/Facturas' },
       request: 'ordénalas por mes'
     })
+    // En inglés (la interfaz puede estar en inglés).
+    expect(parseRoutineCommand('/routine every day at 9:00: check the dependencies')).toMatchObject({ trigger: { type: 'daily', time: '09:00' }, request: 'check the dependencies' })
+    expect(parseRoutineCommand('/routine every 6 hours: check the site responds')).toMatchObject({ trigger: { type: 'interval', hours: 6 } })
+    expect(parseRoutineCommand('/routine every hour: look at the logs')).toMatchObject({ trigger: { type: 'interval', hours: 1 } })
+    expect(parseRoutineCommand('/routine on webhook: review the incoming PR')).toMatchObject({ trigger: { type: 'webhook' }, request: 'review the incoming PR' })
+    expect(parseRoutineCommand('/routine when files change in Inbox: sort them')).toMatchObject({ trigger: { type: 'folder', path: 'Inbox' }, request: 'sort them' })
   })
 
   it('lo que no entiende da la ayuda; días sueltos', () => {
@@ -254,7 +260,7 @@ describe('lanzar sin dobles disparos', () => {
     await runRoutineNow(projectId, r.id)
     stopRoutines()
     startEngine()
-    expect(store.getProject(projectId).routines![0].runs[0]).toMatchObject({ status: 'interrupted', note: expect.stringMatching(/Se cerró AI Cowork/) })
+    expect(store.getProject(projectId).routines![0].runs[0]).toMatchObject({ status: 'interrupted', note: expect.stringMatching(/Se cerró kywai/) })
   })
 
   it('al volver a activarla no recupera lo que tocó mientras estaba desactivada', async () => {
@@ -266,6 +272,78 @@ describe('lanzar sin dobles disparos', () => {
     expect(sent).toHaveLength(0)
     await checkRoutines(at(2026, 10, 14, 9))
     expect(sent).toHaveLength(1)
+  })
+})
+
+describe('una sola vez', () => {
+  // 7/11/2026 es sábado.
+  const NOW = at(2026, 11, 7, 17, 30)
+
+  it('«/rutina mañana a las 7», «el viernes a las 18:00», «el 15/11», «dentro de 2 horas»…', () => {
+    const once = (text: string): unknown => parseRoutineCommand(text, NOW)
+    expect(once('/rutina mañana a las 7: revisa los PR')).toEqual({ name: 'Revisa los PR', request: 'revisa los PR', trigger: { type: 'once', date: '2026-11-08', time: '07:00' } })
+    expect(once('/rutina hoy a las 21:00: haz la copia')).toMatchObject({ trigger: { type: 'once', date: '2026-11-07', time: '21:00' } })
+    expect(once('/rutina esta noche a las 9: haz la copia')).toMatchObject({ trigger: { type: 'once', date: '2026-11-07', time: '21:00' } })
+    expect(once('/rutina pasado mañana a las 10: prepara el informe')).toMatchObject({ trigger: { type: 'once', date: '2026-11-09', time: '10:00' } })
+    expect(once('/rutina el viernes a las 18:00: resume la semana')).toMatchObject({ trigger: { type: 'once', date: '2026-11-13', time: '18:00' }, request: 'resume la semana' })
+    expect(once('/rutina el sábado a las 20:00: x y z')).toMatchObject({ trigger: { type: 'once', date: '2026-11-07', time: '20:00' } })
+    expect(once('/rutina el sábado a las 9:00: x y z')).toMatchObject({ trigger: { type: 'once', date: '2026-11-14', time: '09:00' } })
+    expect(once('/rutina el 15/11 a las 9: manda el resumen')).toMatchObject({ trigger: { type: 'once', date: '2026-11-15', time: '09:00' } })
+    expect(once('/rutina el 3 de enero a las 9:30: felicita el año')).toMatchObject({ trigger: { type: 'once', date: '2027-01-03', time: '09:30' } })
+    expect(once('/rutina el 2026-12-24 a las 8: revisa los pedidos')).toMatchObject({ trigger: { type: 'once', date: '2026-12-24', time: '08:00' } })
+    expect(once('/rutina dentro de 2 horas: comprueba la web')).toMatchObject({ trigger: { type: 'once', date: '2026-11-07', time: '19:30' }, request: 'comprueba la web' })
+    expect(once('/rutina en 45 minutos: comprueba la web')).toMatchObject({ trigger: { type: 'once', date: '2026-11-07', time: '18:15' } })
+    expect(once('/rutina una vez a las 9: x y z')).toMatchObject({ trigger: { type: 'once', date: '2026-11-08', time: '09:00' } })
+    expect(once('/routine tomorrow at 7: check the PRs')).toMatchObject({ trigger: { type: 'once', date: '2026-11-08', time: '07:00' }, request: 'check the PRs' })
+    expect(once('/routine in 3 hours: check the site')).toMatchObject({ trigger: { type: 'once', date: '2026-11-07', time: '20:30' } })
+    expect(once('/routine on friday at 18:00: sum up the week')).toMatchObject({ trigger: { type: 'once', date: '2026-11-13', time: '18:00' } })
+    // «los viernes» sigue siendo cada semana.
+    expect(once('/rutina los viernes a las 18:00: resume la semana')).toMatchObject({ trigger: { type: 'weekly', days: [5] } })
+    expect(once('/rutina hoy a las 9:00: tarde ya')).toEqual({ error: expect.stringMatching(/ya ha pasado/) })
+    expect(once('/rutina el 31/02 a las 9: no existe')).toEqual({ error: expect.stringMatching(/no existe/) })
+  })
+
+  it('se lanza una vez a su hora y se desactiva sola; no se crea para una hora pasada', async () => {
+    expect(() => createRoutine(projectId, { name: 'Tarde', request: 'Haz algo', trigger: { type: 'once', date: '2026-11-07', time: '09:00' } }, NOW)).toThrow(/ya ha pasado/)
+    const r = createRoutine(projectId, { name: 'Copia', request: 'Haz la copia', trigger: { type: 'once', date: '2026-11-08', time: '07:00' } }, NOW)
+    expect(r.nextAt).toBe(at(2026, 11, 8, 7))
+    expect(describeTrigger(r.trigger)).toMatch(/^Una vez: /)
+    await checkRoutines(at(2026, 11, 8, 6, 59))
+    expect(sent).toHaveLength(0)
+    await checkRoutines(at(2026, 11, 8, 7, 0))
+    await checkRoutines(at(2026, 11, 9, 7, 0))
+    expect(sent).toHaveLength(1)
+    finish('run-1')
+    const saved = store.getProject(projectId).routines![0]
+    expect(saved.enabled).toBe(false)
+    expect(nextRoutineRun(saved)).toBeNull()
+    // Volver a activarla sin cambiar la hora no vale (ya pasó); reprogramada, sí.
+    expect(() => updateRoutine(projectId, r.id, { enabled: true }, at(2026, 11, 9))).toThrow(/ya ha pasado/)
+    updateRoutine(projectId, r.id, { enabled: true, trigger: { type: 'once', date: '2026-11-10', time: '07:00' } }, at(2026, 11, 9))
+    await checkRoutines(at(2026, 11, 10, 7, 0))
+    expect(sent).toHaveLength(2)
+  })
+
+  it('si kywai estaba cerrado a su hora, se lanza al volver (con aviso)', async () => {
+    createRoutine(projectId, { name: 'Copia', request: 'Haz la copia', trigger: { type: 'once', date: '2026-11-08', time: '07:00' } }, NOW)
+    await checkRoutines(at(2026, 11, 8, 12))
+    expect(sent).toHaveLength(1)
+    expect(store.getProject(projectId).routines![0].runs[0]).toMatchObject({ reason: 'catchup' })
+  })
+})
+
+describe('visto bueno al plan', () => {
+  it('por defecto la rutina no lo pide; con la casilla, se lo dice al lanzarla', async () => {
+    const r = createRoutine(projectId, { name: 'X', request: 'Haz X', trigger: { type: 'webhook' } })
+    expect(r.askApproval).toBeUndefined()
+    await runRoutineNow(projectId, r.id)
+    expect(sent[0].routine).toEqual({ id: r.id, name: 'X' })
+    finish('run-1')
+    expect(updateRoutine(projectId, r.id, { askApproval: true }).askApproval).toBe(true)
+    await runRoutineNow(projectId, r.id)
+    expect(sent[1].routine).toEqual({ id: r.id, name: 'X', askApproval: true })
+    expect(updateRoutine(projectId, r.id, { askApproval: false }).askApproval).toBeUndefined()
+    expect(createRoutine(projectId, { name: 'Y', request: 'Haz Y', trigger: { type: 'webhook' }, askApproval: true }).askApproval).toBe(true)
   })
 })
 

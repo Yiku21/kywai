@@ -1,7 +1,7 @@
 // Calidad de cada agente a partir del registro de consumo (usage-runs.json): cuántas tareas hizo, cuántas le
 // sirvieron al usuario (👍/👎), cuántas pasaron la verificación de otro agente a la primera, cuántas necesitaron
 // corrección, cuántas fallaron o se pasaron a otro, y el tiempo y los tokens medianos. Por agente y por dificultad
-// (AI Cowork no clasifica las tareas por tipo: la dificultad que pone el coordinador es lo que hay).
+// (kywai no clasifica las tareas por tipo: la dificultad que pone el coordinador es lo que hay).
 // Función pura: la usan el panel «Cómo rinde cada agente», la ficha que ve el coordinador y la API móvil.
 import type { Difficulty, ProviderKind, UsageCall, UsageRun } from './types'
 

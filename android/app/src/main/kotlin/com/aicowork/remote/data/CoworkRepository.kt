@@ -1,16 +1,27 @@
 package com.aicowork.remote.data
 
+import com.aicowork.remote.i18n.t
+
 import com.aicowork.remote.data.model.AppRelease
 import com.aicowork.remote.data.model.Artifact
+import com.aicowork.remote.data.model.ChatSummary
+import com.aicowork.remote.data.model.Routine
+import com.aicowork.remote.data.model.RoutineInput
+import com.aicowork.remote.data.model.MusicResult
+import com.aicowork.remote.data.model.SearchHit
+import com.aicowork.remote.data.model.SearchResponse
 import com.aicowork.remote.data.model.ChatMessage
 import com.aicowork.remote.data.model.CoworkJson
 import com.aicowork.remote.data.model.FilesResponse
 import com.aicowork.remote.data.model.HermesChoice
 import com.aicowork.remote.data.model.HermesModelsInfo
+import com.aicowork.remote.data.model.ModPanelInfo
+import com.aicowork.remote.data.model.ModPanelPage
 import com.aicowork.remote.data.model.InboxItem
 import com.aicowork.remote.data.model.ServerUpdate
 import com.aicowork.remote.data.model.MemoryUpdateRequest
 import com.aicowork.remote.data.model.Snapshot
+import com.aicowork.remote.data.model.TaskTemplateInput
 import com.aicowork.remote.data.model.TaskItem
 import com.aicowork.remote.data.model.TraceEntry
 import com.aicowork.remote.data.model.TransferInfo
@@ -29,6 +40,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import com.aicowork.remote.data.store.InMemoryOutboxStore
+import com.aicowork.remote.data.store.OutboxStore
 import com.aicowork.remote.data.store.Session
 import com.aicowork.remote.data.store.SessionStore
 import com.aicowork.remote.data.store.SnapshotCache
@@ -42,6 +55,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -65,9 +81,14 @@ sealed interface Connection {
     data class Offline(val reason: String, val retryAt: Long?) : Connection
 }
 
+@Serializable
 enum class OutgoingStatus { Sending, Queued, Failed }
 
-/** Mensaje escrito en el móvil que el servidor aún no ha confirmado. */
+/**
+ * Mensaje escrito en el móvil que el servidor aún no ha confirmado. La cola se guarda en el móvil
+ * ([com.aicowork.remote.data.store.OutboxStore]): sobrevive a cerrar la app o reiniciar el teléfono.
+ */
+@Serializable
 data class OutgoingMessage(
     val clientMessageId: String,
     val text: String,
@@ -76,7 +97,33 @@ data class OutgoingMessage(
     val error: String? = null,
     /** Adjuntos del proyecto que van con este mensaje. */
     val attachmentIds: List<String> = emptyList(),
+    /** Proyecto donde se escribió: se envía ahí aunque al volver la conexión estés mirando otro. */
+    val conversationId: String? = null,
+    /** Fotos y archivos elegidos sin conexión: se suben justo antes de enviar el mensaje. */
+    val files: List<QueuedFile> = emptyList(),
+    /** Plantilla de tareas con la que se lanza (el texto ya va relleno). */
+    val templateId: String? = null,
 )
+
+/** Copia en el móvil de un archivo elegido sin conexión, que espera a subirse al proyecto. */
+@Serializable
+data class QueuedFile(
+    val id: String,
+    val name: String,
+    val size: Long,
+    val mime: String? = null,
+    /** Ruta de la copia en los datos privados de la app. */
+    val path: String,
+    /** Adjunto que creó en el proyecto, cuando ya se subió (para no subirlo dos veces). */
+    val attachmentId: String? = null,
+) {
+    /** Id con el que se adjunta al mensaje mientras no está en el servidor. */
+    val localId: String get() = LOCAL_ATTACHMENT + id
+
+    companion object {
+        const val LOCAL_ATTACHMENT = "local:"
+    }
+}
 
 /** Archivo que se está subiendo al proyecto desde el móvil. */
 data class Upload(
@@ -88,6 +135,8 @@ data class Upload(
     val error: String? = null,
     /** Adjunto que creó en el proyecto (al terminar). */
     val attachmentId: String? = null,
+    /** Sin conexión: se guardó una copia en el móvil y se subirá con el mensaje al volver. */
+    val queued: Boolean = false,
 )
 
 data class CoworkUiState(
@@ -106,11 +155,19 @@ data class CoworkUiState(
     /** Mensajes escritos en este móvil que el ordenador ya recibió (para marcarlos como entregados). */
     val delivered: Set<String> = emptySet(),
     val uploads: List<Upload> = emptyList(),
+    /** Fotos y archivos guardados sin conexión que esperan a ir con el próximo mensaje. */
+    val queuedFiles: List<QueuedFile> = emptyList(),
     /** Bandeja «Te necesita»: los avisos abiertos, del más reciente al más antiguo (vacía si el servidor no la tiene). */
     val inbox: List<InboxItem> = emptyList(),
+    /** Rutinas del proyecto [routinesFor] (null hasta pedirlas: se piden al abrir la sección Rutinas). */
+    val routines: List<Routine>? = null,
+    val routinesFor: String? = null,
 )
 
 data class ActionResult(val ok: Boolean, val message: String)
+
+/** Resultado de vaciar la cola: cuántos salieron y cuántos siguen esperando (sin contar los rechazados). */
+data class OutboxDrain(val sent: Int, val waiting: Int)
 
 /**
  * Actividad real recibida en directo por el WebSocket (nunca de una instantánea ni de una resincronización):
@@ -129,7 +186,7 @@ sealed interface LiveEvent {
     data class RequestFinished(val requestId: String, val ok: Boolean) : LiveEvent
 }
 
-private val unsupported = ActionResult(false, "El ordenador todavía no admite esto: actualiza AI Cowork en el ordenador.")
+private val unsupported = ActionResult(false, t("El ordenador todavía no admite esto: actualiza kywai en el ordenador."))
 
 /** Lo que la interfaz puede pedir. La implementación real es [CoworkRepository]; las pruebas usan un doble. */
 interface CoworkController {
@@ -145,8 +202,16 @@ interface CoworkController {
     fun sendMessage(text: String)
     /** Envía un mensaje con adjuntos del proyecto (subidos antes) para que el equipo los tenga como contexto. */
     fun sendMessage(text: String, attachmentIds: List<String>) = sendMessage(text)
+    /** Lanza una plantilla de tareas con su texto ya relleno (y los adjuntos preparados). */
+    fun sendTemplate(text: String, templateId: String, attachmentIds: List<String>) = sendMessage(text, attachmentIds)
+    suspend fun createTemplate(input: TaskTemplateInput): ActionResult = unsupported
+    suspend fun updateTemplate(templateId: String, input: TaskTemplateInput, success: String? = null): ActionResult = unsupported
+    suspend fun deleteTemplate(templateId: String): ActionResult = unsupported
+    suspend fun restoreTemplates(): ActionResult = unsupported
     fun retryMessage(clientMessageId: String)
     fun discardMessage(clientMessageId: String)
+    /** Saca de la cola un mensaje aún sin enviar para editarlo (null si ya se está enviando o no está). */
+    fun takeBackMessage(clientMessageId: String): OutgoingMessage? = null
     suspend fun newConversation(): ActionResult
     suspend fun stopRequest(requestId: String): ActionResult
     suspend fun resumeRequest(requestId: String): ActionResult
@@ -156,8 +221,36 @@ interface CoworkController {
 
     /** Cambia el proyecto que se ve (y se recuerda). */
     suspend fun selectConversation(id: String): ActionResult = unsupported
+    /** Chats de un proyecto (el abierto y los guardados), como en la barra lateral del escritorio. */
+    suspend fun listChats(projectId: String): Result<List<ChatSummary>> = Result.failure(IllegalStateException(unsupported.message))
+    /** Chat nuevo en el proyecto abierto: el de ahora se guarda y queda uno vacío. */
+    suspend fun newChat(): ActionResult = unsupported
+    /** Vuelve a un chat guardado (de este proyecto o de otro, que pasa a ser el abierto). */
+    suspend fun openChat(projectId: String, chatId: String): ActionResult = unsupported
+    suspend fun renameChat(projectId: String, chatId: String, title: String): ActionResult = unsupported
+    suspend fun deleteChat(projectId: String, chatId: String): ActionResult = unsupported
+    suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): ActionResult = unsupported
+    /** Copia aparte del chat; si [open], se abre la copia. */
+    suspend fun forkChat(projectId: String, chatId: String, open: Boolean): ActionResult = unsupported
+    suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ActionResult = unsupported
+    /** Chats fijados de todos los proyectos (sección «Fijados»). */
+    suspend fun pinnedChats(): Result<List<ChatSummary>> = Result.failure(IllegalStateException(unsupported.message))
+    suspend fun renameProject(projectId: String, name: String): ActionResult = unsupported
+    suspend fun pinProject(projectId: String, pinned: Boolean): ActionResult = unsupported
+    /** Todo lo del proyecto va a la Papelera del ordenador; si era el abierto, se pasa a otro. */
+    suspend fun deleteProject(projectId: String): ActionResult = unsupported
+    /** «Buscar»: chats, tareas, resultados y memoria de todos los proyectos. */
+    suspend fun search(query: String): Result<List<SearchHit>> = Result.failure(IllegalStateException(unsupported.message))
+    /** Buscador del historial con filtros de fecha y autor, el total y el mensaje exacto. */
+    suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): Result<SearchResponse> = Result.failure(IllegalStateException(unsupported.message))
+    /** «Historial»: todos los chats de todos los proyectos. */
+    suspend fun allChats(): Result<List<ChatSummary>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun createProject(name: String): ActionResult = unsupported
+    /** Radios («radio») o canciones de Audius («audius») para el reproductor. */
+    suspend fun music(kind: String, query: String): Result<List<MusicResult>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> = Result.failure(IllegalStateException(unsupported.message))
+    suspend fun modPanels(): Result<List<ModPanelInfo>> = Result.failure(IllegalStateException(unsupported.message))
+    suspend fun modPanel(mod: String, id: String): Result<ModPanelPage> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun addMemory(kind: String, text: String): ActionResult = unsupported
     suspend fun setMemoryStatus(id: String, status: String): ActionResult = unsupported
     suspend fun editMemory(id: String, text: String): ActionResult = unsupported
@@ -173,7 +266,20 @@ interface CoworkController {
     suspend fun refreshUsage(): ActionResult = unsupported
     /** Visto bueno ([approve]) o descarte del plan que propone Hermes en el mensaje [messageId]. */
     suspend fun decidePlan(messageId: String, approve: Boolean): ActionResult = unsupported
+    /** Pide al ordenador las rutinas del proyecto abierto (quedan en [CoworkUiState.routines]). */
+    suspend fun loadRoutines(): ActionResult = unsupported
+    suspend fun runRoutine(routineId: String): ActionResult = unsupported
+    /** Crea una rutina ([routineId] null) o cambia esa. */
+    suspend fun saveRoutine(routineId: String?, input: RoutineInput): ActionResult = unsupported
+    suspend fun setRoutineEnabled(routineId: String, enabled: Boolean): ActionResult = unsupported
+    suspend fun deleteRoutine(routineId: String): ActionResult = unsupported
+    /** «Crear rutina» ([create]) o «Descartar» en la tarjeta que propone Hermes. */
+    suspend fun decideRoutineProposal(messageId: String, create: Boolean): ActionResult = unsupported
     suspend fun setPlanApproval(enabled: Boolean): ActionResult = unsupported
+    /** Nombre del ordenador que se ve abajo en la barra lateral (también en el escritorio y la web). */
+    suspend fun setServerName(name: String): ActionResult = unsupported
+    /** Tema de kywai: lo guarda el ordenador y lo siguen el escritorio, los clientes, el navegador y Órbita. */
+    suspend fun setTheme(id: String): ActionResult = unsupported
     /** Nota de voz → texto (con el dictado del ordenador). */
     suspend fun transcribe(file: java.io.File): Result<String> = Result.failure(IllegalStateException(unsupported.message))
     /** Última versión de Órbita que ofrece el ordenador. */
@@ -184,6 +290,8 @@ interface CoworkController {
     suspend fun hermesModels(): Result<HermesModelsInfo> = Result.failure(IllegalStateException(unsupported.message))
     /** «Reiniciar agente» tras un fallo. */
     suspend fun resetAgent(agentId: String): ActionResult = unsupported
+    /** Razonamiento («think») del agente de LM Studio: encendido o apagado. */
+    suspend fun setAgentThinking(agentId: String, enabled: Boolean): ActionResult = unsupported
     /** Cambia el modelo de Hermes (null: el de su configuración). */
     suspend fun setHermesModel(choice: HermesChoice?): Result<HermesModelsInfo> = Result.failure(IllegalStateException(unsupported.message))
     /** Ajustes → «Servidor»: si tiene versión nueva en GitHub. */
@@ -206,6 +314,10 @@ class CoworkRepository(
     private val clientFactory: ClientFactory = { url, pin, token -> CoworkApiClient(url, pin, token) },
     private val now: () -> Long = System::currentTimeMillis,
     private val backoff: (attempt: Int) -> Long = ::defaultBackoff,
+    /** Dónde se guarda la cola de mensajes sin enviar. */
+    private val outbox: OutboxStore = InMemoryOutboxStore(),
+    /** Carpeta para las copias de los archivos elegidos sin conexión (null: sin conexión no se pueden adjuntar). */
+    private val spoolDir: java.io.File? = null,
 ) : CoworkController {
 
     private val _state = MutableStateFlow(CoworkUiState())
@@ -221,9 +333,15 @@ class CoworkRepository(
     private val syncMutex = Mutex()
     private var lastSequence: Long? = null
     private val foreignMessages = mutableSetOf<String>()
+    /** Los mensajes salen de uno en uno y en el orden en que se escribieron. */
+    private val sendMutex = Mutex()
 
     init {
         restore()
+        // Cada cambio de la cola se guarda en el móvil (y una cola vacía borra el archivo).
+        scope.launch {
+            _state.map { it.outgoing }.distinctUntilChanged().collect { outbox.save(it) }
+        }
     }
 
     private fun restore() {
@@ -235,9 +353,10 @@ class CoworkRepository(
             sessions.clear()
             tokens.clear()
             cache.clear()
+            outbox.clear()
             _state.value = CoworkUiState(
                 previousSession = session,
-                notice = if (session.demo) "Empareja con tu ordenador para usar el servidor real de AI Cowork." else null,
+                notice = if (session.demo) t("Empareja con tu ordenador para usar el servidor real de kywai.") else null,
             )
             return
         }
@@ -249,7 +368,12 @@ class CoworkRepository(
             snapshot = cached?.snapshot,
             syncedAt = cached?.savedAt,
             fromCache = cached != null,
+            // Lo que se estaba enviando cuando se cerró la app vuelve a la cola (el servidor ignora los repetidos).
+            outgoing = outbox.load().map { if (it.status == OutgoingStatus.Sending) it.copy(status = OutgoingStatus.Queued) else it },
         )
+        // Copias de archivos que ya no van con ningún mensaje (se quitaron del borrador antes de cerrar la app).
+        val kept = _state.value.outgoing.flatMap { m -> m.files.map { it.path } }.toSet()
+        spoolDir?.listFiles()?.filter { it.path !in kept }?.forEach { it.delete() }
     }
 
     // ------------------------------------------------------------------ Emparejamiento
@@ -342,14 +466,14 @@ class CoworkRepository(
             _state.update { it.copy(connection = Connection.Connecting) }
             val outcome = runSocket(c)
             if (outcome.unauthorized) {
-                expire(outcome.reason ?: "La sesión ya no es válida. Vuelve a emparejar el dispositivo.")
+                expire(outcome.reason ?: t("La sesión ya no es válida. Vuelve a emparejar el dispositivo."))
                 return
             }
             attempt = if (outcome.wasOnline) 0 else attempt + 1
             val wait = backoff(attempt)
             _state.update {
                 it.copy(
-                    connection = Connection.Offline(outcome.reason ?: "Se perdió la conexión", now() + wait),
+                    connection = Connection.Offline(outcome.reason ?: t("Se perdió la conexión"), now() + wait),
                     outgoing = it.outgoing.map { m -> if (m.status == OutgoingStatus.Sending) m.copy(status = OutgoingStatus.Queued) else m },
                 )
             }
@@ -403,11 +527,11 @@ class CoworkRepository(
                         }
                     }
                     is SocketEvent.Failure -> {
-                        if (event.status == 401) return Outcome(online, "La sesión ya no es válida. Vuelve a emparejar el dispositivo.", true)
-                        return Outcome(online, ApiException.network(event.error).message.takeIf { !online } ?: "Se perdió la conexión")
+                        if (event.status == 401) return Outcome(online, t("La sesión ya no es válida. Vuelve a emparejar el dispositivo."), true)
+                        return Outcome(online, ApiException.network(event.error).message.takeIf { !online } ?: t("Se perdió la conexión"))
                     }
                     is SocketEvent.Closed -> return Outcome(online,
-                        if (event.reason == "TOKEN_EXPIRED") "La sesión caducó. Vuelve a emparejar el dispositivo." else "El servidor cerró la conexión",
+                        if (event.reason == "TOKEN_EXPIRED") t("La sesión caducó. Vuelve a emparejar el dispositivo.") else t("El servidor cerró la conexión"),
                         unauthorized = event.code == 1008 && event.reason == "TOKEN_EXPIRED")
                 }
             }
@@ -461,6 +585,7 @@ class CoworkRepository(
     private suspend fun handleEvent(c: CoworkApiClient, text: String) {
         val envelope = EventReducer.parse(text) ?: return
         val needsResync = syncMutex.withLock {
+            if (envelope.type == "routines.updated") applyRoutinesEvent(envelope.payload)
             if (envelope.type == "inbox.updated") {
                 val last = lastSequence
                 // Un duplicado o uno ya incluido en la instantánea no pisa la bandeja más reciente.
@@ -511,51 +636,99 @@ class CoworkRepository(
 
     override fun sendMessage(text: String) = sendMessage(text, emptyList())
 
-    override fun sendMessage(text: String, attachmentIds: List<String>) {
+    override fun sendMessage(text: String, attachmentIds: List<String>) = send(text, attachmentIds, null)
+
+    override fun sendTemplate(text: String, templateId: String, attachmentIds: List<String>) = send(text, attachmentIds, templateId)
+
+    private fun send(text: String, attachmentIds: List<String>, templateId: String?) {
         val trimmed = text.trim()
         if (trimmed.isEmpty() && attachmentIds.isEmpty()) return
-        val online = _state.value.connection == Connection.Online
+        val (local, remote) = attachmentIds.partition { it.startsWith(QueuedFile.LOCAL_ATTACHMENT) }
+        val files = _state.value.queuedFiles.filter { it.localId in local }
         val message = OutgoingMessage(
             clientMessageId = UUID.randomUUID().toString(),
             text = trimmed,
             createdAt = now(),
-            status = if (online) OutgoingStatus.Sending else OutgoingStatus.Queued,
-            attachmentIds = attachmentIds,
+            status = OutgoingStatus.Queued,
+            attachmentIds = remote,
+            conversationId = currentConversation(),
+            files = files,
+            templateId = templateId,
         )
-        _state.update { it.copy(outgoing = it.outgoing + message) }
-        if (online) scope.launch { deliver(message.clientMessageId) } else retryNow()
+        _state.update { s -> s.copy(outgoing = s.outgoing + message, queuedFiles = s.queuedFiles - files.toSet()) }
+        if (_state.value.connection == Connection.Online) pump() else retryNow()
     }
 
     override fun retryMessage(clientMessageId: String) {
-        setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Sending, error = null) }
-        if (_state.value.connection == Connection.Online) {
-            scope.launch { deliver(clientMessageId) }
-        } else {
-            setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued) }
-            retryNow()
+        setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued, error = null) }
+        if (_state.value.connection == Connection.Online) pump() else retryNow()
+    }
+
+    override fun takeBackMessage(clientMessageId: String): OutgoingMessage? {
+        var taken: OutgoingMessage? = null
+        _state.update { s ->
+            taken = null
+            val message = s.outgoing.firstOrNull { it.clientMessageId == clientMessageId }
+            if (message == null || message.status == OutgoingStatus.Sending) return@update s
+            taken = message
+            // Sus fotos y archivos guardados vuelven al borrador (las ya subidas siguen siendo adjuntos del proyecto).
+            s.copy(
+                outgoing = s.outgoing - message,
+                queuedFiles = s.queuedFiles + message.files.filter { it.attachmentId == null },
+            )
         }
+        return taken
     }
 
     override fun discardMessage(clientMessageId: String) {
+        val message = _state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId }
         _state.update { s -> s.copy(outgoing = s.outgoing.filterNot { it.clientMessageId == clientMessageId }) }
+        message?.files?.forEach { java.io.File(it.path).delete() }
     }
 
-    private fun flushQueued() {
-        _state.value.outgoing.filter { it.status == OutgoingStatus.Queued }.forEach { message ->
-            setOutgoing(message.clientMessageId) { it.copy(status = OutgoingStatus.Sending) }
-            scope.launch { deliver(message.clientMessageId) }
+    private fun flushQueued() = pump()
+
+    /** Envía lo que haya en la cola (en segundo plano; las llamadas a la vez esperan su turno). */
+    private fun pump() {
+        scope.launch { drainOutbox() }
+    }
+
+    /**
+     * Envía la cola de uno en uno, en orden, cada mensaje a su proyecto. Para al primer fallo de red (lo que queda se
+     * reintenta al volver la conexión); un mensaje que el servidor rechaza se queda como «No se envió» y sigue con el
+     * siguiente. Sirve también sin el tiempo real abierto (el envío en segundo plano).
+     */
+    suspend fun drainOutbox(): OutboxDrain = sendMutex.withLock {
+        var sent = 0
+        while (client != null) {
+            val next = _state.value.outgoing.firstOrNull { it.status == OutgoingStatus.Queued || it.status == OutgoingStatus.Sending } ?: break
+            setOutgoing(next.clientMessageId) { it.copy(status = OutgoingStatus.Sending) }
+            when (deliver(next.clientMessageId)) {
+                Delivery.Sent -> sent++
+                Delivery.Rejected -> Unit
+                Delivery.Later -> break
+            }
         }
+        OutboxDrain(sent = sent, waiting = _state.value.outgoing.count { it.status != OutgoingStatus.Failed })
     }
 
-    private suspend fun deliver(clientMessageId: String) {
-        val c = client ?: return
-        val message = _state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId } ?: return
+    private enum class Delivery { Sent, Rejected, Later }
+
+    private suspend fun deliver(clientMessageId: String): Delivery {
+        val c = client ?: return Delivery.Later
+        val message = _state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId } ?: return Delivery.Rejected
         try {
-            val response = c.sendMessage(_state.value.snapshot?.conversation?.id, message.text, clientMessageId, message.attachmentIds)
+            val target = message.conversationId ?: currentConversation()
+            val uploaded = uploadQueuedFiles(c, message, target) ?: return Delivery.Rejected
+            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded, message.templateId)
+            // Ya está en el ordenador: las copias del móvil sobran.
+            message.files.forEach { java.io.File(it.path).delete() }
             syncMutex.withLock {
                 _state.update { s ->
                     val snapshot = s.snapshot
-                    val updated = if (snapshot != null && response.message != null) {
+                    // El acuse solo se pinta si el mensaje es del proyecto que estás viendo.
+                    val here = target == null || snapshot?.conversation?.id == target
+                    val updated = if (snapshot != null && response.message != null && here) {
                         val conversation = snapshot.conversation.upsert(response.message)
                         val active = response.requestId?.let { id ->
                             if (id in conversation.activeRequestIds) conversation.activeRequestIds else conversation.activeRequestIds + id
@@ -570,16 +743,57 @@ class CoworkRepository(
                 }
             }
             if (response.message == null) refresh()
+            return Delivery.Sent
         } catch (e: ApiException) {
-            when {
-                e.isUnauthorized -> expire(e.message)
+            return when {
+                e.isUnauthorized -> {
+                    expire(e.message)
+                    Delivery.Later
+                }
                 e.retryable || e.isNetwork -> {
                     setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued, error = e.message) }
-                    retryNow()
+                    // Solo adelanta el reintento si el tiempo real está abierto: el envío en segundo plano no lo abre.
+                    if (loopJob?.isActive == true) retrySignal.trySend(Unit)
+                    Delivery.Later
                 }
-                else -> setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Failed, error = e.message) }
+                else -> {
+                    setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Failed, error = e.message) }
+                    Delivery.Rejected
+                }
             }
         }
+    }
+
+    /**
+     * Sube las copias de los archivos elegidos sin conexión (las que no se subieron ya) y da los ids de sus adjuntos;
+     * null si falta una copia (el mensaje queda como «No se envió»).
+     */
+    private suspend fun uploadQueuedFiles(c: CoworkApiClient, message: OutgoingMessage, target: String?): List<String>? {
+        if (message.files.isEmpty()) return emptyList()
+        val project = target ?: needConversation()
+        val ids = mutableListOf<String>()
+        for (file in message.files) {
+            val done = file.attachmentId
+            if (done != null) {
+                ids += done
+                continue
+            }
+            val copy = java.io.File(file.path)
+            if (!copy.isFile) {
+                setOutgoing(message.clientMessageId) {
+                    it.copy(status = OutgoingStatus.Failed, error = t("Ya no está la copia de {name} en el móvil", "name" to file.name))
+                }
+                return null
+            }
+            val attachment = c.upload(project, file.name, copy.length(), file.mime, { copy.inputStream() })
+                ?: throw ApiException(502, "upload_failed", t("No se pudo subir {name}", "name" to file.name), true)
+            ids += attachment.id
+            // Se apunta enseguida: si luego falla la red, al reintentar no se sube otra vez.
+            setOutgoing(message.clientMessageId) { m ->
+                m.copy(files = m.files.map { if (it.id == file.id) it.copy(attachmentId = attachment.id) else it })
+            }
+        }
+        return ids
     }
 
     private fun setOutgoing(id: String, transform: (OutgoingMessage) -> OutgoingMessage) {
@@ -588,29 +802,29 @@ class CoworkRepository(
 
     // ------------------------------------------------------------------ Acciones
 
-    override suspend fun newConversation(): ActionResult = action("Conversación nueva") { c ->
+    override suspend fun newConversation(): ActionResult = action(t("Conversación nueva")) { c ->
         c.newConversation()
         // La conversación, las tareas y la memoria forman una única instantánea del servidor.
         resync(c)
     }
 
-    override suspend fun stopRequest(requestId: String): ActionResult = action("Petición detenida") { c ->
+    override suspend fun stopRequest(requestId: String): ActionResult = action(t("Petición detenida")) { c ->
         c.stopRequest(requestId)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
-    override suspend fun resumeRequest(requestId: String): ActionResult = action("Petición reanudada") { c ->
+    override suspend fun resumeRequest(requestId: String): ActionResult = action(t("Petición reanudada")) { c ->
         c.resumeRequest(requestId)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
-    override suspend fun discardRequest(requestId: String): ActionResult = action("Tarea en pausa quitada") { c ->
+    override suspend fun discardRequest(requestId: String): ActionResult = action(t("Tarea en pausa quitada")) { c ->
         c.discardRequest(requestId)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
     private suspend fun action(success: String, block: suspend (CoworkApiClient) -> Unit): ActionResult {
-        val c = client ?: return ActionResult(false, "No hay ningún ordenador emparejado")
+        val c = client ?: return ActionResult(false, t("No hay ningún ordenador emparejado"))
         return try {
             block(c)
             ActionResult(true, success)
@@ -621,7 +835,7 @@ class CoworkRepository(
     }
 
     private suspend fun <T> fetch(block: suspend (CoworkApiClient) -> T): Result<T> {
-        val c = client ?: return Result.failure(ApiException(0, "not_paired", "No hay ningún ordenador emparejado", false))
+        val c = client ?: return Result.failure(ApiException(0, "not_paired", t("No hay ningún ordenador emparejado"), false))
         return try {
             Result.success(block(c))
         } catch (e: ApiException) {
@@ -633,7 +847,7 @@ class CoworkRepository(
     private fun currentConversation(): String? = _state.value.snapshot?.conversation?.id ?: _state.value.session?.conversationId
 
     private fun needConversation(): String = currentConversation()
-        ?: throw ApiException(409, "NO_CONVERSATION", "Todavía no hay ningún proyecto abierto.", false)
+        ?: throw ApiException(409, "NO_CONVERSATION", t("Todavía no hay ningún proyecto abierto."), false)
 
     private fun rememberConversation(id: String) {
         val session = _state.value.session ?: return
@@ -643,13 +857,110 @@ class CoworkRepository(
         _state.update { it.copy(session = updated) }
     }
 
-    override suspend fun selectConversation(id: String): ActionResult = action("Proyecto abierto") { c ->
+    override suspend fun selectConversation(id: String): ActionResult = action(t("Proyecto abierto")) { c ->
         rememberConversation(id)
         cache.clear()
         resync(c)
     }
 
-    override suspend fun createProject(name: String): ActionResult = action("Proyecto creado") { c ->
+    override suspend fun listChats(projectId: String): Result<List<ChatSummary>> = fetch { it.chats(projectId) }
+
+    override suspend fun newChat(): ActionResult = action(t("Chat nuevo")) { c ->
+        c.newChat(needConversation())
+        resync(c)
+    }
+
+    override suspend fun openChat(projectId: String, chatId: String): ActionResult = action(t("Chat abierto")) { c ->
+        c.openChat(projectId, chatId)
+        if (projectId != currentConversation()) {
+            rememberConversation(projectId)
+            cache.clear()
+        }
+        resync(c)
+    }
+
+    override suspend fun renameChat(projectId: String, chatId: String, title: String): ActionResult = action(t("Chat renombrado")) { c ->
+        c.renameChat(projectId, chatId, title.trim())
+        if (projectId == currentConversation()) resync(c)
+    }
+
+    override suspend fun deleteChat(projectId: String, chatId: String): ActionResult = action(t("Chat borrado")) { c ->
+        c.deleteChat(projectId, chatId)
+        // Si era el abierto, el ordenador empezó uno nuevo: se trae.
+        if (projectId == currentConversation() && _state.value.snapshot?.conversation?.chat?.id == chatId) resync(c)
+    }
+
+    override suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): ActionResult =
+        action(if (pinned) t("Chat fijado") else t("Chat soltado de Fijados")) { c -> c.pinChat(projectId, chatId, pinned) }
+
+    override suspend fun forkChat(projectId: String, chatId: String, open: Boolean): ActionResult = action(t("Chat bifurcado")) { c ->
+        val copy = c.forkChat(projectId, chatId)
+        if (open) {
+            c.openChat(projectId, copy.chatId)
+            if (projectId != currentConversation()) {
+                rememberConversation(projectId)
+                cache.clear()
+            }
+            resync(c)
+        }
+    }
+
+    override suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ActionResult = action(t("Chat movido")) { c ->
+        c.moveChat(projectId, chatId, toProjectId)
+        if (projectId == currentConversation()) resync(c)
+    }
+
+    override suspend fun pinnedChats(): Result<List<ChatSummary>> = fetch { it.pinnedChats() }
+
+    override suspend fun renameProject(projectId: String, name: String): ActionResult = action(t("Proyecto renombrado")) { c ->
+        c.renameProject(projectId, name.trim())
+        resync(c)
+    }
+
+    override suspend fun pinProject(projectId: String, pinned: Boolean): ActionResult =
+        action(if (pinned) t("Proyecto fijado") else t("Proyecto soltado de Fijados")) { c ->
+            c.pinProject(projectId, pinned)
+            resync(c)
+        }
+
+    // ---- Plantillas de tareas (el resto lo trae el evento templates.updated; resync por si no hay WebSocket) ----
+
+    override suspend fun createTemplate(input: TaskTemplateInput): ActionResult = action(t("Plantilla creada")) { c ->
+        c.createTemplate(input)
+        resync(c)
+    }
+
+    override suspend fun updateTemplate(templateId: String, input: TaskTemplateInput, success: String?): ActionResult = action(success ?: t("Plantilla guardada")) { c ->
+        c.updateTemplate(templateId, input)
+        resync(c)
+    }
+
+    override suspend fun deleteTemplate(templateId: String): ActionResult = action(t("Plantilla borrada")) { c ->
+        c.deleteTemplate(templateId)
+        resync(c)
+    }
+
+    override suspend fun restoreTemplates(): ActionResult = action(t("Plantillas de serie restauradas")) { c ->
+        c.restoreTemplates()
+        resync(c)
+    }
+
+    override suspend fun deleteProject(projectId: String): ActionResult = action(t("Proyecto eliminado")) { c ->
+        val left = c.deleteProject(projectId)
+        if (projectId == currentConversation()) {
+            left.firstOrNull()?.id?.let(::rememberConversation)
+            cache.clear()
+        }
+        resync(c)
+    }
+
+    override suspend fun search(query: String): Result<List<SearchHit>> = fetch { it.search(query) }
+    override suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): Result<SearchResponse> = fetch { it.searchHistory(query, since, author, limit) }
+    override suspend fun allChats(): Result<List<ChatSummary>> = fetch { it.allChats() }
+
+    override suspend fun music(kind: String, query: String): Result<List<MusicResult>> = fetch { it.music(kind, query) }
+
+    override suspend fun createProject(name: String): ActionResult = action(t("Proyecto creado")) { c ->
         val conversation = c.newConversation(name.trim())
         conversation?.id?.let { rememberConversation(it) }
         resync(c)
@@ -657,28 +968,32 @@ class CoworkRepository(
 
     override suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> = fetch { it.trace(taskId) }
 
-    override suspend fun addMemory(kind: String, text: String): ActionResult = action("Recuerdo añadido") { c ->
+    override suspend fun modPanels(): Result<List<ModPanelInfo>> = fetch { it.modPanels() }
+
+    override suspend fun modPanel(mod: String, id: String): Result<ModPanelPage> = fetch { it.modPanel(mod, id) }
+
+    override suspend fun addMemory(kind: String, text: String): ActionResult = action(t("Recuerdo añadido")) { c ->
         c.addMemory(needConversation(), kind, text.trim())
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
     override suspend fun setMemoryStatus(id: String, status: String): ActionResult =
-        action(if (status == "confirmed") "Confirmado" else if (status == "superseded") "Descartado" else "Actualizado") { c ->
+        action(if (status == "confirmed") t("Confirmado") else if (status == "superseded") t("Descartado") else t("Actualizado")) { c ->
             c.updateMemory(MemoryUpdateRequest(needConversation(), status = status), id)
             if (_state.value.connection != Connection.Online) resync(c)
         }
 
-    override suspend fun editMemory(id: String, text: String): ActionResult = action("Recuerdo actualizado") { c ->
+    override suspend fun editMemory(id: String, text: String): ActionResult = action(t("Recuerdo actualizado")) { c ->
         c.updateMemory(MemoryUpdateRequest(needConversation(), text = text.trim()), id)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
-    override suspend fun deleteMemory(id: String): ActionResult = action("Recuerdo borrado") { c ->
+    override suspend fun deleteMemory(id: String): ActionResult = action(t("Recuerdo borrado")) { c ->
         c.deleteMemory(needConversation(), id)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
-    override suspend fun setInstructions(text: String): ActionResult = action("Instrucciones guardadas") { c ->
+    override suspend fun setInstructions(text: String): ActionResult = action(t("Instrucciones guardadas")) { c ->
         val saved = c.setInstructions(needConversation(), text.trim())
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(conversation = it.conversation.copy(instructions = saved ?: text.trim())) }) }
     }
@@ -696,9 +1011,11 @@ class CoworkRepository(
         scope.launch {
             val c = client
             if (c == null) {
-                set { it.copy(error = "No hay ningún ordenador emparejado") }
+                set { it.copy(error = t("No hay ningún ordenador emparejado")) }
                 return@launch
             }
+            // Sin conexión no se intenta: se guarda una copia y se sube con el mensaje al volver.
+            if (_state.value.connection != Connection.Online && spool(id, name, mime, open, ::set)) return@launch
             try {
                 val conversation = needConversation()
                 var shown = 0f
@@ -719,11 +1036,39 @@ class CoworkRepository(
                 }
             } catch (e: ApiException) {
                 if (e.isUnauthorized) expire(e.message)
+                else if ((e.isNetwork || e.retryable) && spool(id, name, mime, open, ::set)) return@launch
                 set { it.copy(error = e.message) }
             } catch (e: java.io.IOException) {
-                set { it.copy(error = "No se pudo leer el archivo: ${e.message ?: "error"}") }
+                set { it.copy(error = t("No se pudo leer el archivo: {v1}", "v1" to (e.message ?: "error"))) }
             }
         }
+    }
+
+    /** Guarda una copia del archivo para enviarlo más tarde. false si no se puede (sin carpeta o sin poder leerlo). */
+    private suspend fun spool(
+        id: String,
+        name: String,
+        mime: String?,
+        open: () -> java.io.InputStream,
+        set: ((Upload) -> Upload) -> Unit,
+    ): Boolean {
+        val dir = spoolDir ?: return false
+        val copy = java.io.File(dir, id + "-" + name.replace(Regex("[^\\w.\\-]+"), "_").takeLast(80))
+        val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                dir.mkdirs()
+                open().use { input -> copy.outputStream().use { input.copyTo(it) } }
+            }.isSuccess
+        }
+        if (!ok) {
+            copy.delete()
+            set { it.copy(error = t("No se pudo guardar {name} para enviarlo luego", "name" to name)) }
+            return true
+        }
+        val file = QueuedFile(id = id, name = name, size = copy.length(), mime = mime, path = copy.path)
+        _state.update { s -> s.copy(queuedFiles = s.queuedFiles + file) }
+        set { it.copy(progress = 1f, done = true, queued = true, attachmentId = file.localId, error = null) }
+        return true
     }
 
     override fun dismissUpload(id: String) {
@@ -731,14 +1076,72 @@ class CoworkRepository(
     }
 
     override suspend fun setAgentAccess(access: String): ActionResult = action(
-        if (access == "project") "Los agentes solo trabajan en la carpeta del proyecto" else "Los agentes tienen acceso completo",
+        if (access == "project") t("Los agentes solo trabajan en la carpeta del proyecto") else t("Los agentes tienen acceso completo"),
     ) { c ->
         val saved = c.setAgentAccess(access)
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(agentAccess = saved)) }) }
     }
 
+    override suspend fun loadRoutines(): ActionResult = action("") { c ->
+        val id = needConversation()
+        val list = c.routines(id)
+        _state.update { it.copy(routines = list, routinesFor = id) }
+    }
+
+    override suspend fun runRoutine(routineId: String): ActionResult = action(t("Rutina lanzada: mírala en el chat")) { c ->
+        c.runRoutine(needConversation(), routineId)
+        reloadRoutines(c)
+    }
+
+    override suspend fun saveRoutine(routineId: String?, input: RoutineInput): ActionResult =
+        action(if (routineId == null) t("Rutina creada") else t("Rutina guardada")) { c ->
+            c.saveRoutine(needConversation(), routineId, input)
+            reloadRoutines(c)
+        }
+
+    override suspend fun setRoutineEnabled(routineId: String, enabled: Boolean): ActionResult =
+        action(if (enabled) t("Rutina activada") else t("Rutina desactivada")) { c ->
+            c.setRoutineEnabled(needConversation(), routineId, enabled)
+            reloadRoutines(c)
+        }
+
+    override suspend fun deleteRoutine(routineId: String): ActionResult = action(t("Rutina borrada")) { c ->
+        c.deleteRoutine(needConversation(), routineId)
+        reloadRoutines(c)
+    }
+
+    override suspend fun decideRoutineProposal(messageId: String, create: Boolean): ActionResult =
+        action(if (create) t("Rutina creada") else t("Rutina descartada")) { c ->
+            c.decideRoutineProposal(needConversation(), messageId, create)
+            // Se ve al momento; el mensaje definitivo llega por el WebSocket.
+            val status = if (create) "created" else "dismissed"
+            _state.update { s ->
+                s.copy(snapshot = s.snapshot?.let { snap ->
+                    snap.copy(conversation = snap.conversation.copy(messages = snap.conversation.messages.map { m ->
+                        if (m.id == messageId && m.routineProposal != null) m.copy(routineProposal = m.routineProposal.copy(status = status)) else m
+                    }))
+                })
+            }
+            if (create && _state.value.routinesFor != null) reloadRoutines(c)
+        }
+
+    /** La lista al día tras un cambio (el evento routines.updated también la trae, pero puede tardar o no llegar). */
+    private suspend fun reloadRoutines(c: CoworkApiClient) {
+        val id = currentConversation() ?: return
+        runCatching { c.routines(id) }.onSuccess { list -> _state.update { it.copy(routines = list, routinesFor = id) } }
+    }
+
+    /** Evento `routines.updated`: la lista completa de las rutinas de un proyecto (solo cuenta la del abierto). */
+    private fun applyRoutinesEvent(payload: JsonObject) {
+        val project = (payload["projectId"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return
+        if (project != currentConversation()) return
+        val element = payload["routines"] ?: return
+        val list = runCatching { CoworkJson.decodeFromJsonElement(ListSerializer(Routine.serializer()), element) }.getOrNull() ?: return
+        _state.update { it.copy(routines = list, routinesFor = project) }
+    }
+
     override suspend fun decidePlan(messageId: String, approve: Boolean): ActionResult = action(
-        if (approve) "Plan aprobado: el equipo empieza" else "Plan descartado",
+        if (approve) t("Plan aprobado: el equipo empieza") else t("Plan descartado"),
     ) { c ->
         c.decidePlan(needConversation(), messageId, approve)
         // Se ve al momento; el mensaje definitivo (con sus tareas) llega por el WebSocket.
@@ -753,14 +1156,24 @@ class CoworkRepository(
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
+    override suspend fun setServerName(name: String): ActionResult = action(t("Nombre del ordenador guardado")) { c ->
+        val saved = c.setServerName(name)
+        _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(serverName = saved)) }) }
+    }
+
+    override suspend fun setTheme(id: String): ActionResult = action(t("Tema cambiado en todos tus dispositivos")) { c ->
+        val saved = c.setTheme(id)
+        _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(theme = saved)) }) }
+    }
+
     override suspend fun setPlanApproval(enabled: Boolean): ActionResult = action(
-        if (enabled) "Hermes te pedirá el visto bueno antes de empezar" else "Los planes empiezan sin esperar tu visto bueno",
+        if (enabled) t("Hermes te pedirá el visto bueno antes de empezar") else t("Los planes empiezan sin esperar tu visto bueno"),
     ) { c ->
         val saved = c.setPlanApproval(enabled)
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(planApproval = saved)) }) }
     }
 
-    override suspend fun refreshUsage(): ActionResult = action("Cuotas actualizadas") { c ->
+    override suspend fun refreshUsage(): ActionResult = action(t("Cuotas actualizadas")) { c ->
         val quotas = c.refreshUsage()
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(usage = it.usage.copy(quotas = quotas)) }) }
     }
@@ -774,24 +1187,27 @@ class CoworkRepository(
     override suspend fun hermesModels(): Result<HermesModelsInfo> = fetch { it.hermesModels() }
 
     override suspend fun resetAgent(agentId: String): ActionResult {
-        val c = client ?: return ActionResult(false, "No hay ningún ordenador emparejado")
+        val c = client ?: return ActionResult(false, t("No hay ningún ordenador emparejado"))
         return try {
             val r = c.resetAgent(agentId)
             val name = _state.value.snapshot?.agents?.firstOrNull { it.id == agentId }?.name ?: agentId
-            if (r.activity == "offline") ActionResult(false, "$name sigue sin responder${r.reason?.let { ": $it" } ?: ""}")
-            else ActionResult(true, "$name reiniciado: vuelve a estar disponible")
+            if (r.activity == "offline") ActionResult(false, t("{name} sigue sin responder{v2}", "name" to name, "v2" to (r.reason?.let { ": $it" } ?: "")))
+            else ActionResult(true, t("{name} reiniciado: vuelve a estar disponible", "name" to name))
         } catch (e: ApiException) {
             if (e.isUnauthorized) expire(e.message)
             ActionResult(false, e.message)
         }
     }
 
+    override suspend fun setAgentThinking(agentId: String, enabled: Boolean): ActionResult =
+        action(if (enabled) t("Razonamiento encendido: piensa antes de responder") else t("Razonamiento apagado: responde directamente")) { it.setAgentThinking(agentId, enabled) }
+
     override suspend fun setHermesModel(choice: HermesChoice?): Result<HermesModelsInfo> = fetch { it.setHermesModel(choice) }
 
     override suspend fun serverUpdate(): Result<ServerUpdate> = fetch { it.serverUpdate() }
 
     override suspend fun startServerUpdate(setAside: Boolean): ActionResult =
-        action("El servidor se está actualizando: se reiniciará al terminar") { it.startServerUpdate(setAside) }
+        action(t("El servidor se está actualizando: se reiniciará al terminar")) { it.startServerUpdate(setAside) }
 
     override fun refreshInbox() {
         val c = client ?: return
@@ -807,7 +1223,7 @@ class CoworkRepository(
     }
 
     override suspend fun inboxAction(itemId: String, actionId: String): ActionResult {
-        val c = client ?: return ActionResult(false, "No hay ningún ordenador emparejado")
+        val c = client ?: return ActionResult(false, t("No hay ningún ordenador emparejado"))
         return try {
             val response = c.inboxAction(itemId, actionId)
             val item = response.item
@@ -815,7 +1231,7 @@ class CoworkRepository(
             _state.update { s ->
                 s.copy(inbox = if (item == null || !item.isOpen) s.inbox.filterNot { it.id == itemId } else s.inbox.map { if (it.id == itemId) item else it })
             }
-            ActionResult(true, response.message?.takeIf { it.isNotBlank() } ?: "Hecho")
+            ActionResult(true, response.message?.takeIf { it.isNotBlank() } ?: t("Hecho"))
         } catch (e: ApiException) {
             if (e.isUnauthorized) expire(e.message)
             // El aviso (o ese botón) ya no existe: se quita de la lista y se vuelve a leer.

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Solo HTTPS con los certificados del sistema. La app NO añade certificados de confianza globales: el certificado
-  propio de AI Cowork se acepta únicamente para su servidor y después de que el usuario confirme su huella SHA-256
+  propio de kywai se acepta únicamente para su servidor y después de que el usuario confirme su huella SHA-256
   (ver PinningTrustManager). HTTP sin cifrar solo se permite hacia este dispositivo o hacia el ordenador visto
   desde el emulador (10.0.2.2), para desarrollar con el servidor simulado.
 -->

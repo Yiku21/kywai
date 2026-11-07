@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, Brain, CalendarClock, Gauge, ImagePlus, Info, LoaderCircle, Mic, Paperclip, Square, X } from 'lucide-react'
-import type { CoworkApi, HttpsLink, MemoryInput, MemoryKind } from '@shared/types'
+import { AlertCircle, ArrowRight, Brain, CalendarClock, Gauge, ImagePlus, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Square, X } from 'lucide-react'
+import type { CoworkApi, HttpsLink, MemoryInput, MemoryKind, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
 import { menuKeyNav, Popover } from '../common/Popover'
@@ -12,8 +12,12 @@ import { FileTypeIcon } from '../common/icons'
 import { basename, cx, errorText } from '../common/util'
 import { useComposer } from './composerStore'
 import { describeTrigger, describeWhen, parseRoutineCommand } from '@shared/routines'
+import { mentionMatches, mentionQuery, mentionText } from '@shared/directMessage'
+import { commandQuery, templatesFor } from '@shared/templates'
+import { TemplateBar } from './TemplateBar'
 import u from '../common/ui.module.css'
 import s from './Composer.module.css'
+import { lang, t } from '@/lib/i18n'
 
 const LINE = 20
 const PAD_Y = 20
@@ -41,8 +45,8 @@ function memoryInput(raw: string): MemoryInput {
 
 function micError(e: unknown): string {
   const name = (e as { name?: string })?.name
-  if (name === 'NotAllowedError' || name === 'SecurityError') return 'Sin permiso para el micrófono (actívalo en los ajustes de privacidad del sistema)'
-  if (name === 'NotFoundError') return 'No se encontró ningún micrófono'
+  if (name === 'NotAllowedError' || name === 'SecurityError') return t('Sin permiso para el micrófono (actívalo en los ajustes de privacidad del sistema)')
+  if (name === 'NotFoundError') return t('No se encontró ningún micrófono')
   return errorText(e)
 }
 
@@ -61,7 +65,7 @@ async function quotaSummary(a: CoworkApi): Promise<{ lines: string[]; fix: boole
       return q.note ? `${v.sentence}. ${q.note}` : v.sentence
     })
   return {
-    lines: lines.length ? [...lines, 'Arriba, en «Cuota restante», se actualizan solas.'] : ['No hay cuotas que mostrar.'],
+    lines: lines.length ? [...lines, t('Arriba, en «Cuota restante», se actualizan solas.')] : [t('No hay cuotas que mostrar.')],
     fix: st.live.quotas.some((q) => q.fix === 'claude-direct')
   }
 }
@@ -81,13 +85,41 @@ export function Composer() {
   const activeRunIds = useCowork((st) => st.live.activeRunIds)
   // Con un plan esperando tu visto bueno, lo que escribas son cambios a ese plan (o «sí» para aprobarlo).
   const planPending = useCowork((st) => st.mode === 'live' && st.live.messages.some((m) => m.proposal?.status === 'pending'))
+  // «@» al principio: lista de agentes para hablar con uno directamente, sin pasar por Hermes.
+  const liveAgents = useCowork((st) => st.live.agents)
+  const agentOrder = useCowork((st) => st.live.agentOrder)
+  const [mentionIdx, setMentionIdx] = useState(0)
+  const [mentionClosed, setMentionClosed] = useState<string | null>(null)
+  const mention = mentionQuery(text)
+  const mentionList =
+    mention && mentionClosed !== text && !!api
+      ? mentionMatches(
+          mention.query,
+          agentOrder.map((id) => liveAgents[id]).filter((a) => !!a && !a.isSubagent)
+        )
+      : []
+  // «/» al principio: las plantillas cuya orden empieza por lo escrito.
+  const templates = useCowork((st) => st.templates)
+  const cmd = mention ? null : commandQuery(text)
+  const cmdList = cmd !== null && mentionClosed !== text && !!api ? templatesFor(templates, project?.id).filter((x) => x.command.startsWith(cmd)).slice(0, 8) : []
+  const mentionOpen = mentionList.length > 0
+  const cmdOpen = !mentionOpen && cmdList.length > 0
+  const suggestCount = mentionOpen ? mentionList.length : cmdList.length
+  const mentionSel = Math.min(mentionIdx, Math.max(0, suggestCount - 1))
   const [sending, setSending] = useState(false)
+  useEffect(() => setMentionIdx(0), [mention?.query, cmd])
   const [stopping, setStopping] = useState(false)
   // Varias peticiones en marcha: menú para elegir cuál detener.
   const [stopOpen, setStopOpen] = useState(false)
   const stopRef = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState<string | null>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
+  // «Nuevo chat» (barra lateral o atajo) deja el cursor listo para escribir.
+  useEffect(() => {
+    const focus = (): void => taRef.current?.focus()
+    window.addEventListener('cowork:focus-composer', focus)
+    return () => window.removeEventListener('cowork:focus-composer', focus)
+  }, [])
   // Dictado: grabación en curso y transcripción.
   const [rec, setRec] = useState<{ r: Recording; started: number } | null>(null)
   const [transcribing, setTranscribing] = useState(false)
@@ -105,29 +137,29 @@ export function Composer() {
   const blockedReason = simulate
     ? null
     : !api
-      ? 'Sin motor de agentes: abre la app de escritorio'
+      ? t('Sin motor de agentes: abre la app de escritorio')
       : !project
-        ? 'Abre o crea un proyecto en la cabecera para enviar tareas'
+        ? t('Abre o crea un proyecto en la cabecera para enviar tareas')
         : null
   const canAttach = !!api
   const attachTitle = simulate
-    ? 'Adjuntar archivos está disponible en modo real'
+    ? t('Adjuntar archivos está disponible en modo real')
     : !api
-      ? 'Sin motor de agentes: abre la app de escritorio'
+      ? t('Sin motor de agentes: abre la app de escritorio')
       : undefined
   const canSend = text.trim().length > 0 && !sending && !blockedReason && !rec && !transcribing
   const needsHttps = isWeb && !canRecord && !window.isSecureContext
   const canDictate = !!api && !simulate && (canRecord || needsHttps)
   const micTitle =
     !api || simulate
-      ? 'El dictado está disponible en modo real'
+      ? t('El dictado está disponible en modo real')
       : needsHttps
-        ? 'El micrófono necesita la versión HTTPS de AI Cowork'
+        ? t('El micrófono necesita la versión HTTPS de kywai')
         : !canRecord
-          ? 'Este navegador no permite grabar audio'
+          ? t('Este navegador no permite grabar audio')
           : rec
-          ? 'Terminar la nota de voz'
-          : 'Dictar una nota de voz'
+          ? t('Terminar la nota de voz')
+          : t('Dictar una nota de voz')
   const showStop = !isDemo && !!api && activeRunIds.length > 0
 
   // Altura automática (máx. ~6 líneas).
@@ -156,12 +188,12 @@ export function Composer() {
   }, [activeRunIds.length])
 
   async function send(): Promise<void> {
-    const t = text.trim()
-    if (!t || sending || blockedReason) return
+    const trimmed = text.trim()
+    if (!trimmed || sending || blockedReason) return
     setError(null)
     if (simulate) {
       try {
-        demoEngine.start({ prompt: t })
+        demoEngine.start({ prompt: trimmed })
         useComposer.getState().clear()
       } catch (e) {
         setError(errorText(e))
@@ -174,16 +206,16 @@ export function Composer() {
     setSending(true)
     setQuotaNotice(null)
     try {
-      // «/new», «/limpiar»…: conversación nueva (lo mismo que ⋮ → Limpiar el chat), no un mensaje para los agentes.
-      const remember = REMEMBER_COMMAND.exec(t)
-      if (CLEAR_COMMAND.test(t)) await a.clearChat(project.id)
-      else if (MODEL_COMMAND.test(t)) useCowork.setState({ hermesModelOpen: true })
-      else if (QUOTA_COMMAND.test(t)) setQuotaNotice(await quotaSummary(a))
-      else if (ROUTINE_COMMAND.test(t)) {
+      // «/new», «/limpiar»…: conversación nueva (lo mismo que ⚙ → Limpiar el chat), no un mensaje para los agentes.
+      const remember = REMEMBER_COMMAND.exec(trimmed)
+      if (CLEAR_COMMAND.test(trimmed)) useCowork.getState().loadProjectState(await a.newConversation(project.id))
+      else if (MODEL_COMMAND.test(trimmed)) useCowork.setState({ hermesModelOpen: true })
+      else if (QUOTA_COMMAND.test(trimmed)) setQuotaNotice(await quotaSummary(a))
+      else if (ROUTINE_COMMAND.test(trimmed)) {
         // Sin nada más: se abre la pestaña. Con horario y petición: se crea la rutina (activa).
-        if (/^\/\w+\s*$/.test(t)) useCowork.getState().setLeftTab('routines')
+        if (/^\/\w+\s*$/.test(trimmed)) useCowork.getState().setLeftTab('routines')
         else {
-          const cmd = parseRoutineCommand(t)
+          const cmd = parseRoutineCommand(trimmed)
           if ('error' in cmd) {
             setQuotaNotice({ lines: [cmd.error], fix: false, routine: true })
             return
@@ -191,7 +223,7 @@ export function Composer() {
           const r = await a.createRoutine(project.id, { ...cmd, enabled: true })
           const next = r.nextAt ?? null
           setQuotaNotice({
-            lines: [`Rutina creada: «${r.name}» · ${describeTrigger(r.trigger)}${next ? ` (la próxima, ${describeWhen(next)})` : ''}. Está en la pestaña Rutinas.`],
+            lines: [t('Rutina creada: «{name}» · {when}{next}. Está en la pestaña Rutinas.', { name: r.name, when: describeTrigger(r.trigger), next: next ? t(' (la próxima, {when})', { when: describeWhen(next) }) : '' })],
             fix: false,
             routine: true
           })
@@ -200,18 +232,54 @@ export function Composer() {
       else if (remember) {
         const entry = await a.addMemory(project.id, memoryInput(remember[2]))
         setQuotaNotice({
-          lines: [entry ? `Anotado en la memoria del proyecto (${entry.id}, confirmado): ${entry.text}` : 'Eso ya estaba en la memoria.'],
+          lines: [entry ? t('Anotado en la memoria del proyecto ({id}, confirmado): {text}', { id: entry.id, text: entry.text }) : t('Eso ya estaba en la memoria.')],
           fix: false,
           memory: true
         })
       }
-      else await a.sendMessage({ projectId: project.id, text: t, filePaths: files })
+      else await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files })
       useComposer.getState().clear()
     } catch (e) {
       setError(errorText(e))
     } finally {
       setSending(false)
     }
+  }
+
+  /**
+   * Lanza una plantilla de la fila de encima (el texto ya va con los huecos rellenos). Los archivos que estuvieran
+   * preparados van con ella; lo escrito en el cuadro se queda. true si se envió.
+   */
+  async function launchTemplate(tpl: TaskTemplate, filled: string): Promise<boolean> {
+    const a = api
+    if (!a || !project || blockedReason || simulate) return false
+    if (isDemo) useCowork.getState().setMode('live')
+    setError(null)
+    setQuotaNotice(null)
+    try {
+      await a.sendMessage({ projectId: project.id, text: filled, filePaths: files, templateId: tpl.id })
+      if (files.length) useComposer.setState({ files: [] })
+      return true
+    } catch (e) {
+      setError(errorText(e))
+      return false
+    }
+  }
+
+  /** Elige una plantilla de la lista del «/»: el cuadro queda con «/orden » para escribir lo de detrás. */
+  function chooseCommand(i: number): void {
+    const c = cmdList[i]
+    if (!c) return
+    setText(`/${c.command} `)
+    taRef.current?.focus()
+  }
+
+  /** Elige un agente de la lista del «@»: el cuadro queda con «@Nombre » para escribir el mensaje. */
+  function chooseMention(i: number): void {
+    const a = mentionList[i]
+    if (!a || !mention) return
+    setText(mentionText(mention.prefix, a))
+    taRef.current?.focus()
   }
 
   /** Ctrl+V con imágenes o archivos: se guardan y se adjuntan. El texto se pega como siempre. */
@@ -272,14 +340,14 @@ export function Composer() {
       try {
         const link = await a.getHttpsLink(location.hostname)
         if (link) setHttpsLink(link)
-        else setError('El navegador solo deja usar el micrófono con HTTPS y no se pudo preparar la versión segura. Revisa en el Mac: ⋮ → Acceso desde otros dispositivos')
+        else setError(t('El navegador solo deja usar el micrófono con HTTPS y no se pudo preparar la versión segura. Revisa en el Mac: ⚙ → Ajustes → Acceso desde otros dispositivos'))
       } catch (e) {
         setError(errorText(e))
       }
       return
     }
     try {
-      if (!(await a.requestMicrophone())) throw new Error('Sin permiso para el micrófono (actívalo en los ajustes de privacidad del sistema)')
+      if (!(await a.requestMicrophone())) throw new Error(t('Sin permiso para el micrófono (actívalo en los ajustes de privacidad del sistema)'))
       setRec({ r: await startRecording(), started: Date.now() })
     } catch (e) {
       setError(micError(e))
@@ -302,11 +370,11 @@ export function Composer() {
       const wav = await cur.r.stop()
       const stamp = new Date().toTimeString().slice(0, 8).replace(/:/g, '')
       const path = await a.savePastedFile(`nota-de-voz-${stamp}.wav`, wav)
-      const said = await a.transcribeAudio(path, 'es')
+      const said = await a.transcribeAudio(path, lang())
       if (said) {
         const prev = useComposer.getState().text.trimEnd()
         setText(prev ? `${prev} ${said}` : said)
-      } else setError('No se entendió nada en la nota de voz')
+      } else setError(t('No se entendió nada en la nota de voz'))
       taRef.current?.focus()
     } catch (e) {
       setError(errorText(e))
@@ -338,15 +406,16 @@ export function Composer() {
   /** Texto corto de cada petición en marcha (su mensaje) para el menú de «Detener». */
   function runLabel(runId: string): string {
     const m = useCowork.getState().live.messages.find((x) => x.runId === runId && x.author.type === 'user')
-    const text = (m?.text || 'Petición').replace(/\s+/g, ' ').trim()
+    const text = (m?.text || t('Petición')).replace(/\s+/g, ' ').trim()
     const ago = m ? Math.max(0, Math.round((Date.now() - m.createdAt) / 60_000)) : null
-    return `${text.length > 48 ? `${text.slice(0, 47)}…` : text}${ago != null ? ` · hace ${ago} min` : ''}`
+    return `${text.length > 48 ? `${text.slice(0, 47)}…` : text}${ago != null ? t(' · hace {ago} min', { ago }) : ''}`
   }
 
   return (
     <div className={s.composer}>
+      <TemplateBar disabled={!!blockedReason || simulate || !!rec || transcribing} onLaunch={launchTemplate} />
       {files.length > 0 && (
-        <ul className={s.pending} aria-label="Archivos para adjuntar">
+        <ul className={s.pending} aria-label={t('Archivos para adjuntar')}>
           {files.map((p) => {
             const name = basename(p)
             return (
@@ -357,8 +426,8 @@ export function Composer() {
                   type="button"
                   className={s.chipRemove}
                   onClick={() => removeFile(p)}
-                  aria-label={`Quitar ${name}`}
-                  title="Quitar"
+                  aria-label={t('Quitar {name}', { name })}
+                  title={t('Quitar')}
                 >
                   <X size={13} aria-hidden="true" />
                 </button>
@@ -375,8 +444,8 @@ export function Composer() {
             className={cx(u.iconBtn, s.tool)}
             onClick={() => pick('any')}
             disabled={!canAttach}
-            aria-label="Adjuntar archivos"
-            title={attachTitle ?? 'Adjuntar archivos'}
+            aria-label={t('Adjuntar archivos')}
+            title={attachTitle ?? t('Adjuntar archivos')}
           >
             <Paperclip size={18} aria-hidden="true" />
           </button>
@@ -385,8 +454,8 @@ export function Composer() {
             className={cx(u.iconBtn, s.tool, s.toolImage)}
             onClick={() => pick('image')}
             disabled={!canAttach}
-            aria-label="Adjuntar imágenes"
-            title={attachTitle ?? 'Adjuntar imágenes'}
+            aria-label={t('Adjuntar imágenes')}
+            title={attachTitle ?? t('Adjuntar imágenes')}
           >
             <ImagePlus size={18} aria-hidden="true" />
           </button>
@@ -396,7 +465,7 @@ export function Composer() {
             className={cx(u.iconBtn, s.tool, rec && s.micOn)}
             onClick={() => void toggleMic()}
             disabled={!canDictate || transcribing}
-            aria-label={rec ? 'Terminar la nota de voz' : 'Dictar una nota de voz'}
+            aria-label={rec ? t('Terminar la nota de voz') : t('Dictar una nota de voz')}
             aria-pressed={!!rec}
             title={micTitle}
           >
@@ -415,8 +484,8 @@ export function Composer() {
             <div className={s.recBar} role="status">
               <span className={s.recDot} aria-hidden="true" />
               <span className={s.recTime}>{clock(elapsed)}</span>
-              <span className={s.recText}>Grabando… pulsa ■ para terminar</span>
-              <button type="button" className={s.recCancel} onClick={cancelRecording} aria-label="Descartar la nota de voz" title="Descartar">
+              <span className={s.recText}>{t('Grabando… pulsa ■ para terminar')}</span>
+              <button type="button" className={s.recCancel} onClick={cancelRecording} aria-label={t('Descartar la nota de voz')} title={t('Descartar')}>
                 <X size={14} aria-hidden="true" />
               </button>
             </div>
@@ -426,18 +495,94 @@ export function Composer() {
             className={s.input}
             rows={1}
             value={text}
-            placeholder={planPending ? 'Escribe qué cambiar del plan, o «sí» para aprobarlo…' : 'Escribe una tarea…'}
-            aria-label="Escribe una tarea para el equipo"
-            title={blockedReason ?? 'Intro para enviar · Mayús+Intro para nueva línea'}
+            placeholder={planPending ? t('Escribe qué cambiar del plan, o «sí» para aprobarlo…') : t('Escribe una tarea…')}
+            aria-label={t('Escribe una tarea para el equipo')}
+            data-composer=""
+            title={blockedReason ?? t('Intro para enviar · Mayús+Intro para nueva línea')}
             onChange={(e) => setText(e.target.value)}
             onPaste={(e) => void onPaste(e)}
+            role={mentionOpen || cmdOpen ? 'combobox' : undefined}
+            aria-expanded={mentionOpen || cmdOpen ? true : undefined}
+            aria-controls={mentionOpen ? 'composer-mentions' : cmdOpen ? 'composer-commands' : undefined}
+            aria-activedescendant={mentionOpen ? `composer-mention-${mentionSel}` : cmdOpen ? `composer-command-${mentionSel}` : undefined}
             onKeyDown={(e) => {
+              if ((mentionOpen || cmdOpen) && !e.nativeEvent.isComposing) {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                  e.preventDefault()
+                  const n = suggestCount
+                  setMentionIdx((mentionSel + (e.key === 'ArrowDown' ? 1 : n - 1)) % n)
+                  return
+                }
+                if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
+                  e.preventDefault()
+                  if (mentionOpen) chooseMention(mentionSel)
+                  else chooseCommand(mentionSel)
+                  return
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setMentionClosed(text)
+                  return
+                }
+              }
               if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 void send()
               }
             }}
           />
+          {mentionOpen && (
+            <ul id="composer-mentions" className={s.mentions} role="listbox" aria-label={t('Hablar directamente con un agente')}>
+              <li className={s.mentionHead} aria-hidden="true">
+                {t('Directo, sin pasar por Hermes: recibe tu texto tal cual')}
+              </li>
+              {mentionList.map((a, i) => (
+                <li
+                  key={a.id}
+                  id={`composer-mention-${i}`}
+                  role="option"
+                  aria-selected={i === mentionSel}
+                  className={cx(s.mention, i === mentionSel && s.mentionOn)}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    chooseMention(i)
+                  }}
+                  onMouseEnter={() => setMentionIdx(i)}
+                >
+                  <span className={s.mentionDot} style={{ background: a.color }} aria-hidden="true" />
+                  <span className={s.mentionName}>{a.name}</span>
+                  <span className={s.mentionModel}>{a.modelLabel}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {cmdOpen && (
+            <ul id="composer-commands" className={s.mentions} role="listbox" aria-label={t('Plantillas de tareas')}>
+              <li className={s.mentionHead} aria-hidden="true">
+                {t('Plantillas: elige una y escribe detrás lo que cambia')}
+              </li>
+              {cmdList.map((c, i) => (
+                <li
+                  key={c.id}
+                  id={`composer-command-${i}`}
+                  role="option"
+                  aria-selected={i === mentionSel}
+                  className={cx(s.mention, i === mentionSel && s.mentionOn)}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    chooseCommand(i)
+                  }}
+                  onMouseEnter={() => setMentionIdx(i)}
+                >
+                  <span className={s.cmdIcon} aria-hidden="true">
+                    {c.icon || <LayoutTemplate size={14} />}
+                  </span>
+                  <span className={s.mentionName}>/{c.command}</span>
+                  <span className={s.mentionModel}>{c.name}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           {showStop && (
             <button
               ref={stopRef}
@@ -445,8 +590,8 @@ export function Composer() {
               className={s.stop}
               onClick={onStop}
               disabled={stopping}
-              aria-label={activeRunIds.length > 1 ? `Detener: ${activeRunIds.length} peticiones en marcha` : 'Detener el trabajo en curso'}
-              title={activeRunIds.length > 1 ? 'Elegir qué petición detener' : 'Detener el trabajo en curso'}
+              aria-label={activeRunIds.length > 1 ? t('Detener: {length} peticiones en marcha', { length: activeRunIds.length }) : t('Detener el trabajo en curso')}
+              title={activeRunIds.length > 1 ? t('Elegir qué petición detener') : t('Detener el trabajo en curso')}
               aria-haspopup={activeRunIds.length > 1 ? 'menu' : undefined}
               aria-expanded={activeRunIds.length > 1 ? stopOpen : undefined}
             >
@@ -455,7 +600,7 @@ export function Composer() {
               ) : (
                 <Square size={11} aria-hidden="true" fill="currentColor" />
               )}
-              <span>{stopping ? 'Deteniendo' : activeRunIds.length > 1 ? `Detener (${activeRunIds.length})` : 'Detener'}</span>
+              <span>{stopping ? t('Deteniendo') : activeRunIds.length > 1 ? t('Detener ({n})', { n: activeRunIds.length }) : t('Detener')}</span>
             </button>
           )}
           <Popover
@@ -464,19 +609,19 @@ export function Composer() {
             anchorRef={stopRef}
             align="end"
             role="menu"
-            ariaLabel="Qué petición detener"
+            ariaLabel={t('Qué petición detener')}
             className={s.stopMenu}
             initialFocus="first"
             onKeyDown={menuKeyNav}
           >
             <button type="button" role="menuitem" className={s.stopItem} onClick={() => void stopRuns(activeRunIds)}>
               <Square size={11} aria-hidden="true" fill="currentColor" />
-              <span>Detener todo ({activeRunIds.length} peticiones)</span>
+              <span>{t('Detener todo ({n} peticiones)', { n: activeRunIds.length })}</span>
             </button>
             {[...activeRunIds].reverse().map((id) => (
               <button key={id} type="button" role="menuitem" className={s.stopItem} onClick={() => void stopRuns([id])}>
                 <span className={s.stopDot} aria-hidden="true" />
-                <span>Solo «{runLabel(id)}»</span>
+                <span>{t('Solo «{name}»', { name: runLabel(id) })}</span>
               </button>
             ))}
           </Popover>
@@ -485,8 +630,8 @@ export function Composer() {
             className={s.send}
             onClick={() => void send()}
             disabled={!canSend}
-            aria-label={simulate ? 'Enviar (simulación)' : isDemo ? 'Enviar al equipo real' : 'Enviar'}
-            title={blockedReason ?? (simulate ? 'Enviar (simulación)' : isDemo ? 'Enviar al equipo real' : 'Enviar')}
+            aria-label={simulate ? t('Enviar (simulación)') : isDemo ? t('Enviar al equipo real') : t('Enviar')}
+            title={blockedReason ?? (simulate ? t('Enviar (simulación)') : isDemo ? t('Enviar al equipo real') : t('Enviar'))}
           >
             {sending ? (
               <LoaderCircle size={17} aria-hidden="true" className={u.spin} />
@@ -500,7 +645,7 @@ export function Composer() {
       {transcribing && !error && (
         <p className={s.hint} role="status">
           <LoaderCircle size={13} aria-hidden="true" className={u.spin} />
-          <span>Transcribiendo la nota de voz en este equipo… (la primera vez prepara el dictado y tarda unos minutos)</span>
+          <span>{t('Transcribiendo la nota de voz en este equipo… (la primera vez prepara el dictado y tarda unos minutos)')}</span>
         </p>
       )}
 
@@ -526,15 +671,14 @@ export function Composer() {
         <p className={s.hint} role="status">
           <Info size={13} aria-hidden="true" />
           <span>
-            El navegador solo deja usar el micrófono en la versión segura (HTTPS).{' '}
+            {t('El navegador solo deja usar el micrófono en la versión segura (HTTPS).')}{' '}
             <a className={s.hintLink} href={httpsLink.url}>
-              Abrir la versión segura
+              {t('Abrir la versión segura')}
             </a>
             {httpsLink.selfSigned && (
               <>
                 {' '}
-                La primera vez avisará de que la conexión no es privada: es el certificado propio de AI Cowork en tu equipo. Pulsa
-                «Configuración avanzada» → «Continuar» (en iPhone: «Mostrar detalles» → «visitar este sitio web»).
+                {t('La primera vez avisará de que la conexión no es privada: es el certificado propio de kywai en tu equipo. Pulsa «Configuración avanzada» → «Continuar» (en iPhone: «Mostrar detalles» → «visitar este sitio web»).')}
               </>
             )}
           </span>
@@ -544,7 +688,7 @@ export function Composer() {
       {(error || isDemo || blockedReason) && (
         <p className={cx(s.hint, error ? s.hintError : isDemo ? s.hintDemo : undefined)} role={error ? 'alert' : undefined}>
           {error ? <AlertCircle size={13} aria-hidden="true" /> : <Info size={13} aria-hidden="true" />}
-          <span>{error ?? (simulate ? 'Modo demo: las respuestas son simuladas' : isDemo ? 'Estás viendo la demo: al enviar volverás a los datos reales' : blockedReason)}</span>
+          <span>{error ?? (simulate ? t('Modo demo: las respuestas son simuladas') : isDemo ? t('Estás viendo la demo: al enviar volverás a los datos reales') : blockedReason)}</span>
         </p>
       )}
     </div>

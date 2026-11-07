@@ -1,33 +1,34 @@
+import { locale, t } from '@/lib/i18n'
 export function timeHM(ts: number): string {
-  return new Date(ts).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+  return new Date(ts).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
 }
 
 export function relativeTime(ts: number | null | undefined, now = Date.now()): string {
-  if (!ts) return 'Sin datos'
+  if (!ts) return t('Sin datos')
   const s = Math.round((now - ts) / 1000)
-  if (s < 5) return 'ahora'
-  if (s < 60) return `hace ${s} s`
+  if (s < 5) return t('ahora')
+  if (s < 60) return t('hace {s} s', { s })
   const m = Math.round(s / 60)
-  if (m < 60) return `hace ${m} min`
+  if (m < 60) return t('hace {m} min', { m })
   const h = Math.round(m / 60)
-  if (h < 24) return `hace ${h} h`
-  return new Date(ts).toLocaleDateString('es')
+  if (h < 24) return t('hace {h} h', { h })
+  return new Date(ts).toLocaleDateString(locale())
 }
 
 export function untilTime(ts: number | null | undefined, now = Date.now()): string {
-  if (!ts) return 'No disponible'
+  if (!ts) return t('No disponible')
   const s = Math.round((ts - now) / 1000)
-  if (s <= 0) return 'ya renovada'
+  if (s <= 0) return t('ya renovada')
   const m = Math.round(s / 60)
-  if (m < 60) return `en ${m} min`
+  if (m < 60) return t('en {m} min', { m })
   const h = Math.floor(m / 60)
-  if (h < 48) return `en ${h} h ${m % 60} min`
-  return new Date(ts).toLocaleString('es', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  if (h < 48) return t('en {h} h {m} min', { h, m: m % 60 })
+  return new Date(ts).toLocaleString(locale(), { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 export function compactNumber(n: number | null | undefined): string {
-  if (n == null) return 'No disponible'
-  return new Intl.NumberFormat('es', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+  if (n == null) return t('No disponible')
+  return new Intl.NumberFormat(locale(), { notation: 'compact', maximumFractionDigits: 1 }).format(n)
 }
 
 export function fileSize(bytes: number): string {

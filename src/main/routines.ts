@@ -8,10 +8,11 @@
 // las atrasadas. El secreto del webhook no sale del motor salvo cuando lo pides para copiar la dirección.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http'
-import type { CoworkEvent, Routine, RoutineInput, RoutineRun, RoutineRunReason, RoutineWebhookInfo, SendMessageInput } from '@shared/types'
-import { cleanTrigger, describeWhen, isScheduled, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, nextRoutineRun, slotsBetween } from '@shared/routines'
+import type { CoworkEvent, Routine, RoutineInput, RoutineTrigger, RoutineRun, RoutineRunReason, RoutineWebhookInfo, SendMessageInput } from '@shared/types'
+import { cleanTrigger, describeWhen, isScheduled, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, nextRoutineRun, onceAt, slotsBetween } from '@shared/routines'
 import { emit, tapEvents } from './events'
 import * as store from './projects'
+import { tr } from '@shared/i18n'
 
 /** Cada cuánto se mira si toca lanzar alguna rutina. */
 export const TICK_MS = 30_000
@@ -28,7 +29,7 @@ export const PAYLOAD_CHARS = 6000
 
 export interface RoutineDeps {
   /** Envía la petición al chat como una normal del usuario, marcada como de la rutina (orchestrator.sendMessage). */
-  send(input: SendMessageInput, routine: { id: string; name: string }): Promise<{ runId: string }>
+  send(input: SendMessageInput, routine: { id: string; name: string; askApproval?: boolean }): Promise<{ runId: string }>
   /** En qué está esa petición: trabajando, esperando tu visto bueno a su plan, o null si ya terminó. */
   runState(projectId: string, runId: string): 'running' | 'waiting' | null
   /** Hay trabajo en marcha en el proyecto (los cambios de los agentes no cuentan como cambios en la carpeta). */
@@ -87,7 +88,7 @@ function routinesOf(projectId: string): Routine[] {
 
 function findRoutine(projectId: string, id: string): Routine {
   const r = routinesOf(projectId).find((x) => x.id === id)
-  if (!r) throw new Error('Esa rutina ya no existe')
+  if (!r) throw new Error(tr('Esa rutina ya no existe'))
   return r
 }
 
@@ -96,6 +97,11 @@ function changed(projectId: string): void {
   if (routinesOf(projectId).length) withRoutines.add(projectId)
   else withRoutines.delete(projectId)
   emit({ kind: 'routines.updated', projectId, routines: publicRoutines(routinesOf(projectId)) })
+}
+
+/** Una rutina de una sola vez tiene que ser para más adelante (si no, nunca se lanzaría). */
+function checkFuture(trigger: RoutineTrigger, now: number): void {
+  if (trigger.type === 'once' && onceAt(trigger) <= now) throw new Error(tr('Esa hora ya ha pasado: elige una que esté por llegar.'))
 }
 
 function addRun(projectId: string, r: Routine, run: RoutineRun): void {
@@ -107,12 +113,13 @@ function addRun(projectId: string, r: Routine, run: RoutineRun): void {
 
 export function createRoutine(projectId: string, input: RoutineInput, now = Date.now()): Routine {
   const list = routinesOf(projectId)
-  if (list.length >= MAX_ROUTINES) throw new Error(`Como mucho ${MAX_ROUTINES} rutinas por proyecto`)
+  if (list.length >= MAX_ROUTINES) throw new Error(tr('Como mucho {MAX_ROUTINES} rutinas por proyecto', { MAX_ROUTINES }))
   const name = clean(input?.name, MAX_ROUTINE_NAME).replace(/\s+/g, ' ')
   const request = clean(input?.request, MAX_ROUTINE_REQUEST)
-  if (!name) throw new Error('Ponle un nombre a la rutina')
-  if (request.length < 3) throw new Error('Escribe lo que tiene que hacer la rutina (lo que se enviará al chat)')
+  if (!name) throw new Error(tr('Ponle un nombre a la rutina'))
+  if (request.length < 3) throw new Error(tr('Escribe lo que tiene que hacer la rutina (lo que se enviará al chat)'))
   const trigger = cleanTrigger(input?.trigger)
+  if (input.enabled !== false) checkFuture(trigger, now)
   const r: Routine = {
     id: newId(list),
     name,
@@ -123,6 +130,7 @@ export function createRoutine(projectId: string, input: RoutineInput, now = Date
     updatedAt: now,
     scheduleFrom: now,
     runs: [],
+    ...(input.askApproval === true ? { askApproval: true } : {}),
     ...(trigger.type === 'webhook' ? { webhookSecret: newSecret() } : {})
   }
   list.push(r)
@@ -132,20 +140,21 @@ export function createRoutine(projectId: string, input: RoutineInput, now = Date
 
 export function updateRoutine(projectId: string, id: string, patch: Partial<RoutineInput>, now = Date.now()): Routine {
   const r = findRoutine(projectId, id)
-  if (!patch || typeof patch !== 'object') throw new Error('Cambio no válido')
+  if (!patch || typeof patch !== 'object') throw new Error(tr('Cambio no válido'))
   if (patch.name !== undefined) {
     const name = clean(patch.name, MAX_ROUTINE_NAME).replace(/\s+/g, ' ')
-    if (!name) throw new Error('Ponle un nombre a la rutina')
+    if (!name) throw new Error(tr('Ponle un nombre a la rutina'))
     r.name = name
   }
   if (patch.request !== undefined) {
     const request = clean(patch.request, MAX_ROUTINE_REQUEST)
-    if (request.length < 3) throw new Error('Escribe lo que tiene que hacer la rutina (lo que se enviará al chat)')
+    if (request.length < 3) throw new Error(tr('Escribe lo que tiene que hacer la rutina (lo que se enviará al chat)'))
     r.request = request
   }
   if (patch.trigger !== undefined) {
     const trigger = cleanTrigger(patch.trigger)
     if (JSON.stringify(trigger) !== JSON.stringify(r.trigger)) {
+      if (patch.enabled !== false && (r.enabled || patch.enabled === true)) checkFuture(trigger, now)
       r.trigger = trigger
       // El horario nuevo cuenta desde ahora: no se «recupera» nada del anterior.
       r.scheduleFrom = now
@@ -154,9 +163,14 @@ export function updateRoutine(projectId: string, id: string, patch: Partial<Rout
     }
     if (trigger.type === 'webhook' && !r.webhookSecret) r.webhookSecret = newSecret()
   }
+  if (typeof patch.askApproval === 'boolean') {
+    if (patch.askApproval) r.askApproval = true
+    else delete r.askApproval
+  }
   if (typeof patch.enabled === 'boolean' && patch.enabled !== r.enabled) {
-    r.enabled = patch.enabled
     // Al volver a activarla no se lanza lo que tocó mientras estaba desactivada.
+    if (patch.enabled) checkFuture(r.trigger, now)
+    r.enabled = patch.enabled
     if (r.enabled) {
       r.scheduleFrom = now
       r.lastSlotAt = undefined
@@ -178,7 +192,7 @@ export function deleteRoutine(projectId: string, id: string): void {
 /** Dirección del webhook con su secreto (para enseñarla y copiarla). Con regenerate, secreto nuevo. */
 export function routineWebhook(projectId: string, id: string, regenerate = false): RoutineWebhookInfo {
   const r = findRoutine(projectId, id)
-  if (r.trigger.type !== 'webhook') throw new Error('Esta rutina no se lanza por webhook')
+  if (r.trigger.type !== 'webhook') throw new Error(tr('Esta rutina no se lanza por webhook'))
   if (regenerate || !r.webhookSecret) {
     r.webhookSecret = newSecret()
     r.updatedAt = Date.now()
@@ -217,20 +231,20 @@ export async function fireRoutine(
   const entry: RoutineRun = { at: now, status: 'running', reason, ...(extra.note ? { note: extra.note } : {}) }
   if (routineBusy(projectId, r)) {
     entry.status = 'skipped'
-    entry.note = [extra.note, 'No se lanzó: la ejecución anterior de esta rutina seguía en marcha.'].filter(Boolean).join(' ')
+    entry.note = [extra.note, tr('No se lanzó: la ejecución anterior de esta rutina seguía en marcha.')].filter(Boolean).join(' ')
     addRun(projectId, r, entry)
     return entry
   }
   if (!deps) {
     entry.status = 'failed'
-    entry.note = 'El motor de rutinas no está en marcha'
+    entry.note = tr('El motor de rutinas no está en marcha')
     addRun(projectId, r, entry)
     return entry
   }
   launching.add(r.id)
   addRun(projectId, r, entry)
   try {
-    const { runId } = await deps.send({ projectId, text: `${r.request}${extra.data ?? ''}`, filePaths: [] }, { id: r.id, name: r.name })
+    const { runId } = await deps.send({ projectId, text: `${r.request}${extra.data ?? ''}`, filePaths: [] }, { id: r.id, name: r.name, ...(r.askApproval ? { askApproval: true } : {}) })
     entry.runId = runId
     const early = finishedEarly.get(runId)
     if (early !== undefined) {
@@ -240,7 +254,7 @@ export async function fireRoutine(
     }
   } catch (e) {
     entry.status = 'failed'
-    entry.note = [extra.note, `No se pudo lanzar: ${(e as Error).message}`].filter(Boolean).join(' ')
+    entry.note = [extra.note, tr('No se pudo lanzar: {message}', { message: (e as Error).message })].filter(Boolean).join(' ')
     entry.finishedAt = Date.now()
   } finally {
     launching.delete(r.id)
@@ -277,8 +291,8 @@ export function scheduleDecision(r: Routine, now: number): ScheduleDecision {
 }
 
 function lateNote(d: ScheduleDecision, now: number): string {
-  const times = d.missed === 1 ? 'una vez' : `${d.missed} veces`
-  return `No se lanzó a su hora (${times}; la última, ${describeWhen(d.slot!, now)}) porque AI Cowork estaba cerrado o el equipo en reposo. Se lanza una sola vez ahora; las demás no se recuperan.`
+  const times = d.missed === 1 ? tr('una vez') : tr('{missed} veces', { missed: d.missed })
+  return tr('No se lanzó a su hora ({times}; la última, {describeWhen}) porque kywai estaba cerrado o el equipo en reposo. Se lanza una sola vez ahora; las demás no se recuperan.', { times, describeWhen: describeWhen(d.slot!, now) })
 }
 
 function notice(projectId: string, r: Routine, text: string): void {
@@ -300,6 +314,8 @@ async function checkSchedule(projectId: string, r: Routine, now: number): Promis
   // Se marca antes de lanzar: aunque falle o se salte, esa hora ya está atendida (no se reintenta en cada vuelta).
   // Cada N horas con retraso: se cuenta desde ahora para no lanzarla otra vez enseguida.
   r.lastSlotAt = r.trigger.type === 'interval' && d.late ? now : d.slot
+  // Una sola vez: ya está atendida, se desactiva (queda en la lista con su historial; se puede reprogramar).
+  if (r.trigger.type === 'once') r.enabled = false
   if (d.late) {
     const note = lateNote(d, now)
     notice(projectId, r, note)
@@ -469,7 +485,7 @@ export function initRoutines(d: RoutineDeps, opts: { firstCheckMs?: number } = {
       for (const run of r.runs) {
         if (run.status === 'running') {
           run.status = 'interrupted'
-          run.note = [run.note, 'Se cerró AI Cowork mientras trabajaba.'].filter(Boolean).join(' ')
+          run.note = [run.note, tr('Se cerró kywai mientras trabajaba.')].filter(Boolean).join(' ')
           touched = true
         }
       }
@@ -625,7 +641,7 @@ export async function handleRoutineWebhook(req: IncomingMessage, res: ServerResp
     return true
   }
   if (!body) {
-    reply(res, 413, { error: `El cuerpo pasa de ${WEBHOOK_MAX_BYTES} bytes` })
+    reply(res, 413, { error: tr('El cuerpo pasa de {WEBHOOK_MAX_BYTES} bytes', { WEBHOOK_MAX_BYTES }) })
     return true
   }
   // GitHub manda un «ping» al crear el webhook: se contesta sin lanzar nada.
@@ -634,7 +650,7 @@ export async function handleRoutineWebhook(req: IncomingMessage, res: ServerResp
     return true
   }
   if (!r.enabled) {
-    reply(res, 409, { status: 'disabled', error: 'La rutina está desactivada' })
+    reply(res, 409, { status: 'disabled', error: tr('La rutina está desactivada') })
     return true
   }
   const run = await fireRoutine(projectId, r, 'webhook', { data: webhookData(body, req.headers) })

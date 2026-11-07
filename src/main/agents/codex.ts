@@ -19,6 +19,7 @@ import {
 } from './spawn'
 import type { Effort, JsonlParser, ParserCallbacks, ProcessOutcome, RunAgentOptions, RunAgentResult } from './types'
 import { resultText, todoTrace, unwrapShell } from './traceText'
+import { tr } from '@shared/i18n'
 
 export const CODEX_AUTH_MESSAGE = 'Sesión de Codex caducada: ejecuta `codex login` en una terminal'
 
@@ -28,7 +29,7 @@ const REL_IMAGE_RE = /^[\w.\-]+(\/[\w.\-]+)*$/
 /** Un identificador de hilo de Codex (UUID): solo lo que es seguro poner en la línea de comandos. */
 const THREAD_ID_RE = /^[0-9a-fA-F-]{36}$/
 
-export function codexArgs(model: string, mode: 'plan' | 'work', images: string[] = [], access: AgentAccess = 'project', effort?: Effort, resume?: string): string[] {
+export function codexArgs(model: string, mode: 'plan' | 'work', images: string[] = [], access: AgentAccess = 'project', effort?: Effort, resume?: string, extraMcp?: string[]): string[] {
   const args = ['exec']
   const resuming = !!resume && THREAD_ID_RE.test(resume)
   const imageArgs: string[] = []
@@ -42,11 +43,13 @@ export function codexArgs(model: string, mode: 'plan' | 'work', images: string[]
   const sandbox = mode === 'plan' ? 'read-only' : access === 'full' ? 'danger-full-access' : 'workspace-write'
   args.push('--json', '--skip-git-repo-check', '--sandbox', sandbox)
   // La app de escritorio de Codex configura el modo "elevated", que necesita su propio ayudante
-  // registrado: lanzado desde AI Cowork falla y no puede ejecutar comandos. El modo estándar sí funciona.
+  // registrado: lanzado desde kywai falla y no puede ejecutar comandos. El modo estándar sí funciona.
   if (process.platform === 'win32' && sandbox !== 'danger-full-access') args.push('-c', 'windows.sandbox=unelevated')
   const m = safeModel(model)
   if (m) args.push('-m', m)
   if (effort) args.push('-c', `model_reasoning_effort=${effort}`)
+  // Servidores MCP que el usuario encendió para Codex (Ajustes › Extensiones): solo «-c clave=valor» sin comillas.
+  if (extraMcp?.length) args.push(...extraMcp)
   // Retomar un hilo: `codex exec [opciones] resume <id> [-i img] -`. Las opciones no se heredan del hilo, por eso
   // van siempre; si el hilo ya no existe, Codex empieza uno nuevo sin fallar.
   if (resuming) args.push('resume', resume!, ...imageArgs)
@@ -111,11 +114,11 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
           }
           case 'command_execution': {
             const cmd = unwrapShell(str(item.command))
-            if (phase === 'started' || !id) cb.onTrace?.({ type: 'tool', id, tool: 'command', title: `Ejecutando: ${clip(cmd, 70)}`, body: cmd })
+            if (phase === 'started' || !id) cb.onTrace?.({ type: 'tool', id, tool: 'command', title: tr('Ejecutando: {v1}', { v1: clip(cmd, 70) }), body: cmd })
             if (finished && id) {
               const code = typeof item.exit_code === 'number' ? item.exit_code : null
               const out = str(item.aggregated_output)
-              cb.onTrace?.({ type: 'result', id, ok: !failed && (code == null || code === 0), output: code ? `${out}${out ? '\n' : ''}(código de salida ${code})` : out })
+              cb.onTrace?.({ type: 'result', id, ok: !failed && (code == null || code === 0), output: code ? tr('{out}{v2}(código de salida {code})', { out, v2: out ? '\n' : '', code }) : out })
             }
             if (phase === 'started') cb.onActivity?.(`Ejecutando: ${clip(cmd, 40)}`, 'tool')
             break
@@ -130,7 +133,7 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
               type: 'tool',
               id,
               tool: 'edit',
-              title: `Editando ${label}`,
+              title: tr('Editando {label}', { label }),
               body: changes.map((c) => `${verb(str(c.kind))}: ${str(c.path)}`).join('\n') || undefined
             })
             if (finished && id) cb.onTrace?.({ type: 'result', id, ok: !failed })
@@ -138,12 +141,12 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
               cb.onActivity?.(`Editando ${label}`, 'tool')
               for (const p of paths) cb.onFile?.(p)
             } else {
-              cb.onActivity?.('Editando archivos', 'tool')
+              cb.onActivity?.(tr('Editando archivos'), 'tool')
             }
             break
           }
           case 'mcp_tool_call': {
-            const name = [str(item.server), str(item.tool)].filter(Boolean).join(' · ') || 'una herramienta'
+            const name = [str(item.server), str(item.tool)].filter(Boolean).join(' · ') || tr('una herramienta')
             if (phase === 'started' || !id) {
               let args: string | undefined
               try {
@@ -151,7 +154,7 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
               } catch {
                 args = undefined
               }
-              cb.onTrace?.({ type: 'tool', id, tool: 'other', title: `Usando ${name}`, body: args })
+              cb.onTrace?.({ type: 'tool', id, tool: 'other', title: tr('Usando {name}', { name }), body: args })
             }
             if (finished && id) {
               const err = str(obj(item.error)?.message) || str(item.error)
@@ -162,16 +165,16 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
           }
           case 'web_search': {
             const q = str(item.query)
-            cb.onTrace?.({ type: 'tool', id, tool: 'web', title: q ? `Buscando en la web: «${clip(q, 60)}»` : 'Buscando en la web' })
+            cb.onTrace?.({ type: 'tool', id, tool: 'web', title: q ? tr('Buscando en la web: «{clip}»', { clip: clip(q, 60) }) : tr('Buscando en la web') })
             if (finished && id) cb.onTrace?.({ type: 'result', id, ok: !failed })
-            if (phase === 'started') cb.onActivity?.('Buscando en la web', 'tool')
+            if (phase === 'started') cb.onActivity?.(tr('Buscando en la web'), 'tool')
             break
           }
           case 'todo_list': {
             const p = todoProgress(item.items, (t) => t.completed === true)
             if (p != null) cb.onProgress?.(p)
             cb.onTrace?.({ type: 'tool', id, ...todoTrace(item.items, (t) => t.completed === true, (t) => str(t.text)) })
-            if (phase === 'started') cb.onActivity?.('Organizando las tareas', 'tool')
+            if (phase === 'started') cb.onActivity?.(tr('Organizando las tareas'), 'tool')
             break
           }
           case 'error': {
@@ -197,7 +200,7 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
         return
       }
       if (type === 'turn.failed') {
-        failedMsg = innerMessage(str(obj(o.error)?.message) || 'La tarea falló')
+        failedMsg = innerMessage(str(obj(o.error)?.message) || tr('La tarea falló'))
         return
       }
       if (type === 'error') {
@@ -217,7 +220,7 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
         return { ok: false, text: lastMessage, usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
       }
       if (!completed && !failedMsg && looksMissing(outcome)) {
-        return { ok: false, text: '', usage, errorKind: 'missing', errorMessage: 'No se encontró el CLI de Codex' }
+        return { ok: false, text: '', usage, errorKind: 'missing', errorMessage: tr('No se encontró el CLI de Codex') }
       }
       if (completed && !failedMsg) return { ok: true, text: lastMessage, usage }
 
@@ -229,24 +232,24 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
           usage,
           errorKind: 'failed',
           modelUnavailable: true,
-          errorMessage: `El modelo no está disponible para tu cuenta: ${clip(failedMsg || errText, 160)}`
+          errorMessage: tr('El modelo no está disponible para tu cuenta: {clip}', { clip: clip(failedMsg || errText, 160) })
         }
       }
       if (QUOTA_RE.test(errText)) {
-        return { ok: false, text: lastMessage, usage, errorKind: 'quota', errorMessage: 'Codex alcanzó su límite de uso' }
+        return { ok: false, text: lastMessage, usage, errorKind: 'quota', errorMessage: tr('Codex alcanzó su límite de uso') }
       }
       if (AUTH_RE.test(errText)) {
-        return { ok: false, text: lastMessage, usage, errorKind: 'auth', errorMessage: CODEX_AUTH_MESSAGE }
+        return { ok: false, text: lastMessage, usage, errorKind: 'auth', errorMessage: tr(CODEX_AUTH_MESSAGE) }
       }
       if (outcome.timedOut) {
-        return { ok: false, text: lastMessage, usage, errorKind: 'failed', errorMessage: 'El CLI dejó de responder (sin salida durante 20 min)' }
+        return { ok: false, text: lastMessage, usage, errorKind: 'failed', errorMessage: tr('El CLI dejó de responder (sin salida durante 20 min)') }
       }
       return {
         ok: false,
         text: lastMessage,
         usage,
         errorKind: 'failed',
-        errorMessage: errText ? clip(errText, 200) : outcome.spawnError ? `No se pudo lanzar: ${clip(outcome.spawnError.message, 180)}` : `Codex terminó con un error (código ${outcome.code ?? '?'})`
+        errorMessage: errText ? clip(errText, 200) : outcome.spawnError ? tr('No se pudo lanzar: {clip}', { clip: clip(outcome.spawnError.message, 180) }) : tr('Codex terminó con un error (código {v1})', { v1: outcome.code ?? '?' })
       }
   }
 }
@@ -254,8 +257,9 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
 export function runCodex(opts: RunAgentOptions): Promise<RunAgentResult> {
   return runCli({
     command: 'codex',
-    args: codexArgs(opts.model, opts.mode, opts.images, opts.access, opts.effort, opts.resume),
+    args: codexArgs(opts.model, opts.mode, opts.images, opts.access, opts.effort, opts.resume, opts.extraMcp?.args),
     cwd: opts.cwd,
+    ...(opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
     stdin: opts.prompt,
     signal: opts.signal,
     parser: createCodexParser(opts),

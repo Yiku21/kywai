@@ -13,6 +13,7 @@ import type {
   MessageRating,
   PlanProposal,
   ProposedTask,
+  RoutineProposal,
   SendMessageInput,
   Task,
   TaskChanges,
@@ -25,20 +26,25 @@ import type {
   WorkFile
 } from '@shared/types'
 import { INTERRUPTED_ERROR, SUBAGENT_COLOR } from '@shared/defaults'
-import { checkAgentPresence, isLocalProvider, isTextOnly, runAgent } from './agents'
+import { checkAgentPresence, isLocalProvider, isTextOnly, reportsNoTokens, runAgent } from './agents'
 import { safeModel, STALL_NOTICE } from './agents/spawn'
+import { GEMINI_LOGIN_STALL_NOTICE } from './agents/gemini'
 import type { TraceUpdate } from './agents/types'
-import type { AgentErrorKind, RateLimitInfo, RunAgentResult } from './agents/types'
-import { getConfig } from './config'
+import type { AgentErrorKind, ExtraMcp, RateLimitInfo, RunAgentResult } from './agents/types'
+import { getConfig, markBudgetAlerted } from './config'
+import { budgetAlertDue, budgetUsd, formatMoney, monthApiSpendUsd, monthKey, usdTo } from '@shared/costs'
 import { isPlanApproval, parsePlan, streamlinePlan, twoHandsPlan, wantsNoReview } from './plan'
 import { allRuntimes, deleteRuntime, emit, getRuntime, setRuntime } from './events'
 import * as store from './projects'
+import { expandModCommand } from './mods'
+import { resolveTemplate } from './templates'
 import { freshQuotaSnapshot, latestQuotas, recordUsage, refreshQuotas, setClaudeRateLimit } from './quota'
 import { finishRunUsage, rateUsage, recordCall, resumeRunUsage, setRunQuota, startRunUsage, usageRuns } from './usageLog'
 import { agentHistory, agentQualityFor, profileLines } from './agentProfile'
 import { EFFORT_LABEL, effortFor, planEffortFor } from '@shared/modelCatalog'
 import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpdate } from './taskTrace'
 import { withoutClosingNotes, workSteps } from '@shared/work'
+import { lang, locale, replyLanguage, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
 import { addMemory, KIND_LABEL, memoryPromptSections, parseMemoryNotes, planMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
@@ -49,8 +55,17 @@ import { hasGit, Shadow } from './checkpoints'
 import { addInbox, onInboxAction, resolveInboxWhere } from './inbox'
 import { captureUi, pagesToShoot, type UiShots } from './uiShots'
 import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './coworkMcp'
+import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
+import { parseDirect } from '@shared/directMessage'
+import { createRoutine } from './routines'
+import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
+
+/** ¿Es un aviso de «lleva 3 minutos sin dar señales»? (el general o el de Gemini con la sesión de Google) */
+function isStallNotice(text: string | undefined): boolean {
+  return text === STALL_NOTICE || text === GEMINI_LOGIN_STALL_NOTICE
+}
 
 type Deliverable = 'file' | 'text'
 
@@ -104,6 +119,10 @@ interface Run {
   contract?: string
   /** La lanzó una rutina (su nombre): nadie la está escribiendo en ese momento. */
   routine?: string
+  /** Lanzada con una plantilla que pide tu visto bueno al plan (aunque en Ajustes esté apagado). */
+  askPlan?: boolean
+  /** Esa rutina pide tu visto bueno a su plan (si no, una rutina no espera aunque esté encendido para el chat). */
+  routineApproval?: boolean
   /** Nuevo plan para uno que el coordinador propuso y al que el usuario respondió con cambios. */
   revision?: { request: string; tasks: ProposedTask[]; feedback: string; memory: MemoryNote[] }
   taskIds: string[]
@@ -176,7 +195,7 @@ function dataRoot(): string {
 function shadowFor(projectId: string): Shadow {
   let sh = shadows.get(projectId)
   if (!sh) {
-    // Si la carpeta de trabajo contiene los datos de AI Cowork (la propia app), no entran en las instantáneas.
+    // Si la carpeta de trabajo contiene los datos de kywai (la propia app), no entran en las instantáneas.
     const rel = relative(store.workRoot(projectId), dataRoot()).replace(/\\/g, '/')
     const extra = rel && !rel.startsWith('..') && !isAbsolute(rel) ? [`/${rel}/`] : []
     sh = new Shadow(join(dataRoot(), 'instantaneas', `${projectId}.git`), extra)
@@ -220,23 +239,23 @@ async function prepareWorkplace(run: Run, t: Task, meta: TaskMeta, exec: AgentCo
     const other = occupies(run.projectId, t.id)
     if (!other) {
       mainOccupant.set(run.projectId, t.id)
-      if (!meta.before) meta.before = await withGit(run.projectId, (sh) => sh.snapshot(main, 'main', `Antes de «${t.title}»`))
+      if (!meta.before) meta.before = await withGit(run.projectId, (sh) => sh.snapshot(main, 'main', tr('Antes de «{title}»', { title: t.title })))
       return main
     }
     const key = `copia-${t.id}`
     const dir = join(dataRoot(), 'aislado', t.id)
     const base = await withGit(run.projectId, async (sh) => {
-      const c = await sh.snapshot(main, 'main', `Copia para «${t.title}»`)
+      const c = await sh.snapshot(main, 'main', tr('Copia para «{title}»', { title: t.title }))
       await sh.makeCopy(c, dir, main, key)
       return c
     })
     meta.copy = { dir, key, base }
     meta.before = base
-    traceNote(t.id, `Trabaja en una copia aparte de la carpeta: «${other.title}» la está usando. Al terminar, sus cambios se integran en la carpeta del proyecto.`)
+    traceNote(t.id, tr('Trabaja en una copia aparte de la carpeta: «{title}» la está usando. Al terminar, sus cambios se integran en la carpeta del proyecto.', { title: other.title }))
     return dir
   } catch (e) {
     console.warn('[cowork] instantáneas desactivadas para este proyecto', e)
-    traceNote(t.id, `Sin instantáneas (no se podrá deshacer esta tarea): ${(e as Error).message}`)
+    traceNote(t.id, tr('Sin instantáneas (no se podrá deshacer esta tarea): {message}', { message: (e as Error).message }))
     if ((e as Error).message.includes('demasiados archivos')) return main
     return main
   }
@@ -278,7 +297,7 @@ async function settleChanges(run: Run, t: Task, exec: AgentConfig, parent: Agent
       meta.copy = undefined
       await recordChanges(run.projectId, t, copy.base, after, true, r.conflicts)
       if (r.conflicts.length) {
-        traceNote(t.id, `Al integrar chocó con otra tarea en: ${r.conflicts.join(', ')}`, true)
+        traceNote(t.id, tr('Al integrar chocó con otra tarea en: {v1}', { v1: r.conflicts.join(', ') }), true)
         if ((meta.mergeFixes ?? 0) === 0) {
           meta.mergeFixes = 1
           requeueForMerge(run, t, exec, parent, r.conflicts)
@@ -287,14 +306,14 @@ async function settleChanges(run: Run, t: Task, exec: AgentConfig, parent: Agent
         addInbox({
           kind: 'conflict',
           key: `conflict:${t.id}`,
-          title: `Choques sin resolver al integrar «${t.title}»`,
-          detail: `Estos archivos llevan marcas <<<<<<< de dos tareas que cambiaron lo mismo a la vez: ${r.conflicts.join(', ')}.`,
+          title: tr('Choques sin resolver al integrar «{title}»', { title: t.title }),
+          detail: tr('Estos archivos llevan marcas <<<<<<< de dos tareas que cambiaron lo mismo a la vez: {v1}.', { v1: r.conflicts.join(', ') }),
           projectId: run.projectId,
           runId: run.id,
           taskId: t.id,
-          actions: [{ id: 'dismiss', label: 'Lo reviso yo' }]
+          actions: [{ id: 'dismiss', label: tr('Lo reviso yo') }]
         })
-        systemMessage(run, `Aviso: al integrar «${t.title}» quedaron choques sin resolver en ${r.conflicts.map((f) => `\`${f}\``).join(', ')} (llevan marcas <<<<<<<). Revísalos.`, 'error')
+        systemMessage(run, tr('Aviso: al integrar «{title}» quedaron choques sin resolver en {v2} (llevan marcas <<<<<<<). Revísalos.', { title: t.title, v2: r.conflicts.map((f) => `\`${f}\``).join(', ') }), 'error')
       }
       return true
     }
@@ -302,7 +321,7 @@ async function settleChanges(run: Run, t: Task, exec: AgentConfig, parent: Agent
     await recordChanges(run.projectId, t, meta.before, after, false, [])
   } catch (e) {
     console.warn('[cowork] no se pudieron guardar los cambios de la tarea', e)
-    traceNote(t.id, `No se pudo guardar la instantánea de después: ${(e as Error).message}`)
+    traceNote(t.id, tr('No se pudo guardar la instantánea de después: {message}', { message: (e as Error).message }))
   }
   return true
 }
@@ -325,7 +344,7 @@ async function recordChanges(projectId: string, t: Task, before: string, after: 
     ...(conflicts.length ? { conflicts: conflicts.slice(0, 30) } : {})
   }
   t.changes = changes
-  traceNote(t.id, `Cambios guardados: ${changes.files} archivo${changes.files === 1 ? '' : 's'} (+${changes.add} −${changes.del}). Se pueden ver y deshacer desde el chat.`)
+  traceNote(t.id, tr('Cambios guardados: {files} archivo{v2} (+{add} −{del}). Se pueden ver y deshacer desde el chat.', { files: changes.files, v2: changes.files === 1 ? '' : 's', add: changes.add, del: changes.del }))
 }
 
 /** Al integrar su copia chocó con otra tarea: el mismo agente resuelve las marcas en la carpeta del proyecto. */
@@ -340,12 +359,12 @@ function requeueForMerge(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   // La sesión del CLI era de la copia (otra carpeta): no se puede retomar.
   meta.resume = undefined
   meta.before = undefined
-  closeWork(run, t, 'stopped', { text: `Al integrar «${t.title}» chocó con otra tarea en ${conflicts.map((f) => `\`${f}\``).join(', ')}; ${owner.name} lo resuelve.` })
+  closeWork(run, t, 'stopped', { text: tr('Al integrar «{title}» chocó con otra tarea en {v2}; {name} lo resuelve.', { title: t.title, v2: conflicts.map((f) => `\`${f}\``).join(', '), name: owner.name }) })
   if (parent) {
     removeBecario(exec.id)
     t.agentId = parent.id
   }
-  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: `Resolviendo choques: ${t.title}` })
+  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Resolviendo choques: {title}', { title: t.title }) })
   t.status = 'pending'
   t.startedAt = undefined
   t.lastActivity = undefined
@@ -367,7 +386,7 @@ function findStoredTask(projectId: string, taskId: string): Task {
   const live = tasks.get(taskId)
   if (live && live.projectId === projectId) return live
   const t = store.getProject(projectId).tasks.find((x) => x.id === taskId)
-  if (!t) throw new Error('No encuentro esa tarea')
+  if (!t) throw new Error(tr('No encuentro esa tarea'))
   return t
 }
 
@@ -383,13 +402,13 @@ export async function getTaskChanges(projectId: string, taskId: string): Promise
 export async function undoTask(projectId: string, taskId: string): Promise<string> {
   const t = findStoredTask(projectId, taskId)
   const ch = t.changes
-  if (!ch) return 'Esta tarea no cambió archivos (o se hizo antes de que existieran las instantáneas): no hay nada que deshacer.'
-  if (ch.undoneAt) return 'Esta tarea ya se deshizo.'
-  if (t.status === 'running') return 'La tarea sigue trabajando: detenla antes de deshacerla.'
+  if (!ch) return tr('Esta tarea no cambió archivos (o se hizo antes de que existieran las instantáneas): no hay nada que deshacer.')
+  if (ch.undoneAt) return tr('Esta tarea ya se deshizo.')
+  if (t.status === 'running') return tr('La tarea sigue trabajando: detenla antes de deshacerla.')
   const main = store.workRoot(projectId)
   const r = await withGit(projectId, (sh) => sh.apply(main, 'main', ch.after, ch.before, { strict: true, label: `Deshacer «${t.title}»` }))
   if (r.conflicts.length) {
-    return `No he deshecho nada: después de «${t.title}» se cambiaron las mismas líneas de ${r.conflicts.map((f) => `\`${f}\``).join(', ')}. Pide al equipo que lo revierta a mano o deshaz antes lo que vino después.`
+    return tr('No he deshecho nada: después de «{title}» se cambiaron las mismas líneas de {v2}. Pide al equipo que lo revierta a mano o deshaz antes lo que vino después.', { title: t.title, v2: r.conflicts.map((f) => `\`${f}\``).join(', ') })
   }
   t.changes = { ...ch, undoneAt: Date.now() }
   store.upsertTask(t)
@@ -404,7 +423,7 @@ export async function undoTask(projectId: string, taskId: string): Promise<strin
       else known.delete(rel)
     }
   }
-  const text = `Deshecha «${t.title}»: ${r.applied.length} archivo${r.applied.length === 1 ? '' : 's'} vuelven a como estaban antes (${r.applied.slice(0, 8).map((f) => `\`${f}\``).join(', ')}${r.applied.length > 8 ? '…' : ''}).`
+  const text = tr('Deshecha «{title}»: {length} archivo{v3} vuelven a como estaban antes ({v4}{v5}).', { title: t.title, length: r.applied.length, v3: r.applied.length === 1 ? '' : 's', v4: r.applied.slice(0, 8).map((f) => `\`${f}\``).join(', '), v5: r.applied.length > 8 ? '…' : '' })
   const m: ChatMessage = { id: randomUUID(), projectId, runId: t.runId, author: { type: 'system' }, text, createdAt: Date.now(), tone: 'normal' }
   pushMessage(m)
   return text
@@ -428,7 +447,7 @@ let presenceCheck: typeof checkAgentPresence = checkAgentPresence
 export function unblockProvider(provider: AgentConfig['provider']): void {
   for (const a of baseAgents()) {
     if (a.provider !== provider || !blocked.delete(a.id)) continue
-    if (!busy.has(a.id)) setRuntime(a.id, { activity: 'idle', reason: undefined, lastActivity: 'Disponible de nuevo' })
+    if (!busy.has(a.id)) setRuntime(a.id, { activity: 'idle', reason: undefined, lastActivity: tr('Disponible de nuevo') })
   }
 }
 
@@ -443,6 +462,18 @@ export function __setBackendsForChecks(b: { run?: typeof runAgent; presence?: ty
 let quotaRefreshTimer: NodeJS.Timeout | null = null
 
 // ---------- agents ----------
+
+
+/** Para el coordinador: qué herramientas de Extensiones tiene cada agente activo (vacío si no hay ninguna). */
+function extraToolLines(): string[] {
+  const names: Record<string, string[]> = {}
+  for (const a of getConfig().agents) if (a.enabled) (names[a.provider] ??= []).push(a.name)
+  try {
+    return guideLines(listMcp(), names)
+  } catch {
+    return []
+  }
+}
 
 function baseAgents(): AgentConfig[] {
   return getConfig().agents.filter((a) => a.enabled && !a.isSubagent)
@@ -474,7 +505,7 @@ function isBlocked(id: AgentId): boolean {
   if (!b) return false
   if (Date.now() < b.until) return true
   blocked.delete(id)
-  if (!busy.has(id)) setRuntime(id, { activity: 'idle', reason: undefined, lastActivity: 'Disponible de nuevo' })
+  if (!busy.has(id)) setRuntime(id, { activity: 'idle', reason: undefined, lastActivity: tr('Disponible de nuevo') })
   return false
 }
 
@@ -586,36 +617,36 @@ function planInbox(m: ChatMessage): void {
   addInbox({
     kind: 'plan',
     key: `plan:${m.id}`,
-    title: `${who} propone un plan de ${p.tasks.length} tarea${p.tasks.length === 1 ? '' : 's'}: ${oneLine(p.request, 120)}`,
+    title: tr('{who} propone un plan de {length} tarea{v3}: {oneLine}', { who, length: p.tasks.length, v3: p.tasks.length === 1 ? '' : 's', oneLine: oneLine(p.request, 120) }),
     detail: p.tasks.map((t) => `• ${t.title} (${agentName(t.agentId)})`).join('\n'),
     projectId: m.projectId,
     runId: m.runId,
     messageId: m.id,
     actions: [
-      { id: 'approve', label: 'Aprobar' },
-      { id: 'reject', label: 'Descartar' }
+      { id: 'approve', label: tr('Aprobar') },
+      { id: 'reject', label: tr('Descartar') }
     ]
   })
 }
 
 /** Al dejar de trabajar una tarea, sus avisos de «esperando» ya no esperan nada. */
 function taskInboxDone(t: Task): void {
-  resolveInboxWhere((i) => i.taskId === t.id && (i.kind === 'stalled' || i.kind === 'mac-permission'), 'La tarea siguió o terminó')
+  resolveInboxWhere((i) => i.taskId === t.id && (i.kind === 'stalled' || i.kind === 'mac-permission'), tr('La tarea siguió o terminó'))
 }
 
 /** Lo que hace cada botón de la bandeja que toca al equipo. */
 function registerInboxActions(): void {
   onInboxAction('approve', async (i) => {
-    if (!i.projectId || !i.messageId) return 'Ese plan ya no existe'
+    if (!i.projectId || !i.messageId) return tr('Ese plan ya no existe')
     await approvePlan(i.projectId, i.messageId)
-    return 'Plan aprobado: el equipo empieza'
+    return tr('Plan aprobado: el equipo empieza')
   })
   onInboxAction('reject', (i) => {
-    if (!i.projectId || !i.messageId) return 'Ese plan ya no existe'
+    if (!i.projectId || !i.messageId) return tr('Ese plan ya no existe')
     rejectPlan(i.projectId, i.messageId)
-    return 'Plan descartado'
+    return tr('Plan descartado')
   })
-  onInboxAction('undo', (i) => (i.projectId && i.taskId ? undoTask(i.projectId, i.taskId) : 'No sé qué tarea deshacer'))
+  onInboxAction('undo', (i) => (i.projectId && i.taskId ? undoTask(i.projectId, i.taskId) : tr('No sé qué tarea deshacer')))
 }
 
 /**
@@ -627,11 +658,11 @@ function runInbox(run: Run, ok: boolean): void {
     const st = store.getProject(run.projectId)
     const msgs = st.messages.filter((m) => m.runId === run.id && m.author.type === 'agent' && !!m.text.trim() && !m.proposal)
     const last = msgs[msgs.length - 1]
-    resolveInboxWhere((i) => i.projectId === run.projectId && (i.kind === 'done' || i.kind === 'question'), 'Hay una petición más reciente')
+    resolveInboxWhere((i) => i.projectId === run.projectId && (i.kind === 'done' || i.kind === 'question'), tr('Hay una petición más reciente'))
     const q = last ? asksUser(last.text) : null
     const who = last?.author.type === 'agent' ? agentName(last.author.agentId) : 'El equipo'
     if (q) {
-      addInbox({ kind: 'question', title: `${who} te pregunta (${st.project.name})`, detail: q, projectId: run.projectId, runId: run.id, messageId: last!.id, actions: [{ id: 'dismiss', label: 'Lo contesto en el chat' }] })
+      addInbox({ kind: 'question', title: tr('{who} te pregunta ({name})', { who, name: st.project.name }), detail: q, projectId: run.projectId, runId: run.id, messageId: last!.id, actions: [{ id: 'dismiss', label: tr('Lo contesto en el chat') }] })
       return
     }
     addInbox({
@@ -640,7 +671,7 @@ function runInbox(run: Run, ok: boolean): void {
       detail: last ? oneLine(last.text, 400) : undefined,
       projectId: run.projectId,
       runId: run.id,
-      actions: [{ id: 'dismiss', label: 'Entendido' }]
+      actions: [{ id: 'dismiss', label: tr('Entendido') }]
     })
   } catch (e) {
     console.warn('[cowork] bandeja: no se pudo anotar el final de la petición', e)
@@ -862,7 +893,8 @@ export async function checkPresence(fresh = false, onlyOllama = false): Promise<
 export function initOrchestrator(): void {
   for (const a of baseAgents()) getRuntime(a.id)
   void clearStaleCopies()
-  void checkPresence()
+  // Al arrancar, comprobación completa: entre otras cosas enciende el servidor de LM Studio si está apagado.
+  void checkPresence(true)
   if (ollamaTimer) clearInterval(ollamaTimer)
   ollamaTimer = setInterval(() => void checkPresence(false, true), 30_000)
 }
@@ -909,7 +941,7 @@ function spawnBecario(parent: AgentConfig, stationId: string, model: string): Ag
     modelLabel: light ? (parent.lightModelLabel ?? parent.lightModel ?? parent.modelLabel) : parent.modelLabel,
     color: SUBAGENT_COLOR,
     stationId,
-    role: `Sub-agente de ${parent.name}`,
+    role: tr('Sub-agente de {name}', { name: parent.name }),
     strengths: [],
     enabled: true,
     quotaGroupId: parent.quotaGroupId,
@@ -944,13 +976,35 @@ function removeBecario(id: AgentId, delayMs = BECARIO_LINGER_MS): void {
 
 /** «/model» y sus variantes, como en el cuadro de texto del escritorio y de Órbita. */
 const MODEL_COMMAND = /^\/(model|models|modelo|modelos)$/i
+/** «/rutina …»: crea una rutina (src/shared/routines.ts entiende el horario), no es un encargo para el equipo. */
+const ROUTINE_COMMAND = /^\/(rutina|rutinas|routine)\b/i
+
+/**
+ * «/rutina …» que llega como mensaje (desde Órbita, el MCP o cualquier cliente que no la cree él mismo): se crea
+ * aquí la rutina y se contesta en el chat, sin gastar una llamada a Hermes. Sola, «/rutina» explica cómo se escribe.
+ */
+function routineCommandReply(projectId: string, text: string): { text: string; routine?: { id: string; name: string } } {
+  if (/^\/\w+\s*$/.test(text)) return { text: routineCommandHelp() }
+  const cmd = parseRoutineCommand(text)
+  if ('error' in cmd) return { text: cmd.error }
+  try {
+    const r = createRoutine(projectId, { ...cmd, enabled: true })
+    const next = r.nextAt ?? null
+    return {
+      text: tr('Rutina creada: «{name}» · {when}{next}. Está en la pestaña Rutinas.', { name: r.name, when: describeTrigger(r.trigger), next: next ? tr(' (la próxima, {when})', { when: describeWhen(next) }) : '' }),
+      routine: { id: r.id, name: r.name }
+    }
+  } catch (e) {
+    return { text: (e as Error).message }
+  }
+}
 
 /**
  * Una petición al chat. Con `routine`, la lanza una rutina (src/main/routines.ts): es una petición normal (plan,
  * agentes, verificación), pero el mensaje lleva la marca de la rutina y no cuenta como respuesta a un plan pendiente.
  * La marca solo la pone el motor: no llega desde la interfaz ni desde la API.
  */
-export async function sendMessage(input: SendMessageInput, opts: { routine?: { id: string; name: string } } = {}): Promise<{ runId: string }> {
+export async function sendMessage(input: SendMessageInput, opts: { routine?: { id: string; name: string; askApproval?: boolean } } = {}): Promise<{ runId: string }> {
   const routine = opts.routine
   const projectId = input?.projectId
   const st = store.getProject(projectId)
@@ -967,12 +1021,12 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   const reused: Attachment[] = []
   for (const id of Array.isArray(input.attachmentIds) ? input.attachmentIds : []) {
     const a = st.attachments.find((x) => x.id === id)
-    if (!a) throw new Error(`No existe el adjunto ${String(id)}`)
+    if (!a) throw new Error(tr('No existe el adjunto {String}', { String: String(id) }))
     if (!reused.includes(a)) reused.push(a)
   }
   const paths = Array.isArray(input.filePaths) ? input.filePaths.filter((p): p is string => typeof p === 'string') : []
   const atts = [...reused, ...store.copyAttachments(projectId, paths)]
-  if (!text.trim() && !atts.length) throw new Error('El mensaje está vacío')
+  if (!text.trim() && !atts.length) throw new Error(tr('El mensaje está vacío'))
 
   // «/model» es de la app (abre la lista de modelos de Hermes), no un encargo: si llega como mensaje (desde una
   // versión de Órbita que aún no lo abre), se contesta aquí sin gastar una llamada a Hermes.
@@ -984,14 +1038,40 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
       ...base,
       id: randomUUID(),
       author: { type: 'system' },
-      text: '«/model» abre la lista de modelos de Hermes para cambiarlo: escríbelo en el chat del ordenador o en Órbita (actualízala en Ajustes → Órbita), o pulsa a Hermes en el espacio → «Modelo».'
+      text: tr('«/model» abre la lista de modelos de Hermes para cambiarlo: escríbelo en el chat del ordenador o en Órbita (actualízala en Ajustes → Órbita), o pulsa a Hermes en el espacio → «Modelo».')
     })
     return { runId }
   }
 
+  if (!routine && !atts.length && ROUTINE_COMMAND.test(text.trim())) {
+    const runId = randomUUID()
+    const base = { projectId, runId, createdAt: Date.now() }
+    pushMessage({ ...base, id: randomUUID(), ...(input.clientMessageId ? { clientMessageId: input.clientMessageId } : {}), author: { type: 'user' }, text })
+    const reply = routineCommandReply(projectId, text.trim())
+    pushMessage({ ...base, id: randomUUID(), author: { type: 'system' }, text: reply.text, ...(reply.routine ? { routine: reply.routine } : {}) })
+    return { runId }
+  }
+
+  // Plantilla de tareas: la elegida en la fila de encima del chat (el texto ya llega relleno) o «/orden …» (se rellena
+  // aquí). En el chat se ve lo que enviaste; al equipo le llega el texto de la plantilla.
+  const tpl = resolveTemplate(text, projectId, input.templateId)
+  const tplMark = tpl ? { template: { id: tpl.template.id, name: tpl.template.name } } : {}
+  const tplAgent = tpl?.template.agentId ? baseAgents().find((a) => a.id === tpl.template.agentId) : undefined
+  if (tpl?.template.agentId && !tplAgent) {
+    throw new Error(tr('El agente de la plantilla «{name}» ya no está en el equipo: edítala y elige otro.', { name: tpl.template.name }))
+  }
+
+  // «@Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes.
+  const direct = tplAgent ? { agentId: tplAgent.id, text: tpl!.text } : parseDirect(tpl ? tpl.text : text, baseAgents())
+  if (direct && 'error' in direct) {
+    throw new Error(tr('No hay ningún agente «{name}». Escribe @ y elige uno de la lista, o usa el nombre que sale en su ficha.', { name: direct.error }))
+  }
+  if (direct) return sendDirect(st, direct.agentId, direct.text, atts, input.clientMessageId, routine, tpl ? { shown: text.trim(), ...tplMark } : {})
+
   // Hay un plan esperando tu visto bueno: un «sí» lo aprueba; cualquier otra cosa son cambios a ese plan.
   // Una rutina no responde a planes pendientes: su petición es aparte.
-  const pending = routine ? undefined : pendingProposal(projectId)
+  // Una plantilla tampoco: es una petición nueva, no un cambio al plan.
+  const pending = routine || tpl ? undefined : pendingProposal(projectId)
   if (pending && !atts.length && isPlanApproval(text)) {
     pushMessage({
       id: randomUUID(),
@@ -1016,9 +1096,12 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     text,
     createdAt: Date.now(),
     attachments: atts.length ? atts : undefined,
-    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {}),
+    ...tplMark
   })
-  let userText = text.trim() || '(El usuario solo ha enviado archivos adjuntos.)'
+  // «/orden …» de un mod: en el chat se ve lo que escribiste; al equipo le llega el texto de la orden.
+  const modCommand = tpl ? null : expandModCommand(text)
+  let userText = tpl?.text || modCommand?.text || text.trim() || '(El usuario solo ha enviado archivos adjuntos.)'
   let revision: Run['revision']
   const runAtts = [...atts]
   if (pending?.proposal) {
@@ -1036,7 +1119,8 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     projectId,
     userText,
     revision,
-    ...(routine ? { routine: routine.name } : {}),
+    ...(routine ? { routine: routine.name, ...(routine.askApproval ? { routineApproval: true } : {}) } : {}),
+    ...(tpl?.template.askPlan ? { askPlan: true } : {}),
     attachments: runAtts,
     attPaths: store.stageAttachments(projectId, runAtts),
     planning: true,
@@ -1057,10 +1141,87 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   void executeRun(run).catch((e) => {
     console.error('[cowork] run failed', e)
     if (!run.finished && !run.cancelled) {
-      systemMessage(run, `Error interno del motor: ${(e as Error).message}`, 'error')
+      systemMessage(run, tr('Error interno del motor: {message}', { message: (e as Error).message }), 'error')
       void finishRun(run, false)
     }
   })
+  return { runId }
+}
+
+/**
+ * Mensaje directo a un agente («@Qwen …»): una sola tarea para él con tu texto tal cual. Sin plan de Hermes, sin
+ * verificador, sin relevo a otro agente si falla y sin resumen final: su respuesta sale en el chat sin retocar.
+ * Si el anterior mensaje tuyo en el proyecto también fue directo a ese agente, retoma su sesión del CLI (si la
+ * admite), para que la conversación siga.
+ */
+async function sendDirect(
+  st: ReturnType<typeof store.getProject>,
+  agentId: AgentId,
+  text: string,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  /** Lanzado con una plantilla: lo que se ve en el chat (lo que escribiste) y su nombre. */
+  extra: { shown?: string; template?: { id: string; name: string } } = {}
+): Promise<{ runId: string }> {
+  const agent = findAgent(agentId)!
+  const projectId = st.project.id
+  if (!text && !atts.length) throw new Error(tr('Escribe el mensaje para {name} después de su nombre.', { name: agent.name }))
+  const lastMine = [...st.messages].reverse().find((m) => m.author.type === 'user')
+  const continues = lastMine?.direct?.agentId === agent.id
+  const runId = randomUUID()
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: extra.shown || text || tr('(Solo archivos adjuntos)'),
+    createdAt: Date.now(),
+    attachments: atts.length ? atts : undefined,
+    direct: { agentId: agent.id, name: agent.name },
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {}),
+    ...(extra.template ? { template: extra.template } : {})
+  })
+  const run: Run = {
+    id: runId,
+    projectId,
+    userText: text,
+    ...(routine ? { routine: routine.name } : {}),
+    attachments: atts,
+    attPaths: store.stageAttachments(projectId, atts),
+    planning: false,
+    taskIds: [],
+    meta: new Map(),
+    controllers: new Map(),
+    cancelled: false,
+    finished: false
+  }
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId,
+    title: tr('Mensaje directo: {text}', { text: oneLine(text, 60) || tr('archivos adjuntos') }),
+    description: text,
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'text',
+    direct: true,
+    ...(continues ? { continues: true } : {})
+  }
+  run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
+  runs.set(runId, run)
+  emit({ kind: 'run.started', runId, projectId })
+  startRunUsage({ runId, projectId, projectName: st.project.name, request: text })
+  await baseline(run)
+  tasks.set(t.id, t)
+  run.taskIds.push(t.id)
+  pushTask(t)
+  schedule()
   return { runId }
 }
 
@@ -1088,9 +1249,9 @@ function pendingProposal(projectId: string): ChatMessage | undefined {
 /** Un plan propuesto y guardado en su mensaje (sigue ahí aunque se reinicie la app). */
 function proposalMessage(projectId: string, messageId: string): ChatMessage & { proposal: PlanProposal; runId: string } {
   const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
-  if (!m?.proposal || !m.runId) throw new Error('No se encontró ese plan')
-  if (m.proposal.status === 'approved' || runs.has(m.runId)) throw new Error('Ese plan ya está en marcha')
-  if (m.proposal.status !== 'pending') throw new Error('Ese plan ya no está pendiente')
+  if (!m?.proposal || !m.runId) throw new Error(tr('No se encontró ese plan'))
+  if (m.proposal.status === 'approved' || runs.has(m.runId)) throw new Error(tr('Ese plan ya está en marcha'))
+  if (m.proposal.status !== 'pending') throw new Error(tr('Ese plan ya no está pendiente'))
   return m as ChatMessage & { proposal: PlanProposal; runId: string }
 }
 
@@ -1164,9 +1325,9 @@ export async function approvePlan(projectId: string, messageId: string): Promise
 export function rateMessage(projectId: string, messageId: string, rating: MessageRating | null): void {
   const st = store.getProject(projectId)
   const m = st.messages.find((x) => x.id === messageId)
-  if (!m) throw new Error('No se encontró ese mensaje')
-  if (m.author.type !== 'agent') throw new Error('Solo se valoran los resultados de los agentes')
-  if (rating !== 'up' && rating !== 'down' && rating !== null) throw new Error('Valoración no válida')
+  if (!m) throw new Error(tr('No se encontró ese mensaje'))
+  if (m.author.type !== 'agent') throw new Error(tr('Solo se valoran los resultados de los agentes'))
+  if (rating !== 'up' && rating !== 'down' && rating !== null) throw new Error(tr('Valoración no válida'))
   const next: ChatMessage = { ...m }
   if (rating) next.rating = rating
   else delete next.rating
@@ -1176,6 +1337,47 @@ export function rateMessage(projectId: string, messageId: string, rating: Messag
 }
 
 /** Descarta el plan propuesto: no se hace nada. */
+/**
+ * Hermes propone dejar programado algo que le pediste («cada mañana…», «mañana a las 7…»): sale en el chat como una
+ * tarjeta con «Crear rutina». Solo si la orden se entiende y no la propone una rutina (no se encadenan). Va antes de
+ * su respuesta para que se lea a la vez que el plan.
+ */
+export function routineProposalFrom(command: string, now = Date.now()): RoutineProposal | null {
+  const raw = command.trim()
+  if (!raw) return null
+  const full = /^\/(rutina|rutinas|routine)\b/i.test(raw) ? raw : `/rutina ${raw}`
+  const cmd = parseRoutineCommand(full, now)
+  if ('error' in cmd) return null
+  return { status: 'pending', name: cmd.name, request: cmd.request, trigger: cmd.trigger, command: full }
+}
+
+function proposeRoutine(run: Run, planner: AgentConfig, command: string): void {
+  if (run.routine || !command) return
+  const proposal = routineProposalFrom(command)
+  if (!proposal) {
+    console.warn(`[cowork] ${planner.id} propuso una rutina que no se entiende: ${command.slice(0, 200)}`)
+    return
+  }
+  agentMessage(run, planner.id, tr('¿Lo dejo programado? Con «Crear rutina» se lanzará solo: {when}.', { when: describeTrigger(proposal.trigger) }), { routineProposal: proposal })
+}
+
+/** «Crear rutina» o «Descartar» en la tarjeta que propuso Hermes. */
+export function decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): ChatMessage {
+  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const p = m?.routineProposal
+  if (!m || !p) throw new Error(tr('No se encontró esa propuesta de rutina'))
+  if (p.status !== 'pending') throw new Error(p.status === 'created' ? tr('Esa rutina ya está creada') : tr('Esa propuesta ya se descartó'))
+  if (action !== 'create' && action !== 'dismiss') throw new Error(tr('Acción no válida'))
+  let next: RoutineProposal
+  if (action === 'create') {
+    const r = createRoutine(projectId, { name: p.name, request: p.request, trigger: p.trigger, enabled: true })
+    next = { ...p, status: 'created', routineId: r.id, decidedAt: Date.now() }
+  } else next = { ...p, status: 'dismissed', decidedAt: Date.now() }
+  const updated = { ...m, routineProposal: next }
+  pushMessage(updated)
+  return updated
+}
+
 export function rejectPlan(projectId: string, messageId: string): void {
   const msg = proposalMessage(projectId, messageId)
   pushMessage({ ...msg, proposal: { ...msg.proposal, status: 'rejected', decidedAt: Date.now() } })
@@ -1187,11 +1389,11 @@ export function rejectPlan(projectId: string, messageId: string): void {
  * queda como está y sirve de resultado previo para lo que dependía de ello.
  */
 export async function resumeRun(projectId: string, runId: string): Promise<void> {
-  if (runs.has(runId)) throw new Error('Esa petición ya está en marcha')
+  if (runs.has(runId)) throw new Error(tr('Esa petición ya está en marcha'))
   const st = store.getProject(projectId)
   const all = st.tasks.filter((t) => t.runId === runId)
   const todo = all.filter((t) => t.status === 'cancelled' && t.error === INTERRUPTED_ERROR)
-  if (!todo.length) throw new Error('No hay tareas interrumpidas que reanudar en esa petición')
+  if (!todo.length) throw new Error(tr('No hay tareas interrumpidas que reanudar en esa petición'))
   const userMsg = st.messages.find((m) => m.runId === runId && m.author.type === 'user')
   const planMsg = st.messages.find((m) => m.runId === runId && !!m.taskIds?.length)
   const atts = userMsg?.attachments ?? []
@@ -1244,7 +1446,7 @@ export async function resumeRun(projectId: string, runId: string): Promise<void>
   } catch {
     /* ignore */
   }
-  systemMessage(run, `Reanudando la petición: ${todo.length === 1 ? 'queda 1 tarea' : `quedan ${todo.length} tareas`} a medias (${todo.map((t) => `«${t.title}»`).join(', ')}).`)
+  systemMessage(run, tr('Reanudando la petición: {v1} a medias ({v2}).', { v1: todo.length === 1 ? tr('queda 1 tarea') : tr('quedan {length} tareas', { length: todo.length }), v2: todo.map((t) => `«${t.title}»`).join(', ') }))
   schedule()
 }
 
@@ -1253,11 +1455,11 @@ export async function resumeRun(projectId: string, runId: string): Promise<void>
  * canceladas por el usuario y dejan de ofrecerse (y de avisar); lo terminado se queda como está.
  */
 export function discardRun(projectId: string, runId: string): void {
-  if (runs.has(runId)) throw new Error('Esa petición ya está en marcha')
+  if (runs.has(runId)) throw new Error(tr('Esa petición ya está en marcha'))
   const todo = store.getProject(projectId).tasks.filter((t) => t.runId === runId && t.status === 'cancelled' && t.error === INTERRUPTED_ERROR)
-  if (!todo.length) throw new Error('No hay tareas interrumpidas que reanudar en esa petición')
+  if (!todo.length) throw new Error(tr('No hay tareas interrumpidas que reanudar en esa petición'))
   for (const t of todo) {
-    t.error = 'Cancelada por el usuario'
+    t.error = tr('Cancelada por el usuario')
     pushTask(t)
   }
   pushMessage({
@@ -1265,7 +1467,7 @@ export function discardRun(projectId: string, runId: string): void {
     projectId,
     runId,
     author: { type: 'system' },
-    text: `Has quitado lo que quedaba en pausa (${todo.map((t) => `«${t.title}»`).join(', ')}): no se reanudará.`,
+    text: tr('Has quitado lo que quedaba en pausa ({v1}): no se reanudará.', { v1: todo.map((t) => `«${t.title}»`).join(', ') }),
     createdAt: Date.now(),
     tone: 'normal'
   })
@@ -1283,20 +1485,20 @@ export function cancelRun(runId: string, reason: 'user' | 'quit' | 'pause' = 'us
     if (!t || !['pending', 'blocked', 'running'].includes(t.status)) continue
     const wasRunning = t.status === 'running'
     t.status = 'cancelled'
-    t.error = reason !== 'user' ? INTERRUPTED_ERROR : 'Cancelada por el usuario'
+    t.error = reason !== 'user' ? INTERRUPTED_ERROR : tr('Cancelada por el usuario')
     t.finishedAt = now
     pushTask(t)
     if (wasRunning) {
       if (busy.get(t.agentId) === t.id) busy.delete(t.agentId)
       if (subagents.has(t.agentId)) removeBecario(t.agentId, 0)
-      else if (!isBlocked(t.agentId)) setRuntime(t.agentId, { activity: 'idle', taskId: undefined, lastActivity: 'Cancelada', context: undefined })
+      else if (!isBlocked(t.agentId)) setRuntime(t.agentId, { activity: 'idle', taskId: undefined, lastActivity: tr('Cancelada'), context: undefined })
     }
   }
   if (run.plannerId && planningAgents.get(run.plannerId) === run.id) {
     planningAgents.delete(run.plannerId)
-    if (!busy.has(run.plannerId) && !isBlocked(run.plannerId)) setRuntime(run.plannerId, { activity: 'idle', lastActivity: 'Cancelada' })
+    if (!busy.has(run.plannerId) && !isBlocked(run.plannerId)) setRuntime(run.plannerId, { activity: 'idle', lastActivity: tr('Cancelada') })
   }
-  systemMessage(run, reason === 'quit' ? 'Ejecución interrumpida al cerrar la app.' : reason === 'pause' ? 'Has detenido la ejecución. Puedes reanudar sus tareas pendientes.' : 'Has cancelado la ejecución.')
+  systemMessage(run, reason === 'quit' ? tr('Ejecución interrumpida al cerrar la app.') : reason === 'pause' ? tr('Has detenido la ejecución. Puedes reanudar sus tareas pendientes.') : tr('Has cancelado la ejecución.'))
   run.finished = true
   // Al cerrar la app no se consulta la cuota (no da tiempo y dejaría procesos sueltos).
   usageEnded(run, 'cancelled', reason !== 'quit')
@@ -1323,6 +1525,15 @@ function cleanupRun(run: Run): void {
 
 // ---------- planning ----------
 
+/**
+ * ¿El plan espera tu visto bueno? Lo que escribes tú, según «Pedir mi visto bueno a cada plan». Lo que lanza una
+ * rutina, solo si esa rutina lo pide: nadie está delante y, si no, se quedaría parada hasta que volvieras.
+ */
+export function needsApproval(run: Pick<Run, 'routine' | 'routineApproval' | 'askPlan'>): boolean {
+  if (run.askPlan) return true
+  return run.routine ? run.routineApproval === true : getConfig().planApproval
+}
+
 async function executeRun(run: Run): Promise<void> {
   const plan = await planRun(run)
   if (run.cancelled) return
@@ -1332,8 +1543,9 @@ async function executeRun(run: Run): Promise<void> {
     return
   }
   const { planner, reply, planned, contract, memory } = plan
+  proposeRoutine(run, planner, plan.routine)
   // Con tareas, primero tu visto bueno: el plan se enseña y nada empieza hasta que lo apruebes.
-  if (planned.length && getConfig().planApproval) {
+  if (planned.length && needsApproval(run)) {
     proposePlan(run, planner, reply, planned, contract, memory)
     return
   }
@@ -1342,7 +1554,7 @@ async function executeRun(run: Run): Promise<void> {
   const created = createTasks(run, planned)
   const replyText =
     (reply.trim() ||
-      (created.length ? `He repartido el trabajo en ${created.length} ${created.length === 1 ? 'tarea' : 'tareas'}.` : 'Hecho.')) +
+      (created.length ? (created.length === 1 ? tr('He repartido el trabajo en 1 tarea.') : tr('He repartido el trabajo en {n} tareas.', { n: created.length })) : tr('Hecho.'))) +
     noteMemory(run, planner.name, memory)
   agentMessage(run, planner.id, replyText, {
     ...(created.length ? { taskIds: created.map((t) => t.id) } : {}),
@@ -1398,7 +1610,7 @@ function noteMemory(run: Run, via: string, notes: MemoryNote[]): string {
       addMemory(run.projectId, { kind: n.kind, text: n.text }, { status: 'confirmed', by: 'user', byName: 'Tú', via, runId: run.id, replaces: n.replaces })
     )
     .filter((e) => !!e)
-  return noted.length ? `\n\n*Anotado en la memoria del proyecto:* ${noted.map((e) => `${KIND_LABEL[e.kind]} «${e.text}»`).join('; ')}.` : ''
+  return noted.length ? tr('\n\n*Anotado en la memoria del proyecto:* {v1}.', { v1: noted.map((e) => `${tr(KIND_LABEL[e.kind])} «${e.text}»`).join('; ') }) : ''
 }
 
 /**
@@ -1456,7 +1668,7 @@ function pickPlanner(tried: Set<AgentId>, images = false): AgentConfig | null {
 
 async function planRun(
   run: Run
-): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[] } | null> {
+): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string } | null> {
   const tried = new Set<AgentId>()
   const failures: string[] = []
   const st = store.getProject(run.projectId)
@@ -1468,8 +1680,8 @@ async function planRun(
       systemMessage(
         run,
         failures.length
-          ? `Ningún agente pudo planificar el trabajo.${detail}`
-          : 'No hay ningún agente disponible para planificar. Revisa que los CLI estén instalados y con la sesión iniciada.',
+          ? tr('Ningún agente pudo planificar el trabajo.{detail}', { detail })
+          : tr('No hay ningún agente disponible para planificar. Revisa que los CLI estén instalados y con la sesión iniciada.'),
         'error'
       )
       return null
@@ -1481,7 +1693,7 @@ async function planRun(
       planningAgents.set(planner.id, run.id)
       setRuntime(planner.id, {
         activity: 'thinking',
-        lastActivity: 'Planificando el trabajo',
+        lastActivity: tr('Planificando el trabajo'),
         taskId: undefined,
         waitingFor: undefined,
         reason: undefined,
@@ -1519,13 +1731,13 @@ async function planRun(
 
     if (!res.ok) {
       const kind = res.errorKind ?? 'failed'
-      const msg = res.errorMessage ?? 'Error desconocido'
+      const msg = res.errorMessage ?? tr('Error desconocido')
       failures.push(`${planner.name}: ${msg}`)
       if (BLOCKING_KINDS.includes(kind)) blockAgent(planner, kind, msg)
       // Un coordinador que falla (lento, sin respuesta) se aparta un rato: las siguientes peticiones no lo esperan.
       else if (planner.plannerOnly) blockAgent(planner, kind, msg, COORDINATOR_REST_MS)
-      else if (!sharedAgent) setRuntime(planner.id, { activity: 'error', reason: msg, lastActivity: 'No pudo planificar' })
-      agentMessage(run, planner.id, `No pude planificar: ${msg}`, { tone: 'error' })
+      else if (!sharedAgent) setRuntime(planner.id, { activity: 'error', reason: msg, lastActivity: tr('No pudo planificar') })
+      agentMessage(run, planner.id, tr('No pude planificar: {msg}', { msg }), { tone: 'error' })
       continue
     }
 
@@ -1533,21 +1745,21 @@ async function planRun(
     // Sin el JSON pedido (modelo débil o con poco contexto, como Hermes con un modelo local pequeño),
     // planifica el siguiente de la lista; si no hay otro, su texto se usa como respuesta.
     if (!parsed.valid && pickPlanner(tried, imageAttachments(run).length > 0)) {
-      failures.push(`${planner.name}: no devolvió un plan válido`)
-      if (planner.plannerOnly) blockAgent(planner, 'failed', 'No devolvió un plan válido (su modelo puede ser demasiado pequeño)', COORDINATOR_REST_MS)
-      else if (!sharedAgent) setRuntime(planner.id, { activity: 'idle', lastActivity: 'Plan no válido', context: undefined })
+      failures.push(tr('{name}: no devolvió un plan válido', { name: planner.name }))
+      if (planner.plannerOnly) blockAgent(planner, 'failed', tr('No devolvió un plan válido (su modelo puede ser demasiado pequeño)'), COORDINATOR_REST_MS)
+      else if (!sharedAgent) setRuntime(planner.id, { activity: 'idle', lastActivity: tr('Plan no válido'), context: undefined })
       console.warn(`[cowork] ${planner.id} no devolvió un plan JSON: ${res.text.slice(0, 200)}`)
       continue
     }
-    if (!sharedAgent) setRuntime(planner.id, { activity: 'idle', lastActivity: 'Plan listo', context: undefined })
+    if (!sharedAgent) setRuntime(planner.id, { activity: 'idle', lastActivity: tr('Plan listo'), context: undefined })
     const { tasks: planned, changes } = validatePlan(parsed.tasks, `${run.userText}`, run.projectId)
     let reply = parsed.reply
     if (parsed.tasks.length && !planned.length) {
-      reply = `${reply}\n\n(No hay agentes disponibles para ejecutar las tareas propuestas.)`.trim()
+      reply = tr('{reply}\n\n(No hay agentes disponibles para ejecutar las tareas propuestas.)', { reply }).trim()
     }
-    // Lo que se ve en el plan es lo que se hará: si AI Cowork lo ajustó, se dice.
-    if (planned.length && changes.length) reply = `${reply.trim()}\n\n*Ajustes de AI Cowork al plan:* ${changes.join('; ')}.`.trim()
-    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory) }
+    // Lo que se ve en el plan es lo que se hará: si kywai lo ajustó, se dice.
+    if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de kywai al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
+    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine }
   }
 }
 
@@ -1724,9 +1936,10 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     ...coordinatorGuide({
       projectDir: store.workRoot(run.projectId),
       fullAccess: getConfig().agentAccess === 'full',
-      planApproval: getConfig().planApproval,
+      planApproval: needsApproval(run),
       routine: run.routine,
-      // La lista de funciones de la app solo si la conversación va de AI Cowork: si no, son 5 000 caracteres de ruido.
+      extraTools: extraToolLines(),
+      // La lista de funciones de la app solo si la conversación va de kywai: si no, son 5 000 caracteres de ruido.
       aboutApp: mentionsApp([run.userText, ...st.messages.filter((m) => m.author.type === 'user').slice(-3).map((m) => m.text)].join('\n'))
     }),
     '',
@@ -1753,11 +1966,12 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '',
     '## Qué debes responder',
     'Responde ÚNICAMENTE con un objeto JSON (puede ir dentro de un bloque ```json), sin ningún otro texto, con esta forma:',
-    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false}]}',
+    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\""}',
     '',
     'Reglas:',
-    '- "reply": mensaje breve en español para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.',
-    '- Si es charla o una duda sobre AI Cowork, responde tú en "reply" y deja "tasks": []. Si la pregunta va del proyecto o de su código («¿qué me recomiendas para…?», «¿por qué falla…?», «¿cómo está hecho…?»), NO la contestes de memoria: tú no puedes abrir sus archivos; crea UNA tarea de texto ("deliverable": "text", "medium") para un agente que sí los lee y que responda él.',
+    `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
+    ...(lang() === 'es' ? [] : [`- El usuario usa kywai en ${userLanguageName()}: escribe en ${userLanguageName()} todo lo que verá ("reply", "title", "acceptance" y lo que pidas a los agentes que le cuenten), aunque estas instrucciones estén en español.`]),
+    '- Si es charla o una duda sobre kywai, responde tú en "reply" y deja "tasks": []. Si la pregunta va del proyecto o de su código («¿qué me recomiendas para…?», «¿por qué falla…?», «¿cómo está hecho…?»), NO la contestes de memoria: tú no puedes abrir sus archivos; crea UNA tarea de texto ("deliverable": "text", "medium") para un agente que sí los lee y que responda él.',
     '- Lo que importa es que el resultado sea el mejor posible y cumpla exactamente lo pedido: el tiempo y el gasto son secundarios. Elige para cada parte al agente y la dificultad que den el mejor resultado, no los más rápidos ni los más baratos. Eso sí, cada tarea arranca un agente desde cero y cada traspaso pierde contexto: una cadena de tareas suele salir peor que un solo agente que lo hace entero.',
     '- Trabajo pequeño o muy enlazado (un script, un documento, un arreglo, algo de menos de unos 20 minutos): UNA sola tarea para el agente más adecuado, que lo hace y lo prueba. Nunca crees tareas aparte de «diseñar», «arquitectura» o «contratos».',
     '- Trabajo grande con partes REALMENTE independientes que se pueden construir A LA VEZ (por ejemplo, en una app: el motor o la lógica, la interfaz y el servidor): reparte esas partes en paralelo, cada una al agente que mejor la hace según su ficha (por ejemplo, la interfaz a quien es mejor en diseño y la lógica a quien es mejor programando). Escribe tú en "contract" el contrato común: carpetas, qué archivos son de cada tarea y las funciones, rutas HTTP y formatos de datos que se usan entre partes, con nombres exactos, parámetros y lo que devuelven. Las tareas en paralelo NO dependen entre sí y no comparten archivos: los comunes (package.json, README, configuración) son solo de la integración. Añade al final UNA tarea «Integrar y probar» (para el agente de la parte principal, dificultad "medium") que dependa de ellas: junta las partes, ejecuta las pruebas, comprueba el conjunto contra la petición del usuario y arregla lo que no encaje.',
@@ -1765,7 +1979,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     `- «A dos manos» para lo que depende del gusto: si el entregable es visual o de diseño (una web, una landing, una interfaz, un póster, una presentación, un logo o una imagen) y es trabajo NUEVO (no una continuación), dos agentes de familias distintas lo hacen por separado y un tercero elige: crea DOS tareas iguales sin dependencias, con las mismas instrucciones completas, una para cada agente, cada una solo en su carpeta ("files": ["${twoHandsBase(run.projectId)}opcion-a/"] y ["${twoHandsBase(run.projectId)}opcion-b/"], dilo en la descripción: «crea todo dentro de … y no toques la otra carpeta»), y una tercera tarea de texto «Elegir la mejor opción» ("deliverable": "text", "medium") para un agente de una tercera familia (si no la hay, para uno que no sea autor; en último caso, un autor), que dependa de las dos: que abra y pruebe ambas, las compare contra la petición en los dos órdenes (fidelidad, funcionamiento, calidad visual, código) y responda empezando con «GANA: A» o «GANA: B» y por qué. Aquí no hace falta "contract". Hazlo siempre que el usuario pida «a dos manos» o «dos opciones» (sea lo que sea), y nunca si pide «a una mano» o «una sola versión», si solo hay una familia disponible o si es una corrección.`,
     '- Nunca repartas una CONTINUACIÓN: si la petición corrige, amplía o retoma lo que se hizo antes en este proyecto («no funciona…», «ahora añade…», «cámbialo…»), es UNA tarea para el mismo agente que hizo ese trabajo (mira la conversación y los archivos recientes), con lo que hay que cambiar y dónde está.',
     '- Si el usuario pide «en equipo», reparte así en paralelo siempre que el trabajo tenga partes separables; si pide «un solo agente», crea una sola tarea.',
-    '- No añadas tareas de revisar, auditar, validar, verificar o corregir el trabajo de otra tarea, salvo que el usuario pida expresamente una revisión (por ejemplo «con revisión»): AI Cowork ya hace que cada tarea que cambia archivos la compruebe un agente de otra familia contra la petición y su "acceptance", y el autor corrige lo que vea. Por eso "acceptance" tiene que ser concreto y comprobable.',
+    '- No añadas tareas de revisar, auditar, validar, verificar o corregir el trabajo de otra tarea, salvo que el usuario pida expresamente una revisión (por ejemplo «con revisión»): kywai ya hace que cada tarea que cambia archivos la compruebe un agente de otra familia contra la petición y su "acceptance", y el autor corrige lo que vea. Por eso "acceptance" tiene que ser concreto y comprobable.',
     '- Como máximo 6 tareas.',
     '- Asigna cada tarea al agente más adecuado según su ficha («se le da mejor» y «evitar») y SOLO a agentes disponibles. Al agente local, solo tareas cortas y sencillas: es más lento.',
     '- Si varios agentes sirven, elige el de mejor calidad según su ficha («calidad»: lo que le sirvió al usuario, verificaciones a la primera, pocas correcciones y pocos fallos, mirando la fila de la misma dificultad); la calidad pesa más que la velocidad y el coste. Con calidad parecida, el que tenga más cuota restante. A un agente con poca cuota, solo lo imprescindible.',
@@ -1779,11 +1993,16 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '- "files": archivos o carpetas que la tarea puede crear o modificar (por ejemplo ["artifacts/app/motor/"]). Obligatorio si varias tareas trabajan a la vez: cada archivo, de una sola tarea. «Integrar y probar» puede tocarlo todo: [].',
     '- "continues": true cuando la tarea continúa, amplía o corrige lo que ESE MISMO agente hizo en la petición anterior de este proyecto (mira «Lo que se hizo en la petición anterior»): dásela al mismo agente y márcala así, y retomará su sesión del CLI con todo lo que leyó, hizo y decidió. Si lo anterior lo hizo otro agente o es trabajo nuevo, false.',
     '- "memory": SOLO lo que el usuario ha decidido, preferido o pedido EN ESTE MENSAJE y convenga recordar en futuras peticiones (por ejemplo «todo en TypeScript», «el servidor en Python»). Nada de suposiciones tuyas ni de detalles de esta tarea. Si contradice una entrada de la memoria, pon su id en "replaces". Si no hay nada, [].',
-    '- Respeta las instrucciones y la memoria del proyecto. Si la petición contradice algo confirmado, lo que pide ahora manda (y anótalo en "memory" con "replaces").'
+    '- Respeta las instrucciones y la memoria del proyecto. Si la petición contradice algo confirmado, lo que pide ahora manda (y anótalo en "memory" con "replaces").',
+    ...(run.routine
+      ? ['- "routine": "" (esta petición ya la lanza una rutina).']
+      : [
+          '- "routine": si el usuario pide algo que se repite o para más tarde («cada mañana revisa…», «todos los lunes prepara…», «mañana a las 7 recuérdame…», «dentro de 2 horas comprueba…», «cuando llegue un PR, revísalo»), escribe aquí la orden de la rutina, con el horario y luego la petición que se enviará sola, completa y en la voz del usuario: «/rutina de lunes a viernes a las 8:30: revisa las dependencias y avísame de las que tengan fallos de seguridad». Horarios que se entienden: «cada día a las 9:00», «de lunes a viernes a las 8:30», «lunes y jueves a las 7:00», «cada 6 horas», «mañana a las 7:00», «el viernes a las 18:00», «el 15/11 a las 9:00», «dentro de 2 horas», «webhook», «al cambiar archivos de <carpeta>». kywai le enseña una tarjeta «Crear rutina»: no la des por creada en "reply" ni crees tareas para montar un cron o un script. Si además conviene hacerlo ya, añade las tareas de esta vez. Si no pide nada periódico ni para más tarde, "".'
+        ])
   ].join('\n')
 }
 
-/** El plan listo para ejecutar y lo que AI Cowork cambió del que propuso el coordinador (para contárselo al usuario). */
+/** El plan listo para ejecutar y lo que kywai cambió del que propuso el coordinador (para contárselo al usuario). */
 /** Carpeta base de las dos opciones: artifacts/ en un proyecto interno, .ai-cowork/entregables/ en una carpeta del usuario. */
 function twoHandsBase(projectId: string): string {
   return store.getProject(projectId).project.workDir ? '.ai-cowork/entregables/' : 'artifacts/'
@@ -1834,7 +2053,7 @@ function validatePlan(raw: unknown[], context: string, projectId: string): { tas
     if (p.difficulty !== 'hard' || !locals.has(p.agentId)) continue
     const alt = bestAgentFor(`${p.title} ${p.description}`, locals)
     if (!alt) continue
-    changes.push(`«${p.title}» la hace ${alt.name} (el modelo local es lento para lo difícil)`)
+    changes.push(tr('«{title}» la hace {name} (el modelo local es lento para lo difícil)', { title: p.title, name: alt.name }))
     p.agentId = alt.id
   }
   // «A dos manos»: si el usuario lo pidió y el coordinador no lo hizo, se hace aquí (otra familia y un juez).
@@ -1863,7 +2082,7 @@ function cancelDependents(run: Run, failedId: string): void {
     if (!t || (t.status !== 'pending' && t.status !== 'blocked')) continue
     if (!t.dependsOn.includes(failedId)) continue
     t.status = 'cancelled'
-    t.error = 'Depende de una tarea fallida'
+    t.error = tr('Depende de una tarea fallida')
     t.finishedAt = Date.now()
     pushTask(t)
     cancelDependents(run, t.id)
@@ -1874,7 +2093,7 @@ function reassign(t: Task, from: AgentId, to: AgentConfig, assignedBy: AgentId =
   transfer({
     fromId: from,
     toId: to.id,
-    label: `Reasignada: ${t.title}`,
+    label: tr('Reasignada: {title}', { title: t.title }),
     taskId: t.id,
     payload: { title: t.title, summary: oneLine(t.description, 200) }
   })
@@ -1900,7 +2119,7 @@ export function schedule(): void {
       const deps = t.dependsOn.map((d) => tasks.get(d))
       if (deps.some((d) => !d || d.status === 'failed' || d.status === 'cancelled')) {
         t.status = 'cancelled'
-        t.error = 'Depende de una tarea fallida'
+        t.error = tr('Depende de una tarea fallida')
         t.finishedAt = Date.now()
         pushTask(t)
         cancelDependents(run, t.id)
@@ -1921,11 +2140,23 @@ export function schedule(): void {
 
       let agent = findAgent(t.agentId)
       if (agent?.isSubagent) agent = findAgent(agent.parentId)
+      if (t.direct && (!agent || !usable(agent))) {
+        // Un mensaje directo es para ese agente: no se le pasa a otro.
+        const why = agent ? offlineReason(agent) : null
+        t.status = 'failed'
+        t.error = agent
+          ? tr('{name} no está disponible{why}. El mensaje no se ha pasado a ningún otro agente.', { name: agent.name, why: why ? `: ${why}` : '' })
+          : tr('Ese agente ya no existe')
+        t.finishedAt = Date.now()
+        pushTask(t)
+        systemMessage(run, t.error, 'error')
+        continue
+      }
       if (!agent || !usable(agent)) {
         const alt = bestAgentFor(`${t.title} ${t.description}`, new Set([t.agentId]))
         if (!alt) {
           t.status = 'failed'
-          t.error = agent ? `${agent.name} no está disponible y no hay otro agente libre` : 'No hay ningún agente disponible'
+          t.error = agent ? tr('{name} no está disponible y no hay otro agente libre', { name: agent.name }) : tr('No hay ningún agente disponible')
           t.finishedAt = Date.now()
           pushTask(t)
           cancelDependents(run, t.id)
@@ -1986,7 +2217,7 @@ function updateWaiting(): void {
     const w = waitingFor.get(a.id)
     if (w) {
       if (rt.activity !== 'waiting' || rt.waitingFor !== w) {
-        setRuntime(a.id, { activity: 'waiting', waitingFor: w, lastActivity: `Esperando a ${agentName(w)}`, reason: undefined })
+        setRuntime(a.id, { activity: 'waiting', waitingFor: w, lastActivity: tr('Esperando a {agentName}', { agentName: agentName(w) }), reason: undefined })
       }
     } else if (rt.activity === 'waiting') {
       setRuntime(a.id, { activity: 'idle', waitingFor: undefined })
@@ -2052,6 +2283,7 @@ const NARRATE_RULE = '- Mientras trabajas, cuenta lo que haces en frases cortas 
 function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, deps: Task[], tools = false): string {
   const st = store.getProject(run.projectId)
   const meta = run.meta.get(t.id)!
+  if (t.direct) return directPrompt(run, t, !!meta.copy)
   const textOnly = isTextOnly(exec.provider)
   const files: string[] = []
   for (const a of run.attachments) files.push(`- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
@@ -2101,7 +2333,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       ]
 
   const lines = [
-    `Eres ${exec.name}${parent ? ` (becario de ${parent.name})` : ''}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". Responde en español.`,
+    `Eres ${exec.name}${parent ? ` (becario de ${parent.name})` : ''}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". ${replyLanguage()}`,
     '',
     '## Petición original del usuario',
     run.userText,
@@ -2185,7 +2417,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     ...rules,
     ...(tools
       ? [
-          `- Tienes las herramientas de AI Cowork (servidor MCP «${MCP_SERVER_NAME}»): «memoria_proyecto» (instrucciones y memoria al día), «anotar_memoria» (lo que los demás deben saber), «estado_equipo» (qué hacen ahora los compañeros, para no pisarlos), «preguntar_usuario» (una duda que cambia el resultado: no esperes la respuesta) y «leer_habilidad». Úsalas cuando aporten; no hace falta llamarlas por rutina.`
+          `- Tienes las herramientas de kywai (servidor MCP «${MCP_SERVER_NAME}»): «memoria_proyecto» (instrucciones y memoria al día), «anotar_memoria» (lo que los demás deben saber), «estado_equipo» (qué hacen ahora los compañeros, para no pisarlos), «preguntar_usuario» (una duda que cambia el resultado: no esperes la respuesta) y «leer_habilidad». Úsalas cuando aporten; no hace falta llamarlas por rutina.`
         ]
       : []),
     ...taskGuideRules(store.workRoot(run.projectId)),
@@ -2222,7 +2454,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     transfer({
       fromId: 'core',
       toId: parent ? parent.id : exec.id,
-      label: 'Nueva tarea',
+      label: tr('Nueva tarea'),
       taskId: t.id,
       payload: { title: t.title, summary: oneLine(t.description, 200) }
     })
@@ -2231,7 +2463,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     transfer({
       fromId: parent.id,
       toId: exec.id,
-      label: `Delegada: ${t.title}`,
+      label: tr('Delegada: {title}', { title: t.title }),
       taskId: t.id,
       payload: { title: t.title, summary: oneLine(t.description, 200) }
     })
@@ -2241,14 +2473,14 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   t.startedAt = Date.now()
   t.finishedAt = undefined
   t.model = model || undefined
-  t.lastActivity = 'Leyendo la tarea'
+  t.lastActivity = tr('Leyendo la tarea')
   t.error = undefined
   t.progress = undefined
   pushTask(t)
   setRuntime(exec.id, {
     activity: 'thinking',
     taskId: t.id,
-    lastActivity: 'Leyendo la tarea',
+    lastActivity: tr('Leyendo la tarea'),
     reason: undefined,
     waitingFor: undefined,
     context: undefined,
@@ -2274,19 +2506,22 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   const activity = (text: string): void => {
     if (ctrl.signal.aborted) return
     // Callado 3 minutos: suele esperar un aviso de permisos en la pantalla del servidor. A la bandeja (y al móvil).
-    if (text === STALL_NOTICE) {
+    if (isStallNotice(text)) {
       addInbox({
         kind: 'stalled',
         key: `stall:${t.id}`,
-        title: `${exec.name} lleva 3 minutos sin dar señales en «${t.title}»`,
-        detail: 'Puede que esté esperando un aviso de permisos en la pantalla del servidor (macOS o el llavero), que solo se contesta delante del equipo. Si no vuelve a dar señales en 20 minutos, se corta.',
+        title: tr('{name} lleva 3 minutos sin dar señales en «{title}»', { name: exec.name, title: t.title }),
+        detail:
+          text === GEMINI_LOGIN_STALL_NOTICE
+            ? tr('Gemini está usando tu sesión de Google, que ya no es gratis y suele quedarse colgada sin dar error. Pega una clave de API de Google AI Studio en ⚙ → Ajustes → Configurar agentes → Sesiones y vuelve a intentarlo.')
+            : tr('Puede que esté esperando un aviso de permisos en la pantalla del servidor (macOS o el llavero), que solo se contesta delante del equipo. Si no vuelve a dar señales en 20 minutos, se corta.'),
         projectId: run.projectId,
         runId: run.id,
         taskId: t.id,
         agentId: exec.id,
-        actions: [{ id: 'dismiss', label: 'Entendido' }]
+        actions: [{ id: 'dismiss', label: tr('Entendido') }]
       })
-    } else if (t.lastActivity === STALL_NOTICE) taskInboxDone(t)
+    } else if (isStallNotice(t.lastActivity)) taskInboxDone(t)
     if (!working) {
       working = true
       setRuntime(exec.id, { activity: 'working', lastActivity: text })
@@ -2309,13 +2544,35 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   startTrace(t.id, run.projectId)
   openWork(run, t, parent ?? exec)
   const progress = watchProgress(run, t, dir, taskStart)
-  traceNote(t.id, `${exec.name} empieza con ${modelNameFor(exec, model)}${effort ? ` · ${EFFORT_LABEL[effort]}` : ''}`)
-  if (resume) traceNote(t.id, `${exec.name} retoma su sesión anterior en este proyecto`)
-  // Herramientas de AI Cowork (memoria, equipo, preguntas, habilidades). Solo Claude: lee la configuración de un
+  traceNote(t.id, tr('{name} empieza con {modelNameFor}{v3}', { name: exec.name, modelNameFor: modelNameFor(exec, model), v3: effort ? ` · ${tr(EFFORT_LABEL[effort])}` : '' }))
+  if (resume) traceNote(t.id, tr('{name} retoma su sesión anterior en este proyecto', { name: exec.name }))
+  // Herramientas de kywai (memoria, equipo, preguntas, habilidades). Solo Claude: lee la configuración de un
   // archivo; Codex solo la admite con valores TOML entre comillas, que no pueden ir por la consola.
-  const mcp: McpLaunch | null = exec.provider === 'claude'
-    ? mcpForTask({ projectId: run.projectId, runId: run.id, taskId: t.id, taskTitle: t.title, agentId: (parent ?? exec).id, agentName: (parent ?? exec).name })
+  // Con ellas, los servidores MCP que el usuario encendió para este agente en Ajustes › Extensiones.
+  const userMcp = t.direct ? [] : serversFor(exec.provider)
+  const mcp: McpLaunch | null = exec.provider === 'claude' && !t.direct
+    ? mcpForTask({ projectId: run.projectId, runId: run.id, taskId: t.id, taskTitle: t.title, agentId: (parent ?? exec).id, agentName: (parent ?? exec).name }, claudeServers(userMcp))
     : null
+  let extraMcp: ExtraMcp | undefined
+  let extraFiles: string[] = []
+  if (userMcp.length && exec.provider === 'codex') {
+    const c = codexMcp(userMcp, join(getConfig().workspaceRoot, 'mcp'), taskTag())
+    extraFiles = c.files
+    const names = userMcp.map((x) => x.id).filter((id) => !c.skipped.includes(id))
+    if (names.length) extraMcp = { names, args: c.args, env: c.env }
+    if (c.skipped.length) traceNote(t.id, tr('Sin {list}: su configuración no se puede pasar a Codex', { list: c.skipped.join(', ') }), true)
+  } else if (userMcp.length && exec.provider === 'gemini') {
+    extraMcp = { names: userMcp.map((x) => x.id), args: [], env: geminiEnv(userMcp) }
+  } else if (userMcp.length && exec.provider === 'hermes') {
+    const h = hermesMcp(userMcp, join(getConfig().workspaceRoot, 'mcp'), taskTag())
+    if ('skipped' in h) traceNote(t.id, h.skipped, true)
+    else {
+      extraFiles = [h.dir]
+      extraMcp = { names: h.names, args: [], env: h.env }
+    }
+  }
+  const extraNames = mcp ? mcp.extraNames : (extraMcp?.names ?? [])
+  if (extraNames.length) traceNote(t.id, tr('Herramientas de Extensiones: {list}', { list: extraNames.join(', ') }))
   const attempt = (resuming: string | undefined): Promise<RunAgentResult> => {
     meta.resume = resuming
     return runner({
@@ -2323,7 +2580,9 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
       model,
       effort,
       prompt: buildTaskPrompt(run, t, exec, parent, deps, !!mcp),
-      ...(mcp ? { mcp: { name: MCP_SERVER_NAME, command: mcp.command, args: mcp.args, env: mcp.env, configFile: mcp.configFile } } : {}),
+      ...(t.direct ? { direct: true } : {}),
+      ...(mcp ? { mcp: { name: MCP_SERVER_NAME, command: mcp.command, args: mcp.args, env: mcp.env, configFile: mcp.configFile, extraNames: mcp.extraNames } } : {}),
+      ...(extraMcp ? { extraMcp } : {}),
       cwd: dir,
       mode: 'work',
       access: getConfig().agentAccess,
@@ -2372,7 +2631,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
       : await attempt(resume)
     // La sesión anterior no se pudo retomar (borrada, de otra versión del CLI…): desde cero antes de darla por fallida.
     if (resume && !res.ok && res.errorKind === 'failed' && !ctrl.signal.aborted && meta.touched.size === 0 && Date.now() - taskStart < RESUME_RETRY_MS) {
-      traceNote(t.id, `No se pudo retomar la sesión anterior (${res.errorMessage ?? 'error'}): ${exec.name} empieza de cero`, true)
+      traceNote(t.id, tr('No se pudo retomar la sesión anterior ({v1}): {name} empieza de cero', { v1: res.errorMessage ?? 'error', name: exec.name }), true)
       res = await attempt(undefined)
     }
   } catch (e) {
@@ -2380,6 +2639,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   }
   meta.resume = undefined
   releaseMcp(mcp)
+  removeFiles(extraFiles)
   progress.stop()
   if (res.sessionId && !ctrl.signal.aborted) {
     meta.sessionId = res.sessionId
@@ -2388,7 +2648,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
 
   // «BLOQUEADA: …» cuenta como fallo en el registro (la tarea pasa a otro o se da por fallida).
   taskInboxDone(t)
-  logCall(run, 'task', exec, model, res.ok && blockedReason(res.text) ? { ...res, ok: false } : res, taskStart, t.id, effort, {
+  logCall(run, 'task', exec, model, res.ok && !t.direct && blockedReason(res.text) ? { ...res, ok: false } : res, taskStart, t.id, effort, {
     difficulty: t.difficulty
   })
   endTrace(t.id, res, taskStart)
@@ -2408,7 +2668,8 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   scheduleQuotaRefresh(exec.provider === 'codex')
 
   try {
-    const blocked = res.ok ? blockedReason(res.text) : null
+    // En un mensaje directo la respuesta es la que es: «BLOQUEADA:» no significa nada especial.
+    const blocked = res.ok && !t.direct ? blockedReason(res.text) : null
     if (blocked) handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: blocked })
     else if (res.ok) {
       const verdict = await verifyTask(run, t, exec, parent, res, dir)
@@ -2419,7 +2680,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     console.error('[cowork] task post-processing failed', e)
     if (t.status === 'running') {
       t.status = 'failed'
-      t.error = `Error interno: ${(e as Error).message}`
+      t.error = tr('Error interno: {message}', { message: (e as Error).message })
       t.finishedAt = Date.now()
       pushTask(t)
       closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
@@ -2430,9 +2691,19 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   schedule()
 }
 
+/**
+ * Lo que recibe el agente en un mensaje directo: el texto del usuario tal cual. Solo si hay adjuntos se añade
+ * dónde están (el agente no tendría otra forma de encontrarlos).
+ */
+export function directPrompt(run: Pick<Run, 'attachments' | 'attPaths' | 'projectId'>, t: Pick<Task, 'description'>, inCopy = false): string {
+  if (!run.attachments.length) return t.description
+  const files = run.attachments.map((a) => `- ${attPath(run as Run, a.relPath, inCopy)}`)
+  return [t.description, '', ...files].join('\n').trim()
+}
+
 /** Nombre legible del modelo con el que trabaja un agente. */
 function modelNameFor(a: AgentConfig, model: string): string {
-  if (!model) return 'su modelo predeterminado'
+  if (!model) return tr('su modelo predeterminado')
   if (model === a.model) return a.modelLabel || model
   if (model === a.lightModel) return a.lightModelLabel || model
   if (model === a.strongModel) return a.strongModelLabel || model
@@ -2446,8 +2717,8 @@ function endTrace(taskId: string, res: RunAgentResult, start: number): void {
   const spent = `${secs < 60 ? `${secs} s` : `${Math.round(secs / 60)} min`}${tokens >= 1000 ? ` · ${Math.round(tokens / 1000)} k tokens` : ''}`
   const blocked = res.ok ? blockedReason(res.text) : null
   if (blocked) traceNote(taskId, blocked, true)
-  else if (res.ok) traceNote(taskId, `Terminó en ${spent}`)
-  else if (res.errorKind === 'cancelled') traceNote(taskId, `Detenida tras ${spent}`)
+  else if (res.ok) traceNote(taskId, tr('Terminó en {spent}', { spent }))
+  else if (res.errorKind === 'cancelled') traceNote(taskId, tr('Detenida tras {spent}', { spent }))
   else traceNote(taskId, res.errorMessage ?? 'Falló', true)
   finishTrace(taskId)
 }
@@ -2526,12 +2797,13 @@ function pickVerifier(author: AgentConfig, wantsEyes = false): AgentConfig | nul
 
 /** Tareas cuyo resultado se comprueba: cambiaron archivos del proyecto y el usuario no ha pedido saltárselo. */
 function shouldVerify(run: Run, t: Task, exec: AgentConfig, changed: string[]): boolean {
-  if (isTextOnly(exec.provider) || wantsNoReview(run.userText)) return false
+  if (t.direct || isTextOnly(exec.provider) || wantsNoReview(run.userText)) return false
   const meta = run.meta.get(t.id)
   return !!meta && (meta.deliverable === 'file' || changed.length > 0)
 }
 
-const VERDICT_RE = /VEREDICTO\s*[:\-–—]\s*\**\s*(CUMPLE|FALLOS?)/i
+// También en inglés (VERDICT: PASS/FAIL): con la app en inglés el verificador escribe en inglés y a veces traduce la línea.
+const VERDICT_RE = /(?:VEREDICTO|VERDICT)\s*[:\-–—]\s*\**\s*(CUMPLE|FALLOS?|PASS(?:ES|ED)?|FAIL(?:S|ED|URES?)?)\b/i
 
 /** Encargo del verificador: solo corrección y lo pedido, nada de gustos; veredicto en la primera línea. */
 function buildVerifyPrompt(run: Run, t: Task, author: AgentConfig, verifier: AgentConfig, changed: string[], resultText: string, ui: UiShots | null = null): string {
@@ -2556,7 +2828,7 @@ function buildVerifyPrompt(run: Run, t: Task, author: AgentConfig, verifier: Age
     '',
     ...(ui
       ? [
-          '## Cómo se ve (capturas que hizo AI Cowork al abrir la web)',
+          '## Cómo se ve (capturas que hizo kywai al abrir la web)',
           ...ui.shots.map((s) => `- ${s.path}: «${s.page}» a tamaño ${s.view}`),
           ...(ui.errors.length ? ['Errores al abrirla:', ...ui.errors.map((e) => `- ${e}`)] : ['Sin errores en la consola al abrirla.']),
           'Mira las capturas: que se vea lo que se pidió, que no haya nada roto, vacío, cortado o encima de otra cosa, y que en el móvil se pueda usar. Una página en blanco o con errores que impiden usarla es un fallo. (Se abrió sin compilar: si es una app que necesita compilarse, compruébala también como se ejecute de verdad.)',
@@ -2581,7 +2853,7 @@ export const MAX_REVIEW_FIXES = 2
 function missingVerdictPrompt(previous?: string): string {
   return [
     ...(previous ? ['## Tu respuesta anterior', clip(previous, 4000), ''] : []),
-    'Tu respuesta no empezaba por el veredicto, así que AI Cowork no puede saber si el resultado cumple. No repitas la revisión: con lo que ya comprobaste, responde de nuevo.',
+    'Tu respuesta no empezaba por el veredicto, así que kywai no puede saber si el resultado cumple. No repitas la revisión: con lo que ya comprobaste, responde de nuevo.',
     'Primera línea exacta: «VEREDICTO: CUMPLE» o «VEREDICTO: FALLOS». Debajo, los fallos concretos (archivo y qué cambiar, como mucho 5) o una frase con qué comprobaste.'
   ].join('\n')
 }
@@ -2600,23 +2872,23 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   const wantsEyes = pagesToShoot(dir, changed).length > 0
   const verifier = pickVerifier(owner, wantsEyes)
   if (!verifier) {
-    traceNote(t.id, 'Sin verificador: ningún otro agente de otra familia disponible')
+    traceNote(t.id, tr('Sin verificador: ningún otro agente de otra familia disponible'))
     return null
   }
   // La web que tocó la tarea se abre y se captura a tamaño de escritorio y de móvil para que el verificador la vea.
   const ui = wantsEyes && seesImages(verifier) ? await captureUi(dir, changed, t.id.slice(0, 8)) : null
-  if (ui) traceNote(t.id, `Capturas de la interfaz para la verificación: ${ui.shots.map((s) => s.path).join(', ')}${ui.errors.length ? ` · ${ui.errors.length} errores al abrirla` : ''}`)
+  if (ui) traceNote(t.id, tr('Capturas de la interfaz para la verificación: {v1}{v2}', { v1: ui.shots.map((s) => s.path).join(', '), v2: ui.errors.length ? tr(' · {length} errores al abrirla', { length: ui.errors.length }) : '' }))
+  const ctrl = run.controllers.get(t.id) ?? new AbortController()
   const fixes = meta.fixesDone ?? 0
-  t.lastActivity = `${verifier.name} comprueba el resultado`
+  t.lastActivity = tr('{name} comprueba el resultado', { name: verifier.name })
   taskDirty(t)
-  traceNote(t.id, `${verifier.name} comprueba el resultado contra la petición${meta.reviewRelay ? ` (tras el relevo de ${meta.reviewRelay.fromName})` : fixes ? ` (tras la corrección ${fixes} de ${MAX_REVIEW_FIXES})` : ''}`)
+  traceNote(t.id, tr('{name} comprueba el resultado contra la petición{v2}', { name: verifier.name, v2: meta.reviewRelay ? tr(' (tras el relevo de {fromName})', { fromName: meta.reviewRelay.fromName }) : fixes ? tr(' (tras la corrección {fixes} de {MAX_REVIEW_FIXES})', { fixes, MAX_REVIEW_FIXES }) : '' }))
   workDirty(run, t)
   const wasIdle = !busy.has(verifier.id) && !planningAgents.has(verifier.id) && !integrating.has(verifier.id)
   if (wasIdle) {
     integrating.add(verifier.id)
-    setRuntime(verifier.id, { activity: 'working', lastActivity: `Verificando «${t.title}»`, reason: undefined, waitingFor: undefined })
+    setRuntime(verifier.id, { activity: 'working', lastActivity: tr('Verificando «{title}»', { title: t.title }), reason: undefined, waitingFor: undefined })
   }
-  const ctrl = run.controllers.get(t.id) ?? new AbortController()
   const start = Date.now()
   const effort = effortFor(verifier.provider, 'medium')
   const ask = async (prompt: string, resume?: string): Promise<RunAgentResult> => {
@@ -2644,7 +2916,7 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   // si se puede retomar; si no, su respuesta va en el encargo). Nunca se da por buena sin un «CUMPLE» explícito.
   let missing = out.ok && !m && !run.cancelled && !ctrl.signal.aborted
   if (missing) {
-    traceNote(t.id, `${verifier.name} respondió sin veredicto: se lo pido otra vez`, true)
+    traceNote(t.id, tr('{name} respondió sin veredicto: se lo pido otra vez', { name: verifier.name }), true)
     logCall(run, 'verify', verifier, verifier.model, out, start, t.id, effort)
     recordUsage(verifier.quotaGroupId, out.usage.input + out.usage.output, 1)
     const first = out
@@ -2657,17 +2929,17 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   }
   if (wasIdle) {
     integrating.delete(verifier.id)
-    if (!busy.has(verifier.id)) setRuntime(verifier.id, { activity: 'idle', lastActivity: `Verificó: ${t.title}` })
+    if (!busy.has(verifier.id)) setRuntime(verifier.id, { activity: 'idle', lastActivity: tr('Verificó: {title}', { title: t.title }) })
   }
   const stopped = run.cancelled || ctrl.signal.aborted
-  const status: VerificationStatus = missing ? 'unverified' : m && /^cumple$/i.test(m[1]) ? 'passed' : 'failed'
+  const status: VerificationStatus = missing ? 'unverified' : m && /^(cumple|pass)/i.test(m[1]) ? 'passed' : 'failed'
   const ok = status === 'passed'
   // El veredicto queda en el registro: es la base de la calidad por agente (aprobada, con fallos o sin verificar).
   logCall(run, 'verify', verifier, verifier.model, out, start, t.id, effort, out.ok && !stopped ? { verdict: status === 'passed' ? 'pass' : status === 'failed' ? 'fail' : 'unverified' } : {})
   recordUsage(verifier.quotaGroupId, out.usage.input + out.usage.output, 1)
   if (stopped) return null
   if (!out.ok) {
-    traceNote(t.id, `${verifier.name} no pudo verificar: ${out.errorMessage ?? 'error'}`, true)
+    traceNote(t.id, tr('{name} no pudo verificar: {v2}', { name: verifier.name, v2: out.errorMessage ?? 'error' }), true)
     return null
   }
   const notes = clip(out.text.replace(VERDICT_RE, '').trim(), 2500)
@@ -2685,10 +2957,10 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   traceNote(
     t.id,
     status === 'passed'
-      ? `${verifier.name}: cumple`
+      ? tr('{name}: cumple', { name: verifier.name })
       : status === 'unverified'
-        ? `${verifier.name} no dio un veredicto claro ni al pedírselo otra vez: queda sin verificar`
-        : `${verifier.name} vio fallos: ${oneLine(notes, 300)}`,
+        ? tr('{name} no dio un veredicto claro ni al pedírselo otra vez: queda sin verificar', { name: verifier.name })
+        : tr('{name} vio fallos: {oneLine}', { name: verifier.name, oneLine: oneLine(notes, 300) }),
     !ok
   )
   return v
@@ -2734,10 +3006,10 @@ function reviewFailed(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig 
   meta.resume = undefined
   meta.forceMainModel = t.difficulty === 'easy'
   closeWork(run, t, 'stopped', {
-    text: `${v.byName} sigue viendo fallos en «${t.title}» tras ${meta.fixesDone} correcciones de ${owner.name}; se la paso a ${alt.name} con las notas:\n\n${clip(v.notes, 1500)}`
+    text: tr('{byName} sigue viendo fallos en «{title}» tras {fixesDone} correcciones de {name}; se la paso a {name2} con las notas:\n\n{clip}', { byName: v.byName, title: t.title, fixesDone: meta.fixesDone, name: owner.name, name2: alt.name, clip: clip(v.notes, 1500) })
   })
-  traceNote(t.id, `Relevo tras la revisión: de ${owner.name} a ${alt.name}`, true)
-  setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: `Relevada: ${t.title}` })
+  traceNote(t.id, tr('Relevo tras la revisión: de {name} a {name2}', { name: owner.name, name2: alt.name }), true)
+  setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Relevada: {title}', { title: t.title }) })
   reassign(t, exec.id, alt, owner.id)
   if (parent) removeBecario(exec.id)
   return true
@@ -2747,7 +3019,7 @@ function reviewFailed(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig 
 function markNeedsAttention(t: Task, v: TaskVerification): boolean {
   v.needsAttention = true
   t.verification = v
-  traceNote(t.id, 'Requiere intervención: sigue sin superar la revisión tras las correcciones y el relevo', true)
+  traceNote(t.id, tr('Requiere intervención: sigue sin superar la revisión tras las correcciones y el relevo'), true)
   return false
 }
 
@@ -2761,14 +3033,14 @@ function requeueForFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   // Corrige en la misma sesión del CLI: recuerda lo que hizo y por qué.
   meta.resume = meta.sessionId
   closeWork(run, t, 'stopped', {
-    text: `${v.byName} comprobó «${t.title}» y vio fallos; ${owner.name} los corrige (corrección ${meta.fixesDone} de ${MAX_REVIEW_FIXES}):\n\n${clip(v.notes, 1500)}`
+    text: tr('{byName} comprobó «{title}» y vio fallos; {name} los corrige (corrección {fixesDone} de {MAX_REVIEW_FIXES}):\n\n{clip}', { byName: v.byName, title: t.title, name: owner.name, fixesDone: meta.fixesDone, MAX_REVIEW_FIXES, clip: clip(v.notes, 1500) })
   })
   if (parent) {
-    transfer({ fromId: exec.id, toId: parent.id, label: `Corregir: ${t.title}`, taskId: t.id, payload: { title: t.title, summary: oneLine(v.notes, 200) } })
+    transfer({ fromId: exec.id, toId: parent.id, label: tr('Corregir: {title}', { title: t.title }), taskId: t.id, payload: { title: t.title, summary: oneLine(v.notes, 200) } })
     removeBecario(exec.id)
     t.agentId = parent.id
   }
-  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: `Corrigiendo: ${t.title}` })
+  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Corrigiendo: {title}', { title: t.title }) })
   t.status = 'pending'
   t.startedAt = undefined
   t.lastActivity = undefined
@@ -2778,13 +3050,13 @@ function requeueForFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
 
 /** Línea de la verificación al final del resultado: aprobada solo con un «CUMPLE» explícito. */
 export function verificationLine(v: TaskVerification): string {
-  const after = [v.fixes ? `tras ${v.fixes === 1 ? 'una corrección' : `${v.fixes} correcciones`}` : '', v.relayedTo ? `y el relevo a ${v.relayedTo}` : '']
+  const after = [v.fixes ? tr('tras {v1}', { v1: v.fixes === 1 ? tr('una corrección') : tr('{fixes} correcciones', { fixes: v.fixes }) }) : '', v.relayedTo ? tr('y el relevo a {relayedTo}', { relayedTo: v.relayedTo }) : '']
     .filter(Boolean)
     .join(' ')
-  if (v.status === 'passed') return `✔ ${v.byName} comprobó el resultado${after ? ` ${after}` : ''}: cumple.`
+  if (v.status === 'passed') return tr('✔ {byName} comprobó el resultado{v2}: cumple.', { byName: v.byName, v2: after ? ` ${after}` : '' })
   if (v.status === 'unverified')
-    return `⚠ Sin verificar: ${v.byName} revisó el resultado pero no dio un veredicto claro, ni al pedírselo otra vez. Los archivos están hechos; revísalos antes de darlos por buenos.`
-  return `⚠ Requiere intervención: ${v.byName} sigue viendo fallos${after ? ` ${after}` : ''}. Los archivos se quedan para que los abras o deshagas la tarea:\n\n${clip(v.notes, 800)}`
+    return tr('⚠ Sin verificar: {byName} revisó el resultado pero no dio un veredicto claro, ni al pedírselo otra vez. Los archivos están hechos; revísalos antes de darlos por buenos.', { byName: v.byName })
+  return tr('⚠ Requiere intervención: {byName} sigue viendo fallos{v2}. Los archivos se quedan para que los abras o deshagas la tarea:\n\n{clip}', { byName: v.byName, v2: after ? ` ${after}` : '', clip: clip(v.notes, 800) })
 }
 
 async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
@@ -2797,7 +3069,7 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     meta.touched.add(savedTo)
   }
   const arts = await collectArtifacts(run, t, owner)
-  if (!text) text = arts.length ? 'Tarea completada.' : 'Tarea completada (sin texto de respuesta).'
+  if (!text) text = arts.length ? tr('Tarea completada.') : t.direct ? tr('{name} no escribió ninguna respuesta.', { name: owner.name }) : tr('Tarea completada (sin texto de respuesta).')
 
   t.status = 'done'
   t.result = clip(text, RESULT_KEEP)
@@ -2812,13 +3084,13 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
   transfer({
     fromId: exec.id,
     toId: parent ? parent.id : 'core',
-    label: `Resultado: ${t.title}`,
+    label: tr('Resultado: {title}', { title: t.title }),
     taskId: t.id,
     payload: { title: t.title, summary: oneLine(text, 200), files }
   })
   const v = meta.verification
   const verified = v ? `\n\n${verificationLine(v)}` : ''
-  const msgText = (savedTo ? `Guardé el resultado de «${t.title}» en \`${savedTo}\`.\n\n${clip(text, 600)}` : clip(text, 8000)) + verified
+  const msgText = (savedTo ? tr('Guardé el resultado de «{title}» en `{savedTo}`.\n\n{clip}', { title: t.title, savedTo, clip: clip(text, 600) }) : clip(text, 8000)) + verified
   const delivered = arts.length ? { artifactIds: arts.map((a) => a.id) } : {}
   if (!closeWork(run, t, 'done', { text: msgText, ...delivered }, !!res.text.trim())) agentMessage(run, owner.id, msgText, delivered)
 
@@ -2834,9 +3106,9 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     addInbox({
       kind: 'verify-failed',
       key: `verify:${t.id}`,
-      title: `Requiere intervención: ${v.byName} sigue viendo fallos en «${t.title}»`,
+      title: tr('Requiere intervención: {byName} sigue viendo fallos en «{title}»', { byName: v.byName, title: t.title }),
       detail: [
-        `${v.fixes} ${v.fixes === 1 ? 'corrección' : 'correcciones'}${v.relayedTo ? ` y relevo a ${v.relayedTo}` : ' (no había otro agente fuerte libre para relevar)'}. Los archivos se quedan: puedes abrirlos o deshacer la tarea.`,
+        tr('{fixes} {v2}{v3}. Los archivos se quedan: puedes abrirlos o deshacer la tarea.', { fixes: v.fixes, v2: v.fixes === 1 ? tr('corrección') : tr('correcciones'), v3: v.relayedTo ? tr(' y relevo a {relayedTo}', { relayedTo: v.relayedTo }) : tr(' (no había otro agente fuerte libre para relevar)') }),
         '',
         clip(v.notes, 1500)
       ].join('\n'),
@@ -2844,16 +3116,16 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
       runId: run.id,
       taskId: t.id,
       agentId: owner.id,
-      actions: [...(t.changes ? [{ id: 'undo', label: 'Deshacer la tarea' }] : []), { id: 'dismiss', label: 'Lo reviso yo' }]
+      actions: [...(t.changes ? [{ id: 'undo', label: tr('Deshacer la tarea') }] : []), { id: 'dismiss', label: tr('Lo reviso yo') }]
     })
     addMemory(
       run.projectId,
-      { kind: 'pending', text: `«${t.title}»: requiere intervención, ${v.byName} aún veía fallos tras las correcciones${v.relayedTo ? ' y el relevo' : ''}: ${oneLine(v.notes, 250)}` },
+      { kind: 'pending', text: tr('«{title}»: requiere intervención, {byName} aún veía fallos tras las correcciones{v3}: {oneLine}', { title: t.title, byName: v.byName, v3: v.relayedTo ? tr(' y el relevo') : '', oneLine: oneLine(v.notes, 250) }) },
       { status: 'provisional', by: v.by, byName: v.byName, taskId: t.id, taskTitle: t.title, runId: run.id }
     )
   }
   warnOutOfScope(run, t, owner, files)
-  setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: `Terminó: ${t.title}`, context: undefined })
+  setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Terminó: {title}', { title: t.title }), context: undefined })
   if (parent) removeBecario(exec.id)
 }
 
@@ -2870,9 +3142,9 @@ function warnOutOfScope(run: Run, t: Task, owner: AgentConfig, changed: string[]
     return `\`${f}\`${theirs ? ` (de «${theirs.title}»)` : ''}`
   })
   const more = outside.length > t.outOfScope.length ? ` y ${outside.length - t.outOfScope.length} más` : ''
-  const text = `Aviso: ${owner.name} cambió archivos que no eran de su tarea «${t.title}»: ${desc.join(', ')}${more}. Revísalos si algo no encaja.`
+  const text = tr('Aviso: {name} cambió archivos que no eran de su tarea «{title}»: {v3}{more}. Revísalos si algo no encaja.', { name: owner.name, title: t.title, v3: desc.join(', '), more })
   systemMessage(run, text, 'error')
-  traceNote(t.id, `Cambió archivos fuera de su tarea: ${t.outOfScope.join(', ')}${more}`, true)
+  traceNote(t.id, tr('Cambió archivos fuera de su tarea: {v1}{more}', { v1: t.outOfScope.join(', '), more }), true)
 }
 
 /** Si el agente declaró que no pudo hacer la tarea («BLOQUEADA: motivo»), devuelve el motivo. */
@@ -2880,22 +3152,22 @@ export function blockedReason(text: string): string | null {
   const m = /^[\s>*_#`]*BLOQUEADA\s*[:.\-–—]\s*([\s\S]*)/i.exec(text ?? '')
   if (!m) return null
   const reason = m[1].replace(/^[*_`\s]+/, '').replace(/\s+/g, ' ').trim()
-  return clip(reason ? `Bloqueada: ${reason}` : 'Bloqueada: el agente no pudo hacer la tarea', 400)
+  return clip(reason ? tr('Bloqueada: {reason}', { reason }) : tr('Bloqueada: el agente no pudo hacer la tarea'), 400)
 }
 
 function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): void {
   const meta = run.meta.get(t.id)!
   const owner = parent ?? exec
   const kind = res.errorKind ?? 'failed'
-  const msg = res.errorMessage ?? 'Error desconocido'
+  const msg = res.errorMessage ?? tr('Error desconocido')
 
   // Light model rejected by the CLI → same task on the parent with its main model.
   // Modelo rechazado por el CLI (p. ej. no disponible para tu cuenta) → se reintenta un nivel más abajo.
   if (res.modelUnavailable && t.model && t.model === owner.model && !meta.forceCliDefault && !parent) {
     meta.forceCliDefault = true
     console.warn(`[cowork] modelo habitual ${t.model} de ${owner.id} rechazado: ${msg}`)
-    closeWork(run, t, 'stopped', { text: `El modelo ${t.model} no está disponible: lo repito con el predeterminado.` })
-    setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: 'Cambiando al modelo predeterminado' })
+    closeWork(run, t, 'stopped', { text: tr('El modelo {model} no está disponible: lo repito con el predeterminado.', { model: t.model }) })
+    setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Cambiando al modelo predeterminado') })
     t.status = 'pending'
     t.startedAt = undefined
     t.lastActivity = undefined
@@ -2908,14 +3180,14 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
     if (t.model === owner.lightModel) lightModelBroken.add(owner.id)
     else strongModelBroken.add(owner.id)
     console.warn(`[cowork] light model ${t.model} of ${owner.id} rejected: ${msg}`)
-    closeWork(run, t, 'stopped', { text: `El modelo ${t.model} no está disponible: lo repito con el principal.` })
+    closeWork(run, t, 'stopped', { text: tr('El modelo {model} no está disponible: lo repito con el principal.', { model: t.model }) })
     if (parent) {
-      transfer({ fromId: exec.id, toId: parent.id, label: `Devuelta: ${t.title}`, taskId: t.id, payload: { title: t.title, summary: msg } })
+      transfer({ fromId: exec.id, toId: parent.id, label: tr('Devuelta: {title}', { title: t.title }), taskId: t.id, payload: { title: t.title, summary: msg } })
       setRuntime(exec.id, { activity: 'error', taskId: undefined, reason: msg })
       removeBecario(exec.id)
       t.agentId = parent.id
     } else {
-      setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: 'Cambiando al modelo principal' })
+      setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Cambiando al modelo principal') })
     }
     t.status = 'pending'
     t.startedAt = undefined
@@ -2930,7 +3202,7 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
     activity: kind === 'offline' || kind === 'missing' ? 'offline' : 'error',
     reason: msg,
     taskId: undefined,
-    lastActivity: `Falló: ${t.title}`,
+    lastActivity: tr('Falló: {title}', { title: t.title }),
     context: undefined
   })
   // Antes de dar la tarea por fallida, otro agente lo intenta una vez. Si el problema es del agente
@@ -2938,7 +3210,8 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   // el becario se la devuelve a su jefe, que la hace con su modelo principal; sin jefe, pasa al mejor compañero.
   let alt: AgentConfig | null = null
   let noStrongAlt = false
-  if (!meta.retried && (BLOCKING_KINDS.includes(kind) || kind === 'failed')) {
+  // Un mensaje directo no pasa a otro agente: era para este.
+  if (!t.direct && !meta.retried && (BLOCKING_KINDS.includes(kind) || kind === 'failed')) {
     if (kind === 'failed' && parent && usable(parent)) alt = parent
     else {
       // El relevo de una tarea que no es fácil va a otro agente fuerte, nunca al modelo local (lento y ligero):
@@ -2951,9 +3224,7 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
       noStrongAlt = !alt && exclude.size > 2
     }
   }
-  const failText = `No pude completar «${t.title}»: ${msg}${
-    alt ? ` Se la paso a ${alt.name}.` : noStrongAlt ? ' No hay otro agente fuerte libre para relevarme (el modelo local no sirve para esta tarea): pídemela de nuevo cuando quieras.' : ''
-  }`
+  const failText = tr('No pude completar «{title}»: {msg}{v3}', { title: t.title, msg, v3: alt ? tr(' Se la paso a {name}.', { name: alt.name }) : noStrongAlt ? tr(' No hay otro agente fuerte libre para relevarme (el modelo local no sirve para esta tarea): pídemela de nuevo cuando quieras.') : '' })
   if (!closeWork(run, t, 'failed', { text: failText, tone: 'error' })) agentMessage(run, owner.id, failText, { tone: 'error' })
   if (alt) {
     meta.retried = true
@@ -2972,13 +3243,13 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   addInbox({
     kind: 'failed',
     key: `failed:${t.id}`,
-    title: `No se pudo hacer «${t.title}»`,
+    title: tr('No se pudo hacer «{title}»', { title: t.title }),
     detail: msg,
     projectId: run.projectId,
     runId: run.id,
     taskId: t.id,
     agentId: owner.id,
-    actions: [{ id: 'dismiss', label: 'Entendido' }]
+    actions: [{ id: 'dismiss', label: tr('Entendido') }]
   })
 }
 
@@ -3006,14 +3277,40 @@ function logCall(
     provider: agent.provider,
     model: model || undefined,
     effort,
-    input: res.usage.input,
-    output: res.usage.output,
-    cached: res.usage.cached ?? 0,
     durationMs: Date.now() - startedAt,
     ok: res.ok,
     cancelled: res.errorKind === 'cancelled' || undefined,
-    // Hermes, Muse Code y los agentes de catálogo no informan de los tokens que gastan.
-    noTokens: agent.provider === 'hermes' || agent.provider === 'muse' || agent.provider === 'cli' || undefined
+    ...(typeof res.usage.costUsd === 'number' ? { costUsd: res.usage.costUsd } : {}),
+    // Hermes, Muse Code y los agentes de catálogo no informan de los tokens que gastan: sus tokens no se suman,
+    // pero se guarda la estimación por longitud para estimar el coste.
+    ...(reportsNoTokens(agent.provider)
+      ? { input: 0, output: 0, cached: 0, noTokens: true, ...(res.usage.estimated ? { estInput: res.usage.input, estOutput: res.usage.output } : {}) }
+      : { input: res.usage.input, output: res.usage.output, cached: res.usage.cached ?? 0 })
+  })
+  checkBudget()
+}
+
+/**
+ * Aviso en «Te necesita» cuando lo pagado por uso (agentes que van por API) en el mes llega al 80 % del presupuesto, y
+ * otro si lo pasa. Cada uno se da una vez al mes.
+ */
+function checkBudget(now = Date.now()): void {
+  const cfg = getConfig()
+  const costs = cfg.costs
+  const limitUsd = budgetUsd(costs)
+  if (!costs || limitUsd == null) return
+  const month = monthKey(now)
+  const spentUsd = monthApiSpendUsd(usageRuns(), cfg, now)
+  const level = budgetAlertDue(spentUsd, limitUsd, month, costs.budgetAlerted)
+  if (!level) return
+  markBudgetAlerted(`${month}:${level}`)
+  const money = (usd: number): string => formatMoney(usdTo(usd, costs), costs.currency, locale())
+  addInbox({
+    kind: 'budget',
+    key: `budget:${month}`,
+    title: level === 100 ? tr('Te has pasado del presupuesto de API de este mes') : tr('Llevas el 80 % del presupuesto de API de este mes'),
+    detail: tr('Llevas {spent} de {limit} en agentes que pagas por uso. Lo ves por agente en ⚙ → «Uso y coste…».', { spent: money(spentUsd), limit: money(limitUsd) }),
+    actions: [{ id: 'dismiss', label: tr('Entendido') }]
   })
 }
 
@@ -3065,7 +3362,7 @@ async function finalAnswer(run: Run, planner: AgentConfig, ts: Task[]): Promise<
     return `### «${t.title}» (${agentName(liveOwner(t))}, ${state})\n${clip(t.result, RESULT_KEEP) || t.error || '(sin texto)'}${files.length ? `\nArchivos: ${files.join(', ')}` : ''}${v}`
   })
   const prompt = [
-    `Eres ${planner.name}, el coordinador del equipo de agentes del proyecto "${st.project.name}". El equipo ha terminado la petición del usuario y tú le respondes. Responde en español.`,
+    `Eres ${planner.name}, el coordinador del equipo de agentes del proyecto "${st.project.name}". El equipo ha terminado la petición del usuario y tú le respondes. ${replyLanguage()}`,
     '',
     '## Petición del usuario',
     run.userText,
@@ -3106,12 +3403,12 @@ async function integrate(run: Run, ts: Task[]): Promise<void> {
     !planningAgents.has(planner.id)
   if (planner && canMove) {
     integrating.add(planner.id)
-    emit({ kind: 'agent.moved', agentId: planner.id, to: 'core', reason: 'Integrando resultados' })
-    setRuntime(planner.id, { activity: 'working', location: 'core', lastActivity: 'Integrando resultados', taskId: undefined, waitingFor: undefined })
+    emit({ kind: 'agent.moved', agentId: planner.id, to: 'core', reason: tr('Integrando resultados') })
+    setRuntime(planner.id, { activity: 'working', location: 'core', lastActivity: tr('Integrando resultados'), taskId: undefined, waitingFor: undefined })
   }
 
   const st = store.getProject(run.projectId)
-  const lines: string[] = ['**Resumen del trabajo**', '']
+  const lines: string[] = [tr('**Resumen del trabajo**'), '']
   for (const t of ts) {
     const who = agentName(liveOwner(t))
     if (t.status === 'done') lines.push(`✓ ${t.title} — ${who}`)
@@ -3131,7 +3428,7 @@ async function integrate(run: Run, ts: Task[]): Promise<void> {
   if (planner && canMove) {
     emit({ kind: 'agent.moved', agentId: planner.id, to: 'station' })
     integrating.delete(planner.id)
-    if (!busy.has(planner.id)) setRuntime(planner.id, { activity: 'idle', location: 'station', lastActivity: 'Resultados integrados' })
+    if (!busy.has(planner.id)) setRuntime(planner.id, { activity: 'idle', location: 'station', lastActivity: tr('Resultados integrados') })
     else setRuntime(planner.id, { location: 'station' })
   }
 }
@@ -3144,12 +3441,12 @@ async function integrate(run: Run, ts: Task[]): Promise<void> {
  */
 export async function resetAgent(id: AgentId): Promise<AgentRuntime> {
   const a = findAgent(id)
-  if (!a) throw new Error('No existe ese agente')
+  if (!a) throw new Error(tr('No existe ese agente'))
   const target = ownerOf(a)
   blocked.delete(target.id)
   lightModelBroken.delete(target.id)
   strongModelBroken.delete(target.id)
-  if (!busy.has(target.id)) setRuntime(target.id, { activity: 'idle', reason: undefined, taskId: undefined, waitingFor: undefined, lastActivity: 'Reiniciado' })
+  if (!busy.has(target.id)) setRuntime(target.id, { activity: 'idle', reason: undefined, taskId: undefined, waitingFor: undefined, lastActivity: tr('Reiniciado') })
   try {
     applyPresence(target, await presenceCheck(target, true))
   } catch (e) {

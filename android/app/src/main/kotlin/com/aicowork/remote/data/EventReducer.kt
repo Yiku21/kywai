@@ -12,6 +12,7 @@ import com.aicowork.remote.data.model.MemoryEntry
 import com.aicowork.remote.data.model.Quota
 import com.aicowork.remote.data.model.Snapshot
 import com.aicowork.remote.data.model.TaskItem
+import com.aicowork.remote.data.model.TaskTemplate
 import com.aicowork.remote.data.model.TraceEntry
 import com.aicowork.remote.data.model.Usage
 import kotlinx.serialization.DeserializationStrategy
@@ -32,7 +33,7 @@ sealed interface ReduceResult {
 
 /**
  * Aplica los eventos del WebSocket sobre la última instantánea. Es una función pura: no toca la red,
- * así que se prueba sin servidor. Acepta los nombres de evento del motor de AI Cowork (`run.*`, `quota.update`)
+ * así que se prueba sin servidor. Acepta los nombres de evento del motor de kywai (`run.*`, `quota.update`)
  * y los del contrato móvil (`request.*`, `usage.updated`).
  */
 object EventReducer {
@@ -150,6 +151,11 @@ object EventReducer {
 
             // La bandeja «Te necesita» no forma parte de la instantánea: la guarda el repositorio aparte.
             "inbox.updated" -> ReduceResult.Ignored
+
+            "templates.updated" -> {
+                val templates = decode(p["templates"] ?: return ReduceResult.Ignored, ListSerializer(TaskTemplate.serializer())) ?: return resync("plantillas ilegibles")
+                applied(snapshot.copy(templates = templates))
+            }
 
             "usage.updated" -> {
                 val usage = decode(p["usage"] ?: p, Usage.serializer()) ?: return resync("consumo ilegible")

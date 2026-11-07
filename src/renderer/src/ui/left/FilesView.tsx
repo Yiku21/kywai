@@ -8,6 +8,7 @@ import { FileTypeIcon, KindTile, ARTIFACT_KIND_LABEL } from '../common/icons'
 import { agentVars, cx, shortTime } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './Views.module.css'
+import { t } from '@/lib/i18n'
 
 /** Pestaña Archivos: adjuntos del usuario y resultados generados. */
 export function FilesView() {
@@ -28,8 +29,8 @@ export function FilesView() {
   const openTitle = canOpen
     ? undefined
     : mode === 'demo'
-      ? 'Abrir archivos está disponible en modo real'
-      : 'Sin motor de agentes: abre la app de escritorio'
+      ? t('Abrir archivos está disponible en modo real')
+      : t('Sin motor de agentes: abre la app de escritorio')
 
   if (attachments.length === 0 && artifacts.length === 0) {
     return (
@@ -38,10 +39,9 @@ export function FilesView() {
           <span className={u.emptyIcon}>
             <Paperclip size={20} aria-hidden="true" />
           </span>
-          <span className={u.emptyTitle}>Aún no hay archivos</span>
+          <span className={u.emptyTitle}>{t('Aún no hay archivos')}</span>
           <span className={u.emptyText}>
-            Adjunta documentos o imágenes desde el chat (o arrástralos aquí). Lo que generen los agentes también
-            aparecerá en esta pestaña.
+            {t('Adjunta documentos o imágenes desde el chat (o arrástralos aquí). Lo que generen los agentes también aparecerá en esta pestaña.')}
           </span>
         </div>
       </div>
@@ -52,10 +52,10 @@ export function FilesView() {
     <div className={s.scroll}>
       <section className={s.section} aria-labelledby={idA}>
         <h3 className={u.sectionLabel} id={idA}>
-          Adjuntos <span className={u.count}>{attachments.length}</span>
+          {t('Adjuntos')} <span className={u.count}>{attachments.length}</span>
         </h3>
         {attachments.length === 0 ? (
-          <p className={s.sectionEmpty}>Todavía no has adjuntado archivos.</p>
+          <p className={s.sectionEmpty}>{t('Todavía no has adjuntado archivos.')}</p>
         ) : (
           <ul className={s.rows}>
             {attachments.map((a) => (
@@ -64,7 +64,7 @@ export function FilesView() {
                   type="button"
                   className={cx(s.fileRow, !canOpen && s.rowStatic)}
                   disabled={!canOpen}
-                  title={openTitle ?? `Abrir ${a.name}`}
+                  title={openTitle ?? t('Abrir {name}', { name: a.name })}
                   onClick={() => {
                     if (api && project) api.openPath(project.id, a.relPath).catch(() => {})
                   }}
@@ -86,11 +86,11 @@ export function FilesView() {
 
       <section className={s.section} aria-labelledby={idG}>
         <h3 className={u.sectionLabel} id={idG}>
-          Generados <span className={u.count}>{artifacts.length}</span>
+          {t('Generados')} <span className={u.count}>{artifacts.length}</span>
         </h3>
         {artifacts.length === 0 ? (
           <p className={s.sectionEmpty}>
-            <Sparkles size={13} aria-hidden="true" /> Los resultados del equipo aparecerán aquí.
+            <Sparkles size={13} aria-hidden="true" /> {t('Los resultados del equipo aparecerán aquí.')}
           </p>
         ) : (
           <ul className={s.rows}>
@@ -98,7 +98,7 @@ export function FilesView() {
               const look = lookup(a.agentId)
               return (
                 <li key={a.id}>
-                  <button type="button" className={s.fileRow} onClick={() => openViewer(a.id)} title={`Ver ${a.name}`}>
+                  <button type="button" className={s.fileRow} onClick={() => openViewer(a.id)} title={t('Ver {name}', { name: a.name })}>
                     <KindTile kind={a.kind} size={34} />
                     <span className={s.fileMain}>
                       <span className={s.fileName}>{a.name}</span>

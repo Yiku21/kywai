@@ -147,6 +147,45 @@
   margin-top: 8px;
 }
 
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.thinkingText {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.thinkingTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-1);
+}
+
+.thinkingSwitch {
+  flex: none;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.thinkingSwitch:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .resetBtn {
   flex: none;
 }

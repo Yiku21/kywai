@@ -3,11 +3,12 @@
 // puede pulsar «Permitir» por programa (lo impide macOS). Este módulo hace dos cosas para que no se pierdan tareas:
 //  - antes de lanzar un agente, prueba a abrir su carpeta con un límite corto y, si macOS la retiene, avisa al momento
 //    y espera la respuesta en vez de dejar al agente colgado (waitForFolderAccess);
-//  - lee en directo el registro de privacidad de macOS y avisa de cada ventana que AI Cowork tiene pendiente
+//  - lee en directo el registro de privacidad de macOS y avisa de cada ventana que kywai tiene pendiente
 //    (onMacPermissionPrompt), para mandarla al móvil.
 import { spawn } from 'node:child_process'
 import { homedir } from 'node:os'
-import { sep } from 'node:path'
+import { posix } from 'node:path'
+import { tr } from '@shared/i18n'
 
 export const APP_BUNDLE_ID = 'com.aicowork.app'
 
@@ -18,11 +19,11 @@ const LABELS: Record<string, string> = {
   kTCCServiceSystemPolicyDocumentsFolder: 'Documentos',
   kTCCServiceSystemPolicyDesktopFolder: 'Escritorio',
   kTCCServiceSystemPolicyDownloadsFolder: 'Descargas',
-  kTCCServiceSystemPolicyRemovableVolumes: 'discos externos',
-  kTCCServiceSystemPolicyNetworkVolumes: 'discos de red',
-  kTCCServiceSystemPolicyAllFiles: 'acceso total al disco',
-  kTCCServiceAppleEvents: 'controlar otras apps',
-  kTCCServiceScreenCapture: 'grabación de pantalla',
+  kTCCServiceSystemPolicyRemovableVolumes: tr('discos externos'),
+  kTCCServiceSystemPolicyNetworkVolumes: tr('discos de red'),
+  kTCCServiceSystemPolicyAllFiles: tr('acceso total al disco'),
+  kTCCServiceAppleEvents: tr('controlar otras apps'),
+  kTCCServiceScreenCapture: tr('grabación de pantalla'),
   kTCCServiceMicrophone: 'micrófono',
   kTCCServiceCamera: 'cámara',
   kTCCServiceAccessibility: 'accesibilidad',
@@ -46,11 +47,12 @@ export interface MacPermissionPrompt {
 
 /** Servicio de TCC que protege una carpeta (las que macOS pregunta una a una), o null si no pregunta por ella. */
 export function folderService(dir: string, home = homedir()): string | null {
-  const inside = (root: string): boolean => dir === root || dir.startsWith(root + sep)
-  if (inside(`${home}${sep}Documents`)) return 'kTCCServiceSystemPolicyDocumentsFolder'
-  if (inside(`${home}${sep}Desktop`)) return 'kTCCServiceSystemPolicyDesktopFolder'
-  if (inside(`${home}${sep}Downloads`)) return 'kTCCServiceSystemPolicyDownloadsFolder'
-  if (inside(`${sep}Volumes`)) return 'kTCCServiceSystemPolicyRemovableVolumes'
+  // Son rutas de macOS, incluso cuando esta función pura se comprueba desde Windows.
+  const inside = (root: string): boolean => dir === root || dir.startsWith(root + '/')
+  if (inside(posix.join(home, 'Documents'))) return 'kTCCServiceSystemPolicyDocumentsFolder'
+  if (inside(posix.join(home, 'Desktop'))) return 'kTCCServiceSystemPolicyDesktopFolder'
+  if (inside(posix.join(home, 'Downloads'))) return 'kTCCServiceSystemPolicyDownloadsFolder'
+  if (inside('/Volumes')) return 'kTCCServiceSystemPolicyRemovableVolumes'
   return null
 }
 
@@ -70,7 +72,7 @@ export function parsePromptLine(line: string, bundleId = APP_BUNDLE_ID): MacPerm
   if (!msg.includes('AUTHREQ_PROMPTING') || !msg.includes(`identifier=${bundleId},`)) return null
   const service = /service=(kTCCService\w+)/.exec(msg)?.[1]
   if (!service) return null
-  return { service, serviceLabel: serviceLabel(service), detail: `macOS pide permiso para ${serviceLabel(service)} en la pantalla del Mac` }
+  return { service, serviceLabel: serviceLabel(service), detail: tr('macOS pide permiso para {serviceLabel} en la pantalla del Mac', { serviceLabel: serviceLabel(service) }) }
 }
 
 // ---------- avisos en directo ----------
@@ -78,7 +80,7 @@ export function parsePromptLine(line: string, bundleId = APP_BUNDLE_ID): MacPerm
 type Listener = (p: MacPermissionPrompt) => void
 const listeners = new Set<Listener>()
 
-/** Cada ventana de permisos que AI Cowork (o uno de sus agentes) tiene pendiente en la pantalla del Mac. */
+/** Cada ventana de permisos que kywai (o uno de sus agentes) tiene pendiente en la pantalla del Mac. */
 export function onMacPermissionPrompt(cb: Listener): () => void {
   listeners.add(cb)
   return () => listeners.delete(cb)
@@ -161,8 +163,8 @@ export function waitForFolderAccess(dir: string, hooks: FolderAccessHooks, waitM
     const label = serviceLabel(folderService(dir) ?? 'kTCCServiceSystemPolicyAllFiles')
     const timer = setTimeout(() => {
       const service = folderService(dir) ?? 'kTCCServiceSystemPolicyAllFiles'
-      hooks.onWaiting?.(`Esperando a que aceptes en la pantalla del Mac el permiso de macOS para ${label}`)
-      emitPrompt({ service, serviceLabel: serviceLabel(service), detail: `Un agente espera para entrar en ${dir}` })
+      hooks.onWaiting?.(tr('Esperando a que aceptes en la pantalla del Mac el permiso de macOS para {label}', { label }))
+      emitPrompt({ service, serviceLabel: serviceLabel(service), detail: tr('Un agente espera para entrar en {dir}', { dir }) })
     }, waitMs)
     const end = (msg: string | null): void => {
       if (done) return
@@ -185,7 +187,7 @@ export function waitForFolderAccess(dir: string, hooks: FolderAccessHooks, waitM
       // Una carpeta que no existe no es cosa de permisos: lo dirá el propio agente.
       if (code !== 0 && /not permitted/i.test(stderr)) {
         end(
-          `macOS no deja a AI Cowork entrar en ${label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → AI Cowork`
+          tr('macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → kywai', { label })
         )
       } else end(null)
     })

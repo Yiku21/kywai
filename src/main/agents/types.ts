@@ -49,6 +49,18 @@ export interface McpServerLaunch {
   env: Record<string, string>
   /** La misma configuración en un archivo JSON ({ mcpServers }): lo que se pasa por la línea de comandos. */
   configFile: string
+  /** Otros servidores del mismo archivo (los que el usuario encendió para este agente). */
+  extraNames?: string[]
+}
+
+/** Servidores MCP del usuario para Codex o Gemini en esta tarea (⚙ → Ajustes → Extensiones). */
+export interface ExtraMcp {
+  /** Nombres de los servidores. */
+  names: string[]
+  /** Argumentos que añadir al CLI (los «-c» de Codex). */
+  args: string[]
+  /** Variables para el CLI (las claves de los servidores). */
+  env: Record<string, string>
 }
 
 export interface RunAgentOptions {
@@ -70,8 +82,14 @@ export interface RunAgentOptions {
    * hizo y decidió entonces en su memoria de trabajo. Solo tiene sentido en la misma carpeta y la misma familia.
    */
   resume?: string
-  /** Servidor MCP de AI Cowork para esta tarea (solo los CLI que lo admiten por la línea de comandos). */
+  /**
+   * Mensaje directo del usuario («@Agente …»): el prompt es su texto tal cual y no se le añaden instrucciones de
+   * equipo (LM Studio lo manda sin su mensaje de sistema).
+   */
+  direct?: boolean
+  /** Servidor MCP de kywai para esta tarea (solo los CLI que lo admiten por la línea de comandos). */
   mcp?: McpServerLaunch
+  extraMcp?: ExtraMcp
   signal: AbortSignal
   /** Human readable activity (Spanish). `kind` tells if it came from a tool or from text output. */
   onActivity?: (text: string, kind: 'tool' | 'text') => void

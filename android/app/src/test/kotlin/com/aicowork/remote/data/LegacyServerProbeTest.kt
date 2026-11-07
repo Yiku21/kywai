@@ -11,7 +11,7 @@ import org.junit.Test
 class LegacyServerProbeTest {
     @Test fun rejectsDesktopVersionWithoutMobileApi() = runBlocking<Unit> {
         val server = MockWebServer()
-        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"error":"Sin acceso: abre el enlace de acceso de AI Cowork"}"""))
+        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"error":"Sin acceso: abre el enlace de acceso de kywai"}"""))
         server.start()
         val client = CoworkApiClient(server.url("/"), null, { null })
         try {

@@ -1,8 +1,10 @@
 import { app } from 'electron'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
-import type { AddAgentInput, AgentAccess, AgentConfig, AgentId, AppConfig, QuotaBudget, QuotaGroupConfig, SetAgentModelsInput, SetLocalAgentInput, StationConfig } from '@shared/types'
+import type { AddAgentInput, AgentAccess, AgentConfig, AgentId, AppConfig, CostSettings, QuotaBudget, QuotaGroupConfig, SetAgentModelsInput, SetLocalAgentInput, StationConfig } from '@shared/types'
 import { buildAgent } from '@shared/agentCatalog'
+import { cleanCostSettings } from '@shared/costs'
+import { isLang, langFromLocale, setCurrentLang, type Lang } from '@shared/i18n'
 import { CONFIG_VERSION, DEFAULT_CONFIG, avatarFor, localLogoFor, upgradeAgentModels, upgradeAgentProfile, upgradeAgentRole } from '@shared/defaults'
 
 let config: AppConfig | null = null
@@ -99,6 +101,7 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
       role: typeof a.role === 'string' ? a.role : '',
       enabled: a.enabled !== false,
       modelProvider: typeof a.modelProvider === 'string' && /^[\w.\-:]+$/.test(a.modelProvider) ? a.modelProvider : undefined,
+      thinking: a.provider === 'lmstudio' && a.thinking === true ? true : undefined,
       isSubagent: undefined,
       parentId: undefined
     }))
@@ -153,6 +156,7 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
     if (out.budget && !validBudget(out.budget)) delete out.budget
     return out
   })
+  ensureAgentQuotaGroups(agents, quotaGroups)
   const thresholds = { ...d.thresholds, ...(isObj(u.thresholds) ? u.thresholds : {}) }
   const plannerOrder = Array.isArray(u.plannerOrder) ? u.plannerOrder.filter((x): x is string => typeof x === 'string') : d.plannerOrder
   if (version < 3 && !plannerOrder.includes('hermes')) plannerOrder.unshift('hermes')
@@ -175,9 +179,17 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
     ...(removed.length ? { removedAgents: removed } : {}),
     agentAccess: u.agentAccess === 'project' ? 'project' : 'full',
     planApproval: u.planApproval !== false,
+    ...(isLang(u.language) ? { language: u.language } : {}),
+    // El tema y el nombre del ordenador también se conservan al volver a abrir la app.
+    ...(typeof u.uiTheme === 'string' && UI_THEME_RE.test(u.uiTheme) ? { uiTheme: u.uiTheme } : {}),
+    ...(typeof u.serverName === 'string' && cleanServerName(u.serverName) ? { serverName: cleanServerName(u.serverName) } : {}),
     // Versión 6: el asistente de configuración. Quien ya usaba la app no lo necesita.
     setupDone: u.setupDone === true || (isObj(user) && version < 6),
     webAccess: mergeWebAccess(u.webAccess),
+    ...(() => {
+      const costs = cleanCostSettings(u.costs)
+      return costs ? { costs } : {}
+    })(),
     maxParallel
   }
 }
@@ -211,6 +223,9 @@ export function loadConfig(): AppConfig {
     }
   }
   config = mergeConfig(user, configRoot)
+  // Idioma de los avisos del motor y de lo que escriben los agentes para el usuario.
+  // Sin idioma elegido aún, el del sistema (la interfaz lo guarda en cuanto arranca).
+  setCurrentLang(config.language ?? (app?.isReady?.() ? langFromLocale(app.getLocale()) : 'es'))
   mkdirSync(config.workspaceRoot, { recursive: true })
   if (!user || (user as { configVersion?: number }).configVersion !== CONFIG_VERSION) saveConfig()
   return config
@@ -220,8 +235,18 @@ export function getConfig(): AppConfig {
   return config ?? loadConfig()
 }
 
+/** Conserva los grupos compartidos y da un grupo propio a los agentes sin cuota configurada. */
+function ensureAgentQuotaGroups(agents: AgentConfig[], groups: QuotaGroupConfig[]): void {
+  for (const agent of agents) {
+    if (!agent.quotaGroupId) agent.quotaGroupId = `agent-${agent.id}`
+    if (groups.some((group) => group.id === agent.quotaGroupId)) continue
+    groups.push({ id: agent.quotaGroupId, label: agent.name, provider: agent.provider })
+  }
+}
+
 export function saveConfig(): void {
   if (!config) return
+  ensureAgentQuotaGroups(config.agents, config.quotaGroups)
   const file = configPath()
   const tmp = `${file}.tmp`
   writeFileSync(tmp, JSON.stringify(config, null, 2), 'utf8')
@@ -361,6 +386,63 @@ export function setHermesModel(choice: { provider: string; model: string } | nul
   saveConfig()
 }
 
+/** Idioma de los avisos del motor y de las respuestas de los agentes (afecta a lo que venga). */
+export function setLanguage(id: Lang): void {
+  if (!isLang(id)) return
+  getConfig().language = id
+  setCurrentLang(id)
+  saveConfig()
+}
+
+/** Ids de tema válidos (los de lib/theme.ts del escritorio: «grafito», «mundo-bosque»…). */
+export const UI_THEME_RE = /^[a-z][a-z0-9-]{0,39}$/
+
+/** Tema de la interfaz: lo guarda el escritorio y lo lee Órbita para verse igual. */
+export function setUiTheme(id: string): void {
+  if (!UI_THEME_RE.test(id)) return
+  const cfg = getConfig()
+  if (cfg.uiTheme === id) return
+  cfg.uiTheme = id
+  saveConfig()
+}
+
+/** Largo máximo del nombre del ordenador. */
+export const SERVER_NAME_MAX = 40
+
+/** Limpia el nombre que el usuario le pone al ordenador: una línea, sin espacios de sobra y como mucho 40 caracteres. */
+export function cleanServerName(name: string): string {
+  return name.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, SERVER_NAME_MAX).trim()
+}
+
+/** Nombre que se ve del ordenador (barra lateral del escritorio, la web y Órbita). Vacío: vuelve al de la red. */
+export function setServerName(name: string): void {
+  const clean = cleanServerName(name)
+  const cfg = getConfig()
+  if ((cfg.serverName ?? '') === clean) return
+  if (clean) cfg.serverName = clean
+  else delete cfg.serverName
+  saveConfig()
+}
+
+/** Cómo pagas cada agente, precios por modelo y presupuesto. El aviso ya dado del presupuesto se conserva. */
+export function setCostSettings(input: unknown): CostSettings {
+  const clean = cleanCostSettings(input)
+  if (!clean) throw new Error('Ajustes de coste no válidos')
+  const cfg = getConfig()
+  if (cfg.costs?.budgetAlerted && !clean.budgetAlerted) clean.budgetAlerted = cfg.costs.budgetAlerted
+  cfg.costs = clean
+  saveConfig()
+  return clean
+}
+
+/** Apunta el último aviso de presupuesto dado («2026-11:80»). */
+export function markBudgetAlerted(mark: string): void {
+  const cfg = getConfig()
+  if (!cfg.costs) return
+  cfg.costs.budgetAlerted = mark
+  saveConfig()
+}
+
 /** Pedir (o no) el visto bueno del usuario antes de ejecutar cada plan (afecta a los planes que vengan). */
 export function setPlanApproval(on: boolean): void {
   getConfig().planApproval = !!on
@@ -379,6 +461,17 @@ export function setQuotaUnlimited(groupId: string, unlimited: boolean): void {
 const MODEL_ID_RE = /^[\w.:\-/@]*$/
 
 /** Cambia los modelos de un agente para tareas fáciles, normales y difíciles. */
+/** Razonamiento («think») del modelo local de LM Studio: apagado por defecto para que responda antes. */
+export function setAgentThinking(agentId: unknown, enabled: unknown): void {
+  const a = getConfig().agents.find((x) => x.id === agentId)
+  if (!a) throw new Error('Agente desconocido')
+  if (a.provider !== 'lmstudio') throw new Error('El razonamiento solo se cambia en el agente de LM Studio')
+  if (typeof enabled !== 'boolean') throw new Error('Datos no válidos')
+  if (enabled) a.thinking = true
+  else delete a.thinking
+  saveConfig()
+}
+
 export function setAgentModels(input: SetAgentModelsInput): void {
   const a = getConfig().agents.find((x) => x.id === input.agentId)
   if (!a) throw new Error('Agente desconocido')

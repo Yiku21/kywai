@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type DragEvent, type KeyboardEvent } from 'react'
-import { Ban, Brain, CalendarClock, ClipboardList, MessageSquare, Package, Paperclip, type LucideIcon } from 'lucide-react'
+import { Ban, Brain, CalendarClock, ClipboardList, MessageSquare, Package, Paperclip, Puzzle, type LucideIcon } from 'lucide-react'
 import { useCowork, useData, type DataSlice, type LeftTab } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { cx } from '../common/util'
@@ -10,17 +10,21 @@ import { TasksView } from './TasksView'
 import { ResultsView } from './ResultsView'
 import { MemoryView } from './MemoryView'
 import { RoutinesView } from './RoutinesView'
+import { ModsView, modPanels, useMods } from './ModsView'
 import { useComposer } from './composerStore'
 import s from './LeftPanel.module.css'
+import { t } from '@/lib/i18n'
 
-const TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
+const BASE_TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
   { id: 'chat', label: 'Chat', Icon: MessageSquare },
-  { id: 'files', label: 'Archivos', Icon: Paperclip },
-  { id: 'tasks', label: 'Tareas', Icon: ClipboardList },
-  { id: 'results', label: 'Resultados', Icon: Package },
-  { id: 'memory', label: 'Memoria', Icon: Brain },
-  { id: 'routines', label: 'Rutinas', Icon: CalendarClock }
+  { id: 'files', label: t('Archivos'), Icon: Paperclip },
+  { id: 'tasks', label: t('Tareas'), Icon: ClipboardList },
+  { id: 'results', label: t('Resultados'), Icon: Package },
+  { id: 'memory', label: t('Memoria'), Icon: Brain },
+  { id: 'routines', label: t('Rutinas'), Icon: CalendarClock }
 ]
+/** Solo si algún mod encendido trae paneles. */
+const MODS_TAB = { id: 'mods' as LeftTab, label: t('Mods'), Icon: Puzzle }
 
 function countRunning(d: DataSlice): number {
   let n = 0
@@ -52,13 +56,15 @@ export function LeftPanel() {
   const [dragging, setDragging] = useState(false)
   const depth = useRef(0)
   const baseId = useId()
+  const mods = useMods()
+  const TABS = modPanels(mods).length ? [...BASE_TABS, MODS_TAB] : BASE_TABS
 
   const canAttach = !!api && mode === 'live'
 
   const badges: Partial<Record<LeftTab, { n: number; label: string }>> = {
-    tasks: { n: running, label: running === 1 ? 'tarea en curso' : 'tareas en curso' },
-    results: { n: artifactCount, label: artifactCount === 1 ? 'resultado' : 'resultados' },
-    memory: { n: toReview, label: toReview === 1 ? 'nota por revisar' : 'notas por revisar' }
+    tasks: { n: running, label: running === 1 ? t('tarea en curso') : t('tareas en curso') },
+    results: { n: artifactCount, label: artifactCount === 1 ? t('resultado') : t('resultados') },
+    memory: { n: toReview, label: toReview === 1 ? t('nota por revisar') : t('notas por revisar') }
   }
 
   function onTabKey(e: KeyboardEvent<HTMLDivElement>): void {
@@ -77,7 +83,7 @@ export function LeftPanel() {
   return (
     <section
       className={s.panel}
-      aria-label="Conversación y trabajo del equipo"
+      aria-label={t('Conversación y trabajo del equipo')}
       onDragEnter={(e) => {
         if (!hasFiles(e)) return
         e.preventDefault()
@@ -118,7 +124,7 @@ export function LeftPanel() {
         }
       }}
     >
-      <div className={s.tabs} role="tablist" aria-label="Secciones del panel" onKeyDown={onTabKey}>
+      <div className={s.tabs} role="tablist" aria-label={t('Secciones del panel')} onKeyDown={onTabKey}>
         {TABS.map(({ id, label, Icon }) => {
           const active = id === tab
           const badge = badges[id]
@@ -168,6 +174,8 @@ export function LeftPanel() {
           <MemoryView />
         ) : tab === 'routines' ? (
           <RoutinesView />
+        ) : tab === 'mods' ? (
+          <ModsView />
         ) : (
           <ResultsView />
         )}
@@ -177,13 +185,13 @@ export function LeftPanel() {
         <div className={cx(s.drop, !canAttach && s.dropDisabled)} aria-hidden="true">
           <div className={s.dropCard}>
             {canAttach ? <Paperclip size={22} /> : <Ban size={22} />}
-            <span className={s.dropTitle}>{canAttach ? 'Suelta para adjuntar' : 'No se puede adjuntar aquí'}</span>
+            <span className={s.dropTitle}>{canAttach ? t('Suelta para adjuntar') : t('No se puede adjuntar aquí')}</span>
             <span className={s.dropText}>
               {canAttach
-                ? 'Los archivos se añadirán a tu próximo mensaje'
+                ? t('Los archivos se añadirán a tu próximo mensaje')
                 : mode === 'demo'
-                  ? 'Adjuntar archivos está disponible en modo real'
-                  : 'Sin motor de agentes: abre la app de escritorio'}
+                  ? t('Adjuntar archivos está disponible en modo real')
+                  : t('Sin motor de agentes: abre la app de escritorio')}
             </span>
           </div>
         </div>

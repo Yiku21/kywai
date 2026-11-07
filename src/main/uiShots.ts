@@ -1,4 +1,4 @@
-// Capturas de la interfaz para el verificador: si una tarea tocó una web (HTML, CSS, componentes…), AI Cowork la abre
+// Capturas de la interfaz para el verificador: si una tarea tocó una web (HTML, CSS, componentes…), kywai la abre
 // en una ventana oculta de Electron a tamaño de escritorio y de móvil, guarda las capturas y apunta los errores de la
 // consola. El verificador las recibe como imágenes: así comprueba cómo se ve de verdad, no solo cómo está escrito.
 import { createServer, type Server } from 'node:http'
@@ -119,7 +119,7 @@ async function electronCapture(dir: string, pages: string[], outDir: string, tag
   if (typeof BrowserWindow !== 'function' || !session) return null
   const shots: UiShot[] = []
   const errors = new Set<string>()
-  // Sesión aparte y sin persistencia: la web de la tarea no ve las cookies ni el almacenamiento de AI Cowork.
+  // Sesión aparte y sin persistencia: la web de la tarea no ve las cookies ni el almacenamiento de kywai.
   const ses = session.fromPartition(`verify-${tag}-${Date.now()}`, { cache: false })
   ses.setPermissionRequestHandler((_wc, _perm, cb) => cb(false))
   for (const [n, page] of pages.entries()) {

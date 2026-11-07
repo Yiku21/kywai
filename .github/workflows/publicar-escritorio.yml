@@ -1,0 +1,143 @@
+# Publica la app de escritorio en GitHub Releases con cada cambio en master: compila el instalador de Windows (.exe),
+# el de macOS (.dmg y .zip, Apple silicon e Intel) y el AppImage de Linux (x64 y ARM) y los sube a una Release nueva
+# (v0.1.<número de commits>), que pasa a ser la última. Las apps descargadas de ahí se actualizan solas al abrirse
+# (src/main/updater.ts lee los latest*.yml de la Release). La Release lleva también la APK de Órbita (kywai-orbita.apk).
+#
+# Solo corre en el repositorio público (Yiku21/kywai). Sin firma de código: Windows avisa con SmartScreen
+# («Más información» → «Ejecutar de todas formas») y en el Mac hay que abrirla con clic derecho → Abrir.
+name: Publicar escritorio
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - 'android/**'
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/FUNDING.yml'
+      - '.github/workflows/publicar-orbita.yml'
+  # En un PR que cambie este archivo solo compila (para probarlo), sin publicar nada.
+  pull_request:
+    paths:
+      - '.github/workflows/publicar-escritorio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publicar-escritorio-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  version:
+    if: github.repository_owner == 'Yiku21' && github.event.repository.name == 'kywai'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # el número de versión cuenta los commits
+      - id: v
+        run: echo "version=0.1.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
+  compilar:
+    needs: version
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            args: --win nsis --x64
+          - os: macos-latest
+            args: --mac dmg zip --arm64 --x64 -c.mac.identity=- -c.mac.hardenedRuntime=false
+          - os: ubuntu-latest
+            args: --linux AppImage --x64 --arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Compilar
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          npx electron-vite build
+          npx electron-builder ${{ matrix.args }} --publish never \
+            -c.extraMetadata.version=${{ needs.version.outputs.version }} \
+            -c.publish.provider=github -c.publish.owner=Yiku21 -c.publish.repo=kywai -c.publish.releaseType=release \
+            '-c.nsis.artifactName=kywai-Setup-${version}.${ext}' \
+            '-c.mac.artifactName=kywai-${version}-${arch}.${ext}' \
+            '-c.linux.artifactName=kywai-${version}-${arch}.${ext}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: escritorio-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.blockmap
+            release/latest*.yml
+
+  publicar:
+    if: github.event_name != 'pull_request'
+    needs: [version, compilar]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      # La Release lleva también Órbita (la app de Android): la última APK firmada que publicar-orbita.yml dejó en
+      # master (no la de este commit, que puede ser anterior si los dos flujos corren a la vez). Si falta, se publica
+      # sin ella; publicar-orbita.yml la añadirá en cuanto salga una Órbita nueva.
+      - name: Añadir la APK de Órbita
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api -H 'Accept: application/vnd.github.raw' \
+              "repos/${GITHUB_REPOSITORY}/contents/android/release/orbita.apk?ref=master" > dist/kywai-orbita.apk \
+              && [ -s dist/kywai-orbita.apk ]; then
+            echo "APK de Órbita añadida ($(du -h dist/kywai-orbita.apk | cut -f1))."
+          else
+            rm -f dist/kywai-orbita.apk
+            echo "::warning::No se encontró android/release/orbita.apk en master: la Release sale sin Órbita."
+          fi
+      - name: Crear la Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ needs.version.outputs.version }}
+        run: |
+          ls -la dist
+          cat > notas.md <<EOF
+          Automatic build from commit ${GITHUB_SHA::7}. Once installed, kywai checks for a newer version every time it opens.
+
+          | System | Download |
+          |---|---|
+          | Windows 10/11 | \`kywai-Setup-${V}.exe\` |
+          | macOS, Apple silicon (M1 and later) | \`kywai-${V}-arm64.dmg\` |
+          | macOS, Intel | \`kywai-${V}-x64.dmg\` |
+          | Linux x64 | \`kywai-${V}-x86_64.AppImage\` |
+          | Linux ARM | \`kywai-${V}-arm64.AppImage\` |
+          | Android (Órbita, the phone app) | \`kywai-orbita.apk\` |
+
+          The apps are not code-signed yet:
+          - **Windows:** if SmartScreen warns you, click "More info" → "Run anyway".
+          - **macOS:** drag the app to Applications, then right-click it → Open (only the first time). If macOS says it is damaged, run \`xattr -cr "/Applications/kywai.app"\` in Terminal. If you still have the old \`AI Cowork.app\`, delete it: your data is kept.
+          - **Linux:** \`chmod +x kywai-*.AppImage\` and open it.
+          - **Android:** open \`kywai-orbita.apk\` on the phone and allow installing apps from that source. Órbita connects to a computer running kywai and then updates itself from there.
+
+          You still need at least one AI agent (Claude Code, Codex CLI, Gemini CLI, a local model…). The setup assistant installs and signs in to them on first launch.
+          EOF
+          gh release create "v${V}" dist/* --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" \
+            --title "kywai ${V}" --notes-file notas.md --latest

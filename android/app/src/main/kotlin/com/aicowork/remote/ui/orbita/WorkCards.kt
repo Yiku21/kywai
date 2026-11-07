@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -72,10 +74,10 @@ fun WorkBlock(messageId: String, work: TaskWork, accent: Color, snapshot: Snapsh
     // Solo sigue «trabajando» si la tarea sigue en marcha (tras reiniciar el ordenador, ya no).
     val live = work.status == "running" && task?.status == "running"
     val state = when (work.status) {
-        "running" -> if (live) "Trabajando" else "Detenida"
-        "done" -> "Hecha"
-        "failed" -> "No pudo hacerla"
-        else -> "Detenida"
+        "running" -> if (live) t("Trabajando") else t("Detenida")
+        "done" -> t("Hecha")
+        "failed" -> t("No pudo hacerla")
+        else -> t("Detenida")
     }
     var open by rememberSaveable(messageId) { mutableStateOf(false) }
     val count = work.steps.size + work.hidden
@@ -92,7 +94,7 @@ fun WorkBlock(messageId: String, work: TaskWork, accent: Color, snapshot: Snapsh
         Row(verticalAlignment = Alignment.CenterVertically) {
             Dot(accent, size = 7.dp, pulse = true)
             Spacer(Modifier.width(8.dp))
-            Text(task?.lastActivity ?: "Trabajando…", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(task?.lastActivity ?: t("Trabajando…"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
     Column(Modifier.fillMaxWidth().testTag("work-$messageId"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -121,17 +123,17 @@ fun WorkBlock(messageId: String, work: TaskWork, accent: Color, snapshot: Snapsh
                 Modifier
                     .heightIn(min = 32.dp)
                     .tappable(role = Role.Button, haptic = Haptic.Select) { open = !open }
-                    .semantics { stateDescription = if (open) "Desplegado" else "Plegado" }
+                    .semantics { stateDescription = if (open) t("Desplegado") else t("Plegado") }
                     .testTag("work-more-$messageId"),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    totals?.summary?.takeIf { it.isNotBlank() } ?: "$count ${if (count == 1) "paso" else "pasos"}",
+                    totals?.summary?.takeIf { it.isNotBlank() } ?: (if (count == 1) t("1 paso") else t("{count} pasos", "count" to count)),
                     color = Orbita.TextSoft,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                if ((totals?.failed ?: 0) > 0) Text(" · ${totals?.failed} con error", color = Orbita.Danger, style = MaterialTheme.typography.bodySmall)
+                if ((totals?.failed ?: 0) > 0) Text(t(" · {v1} con error", "v1" to (totals?.failed)), color = Orbita.Danger, style = MaterialTheme.typography.bodySmall)
                 DiffStat(totals?.add ?: 0, totals?.del ?: 0)
                 Icon(if (open) Icons.Outlined.ExpandMore else Icons.Outlined.ChevronRight, contentDescription = null, tint = Orbita.TextFaint, modifier = Modifier.size(18.dp))
             }
@@ -140,7 +142,7 @@ fun WorkBlock(messageId: String, work: TaskWork, accent: Color, snapshot: Snapsh
             Column(sideLine.testTag("work-steps-$messageId"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (work.hidden > 0) {
                     Text(
-                        "${work.hidden} ${if (work.hidden == 1) "paso anterior" else "pasos anteriores"}: ver todo",
+                        t("{hidden} {v2}: ver todo", "hidden" to work.hidden, "v2" to if (work.hidden == 1) t("paso anterior") else t("pasos anteriores")),
                         color = Orbita.TextFaint,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.tappable(haptic = Haptic.Tap) { model.traceTaskId = work.taskId },
@@ -153,7 +155,7 @@ fun WorkBlock(messageId: String, work: TaskWork, accent: Color, snapshot: Snapsh
                 }
                 if (live) liveRow()
                 Text(
-                    "Abrir el registro completo",
+                    t("Abrir el registro completo"),
                     color = Orbita.TextFaint,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.heightIn(min = 32.dp).tappable(role = Role.Button, haptic = Haptic.Tap) { model.traceTaskId = work.taskId }.testTag("work-full-$messageId"),
@@ -211,21 +213,21 @@ private fun ToolsLine(step: WorkStep, taskId: String, model: OrbitaModel, key: S
             Modifier
                 .heightIn(min = 32.dp)
                 .tappable(role = Role.Button, haptic = Haptic.Select) { open = !open }
-                .semantics { stateDescription = if (open) "Desplegado" else "Plegado" }
+                .semantics { stateDescription = if (open) t("Desplegado") else t("Plegado") }
                 .testTag("tools-$key"),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(Icons.Outlined.Build, contentDescription = null, tint = Orbita.TextFaint, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(6.dp))
             Text(step.summary.orEmpty(), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f, fill = false))
-            if (step.failed > 0) Text(" · ${step.failed} con error", color = Orbita.Danger, style = MaterialTheme.typography.bodySmall)
+            if (step.failed > 0) Text(t(" · {failed} con error", "failed" to step.failed), color = Orbita.Danger, style = MaterialTheme.typography.bodySmall)
             DiffStat(step.add, step.del)
             Icon(if (open) Icons.Outlined.ExpandMore else Icons.Outlined.ChevronRight, contentDescription = null, tint = Orbita.TextFaint, modifier = Modifier.size(18.dp))
         }
         if (open) {
             Column(Modifier.padding(start = 14.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 step.items.forEachIndexed { i, item -> ToolRow(item, step.refs.getOrNull(i), taskId, model, "$key-$i") }
-                if (step.more > 0) Text("y ${step.more} más (en el registro completo)", color = Orbita.TextFaint, style = Mono)
+                if (step.more > 0) Text(t("y {more} más (en el registro completo)", "more" to step.more), color = Orbita.TextFaint, style = Mono)
             }
         }
     }
@@ -243,7 +245,7 @@ private fun ToolRow(title: String, info: WorkToolRef?, taskId: String, model: Or
                 .then(
                     if (info != null) Modifier
                         .tappable(role = Role.Button, haptic = Haptic.Select) { open = !open }
-                        .semantics { stateDescription = if (open) "Desplegado" else "Plegado" }
+                        .semantics { stateDescription = if (open) t("Desplegado") else t("Plegado") }
                     else Modifier,
                 )
                 .testTag("tool-$key"),
@@ -251,8 +253,8 @@ private fun ToolRow(title: String, info: WorkToolRef?, taskId: String, model: Or
         ) {
             Text(title, color = Orbita.TextFaint, style = Mono, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
             when (info?.ok) {
-                true -> Icon(Icons.Outlined.CheckCircle, contentDescription = "Bien", tint = Orbita.Success, modifier = Modifier.padding(start = 6.dp).size(14.dp))
-                false -> Icon(Icons.Outlined.Cancel, contentDescription = "Falló", tint = Orbita.Danger, modifier = Modifier.padding(start = 6.dp).size(14.dp))
+                true -> Icon(Icons.Outlined.CheckCircle, contentDescription = t("Bien"), tint = Orbita.Success, modifier = Modifier.padding(start = 6.dp).size(14.dp))
+                false -> Icon(Icons.Outlined.Cancel, contentDescription = t("Falló"), tint = Orbita.Danger, modifier = Modifier.padding(start = 6.dp).size(14.dp))
                 null -> Unit
             }
             DiffStat(info?.add ?: 0, info?.del ?: 0)
@@ -277,7 +279,7 @@ private fun ToolDetail(info: WorkToolRef, taskId: String, model: OrbitaModel, ke
         val output = e?.output?.takeIf { it.isNotBlank() }
         if (body == null && output == null) {
             Text(
-                if (!loaded) "Cargando…" else if (info.ok == null) "En marcha…" else "Este paso no tiene más detalle.",
+                if (!loaded) t("Cargando…") else if (info.ok == null) t("En marcha…") else t("Este paso no tiene más detalle."),
                 color = Orbita.TextFaint,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -294,7 +296,7 @@ private fun ToolDetail(info: WorkToolRef, taskId: String, model: OrbitaModel, ke
             )
         }
         output?.let {
-            Text("Resultado", color = Orbita.TextFaint, style = MaterialTheme.typography.labelSmall)
+            Text(t("Resultado"), color = Orbita.TextFaint, style = MaterialTheme.typography.labelSmall)
             Text(
                 it,
                 color = if (e?.ok == false) Orbita.Danger else Color(0xFFBFD0E6),

@@ -1,10 +1,10 @@
-// Instantáneas de la carpeta de un proyecto, guardadas en un repositorio git propio de AI Cowork (nunca en el .git
+// Instantáneas de la carpeta de un proyecto, guardadas en un repositorio git propio de kywai (nunca en el .git
 // del usuario, que no se toca). Sirven para tres cosas:
 //  - ver qué cambió exactamente una tarea (diff entre la instantánea de antes y la de después),
 //  - deshacer una tarea aunque después se hayan cambiado otros archivos (fusión a tres bandas, como git revert),
 //  - trabajar en una copia aislada cuando otra tarea ya está usando la carpeta, e integrar al terminar.
 // Funciona igual si la carpeta es un repositorio git o no: respeta sus .gitignore y añade las exclusiones de
-// AI Cowork (node_modules, compilados, datos internos…). Solo usa órdenes de git disponibles desde la 2.20 (la
+// kywai (node_modules, compilados, datos internos…). Solo usa órdenes de git disponibles desde la 2.20 (la
 // del Mac con las herramientas de Xcode es la 2.39): nada de merge-tree --write-tree.
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -134,7 +134,8 @@ export class Shadow {
     if (o.workTree) env.GIT_WORK_TREE = o.workTree
     if (o.index) env.GIT_INDEX_FILE = o.index
     env.GIT_CONFIG_NOSYSTEM = '1'
-    env.GIT_CONFIG_GLOBAL = devNull
+    // Git para Windows reconoce NUL, pero rechaza la ruta \\.\nul que devuelve node:os.
+    env.GIT_CONFIG_GLOBAL = process.platform === 'win32' ? 'NUL' : devNull
     env.GIT_TERMINAL_PROMPT = '0'
     env.GIT_AUTHOR_NAME = env.GIT_COMMITTER_NAME = 'AI Cowork'
     env.GIT_AUTHOR_EMAIL = env.GIT_COMMITTER_EMAIL = 'ai-cowork@localhost'
@@ -152,7 +153,7 @@ export class Shadow {
     return (await this.git(args, o)).toString('utf8').trim()
   }
 
-  /** Crea el repositorio la primera vez (y repone las exclusiones de AI Cowork). */
+  /** Crea el repositorio la primera vez (y repone las exclusiones de kywai). */
   async init(): Promise<void> {
     if (!existsSync(join(this.gitDir, 'HEAD'))) {
       mkdirSync(this.gitDir, { recursive: true })

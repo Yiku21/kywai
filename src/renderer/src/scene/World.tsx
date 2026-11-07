@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import type * as THREE from 'three'
 import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei'
-import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
+import { Bloom, EffectComposer, Vignette, N8AO } from '@react-three/postprocessing'
 import type { AgentConfig, StationConfig } from '@shared/types'
-import { useCowork, useData } from '@/store/cowork'
+import { currentData, useCowork, useData } from '@/store/cowork'
 import { musicLightLevel } from '@/lib/music'
 import { useTheme } from '@/lib/theme'
-import { QUALITY, useQuality } from './quality'
+import { sceneQuality, useQuality } from './quality'
 import { registry } from './registry'
 import { Ambient } from './Ambient'
 import { Backdrop } from './Backdrop'
@@ -21,12 +21,25 @@ import { Robot } from './Robot'
 import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
 import { LabelProjector } from './LabelProjector'
+import { t } from '@/lib/i18n'
 
-/** Reloj de la escena y pulso de la música: se actualizan antes que cualquier otra animación. */
+/**
+ * Reloj de la escena y pulso de la música: se actualizan antes que cualquier otra animación.
+ * El reloj solo avanza: react-three-fiber pone su `clock.elapsedTime` a 0 cada vez que cambia el frameloop
+ * (pestaña oculta/visible, foco/sin foco), y si la escena lo usara el tiempo retrocedería y las animaciones en
+ * curso se descontrolarían (un archivo que ya había llegado salía gigante y tardaba minutos en encogerse).
+ * Cada paso se limita a 0,25 s para que, al volver tras un rato fuera, las animaciones sigan donde se quedaron.
+ */
 function SceneClock() {
-  useFrame((state) => {
-    registry.time = state.clock.elapsedTime
+  useFrame((_, delta) => {
+    registry.time += Math.min(Math.max(delta, 0), 0.25)
     registry.beat = musicLightLevel(performance.now(), useCowork.getState().reducedEffects)
+    // Con dos agentes ocupados el mapa ya va a tope; sube en un segundo y medio y baja algo más despacio.
+    let busy = 0
+    for (const rt of Object.values(currentData().runtimes)) if (rt.activity === 'working' || rt.activity === 'thinking') busy++
+    const target = Math.min(1, busy / 2)
+    const rate = target > registry.work ? 0.7 : 0.4
+    registry.work += (target - registry.work) * Math.min(1, Math.min(Math.max(delta, 0), 0.25) * rate * 3)
   }, -100)
   return null
 }
@@ -114,19 +127,54 @@ function ViewShift({ view }: { view?: ViewInsets }) {
   return null
 }
 
+/** Fotogramas por segundo con la ventana sin foco (sigue viéndose moverse, pero gasta mucho menos). */
+const IDLE_FPS = 20
+
+/** Sin foco, la escena se dibuja a [IDLE_FPS] en vez de a la frecuencia de la pantalla. */
+function IdleFrames({ active }: { active: boolean }) {
+  const invalidate = useThree((st) => st.invalidate)
+  useEffect(() => {
+    if (!active) return
+    const id = window.setInterval(() => invalidate(), 1000 / IDLE_FPS)
+    return () => window.clearInterval(id)
+  }, [active, invalidate])
+  return null
+}
+
+/** ¿Tiene foco la ventana? (un iframe propio, como el reproductor de música, cuenta como foco). */
+function useWindowFocus(): boolean {
+  const [focused, setFocused] = useState(() => document.hasFocus())
+  useEffect(() => {
+    const update = () => window.setTimeout(() => setFocused(document.hasFocus()), 0)
+    window.addEventListener('focus', update)
+    window.addEventListener('blur', update)
+    return () => {
+      window.removeEventListener('focus', update)
+      window.removeEventListener('blur', update)
+    }
+  }, [])
+  return focused
+}
+
 /** Espacio digital 3D. [view]: lo que tapa la interfaz cuando ocupa toda la ventana (tema Órbita). */
 export function World({ view }: { view?: ViewInsets } = {}) {
   const level = useQuality((s) => s.level)
   const lower = useQuality((s) => s.lower)
   const raise = useQuality((s) => s.raise)
-  const q = QUALITY[level]
+  const max = useQuality((s) => s.max)
+  const q = useMemo(() => sceneQuality(level, max), [level, max])
   const reduced = useCowork((s) => s.reducedEffects)
   const stations = useCowork((s) => s.config.stations)
   const [visible, setVisible] = useState(() => !document.hidden)
+  const focused = useWindowFocus()
   // Cada tema tiene sus colores (palette.ts, ya aplicados al cambiarlo): la escena se vuelve a montar con ellos.
   const theme = useTheme()
   const p = palette
   const L = p.lights
+  // Los entornos nuevos usan materiales físicos también en el suelo y la arquitectura.
+  const worldLight = p.world ? (p.light ? 0.85 : 2.4) : 1
+  const fogNear = p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
+  const fogFar = p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
 
   // Pausa total cuando la ventana o pestaña está oculta.
   useEffect(() => {
@@ -138,34 +186,41 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   return (
     <Canvas
       dpr={q.dpr}
-      frameloop={visible ? 'always' : 'never'}
-      camera={{ fov: 30, position: [0, 15.4, 19.8], near: 0.5, far: 150 }}
+      shadows={!!p.world && q.shadows}
+      frameloop={!visible ? 'never' : focused ? 'always' : 'demand'}
+      camera={{ fov: 30, position: [0, 15.4, 19.8], near: 0.5, far: 420 }}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false, stencil: false }}
       onPointerMissed={() => useCowork.getState().select(null)}
-      aria-label="Espacio digital con los agentes trabajando"
+      aria-label={t('Espacio digital con los agentes trabajando')}
     >
       <color key={`bg-${theme}`} attach="background" args={[p.bg]} />
-      <fog key={`fog-${theme}`} attach="fog" args={[p.fog, FOG_NEAR, FOG_FAR]} />
+      <fog key={`fog-${theme}`} attach="fog" args={[p.fog, fogNear, fogFar]} />
       <SceneClock />
-      <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />
+      <IdleFrames active={visible && !focused} />
+      {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. */}
+      {focused && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />}
 
       <group key={theme}>
-        <hemisphereLight args={[L.sky, L.ground, L.hemi]} />
-        <ambientLight intensity={L.ambientI} color={L.ambient} />
-        <directionalLight position={[-7, 14, 9]} intensity={L.keyI} color={L.key} />
-        <directionalLight position={[8, 6, -6]} intensity={L.fillI} color={L.fill} />
+        <hemisphereLight args={[L.sky, L.ground, L.hemi * worldLight]} />
+        <ambientLight intensity={L.ambientI * worldLight} color={L.ambient} />
+        <directionalLight position={[-7, 14, 9]} intensity={L.keyI * worldLight} color={L.key}
+          castShadow={!!p.world && q.shadows} shadow-mapSize={[2048, 2048]} shadow-bias={-0.00015} shadow-normalBias={0.035}
+          shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20}
+          shadow-camera-near={0.5} shadow-camera-far={65} />
+        <directionalLight position={[8, 6, -6]} intensity={L.fillI * worldLight} color={L.fill} />
+        {p.world && <directionalLight position={[1, 8, -12]} intensity={p.light ? 0.4 : p.world === 'bosque' ? 0.75 : 0.3} color={p.world === 'bosque' ? '#d5db9b' : p.world === 'eva' ? '#a4bbde' : '#c3d8ef'} />}
 
         {/* Entorno para reflejos de los visores (generado localmente, sin descargas) */}
-        <Environment resolution={128} frames={1}>
+        <Environment resolution={p.world ? 256 : 128} frames={1}>
           <Lightformer form="rect" intensity={1.3} color={L.env[0]} position={[0, 4, 6]} scale={[9, 2.2, 1]} />
           <Lightformer form="rect" intensity={1.2} color={L.env[1]} position={[-6, 2, 1]} rotation-y={Math.PI / 2} scale={[6, 2, 1]} />
           <Lightformer form="ring" intensity={0.9} color={L.env[2]} position={[5, 5, -3]} scale={2.5} />
           <Lightformer form="rect" intensity={0.6} color={L.env[3]} position={[0, -3, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
         </Environment>
 
-        <Backdrop reduced={reduced} />
+        {!p.world && <Backdrop reduced={reduced} />}
         <Ambient q={q} reduced={reduced} />
-        <Circuits stations={stations} reduced={reduced} />
+        {!['bosque', 'marfil', 'orbita'].includes(p.world ?? '') && <Circuits stations={stations} reduced={reduced} />}
         <Zones />
         <Core />
         <Stations stations={stations} showLights={q.stationLights} />
@@ -179,6 +234,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
 
       {q.bloom && (
         <EffectComposer multisampling={q.msaa} enableNormalPass={false}>
+          <N8AO enabled={!!p.world && q.shadows} aoRadius={0.55} intensity={1.1} distanceFalloff={0.8} quality="medium" halfRes />
           <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 : 1) * (p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
           <Vignette offset={0.28} darkness={p.vignette} />
         </EffectComposer>

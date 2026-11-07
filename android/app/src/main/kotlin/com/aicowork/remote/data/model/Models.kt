@@ -14,7 +14,7 @@ import kotlinx.serialization.json.JsonObject
 data class PairRequest(val code: String, val deviceName: String)
 
 @Serializable
-data class PairResponse(val accessToken: String, val expiresAt: String? = null, val serverName: String = "AI Cowork")
+data class PairResponse(val accessToken: String, val expiresAt: String? = null, val serverName: String = "kywai")
 
 @Serializable
 data class ApiErrorBody(val code: String = "unknown", val message: String = "", val retryable: Boolean = false)
@@ -48,7 +48,51 @@ data class Snapshot(
     val projects: List<ProjectSummary> = emptyList(),
     val stations: List<StationConfig> = emptyList(),
     val settings: ServerSettings = ServerSettings(),
+    /** Plantillas de tareas de todos los proyectos (las de uno llevan su projectId). Cambian con `templates.updated`. */
+    val templates: List<TaskTemplate> = emptyList(),
 )
+
+/** Una plantilla de tareas: una petición que se repite, lanzable con un toque o con «/command …». */
+@Serializable
+data class TaskTemplate(
+    val id: String,
+    val name: String,
+    val icon: String? = null,
+    val command: String = "",
+    /** El texto que se envía, con sus huecos ({pr}, {carpeta}…). */
+    val prompt: String = "",
+    val projectId: String? = null,
+    /** Va directa a ese agente, sin pasar por Hermes. */
+    val agentId: String? = null,
+    /** Pide el visto bueno al plan aunque el ajuste esté apagado. */
+    val askPlan: Boolean = false,
+    val pinned: Boolean = false,
+    val builtin: String? = null,
+    @Serializable(with = FlexibleTimeSerializer::class) val createdAt: Long? = null,
+)
+
+/** Crear o cambiar una plantilla (en un cambio, null = no se toca; projectId/agentId "" = quitarlo). */
+@Serializable
+data class TaskTemplateInput(
+    val name: String? = null,
+    val prompt: String? = null,
+    val icon: String? = null,
+    val command: String? = null,
+    val projectId: String? = null,
+    val agentId: String? = null,
+    val askPlan: Boolean? = null,
+    val pinned: Boolean? = null,
+)
+
+@Serializable
+data class TemplateResponse(val template: TaskTemplate)
+
+@Serializable
+data class TemplatesResponse(val templates: List<TaskTemplate> = emptyList())
+
+/** Con qué plantilla se lanzó un mensaje. */
+@Serializable
+data class TemplateRef(val id: String, val name: String = "")
 
 @Serializable
 data class Conversation(
@@ -65,7 +109,95 @@ data class Conversation(
     val folder: ProjectFolder? = null,
     /** Instrucciones del proyecto para todos los agentes. */
     val instructions: String? = null,
+    /** El chat abierto en el proyecto (los demás, con GET /chats). */
+    val chat: OpenChat? = null,
 )
+
+@Serializable
+data class OpenChat(val id: String, val title: String = "")
+
+/** Un chat de un proyecto (las conversaciones retomables de la barra lateral). */
+@Serializable
+data class ChatSummary(
+    val id: String,
+    val projectId: String = "",
+    val title: String = "",
+    @Serializable(with = FlexibleTimeSerializer::class) val createdAt: Long? = null,
+    @Serializable(with = FlexibleTimeSerializer::class) val updatedAt: Long? = null,
+    val messageCount: Int = 0,
+    val current: Boolean = false,
+    val pinned: Boolean = false,
+)
+
+@Serializable
+data class ChatsResponse(val chats: List<ChatSummary> = emptyList())
+
+/** Algo encontrado con «Buscar»: un chat, una tarea, un resultado o una entrada de memoria. */
+@Serializable
+data class SearchHit(
+    val kind: String,
+    val projectId: String,
+    val projectName: String = "",
+    val conversationId: String? = null,
+    val title: String = "",
+    val snippet: String = "",
+    @Serializable(with = FlexibleTimeSerializer::class) val at: Long? = null,
+    val ref: String? = null,
+    /** Chats: el mensaje encontrado (al abrir, el chat baja hasta él). */
+    val messageId: String? = null,
+    /** Chats: cuántos mensajes coinciden. */
+    val matchCount: Int = 0,
+    /** Chats: los primeros mensajes que coinciden, para elegir a cuál ir. */
+    val matches: List<SearchMatch> = emptyList(),
+)
+
+/** Un mensaje que coincide dentro de un chat encontrado. [by]: «user», «system» o el id del agente. */
+@Serializable
+data class SearchMatch(
+    val messageId: String,
+    val snippet: String = "",
+    @Serializable(with = FlexibleTimeSerializer::class) val at: Long? = null,
+    val by: String = "",
+)
+
+/** [total]: cuántas coincidencias hay en total (para «Ver más»); los servidores antiguos no lo envían. */
+@Serializable
+data class SearchResponse(val hits: List<SearchHit> = emptyList(), val total: Int? = null)
+
+/** Una radio de SomaFM o una canción de Audius: Órbita la escucha desde [stream] (sin anuncios). */
+@Serializable
+data class MusicResult(
+    val id: String,
+    val title: String,
+    val artist: String = "",
+    val detail: String? = null,
+    val durationSec: Int? = null,
+    val thumbnail: String? = null,
+    val stream: String,
+    val live: Boolean = false,
+)
+
+@Serializable
+data class MusicResponse(val results: List<MusicResult> = emptyList())
+
+@Serializable
+data class ChatRenameRequest(val conversationId: String, val title: String)
+
+@Serializable
+data class ChatPinRequest(val conversationId: String, val pinned: Boolean)
+
+@Serializable
+data class ChatMoveRequest(val conversationId: String, val toConversationId: String)
+
+/** Respuesta de bifurcar o mover un chat: su id (en el destino) y los chats del proyecto de origen. */
+@Serializable
+data class ChatCopyResponse(val chatId: String, val chats: List<ChatSummary> = emptyList())
+
+@Serializable
+data class ProjectRenameRequest(val name: String)
+
+@Serializable
+data class PinRequest(val pinned: Boolean)
 
 @Serializable
 data class ProjectSummary(
@@ -74,6 +206,8 @@ data class ProjectSummary(
     @Serializable(with = FlexibleTimeSerializer::class) val createdAt: Long? = null,
     @Serializable(with = FlexibleTimeSerializer::class) val updatedAt: Long? = null,
     val running: Boolean = false,
+    /** Fijado en la barra lateral (sección «Fijados»). */
+    val pinned: Boolean = false,
 )
 
 @Serializable
@@ -92,6 +226,10 @@ data class ServerSettings(
     val agentAccess: String = "full",
     /** Hermes espera tu visto bueno antes de ejecutar cada plan. */
     val planApproval: Boolean = false,
+    /** Tema elegido en el escritorio («grafito», «mundo-bosque»…): Órbita se pinta igual. Null en ordenadores antiguos. */
+    val theme: String? = null,
+    /** Nombre que le puso el usuario al ordenador (abajo en la barra lateral). Null: el de la red. */
+    val serverName: String? = null,
 )
 
 @Serializable
@@ -181,6 +319,18 @@ data class PlanApprovalRequest(val enabled: Boolean)
 @Serializable
 data class PlanApprovalResponse(val planApproval: Boolean = true)
 
+@Serializable
+data class ServerNameRequest(val name: String)
+
+@Serializable
+data class ServerNameResponse(val serverName: String? = null)
+
+@Serializable
+data class ThemeRequest(val theme: String)
+
+@Serializable
+data class ThemeResponse(val theme: String? = null)
+
 /** Tarea del plan que propone Hermes: todavía no existe; se crea al aprobar el plan. */
 @Serializable
 data class ProposedTask(
@@ -194,6 +344,66 @@ data class ProposedTask(
     val dependsOn: List<String> = emptyList(),
     val acceptance: String? = null,
 )
+
+/**
+ * Cuándo se lanza una rutina: daily (cada día a [time]), weekly ([days], 0 = domingo, a [time]), interval (cada
+ * [hours] horas), once (una sola vez el día [date] a [time]), webhook o folder (al cambiar archivos de [path]).
+ * Las horas son las del reloj del ordenador.
+ */
+@Serializable
+data class RoutineTrigger(
+    val type: String = "daily",
+    val time: String? = null,
+    val days: List<Int>? = null,
+    val hours: Int? = null,
+    val date: String? = null,
+    val path: String? = null,
+)
+
+/** Una ejecución de la rutina: running, waiting (plan por aprobar), ok, failed, skipped o interrupted. */
+@Serializable
+data class RoutineRun(
+    val at: Long = 0,
+    val status: String = "ok",
+    val reason: String = "schedule",
+    val note: String? = null,
+)
+
+/** Una rutina del proyecto: una petición que se envía sola al chat. Nunca trae el secreto de su webhook. */
+@Serializable
+data class Routine(
+    val id: String,
+    val name: String = "",
+    val request: String = "",
+    val enabled: Boolean = true,
+    val trigger: RoutineTrigger = RoutineTrigger(),
+    val nextAt: Long? = null,
+    val askApproval: Boolean = false,
+    val runs: List<RoutineRun> = emptyList(),
+)
+
+@Serializable
+data class RoutinesResponse(val routines: List<Routine> = emptyList())
+
+@Serializable
+data class RoutineResponse(val routine: Routine? = null)
+
+/** Lo que se envía al crear o cambiar una rutina (el ordenador la valida igual que en el escritorio). */
+data class RoutineInput(val name: String, val request: String, val trigger: RoutineTrigger, val askApproval: Boolean)
+
+/** Rutina que propone Hermes: pending (por decidir), created (creada, [routineId]) o dismissed (descartada). */
+@Serializable
+data class RoutineProposal(
+    val status: String = "pending",
+    val name: String = "",
+    val request: String = "",
+    val trigger: RoutineTrigger = RoutineTrigger(),
+    /** La orden «/rutina …» equivalente: «Cambiar» la pone en el cuadro de texto. */
+    val command: String = "",
+    val routineId: String? = null,
+) {
+    val isPending: Boolean get() = status == "pending"
+}
 
 /** Plan que espera tu visto bueno: pending, approved (ya en marcha), revised (le pediste cambios) o rejected. */
 @Serializable
@@ -250,10 +460,19 @@ data class ChatMessage(
     val proposal: PlanProposal? = null,
     /** Mensaje de una tarea: lo que el agente va contando mientras la hace; al acabar, text es su resultado. */
     val work: TaskWork? = null,
+    /** Mensaje tuyo enviado directo a un agente («@Qwen …»): no pasó por Hermes. */
+    val direct: DirectTarget? = null,
+    /** Lanzado con una plantilla de tareas (su nombre sale en el chat). */
+    val template: TemplateRef? = null,
+    /** Rutina que propone Hermes (tarjeta «Crear rutina»). */
+    val routineProposal: RoutineProposal? = null,
 ) {
     /** Conversación (proyecto) a la que pertenece, si el servidor lo indica. */
     val ownerId: String? get() = conversationId ?: projectId
 }
+
+@Serializable
+data class DirectTarget(val agentId: String, val name: String = agentId)
 
 @Serializable
 data class ContextUsage(val used: Long = 0, val capacity: Long? = null)
@@ -291,6 +510,8 @@ data class Agent(
     val enabled: Boolean = true,
     val isSubagent: Boolean = false,
     val context: ContextUsage? = null,
+    /** Solo el agente de LM Studio: razonamiento («think») del modelo local encendido. */
+    val thinking: Boolean = false,
 )
 
 /** Cambio parcial del estado de un agente (evento `agent.runtime`). */
@@ -400,6 +621,49 @@ data class Usage(
     val totals: TokenUsage = TokenUsage(),
     val quotas: List<Quota> = emptyList(),
     val byAgent: List<AgentUsage> = emptyList(),
+    /** Dinero de los últimos 30 días (servidores con capabilities.usageCost). */
+    val cost: UsageCost? = null,
+)
+
+/** Lo mismo que la sección «Coste» de ⚙ → «Uso y coste…» del escritorio. Importes ya en la moneda elegida. */
+@Serializable
+data class UsageCost(
+    val currency: String = "USD",
+    val days: Int = 30,
+    val paid: Double = 0.0,
+    val api: Double = 0.0,
+    val estimated: Double = 0.0,
+    val unpricedCalls: Int = 0,
+    val budget: CostBudget? = null,
+    val byAgent: List<AgentCost> = emptyList(),
+    val subscriptions: List<SubscriptionCost> = emptyList(),
+    val pricesChecked: String = "",
+)
+
+@Serializable
+data class CostBudget(val limit: Double = 0.0, val spent: Double = 0.0, val pct: Double = 0.0)
+
+@Serializable
+data class AgentCost(
+    val agentId: String,
+    val name: String = "",
+    /** subscription, api, free, local o null (sin indicar). */
+    val mode: String? = null,
+    val calls: Int = 0,
+    val api: Double = 0.0,
+    /** Sale sobre todo de tokens estimados: se enseña con ≈. */
+    val estimated: Boolean = false,
+)
+
+@Serializable
+data class SubscriptionCost(
+    val key: String,
+    val label: String = "",
+    val monthly: Double? = null,
+    val api30: Double = 0.0,
+    val runs30: Int = 0,
+    /** worth: compensa · cheaper-api: por API saldría más barato · null: sin precio al mes. */
+    val verdict: String? = null,
 )
 
 @Serializable
@@ -436,6 +700,36 @@ data class Capabilities(
     val inbox: Boolean = false,
     /** Cambios de una tarea y deshacerlos (GET /tasks/{id}/changes, POST /tasks/{id}/undo). */
     val taskChanges: Boolean = false,
+    /** «@Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes. */
+    val directMessages: Boolean = false,
+    /** Plantillas de tareas: verlas, crearlas, cambiarlas y lanzarlas (templateId al enviar). */
+    val templates: Boolean = false,
+    /** Interruptor «Razonamiento (think)» del agente de LM Studio (POST /agents/{id}/thinking). */
+    val agentThinking: Boolean = false,
+    /** Paneles de los mods (GET /mods/panels y /mods/panel). */
+    val modPanels: Boolean = false,
+    /** Varios chats por proyecto (GET/POST /chats, /chats/{id}/open|rename|delete). */
+    val chats: Boolean = false,
+    /** Radios y canciones sin anuncios (GET /music/search). */
+    val music: Boolean = false,
+    /** Buscador de todos los proyectos (GET /search). */
+    val search: Boolean = false,
+    /** Historial: GET /chats/all y GET /search con since, author y limit (con el total y el mensaje exacto). */
+    val history: Boolean = false,
+    /** Cambiar el nombre del ordenador que se ve abajo en la barra lateral (POST /settings/server-name). */
+    val serverName: Boolean = false,
+    /** Elegir el tema desde el móvil (POST /settings/theme): lo siguen el escritorio, los clientes y el navegador. */
+    val theme: Boolean = false,
+    /** Menú de un chat al mantenerlo pulsado: fijar, bifurcar, mover y borrar también el abierto (GET /chats/pinned). */
+    val chatActions: Boolean = false,
+    /** Menú de un proyecto al mantenerlo pulsado: renombrar, fijar y eliminar (POST /projects/{id}/rename|pin|delete). */
+    val projectActions: Boolean = false,
+    /** Rutinas: verlas y «Ejecutar ahora» (GET /routines, POST /routines/{id}/run). */
+    val routines: Boolean = false,
+    /** Crear, cambiar, activar y borrar rutinas desde aquí. */
+    val routinesEdit: Boolean = false,
+    /** Tarjeta «Crear rutina» que propone Hermes en el chat. */
+    val routineProposals: Boolean = false,
 )
 
 /** Botón de un aviso de la bandeja. Con [url] (p. ej. vnc://… para Compartir pantalla) se abre en el móvil y no va al servidor. */
@@ -466,13 +760,24 @@ data class InboxItem(
     val isOpen: Boolean get() = resolvedAt == null
 }
 
+/** Un panel de un mod encendido (la pestaña «Mods» del escritorio). */
+@Serializable
+data class ModPanelInfo(val mod: String, val modTitle: String = "", val id: String, val title: String = "", val chat: Boolean = false)
+
+@Serializable
+data class ModPanelsResponse(val panels: List<ModPanelInfo> = emptyList())
+
+/** La página de un panel: ya trae su política de seguridad y el puente `KywaiBridge`. */
+@Serializable
+data class ModPanelPage(val html: String = "", val title: String = "", val chat: Boolean = false)
+
 @Serializable
 data class InboxResponse(val items: List<InboxItem> = emptyList())
 
 @Serializable
 data class InboxActionResponse(val item: InboxItem? = null, val message: String? = null)
 
-/** Un cambio del código de AI Cowork (commit de GitHub). */
+/** Un cambio del código de kywai (commit de GitHub). */
 @Serializable
 data class UpdateCommit(val hash: String = "", val date: String = "", val subject: String = "")
 
@@ -501,6 +806,10 @@ data class ServerUpdateRequest(val setAside: Boolean)
 @Serializable
 data class AgentResetResponse(val agentId: String, val activity: String = "idle", val reason: String? = null)
 
+/** Respuesta de POST /agents/{id}/thinking. */
+@Serializable
+data class AgentThinkingResponse(val agentId: String, val thinking: Boolean = false)
+
 /** El modelo de Hermes y los de cada proveedor con el que tiene sesión (GET /hermes/models, «/model»). */
 @Serializable
 data class HermesModelsInfo(
@@ -513,7 +822,7 @@ data class HermesModelsInfo(
     val updatedAt: Long? = null,
 )
 
-/** fromApp: lo eligió el usuario en AI Cowork; si no, es el de la configuración de Hermes. */
+/** fromApp: lo eligió el usuario en kywai; si no, es el de la configuración de Hermes. */
 @Serializable
 data class HermesCurrent(val provider: String = "", val model: String = "", val fromApp: Boolean = false)
 

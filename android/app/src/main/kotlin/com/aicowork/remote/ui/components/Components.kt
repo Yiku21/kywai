@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.components
 
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -216,13 +218,13 @@ fun ConnectionBanner(
     val (title, detail) = when (connection) {
         is Connection.Offline -> {
             val seconds = connection.retryAt?.let { ((it - now) / 1000).coerceAtLeast(0) }
-            "Sin conexión" to buildString {
+            t("Sin conexión") to buildString {
                 append(connection.reason)
-                if (seconds != null) append(if (seconds > 0) " · Reintento en $seconds s" else " · Reintentando…")
+                if (seconds != null) append(if (seconds > 0) t(" · Reintento en {seconds} s", "seconds" to seconds) else t(" · Reintentando…"))
             }
         }
-        Connection.Connecting -> "Conectando…" to if (fromCache) "Mostrando los datos guardados ${Format.relative(syncedAt, now)}" else "Sincronizando con el ordenador"
-        else -> "En pausa" to "Se reconecta al volver a la app"
+        Connection.Connecting -> t("Conectando…") to if (fromCache) t("Mostrando los datos guardados {v1}", "v1" to Format.relative(syncedAt, now)) else t("Sincronizando con el ordenador")
+        else -> t("En pausa") to t("Se reconecta al volver a la app")
     }
     val offline = connection is Connection.Offline
     Surface(
@@ -247,15 +249,15 @@ fun ConnectionBanner(
                 Text(title, style = MaterialTheme.typography.labelLarge)
                 Text(detail, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (offline && syncedAt != null) {
-                    Text("Datos de ${Format.relative(syncedAt, now)}", style = MaterialTheme.typography.bodySmall)
+                    Text(t("Datos de {v1}", "v1" to (Format.relative(syncedAt, now))), style = MaterialTheme.typography.bodySmall)
                 }
             }
-            if (offline) TextButton(onClick = onRetry) { Text("Reintentar") }
+            if (offline) TextButton(onClick = onRetry) { Text(t("Reintentar")) }
         }
     }
 }
 
 @Composable
 fun SecureBadge(modifier: Modifier = Modifier) {
-    StatusPill("Cifrado", LocalStatusColors.current.success, Icons.Outlined.Lock, modifier)
+    StatusPill(t("Cifrado"), LocalStatusColors.current.success, Icons.Outlined.Lock, modifier)
 }

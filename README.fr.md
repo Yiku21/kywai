@@ -1,25 +1,29 @@
 <div align="center">
 
-<img src="build/icon-256.png" alt="AI Cowork" width="112" height="112">
+<img src="docs/img/logo/kywai-simbolo.svg" alt="kywai" width="112" height="112">
 
-# AI Cowork
+# kywai
+
+<sub>Se prononce « ki-waï ». Anciennement <i>AI Cowork</i>.</sub>
 
 ### Autant d'agents IA que vous voulez, de n'importe quel fournisseur, réunis en une seule équipe.
 
 Une seule demande suffit. Un coordinateur planifie le travail et confie chaque tâche à l'agent le plus compétent : Claude, Codex, Gemini, DeepSeek, Qwen, Copilot, Cursor, un modèle local ou n'importe quel agent en ligne de commande que vous ajoutez. Vous regardez chaque robot travailler dans un monde 3D en direct, puis les résultats vous reviennent, déjà vérifiés.
 
-[English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · **Français** · [简体中文](README.zh-CN.md)
+[English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · **Français** · [简体中文](README.zh-CN.md) · 🌐 [kywai.app](https://kywai.app)
 
-<a href="docs/video/ai-cowork-presentacion.mp4" title="Découvrez AI Cowork en 44 secondes"><img src="docs/img/video-presentacion.gif" alt="Découvrez AI Cowork en 44 secondes" width="800"></a>
+https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
 
-<sub><a href="docs/video/ai-cowork-presentacion.mp4">▶ Regardez la présentation de 44 secondes (avec le son)</a></sub>
+[![Site web: kywai.app](https://img.shields.io/badge/Site%20web-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-x64%20%26%20ARM-FCC624?logo=linux&logoColor=black)
 ![Navigateur](https://img.shields.io/badge/Navigateur-via%20Tailscale-242E4C?logo=tailscale&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-%C3%93rbita-3DDC84?logo=android&logoColor=white)
 ![Electron](https://img.shields.io/badge/Electron-React%2019%20%2B%20Three.js-47848F?logo=electron&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Offrez--moi%20un%20caf%C3%A9-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/yilsander)
 
 <br>
 
@@ -31,17 +35,17 @@ Une seule demande suffit. Un coordinateur planifie le travail et confie chaque t
 <img src="src/renderer/src/assets/robots/qwen.png" alt="Modèle local" width="72" title="Modèle local">
 <img src="src/renderer/src/assets/robots/becario.png" alt="Stagiaire" width="72" title="Le stagiaire : le même agent, avec moins d'effort">
 
-[Ce que c'est](#-ce-que-cest) · [Tout agent](#-tout-agent-tout-fournisseur) · [Pourquoi](#-pourquoi-ai-cowork) · [Fonctionnement](#-comment-ça-marche) · [Fonctionnalités](#-fonctionnalités) · [Partout](#-utilisez-le-de-partout) · [Thèmes](#-thèmes) · [Installation](#-installation) · [Confidentialité](#-confidentialité-et-sécurité)
+[Ce que c'est](#-ce-que-cest) · [Tout agent](#-tout-agent-tout-fournisseur) · [Pourquoi](#-pourquoi-kywai) · [Fonctionnement](#-comment-ça-marche) · [Fonctionnalités](#-fonctionnalités) · [Extensions](#-extensions--mcp-skills-plugins-et-mods) · [Partout](#-utilisez-le-de-partout) · [Thèmes](#-thèmes) · [Installation](#-installation) · [Confidentialité](#-confidentialité-et-sécurité) · [Soutenir](#-soutenez-le-projet)
 
 </div>
 
 <br>
 
-![AI Cowork : le chat avec le plan de Hermes à gauche et l'espace numérique 3D avec les agents au travail](docs/img/escritorio.jpg)
+![kywai : le chat avec le plan de Hermes à gauche et l'espace numérique 3D avec les agents au travail](docs/img/fr/escritorio.jpg)
 
 ## ✨ Ce que c'est
 
-AI Cowork transforme les agents et abonnements IA que vous avez déjà, quel que soit leur fournisseur, en **une seule équipe qui travaille ensemble**. Au lieu de passer d'une application à l'autre en recopiant le contexte, vous faites une seule demande :
+kywai transforme les agents et abonnements IA que vous avez déjà, quel que soit leur fournisseur, en **une seule équipe qui travaille ensemble**. Au lieu de passer d'une application à l'autre en recopiant le contexte, vous faites une seule demande :
 
 1. **🧭 Hermes, le coordinateur,** comprend ce que vous voulez et propose un plan : quelles sont les tâches, quel agent se charge de chacune et pourquoi.
 2. **✅ Vous l'approuvez,** ou vous lui dites simplement ce qu'il faut changer.
@@ -53,16 +57,18 @@ L'objectif est simple : **lancer une tâche et revenir à un résultat, jamais �
 
 ## 🔌 Tout agent, tout fournisseur
 
-AI Cowork n'est pas lié à un ensemble figé de modèles. C'est une plateforme où **vous composez votre propre équipe** :
+kywai n'est pas lié à un ensemble figé de modèles. C'est une plateforme où **vous composez votre propre équipe** :
 
-- **Ajoutez autant d'agents que vous voulez** via ⋮ → « Configurer les agents… » → « Ajouter un agent ». Le catalogue sait déjà en lancer plus de 30, avec le compte ou l'abonnement que chacun utilise : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw et d'autres encore.
+- **Ajoutez autant d'agents que vous voulez** via ⚙ → « Configurer les agents… » → « Ajouter un agent ». Le catalogue sait déjà en lancer plus de 30, avec le compte ou l'abonnement que chacun utilise : Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw et d'autres encore.
+- **Trouvez des options gratuites.** Le filtre « Gratuits uniquement » du catalogue met en avant les agents avec des options gratuites, dont Kilo CLI avec Kilo Auto Free. Chaque fiche précise les exigences et limites du fournisseur.
 - **Ou connectez n'importe quel autre programme** avec « Autre programme… » : indiquez sa commande, la façon dont il reçoit la tâche (stdin, un fichier ou un argument) et ses arguments, et il rejoint l'équipe.
 - **Abonnements ou clés d'API.** Les agents s'exécutent avec la connexion que vous avez déjà dans leur propre programme. Ceux qui utilisent une clé d'API (DeepSeek, Kiro, Junie, Factory Droid, Amp…) vous la demandent une seule fois ; elle est chiffrée avec le trousseau du système et transmise uniquement à cet agent.
 - **Les modèles locaux aussi.** N'importe quel modèle que vous faites tourner dans LM Studio ou Ollama, gratuitement et sans quitter votre ordinateur.
+- **L'agent local se débrouille seul.** Il allume LM Studio tout seul quand il en a besoin, et l'interrupteur « Raisonnement (think) » de sa carte laisse le modèle réfléchir avant de répondre seulement quand vous le voulez (éteint par défaut, pour des réponses bien plus rapides).
 - **C'est vous qui choisissez qui coordonne.** Hermes est le coordinateur par défaut, mais n'importe quel agent peut planifier et attribuer les tâches (« Nommer coordinateur »). S'il n'est pas disponible, le suivant prend le relais.
 - **Chaque agent est un membre à part entière de l'équipe,** avec son propre robot et son poste dans le monde 3D, ses statistiques de performance et les mêmes plans, relectures et annulations que les autres.
 
-## 💡 Pourquoi AI Cowork
+## 💡 Pourquoi kywai
 
 <table>
 <tr>
@@ -103,7 +109,7 @@ Chaque agent vous dit en quelques mots ce qu'il est en train de faire. Une vue p
 <td valign="top">
 
 **🔒 Privé dès la conception**<br>
-Tout s'exécute sur votre ordinateur. L'accès à distance passe uniquement par votre propre réseau Tailscale, la dictée vocale fonctionne en local, et AI Cowork ne voit ni ne stocke jamais de mots de passe.
+Tout s'exécute sur votre ordinateur. L'accès à distance passe uniquement par votre propre réseau Tailscale, la dictée vocale fonctionne en local, et kywai ne voit ni ne stocke jamais de mots de passe.
 
 </td>
 </tr>
@@ -150,6 +156,7 @@ Tout agent que vous ajoutez depuis le catalogue ou avec « Autre programme… »
 
 - **Des plans que vous approuvez.** Rien ne démarre sans votre accord, et vous pouvez modifier le plan d'une simple phrase (« laisse Codex s'en charger », « saute la recherche »). Approuvez d'un geste ou simplement en répondant « oui ». Si vous préférez, désactivez l'approbation et laissez l'équipe se mettre directement au travail.
 - **Plusieurs demandes à la fois.** Le nouveau travail va aux agents libres, sans toucher aux fichiers qu'un autre agent est en train de modifier.
+- **Parlez directement à un agent.** Écrivez `@Claude …` (ou `/directo Claude …`) et votre texte va tel quel à cet agent, sans plan, relecture ni résumé de Hermes. Taper `@` affiche la liste des agents, sur le bureau, dans le navigateur et dans Órbita.
 - **Critères d'acceptation par tâche**, et un avertissement si un agent touche à des fichiers qui ne le concernent pas.
 - **Deux mains pour le travail qui relève du goût.** Deux agents de familles différentes réalisent la même chose séparément (option A et option B), puis un troisième teste les deux, les compare à votre demande et vous dit laquelle l'emporte et pourquoi.
 - **Relecture par les pairs.** Quand une tâche modifie des fichiers, un agent d'une autre famille la vérifie en lecture seule, lance les tests s'il le peut et répond *validé* ou *problèmes*. L'auteur les corrige (jusqu'à deux fois), et chaque correction est vérifiée à nouveau. Si cela échoue encore, un autre agent solide reprend la tâche une fois ; sinon, elle arrive dans « On a besoin de vous » comme *intervention requise*. Seul un *validé* explicite approuve une tâche : une relecture sans verdict clair est redemandée et, à défaut, reste *non vérifiée*, jamais approuvée.
@@ -163,6 +170,9 @@ Tout agent que vous ajoutez depuis le catalogue ou avec « Autre programme… »
 - **Une progression visible.** Les nouvelles captures d'écran et images apparaissent en miniatures dans le chat, et les documents sous forme de cartes, pendant que la tâche est encore en cours.
 - **Cloche « On a besoin de vous »** qui rassemble tout ce qui attend votre décision (un plan, une question, une autorisation, un agent silencieux) avec ses boutons, ainsi que des notifications sur votre téléphone.
 - **Espace numérique 3D** qui montre chaque état : au travail, en attente d'un autre agent, en délégation à un stagiaire, à court de quota ou en échec, avec des fichiers qui circulent entre les robots.
+- **Des robots qui ont du caractère.** Leurs yeux montrent ce que chacun fait vraiment (concentré, en réflexion, fatigué, endormi, en erreur, terminé), chacun a sa personnalité et ses bulles dans votre langue, et quand vous écrivez dans le chat ils se réveillent et se tournent vers vous.
+
+<p align="center"><img src="docs/img/fr/robots.jpg" alt="L'espace numérique 3D : les robots à leur poste, avec des bulles et leur état sur chaque étiquette" width="700"></p>
 
 ### ↩️ Contrôle et filet de sécurité
 
@@ -173,24 +183,39 @@ Tout agent que vous ajoutez depuis le catalogue ou avec « Autre programme… »
 
 ### 🧩 Contexte et automatisation
 
+- **Des conversations comme dans Claude.** Une barre latérale avec vos projets, ceux épinglés et les discussions récentes. « Nouveau chat » démarre une nouvelle conversation sans perdre la précédente, et chacune peut être reprise plus tard avec ses tâches et la session de chaque agent. Ctrl+K cherche dans les conversations, tâches, résultats et la mémoire de tous les projets.
 - **Mémoire du projet** avec instructions, décisions, préférences et tâches à faire, chacune avec son auteur et son statut. Chaque agent la lit à chaque tâche, même après que vous avez vidé le chat.
-- **Un seul AGENTS.md pour toute l'équipe.** Chaque CLI ne lit que son propre fichier ; AI Cowork transmet les autres, si bien qu'un seul `AGENTS.md` donne les mêmes règles à tous les agents.
-- **Compétences partagées.** Des procédures réutilisables dans le dossier `habilidades`, au même format `SKILL.md` que les skills de Claude.
-- **Serveur MCP d'AI Cowork.** Les agents disposent d'outils pour lire et enrichir la mémoire du projet, consulter l'état de l'équipe, charger une compétence et vous poser une question, avec un jeton par tâche.
-- **Routines.** Des demandes qui se lancent toutes seules : à une heure fixe, certains jours de la semaine, toutes les N heures, depuis un webhook (avec signatures GitHub) ou quand des fichiers changent dans un dossier. Elles passent par le même plan, les mêmes agents et la même relecture que tout ce que vous tapez.
+- **Un seul AGENTS.md pour toute l'équipe.** Chaque CLI ne lit que son propre fichier ; kywai transmet les autres, si bien qu'un seul `AGENTS.md` donne les mêmes règles à tous les agents.
+- **Routines.** Programmez une demande une seule fois, à heure fixe, certains jours, toutes les N heures, par webhook GitHub signé ou lorsqu’un dossier change. Créez-les avec /rutina, consultez leur historique et choisissez si une approbation est requise. Les propositions du coordinateur ne sont enregistrées qu’après votre confirmation.
+- **Modèles de tâches.** Des cartes au-dessus du chat pour relire des PR, résumer des dossiers, chercher des bugs ou créer vos demandes. Remplissez les champs, utilisez la commande /…, envoyez à l’équipe ou directement à un agent et transformez les modèles compatibles en routines.
+- **Livrables téléchargeables.** Ouvrez ou téléchargez chaque fichier depuis le chat et Résultats, ou enregistrez un ensemble en ZIP. Sur ordinateur, client, navigateur et Órbita, y compris depuis votre téléphone.
+
+### 🧰 Extensions : MCP, skills, plugins et mods
+
+Dans **⚙ → Réglages → Extensions**, enrichissez les outils des agents et personnalisez kywai :
+
+- **Serveurs MCP.** Cherchez dans le catalogue ou ajoutez une commande, un JSON ou une adresse. Choisissez les agents autorisés à utiliser chaque serveur : kywai vérifie sa réponse et liste ses outils avant de l’activer. Installez uv ou Node.js depuis sa fiche si nécessaire.
+- **Skills partagées.** Cherchez des compétences sur skills.sh ou installez-les depuis un dépôt ou un dossier GitHub. `SKILL.md` reste avec ses scripts et références, et toute l’équipe peut consulter ces compétences au besoin.
+- **Plugins.** Explorez les catalogues de plugins d’Anthropic ou ajoutez un catalogue ou plugin GitHub. kywai transforme les skills, commandes et profils de sous-agents en compétences partagées et importe les MCP désactivés : vous choisissez les agents qui y auront accès.
+- **Mods.** Installez depuis GitHub ou un dossier local des extensions de kywai avec commandes /… du chat, hooks au début ou à la fin des travaux et panneaux personnalisés. Les hooks nécessitent votre permission ; les panneaux sont isolés sur ordinateur, web et Órbita.
+
+**Compatibilité :** les MCP de l’utilisateur se connectent à Claude, Codex, Gemini et Hermes ; les agents incompatibles sont désactivés. Les serveurs distants qui demandent une autorisation nécessitent un jeton : OAuth et SSE ne sont pas encore pris en charge. Les plugins importent les composants compatibles ; leurs hooks et LSP ne s’exécutent pas comme dans Claude Code. Le MCP interne de kywai est actuellement proposé à Claude dans les tâches coordonnées.
+
+Détails et exemple de mod dans le [manuel](docs/MANUAL.md#extensiones-tus-servidores-mcp-para-los-agentes) et [Notes rapides](docs/mods/notas-rapidas).
 
 ### 📊 Quota et coût
 
-- **Quota réel** de Claude et de GPT dans l'en-tête, ainsi que des groupes de quota avec budgets.
-- **Consommation par demande :** temps, tokens et part du quota utilisée, pour voir si une équipe fait mieux qu'un agent seul. Export en CSV.
+- **Des quotas qui suivent votre équipe.** L’en-tête se met à jour lorsque vous ajoutez, retirez, activez ou désactivez des agents. Il affiche les données réelles de Claude et GPT et distingue les budgets ou estimations des autres fournisseurs et les modèles locaux.
+- **Utilisation et coût.** Consultez durée et tokens par demande, coût par agent, abonnements, API, offres gratuites ou locales et comparez l’usage avec vos dépenses. Configurez les prix et une alerte de budget mensuel ; exportez en CSV. Les estimations sont signalées.
 - **Modèle et effort selon la difficulté,** modèles interchangeables depuis le panneau de chaque robot, et `/model` pour changer le modèle de Hermes.
 
 ### 🎨 Confort
 
+- **Le chat d'abord.** Dans les petites fenêtres il prend plus de place, vous pouvez faire glisser son bord à la largeur voulue (double-clic pour revenir en automatique) et dans les fenêtres étroites le chat et le monde 3D deviennent deux onglets.
 - **Dictée vocale locale** avec Whisper sur votre propre ordinateur. Aucun service externe, et l'audio est supprimé ensuite.
-- **Onze thèmes** qui redessinent aussi le monde 3D. Certains le décorent et habillent les robots.
+- **Cartes, couleurs et décors.** Sept cartes 3D, la Cité numérique en sept couleurs et quatre décors. Suivez le thème du serveur ou choisissez-en un par appareil ; Órbita adapte sa palette sans reproduire les cartes de l’ordinateur.
 - **Voix des agents,** chacune avec son propre timbre, et un texte qui s'écrit au rythme de la voix, comme dans Animal Crossing.
-- **Lecteur de musique** avec recherche YouTube Music et file d'attente, et des lumières qui suivent le BPM du morceau sans microphone.
+- **Lecteur de musique** avec recherche YouTube Music, Audius et les radios SomaFM sans publicité, et file d'attente, et des lumières qui suivent le BPM du morceau sans microphone.
 - **Assistant de configuration** qui installe les programmes manquants avec leurs installateurs officiels et ouvre chaque page de connexion officielle.
 - **Mode démo** pour présenter l'application sans rien dépenser.
 
@@ -203,17 +228,18 @@ Tout agent que vous ajoutez depuis le catalogue ou avec « Autre programme… »
 | `/recuerda …` | Enregistrer quelque chose dans la mémoire du projet (`decisión:`, `pendiente:`, `preferencia:`) |
 | `/rutina …` | Créer ou gérer une routine |
 | `/new` | Démarrer une nouvelle conversation en gardant une copie de la précédente |
+| `@Agent …` | Envoyer le texte tel quel à un agent, sans passer par Hermes (aussi `/directo Agent …`) |
 
 ## 🌍 Utilisez-le de partout
 
-L'ordinateur sur lequel AI Cowork est installé (par exemple un Mac mini toujours allumé) fait le travail. Vous pouvez l'emporter avec vous de quatre façons :
+L'ordinateur sur lequel kywai est installé (par exemple un Mac mini toujours allumé) fait le travail. Vous pouvez l'emporter avec vous de quatre façons :
 
 | | 🖥️ **Bureau** | 💻 **Client de bureau** | 🌐 **Navigateur** | 📱 **Órbita (Android)** |
 |---|---|---|---|---|
-| **Ce que c'est** | L'application complète pour Windows et macOS | L'application sur un autre ordinateur, connectée à votre AI Cowork principal | La même interface depuis n'importe quel appareil de votre réseau Tailscale | Une application Android native conçue pour le téléphone |
+| **Ce que c'est** | L'application complète pour Windows, macOS et Linux | L'application sur un autre ordinateur, connectée à votre kywai principal | La même interface depuis n'importe quel appareil de votre réseau Tailscale | Une application Android native conçue pour le téléphone |
 | **Comment y accéder** | Ouvrir l'application | Appairage unique avec un code à 6 chiffres | Un lien avec un code d'accès, une seule fois | Appairage unique avec un code à 6 chiffres |
 | **Ce que vous pouvez faire** | Tout | Tout, plus parcourir les fichiers du serveur et **synchroniser des dossiers** dans les deux sens | Chat, monde 3D, fichiers, résultats et approbation des plans | Chat, plans, tâches, fichiers, mémoire, consommation et un monde 3D natif |
-| **Mises à jour** | ⋮ → « Rechercher des mises à jour… » | Mises à jour signées depuis votre propre serveur | Toujours la dernière version | Depuis les Réglages, sans réinstaller |
+| **Mises à jour** | ⚙ → « Rechercher des mises à jour… » | Mises à jour signées depuis votre propre serveur | Toujours la dernière version | Depuis les Réglages, sans réinstaller. Les nouvelles versions sont publiées automatiquement |
 
 <p align="center">
   <img src="docs/img/movil-chat.jpg" alt="Órbita sur un téléphone plié : le monde 3D avec le chat par-dessus" height="460">
@@ -225,18 +251,18 @@ L'ordinateur sur lequel AI Cowork est installé (par exemple un Mac mini toujour
 
 ## 🎨 Thèmes
 
-⋮ → « Thèmes… » change instantanément l'apparence de l'application et de son monde 3D.
+La galerie **Réglages → Thèmes** réunit sept cartes (Clásico, Órbita, Marfil, Grafito, Bosque, Matrix et EVA-01), la Cité numérique en sept couleurs et quatre décors. Suivez le thème du serveur ou choisissez-en un par appareil. Órbita adapte la palette, pas les scènes de l’ordinateur. Ces images montrent quelques couleurs et décors :
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-orbita.jpg" alt="Thème Órbita" width="260"><br><b>Órbita</b> : verre dépoli</td>
-    <td align="center"><img src="docs/img/tema-marfil.jpg" alt="Thème Marfil" width="260"><br><b>Marfil</b> : clair et chaleureux</td>
-    <td align="center"><img src="docs/img/tema-grafito.jpg" alt="Thème Grafito" width="260"><br><b>Grafito</b> : noir et or</td>
+    <td align="center"><img src="docs/img/fr/tema-orbita.jpg" alt="Thème Frost Glass" width="260"><br><b>Frost Glass</b> : verre dépoli</td>
+    <td align="center"><img src="docs/img/fr/tema-marfil.jpg" alt="Thème Perle" width="260"><br><b>Perle</b> : clair et chaleureux</td>
+    <td align="center"><img src="docs/img/fr/tema-grafito.jpg" alt="Thème Onyx" width="260"><br><b>Onyx</b> : noir et or</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-bosque.jpg" alt="Thème Bosque" width="260"><br><b>Bosque</b> : vert profond et or</td>
-    <td align="center"><img src="docs/img/tema-matrix.jpg" alt="Thème Matrix" width="260"><br><b>Matrix</b> : noir et vert néon</td>
-    <td align="center"><img src="docs/img/tema-eva.jpg" alt="Thème EVA-01" width="260"><br><b>EVA-01</b> : violet et vert citron</td>
+    <td align="center"><img src="docs/img/fr/tema-bosque.jpg" alt="Thème Émeraude" width="260"><br><b>Émeraude</b> : vert profond et or</td>
+    <td align="center"><img src="docs/img/fr/tema-matrix.jpg" alt="Thème Néon" width="260"><br><b>Néon</b> : noir et vert néon</td>
+    <td align="center"><img src="docs/img/fr/tema-eva.jpg" alt="Thème Ultraviolet" width="260"><br><b>Ultraviolet</b> : violet et vert citron</td>
   </tr>
 </table>
 
@@ -244,12 +270,12 @@ Et quatre qui décorent le monde, remodèlent son noyau et, pour les thèmes fes
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-relicario.jpg" alt="Thème Relicario" width="400"><br><b>Relicario</b> : un noyau en cristal taillé et des plateformes de verre et d'or</td>
-    <td align="center"><img src="docs/img/tema-telar.jpg" alt="Thème Telar" width="400"><br><b>Telar</b> : des membranes de fils d'argent aux étincelles dorées</td>
+    <td align="center"><img src="docs/img/fr/tema-relicario.jpg" alt="Thème Relicario" width="400"><br><b>Relicario</b> : un noyau en cristal taillé et des plateformes de verre et d'or</td>
+    <td align="center"><img src="docs/img/fr/tema-telar.jpg" alt="Thème Telar" width="400"><br><b>Telar</b> : des membranes de fils d'argent aux étincelles dorées</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-halloween.jpg" alt="Thème Halloween" width="400"><br><b>Halloween</b> : citrouilles, bougies, lune, chauves-souris, une sorcière et un vampire</td>
-    <td align="center"><img src="docs/img/tema-navidad.jpg" alt="Thème Noël" width="400"><br><b>Navidad</b> : neige, sapins, cadeaux, une boule à neige et des bonnets de père Noël</td>
+    <td align="center"><img src="docs/img/fr/tema-halloween.jpg" alt="Thème Halloween" width="400"><br><b>Halloween</b> : citrouilles, bougies, lune, chauves-souris, une sorcière et un vampire</td>
+    <td align="center"><img src="docs/img/fr/tema-navidad.jpg" alt="Thème Noël" width="400"><br><b>Navidad</b> : neige, sapins, cadeaux, une boule à neige et des bonnets de père Noël</td>
   </tr>
 </table>
 
@@ -257,12 +283,20 @@ Et quatre qui décorent le monde, remodèlent son noyau et, pour les thèmes fes
 
 ### Prérequis
 
-- **Windows 10/11 ou macOS** (Apple silicon ou Intel).
+- **Windows 10/11, macOS** (Apple silicon ou Intel) **ou Linux** (x64 ou ARM ; Ubuntu, Debian, Fedora, Arch, openSUSE…).
 - **Node.js** `^22.22.2 || ^24.15.0 || >=26.0.0`. L'assistant l'installe s'il est absent.
 - Au moins un agent : n'importe lequel du catalogue (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), un modèle local ou n'importe quel agent en ligne de commande. **Hermes Agent** coordonne par défaut, mais n'importe quel agent peut le faire.
 - Facultatif : **LM Studio** ou **Ollama** pour l'agent local, **git** pour Annuler, et **Tailscale** pour l'utiliser depuis d'autres appareils.
 
-> **Remarque :** l'interface de l'application est pour l'instant en espagnol. Les noms des menus sont traduits dans ce README.
+> **Langue :** l'application est disponible en anglais, espagnol, portugais, français et chinois. Elle s'ouvre dans la langue du système et se change dans ⚙ → Réglages → « Idioma · Language ». Le portugais, le français et le chinois ont été traduits automatiquement ; les corrections sont les bienvenues.
+
+### Télécharger (le plus simple)
+
+Récupérez l’installateur de votre système dans la **[dernière version](https://github.com/Yiku21/kywai/releases/latest)** : `.exe` pour Windows, `.dmg` pour macOS (Apple silicon ou Intel) et `.AppImage` pour Linux. Une fois installée, l’app cherche une nouvelle version à chaque ouverture et se met à jour toute seule (sur macOS, elle vous prévient et ouvre le téléchargement).
+
+Elles ne sont pas encore signées : sous Windows, cliquez sur « Informations complémentaires » → « Exécuter quand même » ; sur macOS, la première fois, clic droit sur l’app → Ouvrir (si elle est dite endommagée, lancez `xattr -cr "/Applications/kywai.app"`) ; sous Linux, rendez l’AppImage exécutable avec `chmod +x`.
+
+Ou compilez-la vous-même :
 
 ### Windows
 
@@ -271,7 +305,7 @@ npm install
 npm run dist:win
 ```
 
-Cela crée `release/AI-Cowork-Setup-<version>.exe`. L'installateur vous laisse choisir le dossier et crée les raccourcis. Comme il n'est pas signé numériquement, Windows peut afficher un avertissement : « Informations complémentaires » → « Exécuter quand même ».
+Cela crée `release/kywai-Setup-<version>.exe`. L'installateur vous laisse choisir le dossier et crée les raccourcis. Comme il n'est pas signé numériquement, Windows peut afficher un avertissement : « Informations complémentaires » → « Exécuter quand même ».
 
 ### macOS
 
@@ -279,7 +313,7 @@ Cela crée `release/AI-Cowork-Setup-<version>.exe`. L'installateur vous laisse c
 npm run fuente
 ```
 
-Cela crée `release/AI-Cowork-fuente.zip`. Sur le Mac, décompressez-le et exécutez ceci dans le dossier :
+Cela crée `release/kywai-fuente.zip`. Sur le Mac, décompressez-le et exécutez ceci dans le dossier :
 
 ```bash
 bash scripts/instalar-mac.sh
@@ -287,20 +321,30 @@ bash scripts/instalar-mac.sh
 
 Le script compile l'application pour ce Mac, la copie dans `/Applications` (ou à l'emplacement de votre choix) et l'ouvre.
 
+### Linux
+
+Avec Node.js et git installés, clonez le dépôt et exécutez ceci dans le dossier :
+
+```bash
+bash scripts/instalar-linux.sh
+```
+
+Le script compile l'application pour cet ordinateur, l'installe dans `~/.local/share/ai-cowork` sans droits d'administrateur, l'ajoute au menu des applications et crée la commande `ai-cowork`. Vous pouvez aussi générer une AppImage avec `npm run dist:linux`. Détails dans le [manuel](docs/MANUAL.md#linux-se-compila-en-el-propio-equipo) (en espagnol).
+
 ### Premier lancement
 
-L'**assistant de configuration** s'ouvre au premier lancement (il est aussi accessible via ⋮ → « Configurer les agents… ») :
+L'**assistant de configuration** s'ouvre au premier lancement (il est aussi accessible via ⚙ → « Configurer les agents… ») :
 
 1. Choisissez les agents à utiliser.
 2. Il vérifie leurs programmes et installe ceux qui manquent avec leurs installateurs officiels.
-3. Il ouvre la page de connexion officielle de chaque agent. AI Cowork ne voit ni ne stocke jamais de mots de passe.
+3. Il ouvre la page de connexion officielle de chaque agent. kywai ne voit ni ne stocke jamais de mots de passe.
 4. Il récapitule ce qui reste à faire.
 
-Pour l'utiliser depuis votre téléphone ou votre ordinateur portable, ouvrez ⋮ → « Accès depuis d'autres appareils… ».
+Pour l'utiliser depuis votre téléphone ou votre ordinateur portable, ouvrez ⚙ → « Accès depuis d'autres appareils… ».
 
 ## 🔐 Confidentialité et sécurité
 
-- **Sur votre ordinateur.** Les projets, la mémoire, les journaux et la consommation sont stockés dans votre dossier de données utilisateur (`%APPDATA%\AI Cowork` sous Windows, `~/Library/Application Support/AI Cowork` sous macOS).
+- **Sur votre ordinateur.** Les projets, la mémoire, les journaux et la consommation sont stockés dans votre dossier de données utilisateur (`%APPDATA%\AI Cowork` sous Windows, `~/Library/Application Support/AI Cowork` sous macOS, `~/.config/AI Cowork` sous Linux).
 - **Accès à distance fermé.** Le serveur n'écoute que sur votre IP Tailscale et sur `127.0.0.1`, jamais sur le réseau local ni sur Internet, et demande un code à chaque requête. Chaque appareil appairé a sa propre clé, que vous pouvez révoquer individuellement (elle expire aussi après 90 jours sans utilisation), ou vous pouvez toutes les révoquer d'un coup avec un nouveau code. Les codes d'appairage expirent au bout de 10 minutes et n'autorisent que quelques tentatives.
 - **Mises à jour des clients signées.** Les clients de bureau n'installent que des mises à jour signées avec votre propre clé privée, qui ne quitte jamais l'ordinateur qui les publie.
 - **Aucun mot de passe.** Chaque agent utilise la connexion propre à son programme officiel. Les clés d'API que vous ajoutez sont chiffrées avec le trousseau du système.
@@ -337,6 +381,16 @@ La documentation détaillée est en espagnol :
 - **[Guide des modèles](docs/GUIA-MODELOS.md)** : le modèle et l'effort qu'utilise chaque agent selon la difficulté, avec les sources.
 - **[Órbita](android/README.md)** : l'application Android, et comment la compiler et la publier.
 - **[API mobile](docs/mobile-api/README.md)** : le contrat entre le serveur et Órbita.
+
+## ☕ Soutenez le projet
+
+kywai est gratuit et open source. S'il vous fait gagner du temps et que vous voulez dire merci, vous pouvez **[m'offrir un café sur Ko-fi](https://ko-fi.com/yilsander)**. C'est aussi dans l'application : ⚙ → « Soutenir kywai ☕ » sur le bureau, et à la fin des Réglages dans Órbita.
+
+[![Offrez-moi un café sur Ko-fi](https://img.shields.io/badge/Ko--fi-Offrez--moi%20un%20caf%C3%A9-FF5E5B?logo=ko-fi&logoColor=white&style=for-the-badge)](https://ko-fi.com/yilsander)
+
+## 📄 Licence
+
+[MIT](LICENSE). Vous pouvez utiliser, modifier et partager kywai librement, à condition de conserver la mention de copyright.
 
 <div align="center">
 <br>

@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.pdf.PdfRenderer
@@ -101,7 +103,7 @@ import java.io.File
 /** Capas que se abren encima de todo: lector, actividad de una tarea y nueva tarea. */
 @Composable
 fun Overlays(model: OrbitaModel, state: CoworkUiState) {
-    val covering = model.viewer != null || model.traceTaskId != null || model.newTaskOpen || model.hermesModelOpen || model.inboxOpen
+    val covering = model.viewer != null || model.traceTaskId != null || model.newTaskOpen || model.hermesModelOpen || model.inboxOpen || model.searchOpen || model.historyOpen || model.musicOpen
     // Velo oscuro detrás de lo que se abre (tocarlo cierra).
     AnimatedVisibility(covering, enter = fadeIn(), exit = fadeOut()) {
         Box(
@@ -115,6 +117,9 @@ fun Overlays(model: OrbitaModel, state: CoworkUiState) {
                         model.newTaskOpen = false
                         model.hermesModelOpen = false
                         model.closeInbox()
+                        model.searchOpen = false
+                        model.historyOpen = false
+                        model.musicOpen = false
                     })
                 },
         )
@@ -135,6 +140,15 @@ fun Overlays(model: OrbitaModel, state: CoworkUiState) {
         }
         AnimatedVisibility(model.inboxOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
             InboxSheet(model, state)
+        }
+        AnimatedVisibility(model.searchOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+            SearchSheet(model)
+        }
+        AnimatedVisibility(model.historyOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+            HistorySheet(model)
+        }
+        AnimatedVisibility(model.musicOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+            MusicSheet(model)
         }
     }
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).windowInsetsPadding(WindowInsets.ime).padding(12.dp), contentAlignment = Alignment.BottomCenter) {
@@ -162,7 +176,7 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
             is ViewerTarget.Result -> model.controller.fetchArtifact(target.artifactId)
             is ViewerTarget.File -> model.controller.fetchFile(target.source, target.path)
         }
-        loaded = result.fold({ Loaded.Ready(it) }, { Loaded.Failed(it.message ?: "No se pudo abrir") })
+        loaded = result.fold({ Loaded.Ready(it) }, { Loaded.Failed(it.message ?: t("No se pudo abrir")) })
         if (loaded is Loaded.Failed) model.feedback.reject()
     }
     val context = LocalContext.current
@@ -172,7 +186,7 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
             val ok = withContext(Dispatchers.IO) { runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(raw.bytes) } != null }.getOrDefault(false) }
-            if (ok) { model.feedback.confirm(); model.toast("Guardado en el móvil", Toast.Tone.Success) } else { model.feedback.reject(); model.toast("No se pudo guardar", Toast.Tone.Error) }
+            if (ok) { model.feedback.confirm(); model.toast(t("Guardado en el móvil"), Toast.Tone.Success) } else { model.feedback.reject(); model.toast(t("No se pudo guardar"), Toast.Tone.Error) }
         }
     }
     val kind = when (target) { is ViewerTarget.Result -> target.kind; is ViewerTarget.File -> target.kind }
@@ -186,22 +200,22 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
                 val raw = (loaded as? Loaded.Ready)?.raw
                 Text(listOfNotNull(kindLabel(kind, target.title), raw?.let { sizeLabel(it.bytes.size.toLong()) }).joinToString(" · "), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
-            IconAction(Icons.Outlined.Download, "Guardar en el móvil", onClick = { saver.launch(target.title) }, enabled = loaded is Loaded.Ready)
-            IconAction(Icons.Outlined.Close, "Cerrar", onClick = { model.viewer = null }, modifier = Modifier.testTag("viewer-close"))
+            IconAction(Icons.Outlined.Download, t("Guardar en el móvil"), onClick = { saver.launch(target.title) }, enabled = loaded is Loaded.Ready)
+            IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.viewer = null }, modifier = Modifier.testTag("viewer-close"))
         }
         Box(Modifier.weight(1f).fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp).clip(RoundedCornerShape(22.dp)).background(Color(0x33060B16)), contentAlignment = Alignment.Center) {
             when (val l = loaded) {
                 Loaded.Loading -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = Orbita.Accent)
                     Spacer(Modifier.height(10.dp))
-                    Text("Descargando del ordenador…", color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium)
+                    Text(t("Descargando del ordenador…"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium)
                 }
                 is Loaded.Failed -> Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = Orbita.Danger, modifier = Modifier.size(36.dp))
                     Spacer(Modifier.height(10.dp))
                     Text(l.message, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge)
                     Spacer(Modifier.height(14.dp))
-                    OrbitaButton("Reintentar", onClick = { attempt++ }, haptic = Haptic.Tap)
+                    OrbitaButton(t("Reintentar"), onClick = { attempt++ }, haptic = Haptic.Tap)
                 }
                 is Loaded.Ready -> Content(l.raw, kind)
             }
@@ -221,7 +235,7 @@ private fun Content(raw: RawContent, kind: String) {
         raw.isText || kind == "code" || kind == "text" || raw.contentType.contains("svg") -> SelectionContainer {
             Text(
                 raw.text(),
-                color = Color(0xFFD5E3F5),
+                color = Orbita.Text,
                 style = Mono,
                 softWrap = kind != "code",
                 modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState()).padding(16.dp),
@@ -230,7 +244,7 @@ private fun Content(raw: RawContent, kind: String) {
         else -> Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Outlined.Info, contentDescription = null, tint = Orbita.Accent, modifier = Modifier.size(34.dp))
             Spacer(Modifier.height(10.dp))
-            Text("Este tipo de archivo no se puede ver aquí (${raw.contentType}). Guárdalo en el móvil para abrirlo con otra app.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodyLarge)
+            Text(t("Este tipo de archivo no se puede ver aquí ({contentType}). Guárdalo en el móvil para abrirlo con otra app.", "contentType" to raw.contentType), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
@@ -239,7 +253,7 @@ private fun Content(raw: RawContent, kind: String) {
 private fun ZoomableImage(raw: RawContent) {
     val bitmap = remember(raw) { BitmapFactory.decodeByteArray(raw.bytes, 0, raw.bytes.size)?.asImageBitmap() }
     if (bitmap == null) {
-        Text("Imagen ilegible", color = Orbita.TextSoft)
+        Text(t("Imagen ilegible"), color = Orbita.TextSoft)
         return
     }
     var scale by remember { mutableFloatStateOf(1f) }
@@ -282,7 +296,7 @@ private fun PdfPages(raw: RawContent) {
                         }
                     }
                 }
-            }.onSuccess { pages = it }.onFailure { error = it.message ?: "PDF ilegible" }
+            }.onSuccess { pages = it }.onFailure { error = it.message ?: t("PDF ilegible") }
         }
     }
     when {
@@ -340,19 +354,19 @@ private fun TraceSheet(taskId: String, model: OrbitaModel, state: CoworkUiState)
             RobotFace(agent, 40.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(task?.title ?: "Actividad", color = Orbita.Text, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(task?.title ?: t("Actividad"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    listOfNotNull(agent?.name, task?.let { statusOf(it, snapshot.conversation.activeRequestIds).first }, if ((task?.traceCount ?: 0) > entries.size && full == null) "${task?.traceCount} pasos" else null).joinToString(" · "),
+                    listOfNotNull(agent?.name, task?.let { statusOf(it, snapshot.conversation.activeRequestIds).first }, if ((task?.traceCount ?: 0) > entries.size && full == null) t("{v1} pasos", "v1" to (task?.traceCount)) else null).joinToString(" · "),
                     color = Orbita.TextSoft,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            IconAction(Icons.Outlined.Close, "Cerrar", onClick = { model.traceTaskId = null })
+            IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.traceTaskId = null })
         }
-        if (error != null) Text("No se pudo descargar todo: $error. Se ve lo más reciente.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 18.dp))
+        if (error != null) Text(t("No se pudo descargar todo: {error}. Se ve lo más reciente.", "error" to error), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 18.dp))
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (entries.isEmpty()) item {
-                Note(Icons.Outlined.Info, if (task?.status == "pending" || task?.status == "blocked") "Aún no ha empezado" else "Sin actividad registrada", null)
+                Note(Icons.Outlined.Info, if (task?.status == "pending" || task?.status == "blocked") t("Aún no ha empezado") else t("Sin actividad registrada"), null)
             }
             items(entries, key = { it.id }) { e -> TraceRow(e) }
         }
@@ -363,15 +377,15 @@ private fun TraceSheet(taskId: String, model: OrbitaModel, state: CoworkUiState)
 private fun TraceRow(e: TraceEntry) {
     var open by remember { mutableStateOf(false) }
     val (icon, tint) = when (e.kind) {
-        "thinking" -> Icons.Outlined.Psychology to Color(0xFFA48CFF)
+        "thinking" -> Icons.Outlined.Psychology to Orbita.TextSoft
         "text" -> Icons.AutoMirrored.Outlined.Chat to Orbita.Text
         "error" -> Icons.Outlined.ErrorOutline to Orbita.Danger
         "tool" -> when (e.tool) {
-            "command" -> Icons.Outlined.Terminal to Orbita.Accent
-            "edit", "write" -> Icons.Outlined.Edit to Color(0xFF63DCA4)
-            "read", "search" -> Icons.Outlined.Search to Color(0xFF8FB4FF)
-            "web" -> Icons.Outlined.Language to Color(0xFF8FB4FF)
-            "todo" -> Icons.Outlined.CheckCircle to Orbita.Accent
+            "command" -> Icons.Outlined.Terminal to Orbita.TextSoft
+            "edit", "write" -> Icons.Outlined.Edit to Orbita.TextSoft
+            "read", "search" -> Icons.Outlined.Search to Orbita.TextSoft
+            "web" -> Icons.Outlined.Language to Orbita.TextSoft
+            "todo" -> Icons.Outlined.CheckCircle to Orbita.TextSoft
             else -> Icons.Outlined.Build to Orbita.TextSoft
         }
         else -> Icons.Outlined.Info to Orbita.TextSoft
@@ -390,8 +404,8 @@ private fun TraceRow(e: TraceEntry) {
             Spacer(Modifier.width(10.dp))
             Text(e.title.ifBlank { e.body?.lineSequence()?.firstOrNull().orEmpty() }, color = Orbita.Text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = if (open) 6 else 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             when (e.ok) {
-                true -> Icon(Icons.Outlined.CheckCircle, contentDescription = "Bien", tint = Orbita.Success, modifier = Modifier.size(16.dp))
-                false -> Icon(Icons.Outlined.Cancel, contentDescription = "Falló", tint = Orbita.Danger, modifier = Modifier.size(16.dp))
+                true -> Icon(Icons.Outlined.CheckCircle, contentDescription = t("Bien"), tint = Orbita.Success, modifier = Modifier.size(16.dp))
+                false -> Icon(Icons.Outlined.Cancel, contentDescription = t("Falló"), tint = Orbita.Danger, modifier = Modifier.size(16.dp))
                 null -> Unit
             }
             Text("  ${Format.time(e.ts)}", color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium)
@@ -399,11 +413,11 @@ private fun TraceRow(e: TraceEntry) {
         if (open) {
             e.body?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(8.dp))
-                if (e.kind == "tool") Text(it, color = Color(0xFFD5E3F5), style = Mono) else MarkdownText(it, color = Orbita.TextSoft)
+                if (e.kind == "tool") Text(it, color = Orbita.Text, style = Mono) else MarkdownText(it, color = Orbita.TextSoft)
             }
             e.output?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(8.dp))
-                Text(it, color = Color(0xFFBFD0E6), style = Mono, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Color(0x66060B16)).horizontalScroll(rememberScrollState()).padding(10.dp), softWrap = false)
+                Text(it, color = Orbita.Text, style = Mono, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Color(0x66060B16)).horizontalScroll(rememberScrollState()).padding(10.dp), softWrap = false)
             }
         } else if (hasMore) {
             Text(e.body?.lineSequence()?.firstOrNull { it.isNotBlank() }?.takeIf { e.title.isNotBlank() } ?: "", color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -421,10 +435,10 @@ private fun NewTaskSheet(model: OrbitaModel, state: CoworkUiState) {
             RobotFace(hermes, 40.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Nueva tarea", color = Orbita.Text, style = MaterialTheme.typography.titleLarge)
-                Text("${hermes?.name ?: "Hermes"} la repartirá entre el equipo", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                Text(t("Nueva tarea"), color = Orbita.Text, style = MaterialTheme.typography.titleLarge)
+                Text(t("{v1} la repartirá entre el equipo", "v1" to (hermes?.name ?: "Hermes")), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
-            IconAction(Icons.Outlined.Close, "Cerrar", onClick = { model.newTaskOpen = false })
+            IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.newTaskOpen = false })
         }
         Spacer(Modifier.height(12.dp))
         val voice = model.voice
@@ -438,8 +452,8 @@ private fun NewTaskSheet(model: OrbitaModel, state: CoworkUiState) {
         Row(verticalAlignment = Alignment.Top) {
             OrbitaField(
                 model.newTaskDraft.text,
-                { model.newTaskDraft = TextFieldValue(it) },
-                "¿Qué necesitas?",
+                { model.editDraft(VoiceTarget.NewTask, TextFieldValue(it, androidx.compose.ui.text.TextRange(it.length))) },
+                if (model.dictation?.target == VoiceTarget.NewTask) t("Habla, te escucho…") else t("¿Qué necesitas?"),
                 singleLine = false,
                 minLines = 3,
                 maxLines = 8,
@@ -447,19 +461,21 @@ private fun NewTaskSheet(model: OrbitaModel, state: CoworkUiState) {
                 autoFocus = true,
                 modifier = Modifier.weight(1f).testTag("new-task-text"),
             )
-            if (state.snapshot?.capabilities?.voice == true && model.canRecord && !voiceHere) {
+            val note = model.canRecordNote(state.snapshot?.capabilities?.voice == true)
+            if ((note || model.canDictate) && !voiceHere) {
                 Spacer(Modifier.width(4.dp))
-                MicButton(model, VoiceTarget.NewTask)
+                MicButton(model, VoiceTarget.NewTask, note)
             }
         }
         val attachments = state.snapshot?.conversation?.attachments.orEmpty().filter { it.id in model.pendingAttachments }
         if (attachments.isNotEmpty()) {
-            Text("Con ${attachments.size} ${if (attachments.size == 1) "adjunto" else "adjuntos"}: ${attachments.joinToString { it.name }}", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
+            Text(t("Con {size} {v1}: {v2}", "size" to attachments.size, "v1" to (if (attachments.size == 1) t("adjunto") else t("adjuntos")), "v2" to (attachments.joinToString { it.name })), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
         }
         Spacer(Modifier.height(12.dp))
         OrbitaButton(
-            "Enviar a ${hermes?.name ?: "Hermes"}",
+            t("Enviar a {v1}", "v1" to (hermes?.name ?: "Hermes")),
             onClick = {
+                model.cancelDictation()
                 model.controller.sendMessage(model.newTaskDraft.text, model.pendingAttachments.toList())
                 model.pendingAttachments = emptySet()
                 model.newTaskDraft = TextFieldValue("")
@@ -467,7 +483,7 @@ private fun NewTaskSheet(model: OrbitaModel, state: CoworkUiState) {
                 model.awaitingPlanSince = System.currentTimeMillis()
                 model.taskFilter = TaskFilter.Active
                 model.open(Section.Tasks)
-                model.toast("Enviada: ${hermes?.name ?: "Hermes"} está preparando el plan", Toast.Tone.Info)
+                model.toast(t("Enviada: {v1} está preparando el plan", "v1" to (hermes?.name ?: "Hermes")), Toast.Tone.Info)
             },
             icon = Icons.AutoMirrored.Outlined.Send,
             enabled = model.newTaskDraft.text.isNotBlank(),

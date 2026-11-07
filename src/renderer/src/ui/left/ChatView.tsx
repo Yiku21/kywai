@@ -5,12 +5,14 @@ import { AgentAvatar } from '../common/AgentBits'
 import { useAgentLookup } from '../common/agents'
 import { MessageItem } from './Messages'
 import { useComposer } from './composerStore'
+import { markInElement } from '@/lib/searchText'
 import s from './ChatView.module.css'
+import { t } from '@/lib/i18n'
 
 const EXAMPLES = [
-  'Crea una landing page para mi tienda',
-  'Resume este PDF y propón tareas',
-  'Escribe un script que ordene mis fotos'
+  t('Crea una landing page para mi tienda'),
+  t('Resume este PDF y propón tareas'),
+  t('Escribe un script que ordene mis fotos')
 ]
 
 /** Lista de mensajes con autodesplazamiento (salvo si el usuario ha subido). */
@@ -21,6 +23,10 @@ export function ChatView() {
   const stick = useRef(true)
   const prevLen = useRef(messages.length)
   const [showNew, setShowNew] = useState(false)
+  const [flashId, setFlashId] = useState<string | null>(null)
+  const focus = useCowork((st) => st.focusMessage)
+  const unmark = useRef<() => void>(() => undefined)
+  const flashTimer = useRef(0)
   const firstId = messages[0]?.id
 
   const scrollToBottom = useCallback(() => {
@@ -64,6 +70,30 @@ export function ChatView() {
     return () => ro.disconnect()
   }, [scrollToBottom, messages.length === 0])
 
+  // Lo pide el buscador: bajar hasta el mensaje encontrado, resaltarlo un momento y marcar lo buscado.
+  useEffect(() => {
+    if (!focus) return
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-message-id="${CSS.escape(focus.id)}"]`)
+    if (!el) return
+    stick.current = false
+    setShowNew(false)
+    el.scrollIntoView({ block: 'center' })
+    unmark.current()
+    unmark.current = markInElement(el, focus.terms)
+    setFlashId(focus.id)
+    useCowork.setState({ focusMessage: null })
+    window.clearTimeout(flashTimer.current)
+    flashTimer.current = window.setTimeout(() => setFlashId(null), 2600)
+  }, [focus, messages])
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(flashTimer.current)
+      unmark.current()
+    },
+    []
+  )
+
   if (messages.length === 0) {
     return (
       <div className={s.scroller}>
@@ -81,11 +111,13 @@ export function ChatView() {
         role="log"
         aria-live="polite"
         aria-relevant="additions"
-        aria-label="Conversación"
+        aria-label={t('Conversación')}
       >
         <div ref={contentRef} className={s.list}>
           {messages.map((m) => (
-            <MessageItem key={m.id} message={m} />
+            <div key={m.id} data-message-id={m.id} className={m.id === flashId ? s.flash : undefined}>
+              <MessageItem message={m} />
+            </div>
           ))}
         </div>
       </div>
@@ -99,7 +131,7 @@ export function ChatView() {
             scrollToBottom()
           }}
         >
-          Nuevos mensajes
+          {t('Nuevos mensajes')}
           <ArrowDown size={14} aria-hidden="true" />
         </button>
       )}
@@ -131,9 +163,9 @@ function EmptyChat() {
             </span>
           )}
         </div>
-        <h2 className={s.emptyTitle}>Pide algo a tu equipo</h2>
+        <h2 className={s.emptyTitle}>{t('Pide algo a tu equipo')}</h2>
         <p className={s.emptyText}>
-          Describe una tarea: el equipo la dividirá en partes y cada agente se encargará de lo que mejor hace.
+          {t('Describe una tarea: el equipo la dividirá en partes y cada agente se encargará de lo que mejor hace.')}
         </p>
         <div className={s.examples}>
           {EXAMPLES.map((ex) => (
@@ -143,7 +175,7 @@ function EmptyChat() {
             </button>
           ))}
         </div>
-        {mode === 'demo' && <p className={s.demoNote}>Modo demo: verás una simulación, sin coste.</p>}
+        {mode === 'demo' && <p className={s.demoNote}>{t('Modo demo: verás una simulación, sin coste.')}</p>}
       </div>
     </div>
   )

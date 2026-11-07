@@ -1,12 +1,13 @@
 import type { ClientUpdateState, CoworkApi, CoworkEvent, ProjectSummary } from '@shared/types'
 import type { SyncPairStatus } from '@shared/sync'
 import { requestServerFolder } from './serverFiles'
+import { t } from '@/lib/i18n'
 
 const w = window as unknown as {
   cowork?: CoworkApi
   __COWORK_WEB__?: boolean
   __COWORK_BOOT__?: string
-  /** Puente del cliente de escritorio de AI Cowork (la interfaz del servidor dentro de la app instalada). */
+  /** Puente del cliente de escritorio de kywai (la interfaz del servidor dentro de la app instalada). */
   coworkClient?: {
     openFile?: (projectId: string, relPath: string) => Promise<void>
     info?: () => Promise<{ client: true; server: string; device: string; version: string } | null>
@@ -25,13 +26,14 @@ const w = window as unknown as {
     reload?: () => Promise<void>
     switchServer?: () => Promise<void>
     forget?: () => Promise<void>
+    useAsServer?: () => Promise<void>
   }
 }
 
 /** La interfaz se abrió desde otro dispositivo (navegador) a través del acceso web del Mac. */
 export const isWeb = !w.cowork && w.__COWORK_WEB__ === true
 
-/** La interfaz está dentro del cliente de escritorio de AI Cowork (la app instalada que se conecta con un servidor). */
+/** La interfaz está dentro del cliente de escritorio de kywai (la app instalada que se conecta con un servidor). */
 export const isClient = isWeb && !!w.coworkClient
 
 /** El puente del cliente de escritorio (null en el navegador y en la app del servidor). */
@@ -44,6 +46,8 @@ export interface ClientActions {
   reload: () => Promise<void>
   switchServer: () => Promise<void>
   forget: () => Promise<void>
+  /** Reinicia esta app como servidor (null si la app es una versión anterior que no lo sabe hacer). */
+  useAsServer: (() => Promise<void>) | null
   /** Busca una versión nueva del cliente en el servidor (null si esta app no lo sabe: es una versión anterior). */
   checkUpdate: (() => Promise<ClientUpdateState | null>) | null
   installUpdate: (() => Promise<void>) | null
@@ -52,7 +56,7 @@ export interface ClientActions {
 export function clientActions(): ClientActions | null {
   const c = w.coworkClient
   if (!isClient || !c?.reload || !c.switchServer || !c.forget) return null
-  return { reload: c.reload, switchServer: c.switchServer, forget: c.forget, checkUpdate: c.update ?? null, installUpdate: c.installUpdate ?? null }
+  return { reload: c.reload, switchServer: c.switchServer, forget: c.forget, useAsServer: c.useAsServer ?? null, checkUpdate: c.update ?? null, installUpdate: c.installUpdate ?? null }
 }
 
 /** Datos del cliente de escritorio: nombre del servidor y de este equipo (null fuera del cliente). */
@@ -107,7 +111,7 @@ async function call(method: string, args: unknown[]): Promise<unknown> {
   if (res.status === 401) {
     // El código de acceso cambió o caducó la cookie: vuelve a la pantalla de acceso.
     location.reload()
-    throw new Error('Sin acceso')
+    throw new Error(t('Sin acceso'))
   }
   const data = (await res.json().catch(() => ({}))) as { result?: unknown; error?: string }
   if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`)
@@ -118,7 +122,7 @@ async function call(method: string, args: unknown[]): Promise<unknown> {
 async function upload(name: string, body: Blob): Promise<string> {
   const res = await fetch(`/api/upload?name=${encodeURIComponent(name)}`, { method: 'POST', credentials: 'same-origin', body })
   const data = (await res.json().catch(() => ({}))) as { path?: string; error?: string }
-  if (!res.ok || !data.path) throw new Error(data.error ?? 'No se pudo subir el archivo')
+  if (!res.ok || !data.path) throw new Error(data.error ?? t('No se pudo subir el archivo'))
   return data.path
 }
 
@@ -166,8 +170,16 @@ function createWebApi(): CoworkApi {
       const r = (await call('readArtifact', [projectId, relPath])) as { text?: string; url?: string }
       return r.url ? { ...r, url: webFileUrl(projectId, relPath) } : r
     },
+    downloadArtifacts: async (projectId: string, artifactIds: string[]) => {
+      const link = document.createElement('a')
+      link.href = `/api/artifact-download/${encodeURIComponent(projectId)}?ids=${artifactIds.map(encodeURIComponent).join(',')}`
+      link.download = ''
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    },
     openPath: async (projectId: string, relPath?: string) => {
-      if (!relPath) throw new Error('La carpeta del proyecto se abre desde el Mac')
+      if (!relPath) throw new Error(t('La carpeta del proyecto se abre desde el Mac'))
       // En el cliente de escritorio se abre con la aplicación de este equipo; en el navegador, en otra pestaña.
       if (w.coworkClient?.openFile) return w.coworkClient.openFile(projectId, relPath)
       window.open(webFileUrl(projectId, relPath), '_blank', 'noopener')

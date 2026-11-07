@@ -1,6 +1,8 @@
 package com.aicowork.remote.data.store
 
+import com.aicowork.remote.data.OutgoingMessage
 import com.aicowork.remote.data.model.CoworkJson
+import com.aicowork.remote.i18n.AppLanguage
 import com.aicowork.remote.data.model.Snapshot
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,6 +47,16 @@ interface SnapshotCache {
 @Serializable
 data class CachedSnapshot(val snapshot: Snapshot, val savedAt: Long)
 
+/** Cola de mensajes escritos sin conexión: se guarda en el móvil para que no se pierda al cerrar la app. */
+interface OutboxStore {
+    fun load(): List<OutgoingMessage>
+    fun save(messages: List<OutgoingMessage>)
+    fun clear()
+}
+
+@Serializable
+private data class SavedOutbox(val messages: List<OutgoingMessage> = emptyList())
+
 enum class ThemeMode { System, Light, Dark }
 
 /** Movimiento reducido: el del sistema (animaciones desactivadas en Accesibilidad) o elegido en la app. */
@@ -70,6 +82,12 @@ data class Preferences(
     val voices: Boolean = true,
     /** Volumen de las voces (0–1), aparte de los sonidos. */
     val voiceVolume: Float = 0.7f,
+    /** Idioma de la app en este móvil (Ajustes → «Idioma · Language»); «Del sistema», el del teléfono. */
+    val language: AppLanguage = AppLanguage.System,
+    /** «Tema propio en este móvil»: Órbita usa [localTheme] y no sigue el tema del ordenador. */
+    val ownTheme: Boolean = false,
+    /** El tema propio de este móvil (un id del escritorio: «mundo-bosque», «grafito»…). */
+    val localTheme: String? = null,
 )
 
 interface PreferencesStore {
@@ -98,6 +116,12 @@ class InMemorySnapshotCache : SnapshotCache {
     override fun clear() { cached = null }
 }
 
+class InMemoryOutboxStore(private var messages: List<OutgoingMessage> = emptyList()) : OutboxStore {
+    override fun load() = messages
+    override fun save(messages: List<OutgoingMessage>) { this.messages = messages }
+    override fun clear() { messages = emptyList() }
+}
+
 class InMemoryPreferencesStore(initial: Preferences = Preferences()) : PreferencesStore {
     private val state = MutableStateFlow(initial)
     override val preferences: StateFlow<Preferences> = state.asStateFlow()
@@ -120,5 +144,38 @@ class FileSnapshotCache(private val file: File) : SnapshotCache {
 
     override fun clear() {
         file.delete()
+    }
+}
+
+/** La cola de mensajes en disco (escritura atómica: primero a un .tmp y luego se renombra). */
+class FileOutboxStore(private val file: File) : OutboxStore {
+    private val lock = Any()
+
+    override fun load(): List<OutgoingMessage> = synchronized(lock) {
+        runCatching {
+            if (!file.exists()) emptyList() else CoworkJson.decodeFromString(SavedOutbox.serializer(), file.readText()).messages
+        }.getOrDefault(emptyList())
+    }
+
+    override fun save(messages: List<OutgoingMessage>) = synchronized(lock) {
+        runCatching {
+            if (messages.isEmpty()) {
+                file.delete()
+                return@runCatching
+            }
+            file.parentFile?.mkdirs()
+            val tmp = File(file.parentFile, file.name + ".tmp")
+            tmp.writeText(CoworkJson.encodeToString(SavedOutbox.serializer(), SavedOutbox(messages)))
+            if (!tmp.renameTo(file)) {
+                file.delete()
+                tmp.renameTo(file)
+            }
+        }
+        Unit
+    }
+
+    override fun clear() = synchronized(lock) {
+        file.delete()
+        Unit
     }
 }

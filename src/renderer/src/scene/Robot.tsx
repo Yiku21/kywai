@@ -1,15 +1,19 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import type { AgentConfig, StationConfig } from '@shared/types'
+import type { AgentConfig, AgentRuntime, QuotaInfo, StationConfig } from '@shared/types'
 import { avatarFor } from '@shared/defaults'
 import { currentData, useCowork } from '@/store/cowork'
 import { buildRobot } from './robotModel'
+import { applyEyes } from './robotEyes'
+import { personaFor } from './personality'
+import { useBubbles } from './bubbleStore'
+import { useComposer } from '@/ui/left/composerStore'
 import { buildCostume } from './costumes'
 import { palette } from './palette'
-import { RobotBrain } from './robotBrain'
+import { RobotBrain, chatPoint } from './robotBrain'
 import { registry } from './registry'
-import { GEO, checkTexture } from './assets'
+import { GEO, checkTexture, questionTexture, warnTexture, zzzTexture } from './assets'
 import { ROBOT_Y, consoleOffset, consoleSide, coreBay, stationVec } from './layout'
 import { setAnchorObject, setAnchorOpacity, useSceneHover } from './anchors'
 
@@ -23,9 +27,30 @@ interface Props {
   leaving: boolean
 }
 
-const ERROR_EYE = new THREE.Color('#ff6b7a')
-const OFF_EYE = new THREE.Color('#5d6a80')
-const tmpColor = new THREE.Color()
+/**
+ * 0..1: lo cansado que está un agente. Poca cuota en su cuenta (umbral de aviso → 0,6; de alerta → 1)
+ * o el contexto de su tarea casi lleno (desde el 75 %).
+ */
+export function agentFatigue(
+  agentId: string,
+  rt: AgentRuntime | undefined,
+  quotas: QuotaInfo[],
+  thresholds: { warn: number; alert: number }
+): number {
+  let f = 0
+  for (const q of quotas) {
+    if (q.unlimited || q.remainingPct == null || !q.agentIds.includes(agentId)) continue
+    if (q.remainingPct < thresholds.alert) f = Math.max(f, 1)
+    else if (q.remainingPct <= thresholds.warn) f = Math.max(f, 0.6)
+  }
+  const ctx = rt?.context
+  if (ctx?.capacity && ctx.capacity > 0) {
+    const used = ctx.used / ctx.capacity
+    if (used > 0.75) f = Math.max(f, Math.min(1, (used - 0.75) / 0.2) * 0.8)
+  }
+  return Math.round(f * 10) / 10
+}
+
 
 export function Robot({ agent, station, stations, leaving }: Props) {
   const outer = useRef<THREE.Group>(null!)
@@ -33,6 +58,9 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   const thinkGroup = useRef<THREE.Group>(null!)
   const waitMesh = useRef<THREE.Mesh>(null!)
   const check = useRef<THREE.Sprite>(null!)
+  const zzz = useRef<THREE.Sprite>(null!)
+  const warn = useRef<THREE.Sprite>(null!)
+  const question = useRef<THREE.Sprite>(null!)
   const anchor = useRef<THREE.Group>(null!)
   const [hovered, setHovered] = useState(false)
   const hoverAmt = useRef(0)
@@ -43,6 +71,25 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   useEffect(() => () => model.dispose(), [model])
 
   const brain = useMemo(() => new RobotBrain(agent.id), [agent.id])
+  // Carácter y bocadillos.
+  const persona = personaFor(agent)
+  brain.persona = persona
+  useEffect(() => {
+    brain.onSay = (e) => {
+      if (!leaving) useBubbles.getState().say(agent.id, persona.id, e)
+    }
+    return () => {
+      brain.onSay = null
+    }
+  }, [brain, agent.id, persona.id, leaving])
+  // Si escribes en el chat, se despiertan y miran hacia él.
+  useEffect(() => {
+    let prev = useComposer.getState().text
+    return useComposer.subscribe((c) => {
+      if (c.text !== prev && c.text.trim().length > 0 && c.text.length > prev.length) brain.onUserTyping(registry.time)
+      prev = c.text
+    })
+  }, [brain])
   const reduced = useCowork((s) => s.reducedEffects)
   brain.reduced = reduced
 
@@ -55,13 +102,22 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     () => new THREE.SpriteMaterial({ map: checkTexture, color: new THREE.Color('#5ff0a6').multiplyScalar(1.4), transparent: true, toneMapped: false, depthWrite: false }),
     []
   )
+  // Símbolos de ánimo junto a la cabeza: dormido, error y duda.
+  const moodMats = useMemo(() => {
+    const mk = (map: THREE.Texture, color: THREE.ColorRepresentation, k: number) =>
+      new THREE.SpriteMaterial({ map, color: new THREE.Color(color).multiplyScalar(k), transparent: true, toneMapped: false, depthWrite: false })
+    return { zzz: mk(zzzTexture, avatar.eyeColor, 1.2), warn: mk(warnTexture, '#ff5a6a', 1.4), question: mk(questionTexture, avatar.eyeColor, 1.3) }
+  }, [avatarKey]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(
     () => () => {
       indicatorMat.dispose()
       waitMat.dispose()
       checkMat.dispose()
+      moodMats.zzz.dispose()
+      moodMats.warn.dispose()
+      moodMats.question.dispose()
     },
-    [indicatorMat, waitMat, checkMat]
+    [indicatorMat, waitMat, checkMat, moodMats]
   )
 
   // Posiciones de referencia (estación, punto junto al núcleo, consola)
@@ -97,12 +153,40 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   // Estado real del agente → entradas del cerebro (sin renders de React).
   useEffect(() => {
     let last = ''
+    let lastMood = ''
+    let lastActivity = ''
+    let lastTask = ''
+    let lastFatigue = 0
     const apply = () => {
       const d = currentData()
       const rt = d.runtimes[agent.id]
       const activity = rt?.activity ?? 'idle'
       const location = rt?.location ?? 'station'
       const waitFor = rt?.waitingFor ?? ''
+      // Ánimo: cansado con poca cuota o el contexto casi lleno; esfuerzo según la tarea que tiene entre manos.
+      const fatigue = agentFatigue(agent.id, rt, d.quotas, useCowork.getState().config.thresholds)
+      const task = rt?.taskId ? d.tasks[rt.taskId] : undefined
+      const taskEffort = task ? (task.difficulty === 'hard' ? 1 : task.difficulty === 'medium' ? 0.5 : 0.15) : 0
+      const startedAt = task?.startedAt ?? null
+      // Bocadillos: le llega una tarea, se bloquea o se cansa.
+      const busyNow = activity === 'thinking' || activity === 'working'
+      const wasBusy = lastActivity === 'thinking' || lastActivity === 'working'
+      const taskId = rt?.taskId ?? ''
+      if (lastActivity) {
+        if (busyNow && (!wasBusy || (taskId && taskId !== lastTask))) brain.onSay?.('task')
+        else if (activity === 'error' && lastActivity !== 'error') brain.onSay?.('error')
+        else if (fatigue >= 0.6 && lastFatigue < 0.6) brain.onSay?.('tired')
+      }
+      lastActivity = activity
+      lastTask = taskId
+      lastFatigue = fatigue
+      const mood = `${fatigue}|${taskEffort}|${startedAt}`
+      if (mood !== lastMood) {
+        lastMood = mood
+        brain.fatigue = fatigue
+        brain.taskEffort = taskEffort
+        brain.taskStartedAt = startedAt
+      }
       const sig = `${activity}|${location}|${waitFor}`
       if (sig === last) return
       last = sig
@@ -121,6 +205,10 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   useEffect(() => {
     model.root.traverse((o) => {
       if (o instanceof THREE.Sprite) o.raycast = () => {}
+      if (o instanceof THREE.Mesh && palette.world) {
+        o.castShadow = true
+        o.receiveShadow = true
+      }
     })
   }, [model])
 
@@ -140,6 +228,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
 
   useFrame((state, dt) => {
     const t = registry.time
+    chatPoint(state.camera, t, brain.chatPos)
     brain.update(t, dt, state.camera.position)
     const g = outer.current
     g.position.copy(brain.pos)
@@ -157,25 +246,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     const hs = 1 + h * 0.04
     r.scale.set(hs / Math.sqrt(sq), hs * sq, hs / Math.sqrt(sq))
 
-    // Ojos: apertura, mirada, expresión (feliz / error) por fundido de escala
-    const open = Math.max(0.06, brain.eyeOpen)
-    const happy = brain.eyeHappy
-    const err = brain.eyeError
-    const flatAmt = Math.max(err * 0.9, brain.offlineAmt * 0.8)
-    const baseAmt = Math.max(0, 1 - happy - flatAmt)
-    for (const e of model.eyes) {
-      e.group.position.x = e.x + brain.eyeLookX * 0.035
-      e.group.position.y = e.y + brain.eyeLookY * 0.028 + happy * 0.01
-      e.group.rotation.z = -e.side * err * 0.32
-      e.base.scale.set(Math.max(0.001, baseAmt), Math.max(0.001, baseAmt * open), 1)
-      e.happy.scale.setScalar(Math.max(0.001, happy))
-      e.flat.scale.set(Math.max(0.001, flatAmt), Math.max(0.001, flatAmt * (0.6 + 0.4 * open)), 1)
-    }
-    tmpColor.copy(model.eyeColor)
-    if (err > 0.01) tmpColor.lerp(ERROR_EYE, err * 0.85)
-    if (brain.offlineAmt > 0.01) tmpColor.lerp(OFF_EYE, brain.offlineAmt * 0.8)
-    const eyeBoost = 1.25 + brain.glow * 1.6 + h * 0.4 - brain.restAmt * 0.45
-    model.eyeMat.color.copy(tmpColor).multiplyScalar(eyeBoost)
+    applyEyes(model, brain, h)
 
     model.bodyMat.emissiveIntensity = 0.06 + brain.glow * 0.55 + h * 0.08
     if (model.logoMat) model.logoMat.opacity = 0.5 + brain.glow * 1.4 - brain.offlineAmt * 0.3
@@ -228,6 +299,21 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     check.current.scale.setScalar(Math.max(0.001, ck * 0.4))
     check.current.position.y = 0.05 + ck * 0.12
     checkMat.opacity = ck
+    // Símbolos de ánimo: «zzz» que sube despacio, «⚠» que late y «?» que se balancea.
+    const mood = (sp: THREE.Sprite, mat: THREE.SpriteMaterial, amt: number, size: number) => {
+      sp.visible = amt > 0.02
+      if (!sp.visible) return
+      sp.scale.setScalar(size * amt)
+      mat.opacity = amt
+    }
+    const zz = brain.eyeSleep
+    mood(zzz.current, moodMats.zzz, zz, 0.38)
+    if (zz > 0.02) zzz.current.position.set(0.32, 0.02 + ((t * 0.25 + brain.phase) % 1) * 0.08, 0)
+    const wr = brain.eyeError
+    mood(warn.current, moodMats.warn, wr, 0.28 * (1 + Math.sin(t * 4) * 0.08 * (reduced ? 0 : 1)))
+    const q = brain.questionAmt
+    mood(question.current, moodMats.question, q, 0.26)
+    if (q > 0.02) question.current.material.rotation = Math.sin(t * 2.2) * 0.2 * (reduced ? 0.3 : 1)
   })
 
   const labelY = model.top + 0.78
@@ -260,6 +346,9 @@ export function Robot({ agent, station, stations, leaving }: Props) {
         </group>
         <mesh ref={waitMesh} geometry={GEO.waitArc} material={waitMat} />
         <sprite ref={check} material={checkMat} />
+        <sprite ref={zzz} material={moodMats.zzz} position={[0.32, 0.02, 0]} />
+        <sprite ref={warn} material={moodMats.warn} position={[0.32, 0.02, 0]} />
+        <sprite ref={question} material={moodMats.question} position={[0.3, 0.04, 0]} />
       </group>
       <group ref={anchor} position={[0, labelY, 0]} />
     </group>

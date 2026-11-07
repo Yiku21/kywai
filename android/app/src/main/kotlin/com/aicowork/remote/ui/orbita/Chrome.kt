@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -77,8 +79,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aicowork.remote.data.Connection
 import com.aicowork.remote.data.CoworkUiState
+import com.aicowork.remote.data.OutgoingStatus
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.Snapshot
 import com.aicowork.remote.ui.components.Labels
@@ -86,27 +98,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // ---------------------------------------------------------------------------------------------- Barra superior
-
-/** Proyecto abierto: al tocarlo se elige otro o se crea uno. */
-@Composable
-fun ProjectChip(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = Modifier) {
-    val name = state.snapshot?.conversation?.title ?: "Sin proyecto"
-    Row(
-        modifier
-            .heightIn(min = 46.dp)
-            .glass(radius = 23.dp)
-            .tappable { model.projectMenu = !model.projectMenu }
-            .padding(start = 14.dp, end = 10.dp)
-            .testTag("project-chip"),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Outlined.ViewInAr, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(9.dp))
-        Text(name, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp))
-        Spacer(Modifier.width(4.dp))
-        Icon(Icons.Outlined.ExpandMore, contentDescription = "Cambiar de proyecto", tint = Orbita.TextSoft, modifier = Modifier.size(20.dp))
-    }
-}
 
 /** «En vivo» / «Conectando…» / «Sin conexión» (tocar reintenta). */
 @Composable
@@ -120,13 +111,13 @@ fun LiveStatus(state: CoworkUiState, onRetry: () -> Unit, modifier: Modifier = M
         }
     }
     val (color, label, pulse) = when (connection) {
-        Connection.Online -> Triple(Orbita.Live, if (state.fromCache) "Sincronizando…" else "En vivo", false)
-        Connection.Connecting -> Triple(Orbita.Warn, "Conectando…", true)
+        Connection.Online -> Triple(Orbita.Live, if (state.fromCache) t("Sincronizando…") else t("En vivo"), false)
+        Connection.Connecting -> Triple(Orbita.Warn, t("Conectando…"), true)
         is Connection.Offline -> {
             val left = connection.retryAt?.let { ((it - now) / 1000).coerceAtLeast(0) }
-            Triple(Orbita.Danger, if (left != null && left > 0) "Sin conexión · ${left} s" else "Sin conexión", false)
+            Triple(Orbita.Danger, if (left != null && left > 0) t("Sin conexión · {left} s", "left" to left) else t("Sin conexión"), false)
         }
-        Connection.Idle -> Triple(Orbita.TextFaint, "En pausa", false)
+        Connection.Idle -> Triple(Orbita.TextFaint, t("En pausa"), false)
     }
     val base = if (glassy) modifier.heightIn(min = 46.dp).glass(radius = 23.dp) else modifier.heightIn(min = 46.dp)
     Row(
@@ -140,7 +131,13 @@ fun LiveStatus(state: CoworkUiState, onRetry: () -> Unit, modifier: Modifier = M
         Dot(color, pulse = pulse)
         if (!compact || connection !is Connection.Online) {
             Spacer(Modifier.width(9.dp))
-            Text(if (compact && connection is Connection.Offline) "Sin conexión" else label, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            val queued = state.outgoing.count { it.status == OutgoingStatus.Queued }
+            val shown = when {
+                connection is Connection.Offline && queued > 0 -> t("Sin conexión · {n} en cola", "n" to queued)
+                compact && connection is Connection.Offline -> t("Sin conexión")
+                else -> label
+            }
+            Text(shown, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
         }
     }
 }
@@ -168,225 +165,50 @@ fun AttentionChip(attention: Attention?, onClick: () -> Unit, modifier: Modifier
     }
 }
 
-// ---------------------------------------------------------------------------------------------- Proyectos
+// ---------------------------------------------------------------------------------------------- Pestañas
+
+/**
+ * Pestañas del panel, como en el escritorio. Desplegado van en la cabecera del panel (Chat, Archivos, Tareas,
+ * Resultados); plegado van bajo la barra de arriba y «Espacio» deja ver el mundo entero.
+ */
+fun panelTabs(compact: Boolean): List<Section> =
+    if (compact) listOf(Section.Chat, Section.World, Section.Tasks, Section.Results)
+    else listOf(Section.Chat, Section.Files, Section.Tasks, Section.Results)
 
 @Composable
-fun ProjectMenu(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = Modifier) {
-    val snapshot = state.snapshot
-    val current = snapshot?.conversation?.id
-    val supported = snapshot?.capabilities?.projects == true
-    var creating by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-    Column(
-        modifier
-            .widthIn(min = 280.dp, max = 380.dp)
-            .glass(radius = 26.dp, tint = Orbita.GlassPopover)
-            .padding(12.dp)
-            .verticalScroll(rememberScrollState())
-            .testTag("project-menu"),
-    ) {
-        Text("Proyectos", color = Orbita.TextSoft, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 8.dp))
-        if (!supported) {
-            Note(Icons.Outlined.Info, snapshot?.conversation?.title ?: "Proyecto actual", "Para cambiar de proyecto desde el móvil, actualiza AI Cowork en el ordenador.")
-        } else {
-            snapshot!!.projects.forEach { p ->
-                val on = p.id == current
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 52.dp)
-                        .clip(Orbita.CardShape)
-                        .rowHighlight(on)
-                        .tappable(haptic = Haptic.Select) {
-                            if (on) model.projectMenu = false
-                            else {
-                                busy = p.id
-                                scope.launch {
-                                    val r = model.controller.selectConversation(p.id)
-                                    busy = null
-                                    if (r.ok) {
-                                        model.feedback.confirm()
-                                        model.projectMenu = false
-                                    } else {
-                                        model.feedback.reject()
-                                        model.toast(r.message, Toast.Tone.Error)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(horizontal = 12.dp)
-                        .semantics { selected = on },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Outlined.ViewInAr, contentDescription = null, tint = if (on) Orbita.Accent else Orbita.TextSoft, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text(p.name, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    when {
-                        busy == p.id -> androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp), color = Orbita.Accent, strokeWidth = 2.dp)
-                        p.running -> Row(verticalAlignment = Alignment.CenterVertically) {
-                            Dot(Orbita.Live, 7.dp, pulse = true)
-                            Spacer(Modifier.width(6.dp))
-                            Text("trabajando", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
-                        }
-                        on -> Icon(Icons.Outlined.Check, contentDescription = "Abierto", tint = Orbita.Accent, modifier = Modifier.size(20.dp))
-                    }
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            if (!creating) {
-                OrbitaButton("Nuevo proyecto", onClick = { creating = true }, icon = Icons.Outlined.Add, style = ButtonStyle.Secondary, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth())
-            } else {
-                OrbitaField(
-                    value = name,
-                    onValueChange = { name = it },
-                    placeholder = "Nombre del proyecto",
-                    imeAction = ImeAction.Done,
-                    onIme = {},
-                    autoFocus = true,
+fun PanelTabs(model: OrbitaModel, compact: Boolean, modifier: Modifier = Modifier) {
+    val state by model.controller.state.collectAsStateWithLifecycle()
+    val active = state.snapshot?.tasks?.count { it.isActive } ?: 0
+    Row(modifier.padding(4.dp).testTag("panel-tabs"), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        panelTabs(compact).forEach { s ->
+            val on = model.section == s
+            val bg by animateColorAsState(if (on) Orbita.AccentSoft else Color.Transparent, tween(200), label = "tab")
+            val edge by animateColorAsState(if (on) Orbita.AccentEdge.copy(alpha = 0.6f) else Color.Transparent, tween(200), label = "tabEdge")
+            val shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+            Row(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 42.dp)
+                    .clip(shape)
+                    .background(bg)
+                    .border(1.dp, edge, shape)
+                    .tappable(role = Role.Tab, haptic = Haptic.Tap) { if (s == Section.World) model.close() else model.open(s) }
+                    .semantics { selected = on }
+                    .padding(horizontal = 6.dp)
+                    .testTag(if (compact) "nav-${s.name}" else "tab-${s.name}"),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    if (s == Section.World) t("Espacio") else s.label,
+                    color = if (on) Orbita.Text else Orbita.TextSoft,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OrbitaButton("Cancelar", onClick = { creating = false; name = "" }, style = ButtonStyle.Ghost, haptic = Haptic.Tap, modifier = Modifier.weight(1f))
-                    OrbitaButton(
-                        "Crear",
-                        onClick = {
-                            busy = "new"
-                            scope.launch {
-                                val r = model.controller.createProject(name.trim())
-                                busy = null
-                                if (r.ok) {
-                                    model.feedback.confirm()
-                                    model.feedback.play(Sfx.ProjectCreated)
-                                    model.projectMenu = false
-                                    creating = false
-                                    name = ""
-                                } else {
-                                    model.feedback.reject()
-                                    model.toast(r.message, Toast.Tone.Error)
-                                }
-                            }
-                        },
-                        enabled = name.isNotBlank(),
-                        busy = busy == "new",
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------- Navegación
-
-val BottomSections = listOf(Section.World, Section.Chat, Section.Tasks, Section.Files)
-val RailSections = listOf(Section.World, Section.Chat, Section.Tasks, Section.Files, Section.Results, Section.Memory, Section.Tools)
-val RailFooter = listOf(Section.Usage, Section.Settings)
-val MoreSections = listOf(Section.Results, Section.Memory, Section.Tools, Section.Usage, Section.Settings, Section.Team)
-
-/** Navegación inferior (plegado): Mundo, Chat, Tareas, Archivos y Más, al alcance del pulgar. */
-@Composable
-fun BottomNav(model: OrbitaModel, badges: Map<Section, Int>, modifier: Modifier = Modifier) {
-    val moreOn = model.moreOpen || model.section in MoreSections
-    Row(
-        modifier
-            .fillMaxWidth()
-            .glass(radius = 28.dp)
-            .padding(6.dp)
-            .testTag("bottom-nav"),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        BottomSections.forEach { s ->
-            NavItem(s.label, s.icon, on = model.section == s && !model.moreOpen, badge = badges[s] ?: 0, modifier = Modifier.weight(1f).testTag("nav-${s.name}")) { model.open(s) }
-        }
-        NavItem("Más", Icons.Outlined.MoreHoriz, on = moreOn, badge = MoreSections.sumOf { badges[it] ?: 0 }, modifier = Modifier.weight(1f).testTag("nav-more")) {
-            model.moreOpen = !model.moreOpen
-        }
-    }
-}
-
-@Composable
-private fun NavItem(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, on: Boolean, badge: Int, modifier: Modifier, compact: Boolean = false, onClick: () -> Unit) {
-    val bg by animateColorAsState(if (on) Orbita.AccentSoft else Color.Transparent, tween(200), label = "nav")
-    val edge by animateColorAsState(if (on) Orbita.AccentEdge.copy(alpha = 0.6f) else Color.Transparent, tween(200), label = "navEdge")
-    Box(
-        modifier
-            .heightIn(min = if (compact) 56.dp else 62.dp)
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
-            .background(bg)
-            .border(1.dp, edge, androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
-            .tappable(role = Role.Tab, haptic = Haptic.Tap, onClick = onClick)
-            .semantics { selected = on },
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 6.dp, horizontal = 2.dp)) {
-            Box {
-                Icon(icon, contentDescription = null, tint = if (on) Color.White else Orbita.TextSoft, modifier = Modifier.size(24.dp))
-                if (badge > 0) Box(Modifier.align(Alignment.TopEnd).offset(x = 12.dp, y = (-8).dp)) { CountBadge(badge) }
-            }
-            Spacer(Modifier.height(3.dp))
-            Text(label, color = if (on) Color.White else Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-        }
-    }
-}
-
-/** Riel lateral (desplegado): todas las secciones, con Consumo y Ajustes aparte. */
-@Composable
-fun Rail(model: OrbitaModel, badges: Map<Section, Int>, modifier: Modifier = Modifier) {
-    Column(
-        modifier
-            .width(RailWidth)
-            .fillMaxHeight()
-            .glass(radius = 30.dp)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp, vertical = 10.dp)
-            .testTag("rail"),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        RailSections.forEach { s ->
-            NavItem(s.label, s.icon, on = model.section == s, badge = badges[s] ?: 0, modifier = Modifier.fillMaxWidth().testTag("nav-${s.name}")) { model.open(s) }
-        }
-        Spacer(Modifier.weight(1f))
-        Box(Modifier.fillMaxWidth().padding(vertical = 6.dp, horizontal = 10.dp).height(1.dp).background(Color(0x26B4CCF5)))
-        RailFooter.forEach { s ->
-            NavItem(s.label, s.icon, on = model.section == s, badge = 0, compact = true, modifier = Modifier.fillMaxWidth().testTag("nav-${s.name}")) { model.open(s) }
-        }
-    }
-}
-
-val RailWidth: Dp = 108.dp
-
-/** «Más paneles» (plegado): el resto de secciones en una cuadrícula. */
-@Composable
-fun MorePanels(model: OrbitaModel, badges: Map<Section, Int>, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth().glass(radius = 30.dp, tint = Orbita.GlassPopover).padding(16.dp).testTag("more-panels")) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Más paneles", color = Orbita.Text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(start = 4.dp))
-            IconAction(Icons.Outlined.Close, "Cerrar", onClick = { model.moreOpen = false })
-        }
-        Spacer(Modifier.height(10.dp))
-        LazyVerticalGrid(
-            GridCells.Fixed(2),
-            state = model.moreGrid,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.heightIn(max = 300.dp),
-        ) {
-            items(MoreSections) { s ->
-                Row(
-                    Modifier
-                        .heightIn(min = 56.dp)
-                        .card(radius = 18.dp, selected = model.section == s)
-                        .tappable(haptic = Haptic.Tap) { model.open(s) }
-                        .padding(horizontal = 14.dp)
-                        .testTag("more-${s.name}"),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(s.icon, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(22.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text(s.label, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    (badges[s] ?: 0).takeIf { it > 0 }?.let { CountBadge(it) }
+                if (s == Section.Tasks && active > 0) {
+                    Spacer(Modifier.width(5.dp))
+                    Text("$active", color = Orbita.Accent, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -404,35 +226,84 @@ fun activityColor(activity: String): Color = when (activity) {
     else -> Color(0xFF8FA3C2)
 }
 
-/** Selector del Equipo (desplegado): los agentes, aparte de la navegación entre secciones. */
+/**
+ * Un agente a la vez sobre el mundo, con ‹ › (o deslizando) para pasar al siguiente. Tocarlo abre su ficha y acerca
+ * la cámara a su estación; las flechas solo acercan la cámara (y cambian la ficha si ya estaba abierta).
+ */
 @Composable
-fun TeamBar(snapshot: Snapshot, model: OrbitaModel, onSelect: (Agent) -> Unit, modifier: Modifier = Modifier) {
+fun AgentSwitcher(snapshot: Snapshot, model: OrbitaModel, onFocus: (Agent) -> Unit, modifier: Modifier = Modifier) {
     val agents = teamOrder(snapshot)
     if (agents.isEmpty()) return
-    val working = workingCount(snapshot)
-    Column(modifier.glass(radius = 30.dp).padding(horizontal = 14.dp, vertical = 8.dp).testTag("team-bar"), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(if (working > 0) "Equipo · $working trabajando" else "Equipo", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(6.dp))
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            agents.forEach { a -> TeamAvatar(a, selected = model.selectedAgentId == a.id) { onSelect(a) } }
-        }
+    var index by remember { mutableIntStateOf(0) }
+    // Si eliges un agente en el mundo, el selector se pone en él.
+    LaunchedEffect(model.selectedAgentId, agents.size) {
+        val i = agents.indexOfFirst { it.id == model.selectedAgentId }
+        if (i >= 0) index = i
     }
-}
-
-@Composable
-fun TeamAvatar(agent: Agent, selected: Boolean, size: Dp = 46.dp, onClick: () -> Unit) {
-    val ring = if (selected) Orbita.Gold else null
-    Box(
-        Modifier
-            .clip(CircleShape)
-            .tappable(haptic = Haptic.Select, onClick = onClick)
-            .semantics { contentDescription = "${agent.name}: ${Labels.activity(agent.activity)}"; this.selected = selected }
-            .testTag("team-${agent.id}"),
+    val i = index.coerceIn(0, agents.lastIndex)
+    val agent = agents[i]
+    fun go(step: Int) {
+        index = (i + step + agents.size) % agents.size
+        val next = agents[index]
+        model.feedback.select()
+        if (model.selectedAgentId != null) model.selectAgent(next.id, poke = false)
+        onFocus(next)
+    }
+    var drag by remember { mutableFloatStateOf(0f) }
+    Row(
+        modifier
+            .heightIn(min = 60.dp)
+            .glass(radius = 30.dp)
+            .pointerInput(agents.size) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (abs(drag) > 60f) go(if (drag < 0) 1 else -1)
+                        drag = 0f
+                    },
+                    onDragCancel = { drag = 0f },
+                ) { _, delta -> drag += delta }
+            }
+            .padding(horizontal = 4.dp)
+            .testTag("agent-switcher"),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        RobotFace(agent, size, ring = ring)
-        Box(Modifier.align(Alignment.BottomEnd).size(13.dp).clip(CircleShape).background(Orbita.Night).padding(2.dp)) {
-            Dot(activityColor(agent.activity), 9.dp, pulse = agent.activity == "working" || agent.activity == "thinking")
+        if (agents.size > 1) IconAction(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, t("Agente anterior"), onClick = { go(-1) }, modifier = Modifier.testTag("agent-prev"))
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .tappable(haptic = Haptic.Select) {
+                    val again = model.selectedAgentId == agent.id
+                    model.selectAgent(if (again) null else agent.id)
+                    if (!again) onFocus(agent)
+                }
+                .semantics(mergeDescendants = true) { selected = model.selectedAgentId == agent.id }
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .testTag("agent-current"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RobotFace(agent, 36.dp)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.widthIn(min = 120.dp, max = 220.dp)) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(agent.name, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (agent.modelLabel.isNotBlank()) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(agent.modelLabel, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Dot(activityColor(agent.activity), 7.dp, pulse = agent.activity == "working" || agent.activity == "thinking")
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        t("{activity} · {n} de {total}", "activity" to Labels.activity(agent.activity), "n" to (i + 1), "total" to agents.size),
+                        color = Orbita.TextSoft,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
+        if (agents.size > 1) IconAction(Icons.AutoMirrored.Outlined.KeyboardArrowRight, t("Agente siguiente"), onClick = { go(1) }, modifier = Modifier.testTag("agent-next"))
     }
 }
 
@@ -461,14 +332,14 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
                 Text(agent.name, color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
                 Text(listOf(agent.role.ifBlank { null }, agent.modelLabel.ifBlank { null }).filterNotNull().joinToString(" · "), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            IconAction(Icons.Outlined.Close, "Cerrar", onClick = { model.selectAgent(null, poke = false) })
+            IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.selectAgent(null, poke = false) })
         }
         Spacer(Modifier.height(10.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             val (color, label) = when {
                 needs != null -> Orbita.Warn to needs.reason
-                paused -> Orbita.Warn to "En pausa"
-                agent.activity == "waiting" && agent.waitingFor != null -> Orbita.Warn to "Esperando a ${snapshot.agents.firstOrNull { it.id == agent.waitingFor }?.name ?: agent.waitingFor}"
+                paused -> Orbita.Warn to t("En pausa")
+                agent.activity == "waiting" && agent.waitingFor != null -> Orbita.Warn to t("Esperando a {waitingFor}", "waitingFor" to (snapshot.agents.firstOrNull { it.id == agent.waitingFor }?.name ?: agent.waitingFor))
                 else -> activityColor(agent.activity) to Labels.activity(agent.activity)
             }
             Dot(color, pulse = agent.activity == "working" || agent.activity == "thinking" || needs != null)
@@ -485,7 +356,7 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
             Spacer(Modifier.height(10.dp))
             var resetting by remember(agent.id) { mutableStateOf(false) }
             OrbitaButton(
-                "Reiniciar agente",
+                t("Reiniciar agente"),
                 onClick = {
                     resetting = true
                     model.run({ model.controller.resetAgent(agent.id) }) { resetting = false }
@@ -498,6 +369,23 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
                 modifier = Modifier.fillMaxWidth().testTag("agent-reset"),
             )
         }
+        // Agente local (LM Studio): razonamiento del modelo. Apagado responde antes; encendido piensa (para lo que necesita mucha información).
+        if (agent.provider == "lmstudio" && snapshot.capabilities.agentThinking) {
+            Spacer(Modifier.height(10.dp))
+            var pending by remember(agent.id, agent.thinking) { mutableStateOf<Boolean?>(null) }
+            val on = pending ?: agent.thinking
+            Box(Modifier.fillMaxWidth().card()) {
+                ToggleRow(
+                    t("Razonamiento (think)"),
+                    if (on) t("Encendido: piensa antes de responder (más lento, para lo que necesita mucha información).") else t("Apagado: responde directamente, más rápido."),
+                    on,
+                    "agent-thinking",
+                ) { next ->
+                    pending = next
+                    model.run({ model.controller.setAgentThinking(agent.id, next) }) { if (!it.ok) pending = null }
+                }
+            }
+        }
         if (task != null) {
             Spacer(Modifier.height(12.dp))
             Column(Modifier.fillMaxWidth().card().tappable { model.openTask(task.id) }.padding(12.dp)) {
@@ -508,17 +396,17 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OrbitaButton("Ver tarea", onClick = { model.openTask(task.id) }, icon = Icons.AutoMirrored.Outlined.ArrowForward, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
+                OrbitaButton(t("Ver tarea"), onClick = { model.openTask(task.id) }, icon = Icons.AutoMirrored.Outlined.ArrowForward, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
                 val requestId = task.requestId
                 if (requestId != null && requestId in active && snapshot.capabilities.stopRequests) {
                     var busy by remember { mutableStateOf(false) }
-                    OrbitaButton("Detener", onClick = {
+                    OrbitaButton(t("Detener"), onClick = {
                         busy = true
                         model.run({ model.controller.stopRequest(requestId) }) { busy = false }
                     }, icon = Icons.Outlined.Pause, style = ButtonStyle.Danger, busy = busy, height = 46.dp, modifier = Modifier.weight(1f))
                 } else if (paused && requestId != null && snapshot.capabilities.resumeRequests) {
                     var busy by remember { mutableStateOf(false) }
-                    OrbitaButton("Reanudar", onClick = {
+                    OrbitaButton(t("Reanudar"), onClick = {
                         busy = true
                         model.run({ model.controller.resumeRequest(requestId) }) { busy = false }
                     }, icon = Icons.Outlined.PlayArrow, busy = busy, height = 46.dp, modifier = Modifier.weight(1f))
@@ -564,7 +452,7 @@ fun ToastHost(model: OrbitaModel, modifier: Modifier = Modifier) {
                                 modifier = Modifier.clip(Orbita.PillShape).tappable { model.dismissToast(t); t.onAction.invoke() }.padding(horizontal = 12.dp, vertical = 10.dp),
                             )
                         }
-                        IconAction(Icons.Outlined.Close, "Cerrar aviso", onClick = { model.dismissToast(t) }, size = 40.dp)
+                        IconAction(Icons.Outlined.Close, t("Cerrar aviso"), onClick = { model.dismissToast(t) }, size = 40.dp)
                     }
                 }
             }

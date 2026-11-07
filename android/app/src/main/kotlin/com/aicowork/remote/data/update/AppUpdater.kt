@@ -1,5 +1,7 @@
 package com.aicowork.remote.data.update
 
+import com.aicowork.remote.i18n.t
+
 import com.aicowork.remote.data.CoworkController
 import com.aicowork.remote.data.model.AppRelease
 import kotlinx.coroutines.CoroutineScope
@@ -58,19 +60,19 @@ class AppUpdater(
     fun check() {
         if (busy) return
         if (installer.isDevBuild) {
-            _state.value = UpdateState.Failed("Esta es la versión de desarrollo: se actualiza desde Android Studio.")
+            _state.value = UpdateState.Failed(t("Esta es la versión de desarrollo: se actualiza desde Android Studio."))
             return
         }
         val snapshot = controller.state.value.snapshot
         if (snapshot != null && !snapshot.capabilities.appUpdate) {
-            _state.value = UpdateState.Failed("El ordenador aún no ofrece actualizaciones de Órbita: actualiza AI Cowork en él (⋮ → «Buscar actualizaciones…»).")
+            _state.value = UpdateState.Failed(t("El ordenador aún no ofrece actualizaciones de Órbita: actualiza kywai en él (⋮ → «Buscar actualizaciones…»)."))
             return
         }
         _state.value = UpdateState.Checking
         job = scope.launch {
             controller.appRelease().fold(
                 onSuccess = { r -> _state.value = if (r.versionCode > installer.versionCode) UpdateState.Available(r) else UpdateState.UpToDate },
-                onFailure = { e -> _state.value = UpdateState.Failed(e.message ?: "No se pudo consultar el ordenador.") },
+                onFailure = { e -> _state.value = UpdateState.Failed(e.message ?: t("No se pudo consultar el ordenador.")) },
             )
         }
     }
@@ -78,8 +80,11 @@ class AppUpdater(
     /** Descarga (si hace falta) e instala la versión encontrada. */
     fun install() {
         if (busy) return
-        val release = releaseOf(_state.value) ?: return
+        val announced = releaseOf(_state.value) ?: return
         job = scope.launch {
+            // El ordenador puede tener ya otra versión desde que se le preguntó (se actualiza solo y sirve siempre la
+            // última APK): se vuelve a preguntar justo antes de descargar, para no comparar con una versión vieja.
+            val release = controller.appRelease().getOrNull()?.takeIf { it.versionCode > installer.versionCode } ?: announced
             val file = File(installer.downloadDir, "orbita-${release.versionCode}.apk")
             if (!(file.isFile && sha256(file) == release.sha256)) {
                 _state.value = UpdateState.Downloading(release, 0f)
@@ -90,8 +95,8 @@ class AppUpdater(
                         _state.value = UpdateState.Downloading(release, p)
                     }
                 }
-                val failure = download.exceptionOrNull()?.let { it.message ?: "No se pudo descargar." }
-                    ?: if (sha256(file) != release.sha256) "La descarga no es la versión anunciada: vuelve a intentarlo." else null
+                val failure = download.exceptionOrNull()?.let { it.message ?: t("No se pudo descargar.") }
+                    ?: if (sha256(file) != release.sha256) t("La descarga no es la versión anunciada: vuelve a intentarlo.") else null
                 if (failure != null) {
                     withContext(Dispatchers.IO) { file.delete() }
                     _state.value = UpdateState.Failed(failure, release)
@@ -106,7 +111,7 @@ class AppUpdater(
             try {
                 installer.install(file)
             } catch (e: Exception) {
-                _state.value = UpdateState.Failed(e.message?.let { "Android no pudo instalarla: $it" } ?: "Android no pudo instalarla.", release)
+                _state.value = UpdateState.Failed(e.message?.let { t("Android no pudo instalarla: {v1}", "v1" to it) } ?: t("Android no pudo instalarla."), release)
             }
         }
     }

@@ -1,4 +1,5 @@
 import { balancedObject } from './agents/codex'
+import { tr } from '@shared/i18n'
 
 /** First balanced {...} that parses as JSON and looks like a plan (fenced ```json blocks first). */
 export function extractJsonObject(text: string): Record<string, unknown> | null {
@@ -158,7 +159,7 @@ export interface HandTask extends PlanItem {
   continues: boolean
 }
 
-export const WINNER_RE = /\bGANA:\s*([AB])\b/i
+export const WINNER_RE = /\b(?:GANA|WINNER|WINS)\s*:\s*\**\s*(?:OPCI[OÓ]N\s+|OPTION\s+)?([AB])\b/i
 
 /**
  * «A dos manos»: el usuario lo pidió y el plan es una sola tarea con archivos → otro agente de otra familia hace la
@@ -186,7 +187,7 @@ export function twoHandsPlan<T extends HandTask>(tasks: T[], userText: string, a
   const judgeTask: T = {
     ...a,
     key: `${a.key}-juez`,
-    title: `Elegir la mejor opción de «${a.title}»`,
+    title: tr('Elegir la mejor opción de «{title}»', { title: a.title }),
     agentId: judge.id,
     difficulty: 'medium',
     dependsOn: [handA.key, handB.key],
@@ -211,9 +212,9 @@ export function twoHandsPlan<T extends HandTask>(tasks: T[], userText: string, a
  * 'contract': acuerdo común para las tareas que se hacen a la vez (archivos de cada una, funciones, rutas…).
  * 'memory': lo que el usuario decidió o pidió en este mensaje y hay que recordar (sin validar: ver memory.ts).
  */
-export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[] } {
+export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[]; routine: string } {
   const o = extractJsonObject(text)
-  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [] }
+  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [], routine: '' }
   const c = o.contract
   const contract = typeof c === 'string' ? c.trim() : c && typeof c === 'object' ? JSON.stringify(c, null, 2) : ''
   return {
@@ -221,7 +222,9 @@ export function parsePlan(text: string): { reply: string; tasks: unknown[]; vali
     tasks: Array.isArray(o.tasks) ? o.tasks : [],
     valid: true,
     contract: contract.slice(0, 12_000),
-    memory: Array.isArray(o.memory) ? o.memory : []
+    memory: Array.isArray(o.memory) ? o.memory : [],
+    // La rutina que propone crear, como la orden «/rutina …» (se valida con parseRoutineCommand).
+    routine: typeof o.routine === 'string' ? o.routine.trim().slice(0, 9000) : ''
   }
 }
 
@@ -229,11 +232,15 @@ export function parsePlan(text: string): { reply: string; tasks: unknown[]; vali
 const APPROVE_CORE = new Set([
   'si', 'ok', 'okay', 'okey', 'vale', 'dale', 'adelante', 'aprobado', 'apruebo', 'apruebalo', 'perfecto', 'procede',
   'hazlo', 'venga', 'correcto', 'bien', 'acuerdo', 'genial', 'claro', 'listo', 'excelente', 'empieza', 'empezad',
-  'comienza', 'arranca', 'sigue', 'continua', 'go', 'yes', 'ejecuta', 'ejecutalo', 'manos'
+  'comienza', 'arranca', 'sigue', 'continua', 'go', 'yes', 'ejecuta', 'ejecutalo', 'manos',
+  // En inglés (la interfaz puede estar en inglés): «yes, go ahead», «looks good», «sure, start».
+  'yep', 'yeah', 'sure', 'approve', 'approved', 'proceed', 'start', 'perfect', 'great', 'good', 'fine', 'lgtm', 'alright'
 ])
 const APPROVE_FILLER = new Set([
   'y', 'pues', 'entonces', 'por', 'favor', 'gracias', 'todo', 'ya', 'lo', 'el', 'plan', 'asi', 'eso', 'me', 'parece',
-  'esta', 'de', 'puedes', 'podeis', 'empezar', 'a', 'la', 'obra', 'con', 'muy', 'super', 'tal', 'cual', 'como', 'dices'
+  'esta', 'de', 'puedes', 'podeis', 'empezar', 'a', 'la', 'obra', 'con', 'muy', 'super', 'tal', 'cual', 'como', 'dices',
+  'it', 'ahead', 'please', 'thanks', 'thank', 'you', 'the', 'that', 'this', 'looks', 'sounds', 'do', 'let', 'lets', 's',
+  'all', 'right', 'with', 'on', 'very'
 ])
 
 /**
