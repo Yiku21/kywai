@@ -48,6 +48,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Música (como YouTube Music)](#música-como-youtube-music)
   - [Modo Demo](#modo-demo)
   - [Rendimiento](#rendimiento)
+  - [Apoyar AI Cowork (donaciones)](#apoyar-ai-cowork-donaciones)
 - **[Para desarrolladores](#para-desarrolladores)**
   - [Desarrollo](#desarrollo)
   - [Comprobaciones](#comprobaciones)
@@ -1231,6 +1232,19 @@ Lo que hace AI Cowork para ir fluido sin que tengas que tocar nada:
 - **Menos descarga por la red.** El servidor entrega la interfaz comprimida (gzip) al navegador y a los clientes de
   escritorio: unos 0,6 MB en vez de 4,6 MB la primera vez. Después se queda guardada hasta la siguiente
   actualización (`src/main/staticGzip.ts`).
+
+### Apoyar AI Cowork (donaciones)
+
+AI Cowork es gratis. Quien quiera agradecerlo puede invitar al autor a un café en Ko-fi
+(https://ko-fi.com/yilsander). El enlace está en cuatro sitios:
+
+- **Escritorio y navegador:** ⋮ → **Apoyar AI Cowork ☕**. Abre la página de Ko-fi en el navegador.
+- **Órbita:** Ajustes → **Apoyar AI Cowork** (al final) → **Invitar a un café ☕**.
+- **GitHub:** el botón **Sponsor** de arriba del repositorio (`.github/FUNDING.yml`) y la insignia Ko-fi de los
+  README.
+
+Si cambia el enlace, hay que cambiarlo en `DONATE_URL` (`src/renderer/src/ui/header/HeaderMenu.tsx` y
+`android/.../ui/orbita/PanelsMore.kt`), en `.github/FUNDING.yml` y en las insignias de los README.
 
 ## Para desarrolladores
 

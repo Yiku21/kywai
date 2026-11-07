@@ -1,5 +1,8 @@
 package com.aicowork.remote.ui.orbita
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import com.aicowork.remote.i18n.AppLanguage
 import androidx.compose.ui.draw.rotate
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -35,6 +38,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Refresh
@@ -605,6 +609,7 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                     OrbitaButton(t("Desvincular este móvil"), onClick = { confirmForget = true }, icon = Icons.Outlined.LinkOff, style = ButtonStyle.Danger, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth())
                 }
             }
+            item { SupportSection(model) }
         }
     }
     if (confirmForget) {
@@ -615,6 +620,37 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
             danger = true,
             onConfirm = { confirmForget = false; model.feedback.confirm(); model.controller.forget() },
             onDismiss = { confirmForget = false },
+        )
+    }
+}
+
+/** Página de Ko-fi del autor; la misma que ⋮ → «Apoyar AI Cowork ☕» en el ordenador. */
+const val DONATE_URL = "https://ko-fi.com/yilsander"
+
+/** Ajustes → Apoyar AI Cowork: abre la página de Ko-fi en el navegador del móvil para quien quiera invitar a un café. */
+@Composable
+private fun SupportSection(model: OrbitaModel) {
+    val context = LocalContext.current
+    SectionLabel(t("Apoyar AI Cowork"))
+    Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
+        Text(t("AI Cowork es gratis. Si te gusta, puedes invitarme a un café en Ko-fi para que siga mejorándolo."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(10.dp))
+        OrbitaButton(
+            t("Invitar a un café ☕"),
+            onClick = {
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(DONATE_URL)))
+                    model.feedback.confirm()
+                } catch (e: ActivityNotFoundException) {
+                    model.feedback.reject()
+                    model.toast(t("No hay navegador para abrir {v1}", "v1" to DONATE_URL), Toast.Tone.Error)
+                }
+            },
+            icon = Icons.Outlined.LocalCafe,
+            style = ButtonStyle.Secondary,
+            haptic = Haptic.Tap,
+            height = 46.dp,
+            modifier = Modifier.fillMaxWidth().testTag("support-kofi"),
         )
     }
 }
