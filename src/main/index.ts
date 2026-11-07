@@ -1,3 +1,5 @@
+// Primero: fija la carpeta de datos («AI Cowork») antes de que ningún módulo la lea.
+import { migrateWindowsLoginItem } from './dataDir'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, net, powerSaveBlocker, protocol, session, shell, systemPreferences, type OpenDialogOptions } from 'electron'
 import { copyFileSync, existsSync, promises as fsp, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
@@ -920,6 +922,7 @@ function registerIpc(): void {
 }
 
 async function boot(): Promise<void> {
+  migrateWindowsLoginItem()
   // Una instalación nueva pregunta si este equipo es el servidor o se conecta con otro kywai.
   let mode = savedMode()?.mode
   if (!mode) mode = await chooseMode()

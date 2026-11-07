@@ -280,7 +280,7 @@ E quatro que decoram o mundo, remodelam o seu núcleo e, nos festivos, vestem os
 
 Baixe o instalador do seu sistema na **[versão mais recente](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` para Windows, `.dmg` para macOS (Apple silicon ou Intel) e `.AppImage` para Linux. Depois de instalado, o app procura uma versão nova toda vez que abre e se atualiza sozinho (no macOS ele avisa e abre o download).
 
-Ainda não são assinados: no Windows clique em "Mais informações" → "Executar assim mesmo"; no macOS, na primeira vez, clique com o botão direito no app → Abrir (se disser que está danificado, rode `xattr -cr "/Applications/AI Cowork.app"`); no Linux torne o AppImage executável com `chmod +x`.
+Ainda não são assinados: no Windows clique em "Mais informações" → "Executar assim mesmo"; no macOS, na primeira vez, clique com o botão direito no app → Abrir (se disser que está danificado, rode `xattr -cr "/Applications/kywai.app"`); no Linux torne o AppImage executável com `chmod +x`.
 
 Ou compile você mesmo:
 
@@ -291,7 +291,7 @@ npm install
 npm run dist:win
 ```
 
-Isso gera `release/AI-Cowork-Setup-<version>.exe`. O instalador permite escolher a pasta e cria os atalhos. Como ele não tem assinatura de código, o Windows pode exibir um aviso: "Mais informações" → "Executar assim mesmo".
+Isso gera `release/kywai-Setup-<version>.exe`. O instalador permite escolher a pasta e cria os atalhos. Como ele não tem assinatura de código, o Windows pode exibir um aviso: "Mais informações" → "Executar assim mesmo".
 
 ### macOS
 
@@ -299,7 +299,7 @@ Isso gera `release/AI-Cowork-Setup-<version>.exe`. O instalador permite escolher
 npm run fuente
 ```
 
-Isso gera `release/AI-Cowork-fuente.zip`. No Mac, descompacte o arquivo e execute isto dentro da pasta:
+Isso gera `release/kywai-fuente.zip`. No Mac, descompacte o arquivo e execute isto dentro da pasta:
 
 ```bash
 bash scripts/instalar-mac.sh

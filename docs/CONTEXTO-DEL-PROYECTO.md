@@ -46,7 +46,7 @@ Reglas que se derivan de esto:
   `src/main/client.ts`, `src/main/clientConfig.ts`) o el empaquetado exige publicar e instalar de nuevo el cliente.
 - Cambios en `android/` **no llegan** hasta publicar la APK en `android/release/` y que el Mac la sirva.
 - Un cliente instalado antes del sistema de actualización por servidor hay que cambiarlo una vez a mano
-  (instalador en `release/AI-Cowork-Setup-<versión>.exe`).
+  (instalador en `release/kywai-Setup-<versión>.exe`).
 
 ---
 
