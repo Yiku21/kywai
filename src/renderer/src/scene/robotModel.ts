@@ -614,7 +614,7 @@ export function buildRobot(avatar: RobotAvatar, color: string): RobotModel {
   const glass = new THREE.Mesh(vg.glass, glassMat)
   root.add(glass)
 
-  // Ojos: el mismo juego de formas para todos (según la referencia visual); el color es el de cada agente.
+  // Ojos: el mismo juego de formas para todos, según la referencia visual; el color es el de cada agente.
   // La forma de `avatar.eyes` ya solo se usa en el avatar 2D de la interfaz.
   const makeEye = (side: 1 | -1): EyeRig => {
     const x = side * b.eyes.spacing
