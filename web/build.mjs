@@ -11,7 +11,7 @@ const AQUI = dirname(fileURLToPath(import.meta.url))
 const PREVIEW = process.argv.includes('--preview')
 const SALIDA = join(AQUI, PREVIEW ? 'preview' : 'dist')
 const SITIO = 'https://kywai.app/'
-const RELEASES = 'https://github.com/Yiku21/ai-cowork/releases/latest'
+const RELEASES = 'https://github.com/Yiku21/kywai/releases/latest'
 
 const plantilla = readFileSync(join(AQUI, 'plantilla.html'), 'utf8')
 // El logo (símbolo + «kywai») va dentro de la página una sola vez como <symbol>, para que el texto
