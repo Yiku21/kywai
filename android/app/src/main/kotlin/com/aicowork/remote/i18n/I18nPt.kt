@@ -763,4 +763,6 @@ private fun part5(m: HashMap<String, String>) {
     m["Sin conexión: {name} se enviará con tu mensaje al volver"] = "Sem conexão: {name} será enviado com sua mensagem quando a conexão voltar"
     m["En cola"] = "Na fila"
     m["Sin conexión: se subirá con tu próximo mensaje al volver"] = "Sem conexão: será enviado com sua próxima mensagem quando a conexão voltar"
+    m["Sin conexión · {n} en cola"] = "Sem conexão · {n} na fila"
+    m["Ya se está enviando"] = "Já está sendo enviada"
 }
