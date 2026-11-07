@@ -12,6 +12,8 @@ import com.aicowork.remote.data.model.CoworkJson
 import com.aicowork.remote.data.model.FilesResponse
 import com.aicowork.remote.data.model.HermesChoice
 import com.aicowork.remote.data.model.HermesModelsInfo
+import com.aicowork.remote.data.model.ModPanelInfo
+import com.aicowork.remote.data.model.ModPanelPage
 import com.aicowork.remote.data.model.InboxItem
 import com.aicowork.remote.data.model.ServerUpdate
 import com.aicowork.remote.data.model.MemoryUpdateRequest
@@ -185,6 +187,8 @@ interface CoworkController {
     /** Radios («radio») o canciones de Audius («audius») para el reproductor. */
     suspend fun music(kind: String, query: String): Result<List<MusicResult>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> = Result.failure(IllegalStateException(unsupported.message))
+    suspend fun modPanels(): Result<List<ModPanelInfo>> = Result.failure(IllegalStateException(unsupported.message))
+    suspend fun modPanel(mod: String, id: String): Result<ModPanelPage> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun addMemory(kind: String, text: String): ActionResult = unsupported
     suspend fun setMemoryStatus(id: String, status: String): ActionResult = unsupported
     suspend fun editMemory(id: String, text: String): ActionResult = unsupported
@@ -760,6 +764,10 @@ class CoworkRepository(
     }
 
     override suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> = fetch { it.trace(taskId) }
+
+    override suspend fun modPanels(): Result<List<ModPanelInfo>> = fetch { it.modPanels() }
+
+    override suspend fun modPanel(mod: String, id: String): Result<ModPanelPage> = fetch { it.modPanel(mod, id) }
 
     override suspend fun addMemory(kind: String, text: String): ActionResult = action(t("Recuerdo añadido")) { c ->
         c.addMemory(needConversation(), kind, text.trim())

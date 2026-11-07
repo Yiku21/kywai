@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Groups
@@ -57,6 +58,7 @@ enum class Section(val label: String, val icon: ImageVector) {
     Usage(t("Consumo"), Icons.Outlined.DataUsage),
     Settings(t("Ajustes"), Icons.Outlined.Settings),
     Team(t("Equipo"), Icons.Outlined.Groups),
+    Mods(t("Mods"), Icons.Outlined.Extension),
 }
 
 /** Pestañas de Ajustes, como en el escritorio. */

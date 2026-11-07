@@ -742,4 +742,10 @@ private fun part5(m: HashMap<String, String>) {
     m["Soltar de Fijados"] = "取消置顶"
     m["Todo lo suyo (chats, archivos y resultados) va a la Papelera del ordenador."] = "其中的所有内容（聊天、文件和结果）都会移到电脑的废纸篓。"
     m["¿Eliminar «{title}»?"] = "删除“{title}”？"
+    m["Mods"] = "模组"
+    m["Panel del mod «{mod}»"] = "模组“{mod}”的面板"
+    m["No se pudo abrir el panel"] = "无法打开面板"
+    m["Sin paneles"] = "没有面板"
+    m["Ningún mod encendido tiene paneles. Se instalan en kywai del ordenador: Ajustes → Extensiones → Mods."] = "没有已启用的模组带有面板。请在电脑上的 kywai 中安装：设置 → 扩展 → 模组。"
+    m["El panel «{panel}» quiere enviar al chat"] = "面板“{panel}”想发送到聊天"
 }

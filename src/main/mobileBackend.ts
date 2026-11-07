@@ -9,6 +9,8 @@ import { savePastedFile } from './local'
 import { listFolder, relPath, resolveInside } from './mobileFiles'
 import { copyAttachments } from './projects'
 import { getTaskTrace } from './taskTrace'
+import { withAndroidBridge } from './mods'
+import type { ModInfo } from '@shared/extensions'
 import type { WebMethod } from './webServer'
 
 type LoadedProject = ProjectState & { activeRunId?: string; activeRunIds?: string[] }
@@ -127,7 +129,8 @@ export class MobileBackend {
         search: this.methods.has('search'),
         serverName: this.methods.has('setServerName'),
         music: this.methods.has('searchMusic'),
-        agentThinking: this.methods.has('setAgentThinking')
+        agentThinking: this.methods.has('setAgentThinking'),
+        modPanels: this.methods.has('modPanel') && this.methods.has('listMods')
       }
     }
   }
@@ -401,6 +404,28 @@ export class MobileBackend {
   }
 
   // ---- Bandeja «Te necesita» (cada cambio emite inbox.updated) ----
+
+  // ---- Paneles de los mods (los mismos que la pestaña «Mods» del escritorio) ----
+
+  async modPanels(): Promise<{ panels: Array<{ mod: string; modTitle: string; id: string; title: string; chat: boolean }> }> {
+    const mods = await this.call<ModInfo[]>('listMods')
+    return {
+      panels: mods
+        .filter((m) => m.enabled)
+        .flatMap((m) => m.panels.map((p) => ({ mod: m.name, modTitle: m.title, id: p.id, title: p.title, chat: m.permissions.includes('chat') })))
+    }
+  }
+
+  /** La página de un panel, con el puente de Órbita (en el móvil no hay ventana madre a la que escribir). */
+  async modPanel(mod: string, id: string): Promise<{ html: string; title: string; chat: boolean }> {
+    try {
+      const p = await this.call<{ html: string; title: string; chat: boolean }>('modPanel', mod, id)
+      return { html: withAndroidBridge(p.html), title: p.title, chat: p.chat }
+    } catch (e) {
+      if (e instanceof MobileError) throw e
+      throw new MobileError(404, 'NOT_FOUND', (e as Error).message)
+    }
+  }
 
   async inbox(): Promise<{ items: InboxItem[] }> {
     return { items: await this.call<InboxItem[]>('listInbox') }

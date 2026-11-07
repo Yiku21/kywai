@@ -1185,6 +1185,9 @@ un manifiesto `kywai-mod.json` y puede traer tres cosas:
     al abrirse, cada vez que algo cambia y cuando lo piden con `parent.postMessage({kywai: 'context'}, '*')`;
   - con el permiso `chat`, `parent.postMessage({kywai: 'send', text: '…'}, '*')` propone un mensaje al chat, que
     tú confirmas antes de enviarlo.
+  - En **Órbita** salen en ☰ → Más → **Mods** (solo si el ordenador los admite). La página va en un WebView sin
+    archivos ni navegación a otras páginas, y el mismo código funciona sin cambios: un guion que pone kywai delante
+    lleva `parent.postMessage` al puente de la app (`KywaiBridge`), y lo que se propone al chat también se confirma.
 
 **El manifiesto** (`kywai-mod.json`):
 

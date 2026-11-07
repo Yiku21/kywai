@@ -53,6 +53,8 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/usage\/refresh$/, 'usageRefresh', ['POST']],
   [/^\/quality$/, 'quality', ['GET']],
   [/^\/inbox$/, 'inbox', ['GET']],
+  [/^\/mods\/panels$/, 'modPanels', ['GET']],
+  [/^\/mods\/panel$/, 'modPanel', ['GET']],
   [/^\/inbox\/([^/]+)\/([a-z][a-z0-9-]{0,39})$/, 'inboxAction', ['POST']],
   [/^\/tasks\/([^/]+)\/changes$/, 'taskChanges', ['GET']],
   [/^\/tasks\/([^/]+)\/undo$/, 'taskUndo', ['POST']],
@@ -340,6 +342,15 @@ export class MobileApi {
           fields(await body(req), [])
           mobileJson(res, 200, await this.backend.undoTask(id(param, 'taskId')))
           break
+        case 'modPanels':
+          query(url, [])
+          mobileJson(res, 200, await this.backend.modPanels())
+          break
+        case 'modPanel': {
+          const q = query(url, ['mod', 'id'], ['mod', 'id'])
+          mobileJson(res, 200, await this.backend.modPanel(string(q.mod, 'mod', 80), string(q.id, 'id', 80)))
+          break
+        }
         case 'inbox':
           query(url, [])
           mobileJson(res, 200, await this.backend.inbox())
