@@ -2276,4 +2276,11 @@ export const pt: Record<string, string> = {
   "…y {n} más dentro de la conversación": "…e mais {n} dentro da conversa",
   "Ver más ({n} de {total})": "Ver mais ({n} de {total})",
   "{n} resultados": "{n} resultados",
+
+  // Uso y coste
+  "Te has pasado del presupuesto de API de este mes": "Ultrapassou o orçamento de API deste mês",
+  "Llevas el 80 % del presupuesto de API de este mes": "Já usou 80 % do orçamento de API deste mês",
+  "Llevas {spent} de {limit} en agentes que pagas por uso. Lo ves por agente en ⚙ → «Uso y coste…».": "Já gastou {spent} de {limit} em agentes que paga por uso. Veja por agente em ⚙ → «Uso e custo…».",
+  "fuente no oficial": "fonte não oficial",
+  "promoción hasta el 30 nov": "promoção até 30 nov",
 }

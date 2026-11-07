@@ -66,6 +66,7 @@ const api: CoworkApi = {
   rateMessage: (projectId, messageId, rating) => ipcRenderer.invoke('cowork:rateMessage', projectId, messageId, rating),
   rejectPlan: (projectId, messageId) => ipcRenderer.invoke('cowork:rejectPlan', projectId, messageId),
   setPlanApproval: (on) => ipcRenderer.invoke('cowork:setPlanApproval', on),
+  setCostSettings: (costs) => ipcRenderer.invoke('cowork:setCostSettings', costs),
   listMcpServers: () => ipcRenderer.invoke('cowork:listMcpServers'),
   saveMcpServer: (input, replaces) => ipcRenderer.invoke('cowork:saveMcpServer', input, replaces),
   removeMcpServer: (id) => ipcRenderer.invoke('cowork:removeMcpServer', id),

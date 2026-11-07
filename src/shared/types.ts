@@ -355,6 +355,10 @@ export interface TokenUsage {
   input: number
   output: number
   cached?: number
+  /** Coste en dólares que informa el propio CLI (Claude Code lo da al terminar, a precios de API). */
+  costUsd?: number
+  /** Los tokens no los dio el CLI: se calcularon por la longitud del encargo y la respuesta (Hermes, catálogo). */
+  estimated?: boolean
 }
 
 // ---------- Registro de lo que hace un agente en una tarea ----------
@@ -827,6 +831,46 @@ export interface AppConfig {
   serverName?: string
   /** Acceso desde otros dispositivos de Tailscale (navegador del móvil o del portátil). */
   webAccess: WebAccessConfig
+  /** Cómo pagas cada agente, precios por modelo y presupuesto del mes (panel «Uso y coste»). */
+  costs?: CostSettings
+}
+
+// ---------- Uso y coste ----------
+
+/** subscription: cuota fija al mes · api: pagas lo que gastas · free: gratis · local: en tu equipo. */
+export type BillingMode = 'subscription' | 'api' | 'free' | 'local'
+
+export type CostCurrency = 'USD' | 'EUR'
+
+/** Cómo pagas una suscripción o un agente (la clave es su grupo de cuota o, si no tiene, el id del agente). */
+export interface BillingPlan {
+  mode: BillingMode
+  /** Solo suscripciones: lo que pagas al mes, en `currency`. */
+  monthly?: number
+  currency?: CostCurrency
+}
+
+/** Precio de un modelo en dólares por millón de tokens. */
+export interface ModelPrice {
+  input: number
+  output: number
+  /** Entrada leída de caché (sin indicar: la décima parte de la entrada). */
+  cached?: number
+}
+
+export interface CostSettings {
+  /** Moneda en la que se enseña todo (los precios de API van en dólares y se convierten). */
+  currency: CostCurrency
+  /** Euros por dólar, para convertir. */
+  usdToEur: number
+  plans: Record<string, BillingPlan>
+  /** Precios que cambiaste o añadiste (clave: el id de la tabla o el nombre de un modelo). */
+  prices?: Record<string, ModelPrice>
+  /** Presupuesto del mes para lo que pagas por uso (API), en `budgetCurrency`. */
+  monthlyBudget?: number
+  budgetCurrency?: CostCurrency
+  /** Último aviso de presupuesto dado («2026-11:80»), para no repetirlo. */
+  budgetAlerted?: string
 }
 
 export interface WebAccessConfig {
@@ -934,6 +978,14 @@ export interface UsageCall {
   ok: boolean
   /** El CLI no informa tokens (Hermes): la llamada cuenta, los tokens no. */
   noTokens?: boolean
+  /**
+   * Si no informa tokens: estimación por la longitud del encargo y de la respuesta (unos 4 caracteres por token). Es
+   * un mínimo: no cuenta lo que el agente leyó o pensó por dentro. Solo sirve para estimar el coste.
+   */
+  estInput?: number
+  estOutput?: number
+  /** Coste en dólares que dio el propio CLI (a precios de API, también si pagas suscripción). */
+  costUsd?: number
   /** Valoración del usuario del resultado de esta tarea (👍/👎 en el chat). */
   rating?: MessageRating
   /** Llamadas de tarea: dificultad que le puso el coordinador (para la calidad por agente; falta en registros antiguos). */
@@ -1126,9 +1178,9 @@ export type CoworkEventKind = CoworkEvent['kind']
  * plan: un plan espera tu visto bueno · stalled: un agente lleva rato callado (suele ser un aviso de permisos en la
  * pantalla del servidor) · mac-permission: macOS pide un permiso de Privacidad · question: el equipo te pregunta algo ·
  * verify-failed: el verificador sigue viendo fallos · conflict: choques al integrar · failed: una tarea no se pudo
- * hacer · done: terminó una petición.
+ * hacer · done: terminó una petición · budget: el gasto por API del mes llega al 80 % o pasa del presupuesto.
  */
-export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'done'
+export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'done' | 'budget'
 
 export interface InboxAction {
   /** approve, reject, undo, open, dismiss… */
@@ -1256,6 +1308,8 @@ export interface CoworkApi {
   rejectPlan(projectId: string, messageId: string): Promise<void>
   /** Pedir (o no) tu visto bueno antes de ejecutar cada plan. */
   setPlanApproval(on: boolean): Promise<void>
+  /** Cómo pagas cada agente, precios por modelo y presupuesto (panel «Uso y coste»). */
+  setCostSettings(costs: CostSettings): Promise<void>
   /** Extensiones (Ajustes › Extensiones): servidores MCP del usuario, sin sus claves. */
   listMcpServers(): Promise<McpServerInfo[]>
   /** Añade o cambia un servidor (`replaces`: su nombre anterior, si se renombra). Devuelve la lista nueva. */

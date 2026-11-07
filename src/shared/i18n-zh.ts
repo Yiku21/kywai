@@ -2276,4 +2276,11 @@ export const zh: Record<string, string> = {
   "…y {n} más dentro de la conversación": "…对话中还有 {n} 处",
   "Ver más ({n} de {total})": "查看更多（{n}/{total}）",
   "{n} resultados": "{n} 个结果",
+
+  // Uso y coste
+  "Te has pasado del presupuesto de API de este mes": "本月 API 预算已超支",
+  "Llevas el 80 % del presupuesto de API de este mes": "本月 API 预算已用掉 80%",
+  "Llevas {spent} de {limit} en agentes que pagas por uso. Lo ves por agente en ⚙ → «Uso y coste…».": "按量付费的智能体已花费 {spent}（预算 {limit}）。可在 ⚙ →「用量与费用…」中按智能体查看。",
+  "fuente no oficial": "非官方来源",
+  "promoción hasta el 30 nov": "促销价至 11 月 30 日",
 }
