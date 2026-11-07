@@ -153,7 +153,9 @@ Al abrir la app instalada por primera vez aparece el **asistente de configuraci�
    navegador) y comprueba que quedó hecho. kywai no ve ni guarda contraseñas; para Gemini también puedes
    pegar una clave de API de Google AI Studio (gratis y sin tarjeta). Desde el 18 de junio de 2026, Google ya no deja
    usar Gemini CLI con una cuenta personal de Google sin pagar (la pasó a Antigravity CLI): con cuenta personal, usa
-   la clave de AI Studio. Una sesión ya conectada lleva un lápiz para **cambiarla**
+   la clave de AI Studio. Valen las claves de antes («AIza…») y las nuevas que crea AI Studio desde junio de 2026
+   («AQ.…», con un punto). Si con la clave Gemini no responde, mira en AI Studio «Límite de frecuencia»: a algunas
+   cuentas les da cuota 0 en el nivel gratuito. Una sesión ya conectada lleva un lápiz para **cambiarla**
    (otra cuenta, otra clave o, en Hermes, otro proveedor): abre el mismo inicio de sesión y, al volver a la app,
    se comprueba y enseña la nueva. En Gemini, dentro se cambia de cuenta con `/auth`.
 4. **Listo**: resumen de lo que queda pendiente.

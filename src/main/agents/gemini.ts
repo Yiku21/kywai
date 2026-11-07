@@ -21,6 +21,16 @@ import { tr } from '@shared/i18n'
 export const GEMINI_AUTH_MESSAGE =
   'Gemini CLI no está autenticado: revisa tu API key (GEMINI_API_KEY) o ejecuta `gemini` para iniciar sesión'
 
+/**
+ * Clave de API de Google AI Studio. Las de antes empiezan por «AIza»; desde junio de 2026 AI Studio solo crea
+ * claves «AQ.…», que llevan un punto. Se admiten las dos (sin espacios ni nada que pueda romper el archivo .env).
+ */
+export const GEMINI_KEY_RE = /^[\w.-]{20,300}$/
+
+export function isGeminiKey(key: string): boolean {
+  return GEMINI_KEY_RE.test(key)
+}
+
 /** `-p` is appended to stdin; the real prompt goes through stdin. Fixed ASCII text only. */
 export const GEMINI_P_TEXT = 'Follow the instructions above.'
 
