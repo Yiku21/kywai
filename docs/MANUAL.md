@@ -179,6 +179,14 @@ Usa el acceso directo **AI Cowork** del Escritorio o del menú Inicio. Si el có
 
 Para volver a crear los accesos directos: `npm run accesos`. Para regenerar el icono: `npm run icono`.
 
+**Logo (kywai).** El logo son tres gotas (azul `#207EFE`, naranja `#FE7C13`, verde `#08BA7D`) que giran juntas.
+Los originales en vector están en `docs/img/logo/`: `kywai-simbolo.svg` (solo el símbolo, para tamaños pequeños),
+`kywai-logo.svg` (símbolo y texto blanco, para fondo oscuro) y `kywai-logo-oscuro.svg` (texto oscuro, para fondo
+claro). El icono de la app sale de `build/icono.svg`: tras cambiarlo, `npm run icono` rehace los PNG y el `.ico` en
+cualquier sistema. La cabecera (`LogoMark.tsx`), el favicon de la web (`src/renderer/index.html`) y Órbita
+(`res/drawable/logo_kywai.xml` y el icono adaptativo `ic_launcher_*`) llevan el mismo dibujo; si cambia el símbolo,
+hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a mano en los ajustes del repositorio.
+
 ### Actualizar y reiniciar
 
 - **⚙ → «Buscar actualizaciones…»** compara con GitHub y, si hay cambios, los descarga, instala lo que haga
