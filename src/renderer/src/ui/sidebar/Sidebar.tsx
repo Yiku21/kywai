@@ -3,8 +3,11 @@ import {
   CalendarClock,
   ChevronDown,
   ChevronRight,
+  Ellipsis,
   Folder,
+  FolderInput,
   FolderOpen,
+  GitBranch,
   ListChecks,
   MessageSquare,
   Package,
@@ -28,6 +31,7 @@ import { ROLE_TITLE, useWhere } from '../header/useWhere'
 import { useEscape, useMediaQuery } from '../common/hooks'
 import { cx, errorText } from '../common/util'
 import { TABS_QUERY } from '../left/chatWidth'
+import { ContextMenu, menuPoint, type MenuAt, type MenuEntry } from './ContextMenu'
 import { NEW_CHAT_KEYS, SEARCH_KEYS, isNewChatKey, isSearchKey, readCollapsed, saveCollapsed, shortDate } from './sidebarState'
 import s from './Sidebar.module.css'
 import { t } from '@/lib/i18n'
@@ -131,6 +135,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   })
   const [error, setError] = useState<string | null>(null)
   const [recent, setRecent] = useState<ConversationSummary[]>([])
+  const [pinnedConvs, setPinnedConvs] = useState<ConversationSummary[]>([])
   const [convs, setConvs] = useState<Record<string, ConversationSummary[]>>({})
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [sections, setSections] = useState({ pinned: true, projects: true, recent: true })
@@ -152,6 +157,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
     let alive = true
     void a.listProjects().then((list) => alive && useCowork.getState().setProjects(list), () => undefined)
     void a.recentConversations(RECENT_LIMIT).then((list) => alive && setRecent(list), () => undefined)
+    void a.pinnedConversations().then((list) => alive && setPinnedConvs(list), () => undefined)
     for (const id of openKey ? openKey.split(',') : []) {
       void a.listConversations(id).then(
         (list) => alive && setConvs((c) => ({ ...c, [id]: list })),
@@ -230,6 +236,16 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
       useCowork.getState().setProjects(await api.listProjects())
     })
 
+  /** Lo que se puede hacer con un proyecto o una conversación desde el clic derecho (o el botón ⋯). */
+  const actions: RowActions = {
+    projects,
+    projectOpen: project?.id,
+    run,
+    refresh: () => useCowork.setState((st) => ({ conversationsTick: st.conversationsTick + 1 })),
+    go,
+    togglePin: (p) => void togglePin(p)
+  }
+
   const pinned = projects.filter((p) => p.pinned)
   const canNew = live && !!project
 
@@ -268,10 +284,21 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
 
       {live && !rail && (
         <>
-          {pinned.length > 0 && (
+          {(pinned.length > 0 || pinnedConvs.length > 0) && (
             <Section title={t('Fijados')} open={sections.pinned} onToggle={() => setSections((x) => ({ ...x, pinned: !x.pinned }))}>
               {pinned.map((p) => (
-                <ProjectRow key={p.id} p={p} current={project?.id === p.id} icon={<Pin size={15} />} onOpen={() => void openProject(p)} onPin={() => void togglePin(p)} />
+                <ProjectRow key={p.id} p={p} current={project?.id === p.id} icon={<Pin size={15} />} onOpen={() => void openProject(p)} actions={actions} />
+              ))}
+              {pinnedConvs.map((c) => (
+                <ConversationRow
+                  key={`${c.projectId}:${c.id}`}
+                  c={c}
+                  flat
+                  meta={projects.find((p) => p.id === c.projectId)?.name ?? ''}
+                  active={project?.id === c.projectId && conversation?.id === c.id}
+                  onOpen={() => void openConversation(c)}
+                  actions={actions}
+                />
               ))}
             </Section>
           )}
@@ -311,7 +338,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
                     expanded={isOpen}
                     onExpand={() => setExpanded((e) => ({ ...e, [p.id]: !isOpen }))}
                     onOpen={() => void openProject(p)}
-                    onPin={() => void togglePin(p)}
+                    actions={actions}
                   />
                   {isOpen && (
                     <div className={s.sub}>
@@ -323,8 +350,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
                             c={c}
                             active={project?.id === p.id && conversation?.id === c.id}
                             onOpen={() => void openConversation(c)}
-                            onChanged={(list) => setConvs((x) => ({ ...x, [p.id]: list }))}
-                            onError={setError}
+                            actions={actions}
                           />
                         ))}
                     </div>
@@ -337,17 +363,15 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
           {recent.length > 0 && (
             <Section title={t('Recientes')} open={sections.recent} onToggle={() => setSections((x) => ({ ...x, recent: !x.recent }))}>
               {recent.map((c) => (
-                <button
+                <ConversationRow
                   key={`${c.projectId}:${c.id}`}
-                  type="button"
-                  className={cx(s.item, project?.id === c.projectId && conversation?.id === c.id && s.active)}
-                  onClick={() => void openConversation(c)}
-                  title={`${c.title} · ${projects.find((p) => p.id === c.projectId)?.name ?? ''}`}
-                >
-                  <MessageSquare size={15} aria-hidden="true" className={s.icon} />
-                  <span className={s.label}>{c.title}</span>
-                  <span className={s.meta}>{projects.find((p) => p.id === c.projectId)?.name ?? ''}</span>
-                </button>
+                  c={c}
+                  flat
+                  meta={projects.find((p) => p.id === c.projectId)?.name ?? ''}
+                  active={project?.id === c.projectId && conversation?.id === c.id}
+                  onOpen={() => void openConversation(c)}
+                  actions={actions}
+                />
               ))}
             </Section>
           )}
@@ -418,6 +442,56 @@ function Section({ title, open, onToggle, action, children }: { title: string; o
   )
 }
 
+interface RowActions {
+  projects: ProjectSummary[]
+  /** Proyecto abierto ahora. */
+  projectOpen?: string
+  run: (fn: () => Promise<void>) => Promise<void>
+  refresh: () => void
+  go: (tab: LeftTab) => void
+  togglePin: (p: ProjectSummary) => void
+}
+
+/** Punto donde abrir el menú desde el botón ⋯: bajo el botón, alineado a su izquierda. */
+function belowButton(e: React.MouseEvent<HTMLElement>): MenuAt {
+  const r = e.currentTarget.getBoundingClientRect()
+  return { x: r.left, y: r.bottom + 4 }
+}
+
+/** Campo para cambiar un nombre en la propia fila: Intro o salir del campo guarda, Escape lo deja como estaba. */
+function RenameField({ initial, label, onSave, onCancel }: { initial: string; label: string; onSave: (name: string) => void; onCancel: () => void }) {
+  const [draft, setDraft] = useState(initial)
+  const done = useRef(false)
+  const finish = (save: boolean): void => {
+    if (done.current) return
+    done.current = true
+    const name = draft.replace(/\s+/g, ' ').trim()
+    if (save && name && name !== initial) onSave(name)
+    else onCancel()
+  }
+  return (
+    <div className={s.row}>
+      <input
+        autoFocus
+        className={s.input}
+        value={draft}
+        maxLength={80}
+        aria-label={label}
+        onFocus={(e) => e.currentTarget.select()}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => finish(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') finish(true)
+          if (e.key === 'Escape') {
+            e.stopPropagation()
+            finish(false)
+          }
+        }}
+      />
+    </div>
+  )
+}
+
 function ProjectRow({
   p,
   current,
@@ -425,7 +499,7 @@ function ProjectRow({
   expanded,
   onExpand,
   onOpen,
-  onPin
+  actions
 }: {
   p: ProjectSummary
   current: boolean
@@ -433,10 +507,76 @@ function ProjectRow({
   expanded?: boolean
   onExpand?: () => void
   onOpen: () => void
-  onPin: () => void
+  actions: RowActions
 }) {
+  const [menu, setMenu] = useState<MenuAt | null>(null)
+  const [editing, setEditing] = useState(false)
+  const { run, go } = actions
+
+  if (editing) {
+    return (
+      <RenameField
+        initial={p.name}
+        label={t('Nombre del proyecto')}
+        onCancel={() => setEditing(false)}
+        onSave={(name) => {
+          setEditing(false)
+          void run(async () => {
+            if (!api) return
+            const updated = await api.renameProject(p.id, name)
+            useCowork.getState().setProjects(useCowork.getState().projects.map((x) => (x.id === updated.id ? updated : x)))
+            if (useCowork.getState().live.project?.id === updated.id) useCowork.setState((st) => ({ live: { ...st.live, project: updated } }))
+          })
+        }}
+      />
+    )
+  }
+
+  const items: MenuEntry[] = [
+    {
+      id: 'new',
+      label: t('Nuevo chat en este proyecto'),
+      icon: <SquarePen size={15} />,
+      shortcut: 'N',
+      disabled: p.busy && actions.projectOpen === p.id,
+      title: p.busy ? t('El equipo está trabajando aquí: espera a que termine o detenlo') : undefined,
+      onSelect: () =>
+        void run(async () => {
+          if (!api) return
+          useCowork.getState().loadProjectState(await api.newConversation(p.id))
+          go('chat')
+          window.dispatchEvent(new Event('cowork:focus-composer'))
+        })
+    },
+    { id: 'pin', label: p.pinned ? t('Soltar de Fijados') : t('Fijar'), icon: p.pinned ? <PinOff size={15} /> : <Pin size={15} />, shortcut: 'P', onSelect: () => actions.togglePin(p) },
+    { id: 'rename', label: t('Cambiar nombre'), icon: <Pencil size={15} />, shortcut: 'R', onSelect: () => setEditing(true) },
+    {
+      id: 'folder',
+      label: t('Abrir carpeta del proyecto'),
+      icon: <FolderOpen size={15} />,
+      shortcut: 'O',
+      onSelect: () => void api?.openPath(p.id).catch(() => undefined)
+    },
+    'sep',
+    {
+      id: 'delete',
+      label: t('Eliminar proyecto'),
+      icon: <Trash2 size={15} />,
+      shortcut: 'D',
+      danger: true,
+      disabled: p.busy,
+      title: p.busy ? t('El equipo está trabajando aquí: espera a que termine o detenlo') : t('Todo lo suyo va a la Papelera'),
+      confirm: t('Pulsa otra vez: va a la Papelera'),
+      onSelect: () =>
+        void run(async () => {
+          if (!api) return
+          useCowork.getState().setProjects(await api.deleteProject(p.id))
+        })
+    }
+  ]
+
   return (
-    <div className={cx(s.row, current && s.rowCurrent)}>
+    <div className={cx(s.row, current && s.rowCurrent, menu && s.rowMenu)} onContextMenu={(e) => (e.preventDefault(), setMenu(menuPoint(e)))}>
       <button type="button" className={s.item} onClick={onOpen} title={p.name}>
         <span className={s.icon} aria-hidden="true">
           {icon}
@@ -445,8 +585,16 @@ function ProjectRow({
         {p.busy && <span className={s.busy} title={t('El equipo está trabajando aquí')} />}
       </button>
       <span className={s.rowActions}>
-        <button type="button" className={s.mini} onClick={onPin} aria-label={p.pinned ? t('Soltar de Fijados') : t('Fijar arriba')} title={p.pinned ? t('Soltar de Fijados') : t('Fijar arriba')}>
-          {p.pinned ? <PinOff size={14} aria-hidden="true" /> : <Pin size={14} aria-hidden="true" />}
+        <button
+          type="button"
+          className={s.mini}
+          aria-haspopup="menu"
+          aria-expanded={!!menu}
+          aria-label={t('Más opciones')}
+          title={t('Más opciones')}
+          onClick={(e) => setMenu(belowButton(e))}
+        >
+          <Ellipsis size={14} aria-hidden="true" />
         </button>
         {onExpand && (
           <button type="button" className={s.mini} onClick={onExpand} aria-expanded={expanded} aria-label={expanded ? t('Ocultar sus conversaciones') : t('Ver sus conversaciones')}>
@@ -454,6 +602,7 @@ function ProjectRow({
           </button>
         )}
       </span>
+      {menu && <ContextMenu at={menu} items={items} label={p.name} onClose={() => setMenu(null)} />}
     </div>
   )
 }
@@ -461,109 +610,155 @@ function ProjectRow({
 function ConversationRow({
   c,
   active,
+  flat,
+  meta,
   onOpen,
-  onChanged,
-  onError
+  actions
 }: {
   c: ConversationSummary
   active: boolean
+  /** En Fijados y Recientes: fila normal con el nombre del proyecto a la derecha (no sangrada bajo su proyecto). */
+  flat?: boolean
+  meta?: string
   onOpen: () => void
-  onChanged: (list: ConversationSummary[]) => void
-  onError: (msg: string | null) => void
+  actions: RowActions
 }) {
+  const [menu, setMenu] = useState<MenuAt | null>(null)
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(c.title)
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const done = useRef(false)
-
-  useEffect(() => {
-    if (!confirmDelete) return
-    const id = window.setTimeout(() => setConfirmDelete(false), 4000)
-    return () => window.clearTimeout(id)
-  }, [confirmDelete])
-
-  async function rename(): Promise<void> {
-    if (done.current) return
-    done.current = true
-    setEditing(false)
-    const title = draft.replace(/\s+/g, ' ').trim()
-    if (!api || !title || title === c.title) return
-    try {
-      onChanged(await api.renameConversation(c.projectId, c.id, title))
-    } catch (e) {
-      onError(errorText(e))
-    }
-  }
-
-  async function remove(): Promise<void> {
-    if (!api) return
-    if (!confirmDelete) return setConfirmDelete(true)
-    try {
-      onChanged(await api.deleteConversation(c.projectId, c.id))
-    } catch (e) {
-      onError(errorText(e))
-    }
-  }
+  const { run, refresh, go } = actions
+  const project = actions.projects.find((p) => p.id === c.projectId)
+  const busyHere = !!project?.busy && c.current
 
   if (editing) {
     return (
-      <div className={s.row}>
-        <input
-          autoFocus
-          className={s.input}
-          value={draft}
-          maxLength={80}
-          aria-label={t('Nombre de la conversación')}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => void rename()}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void rename()
-            if (e.key === 'Escape') {
-              done.current = true
-              setEditing(false)
-            }
-          }}
-        />
-      </div>
+      <RenameField
+        initial={c.title}
+        label={t('Nombre de la conversación')}
+        onCancel={() => setEditing(false)}
+        onSave={(title) => {
+          setEditing(false)
+          void run(async () => {
+            if (!api) return
+            await api.renameConversation(c.projectId, c.id, title)
+            refresh()
+          })
+        }}
+      />
     )
   }
 
-  const title = c.messageCount === 0 ? t('Conversación nueva') : c.title
+  const empty = c.messageCount === 0
+  const title = empty ? t('Conversación nueva') : c.title
+  const busyTitle = t('El equipo está trabajando en esta conversación: espera a que termine o detenlo')
+  const items: MenuEntry[] = [
+    {
+      id: 'pin',
+      label: c.pinned ? t('Soltar de Fijados') : t('Fijar'),
+      icon: c.pinned ? <PinOff size={15} /> : <Pin size={15} />,
+      shortcut: 'P',
+      disabled: empty,
+      onSelect: () =>
+        void run(async () => {
+          if (!api) return
+          await api.setConversationPinned(c.projectId, c.id, !c.pinned)
+          refresh()
+        })
+    },
+    { id: 'rename', label: t('Cambiar nombre'), icon: <Pencil size={15} />, shortcut: 'R', disabled: empty, onSelect: () => setEditing(true) },
+    {
+      id: 'fork',
+      label: t('Bifurcar'),
+      icon: <GitBranch size={15} />,
+      shortcut: 'F',
+      disabled: empty,
+      title: t('Copia aparte para seguir por otro camino sin tocar esta'),
+      onSelect: () =>
+        void run(async () => {
+          if (!api) return
+          const id = await api.forkConversation(c.projectId, c.id)
+          refresh()
+          // Se abre la copia si se puede (no mientras el equipo trabaja en ese proyecto: queda en la lista).
+          if (!project?.busy) {
+            useCowork.getState().loadProjectState(await api.openConversation(c.projectId, id))
+            go('chat')
+          }
+        })
+    },
+    {
+      id: 'move',
+      label: t('Mover a otro proyecto'),
+      icon: <FolderInput size={15} />,
+      shortcut: 'M',
+      disabled: empty || busyHere,
+      title: busyHere ? busyTitle : undefined,
+      emptySubmenu: t('No hay otros proyectos'),
+      submenu: actions.projects
+        .filter((p) => p.id !== c.projectId)
+        .map((p) => ({
+          id: p.id,
+          label: p.name,
+          icon: <Folder size={15} />,
+          onSelect: () =>
+            void run(async () => {
+              if (!api) return
+              await api.moveConversation(c.projectId, c.id, p.id)
+              refresh()
+            })
+        }))
+    },
+    'sep',
+    {
+      id: 'delete',
+      label: t('Eliminar'),
+      icon: <Trash2 size={15} />,
+      shortcut: 'D',
+      danger: true,
+      disabled: empty || busyHere,
+      title: busyHere ? busyTitle : undefined,
+      confirm: t('Pulsa otra vez para eliminarla'),
+      onSelect: () =>
+        void run(async () => {
+          if (!api) return
+          // La abierta no se borra directamente: antes se empieza una nueva en su proyecto.
+          if (c.current) {
+            const st = await api.newConversation(c.projectId)
+            if (useCowork.getState().live.project?.id === c.projectId) useCowork.getState().loadProjectState(st)
+          }
+          await api.deleteConversation(c.projectId, c.id)
+          refresh()
+        })
+    }
+  ]
+
   return (
-    <div className={cx(s.row, active && s.rowCurrent)}>
-      <button type="button" className={cx(s.item, s.convItem, active && s.active)} onClick={onOpen} title={title} aria-current={active ? 'true' : undefined}>
-        <MessageSquare size={14} aria-hidden="true" className={s.icon} />
+    <div className={cx(s.row, active && s.rowCurrent, menu && s.rowMenu)} onContextMenu={(e) => (e.preventDefault(), !empty && setMenu(menuPoint(e)))}>
+      <button
+        type="button"
+        className={cx(s.item, !flat && s.convItem, active && s.active)}
+        onClick={onOpen}
+        title={meta ? `${title} · ${meta}` : title}
+        aria-current={active ? 'true' : undefined}
+      >
+        <MessageSquare size={flat ? 15 : 14} aria-hidden="true" className={s.icon} />
         <span className={s.label}>{title}</span>
-        <span className={s.meta}>{shortDate(c.updatedAt)}</span>
+        <span className={s.meta}>{meta ?? shortDate(c.updatedAt)}</span>
       </button>
-      {c.messageCount > 0 && (
+      {!empty && (
         <span className={s.rowActions}>
           <button
             type="button"
             className={s.mini}
-            aria-label={t('Cambiar el nombre')}
-            title={t('Cambiar el nombre')}
-            onClick={() => {
-              done.current = false
-              setDraft(c.title)
-              setEditing(true)
-            }}
+            aria-haspopup="menu"
+            aria-expanded={!!menu}
+            aria-label={t('Más opciones')}
+            title={t('Más opciones')}
+            onClick={(e) => setMenu(belowButton(e))}
           >
-            <Pencil size={13} aria-hidden="true" />
+            <Ellipsis size={14} aria-hidden="true" />
           </button>
-          {!c.current && (
-            <button
-              type="button"
-              className={cx(s.mini, confirmDelete && s.miniDanger)}
-              aria-label={confirmDelete ? t('Pulsa otra vez para borrarla') : t('Borrar la conversación')}
-              title={confirmDelete ? t('Pulsa otra vez para borrarla') : t('Borrar la conversación')}
-              onClick={() => void remove()}
-            >
-              <Trash2 size={13} aria-hidden="true" />
-            </button>
-          )}
         </span>
       )}
+      {menu && <ContextMenu at={menu} items={items} label={title} onClose={() => setMenu(null)} />}
     </div>
   )
 }

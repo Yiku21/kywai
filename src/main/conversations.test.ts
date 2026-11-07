@@ -8,12 +8,16 @@ import * as store from './projects'
 import { exportSessions, initAgentSessions, rememberSession } from './agentSessions'
 import {
   deleteConversation,
+  forkConversation,
   listConversations,
+  moveConversation,
   newConversation,
   openConversation,
+  pinnedConversations,
   recentConversations,
   renameConversation,
   search,
+  setConversationPinned,
   setPinned,
   snippetOf,
   titleFrom
@@ -121,6 +125,60 @@ describe('conversaciones de un proyecto', () => {
     deleteConversation(p.id, old.id)
     expect(listConversations(p.id)).toHaveLength(1)
     expect(existsSync(join(st.project.dir, 'conversaciones', 'borradas', `${old.id}.json`))).toBe(true)
+  })
+
+  it('fijar: la abierta y las guardadas; se conserva al cambiar de conversación', () => {
+    const p = store.createProject('Fijar')
+    const st = store.getProject(p.id)
+    st.messages.push(msg(p.id, 'Para fijar'))
+    const id = listConversations(p.id)[0].id
+    setConversationPinned(p.id, id, true)
+    expect(pinnedConversations().map((c) => c.id)).toEqual([id])
+    newConversation(p.id)
+    expect(listConversations(p.id).find((c) => c.id === id)?.pinned).toBe(true)
+    openConversation(p.id, id)
+    expect(st.conversation?.pinned).toBe(true)
+    newConversation(p.id)
+    setConversationPinned(p.id, id, false)
+    expect(pinnedConversations()).toEqual([])
+  })
+
+  it('bifurcar: copia aparte con mensajes y tareas, sin sesiones de los agentes; la original no cambia', () => {
+    const p = store.createProject('Bifurcar')
+    const st = store.getProject(p.id)
+    st.messages.push(msg(p.id, 'Camino A'))
+    st.tasks.push(task(p.id, 'Hecha'))
+    rememberSession(p.id, 'claude', { sessionId: 'sesion-a', provider: 'claude', cwd: '/x', taskTitle: 'Hecha', at: Date.now() })
+    const orig = st.conversation?.id ?? listConversations(p.id)[0].id
+    const copy = forkConversation(p.id, orig)
+    expect(copy).not.toBe(orig)
+    expect(st.conversation?.id).toBe(orig)
+    const listed = listConversations(p.id).find((c) => c.id === copy)!
+    expect(listed.title).toBe('Camino A (bifurcada)')
+    openConversation(p.id, copy)
+    expect(st.messages.map((m) => m.text)).toEqual(['Camino A'])
+    expect(st.tasks.map((t) => t.title)).toEqual(['Hecha'])
+    expect(exportSessions(p.id)).toEqual({})
+    expect(() => forkConversation(p.id, newConversation(p.id))).toThrow(/vacía/)
+  })
+
+  it('mover a otro proyecto: sale del origen (que queda con una nueva si era la abierta) y llega al destino sin sesiones', () => {
+    const a = store.createProject('Origen')
+    const b = store.createProject('Destino')
+    const st = store.getProject(a.id)
+    st.messages.push(msg(a.id, 'Me mudo'))
+    rememberSession(a.id, 'claude', { sessionId: 'sesion-a', provider: 'claude', cwd: '/x', taskTitle: 't', at: Date.now() })
+    const id = listConversations(a.id)[0].id
+    const moved = moveConversation(a.id, id, b.id)
+    expect(st.messages).toEqual([])
+    expect(st.conversation?.id).not.toBe(id)
+    expect(exportSessions(a.id)).toEqual({})
+    expect(listConversations(a.id).some((c) => c.id === id)).toBe(false)
+    expect(existsSync(join(st.project.dir, 'conversaciones', `${id}.json`))).toBe(false)
+    expect(listConversations(b.id).find((c) => c.id === moved)?.title).toBe('Me mudo')
+    openConversation(b.id, moved)
+    expect(store.getProject(b.id).messages.map((m) => m.text)).toEqual(['Me mudo'])
+    expect(exportSessions(b.id)).toEqual({})
   })
 
   it('las copias antiguas de «Limpiar el chat» (historial/) aparecen como conversaciones', () => {

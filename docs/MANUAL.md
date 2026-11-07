@@ -1022,7 +1022,7 @@ A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
 - **Buscar** (Ctrl+K): ver [Buscar](#buscar-ctrlk).
 - **Te necesita**: la bandeja de avisos (antes era la campana de arriba a la derecha).
 - **Tareas**, **Resultados** y **Rutinas** abren esa pestaña del panel del chat (con el número de tareas en curso).
-- **Fijados**: los proyectos que fijas con la chincheta (al pasar el ratón por un proyecto). Se guarda en el proyecto,
+- **Fijados**: los proyectos y las conversaciones que fijas (clic derecho → «Fijar»). Se guarda en el proyecto,
   así que se ve igual en el navegador y en los clientes.
 - **Proyectos**: todos, con **+** para crear uno. La flecha de cada proyecto despliega sus conversaciones (el abierto
   se despliega solo); un punto azul que late indica que el equipo está trabajando en él.
@@ -1033,10 +1033,23 @@ A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
 
 **Retomar una conversación**: pulsa cualquiera de la lista y vuelve con sus mensajes, sus tareas terminadas y la
 sesión de cada agente (Claude y Codex siguen donde lo dejaron, si no han pasado más de 14 días). La que estaba
-abierta se guarda antes. Al pasar el ratón por una conversación puedes **cambiarle el nombre** (lápiz; por defecto
-es el principio de tu primer mensaje) o **borrarla** (papelera, pulsa dos veces; va a `conversaciones/borradas/`
-dentro del proyecto, no se pierde del todo). La abierta no se puede borrar. **No se puede cambiar de conversación ni
+abierta se guarda antes. **No se puede cambiar de conversación ni
 empezar otra mientras el equipo trabaja en ese proyecto**: espera a que termine o detenlo. En otro proyecto sí.
+
+**Clic derecho** (o el botón **⋯** que sale al pasar el ratón) abre el menú de lo que tocas, como en Claude. Con el
+menú abierto, la letra de la derecha hace esa acción sin el ratón.
+
+- En una **conversación**: **Fijar** (P), **Cambiar nombre** (R; por defecto es el principio de tu primer mensaje),
+  **Bifurcar** (F: una copia aparte, con los mensajes y las tareas, para seguir por otro camino sin tocar la
+  original; se abre sola y los agentes empiezan sesión nueva en ella), **Mover a otro proyecto** (M; los agentes
+  empiezan sesión nueva allí; si era la abierta, su proyecto queda con una conversación nueva) y **Eliminar** (D,
+  pulsa dos veces; va a `conversaciones/borradas/` dentro del proyecto, no se pierde del todo; si es la abierta,
+  antes se empieza una nueva). Mover y eliminar la abierta no se puede mientras el equipo trabaja en ella.
+- En un **proyecto**: **Nuevo chat en este proyecto** (N), **Fijar** (P), **Cambiar nombre** (R), **Abrir carpeta
+  del proyecto** (O) y **Eliminar proyecto** (D, pulsa dos veces; ver [Eliminar un proyecto](#eliminar-un-proyecto)).
+
+No hay «Marcar como no leído» ni «Archivar» como en Claude: aquí todas las conversaciones se guardan solas y no hay
+estado de leído.
 
 El botón de arriba de la barra la **pliega** a una columna de iconos (con los números de los avisos); se recuerda en
 cada dispositivo. Si nunca la has tocado, en ventanas de menos de 1300 px empieza plegada. En ventanas estrechas
@@ -1047,7 +1060,8 @@ Dónde se guarda: la conversación abierta va en el `project.json` del proyecto,
 (`conversations`). Las copias que dejaba antes «Limpiar el chat» en `historial/chat-<fecha>.json` se importan solas
 la primera vez que se abre la lista, así que también se pueden retomar. Lo hace `src/main/conversations.ts`; en la
 API son `listConversations`, `recentConversations`, `newConversation`, `openConversation`, `renameConversation`,
-`deleteConversation`, `setProjectPinned` y `search`. Al cambiar de conversación se emite `chat.cleared` (con
+`deleteConversation`, `setConversationPinned`, `pinnedConversations`, `forkConversation`, `moveConversation`,
+`setProjectPinned` y `search`. Al cambiar de conversación se emite `chat.cleared` (con
 `conversationId`) y `conversations.updated`: los otros dispositivos y Órbita vuelven a cargar el chat solos.
 
 ### Buscar (Ctrl+K)

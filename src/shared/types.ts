@@ -715,6 +715,8 @@ export interface ConversationSummary {
   messageCount: number
   /** Es la abierta ahora en el proyecto. */
   current?: boolean
+  /** Fijada arriba en la barra lateral. */
+  pinned?: boolean
 }
 
 /** Un resultado del buscador (Ctrl+K): conversaciones, tareas, resultados y memoria de todos los proyectos. */
@@ -735,7 +737,7 @@ export interface SearchHit {
 export interface ProjectState {
   project: ProjectSummary
   /** Conversación abierta: su id, título y cuándo empezó (los proyectos antiguos no lo tienen hasta el primer cambio). */
-  conversation?: { id: string; title: string; createdAt: number }
+  conversation?: { id: string; title: string; createdAt: number; pinned?: boolean }
   /** Conversaciones guardadas (no la abierta), de la más reciente a la más antigua. */
   conversations?: ConversationSummary[]
   /** Ya se pasaron a conversaciones las copias antiguas de historial/ (las de «Limpiar el chat»). */
@@ -1147,6 +1149,14 @@ export interface CoworkApi {
   renameConversation(projectId: string, conversationId: string, title: string): Promise<ConversationSummary[]>
   /** Borra una conversación guardada (va a conversaciones/borradas/ dentro del proyecto). */
   deleteConversation(projectId: string, conversationId: string): Promise<ConversationSummary[]>
+  /** Fija o suelta una conversación en la barra lateral. */
+  setConversationPinned(projectId: string, conversationId: string, pinned: boolean): Promise<ConversationSummary[]>
+  /** Las conversaciones fijadas de todos los proyectos. */
+  pinnedConversations(): Promise<ConversationSummary[]>
+  /** Bifurca: copia aparte de la conversación (mensajes y tareas, sin las sesiones de los agentes). Devuelve el id de la copia. */
+  forkConversation(projectId: string, conversationId: string): Promise<string>
+  /** Pasa la conversación a otro proyecto (los agentes empiezan sesión nueva allí). Devuelve el id que tiene en el destino. */
+  moveConversation(projectId: string, conversationId: string, toProjectId: string): Promise<string>
   /** Fija o suelta un proyecto en la barra lateral. */
   setProjectPinned(projectId: string, pinned: boolean): Promise<ProjectSummary>
   /** Busca en conversaciones, tareas, resultados y memoria (de un proyecto o de todos). */

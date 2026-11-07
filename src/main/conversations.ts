@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { ChatMessage, ConversationSummary, ProjectState, SearchHit, Task } from '@shared/types'
 import { exportSessions, replaceSessions, type AgentSession } from './agentSessions'
@@ -25,6 +25,7 @@ interface StoredConversation {
   tasks: Task[]
   /** Sesiones de CLI de los agentes en esta conversación (agentId → sesión). */
   sessions?: Record<string, AgentSession>
+  pinned?: boolean
 }
 
 export function isValidConversationId(id: unknown): id is string {
@@ -76,7 +77,8 @@ function currentSummary(st: ProjectState): ConversationSummary {
     createdAt: c.createdAt,
     updatedAt: lastAt(st.messages, c.createdAt),
     messageCount: st.messages.length,
-    current: true
+    current: true,
+    pinned: c.pinned || undefined
   }
 }
 
@@ -121,7 +123,15 @@ function importHistory(st: ProjectState): void {
 }
 
 function summaryOf(st: ProjectState, c: StoredConversation): ConversationSummary {
-  return { id: c.id, projectId: st.project.id, title: c.title, createdAt: c.createdAt, updatedAt: c.updatedAt, messageCount: c.messages.length }
+  return {
+    id: c.id,
+    projectId: st.project.id,
+    title: c.title,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+    messageCount: c.messages.length,
+    pinned: c.pinned || undefined
+  }
 }
 
 function writeConversation(st: ProjectState, c: StoredConversation): void {
@@ -181,7 +191,8 @@ function stashCurrent(st: ProjectState): void {
       updatedAt: lastAt(st.messages, cur.createdAt),
       messages: st.messages,
       tasks: finished,
-      sessions: exportSessions(st.project.id)
+      sessions: exportSessions(st.project.id),
+      pinned: cur.pinned || undefined
     }
     writeConversation(st, conv)
     st.conversations = [summaryOf(st, conv), ...(st.conversations ?? []).filter((c) => c.id !== conv.id)]
@@ -212,7 +223,7 @@ export function openConversation(projectId: string, conversationId: string): voi
   stashCurrent(st)
   st.messages = conv.messages
   st.tasks = [...st.tasks, ...conv.tasks.filter((t) => !st.tasks.some((x) => x.id === t.id))]
-  st.conversation = { id: conv.id, title: conv.title, createdAt: conv.createdAt }
+  st.conversation = { id: conv.id, title: conv.title, createdAt: conv.createdAt, pinned: conv.pinned || undefined }
   st.conversations = (st.conversations ?? []).filter((c) => c.id !== conv.id)
   // Su archivo se queda tal cual (sirve de copia): el índice ya no la lista y se reescribe al volver a guardarla.
   replaceSessions(projectId, conv.sessions)
@@ -252,6 +263,104 @@ export function deleteConversation(projectId: string, conversationId: string): v
   }
   st.conversations = (st.conversations ?? []).filter((c) => c.id !== conversationId)
   scheduleSave(projectId)
+}
+
+/** Fija o suelta una conversación (la abierta o una guardada) en la barra lateral. */
+export function setConversationPinned(projectId: string, conversationId: string, pinned: boolean): void {
+  const st = load(projectId)
+  const value = pinned || undefined
+  if (st.conversation?.id === conversationId) {
+    st.conversation.pinned = value
+  } else {
+    const conv = readConversation(st, conversationId)
+    conv.pinned = value
+    writeConversation(st, conv)
+    st.conversations = (st.conversations ?? []).map((c) => (c.id === conversationId ? { ...c, pinned: value } : c))
+  }
+  scheduleSave(projectId)
+}
+
+/** Las conversaciones fijadas de todos los proyectos, de la más reciente a la más antigua. */
+export function pinnedConversations(): ConversationSummary[] {
+  const all: ConversationSummary[] = []
+  for (const p of listProjects()) {
+    try {
+      all.push(...listConversations(p.id).filter((c) => c.pinned && c.messageCount > 0))
+    } catch {
+      /* un proyecto que no carga no deja la lista vacía */
+    }
+  }
+  return all.sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
+/** Una conversación completa (la abierta o una guardada), para copiarla. */
+function fullConversation(st: ProjectState, conversationId: string): StoredConversation {
+  if (st.conversation?.id !== conversationId) return readConversation(st, conversationId)
+  const cur = st.conversation
+  return {
+    id: cur.id,
+    title: cur.title || titleFrom(st.messages, cur.createdAt),
+    createdAt: cur.createdAt,
+    updatedAt: lastAt(st.messages, cur.createdAt),
+    messages: st.messages,
+    tasks: st.tasks.filter((t) => FINISHED.has(t.status)),
+    pinned: cur.pinned
+  }
+}
+
+/**
+ * Bifurca una conversación: una copia aparte con sus mensajes y tareas terminadas, para seguir por otro camino
+ * sin tocar la original. Los agentes empiezan sesión nueva en la copia (compartir la de la original mezclaría las dos).
+ */
+export function forkConversation(projectId: string, conversationId: string): string {
+  const st = load(projectId)
+  const src = fullConversation(st, conversationId)
+  if (!src.messages.length) throw new Error('La conversación está vacía: no hay nada que bifurcar')
+  const now = Date.now()
+  const copy: StoredConversation = {
+    id: newId(now),
+    title: cleanTitle(`${src.title} (bifurcada)`),
+    createdAt: now,
+    updatedAt: now,
+    messages: src.messages.map((m) => ({ ...m })),
+    tasks: src.tasks.map((t) => ({ ...t }))
+  }
+  writeConversation(st, copy)
+  st.conversations = [summaryOf(st, copy), ...(st.conversations ?? [])]
+  scheduleSave(projectId)
+  return copy.id
+}
+
+/**
+ * Pasa una conversación a otro proyecto. Si era la abierta, el proyecto de origen queda con una conversación nueva.
+ * Las sesiones de los agentes no viajan (son de la carpeta del proyecto de origen): allí empiezan de cero.
+ * Devuelve el id que tiene en el destino.
+ */
+export function moveConversation(projectId: string, conversationId: string, toProjectId: string): string {
+  if (projectId === toProjectId) return conversationId
+  const st = load(projectId)
+  const dest = load(toProjectId)
+  if (st.conversation?.id === conversationId) {
+    if (!st.messages.length) throw new Error('La conversación está vacía: no hay nada que mover')
+    stashCurrent(st)
+    replaceSessions(projectId, {})
+    const now = Date.now()
+    st.conversation = { id: newId(now), title: '', createdAt: now }
+  }
+  const conv = readConversation(st, conversationId)
+  delete conv.sessions
+  if (existsSync(fileOf(dest, conv.id))) conv.id = newId()
+  writeConversation(dest, conv)
+  dest.conversations = [summaryOf(dest, conv), ...(dest.conversations ?? []).filter((c) => c.id !== conv.id)]
+  try {
+    unlinkSync(fileOf(st, conversationId))
+  } catch {
+    /* ya no estaba: basta con quitarla de la lista */
+  }
+  st.conversations = (st.conversations ?? []).filter((c) => c.id !== conversationId)
+  scheduleSave(projectId)
+  scheduleSave(toProjectId)
+  return conv.id
 }
 
 export function setPinned(projectId: string, pinned: boolean): void {
