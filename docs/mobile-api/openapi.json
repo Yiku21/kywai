@@ -2946,6 +2946,69 @@
         },
         "description": "Lo mismo que «Buscar» en la barra lateral: chats, tareas, resultados y memoria de todos los proyectos, o solo del indicado."
       }
+    },
+    "/api/mobile/v1/music/search": {
+      "get": {
+        "operationId": "musicSearch",
+        "summary": "Música sin anuncios",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "radio",
+                "audius"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Radios (sin q, todas, las más escuchadas primero) o canciones de Audius.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "502": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Las mismas fuentes que el reproductor del escritorio: radios de SomaFM y canciones de Audius. El móvil escucha stream directamente desde sus servidores públicos. 502 MUSIC_UNAVAILABLE si la fuente no responde."
+      }
     }
   },
   "components": {
@@ -4355,6 +4418,10 @@
           "search": {
             "type": "boolean",
             "description": "GET /search: buscador de chats, tareas, resultados y memoria."
+          },
+          "music": {
+            "type": "boolean",
+            "description": "GET /music/search: radios de SomaFM y canciones de Audius."
           }
         },
         "required": [
@@ -6600,6 +6667,62 @@
         },
         "required": [
           "hits"
+        ],
+        "additionalProperties": false
+      },
+      "MusicResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^(radio|audius):[A-Za-z0-9]{1,40}$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "artist": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "durationSec": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "thumbnail": {
+            "type": "string",
+            "pattern": "^https://"
+          },
+          "stream": {
+            "type": "string",
+            "pattern": "^https://"
+          },
+          "live": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "artist",
+          "stream",
+          "live"
+        ],
+        "additionalProperties": false
+      },
+      "MusicResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MusicResult"
+            }
+          }
+        },
+        "required": [
+          "results"
         ],
         "additionalProperties": false
       }

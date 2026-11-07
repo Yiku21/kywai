@@ -206,6 +206,15 @@ beforeAll(() => {
   webMethods.set('renameConversation', (id, cid, title) => { conversations.renameConversation(id as string, cid as string, title); return conversations.listConversations(id as string) })
   webMethods.set('deleteConversation', (id, cid) => { conversations.deleteConversation(id as string, cid as string); return conversations.listConversations(id as string) })
   webMethods.set('search', (q, id) => conversations.search(q, id))
+  // Música: como musicSearch.ts, sin salir a internet.
+  webMethods.set('searchMusic', (q, kind) => {
+    if (q === 'falla') throw new Error('Audius respondió 503')
+    if (kind === 'radio') return [{ videoId: 'radio:groovesalad', title: 'Groove Salad', artist: 'SomaFM', album: 'Ambient', thumbnail: 'https://somafm.com/img/gs.png' }]
+    return [
+      { videoId: 'audius:Ab12', title: 'Canción', artist: 'Artista', durationSec: 200 },
+      { videoId: 'dQw4w9WgXcQ', title: 'De YouTube', artist: 'Otro' }
+    ]
+  })
   webMethods.set('getUsageRuns', usageRuns)
   webMethods.set('sendMessage', (input) => sendMessage(input as Parameters<typeof sendMessage>[0]))
   webMethods.set('mobileStopRun', (id) => cancelRun(id as string, 'pause'))
@@ -1366,6 +1375,21 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       store.getProject(id).project.workDir = undefined
       rmSync(folder, { recursive: true, force: true, maxRetries: 3 })
     }
+  })
+
+  it('música sin anuncios para el móvil: radios de SomaFM y canciones de Audius con su stream', async () => {
+    expect((await api('/snapshot')).body.capabilities.music).toBe(true)
+    expect(await api('/music/search?kind=radio')).toEqual({
+      status: 200,
+      body: { results: [{ id: 'radio:groovesalad', title: 'Groove Salad', artist: 'SomaFM', detail: 'Ambient', thumbnail: 'https://somafm.com/img/gs.png', stream: 'https://ice2.somafm.com/groovesalad-128-mp3', live: true }] }
+    })
+    // Lo que no suena directo (YouTube) no se manda.
+    expect((await api('/music/search?kind=audius&q=lofi')).body).toEqual({
+      results: [{ id: 'audius:Ab12', title: 'Canción', artist: 'Artista', durationSec: 200, stream: 'https://api.audius.co/v1/tracks/Ab12/stream?app_name=AICowork', live: false }]
+    })
+    expect((await api('/music/search?kind=youtube')).status).toBe(400)
+    const down = await api('/music/search?kind=audius&q=falla')
+    expect([down.status, down.body.code]).toEqual([502, 'MUSIC_UNAVAILABLE'])
   })
 
   it('el tema elegido en el escritorio llega a Órbita en la instantánea', async () => {
