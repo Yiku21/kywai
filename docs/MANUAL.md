@@ -87,7 +87,7 @@ hay no pierdan nada: la carpeta de datos (`AI Cowork`), la app del Mac (`AI Cowo
 
 Con cada cambio en master del repositorio público, `.github/workflows/publicar-escritorio.yml` compila el instalador
 de Windows (`.exe`), el de macOS (`.dmg` y `.zip`, Apple silicon e Intel) y el AppImage de Linux (x64 y ARM) y los
-sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yiku21/Ai-cowork/releases/latest.
+sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yiku21/kywai/releases/latest.
 
 - **Se actualiza sola.** Esas versiones traen `app-update.yml` y, al abrirse (y cada 6 horas), buscan la última
   Release (`src/main/updater.ts`). En Windows y en el AppImage la descargan y, si llega en los primeros 5 minutos
@@ -99,7 +99,15 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   `xattr -cr "/Applications/AI Cowork.app"`.
 - Las compiladas en el propio equipo (`instalar-mac.sh`, `instalar-linux.sh`, `npm run dist:*`) no traen
   `app-update.yml` y siguen actualizándose desde su clon de git. Es lo que usa el servidor (Mac mini).
-- El workflow solo corre en el repositorio público; en ai-cowork-original no hace nada.
+- Las descargas de la Release se llaman `kywai-Setup-<versión>.exe`, `kywai-<versión>-<arch>.dmg/.zip` y
+  `kywai-<versión>-<arch>.AppImage` (el workflow cambia el nombre al compilar). La app instalada sigue siendo
+  «AI Cowork» por dentro, y lo compilado en el propio equipo (`npm run dist:*`) mantiene `AI-Cowork-*`, porque el
+  cliente de Windows que reparte el servidor (`clientRelease.ts`, `publicar-cliente.mjs`) depende de ese nombre.
+- El workflow solo corre en el repositorio público; en kywai-original no hace nada.
+- **Nombres de los repositorios (desde el 7 nov 2026):** el público es `Yiku21/kywai` (antes `ai-cowork`/`Ai-cowork`) y el
+  privado `Yiku21/kywai-original` (antes `ai-cowork-original`). GitHub redirige los nombres viejos, así que las apps ya
+  instaladas y los clones con el remote antiguo siguen funcionando; no hay que crear nunca un repo con un nombre viejo.
+  Para apuntar un clon al nombre nuevo: `git remote set-url origin https://github.com/Yiku21/kywai-original.git`.
 
 Al abrir la app instalada por primera vez aparece el **asistente de configuración** (también desde
 ⚙ → Ajustes → «Configurar agentes…»):
