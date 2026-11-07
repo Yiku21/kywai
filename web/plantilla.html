@@ -86,6 +86,13 @@ code, .mono { font-family: var(--mono); font-size: .88em; }
 .btn-ghost:hover { border-color: var(--muted); }
 .btn svg { width: 18px; height: 18px; flex: none; }
 
+section[id] { scroll-margin-top: 84px; }
+.capabilities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 40px; }
+.capabilities article { border-top: 1px solid var(--line); padding-top: 20px; min-width: 0; }
+.capabilities h3 { font: 600 22px/1.25 var(--display); margin-bottom: 10px; }
+.capabilities p, .compatibility { color: var(--muted); }
+.compatibility { margin-top: 32px; max-width: 90ch; font-size: 15px; }
+
 /* Cabecera */
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
 .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
@@ -233,7 +240,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   body { font-size: 16px; }
   .top .btn { display: none; }
   .mark { max-width: 140px; }
-  .steps, .why-grid, .give { grid-template-columns: minmax(0, 1fr); }
+  .steps, .why-grid, .give, .capabilities { grid-template-columns: minmax(0, 1fr); }
   .themes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .team ul { gap: 4px; }
   .team li img { width: 44px; height: 44px; }
@@ -256,6 +263,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     <nav class="nav" aria-label="Kywai">
       <a href="#how">{{nav.how}}</a>
       <a href="#features">{{nav.features}}</a>
+      <a href="#extensions">{{nav.extensions}}</a>
       <a href="#anywhere">{{nav.anywhere}}</a>
       <a href="#download">{{nav.download}}</a>
     </nav>
@@ -333,7 +341,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
   <section class="section why" id="features">
     <div class="wrap">
-      <div class="section-head"><h2>{{why.title}}</h2></div>
+      <div class="section-head"><h2>{{why.title}}</h2><p><a href="#extensions">{{nav.extensions}}</a> · <a href="#capabilities">{{features.title}}</a></p></div>
       <div class="why-grid">
         <article><h3>{{why.1t}}</h3><p>{{why.1b}}</p></article>
         <article><h3>{{why.2t}}</h3><p>{{why.2b}}</p></article>
@@ -345,6 +353,36 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </section>
 
+  <section class="section" id="extensions">
+    <div class="wrap">
+      <div class="section-head"><h2>{{extensions.title}}</h2><p class="lede">{{extensions.lede}}</p></div>
+      <div class="capabilities">
+        <article><h3>{{extensions.1t}}</h3><p>{{extensions.1b}}</p></article>
+        <article><h3>{{extensions.2t}}</h3><p>{{extensions.2b}}</p></article>
+        <article><h3>{{extensions.3t}}</h3><p>{{extensions.3b}}</p></article>
+        <article><h3>{{extensions.4t}}</h3><p>{{extensions.4b}}</p></article>
+      </div>
+      <p class="compatibility">{{extensions.limits}}</p>
+    </div>
+  </section>
+
+  <section class="section" id="capabilities">
+    <div class="wrap">
+      <div class="section-head"><h2>{{features.title}}</h2><p class="lede">{{features.lede}}</p></div>
+      <div class="capabilities">
+        <article><h3>{{features.1t}}</h3><p>{{features.1b}}</p></article>
+        <article><h3>{{features.2t}}</h3><p>{{features.2b}}</p></article>
+        <article><h3>{{features.3t}}</h3><p>{{features.3b}}</p></article>
+        <article><h3>{{features.4t}}</h3><p>{{features.4b}}</p></article>
+        <article><h3>{{features.5t}}</h3><p>{{features.5b}}</p></article>
+        <article><h3>{{features.6t}}</h3><p>{{features.6b}}</p></article>
+        <article><h3>{{features.7t}}</h3><p>{{features.7b}}</p></article>
+        <article><h3>{{features.8t}}</h3><p>{{features.8b}}</p></article>
+      </div>
+      <p class="compatibility"><a href="https://github.com/Yiku21/kywai/blob/master/docs/MANUAL.md">{{features.manual}}</a></p>
+    </div>
+  </section>
+
   <section class="section">
     <div class="wrap agents">
       <div class="section-head" style="margin-bottom:0">
@@ -353,7 +391,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         <p class="direct">{{agents.direct}} <code>@Claude …</code> {{agents.directTail}}</p>
       </div>
       <ul class="chips">
-        <li>Claude Code</li><li>Codex CLI</li><li>Gemini CLI</li><li>Antigravity CLI</li><li>Muse Code</li><li>Aider</li><li>DeepSeek</li><li>Qwen Code</li><li>Kimi Code</li><li>MiniMax Code</li><li>Mistral Vibe</li><li>Grok Build</li><li>GitHub Copilot CLI</li><li>Cursor</li><li>Amp</li><li>Goose</li><li>OpenCode</li><li>Cline</li><li>Continue</li><li>OpenHands</li><li>Factory Droid</li><li>Auggie</li><li>Junie</li><li>Kiro</li><li>Rovo Dev</li><li>Qoder CLI</li><li>Crush</li><li>Open Interpreter</li><li>gptme</li><li>Letta Code</li><li>LM Studio</li><li>Ollama</li><li class="more">+ …</li>
+        <li>Claude Code</li><li>Codex CLI</li><li>Gemini CLI</li><li>Antigravity CLI</li><li>Muse Code</li><li>Aider</li><li>DeepSeek</li><li>Qwen Code</li><li>Kimi Code</li><li>MiniMax Code</li><li>Mistral Vibe</li><li>Grok Build</li><li>GitHub Copilot CLI</li><li>Cursor</li><li>Amp</li><li>Goose</li><li>OpenCode</li><li>Cline</li><li>Continue</li><li>OpenHands</li><li>Factory Droid</li><li>Auggie</li><li>Junie</li><li>Kiro</li><li>Rovo Dev</li><li>Qoder CLI</li><li>Crush</li><li>Open Interpreter</li><li>gptme</li><li>Letta Code</li><li>ForgeCode</li><li>OpenClaw</li><li>Kilo CLI</li><li>LM Studio</li><li>Ollama</li><li class="more">+ …</li>
       </ul>
     </div>
   </section>
@@ -386,12 +424,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         <p class="lede">{{themes.lede}}</p>
       </div>
       <ul class="themes">
-        <li><figure><img src="{{base}}assets/img/{{img}}/tema-orbita.jpg" alt="Órbita" width="800" height="450" loading="lazy"><figcaption>Órbita</figcaption></figure></li>
-        <li><figure><img src="{{base}}assets/img/{{img}}/tema-marfil.jpg" alt="Marfil" width="800" height="450" loading="lazy"><figcaption>Marfil</figcaption></figure></li>
-        <li><figure><img src="{{base}}assets/img/{{img}}/tema-matrix.jpg" alt="Matrix" width="800" height="450" loading="lazy"><figcaption>Matrix</figcaption></figure></li>
-        <li><figure><img src="{{base}}assets/img/{{img}}/tema-relicario.jpg" alt="Relicario" width="800" height="450" loading="lazy"><figcaption>Relicario</figcaption></figure></li>
-        <li><figure><img src="{{base}}assets/img/{{img}}/tema-halloween.jpg" alt="Halloween" width="800" height="450" loading="lazy"><figcaption>Halloween</figcaption></figure></li>
-        <li><figure><img src="{{base}}assets/img/{{img}}/tema-navidad.jpg" alt="Navidad" width="800" height="450" loading="lazy"><figcaption>Navidad</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-orbita.jpg" alt="{{themes.gallery1}}" width="800" height="450" loading="lazy"><figcaption>{{themes.gallery1}}</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-marfil.jpg" alt="{{themes.gallery2}}" width="800" height="450" loading="lazy"><figcaption>{{themes.gallery2}}</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-matrix.jpg" alt="{{themes.gallery3}}" width="800" height="450" loading="lazy"><figcaption>{{themes.gallery3}}</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-relicario.jpg" alt="{{themes.gallery4}}" width="800" height="450" loading="lazy"><figcaption>{{themes.gallery4}}</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-halloween.jpg" alt="{{themes.gallery5}}" width="800" height="450" loading="lazy"><figcaption>{{themes.gallery5}}</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-navidad.jpg" alt="{{themes.gallery6}}" width="800" height="450" loading="lazy"><figcaption>{{themes.gallery6}}</figcaption></figure></li>
       </ul>
     </div>
   </section>

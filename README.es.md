@@ -35,7 +35,7 @@ https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
 <img src="src/renderer/src/assets/robots/qwen.png" alt="Modelo local" width="72" title="Modelo local">
 <img src="src/renderer/src/assets/robots/becario.png" alt="Becario" width="72" title="El becario: el mismo agente con menos esfuerzo">
 
-[Qué es](#-qué-es) · [Cualquier agente](#-cualquier-agente-de-cualquier-proveedor) · [Por qué](#-por-qué-kywai) · [Cómo funciona](#-cómo-funciona) · [Funciones](#-funciones) · [Desde donde estés](#-úsalo-desde-donde-estés) · [Temas](#-temas) · [Instalar](#-instalar) · [Privacidad](#-privacidad-y-seguridad) · [Apoyar](#-apoya-el-proyecto)
+[Qué es](#-qué-es) · [Cualquier agente](#-cualquier-agente-de-cualquier-proveedor) · [Por qué](#-por-qué-kywai) · [Cómo funciona](#-cómo-funciona) · [Funciones](#-funciones) · [Extensiones](#-extensiones-mcp-skills-plugins-y-mods) · [Desde donde estés](#-úsalo-desde-donde-estés) · [Temas](#-temas) · [Instalar](#-instalar) · [Privacidad](#-privacidad-y-seguridad) · [Apoyar](#-apoya-el-proyecto)
 
 </div>
 
@@ -59,7 +59,8 @@ La idea es sencilla: **deja una tarea y vuelve a encontrarte un resultado, nunca
 
 kywai no está atado a un conjunto fijo de modelos. Es una plataforma en la que **tú montas tu propio equipo**:
 
-- **Añade todos los agentes que quieras** desde ⚙ → «Configurar agentes…» → «Añadir un agente». El catálogo ya sabe lanzar más de 30, cada uno con la cuenta o suscripción que usa: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw y más.
+- **Añade todos los agentes que quieras** desde ⚙ → «Configurar agentes…» → «Añadir un agente». El catálogo ya sabe lanzar más de 30, cada uno con la cuenta o suscripción que usa: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw, Kilo CLI y más.
+- **Encuentra opciones gratuitas.** El filtro «Solo gratis» del catálogo destaca los agentes con opciones gratuitas, incluido Kilo CLI con Kilo Auto Free. Cada ficha explica los requisitos y los límites del proveedor.
 - **O conecta cualquier otro programa** con «Otro programa…»: indica su comando, cómo recibe la tarea (por stdin, en un archivo o como argumento) y sus argumentos, y pasa a formar parte del equipo.
 - **Suscripciones o claves de API.** Los agentes funcionan con la sesión que ya tienes iniciada en su propio programa. Los que usan una clave de API (DeepSeek, Kiro, Junie, Factory Droid, Amp…) te la piden una sola vez; se cifra con el llavero del sistema y solo se le pasa a ese agente.
 - **También modelos locales.** Cualquier modelo que ejecutes en LM Studio u Ollama, gratis y sin salir de tu ordenador.
@@ -185,21 +186,34 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 - **Conversaciones como en Claude.** Una barra lateral con tus proyectos, los fijados y los chats recientes. «Nuevo chat» empieza una conversación nueva sin perder la anterior, y cualquiera se retoma después con sus tareas y la sesión de cada agente. Ctrl+K busca en conversaciones, tareas, resultados y memoria de todos los proyectos.
 - **Memoria del proyecto** con instrucciones, decisiones, preferencias y pendientes, cada una con su autor y su estado. Todos los agentes la leen en cada tarea, aunque limpies el chat.
 - **Un solo AGENTS.md para todo el equipo.** Cada CLI lee solo su propio archivo; kywai les pasa los demás, así que con un único `AGENTS.md` todos los agentes siguen las mismas reglas.
-- **Habilidades compartidas.** Procedimientos reutilizables en la carpeta `habilidades`, con el mismo formato `SKILL.md` que las skills de Claude.
-- **Servidor MCP de kywai.** Los agentes tienen herramientas para leer la memoria del proyecto y añadirle cosas, ver el estado del equipo, cargar una habilidad y hacerte una pregunta, con un token por tarea.
-- **Rutinas.** Peticiones que se lanzan solas: a una hora fija, los días de la semana que elijas, cada N horas, desde un webhook (con firmas de GitHub) o cuando cambian archivos en una carpeta. Pasan por el mismo plan, los mismos agentes y la misma revisión que cualquier cosa que escribas.
+- **Rutinas.** Programa una petición para una sola vez, a una hora fija, ciertos días, cada N horas, por webhook firmado de GitHub o cuando cambien archivos de una carpeta. Puedes crearlas con /rutina, revisar su historial y decidir si requieren visto bueno. Las propuestas del coordinador solo se guardan cuando las confirmas.
+- **Plantillas de tareas.** Tarjetas encima del cuadro de chat para revisar PR, resumir carpetas, buscar fallos o crear tus propias peticiones. Rellena campos, usa su orden /…, envíalas al equipo o directamente a un agente y convierte las compatibles en rutinas.
+- **Entregables descargables.** Abre o descarga cada archivo desde el chat y Resultados, o guarda un conjunto en ZIP. Disponible en escritorio, cliente, navegador y Órbita: también puedes llevarte el resultado desde el móvil.
+
+### 🧰 Extensiones: MCP, skills, plugins y mods
+
+En **⚙ → Ajustes → Extensiones** puedes ampliar las herramientas de los agentes y personalizar kywai:
+
+- **Servidores MCP.** Busca en el catálogo o añade una orden, un JSON o una dirección. Elige qué agentes pueden usar cada servidor: kywai comprueba que responde y muestra sus herramientas antes de activarlo. Si falta uv o Node.js, puedes instalarlo desde su tarjeta.
+- **Skills compartidas.** Busca habilidades en skills.sh o instálalas desde un repositorio o una carpeta de GitHub. Se conserva el `SKILL.md` con sus scripts y referencias, y todo el equipo puede consultar esas habilidades cuando las necesita.
+- **Plugins.** Explora los catálogos de plugins de Anthropic o añade otro catálogo o plugin de GitHub. kywai convierte sus skills, órdenes y perfiles de subagentes en habilidades compartidas, e importa sus MCP apagados para que tú elijas a quién activárselos.
+- **Mods.** Instala desde GitHub o una carpeta local extensiones de kywai con órdenes /… del chat, hooks al empezar o terminar trabajos y paneles propios. Los hooks requieren tu permiso; los paneles se abren aislados en escritorio, web y Órbita.
+
+**Compatibilidad:** los MCP del usuario se conectan a Claude, Codex, Gemini y Hermes; los agentes no compatibles aparecen desactivados. Los remotos requieren un token si piden autorización: OAuth y SSE todavía no están admitidos. Los plugins importan los componentes compatibles; sus hooks y LSP no se ejecutan como en Claude Code. El MCP interno de kywai se ofrece actualmente a Claude en tareas coordinadas.
+
+Detalles y ejemplo de mod en el [manual](docs/MANUAL.md#extensiones-tus-servidores-mcp-para-los-agentes) y en [Notas rápidas](docs/mods/notas-rapidas).
 
 ### 📊 Cuota y coste
 
-- **Cuota real** de Claude y GPT en la cabecera, además de grupos de cuota con presupuestos.
-- **Consumo por petición:** tiempo, tokens y cuánta cuota gastó, para ver si un equipo compensa frente a un solo agente. Exportable a CSV.
+- **Cuotas que siguen a tu equipo.** La cabecera se actualiza al añadir, quitar, activar o desactivar agentes. Muestra datos reales de Claude y GPT y distingue los presupuestos o estimaciones de otros proveedores y los modelos locales.
+- **Uso y coste.** Consulta tiempo y tokens por petición, coste por agente, planes de suscripción, API, gratuitos o locales, y compara el uso con lo que pagas. Configura precios y un presupuesto mensual con aviso; exporta el consumo a CSV. Las estimaciones se indican como tales.
 - **Modelo y esfuerzo según la dificultad,** modelos que puedes cambiar desde el panel de cada robot y `/model` para cambiar el modelo de Hermes.
 
 ### 🎨 Comodidades
 
 - **El chat, lo primero.** En ventanas pequeñas ocupa más sitio, puedes arrastrar su borde al ancho que quieras (doble clic para volver al automático) y en ventanas estrechas el chat y el mundo 3D pasan a ser dos pestañas.
 - **Dictado por voz en local** con Whisper en tu propio ordenador. Sin servicios externos, y el audio se borra después.
-- **Once temas** que también cambian el estilo del mundo 3D. Algunos lo decoran y disfrazan a los robots.
+- **Mapas, colores y decorados.** Siete mapas 3D, la Ciudad digital en siete colores y cuatro decorados. El tema puede seguir al servidor o ser propio de cada dispositivo; Órbita adapta su paleta, sin reproducir los mapas del escritorio.
 - **Voces de los agentes,** cada una con su timbre, y texto que se escribe al ritmo de la voz, como en Animal Crossing.
 - **Reproductor de música** con búsqueda en YouTube Music, Audius y radios de SomaFM sin anuncios, y cola de reproducción, y luces que siguen el BPM de la canción sin micrófono.
 - **Asistente de configuración** que instala los programas que falten con sus instaladores oficiales y abre el inicio de sesión oficial de cada uno.
@@ -237,18 +251,18 @@ El ordenador donde está instalado kywai (por ejemplo, un Mac mini siempre encen
 
 ## 🎨 Temas
 
-⚙ → «Temas…» cambia al momento el aspecto de la app y de su mundo 3D.
+La galería de **Ajustes → Temas** reúne siete mapas (Clásico, Órbita, Marfil, Grafito, Bosque, Matrix y EVA-01), la Ciudad digital con siete colores y cuatro decorados. Puedes compartir el tema del servidor o elegir uno propio en cada dispositivo. En Órbita se adapta la paleta, no los escenarios del escritorio. Estas imágenes muestran algunos colores y decorados:
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/es/tema-orbita.jpg" alt="Tema Órbita" width="260"><br><b>Órbita</b>: cristal esmerilado</td>
-    <td align="center"><img src="docs/img/es/tema-marfil.jpg" alt="Tema Marfil" width="260"><br><b>Marfil</b>: claro y cálido</td>
-    <td align="center"><img src="docs/img/es/tema-grafito.jpg" alt="Tema Grafito" width="260"><br><b>Grafito</b>: negro y oro</td>
+    <td align="center"><img src="docs/img/es/tema-orbita.jpg" alt="Tema Frost Glass" width="260"><br><b>Frost Glass</b>: cristal esmerilado</td>
+    <td align="center"><img src="docs/img/es/tema-marfil.jpg" alt="Tema Perla" width="260"><br><b>Perla</b>: claro y cálido</td>
+    <td align="center"><img src="docs/img/es/tema-grafito.jpg" alt="Tema Ónix" width="260"><br><b>Ónix</b>: negro y oro</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/es/tema-bosque.jpg" alt="Tema Bosque" width="260"><br><b>Bosque</b>: verde profundo y oro</td>
-    <td align="center"><img src="docs/img/es/tema-matrix.jpg" alt="Tema Matrix" width="260"><br><b>Matrix</b>: negro y verde neón</td>
-    <td align="center"><img src="docs/img/es/tema-eva.jpg" alt="Tema EVA-01" width="260"><br><b>EVA-01</b>: morado y verde lima</td>
+    <td align="center"><img src="docs/img/es/tema-bosque.jpg" alt="Tema Esmeralda" width="260"><br><b>Esmeralda</b>: verde profundo y oro</td>
+    <td align="center"><img src="docs/img/es/tema-matrix.jpg" alt="Tema Neón" width="260"><br><b>Neón</b>: negro y verde neón</td>
+    <td align="center"><img src="docs/img/es/tema-eva.jpg" alt="Tema Ultravioleta" width="260"><br><b>Ultravioleta</b>: morado y verde lima</td>
   </tr>
 </table>
 
