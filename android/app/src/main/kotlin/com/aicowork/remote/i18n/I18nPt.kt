@@ -758,4 +758,9 @@ private fun part5(m: HashMap<String, String>) {
     m["Se envió tu mensaje"] = "Sua mensagem foi enviada"
     m["Se enviaron tus {n} mensajes"] = "Suas {n} mensagens foram enviadas"
     m["Lo que escribiste sin conexión ya está en el ordenador"] = "O que você escreveu sem conexão já está no computador"
+    m["Ya no está la copia de {name} en el móvil"] = "A cópia de {name} já não está no celular"
+    m["No se pudo guardar {name} para enviarlo luego"] = "Não foi possível guardar {name} para enviar depois"
+    m["Sin conexión: {name} se enviará con tu mensaje al volver"] = "Sem conexão: {name} será enviado com sua mensagem quando a conexão voltar"
+    m["En cola"] = "Na fila"
+    m["Sin conexión: se subirá con tu próximo mensaje al volver"] = "Sem conexão: será enviado com sua próxima mensagem quando a conexão voltar"
 }

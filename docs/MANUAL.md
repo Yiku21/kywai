@@ -365,6 +365,11 @@ reiniciándose). Enseña lo último que recibió y lo que escribas se queda **en
   volver estés mirando otro. Nunca llegan dos veces: cada mensaje lleva su `clientMessageId` y el servidor ignora el
   repetido. Si el servidor rechaza uno (por ejemplo, su proyecto ya no existe) queda como «No se envió» con
   Reintentar y Descartar, y los siguientes salen igual.
+- **Fotos y archivos también.** Si haces una foto, eliges una de la galería o adjuntas un archivo sin conexión, Órbita
+  guarda una copia en el móvil (carpeta privada `cola-archivos`), avisa «Sin conexión: foto.jpg se enviará con tu
+  mensaje al volver» y la deja adjunta al mensaje que escribes (con un reloj en vez del clip). Al volver la conexión
+  la sube al proyecto del mensaje y después envía el mensaje con ella; si se corta a medias no la sube dos veces. La
+  copia se borra en cuanto el ordenador tiene el mensaje (o al descartarlo).
 - **Se envían aunque Órbita esté cerrada.** Si dejas mensajes en cola y sales de la app, Android los manda en cuanto
   vuelve la red (WorkManager, `OutboxWorker`), y avisa con la notificación «Se enviaron tus 3 mensajes» (canal
   «Mensajes enviados», se puede apagar en los ajustes de Android). Si la red vuelve pero el ordenador aún no responde,

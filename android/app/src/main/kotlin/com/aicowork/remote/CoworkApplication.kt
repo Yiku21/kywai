@@ -39,6 +39,7 @@ class AppContainer(context: Context) {
         cache = FileSnapshotCache(File(context.noBackupFilesDir, "snapshot.json")),
         scope = scope,
         outbox = FileOutboxStore(File(context.noBackupFilesDir, "outbox.json")),
+        spoolDir = File(context.noBackupFilesDir, "cola-archivos"),
     )
     /** Notificaciones de «Te necesita» (solo mientras la app sigue conectada). */
     val inboxNotifier = InboxNotifier(context, repository, scope)
