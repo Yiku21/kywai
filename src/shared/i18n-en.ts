@@ -1992,5 +1992,17 @@ export const en: Record<string, string> = {
   ' tras una corrección': ' after a fix',
   '⚠ {byName} comprobó el resultado tras la corrección y sigue viendo fallos: {clip}': '⚠ {byName} checked the result after the fix and still sees failures: {clip}',
   '{byName} sigue viendo fallos en «{title}» tras la corrección': '{byName} still sees failures in «{title}» after the fix',
-  '«{title}»: {byName} aún veía fallos tras la corrección: {oneLine}': '«{title}»: {byName} still saw failures after the fix: {oneLine}'
+  '«{title}»: {byName} aún veía fallos tras la corrección: {oneLine}': '«{title}»: {byName} still saw failures after the fix: {oneLine}',
+
+  // Mensaje directo a un agente (directMessage.ts, sendDirect, Composer)
+  'No hay ningún agente «{name}». Escribe @ y elige uno de la lista, o usa el nombre que sale en su ficha.': 'There is no agent «{name}». Type @ and pick one from the list, or use the name shown on its card.',
+  'Escribe el mensaje para {name} después de su nombre.': 'Write the message for {name} after its name.',
+  '(Solo archivos adjuntos)': '(Attachments only)',
+  'Mensaje directo: {text}': 'Direct message: {text}',
+  'archivos adjuntos': 'attachments',
+  '{name} no está disponible{why}. El mensaje no se ha pasado a ningún otro agente.': '{name} is not available{why}. The message was not passed to any other agent.',
+  'Ese agente ya no existe': 'That agent no longer exists',
+  'Hablar directamente con un agente': 'Talk directly to an agent',
+  'Directo, sin pasar por Hermes: recibe tu texto tal cual': 'Direct, without going through Hermes: it gets your text as is',
+  'Tú → {name} (directo, sin Hermes)': 'You → {name} (direct, without Hermes)'
 }

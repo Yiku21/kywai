@@ -12,6 +12,7 @@ import { FileTypeIcon } from '../common/icons'
 import { basename, cx, errorText } from '../common/util'
 import { useComposer } from './composerStore'
 import { describeTrigger, describeWhen, parseRoutineCommand } from '@shared/routines'
+import { mentionMatches, mentionQuery, mentionText } from '@shared/directMessage'
 import u from '../common/ui.module.css'
 import s from './Composer.module.css'
 import { lang, t } from '@/lib/i18n'
@@ -82,7 +83,23 @@ export function Composer() {
   const activeRunIds = useCowork((st) => st.live.activeRunIds)
   // Con un plan esperando tu visto bueno, lo que escribas son cambios a ese plan (o «sí» para aprobarlo).
   const planPending = useCowork((st) => st.mode === 'live' && st.live.messages.some((m) => m.proposal?.status === 'pending'))
+  // «@» al principio: lista de agentes para hablar con uno directamente, sin pasar por Hermes.
+  const liveAgents = useCowork((st) => st.live.agents)
+  const agentOrder = useCowork((st) => st.live.agentOrder)
+  const [mentionIdx, setMentionIdx] = useState(0)
+  const [mentionClosed, setMentionClosed] = useState<string | null>(null)
+  const mention = mentionQuery(text)
+  const mentionList =
+    mention && mentionClosed !== text && !!api
+      ? mentionMatches(
+          mention.query,
+          agentOrder.map((id) => liveAgents[id]).filter((a) => !!a && !a.isSubagent)
+        )
+      : []
+  const mentionOpen = mentionList.length > 0
+  const mentionSel = Math.min(mentionIdx, Math.max(0, mentionList.length - 1))
   const [sending, setSending] = useState(false)
+  useEffect(() => setMentionIdx(0), [mention?.query])
   const [stopping, setStopping] = useState(false)
   // Varias peticiones en marcha: menú para elegir cuál detener.
   const [stopOpen, setStopOpen] = useState(false)
@@ -213,6 +230,14 @@ export function Composer() {
     } finally {
       setSending(false)
     }
+  }
+
+  /** Elige un agente de la lista del «@»: el cuadro queda con «@Nombre » para escribir el mensaje. */
+  function chooseMention(i: number): void {
+    const a = mentionList[i]
+    if (!a || !mention) return
+    setText(mentionText(mention.prefix, a))
+    taRef.current?.focus()
   }
 
   /** Ctrl+V con imágenes o archivos: se guardan y se adjuntan. El texto se pega como siempre. */
@@ -433,13 +458,60 @@ export function Composer() {
             title={blockedReason ?? t('Intro para enviar · Mayús+Intro para nueva línea')}
             onChange={(e) => setText(e.target.value)}
             onPaste={(e) => void onPaste(e)}
+            role={mentionOpen ? 'combobox' : undefined}
+            aria-expanded={mentionOpen ? true : undefined}
+            aria-controls={mentionOpen ? 'composer-mentions' : undefined}
+            aria-activedescendant={mentionOpen ? `composer-mention-${mentionSel}` : undefined}
             onKeyDown={(e) => {
+              if (mentionOpen && !e.nativeEvent.isComposing) {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                  e.preventDefault()
+                  const n = mentionList.length
+                  setMentionIdx((mentionSel + (e.key === 'ArrowDown' ? 1 : n - 1)) % n)
+                  return
+                }
+                if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
+                  e.preventDefault()
+                  chooseMention(mentionSel)
+                  return
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setMentionClosed(text)
+                  return
+                }
+              }
               if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 void send()
               }
             }}
           />
+          {mentionOpen && (
+            <ul id="composer-mentions" className={s.mentions} role="listbox" aria-label={t('Hablar directamente con un agente')}>
+              <li className={s.mentionHead} aria-hidden="true">
+                {t('Directo, sin pasar por Hermes: recibe tu texto tal cual')}
+              </li>
+              {mentionList.map((a, i) => (
+                <li
+                  key={a.id}
+                  id={`composer-mention-${i}`}
+                  role="option"
+                  aria-selected={i === mentionSel}
+                  className={cx(s.mention, i === mentionSel && s.mentionOn)}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    chooseMention(i)
+                  }}
+                  onMouseEnter={() => setMentionIdx(i)}
+                >
+                  <span className={s.mentionDot} style={{ background: a.color }} aria-hidden="true" />
+                  <span className={s.mentionName}>{a.name}</span>
+                  <span className={s.mentionModel}>{a.modelLabel}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           {showStop && (
             <button
               ref={stopRef}

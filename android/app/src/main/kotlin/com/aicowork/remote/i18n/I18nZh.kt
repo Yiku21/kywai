@@ -655,4 +655,6 @@ private fun part5(m: HashMap<String, String>) {
     m["Hechos · {n}"] = "事实 · {n}"
     m["Pendientes · {n}"] = "待办 · {n}"
     m["Nuevas"] = "新"
+    m["Directo, sin pasar por Hermes: recibe tu texto tal cual"] = "直接发送，不经过 Hermes：对方原样收到你的文字"
+    m["Tú → {name} (directo, sin Hermes)"] = "你 → {name}（直接，不经过 Hermes）"
 }

@@ -117,7 +117,8 @@ export class MobileBackend {
         agentAccess: true, usageRefresh: true, voice: this.methods.has('transcribeAudio'),
         planApproval: this.methods.has('approvePlan'), appUpdate: true, hermesModel: this.methods.has('getHermesModels'),
         agentReset: this.methods.has('resetAgent'), serverUpdate: this.methods.has('applyUpdate'), agentQuality: true, inbox: this.methods.has('listInbox'), taskChanges: this.methods.has('undoTask'),
-        routines: this.methods.has('runRoutineNow')
+        routines: this.methods.has('runRoutineNow'),
+        directMessages: true
       }
     }
   }

@@ -655,4 +655,6 @@ private fun part5(m: HashMap<String, String>) {
     m["Hechos · {n}"] = "Fatos · {n}"
     m["Pendientes · {n}"] = "Pendentes · {n}"
     m["Nuevas"] = "Nova"
+    m["Directo, sin pasar por Hermes: recibe tu texto tal cual"] = "Direto, sem passar pelo Hermes: recebe o seu texto tal como está"
+    m["Tú → {name} (directo, sin Hermes)"] = "Você → {name} (direto, sem Hermes)"
 }

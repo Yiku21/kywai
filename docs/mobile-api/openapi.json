@@ -2742,6 +2742,23 @@
               "name"
             ],
             "additionalProperties": false
+          },
+          "direct": {
+            "type": "object",
+            "description": "Mensaje del usuario enviado directo a un agente («@Qwen …»): no pasó por Hermes. La interfaz enseña «Tú → <name>».",
+            "properties": {
+              "agentId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "agentId",
+              "name"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -3323,6 +3340,10 @@
               "del"
             ],
             "additionalProperties": false
+          },
+          "direct": {
+            "type": "boolean",
+            "description": "Mensaje directo del usuario a este agente: sin plan de Hermes, sin verificador y sin relevo."
           }
         },
         "required": [
@@ -3787,6 +3808,10 @@
           "routines": {
             "type": "boolean",
             "description": "Rutinas: GET /routines y POST /routines/{routineId}/run."
+          },
+          "directMessages": {
+            "type": "boolean",
+            "description": "«@Agente …» o «/directo Agente …» en el chat: el texto va tal cual a ese agente, sin pasar por Hermes."
           }
         },
         "required": [
@@ -3822,7 +3847,8 @@
           "agentQuality",
           "inbox",
           "taskChanges",
-          "routines"
+          "routines",
+          "directMessages"
         ],
         "additionalProperties": false
       },

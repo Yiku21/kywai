@@ -188,6 +188,11 @@ export interface Task {
   continues?: boolean
   /** Lo que cambió en la carpeta del proyecto (instantáneas de antes y después): se puede ver y deshacer. */
   changes?: TaskChanges
+  /**
+   * Mensaje directo del usuario a este agente («@Qwen …»): recibe el texto tal cual, sin plan de Hermes, sin
+   * verificador y sin relevo a otro agente si falla. Su respuesta sale en el chat sin retocar.
+   */
+  direct?: boolean
 }
 
 /** Cambios de una tarea en la carpeta del proyecto, guardados como dos instantáneas (ver checkpoints.ts). */
@@ -419,6 +424,8 @@ export interface ChatMessage {
   rating?: MessageRating
   /** Mensaje que lanzó una rutina (no lo escribiste tú en ese momento): el chat enseña «Rutina: <nombre>». */
   routine?: { id: string; name: string }
+  /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
+  direct?: { agentId: AgentId; name: string }
 }
 
 /** Te sirvió (up) o no (down). */

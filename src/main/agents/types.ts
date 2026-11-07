@@ -70,6 +70,11 @@ export interface RunAgentOptions {
    * hizo y decidió entonces en su memoria de trabajo. Solo tiene sentido en la misma carpeta y la misma familia.
    */
   resume?: string
+  /**
+   * Mensaje directo del usuario («@Agente …»): el prompt es su texto tal cual y no se le añaden instrucciones de
+   * equipo (LM Studio lo manda sin su mensaje de sistema).
+   */
+  direct?: boolean
   /** Servidor MCP de AI Cowork para esta tarea (solo los CLI que lo admiten por la línea de comandos). */
   mcp?: McpServerLaunch
   signal: AbortSignal

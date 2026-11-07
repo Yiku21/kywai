@@ -250,10 +250,15 @@ data class ChatMessage(
     val proposal: PlanProposal? = null,
     /** Mensaje de una tarea: lo que el agente va contando mientras la hace; al acabar, text es su resultado. */
     val work: TaskWork? = null,
+    /** Mensaje tuyo enviado directo a un agente («@Qwen …»): no pasó por Hermes. */
+    val direct: DirectTarget? = null,
 ) {
     /** Conversación (proyecto) a la que pertenece, si el servidor lo indica. */
     val ownerId: String? get() = conversationId ?: projectId
 }
+
+@Serializable
+data class DirectTarget(val agentId: String, val name: String = agentId)
 
 @Serializable
 data class ContextUsage(val used: Long = 0, val capacity: Long? = null)
@@ -436,6 +441,8 @@ data class Capabilities(
     val inbox: Boolean = false,
     /** Cambios de una tarea y deshacerlos (GET /tasks/{id}/changes, POST /tasks/{id}/undo). */
     val taskChanges: Boolean = false,
+    /** «@Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes. */
+    val directMessages: Boolean = false,
 )
 
 /** Botón de un aviso de la bandeja. Con [url] (p. ej. vnc://… para Compartir pantalla) se abre en el móvil y no va al servidor. */
