@@ -193,6 +193,8 @@ interface CoworkController {
     fun sendMessage(text: String, attachmentIds: List<String>) = sendMessage(text)
     fun retryMessage(clientMessageId: String)
     fun discardMessage(clientMessageId: String)
+    /** Saca de la cola un mensaje aún sin enviar para editarlo (null si ya se está enviando o no está). */
+    fun takeBackMessage(clientMessageId: String): OutgoingMessage? = null
     suspend fun newConversation(): ActionResult
     suspend fun stopRequest(requestId: String): ActionResult
     suspend fun resumeRequest(requestId: String): ActionResult
@@ -620,6 +622,22 @@ class CoworkRepository(
     override fun retryMessage(clientMessageId: String) {
         setOutgoing(clientMessageId) { it.copy(status = OutgoingStatus.Queued, error = null) }
         if (_state.value.connection == Connection.Online) pump() else retryNow()
+    }
+
+    override fun takeBackMessage(clientMessageId: String): OutgoingMessage? {
+        var taken: OutgoingMessage? = null
+        _state.update { s ->
+            taken = null
+            val message = s.outgoing.firstOrNull { it.clientMessageId == clientMessageId }
+            if (message == null || message.status == OutgoingStatus.Sending) return@update s
+            taken = message
+            // Sus fotos y archivos guardados vuelven al borrador (las ya subidas siguen siendo adjuntos del proyecto).
+            s.copy(
+                outgoing = s.outgoing - message,
+                queuedFiles = s.queuedFiles + message.files.filter { it.attachmentId == null },
+            )
+        }
+        return taken
     }
 
     override fun discardMessage(clientMessageId: String) {
