@@ -40,6 +40,7 @@ hay no pierdan nada: la carpeta de datos (`AI Cowork`), la app del Mac (`AI Cowo
 - **[Proyectos, memoria y consumo](#proyectos-memoria-y-consumo)**
   - [Memoria e instrucciones del proyecto](#memoria-e-instrucciones-del-proyecto)
   - [AGENTS.md, habilidades y herramientas de kywai](#agentsmd-habilidades-y-herramientas-de-kywai)
+  - [Extensiones: tus servidores MCP para los agentes](#extensiones-tus-servidores-mcp-para-los-agentes)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
@@ -991,6 +992,48 @@ token, que se anula al terminar. El script lo escribe la app en `mcp/ai-cowork-m
 y lo ejecuta el propio kywai como Node; la configuración de cada tarea va en un archivo `mcp/tarea-….json`
 que se borra al terminar. Codex, Gemini y los agentes de catálogo no lo reciben (no se les puede pasar esa
 configuración por la línea de comandos) y siguen con lo que trae el encargo.
+
+### Extensiones: tus servidores MCP para los agentes
+
+En **⚙ → Ajustes → Extensiones** añades servidores MCP (herramientas como Playwright, GitHub, Notion, buscar en la
+web…) y eliges con un clic a qué agentes llegan. Cada tarea recibe solo los que su agente tiene encendidos, además
+de las herramientas propias de kywai. Los servidores que tengas configurados en tu Claude, Codex o Gemini no
+cuentan: solo los de esta pestaña.
+
+**Añadir uno.** «Añadir servidor» y pega lo que trae su README: la línea de instalación
+(`npx -y @playwright/mcp@latest`), su JSON (`{"mcpServers": {…}}` o una sola entrada), la orden `claude mcp add …`
+o su dirección (`https://…/mcp`). kywai lo entiende y te enseña el nombre, la orden o la dirección y sus claves
+(variables como `GITHUB_PERSONAL_ACCESS_TOKEN`, o la cabecera `Authorization: Bearer …` de los remotos) para que
+lo revises. Al guardarlo se prueba.
+
+**Probarlo.** kywai lo arranca (o se conecta), le saluda y le pide sus herramientas, como hará el agente en una
+tarea. Debajo de cada servidor se ve el resultado: «Responde: 25 herramientas» o por qué falla («No se encontró
+"uvx" en este equipo», «Pide autorización…»). La primera vez puede tardar: npx y uvx descargan el servidor.
+
+**Dárselo a un agente.** Un chip por agente: Claude, Codex y Gemini se pueden encender; Hermes y los demás salen
+en gris (aún no pueden recibirlos). Al encender un chip se vuelve a probar: si falla, se queda apagado y dice por
+qué, así que ninguna tarea se rompe por una extensión. Si al probarlo más tarde falla, se apaga para todos. Cambiar
+cómo se arranca (orden, dirección o claves) también lo apaga: se vuelve a encender tras probarlo.
+
+**Cómo le llega a cada CLI** (en la traza de la tarea sale «Herramientas de Extensiones: …»):
+
+| Agente | Cómo |
+|---|---|
+| Claude | En el mismo archivo `--mcp-config` de la tarea que el servidor de kywai, con sus herramientas permitidas sin preguntar. Se borra al terminar. |
+| Codex | Con `-c mcp_servers.<nombre>.…`. Los locales se arrancan con un lanzador pequeño (`mcp/ext-….sh` o `.cmd` en la carpeta de trabajo, con sus variables) que se borra al terminar; los remotos llevan sus cabeceras en variables del propio Codex. Si una dirección lleva caracteres que la consola no admite (`?`, `&`), ese servidor no se le pasa y la traza lo dice. |
+| Gemini | Con una extensión **kywai** en `~/.gemini/extensions/kywai` que lista los servidores encendidos para Gemini (sin sus claves: van como `${KYWAI_MCP_…}` y kywai se las pasa al lanzar la tarea) y `--allowed-mcp-server-names` con los de la tarea. Esa extensión también la verá tu Gemini cuando lo uses a mano (sin las claves). Los archivos de sistema de Gemini no sirven: solo los lee si son de root. |
+
+**Las claves** se guardan en `mcp-servers.json` de la carpeta de datos de este equipo, cifradas con el llavero del
+sistema si se puede, y nunca vuelven a la interfaz: al cambiar un servidor salen como «Guardada»; déjala vacía para
+no cambiarla.
+
+**Hermes lo sabe.** La guía del coordinador lleva qué herramientas tiene cada agente («Claude: playwright (…)»):
+si una tarea las necesita, se la da a uno que las tenga, y si ninguno las tiene lo dice en vez de mandarla a quien
+no puede usarlas.
+
+**Límites de ahora.** Los servidores remotos que solo admiten iniciar sesión en el navegador (OAuth) aún no se
+pueden usar en las tareas: hace falta un token. Hermes y los agentes de catálogo todavía no reciben estos servidores.
+Las direcciones `http://` solo se admiten si son de este equipo (`localhost`).
 
 ### Rutinas: peticiones que se lanzan solas
 
