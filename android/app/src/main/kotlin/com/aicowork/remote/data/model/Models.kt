@@ -345,6 +345,66 @@ data class ProposedTask(
     val acceptance: String? = null,
 )
 
+/**
+ * Cuándo se lanza una rutina: daily (cada día a [time]), weekly ([days], 0 = domingo, a [time]), interval (cada
+ * [hours] horas), once (una sola vez el día [date] a [time]), webhook o folder (al cambiar archivos de [path]).
+ * Las horas son las del reloj del ordenador.
+ */
+@Serializable
+data class RoutineTrigger(
+    val type: String = "daily",
+    val time: String? = null,
+    val days: List<Int>? = null,
+    val hours: Int? = null,
+    val date: String? = null,
+    val path: String? = null,
+)
+
+/** Una ejecución de la rutina: running, waiting (plan por aprobar), ok, failed, skipped o interrupted. */
+@Serializable
+data class RoutineRun(
+    val at: Long = 0,
+    val status: String = "ok",
+    val reason: String = "schedule",
+    val note: String? = null,
+)
+
+/** Una rutina del proyecto: una petición que se envía sola al chat. Nunca trae el secreto de su webhook. */
+@Serializable
+data class Routine(
+    val id: String,
+    val name: String = "",
+    val request: String = "",
+    val enabled: Boolean = true,
+    val trigger: RoutineTrigger = RoutineTrigger(),
+    val nextAt: Long? = null,
+    val askApproval: Boolean = false,
+    val runs: List<RoutineRun> = emptyList(),
+)
+
+@Serializable
+data class RoutinesResponse(val routines: List<Routine> = emptyList())
+
+@Serializable
+data class RoutineResponse(val routine: Routine? = null)
+
+/** Lo que se envía al crear o cambiar una rutina (el ordenador la valida igual que en el escritorio). */
+data class RoutineInput(val name: String, val request: String, val trigger: RoutineTrigger, val askApproval: Boolean)
+
+/** Rutina que propone Hermes: pending (por decidir), created (creada, [routineId]) o dismissed (descartada). */
+@Serializable
+data class RoutineProposal(
+    val status: String = "pending",
+    val name: String = "",
+    val request: String = "",
+    val trigger: RoutineTrigger = RoutineTrigger(),
+    /** La orden «/rutina …» equivalente: «Cambiar» la pone en el cuadro de texto. */
+    val command: String = "",
+    val routineId: String? = null,
+) {
+    val isPending: Boolean get() = status == "pending"
+}
+
 /** Plan que espera tu visto bueno: pending, approved (ya en marcha), revised (le pediste cambios) o rejected. */
 @Serializable
 data class PlanProposal(
@@ -404,6 +464,8 @@ data class ChatMessage(
     val direct: DirectTarget? = null,
     /** Lanzado con una plantilla de tareas (su nombre sale en el chat). */
     val template: TemplateRef? = null,
+    /** Rutina que propone Hermes (tarjeta «Crear rutina»). */
+    val routineProposal: RoutineProposal? = null,
 ) {
     /** Conversación (proyecto) a la que pertenece, si el servidor lo indica. */
     val ownerId: String? get() = conversationId ?: projectId
@@ -662,6 +724,12 @@ data class Capabilities(
     val chatActions: Boolean = false,
     /** Menú de un proyecto al mantenerlo pulsado: renombrar, fijar y eliminar (POST /projects/{id}/rename|pin|delete). */
     val projectActions: Boolean = false,
+    /** Rutinas: verlas y «Ejecutar ahora» (GET /routines, POST /routines/{id}/run). */
+    val routines: Boolean = false,
+    /** Crear, cambiar, activar y borrar rutinas desde aquí. */
+    val routinesEdit: Boolean = false,
+    /** Tarjeta «Crear rutina» que propone Hermes en el chat. */
+    val routineProposals: Boolean = false,
 )
 
 /** Botón de un aviso de la bandeja. Con [url] (p. ej. vnc://… para Compartir pantalla) se abre en el móvil y no va al servidor. */

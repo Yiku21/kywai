@@ -30,7 +30,7 @@ import type { AccessEntry } from './serverFiles'
 import { localIO, syncOnce } from './syncEngine'
 import { connectRemote } from './syncRemote'
 import { DEVICE_INACTIVE_MS, DeviceRegistry } from './devices'
-import { createRoutine, initRoutines, runRoutineNow, stopRoutines } from './routines'
+import { createRoutine, deleteRoutine, initRoutines, runRoutineNow, stopRoutines, updateRoutine } from './routines'
 import { createTemplate, deleteTemplate, initTemplates, listTemplates, restoreBuiltinTemplates, updateTemplate } from './templates'
 
 const env = vi.hoisted(() => ({ root: '' }))
@@ -77,7 +77,7 @@ async function api(path: string, data?: unknown, access = token): Promise<{ stat
   const response = { status: res.status, body: await res.json() }
   if (res.status >= 400) schemaFormat('Error', response.body)
   else {
-    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/templates\/(?!restore$)[^/]+/, '/templates/{templateId}').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/')
+    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/templates\/(?!restore$)[^/]+/, '/templates/{templateId}').replace(/^\/routines\/[^/]+$/, '/routines/{routineId}').replace(/^\/messages\/[^/]+\//, '/messages/{messageId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/')
     const operation = openapi.paths[route][data === undefined ? 'get' : 'post']
     const schemaName = operation.responses[String(res.status)].content['application/json'].schema.$ref.split('/').at(-1)
     schemaFormat(schemaName, response.body)
@@ -307,7 +307,8 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
   it.each([
     ...GET_ROUTES, '/chat/messages', '/conversations', '/requests/abc/stop', '/requests/abc/resume', '/requests/abc/discard', '/memory', '/memory/m1', '/memory/m1/delete',
     '/instructions', '/files?conversationId=x&name=a.txt', '/settings/agent-access', '/usage/refresh', '/voice/transcribe',
-    '/plans/abc/approve', '/plans/abc/reject', '/settings/plan-approval', '/settings/server-name', '/settings/theme', '/server/update'
+    '/plans/abc/approve', '/plans/abc/reject', '/settings/plan-approval', '/settings/server-name', '/settings/theme', '/server/update',
+    '/routines', '/routines/r1', '/routines/r1/delete', '/messages/m1/routine-proposal/create'
   ])('exige Bearer en %s', async (path) => {
     const result = await api(path, GET_ROUTES.includes(path) ? undefined : {}, '')
     expect(result.status).toBe(401)
@@ -1982,6 +1983,56 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect(store.getProject(conversation).routines).toHaveLength(1)
     expect(prompts).toEqual([])
     expect(activeRunsFor(conversation)).toEqual([])
+  })
+
+  it('rutinas desde Órbita: crear, cambiar, activar, borrar y la tarjeta de Hermes, con los mismos errores que el escritorio', async () => {
+    const names = ['createRoutine', 'updateRoutine', 'deleteRoutine', 'decideRoutineProposal'] as const
+    expect((await api('/snapshot')).body.capabilities).toMatchObject({ routinesEdit: false, routineProposals: false })
+    webMethods.set('createRoutine', (id, input) => createRoutine(id as string, input as never))
+    webMethods.set('updateRoutine', (id, rid, patch) => updateRoutine(id as string, rid as string, patch as never))
+    webMethods.set('deleteRoutine', (id, rid) => deleteRoutine(id as string, rid as string))
+    webMethods.set('decideRoutineProposal', (id, mid, action) => decideRoutineProposal(id as string, mid as string, action as 'create' | 'dismiss'))
+    try {
+      expect((await api('/snapshot')).body.capabilities).toMatchObject({ routinesEdit: true, routineProposals: true })
+      const conversationId = (await api('/conversations', {})).body.conversation.id as string
+      const made = await api('/routines', { conversationId, name: 'Copia', request: 'Haz la copia de seguridad', trigger: { type: 'once', date: '2099-01-02', time: '07:00' }, askApproval: true })
+      expect(made.status).toBe(201)
+      expect(made.body.routine).toMatchObject({ name: 'Copia', enabled: true, askApproval: true, trigger: { type: 'once', date: '2099-01-02', time: '07:00' }, nextAt: new Date(2099, 0, 2, 7).getTime() })
+      const rid = made.body.routine.id as string
+      // Las reglas del motor llegan como 400 con su motivo.
+      const past = await api('/routines', { conversationId, name: 'Tarde', request: 'Haz algo', trigger: { type: 'once', date: '2020-01-02', time: '07:00' } })
+      expect([past.status, past.body.code, past.body.message]).toEqual([400, 'INVALID_ROUTINE', expect.stringMatching(/ya ha pasado/)])
+      expect((await api('/routines', { conversationId, name: 'X', request: 'Haz algo', trigger: { type: 'weekly', days: [], time: '09:00' } })).body.code).toBe('INVALID_ROUTINE')
+      expect((await api('/routines', { conversationId, name: 'X', request: 'Haz algo', trigger: 'cada día' })).body.code).toBe('INVALID_INPUT')
+      expect((await api('/routines', { conversationId, name: 'X', request: 'Haz algo', trigger: { type: 'daily', time: '09:00' }, extra: 1 })).body.code).toBe('INVALID_INPUT')
+      // Cambiar y desactivar.
+      const changed = await api(`/routines/${rid}`, { conversationId, name: 'Copia diaria', trigger: { type: 'daily', time: '06:30' }, askApproval: false })
+      expect(changed.body.routine).toMatchObject({ name: 'Copia diaria', trigger: { type: 'daily', time: '06:30' } })
+      expect(changed.body.routine.askApproval).toBeUndefined()
+      expect((await api(`/routines/${rid}`, { conversationId, enabled: false })).body.routine).toMatchObject({ enabled: false, nextAt: null })
+      expect((await api(`/routines/${rid}`, { conversationId })).status).toBe(400)
+      expect((await api('/routines/rnoexiste', { conversationId, enabled: true })).body.code).toBe('ROUTINE_NOT_FOUND')
+      // Un webhook creado desde el móvil tampoco enseña su secreto.
+      const hook = await api('/routines', { conversationId, name: 'PR', request: 'Revisa el PR', trigger: { type: 'webhook' } })
+      expect(hook.body.routine.hasSecret).toBe(true)
+      expect(JSON.stringify(hook.body)).not.toContain(store.getProject(conversationId).routines!.find((r) => r.id === hook.body.routine.id)!.webhookSecret!)
+      // Borrar.
+      expect(await api(`/routines/${rid}/delete`, { conversationId })).toEqual({ status: 200, body: { deleted: true } })
+      expect((await api(`/routines/${rid}/delete`, { conversationId })).body.code).toBe('ROUTINE_NOT_FOUND')
+      // La tarjeta de Hermes.
+      await sendMessage({ projectId: conversationId, text: 'PRUEBA-RUTINA cada mañana', filePaths: [] })
+      await vi.waitFor(() => expect(store.snapshotProject(conversationId).messages.some((m) => m.routineProposal)).toBe(true))
+      const card = store.snapshotProject(conversationId).messages.find((m) => m.routineProposal)!
+      const snapMsg = ((await api(`/snapshot?conversationId=${conversationId}`)).body as MobileSnapshot).conversation.messages.find((m) => m.id === card.id)
+      expect(snapMsg?.routineProposal?.status).toBe('pending')
+      const created = await api(`/messages/${card.id}/routine-proposal/create`, { conversationId })
+      expect(created.body.message.routineProposal).toMatchObject({ status: 'created', routineId: expect.any(String) })
+      expect((await api(`/messages/${card.id}/routine-proposal/dismiss`, { conversationId })).body.code).toBe('ROUTINE_PROPOSAL_NOT_PENDING')
+      expect((await api('/messages/nada/routine-proposal/create', { conversationId })).body.code).toBe('ROUTINE_PROPOSAL_NOT_FOUND')
+      expect(store.getProject(conversationId).routines!.map((r) => r.name)).toEqual(['PR', 'Revisa los PR abiertos'])
+    } finally {
+      for (const n of names) webMethods.delete(n)
+    }
   })
 
   it('Hermes propone una rutina: sale como tarjeta y se crea (o se descarta) con un toque, una sola vez', async () => {
