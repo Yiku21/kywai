@@ -75,6 +75,7 @@ import {
   runState,
   sendMessage
 } from './orchestrator'
+import { createTemplate, deleteTemplate, forgetProjectTemplates, initTemplates, listTemplates, restoreBuiltinTemplates, updateTemplate } from './templates'
 import { createRoutine, deleteRoutine, initRoutines, publicRoutines, routineWebhook, runRoutineNow, stopRoutines, updateRoutine } from './routines'
 import { addMemory, deleteMemory, isMemoryKind, setInstructions, updateMemory } from './memory'
 import { initUpdater } from './updater'
@@ -387,6 +388,7 @@ function registerIpc(): void {
         await fsp.rm(dir, { recursive: true, force: true })
       }
     }
+    forgetProjectTemplates(projectId)
     store.ensureFirstProject()
     emit({ kind: 'project.deleted', projectId })
     return store.listProjects()
@@ -574,6 +576,12 @@ function registerIpc(): void {
     if (typeof text !== 'string') throw new Error(tr('Instrucciones no válidas'))
     setInstructions(projectArg(projectId), text)
   })
+  // Plantillas de tareas (la fila de botones de encima del chat y «/orden …»): de todos los proyectos o de uno.
+  handle('listTemplates', () => listTemplates())
+  handle('createTemplate', (input: unknown) => createTemplate(input))
+  handle('updateTemplate', (id: unknown, patch: unknown) => updateTemplate(id, patch))
+  handle('deleteTemplate', (id: unknown) => deleteTemplate(id))
+  handle('restoreTemplates', () => restoreBuiltinTemplates())
   // Rutinas del proyecto (peticiones que se lanzan solas). El secreto del webhook solo sale con getRoutineWebhook.
   handle('createRoutine', (projectId: unknown, input: unknown) => {
     if (!input || typeof input !== 'object') throw new Error(tr('Rutina no válida'))
@@ -949,6 +957,7 @@ async function boot(): Promise<void> {
   initSkills(cfg.workspaceRoot)
   initExtensions(new McpRegistry(join(app.getPath('userData'), 'mcp-servers.json'), systemCipher))
   initPlugins(app.getPath('userData'))
+  initTemplates(app.getPath('userData'), { isProject: (id) => store.isValidProjectId(id) && store.listProjects().some((p) => p.id === id) })
   initMods(app.getPath('userData'), {
     project: (id) => {
       try {
