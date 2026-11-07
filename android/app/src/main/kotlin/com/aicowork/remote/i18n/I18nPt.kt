@@ -765,4 +765,12 @@ private fun part5(m: HashMap<String, String>) {
     m["Sin conexión: se subirá con tu próximo mensaje al volver"] = "Sem conexão: será enviado com sua próxima mensagem quando a conexão voltar"
     m["Sin conexión · {n} en cola"] = "Sem conexão · {n} na fila"
     m["Ya se está enviando"] = "Já está sendo enviada"
+    m["Tema cambiado en todos tus dispositivos"] = "Tema alterado em todos os seus dispositivos"
+    m["Mapas"] = "Mapas"
+    m["Decorados"] = "Decorados"
+    m["Tema propio en este móvil"] = "Tema próprio neste celular"
+    m["Órbita tiene su tema y no cambia cuando lo cambias en el ordenador."] = "O Órbita tem o seu tema e não muda quando você o muda no computador."
+    m["Desmarcado, Órbita sigue el tema del ordenador como los demás dispositivos."] = "Desligado, o Órbita segue o tema do computador como os outros dispositivos."
+    m["Solo cambia Órbita en este móvil. Los mapas con escenario propio se ven con sus colores."] = "Só muda o Órbita neste celular. Os mapas com cenário próprio aparecem com as suas cores."
+    m["Al elegirlo aquí cambia en todos tus dispositivos: el ordenador, los clientes, el navegador y Órbita. Los mapas con escenario propio se ven en el móvil con sus colores."] = "Ao escolhê-lo aqui, muda em todos os seus dispositivos: o computador, os clientes, o navegador e o Órbita. Os mapas com cenário próprio aparecem no celular com as suas cores."
 }

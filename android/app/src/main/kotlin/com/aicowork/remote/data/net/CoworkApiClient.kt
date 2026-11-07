@@ -46,6 +46,8 @@ import com.aicowork.remote.data.model.PairResponse
 import com.aicowork.remote.data.model.PlanApprovalRequest
 import com.aicowork.remote.data.model.ServerNameRequest
 import com.aicowork.remote.data.model.ServerNameResponse
+import com.aicowork.remote.data.model.ThemeRequest
+import com.aicowork.remote.data.model.ThemeResponse
 import com.aicowork.remote.data.model.PlanApprovalResponse
 import com.aicowork.remote.data.model.ProjectSummary
 import com.aicowork.remote.data.model.ProjectsResponse
@@ -368,6 +370,13 @@ class CoworkApiClient(
         CoworkJson.encodeToString(ServerNameRequest.serializer(), ServerNameRequest(name)),
         ServerNameResponse.serializer(),
     ).serverName
+
+    /** Tema de kywai para todos los dispositivos del ordenador. Devuelve el que queda guardado. */
+    suspend fun setTheme(id: String): String? = post(
+        "/settings/theme",
+        CoworkJson.encodeToString(ThemeRequest.serializer(), ThemeRequest(id)),
+        ThemeResponse.serializer(),
+    ).theme
 
     suspend fun setPlanApproval(enabled: Boolean): Boolean = post(
         "/settings/plan-approval",
