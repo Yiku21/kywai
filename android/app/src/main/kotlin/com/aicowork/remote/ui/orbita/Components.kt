@@ -301,21 +301,10 @@ fun Note(icon: ImageVector, title: String, text: String?, modifier: Modifier = M
     }
 }
 
-/** Marca de AI Cowork: tres nodos conectados (azul, verde, naranja). */
+/** Marca de kywai: las tres gotas del logo (res/drawable/logo_kywai.xml). */
 @Composable
 fun LogoMark(size: Dp = 30.dp) {
-    Canvas(Modifier.size(size).semantics { contentDescription = "AI Cowork" }) {
-        val s = this.size.minDimension / 32f
-        fun p(x: Float, y: Float) = Offset(x * s, y * s)
-        val line = Color(0xB3E9EEF8)
-        drawLine(line, p(16f, 9f), p(8.5f, 22.5f), strokeWidth = 2.2f * s, cap = StrokeCap.Round)
-        drawLine(line, p(16f, 9f), p(23.5f, 22.5f), strokeWidth = 2.2f * s, cap = StrokeCap.Round)
-        drawLine(line, p(9f, 23f), p(23f, 23f), strokeWidth = 2.2f * s, cap = StrokeCap.Round)
-        drawCircle(Color(0xFF2A7BFF), 5.6f * s, p(16f, 8.5f))
-        drawCircle(Color(0xFF21C07C), 5f * s, p(8.3f, 23.2f))
-        drawCircle(Color(0xFFFF7A1F), 5f * s, p(23.7f, 23.2f))
-        drawCircle(Color.White.copy(alpha = 0.45f), 1.6f * s, p(14.4f, 6.9f))
-    }
+    Image(painterResource(R.drawable.logo_kywai), contentDescription = "AI Cowork", modifier = Modifier.size(size))
 }
 
 /** Fondo sutil para una fila seleccionable dentro de un panel. */
