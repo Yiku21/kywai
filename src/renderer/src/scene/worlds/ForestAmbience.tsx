@@ -72,6 +72,6 @@ export function ForestAmbience({ trees, detailed, reduced }: { trees: ForestTree
       <shaderMaterial vertexShader={veilVertex} fragmentShader={shaftFragment} transparent depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
     </mesh>)}
     <GlowPoints positions={flies} color="#ffd681" size={.11} intensity={2.45} opacity={.89}
-      fall={reduced ? 0 : .08} fallBase={.34} fallHeight={10.3} sway={.43} flicker={reduced ? 0 : .32} reduced={reduced} />
+      fall={reduced ? 0 : .08} fallBase={.34} fallHeight={10.3} sway={.43} flicker={reduced ? 0 : .32} reduced={reduced} lively />
   </>
 }

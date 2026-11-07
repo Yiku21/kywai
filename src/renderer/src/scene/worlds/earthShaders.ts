@@ -15,6 +15,7 @@ uniform sampler2D nightMap;
 uniform sampler2D cloudMap;
 uniform vec3 sun;
 uniform float cloudOffset;
+uniform float work;
 varying vec2 vUv;
 varying vec3 vNormal;
 varying vec3 vWorld;
@@ -31,7 +32,7 @@ void main() {
   float specular = pow(max(dot(n, normalize(light + viewDir)), 0.0), 95.0) * water;
   surface += vec3(0.75,0.84,0.92) * specular * 0.38 * day;
   vec3 cities = texture2D(nightMap, vUv).rgb;
-  surface += cities * (1.0 - smoothstep(-0.12,0.16,ndl)) * 1.3 * (1.0-cloudShadow*0.65);
+  surface += cities * (1.0 - smoothstep(-0.12,0.16,ndl)) * (1.3 + 1.7 * work) * (1.0-cloudShadow*0.65);
   float fresnel = pow(1.0 - max(dot(n,viewDir),0.0), 4.0);
   surface += vec3(0.025,0.16,0.34) * fresnel * smoothstep(-0.18,0.35,ndl);
   surface += vec3(0.19,0.055,0.012) * fresnel * exp(-abs(ndl)*18.0);

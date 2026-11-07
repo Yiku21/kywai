@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { registry } from '../registry'
 import { cyberSectors, uplinkOutline } from './cyberOperations'
 import type { Vec } from './models'
 import { stencil } from './WorldMarkings'
@@ -137,7 +138,7 @@ export function CyberNetwork({ reduced }: { reduced: boolean }) {
     scene.wire.dispose()
     scene.title.dispose()
   }, [scene])
-  useFrame((_, dt) => { if (!reduced) scene.time.value += Math.min(dt, .1) })
+  useFrame((_, dt) => { if (!reduced) scene.time.value += Math.min(dt, .1) * (1 + 1.8 * registry.work) }) // más tráfico con el equipo trabajando
   return <>
     <mesh position={[0, -.88, -18]} rotation-x={-Math.PI / 2} raycast={() => {}} renderOrder={-1}>
       <planeGeometry args={[250, 220]} />

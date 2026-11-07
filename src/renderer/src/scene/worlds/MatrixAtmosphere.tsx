@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { registry } from '../registry'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 const mistVertex = /* glsl */ `
@@ -124,7 +125,8 @@ export function MatrixAtmosphere({ reduced, detailed }: { reduced: boolean; deta
     resources.plane.dispose()
   }, [resources])
   useFrame((_, delta) => {
-    if (!reduced) resources.time.value += Math.min(delta, .1)
+    // La lluvia de código y las naves van más deprisa cuando el equipo trabaja.
+    if (!reduced) resources.time.value += Math.min(delta, .1) * (1 + 1.6 * registry.work)
     const t = resources.time.value
     resources.fleet.forEach((machine, i) => {
       const a = t * (.028 + i * .005) + [-.5, 1.3, 3.4][i]
