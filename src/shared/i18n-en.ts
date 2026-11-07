@@ -2346,4 +2346,11 @@ export const en: Record<string, string> = {
   "Al empezar una tarea": "When a task starts",
   "Al acabar bien una tarea": "When a task succeeds",
   "Al fallar una tarea": "When a task fails",
+  "Usar este equipo como servidor": "Use this computer as the server",
+  "Si este equipo era tu servidor, o quieres que lo sea: aquí correrán los agentes y se guardarán los proyectos.": "If this computer was your server, or you want it to be: agents will run and projects will be kept here.",
+  "Usar como servidor": "Use as server",
+  "¿Usar este equipo como servidor?": "Use this computer as the server?",
+  "Dejará de conectarse con el otro kywai y se reiniciará: aquí correrán los agentes y se guardarán los proyectos.": "It will stop connecting to the other kywai and restart: agents will run and projects will be kept here.",
+  "Usar este equipo como servidor…": "Use this computer as the server…",
+  "Deja de conectarse con el otro kywai y se reinicia: aquí correrán los agentes": "Stops connecting to the other kywai and restarts: agents will run here",
 }

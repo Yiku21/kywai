@@ -382,6 +382,18 @@ no responde, el cliente lo dice y reintenta solo; si ya no lo reconoce, vuelve a
 menús: en ⚙ → «Ajustes…» están **Recargar la interfaz** (pestaña Acerca de; también Ctrl+R o F5), y **Cambiar de
 servidor…** y **Olvidar este dispositivo y desconectar** (pestaña Conexión).
 
+**Pasar un cliente a servidor.** Al actualizar, kywai se queda con el modo que tenía (se guarda en `client.json`,
+en su carpeta de datos, que el instalador no borra). Si un equipo era cliente y ahora quieres que sea el servidor,
+pulsa **«Usar este equipo como servidor»**: está en la pantalla de conectar, en la de «Sin conexión», en ⚙ → Ajustes →
+Conexión y, en el Mac, en el menú Servidor. Pide confirmación, olvida la conexión con el otro kywai y reinicia la app en
+modo servidor. Con una versión anterior que no tenga el botón: cierra kywai, borra `client.json` de su carpeta de datos
+(en Windows, `%APPDATA%\AI Cowork`; en el Mac, `~/Library/Application Support/AI Cowork`; no toques la carpeta
+`workspace`) y ábrelo otra vez.
+
+**Si el servidor ya no reconoce el dispositivo** (la llave caducó tras 90 días sin uso, se revocó o el servidor es
+una versión anterior), el cliente olvida esa llave, que ya no sirve, y se queda solo con la dirección: basta con
+generar un código nuevo en el servidor y escribirlo.
+
 **Para no confundir un equipo con otro**, la primera fila del menú ⚙ dice dónde estás: **Este equipo es el
 servidor** (cian, con su nombre), **Cliente de escritorio → nombre-del-servidor** (violeta) o **Navegador**, con la
 explicación de dónde están los agentes y los proyectos. En el cliente, además, una franja violeta fina recorre lo alto
