@@ -4,6 +4,9 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { en } from '@shared/i18n-en'
+import { fr } from '@shared/i18n-fr'
+import { pt } from '@shared/i18n-pt'
+import { zh } from '@shared/i18n-zh'
 import { __setLangForTests, locale, t } from './i18n'
 
 const SRC = join(__dirname, '..', '..', '..')
@@ -66,11 +69,24 @@ describe('i18n', () => {
     expect(unused).toEqual([])
   })
 
+  it.each([
+    ['portugués', pt],
+    ['francés', fr],
+    ['chino', zh]
+  ])('el %s tiene las mismas entradas que el inglés y los mismos {huecos}', (_, dict) => {
+    expect(Object.keys(dict).filter((k) => !(k in en))).toEqual([])
+    expect(Object.keys(en).filter((k) => !(k in dict))).toEqual([])
+    expect(Object.entries(dict).filter(([es, tr]) => holes(es) !== holes(tr)).map(([es]) => es)).toEqual([])
+  })
+
   it('traduce y rellena huecos', () => {
     expect(t('Ajustes')).toBe('Ajustes')
     __setLangForTests('en')
     expect(t('Ajustes')).toBe('Settings')
     expect(locale()).toBe('en-US')
     expect(t('Texto que no existe {n}', { n: 3 })).toBe('Texto que no existe 3')
+    __setLangForTests('fr')
+    expect(t('Ajustes')).toBe(fr['Ajustes'])
+    expect(locale()).toBe('fr-FR')
   })
 })

@@ -360,7 +360,6 @@ export const en: Record<string, string> = {
   'Más opciones': 'More options',
   'Ajustes': 'Settings',
   'Modo demo, efectos, permisos de los agentes…': 'Demo mode, effects, agent permissions…',
-  '{current} · pulsa para pasar a {next}': '{current} · click to switch to {next}',
   'Modo demo': 'Demo mode',
   'Simulación reproducible, sin llamadas reales': 'Reproducible simulation, no real calls',
   'Sin motor de agentes: abre la app de escritorio': 'No agent engine: open the desktop app',

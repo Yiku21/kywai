@@ -22,7 +22,7 @@ import {
   type ClientFile,
   type ClientServer
 } from './clientConfig'
-import { lang, setCurrentLang, tr } from '@shared/i18n'
+import { lang, langFromLocale, setCurrentLang, tr } from '@shared/i18n'
 
 const COOKIE = 'cowork_token'
 const APP_ICON = join(app.getAppPath(), 'build', 'icon.ico')
@@ -664,7 +664,7 @@ function setup(): void {
 /** Pregunta cómo se va a usar este equipo (solo en una instalación nueva). */
 /** El cliente y la primera pantalla no tienen config.json del motor: siguen el idioma del sistema. */
 function useSystemLang(): void {
-  setCurrentLang(/^es\b/i.test(app.getLocale()) ? 'es' : 'en')
+  setCurrentLang(langFromLocale(app.getLocale()))
 }
 
 export function chooseMode(): Promise<AppMode> {

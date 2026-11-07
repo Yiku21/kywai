@@ -1,6 +1,8 @@
 package com.aicowork.remote.ui.orbita
 
 import com.aicowork.remote.i18n.AppLanguage
+import androidx.compose.ui.draw.rotate
+import androidx.compose.material.icons.outlined.ExpandMore
 import com.aicowork.remote.i18n.I18n
 import com.aicowork.remote.i18n.restartApp
 import com.aicowork.remote.i18n.t
@@ -447,17 +449,43 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
             item {
                 SectionLabel("Idioma · Language")
                 val context = LocalContext.current
-                Segmented(
-                    listOf(AppLanguage.System to t("Del sistema"), AppLanguage.Es to "Español", AppLanguage.En to "English"),
-                    p.language,
-                    { v ->
-                        if (v != p.language) {
-                            val restart = I18n.resolve(v) != I18n.lang
-                            model.updatePreferences { it.copy(language = v) }
-                            if (restart) restartApp(context)
+                var langOpen by remember { mutableStateOf(false) }
+                val langName = { l: AppLanguage -> l.nativeName ?: t("Del sistema") }
+                Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().tappable(haptic = Haptic.Select) { langOpen = !langOpen }.padding(horizontal = 14.dp, vertical = 12.dp).testTag("language-picker"),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(langName(p.language), color = Orbita.Text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Icon(
+                            Icons.Outlined.ExpandMore,
+                            contentDescription = null,
+                            tint = Orbita.TextSoft,
+                            modifier = Modifier.rotate(if (langOpen) 180f else 0f),
+                        )
+                    }
+                    if (langOpen) {
+                        AppLanguage.entries.forEach { l ->
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .tappable(role = Role.RadioButton, haptic = Haptic.Confirm) {
+                                        langOpen = false
+                                        if (l != p.language) {
+                                            val restart = I18n.resolve(l) != I18n.lang
+                                            model.updatePreferences { it.copy(language = l) }
+                                            if (restart) restartApp(context)
+                                        }
+                                    }
+                                    .padding(start = 28.dp, end = 14.dp, top = 10.dp, bottom = 10.dp)
+                                    .testTag("language-${l.name}"),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(langName(l), color = if (l == p.language) Orbita.Text else Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                if (l == p.language) Icon(Icons.Outlined.Check, contentDescription = null, tint = Orbita.Accent)
+                            }
                         }
-                    },
-                )
+                    }
+                }
                 Text(
                     t("Cambia los textos de Órbita en este móvil. Lo que escriben los agentes sigue el idioma elegido en el ordenador."),
                     color = Orbita.TextSoft,

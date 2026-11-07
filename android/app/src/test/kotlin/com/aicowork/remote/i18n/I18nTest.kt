@@ -21,7 +21,7 @@ class I18nTest {
 
     private fun keys(): Set<String> {
         val root = listOf(File("src/main/kotlin"), File("app/src/main/kotlin")).first { it.isDirectory }
-        return root.walkTopDown().filter { it.isFile && it.extension == "kt" && it.name != "I18nEn.kt" }
+        return root.walkTopDown().filter { it.isFile && it.extension == "kt" && !it.name.matches(Regex("I18n[A-Z][a-z]\\.kt")) }
             .flatMap { f -> call.findAll(f.readText()).map { unescape(it.groupValues[1]) } }
             .toSet()
     }
@@ -39,6 +39,15 @@ class I18nTest {
     }
 
     @Test
+    fun otherLanguagesHaveTheSameEntries() {
+        for ((name, dict) in listOf("PT" to PT, "FR" to FR, "ZH" to ZH)) {
+            assertEquals("$name debe tener las mismas claves que EN", EN.keys, dict.keys)
+            val holes = dict.filter { (k, v) -> hole.findAll(k).map { it.value }.toSet() != hole.findAll(v).map { it.value }.toSet() }.keys
+            assertTrue("$name: los huecos {…} no coinciden:\n" + holes.joinToString("\n"), holes.isEmpty())
+        }
+    }
+
+    @Test
     fun translatesAndFillsHoles() {
         assertEquals("Hace 5 min", t("Hace {n} min", "n" to 5))
         I18n.setForTests("en")
@@ -50,7 +59,9 @@ class I18nTest {
     @Test
     fun systemChoiceFollowsThePhone() {
         assertEquals("es", I18n.resolve(AppLanguage.System, Locale.forLanguageTag("es-MX")))
-        assertEquals("en", I18n.resolve(AppLanguage.System, Locale.FRANCE))
+        assertEquals("fr", I18n.resolve(AppLanguage.System, Locale.FRANCE))
+        assertEquals("en", I18n.resolve(AppLanguage.System, Locale.GERMANY))
+        assertEquals("zh", I18n.resolve(AppLanguage.Zh, Locale.US))
         assertEquals("es", I18n.resolve(AppLanguage.Es, Locale.US))
         assertEquals("en", I18n.resolve(AppLanguage.En, Locale.forLanguageTag("es-ES")))
     }
