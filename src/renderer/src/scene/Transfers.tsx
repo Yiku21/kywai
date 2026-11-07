@@ -8,6 +8,7 @@ import { GEO, docTexture, glowTexture } from './assets'
 import { arcFrag, holoVert, traceFrag } from './shaders'
 import { registry } from './registry'
 import { useLabelOverrides } from './labelStore'
+import { useBubbles } from './bubbleStore'
 import { setAnchorObject } from './anchors'
 import { usePackets, type PacketSpec, type Trace } from './packetStore'
 import { ROBOT_Y, hash01, stationTracePoints, stationVec } from './layout'
@@ -161,6 +162,7 @@ export function Transfers({ stations }: { stations: StationConfig[] }) {
         if (e.kind === 'transfer.started') spawn(e.transfer)
         else if (e.kind === 'task.completed') {
           registry.brains.get(e.agentId)?.onCelebrate(registry.time)
+          registry.brains.get(e.agentId)?.onSay?.('done')
           const st = stationOf(e.agentId, stations)
           const agent = currentData().agents[e.agentId]
           if (st && agent) registry.stations.get(st.id)?.pulse(agent.color, 1)
@@ -175,6 +177,7 @@ export function Transfers({ stations }: { stations: StationConfig[] }) {
     usePackets.getState().clear()
     traces.forEach((t) => (t.users = 0))
     useLabelOverrides.getState().clearAll()
+    useBubbles.getState().clearAll()
   }, [mode, traces])
 
   const arrive = useCallback(
