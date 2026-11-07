@@ -249,9 +249,7 @@
   top: 50%;
   display: flex;
   gap: 1px;
-  padding-left: 14px;
   transform: translateY(-50%);
-  background: linear-gradient(90deg, transparent, var(--bg-panel) 12px);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--dur-fast) var(--ease);
@@ -267,6 +265,33 @@
 .row:hover .item,
 .rowMenu .item {
   background: var(--bg-hover);
+}
+
+/* Sin bloque de fondo detrás de los botones: el nombre se desvanece antes de llegar a ellos
+   y la hora o el punto de «trabajando» se apartan, así los botones quedan sobre la misma
+   tarjeta y toman el color de cualquier tema. */
+.row:hover .label,
+.row:focus-within .label,
+.rowMenu .label {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 64px), transparent calc(100% - 40px));
+  mask-image: linear-gradient(90deg, #000 calc(100% - 64px), transparent calc(100% - 40px));
+}
+
+.row .meta {
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.row:hover .meta,
+.row:focus-within .meta,
+.rowMenu .meta {
+  opacity: 0;
+}
+
+/* El punto lleva una animación de opacidad, así que se esconde con visibility. */
+.row:hover .busy,
+.row:focus-within .busy,
+.rowMenu .busy {
+  visibility: hidden;
 }
 
 .rowCurrent > .item {
@@ -287,9 +312,12 @@
   cursor: pointer;
 }
 
-.mini:hover,
+.mini:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
 .mini[aria-expanded='true'] {
-  background: var(--bg-active);
   color: var(--text-1);
 }
 
@@ -534,10 +562,6 @@
   border-radius: inherit;
   background: linear-gradient(180deg, rgba(20, 34, 66, 0.42), rgba(6, 12, 28, 0.5));
   backdrop-filter: blur(26px) saturate(160%);
-}
-
-:global(:root[data-theme='orbita']) .rowActions {
-  background: linear-gradient(90deg, transparent, rgba(12, 22, 44, 0.95) 12px);
 }
 
 /* «Ver todo el historial» al pie de Recientes. */

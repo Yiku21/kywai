@@ -1390,6 +1390,9 @@ empezar otra mientras el equipo trabaja en ese proyecto**: espera a que termine 
 
 **Clic derecho** (o el botón **⋯** que sale al pasar el ratón) abre el menú de lo que tocas, como en Claude. Con el
 menú abierto, la letra de la derecha hace esa acción sin el ratón.
+Los botones **⋯** y la flecha de desplegar no llevan bloque de fondo propio: el nombre se desvanece antes de
+llegar a ellos y la hora o el punto de «trabajando» se apartan mientras están a la vista, así quedan sobre la
+misma tarjeta y con el color del tema que tengas.
 
 - En una **conversación**: **Fijar** (P), **Cambiar nombre** (R; por defecto es el principio de tu primer mensaje),
   **Bifurcar** (F: una copia aparte, con los mensajes y las tareas, para seguir por otro camino sin tocar la
