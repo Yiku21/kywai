@@ -110,7 +110,7 @@ fun HermesModelSheet(model: OrbitaModel) {
                     Text(t("Ahora"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
                     Text(current.model.ifBlank { t("El de su configuración") }, color = Orbita.Text, style = Mono, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(
-                        listOf(current.provider.ifBlank { t("su proveedor") }, if (current.fromApp) t("elegido en AI Cowork") else t("el de la configuración de Hermes")).joinToString(" · "),
+                        listOf(current.provider.ifBlank { t("su proveedor") }, if (current.fromApp) t("elegido en kywai") else t("el de la configuración de Hermes")).joinToString(" · "),
                         color = Orbita.TextSoft,
                         style = MaterialTheme.typography.bodySmall,
                     )

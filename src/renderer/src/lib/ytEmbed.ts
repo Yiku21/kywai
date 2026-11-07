@@ -1,7 +1,7 @@
 /**
  * Reproductor oficial de YouTube aislado: un iframe del reproductor embebido que se maneja con mensajes
  * (postMessage), el mismo protocolo que usa la API oficial por dentro. Así no se carga ningún script de YouTube en
- * la ventana de AI Cowork, que tiene acceso a todo (agentes, actualizaciones, proyectos): el reproductor vive en
+ * la ventana de kywai, que tiene acceso a todo (agentes, actualizaciones, proyectos): el reproductor vive en
  * su propio origen y solo puede hablar con la app mediante estos mensajes, que aquí se validan.
  */
 import { YT_STATE, type YtPlayer, type YtVideoData } from './youtube'

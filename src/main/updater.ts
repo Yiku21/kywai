@@ -34,7 +34,7 @@ function canSelfInstall(): boolean {
 
 function notify(body: string): void {
   try {
-    if (Notification.isSupported()) new Notification({ title: 'AI Cowork', body }).show()
+    if (Notification.isSupported()) new Notification({ title: 'kywai', body }).show()
   } catch {
     /* sin notificaciones no pasa nada */
   }
@@ -46,7 +46,7 @@ async function offerMacDownload(info: UpdateInfo): Promise<void> {
   const win = BrowserWindow.getAllWindows()[0]
   const opts = {
     type: 'info' as const,
-    message: tr('Hay una versión nueva de AI Cowork ({version}).', { version: info.version }),
+    message: tr('Hay una versión nueva de kywai ({version}).', { version: info.version }),
     detail: tr('Descárgala y arrástrala a Aplicaciones para reemplazar esta. Tus proyectos y ajustes se conservan.'),
     buttons: [tr('Descargar'), tr('Más tarde')],
     defaultId: 0,
@@ -81,11 +81,11 @@ export function initUpdater(): void {
   autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
     console.info('[updater] Actualización descargada:', info.version)
     if (Date.now() - startedAt < INSTALL_NOW_MS) {
-      notify(tr('Instalando la versión {version}. AI Cowork se reabre solo.', { version: info.version }))
+      notify(tr('Instalando la versión {version}. kywai se reabre solo.', { version: info.version }))
       // Sin preguntas y reabriendo la app al terminar.
       setTimeout(() => autoUpdater.quitAndInstall(true, true), 1500)
     } else {
-      notify(tr('La versión {version} se instalará al cerrar AI Cowork.', { version: info.version }))
+      notify(tr('La versión {version} se instalará al cerrar kywai.', { version: info.version }))
     }
   })
   autoUpdater.on('error', (error: Error) => {

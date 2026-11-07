@@ -83,7 +83,7 @@ export function RoutinesView() {
   return (
     <div className={v.scroll}>
       <p className={s.intro}>
-        {t('Peticiones que se envían solas al chat de este proyecto, como si las escribieras tú: pasan por el plan, los agentes y la verificación. Se lanzan a una hora, al llegar un webhook o al cambiar archivos, mientras AI Cowork esté abierto en el servidor. Nunca hay dos a la vez de la misma rutina. También puedes escribir')} <b>{t('/rutina cada día a las 9:00: …')}</b> {t('en el chat.')}
+        {t('Peticiones que se envían solas al chat de este proyecto, como si las escribieras tú: pasan por el plan, los agentes y la verificación. Se lanzan a una hora, al llegar un webhook o al cambiar archivos, mientras kywai esté abierto en el servidor. Nunca hay dos a la vez de la misma rutina. También puedes escribir')} <b>{t('/rutina cada día a las 9:00: …')}</b> {t('en el chat.')}
       </p>
 
       <section className={v.section} aria-labelledby={idL}>

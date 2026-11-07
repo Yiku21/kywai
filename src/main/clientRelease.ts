@@ -50,7 +50,7 @@ export function validDescriptor(dir: string, yml: string): string | null {
  * Así, quien tenga el código del servidor puede subir archivos, pero no un instalador que los clientes acepten.
  */
 export function releaseMessage(version: string, file: string, sha512: string): string {
-  return `AI Cowork cliente\n${version}\n${file}\n${sha512}`
+  return `kywai cliente\n${version}\n${file}\n${sha512}`
 }
 
 export interface SignedRelease {

@@ -175,14 +175,14 @@ export function createProject(name: string): ProjectSummary {
 }
 
 /**
- * Quita un proyecto de AI Cowork (deja de estar en memoria y sin guardados pendientes) y devuelve lo que hay que
+ * Quita un proyecto de kywai (deja de estar en memoria y sin guardados pendientes) y devuelve lo que hay que
  * borrar del disco: su carpeta interna (chat, tareas, adjuntos, resultados, historial y memoria) y, si trabajaba en
  * una carpeta del usuario, SOLO la subcarpeta .ai-cowork que creó la app dentro (la carpeta del usuario no se toca).
  */
 export function forgetProject(id: string): { dirs: string[]; taskIds: string[] } {
   const st = getProject(id)
   const dir = resolve(st.project.dir)
-  // Por seguridad: solo se borra lo que está dentro de la carpeta de proyectos de AI Cowork.
+  // Por seguridad: solo se borra lo que está dentro de la carpeta de proyectos de kywai.
   if (!dir.startsWith(resolve(root) + sep)) throw new Error('La carpeta del proyecto no está donde debería: no se borra nada')
   const timer = timers.get(id)
   if (timer) clearTimeout(timer)
@@ -289,7 +289,7 @@ export function stageAttachments(id: string, atts: Attachment[]): Map<string, st
   mkdirSync(join(base, 'adjuntos'), { recursive: true })
   mkdirSync(join(base, 'entregables'), { recursive: true })
   const gi = join(base, '.gitignore')
-  if (!existsSync(gi)) writeFileSync(gi, '# Carpeta de AI Cowork: adjuntos y entregables\n*\n', 'utf8')
+  if (!existsSync(gi)) writeFileSync(gi, '# Carpeta de kywai: adjuntos y entregables\n*\n', 'utf8')
   for (const a of atts) {
     const name = basename(a.relPath)
     try {
@@ -515,7 +515,7 @@ const MAX_SCAN = 3000
 /** Recursive snapshot of the project's output files (relPath → mtime/size). Skips attachments, hidden dirs and project.json. */
 export async function snapshotFiles(dir: string): Promise<Map<string, FileStamp>> {
   const out = new Map<string, FileStamp>()
-  // Si la carpeta de trabajo contiene los datos de AI Cowork (p. ej. la propia app), se ignoran.
+  // Si la carpeta de trabajo contiene los datos de kywai (p. ej. la propia app), se ignoran.
   const internal = root ? resolve(root, '..').toLowerCase() : ''
   const walk = async (rel: string, depth: number): Promise<void> => {
     if (out.size >= MAX_SCAN || depth > 8) return

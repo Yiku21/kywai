@@ -32,7 +32,7 @@ sealed interface ReduceResult {
 
 /**
  * Aplica los eventos del WebSocket sobre la última instantánea. Es una función pura: no toca la red,
- * así que se prueba sin servidor. Acepta los nombres de evento del motor de AI Cowork (`run.*`, `quota.update`)
+ * así que se prueba sin servidor. Acepta los nombres de evento del motor de kywai (`run.*`, `quota.update`)
  * y los del contrato móvil (`request.*`, `usage.updated`).
  */
 object EventReducer {

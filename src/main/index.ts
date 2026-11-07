@@ -111,7 +111,7 @@ if (!app.requestSingleInstanceLock()) {
   })
   app.whenReady().then(boot).catch((e) => {
     console.error('[cowork] fallo al arrancar', e)
-    dialog.showErrorBox('AI Cowork', tr('No se pudo iniciar: {message}', { message: (e as Error).message }))
+    dialog.showErrorBox('kywai', tr('No se pudo iniciar: {message}', { message: (e as Error).message }))
     app.quit()
   })
 }
@@ -124,7 +124,7 @@ function createWindow(): BrowserWindow {
     minHeight: 640,
     show: false,
     backgroundColor: '#060a12',
-    title: 'AI Cowork',
+    title: 'kywai',
     autoHideMenuBar: true,
     icon: existsSync(APP_ICON) ? APP_ICON : undefined,
     webPreferences: {
@@ -201,7 +201,7 @@ function registerProtocol(): void {
  */
 const YOUTUBE_REFERER = 'https://com.aicowork.app/'
 /**
- * Luces al ritmo con el sonido real, sin micrófono: la ventana de AI Cowork puede escuchar SU PROPIO sonido (lo que
+ * Luces al ritmo con el sonido real, sin micrófono: la ventana de kywai puede escuchar SU PROPIO sonido (lo que
  * suena en ella, como el reproductor de música) y seguir oyéndose por los altavoces. Nadie más: ni otras webs ni el
  * reproductor de YouTube (que no tiene permiso para pedirlo), y nunca la pantalla ni el sonido del resto del equipo.
  */
@@ -785,7 +785,7 @@ function registerIpc(): void {
     devices().forget(id)
   })
   // Desde el navegador por http:// (sin micrófono): enlace a la versión HTTPS. La de Tailscale Serve si está
-  // activa (certificado válido); si no, la propia de AI Cowork en el puerto siguiente (avisa la primera vez).
+  // activa (certificado válido); si no, la propia de kywai en el puerto siguiente (avisa la primera vez).
   handle('getHttpsLink', async (host?: unknown) => {
     const w = getConfig().webAccess
     if (!w.enabled) return null
@@ -869,7 +869,7 @@ function registerIpc(): void {
 }
 
 async function boot(): Promise<void> {
-  // Una instalación nueva pregunta si este equipo es el servidor o se conecta con otro AI Cowork.
+  // Una instalación nueva pregunta si este equipo es el servidor o se conecta con otro kywai.
   let mode = savedMode()?.mode
   if (!mode) mode = await chooseMode()
   if (mode === 'client') {
@@ -926,7 +926,7 @@ async function boot(): Promise<void> {
   identifyToYouTube()
   allowOwnAudioForLights()
   registerIpc()
-  // Lo que el coordinador sabe de este equipo: dónde está el código de AI Cowork y las direcciones del acceso web.
+  // Lo que el coordinador sabe de este equipo: dónde está el código de kywai y las direcciones del acceso web.
   setGuideEnv({
     codeDir: sourceDir(),
     webUrls: () => {

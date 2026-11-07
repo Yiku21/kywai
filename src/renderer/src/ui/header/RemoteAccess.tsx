@@ -8,7 +8,7 @@ import u from '../common/ui.module.css'
 import s from './RemoteAccess.module.css'
 import { t } from '@/lib/i18n'
 
-/** Panel del Mac para abrir AI Cowork desde el móvil o el portátil (red de Tailscale). */
+/** Panel del Mac para abrir kywai desde el móvil o el portátil (red de Tailscale). */
 export function RemoteAccess({ onClose }: { onClose: () => void }) {
   const [info, setInfo] = useState<WebAccessInfo | null>(null)
   const [busy, setBusy] = useState(false)
@@ -80,7 +80,7 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
             <h2 id="remote-title" className={s.title}>
               {t('Acceso desde otros dispositivos')}
             </h2>
-            <p className={s.subtitle}>{t('Usa AI Cowork desde el móvil o el portátil, con este equipo como servidor. Solo dentro de tu red de Tailscale.')}</p>
+            <p className={s.subtitle}>{t('Usa kywai desde el móvil o el portátil, con este equipo como servidor. Solo dentro de tu red de Tailscale.')}</p>
           </div>
           <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={onClose}>
             <X size={18} />
@@ -96,7 +96,7 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
             <button type="button" role="switch" aria-checked={info.enabled} className={s.row} onClick={() => void change({ enabled: !info.enabled })} disabled={busy}>
               <span className={s.rowText}>
                 <span className={s.rowLabel}>{t('Permitir el acceso por Tailscale')}</span>
-                <span className={s.rowHint}>{t('Mientras esté activo, el equipo no suspende AI Cowork.')}</span>
+                <span className={s.rowHint}>{t('Mientras esté activo, el equipo no suspende kywai.')}</span>
               </span>
               <span className={cx(u.switch, info.enabled && u.switchOn)} aria-hidden="true" />
             </button>
@@ -124,7 +124,7 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
                             ? t('Activo: usa el enlace https. El navegador solo deja grabar notas de voz en páginas HTTPS.')
                             : (https.problem ??
                               (info.secureUrl
-                                ? t('Opcional: con Tailscale Serve el navegador no avisa. Sin él ya tienes la versión https de arriba, con el certificado propio de AI Cowork (el navegador avisa la primera vez).')
+                                ? t('Opcional: con Tailscale Serve el navegador no avisa. Sin él ya tienes la versión https de arriba, con el certificado propio de kywai (el navegador avisa la primera vez).')
                                 : t('Lo publica Tailscale Serve con su certificado, solo dentro de tu red. El navegador solo deja grabar notas de voz con HTTPS.')))}
                       </span>
                     </span>
@@ -193,7 +193,7 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
               disabled={busy}
             >
               <span className={s.rowText}>
-                <span className={s.rowLabel}>{t('Abrir AI Cowork al iniciar sesión')}</span>
+                <span className={s.rowLabel}>{t('Abrir kywai al iniciar sesión')}</span>
                 <span className={s.rowHint}>{t('Para usarlo 24/7: si el equipo se reinicia, vuelve a estar disponible.')}</span>
               </span>
               <span className={cx(u.switch, info.openAtLogin && u.switchOn)} aria-hidden="true" />

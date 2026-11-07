@@ -1,4 +1,4 @@
-// Agentes de terminal que se pueden conectar con tu suscripción (los de «cli»: AI Cowork los lanza con la sesión que
+// Agentes de terminal que se pueden conectar con tu suscripción (los de «cli»: kywai los lanza con la sesión que
 // ya tienes iniciada en ellos). Cada entrada dice cómo se ejecuta de forma no interactiva y cómo se instala; todo sale
 // de su documentación oficial. `verified: false` = alguna pieza no está confirmada y puede necesitar ajustes.
 import type { CatalogEntry } from './agentCatalog'
@@ -24,7 +24,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
     role: 'Agente conectado: edita el repositorio del proyecto con el modelo que le hayas configurado',
     strengths: ['cambios concretos en archivos de un repositorio, con el mapa del repositorio como contexto'],
     avoid: [...GENERIC_AVOID, 'no tiene permisos ni sandbox: siempre edita archivos salvo en su modo de solo preguntas'],
-    note: 'Deja sus archivos .aider* en la carpeta del proyecto. No hace commits solo (AI Cowork se lo desactiva).',
+    note: 'Deja sus archivos .aider* en la carpeta del proyecto. No hace commits solo (kywai se lo desactiva).',
     cli: {
       command: 'aider',
       versionArgs: ['--version'],
@@ -759,7 +759,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
       'no tiene un modo de solo lectura documentado: al planificar solo se le pide por instrucción que no toque nada'
     ],
     note:
-      'La versión 1.0.6 falla con -p cuando no hay terminal (así lo lanza AI Cowork): actualízalo. Sus condiciones adicionales (§6) prohíben acceder al servicio con software de terceros y Google no ha aclarado si eso incluye lanzarlo así con una cuenta personal. La dirección del instalador no está confirmada en su documentación.',
+      'La versión 1.0.6 falla con -p cuando no hay terminal (así lo lanza kywai): actualízalo. Sus condiciones adicionales (§6) prohíben acceder al servicio con software de terceros y Google no ha aclarado si eso incluye lanzarlo así con una cuenta personal. La dirección del instalador no está confirmada en su documentación.',
     cli: {
       command: 'agy',
       versionArgs: ['--version'],
@@ -787,7 +787,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
     strengths: [...GENERIC_STRENGTHS, 'tareas ligadas a Jira, Confluence o Bitbucket de tu sitio de Atlassian'],
     avoid: [...GENERIC_AVOID, 'no tiene un modo de solo lectura documentado: al planificar solo se le pide por instrucción que no toque nada'],
     note:
-      'Una guía de terceros dice que el encargo de «acli rovodev run» no puede pasar de 256 caracteres: AI Cowork solo le pasa la instrucción de leer el archivo del encargo, pero con rutas muy largas podría no caber (sin comprobar). En Windows y Linux, instala la CLI de Atlassian (acli) desde su página.',
+      'Una guía de terceros dice que el encargo de «acli rovodev run» no puede pasar de 256 caracteres: kywai solo le pasa la instrucción de leer el archivo del encargo, pero con rutas muy largas podría no caber (sin comprobar). En Windows y Linux, instala la CLI de Atlassian (acli) desde su página.',
     cli: {
       command: 'acli',
       versionArgs: ['--version'],

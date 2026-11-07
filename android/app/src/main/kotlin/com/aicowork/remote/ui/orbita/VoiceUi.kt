@@ -69,7 +69,7 @@ fun MicButton(model: OrbitaModel, target: VoiceTarget, modifier: Modifier = Modi
         if (granted) model.startVoice(target)
         else {
             model.feedback.reject()
-            model.toast(t("Sin permiso para el micrófono: actívalo en Ajustes › Aplicaciones › AI Cowork › Permisos."), Toast.Tone.Error)
+            model.toast(t("Sin permiso para el micrófono: actívalo en Ajustes › Aplicaciones › kywai › Permisos."), Toast.Tone.Error)
         }
     }
     IconAction(

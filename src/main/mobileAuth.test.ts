@@ -23,7 +23,7 @@ describe('credenciales móviles', () => {
     expect(() => auth.authenticate(request)).not.toThrow()
   })
 
-  it('con la clave guardada, el móvil sigue emparejado al reiniciar AI Cowork; un código de acceso nuevo lo desempareja', () => {
+  it('con la clave guardada, el móvil sigue emparejado al reiniciar kywai; un código de acceso nuevo lo desempareja', () => {
     const dir = mkdtempSync(join(tmpdir(), 'aicw-mobile-key-'))
     try {
       const file = join(dir, 'web-cert', 'mobile-key')

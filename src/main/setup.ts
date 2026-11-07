@@ -300,7 +300,7 @@ const PLATFORM_TOOLS: SetupToolId[] = IS_MAC
   ? ['brew', 'node', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama']
   : ['node', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama']
 
-/** Estado de todos los programas que puede necesitar AI Cowork en este equipo. */
+/** Estado de todos los programas que puede necesitar kywai en este equipo. */
 export async function detectTools(): Promise<SetupTool[]> {
   await refreshPath()
   const ctx = await context()
@@ -364,7 +364,7 @@ export async function openLogin(id: SetupToolId): Promise<void> {
   const def = toolDef(id)
   const cmd = def?.login
   if (!def || !cmd) throw new Error(tr('Este agente no necesita iniciar sesión'))
-  const title = `AI Cowork - ${def.label}`
+  const title = `kywai - ${def.label}`
   if (IS_WIN) {
     const child = spawn('cmd.exe', ['/d', '/c', `start "${title}" cmd /k ${cmd}`], {
       detached: true,

@@ -122,7 +122,7 @@ class AppUpdaterTest {
         val old = FakeController(SampleData.state())
         val updater = AppUpdater(old, FakeInstaller(dir), scope)
         updater.check()
-        assertTrue((updater.state.value as UpdateState.Failed).message.contains("actualiza AI Cowork"))
+        assertTrue((updater.state.value as UpdateState.Failed).message.contains("actualiza kywai"))
         assertFalse("appRelease" in old.calls)
 
         // La versión de desarrollo es otro paquete: no se actualiza desde el ordenador.

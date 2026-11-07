@@ -7,7 +7,7 @@ export type ProviderKind = 'claude' | 'codex' | 'gemini' | 'qwen' | 'ollama' | '
 
 /**
  * Cómo se lanza un agente «de catálogo» (cualquier programa de terminal que atienda un encargo y devuelva texto):
- * AI Cowork lo ejecuta en la carpeta del proyecto con la sesión que el usuario ya tiene iniciada en él.
+ * kywai lo ejecuta en la carpeta del proyecto con la sesión que el usuario ya tiene iniciada en él.
  */
 export interface CliAgentSpec {
   /** Id del catálogo del que viene (vacío: un agente a medida). */
@@ -44,7 +44,7 @@ export interface CliAgentSpec {
   /** Orden no interactiva que termina bien (código 0) si ya hay sesión iniciada. */
   authCheck?: string
   /**
-   * Funciona con una clave de API: la variable de entorno donde la lee el programa y dónde se consigue. AI Cowork
+   * Funciona con una clave de API: la variable de entorno donde la lee el programa y dónde se consigue. kywai
    * guarda la clave en este equipo (cifrada) y se la pasa solo a este agente al lanzarlo.
    */
   apiKey?: { env: string; label: string; url: string }
@@ -526,7 +526,7 @@ export interface HermesProvider {
 export interface HermesModelsInfo {
   /** Hermes Agent está instalado (tiene su config.yaml). */
   installed: boolean
-  /** fromApp: elegido con «/model» en AI Cowork; si no, el de la configuración de Hermes. */
+  /** fromApp: elegido con «/model» en kywai; si no, el de la configuración de Hermes. */
   current: { provider: string; model: string; fromApp: boolean }
   /** El de su configuración (lo que eliges con `hermes model` en la terminal). */
   hermesDefault: { provider: string; model: string } | null
@@ -791,7 +791,7 @@ export interface WebAccessConfig {
   token: string
 }
 
-/** Un móvil o cliente de escritorio emparejado con este AI Cowork. */
+/** Un móvil o cliente de escritorio emparejado con este kywai. */
 export interface PairedDevice {
   id: string
   name: string
@@ -830,7 +830,7 @@ export interface WebAccessInfo {
   port: number
   token: string
   tailscaleIp: string | null
-  /** Direcciones para abrir AI Cowork (sin el código). */
+  /** Direcciones para abrir kywai (sin el código). */
   urls: string[]
   listeningOnTailscale: boolean
   /** La app se abre sola al iniciar sesión en el equipo. */
@@ -838,7 +838,7 @@ export interface WebAccessInfo {
   /** HTTPS con Tailscale Serve (necesario para el micrófono en el navegador del móvil). */
   https?: WebHttpsInfo
   /**
-   * Versión HTTPS con el certificado propio de AI Cowork (https://<ip>:<puerto+1>, sin el código). Funciona sin
+   * Versión HTTPS con el certificado propio de kywai (https://<ip>:<puerto+1>, sin el código). Funciona sin
    * Tailscale Serve y deja usar el micrófono, pero el navegador avisa la primera vez.
    */
   secureUrl?: string | null
@@ -847,14 +847,14 @@ export interface WebAccessInfo {
 /** Enlace a la versión HTTPS (con el código): la de Tailscale Serve o, si no está, la del certificado propio. */
 export interface HttpsLink {
   url: string
-  /** Certificado propio de AI Cowork: el navegador avisa la primera vez y hay que aceptarlo. */
+  /** Certificado propio de kywai: el navegador avisa la primera vez y hay que aceptarlo. */
   selfSigned: boolean
 }
 
 export interface WebHttpsInfo {
   /** Se encontró el programa de Tailscale en este equipo (hace falta para activar HTTPS). */
   available: boolean
-  /** Tailscale Serve ya publica AI Cowork por HTTPS. */
+  /** Tailscale Serve ya publica kywai por HTTPS. */
   active: boolean
   /** https://<equipo>.<red>.ts.net (sin el código), si está activo. */
   url: string | null
@@ -1209,7 +1209,7 @@ export interface CoworkApi {
   setLanguage(lang: Lang): Promise<void>
   /** «/model»: modelo con el que coordina Hermes y los que puede usar (según sus proveedores con sesión). */
   getHermesModels(): Promise<HermesModelsInfo>
-  /** Cambia el modelo de Hermes en AI Cowork (null: volver al de su configuración). */
+  /** Cambia el modelo de Hermes en kywai (null: volver al de su configuración). */
   setHermesModel(choice: { provider: string; model: string } | null): Promise<HermesModelsInfo>
   /** Busca canciones para el reproductor de música (YouTube Music y, si no, YouTube). */
   searchMusic(query: string, kind?: MusicSearchKind): Promise<MusicResult[]>
@@ -1277,7 +1277,7 @@ export interface CoworkApi {
   /** Enlace de acceso por HTTPS (con el código), si está activo: desde el navegador, para pasar a la versión con micrófono. */
   getHttpsLink(host?: string): Promise<HttpsLink | null>
   checkForUpdates(): Promise<UpdateStatus>
-  /** Cierra y vuelve a abrir AI Cowork (también desde el navegador del móvil). */
+  /** Cierra y vuelve a abrir kywai (también desde el navegador del móvil). */
   restartApp(): Promise<void>
   /** Nota de voz (guardada con savePastedFile) → texto, con Whisper en el propio equipo. */
   transcribeAudio(path: string, language?: string): Promise<string>

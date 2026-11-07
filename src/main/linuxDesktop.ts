@@ -134,7 +134,7 @@ export function asAdmin(script: string): string {
 
 /**
  * En Linux, `npm install -g` con el Node.js del sistema escribe en /usr y falla sin administrador. Si la carpeta
- * global no se puede escribir, se instala en ~/.npm-global (AI Cowork ya la añade al PATH).
+ * global no se puede escribir, se instala en ~/.npm-global (kywai ya la añade al PATH).
  */
 export function withUserNpmPrefix(cmd: string): string {
   return cmd.replace(/\bnpm (install|i) -g\b/g, 'npm $1 -g --prefix "$HOME/.npm-global"')
@@ -158,8 +158,8 @@ export function autostartEntry(exec: string[]): string {
   return [
     '[Desktop Entry]',
     'Type=Application',
-    'Name=AI Cowork',
-    'Comment=Abre AI Cowork al iniciar sesión',
+    'Name=kywai',
+    'Comment=Abre kywai al iniciar sesión',
     `Exec=${exec.map(desktopExecQuote).join(' ')}`,
     'Icon=ai-cowork',
     'Terminal=false',

@@ -1,7 +1,7 @@
-# AI Cowork Remote (Android)
+# kywai Remote (Android)
 
-App Android nativa (Kotlin + Jetpack Compose, sin WebView) para usar AI Cowork desde el móvil a través de Tailscale.
-Habla con la capa móvil `/api/mobile/v1` del servidor de AI Cowork, que sigue siendo la fuente de verdad.
+App Android nativa (Kotlin + Jetpack Compose, sin WebView) para usar kywai desde el móvil a través de Tailscale.
+Habla con la capa móvil `/api/mobile/v1` del servidor de kywai, que sigue siendo la fuente de verdad.
 
 ## Módulos
 
@@ -88,7 +88,7 @@ en milisegundos o ISO‑8601) y aprovecha estos campos **opcionales** si el serv
 - `conversation`: `id`, `title`, `messages[]`, `activeRequestIds[]` (o `activeRunIds`).
 - Mensajes: `id`, `author {type: user|agent|system, agentId?, name?}`, `text`, `createdAt`, `streaming`, `tone`,
   `requestId` (o `runId`), `taskIds[]`, `clientMessageId` (para confirmar los mensajes enviados desde el móvil).
-- Tareas: los campos de `Task` de AI Cowork con `requestId` (o `runId`) y `trace[]` opcional.
+- Tareas: los campos de `Task` de kywai con `requestId` (o `runId`) y `trace[]` opcional.
 - `usage`: `{totals {input, output, cached?}, quotas [QuotaInfo], byAgent [{agentId, input, output}]}`.
 - `capabilities`: `stopRequests`, `resumeRequests`, `newConversation`, `taskTrace`, `attachments`.
 - `POST /chat/messages` → `{message?, requestId?}`; `POST /conversations` → `{conversation}`.
@@ -120,7 +120,7 @@ El test externo del cliente JVM se omite intencionadamente en `./gradlew test` s
 de que un móvil emparejado no caduca y todas las pruebas contractuales/UI se ejecutan normalmente.
 
 La aplicación de escritorio instalada previamente puede seguir sirviendo únicamente la API web antigua. La app Android
-la detecta y pide actualizar AI Cowork: un 401 con `{"error":...}` no es la API móvil. Ejecuta el código actualizado
+la detecta y pide actualizar kywai: un 401 con `{"error":...}` no es la API móvil. Ejecuta el código actualizado
 (`npm run dev` o `npm run build` seguido de `npm start`) y activa su acceso remoto; si mantienes la instancia antigua
 abierta, configura otro puerto libre (el HTTPS usa el puerto HTTP + 1). No copies el código del servidor de pruebas:
 usa el que muestra tu instancia actualizada.

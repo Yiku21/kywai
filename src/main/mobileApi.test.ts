@@ -498,7 +498,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     const key = Buffer.alloc(32, 7)
     await startWebServer(port, CODE, undefined, allAgents, key)
     const paired = (await api('/pair', { code: CODE, deviceName: 'Pixel' }, '')).body.accessToken
-    // Reinicio de AI Cowork (o actualización): misma clave, mismo código.
+    // Reinicio de kywai (o actualización): misma clave, mismo código.
     await startWebServer(port, CODE, undefined, allAgents, key)
     expect((await api('/snapshot', undefined, paired)).status).toBe(200)
     // «Generar un código nuevo»: los móviles tienen que volver a emparejarse.
@@ -1458,7 +1458,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       expect((await api('/server/update')).body.updating).toBe(true)
       expect((await api('/server/update', {})).body.code).toBe('UPDATE_RUNNING')
       // Si falla (vuelve a la versión anterior), se cuenta por qué.
-      finish('No se pudo actualizar: Compilando AI Cowork: falló')
+      finish('No se pudo actualizar: Compilando kywai: falló')
       await vi.waitFor(async () => expect((await api('/server/update')).body).toMatchObject({ updating: false, lastError: expect.stringContaining('No se pudo actualizar') }))
       status = { canUpdate: true, branch: 'master', commits: [] }
       expect((await api('/server/update', {})).body.code).toBe('UP_TO_DATE')

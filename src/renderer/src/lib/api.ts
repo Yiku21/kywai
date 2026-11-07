@@ -7,7 +7,7 @@ const w = window as unknown as {
   cowork?: CoworkApi
   __COWORK_WEB__?: boolean
   __COWORK_BOOT__?: string
-  /** Puente del cliente de escritorio de AI Cowork (la interfaz del servidor dentro de la app instalada). */
+  /** Puente del cliente de escritorio de kywai (la interfaz del servidor dentro de la app instalada). */
   coworkClient?: {
     openFile?: (projectId: string, relPath: string) => Promise<void>
     info?: () => Promise<{ client: true; server: string; device: string; version: string } | null>
@@ -32,7 +32,7 @@ const w = window as unknown as {
 /** La interfaz se abrió desde otro dispositivo (navegador) a través del acceso web del Mac. */
 export const isWeb = !w.cowork && w.__COWORK_WEB__ === true
 
-/** La interfaz está dentro del cliente de escritorio de AI Cowork (la app instalada que se conecta con un servidor). */
+/** La interfaz está dentro del cliente de escritorio de kywai (la app instalada que se conecta con un servidor). */
 export const isClient = isWeb && !!w.coworkClient
 
 /** El puente del cliente de escritorio (null en el navegador y en la app del servidor). */

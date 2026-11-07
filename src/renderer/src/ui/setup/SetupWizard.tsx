@@ -315,7 +315,7 @@ export function SetupWizard() {
         <header className={s.head}>
           <div>
             <h2 id="setup-title" className={s.title}>
-              {t('Configura AI Cowork')}
+              {t('Configura kywai')}
             </h2>
             <p className={s.subtitle}>{t('Elige tu equipo, instala lo que falte e inicia sesión. Puedes repetirlo cuando quieras desde el menú ⚙.')}</p>
           </div>
@@ -474,7 +474,7 @@ export function SetupWizard() {
           {step === 2 && (
             <div className={s.section}>
               <p className={s.lead}>
-                {t('Cada agente inicia sesión con su propia cuenta en una ventana aparte (normalmente se abre el navegador). AI Cowork no ve ni guarda tus contraseñas. Al volver aquí se comprueba solo.')}
+                {t('Cada agente inicia sesión con su propia cuenta en una ventana aparte (normalmente se abre el navegador). kywai no ve ni guarda tus contraseñas. Al volver aquí se comprueba solo.')}
               </p>
               <ul className={s.rows}>
                 {loginTools.map((id) => {
@@ -634,7 +634,7 @@ export function SetupWizard() {
             </button>
           ) : (
             <button type="button" className={cx(u.btn, u.btnPrimary)} onClick={() => void finish()}>
-              {t('Empezar a usar AI Cowork')}
+              {t('Empezar a usar kywai')}
             </button>
           )}
         </footer>

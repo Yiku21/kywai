@@ -14,7 +14,7 @@ import kotlinx.serialization.json.JsonObject
 data class PairRequest(val code: String, val deviceName: String)
 
 @Serializable
-data class PairResponse(val accessToken: String, val expiresAt: String? = null, val serverName: String = "AI Cowork")
+data class PairResponse(val accessToken: String, val expiresAt: String? = null, val serverName: String = "kywai")
 
 @Serializable
 data class ApiErrorBody(val code: String = "unknown", val message: String = "", val retryable: Boolean = false)
@@ -483,7 +483,7 @@ data class InboxResponse(val items: List<InboxItem> = emptyList())
 @Serializable
 data class InboxActionResponse(val item: InboxItem? = null, val message: String? = null)
 
-/** Un cambio del código de AI Cowork (commit de GitHub). */
+/** Un cambio del código de kywai (commit de GitHub). */
 @Serializable
 data class UpdateCommit(val hash: String = "", val date: String = "", val subject: String = "")
 
@@ -528,7 +528,7 @@ data class HermesModelsInfo(
     val updatedAt: Long? = null,
 )
 
-/** fromApp: lo eligió el usuario en AI Cowork; si no, es el de la configuración de Hermes. */
+/** fromApp: lo eligió el usuario en kywai; si no, es el de la configuración de Hermes. */
 @Serializable
 data class HermesCurrent(val provider: String = "", val model: String = "", val fromApp: Boolean = false)
 

@@ -3,7 +3,7 @@
 // (sin clave de API ni cuenta). Solo devuelve identificadores y nombres: se reproducen con el reproductor
 // oficial de YouTube, a la vista y con su publicidad.
 // Sin anuncios: Audius (su API pública) y las radios de SomaFM (su lista pública de emisoras). Esas suenan con
-// el reproductor de audio de AI Cowork, directamente desde sus servidores (ver @shared/musicSources).
+// el reproductor de audio de kywai, directamente desde sus servidores (ver @shared/musicSources).
 import { AUDIUS_API, AUDIUS_APP_NAME, audiusKey, radioKey } from '@shared/musicSources'
 import type { MusicResult, MusicSearchKind } from '@shared/types'
 

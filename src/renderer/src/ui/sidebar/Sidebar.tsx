@@ -778,7 +778,7 @@ function Footer({ rail }: { rail: boolean }) {
         <div className={s.where} title={hint}>
           <span className={cx(s.dot, api && mode === 'live' && s.dotLive)} aria-hidden="true" />
           <span className={s.whereText}>
-            <span className={s.whereName}>{label || 'AI Cowork'}</span>
+            <span className={s.whereName}>{label || 'kywai'}</span>
             {hint && <span className={s.whereHint}>{hint}</span>}
           </span>
         </div>

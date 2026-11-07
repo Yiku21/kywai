@@ -15,7 +15,7 @@ export interface AudioEvents {
 /** Errores del reproductor de audio (MediaError + 1000, para no confundirlos con los de YouTube). */
 export const AUDIO_ERROR = { ABORTED: 1001, NETWORK: 1002, DECODE: 1003, UNSUPPORTED: 1004 } as const
 
-/** Crea el reproductor (sin interfaz: los controles son los de AI Cowork). */
+/** Crea el reproductor (sin interfaz: los controles son los de kywai). */
 export function createAudioPlayer(events: AudioEvents): YtPlayer & { readonly element: HTMLAudioElement } {
   const audio = document.createElement('audio')
   audio.preload = 'auto'

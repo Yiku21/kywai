@@ -75,7 +75,7 @@ describe('«/model»: el modelo de Hermes', () => {
     await act(async () => button('Usar claude-opus-5-5').click())
     expect(fake.calls).toEqual([{ provider: 'anthropic', model: 'claude-opus-5-5' }])
     expect(host.textContent).toContain('Hermes usará claude-opus-5-5 (anthropic) desde el próximo encargo.')
-    expect(host.textContent).toContain('elegido en AI Cowork')
+    expect(host.textContent).toContain('elegido en kywai')
     // Y se puede volver al de su configuración.
     await act(async () => button('Volver al de Hermes').click())
     expect(fake.calls.at(-1)).toBeNull()

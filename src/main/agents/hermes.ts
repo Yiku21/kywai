@@ -31,7 +31,7 @@ export function hermesArgs(queryFile: string, model: string, mode: 'plan' | 'wor
   args.push('-t', mode === 'plan' ? HERMES_PLAN_TOOLSETS : HERMES_WORK_TOOLSETS)
   const m = safeModel(model)
   if (m) args.push('-m', m)
-  // El modelo elegido con «/model» en AI Cowork, con su proveedor (sin tocar la configuración de Hermes).
+  // El modelo elegido con «/model» en kywai, con su proveedor (sin tocar la configuración de Hermes).
   if (m && provider && PROVIDER_RE.test(provider)) args.push('--provider', provider)
   return args
 }

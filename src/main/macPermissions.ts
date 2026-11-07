@@ -3,7 +3,7 @@
 // puede pulsar «Permitir» por programa (lo impide macOS). Este módulo hace dos cosas para que no se pierdan tareas:
 //  - antes de lanzar un agente, prueba a abrir su carpeta con un límite corto y, si macOS la retiene, avisa al momento
 //    y espera la respuesta en vez de dejar al agente colgado (waitForFolderAccess);
-//  - lee en directo el registro de privacidad de macOS y avisa de cada ventana que AI Cowork tiene pendiente
+//  - lee en directo el registro de privacidad de macOS y avisa de cada ventana que kywai tiene pendiente
 //    (onMacPermissionPrompt), para mandarla al móvil.
 import { spawn } from 'node:child_process'
 import { homedir } from 'node:os'
@@ -79,7 +79,7 @@ export function parsePromptLine(line: string, bundleId = APP_BUNDLE_ID): MacPerm
 type Listener = (p: MacPermissionPrompt) => void
 const listeners = new Set<Listener>()
 
-/** Cada ventana de permisos que AI Cowork (o uno de sus agentes) tiene pendiente en la pantalla del Mac. */
+/** Cada ventana de permisos que kywai (o uno de sus agentes) tiene pendiente en la pantalla del Mac. */
 export function onMacPermissionPrompt(cb: Listener): () => void {
   listeners.add(cb)
   return () => listeners.delete(cb)
@@ -186,7 +186,7 @@ export function waitForFolderAccess(dir: string, hooks: FolderAccessHooks, waitM
       // Una carpeta que no existe no es cosa de permisos: lo dirá el propio agente.
       if (code !== 0 && /not permitted/i.test(stderr)) {
         end(
-          tr('macOS no deja a AI Cowork entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → AI Cowork', { label })
+          tr('macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → AI Cowork', { label })
         )
       } else end(null)
     })

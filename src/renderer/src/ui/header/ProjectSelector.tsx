@@ -352,7 +352,7 @@ export function ProjectSelector() {
             ) : (
               <>
                 <p className={s.folderNote}>
-                  {t('Ahora los agentes trabajan en una carpeta interna de AI Cowork. Elige la carpeta de tu proyecto (el código de un juego, una web…) para que puedan leer y editar sus archivos.')}
+                  {t('Ahora los agentes trabajan en una carpeta interna de kywai. Elige la carpeta de tu proyecto (el código de un juego, una web…) para que puedan leer y editar sus archivos.')}
                 </p>
                 <div className={s.folderActions}>
                   <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} onClick={() => void pickFolder()} disabled={!!busy}>

@@ -8,7 +8,7 @@
 
 export type MusicSource = 'youtube' | 'audius' | 'radio'
 
-/** Nombre con el que AI Cowork se identifica ante la API pública de Audius (lo pide su documentación). */
+/** Nombre con el que kywai se identifica ante la API pública de Audius (lo pide su documentación). */
 export const AUDIUS_APP_NAME = 'AICowork'
 export const AUDIUS_API = 'https://api.audius.co/v1'
 
@@ -36,7 +36,7 @@ export function streamUrlOf(id: string): string | null {
   return null
 }
 
-/** Página para abrir la canción o la radio fuera de AI Cowork. */
+/** Página para abrir la canción o la radio fuera de kywai. */
 export function webPageOf(id: string, permalink?: string): string {
   const source = musicSourceOf(id)
   if (source === 'audius') return permalink && /^\/[^/]/.test(permalink) ? `https://audius.co${permalink}` : 'https://audius.co'

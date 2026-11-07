@@ -93,7 +93,7 @@ export function AddAgent({ existing, onClose, onAdded }: { existing: AgentConfig
               {t('Añadir un agente')}
             </h2>
             <p className={s.subtitle}>
-              {t('Conecta los agentes que ya usas con tu suscripción: AI Cowork los lanza con la sesión que tengas iniciada en ellos y les reparte trabajo como a los demás.')}
+              {t('Conecta los agentes que ya usas con tu suscripción: kywai los lanza con la sesión que tengas iniciada en ellos y les reparte trabajo como a los demás.')}
             </p>
           </div>
           <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={onClose}>

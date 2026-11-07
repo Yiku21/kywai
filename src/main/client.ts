@@ -1,4 +1,4 @@
-// Modo cliente: esta instalación de AI Cowork no ejecuta agentes; se empareja con otro AI Cowork (el principal, por
+// Modo cliente: esta instalación de kywai no ejecuta agentes; se empareja con otro kywai (el principal, por
 // ejemplo en un equipo encendido 24/7) y muestra su interfaz. Todo el trabajo, los archivos y los agentes siguen en
 // el servidor; aquí solo hay la ventana, la llave de este dispositivo y los puentes con el sistema de este equipo.
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, Notification, safeStorage, session, shell, type IpcMainInvokeEvent } from 'electron'
@@ -33,7 +33,7 @@ export function clientFilePath(): string {
 
 /**
  * Con qué modo arranca esta instalación. Sin archivo: una instalación nueva pregunta (servidor o cliente); la que ya
- * tenía datos de AI Cowork es un servidor y no se le pregunta nada.
+ * tenía datos de kywai es un servidor y no se le pregunta nada.
  */
 export function savedMode(): ClientFile | null {
   const saved = readClientFile(clientFilePath())
@@ -56,13 +56,13 @@ export function prepareClientSwitches(): void {
 // Textos de la página de arriba que cambian con el idioma: [trozo tal cual en PAGE, texto en español que se traduce].
 // Las traducciones no llevan comillas simples: van dentro de cadenas de JavaScript de la página.
 const PAGE_TEXTS: Array<[string, string]> = [
-  ['>Bienvenido a AI Cowork<', 'Bienvenido a AI Cowork'],
+  ['>Bienvenido a kywai<', 'Bienvenido a kywai'],
   ['¿Cómo vas a usar este equipo?', '¿Cómo vas a usar este equipo?'],
   ['Este equipo es mi servidor<', 'Este equipo es mi servidor'],
   ['Aquí corren los agentes y se guardan los proyectos. Lo normal en el equipo que está siempre encendido.', 'Aquí corren los agentes y se guardan los proyectos. Lo normal en el equipo que está siempre encendido.'],
-  ['Conectar con mi AI Cowork principal', 'Conectar con mi AI Cowork principal'],
+  ['Conectar con mi kywai principal', 'Conectar con mi kywai principal'],
   ['Se empareja con tu servidor y usa su espacio, sus proyectos y sus archivos desde aquí.', 'Se empareja con tu servidor y usa su espacio, sus proyectos y sus archivos desde aquí.'],
-  ['>Conectar con tu AI Cowork<', 'Conectar con tu AI Cowork'],
+  ['>Conectar con tu kywai<', 'Conectar con tu kywai'],
   ['En el equipo servidor abre ⚙ → Ajustes → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.', 'En el equipo servidor abre ⚙ → Ajustes → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.'],
   ['>Dirección del servidor<', 'Dirección del servidor'],
   ['"100.101.102.103 o mac-mini"', '100.101.102.103 o mac-mini'],
@@ -73,7 +73,7 @@ const PAGE_TEXTS: Array<[string, string]> = [
   ['También puedes pegar el enlace de acceso completo en la dirección: trae el código.', 'También puedes pegar el enlace de acceso completo en la dirección: trae el código.'],
   ['>Sin conexión con ', 'Sin conexión con'],
   ["'No se llega al servidor.'", 'No se llega al servidor.'],
-  ['Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que AI Cowork está abierto en el servidor.', 'Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que AI Cowork está abierto en el servidor.'],
+  ['Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que kywai está abierto en el servidor.', 'Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que kywai está abierto en el servidor.'],
   ['>Reintentar<', 'Reintentar'],
   ['>Cambiar de servidor<', 'Cambiar de servidor'],
   ['>Abriendo ', 'Abriendo']
@@ -116,7 +116,7 @@ interface View {
 }
 
 const PAGE = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Cowork</title><style>
+<title>kywai</title><style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#060a12;color:#e9eef8;font:15px system-ui,-apple-system,"Segoe UI",sans-serif}
 main{width:min(460px,92vw);padding:30px;border-radius:18px;background:#0e1524;border:1px solid #23324d}
 h1{margin:0 0 6px;font-size:21px}p{margin:0 0 18px;color:#9aa8bf;line-height:1.5}label{display:block;margin:14px 0 6px;font-size:13px;color:#9aa8bf}
@@ -136,13 +136,13 @@ function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<
 function msg(v){ return v.message ? '<div class="msg ' + (v.name === 'offline' || v.name === 'opening' ? 'info' : '') + '" role="alert">' + esc(v.message) + '</div>' : '' }
 function render(v){
   if (v.name === 'chooser') {
-    el('<h1>Bienvenido a AI Cowork</h1><p>¿Cómo vas a usar este equipo?</p>' +
+    el('<h1>Bienvenido a kywai</h1><p>¿Cómo vas a usar este equipo?</p>' +
       '<button class="choice" id="server">Este equipo es mi servidor<small>Aquí corren los agentes y se guardan los proyectos. Lo normal en el equipo que está siempre encendido.</small></button>' +
-      '<button class="choice ghost" id="client">Conectar con mi AI Cowork principal<small>Se empareja con tu servidor y usa su espacio, sus proyectos y sus archivos desde aquí.</small></button>')
+      '<button class="choice ghost" id="client">Conectar con mi kywai principal<small>Se empareja con tu servidor y usa su espacio, sus proyectos y sus archivos desde aquí.</small></button>')
     document.getElementById('server').onclick = () => api.chooseMode('server')
     document.getElementById('client').onclick = () => api.chooseMode('client')
   } else if (v.name === 'connect') {
-    el('<h1>Conectar con tu AI Cowork</h1><p>En el equipo servidor abre ⚙ → Ajustes → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.</p>' +
+    el('<h1>Conectar con tu kywai</h1><p>En el equipo servidor abre ⚙ → Ajustes → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.</p>' +
       '<form id="f"><label for="a">Dirección del servidor</label><input id="a" placeholder="100.101.102.103 o mac-mini" autocomplete="off" spellcheck="false" value="' + esc(v.address) + '">' +
       '<label for="c">Código de 6 cifras (o el código de acceso)</label><input id="c" placeholder="123 456" autocomplete="off" spellcheck="false">' +
       '<div class="row"><button id="go">Conectar</button></div></form>' + msg(v) +
@@ -158,7 +158,7 @@ function render(v){
     document.getElementById(v.address ? 'c' : 'a').focus()
   } else if (v.name === 'offline') {
     el('<h1>Sin conexión con ' + esc(v.server && v.server.name) + '</h1><p>' + esc(v.message || 'No se llega al servidor.') + '</p>' +
-      '<p class="hint">Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que AI Cowork está abierto en el servidor.</p>' +
+      '<p class="hint">Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que kywai está abierto en el servidor.</p>' +
       '<div class="row"><button id="retry">Reintentar</button><button class="ghost" id="switch">Cambiar de servidor</button></div>')
     document.getElementById('retry').onclick = () => api.retry()
     document.getElementById('switch').onclick = () => api.switchServer()
@@ -203,7 +203,7 @@ function ensureWindow(): BrowserWindow {
     minHeight: 600,
     show: false,
     backgroundColor: '#060a12',
-    title: 'AI Cowork',
+    title: 'kywai',
     autoHideMenuBar: true,
     icon: existsSync(APP_ICON) ? APP_ICON : undefined,
     webPreferences: {
@@ -251,7 +251,7 @@ function ensureWindow(): BrowserWindow {
   })
   w.webContents.on('did-fail-load', (_e, code, _desc, url, isMainFrame) => {
     if (!isMainFrame || code === -3 || url.startsWith('data:')) return
-    if (current) showView({ name: 'offline', server: { name: current.server.name, origin: current.server.origin }, message: tr('No se pudo cargar AI Cowork desde el servidor.') })
+    if (current) showView({ name: 'offline', server: { name: current.server.name, origin: current.server.origin }, message: tr('No se pudo cargar kywai desde el servidor.') })
   })
   w.on('closed', () => {
     if (win === w) win = null
@@ -304,7 +304,7 @@ async function openServer(): Promise<void> {
     sameSite: 'strict',
     expirationDate: Math.floor(Date.now() / 1000) + 365 * 24 * 3600
   })
-  win!.setTitle(`AI Cowork · ${server.name}`)
+  win!.setTitle(`kywai · ${server.name}`)
   await win!.loadURL(`${server.origin}/`)
   scheduleUpdateChecks()
   syncManager().start()
@@ -324,7 +324,7 @@ async function pairWith(addressInput: string, codeInput: string): Promise<{ erro
       signal: AbortSignal.timeout(10_000)
     })
   } catch {
-    return { error: tr('No se pudo conectar con {origin}. Comprueba que Tailscale está conectado en este equipo, que AI Cowork está abierto en el servidor y que tiene activado el acceso desde otros dispositivos.', { origin: addr.origin }) }
+    return { error: tr('No se pudo conectar con {origin}. Comprueba que Tailscale está conectado en este equipo, que kywai está abierto en el servidor y que tiene activado el acceso desde otros dispositivos.', { origin: addr.origin }) }
   }
   const data = (await res.json().catch(() => ({}))) as { accessToken?: string; deviceId?: string; serverName?: string; code?: string }
   if (!res.ok || !data.accessToken) return { error: pairingProblem(res.status, data.code) }
@@ -453,11 +453,11 @@ function scheduleUpdateChecks(): void {
       buttons: [tr('Instalar y reiniciar'), tr('Más tarde')],
       defaultId: 0,
       cancelId: 1,
-      message: tr('Hay una versión nueva de AI Cowork para este equipo ({latest})', { latest: r.latest }),
+      message: tr('Hay una versión nueva de kywai para este equipo ({latest})', { latest: r.latest }),
       detail: tr('Tienes la {current}. Se descarga de tu servidor y la app se reinicia sola al terminar.', { current: r.current })
     }
     const answer = win && !win.isDestroyed() ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options)
-    if (answer.response === 0) await installUpdate().catch((e) => dialog.showErrorBox('AI Cowork', tr('No se pudo actualizar: {message}', { message: (e as Error).message })))
+    if (answer.response === 0) await installUpdate().catch((e) => dialog.showErrorBox('kywai', tr('No se pudo actualizar: {message}', { message: (e as Error).message })))
   }
   setTimeout(() => void run(), 15_000).unref()
   updateTimer = setInterval(() => void run(), UPDATE_EVERY_MS)
@@ -680,7 +680,7 @@ export function chooseMode(): Promise<AppMode> {
   })
 }
 
-/** Arranca AI Cowork como cliente: ventana con la interfaz del servidor al que está emparejado este equipo. */
+/** Arranca kywai como cliente: ventana con la interfaz del servidor al que está emparejado este equipo. */
 export async function bootClient(): Promise<void> {
   useSystemLang()
   setup()

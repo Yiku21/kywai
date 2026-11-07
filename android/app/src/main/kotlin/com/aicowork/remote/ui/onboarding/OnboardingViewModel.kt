@@ -118,7 +118,7 @@ class OnboardingViewModel(
             step = OnboardingStep.Server,
             certificate = null,
             certificateChecked = false,
-            urlError = t("No se ha confiado en el certificado. Comprueba la dirección o la huella en AI Cowork."),
+            urlError = t("No se ha confiado en el certificado. Comprueba la dirección o la huella en kywai."),
         )
     }
 
@@ -129,7 +129,7 @@ class OnboardingViewModel(
         _ui.update { it.copy(pairing = true, codeError = null) }
         viewModelScope.launch {
             try {
-                // El código de AI Cowork es base64url: distingue mayúsculas y puede llevar «-» y «_». Solo se quitan espacios.
+                // El código de kywai es base64url: distingue mayúsculas y puede llevar «-» y «_». Solo se quitan espacios.
                 controller.pair(url, state.code.filter { !it.isWhitespace() }, state.deviceName, state.pinnedSha256, demo = state.demo)
                 _ui.update { it.copy(pairing = false) }
             } catch (e: ApiException) {

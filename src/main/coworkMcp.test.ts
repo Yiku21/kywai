@@ -55,7 +55,7 @@ async function talk(envVars: Record<string, string>, msgs: object[]): Promise<Re
   return out
 }
 
-describe('servidor MCP de AI Cowork', () => {
+describe('servidor MCP de kywai', () => {
   it('se presenta, lista sus herramientas y las ejecuta para su proyecto y su tarea', async () => {
     const r = await talk({}, [
       { id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'x', version: '1' } } },

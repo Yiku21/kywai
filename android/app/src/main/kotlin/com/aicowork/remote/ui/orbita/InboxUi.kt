@@ -267,7 +267,7 @@ fun AskNotificationsOnce(model: OrbitaModel, state: CoworkUiState) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
     val context = LocalContext.current
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (!granted) model.toast(t("Sin notificaciones: verás los avisos de «Te necesita» al abrir la app. Puedes activarlas en Ajustes › Aplicaciones › AI Cowork."), Toast.Tone.Info)
+        if (!granted) model.toast(t("Sin notificaciones: verás los avisos de «Te necesita» al abrir la app. Puedes activarlas en Ajustes › Aplicaciones › kywai."), Toast.Tone.Info)
     }
     val wanted = inboxSupported(state) && (state.inbox.isNotEmpty() || model.inboxOpen)
     LaunchedEffect(wanted) {

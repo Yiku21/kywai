@@ -280,7 +280,7 @@ private fun WorldPlaceholder(status: SpaceStatus, onRetry: () -> Unit) {
             else -> {
                 CircularProgressIndicator(color = Orbita.Accent)
                 Spacer(Modifier.height(16.dp))
-                Text(t("Entrando en el mundo de AI Cowork…"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
+                Text(t("Entrando en el mundo de kywai…"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -434,7 +434,7 @@ private fun WideLayout(
                 LogoMark(32.dp)
                 if (topWidth >= 560.dp) {
                     Spacer(Modifier.width(10.dp))
-                    Text("AI Cowork", color = Orbita.Text, style = MaterialTheme.typography.titleLarge, maxLines = 1)
+                    Text("kywai", color = Orbita.Text, style = MaterialTheme.typography.titleLarge, maxLines = 1)
                 }
                 Spacer(Modifier.width(12.dp))
                 ProjectChip(state, model, Modifier.weight(1f, fill = false))

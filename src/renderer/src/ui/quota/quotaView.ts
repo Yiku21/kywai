@@ -75,7 +75,7 @@ export function describeQuota(q: QuotaInfo, th: QuotaThresholds, agentColor: str
       // Sin dato de cuota (p. ej. Gemini con clave de API): al menos, cuánto se ha usado hoy desde la app.
       const used = q.usedRequests ?? 0
       return used > 0
-        ? { variant, color, pct: null, barPct: 0, estimate, fixedValue: t('{used} hoy', { used }), sentence: used === 1 ? t('{label}: cuota no disponible; 1 uso hoy desde AI Cowork', { label: q.label }) : t('{label}: cuota no disponible; {used} usos hoy desde AI Cowork', { label: q.label, used }) }
+        ? { variant, color, pct: null, barPct: 0, estimate, fixedValue: t('{used} hoy', { used }), sentence: used === 1 ? t('{label}: cuota no disponible; 1 uso hoy desde kywai', { label: q.label }) : t('{label}: cuota no disponible; {used} usos hoy desde kywai', { label: q.label, used }) }
         : { variant, color, pct: null, barPct: 0, estimate, fixedValue: 'N/D', sentence: t('{label}: cuota no disponible', { label: q.label }) }
     }
     case 'empty':

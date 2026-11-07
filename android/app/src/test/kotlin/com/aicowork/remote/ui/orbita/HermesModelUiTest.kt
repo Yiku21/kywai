@@ -55,7 +55,7 @@ class HermesModelUiTest {
         compose.onNodeWithText("claude-opus-5-5").performClick()
         compose.onNodeWithText("Usar claude-opus-5-5").performClick()
         compose.waitUntil(5_000) { idleMain(); "hermesModel:anthropic/claude-opus-5-5" in controller.calls }
-        compose.waitUntil(5_000) { idleMain(); runCatching { compose.onNodeWithText("elegido en AI Cowork", substring = true).assertExists() }.isSuccess }
+        compose.waitUntil(5_000) { idleMain(); runCatching { compose.onNodeWithText("elegido en kywai", substring = true).assertExists() }.isSuccess }
 
         // Y volver al de Hermes.
         compose.onNodeWithText("Volver al de Hermes").performClick()

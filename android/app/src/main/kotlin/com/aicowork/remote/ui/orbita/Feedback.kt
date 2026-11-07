@@ -16,7 +16,7 @@ import kotlin.math.ln
 import kotlin.math.min
 import kotlin.math.sin
 
-/** Sonidos cortos de AI Cowork (los mismos tonos que el escritorio). */
+/** Sonidos cortos de kywai (los mismos tonos que el escritorio). */
 enum class Sfx(val priority: Int) { Click(0), Message(1), Transfer(2), FileCreated(2), TaskStart(3), ProjectCreated(3), TaskComplete(4), Error(5) }
 
 /**

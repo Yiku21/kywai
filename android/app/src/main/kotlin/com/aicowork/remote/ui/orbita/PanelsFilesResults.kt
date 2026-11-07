@@ -206,7 +206,7 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (caps?.files != true) item {
-                Note(Icons.Outlined.Info, t("Actualiza AI Cowork en el ordenador"), t("Esta versión del ordenador aún no comparte la carpeta del proyecto ni deja subir archivos desde el móvil."))
+                Note(Icons.Outlined.Info, t("Actualiza kywai en el ordenador"), t("Esta versión del ordenador aún no comparte la carpeta del proyecto ni deja subir archivos desde el móvil."))
             }
             items(state.uploads, key = { "up-${it.id}" }) { u ->
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
@@ -258,7 +258,7 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                         caps?.files != true -> Unit
                         loading && folder == null -> item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Orbita.Accent) } }
                         error != null -> item { Note(Icons.Outlined.ErrorOutline, t("No se pudo leer la carpeta"), error, tint = Orbita.Danger) }
-                        folder == null -> item { Note(Icons.Outlined.Folder, t("Este proyecto no tiene carpeta propia"), t("Los agentes trabajan en la carpeta interna del proyecto. Puedes elegir una carpeta desde AI Cowork en el ordenador.")) }
+                        folder == null -> item { Note(Icons.Outlined.Folder, t("Este proyecto no tiene carpeta propia"), t("Los agentes trabajan en la carpeta interna del proyecto. Puedes elegir una carpeta desde kywai en el ordenador.")) }
                         folder.files.isEmpty() -> item { Note(Icons.Outlined.Folder, if (query.isEmpty()) t("La carpeta está vacía") else t("Nada coincide"), null) }
                         else -> {
                             items(folder.files, key = { "f-${it.path}" }) { f: FolderFile ->
@@ -399,7 +399,7 @@ private fun ResultCard(a: Artifact, model: OrbitaModel, snapshot: com.aicowork.r
         Spacer(Modifier.height(10.dp))
         OrbitaButton(t("Abrir resultado"), onClick = { model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, icon = Icons.AutoMirrored.Outlined.OpenInNew, haptic = Haptic.Tap, height = 46.dp, enabled = snapshot.capabilities.artifacts, modifier = Modifier.fillMaxWidth())
         if (!snapshot.capabilities.artifacts) {
-            Text(t("Para abrirlo desde el móvil, actualiza AI Cowork en el ordenador."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
+            Text(t("Para abrirlo desde el móvil, actualiza kywai en el ordenador."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
         }
     }
 }

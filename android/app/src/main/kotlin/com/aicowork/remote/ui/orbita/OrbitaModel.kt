@@ -418,7 +418,7 @@ class OrbitaModel(
                     if (section != Section.Chat && m.proposal?.isPending == true) {
                         toast(t("{v1} te propone un plan: revísalo antes de empezar", "v1" to (m.author.agentId?.let { agentName(it) } ?: "Hermes")), Toast.Tone.Info, t("Ver el plan")) { open(Section.Chat) }
                     } else if (section != Section.Chat) {
-                        val who = m.author.agentId?.let { agentName(it) } ?: "AI Cowork"
+                        val who = m.author.agentId?.let { agentName(it) } ?: "kywai"
                         val line = inline(m.text.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty().trimStart('#', ' ')).text
                         toast("$who: ${line.take(90)}", if (m.tone == "error") Toast.Tone.Error else Toast.Tone.Info, t("Abrir chat")) { open(Section.Chat) }
                     }

@@ -146,7 +146,7 @@ export function Composer() {
     !api || simulate
       ? t('El dictado está disponible en modo real')
       : needsHttps
-        ? t('El micrófono necesita la versión HTTPS de AI Cowork')
+        ? t('El micrófono necesita la versión HTTPS de kywai')
         : !canRecord
           ? t('Este navegador no permite grabar audio')
           : rec
@@ -613,7 +613,7 @@ export function Composer() {
             {httpsLink.selfSigned && (
               <>
                 {' '}
-                {t('La primera vez avisará de que la conexión no es privada: es el certificado propio de AI Cowork en tu equipo. Pulsa «Configuración avanzada» → «Continuar» (en iPhone: «Mostrar detalles» → «visitar este sitio web»).')}
+                {t('La primera vez avisará de que la conexión no es privada: es el certificado propio de kywai en tu equipo. Pulsa «Configuración avanzada» → «Continuar» (en iPhone: «Mostrar detalles» → «visitar este sitio web»).')}
               </>
             )}
           </span>

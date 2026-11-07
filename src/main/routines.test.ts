@@ -260,7 +260,7 @@ describe('lanzar sin dobles disparos', () => {
     await runRoutineNow(projectId, r.id)
     stopRoutines()
     startEngine()
-    expect(store.getProject(projectId).routines![0].runs[0]).toMatchObject({ status: 'interrupted', note: expect.stringMatching(/Se cerró AI Cowork/) })
+    expect(store.getProject(projectId).routines![0].runs[0]).toMatchObject({ status: 'interrupted', note: expect.stringMatching(/Se cerró kywai/) })
   })
 
   it('al volver a activarla no recupera lo que tocó mientras estaba desactivada', async () => {

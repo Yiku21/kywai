@@ -47,7 +47,7 @@ export function Header() {
           </button>
         )}
         <LogoMark />
-        <span className={s.title}>AI Cowork</span>
+        <span className={s.title}>kywai</span>
         <span className={s.divider} aria-hidden="true" />
         <span className={s.team} title={busy ? t('Hay agentes trabajando') : t('El equipo está en espera')}>
           <span className={cx(s.teamDot, busy && s.teamDotBusy, busy && !reduced && u.pulse)} aria-hidden="true" />

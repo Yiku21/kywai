@@ -65,7 +65,7 @@ class AppUpdater(
         }
         val snapshot = controller.state.value.snapshot
         if (snapshot != null && !snapshot.capabilities.appUpdate) {
-            _state.value = UpdateState.Failed(t("El ordenador aún no ofrece actualizaciones de Órbita: actualiza AI Cowork en él (⋮ → «Buscar actualizaciones…»)."))
+            _state.value = UpdateState.Failed(t("El ordenador aún no ofrece actualizaciones de Órbita: actualiza kywai en él (⋮ → «Buscar actualizaciones…»)."))
             return
         }
         _state.value = UpdateState.Checking

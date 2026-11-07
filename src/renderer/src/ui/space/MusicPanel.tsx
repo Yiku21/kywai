@@ -71,8 +71,8 @@ const ERRORS: Record<number, string> = {
   100: t('El vídeo no existe o es privado.'),
   101: t('El autor no permite reproducir este vídeo fuera de YouTube.'),
   150: t('El autor no permite reproducir este vídeo fuera de YouTube.'),
-  152: t('YouTube no aceptó la identificación de AI Cowork (error 152). Actualiza la app de escritorio.'),
-  153: t('YouTube no aceptó la identificación de AI Cowork (error 153). Actualiza la app de escritorio.'),
+  152: t('YouTube no aceptó la identificación de kywai (error 152). Actualiza la app de escritorio.'),
+  153: t('YouTube no aceptó la identificación de kywai (error 153). Actualiza la app de escritorio.'),
   1001: t('Se interrumpió la carga del audio.'),
   1002: t('No llega el audio: sin conexión o el servidor no responde.'),
   1003: t('El audio llegó dañado y no se puede reproducir.'),
@@ -340,7 +340,7 @@ function SearchBox() {
   async function search(text: string, from: MusicSource): Promise<void> {
     const a = api
     if (!a) {
-      setProblem(t('Buscar canciones necesita la app de escritorio de AI Cowork.'))
+      setProblem(t('Buscar canciones necesita la app de escritorio de kywai.'))
       return
     }
     setBusy(true)
@@ -569,7 +569,7 @@ function Transport({ bar = false }: { bar?: boolean }) {
   )
 }
 
-/** Volumen de AI Cowork (el mismo de la cabecera): música, efectos y este reproductor. */
+/** Volumen de kywai (el mismo de la cabecera): música, efectos y este reproductor. */
 function VolumeControl() {
   const volume = useSyncExternalStore(subscribeAudio, getVolume, getVolume)
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
@@ -878,7 +878,7 @@ function LiveSync() {
         </button>
         <p className={s.note}>
           {on
-            ? t('Las luces caen en cada golpe de la canción: AI Cowork escucha lo que suena en su propia ventana, sin micrófono y sin grabar nada.')
+            ? t('Las luces caen en cada golpe de la canción: kywai escucha lo que suena en su propia ventana, sin micrófono y sin grabar nada.')
             : state === 'starting'
               ? t('Preparando…')
               : t('Apagado: las luces van con el tempo estimado (BPM publicado y desfase).')}
@@ -985,13 +985,13 @@ function Limits() {
         <li>
           {t('Es una estimación: no se escucha ni se analiza el audio (YouTube no lo permite y no se usa el micrófono). Se usa el BPM publicado de la canción (Deezer) y la posición del reproductor.')}
         </li>
-        <li>{t('Con Audius y las radios, las luces escuchan el sonido de verdad: llega directamente a AI Cowork, sin micrófono y sin compartir nada.')}</li>
+        <li>{t('Con Audius y las radios, las luces escuchan el sonido de verdad: llega directamente a kywai, sin micrófono y sin compartir nada.')}</li>
         <li>
           {t('Se ajusta solo al pausar, reanudar, saltar o cambiar la velocidad. El primer pulso no se conoce: si las luces van desplazadas, usa «Marcar pulso» o el desfase.')}
         </li>
         <li>{t('Las canciones en directo, con tempo variable, remezclas o vídeos con introducción pueden desalinearse.')}</li>
         <li>
-          {t('YouTube exige que su reproductor esté a la vista: al cerrar este panel la música se pausa. Mientras suena cualquier fuente, sustituye a la música ambiental de AI Cowork.')}
+          {t('YouTube exige que su reproductor esté a la vista: al cerrar este panel la música se pausa. Mientras suena cualquier fuente, sustituye a la música ambiental de kywai.')}
         </li>
       </ul>
     </details>

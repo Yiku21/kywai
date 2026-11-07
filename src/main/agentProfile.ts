@@ -1,5 +1,5 @@
 // Ficha de cada agente para el coordinador: qué se le da mejor, qué evitar, sus modelos, cuánta cuota le queda
-// y cómo le ha ido en AI Cowork (tareas, aciertos, tiempo y calidad). Así reparte con datos y no solo por el nombre.
+// y cómo le ha ido en kywai (tareas, aciertos, tiempo y calidad). Así reparte con datos y no solo por el nombre.
 import type { AgentConfig, Difficulty, QuotaInfo, UsageRun } from '@shared/types'
 import { EFFORT_LABEL, effortFor, modelFacts } from '@shared/modelCatalog'
 import { agentQuality, qualityLine, type AgentQuality } from '@shared/agentQuality'
@@ -103,7 +103,7 @@ export function profileLines(
   if (h && h.tasks >= 3) {
     const rated = (h.liked ?? 0) + (h.disliked ?? 0)
     const liked = rated && !quality ? `; al usuario le sirvieron ${h.liked} de ${rated} que valoró${h.disliked ? ` (${h.disliked} no)` : ''}` : ''
-    out.push(`  historial en AI Cowork (30 días): ${h.tasks} tareas, ${h.okPct} % bien, unos ${took(h.medianMs)} cada una${liked}`)
+    out.push(`  historial en kywai (30 días): ${h.tasks} tareas, ${h.okPct} % bien, unos ${took(h.medianMs)} cada una${liked}`)
   }
   if (quality) out.push(`  ${quality}`)
   for (const ab of extra.abilities) out.push(`  ${ab}`)

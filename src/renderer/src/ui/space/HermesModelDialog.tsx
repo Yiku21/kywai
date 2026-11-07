@@ -16,7 +16,7 @@ const when = (ts: number): string =>
 
 /**
  * «/model» en el chat o el panel de Hermes: con qué modelo coordina y los de sus proveedores con sesión, como
- * `hermes model` en la terminal. La elección vale para Hermes en AI Cowork (su configuración no se toca).
+ * `hermes model` en la terminal. La elección vale para Hermes en kywai (su configuración no se toca).
  */
 export function HermesModelDialog({ onClose }: { onClose: () => void }) {
   const [info, setInfo] = useState<HermesModelsInfo | null>(null)
@@ -105,7 +105,7 @@ export function HermesModelDialog({ onClose }: { onClose: () => void }) {
                 <span className={s.currentLabel}>{t('Ahora')}</span>
                 <span className={s.currentModel}>{current.model || t('El de su configuración')}</span>
                 <span className={s.currentSub}>
-                  {current.provider || t('proveedor de su configuración')} · {current.fromApp ? t('elegido en AI Cowork') : t('el de la configuración de Hermes')}
+                  {current.provider || t('proveedor de su configuración')} · {current.fromApp ? t('elegido en kywai') : t('el de la configuración de Hermes')}
                 </span>
               </div>
               {current.fromApp && (

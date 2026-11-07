@@ -1,4 +1,4 @@
-// Temas de AI Cowork: el clásico, Órbita (cristal azulado y brillos, como la app del móvil), cinco con sus colores
+// Temas de kywai: el clásico, Órbita (cristal azulado y brillos, como la app del móvil), cinco con sus colores
 // y cuatro con decoración propia en el espacio (Relicario, Telar, Halloween y Navidad). Se aplican al momento con
 // data-theme en <html> (las variables de tokens.css cambian, y los colores y la decoración del espacio digital, en
 // scene/palette.ts) y se recuerdan en cada dispositivo.

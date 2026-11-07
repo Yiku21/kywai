@@ -43,7 +43,7 @@ export function codexArgs(model: string, mode: 'plan' | 'work', images: string[]
   const sandbox = mode === 'plan' ? 'read-only' : access === 'full' ? 'danger-full-access' : 'workspace-write'
   args.push('--json', '--skip-git-repo-check', '--sandbox', sandbox)
   // La app de escritorio de Codex configura el modo "elevated", que necesita su propio ayudante
-  // registrado: lanzado desde AI Cowork falla y no puede ejecutar comandos. El modo estándar sí funciona.
+  // registrado: lanzado desde kywai falla y no puede ejecutar comandos. El modo estándar sí funciona.
   if (process.platform === 'win32' && sandbox !== 'danger-full-access') args.push('-c', 'windows.sandbox=unelevated')
   const m = safeModel(model)
   if (m) args.push('-m', m)
