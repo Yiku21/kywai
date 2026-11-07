@@ -109,7 +109,7 @@ export class MobileBackend {
       }) ?? [],
       memory: state?.memory ?? [],
       usage: usageProjection(runs, runtime.quotas),
-      settings: { agentAccess: config.agentAccess, planApproval: config.planApproval !== false, theme: config.uiTheme ?? 'clasico' },
+      settings: { agentAccess: config.agentAccess, planApproval: config.planApproval !== false, theme: config.uiTheme ?? 'clasico', ...(config.serverName ? { serverName: config.serverName } : {}) },
       sequence: watermark,
       capabilities: {
         apiVersion: 'v1', chat: true, conversations: true, stop: true, resume: true,
@@ -123,6 +123,7 @@ export class MobileBackend {
         directMessages: true,
         chats: this.methods.has('listConversations') && this.methods.has('openConversation'),
         search: this.methods.has('search'),
+        serverName: this.methods.has('setServerName'),
         music: this.methods.has('searchMusic'),
         agentThinking: this.methods.has('setAgentThinking')
       }
@@ -496,6 +497,12 @@ export class MobileBackend {
   /** Elige el modelo de Hermes (null: el de su configuración). */
   async setHermesModel(choice: { provider: string; model: string } | null): Promise<HermesModelsInfo> {
     return this.call<HermesModelsInfo>('setHermesModel', choice)
+  }
+
+  /** Nombre del ordenador que se ve abajo en la barra lateral («» vuelve al de la red). */
+  async setServerName(name: string): Promise<{ serverName: string | null }> {
+    await this.call('setServerName', name)
+    return { serverName: (await this.call<AppConfig>('getConfig')).serverName ?? null }
   }
 
   async setPlanApproval(enabled: boolean): Promise<{ planApproval: boolean }> {

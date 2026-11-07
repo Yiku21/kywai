@@ -150,6 +150,8 @@ data class ServerSettings(
     val planApproval: Boolean = false,
     /** Tema elegido en el escritorio («grafito», «mundo-bosque»…): Órbita se pinta igual. Null en ordenadores antiguos. */
     val theme: String? = null,
+    /** Nombre que le puso el usuario al ordenador (abajo en la barra lateral). Null: el de la red. */
+    val serverName: String? = null,
 )
 
 @Serializable
@@ -238,6 +240,12 @@ data class PlanApprovalRequest(val enabled: Boolean)
 
 @Serializable
 data class PlanApprovalResponse(val planApproval: Boolean = true)
+
+@Serializable
+data class ServerNameRequest(val name: String)
+
+@Serializable
+data class ServerNameResponse(val serverName: String? = null)
 
 /** Tarea del plan que propone Hermes: todavía no existe; se crea al aprobar el plan. */
 @Serializable
@@ -511,6 +519,8 @@ data class Capabilities(
     val music: Boolean = false,
     /** Buscador de todos los proyectos (GET /search). */
     val search: Boolean = false,
+    /** Cambiar el nombre del ordenador que se ve abajo en la barra lateral (POST /settings/server-name). */
+    val serverName: Boolean = false,
 )
 
 /** Botón de un aviso de la bandeja. Con [url] (p. ej. vnc://… para Compartir pantalla) se abre en el móvil y no va al servidor. */

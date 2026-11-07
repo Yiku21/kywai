@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.DriveFileRenameOutline
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -190,13 +191,30 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
                 is Connection.Offline -> Orbita.Danger to t("sin conexión")
                 Connection.Idle -> Orbita.TextFaint to t("en pausa")
             }
-            val server = state.session?.serverName.orEmpty()
+            // El nombre que le puso el usuario al ordenador manda sobre el de la red; tocarlo lo cambia.
+            val server = snapshot?.settings?.serverName?.takeIf { it.isNotBlank() } ?: state.session?.serverName.orEmpty()
+            val canRename = state.connection == Connection.Online && snapshot?.capabilities?.serverName == true
+            var renaming by remember { mutableStateOf(false) }
             Box(Modifier.size(34.dp).clip(CircleShape).background(Orbita.AccentSoft), contentAlignment = Alignment.Center) {
                 Text(server.take(1).uppercase().ifEmpty { "k" }, color = Orbita.Text, style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f).tappable(enabled = state.connection !is Connection.Online, onClick = model.controller::retryNow)) {
-                Text(server.ifEmpty { t("Tu ordenador") }, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(
+                Modifier
+                    .weight(1f)
+                    .tappable(enabled = state.connection !is Connection.Online || canRename) {
+                        if (state.connection is Connection.Online) renaming = true else model.controller.retryNow()
+                    }
+                    .semantics { if (canRename) contentDescription = t("Cambiar el nombre de este ordenador ({name})", "name" to server) }
+                    .testTag("server-name"),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(server.ifEmpty { t("Tu ordenador") }, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (canRename) {
+                        Spacer(Modifier.width(5.dp))
+                        Icon(Icons.Outlined.Edit, contentDescription = null, tint = Orbita.TextFaint, modifier = Modifier.size(13.dp))
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Dot(color, 7.dp, pulse = state.connection == Connection.Connecting)
                     Spacer(Modifier.width(5.dp))
@@ -204,8 +222,31 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
                 }
             }
             IconAction(Icons.Outlined.Settings, t("Ajustes"), onClick = { go(Section.Settings) }, tint = if (model.section == Section.Settings) Orbita.Text else Orbita.TextSoft, modifier = Modifier.testTag("nav-Settings"))
+            if (renaming) ServerNameDialog(model, initial = snapshot?.settings?.serverName ?: server, onDismiss = { renaming = false })
         }
     }
+}
+
+/** Ponerle nombre al ordenador (vacío: vuelve al de la red). Se guarda en él, así que se ve igual en todos lados. */
+@Composable
+private fun ServerNameDialog(model: OrbitaModel, initial: String, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xF20E1730),
+        title = { Text(t("Nombre del ordenador"), color = Orbita.Text) },
+        text = {
+            Column {
+                OrbitaField(value = name, onValueChange = { name = it.replace('\n', ' ').take(40) }, placeholder = t("Mac mini de casa"), imeAction = ImeAction.Done, onIme = {}, autoFocus = true)
+                Spacer(Modifier.height(8.dp))
+                Text(t("Se ve así en la barra lateral de Órbita, la web y el escritorio. Déjalo vacío para usar el nombre de la red."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onDismiss(); model.run({ model.controller.setServerName(name.trim()) }) }, modifier = Modifier.testTag("server-name-save")) { Text(t("Guardar"), color = Orbita.Accent) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Cancelar"), color = Orbita.TextSoft) } },
+    )
 }
 
 /** Una fila de la barra: icono de línea, texto y, si hace falta, un número (en ámbar los avisos que te esperan). */

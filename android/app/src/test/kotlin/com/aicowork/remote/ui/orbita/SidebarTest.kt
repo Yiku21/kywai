@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.aicowork.remote.data.model.OpenChat
@@ -37,7 +38,7 @@ class SidebarTest {
             base.copy(
                 snapshot = snap.copy(
                     conversation = snap.conversation.copy(chat = OpenChat("ch1", "Pantallas de la app")),
-                    capabilities = snap.capabilities.copy(chats = true, search = true),
+                    capabilities = snap.capabilities.copy(chats = true, search = true, serverName = true),
                 ),
             ),
         )
@@ -115,5 +116,17 @@ class SidebarTest {
         compose.onNodeWithTag("rail-Results").performClick()
         compose.waitForIdle()
         assertTrue(model.section == Section.Results && !model.drawerOpen)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun theComputerNameCanBeRenamed() {
+        val controller = controller()
+        show(controller)
+        compose.onNodeWithTag("server-name").performClick()
+        compose.onNode(hasSetTextAction()).performTextClearance()
+        compose.onNode(hasSetTextAction()).performTextInput("Mac de casa")
+        compose.onNodeWithTag("server-name-save").performClick()
+        compose.waitUntil(5_000) { "serverName:Mac de casa" in controller.calls }
     }
 }

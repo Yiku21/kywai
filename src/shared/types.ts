@@ -784,6 +784,11 @@ export interface AppConfig {
    * sigue Órbita, para que el móvil se vea igual. Sin él, el clásico.
    */
   uiTheme?: string
+  /**
+   * Nombre que el usuario le ha puesto a este ordenador (el servidor), para verlo así abajo en la barra lateral del
+   * escritorio, la web y Órbita. Sin él, el nombre del equipo en la red («macmini.lan»).
+   */
+  serverName?: string
   /** Acceso desde otros dispositivos de Tailscale (navegador del móvil o del portátil). */
   webAccess: WebAccessConfig
 }
@@ -823,7 +828,7 @@ export interface ClientUpdateState {
 
 /** El equipo donde corre el motor: para distinguir el servidor de un cliente o un navegador. */
 export interface HostInfo {
-  /** Nombre del equipo (sin «.local»). */
+  /** Nombre del equipo: el que le puso el usuario o, si no, el de la red (sin «.local»). */
   name: string
   platform: string
 }
@@ -1224,6 +1229,8 @@ export interface CoworkApi {
   setLanguage(lang: Lang): Promise<void>
   /** Tema elegido en este equipo: el servidor lo guarda para que Órbita se vea igual. */
   setUiTheme?(id: string): Promise<void>
+  /** Nombre del ordenador que se ve en la barra lateral («» vuelve al nombre del equipo en la red). */
+  setServerName?(name: string): Promise<void>
   /** «/model»: modelo con el que coordina Hermes y los que puede usar (según sus proveedores con sesión). */
   getHermesModels(): Promise<HermesModelsInfo>
   /** Cambia el modelo de Hermes en kywai (null: volver al de su configuración). */

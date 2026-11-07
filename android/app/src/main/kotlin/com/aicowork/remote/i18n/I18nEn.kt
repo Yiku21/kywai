@@ -711,4 +711,10 @@ private fun part5(m: HashMap<String, String>) {
     m["Este dispositivo no tiene cámara"] = "This device has no camera"
     m["Subiendo {name}…"] = "Uploading {name}…"
     m["No se pudo subir {name}"] = "Couldn't upload {name}"
+    m["Nuevo"] = "New"
+    m["Nombre del ordenador guardado"] = "Computer name saved"
+    m["Cambiar el nombre de este ordenador ({name})"] = "Rename this computer ({name})"
+    m["Nombre del ordenador"] = "Computer name"
+    m["Mac mini de casa"] = "Home Mac mini"
+    m["Se ve así en la barra lateral de Órbita, la web y el escritorio. Déjalo vacío para usar el nombre de la red."] = "This is how it shows in the sidebar of Órbita, the web and the desktop. Leave it empty to use the network name."
 }

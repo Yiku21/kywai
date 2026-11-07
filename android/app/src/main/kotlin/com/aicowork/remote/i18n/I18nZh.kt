@@ -711,4 +711,10 @@ private fun part5(m: HashMap<String, String>) {
     m["Este dispositivo no tiene cámara"] = "此设备没有相机"
     m["Subiendo {name}…"] = "正在上传 {name}…"
     m["No se pudo subir {name}"] = "无法上传 {name}"
+    m["Nuevo"] = "新建"
+    m["Nombre del ordenador guardado"] = "电脑名称已保存"
+    m["Cambiar el nombre de este ordenador ({name})"] = "重命名这台电脑（{name}）"
+    m["Nombre del ordenador"] = "电脑名称"
+    m["Mac mini de casa"] = "家里的 Mac mini"
+    m["Se ve así en la barra lateral de Órbita, la web y el escritorio. Déjalo vacío para usar el nombre de la red."] = "Órbita、网页版和桌面版的侧边栏都会这样显示。留空则使用网络名称。"
 }

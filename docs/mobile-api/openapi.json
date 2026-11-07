@@ -1469,6 +1469,59 @@
         "description": "Mismo ajuste que ⋮ → «Pedir mi visto bueno a cada plan» en el escritorio. Emite config.updated."
       }
     },
+    "/api/mobile/v1/settings/server-name": {
+      "post": {
+        "operationId": "setMobileServerName",
+        "summary": "Cambiar el nombre del ordenador que se ve en la barra lateral",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerNameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerNameResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "El mismo nombre que se cambia abajo en la barra lateral del escritorio y la web. Vacío vuelve al nombre del equipo en la red. Emite config.updated."
+      }
+    },
     "/api/mobile/v1/usage/refresh": {
       "post": {
         "operationId": "refreshMobileUsage",
@@ -4422,6 +4475,10 @@
           "music": {
             "type": "boolean",
             "description": "GET /music/search: radios de SomaFM y canciones de Audius."
+          },
+          "serverName": {
+            "type": "boolean",
+            "description": "POST /settings/server-name: cambiar el nombre del ordenador que se ve en la barra lateral."
           }
         },
         "required": [
@@ -4679,6 +4736,11 @@
             "type": "string",
             "pattern": "^[a-z][a-z0-9-]{0,39}$",
             "description": "Tema elegido en el escritorio (id de lib/theme.ts: «grafito», «mundo-bosque»…). Órbita se pinta igual."
+          },
+          "serverName": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "Nombre que le puso el usuario al ordenador. Sin él, el de la red."
           }
         },
         "required": [
@@ -5243,6 +5305,35 @@
         },
         "required": [
           "planApproval"
+        ],
+        "additionalProperties": false
+      },
+      "ServerNameRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "ServerNameResponse": {
+        "type": "object",
+        "properties": {
+          "serverName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "serverName"
         ],
         "additionalProperties": false
       },

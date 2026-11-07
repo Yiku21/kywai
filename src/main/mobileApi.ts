@@ -47,6 +47,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/files\/raw$/, 'fileRaw', ['GET']],
   [/^\/settings\/agent-access$/, 'agentAccess', ['POST']],
   [/^\/settings\/plan-approval$/, 'planApproval', ['POST']],
+  [/^\/settings\/server-name$/, 'serverName', ['POST']],
   [/^\/usage\/refresh$/, 'usageRefresh', ['POST']],
   [/^\/quality$/, 'quality', ['GET']],
   [/^\/inbox$/, 'inbox', ['GET']],
@@ -392,6 +393,13 @@ export class MobileApi {
           fields(input, ['access'])
           if (input.access !== 'full' && input.access !== 'project') throw new MobileError(400, 'INVALID_INPUT', 'access debe ser full o project')
           mobileJson(res, 200, await this.backend.setAgentAccess(input.access))
+          break
+        }
+        case 'serverName': {
+          const input = await body(req)
+          fields(input, ['name'])
+          if (typeof input.name !== 'string' || input.name.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'name debe ser un texto de hasta 200 caracteres')
+          mobileJson(res, 200, await this.backend.setServerName(input.name))
           break
         }
         case 'planApproval': {

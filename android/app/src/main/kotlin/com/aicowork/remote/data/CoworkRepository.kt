@@ -191,6 +191,8 @@ interface CoworkController {
     /** Visto bueno ([approve]) o descarte del plan que propone Hermes en el mensaje [messageId]. */
     suspend fun decidePlan(messageId: String, approve: Boolean): ActionResult = unsupported
     suspend fun setPlanApproval(enabled: Boolean): ActionResult = unsupported
+    /** Nombre del ordenador que se ve abajo en la barra lateral (también en el escritorio y la web). */
+    suspend fun setServerName(name: String): ActionResult = unsupported
     /** Nota de voz → texto (con el dictado del ordenador). */
     suspend fun transcribe(file: java.io.File): Result<String> = Result.failure(IllegalStateException(unsupported.message))
     /** Última versión de Órbita que ofrece el ordenador. */
@@ -799,6 +801,11 @@ class CoworkRepository(
             })
         }
         if (_state.value.connection != Connection.Online) resync(c)
+    }
+
+    override suspend fun setServerName(name: String): ActionResult = action(t("Nombre del ordenador guardado")) { c ->
+        val saved = c.setServerName(name)
+        _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(serverName = saved)) }) }
     }
 
     override suspend fun setPlanApproval(enabled: Boolean): ActionResult = action(
