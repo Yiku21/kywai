@@ -42,14 +42,16 @@ const RECENT_LIMIT = 8
 /**
  * Barra lateral (como la de Claude): conversación nueva, buscador, accesos (Te necesita, tareas, resultados,
  * rutinas), proyectos fijados, proyectos con sus conversaciones y las conversaciones recientes de todos; abajo,
- * dónde estás conectado y la rueda de Ajustes. Plegada queda en una columna de iconos. En ventanas estrechas se abre
- * por encima del chat con el botón de la cabecera.
+ * dónde estás conectado y la rueda de Ajustes. Plegada queda en una columna de iconos. En ventanas estrechas (móvil,
+ * tableta en vertical) esa columna de iconos se queda siempre a la izquierda, y la barra entera se abre por encima
+ * del chat con su primer botón.
  */
 export function Sidebar() {
   const narrow = useMediaQuery(TABS_QUERY)
   const drawerOpen = useCowork((st) => st.drawerOpen)
   const [collapsed, setCollapsed] = useState<boolean>(readCollapsed)
-  const rail = collapsed && !narrow
+  // En ventana estrecha la barra siempre queda plegada en su columna de iconos; la entera sale como cajón.
+  const rail = collapsed || narrow
 
   const closeDrawer = useCallback(() => useCowork.setState({ drawerOpen: false }), [])
   useEscape(narrow && drawerOpen, closeDrawer)
@@ -73,38 +75,47 @@ export function Sidebar() {
   }, [])
 
   function toggle(): void {
-    if (narrow) return closeDrawer()
+    if (narrow) return useCowork.setState({ drawerOpen: true })
     setCollapsed((c) => {
       saveCollapsed(!c)
       return !c
     })
   }
 
-  if (narrow && !drawerOpen) return null
-
   const panel = (
-    <nav className={cx(s.bar, rail && s.rail, narrow && s.drawer)} aria-label={t('Barra lateral: conversaciones y proyectos')}>
+    <nav className={cx(s.bar, rail && s.rail)} aria-label={t('Barra lateral: conversaciones y proyectos')}>
       <div className={s.top}>
         <button
           type="button"
           className={s.iconBtn}
           onClick={toggle}
-          aria-label={narrow ? t('Cerrar la barra lateral') : rail ? t('Abrir la barra lateral') : t('Plegar la barra lateral')}
-          title={narrow ? t('Cerrar') : rail ? t('Abrir la barra lateral') : t('Plegar la barra lateral')}
+          aria-label={rail ? t('Abrir la barra lateral') : t('Plegar la barra lateral')}
+          title={rail ? t('Abrir la barra lateral') : t('Plegar la barra lateral')}
         >
-          {narrow ? <X size={18} aria-hidden="true" /> : <PanelLeft size={18} aria-hidden="true" />}
+          <PanelLeft size={18} aria-hidden="true" />
         </button>
       </div>
-      <SidebarBody rail={rail} onNavigate={narrow ? closeDrawer : undefined} />
+      <SidebarBody rail={rail} />
       <Footer rail={rail} />
     </nav>
   )
 
-  if (!narrow) return panel
+  if (!narrow || !drawerOpen) return panel
   return (
-    <div className={s.scrim} onPointerDown={(e) => e.target === e.currentTarget && closeDrawer()}>
+    <>
       {panel}
-    </div>
+      <div className={s.scrim} onPointerDown={(e) => e.target === e.currentTarget && closeDrawer()}>
+        <nav className={cx(s.bar, s.drawer)} aria-label={t('Barra lateral: conversaciones y proyectos')}>
+          <div className={s.top}>
+            <button type="button" className={s.iconBtn} onClick={closeDrawer} aria-label={t('Cerrar la barra lateral')} title={t('Cerrar')}>
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+          <SidebarBody rail={false} onNavigate={closeDrawer} />
+          <Footer rail={false} />
+        </nav>
+      </div>
+    </>
   )
 }
 

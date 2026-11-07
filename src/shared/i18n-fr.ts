@@ -1925,8 +1925,6 @@ export const fr: Record<string, string> = {
   'Apagado: responde directamente, más rápido.': 'Désactivé : répond directement, plus vite.',
   'Ancho del chat': 'Largeur du chat',
   'Arrastra para cambiar el ancho del chat · doble clic: ancho automático': 'Faites glisser pour changer la largeur du chat · double-clic : largeur automatique',
-  "Abrir la barra lateral: conversaciones, proyectos y ajustes": "Ouvrir la barre latérale : conversations, projets et réglages",
-  "Conversaciones, proyectos y ajustes": "Conversations, projets et réglages",
   "Ajustes y más opciones": "Réglages et plus d’options",
   "Sonido": "Son",
   "Silenciado": "Coupé",
