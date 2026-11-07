@@ -99,6 +99,10 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   `xattr -cr "/Applications/AI Cowork.app"`.
 - Las compiladas en el propio equipo (`instalar-mac.sh`, `instalar-linux.sh`, `npm run dist:*`) no traen
   `app-update.yml` y siguen actualizándose desde su clon de git. Es lo que usa el servidor (Mac mini).
+- Las descargas de la Release se llaman `kywai-Setup-<versión>.exe`, `kywai-<versión>-<arch>.dmg/.zip` y
+  `kywai-<versión>-<arch>.AppImage` (el workflow cambia el nombre al compilar). La app instalada sigue siendo
+  «AI Cowork» por dentro, y lo compilado en el propio equipo (`npm run dist:*`) mantiene `AI-Cowork-*`, porque el
+  cliente de Windows que reparte el servidor (`clientRelease.ts`, `publicar-cliente.mjs`) depende de ese nombre.
 - El workflow solo corre en el repositorio público; en kywai-original no hace nada.
 - **Nombres de los repositorios (desde el 7 nov 2026):** el público es `Yiku21/kywai` (antes `ai-cowork`/`Ai-cowork`) y el
   privado `Yiku21/kywai-original` (antes `ai-cowork-original`). GitHub redirige los nombres viejos, así que las apps ya

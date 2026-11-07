@@ -73,7 +73,10 @@ jobs:
           npx electron-vite build
           npx electron-builder ${{ matrix.args }} --publish never \
             -c.extraMetadata.version=${{ needs.version.outputs.version }} \
-            -c.publish.provider=github -c.publish.owner=Yiku21 -c.publish.repo=kywai -c.publish.releaseType=release
+            -c.publish.provider=github -c.publish.owner=Yiku21 -c.publish.repo=kywai -c.publish.releaseType=release \
+            '-c.nsis.artifactName=kywai-Setup-${version}.${ext}' \
+            '-c.mac.artifactName=kywai-${version}-${arch}.${ext}' \
+            '-c.linux.artifactName=kywai-${version}-${arch}.${ext}'
       - uses: actions/upload-artifact@v4
         with:
           name: escritorio-${{ matrix.os }}
@@ -102,22 +105,22 @@ jobs:
         run: |
           ls -la dist
           cat > notas.md <<EOF
-          Automatic build from commit ${GITHUB_SHA::7}. Once installed, AI Cowork checks for a newer version every time it opens.
+          Automatic build from commit ${GITHUB_SHA::7}. Once installed, kywai checks for a newer version every time it opens.
 
           | System | Download |
           |---|---|
-          | Windows 10/11 | \`AI-Cowork-Setup-${V}.exe\` |
-          | macOS, Apple silicon (M1 and later) | \`AI-Cowork-${V}-arm64.dmg\` |
-          | macOS, Intel | \`AI-Cowork-${V}-x64.dmg\` |
-          | Linux x64 | \`AI-Cowork-${V}-x86_64.AppImage\` |
-          | Linux ARM | \`AI-Cowork-${V}-arm64.AppImage\` |
+          | Windows 10/11 | \`kywai-Setup-${V}.exe\` |
+          | macOS, Apple silicon (M1 and later) | \`kywai-${V}-arm64.dmg\` |
+          | macOS, Intel | \`kywai-${V}-x64.dmg\` |
+          | Linux x64 | \`kywai-${V}-x86_64.AppImage\` |
+          | Linux ARM | \`kywai-${V}-arm64.AppImage\` |
 
           The apps are not code-signed yet:
           - **Windows:** if SmartScreen warns you, click "More info" → "Run anyway".
           - **macOS:** drag the app to Applications, then right-click it → Open (only the first time). If macOS says it is damaged, run \`xattr -cr "/Applications/AI Cowork.app"\` in Terminal.
-          - **Linux:** \`chmod +x AI-Cowork-*.AppImage\` and open it.
+          - **Linux:** \`chmod +x kywai-*.AppImage\` and open it.
 
           You still need at least one AI agent (Claude Code, Codex CLI, Gemini CLI, a local model…). The setup assistant installs and signs in to them on first launch.
           EOF
           gh release create "v${V}" dist/* --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" \
-            --title "AI Cowork ${V}" --notes-file notas.md --latest
+            --title "kywai ${V}" --notes-file notas.md --latest
