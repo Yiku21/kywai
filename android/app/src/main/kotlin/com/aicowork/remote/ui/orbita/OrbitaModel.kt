@@ -55,7 +55,7 @@ enum class Section(val label: String, val icon: ImageVector) {
     Results(t("Resultados"), Icons.Outlined.Inventory2),
     Memory(t("Memoria"), Icons.Outlined.Psychology),
     Tools(t("Herramientas"), Icons.Outlined.Build),
-    Usage(t("Consumo"), Icons.Outlined.DataUsage),
+    Usage(t("Uso y coste"), Icons.Outlined.DataUsage),
     Settings(t("Ajustes"), Icons.Outlined.Settings),
     Team(t("Equipo"), Icons.Outlined.Groups),
 }

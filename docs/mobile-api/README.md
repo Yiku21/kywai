@@ -50,6 +50,7 @@ Todas las peticiones POST llevan JSON (salvo la subida de archivos, `POST /files
 | `POST /settings/plan-approval` | `200`, `{"planApproval":true\|false}` |
 | `POST /usage/refresh` | `200`, `{"quotas":[…]}` |
 | `GET /quality?days=` | `200`, `{"days":30,"minTasks":5,"agents":[AgentQuality…]}` |
+| `GET /usage/cost?days=` | `200`, `{"currency":"EUR","days":30,"paid":…,"api":…,"budget":…\|null,"byAgent":[…],"subscriptions":[…]}` |
 | `POST /agents/{agentId}/reset` | `200`, `{"agentId","activity","reason"}`; `404 AGENT_NOT_FOUND` |
 | `GET /app/android` | `200`, `{"versionCode":…,"versionName":"…","size":…,"sha256":"…","builtAt":"…"\|null}`; `404 NO_ORBITA_RELEASE` si no hay |
 | `GET /app/android/apk` | `200`, la APK (`application/vnd.android.package-archive`) |
@@ -114,6 +115,7 @@ En todas estas rutas `conversationId` es obligatorio (no admite `null`) y un pro
 - `POST /settings/agent-access` `{"access":"full"|"project"}` → `{"agentAccess":"…"}`. Es el mismo ajuste del escritorio y emite `config.updated`.
 - `POST /usage/refresh` `{}` → `{"quotas":[…]}` tras volver a consultar las cuotas como el botón del escritorio (puede tardar unos segundos). Emite `quota.update`.
 - `GET /quality` (opcional `days`, de 1 a 999; por defecto 30) → lo mismo que ⋮ → «Cómo rinde cada agente…»: por agente (de más a menos tareas) y por dificultad (`byDifficulty`: `hard`, `medium`, `easy` y `unknown` para registros antiguos) `tasks`, `rated`/`liked`/`likedPct` (👍 sobre las valoradas), `verified`/`firstPass`/`firstPassPct` (verificación a la primera), `fixed`/`fixedPct` (necesitó corrección), `failed`/`failedPct` (falló o pasó a otro), `medianMs` y `medianTokens` (`null` si el agente no informa de tokens). Los porcentajes son `null` sin base. `capabilities.agentQuality` indica que el servidor lo tiene.
+- `GET /usage/cost` (opcional `days`, de 1 a 999; por defecto 30) → la sección «Coste» de ⚙ → «Uso y coste…», con los importes ya en la moneda elegida (`currency`, `USD` o `EUR`): `paid` (lo pagado por los agentes que van por API), `api` (todo lo usado a precios de API; `estimated` es la parte que sale de tokens estimados de Hermes y los agentes de catálogo), `unpricedCalls`, `budget` (`{limit, spent, pct}` del mes en curso, o `null`), `byAgent` (`agentId`, `name`, `mode`: `subscription`/`api`/`free`/`local`/`null`, `calls`, `api` y `estimated` si va con ≈) y `subscriptions` (`monthly`, `api30` de los últimos 30 días, `runs30` y `verdict`: `worth` si por API habría costado más, `cheaper-api` si saldría más barato, `null` sin precio al mes). La instantánea lleva lo mismo de 30 días en `usage.cost`; `capabilities.usageCost` indica que el servidor lo tiene. Cada llamada del registro puede traer `costUsd` (lo dio Claude Code) y `estInput`/`estOutput`. La bandeja tiene el tipo `budget` (aviso al 80 % del presupuesto y al pasarlo).
 
 Los cambios de memoria e instrucciones emiten `memory.updated` (`projectId`, `memory` completa e `instructions`) a todos los clientes, también al escritorio.
 

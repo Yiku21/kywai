@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -84,6 +85,7 @@ object InboxKinds {
         "conflict" -> t("Conflicto")
         "failed" -> t("Falló")
         "done" -> t("Terminado")
+        "budget" -> t("Presupuesto")
         else -> t("Aviso")
     }
 
@@ -96,13 +98,14 @@ object InboxKinds {
         "conflict" -> Icons.Outlined.Sync
         "failed" -> Icons.Outlined.ErrorOutline
         "done" -> Icons.Outlined.CheckCircle
+        "budget" -> Icons.Outlined.Savings
         else -> Icons.Outlined.Notifications
     }
 
     fun tint(kind: String): Color = when (kind) {
         "failed", "verify-failed", "conflict" -> Orbita.Danger
         "done" -> Orbita.Success
-        "stalled", "mac-permission" -> Orbita.Warn
+        "stalled", "mac-permission", "budget" -> Orbita.Warn
         else -> Orbita.Accent
     }
 }
