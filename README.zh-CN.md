@@ -276,7 +276,7 @@ flowchart TD
 
 ### 下载（最简单）
 
-从 **[最新版本](https://github.com/Yiku21/Ai-cowork/releases/latest)** 下载适合你系统的安装包：Windows 用 `.exe`，macOS（Apple 芯片或 Intel）用 `.dmg`，Linux 用 `.AppImage`。安装后，应用每次打开都会检查新版本并自动更新（在 macOS 上会提示你并打开下载页面）。
+从 **[最新版本](https://github.com/Yiku21/kywai/releases/latest)** 下载适合你系统的安装包：Windows 用 `.exe`，macOS（Apple 芯片或 Intel）用 `.dmg`，Linux 用 `.AppImage`。安装后，应用每次打开都会检查新版本并自动更新（在 macOS 上会提示你并打开下载页面）。
 
 目前还没有代码签名：在 Windows 上点击“更多信息”→“仍要运行”；在 macOS 上第一次打开时右键点击应用 → 打开（如果提示已损坏，在终端运行 `xattr -cr "/Applications/AI Cowork.app"`）；在 Linux 上用 `chmod +x` 让 AppImage 可执行。
 

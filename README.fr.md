@@ -276,7 +276,7 @@ Et quatre qui décorent le monde, remodèlent son noyau et, pour les thèmes fes
 
 ### Télécharger (le plus simple)
 
-Récupérez l’installateur de votre système dans la **[dernière version](https://github.com/Yiku21/Ai-cowork/releases/latest)** : `.exe` pour Windows, `.dmg` pour macOS (Apple silicon ou Intel) et `.AppImage` pour Linux. Une fois installée, l’app cherche une nouvelle version à chaque ouverture et se met à jour toute seule (sur macOS, elle vous prévient et ouvre le téléchargement).
+Récupérez l’installateur de votre système dans la **[dernière version](https://github.com/Yiku21/kywai/releases/latest)** : `.exe` pour Windows, `.dmg` pour macOS (Apple silicon ou Intel) et `.AppImage` pour Linux. Une fois installée, l’app cherche une nouvelle version à chaque ouverture et se met à jour toute seule (sur macOS, elle vous prévient et ouvre le téléchargement).
 
 Elles ne sont pas encore signées : sous Windows, cliquez sur « Informations complémentaires » → « Exécuter quand même » ; sur macOS, la première fois, clic droit sur l’app → Ouvrir (si elle est dite endommagée, lancez `xattr -cr "/Applications/AI Cowork.app"`) ; sous Linux, rendez l’AppImage exécutable avec `chmod +x`.
 

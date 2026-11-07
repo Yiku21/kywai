@@ -11,7 +11,7 @@ import { join } from 'node:path'
 import { autoUpdater, type UpdateInfo } from 'electron-updater'
 import { tr } from '@shared/i18n'
 
-const RELEASES_URL = 'https://github.com/Yiku21/Ai-cowork/releases/latest'
+const RELEASES_URL = 'https://github.com/Yiku21/kywai/releases/latest'
 /** Si la versión nueva se descarga antes de esto desde el arranque, se instala ya y la app se reabre. */
 const INSTALL_NOW_MS = 5 * 60_000
 const CHECK_EVERY_MS = 6 * 60 * 60_000
