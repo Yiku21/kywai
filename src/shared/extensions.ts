@@ -224,3 +224,44 @@ export function parseMcpPaste(text: string): McpServerInput[] | string {
   if (!words.length) return 'Falta la orden que arranca el servidor'
   return [{ id: mcpIdFrom(packageOf(words)), transport: 'stdio', command: words[0], args: words.slice(1), ...(Object.keys(env).length ? { env } : {}) }]
 }
+
+/** Una ficha del catálogo de servidores MCP (registro oficial o destacados). */
+export interface McpCatalogItem {
+  /** Nombre en el registro (com.empresa/servidor). */
+  name: string
+  title: string
+  description: string
+  version: string
+  /** Publicado desde un dominio comprobado, o de los destacados de kywai. */
+  verified: boolean
+  repo?: string
+  website?: string
+  kind: 'stdio' | 'http'
+  /** Lo que se rellena al instalarlo (se revisa antes de guardar); null si no se sabe instalar aquí. */
+  install: McpServerInput | null
+  /** Sus claves: qué es cada una y si hace falta. */
+  keys: Array<{ name: string; description: string; required: boolean; secret: boolean }>
+  /** La orden o la dirección lleva algo entre <> o {} que hay que poner a mano. */
+  needsEdit: boolean
+  /** Por qué no se puede instalar (si install es null). */
+  unsupported?: string
+}
+
+/** Una habilidad del catálogo (skills.sh, destacados o un repositorio). */
+export interface SkillCatalogItem {
+  /** Repositorio de GitHub (dueño/nombre). */
+  source: string
+  /** Su carpeta en el repositorio ('' = todas las del repositorio). */
+  skillId: string
+  name: string
+  installs: number
+  verified: boolean
+  description?: string
+  url?: string
+}
+
+/** Una habilidad instalada (carpeta «habilidades» de kywai). */
+export interface SkillInfo {
+  name: string
+  description: string
+}
