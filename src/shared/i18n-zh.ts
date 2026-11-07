@@ -2244,4 +2244,8 @@ export const zh: Record<string, string> = {
   "Es el más directo para abrir kywai en el navegador de otro equipo de tu red de Tailscale. No deja usar el micrófono.": "在 Tailscale 网络中其他设备的浏览器里打开 kywai 最直接的方式。无法使用麦克风。",
   "Navegador por nombre del equipo": "浏览器（设备名）",
   "Hace lo mismo que el anterior, pero con el nombre del equipo en Tailscale, así que sigue valiendo aunque cambie la IP.": "与上一个相同，但使用设备在 Tailscale 中的名称，即使 IP 变化也仍然有效。",
+  "El aspecto de kywai. Se aplica al momento en todos los dispositivos conectados a este servidor, también en Órbita.": "kywai 的外观。会立即应用到连接此服务器的所有设备，包括 Órbita。",
+  "Usar un tema propio en este dispositivo": "在此设备上使用单独的主题",
+  "Este dispositivo tiene su tema y no cambia cuando lo cambias en otro.": "此设备保留自己的主题，在其他设备上更改时不会跟着变。",
+  "Desmarcado, sigue el tema del servidor como los demás.": "关闭时，与其他设备一样跟随服务器的主题。",
 }
