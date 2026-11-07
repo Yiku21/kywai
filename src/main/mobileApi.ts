@@ -29,12 +29,14 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/chat\/messages$/, 'chat', ['POST']],
   [/^\/conversations$/, 'conversations', ['POST']],
   [/^\/chats$/, 'chats', ['GET', 'POST']],
-  [/^\/chats\/([^/]+)\/(open|rename|delete)$/, 'chatAction', ['POST']],
+  [/^\/chats\/pinned$/, 'pinnedChats', ['GET']],
+  [/^\/chats\/([^/]+)\/(open|rename|delete|pin|fork|move)$/, 'chatAction', ['POST']],
   [/^\/search$/, 'search', ['GET']],
   [/^\/music\/search$/, 'musicSearch', ['GET']],
   [/^\/requests\/([^/]+)\/(stop|resume|discard)$/, 'control', ['POST']],
   [/^\/plans\/([^/]+)\/(approve|reject)$/, 'plan', ['POST']],
   [/^\/projects$/, 'projects', ['GET']],
+  [/^\/projects\/([^/]+)\/(rename|pin|delete)$/, 'projectAction', ['POST']],
   [/^\/tasks\/([^/]+)\/trace$/, 'trace', ['GET']],
   [/^\/memory$/, 'memoryAdd', ['POST']],
   [/^\/memory\/([^/]+)$/, 'memoryUpdate', ['POST']],
@@ -258,13 +260,27 @@ export class MobileApi {
           if (action === 'rename') {
             fields(input, ['conversationId', 'title'])
             mobileJson(res, 200, await this.backend.renameChat(projectId(input.conversationId), chat, string(input.title, 'title', 80)))
+          } else if (action === 'pin') {
+            fields(input, ['conversationId', 'pinned'])
+            if (typeof input.pinned !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', 'pinned debe ser true o false')
+            mobileJson(res, 200, await this.backend.pinChat(projectId(input.conversationId), chat, input.pinned))
+          } else if (action === 'move') {
+            fields(input, ['conversationId', 'toConversationId'])
+            mobileJson(res, 200, await this.backend.moveChat(projectId(input.conversationId), chat, projectId(input.toConversationId)))
           } else {
             fields(input, ['conversationId'])
             const project = projectId(input.conversationId)
-            mobileJson(res, 200, action === 'open' ? { conversation: await this.backend.openChat(project, chat) } : await this.backend.deleteChat(project, chat))
+            if (action === 'open') mobileJson(res, 200, { conversation: await this.backend.openChat(project, chat) })
+            else if (action === 'fork') mobileJson(res, 200, await this.backend.forkChat(project, chat))
+            else mobileJson(res, 200, await this.backend.deleteChat(project, chat))
           }
           break
         }
+        // Fijadas de todos los proyectos (la sección «Fijados» de la barra lateral).
+        case 'pinnedChats':
+          query(url, [])
+          mobileJson(res, 200, await this.backend.pinnedChats())
+          break
         case 'search': {
           const params = query(url, ['q', 'conversationId'], ['q'])
           const q = params.q!.trim()
@@ -295,6 +311,23 @@ export class MobileApi {
           query(url, [])
           mobileJson(res, 200, { projects: await this.backend.projects() })
           break
+        // Menú de un proyecto en la barra lateral: renombrar, fijar o eliminar (va a la Papelera del ordenador).
+        case 'projectAction': {
+          const project = projectId(param)
+          const input = await body(req)
+          if (action === 'rename') {
+            fields(input, ['name'])
+            mobileJson(res, 200, { projects: await this.backend.renameProject(project, string(input.name, 'name', 80).trim()) })
+          } else if (action === 'pin') {
+            fields(input, ['pinned'])
+            if (typeof input.pinned !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', 'pinned debe ser true o false')
+            mobileJson(res, 200, { projects: await this.backend.pinProject(project, input.pinned) })
+          } else {
+            fields(input, [])
+            mobileJson(res, 200, { projects: await this.backend.deleteProject(project) })
+          }
+          break
+        }
         case 'trace':
           query(url, [])
           mobileJson(res, 200, await this.backend.trace(id(param, 'taskId')))

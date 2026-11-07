@@ -29,6 +29,8 @@ export interface MobileProject {
   updatedAt: number
   /** Tiene peticiones en marcha. */
   running: boolean
+  /** Fijado en la barra lateral (sección «Fijados»). */
+  pinned?: boolean
 }
 
 /** En la instantánea, solo las últimas entradas del registro; el completo está en GET /tasks/{id}/trace. */
@@ -98,6 +100,10 @@ export interface MobileSnapshot {
     directMessages: boolean
     /** Varios chats por proyecto, retomables (GET/POST /chats, /chats/:id/open|rename|delete). */
     chats?: boolean
+    /** Menú de un chat al mantenerlo pulsado: POST /chats/:id/pin|fork|move, GET /chats/pinned y borrar también el abierto. */
+    chatActions?: boolean
+    /** Menú de un proyecto al mantenerlo pulsado: POST /projects/:id/rename|pin|delete. */
+    projectActions?: boolean
     /** Buscador de todos los proyectos (GET /search). */
     search?: boolean
     /** POST /settings/server-name: cambiar el nombre del ordenador que se ve en la barra lateral. */

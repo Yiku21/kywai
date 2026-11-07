@@ -110,6 +110,7 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
     LaunchedEffect(expanded, snapshot?.conversation?.chat?.id, snapshot?.capabilities?.chats) {
         expanded?.let(model::loadChats)
     }
+    LaunchedEffect(snapshot?.conversation?.chat?.id, snapshot?.capabilities?.chatActions) { model.loadPinned() }
     fun go(section: Section) {
         model.drawerOpen = false
         model.open(section)
@@ -161,18 +162,13 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
                 }
             }
 
+            PinnedSection(model, state)
             ProjectsHeader(model)
             snapshot?.projects?.forEach { p ->
                 val open = expanded == p.id
-                ProjectRow(
-                    name = p.name,
-                    open = open,
-                    current = p.id == current,
-                    running = p.running,
-                    onClick = {
-                        if (open && p.id == current) model.expandedProject = "" else model.openProject(p.id)
-                    },
-                )
+                ProjectRow(model, p, open = open, current = p.id == current) {
+                    if (open && p.id == current) model.expandedProject = "" else model.openProject(p.id)
+                }
                 AnimatedVisibility(open && model.chatsSupported(), enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                     Column(Modifier.padding(start = 18.dp)) {
                         val list = model.chats[p.id].orEmpty().filter { it.current || it.messageCount > 0 }
@@ -338,100 +334,6 @@ private fun ProjectsHeader(model: OrbitaModel) {
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ProjectRow(name: String, open: Boolean, current: Boolean, running: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 42.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .tappable(haptic = Haptic.Select, onClick = onClick)
-            .padding(horizontal = 10.dp)
-            .semantics { selected = current },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(if (open) Icons.Outlined.FolderOpen else Icons.Outlined.Folder, contentDescription = null, tint = if (current) Orbita.Text else Orbita.TextSoft, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Text(name, color = Orbita.Text, style = MaterialTheme.typography.bodyMedium, fontWeight = if (current) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        if (running) {
-            Dot(Orbita.Live, 7.dp, pulse = true)
-            Spacer(Modifier.width(6.dp))
-        }
-        Icon(if (open) Icons.Outlined.ExpandMore else Icons.Outlined.ChevronRight, contentDescription = null, tint = Orbita.TextFaint, modifier = Modifier.size(18.dp))
-    }
-}
-
-/** Un chat del proyecto: tocar lo abre; mantener pulsado, renombrar o borrar. */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ChatRow(model: OrbitaModel, projectId: String, chat: ChatSummary, on: Boolean) {
-    var menu by remember { mutableStateOf(false) }
-    var renaming by remember { mutableStateOf(false) }
-    var deleting by remember { mutableStateOf(false) }
-    val title = chat.title.ifBlank { t("Chat nuevo") }
-    Box {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(if (on) Orbita.AccentSoft else Color.Transparent)
-                .combinedClickable(
-                    onClick = { model.feedback.tap(); model.openChat(projectId, chat.id) },
-                    onLongClick = { model.feedback.select(); menu = true },
-                )
-                .padding(horizontal = 10.dp)
-                .semantics { selected = on; contentDescription = title }
-                .testTag("chat-${chat.id}"),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null, tint = if (on) Orbita.Text else Orbita.TextFaint, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(10.dp))
-            Text(title, color = if (on) Orbita.Text else Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            chat.updatedAt?.let {
-                Spacer(Modifier.width(6.dp))
-                Text(Format.relative(it), color = Orbita.TextFaint, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-            }
-        }
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
-            DropdownMenuItem(
-                text = { Text(t("Renombrar"), color = Orbita.Text) },
-                leadingIcon = { Icon(Icons.Outlined.DriveFileRenameOutline, null, tint = Orbita.TextSoft) },
-                onClick = { menu = false; renaming = true },
-            )
-            DropdownMenuItem(
-                text = { Text(t("Borrar"), color = if (on) Orbita.TextFaint else Orbita.Text) },
-                leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null, tint = Orbita.TextSoft) },
-                enabled = !on,
-                onClick = { menu = false; deleting = true },
-            )
-        }
-    }
-    if (renaming) {
-        var name by remember { mutableStateOf(chat.title) }
-        AlertDialog(
-            onDismissRequest = { renaming = false },
-            containerColor = Color(0xF20E1730),
-            title = { Text(t("Renombrar chat"), color = Orbita.Text) },
-            text = { OrbitaField(value = name, onValueChange = { name = it.take(80) }, placeholder = t("Nombre del chat"), imeAction = ImeAction.Done, onIme = {}, autoFocus = true) },
-            confirmButton = {
-                TextButton(onClick = { renaming = false; model.renameChat(projectId, chat.id, name) }, enabled = name.isNotBlank()) { Text(t("Guardar"), color = Orbita.Accent) }
-            },
-            dismissButton = { TextButton(onClick = { renaming = false }) { Text(t("Cancelar"), color = Orbita.TextSoft) } },
-        )
-    }
-    if (deleting) {
-        ConfirmDialog(
-            title = t("¿Borrar «{title}»?", "title" to title),
-            text = t("Se guarda una copia en el ordenador, en la carpeta de chats borrados."),
-            confirm = t("Borrar"),
-            onConfirm = { deleting = false; model.deleteChat(projectId, chat.id) },
-            onDismiss = { deleting = false },
-            danger = true,
-        )
     }
 }
 

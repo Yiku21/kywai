@@ -281,8 +281,7 @@ desde el PC (`./gradlew :app:publishOrbita` y subir `android/release/`) sigue fu
 lo corten:
 
 - **Barra lateral**, como en el escritorio: «Nuevo chat», el buscador (busca en los títulos y en los mensajes de todos
-  los chats), los proyectos con sus chats retomables (toca uno para seguirlo; mantén pulsado para renombrarlo o
-  borrarlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
+  los chats), «Fijados», los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
   con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Te necesita con su número, Chat,
   Tareas, Resultados, Música, Más y Ajustes abajo). En la tableta cada icono lleva su nombre debajo; en el móvil en
   vertical es una columna fina solo de iconos. El logo o el botón de debajo la despliegan entera (en el móvil, como
@@ -290,6 +289,20 @@ lo corten:
 - **Nombre del ordenador:** abajo en la barra lateral sale a qué ordenador estás conectado («macmini.lan»). Tócalo para
   ponerle el nombre que quieras (vacío vuelve al de la red). Se guarda en el ordenador, así que se ve igual en Órbita,
   la web y el escritorio (ver [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)).
+- **Mantén el dedo sobre un proyecto o un chat** de la barra lateral y sale su menú, el mismo que el clic derecho del
+  escritorio (ver [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)):
+  - **Proyecto:** Nuevo chat en este proyecto, Fijar (o Soltar de Fijados), Cambiar nombre y Eliminar proyecto (pide
+    confirmación; todo lo suyo va a la Papelera del ordenador).
+  - **Chat:** Fijar, Cambiar nombre, Bifurcar (se abre la copia), Mover a otro proyecto (sale la lista de proyectos)
+    y Eliminar (pide confirmación; va a `conversaciones/borradas/`). También se elimina el chat abierto: antes se
+    empieza uno nuevo en su proyecto.
+  - Lo fijado sale arriba en **Fijados**, igual que en el escritorio y el navegador.
+  - «Abrir carpeta del proyecto» no está en el móvil. Mientras el equipo trabaja en un proyecto no se puede eliminar
+    ni empezar otro chat en él, ni mover o eliminar el chat en el que trabaja (la opción sale apagada y dice por qué).
+  - Con un ordenador de versión anterior solo salen Cambiar nombre y Eliminar en los chats (no el abierto) y Nuevo
+    chat en los proyectos. Para tenerlo todo, actualiza kywai en el ordenador (servidor). Para desarrolladores: la
+    API móvil anuncia `capabilities.chatActions` (`POST /chats/{id}/pin|fork|move`, `GET /chats/pinned`) y
+    `capabilities.projectActions` (`POST /projects/{id}/rename|pin|delete`); ver `docs/mobile-api/`.
 - **Pestañas Chat · Archivos · Tareas · Resultados** en la cabecera del panel (en el móvil: Chat · Espacio · Tareas ·
   Resultados, bajo la barra de arriba). La pestaña Tareas lleva el número de tareas en marcha.
 - **Un agente a la vez:** abajo, en vez de la barra del Equipo, sale la ficha de un agente con **‹ ›** (o deslizando)

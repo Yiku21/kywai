@@ -30,6 +30,13 @@ Todas las peticiones POST llevan JSON (salvo la subida de archivos, `POST /files
 | `POST /plans/{messageId}/reject` | `200`, `conversationId`, `messageId`, `requestId`, `status:"rejected"` |
 | `GET /events` con Upgrade WebSocket | `101`, canal de eventos autenticado |
 | `GET /projects` | `200`, `{"projects":[…]}` |
+| `POST /projects/{projectId}/rename` | `200`, `{"projects":[…]}`; cuerpo `{"name"}` |
+| `POST /projects/{projectId}/pin` | `200`, `{"projects":[…]}`; cuerpo `{"pinned":true\|false}` |
+| `POST /projects/{projectId}/delete` | `200`, `{"projects":[…]}` (lo suyo va a la Papelera); `409 PROJECT_BUSY` con trabajo en marcha |
+| `GET /chats/pinned` | `200`, `{"chats":[…]}`: los fijados de todos los proyectos |
+| `POST /chats/{chatId}/pin` | `200`, `{"chats":[…]}`; cuerpo `{"conversationId","pinned"}` |
+| `POST /chats/{chatId}/fork` | `200`, `{"chatId","chats":[…]}` con la copia |
+| `POST /chats/{chatId}/move` | `200`, `{"chatId","chats":[…]}`; cuerpo `{"conversationId","toConversationId"}` |
 | `GET /tasks/{taskId}/trace` | `200`, `{"taskId":"…","entries":[…]}` |
 | `POST /memory` | `201`, `{"entry":{…}}` |
 | `POST /memory/{memoryId}` | `200`, `{"entry":{…}}` |
@@ -63,7 +70,7 @@ La pausa reutiliza `cancelRun(..., 'pause')`: aborta los procesos actuales y mar
 
 La instantánea también incluye:
 
-- `projects`: `[{id, name, createdAt, updatedAt, running}]`, del actualizado más recientemente al más antiguo; `running` indica peticiones en marcha. Es lo mismo que devuelve `GET /projects`.
+- `projects`: `[{id, name, createdAt, updatedAt, running, pinned?}]`, del actualizado más recientemente al más antiguo; `running` indica peticiones en marcha. Es lo mismo que devuelve `GET /projects`.
 - `stations`: las estaciones del espacio digital (`{id, label, position:[x, z], forSubagents?}`), tal cual en la configuración.
 - `settings`: `{"agentAccess":"full"|"project","planApproval":true|false}`.
 - `conversation.attachments`: los adjuntos del proyecto (`{id, name, relPath, mime, size}`), y `conversation.folder`: `{name, path}` de su carpeta de trabajo (nombre y ruta completa) o `null` si no tiene. `POST /conversations` devuelve la conversación con estos dos campos.

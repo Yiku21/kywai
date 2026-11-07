@@ -4,6 +4,11 @@ import com.aicowork.remote.i18n.t
 
 import com.aicowork.remote.data.model.AgentAccessRequest
 import com.aicowork.remote.data.model.ChatRenameRequest
+import com.aicowork.remote.data.model.ChatCopyResponse
+import com.aicowork.remote.data.model.ChatMoveRequest
+import com.aicowork.remote.data.model.ChatPinRequest
+import com.aicowork.remote.data.model.PinRequest
+import com.aicowork.remote.data.model.ProjectRenameRequest
 import com.aicowork.remote.data.model.ChatSummary
 import com.aicowork.remote.data.model.ChatsResponse
 import com.aicowork.remote.data.model.MusicResponse
@@ -229,6 +234,44 @@ class CoworkApiClient(
         CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
         ChatsResponse.serializer(),
     ).chats
+
+    suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): List<ChatSummary> = post(
+        "/chats/${chatId.encodeSegment()}/pin",
+        CoworkJson.encodeToString(ChatPinRequest.serializer(), ChatPinRequest(projectId, pinned)),
+        ChatsResponse.serializer(),
+    ).chats
+
+    suspend fun forkChat(projectId: String, chatId: String): ChatCopyResponse = post(
+        "/chats/${chatId.encodeSegment()}/fork",
+        CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
+        ChatCopyResponse.serializer(),
+    )
+
+    suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ChatCopyResponse = post(
+        "/chats/${chatId.encodeSegment()}/move",
+        CoworkJson.encodeToString(ChatMoveRequest.serializer(), ChatMoveRequest(projectId, toProjectId)),
+        ChatCopyResponse.serializer(),
+    )
+
+    /** Los chats fijados de todos los proyectos (sección «Fijados»). */
+    suspend fun pinnedChats(): List<ChatSummary> = get("/chats/pinned", ChatsResponse.serializer()).chats
+
+    // ---- Menú de un proyecto ----
+
+    suspend fun renameProject(projectId: String, name: String): List<ProjectSummary> = post(
+        "/projects/${projectId.encodeSegment()}/rename",
+        CoworkJson.encodeToString(ProjectRenameRequest.serializer(), ProjectRenameRequest(name)),
+        ProjectsResponse.serializer(),
+    ).projects
+
+    suspend fun pinProject(projectId: String, pinned: Boolean): List<ProjectSummary> = post(
+        "/projects/${projectId.encodeSegment()}/pin",
+        CoworkJson.encodeToString(PinRequest.serializer(), PinRequest(pinned)),
+        ProjectsResponse.serializer(),
+    ).projects
+
+    suspend fun deleteProject(projectId: String): List<ProjectSummary> =
+        post("/projects/${projectId.encodeSegment()}/delete", "{}", ProjectsResponse.serializer()).projects
 
     suspend fun search(query: String): List<SearchHit> =
         get("/search?q=${query.trim().encodeQuery()}", SearchResponse.serializer()).hits
