@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Carpeta donde la cámara deja las fotos que se adjuntan en el chat (caché de Órbita). -->
+<paths>
+    <cache-path name="fotos" path="fotos/" />
+</paths>

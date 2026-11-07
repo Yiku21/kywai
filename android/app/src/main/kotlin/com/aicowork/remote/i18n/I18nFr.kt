@@ -705,4 +705,10 @@ private fun part5(m: HashMap<String, String>) {
     m["Ciudad digital"] = "Ville numérique"
     m["Ver el equipo"] = "Voir l’équipe"
     m["Los agentes, sus modelos y su estado. Se añaden y configuran en kywai del ordenador."] = "Les agents, leurs modèles et leur état. On les ajoute et les configure dans kywai sur l’ordinateur."
+    m["Hacer una foto"] = "Prendre une photo"
+    m["Elegir de la galería"] = "Choisir dans la galerie"
+    m["Añadir una foto"] = "Ajouter une photo"
+    m["Este dispositivo no tiene cámara"] = "Cet appareil n’a pas d’appareil photo"
+    m["Subiendo {name}…"] = "Envoi de {name}…"
+    m["No se pudo subir {name}"] = "Impossible d’envoyer {name}"
 }

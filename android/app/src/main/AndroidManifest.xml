@@ -35,6 +35,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Fotos del botón de cámara del chat: la app de cámara las guarda aquí y Órbita las sube. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fotos"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/fotos_paths" />
+        </provider>
         <!-- Resultado de instalar la versión nueva de Órbita. -->
         <receiver android:name=".data.update.InstallResultReceiver" android:exported="false" />
     </application>
