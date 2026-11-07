@@ -43,6 +43,7 @@ hay no pierdan nada: la carpeta de datos (`AI Cowork`), la app del Mac (`AI Cowo
   - [Extensiones: tus servidores MCP para los agentes](#extensiones-tus-servidores-mcp-para-los-agentes)
   - [Extensiones: catálogo de servidores MCP y de habilidades](#extensiones-catálogo-de-servidores-mcp-y-de-habilidades)
   - [Extensiones: plugins](#extensiones-plugins)
+  - [Extensiones: mods](#extensiones-mods)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
@@ -1158,6 +1159,54 @@ servidores con sus claves y sus agentes encendidos (si el servidor sigue en el p
 
 **Muchas habilidades.** El encargo de cada tarea lista hasta 150 habilidades con la descripción recortada a 160
 caracteres; el texto entero lo leen cuando lo necesitan.
+
+### Extensiones: mods
+
+La cuarta parte de **Extensiones** son los **mods**: cambian kywai en sí, no a los agentes. Un mod es una carpeta con
+un manifiesto `kywai-mod.json` y puede traer tres cosas:
+
+- **Órdenes `/nombre`** para el chat. Al escribir `/revisa el login`, en el chat se ve eso y al equipo le llega el
+  texto de la orden con `{args}` cambiado por «el login» (si la orden no usa `{args}`, lo de detrás va al final).
+  Valen en el escritorio, la web, Órbita y las rutinas. `/directo`, `/dm`, `/rutina` y `/model` son de kywai y no
+  se pueden tapar; si dos mods usan el mismo nombre, gana el primero instalado y el otro lo dice en su ficha.
+- **Hooks**: una orden del sistema que se ejecuta al empezar o acabar una petición (`request.started`,
+  `request.finished`) o una tarea (`task.started`, `task.done`, `task.failed`). Corre en la carpeta del proyecto,
+  en segundo plano (nunca frena una tarea), con un tiempo máximo (60 s por defecto, hasta 600) y con las variables
+  `KYWAI_EVENT`, `KYWAI_PROJECT`, `KYWAI_PROJECT_DIR`, `KYWAI_PROJECT_ID`, `KYWAI_MOD_DIR`, `KYWAI_OK` (peticiones) y
+  `KYWAI_TASK_TITLE`, `KYWAI_TASK_STATUS`, `KYWAI_TASK_AGENT`, `KYWAI_TASK_RESULT` (tareas). **No se ejecuta nada
+  hasta que pulses «Permitir sus hooks»**, que enseña las órdenes; si una versión nueva del mod las cambia, el
+  permiso se pierde y hay que darlo otra vez. La ficha del mod dice cómo fue la última vez.
+- **Paneles**: páginas HTML que se abren junto al chat, en la pestaña **Mods** del panel izquierdo (solo sale si
+  algún mod encendido trae paneles). Van en una caja aislada (iframe sin acceso a la app, sus datos ni su
+  almacenamiento) y sin internet salvo el permiso `network`. Sus imágenes, estilos y scripts con ruta relativa se
+  meten dentro. Para hablar con kywai usan mensajes:
+  - kywai les manda `{kywai: 'context', project: {name}, tasks: [{title, status, agent, result}], messages: [{author, text}]}`
+    al abrirse, cada vez que algo cambia y cuando lo piden con `parent.postMessage({kywai: 'context'}, '*')`;
+  - con el permiso `chat`, `parent.postMessage({kywai: 'send', text: '…'}, '*')` propone un mensaje al chat, que
+    tú confirmas antes de enviarlo.
+
+**El manifiesto** (`kywai-mod.json`):
+
+```json
+{
+  "name": "notas-rapidas",
+  "title": "Notas rápidas",
+  "description": "Para qué sirve",
+  "version": "1.0.0",
+  "commands": [{ "name": "revisa", "description": "Revisión crítica", "prompt": "Revisa con ojo crítico {args}…" }],
+  "hooks": [{ "on": "request.finished", "run": "echo Petición terminada", "timeout": 10 }],
+  "panels": [{ "id": "equipo", "title": "Estado del equipo", "file": "panel.html" }],
+  "permissions": ["chat"]
+}
+```
+
+Hay uno de ejemplo completo en `docs/mods/notas-rapidas` (dos órdenes, un panel con el estado de las tareas y un
+botón que pide un resumen, y un hook): en la pestaña Mods, «Prueba con el de ejemplo».
+
+**Instalar.** Pega el enlace de GitHub de la carpeta del mod (`https://github.com/dueño/repo/tree/main/mi-mod`, se
+descarga como los plugins) o la ruta de una carpeta del equipo donde corre kywai (para probar uno que estás
+haciendo; vuelve a instalarlo tras cambiarlo). Se guarda en `mods/<nombre>` de la carpeta de datos. «Apagar» lo deja
+instalado sin órdenes, hooks ni paneles; la papelera lo borra.
 
 ### Rutinas: peticiones que se lanzan solas
 

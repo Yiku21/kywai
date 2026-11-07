@@ -397,3 +397,64 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
+
+.modItem {
+  align-items: flex-start;
+}
+
+.off {
+  opacity: 0.6;
+}
+
+.modBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.modLabel {
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.modRow code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-1);
+}
+
+.modActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.warnInline {
+  color: var(--warn);
+}
+
+.okText {
+  color: var(--live);
+}
+
+.badText {
+  color: var(--alert);
+}
+
+.linkBtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cyan);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
