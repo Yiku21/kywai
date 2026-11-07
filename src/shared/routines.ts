@@ -1,7 +1,7 @@
 // Rutinas: lo que no depende del motor (cálculo de la próxima ejecución, textos legibles y la orden «/rutina …»).
 // Lo usan el motor (src/main/routines.ts) y la interfaz (pestaña Rutinas, cuadro de texto). Las horas son siempre
 // las locales del equipo donde corre (el servidor): se construyen con new Date(año, mes, día, h, m).
-import { lang, tr } from './i18n'
+import { lang, locale, tr } from './i18n'
 import type { Routine, RoutineTrigger } from './types'
 
 export const HOUR_MS = 3_600_000
@@ -16,10 +16,20 @@ export const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 
 export const DAY_SHORT = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'] as const
 const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const
 const DAY_SHORT_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
+/** Un día de la semana con Intl (el 7 de enero de 2024 fue domingo). */
+const intlDay = (d: number, weekday: 'long' | 'short'): string =>
+  new Intl.DateTimeFormat(locale(), { weekday }).format(new Date(2024, 0, 7 + d))
 /** Nombre del día en el idioma de la app (0 = domingo). */
-export const dayName = (d: number): string => (lang() === 'en' ? DAY_NAMES_EN : DAY_NAMES)[d]
+export const dayName = (d: number): string => (lang() === 'es' ? DAY_NAMES[d] : lang() === 'en' ? DAY_NAMES_EN[d] : intlDay(d, 'long'))
 /** Abreviatura del día en el idioma de la app. */
-export const dayShort = (d: number): string => (lang() === 'en' ? DAY_SHORT_EN : DAY_SHORT)[d]
+export const dayShort = (d: number): string => (lang() === 'es' ? DAY_SHORT[d] : lang() === 'en' ? DAY_SHORT_EN[d] : intlDay(d, 'short'))
+/** «a, b y c» en el idioma de la app. */
+const AND: Record<string, string> = { es: ' y ', en: ' and ', pt: ' e ', fr: ' et ', zh: '和' }
+function joinAnd(names: string[]): string {
+  if (names.length < 2) return names.join('')
+  const sep = lang() === 'zh' ? '、' : ', '
+  return `${names.slice(0, -1).join(sep)}${AND[lang()] ?? ' y '}${names[names.length - 1]}`
+}
 /** Orden en que se enseñan (la semana empieza el lunes). */
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const
 
@@ -143,9 +153,10 @@ export function describeDays(days: number[]): string {
   if (set.size === 5 && workdays.every((d) => set.has(d))) return tr('de lunes a viernes')
   if (set.size === 2 && set.has(0) && set.has(6)) return tr('los fines de semana')
   const names = WEEK_ORDER.filter((d) => set.has(d)).map(dayName)
-  if (lang() === 'en') return names.length === 1 ? `on ${names[0]}s` : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  if (lang() === 'en') return names.length === 1 ? `on ${names[0]}s` : joinAnd(names)
+  if (lang() !== 'es') return joinAnd(names)
   if (names.length === 1) return `los ${names[0]}${names[0].endsWith('s') ? '' : 's'}`
-  return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`
+  return joinAnd(names)
 }
 
 /** Frase corta del disparador para la interfaz y los mensajes: «Cada día a las 09:00». */
@@ -175,7 +186,7 @@ export function describeWhen(ts: number, now = Date.now()): string {
   if (diff === 0) return tr('hoy a las {time}', { time })
   if (diff === 1) return tr('mañana a las {time}', { time })
   if (diff === -1) return tr('ayer a las {time}', { time })
-  return tr('el {day} {date} a las {time}', { day: dayName(d.getDay()), date: lang() === 'en' ? `${d.getMonth() + 1}/${d.getDate()}` : `${d.getDate()}/${d.getMonth() + 1}`, time })
+  return tr('el {day} {date} a las {time}', { day: dayName(d.getDay()), date: lang() === 'en' || lang() === 'zh' ? `${d.getMonth() + 1}/${d.getDate()}` : `${d.getDate()}/${d.getMonth() + 1}`, time })
 }
 
 // ---------- «/rutina …» en el chat ----------

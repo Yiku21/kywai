@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { ArrowLeftRight, Award, BarChart3, ChevronDown, Download, DownloadCloud, Eraser, FolderOpen, FolderSync, Globe, HardDrive, Info, Languages, LogOut, Monitor, MoreVertical, Palette, RefreshCw, RotateCcw, RotateCw, Server, SlidersHorizontal, Smartphone, Wand2 } from 'lucide-react'
+import { ArrowLeftRight, Award, BarChart3, Check, ChevronDown, Download, DownloadCloud, Eraser, FolderOpen, FolderSync, Globe, HardDrive, Info, Languages, LogOut, Monitor, MoreVertical, Palette, RefreshCw, RotateCcw, RotateCw, Server, SlidersHorizontal, Smartphone, Wand2 } from 'lucide-react'
 import { useCowork } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
@@ -42,6 +42,8 @@ export function HeaderMenu() {
       return false
     }
   })
+  /** La lista de idiomas se despliega al tocar «Idioma · Language». */
+  const [langOpen, setLangOpen] = useState(false)
   const theme = useTheme()
   const where = useWhere()
   /** Reiniciar pide un segundo toque (detiene las tareas en curso). */
@@ -151,7 +153,6 @@ export function HeaderMenu() {
   }
 
   const currentLang = LANGS.find((l) => l.id === lang()) ?? LANGS[0]
-  const nextLang = LANGS[(LANGS.indexOf(currentLang) + 1) % LANGS.length]
 
   /** Lo que dicen los interruptores, para verlo sin desplegar. */
   const settingsSummary = [
@@ -283,17 +284,41 @@ export function HeaderMenu() {
             <button
               type="button"
               role="menuitem"
+              aria-haspopup="true"
+              aria-expanded={langOpen}
               className={s.item}
-              onClick={() => void setLang(nextLang.id, (id) => api?.setLanguage?.(id) ?? Promise.resolve())}
+              onClick={() => setLangOpen((open) => !open)}
             >
+              <Languages size={16} aria-hidden="true" className={s.itemIcon} />
               <span className={s.itemText}>
                 <span className={s.itemLabel}>Idioma · Language</span>
-                <span className={s.itemHint}>
-                  {t('{current} · pulsa para pasar a {next}', { current: currentLang.name, next: nextLang.name })}
-                </span>
+                <span className={s.itemHint}>{currentLang.name}</span>
               </span>
-              <Languages size={16} aria-hidden="true" className={s.itemIcon} />
+              <ChevronDown size={16} aria-hidden="true" className={cx(s.chevron, langOpen && s.chevronOpen)} />
             </button>
+            {langOpen && (
+              <div className={s.group} role="group" aria-label="Idioma · Language">
+                {LANGS.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={l.id === currentLang.id}
+                    lang={l.id}
+                    className={s.item}
+                    onClick={() => {
+                      setLangOpen(false)
+                      void setLang(l.id, (id) => api?.setLanguage?.(id) ?? Promise.resolve())
+                    }}
+                  >
+                    <span className={s.itemText}>
+                      <span className={s.itemLabel}>{l.name}</span>
+                    </span>
+                    {l.id === currentLang.id && <Check size={16} aria-hidden="true" className={s.itemIcon} />}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {hasBackend ? (
               <button

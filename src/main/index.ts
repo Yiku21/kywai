@@ -81,7 +81,7 @@ import { initSkills } from './skills'
 import { deleteTraces, flushTaskTraces, getTaskTrace, initTaskTraces } from './taskTrace'
 import { onMacPermissionPrompt, startMacPermissionWatch, stopMacPermissionWatch } from './macPermissions'
 import { launchCommand, linuxAutostartEnabled, setLinuxAutostart } from './linuxDesktop'
-import { tr } from '@shared/i18n'
+import { isLang, tr } from '@shared/i18n'
 
 // Must happen before 'ready'.
 protocol.registerSchemesAsPrivileged([
@@ -608,7 +608,7 @@ function registerIpc(): void {
     return hermesModelsInfo(hermesAgent())
   })
   handle('setLanguage', (id: unknown) => {
-    if (id !== 'es' && id !== 'en') throw new Error(tr('Idioma no válido'))
+    if (!isLang(id)) throw new Error(tr('Idioma no válido'))
     setLanguage(id)
     emit({ kind: 'config.updated', config: getConfig() })
   })

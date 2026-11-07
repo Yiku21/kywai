@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { isAbsolute, join } from 'node:path'
 import type { AddAgentInput, AgentAccess, AgentConfig, AgentId, AppConfig, QuotaBudget, QuotaGroupConfig, SetAgentModelsInput, SetLocalAgentInput, StationConfig } from '@shared/types'
 import { buildAgent } from '@shared/agentCatalog'
-import { isLang, setCurrentLang, type Lang } from '@shared/i18n'
+import { isLang, langFromLocale, setCurrentLang, type Lang } from '@shared/i18n'
 import { CONFIG_VERSION, DEFAULT_CONFIG, avatarFor, localLogoFor, upgradeAgentModels, upgradeAgentProfile, upgradeAgentRole } from '@shared/defaults'
 
 let config: AppConfig | null = null
@@ -176,7 +176,7 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
     ...(removed.length ? { removedAgents: removed } : {}),
     agentAccess: u.agentAccess === 'project' ? 'project' : 'full',
     planApproval: u.planApproval !== false,
-    ...(u.language === 'en' || u.language === 'es' ? { language: u.language } : {}),
+    ...(isLang(u.language) ? { language: u.language } : {}),
     // Versión 6: el asistente de configuración. Quien ya usaba la app no lo necesita.
     setupDone: u.setupDone === true || (isObj(user) && version < 6),
     webAccess: mergeWebAccess(u.webAccess),
@@ -215,7 +215,7 @@ export function loadConfig(): AppConfig {
   config = mergeConfig(user, configRoot)
   // Idioma de los avisos del motor y de lo que escriben los agentes para el usuario.
   // Sin idioma elegido aún, el del sistema (la interfaz lo guarda en cuanto arranca).
-  setCurrentLang(config.language ?? (app?.isReady?.() && !/^es\b/i.test(app.getLocale()) ? 'en' : 'es'))
+  setCurrentLang(config.language ?? (app?.isReady?.() ? langFromLocale(app.getLocale()) : 'es'))
   mkdirSync(config.workspaceRoot, { recursive: true })
   if (!user || (user as { configVersion?: number }).configVersion !== CONFIG_VERSION) saveConfig()
   return config

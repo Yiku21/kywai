@@ -168,9 +168,10 @@ pruebas en emulador). Tras publicar, se commitea `android/release` junto con el 
   README: `selfUpdate.ts` envía ahí a quien tiene que instalar a mano.
 - **Lo que Hermes debe saber** va en `coordinatorGuide.ts`, no solo en la documentación.
 - **Idiomas**: todo texto nuevo que vea el usuario pasa por `t('…')` (`@/lib/i18n` en la interfaz) o `tr('…')`
-  (`@shared/i18n` en el motor) y lleva su traducción en `src/shared/i18n-en.ts`; `i18n.test.ts` avisa si falta. Las
+  (`@shared/i18n` en el motor) y lleva su traducción en `src/shared/i18n-en.ts` y en `i18n-pt.ts`, `i18n-fr.ts` e `i18n-zh.ts`; `i18n.test.ts`
+  avisa si falta. Las
   instrucciones a los agentes siguen en español y llevan `replyLanguage()`. En Órbita, `t("…")` de
-  `com.aicowork.remote.i18n` con la traducción en `I18nEn.kt` (lo comprueba `I18nTest`). Ver «Idioma» en el MANUAL.
+  `com.aicowork.remote.i18n` con la traducción en `I18nEn.kt`, `I18nPt.kt`, `I18nFr.kt` e `I18nZh.kt` (lo comprueba `I18nTest`). Ver «Idioma» en el MANUAL.
 - **Seguridad**: el texto del usuario nunca va en la línea de órdenes de un agente; las claves de API se guardan
   cifradas con el llavero del sistema, solo en el servidor (nunca por web, API móvil ni `config.json`). El código de
   acceso (`?t=`) y las llaves de dispositivo no se escriben en documentos ni en commits.

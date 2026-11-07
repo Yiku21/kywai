@@ -2,20 +2,21 @@
 // elige y se recuerda el idioma, como el tema.
 //
 // El idioma se elige en ⋮ → Ajustes → Idioma y se recuerda en cada dispositivo. Si nunca se ha elegido, se usa el del
-// sistema (español si empieza por «es»; si no, inglés). Al cambiarlo se avisa al motor (para los avisos y las
+// sistema (el primero de sus idiomas que tenga la app; si no, inglés). Al cambiarlo se avisa al motor (para los avisos y las
 // respuestas de Hermes) y la ventana se recarga: así los textos calculados al cargar cada módulo (listas de temas,
 // nombres de zonas…) salen ya en el idioma nuevo.
-import { isLang, lang, LANGS, locale, setCurrentLang, t, type Lang } from '@shared/i18n'
+import { isLang, lang, langFromLocale, LANGS, locale, setCurrentLang, t, type Lang } from '@shared/i18n'
 
 export { lang, LANGS, locale, t, type Lang }
 
 const KEY = 'aicowork.lang'
 
-/** El idioma del sistema (o del navegador): español si empieza por «es»; si no, inglés. */
+/** El idioma del sistema (o del navegador): el primero de su lista que tenga la app; si ninguno, inglés. */
 export function systemLang(): Lang {
   try {
     const list = navigator.languages?.length ? navigator.languages : [navigator.language]
-    return list.some((l) => /^es\b/i.test(l ?? '')) ? 'es' : 'en'
+    const known = list.map((l) => langFromLocale(l)).find((id, i) => id !== 'en' || /^en\b/i.test(list[i] ?? ''))
+    return known ?? 'en'
   } catch {
     return 'es'
   }

@@ -41,7 +41,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Cómo rinde cada agente](#cómo-rinde-cada-agente)
   - [Dónde se guardan las cosas](#dónde-se-guardan-las-cosas)
 - **[Comodidades](#comodidades)**
-  - [Idioma (español / English)](#idioma-español--english)
+  - [Idioma](#idioma)
   - [Temas](#temas)
   - [Voces de los agentes](#voces-de-los-agentes)
   - [Música (como YouTube Music)](#música-como-youtube-music)
@@ -1021,48 +1021,58 @@ bien en una petición cancelada se toma como cancelada. La API móvil lo da en `
 
 ## Comodidades
 
-### Idioma (español / English)
+### Idioma
 
-La interfaz está en **español** e **inglés**. ⋮ → **Ajustes** → **«Idioma · Language»** cambia de uno a otro (la
-ventana se recarga para que todo salga ya traducido). Se recuerda en cada dispositivo, como el tema: la app del Mac,
-el navegador y cada cliente pueden tener el suyo. Si nunca se ha elegido, se usa el idioma del sistema (español si es
-cualquier variante de español; si no, inglés). Las fechas y los números siguen el idioma elegido.
+La interfaz está en **español**, **inglés**, **portugués**, **francés** y **chino** (simplificado). ⋮ → **Ajustes** →
+**«Idioma · Language»** despliega la lista de idiomas, cada uno con su nombre en su propio idioma (Español, English,
+Português, Français, 中文), y el elegido lleva una marca; al tocar otro, la ventana se recarga para que todo salga ya
+traducido. Se recuerda en cada dispositivo, como el tema: la app del Mac,
+el navegador y cada cliente pueden tener el suyo. Si nunca se ha elegido, se usa el idioma del sistema si es uno de
+esos cinco (cualquier variante: es-MX cuenta como español, pt-PT como portugués); si no, inglés. Las fechas y los números siguen el idioma elegido.
 
 Se traduce todo lo que pinta la interfaz, incluido el modo Demo. Los comandos del chat funcionan en los dos idiomas
 (`/remember …`, `/routine every day at 9:00: …`, `/model`, `/usage`…) y un «yes» / «looks good» aprueba un plan igual
 que un «sí».
 
 El idioma también vale para el motor (lo que se elige en Ajustes se guarda en `config.json` como `language`; si
-aún no se ha elegido, el del sistema). En inglés:
+aún no se ha elegido, el del sistema). En cualquier idioma que no sea el español:
 
-- **Hermes y los agentes** contestan en inglés: el plan («reply», títulos y criterios de cada tarea), lo que cuentan
+- **Hermes y los agentes** contestan en ese idioma: el plan («reply», títulos y criterios de cada tarea), lo que cuentan
   mientras trabajan, el resultado y la respuesta final. Las instrucciones internas que les da AI Cowork siguen en
   español; solo se les pide escribir en el idioma del usuario.
-- **Los avisos del motor** salen en inglés: los mensajes del chat (plan repartido, verificación, correcciones, relevo,
+- **Los avisos del motor** salen en ese idioma: los mensajes del chat (plan repartido, verificación, correcciones, relevo,
   «requiere intervención», deshacer), «Te necesita», lo que hace cada agente (paso a paso y actividad), los errores
   de los agentes, la cuota, el asistente de instalación y de sesiones, las rutinas, la actualización, el menú del
   botón derecho y la pantalla de conexión del cliente. El catálogo de agentes y las notas de los modelos, también.
-- **El veredicto del verificador** se entiende en los dos idiomas: «VEREDICTO: CUMPLE/FALLOS» o «VERDICT:
+- **El veredicto del verificador** se entiende en español y en inglés: «VEREDICTO: CUMPLE/FALLOS» o «VERDICT:
   PASS/FAIL»; y en «a dos manos», «GANA: A» o «WINNER: A».
 - **El dictado** transcribe en el idioma de la app.
 
-Lo que ya estaba escrito (mensajes de antes, tareas guardadas) se queda en el idioma en que se escribió.
+Lo que ya estaba escrito (mensajes de antes, tareas guardadas) se queda en el idioma en que se escribió. Los
+comandos del chat y la aprobación de planes entienden español e inglés en cualquier idioma de la interfaz.
 
-**En Órbita** (el móvil) el idioma se elige aparte: Más → Ajustes → **«Idioma · Language»** (Del sistema, Español o
-English). «Del sistema» sigue al del teléfono: español si está en español; si no, inglés. Al cambiarlo la app se
+El portugués, el francés y el chino están traducidos a partir del inglés con IA: conviene que los revise alguien
+nativo. Si a un texto le falta la traducción, sale en inglés.
+
+**En Órbita** (el móvil) el idioma se elige aparte: Más → Ajustes → **«Idioma · Language»**: al tocarlo se despliega la
+lista (Del sistema, Español, English, Português, Français, 中文) y se elige uno. «Del sistema» sigue al del teléfono
+si es uno de esos cinco; si no, inglés. Al cambiarlo la app se
 reinicia sola y sigue emparejada. Cambia los textos de Órbita (pantallas, avisos, notificaciones y el mundo 3D); lo
 que escriben Hermes y los agentes sigue el idioma elegido en el ordenador.
 
 Para desarrolladores de Órbita: igual que en el escritorio, `t("Ajustes")` (de `com.aicowork.remote.i18n`) con el
-texto en español como clave y las traducciones en `android/app/src/main/kotlin/com/aicowork/remote/i18n/I18nEn.kt`;
+texto en español como clave y las traducciones en `android/app/src/main/kotlin/com/aicowork/remote/i18n/I18nEn.kt` (y `I18nPt.kt`, `I18nFr.kt`,
+`I18nZh.kt`);
 los huecos van así: `t("Hace {n} min", "n" to 5)`. La prueba `I18nTest` falla si un texto no tiene traducción, si
-sobra alguna o si no coinciden los huecos.
+sobra alguna, si no coinciden los huecos o si el portugués, el francés o el chino no tienen las mismas entradas que el
+inglés.
 
 Para desarrolladores: el texto en español del código es la clave. `t('Ajustes')` (de `@/lib/i18n`) devuelve «Ajustes»
-en español y lo que diga `src/shared/i18n-en.ts` en inglés; los huecos van entre llaves: `t('Hace {n} min', { n })`.
+en español y lo que diga `src/shared/i18n-en.ts` en inglés (`i18n-pt.ts`, `i18n-fr.ts` e `i18n-zh.ts` para los
+demás); los huecos van entre llaves: `t('Hace {n} min', { n })`.
 El motor usa lo mismo (`src/shared/i18n.ts`) con el nombre `tr()`, porque allí `t` suele ser una tarea. Cada texto
-nuevo que vea el usuario pasa por `t()`/`tr()` y se añade a `i18n-en.ts`; `lib/i18n.test.ts` falla si a un texto le
-falta su traducción, si una traducción no conserva los `{huecos}` o si queda alguna sin usar (cuentan también las que
+nuevo que vea el usuario pasa por `t()`/`tr()` y se añade a `i18n-en.ts` y a los otros tres; `lib/i18n.test.ts` falla si a un texto le
+falta su traducción, si los otros idiomas no tienen las mismas entradas que el inglés, si una traducción no conserva los `{huecos}` o si queda alguna sin usar (cuentan también las que
 se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cual en el código). Lo que va a los agentes
 (encargos, planes, verificación) no se traduce: para el idioma de su respuesta están `replyLanguage()` y
 `userLanguageName()`. No se llama a `tr()` al cargar un módulo (el idioma aún no está fijado): dentro de funciones.
