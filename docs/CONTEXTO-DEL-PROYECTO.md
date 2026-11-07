@@ -73,6 +73,7 @@ src/
     inbox.ts          bandeja «Te necesita» (avisos con botones, inbox.json, evento inbox.updated)
     uiShots.ts        capturas de la web (escritorio y móvil) y errores de consola para el verificador + test
     coworkMcp.ts      servidor MCP «ai-cowork» para Claude (memoria, equipo, preguntas, habilidades) + test
+    extensions.ts     Extensiones: servidores MCP del usuario por agente (Claude, Codex, Gemini), su prueba y claves + test
     skills.ts / repoInstructions.ts   habilidades compartidas (workspace/habilidades) y AGENTS.md/CLAUDE.md/GEMINI.md
     macPermissions.ts ventanas de permisos de macOS pendientes (van a «Te necesita»)
     webServer.ts / mobileApi.ts / mobileBackend.ts   acceso web, API `/api/call/*`, `/api/fs/*`, API móvil v1
