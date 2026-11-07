@@ -3021,11 +3021,41 @@
               "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
               "maxLength": 81
             }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "description": "Solo lo de esta fecha en adelante (ms Unix).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{1,15}$"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "required": false,
+            "description": "Quién lo escribió: user, agents o el id de un agente.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,60}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Cuántos resultados como mucho (60 si no se dice; hasta 400).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{1,3}$"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Hasta 60 coincidencias.",
+            "description": "Las primeras coincidencias (60 si no se pide limit) y el total.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3050,7 +3080,7 @@
             "$ref": "#/components/responses/MobileError"
           }
         },
-        "description": "Lo mismo que «Buscar» en la barra lateral: chats, tareas, resultados y memoria de todos los proyectos, o solo del indicado."
+        "description": "Lo mismo que «Buscar» en la barra lateral: chats, tareas, resultados y memoria de todos los proyectos, o solo del indicado. Varias palabras: todas en el mismo mensaje, en cualquier orden; entre comillas, la frase exacta."
       }
     },
     "/api/mobile/v1/music/search": {
@@ -3407,6 +3437,43 @@
           }
         },
         "description": "La sección «Fijados» de la barra lateral. No admite parámetros de consulta."
+      }
+    },
+    "/api/mobile/v1/chats/all": {
+      "get": {
+        "operationId": "listAllChats",
+        "summary": "Historial: todos los chats de todos los proyectos",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Del más reciente al más antiguo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "La ventana «Historial»: todos los chats con mensajes, de todos los proyectos. No admite parámetros de consulta."
       }
     },
     "/api/mobile/v1/projects/{projectId}/rename": {
@@ -5073,6 +5140,10 @@
           "projectActions": {
             "type": "boolean",
             "description": "Menú de un proyecto: POST /projects/{projectId}/rename|pin|delete."
+          },
+          "history": {
+            "type": "boolean",
+            "description": "GET /chats/all (historial de todos los chats) y GET /search con since, author y limit."
           }
         },
         "required": [
@@ -7357,6 +7428,23 @@
           },
           "ref": {
             "type": "string"
+          },
+          "messageId": {
+            "type": "string",
+            "description": "Conversaciones: el mensaje encontrado; al abrir el chat se baja hasta él."
+          },
+          "matchCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Conversaciones: cuántos mensajes coinciden."
+          },
+          "matches": {
+            "type": "array",
+            "maxItems": 5,
+            "description": "Conversaciones: los primeros mensajes que coinciden.",
+            "items": {
+              "$ref": "#/components/schemas/SearchMatch"
+            }
           }
         },
         "required": [
@@ -7377,7 +7465,12 @@
             "items": {
               "$ref": "#/components/schemas/SearchHit"
             },
-            "maxItems": 60
+            "maxItems": 400
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Cuántas coincidencias hay en total (para «Ver más»). Servidores antiguos no lo envían."
           }
         },
         "required": [
@@ -7459,6 +7552,32 @@
         "required": [
           "chatId",
           "chats"
+        ],
+        "additionalProperties": false
+      },
+      "SearchMatch": {
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "at": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "by": {
+            "type": "string",
+            "description": "'user', 'system' o el id del agente."
+          }
+        },
+        "required": [
+          "messageId",
+          "snippet",
+          "at",
+          "by"
         ],
         "additionalProperties": false
       }
