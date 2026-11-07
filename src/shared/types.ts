@@ -279,6 +279,7 @@ export interface MemoryInput {
  * - daily: cada día a una hora («09:00»).
  * - weekly: unos días de la semana a una hora (0 = domingo … 6 = sábado, como Date.getDay()).
  * - interval: cada N horas (contando desde la última vez).
+ * - once: una sola vez, un día («2026-11-08») a una hora; al lanzarse se desactiva sola.
  * - webhook: cuando llega una petición a su dirección propia en el acceso web (con su secreto).
  * - folder: cuando cambian archivos de una carpeta del proyecto (ruta relativa a su carpeta de trabajo; '' = toda).
  */
@@ -286,6 +287,7 @@ export type RoutineTrigger =
   | { type: 'daily'; time: string }
   | { type: 'weekly'; days: number[]; time: string }
   | { type: 'interval'; hours: number }
+  | { type: 'once'; date: string; time: string }
   | { type: 'webhook' }
   | { type: 'folder'; path: string }
 
