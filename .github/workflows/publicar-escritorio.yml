@@ -3,7 +3,7 @@
 # (v0.1.<número de commits>), que pasa a ser la última. Las apps descargadas de ahí se actualizan solas al abrirse
 # (src/main/updater.ts lee los latest*.yml de la Release).
 #
-# Solo corre en el repositorio público (Yiku21/Ai-cowork). Sin firma de código: Windows avisa con SmartScreen
+# Solo corre en el repositorio público (Yiku21/kywai). Sin firma de código: Windows avisa con SmartScreen
 # («Más información» → «Ejecutar de todas formas») y en el Mac hay que abrirla con clic derecho → Abrir.
 name: Publicar escritorio
 
@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   version:
-    if: github.repository_owner == 'Yiku21' && github.event.repository.name == 'Ai-cowork'
+    if: github.repository_owner == 'Yiku21' && github.event.repository.name == 'kywai'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.v.outputs.version }}
@@ -73,7 +73,7 @@ jobs:
           npx electron-vite build
           npx electron-builder ${{ matrix.args }} --publish never \
             -c.extraMetadata.version=${{ needs.version.outputs.version }} \
-            -c.publish.provider=github -c.publish.owner=Yiku21 -c.publish.repo=Ai-cowork -c.publish.releaseType=release
+            -c.publish.provider=github -c.publish.owner=Yiku21 -c.publish.repo=kywai -c.publish.releaseType=release
       - uses: actions/upload-artifact@v4
         with:
           name: escritorio-${{ matrix.os }}
