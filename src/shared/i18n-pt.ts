@@ -2422,4 +2422,6 @@ export const pt: Record<string, string> = {
   "Día": "Dia",
   "Elige el día.": "Escolha o dia.",
   " · ya se lanzó": " · já foi executada",
+  "Pedir mi visto bueno a su plan antes de empezar (si no, la rutina sigue sola aunque no estés)": "Pedir minha aprovação do plano antes de começar (senão a rotina segue sozinha mesmo que você não esteja)",
+  " · con tu visto bueno": " · com sua aprovação",
 }

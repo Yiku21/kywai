@@ -1376,7 +1376,7 @@ No va a los agentes: se crea la rutina (activa) y debajo del cuadro de texto se 
 **En la pestaña Rutinas**: crear y editar (nombre, petición y disparador), activar o desactivar con el interruptor,
 **Ejecutar ahora**, ver la próxima hora, la última ejecución y el **historial** (las 20 últimas: hora, por qué se
 lanzó —a su hora, hora perdida, webhook, carpeta, a mano— y cómo acabó). Estados: *En marcha*, *Esperando tu visto
-bueno* (con «Pedir mi visto bueno a cada plan», su plan también espera), *Hecha*, *Falló*, *Saltada* e
+bueno* (solo si la rutina tiene marcada su casilla, ver abajo), *Hecha*, *Falló*, *Saltada* e
 *Interrumpida* (se cerró la app mientras trabajaba; se reanuda desde el chat como cualquier petición).
 
 Reglas:
@@ -1386,6 +1386,10 @@ Reglas:
 - **Horas perdidas**: si a la hora de una rutina kywai estaba cerrado (o el equipo en reposo), al volver **no**
   se lanza todo lo atrasado: se lanza **una sola vez** y un aviso en el chat dice cuántas veces no se lanzó.
   Al desactivar y volver a activar una rutina, o al cambiarle el horario, cuenta desde ese momento.
+- **Visto bueno al plan**: una rutina **no espera** tu visto bueno, aunque tengas encendido «Pedir mi visto bueno
+  a cada plan» (esa opción es para lo que escribes tú): nadie está delante y se quedaría parada hasta que volvieras.
+  Si una rutina concreta sí debe esperarlo, marca en ella «Pedir mi visto bueno a su plan antes de empezar» (en la
+  tarjeta pone «con tu visto bueno»); su plan sale en el chat y en «Te necesita» como cualquier otro.
 - La rutina de **una sola vez** se desactiva al lanzarse (también si se lanzó tarde, al volver kywai) y queda en la
   lista con su historial y «ya se lanzó». Para repetirla, edítala y elige otro día: al guardar vuelve a quedar activa.
   No se puede crear ni activar para una hora que ya pasó.

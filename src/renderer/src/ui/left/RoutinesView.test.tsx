@@ -131,7 +131,7 @@ describe('pestaña Rutinas', () => {
     expect(fake.calls).toContainEqual([
       'createRoutine',
       'proyecto-1',
-      { name: 'Resumen', request: 'Prepara el resumen del día', trigger: { type: 'weekly', time: '09:00', days: [1, 2, 3, 4] }, enabled: true }
+      { name: 'Resumen', request: 'Prepara el resumen del día', trigger: { type: 'weekly', time: '09:00', days: [1, 2, 3, 4] }, askApproval: false, enabled: true }
     ])
   })
 })

@@ -328,6 +328,11 @@ export interface Routine {
   /** Últimas ejecuciones, la más reciente al final. */
   runs: RoutineRun[]
   /**
+   * Su plan espera tu visto bueno antes de empezar. Por defecto no (nadie está delante cuando se lanza sola), aunque
+   * «Pedir mi visto bueno a cada plan» esté encendido: esa opción es para lo que escribes tú.
+   */
+  askApproval?: boolean
+  /**
    * Secreto del webhook. Solo lo guarda el motor (project.json): a la interfaz llega sin él (hasSecret) y se pide
    * aparte con getRoutineWebhook. Nunca se escribe en documentos, registros ni mensajes.
    */
@@ -342,6 +347,8 @@ export interface RoutineInput {
   request: string
   trigger: RoutineTrigger
   enabled?: boolean
+  /** Ver Routine.askApproval. */
+  askApproval?: boolean
 }
 
 /** Direcciones del webhook de una rutina (con su secreto): solo se piden para enseñarlas o copiarlas. */

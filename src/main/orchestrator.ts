@@ -107,6 +107,8 @@ interface Run {
   routine?: string
   /** Lanzada con una plantilla que pide tu visto bueno al plan (aunque en Ajustes esté apagado). */
   askPlan?: boolean
+  /** Esa rutina pide tu visto bueno a su plan (si no, una rutina no espera aunque esté encendido para el chat). */
+  routineApproval?: boolean
   /** Nuevo plan para uno que el coordinador propuso y al que el usuario respondió con cambios. */
   revision?: { request: string; tasks: ProposedTask[]; feedback: string; memory: MemoryNote[] }
   taskIds: string[]
@@ -966,7 +968,7 @@ const MODEL_COMMAND = /^\/(model|models|modelo|modelos)$/i
  * agentes, verificación), pero el mensaje lleva la marca de la rutina y no cuenta como respuesta a un plan pendiente.
  * La marca solo la pone el motor: no llega desde la interfaz ni desde la API.
  */
-export async function sendMessage(input: SendMessageInput, opts: { routine?: { id: string; name: string } } = {}): Promise<{ runId: string }> {
+export async function sendMessage(input: SendMessageInput, opts: { routine?: { id: string; name: string; askApproval?: boolean } } = {}): Promise<{ runId: string }> {
   const routine = opts.routine
   const projectId = input?.projectId
   const st = store.getProject(projectId)
@@ -1072,7 +1074,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     projectId,
     userText,
     revision,
-    ...(routine ? { routine: routine.name } : {}),
+    ...(routine ? { routine: routine.name, ...(routine.askApproval ? { routineApproval: true } : {}) } : {}),
     ...(tpl?.template.askPlan ? { askPlan: true } : {}),
     attachments: runAtts,
     attPaths: store.stageAttachments(projectId, runAtts),
@@ -1434,6 +1436,15 @@ function cleanupRun(run: Run): void {
 
 // ---------- planning ----------
 
+/**
+ * ¿El plan espera tu visto bueno? Lo que escribes tú, según «Pedir mi visto bueno a cada plan». Lo que lanza una
+ * rutina, solo si esa rutina lo pide: nadie está delante y, si no, se quedaría parada hasta que volvieras.
+ */
+export function needsApproval(run: Pick<Run, 'routine' | 'routineApproval' | 'askPlan'>): boolean {
+  if (run.askPlan) return true
+  return run.routine ? run.routineApproval === true : getConfig().planApproval
+}
+
 async function executeRun(run: Run): Promise<void> {
   const plan = await planRun(run)
   if (run.cancelled) return
@@ -1444,7 +1455,7 @@ async function executeRun(run: Run): Promise<void> {
   }
   const { planner, reply, planned, contract, memory } = plan
   // Con tareas, primero tu visto bueno: el plan se enseña y nada empieza hasta que lo apruebes.
-  if (planned.length && (getConfig().planApproval || run.askPlan)) {
+  if (planned.length && needsApproval(run)) {
     proposePlan(run, planner, reply, planned, contract, memory)
     return
   }
@@ -1835,7 +1846,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     ...coordinatorGuide({
       projectDir: store.workRoot(run.projectId),
       fullAccess: getConfig().agentAccess === 'full',
-      planApproval: getConfig().planApproval || !!run.askPlan,
+      planApproval: needsApproval(run),
       routine: run.routine,
       extraTools: extraToolLines(),
       // La lista de funciones de la app solo si la conversación va de kywai: si no, son 5 000 caracteres de ruido.
