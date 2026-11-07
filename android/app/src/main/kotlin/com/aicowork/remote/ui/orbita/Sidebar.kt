@@ -47,6 +47,7 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -143,6 +144,12 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
             SidebarItem(Section.Chat.icon, t("Chat"), selected = model.section == Section.Chat, tag = "nav-Chat") { go(Section.Chat) }
             SidebarItem(Section.Tasks.icon, t("Tareas en marcha"), badge = active, selected = model.section == Section.Tasks, tag = "nav-Tasks") { go(Section.Tasks) }
             SidebarItem(Section.Results.icon, t("Resultados"), selected = model.section == Section.Results, tag = "nav-Results") { go(Section.Results) }
+            if (snapshot?.capabilities?.music == true) {
+                SidebarItem(Icons.Outlined.MusicNote, t("Música"), selected = model.musicOpen, tag = "side-music") {
+                    model.drawerOpen = false
+                    model.musicOpen = true
+                }
+            }
             SidebarItem(Icons.Outlined.MoreHoriz, t("Más"), trailing = if (moreOpen) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, selected = model.section in SidebarMore && !moreOpen, tag = "side-more") { moreOpen = !moreOpen }
             AnimatedVisibility(moreOpen, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                 Column(Modifier.padding(start = 14.dp)) {

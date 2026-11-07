@@ -79,6 +79,14 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     override suspend fun openChat(projectId: String, chatId: String): ActionResult { calls += "openChat:$projectId:$chatId"; return nextResult }
     override suspend fun renameChat(projectId: String, chatId: String, title: String): ActionResult { calls += "renameChat:$chatId:$title"; return nextResult }
     override suspend fun deleteChat(projectId: String, chatId: String): ActionResult { calls += "deleteChat:$chatId"; return nextResult }
+    override suspend fun music(kind: String, query: String): Result<List<com.aicowork.remote.data.model.MusicResult>> {
+        calls += "music:$kind:$query"
+        return Result.success(
+            if (kind == "radio") listOf(com.aicowork.remote.data.model.MusicResult("radio:groovesalad", "Groove Salad", "SomaFM", "Ambient", stream = "https://ice2.somafm.com/groovesalad-128-mp3", live = true))
+            else listOf(com.aicowork.remote.data.model.MusicResult("audius:Ab12", "Canción", "Artista", stream = "https://api.audius.co/v1/tracks/Ab12/stream?app_name=AICowork")),
+        )
+    }
+
     override suspend fun search(query: String): Result<List<com.aicowork.remote.data.model.SearchHit>> {
         calls += "search:$query"
         return Result.success(listOf(com.aicowork.remote.data.model.SearchHit("conversation", "c1", "Proyecto demo", "ch0", "Informe semanal", "…el informe semanal…", 1)))

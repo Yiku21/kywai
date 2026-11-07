@@ -104,6 +104,22 @@ data class SearchHit(
 @Serializable
 data class SearchResponse(val hits: List<SearchHit> = emptyList())
 
+/** Una radio de SomaFM o una canción de Audius: Órbita la escucha desde [stream] (sin anuncios). */
+@Serializable
+data class MusicResult(
+    val id: String,
+    val title: String,
+    val artist: String = "",
+    val detail: String? = null,
+    val durationSec: Int? = null,
+    val thumbnail: String? = null,
+    val stream: String,
+    val live: Boolean = false,
+)
+
+@Serializable
+data class MusicResponse(val results: List<MusicResult> = emptyList())
+
 @Serializable
 data class ChatRenameRequest(val conversationId: String, val title: String)
 
@@ -491,6 +507,8 @@ data class Capabilities(
     val agentThinking: Boolean = false,
     /** Varios chats por proyecto (GET/POST /chats, /chats/{id}/open|rename|delete). */
     val chats: Boolean = false,
+    /** Radios y canciones sin anuncios (GET /music/search). */
+    val music: Boolean = false,
     /** Buscador de todos los proyectos (GET /search). */
     val search: Boolean = false,
 )
