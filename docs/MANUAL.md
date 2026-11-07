@@ -464,7 +464,7 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
 - **Añadir un agente**: «Añadir un agente» abre el catálogo con los que se pueden conectar (Aider, **DeepSeek**, OpenCode,
   GitHub Copilot CLI, Cursor, Amp, Goose, Kimi Code, Mistral Vibe, Grok Build, Cline, Continue, OpenHands, Factory Droid,
   Auggie, Junie, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw, Kiro, **Qwen Code**, **Antigravity CLI**,
-  **Rovo Dev**, **MiniMax Code**, **Qoder CLI**… y los de fábrica que hayas
+  **Rovo Dev**, **MiniMax Code**, **Qoder CLI**, **Kilo CLI**… y los de fábrica que hayas
   quitado), con la cuenta o suscripción con la que funciona cada uno. Elige uno y se añade con su robot y su estación en el
   espacio digital. **«Otro programa…»** conecta cualquiera: el comando, cómo recibe el encargo (por stdin, en un
   archivo o como argumento) y sus argumentos.
@@ -502,6 +502,15 @@ Los añadidos en octubre de 2026, con lo que hay que saber de cada uno:
 - **Qoder CLI**: se lanza como `qodercli -p` (el comando `qoder` reparte entre la CLI y el editor), con la sesión de
   `qodercli login` o un token `QODER_PERSONAL_ACCESS_TOKEN`. Planifica en modo `plan`, edita con `accept_edits` y con
   acceso completo va con `--yolo`.
+
+Añadido en noviembre de 2026:
+
+- **Kilo CLI** (`kilo run`, de Kilo): funciona **gratis y sin cuenta** con sus modelos gratuitos. Al añadirlo empieza
+  con **Kilo Auto Free** (`kilo/kilo-auto/free`), porque su modelo por defecto es de pago y pide cuenta (sin él falla
+  con «Authorization header is badly formatted»). Para los de pago, «Iniciar sesión» abre `kilo auth login`. Planifica
+  con su agente `plan` (no edita ni ejecuta nada que cambie archivos), en el proyecto edita sin preguntar y con acceso
+  completo va con `--auto`. Probado con kilo 7.8. Los modelos gratuitos cambian cuando acaban sus promociones:
+  `kilo models kilo` los lista (los que terminan en `:free`).
 
 Ninguno de los de catálogo retoma su sesión anterior en una continuación (eso solo lo hacen Claude y Codex): aunque
 sus programas tengan `--continue` o `--resume`, kywai les da cada encargo con el contexto completo. Un agente que

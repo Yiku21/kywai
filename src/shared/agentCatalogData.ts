@@ -864,5 +864,40 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
         needs: 'node'
       }
     }
+  },
+  {
+    id: 'kilo',
+    name: 'Kilo CLI',
+    summary: 'Agente de programación de código abierto de Kilo en la terminal, con cientos de modelos y varios gratuitos.',
+    account: 'Sin cuenta con sus modelos gratuitos; con tu cuenta de Kilo (kilo auth login) para los de pago, o tus propias claves de API.',
+    kind: 'cli',
+    verified: true,
+    color: '#f5d33f',
+    role: 'Agente conectado: programa en la terminal con los modelos de Kilo (gratuitos o de tu cuenta)',
+    strengths: GENERIC_STRENGTHS,
+    avoid: GENERIC_AVOID,
+    note: 'Empieza con el modelo gratuito Kilo Auto Free (kilo/kilo-auto/free): sin él, su modelo por defecto es de pago y pide cuenta. Los gratuitos cambian cuando acaban sus promociones; la lista sale con «kilo models kilo».',
+    // Sin cuenta, su modelo por defecto es de pago: se empieza con el enrutado gratuito de Kilo.
+    model: 'kilo/kilo-auto/free',
+    modelLabel: 'Kilo Auto Free',
+    cli: {
+      command: 'kilo',
+      versionArgs: ['--version'],
+      promptVia: 'arg',
+      args: ['run', '{prompt}'],
+      // El agente «plan» no edita archivos ni ejecuta comandos que cambien nada (probado con kilo 7.8).
+      planArgs: ['--agent', 'plan'],
+      // Sin --auto, lo que pediría permiso se rechaza solo; las ediciones del proyecto ya están permitidas.
+      fullAccessArgs: ['--auto'],
+      modelArgs: ['-m', '{model}'],
+      login: 'kilo auth login',
+      url: 'https://kilo.ai/docs/cli',
+      install: {
+        windows: 'npm install -g @kilocode/cli',
+        mac: 'npm install -g @kilocode/cli',
+        linux: 'npm install -g @kilocode/cli',
+        needs: 'node'
+      }
+    }
   }
 ]
