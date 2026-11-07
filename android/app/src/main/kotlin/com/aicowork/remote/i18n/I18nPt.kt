@@ -705,4 +705,10 @@ private fun part5(m: HashMap<String, String>) {
     m["Ciudad digital"] = "Cidade digital"
     m["Ver el equipo"] = "Ver a equipe"
     m["Los agentes, sus modelos y su estado. Se añaden y configuran en kywai del ordenador."] = "Os agentes, seus modelos e seu estado. São adicionados e configurados no kywai do computador."
+    m["Hacer una foto"] = "Tirar uma foto"
+    m["Elegir de la galería"] = "Escolher da galeria"
+    m["Añadir una foto"] = "Adicionar uma foto"
+    m["Este dispositivo no tiene cámara"] = "Este dispositivo não tem câmera"
+    m["Subiendo {name}…"] = "Enviando {name}…"
+    m["No se pudo subir {name}"] = "Não foi possível enviar {name}"
 }

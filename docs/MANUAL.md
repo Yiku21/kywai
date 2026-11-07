@@ -801,6 +801,15 @@ adjuntos ni los datos de la app. Se les pide que guarden dentro del proyecto las
 para seleccionarla; arrastra los tiradores para coger más palabras y pulsa **Copiar**. En la caja de escribir,
 mantén el dedo y pulsa **Pegar**. Los botones de los mensajes se siguen pulsando igual.
 
+**Fotos desde Órbita.** En el chat, al lado del clip, está el botón de la **cámara**. Al tocarlo se abre un menú:
+**«Hacer una foto»** abre la cámara del móvil o la tableta, y **«Elegir de la galería»** abre el selector de fotos
+de Android (no pide permisos y deja elegir hasta 10 fotos o vídeos). Mientras se sube sale «Subiendo foto…» encima
+de la caja de escribir; al terminar queda adjunta y va con tu próximo mensaje (se quita con la ✕). Para otros
+archivos (PDF, documentos, Drive…) sigue estando el clip. Las fotos de la cámara se guardan solo en la caché de
+Órbita y se borran al hacer la siguiente. Para desarrolladores: `ui/orbita/PhotoAttach.kt` (el botón, la subida y
+`AttachFinishedUploads`, que adjunta lo subido aunque el panel se cierre) y el `FileProvider` `<paquete>.fotos` del
+manifiesto.
+
 ### Ver qué está haciendo un agente
 
 Pulsa la tarjeta de **«Tarea actual»** en el panel de un agente (o «Ver qué está haciendo»), o una tarea de la

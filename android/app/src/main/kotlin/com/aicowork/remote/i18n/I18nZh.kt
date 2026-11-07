@@ -705,4 +705,10 @@ private fun part5(m: HashMap<String, String>) {
     m["Ciudad digital"] = "数字城市"
     m["Ver el equipo"] = "查看团队"
     m["Los agentes, sus modelos y su estado. Se añaden y configuran en kywai del ordenador."] = "智能体、它们的模型和状态。在电脑上的 kywai 中添加和配置。"
+    m["Hacer una foto"] = "拍照"
+    m["Elegir de la galería"] = "从相册选择"
+    m["Añadir una foto"] = "添加照片"
+    m["Este dispositivo no tiene cámara"] = "此设备没有相机"
+    m["Subiendo {name}…"] = "正在上传 {name}…"
+    m["No se pudo subir {name}"] = "无法上传 {name}"
 }

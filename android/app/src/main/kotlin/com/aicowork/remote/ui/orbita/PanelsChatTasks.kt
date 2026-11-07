@@ -218,6 +218,26 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
                 }
             }
         }
+        // Fotos que se están subiendo (o que fallaron) desde el botón de cámara.
+        val uploading = state.uploads.filter { !it.done || it.error != null }
+        if (uploading.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp).testTag("chat-uploads"), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                uploading.forEach { u ->
+                    val failed = u.error != null
+                    Row(Modifier.clip(Orbita.PillShape).background(if (failed) Orbita.Danger.copy(alpha = 0.18f) else Orbita.AccentSoft).padding(start = 10.dp, end = if (failed) 4.dp else 12.dp, top = 2.dp, bottom = 2.dp).heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (failed) Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = Orbita.Danger, modifier = Modifier.size(16.dp))
+                        else CircularProgressIndicator(progress = { u.progress }, color = Orbita.Accent, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (failed) t("No se pudo subir {name}", "name" to u.name) else t("Subiendo {name}…", "name" to u.name),
+                            color = Orbita.Text, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp),
+                        )
+                        if (failed) IconAction(Icons.Outlined.Close, t("Quitar {name}", "name" to u.name), onClick = { model.controller.dismissUpload(u.id) }, size = 32.dp)
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
         if (pending.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 pending.take(3).forEach { a ->
@@ -273,6 +293,7 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             placeholder = if (messages.any { it.proposal?.isPending == true }) t("Qué cambiar del plan, o «sí»…") else t("Escribe una tarea o una pregunta…"),
             canSend = model.chatDraft.text.isNotBlank() || pending.isNotEmpty(),
             onAttach = if (snapshot?.capabilities?.upload == true) ({ model.open(Section.Files); model.filesTab = FilesTab.Attachments }) else null,
+            photo = if (snapshot?.capabilities?.upload == true) ({ PhotoButton(model, Modifier.padding(bottom = 4.dp)) }) else null,
             mic = if (snapshot?.capabilities?.voice == true && model.canRecord) ({ MicButton(model, VoiceTarget.Chat, Modifier.padding(bottom = 4.dp)) }) else null,
         ) {
             val text = model.chatDraft.text
@@ -445,6 +466,7 @@ fun Composer(
     placeholder: String,
     canSend: Boolean,
     onAttach: (() -> Unit)? = null,
+    photo: (@Composable () -> Unit)? = null,
     mic: (@Composable () -> Unit)? = null,
     onSend: () -> Unit,
 ) {
@@ -452,6 +474,7 @@ fun Composer(
         if (onAttach != null) {
             IconAction(Icons.Outlined.AttachFile, t("Añadir archivos"), onClick = onAttach, modifier = Modifier.padding(bottom = 4.dp))
         }
+        if (photo != null) photo()
         val shape = RoundedCornerShape(24.dp)
         androidx.compose.foundation.text.BasicTextField(
             value = value,
