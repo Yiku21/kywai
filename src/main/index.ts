@@ -57,6 +57,7 @@ import {
   activeRunFor,
   activeRunsFor,
   approvePlan,
+  decideRoutineProposal,
   rateMessage,
   getTaskChanges,
   undoTask,
@@ -585,22 +586,24 @@ function registerIpc(): void {
   // Rutinas del proyecto (peticiones que se lanzan solas). El secreto del webhook solo sale con getRoutineWebhook.
   handle('createRoutine', (projectId: unknown, input: unknown) => {
     if (!input || typeof input !== 'object') throw new Error(tr('Rutina no válida'))
-    const i = input as { name?: unknown; request?: unknown; trigger?: unknown; enabled?: unknown }
+    const i = input as { name?: unknown; request?: unknown; trigger?: unknown; enabled?: unknown; askApproval?: unknown }
     return createRoutine(projectArg(projectId), {
       name: typeof i.name === 'string' ? i.name : '',
       request: typeof i.request === 'string' ? i.request : '',
       trigger: i.trigger as never,
-      enabled: i.enabled !== false
+      enabled: i.enabled !== false,
+      askApproval: i.askApproval === true
     })
   })
   handle('updateRoutine', (projectId: unknown, id: unknown, patch: unknown) => {
     if (typeof id !== 'string' || !patch || typeof patch !== 'object') throw new Error(tr('Cambio no válido'))
-    const p = patch as { name?: unknown; request?: unknown; trigger?: unknown; enabled?: unknown }
+    const p = patch as { name?: unknown; request?: unknown; trigger?: unknown; enabled?: unknown; askApproval?: unknown }
     return updateRoutine(projectArg(projectId), id, {
       ...(typeof p.name === 'string' ? { name: p.name } : {}),
       ...(typeof p.request === 'string' ? { request: p.request } : {}),
       ...(p.trigger !== undefined ? { trigger: p.trigger as never } : {}),
-      ...(typeof p.enabled === 'boolean' ? { enabled: p.enabled } : {})
+      ...(typeof p.enabled === 'boolean' ? { enabled: p.enabled } : {}),
+      ...(typeof p.askApproval === 'boolean' ? { askApproval: p.askApproval } : {})
     })
   })
   handle('deleteRoutine', (projectId: unknown, id: unknown) => {
@@ -623,6 +626,11 @@ function registerIpc(): void {
   handle('approvePlan', (projectId: unknown, messageId: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('Plan no válido'))
     return approvePlan(projectArg(projectId), messageId)
+  })
+  // Rutina que propuso Hermes: «Crear rutina» la crea activa; «Descartar», no.
+  handle('decideRoutineProposal', (projectId: unknown, messageId: unknown, action: unknown) => {
+    if (typeof messageId !== 'string') throw new Error(tr('No se encontró esa propuesta de rutina'))
+    return decideRoutineProposal(projectArg(projectId), messageId, action === 'create' ? 'create' : 'dismiss')
   })
   handle('rateMessage', (projectId: unknown, messageId: unknown, rating: unknown) => {
     if (typeof messageId !== 'string') throw new Error('messageId inválido')

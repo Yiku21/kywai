@@ -1358,19 +1358,34 @@ desde el navegador del móvil) o escribiendo `/rutina …` en el chat.
 | Cada día a una hora | «Cada día a las 09:00» |
 | Unos días de la semana a una hora | «De lunes a viernes a las 08:30», «Los sábados a las 10:00» |
 | Cada N horas (1 a 168) | «Cada 6 horas» (contando desde la última vez) |
+| Una sola vez | «Una vez: mañana a las 07:00»: se lanza ese día a esa hora y se desactiva sola |
 | Webhook | Al llegar un `POST` a su dirección propia (ver abajo) |
 | Al cambiar archivos de una carpeta | Una carpeta del proyecto (o toda): cuando cambian archivos y llevan un minuto quietos |
 
 **Desde el chat**: `/rutina cada día a las 9:00: revisa las dependencias`, `/rutina de lunes a viernes a las 8:30: …`,
 `/rutina lunes y jueves 7h: …`, `/rutina laborables a las 8: …`, `/rutina cada 6 horas: …`, `/rutina cada hora: …`,
-`/rutina webhook: revisa el PR que llega` o `/rutina al cambiar archivos de Entrada: …`. Lo que va después del
+`/rutina webhook: revisa el PR que llega` o `/rutina al cambiar archivos de Entrada: …`. De **una sola vez**:
+`/rutina mañana a las 7: …`, `/rutina hoy a las 21:00: …`, `/rutina esta noche a las 9: …` (las 21:00),
+`/rutina pasado mañana a las 10: …`, `/rutina el viernes a las 18:00: …` (el próximo viernes; «los viernes» es
+cada semana), `/rutina el 15/11 a las 9: …`, `/rutina el 3 de enero a las 9:30: …`, `/rutina el 2026-12-24 a las 8: …`,
+`/rutina dentro de 2 horas: …`, `/rutina en 45 minutos: …` o `/rutina una vez a las 9: …` (hoy, o mañana si ya
+pasó). En inglés: `tomorrow at 7`, `on friday at 18:00`, `in 3 hours`. Una hora que ya pasó da error. Lo que va después del
 horario es la petición; el nombre sale de su primera frase (se cambia en la pestaña). `/rutina` sola abre la pestaña.
 No va a los agentes: se crea la rutina (activa) y debajo del cuadro de texto se ve cuándo será la próxima.
+Desde **Órbita** (o cualquier cliente que mande el texto tal cual) funciona igual: el servidor crea la rutina y
+contesta en el chat con su horario y la próxima vez, o con la ayuda si no entiende el horario; tampoco pasa por Hermes.
+
+**Hermes te la propone**: si le pides algo que se repite o para más tarde («cada mañana revisa los PR», «mañana a
+las 7 comprueba la web», «cuando llegue un PR, revísalo»), además de su respuesta (y, si tiene sentido, de hacerlo ya
+la primera vez) sale en el chat una tarjeta verde **Rutina propuesta** con el nombre, el horario y la petición:
+**Crear rutina** la crea activa (pasa a «Rutina creada», con «Ver en Rutinas»), **Cambiar** pone su orden
+`/rutina …` en el cuadro de texto para que la retoques y la envíes, y **Descartar** no crea nada. Hermes nunca la crea
+por su cuenta, y lo que lanza una rutina no propone otra.
 
 **En la pestaña Rutinas**: crear y editar (nombre, petición y disparador), activar o desactivar con el interruptor,
 **Ejecutar ahora**, ver la próxima hora, la última ejecución y el **historial** (las 20 últimas: hora, por qué se
 lanzó —a su hora, hora perdida, webhook, carpeta, a mano— y cómo acabó). Estados: *En marcha*, *Esperando tu visto
-bueno* (con «Pedir mi visto bueno a cada plan», su plan también espera), *Hecha*, *Falló*, *Saltada* e
+bueno* (solo si la rutina tiene marcada su casilla, ver abajo), *Hecha*, *Falló*, *Saltada* e
 *Interrumpida* (se cerró la app mientras trabajaba; se reanuda desde el chat como cualquier petición).
 
 Reglas:
@@ -1380,6 +1395,13 @@ Reglas:
 - **Horas perdidas**: si a la hora de una rutina kywai estaba cerrado (o el equipo en reposo), al volver **no**
   se lanza todo lo atrasado: se lanza **una sola vez** y un aviso en el chat dice cuántas veces no se lanzó.
   Al desactivar y volver a activar una rutina, o al cambiarle el horario, cuenta desde ese momento.
+- **Visto bueno al plan**: una rutina **no espera** tu visto bueno, aunque tengas encendido «Pedir mi visto bueno
+  a cada plan» (esa opción es para lo que escribes tú): nadie está delante y se quedaría parada hasta que volvieras.
+  Si una rutina concreta sí debe esperarlo, marca en ella «Pedir mi visto bueno a su plan antes de empezar» (en la
+  tarjeta pone «con tu visto bueno»); su plan sale en el chat y en «Te necesita» como cualquier otro.
+- La rutina de **una sola vez** se desactiva al lanzarse (también si se lanzó tarde, al volver kywai) y queda en la
+  lista con su historial y «ya se lanzó». Para repetirla, edítala y elige otro día: al guardar vuelve a quedar activa.
+  No se puede crear ni activar para una hora que ya pasó.
 - La rutina de **carpeta** no mira mientras el equipo trabaja en el proyecto (los cambios de los agentes no
   cuentan; al terminar se toma una foto nueva) y no se lanza más de una vez cada 5 minutos. La petición lleva la
   lista de archivos nuevos (+), cambiados (~) y borrados (-).
@@ -1409,10 +1431,20 @@ servicios de Tailscale. Para que llegue GitHub (que está en internet) hace falt
 Funnel; ten en cuenta que entonces todo el acceso web queda en internet (sigue pidiendo el código de acceso, salvo
 en `/hooks/`, que pide el secreto de cada rutina).
 
-**Órbita / API móvil**: `GET /api/mobile/v1/routines?conversationId=…` lista las rutinas (sin secretos) y
-`POST /api/mobile/v1/routines/{routineId}/run` es «Ejecutar ahora» (capacidad `routines`); los cambios llegan por el
-evento `routines.updated` y los mensajes de una rutina llevan `routine: { id, name }`. Crear y editar se hace desde
-el escritorio o el navegador.
+**En Órbita**: barra lateral → **Rutinas** (menú «Más»). Lista las rutinas del proyecto con su horario, la próxima
+vez y la última ejecución, con interruptor para activarla, **Ejecutar ahora**, editar y borrar; **Nueva rutina** abre
+un formulario con los mismos tipos que el escritorio (una vez, cada día, ciertos días, cada N horas, webhook, al
+cambiar archivos) y la casilla del visto bueno. La tarjeta «Rutina propuesta» de Hermes también sale en el chat de
+Órbita con **Crear rutina**, **Cambiar** (pone la orden `/rutina …` en el cuadro de texto) y **Descartar**. Con un
+servidor antiguo, Órbita solo deja verlas o avisa de que hay que actualizar kywai en el ordenador.
+
+**API móvil**: `GET /api/mobile/v1/routines?conversationId=…` lista las rutinas (sin secretos) y
+`POST /api/mobile/v1/routines/{routineId}/run` es «Ejecutar ahora» (capacidad `routines`). Con la capacidad
+`routinesEdit`: `POST /routines` crea, `POST /routines/{routineId}` cambia (los campos que mandes) y
+`POST /routines/{routineId}/delete` borra. Con `routineProposals`:
+`POST /messages/{messageId}/routine-proposal/create` o `/dismiss` decide la tarjeta de Hermes (404 si no existe, 409 si
+ya se decidió). Los cambios llegan por el evento `routines.updated` y los mensajes de una rutina llevan
+`routine: { id, name }`. El secreto del webhook no sale nunca por la API móvil.
 
 Se guardan en el `project.json` del proyecto (`routines`) y las lanza `src/main/routines.ts`, que mira cada 30 s.
 

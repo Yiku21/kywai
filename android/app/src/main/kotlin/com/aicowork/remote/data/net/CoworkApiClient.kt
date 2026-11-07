@@ -43,6 +43,11 @@ import com.aicowork.remote.data.model.MemoryAddRequest
 import com.aicowork.remote.data.model.MemoryEntry
 import com.aicowork.remote.data.model.MemoryEntryResponse
 import com.aicowork.remote.data.model.MemoryUpdateRequest
+import com.aicowork.remote.data.model.Routine
+import com.aicowork.remote.data.model.RoutineInput
+import com.aicowork.remote.data.model.RoutineResponse
+import com.aicowork.remote.data.model.RoutineTrigger
+import com.aicowork.remote.data.model.RoutinesResponse
 import com.aicowork.remote.data.model.NewConversationRequest
 import com.aicowork.remote.data.model.PairRequest
 import com.aicowork.remote.data.model.PairResponse
@@ -405,6 +410,64 @@ class CoworkApiClient(
     ).agentAccess
 
     suspend fun refreshUsage(): List<Quota> = post("/usage/refresh", "{}", QuotasResponse.serializer()).quotas
+
+    // ---- Rutinas ----
+
+    suspend fun routines(conversationId: String): List<Routine> =
+        get("/routines?conversationId=${conversationId.encodeQuery()}", RoutinesResponse.serializer()).routines
+
+    suspend fun runRoutine(conversationId: String, routineId: String) {
+        withContext(Dispatchers.IO) {
+            postRaw("/routines/${routineId.encodeSegment()}/run", CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(conversationId))).close()
+        }
+    }
+
+    private fun triggerJson(t: RoutineTrigger) = buildJsonObject {
+        put("type", t.type)
+        t.time?.let { put("time", it) }
+        t.days?.let { days -> putJsonArray("days") { days.forEach { add(it) } } }
+        t.hours?.let { put("hours", it) }
+        t.date?.let { put("date", it) }
+        t.path?.let { put("path", it) }
+    }
+
+    /** Nueva rutina (activa). Con [routineId], cambia esa (sin tocar si está activa). */
+    suspend fun saveRoutine(conversationId: String, routineId: String?, input: RoutineInput): Routine? = post(
+        if (routineId == null) "/routines" else "/routines/${routineId.encodeSegment()}",
+        buildJsonObject {
+            put("conversationId", conversationId)
+            put("name", input.name)
+            put("request", input.request)
+            put("trigger", triggerJson(input.trigger))
+            put("askApproval", input.askApproval)
+        }.toString(),
+        RoutineResponse.serializer(),
+    ).routine
+
+    suspend fun setRoutineEnabled(conversationId: String, routineId: String, enabled: Boolean): Routine? = post(
+        "/routines/${routineId.encodeSegment()}",
+        buildJsonObject {
+            put("conversationId", conversationId)
+            put("enabled", enabled)
+        }.toString(),
+        RoutineResponse.serializer(),
+    ).routine
+
+    suspend fun deleteRoutine(conversationId: String, routineId: String) {
+        withContext(Dispatchers.IO) {
+            postRaw("/routines/${routineId.encodeSegment()}/delete", CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(conversationId))).close()
+        }
+    }
+
+    /** «Crear rutina» ([create]) o «Descartar» en la tarjeta que propone Hermes en el mensaje [messageId]. */
+    suspend fun decideRoutineProposal(conversationId: String, messageId: String, create: Boolean) {
+        withContext(Dispatchers.IO) {
+            postRaw(
+                "/messages/${messageId.encodeSegment()}/routine-proposal/${if (create) "create" else "dismiss"}",
+                CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(conversationId)),
+            ).close()
+        }
+    }
 
     /** Visto bueno ([approve]) o descarte del plan que propone Hermes en el mensaje [messageId]. */
     suspend fun decidePlan(conversationId: String, messageId: String, approve: Boolean) {

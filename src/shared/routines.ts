@@ -44,6 +44,30 @@ export function normalizeTime(raw: unknown): string | null {
   return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
 }
 
+/** «2026-11-08» (o «2026-11-8») → «2026-11-08»; null si no es una fecha real. */
+export function normalizeDate(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const m = /^\s*(\d{4})-(\d{1,2})-(\d{1,2})\s*$/.exec(raw)
+  if (!m) return null
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  const at = new Date(y, mo - 1, d)
+  if (at.getFullYear() !== y || at.getMonth() !== mo - 1 || at.getDate() !== d) return null
+  return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}
+
+/** La fecha local de `ts` como «2026-11-08». */
+export function dateOf(ts: number): string {
+  const d = new Date(ts)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Cuándo toca una rutina de una sola vez (hora local del equipo donde corre). */
+export function onceAt(t: { date: string; time: string }): number {
+  const [y, mo, d] = t.date.split('-').map(Number)
+  const [h, m] = hm(t.time)
+  return new Date(y, mo - 1, d, h, m, 0, 0).getTime()
+}
+
 function hm(time: string): [number, number] {
   const [h, m] = time.split(':').map(Number)
   return [h, m]
@@ -72,6 +96,13 @@ export function cleanTrigger(raw: unknown): RoutineTrigger {
       }
       return { type: 'interval', hours }
     }
+    case 'once': {
+      const date = normalizeDate(t.date)
+      if (!date) throw new Error(tr('Elige el día (como 2026-11-08)'))
+      const time = normalizeTime(t.time)
+      if (!time) throw new Error(tr('Escribe la hora como 09:00'))
+      return { type: 'once', date, time }
+    }
     case 'webhook':
       return { type: 'webhook' }
     case 'folder': {
@@ -87,8 +118,8 @@ export function cleanTrigger(raw: unknown): RoutineTrigger {
 }
 
 /** Se lanza sola por horario (no por webhook ni por cambios en una carpeta). */
-export function isScheduled(t: RoutineTrigger): t is Extract<RoutineTrigger, { type: 'daily' | 'weekly' | 'interval' }> {
-  return t.type === 'daily' || t.type === 'weekly' || t.type === 'interval'
+export function isScheduled(t: RoutineTrigger): t is Extract<RoutineTrigger, { type: 'daily' | 'weekly' | 'interval' | 'once' }> {
+  return t.type === 'daily' || t.type === 'weekly' || t.type === 'interval' || t.type === 'once'
 }
 
 /** Ese día (el de `ts`, más `addDays`) a la hora indicada, en la hora local. */
@@ -114,6 +145,10 @@ export function nextRunAt(t: RoutineTrigger, after: number): number | null {
     }
     case 'interval':
       return after + t.hours * HOUR_MS
+    case 'once': {
+      const at = onceAt(t)
+      return at > after ? at : null
+    }
     default:
       return null
   }
@@ -170,6 +205,8 @@ export function describeTrigger(t: RoutineTrigger): string {
     }
     case 'interval':
       return t.hours === 1 ? tr('Cada hora') : tr('Cada {hours} {plural}', { hours: t.hours, plural: plural(t.hours, tr('hora'), tr('horas')) })
+    case 'once':
+      return tr('Una vez: {when}', { when: describeWhen(onceAt(t)) })
     case 'webhook':
       return tr('Al llegar un webhook')
     case 'folder':
@@ -244,7 +281,7 @@ export interface RoutineCommand {
 
 /** Ayuda de «/rutina» (función: el texto sigue el idioma de la app). */
 export const routineCommandHelp = (): string =>
-  tr('Escribe, por ejemplo: «/rutina cada día a las 9:00: revisa las dependencias», «/rutina de lunes a viernes a las 8:30: …», «/rutina cada 6 horas: …» o «/rutina webhook: revisa el PR que llega». También puedes crearla en la pestaña Rutinas.')
+  tr('Escribe, por ejemplo: «/rutina cada día a las 9:00: revisa las dependencias», «/rutina de lunes a viernes a las 8:30: …», «/rutina cada 6 horas: …», «/rutina mañana a las 7:00: …» (una sola vez) o «/rutina webhook: revisa el PR que llega». También puedes crearla en la pestaña Rutinas.')
 
 /** Nombre corto a partir de la petición (la primera frase, sin pasar de 48 caracteres). */
 export function routineNameFrom(request: string): string {
@@ -264,7 +301,7 @@ const SEP = String.raw`\s*(?:[:,—–-]\s*|\s)`
  * «webhook» y «al cambiar archivos [de carpeta]». También en inglés: «every day at 9:00», «every 6 hours», «on webhook»,
  * «when files change [in carpeta]».
  */
-export function parseRoutineCommand(input: string): RoutineCommand | { error: string } {
+export function parseRoutineCommand(input: string, now = Date.now()): RoutineCommand | { error: string } {
   const text = input.replace(/^\s*\/(rutina|rutinas|routine)\b/i, '').trim()
   if (!text) return { error: routineCommandHelp() }
   const f = fold(text)
@@ -298,6 +335,11 @@ export function parseRoutineCommand(input: string): RoutineCommand | { error: st
       return { error: (e as Error).message }
     }
   }
+  const once = parseOnce(f, now)
+  if (once) {
+    if ('error' in once) return once
+    return finish(once.trigger, once.consumed)
+  }
   m = new RegExp(String.raw`^(.+?)\s+${TIME}${SEP}`).exec(f)
   if (m) {
     const days = parseDays(m[1])
@@ -305,6 +347,98 @@ export function parseRoutineCommand(input: string): RoutineCommand | { error: st
     if (days && time) return finish(days.length === 7 ? { type: 'daily', time } : { type: 'weekly', days, time }, m[0].length)
   }
   return { error: tr('No entendí cuándo debe lanzarse. {ROUTINE_COMMAND_HELP}', { ROUTINE_COMMAND_HELP: routineCommandHelp() }) }
+}
+
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+const DAY_WORDS_EN: Array<[RegExp, number]> = [
+  [/^sunday$/, 0],
+  [/^monday$/, 1],
+  [/^tuesday$/, 2],
+  [/^wednesday$/, 3],
+  [/^thursday$/, 4],
+  [/^friday$/, 5],
+  [/^saturday$/, 6]
+]
+
+/**
+ * Las formas de «una sola vez» (sobre el texto sin tildes): «hoy / mañana / pasado mañana a las 7», «el viernes a las
+ * 18:00», «el 15/11 a las 9», «el 15 de noviembre a las 9», «el 2026-11-15 a las 9», «una vez a las 9» (hoy, o mañana
+ * si ya pasó), «dentro de 2 horas», «en 30 minutos». En inglés: «today / tomorrow at 7», «on friday at 18:00»,
+ * «in 2 hours». Devuelve null si no es ninguna (para seguir con las demás), o un error si la hora ya pasó.
+ */
+function parseOnce(f: string, now: number): { trigger: RoutineTrigger; consumed: number } | { error: string } | null {
+  const at = (day: number, time: string | null, consumed: number): { trigger: RoutineTrigger; consumed: number } | { error: string } => {
+    if (!time) return { error: tr('Hora no válida. {ROUTINE_COMMAND_HELP}', { ROUTINE_COMMAND_HELP: routineCommandHelp() }) }
+    const trigger: RoutineTrigger = { type: 'once', date: dateOf(day), time }
+    if (onceAt(trigger) <= now) return { error: tr('Esa hora ya ha pasado: elige una que esté por llegar.') }
+    return { trigger, consumed }
+  }
+  const dayFrom = (add: number): number => {
+    const d = new Date(now)
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + add, 12).getTime()
+  }
+  // Dentro de N minutos u horas.
+  let m = /^(?:dentro\s+de|en|in)\s+(\d{1,4}|una?|media)\s+(minutos?|mins?|horas?|hours?|minutes?|h)\b(?:\s+y\s+media)?\s*(?:[:,—–-]\s*)?/.exec(f)
+  if (m) {
+    const n = m[1] === 'media' ? 0.5 : /^una?$/.test(m[1]) ? 1 : Number(m[1])
+    const half = /\by\s+media\b/.test(m[0]) ? 0.5 : 0
+    const minutes = /^(?:minutos?|mins?|minutes?)$/.test(m[2]) ? n : (n + half) * 60
+    if (!minutes || minutes > 60 * 24 * 365) return { error: tr('No entendí cuándo debe lanzarse. {ROUTINE_COMMAND_HELP}', { ROUTINE_COMMAND_HELP: routineCommandHelp() }) }
+    const when = new Date(now + minutes * 60_000)
+    const time = `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`
+    return { trigger: { type: 'once', date: dateOf(when.getTime()), time }, consumed: m[0].length }
+  }
+  // Hoy, mañana, pasado mañana.
+  m = new RegExp(String.raw`^(hoy|esta\s+(?:manana|tarde|noche)|pasado\s+manana|manana|today|tonight|tomorrow)\s+${TIME}${SEP}`).exec(f)
+  if (m) {
+    const add = /^pasado/.test(m[1]) ? 2 : /^(manana|tomorrow)$/.test(m[1]) ? 1 : 0
+    let time = normalizeTime(m[2])
+    // «esta tarde a las 5», «esta noche a las 9», «tonight at 9»: por la tarde.
+    if (time && /tarde|noche|tonight/.test(m[1]) && Number(time.slice(0, 2)) < 12) time = `${String(Number(time.slice(0, 2)) + 12).padStart(2, '0')}${time.slice(2)}`
+    return at(dayFrom(add), time, m[0].length)
+  }
+  // Una vez a las 9 (hoy, o mañana si ya pasó).
+  m = new RegExp(String.raw`^(?:una\s+vez|once)\s+${TIME}${SEP}`).exec(f)
+  if (m) {
+    const time = normalizeTime(m[1])
+    if (!time) return at(dayFrom(0), null, 0)
+    const today = { type: 'once' as const, date: dateOf(dayFrom(0)), time }
+    return at(dayFrom(onceAt(today) > now ? 0 : 1), time, m[0].length)
+  }
+  // El viernes a las 18:00 (el próximo; hoy si es ese día y la hora aún no ha pasado).
+  m = new RegExp(String.raw`^(?:el\s+(?:proximo\s+)?|(?:next\s+|on\s+(?:next\s+)?))(\w+)\s+${TIME}${SEP}`).exec(f)
+  if (m) {
+    const day = DAY_WORDS.find(([re]) => re.test(m![1]))?.[1] ?? DAY_WORDS_EN.find(([re]) => re.test(m![1]))?.[1]
+    if (day !== undefined) {
+      const time = normalizeTime(m[2])
+      if (!time) return at(dayFrom(0), null, 0)
+      for (let i = 0; i <= 7; i++) {
+        const d = dayFrom(i)
+        if (new Date(d).getDay() === day && onceAt({ date: dateOf(d), time }) > now) return at(d, time, m[0].length)
+      }
+    }
+  }
+  // El 15/11 [/2026], el 2026-11-15, el 15 de noviembre [de 2026], a las 9.
+  m = new RegExp(String.raw`^(?:el\s+|on\s+)?(?:(\d{4})-(\d{1,2})-(\d{1,2})|(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?|(\d{1,2})\s+de\s+(\w+)(?:\s+de\s+(\d{4}))?)\s+${TIME}${SEP}`).exec(f)
+  if (m) {
+    const month = m[2] ? Number(m[2]) : m[5] ? Number(m[5]) : MONTHS.indexOf(m[8] ?? '') + 1
+    const dayN = Number(m[3] ?? m[4] ?? m[7])
+    const yearRaw = m[1] ?? m[6] ?? m[9]
+    if (month >= 1) {
+      const time = normalizeTime(m[10])
+      let year = yearRaw ? Number(yearRaw.length === 2 ? `20${yearRaw}` : yearRaw) : new Date(now).getFullYear()
+      let date = normalizeDate(`${year}-${month}-${dayN}`)
+      if (!date) return { error: tr('Esa fecha no existe. {ROUTINE_COMMAND_HELP}', { ROUTINE_COMMAND_HELP: routineCommandHelp() }) }
+      // Sin año y ya pasada este año: el que viene.
+      if (!yearRaw && time && onceAt({ date, time }) <= now) {
+        year++
+        date = normalizeDate(`${year}-${month}-${dayN}`) ?? date
+      }
+      const [y, mo, d] = date.split('-').map(Number)
+      return at(new Date(y, mo - 1, d, 12).getTime(), time, m[0].length)
+    }
+  }
+  return null
 }
 
 /** Quita del original los primeros `n` caracteres de su versión sin tildes (cuentan igual letra a letra). */

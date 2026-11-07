@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { CalendarClock, Check, ChevronDown, Copy, KeyRound, LoaderCircle, Pencil, Play, Plus, Trash2, Webhook } from 'lucide-react'
 import type { Routine, RoutineInput, RoutineRun, RoutineTrigger, RoutineTriggerType, RoutineWebhookInfo } from '@shared/types'
-import { dayName, dayShort, describeTrigger, describeWhen, MAX_INTERVAL_HOURS, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, WEEK_ORDER } from '@shared/routines'
+import { dateOf, normalizeDate, dayName, dayShort, describeTrigger, describeWhen, MAX_INTERVAL_HOURS, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, WEEK_ORDER } from '@shared/routines'
 import { useCowork, useData } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { cx, errorText } from '../common/util'
@@ -14,10 +14,11 @@ const TYPE_LABEL: Record<RoutineTriggerType, string> = {
   daily: t('Cada día a una hora'),
   weekly: t('Unos días de la semana'),
   interval: t('Cada N horas'),
+  once: t('Una sola vez (un día a una hora)'),
   webhook: t('Al llegar un webhook'),
   folder: t('Al cambiar archivos de una carpeta')
 }
-const TYPES: RoutineTriggerType[] = ['daily', 'weekly', 'interval', 'webhook', 'folder']
+const TYPES: RoutineTriggerType[] = ['daily', 'weekly', 'interval', 'once', 'webhook', 'folder']
 
 const STATUS_LABEL: Record<RoutineRun['status'], string> = {
   running: t('En marcha'),
@@ -174,7 +175,8 @@ function RoutineCard({ r, projectId, editable, call }: { r: Routine; projectId: 
           <span className={s.name}>{r.name}</span>
           <span className={s.trigger}>
             {describeTrigger(r.trigger)}
-            {r.enabled ? (next ? t(' · próxima {when}', { when: describeWhen(next) }) : '') : t(' · desactivada')}
+            {r.askApproval ? t(' · con tu visto bueno') : ''}
+            {r.enabled ? (next ? t(' · próxima {when}', { when: describeWhen(next) }) : '') : r.trigger.type === 'once' && last ? t(' · ya se lanzó') : t(' · desactivada')}
           </span>
         </div>
         {editable && (
@@ -382,6 +384,9 @@ function defaultTrigger(type: RoutineTriggerType, prev?: RoutineTrigger): Routin
       return { type, time, days: prev?.type === 'weekly' ? prev.days : [1, 2, 3, 4, 5] }
     case 'interval':
       return { type, hours: prev?.type === 'interval' ? prev.hours : 6 }
+    case 'once':
+      // Por defecto, mañana a la misma hora.
+      return { type, time, date: prev?.type === 'once' ? prev.date : dateOf(Date.now() + 86_400_000) }
     case 'webhook':
       return { type }
     case 'folder':
@@ -393,6 +398,7 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
   const [name, setName] = useState(initial?.name ?? '')
   const [request, setRequest] = useState(initial?.request ?? '')
   const [trigger, setTrigger] = useState<RoutineTrigger>(initial?.trigger ?? { type: 'daily', time: '09:00' })
+  const [askApproval, setAskApproval] = useState(initial?.askApproval === true)
   const [busy, setBusy] = useState(false)
   const id = useId()
 
@@ -400,7 +406,9 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
     e.preventDefault()
     if (!name.trim() || request.trim().length < 3) return
     setBusy(true)
-    void onSave({ name: name.trim(), request: request.trim(), trigger, ...(initial ? {} : { enabled: true }) }).then(() => setBusy(false))
+    // Al reprogramar una de una sola vez (se desactiva sola al lanzarse), vuelve a quedar activa.
+    const replanned = !!initial && trigger.type === 'once' && JSON.stringify(trigger) !== JSON.stringify(initial.trigger)
+    void onSave({ name: name.trim(), request: request.trim(), trigger, askApproval, ...(!initial || replanned ? { enabled: true } : {}) }).then(() => setBusy(false))
   }
 
   return (
@@ -463,7 +471,13 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
           </div>
         </div>
       )}
-      {(trigger.type === 'daily' || trigger.type === 'weekly') && (
+      {trigger.type === 'once' && (
+        <label className={s.field} htmlFor={`${id}-date`}>
+          <span className={s.label}>{t('Día')}</span>
+          <input id={`${id}-date`} type="date" className={cx(s.input, s.short)} value={trigger.date} min={dateOf(Date.now())} required onChange={(e) => setTrigger({ ...trigger, date: e.target.value })} />
+        </label>
+      )}
+      {(trigger.type === 'daily' || trigger.type === 'weekly' || trigger.type === 'once') && (
         <label className={s.field} htmlFor={`${id}-time`}>
           <span className={s.label}>{t('Hora (la del servidor)')}</span>
           <input id={`${id}-time`} type="time" className={cx(s.input, s.short)} value={trigger.time} required onChange={(e) => setTrigger({ ...trigger, time: e.target.value })} />
@@ -501,6 +515,10 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
         </label>
       )}
       <p className={s.hint}>{describeTriggerSafe(trigger)}</p>
+      <label className={s.check}>
+        <input type="checkbox" checked={askApproval} onChange={(e) => setAskApproval(e.target.checked)} />
+        <span>{t('Pedir mi visto bueno a su plan antes de empezar (si no, la rutina sigue sola aunque no estés)')}</span>
+      </label>
       <div className={s.formRow}>
         <button type="button" className={cx(u.btn, u.btnSm)} onClick={onCancel}>
           {t('Cancelar')}
@@ -515,5 +533,6 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
 
 function describeTriggerSafe(trigger: RoutineTrigger): string {
   if (trigger.type === 'weekly' && !trigger.days.length) return t('Elige al menos un día.')
+  if (trigger.type === 'once' && !normalizeDate(trigger.date)) return t('Elige el día.')
   return `${describeTrigger(trigger)}.`
 }

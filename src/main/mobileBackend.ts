@@ -1,6 +1,6 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
+import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun, RoutineInput, ChatMessage } from '@shared/types'
 import type { MobileChatReceipt, MobileConversation, MobileCost, MobileFiles, MobileMusicResult, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
 import { mobileCost } from '@shared/costs'
@@ -126,6 +126,8 @@ export class MobileBackend {
         agentReset: this.methods.has('resetAgent'), serverUpdate: this.methods.has('applyUpdate'), agentQuality: true, inbox: this.methods.has('listInbox'), taskChanges: this.methods.has('undoTask'),
         routines: this.methods.has('runRoutineNow'),
         templates: this.methods.has('listTemplates'),
+        routinesEdit: this.methods.has('createRoutine') && this.methods.has('updateRoutine') && this.methods.has('deleteRoutine'),
+        routineProposals: this.methods.has('decideRoutineProposal'),
         directMessages: true,
         chats: this.methods.has('listConversations') && this.methods.has('openConversation'),
         chatActions: this.methods.has('forkConversation') && this.methods.has('moveConversation') && this.methods.has('pinnedConversations'),
@@ -504,6 +506,48 @@ export class MobileBackend {
         return { ...rest, hasSecret: rest.hasSecret ?? !!webhookSecret }
       })
     }
+  }
+
+  /** Un error de validación de la rutina (hora pasada, sin nombre…) es del que la pide, no del servidor. */
+  private async routineCall<T>(name: string, ...args: unknown[]): Promise<T> {
+    try {
+      return await this.call<T>(name, ...args)
+    } catch (e) {
+      if (e instanceof MobileError || !(e instanceof Error)) throw e
+      if (/ya no existe/.test(e.message)) throw new MobileError(404, 'ROUTINE_NOT_FOUND', e.message)
+      throw new MobileError(400, 'INVALID_ROUTINE', e.message)
+    }
+  }
+
+  private withoutSecret(r: Routine): Routine {
+    const { webhookSecret, ...rest } = r
+    return { ...rest, hasSecret: rest.hasSecret ?? !!webhookSecret }
+  }
+
+  /** Nueva rutina (activa salvo enabled: false). Valida lo mismo que el escritorio. */
+  async createRoutine(conversationId: string, input: RoutineInput): Promise<{ routine: Routine }> {
+    await this.existing(conversationId)
+    return { routine: this.withoutSecret(await this.routineCall<Routine>('createRoutine', conversationId, input)) }
+  }
+
+  /** Cambia nombre, petición, disparador, si pide tu visto bueno o la activa/desactiva. */
+  async updateRoutine(conversationId: string, routineId: string, patch: Partial<RoutineInput>): Promise<{ routine: Routine }> {
+    if (!(await this.existing(conversationId)).routines?.some((r) => r.id === routineId)) throw new MobileError(404, 'ROUTINE_NOT_FOUND', 'No existe esa rutina')
+    return { routine: this.withoutSecret(await this.routineCall<Routine>('updateRoutine', conversationId, routineId, patch)) }
+  }
+
+  async deleteRoutine(conversationId: string, routineId: string): Promise<{ deleted: true }> {
+    if (!(await this.existing(conversationId)).routines?.some((r) => r.id === routineId)) throw new MobileError(404, 'ROUTINE_NOT_FOUND', 'No existe esa rutina')
+    await this.call('deleteRoutine', conversationId, routineId)
+    return { deleted: true }
+  }
+
+  /** «Crear rutina» o «Descartar» en la tarjeta que propuso Hermes. */
+  async routineProposal(conversationId: string, messageId: string, action: 'create' | 'dismiss'): Promise<{ message: ChatMessage }> {
+    const message = (await this.existing(conversationId)).messages.find((m) => m.id === messageId)
+    if (!message?.routineProposal) throw new MobileError(404, 'ROUTINE_PROPOSAL_NOT_FOUND', 'No se encontró esa propuesta de rutina')
+    if (message.routineProposal.status !== 'pending') throw new MobileError(409, 'ROUTINE_PROPOSAL_NOT_PENDING', 'Esa propuesta ya no está pendiente')
+    return { message: await this.routineCall<ChatMessage>('decideRoutineProposal', conversationId, messageId, action) }
   }
 
   /** «Ejecutar ahora»: si la anterior sigue en marcha, la ejecución vuelve como saltada (skipped). */

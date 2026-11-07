@@ -279,6 +279,7 @@ export interface MemoryInput {
  * - daily: cada día a una hora («09:00»).
  * - weekly: unos días de la semana a una hora (0 = domingo … 6 = sábado, como Date.getDay()).
  * - interval: cada N horas (contando desde la última vez).
+ * - once: una sola vez, un día («2026-11-08») a una hora; al lanzarse se desactiva sola.
  * - webhook: cuando llega una petición a su dirección propia en el acceso web (con su secreto).
  * - folder: cuando cambian archivos de una carpeta del proyecto (ruta relativa a su carpeta de trabajo; '' = toda).
  */
@@ -286,6 +287,7 @@ export type RoutineTrigger =
   | { type: 'daily'; time: string }
   | { type: 'weekly'; days: number[]; time: string }
   | { type: 'interval'; hours: number }
+  | { type: 'once'; date: string; time: string }
   | { type: 'webhook' }
   | { type: 'folder'; path: string }
 
@@ -326,6 +328,11 @@ export interface Routine {
   /** Últimas ejecuciones, la más reciente al final. */
   runs: RoutineRun[]
   /**
+   * Su plan espera tu visto bueno antes de empezar. Por defecto no (nadie está delante cuando se lanza sola), aunque
+   * «Pedir mi visto bueno a cada plan» esté encendido: esa opción es para lo que escribes tú.
+   */
+  askApproval?: boolean
+  /**
    * Secreto del webhook. Solo lo guarda el motor (project.json): a la interfaz llega sin él (hasSecret) y se pide
    * aparte con getRoutineWebhook. Nunca se escribe en documentos, registros ni mensajes.
    */
@@ -340,6 +347,8 @@ export interface RoutineInput {
   request: string
   trigger: RoutineTrigger
   enabled?: boolean
+  /** Ver Routine.askApproval. */
+  askApproval?: boolean
 }
 
 /** Direcciones del webhook de una rutina (con su secreto): solo se piden para enseñarlas o copiarlas. */
@@ -436,6 +445,8 @@ export interface ChatMessage {
   rating?: MessageRating
   /** Mensaje que lanzó una rutina (no lo escribiste tú en ese momento): el chat enseña «Rutina: <nombre>». */
   routine?: { id: string; name: string }
+  /** Rutina que Hermes propone crear porque le pediste algo que se repite o para más tarde («Crear rutina»). */
+  routineProposal?: RoutineProposal
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
   direct?: { agentId: AgentId; name: string }
   /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
@@ -548,6 +559,20 @@ export interface HermesModelsInfo {
  * Plan del coordinador a la espera de tu visto bueno. pending: espera tu respuesta; approved: aprobado (ya en
  * marcha); revised: le pediste cambios y propuso otro; rejected: lo descartaste.
  */
+/**
+ * Rutina que propone Hermes. pending: espera que la crees o la descartes · created: creada (routineId) ·
+ * dismissed: descartada. `command` es la orden «/rutina …» equivalente (para cambiarla en el cuadro de texto).
+ */
+export interface RoutineProposal {
+  status: 'pending' | 'created' | 'dismissed'
+  name: string
+  request: string
+  trigger: RoutineTrigger
+  command: string
+  routineId?: string
+  decidedAt?: number
+}
+
 export interface PlanProposal {
   status: 'pending' | 'approved' | 'revised' | 'rejected'
   tasks: ProposedTask[]
@@ -1318,6 +1343,8 @@ export interface CoworkApi {
   getRoutineWebhook(projectId: string, id: string, regenerate?: boolean): Promise<RoutineWebhookInfo>
   /** Retoma una petición interrumpida al cerrar la app: vuelve a lanzar sus tareas sin terminar. */
   resumeRun(projectId: string, runId: string): Promise<void>
+  /** Rutina que propuso Hermes (mensaje con routineProposal): «create» la crea (activa), «dismiss» la descarta. */
+  decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): Promise<ChatMessage>
   /** Da el visto bueno al plan que propone el coordinador (mensaje con proposal): sus tareas empiezan. */
   /** 👍/👎 en un resultado del chat (null lo quita): queda en el mensaje, en el registro de consumo y en la ficha del agente. */
   rateMessage(projectId: string, messageId: string, rating: MessageRating | null): Promise<void>
