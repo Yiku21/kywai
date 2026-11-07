@@ -1,14 +1,16 @@
 <div align="center">
 
-<img src="docs/img/logo/kywai-simbolo.svg" alt="AI Cowork" width="112" height="112">
+<img src="docs/img/logo/kywai-simbolo.svg" alt="kywai" width="112" height="112">
 
-# AI Cowork
+# kywai
+
+<sub>读作 “ki-wai”。原名 <i>AI Cowork</i>。</sub>
 
 ### 任意提供商的任意 AI 智能体，想要多少就加多少，作为一支团队协同工作。
 
 只需说一次。协调者会规划工作，把每项任务交给最擅长的智能体：Claude、Codex、Gemini、DeepSeek、Qwen、Copilot、Cursor、本地模型，或你添加的任何命令行智能体。你可以在实时 3D 世界里看着每个机器人干活，最后，结果会回到你手中，而且已经过检查。
 
-[English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · **简体中文**
+[English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · **简体中文** · 🌐 [kywai.app](https://kywai.app)
 
 https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
@@ -31,17 +33,17 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 <img src="src/renderer/src/assets/robots/qwen.png" alt="本地模型" width="72" title="本地模型">
 <img src="src/renderer/src/assets/robots/becario.png" alt="实习生" width="72" title="实习生：同一个智能体，投入更少的精力">
 
-[简介](#-简介) · [任意智能体](#-支持任意提供商的任意智能体) · [为什么](#-为什么选择-ai-cowork) · [工作原理](#-工作原理) · [功能](#-功能) · [随时随地](#-随时随地使用) · [主题](#-主题) · [安装](#-安装) · [隐私](#-隐私与安全) · [支持](#-支持这个项目)
+[简介](#-简介) · [任意智能体](#-支持任意提供商的任意智能体) · [为什么](#-为什么选择-kywai) · [工作原理](#-工作原理) · [功能](#-功能) · [随时随地](#-随时随地使用) · [主题](#-主题) · [安装](#-安装) · [隐私](#-隐私与安全) · [支持](#-支持这个项目)
 
 </div>
 
 <br>
 
-![AI Cowork：左侧是包含 Hermes 计划的聊天，右侧是智能体正在工作的 3D 数字空间](docs/img/zh/escritorio.jpg)
+![kywai：左侧是包含 Hermes 计划的聊天，右侧是智能体正在工作的 3D 数字空间](docs/img/zh/escritorio.jpg)
 
 ## ✨ 简介
 
-AI Cowork 把你已有的 AI 智能体和订阅（无论来自哪家提供商）变成**一支协同工作的团队**。你不必在各个应用之间来回切换、到处复制上下文，只需说一次：
+kywai 把你已有的 AI 智能体和订阅（无论来自哪家提供商）变成**一支协同工作的团队**。你不必在各个应用之间来回切换、到处复制上下文，只需说一次：
 
 1. **🧭 协调者 Hermes** 理解你的需求并提出计划：有哪些任务、每项任务由哪个智能体负责，以及原因。
 2. **✅ 你来批准**，或者直接用大白话告诉它要改什么。
@@ -53,7 +55,7 @@ AI Cowork 把你已有的 AI 智能体和订阅（无论来自哪家提供商）
 
 ## 🔌 支持任意提供商的任意智能体
 
-AI Cowork 并不绑定于一组固定的模型。它是一个让你**组建自己团队**的平台：
+kywai 并不绑定于一组固定的模型。它是一个让你**组建自己团队**的平台：
 
 - **想加多少智能体就加多少**：在 ⚙ →“配置智能体…”→“添加智能体”中操作。目录已经知道如何启动 30 多个智能体，以及每个智能体使用的账号或订阅：Claude Code、Codex CLI、Gemini CLI、Antigravity CLI、Muse Code、Aider、DeepSeek、Qwen Code、Kimi Code、MiniMax Code、Mistral Vibe、Grok Build、GitHub Copilot CLI、Cursor、Amp、Goose、OpenCode、Cline、Continue、OpenHands、Factory Droid、Auggie、Junie、Kiro、Rovo Dev、Qoder CLI、Crush、Open Interpreter、gptme、Letta Code、ForgeCode、OpenClaw 等等。
 - **也可以接入任何其他程序**：选择“其他程序…”，填写它的命令、接收任务的方式（stdin、文件或参数）以及参数，它就会加入团队。
@@ -63,7 +65,7 @@ AI Cowork 并不绑定于一组固定的模型。它是一个让你**组建自�
 - **由谁来协调由你决定。** 默认由 Hermes 协调，但任何智能体都可以负责规划和分配（“设为协调者”）。如果它不可用，下一个会接手。
 - **每个智能体都是正式的团队成员**，在 3D 世界里拥有自己的机器人和工位、自己的表现统计，并和其他成员一样经过计划、审查和撤销流程。
 
-## 💡 为什么选择 AI Cowork
+## 💡 为什么选择 kywai
 
 <table>
 <tr>
@@ -104,7 +106,7 @@ AI Cowork 并不绑定于一组固定的模型。它是一个让你**组建自�
 <td valign="top">
 
 **🔒 从设计上保护隐私**<br>
-一切都在你的电脑上运行。远程访问只经过你自己的 Tailscale 网络，语音听写在本地运行，AI Cowork 从不查看或存储密码。
+一切都在你的电脑上运行。远程访问只经过你自己的 Tailscale 网络，语音听写在本地运行，kywai 从不查看或存储密码。
 
 </td>
 </tr>
@@ -180,9 +182,9 @@ flowchart TD
 
 - **像 Claude 一样的对话。** 侧边栏列出你的项目、置顶项目和最近的聊天。“新聊天”会开始一段新对话，而不会丢失之前的对话；任何一段都可以稍后恢复，连同它的任务和每个智能体的会话。Ctrl+K 可在所有项目的对话、任务、结果和记忆中搜索。
 - **项目记忆**：包含指令、决定、偏好和待办事项，每条都标明作者和状态。每个智能体在每项任务中都会读取它，即使你清空了聊天也不例外。
-- **全队共用一个 AGENTS.md。** 每个 CLI 只读取自己的文件；AI Cowork 会把其他文件一并传递过去，因此一个 `AGENTS.md` 就能让所有智能体遵循同样的规则。
+- **全队共用一个 AGENTS.md。** 每个 CLI 只读取自己的文件；kywai 会把其他文件一并传递过去，因此一个 `AGENTS.md` 就能让所有智能体遵循同样的规则。
 - **共享技能。** 可复用的流程存放在 `habilidades` 文件夹中，采用与 Claude 技能相同的 `SKILL.md` 格式。
-- **AI Cowork MCP 服务器。** 智能体可以获得一些工具，用来读取和补充项目记忆、查看团队状态、加载技能以及向你提问，每项任务都有独立的令牌。
+- **kywai MCP 服务器。** 智能体可以获得一些工具，用来读取和补充项目记忆、查看团队状态、加载技能以及向你提问，每项任务都有独立的令牌。
 - **例行任务。** 能自动启动的请求：在设定的时间、选定的星期几、每隔 N 小时、通过 webhook（支持 GitHub 签名）或在某个文件夹中的文件发生变化时触发。它们和你手动输入的请求一样，经过相同的计划、智能体和审查流程。
 
 ### 📊 额度与成本
@@ -214,11 +216,11 @@ flowchart TD
 
 ## 🌍 随时随地使用
 
-安装了 AI Cowork 的电脑（例如一台始终开机的 Mac mini）负责干活。你可以通过四种方式随身使用它：
+安装了 kywai 的电脑（例如一台始终开机的 Mac mini）负责干活。你可以通过四种方式随身使用它：
 
 | | 🖥️ **桌面版** | 💻 **桌面客户端** | 🌐 **浏览器** | 📱 **Órbita（Android）** |
 |---|---|---|---|---|
-| **是什么** | 适用于 Windows、macOS 和 Linux 的完整应用 | 在另一台电脑上运行的应用，连接到你的主 AI Cowork | 在你 Tailscale 网络中的任何设备上使用同样的界面 | 专为手机打造的原生 Android 应用 |
+| **是什么** | 适用于 Windows、macOS 和 Linux 的完整应用 | 在另一台电脑上运行的应用，连接到你的主 kywai | 在你 Tailscale 网络中的任何设备上使用同样的界面 | 专为手机打造的原生 Android 应用 |
 | **如何进入** | 打开应用 | 用 6 位数代码配对一次 | 一个带访问码的链接，只需一次 | 用 6 位数代码配对一次 |
 | **能做什么** | 全部功能 | 全部功能，外加浏览服务器上的文件和双向**同步文件夹** | 聊天、3D 世界、文件、结果和批准计划 | 聊天、计划、任务、文件、记忆、用量和原生 3D 世界 |
 | **更新方式** | ⚙ →“检查更新…” | 来自你自己服务器的签名更新 | 始终是最新版本 | 在“设置”中更新，无需重新安装；新版本会自动发布 |
@@ -319,7 +321,7 @@ bash scripts/instalar-linux.sh
 
 1. 选择要使用哪些智能体。
 2. 它会检查这些智能体的程序，并用官方安装程序安装缺失的部分。
-3. 它会打开每个智能体的官方登录页面。AI Cowork 从不查看或存储密码。
+3. 它会打开每个智能体的官方登录页面。kywai 从不查看或存储密码。
 4. 它会汇总所有尚未完成的事项。
 
 要在手机或笔记本电脑上使用，请打开 ⚙ →“从其他设备访问…”。
@@ -366,13 +368,13 @@ docs/          使用手册、模型指南和移动端 API
 
 ## ☕ 支持这个项目
 
-AI Cowork 免费且开源。如果它帮你节省了时间，想表示感谢，可以 **[在 Ko-fi 上请我喝杯咖啡](https://ko-fi.com/yilsander)**。应用里也有入口：桌面端 ⚙ →“支持 AI Cowork ☕”，Órbita 在“设置”的最底部。
+kywai 免费且开源。如果它帮你节省了时间，想表示感谢，可以 **[在 Ko-fi 上请我喝杯咖啡](https://ko-fi.com/yilsander)**。应用里也有入口：桌面端 ⚙ →“支持 kywai ☕”，Órbita 在“设置”的最底部。
 
 [![在 Ko-fi 上请我喝杯咖啡](https://img.shields.io/badge/Ko--fi-%E8%AF%B7%E6%88%91%E5%96%9D%E6%9D%AF%E5%92%96%E5%95%A1-FF5E5B?logo=ko-fi&logoColor=white&style=for-the-badge)](https://ko-fi.com/yilsander)
 
 ## 📄 许可证
 
-[MIT](LICENSE)。你可以自由使用、修改和分享 AI Cowork，只需保留版权声明。
+[MIT](LICENSE)。你可以自由使用、修改和分享 kywai，只需保留版权声明。
 
 <div align="center">
 <br>
