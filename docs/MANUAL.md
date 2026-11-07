@@ -1408,6 +1408,12 @@ todos los estados: disponible, trabajo individual, espera, desplazamiento, deleg
 error, cuota baja y finalización. No hace ninguna llamada a los CLIs. Se reconoce por el borde ámbar y la
 etiqueta «Demo · datos simulados».
 
+**Capturas de los README.** Cada README (inglés, español, portugués, francés y chino) enseña la app en su idioma:
+las capturas están en `docs/img/<idioma>/` (`escritorio.jpg`, `robots.jpg` y una `tema-*.jpg` por tema) y salen del
+modo demo. Para rehacerlas tras un cambio visible: `npm run web` en una terminal y `node scripts/capturas-readme.mjs`
+en otra (o solo algunos idiomas: `node scripts/capturas-readme.mjs en es`). Necesita Playwright con Chromium y Python
+con Pillow. Las dos de Órbita (`docs/img/movil-*.jpg`) se hacen a mano en un móvil.
+
 ### Rendimiento
 
 Lo que hace AI Cowork para ir fluido sin que tengas que tocar nada:

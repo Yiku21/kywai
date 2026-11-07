@@ -37,7 +37,7 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 <br>
 
-![AI Cowork: o chat com o plano do Hermes à esquerda e o espaço digital 3D com os agentes trabalhando](docs/img/escritorio.jpg)
+![AI Cowork: o chat com o plano do Hermes à esquerda e o espaço digital 3D com os agentes trabalhando](docs/img/pt/escritorio.jpg)
 
 ## ✨ O que é
 
@@ -229,14 +229,14 @@ O Órbita guarda a cópia mais recente para que você possa usá-lo **offline**,
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-orbita.jpg" alt="Tema Órbita" width="260"><br><b>Órbita</b>: vidro fosco</td>
-    <td align="center"><img src="docs/img/tema-marfil.jpg" alt="Tema Marfil" width="260"><br><b>Marfil</b>: claro e acolhedor</td>
-    <td align="center"><img src="docs/img/tema-grafito.jpg" alt="Tema Grafito" width="260"><br><b>Grafito</b>: preto e dourado</td>
+    <td align="center"><img src="docs/img/pt/tema-orbita.jpg" alt="Tema Órbita" width="260"><br><b>Órbita</b>: vidro fosco</td>
+    <td align="center"><img src="docs/img/pt/tema-marfil.jpg" alt="Tema Marfil" width="260"><br><b>Marfil</b>: claro e acolhedor</td>
+    <td align="center"><img src="docs/img/pt/tema-grafito.jpg" alt="Tema Grafito" width="260"><br><b>Grafito</b>: preto e dourado</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-bosque.jpg" alt="Tema Bosque" width="260"><br><b>Bosque</b>: verde profundo e dourado</td>
-    <td align="center"><img src="docs/img/tema-matrix.jpg" alt="Tema Matrix" width="260"><br><b>Matrix</b>: preto e verde neon</td>
-    <td align="center"><img src="docs/img/tema-eva.jpg" alt="Tema EVA-01" width="260"><br><b>EVA-01</b>: roxo e verde-limão</td>
+    <td align="center"><img src="docs/img/pt/tema-bosque.jpg" alt="Tema Bosque" width="260"><br><b>Bosque</b>: verde profundo e dourado</td>
+    <td align="center"><img src="docs/img/pt/tema-matrix.jpg" alt="Tema Matrix" width="260"><br><b>Matrix</b>: preto e verde neon</td>
+    <td align="center"><img src="docs/img/pt/tema-eva.jpg" alt="Tema EVA-01" width="260"><br><b>EVA-01</b>: roxo e verde-limão</td>
   </tr>
 </table>
 
@@ -244,12 +244,12 @@ E quatro que decoram o mundo, remodelam o seu núcleo e, nos festivos, vestem os
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-relicario.jpg" alt="Tema Relicario" width="400"><br><b>Relicario</b>: um núcleo de cristal lapidado e plataformas de vidro e ouro</td>
-    <td align="center"><img src="docs/img/tema-telar.jpg" alt="Tema Telar" width="400"><br><b>Telar</b>: membranas de fio de prata com faíscas douradas</td>
+    <td align="center"><img src="docs/img/pt/tema-relicario.jpg" alt="Tema Relicario" width="400"><br><b>Relicario</b>: um núcleo de cristal lapidado e plataformas de vidro e ouro</td>
+    <td align="center"><img src="docs/img/pt/tema-telar.jpg" alt="Tema Telar" width="400"><br><b>Telar</b>: membranas de fio de prata com faíscas douradas</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-halloween.jpg" alt="Tema Halloween" width="400"><br><b>Halloween</b>: abóboras, velas, lua, morcegos, uma bruxa e um vampiro</td>
-    <td align="center"><img src="docs/img/tema-navidad.jpg" alt="Tema de Natal" width="400"><br><b>Navidad</b>: neve, árvores, presentes, um globo de neve e gorros de Papai Noel</td>
+    <td align="center"><img src="docs/img/pt/tema-halloween.jpg" alt="Tema Halloween" width="400"><br><b>Halloween</b>: abóboras, velas, lua, morcegos, uma bruxa e um vampiro</td>
+    <td align="center"><img src="docs/img/pt/tema-navidad.jpg" alt="Tema de Natal" width="400"><br><b>Navidad</b>: neve, árvores, presentes, um globo de neve e gorros de Papai Noel</td>
   </tr>
 </table>
 
