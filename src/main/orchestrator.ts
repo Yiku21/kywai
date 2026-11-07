@@ -27,6 +27,7 @@ import type {
 import { INTERRUPTED_ERROR, SUBAGENT_COLOR } from '@shared/defaults'
 import { checkAgentPresence, isLocalProvider, isTextOnly, reportsNoTokens, runAgent } from './agents'
 import { safeModel, STALL_NOTICE } from './agents/spawn'
+import { GEMINI_LOGIN_STALL_NOTICE } from './agents/gemini'
 import type { TraceUpdate } from './agents/types'
 import type { AgentErrorKind, ExtraMcp, RateLimitInfo, RunAgentResult } from './agents/types'
 import { getConfig, markBudgetAlerted } from './config'
@@ -59,6 +60,11 @@ import { skillPromptLines } from './skills'
 import { parseDirect } from '@shared/directMessage'
 import { createRoutine } from './routines'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
+
+/** ¿Es un aviso de «lleva 3 minutos sin dar señales»? (el general o el de Gemini con la sesión de Google) */
+function isStallNotice(text: string | undefined): boolean {
+  return text === STALL_NOTICE || text === GEMINI_LOGIN_STALL_NOTICE
+}
 
 type Deliverable = 'file' | 'text'
 
@@ -2492,19 +2498,22 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   const activity = (text: string): void => {
     if (ctrl.signal.aborted) return
     // Callado 3 minutos: suele esperar un aviso de permisos en la pantalla del servidor. A la bandeja (y al móvil).
-    if (text === STALL_NOTICE) {
+    if (isStallNotice(text)) {
       addInbox({
         kind: 'stalled',
         key: `stall:${t.id}`,
         title: tr('{name} lleva 3 minutos sin dar señales en «{title}»', { name: exec.name, title: t.title }),
-        detail: tr('Puede que esté esperando un aviso de permisos en la pantalla del servidor (macOS o el llavero), que solo se contesta delante del equipo. Si no vuelve a dar señales en 20 minutos, se corta.'),
+        detail:
+          text === GEMINI_LOGIN_STALL_NOTICE
+            ? tr('Gemini está usando tu sesión de Google, que ya no es gratis y suele quedarse colgada sin dar error. Pega una clave de API de Google AI Studio en ⚙ → Ajustes → Configurar agentes → Sesiones y vuelve a intentarlo.')
+            : tr('Puede que esté esperando un aviso de permisos en la pantalla del servidor (macOS o el llavero), que solo se contesta delante del equipo. Si no vuelve a dar señales en 20 minutos, se corta.'),
         projectId: run.projectId,
         runId: run.id,
         taskId: t.id,
         agentId: exec.id,
         actions: [{ id: 'dismiss', label: tr('Entendido') }]
       })
-    } else if (t.lastActivity === STALL_NOTICE) taskInboxDone(t)
+    } else if (isStallNotice(t.lastActivity)) taskInboxDone(t)
     if (!working) {
       working = true
       setRuntime(exec.id, { activity: 'working', lastActivity: text })

@@ -1721,6 +1721,8 @@ export const zh: Record<string, string> = {
   "Sesión de Muse Code caducada: abre `muse` en una terminal y usa /login": "Muse Code 会话已过期：在终端中打开 `muse` 并使用 /login",
   "Servidor de LM Studio apagado: pulsa «Encender LM Studio» o enciéndelo en LM Studio (Developer → Start server)": "LM Studio 服务器已关闭：点按「开启 LM Studio」，或在 LM Studio 中启动它（Developer → Start server）",
   "Lleva 3 min sin dar señales: si sigue así, puede que espere un aviso de permisos en la pantalla del servidor": "3 分钟没有动静：如果持续如此，它可能在等待服务器屏幕上的权限提示",
+  "Gemini lleva 3 min sin dar señales con tu sesión de Google, que suele quedarse colgada: pon una clave de API de Google AI Studio (⚙ → Ajustes → Configurar agentes → Sesiones)": "Gemini 使用你的 Google 登录已 3 分钟没有动静，这种方式经常卡住：请添加 Google AI Studio 的 API 密钥（⚙ → 设置 → 设置代理 → 会话）",
+  "Gemini está usando tu sesión de Google, que ya no es gratis y suele quedarse colgada sin dar error. Pega una clave de API de Google AI Studio en ⚙ → Ajustes → Configurar agentes → Sesiones y vuelve a intentarlo.": "Gemini 正在使用你的 Google 登录，它已不再免费，且常常卡住而不报错。请在 ⚙ → 设置 → 设置代理 → 会话 中粘贴 Google AI Studio 的 API 密钥，然后重试。",
   "Interrumpida al cerrar la app": "应用关闭时中断",
   "Coordinador: planifica y reparte el trabajo (con memoria entre sesiones)": "协调者：规划并分配工作（跨会话保留记忆）",
   "Leer mucho material, resumir y traducir": "阅读大量资料、总结和翻译",
