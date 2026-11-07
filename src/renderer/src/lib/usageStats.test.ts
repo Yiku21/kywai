@@ -112,5 +112,7 @@ describe('registro de consumo', () => {
     expect(csv[1]).toContain('Claude Ventana semanal +2%')
     expect(csv[1]).toContain('planificar,Hermes,hermes,,,,,60,si')
     expect(csv[2]).toContain('tarea,Claude,claude,,10000,2000,6000,480,si')
+    expect(csv[0]).toMatch(/,coste_api_usd,coste_origen$/)
+    expect(csv[1]).toMatch(/,si,,sin_precio$/)
   })
 })
