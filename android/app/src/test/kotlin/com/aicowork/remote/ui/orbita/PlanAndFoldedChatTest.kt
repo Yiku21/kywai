@@ -133,13 +133,12 @@ class PlanAndFoldedChatTest {
         compose.waitForIdle()
         val screen = compose.onNodeWithTag("orbita").fetchSemanticsNode().boundsInRoot.height
         val before = compose.onNodeWithTag("panel").fetchSemanticsNode().boundsInRoot.height
-        compose.onNodeWithTag("bottom-nav").assertIsDisplayed()
-        assertTrue("sin ampliar deja sitio a la navegación ($before de $screen)", before < screen * 0.75f)
+        compose.onNodeWithTag("chat-title").assertIsDisplayed()
+        assertTrue("sin ampliar deja sitio a la barra y las pestañas ($before de $screen)", before < screen * 0.75f)
 
         compose.onNodeWithTag("panel-expand").performClick()
         compose.waitForIdle()
         assertTrue(prefs.preferences.value.foldedFullPanels)
-        compose.onAllNodesWithTag("bottom-nav").assertCountEquals(0)
         compose.onAllNodesWithTag("chat-title").assertCountEquals(0)
         val full = compose.onNodeWithTag("panel").fetchSemanticsNode().boundsInRoot.height
         assertTrue("pantalla completa ($full de $screen)", full > screen * 0.9f)
@@ -147,16 +146,16 @@ class PlanAndFoldedChatTest {
         // Al cerrarlo y volver a abrirlo, sigue a pantalla completa.
         compose.onNodeWithTag("panel-close").performClick()
         compose.waitForIdle()
-        compose.onNodeWithTag("bottom-nav").assertIsDisplayed()
+        compose.onNodeWithTag("chat-title").assertIsDisplayed()
         compose.onNodeWithTag("nav-Chat").performClick()
         compose.waitForIdle()
-        compose.onAllNodesWithTag("bottom-nav").assertCountEquals(0)
+        compose.onAllNodesWithTag("chat-title").assertCountEquals(0)
         assertEquals(Section.Chat, model.section)
 
         // Las flechas lo devuelven a su tamaño.
         compose.onNodeWithTag("panel-expand").performClick()
         compose.waitForIdle()
         assertFalse(prefs.preferences.value.foldedFullPanels)
-        compose.onNodeWithTag("bottom-nav").assertIsDisplayed()
+        compose.onNodeWithTag("chat-title").assertIsDisplayed()
     }
 }

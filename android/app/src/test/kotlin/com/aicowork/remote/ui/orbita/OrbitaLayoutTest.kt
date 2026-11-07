@@ -105,7 +105,7 @@ class OrbitaLayoutTest {
 
         size.value = folded
         compose.waitForIdle()
-        compose.onNodeWithTag("bottom-nav").assertIsDisplayed()
+        compose.onNodeWithTag("panel-tabs").assertIsDisplayed()
         compose.onAllNodesWithTag("sidebar").assertCountEquals(0)
         compose.onNodeWithTag("composer").assertTextContains("Borrador que no se pierde")
         assertEquals(Section.Chat, model.section)
@@ -118,15 +118,16 @@ class OrbitaLayoutTest {
 
     @Test
     @Config(qualifiers = "w475dp-h751dp")
-    fun foldedMoreOpensAPanelAndAConfirmationWaitsForTheComputer() {
+    fun foldedMenuOpensAPanelAndAConfirmationWaitsForTheComputer() {
         val controller = FakeController(SampleData.state())
         show(controller)
-        compose.onNodeWithTag("bottom-nav").assertIsDisplayed()
-        compose.onNodeWithTag("nav-more").performClick()
-        compose.onNodeWithTag("more-panels").assertIsDisplayed()
-        compose.onNodeWithTag("more-Memory").performClick()
+        // Plegado: pestañas arriba y el resto en la barra lateral (botón de menú).
+        compose.onNodeWithTag("panel-tabs").assertIsDisplayed()
+        compose.onNodeWithTag("menu-button").performClick()
+        compose.onNodeWithTag("side-more").performClick()
+        compose.onNodeWithTag("nav-Memory").performClick()
         compose.waitForIdle()
-        compose.onAllNodesWithTag("more-panels").assertCountEquals(0)
+        compose.onAllNodesWithTag("sidebar").assertCountEquals(0)
         compose.onNodeWithTag("memory-list").performScrollToNode(hasTestTag("memory-confirm-m2"))
         compose.onNodeWithTag("memory-confirm-m2").performClick()
         compose.waitUntil(5_000) { "memoryStatus:m2:confirmed" in controller.calls }

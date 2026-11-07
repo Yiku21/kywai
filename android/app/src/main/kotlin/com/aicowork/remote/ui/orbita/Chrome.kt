@@ -79,6 +79,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aicowork.remote.data.Connection
 import com.aicowork.remote.data.CoworkUiState
 import com.aicowork.remote.data.model.Agent
@@ -88,27 +89,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // ---------------------------------------------------------------------------------------------- Barra superior
-
-/** Proyecto abierto: al tocarlo se elige otro o se crea uno. */
-@Composable
-fun ProjectChip(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = Modifier) {
-    val name = state.snapshot?.conversation?.title ?: t("Sin proyecto")
-    Row(
-        modifier
-            .heightIn(min = 46.dp)
-            .glass(radius = 23.dp)
-            .tappable { model.projectMenu = !model.projectMenu }
-            .padding(start = 14.dp, end = 10.dp)
-            .testTag("project-chip"),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Outlined.ViewInAr, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(9.dp))
-        Text(name, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp))
-        Spacer(Modifier.width(4.dp))
-        Icon(Icons.Outlined.ExpandMore, contentDescription = t("Cambiar de proyecto"), tint = Orbita.TextSoft, modifier = Modifier.size(20.dp))
-    }
-}
 
 /** «En vivo» / «Conectando…» / «Sin conexión» (tocar reintenta). */
 @Composable
@@ -170,225 +150,50 @@ fun AttentionChip(attention: Attention?, onClick: () -> Unit, modifier: Modifier
     }
 }
 
-// ---------------------------------------------------------------------------------------------- Proyectos
+// ---------------------------------------------------------------------------------------------- Pestañas
+
+/**
+ * Pestañas del panel, como en el escritorio. Desplegado van en la cabecera del panel (Chat, Archivos, Tareas,
+ * Resultados); plegado van bajo la barra de arriba y «Espacio» deja ver el mundo entero.
+ */
+fun panelTabs(compact: Boolean): List<Section> =
+    if (compact) listOf(Section.Chat, Section.World, Section.Tasks, Section.Results)
+    else listOf(Section.Chat, Section.Files, Section.Tasks, Section.Results)
 
 @Composable
-fun ProjectMenu(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = Modifier) {
-    val snapshot = state.snapshot
-    val current = snapshot?.conversation?.id
-    val supported = snapshot?.capabilities?.projects == true
-    var creating by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-    Column(
-        modifier
-            .widthIn(min = 280.dp, max = 380.dp)
-            .glass(radius = 26.dp, tint = Orbita.GlassPopover)
-            .padding(12.dp)
-            .verticalScroll(rememberScrollState())
-            .testTag("project-menu"),
-    ) {
-        Text(t("Proyectos"), color = Orbita.TextSoft, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 8.dp))
-        if (!supported) {
-            Note(Icons.Outlined.Info, snapshot?.conversation?.title ?: t("Proyecto actual"), t("Para cambiar de proyecto desde el móvil, actualiza kywai en el ordenador."))
-        } else {
-            snapshot!!.projects.forEach { p ->
-                val on = p.id == current
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 52.dp)
-                        .clip(Orbita.CardShape)
-                        .rowHighlight(on)
-                        .tappable(haptic = Haptic.Select) {
-                            if (on) model.projectMenu = false
-                            else {
-                                busy = p.id
-                                scope.launch {
-                                    val r = model.controller.selectConversation(p.id)
-                                    busy = null
-                                    if (r.ok) {
-                                        model.feedback.confirm()
-                                        model.projectMenu = false
-                                    } else {
-                                        model.feedback.reject()
-                                        model.toast(r.message, Toast.Tone.Error)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(horizontal = 12.dp)
-                        .semantics { selected = on },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Outlined.ViewInAr, contentDescription = null, tint = if (on) Orbita.Accent else Orbita.TextSoft, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text(p.name, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    when {
-                        busy == p.id -> androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp), color = Orbita.Accent, strokeWidth = 2.dp)
-                        p.running -> Row(verticalAlignment = Alignment.CenterVertically) {
-                            Dot(Orbita.Live, 7.dp, pulse = true)
-                            Spacer(Modifier.width(6.dp))
-                            Text("trabajando", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
-                        }
-                        on -> Icon(Icons.Outlined.Check, contentDescription = t("Abierto"), tint = Orbita.Accent, modifier = Modifier.size(20.dp))
-                    }
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            if (!creating) {
-                OrbitaButton(t("Nuevo proyecto"), onClick = { creating = true }, icon = Icons.Outlined.Add, style = ButtonStyle.Secondary, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth())
-            } else {
-                OrbitaField(
-                    value = name,
-                    onValueChange = { name = it },
-                    placeholder = t("Nombre del proyecto"),
-                    imeAction = ImeAction.Done,
-                    onIme = {},
-                    autoFocus = true,
+fun PanelTabs(model: OrbitaModel, compact: Boolean, modifier: Modifier = Modifier) {
+    val state by model.controller.state.collectAsStateWithLifecycle()
+    val active = state.snapshot?.tasks?.count { it.isActive } ?: 0
+    Row(modifier.padding(4.dp).testTag("panel-tabs"), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        panelTabs(compact).forEach { s ->
+            val on = model.section == s
+            val bg by animateColorAsState(if (on) Orbita.AccentSoft else Color.Transparent, tween(200), label = "tab")
+            val edge by animateColorAsState(if (on) Orbita.AccentEdge.copy(alpha = 0.6f) else Color.Transparent, tween(200), label = "tabEdge")
+            val shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+            Row(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 42.dp)
+                    .clip(shape)
+                    .background(bg)
+                    .border(1.dp, edge, shape)
+                    .tappable(role = Role.Tab, haptic = Haptic.Tap) { if (s == Section.World) model.close() else model.open(s) }
+                    .semantics { selected = on }
+                    .padding(horizontal = 6.dp)
+                    .testTag(if (compact) "nav-${s.name}" else "tab-${s.name}"),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    if (s == Section.World) t("Espacio") else s.label,
+                    color = if (on) Orbita.Text else Orbita.TextSoft,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OrbitaButton(t("Cancelar"), onClick = { creating = false; name = "" }, style = ButtonStyle.Ghost, haptic = Haptic.Tap, modifier = Modifier.weight(1f))
-                    OrbitaButton(
-                        t("Crear"),
-                        onClick = {
-                            busy = "new"
-                            scope.launch {
-                                val r = model.controller.createProject(name.trim())
-                                busy = null
-                                if (r.ok) {
-                                    model.feedback.confirm()
-                                    model.feedback.play(Sfx.ProjectCreated)
-                                    model.projectMenu = false
-                                    creating = false
-                                    name = ""
-                                } else {
-                                    model.feedback.reject()
-                                    model.toast(r.message, Toast.Tone.Error)
-                                }
-                            }
-                        },
-                        enabled = name.isNotBlank(),
-                        busy = busy == "new",
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------- Navegación
-
-val BottomSections = listOf(Section.World, Section.Chat, Section.Tasks, Section.Files)
-val RailSections = listOf(Section.World, Section.Chat, Section.Tasks, Section.Files, Section.Results, Section.Memory, Section.Tools)
-val RailFooter = listOf(Section.Usage, Section.Settings)
-val MoreSections = listOf(Section.Results, Section.Memory, Section.Tools, Section.Usage, Section.Settings, Section.Team)
-
-/** Navegación inferior (plegado): Mundo, Chat, Tareas, Archivos y Más, al alcance del pulgar. */
-@Composable
-fun BottomNav(model: OrbitaModel, badges: Map<Section, Int>, modifier: Modifier = Modifier) {
-    val moreOn = model.moreOpen || model.section in MoreSections
-    Row(
-        modifier
-            .fillMaxWidth()
-            .glass(radius = 28.dp)
-            .padding(6.dp)
-            .testTag("bottom-nav"),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        BottomSections.forEach { s ->
-            NavItem(s.label, s.icon, on = model.section == s && !model.moreOpen, badge = badges[s] ?: 0, modifier = Modifier.weight(1f).testTag("nav-${s.name}")) { model.open(s) }
-        }
-        NavItem(t("Más"), Icons.Outlined.MoreHoriz, on = moreOn, badge = MoreSections.sumOf { badges[it] ?: 0 }, modifier = Modifier.weight(1f).testTag("nav-more")) {
-            model.moreOpen = !model.moreOpen
-        }
-    }
-}
-
-@Composable
-private fun NavItem(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, on: Boolean, badge: Int, modifier: Modifier, compact: Boolean = false, onClick: () -> Unit) {
-    val bg by animateColorAsState(if (on) Orbita.AccentSoft else Color.Transparent, tween(200), label = "nav")
-    val edge by animateColorAsState(if (on) Orbita.AccentEdge.copy(alpha = 0.6f) else Color.Transparent, tween(200), label = "navEdge")
-    Box(
-        modifier
-            .heightIn(min = if (compact) 56.dp else 62.dp)
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
-            .background(bg)
-            .border(1.dp, edge, androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
-            .tappable(role = Role.Tab, haptic = Haptic.Tap, onClick = onClick)
-            .semantics { selected = on },
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 6.dp, horizontal = 2.dp)) {
-            Box {
-                Icon(icon, contentDescription = null, tint = if (on) Color.White else Orbita.TextSoft, modifier = Modifier.size(24.dp))
-                if (badge > 0) Box(Modifier.align(Alignment.TopEnd).offset(x = 12.dp, y = (-8).dp)) { CountBadge(badge) }
-            }
-            Spacer(Modifier.height(3.dp))
-            Text(label, color = if (on) Color.White else Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-        }
-    }
-}
-
-/** Riel lateral (desplegado): todas las secciones, con Consumo y Ajustes aparte. */
-@Composable
-fun Rail(model: OrbitaModel, badges: Map<Section, Int>, modifier: Modifier = Modifier) {
-    Column(
-        modifier
-            .width(RailWidth)
-            .fillMaxHeight()
-            .glass(radius = 30.dp)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp, vertical = 10.dp)
-            .testTag("rail"),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        RailSections.forEach { s ->
-            NavItem(s.label, s.icon, on = model.section == s, badge = badges[s] ?: 0, modifier = Modifier.fillMaxWidth().testTag("nav-${s.name}")) { model.open(s) }
-        }
-        Spacer(Modifier.weight(1f))
-        Box(Modifier.fillMaxWidth().padding(vertical = 6.dp, horizontal = 10.dp).height(1.dp).background(Color(0x26B4CCF5)))
-        RailFooter.forEach { s ->
-            NavItem(s.label, s.icon, on = model.section == s, badge = 0, compact = true, modifier = Modifier.fillMaxWidth().testTag("nav-${s.name}")) { model.open(s) }
-        }
-    }
-}
-
-val RailWidth: Dp = 108.dp
-
-/** «Más paneles» (plegado): el resto de secciones en una cuadrícula. */
-@Composable
-fun MorePanels(model: OrbitaModel, badges: Map<Section, Int>, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth().glass(radius = 30.dp, tint = Orbita.GlassPopover).padding(16.dp).testTag("more-panels")) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(t("Más paneles"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(start = 4.dp))
-            IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.moreOpen = false })
-        }
-        Spacer(Modifier.height(10.dp))
-        LazyVerticalGrid(
-            GridCells.Fixed(2),
-            state = model.moreGrid,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.heightIn(max = 300.dp),
-        ) {
-            items(MoreSections) { s ->
-                Row(
-                    Modifier
-                        .heightIn(min = 56.dp)
-                        .card(radius = 18.dp, selected = model.section == s)
-                        .tappable(haptic = Haptic.Tap) { model.open(s) }
-                        .padding(horizontal = 14.dp)
-                        .testTag("more-${s.name}"),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(s.icon, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(22.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text(s.label, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    (badges[s] ?: 0).takeIf { it > 0 }?.let { CountBadge(it) }
+                if (s == Section.Tasks && active > 0) {
+                    Spacer(Modifier.width(5.dp))
+                    Text("$active", color = Orbita.Accent, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

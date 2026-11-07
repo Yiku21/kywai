@@ -3,7 +3,6 @@ package com.aicowork.remote.ui.orbita
 import com.aicowork.remote.i18n.t
 
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.Build
@@ -131,8 +130,6 @@ class OrbitaModel(
     /** Proyecto desplegado en la barra lateral (por defecto, el abierto). */
     var expandedProject by mutableStateOf<String?>(null)
     var expanded by mutableStateOf(false)
-    var moreOpen by mutableStateOf(false)
-    var projectMenu by mutableStateOf(false)
     var selectedAgentId by mutableStateOf<String?>(null)
     var selectedTaskId by mutableStateOf<String?>(null)
     var taskFilter by mutableStateOf(TaskFilter.Active)
@@ -187,7 +184,6 @@ class OrbitaModel(
     val usageList = LazyListState()
     val settingsList = LazyListState()
     val teamList = LazyListState()
-    val moreGrid = LazyGridState()
 
     /** Vistas previas de los resultados ya descargadas. */
     val previews = mutableStateMapOf<String, Preview>()
@@ -206,7 +202,6 @@ class OrbitaModel(
     // ------------------------------------------------------------------ Navegación
 
     fun open(target: Section) {
-        moreOpen = false
         if (target == section && target != Section.World) return
         section = target
         if (target == Section.World) expanded = false
@@ -303,9 +298,7 @@ class OrbitaModel(
     // ------------------------------------------------------------------ Bandeja «Te necesita»
 
     fun openInbox() {
-        moreOpen = false
         drawerOpen = false
-        projectMenu = false
         inboxOpen = true
         onInboxVisible(true)
         controller.refreshInbox()
