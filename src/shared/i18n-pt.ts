@@ -2228,4 +2228,11 @@ export const pt: Record<string, string> = {
   "Al empezar una tarea": "Ao começar uma tarefa",
   "Al acabar bien una tarea": "Ao terminar bem uma tarefa",
   "Al fallar una tarea": "Ao falhar uma tarefa",
+  "Usar este equipo como servidor": "Usar este computador como servidor",
+  "Si este equipo era tu servidor, o quieres que lo sea: aquí correrán los agentes y se guardarán los proyectos.": "Se este computador era o seu servidor, ou quer que seja: aqui vão rodar os agentes e ficar os projetos.",
+  "Usar como servidor": "Usar como servidor",
+  "¿Usar este equipo como servidor?": "Usar este computador como servidor?",
+  "Dejará de conectarse con el otro kywai y se reiniciará: aquí correrán los agentes y se guardarán los proyectos.": "Vai deixar de se conectar ao outro kywai e reiniciar: aqui vão rodar os agentes e ficar os projetos.",
+  "Usar este equipo como servidor…": "Usar este computador como servidor…",
+  "Deja de conectarse con el otro kywai y se reinicia: aquí correrán los agentes": "Deixa de se conectar ao outro kywai e reinicia: os agentes vão rodar aqui",
 }

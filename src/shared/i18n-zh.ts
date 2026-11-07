@@ -2228,4 +2228,11 @@ export const zh: Record<string, string> = {
   "Al empezar una tarea": "任务开始时",
   "Al acabar bien una tarea": "任务成功完成时",
   "Al fallar una tarea": "任务失败时",
+  "Usar este equipo como servidor": "将这台电脑用作服务器",
+  "Si este equipo era tu servidor, o quieres que lo sea: aquí correrán los agentes y se guardarán los proyectos.": "如果这台电脑原来是你的服务器，或你希望它成为服务器：代理将在这里运行，项目也保存在这里。",
+  "Usar como servidor": "用作服务器",
+  "¿Usar este equipo como servidor?": "将这台电脑用作服务器？",
+  "Dejará de conectarse con el otro kywai y se reiniciará: aquí correrán los agentes y se guardarán los proyectos.": "它将不再连接另一个 kywai 并重新启动：代理将在这里运行，项目也保存在这里。",
+  "Usar este equipo como servidor…": "将这台电脑用作服务器…",
+  "Deja de conectarse con el otro kywai y se reinicia: aquí correrán los agentes": "不再连接另一个 kywai 并重新启动：代理将在这里运行",
 }

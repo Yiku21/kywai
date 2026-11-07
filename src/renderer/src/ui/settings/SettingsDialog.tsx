@@ -355,6 +355,11 @@ function ConnectionTab({ openSub, client }: { openSub: (s: Sub) => void; client:
               {confirmForget ? t('Pulsa otra vez') : t('Olvidar')}
             </ActionButton>
           </Row>
+          {actions.useAsServer && (
+            <Row icon={<Server size={18} />} label={t('Usar este equipo como servidor…')} hint={t('Deja de conectarse con el otro kywai y se reinicia: aquí correrán los agentes')}>
+              <ActionButton onClick={() => void actions.useAsServer?.()}>{t('Cambiar')}</ActionButton>
+            </Row>
+          )}
         </>
       )}
     </>

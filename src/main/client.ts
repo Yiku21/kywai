@@ -76,7 +76,9 @@ const PAGE_TEXTS: Array<[string, string]> = [
   ['Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que kywai está abierto en el servidor.', 'Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que kywai está abierto en el servidor.'],
   ['>Reintentar<', 'Reintentar'],
   ['>Cambiar de servidor<', 'Cambiar de servidor'],
-  ['>Abriendo ', 'Abriendo']
+  ['>Abriendo ', 'Abriendo'],
+  ['>Usar este equipo como servidor<', 'Usar este equipo como servidor'],
+  ['Si este equipo era tu servidor, o quieres que lo sea: aquí correrán los agentes y se guardarán los proyectos.', 'Si este equipo era tu servidor, o quieres que lo sea: aquí correrán los agentes y se guardarán los proyectos.']
 ]
 
 /** La página en el idioma de la app. */
@@ -146,7 +148,9 @@ function render(v){
       '<form id="f"><label for="a">Dirección del servidor</label><input id="a" placeholder="100.101.102.103 o mac-mini" autocomplete="off" spellcheck="false" value="' + esc(v.address) + '">' +
       '<label for="c">Código de 6 cifras (o el código de acceso)</label><input id="c" placeholder="123 456" autocomplete="off" spellcheck="false">' +
       '<div class="row"><button id="go">Conectar</button></div></form>' + msg(v) +
-      '<p class="hint">También puedes pegar el enlace de acceso completo en la dirección: trae el código.</p>')
+      '<p class="hint">También puedes pegar el enlace de acceso completo en la dirección: trae el código.</p>' +
+      '<button class="ghost choice" id="asServer">Usar este equipo como servidor<small>Si este equipo era tu servidor, o quieres que lo sea: aquí correrán los agentes y se guardarán los proyectos.</small></button>')
+    document.getElementById('asServer').onclick = () => api.useAsServer()
     const f = document.getElementById('f')
     f.onsubmit = async (e) => {
       e.preventDefault()
@@ -159,7 +163,9 @@ function render(v){
   } else if (v.name === 'offline') {
     el('<h1>Sin conexión con ' + esc(v.server && v.server.name) + '</h1><p>' + esc(v.message || 'No se llega al servidor.') + '</p>' +
       '<p class="hint">Se reintenta solo cada pocos segundos. Comprueba que Tailscale está conectado en este equipo y que kywai está abierto en el servidor.</p>' +
-      '<div class="row"><button id="retry">Reintentar</button><button class="ghost" id="switch">Cambiar de servidor</button></div>')
+      '<div class="row"><button id="retry">Reintentar</button><button class="ghost" id="switch">Cambiar de servidor</button></div>' +
+      '<button class="ghost choice" id="asServer">Usar este equipo como servidor<small>Si este equipo era tu servidor, o quieres que lo sea: aquí correrán los agentes y se guardarán los proyectos.</small></button>')
+    document.getElementById('asServer').onclick = () => api.useAsServer()
     document.getElementById('retry').onclick = () => api.retry()
     document.getElementById('switch').onclick = () => api.switchServer()
   } else {
@@ -246,7 +252,8 @@ function ensureWindow(): BrowserWindow {
   // El servidor ya no reconoce este dispositivo (se revocó o caducó): hay que emparejarlo de nuevo.
   w.webContents.on('did-navigate', (_e, _url, status) => {
     if (status === 401 && current) {
-      showView({ name: 'connect', address: current.server.origin, message: tr('Este dispositivo ya no está emparejado con el servidor. Genera un código nuevo y vuelve a conectar.') })
+      const origin = dropRejectedKey()
+      showView({ name: 'connect', address: origin, message: tr('Este dispositivo ya no está emparejado con el servidor. Genera un código nuevo y vuelve a conectar.') })
     }
   })
   w.webContents.on('did-fail-load', (_e, code, _desc, url, isMainFrame) => {
@@ -273,7 +280,7 @@ async function probe(origin: string, token: string): Promise<'ok' | 'denied' | '
 async function openServer(): Promise<void> {
   const saved = readClientFile(clientFilePath())
   if (saved?.mode !== 'client' || !saved.server) {
-    showView({ name: 'connect' })
+    showView({ name: 'connect', ...(saved?.lastOrigin ? { address: saved.lastOrigin } : {}) })
     return
   }
   const server = saved.server
@@ -286,6 +293,7 @@ async function openServer(): Promise<void> {
   const result = await probe(server.origin, token)
   if (!win || win.isDestroyed()) ensureWindow()
   if (result === 'denied') {
+    dropRejectedKey()
     showView({ name: 'connect', address: server.origin, message: tr('El servidor ya no reconoce este dispositivo (se revocó, caducó o el servidor es una versión anterior). Genera un código nuevo y vuelve a conectar.') })
     return
   }
@@ -308,6 +316,40 @@ async function openServer(): Promise<void> {
   await win!.loadURL(`${server.origin}/`)
   scheduleUpdateChecks()
   syncManager().start()
+}
+
+/**
+ * El servidor rechazó la llave de este equipo: se olvida (ya no sirve y, si no, se volvería a probar en cada arranque)
+ * y se guarda solo la dirección, para que baste con escribir el código nuevo. Devuelve esa dirección.
+ */
+function dropRejectedKey(): string | undefined {
+  const origin = current?.server.origin
+  current = null
+  sync?.stop()
+  writeClientFile(clientFilePath(), { mode: 'client', ...(origin ? { lastOrigin: origin } : {}) })
+  return origin
+}
+
+/**
+ * Convierte este equipo en servidor (por ejemplo, una instalación que antes era cliente y ahora debe ser el principal):
+ * se olvida la conexión con el otro kywai y la app se reinicia en modo servidor.
+ */
+async function useAsServer(): Promise<void> {
+  const options: Electron.MessageBoxOptions = {
+    type: 'question',
+    buttons: [tr('Usar como servidor'), tr('Cancelar')],
+    defaultId: 0,
+    cancelId: 1,
+    message: tr('¿Usar este equipo como servidor?'),
+    detail: tr('Dejará de conectarse con el otro kywai y se reiniciará: aquí correrán los agentes y se guardarán los proyectos.')
+  }
+  const r = win && !win.isDestroyed() ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options)
+  if (r.response !== 0) return
+  sync?.stop()
+  writeClientFile(clientFilePath(), { mode: 'server' })
+  await session.defaultSession.clearStorageData().catch(() => undefined)
+  app.relaunch()
+  app.exit(0)
 }
 
 async function pairWith(addressInput: string, codeInput: string): Promise<{ error?: string }> {
@@ -570,7 +612,9 @@ function buildMenu(): void {
       submenu: [
         { label: tr('Recargar'), accelerator: 'CmdOrCtrl+R', click: () => void openServer() },
         { label: tr('Cambiar de servidor…'), click: () => showView({ name: 'connect', address: current?.server.origin }) },
-        { label: tr('Olvidar este dispositivo y desconectar'), click: () => void forgetServer() }
+        { label: tr('Olvidar este dispositivo y desconectar'), click: () => void forgetServer() },
+        { type: 'separator' },
+        { label: tr('Usar este equipo como servidor…'), click: () => void useAsServer() }
       ]
     },
     { role: 'editMenu' },
@@ -589,6 +633,9 @@ function registerClientIpc(): void {
   ipcMain.handle('client:pair', (e, address: unknown, code: unknown) => (fromLocalPage(e) ? pairWith(String(address ?? ''), String(code ?? '')) : { error: 'No permitido' }))
   ipcMain.handle('client:retry', (e) => {
     if (fromLocalPage(e)) void openServer()
+  })
+  ipcMain.handle('client:useAsServer', async (e) => {
+    if (fromLocalPage(e) || fromServerPage(e)) await useAsServer()
   })
   ipcMain.handle('client:switchServer', (e) => {
     if (fromLocalPage(e) || fromServerPage(e)) showView({ name: 'connect', address: current?.server.origin })

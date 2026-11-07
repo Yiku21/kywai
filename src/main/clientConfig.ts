@@ -51,6 +51,8 @@ export interface ClientServer {
 export interface ClientFile {
   mode: AppMode
   server?: ClientServer
+  /** Dirección del último servidor cuando su llave dejó de valer: para no tener que escribirla otra vez. */
+  lastOrigin?: string
 }
 
 export function readClientFile(file: string): ClientFile | null {
@@ -62,7 +64,8 @@ export function readClientFile(file: string): ClientFile | null {
       s && typeof s.origin === 'string' && typeof s.token === 'string' && typeof s.name === 'string'
         ? { origin: s.origin, name: s.name, token: s.token, encrypted: s.encrypted === true, ...(typeof s.deviceId === 'string' ? { deviceId: s.deviceId } : {}) }
         : undefined
-    return { mode: data.mode, ...(server ? { server } : {}) }
+    const lastOrigin = typeof data.lastOrigin === 'string' && data.lastOrigin ? data.lastOrigin : undefined
+    return { mode: data.mode, ...(server ? { server } : {}), ...(lastOrigin ? { lastOrigin } : {}) }
   } catch {
     return null
   }
