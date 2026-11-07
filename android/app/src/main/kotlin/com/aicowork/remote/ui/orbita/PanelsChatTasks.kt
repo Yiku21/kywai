@@ -309,6 +309,11 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
                 Spacer(Modifier.height(4.dp))
             }
         }
+        // Plantillas de tareas: la lista de órdenes al escribir «/» y la fila de botones encima del cuadro.
+        if (!voiceHere) {
+            TemplateCommandList(model, snapshot)
+            TemplateRow(model, snapshot, pending.map { it.first })
+        }
         if (voiceHere) {
             VoiceBar(model, voice, allowSend = true, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp))
         } else Composer(
@@ -384,6 +389,10 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
             Row(Modifier.padding(top = 3.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 message.direct?.let { d ->
                     Text(t("Tú → {name} (directo, sin Hermes)", "name" to d.name), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.width(6.dp))
+                }
+                message.template?.let { tp ->
+                    Text(t("Plantilla «{name}»", "name" to tp.name), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp))
                     Spacer(Modifier.width(6.dp))
                 }
                 Text(Format.time(message.createdAt), color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium)

@@ -19,6 +19,7 @@ import com.aicowork.remote.data.model.InboxItem
 import com.aicowork.remote.data.model.ServerUpdate
 import com.aicowork.remote.data.model.MemoryUpdateRequest
 import com.aicowork.remote.data.model.Snapshot
+import com.aicowork.remote.data.model.TaskTemplateInput
 import com.aicowork.remote.data.model.TaskItem
 import com.aicowork.remote.data.model.TraceEntry
 import com.aicowork.remote.data.model.TransferInfo
@@ -98,6 +99,8 @@ data class OutgoingMessage(
     val conversationId: String? = null,
     /** Fotos y archivos elegidos sin conexión: se suben justo antes de enviar el mensaje. */
     val files: List<QueuedFile> = emptyList(),
+    /** Plantilla de tareas con la que se lanza (el texto ya va relleno). */
+    val templateId: String? = null,
 )
 
 /** Copia en el móvil de un archivo elegido sin conexión, que espera a subirse al proyecto. */
@@ -194,6 +197,12 @@ interface CoworkController {
     fun sendMessage(text: String)
     /** Envía un mensaje con adjuntos del proyecto (subidos antes) para que el equipo los tenga como contexto. */
     fun sendMessage(text: String, attachmentIds: List<String>) = sendMessage(text)
+    /** Lanza una plantilla de tareas con su texto ya relleno (y los adjuntos preparados). */
+    fun sendTemplate(text: String, templateId: String, attachmentIds: List<String>) = sendMessage(text, attachmentIds)
+    suspend fun createTemplate(input: TaskTemplateInput): ActionResult = unsupported
+    suspend fun updateTemplate(templateId: String, input: TaskTemplateInput, success: String? = null): ActionResult = unsupported
+    suspend fun deleteTemplate(templateId: String): ActionResult = unsupported
+    suspend fun restoreTemplates(): ActionResult = unsupported
     fun retryMessage(clientMessageId: String)
     fun discardMessage(clientMessageId: String)
     /** Saca de la cola un mensaje aún sin enviar para editarlo (null si ya se está enviando o no está). */
@@ -612,7 +621,11 @@ class CoworkRepository(
 
     override fun sendMessage(text: String) = sendMessage(text, emptyList())
 
-    override fun sendMessage(text: String, attachmentIds: List<String>) {
+    override fun sendMessage(text: String, attachmentIds: List<String>) = send(text, attachmentIds, null)
+
+    override fun sendTemplate(text: String, templateId: String, attachmentIds: List<String>) = send(text, attachmentIds, templateId)
+
+    private fun send(text: String, attachmentIds: List<String>, templateId: String?) {
         val trimmed = text.trim()
         if (trimmed.isEmpty() && attachmentIds.isEmpty()) return
         val (local, remote) = attachmentIds.partition { it.startsWith(QueuedFile.LOCAL_ATTACHMENT) }
@@ -625,6 +638,7 @@ class CoworkRepository(
             attachmentIds = remote,
             conversationId = currentConversation(),
             files = files,
+            templateId = templateId,
         )
         _state.update { s -> s.copy(outgoing = s.outgoing + message, queuedFiles = s.queuedFiles - files.toSet()) }
         if (_state.value.connection == Connection.Online) pump() else retryNow()
@@ -691,7 +705,7 @@ class CoworkRepository(
         try {
             val target = message.conversationId ?: currentConversation()
             val uploaded = uploadQueuedFiles(c, message, target) ?: return Delivery.Rejected
-            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded)
+            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded, message.templateId)
             // Ya está en el ordenador: las copias del móvil sobran.
             message.files.forEach { java.io.File(it.path).delete() }
             syncMutex.withLock {
@@ -893,6 +907,28 @@ class CoworkRepository(
             c.pinProject(projectId, pinned)
             resync(c)
         }
+
+    // ---- Plantillas de tareas (el resto lo trae el evento templates.updated; resync por si no hay WebSocket) ----
+
+    override suspend fun createTemplate(input: TaskTemplateInput): ActionResult = action(t("Plantilla creada")) { c ->
+        c.createTemplate(input)
+        resync(c)
+    }
+
+    override suspend fun updateTemplate(templateId: String, input: TaskTemplateInput, success: String?): ActionResult = action(success ?: t("Plantilla guardada")) { c ->
+        c.updateTemplate(templateId, input)
+        resync(c)
+    }
+
+    override suspend fun deleteTemplate(templateId: String): ActionResult = action(t("Plantilla borrada")) { c ->
+        c.deleteTemplate(templateId)
+        resync(c)
+    }
+
+    override suspend fun restoreTemplates(): ActionResult = action(t("Plantillas de serie restauradas")) { c ->
+        c.restoreTemplates()
+        resync(c)
+    }
 
     override suspend fun deleteProject(projectId: String): ActionResult = action(t("Proyecto eliminado")) { c ->
         val left = c.deleteProject(projectId)

@@ -48,7 +48,51 @@ data class Snapshot(
     val projects: List<ProjectSummary> = emptyList(),
     val stations: List<StationConfig> = emptyList(),
     val settings: ServerSettings = ServerSettings(),
+    /** Plantillas de tareas de todos los proyectos (las de uno llevan su projectId). Cambian con `templates.updated`. */
+    val templates: List<TaskTemplate> = emptyList(),
 )
+
+/** Una plantilla de tareas: una petición que se repite, lanzable con un toque o con «/command …». */
+@Serializable
+data class TaskTemplate(
+    val id: String,
+    val name: String,
+    val icon: String? = null,
+    val command: String = "",
+    /** El texto que se envía, con sus huecos ({pr}, {carpeta}…). */
+    val prompt: String = "",
+    val projectId: String? = null,
+    /** Va directa a ese agente, sin pasar por Hermes. */
+    val agentId: String? = null,
+    /** Pide el visto bueno al plan aunque el ajuste esté apagado. */
+    val askPlan: Boolean = false,
+    val pinned: Boolean = false,
+    val builtin: String? = null,
+    @Serializable(with = FlexibleTimeSerializer::class) val createdAt: Long? = null,
+)
+
+/** Crear o cambiar una plantilla (en un cambio, null = no se toca; projectId/agentId "" = quitarlo). */
+@Serializable
+data class TaskTemplateInput(
+    val name: String? = null,
+    val prompt: String? = null,
+    val icon: String? = null,
+    val command: String? = null,
+    val projectId: String? = null,
+    val agentId: String? = null,
+    val askPlan: Boolean? = null,
+    val pinned: Boolean? = null,
+)
+
+@Serializable
+data class TemplateResponse(val template: TaskTemplate)
+
+@Serializable
+data class TemplatesResponse(val templates: List<TaskTemplate> = emptyList())
+
+/** Con qué plantilla se lanzó un mensaje. */
+@Serializable
+data class TemplateRef(val id: String, val name: String = "")
 
 @Serializable
 data class Conversation(
@@ -358,6 +402,8 @@ data class ChatMessage(
     val work: TaskWork? = null,
     /** Mensaje tuyo enviado directo a un agente («@Qwen …»): no pasó por Hermes. */
     val direct: DirectTarget? = null,
+    /** Lanzado con una plantilla de tareas (su nombre sale en el chat). */
+    val template: TemplateRef? = null,
 ) {
     /** Conversación (proyecto) a la que pertenece, si el servidor lo indica. */
     val ownerId: String? get() = conversationId ?: projectId
@@ -594,6 +640,8 @@ data class Capabilities(
     val taskChanges: Boolean = false,
     /** «@Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes. */
     val directMessages: Boolean = false,
+    /** Plantillas de tareas: verlas, crearlas, cambiarlas y lanzarlas (templateId al enviar). */
+    val templates: Boolean = false,
     /** Interruptor «Razonamiento (think)» del agente de LM Studio (POST /agents/{id}/thinking). */
     val agentThinking: Boolean = false,
     /** Paneles de los mods (GET /mods/panels y /mods/panel). */

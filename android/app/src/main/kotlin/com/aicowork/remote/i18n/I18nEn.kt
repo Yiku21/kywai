@@ -10,6 +10,7 @@ internal val EN: Map<String, String> by lazy {
         part3(this)
         part4(this)
         part5(this)
+        part6(this)
     }
 }
 
@@ -816,4 +817,41 @@ private fun part5(m: HashMap<String, String>) {
     m["Coste en {days} días"] = "Cost over {days} days"
     m["Lo pagado es lo de los agentes que van por API; a precios de API es lo que valdría todo lo usado."] = "Paid is what pay-as-you-go (API) agents cost; at API prices is what everything used would cost."
     m["Presupuesto"] = "Budget"
+}
+
+// Plantillas de tareas (TaskTemplates.kt).
+private fun part6(m: HashMap<String, String>) {
+    m["Al lanzarla te pedirá: {slots}."] = "When you launch it, it will ask you for: {slots}."
+    m["Crear plantilla"] = "Create template"
+    m["Directo a {name}, sin Hermes"] = "Straight to {name}, without Hermes"
+    m["Editar plantilla"] = "Edit template"
+    m["Editar…"] = "Edit…"
+    m["Es de serie: puedes volver a ponerla al crear o editar una plantilla."] = "It is built in: you can bring it back when creating or editing a template."
+    m["Fijar al principio"] = "Pin to the start"
+    m["Hermes reparte el trabajo"] = "Hermes splits up the work"
+    m["Lo que se envía"] = "What gets sent"
+    m["No se puede deshacer."] = "This can't be undone."
+    m["Nombre del botón"] = "Button name"
+    m["Nueva plantilla"] = "New template"
+    m["Nueva plantilla de tarea"] = "New task template"
+    m["Orden para escribirla en el chat"] = "Command to type it in the chat"
+    m["Pedir mi visto bueno al plan antes de empezar (aunque en Ajustes esté apagado)"] = "Ask for my approval of the plan before starting (even if it is off in Settings)"
+    m["Plantilla"] = "Template"
+    m["Plantilla borrada"] = "Template deleted"
+    m["Plantilla creada"] = "Template created"
+    m["Plantilla fijada"] = "Template pinned"
+    m["Plantilla guardada"] = "Template saved"
+    m["Plantilla quitada de fijadas"] = "Template unpinned"
+    m["Plantilla «{name}»"] = "Template “{name}”"
+    m["Plantillas de serie restauradas"] = "Built-in templates restored"
+    m["Plantillas: elige una y escribe detrás lo que cambia"] = "Templates: pick one and type what changes after it"
+    m["Pon entre llaves lo que cambia cada vez, como {pr} o {carpeta}: al lanzarla te lo pedirá."] = "Put what changes each time in braces, like {pr} or {carpeta}: it will ask you for it when you launch it."
+    m["Quitar de fijadas"] = "Unpin"
+    m["Quién la hace"] = "Who does it"
+    m["Solo en este proyecto"] = "Only in this project"
+    m["Una petición que repites a menudo, para lanzarla con un toque desde encima del chat."] = "A request you repeat often, to launch it with one tap from above the chat."
+    m["Volver a poner las de serie"] = "Bring back the built-in ones"
+    m["carpeta"] = "folder"
+    m["{name} (ya no está en el equipo)"] = "{name} (no longer in the team)"
+    m["¿Borrar la plantilla «{name}»?"] = "Delete the template “{name}”?"
 }
