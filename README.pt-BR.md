@@ -1,14 +1,16 @@
 <div align="center">
 
-<img src="docs/img/logo/kywai-simbolo.svg" alt="AI Cowork" width="112" height="112">
+<img src="docs/img/logo/kywai-simbolo.svg" alt="kywai" width="112" height="112">
 
-# AI Cowork
+# kywai
+
+<sub>Pronuncia-se “ki-wai”. Antes se chamava <i>AI Cowork</i>.</sub>
 
 ### Qualquer agente de IA, de qualquer provedor, quantos você quiser, trabalhando como uma só equipe.
 
 Peça uma vez. Um coordenador planeja o trabalho e entrega cada tarefa ao agente que a faz melhor: Claude, Codex, Gemini, DeepSeek, Qwen, Copilot, Cursor, um modelo local ou qualquer agente de linha de comando que você adicionar. Você acompanha cada robô trabalhando em um mundo 3D ao vivo, e os resultados voltam para você, já revisados.
 
-[English](README.md) · [Español](README.es.md) · **Português** · [Français](README.fr.md) · [简体中文](README.zh-CN.md)
+[English](README.md) · [Español](README.es.md) · **Português** · [Français](README.fr.md) · [简体中文](README.zh-CN.md) · 🌐 [kywai.app](https://kywai.app)
 
 https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
@@ -31,17 +33,17 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 <img src="src/renderer/src/assets/robots/qwen.png" alt="Modelo local" width="72" title="Modelo local">
 <img src="src/renderer/src/assets/robots/becario.png" alt="Estagiário" width="72" title="O estagiário: o mesmo agente com menos esforço">
 
-[O que é](#-o-que-é) · [Qualquer agente](#-qualquer-agente-qualquer-provedor) · [Por quê](#-por-que-o-ai-cowork) · [Como funciona](#-como-funciona) · [Recursos](#-recursos) · [De qualquer lugar](#-use-de-qualquer-lugar) · [Temas](#-temas) · [Instalação](#-instalação) · [Privacidade](#-privacidade-e-segurança) · [Apoiar](#-apoie-o-projeto)
+[O que é](#-o-que-é) · [Qualquer agente](#-qualquer-agente-qualquer-provedor) · [Por quê](#-por-que-o-kywai) · [Como funciona](#-como-funciona) · [Recursos](#-recursos) · [De qualquer lugar](#-use-de-qualquer-lugar) · [Temas](#-temas) · [Instalação](#-instalação) · [Privacidade](#-privacidade-e-segurança) · [Apoiar](#-apoie-o-projeto)
 
 </div>
 
 <br>
 
-![AI Cowork: o chat com o plano do Hermes à esquerda e o espaço digital 3D com os agentes trabalhando](docs/img/pt/escritorio.jpg)
+![kywai: o chat com o plano do Hermes à esquerda e o espaço digital 3D com os agentes trabalhando](docs/img/pt/escritorio.jpg)
 
 ## ✨ O que é
 
-O AI Cowork transforma os agentes e as assinaturas de IA que você já tem, de qualquer provedor, em **uma única equipe que trabalha em conjunto**. Em vez de pular de um app para outro copiando contexto, você pede uma vez:
+O kywai transforma os agentes e as assinaturas de IA que você já tem, de qualquer provedor, em **uma única equipe que trabalha em conjunto**. Em vez de pular de um app para outro copiando contexto, você pede uma vez:
 
 1. **🧭 Hermes, o coordenador,** entende o que você quer e propõe um plano: quais tarefas existem, qual agente fará cada uma e por quê.
 2. **✅ Você aprova,** ou diz com suas próprias palavras o que mudar.
@@ -53,7 +55,7 @@ O objetivo é simples: **deixar uma tarefa e voltar para encontrar um resultado,
 
 ## 🔌 Qualquer agente, qualquer provedor
 
-O AI Cowork não está preso a um conjunto fixo de modelos. É uma plataforma em que **você monta a sua própria equipe**:
+O kywai não está preso a um conjunto fixo de modelos. É uma plataforma em que **você monta a sua própria equipe**:
 
 - **Adicione quantos agentes quiser** em ⚙ → "Configurar agentes…" → "Adicionar um agente". O catálogo já sabe iniciar mais de 30 deles, com a conta ou assinatura que cada um usa: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw e mais.
 - **Ou conecte qualquer outro programa** com "Outro programa…": informe o comando, como ele recebe a tarefa (stdin, um arquivo ou um argumento) e seus argumentos, e ele entra para a equipe.
@@ -63,7 +65,7 @@ O AI Cowork não está preso a um conjunto fixo de modelos. É uma plataforma em
 - **Você escolhe quem coordena.** O Hermes é o padrão, mas qualquer agente pode planejar e distribuir as tarefas ("Tornar coordenador"). Se ele estiver indisponível, o próximo assume.
 - **Cada agente é um membro pleno da equipe,** com seu próprio robô e sua estação no mundo 3D, suas estatísticas de desempenho e o mesmo plano, revisão e desfazer que os demais.
 
-## 💡 Por que o AI Cowork
+## 💡 Por que o kywai
 
 <table>
 <tr>
@@ -104,7 +106,7 @@ Cada agente conta em frases curtas o que está fazendo. Uma visão passo a passo
 <td valign="top">
 
 **🔒 Privado desde a concepção**<br>
-Tudo roda no seu computador. O acesso remoto trafega apenas pela sua própria rede Tailscale, o ditado por voz roda localmente e o AI Cowork nunca vê nem armazena senhas.
+Tudo roda no seu computador. O acesso remoto trafega apenas pela sua própria rede Tailscale, o ditado por voz roda localmente e o kywai nunca vê nem armazena senhas.
 
 </td>
 </tr>
@@ -180,9 +182,9 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 
 - **Conversas como no Claude.** Uma barra lateral com seus projetos, os fixados e os chats recentes. "Novo chat" começa uma conversa nova sem perder a anterior, e qualquer uma pode ser retomada depois com suas tarefas e a sessão de cada agente. Ctrl+K busca em conversas, tarefas, resultados e memória de todos os projetos.
 - **Memória do projeto** com instruções, decisões, preferências e pendências, cada uma com seu autor e status. Todo agente a lê em cada tarefa, mesmo depois que você limpa o chat.
-- **Um único AGENTS.md para toda a equipe.** Cada CLI lê apenas o próprio arquivo; o AI Cowork repassa os outros, então um único `AGENTS.md` dá a todos os agentes as mesmas regras.
+- **Um único AGENTS.md para toda a equipe.** Cada CLI lê apenas o próprio arquivo; o kywai repassa os outros, então um único `AGENTS.md` dá a todos os agentes as mesmas regras.
 - **Habilidades compartilhadas.** Procedimentos reutilizáveis na pasta `habilidades`, no mesmo formato `SKILL.md` das skills do Claude.
-- **Servidor MCP do AI Cowork.** Os agentes ganham ferramentas para ler e acrescentar itens à memória do projeto, ver o status da equipe, carregar uma habilidade e fazer uma pergunta a você, com um token por tarefa.
+- **Servidor MCP do kywai.** Os agentes ganham ferramentas para ler e acrescentar itens à memória do projeto, ver o status da equipe, carregar uma habilidade e fazer uma pergunta a você, com um token por tarefa.
 - **Rotinas.** Pedidos que disparam sozinhos: em um horário definido, em dias da semana escolhidos, a cada N horas, a partir de um webhook (com assinaturas do GitHub) ou quando arquivos mudam em uma pasta. Eles passam pelo mesmo plano, pelos mesmos agentes e pela mesma revisão que qualquer coisa que você digita.
 
 ### 📊 Cota e custo
@@ -214,11 +216,11 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 
 ## 🌍 Use de qualquer lugar
 
-O computador onde o AI Cowork está instalado (por exemplo, um Mac mini sempre ligado) faz o trabalho. Você pode levá-lo com você de quatro formas:
+O computador onde o kywai está instalado (por exemplo, um Mac mini sempre ligado) faz o trabalho. Você pode levá-lo com você de quatro formas:
 
 | | 🖥️ **Desktop** | 💻 **Cliente desktop** | 🌐 **Navegador** | 📱 **Órbita (Android)** |
 |---|---|---|---|---|
-| **O que é** | O app completo para Windows, macOS e Linux | O app em outro computador, conectado ao seu AI Cowork principal | A mesma interface a partir de qualquer dispositivo da sua rede Tailscale | Um app nativo para Android feito para o celular |
+| **O que é** | O app completo para Windows, macOS e Linux | O app em outro computador, conectado ao seu kywai principal | A mesma interface a partir de qualquer dispositivo da sua rede Tailscale | Um app nativo para Android feito para o celular |
 | **Como você entra** | Abra o app | Pareie uma vez com um código de 6 dígitos | Um link com código de acesso, uma única vez | Pareie uma vez com um código de 6 dígitos |
 | **O que você pode fazer** | Tudo | Tudo, além de navegar pelos arquivos do servidor e **sincronizar pastas** nos dois sentidos | Chat, mundo 3D, arquivos, resultados e aprovação de planos | Chat, planos, tarefas, arquivos, memória, uso e um mundo 3D nativo |
 | **Atualizações** | ⚙ → "Verificar atualizações…" | Atualizações assinadas a partir do seu próprio servidor | Sempre a versão mais recente | Pelas Configurações, sem reinstalar. As novas versões são publicadas automaticamente |
@@ -319,7 +321,7 @@ O **assistente de configuração** abre na primeira inicialização (também em 
 
 1. Escolha quais agentes usar.
 2. Ele verifica os programas deles e instala os que faltam com seus instaladores oficiais.
-3. Ele abre o login oficial de cada agente. O AI Cowork nunca vê nem armazena senhas.
+3. Ele abre o login oficial de cada agente. O kywai nunca vê nem armazena senhas.
 4. Ele resume o que ainda estiver pendente.
 
 Para usá-lo a partir do celular ou do notebook, abra ⚙ → "Acesso a partir de outros dispositivos…".
@@ -366,13 +368,13 @@ A documentação detalhada está em espanhol:
 
 ## ☕ Apoie o projeto
 
-O AI Cowork é gratuito e de código aberto. Se ele economiza o seu tempo e você quiser agradecer, pode **[me pagar um café no Ko-fi](https://ko-fi.com/yilsander)**. Também está no app: ⚙ → "Apoiar o AI Cowork ☕" no desktop, e no fim das Configurações no Órbita.
+O kywai é gratuito e de código aberto. Se ele economiza o seu tempo e você quiser agradecer, pode **[me pagar um café no Ko-fi](https://ko-fi.com/yilsander)**. Também está no app: ⚙ → "Apoiar o kywai ☕" no desktop, e no fim das Configurações no Órbita.
 
 [![Me pague um café no Ko-fi](https://img.shields.io/badge/Ko--fi-Me%20pague%20um%20caf%C3%A9-FF5E5B?logo=ko-fi&logoColor=white&style=for-the-badge)](https://ko-fi.com/yilsander)
 
 ## 📄 Licença
 
-[MIT](LICENSE). Você pode usar, alterar e compartilhar o AI Cowork livremente, desde que mantenha o aviso de copyright.
+[MIT](LICENSE). Você pode usar, alterar e compartilhar o kywai livremente, desde que mantenha o aviso de copyright.
 
 <div align="center">
 <br>

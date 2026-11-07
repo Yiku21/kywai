@@ -1,14 +1,16 @@
 <div align="center">
 
-<img src="docs/img/logo/kywai-simbolo.svg" alt="AI Cowork" width="112" height="112">
+<img src="docs/img/logo/kywai-simbolo.svg" alt="kywai" width="112" height="112">
 
-# AI Cowork
+# kywai
+
+<sub>Pronounced “kee-why”. Formerly <i>AI Cowork</i>.</sub>
 
 ### Any AI agent, from any provider, as many as you want, working as one team.
 
 Ask once. A coordinator plans the work and gives each task to the agent that does it best: Claude, Codex, Gemini, DeepSeek, Qwen, Copilot, Cursor, a local model or any command-line agent you add. You watch every robot work in a live 3D world, and the results come back to you, already checked.
 
-**English** · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · [简体中文](README.zh-CN.md)
+**English** · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · [简体中文](README.zh-CN.md) · 🌐 [kywai.app](https://kywai.app)
 
 https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
@@ -31,17 +33,17 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 <img src="src/renderer/src/assets/robots/qwen.png" alt="Local model" width="72" title="Local model">
 <img src="src/renderer/src/assets/robots/becario.png" alt="Intern" width="72" title="The intern: the same agent with less effort">
 
-[What it is](#-what-it-is) · [Any agent](#-any-agent-any-provider) · [Why](#-why-ai-cowork) · [How it works](#-how-it-works) · [Features](#-features) · [Anywhere](#-use-it-from-anywhere) · [Themes](#-themes) · [Install](#-install) · [Privacy](#-privacy-and-security) · [Support](#-support-the-project)
+[What it is](#-what-it-is) · [Any agent](#-any-agent-any-provider) · [Why](#-why-kywai) · [How it works](#-how-it-works) · [Features](#-features) · [Anywhere](#-use-it-from-anywhere) · [Themes](#-themes) · [Install](#-install) · [Privacy](#-privacy-and-security) · [Support](#-support-the-project)
 
 </div>
 
 <br>
 
-![AI Cowork: the chat with Hermes's plan on the left and the 3D digital space with the agents working](docs/img/en/escritorio.jpg)
+![kywai: the chat with Hermes's plan on the left and the 3D digital space with the agents working](docs/img/en/escritorio.jpg)
 
 ## ✨ What it is
 
-AI Cowork turns the AI agents and subscriptions you already have, from any provider, into **one team that works together**. Instead of jumping between apps and copying context around, you ask once:
+kywai turns the AI agents and subscriptions you already have, from any provider, into **one team that works together**. Instead of jumping between apps and copying context around, you ask once:
 
 1. **🧭 Hermes, the coordinator,** understands what you want and proposes a plan: which tasks there are, which agent does each one and why.
 2. **✅ You approve it,** or tell it what to change in plain words.
@@ -53,7 +55,7 @@ The goal is simple: **leave a task and come back to a result, never to an error 
 
 ## 🔌 Any agent, any provider
 
-AI Cowork is not tied to a fixed set of models. It is a platform where **you build your own team**:
+kywai is not tied to a fixed set of models. It is a platform where **you build your own team**:
 
 - **Add as many agents as you want** from ⚙ → "Configure agents…" → "Add an agent". The catalog already knows how to launch 30+ of them, with the account or subscription each one uses: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw and more.
 - **Or connect any other program** with "Other program…": give its command, how it receives the task (stdin, a file or an argument) and its arguments, and it joins the team.
@@ -63,7 +65,7 @@ AI Cowork is not tied to a fixed set of models. It is a platform where **you bui
 - **You choose who coordinates.** Hermes is the default, but any agent can plan and assign ("Make coordinator"). If it is unavailable, the next one takes over.
 - **Every agent is a full team member,** with its own robot and station in the 3D world, its performance stats and the same plan, review and undo as the rest.
 
-## 💡 Why AI Cowork
+## 💡 Why kywai
 
 <table>
 <tr>
@@ -104,7 +106,7 @@ Each agent tells you in short sentences what it is doing. A live step-by-step vi
 <td valign="top">
 
 **🔒 Private by design**<br>
-Everything runs on your computer. Remote access only travels through your own Tailscale network, voice dictation runs locally, and AI Cowork never sees or stores passwords.
+Everything runs on your computer. Remote access only travels through your own Tailscale network, voice dictation runs locally, and kywai never sees or stores passwords.
 
 </td>
 </tr>
@@ -180,9 +182,9 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 
 - **Conversations like in Claude.** A sidebar with your projects, pinned ones and recent chats. "New chat" starts a fresh conversation without losing the previous one, and any of them can be resumed later with its tasks and each agent's session. Ctrl+K searches conversations, tasks, results and memory across all projects.
 - **Project memory** with instructions, decisions, preferences and to-dos, each with its author and status. Every agent reads it on every task, even after you clear the chat.
-- **One AGENTS.md for the whole team.** Each CLI reads only its own file; AI Cowork passes the others along, so one `AGENTS.md` gives every agent the same rules.
+- **One AGENTS.md for the whole team.** Each CLI reads only its own file; kywai passes the others along, so one `AGENTS.md` gives every agent the same rules.
 - **Shared skills.** Reusable procedures in the `habilidades` folder, in the same `SKILL.md` format as Claude skills.
-- **AI Cowork MCP server.** Agents get tools to read and add to the project memory, see the team's status, load a skill and ask you a question, with a token per task.
+- **kywai MCP server.** Agents get tools to read and add to the project memory, see the team's status, load a skill and ask you a question, with a token per task.
 - **Routines.** Requests that launch by themselves: at a set time, on chosen weekdays, every N hours, from a webhook (with GitHub signatures) or when files change in a folder. They go through the same plan, agents and review as anything you type.
 
 ### 📊 Quota and cost
@@ -214,11 +216,11 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 
 ## 🌍 Use it from anywhere
 
-The computer where AI Cowork is installed (for example a Mac mini that is always on) does the work. You can take it with you in four ways:
+The computer where kywai is installed (for example a Mac mini that is always on) does the work. You can take it with you in four ways:
 
 | | 🖥️ **Desktop** | 💻 **Desktop client** | 🌐 **Browser** | 📱 **Órbita (Android)** |
 |---|---|---|---|---|
-| **What it is** | The full app for Windows, macOS and Linux | The app on another computer, connected to your main AI Cowork | The same interface from any device on your Tailscale network | A native Android app made for the phone |
+| **What it is** | The full app for Windows, macOS and Linux | The app on another computer, connected to your main kywai | The same interface from any device on your Tailscale network | A native Android app made for the phone |
 | **How you get in** | Open the app | Pair once with a 6-digit code | A link with an access code, once | Pair once with a 6-digit code |
 | **What you can do** | Everything | Everything, plus browsing the server's files and **syncing folders** both ways | Chat, 3D world, files, results and plan approval | Chat, plans, tasks, files, memory, usage and a native 3D world |
 | **Updates** | ⚙ → "Check for updates…" | Signed updates from your own server | Always the latest | From Settings, without reinstalling. New versions are published automatically |
@@ -319,7 +321,7 @@ The **setup assistant** opens on first launch (also under ⚙ → "Configure age
 
 1. Choose which agents to use.
 2. It checks their programs and installs the missing ones with their official installers.
-3. It opens each agent's official login. AI Cowork never sees or stores passwords.
+3. It opens each agent's official login. kywai never sees or stores passwords.
 4. It sums up anything still pending.
 
 To use it from your phone or laptop, open ⚙ → "Access from other devices…".
@@ -366,13 +368,13 @@ The detailed documentation is in Spanish:
 
 ## ☕ Support the project
 
-AI Cowork is free and open source. If it saves you time and you want to say thanks, you can **[buy me a coffee on Ko-fi](https://ko-fi.com/yilsander)**. You will also find it in the app: ⚙ → "Support AI Cowork ☕" on desktop, and at the end of Settings in Órbita.
+kywai is free and open source. If it saves you time and you want to say thanks, you can **[buy me a coffee on Ko-fi](https://ko-fi.com/yilsander)**. You will also find it in the app: ⚙ → "Support kywai ☕" on desktop, and at the end of Settings in Órbita.
 
 [![Support me on Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=ko-fi&logoColor=white&style=for-the-badge)](https://ko-fi.com/yilsander)
 
 ## 📄 License
 
-[MIT](LICENSE). You can use, change and share AI Cowork freely, as long as you keep the copyright notice.
+[MIT](LICENSE). You can use, change and share kywai freely, as long as you keep the copyright notice.
 
 <div align="center">
 <br>
