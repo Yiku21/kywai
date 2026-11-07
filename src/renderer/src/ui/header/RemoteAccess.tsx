@@ -8,6 +8,40 @@ import u from '../common/ui.module.css'
 import s from './RemoteAccess.module.css'
 import { t } from '@/lib/i18n'
 
+/**
+ * Nombre y para qué sirve cada enlace de acceso, deducido de la propia dirección: https sin puerto es
+ * Tailscale Serve (….ts.net); https con puerto, la versión con el certificado propio de kywai; http con la
+ * IP de Tailscale o con el nombre del equipo.
+ */
+function linkAbout(url: string): { name: string; hint: string } {
+  let parsed: URL | null = null
+  try {
+    parsed = new URL(url)
+  } catch {
+    parsed = null
+  }
+  if (parsed?.protocol === 'https:' && !parsed.port) {
+    return { name: t('Seguro con Tailscale'), hint: t('Funciona en Órbita y con el micrófono, y el navegador no muestra avisos.') }
+  }
+  if (parsed?.protocol === 'https:') {
+    return {
+      name: t('Seguro (Órbita y micrófono)'),
+      hint: t('Es el que pide la app Órbita, y en el navegador te deja grabar notas de voz. La primera vez el navegador avisa del certificado: acéptalo.')
+    }
+  }
+  const host = parsed?.hostname ?? ''
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.startsWith('[')) {
+    return {
+      name: t('Navegador por IP'),
+      hint: t('Es el más directo para abrir kywai en el navegador de otro equipo de tu red de Tailscale. No deja usar el micrófono.')
+    }
+  }
+  return {
+    name: t('Navegador por nombre del equipo'),
+    hint: t('Hace lo mismo que el anterior, pero con el nombre del equipo en Tailscale, así que sigue valiendo aunque cambie la IP.')
+  }
+}
+
 /** Panel del Mac para abrir kywai desde el móvil o el portátil (red de Tailscale). */
 export function RemoteAccess({ onClose }: { onClose: () => void }) {
   const [info, setInfo] = useState<WebAccessInfo | null>(null)
@@ -146,15 +180,22 @@ export function RemoteAccess({ onClose }: { onClose: () => void }) {
                 <div className={s.links}>
                   <p className={s.rowLabel}>{t('Enlace de acceso')}</p>
                   <p className={s.rowHint}>{t('Ábrelo una vez en cada dispositivo (con Tailscale activo). Es tu llave: no lo compartas.')}</p>
-                  {urls.map((url) => (
-                    <div key={url} className={s.link}>
-                      <code className={s.code}>{link(url)}</code>
-                      <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void copy(link(url))}>
-                        {copied === link(url) ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-                        {copied === link(url) ? t('Copiado') : t('Copiar')}
-                      </button>
-                    </div>
-                  ))}
+                  {urls.map((url) => {
+                    const about = linkAbout(url)
+                    return (
+                      <div key={url} className={s.linkItem}>
+                        <p className={s.linkName}>{about.name}</p>
+                        <p className={s.rowHint}>{about.hint}</p>
+                        <div className={s.link}>
+                          <code className={s.code}>{link(url)}</code>
+                          <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void copy(link(url))}>
+                            {copied === link(url) ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                            {copied === link(url) ? t('Copiado') : t('Copiar')}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
                   <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost, s.regen)} onClick={() => void change({ regenerateToken: true })} disabled={busy}>
                     <RefreshCw size={13} aria-hidden="true" />
                     {t('Cambiar el código (anula los enlaces anteriores)')}
