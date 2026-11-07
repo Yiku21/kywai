@@ -918,7 +918,12 @@ export interface MusicResult {
   thumbnail?: string
   /** Suena otra subida de la misma canción (la original no se puede oír fuera de YouTube): su canal. */
   via?: string
+  /** Audius: ruta de la canción en audius.co (para abrirla allí). */
+  permalink?: string
 }
+
+/** Dónde buscar: canciones de YouTube Music, vídeos de YouTube, Audius o las radios de SomaFM. */
+export type MusicSearchKind = 'songs' | 'videos' | 'audius' | 'radio'
 
 export interface UsageRun {
   runId: string
@@ -1207,7 +1212,7 @@ export interface CoworkApi {
   /** Cambia el modelo de Hermes en AI Cowork (null: volver al de su configuración). */
   setHermesModel(choice: { provider: string; model: string } | null): Promise<HermesModelsInfo>
   /** Busca canciones para el reproductor de música (YouTube Music y, si no, YouTube). */
-  searchMusic(query: string, kind?: 'songs' | 'videos'): Promise<MusicResult[]>
+  searchMusic(query: string, kind?: MusicSearchKind): Promise<MusicResult[]>
   /** Lo que ha hecho el agente en una tarea, paso a paso (lo nuevo llega por eventos task.trace). */
   getTaskTrace(taskId: string): Promise<TraceEntry[]>
   /** Qué cambió una tarea en la carpeta del proyecto (archivos con +/− y el parche). */

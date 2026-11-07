@@ -2,7 +2,10 @@
 // canciones de YouTube Music y, si no responde, en los vídeos de YouTube. Usa la misma búsqueda que esas webs
 // (sin clave de API ni cuenta). Solo devuelve identificadores y nombres: se reproducen con el reproductor
 // oficial de YouTube, a la vista y con su publicidad.
-import type { MusicResult } from '@shared/types'
+// Sin anuncios: Audius (su API pública) y las radios de SomaFM (su lista pública de emisoras). Esas suenan con
+// el reproductor de audio de AI Cowork, directamente desde sus servidores (ver @shared/musicSources).
+import { AUDIUS_API, AUDIUS_APP_NAME, audiusKey, radioKey } from '@shared/musicSources'
+import type { MusicResult, MusicSearchKind } from '@shared/types'
 
 const TIMEOUT_MS = 10_000
 const MAX_RESULTS = 20
@@ -112,14 +115,116 @@ async function searchVideos(query: string): Promise<MusicResult[]> {
   return parseVideoResults(json)
 }
 
+// ---------- Audius ----------
+
+/** Canciones de una respuesta de búsqueda de Audius: solo las que se pueden escuchar enteras y gratis. */
+export function parseAudiusResults(json: unknown): MusicResult[] {
+  const out: MusicResult[] = []
+  for (const raw of arr(obj(json)?.data)) {
+    const tr = obj(raw)
+    if (!tr) continue
+    const id = str(tr.id)
+    const title = str(tr.title).trim()
+    // Las de pago, las reservadas a seguidores y las borradas no suenan sin cuenta.
+    const access = obj(tr.access)
+    if (!/^[A-Za-z0-9]{1,24}$/.test(id) || !title || tr.is_streamable === false || tr.is_delete === true) continue
+    if (tr.is_stream_gated === true || (access && access.stream === false)) continue
+    const user = obj(tr.user)
+    const art = obj(tr.artwork)
+    const thumbnail = str(art?.['150x150']) || str(art?.['480x480'])
+    const duration = Number(tr.duration)
+    out.push({
+      videoId: audiusKey(id),
+      title,
+      artist: str(user?.name).trim() || str(user?.handle).trim(),
+      album: str(tr.genre).trim() || undefined,
+      durationSec: Number.isFinite(duration) && duration > 0 ? Math.round(duration) : undefined,
+      thumbnail: /^https:\/\//.test(thumbnail) ? thumbnail : undefined,
+      permalink: str(tr.permalink) || undefined
+    })
+  }
+  return out
+}
+
+async function getJson(url: string, what: string): Promise<unknown> {
+  const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(TIMEOUT_MS) })
+  if (!res.ok) throw new Error(`${what} respondió ${res.status}`)
+  return res.json()
+}
+
+async function searchAudius(query: string): Promise<MusicResult[]> {
+  const params = new URLSearchParams({ query, app_name: AUDIUS_APP_NAME, limit: '40' })
+  return parseAudiusResults(await getJson(`${AUDIUS_API}/tracks/search?${params}`, 'Audius'))
+}
+
+// ---------- Radios de SomaFM ----------
+
+/** Emisoras de la lista pública de SomaFM (más escuchadas primero). */
+export function parseSomaChannels(json: unknown): MusicResult[] {
+  const out: Array<MusicResult & { listeners: number }> = []
+  for (const raw of arr(obj(json)?.channels)) {
+    const ch = obj(raw)
+    const id = str(ch?.id)
+    const title = str(ch?.title).trim()
+    if (!ch || !/^[a-z0-9]{1,40}$/.test(id) || !title) continue
+    const image = str(ch.largeimage) || str(ch.image)
+    out.push({
+      videoId: radioKey(id),
+      title,
+      artist: 'SomaFM',
+      album: str(ch.description).trim() || str(ch.genre).replace(/\|/g, ', ') || undefined,
+      thumbnail: /^https:\/\//.test(image) ? image : undefined,
+      listeners: Number(ch.listeners) || 0
+    })
+  }
+  return out.sort((a, b) => b.listeners - a.listeners).map(({ listeners: _l, ...r }) => r)
+}
+
+let somaCache: { at: number; list: MusicResult[] } | null = null
+const SOMA_TTL_MS = 60 * 60 * 1000
+
+async function listRadios(query: string): Promise<MusicResult[]> {
+  if (!somaCache || Date.now() - somaCache.at > SOMA_TTL_MS) {
+    somaCache = { at: Date.now(), list: parseSomaChannels(await getJson('https://somafm.com/channels.json', 'SomaFM')) }
+  }
+  return filterRadios(somaCache.list, query)
+}
+
+const fold = (t: string): string => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+/** Emisoras cuyo nombre o descripción contienen todas las palabras buscadas (sin búsqueda, todas). */
+export function filterRadios(list: MusicResult[], query: string): MusicResult[] {
+  const words = fold(query).split(/\s+/).filter(Boolean)
+  if (!words.length) return list
+  return list.filter((r) => {
+    const text = fold(`${r.title} ${r.album ?? ''}`)
+    return words.every((w) => text.includes(w))
+  })
+}
+
 /**
  * Busca canciones (YouTube Music) y, si no hay o falla, vídeos de YouTube. Con kind 'videos', solo vídeos (otras
- * subidas de una canción que su discográfica no deja oír fuera de YouTube).
+ * subidas de una canción que su discográfica no deja oír fuera de YouTube). Con 'audius', en Audius; con 'radio',
+ * las radios de SomaFM (sin búsqueda, todas).
  */
-export async function searchMusic(query: unknown, kind: 'songs' | 'videos' = 'songs'): Promise<MusicResult[]> {
+export async function searchMusic(query: unknown, kind: MusicSearchKind = 'songs'): Promise<MusicResult[]> {
   const q = typeof query === 'string' ? query.replace(/\s+/g, ' ').trim() : ''
-  if (!q) return []
   if (q.length > 200) throw new Error('La búsqueda es demasiado larga')
+  if (kind === 'radio') {
+    try {
+      return await listRadios(q)
+    } catch (e) {
+      throw new Error(`No se pudo cargar la lista de radios: ${(e as Error).message || 'sin conexión'}`)
+    }
+  }
+  if (!q) return []
+  if (kind === 'audius') {
+    try {
+      return (await searchAudius(q)).slice(0, MAX_RESULTS)
+    } catch (e) {
+      throw new Error(`No se pudo buscar en Audius: ${(e as Error).message || 'sin conexión'}`)
+    }
+  }
   if (kind === 'videos') return (await searchVideos(q)).slice(0, MAX_RESULTS)
   let songs: MusicResult[] = []
   let problem = ''
