@@ -1566,6 +1566,35 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     } finally { webMethods.set('getUsageRuns', original) }
   })
 
+  it('uso y coste desde el móvil: dinero por agente, suscripciones y presupuesto, en la moneda elegida', async () => {
+    const original = webMethods.get('getUsageRuns')!
+    const cfg = getConfig()
+    const before = cfg.costs
+    const now = Date.now()
+    const call = (extra: Record<string, unknown>) => ({ ts: now, kind: 'task' as const, agentId: 'codex', agentName: 'Codex', provider: 'codex' as const, model: 'gpt-6.1-sol', input: 1_000_000, output: 0, cached: 0, durationMs: 60_000, ok: true, ...extra })
+    const run = {
+      runId: 'cost-run', projectId: 'project-1', projectName: 'Prueba', request: 'Trabajo', startedAt: now, status: 'ok' as const, tasks: 1, tasksDone: 1,
+      calls: [call({}), call({ agentId: 'claude', agentName: 'Claude', provider: 'claude', model: 'sonnet', costUsd: 10 }), call({ agentId: 'hermes', agentName: 'Hermes', provider: 'hermes', kind: 'plan', input: 0, output: 0, noTokens: true, estInput: 500_000, estOutput: 0 })]
+    }
+    webMethods.set('getUsageRuns', () => [run])
+    cfg.costs = { currency: 'EUR', usdToEur: 0.5, plans: { openai: { mode: 'api' }, anthropic: { mode: 'subscription', monthly: 4, currency: 'EUR' } }, monthlyBudget: 10, budgetCurrency: 'EUR' }
+    try {
+      const snap = (await api('/snapshot')).body
+      expect(snap.capabilities.usageCost).toBe(true)
+      expect(snap.usage.cost).toMatchObject({ currency: 'EUR', paid: 1, api: 6.5 })
+      const result = await api('/usage/cost')
+      expect(result.status).toBe(200)
+      expect(result.body).toMatchObject({ currency: 'EUR', days: 30, paid: 1, api: 6.5, estimated: 0.5, unpricedCalls: 0, budget: { limit: 10, spent: 1, pct: 10 } })
+      expect(result.body.byAgent.map((a: { name: string; mode: string | null; estimated: boolean }) => [a.name, a.mode, a.estimated])).toEqual([['Claude', 'subscription', false], ['Codex', 'api', false], ['Hermes', null, true]])
+      expect(result.body.subscriptions).toEqual([{ key: 'anthropic', label: 'Claude', monthly: 4, api30: 5, runs30: 1, verdict: 'worth' }])
+      for (const bad of ['?days=0', '?days=abc', '?otro=1']) expect([bad, (await api(`/usage/cost${bad}`)).status]).toEqual([bad, 400])
+      expect((await api('/usage/cost', {})).status).toBe(405)
+    } finally {
+      webMethods.set('getUsageRuns', original)
+      cfg.costs = before
+    }
+  })
+
   it('bandeja «Te necesita»: el plan que espera tu visto bueno sale ahí y se aprueba desde el móvil', async () => {
     expect((await api('/settings/plan-approval', { enabled: true })).status).toBe(200)
     try {

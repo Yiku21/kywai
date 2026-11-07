@@ -513,6 +513,49 @@ data class Usage(
     val totals: TokenUsage = TokenUsage(),
     val quotas: List<Quota> = emptyList(),
     val byAgent: List<AgentUsage> = emptyList(),
+    /** Dinero de los últimos 30 días (servidores con capabilities.usageCost). */
+    val cost: UsageCost? = null,
+)
+
+/** Lo mismo que la sección «Coste» de ⚙ → «Uso y coste…» del escritorio. Importes ya en la moneda elegida. */
+@Serializable
+data class UsageCost(
+    val currency: String = "USD",
+    val days: Int = 30,
+    val paid: Double = 0.0,
+    val api: Double = 0.0,
+    val estimated: Double = 0.0,
+    val unpricedCalls: Int = 0,
+    val budget: CostBudget? = null,
+    val byAgent: List<AgentCost> = emptyList(),
+    val subscriptions: List<SubscriptionCost> = emptyList(),
+    val pricesChecked: String = "",
+)
+
+@Serializable
+data class CostBudget(val limit: Double = 0.0, val spent: Double = 0.0, val pct: Double = 0.0)
+
+@Serializable
+data class AgentCost(
+    val agentId: String,
+    val name: String = "",
+    /** subscription, api, free, local o null (sin indicar). */
+    val mode: String? = null,
+    val calls: Int = 0,
+    val api: Double = 0.0,
+    /** Sale sobre todo de tokens estimados: se enseña con ≈. */
+    val estimated: Boolean = false,
+)
+
+@Serializable
+data class SubscriptionCost(
+    val key: String,
+    val label: String = "",
+    val monthly: Double? = null,
+    val api30: Double = 0.0,
+    val runs30: Int = 0,
+    /** worth: compensa · cheaper-api: por API saldría más barato · null: sin precio al mes. */
+    val verdict: String? = null,
 )
 
 @Serializable

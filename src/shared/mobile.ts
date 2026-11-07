@@ -1,4 +1,4 @@
-import type { AgentAccess, AgentConfig, AgentRuntime, Artifact, ArtifactKind, Attachment, ChatMessage, MemoryEntry, QuotaInfo, StationConfig, Task, TraceEntry, UsageRun } from './types'
+import type { AgentAccess, AgentConfig, AgentRuntime, Artifact, ArtifactKind, Attachment, ChatMessage, MemoryEntry, BillingMode, CostCurrency, QuotaInfo, StationConfig, Task, TraceEntry, UsageRun } from './types'
 import type { AgentQuality } from './agentQuality'
 
 /** Carpeta de trabajo del proyecto (la del usuario a la que tienen acceso los agentes). */
@@ -116,6 +116,8 @@ export interface MobileSnapshot {
     music?: boolean
     /** Razonamiento del modelo local: POST /agents/{agentId}/thinking. */
     agentThinking: boolean
+    /** GET /usage/cost y usage.cost en la instantánea: dinero por agente, suscripciones y presupuesto. */
+    usageCost: boolean
   }
 }
 
@@ -144,6 +146,31 @@ export interface MobileUsage {
   quotas: QuotaInfo[]
   totals: { input: number; output: number; cached: number }
   byAgent: Array<{ agentId: string; input: number; output: number }>
+  /** Dinero de los últimos 30 días (como GET /usage/cost). Falta en servidores anteriores. */
+  cost?: MobileCost
+}
+
+/**
+ * GET /usage/cost: lo mismo que la sección «Coste» de ⚙ → «Uso y coste…». Los importes van ya en la moneda elegida
+ * (`currency`); los precios de API, convertidos.
+ */
+export interface MobileCost {
+  currency: CostCurrency
+  days: number
+  /** Pagado por uso (agentes que van por API) en el periodo. */
+  paid: number
+  /** Todo lo usado, a precios de API. */
+  api: number
+  /** Parte de `api` que sale de tokens estimados (Hermes y agentes de catálogo). */
+  estimated: number
+  unpricedCalls: number
+  /** Presupuesto del mes de lo que se paga por API (null si no hay). */
+  budget: { limit: number; spent: number; pct: number } | null
+  byAgent: Array<{ agentId: string; name: string; mode: BillingMode | null; calls: number; api: number; estimated: boolean }>
+  /** Suscripciones: precio al mes frente a lo que habría costado por API lo hecho en 30 días. */
+  subscriptions: Array<{ key: string; label: string; monthly: number | null; api30: number; runs30: number; verdict: 'worth' | 'cheaper-api' | null }>
+  /** Día en que se comprobaron los precios de fábrica (AAAA-MM-DD). */
+  pricesChecked: string
 }
 
 /** GET /quality: lo mismo que ⚙ → «Cómo rinde cada agente…». */

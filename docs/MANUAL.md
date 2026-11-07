@@ -861,7 +861,7 @@ pide ceñirse a la corrección y a lo pedido, nada de gustos. Si ve fallos, **el
 ya hay (recibe la lista) y se vuelve a verificar; después se da por buena con el veredicto que tenga. En el chat lo
 ves en el mensaje de la tarea («Claude comprobó … y vio fallos; Codex los corrige», y al final «✔ Claude comprobó el
 resultado: cumple» o «⚠ … sigue viendo fallos», que además queda en la memoria como pendiente). La verificación
-cuenta en «Consumo y tokens…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
+cuenta en «Uso y coste…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
 petición, si la tarea es solo de texto o si no hay ningún otro agente de otra familia disponible.
 
 **Si la tarea toca una web** (HTML, CSS, componentes…), kywai la abre antes en una ventana oculta, a tamaño
@@ -1573,6 +1573,12 @@ De dónde sale cada cifra:
 | Codex, Gemini, Qwen | Sus tokens × la tabla de precios |
 | Hermes, Muse y los de catálogo | No dicen sus tokens: se **estiman** por la longitud del encargo y de la respuesta (unos 4 caracteres por token) × la tabla. Es un mínimo: no cuenta lo que el agente leyó o pensó por dentro |
 | Ollama, LM Studio, modelos gratis | 0 |
+
+**En Órbita**, el panel **«Uso y coste»** (antes «Consumo») enseña lo mismo de los últimos 30 días arriba del
+todo: pagado por uso y a precios de API, el presupuesto del mes con su barra y si compensa cada suscripción; y en
+«Por agente», debajo de los tokens, su coste a precios de API. Lo que pagas y los precios se cambian en el
+escritorio o la web. La API móvil lo da en `GET /usage/cost` y en `usage.cost` de la instantánea (ver
+[docs/mobile-api](mobile-api/README.md)).
 
 Se guarda en `config.json` (`costs`) y en cada llamada del registro (`costUsd` del CLI y, si no dio tokens,
 `estInput`/`estOutput`). Las peticiones de antes de esta versión salen con el coste calculado con la tabla (las de

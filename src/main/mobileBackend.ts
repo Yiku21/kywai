@@ -1,8 +1,9 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
 import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
-import type { MobileChatReceipt, MobileConversation, MobileFiles, MobileMusicResult, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
+import type { MobileChatReceipt, MobileConversation, MobileCost, MobileFiles, MobileMusicResult, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
+import { mobileCost } from '@shared/costs'
 import { isLive, streamUrlOf } from '@shared/musicSources'
 import { MobileError } from './mobileErrors'
 import { savePastedFile } from './local'
@@ -18,7 +19,7 @@ const SNAPSHOT_TRACE = 40
 const SNAPSHOT_RUNS = 100
 
 /** Totales derivados del registro existente (todas las ejecuciones); solo se envían las más recientes. */
-function usageProjection(runs: UsageRun[], quotas: QuotaInfo[]): MobileUsage {
+function usageProjection(runs: UsageRun[], quotas: QuotaInfo[], config?: AppConfig): MobileUsage {
   const totals = { input: 0, output: 0, cached: 0 }
   const byAgent = new Map<string, { agentId: string; input: number; output: number }>()
   for (const run of runs) for (const call of run.calls) {
@@ -30,7 +31,7 @@ function usageProjection(runs: UsageRun[], quotas: QuotaInfo[]): MobileUsage {
     agent.output += call.output
     byAgent.set(call.agentId, agent)
   }
-  return { runs: runs.slice(-SNAPSHOT_RUNS), quotas, totals, byAgent: [...byAgent.values()] }
+  return { runs: runs.slice(-SNAPSHOT_RUNS), quotas, totals, byAgent: [...byAgent.values()], ...(config ? { cost: mobileCost(runs, config) } : {}) }
 }
 
 /** Adaptador de las mismas funciones registradas para Electron y la web. No almacena datos del proyecto. */
@@ -108,7 +109,7 @@ export class MobileBackend {
         return { ...task, trace: trace.slice(-SNAPSHOT_TRACE), traceCount: trace.length }
       }) ?? [],
       memory: state?.memory ?? [],
-      usage: usageProjection(runs, runtime.quotas),
+      usage: usageProjection(runs, runtime.quotas, config),
       settings: { agentAccess: config.agentAccess, planApproval: config.planApproval !== false, theme: config.uiTheme ?? 'clasico', ...(config.serverName ? { serverName: config.serverName } : {}) },
       sequence: watermark,
       capabilities: {
@@ -129,7 +130,8 @@ export class MobileBackend {
         serverName: this.methods.has('setServerName'),
         theme: this.methods.has('setUiTheme'),
         music: this.methods.has('searchMusic'),
-        agentThinking: this.methods.has('setAgentThinking')
+        agentThinking: this.methods.has('setAgentThinking'),
+        usageCost: true
       }
     }
   }
@@ -138,7 +140,8 @@ export class MobileBackend {
   currentUsage(): MobileUsage {
     const runs = this.methods.get('getUsageRuns')?.() as UsageRun[]
     const runtime = this.methods.get('getRuntime')?.() as { quotas: QuotaInfo[] }
-    return usageProjection(runs, runtime.quotas)
+    const config = this.methods.get('getConfig')?.() as AppConfig | undefined
+    return usageProjection(runs, runtime.quotas, config)
   }
 
   private receipt(state: LoadedProject, requestId: string, clientMessageId: string): MobileChatReceipt {
@@ -610,6 +613,12 @@ export class MobileBackend {
   async quality(days: number): Promise<MobileQuality> {
     const runs = await this.call<UsageRun[]>('getUsageRuns')
     return { days, minTasks: QUALITY_MIN_TASKS, agents: agentQuality(runs, Date.now() - days * 86_400_000) }
+  }
+
+  /** GET /usage/cost: el dinero de los últimos `days` días, como la sección «Coste» del escritorio. */
+  async usageCost(days: number): Promise<MobileCost> {
+    const [runs, config] = await Promise.all([this.call<UsageRun[]>('getUsageRuns'), this.call<AppConfig>('getConfig')])
+    return mobileCost(runs, config, days)
   }
 
   async refreshUsage(): Promise<{ quotas: QuotaInfo[] }> {
