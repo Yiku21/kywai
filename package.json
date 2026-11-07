@@ -1,6 +1,6 @@
 {
   "name": "ai-cowork",
-  "productName": "AI Cowork",
+  "productName": "kywai",
   "version": "0.1.0",
   "description": "Tu equipo de agentes de IA trabajando juntos",
   "main": "./out/main/index.js",
@@ -55,10 +55,10 @@
     "vitest": "^5.0.3",
     "zustand": "^5.0.15"
   },
-  "author": "AI Cowork",
+  "author": "kywai",
   "build": {
     "appId": "com.aicowork.app",
-    "productName": "AI Cowork",
+    "productName": "kywai",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -87,11 +87,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "AI Cowork",
+      "shortcutName": "kywai",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false,
       "language": "3082",
-      "artifactName": "AI-Cowork-Setup-${version}.${ext}"
+      "artifactName": "kywai-Setup-${version}.${ext}"
     },
     "mac": {
       "target": [
@@ -105,19 +105,19 @@
       ],
       "icon": "build/icon.png",
       "category": "public.app-category.developer-tools",
-      "artifactName": "AI-Cowork-${version}-${arch}.${ext}",
+      "artifactName": "kywai-${version}-${arch}.${ext}",
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "AI Cowork usa el micrófono para dictar tareas (la voz se convierte en texto en este equipo).",
-        "NSAppleEventsUsageDescription": "Los agentes de AI Cowork pueden manejar otras apps de este Mac cuando una tarea lo necesita.",
-        "NSDesktopFolderUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en el Escritorio.",
-        "NSDocumentsFolderUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en Documentos.",
-        "NSDownloadsFolderUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en Descargas.",
-        "NSRemovableVolumesUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en discos externos.",
-        "NSNetworkVolumesUsageDescription": "Los agentes de AI Cowork trabajan con los archivos de tus proyectos, también en discos de red."
+        "NSMicrophoneUsageDescription": "kywai usa el micrófono para dictar tareas (la voz se convierte en texto en este equipo).",
+        "NSAppleEventsUsageDescription": "Los agentes de kywai pueden manejar otras apps de este Mac cuando una tarea lo necesita.",
+        "NSDesktopFolderUsageDescription": "Los agentes de kywai trabajan con los archivos de tus proyectos, también en el Escritorio.",
+        "NSDocumentsFolderUsageDescription": "Los agentes de kywai trabajan con los archivos de tus proyectos, también en Documentos.",
+        "NSDownloadsFolderUsageDescription": "Los agentes de kywai trabajan con los archivos de tus proyectos, también en Descargas.",
+        "NSRemovableVolumesUsageDescription": "Los agentes de kywai trabajan con los archivos de tus proyectos, también en discos externos.",
+        "NSNetworkVolumesUsageDescription": "Los agentes de kywai trabajan con los archivos de tus proyectos, también en discos de red."
       }
     },
     "dmg": {
-      "title": "AI Cowork"
+      "title": "kywai"
     },
     "linux": {
       "target": [
@@ -133,7 +133,7 @@
       "executableName": "ai-cowork",
       "category": "Development",
       "synopsis": "Tu equipo de agentes de IA trabajando juntos",
-      "artifactName": "AI-Cowork-${version}-${arch}.${ext}"
+      "artifactName": "kywai-${version}-${arch}.${ext}"
     }
   }
 }

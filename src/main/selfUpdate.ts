@@ -235,8 +235,9 @@ export async function applyUpdate(setAside = false): Promise<string> {
     child.unref()
     setTimeout(() => app.quit(), 800)
   } else if (bundle) {
-    // macOS: un script aparte espera a que se cierre la app, cambia la .app y la vuelve a abrir.
-    const built = join(dir, 'release', process.arch === 'arm64' ? 'mac-arm64' : 'mac', 'AI Cowork.app')
+    // macOS: un script aparte espera a que se cierre la app, cambia la .app y la vuelve a abrir. Si la instalada
+    // aún se llama «AI Cowork.app», el script deja en su lugar «kywai.app» y quita la vieja.
+    const built = join(dir, 'release', process.arch === 'arm64' ? 'mac-arm64' : 'mac', 'kywai.app')
     const child = spawn('bash', [join(dir, 'scripts', 'actualizar-mac.sh'), String(process.pid), bundle, built], {
       detached: true,
       stdio: 'ignore',

@@ -1587,7 +1587,7 @@ export const en: Record<string, string> = {
   'macOS pide permiso para {serviceLabel} en la pantalla del Mac': 'macOS is asking for permission for {serviceLabel} on the Mac\'s screen',
   'Esperando a que aceptes en la pantalla del Mac el permiso de macOS para {label}': 'Waiting for you to accept the macOS permission for {label} on the Mac\'s screen',
   'Un agente espera para entrar en {dir}': 'An agent is waiting to get into {dir}',
-  'macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → AI Cowork': 'macOS doesn\'t let kywai into {label}: turn it on in System Settings → Privacy & Security → Full Disk Access → AI Cowork',
+  'macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → kywai': 'macOS doesn\'t let kywai into {label}: turn it on in System Settings → Privacy & Security → Full Disk Access → kywai',
   'Antes de «{title}»': 'Before «{title}»',
   'Copia para «{title}»': 'Copy for «{title}»',
   'Trabaja en una copia aparte de la carpeta: «{title}» la está usando. Al terminar, sus cambios se integran en la carpeta del proyecto.': 'Working in a separate copy of the folder: «{title}» is using it. When done, its changes are merged into the project folder.',
