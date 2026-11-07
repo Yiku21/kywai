@@ -1301,6 +1301,10 @@ un manifiesto `kywai-mod.json` y puede traer tres cosas:
 Hay uno de ejemplo completo en `docs/mods/notas-rapidas` (dos órdenes, un panel con el estado de las tareas y un
 botón que pide un resumen, y un hook): en la pestaña Mods, «Prueba con el de ejemplo».
 
+Los hooks usan la consola del equipo: `cmd.exe` en Windows (`%KYWAI_PROJECT%`) y `/bin/sh` en macOS y Linux
+(`$KYWAI_PROJECT`). Para compartir un hook entre sistemas puedes lanzar un script que lea las variables de entorno.
+Si supera su tiempo máximo, kywai corta su árbol de procesos y espera al cierre antes de darlo por terminado.
+
 **Instalar.** Pega el enlace de GitHub de la carpeta del mod (`https://github.com/dueño/repo/tree/main/mi-mod`, se
 descarga como los plugins) o la ruta de una carpeta del equipo donde corre kywai (para probar uno que estás
 haciendo; vuelve a instalarlo tras cambiarlo). Se guarda en `mods/<nombre>` de la carpeta de datos. «Apagar» lo deja

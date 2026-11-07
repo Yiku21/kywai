@@ -63,7 +63,8 @@ describe('mods', () => {
   })
 
   it('los hooks solo se ejecutan con permiso, y el permiso caduca si cambian', async () => {
-    const dir = mod('h', { name: 'h', hooks: [{ on: 'task.done', run: 'echo "$KYWAI_TASK_TITLE en $KYWAI_PROJECT" > hecho.txt' }] })
+    writeFileSync(join(root, 'proyecto', 'hook.cjs'), "require('node:fs').writeFileSync('hecho.txt', process.env.KYWAI_TASK_TITLE + ' en ' + process.env.KYWAI_PROJECT)")
+    const dir = mod('h', { name: 'h', hooks: [{ on: 'task.done', run: `"${process.execPath}" hook.cjs` }] })
     installModFolder(dir)
     const task = { title: 'Arreglar el login', status: 'done', result: 'ok', agentId: 'claude' } as Pick<Task, 'title' | 'status' | 'result' | 'agentId'>
     await fireHooks('task.done', { projectId: 'p', task })
@@ -78,7 +79,8 @@ describe('mods', () => {
   })
 
   it('una orden que tarda demasiado se corta', async () => {
-    const r = await runHookCommand('sleep 5', root, {}, 1)
+    writeFileSync(join(root, 'espera.cjs'), 'setTimeout(() => {}, 5000)')
+    const r = await runHookCommand(`"${process.execPath}" espera.cjs`, root, {}, 1)
     expect(r.ok).toBe(false)
     expect(r.output).toMatch(/1 s/)
   })
