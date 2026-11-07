@@ -531,6 +531,7 @@ private fun PanelContent(section: Section, model: OrbitaModel, state: CoworkUiSt
         Section.Usage -> UsagePanel(model, state)
         Section.Settings -> SettingsPanel(model, state)
         Section.Team -> TeamPanel(model, state)
+        Section.Mods -> ModsPanel(model, state)
         Section.World -> Unit
     }
 }
