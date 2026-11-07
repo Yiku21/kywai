@@ -14,6 +14,7 @@ import {
   geminiEnv,
   geminiExtension,
   guideLines,
+  hermesMcp,
   initExtensions,
   launcherScript,
   secretVar,
@@ -26,6 +27,7 @@ import {
 import { claudeArgs } from './agents/claude'
 import { codexArgs } from './agents/codex'
 import { geminiArgs } from './agents/gemini'
+import { hermesArgs } from './agents/hermes'
 import { buildCommandLine } from './agents/spawn'
 
 const dir = mkdtempSync(join(tmpdir(), 'kywai-ext-'))
@@ -177,6 +179,26 @@ describe('probar un servidor', () => {
 })
 
 describe('lo que recibe cada CLI', () => {
+  it('Hermes: un config.yaml propio de la tarea (ámbito gestionado) y sus nombres en -t, solo al trabajar', () => {
+    const h = hermesMcp([server(), server({ id: 'web', transport: 'http', url: 'https://ejemplo.com/mcp', headers: { Authorization: 'Bearer x' } })], join(dir, 'mcp'), 'abc', { env: {}, managedExists: false })
+    if ('skipped' in h) throw new Error(h.skipped)
+    expect(h.env).toEqual({ HERMES_MANAGED_DIR: h.dir })
+    const cfg = JSON.parse(readFileSync(join(h.dir, 'config.yaml'), 'utf8'))
+    expect(cfg).toEqual({
+      mcp_servers: {
+        eco: { command: process.execPath, args: [ECO], env: { SECRETO: 'hola' }, connect_timeout: 60 },
+        web: { url: 'https://ejemplo.com/mcp', headers: { Authorization: 'Bearer x' }, connect_timeout: 60 }
+      }
+    })
+    const work = hermesArgs('/tmp/q.txt', '', 'work', undefined, h.names)
+    expect(work[work.indexOf('-t') + 1]).toMatch(/,eco,web$/)
+    const plan = hermesArgs('/tmp/q.txt', '', 'plan', undefined, h.names)
+    expect(plan[plan.indexOf('-t') + 1]).not.toContain('eco')
+    // Si el equipo ya tiene un ámbito gestionado de verdad, no se pisa.
+    expect('skipped' in hermesMcp([server()], join(dir, 'mcp'), 'def', { env: { HERMES_MANAGED_DIR: '/x' } })).toBe(true)
+    expect('skipped' in hermesMcp([server()], join(dir, 'mcp'), 'def', { env: {}, managedExists: true })).toBe(true)
+  })
+
   it('Claude: los servidores van en su archivo y sus herramientas se permiten', () => {
     expect(claudeServers([server()])).toEqual({ eco: { type: 'stdio', command: process.execPath, args: [ECO], env: { SECRETO: 'hola' } } })
     const a = claudeArgs('', 'work', 'project', undefined, undefined, { name: 'ai-cowork', command: 'x', args: [], env: {}, configFile: '/tmp/t.json', extraNames: ['eco', 'mal nombre'] })

@@ -143,7 +143,7 @@ function McpSection() {
   const kinds: Array<{ kind: ProviderKind; color: string; name: string }> = []
   for (const a of agents) if (a.enabled && !a.isSubagent && !kinds.some((k) => k.kind === a.provider)) kinds.push({ kind: a.provider, color: a.color, name: a.name })
   for (const k of MCP_AGENT_KINDS) if (!kinds.some((x) => x.kind === k)) kinds.push({ kind: k, color: 'var(--text-3)', name: KIND_LABEL[k] })
-  // Primero los que pueden recibirlos (Claude, Codex, Gemini), en ese orden; después los demás, en gris.
+  // Primero los que pueden recibirlos (Claude, Codex, Gemini, Hermes), en ese orden; después los demás, en gris.
   const rank = (k: ProviderKind): number => {
     const i = MCP_AGENT_KINDS.indexOf(k as McpAgentKind)
     return i < 0 ? 9 : i

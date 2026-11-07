@@ -116,6 +116,8 @@ export interface MobileSnapshot {
     music?: boolean
     /** Razonamiento del modelo local: POST /agents/{agentId}/thinking. */
     agentThinking: boolean
+    /** Paneles de los mods (GET /mods/panels y /mods/panel). */
+    modPanels: boolean
     /** GET /usage/cost y usage.cost en la instantánea: dinero por agente, suscripciones y presupuesto. */
     usageCost: boolean
   }

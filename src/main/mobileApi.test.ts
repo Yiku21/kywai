@@ -1779,6 +1779,31 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     }
   })
 
+  it('paneles de los mods en Órbita: la lista de los encendidos y su página con el puente del WebView', async () => {
+    const mods = [
+      { name: 'notas', title: 'Notas', enabled: true, permissions: ['chat'], panels: [{ id: 'equipo', title: 'Equipo', file: 'p.html' }] },
+      { name: 'apagado', title: 'Apagado', enabled: false, permissions: [], panels: [{ id: 'x', title: 'X', file: 'x.html' }] }
+    ]
+    webMethods.set('listMods', () => mods)
+    webMethods.set('modPanel', (name, id) => {
+      if (name !== 'notas' || id !== 'equipo') throw new Error('Ese panel no existe')
+      return { html: '<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src \'none\'"><p>hola</p>', title: 'Equipo', chat: true }
+    })
+    try {
+      expect((await api('/snapshot')).body.capabilities.modPanels).toBe(true)
+      expect((await api('/mods/panels')).body).toEqual({ panels: [{ mod: 'notas', modTitle: 'Notas', id: 'equipo', title: 'Equipo', chat: true }] })
+      const page = await api('/mods/panel?mod=notas&id=equipo')
+      expect(page.status).toBe(200)
+      expect(page.body.html).toContain('KywaiBridge')
+      expect(page.body.html.indexOf('KywaiBridge')).toBeLessThan(page.body.html.indexOf('<p>hola</p>'))
+      expect((await api('/mods/panel?mod=notas&id=otro')).status).toBe(404)
+      expect((await api('/mods/panel?mod=notas')).status).toBe(400)
+    } finally {
+      webMethods.delete('listMods')
+      webMethods.delete('modPanel')
+    }
+  })
+
   it('ofrece la última versión de Órbita y su APK para que el móvil se actualice sin pasarla a mano', async () => {
     // Sin código descargado de GitHub (como aquí) no hay nada que ofrecer.
     expect((await api('/app/android')).body.code).toBe('NO_ORBITA_RELEASE')
