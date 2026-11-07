@@ -763,4 +763,6 @@ private fun part5(m: HashMap<String, String>) {
     m["Sin conexión: {name} se enviará con tu mensaje al volver"] = "离线：{name} 将在恢复连接后随你的消息发送"
     m["En cola"] = "排队中"
     m["Sin conexión: se subirá con tu próximo mensaje al volver"] = "离线：恢复连接后将随你的下一条消息上传"
+    m["Sin conexión · {n} en cola"] = "离线 · {n} 条排队中"
+    m["Ya se está enviando"] = "正在发送中"
 }

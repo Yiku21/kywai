@@ -374,6 +374,9 @@ reiniciándose). Enseña lo último que recibió y lo que escribas se queda **en
   vuelve la red (WorkManager, `OutboxWorker`), y avisa con la notificación «Se enviaron tus 3 mensajes» (canal
   «Mensajes enviados», se puede apagar en los ajustes de Android). Si la red vuelve pero el ordenador aún no responde,
   lo reintenta solo cada vez más espaciado. Con la app abierta y conectada no sale ningún aviso: ya lo ves en el chat.
+- **Se ve lo que espera.** Arriba, en vez de «Sin conexión», sale **«Sin conexión · 2 en cola»**. Cada mensaje en cola
+  lleva un reloj, sus adjuntos y dos botones: **Editar** lo devuelve al cuadro de texto con sus fotos (lo cambias y lo
+  vuelves a enviar) y **Descartar** lo quita de la cola. Mientras uno se está enviando ya no se puede editar.
 - Las acciones (aprobar un plan, detener una tarea, los botones de «Te necesita») siguen necesitando conexión: hacerlas
   a destiempo podría aprobar algo que ya cambió.
 - Para desarrolladores: `CoworkRepository.drainOutbox()` vacía la cola (con un `Mutex`, de uno en uno) y no abre el

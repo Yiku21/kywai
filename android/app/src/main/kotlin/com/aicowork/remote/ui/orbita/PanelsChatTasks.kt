@@ -415,6 +415,20 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
     }
 }
 
+/** Devuelve un mensaje en cola al cuadro de texto, con sus adjuntos, para cambiarlo antes de que salga. */
+private fun editQueued(message: OutgoingMessage, model: OrbitaModel) {
+    val taken = model.controller.takeBackMessage(message.clientMessageId)
+    if (taken == null) {
+        model.toast(t("Ya se está enviando"))
+        return
+    }
+    val text = listOf(taken.text, model.chatDraft.text).filter { it.isNotBlank() }.joinToString("\n")
+    model.chatDraft = TextFieldValue(text, selection = androidx.compose.ui.text.TextRange(text.length))
+    model.pendingAttachments = model.pendingAttachments + taken.attachmentIds +
+        taken.files.map { it.attachmentId ?: it.localId }
+    model.feedback.select()
+}
+
 @Composable
 private fun LocalMessage(message: OutgoingMessage, model: OrbitaModel) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
@@ -447,6 +461,13 @@ private fun LocalMessage(message: OutgoingMessage, model: OrbitaModel) {
                     Text(t("Reintentar"), color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.retryMessage(message.clientMessageId) }.padding(8.dp))
                     Text(t("Descartar"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.discardMessage(message.clientMessageId) }.padding(8.dp))
                 }
+            }
+        }
+        if (message.status == OutgoingStatus.Queued) {
+            // Mientras no sale, se puede volver a editar (vuelve al cuadro de texto) o quitar de la cola.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(t("Editar"), color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { editQueued(message, model) }.padding(8.dp).testTag("queued-edit"))
+                Text(t("Descartar"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable { model.controller.discardMessage(message.clientMessageId) }.padding(8.dp).testTag("queued-discard"))
             }
         }
         if (message.error != null && message.status == OutgoingStatus.Failed) {
