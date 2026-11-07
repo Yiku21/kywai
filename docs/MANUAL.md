@@ -119,7 +119,9 @@ Al abrir la app instalada por primera vez aparece el **asistente de configuraci�
    oficial (y Node.js si hace falta). En Mac conviene tener [Homebrew](https://brew.sh).
 3. **Sesiones**: abre el inicio de sesión oficial de cada CLI en una ventana aparte (normalmente en el
    navegador) y comprueba que quedó hecho. kywai no ve ni guarda contraseñas; para Gemini también puedes
-   pegar una clave de API de Google AI Studio. Una sesión ya conectada lleva un lápiz para **cambiarla**
+   pegar una clave de API de Google AI Studio (gratis y sin tarjeta). Desde el 18 de junio de 2026, Google ya no deja
+   usar Gemini CLI con una cuenta personal de Google sin pagar (la pasó a Antigravity CLI): con cuenta personal, usa
+   la clave de AI Studio. Una sesión ya conectada lleva un lápiz para **cambiarla**
    (otra cuenta, otra clave o, en Hermes, otro proveedor): abre el mismo inicio de sesión y, al volver a la app,
    se comprueba y enseña la nueva. En Gemini, dentro se cambia de cuenta con `/auth`.
 4. **Listo**: resumen de lo que queda pendiente.
@@ -510,10 +512,13 @@ Los añadidos en octubre de 2026, con lo que hay que saber de cada uno:
   `coding-intl` fuera de China) u otro proveedor: «Iniciar sesión» abre `qwen`, y dentro se elige con `/auth`. Es
   distinto del agente local «Qwen» de Ollama. Al planificar va en modo `plan`; en el proyecto, `auto-edit`; con acceso
   completo, `yolo`.
-- **Antigravity CLI** (`agy`, de Google): sustituye a Gemini CLI en las cuentas de Google AI Pro y Ultra. La sesión se
+- **Antigravity CLI** (`agy`, de Google): desde junio de 2026 sustituye a Gemini CLI en las cuentas personales de
+  Google. Tiene un plan gratis con un límite semanal y más cuota con Google AI Pro o Ultra. La sesión se
   inicia con Google la primera vez que se abre `agy`. Sin acceso completo no puede editar (en modo sin pantalla deniega
   lo que pediría permiso) y la versión 1.0.6 falla con `-p` sin terminal: actualízalo. Ojo: sus condiciones adicionales
-  prohíben acceder al servicio con software de terceros y Google no ha aclarado si eso incluye lanzarlo así.
+  prohíben acceder al servicio con software de terceros (su ejemplo es OpenClaw con el inicio de sesión de Antigravity)
+  y avisan de que pueden suspender la cuenta de Antigravity y la de Gemini CLI. kywai lanza el programa oficial, pero
+  Google no ha aclarado si eso cuenta: por eso no es el agente gratis que se recomienda primero.
 - **Rovo Dev** (Atlassian): va dentro de la CLI de Atlassian (`acli rovodev run`), con tu cuenta de Atlassian y
   `acli rovodev auth login`. Con acceso completo, `--yolo`.
 - **MiniMax Code** (`mcode exec`, encargo por stdin): necesita Node.js 22.19 o superior; «Iniciar sesión» usa una
