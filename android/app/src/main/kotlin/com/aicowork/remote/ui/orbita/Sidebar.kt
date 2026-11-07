@@ -93,7 +93,7 @@ import kotlinx.coroutines.launch
 val SidebarWidth: Dp = 272.dp
 
 /** Lo que va en «Más» (lo que se usa menos). */
-private val SidebarMore = listOf(Section.Files, Section.Memory, Section.Tools, Section.Usage, Section.Team, Section.Mods)
+private val SidebarMore = listOf(Section.Files, Section.Memory, Section.Routines, Section.Tools, Section.Usage, Section.Team, Section.Mods)
 
 /** Lo de «Más» que tiene sentido con este ordenador (los paneles de mods, solo si los admite). */
 private fun moreSections(state: CoworkUiState): List<Section> =

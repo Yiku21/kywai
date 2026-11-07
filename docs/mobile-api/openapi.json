@@ -2545,7 +2545,95 @@
             "$ref": "#/components/responses/MobileError"
           }
         },
-        "description": "Lo mismo que la pestaña Rutinas: cada rutina con su disparador, su próxima hora y sus últimas ejecuciones. 404 CONVERSATION_NOT_FOUND si no existe el proyecto. Los cambios llegan por el evento routines.updated (también sin secretos). Crear y editar rutinas se hace en el escritorio o el navegador."
+        "description": "Lo mismo que la pestaña Rutinas: cada rutina con su disparador, su próxima hora y sus últimas ejecuciones. 404 CONVERSATION_NOT_FOUND si no existe el proyecto. Los cambios llegan por el evento routines.updated (también sin secretos). Crear, cambiar y borrar: POST /routines, POST /routines/{routineId} y POST /routines/{routineId}/delete (capability routinesEdit)."
+      },
+      "post": {
+        "operationId": "createRoutine",
+        "summary": "Crear una rutina",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "request": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 9000,
+                    "description": "Lo que se enviará al chat."
+                  },
+                  "trigger": {
+                    "$ref": "#/components/schemas/RoutineTrigger"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "askApproval": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "conversationId",
+                  "name",
+                  "request",
+                  "trigger"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Crea una rutina en el proyecto (activa salvo enabled: false), con las mismas reglas que el escritorio: nombre y petición obligatorios, hora HH:MM, al menos un día, carpeta dentro del proyecto y, en las de una sola vez, una hora por llegar. 400 INVALID_ROUTINE con el motivo si algo no vale. Responde sin el secreto del webhook."
       }
     },
     "/api/mobile/v1/routines/{routineId}/run": {
@@ -4116,6 +4204,344 @@
         },
         "description": "404 TEMPLATE_NOT_FOUND si ya no existe."
       }
+    },
+    "/api/mobile/v1/routines/{routineId}": {
+      "post": {
+        "operationId": "updateRoutine",
+        "summary": "Cambiar una rutina",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "routineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "request": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 9000,
+                    "description": "Lo que se enviará al chat."
+                  },
+                  "trigger": {
+                    "$ref": "#/components/schemas/RoutineTrigger"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "askApproval": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Cambia nombre, petición, disparador, askApproval o la activa/desactiva (enabled). Al cambiar el horario o volver a activarla cuenta desde ese momento. 404 ROUTINE_NOT_FOUND si no existe; 400 INVALID_ROUTINE si algo no vale."
+      }
+    },
+    "/api/mobile/v1/routines/{routineId}/delete": {
+      "post": {
+        "operationId": "deleteRoutine",
+        "summary": "Borrar una rutina",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "routineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Borra la rutina y su historial. 404 ROUTINE_NOT_FOUND si no existe."
+      }
+    },
+    "/api/mobile/v1/messages/{messageId}/routine-proposal/create": {
+      "post": {
+        "operationId": "routineProposalCreate",
+        "summary": "Crear la rutina que propone Hermes",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "La crea activa con el nombre, la petición y el horario de la tarjeta, y devuelve el mensaje con status created y routineId. 404 ROUTINE_PROPOSAL_NOT_FOUND si el mensaje no la tiene; 409 ROUTINE_PROPOSAL_NOT_PENDING si ya se creó o descartó."
+      }
+    },
+    "/api/mobile/v1/messages/{messageId}/routine-proposal/dismiss": {
+      "post": {
+        "operationId": "routineProposalDismiss",
+        "summary": "Descartar la rutina que propone Hermes",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "No crea nada: el mensaje queda con status dismissed. 404 ROUTINE_PROPOSAL_NOT_FOUND o 409 ROUTINE_PROPOSAL_NOT_PENDING como en create."
+      }
     }
   },
   "components": {
@@ -4455,6 +4881,9 @@
               "name"
             ],
             "additionalProperties": false
+          },
+          "routineProposal": {
+            "$ref": "#/components/schemas/RoutineProposal"
           }
         },
         "required": [
@@ -5606,6 +6035,14 @@
           "templates": {
             "type": "boolean",
             "description": "Plantillas de tareas: GET/POST /templates, POST /templates/{templateId}, /templates/{templateId}/delete y /templates/restore; templateId en POST /chat/messages."
+          },
+          "routinesEdit": {
+            "type": "boolean",
+            "description": "Crear, cambiar y borrar rutinas: POST /routines, POST /routines/{routineId} y POST /routines/{routineId}/delete."
+          },
+          "routineProposals": {
+            "type": "boolean",
+            "description": "Tarjeta «Crear rutina» de Hermes: POST /messages/{messageId}/routine-proposal/create y …/dismiss."
           }
         },
         "required": [
@@ -7723,6 +8160,10 @@
               "$ref": "#/components/schemas/RoutineRun"
             },
             "description": "Últimas ejecuciones, la más reciente al final."
+          },
+          "askApproval": {
+            "type": "boolean",
+            "description": "Su plan espera el visto bueno del usuario. Si falta o es false, la rutina sigue sola aunque «Pedir mi visto bueno a cada plan» esté encendido."
           }
         },
         "required": [
@@ -7744,7 +8185,7 @@
       },
       "RoutineTrigger": {
         "type": "object",
-        "description": "Cuándo se lanza: daily (cada día a time, HH:MM), weekly (days: 0 = domingo … 6 = sábado, a time), interval (cada hours horas), webhook (al llegar un POST a su dirección con secreto) o folder (al cambiar archivos de path, relativa a la carpeta del proyecto). Las horas son las del reloj del servidor.",
+        "description": "Cuándo se lanza: daily (cada día a time, HH:MM), weekly (days: 0 = domingo … 6 = sábado, a time), interval (cada hours horas), once (una sola vez el día date a time; al lanzarse se desactiva sola), webhook (al llegar un POST a su dirección con secreto) o folder (al cambiar archivos de path, relativa a la carpeta del proyecto). Las horas son las del reloj del servidor.",
         "properties": {
           "type": {
             "type": "string",
@@ -7752,6 +8193,7 @@
               "daily",
               "weekly",
               "interval",
+              "once",
               "webhook",
               "folder"
             ]
@@ -7775,6 +8217,11 @@
           },
           "path": {
             "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Día de una rutina once (AAAA-MM-DD, del calendario del servidor)."
           }
         },
         "required": [
@@ -8480,6 +8927,71 @@
             "type": "boolean"
           }
         },
+        "additionalProperties": false
+      },
+      "RoutineProposal": {
+        "type": "object",
+        "description": "Rutina que propone Hermes en un mensaje del chat (tarjeta «Crear rutina»). pending: espera que se cree o descarte; created: creada (routineId); dismissed: descartada. command es la orden «/rutina …» equivalente, para cambiarla y enviarla como mensaje.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "created",
+              "dismissed"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "request": {
+            "type": "string"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/RoutineTrigger"
+          },
+          "command": {
+            "type": "string"
+          },
+          "routineId": {
+            "type": "string"
+          },
+          "decidedAt": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "status",
+          "name",
+          "request",
+          "trigger",
+          "command"
+        ],
+        "additionalProperties": false
+      },
+      "RoutineResponse": {
+        "type": "object",
+        "properties": {
+          "routine": {
+            "$ref": "#/components/schemas/Routine"
+          }
+        },
+        "required": [
+          "routine"
+        ],
+        "additionalProperties": false
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          }
+        },
+        "required": [
+          "message"
+        ],
         "additionalProperties": false
       }
     }
