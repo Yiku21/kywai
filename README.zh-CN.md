@@ -356,6 +356,10 @@ docs/          使用手册、模型指南和移动端 API
 - **[Órbita](android/README.md)**：Android 应用，以及如何构建和发布它。
 - **[移动端 API](docs/mobile-api/README.md)**：服务器与 Órbita 之间的契约。
 
+## 📄 许可证
+
+[MIT](LICENSE)。你可以自由使用、修改和分享 AI Cowork，只需保留版权声明。
+
 <div align="center">
 <br>
 <sub>由一整支 AI 智能体团队打造，由 Hermes 协调。</sub>

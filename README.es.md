@@ -354,6 +354,10 @@ docs/          manual, guía de modelos y API móvil
 - **[Órbita](android/README.md)**: la app de Android, y cómo compilarla y publicarla.
 - **[API móvil](docs/mobile-api/README.md)**: el contrato entre el servidor y Órbita.
 
+## 📄 Licencia
+
+[MIT](LICENSE). Puedes usar, cambiar y compartir AI Cowork libremente, siempre que mantengas el aviso de copyright.
+
 <div align="center">
 <br>
 <sub>Hecho por todo un equipo de agentes de IA, coordinados por Hermes.</sub>
