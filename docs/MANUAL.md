@@ -1241,7 +1241,7 @@ un manifiesto `kywai-mod.json` y puede traer tres cosas:
   permiso se pierde y hay que darlo otra vez. La ficha del mod dice cómo fue la última vez.
 - **Paneles**: páginas HTML que se abren junto al chat, en la pestaña **Mods** del panel izquierdo (solo sale si
   algún mod encendido trae paneles). Van en una caja aislada (iframe sin acceso a la app, sus datos ni su
-  almacenamiento) y sin internet salvo el permiso `network`. Sus imágenes, estilos y scripts con ruta relativa se
+  almacenamiento) y sin internet salvo el permiso `network`; nunca pueden enviar formularios ni cambiarse por otra página. Sus imágenes, estilos y scripts con ruta relativa se
   meten dentro. Para hablar con kywai usan mensajes:
   - kywai les manda `{kywai: 'context', project: {name}, tasks: [{title, status, agent, result}], messages: [{author, text}]}`
     al abrirse, cada vez que algo cambia y cuando lo piden con `parent.postMessage({kywai: 'context'}, '*')`;

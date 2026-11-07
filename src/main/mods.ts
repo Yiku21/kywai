@@ -462,8 +462,8 @@ export function modPanelHtml(name: unknown, panelId: unknown): { html: string; t
   })
   const net = x.permissions.includes('network')
   const csp = net
-    ? "default-src 'none'; script-src 'unsafe-inline' data: https:; style-src 'unsafe-inline' data: https:; img-src data: https:; font-src data: https:; connect-src https:; media-src data: https:"
-    : "default-src 'none'; script-src 'unsafe-inline' data:; style-src 'unsafe-inline' data:; img-src data:; font-src data:; media-src data:"
+    ? "default-src 'none'; script-src 'unsafe-inline' data: https:; style-src 'unsafe-inline' data: https:; img-src data: https:; font-src data: https:; connect-src https:; media-src data: https:; form-action 'none'; base-uri 'none'"
+    : "default-src 'none'; script-src 'unsafe-inline' data:; style-src 'unsafe-inline' data:; img-src data:; font-src data:; media-src data:; form-action 'none'; base-uri 'none'"
   const meta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`
   // Lo primero del documento (antes de cualquier script suyo), así vale para todo.
   const doctype = /^\s*<!doctype[^>]*>/i.exec(html)
