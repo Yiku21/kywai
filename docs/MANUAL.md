@@ -108,6 +108,11 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   «AI Cowork» por dentro, y lo compilado en el propio equipo (`npm run dist:*`) mantiene `AI-Cowork-*`, porque el
   cliente de Windows que reparte el servidor (`clientRelease.ts`, `publicar-cliente.mjs`) depende de ese nombre.
 - El workflow solo corre en el repositorio público; en kywai-original no hace nada.
+- **Órbita (Android) también está en la Release**, como `kywai-orbita.apk`: cada Release nueva adjunta la última APK
+  firmada que hay en `master` (`android/release/orbita.apk`), y cuando sale una Órbita nueva «Publicar Órbita» la sube
+  encima de la Release más reciente. Así, https://github.com/Yiku21/kywai/releases/latest/download/kywai-orbita.apk
+  da siempre la última. Es la misma APK y la misma firma que reparte el servidor, así que después se actualiza sola
+  desde el ordenador.
 - **Nombres de los repositorios (desde el 7 nov 2026):** el público es `Yiku21/kywai` (antes `ai-cowork`/`Ai-cowork`) y el
   privado `Yiku21/kywai-original` (antes `ai-cowork-original`). GitHub redirige los nombres viejos, así que las apps ya
   instaladas y los clones con el remote antiguo siguen funcionando; no hay que crear nunca un repo con un nombre viejo.
@@ -272,6 +277,8 @@ instalaría encima) y sube `android/release/` a `master`. Así da igual desde d�
 la nube): al actualizar el servidor, el móvil ya la encuentra. Si falla, la pestaña **Actions** del repositorio dice
 por qué; «Run workflow» la vuelve a lanzar a mano. El número de versión son los commits del repositorio y nunca baja
 de la versión ya publicada + 1.
+En el repositorio público, además, la APK se sube a la última Release de GitHub como `kywai-orbita.apk`, que es
+la que enlaza la web kywai.app (ver «Descargar la versión lista»).
 
 Para que funcione, la clave se guarda una vez en cada repositorio (Settings → Secrets and variables → Actions →
 New repository secret), con los datos del archivo que indica `aicoworkSigning` en `~/.gradle/gradle.properties` del PC:
@@ -1850,6 +1857,7 @@ push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
 - La primera visita a la raíz lleva al idioma del navegador; elegir idioma en el menú se recuerda.
 - El vídeo de la web (`web/assets/video/presentacion.mp4`, 58 s, 1280×720, unos 4 MB) es la versión comprimida del vídeo de presentación de kywai hecho con HyperFrames; su portada es `portada.jpg`. Para cambiarlo, comprimir el vídeo nuevo a 720p con un tamaño parecido y ajustar `video.title` en `web/textos.mjs` si cambia la duración.
 - Las descargas se leen de la última Release de GitHub al abrir la página y enlazan el instalador del sistema de quien la visita. Si GitHub no responde, enlazan a la página de versiones.
+- La fila «Android (Órbita)» enlaza a `releases/latest/download/kywai-orbita.apk`, un enlace fijo que funciona aunque la API de GitHub no responda. Desde un móvil Android, el botón grande de la portada descarga la APK; en iPhone no se marca nada porque Órbita es solo para Android.
 - Al generar la web, cada enlace a `assets/` lleva `?v=` con una huella de su contenido. Así, al cambiar una imagen o el vídeo, el navegador pide la nueva enseguida en vez de enseñar la que tenía guardada (GitHub Pages deja guardar 10 minutos). No hay que hacer nada a mano: basta con sustituir el archivo.
 - La sección de apoyo tiene dos tarjetas de Ko-fi: «Una vez» lleva a https://ko-fi.com/yilsander (donación única; quien quiera puede marcar allí «Make this monthly») y «Cada mes» lleva a https://ko-fi.com/yilsander/tiers (membresías mensuales estilo Patreon). Para que la segunda funcione hay que tener activadas las Memberships en el panel de Ko-fi (Settings → Memberships) con al menos un nivel. Ko-fi cobra un 5 % en membresías sin Ko-fi Gold; las donaciones únicas no tienen comisión de Ko-fi.
 - El dominio kywai.app está en Hostinger con los registros de GitHub Pages (A y AAAA de GitHub, CNAME `www` → `yiku21.github.io`) y verificado en la cuenta. En el repo: Settings → Pages → Source «GitHub Actions», Custom domain `kywai.app` y «Enforce HTTPS».
