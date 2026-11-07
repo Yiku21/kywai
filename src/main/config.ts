@@ -178,6 +178,9 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
     agentAccess: u.agentAccess === 'project' ? 'project' : 'full',
     planApproval: u.planApproval !== false,
     ...(isLang(u.language) ? { language: u.language } : {}),
+    // El tema y el nombre del ordenador también se conservan al volver a abrir la app.
+    ...(typeof u.uiTheme === 'string' && UI_THEME_RE.test(u.uiTheme) ? { uiTheme: u.uiTheme } : {}),
+    ...(typeof u.serverName === 'string' && cleanServerName(u.serverName) ? { serverName: cleanServerName(u.serverName) } : {}),
     // Versión 6: el asistente de configuración. Quien ya usaba la app no lo necesita.
     setupDone: u.setupDone === true || (isObj(user) && version < 6),
     webAccess: mergeWebAccess(u.webAccess),
