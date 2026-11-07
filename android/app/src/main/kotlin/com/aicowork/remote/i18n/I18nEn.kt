@@ -742,4 +742,10 @@ private fun part5(m: HashMap<String, String>) {
     m["Soltar de Fijados"] = "Unpin"
     m["Todo lo suyo (chats, archivos y resultados) va a la Papelera del ordenador."] = "Everything in it (chats, files and results) goes to the computer's Trash."
     m["¿Eliminar «{title}»?"] = "Delete “{title}”?"
+    m["Mods"] = "Mods"
+    m["Panel del mod «{mod}»"] = "Panel of the “{mod}” mod"
+    m["No se pudo abrir el panel"] = "Couldn't open the panel"
+    m["Sin paneles"] = "No panels"
+    m["Ningún mod encendido tiene paneles. Se instalan en kywai del ordenador: Ajustes → Extensiones → Mods."] = "No enabled mod has panels. Install them in kywai on the computer: Settings → Extensions → Mods."
+    m["El panel «{panel}» quiere enviar al chat"] = "The “{panel}” panel wants to send to the chat"
 }

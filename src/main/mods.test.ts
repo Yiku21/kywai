@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { CoworkEvent, Task } from '@shared/types'
-import { allowModHooks, expandModCommand, fireHooks, hookFor, initMods, installModFolder, listMods, modPanelHtml, parseManifest, removeMod, runHookCommand, setModEnabled } from './mods'
+import { allowModHooks, expandModCommand, fireHooks, hookFor, initMods, installModFolder, listMods, modPanelHtml, parseManifest, withAndroidBridge, ANDROID_BRIDGE, removeMod, runHookCommand, setModEnabled } from './mods'
 
 const EXAMPLE = join(__dirname, '..', '..', 'docs', 'mods', 'notas-rapidas')
 let root = ''
@@ -106,6 +106,14 @@ describe('mods', () => {
     expect(html).toContain('src="data:image/png;base64,')
     expect(html).toContain('src="data:text/javascript;base64,')
     expect(chat).toBe(false)
+  })
+
+  it('en Órbita, el puente va justo después de la política de seguridad, antes que el código del panel', () => {
+    const dir = mod('pan2', { name: 'pan2', panels: [{ id: 'p', title: 'P', file: 'p.html' }] }, { 'p.html': '<!doctype html><script>panel()</script>' })
+    installModFolder(dir)
+    const html = withAndroidBridge(modPanelHtml('pan2', 'p').html)
+    expect(html).toMatch(/^<!doctype html><meta http-equiv="Content-Security-Policy"[^>]*><script>\(function/)
+    expect(html.indexOf(ANDROID_BRIDGE)).toBeLessThan(html.indexOf('panel()'))
   })
 
   it('quitar un mod lo borra entero', () => {

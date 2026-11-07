@@ -76,7 +76,7 @@ src/
     extensions.ts     Extensiones: servidores MCP del usuario por agente (Claude, Codex, Gemini, Hermes), su prueba y claves + test
     catalog.ts        catálogo de Extensiones: registro oficial de MCP, skills.sh e instalar skills desde GitHub + test
     plugins.ts        plugins con formato de Claude Code (marketplaces, .tar.gz de GitHub): skills, órdenes y subagentes → habilidades; .mcp.json → servidores apagados + test
-    mods.ts           mods (kywai-mod.json): órdenes «/…» del chat, hooks con permiso (tapEvents) y paneles aislados (pestaña Mods) + test; ejemplo en docs/mods/notas-rapidas
+    mods.ts           mods (kywai-mod.json): órdenes «/…» del chat, hooks con permiso (tapEvents) y paneles aislados (pestaña Mods; en Órbita, ui/orbita/PanelsMods.kt por GET /mods/panels con el puente KywaiBridge) + test; ejemplo en docs/mods/notas-rapidas
     skills.ts / repoInstructions.ts   habilidades compartidas (workspace/habilidades) y AGENTS.md/CLAUDE.md/GEMINI.md
     macPermissions.ts ventanas de permisos de macOS pendientes (van a «Te necesita»)
     webServer.ts / mobileApi.ts / mobileBackend.ts   acceso web, API `/api/call/*`, `/api/fs/*`, API móvil v1
