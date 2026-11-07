@@ -6,6 +6,9 @@ import { avatarFor } from '@shared/defaults'
 import { currentData, useCowork } from '@/store/cowork'
 import { buildRobot } from './robotModel'
 import { applyEyes } from './robotEyes'
+import { personaFor } from './personality'
+import { useBubbles } from './bubbleStore'
+import { useComposer } from '@/ui/left/composerStore'
 import { buildCostume } from './costumes'
 import { palette } from './palette'
 import { RobotBrain } from './robotBrain'
@@ -68,6 +71,25 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   useEffect(() => () => model.dispose(), [model])
 
   const brain = useMemo(() => new RobotBrain(agent.id), [agent.id])
+  // Carácter y bocadillos.
+  const persona = personaFor(agent)
+  brain.persona = persona
+  useEffect(() => {
+    brain.onSay = (e) => {
+      if (!leaving) useBubbles.getState().say(agent.id, persona.id, e)
+    }
+    return () => {
+      brain.onSay = null
+    }
+  }, [brain, agent.id, persona.id, leaving])
+  // Si escribes en el chat, se despiertan y miran hacia él.
+  useEffect(() => {
+    let prev = useComposer.getState().text
+    return useComposer.subscribe((c) => {
+      if (c.text !== prev && c.text.trim().length > 0 && c.text.length > prev.length) brain.onUserTyping(registry.time)
+      prev = c.text
+    })
+  }, [brain])
   const reduced = useCowork((s) => s.reducedEffects)
   brain.reduced = reduced
 
@@ -132,6 +154,9 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   useEffect(() => {
     let last = ''
     let lastMood = ''
+    let lastActivity = ''
+    let lastTask = ''
+    let lastFatigue = 0
     const apply = () => {
       const d = currentData()
       const rt = d.runtimes[agent.id]
@@ -143,6 +168,18 @@ export function Robot({ agent, station, stations, leaving }: Props) {
       const task = rt?.taskId ? d.tasks[rt.taskId] : undefined
       const taskEffort = task ? (task.difficulty === 'hard' ? 1 : task.difficulty === 'medium' ? 0.5 : 0.15) : 0
       const startedAt = task?.startedAt ?? null
+      // Bocadillos: le llega una tarea, se bloquea o se cansa.
+      const busyNow = activity === 'thinking' || activity === 'working'
+      const wasBusy = lastActivity === 'thinking' || lastActivity === 'working'
+      const taskId = rt?.taskId ?? ''
+      if (lastActivity) {
+        if (busyNow && (!wasBusy || (taskId && taskId !== lastTask))) brain.onSay?.('task')
+        else if (activity === 'error' && lastActivity !== 'error') brain.onSay?.('error')
+        else if (fatigue >= 0.6 && lastFatigue < 0.6) brain.onSay?.('tired')
+      }
+      lastActivity = activity
+      lastTask = taskId
+      lastFatigue = fatigue
       const mood = `${fatigue}|${taskEffort}|${startedAt}`
       if (mood !== lastMood) {
         lastMood = mood

@@ -1302,6 +1302,27 @@ reducidos» los gestos son más suaves y menos frecuentes. El código está en `
 `scene/robotEyes.ts` (formas de los ojos) y `scene/Robot.tsx` (cansancio y esfuerzo a partir del estado real).
 La forma de ojos de cada avatar (`avatar.eyes`) ya solo se usa en el avatar 2D de la interfaz.
 
+**Cada robot tiene su carácter.** Cambia sus frases, sus gestos favoritos, cuánto tarda en quedarse en reposo y
+dormirse y lo hablador que es, así que no hacen lo mismo ni se duermen a la vez:
+
+- **Hermes, el jefe:** casi nunca duerme y vigila al equipo («¡Equipo, a lo nuestro!»).
+- **Claude, el reflexivo:** educado y pensativo («Déjame pensarlo bien…»).
+- **Codex, el programador:** seco y práctico, lee mucho y apenas sonríe («Vale. Al código.»).
+- **Gemini, el entusiasta:** el más juguetón y hablador («¡Por fin otra tarea! jajaja»).
+- **Modelos locales (Ollama, Qwen, LM Studio), el perezoso:** se duerme enseguida y bosteza («¿Más trabajo? De
+  acuerdo…»).
+- **Muse, el soñador:** se distrae mirando las nubes («Esto me inspira…»).
+- **Los demás agentes y los sub-agentes, el novato:** con ganas de ayudar («¡A sus órdenes!»).
+
+**Bocadillos:** sobre la etiqueta del robot aparece lo que dice cuando le llega una tarea, al terminar, con un error
+(en rojo), cuando lleva mucho esperando, al dormirse o despertarse, cuando le queda poca cuota y, alguna vez, algo
+suelto mientras está libre. Lo de tarea, terminado y error se dice siempre; lo demás, como mucho dos a la vez y no
+más de una frase cada 14 s por robot. Las frases están en los cinco idiomas de la app (`scene/personality.ts`; los
+bocadillos, en `scene/bubbleStore.ts`).
+
+**Cuando escribes en el chat**, los que duermen o están en reposo se despiertan de golpe y todos los libres miran
+hacia el chat unos segundos, esperando el siguiente encargo; alguno dice algo como «¿Sí? Te escucho.» o «¡Presente!».
+
 ### Modo Demo
 
 Menú ⋮ → **Modo demo**, o el interruptor en la cabecera del Espacio digital. Reproduce un guion fijo que muestra

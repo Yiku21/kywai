@@ -1,14 +1,11 @@
 import * as THREE from 'three'
 import type { AgentActivity } from '@shared/types'
 import { CORE_POS, damp, dampAngle, hash01, smootherstep, yawTo } from './layout'
+import { PERSONAS, type Persona, type SayEvent } from './personality'
 
 /** Estado visual base, derivado del estado real del agente. */
 export type BaseVisual = 'idle' | 'resting' | 'thinking' | 'working' | 'waiting' | 'error' | 'offline'
 
-/** Segundos sin trabajo antes de entrar en reposo. */
-const REST_AFTER = 26
-/** Segundos en reposo antes de quedarse dormido (ojos en rayita). */
-const SLEEP_AFTER = 75
 /** Segundos esperando a otro agente antes de aburrirse. */
 const BORED_AFTER = 22
 
@@ -131,6 +128,10 @@ export class RobotBrain {
   taskEffort = 0
   /** Cuándo empezó su tarea actual (hora del reloj, ms) o null. */
   taskStartedAt: number | null = null
+  /** Carácter: ritmo de sueño, gestos favoritos y ganas de hablar. */
+  persona: Persona = PERSONAS.rookie
+  /** Aviso de momentos en los que el robot puede decir algo (bocadillos). */
+  onSay: ((e: SayEvent) => void) | null = null
 
   // Eventos puntuales
   private lastBusy = 0
@@ -288,6 +289,22 @@ export class RobotBrain {
     this.initialized = false
   }
 
+  /**
+   * El usuario está escribiendo en el chat: los que duermen o reposan se despiertan y todos los libres miran al
+   * chat un rato, esperando el siguiente encargo.
+   */
+  onUserTyping(t: number): void {
+    if (this.activity !== 'idle' || this.leaving) return
+    const wasResting = this.visual === 'resting'
+    const fresh = t >= this.attentionUntil
+    this.attentionUntil = t + 7
+    this.lastBusy = Math.max(this.lastBusy, t)
+    if (wasResting) {
+      this.startGesture('startle', t)
+      this.onSay?.('wake')
+    } else if (fresh && this.rnd() < this.persona.chatty) this.onSay?.('listen')
+  }
+
   /** 0..1: cuánto se esfuerza ahora (dificultad de la tarea y tiempo que lleva con ella). */
   private effortLevel(): number {
     const mins = this.taskStartedAt ? Math.max(0, Date.now() - this.taskStartedAt) / 60000 : 0
@@ -343,6 +360,9 @@ export class RobotBrain {
           return 'none'
       }
     if (fat > 0.4 && visual !== 'error') pool = [...pool, ['yawn', fat * 2.5], ['nodOff', visual === 'working' ? 0 : fat * 1.5]]
+    // Gestos favoritos de su carácter.
+    const likes = this.persona.likes
+    pool = pool.map(([g, w]) => [g, w * (likes[g] ?? 1)])
     let total = 0
     for (const [, w] of pool) total += w
     let x = this.rnd() * total
@@ -361,8 +381,8 @@ export class RobotBrain {
 
     // ---- Estado visual base ----
     let visual: BaseVisual =
-      this.activity === 'idle' ? (t - this.lastBusy > REST_AFTER + this.phase * 10 ? 'resting' : 'idle') : this.activity
-    if (this.moving || t - this.celebrateStart < 1.4 || t < this.expectUntil + 0.6) {
+      this.activity === 'idle' ? (t - this.lastBusy > this.persona.restAfter + this.phase * 10 ? 'resting' : 'idle') : this.activity
+    if (this.moving || t - this.celebrateStart < 1.4 || t < this.expectUntil + 0.6 || t < this.attentionUntil) {
       if (visual === 'resting') visual = 'idle'
     }
     if (visual !== this.prevVisual) {
@@ -466,7 +486,7 @@ export class RobotBrain {
     else {
       switch (visual) {
         case 'idle':
-          targetYaw = camYaw + this.lookYaw * (r ? 0.4 : 1)
+          targetYaw = t < this.attentionUntil ? camYaw : camYaw + this.lookYaw * (r ? 0.4 : 1)
           break
         case 'resting':
           targetYaw = camYaw + this.lookYaw * 0.25
@@ -523,18 +543,26 @@ export class RobotBrain {
     // ---- Ojos ----
     const happy = cp >= 0 && cp < 1.4 ? 1 : 0
     const inState = t - this.visualSince
-    const asleep = visual === 'resting' && inState > SLEEP_AFTER + this.phase * 30
+    const asleep = visual === 'resting' && inState > this.persona.sleepAfter + this.phase * 30
     const bored = visual === 'waiting' && inState > BORED_AFTER + this.phase * 12
+    if (asleep && !this.wasAsleep) this.onSay?.('sleep')
+    if (bored && !this.wasBored) this.onSay?.('bored')
+    this.wasAsleep = asleep
+    this.wasBored = bored
+    // Atento al chat: el usuario está escribiendo.
+    const attentive = t < this.attentionUntil && visual === 'idle'
     const fat = this.fatigue
     const effortNow = visual === 'working' || visual === 'thinking' ? this.effortLevel() : 0
 
     // Gestos: uno cada pocos segundos, según el estado real.
-    if (t > this.nextGesture && !this.leaving && !this.moving && cp >= 1.4) {
+    if (t > this.nextGesture && !this.leaving && !this.moving && cp >= 1.4 && !attentive) {
       const g = this.pickGesture(visual, asleep, bored, effortNow)
       if (g !== 'none') this.startGesture(g, t)
+      // De vez en cuando suelta algo, según lo hablador que sea.
+      if (visual === 'idle' && this.rnd() < this.persona.chatty * 0.12) this.onSay?.('chatter')
       const busyGap = visual === 'working' ? 3.5 - effortNow * 1.5 : visual === 'thinking' ? 3.2 : 4.5
       const gap = (asleep ? 9 : busyGap) + this.rnd() * 4.5
-      this.nextGesture = t + gap * (r ? 1.8 : 1)
+      this.nextGesture = t + gap * this.persona.gestureGap * (r ? 1.8 : 1)
     }
     let gp = (t - this.gestureStart) / this.gestureLen
     if (gp >= 1 || gp < 0) {
@@ -760,6 +788,11 @@ export class RobotBrain {
         break
     }
     if (fat > 0.3 && visual !== 'thinking') lookY -= fat * 0.1
+    if (attentive) {
+      // Mira hacia el chat (a la izquierda de la pantalla), atento al siguiente encargo.
+      lookX = -0.5
+      lookY = 0.08
+    }
     if (gLookX !== null) lookX = visual === 'working' || visual === 'thinking' ? gLookX + 0.15 * this.consoleSide : gLookX
     if (gLookY !== null) lookY = gLookY
     if (happy) lookY = 0.35
@@ -795,4 +828,7 @@ export class RobotBrain {
   private gesturePitch = 0
   /** Ladeo de cabeza de algunos gestos (curioso, guiño). */
   private gestureRoll = 0
+  private attentionUntil = -10
+  private wasAsleep = false
+  private wasBored = false
 }
