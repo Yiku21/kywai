@@ -7,7 +7,7 @@
 //    (onMacPermissionPrompt), para mandarla al móvil.
 import { spawn } from 'node:child_process'
 import { homedir } from 'node:os'
-import { sep } from 'node:path'
+import { posix } from 'node:path'
 import { tr } from '@shared/i18n'
 
 export const APP_BUNDLE_ID = 'com.aicowork.app'
@@ -47,11 +47,12 @@ export interface MacPermissionPrompt {
 
 /** Servicio de TCC que protege una carpeta (las que macOS pregunta una a una), o null si no pregunta por ella. */
 export function folderService(dir: string, home = homedir()): string | null {
-  const inside = (root: string): boolean => dir === root || dir.startsWith(root + sep)
-  if (inside(`${home}${sep}Documents`)) return 'kTCCServiceSystemPolicyDocumentsFolder'
-  if (inside(`${home}${sep}Desktop`)) return 'kTCCServiceSystemPolicyDesktopFolder'
-  if (inside(`${home}${sep}Downloads`)) return 'kTCCServiceSystemPolicyDownloadsFolder'
-  if (inside(`${sep}Volumes`)) return 'kTCCServiceSystemPolicyRemovableVolumes'
+  // Son rutas de macOS, incluso cuando esta función pura se comprueba desde Windows.
+  const inside = (root: string): boolean => dir === root || dir.startsWith(root + '/')
+  if (inside(posix.join(home, 'Documents'))) return 'kTCCServiceSystemPolicyDocumentsFolder'
+  if (inside(posix.join(home, 'Desktop'))) return 'kTCCServiceSystemPolicyDesktopFolder'
+  if (inside(posix.join(home, 'Downloads'))) return 'kTCCServiceSystemPolicyDownloadsFolder'
+  if (inside('/Volumes')) return 'kTCCServiceSystemPolicyRemovableVolumes'
   return null
 }
 
