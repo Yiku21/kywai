@@ -90,6 +90,7 @@ import kotlin.math.abs
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aicowork.remote.data.Connection
 import com.aicowork.remote.data.CoworkUiState
+import com.aicowork.remote.data.OutgoingStatus
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.Snapshot
 import com.aicowork.remote.ui.components.Labels
@@ -130,7 +131,13 @@ fun LiveStatus(state: CoworkUiState, onRetry: () -> Unit, modifier: Modifier = M
         Dot(color, pulse = pulse)
         if (!compact || connection !is Connection.Online) {
             Spacer(Modifier.width(9.dp))
-            Text(if (compact && connection is Connection.Offline) t("Sin conexión") else label, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            val queued = state.outgoing.count { it.status == OutgoingStatus.Queued }
+            val shown = when {
+                connection is Connection.Offline && queued > 0 -> t("Sin conexión · {n} en cola", "n" to queued)
+                compact && connection is Connection.Offline -> t("Sin conexión")
+                else -> label
+            }
+            Text(shown, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
         }
     }
 }

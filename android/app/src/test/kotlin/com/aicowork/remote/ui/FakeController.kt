@@ -56,6 +56,12 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     }
     override fun retryMessage(clientMessageId: String) { calls += "retryMessage:$clientMessageId" }
     override fun discardMessage(clientMessageId: String) { calls += "discard:$clientMessageId" }
+    override fun takeBackMessage(clientMessageId: String): OutgoingMessage? {
+        calls += "takeBack:$clientMessageId"
+        val message = state.value.outgoing.firstOrNull { it.clientMessageId == clientMessageId } ?: return null
+        state.value = state.value.copy(outgoing = state.value.outgoing - message)
+        return message
+    }
     override suspend fun newConversation(): ActionResult { calls += "newConversation"; return ActionResult(true, "Conversación nueva") }
     override suspend fun stopRequest(requestId: String): ActionResult { calls += "stop:$requestId"; return ActionResult(true, "Petición detenida") }
     override suspend fun resumeRequest(requestId: String): ActionResult { calls += "resume:$requestId"; return ActionResult(true, "Petición reanudada") }
