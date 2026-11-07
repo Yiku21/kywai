@@ -1358,12 +1358,18 @@ desde el navegador del móvil) o escribiendo `/rutina …` en el chat.
 | Cada día a una hora | «Cada día a las 09:00» |
 | Unos días de la semana a una hora | «De lunes a viernes a las 08:30», «Los sábados a las 10:00» |
 | Cada N horas (1 a 168) | «Cada 6 horas» (contando desde la última vez) |
+| Una sola vez | «Una vez: mañana a las 07:00»: se lanza ese día a esa hora y se desactiva sola |
 | Webhook | Al llegar un `POST` a su dirección propia (ver abajo) |
 | Al cambiar archivos de una carpeta | Una carpeta del proyecto (o toda): cuando cambian archivos y llevan un minuto quietos |
 
 **Desde el chat**: `/rutina cada día a las 9:00: revisa las dependencias`, `/rutina de lunes a viernes a las 8:30: …`,
 `/rutina lunes y jueves 7h: …`, `/rutina laborables a las 8: …`, `/rutina cada 6 horas: …`, `/rutina cada hora: …`,
-`/rutina webhook: revisa el PR que llega` o `/rutina al cambiar archivos de Entrada: …`. Lo que va después del
+`/rutina webhook: revisa el PR que llega` o `/rutina al cambiar archivos de Entrada: …`. De **una sola vez**:
+`/rutina mañana a las 7: …`, `/rutina hoy a las 21:00: …`, `/rutina esta noche a las 9: …` (las 21:00),
+`/rutina pasado mañana a las 10: …`, `/rutina el viernes a las 18:00: …` (el próximo viernes; «los viernes» es
+cada semana), `/rutina el 15/11 a las 9: …`, `/rutina el 3 de enero a las 9:30: …`, `/rutina el 2026-12-24 a las 8: …`,
+`/rutina dentro de 2 horas: …`, `/rutina en 45 minutos: …` o `/rutina una vez a las 9: …` (hoy, o mañana si ya
+pasó). En inglés: `tomorrow at 7`, `on friday at 18:00`, `in 3 hours`. Una hora que ya pasó da error. Lo que va después del
 horario es la petición; el nombre sale de su primera frase (se cambia en la pestaña). `/rutina` sola abre la pestaña.
 No va a los agentes: se crea la rutina (activa) y debajo del cuadro de texto se ve cuándo será la próxima.
 
@@ -1380,6 +1386,9 @@ Reglas:
 - **Horas perdidas**: si a la hora de una rutina kywai estaba cerrado (o el equipo en reposo), al volver **no**
   se lanza todo lo atrasado: se lanza **una sola vez** y un aviso en el chat dice cuántas veces no se lanzó.
   Al desactivar y volver a activar una rutina, o al cambiarle el horario, cuenta desde ese momento.
+- La rutina de **una sola vez** se desactiva al lanzarse (también si se lanzó tarde, al volver kywai) y queda en la
+  lista con su historial y «ya se lanzó». Para repetirla, edítala y elige otro día: al guardar vuelve a quedar activa.
+  No se puede crear ni activar para una hora que ya pasó.
 - La rutina de **carpeta** no mira mientras el equipo trabaja en el proyecto (los cambios de los agentes no
   cuentan; al terminar se toma una foto nueva) y no se lanza más de una vez cada 5 minutos. La petición lleva la
   lista de archivos nuevos (+), cambiados (~) y borrados (-).
