@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { MIN_TEMPO_SCORE, parseVideoTitle, plausibleBpm, type TempoConfidence, type TempoLookupResult, type TempoMatch, type TempoQuery } from '@shared/music'
+import { isLive, musicSourceOf } from '@shared/musicSources'
 import type { MusicResult } from '@shared/types'
 import { api, isWeb } from './api'
 import { getVolume, isMuted, setAmbientMusicSuppressed, subscribeAudio } from './audio'
@@ -264,7 +265,8 @@ export function readVideoInfo(): void {
   })
   const track = useMusic.getState().tracks[videoId]
   const fresh = track.lookedUpAt && Date.now() - track.lookedUpAt < LOOKUP_TTL_MS
-  if (!fresh && track.title && useMusic.getState().lookup === 'idle') void lookupTempo()
+  // Una radio cambia de canción sola: su nombre no es el de una canción, no se busca su BPM.
+  if (!fresh && track.title && !isLive(videoId) && useMusic.getState().lookup === 'idle') void lookupTempo()
 }
 
 // ---------- BPM ----------
@@ -533,8 +535,8 @@ export function seek(seconds: number): void {
 
 /** Errores de YouTube: el dueño no permite el vídeo en reproductores de otras webs o apps. */
 export const EMBED_BLOCKED = new Set([101, 150])
-/** Con estos errores la canción no se puede oír aquí. */
-const UNPLAYABLE = new Set([2, 5, 100, 101, 150])
+/** Con estos errores la canción no se puede oír aquí (los de 1000 en adelante, del reproductor de audio propio). */
+const UNPLAYABLE = new Set([2, 5, 100, 101, 150, 1002, 1003, 1004])
 const BLOCKED_KEY = 'aicowork.music.blocked.v1'
 const MAX_ATTEMPTS = 4
 
@@ -644,7 +646,7 @@ export async function recoverFromError(code: number, message: string): Promise<v
     const tooMany = failedInARow >= MAX_FAILED_IN_A_ROW
     const skipping = UNPLAYABLE.has(code) && hasNext() && !tooMany
     const why = tooMany
-      ? isWeb
+      ? isWeb && musicSourceOf(failedId) === 'youtube'
         ? t(' Desde el navegador, YouTube no deja oír estas canciones fuera de su web; en la app de escritorio del Mac sí suenan.')
         : t(' Varias seguidas no se pueden oír aquí: elige otra canción.')
       : ''

@@ -50,7 +50,7 @@ function MusicButton({ reduced }: { reduced: boolean }) {
   const mini = useMusic((st) => st.mini)
   const hasSong = useMusic((st) => !!st.videoId)
   const playing = useMusic((st) => st.status === 'playing')
-  const label = !open ? t('Música de YouTube con luces al ritmo') : mini ? t('Abrir el reproductor') : hasSong ? t('Minimizar el reproductor (sigue sonando)') : t('Cerrar la música')
+  const label = !open ? t('Música con luces al ritmo (YouTube, Audius y radios)') : mini ? t('Abrir el reproductor') : hasSong ? t('Minimizar el reproductor (sigue sonando)') : t('Cerrar la música')
   return (
     <button
       type="button"

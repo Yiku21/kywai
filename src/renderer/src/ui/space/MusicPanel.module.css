@@ -129,6 +129,71 @@
   border: 0;
 }
 
+/* Sin vídeo (Audius y radios): carátula y autoría en el sitio del vídeo. */
+.artwork {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  color: #fff;
+  background: radial-gradient(circle at 30% 30%, rgba(120, 140, 255, 0.35), rgba(0, 0, 0, 0.9));
+}
+
+.artworkImg {
+  flex: none;
+  width: min(42%, 150px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+.artworkText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.artworkTitle {
+  font-size: 15px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.artworkSub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.artwork .source {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.mini .artworkText {
+  display: none;
+}
+
+.mini .artwork {
+  justify-content: center;
+}
+
+.bar .artwork {
+  padding: 0;
+}
+
+.bar .artworkImg {
+  width: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 /* ---------- Canción ---------- */
 
 .track {
@@ -344,6 +409,36 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.sources {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--radius-ctl);
+  background: rgba(var(--line-rgb, 150, 180, 230), 0.05);
+  border: 1px solid var(--border);
+}
+
+.sourceTab {
+  padding: 5px 8px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.sourceTab:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+.sourceTabOn {
+  background: var(--bg-active);
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .searchField {
