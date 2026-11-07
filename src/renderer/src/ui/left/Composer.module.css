@@ -277,6 +277,13 @@
   background: var(--bg-hover);
 }
 
+.cmdIcon {
+  flex: none;
+  width: 18px;
+  text-align: center;
+  color: var(--text-3);
+}
+
 .mentionDot {
   flex: none;
   width: 8px;

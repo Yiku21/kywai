@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, Brain, CalendarClock, Gauge, ImagePlus, Info, LoaderCircle, Mic, Paperclip, Square, X } from 'lucide-react'
-import type { CoworkApi, HttpsLink, MemoryInput, MemoryKind } from '@shared/types'
+import { AlertCircle, ArrowRight, Brain, CalendarClock, Gauge, ImagePlus, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Square, X } from 'lucide-react'
+import type { CoworkApi, HttpsLink, MemoryInput, MemoryKind, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
 import { menuKeyNav, Popover } from '../common/Popover'
@@ -13,6 +13,8 @@ import { basename, cx, errorText } from '../common/util'
 import { useComposer } from './composerStore'
 import { describeTrigger, describeWhen, parseRoutineCommand } from '@shared/routines'
 import { mentionMatches, mentionQuery, mentionText } from '@shared/directMessage'
+import { commandQuery, templatesFor } from '@shared/templates'
+import { TemplateBar } from './TemplateBar'
 import u from '../common/ui.module.css'
 import s from './Composer.module.css'
 import { lang, t } from '@/lib/i18n'
@@ -96,10 +98,16 @@ export function Composer() {
           agentOrder.map((id) => liveAgents[id]).filter((a) => !!a && !a.isSubagent)
         )
       : []
+  // «/» al principio: las plantillas cuya orden empieza por lo escrito.
+  const templates = useCowork((st) => st.templates)
+  const cmd = mention ? null : commandQuery(text)
+  const cmdList = cmd !== null && mentionClosed !== text && !!api ? templatesFor(templates, project?.id).filter((x) => x.command.startsWith(cmd)).slice(0, 8) : []
   const mentionOpen = mentionList.length > 0
-  const mentionSel = Math.min(mentionIdx, Math.max(0, mentionList.length - 1))
+  const cmdOpen = !mentionOpen && cmdList.length > 0
+  const suggestCount = mentionOpen ? mentionList.length : cmdList.length
+  const mentionSel = Math.min(mentionIdx, Math.max(0, suggestCount - 1))
   const [sending, setSending] = useState(false)
-  useEffect(() => setMentionIdx(0), [mention?.query])
+  useEffect(() => setMentionIdx(0), [mention?.query, cmd])
   const [stopping, setStopping] = useState(false)
   // Varias peticiones en marcha: menú para elegir cuál detener.
   const [stopOpen, setStopOpen] = useState(false)
@@ -236,6 +244,34 @@ export function Composer() {
     } finally {
       setSending(false)
     }
+  }
+
+  /**
+   * Lanza una plantilla de la fila de encima (el texto ya va con los huecos rellenos). Los archivos que estuvieran
+   * preparados van con ella; lo escrito en el cuadro se queda. true si se envió.
+   */
+  async function launchTemplate(tpl: TaskTemplate, filled: string): Promise<boolean> {
+    const a = api
+    if (!a || !project || blockedReason || simulate) return false
+    if (isDemo) useCowork.getState().setMode('live')
+    setError(null)
+    setQuotaNotice(null)
+    try {
+      await a.sendMessage({ projectId: project.id, text: filled, filePaths: files, templateId: tpl.id })
+      if (files.length) useComposer.setState({ files: [] })
+      return true
+    } catch (e) {
+      setError(errorText(e))
+      return false
+    }
+  }
+
+  /** Elige una plantilla de la lista del «/»: el cuadro queda con «/orden » para escribir lo de detrás. */
+  function chooseCommand(i: number): void {
+    const c = cmdList[i]
+    if (!c) return
+    setText(`/${c.command} `)
+    taRef.current?.focus()
   }
 
   /** Elige un agente de la lista del «@»: el cuadro queda con «@Nombre » para escribir el mensaje. */
@@ -377,6 +413,7 @@ export function Composer() {
 
   return (
     <div className={s.composer}>
+      <TemplateBar disabled={!!blockedReason || simulate || !!rec || transcribing} onLaunch={launchTemplate} />
       {files.length > 0 && (
         <ul className={s.pending} aria-label={t('Archivos para adjuntar')}>
           {files.map((p) => {
@@ -464,21 +501,22 @@ export function Composer() {
             title={blockedReason ?? t('Intro para enviar · Mayús+Intro para nueva línea')}
             onChange={(e) => setText(e.target.value)}
             onPaste={(e) => void onPaste(e)}
-            role={mentionOpen ? 'combobox' : undefined}
-            aria-expanded={mentionOpen ? true : undefined}
-            aria-controls={mentionOpen ? 'composer-mentions' : undefined}
-            aria-activedescendant={mentionOpen ? `composer-mention-${mentionSel}` : undefined}
+            role={mentionOpen || cmdOpen ? 'combobox' : undefined}
+            aria-expanded={mentionOpen || cmdOpen ? true : undefined}
+            aria-controls={mentionOpen ? 'composer-mentions' : cmdOpen ? 'composer-commands' : undefined}
+            aria-activedescendant={mentionOpen ? `composer-mention-${mentionSel}` : cmdOpen ? `composer-command-${mentionSel}` : undefined}
             onKeyDown={(e) => {
-              if (mentionOpen && !e.nativeEvent.isComposing) {
+              if ((mentionOpen || cmdOpen) && !e.nativeEvent.isComposing) {
                 if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                   e.preventDefault()
-                  const n = mentionList.length
+                  const n = suggestCount
                   setMentionIdx((mentionSel + (e.key === 'ArrowDown' ? 1 : n - 1)) % n)
                   return
                 }
                 if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
                   e.preventDefault()
-                  chooseMention(mentionSel)
+                  if (mentionOpen) chooseMention(mentionSel)
+                  else chooseCommand(mentionSel)
                   return
                 }
                 if (e.key === 'Escape') {
@@ -514,6 +552,33 @@ export function Composer() {
                   <span className={s.mentionDot} style={{ background: a.color }} aria-hidden="true" />
                   <span className={s.mentionName}>{a.name}</span>
                   <span className={s.mentionModel}>{a.modelLabel}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {cmdOpen && (
+            <ul id="composer-commands" className={s.mentions} role="listbox" aria-label={t('Plantillas de tareas')}>
+              <li className={s.mentionHead} aria-hidden="true">
+                {t('Plantillas: elige una y escribe detrás lo que cambia')}
+              </li>
+              {cmdList.map((c, i) => (
+                <li
+                  key={c.id}
+                  id={`composer-command-${i}`}
+                  role="option"
+                  aria-selected={i === mentionSel}
+                  className={cx(s.mention, i === mentionSel && s.mentionOn)}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    chooseCommand(i)
+                  }}
+                  onMouseEnter={() => setMentionIdx(i)}
+                >
+                  <span className={s.cmdIcon} aria-hidden="true">
+                    {c.icon || <LayoutTemplate size={14} />}
+                  </span>
+                  <span className={s.mentionName}>/{c.command}</span>
+                  <span className={s.mentionModel}>{c.name}</span>
                 </li>
               ))}
             </ul>

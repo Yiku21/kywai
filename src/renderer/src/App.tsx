@@ -63,6 +63,13 @@ function useBoot(): void {
         },
         () => undefined
       )
+      // Plantillas de tareas (la fila de encima del chat; los cambios llegan por templates.updated).
+      api.listTemplates?.().then(
+        (list) => {
+          if (alive) useCowork.setState({ templates: list })
+        },
+        () => undefined
+      )
       // Registro de consumo (para el resumen bajo cada plan y el panel ⚙ → Consumo).
       api.getUsageRuns().then(
         (list) => {
