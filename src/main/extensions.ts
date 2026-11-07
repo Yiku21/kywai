@@ -33,7 +33,7 @@ import { quoteArg } from './agents/spawn'
 import { tr } from '@shared/i18n'
 
 const IS_WIN = process.platform === 'win32'
-const MAX_SERVERS = 30
+const MAX_SERVERS = 60
 const MAX_ARGS = 40
 const MAX_SECRETS = 20
 /** Un servidor con npx o uvx descarga su paquete la primera vez: puede tardar. */
@@ -57,6 +57,8 @@ interface StoredServer {
   headers: Record<string, Sealed>
   agents: McpAgentKind[]
   test?: McpTestResult
+  /** El plugin que lo trajo (se quita con él). */
+  plugin?: string
 }
 
 /** Un servidor con sus claves ya descifradas: solo para lanzarlo (nunca va a la interfaz). */
@@ -136,7 +138,8 @@ export class McpRegistry {
       envNames: Object.keys(s.env ?? {}),
       headerNames: Object.keys(s.headers ?? {}),
       agents: (s.agents ?? []).filter(isMcpAgentKind),
-      ...(s.test ? { test: s.test } : {})
+      ...(s.test ? { test: s.test } : {}),
+      ...(s.plugin ? { plugin: s.plugin } : {})
     }
   }
 
@@ -179,6 +182,8 @@ export class McpRegistry {
     if (id !== prevId && servers.some((s) => s.id === id)) throw err(tr('Ya hay un servidor con ese nombre'))
     if (!prev && servers.length >= MAX_SERVERS) throw err(tr('Hay demasiados servidores: quita alguno antes'))
     const next: StoredServer = { id, title: clean(input.title, 80) || prev?.title || id, transport, env: {}, headers: {}, agents: prev?.agents ?? [] }
+    const plugin = prev?.plugin ?? clean(input.plugin, 64)
+    if (plugin) next.plugin = plugin
     if (transport === 'stdio') {
       const command = clean(input.command, 400)
       if (!command) throw err(tr('Falta la orden que arranca el servidor'))

@@ -85,6 +85,7 @@ import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScr
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
 import { installCatalogSkill, installSkillLink, installedSkills, mcpCatalog, removeSkill, skillCatalog } from './catalog'
+import { addPluginLink, initPlugins, installCatalogPlugin, listPlugins, pluginCatalog, removeMarketplace, removePlugin } from './plugins'
 import { McpRegistry, initExtensions, listMcp, removeMcp, saveMcp, setMcpAgents, testMcp } from './extensions'
 import { deleteTraces, flushTaskTraces, getTaskTrace, initTaskTraces } from './taskTrace'
 import { onMacPermissionPrompt, startMacPermissionWatch, stopMacPermissionWatch } from './macPermissions'
@@ -708,6 +709,13 @@ function registerIpc(): void {
   handle('installSkill', (source: unknown, skillId: unknown) => installCatalogSkill(source, skillId))
   handle('installSkillLink', (url: unknown) => installSkillLink(url))
   handle('removeSkill', (name: unknown) => removeSkill(name))
+  // Plugins (formato de Claude Code): sus catálogos, instalar desde uno o desde un enlace, y quitarlos.
+  handle('listPlugins', () => listPlugins())
+  handle('pluginCatalog', (query: unknown) => pluginCatalog(query))
+  handle('installPlugin', (marketplace: unknown, name: unknown) => installCatalogPlugin(marketplace, name))
+  handle('addPluginLink', (url: unknown) => addPluginLink(url))
+  handle('removePlugin', (name: unknown) => removePlugin(name))
+  handle('removeMarketplace', (repo: unknown) => removeMarketplace(repo))
   handle('setServerName', (name: unknown) => {
     if (typeof name !== 'string' || name.length > 200) throw new Error(tr('Valor no válido'))
     setServerName(name)
@@ -917,6 +925,7 @@ async function boot(): Promise<void> {
   initInbox(cfg.workspaceRoot)
   initSkills(cfg.workspaceRoot)
   initExtensions(new McpRegistry(join(app.getPath('userData'), 'mcp-servers.json'), systemCipher))
+  initPlugins(app.getPath('userData'))
   void startCoworkMcp(cfg.workspaceRoot)
   // El botón «Abrir Compartir pantalla» de los avisos de permisos: solo tiene sentido con el servidor en un Mac.
   if (process.platform === 'darwin') setScreenShareUrl(() => {
