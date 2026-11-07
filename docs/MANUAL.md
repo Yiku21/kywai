@@ -1156,7 +1156,10 @@ tarea. Debajo de cada servidor se ve el resultado: «Responde: 25 herramientas»
 "uvx" en este equipo», «Pide autorización…»). La primera vez puede tardar: npx y uvx descargan el servidor.
 
 **Dárselo a un agente.** Un chip por agente: Claude, Codex, Gemini y Hermes se pueden encender; los demás salen
-en gris (aún no pueden recibirlos). Al encender un chip se vuelve a probar: si falla, se queda apagado y dice por
+en gris (aún no pueden recibirlos). Si un servidor no arranca porque falta el programa que lo lanza (`uvx` viene con **uv**,
+`npx` con **Node.js**), debajo sale **«Instalar uv»** o **«Instalar Node.js»**: lo instala en el equipo donde trabajan
+los agentes (aunque lo pulses desde la web, Órbita u otro equipo) con su instalador oficial, sin administrador, y vuelve
+a probar el servidor. Al encender un chip se vuelve a probar: si falla, se queda apagado y dice por
 qué, así que ninguna tarea se rompe por una extensión. Si al probarlo más tarde falla, se apaga para todos. Cambiar
 cómo se arranca (orden, dirección o claves) también lo apaga: se vuelve a encender tras probarlo.
 

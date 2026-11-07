@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getAppPath: () => tmpdir(), getPath: () => tmpdir() } }))
 
-import { parseMcpPaste } from '@shared/extensions'
+import { mcpRuntimeFor, parseMcpPaste } from '@shared/extensions'
 import {
   McpRegistry,
   claudeServers,
@@ -137,6 +137,17 @@ describe('registro de servidores', () => {
 })
 
 describe('probar un servidor', () => {
+  it('si falta uvx o npx, dice qué hay que instalar (uv o Node.js) para ofrecer el botón', async () => {
+    expect(mcpRuntimeFor('uvx')).toBe('uv')
+    expect(mcpRuntimeFor('/Users/x/.local/bin/uv')).toBe('uv')
+    expect(mcpRuntimeFor('C:\\Program Files\\nodejs\\npx.cmd')).toBe('node')
+    expect(mcpRuntimeFor('docker')).toBeNull()
+    const r = await testStdio({ command: 'uvx', args: ['mcp-server-fetch'], env: { PATH: join(dir, 'vacio') } }, 5_000)
+    expect(r.ok).toBe(false)
+    expect(r.runtime).toBe('uv')
+    expect(r.message).toContain('uvx')
+  })
+
   it('local: lo arranca, saluda y pide sus herramientas', async () => {
     const r = await testStdio(server(), 15_000)
     expect(r.ok).toBe(true)

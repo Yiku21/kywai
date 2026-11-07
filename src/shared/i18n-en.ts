@@ -2528,4 +2528,8 @@ export const en: Record<string, string> = {
   "Vuelve a poner las de serie que hayas borrado": "Brings back the built-in templates you deleted",
   "su proyecto": "its project",
   "{name} (ya no está en el equipo)": "{name} (no longer in the team)",
+  "Instalar {name}": "Install {name}",
+  "Instalando {name}… (puede tardar unos minutos)": "Installing {name}… (it may take a few minutes)",
+  "Se instala en el equipo donde trabajan los agentes, y después se vuelve a probar el servidor": "It's installed on the computer where the agents work, and then the server is tested again",
+  "Este servidor no necesita instalar nada": "This server doesn't need anything installed",
 }

@@ -2410,4 +2410,8 @@ export const zh: Record<string, string> = {
   "Vuelve a poner las de serie que hayas borrado": "恢复你删除的内置模板",
   "su proyecto": "其所属项目",
   "{name} (ya no está en el equipo)": "{name}（已不在团队中）",
+  "Instalar {name}": "安装 {name}",
+  "Instalando {name}… (puede tardar unos minutos)": "正在安装 {name}…（可能需要几分钟）",
+  "Se instala en el equipo donde trabajan los agentes, y después se vuelve a probar el servidor": "会安装在智能体工作的电脑上，然后重新测试服务器",
+  "Este servidor no necesita instalar nada": "此服务器无需安装任何东西",
 }

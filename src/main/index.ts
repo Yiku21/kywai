@@ -756,6 +756,16 @@ function registerIpc(): void {
     setPlanApproval(on)
     emit({ kind: 'config.updated', config: getConfig() })
   })
+  // Extensiones: si un servidor MCP no arranca porque falta uv (uvx) o Node.js (npx), se instala aquí, en el equipo
+  // donde corren los agentes (también si se pide desde la web u Órbita), y se vuelve a probar.
+  handle('installMcpRuntime', async (id: unknown) => {
+    const server = listMcp().find((x) => x.id === id)
+    const runtime = server?.test?.runtime
+    if (!server || !runtime) throw new Error(tr('Este servidor no necesita instalar nada'))
+    const r = await installTool(runtime)
+    if (r.ok) await refreshPresence()
+    return { ok: r.ok, message: r.message, servers: await testMcp(server.id) }
+  })
   // ---- Asistente de configuración ----
   const toolId = parseSetupToolId
   handle('setupDetect', () => detectTools())
