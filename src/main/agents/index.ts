@@ -74,7 +74,8 @@ export async function checkAgentPresence(agent: AgentConfig, fresh = false): Pro
     return r.ok ? null : (r.reason ?? tr('Ollama no disponible'))
   }
   if (agent.provider === 'lmstudio') {
-    const r = await checkLmStudio(agent.model)
+    // Comprobación pedida (arranque, «Encender LM Studio», ⟳): si el servidor está apagado, se enciende.
+    const r = await checkLmStudio(agent.model, fresh)
     return r.ok ? null : (r.reason ?? tr('LM Studio no disponible'))
   }
   // Agente de catálogo: su programa es el que dice su ficha.

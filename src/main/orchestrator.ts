@@ -858,7 +858,8 @@ export async function checkPresence(fresh = false, onlyOllama = false): Promise<
 export function initOrchestrator(): void {
   for (const a of baseAgents()) getRuntime(a.id)
   void clearStaleCopies()
-  void checkPresence()
+  // Al arrancar, comprobación completa: entre otras cosas enciende el servidor de LM Studio si está apagado.
+  void checkPresence(true)
   if (ollamaTimer) clearInterval(ollamaTimer)
   ollamaTimer = setInterval(() => void checkPresence(false, true), 30_000)
 }

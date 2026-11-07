@@ -474,6 +474,13 @@ documentación no confirma y pueden necesitar ajustes.
   Cada respuesta del modelo se espera el tiempo que haga falta (un modelo local que razona mucho puede tardar más de
   5 minutos en una sola respuesta); solo se dice «Servidor de LM Studio apagado» cuando LM Studio rechaza la conexión.
   Si la corta a mitad, la tarea dice «LM Studio cortó la respuesta» con el motivo.
+- **LM Studio se enciende solo**: si su servidor está apagado, AI Cowork lo enciende (con `lms server start`) al
+  arrancar, al pulsar ⟳ en las cuotas (o pedir /cuota) y, si se apagó entre medias, antes de que el agente local
+  empiece una tarea; y deja el modelo cargándose
+  con 32 k de contexto. La comprobación automática de cada 30 s no lo enciende, para respetar que lo apagues a mano.
+  Si aun así sale «No disponible: Servidor de LM Studio apagado», la tarjeta del agente (clic en su robot) tiene el
+  botón **Encender LM Studio**: enciende el servidor, carga el modelo y deja el agente disponible. Si no puede, dice
+  por qué (por ejemplo, que LM Studio no está instalado).
 - **Permisos de los agentes** (menú ⋮ → «Acceso completo para los agentes», activado por defecto): Claude, Codex y
   Gemini ejecutan comandos, instalan dependencias y usan internet sin pedir permiso, para no quedarse parados.
   Se les indica que trabajen en la carpeta del proyecto y que no borren nada fuera de ella ni hagan acciones
