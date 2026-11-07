@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import type { AgentAccess, TokenUsage } from '@shared/types'
 import {
   AUTH_RE,
@@ -10,6 +13,7 @@ import {
   obj,
   runCli,
   safeModel,
+  STALL_NOTICE,
   stderrSummary,
   str,
   todoProgress
@@ -29,6 +33,30 @@ export const GEMINI_KEY_RE = /^[\w.-]{20,300}$/
 
 export function isGeminiKey(key: string): boolean {
   return GEMINI_KEY_RE.test(key)
+}
+
+/**
+ * Aviso de silencio para Gemini cuando entra con la sesión de Google: ese acceso dejó de ser gratis en junio de 2026
+ * y Gemini CLI se queda «pensando» sin fin (sin error ni salida). Lo que lo arregla es una clave de API.
+ */
+export const GEMINI_LOGIN_STALL_NOTICE =
+  'Gemini lleva 3 min sin dar señales con tu sesión de Google, que suele quedarse colgada: pon una clave de API de Google AI Studio (⚙ → Ajustes → Configurar agentes → Sesiones)'
+
+/** Método de acceso elegido en ~/.gemini/settings.json («oauth-personal», «gemini-api-key», «vertex-ai»…). */
+export function geminiAuthType(home = homedir()): string | undefined {
+  try {
+    const s = JSON.parse(readFileSync(join(home, '.gemini', 'settings.json'), 'utf8')) as Record<string, unknown>
+    const auth = (s?.security as { auth?: { selectedType?: unknown } } | undefined)?.auth?.selectedType
+    const type = auth ?? s?.selectedAuthType
+    return typeof type === 'string' ? type : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** El aviso de silencio que toca: el de la sesión de Google si Gemini entra así, y si no el de siempre. */
+export function geminiStallNotice(text: string, authType = geminiAuthType()): string {
+  return text === STALL_NOTICE && authType === 'oauth-personal' ? GEMINI_LOGIN_STALL_NOTICE : text
 }
 
 /** `-p` is appended to stdin; the real prompt goes through stdin. Fixed ASCII text only. */
@@ -224,6 +252,6 @@ export function runGemini(opts: RunAgentOptions): Promise<RunAgentResult> {
     stdin: opts.prompt,
     signal: opts.signal,
     parser: createGeminiParser(opts),
-    onStall: (text) => opts.onActivity?.(text, 'tool')
+    onStall: (text) => opts.onActivity?.(geminiStallNotice(text), 'tool')
   })
 }

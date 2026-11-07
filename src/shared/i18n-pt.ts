@@ -1721,6 +1721,8 @@ export const pt: Record<string, string> = {
   "Sesión de Muse Code caducada: abre `muse` en una terminal y usa /login": "Sessão do Muse Code expirada: abra `muse` num terminal e use /login",
   "Servidor de LM Studio apagado: pulsa «Encender LM Studio» o enciéndelo en LM Studio (Developer → Start server)": "O servidor do LM Studio está desligado: toque em «Ligar o LM Studio» ou inicie-o no LM Studio (Developer → Start server)",
   "Lleva 3 min sin dar señales: si sigue así, puede que espere un aviso de permisos en la pantalla del servidor": "Sem sinal de vida há 3 min: se continuar, pode estar esperando um aviso de permissão na tela do servidor",
+  "Gemini lleva 3 min sin dar señales con tu sesión de Google, que suele quedarse colgada: pon una clave de API de Google AI Studio (⚙ → Ajustes → Configurar agentes → Sesiones)": "O Gemini está há 3 min sem sinal de vida com a sua sessão do Google, que costuma travar: adicione uma chave de API do Google AI Studio (⚙ → Ajustes → Configurar agentes → Sessões)",
+  "Gemini está usando tu sesión de Google, que ya no es gratis y suele quedarse colgada sin dar error. Pega una clave de API de Google AI Studio en ⚙ → Ajustes → Configurar agentes → Sesiones y vuelve a intentarlo.": "O Gemini está usando a sua sessão do Google, que já não é gratuita e costuma travar sem dar erro. Cole uma chave de API do Google AI Studio em ⚙ → Ajustes → Configurar agentes → Sessões e tente de novo.",
   "Interrumpida al cerrar la app": "Interrompida ao fechar o app",
   "Coordinador: planifica y reparte el trabajo (con memoria entre sesiones)": "Coordenador: planeja e divide o trabalho (com memória entre sessões)",
   "Leer mucho material, resumir y traducir": "Ler muito material, resumir e traduzir",
