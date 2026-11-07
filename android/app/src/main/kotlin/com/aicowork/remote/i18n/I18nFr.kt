@@ -10,6 +10,7 @@ internal val FR: Map<String, String> by lazy {
         part3(this)
         part4(this)
         part5(this)
+        part6(this)
     }
 }
 
@@ -816,4 +817,41 @@ private fun part5(m: HashMap<String, String>) {
     m["Coste en {days} días"] = "Coût sur {days} jours"
     m["Lo pagado es lo de los agentes que van por API; a precios de API es lo que valdría todo lo usado."] = "Le payé correspond aux agents facturés via l'API ; aux prix de l'API, c'est ce que vaudrait tout ce qui a été utilisé."
     m["Presupuesto"] = "Budget"
+}
+
+// Plantillas de tareas (TaskTemplates.kt).
+private fun part6(m: HashMap<String, String>) {
+    m["Al lanzarla te pedirá: {slots}."] = "Au lancement, il te demandera : {slots}."
+    m["Crear plantilla"] = "Créer le modèle"
+    m["Directo a {name}, sin Hermes"] = "Directement à {name}, sans Hermes"
+    m["Editar plantilla"] = "Modifier le modèle"
+    m["Editar…"] = "Modifier…"
+    m["Es de serie: puedes volver a ponerla al crear o editar una plantilla."] = "C'est un modèle d'origine : tu peux le remettre en créant ou en modifiant un modèle."
+    m["Fijar al principio"] = "Épingler au début"
+    m["Hermes reparte el trabajo"] = "Hermes répartit le travail"
+    m["Lo que se envía"] = "Ce qui est envoyé"
+    m["No se puede deshacer."] = "C'est irréversible."
+    m["Nombre del botón"] = "Nom du bouton"
+    m["Nueva plantilla"] = "Nouveau modèle"
+    m["Nueva plantilla de tarea"] = "Nouveau modèle de tâche"
+    m["Orden para escribirla en el chat"] = "Commande pour l'écrire dans le chat"
+    m["Pedir mi visto bueno al plan antes de empezar (aunque en Ajustes esté apagado)"] = "Demander mon accord sur le plan avant de commencer (même si c'est désactivé dans les Réglages)"
+    m["Plantilla"] = "Modèle"
+    m["Plantilla borrada"] = "Modèle supprimé"
+    m["Plantilla creada"] = "Modèle créé"
+    m["Plantilla fijada"] = "Modèle épinglé"
+    m["Plantilla guardada"] = "Modèle enregistré"
+    m["Plantilla quitada de fijadas"] = "Modèle désépinglé"
+    m["Plantilla «{name}»"] = "Modèle « {name} »"
+    m["Plantillas de serie restauradas"] = "Modèles d'origine remis"
+    m["Plantillas: elige una y escribe detrás lo que cambia"] = "Modèles : choisis-en un et écris ensuite ce qui change"
+    m["Pon entre llaves lo que cambia cada vez, como {pr} o {carpeta}: al lanzarla te lo pedirá."] = "Mets entre accolades ce qui change à chaque fois, comme {pr} ou {carpeta} : il te le demandera au lancement."
+    m["Quitar de fijadas"] = "Désépingler"
+    m["Quién la hace"] = "Qui s'en charge"
+    m["Solo en este proyecto"] = "Seulement dans ce projet"
+    m["Una petición que repites a menudo, para lanzarla con un toque desde encima del chat."] = "Une demande que tu répètes souvent, à lancer d'un geste au-dessus du chat."
+    m["Volver a poner las de serie"] = "Remettre ceux d'origine"
+    m["carpeta"] = "dossier"
+    m["{name} (ya no está en el equipo)"] = "{name} (ne fait plus partie de l'équipe)"
+    m["¿Borrar la plantilla «{name}»?"] = "Supprimer le modèle « {name} » ?"
 }

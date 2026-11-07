@@ -10,6 +10,7 @@ internal val PT: Map<String, String> by lazy {
         part3(this)
         part4(this)
         part5(this)
+        part6(this)
     }
 }
 
@@ -816,4 +817,41 @@ private fun part5(m: HashMap<String, String>) {
     m["Coste en {days} días"] = "Custo em {days} dias"
     m["Lo pagado es lo de los agentes que van por API; a precios de API es lo que valdría todo lo usado."] = "O pago é o dos agentes que vão por API; a preços de API é o que valeria tudo o que usou."
     m["Presupuesto"] = "Orçamento"
+}
+
+// Plantillas de tareas (TaskTemplates.kt).
+private fun part6(m: HashMap<String, String>) {
+    m["Al lanzarla te pedirá: {slots}."] = "Ao lançá-lo, vai pedir: {slots}."
+    m["Crear plantilla"] = "Criar modelo"
+    m["Directo a {name}, sin Hermes"] = "Direto para {name}, sem Hermes"
+    m["Editar plantilla"] = "Editar modelo"
+    m["Editar…"] = "Editar…"
+    m["Es de serie: puedes volver a ponerla al crear o editar una plantilla."] = "É de série: pode repô-lo ao criar ou editar um modelo."
+    m["Fijar al principio"] = "Fixar no início"
+    m["Hermes reparte el trabajo"] = "Hermes distribui o trabalho"
+    m["Lo que se envía"] = "O que é enviado"
+    m["No se puede deshacer."] = "Não dá para desfazer."
+    m["Nombre del botón"] = "Nome do botão"
+    m["Nueva plantilla"] = "Novo modelo"
+    m["Nueva plantilla de tarea"] = "Novo modelo de tarefa"
+    m["Orden para escribirla en el chat"] = "Comando para escrevê-lo no chat"
+    m["Pedir mi visto bueno al plan antes de empezar (aunque en Ajustes esté apagado)"] = "Pedir minha aprovação do plano antes de começar (mesmo que esteja desligado nos Ajustes)"
+    m["Plantilla"] = "Modelo"
+    m["Plantilla borrada"] = "Modelo apagado"
+    m["Plantilla creada"] = "Modelo criado"
+    m["Plantilla fijada"] = "Modelo fixado"
+    m["Plantilla guardada"] = "Modelo salvo"
+    m["Plantilla quitada de fijadas"] = "Modelo desafixado"
+    m["Plantilla «{name}»"] = "Modelo «{name}»"
+    m["Plantillas de serie restauradas"] = "Modelos de série repostos"
+    m["Plantillas: elige una y escribe detrás lo que cambia"] = "Modelos: escolha um e escreva depois o que muda"
+    m["Pon entre llaves lo que cambia cada vez, como {pr} o {carpeta}: al lanzarla te lo pedirá."] = "Coloque entre chaves o que muda a cada vez, como {pr} ou {carpeta}: ao lançá-lo, ele vai pedir."
+    m["Quitar de fijadas"] = "Desafixar"
+    m["Quién la hace"] = "Quem faz"
+    m["Solo en este proyecto"] = "Só neste projeto"
+    m["Una petición que repites a menudo, para lanzarla con un toque desde encima del chat."] = "Um pedido que você repete muito, para lançá-lo com um toque acima do chat."
+    m["Volver a poner las de serie"] = "Repor os de série"
+    m["carpeta"] = "pasta"
+    m["{name} (ya no está en el equipo)"] = "{name} (já não está na equipe)"
+    m["¿Borrar la plantilla «{name}»?"] = "Apagar o modelo «{name}»?"
 }

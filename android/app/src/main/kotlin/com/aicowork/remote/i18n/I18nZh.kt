@@ -10,6 +10,7 @@ internal val ZH: Map<String, String> by lazy {
         part3(this)
         part4(this)
         part5(this)
+        part6(this)
     }
 }
 
@@ -816,4 +817,41 @@ private fun part5(m: HashMap<String, String>) {
     m["Coste en {days} días"] = "{days} 天内的费用"
     m["Lo pagado es lo de los agentes que van por API; a precios de API es lo que valdría todo lo usado."] = "已付是按 API 计费的智能体的花费；按 API 价格是全部用量的价值。"
     m["Presupuesto"] = "预算"
+}
+
+// Plantillas de tareas (TaskTemplates.kt).
+private fun part6(m: HashMap<String, String>) {
+    m["Al lanzarla te pedirá: {slots}."] = "启动时会让你填写：{slots}。"
+    m["Crear plantilla"] = "创建模板"
+    m["Directo a {name}, sin Hermes"] = "直接交给 {name}，不经过 Hermes"
+    m["Editar plantilla"] = "编辑模板"
+    m["Editar…"] = "编辑…"
+    m["Es de serie: puedes volver a ponerla al crear o editar una plantilla."] = "这是内置模板：创建或编辑模板时可以恢复它。"
+    m["Fijar al principio"] = "置顶"
+    m["Hermes reparte el trabajo"] = "由 Hermes 分配工作"
+    m["Lo que se envía"] = "发送的内容"
+    m["No se puede deshacer."] = "此操作无法撤销。"
+    m["Nombre del botón"] = "按钮名称"
+    m["Nueva plantilla"] = "新模板"
+    m["Nueva plantilla de tarea"] = "新任务模板"
+    m["Orden para escribirla en el chat"] = "在聊天中输入的命令"
+    m["Pedir mi visto bueno al plan antes de empezar (aunque en Ajustes esté apagado)"] = "开始前先让我批准计划（即使在设置中已关闭）"
+    m["Plantilla"] = "模板"
+    m["Plantilla borrada"] = "模板已删除"
+    m["Plantilla creada"] = "模板已创建"
+    m["Plantilla fijada"] = "模板已置顶"
+    m["Plantilla guardada"] = "模板已保存"
+    m["Plantilla quitada de fijadas"] = "模板已取消置顶"
+    m["Plantilla «{name}»"] = "模板“{name}”"
+    m["Plantillas de serie restauradas"] = "内置模板已恢复"
+    m["Plantillas: elige una y escribe detrás lo que cambia"] = "模板：选一个，然后在后面写上会变的内容"
+    m["Pon entre llaves lo que cambia cada vez, como {pr} o {carpeta}: al lanzarla te lo pedirá."] = "把每次会变的内容放进花括号，例如 {pr} 或 {carpeta}：启动时会让你填写。"
+    m["Quitar de fijadas"] = "取消置顶"
+    m["Quién la hace"] = "由谁完成"
+    m["Solo en este proyecto"] = "仅限此项目"
+    m["Una petición que repites a menudo, para lanzarla con un toque desde encima del chat."] = "你经常重复的请求，可在聊天框上方一键启动。"
+    m["Volver a poner las de serie"] = "恢复内置模板"
+    m["carpeta"] = "文件夹"
+    m["{name} (ya no está en el equipo)"] = "{name}（已不在团队中）"
+    m["¿Borrar la plantilla «{name}»?"] = "删除模板“{name}”？"
 }
