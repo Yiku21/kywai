@@ -48,7 +48,7 @@ export function claudeArgs(model: string, mode: 'plan' | 'work', access: AgentAc
   // configuración de Claude), con sus herramientas permitidas sin preguntar.
   // La configuración va en un archivo: por la consola solo pasan argumentos de texto sencillo (sin comillas ni llaves).
   if (mcp && MCP_NAME_RE.test(mcp.name) && mcp.configFile) {
-    args.push('--mcp-config', mcp.configFile)
+    args.push('--mcp-config', mcp.configFile.replace(/\\/g, '/'))
     const names = [mcp.name, ...(mcp.extraNames ?? []).filter((n) => MCP_NAME_RE.test(n) && n !== mcp.name)]
     args.push('--allowedTools', names.map((n) => `mcp__${n}`).join(','))
   }

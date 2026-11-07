@@ -111,7 +111,7 @@ describe('el servidor MCP en la línea de comandos', () => {
   it('Claude: la configuración va en un archivo y la línea de comandos se puede lanzar por la consola', () => {
     const launch = mcpForTask({ projectId, runId: 'r1', taskId: 't1', taskTitle: 'Tarea', agentId: 'claude', agentName: 'Claude' })!
     const a = claudeArgs('', 'work', 'project', 'high', undefined, { name: 'ai-cowork', ...launch })
-    expect(a[a.indexOf('--mcp-config') + 1]).toBe(launch.configFile)
+    expect(a[a.indexOf('--mcp-config') + 1]).toBe(launch.configFile.replace(/\\/g, '/'))
     expect(a[a.indexOf('--allowedTools') + 1]).toBe('mcp__ai-cowork')
     expect(a).toContain('--strict-mcp-config')
     // Lo que rompió las tareas el 13 oct: un argumento con JSON no pasa por la consola y el CLI ni arranca.
@@ -121,6 +121,13 @@ describe('el servidor MCP en la línea de comandos', () => {
     releaseMcp(launch)
     expect(existsSync(launch.configFile)).toBe(false)
     expect(claudeArgs('', 'work', 'project', undefined, undefined, { name: 'x y', ...launch })).not.toContain('--mcp-config')
+  })
+
+  it('una ruta de Windows con espacios llega a Claude sin relajar los argumentos permitidos', () => {
+    const a = claudeArgs('', 'work', 'project', undefined, undefined, { name: 'ai-cowork', command: 'node', args: [], env: {}, configFile: 'C:\\Program Files\\kywai\\mcp\\tarea.json' })
+    expect(a[a.indexOf('--mcp-config') + 1]).toBe('C:/Program Files/kywai/mcp/tarea.json')
+    expect(buildCommandLine('claude', a)).toContain('"C:/Program Files/kywai/mcp/tarea.json"')
+    expect(() => buildCommandLine('claude', [...a, 'x&echo otro'])).toThrow()
   })
 
   it('una ruta con espacios (la app en /Applications/AI Cowork.app) también pasa', () => {
