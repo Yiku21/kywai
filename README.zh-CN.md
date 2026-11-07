@@ -12,7 +12,10 @@
 
 [English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · **简体中文** · 🌐 [kywai.app](https://kywai.app)
 
-https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
+[![观看 kywai 实际运行 — 30 秒](docs/video/kywai-promo-cover.jpg)](https://kywai.app/zh/#video)
+
+**[▶ 观看 kywai 实际运行 — 30 秒](https://kywai.app/zh/#video)** · [下载 MP4](docs/video/kywai-promo-30s.mp4)
+应用真实录屏、原创音乐和英文画面文字。
 
 [![官网: kywai.app](https://img.shields.io/badge/%E5%AE%98%E7%BD%91-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 

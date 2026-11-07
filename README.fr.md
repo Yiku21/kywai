@@ -12,7 +12,10 @@ Une seule demande suffit. Un coordinateur planifie le travail et confie chaque t
 
 [English](README.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · **Français** · [简体中文](README.zh-CN.md) · 🌐 [kywai.app](https://kywai.app)
 
-https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
+[![Découvrez kywai en action — 30 secondes](docs/video/kywai-promo-cover.jpg)](https://kywai.app/fr/#video)
+
+**[▶ Découvrez kywai en action — 30 secondes](https://kywai.app/fr/#video)** · [Télécharger le MP4](docs/video/kywai-promo-30s.mp4)
+Capture réelle de l’application, musique originale et textes en anglais.
 
 [![Site web: kywai.app](https://img.shields.io/badge/Site%20web-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 

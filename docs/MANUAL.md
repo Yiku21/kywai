@@ -2,6 +2,8 @@
 
 Todo lo que hace kywai, en detalle. Para una presentación rápida, ver el [README](../README.md).
 
+El [vídeo de 30 segundos](https://kywai.app/es/#video) muestra la app trabajando de verdad, con música original y textos en inglés. El MP4, la portada y los detalles de la grabación están en [docs/video](video/README.md).
+
 kywai (se pronuncia «ki-wai»; web: https://kywai.app) se llamaba antes **AI Cowork**. El nombre nuevo sale en todo lo
 que se ve: interfaz, avisos, Órbita, ventana, instalador de Windows (`kywai-Setup-<versión>.exe`, «kywai Setup»), sus
 accesos directos, «Aplicaciones instaladas», `kywai.exe` y la app del Mac (`kywai.app`). Lo interno conserva el
