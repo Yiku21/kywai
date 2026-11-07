@@ -14,6 +14,8 @@ Pídelo una vez. Un coordinador planifica el trabajo y le da cada tarea al agent
 
 https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
 
+[![Web: kywai.app](https://img.shields.io/badge/Web-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
+
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20e%20Intel-111111?logo=apple&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-x64%20y%20ARM-FCC624?logo=linux&logoColor=black)
