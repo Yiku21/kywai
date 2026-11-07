@@ -365,9 +365,14 @@ reiniciándose). Enseña lo último que recibió y lo que escribas se queda **en
   volver estés mirando otro. Nunca llegan dos veces: cada mensaje lleva su `clientMessageId` y el servidor ignora el
   repetido. Si el servidor rechaza uno (por ejemplo, su proyecto ya no existe) queda como «No se envió» con
   Reintentar y Descartar, y los siguientes salen igual.
+- **Se envían aunque Órbita esté cerrada.** Si dejas mensajes en cola y sales de la app, Android los manda en cuanto
+  vuelve la red (WorkManager, `OutboxWorker`), y avisa con la notificación «Se enviaron tus 3 mensajes» (canal
+  «Mensajes enviados», se puede apagar en los ajustes de Android). Si la red vuelve pero el ordenador aún no responde,
+  lo reintenta solo cada vez más espaciado. Con la app abierta y conectada no sale ningún aviso: ya lo ves en el chat.
 - Las acciones (aprobar un plan, detener una tarea, los botones de «Te necesita») siguen necesitando conexión: hacerlas
   a destiempo podría aprobar algo que ya cambió.
-- Para desarrolladores: `CoworkRepository.drainOutbox()` vacía la cola (con un `Mutex`, de uno en uno); las pruebas
+- Para desarrolladores: `CoworkRepository.drainOutbox()` vacía la cola (con un `Mutex`, de uno en uno) y no abre el
+  tiempo real, así que vale igual para el envío en segundo plano; las pruebas
   están en `MockServerIntegrationTest`.
 
 **Dispositivos emparejados:** en ⚙ → Ajustes → «Acceso desde otros dispositivos…» aparece la lista de móviles y clientes
