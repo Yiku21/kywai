@@ -2519,6 +2519,433 @@
         },
         "description": "«Ejecutar ahora»: envía su petición al chat como una normal del usuario, con la marca de la rutina. Si su ejecución anterior sigue en marcha (o su plan espera tu visto bueno), no se lanza otra: vuelve con status skipped. 404 ROUTINE_NOT_FOUND si no existe."
       }
+    },
+    "/api/mobile/v1/chats": {
+      "get": {
+        "operationId": "listChats",
+        "summary": "Chats del proyecto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "El abierto (current) y los guardados, del más reciente al más antiguo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Las conversaciones retomables del proyecto, como en la barra lateral del escritorio. conversationId es el proyecto. Los cambios llegan por el evento conversations.updated."
+      },
+      "post": {
+        "operationId": "newChat",
+        "summary": "Chat nuevo",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "El proyecto con el chat nuevo (vacío) abierto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Guarda el chat abierto (si tiene algo) y abre uno vacío. 409 PROJECT_BUSY mientras el equipo trabaja en el proyecto."
+      }
+    },
+    "/api/mobile/v1/chats/{chatId}/open": {
+      "post": {
+        "operationId": "openChat",
+        "summary": "Volver a un chat",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,60}$",
+              "maxLength": 61
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "El proyecto con ese chat abierto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Abre un chat guardado con sus mensajes y tareas (el abierto se guarda). 404 CHAT_NOT_FOUND; 409 PROJECT_BUSY mientras el equipo trabaja."
+      }
+    },
+    "/api/mobile/v1/chats/{chatId}/rename": {
+      "post": {
+        "operationId": "renameChat",
+        "summary": "Renombrar un chat",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,60}$",
+              "maxLength": 61
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "conversationId",
+                  "title"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La lista de chats al día.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/chats/{chatId}/delete": {
+      "post": {
+        "operationId": "deleteChat",
+        "summary": "Borrar un chat guardado",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,60}$",
+              "maxLength": 61
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La lista de chats al día.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Pasa a conversaciones/borradas/ en el servidor. 409 CHAT_OPEN si es el abierto."
+      }
+    },
+    "/api/mobile/v1/search": {
+      "get": {
+        "operationId": "search",
+        "summary": "Buscar",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+              "maxLength": 81
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hasta 60 coincidencias.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Lo mismo que «Buscar» en la barra lateral: chats, tareas, resultados y memoria de todos los proyectos, o solo del indicado."
+      }
     }
   },
   "components": {
@@ -2957,6 +3384,30 @@
               }
             ],
             "description": "Carpeta de trabajo del proyecto; null si no tiene."
+          },
+          "chat": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "title"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "El chat abierto en el proyecto; los demás se piden con GET /chats."
           }
         },
         "required": [
@@ -3896,6 +4347,14 @@
           "agentThinking": {
             "type": "boolean",
             "description": "Razonamiento del modelo local: POST /agents/{agentId}/thinking."
+          },
+          "chats": {
+            "type": "boolean",
+            "description": "Varios chats por proyecto: GET/POST /chats y POST /chats/{chatId}/open|rename|delete."
+          },
+          "search": {
+            "type": "boolean",
+            "description": "GET /search: buscador de chats, tareas, resultados y memoria."
           }
         },
         "required": [
@@ -6018,6 +6477,124 @@
         "required": [
           "agentId",
           "thinking"
+        ],
+        "additionalProperties": false
+      },
+      "Chat": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "messageCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "pinned": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "title",
+          "createdAt",
+          "updatedAt",
+          "messageCount"
+        ],
+        "additionalProperties": false
+      },
+      "ChatsResponse": {
+        "type": "object",
+        "properties": {
+          "chats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Chat"
+            }
+          }
+        },
+        "required": [
+          "chats"
+        ],
+        "additionalProperties": false
+      },
+      "SearchHit": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "conversation",
+              "task",
+              "artifact",
+              "memory",
+              "project"
+            ]
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "at": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ref": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "projectId",
+          "projectName",
+          "title",
+          "snippet",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "maxItems": 60
+          }
+        },
+        "required": [
+          "hits"
         ],
         "additionalProperties": false
       }

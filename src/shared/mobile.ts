@@ -18,6 +18,8 @@ export interface MobileConversation {
   activeRequestIds: string[]
   attachments: Attachment[]
   folder: MobileFolder | null
+  /** El chat abierto en el proyecto (los demás se piden con GET /chats). */
+  chat?: { id: string; title: string } | null
 }
 
 export interface MobileProject {
@@ -90,6 +92,10 @@ export interface MobileSnapshot {
     routines: boolean
     /** «@Agente …» o «/directo Agente …» en el chat: el texto va tal cual a ese agente, sin pasar por Hermes. */
     directMessages: boolean
+    /** Varios chats por proyecto, retomables (GET/POST /chats, /chats/:id/open|rename|delete). */
+    chats?: boolean
+    /** Buscador de todos los proyectos (GET /search). */
+    search?: boolean
     /** Razonamiento del modelo local: POST /agents/{agentId}/thinking. */
     agentThinking: boolean
   }

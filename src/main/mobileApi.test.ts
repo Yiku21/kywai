@@ -21,6 +21,7 @@ import { __setOrbitaReleaseDirForChecks } from './orbitaRelease'
 import { __setBackendsForChecks, activeRunsFor, allAgents, approvePlan, cancelAll, getTaskChanges, undoTask, cancelRun, discardRun, rejectPlan, resetAgent, resumeRun, runtimeSnapshot, sendMessage } from './orchestrator'
 import { actInbox, listInbox } from './inbox'
 import * as store from './projects'
+import * as conversations from './conversations'
 import { selfSignedCert } from './selfCert'
 import { flushTaskTraces, initTaskTraces } from './taskTrace'
 import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
@@ -75,7 +76,7 @@ async function api(path: string, data?: unknown, access = token): Promise<{ stat
   const response = { status: res.status, body: await res.json() }
   if (res.status >= 400) schemaFormat('Error', response.body)
   else {
-    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/')
+    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/')
     const operation = openapi.paths[route][data === undefined ? 'get' : 'post']
     const schemaName = operation.responses[String(res.status)].content['application/json'].schema.$ref.split('/').at(-1)
     schemaFormat(schemaName, response.body)
@@ -198,6 +199,13 @@ beforeAll(() => {
     return { ...store.snapshotProject(id as string), activeRunId: active.at(-1), activeRunIds: active }
   })
   webMethods.set('getRuntime', () => ({ runtimes: runtimeSnapshot(), quotas: [] }))
+  // Chats de cada proyecto: igual que index.ts, sin la comprobación de «el equipo está trabajando».
+  webMethods.set('listConversations', (id) => conversations.listConversations(id as string))
+  webMethods.set('newConversation', (id) => conversations.newConversation(id as string))
+  webMethods.set('openConversation', (id, cid) => conversations.openConversation(id as string, cid as string))
+  webMethods.set('renameConversation', (id, cid, title) => { conversations.renameConversation(id as string, cid as string, title); return conversations.listConversations(id as string) })
+  webMethods.set('deleteConversation', (id, cid) => { conversations.deleteConversation(id as string, cid as string); return conversations.listConversations(id as string) })
+  webMethods.set('search', (q, id) => conversations.search(q, id))
   webMethods.set('getUsageRuns', usageRuns)
   webMethods.set('sendMessage', (input) => sendMessage(input as Parameters<typeof sendMessage>[0]))
   webMethods.set('mobileStopRun', (id) => cancelRun(id as string, 'pause'))
@@ -285,7 +293,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
   it('crea una conversación en el almacén existente y proyecta agentes, tareas, memoria y consumo actuales', async () => {
     const created = await api('/conversations', {})
     expect(created.status).toBe(201)
-    expect(created.body).toEqual({ conversation: { id: expect.any(String), title: 'Conversación móvil', createdAt: expect.any(Number), messages: [], artifacts: [], instructions: '', activeRequestId: null, activeRequestIds: [], attachments: [], folder: null } })
+    expect(created.body).toEqual({ conversation: { id: expect.any(String), title: 'Conversación móvil', createdAt: expect.any(Number), messages: [], artifacts: [], instructions: '', activeRequestId: null, activeRequestIds: [], attachments: [], folder: null, chat: null } })
     addMemory(created.body.conversation.id, { kind: 'fact', text: 'Memoria compartida' }, { status: 'confirmed', by: 'user', byName: 'Tú' })
     const snapshot = await api(`/snapshot?conversationId=${created.body.conversation.id}`)
     expect(snapshot.status).toBe(200)
@@ -296,6 +304,48 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect(state.usage).toMatchObject({ runs: usageRuns(), quotas: [], totals: { input: expect.any(Number), output: expect.any(Number), cached: expect.any(Number) }, byAgent: expect.any(Array) })
     expect(state.capabilities).toMatchObject({ apiVersion: 'v1', events: 'websocket', stop: true, resume: true, eventSequence: expect.any(Number) })
     expect(JSON.stringify(state)).not.toContain(CODE)
+  })
+
+  it('varios chats por proyecto: lista, nuevo, volver, renombrar, borrar y buscar', async () => {
+    const project = store.createProject('Chats del móvil')
+    const st = store.getProject(project.id)
+    st.messages.push({ id: 'm-chat-1', projectId: project.id, author: { type: 'user', name: 'Tú' }, text: 'Revisa la ficha de seguridad', createdAt: Date.now() } as ChatMessage)
+    const first = await api(`/chats?conversationId=${project.id}`)
+    expect(first.status).toBe(200)
+    schemaFormat('ChatsResponse', first.body)
+    const original = first.body.chats.find((c: { current?: boolean }) => c.current)
+    expect(original).toMatchObject({ messageCount: 1 })
+
+    const fresh = await api('/chats', { conversationId: project.id })
+    expect(fresh.status).toBe(200)
+    schemaFormat('ConversationResponse', fresh.body)
+    expect(fresh.body.conversation.messages).toEqual([])
+    expect(fresh.body.conversation.chat.id).not.toBe(original.id)
+
+    const listed = await api(`/chats?conversationId=${project.id}`)
+    expect(listed.body.chats.map((c: { id: string }) => c.id)).toContain(original.id)
+
+    const renamed = await api(`/chats/${original.id}/rename`, { conversationId: project.id, title: 'Fichas CLP' })
+    expect(renamed.status).toBe(200)
+    expect(renamed.body.chats.find((c: { id: string }) => c.id === original.id).title).toBe('Fichas CLP')
+
+    const found = await api(`/search?q=${encodeURIComponent('ficha de seguridad')}`)
+    expect(found.status).toBe(200)
+    schemaFormat('SearchResponse', found.body)
+    expect(found.body.hits.some((h: { projectId: string }) => h.projectId === project.id)).toBe(true)
+
+    const back = await api(`/chats/${original.id}/open`, { conversationId: project.id })
+    expect(back.status).toBe(200)
+    expect(back.body.conversation.messages.map((m: { text: string }) => m.text)).toEqual(['Revisa la ficha de seguridad'])
+    expect(back.body.conversation.chat).toEqual({ id: original.id, title: 'Fichas CLP' })
+
+    const openOne = await api(`/chats/${original.id}/delete`, { conversationId: project.id })
+    expect(openOne.status).toBe(409)
+    expect(openOne.body.code).toBe('CHAT_OPEN')
+    const missing = await api(`/chats/c-no-existe/open`, { conversationId: project.id })
+    expect(missing.status).toBe(404)
+    expect((await api('/chats/..%2Fx/open', { conversationId: project.id })).status).toBe(400)
+    expect((await api(`/chats?conversationId=${project.id}&otro=1`)).status).toBe(400)
   })
 
   it('envía y deduplica reintentos concurrentes, persiste clientMessageId y rechaza reutilizarlo con otro texto', async () => {

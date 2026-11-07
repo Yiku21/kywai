@@ -1,6 +1,6 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import type { AgentAccess, AgentConfig, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
+import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
 import type { MobileChatReceipt, MobileConversation, MobileFiles, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
 import { MobileError } from './mobileErrors'
@@ -68,7 +68,8 @@ export class MobileBackend {
       activeRequestId: state?.activeRunId ?? null,
       activeRequestIds: state?.activeRunIds ?? [],
       attachments: state?.attachments ?? [],
-      folder: workDir ? { name: basename(workDir), path: workDir } : null
+      folder: workDir ? { name: basename(workDir), path: workDir } : null,
+      chat: state?.conversation ? { id: state.conversation.id, title: state.conversation.title ?? '' } : null
     }
   }
 
@@ -119,6 +120,8 @@ export class MobileBackend {
         agentReset: this.methods.has('resetAgent'), serverUpdate: this.methods.has('applyUpdate'), agentQuality: true, inbox: this.methods.has('listInbox'), taskChanges: this.methods.has('undoTask'),
         routines: this.methods.has('runRoutineNow'),
         directMessages: true,
+        chats: this.methods.has('listConversations') && this.methods.has('openConversation'),
+        search: this.methods.has('search'),
         agentThinking: this.methods.has('setAgentThinking')
       }
     }
@@ -140,6 +143,52 @@ export class MobileBackend {
   async createConversation(name?: string): Promise<MobileConversation> {
     const created = await this.call<ProjectSummary>('createProject', name ?? 'Conversación móvil')
     return this.conversation(await this.project(created.id))
+  }
+
+  // ---- Chats de cada proyecto (como la barra lateral del escritorio; los cambios llegan por conversations.updated) ----
+
+  /** Lo que lanzan las funciones del servidor al cambiar de chat, con el código que entiende el móvil. */
+  private chatError(e: unknown): never {
+    const message = e instanceof Error ? e.message : String(e)
+    if (/equipo está trabajando/.test(message)) throw new MobileError(409, 'PROJECT_BUSY', message)
+    if (/conversación abierta/.test(message)) throw new MobileError(409, 'CHAT_OPEN', message)
+    if (/no válid|No se encuentra/.test(message)) throw new MobileError(404, 'CHAT_NOT_FOUND', 'No se encontró ese chat')
+    if (/Escribe un nombre/.test(message)) throw new MobileError(400, 'INVALID_INPUT', message)
+    throw e
+  }
+
+  async chats(projectId: string): Promise<{ chats: ConversationSummary[] }> {
+    await this.existing(projectId)
+    return { chats: await this.call<ConversationSummary[]>('listConversations', projectId) }
+  }
+
+  /** Chat nuevo en el proyecto: el abierto se guarda (si tiene algo) y queda uno vacío. */
+  async newChat(projectId: string): Promise<MobileConversation> {
+    await this.existing(projectId)
+    try { await this.call('newConversation', projectId) } catch (e) { this.chatError(e) }
+    return this.conversation(await this.existing(projectId))
+  }
+
+  /** Vuelve a un chat guardado del proyecto, con sus mensajes y sus tareas. */
+  async openChat(projectId: string, chatId: string): Promise<MobileConversation> {
+    await this.existing(projectId)
+    try { await this.call('openConversation', projectId, chatId) } catch (e) { this.chatError(e) }
+    return this.conversation(await this.existing(projectId))
+  }
+
+  async renameChat(projectId: string, chatId: string, title: string): Promise<{ chats: ConversationSummary[] }> {
+    await this.existing(projectId)
+    try { return { chats: await this.call<ConversationSummary[]>('renameConversation', projectId, chatId, title) } } catch (e) { this.chatError(e) }
+  }
+
+  async deleteChat(projectId: string, chatId: string): Promise<{ chats: ConversationSummary[] }> {
+    await this.existing(projectId)
+    try { return { chats: await this.call<ConversationSummary[]>('deleteConversation', projectId, chatId) } } catch (e) { this.chatError(e) }
+  }
+
+  /** Buscador de la barra lateral: chats, tareas, resultados y memoria de todos los proyectos (o de uno). */
+  async search(q: string, projectId?: string): Promise<{ hits: SearchHit[] }> {
+    return { hits: (await this.call<SearchHit[]>('search', q, projectId)).slice(0, 60) }
   }
 
   async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = []): Promise<MobileChatReceipt> {
