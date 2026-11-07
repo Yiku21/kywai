@@ -356,6 +356,10 @@ La documentation détaillée est en espagnol :
 - **[Órbita](android/README.md)** : l'application Android, et comment la compiler et la publier.
 - **[API mobile](docs/mobile-api/README.md)** : le contrat entre le serveur et Órbita.
 
+## 📄 Licence
+
+[MIT](LICENSE). Vous pouvez utiliser, modifier et partager AI Cowork librement, à condition de conserver la mention de copyright.
+
 <div align="center">
 <br>
 <sub>Créé par toute une équipe d'agents IA, coordonnée par Hermes.</sub>

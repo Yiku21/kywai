@@ -5,6 +5,7 @@
   "description": "Tu equipo de agentes de IA trabajando juntos",
   "main": "./out/main/index.js",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",

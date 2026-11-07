@@ -356,6 +356,10 @@ The detailed documentation is in Spanish:
 - **[Órbita](android/README.md)**: the Android app, and how to build and publish it.
 - **[Mobile API](docs/mobile-api/README.md)**: the contract between the server and Órbita.
 
+## 📄 License
+
+[MIT](LICENSE). You can use, change and share AI Cowork freely, as long as you keep the copyright notice.
+
 <div align="center">
 <br>
 <sub>Built by a whole team of AI agents, coordinated by Hermes.</sub>
