@@ -3,7 +3,7 @@ import { installOrder, parseSetupToolId } from './setupTool'
 
 describe('parseSetupToolId', () => {
   it('acepta los programas de fábrica, Muse incluido', () => {
-    for (const id of ['node', 'brew', 'python', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama']) {
+    for (const id of ['node', 'brew', 'python', 'uv', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama']) {
       expect(parseSetupToolId(id)).toBe(id)
     }
   })

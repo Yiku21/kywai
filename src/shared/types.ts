@@ -1107,7 +1107,7 @@ export interface SetWebAccessInput {
 // ---------- Asistente de configuración ----------
 
 /** Programas que el asistente comprueba e instala. */
-export type SetupToolId = 'node' | 'brew' | 'python' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | `cli:${string}`
+export type SetupToolId = 'node' | 'brew' | 'python' | 'uv' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | `cli:${string}`
 
 export interface SetupTool {
   id: SetupToolId
@@ -1335,6 +1335,8 @@ export interface CoworkApi {
   removeMcpServer(id: string): Promise<McpServerInfo[]>
   /** Lo arranca y le pide sus herramientas; guarda el resultado (si falla, lo apaga para todos). */
   testMcpServer(id: string): Promise<McpServerInfo[]>
+  /** Instala lo que le falta a un servidor para arrancar (uv o Node.js) en el equipo de los agentes y lo vuelve a probar. */
+  installMcpRuntime(id: string): Promise<{ ok: boolean; message: string; servers: McpServerInfo[] }>
   /** A qué agentes llega. Al encenderlo para uno nuevo se prueba antes: si falla, se queda apagado. */
   setMcpServerAgents(id: string, agents: McpAgentKind[]): Promise<McpServerInfo[]>
   /** Catálogo de servidores: sin búsqueda, los destacados; con ella, el registro oficial de MCP (por páginas). */

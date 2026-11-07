@@ -23,6 +23,19 @@ export interface McpTestResult {
   message: string
   /** Nombres de sus herramientas (las primeras). */
   tools?: string[]
+  /** Si no arrancó porque falta el programa que lo lanza: el que kywai puede instalar (uv para uvx, Node.js para npx). */
+  runtime?: McpRuntime
+}
+
+/** Programas que lanzan servidores MCP y que kywai sabe instalar. */
+export type McpRuntime = 'uv' | 'node'
+
+/** Qué programa hace falta para una orden («uvx» → uv, «npx» → Node.js), o null si no es de esos. */
+export function mcpRuntimeFor(command: string): McpRuntime | null {
+  const base = command.trim().split(/[\\/]/).pop()!.toLowerCase().replace(/\.(exe|cmd|bat)$/, '')
+  if (base === 'uv' || base === 'uvx') return 'uv'
+  if (base === 'npx' || base === 'node' || base === 'npm') return 'node'
+  return null
 }
 
 /** Un servidor tal como lo ve la interfaz: sin los valores secretos (solo sus nombres). */

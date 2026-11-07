@@ -145,6 +145,14 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
             ? { cmd: 'brew install python' }
             : null
   },
+  uv: {
+    label: 'uv',
+    version: 'uv --version',
+    url: 'https://docs.astral.sh/uv/getting-started/installation/',
+    // Instalador oficial de Astral: deja uv y uvx en ~/.local/bin (o %USERPROFILE%\.local\bin), sin administrador.
+    // Hace falta para los servidores MCP de Python que se lanzan con uvx (Fetch, Git, Time…).
+    install: () => ({ cmd: IS_WIN ? ps('irm https://astral.sh/uv/install.ps1 | iex') : 'curl -LsSf https://astral.sh/uv/install.sh | sh' })
+  },
   node: {
     label: 'Node.js',
     version: 'node --version',

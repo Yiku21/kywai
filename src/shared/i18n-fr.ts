@@ -2410,4 +2410,8 @@ export const fr: Record<string, string> = {
   "Vuelve a poner las de serie que hayas borrado": "Remet les modèles d'origine que tu as supprimés",
   "su proyecto": "son projet",
   "{name} (ya no está en el equipo)": "{name} (ne fait plus partie de l'équipe)",
+  "Instalar {name}": "Installer {name}",
+  "Instalando {name}… (puede tardar unos minutos)": "Installation de {name}… (cela peut prendre quelques minutes)",
+  "Se instala en el equipo donde trabajan los agentes, y después se vuelve a probar el servidor": "Il s'installe sur l'ordinateur où travaillent les agents, puis le serveur est testé à nouveau",
+  "Este servidor no necesita instalar nada": "Ce serveur n'a besoin de rien installer",
 }

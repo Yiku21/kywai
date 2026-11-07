@@ -2410,4 +2410,8 @@ export const pt: Record<string, string> = {
   "Vuelve a poner las de serie que hayas borrado": "Repõe os modelos de série que você apagou",
   "su proyecto": "seu projeto",
   "{name} (ya no está en el equipo)": "{name} (já não está na equipe)",
+  "Instalar {name}": "Instalar {name}",
+  "Instalando {name}… (puede tardar unos minutos)": "A instalar {name}… (pode demorar alguns minutos)",
+  "Se instala en el equipo donde trabajan los agentes, y después se vuelve a probar el servidor": "É instalado no computador onde os agentes trabalham e depois o servidor é testado de novo",
+  "Este servidor no necesita instalar nada": "Este servidor não precisa de instalar nada",
 }
