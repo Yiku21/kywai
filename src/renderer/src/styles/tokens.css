@@ -137,3 +137,9 @@ input:focus-visible {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Lo buscado dentro del mensaje al que llevó el buscador (API de resaltado de CSS, sin tocar el texto). */
+::highlight(cowork-search) {
+  background-color: color-mix(in srgb, var(--cyan) 35%, transparent);
+  color: inherit;
+}
