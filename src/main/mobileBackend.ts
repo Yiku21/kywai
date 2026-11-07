@@ -1,8 +1,9 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
-import type { MobileChatReceipt, MobileConversation, MobileFiles, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
+import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
+import type { MobileChatReceipt, MobileConversation, MobileFiles, MobileMusicResult, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
+import { isLive, streamUrlOf } from '@shared/musicSources'
 import { MobileError } from './mobileErrors'
 import { savePastedFile } from './local'
 import { listFolder, relPath, resolveInside } from './mobileFiles'
@@ -122,6 +123,7 @@ export class MobileBackend {
         directMessages: true,
         chats: this.methods.has('listConversations') && this.methods.has('openConversation'),
         search: this.methods.has('search'),
+        music: this.methods.has('searchMusic'),
         agentThinking: this.methods.has('setAgentThinking')
       }
     }
@@ -189,6 +191,35 @@ export class MobileBackend {
   /** Buscador de la barra lateral: chats, tareas, resultados y memoria de todos los proyectos (o de uno). */
   async search(q: string, projectId?: string): Promise<{ hits: SearchHit[] }> {
     return { hits: (await this.call<SearchHit[]>('search', q, projectId)).slice(0, 60) }
+  }
+
+  /**
+   * Música para Órbita: las radios de SomaFM o canciones de Audius (las mismas fuentes sin anuncios del escritorio).
+   * El móvil las escucha directamente desde sus servidores públicos (stream).
+   */
+  async musicSearch(kind: 'radio' | 'audius', q: string): Promise<{ results: MobileMusicResult[] }> {
+    let found: MusicResult[]
+    try {
+      found = await this.call<MusicResult[]>('searchMusic', q, kind)
+    } catch (e) {
+      throw new MobileError(502, 'MUSIC_UNAVAILABLE', (e as Error).message || 'No se pudo cargar la música')
+    }
+    const results: MobileMusicResult[] = []
+    for (const r of found.slice(0, 60)) {
+      const stream = streamUrlOf(r.videoId)
+      if (!stream) continue
+      results.push({
+        id: r.videoId,
+        title: r.title,
+        artist: r.artist,
+        ...(r.album ? { detail: r.album } : {}),
+        ...(r.durationSec ? { durationSec: r.durationSec } : {}),
+        ...(r.thumbnail ? { thumbnail: r.thumbnail } : {}),
+        stream,
+        live: isLive(r.videoId)
+      })
+    }
+    return { results }
   }
 
   async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = []): Promise<MobileChatReceipt> {

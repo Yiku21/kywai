@@ -31,6 +31,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/chats$/, 'chats', ['GET', 'POST']],
   [/^\/chats\/([^/]+)\/(open|rename|delete)$/, 'chatAction', ['POST']],
   [/^\/search$/, 'search', ['GET']],
+  [/^\/music\/search$/, 'musicSearch', ['GET']],
   [/^\/requests\/([^/]+)\/(stop|resume|discard)$/, 'control', ['POST']],
   [/^\/plans\/([^/]+)\/(approve|reject)$/, 'plan', ['POST']],
   [/^\/projects$/, 'projects', ['GET']],
@@ -268,6 +269,14 @@ export class MobileApi {
           const q = params.q!.trim()
           if (!q || q.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'q debe ser texto de hasta 200 caracteres')
           mobileJson(res, 200, await this.backend.search(q, params.conversationId === undefined ? undefined : projectId(params.conversationId)))
+          break
+        }
+        case 'musicSearch': {
+          const params = query(url, ['kind', 'q'], ['kind'])
+          if (params.kind !== 'radio' && params.kind !== 'audius') throw new MobileError(400, 'INVALID_INPUT', 'kind debe ser radio o audius')
+          const q = (params.q ?? '').trim()
+          if (q.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'q debe tener hasta 200 caracteres')
+          mobileJson(res, 200, await this.backend.musicSearch(params.kind, q))
           break
         }
         case 'control':

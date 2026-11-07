@@ -97,6 +97,8 @@ export interface MobileSnapshot {
     chats?: boolean
     /** Buscador de todos los proyectos (GET /search). */
     search?: boolean
+    /** GET /music/search: radios de SomaFM y canciones de Audius para escuchar en el móvil. */
+    music?: boolean
     /** Razonamiento del modelo local: POST /agents/{agentId}/thinking. */
     agentThinking: boolean
   }
@@ -162,4 +164,19 @@ export interface MobileEventEnvelope {
   type: string
   sequence: number
   payload: Record<string, unknown>
+}
+
+/** Una radio o canción para Órbita: el móvil la escucha desde stream (servidores públicos de SomaFM o Audius). */
+export interface MobileMusicResult {
+  /** «radio:<id>» o «audius:<id>», como en la cola del escritorio. */
+  id: string
+  title: string
+  artist: string
+  /** Descripción de la radio o género de la canción. */
+  detail?: string
+  durationSec?: number
+  thumbnail?: string
+  stream: string
+  /** Una radio en directo (sin duración). */
+  live: boolean
 }
