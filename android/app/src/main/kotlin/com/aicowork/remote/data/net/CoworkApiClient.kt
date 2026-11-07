@@ -4,6 +4,9 @@ import com.aicowork.remote.i18n.t
 
 import com.aicowork.remote.data.model.AgentAccessRequest
 import com.aicowork.remote.data.model.ChatRenameRequest
+import com.aicowork.remote.data.model.ModPanelInfo
+import com.aicowork.remote.data.model.ModPanelPage
+import com.aicowork.remote.data.model.ModPanelsResponse
 import com.aicowork.remote.data.model.ChatCopyResponse
 import com.aicowork.remote.data.model.ChatMoveRequest
 import com.aicowork.remote.data.model.ChatPinRequest
@@ -438,6 +441,13 @@ class CoworkApiClient(
         else CoworkJson.encodeToString(HermesChoice.serializer(), choice),
         HermesModelsInfo.serializer(),
     )
+
+    /** Paneles de los mods encendidos en el ordenador. */
+    suspend fun modPanels(): List<ModPanelInfo> = get("/mods/panels", ModPanelsResponse.serializer()).panels
+
+    /** La página de un panel de mod (404 si el mod ya no existe o se apagó). */
+    suspend fun modPanel(mod: String, id: String): ModPanelPage =
+        get("/mods/panel?mod=${mod.encodeQuery()}&id=${id.encodeQuery()}", ModPanelPage.serializer())
 
     /** Bandeja «Te necesita»: los abiertos y los últimos cerrados, del más reciente al más antiguo. */
     suspend fun inbox(): List<InboxItem> = get("/inbox", InboxResponse.serializer()).items

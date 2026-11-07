@@ -596,6 +596,8 @@ data class Capabilities(
     val directMessages: Boolean = false,
     /** Interruptor «Razonamiento (think)» del agente de LM Studio (POST /agents/{id}/thinking). */
     val agentThinking: Boolean = false,
+    /** Paneles de los mods (GET /mods/panels y /mods/panel). */
+    val modPanels: Boolean = false,
     /** Varios chats por proyecto (GET/POST /chats, /chats/{id}/open|rename|delete). */
     val chats: Boolean = false,
     /** Radios y canciones sin anuncios (GET /music/search). */
@@ -641,6 +643,17 @@ data class InboxItem(
 ) {
     val isOpen: Boolean get() = resolvedAt == null
 }
+
+/** Un panel de un mod encendido (la pestaña «Mods» del escritorio). */
+@Serializable
+data class ModPanelInfo(val mod: String, val modTitle: String = "", val id: String, val title: String = "", val chat: Boolean = false)
+
+@Serializable
+data class ModPanelsResponse(val panels: List<ModPanelInfo> = emptyList())
+
+/** La página de un panel: ya trae su política de seguridad y el puente `KywaiBridge`. */
+@Serializable
+data class ModPanelPage(val html: String = "", val title: String = "", val chat: Boolean = false)
 
 @Serializable
 data class InboxResponse(val items: List<InboxItem> = emptyList())

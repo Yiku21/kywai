@@ -105,6 +105,18 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
         calls += "search:$query"
         return Result.success(listOf(com.aicowork.remote.data.model.SearchHit("conversation", "c1", "Proyecto demo", "ch0", "Informe semanal", "…el informe semanal…", 1)))
     }
+    var modPanelsList: List<com.aicowork.remote.data.model.ModPanelInfo> = emptyList()
+
+    override suspend fun modPanels(): Result<List<com.aicowork.remote.data.model.ModPanelInfo>> {
+        calls += "modPanels"
+        return Result.success(modPanelsList)
+    }
+
+    override suspend fun modPanel(mod: String, id: String): Result<com.aicowork.remote.data.model.ModPanelPage> {
+        calls += "modPanel:$mod:$id"
+        return Result.success(com.aicowork.remote.data.model.ModPanelPage("<!doctype html><p>hola</p>", "Equipo", chat = true))
+    }
+
     override suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): Result<com.aicowork.remote.data.model.SearchResponse> {
         calls += "searchHistory:$query:${author ?: ""}:${since != null}:$limit"
         val matches = listOf(

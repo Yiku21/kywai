@@ -3760,6 +3760,102 @@
           }
         }
       }
+    },
+    "/api/mobile/v1/mods/panels": {
+      "get": {
+        "operationId": "getMobileModPanels",
+        "summary": "Paneles de los mods encendidos",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Los paneles, como la pestaña «Mods» del escritorio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModPanels"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/mods/panel": {
+      "get": {
+        "operationId": "getMobileModPanel",
+        "summary": "Página de un panel de mod",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "mod",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "La página lista para un WebView sin acceso a archivos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModPanel"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "La app debe cargarla sin dirección base, exponer KywaiBridge.send(text) (pide confirmación y exige chat=true) y KywaiBridge.context(), y mandar el contexto con window.postMessage({kywai:'context', project, tasks, messages}, '*'). No debe dejar navegar a otras páginas."
+      }
     }
   },
   "components": {
@@ -5219,6 +5315,10 @@
           "usageCost": {
             "type": "boolean",
             "description": "GET /usage/cost y usage.cost en la instantánea: dinero por agente, suscripciones y presupuesto."
+          },
+          "modPanels": {
+            "type": "boolean",
+            "description": "Paneles de los mods: GET /mods/panels y GET /mods/panel."
           }
         },
         "required": [
@@ -5257,7 +5357,8 @@
           "routines",
           "directMessages",
           "agentThinking",
-          "usageCost"
+          "usageCost",
+          "modPanels"
         ],
         "additionalProperties": false
       },
@@ -7836,6 +7937,68 @@
           "byAgent",
           "subscriptions",
           "pricesChecked"
+        ],
+        "additionalProperties": false
+      },
+      "ModPanels": {
+        "type": "object",
+        "properties": {
+          "panels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "mod": {
+                  "type": "string"
+                },
+                "modTitle": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "chat": {
+                  "type": "boolean",
+                  "description": "Si el panel puede proponer mensajes al chat (con confirmación)."
+                }
+              },
+              "required": [
+                "mod",
+                "modTitle",
+                "id",
+                "title",
+                "chat"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "panels"
+        ],
+        "additionalProperties": false
+      },
+      "ModPanel": {
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string",
+            "description": "La página con su política de seguridad y el puente KywaiBridge (send, context) para el WebView."
+          },
+          "title": {
+            "type": "string"
+          },
+          "chat": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "html",
+          "title",
+          "chat"
         ],
         "additionalProperties": false
       }

@@ -2224,6 +2224,7 @@ export const zh: Record<string, string> = {
   "Al empezar una tarea": "任务开始时",
   "Al acabar bien una tarea": "任务成功完成时",
   "Al fallar una tarea": "任务失败时",
+  "Hermes ya tiene una configuración gestionada (/etc/hermes): no se le añaden servidores": "Hermes 已有托管配置（/etc/hermes）：不会为其添加服务器",
   "Usar este equipo como servidor": "将这台电脑用作服务器",
   "Si este equipo era tu servidor, o quieres que lo sea: aquí correrán los agentes y se guardarán los proyectos.": "如果这台电脑原来是你的服务器，或你希望它成为服务器：代理将在这里运行，项目也保存在这里。",
   "Usar como servidor": "用作服务器",

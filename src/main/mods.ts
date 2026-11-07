@@ -323,6 +323,24 @@ export function modPanelResponse(pathname: string): { status: number; body: stri
   }
 }
 
+/**
+ * En Órbita el panel es la página principal de un WebView: no hay ventana madre y `parent.postMessage` le llegaría a
+ * sí mismo. Este guion (lo primero que corre) manda las peticiones del panel («context» sin datos y «send») al
+ * puente `KywaiBridge` de la app; el contexto que manda Órbita entra como un mensaje normal.
+ */
+export const ANDROID_BRIDGE =
+  "<script>(function(){if(window.parent!==window||!window.KywaiBridge)return;var post=window.postMessage.bind(window);" +
+  "window.postMessage=function(d,o){if(d&&d.kywai==='send'){KywaiBridge.send(String(d.text==null?'':d.text));return}" +
+  "if(d&&d.kywai==='context'&&!('tasks' in d)){KywaiBridge.context();return}post(d,o||'*')}})()</script>"
+
+export function withAndroidBridge(html: string): string {
+  // Justo después de la política de seguridad que puso modPanelHtml (siempre la primera <meta>).
+  const i = html.search(/<meta http-equiv="Content-Security-Policy"[^>]*>/i)
+  if (i < 0) return ANDROID_BRIDGE + html
+  const end = html.indexOf('>', i) + 1
+  return html.slice(0, end) + ANDROID_BRIDGE + html.slice(end)
+}
+
 // ---------- Instalar y quitar ----------
 
 function install(files: Map<string, Buffer>, source: string): ModInfo[] {
@@ -444,8 +462,8 @@ export function modPanelHtml(name: unknown, panelId: unknown): { html: string; t
   })
   const net = x.permissions.includes('network')
   const csp = net
-    ? "default-src 'none'; script-src 'unsafe-inline' data: https:; style-src 'unsafe-inline' data: https:; img-src data: https:; font-src data: https:; connect-src https:; media-src data: https:"
-    : "default-src 'none'; script-src 'unsafe-inline' data:; style-src 'unsafe-inline' data:; img-src data:; font-src data:; media-src data:"
+    ? "default-src 'none'; script-src 'unsafe-inline' data: https:; style-src 'unsafe-inline' data: https:; img-src data: https:; font-src data: https:; connect-src https:; media-src data: https:; form-action 'none'; base-uri 'none'"
+    : "default-src 'none'; script-src 'unsafe-inline' data:; style-src 'unsafe-inline' data:; img-src data:; font-src data:; media-src data:; form-action 'none'; base-uri 'none'"
   const meta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`
   // Lo primero del documento (antes de cualquier script suyo), así vale para todo.
   const doctype = /^\s*<!doctype[^>]*>/i.exec(html)

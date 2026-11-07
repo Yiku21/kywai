@@ -93,7 +93,11 @@ import kotlinx.coroutines.launch
 val SidebarWidth: Dp = 272.dp
 
 /** Lo que va en «Más» (lo que se usa menos). */
-private val SidebarMore = listOf(Section.Files, Section.Memory, Section.Tools, Section.Usage, Section.Team)
+private val SidebarMore = listOf(Section.Files, Section.Memory, Section.Tools, Section.Usage, Section.Team, Section.Mods)
+
+/** Lo de «Más» que tiene sentido con este ordenador (los paneles de mods, solo si los admite). */
+private fun moreSections(state: CoworkUiState): List<Section> =
+    SidebarMore.filter { it != Section.Mods || state.snapshot?.capabilities?.modPanels == true }
 
 /**
  * Barra lateral como la del escritorio, de cristal y flotando sobre el mundo: chat nuevo, buscar, lo que te necesita,
@@ -161,7 +165,7 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
             AnimatedVisibility(moreOpen, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                 Column(Modifier.padding(start = 14.dp)) {
                     val memory = snapshot?.memory?.count { it.status == "provisional" } ?: 0
-                    SidebarMore.forEach { s ->
+                    moreSections(state).forEach { s ->
                         SidebarItem(s.icon, s.label, badge = if (s == Section.Memory) memory else 0, selected = model.section == s, tag = "nav-${s.name}") { go(s) }
                     }
                 }
@@ -403,7 +407,7 @@ fun SidebarRail(model: OrbitaModel, state: CoworkUiState, labels: Boolean, onOpe
                 RailItem(Icons.Outlined.MoreHoriz, t("Más"), t("Más"), labels, selected = model.section in SidebarMore, tag = "rail-more") { moreOpen = true }
                 DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }, containerColor = Orbita.GlassPopover) {
                     val memory = snapshot?.memory?.count { it.status == "provisional" } ?: 0
-                    SidebarMore.forEach { s ->
+                    moreSections(state).forEach { s ->
                         DropdownMenuItem(
                             text = { Text(if (s == Section.Memory && memory > 0) "${s.label} ($memory)" else s.label, color = Orbita.Text) },
                             leadingIcon = { Icon(s.icon, null, tint = Orbita.TextSoft) },
