@@ -697,10 +697,47 @@ export interface ProjectSummary {
   workDir?: string
   createdAt: number
   updatedAt: number
+  /** Fijado en la barra lateral (arriba del todo, en «Fijados»). */
+  pinned?: boolean
+}
+
+/** Una conversación de un proyecto. La abierta vive en el proyecto; las demás, guardadas en conversaciones/. */
+export interface ConversationSummary {
+  id: string
+  projectId: string
+  /** Sale del primer mensaje del usuario; se puede renombrar. */
+  title: string
+  createdAt: number
+  updatedAt: number
+  /** Mensajes que tiene (para no listar conversaciones vacías como si tuvieran algo). */
+  messageCount: number
+  /** Es la abierta ahora en el proyecto. */
+  current?: boolean
+}
+
+/** Un resultado del buscador (Ctrl+K): conversaciones, tareas, resultados y memoria de todos los proyectos. */
+export interface SearchHit {
+  kind: 'conversation' | 'task' | 'artifact' | 'memory' | 'project'
+  projectId: string
+  projectName: string
+  /** Conversación donde está (las tareas y los mensajes); vacío si es la abierta o no aplica. */
+  conversationId?: string
+  title: string
+  /** Trozo del texto alrededor de lo encontrado. */
+  snippet: string
+  at: number
+  /** Id de la tarea o del resultado, para abrirlo. */
+  ref?: string
 }
 
 export interface ProjectState {
   project: ProjectSummary
+  /** Conversación abierta: su id, título y cuándo empezó (los proyectos antiguos no lo tienen hasta el primer cambio). */
+  conversation?: { id: string; title: string; createdAt: number }
+  /** Conversaciones guardadas (no la abierta), de la más reciente a la más antigua. */
+  conversations?: ConversationSummary[]
+  /** Ya se pasaron a conversaciones las copias antiguas de historial/ (las de «Limpiar el chat»). */
+  historyImported?: boolean
   messages: ChatMessage[]
   tasks: Task[]
   artifacts: Artifact[]
@@ -1011,7 +1048,8 @@ export type CoworkEvent = EventBase &
     | { kind: 'quota.update'; quotas: QuotaInfo[] }
     | { kind: 'run.started'; runId: string; projectId: string }
     | { kind: 'run.finished'; runId: string; projectId: string; ok: boolean }
-    | { kind: 'chat.cleared'; projectId: string }
+    | { kind: 'chat.cleared'; projectId: string; conversationId?: string }
+    | { kind: 'conversations.updated'; projectId: string }
     | { kind: 'usage.run'; run: UsageRun }
     | { kind: 'task.trace'; taskId: string; projectId: string; entry: TraceEntry }
     | { kind: 'memory.updated'; projectId: string; memory: MemoryEntry[]; instructions: string }
@@ -1096,6 +1134,21 @@ export interface CoworkApi {
    * resultados se quedan). Guarda antes una copia en historial/ dentro del proyecto y devuelve su ruta.
    */
   clearChat(projectId: string): Promise<string>
+  /** Conversaciones de un proyecto (la abierta y las guardadas), de la más reciente a la más antigua. */
+  listConversations(projectId: string): Promise<ConversationSummary[]>
+  /** Las conversaciones más recientes de todos los proyectos (para «Recientes» en la barra lateral). */
+  recentConversations(limit?: number): Promise<ConversationSummary[]>
+  /** Conversación nueva: guarda la abierta (si tiene algo) y deja el chat vacío. Devuelve el estado del proyecto. */
+  newConversation(projectId: string): Promise<ProjectState>
+  /** Vuelve a una conversación guardada para seguir en ella (guarda antes la abierta). Devuelve el estado del proyecto. */
+  openConversation(projectId: string, conversationId: string): Promise<ProjectState>
+  renameConversation(projectId: string, conversationId: string, title: string): Promise<ConversationSummary[]>
+  /** Borra una conversación guardada (va a conversaciones/borradas/ dentro del proyecto). */
+  deleteConversation(projectId: string, conversationId: string): Promise<ConversationSummary[]>
+  /** Fija o suelta un proyecto en la barra lateral. */
+  setProjectPinned(projectId: string, pinned: boolean): Promise<ProjectSummary>
+  /** Busca en conversaciones, tareas, resultados y memoria (de un proyecto o de todos). */
+  search(query: string, projectId?: string): Promise<SearchHit[]>
   loadProject(projectId: string): Promise<ProjectState>
   /** Estado actual de agentes y cuotas (para pintar al arrancar). */
   getRuntime(): Promise<{ runtimes: AgentRuntime[]; quotas: QuotaInfo[] }>

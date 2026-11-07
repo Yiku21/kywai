@@ -194,7 +194,7 @@ export function Composer() {
     try {
       // «/new», «/limpiar»…: conversación nueva (lo mismo que ⋮ → Limpiar el chat), no un mensaje para los agentes.
       const remember = REMEMBER_COMMAND.exec(trimmed)
-      if (CLEAR_COMMAND.test(trimmed)) await a.clearChat(project.id)
+      if (CLEAR_COMMAND.test(trimmed)) useCowork.getState().loadProjectState(await a.newConversation(project.id))
       else if (MODEL_COMMAND.test(trimmed)) useCowork.setState({ hermesModelOpen: true })
       else if (QUOTA_COMMAND.test(trimmed)) setQuotaNotice(await quotaSummary(a))
       else if (ROUTINE_COMMAND.test(trimmed)) {

@@ -53,6 +53,8 @@ export interface DataSlice {
   /** Rutinas del proyecto (sin el secreto de los webhooks). En la demo, siempre vacío. */
   routines: Routine[]
   project: ProjectSummary | null
+  /** Conversación abierta del proyecto (id y título; null en la demo o en proyectos que aún no la tienen). */
+  conversation: { id: string; title: string; createdAt: number } | null
 }
 
 export type Selection =
@@ -102,6 +104,10 @@ interface CoworkState {
   hermesModelOpen: boolean
   /** Ventana con lo que hace el agente en una tarea (paso a paso, en directo). */
   trace: TraceView | null
+  /** Sube cada vez que cambian las conversaciones o los proyectos (la barra lateral vuelve a pedir sus listas). */
+  conversationsTick: number
+  /** Buscador (Ctrl+K) abierto. */
+  searchOpen: boolean
 
   // Interfaz
   selection: Selection
@@ -172,7 +178,8 @@ export function emptySlice(config: AppConfig, offlineReason?: string): DataSlice
     memory: [],
     instructions: '',
     routines: [],
-    project: null
+    project: null,
+    conversation: null
   }
 }
 
@@ -267,6 +274,7 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
     case 'task.trace':
     case 'project.deleted':
     case 'inbox.updated':
+    case 'conversations.updated':
       return d
   }
 }
@@ -332,6 +340,8 @@ export const useCowork = create<CoworkState>((set, get) => ({
   qualityOpen: false,
   hermesModelOpen: false,
   trace: null,
+  conversationsTick: 0,
+  searchOpen: false,
 
   selection: null,
   leftTab: 'chat',
@@ -363,6 +373,20 @@ export const useCowork = create<CoworkState>((set, get) => ({
           if (list[0]) get().loadProjectState(await a.loadProject(list[0].id))
         })().catch((err) => console.error('[cowork] no se pudo abrir otro proyecto', err))
       }
+      return
+    }
+    if (e.kind === 'conversations.updated') {
+      set((s) => ({ conversationsTick: s.conversationsTick + 1 }))
+      return
+    }
+    if (e.kind === 'chat.cleared' && !e.demo && e.conversationId) {
+      // Se cambió de conversación (aquí o en otro dispositivo): si es el proyecto abierto, se carga la que quedó abierta.
+      const a = api
+      const cur = get().live
+      if (a && cur.project?.id === e.projectId && cur.conversation?.id !== e.conversationId) {
+        void a.loadProject(e.projectId).then((st) => get().loadProjectState(st), () => undefined)
+      }
+      set((s) => ({ conversationsTick: s.conversationsTick + 1 }))
       return
     }
     if (e.kind === 'task.trace') {
@@ -453,8 +477,10 @@ export const useCowork = create<CoworkState>((set, get) => ({
         activeRunIds: state.activeRunIds ?? (state.activeRunId ? [state.activeRunId] : []),
         memory: state.memory ?? [],
         instructions: state.instructions ?? '',
-        routines: state.routines ?? []
-      }
+        routines: state.routines ?? [],
+        conversation: state.conversation ?? null
+      },
+      conversationsTick: s.conversationsTick + 1
     }))
     rememberProject(state.project.id)
     if (get().mode === 'live' && previousProjectId && previousProjectId !== state.project.id) playSfx('click')

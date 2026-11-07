@@ -3,7 +3,7 @@ import { copyFileSync, existsSync, promises as fsp, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { hostname } from 'node:os'
 import { pathToFileURL } from 'node:url'
-import type { AddAgentInput, AgentId, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { AddAgentInput, AgentId, ProjectState, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
   finishSetup,
@@ -72,6 +72,7 @@ import { createRoutine, deleteRoutine, initRoutines, publicRoutines, routineWebh
 import { addMemory, deleteMemory, isMemoryKind, setInstructions, updateMemory } from './memory'
 import { initUpdater } from './updater'
 import * as store from './projects'
+import * as conversations from './conversations'
 import { computeQuotas, initQuota, latestQuotas, refreshQuotas, startQuotaTimer, stopQuota } from './quota'
 import { claudeAuthMethod, removeClaudeOverrides } from './quotaProbe'
 import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
@@ -381,13 +382,51 @@ function registerIpc(): void {
     const quotas = latestQuotas().length ? latestQuotas() : computeQuotas(getConfig(), allAgents())
     return { runtimes: runtimeSnapshot(), quotas }
   })
-  handle('clearChat', (projectId: unknown) => {
+  /** Conversación nueva o volver a otra: no mientras el equipo trabaja en el proyecto (sus mensajes irían a la otra). */
+  const switchConversation = (projectId: unknown, change: (id: string) => void, busyText: string): ProjectState => {
     if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
-    if (activeRunFor(projectId)) throw new Error(tr('El equipo está trabajando en este proyecto: detenlo antes de limpiar el chat'))
-    const saved = store.clearChat(projectId)
-    emit({ kind: 'chat.cleared', projectId })
-    return saved
+    if (activeRunFor(projectId)) throw new Error(tr(busyText))
+    change(projectId)
+    const cid = store.getProject(projectId).conversation?.id
+    emit({ kind: 'chat.cleared', projectId, conversationId: cid })
+    emit({ kind: 'conversations.updated', projectId })
+    const snap = store.snapshotProject(projectId)
+    return { ...snap, routines: publicRoutines(snap.routines), activeRunId: undefined, activeRunIds: [] }
+  }
+  handle('clearChat', (projectId: unknown) => {
+    switchConversation(projectId, (id) => conversations.newConversation(id), 'El equipo está trabajando en este proyecto: detenlo antes de limpiar el chat')
+    return store.getProject(projectId as string).conversation?.id ?? ''
   })
+  handle('newConversation', (projectId: unknown) =>
+    switchConversation(projectId, (id) => conversations.newConversation(id), 'El equipo está trabajando en este proyecto: espera a que termine o detenlo para empezar otra conversación')
+  )
+  handle('openConversation', (projectId: unknown, conversationId: unknown) => {
+    if (!conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
+    return switchConversation(projectId, (id) => conversations.openConversation(id, conversationId), 'El equipo está trabajando en este proyecto: espera a que termine o detenlo para cambiar de conversación')
+  })
+  handle('listConversations', (projectId: unknown) => {
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
+    return conversations.listConversations(projectId)
+  })
+  handle('recentConversations', (limit?: unknown) => conversations.recentConversations(typeof limit === 'number' ? limit : 12))
+  handle('renameConversation', (projectId: unknown, conversationId: unknown, title: unknown) => {
+    if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
+    conversations.renameConversation(projectId, conversationId, title)
+    emit({ kind: 'conversations.updated', projectId })
+    return conversations.listConversations(projectId)
+  })
+  handle('deleteConversation', (projectId: unknown, conversationId: unknown) => {
+    if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
+    conversations.deleteConversation(projectId, conversationId)
+    emit({ kind: 'conversations.updated', projectId })
+    return conversations.listConversations(projectId)
+  })
+  handle('setProjectPinned', (projectId: unknown, pinned: unknown) => {
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
+    conversations.setPinned(projectId, pinned === true)
+    return { ...store.getProject(projectId).project }
+  })
+  handle('search', (query: unknown, projectId?: unknown) => conversations.search(query, typeof projectId === 'string' ? projectId : undefined))
   handle('sendMessage', (input: SendMessageInput) => {
     if (!input || typeof input !== 'object') throw new Error(tr('Mensaje no válido'))
     return sendMessage(input)
