@@ -89,6 +89,9 @@ class SidebarTest {
         compose.onAllNodesWithTag("sidebar").assertCountEquals(0)
         compose.onNodeWithTag("menu-button").performClick()
         compose.onNodeWithTag("sidebar").assertIsDisplayed()
+        // La columna de iconos se aparta para no verse por detrás del cajón.
+        compose.waitForIdle()
+        compose.onAllNodesWithTag("sidebar-rail").assertCountEquals(0)
         compose.onNode(hasTestTag("nav-Tasks") and hasAnyAncestor(hasTestTag("sidebar"))).performClick()
         compose.waitForIdle()
         assertTrue(!model.drawerOpen && model.section == Section.Tasks)
