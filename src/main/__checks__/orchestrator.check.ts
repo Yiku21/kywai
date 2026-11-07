@@ -694,12 +694,12 @@ async function main(): Promise<void> {
       assert.match(task1.prompt, /## Instrucciones del proyecto[^\n]*\nAntes de terminar, ejecuta npm test\./)
       assert.match(task1.prompt, /## Memoria del proyecto[\s\S]*- m1 · preferencia · confirmado · el usuario, [^:]+: Todo en TypeScript/)
       assert.match(task1.prompt, /«## Para la memoria»/)
-      // Lo que sabe de AI Cowork: el coordinador, la guía entera; cada tarea, que no toque su código.
-      assert.ok(task1.prompt.includes(`No modifiques nada en ${codeDir}: es el código de AI Cowork`))
+      // Lo que sabe de kywai: el coordinador, la guía entera; cada tarea, que no toque su código.
+      assert.ok(task1.prompt.includes(`No modifiques nada en ${codeDir}: es el código de kywai`))
       const planner1 = calls.slice(fromCalls).find((c) => c.mode === 'plan')!
-      assert.match(planner1.prompt, /## Cómo funciona AI Cowork[\s\S]*Ahora los agentes tienen acceso completo/)
-      // La petición no habla de AI Cowork: la lista de funciones de la app (con el enlace del acceso web) no va en el prompt.
-      assert.ok(!planner1.prompt.includes('### Funciones de AI Cowork') && !planner1.prompt.includes('Ahora mismo: http://100.64.0.9:8787'), 'sin la lista de funciones de la app')
+      assert.match(planner1.prompt, /## Cómo funciona kywai[\s\S]*Ahora los agentes tienen acceso completo/)
+      // La petición no habla de kywai: la lista de funciones de la app (con el enlace del acceso web) no va en el prompt.
+      assert.ok(!planner1.prompt.includes('### Funciones de kywai') && !planner1.prompt.includes('Ahora mismo: http://100.64.0.9:8787'), 'sin la lista de funciones de la app')
       // La siguiente petición la ve entera.
       workBehaviour = () => null
       const p2 = plan('Decidimos SQLite y TypeScript.', [])
@@ -712,12 +712,12 @@ async function main(): Promise<void> {
       assert.match(planner2.prompt, /- m2 · decisión · provisional · Claude \(«Base de datos»\), [^:]+: Las reservas se guardan en SQLite\./)
       assert.match(planner2.prompt, /- m3 · pendiente · provisional · Claude/)
       assert.match(planner2.prompt, /"memory": \[\{"kind"/)
-      // Si la conversación habla de AI Cowork, sí lleva la lista de funciones (con el enlace del acceso web).
+      // Si la conversación habla de kywai, sí lleva la lista de funciones (con el enlace del acceso web).
       const from3 = calls.length
       const r3 = await sendMessage({ projectId: project.id, text: '¿Cómo entro desde el móvil?', filePaths: [] })
       await waitFor(() => !!finished(r3.runId), 8000, 'run L3')
       const planner3 = calls.slice(from3).find((c) => c.mode === 'plan')!
-      assert.match(planner3.prompt, /### Funciones de AI Cowork[\s\S]*Ahora mismo: http:\/\/100\.64\.0\.9:8787\./)
+      assert.match(planner3.prompt, /### Funciones de kywai[\s\S]*Ahora mismo: http:\/\/100\.64\.0\.9:8787\./)
     })
 
     await check('M: cada tarea con su criterio de aceptación y sus archivos; si toca los de otra, se avisa', async () => {
@@ -942,7 +942,7 @@ async function main(): Promise<void> {
         assert.equal(lastTasks(fromReject).size, 0)
         assert.throws(() => rejectPlan(qp.id, third.id), /ya no está pendiente/)
 
-        // Lo que se aprueba es lo que se ve: si AI Cowork ajusta el plan del coordinador, el mensaje lo dice.
+        // Lo que se aprueba es lo que se ve: si kywai ajusta el plan del coordinador, el mensaje lo dice.
         const p4 = plan('Claude diseña la API y Codex la programa.', [
           { key: 'd', title: 'Diseñar la API', description: 'Rutas y formatos', agent: 'claude', difficulty: 'medium', dependsOn: [], deliverable: 'text' },
           { key: 'p', title: 'Programar la API', description: 'Crea server.js', agent: 'codex', difficulty: 'medium', dependsOn: ['d'], deliverable: 'file' }
@@ -952,7 +952,7 @@ async function main(): Promise<void> {
         await waitFor(() => !!finished(r4.runId), 5000, 'plan ajustado')
         const fourth = proposals().at(-1)!
         assert.deepEqual(fourth.proposal!.tasks.map((t) => t.title), ['Programar la API'])
-        assert.match(fourth.text, /\*Ajustes de AI Cowork al plan:\* «Diseñar la API» lo hace quien construye \(«Programar la API»\)\./)
+        assert.match(fourth.text, /\*Ajustes de kywai al plan:\* «Diseñar la API» lo hace quien construye \(«Programar la API»\)\./)
         rejectPlan(qp.id, fourth.id)
       } finally {
         getConfig().planApproval = false

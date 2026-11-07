@@ -368,11 +368,11 @@ function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
 }
 
 const LOGIN_PAGE = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Cowork</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#060a12;color:#e9eef8;font:15px system-ui,sans-serif}
+<title>kywai</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#060a12;color:#e9eef8;font:15px system-ui,sans-serif}
 form{width:min(340px,90vw);padding:28px;border-radius:16px;background:#0e1524;border:1px solid #23324d}h1{margin:0 0 6px;font-size:20px}
 p{margin:0 0 18px;color:#9aa8bf;line-height:1.45}input{width:100%;box-sizing:border-box;height:42px;padding:0 12px;border-radius:10px;border:1px solid #2c3d5c;background:#0a101d;color:#e9eef8;font-size:15px}
 button{margin-top:12px;width:100%;height:42px;border:0;border-radius:10px;background:#38d6ff;color:#04121c;font-weight:650;font-size:15px}</style></head>
-<body><form method="get" action="/"><h1>AI Cowork</h1><p>Abre el enlace de acceso que muestra AI Cowork en el Mac (⚙ → Ajustes → Acceso desde otros dispositivos), o pega aquí su código.</p>
+<body><form method="get" action="/"><h1>kywai</h1><p>Abre el enlace de acceso que muestra kywai en el Mac (⚙ → Ajustes → Acceso desde otros dispositivos), o pega aquí su código.</p>
 <input name="t" placeholder="Código de acceso" autocomplete="off" autofocus required><button>Entrar</button></form></body></html>`
 
 function rendererDir(): string {
@@ -432,7 +432,7 @@ function serveProjectFile(res: ServerResponse, pathname: string): void {
     'Content-Type': TYPES[extname(abs).toLowerCase()] ?? 'application/octet-stream',
     'Content-Length': st.size,
     'X-Content-Type-Options': 'nosniff',
-    // Un HTML creado por un agente no puede usar la sesión de AI Cowork aunque se abra directamente.
+    // Un HTML creado por un agente no puede usar la sesión de kywai aunque se abra directamente.
     'Content-Security-Policy': 'sandbox allow-scripts',
     'Cache-Control': 'no-cache'
   })
@@ -504,7 +504,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   }
 
   if (!authorized(req)) {
-    if (path.startsWith('/api/')) return json(res, 401, { error: 'Sin acceso: abre el enlace de acceso de AI Cowork' })
+    if (path.startsWith('/api/')) return json(res, 401, { error: 'Sin acceso: abre el enlace de acceso de kywai' })
     return send(res, 401, LOGIN_PAGE, TYPES['.html'])
   }
 
@@ -705,7 +705,7 @@ export async function stopWebServer(): Promise<void> {
   current = null
 }
 
-/** Direcciones para abrir AI Cowork desde otros dispositivos de Tailscale. */
+/** Direcciones para abrir kywai desde otros dispositivos de Tailscale. */
 export function webAccessInfo(enabled: boolean, port: number, token: string): WebAccessInfo {
   const ip = boundIp ?? tailscaleIPv4()
   // Nombre MagicDNS habitual: el del equipo en minúsculas, sin «.local».

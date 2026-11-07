@@ -12,7 +12,7 @@ export interface YtVideoData {
   author?: string
 }
 
-/** Parte de la API del reproductor que usa AI Cowork. */
+/** Parte de la API del reproductor que usa kywai. */
 export interface YtPlayer {
   cueVideoById(videoId: string, startSeconds?: number): void
   loadVideoById(videoId: string, startSeconds?: number): void

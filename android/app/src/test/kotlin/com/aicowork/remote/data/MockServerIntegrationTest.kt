@@ -61,7 +61,7 @@ class MockServerIntegrationTest {
         assertEquals(ProbeResult.Reachable, CoworkApiClient(url, mock.certificateSha256, { null }).probe())
         val paired = CoworkApiClient(url, mock.certificateSha256, { null }).pair(mock.pairingCode, "Pixel de prueba")
         assertTrue(paired.accessToken.isNotBlank())
-        assertEquals("AI Cowork (simulado)", paired.serverName)
+        assertEquals("kywai (simulado)", paired.serverName)
     }
 
     @Test

@@ -85,7 +85,7 @@ class ApiException(
         fun network(cause: Throwable) = ApiException(
             status = 0,
             code = "network",
-            message = t("No se puede conectar con el ordenador. Comprueba que AI Cowork está abierto y que Tailscale está activo."),
+            message = t("No se puede conectar con el ordenador. Comprueba que kywai está abierto y que Tailscale está activo."),
             retryable = true,
             cause = cause,
         )
@@ -151,9 +151,9 @@ class CoworkApiClient(
             // Sin token el servidor responde 401: basta para saber que está ahí y que el TLS es de confianza.
             e.isUnauthorized || e.status == 403 ->
                 if (e.code == "unknown" || e.code.startsWith("http_"))
-                    ProbeResult.Failed(t("Ese servidor todavía no ofrece la API móvil. Actualiza o ejecuta la nueva versión de AI Cowork en el ordenador."))
+                    ProbeResult.Failed(t("Ese servidor todavía no ofrece la API móvil. Actualiza o ejecuta la nueva versión de kywai en el ordenador."))
                 else ProbeResult.Reachable
-            e.status == 404 -> ProbeResult.Failed(t("Ese servidor no ofrece la API móvil de AI Cowork. Revisa la dirección y el puerto, o actualiza AI Cowork."))
+            e.status == 404 -> ProbeResult.Failed(t("Ese servidor no ofrece la API móvil de kywai. Revisa la dirección y el puerto, o actualiza kywai."))
             !e.isNetwork -> ProbeResult.Failed(e.message)
             else -> trustManager.rejected?.let { ProbeResult.NeedsConfirmation(it) } ?: ProbeResult.Failed(e.message)
         }
@@ -458,7 +458,7 @@ class CoworkApiClient(
     private fun defaultMessage(status: Int) = when (status) {
         401 -> t("La sesión no es válida. Vuelve a emparejar el dispositivo.")
         403 -> t("Este dispositivo no tiene permiso para hacerlo.")
-        404 -> t("El servidor no ofrece la API móvil. Actualiza AI Cowork en el ordenador.")
+        404 -> t("El servidor no ofrece la API móvil. Actualiza kywai en el ordenador.")
         429 -> t("Demasiadas peticiones seguidas. Espera un momento.")
         in 500..599 -> t("El ordenador tuvo un problema ({status}). Inténtalo de nuevo.", "status" to status)
         else -> t("Error {status} del servidor", "status" to status)

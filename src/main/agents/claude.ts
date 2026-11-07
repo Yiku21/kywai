@@ -44,7 +44,7 @@ export function claudeArgs(model: string, mode: 'plan' | 'work', access: AgentAc
   if (effort) args.push('--effort', effort)
   args.push('--permission-mode', mode === 'plan' ? 'plan' : access === 'full' ? 'bypassPermissions' : 'acceptEdits')
   args.push('--strict-mcp-config')
-  // Solo el servidor de AI Cowork (nunca los del usuario), con sus herramientas permitidas sin preguntar.
+  // Solo el servidor de kywai (nunca los del usuario), con sus herramientas permitidas sin preguntar.
   // La configuración va en un archivo: por la consola solo pasan argumentos de texto sencillo (sin comillas ni llaves).
   if (mcp && MCP_NAME_RE.test(mcp.name) && mcp.configFile) {
     args.push('--mcp-config', mcp.configFile)

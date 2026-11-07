@@ -34,10 +34,10 @@ export function RestartOverlay() {
   }, [])
 
   return (
-    <div className={s.overlay} role="alertdialog" aria-live="assertive" aria-label={t('Reiniciando AI Cowork')}>
+    <div className={s.overlay} role="alertdialog" aria-live="assertive" aria-label={t('Reiniciando kywai')}>
       <div className={s.card}>
         <LoaderCircle size={28} className={u.spin} aria-hidden="true" />
-        <p className={s.title}>{t('Reiniciando AI Cowork…')}</p>
+        <p className={s.title}>{t('Reiniciando kywai…')}</p>
         <p className={s.text}>{isWeb ? t('Se volverá a conectar sola en unos segundos.') : t('La ventana se cerrará y se abrirá de nuevo.')}</p>
         {slow && (
           <p className={s.text}>

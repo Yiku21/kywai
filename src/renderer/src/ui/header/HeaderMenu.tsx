@@ -145,7 +145,7 @@ export function HeaderMenu({ sidebar }: { sidebar: { button: string } }) {
             <button type="button" role="menuitem" className={cx(s.item, restart.confirming && s.danger)} onClick={restart.run}>
               <RotateCcw size={16} aria-hidden="true" className={s.itemIcon} />
               <span className={s.itemText}>
-                <span className={s.itemLabel}>{restart.confirming ? t('Pulsa otra vez para reiniciar') : t('Reiniciar AI Cowork')}</span>
+                <span className={s.itemLabel}>{restart.confirming ? t('Pulsa otra vez para reiniciar') : t('Reiniciar kywai')}</span>
                 {restart.confirming && <span className={s.itemHint}>{t('Se detendrán las tareas en curso')}</span>}
               </span>
             </button>
@@ -155,7 +155,7 @@ export function HeaderMenu({ sidebar }: { sidebar: { button: string } }) {
         <div className={s.sep} role="separator" />
         <button type="button" role="menuitem" className={s.item} onClick={go(openDonate)}>
           <Coffee size={16} aria-hidden="true" className={s.itemIcon} />
-          <span className={s.itemLabel}>{t('Apoyar AI Cowork ☕')}</span>
+          <span className={s.itemLabel}>{t('Apoyar kywai ☕')}</span>
         </button>
       </Popover>
       {/* En el cuerpo de la página: dentro de la barra lateral quedaría debajo del chat (su capa la encierra). */}

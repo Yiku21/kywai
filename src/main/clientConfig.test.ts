@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { pairingProblem, parseServerAddress, readClientFile, writeClientFile } from './clientConfig'
 
 describe('parseServerAddress', () => {
-  it('acepta una IP o un nombre sin más y pone el puerto de AI Cowork', () => {
+  it('acepta una IP o un nombre sin más y pone el puerto de kywai', () => {
     expect(parseServerAddress('100.101.1.2')?.origin).toBe('http://100.101.1.2:8787')
     expect(parseServerAddress('mac-mini')?.origin).toBe('http://mac-mini:8787')
     expect(parseServerAddress(' mac-mini.tail1234.ts.net ')?.origin).toBe('http://mac-mini.tail1234.ts.net:8787')

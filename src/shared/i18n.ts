@@ -1,4 +1,4 @@
-// Idiomas de AI Cowork, común a la interfaz y al motor. El texto en español del código es la clave: t('Ajustes')
+// Idiomas de kywai, común a la interfaz y al motor. El texto en español del código es la clave: t('Ajustes')
 // devuelve «Ajustes» en español y lo que diga el diccionario del idioma (i18n-en.ts, i18n-pt.ts…) en los demás; si
 // falta, el inglés y, si tampoco está, el español (src/renderer/src/lib/i18n.test.ts avisa de cada texto sin traducir). Los huecos van entre llaves:
 // t('Hace {n} min', { n: 5 }).
@@ -69,7 +69,7 @@ export const tr = t
 export function replyLanguage(): string {
   if (current === 'es') return 'Responde en español.'
   const name = NAMES_ES[current]
-  return `Responde en ${name}: el usuario usa AI Cowork en ${name}. Todo lo que vaya a ver (respuestas, títulos, resúmenes, avisos) va en ${name}, aunque estas instrucciones estén en español.`
+  return `Responde en ${name}: el usuario usa kywai en ${name}. Todo lo que vaya a ver (respuestas, títulos, resúmenes, avisos) va en ${name}, aunque estas instrucciones estén en español.`
 }
 
 /** Nombre del idioma del usuario, dentro de una frase en español («mensaje breve en inglés…»). */

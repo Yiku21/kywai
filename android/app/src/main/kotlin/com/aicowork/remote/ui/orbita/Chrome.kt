@@ -191,7 +191,7 @@ fun ProjectMenu(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = M
     ) {
         Text(t("Proyectos"), color = Orbita.TextSoft, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 8.dp))
         if (!supported) {
-            Note(Icons.Outlined.Info, snapshot?.conversation?.title ?: t("Proyecto actual"), t("Para cambiar de proyecto desde el móvil, actualiza AI Cowork en el ordenador."))
+            Note(Icons.Outlined.Info, snapshot?.conversation?.title ?: t("Proyecto actual"), t("Para cambiar de proyecto desde el móvil, actualiza kywai en el ordenador."))
         } else {
             snapshot!!.projects.forEach { p ->
                 val on = p.id == current

@@ -81,7 +81,7 @@ providers:
     ])
   })
 
-  it('lo elegido en AI Cowork manda y se le pasa a Hermes con -m y --provider', () => {
+  it('lo elegido en kywai manda y se le pasa a Hermes con -m y --provider', () => {
     const info = hermesModelsInfo({ provider: 'hermes', model: 'claude-opus-5', modelProvider: 'anthropic' } as never, home)
     expect(info.current).toEqual({ provider: 'anthropic', model: 'claude-opus-5', fromApp: true })
     expect(info.hermesDefault).toEqual({ provider: 'omnirouter', model: 'auto/smart' })

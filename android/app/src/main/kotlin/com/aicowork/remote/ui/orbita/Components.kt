@@ -304,7 +304,7 @@ fun Note(icon: ImageVector, title: String, text: String?, modifier: Modifier = M
 /** Marca de kywai: las tres gotas del logo (res/drawable/logo_kywai.xml). */
 @Composable
 fun LogoMark(size: Dp = 30.dp) {
-    Image(painterResource(R.drawable.logo_kywai), contentDescription = "AI Cowork", modifier = Modifier.size(size))
+    Image(painterResource(R.drawable.logo_kywai), contentDescription = "kywai", modifier = Modifier.size(size))
 }
 
 /** Fondo sutil para una fila seleccionable dentro de un panel. */

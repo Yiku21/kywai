@@ -259,7 +259,7 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
                     model.hermesModelOpen = true
                 } else {
                     model.feedback.reject()
-                    model.toast(t("Actualiza AI Cowork en el ordenador para cambiar el modelo de Hermes desde aquí"), Toast.Tone.Error)
+                    model.toast(t("Actualiza kywai en el ordenador para cambiar el modelo de Hermes desde aquí"), Toast.Tone.Error)
                 }
                 return@Composer
             }

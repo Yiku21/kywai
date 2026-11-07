@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
  * había visto), salvo si estás mirando la bandeja. Tocarla abre la app en la bandeja.
  *
  * Solo avisa mientras la app sigue conectada al ordenador (a la vista o poco después de pasar a segundo plano): no hay
- * servicio en primer plano ni push (FCM), porque AI Cowork no tiene servidor de push.
+ * servicio en primer plano ni push (FCM), porque kywai no tiene servidor de push.
  *
  * Todo ocurre en el hilo principal.
  */

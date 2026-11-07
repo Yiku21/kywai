@@ -1,5 +1,5 @@
 /**
- * Servidor de pruebas para la app del móvil (Órbita): el servidor web y el motor reales de AI Cowork con agentes
+ * Servidor de pruebas para la app del móvil (Órbita): el servidor web y el motor reales de kywai con agentes
  * simulados (sin llamar a ningún modelo ni gastar cuota). Planifican, trabajan con su paso a paso, crean resultados
  * y proponen recuerdos, para ver el mundo vivo en el emulador.
  *

@@ -34,7 +34,7 @@ class OnboardingTest {
     fun selfSignedCertificateNeedsExplicitConfirmationBeforePairing() {
         val controller = FakeController()
         controller.probeResult = ProbeResult.NeedsConfirmation(
-            CertificateInfo(fingerprint, "CN=AI Cowork", "CN=AI Cowork", 0, 1, listOf("100.64.1.2"), selfSigned = true)
+            CertificateInfo(fingerprint, "CN=kywai", "CN=kywai", 0, 1, listOf("100.64.1.2"), selfSigned = true)
         )
         compose.setContent { OrbitaApp(orbitaModelForTests(controller), "Pixel 9", null) }
 

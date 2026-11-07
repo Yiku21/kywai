@@ -1,5 +1,5 @@
 // Registro de consumo por petición: tokens de cada llamada a un agente, tiempo, resultado y cuánto se movió la
-// cuota de cada suscripción. Sirve para comparar AI Cowork con usar un solo agente y ver si compensa.
+// cuota de cada suscripción. Sirve para comparar kywai con usar un solo agente y ver si compensa.
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { MessageRating, QuotaSnapshot, UsageCall, UsageRun } from '@shared/types'

@@ -121,7 +121,7 @@ private fun WelcomeStep(onStart: () -> Unit, onDemo: (() -> Unit)?) {
             }
         }
         Spacer(Modifier.height(24.dp))
-        Text(t("Tu equipo de AI Cowork, en el bolsillo"), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
+        Text(t("Tu equipo de kywai, en el bolsillo"), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
         Spacer(Modifier.height(12.dp))
         Text(
             t("Pide trabajo a los agentes, sigue sus tareas en directo y detén o reanuda peticiones desde el móvil. ") +
@@ -148,7 +148,7 @@ private fun ServerStep(ui: OnboardingUi, vm: OnboardingViewModel) {
     Column {
         StepHeader(
             Icons.Outlined.Computer,
-            t("¿Dónde está AI Cowork?"),
+            t("¿Dónde está kywai?"),
             t("En el ordenador, abre ⋮ → Acceso remoto y copia la dirección HTTPS (por ejemplo https://100.101.102.103:8788 o https://mi-mac.tu-red.ts.net)."),
         )
         OutlinedTextField(
@@ -193,7 +193,7 @@ private fun CertificateStep(ui: OnboardingUi, vm: OnboardingViewModel) {
         StepHeader(
             Icons.Outlined.Shield,
             t("Confirma la huella del certificado"),
-            t("Este ordenador usa un certificado propio generado por AI Cowork. Antes de confiar en él, compara la huella con la que aparece en el ordenador (⋮ → Acceso remoto → Huella del certificado)."),
+            t("Este ordenador usa un certificado propio generado por kywai. Antes de confiar en él, compara la huella con la que aparece en el ordenador (⋮ → Acceso remoto → Huella del certificado)."),
         )
         FingerprintCard(cert)
         Spacer(Modifier.height(12.dp))
@@ -259,7 +259,7 @@ private fun CodeStep(ui: OnboardingUi, vm: OnboardingViewModel) {
         StepHeader(
             Icons.Outlined.Key,
             t("Introduce el código de acceso"),
-            t("En AI Cowork, activa «Acceso desde otros dispositivos» y copia el código (distingue mayúsculas). El token que recibe la app se guarda cifrado en el almacén seguro del móvil."),
+            t("En kywai, activa «Acceso desde otros dispositivos» y copia el código (distingue mayúsculas). El token que recibe la app se guarda cifrado en el almacén seguro del móvil."),
         )
         OutlinedTextField(
             value = ui.code,

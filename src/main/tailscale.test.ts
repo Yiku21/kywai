@@ -9,7 +9,7 @@ describe('tailscale (HTTPS con Serve)', () => {
     expect(parseStatus('no es json').running).toBe(false)
   })
 
-  it('reconoce la publicación de AI Cowork y la de otras cosas', () => {
+  it('reconoce la publicación de kywai y la de otras cosas', () => {
     const ours = JSON.stringify({
       TCP: { '443': { HTTPS: true } },
       Web: { 'mac-mini.tail1234.ts.net:443': { Handlers: { '/': { Proxy: 'http://127.0.0.1:8787' } } } }

@@ -173,7 +173,7 @@ function dataRoot(): string {
 function shadowFor(projectId: string): Shadow {
   let sh = shadows.get(projectId)
   if (!sh) {
-    // Si la carpeta de trabajo contiene los datos de AI Cowork (la propia app), no entran en las instantáneas.
+    // Si la carpeta de trabajo contiene los datos de kywai (la propia app), no entran en las instantáneas.
     const rel = relative(store.workRoot(projectId), dataRoot()).replace(/\\/g, '/')
     const extra = rel && !rel.startsWith('..') && !isAbsolute(rel) ? [`/${rel}/`] : []
     sh = new Shadow(join(dataRoot(), 'instantaneas', `${projectId}.git`), extra)
@@ -1621,8 +1621,8 @@ async function planRun(
     if (parsed.tasks.length && !planned.length) {
       reply = tr('{reply}\n\n(No hay agentes disponibles para ejecutar las tareas propuestas.)', { reply }).trim()
     }
-    // Lo que se ve en el plan es lo que se hará: si AI Cowork lo ajustó, se dice.
-    if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de AI Cowork al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
+    // Lo que se ve en el plan es lo que se hará: si kywai lo ajustó, se dice.
+    if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de kywai al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
     return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory) }
   }
 }
@@ -1802,7 +1802,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
       fullAccess: getConfig().agentAccess === 'full',
       planApproval: getConfig().planApproval,
       routine: run.routine,
-      // La lista de funciones de la app solo si la conversación va de AI Cowork: si no, son 5 000 caracteres de ruido.
+      // La lista de funciones de la app solo si la conversación va de kywai: si no, son 5 000 caracteres de ruido.
       aboutApp: mentionsApp([run.userText, ...st.messages.filter((m) => m.author.type === 'user').slice(-3).map((m) => m.text)].join('\n'))
     }),
     '',
@@ -1833,8 +1833,8 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '',
     'Reglas:',
     `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
-    ...(lang() === 'es' ? [] : [`- El usuario usa AI Cowork en ${userLanguageName()}: escribe en ${userLanguageName()} todo lo que verá ("reply", "title", "acceptance" y lo que pidas a los agentes que le cuenten), aunque estas instrucciones estén en español.`]),
-    '- Si es charla o una duda sobre AI Cowork, responde tú en "reply" y deja "tasks": []. Si la pregunta va del proyecto o de su código («¿qué me recomiendas para…?», «¿por qué falla…?», «¿cómo está hecho…?»), NO la contestes de memoria: tú no puedes abrir sus archivos; crea UNA tarea de texto ("deliverable": "text", "medium") para un agente que sí los lee y que responda él.',
+    ...(lang() === 'es' ? [] : [`- El usuario usa kywai en ${userLanguageName()}: escribe en ${userLanguageName()} todo lo que verá ("reply", "title", "acceptance" y lo que pidas a los agentes que le cuenten), aunque estas instrucciones estén en español.`]),
+    '- Si es charla o una duda sobre kywai, responde tú en "reply" y deja "tasks": []. Si la pregunta va del proyecto o de su código («¿qué me recomiendas para…?», «¿por qué falla…?», «¿cómo está hecho…?»), NO la contestes de memoria: tú no puedes abrir sus archivos; crea UNA tarea de texto ("deliverable": "text", "medium") para un agente que sí los lee y que responda él.',
     '- Lo que importa es que el resultado sea el mejor posible y cumpla exactamente lo pedido: el tiempo y el gasto son secundarios. Elige para cada parte al agente y la dificultad que den el mejor resultado, no los más rápidos ni los más baratos. Eso sí, cada tarea arranca un agente desde cero y cada traspaso pierde contexto: una cadena de tareas suele salir peor que un solo agente que lo hace entero.',
     '- Trabajo pequeño o muy enlazado (un script, un documento, un arreglo, algo de menos de unos 20 minutos): UNA sola tarea para el agente más adecuado, que lo hace y lo prueba. Nunca crees tareas aparte de «diseñar», «arquitectura» o «contratos».',
     '- Trabajo grande con partes REALMENTE independientes que se pueden construir A LA VEZ (por ejemplo, en una app: el motor o la lógica, la interfaz y el servidor): reparte esas partes en paralelo, cada una al agente que mejor la hace según su ficha (por ejemplo, la interfaz a quien es mejor en diseño y la lógica a quien es mejor programando). Escribe tú en "contract" el contrato común: carpetas, qué archivos son de cada tarea y las funciones, rutas HTTP y formatos de datos que se usan entre partes, con nombres exactos, parámetros y lo que devuelven. Las tareas en paralelo NO dependen entre sí y no comparten archivos: los comunes (package.json, README, configuración) son solo de la integración. Añade al final UNA tarea «Integrar y probar» (para el agente de la parte principal, dificultad "medium") que dependa de ellas: junta las partes, ejecuta las pruebas, comprueba el conjunto contra la petición del usuario y arregla lo que no encaje.',
@@ -1842,7 +1842,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     `- «A dos manos» para lo que depende del gusto: si el entregable es visual o de diseño (una web, una landing, una interfaz, un póster, una presentación, un logo o una imagen) y es trabajo NUEVO (no una continuación), dos agentes de familias distintas lo hacen por separado y un tercero elige: crea DOS tareas iguales sin dependencias, con las mismas instrucciones completas, una para cada agente, cada una solo en su carpeta ("files": ["${twoHandsBase(run.projectId)}opcion-a/"] y ["${twoHandsBase(run.projectId)}opcion-b/"], dilo en la descripción: «crea todo dentro de … y no toques la otra carpeta»), y una tercera tarea de texto «Elegir la mejor opción» ("deliverable": "text", "medium") para un agente de una tercera familia (si no la hay, para uno que no sea autor; en último caso, un autor), que dependa de las dos: que abra y pruebe ambas, las compare contra la petición en los dos órdenes (fidelidad, funcionamiento, calidad visual, código) y responda empezando con «GANA: A» o «GANA: B» y por qué. Aquí no hace falta "contract". Hazlo siempre que el usuario pida «a dos manos» o «dos opciones» (sea lo que sea), y nunca si pide «a una mano» o «una sola versión», si solo hay una familia disponible o si es una corrección.`,
     '- Nunca repartas una CONTINUACIÓN: si la petición corrige, amplía o retoma lo que se hizo antes en este proyecto («no funciona…», «ahora añade…», «cámbialo…»), es UNA tarea para el mismo agente que hizo ese trabajo (mira la conversación y los archivos recientes), con lo que hay que cambiar y dónde está.',
     '- Si el usuario pide «en equipo», reparte así en paralelo siempre que el trabajo tenga partes separables; si pide «un solo agente», crea una sola tarea.',
-    '- No añadas tareas de revisar, auditar, validar, verificar o corregir el trabajo de otra tarea, salvo que el usuario pida expresamente una revisión (por ejemplo «con revisión»): AI Cowork ya hace que cada tarea que cambia archivos la compruebe un agente de otra familia contra la petición y su "acceptance", y el autor corrige lo que vea. Por eso "acceptance" tiene que ser concreto y comprobable.',
+    '- No añadas tareas de revisar, auditar, validar, verificar o corregir el trabajo de otra tarea, salvo que el usuario pida expresamente una revisión (por ejemplo «con revisión»): kywai ya hace que cada tarea que cambia archivos la compruebe un agente de otra familia contra la petición y su "acceptance", y el autor corrige lo que vea. Por eso "acceptance" tiene que ser concreto y comprobable.',
     '- Como máximo 6 tareas.',
     '- Asigna cada tarea al agente más adecuado según su ficha («se le da mejor» y «evitar») y SOLO a agentes disponibles. Al agente local, solo tareas cortas y sencillas: es más lento.',
     '- Si varios agentes sirven, elige el de mejor calidad según su ficha («calidad»: lo que le sirvió al usuario, verificaciones a la primera, pocas correcciones y pocos fallos, mirando la fila de la misma dificultad); la calidad pesa más que la velocidad y el coste. Con calidad parecida, el que tenga más cuota restante. A un agente con poca cuota, solo lo imprescindible.',
@@ -1860,7 +1860,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
   ].join('\n')
 }
 
-/** El plan listo para ejecutar y lo que AI Cowork cambió del que propuso el coordinador (para contárselo al usuario). */
+/** El plan listo para ejecutar y lo que kywai cambió del que propuso el coordinador (para contárselo al usuario). */
 /** Carpeta base de las dos opciones: artifacts/ en un proyecto interno, .ai-cowork/entregables/ en una carpeta del usuario. */
 function twoHandsBase(projectId: string): string {
   return store.getProject(projectId).project.workDir ? '.ai-cowork/entregables/' : 'artifacts/'
@@ -2275,7 +2275,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     ...rules,
     ...(tools
       ? [
-          `- Tienes las herramientas de AI Cowork (servidor MCP «${MCP_SERVER_NAME}»): «memoria_proyecto» (instrucciones y memoria al día), «anotar_memoria» (lo que los demás deben saber), «estado_equipo» (qué hacen ahora los compañeros, para no pisarlos), «preguntar_usuario» (una duda que cambia el resultado: no esperes la respuesta) y «leer_habilidad». Úsalas cuando aporten; no hace falta llamarlas por rutina.`
+          `- Tienes las herramientas de kywai (servidor MCP «${MCP_SERVER_NAME}»): «memoria_proyecto» (instrucciones y memoria al día), «anotar_memoria» (lo que los demás deben saber), «estado_equipo» (qué hacen ahora los compañeros, para no pisarlos), «preguntar_usuario» (una duda que cambia el resultado: no esperes la respuesta) y «leer_habilidad». Úsalas cuando aporten; no hace falta llamarlas por rutina.`
         ]
       : []),
     ...taskGuideRules(store.workRoot(run.projectId)),
@@ -2401,7 +2401,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   const progress = watchProgress(run, t, dir, taskStart)
   traceNote(t.id, tr('{name} empieza con {modelNameFor}{v3}', { name: exec.name, modelNameFor: modelNameFor(exec, model), v3: effort ? ` · ${tr(EFFORT_LABEL[effort])}` : '' }))
   if (resume) traceNote(t.id, tr('{name} retoma su sesión anterior en este proyecto', { name: exec.name }))
-  // Herramientas de AI Cowork (memoria, equipo, preguntas, habilidades). Solo Claude: lee la configuración de un
+  // Herramientas de kywai (memoria, equipo, preguntas, habilidades). Solo Claude: lee la configuración de un
   // archivo; Codex solo la admite con valores TOML entre comillas, que no pueden ir por la consola.
   const mcp: McpLaunch | null = exec.provider === 'claude' && !t.direct
     ? mcpForTask({ projectId: run.projectId, runId: run.id, taskId: t.id, taskTitle: t.title, agentId: (parent ?? exec).id, agentName: (parent ?? exec).name })
@@ -2659,7 +2659,7 @@ function buildVerifyPrompt(run: Run, t: Task, author: AgentConfig, verifier: Age
     '',
     ...(ui
       ? [
-          '## Cómo se ve (capturas que hizo AI Cowork al abrir la web)',
+          '## Cómo se ve (capturas que hizo kywai al abrir la web)',
           ...ui.shots.map((s) => `- ${s.path}: «${s.page}» a tamaño ${s.view}`),
           ...(ui.errors.length ? ['Errores al abrirla:', ...ui.errors.map((e) => `- ${e}`)] : ['Sin errores en la consola al abrirla.']),
           'Mira las capturas: que se vea lo que se pidió, que no haya nada roto, vacío, cortado o encima de otra cosa, y que en el móvil se pueda usar. Una página en blanco o con errores que impiden usarla es un fallo. (Se abrió sin compilar: si es una app que necesita compilarse, compruébala también como se ejecute de verdad.)',

@@ -1,5 +1,5 @@
-// Catálogo de agentes que se pueden añadir a AI Cowork y cómo se construye uno nuevo (aspecto, estación, ficha).
-// AI Cowork no es solo para los agentes de fábrica: es una plataforma donde conectas los que ya pagas.
+// Catálogo de agentes que se pueden añadir a kywai y cómo se construye uno nuevo (aspecto, estación, ficha).
+// kywai no es solo para los agentes de fábrica: es una plataforma donde conectas los que ya pagas.
 import type { AddAgentInput, AgentConfig, CliAgentSpec, ProviderKind, RobotAvatar, StationConfig } from './types'
 import { DEFAULT_AGENTS, DEFAULT_STATIONS } from './defaults'
 import { GENERIC_CATALOG } from './agentCatalogData'

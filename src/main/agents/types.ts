@@ -75,7 +75,7 @@ export interface RunAgentOptions {
    * equipo (LM Studio lo manda sin su mensaje de sistema).
    */
   direct?: boolean
-  /** Servidor MCP de AI Cowork para esta tarea (solo los CLI que lo admiten por la línea de comandos). */
+  /** Servidor MCP de kywai para esta tarea (solo los CLI que lo admiten por la línea de comandos). */
   mcp?: McpServerLaunch
   signal: AbortSignal
   /** Human readable activity (Spanish). `kind` tells if it came from a tool or from text output. */

@@ -1,6 +1,6 @@
 // Ficha automática del proyecto para el coordinador: qué hay en la carpeta (árbol resumido), de qué va (principio del
 // README), con qué se construye y se prueba (package.json y otros manifiestos) y qué se tocó hace poco. La hace
-// AI Cowork leyendo el disco, sin llamar a ningún modelo: así quien planifica deja de hacerlo a ciegas aunque no
+// kywai leyendo el disco, sin llamar a ningún modelo: así quien planifica deja de hacerlo a ciegas aunque no
 // pueda abrir archivos (Hermes en modo plan no tiene herramientas de archivos).
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'

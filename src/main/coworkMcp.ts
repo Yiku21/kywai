@@ -1,10 +1,10 @@
-// Servidor MCP de AI Cowork: herramientas que AI Cowork da a los agentes mientras hacen una tarea (Claude Code y Codex,
+// Servidor MCP de kywai: herramientas que kywai da a los agentes mientras hacen una tarea (Claude Code y Codex,
 // que aceptan servidores MCP por la línea de comandos). Con ellas leen la memoria del proyecto y las habilidades del
 // equipo, anotan lo que descubren, ven qué hacen los compañeros y te preguntan algo sin parar el trabajo (sale en
 // «Te necesita»).
 //
-// Cómo funciona: el CLI lanza un script pequeño (ai-cowork-mcp.cjs, lo escribe AI Cowork en su carpeta de trabajo y
-// lo ejecuta el propio Electron como Node) que habla MCP por stdio y pasa cada llamada a un servidor HTTP de AI Cowork
+// Cómo funciona: el CLI lanza un script pequeño (ai-cowork-mcp.cjs, lo escribe kywai en su carpeta de trabajo y
+// lo ejecuta el propio Electron como Node) que habla MCP por stdio y pasa cada llamada a un servidor HTTP de kywai
 // en 127.0.0.1. Cada tarea lleva su propio token: solo sirve para su proyecto y su tarea, y se anula al terminar.
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -95,7 +95,7 @@ let server: Server | null = null
 let port = 0
 let scriptPath = ''
 
-/** Escribe el script y arranca el servidor local. Si algo falla, las tareas siguen sin herramientas de AI Cowork. */
+/** Escribe el script y arranca el servidor local. Si algo falla, las tareas siguen sin herramientas de kywai. */
 export async function startCoworkMcp(workspaceRoot: string): Promise<void> {
   if (server) return
   try {
@@ -113,7 +113,7 @@ export async function startCoworkMcp(workspaceRoot: string): Promise<void> {
     port = (s.address() as { port: number }).port
     server = s
   } catch (e) {
-    console.warn('[cowork] no se pudo arrancar el servidor MCP de AI Cowork', e)
+    console.warn('[cowork] no se pudo arrancar el servidor MCP de kywai', e)
     server = null
   }
 }
@@ -256,10 +256,10 @@ export async function callTool(ctx: McpTaskContext & { questions?: number }, nam
 
 /**
  * El servidor MCP por stdio (JSON-RPC, un mensaje por línea). No depende de nada: lo ejecuta Electron como Node.
- * Cada petición tools/list o tools/call se pasa a AI Cowork con el token de la tarea.
+ * Cada petición tools/list o tools/call se pasa a kywai con el token de la tarea.
  */
 export const MCP_SCRIPT = `'use strict'
-// Servidor MCP de AI Cowork (lo genera la app; se reescribe en cada arranque).
+// Servidor MCP de kywai (lo genera la app; se reescribe en cada arranque).
 const http = require('http')
 const readline = require('readline')
 const BASE = process.env.AICW_MCP_URL || ''
@@ -272,11 +272,11 @@ function post(path, body) {
       const chunks = []
       res.on('data', (c) => chunks.push(c))
       res.on('end', () => {
-        try { ok(JSON.parse(Buffer.concat(chunks).toString('utf8'))) } catch (e) { ko(new Error('Respuesta no válida de AI Cowork')) }
+        try { ok(JSON.parse(Buffer.concat(chunks).toString('utf8'))) } catch (e) { ko(new Error('Respuesta no válida de kywai')) }
       })
     })
     req.on('error', ko)
-    req.setTimeout(60000, () => req.destroy(new Error('AI Cowork no respondió a tiempo')))
+    req.setTimeout(60000, () => req.destroy(new Error('kywai no respondió a tiempo')))
     req.end(data)
   })
 }

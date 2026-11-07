@@ -1,6 +1,11 @@
-# Manual de AI Cowork
+# Manual de kywai
 
-Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [README](../README.md).
+Todo lo que hace kywai, en detalle. Para una presentación rápida, ver el [README](../README.md).
+
+kywai (se pronuncia «ki-wai»; web: https://kywai.app) se llamaba antes **AI Cowork**. El nombre nuevo sale en todo lo
+que se ve (interfaz, avisos, Órbita, ventana), pero lo interno conserva el antiguo para que las instalaciones que ya
+hay no pierdan nada: la carpeta de datos (`AI Cowork`), la app del Mac (`AI Cowork.app`), los instaladores
+(`AI-Cowork-*`), el acceso directo de Windows y los identificadores (`com.aicowork…`, `ai-cowork`).
 
 ## Índice
 
@@ -13,7 +18,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Dictado por voz](#dictado-por-voz)
 - **[Cómo trabaja el equipo](#cómo-trabaja-el-equipo)**
   - [Reparto, modelos y permisos](#reparto-modelos-y-permisos)
-  - [Lo que sabe el coordinador de AI Cowork](#lo-que-sabe-el-coordinador-de-ai-cowork)
+  - [Lo que sabe el coordinador de kywai](#lo-que-sabe-el-coordinador-de-kywai)
   - [Tu visto bueno a cada plan](#tu-visto-bueno-a-cada-plan)
   - [«Te necesita»: lo que espera una decisión tuya](#te-necesita-lo-que-espera-una-decisión-tuya)
   - [Criterio de aceptación y archivos de cada tarea](#criterio-de-aceptación-y-archivos-de-cada-tarea)
@@ -34,7 +39,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Muse (Meta)](#muse-meta)
 - **[Proyectos, memoria y consumo](#proyectos-memoria-y-consumo)**
   - [Memoria e instrucciones del proyecto](#memoria-e-instrucciones-del-proyecto)
-  - [AGENTS.md, habilidades y herramientas de AI Cowork](#agentsmd-habilidades-y-herramientas-de-ai-cowork)
+  - [AGENTS.md, habilidades y herramientas de kywai](#agentsmd-habilidades-y-herramientas-de-kywai)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
@@ -53,7 +58,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Expresiones de los robots](#expresiones-de-los-robots)
   - [Modo Demo](#modo-demo)
   - [Rendimiento](#rendimiento)
-  - [Apoyar AI Cowork (donaciones)](#apoyar-ai-cowork-donaciones)
+  - [Apoyar kywai (donaciones)](#apoyar-kywai-donaciones)
 - **[Para desarrolladores](#para-desarrolladores)**
   - [Desarrollo](#desarrollo)
   - [Comprobaciones](#comprobaciones)
@@ -103,7 +108,7 @@ Al abrir la app instalada por primera vez aparece el **asistente de configuraci�
 2. **Programas**: comprueba si están sus CLIs y, si falta alguno, lo instala desde ahí con su instalador
    oficial (y Node.js si hace falta). En Mac conviene tener [Homebrew](https://brew.sh).
 3. **Sesiones**: abre el inicio de sesión oficial de cada CLI en una ventana aparte (normalmente en el
-   navegador) y comprueba que quedó hecho. AI Cowork no ve ni guarda contraseñas; para Gemini también puedes
+   navegador) y comprueba que quedó hecho. kywai no ve ni guarda contraseñas; para Gemini también puedes
    pegar una clave de API de Google AI Studio. Una sesión ya conectada lleva un lápiz para **cambiarla**
    (otra cuenta, otra clave o, en Hermes, otro proveedor): abre el mismo inicio de sesión y, al volver a la app,
    se comprueba y enseña la nueva. En Gemini, dentro se cambia de cuenta con `/auth`.
@@ -167,7 +172,7 @@ En Linux:
   los CLIs que se instalan con npm van a `~/.npm-global`.
 - El inicio de sesión de cada CLI se abre en la terminal del escritorio (`$TERMINAL`, `x-terminal-emulator`,
   GNOME, Konsole, Xfce, kitty, xterm…).
-- «Abrir AI Cowork al iniciar sesión» crea `~/.config/autostart/ai-cowork.desktop`.
+- «Abrir kywai al iniciar sesión» crea `~/.config/autostart/ai-cowork.desktop`.
 - «Buscar actualizaciones» compila para Linux y cambia la carpeta instalada (`scripts/actualizar-linux.sh`).
 - También se puede generar una AppImage con `npm run dist:linux` (`release/AI-Cowork-<versión>-<arch>.AppImage`);
   esa no se actualiza sola.
@@ -176,7 +181,7 @@ En Linux:
 ### Abrir la app (este equipo, versión de desarrollo)
 
 Usa el acceso directo **AI Cowork** del Escritorio o del menú Inicio. Si el código cambió desde la última vez
-(porque lo editaste tú o tus agentes), primero verás «Actualizando AI Cowork…» unos segundos y luego se abre.
+(porque lo editaste tú o tus agentes), primero verás «Actualizando kywai…» unos segundos y luego se abre.
 
 Para volver a crear los accesos directos: `npm run accesos`. Para regenerar el icono: `npm run icono`.
 
@@ -204,27 +209,27 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
   allí, el botón es «Apartar sus cambios y actualizar» (igual que arriba: se guardan en git, no se borran). Si la
   actualización falla, el servidor vuelve a su versión y «Ver cómo va» o la próxima consulta dicen por qué. El
   servidor tiene que tener ya esta función: la primera vez se actualiza desde el ordenador.
-- **⚙ → «Reiniciar AI Cowork»** (pulsa dos veces para confirmar) cierra y vuelve a abrir la app si se queda
+- **⚙ → «Reiniciar kywai»** (pulsa dos veces para confirmar) cierra y vuelve a abrir la app si se queda
   pillada; también desde el navegador del móvil, que se recarga solo cuando vuelve. Si la app está cerrada del
   todo, no hay nada que responda al enlace: hay que abrirla en el equipo.
 
 ### Acceso desde el móvil o el portátil (Tailscale)
 
-Un equipo con AI Cowork abierto (por ejemplo el Mac mini, encendido 24/7) puede servir la app a tus otros
+Un equipo con kywai abierto (por ejemplo el Mac mini, encendido 24/7) puede servir la app a tus otros
 dispositivos de Tailscale:
 
 1. En ese equipo: ⚙ → Ajustes → «Acceso desde otros dispositivos…» → activa «Permitir el acceso por Tailscale».
 2. Copia el **enlace de acceso** (`http://<ip-de-tailscale>:8787/?t=<código>`) y ábrelo una vez en el móvil o
    el portátil con Tailscale activo. Queda recordado; el código es tu llave (puedes cambiarlo y anular los
    enlaces anteriores).
-3. Para que esté siempre disponible: activa «Abrir AI Cowork al iniciar sesión» y evita que el Mac se duerma
-   (Ajustes del Sistema → Energía). Mientras el acceso está activo, AI Cowork no se suspende.
+3. Para que esté siempre disponible: activa «Abrir kywai al iniciar sesión» y evita que el Mac se duerma
+   (Ajustes del Sistema → Energía). Mientras el acceso está activo, kywai no se suspende.
 4. Para dictar notas de voz desde otro dispositivo hace falta la versión `https://` (ver «Dictado por voz»):
-   AI Cowork la sirve siempre en el puerto siguiente (`https://<ip-de-tailscale>:8788`) con un certificado
+   kywai la sirve siempre en el puerto siguiente (`https://<ip-de-tailscale>:8788`) con un certificado
    propio, y opcionalmente con Tailscale Serve («HTTPS para usar el micrófono desde el móvil»), que no da aviso.
 
 **App del móvil (Android):** se empareja una vez con el código de 6 cifras de ese menú (o el código de acceso
-entero) y queda emparejada para siempre, aunque AI Cowork se reinicie o se actualice (la clave que firma su
+entero) y queda emparejada para siempre, aunque kywai se reinicie o se actualice (la clave que firma su
 acceso se guarda en `mobile-key`, en la carpeta de datos de la app). Para desemparejar todos los móviles, genera
 un código de acceso nuevo.
 
@@ -236,9 +241,9 @@ externos y el audio se borra). Al terminar se elige revisar el texto antes de en
 dice si hay una versión nueva; «Instalar la versión …» la descarga del ordenador (por Tailscale, solo a móviles
 emparejados), comprueba que es exactamente la anunciada y la instala encima: sigue emparejada. La primera vez
 Android pide permitir que Órbita instale apps («Permitir de esta fuente»); después se instala sola, sin
-preguntar. Órbita se cierra al instalarse: vuelve a abrirla. La versión sale del código de AI Cowork
+preguntar. Órbita se cierra al instalarse: vuelve a abrirla. La versión sale del código de kywai
 (`android/release/`, publicada con `./gradlew :app:publishOrbita` y firmada con la clave de siempre), así que
-basta con actualizar AI Cowork en el ordenador (⚙ → «Buscar actualizaciones…») para que el móvil la vea. Solo
+basta con actualizar kywai en el ordenador (⚙ → «Buscar actualizaciones…») para que el móvil la vea. Solo
 hay que instalar la APK a mano una vez: la primera versión que trae este botón.
 
 **La APK se publica sola desde GitHub.** Cada vez que cambia el código de Órbita en `master`, GitHub Actions
@@ -276,15 +281,15 @@ El servidor (8787 y la versión HTTPS en 8788) escucha solo en la IP de Tailscal
 internet) y exige el código en cada petición. Desde la web se puede chatear, ver el espacio, subir archivos y
 ver resultados; elegir carpetas, instalar CLIs e iniciar sesión en ellos se hace en el propio equipo.
 
-### Cliente de escritorio (conectar con tu AI Cowork principal)
+### Cliente de escritorio (conectar con tu kywai principal)
 
-Puedes instalar AI Cowork en otro Mac, Windows o Linux y usarlo como **cliente** de tu AI Cowork principal (el que está
+Puedes instalar kywai en otro Mac, Windows o Linux y usarlo como **cliente** de tu kywai principal (el que está
 siempre encendido): no ejecuta agentes ni guarda proyectos, enseña la interfaz del servidor, con sus agentes, su
 chat, sus proyectos y sus archivos, desde una app instalada y no desde el navegador.
 
 1. En el servidor: ⚙ → Ajustes → «Acceso desde otros dispositivos…» → activa el acceso y pulsa «Generar código de 6 cifras».
-2. En el otro equipo, con **Tailscale conectado**: instala AI Cowork y ábrelo. La primera vez pregunta cómo vas a
-   usarlo: elige **«Conectar con mi AI Cowork principal»**. (Un equipo que ya tenía AI Cowork como servidor no
+2. En el otro equipo, con **Tailscale conectado**: instala kywai y ábrelo. La primera vez pregunta cómo vas a
+   usarlo: elige **«Conectar con mi kywai principal»**. (Un equipo que ya tenía kywai como servidor no
    pregunta nada: para convertirlo en cliente, cierra la app y crea en su carpeta de datos un archivo `client.json`
    con `{"mode":"client"}`.)
 3. Escribe la dirección del servidor (la IP de Tailscale o su nombre, p. ej. `100.101.102.103` o `mac-mini`; vale
@@ -388,7 +393,7 @@ borra al terminar. El texto se añade al cuadro para revisarlo antes de enviarlo
 En macOS pide permiso para el micrófono. Desde otro dispositivo, el navegador solo deja usar el micrófono en
 páginas **HTTPS**. Si entras por el enlace `http://`, al tocar el micrófono aparece **«Abrir la versión segura»**:
 
-- Sin hacer nada más, lleva a `https://<ip>:8788`, la versión HTTPS que AI Cowork sirve con su **certificado
+- Sin hacer nada más, lleva a `https://<ip>:8788`, la versión HTTPS que kywai sirve con su **certificado
   propio** (se crea solo, en `web-cert/` dentro de la carpeta de datos, para las IPs y el nombre del equipo). La
   primera vez el navegador avisa de que la conexión no es privada, porque ese certificado no lo firma ninguna
   autoridad: pulsa «Configuración avanzada» → «Continuar» (en iPhone, «Mostrar detalles» → «visitar este sitio
@@ -401,7 +406,7 @@ páginas **HTTPS**. Si entras por el enlace `http://`, al tocar el micrófono ap
 
 ### Tu equipo: añadir, quitar y elegir quién coordina
 
-AI Cowork no es solo para los agentes de fábrica: es una plataforma donde conectas **los agentes que ya pagas**. En
+kywai no es solo para los agentes de fábrica: es una plataforma donde conectas **los agentes que ya pagas**. En
 ⚙ → Ajustes → «Configurar agentes…» (paso «Agentes»):
 
 - **Añadir un agente**: «Añadir un agente» abre el catálogo con los que se pueden conectar (Aider, **DeepSeek**, OpenCode,
@@ -419,7 +424,7 @@ AI Cowork no es solo para los agentes de fábrica: es una plataforma donde conec
 - **Instalar e iniciar sesión**: los pasos «Programas» y «Sesiones» del asistente instalan cada agente con su
   instalador oficial y abren su inicio de sesión, igual que con los de fábrica.
 
-Cómo trabaja un agente de catálogo: AI Cowork lo lanza en la carpeta del proyecto, con la sesión que ya tengas
+Cómo trabaja un agente de catálogo: kywai lo lanza en la carpeta del proyecto, con la sesión que ya tengas
 iniciada en su programa (tu suscripción), le entrega el encargo por stdin o por un archivo (el texto nunca va en la
 línea de órdenes) y recoge lo que responde. **DeepSeek** no tiene programa de terminal ni suscripción propios (es un modelo con clave de API, de pago por uso):
 se conecta a través de Aider con el modelo de DeepSeek fijado. Los agentes que funcionan con una **clave de API**
@@ -447,7 +452,7 @@ Los añadidos en octubre de 2026, con lo que hay que saber de cada uno:
   acceso completo va con `--yolo`.
 
 Ninguno de los de catálogo retoma su sesión anterior en una continuación (eso solo lo hacen Claude y Codex): aunque
-sus programas tengan `--continue` o `--resume`, AI Cowork les da cada encargo con el contexto completo. Un agente que
+sus programas tengan `--continue` o `--resume`, kywai les da cada encargo con el contexto completo. Un agente que
 ya estaba en tu equipo conserva la forma de lanzarlo de cuando lo añadiste: para coger una corrección del catálogo
 (como la de Kiro), quítalo y vuelve a añadirlo. Con «Acceso completo» se le añaden sus argumentos de aprobar todo; al
 planificar, los de solo lectura si los tiene. No informa de tokens ni de cuota, y su salida es texto (sin el paso a
@@ -499,7 +504,7 @@ documentación no confirma y pueden necesitar ajustes.
 - **Gemini CLI** está configurado con una clave de API: si esa clave tiene facturación activa, su uso puede tener coste.
 - **Agente local**: se configura desde el indicador **Local** de la cabecera → «Agente local». Puedes elegir
   **LM Studio** u **Ollama**, el modelo, el nombre del agente y si su uso es sin límite. Con Ollama se pueden
-  descargar modelos desde ahí mismo; con LM Studio se descargan en su aplicación y AI Cowork puede encender su
+  descargar modelos desde ahí mismo; con LM Studio se descargan en su aplicación y kywai puede encender su
   servidor local. Ahora mismo está configurado como **Gemma** (Gemma 4 12B QAT en LM Studio).
 - **El agente local trabaja con herramientas** (solo con LM Studio): lista, busca, lee, crea y edita archivos de la
   carpeta del proyecto, busca en internet y lee páginas web (nunca direcciones de tu red local). Si LM Studio tiene
@@ -507,7 +512,7 @@ documentación no confirma y pueden necesitar ajustes.
   Cada respuesta del modelo se espera el tiempo que haga falta (un modelo local que razona mucho puede tardar más de
   5 minutos en una sola respuesta); solo se dice «Servidor de LM Studio apagado» cuando LM Studio rechaza la conexión.
   Si la corta a mitad, la tarea dice «LM Studio cortó la respuesta» con el motivo.
-- **LM Studio se enciende solo**: si su servidor está apagado, AI Cowork lo enciende (con `lms server start`) al
+- **LM Studio se enciende solo**: si su servidor está apagado, kywai lo enciende (con `lms server start`) al
   arrancar, al pulsar ⟳ en las cuotas (o pedir /cuota) y, si se apagó entre medias, antes de que el agente local
   empiece una tarea; y deja el modelo cargándose
   con 32 k de contexto. La comprobación automática de cada 30 s no lo enciende, para respetar que lo apagues a mano.
@@ -552,18 +557,18 @@ documentación no confirma y pueden necesitar ajustes.
 - **Pegar imágenes**: Ctrl+V en el cuadro de texto adjunta las capturas del portapapeles.
 
 **Cuánto se espera a Hermes.** Un plan normal le lleva entre 20 y 60 segundos, y uno grande, más de 2 minutos solo
-en escribirse. Como Hermes no enseña nada hasta terminar, AI Cowork le espera hasta 6 minutos y después planifica el
+en escribirse. Como Hermes no enseña nada hasta terminar, kywai le espera hasta 6 minutos y después planifica el
 siguiente coordinador. Se le piden planes escuetos (cada tarea en 2 a 6 frases, sin repetir la petición, que los
 agentes ya reciben completa), así que se escriben antes.
 
-### Lo que sabe el coordinador de AI Cowork
+### Lo que sabe el coordinador de kywai
 
-En cada petición, el coordinador recibe una guía de cómo funciona AI Cowork
+En cada petición, el coordinador recibe una guía de cómo funciona kywai
 ([src/main/coordinatorGuide.ts](../src/main/coordinatorGuide.ts)), con datos del momento, para reaccionar bien:
 
-- **Cambios en AI Cowork en sí** (su música, su interfaz, sus funciones): no son trabajo del equipo, que solo
+- **Cambios en kywai en sí** (su música, su interfaz, sus funciones): no son trabajo del equipo, que solo
   trabaja en la carpeta del proyecto. Lo explica en vez de lanzar tareas. Sabe en qué carpeta está el código de
-  AI Cowork en ese equipo: ninguna tarea debe tocarlo (los cambios locales bloquean las actualizaciones), y si la
+  kywai en ese equipo: ninguna tarea debe tocarlo (los cambios locales bloquean las actualizaciones), y si la
   carpeta del proyecto es ese código, avisa antes de tocar nada.
 - **Capturas adjuntas**: Hermes solo lee texto, así que si tu mensaje lleva imágenes planifica y responde quien
   puede verlas (Claude; si no está, Codex o Gemini). Si solo queda Hermes, encarga a Claude o Codex que las miren
@@ -573,19 +578,19 @@ En cada petición, el coordinador recibe una guía de cómo funciona AI Cowork
   Los modelos locales son lentos y flojos investigando o creando: si se piden, avisa de qué saldrá.
 - **Instalar y usar internet**: sabe si está activado «Acceso completo para los agentes». Sin él, no lanza lo que
   necesita instalar (una APK necesita el SDK de Android, Java y Gradle) y pide que se active antes.
-- **Ficha automática del proyecto**: en cada planificación recibe una ficha de la carpeta que AI Cowork hace sin
+- **Ficha automática del proyecto**: en cada planificación recibe una ficha de la carpeta que kywai hace sin
   llamar a ningún modelo: el principio del README, con qué se construye y se prueba (`package.json` y otros
   manifiestos, el comando de pruebas detectado), qué archivos se tocaron en los últimos días y el árbol de carpetas
   (hasta 150 entradas, sin `node_modules`, compilados ni datos de la app). Así el plan y el contrato no salen de
   suposiciones aunque el coordinador no pueda abrir archivos.
 - **Preguntas sobre el proyecto**: Hermes no puede leer los archivos, así que las preguntas que dependen del código
   («¿qué me recomiendas para…?», «¿por qué falla…?») no las contesta de memoria: crea una tarea de texto para Claude
-  o Codex, que sí los leen, y responde él. Hermes contesta directamente solo la charla y las dudas sobre AI Cowork.
+  o Codex, que sí los leen, y responde él. Hermes contesta directamente solo la charla y las dudas sobre kywai.
 - **Peticiones ambiguas**: si no está claro sobre qué trabajar y equivocarse tiraría un trabajo largo (¿la app del
-  proyecto o AI Cowork?), pregunta antes.
-- **Funciones de AI Cowork**: para responder dudas (acceso desde el móvil y sus direcciones, micrófono, órdenes
+  proyecto o kywai?), pregunta antes.
+- **Funciones de kywai**: para responder dudas (acceso desde el móvil y sus direcciones, micrófono, órdenes
   del chat, memoria, consumo…) sin crear tareas. Esta lista (unos 5 000 caracteres) solo se le envía cuando tu
-  petición o tus últimos mensajes hablan de AI Cowork (la app, el móvil, Hermes, las cuotas, los temas…); en una
+  petición o tus últimos mensajes hablan de kywai (la app, el móvil, Hermes, las cuotas, los temas…); en una
   petición de trabajo normal se omite para que el coordinador se concentre en lo que pides.
 - **Agentes con muy poca cuota** (como Muse): solo les da lo que los demás no pueden hacer o trabajo cuando los
   demás están sin cuota.
@@ -593,13 +598,13 @@ En cada petición, el coordinador recibe una guía de cómo funciona AI Cowork
   qué hará cada agente y por qué ese, y lo que da por supuesto (para que lo corrijas). Si le pides cambios, recibe
   su plan anterior y tu respuesta.
 
-Cada tarea recibe además dos reglas: no entregar audio o imágenes de mentira y no tocar el código de AI Cowork.
+Cada tarea recibe además dos reglas: no entregar audio o imágenes de mentira y no tocar el código de kywai.
 Para normas de un proyecto concreto, usa sus instrucciones (pestaña Memoria).
 
 ### Tu visto bueno a cada plan
 
 Antes de que nadie empiece, Hermes (o el coordinador que planifique) te enseña su plan en el chat: qué ha
-entendido, cada tarea con el agente que la hará y por qué ese, y si AI Cowork lo ha ajustado (por ejemplo, juntar
+entendido, cada tarea con el agente que la hará y por qué ese, y si kywai lo ha ajustado (por ejemplo, juntar
 «diseñar» con «construir»). Toca una tarea para ver sus instrucciones. Entonces:
 
 - **«Aprobar y empezar»** (o responder solo «sí», «ok, adelante»…) crea las tareas y el equipo se pone en marcha.
@@ -607,7 +612,7 @@ entendido, cada tarea con el agente que la hará y por qué ese, y si AI Cowork 
   anterior y tu respuesta; el anterior queda plegado como «Plan cambiado por tu respuesta».
 - **«Descartar»** no hace nada.
 
-El plan queda guardado en su mensaje: se puede aprobar aunque AI Cowork se haya reiniciado entre medias. Lo que
+El plan queda guardado en su mensaje: se puede aprobar aunque kywai se haya reiniciado entre medias. Lo que
 dijiste que conviene recordar se anota en la memoria al aprobarlo. Las preguntas y respuestas directas no
 necesitan visto bueno. Para que las tareas empiecen sin esperar, desactiva ⚙ → Ajustes → «Pedir mi visto bueno a cada
 plan» (también en la app del móvil: Ajustes o Herramientas → Planes de Hermes).
@@ -619,7 +624,7 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
 
 - **Un plan** pendiente de tu visto bueno: «Aprobar» o «Descartar» sin ir al chat.
 - **Un permiso de macOS** (Documentos, Escritorio…) que solo se acepta delante del servidor: «Abrir Compartir
-  pantalla» lo abre desde el móvil o el portátil. Para que no vuelva a pasar, da «Acceso total al disco» a AI Cowork.
+  pantalla» lo abre desde el móvil o el portátil. Para que no vuelva a pasar, da «Acceso total al disco» a kywai.
 - **Un agente callado** desde hace rato (suele ser un aviso así en la pantalla del servidor).
 - **Una pregunta** del equipo, una **verificación** que sigue viendo fallos, **choques** al integrar una copia
   aparte o una tarea que **no se pudo hacer** («Deshacer» deja sus archivos como estaban).
@@ -651,7 +656,7 @@ cambiaría de la ganadora. La respuesta final te dice dónde está cada opción 
 la que quieras y puedes pedir que se siga con ella.
 
 Lo pides tú mismo con **«a dos manos»** o **«dos opciones»** en la petición (vale para cualquier cosa, no solo lo
-visual: si el coordinador no lo hace, AI Cowork lo hace por él, siempre que el plan sea una sola tarea con archivos
+visual: si el coordinador no lo hace, kywai lo hace por él, siempre que el plan sea una sola tarea con archivos
 y haya otro agente de otra familia disponible). Con **«a una mano»** o **«una sola versión»** no se hace nunca.
 Tampoco en continuaciones ni correcciones. Gasta el doble, pero es lo que pediste: calidad antes que coste.
 
@@ -684,7 +689,7 @@ resultado: cumple» o «⚠ … sigue viendo fallos», que además queda en la m
 cuenta en «Consumo y tokens…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
 petición, si la tarea es solo de texto o si no hay ningún otro agente de otra familia disponible.
 
-**Si la tarea toca una web** (HTML, CSS, componentes…), AI Cowork la abre antes en una ventana oculta, a tamaño
+**Si la tarea toca una web** (HTML, CSS, componentes…), kywai la abre antes en una ventana oculta, a tamaño
 de escritorio (1280 px) y de móvil (390 px), con un servidor local de solo lectura y sin acceso a la red ni a tus
 datos. Guarda las capturas en `.ai-cowork/verificacion/` del proyecto y apunta los errores de la consola y lo que
 no cargó. El verificador (uno que vea imágenes: Claude, Codex o Gemini) recibe las capturas y esos errores, así
@@ -694,7 +699,7 @@ o `index.html`). Lo ves en «Ver qué está haciendo» de la tarea.
 
 ### Cambios de cada tarea: verlos, deshacerlos y copias aparte
 
-Antes de que una tarea que cambia archivos empiece, AI Cowork guarda una **instantánea** de la carpeta del proyecto,
+Antes de que una tarea que cambia archivos empiece, kywai guarda una **instantánea** de la carpeta del proyecto,
 y otra al terminar. Las guarda en un repositorio git propio (`workspace/instantaneas/<proyecto>.git`), **nunca en el
 `.git` de tu proyecto**, que no se toca: funciona igual si tu carpeta es un repositorio git o no. Respeta sus
 `.gitignore` y deja fuera `node_modules`, compilados (`dist`, `build`…), los datos internos y los archivos de más de
@@ -726,7 +731,7 @@ Bajo cada resultado del chat (el mensaje de una tarea terminada o la respuesta f
 **👍 «Me sirvió»** y **👎 «No me sirvió»**. Pulsar uno guarda tu valoración; volver a pulsarlo la quita. Es la medida
 que faltaba: el registro de consumo sabe cuánto costó cada tarea y si el agente dijo que había terminado, pero no si
 el resultado te sirvió a ti. La valoración queda en `usage-runs.json`, en la llamada de esa tarea (o del plan), y
-entra en la ficha que ve el coordinador: a «historial en AI Cowork (30 días)» se añade «al usuario le sirvieron 7
+entra en la ficha que ve el coordinador: a «historial en kywai (30 días)» se añade «al usuario le sirvieron 7
 de 9 que valoró (2 no)», así que Hermes tiene en cuenta a quién le salen bien las cosas de verdad al repartir. Con
 varios intentos, una tarea cuenta una vez. Con 5 tareas o más, va en la línea «calidad» junto a la verificación y
 los fallos (ver [Cómo rinde cada agente](#cómo-rinde-cada-agente)). De momento se valora desde el escritorio (en
@@ -856,13 +861,13 @@ Cuando quieras que piense (algo que necesita mucha información o pasos), pulsa 
 tarjeta en el Equipo de Órbita) y enciende **«Razonamiento (think)»**; apágalo igual. Se guarda en la
 configuración y vale para todo lo que le mandes después, tanto con `@Agente` como en tareas normales.
 
-- **Cómo se aplica**: AI Cowork manda a LM Studio `enable_thinking` (en `chat_template_kwargs` y suelto) con el
+- **Cómo se aplica**: kywai manda a LM Studio `enable_thinking` (en `chat_template_kwargs` y suelto) con el
   valor del interruptor. Funciona con los modelos cuya plantilla lo admite (la de Qwen sí). Si con el interruptor
   apagado el modelo sigue pensando, tu versión de LM Studio o la plantilla de ese modelo lo ignoran: en LM Studio,
   en los ajustes del modelo, apaga «Enable Thinking» (o «Reasoning») si aparece, o pon `/no_think` al principio
   del mensaje con los modelos Qwen 3.
 - **«Usó una herramienta» que no era tal**: «Preparando el modelo local» y «Leyendo la tarea» salían en la
-  tarjeta como si el agente hubiera usado una herramienta. Eran pasos de AI Cowork: ahora salen como texto
+  tarjeta como si el agente hubiera usado una herramienta. Eran pasos de kywai: ahora salen como texto
   normal. En un mensaje directo el modelo local no tiene herramientas.
 
 Para desarrolladores: el ajuste es `thinking` del agente (solo `provider: 'lmstudio'`; sin indicar, apagado),
@@ -874,10 +879,10 @@ se cambia con `setAgentThinking` (IPC y web) o `POST /api/mobile/v1/agents/{agen
 
 Escribe `/model` (o `/modelo`) en el chat, o pulsa a Hermes en el espacio → **«Modelo»**: ves el que usa ahora y
 la lista de modelos de cada proveedor con el que Hermes tiene sesión (como en `hermes model` en la terminal), con
-buscador. Elige uno y **«Usar …»** (o doble clic): Hermes lo usa desde el próximo encargo. AI Cowork se lo pasa
+buscador. Elige uno y **«Usar …»** (o doble clic): Hermes lo usa desde el próximo encargo. kywai se lo pasa
 en cada encargo (`-m` y `--provider`) sin tocar el `config.yaml` de Hermes; **«Volver al de Hermes»** deja el de
 su configuración. Las listas salen de la caché de Hermes, sin llamadas de pago: para actualizarlas, ejecuta
-`hermes model --refresh` en la terminal del equipo donde corre AI Cowork (el Mac).
+`hermes model --refresh` en la terminal del equipo donde corre kywai (el Mac).
 Los servidores propios de `providers:` (OmniRoute…) salen con su nombre de `config.yaml`; se reconocen aunque
 la caché de Hermes guarde su dirección con una huella al final (`…/v1#…`) o con `localhost` en vez de `127.0.0.1`.
 
@@ -891,7 +896,7 @@ con el navegador.
 - **Para qué se usa**: solo lo que los demás no pueden hacer (ver vídeos) y de refuerzo cuando Claude o Codex se
   quedan sin cuota. Imágenes, capturas, PDFs, búsquedas en internet y código son de Claude y Codex: lo hacen igual
   de bien y así no se gasta la cuota de Muse, que es muy pequeña.
-- **Solo con la suscripción**: AI Cowork le oculta `META_API_KEY` y no fuerza el modelo, así que usa la sesión de
+- **Solo con la suscripción**: kywai le oculta `META_API_KEY` y no fuerza el modelo, así que usa la sesión de
   Muse Code y el que tenga configurado (con el modo Contributor, Meta puede usar lo que le envías para mejorar sus
   modelos; se cambia en `muse` → `/settings`). Muse Image y Muse Voice solo van por API de pago: no se usan.
 - **Permisos**: con «Acceso completo» trabaja sin sandbox (`--yolo`); si no, dentro de su sandbox, sin red para los
@@ -925,32 +930,32 @@ reinicios:
 
 Se guarda en el `project.json` del proyecto.
 
-### AGENTS.md, habilidades y herramientas de AI Cowork
+### AGENTS.md, habilidades y herramientas de kywai
 
 **Instrucciones del repositorio.** Cada CLI lee por su cuenta solo su archivo (Claude, `CLAUDE.md`; Codex,
-`AGENTS.md`; Gemini, `GEMINI.md`). AI Cowork añade al encargo de cada tarea los que ese CLI no lee, así que basta
+`AGENTS.md`; Gemini, `GEMINI.md`). kywai añade al encargo de cada tarea los que ese CLI no lee, así que basta
 con un `AGENTS.md` en la carpeta del proyecto para que todo el equipo siga las mismas reglas. Si dos archivos
 dicen lo mismo (o `CLAUDE.md` solo contiene `@AGENTS.md`), se pone una vez. Se recortan a 6 000 caracteres.
 
 **Habilidades compartidas.** Procedimientos que el equipo reutiliza («cómo publicamos una versión», «informes en
-tres niveles»…). Van en la carpeta `habilidades` de la carpeta de trabajo de AI Cowork: una carpeta por habilidad
+tres niveles»…). Van en la carpeta `habilidades` de la carpeta de trabajo de kywai: una carpeta por habilidad
 con su `SKILL.md` (el mismo formato que las skills de Claude: `name` y `description` en el encabezado y los pasos
 debajo) o un `.md` suelto. Puedes copiar ahí las de `~/.claude/skills`. El encargo de cada tarea lista su nombre y
 para qué sirven, y el agente lee la que encaje.
 
-**Herramientas de AI Cowork (servidor MCP).** Claude trabaja con un servidor MCP propio de AI Cowork
+**Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),
 `anotar_memoria` (queda provisional, como «Para la memoria»), `estado_equipo` (qué hacen ahora los compañeros,
 para no pisarlos), `preguntar_usuario` (deja la pregunta en «Te necesita» y el agente sigue con lo razonable; como
 mucho tres por tarea) y `leer_habilidad`. El servidor solo escucha en 127.0.0.1 y cada tarea lleva su propio
 token, que se anula al terminar. El script lo escribe la app en `mcp/ai-cowork-mcp.cjs` de la carpeta de trabajo
-y lo ejecuta el propio AI Cowork como Node; la configuración de cada tarea va en un archivo `mcp/tarea-….json`
+y lo ejecuta el propio kywai como Node; la configuración de cada tarea va en un archivo `mcp/tarea-….json`
 que se borra al terminar. Codex, Gemini y los agentes de catálogo no lo reciben (no se les puede pasar esa
 configuración por la línea de comandos) y siguen con lo que trae el encargo.
 
 ### Rutinas: peticiones que se lanzan solas
 
-Como AI Cowork corre 24/7 en el servidor, cada proyecto puede tener **rutinas**: una petición que se envía sola al
+Como kywai corre 24/7 en el servidor, cada proyecto puede tener **rutinas**: una petición que se envía sola al
 chat, igual que si la escribieras tú (pasa por el plan del coordinador, los agentes y la verificación). En el chat
 aparece con «**Rutina: <nombre>**» en lugar de «Tú». Se gestionan en la pestaña **Rutinas** del proyecto (también
 desde el navegador del móvil) o escribiendo `/rutina …` en el chat.
@@ -981,7 +986,7 @@ Reglas:
 
 - **Nunca dos a la vez**: si la ejecución anterior de la rutina sigue en marcha (o su plan espera tu visto bueno),
   no se lanza otra: queda apuntada como *Saltada*. Vale también para «Ejecutar ahora» y para los webhooks.
-- **Horas perdidas**: si a la hora de una rutina AI Cowork estaba cerrado (o el equipo en reposo), al volver **no**
+- **Horas perdidas**: si a la hora de una rutina kywai estaba cerrado (o el equipo en reposo), al volver **no**
   se lanza todo lo atrasado: se lanza **una sola vez** y un aviso en el chat dice cuántas veces no se lanzó.
   Al desactivar y volver a activar una rutina, o al cambiarle el horario, cuenta desde ese momento.
 - La rutina de **carpeta** no mira mientras el equipo trabaja en el proyecto (los cambios de los agentes no
@@ -1077,7 +1082,7 @@ API son `listConversations`, `recentConversations`, `newConversation`, `openConv
 La **rueda ⚙** (abajo en la barra lateral) abre un menú corto, como en Claude: arriba dice dónde estás y debajo
 están **Ajustes…** (también **Ctrl+,**; ⌘, en el Mac), **Consumo y tokens…**, **Cómo rinde cada agente…**,
 **Archivos del servidor…** (desde el navegador), **Abrir carpeta del proyecto**, **Buscar actualizaciones…**,
-**Reiniciar AI Cowork** (pulsa dos veces) y **Apoyar AI Cowork ☕**.
+**Reiniciar kywai** (pulsa dos veces) y **Apoyar kywai ☕**.
 
 **Ajustes…** abre una ventana con pestañas a la izquierda:
 
@@ -1087,7 +1092,7 @@ están **Ajustes…** (también **Ctrl+,**; ⌘, en el Mac), **Consumo y tokens�
 - **Conexión**: dónde estás, acceso desde otros dispositivos (en el servidor) y, en un cliente de escritorio,
   sincronizar carpetas, cambiar de servidor y olvidar este dispositivo.
 - **Acerca de**: buscar actualizaciones, actualizar este equipo y recargar la interfaz (cliente), reiniciar y
-  apoyar AI Cowork.
+  apoyar kywai.
 
 Lo que tiene ventana propia (acceso desde otros dispositivos, actualizaciones, sincronizar) se abre en lugar de
 Ajustes, y al cerrarla vuelves a la misma pestaña. Esc o la ✕ cierran. Lo hacen `ui/settings/SettingsDialog.tsx` y
@@ -1142,7 +1147,7 @@ Para comparar con un solo agente (por ejemplo Codex aparte), haz la misma petici
 ### Cómo rinde cada agente
 
 ⚙ → **«Cómo rinde cada agente…»** (también desde el enlace «¿Y la calidad?» de «Consumo y tokens…») enseña, para
-cada agente y por dificultad (difíciles, normales y fáciles, la que pone el coordinador a cada tarea; AI Cowork no
+cada agente y por dificultad (difíciles, normales y fáciles, la que pone el coordinador a cada tarea; kywai no
 clasifica las tareas por tipo), en los últimos 7 o 30 días o en todo el registro, y si quieres solo del proyecto
 abierto:
 
@@ -1227,7 +1232,7 @@ El idioma también vale para el motor (lo que se elige en Ajustes se guarda en `
 aún no se ha elegido, el del sistema). En cualquier idioma que no sea el español:
 
 - **Hermes y los agentes** contestan en ese idioma: el plan («reply», títulos y criterios de cada tarea), lo que cuentan
-  mientras trabajan, el resultado y la respuesta final. Las instrucciones internas que les da AI Cowork siguen en
+  mientras trabajan, el resultado y la respuesta final. Las instrucciones internas que les da kywai siguen en
   español; solo se les pide escribir en el idioma del usuario.
 - **Los avisos del motor** salen en ese idioma: los mensajes del chat (plan repartido, verificación, correcciones, relevo,
   «requiere intervención», deshacer), «Te necesita», lo que hace cada agente (paso a paso y actividad), los errores
@@ -1336,7 +1341,7 @@ recuerda la última elegida):
 - **Radios:** las emisoras de SomaFM (lofi, ambient, jazz, electrónica…), sin anuncios: las mantienen sus oyentes.
   Al elegir la pestaña salen todas; lo que escribas las filtra. En la carátula hay un enlace para apoyarlas.
 
-Audius y las radios suenan en el reproductor de audio de AI Cowork, directamente desde sus servidores públicos
+Audius y las radios suenan en el reproductor de audio de kywai, directamente desde sus servidores públicos
 (api.audius.co y somafm.com). En el sitio del vídeo se ve la carátula y quién la hizo. Una radio no tiene duración
 ni se puede saltar dentro de ella, y no se le busca el BPM (cambia de canción sola).
 
@@ -1347,7 +1352,7 @@ Lo que hace el reproductor en cualquier fuente:
 - **Luces al ritmo:** el espacio sigue el BPM de la canción, sin micrófono. Sus ajustes están plegados.
 
 YouTube suena en su reproductor oficial, que tiene que estar a la vista. Va aislado en su propio marco, sin ningún
-script de YouTube en la ventana de AI Cowork. No se descarga ni se saca el audio de YouTube ni de ningún otro
+script de YouTube en la ventana de kywai. No se descarga ni se saca el audio de YouTube ni de ningún otro
 servicio: por eso no se le pueden quitar los anuncios (para eso están Audius y las radios).
 
 **Minimizar:** con una canción sonando, el botón «Música» (o Esc, o el icono de minimizar) lo deja pequeño en una
@@ -1356,14 +1361,14 @@ lo cierra y lo pausa. El icono de reducir de esa tarjeta lo deja en una barra co
 vídeo en pequeño como carátula (al pasar el ratón por encima se ve la canción); el icono de ampliar de la barra
 vuelve a la tarjeta. Se recuerda cómo se dejó la última vez.
 
-**Luces con el sonido real (sin micrófono):** en la app de escritorio, AI Cowork escucha lo que suena en su propia
+**Luces con el sonido real (sin micrófono):** en la app de escritorio, kywai escucha lo que suena en su propia
 ventana y detecta los golpes:
 - **El pulso:** la luz entera cae en cada golpe del pulso de la canción, y las notas de bajo de en medio dan un
   destello.
 - **Siempre a tiempo:** también con intros, directos y cambios de ritmo.
 - **Nada guardado:** no se graba nada.
 
-Con **Audius y las radios** no hace falta nada de eso: su audio llega directamente a AI Cowork y las luces lo
+Con **Audius y las radios** no hace falta nada de eso: su audio llega directamente a kywai y las luces lo
 escuchan tal cual, también desde el navegador y sin compartir la pestaña.
 
 Con YouTube se activa solo al poner música y se puede apagar en «Luces al ritmo». Desde el navegador del PC, el botón
@@ -1378,7 +1383,7 @@ de su web muchas canciones de discográficas (error 150). Entonces:
 
 Si una canción de Audius o una radio no llega (sin conexión, o el servidor no responde), pasa a la siguiente de la
 cola y ofrece abrirla en su web. Desde el navegador, SomaFM puede rechazar sus radios según la dirección desde la
-que se abre AI Cowork (en una prueba desde «localhost» las rechazó); en la app de escritorio suenan.
+que se abre kywai (en una prueba desde «localhost» las rechazó); en la app de escritorio suenan.
 
 ### Expresiones de los robots
 
@@ -1445,7 +1450,7 @@ con Pillow. Las dos de Órbita (`docs/img/movil-*.jpg`) se hacen a mano en un m�
 
 ### Rendimiento
 
-Lo que hace AI Cowork para ir fluido sin que tengas que tocar nada:
+Lo que hace kywai para ir fluido sin que tengas que tocar nada:
 
 - **Calidad del 3D automática, sin tirones.** Al abrir elige alta, media o baja según el equipo, y mientras lo usas
   la ajusta si los fotogramas no llegan. Ese ajuste solo cambia lo que sale barato de cambiar (resolución,
@@ -1463,13 +1468,13 @@ Lo que hace AI Cowork para ir fluido sin que tengas que tocar nada:
   escritorio: unos 0,6 MB en vez de 4,6 MB la primera vez. Después se queda guardada hasta la siguiente
   actualización (`src/main/staticGzip.ts`).
 
-### Apoyar AI Cowork (donaciones)
+### Apoyar kywai (donaciones)
 
-AI Cowork es gratis. Quien quiera agradecerlo puede invitar al autor a un café en Ko-fi
+kywai es gratis. Quien quiera agradecerlo puede invitar al autor a un café en Ko-fi
 (https://ko-fi.com/yilsander). El enlace está en cuatro sitios:
 
-- **Escritorio y navegador:** ⚙ → **Apoyar AI Cowork ☕**. Abre la página de Ko-fi en el navegador.
-- **Órbita:** Ajustes → **Apoyar AI Cowork** (al final) → **Invitar a un café ☕**.
+- **Escritorio y navegador:** ⚙ → **Apoyar kywai ☕**. Abre la página de Ko-fi en el navegador.
+- **Órbita:** Ajustes → **Apoyar kywai** (al final) → **Invitar a un café ☕**.
 - **GitHub:** el botón **Sponsor** de arriba del repositorio (`.github/FUNDING.yml`) y la insignia Ko-fi de los
   README.
 
@@ -1548,6 +1553,6 @@ push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
 
 ### Licencia
 
-AI Cowork se publica con licencia MIT (archivo `LICENSE` en la raíz, también `"license": "MIT"` en `package.json`):
+kywai se publica con licencia MIT (archivo `LICENSE` en la raíz, también `"license": "MIT"` en `package.json`):
 cualquiera puede usarlo, cambiarlo y compartirlo siempre que mantenga el aviso de copyright. Cada README lo dice en
 su sección final.

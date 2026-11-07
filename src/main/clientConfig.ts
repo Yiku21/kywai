@@ -1,4 +1,4 @@
-// Modo cliente de AI Cowork: esta instalación no ejecuta agentes, se conecta con otro AI Cowork (el principal,
+// Modo cliente de kywai: esta instalación no ejecuta agentes, se conecta con otro kywai (el principal,
 // por ejemplo un Mac mini encendido 24/7) y muestra su interfaz. Aquí, lo que no necesita Electron: la dirección
 // del servidor y el archivo donde se recuerda a qué servidor está emparejado este equipo.
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
@@ -16,7 +16,7 @@ export interface ServerAddress {
 
 /**
  * Acepta lo que la gente escribe: `100.101.1.2`, `mac-mini`, `mac-mini:8787`, `http://100.101.1.2:8787` o el
- * enlace de acceso entero (`http://…:8787/?t=código`). Sin puerto, el de AI Cowork (8787).
+ * enlace de acceso entero (`http://…:8787/?t=código`). Sin puerto, el de kywai (8787).
  */
 export function parseServerAddress(input: string): ServerAddress | null {
   const text = input.trim()

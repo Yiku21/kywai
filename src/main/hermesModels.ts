@@ -115,7 +115,7 @@ function readJson(file: string): Record<string, unknown> {
   }
 }
 
-/** Lo que verá «/model»: el modelo con el que coordina Hermes en AI Cowork y todos los que puede usar. */
+/** Lo que verá «/model»: el modelo con el que coordina Hermes en kywai y todos los que puede usar. */
 export function hermesModelsInfo(agent: AgentConfig | undefined, home = hermesHome()): HermesModelsInfo {
   const cfgFile = join(home, 'config.yaml')
   const cfg = existsSync(cfgFile) ? parseHermesConfig(readFileSync(cfgFile, 'utf8')) : { model: null, named: new Map<string, string>() }

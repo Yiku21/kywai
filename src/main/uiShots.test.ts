@@ -34,7 +34,7 @@ describe('capturas de la interfaz para el verificador', () => {
     expect(pagesToShoot(dir, ['web/about.html', 'web/index.html', 'notas.md'])).toEqual(['web/index.html', 'web/about.html'])
     expect(pagesToShoot(dir, ['src/Boton.tsx'])).toEqual(['dist/index.html'])
     expect(pagesToShoot(dir, ['server/db.js'])).toEqual([])
-    // Lo que no existe o es de AI Cowork no se abre.
+    // Lo que no existe o es de kywai no se abre.
     expect(pagesToShoot(dir, ['borrada.html', '.ai-cowork/x.html'])).toEqual(['dist/index.html'])
     expect(pagesToShoot(project({}), ['src/App.css'])).toEqual([])
   })

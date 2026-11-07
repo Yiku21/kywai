@@ -47,7 +47,7 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SettingsDialog.module.css'
 
-/** Página de Ko-fi del autor: «Apoyar AI Cowork» la abre en el navegador para quien quiera invitar a un café. */
+/** Página de Ko-fi del autor: «Apoyar kywai» la abre en el navegador para quien quiera invitar a un café. */
 export const DONATE_URL = 'https://ko-fi.com/yilsander'
 
 /** Abre (o cierra) la ventana de Ajustes desde cualquier sitio (rueda ⚙, Ctrl+,). */
@@ -187,7 +187,7 @@ function GeneralTab() {
   const currentLang = LANGS.find((l) => l.id === lang()) ?? LANGS[0]
   return (
     <>
-      <Head title={t('General')} hint={t('Cómo se ve y cómo suena AI Cowork en este dispositivo.')} />
+      <Head title={t('General')} hint={t('Cómo se ve y cómo suena kywai en este dispositivo.')} />
       <Row icon={<Languages size={18} />} label="Idioma · Language" hint={t('Textos de la app y de los agentes')}>
         <select
           className={s.select}
@@ -225,7 +225,7 @@ function GeneralTab() {
           <Palette size={18} aria-hidden="true" className={s.rowIcon} />
           <span className={s.rowText}>
             <span className={s.rowLabel}>{t('Tema')}</span>
-            <span className={s.rowHint}>{t('El aspecto de AI Cowork en este dispositivo. Se aplica al momento y se recuerda.')}</span>
+            <span className={s.rowHint}>{t('El aspecto de kywai en este dispositivo. Se aplica al momento y se recuerda.')}</span>
           </span>
           <button type="button" className={cx(u.btn, u.btnSm, s.expand)} aria-expanded={themesOpen} onClick={() => setThemesOpen((v) => !v)}>
             {THEMES.find((x) => x.id === theme)?.name}
@@ -313,7 +313,7 @@ function ConnectionTab({ openSub, client }: { openSub: (s: Sub) => void; client:
   const WhereIcon = where?.role === 'server' ? Server : where?.role === 'client' ? Monitor : Globe
   return (
     <>
-      <Head title={t('Conexión')} hint={t('Dónde estás y cómo llegar a AI Cowork desde otros equipos.')} />
+      <Head title={t('Conexión')} hint={t('Dónde estás y cómo llegar a kywai desde otros equipos.')} />
       {where && (
         <Row
           icon={<WhereIcon size={18} />}
@@ -322,7 +322,7 @@ function ConnectionTab({ openSub, client }: { openSub: (s: Sub) => void; client:
         />
       )}
       {hasBackend && !isWeb && (
-        <Row icon={<Smartphone size={18} />} label={t('Acceso desde otros dispositivos…')} hint={t('Usar AI Cowork desde el móvil o el portátil (Tailscale)')}>
+        <Row icon={<Smartphone size={18} />} label={t('Acceso desde otros dispositivos…')} hint={t('Usar kywai desde el móvil o el portátil (Tailscale)')}>
           <ActionButton onClick={() => openSub('remote')}>{t('Abrir')}</ActionButton>
         </Row>
       )}
@@ -343,7 +343,7 @@ function ConnectionTab({ openSub, client }: { openSub: (s: Sub) => void; client:
           <Row icon={<FolderSync size={18} />} label={t('Sincronizar carpetas…')} hint={t('Mantener una carpeta de este equipo igual que una del servidor')}>
             <ActionButton onClick={() => openSub('sync')}>{t('Abrir')}</ActionButton>
           </Row>
-          <Row icon={<ArrowLeftRight size={18} />} label={t('Cambiar de servidor…')} hint={t('Conectar este equipo con otro AI Cowork')}>
+          <Row icon={<ArrowLeftRight size={18} />} label={t('Cambiar de servidor…')} hint={t('Conectar este equipo con otro kywai')}>
             <ActionButton onClick={() => void actions.switchServer()}>{t('Cambiar')}</ActionButton>
           </Row>
           <Row icon={<LogOut size={18} />} label={t('Olvidar este dispositivo y desconectar')} hint={t('Deja de estar emparejado; para volver hará falta un código nuevo')}>
@@ -426,7 +426,7 @@ function AboutTab({ openSub }: { openSub: (s: Sub) => void }) {
       {hasBackend && (
         <Row
           icon={<RotateCcw size={18} />}
-          label={t('Reiniciar AI Cowork')}
+          label={t('Reiniciar kywai')}
           hint={restart.confirming ? t('Se detendrán las tareas en curso') : t('Por si se queda pillada: la cierra y la vuelve a abrir')}
         >
           <ActionButton danger={restart.confirming} onClick={restart.run}>
@@ -434,7 +434,7 @@ function AboutTab({ openSub }: { openSub: (s: Sub) => void }) {
           </ActionButton>
         </Row>
       )}
-      <Row icon={<Coffee size={18} />} label={t('Apoyar AI Cowork ☕')} hint={t('Si te gusta la app, invítame a un café en Ko-fi')}>
+      <Row icon={<Coffee size={18} />} label={t('Apoyar kywai ☕')} hint={t('Si te gusta la app, invítame a un café en Ko-fi')}>
         <ActionButton onClick={openDonate}>Ko-fi</ActionButton>
       </Row>
     </>

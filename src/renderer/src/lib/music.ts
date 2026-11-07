@@ -292,7 +292,7 @@ async function requestTempo(query: TempoQuery): Promise<TempoLookupResult> {
   return { match: null, note: t('Sin la app de escritorio no se puede consultar el BPM') }
 }
 
-/** Busca el BPM publicado de la canción actual (Deezer, a través de AI Cowork). */
+/** Busca el BPM publicado de la canción actual (Deezer, a través de kywai). */
 export async function lookupTempo(): Promise<void> {
   const { videoId } = useMusic.getState()
   const track = currentTrack()

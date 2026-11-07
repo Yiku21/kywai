@@ -22,7 +22,7 @@ export const PAIRING_PIN_TTL_MS = 10 * 60_000
 
 /**
  * Clave con la que se firman los tokens del móvil, guardada en `file` (se crea la primera vez). Así los móviles
- * emparejados siguen valiendo al reiniciar o actualizar AI Cowork; antes cada arranque los invalidaba y la app del
+ * emparejados siguen valiendo al reiniciar o actualizar kywai; antes cada arranque los invalidaba y la app del
  * móvil volvía a pedir el código.
  */
 export function mobileSigningKey(file: string): Buffer {

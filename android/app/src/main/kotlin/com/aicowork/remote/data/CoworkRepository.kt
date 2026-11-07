@@ -131,7 +131,7 @@ sealed interface LiveEvent {
     data class RequestFinished(val requestId: String, val ok: Boolean) : LiveEvent
 }
 
-private val unsupported = ActionResult(false, t("El ordenador todavía no admite esto: actualiza AI Cowork en el ordenador."))
+private val unsupported = ActionResult(false, t("El ordenador todavía no admite esto: actualiza kywai en el ordenador."))
 
 /** Lo que la interfaz puede pedir. La implementación real es [CoworkRepository]; las pruebas usan un doble. */
 interface CoworkController {
@@ -241,7 +241,7 @@ class CoworkRepository(
             cache.clear()
             _state.value = CoworkUiState(
                 previousSession = session,
-                notice = if (session.demo) t("Empareja con tu ordenador para usar el servidor real de AI Cowork.") else null,
+                notice = if (session.demo) t("Empareja con tu ordenador para usar el servidor real de kywai.") else null,
             )
             return
         }

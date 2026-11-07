@@ -149,7 +149,7 @@ fun MemoryPanel(model: OrbitaModel, state: CoworkUiState) {
                 }
             }
             if (!canEdit) item {
-                Note(Icons.Outlined.Info, t("Solo lectura"), t("Para confirmar, descartar o añadir recuerdos desde el móvil, actualiza AI Cowork en el ordenador."))
+                Note(Icons.Outlined.Info, t("Solo lectura"), t("Para confirmar, descartar o añadir recuerdos desde el móvil, actualiza kywai en el ordenador."))
             }
             item {
                 SectionLabel(t("Por revisar")) { if (pending.isNotEmpty()) CountBadge(pending.size) }
@@ -295,7 +295,7 @@ fun ToolsPanel(model: OrbitaModel, state: CoworkUiState) {
                 Note(
                     Icons.Outlined.Info,
                     t("Por qué no se pueden conectar"),
-                    t("AI Cowork todavía no se conecta con servicios externos. Los agentes trabajan con sus propias herramientas (Claude Code, Codex, Gemini…), la carpeta del proyecto y los archivos que les des."),
+                    t("kywai todavía no se conecta con servicios externos. Los agentes trabajan con sus propias herramientas (Claude Code, Codex, Gemini…), la carpeta del proyecto y los archivos que les des."),
                 )
             }
             if (snapshot != null) {
@@ -342,7 +342,7 @@ fun ToolsPanel(model: OrbitaModel, state: CoworkUiState) {
                             )
                         }
                     } else {
-                        Note(Icons.Outlined.Info, t("Solo desde el ordenador"), t("Para cambiar el acceso desde el móvil, actualiza AI Cowork en el ordenador."))
+                        Note(Icons.Outlined.Info, t("Solo desde el ordenador"), t("Para cambiar el acceso desde el móvil, actualiza kywai en el ordenador."))
                     }
                 }
                 if (snapshot.capabilities.planApproval) item {
@@ -566,7 +566,7 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
             item {
                 SectionLabel(t("Ordenador"))
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
-                    Text(session?.serverName ?: "AI Cowork", color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
+                    Text(session?.serverName ?: "kywai", color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
                     Text(session?.serverUrl.orEmpty(), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(6.dp))
                     val status = when (val c = state.connection) {
@@ -607,7 +607,7 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
                     Text(session?.deviceName.orEmpty(), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
                     Text(t("Emparejado: {v1}", "v1" to (Format.dateTime(session?.pairedAt))), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
-                    Text(t("Queda emparejado: solo se desempareja si generas un código de acceso nuevo en AI Cowork o lo desvinculas aquí."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                    Text(t("Queda emparejado: solo se desempareja si generas un código de acceso nuevo en kywai o lo desvinculas aquí."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(10.dp))
                     OrbitaButton(t("Desvincular este móvil"), onClick = { confirmForget = true }, icon = Icons.Outlined.LinkOff, style = ButtonStyle.Danger, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth())
                 }
@@ -627,16 +627,16 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
     }
 }
 
-/** Página de Ko-fi del autor; la misma que ⋮ → «Apoyar AI Cowork ☕» en el ordenador. */
+/** Página de Ko-fi del autor; la misma que ⋮ → «Apoyar kywai ☕» en el ordenador. */
 const val DONATE_URL = "https://ko-fi.com/yilsander"
 
-/** Ajustes → Apoyar AI Cowork: abre la página de Ko-fi en el navegador del móvil para quien quiera invitar a un café. */
+/** Ajustes → Apoyar kywai: abre la página de Ko-fi en el navegador del móvil para quien quiera invitar a un café. */
 @Composable
 private fun SupportSection(model: OrbitaModel) {
     val context = LocalContext.current
-    SectionLabel(t("Apoyar AI Cowork"))
+    SectionLabel(t("Apoyar kywai"))
     Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
-        Text(t("AI Cowork es gratis. Si te gusta, puedes invitarme a un café en Ko-fi para que siga mejorándolo."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+        Text(t("kywai es gratis. Si te gusta, puedes invitarme a un café en Ko-fi para que siga mejorándolo."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(10.dp))
         OrbitaButton(
             t("Invitar a un café ☕"),
@@ -687,7 +687,7 @@ private fun ServerUpdateSection(model: OrbitaModel, available: Boolean) {
     SectionLabel(t("Servidor"))
     Column(Modifier.fillMaxWidth().card().padding(14.dp).testTag("server-update")) {
         val i = info
-        Text(i?.current?.let { t("Versión {hash} · {date}", "hash" to it.hash, "date" to it.date) } ?: t("AI Cowork en el servidor"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
+        Text(i?.current?.let { t("Versión {hash} · {date}", "hash" to it.hash, "date" to it.date) } ?: t("kywai en el servidor"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
         Text(
             serverUpdateText(i, error, checking, started, available),
             color = if (error != null) Orbita.Warn else Orbita.TextSoft,

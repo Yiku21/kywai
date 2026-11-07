@@ -135,7 +135,7 @@ class EventReducerTest {
         assertEquals(ReduceResult.Ignored, reduce("""{"type":"run.started","sequence":5,"payload":{"runId":"r9","projectId":"otro"}}"""))
         assertEquals(ReduceResult.Ignored, reduce("""{"type":"chat.cleared","sequence":5,"payload":{"projectId":"otro"}}"""))
         assertTrue(reduce("""{"type":"chat.cleared","sequence":5,"payload":{"projectId":"c1"}}""") is ReduceResult.NeedsResync)
-        // Mensaje de esta conversación con los campos que envía AI Cowork (runId, projectId, conversationId).
+        // Mensaje de esta conversación con los campos que envía kywai (runId, projectId, conversationId).
         val mine = applied("""{"type":"message.upsert","sequence":5,"payload":{"id":"ev","ts":1,"message":{"id":"m9","projectId":"c1","conversationId":"c1","runId":"r1","author":{"type":"user"},"text":"Hola","createdAt":5}}}""")
         assertEquals("r1", mine.conversation.messages.last().requestId)
         // Los agentes son globales.

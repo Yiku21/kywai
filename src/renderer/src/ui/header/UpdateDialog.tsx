@@ -166,7 +166,7 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
               </button>
             )}
           </div>
-          {updating && <p className={s.note}>{t('AI Cowork se reiniciará al terminar (unos minutos si hay que compilar). Las tareas en curso se detendrán.')}</p>}
+          {updating && <p className={s.note}>{t('kywai se reiniciará al terminar (unos minutos si hay que compilar). Las tareas en curso se detendrán.')}</p>}
         </div>
 
         {error && (

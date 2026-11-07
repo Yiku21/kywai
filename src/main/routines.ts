@@ -279,7 +279,7 @@ export function scheduleDecision(r: Routine, now: number): ScheduleDecision {
 
 function lateNote(d: ScheduleDecision, now: number): string {
   const times = d.missed === 1 ? tr('una vez') : tr('{missed} veces', { missed: d.missed })
-  return tr('No se lanzó a su hora ({times}; la última, {describeWhen}) porque AI Cowork estaba cerrado o el equipo en reposo. Se lanza una sola vez ahora; las demás no se recuperan.', { times, describeWhen: describeWhen(d.slot!, now) })
+  return tr('No se lanzó a su hora ({times}; la última, {describeWhen}) porque kywai estaba cerrado o el equipo en reposo. Se lanza una sola vez ahora; las demás no se recuperan.', { times, describeWhen: describeWhen(d.slot!, now) })
 }
 
 function notice(projectId: string, r: Routine, text: string): void {
@@ -470,7 +470,7 @@ export function initRoutines(d: RoutineDeps, opts: { firstCheckMs?: number } = {
       for (const run of r.runs) {
         if (run.status === 'running') {
           run.status = 'interrupted'
-          run.note = [run.note, tr('Se cerró AI Cowork mientras trabajaba.')].filter(Boolean).join(' ')
+          run.note = [run.note, tr('Se cerró kywai mientras trabajaba.')].filter(Boolean).join(' ')
           touched = true
         }
       }

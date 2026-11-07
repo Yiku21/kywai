@@ -111,7 +111,7 @@ export function HermesModelRow({ agent }: { agent: AgentConfig }) {
       <span className={s.rowText}>
         <span className={s.hermesModel}>{current.model || t('El de su configuración')}</span>
         <span className={s.hint}>
-          {current.provider || t('su proveedor')} · {current.fromApp ? t('elegido en AI Cowork') : t('el de la configuración de Hermes')}
+          {current.provider || t('su proveedor')} · {current.fromApp ? t('elegido en kywai') : t('el de la configuración de Hermes')}
         </span>
       </span>
       <span className={s.hermesChange}>{t('Cambiar')}</span>

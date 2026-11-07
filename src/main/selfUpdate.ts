@@ -1,4 +1,4 @@
-// Actualizar AI Cowork desde GitHub. El código vive en un clon de git (en desarrollo, la propia carpeta del
+// Actualizar kywai desde GitHub. El código vive en un clon de git (en desarrollo, la propia carpeta del
 // proyecto; en el Mac y en Linux, la carpeta desde la que se instaló con scripts/instalar-mac.sh o instalar-linux.sh). Buscar = git fetch y comparar.
 // Actualizar = git pull + dependencias (si cambiaron) + compilar + reinstalar y reiniciar. Si algo falla
 // después de descargar, se vuelve a la versión anterior.
@@ -211,7 +211,7 @@ export async function applyUpdate(setAside = false): Promise<string> {
     await step(tr('Descargando los cambios de GitHub'), `git pull --ff-only origin ${status.branch}`, dir, 5 * 60_000)
     const changed = (await git(dir, `diff --name-only ${base} HEAD`)).out
     if (/(^|\n)package(-lock)?\.json$/m.test(changed)) await step(tr('Actualizando dependencias'), 'npm install --no-audit --no-fund', dir)
-    await step(tr('Compilando AI Cowork'), buildCommand(), dir)
+    await step(tr('Compilando kywai'), buildCommand(), dir)
   } catch (e) {
     // Vuelve a la versión anterior para no dejar la app a medias.
     emit({ kind: 'update.log', line: tr('↺ Volviendo a la versión anterior…') })
@@ -221,7 +221,7 @@ export async function applyUpdate(setAside = false): Promise<string> {
     return tr('No se pudo actualizar: {message}', { message: (e as Error).message })
   }
 
-  emit({ kind: 'update.log', line: tr('✓ Listo. Reiniciando AI Cowork…') })
+  emit({ kind: 'update.log', line: tr('✓ Listo. Reiniciando kywai…') })
   const bundle = app.isPackaged && IS_MAC ? runningBundle() : null
   const linuxDir = app.isPackaged ? runningLinuxDir() : null
   if (linuxDir) {

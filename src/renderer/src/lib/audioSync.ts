@@ -1,5 +1,5 @@
 /**
- * Luces con el sonido real, sin micrófono: AI Cowork escucha lo que suena en su propia ventana (en la app de
+ * Luces con el sonido real, sin micrófono: kywai escucha lo que suena en su propia ventana (en la app de
  * escritorio) o, desde el navegador del PC, en su pestaña si se comparte, y detecta los golpes (bombo y bajo) para
  * que las luces caigan en cada uno. No se graba ni se guarda nada: solo se mide la energía de los graves en cada
  * momento.

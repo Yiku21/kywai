@@ -185,7 +185,7 @@ export function notifyMacPermission(p: { service: string; serviceLabel: string; 
     title: tr('macOS pide permiso para «{serviceLabel}» en la pantalla del servidor', { serviceLabel: p.serviceLabel }),
     detail:
       p.detail ??
-      tr('Un agente está esperando a que se acepte el aviso de Privacidad de macOS, y solo se puede aceptar delante del Mac. Ábrelo con Compartir pantalla y pulsa «Permitir»; para que no vuelva a pasar, activa «Acceso total al disco» para AI Cowork (Ajustes del Sistema → Privacidad y seguridad).'),
+      tr('Un agente está esperando a que se acepte el aviso de Privacidad de macOS, y solo se puede aceptar delante del Mac. Ábrelo con Compartir pantalla y pulsa «Permitir»; para que no vuelva a pasar, activa «Acceso total al disco» para kywai (Ajustes del Sistema → Privacidad y seguridad).'),
     taskId: p.taskId,
     agentId: p.agentId,
     projectId: p.projectId,

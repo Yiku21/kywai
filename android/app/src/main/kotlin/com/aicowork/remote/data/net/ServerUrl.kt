@@ -23,7 +23,7 @@ object ServerUrl {
      */
     fun parse(input: String): ServerUrlResult {
         val trimmed = input.trim().trimEnd('/')
-        if (trimmed.isEmpty()) return ServerUrlResult.Invalid(t("Escribe la dirección del ordenador con AI Cowork"))
+        if (trimmed.isEmpty()) return ServerUrlResult.Invalid(t("Escribe la dirección del ordenador con kywai"))
         if (trimmed.any { it.isWhitespace() }) return ServerUrlResult.Invalid(t("La dirección no puede tener espacios"))
         val withScheme = if ("://" in trimmed) trimmed else "https://$trimmed"
         val scheme = withScheme.substringBefore("://").lowercase()
@@ -34,7 +34,7 @@ object ServerUrl {
         if (url.host.isBlank()) return ServerUrlResult.Invalid(t("Falta el nombre o la IP del ordenador"))
         if (!url.isHttps && url.host !in LOCAL_HOSTS) {
             return ServerUrlResult.Invalid(
-                t("Por seguridad la conexión debe ser https://. AI Cowork ofrece HTTPS en el puerto 8788 o mediante Tailscale Serve.")
+                t("Por seguridad la conexión debe ser https://. kywai ofrece HTTPS en el puerto 8788 o mediante Tailscale Serve.")
             )
         }
         return ServerUrlResult.Valid(url.newBuilder().encodedPath("/").query(null).fragment(null).build())

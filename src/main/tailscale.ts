@@ -1,5 +1,5 @@
 // HTTPS para el acceso web con Tailscale Serve: el móvil abre https://<equipo>.<red>.ts.net (certificado de
-// Tailscale, solo dentro de tu red) y Tailscale lo pasa a AI Cowork en 127.0.0.1. Los navegadores solo dejan
+// Tailscale, solo dentro de tu red) y Tailscale lo pasa a kywai en 127.0.0.1. Los navegadores solo dejan
 // usar el micrófono en páginas HTTPS, así que sin esto el dictado no funciona desde el móvil.
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -62,7 +62,7 @@ export function rootTarget(json: string): string | null {
   return null
 }
 
-/** Ese destino es AI Cowork en este puerto. */
+/** Ese destino es kywai en este puerto. */
 export function isOurTarget(target: string | null, port: number): boolean {
   return !!target && new RegExp(`^(https?://)?(127\\.0\\.0\\.1|localhost):${port}/?$`).test(target)
 }
@@ -88,7 +88,7 @@ export async function httpsInfo(port: number): Promise<WebHttpsInfo> {
   return { available: true, active, url: active ? `https://${st.dnsName}` : null, problem }
 }
 
-/** Publica AI Cowork por HTTPS dentro de la red de Tailscale (queda guardado en Tailscale, también tras reiniciar). */
+/** Publica kywai por HTTPS dentro de la red de Tailscale (queda guardado en Tailscale, también tras reiniciar). */
 export async function enableHttps(port: number): Promise<WebHttpsInfo> {
   const before = await httpsInfo(port)
   if (before.active || !before.available || before.problem) return before
@@ -102,7 +102,7 @@ export async function enableHttps(port: number): Promise<WebHttpsInfo> {
   throw new Error(`Tailscale no pudo activar HTTPS: ${lastLine(r.out)}`)
 }
 
-/** Quita la publicación por HTTPS (solo si es la de AI Cowork). */
+/** Quita la publicación por HTTPS (solo si es la de kywai). */
 export async function disableHttps(port: number): Promise<WebHttpsInfo> {
   const cli = await findCli()
   if (!cli) return httpsInfo(port)

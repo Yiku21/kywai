@@ -1,6 +1,6 @@
-# AI Cowork — contexto para seguir trabajando desde cualquier sitio
+# kywai — contexto para seguir trabajando desde cualquier sitio
 
-Documento de traspaso: lo que hace falta saber para retomar el desarrollo de AI Cowork en un chat nuevo, en otro
+Documento de traspaso: lo que hace falta saber para retomar el desarrollo de kywai en un chat nuevo, en otro
 equipo o desde el móvil, sin depender de la memoria de ninguna conversación anterior. Complementa al
 [README](../README.md) (la presentación) y al [MANUAL](MANUAL.md) (cada función en detalle).
 
@@ -10,7 +10,7 @@ Estado: **12–13 de octubre de 2026**. Rama de trabajo: `master`, publicada en 
 
 ## 1. Qué es y quién lo usa
 
-AI Cowork es una app de escritorio (Electron + React + Three.js) que junta las suscripciones de IA que el usuario
+kywai es una app de escritorio (Electron + React + Three.js) que junta las suscripciones de IA que el usuario
 ya paga (Claude Code, Codex CLI, Gemini CLI, Muse Code, un modelo local por Ollama…) en **un equipo de agentes**:
 
 1. El usuario escribe lo que necesita en el chat.
@@ -33,7 +33,7 @@ quitar agentes y elegir quién coordina (no tiene por qué ser Hermes).
 
 | Pieza | Dónde corre | Qué es | Cómo se actualiza |
 |---|---|---|---|
-| **Servidor** («AI Cowork principal») | Mac mini `mac-mini`, encendido 24/7, por Tailscale | La app de escritorio con el motor: lanza los agentes, guarda proyectos, sirve la web y la API móvil | ⋮ → «Buscar actualizaciones…» (descarga de GitHub, instala y reinicia) |
+| **Servidor** («kywai principal») | Mac mini `mac-mini`, encendido 24/7, por Tailscale | La app de escritorio con el motor: lanza los agentes, guarda proyectos, sirve la web y la API móvil | ⋮ → «Buscar actualizaciones…» (descarga de GitHub, instala y reinicia) |
 | **Escritorio** | Windows (este PC de desarrollo) / Mac | La misma app, con su propio motor | Igual que el servidor |
 | **Cliente** | Otro Windows/Mac | App instalada que se conecta al servidor: ve sus proyectos, abre sus carpetas y archivos, sincroniza carpetas | La interfaz viene del servidor (se actualiza con él). La parte nativa (ventana y puente) se publica con `npm run publicar-cliente` y los clientes la bajan **del servidor** (⋮ → «Actualizar este equipo…») |
 | **Navegador** | Cualquiera, por Tailscale | La misma interfaz servida por el servidor (`?t=<código>` en el enlace) | Con el servidor |
@@ -64,7 +64,7 @@ src/
     agents/           un lector por programa (claude, codex, gemini, muse, ollama…) y generic.ts (catálogo)
     taskTrace.ts      registro paso a paso de cada tarea (workspace/traces, 30 días)
     progressFiles.ts  qué archivos nuevos merecen enseñarse en el chat mientras una tarea trabaja
-    coordinatorGuide.ts  lo que Hermes sabe de AI Cowork (se inyecta en cada planificación) + test
+    coordinatorGuide.ts  lo que Hermes sabe de kywai (se inyecta en cada planificación) + test
     projectBrief.ts   ficha automática de la carpeta del proyecto para el coordinador (README, pruebas, árbol) + test
     agentSessions.ts  última sesión de CLI de cada agente por proyecto, para retomarla en continuaciones y correcciones + test
     routines.ts       rutinas por proyecto: peticiones que se lanzan solas (horario, webhook /hooks/…, carpeta) + test
@@ -255,7 +255,7 @@ pruebas en emulador). Tras publicar, se commitea `android/release` junto con el 
 **Con acceso al repositorio** (Claude Code en cualquier equipo):
 
 ```bash
-git clone <repositorio de AI Cowork> && cd "AI Cowork"
+git clone <repositorio de kywai> && cd "kywai"
 npm install
 git log --oneline | head -20      # qué se hizo último
 ```
@@ -268,6 +268,6 @@ con el archivo y la función afectados; el cambio real se aplica desde una sesi�
 
 **Plantilla para empezar un chat nuevo:**
 
-> Trabajamos en AI Cowork (Electron + React + Three.js, con la app Android Órbita). Lee `docs/CONTEXTO-DEL-PROYECTO.md`
+> Trabajamos en kywai (Electron + React + Three.js, con la app Android Órbita). Lee `docs/CONTEXTO-DEL-PROYECTO.md`
 > y la sección relevante de `docs/MANUAL.md`. Hoy quiero: <qué>. Sigue las reglas del documento (commits por mejora,
 > subir a master, archivos uno a uno, documentar en el MANUAL).
