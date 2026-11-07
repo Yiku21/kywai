@@ -2043,8 +2043,6 @@ export const en: Record<string, string> = {
   'Ancho del chat': 'Chat width',
   'Arrastra para cambiar el ancho del chat · doble clic: ancho automático': 'Drag to change the chat width · double-click: automatic width',
   // Barra lateral, buscador y conversaciones
-  'Abrir la barra lateral: conversaciones, proyectos y ajustes': 'Open the sidebar: conversations, projects and settings',
-  'Conversaciones, proyectos y ajustes': 'Conversations, projects and settings',
   'Ajustes y más opciones': 'Settings and more options',
   'Sonido': 'Sound',
   'Silenciado': 'Muted',

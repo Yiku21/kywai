@@ -1925,8 +1925,6 @@ export const zh: Record<string, string> = {
   'Apagado: responde directamente, más rápido.': '关闭：直接回答，更快。',
   'Ancho del chat': '聊天宽度',
   'Arrastra para cambiar el ancho del chat · doble clic: ancho automático': '拖动以调整聊天宽度 · 双击：自动宽度',
-  "Abrir la barra lateral: conversaciones, proyectos y ajustes": "打开侧边栏：对话、项目和设置",
-  "Conversaciones, proyectos y ajustes": "对话、项目和设置",
   "Ajustes y más opciones": "设置和更多选项",
   "Sonido": "声音",
   "Silenciado": "已静音",

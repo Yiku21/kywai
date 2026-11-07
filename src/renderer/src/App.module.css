@@ -152,8 +152,9 @@
 
 /* Ventana estrecha: el chat ocupa toda la ventana y el 3D va en la pestaña «Espacio» de la cabecera. */
 @media (max-width: 949.98px) {
+  /* La barra lateral queda plegada en su columna de iconos, a lo largo, bajo el logo de la cabecera. */
   .side {
-    padding: 0;
+    padding: 0 0 10px 10px;
   }
   .body,
   .body[data-expanded='true'],

@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { Building2, MessageSquare, PanelLeft } from 'lucide-react'
+import { Building2, MessageSquare } from 'lucide-react'
 import { useCowork, useData, type DataSlice } from '@/store/cowork'
 import { useMediaQuery } from './common/hooks'
 import { TABS_QUERY } from './left/chatWidth'
@@ -35,17 +35,6 @@ export function Header() {
   return (
     <header className={s.header}>
       <div className={s.brand}>
-        {mobile && (
-          <button
-            type="button"
-            className={cx(u.iconBtn, s.headerBtn)}
-            aria-label={t('Abrir la barra lateral: conversaciones, proyectos y ajustes')}
-            title={t('Conversaciones, proyectos y ajustes')}
-            onClick={() => useCowork.setState({ drawerOpen: true })}
-          >
-            <PanelLeft size={18} aria-hidden="true" />
-          </button>
-        )}
         <LogoMark />
         <span className={s.title}>kywai</span>
         <span className={s.divider} aria-hidden="true" />
