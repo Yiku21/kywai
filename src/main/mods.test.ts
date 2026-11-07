@@ -103,6 +103,8 @@ describe('mods', () => {
     const { html, chat } = modPanelHtml('pan', 'p')
     expect(html.startsWith('<!doctype html><meta http-equiv="Content-Security-Policy"')).toBe(true)
     expect(html).not.toContain('connect-src https:')
+    // Ni siquiera un formulario puede mandar nada fuera ni cambiar la página por otra.
+    expect(html).toContain("form-action 'none'")
     expect(html).toContain('src="data:image/png;base64,')
     expect(html).toContain('src="data:text/javascript;base64,')
     expect(chat).toBe(false)

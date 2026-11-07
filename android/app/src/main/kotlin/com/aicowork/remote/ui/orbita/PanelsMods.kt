@@ -111,6 +111,9 @@ internal fun modContext(snapshot: Snapshot?): String {
     }.toString()
 }
 
+/** Dirección de la página del panel (cargada sin dirección base). */
+private const val PANEL_URL = "about:blank"
+
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
 private fun ModPage(model: OrbitaModel, panel: ModPanelInfo, page: ModPanelPage, snapshot: Snapshot?) {
@@ -119,7 +122,11 @@ private fun ModPage(model: OrbitaModel, panel: ModPanelInfo, page: ModPanelPage,
     var view by remember { mutableStateOf<WebView?>(null) }
     var proposal by remember(panel.mod, panel.id) { mutableStateOf<String?>(null) }
     val main = remember { Handler(Looper.getMainLooper()) }
-    fun push(w: WebView?) = w?.evaluateJavascript("window.postMessage($latest,'*')", null)
+    // El contexto solo va a la página del panel: si por lo que sea se cambia por otra, se le quita el puente.
+    var left by remember(panel.mod, panel.id) { mutableStateOf(false) }
+    fun push(w: WebView?) {
+        if (w != null && !left && w.url == PANEL_URL) w.evaluateJavascript("window.postMessage($latest,'*')", null)
+    }
 
     AndroidView(
         factory = { ctx ->
@@ -132,6 +139,15 @@ private fun ModPage(model: OrbitaModel, panel: ModPanelInfo, page: ModPanelPage,
                 // La página no sale de sí misma: ningún enlace abre otra dentro (tendría el puente).
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = true
+
+                    // Un formulario con POST no pasa por shouldOverrideUrlLoading: se corta aquí.
+                    override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
+                        if (url != PANEL_URL) {
+                            left = true
+                            view.stopLoading()
+                            view.removeJavascriptInterface("KywaiBridge")
+                        }
+                    }
                     override fun onPageFinished(view: WebView, url: String?) {
                         push(view)
                     }
@@ -147,13 +163,13 @@ private fun ModPage(model: OrbitaModel, panel: ModPanelInfo, page: ModPanelPage,
                         fun send(text: String) {
                             main.post {
                                 val clean = text.trim().take(8000)
-                                if (page.chat && clean.isNotEmpty() && proposal == null) proposal = clean
+                                if (!left && page.chat && clean.isNotEmpty() && proposal == null) proposal = clean
                             }
                         }
                     },
                     "KywaiBridge",
                 )
-                loadDataWithBaseURL(null, page.html, "text/html", "utf-8", null)
+                loadDataWithBaseURL(PANEL_URL, page.html, "text/html", "utf-8", PANEL_URL)
                 view = this
             }
         },
