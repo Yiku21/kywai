@@ -212,9 +212,9 @@ export function twoHandsPlan<T extends HandTask>(tasks: T[], userText: string, a
  * 'contract': acuerdo común para las tareas que se hacen a la vez (archivos de cada una, funciones, rutas…).
  * 'memory': lo que el usuario decidió o pidió en este mensaje y hay que recordar (sin validar: ver memory.ts).
  */
-export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[] } {
+export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[]; routine: string } {
   const o = extractJsonObject(text)
-  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [] }
+  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [], routine: '' }
   const c = o.contract
   const contract = typeof c === 'string' ? c.trim() : c && typeof c === 'object' ? JSON.stringify(c, null, 2) : ''
   return {
@@ -222,7 +222,9 @@ export function parsePlan(text: string): { reply: string; tasks: unknown[]; vali
     tasks: Array.isArray(o.tasks) ? o.tasks : [],
     valid: true,
     contract: contract.slice(0, 12_000),
-    memory: Array.isArray(o.memory) ? o.memory : []
+    memory: Array.isArray(o.memory) ? o.memory : [],
+    // La rutina que propone crear, como la orden «/rutina …» (se valida con parseRoutineCommand).
+    routine: typeof o.routine === 'string' ? o.routine.trim().slice(0, 9000) : ''
   }
 }
 

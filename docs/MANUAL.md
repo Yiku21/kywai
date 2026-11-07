@@ -1375,6 +1375,13 @@ No va a los agentes: se crea la rutina (activa) y debajo del cuadro de texto se 
 Desde **Órbita** (o cualquier cliente que mande el texto tal cual) funciona igual: el servidor crea la rutina y
 contesta en el chat con su horario y la próxima vez, o con la ayuda si no entiende el horario; tampoco pasa por Hermes.
 
+**Hermes te la propone**: si le pides algo que se repite o para más tarde («cada mañana revisa los PR», «mañana a
+las 7 comprueba la web», «cuando llegue un PR, revísalo»), además de su respuesta (y, si tiene sentido, de hacerlo ya
+la primera vez) sale en el chat una tarjeta verde **Rutina propuesta** con el nombre, el horario y la petición:
+**Crear rutina** la crea activa (pasa a «Rutina creada», con «Ver en Rutinas»), **Cambiar** pone su orden
+`/rutina …` en el cuadro de texto para que la retoques y la envíes, y **Descartar** no crea nada. Hermes nunca la crea
+por su cuenta, y lo que lanza una rutina no propone otra.
+
 **En la pestaña Rutinas**: crear y editar (nombre, petición y disparador), activar o desactivar con el interruptor,
 **Ejecutar ahora**, ver la próxima hora, la última ejecución y el **historial** (las 20 últimas: hora, por qué se
 lanzó —a su hora, hora perdida, webhook, carpeta, a mano— y cómo acabó). Estados: *En marcha*, *Esperando tu visto

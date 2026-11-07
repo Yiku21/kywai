@@ -106,11 +106,12 @@ describe('lo que sabe el coordinador de kywai', () => {
     expect(lean.length).toBeLessThan(full.length - 4000)
   })
 
-  it('conoce las rutinas y las sugiere para lo periódico en vez de montar un cron', () => {
+  it('conoce las rutinas y las propone (tarjeta «Crear rutina») para lo periódico en vez de montar un cron', () => {
     const lean = text(coordinatorGuide({ projectDir: proj, fullAccess: true, aboutApp: false }, env()))
     expect(lean).toContain('### Rutinas: lo que se repite o reacciona solo')
     expect(lean).toMatch(/NO crees tareas para montar un cron[\s\S]*«\/rutina de lunes a viernes a las 8:30: /)
-    expect(lean).toContain('Tú no puedes crearla.')
+    expect(lean).toContain('pon la orden en "routine"')
+    expect(lean).toContain('kywai le enseña una tarjeta «Crear rutina»')
     expect(lean).not.toContain('la ha lanzado sola la rutina')
     const full = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env()))
     expect(full).toContain('/rutina … (crea una rutina)')
