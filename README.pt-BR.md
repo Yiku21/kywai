@@ -262,7 +262,7 @@ E quatro que decoram o mundo, remodelam o seu núcleo e, nos festivos, vestem os
 - Pelo menos um agente: qualquer um do catálogo (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), um modelo local ou qualquer agente de linha de comando. O **Hermes Agent** coordena por padrão, mas qualquer agente pode fazer isso.
 - Opcional: **LM Studio** ou **Ollama** para o agente local, **git** para o Desfazer e **Tailscale** para usar a partir de outros dispositivos.
 
-> **Observação:** por enquanto, a interface do app está em espanhol. Os nomes dos menus neste README estão traduzidos.
+> **Idioma:** o app está em inglês, espanhol, português, francês e chinês. Ele abre no idioma do sistema e você pode mudar em ⋮ → Configurações → "Idioma · Language". O português, o francês e o chinês foram traduzidos automaticamente; correções são bem-vindas.
 
 ### Baixar (o mais fácil)
 
@@ -355,6 +355,10 @@ A documentação detalhada está em espanhol:
 - **[Guia de modelos](docs/GUIA-MODELOS.md)**: qual modelo e qual esforço cada agente usa conforme a dificuldade, com fontes.
 - **[Órbita](android/README.md)**: o app para Android, e como compilá-lo e publicá-lo.
 - **[API móvel](docs/mobile-api/README.md)**: o contrato entre o servidor e o Órbita.
+
+## 📄 Licença
+
+[MIT](LICENSE). Você pode usar, alterar e compartilhar o AI Cowork livremente, desde que mantenha o aviso de copyright.
 
 <div align="center">
 <br>

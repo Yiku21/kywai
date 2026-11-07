@@ -262,7 +262,7 @@ And four that decorate the world, reshape its core and, in the festive ones, dre
 - At least one agent: any from the catalog (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), a local model or any command-line agent. **Hermes Agent** coordinates by default, but any agent can.
 - Optional: **LM Studio** or **Ollama** for the local agent, **git** for Undo, and **Tailscale** to use it from other devices.
 
-> **Note:** the app's interface is in Spanish for now. The menu names in this README are translated.
+> **Language:** the app comes in English, Spanish, Portuguese, French and Chinese. It starts in your system's language and you can change it in ⋮ → Settings → "Idioma · Language". Portuguese, French and Chinese were machine-translated; corrections are welcome.
 
 ### Download (easiest)
 
@@ -355,6 +355,10 @@ The detailed documentation is in Spanish:
 - **[Model guide](docs/GUIA-MODELOS.md)**: which model and effort each agent uses by difficulty, with sources.
 - **[Órbita](android/README.md)**: the Android app, and how to build and publish it.
 - **[Mobile API](docs/mobile-api/README.md)**: the contract between the server and Órbita.
+
+## 📄 License
+
+[MIT](LICENSE). You can use, change and share AI Cowork freely, as long as you keep the copyright notice.
 
 <div align="center">
 <br>
