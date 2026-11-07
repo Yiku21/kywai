@@ -227,7 +227,7 @@ private fun Content(raw: RawContent, kind: String) {
         raw.isText || kind == "code" || kind == "text" || raw.contentType.contains("svg") -> SelectionContainer {
             Text(
                 raw.text(),
-                color = Color(0xFFD5E3F5),
+                color = Orbita.Text,
                 style = Mono,
                 softWrap = kind != "code",
                 modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState()).padding(16.dp),
@@ -369,15 +369,15 @@ private fun TraceSheet(taskId: String, model: OrbitaModel, state: CoworkUiState)
 private fun TraceRow(e: TraceEntry) {
     var open by remember { mutableStateOf(false) }
     val (icon, tint) = when (e.kind) {
-        "thinking" -> Icons.Outlined.Psychology to Color(0xFFA48CFF)
+        "thinking" -> Icons.Outlined.Psychology to Orbita.TextSoft
         "text" -> Icons.AutoMirrored.Outlined.Chat to Orbita.Text
         "error" -> Icons.Outlined.ErrorOutline to Orbita.Danger
         "tool" -> when (e.tool) {
-            "command" -> Icons.Outlined.Terminal to Orbita.Accent
-            "edit", "write" -> Icons.Outlined.Edit to Color(0xFF63DCA4)
-            "read", "search" -> Icons.Outlined.Search to Color(0xFF8FB4FF)
-            "web" -> Icons.Outlined.Language to Color(0xFF8FB4FF)
-            "todo" -> Icons.Outlined.CheckCircle to Orbita.Accent
+            "command" -> Icons.Outlined.Terminal to Orbita.TextSoft
+            "edit", "write" -> Icons.Outlined.Edit to Orbita.TextSoft
+            "read", "search" -> Icons.Outlined.Search to Orbita.TextSoft
+            "web" -> Icons.Outlined.Language to Orbita.TextSoft
+            "todo" -> Icons.Outlined.CheckCircle to Orbita.TextSoft
             else -> Icons.Outlined.Build to Orbita.TextSoft
         }
         else -> Icons.Outlined.Info to Orbita.TextSoft
@@ -405,11 +405,11 @@ private fun TraceRow(e: TraceEntry) {
         if (open) {
             e.body?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(8.dp))
-                if (e.kind == "tool") Text(it, color = Color(0xFFD5E3F5), style = Mono) else MarkdownText(it, color = Orbita.TextSoft)
+                if (e.kind == "tool") Text(it, color = Orbita.Text, style = Mono) else MarkdownText(it, color = Orbita.TextSoft)
             }
             e.output?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(8.dp))
-                Text(it, color = Color(0xFFBFD0E6), style = Mono, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Color(0x66060B16)).horizontalScroll(rememberScrollState()).padding(10.dp), softWrap = false)
+                Text(it, color = Orbita.Text, style = Mono, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Color(0x66060B16)).horizontalScroll(rememberScrollState()).padding(10.dp), softWrap = false)
             }
         } else if (hasMore) {
             Text(e.body?.lineSequence()?.firstOrNull { it.isNotBlank() }?.takeIf { e.title.isNotBlank() } ?: "", color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)

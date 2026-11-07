@@ -121,12 +121,12 @@ fun SpaceScreen(
                 SpaceStatus.Loading -> Centered {
                     CircularProgressIndicator(color = Color(SpaceColors.CYAN))
                     Spacer(Modifier.height(16.dp))
-                    Text(t("Cargando el espacio digital…"), color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    Text(t("Cargando el espacio digital…"), color = com.aicowork.remote.ui.orbita.Orbita.Text, style = MaterialTheme.typography.titleMedium)
                 }
                 is SpaceStatus.Unavailable -> Centered {
                     Icon(Icons.Outlined.CloudOff, contentDescription = null, tint = Color(SpaceColors.CYAN), modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
-                    Text(t("Sin conexión con el ordenador"), color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    Text(t("Sin conexión con el ordenador"), color = com.aicowork.remote.ui.orbita.Orbita.Text, style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(4.dp))
                     Text(t("{reason}. El espacio digital aparecerá en cuanto vuelva la conexión.", "reason" to status.reason), color = TextSoft, style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(16.dp))
@@ -237,7 +237,7 @@ private fun ReadySpace(
         }
 
         Column(Modifier.fillMaxWidth().align(Alignment.TopCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(start = if (hasBack) 52.dp else 16.dp, end = 8.dp, top = 6.dp)) {
-            Text(t("Espacio digital"), color = Color.White, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            Text(t("Espacio digital"), color = com.aicowork.remote.ui.orbita.Orbita.Text, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
             Text(scene.summary, color = TextSoft, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag("space-summary"))
             if (status.stale) {
                 StaleBanner(status, state.syncedAt, onRetry)
@@ -258,7 +258,7 @@ private fun ReadySpace(
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(20.dp)) {
                     Icon(Icons.Outlined.Groups, contentDescription = null, tint = Color(SpaceColors.CYAN))
                     Spacer(Modifier.height(8.dp))
-                    Text(t("Todavía no hay agentes"), color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    Text(t("Todavía no hay agentes"), color = com.aicowork.remote.ui.orbita.Orbita.Text, style = MaterialTheme.typography.titleMedium)
                     Text(t("Cuando el ordenador comparta su equipo, sus robots aparecerán en sus estaciones."), color = TextSoft, style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -394,7 +394,7 @@ internal fun Fallback2D(modifier: Modifier) {
     Column(modifier.padding(32.dp).testTag("space-fallback"), horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Outlined.ViewInAr, contentDescription = null, tint = Color(SpaceColors.CYAN), modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(8.dp))
-        Text(t("La vista 3D no está disponible en este dispositivo"), color = Color.White, style = MaterialTheme.typography.titleMedium)
+        Text(t("La vista 3D no está disponible en este dispositivo"), color = com.aicowork.remote.ui.orbita.Orbita.Text, style = MaterialTheme.typography.titleMedium)
         Text(t("Puedes ver a cada agente con las fichas de abajo."), color = TextSoft, style = MaterialTheme.typography.bodyMedium)
     }
 }
@@ -440,7 +440,7 @@ private fun ZoneCard(zone: SpaceZone, scene: SpaceScene, onClose: () -> Unit, on
     Panel(Modifier.fillMaxWidth().padding(12.dp).widthIn(max = 560.dp).testTag("space-zone-card")) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(zone.label, color = Color.White, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(zone.label, color = com.aicowork.remote.ui.orbita.Orbita.Text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 IconButton(onClick = onClose) { Icon(Icons.Outlined.Close, contentDescription = t("Cerrar"), tint = Color.White) }
             }
             Text(text, color = TextSoft, style = MaterialTheme.typography.bodyMedium)
@@ -505,7 +505,7 @@ private fun AgentCard(
                 ) { Text(Format.initials(agent.name), color = Color.White, fontWeight = FontWeight.Bold) }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(agent.name, color = Color.White, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(agent.name, color = com.aicowork.remote.ui.orbita.Orbita.Text, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         listOf(agent.role, agent.providerLabel, agent.modelLabel).filter { it.isNotBlank() }.joinToString(" · ") +
                             if (agent.isCoordinator) t(" · Coordina") else "",

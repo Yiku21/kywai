@@ -5,6 +5,7 @@ import com.aicowork.remote.i18n.t
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.util.Log
+import com.aicowork.remote.ui.space.SpaceGrade
 import com.aicowork.remote.ui.space.Accessory
 import com.aicowork.remote.ui.space.AgentVisual
 import com.aicowork.remote.ui.space.GlassRegion
@@ -134,7 +135,15 @@ internal class SpaceRenderer(
     // Ciclo de vida
     // =====================================================================================================
 
+    private var programsBuilt = false
+    private var grading: SpaceGrade? = null
+    /** Color de fondo con el tema. */
+    private var background = SpaceColors.BACKGROUND
+    /** 1 mientras se dibuja un robot: conserva sus colores aunque el tema cambie los demás. */
+    private var keep = 0f
+
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?): Unit = synchronized(lock) {
+        programsBuilt = false
         glThread = Thread.currentThread()
         failed = false
         gpuReady = false
@@ -158,20 +167,7 @@ internal class SpaceRenderer(
             GLES20.glDepthFunc(GLES20.GL_LEQUAL)
             GLES20.glDisable(GLES20.GL_CULL_FACE)
             hasDerivatives = GLES20.glGetString(GLES20.GL_EXTENSIONS)?.contains("GL_OES_standard_derivatives") == true
-            val deriv = if (hasDerivatives) Shaders.DERIV_EXT else Shaders.DERIV_FALLBACK
-            lit = GlProgram(Shaders.LIT_VS, Shaders.LIT_FS)
-            basic = GlProgram(Shaders.BASIC_VS, Shaders.BASIC_FS)
-            holo = GlProgram(Shaders.UV_VS, Shaders.HOLO_FS)
-            panel = GlProgram(Shaders.UV_VS, Shaders.PANEL_FS)
-            floorProg = GlProgram(Shaders.WORLD_VS, deriv + Shaders.FLOOR_FS)
-            cityProg = GlProgram(Shaders.CITY_VS, deriv + Shaders.CITY_FS)
-            circuitProg = GlProgram(Shaders.CIRCUIT_VS, Shaders.CIRCUIT_FS)
-            traceProg = GlProgram(Shaders.UV_VS, Shaders.TRACE_FS)
-            arcProg = GlProgram(Shaders.UV_VS, Shaders.ARC_FS)
-            shellProg = GlProgram(Shaders.SHELL_VS, Shaders.SHELL_FS)
-            particleProg = GlProgram(Shaders.PARTICLE_VS, Shaders.PARTICLE_FS)
-            backdropProg = GlProgram(Shaders.BACKDROP_VS, Shaders.BACKDROP_FS)
-            screenProg = GlProgram(Shaders.SCREEN_VS, Shaders.SCREEN_FS)
+            buildPrograms(SpaceGrade.of(controller.theme))
             buildMeshes()
             buildTextures()
             post.init(es3)
@@ -179,6 +175,34 @@ internal class SpaceRenderer(
             gpuReady = true
             Log.i(TAG, "Contexto OpenGL nuevo ($version): recursos de la GPU rehechos; el mundo sigue en t=${"%.2f".format(sim.time)} s con ${sim.brains.size} robots")
         }
+    }
+
+    /** Los programas de la GPU, con los colores del tema (cambiar de tema los vuelve a compilar; es un momento). */
+    private fun buildPrograms(grade: SpaceGrade?) {
+        if (programsBuilt) {
+            listOf(lit, basic, holo, panel, floorProg, cityProg, circuitProg, traceProg, arcProg, shellProg, particleProg, backdropProg, screenProg)
+                .forEach { GLES20.glDeleteProgram(it.id) }
+        }
+        val deriv = if (hasDerivatives) Shaders.DERIV_EXT else Shaders.DERIV_FALLBACK
+        fun fs(src: String) = Shaders.themed(src, grade)
+        lit = GlProgram(Shaders.LIT_VS, fs(Shaders.LIT_FS))
+        basic = GlProgram(Shaders.BASIC_VS, fs(Shaders.BASIC_FS))
+        holo = GlProgram(Shaders.UV_VS, fs(Shaders.HOLO_FS))
+        panel = GlProgram(Shaders.UV_VS, fs(Shaders.PANEL_FS))
+        floorProg = GlProgram(Shaders.WORLD_VS, deriv + fs(Shaders.FLOOR_FS))
+        cityProg = GlProgram(Shaders.CITY_VS, deriv + fs(Shaders.CITY_FS))
+        circuitProg = GlProgram(Shaders.CIRCUIT_VS, fs(Shaders.CIRCUIT_FS))
+        traceProg = GlProgram(Shaders.UV_VS, fs(Shaders.TRACE_FS))
+        arcProg = GlProgram(Shaders.UV_VS, fs(Shaders.ARC_FS))
+        shellProg = GlProgram(Shaders.SHELL_VS, fs(Shaders.SHELL_FS))
+        particleProg = GlProgram(Shaders.PARTICLE_VS, fs(Shaders.PARTICLE_FS))
+        backdropProg = GlProgram(Shaders.BACKDROP_VS, fs(Shaders.BACKDROP_FS))
+        screenProg = GlProgram(Shaders.SCREEN_VS, Shaders.SCREEN_FS)
+        programsBuilt = true
+        grading = grade
+        background = grade?.apply(SpaceColors.BACKGROUND) ?: SpaceColors.BACKGROUND
+        current = null
+        prepared.clear()
     }
 
     override fun onSurfaceChanged(gl: GL10?, w: Int, h: Int): Unit = synchronized(lock) {
@@ -192,7 +216,7 @@ internal class SpaceRenderer(
     override fun onDrawFrame(gl: GL10?): Unit = synchronized(lock) {
         if (failed || !gpuReady || Thread.currentThread() !== glThread) {
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
-            GLES20.glClearColor(red(SpaceColors.BACKGROUND), green(SpaceColors.BACKGROUND), blue(SpaceColors.BACKGROUND), 1f)
+            GLES20.glClearColor(red(background), green(background), blue(background), 1f)
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
             return@synchronized
         }
@@ -335,9 +359,11 @@ internal class SpaceRenderer(
     }
 
     private fun drawScene(scene: SpaceScene, t: Float) {
+        val grade = SpaceGrade.of(controller.theme)
+        if (grade !== grading) buildPrograms(grade)
         prepared.clear()
         current = null
-        GLES20.glClearColor(red(SpaceColors.BACKGROUND), green(SpaceColors.BACKGROUND), blue(SpaceColors.BACKGROUND), 1f)
+        GLES20.glClearColor(red(background), green(background), blue(background), 1f)
         GLES20.glDepthMask(true)
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
         GLES20.glEnable(GLES20.GL_DEPTH_TEST)
@@ -353,7 +379,9 @@ internal class SpaceRenderer(
         drawCoreSolid(t)
         for (st in scene.stations) drawStationSolid(st, t)
         drawZonesSolid(t)
+        keep = 1f
         for (b in sim.brains.values) drawRobot(b, t)
+        keep = 0f
 
         // 3. Transparentes y aditivos (sin escribir profundidad).
         GLES20.glEnable(GLES20.GL_BLEND)
@@ -367,7 +395,9 @@ internal class SpaceRenderer(
         drawZonesGlow(t)
         drawWalls(t)
         drawFragments(t)
+        keep = 1f
         for (b in sim.brains.values) drawRobotGlow(b, t)
+        keep = 0f
         drawPackets(t)
         drawParticles(t)
 
@@ -485,6 +515,7 @@ internal class SpaceRenderer(
         p.set1("uSheen", mat.sheen)
         p.set1("uEnvI", mat.env)
         p.set1("uOpacity", mat.opacity)
+        p.set1("uKeep", keep)
         mesh.draw(p)
     }
 
@@ -494,6 +525,7 @@ internal class SpaceRenderer(
         p.setLin("uColor", color)
         p.set1("uOpacity", opacity)
         p.set1("uFogOn", if (fog) 1f else 0f)
+        p.set1("uKeep", keep)
         if (texture != 0) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture)

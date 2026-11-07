@@ -175,7 +175,7 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
             }
         }
 
-        Box(Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 6.dp).height(1.dp).background(Color(0x26B4CCF5)))
+        Box(Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 6.dp).height(1.dp).background(Orbita.Divider))
         Row(Modifier.fillMaxWidth().padding(start = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             val (color, where) = when (state.connection) {
                 Connection.Online -> Orbita.Live to t("conectado")

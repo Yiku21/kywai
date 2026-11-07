@@ -121,8 +121,8 @@ fun OrbitaButton(
     val shape = RoundedCornerShape(height / 2)
     val (bg, fg, edge) = when (style) {
         ButtonStyle.Primary -> Triple(Brush.verticalGradient(listOf(Orbita.AccentButtonTop, Orbita.AccentButton)), Color.White, Orbita.AccentEdge)
-        ButtonStyle.Secondary -> Triple(Brush.verticalGradient(listOf(Color(0x33223654), Color(0x33223654))), Orbita.Text, Color(0x33B4CCF5))
-        ButtonStyle.Ghost -> Triple(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent)), Orbita.TextSoft, Color(0x26B4CCF5))
+        ButtonStyle.Secondary -> Triple(Brush.verticalGradient(listOf(Orbita.Card, Orbita.Card)), Orbita.Text, Orbita.GlassEdgeTop)
+        ButtonStyle.Ghost -> Triple(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent)), Orbita.TextSoft, Orbita.Divider)
         ButtonStyle.Danger -> Triple(Brush.verticalGradient(listOf(Color(0x40FF6D7C), Color(0x33FF6D7C))), Color(0xFFFFC9CF), Color(0x66FF6D7C))
     }
     val alpha = if (enabled) 1f else 0.45f
@@ -184,8 +184,8 @@ fun <T> Segmented(
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { (value, label) ->
             val on = value == selected
-            val bg by animateColorAsState(if (on) Orbita.AccentSoft else Color(0x1A223654), tween(180), label = "seg")
-            val edge by animateColorAsState(if (on) Orbita.AccentEdge else Color(0x26B4CCF5), tween(180), label = "segEdge")
+            val bg by animateColorAsState(if (on) Orbita.AccentSoft else Orbita.Card, tween(180), label = "seg")
+            val edge by animateColorAsState(if (on) Orbita.AccentEdge else Orbita.Divider, tween(180), label = "segEdge")
             Row(
                 Modifier
                     .weight(1f)
@@ -199,7 +199,7 @@ fun <T> Segmented(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {
-                Text(label, color = if (on) Color.White else Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(label, color = if (on) Orbita.Text else Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 counts[value]?.takeIf { it > 0 }?.let {
                     Spacer(Modifier.width(6.dp))
                     CountBadge(it, accent = on)
@@ -215,7 +215,7 @@ fun CountBadge(count: Int, accent: Boolean = true) {
         Modifier
             .heightIn(min = 20.dp)
             .clip(Orbita.PillShape)
-            .background(if (accent) Orbita.Accent.copy(alpha = 0.85f) else Color(0x40B4CCF5))
+            .background(if (accent) Orbita.Accent.copy(alpha = 0.85f) else Orbita.Divider)
             .padding(horizontal = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -257,7 +257,7 @@ fun ProgressLine(progress: Float?, color: Color, modifier: Modifier = Modifier, 
     val shown by animateFloatAsState(progress ?: 0f, tween(400), label = "progress")
     Canvas(modifier.fillMaxWidth().height(4.dp)) {
         val r = CornerRadius(size.height / 2)
-        drawRoundRect(Color(0x26B4CCF5), cornerRadius = r)
+        drawRoundRect(Orbita.Divider, cornerRadius = r)
         if (progress != null) {
             drawRoundRect(color, size = Size(size.width * shown.coerceIn(0f, 1f), size.height), cornerRadius = r)
         } else {
@@ -334,7 +334,7 @@ fun OrbitaField(
     val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     if (autoFocus) androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    val edge by animateColorAsState(if (focused) Orbita.AccentEdge else Color(0x2EB4CCF5), tween(160), label = "field")
+    val edge by animateColorAsState(if (focused) Orbita.AccentEdge else Orbita.GlassEdgeTop, tween(160), label = "field")
     val shape = RoundedCornerShape(if (singleLine) 26.dp else 22.dp)
     androidx.compose.foundation.text.BasicTextField(
         value = value,
@@ -358,7 +358,7 @@ fun OrbitaField(
             Row(
                 Modifier
                     .clip(shape)
-                    .background(Color(0x40101A30))
+                    .background(Orbita.Card)
                     .border(1.dp, edge, shape)
                     .heightIn(min = 52.dp)
                     .padding(horizontal = 16.dp, vertical = 12.dp),

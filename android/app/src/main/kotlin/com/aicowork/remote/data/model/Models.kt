@@ -132,6 +132,8 @@ data class ServerSettings(
     val agentAccess: String = "full",
     /** Hermes espera tu visto bueno antes de ejecutar cada plan. */
     val planApproval: Boolean = false,
+    /** Tema elegido en el escritorio («grafito», «mundo-bosque»…): Órbita se pinta igual. Null en ordenadores antiguos. */
+    val theme: String? = null,
 )
 
 @Serializable
