@@ -2107,4 +2107,8 @@ export const zh: Record<string, string> = {
   "Skills de Anthropic": "Anthropic 技能",
   "PDF, Word, Excel, PowerPoint, diseño, pruebas de webs… (las oficiales de Claude).": "PDF、Word、Excel、PowerPoint、设计、网页测试…（Claude 官方技能）。",
   "Vídeos a partir de HTML (con el que se hizo la presentación de kywai).": "用 HTML 制作视频（kywai 的介绍视频就是用它做的）。",
+  'Agente de programación de código abierto de Kilo en la terminal, con cientos de modelos y varios gratuitos.': 'Kilo 的开源编程智能体，在终端中运行，提供数百个模型，其中有几个免费。',
+  'Sin cuenta con sus modelos gratuitos; con tu cuenta de Kilo (kilo auth login) para los de pago, o tus propias claves de API.': '使用免费模型无需账户；付费模型需要你的 Kilo 账户（kilo auth login），也可以用你自己的 API 密钥。',
+  'Agente conectado: programa en la terminal con los modelos de Kilo (gratuitos o de tu cuenta)': '已连接的智能体：在终端中使用 Kilo 的模型编程（免费模型或你账户中的模型）',
+  'Empieza con el modelo gratuito Kilo Auto Free (kilo/kilo-auto/free): sin él, su modelo por defecto es de pago y pide cuenta. Los gratuitos cambian cuando acaban sus promociones; la lista sale con «kilo models kilo».': '默认使用免费模型 Kilo Auto Free（kilo/kilo-auto/free）：否则它的默认模型是付费的，需要账户。免费模型会在促销结束时变化；用「kilo models kilo」查看列表。',
 }

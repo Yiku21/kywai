@@ -72,6 +72,17 @@ describe('catálogo de agentes', () => {
     for (const id of ['minimax', 'qoder', 'qwen-code']) expect(catalogEntry(id)!.cli!.promptVia, id).toBe('stdin')
   })
 
+  it('Kilo CLI se lanza con «kilo run» y empieza con su modelo gratuito (su modelo por defecto pide cuenta)', () => {
+    const e = catalogEntry('kilo')!
+    const spec = e.cli!
+    expect(spec.command).toBe('kilo')
+    expect(spec.args).toEqual(['run', '{prompt}'])
+    expect(spec.planArgs).toEqual(['--agent', 'plan'])
+    expect(spec.fullAccessArgs).toEqual(['--auto'])
+    expect(spec.modelArgs).toEqual(['-m', '{model}'])
+    expect(e.model).toBe('kilo/kilo-auto/free')
+  })
+
   it('Kiro vale con la sesión de kiro-cli login o con su clave', () => {
     const spec = catalogEntry('kiro')!.cli!
     expect(spec.login).toBe('kiro-cli login')
