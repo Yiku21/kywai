@@ -133,7 +133,7 @@ jobs:
 
           The apps are not code-signed yet:
           - **Windows:** if SmartScreen warns you, click "More info" → "Run anyway".
-          - **macOS:** drag the app to Applications, then right-click it → Open (only the first time). If macOS says it is damaged, run \`xattr -cr "/Applications/AI Cowork.app"\` in Terminal.
+          - **macOS:** drag the app to Applications, then right-click it → Open (only the first time). If macOS says it is damaged, run \`xattr -cr "/Applications/kywai.app"\` in Terminal. If you still have the old \`AI Cowork.app\`, delete it: your data is kept.
           - **Linux:** \`chmod +x kywai-*.AppImage\` and open it.
           - **Android:** open \`kywai-orbita.apk\` on the phone and allow installing apps from that source. Órbita connects to a computer running kywai and then updates itself from there.
 

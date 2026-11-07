@@ -7,6 +7,7 @@ import com.aicowork.remote.data.model.Artifact
 import com.aicowork.remote.data.model.ChatSummary
 import com.aicowork.remote.data.model.MusicResult
 import com.aicowork.remote.data.model.SearchHit
+import com.aicowork.remote.data.model.SearchResponse
 import com.aicowork.remote.data.model.ChatMessage
 import com.aicowork.remote.data.model.CoworkJson
 import com.aicowork.remote.data.model.FilesResponse
@@ -226,6 +227,10 @@ interface CoworkController {
     suspend fun deleteProject(projectId: String): ActionResult = unsupported
     /** «Buscar»: chats, tareas, resultados y memoria de todos los proyectos. */
     suspend fun search(query: String): Result<List<SearchHit>> = Result.failure(IllegalStateException(unsupported.message))
+    /** Buscador del historial con filtros de fecha y autor, el total y el mensaje exacto. */
+    suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): Result<SearchResponse> = Result.failure(IllegalStateException(unsupported.message))
+    /** «Historial»: todos los chats de todos los proyectos. */
+    suspend fun allChats(): Result<List<ChatSummary>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun createProject(name: String): ActionResult = unsupported
     /** Radios («radio») o canciones de Audius («audius») para el reproductor. */
     suspend fun music(kind: String, query: String): Result<List<MusicResult>> = Result.failure(IllegalStateException(unsupported.message))
@@ -250,6 +255,8 @@ interface CoworkController {
     suspend fun setPlanApproval(enabled: Boolean): ActionResult = unsupported
     /** Nombre del ordenador que se ve abajo en la barra lateral (también en el escritorio y la web). */
     suspend fun setServerName(name: String): ActionResult = unsupported
+    /** Tema de kywai: lo guarda el ordenador y lo siguen el escritorio, los clientes, el navegador y Órbita. */
+    suspend fun setTheme(id: String): ActionResult = unsupported
     /** Nota de voz → texto (con el dictado del ordenador). */
     suspend fun transcribe(file: java.io.File): Result<String> = Result.failure(IllegalStateException(unsupported.message))
     /** Última versión de Órbita que ofrece el ordenador. */
@@ -897,6 +904,8 @@ class CoworkRepository(
     }
 
     override suspend fun search(query: String): Result<List<SearchHit>> = fetch { it.search(query) }
+    override suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): Result<SearchResponse> = fetch { it.searchHistory(query, since, author, limit) }
+    override suspend fun allChats(): Result<List<ChatSummary>> = fetch { it.allChats() }
 
     override suspend fun music(kind: String, query: String): Result<List<MusicResult>> = fetch { it.music(kind, query) }
 
@@ -1041,6 +1050,11 @@ class CoworkRepository(
     override suspend fun setServerName(name: String): ActionResult = action(t("Nombre del ordenador guardado")) { c ->
         val saved = c.setServerName(name)
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(serverName = saved)) }) }
+    }
+
+    override suspend fun setTheme(id: String): ActionResult = action(t("Tema cambiado en todos tus dispositivos")) { c ->
+        val saved = c.setTheme(id)
+        _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(theme = saved)) }) }
     }
 
     override suspend fun setPlanApproval(enabled: Boolean): ActionResult = action(

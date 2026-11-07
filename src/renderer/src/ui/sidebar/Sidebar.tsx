@@ -8,6 +8,7 @@ import {
   FolderInput,
   FolderOpen,
   GitBranch,
+  History,
   ListChecks,
   MessageSquare,
   Package,
@@ -279,6 +280,16 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
           onNavigate?.()
         }}
       />
+      <NavItem
+        icon={<History size={17} />}
+        label={t('Historial')}
+        rail={rail}
+        disabled={!live}
+        onClick={() => {
+          useCowork.setState({ historyOpen: true })
+          onNavigate?.()
+        }}
+      />
       {live && <InboxButton sidebar={{ button: cx(s.item, s.inboxItem), label: s.label, badge: cx(s.badge, s.badgeWarn) }} />}
       <NavItem
         icon={<ListChecks size={17} />}
@@ -316,6 +327,9 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
                   actions={actions}
                 />
               ))}
+              <button type="button" className={s.seeAll} onClick={() => useCowork.setState({ historyOpen: true })}>
+                {t('Ver todo el historial')}
+              </button>
             </Section>
           )}
 

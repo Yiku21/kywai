@@ -193,6 +193,23 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
     LaunchedEffect(growing) {
         if (rows.isNotEmpty() && model.chatPositioned && atBottom) list.animateScrollToItem(rows.size - 1, Int.MAX_VALUE / 2)
     }
+    // Lo pide el buscador: bajar hasta el mensaje encontrado y resaltarlo un momento.
+    val focus = model.focusMessageId
+    LaunchedEffect(focus, rows) {
+        if (focus == null) return@LaunchedEffect
+        val i = rows.indexOfFirst { it is ChatRow.Server && it.message.id == focus }
+        if (i < 0) return@LaunchedEffect
+        model.chatPositioned = true
+        list.scrollToItem(i)
+        model.flashMessageId = focus
+        model.focusMessageId = null
+    }
+    LaunchedEffect(model.flashMessageId) {
+        if (model.flashMessageId != null) {
+            kotlinx.coroutines.delay(2600)
+            model.flashMessageId = null
+        }
+    }
     // Lo que acabas de enviar siempre se ve.
     LaunchedEffect(model.chatSends) {
         if (model.chatSends > 0 && rows.isNotEmpty()) list.animateScrollToItem(rows.size - 1)
@@ -215,7 +232,12 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             items(rows, key = { it.key }) { row ->
                 when (row) {
                     // Manteniendo el dedo sobre una palabra se selecciona (y se amplía con los tiradores) para copiarla.
-                    is ChatRow.Server -> SelectionContainer { ServerMessage(row.message, snapshot!!, state, model) }
+                    is ChatRow.Server -> Box(
+                        Modifier
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(if (model.flashMessageId == row.message.id) Orbita.AccentSoft else androidx.compose.ui.graphics.Color.Transparent)
+                            .testTag("msg-${row.message.id}"),
+                    ) { SelectionContainer { ServerMessage(row.message, snapshot!!, state, model) } }
                     is ChatRow.Local -> SelectionContainer { LocalMessage(row.message, model) }
                     ChatRow.Planning -> PlanningBubble(hermes)
                 }

@@ -20,6 +20,24 @@
   padding: 18px 16px 22px;
 }
 
+/* El mensaje al que llevó el buscador: un halo que se apaga solo. */
+.flash {
+  border-radius: var(--radius-panel);
+  animation: flash 2.6s var(--ease);
+}
+
+@keyframes flash {
+  0%,
+  55% {
+    background: color-mix(in srgb, var(--cyan) 12%, transparent);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--cyan) 12%, transparent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
 .newBtn {
   position: absolute;
   left: 50%;

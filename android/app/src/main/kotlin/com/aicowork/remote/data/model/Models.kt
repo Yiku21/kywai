@@ -99,10 +99,26 @@ data class SearchHit(
     val snippet: String = "",
     @Serializable(with = FlexibleTimeSerializer::class) val at: Long? = null,
     val ref: String? = null,
+    /** Chats: el mensaje encontrado (al abrir, el chat baja hasta él). */
+    val messageId: String? = null,
+    /** Chats: cuántos mensajes coinciden. */
+    val matchCount: Int = 0,
+    /** Chats: los primeros mensajes que coinciden, para elegir a cuál ir. */
+    val matches: List<SearchMatch> = emptyList(),
 )
 
+/** Un mensaje que coincide dentro de un chat encontrado. [by]: «user», «system» o el id del agente. */
 @Serializable
-data class SearchResponse(val hits: List<SearchHit> = emptyList())
+data class SearchMatch(
+    val messageId: String,
+    val snippet: String = "",
+    @Serializable(with = FlexibleTimeSerializer::class) val at: Long? = null,
+    val by: String = "",
+)
+
+/** [total]: cuántas coincidencias hay en total (para «Ver más»); los servidores antiguos no lo envían. */
+@Serializable
+data class SearchResponse(val hits: List<SearchHit> = emptyList(), val total: Int? = null)
 
 /** Una radio de SomaFM o una canción de Audius: Órbita la escucha desde [stream] (sin anuncios). */
 @Serializable
@@ -264,6 +280,12 @@ data class ServerNameRequest(val name: String)
 
 @Serializable
 data class ServerNameResponse(val serverName: String? = null)
+
+@Serializable
+data class ThemeRequest(val theme: String)
+
+@Serializable
+data class ThemeResponse(val theme: String? = null)
 
 /** Tarea del plan que propone Hermes: todavía no existe; se crea al aprobar el plan. */
 @Serializable
@@ -539,8 +561,12 @@ data class Capabilities(
     val music: Boolean = false,
     /** Buscador de todos los proyectos (GET /search). */
     val search: Boolean = false,
+    /** Historial: GET /chats/all y GET /search con since, author y limit (con el total y el mensaje exacto). */
+    val history: Boolean = false,
     /** Cambiar el nombre del ordenador que se ve abajo en la barra lateral (POST /settings/server-name). */
     val serverName: Boolean = false,
+    /** Elegir el tema desde el móvil (POST /settings/theme): lo siguen el escritorio, los clientes y el navegador. */
+    val theme: Boolean = false,
     /** Menú de un chat al mantenerlo pulsado: fijar, bifurcar, mover y borrar también el abierto (GET /chats/pinned). */
     val chatActions: Boolean = false,
     /** Menú de un proyecto al mantenerlo pulsado: renombrar, fijar y eliminar (POST /projects/{id}/rename|pin|delete). */

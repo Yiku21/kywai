@@ -3,9 +3,27 @@
 Todo lo que hace kywai, en detalle. Para una presentación rápida, ver el [README](../README.md).
 
 kywai (se pronuncia «ki-wai»; web: https://kywai.app) se llamaba antes **AI Cowork**. El nombre nuevo sale en todo lo
-que se ve (interfaz, avisos, Órbita, ventana), pero lo interno conserva el antiguo para que las instalaciones que ya
-hay no pierdan nada: la carpeta de datos (`AI Cowork`), la app del Mac (`AI Cowork.app`), los instaladores
-(`AI-Cowork-*`), el acceso directo de Windows y los identificadores (`com.aicowork…`, `ai-cowork`).
+que se ve: interfaz, avisos, Órbita, ventana, instalador de Windows (`kywai-Setup-<versión>.exe`, «kywai Setup»), sus
+accesos directos, «Aplicaciones instaladas», `kywai.exe` y la app del Mac (`kywai.app`). Lo interno conserva el
+antiguo para que las instalaciones que ya hay no pierdan nada: la carpeta de datos (`AI Cowork`, fijada en
+`src/main/dataDir.ts` aunque la app se llame kywai), los identificadores (`com.aicowork…`, `ai-cowork`), el
+certificado propio del Mac y el texto que firma las actualizaciones del cliente.
+
+**Paso de «AI Cowork» a «kywai» al actualizar (noviembre de 2026):**
+- **Windows:** el instalador reconoce la instalación anterior por su identificador (`com.aicowork.app`), así que la
+  actualiza en la misma carpeta (`…\Programs\AI Cowork`, que no cambia de nombre) y no aparece duplicada. Los accesos
+  directos «AI Cowork» pasan a llamarse «kywai» y el exe pasa a `kywai.exe`. Si estaba activado «Abrir kywai al
+  iniciar sesión», la primera vez que se abre la versión nueva lo apunta a `kywai.exe` (`migrateWindowsLoginItem`).
+  Un anclaje a la barra de tareas del exe viejo deja de funcionar: hay que volver a anclar kywai.
+- **Acceso directo en el Escritorio (Windows):** el instalador lo crea siempre, también al actualizar
+  (`createDesktopShortcut: "always"`): si se borró, la siguiente actualización lo vuelve a poner.
+- **Mac (compilada en el equipo, como el Mac mini):** «Buscar actualizaciones» compila `kywai.app`, la deja en la misma
+  carpeta que la instalada y quita la `AI Cowork.app` (`scripts/actualizar-mac.sh`, que también entiende la ruta vieja
+  que le pasa una versión anterior). `instalar-mac.sh` hace lo mismo. Como el identificador y el certificado no
+  cambian, macOS debería conservar los permisos de Privacidad; si vuelve a preguntar, se aceptan una vez. Si kywai
+  estaba en el Dock, hay que volver a ponerlo.
+- **Mac (descargada de la Release):** se arrastra `kywai.app` a Aplicaciones y se borra la `AI Cowork.app` vieja; los
+  datos se conservan.
 
 ## Índice
 
@@ -48,6 +66,7 @@ hay no pierdan nada: la carpeta de datos (`AI Cowork`), la app del Mac (`AI Cowo
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
   - [Buscar (Ctrl+K)](#buscar-ctrlk)
+  - [Historial](#historial)
   - [Eliminar un proyecto](#eliminar-un-proyecto)
   - [Cuotas](#cuotas)
   - [Consumo: ¿compensa?](#consumo-compensa)
@@ -100,13 +119,12 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
 - **«Buscar actualizaciones…»** en esas versiones no usa git: dice que se actualiza sola y lanza la comprobación.
 - **Sin firma de código:** Windows avisa con SmartScreen («Más información» → «Ejecutar de todas formas»). En el Mac
   va firmada «ad hoc»: la primera vez, clic derecho → Abrir; si dice que está dañada,
-  `xattr -cr "/Applications/AI Cowork.app"`.
+  `xattr -cr "/Applications/kywai.app"`.
 - Las compiladas en el propio equipo (`instalar-mac.sh`, `instalar-linux.sh`, `npm run dist:*`) no traen
   `app-update.yml` y siguen actualizándose desde su clon de git. Es lo que usa el servidor (Mac mini).
 - Las descargas de la Release se llaman `kywai-Setup-<versión>.exe`, `kywai-<versión>-<arch>.dmg/.zip` y
-  `kywai-<versión>-<arch>.AppImage` (el workflow cambia el nombre al compilar). La app instalada sigue siendo
-  «AI Cowork» por dentro, y lo compilado en el propio equipo (`npm run dist:*`) mantiene `AI-Cowork-*`, porque el
-  cliente de Windows que reparte el servidor (`clientRelease.ts`, `publicar-cliente.mjs`) depende de ese nombre.
+  `kywai-<versión>-<arch>.AppImage`, igual que lo compilado en el propio equipo (`npm run dist:*`). El servidor acepta
+  para sus clientes de Windows tanto `kywai-Setup-*` como el nombre antiguo `AI-Cowork-Setup-*` (`clientRelease.ts`).
 - El workflow solo corre en el repositorio público; en kywai-original no hace nada.
 - **Órbita (Android) también está en la Release**, como `kywai-orbita.apk`: cada Release nueva adjunta la última APK
   firmada que hay en `master` (`android/release/orbita.apk`), y cuando sale una Órbita nueva «Publicar Órbita» la sube
@@ -147,7 +165,7 @@ Los datos de cada equipo (configuración y proyectos) se guardan en la carpeta d
 npm run dist:win
 ```
 
-Genera `release/AI-Cowork-Setup-<versión>.exe`. Cópialo al otro PC y ejecútalo: te deja elegir la carpeta de
+Genera `release/kywai-Setup-<versión>.exe`. Cópialo al otro PC y ejecútalo: te deja elegir la carpeta de
 instalación y crea los accesos directos. Como no está firmado, Windows puede avisar («Windows protegió tu PC»):
 «Más información» → «Ejecutar de todas formas».
 
@@ -157,7 +175,7 @@ instalación y crea los accesos directos. Como no está firmado, Windows puede a
 npm run fuente
 ```
 
-Genera `release/AI-Cowork-fuente.zip` con el código. Llévalo al Mac, descomprímelo y, en Terminal, dentro de esa
+Genera `release/kywai-fuente.zip` con el código. Llévalo al Mac, descomprímelo y, en Terminal, dentro de esa
 carpeta:
 
 ```bash
@@ -198,7 +216,7 @@ En Linux:
   GNOME, Konsole, Xfce, kitty, xterm…).
 - «Abrir kywai al iniciar sesión» crea `~/.config/autostart/ai-cowork.desktop`.
 - «Buscar actualizaciones» compila para Linux y cambia la carpeta instalada (`scripts/actualizar-linux.sh`).
-- También se puede generar una AppImage con `npm run dist:linux` (`release/AI-Cowork-<versión>-<arch>.AppImage`);
+- También se puede generar una AppImage con `npm run dist:linux` (`release/kywai-<versión>-<arch>.AppImage`);
   esa no se actualiza sola.
 - Tailscale se busca en `/usr/bin/tailscale` o `/usr/local/bin/tailscale`.
 
@@ -313,8 +331,8 @@ desde el PC (`./gradlew :app:publishOrbita` y subir `android/release/`) sigue fu
 lo corten:
 
 - **Barra lateral**, como en el escritorio: «Nuevo chat», el buscador (busca en los títulos y en los mensajes de todos
-  los chats), «Fijados», los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
-  con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Te necesita con su número, Chat,
+  los chats, con filtros y salto al mensaje), «Historial» (todos los chats por fechas, ver [Historial](#historial)), «Fijados», los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
+  con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Historial, Te necesita con su número, Chat,
   Tareas, Resultados, Música, Más y Ajustes abajo). En la tableta cada icono lleva su nombre debajo; en el móvil en
   vertical es una columna fina solo de iconos. El logo o el botón de debajo la despliegan entera (en el móvil, como
   cajón por encima). Lo hace `SidebarRail` en `ui/orbita/Sidebar.kt`.
@@ -345,8 +363,10 @@ lo corten:
 - **Ajustes en pestañas:** General (idioma, tema, tacto y mundo 3D), Agentes (planes de Hermes, ver el equipo), Conexión
   (ordenador, servidor y este móvil) y Acerca de (actualizaciones de Órbita y apoyar kywai).
 - **Mismo tema que el escritorio:** el tema que eliges en kywai (⚙ → Ajustes → General → Tema) se guarda en el
-  servidor y Órbita lo aplica sola: colores de la interfaz y del mundo 3D (los robots conservan los suyos). Los
-  mapas con escenario propio no se pasan al móvil, solo sus colores. Para desarrolladores: `config.uiTheme`
+  servidor y Órbita lo aplica sola: colores de la interfaz y del mundo 3D (los robots conservan los suyos). También
+  se puede elegir desde Órbita (Ajustes → General → Tema) y cambia en todos los dispositivos, o marcar «Tema propio en
+  este móvil» para tener otro solo en Órbita (ver [Temas](#temas)). Los mapas con escenario propio no se pasan al
+  móvil, solo sus colores. Para desarrolladores: `config.uiTheme`
   (`setUiTheme`), `settings.theme` en la API móvil, `OrbitaThemes`/`OrbitaPalette` y `ui/space/SpaceGrade.kt`, que
   recolorea en el sombreador.
 - **Iconos de un solo estilo y color:** el color se reserva para avisos y estados.
@@ -684,7 +704,7 @@ documentación no confirma y pueden necesitar ajustes.
   por las buenas, se le fuerza: la tarea no queda colgada más allá de ese corte). Para que no pase, mira
   «Permisos de macOS en el servidor».
 - **Ventanas de permisos de macOS, al momento**: antes de lanzar un agente, la app prueba a abrir la carpeta del
-  proyecto. Si en 4 segundos no lo consigue es que macOS está preguntando en la pantalla del Mac (p. ej. «AI Cowork
+  proyecto. Si en 4 segundos no lo consigue es que macOS está preguntando en la pantalla del Mac (p. ej. «kywai
   quiere acceder a Documentos»): la tarea lo dice enseguida («Esperando a que aceptes en la pantalla del Mac…») y
   espera la respuesta en vez de lanzar al agente a ciegas; si macOS lo deniega, la tarea dice dónde activarlo. Además
   la app lee en directo el registro de privacidad de macOS y avisa de cada ventana que ella o sus agentes dejan
@@ -693,7 +713,7 @@ documentación no confirma y pueden necesitar ajustes.
   pantalla. Código: `src/main/macPermissions.ts` (la comprobación la hace `runCli` en `agents/spawn.ts`).
 - **Permisos de macOS en el servidor**: los agentes heredan los permisos de la app. Para que nunca se queden
   esperando una ventana que solo se contesta delante del Mac, en Ajustes del Sistema → Privacidad y seguridad activa
-  para «AI Cowork» (y para Terminal, si lanzas cosas desde ahí): **Acceso total al disco** (Escritorio, Documentos,
+  para «kywai» (y para Terminal, si lanzas cosas desde ahí): **Acceso total al disco** (Escritorio, Documentos,
   Descargas, iCloud y discos externos) y, solo si quieres que los agentes manejen otras apps, **Automatización** y
   **Accesibilidad**. La primera vez que salga el aviso del llavero, pulsa «Permitir siempre». La app trae los textos
   que macOS pide para mostrar esas ventanas, y se firma con un certificado propio de este Mac (ver «Firma en Mac»)
@@ -1355,13 +1375,14 @@ A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
   mensajes anteriores. La conversación anterior **no se pierde**: queda guardada en la lista de su proyecto. Los
   archivos, los resultados y la memoria del proyecto se quedan; las tareas que estaban en pausa siguen a la vista.
 - **Buscar** (Ctrl+K): ver [Buscar](#buscar-ctrlk).
+- **Historial**: todas las conversaciones de todos los proyectos, por fechas: ver [Historial](#historial).
 - **Te necesita**: la bandeja de avisos (antes era la campana de arriba a la derecha).
 - **Tareas**, **Resultados** y **Rutinas** abren esa pestaña del panel del chat (con el número de tareas en curso).
 - **Fijados**: los proyectos y las conversaciones que fijas (clic derecho → «Fijar»). Se guarda en el proyecto,
   así que se ve igual en el navegador y en los clientes.
 - **Proyectos**: todos, con **+** para crear uno. La flecha de cada proyecto despliega sus conversaciones (el abierto
   se despliega solo); un punto azul que late indica que el equipo está trabajando en él.
-- **Recientes**: las últimas conversaciones de todos los proyectos.
+- **Recientes**: las últimas conversaciones de todos los proyectos; al final, «Ver todo el historial».
 - Abajo, **dónde estás conectado** (el servidor) y la **rueda ⚙**: ver [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes).
 
 
@@ -1432,8 +1453,45 @@ Ajustes, y al cerrarla vuelves a la misma pestaña. Esc o la ✕ cierran. Lo hac
 **Buscar** en la barra lateral, o Ctrl+K (⌘K en el Mac), abre un buscador que mira a la vez en **todas las
 conversaciones** (abiertas y guardadas), las **tareas** (título, encargo y resultado), los **resultados** (nombre del
 archivo), la **memoria** y los nombres de los proyectos, de todos los proyectos o, con «Solo este proyecto», del
-abierto. No distingue mayúsculas ni tildes. Los chips filtran por tipo; ↑↓ y ↵ para abrir: lleva al proyecto y a la
-conversación donde está, en la pestaña que toca (una tarea abre Tareas; un resultado, su visor; una nota, Memoria).
+abierto. No distingue mayúsculas ni tildes.
+
+- **Varias palabras**: tienen que estar **todas** en el mismo mensaje (o tarea, o nota), en cualquier orden.
+  `barra oscuro` encuentra «pon el modo oscuro en la barra».
+- **Entre comillas** («…», "…" o “…”): la **frase exacta**. `"modo oscuro"` no encuentra «oscuro el modo».
+- **Fecha**: cualquier fecha, hoy, últimos 7 días o últimos 30 días.
+- **Quién lo escribió**: cualquiera, tú, cualquier agente o uno en concreto. Con este filtro solo salen mensajes (y
+  las tareas de ese agente), no resultados, memoria ni proyectos.
+- Los chips filtran por tipo; ↑↓ y ↵ para abrir: lleva al proyecto y a la conversación donde está, en la pestaña que
+  toca (una tarea abre Tareas; un resultado, su visor; una nota, Memoria).
+- **Al mensaje exacto**: al abrir una conversación, el chat baja hasta el mensaje encontrado, lo resalta un momento y
+  marca lo buscado dentro de él.
+- **«N coincidencias»**: si en una conversación coinciden varios mensajes, el botón despliega los primeros cinco (quién
+  lo dijo, el trozo y la fecha) para ir directo al que quieras.
+- Salen 40 resultados; **«Ver más»** trae otros 40 (abajo se ve el total).
+
+Por dentro, el ordenador guarda en memoria el texto ya preparado de cada mensaje y solo vuelve a leer una conversación
+guardada si su archivo cambió, así que buscar a cada tecla no relee todos los proyectos
+(`searchHistory` en `src/main/conversations.ts`).
+
+### Historial
+
+**Historial** en la barra lateral (o «Ver todo el historial» al pie de Recientes y en el buscador vacío) abre una
+ventana con **todas las conversaciones de todos los proyectos**, agrupadas por **Hoy, Ayer, Últimos 7 días, Últimos
+30 días** y, las de antes, por **meses**. Cada una dice su proyecto, cuántos mensajes tiene y cuándo se habló por última
+vez (y «abierta» la que tienes abierta).
+
+- Arriba se **filtra por nombre** (el de la conversación o el del proyecto) y por **proyecto**.
+- «**Buscar «…» dentro de los mensajes**» pasa lo escrito al buscador.
+- ↑↓ y ↵, o un clic, abren la conversación.
+
+**En Órbita** es igual: «Historial» en la barra lateral (y en la columna de iconos), con los mismos grupos, el filtro
+por nombre y por proyecto. El «Buscar» de Órbita tiene los mismos filtros (fecha, tú o agentes), «N coincidencias» para
+elegir el mensaje, «Ver más» y, al abrir un chat, baja hasta el mensaje encontrado y lo resalta. Necesita un ordenador
+con esta versión (si no, se ve el buscador de antes).
+
+API móvil: `GET /chats/all` (el historial) y `GET /search` con `since` (ms), `author` (`user`, `agents` o el id de un
+agente) y `limit` (hasta 400); la respuesta trae `total` y, en cada chat, `messageId`, `matchCount` y `matches`. La
+capacidad `history` del snapshot dice si el ordenador lo tiene.
 
 ### Eliminar un proyecto
 
@@ -1549,7 +1607,7 @@ coincidir con el `@media (max-width: 949.98px)`); el asa es `ui/left/ChatResizer
 La interfaz está en **español**, **inglés**, **portugués**, **francés** y **chino** (simplificado). ⚙ → **Ajustes…** → General →
 **«Idioma · Language»** es una lista con cada idioma en su propio idioma (Español, English, Português, Français,
 中文); al elegir otro, la ventana se recarga para que todo salga ya
-traducido. Se recuerda en cada dispositivo, como el tema: la app del Mac,
+traducido. Se recuerda en cada dispositivo (a diferencia del tema, que es el mismo en todos): la app del Mac,
 el navegador y cada cliente pueden tener el suyo. Si nunca se ha elegido, se usa el idioma del sistema si es uno de
 esos cinco (cualquier variante: es-MX cuenta como español, pt-PT como portugués); si no, inglés. Las fechas y los números siguen el idioma elegido.
 
@@ -1602,8 +1660,18 @@ se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cua
 
 ### Temas
 
-⚙ → Ajustes → General → **Tema** (se despliega con la flecha) cambia el aspecto de la app. Los temas van en dos
-grupos: los mapas (con la Ciudad digital) y los decorados.
+⚙ → Ajustes → General → **Tema** (justo debajo del idioma; se despliega con la flecha) cambia el aspecto de la app.
+Los temas van en dos grupos: los mapas (con la Ciudad digital) y los decorados.
+
+**El mismo tema en todos tus dispositivos.** El tema lo guarda el servidor: al cambiarlo en la app del Mac, en un
+cliente de escritorio, en el navegador o en Órbita, cambia al momento en todos los que están conectados a ese servidor
+(y los que se conecten después lo cogen al entrar). Si quieres otro solo en un equipo, marca debajo **«Usar un tema
+propio en este dispositivo»** (en Órbita, Ajustes → General → **«Tema propio en este móvil»**): ese dispositivo deja de
+seguir al servidor y lo que elijas en él no cambia a los demás. Al desmarcarlo vuelve al tema del servidor. En el móvil
+los mapas con escenario propio se ven con sus colores (el escenario 3D de cada mapa es solo del escritorio y la web).
+Para desarrolladores: `config.uiTheme` en el servidor (`setUiTheme`, que emite `config.updated`), `followServerTheme`
+y `aicowork.themeOwn` en `lib/theme.ts`, `POST /settings/theme` y `capabilities.theme` en la API móvil, y
+`ownTheme`/`localTheme` en las preferencias de Órbita.
 
 **Mapas.** Siete escenarios, cada uno con su entorno, sus plataformas y su núcleo propios (`scene/worlds/`). La
 interfaz toma los colores del color de la Ciudad que le corresponde (Clásico → Índigo, Órbita → Frost Glass, Marfil →

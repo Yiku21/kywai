@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.DpSize
@@ -170,7 +171,7 @@ class OrbitaLayoutTest {
         compose.onNodeWithTag("nav-Settings").performClick()
         compose.onNodeWithTag("toggle-sound").performClick()
         compose.onNodeWithTag("toggle-ambient").performClick()
-        compose.onNodeWithText("Suave").performClick()
+        compose.onNodeWithText("Suave").performScrollTo().performClick()
         compose.waitForIdle()
         assertFalse(prefs.preferences.value.sound)
         assertFalse(model.feedback.sound)

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Firma AI Cowork.app con un certificado propio de este Mac (lo crea la primera vez).
+# Firma kywai.app con un certificado propio de este Mac (lo crea la primera vez). El certificado y su llavero
+# conservan el nombre antiguo («AI Cowork (este Mac)»): cambiarlo sería otra identidad y macOS olvidaría los permisos.
 # Con la firma «ad hoc» (`--sign -`) cada compilación es, para macOS, una app nueva: se pierden los permisos de
 # Privacidad (Acceso total al disco, Automatización…) y vuelve el aviso del llavero tras cada actualización. Con un
 # certificado fijo la app conserva su identidad entre versiones.
