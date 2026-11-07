@@ -309,3 +309,50 @@ export interface PluginInfo {
   skipped: string[]
   installedAt: string
 }
+
+/** Cuándo salta un hook de un mod. */
+export const MOD_HOOK_EVENTS = ['request.started', 'request.finished', 'task.started', 'task.done', 'task.failed'] as const
+export type ModHookEvent = (typeof MOD_HOOK_EVENTS)[number]
+
+/** Una orden «/nombre …» de un mod: lo que escribes se cambia por su texto ({args} = lo que va detrás). */
+export interface ModCommand {
+  name: string
+  description: string
+  prompt: string
+}
+
+/** Un hook: una orden del sistema que se ejecuta cuando pasa algo (solo con tu permiso). */
+export interface ModHook {
+  on: ModHookEvent
+  run: string
+  /** Segundos (máximo 600). */
+  timeout: number
+}
+
+/** Un panel: una página del mod que se abre junto al chat, en una caja aislada. */
+export interface ModPanel {
+  id: string
+  title: string
+  file: string
+}
+
+/** Un mod instalado. */
+export interface ModInfo {
+  name: string
+  title: string
+  description: string
+  version?: string
+  /** De dónde salió (enlace de GitHub o carpeta). */
+  source: string
+  enabled: boolean
+  commands: ModCommand[]
+  hooks: ModHook[]
+  panels: ModPanel[]
+  /** Lo que pide: «network» (sus paneles pueden conectarse a internet), «chat» (pueden proponer mensajes al chat). */
+  permissions: string[]
+  /** Diste permiso a sus hooks (tal como están ahora; si cambian, hay que volver a darlo). */
+  hooksAllowed: boolean
+  /** Órdenes suyas que no se usan porque otro mod o kywai ya tienen ese nombre. */
+  shadowed: string[]
+  lastHook?: { at: number; on: ModHookEvent; ok: boolean; output: string }
+}

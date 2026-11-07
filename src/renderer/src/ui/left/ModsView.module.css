@@ -1,0 +1,49 @@
+.wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.on {
+  border-color: var(--cyan);
+  color: var(--text-1);
+}
+
+.frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: #fff;
+}
+
+.foot {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.empty {
+  margin: 18px 14px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.error {
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-ctl);
+  background: var(--alert-soft, rgba(255, 80, 80, 0.12));
+  color: var(--alert);
+  font-size: 12px;
+}

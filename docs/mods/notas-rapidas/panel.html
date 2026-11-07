@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 14px; background: Canvas; color: CanvasText; font-size: 13px; }
+  h1 { margin: 0 0 4px; font-size: 15px; }
+  .muted { opacity: .65; margin: 0 0 12px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .stat { padding: 10px; border-radius: 10px; background: color-mix(in srgb, CanvasText 7%, Canvas); text-align: center; }
+  .stat b { display: block; font-size: 20px; }
+  ul { list-style: none; margin: 0 0 12px; padding: 0; }
+  li { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid color-mix(in srgb, CanvasText 10%, Canvas); }
+  .dot { flex: none; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: gray; }
+  .running { background: #2ea8ff; } .done { background: #2ecc71; } .failed { background: #ff5a5a; }
+  button { padding: 7px 12px; border: 0; border-radius: 8px; background: #2ea8ff; color: #fff; font: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+  <h1 id="title">Estado del equipo</h1>
+  <p class="muted">Panel de ejemplo de un mod de kywai.</p>
+  <div class="stats">
+    <div class="stat"><b id="running">0</b>en curso</div>
+    <div class="stat"><b id="done">0</b>hechas</div>
+    <div class="stat"><b id="failed">0</b>fallidas</div>
+  </div>
+  <ul id="tasks"></ul>
+  <button id="ask">Pedir un resumen al equipo</button>
+<script>
+  // kywai manda el contexto del proyecto con {kywai: 'context', project, tasks, messages}.
+  window.addEventListener('message', (e) => {
+    const d = e.data
+    if (!d || d.kywai !== 'context') return
+    document.getElementById('title').textContent = d.project ? 'Estado de «' + d.project.name + '»' : 'Estado del equipo'
+    const count = (s) => d.tasks.filter((t) => t.status === s).length
+    for (const s of ['running', 'done', 'failed']) document.getElementById(s).textContent = count(s)
+    const ul = document.getElementById('tasks')
+    ul.replaceChildren(...d.tasks.slice(0, 8).map((t) => {
+      const li = document.createElement('li')
+      const dot = document.createElement('span')
+      dot.className = 'dot ' + t.status
+      const txt = document.createElement('span')
+      txt.textContent = t.title
+      li.append(dot, txt)
+      return li
+    }))
+  })
+  // Con el permiso «chat», el panel puede proponer un mensaje: kywai te pide confirmarlo.
+  document.getElementById('ask').addEventListener('click', () => parent.postMessage({ kywai: 'send', text: '/resumen' }, '*'))
+  parent.postMessage({ kywai: 'context' }, '*')
+</script>
+</body>
+</html>

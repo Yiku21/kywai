@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type DragEvent, type KeyboardEvent } from 'react'
-import { Ban, Brain, CalendarClock, ClipboardList, MessageSquare, Package, Paperclip, type LucideIcon } from 'lucide-react'
+import { Ban, Brain, CalendarClock, ClipboardList, MessageSquare, Package, Paperclip, Puzzle, type LucideIcon } from 'lucide-react'
 import { useCowork, useData, type DataSlice, type LeftTab } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { cx } from '../common/util'
@@ -10,11 +10,12 @@ import { TasksView } from './TasksView'
 import { ResultsView } from './ResultsView'
 import { MemoryView } from './MemoryView'
 import { RoutinesView } from './RoutinesView'
+import { ModsView, modPanels, useMods } from './ModsView'
 import { useComposer } from './composerStore'
 import s from './LeftPanel.module.css'
 import { t } from '@/lib/i18n'
 
-const TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
+const BASE_TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
   { id: 'chat', label: 'Chat', Icon: MessageSquare },
   { id: 'files', label: t('Archivos'), Icon: Paperclip },
   { id: 'tasks', label: t('Tareas'), Icon: ClipboardList },
@@ -22,6 +23,8 @@ const TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
   { id: 'memory', label: t('Memoria'), Icon: Brain },
   { id: 'routines', label: t('Rutinas'), Icon: CalendarClock }
 ]
+/** Solo si algún mod encendido trae paneles. */
+const MODS_TAB = { id: 'mods' as LeftTab, label: t('Mods'), Icon: Puzzle }
 
 function countRunning(d: DataSlice): number {
   let n = 0
@@ -53,6 +56,8 @@ export function LeftPanel() {
   const [dragging, setDragging] = useState(false)
   const depth = useRef(0)
   const baseId = useId()
+  const mods = useMods()
+  const TABS = modPanels(mods).length ? [...BASE_TABS, MODS_TAB] : BASE_TABS
 
   const canAttach = !!api && mode === 'live'
 
@@ -169,6 +174,8 @@ export function LeftPanel() {
           <MemoryView />
         ) : tab === 'routines' ? (
           <RoutinesView />
+        ) : tab === 'mods' ? (
+          <ModsView />
         ) : (
           <ResultsView />
         )}
