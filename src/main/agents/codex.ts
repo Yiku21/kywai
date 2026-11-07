@@ -29,7 +29,7 @@ const REL_IMAGE_RE = /^[\w.\-]+(\/[\w.\-]+)*$/
 /** Un identificador de hilo de Codex (UUID): solo lo que es seguro poner en la línea de comandos. */
 const THREAD_ID_RE = /^[0-9a-fA-F-]{36}$/
 
-export function codexArgs(model: string, mode: 'plan' | 'work', images: string[] = [], access: AgentAccess = 'project', effort?: Effort, resume?: string): string[] {
+export function codexArgs(model: string, mode: 'plan' | 'work', images: string[] = [], access: AgentAccess = 'project', effort?: Effort, resume?: string, extraMcp?: string[]): string[] {
   const args = ['exec']
   const resuming = !!resume && THREAD_ID_RE.test(resume)
   const imageArgs: string[] = []
@@ -48,6 +48,8 @@ export function codexArgs(model: string, mode: 'plan' | 'work', images: string[]
   const m = safeModel(model)
   if (m) args.push('-m', m)
   if (effort) args.push('-c', `model_reasoning_effort=${effort}`)
+  // Servidores MCP que el usuario encendió para Codex (Ajustes › Extensiones): solo «-c clave=valor» sin comillas.
+  if (extraMcp?.length) args.push(...extraMcp)
   // Retomar un hilo: `codex exec [opciones] resume <id> [-i img] -`. Las opciones no se heredan del hilo, por eso
   // van siempre; si el hilo ya no existe, Codex empieza uno nuevo sin fallar.
   if (resuming) args.push('resume', resume!, ...imageArgs)
@@ -255,8 +257,9 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
 export function runCodex(opts: RunAgentOptions): Promise<RunAgentResult> {
   return runCli({
     command: 'codex',
-    args: codexArgs(opts.model, opts.mode, opts.images, opts.access, opts.effort, opts.resume),
+    args: codexArgs(opts.model, opts.mode, opts.images, opts.access, opts.effort, opts.resume, opts.extraMcp?.args),
     cwd: opts.cwd,
+    ...(opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
     stdin: opts.prompt,
     signal: opts.signal,
     parser: createCodexParser(opts),

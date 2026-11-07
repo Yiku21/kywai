@@ -27,7 +27,7 @@ import { INTERRUPTED_ERROR, SUBAGENT_COLOR } from '@shared/defaults'
 import { checkAgentPresence, isLocalProvider, isTextOnly, runAgent } from './agents'
 import { safeModel, STALL_NOTICE } from './agents/spawn'
 import type { TraceUpdate } from './agents/types'
-import type { AgentErrorKind, RateLimitInfo, RunAgentResult } from './agents/types'
+import type { AgentErrorKind, ExtraMcp, RateLimitInfo, RunAgentResult } from './agents/types'
 import { getConfig } from './config'
 import { isPlanApproval, parsePlan, streamlinePlan, twoHandsPlan, wantsNoReview } from './plan'
 import { allRuntimes, deleteRuntime, emit, getRuntime, setRuntime } from './events'
@@ -49,6 +49,7 @@ import { hasGit, Shadow } from './checkpoints'
 import { addInbox, onInboxAction, resolveInboxWhere } from './inbox'
 import { captureUi, pagesToShoot, type UiShots } from './uiShots'
 import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './coworkMcp'
+import { claudeServers, codexMcp, geminiEnv, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
 import { parseDirect } from '@shared/directMessage'
@@ -440,6 +441,18 @@ export function __setBackendsForChecks(b: { run?: typeof runAgent; presence?: ty
 let quotaRefreshTimer: NodeJS.Timeout | null = null
 
 // ---------- agents ----------
+
+
+/** Para el coordinador: qué herramientas de Extensiones tiene cada agente activo (vacío si no hay ninguna). */
+function extraToolLines(): string[] {
+  const names: Record<string, string[]> = {}
+  for (const a of getConfig().agents) if (a.enabled) (names[a.provider] ??= []).push(a.name)
+  try {
+    return guideLines(listMcp(), names)
+  } catch {
+    return []
+  }
+}
 
 function baseAgents(): AgentConfig[] {
   return getConfig().agents.filter((a) => a.enabled && !a.isSubagent)
@@ -1802,6 +1815,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
       fullAccess: getConfig().agentAccess === 'full',
       planApproval: getConfig().planApproval,
       routine: run.routine,
+      extraTools: extraToolLines(),
       // La lista de funciones de la app solo si la conversación va de kywai: si no, son 5 000 caracteres de ruido.
       aboutApp: mentionsApp([run.userText, ...st.messages.filter((m) => m.author.type === 'user').slice(-3).map((m) => m.text)].join('\n'))
     }),
@@ -2403,9 +2417,24 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   if (resume) traceNote(t.id, tr('{name} retoma su sesión anterior en este proyecto', { name: exec.name }))
   // Herramientas de kywai (memoria, equipo, preguntas, habilidades). Solo Claude: lee la configuración de un
   // archivo; Codex solo la admite con valores TOML entre comillas, que no pueden ir por la consola.
+  // Con ellas, los servidores MCP que el usuario encendió para este agente en Ajustes › Extensiones.
+  const userMcp = t.direct ? [] : serversFor(exec.provider)
   const mcp: McpLaunch | null = exec.provider === 'claude' && !t.direct
-    ? mcpForTask({ projectId: run.projectId, runId: run.id, taskId: t.id, taskTitle: t.title, agentId: (parent ?? exec).id, agentName: (parent ?? exec).name })
+    ? mcpForTask({ projectId: run.projectId, runId: run.id, taskId: t.id, taskTitle: t.title, agentId: (parent ?? exec).id, agentName: (parent ?? exec).name }, claudeServers(userMcp))
     : null
+  let extraMcp: ExtraMcp | undefined
+  let extraFiles: string[] = []
+  if (userMcp.length && exec.provider === 'codex') {
+    const c = codexMcp(userMcp, join(getConfig().workspaceRoot, 'mcp'), taskTag())
+    extraFiles = c.files
+    const names = userMcp.map((x) => x.id).filter((id) => !c.skipped.includes(id))
+    if (names.length) extraMcp = { names, args: c.args, env: c.env }
+    if (c.skipped.length) traceNote(t.id, tr('Sin {list}: su configuración no se puede pasar a Codex', { list: c.skipped.join(', ') }), true)
+  } else if (userMcp.length && exec.provider === 'gemini') {
+    extraMcp = { names: userMcp.map((x) => x.id), args: [], env: geminiEnv(userMcp) }
+  }
+  const extraNames = mcp ? mcp.extraNames : (extraMcp?.names ?? [])
+  if (extraNames.length) traceNote(t.id, tr('Herramientas de Extensiones: {list}', { list: extraNames.join(', ') }))
   const attempt = (resuming: string | undefined): Promise<RunAgentResult> => {
     meta.resume = resuming
     return runner({
@@ -2414,7 +2443,8 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
       effort,
       prompt: buildTaskPrompt(run, t, exec, parent, deps, !!mcp),
       ...(t.direct ? { direct: true } : {}),
-      ...(mcp ? { mcp: { name: MCP_SERVER_NAME, command: mcp.command, args: mcp.args, env: mcp.env, configFile: mcp.configFile } } : {}),
+      ...(mcp ? { mcp: { name: MCP_SERVER_NAME, command: mcp.command, args: mcp.args, env: mcp.env, configFile: mcp.configFile, extraNames: mcp.extraNames } } : {}),
+      ...(extraMcp ? { extraMcp } : {}),
       cwd: dir,
       mode: 'work',
       access: getConfig().agentAccess,
@@ -2471,6 +2501,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   }
   meta.resume = undefined
   releaseMcp(mcp)
+  removeFiles(extraFiles)
   progress.stop()
   if (res.sessionId && !ctrl.signal.aborted) {
     meta.sessionId = res.sessionId

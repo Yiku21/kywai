@@ -1,4 +1,5 @@
 import type { Lang } from './i18n'
+import type { McpAgentKind, McpServerInfo, McpServerInput } from './extensions'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
 // Todo lo que cruza IPC está definido aquí.
 
@@ -1210,6 +1211,15 @@ export interface CoworkApi {
   rejectPlan(projectId: string, messageId: string): Promise<void>
   /** Pedir (o no) tu visto bueno antes de ejecutar cada plan. */
   setPlanApproval(on: boolean): Promise<void>
+  /** Extensiones (Ajustes › Extensiones): servidores MCP del usuario, sin sus claves. */
+  listMcpServers(): Promise<McpServerInfo[]>
+  /** Añade o cambia un servidor (`replaces`: su nombre anterior, si se renombra). Devuelve la lista nueva. */
+  saveMcpServer(input: McpServerInput, replaces?: string): Promise<McpServerInfo[]>
+  removeMcpServer(id: string): Promise<McpServerInfo[]>
+  /** Lo arranca y le pide sus herramientas; guarda el resultado (si falla, lo apaga para todos). */
+  testMcpServer(id: string): Promise<McpServerInfo[]>
+  /** A qué agentes llega. Al encenderlo para uno nuevo se prueba antes: si falla, se queda apagado. */
+  setMcpServerAgents(id: string, agents: McpAgentKind[]): Promise<McpServerInfo[]>
   /** Idioma de los avisos del motor y de las respuestas de Hermes y los agentes (lo cambia el selector de Ajustes). */
   setLanguage(lang: Lang): Promise<void>
   /** Tema elegido en este equipo: el servidor lo guarda para que Órbita se vea igual. */

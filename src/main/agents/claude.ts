@@ -44,11 +44,13 @@ export function claudeArgs(model: string, mode: 'plan' | 'work', access: AgentAc
   if (effort) args.push('--effort', effort)
   args.push('--permission-mode', mode === 'plan' ? 'plan' : access === 'full' ? 'bypassPermissions' : 'acceptEdits')
   args.push('--strict-mcp-config')
-  // Solo el servidor de kywai (nunca los del usuario), con sus herramientas permitidas sin preguntar.
+  // El servidor de kywai y los que el usuario encendió para Claude en Ajustes › Extensiones (nunca los de su propia
+  // configuración de Claude), con sus herramientas permitidas sin preguntar.
   // La configuración va en un archivo: por la consola solo pasan argumentos de texto sencillo (sin comillas ni llaves).
   if (mcp && MCP_NAME_RE.test(mcp.name) && mcp.configFile) {
     args.push('--mcp-config', mcp.configFile)
-    args.push('--allowedTools', `mcp__${mcp.name}`)
+    const names = [mcp.name, ...(mcp.extraNames ?? []).filter((n) => MCP_NAME_RE.test(n) && n !== mcp.name)]
+    args.push('--allowedTools', names.map((n) => `mcp__${n}`).join(','))
   }
   // Las sesiones de trabajo se guardan para poder retomarlas en una continuación o una corrección (el CLI
   // las limpia solo a los 30 días). Planificar y verificar son de un solo uso: no dejan rastro.

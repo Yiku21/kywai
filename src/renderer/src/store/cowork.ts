@@ -69,7 +69,7 @@ export type CameraCommand =
   | { type: 'focus'; x: number; z: number; nonce: number }
 
 /** Pestañas de la ventana de Ajustes. */
-export type SettingsTab = 'general' | 'agents' | 'connection' | 'about'
+export type SettingsTab = 'general' | 'agents' | 'extensions' | 'connection' | 'about'
 
 export type LeftTab = 'chat' | 'files' | 'tasks' | 'results' | 'memory' | 'routines'
 

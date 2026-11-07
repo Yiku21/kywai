@@ -42,6 +42,8 @@ export interface GuideOptions {
   aboutApp?: boolean
   /** La petición la lanzó sola una rutina (su nombre): el usuario no está delante para contestar preguntas. */
   routine?: string
+  /** Herramientas extra de cada agente (servidores MCP de Ajustes › Extensiones), ya en líneas para la guía. */
+  extraTools?: string[]
 }
 
 /** Palabras con las que el usuario suele referirse a kywai y a sus funciones (sin tildes, en minúsculas). */
@@ -109,6 +111,7 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
           '- Si el trabajo necesita instalar o descargar algo (npm o pip install, el SDK de Android con Java y Gradle para una APK, Xcode para iOS, Docker, una base de datos…), NO lances tareas que acabarán bloqueadas: dilo en "reply" y pide que active ⚙ → Ajustes → «Acceso completo para los agentes» o que lo instale antes. Deja "tasks": [] hasta entonces, salvo la parte que sí se pueda hacer sin instalar.'
         ]),
     '- Herramientas grandes (el SDK de Android, Xcode, Docker) ocupan varios GB y tardan en instalarse: avísalo al proponerlas.',
+    ...(opts.extraTools ?? []),
     '',
     '### Rutinas: lo que se repite o reacciona solo',
     '- kywai tiene rutinas por proyecto (pestaña Rutinas, o «/rutina …» en el chat): una petición que se envía sola al chat, como si la escribiera el usuario, cada día a una hora, unos días de la semana, cada N horas, al llegar un webhook (p. ej. un PR de GitHub) o al cambiar archivos de una carpeta. Corren en el servidor 24/7 y nunca se lanzan dos a la vez.',
@@ -131,6 +134,7 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
       : [
         '### Funciones de kywai (para responder dudas en "reply", sin crear tareas)',
         `- Acceso desde el móvil o el portátil: ⚙ → Ajustes → «Acceso desde otros dispositivos…», por Tailscale y con un enlace con código.${urls.length ? ` Ahora mismo: ${urls.join(', ')}.` : ' Ahora mismo está apagado.'}`,
+        '- Extensiones: ⚙ → Ajustes → Extensiones. El usuario añade servidores MCP (pegando la línea o el JSON de su README) y elige con un clic a qué agentes llegan (Claude, Codex y Gemini). kywai prueba cada uno antes de encenderlo y, si falla, lo deja apagado y dice por qué. Hermes y los demás agentes aún no los reciben.',
         '- La app del móvil (Órbita) se actualiza sola desde el ordenador: en el móvil, Ajustes → Órbita → «Buscar actualizaciones» (antes hay que actualizar kywai en el ordenador). No hace falta pasar la APK.',
         '- Micrófono desde el navegador: hace falta la versión https (puerto 8788, con certificado propio: el navegador avisa la primera vez) o activar HTTPS con Tailscale Serve en ese mismo panel. Al pulsar el micrófono desde http aparece «Abrir la versión segura».',
         '- Barra lateral (a la izquierda, plegable): «Nuevo chat» (Ctrl+Mayús+O), «Buscar» (Ctrl+K: conversaciones, tareas, resultados y memoria de todos los proyectos), «Te necesita», Tareas, Resultados, Rutinas, proyectos fijados, cada proyecto con sus conversaciones y las recientes de todos. Cada proyecto tiene varias conversaciones: la anterior se guarda y se puede retomar donde se dejó (también las sesiones de los agentes), pero no mientras el equipo trabaja en ese proyecto. Clic derecho (o ⋯) en una conversación: Fijar, Cambiar nombre, Bifurcar (copia aparte para seguir por otro camino), Mover a otro proyecto y Eliminar; en un proyecto: Nuevo chat, Fijar, Cambiar nombre, Abrir carpeta y Eliminar. Abajo, la rueda ⚙ (Ajustes) con todo el menú y el sonido. Los controles de cámara del espacio flotan en su esquina de abajo a la derecha.',

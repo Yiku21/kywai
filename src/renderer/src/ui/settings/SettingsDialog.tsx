@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import {
   ArrowLeftRight,
+  Blocks,
   Bot,
   ChevronDown,
   Coffee,
@@ -38,6 +39,7 @@ import { LANGS, lang, setLang, t } from '@/lib/i18n'
 import { RemoteAccess } from '../header/RemoteAccess'
 import { UpdateDialog } from '../header/UpdateDialog'
 import { SyncDialog } from '../files/SyncDialog'
+import { ExtensionsTab } from './ExtensionsTab'
 import { SoundRows } from '../header/AudioToggle'
 import { ThemeGrid } from '../header/ThemeDialog'
 import { themeLabel, useTheme } from '@/lib/theme'
@@ -63,7 +65,7 @@ export function isSettingsKey(e: KeyboardEvent): boolean {
 type Sub = 'remote' | 'update' | 'sync' | null
 
 /**
- * Ventana de Ajustes, como en Claude: pestañas a la izquierda (General, Agentes, Conexión, Acerca de) y lo de cada
+ * Ventana de Ajustes, como en Claude: pestañas a la izquierda (General, Agentes, Extensiones, Conexión, Acerca de) y lo de cada
  * una a la derecha. Lo que tiene su propia ventana (acceso desde otros dispositivos, actualizaciones, sincronizar)
  * se abre en lugar de esta y, al cerrarla, se vuelve aquí.
  */
@@ -83,6 +85,7 @@ export function SettingsDialog() {
   const tabs: Array<{ id: SettingsTab; label: string; icon: ReactNode }> = [
     { id: 'general', label: t('General'), icon: <SlidersHorizontal size={17} /> },
     ...(hasBackend ? [{ id: 'agents' as const, label: t('Agentes'), icon: <Bot size={17} /> }] : []),
+    ...(hasBackend ? [{ id: 'extensions' as const, label: t('Extensiones'), icon: <Blocks size={17} /> }] : []),
     { id: 'connection', label: t('Conexión'), icon: <Smartphone size={17} /> },
     { id: 'about', label: t('Acerca de'), icon: <Info size={17} /> }
   ]
@@ -119,6 +122,7 @@ export function SettingsDialog() {
           </button>
           {current.id === 'general' && <GeneralTab />}
           {current.id === 'agents' && <AgentsTab />}
+          {current.id === 'extensions' && <ExtensionsTab />}
           {current.id === 'connection' && <ConnectionTab openSub={setSub} client={!!client} />}
           {current.id === 'about' && <AboutTab openSub={setSub} />}
         </section>
