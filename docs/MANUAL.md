@@ -41,6 +41,7 @@ hay no pierdan nada: la carpeta de datos (`AI Cowork`), la app del Mac (`AI Cowo
   - [Memoria e instrucciones del proyecto](#memoria-e-instrucciones-del-proyecto)
   - [AGENTS.md, habilidades y herramientas de kywai](#agentsmd-habilidades-y-herramientas-de-kywai)
   - [Extensiones: tus servidores MCP para los agentes](#extensiones-tus-servidores-mcp-para-los-agentes)
+  - [Extensiones: catálogo de servidores MCP y de habilidades](#extensiones-catálogo-de-servidores-mcp-y-de-habilidades)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
@@ -1007,7 +1008,7 @@ web…) y eliges con un clic a qué agentes llegan. Cada tarea recibe solo los q
 de las herramientas propias de kywai. Los servidores que tengas configurados en tu Claude, Codex o Gemini no
 cuentan: solo los de esta pestaña.
 
-**Añadir uno.** «Añadir servidor» y pega lo que trae su README: la línea de instalación
+**Añadir uno a mano.** «Añadir a mano» y pega lo que trae su README: la línea de instalación
 (`npx -y @playwright/mcp@latest`), su JSON (`{"mcpServers": {…}}` o una sola entrada), la orden `claude mcp add …`
 o su dirección (`https://…/mcp`). kywai lo entiende y te enseña el nombre, la orden o la dirección y sus claves
 (variables como `GITHUB_PERSONAL_ACCESS_TOKEN`, o la cabecera `Authorization: Bearer …` de los remotos) para que
@@ -1041,6 +1042,37 @@ no puede usarlas.
 **Límites de ahora.** Los servidores remotos que solo admiten iniciar sesión en el navegador (OAuth) aún no se
 pueden usar en las tareas: hace falta un token. Hermes y los agentes de catálogo todavía no reciben estos servidores.
 Las direcciones `http://` solo se admiten si son de este equipo (`localhost`).
+
+### Extensiones: catálogo de servidores MCP y de habilidades
+
+La pestaña **Extensiones** tiene dos partes: **Servidores MCP** y **Habilidades**.
+
+**Catálogo de servidores.** «Explorar catálogo» enseña primero unos destacados con su orden comprobada (Playwright,
+GitHub, Context7, DeepWiki, Fetch, Sequential Thinking). Al buscar (notion, postgres, slack…) se consulta el
+**registro oficial de MCP** (registry.modelcontextprotocol.io, el directorio abierto del estándar, con miles de
+servidores) y «Más resultados» trae la página siguiente. Cada ficha dice si es **remoto** o **en este equipo**, qué
+claves pide y lleva el enlace a su página. «Instalar» no instala nada aún: rellena el formulario de «Añadir a mano»
+con la orden (`npx -y paquete@versión`, `uvx paquete==versión` o `docker run -i --rm …`) o la dirección y las claves
+con su explicación debajo, para que lo revises; al guardar se prueba como cualquier otro. Si la ficha deja algo por
+rellenar (`<carpeta>`, `{región}`), sale un aviso amarillo. Los que solo funcionan por SSE no se pueden instalar.
+
+**Verificados (✓).** En el registro puede publicar cualquiera, así que solo llevan ✓ los de publicadores conocidos
+(Microsoft, GitHub, Notion, Stripe, Cloudflare, Google… lista `TRUSTED_MCP_PUBLISHERS` en `src/main/catalog.ts`) y
+salen primero. El resto se puede instalar, pero revisa su orden.
+
+**Habilidades.** Arriba, las instaladas (las de la carpeta «habilidades», que leen todos los agentes sean del
+programa que sean) con su papelera. Debajo:
+- **Buscar** en **skills.sh**, el directorio grande de skills (el mismo formato SKILL.md de Claude, Codex y Gemini),
+  con cuántas veces se ha instalado cada una. Sin buscar salen destacadas (Superpowers, Impeccable, la auditoría de
+  seguridad de Cloudflare, las de Anthropic, HyperFrames).
+- **Instalar desde el enlace** de GitHub: un repositorio entero (`https://github.com/dueño/repo`: instala todas sus
+  carpetas con SKILL.md, sin las de pruebas y sin partir las anidadas) o una carpeta (`…/tree/main/skills/pdf`).
+
+Se copia la carpeta de la skill entera (scripts, referencias…) a `habilidades/<nombre>`, con un máximo de 40
+archivos de 400 KB. Para saber qué archivos tiene se usa la API de GitHub sin sesión (60 consultas por hora); si no
+responde, se buscan en los sitios de siempre (`skills/`, `.claude/skills/`…) y se traen los que cita su SKILL.md.
+Nada de lo descargado se ejecuta al instalar, y ningún nombre puede escribir fuera de la carpeta de habilidades.
+Las habilidades son instrucciones que siguen los agentes: instala solo las de fuentes en las que confíes.
 
 ### Rutinas: peticiones que se lanzan solas
 
