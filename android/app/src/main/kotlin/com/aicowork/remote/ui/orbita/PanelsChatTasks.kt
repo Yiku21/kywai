@@ -430,6 +430,8 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                     // Plan de Hermes: a la espera de tu visto bueno (o ya en marcha, con sus tareas en vivo).
                     val proposal = message.proposal
                     if (proposal != null && proposal.status != "approved") ProposalCard(message, proposal, snapshot, model)
+                    // Rutina que propone Hermes («Crear rutina»).
+                    message.routineProposal?.let { RoutineProposalCard(message, it, snapshot, model) }
                     if (message.taskIds.isNotEmpty()) PlanTasksCard(message.taskIds, snapshot, model)
                     // Lo que entrega una tarea, junto en una carpeta que se despliega.
                     if (message.artifactIds.isNotEmpty()) DeliverablesCard(message.id, message.artifactIds, snapshot, model)

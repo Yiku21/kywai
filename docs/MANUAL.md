@@ -1431,10 +1431,20 @@ servicios de Tailscale. Para que llegue GitHub (que está en internet) hace falt
 Funnel; ten en cuenta que entonces todo el acceso web queda en internet (sigue pidiendo el código de acceso, salvo
 en `/hooks/`, que pide el secreto de cada rutina).
 
-**Órbita / API móvil**: `GET /api/mobile/v1/routines?conversationId=…` lista las rutinas (sin secretos) y
-`POST /api/mobile/v1/routines/{routineId}/run` es «Ejecutar ahora» (capacidad `routines`); los cambios llegan por el
-evento `routines.updated` y los mensajes de una rutina llevan `routine: { id, name }`. Crear y editar se hace desde
-el escritorio o el navegador.
+**En Órbita**: barra lateral → **Rutinas** (menú «Más»). Lista las rutinas del proyecto con su horario, la próxima
+vez y la última ejecución, con interruptor para activarla, **Ejecutar ahora**, editar y borrar; **Nueva rutina** abre
+un formulario con los mismos tipos que el escritorio (una vez, cada día, ciertos días, cada N horas, webhook, al
+cambiar archivos) y la casilla del visto bueno. La tarjeta «Rutina propuesta» de Hermes también sale en el chat de
+Órbita con **Crear rutina**, **Cambiar** (pone la orden `/rutina …` en el cuadro de texto) y **Descartar**. Con un
+servidor antiguo, Órbita solo deja verlas o avisa de que hay que actualizar kywai en el ordenador.
+
+**API móvil**: `GET /api/mobile/v1/routines?conversationId=…` lista las rutinas (sin secretos) y
+`POST /api/mobile/v1/routines/{routineId}/run` es «Ejecutar ahora» (capacidad `routines`). Con la capacidad
+`routinesEdit`: `POST /routines` crea, `POST /routines/{routineId}` cambia (los campos que mandes) y
+`POST /routines/{routineId}/delete` borra. Con `routineProposals`:
+`POST /messages/{messageId}/routine-proposal/create` o `/dismiss` decide la tarjeta de Hermes (404 si no existe, 409 si
+ya se decidió). Los cambios llegan por el evento `routines.updated` y los mensajes de una rutina llevan
+`routine: { id, name }`. El secreto del webhook no sale nunca por la API móvil.
 
 Se guardan en el `project.json` del proyecto (`routines`) y las lanza `src/main/routines.ts`, que mira cada 30 s.
 

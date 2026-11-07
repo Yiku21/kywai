@@ -2,7 +2,7 @@ import { isUtf8 } from 'node:buffer'
 import { promises as fsp } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Duplex } from 'node:stream'
-import type { CoworkEvent, MemoryKind, MemoryStatus, MobileOnlyEvent } from '@shared/types'
+import type { CoworkEvent, MemoryKind, MemoryStatus, MobileOnlyEvent, RoutineInput } from '@shared/types'
 import type { MobileEventEnvelope } from '@shared/mobile'
 import type { DeviceKind, DeviceRegistry } from './devices'
 import { MobileAuth } from './mobileAuth'
@@ -44,12 +44,15 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/memory\/([^/]+)$/, 'memoryUpdate', ['POST']],
   [/^\/memory\/([^/]+)\/delete$/, 'memoryDelete', ['POST']],
   [/^\/instructions$/, 'instructions', ['POST']],
-  [/^\/routines$/, 'routines', ['GET']],
+  [/^\/routines$/, 'routines', ['GET', 'POST']],
   [/^\/routines\/([^/]+)\/run$/, 'routineRun', ['POST']],
   [/^\/templates$/, 'templates', ['GET', 'POST']],
   [/^\/templates\/restore$/, 'templatesRestore', ['POST']],
   [/^\/templates\/([^/]+)\/delete$/, 'templateDelete', ['POST']],
   [/^\/templates\/([^/]+)$/, 'templateUpdate', ['POST']],
+  [/^\/routines\/([^/]+)\/delete$/, 'routineDelete', ['POST']],
+  [/^\/routines\/([^/]+)$/, 'routineUpdate', ['POST']],
+  [/^\/messages\/([^/]+)\/routine-proposal\/(create|dismiss)$/, 'routineProposal', ['POST']],
   [/^\/artifacts\/([^/]+)\/raw$/, 'artifactRaw', ['GET']],
   [/^\/files$/, 'files', ['GET', 'POST']],
   [/^\/files\/raw$/, 'fileRaw', ['GET']],
@@ -185,6 +188,23 @@ function templateInput(input: Record<string, unknown>): Record<string, unknown> 
     if (input[k] === undefined) continue
     if (typeof input[k] !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', `${k} debe ser true o false`)
     out[k] = input[k]
+  }
+  return out
+}
+
+/** Campos de una rutina tal como llegan (el motor los valida igual que en el escritorio: hora, días, carpeta…). */
+function routineInput(input: Record<string, unknown>): Partial<RoutineInput> {
+  const out: Partial<RoutineInput> = {}
+  if (input.name !== undefined) out.name = string(input.name, 'name', 200)
+  if (input.request !== undefined) out.request = string(input.request, 'request', 9000)
+  if (input.trigger !== undefined) {
+    if (!input.trigger || typeof input.trigger !== 'object' || Array.isArray(input.trigger)) throw new MobileError(400, 'INVALID_INPUT', 'trigger debe ser un objeto')
+    out.trigger = input.trigger as RoutineInput['trigger']
+  }
+  for (const key of ['enabled', 'askApproval'] as const) {
+    if (input[key] === undefined) continue
+    if (typeof input[key] !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', `${key} debe ser true o false`)
+    out[key] = input[key] as boolean
   }
   return out
 }
@@ -447,9 +467,39 @@ export class MobileApi {
           mobileJson(res, 200, await this.backend.setInstructions(project, input.text))
           break
         }
-        case 'routines':
-          mobileJson(res, 200, await this.backend.routines(projectId(query(url, ['conversationId'], ['conversationId']).conversationId)))
+        case 'routines': {
+          if (req.method === 'GET') {
+            mobileJson(res, 200, await this.backend.routines(projectId(query(url, ['conversationId'], ['conversationId']).conversationId)))
+            break
+          }
+          const input = await body(req)
+          fields(input, ['conversationId', 'name', 'request', 'trigger'], ['enabled', 'askApproval'])
+          mobileJson(res, 201, await this.backend.createRoutine(projectId(input.conversationId), routineInput(input) as RoutineInput))
           break
+        }
+        case 'routineUpdate': {
+          const routineId = id(param, 'routineId')
+          const input = await body(req)
+          fields(input, ['conversationId'], ['name', 'request', 'trigger', 'enabled', 'askApproval'])
+          const patch = routineInput(input)
+          if (!Object.keys(patch).length) throw new MobileError(400, 'INVALID_INPUT', 'Indica name, request, trigger, enabled o askApproval')
+          mobileJson(res, 200, await this.backend.updateRoutine(projectId(input.conversationId), routineId, patch))
+          break
+        }
+        case 'routineDelete': {
+          const routineId = id(param, 'routineId')
+          const input = await body(req)
+          fields(input, ['conversationId'])
+          mobileJson(res, 200, await this.backend.deleteRoutine(projectId(input.conversationId), routineId))
+          break
+        }
+        case 'routineProposal': {
+          const messageId = id(param, 'messageId')
+          const input = await body(req)
+          fields(input, ['conversationId'])
+          mobileJson(res, 200, await this.backend.routineProposal(projectId(input.conversationId), messageId, action as 'create' | 'dismiss'))
+          break
+        }
         case 'routineRun': {
           const routineId = id(param, 'routineId')
           const input = await body(req)

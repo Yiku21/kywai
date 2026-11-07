@@ -527,6 +527,7 @@ private fun PanelContent(section: Section, model: OrbitaModel, state: CoworkUiSt
         Section.Files -> FilesPanel(model, state)
         Section.Results -> ResultsPanel(model, state)
         Section.Memory -> MemoryPanel(model, state)
+        Section.Routines -> RoutinesPanel(model, state)
         Section.Tools -> ToolsPanel(model, state)
         Section.Usage -> UsagePanel(model, state)
         Section.Settings -> SettingsPanel(model, state)

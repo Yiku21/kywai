@@ -5,6 +5,8 @@ import com.aicowork.remote.i18n.t
 import com.aicowork.remote.data.model.AppRelease
 import com.aicowork.remote.data.model.Artifact
 import com.aicowork.remote.data.model.ChatSummary
+import com.aicowork.remote.data.model.Routine
+import com.aicowork.remote.data.model.RoutineInput
 import com.aicowork.remote.data.model.MusicResult
 import com.aicowork.remote.data.model.SearchHit
 import com.aicowork.remote.data.model.SearchResponse
@@ -157,6 +159,9 @@ data class CoworkUiState(
     val queuedFiles: List<QueuedFile> = emptyList(),
     /** Bandeja «Te necesita»: los avisos abiertos, del más reciente al más antiguo (vacía si el servidor no la tiene). */
     val inbox: List<InboxItem> = emptyList(),
+    /** Rutinas del proyecto [routinesFor] (null hasta pedirlas: se piden al abrir la sección Rutinas). */
+    val routines: List<Routine>? = null,
+    val routinesFor: String? = null,
 )
 
 data class ActionResult(val ok: Boolean, val message: String)
@@ -261,6 +266,15 @@ interface CoworkController {
     suspend fun refreshUsage(): ActionResult = unsupported
     /** Visto bueno ([approve]) o descarte del plan que propone Hermes en el mensaje [messageId]. */
     suspend fun decidePlan(messageId: String, approve: Boolean): ActionResult = unsupported
+    /** Pide al ordenador las rutinas del proyecto abierto (quedan en [CoworkUiState.routines]). */
+    suspend fun loadRoutines(): ActionResult = unsupported
+    suspend fun runRoutine(routineId: String): ActionResult = unsupported
+    /** Crea una rutina ([routineId] null) o cambia esa. */
+    suspend fun saveRoutine(routineId: String?, input: RoutineInput): ActionResult = unsupported
+    suspend fun setRoutineEnabled(routineId: String, enabled: Boolean): ActionResult = unsupported
+    suspend fun deleteRoutine(routineId: String): ActionResult = unsupported
+    /** «Crear rutina» ([create]) o «Descartar» en la tarjeta que propone Hermes. */
+    suspend fun decideRoutineProposal(messageId: String, create: Boolean): ActionResult = unsupported
     suspend fun setPlanApproval(enabled: Boolean): ActionResult = unsupported
     /** Nombre del ordenador que se ve abajo en la barra lateral (también en el escritorio y la web). */
     suspend fun setServerName(name: String): ActionResult = unsupported
@@ -571,6 +585,7 @@ class CoworkRepository(
     private suspend fun handleEvent(c: CoworkApiClient, text: String) {
         val envelope = EventReducer.parse(text) ?: return
         val needsResync = syncMutex.withLock {
+            if (envelope.type == "routines.updated") applyRoutinesEvent(envelope.payload)
             if (envelope.type == "inbox.updated") {
                 val last = lastSequence
                 // Un duplicado o uno ya incluido en la instantánea no pisa la bandeja más reciente.
@@ -1065,6 +1080,64 @@ class CoworkRepository(
     ) { c ->
         val saved = c.setAgentAccess(access)
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(agentAccess = saved)) }) }
+    }
+
+    override suspend fun loadRoutines(): ActionResult = action("") { c ->
+        val id = needConversation()
+        val list = c.routines(id)
+        _state.update { it.copy(routines = list, routinesFor = id) }
+    }
+
+    override suspend fun runRoutine(routineId: String): ActionResult = action(t("Rutina lanzada: mírala en el chat")) { c ->
+        c.runRoutine(needConversation(), routineId)
+        reloadRoutines(c)
+    }
+
+    override suspend fun saveRoutine(routineId: String?, input: RoutineInput): ActionResult =
+        action(if (routineId == null) t("Rutina creada") else t("Rutina guardada")) { c ->
+            c.saveRoutine(needConversation(), routineId, input)
+            reloadRoutines(c)
+        }
+
+    override suspend fun setRoutineEnabled(routineId: String, enabled: Boolean): ActionResult =
+        action(if (enabled) t("Rutina activada") else t("Rutina desactivada")) { c ->
+            c.setRoutineEnabled(needConversation(), routineId, enabled)
+            reloadRoutines(c)
+        }
+
+    override suspend fun deleteRoutine(routineId: String): ActionResult = action(t("Rutina borrada")) { c ->
+        c.deleteRoutine(needConversation(), routineId)
+        reloadRoutines(c)
+    }
+
+    override suspend fun decideRoutineProposal(messageId: String, create: Boolean): ActionResult =
+        action(if (create) t("Rutina creada") else t("Rutina descartada")) { c ->
+            c.decideRoutineProposal(needConversation(), messageId, create)
+            // Se ve al momento; el mensaje definitivo llega por el WebSocket.
+            val status = if (create) "created" else "dismissed"
+            _state.update { s ->
+                s.copy(snapshot = s.snapshot?.let { snap ->
+                    snap.copy(conversation = snap.conversation.copy(messages = snap.conversation.messages.map { m ->
+                        if (m.id == messageId && m.routineProposal != null) m.copy(routineProposal = m.routineProposal.copy(status = status)) else m
+                    }))
+                })
+            }
+            if (create && _state.value.routinesFor != null) reloadRoutines(c)
+        }
+
+    /** La lista al día tras un cambio (el evento routines.updated también la trae, pero puede tardar o no llegar). */
+    private suspend fun reloadRoutines(c: CoworkApiClient) {
+        val id = currentConversation() ?: return
+        runCatching { c.routines(id) }.onSuccess { list -> _state.update { it.copy(routines = list, routinesFor = id) } }
+    }
+
+    /** Evento `routines.updated`: la lista completa de las rutinas de un proyecto (solo cuenta la del abierto). */
+    private fun applyRoutinesEvent(payload: JsonObject) {
+        val project = (payload["projectId"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return
+        if (project != currentConversation()) return
+        val element = payload["routines"] ?: return
+        val list = runCatching { CoworkJson.decodeFromJsonElement(ListSerializer(Routine.serializer()), element) }.getOrNull() ?: return
+        _state.update { it.copy(routines = list, routinesFor = project) }
     }
 
     override suspend fun decidePlan(messageId: String, approve: Boolean): ActionResult = action(
