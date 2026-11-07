@@ -32,6 +32,7 @@ import { getConfig } from './config'
 import { isPlanApproval, parsePlan, streamlinePlan, twoHandsPlan, wantsNoReview } from './plan'
 import { allRuntimes, deleteRuntime, emit, getRuntime, setRuntime } from './events'
 import * as store from './projects'
+import { expandModCommand } from './mods'
 import { freshQuotaSnapshot, latestQuotas, recordUsage, refreshQuotas, setClaudeRateLimit } from './quota'
 import { finishRunUsage, rateUsage, recordCall, resumeRunUsage, setRunQuota, startRunUsage, usageRuns } from './usageLog'
 import { agentHistory, agentQualityFor, profileLines } from './agentProfile'
@@ -1036,7 +1037,9 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     attachments: atts.length ? atts : undefined,
     ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
   })
-  let userText = text.trim() || '(El usuario solo ha enviado archivos adjuntos.)'
+  // «/orden …» de un mod: en el chat se ve lo que escribiste; al equipo le llega el texto de la orden.
+  const modCommand = expandModCommand(text)
+  let userText = modCommand?.text || text.trim() || '(El usuario solo ha enviado archivos adjuntos.)'
   let revision: Run['revision']
   const runAtts = [...atts]
   if (pending?.proposal) {

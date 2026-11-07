@@ -85,6 +85,7 @@ import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScr
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
 import { installCatalogSkill, installSkillLink, installedSkills, mcpCatalog, removeSkill, skillCatalog } from './catalog'
+import { allowModHooks, modPanelResponse, initMods, installModFolder, installModLink, listMods, modPanelHtml, removeMod, setModEnabled } from './mods'
 import { addPluginLink, initPlugins, installCatalogPlugin, listPlugins, pluginCatalog, removeMarketplace, removePlugin } from './plugins'
 import { McpRegistry, initExtensions, listMcp, removeMcp, saveMcp, setMcpAgents, testMcp } from './extensions'
 import { deleteTraces, flushTaskTraces, getTaskTrace, initTaskTraces } from './taskTrace'
@@ -181,6 +182,10 @@ function registerProtocol(): void {
     try {
       const url = new URL(request.url)
       if (url.hostname === 'music' && url.pathname === '/tempo') return tempoResponse(url)
+      if (url.hostname === 'mod') {
+        const r = modPanelResponse(url.pathname)
+        return new Response(r.body, { status: r.status, headers: r.headers })
+      }
       if (url.hostname !== 'file') return new Response('Not found', { status: 404 })
       const segments = url.pathname.split('/').filter(Boolean).map((s) => decodeURIComponent(s))
       const [projectId, ...rest] = segments
@@ -716,6 +721,14 @@ function registerIpc(): void {
   handle('addPluginLink', (url: unknown) => addPluginLink(url))
   handle('removePlugin', (name: unknown) => removePlugin(name))
   handle('removeMarketplace', (repo: unknown) => removeMarketplace(repo))
+  // Mods: órdenes «/…», hooks (con permiso) y paneles aislados junto al chat.
+  handle('listMods', () => listMods())
+  handle('installModLink', (url: unknown) => installModLink(url))
+  handle('installModFolder', (folder: unknown) => installModFolder(folder))
+  handle('removeMod', (name: unknown) => removeMod(name))
+  handle('setModEnabled', (name: unknown, enabled: unknown) => setModEnabled(name, enabled))
+  handle('allowModHooks', (name: unknown, allow: unknown) => allowModHooks(name, allow))
+  handle('modPanel', (name: unknown, panelId: unknown) => modPanelHtml(name, panelId))
   handle('setServerName', (name: unknown) => {
     if (typeof name !== 'string' || name.length > 200) throw new Error(tr('Valor no válido'))
     setServerName(name)
@@ -926,6 +939,16 @@ async function boot(): Promise<void> {
   initSkills(cfg.workspaceRoot)
   initExtensions(new McpRegistry(join(app.getPath('userData'), 'mcp-servers.json'), systemCipher))
   initPlugins(app.getPath('userData'))
+  initMods(app.getPath('userData'), {
+    project: (id) => {
+      try {
+        const p = store.getProject(id).project
+        return { name: p.name, dir: store.workRoot(id) }
+      } catch {
+        return null
+      }
+    }
+  })
   void startCoworkMcp(cfg.workspaceRoot)
   // El botón «Abrir Compartir pantalla» de los avisos de permisos: solo tiene sentido con el servidor en un Mac.
   if (process.platform === 'darwin') setScreenShareUrl(() => {
