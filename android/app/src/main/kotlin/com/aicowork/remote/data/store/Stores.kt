@@ -84,6 +84,10 @@ data class Preferences(
     val voiceVolume: Float = 0.7f,
     /** Idioma de la app en este móvil (Ajustes → «Idioma · Language»); «Del sistema», el del teléfono. */
     val language: AppLanguage = AppLanguage.System,
+    /** «Tema propio en este móvil»: Órbita usa [localTheme] y no sigue el tema del ordenador. */
+    val ownTheme: Boolean = false,
+    /** El tema propio de este móvil (un id del escritorio: «mundo-bosque», «grafito»…). */
+    val localTheme: String? = null,
 )
 
 interface PreferencesStore {

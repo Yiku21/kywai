@@ -123,8 +123,8 @@ fun OrbitaApp(model: OrbitaModel, deviceName: String, demoServer: DemoServer?) {
     SideEffect { model.feedback.view = view }
     // Lo subido (desde el chat o desde Archivos) va con el próximo mensaje aunque el panel se cierre.
     AttachFinishedUploads(model, state)
-    // El mismo tema que el ordenador: colores de la interfaz y del espacio 3D.
-    val themeId = state.snapshot?.settings?.theme
+    // El mismo tema que el ordenador (o el propio de este móvil): colores de la interfaz y del espacio 3D.
+    val themeId = OrbitaThemes.effective(state.snapshot?.settings?.theme, model.preferences.ownTheme, model.preferences.localTheme)
     SideEffect {
         val tokens = OrbitaThemes.tokens(themeId)
         if (Orbita.palette.tokens != tokens) Orbita.palette = OrbitaPalette(tokens)

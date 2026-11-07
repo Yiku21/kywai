@@ -11,6 +11,9 @@ import com.aicowork.remote.ui.FakeController
 import com.aicowork.remote.ui.SampleData
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import com.aicowork.remote.data.store.InMemoryPreferencesStore
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,5 +52,37 @@ class SettingsTabsTest {
         compose.onNodeWithTag("settings-team").performClick()
         compose.waitForIdle()
         assertEquals(Section.Team, model.section)
+    }
+
+    @Test
+    fun theThemeIsChosenFromOrbitaForEveryDeviceOrOnlyForThisPhone() {
+        val base = SampleData.state()
+        val snap = base.snapshot!!
+        val controller = FakeController(base.copy(snapshot = snap.copy(
+            settings = snap.settings.copy(theme = "mundo-grafito"),
+            capabilities = snap.capabilities.copy(theme = true),
+        )))
+        val prefs = InMemoryPreferencesStore()
+        val model = orbitaModelForTests(controller, prefs = prefs)
+        compose.setContent { OrbitaApp(model, "Pixel", null) }
+        compose.onNodeWithTag("nav-Settings").performClick()
+
+        // Sin tema propio: lo que se elige aquí lo guarda el ordenador para todos.
+        compose.onNodeWithTag("theme-picker").performScrollTo().performClick()
+        compose.onNodeWithTag("theme-mundo-matrix").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertTrue(controller.calls.toString(), "theme:mundo-matrix" in controller.calls)
+
+        // Con tema propio: solo cambia este móvil y el ordenador no se entera.
+        compose.onNodeWithTag("settings-own-theme").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(true, prefs.preferences.value.ownTheme)
+        assertEquals("mundo-grafito", prefs.preferences.value.localTheme)
+        compose.onNodeWithTag("theme-picker").performScrollTo().performClick()
+        compose.onNodeWithTag("theme-relicario").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals("relicario", prefs.preferences.value.localTheme)
+        assertEquals(Color(0xFFE8C27A), Orbita.Accent)
+        assertEquals(1, controller.calls.count { it.startsWith("theme:") })
     }
 }

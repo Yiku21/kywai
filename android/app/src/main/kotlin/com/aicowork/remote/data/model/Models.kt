@@ -265,6 +265,12 @@ data class ServerNameRequest(val name: String)
 @Serializable
 data class ServerNameResponse(val serverName: String? = null)
 
+@Serializable
+data class ThemeRequest(val theme: String)
+
+@Serializable
+data class ThemeResponse(val theme: String? = null)
+
 /** Tarea del plan que propone Hermes: todavía no existe; se crea al aprobar el plan. */
 @Serializable
 data class ProposedTask(
@@ -539,6 +545,8 @@ data class Capabilities(
     val search: Boolean = false,
     /** Cambiar el nombre del ordenador que se ve abajo en la barra lateral (POST /settings/server-name). */
     val serverName: Boolean = false,
+    /** Elegir el tema desde el móvil (POST /settings/theme): lo siguen el escritorio, los clientes y el navegador. */
+    val theme: Boolean = false,
     /** Menú de un chat al mantenerlo pulsado: fijar, bifurcar, mover y borrar también el abierto (GET /chats/pinned). */
     val chatActions: Boolean = false,
     /** Menú de un proyecto al mantenerlo pulsado: renombrar, fijar y eliminar (POST /projects/{id}/rename|pin|delete). */
