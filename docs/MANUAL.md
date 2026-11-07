@@ -1281,11 +1281,12 @@ se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cua
 
 ### Temas
 
-⚙ → Ajustes → General → **Tema** (se despliega con la flecha) cambia el aspecto de la app. Los temas van en tres
-grupos.
+⚙ → Ajustes → General → **Tema** (se despliega con la flecha) cambia el aspecto de la app. Los temas van en dos
+grupos: los mapas (con la Ciudad digital) y los decorados.
 
 **Mapas.** Siete escenarios, cada uno con su entorno, sus plataformas y su núcleo propios (`scene/worlds/`). La
-interfaz toma los colores del color de la Ciudad con su mismo nombre (el de Órbita es el cristal de Frost Glass):
+interfaz toma los colores del color de la Ciudad que le corresponde (Clásico → Índigo, Órbita → Frost Glass, Marfil →
+Perla, Grafito → Ónix, Bosque → Esmeralda, Matrix → Neón, EVA-01 → Ultravioleta):
 
 - **Clásico:** centro de operaciones del ciberespacio, con racks de servidores, un núcleo holográfico y tráfico de
   datos por la red del suelo.
@@ -1304,22 +1305,23 @@ Tierra. Con dos agentes ocupados ya van a tope, y se calman poco a poco al termi
 contacto solo se ven en equipos que aguantan la calidad gráfica alta. Las texturas de Órbita son de Solar System
 Scope (CC BY 4.0) y del NASA SVS; los créditos están al pie del selector de temas y en `assets/orbit/CREDITS.md`.
 
-**Ciudad digital.** El espacio de siempre con siete colores a elegir en la fila de debajo de su tarjeta. Al pulsar
-la tarjeta vuelve al último color elegido. El color cambia la interfaz y el espacio 3D (suelo, ciudad, estaciones,
-circuitos, núcleo y luces):
+**Ciudad digital.** El espacio de siempre, como una tarjeta más al final de los mapas. Al elegirla se despliega
+debajo la fila de sus siete colores (y al pulsarla vuelve al último color elegido). El color cambia la interfaz y el
+espacio 3D (suelo, ciudad, estaciones, circuitos, núcleo y luces). Tienen nombres propios para no repetir los de los
+mapas; entre paréntesis, cómo se llamaban cuando eran temas sueltos:
 
-- **Clásico:** el predeterminado, paneles oscuros y sobrios.
-- **Frost Glass** (antes se llamaba Órbita): cristal esmerilado, como la app del móvil. El espacio 3D ocupa toda la
-  ventana y el chat, la cabecera, las barras, los menús y las ventanas flotan encima como cristal que lo deja ver
-  difuminado; el mundo se centra en la zona que deja libre el chat.
-- **Marfil:** claro y cálido; suelo de piedra, ciudad blanca, circuitos verdes y aros dorados.
-- **Grafito:** negro neutro con detalles dorados.
-- **Bosque:** verde bosque profundo con oro.
-- **Matrix:** negro y verde neón.
-- **EVA-01:** morado y verde lima.
+- **Índigo** (Clásico): el predeterminado, paneles oscuros y sobrios.
+- **Frost Glass** (Órbita): cristal esmerilado, como la app del móvil. El espacio 3D ocupa toda la ventana y el
+  chat, la cabecera, las barras, los menús y las ventanas flotan encima como cristal que lo deja ver difuminado; el
+  mundo se centra en la zona que deja libre el chat.
+- **Perla** (Marfil): claro y cálido; suelo de piedra, ciudad blanca, circuitos verdes y aros dorados.
+- **Ónix** (Grafito): negro neutro con detalles dorados.
+- **Esmeralda** (Bosque): verde bosque profundo con oro.
+- **Neón** (Matrix): negro y verde neón.
+- **Ultravioleta** (EVA-01): morado y verde lima.
 
 Quien tenía elegido uno de estos colores cuando eran temas sueltos lo sigue viendo igual: el tema guardado
-(`aicowork.theme`) conserva los mismos nombres internos (`orbita` es Frost Glass) y los mapas usan otros
+(`aicowork.theme`) conserva los mismos nombres internos (`clasico` es Índigo, `orbita` Frost Glass, `marfil` Perla, `grafito` Ónix, `bosque` Esmeralda, `matrix` Neón y `eva` Ultravioleta) y los mapas usan otros
 (`mundo-clasico`, `mundo-orbita`…).
 
 **Decorados.** Cuatro que además decoran el espacio, cambian la forma del núcleo y, en los de fiesta, disfrazan a los robots:

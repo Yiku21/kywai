@@ -29,14 +29,17 @@ const group = (label: string): HTMLButtonElement[] =>
 const colorButton = (name: string): HTMLButtonElement => group('Color de la ciudad').find((b) => b.textContent === name)!
 
 describe('temas', () => {
-  it('tres grupos: siete mapas, la Ciudad digital con siete colores y cuatro decorados', async () => {
+  it('los siete mapas y la Ciudad digital como una tarjeta más (sus siete colores debajo), y cuatro decorados', async () => {
     await act(async () => root.render(<ThemeGrid />))
-    expect(group('Mapas').map((b) => WORLDS.find((w) => b.textContent?.startsWith(w.name))?.id)).toEqual(WORLDS.map((w) => w.id))
-    expect(group('Color de la ciudad').map((b) => b.textContent)).toEqual(['Clásico', 'Frost Glass', 'Marfil', 'Grafito', 'Bosque', 'Matrix', 'EVA-01'])
+    const maps = group('Mapas')
+    expect(maps).toHaveLength(8)
+    expect(maps.slice(0, 7).map((b) => WORLDS.find((w) => b.textContent?.startsWith(w.name))?.id)).toEqual(WORLDS.map((w) => w.id))
+    expect(maps[7].textContent).toContain('Ciudad digital')
+    expect(group('Color de la ciudad').map((b) => b.textContent)).toEqual(['Índigo', 'Frost Glass', 'Perla', 'Ónix', 'Esmeralda', 'Neón', 'Ultravioleta'])
     expect(group('Decorados')).toHaveLength(4)
     expect(WORLDS.length + CITY_COLORS.length + DECORS.length).toBe(18)
-    // Los mapas llevan su silueta en la miniatura.
-    for (const b of group('Mapas')) expect(b.querySelector('svg[viewBox="0 0 120 84"]')).not.toBeNull()
+    // Los mapas llevan su silueta en la miniatura (la ciudad, su núcleo de siempre).
+    for (const b of maps.slice(0, 7)) expect(b.querySelector('svg[viewBox="0 0 120 84"]')).not.toBeNull()
   })
 
   it('la Ciudad en Clásico es la predeterminada; Frost Glass (el Órbita de antes) se aplica al momento y se recuerda', async () => {
@@ -44,7 +47,7 @@ describe('temas', () => {
     expect(document.documentElement.dataset.theme).toBe('clasico')
     expect(document.documentElement.dataset.world).toBeUndefined()
     await act(async () => root.render(<ThemeGrid />))
-    expect(colorButton('Clásico').getAttribute('aria-checked')).toBe('true')
+    expect(colorButton('Índigo').getAttribute('aria-checked')).toBe('true')
     await act(async () => colorButton('Frost Glass').click())
     expect(document.documentElement.dataset.theme).toBe('orbita')
     expect(localStorage.getItem('aicowork.theme')).toBe('orbita')
@@ -70,21 +73,32 @@ describe('temas', () => {
     await act(async () => root.render(<ThemeGrid />))
     expect(palette).toBe(PALETTES.clasico)
     expect(tone('#7fb0ff')).toBe('#7fb0ff')
-    await act(async () => colorButton('Matrix').click())
+    await act(async () => colorButton('Neón').click())
     expect(document.documentElement.dataset.theme).toBe('matrix')
     expect(palette).toBe(PALETTES.matrix)
     // Los azules del clásico pasan al verde de Matrix; los colores de otros tonos (el verde de una herramienta) se quedan.
     const [r, g, b] = [1, 3, 5].map((i) => parseInt(tone('#3f7bff').slice(i, i + 2), 16))
     expect(g).toBeGreaterThan(Math.max(r, b) + 100)
     expect(tone('#5ff0a6')).toBe('#5ff0a6')
-    await act(async () => colorButton('Marfil').click())
+    await act(async () => colorButton('Perla').click())
     expect(palette.light).toBe(true)
     expect(palette.decor).toBeUndefined()
   })
 
+  it('los colores solo se despliegan con la Ciudad digital elegida', async () => {
+    setTheme('mundo-bosque')
+    await act(async () => root.render(<ThemeGrid />))
+    expect(group('Color de la ciudad')).toHaveLength(0)
+    await act(async () => group('Mapas')[7].click())
+    expect(storedTheme()).toBe('clasico')
+    expect(group('Color de la ciudad')).toHaveLength(7)
+    await act(async () => group('Mapas')[3].click())
+    expect(group('Color de la ciudad')).toHaveLength(0)
+  })
+
   it('la tarjeta de la Ciudad vuelve al último color elegido', async () => {
     await act(async () => root.render(<ThemeGrid />))
-    await act(async () => colorButton('Grafito').click())
+    await act(async () => colorButton('Ónix').click())
     await act(async () => group('Mapas')[1].click())
     expect(storedTheme()).toBe('mundo-orbita')
     const city = radios().find((b) => b.textContent?.startsWith('Ciudad digital'))!

@@ -37,36 +37,38 @@
   gap: 14px;
 }
 
-/* La Ciudad digital: su tarjeta ocupa toda la fila, con la miniatura a un lado y los colores debajo del texto. */
-.cityCard {
-  grid-column: 1 / -1;
-  cursor: default;
-}
-
-.cardMain {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(180px, 260px) 1fr;
-  align-items: center;
-  gap: 14px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.cardMain .check {
-  top: 6px;
-  right: 6px;
-}
-
+/* Los colores de la Ciudad digital: se despliegan a lo ancho, debajo de las tarjetas, al elegir la ciudad. */
 .colors {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  padding: 0 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-focus);
+  background: var(--bg-surface);
+  animation: colorsIn var(--dur) var(--ease);
+}
+
+.colorsTitle {
+  margin-right: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+@keyframes colorsIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .colors {
+    animation: none;
+  }
 }
 
 .color {
@@ -106,12 +108,6 @@
   margin: 0;
   color: var(--text-3);
   font-size: 11px;
-}
-
-@media (max-width: 560px) {
-  .cardMain {
-    grid-template-columns: 1fr;
-  }
 }
 
 .card {
