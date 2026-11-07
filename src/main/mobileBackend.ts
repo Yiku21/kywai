@@ -440,7 +440,7 @@ export class MobileBackend {
     return { agentId, thinking: enabled }
   }
 
-  /** Calidad de cada agente en los últimos días (como ⋮ → «Cómo rinde cada agente…»). */
+  /** Calidad de cada agente en los últimos días (como ⚙ → «Cómo rinde cada agente…»). */
   async quality(days: number): Promise<MobileQuality> {
     const runs = await this.call<UsageRun[]>('getUsageRuns')
     return { days, minTasks: QUALITY_MIN_TASKS, agents: agentQuality(runs, Date.now() - days * 86_400_000) }
@@ -455,7 +455,7 @@ export class MobileBackend {
   private serverUpdating = false
   private serverUpdateError: string | null = null
 
-  /** ¿Hay versión nueva del servidor en GitHub? (git fetch y comparar, como ⋮ → «Buscar actualizaciones…»). */
+  /** ¿Hay versión nueva del servidor en GitHub? (git fetch y comparar, como ⚙ → «Buscar actualizaciones…»). */
   async serverUpdate(): Promise<MobileServerUpdate> {
     const s = await this.call<UpdateStatus>('checkForUpdates')
     return {

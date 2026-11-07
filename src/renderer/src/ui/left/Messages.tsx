@@ -883,7 +883,7 @@ function ResumeRow({ runId, list }: { runId: string; list: Task[] }) {
   )
 }
 
-/** «12 min · 184 k tokens · Claude +2 %»: lo que costó esta petición (abre ⋮ → Consumo). */
+/** «12 min · 184 k tokens · Claude +2 %»: lo que costó esta petición (abre ⚙ → Consumo). */
 function RunUsageLine({ run, now }: { run: UsageRun; now: number }) {
   const tokens = run.calls.reduce((n, c) => n + callTokens(c), 0)
   const deltas = quotaDeltas(run.quotaBefore, run.quotaAfter).filter((d) => d.delta > 0)

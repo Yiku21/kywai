@@ -96,9 +96,9 @@ interface CoworkState {
   restarting: boolean
   /** Registro de consumo por petición (runId → uso), para el panel de consumo y el resumen de cada plan. */
   usageRuns: Record<string, UsageRun>
-  /** Panel ⋮ → Consumo abierto (también desde el resumen de cada plan). */
+  /** Panel ⚙ → Consumo abierto (también desde el resumen de cada plan). */
   usageOpen: boolean
-  /** Panel ⋮ → Cómo rinde cada agente (calidad por agente y dificultad). */
+  /** Panel ⚙ → Cómo rinde cada agente (calidad por agente y dificultad). */
   qualityOpen: boolean
   /** Ventana del modelo de Hermes («/model» en el chat o su panel en el espacio). */
   hermesModelOpen: boolean
@@ -108,6 +108,8 @@ interface CoworkState {
   conversationsTick: number
   /** Buscador (Ctrl+K) abierto. */
   searchOpen: boolean
+  /** Ventana estrecha: la barra lateral abierta por encima del chat (en ventanas anchas siempre está). */
+  drawerOpen: boolean
 
   // Interfaz
   selection: Selection
@@ -342,6 +344,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
   trace: null,
   conversationsTick: 0,
   searchOpen: false,
+  drawerOpen: false,
 
   selection: null,
   leftTab: 'chat',
@@ -423,6 +426,8 @@ export const useCowork = create<CoworkState>((set, get) => ({
       })
       return
     }
+    // La barra lateral marca qué proyectos están trabajando: se refresca al empezar y acabar cada petición.
+    if ((e.kind === 'run.started' || e.kind === 'run.finished') && !e.demo) set((s) => ({ conversationsTick: s.conversationsTick + 1 }))
     // Con varios proyectos, lo que pasa en otro (que puede seguir trabajando) no entra en el que estás viendo.
     const open = get().live.project?.id
     const pid = eventProject(e)

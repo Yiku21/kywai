@@ -58,7 +58,7 @@ function Cells({ st }: { st: QualityStats }) {
   )
 }
 
-/** ⋮ → Cómo rinde cada agente: calidad de cada uno (👍, verificación, correcciones, fallos) por dificultad. */
+/** ⚙ → Cómo rinde cada agente: calidad de cada uno (👍, verificación, correcciones, fallos) por dificultad. */
 export function QualityDialog({ onClose }: { onClose: () => void }) {
   const all = useCowork((st) => st.usageRuns)
   const project = useCowork((st) => st.live.project)

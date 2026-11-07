@@ -19,6 +19,8 @@ export interface PopoverProps {
   /** Elemento bajo el que se ancla (sus clics no cuentan como "fuera"). */
   anchorRef: RefObject<HTMLElement | null>
   align?: 'start' | 'end'
+  /** 'below' (por defecto) lo abre bajo el ancla; 'right', a su derecha (desde la barra lateral). */
+  side?: 'below' | 'right'
   role?: 'dialog' | 'menu'
   ariaLabel?: string
   id?: string
@@ -43,6 +45,7 @@ function PopoverSurface({
   onClose,
   anchorRef,
   align = 'start',
+  side = 'below',
   role = 'dialog',
   ariaLabel,
   id,
@@ -70,6 +73,15 @@ function PopoverSurface({
       const vw = window.innerWidth
       const vh = window.innerHeight
       const w = el.offsetWidth
+      if (side === 'right') {
+        // A la derecha del ancla, alineado con su parte de arriba y metido en la ventana (el de abajo crece hacia arriba).
+        const h = el.offsetHeight
+        const maxHeight = vh - 16
+        const top = Math.round(Math.max(8, Math.min(r.top, vh - Math.min(h, maxHeight) - 8)))
+        const left = Math.round(Math.min(r.right + 10, Math.max(8, vw - w - 8)))
+        setStyle((prev) => (prev.top === top && prev.left === left && prev.maxHeight === maxHeight ? prev : { top, left, maxHeight }))
+        return
+      }
       const top = Math.round(r.bottom + 8)
       const maxHeight = Math.max(200, vh - top - 12)
       const next: CSSProperties =
@@ -92,7 +104,7 @@ function PopoverSurface({
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', place, true)
     }
-  }, [anchorRef, align])
+  }, [anchorRef, align, side])
 
   // Clic fuera. Los eventos de React atraviesan portales, así que un pointerdown dentro de un
   // popover anidado también marca `inside` en este.

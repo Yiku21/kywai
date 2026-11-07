@@ -26,7 +26,7 @@ export function explainWhere(w: Where): string {
 /**
  * Dónde estás: la app instalada que hace de servidor, el cliente de escritorio conectado a otro, o un navegador.
  * En el cliente, además, tiñe una franja fina en lo alto de la ventana (data-role en la raíz) para no confundir un
- * equipo con otro; el detalle va dentro del menú ⋮, no siempre a la vista.
+ * equipo con otro; el detalle va dentro del menú ⚙, no siempre a la vista.
  */
 export function useWhere(): Where | null {
   const [where, setWhere] = useState<Where | null>(null)

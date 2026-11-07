@@ -18,8 +18,6 @@ const LEAVE_MS = 250
 export function AudioToggle() {
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
   const volume = useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const voiceMuted = useSyncExternalStore(subscribeAudio, isVoiceMuted, isVoiceMuted)
-  const voiceVolume = useSyncExternalStore(subscribeAudio, getVoiceVolume, getVoiceVolume)
   const [hover, setHover] = useState(false)
   const [pinned, setPinned] = useState(false)
   const leaveTimer = useRef<number | undefined>(undefined)
@@ -28,7 +26,6 @@ export function AudioToggle() {
   const root = useRef<HTMLDivElement>(null)
   const open = hover || pinned
   const percentage = Math.round(volume * 100)
-  const voicePercentage = voiceMuted ? 0 : Math.round(voiceVolume * 100)
   const label = muted ? t('Activar sonido') : t('Silenciar sonido')
   const Icon = muted ? VolumeX : Volume2
 
@@ -93,55 +90,71 @@ export function AudioToggle() {
         <Icon size={18} aria-hidden="true" />
       </button>
       <div className={a.volume}>
-        <div className={cx(a.row, muted && a.muted)}>
-          <span className={a.rowIcon} aria-hidden="true">
-            <Icon size={15} />
-          </span>
-          <input
-            className={a.slider}
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={percentage}
-            aria-label={t('Volumen de música y efectos')}
-            aria-valuetext={`${percentage} %${muted ? t(', silenciado') : ''}`}
-            title={t('Volumen: {percentage} %{muted}', { percentage, muted: muted ? t(' (silenciado)') : '' })}
-            onChange={(event) => setVolume(Number(event.currentTarget.value) / 100)}
-          />
-          <span className={a.value} aria-hidden="true">
-            {percentage}%
-          </span>
-        </div>
-        <div className={cx(a.row, (muted || voiceMuted) && a.muted)}>
-          <button
-            type="button"
-            className={a.rowBtn}
-            data-audio-toggle
-            aria-pressed={voiceMuted}
-            aria-label={voiceMuted ? t('Activar las voces de los agentes') : t('Silenciar las voces de los agentes')}
-            title={voiceMuted ? t('Activar las voces de los agentes') : t('Silenciar las voces de los agentes (la música y los efectos siguen)')}
-            onClick={() => setVoiceMuted(!isVoiceMuted())}
-          >
-            <MessageSquare size={15} aria-hidden="true" />
-          </button>
-          <input
-            className={a.slider}
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={voicePercentage}
-            aria-label={t('Volumen de las voces de los agentes')}
-            aria-valuetext={`${voicePercentage} %${voiceMuted ? t(', silenciadas') : ''}`}
-            title={t('Voces de los agentes: {voicePercentage} %{v2}', { voicePercentage, v2: voiceMuted ? t(' (silenciadas)') : '' })}
-            onChange={(event) => setVoiceVolume(Number(event.currentTarget.value) / 100)}
-          />
-          <span className={a.value} aria-hidden="true">
-            {voicePercentage}%
-          </span>
-        </div>
+        <SoundRows />
       </div>
     </div>
+  )
+}
+
+/** Volumen de música y efectos y de las voces de los agentes (bajo el botón de sonido o en el menú de Ajustes). */
+export function SoundRows() {
+  const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
+  const volume = useSyncExternalStore(subscribeAudio, getVolume, getVolume)
+  const voiceMuted = useSyncExternalStore(subscribeAudio, isVoiceMuted, isVoiceMuted)
+  const voiceVolume = useSyncExternalStore(subscribeAudio, getVoiceVolume, getVoiceVolume)
+  const percentage = Math.round(volume * 100)
+  const voicePercentage = voiceMuted ? 0 : Math.round(voiceVolume * 100)
+  const Icon = muted ? VolumeX : Volume2
+  return (
+    <>
+    <div className={cx(a.row, muted && a.muted)}>
+      <span className={a.rowIcon} aria-hidden="true">
+        <Icon size={15} />
+      </span>
+      <input
+        className={a.slider}
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={percentage}
+        aria-label={t('Volumen de música y efectos')}
+        aria-valuetext={`${percentage} %${muted ? t(', silenciado') : ''}`}
+        title={t('Volumen: {percentage} %{muted}', { percentage, muted: muted ? t(' (silenciado)') : '' })}
+        onChange={(event) => setVolume(Number(event.currentTarget.value) / 100)}
+      />
+      <span className={a.value} aria-hidden="true">
+        {percentage}%
+      </span>
+    </div>
+    <div className={cx(a.row, (muted || voiceMuted) && a.muted)}>
+      <button
+        type="button"
+        className={a.rowBtn}
+        data-audio-toggle
+        aria-pressed={voiceMuted}
+        aria-label={voiceMuted ? t('Activar las voces de los agentes') : t('Silenciar las voces de los agentes')}
+        title={voiceMuted ? t('Activar las voces de los agentes') : t('Silenciar las voces de los agentes (la música y los efectos siguen)')}
+        onClick={() => setVoiceMuted(!isVoiceMuted())}
+      >
+        <MessageSquare size={15} aria-hidden="true" />
+      </button>
+      <input
+        className={a.slider}
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={voicePercentage}
+        aria-label={t('Volumen de las voces de los agentes')}
+        aria-valuetext={`${voicePercentage} %${voiceMuted ? t(', silenciadas') : ''}`}
+        title={t('Voces de los agentes: {voicePercentage} %{v2}', { voicePercentage, v2: voiceMuted ? t(' (silenciadas)') : '' })}
+        onChange={(event) => setVoiceVolume(Number(event.currentTarget.value) / 100)}
+      />
+      <span className={a.value} aria-hidden="true">
+        {voicePercentage}%
+      </span>
+    </div>
+    </>
   )
 }

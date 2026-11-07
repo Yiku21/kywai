@@ -22,6 +22,8 @@ import { BottomBar } from '@/ui/space/BottomBar'
 import { SelectionPanel } from '@/ui/space/SelectionPanel'
 import { MusicPanel } from '@/ui/space/MusicPanel'
 import { HermesModelDialog } from '@/ui/space/HermesModelDialog'
+import { Sidebar } from '@/ui/sidebar/Sidebar'
+import { SearchDialog } from '@/ui/sidebar/SearchDialog'
 import { useTheme } from '@/lib/theme'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
@@ -51,7 +53,7 @@ function useBoot(): void {
         },
         () => undefined
       )
-      // Registro de consumo (para el resumen bajo cada plan y el panel ⋮ → Consumo).
+      // Registro de consumo (para el resumen bajo cada plan y el panel ⚙ → Consumo).
       api.getUsageRuns().then(
         (list) => {
           if (!alive) return
@@ -90,12 +92,13 @@ export function App() {
   const mode = useCowork((st) => st.mode)
   const expanded = useCowork((st) => st.spaceExpanded)
   const mobileView = useCowork((st) => st.mobileView)
-  // Primer arranque en este equipo (o abierto desde el menú ⋮): asistente de configuración.
+  // Primer arranque en este equipo (o abierto desde el menú ⚙): asistente de configuración.
   // Solo en el propio equipo: instala programas y abre ventanas de inicio de sesión allí.
   const restarting = useCowork((st) => st.restarting)
   const usageOpen = useCowork((st) => st.usageOpen)
   const qualityOpen = useCowork((st) => st.qualityOpen)
   const hermesModelOpen = useCowork((st) => st.hermesModelOpen)
+  const searchOpen = useCowork((st) => st.searchOpen)
   const showSetup = useCowork((st) => !isWeb && st.hasBackend && st.configLoaded && (!st.config.setupDone || st.setupOpen))
   // Tema Órbita: el espacio 3D ocupa toda la ventana y la interfaz flota encima como cristal esmerilado.
   const glass = useTheme() === 'orbita'
@@ -131,12 +134,18 @@ export function App() {
         <div className={s.world}>
           {/* El centro del mundo, en la zona que deja libre el chat. */}
           <Suspense fallback={null}>
-            <World view={narrow ? undefined : { left: inset, top: 140, bottom: 76 }} />
+            <World view={narrow ? undefined : { left: inset, top: 140, bottom: 14 }} />
           </Suspense>
           <SceneLabels />
         </div>
       )}
       <Header />
+      <div className={s.main}>
+      {!expanded && (
+        <div className={s.side}>
+          <Sidebar />
+        </div>
+      )}
       <div
         className={s.body}
         data-expanded={expanded}
@@ -162,6 +171,7 @@ export function App() {
             {!glass && <SceneLabels />}
             <SelectionPanel />
             <MusicPanel />
+            <BottomBar />
             {mode === 'demo' && (
               <div className={s.demoRibbon}>
                 <FlaskConical size={13} aria-hidden="true" />
@@ -169,9 +179,10 @@ export function App() {
               </div>
             )}
           </div>
-          <BottomBar />
         </section>
       </div>
+      </div>
+      {searchOpen && <SearchDialog onClose={() => useCowork.setState({ searchOpen: false })} />}
       <ArtifactViewer />
       {showSetup && <SetupWizard />}
       {usageOpen && <UsageDialog onClose={() => useCowork.setState({ usageOpen: false })} />}

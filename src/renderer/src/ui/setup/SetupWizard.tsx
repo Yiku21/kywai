@@ -46,7 +46,7 @@ function toolFor(a: AgentConfig, engine: LocalEngine): SetupToolId | null {
   return null
 }
 
-/** Asistente de primer arranque (y desde el menú ⋮): agentes, programas, inicio de sesión. */
+/** Asistente de primer arranque (y desde el menú ⚙): agentes, programas, inicio de sesión. */
 export function SetupWizard() {
   const configAgents = useCowork((st) => st.config.agents)
   const coordinatorId = useCowork((st) => st.config.plannerOrder[0])
@@ -317,9 +317,9 @@ export function SetupWizard() {
             <h2 id="setup-title" className={s.title}>
               {t('Configura AI Cowork')}
             </h2>
-            <p className={s.subtitle}>{t('Elige tu equipo, instala lo que falte e inicia sesión. Puedes repetirlo cuando quieras desde el menú ⋮.')}</p>
+            <p className={s.subtitle}>{t('Elige tu equipo, instala lo que falte e inicia sesión. Puedes repetirlo cuando quieras desde el menú ⚙.')}</p>
           </div>
-          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar el asistente')} title={t('Cerrar (podrás volver desde el menú ⋮)')} onClick={() => void finish()}>
+          <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar el asistente')} title={t('Cerrar (podrás volver desde el menú ⚙)')} onClick={() => void finish()}>
             <X size={18} />
           </button>
         </header>
@@ -597,7 +597,7 @@ export function SetupWizard() {
                       <span className={s.rowText}>
                         <span className={s.rowName}>{isLocal(a) ? t('Agente local') : a.name}</span>
                         <span className={cx(s.rowDetail, ok && s.okText)}>
-                          {ok ? t('Listo') : t('Pendiente: vuelve a los pasos anteriores o termínalo más tarde desde ⋮ → Configurar agentes')}
+                          {ok ? t('Listo') : t('Pendiente: vuelve a los pasos anteriores o termínalo más tarde desde ⚙ → Configurar agentes')}
                         </span>
                       </span>
                       {ok ? <CircleCheck size={18} className={s.okIcon} aria-hidden="true" /> : <AlertTriangle size={17} className={s.warnIcon} aria-hidden="true" />}

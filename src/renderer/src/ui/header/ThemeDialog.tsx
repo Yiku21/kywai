@@ -7,7 +7,7 @@ import r from './RemoteAccess.module.css'
 import s from './ThemeDialog.module.css'
 import { t } from '@/lib/i18n'
 
-/** ⋮ → «Temas…»: el aspecto de AI Cowork en este dispositivo. Se aplica al momento. */
+/** ⚙ → «Temas…»: el aspecto de AI Cowork en este dispositivo. Se aplica al momento. */
 export function ThemeDialog({ onClose }: { onClose: () => void }) {
   const theme = useTheme()
   useEscape(true, onClose)

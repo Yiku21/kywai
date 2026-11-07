@@ -33,7 +33,7 @@ function ago(ts: number): string {
  * Bandeja «Te necesita»: lo que espera una decisión tuya (un plan, un permiso de macOS en la pantalla del servidor,
  * un agente parado, choques al integrar…), con sus botones. Lo mismo sale en Órbita y en la web.
  */
-export function InboxButton() {
+export function InboxButton({ sidebar }: { sidebar?: { button: string; label: string; badge: string } } = {}) {
   const items = useCowork((st) => st.inbox)
   const project = useCowork((st) => st.live.project)
   const [open, setOpen] = useState(false)
@@ -74,21 +74,30 @@ export function InboxButton() {
       <button
         ref={anchor}
         type="button"
-        className={cx(u.iconBtn, s.headerBtn, b.btn)}
+        className={sidebar ? sidebar.button : cx(u.iconBtn, s.headerBtn, b.btn)}
         aria-label={label}
         title={label}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((v) => !v)}
       >
-        <Icon size={18} aria-hidden="true" />
+        <Icon size={sidebar ? 17 : 18} aria-hidden="true" />
+        {sidebar && <span className={sidebar.label}>{t('Te necesita')}</span>}
         {count > 0 && (
-          <span className={b.badge} aria-hidden="true">
+          <span className={sidebar ? sidebar.badge : b.badge} aria-hidden="true">
             {count > 9 ? '9+' : count}
           </span>
         )}
       </button>
-      <Popover open={open} onClose={() => setOpen(false)} anchorRef={anchor} align="end" ariaLabel={t('Te necesita')} className={b.panel}>
+      <Popover
+        open={open}
+        onClose={() => setOpen(false)}
+        anchorRef={anchor}
+        align="end"
+        side={sidebar ? 'right' : 'below'}
+        ariaLabel={t('Te necesita')}
+        className={b.panel}
+      >
         <div className={b.head}>{t('Te necesita')}</div>
         {note && <div className={b.note} role="status">{note}</div>}
         {count === 0 ? (

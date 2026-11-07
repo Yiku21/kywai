@@ -1,7 +1,7 @@
 // Idioma de la interfaz en este dispositivo. El motor de traducción (t, diccionarios) está en @shared/i18n; aquí se
 // elige y se recuerda el idioma, como el tema.
 //
-// El idioma se elige en ⋮ → Ajustes → Idioma y se recuerda en cada dispositivo. Si nunca se ha elegido, se usa el del
+// El idioma se elige en ⚙ → Ajustes → Idioma y se recuerda en cada dispositivo. Si nunca se ha elegido, se usa el del
 // sistema (el primero de sus idiomas que tenga la app; si no, inglés). Al cambiarlo se avisa al motor (para los avisos y las
 // respuestas de Hermes) y la ventana se recarga: así los textos calculados al cargar cada módulo (listas de temas,
 // nombres de zonas…) salen ya en el idioma nuevo.

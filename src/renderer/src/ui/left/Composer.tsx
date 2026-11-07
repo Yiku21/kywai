@@ -106,6 +106,12 @@ export function Composer() {
   const stopRef = useRef<HTMLButtonElement>(null)
   const [error, setError] = useState<string | null>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
+  // «Nuevo chat» (barra lateral o atajo) deja el cursor listo para escribir.
+  useEffect(() => {
+    const focus = (): void => taRef.current?.focus()
+    window.addEventListener('cowork:focus-composer', focus)
+    return () => window.removeEventListener('cowork:focus-composer', focus)
+  }, [])
   // Dictado: grabación en curso y transcripción.
   const [rec, setRec] = useState<{ r: Recording; started: number } | null>(null)
   const [transcribing, setTranscribing] = useState(false)
@@ -192,7 +198,7 @@ export function Composer() {
     setSending(true)
     setQuotaNotice(null)
     try {
-      // «/new», «/limpiar»…: conversación nueva (lo mismo que ⋮ → Limpiar el chat), no un mensaje para los agentes.
+      // «/new», «/limpiar»…: conversación nueva (lo mismo que ⚙ → Limpiar el chat), no un mensaje para los agentes.
       const remember = REMEMBER_COMMAND.exec(trimmed)
       if (CLEAR_COMMAND.test(trimmed)) useCowork.getState().loadProjectState(await a.newConversation(project.id))
       else if (MODEL_COMMAND.test(trimmed)) useCowork.setState({ hermesModelOpen: true })
@@ -298,7 +304,7 @@ export function Composer() {
       try {
         const link = await a.getHttpsLink(location.hostname)
         if (link) setHttpsLink(link)
-        else setError(t('El navegador solo deja usar el micrófono con HTTPS y no se pudo preparar la versión segura. Revisa en el Mac: ⋮ → Acceso desde otros dispositivos'))
+        else setError(t('El navegador solo deja usar el micrófono con HTTPS y no se pudo preparar la versión segura. Revisa en el Mac: ⚙ → Acceso desde otros dispositivos'))
       } catch (e) {
         setError(errorText(e))
       }
