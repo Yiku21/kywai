@@ -300,23 +300,6 @@ fun AgentSwitcher(snapshot: Snapshot, model: OrbitaModel, onFocus: (Agent) -> Un
     }
 }
 
-@Composable
-fun TeamAvatar(agent: Agent, selected: Boolean, size: Dp = 46.dp, onClick: () -> Unit) {
-    val ring = if (selected) Orbita.Gold else null
-    Box(
-        Modifier
-            .clip(CircleShape)
-            .tappable(haptic = Haptic.Select, onClick = onClick)
-            .semantics { contentDescription = "${agent.name}: ${Labels.activity(agent.activity)}"; this.selected = selected }
-            .testTag("team-${agent.id}"),
-    ) {
-        RobotFace(agent, size, ring = ring)
-        Box(Modifier.align(Alignment.BottomEnd).size(13.dp).clip(CircleShape).background(Orbita.Night).padding(2.dp)) {
-            Dot(activityColor(agent.activity), 9.dp, pulse = agent.activity == "working" || agent.activity == "thinking")
-        }
-    }
-}
-
 /** Orden estable: quien coordina, los demás y los becarios. */
 fun teamOrder(snapshot: Snapshot): List<Agent> = snapshot.agents
     .filter { it.enabled || it.activity != "offline" }
