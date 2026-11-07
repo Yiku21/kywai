@@ -208,6 +208,27 @@ preguntar. Órbita se cierra al instalarse: vuelve a abrirla. La versión sale d
 basta con actualizar AI Cowork en el ordenador (⋮ → «Buscar actualizaciones…») para que el móvil la vea. Solo
 hay que instalar la APK a mano una vez: la primera versión que trae este botón.
 
+**La APK se publica sola desde GitHub.** Cada vez que cambia el código de Órbita en `master`, GitHub Actions
+(«Publicar Órbita», `.github/workflows/publicar-orbita.yml`) pasa las pruebas de Android, compila la app firmada con
+la clave de siempre, comprueba que el certificado es el mismo de la versión anterior (si no, se para: el móvil no la
+instalaría encima) y sube `android/release/` a `master`. Así da igual desde dónde se haga el cambio (PC, Mac mini o
+la nube): al actualizar el servidor, el móvil ya la encuentra. Si falla, la pestaña **Actions** del repositorio dice
+por qué; «Run workflow» la vuelve a lanzar a mano. El número de versión son los commits del repositorio y nunca baja
+de la versión ya publicada + 1.
+
+Para que funcione, la clave se guarda una vez en cada repositorio (Settings → Secrets and variables → Actions →
+New repository secret), con los datos del archivo que indica `aicoworkSigning` en `~/.gradle/gradle.properties` del PC:
+
+| Secreto | Valor |
+|---|---|
+| `ORBITA_KEYSTORE_BASE64` | el archivo `.jks` en base64. En PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("ruta\al\archivo.jks")) \| Set-Clipboard` y se pega |
+| `ORBITA_KEYSTORE_PASSWORD` | `storePassword` |
+| `ORBITA_KEY_ALIAS` | `keyAlias` |
+| `ORBITA_KEY_PASSWORD` | `keyPassword` |
+
+Sin esos secretos la publicación se para con el aviso «Falta el secreto de la clave de Órbita». Publicar a mano
+desde el PC (`./gradlew :app:publishOrbita` y subir `android/release/`) sigue funcionando igual.
+
 Con el móvil plegado (pantalla exterior), las flechas de arriba a la derecha de un panel lo ponen **a pantalla
 completa**: sin la barra de abajo ni la de arriba, todo el sitio para el chat. Se recuerda (también al cerrar la
 app) hasta que vuelvas a pulsarlas; atrás o ✕ cierran el panel. Desplegado, las flechas siguen ampliando el panel

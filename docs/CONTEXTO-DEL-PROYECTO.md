@@ -150,7 +150,7 @@ pruebas en emulador). Tras publicar, se commitea `android/release` junto con el 
 2. Si cambia la API móvil: actualizar `docs/mobile-api/openapi.json` (lo valida `mobileApi.test.ts`).
 3. Si cambia lo que Hermes debe saber o cómo reaccionar: `src/main/coordinatorGuide.ts` + test.
 4. Documentar la función en `docs/MANUAL.md` (el README solo cambia con titulares nuevos).
-5. Si se tocó Android: `publishOrbita` y commitear la APK.
+5. Si se tocó Android: al subirlo a `master`, GitHub Actions («Publicar Órbita») compila, firma y sube la APK solo; no hace falta `publishOrbita` a mano (desde el PC sigue valiendo).
 6. Un commit por mejora, `git push` a `master` sin esperar a que lo pidan.
 
 ---
