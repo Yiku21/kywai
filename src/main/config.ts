@@ -1,8 +1,9 @@
 import { app } from 'electron'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
-import type { AddAgentInput, AgentAccess, AgentConfig, AgentId, AppConfig, QuotaBudget, QuotaGroupConfig, SetAgentModelsInput, SetLocalAgentInput, StationConfig } from '@shared/types'
+import type { AddAgentInput, AgentAccess, AgentConfig, AgentId, AppConfig, CostSettings, QuotaBudget, QuotaGroupConfig, SetAgentModelsInput, SetLocalAgentInput, StationConfig } from '@shared/types'
 import { buildAgent } from '@shared/agentCatalog'
+import { cleanCostSettings } from '@shared/costs'
 import { isLang, langFromLocale, setCurrentLang, type Lang } from '@shared/i18n'
 import { CONFIG_VERSION, DEFAULT_CONFIG, avatarFor, localLogoFor, upgradeAgentModels, upgradeAgentProfile, upgradeAgentRole } from '@shared/defaults'
 
@@ -184,6 +185,10 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
     // Versión 6: el asistente de configuración. Quien ya usaba la app no lo necesita.
     setupDone: u.setupDone === true || (isObj(user) && version < 6),
     webAccess: mergeWebAccess(u.webAccess),
+    ...(() => {
+      const costs = cleanCostSettings(u.costs)
+      return costs ? { costs } : {}
+    })(),
     maxParallel
   }
 }
@@ -405,6 +410,25 @@ export function setServerName(name: string): void {
   if ((cfg.serverName ?? '') === clean) return
   if (clean) cfg.serverName = clean
   else delete cfg.serverName
+  saveConfig()
+}
+
+/** Cómo pagas cada agente, precios por modelo y presupuesto. El aviso ya dado del presupuesto se conserva. */
+export function setCostSettings(input: unknown): CostSettings {
+  const clean = cleanCostSettings(input)
+  if (!clean) throw new Error('Ajustes de coste no válidos')
+  const cfg = getConfig()
+  if (cfg.costs?.budgetAlerted && !clean.budgetAlerted) clean.budgetAlerted = cfg.costs.budgetAlerted
+  cfg.costs = clean
+  saveConfig()
+  return clean
+}
+
+/** Apunta el último aviso de presupuesto dado («2026-11:80»). */
+export function markBudgetAlerted(mark: string): void {
+  const cfg = getConfig()
+  if (!cfg.costs) return
+  cfg.costs.budgetAlerted = mark
   saveConfig()
 }
 
