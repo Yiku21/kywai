@@ -3,9 +3,25 @@
 Todo lo que hace kywai, en detalle. Para una presentación rápida, ver el [README](../README.md).
 
 kywai (se pronuncia «ki-wai»; web: https://kywai.app) se llamaba antes **AI Cowork**. El nombre nuevo sale en todo lo
-que se ve (interfaz, avisos, Órbita, ventana), pero lo interno conserva el antiguo para que las instalaciones que ya
-hay no pierdan nada: la carpeta de datos (`AI Cowork`), la app del Mac (`AI Cowork.app`), los instaladores
-(`AI-Cowork-*`), el acceso directo de Windows y los identificadores (`com.aicowork…`, `ai-cowork`).
+que se ve: interfaz, avisos, Órbita, ventana, instalador de Windows (`kywai-Setup-<versión>.exe`, «kywai Setup»), sus
+accesos directos, «Aplicaciones instaladas», `kywai.exe` y la app del Mac (`kywai.app`). Lo interno conserva el
+antiguo para que las instalaciones que ya hay no pierdan nada: la carpeta de datos (`AI Cowork`, fijada en
+`src/main/dataDir.ts` aunque la app se llame kywai), los identificadores (`com.aicowork…`, `ai-cowork`), el
+certificado propio del Mac y el texto que firma las actualizaciones del cliente.
+
+**Paso de «AI Cowork» a «kywai» al actualizar (noviembre de 2026):**
+- **Windows:** el instalador reconoce la instalación anterior por su identificador (`com.aicowork.app`), así que la
+  actualiza en la misma carpeta (`…\Programs\AI Cowork`, que no cambia de nombre) y no aparece duplicada. Los accesos
+  directos «AI Cowork» pasan a llamarse «kywai» y el exe pasa a `kywai.exe`. Si estaba activado «Abrir kywai al
+  iniciar sesión», la primera vez que se abre la versión nueva lo apunta a `kywai.exe` (`migrateWindowsLoginItem`).
+  Un anclaje a la barra de tareas del exe viejo deja de funcionar: hay que volver a anclar kywai.
+- **Mac (compilada en el equipo, como el Mac mini):** «Buscar actualizaciones» compila `kywai.app`, la deja en la misma
+  carpeta que la instalada y quita la `AI Cowork.app` (`scripts/actualizar-mac.sh`, que también entiende la ruta vieja
+  que le pasa una versión anterior). `instalar-mac.sh` hace lo mismo. Como el identificador y el certificado no
+  cambian, macOS debería conservar los permisos de Privacidad; si vuelve a preguntar, se aceptan una vez. Si kywai
+  estaba en el Dock, hay que volver a ponerlo.
+- **Mac (descargada de la Release):** se arrastra `kywai.app` a Aplicaciones y se borra la `AI Cowork.app` vieja; los
+  datos se conservan.
 
 ## Índice
 
@@ -100,13 +116,12 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
 - **«Buscar actualizaciones…»** en esas versiones no usa git: dice que se actualiza sola y lanza la comprobación.
 - **Sin firma de código:** Windows avisa con SmartScreen («Más información» → «Ejecutar de todas formas»). En el Mac
   va firmada «ad hoc»: la primera vez, clic derecho → Abrir; si dice que está dañada,
-  `xattr -cr "/Applications/AI Cowork.app"`.
+  `xattr -cr "/Applications/kywai.app"`.
 - Las compiladas en el propio equipo (`instalar-mac.sh`, `instalar-linux.sh`, `npm run dist:*`) no traen
   `app-update.yml` y siguen actualizándose desde su clon de git. Es lo que usa el servidor (Mac mini).
 - Las descargas de la Release se llaman `kywai-Setup-<versión>.exe`, `kywai-<versión>-<arch>.dmg/.zip` y
-  `kywai-<versión>-<arch>.AppImage` (el workflow cambia el nombre al compilar). La app instalada sigue siendo
-  «AI Cowork» por dentro, y lo compilado en el propio equipo (`npm run dist:*`) mantiene `AI-Cowork-*`, porque el
-  cliente de Windows que reparte el servidor (`clientRelease.ts`, `publicar-cliente.mjs`) depende de ese nombre.
+  `kywai-<versión>-<arch>.AppImage`, igual que lo compilado en el propio equipo (`npm run dist:*`). El servidor acepta
+  para sus clientes de Windows tanto `kywai-Setup-*` como el nombre antiguo `AI-Cowork-Setup-*` (`clientRelease.ts`).
 - El workflow solo corre en el repositorio público; en kywai-original no hace nada.
 - **Órbita (Android) también está en la Release**, como `kywai-orbita.apk`: cada Release nueva adjunta la última APK
   firmada que hay en `master` (`android/release/orbita.apk`), y cuando sale una Órbita nueva «Publicar Órbita» la sube
@@ -147,7 +162,7 @@ Los datos de cada equipo (configuración y proyectos) se guardan en la carpeta d
 npm run dist:win
 ```
 
-Genera `release/AI-Cowork-Setup-<versión>.exe`. Cópialo al otro PC y ejecútalo: te deja elegir la carpeta de
+Genera `release/kywai-Setup-<versión>.exe`. Cópialo al otro PC y ejecútalo: te deja elegir la carpeta de
 instalación y crea los accesos directos. Como no está firmado, Windows puede avisar («Windows protegió tu PC»):
 «Más información» → «Ejecutar de todas formas».
 
@@ -157,7 +172,7 @@ instalación y crea los accesos directos. Como no está firmado, Windows puede a
 npm run fuente
 ```
 
-Genera `release/AI-Cowork-fuente.zip` con el código. Llévalo al Mac, descomprímelo y, en Terminal, dentro de esa
+Genera `release/kywai-fuente.zip` con el código. Llévalo al Mac, descomprímelo y, en Terminal, dentro de esa
 carpeta:
 
 ```bash
@@ -198,7 +213,7 @@ En Linux:
   GNOME, Konsole, Xfce, kitty, xterm…).
 - «Abrir kywai al iniciar sesión» crea `~/.config/autostart/ai-cowork.desktop`.
 - «Buscar actualizaciones» compila para Linux y cambia la carpeta instalada (`scripts/actualizar-linux.sh`).
-- También se puede generar una AppImage con `npm run dist:linux` (`release/AI-Cowork-<versión>-<arch>.AppImage`);
+- También se puede generar una AppImage con `npm run dist:linux` (`release/kywai-<versión>-<arch>.AppImage`);
   esa no se actualiza sola.
 - Tailscale se busca en `/usr/bin/tailscale` o `/usr/local/bin/tailscale`.
 
@@ -652,7 +667,7 @@ documentación no confirma y pueden necesitar ajustes.
   por las buenas, se le fuerza: la tarea no queda colgada más allá de ese corte). Para que no pase, mira
   «Permisos de macOS en el servidor».
 - **Ventanas de permisos de macOS, al momento**: antes de lanzar un agente, la app prueba a abrir la carpeta del
-  proyecto. Si en 4 segundos no lo consigue es que macOS está preguntando en la pantalla del Mac (p. ej. «AI Cowork
+  proyecto. Si en 4 segundos no lo consigue es que macOS está preguntando en la pantalla del Mac (p. ej. «kywai
   quiere acceder a Documentos»): la tarea lo dice enseguida («Esperando a que aceptes en la pantalla del Mac…») y
   espera la respuesta en vez de lanzar al agente a ciegas; si macOS lo deniega, la tarea dice dónde activarlo. Además
   la app lee en directo el registro de privacidad de macOS y avisa de cada ventana que ella o sus agentes dejan
@@ -661,7 +676,7 @@ documentación no confirma y pueden necesitar ajustes.
   pantalla. Código: `src/main/macPermissions.ts` (la comprobación la hace `runCli` en `agents/spawn.ts`).
 - **Permisos de macOS en el servidor**: los agentes heredan los permisos de la app. Para que nunca se queden
   esperando una ventana que solo se contesta delante del Mac, en Ajustes del Sistema → Privacidad y seguridad activa
-  para «AI Cowork» (y para Terminal, si lanzas cosas desde ahí): **Acceso total al disco** (Escritorio, Documentos,
+  para «kywai» (y para Terminal, si lanzas cosas desde ahí): **Acceso total al disco** (Escritorio, Documentos,
   Descargas, iCloud y discos externos) y, solo si quieres que los agentes manejen otras apps, **Automatización** y
   **Accesibilidad**. La primera vez que salga el aviso del llavero, pulsa «Permitir siempre». La app trae los textos
   que macOS pide para mostrar esas ventanas, y se firma con un certificado propio de este Mac (ver «Firma en Mac»)
