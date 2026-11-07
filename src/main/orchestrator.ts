@@ -24,11 +24,12 @@ import type {
   WorkFile
 } from '@shared/types'
 import { INTERRUPTED_ERROR, SUBAGENT_COLOR } from '@shared/defaults'
-import { checkAgentPresence, isLocalProvider, isTextOnly, runAgent } from './agents'
+import { checkAgentPresence, isLocalProvider, isTextOnly, reportsNoTokens, runAgent } from './agents'
 import { safeModel, STALL_NOTICE } from './agents/spawn'
 import type { TraceUpdate } from './agents/types'
 import type { AgentErrorKind, ExtraMcp, RateLimitInfo, RunAgentResult } from './agents/types'
-import { getConfig } from './config'
+import { getConfig, markBudgetAlerted } from './config'
+import { budgetAlertDue, budgetUsd, formatMoney, monthApiSpendUsd, monthKey, usdTo } from '@shared/costs'
 import { isPlanApproval, parsePlan, streamlinePlan, twoHandsPlan, wantsNoReview } from './plan'
 import { allRuntimes, deleteRuntime, emit, getRuntime, setRuntime } from './events'
 import * as store from './projects'
@@ -39,7 +40,7 @@ import { agentHistory, agentQualityFor, profileLines } from './agentProfile'
 import { EFFORT_LABEL, effortFor, planEffortFor } from '@shared/modelCatalog'
 import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpdate } from './taskTrace'
 import { withoutClosingNotes, workSteps } from '@shared/work'
-import { lang, replyLanguage, tr, userLanguageName } from '@shared/i18n'
+import { lang, locale, replyLanguage, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
 import { addMemory, KIND_LABEL, memoryPromptSections, parseMemoryNotes, planMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
@@ -3022,14 +3023,40 @@ function logCall(
     provider: agent.provider,
     model: model || undefined,
     effort,
-    input: res.usage.input,
-    output: res.usage.output,
-    cached: res.usage.cached ?? 0,
     durationMs: Date.now() - startedAt,
     ok: res.ok,
     cancelled: res.errorKind === 'cancelled' || undefined,
-    // Hermes, Muse Code y los agentes de catálogo no informan de los tokens que gastan.
-    noTokens: agent.provider === 'hermes' || agent.provider === 'muse' || agent.provider === 'cli' || undefined
+    ...(typeof res.usage.costUsd === 'number' ? { costUsd: res.usage.costUsd } : {}),
+    // Hermes, Muse Code y los agentes de catálogo no informan de los tokens que gastan: sus tokens no se suman,
+    // pero se guarda la estimación por longitud para estimar el coste.
+    ...(reportsNoTokens(agent.provider)
+      ? { input: 0, output: 0, cached: 0, noTokens: true, ...(res.usage.estimated ? { estInput: res.usage.input, estOutput: res.usage.output } : {}) }
+      : { input: res.usage.input, output: res.usage.output, cached: res.usage.cached ?? 0 })
+  })
+  checkBudget()
+}
+
+/**
+ * Aviso en «Te necesita» cuando lo pagado por uso (agentes que van por API) en el mes llega al 80 % del presupuesto, y
+ * otro si lo pasa. Cada uno se da una vez al mes.
+ */
+function checkBudget(now = Date.now()): void {
+  const cfg = getConfig()
+  const costs = cfg.costs
+  const limitUsd = budgetUsd(costs)
+  if (!costs || limitUsd == null) return
+  const month = monthKey(now)
+  const spentUsd = monthApiSpendUsd(usageRuns(), cfg, now)
+  const level = budgetAlertDue(spentUsd, limitUsd, month, costs.budgetAlerted)
+  if (!level) return
+  markBudgetAlerted(`${month}:${level}`)
+  const money = (usd: number): string => formatMoney(usdTo(usd, costs), costs.currency, locale())
+  addInbox({
+    kind: 'budget',
+    key: `budget:${month}`,
+    title: level === 100 ? tr('Te has pasado del presupuesto de API de este mes') : tr('Llevas el 80 % del presupuesto de API de este mes'),
+    detail: tr('Llevas {spent} de {limit} en agentes que pagas por uso. Lo ves por agente en ⚙ → «Uso y coste…».', { spent: money(spentUsd), limit: money(limitUsd) }),
+    actions: [{ id: 'dismiss', label: tr('Entendido') }]
   })
 }
 
