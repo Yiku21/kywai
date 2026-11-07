@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { registry } from '../registry'
 import { earthVertex } from './earthShaders'
 import { palaceCanal, palaceFountains } from './marfilPalace'
 
@@ -60,7 +61,8 @@ export function MarfilWater({ reduced, detailed }: { reduced: boolean; detailed:
   const perJet = detailed ? 23 : 12
   useEffect(() => () => effects.arc.dispose(), [effects])
   useFrame((_, delta) => {
-    if (!reduced) effects.uniforms.time.value += Math.min(delta,.1)
+    // Las fuentes corren más cuando el equipo trabaja.
+    if (!reduced) effects.uniforms.time.value += Math.min(delta,.1) * (1 + .8 * registry.work)
     const time = effects.uniforms.time.value
     for (const [i, { side, x, z }] of effects.jets.entries()) for (let j = 0; j < perJet; j++) {
       const progress = (j / perJet + time * .74 + i * .127) % 1

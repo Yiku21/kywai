@@ -64,10 +64,12 @@ export interface GlowPointsProps {
   sway?: number
   opacity?: number
   reduced?: boolean
+  /** Se avivan cuando el equipo trabaja (registry.work): las luciérnagas del Bosque. */
+  lively?: boolean
 }
 
 /** Puntos de luz blandos: llamas de vela, luces de árbol, destellos o copos de nieve que caen. */
-export function GlowPoints({ positions, colors, color = '#ffffff', intensity = 1, size, flicker = 0, fall = 0, fallHeight = 10, fallBase = 0, sway = 0, opacity = 1, reduced = false }: GlowPointsProps) {
+export function GlowPoints({ positions, colors, color = '#ffffff', intensity = 1, size, flicker = 0, fall = 0, fallHeight = 10, fallBase = 0, sway = 0, opacity = 1, reduced = false, lively = false }: GlowPointsProps) {
   const height = useThree((s) => s.size.height)
   const dpr = useThree((s) => s.viewport.dpr)
   const geo = useMemo(() => {
@@ -111,6 +113,7 @@ export function GlowPoints({ positions, colors, color = '#ffffff', intensity = 1
   useEffect(() => () => mat.dispose(), [mat])
   useFrame(() => {
     mat.uniforms.uTime.value = registry.time * (reduced ? 0.25 : 1)
+    if (lively) mat.uniforms.uOpacity.value = opacity * (0.6 + 0.45 * registry.work)
     // Píxeles por metro a un metro de distancia con el campo de visión de la cámara (30°).
     mat.uniforms.uScale.value = (height * dpr) / (2 * Math.tan((15 * Math.PI) / 180))
   })

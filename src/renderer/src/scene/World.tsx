@@ -4,7 +4,7 @@ import type * as THREE from 'three'
 import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei'
 import { Bloom, EffectComposer, Vignette, N8AO } from '@react-three/postprocessing'
 import type { AgentConfig, StationConfig } from '@shared/types'
-import { useCowork, useData } from '@/store/cowork'
+import { currentData, useCowork, useData } from '@/store/cowork'
 import { musicLightLevel } from '@/lib/music'
 import { useTheme } from '@/lib/theme'
 import { sceneQuality, useQuality } from './quality'
@@ -34,6 +34,12 @@ function SceneClock() {
   useFrame((_, delta) => {
     registry.time += Math.min(Math.max(delta, 0), 0.25)
     registry.beat = musicLightLevel(performance.now(), useCowork.getState().reducedEffects)
+    // Con dos agentes ocupados el mapa ya va a tope; sube en un segundo y medio y baja algo más despacio.
+    let busy = 0
+    for (const rt of Object.values(currentData().runtimes)) if (rt.activity === 'working' || rt.activity === 'thinking') busy++
+    const target = Math.min(1, busy / 2)
+    const rate = target > registry.work ? 0.7 : 0.4
+    registry.work += (target - registry.work) * Math.min(1, Math.min(Math.max(delta, 0), 0.25) * rate * 3)
   }, -100)
   return null
 }
