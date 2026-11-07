@@ -101,6 +101,16 @@ object OrbitaThemes {
         "mundo-bosque" to "Bosque", "mundo-matrix" to "Matrix", "mundo-eva" to "EVA-01",
     )
 
+    /** Los temas que se pueden elegir desde el móvil, en los grupos del escritorio (Mapas, Ciudad digital y Decorados). */
+    fun groups(): List<Pair<String, List<String>>> = listOf(
+        t("Mapas") to listOf("mundo-clasico", "mundo-orbita", "mundo-marfil", "mundo-grafito", "mundo-bosque", "mundo-matrix", "mundo-eva"),
+        t("Ciudad digital") to cityNames.keys.toList(),
+        t("Decorados") to listOf("relicario", "telar", "halloween", "navidad"),
+    )
+
+    /** El tema que usa Órbita: el propio del móvil si se marcó «Tema propio en este móvil»; si no, el del ordenador. */
+    fun effective(server: String?, ownTheme: Boolean, localTheme: String?): String? = if (ownTheme) localTheme ?: server else server
+
     /** El nombre del tema como en el escritorio («Ciudad digital · Ónix», «Bosque»…); null si no se conoce. */
     fun displayName(id: String?): String? = id?.let { cityNames[it]?.let { n -> "${t("Ciudad digital")} · $n" } ?: otherNames[it] }
 }

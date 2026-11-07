@@ -765,4 +765,12 @@ private fun part5(m: HashMap<String, String>) {
     m["Sin conexión: se subirá con tu próximo mensaje al volver"] = "离线：恢复连接后将随你的下一条消息上传"
     m["Sin conexión · {n} en cola"] = "离线 · {n} 条排队中"
     m["Ya se está enviando"] = "正在发送中"
+    m["Tema cambiado en todos tus dispositivos"] = "已在你的所有设备上更改主题"
+    m["Mapas"] = "地图"
+    m["Decorados"] = "装饰"
+    m["Tema propio en este móvil"] = "此手机使用单独主题"
+    m["Órbita tiene su tema y no cambia cuando lo cambias en el ordenador."] = "Órbita 保留自己的主题，在电脑上更改时不会跟着变。"
+    m["Desmarcado, Órbita sigue el tema del ordenador como los demás dispositivos."] = "关闭时，Órbita 与其他设备一样跟随电脑的主题。"
+    m["Solo cambia Órbita en este móvil. Los mapas con escenario propio se ven con sus colores."] = "只更改此手机上的 Órbita。带专属场景的地图只显示其配色。"
+    m["Al elegirlo aquí cambia en todos tus dispositivos: el ordenador, los clientes, el navegador y Órbita. Los mapas con escenario propio se ven en el móvil con sus colores."] = "在这里选择会更改你所有设备上的主题：电脑、客户端、浏览器和 Órbita。带专属场景的地图在手机上只显示其配色。"
 }

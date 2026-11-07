@@ -128,6 +128,7 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     override suspend fun decidePlan(messageId: String, approve: Boolean): ActionResult { calls += "plan:$messageId:${if (approve) "approve" else "reject"}"; return nextResult }
     override suspend fun setPlanApproval(enabled: Boolean): ActionResult { calls += "planApproval:$enabled"; return nextResult }
     override suspend fun setServerName(name: String): ActionResult { calls += "serverName:$name"; return nextResult }
+    override suspend fun setTheme(id: String): ActionResult { calls += "theme:$id"; return nextResult }
 
     // «/model»: los modelos de Hermes.
     var hermes = com.aicowork.remote.data.model.HermesModelsInfo(
