@@ -15,6 +15,7 @@ import {
   Languages,
   LogOut,
   Monitor,
+  MonitorSmartphone,
   Palette,
   RefreshCw,
   RotateCcw,
@@ -42,7 +43,7 @@ import { SyncDialog } from '../files/SyncDialog'
 import { ExtensionsTab } from './ExtensionsTab'
 import { SoundRows } from '../header/AudioToggle'
 import { ThemeGrid } from '../header/ThemeDialog'
-import { themeLabel, useTheme } from '@/lib/theme'
+import { setOwnTheme, themeLabel, useOwnTheme, useTheme } from '@/lib/theme'
 import { ROLE_TITLE, explainWhere, useWhere } from '../header/useWhere'
 import { useEscape } from '../common/hooks'
 import { cx, errorText } from '../common/util'
@@ -186,6 +187,7 @@ function GeneralTab() {
   const reduced = useCowork((st) => st.reducedEffects)
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
   const theme = useTheme()
+  const own = useOwnTheme()
   /** Los temas van plegados: se despliegan con la flecha (casi nunca se cambian). */
   const [themesOpen, setThemesOpen] = useState(false)
   const currentLang = LANGS.find((l) => l.id === lang()) ?? LANGS[0]
@@ -206,6 +208,33 @@ function GeneralTab() {
           ))}
         </select>
       </Row>
+      <div className={s.block}>
+        <div className={s.blockHead}>
+          <Palette size={18} aria-hidden="true" className={s.rowIcon} />
+          <span className={s.rowText}>
+            <span className={s.rowLabel}>{t('Tema')}</span>
+            <span className={s.rowHint}>
+              {hasBackend && !own
+                ? t('El aspecto de kywai. Se aplica al momento en todos los dispositivos conectados a este servidor, también en Órbita.')
+                : t('El aspecto de kywai en este dispositivo. Se aplica al momento y se recuerda.')}
+            </span>
+          </span>
+          <button type="button" className={cx(u.btn, u.btnSm, s.expand)} aria-expanded={themesOpen} onClick={() => setThemesOpen((v) => !v)}>
+            {themeLabel(theme)}
+            <ChevronDown size={15} aria-hidden="true" className={cx(s.chev, themesOpen && s.chevOpen)} />
+          </button>
+        </div>
+        {themesOpen && <ThemeGrid />}
+      </div>
+      {hasBackend && (
+        <Row
+          icon={<MonitorSmartphone size={18} />}
+          label={t('Usar un tema propio en este dispositivo')}
+          hint={own ? t('Este dispositivo tiene su tema y no cambia cuando lo cambias en otro.') : t('Desmarcado, sigue el tema del servidor como los demás.')}
+        >
+          <Switch on={own} label={t('Usar un tema propio en este dispositivo')} onChange={() => setOwnTheme(!own)} />
+        </Row>
+      )}
       <Row icon={muted ? <VolumeX size={18} /> : <Volume2 size={18} />} label={t('Sonido')} hint={muted ? t('Silenciado') : t('Música, efectos y voces de los agentes')}>
         <Switch on={!muted} label={t('Sonido')} onChange={() => setMuted(!isMuted())} />
       </Row>
@@ -224,20 +253,6 @@ function GeneralTab() {
       ) : (
         <Row icon={<Info size={18} />} label={t('Solo demo (sin motor)')} hint={t('Abre la app de escritorio para usar agentes reales')} />
       )}
-      <div className={s.block}>
-        <div className={s.blockHead}>
-          <Palette size={18} aria-hidden="true" className={s.rowIcon} />
-          <span className={s.rowText}>
-            <span className={s.rowLabel}>{t('Tema')}</span>
-            <span className={s.rowHint}>{t('El aspecto de kywai en este dispositivo. Se aplica al momento y se recuerda.')}</span>
-          </span>
-          <button type="button" className={cx(u.btn, u.btnSm, s.expand)} aria-expanded={themesOpen} onClick={() => setThemesOpen((v) => !v)}>
-            {themeLabel(theme)}
-            <ChevronDown size={15} aria-hidden="true" className={cx(s.chev, themesOpen && s.chevOpen)} />
-          </button>
-        </div>
-        {themesOpen && <ThemeGrid />}
-      </div>
     </>
   )
 }

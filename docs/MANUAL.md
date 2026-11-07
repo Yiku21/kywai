@@ -362,8 +362,10 @@ lo corten:
 - **Ajustes en pestañas:** General (idioma, tema, tacto y mundo 3D), Agentes (planes de Hermes, ver el equipo), Conexión
   (ordenador, servidor y este móvil) y Acerca de (actualizaciones de Órbita y apoyar kywai).
 - **Mismo tema que el escritorio:** el tema que eliges en kywai (⚙ → Ajustes → General → Tema) se guarda en el
-  servidor y Órbita lo aplica sola: colores de la interfaz y del mundo 3D (los robots conservan los suyos). Los
-  mapas con escenario propio no se pasan al móvil, solo sus colores. Para desarrolladores: `config.uiTheme`
+  servidor y Órbita lo aplica sola: colores de la interfaz y del mundo 3D (los robots conservan los suyos). También
+  se puede elegir desde Órbita (Ajustes → General → Tema) y cambia en todos los dispositivos, o marcar «Tema propio en
+  este móvil» para tener otro solo en Órbita (ver [Temas](#temas)). Los mapas con escenario propio no se pasan al
+  móvil, solo sus colores. Para desarrolladores: `config.uiTheme`
   (`setUiTheme`), `settings.theme` en la API móvil, `OrbitaThemes`/`OrbitaPalette` y `ui/space/SpaceGrade.kt`, que
   recolorea en el sombreador.
 - **Iconos de un solo estilo y color:** el color se reserva para avisos y estados.
@@ -1562,7 +1564,7 @@ coincidir con el `@media (max-width: 949.98px)`); el asa es `ui/left/ChatResizer
 La interfaz está en **español**, **inglés**, **portugués**, **francés** y **chino** (simplificado). ⚙ → **Ajustes…** → General →
 **«Idioma · Language»** es una lista con cada idioma en su propio idioma (Español, English, Português, Français,
 中文); al elegir otro, la ventana se recarga para que todo salga ya
-traducido. Se recuerda en cada dispositivo, como el tema: la app del Mac,
+traducido. Se recuerda en cada dispositivo (a diferencia del tema, que es el mismo en todos): la app del Mac,
 el navegador y cada cliente pueden tener el suyo. Si nunca se ha elegido, se usa el idioma del sistema si es uno de
 esos cinco (cualquier variante: es-MX cuenta como español, pt-PT como portugués); si no, inglés. Las fechas y los números siguen el idioma elegido.
 
@@ -1615,8 +1617,18 @@ se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cua
 
 ### Temas
 
-⚙ → Ajustes → General → **Tema** (se despliega con la flecha) cambia el aspecto de la app. Los temas van en dos
-grupos: los mapas (con la Ciudad digital) y los decorados.
+⚙ → Ajustes → General → **Tema** (justo debajo del idioma; se despliega con la flecha) cambia el aspecto de la app.
+Los temas van en dos grupos: los mapas (con la Ciudad digital) y los decorados.
+
+**El mismo tema en todos tus dispositivos.** El tema lo guarda el servidor: al cambiarlo en la app del Mac, en un
+cliente de escritorio, en el navegador o en Órbita, cambia al momento en todos los que están conectados a ese servidor
+(y los que se conecten después lo cogen al entrar). Si quieres otro solo en un equipo, marca debajo **«Usar un tema
+propio en este dispositivo»** (en Órbita, Ajustes → General → **«Tema propio en este móvil»**): ese dispositivo deja de
+seguir al servidor y lo que elijas en él no cambia a los demás. Al desmarcarlo vuelve al tema del servidor. En el móvil
+los mapas con escenario propio se ven con sus colores (el escenario 3D de cada mapa es solo del escritorio y la web).
+Para desarrolladores: `config.uiTheme` en el servidor (`setUiTheme`, que emite `config.updated`), `followServerTheme`
+y `aicowork.themeOwn` en `lib/theme.ts`, `POST /settings/theme` y `capabilities.theme` en la API móvil, y
+`ownTheme`/`localTheme` en las preferencias de Órbita.
 
 **Mapas.** Siete escenarios, cada uno con su entorno, sus plataformas y su núcleo propios (`scene/worlds/`). La
 interfaz toma los colores del color de la Ciudad que le corresponde (Clásico → Índigo, Órbita → Frost Glass, Marfil →

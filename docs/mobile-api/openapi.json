@@ -1522,6 +1522,59 @@
         "description": "El mismo nombre que se cambia abajo en la barra lateral del escritorio y la web. Vacío vuelve al nombre del equipo en la red. Emite config.updated."
       }
     },
+    "/api/mobile/v1/settings/theme": {
+      "post": {
+        "operationId": "setMobileTheme",
+        "summary": "Elegir el tema de kywai desde el móvil",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThemeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Guarda el tema en el servidor (config.uiTheme, el mismo de settings.theme). Lo siguen al momento el escritorio, los clientes y el navegador que no usen un tema propio. Emite config.updated."
+      }
+    },
     "/api/mobile/v1/usage/refresh": {
       "post": {
         "operationId": "refreshMobileUsage",
@@ -5009,6 +5062,10 @@
             "type": "boolean",
             "description": "POST /settings/server-name: cambiar el nombre del ordenador que se ve en la barra lateral."
           },
+          "theme": {
+            "type": "boolean",
+            "description": "POST /settings/theme: elegir el tema desde el móvil (lo siguen el escritorio, los clientes y el navegador)."
+          },
           "chatActions": {
             "type": "boolean",
             "description": "Menú de un chat: POST /chats/{chatId}/pin|fork|move, GET /chats/pinned y borrar también el abierto."
@@ -5875,6 +5932,32 @@
         },
         "required": [
           "serverName"
+        ],
+        "additionalProperties": false
+      },
+      "ThemeRequest": {
+        "type": "object",
+        "properties": {
+          "theme": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,39}$"
+          }
+        },
+        "required": [
+          "theme"
+        ],
+        "additionalProperties": false
+      },
+      "ThemeResponse": {
+        "type": "object",
+        "properties": {
+          "theme": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,39}$"
+          }
+        },
+        "required": [
+          "theme"
         ],
         "additionalProperties": false
       },

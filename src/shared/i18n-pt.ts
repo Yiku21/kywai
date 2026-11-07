@@ -2244,4 +2244,8 @@ export const pt: Record<string, string> = {
   "Es el más directo para abrir kywai en el navegador de otro equipo de tu red de Tailscale. No deja usar el micrófono.": "É o jeito mais direto de abrir o kywai no navegador de outro aparelho da sua rede Tailscale. Não permite usar o microfone.",
   "Navegador por nombre del equipo": "Navegador pelo nome do computador",
   "Hace lo mismo que el anterior, pero con el nombre del equipo en Tailscale, así que sigue valiendo aunque cambie la IP.": "Faz o mesmo que o anterior, mas com o nome do computador no Tailscale, então continua valendo mesmo se o IP mudar.",
+  "El aspecto de kywai. Se aplica al momento en todos los dispositivos conectados a este servidor, también en Órbita.": "Como o kywai aparece. Aplica-se na hora em todos os dispositivos ligados a este servidor, incluindo o Órbita.",
+  "Usar un tema propio en este dispositivo": "Usar um tema próprio neste dispositivo",
+  "Este dispositivo tiene su tema y no cambia cuando lo cambias en otro.": "Este dispositivo tem o seu tema e não muda quando o mudas noutro.",
+  "Desmarcado, sigue el tema del servidor como los demás.": "Desligado, segue o tema do servidor como os outros.",
 }

@@ -2244,4 +2244,8 @@ export const fr: Record<string, string> = {
   "Es el más directo para abrir kywai en el navegador de otro equipo de tu red de Tailscale. No deja usar el micrófono.": "Le plus direct pour ouvrir kywai dans le navigateur d'un autre appareil de votre réseau Tailscale. Le micro n'y fonctionne pas.",
   "Navegador por nombre del equipo": "Navigateur par nom de l'appareil",
   "Hace lo mismo que el anterior, pero con el nombre del equipo en Tailscale, así que sigue valiendo aunque cambie la IP.": "Comme le précédent, mais avec le nom de l'appareil dans Tailscale : il reste valable même si l'IP change.",
+  "El aspecto de kywai. Se aplica al momento en todos los dispositivos conectados a este servidor, también en Órbita.": "Apparence de kywai. Elle s'applique tout de suite sur tous les appareils connectés à ce serveur, Órbita compris.",
+  "Usar un tema propio en este dispositivo": "Utiliser un thème propre à cet appareil",
+  "Este dispositivo tiene su tema y no cambia cuando lo cambias en otro.": "Cet appareil garde son thème et ne change pas quand vous le changez sur un autre.",
+  "Desmarcado, sigue el tema del servidor como los demás.": "Désactivé, il suit le thème du serveur comme les autres.",
 }
