@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.space.gl
 
+import com.aicowork.remote.i18n.t
+
 import android.graphics.Bitmap
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
@@ -196,7 +198,7 @@ internal class LabelTextures(density: Float) {
         val sub = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF93A9C2.toInt(); textSize = 11f * px; textAlign = Paint.Align.CENTER }
         val name = project?.let { TextUtils.ellipsize(it, sub, 220f * px, TextUtils.TruncateAt.END).toString() }.orEmpty()
         val shadow = 5f * px
-        val cardW = maxOf(title.measureText("Proyecto"), sub.measureText(name)) + 26f * px
+        val cardW = maxOf(title.measureText(t("Proyecto")), sub.measureText(name)) + 26f * px
         val cardH = title.fontSpacing + (if (name.isEmpty()) 0f else sub.fontSpacing) + 10f * px
         val w = (cardW + shadow * 2).toInt()
         val h = (cardH + shadow * 2).toInt()
@@ -205,7 +207,7 @@ internal class LabelTextures(density: Float) {
         val rect = RectF(shadow, shadow, shadow + cardW, shadow + cardH)
         card(c, rect, 11f * px, shadow, 0x2E8FC8FF, 1f * px)
         val y = rect.top + 5f * px - title.fontMetrics.ascent
-        c.drawText("Proyecto", w / 2f, y, title)
+        c.drawText(t("Proyecto"), w / 2f, y, title)
         if (name.isNotEmpty()) c.drawText(name, w / 2f, y + title.fontMetrics.descent - sub.fontMetrics.ascent + 1f * px, sub)
         return LabelTexture(upload(bitmap), key, w, h, null)
     }

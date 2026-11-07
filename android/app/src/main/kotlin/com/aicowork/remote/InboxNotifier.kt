@@ -1,5 +1,7 @@
 package com.aicowork.remote
 
+import com.aicowork.remote.i18n.t
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -111,8 +113,8 @@ class InboxNotifier(
 
     private fun createChannel() {
         val channel = NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_HIGH)
-            .setName("Te necesita")
-            .setDescription("Avisos del equipo que esperan tu respuesta: planes, preguntas, permisos en el Mac, fallos…")
+            .setName(t("Te necesita"))
+            .setDescription(t("Avisos del equipo que esperan tu respuesta: planes, preguntas, permisos en el Mac, fallos…"))
             .build()
         manager.createNotificationChannel(channel)
     }
@@ -132,9 +134,9 @@ class InboxNotifier(
     private fun summary(fresh: List<InboxItem>, total: Int): Notification {
         val style = NotificationCompat.InboxStyle()
         fresh.take(5).forEach { style.addLine(it.title.ifBlank { InboxKinds.label(it.kind) }) }
-        if (fresh.size > 5) style.setSummaryText("y ${fresh.size - 5} más")
+        if (fresh.size > 5) style.setSummaryText(t("y {v1} más", "v1" to (fresh.size - 5)))
         return builder()
-            .setContentTitle(if (total == 1) "1 aviso te necesita" else "$total avisos te necesitan")
+            .setContentTitle(if (total == 1) t("1 aviso te necesita") else t("{total} avisos te necesitan", "total" to total))
             .setContentText(fresh.first().title.ifBlank { InboxKinds.label(fresh.first().kind) })
             .setStyle(style)
             .setNumber(total)

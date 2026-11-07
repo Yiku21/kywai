@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.onboarding
 
+import com.aicowork.remote.i18n.t
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aicowork.remote.data.CoworkController
@@ -116,7 +118,7 @@ class OnboardingViewModel(
             step = OnboardingStep.Server,
             certificate = null,
             certificateChecked = false,
-            urlError = "No se ha confiado en el certificado. Comprueba la dirección o la huella en AI Cowork.",
+            urlError = t("No se ha confiado en el certificado. Comprueba la dirección o la huella en AI Cowork."),
         )
     }
 
@@ -133,7 +135,7 @@ class OnboardingViewModel(
             } catch (e: ApiException) {
                 _ui.update { it.copy(pairing = false, codeError = e.message) }
             } catch (e: java.io.IOException) {
-                _ui.update { it.copy(pairing = false, codeError = e.message ?: "No se pudo conectar") }
+                _ui.update { it.copy(pairing = false, codeError = e.message ?: t("No se pudo conectar")) }
             }
         }
     }
@@ -144,7 +146,7 @@ class OnboardingViewModel(
         _ui.update { it.copy(checking = true, step = OnboardingStep.Server) }
         viewModelScope.launch {
             val info = runCatching { demo.start() }.getOrElse { e ->
-                _ui.update { it.copy(checking = false, urlError = "No se pudo arrancar el servidor simulado: ${e.message}") }
+                _ui.update { it.copy(checking = false, urlError = t("No se pudo arrancar el servidor simulado: {message}", "message" to e.message)) }
                 return@launch
             }
             _ui.update {
@@ -152,7 +154,7 @@ class OnboardingViewModel(
                     url = info.url,
                     code = info.code,
                     demo = true,
-                    demoHint = "Servidor simulado en este móvil · código ${info.code}",
+                    demoHint = t("Servidor simulado en este móvil · código {code}", "code" to info.code),
                     checking = false,
                 )
             }

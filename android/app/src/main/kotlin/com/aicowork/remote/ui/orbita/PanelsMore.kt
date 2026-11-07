@@ -1,5 +1,10 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.AppLanguage
+import com.aicowork.remote.i18n.I18n
+import com.aicowork.remote.i18n.restartApp
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -60,6 +65,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -108,24 +114,24 @@ fun MemoryPanel(model: OrbitaModel, state: CoworkUiState) {
     var adding by remember { mutableStateOf(false) }
     var showArchived by remember { mutableStateOf(false) }
     PanelColumn {
-        PanelHeader(model, "Memoria", icon = Icons.Outlined.Psychology)
+        PanelHeader(model, t("Memoria"), icon = Icons.Outlined.Psychology)
         LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("memory-list"), state = model.memoryList, contentPadding = listPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                SectionLabel("Instrucciones del proyecto")
+                SectionLabel(t("Instrucciones del proyecto"))
                 Column(Modifier.fillMaxWidth().card().padding(14.dp).animateContentSize()) {
                     if (!editingInstructions) {
                         Row(verticalAlignment = Alignment.Top) {
                             val text = snapshot?.conversation?.instructions.orEmpty()
-                            Text(text.ifBlank { "Sin instrucciones. Escribe cómo quieres que trabaje el equipo en este proyecto (estilo, qué no tocar, cómo probar…)." }, color = if (text.isBlank()) Orbita.TextSoft else Orbita.Text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                            if (canEdit) IconAction(Icons.Outlined.Edit, "Editar las instrucciones", onClick = { instructionsDraft = text; editingInstructions = true }, size = 40.dp)
+                            Text(text.ifBlank { t("Sin instrucciones. Escribe cómo quieres que trabaje el equipo en este proyecto (estilo, qué no tocar, cómo probar…).") }, color = if (text.isBlank()) Orbita.TextSoft else Orbita.Text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                            if (canEdit) IconAction(Icons.Outlined.Edit, t("Editar las instrucciones"), onClick = { instructionsDraft = text; editingInstructions = true }, size = 40.dp)
                         }
                     } else {
-                        OrbitaField(instructionsDraft, { instructionsDraft = it }, "Instrucciones para todos los agentes", singleLine = false, minLines = 3, maxLines = 10, imeAction = ImeAction.Default, autoFocus = true)
+                        OrbitaField(instructionsDraft, { instructionsDraft = it }, t("Instrucciones para todos los agentes"), singleLine = false, minLines = 3, maxLines = 10, imeAction = ImeAction.Default, autoFocus = true)
                         Spacer(Modifier.height(10.dp))
                         var busy by remember { mutableStateOf(false) }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OrbitaButton("Cancelar", onClick = { editingInstructions = false }, style = ButtonStyle.Ghost, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
-                            OrbitaButton("Guardar", onClick = {
+                            OrbitaButton(t("Cancelar"), onClick = { editingInstructions = false }, style = ButtonStyle.Ghost, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
+                            OrbitaButton(t("Guardar"), onClick = {
                                 busy = true
                                 model.run({ model.controller.setInstructions(instructionsDraft) }) { busy = false; if (it.ok) editingInstructions = false }
                             }, busy = busy, height = 46.dp, modifier = Modifier.weight(1f))
@@ -134,18 +140,18 @@ fun MemoryPanel(model: OrbitaModel, state: CoworkUiState) {
                 }
             }
             if (!canEdit) item {
-                Note(Icons.Outlined.Info, "Solo lectura", "Para confirmar, descartar o añadir recuerdos desde el móvil, actualiza AI Cowork en el ordenador.")
+                Note(Icons.Outlined.Info, t("Solo lectura"), t("Para confirmar, descartar o añadir recuerdos desde el móvil, actualiza AI Cowork en el ordenador."))
             }
             item {
-                SectionLabel("Por revisar") { if (pending.isNotEmpty()) CountBadge(pending.size) }
-                if (pending.isEmpty()) Text("Nada pendiente: lo que propongan los agentes aparecerá aquí para que lo confirmes.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
+                SectionLabel(t("Por revisar")) { if (pending.isNotEmpty()) CountBadge(pending.size) }
+                if (pending.isEmpty()) Text(t("Nada pendiente: lo que propongan los agentes aparecerá aquí para que lo confirmes."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
             }
             items(pending, key = { "p-${it.id}" }) { m -> MemoryCard(m, snapshot!!, model, canEdit, review = true) }
-            if (confirmed.isNotEmpty()) item { SectionLabel("Confirmada") }
+            if (confirmed.isNotEmpty()) item { SectionLabel(t("Confirmada")) }
             items(confirmed, key = { "c-${it.id}" }) { m -> MemoryCard(m, snapshot!!, model, canEdit, review = false) }
             if (superseded.isNotEmpty()) item {
                 Text(
-                    if (showArchived) "Ocultar las archivadas (${superseded.size})" else "Ver las archivadas (${superseded.size})",
+                    if (showArchived) t("Ocultar las archivadas ({size})", "size" to superseded.size) else t("Ver las archivadas ({size})", "size" to superseded.size),
                     color = Orbita.Accent,
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.clip(Orbita.PillShape).tappable { showArchived = !showArchived }.padding(10.dp),
@@ -155,7 +161,7 @@ fun MemoryPanel(model: OrbitaModel, state: CoworkUiState) {
             if (adding) item(key = "adding") { AddMemory(model, onDone = { adding = false }) }
         }
         if (canEdit && !adding) {
-            OrbitaButton("Añadir recuerdo", onClick = { adding = true }, icon = Icons.Outlined.Add, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("add-memory"))
+            OrbitaButton(t("Añadir recuerdo"), onClick = { adding = true }, icon = Icons.Outlined.Add, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("add-memory"))
         }
     }
 }
@@ -169,18 +175,18 @@ private fun MemoryCard(m: MemoryEntry, snapshot: Snapshot, model: OrbitaModel, c
     Column(Modifier.fillMaxWidth().card(selected = review).padding(14.dp).animateContentSize().testTag("memory-${m.id}")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             when (m.status) {
-                "provisional" -> Badge("${Labels.memoryKind(m.kind)} · Provisional", Orbita.Warn)
-                "confirmed" -> Badge("${Labels.memoryKind(m.kind)} · Confirmada", Orbita.Success)
-                else -> Badge("${Labels.memoryKind(m.kind)} · Archivada", Orbita.TextFaint)
+                "provisional" -> Badge(t("{v1} · Provisional", "v1" to (Labels.memoryKind(m.kind))), Orbita.Warn)
+                "confirmed" -> Badge(t("{v1} · Confirmada", "v1" to (Labels.memoryKind(m.kind))), Orbita.Success)
+                else -> Badge(t("{v1} · Archivada", "v1" to (Labels.memoryKind(m.kind))), Orbita.TextFaint)
             }
             Spacer(Modifier.weight(1f))
             if (canEdit) Box {
-                IconAction(Icons.Outlined.MoreHoriz, "Opciones del recuerdo", onClick = { menu = true }, size = 40.dp)
+                IconAction(Icons.Outlined.MoreHoriz, t("Opciones del recuerdo"), onClick = { menu = true }, size = 40.dp)
                 DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Color(0xF00E1730)) {
-                    DropdownMenuItem(text = { Text("Editar") }, onClick = { menu = false; draft = m.text; editing = true }, leadingIcon = { Icon(Icons.Outlined.Edit, null) })
-                    if (m.status == "confirmed") DropdownMenuItem(text = { Text("Archivar") }, onClick = { menu = false; model.run({ model.controller.setMemoryStatus(m.id, "superseded") }) }, leadingIcon = { Icon(Icons.Outlined.Archive, null) })
-                    if (m.status == "superseded") DropdownMenuItem(text = { Text("Recuperar") }, onClick = { menu = false; model.run({ model.controller.setMemoryStatus(m.id, "confirmed") }) }, leadingIcon = { Icon(Icons.Outlined.Undo, null) })
-                    DropdownMenuItem(text = { Text("Borrar") }, onClick = { menu = false; model.run({ model.controller.deleteMemory(m.id) }) }, leadingIcon = { Icon(Icons.Outlined.Delete, null) })
+                    DropdownMenuItem(text = { Text(t("Editar")) }, onClick = { menu = false; draft = m.text; editing = true }, leadingIcon = { Icon(Icons.Outlined.Edit, null) })
+                    if (m.status == "confirmed") DropdownMenuItem(text = { Text(t("Archivar")) }, onClick = { menu = false; model.run({ model.controller.setMemoryStatus(m.id, "superseded") }) }, leadingIcon = { Icon(Icons.Outlined.Archive, null) })
+                    if (m.status == "superseded") DropdownMenuItem(text = { Text(t("Recuperar")) }, onClick = { menu = false; model.run({ model.controller.setMemoryStatus(m.id, "confirmed") }) }, leadingIcon = { Icon(Icons.Outlined.Undo, null) })
+                    DropdownMenuItem(text = { Text(t("Borrar")) }, onClick = { menu = false; model.run({ model.controller.deleteMemory(m.id) }) }, leadingIcon = { Icon(Icons.Outlined.Delete, null) })
                 }
             }
         }
@@ -188,11 +194,11 @@ private fun MemoryCard(m: MemoryEntry, snapshot: Snapshot, model: OrbitaModel, c
         if (!editing) {
             Text(m.text, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge)
         } else {
-            OrbitaField(draft, { draft = it }, "Texto del recuerdo", singleLine = false, minLines = 2, maxLines = 8, imeAction = ImeAction.Default, autoFocus = true)
+            OrbitaField(draft, { draft = it }, t("Texto del recuerdo"), singleLine = false, minLines = 2, maxLines = 8, imeAction = ImeAction.Default, autoFocus = true)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OrbitaButton("Cancelar", onClick = { editing = false }, style = ButtonStyle.Ghost, haptic = Haptic.Tap, height = 44.dp, modifier = Modifier.weight(1f))
-                OrbitaButton("Guardar", onClick = {
+                OrbitaButton(t("Cancelar"), onClick = { editing = false }, style = ButtonStyle.Ghost, haptic = Haptic.Tap, height = 44.dp, modifier = Modifier.weight(1f))
+                OrbitaButton(t("Guardar"), onClick = {
                     busy = "edit"
                     model.run({ model.controller.editMemory(m.id, draft) }) { busy = null; if (it.ok) editing = false }
                 }, busy = busy == "edit", enabled = draft.isNotBlank(), height = 44.dp, modifier = Modifier.weight(1f))
@@ -204,7 +210,7 @@ private fun MemoryCard(m: MemoryEntry, snapshot: Snapshot, model: OrbitaModel, c
             if (author != null) RobotFace(author, 22.dp) else UserIcon()
             Spacer(Modifier.width(8.dp))
             Text(
-                listOfNotNull(author?.name ?: m.byName ?: if (m.by == null || m.by == "user") "Tú" else m.by, m.taskTitle?.let { "«$it»" }).joinToString(" · "),
+                listOfNotNull(author?.name ?: m.byName ?: if (m.by == null || m.by == "user") t("Tú") else m.by, m.taskTitle?.let { "«$it»" }).joinToString(" · "),
                 color = Orbita.TextSoft,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
@@ -214,11 +220,11 @@ private fun MemoryCard(m: MemoryEntry, snapshot: Snapshot, model: OrbitaModel, c
         if (review && canEdit) {
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OrbitaButton("Confirmar", onClick = {
+                OrbitaButton(t("Confirmar"), onClick = {
                     busy = "confirm"
                     model.run({ model.controller.setMemoryStatus(m.id, "confirmed") }) { busy = null }
                 }, icon = Icons.Outlined.Check, busy = busy == "confirm", height = 46.dp, modifier = Modifier.weight(1f).testTag("memory-confirm-${m.id}"))
-                OrbitaButton("Descartar", onClick = {
+                OrbitaButton(t("Descartar"), onClick = {
                     busy = "discard"
                     model.run({ model.controller.setMemoryStatus(m.id, "superseded") }) { busy = null }
                 }, style = ButtonStyle.Secondary, busy = busy == "discard", height = 46.dp, modifier = Modifier.weight(1f))
@@ -233,15 +239,15 @@ private fun AddMemory(model: OrbitaModel, onDone: () -> Unit) {
     var text by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().card(selected = true).padding(14.dp)) {
-        Text("Nuevo recuerdo", color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
+        Text(t("Nuevo recuerdo"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(10.dp))
-        Segmented(listOf("decision" to "Decisión", "fact" to "Hecho", "preference" to "Preferencia", "pending" to "Pendiente"), kind, { kind = it })
+        Segmented(listOf("decision" to t("Decisión"), "fact" to t("Hecho"), "preference" to t("Preferencia"), "pending" to t("Pendiente")), kind, { kind = it })
         Spacer(Modifier.height(10.dp))
-        OrbitaField(text, { text = it }, "Qué debe recordar el equipo", singleLine = false, minLines = 2, maxLines = 6, imeAction = ImeAction.Default, autoFocus = true)
+        OrbitaField(text, { text = it }, t("Qué debe recordar el equipo"), singleLine = false, minLines = 2, maxLines = 6, imeAction = ImeAction.Default, autoFocus = true)
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OrbitaButton("Cancelar", onClick = onDone, style = ButtonStyle.Ghost, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
-            OrbitaButton("Guardar", onClick = {
+            OrbitaButton(t("Cancelar"), onClick = onDone, style = ButtonStyle.Ghost, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
+            OrbitaButton(t("Guardar"), onClick = {
                 busy = true
                 model.run({ model.controller.addMemory(kind, text) }) { busy = false; if (it.ok) onDone() }
             }, busy = busy, enabled = text.isNotBlank(), height = 46.dp, modifier = Modifier.weight(1f))
@@ -264,7 +270,7 @@ private val Connectors = listOf(
 fun ToolsPanel(model: OrbitaModel, state: CoworkUiState) {
     val snapshot = state.snapshot
     PanelColumn {
-        PanelHeader(model, "Herramientas", "Conexiones del proyecto", icon = Icons.Outlined.Build)
+        PanelHeader(model, t("Herramientas"), t("Conexiones del proyecto"), icon = Icons.Outlined.Build)
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = model.toolsList, contentPadding = listPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(Connectors, key = { it.name }) { c ->
                 Row(Modifier.fillMaxWidth().heightIn(min = 70.dp).card().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -273,18 +279,18 @@ fun ToolsPanel(model: OrbitaModel, state: CoworkUiState) {
                     }
                     Spacer(Modifier.width(14.dp))
                     Text(c.name, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                    Badge("No disponible", Orbita.TextFaint)
+                    Badge(t("No disponible"), Orbita.TextFaint)
                 }
             }
             item {
                 Note(
                     Icons.Outlined.Info,
-                    "Por qué no se pueden conectar",
-                    "AI Cowork todavía no se conecta con servicios externos. Los agentes trabajan con sus propias herramientas (Claude Code, Codex, Gemini…), la carpeta del proyecto y los archivos que les des.",
+                    t("Por qué no se pueden conectar"),
+                    t("AI Cowork todavía no se conecta con servicios externos. Los agentes trabajan con sus propias herramientas (Claude Code, Codex, Gemini…), la carpeta del proyecto y los archivos que les des."),
                 )
             }
             if (snapshot != null) {
-                item { SectionLabel("Herramientas del equipo") }
+                item { SectionLabel(t("Herramientas del equipo")) }
                 items(teamOrder(snapshot).filter { !it.isSubagent }, key = { "t-${it.id}" }) { a ->
                     Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).card().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         RobotFace(a, 38.dp)
@@ -295,48 +301,48 @@ fun ToolsPanel(model: OrbitaModel, state: CoworkUiState) {
                         }
                         Dot(activityColor(a.activity))
                         Spacer(Modifier.width(6.dp))
-                        Text(if (!a.enabled) "Desactivado" else Labels.activity(a.activity), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                        Text(if (!a.enabled) t("Desactivado") else Labels.activity(a.activity), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
                     }
                 }
                 item {
-                    SectionLabel("Acceso del equipo")
-                    Text("Elige dónde pueden trabajar los agentes.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
+                    SectionLabel(t("Acceso del equipo"))
+                    Text(t("Elige dónde pueden trabajar los agentes."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
                     Spacer(Modifier.height(10.dp))
                     if (snapshot.capabilities.agentAccess) {
                         var asking by remember { mutableStateOf<String?>(null) }
                         Segmented(
-                            listOf("full" to "Acceso completo", "project" to "Solo el proyecto"),
+                            listOf("full" to t("Acceso completo"), "project" to t("Solo el proyecto")),
                             snapshot.settings.agentAccess,
                             onSelect = { if (it != snapshot.settings.agentAccess) asking = it },
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            if (snapshot.settings.agentAccess == "project") "Los agentes solo leen y escriben en la carpeta del proyecto y no instalan nada."
-                            else "Los agentes pueden instalar herramientas y usar internet cuando una tarea lo necesita.",
+                            if (snapshot.settings.agentAccess == "project") t("Los agentes solo leen y escriben en la carpeta del proyecto y no instalan nada.")
+                            else t("Los agentes pueden instalar herramientas y usar internet cuando una tarea lo necesita."),
                             color = Orbita.TextSoft,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(horizontal = 4.dp),
                         )
                         asking?.let { target ->
                             ConfirmDialog(
-                                title = if (target == "project") "¿Limitar a la carpeta del proyecto?" else "¿Dar acceso completo?",
-                                text = "Afecta a las tareas que empiecen a partir de ahora.",
-                                confirm = "Cambiar",
+                                title = if (target == "project") t("¿Limitar a la carpeta del proyecto?") else t("¿Dar acceso completo?"),
+                                text = t("Afecta a las tareas que empiecen a partir de ahora."),
+                                confirm = t("Cambiar"),
                                 onConfirm = { asking = null; model.run({ model.controller.setAgentAccess(target) }) },
                                 onDismiss = { asking = null },
                             )
                         }
                     } else {
-                        Note(Icons.Outlined.Info, "Solo desde el ordenador", "Para cambiar el acceso desde el móvil, actualiza AI Cowork en el ordenador.")
+                        Note(Icons.Outlined.Info, t("Solo desde el ordenador"), t("Para cambiar el acceso desde el móvil, actualiza AI Cowork en el ordenador."))
                     }
                 }
                 if (snapshot.capabilities.planApproval) item {
-                    SectionLabel("Planes de Hermes")
+                    SectionLabel(t("Planes de Hermes"))
                     Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp)) {
                         val on = snapshot.settings.planApproval
                         ToggleRow(
-                            "Pedir mi visto bueno a cada plan",
-                            if (on) "Hermes te enseña qué hará cada agente y espera a que lo apruebes" else "Las tareas empiezan en cuanto Hermes reparte el trabajo",
+                            t("Pedir mi visto bueno a cada plan"),
+                            if (on) t("Hermes te enseña qué hará cada agente y espera a que lo apruebes") else t("Las tareas empiezan en cuanto Hermes reparte el trabajo"),
                             on,
                             "toggle-plan-approval",
                         ) { v -> model.run({ model.controller.setPlanApproval(v) }) }
@@ -355,7 +361,7 @@ fun ConfirmDialog(title: String, text: String, confirm: String, onConfirm: () ->
         title = { Text(title, color = Orbita.Text) },
         text = { Text(text, color = Orbita.TextSoft) },
         confirmButton = { TextButton(onClick = onConfirm) { Text(confirm, color = if (danger) Orbita.Danger else Orbita.Accent) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = Orbita.TextSoft) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(t("Cancelar"), color = Orbita.TextSoft) } },
     )
 }
 
@@ -367,21 +373,21 @@ fun UsagePanel(model: OrbitaModel, state: CoworkUiState) {
     val usage = snapshot?.usage
     var refreshing by remember { mutableStateOf(false) }
     PanelColumn {
-        PanelHeader(model, "Consumo", "Cuotas y tokens", icon = Icons.Outlined.DataUsage, trailing = {
+        PanelHeader(model, t("Consumo"), t("Cuotas y tokens"), icon = Icons.Outlined.DataUsage, trailing = {
             if (snapshot?.capabilities?.usageRefresh == true) {
                 if (refreshing) Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), color = Orbita.Accent, strokeWidth = 2.dp) }
-                else IconAction(Icons.Outlined.Refresh, "Actualizar las cuotas", onClick = { refreshing = true; model.run({ model.controller.refreshUsage() }) { refreshing = false } })
+                else IconAction(Icons.Outlined.Refresh, t("Actualizar las cuotas"), onClick = { refreshing = true; model.run({ model.controller.refreshUsage() }) { refreshing = false } })
             }
         })
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = model.usageList, contentPadding = listPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (usage == null) return@LazyColumn
-            item { SectionLabel("Cuota restante") }
+            item { SectionLabel(t("Cuota restante")) }
             items(usage.quotas, key = { "q-${it.id}" }) { q ->
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(q.label, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                         Text(
-                            when { q.unlimited -> "Sin límite"; q.remainingPct != null -> "${q.remainingPct.toInt()} %"; else -> "N/D" },
+                            when { q.unlimited -> t("Sin límite"); q.remainingPct != null -> "${q.remainingPct.toInt()} %"; else -> "N/D" },
                             color = Orbita.Text,
                             style = MaterialTheme.typography.titleSmall,
                         )
@@ -392,21 +398,21 @@ fun UsagePanel(model: OrbitaModel, state: CoworkUiState) {
                     ProgressLine(if (q.unlimited) 1f else pct ?: 0f, color, animate = false)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        listOfNotNull(q.period, q.resetsAt?.let { "se renueva ${Format.relative(it)}" }, Labels.quotaSource(q.source), q.note).joinToString(" · "),
+                        listOfNotNull(q.period, q.resetsAt?.let { t("se renueva {v1}", "v1" to Format.relative(it)) }, Labels.quotaSource(q.source), q.note).joinToString(" · "),
                         color = Orbita.TextSoft,
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
             item {
-                SectionLabel("Tokens")
+                SectionLabel(t("Tokens"))
                 Row(Modifier.fillMaxWidth().card().padding(14.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Metric("Entrada", Format.tokens(usage.totals.input))
-                    Metric("Salida", Format.tokens(usage.totals.output))
-                    usage.totals.cached?.let { Metric("En caché", Format.tokens(it)) }
+                    Metric(t("Entrada"), Format.tokens(usage.totals.input))
+                    Metric(t("Salida"), Format.tokens(usage.totals.output))
+                    usage.totals.cached?.let { Metric(t("En caché"), Format.tokens(it)) }
                 }
             }
-            if (usage.byAgent.isNotEmpty()) item { SectionLabel("Por agente") }
+            if (usage.byAgent.isNotEmpty()) item { SectionLabel(t("Por agente")) }
             items(usage.byAgent.sortedByDescending { it.input + it.output }, key = { "a-${it.agentId}" }) { a ->
                 val agent = snapshot.agents.firstOrNull { it.id == a.agentId }
                 Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).card().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -436,22 +442,43 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
     val session = state.session
     var confirmForget by remember { mutableStateOf(false) }
     PanelColumn {
-        PanelHeader(model, "Ajustes", icon = Icons.Outlined.Settings)
+        PanelHeader(model, t("Ajustes"), icon = Icons.Outlined.Settings)
         LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("settings-list"), state = model.settingsList, contentPadding = listPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                SectionLabel("Respuesta al tacto")
+                SectionLabel("Idioma · Language")
+                val context = LocalContext.current
+                Segmented(
+                    listOf(AppLanguage.System to t("Del sistema"), AppLanguage.Es to "Español", AppLanguage.En to "English"),
+                    p.language,
+                    { v ->
+                        if (v != p.language) {
+                            val restart = I18n.resolve(v) != I18n.lang
+                            model.updatePreferences { it.copy(language = v) }
+                            if (restart) restartApp(context)
+                        }
+                    },
+                )
+                Text(
+                    t("Cambia los textos de Órbita en este móvil. Lo que escriben los agentes sigue el idioma elegido en el ordenador."),
+                    color = Orbita.TextSoft,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                )
+            }
+            item {
+                SectionLabel(t("Respuesta al tacto"))
                 Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp)) {
-                    ToggleRow("Sonidos", "Tonos cortos al terminar tareas, llegar mensajes o fallar algo", p.sound, "toggle-sound") { v -> model.updatePreferences { it.copy(sound = v) }; if (v) model.feedback.play(Sfx.Message) }
-                    ToggleRow("Vibración", "Una vibración breve al elegir y confirmar", p.haptics, "toggle-haptics") { v -> model.updatePreferences { it.copy(haptics = v) } }
+                    ToggleRow(t("Sonidos"), t("Tonos cortos al terminar tareas, llegar mensajes o fallar algo"), p.sound, "toggle-sound") { v -> model.updatePreferences { it.copy(sound = v) }; if (v) model.feedback.play(Sfx.Message) }
+                    ToggleRow(t("Vibración"), t("Una vibración breve al elegir y confirmar"), p.haptics, "toggle-haptics") { v -> model.updatePreferences { it.copy(haptics = v) } }
                     ToggleRow(
-                        "Voces de los agentes",
-                        if (p.sound) "Cada agente balbucea con su propia voz cuando escribe en el chat" else "Activa los sonidos para oírlas",
+                        t("Voces de los agentes"),
+                        if (p.sound) t("Cada agente balbucea con su propia voz cuando escribe en el chat") else t("Activa los sonidos para oírlas"),
                         p.voices,
                         "toggle-voices",
                     ) { v -> model.updatePreferences { it.copy(voices = v) }; if (v) model.previewVoice() }
                     if (p.voices && p.sound) {
                         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Volumen", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                            Text(t("Volumen"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                             Spacer(Modifier.width(12.dp))
                             Slider(
                                 value = p.voiceVolume,
@@ -466,72 +493,72 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                 }
             }
             item {
-                SectionLabel("Mundo")
+                SectionLabel(t("Mundo"))
                 Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp)) {
-                    ToggleRow("Animación ambiental", "Luces, globo y cúpula en movimiento. La actividad real de los agentes se ve siempre.", p.ambient, "toggle-ambient") { v -> model.updatePreferences { it.copy(ambient = v) } }
+                    ToggleRow(t("Animación ambiental"), t("Luces, globo y cúpula en movimiento. La actividad real de los agentes se ve siempre."), p.ambient, "toggle-ambient") { v -> model.updatePreferences { it.copy(ambient = v) } }
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("Intensidad de efectos", color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+                Text(t("Intensidad de efectos"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
                 Segmented(
-                    listOf(EffectsPreference.Soft to "Suave", EffectsPreference.Normal to "Normal", EffectsPreference.Full to "Completa"),
+                    listOf(EffectsPreference.Soft to t("Suave"), EffectsPreference.Normal to t("Normal"), EffectsPreference.Full to t("Completa")),
                     p.effects,
                     { v -> model.updatePreferences { it.copy(effects = v) } },
                 )
                 Text(
                     when (p.effects) {
-                        EffectsPreference.Soft -> "Menos partículas, 30 imágenes por segundo y paneles sin difuminado: gasta menos batería."
-                        EffectsPreference.Normal -> "Cristal difuminado y 60 imágenes por segundo."
-                        EffectsPreference.Full -> "Todo el detalle y la frecuencia de la pantalla (gasta más batería)."
+                        EffectsPreference.Soft -> t("Menos partículas, 30 imágenes por segundo y paneles sin difuminado: gasta menos batería.")
+                        EffectsPreference.Normal -> t("Cristal difuminado y 60 imágenes por segundo.")
+                        EffectsPreference.Full -> t("Todo el detalle y la frecuencia de la pantalla (gasta más batería).")
                     },
                     color = Orbita.TextSoft,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 4.dp, top = 8.dp),
                 )
                 Spacer(Modifier.height(14.dp))
-                Text("Movimiento", color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+                Text(t("Movimiento"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
                 Segmented(
-                    listOf(MotionPreference.System to "Del sistema", MotionPreference.Reduced to "Reducido", MotionPreference.Full to "Completo"),
+                    listOf(MotionPreference.System to t("Del sistema"), MotionPreference.Reduced to t("Reducido"), MotionPreference.Full to t("Completo")),
                     p.motion,
                     { v -> model.updatePreferences { it.copy(motion = v) } },
                 )
                 Text(
-                    if (model.reducedMotion()) "Movimiento reducido: sin saltos ni giros, transiciones más cortas." else "Movimiento completo.",
+                    if (model.reducedMotion()) t("Movimiento reducido: sin saltos ni giros, transiciones más cortas.") else t("Movimiento completo."),
                     color = Orbita.TextSoft,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 4.dp, top = 8.dp),
                 )
             }
             item {
-                SectionLabel("Ordenador")
+                SectionLabel(t("Ordenador"))
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
                     Text(session?.serverName ?: "AI Cowork", color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
                     Text(session?.serverUrl.orEmpty(), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(6.dp))
                     val status = when (val c = state.connection) {
-                        Connection.Online -> "Conectado"
-                        Connection.Connecting -> "Conectando…"
-                        is Connection.Offline -> "Sin conexión: ${c.reason}"
-                        Connection.Idle -> "En pausa"
+                        Connection.Online -> t("Conectado")
+                        Connection.Connecting -> t("Conectando…")
+                        is Connection.Offline -> t("Sin conexión: {reason}", "reason" to c.reason)
+                        Connection.Idle -> t("En pausa")
                     }
                     Text(status, color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
-                    Text("Última sincronización: ${Format.relative(state.syncedAt).ifEmpty { "nunca" }}", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
-                    session?.pinnedSha256?.let { Text("Certificado: ${it.take(23)}…", color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall) }
+                    Text(t("Última sincronización: {v1}", "v1" to (Format.relative(state.syncedAt).ifEmpty { t("nunca") })), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                    session?.pinnedSha256?.let { Text(t("Certificado: {v1}…", "v1" to (it.take(23))), color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall) }
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OrbitaButton("Reconectar", onClick = { model.controller.retryNow() }, icon = Icons.Outlined.Sync, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
-                        OrbitaButton("Actualizar", onClick = { model.controller.refresh() }, icon = Icons.Outlined.Refresh, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
+                        OrbitaButton(t("Reconectar"), onClick = { model.controller.retryNow() }, icon = Icons.Outlined.Sync, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
+                        OrbitaButton(t("Actualizar"), onClick = { model.controller.refresh() }, icon = Icons.Outlined.Refresh, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
                     }
                 }
             }
             // También en Herramientas; aquí porque en el escritorio está en ⋮ → Ajustes y es donde se busca.
             state.snapshot?.takeIf { it.capabilities.planApproval }?.let { snapshot ->
                 item {
-                    SectionLabel("Planes de Hermes")
+                    SectionLabel(t("Planes de Hermes"))
                     Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp)) {
                         val on = snapshot.settings.planApproval
                         ToggleRow(
-                            "Pedir mi visto bueno a cada plan",
-                            if (on) "Hermes te enseña qué hará cada agente y espera a que lo apruebes" else "Las tareas empiezan en cuanto Hermes reparte el trabajo",
+                            t("Pedir mi visto bueno a cada plan"),
+                            if (on) t("Hermes te enseña qué hará cada agente y espera a que lo apruebes") else t("Las tareas empiezan en cuanto Hermes reparte el trabajo"),
                             on,
                             "settings-plan-approval",
                         ) { v -> model.run({ model.controller.setPlanApproval(v) }) }
@@ -541,22 +568,22 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
             item { ServerUpdateSection(model, state.snapshot?.capabilities?.serverUpdate == true) }
             model.updater?.let { updater -> item { UpdateSection(updater) } }
             item {
-                SectionLabel("Este móvil")
+                SectionLabel(t("Este móvil"))
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
                     Text(session?.deviceName.orEmpty(), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
-                    Text("Emparejado: ${Format.dateTime(session?.pairedAt)}", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
-                    Text("Queda emparejado: solo se desempareja si generas un código de acceso nuevo en AI Cowork o lo desvinculas aquí.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                    Text(t("Emparejado: {v1}", "v1" to (Format.dateTime(session?.pairedAt))), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                    Text(t("Queda emparejado: solo se desempareja si generas un código de acceso nuevo en AI Cowork o lo desvinculas aquí."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(10.dp))
-                    OrbitaButton("Desvincular este móvil", onClick = { confirmForget = true }, icon = Icons.Outlined.LinkOff, style = ButtonStyle.Danger, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth())
+                    OrbitaButton(t("Desvincular este móvil"), onClick = { confirmForget = true }, icon = Icons.Outlined.LinkOff, style = ButtonStyle.Danger, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
     }
     if (confirmForget) {
         ConfirmDialog(
-            title = "¿Desvincular este móvil?",
-            text = "Tendrás que volver a emparejarlo con un código del ordenador.",
-            confirm = "Desvincular",
+            title = t("¿Desvincular este móvil?"),
+            text = t("Tendrás que volver a emparejarlo con un código del ordenador."),
+            confirm = t("Desvincular"),
             danger = true,
             onConfirm = { confirmForget = false; model.feedback.confirm(); model.controller.forget() },
             onDismiss = { confirmForget = false },
@@ -584,16 +611,16 @@ private fun ServerUpdateSection(model: OrbitaModel, available: Boolean) {
         scope.launch {
             model.controller.serverUpdate()
                 .onSuccess { info = it; if (!it.updating) started = false }
-                .onFailure { error = it.message ?: "No se pudo preguntar al servidor" }
+                .onFailure { error = it.message ?: t("No se pudo preguntar al servidor") }
             checking = false
         }
     }
     // Al abrir Ajustes ya se ve si hay versión nueva (el servidor consulta GitHub: tarda unos segundos).
     LaunchedEffect(available) { if (available && info == null && !checking) check() }
-    SectionLabel("Servidor")
+    SectionLabel(t("Servidor"))
     Column(Modifier.fillMaxWidth().card().padding(14.dp).testTag("server-update")) {
         val i = info
-        Text(i?.current?.let { "Versión ${it.hash} · ${it.date}" } ?: "AI Cowork en el servidor", color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
+        Text(i?.current?.let { t("Versión {hash} · {date}", "hash" to it.hash, "date" to it.date) } ?: t("AI Cowork en el servidor"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
         Text(
             serverUpdateText(i, error, checking, started, available),
             color = if (error != null) Orbita.Warn else Orbita.TextSoft,
@@ -602,32 +629,32 @@ private fun ServerUpdateSection(model: OrbitaModel, available: Boolean) {
         )
         i?.lastError?.takeIf { !started && i?.updating != true }?.let {
             Spacer(Modifier.height(4.dp))
-            Text("La última actualización falló y el servidor siguió con su versión: $it", color = Orbita.Warn, style = MaterialTheme.typography.bodySmall)
+            Text(t("La última actualización falló y el servidor siguió con su versión: {it}", "it" to it), color = Orbita.Warn, style = MaterialTheme.typography.bodySmall)
         }
         if (i != null && !started && !i.updating && i.commits.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
             i.commits.take(5).forEach { c ->
                 Text("• ${c.subject}", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
-            if (i.commitCount > 5) Text("y ${i.commitCount - 5} más", color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall)
+            if (i.commitCount > 5) Text(t("y {v1} más", "v1" to (i.commitCount - 5)), color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall)
         }
         if (available) {
             Spacer(Modifier.height(10.dp))
             when {
                 started || i?.updating == true -> OrbitaButton(
-                    "Ver cómo va", onClick = check, icon = Icons.Outlined.Refresh, style = ButtonStyle.Secondary,
+                    t("Ver cómo va"), onClick = check, icon = Icons.Outlined.Refresh, style = ButtonStyle.Secondary,
                     busy = checking, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth(),
                 )
                 i != null && i.canUpdate && i.commitCount > 0 -> OrbitaButton(
-                    "Actualizar el servidor", onClick = { confirm = false }, icon = Icons.Outlined.SystemUpdate,
+                    t("Actualizar el servidor"), onClick = { confirm = false }, icon = Icons.Outlined.SystemUpdate,
                     busy = starting, height = 46.dp, modifier = Modifier.fillMaxWidth().testTag("server-update-start"),
                 )
                 i != null && i.blockedByLocal -> OrbitaButton(
-                    "Apartar sus cambios y actualizar", onClick = { confirm = true }, icon = Icons.Outlined.SystemUpdate,
+                    t("Apartar sus cambios y actualizar"), onClick = { confirm = true }, icon = Icons.Outlined.SystemUpdate,
                     busy = starting, height = 46.dp, modifier = Modifier.fillMaxWidth().testTag("server-update-start"),
                 )
                 else -> OrbitaButton(
-                    "Buscar actualizaciones del servidor", onClick = check, icon = Icons.Outlined.Refresh, style = ButtonStyle.Secondary,
+                    t("Buscar actualizaciones del servidor"), onClick = check, icon = Icons.Outlined.Refresh, style = ButtonStyle.Secondary,
                     busy = checking, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth().testTag("server-update-check"),
                 )
             }
@@ -635,11 +662,11 @@ private fun ServerUpdateSection(model: OrbitaModel, available: Boolean) {
     }
     confirm?.let { setAside ->
         ConfirmDialog(
-            title = "¿Actualizar el servidor?",
-            text = (if (setAside) "Lo hecho en el servidor que no está en GitHub se aparta antes (se guarda en git, no se borra). " else "") +
-                "El servidor descarga los cambios de GitHub, se compila y se reinicia: tarda unos minutos y mientras tanto Órbita " +
-                "se queda sin conexión (se reconecta sola). Lo que esté trabajando quedará en pausa para reanudarlo.",
-            confirm = "Actualizar",
+            title = t("¿Actualizar el servidor?"),
+            text = (if (setAside) t("Lo hecho en el servidor que no está en GitHub se aparta antes (se guarda en git, no se borra). ") else "") +
+                t("El servidor descarga los cambios de GitHub, se compila y se reinicia: tarda unos minutos y mientras tanto Órbita ") +
+                t("se queda sin conexión (se reconecta sola). Lo que esté trabajando quedará en pausa para reanudarlo."),
+            confirm = t("Actualizar"),
             onConfirm = {
                 confirm = null
                 starting = true
@@ -656,18 +683,18 @@ private fun ServerUpdateSection(model: OrbitaModel, available: Boolean) {
 }
 
 private fun serverUpdateText(i: ServerUpdate?, error: String?, checking: Boolean, started: Boolean, available: Boolean): String = when {
-    !available -> "Para actualizar el servidor desde aquí, actualízalo una vez desde el ordenador (⋮ → «Buscar actualizaciones…»)."
+    !available -> t("Para actualizar el servidor desde aquí, actualízalo una vez desde el ordenador (⋮ → «Buscar actualizaciones…»).")
     error != null -> error
-    started || i?.updating == true -> "Actualizando: descarga los cambios, se compila y se reinicia. Tarda unos minutos; Órbita se reconecta sola."
-    i == null -> if (checking) "Preguntando a GitHub…" else "Busca en GitHub la versión nueva del servidor y la instala allí."
-    i.blockedByLocal -> "Hay ${changes(i.commitCount)} en GitHub, pero el servidor tiene cambios hechos allí que no están en GitHub. Puedes apartarlos (se guardan en git, no se borran) y actualizar."
-    !i.canUpdate -> i.reason ?: "No se puede actualizar el servidor desde aquí."
-    i.commitCount == 0 -> "El servidor tiene la última versión."
-    i.pendingInstall -> "El código nuevo ya está descargado; falta instalarlo (${changes(i.commitCount)}):"
-    else -> "Hay ${changes(i.commitCount)}:"
+    started || i?.updating == true -> t("Actualizando: descarga los cambios, se compila y se reinicia. Tarda unos minutos; Órbita se reconecta sola.")
+    i == null -> if (checking) t("Preguntando a GitHub…") else t("Busca en GitHub la versión nueva del servidor y la instala allí.")
+    i.blockedByLocal -> t("Hay {changes} en GitHub, pero el servidor tiene cambios hechos allí que no están en GitHub. Puedes apartarlos (se guardan en git, no se borran) y actualizar.", "changes" to changes(i.commitCount))
+    !i.canUpdate -> i.reason ?: t("No se puede actualizar el servidor desde aquí.")
+    i.commitCount == 0 -> t("El servidor tiene la última versión.")
+    i.pendingInstall -> t("El código nuevo ya está descargado; falta instalarlo ({changes}):", "changes" to changes(i.commitCount))
+    else -> t("Hay {v1}:", "v1" to (changes(i.commitCount)))
 }
 
-private fun changes(n: Int): String = if (n == 1) "1 cambio nuevo" else "$n cambios nuevos"
+private fun changes(n: Int): String = if (n == 1) t("1 cambio nuevo") else t("{n} cambios nuevos", "n" to n)
 
 /** Ajustes → Órbita: busca la versión que tiene el ordenador y la instala aquí, sin pasar la APK a mano. */
 @Composable
@@ -675,9 +702,9 @@ private fun UpdateSection(updater: AppUpdater) {
     val state by updater.state.collectAsState()
     // Al abrir Ajustes ya se ve si hay una versión nueva (una consulta pequeña, una vez cada vez que se abre Órbita).
     LaunchedEffect(updater) { if (updater.state.value == UpdateState.Idle) updater.check() }
-    SectionLabel("Órbita")
+    SectionLabel(t("Órbita"))
     Column(Modifier.fillMaxWidth().card().padding(14.dp).testTag("app-update")) {
-        Text("Versión ${updater.versionName}", color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
+        Text(t("Versión {versionName}", "versionName" to updater.versionName), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
         Text(
             updateText(state),
             color = if (state is UpdateState.Failed) Orbita.Warn else Orbita.TextSoft,
@@ -703,15 +730,15 @@ private fun UpdateSection(updater: AppUpdater) {
         }
         when {
             state is UpdateState.NeedsPermission -> OrbitaButton(
-                "Permitir instalar desde Órbita", onClick = updater::allowInstalls, icon = Icons.Outlined.Security,
+                t("Permitir instalar desde Órbita"), onClick = updater::allowInstalls, icon = Icons.Outlined.Security,
                 height = 46.dp, modifier = Modifier.fillMaxWidth(),
             )
             release != null -> OrbitaButton(
-                "Instalar la versión ${release.versionName}", onClick = updater::install, icon = Icons.Outlined.SystemUpdate,
+                t("Instalar la versión {versionName}", "versionName" to release.versionName), onClick = updater::install, icon = Icons.Outlined.SystemUpdate,
                 busy = state is UpdateState.Downloading || state is UpdateState.Installing, height = 46.dp, modifier = Modifier.fillMaxWidth(),
             )
             else -> OrbitaButton(
-                "Buscar actualizaciones", onClick = updater::check, icon = Icons.Outlined.Refresh, style = ButtonStyle.Secondary,
+                t("Buscar actualizaciones"), onClick = updater::check, icon = Icons.Outlined.Refresh, style = ButtonStyle.Secondary,
                 busy = state is UpdateState.Checking, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -719,17 +746,17 @@ private fun UpdateSection(updater: AppUpdater) {
 }
 
 private fun updateText(s: UpdateState): String = when (s) {
-    UpdateState.Idle -> "Busca la versión que tiene el ordenador y la instala aquí, sin pasar la APK a mano."
-    UpdateState.Checking -> "Preguntando al ordenador…"
-    UpdateState.UpToDate -> "Tienes la última versión."
-    is UpdateState.Available -> "Hay una versión nueva (${s.release.versionName}, ${megabytes(s.release.size)}). Al instalarla, Órbita se cierra: vuelve a abrirla y sigue emparejada."
-    is UpdateState.Downloading -> "Descargando la versión ${s.release.versionName}… ${(s.progress * 100).toInt()} %"
-    is UpdateState.NeedsPermission -> "Android pide permiso (solo la primera vez) para que Órbita instale su versión nueva: activa «Permitir de esta fuente» y vuelve."
-    is UpdateState.Installing -> "Instalando la versión ${s.release.versionName}… Si Android pregunta, toca «Actualizar». Órbita se cerrará: vuelve a abrirla."
+    UpdateState.Idle -> t("Busca la versión que tiene el ordenador y la instala aquí, sin pasar la APK a mano.")
+    UpdateState.Checking -> t("Preguntando al ordenador…")
+    UpdateState.UpToDate -> t("Tienes la última versión.")
+    is UpdateState.Available -> t("Hay una versión nueva ({versionName}, {megabytes}). Al instalarla, Órbita se cierra: vuelve a abrirla y sigue emparejada.", "versionName" to s.release.versionName, "megabytes" to megabytes(s.release.size))
+    is UpdateState.Downloading -> t("Descargando la versión {versionName}… {v2} %", "versionName" to s.release.versionName, "v2" to (s.progress * 100).toInt())
+    is UpdateState.NeedsPermission -> t("Android pide permiso (solo la primera vez) para que Órbita instale su versión nueva: activa «Permitir de esta fuente» y vuelve.")
+    is UpdateState.Installing -> t("Instalando la versión {versionName}… Si Android pregunta, toca «Actualizar». Órbita se cerrará: vuelve a abrirla.", "versionName" to s.release.versionName)
     is UpdateState.Failed -> s.message
 }
 
-private fun megabytes(bytes: Long): String = String.format(java.util.Locale.forLanguageTag("es"), "%.1f MB", bytes / 1_048_576.0)
+private fun megabytes(bytes: Long): String = String.format(com.aicowork.remote.i18n.I18n.locale, "%.1f MB", bytes / 1_048_576.0)
 
 @Composable
 private fun ToggleRow(title: String, subtitle: String?, checked: Boolean, tag: String, onChange: (Boolean) -> Unit) {
@@ -766,7 +793,7 @@ fun TeamPanel(model: OrbitaModel, state: CoworkUiState) {
     val attention = snapshot?.let { OrbitaModel.attentionOf(it) }
     val scope = rememberCoroutineScope()
     PanelColumn {
-        PanelHeader(model, "Equipo", snapshot?.let { s -> workingCount(s).let { if (it > 0) "$it trabajando" else "Todos libres" } }, icon = Icons.Outlined.Groups)
+        PanelHeader(model, t("Equipo"), snapshot?.let { s -> workingCount(s).let { if (it > 0) t("{it} trabajando", "it" to it) else t("Todos libres") } }, icon = Icons.Outlined.Groups)
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = model.teamList, contentPadding = listPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (snapshot == null) return@LazyColumn
             items(teamOrder(snapshot), key = { it.id }) { a ->

@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.onboarding
 
+import com.aicowork.remote.i18n.t
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
@@ -78,7 +80,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel) {
             ) {
                 if (ui.step != OnboardingStep.Welcome) {
                     IconButton(onClick = viewModel::back) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = t("Atrás"))
                     }
                 }
                 ui.notice?.let { notice ->
@@ -119,23 +121,23 @@ private fun WelcomeStep(onStart: () -> Unit, onDemo: (() -> Unit)?) {
             }
         }
         Spacer(Modifier.height(24.dp))
-        Text("Tu equipo de AI Cowork, en el bolsillo", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
+        Text(t("Tu equipo de AI Cowork, en el bolsillo"), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
         Spacer(Modifier.height(12.dp))
         Text(
-            "Pide trabajo a los agentes, sigue sus tareas en directo y detén o reanuda peticiones desde el móvil. " +
-                "La app se conecta a tu ordenador por Tailscale; los datos no pasan por ningún otro servidor.",
+            t("Pide trabajo a los agentes, sigue sus tareas en directo y detén o reanuda peticiones desde el móvil. ") +
+                t("La app se conecta a tu ordenador por Tailscale; los datos no pasan por ningún otro servidor."),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(32.dp))
-        Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Conectar con mi ordenador") }
+        Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text(t("Conectar con mi ordenador")) }
         if (onDemo != null) {
             Spacer(Modifier.height(12.dp))
             OutlinedButton(onClick = onDemo, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                 Icon(Icons.Outlined.Science, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
-                Text("Probar con el servidor simulado")
+                Text(t("Probar con el servidor simulado"))
             }
         }
     }
@@ -146,13 +148,13 @@ private fun ServerStep(ui: OnboardingUi, vm: OnboardingViewModel) {
     Column {
         StepHeader(
             Icons.Outlined.Computer,
-            "¿Dónde está AI Cowork?",
-            "En el ordenador, abre ⋮ → Acceso remoto y copia la dirección HTTPS (por ejemplo https://100.101.102.103:8788 o https://mi-mac.tu-red.ts.net).",
+            t("¿Dónde está AI Cowork?"),
+            t("En el ordenador, abre ⋮ → Acceso remoto y copia la dirección HTTPS (por ejemplo https://100.101.102.103:8788 o https://mi-mac.tu-red.ts.net)."),
         )
         OutlinedTextField(
             value = ui.url,
             onValueChange = vm::onUrlChange,
-            label = { Text("Dirección del ordenador") },
+            label = { Text(t("Dirección del ordenador")) },
             placeholder = { Text("https://100.x.y.z:8788") },
             singleLine = true,
             isError = ui.urlError != null,
@@ -170,14 +172,14 @@ private fun ServerStep(ui: OnboardingUi, vm: OnboardingViewModel) {
             if (ui.checking) {
                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 Spacer(Modifier.size(8.dp))
-                Text("Comprobando…")
+                Text(t("Comprobando…"))
             } else {
-                Text("Continuar")
+                Text(t("Continuar"))
             }
         }
         Spacer(Modifier.height(16.dp))
         Text(
-            "Consejo: activa Tailscale en este móvil con la misma cuenta que el ordenador. La dirección se puede cambiar después en Ajustes.",
+            t("Consejo: activa Tailscale en este móvil con la misma cuenta que el ordenador. La dirección se puede cambiar después en Ajustes."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -190,8 +192,8 @@ private fun CertificateStep(ui: OnboardingUi, vm: OnboardingViewModel) {
     Column {
         StepHeader(
             Icons.Outlined.Shield,
-            "Confirma la huella del certificado",
-            "Este ordenador usa un certificado propio generado por AI Cowork. Antes de confiar en él, compara la huella con la que aparece en el ordenador (⋮ → Acceso remoto → Huella del certificado).",
+            t("Confirma la huella del certificado"),
+            t("Este ordenador usa un certificado propio generado por AI Cowork. Antes de confiar en él, compara la huella con la que aparece en el ordenador (⋮ → Acceso remoto → Huella del certificado)."),
         )
         FingerprintCard(cert)
         Spacer(Modifier.height(12.dp))
@@ -199,7 +201,7 @@ private fun CertificateStep(ui: OnboardingUi, vm: OnboardingViewModel) {
             Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = LocalStatusColors.current.warning, modifier = Modifier.padding(top = 2.dp))
             Spacer(Modifier.size(8.dp))
             Text(
-                "Si un solo bloque no coincide, no continúes: alguien podría estar interceptando la conexión.",
+                t("Si un solo bloque no coincide, no continúes: alguien podría estar interceptando la conexión."),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -213,13 +215,13 @@ private fun CertificateStep(ui: OnboardingUi, vm: OnboardingViewModel) {
         ) {
             Checkbox(checked = ui.certificateChecked, onCheckedChange = null)
             Spacer(Modifier.size(8.dp))
-            Text("He comprobado que la huella coincide con la del ordenador", style = MaterialTheme.typography.bodyLarge)
+            Text(t("He comprobado que la huella coincide con la del ordenador"), style = MaterialTheme.typography.bodyLarge)
         }
         Spacer(Modifier.height(12.dp))
         Button(onClick = vm::trustCertificate, enabled = ui.certificateChecked, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-            Text("Confiar en este certificado")
+            Text(t("Confiar en este certificado"))
         }
-        TextButton(onClick = vm::rejectCertificate, modifier = Modifier.fillMaxWidth()) { Text("No coincide, cancelar") }
+        TextButton(onClick = vm::rejectCertificate, modifier = Modifier.fillMaxWidth()) { Text(t("No coincide, cancelar")) }
     }
 }
 
@@ -232,7 +234,7 @@ fun FingerprintCard(cert: CertificateInfo, modifier: Modifier = Modifier) {
             Spacer(Modifier.height(8.dp))
             Column(
                 Modifier.semantics(mergeDescendants = true) {
-                    contentDescription = "Huella SHA-256: " + cert.sha256.replace(":", " ")
+                    contentDescription = t("Huella SHA-256: ") + cert.sha256.replace(":", " ")
                 }.testTag("fingerprint"),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
@@ -241,12 +243,12 @@ fun FingerprintCard(cert: CertificateInfo, modifier: Modifier = Modifier) {
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Text("Emitido para: ${cert.subject.removePrefix("CN=")}", style = MaterialTheme.typography.bodySmall)
+            Text(t("Emitido para: {v1}", "v1" to (cert.subject.removePrefix("CN="))), style = MaterialTheme.typography.bodySmall)
             if (cert.alternativeNames.isNotEmpty()) {
-                Text("Nombres: ${cert.alternativeNames.joinToString(", ")}", style = MaterialTheme.typography.bodySmall)
+                Text(t("Nombres: {v1}", "v1" to (cert.alternativeNames.joinToString(", "))), style = MaterialTheme.typography.bodySmall)
             }
-            Text("Válido: ${cert.validityText}", style = MaterialTheme.typography.bodySmall)
-            if (cert.selfSigned) Text("Autofirmado", style = MaterialTheme.typography.bodySmall)
+            Text(t("Válido: {validityText}", "validityText" to cert.validityText), style = MaterialTheme.typography.bodySmall)
+            if (cert.selfSigned) Text(t("Autofirmado"), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -256,13 +258,13 @@ private fun CodeStep(ui: OnboardingUi, vm: OnboardingViewModel) {
     Column {
         StepHeader(
             Icons.Outlined.Key,
-            "Introduce el código de acceso",
-            "En AI Cowork, activa «Acceso desde otros dispositivos» y copia el código (distingue mayúsculas). El token que recibe la app se guarda cifrado en el almacén seguro del móvil.",
+            t("Introduce el código de acceso"),
+            t("En AI Cowork, activa «Acceso desde otros dispositivos» y copia el código (distingue mayúsculas). El token que recibe la app se guarda cifrado en el almacén seguro del móvil."),
         )
         OutlinedTextField(
             value = ui.code,
             onValueChange = vm::onCodeChange,
-            label = { Text("Código de acceso") },
+            label = { Text(t("Código de acceso")) },
             singleLine = true,
             isError = ui.codeError != null,
             supportingText = ui.codeError?.let { { Text(it) } },
@@ -274,8 +276,8 @@ private fun CodeStep(ui: OnboardingUi, vm: OnboardingViewModel) {
         OutlinedTextField(
             value = ui.deviceName,
             onValueChange = vm::onDeviceNameChange,
-            label = { Text("Nombre de este dispositivo") },
-            supportingText = { Text("Así lo verás en la lista de dispositivos del ordenador") },
+            label = { Text(t("Nombre de este dispositivo")) },
+            supportingText = { Text(t("Así lo verás en la lista de dispositivos del ordenador")) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { vm.pair() }),
@@ -284,7 +286,7 @@ private fun CodeStep(ui: OnboardingUi, vm: OnboardingViewModel) {
         if (ui.pinnedSha256 != null) {
             Spacer(Modifier.height(8.dp))
             Text(
-                "Certificado confirmado: ${ui.pinnedSha256.take(23)}…",
+                t("Certificado confirmado: {v1}…", "v1" to ui.pinnedSha256.take(23)),
                 style = MaterialTheme.typography.bodySmall,
                 color = LocalStatusColors.current.success,
             )
@@ -294,12 +296,12 @@ private fun CodeStep(ui: OnboardingUi, vm: OnboardingViewModel) {
             if (ui.pairing) {
                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 Spacer(Modifier.size(8.dp))
-                Text("Emparejando…")
+                Text(t("Emparejando…"))
             } else {
-                Text("Emparejar")
+                Text(t("Emparejar"))
             }
         }
         Spacer(Modifier.height(8.dp))
-        FilledTonalButton(onClick = vm::back, modifier = Modifier.fillMaxWidth()) { Text("Cambiar de ordenador") }
+        FilledTonalButton(onClick = vm::back, modifier = Modifier.fillMaxWidth()) { Text(t("Cambiar de ordenador")) }
     }
 }

@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -218,7 +220,7 @@ fun ProjectImage(url: String, alt: String, modifier: Modifier = Modifier.fillMax
     val key = "img:$url"
     if (images == null || remote) {
         // Sin modelo (vistas previas) o de internet: la descripción, que al menos dice qué es.
-        Text(alt.ifBlank { "imagen" }, color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
+        Text(alt.ifBlank { t("imagen") }, color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
         return
     }
     val model = images.model
@@ -229,13 +231,13 @@ fun ProjectImage(url: String, alt: String, modifier: Modifier = Modifier.fillMax
         model.previews[key] = model.controller.fetchFile("project", url).fold(
             { raw ->
                 withContext(Dispatchers.Default) {
-                    if (!raw.isImage) return@withContext Preview.None("No es una imagen")
+                    if (!raw.isImage) return@withContext Preview.None(t("No es una imagen"))
                     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeByteArray(raw.bytes, 0, raw.bytes.size, bounds)
                     var sample = 1
                     while (bounds.outWidth / sample > 1440) sample *= 2
                     BitmapFactory.decodeByteArray(raw.bytes, 0, raw.bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
-                        ?.let { Preview.Picture(it.asImageBitmap()) } ?: Preview.None("Imagen ilegible")
+                        ?.let { Preview.Picture(it.asImageBitmap()) } ?: Preview.None(t("Imagen ilegible"))
                 }
             },
             { Preview.None(it.message) },
@@ -251,7 +253,7 @@ fun ProjectImage(url: String, alt: String, modifier: Modifier = Modifier.fillMax
                 .clickable { model.viewer = ViewerTarget.File("project", url, alt.ifBlank { url.substringAfterLast('/').substringAfterLast('\\') }, "image") },
         )
         is Preview.None -> Text(
-            (alt.ifBlank { "imagen" }) + (preview.reason?.let { " — no se pudo cargar" } ?: ""),
+            (alt.ifBlank { t("imagen") }) + (preview.reason?.let { t(" — no se pudo cargar") } ?: ""),
             color = Orbita.TextSoft,
             style = MaterialTheme.typography.bodySmall,
             fontStyle = FontStyle.Italic,

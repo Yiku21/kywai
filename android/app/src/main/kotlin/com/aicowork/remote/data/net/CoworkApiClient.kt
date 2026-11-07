@@ -1,5 +1,7 @@
 package com.aicowork.remote.data.net
 
+import com.aicowork.remote.i18n.t
+
 import com.aicowork.remote.data.model.AgentAccessRequest
 import com.aicowork.remote.data.model.AgentAccessResponse
 import com.aicowork.remote.data.model.AgentResetResponse
@@ -82,7 +84,7 @@ class ApiException(
         fun network(cause: Throwable) = ApiException(
             status = 0,
             code = "network",
-            message = "No se puede conectar con el ordenador. Comprueba que AI Cowork está abierto y que Tailscale está activo.",
+            message = t("No se puede conectar con el ordenador. Comprueba que AI Cowork está abierto y que Tailscale está activo."),
             retryable = true,
             cause = cause,
         )
@@ -148,9 +150,9 @@ class CoworkApiClient(
             // Sin token el servidor responde 401: basta para saber que está ahí y que el TLS es de confianza.
             e.isUnauthorized || e.status == 403 ->
                 if (e.code == "unknown" || e.code.startsWith("http_"))
-                    ProbeResult.Failed("Ese servidor todavía no ofrece la API móvil. Actualiza o ejecuta la nueva versión de AI Cowork en el ordenador.")
+                    ProbeResult.Failed(t("Ese servidor todavía no ofrece la API móvil. Actualiza o ejecuta la nueva versión de AI Cowork en el ordenador."))
                 else ProbeResult.Reachable
-            e.status == 404 -> ProbeResult.Failed("Ese servidor no ofrece la API móvil de AI Cowork. Revisa la dirección y el puerto, o actualiza AI Cowork.")
+            e.status == 404 -> ProbeResult.Failed(t("Ese servidor no ofrece la API móvil de AI Cowork. Revisa la dirección y el puerto, o actualiza AI Cowork."))
             !e.isNetwork -> ProbeResult.Failed(e.message)
             else -> trustManager.rejected?.let { ProbeResult.NeedsConfirmation(it) } ?: ProbeResult.Failed(e.message)
         }
@@ -158,7 +160,7 @@ class CoworkApiClient(
         val rejected = trustManager.rejected ?: e.findCause<UntrustedCertificateException>()?.certificate
         when {
             rejected != null -> ProbeResult.NeedsConfirmation(rejected)
-            e is SSLException -> ProbeResult.Failed("La conexión segura falló: ${e.message ?: "error TLS"}")
+            e is SSLException -> ProbeResult.Failed(t("La conexión segura falló: {v1}", "v1" to (e.message ?: "error TLS")))
             else -> ProbeResult.Failed(ApiException.network(e).message)
         }
     }
@@ -279,7 +281,7 @@ class CoworkApiClient(
     ).planApproval
 
     /** Nota de voz (WAV) → texto con el dictado del propio ordenador (Whisper, sin servicios externos). */
-    suspend fun transcribe(file: java.io.File, language: String = "es"): String {
+    suspend fun transcribe(file: java.io.File, language: String = com.aicowork.remote.i18n.I18n.lang): String {
         val request = Request.Builder()
             .url(url("/voice/transcribe?language=${language.encodeQuery()}"))
             .post(file.asRequestBody("audio/wav".toMediaType()))
@@ -340,9 +342,9 @@ class CoworkApiClient(
         val response = execute(Request.Builder().url(url("/app/android/apk")).get().authorized().build(), slow = true)
         withContext(Dispatchers.IO) {
             response.use {
-                val body = it.body ?: throw ApiException(it.code, "bad_response", "El ordenador no envió la APK.", true)
+                val body = it.body ?: throw ApiException(it.code, "bad_response", t("El ordenador no envió la APK."), true)
                 val total = body.contentLength()
-                if (total > MAX_DOWNLOAD) throw ApiException(413, "TOO_LARGE", "La APK es demasiado grande (${total / 1_048_576} MB).", false)
+                if (total > MAX_DOWNLOAD) throw ApiException(413, "TOO_LARGE", t("La APK es demasiado grande ({v1} MB).", "v1" to total / 1_048_576), false)
                 target.parentFile?.mkdirs()
                 var read = 0L
                 body.byteStream().use { input ->
@@ -353,7 +355,7 @@ class CoworkApiClient(
                             if (n < 0) break
                             output.write(buffer, 0, n)
                             read += n
-                            if (read > MAX_DOWNLOAD) throw ApiException(413, "TOO_LARGE", "La APK es demasiado grande.", false)
+                            if (read > MAX_DOWNLOAD) throw ApiException(413, "TOO_LARGE", t("La APK es demasiado grande."), false)
                             if (total > 0) onProgress((read.toFloat() / total).coerceIn(0f, 1f))
                         }
                     }
@@ -401,9 +403,9 @@ class CoworkApiClient(
             try {
                 CoworkJson.decodeFromString(strategy, text)
             } catch (e: SerializationException) {
-                throw ApiException(it.code, "bad_response", "El servidor respondió algo que esta versión de la app no entiende.", false, e)
+                throw ApiException(it.code, "bad_response", t("El servidor respondió algo que esta versión de la app no entiende."), false, e)
             } catch (e: IllegalArgumentException) {
-                throw ApiException(it.code, "bad_response", "El servidor respondió algo que esta versión de la app no entiende.", false, e)
+                throw ApiException(it.code, "bad_response", t("El servidor respondió algo que esta versión de la app no entiende."), false, e)
             }
         }
     }
@@ -412,13 +414,13 @@ class CoworkApiClient(
         val response = execute(Request.Builder().url(url(path)).get().authorized().build(), slow = true)
         return withContext(Dispatchers.IO) {
             response.use {
-                val body = it.body ?: throw ApiException(it.code, "bad_response", "El ordenador no envió el contenido.", true)
+                val body = it.body ?: throw ApiException(it.code, "bad_response", t("El ordenador no envió el contenido."), true)
                 val declared = body.contentLength()
-                if (declared > maxBytes) throw ApiException(413, "TOO_LARGE", "Es demasiado grande para verlo en el móvil (${declared / 1_048_576} MB).", false)
+                if (declared > maxBytes) throw ApiException(413, "TOO_LARGE", t("Es demasiado grande para verlo en el móvil ({v1} MB).", "v1" to declared / 1_048_576), false)
                 val bytes = body.source().use { source ->
                     val buffer = okio.Buffer()
                     while (source.read(buffer, 64 * 1024) != -1L) {
-                        if (buffer.size > maxBytes) throw ApiException(413, "TOO_LARGE", "Es demasiado grande para verlo en el móvil.", false)
+                        if (buffer.size > maxBytes) throw ApiException(413, "TOO_LARGE", t("Es demasiado grande para verlo en el móvil."), false)
                     }
                     buffer.readByteArray()
                 }
@@ -449,12 +451,12 @@ class CoworkApiClient(
     }
 
     private fun defaultMessage(status: Int) = when (status) {
-        401 -> "La sesión no es válida. Vuelve a emparejar el dispositivo."
-        403 -> "Este dispositivo no tiene permiso para hacerlo."
-        404 -> "El servidor no ofrece la API móvil. Actualiza AI Cowork en el ordenador."
-        429 -> "Demasiadas peticiones seguidas. Espera un momento."
-        in 500..599 -> "El ordenador tuvo un problema ($status). Inténtalo de nuevo."
-        else -> "Error $status del servidor"
+        401 -> t("La sesión no es válida. Vuelve a emparejar el dispositivo.")
+        403 -> t("Este dispositivo no tiene permiso para hacerlo.")
+        404 -> t("El servidor no ofrece la API móvil. Actualiza AI Cowork en el ordenador.")
+        429 -> t("Demasiadas peticiones seguidas. Espera un momento.")
+        in 500..599 -> t("El ordenador tuvo un problema ({status}). Inténtalo de nuevo.", "status" to status)
+        else -> t("Error {status} del servidor", "status" to status)
     }
 
     private fun String.encodeSegment() = java.net.URLEncoder.encode(this, "UTF-8").replace("+", "%20")

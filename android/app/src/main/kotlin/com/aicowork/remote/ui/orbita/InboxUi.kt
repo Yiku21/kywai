@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -74,15 +76,15 @@ import kotlinx.coroutines.delay
 /** Lo que muestra cada tipo de aviso: su nombre y su icono. */
 object InboxKinds {
     fun label(kind: String): String = when (kind) {
-        "plan" -> "Plan por aprobar"
-        "stalled" -> "Atascado"
-        "mac-permission" -> "Permiso en el Mac"
-        "question" -> "Pregunta"
-        "verify-failed" -> "Comprobación fallida"
-        "conflict" -> "Conflicto"
-        "failed" -> "Falló"
-        "done" -> "Terminado"
-        else -> "Aviso"
+        "plan" -> t("Plan por aprobar")
+        "stalled" -> t("Atascado")
+        "mac-permission" -> t("Permiso en el Mac")
+        "question" -> t("Pregunta")
+        "verify-failed" -> t("Comprobación fallida")
+        "conflict" -> t("Conflicto")
+        "failed" -> t("Falló")
+        "done" -> t("Terminado")
+        else -> t("Aviso")
     }
 
     fun icon(kind: String): ImageVector = when (kind) {
@@ -121,7 +123,7 @@ fun InboxButton(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = M
                 .glass(radius = 23.dp)
                 .tappable(haptic = Haptic.Tap) { model.openInbox() }
                 .semantics {
-                    contentDescription = if (count > 0) "Te necesita: $count avisos" else "Te necesita: nada pendiente"
+                    contentDescription = if (count > 0) t("Te necesita: {count} avisos", "count" to count) else t("Te necesita: nada pendiente")
                     liveRegion = LiveRegionMode.Polite
                 }
                 .testTag("inbox-button"),
@@ -156,7 +158,7 @@ fun InboxSheet(model: OrbitaModel, state: CoworkUiState) {
             model.feedback.confirm()
         } catch (e: ActivityNotFoundException) {
             model.feedback.reject()
-            model.toast("Ninguna app del móvil sabe abrir «${url.substringBefore(':')}»: instala una para «${action.label}».", Toast.Tone.Error)
+            model.toast(t("Ninguna app del móvil sabe abrir «{v1}»: instala una para «{label}».", "v1" to (url.substringBefore(':')), "label" to action.label), Toast.Tone.Error)
         }
     }
 
@@ -166,20 +168,20 @@ fun InboxSheet(model: OrbitaModel, state: CoworkUiState) {
             Icon(Icons.Outlined.Notifications, null, tint = Orbita.Accent)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Te necesita", color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
+                Text(t("Te necesita"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    if (pending.isEmpty()) "Nada pendiente" else if (pending.size == 1) "1 aviso espera tu respuesta" else "${pending.size} avisos esperan tu respuesta",
+                    if (pending.isEmpty()) t("Nada pendiente") else if (pending.size == 1) t("1 aviso espera tu respuesta") else t("{size} avisos esperan tu respuesta", "size" to pending.size),
                     color = Orbita.TextSoft,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            IconAction(Icons.Outlined.Close, "Cerrar", onClick = { model.closeInbox() })
+            IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.closeInbox() })
         }
         if (pending.isEmpty()) {
             Note(
                 Icons.Outlined.CheckCircle,
-                "Todo en orden",
-                "Cuando un agente necesite tu visto bueno, una respuesta o un permiso en el Mac, aparecerá aquí.",
+                t("Todo en orden"),
+                t("Cuando un agente necesite tu visto bueno, una respuesta o un permiso en el Mac, aparecerá aquí."),
                 Modifier.padding(14.dp),
                 tint = Orbita.Success,
             )
@@ -222,7 +224,7 @@ private fun InboxCard(item: InboxItem, model: OrbitaModel, now: Long, onPress: (
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            if (canOpen) Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = "Abrir la conversación", tint = Orbita.TextSoft, modifier = Modifier.size(18.dp))
+            if (canOpen) Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = t("Abrir la conversación"), tint = Orbita.TextSoft, modifier = Modifier.size(18.dp))
         }
         item.detail?.takeIf { it.isNotBlank() }?.let {
             Spacer(Modifier.height(4.dp))
@@ -265,7 +267,7 @@ fun AskNotificationsOnce(model: OrbitaModel, state: CoworkUiState) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
     val context = LocalContext.current
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (!granted) model.toast("Sin notificaciones: verás los avisos de «Te necesita» al abrir la app. Puedes activarlas en Ajustes › Aplicaciones › AI Cowork.", Toast.Tone.Info)
+        if (!granted) model.toast(t("Sin notificaciones: verás los avisos de «Te necesita» al abrir la app. Puedes activarlas en Ajustes › Aplicaciones › AI Cowork."), Toast.Tone.Info)
     }
     val wanted = inboxSupported(state) && (state.inbox.isNotEmpty() || model.inboxOpen)
     LaunchedEffect(wanted) {

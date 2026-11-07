@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -90,7 +92,7 @@ import kotlinx.coroutines.launch
 /** Proyecto abierto: al tocarlo se elige otro o se crea uno. */
 @Composable
 fun ProjectChip(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = Modifier) {
-    val name = state.snapshot?.conversation?.title ?: "Sin proyecto"
+    val name = state.snapshot?.conversation?.title ?: t("Sin proyecto")
     Row(
         modifier
             .heightIn(min = 46.dp)
@@ -104,7 +106,7 @@ fun ProjectChip(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = M
         Spacer(Modifier.width(9.dp))
         Text(name, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 200.dp))
         Spacer(Modifier.width(4.dp))
-        Icon(Icons.Outlined.ExpandMore, contentDescription = "Cambiar de proyecto", tint = Orbita.TextSoft, modifier = Modifier.size(20.dp))
+        Icon(Icons.Outlined.ExpandMore, contentDescription = t("Cambiar de proyecto"), tint = Orbita.TextSoft, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -120,13 +122,13 @@ fun LiveStatus(state: CoworkUiState, onRetry: () -> Unit, modifier: Modifier = M
         }
     }
     val (color, label, pulse) = when (connection) {
-        Connection.Online -> Triple(Orbita.Live, if (state.fromCache) "Sincronizando…" else "En vivo", false)
-        Connection.Connecting -> Triple(Orbita.Warn, "Conectando…", true)
+        Connection.Online -> Triple(Orbita.Live, if (state.fromCache) t("Sincronizando…") else t("En vivo"), false)
+        Connection.Connecting -> Triple(Orbita.Warn, t("Conectando…"), true)
         is Connection.Offline -> {
             val left = connection.retryAt?.let { ((it - now) / 1000).coerceAtLeast(0) }
-            Triple(Orbita.Danger, if (left != null && left > 0) "Sin conexión · ${left} s" else "Sin conexión", false)
+            Triple(Orbita.Danger, if (left != null && left > 0) t("Sin conexión · {left} s", "left" to left) else t("Sin conexión"), false)
         }
-        Connection.Idle -> Triple(Orbita.TextFaint, "En pausa", false)
+        Connection.Idle -> Triple(Orbita.TextFaint, t("En pausa"), false)
     }
     val base = if (glassy) modifier.heightIn(min = 46.dp).glass(radius = 23.dp) else modifier.heightIn(min = 46.dp)
     Row(
@@ -140,7 +142,7 @@ fun LiveStatus(state: CoworkUiState, onRetry: () -> Unit, modifier: Modifier = M
         Dot(color, pulse = pulse)
         if (!compact || connection !is Connection.Online) {
             Spacer(Modifier.width(9.dp))
-            Text(if (compact && connection is Connection.Offline) "Sin conexión" else label, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            Text(if (compact && connection is Connection.Offline) t("Sin conexión") else label, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
         }
     }
 }
@@ -187,9 +189,9 @@ fun ProjectMenu(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = M
             .verticalScroll(rememberScrollState())
             .testTag("project-menu"),
     ) {
-        Text("Proyectos", color = Orbita.TextSoft, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 8.dp))
+        Text(t("Proyectos"), color = Orbita.TextSoft, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 8.dp))
         if (!supported) {
-            Note(Icons.Outlined.Info, snapshot?.conversation?.title ?: "Proyecto actual", "Para cambiar de proyecto desde el móvil, actualiza AI Cowork en el ordenador.")
+            Note(Icons.Outlined.Info, snapshot?.conversation?.title ?: t("Proyecto actual"), t("Para cambiar de proyecto desde el móvil, actualiza AI Cowork en el ordenador."))
         } else {
             snapshot!!.projects.forEach { p ->
                 val on = p.id == current
@@ -230,27 +232,27 @@ fun ProjectMenu(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = M
                             Spacer(Modifier.width(6.dp))
                             Text("trabajando", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
                         }
-                        on -> Icon(Icons.Outlined.Check, contentDescription = "Abierto", tint = Orbita.Accent, modifier = Modifier.size(20.dp))
+                        on -> Icon(Icons.Outlined.Check, contentDescription = t("Abierto"), tint = Orbita.Accent, modifier = Modifier.size(20.dp))
                     }
                 }
             }
             Spacer(Modifier.height(8.dp))
             if (!creating) {
-                OrbitaButton("Nuevo proyecto", onClick = { creating = true }, icon = Icons.Outlined.Add, style = ButtonStyle.Secondary, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth())
+                OrbitaButton(t("Nuevo proyecto"), onClick = { creating = true }, icon = Icons.Outlined.Add, style = ButtonStyle.Secondary, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth())
             } else {
                 OrbitaField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Nombre del proyecto",
+                    placeholder = t("Nombre del proyecto"),
                     imeAction = ImeAction.Done,
                     onIme = {},
                     autoFocus = true,
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OrbitaButton("Cancelar", onClick = { creating = false; name = "" }, style = ButtonStyle.Ghost, haptic = Haptic.Tap, modifier = Modifier.weight(1f))
+                    OrbitaButton(t("Cancelar"), onClick = { creating = false; name = "" }, style = ButtonStyle.Ghost, haptic = Haptic.Tap, modifier = Modifier.weight(1f))
                     OrbitaButton(
-                        "Crear",
+                        t("Crear"),
                         onClick = {
                             busy = "new"
                             scope.launch {
@@ -300,7 +302,7 @@ fun BottomNav(model: OrbitaModel, badges: Map<Section, Int>, modifier: Modifier 
         BottomSections.forEach { s ->
             NavItem(s.label, s.icon, on = model.section == s && !model.moreOpen, badge = badges[s] ?: 0, modifier = Modifier.weight(1f).testTag("nav-${s.name}")) { model.open(s) }
         }
-        NavItem("Más", Icons.Outlined.MoreHoriz, on = moreOn, badge = MoreSections.sumOf { badges[it] ?: 0 }, modifier = Modifier.weight(1f).testTag("nav-more")) {
+        NavItem(t("Más"), Icons.Outlined.MoreHoriz, on = moreOn, badge = MoreSections.sumOf { badges[it] ?: 0 }, modifier = Modifier.weight(1f).testTag("nav-more")) {
             model.moreOpen = !model.moreOpen
         }
     }
@@ -362,8 +364,8 @@ val RailWidth: Dp = 108.dp
 fun MorePanels(model: OrbitaModel, badges: Map<Section, Int>, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().glass(radius = 30.dp, tint = Orbita.GlassPopover).padding(16.dp).testTag("more-panels")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Más paneles", color = Orbita.Text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(start = 4.dp))
-            IconAction(Icons.Outlined.Close, "Cerrar", onClick = { model.moreOpen = false })
+            Text(t("Más paneles"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(start = 4.dp))
+            IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.moreOpen = false })
         }
         Spacer(Modifier.height(10.dp))
         LazyVerticalGrid(
@@ -411,7 +413,7 @@ fun TeamBar(snapshot: Snapshot, model: OrbitaModel, onSelect: (Agent) -> Unit, m
     if (agents.isEmpty()) return
     val working = workingCount(snapshot)
     Column(modifier.glass(radius = 30.dp).padding(horizontal = 14.dp, vertical = 8.dp).testTag("team-bar"), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(if (working > 0) "Equipo · $working trabajando" else "Equipo", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+        Text(if (working > 0) t("Equipo · {working} trabajando", "working" to working) else t("Equipo"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.height(6.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             agents.forEach { a -> TeamAvatar(a, selected = model.selectedAgentId == a.id) { onSelect(a) } }
@@ -461,14 +463,14 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
                 Text(agent.name, color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
                 Text(listOf(agent.role.ifBlank { null }, agent.modelLabel.ifBlank { null }).filterNotNull().joinToString(" · "), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            IconAction(Icons.Outlined.Close, "Cerrar", onClick = { model.selectAgent(null, poke = false) })
+            IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.selectAgent(null, poke = false) })
         }
         Spacer(Modifier.height(10.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             val (color, label) = when {
                 needs != null -> Orbita.Warn to needs.reason
-                paused -> Orbita.Warn to "En pausa"
-                agent.activity == "waiting" && agent.waitingFor != null -> Orbita.Warn to "Esperando a ${snapshot.agents.firstOrNull { it.id == agent.waitingFor }?.name ?: agent.waitingFor}"
+                paused -> Orbita.Warn to t("En pausa")
+                agent.activity == "waiting" && agent.waitingFor != null -> Orbita.Warn to t("Esperando a {waitingFor}", "waitingFor" to (snapshot.agents.firstOrNull { it.id == agent.waitingFor }?.name ?: agent.waitingFor))
                 else -> activityColor(agent.activity) to Labels.activity(agent.activity)
             }
             Dot(color, pulse = agent.activity == "working" || agent.activity == "thinking" || needs != null)
@@ -485,7 +487,7 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
             Spacer(Modifier.height(10.dp))
             var resetting by remember(agent.id) { mutableStateOf(false) }
             OrbitaButton(
-                "Reiniciar agente",
+                t("Reiniciar agente"),
                 onClick = {
                     resetting = true
                     model.run({ model.controller.resetAgent(agent.id) }) { resetting = false }
@@ -508,17 +510,17 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OrbitaButton("Ver tarea", onClick = { model.openTask(task.id) }, icon = Icons.AutoMirrored.Outlined.ArrowForward, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
+                OrbitaButton(t("Ver tarea"), onClick = { model.openTask(task.id) }, icon = Icons.AutoMirrored.Outlined.ArrowForward, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
                 val requestId = task.requestId
                 if (requestId != null && requestId in active && snapshot.capabilities.stopRequests) {
                     var busy by remember { mutableStateOf(false) }
-                    OrbitaButton("Detener", onClick = {
+                    OrbitaButton(t("Detener"), onClick = {
                         busy = true
                         model.run({ model.controller.stopRequest(requestId) }) { busy = false }
                     }, icon = Icons.Outlined.Pause, style = ButtonStyle.Danger, busy = busy, height = 46.dp, modifier = Modifier.weight(1f))
                 } else if (paused && requestId != null && snapshot.capabilities.resumeRequests) {
                     var busy by remember { mutableStateOf(false) }
-                    OrbitaButton("Reanudar", onClick = {
+                    OrbitaButton(t("Reanudar"), onClick = {
                         busy = true
                         model.run({ model.controller.resumeRequest(requestId) }) { busy = false }
                     }, icon = Icons.Outlined.PlayArrow, busy = busy, height = 46.dp, modifier = Modifier.weight(1f))
@@ -564,7 +566,7 @@ fun ToastHost(model: OrbitaModel, modifier: Modifier = Modifier) {
                                 modifier = Modifier.clip(Orbita.PillShape).tappable { model.dismissToast(t); t.onAction.invoke() }.padding(horizontal = 12.dp, vertical = 10.dp),
                             )
                         }
-                        IconAction(Icons.Outlined.Close, "Cerrar aviso", onClick = { model.dismissToast(t) }, size = 40.dp)
+                        IconAction(Icons.Outlined.Close, t("Cerrar aviso"), onClick = { model.dismissToast(t) }, size = 40.dp)
                     }
                 }
             }

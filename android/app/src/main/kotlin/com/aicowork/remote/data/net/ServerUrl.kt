@@ -1,5 +1,7 @@
 package com.aicowork.remote.data.net
 
+import com.aicowork.remote.i18n.t
+
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -21,18 +23,18 @@ object ServerUrl {
      */
     fun parse(input: String): ServerUrlResult {
         val trimmed = input.trim().trimEnd('/')
-        if (trimmed.isEmpty()) return ServerUrlResult.Invalid("Escribe la dirección del ordenador con AI Cowork")
-        if (trimmed.any { it.isWhitespace() }) return ServerUrlResult.Invalid("La dirección no puede tener espacios")
+        if (trimmed.isEmpty()) return ServerUrlResult.Invalid(t("Escribe la dirección del ordenador con AI Cowork"))
+        if (trimmed.any { it.isWhitespace() }) return ServerUrlResult.Invalid(t("La dirección no puede tener espacios"))
         val withScheme = if ("://" in trimmed) trimmed else "https://$trimmed"
         val scheme = withScheme.substringBefore("://").lowercase()
         if (scheme != "https" && scheme != "http") {
-            return ServerUrlResult.Invalid("Usa una dirección https://")
+            return ServerUrlResult.Invalid(t("Usa una dirección https://"))
         }
-        val url = withScheme.toHttpUrlOrNull() ?: return ServerUrlResult.Invalid("No parece una dirección válida")
-        if (url.host.isBlank()) return ServerUrlResult.Invalid("Falta el nombre o la IP del ordenador")
+        val url = withScheme.toHttpUrlOrNull() ?: return ServerUrlResult.Invalid(t("No parece una dirección válida"))
+        if (url.host.isBlank()) return ServerUrlResult.Invalid(t("Falta el nombre o la IP del ordenador"))
         if (!url.isHttps && url.host !in LOCAL_HOSTS) {
             return ServerUrlResult.Invalid(
-                "Por seguridad la conexión debe ser https://. AI Cowork ofrece HTTPS en el puerto 8788 o mediante Tailscale Serve."
+                t("Por seguridad la conexión debe ser https://. AI Cowork ofrece HTTPS en el puerto 8788 o mediante Tailscale Serve.")
             )
         }
         return ServerUrlResult.Valid(url.newBuilder().encodedPath("/").query(null).fragment(null).build())

@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.space
 
+import com.aicowork.remote.i18n.t
+
 import com.aicowork.remote.data.Connection
 import com.aicowork.remote.data.CoworkUiState
 import com.aicowork.remote.data.model.Agent
@@ -119,10 +121,10 @@ data class ZoneInfo(
 
 /** Zonas alrededor de la oficina (`ZONE_SPOTS` del escritorio): tareas, archivos, herramientas y memoria. */
 enum class SpaceZone(val label: String, val x: Float, val z: Float) {
-    Tasks("Nuevas tareas", -9.7f, -1.4f),
-    Files("Archivos", -8.1f, 5.5f),
-    Tools("Herramientas", 9.7f, -1.4f),
-    Memory("Memoria", 8.1f, 5.7f);
+    Tasks(t("Nuevas tareas"), -9.7f, -1.4f),
+    Files(t("Archivos"), -8.1f, 5.5f),
+    Tools(t("Herramientas"), 9.7f, -1.4f),
+    Memory(t("Memoria"), 8.1f, 5.7f);
 
     /** Las zonas miran hacia la posición habitual de la cámara. */
     val facing: Float get() = atan2(-x, 22f - z)
@@ -145,13 +147,13 @@ data class SpaceScene(
     /** Resumen legible («2 trabajando · 1 esperando»). */
     val summary: String
         get() {
-            if (agents.isEmpty()) return "Sin agentes"
+            if (agents.isEmpty()) return t("Sin agentes")
             val order = listOf(AgentVisual.Working, AgentVisual.Thinking, AgentVisual.Waiting, AgentVisual.Error, AgentVisual.Paused, AgentVisual.Offline)
             val parts = order.mapNotNull { v ->
                 val n = agents.count { it.visual == v }
                 if (n == 0) null else "$n ${visualWord(v, n)}"
             }
-            return parts.ifEmpty { listOf("Todos libres") }.joinToString(" · ")
+            return parts.ifEmpty { listOf(t("Todos libres")) }.joinToString(" · ")
         }
 
     companion object {
@@ -171,9 +173,9 @@ private fun visualWord(v: AgentVisual, n: Int) = when (v) {
     AgentVisual.Working -> "trabajando"
     AgentVisual.Thinking -> "pensando"
     AgentVisual.Waiting -> "esperando"
-    AgentVisual.Error -> if (n == 1) "con error" else "con errores"
+    AgentVisual.Error -> if (n == 1) t("con error") else t("con errores")
     AgentVisual.Offline -> if (n == 1) "desconectado" else "desconectados"
-    AgentVisual.Paused -> "en pausa"
+    AgentVisual.Paused -> t("en pausa")
     else -> "libres"
 }
 
@@ -188,13 +190,13 @@ object SpaceLayout {
     const val ROBOT_SCALE = 1.3f
 
     val STATIONS = listOf(
-        StationSpec("st-gemini", "Análisis", -6.2f, -3.2f),
-        StationSpec("st-qwen", "Organización", -0.6f, -5.4f),
-        StationSpec("st-claude", "Diseño", 5.6f, -3.6f),
-        StationSpec("st-codex", "Código", 5.8f, 3.4f),
-        StationSpec("st-sub-1", "Apoyo", -5.6f, 3.6f, forSubagents = true),
-        StationSpec("st-hermes", "Coordinación", 0.2f, 5.6f),
-        StationSpec("st-muse", "Investigación", 3.2f, -8f),
+        StationSpec("st-gemini", t("Análisis"), -6.2f, -3.2f),
+        StationSpec("st-qwen", t("Organización"), -0.6f, -5.4f),
+        StationSpec("st-claude", t("Diseño"), 5.6f, -3.6f),
+        StationSpec("st-codex", t("Código"), 5.8f, 3.4f),
+        StationSpec("st-sub-1", t("Apoyo"), -5.6f, 3.6f, forSubagents = true),
+        StationSpec("st-hermes", t("Coordinación"), 0.2f, 5.6f),
+        StationSpec("st-muse", t("Investigación"), 3.2f, -8f),
     )
 
     /**
@@ -211,7 +213,7 @@ object SpaceLayout {
             val r = 15f + (k / 9) * 3.4f
             r * sin(a) to -r * cos(a)
         }
-        return StationSpec("st-extra-${index + 1}", "Apoyo", x, z, forSubagents = true)
+        return StationSpec("st-extra-${index + 1}", t("Apoyo"), x, z, forSubagents = true)
     }
 
     /** Segundos sin trabajo antes del reposo: 26 s más un desfase por agente, como el escritorio. */
@@ -298,12 +300,12 @@ object SpaceSceneBuilder {
                 look = lookOf(agent),
                 visual = visual,
                 activityLabel = when (visual) {
-                    AgentVisual.Resting -> "En reposo"
-                    AgentVisual.Paused -> "En pausa"
+                    AgentVisual.Resting -> t("En reposo")
+                    AgentVisual.Paused -> t("En pausa")
                     AgentVisual.Offline -> Labels.activity("offline")
                     else -> Labels.activity(agent.activity)
                 },
-                statusText = if (needsUser) attentionLabels[agent.id] ?: ATTENTION_TEXT else statusText(agent, visual, waitingFor?.let(names::get)),
+                statusText = if (needsUser) attentionLabels[agent.id] ?: t(ATTENTION_TEXT) else statusText(agent, visual, waitingFor?.let(names::get)),
                 taskId = task?.id,
                 taskTitle = task?.title?.ifBlank { null },
                 taskStatus = task?.status,
@@ -410,14 +412,14 @@ object SpaceSceneBuilder {
 
     /** Texto de estado de la etiqueta flotante, el mismo que `RobotLabel` del escritorio. */
     fun statusText(agent: Agent, visual: AgentVisual, waitingName: String?): String = when (visual) {
-        AgentVisual.Thinking -> agent.lastActivity?.ifBlank { null } ?: "Pensando"
-        AgentVisual.Working -> agent.lastActivity?.ifBlank { null } ?: "Trabajando"
-        AgentVisual.Waiting -> if (waitingName != null) "Esperando a $waitingName" else "En espera"
-        AgentVisual.Error -> "Bloqueado"
-        AgentVisual.Offline -> "No disponible"
-        AgentVisual.Resting -> "En reposo"
-        AgentVisual.Paused -> "En pausa"
-        AgentVisual.Idle -> "Disponible"
+        AgentVisual.Thinking -> agent.lastActivity?.ifBlank { null } ?: t("Pensando")
+        AgentVisual.Working -> agent.lastActivity?.ifBlank { null } ?: t("Trabajando")
+        AgentVisual.Waiting -> if (waitingName != null) t("Esperando a {waitingName}", "waitingName" to waitingName) else t("En espera")
+        AgentVisual.Error -> t("Bloqueado")
+        AgentVisual.Offline -> t("No disponible")
+        AgentVisual.Resting -> t("En reposo")
+        AgentVisual.Paused -> t("En pausa")
+        AgentVisual.Idle -> t("Disponible")
     }
 
     /** Contenido de las pantallas según el tipo de agente (`screenModes` del escritorio). */

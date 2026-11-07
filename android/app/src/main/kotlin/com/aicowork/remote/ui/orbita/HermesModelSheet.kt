@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -62,7 +64,7 @@ fun HermesModelSheet(model: OrbitaModel) {
                 info = i
                 provider = i.providers.firstOrNull { it.id == i.current.provider }?.id ?: i.providers.firstOrNull()?.id
             },
-            { error = it.message ?: "No se pudo consultar el ordenador" },
+            { error = it.message ?: t("No se pudo consultar el ordenador") },
         )
     }
     fun choose(choice: HermesChoice?) {
@@ -74,13 +76,13 @@ fun HermesModelSheet(model: OrbitaModel) {
                     picked = null
                     model.feedback.confirm()
                     model.toast(
-                        if (choice == null) "Hermes vuelve a usar el modelo de su configuración" else "Hermes usará ${choice.model} desde el próximo encargo",
+                        if (choice == null) t("Hermes vuelve a usar el modelo de su configuración") else t("Hermes usará {model} desde el próximo encargo", "model" to choice.model),
                         Toast.Tone.Success,
                     )
                 },
                 { e ->
                     model.feedback.reject()
-                    error = e.message ?: "No se pudo cambiar"
+                    error = e.message ?: t("No se pudo cambiar")
                 },
             )
             saving = false
@@ -97,30 +99,30 @@ fun HermesModelSheet(model: OrbitaModel) {
             Icon(Icons.Outlined.Memory, null, tint = Orbita.Accent)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Modelo de Hermes", color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
-                Text("Con el que Hermes planifica y reparte el trabajo, como «hermes model» en el ordenador", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                Text(t("Modelo de Hermes"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
+                Text(t("Con el que Hermes planifica y reparte el trabajo, como «hermes model» en el ordenador"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
-            IconAction(Icons.Outlined.Close, "Cerrar", onClick = { model.hermesModelOpen = false })
+            IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.hermesModelOpen = false })
         }
         Column(Modifier.weight(1f).padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (current != null) {
                 Column(Modifier.fillMaxWidth().card(selected = true).padding(14.dp).testTag("hermes-current")) {
-                    Text("Ahora", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
-                    Text(current.model.ifBlank { "El de su configuración" }, color = Orbita.Text, style = Mono, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(t("Ahora"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                    Text(current.model.ifBlank { t("El de su configuración") }, color = Orbita.Text, style = Mono, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(
-                        listOf(current.provider.ifBlank { "su proveedor" }, if (current.fromApp) "elegido en AI Cowork" else "el de la configuración de Hermes").joinToString(" · "),
+                        listOf(current.provider.ifBlank { t("su proveedor") }, if (current.fromApp) t("elegido en AI Cowork") else t("el de la configuración de Hermes")).joinToString(" · "),
                         color = Orbita.TextSoft,
                         style = MaterialTheme.typography.bodySmall,
                     )
                     if (current.fromApp) {
                         Spacer(Modifier.padding(top = 8.dp))
-                        OrbitaButton("Volver al de Hermes", onClick = { choose(null) }, icon = Icons.Outlined.Undo, style = ButtonStyle.Secondary, enabled = !saving, haptic = Haptic.Tap, height = 42.dp)
+                        OrbitaButton(t("Volver al de Hermes"), onClick = { choose(null) }, icon = Icons.Outlined.Undo, style = ButtonStyle.Secondary, enabled = !saving, haptic = Haptic.Tap, height = 42.dp)
                     }
                 }
             }
             when {
                 error != null -> Text(error!!, color = Orbita.Warn, style = MaterialTheme.typography.bodySmall)
-                info == null -> Text("Preguntando al ordenador…", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                info == null -> Text(t("Preguntando al ordenador…"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                 info?.installed == false || info?.providers.isNullOrEmpty() ->
                     Text("Hermes no tiene listas de modelos en el ordenador: ejecuta «hermes model» allí una vez.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
@@ -140,7 +142,7 @@ fun HermesModelSheet(model: OrbitaModel) {
                         }
                     }
                 }
-                OrbitaField(query, { query = it }, "Buscar entre ${models.size} modelos", leading = Icons.Outlined.Search, modifier = Modifier.testTag("hermes-search"))
+                OrbitaField(query, { query = it }, t("Buscar entre {size} modelos", "size" to models.size), leading = Icons.Outlined.Search, modifier = Modifier.testTag("hermes-search"))
                 LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("hermes-models"), contentPadding = PaddingValues(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(matches.take(SHOWN), key = { it }) { m ->
                         val on = m == picked
@@ -155,24 +157,24 @@ fun HermesModelSheet(model: OrbitaModel) {
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(m, color = if (on) Orbita.Text else Orbita.TextSoft, style = Mono, modifier = Modifier.weight(1f))
-                            if (isCurrent) Icon(Icons.Outlined.Check, "Actual", tint = Orbita.Accent)
+                            if (isCurrent) Icon(Icons.Outlined.Check, t("Actual"), tint = Orbita.Accent)
                         }
                     }
                     if (matches.size > SHOWN) item {
-                        Text("Y ${matches.size - SHOWN} más: busca para encontrarlos.", color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
+                        Text(t("Y {v1} más: busca para encontrarlos.", "v1" to (matches.size - SHOWN)), color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
                     }
                     if (matches.isEmpty() && models.isNotEmpty()) item {
-                        Text("Ningún modelo contiene «${query.trim()}».", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
+                        Text(t("Ningún modelo contiene «{v1}».", "v1" to (query.trim())), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
                     }
                 }
             }
         }
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             info?.updatedAt?.let {
-                Text("Listas de Hermes del ${Format.dateTime(it)}. Para actualizarlas: «hermes model --refresh» en el ordenador.", color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall)
+                Text(t("Listas de Hermes del {v1}. Para actualizarlas: «hermes model --refresh» en el ordenador.", "v1" to (Format.dateTime(it))), color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall)
             }
             OrbitaButton(
-                picked?.let { "Usar $it" } ?: "Elige un modelo",
+                picked?.let { t("Usar {v1}", "v1" to it) } ?: t("Elige un modelo"),
                 onClick = { val p = provider; val m = picked; if (p != null && m != null) choose(HermesChoice(p, m)) },
                 icon = Icons.Outlined.Check,
                 enabled = picked != null && provider != null && !saving,

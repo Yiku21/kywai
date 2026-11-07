@@ -1,5 +1,6 @@
 package com.aicowork.remote.data.store
 
+import com.aicowork.remote.i18n.AppLanguage
 import android.content.Context
 import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
@@ -103,11 +104,13 @@ class PrefsPreferencesStore(context: Context) : PreferencesStore {
         foldedFullPanels = prefs.getBoolean("foldedFullPanels", false),
         voices = prefs.getBoolean("voices", true),
         voiceVolume = prefs.getFloat("voiceVolume", 0.7f).coerceIn(0f, 1f),
+        language = runCatching { AppLanguage.valueOf(prefs.getString("language", null) ?: "System") }.getOrDefault(AppLanguage.System),
     )
 
     override fun update(transform: (Preferences) -> Preferences) {
         val next = transform(state.value)
-        prefs.edit {
+        // El idioma se guarda en el acto: justo después la app se reinicia para aplicarlo.
+        prefs.edit(commit = next.language != state.value.language) {
             putString("theme", next.theme.name)
             putBoolean("dynamicColor", next.dynamicColor)
             putBoolean("sound", next.sound)
@@ -118,6 +121,7 @@ class PrefsPreferencesStore(context: Context) : PreferencesStore {
             putBoolean("foldedFullPanels", next.foldedFullPanels)
             putBoolean("voices", next.voices)
             putFloat("voiceVolume", next.voiceVolume)
+            putString("language", next.language.name)
         }
         state.value = next
     }

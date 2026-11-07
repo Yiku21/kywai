@@ -1,5 +1,7 @@
 package com.aicowork.remote.data.update
 
+import com.aicowork.remote.i18n.t
+
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -99,11 +101,11 @@ class InstallResultReceiver : BroadcastReceiver() {
 }
 
 internal fun installFailure(status: Int, detail: String?): String = when (status) {
-    PackageInstaller.STATUS_FAILURE_ABORTED -> "Instalación cancelada."
+    PackageInstaller.STATUS_FAILURE_ABORTED -> t("Instalación cancelada.")
     PackageInstaller.STATUS_FAILURE_CONFLICT, PackageInstaller.STATUS_FAILURE_INCOMPATIBLE ->
-        "Android no la instala encima: no está firmada con la misma clave que la que tienes. Instálala a mano una vez."
-    PackageInstaller.STATUS_FAILURE_STORAGE -> "No hay espacio en el móvil para instalarla."
-    PackageInstaller.STATUS_FAILURE_INVALID -> "La APK no es válida."
-    PackageInstaller.STATUS_FAILURE_BLOCKED -> "Android bloqueó la instalación."
-    else -> "Android no pudo instalarla" + (detail?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ".")
+        t("Android no la instala encima: no está firmada con la misma clave que la que tienes. Instálala a mano una vez.")
+    PackageInstaller.STATUS_FAILURE_STORAGE -> t("No hay espacio en el móvil para instalarla.")
+    PackageInstaller.STATUS_FAILURE_INVALID -> t("La APK no es válida.")
+    PackageInstaller.STATUS_FAILURE_BLOCKED -> t("Android bloqueó la instalación.")
+    else -> t("Android no pudo instalarla") + (detail?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ".")
 }

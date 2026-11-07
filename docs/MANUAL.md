@@ -1018,8 +1018,17 @@ aún no se ha elegido, el del sistema). En inglés:
   PASS/FAIL»; y en «a dos manos», «GANA: A» o «WINNER: A».
 - **El dictado** transcribe en el idioma de la app.
 
-Lo que ya estaba escrito (mensajes de antes, tareas guardadas) se queda en el idioma en que se escribió. Órbita va en
-la fase siguiente.
+Lo que ya estaba escrito (mensajes de antes, tareas guardadas) se queda en el idioma en que se escribió.
+
+**En Órbita** (el móvil) el idioma se elige aparte: Más → Ajustes → **«Idioma · Language»** (Del sistema, Español o
+English). «Del sistema» sigue al del teléfono: español si está en español; si no, inglés. Al cambiarlo la app se
+reinicia sola y sigue emparejada. Cambia los textos de Órbita (pantallas, avisos, notificaciones y el mundo 3D); lo
+que escriben Hermes y los agentes sigue el idioma elegido en el ordenador.
+
+Para desarrolladores de Órbita: igual que en el escritorio, `t("Ajustes")` (de `com.aicowork.remote.i18n`) con el
+texto en español como clave y las traducciones en `android/app/src/main/kotlin/com/aicowork/remote/i18n/I18nEn.kt`;
+los huecos van así: `t("Hace {n} min", "n" to 5)`. La prueba `I18nTest` falla si un texto no tiene traducción, si
+sobra alguna o si no coinciden los huecos.
 
 Para desarrolladores: el texto en español del código es la clave. `t('Ajustes')` (de `@/lib/i18n`) devuelve «Ajustes»
 en español y lo que diga `src/shared/i18n-en.ts` en inglés; los huecos van entre llaves: `t('Hace {n} min', { n })`.
