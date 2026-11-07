@@ -1,0 +1,33 @@
+/* Borde derecho del chat, en el hueco entre el chat y el espacio 3D. */
+.handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -11px;
+  z-index: 4;
+  width: 14px;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+/* Una raya fina que aparece al pasar por encima, al arrastrar o con el foco del teclado. */
+.handle::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 50%;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 3px;
+  background: var(--cyan);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.handle:hover::after,
+.handle:active::after,
+.handle:focus-visible::after {
+  opacity: 0.7;
+}

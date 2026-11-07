@@ -2021,5 +2021,7 @@ export const en: Record<string, string> = {
   '{name} no escribió ninguna respuesta.': '{name} did not write any answer.',
   'Razonamiento (think)': 'Reasoning (think)',
   'Encendido: piensa antes de responder (más lento, para lo que necesita mucha información).': 'On: thinks before answering (slower, for things that need a lot of information).',
-  'Apagado: responde directamente, más rápido.': 'Off: answers directly, faster.'
+  'Apagado: responde directamente, más rápido.': 'Off: answers directly, faster.',
+  'Ancho del chat': 'Chat width',
+  'Arrastra para cambiar el ancho del chat · doble clic: ancho automático': 'Drag to change the chat width · double-click: automatic width'
 }

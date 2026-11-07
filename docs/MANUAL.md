@@ -43,6 +43,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Cómo rinde cada agente](#cómo-rinde-cada-agente)
   - [Dónde se guardan las cosas](#dónde-se-guardan-las-cosas)
 - **[Comodidades](#comodidades)**
+  - [Ancho del chat y ventanas pequeñas](#ancho-del-chat-y-ventanas-pequeñas)
   - [Idioma](#idioma)
   - [Temas](#temas)
   - [Voces de los agentes](#voces-de-los-agentes)
@@ -1100,6 +1101,27 @@ bien en una petición cancelada se toma como cancelada. La API móvil lo da en `
 - `workspace/web-cert/`: certificado propio de la versión HTTPS del acceso web.
 
 ## Comodidades
+
+### Ancho del chat y ventanas pequeñas
+
+El chat es lo importante; el espacio 3D es el escenario. Por eso, cuanto más pequeña es la ventana, más sitio se lleva
+el chat:
+
+- **Pantalla grande:** el chat ocupa alrededor del 30 % (entre 380 y 640 px) y el 3D el resto.
+- **Ventana mediana** (menos de 1440 px de ancho, lo normal sin pantalla completa): el chat pasa a un 42 % (entre 400
+  y 600 px); por debajo de 1100 px, a algo más de la mitad.
+- **Ventana estrecha** (menos de 950 px): el chat ocupa toda la ventana y el 3D pasa a la pestaña **Espacio** de la
+  cabecera (los botones **Chat / Espacio**, como en el móvil). El 3D no se pierde: está a un toque.
+- **Elegir el ancho a mano:** arrastra el **borde derecho del chat** (al pasar el ratón sale una raya azul). El ancho
+  se recuerda en ese equipo al volver a abrir la app; si luego estrechas la ventana, se ajusta solo para dejar al 3D
+  al menos 320 px. **Doble clic** en el borde vuelve al ancho automático. Con el teclado: Tab hasta el borde, flechas
+  izquierda/derecha para ensanchar o estrechar e Inicio para volver al automático.
+- **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
+  el ancho, en vez de dejar libre la columna del avatar.
+
+Para desarrolladores: los cortes están en `App.module.css` (y `TABS_QUERY` en `ui/left/chatWidth.ts`, que debe
+coincidir con el `@media (max-width: 949.98px)`); el asa es `ui/left/ChatResizer.tsx` y el ancho elegido se guarda en
+`localStorage` (`ai-cowork.chatWidth`).
 
 ### Idioma
 

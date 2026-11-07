@@ -3,6 +3,7 @@ import { Building2, MessageSquare, Share2 } from 'lucide-react'
 import { useCowork, useData, type DataSlice } from '@/store/cowork'
 import { api, isWeb } from '@/lib/api'
 import { useMediaQuery } from './common/hooks'
+import { TABS_QUERY } from './left/chatWidth'
 import { cx } from './common/util'
 import { QuotaChip } from './quota/QuotaChip'
 import { CompactQuotas } from './header/CompactQuotas'
@@ -32,7 +33,8 @@ export function Header() {
   const quotas = useData((d) => d.quotas)
   const busy = useData(anyBusy)
   const compact = useMediaQuery('(max-width: 759.98px)')
-  const mobile = useMediaQuery('(max-width: 759.98px)')
+  // Pestañas Chat / Espacio: también en ventanas de escritorio estrechas, donde el chat ocupa toda la ventana.
+  const mobile = useMediaQuery(TABS_QUERY)
   const captionId = useId()
 
   const canOpenFolder = !!api && mode === 'live' && !!project

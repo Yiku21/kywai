@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { FlaskConical } from 'lucide-react'
 import { api, isWeb } from '@/lib/api'
 import { initAudio } from '@/lib/audio'
@@ -7,6 +8,8 @@ import { demoEngine } from '@/demo/engine'
 import { SceneLabels } from '@/scene/SceneLabels'
 import { Header } from '@/ui/Header'
 import { LeftPanel } from '@/ui/left/LeftPanel'
+import { ChatResizer } from '@/ui/left/ChatResizer'
+import { readChatWidth, saveChatWidth, TABS_QUERY } from '@/ui/left/chatWidth'
 import { ArtifactViewer } from '@/ui/ArtifactViewer'
 import { SetupWizard } from './ui/setup/SetupWizard'
 import { RestartOverlay } from './ui/RestartOverlay'
@@ -96,8 +99,17 @@ export function App() {
   const showSetup = useCowork((st) => !isWeb && st.hasBackend && st.configLoaded && (!st.config.setupDone || st.setupOpen))
   // Tema Órbita: el espacio 3D ocupa toda la ventana y la interfaz flota encima como cristal esmerilado.
   const glass = useTheme() === 'orbita'
-  const narrow = useMediaQuery('(max-width: 760px)')
+  // Ventana estrecha: el chat ocupa todo y el 3D pasa a la pestaña «Espacio» de la cabecera (el chat manda).
+  const narrow = useMediaQuery(TABS_QUERY)
   const left = useRef<HTMLElement>(null)
+  // Ancho del chat elegido arrastrando su borde (null = automático). Mientras se arrastra no hay animación.
+  const [chatWidth, setChatWidth] = useState<number | null>(readChatWidth)
+  const [resizing, setResizing] = useState(false)
+  const onResize = (width: number | null, done: boolean): void => {
+    setChatWidth(width)
+    setResizing(!done)
+    if (done) saveChatWidth(width)
+  }
   const [inset, setInset] = useState(0)
   useEffect(() => {
     const el = left.current
@@ -125,10 +137,20 @@ export function App() {
         </div>
       )}
       <Header />
-      <div className={s.body} data-expanded={expanded} data-mobile={mobileView}>
-        <aside ref={left} className={s.left} aria-label={t('Chat, archivos, tareas y resultados')} aria-hidden={expanded || undefined}>
-          <LeftPanel />
-        </aside>
+      <div
+        className={s.body}
+        data-expanded={expanded}
+        data-mobile={mobileView}
+        data-custom-width={chatWidth != null || undefined}
+        data-resizing={resizing || undefined}
+        style={chatWidth != null ? ({ '--chat-w': `${chatWidth}px` } as CSSProperties) : undefined}
+      >
+        <div className={s.leftCol}>
+          <aside ref={left} className={s.left} aria-label={t('Chat, archivos, tareas y resultados')} aria-hidden={expanded || undefined}>
+            <LeftPanel />
+          </aside>
+          {!narrow && !expanded && <ChatResizer panel={left} width={chatWidth} onResize={onResize} />}
+        </div>
         <section className={s.space} data-demo={mode === 'demo'} aria-label={t('Espacio digital')}>
           <SpaceHeader />
           <div className={s.stage}>
