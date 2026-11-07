@@ -3,6 +3,7 @@
 //   node web/build.mjs --preview  → web/preview (enlaces con index.html, para verla sin servidor)
 // No necesita dependencias: solo Node 18+.
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { IDIOMAS, TEXTOS } from './textos.mjs'
@@ -21,6 +22,9 @@ const logoViewBox = logo.match(/viewBox="([^"]+)"/)[1]
 const [, , logoW, logoH] = logoViewBox.split(' ').map(Number)
 const logoDefs = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="kywai-logo" viewBox="${logoViewBox}">${logo.replace(/^<svg[^>]*>/, '').replace(/<title>.*?<\/title>/, '').replace(/<\/svg>\s*$/, '')}</symbol></svg>`
 const claves = Object.keys(TEXTOS.en)
+
+const huellas = {}
+const huella = (ruta) => (huellas[ruta] ??= createHash('sha1').update(readFileSync(join(AQUI, ruta))).digest('hex').slice(0, 8))
 
 const escapar = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -75,6 +79,9 @@ for (const idioma of IDIOMAS) {
     if (!(k in valores)) throw new Error(`Hueco sin valor en la plantilla: ${m}`)
     return valores[k]
   })
+  // Cada archivo de assets/ lleva ?v=<huella de su contenido>: al cambiar una imagen, el navegador
+  // pide la nueva al momento en vez de enseñar la guardada (GitHub Pages deja cachear 10 min).
+  html = html.replace(/((?:\.\.\/)?assets\/[\w/.-]+\.(?:jpg|png|svg|mp4|woff2))(?=["')])/g, (m, ruta) => ruta + '?v=' + huella(ruta.replace(/^(\.\.\/)+/, '')))
   const destino = join(SALIDA, idioma.dir, 'index.html')
   mkdirSync(dirname(destino), { recursive: true })
   writeFileSync(destino, html)
