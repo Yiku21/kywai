@@ -29,6 +29,9 @@ export interface CatalogEntry {
   cli?: CliAgentSpec
   /** Una advertencia (por ejemplo, que solo funciona con clave de API). */
   note?: string
+  /** Modelo con el que empieza al añadirlo (por ejemplo, uno gratuito cuando el suyo por defecto es de pago). */
+  model?: string
+  modelLabel?: string
 }
 
 /** Los agentes con adaptador propio: salen de los de fábrica. */
@@ -215,8 +218,8 @@ export function buildAgent(input: AddAgentInput, existingAgents: AgentConfig[], 
     id,
     name,
     provider,
-    model: '',
-    modelLabel: 'Auto',
+    model: entry?.model ?? '',
+    modelLabel: entry?.modelLabel ?? 'Auto',
     color,
     avatar: generatedAvatar(id, color),
     stationId,

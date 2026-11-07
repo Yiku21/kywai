@@ -18,6 +18,11 @@ describe('construir un agente', () => {
     }
   })
 
+  it('uno del catálogo con modelo propio empieza con él (Kilo: el gratuito); los demás, en automático', () => {
+    expect(buildAgent({ presetId: 'kilo' }, DEFAULT_AGENTS, DEFAULT_STATIONS).agent).toMatchObject({ model: 'kilo/kilo-auto/free', modelLabel: 'Kilo Auto Free' })
+    expect(buildAgent({ presetId: 'aider' }, DEFAULT_AGENTS, DEFAULT_STATIONS).agent).toMatchObject({ model: '', modelLabel: 'Auto' })
+  })
+
   it('si el identificador ya existe, añade un número', () => {
     const first = buildAgent({ custom }, DEFAULT_AGENTS, DEFAULT_STATIONS)
     const second = buildAgent({ custom }, [...DEFAULT_AGENTS, first.agent], [...DEFAULT_STATIONS, first.station!])

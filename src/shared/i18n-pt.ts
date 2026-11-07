@@ -2107,4 +2107,8 @@ export const pt: Record<string, string> = {
   "Skills de Anthropic": "Skills da Anthropic",
   "PDF, Word, Excel, PowerPoint, diseño, pruebas de webs… (las oficiales de Claude).": "PDF, Word, Excel, PowerPoint, design, testes de sites… (as oficiais do Claude).",
   "Vídeos a partir de HTML (con el que se hizo la presentación de kywai).": "Vídeos a partir de HTML (com ele foi feita a apresentação do kywai).",
+  'Agente de programación de código abierto de Kilo en la terminal, con cientos de modelos y varios gratuitos.': 'Agente de programação de código aberto da Kilo no terminal, com centenas de modelos e vários gratuitos.',
+  'Sin cuenta con sus modelos gratuitos; con tu cuenta de Kilo (kilo auth login) para los de pago, o tus propias claves de API.': 'Sem conta com os modelos gratuitos; com a sua conta da Kilo (kilo auth login) para os pagos, ou as suas próprias chaves de API.',
+  'Agente conectado: programa en la terminal con los modelos de Kilo (gratuitos o de tu cuenta)': 'Agente conectado: programa no terminal com os modelos da Kilo (gratuitos ou da sua conta)',
+  'Empieza con el modelo gratuito Kilo Auto Free (kilo/kilo-auto/free): sin él, su modelo por defecto es de pago y pide cuenta. Los gratuitos cambian cuando acaban sus promociones; la lista sale con «kilo models kilo».': 'Começa com o modelo gratuito Kilo Auto Free (kilo/kilo-auto/free): sem ele, o modelo padrão é pago e pede conta. Os gratuitos mudam quando terminam as promoções; a lista sai com «kilo models kilo».',
 }
