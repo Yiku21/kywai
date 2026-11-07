@@ -169,6 +169,16 @@ interface CoworkController {
     suspend fun openChat(projectId: String, chatId: String): ActionResult = unsupported
     suspend fun renameChat(projectId: String, chatId: String, title: String): ActionResult = unsupported
     suspend fun deleteChat(projectId: String, chatId: String): ActionResult = unsupported
+    suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): ActionResult = unsupported
+    /** Copia aparte del chat; si [open], se abre la copia. */
+    suspend fun forkChat(projectId: String, chatId: String, open: Boolean): ActionResult = unsupported
+    suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ActionResult = unsupported
+    /** Chats fijados de todos los proyectos (sección «Fijados»). */
+    suspend fun pinnedChats(): Result<List<ChatSummary>> = Result.failure(IllegalStateException(unsupported.message))
+    suspend fun renameProject(projectId: String, name: String): ActionResult = unsupported
+    suspend fun pinProject(projectId: String, pinned: Boolean): ActionResult = unsupported
+    /** Todo lo del proyecto va a la Papelera del ordenador; si era el abierto, se pasa a otro. */
+    suspend fun deleteProject(projectId: String): ActionResult = unsupported
     /** «Buscar»: chats, tareas, resultados y memoria de todos los proyectos. */
     suspend fun search(query: String): Result<List<SearchHit>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun createProject(name: String): ActionResult = unsupported
@@ -693,6 +703,50 @@ class CoworkRepository(
 
     override suspend fun deleteChat(projectId: String, chatId: String): ActionResult = action(t("Chat borrado")) { c ->
         c.deleteChat(projectId, chatId)
+        // Si era el abierto, el ordenador empezó uno nuevo: se trae.
+        if (projectId == currentConversation() && _state.value.snapshot?.conversation?.chat?.id == chatId) resync(c)
+    }
+
+    override suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): ActionResult =
+        action(if (pinned) t("Chat fijado") else t("Chat soltado de Fijados")) { c -> c.pinChat(projectId, chatId, pinned) }
+
+    override suspend fun forkChat(projectId: String, chatId: String, open: Boolean): ActionResult = action(t("Chat bifurcado")) { c ->
+        val copy = c.forkChat(projectId, chatId)
+        if (open) {
+            c.openChat(projectId, copy.chatId)
+            if (projectId != currentConversation()) {
+                rememberConversation(projectId)
+                cache.clear()
+            }
+            resync(c)
+        }
+    }
+
+    override suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ActionResult = action(t("Chat movido")) { c ->
+        c.moveChat(projectId, chatId, toProjectId)
+        if (projectId == currentConversation()) resync(c)
+    }
+
+    override suspend fun pinnedChats(): Result<List<ChatSummary>> = fetch { it.pinnedChats() }
+
+    override suspend fun renameProject(projectId: String, name: String): ActionResult = action(t("Proyecto renombrado")) { c ->
+        c.renameProject(projectId, name.trim())
+        resync(c)
+    }
+
+    override suspend fun pinProject(projectId: String, pinned: Boolean): ActionResult =
+        action(if (pinned) t("Proyecto fijado") else t("Proyecto soltado de Fijados")) { c ->
+            c.pinProject(projectId, pinned)
+            resync(c)
+        }
+
+    override suspend fun deleteProject(projectId: String): ActionResult = action(t("Proyecto eliminado")) { c ->
+        val left = c.deleteProject(projectId)
+        if (projectId == currentConversation()) {
+            left.firstOrNull()?.id?.let(::rememberConversation)
+            cache.clear()
+        }
+        resync(c)
     }
 
     override suspend fun search(query: String): Result<List<SearchHit>> = fetch { it.search(query) }

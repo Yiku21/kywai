@@ -82,7 +82,7 @@ export class MobileBackend {
     ])
     const active = new Set(running)
     return projects
-      .map((p) => ({ id: p.id, name: p.name, createdAt: p.createdAt, updatedAt: p.updatedAt, running: active.has(p.id) }))
+      .map((p) => ({ id: p.id, name: p.name, createdAt: p.createdAt, updatedAt: p.updatedAt, running: active.has(p.id), ...(p.pinned ? { pinned: true } : {}) }))
       .sort((a, b) => b.updatedAt - a.updatedAt)
   }
 
@@ -122,6 +122,8 @@ export class MobileBackend {
         routines: this.methods.has('runRoutineNow'),
         directMessages: true,
         chats: this.methods.has('listConversations') && this.methods.has('openConversation'),
+        chatActions: this.methods.has('forkConversation') && this.methods.has('moveConversation') && this.methods.has('pinnedConversations'),
+        projectActions: this.methods.has('renameProject') && this.methods.has('deleteProject') && this.methods.has('setProjectPinned'),
         search: this.methods.has('search'),
         serverName: this.methods.has('setServerName'),
         music: this.methods.has('searchMusic'),
@@ -184,9 +186,70 @@ export class MobileBackend {
     try { return { chats: await this.call<ConversationSummary[]>('renameConversation', projectId, chatId, title) } } catch (e) { this.chatError(e) }
   }
 
+  /** Borra un chat (va a conversaciones/borradas/). Si es el abierto, antes se empieza uno nuevo, como en el escritorio. */
   async deleteChat(projectId: string, chatId: string): Promise<{ chats: ConversationSummary[] }> {
     await this.existing(projectId)
-    try { return { chats: await this.call<ConversationSummary[]>('deleteConversation', projectId, chatId) } } catch (e) { this.chatError(e) }
+    try {
+      const list = await this.call<ConversationSummary[]>('listConversations', projectId)
+      if (list.find((c) => c.id === chatId)?.current) await this.call('newConversation', projectId)
+      return { chats: await this.call<ConversationSummary[]>('deleteConversation', projectId, chatId) }
+    } catch (e) { this.chatError(e) }
+  }
+
+  async pinChat(projectId: string, chatId: string, pinned: boolean): Promise<{ chats: ConversationSummary[] }> {
+    await this.existing(projectId)
+    try { return { chats: await this.call<ConversationSummary[]>('setConversationPinned', projectId, chatId, pinned) } } catch (e) { this.chatError(e) }
+  }
+
+  /** Copia aparte del chat (con sus mensajes y tareas terminadas); devuelve su id y la lista del proyecto. */
+  async forkChat(projectId: string, chatId: string): Promise<{ chatId: string; chats: ConversationSummary[] }> {
+    await this.existing(projectId)
+    try {
+      const id = await this.call<string>('forkConversation', projectId, chatId)
+      return { chatId: id, chats: await this.call<ConversationSummary[]>('listConversations', projectId) }
+    } catch (e) { this.chatError(e) }
+  }
+
+  /** Pasa el chat a otro proyecto; devuelve la lista del proyecto de origen. */
+  async moveChat(projectId: string, chatId: string, toProjectId: string): Promise<{ chatId: string; chats: ConversationSummary[] }> {
+    await this.existing(projectId)
+    await this.existing(toProjectId)
+    try {
+      const id = await this.call<string>('moveConversation', projectId, chatId, toProjectId)
+      return { chatId: id, chats: await this.call<ConversationSummary[]>('listConversations', projectId) }
+    } catch (e) { this.chatError(e) }
+  }
+
+  /** Los chats fijados de todos los proyectos (la sección «Fijados»). */
+  async pinnedChats(): Promise<{ chats: ConversationSummary[] }> {
+    return { chats: await this.call<ConversationSummary[]>('pinnedConversations') }
+  }
+
+  // ---- Menú de un proyecto en la barra lateral ----
+
+  async renameProject(projectId: string, name: string): Promise<MobileProject[]> {
+    await this.existing(projectId)
+    try { await this.call('renameProject', projectId, name) } catch (e) { this.chatError(e) }
+    return this.projects()
+  }
+
+  async pinProject(projectId: string, pinned: boolean): Promise<MobileProject[]> {
+    await this.existing(projectId)
+    await this.call('setProjectPinned', projectId, pinned)
+    return this.projects()
+  }
+
+  /** Todo lo del proyecto va a la Papelera del ordenador; no se puede con trabajo en marcha. */
+  async deleteProject(projectId: string): Promise<MobileProject[]> {
+    await this.existing(projectId)
+    try {
+      await this.call('deleteProject', projectId)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      if (/trabajo en marcha/.test(message)) throw new MobileError(409, 'PROJECT_BUSY', message)
+      throw e
+    }
+    return this.projects()
   }
 
   /** Buscador de la barra lateral: chats, tareas, resultados y memoria de todos los proyectos (o de uno). */
