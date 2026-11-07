@@ -91,18 +91,23 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 65%;
 }
 
 .quotaBlock {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
+  padding-top: 12px;
   margin-right: 6px;
 }
 
-/* El rótulo flota sobre las cuotas: así los chips (40 px) quedan centrados con los botones de la derecha. */
+/* El rótulo conserva su espacio aunque la fila tenga una barra de desplazamiento. */
 .quotaCaption {
   position: absolute;
-  bottom: calc(100% + 1px);
+  top: 0;
   left: 0;
   font-size: 11.5px;
   line-height: 12px;
@@ -113,10 +118,23 @@
 .chips {
   display: flex;
   gap: 8px;
+  overflow-x: auto;
+  padding: 3px;
+  scrollbar-width: thin;
 }
 
 .chipItem {
   display: flex;
+  flex: none;
+}
+
+.chips::-webkit-scrollbar {
+  height: 4px;
+}
+
+.chips::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
 }
 
 .headerBtn {
@@ -215,8 +233,7 @@
   }
 }
 
-/* Cuotas siempre a la vista y en una sola fila: en ventanas estrechas los chips se aprietan (hasta recortar el
-   nombre) en vez de plegarse en un botón o bajar de fila. */
+/* En una sola fila: con muchos agentes se desplaza el contenido sin aplastar sus etiquetas. */
 @media (max-width: 1149.98px) {
   .header {
     gap: 10px;
@@ -239,12 +256,11 @@
     gap: 4px;
   }
   .chipItem {
-    flex: 1 1 0;
-    min-width: 0;
+    flex: none;
   }
   .chips .chipItem > * {
     width: 100%;
-    min-width: 0;
+    min-width: 90px;
     padding: 0 7px;
     overflow: hidden;
   }

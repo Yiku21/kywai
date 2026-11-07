@@ -68,7 +68,7 @@ function QuotaDetails({ quota }: { quota: QuotaInfo }) {
   // Agentes del grupo: los que indica la cuota + los visibles que comparten grupo (p. ej. becarios).
   const groupAgentIds = useMemo(() => {
     const ids: AgentId[] = [...quota.agentIds]
-    for (const a of Object.values(agents)) if (a.quotaGroupId === quota.id && !ids.includes(a.id)) ids.push(a.id)
+    for (const a of Object.values(agents)) if (a.enabled && a.quotaGroupId === quota.id && !ids.includes(a.id)) ids.push(a.id)
     return ids
   }, [quota.agentIds, quota.id, agents])
 

@@ -1602,6 +1602,14 @@ se borra la subcarpeta `.ai-cowork` que creó la app dentro. No se puede elimina
 
 ### Cuotas
 
+La barra sigue al equipo activo: al añadir, quitar, activar o desactivar un agente, sus indicadores se actualizan
+al momento en el escritorio, el navegador y los clientes. Los agentes ya añadidos también reciben un indicador
+al actualizar la app. Los que comparten una cuota mantienen un único indicador y aparecen juntos en su detalle.
+Los agentes del catálogo, los personalizados y Hermes tienen un grupo propio si no estaban vinculados a otro.
+Si su programa no informa del límite, se muestra **N/D** (o los usos registrados de hoy), y puedes configurar un
+presupuesto para estimarlo. No se deduce una cuota ilimitada por ser un agente gratuito. Si los indicadores no
+caben en la cabecera, la fila se puede desplazar horizontalmente.
+
 | Indicador | Fuente |
 |---|---|
 | GPT (Codex) | **Dato real**: se pregunta a Codex al abrir la app y cada 5 min (su `app-server`, no gasta uso), y tras cada tarea |

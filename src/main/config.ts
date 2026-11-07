@@ -156,6 +156,7 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
     if (out.budget && !validBudget(out.budget)) delete out.budget
     return out
   })
+  ensureAgentQuotaGroups(agents, quotaGroups)
   const thresholds = { ...d.thresholds, ...(isObj(u.thresholds) ? u.thresholds : {}) }
   const plannerOrder = Array.isArray(u.plannerOrder) ? u.plannerOrder.filter((x): x is string => typeof x === 'string') : d.plannerOrder
   if (version < 3 && !plannerOrder.includes('hermes')) plannerOrder.unshift('hermes')
@@ -234,8 +235,18 @@ export function getConfig(): AppConfig {
   return config ?? loadConfig()
 }
 
+/** Conserva los grupos compartidos y da un grupo propio a los agentes sin cuota configurada. */
+function ensureAgentQuotaGroups(agents: AgentConfig[], groups: QuotaGroupConfig[]): void {
+  for (const agent of agents) {
+    if (!agent.quotaGroupId) agent.quotaGroupId = `agent-${agent.id}`
+    if (groups.some((group) => group.id === agent.quotaGroupId)) continue
+    groups.push({ id: agent.quotaGroupId, label: agent.name, provider: agent.provider })
+  }
+}
+
 export function saveConfig(): void {
   if (!config) return
+  ensureAgentQuotaGroups(config.agents, config.quotaGroups)
   const file = configPath()
   const tmp = `${file}.tmp`
   writeFileSync(tmp, JSON.stringify(config, null, 2), 'utf8')

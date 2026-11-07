@@ -82,7 +82,7 @@ import { addMemory, deleteMemory, isMemoryKind, setInstructions, updateMemory } 
 import { initUpdater } from './updater'
 import * as store from './projects'
 import * as conversations from './conversations'
-import { computeQuotas, initQuota, latestQuotas, refreshQuotas, startQuotaTimer, stopQuota } from './quota'
+import { computeQuotas, initQuota, latestQuotas, recomputeQuotas, refreshQuotas, startQuotaTimer, stopQuota } from './quota'
 import { claudeAuthMethod, removeClaudeOverrides } from './quotaProbe'
 import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
 import { initAgentSessions } from './agentSessions'
@@ -801,6 +801,7 @@ function registerIpc(): void {
     if (!Array.isArray(ids) || ids.some((x) => typeof x !== 'string')) throw new Error(tr('Lista de agentes no válida'))
     setAgentsEnabled(ids as AgentId[])
     emit({ kind: 'config.updated', config: getConfig() })
+    recomputeQuotas()
     await refreshPresence()
   })
   // Agentes que el usuario añade o quita, y cuál coordina (la lista de agentes es suya, no solo la de fábrica).
@@ -808,6 +809,7 @@ function registerIpc(): void {
     if (!input || typeof input !== 'object') throw new Error(tr('Datos no válidos'))
     const cfg = addAgent(input as AddAgentInput)
     emit({ kind: 'config.updated', config: cfg })
+    recomputeQuotas()
     await refreshPresence()
     return cfg
   })
@@ -816,6 +818,7 @@ function registerIpc(): void {
     const cfg = removeAgent(agentId)
     emit({ kind: 'config.updated', config: cfg })
     emit({ kind: 'agent.removed', agentId })
+    recomputeQuotas()
     await refreshPresence()
     return cfg
   })
