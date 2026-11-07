@@ -59,6 +59,10 @@ import com.aicowork.remote.data.model.QuotasResponse
 import com.aicowork.remote.data.model.SendMessageRequest
 import com.aicowork.remote.data.model.SendMessageResponse
 import com.aicowork.remote.data.model.Snapshot
+import com.aicowork.remote.data.model.TaskTemplate
+import com.aicowork.remote.data.model.TaskTemplateInput
+import com.aicowork.remote.data.model.TemplateResponse
+import com.aicowork.remote.data.model.TemplatesResponse
 import com.aicowork.remote.data.model.TraceEntry
 import com.aicowork.remote.data.model.TraceResponse
 import com.aicowork.remote.data.model.TranscriptResponse
@@ -192,18 +196,49 @@ class CoworkApiClient(
     suspend fun snapshot(conversationId: String? = null): Snapshot =
         get(if (conversationId == null) "/snapshot" else "/snapshot?conversationId=${conversationId.encodeQuery()}", Snapshot.serializer())
 
-    /** [attachmentIds]: adjuntos del proyecto (subidos antes) que se entregan al equipo con esta petición. */
-    suspend fun sendMessage(conversationId: String?, text: String, clientMessageId: String, attachmentIds: List<String> = emptyList()): SendMessageResponse = post(
+    /**
+     * [attachmentIds]: adjuntos del proyecto (subidos antes) que se entregan al equipo con esta petición.
+     * [templateId]: se lanza con esa plantilla de tareas ([text] ya va con sus huecos rellenos).
+     */
+    suspend fun sendMessage(conversationId: String?, text: String, clientMessageId: String, attachmentIds: List<String> = emptyList(), templateId: String? = null): SendMessageResponse = post(
         "/chat/messages",
-        if (attachmentIds.isEmpty()) CoworkJson.encodeToString(SendMessageRequest.serializer(), SendMessageRequest(conversationId, text, clientMessageId))
+        if (attachmentIds.isEmpty() && templateId == null) CoworkJson.encodeToString(SendMessageRequest.serializer(), SendMessageRequest(conversationId, text, clientMessageId))
         else buildJsonObject {
             put("conversationId", conversationId)
             put("text", text)
             put("clientMessageId", clientMessageId)
-            putJsonArray("attachmentIds") { attachmentIds.forEach { add(it) } }
+            if (attachmentIds.isNotEmpty()) putJsonArray("attachmentIds") { attachmentIds.forEach { add(it) } }
+            if (templateId != null) put("templateId", templateId)
         }.toString(),
         SendMessageResponse.serializer(),
     )
+
+    // ---- Plantillas de tareas (todas; las de un proyecto llevan su projectId) ----
+
+    /** Solo los campos con valor: así un cambio no toca lo demás. */
+    private fun templateBody(input: TaskTemplateInput): String = buildJsonObject {
+        input.name?.let { put("name", it) }
+        input.prompt?.let { put("prompt", it) }
+        input.icon?.let { put("icon", it) }
+        input.command?.let { put("command", it) }
+        input.projectId?.let { put("projectId", it) }
+        input.agentId?.let { put("agentId", it) }
+        input.askPlan?.let { put("askPlan", it) }
+        input.pinned?.let { put("pinned", it) }
+    }.toString()
+
+    suspend fun createTemplate(input: TaskTemplateInput): TaskTemplate =
+        post("/templates", templateBody(input), TemplateResponse.serializer()).template
+
+    suspend fun updateTemplate(templateId: String, input: TaskTemplateInput): TaskTemplate =
+        post("/templates/${templateId.encodeSegment()}", templateBody(input), TemplateResponse.serializer()).template
+
+    suspend fun deleteTemplate(templateId: String) {
+        withContext(Dispatchers.IO) { postRaw("/templates/${templateId.encodeSegment()}/delete", "{}").close() }
+    }
+
+    suspend fun restoreTemplates(): List<TaskTemplate> =
+        post("/templates/restore", "{}", TemplatesResponse.serializer()).templates
 
     suspend fun newConversation(name: String? = null): Conversation? = post(
         "/conversations",

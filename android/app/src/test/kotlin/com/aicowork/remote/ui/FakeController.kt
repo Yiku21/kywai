@@ -74,6 +74,11 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     override fun sendMessage(text: String, attachmentIds: List<String>) {
         if (attachmentIds.isEmpty()) sendMessage(text) else calls += "send:$text:${attachmentIds.joinToString()}"
     }
+    override fun sendTemplate(text: String, templateId: String, attachmentIds: List<String>) { calls += "template:$templateId:$text:${attachmentIds.joinToString()}" }
+    override suspend fun createTemplate(input: com.aicowork.remote.data.model.TaskTemplateInput): ActionResult { calls += "createTemplate:${input.name}:${input.prompt}:${input.projectId}"; return nextResult }
+    override suspend fun updateTemplate(templateId: String, input: com.aicowork.remote.data.model.TaskTemplateInput, success: String?): ActionResult { calls += "updateTemplate:$templateId:${input.pinned}"; return nextResult }
+    override suspend fun deleteTemplate(templateId: String): ActionResult { calls += "deleteTemplate:$templateId"; return nextResult }
+    override suspend fun restoreTemplates(): ActionResult { calls += "restoreTemplates"; return nextResult }
     override suspend fun selectConversation(id: String): ActionResult { calls += "select:$id"; return nextResult }
     override suspend fun createProject(name: String): ActionResult { calls += "create:$name"; return nextResult }
     var chatList = listOf(
