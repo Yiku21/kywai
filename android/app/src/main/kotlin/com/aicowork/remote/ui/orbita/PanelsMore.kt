@@ -1,5 +1,6 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.data.model.UsageCost
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -382,7 +383,7 @@ fun UsagePanel(model: OrbitaModel, state: CoworkUiState) {
     val usage = snapshot?.usage
     var refreshing by remember { mutableStateOf(false) }
     PanelColumn {
-        PanelHeader(model, t("Consumo"), t("Cuotas y tokens"), icon = Icons.Outlined.DataUsage, trailing = {
+        PanelHeader(model, t("Uso y coste"), t("Cuotas, tokens y dinero"), icon = Icons.Outlined.DataUsage, trailing = {
             if (snapshot?.capabilities?.usageRefresh == true) {
                 if (refreshing) Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), color = Orbita.Accent, strokeWidth = 2.dp) }
                 else IconAction(Icons.Outlined.Refresh, t("Actualizar las cuotas"), onClick = { refreshing = true; model.run({ model.controller.refreshUsage() }) { refreshing = false } })
@@ -390,6 +391,7 @@ fun UsagePanel(model: OrbitaModel, state: CoworkUiState) {
         })
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = model.usageList, contentPadding = listPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (usage == null) return@LazyColumn
+            usage.cost?.let { cost -> costItems(cost) }
             item { SectionLabel(t("Cuota restante")) }
             items(usage.quotas, key = { "q-${it.id}" }) { q ->
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
@@ -424,13 +426,74 @@ fun UsagePanel(model: OrbitaModel, state: CoworkUiState) {
             if (usage.byAgent.isNotEmpty()) item { SectionLabel(t("Por agente")) }
             items(usage.byAgent.sortedByDescending { it.input + it.output }, key = { "a-${it.agentId}" }) { a ->
                 val agent = snapshot.agents.firstOrNull { it.id == a.agentId }
+                val cost = usage.cost?.let { c -> c.byAgent.firstOrNull { it.agentId == a.agentId }?.let { it to c.currency } }
                 Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).card().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     RobotFace(agent, 32.dp)
                     Spacer(Modifier.width(12.dp))
                     Text(agent?.name ?: a.agentId, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                    Text(Format.tokens(a.input + a.output), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge)
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(Format.tokens(a.input + a.output), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge)
+                        cost?.let { (ac, currency) ->
+                            if (ac.api > 0) Text((if (ac.estimated) "≈" else "") + Format.money(ac.api, currency), color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 }
             }
+        }
+    }
+}
+
+/** La sección «Coste» del escritorio: pagado por uso, a precios de API, presupuesto del mes y si compensan las suscripciones. */
+private fun androidx.compose.foundation.lazy.LazyListScope.costItems(cost: UsageCost) {
+    val money = { v: Double -> Format.money(v, cost.currency) }
+    item(key = "cost") {
+        SectionLabel(t("Coste en {days} días", "days" to cost.days))
+        Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Metric(t("Pagado por uso"), money(cost.paid))
+                Metric(t("A precios de API"), money(cost.api))
+            }
+            val notes = listOfNotNull(
+                t("Lo pagado es lo de los agentes que van por API; a precios de API es lo que valdría todo lo usado."),
+                if (cost.estimated > 0) t("≈{money} estimado", "money" to money(cost.estimated)) else null,
+                if (cost.unpricedCalls > 0) t("{n} llamadas sin precio", "n" to cost.unpricedCalls) else null,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(notes.joinToString(" · "), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+    cost.budget?.let { b ->
+        item(key = "cost-budget") {
+            Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(t("Presupuesto del mes"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    Text("${b.pct.toInt()} %", color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
+                }
+                Spacer(Modifier.height(8.dp))
+                val color = when { b.pct >= 100 -> Orbita.Danger; b.pct >= 80 -> Orbita.Warn; else -> Orbita.Accent }
+                ProgressLine((b.pct / 100).toFloat().coerceIn(0f, 1f), color, animate = false)
+                Spacer(Modifier.height(6.dp))
+                Text(t("{spent} de {limit} por API", "spent" to money(b.spent), "limit" to money(b.limit)), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+    if (cost.subscriptions.isNotEmpty()) item(key = "cost-subs-label") { SectionLabel(t("¿Te compensan tus suscripciones?")) }
+    items(cost.subscriptions, key = { "sub-${it.key}" }) { s ->
+        Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(s.label, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                when (s.verdict) {
+                    "worth" -> Text(t("Compensa"), color = Orbita.Success, style = MaterialTheme.typography.labelLarge)
+                    "cheaper-api" -> Text(t("Por API te saldría más barato"), color = Orbita.Warn, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (s.monthly == null) t("Pon cuánto pagas al mes para compararlo.")
+                else t("Pagas {monthly} al mes; lo que usaste en 30 días habría costado {api} por API", "monthly" to money(s.monthly), "api" to money(s.api30)),
+                color = Orbita.TextSoft,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }

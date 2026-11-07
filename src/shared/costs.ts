@@ -462,3 +462,31 @@ export function formatMoney(amount: number, currency: CostCurrency, loc = 'es-ES
     return `${amount.toFixed(digits)} ${currency === 'EUR' ? '€' : '$'}`
   }
 }
+
+/** Lo que va a Órbita (GET /usage/cost y la instantánea): importes ya en la moneda elegida. */
+export function mobileCost(
+  allRuns: UsageRun[],
+  config: Pick<AppConfig, 'agents' | 'quotaGroups' | 'costs'>,
+  days = 30,
+  now = Date.now()
+): import('./mobile').MobileCost {
+  const from = now - days * DAY
+  const runs = allRuns.filter((r) => r.startedAt >= from || (r.finishedAt ?? now) >= from)
+  const sum = costSummary(runs, config, allRuns, now)
+  const costs = config.costs
+  const cur = (usd: number): number => Math.round(usdTo(usd, costs) * 10_000) / 10_000
+  return {
+    currency: costs?.currency ?? 'USD',
+    days,
+    paid: cur(sum.paidUsd),
+    api: cur(sum.apiUsd),
+    estimated: cur(sum.estimatedUsd),
+    unpricedCalls: sum.unpricedCalls,
+    budget: sum.budget ? { limit: cur(sum.budget.limitUsd), spent: cur(sum.budget.spentUsd), pct: sum.budget.pct } : null,
+    byAgent: sum.byAgent.map((a) => ({ agentId: a.agentId, name: a.name, mode: a.mode ?? null, calls: a.calls, api: cur(a.apiUsd), estimated: a.estimatedUsd > 0 && a.estimatedUsd >= a.apiUsd / 2 })),
+    subscriptions: sum.byPlan
+      .filter((p) => p.mode === 'subscription')
+      .map((p) => ({ key: p.key, label: p.label, monthly: p.monthlyUsd == null ? null : cur(p.monthlyUsd), api30: cur(p.api30Usd), runs30: p.runs30, verdict: subscriptionVerdict(p) })),
+    pricesChecked: PRICES_CHECKED
+  }
+}

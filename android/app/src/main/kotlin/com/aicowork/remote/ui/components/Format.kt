@@ -32,6 +32,19 @@ object Format {
     fun dateTime(ms: Long?): String =
         if (ms == null || ms <= 0) "—" else DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, I18n.locale).format(Date(ms))
 
+    /** «12,40 €», «0,031 $»: con más decimales si es poco dinero. */
+    fun money(amount: Double, currency: String): String {
+        val abs = kotlin.math.abs(amount)
+        val digits = when { abs == 0.0 -> 0; abs < 0.1 -> 3; abs >= 1000 -> 0; else -> 2 }
+        return runCatching {
+            java.text.NumberFormat.getCurrencyInstance(I18n.locale).apply {
+                this.currency = java.util.Currency.getInstance(currency)
+                minimumFractionDigits = digits
+                maximumFractionDigits = digits
+            }.format(amount)
+        }.getOrElse { String.format(I18n.locale, "%.${digits}f %s", amount, if (currency == "EUR") "€" else "$") }
+    }
+
     fun tokens(value: Long): String = when {
         value >= 1_000_000 -> String.format(I18n.locale, "%.1f M", value / 1_000_000.0)
         value >= 1_000 -> String.format(I18n.locale, "%.1f k", value / 1_000.0)

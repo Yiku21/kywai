@@ -55,6 +55,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/settings\/theme$/, 'theme', ['POST']],
   [/^\/usage\/refresh$/, 'usageRefresh', ['POST']],
   [/^\/quality$/, 'quality', ['GET']],
+  [/^\/usage\/cost$/, 'usageCost', ['GET']],
   [/^\/inbox$/, 'inbox', ['GET']],
   [/^\/inbox\/([^/]+)\/([a-z][a-z0-9-]{0,39})$/, 'inboxAction', ['POST']],
   [/^\/tasks\/([^/]+)\/changes$/, 'taskChanges', ['GET']],
@@ -498,6 +499,12 @@ export class MobileApi {
           const { days } = query(url, ['days'])
           if (days !== undefined && !/^(?:[1-9]\d{0,2})$/.test(days)) throw new MobileError(400, 'INVALID_INPUT', 'days debe ser un número de días entre 1 y 999')
           mobileJson(res, 200, await this.backend.quality(days === undefined ? 30 : Number(days)))
+          break
+        }
+        case 'usageCost': {
+          const { days } = query(url, ['days'])
+          if (days !== undefined && !/^(?:[1-9]\d{0,2})$/.test(days)) throw new MobileError(400, 'INVALID_INPUT', 'days debe ser un número de días entre 1 y 999')
+          mobileJson(res, 200, await this.backend.usageCost(days === undefined ? 30 : Number(days)))
           break
         }
         case 'voice':
