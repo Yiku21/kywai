@@ -751,13 +751,13 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
   {
     id: 'antigravity',
     name: 'Antigravity CLI',
-    summary: 'El agente de Google Antigravity en la terminal (agy); sustituye a Gemini CLI en las cuentas de Google AI Pro y Ultra.',
-    account: 'Con tu cuenta de Google con Google AI Pro o Ultra (inicio de sesión de Google en el navegador la primera vez que abres agy).',
+    summary: 'El agente de Google Antigravity en la terminal (agy); desde junio de 2026 sustituye a Gemini CLI en las cuentas personales de Google.',
+    account: 'Con tu cuenta de Google: gratis con un límite semanal, o con más cuota en Google AI Pro o Ultra (inicio de sesión de Google en el navegador la primera vez que abres agy).',
     free: 'Gratis con tu cuenta personal de Google, con un límite semanal (lee la nota sobre sus condiciones).',
     kind: 'cli',
     verified: false,
     color: '#4285f4',
-    role: 'Agente conectado: programa en la terminal con tu suscripción de Google AI',
+    role: 'Agente conectado: programa en la terminal con tu cuenta de Google',
     strengths: GENERIC_STRENGTHS,
     avoid: [
       ...GENERIC_AVOID,
@@ -765,7 +765,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
       'no tiene un modo de solo lectura documentado: al planificar solo se le pide por instrucción que no toque nada'
     ],
     note:
-      'La versión 1.0.6 falla con -p cuando no hay terminal (así lo lanza kywai): actualízalo. Sus condiciones adicionales (§6) prohíben acceder al servicio con software de terceros y Google no ha aclarado si eso incluye lanzarlo así con una cuenta personal. La dirección del instalador no está confirmada en su documentación.',
+      'La versión 1.0.6 falla con -p cuando no hay terminal (así lo lanza kywai): actualízalo. Sus condiciones adicionales (§6) prohíben acceder al servicio con software de terceros (su ejemplo es OpenClaw con el inicio de sesión de Antigravity) y avisan de que pueden suspender la cuenta de Antigravity y la de Gemini CLI. kywai lanza el programa oficial, pero Google no ha aclarado si eso cuenta. La dirección del instalador no está confirmada en su documentación.',
     cli: {
       command: 'agy',
       versionArgs: ['--version'],

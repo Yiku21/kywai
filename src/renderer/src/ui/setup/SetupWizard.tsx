@@ -22,10 +22,10 @@ const isLocal = (a: AgentConfig): boolean => a.provider === 'ollama' || a.provid
 
 /** Qué hace cada agente y qué cuenta necesita (texto de las tarjetas). */
 const ABOUT: Record<string, { what: string; account: string }> = {
-  hermes: { what: t('Coordinador: planifica y reparte el trabajo entre los demás.'), account: t('Necesita un proveedor de modelos (OmniRoute, Nous Portal u otra cuenta).') },
+  hermes: { what: t('Coordinador: planifica y reparte el trabajo entre los demás.'), account: t('Necesita un proveedor de modelos (OmniRoute, Nous Portal, OpenRouter u otra cuenta).') },
   claude: { what: t('Diseño, textos y código de calidad.'), account: t('Con tu suscripción de Claude (Pro o Max).') },
   codex: { what: t('Programación y tareas técnicas.'), account: t('Con tu cuenta de ChatGPT.') },
-  gemini: { what: t('Análisis, investigación y documentos largos.'), account: t('Con tu cuenta de Google o una clave de API.') },
+  gemini: { what: t('Análisis, investigación y documentos largos.'), account: t('Con una clave de API de Google AI Studio (gratis) o una cuenta de empresa de Gemini Code Assist. Desde junio de 2026, las cuentas personales de Google usan Antigravity CLI.') },
   muse: { what: t('Vídeos y refuerzo cuando los demás no tienen cuota.'), account: t('Con tu suscripción de Muse Code (cuenta de Meta).') },
   local: { what: t('Tareas sencillas gratis, en tu propio equipo.'), account: t('Sin cuenta: LM Studio u Ollama con un modelo descargado.') }
 }
