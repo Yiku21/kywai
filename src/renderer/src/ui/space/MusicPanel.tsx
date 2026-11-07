@@ -20,7 +20,8 @@ import {
   VolumeX,
   X
 } from 'lucide-react'
-import type { MusicResult } from '@shared/types'
+import { musicSourceOf, webPageOf, type MusicSource } from '@shared/musicSources'
+import type { MusicResult, MusicSearchKind } from '@shared/types'
 import { api, isWeb } from '@/lib/api'
 import { getVolume, isMuted, setMuted, setVolume, subscribeAudio } from '@/lib/audio'
 import {
@@ -56,7 +57,7 @@ import {
 } from '@/lib/music'
 import { canSyncWithAudio, ensureAudioSync, startAudioSync, stopAudioSync, useAudioSync } from '@/lib/audioSync'
 import { parseStartSeconds, parseVideoId, type YtPlayer } from '@/lib/youtube'
-import { createEmbedPlayer } from '@/lib/ytEmbed'
+import { createMusicPlayer } from '@/lib/musicPlayer'
 import { useCowork } from '@/store/cowork'
 import { useEscape } from '../common/hooks'
 import { cx, errorText } from '../common/util'
@@ -71,7 +72,18 @@ const ERRORS: Record<number, string> = {
   101: t('El autor no permite reproducir este vídeo fuera de YouTube.'),
   150: t('El autor no permite reproducir este vídeo fuera de YouTube.'),
   152: t('YouTube no aceptó la identificación de AI Cowork (error 152). Actualiza la app de escritorio.'),
-  153: t('YouTube no aceptó la identificación de AI Cowork (error 153). Actualiza la app de escritorio.')
+  153: t('YouTube no aceptó la identificación de AI Cowork (error 153). Actualiza la app de escritorio.'),
+  1001: t('Se interrumpió la carga del audio.'),
+  1002: t('No llega el audio: sin conexión o el servidor no responde.'),
+  1003: t('El audio llegó dañado y no se puede reproducir.'),
+  1004: t('Esta canción o radio no está disponible ahora.')
+}
+
+const SOURCE_LABEL: Record<MusicSource, string> = { youtube: 'YouTube', audius: 'Audius', radio: 'SomaFM' }
+const OPEN_LABEL: Record<MusicSource, string> = {
+  youtube: t('Abrir en YouTube Music'),
+  audius: t('Abrir en Audius'),
+  radio: t('Abrir en SomaFM')
 }
 
 const CONFIDENCE_LABEL = { alta: t('Confianza alta'), media: t('Confianza media'), baja: t('Confianza baja'), manual: t('Manual') } as const
@@ -104,6 +116,8 @@ export function MusicPanel() {
   const notice = useMusic((st) => st.notice)
   const status = useMusic((st) => st.status)
   const queueLength = useMusic((st) => st.queue.length)
+  const permalink = useMusic((st) => st.queue[st.index]?.permalink)
+  const source = musicSourceOf(videoId)
   const host = useRef<HTMLDivElement>(null)
   const playerRef = useRef<YtPlayer | null>(null)
 
@@ -115,7 +129,7 @@ export function MusicPanel() {
     if (!open || !videoId || playerRef.current || !host.current) return
     const first = videoId
     const wanted = takePending()
-    const player = createEmbedPlayer(host.current, {
+    const player = createMusicPlayer(host.current, {
       videoId: first,
       start: wanted.start,
       events: {
@@ -166,7 +180,7 @@ export function MusicPanel() {
         <header className={s.head}>
           <Music size={17} aria-hidden="true" className={s.headIcon} />
           <h3 className={s.title}>{t('Música')}</h3>
-          <span className={s.headHint}>{t('YouTube Music · luces al ritmo')}</span>
+          <span className={s.headHint}>{t('YouTube, Audius y radios · luces al ritmo')}</span>
           {videoId && (
             <button
               type="button"
@@ -192,7 +206,7 @@ export function MusicPanel() {
 
       {!mini && <SearchBox />}
 
-      {isWeb && !mini && (
+      {isWeb && !mini && source === 'youtube' && (
         <p className={s.note}>
           {t('Desde el navegador, YouTube no deja reproducir muchas canciones de discográficas (error 150): se busca otra subida de la misma canción. En la app de escritorio del Mac sí suenan todas.')}
         </p>
@@ -201,10 +215,11 @@ export function MusicPanel() {
       {videoId ? (
         <div className={s.playerBox} title={bar ? song : undefined}>
           <div ref={host} className={s.player} />
+          {source !== 'youtube' && <Artwork />}
         </div>
       ) : mini ? null : (
         <p className={s.empty}>
-          {t('Busca una canción o un artista, o pega un enlace de YouTube. Suena en el reproductor oficial de YouTube y las luces del espacio siguen su ritmo, sin usar el micrófono.')}
+          {t('Busca una canción o un artista, o pega un enlace de YouTube. Sin anuncios: Audius (música que suben los propios artistas) y las radios de SomaFM. Las luces del espacio siguen su ritmo, sin usar el micrófono.')}
         </p>
       )}
       {error && (
@@ -213,8 +228,8 @@ export function MusicPanel() {
           {videoId && (
             <>
               {' '}
-              <a className={s.source} href={`https://music.youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer">
-                {t('Abrir en YouTube Music')} <ExternalLink size={11} aria-hidden="true" />
+              <a className={s.source} href={webPageOf(videoId, permalink)} target="_blank" rel="noreferrer">
+                {OPEN_LABEL[source]} <ExternalLink size={11} aria-hidden="true" />
               </a>
             </>
           )}
@@ -266,18 +281,97 @@ function MiniHead() {
   )
 }
 
-/** Buscar canciones (YouTube Music) o pegar un enlace. */
+/** Sin vídeo (Audius y radios): la carátula de la canción o el logo de la radio, con su autoría. */
+function Artwork() {
+  const item = useMusic((st) => st.queue[st.index])
+  const videoId = useMusic((st) => st.videoId)
+  if (!item || item.videoId !== videoId) return <div className={s.artwork} />
+  const radio = musicSourceOf(item.videoId) === 'radio'
+  return (
+    <div className={s.artwork}>
+      {item.thumbnail ? <img className={s.artworkImg} src={item.thumbnail} alt="" /> : <Music size={40} aria-hidden="true" />}
+      <div className={s.artworkText}>
+        <span className={s.artworkTitle}>{item.title}</span>
+        <span className={s.artworkSub}>
+          {radio ? t('Radio de SomaFM, sin anuncios: la mantienen sus oyentes.') : t('En Audius, de {artist}', { artist: item.artist || 'Audius' })}
+        </span>
+        {radio && (
+          <a className={s.source} href="https://somafm.com/support/" target="_blank" rel="noreferrer">
+            {t('Apoyar a SomaFM')} <ExternalLink size={11} aria-hidden="true" />
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const SOURCE_KEY = 'aicowork.music.source.v1'
+const SEARCH_SOURCES: MusicSource[] = ['youtube', 'audius', 'radio']
+const KIND: Record<MusicSource, MusicSearchKind> = { youtube: 'songs', audius: 'audius', radio: 'radio' }
+const PLACEHOLDER: Record<MusicSource, string> = {
+  youtube: t('Busca canciones o artistas, o pega un enlace'),
+  audius: t('Busca en Audius, sin anuncios'),
+  radio: t('Filtra las radios (lofi, jazz, ambient…)')
+}
+const SOURCE_HELP: Record<MusicSource, string> = {
+  youtube: t('YouTube Music en su reproductor oficial (con sus anuncios)'),
+  audius: t('Música que suben los propios artistas para escucharla gratis, sin anuncios'),
+  radio: t('Radios de SomaFM sin anuncios, que mantienen sus oyentes')
+}
+
+function readSource(): MusicSource {
+  try {
+    const v = localStorage.getItem(SOURCE_KEY)
+    return v === 'audius' || v === 'radio' ? v : 'youtube'
+  } catch {
+    return 'youtube'
+  }
+}
+
+/** Buscar canciones (YouTube Music o Audius), elegir una radio o pegar un enlace de YouTube. */
 function SearchBox() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<MusicResult[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
+  const [source, setSource] = useState<MusicSource>(readSource)
   const current = useMusic((st) => st.videoId)
+
+  async function search(text: string, from: MusicSource): Promise<void> {
+    const a = api
+    if (!a) {
+      setProblem(t('Buscar canciones necesita la app de escritorio de AI Cowork.'))
+      return
+    }
+    setBusy(true)
+    try {
+      const found = await a.searchMusic(text, KIND[from])
+      setResults(found)
+      if (!found.length) setProblem(from === 'radio' ? t('No hay radios con ese nombre.') : t('No he encontrado canciones con esa búsqueda.'))
+    } catch (err) {
+      setProblem(errorText(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function pick(next: MusicSource): void {
+    setSource(next)
+    setResults(null)
+    setProblem(null)
+    try {
+      localStorage.setItem(SOURCE_KEY, next)
+    } catch {
+      /* almacenamiento no disponible */
+    }
+    // Las radios son pocas: se enseñan todas al elegirlas.
+    if (next === 'radio') void search(query.trim(), 'radio')
+  }
 
   async function submit(e: FormEvent): Promise<void> {
     e.preventDefault()
     const text = query.trim()
-    if (!text || busy) return
+    if ((!text && source !== 'radio') || busy) return
     setProblem(null)
     // Un enlace (o el id de un vídeo) suena directamente.
     const id = parseVideoId(text)
@@ -287,32 +381,33 @@ function SearchBox() {
       setQuery('')
       return
     }
-    const a = api
-    if (!a) {
-      setProblem(t('Buscar canciones necesita la app de escritorio de AI Cowork.'))
-      return
-    }
-    setBusy(true)
-    try {
-      const found = await a.searchMusic(text)
-      setResults(found)
-      if (!found.length) setProblem(t('No he encontrado canciones con esa búsqueda.'))
-    } catch (err) {
-      setProblem(errorText(err))
-    } finally {
-      setBusy(false)
-    }
+    await search(text, source)
   }
 
   return (
     <div className={s.search}>
+      <div className={s.sources} role="tablist" aria-label={t('Fuente de la música')}>
+        {SEARCH_SOURCES.map((src) => (
+          <button
+            key={src}
+            type="button"
+            role="tab"
+            aria-selected={source === src}
+            className={cx(s.sourceTab, source === src && s.sourceTabOn)}
+            onClick={() => pick(src)}
+            title={SOURCE_HELP[src]}
+          >
+            {src === 'radio' ? t('Radios') : SOURCE_LABEL[src]}
+          </button>
+        ))}
+      </div>
       <form className={s.form} onSubmit={(e) => void submit(e)} role="search">
         <div className={s.searchField}>
           <Search size={15} aria-hidden="true" className={s.searchIcon} />
           <input
             className={cx(s.input, s.searchInput)}
             type="search"
-            placeholder={t('Busca canciones o artistas, o pega un enlace')}
+            placeholder={PLACEHOLDER[source]}
             aria-label={t('Buscar canciones o pegar un enlace de YouTube')}
             value={query}
             onChange={(e) => {
@@ -321,7 +416,7 @@ function SearchBox() {
             }}
           />
         </div>
-        <button type="submit" className={cx(u.btn, u.btnPrimary, u.btnSm)} disabled={!query.trim() || busy}>
+        <button type="submit" className={cx(u.btn, u.btnPrimary, u.btnSm)} disabled={(!query.trim() && source !== 'radio') || busy}>
           {busy ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : t('Buscar')}
         </button>
       </form>
@@ -562,10 +657,17 @@ function Queue() {
 }
 
 /** Resumen plegado de las luces: BPM y si están activas. */
+/** Las luces siguen el sonido real: compartiendo la ventana o pestaña, o porque suena el audio propio (Audius, radios). */
+function useHearsRealSound(): boolean {
+  const shared = useAudioSync((st) => st.state === 'on')
+  const own = useMusic((st) => musicSourceOf(st.videoId) !== 'youtube')
+  return shared || own
+}
+
 function LightsSummary() {
   const track = useMusic((st) => (st.videoId ? st.tracks[st.videoId] : undefined))
   const lightsOn = useMusic((st) => st.lightsOn)
-  const live = useAudioSync((st) => st.state === 'on')
+  const live = useHearsRealSound()
   const tempo = tempoOf(track)
   return (
     <span className={s.lightsSummary}>
@@ -647,7 +749,7 @@ function SyncControls({ playing }: { playing: boolean }) {
   const taps = useMusic((st) => st.taps.length)
   const tempo = tempoOf(track)
   const offsetMs = Math.round(tempo.offset * 1000)
-  const live = useAudioSync((st) => st.state === 'on')
+  const live = useHearsRealSound()
 
   return (
     <div className={s.sync}>
@@ -750,7 +852,15 @@ function SyncControls({ playing }: { playing: boolean }) {
 function LiveSync() {
   const state = useAudioSync((st) => st.state)
   const error = useAudioSync((st) => st.error)
+  const own = useMusic((st) => musicSourceOf(st.videoId) !== 'youtube')
   const on = state === 'on'
+  if (own) {
+    return (
+      <div className={s.live}>
+        <p className={s.note}>{t('Con Audius y las radios, las luces escuchan el sonido directamente: no hace falta compartir nada.')}</p>
+      </div>
+    )
+  }
   if (!isWeb) {
     return (
       <div className={s.live}>
@@ -875,12 +985,13 @@ function Limits() {
         <li>
           {t('Es una estimación: no se escucha ni se analiza el audio (YouTube no lo permite y no se usa el micrófono). Se usa el BPM publicado de la canción (Deezer) y la posición del reproductor.')}
         </li>
+        <li>{t('Con Audius y las radios, las luces escuchan el sonido de verdad: llega directamente a AI Cowork, sin micrófono y sin compartir nada.')}</li>
         <li>
           {t('Se ajusta solo al pausar, reanudar, saltar o cambiar la velocidad. El primer pulso no se conoce: si las luces van desplazadas, usa «Marcar pulso» o el desfase.')}
         </li>
         <li>{t('Las canciones en directo, con tempo variable, remezclas o vídeos con introducción pueden desalinearse.')}</li>
         <li>
-          {t('YouTube exige que su reproductor esté a la vista: al cerrar este panel la música se pausa. Mientras suena, sustituye a la música ambiental de AI Cowork.')}
+          {t('YouTube exige que su reproductor esté a la vista: al cerrar este panel la música se pausa. Mientras suena cualquier fuente, sustituye a la música ambiental de AI Cowork.')}
         </li>
       </ul>
     </details>

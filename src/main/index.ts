@@ -347,7 +347,9 @@ function registerIpc(): void {
   handle('getConfig', () => getConfig())
   // Tempo de la música del espacio digital (por web; el escritorio usa cowork://music/tempo).
   handle('lookupTrackTempo', (query: unknown) => lookupTempo(query))
-  handle('searchMusic', (query: unknown, kind?: unknown) => searchMusic(query, kind === 'videos' ? 'videos' : 'songs'))
+  handle('searchMusic', (query: unknown, kind?: unknown) =>
+    searchMusic(query, kind === 'videos' || kind === 'audius' || kind === 'radio' ? kind : 'songs')
+  )
   handle('listProjects', () => store.listProjects().map((p) => (activeRunsFor(p.id).length ? { ...p, busy: true } : p)))
   handle('createProject', (name: unknown) => store.createProject(typeof name === 'string' ? name : ''))
   handle('loadProject', (projectId: unknown) => {

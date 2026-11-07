@@ -48,7 +48,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Idioma](#idioma)
   - [Temas](#temas)
   - [Voces de los agentes](#voces-de-los-agentes)
-  - [Música (como YouTube Music)](#música-como-youtube-music)
+  - [Música (YouTube, Audius y radios)](#música-youtube-audius-y-radios)
   - [Expresiones de los robots](#expresiones-de-los-robots)
   - [Modo Demo](#modo-demo)
   - [Rendimiento](#rendimiento)
@@ -1283,16 +1283,29 @@ de la música y los efectos está el de las voces, con el botón de la burbuja p
 En **Órbita** suenan igual (mismos timbres, sintetizados en el móvil): Ajustes → Respuesta al tacto → **«Voces de
 los agentes»**, con su propio volumen; «Sonidos» apagado las silencia también.
 
-### Música (como YouTube Music)
+### Música (YouTube, Audius y radios)
 
-El botón **Música** del espacio digital abre un reproductor:
-- **Buscar:** canciones y artistas en YouTube Music. También puedes pegar un enlace de YouTube.
+El botón **Música** del espacio digital abre un reproductor con tres fuentes, en pestañas encima del buscador (se
+recuerda la última elegida):
+- **YouTube:** canciones y artistas de YouTube Music, en su reproductor oficial. Tiene sus anuncios.
+- **Audius:** música que suben los propios artistas para que se escuche gratis. Sin anuncios y sin cuenta. Solo
+  salen las canciones que se pueden escuchar enteras sin pagar.
+- **Radios:** las emisoras de SomaFM (lofi, ambient, jazz, electrónica…), sin anuncios: las mantienen sus oyentes.
+  Al elegir la pestaña salen todas; lo que escribas las filtra. En la carátula hay un enlace para apoyarlas.
+
+Audius y las radios suenan en el reproductor de audio de AI Cowork, directamente desde sus servidores públicos
+(api.audius.co y somafm.com). En el sitio del vídeo se ve la carátula y quién la hizo. Una radio no tiene duración
+ni se puede saltar dentro de ella, y no se le busca el BPM (cambia de canción sola).
+
+Lo que hace el reproductor en cualquier fuente:
+- **Buscar:** en la fuente elegida. Un enlace de YouTube pegado suena siempre.
 - **Controles:** atrás, pausa, adelante, barra de posición y volumen.
 - **Cola:** al elegir un resultado, los demás quedan en la cola y suenan después. El «+» añade una canción al final.
 - **Luces al ritmo:** el espacio sigue el BPM de la canción, sin micrófono. Sus ajustes están plegados.
 
-Suena en el reproductor oficial de YouTube, que tiene que estar a la vista. Va aislado en su propio marco, sin
-ningún script de YouTube en la ventana de AI Cowork.
+YouTube suena en su reproductor oficial, que tiene que estar a la vista. Va aislado en su propio marco, sin ningún
+script de YouTube en la ventana de AI Cowork. No se descarga ni se saca el audio de YouTube ni de ningún otro
+servicio: por eso no se le pueden quitar los anuncios (para eso están Audius y las radios).
 
 **Minimizar:** con una canción sonando, el botón «Música» (o Esc, o el icono de minimizar) lo deja pequeño en una
 esquina: el vídeo, la canción y atrás / pausa / adelante. Sigue sonando. «Música» otra vez lo abre entero, y la ×
@@ -1307,7 +1320,10 @@ ventana y detecta los golpes:
 - **Siempre a tiempo:** también con intros, directos y cambios de ritmo.
 - **Nada guardado:** no se graba nada.
 
-Se activa solo al poner música y se puede apagar en «Luces al ritmo». Desde el navegador del PC, el botón
+Con **Audius y las radios** no hace falta nada de eso: su audio llega directamente a AI Cowork y las luces lo
+escuchan tal cual, también desde el navegador y sin compartir la pestaña.
+
+Con YouTube se activa solo al poner música y se puede apagar en «Luces al ritmo». Desde el navegador del PC, el botón
 «Sincronizar con el sonido de esta pestaña» hace lo mismo, compartiendo la pestaña con su audio. En el móvil, o si
 se apaga, las luces van con el tempo estimado: BPM publicado en Deezer, desfase y «Marcar pulso».
 
@@ -1316,6 +1332,10 @@ de su web muchas canciones de discográficas (error 150). Entonces:
 - **Otra versión:** se busca otra subida de la misma canción y la app la recuerda para la próxima vez.
 - **Si tampoco hay:** pasa a la siguiente. Tras tres seguidas que no suenan, se para y ofrece abrirla en YouTube
   Music.
+
+Si una canción de Audius o una radio no llega (sin conexión, o el servidor no responde), pasa a la siguiente de la
+cola y ofrece abrirla en su web. Desde el navegador, SomaFM puede rechazar sus radios según la dirección desde la
+que se abre AI Cowork (en una prueba desde «localhost» las rechazó); en la app de escritorio suenan.
 
 ### Expresiones de los robots
 
