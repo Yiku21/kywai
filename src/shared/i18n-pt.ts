@@ -1904,5 +1904,7 @@ export const pt: Record<string, string> = {
   '{name} no escribió ninguna respuesta.': '{name} não escreveu nenhuma resposta.',
   'Razonamiento (think)': 'Raciocínio (think)',
   'Encendido: piensa antes de responder (más lento, para lo que necesita mucha información).': 'Ligado: pensa antes de responder (mais lento, para o que precisa de muita informação).',
-  'Apagado: responde directamente, más rápido.': 'Desligado: responde diretamente, mais rápido.'
+  'Apagado: responde directamente, más rápido.': 'Desligado: responde diretamente, mais rápido.',
+  'Ancho del chat': 'Largura do chat',
+  'Arrastra para cambiar el ancho del chat · doble clic: ancho automático': 'Arraste para mudar a largura do chat · duplo clique: largura automática'
 }

@@ -426,6 +426,24 @@
   flex: none;
 }
 
+/*
+ * Chat estrecho: el texto de cada mensaje usa todo el ancho del panel. La burbuja empieza debajo del avatar (la fila
+ * del nombre se alinea con él) en vez de dejar libre la columna del avatar en toda su altura.
+ */
+@container leftpanel (max-width: 520px) {
+  .meta {
+    min-height: 40px;
+    align-items: center;
+    padding-top: 0;
+  }
+  .main > :not(.meta) {
+    margin-left: -52px;
+  }
+  .bubble {
+    padding: 10px 12px;
+  }
+}
+
 @container leftpanel (max-width: 470px) {
   .planBtnLabel {
     display: none;

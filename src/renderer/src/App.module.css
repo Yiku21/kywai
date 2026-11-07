@@ -10,11 +10,35 @@
 
 .body {
   display: grid;
-  grid-template-columns: minmax(340px, 28%) minmax(0, 1fr);
+  /* El chat es lo importante: el 3D es el escenario. En pantallas grandes el chat ocupa algo menos de un tercio. */
+  grid-template-columns: clamp(380px, 30%, 640px) minmax(0, 1fr);
   gap: 14px;
   padding: 0 14px 14px;
   min-height: 0;
   transition: grid-template-columns var(--dur-slow) var(--ease), gap var(--dur-slow) var(--ease);
+}
+
+/* Ancho elegido arrastrando el borde del chat (se ajusta solo si luego la ventana se estrecha). */
+.body[data-custom-width='true'] {
+  grid-template-columns: clamp(300px, var(--chat-w), calc(100% - 320px)) minmax(0, 1fr);
+}
+
+.body[data-resizing='true'] {
+  transition: none;
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* Columna del chat: el panel y, en su borde derecho, el asa para cambiarle el ancho. */
+.leftCol {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.leftCol > .left {
+  flex: 1;
 }
 
 .body[data-expanded='true'] {
@@ -90,24 +114,33 @@
   backdrop-filter: blur(6px);
 }
 
+/* Ventana mediana (no a pantalla completa): el chat gana sitio al 3D. */
+@media (max-width: 1439.98px) {
+  .body {
+    grid-template-columns: clamp(400px, 42%, 600px) minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 1100px) {
   .body {
-    grid-template-columns: minmax(300px, 36%) minmax(0, 1fr);
+    grid-template-columns: clamp(380px, 52%, 600px) minmax(0, 1fr);
     gap: 10px;
     padding: 0 10px 10px;
   }
 }
 
-@media (max-width: 760px) {
+/* Ventana estrecha: el chat ocupa toda la ventana y el 3D va en la pestaña «Espacio» de la cabecera. */
+@media (max-width: 949.98px) {
   .body,
-  .body[data-expanded='true'] {
+  .body[data-expanded='true'],
+  .body[data-custom-width='true'] {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
   .body[data-mobile='chat'] .space {
     display: none;
   }
-  .body[data-mobile='space'] .left {
+  .body[data-mobile='space'] .leftCol {
     display: none;
   }
   .body[data-expanded='true'] .left {

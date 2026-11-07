@@ -1904,5 +1904,7 @@ export const zh: Record<string, string> = {
   '{name} no escribió ninguna respuesta.': '{name} 没有写出任何回答。',
   'Razonamiento (think)': '推理（think）',
   'Encendido: piensa antes de responder (más lento, para lo que necesita mucha información).': '开启：先思考再回答（更慢，适合需要大量信息的问题）。',
-  'Apagado: responde directamente, más rápido.': '关闭：直接回答，更快。'
+  'Apagado: responde directamente, más rápido.': '关闭：直接回答，更快。',
+  'Ancho del chat': '聊天宽度',
+  'Arrastra para cambiar el ancho del chat · doble clic: ancho automático': '拖动以调整聊天宽度 · 双击：自动宽度'
 }
