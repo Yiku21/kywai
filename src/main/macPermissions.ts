@@ -186,7 +186,7 @@ export function waitForFolderAccess(dir: string, hooks: FolderAccessHooks, waitM
       // Una carpeta que no existe no es cosa de permisos: lo dirá el propio agente.
       if (code !== 0 && /not permitted/i.test(stderr)) {
         end(
-          tr('macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → AI Cowork', { label })
+          tr('macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → kywai', { label })
         )
       } else end(null)
     })
