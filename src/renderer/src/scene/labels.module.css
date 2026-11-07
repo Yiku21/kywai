@@ -93,6 +93,12 @@
   background: rgba(var(--label-rgb, 12, 19, 33), 0.92);
 }
 
+/* En los mapas, sin desenfoque detrás de las etiquetas (salían rectángulos borrosos al escalarlas). */
+:global(html:is([data-world='clasico'], [data-world='orbita'], [data-world='bosque'], [data-world='marfil'], [data-world='grafito'])) .robot {
+  backdrop-filter: none;
+  background: rgba(var(--label-rgb, 9, 14, 25), 0.92);
+}
+
 .selected {
   border-color: var(--agent);
   box-shadow:
@@ -102,6 +108,10 @@
 
 .dim {
   opacity: 0.62;
+}
+
+:global(html[data-world]) .dim {
+  opacity: 0.86;
 }
 
 .leaving {

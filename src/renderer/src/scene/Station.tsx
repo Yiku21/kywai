@@ -13,6 +13,7 @@ import { GiftDressing, giftBase } from './navidad'
 import { StoneDressing, pedestal, stoneMaterial } from './halloween'
 import { GlassDressing, glassMaterial, glassTiers } from './relicario'
 import { LoomSeat, invisibleMaterial } from './telar'
+import { WorldPlatform } from './worlds/WorldScenery'
 
 /** Aro de las plataformas (del tema; en el clásico, azul). */
 const CYAN = new THREE.Color()
@@ -100,6 +101,7 @@ export function Station({ station, occupant, showLight }: Props) {
   const glass = palette.decor === 'relicario'
   // Telar: la estación es una silla de tela tejida (la base sigue ahí para pulsarla, pero no se ve).
   const loom = palette.decor === 'telar'
+  const world = palette.world
   const lift = gift ? 0.16 : stone || glass ? 0.04 : loom ? 0.2 : 0
   const phase = hash01(station.id)
   const side = consoleSide(station)
@@ -245,7 +247,9 @@ export function Station({ station, occupant, showLight }: Props) {
   return (
     <group position={[x, PLATFORM_Y, z]}>
       <group ref={group}>
+        {world && <group onPointerOver={onOver} onPointerOut={onOut} onClick={onClick}><WorldPlatform style={world} /></group>}
         <mesh
+          visible={!world}
           geometry={gift ? GIFT_BASE : stone ? pedestal(1.75, -0.32, 0.52) : glass ? glassTiers(2.05, -0.32, 0.52) : GEO.hexBase}
           material={stone ? stoneMaterial() : glass ? glassMaterial() : loom ? invisibleMaterial() : graphiteMat}
           position={[0, gift ? -0.07 : 0, 0]}
@@ -258,7 +262,7 @@ export function Station({ station, occupant, showLight }: Props) {
         {loom && <LoomSeat r={1.75} y={0.36} reduced={reduced} yaw={phase * 6.28} />}
         {gift && <GiftDressing r={1.6} y0={-0.32} h={0.5} reduced={reduced} seed={Math.round(phase * 1000)} />}
         {/* En vidrio se transparentaría el hexágono de siempre: solo queda el aro del robot. */}
-        {!glass && !loom && (
+        {!world && !glass && !loom && (
           <>
             <mesh geometry={GEO.hexTop} material={topMat} position={[0, 0.16, 0]} />
             <mesh geometry={GEO.hexRim} material={mats.rim} position={[0, 0.17, 0]} rotation={HEX_RING_ROT} />

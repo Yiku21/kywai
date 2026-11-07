@@ -4,6 +4,8 @@ import { CameraControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { useCowork, type CameraCommand } from '@/store/cowork'
 import type { ViewInsets } from './World'
+import { useTheme } from '@/lib/theme'
+import { palette } from './palette'
 
 /**
  * Cámara estable: solo se mueve por acción del usuario (arrastrar, rueda, botones, clic en una
@@ -15,6 +17,9 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
   const size = useThree((s) => s.size)
   const reduced = useCowork((s) => s.reducedEffects)
   const atOverview = useRef(true)
+  const theme = useTheme()
+  // El mapa del tema (cada uno se encuadra a su manera; la Ciudad y los decorados, como siempre).
+  const world = palette.world
 
   const overview = useCallback(
     (smooth: boolean) => {
@@ -24,10 +29,42 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
       const aspect = width / Math.max(1, height)
       // La zona libre es más pequeña que el lienzo: se aleja lo que haga falta para que el mundo quepa en ella.
       const room = view ? Math.max(1, size.height / Math.max(1, height)) : 1
+      if (world === 'grafito') {
+        const k = Math.max(1, (aspect >= 1.1 ? 1.60 : 1.09) / aspect) * room
+        void controls.setLookAt(0, 15.4 * k, 32 * k, 0, 3.18, -3.3, smooth)
+        atOverview.current = true
+        return
+      }
+      if (world === 'marfil') {
+        const k = Math.max(1, (aspect >= 1.1 ? 1.65 : 1.29) / aspect) * room
+        void controls.setLookAt(0, 15.2 * k, (aspect >= 1.1 ? 35.9 : 30.8) * k, 0, 2.22, -3.04, smooth)
+        atOverview.current = true
+        return
+      }
+      if (world === 'clasico') {
+        const k = Math.max(1, (aspect >= 1.1 ? 1.54 : 1.05) / aspect) * room
+        void controls.setLookAt(0, 14 * k, 28.6 * k, 0, 2.4, -2.4, smooth)
+        atOverview.current = true
+        return
+      }
+      if (world === 'bosque') {
+        const k = Math.max(1, (aspect >= 1.1 ? 1.56 : 1.06) / aspect) * room
+        void controls.setLookAt(0, 14 * k, 29 * k, 0, 2.35, -2.45, smooth)
+        atOverview.current = true
+        return
+      }
+      // En Matrix tiene que verse el horizonte de la ciudad, por donde patrullan las naves.
+      if (world === 'matrix') {
+        const k = Math.max(1, (aspect >= 1.1 ? 1.55 : 1.15) / aspect) * room
+        void controls.setLookAt(0, 16.8 * k, 32 * k, 0, 4, -3.5, smooth)
+        atOverview.current = true
+        return
+      }
       if (aspect >= 1.1) {
         // Lo bastante lejos para que quepan las zonas de los lados.
         const k = Math.max(1, 1.78 / aspect) * room
-        void controls.setLookAt(0, 13.6 * k, 21.2 * k, 0, 0.3, 1.2, smooth)
+        if (palette.world) void controls.setLookAt(0, 15.2 * k, 24 * k, 0, 1, -0.6, smooth)
+        else void controls.setLookAt(0, 13.6 * k, 21.2 * k, 0, 0.3, 1.2, smooth)
       } else {
         // Pantallas verticales: vista más cenital para que quepan todas las estaciones.
         const k = Math.max(1, 1.32 / aspect) * room
@@ -35,7 +72,7 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
       }
       atOverview.current = true
     },
-    [controls, size.width, size.height, view?.left, view?.top, view?.bottom]
+    [controls, size.width, size.height, view?.left, view?.top, view?.bottom, theme, world]
   )
 
   useEffect(() => {
