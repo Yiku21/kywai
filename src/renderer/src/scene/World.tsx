@@ -23,10 +23,16 @@ import { CameraRig } from './CameraRig'
 import { LabelProjector } from './LabelProjector'
 import { t } from '@/lib/i18n'
 
-/** Reloj de la escena y pulso de la música: se actualizan antes que cualquier otra animación. */
+/**
+ * Reloj de la escena y pulso de la música: se actualizan antes que cualquier otra animación.
+ * El reloj solo avanza: react-three-fiber pone su `clock.elapsedTime` a 0 cada vez que cambia el frameloop
+ * (pestaña oculta/visible, foco/sin foco), y si la escena lo usara el tiempo retrocedería y las animaciones en
+ * curso se descontrolarían (un archivo que ya había llegado salía gigante y tardaba minutos en encogerse).
+ * Cada paso se limita a 0,25 s para que, al volver tras un rato fuera, las animaciones sigan donde se quedaron.
+ */
 function SceneClock() {
-  useFrame((state) => {
-    registry.time = state.clock.elapsedTime
+  useFrame((_, delta) => {
+    registry.time += Math.min(Math.max(delta, 0), 0.25)
     registry.beat = musicLightLevel(performance.now(), useCowork.getState().reducedEffects)
   }, -100)
   return null
