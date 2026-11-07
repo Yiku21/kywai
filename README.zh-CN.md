@@ -262,7 +262,7 @@ flowchart TD
 - 至少一个智能体：目录中的任意智能体（Claude Code、Codex CLI、Gemini CLI、DeepSeek、Qwen Code、Copilot…）、本地模型或任何命令行智能体。默认由 **Hermes Agent** 负责协调，但任何智能体都可以担任。
 - 可选：用于本地智能体的 **LM Studio** 或 **Ollama**，用于撤销功能的 **git**，以及用于在其他设备上使用的 **Tailscale**。
 
-> **注意：** 目前应用界面为西班牙语。本 README 中的菜单名称均为译名。
+> **语言：** 应用支持英语、西班牙语、葡萄牙语、法语和中文。默认使用系统语言，可在 ⋮ → 设置 →“Idioma · Language”中更改。葡萄牙语、法语和中文为机器翻译，欢迎指正。
 
 ### 下载（最简单）
 
