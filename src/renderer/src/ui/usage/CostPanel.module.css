@@ -1,0 +1,256 @@
+.h4 {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text-1);
+}
+
+.near {
+  color: var(--warn);
+}
+
+.over {
+  color: var(--alert);
+}
+
+.track {
+  margin: 2px 0;
+}
+
+.fill {
+  background: var(--cyan);
+}
+
+.fillNear {
+  background: var(--warn);
+}
+
+.fillOver {
+  background: var(--alert);
+}
+
+.chart {
+  margin: 0;
+  padding: 12px 14px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 96px;
+}
+
+.barCol {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.bar {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  min-height: 1px;
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--cyan) 45%, transparent);
+  overflow: hidden;
+}
+
+.barPaid {
+  width: 100%;
+  background: var(--warn);
+}
+
+.barCol:hover .bar {
+  background: color-mix(in srgb, var(--cyan) 75%, transparent);
+}
+
+.chartFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dotApi,
+.dotPaid {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--cyan) 60%, transparent);
+}
+
+.dotPaid {
+  margin-left: 6px;
+  background: var(--warn);
+}
+
+.subs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.subList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.subList strong {
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.good {
+  font-weight: 650;
+  color: var(--live);
+}
+
+.bad {
+  font-weight: 650;
+  color: var(--warn);
+}
+
+.settings {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.settingsSummary {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.form select,
+.num,
+.text {
+  padding: 4px 8px;
+  border-radius: var(--radius-ctl, 7px);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.num {
+  width: 76px;
+  font-variant-numeric: tabular-nums;
+}
+
+.text {
+  width: 100%;
+  min-width: 150px;
+}
+
+.planList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.planName {
+  min-width: 120px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.priceTable td {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.priceNote {
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.changed th {
+  color: var(--cyan);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.priceTable th[scope='row'] {
+  white-space: normal;
+  min-width: 140px;
+}
+
+.priceTable .num {
+  width: 72px;
+}
+
+.priceNote {
+  display: inline-block;
+  margin-left: 4px;
+}

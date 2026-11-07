@@ -153,7 +153,7 @@ async function main(): Promise<void> {
     const r = p.finish(OK_EXIT)
     assert.equal(r.ok, true)
     assert.equal(r.text, 'hola')
-    assert.deepEqual(r.usage, { input: 2 + 11275 + 15764, output: 4, cached: 15764 })
+    assert.deepEqual(r.usage, { input: 2 + 11275 + 15764, output: 4, cached: 15764, costUsd: 0.0467204 })
     assert.equal(rec.rate.length, 1)
     const w = rec.rate[0].windows
     assert.equal(w.length, 2)

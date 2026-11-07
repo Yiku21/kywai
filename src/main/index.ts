@@ -17,6 +17,7 @@ import {
   setAgentThinking,
   setHermesModel,
   setPlanApproval,
+  setCostSettings,
   setLanguage,
   setUiTheme,
   setServerName,
@@ -736,6 +737,10 @@ function registerIpc(): void {
   handle('setServerName', (name: unknown) => {
     if (typeof name !== 'string' || name.length > 200) throw new Error(tr('Valor no válido'))
     setServerName(name)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
+  handle('setCostSettings', (costs: unknown) => {
+    setCostSettings(costs)
     emit({ kind: 'config.updated', config: getConfig() })
   })
   handle('setPlanApproval', (on: unknown) => {

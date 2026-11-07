@@ -70,6 +70,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Eliminar un proyecto](#eliminar-un-proyecto)
   - [Cuotas](#cuotas)
   - [Consumo: ¿compensa?](#consumo-compensa)
+  - [Uso y coste: dinero por agente](#uso-y-coste-dinero-por-agente)
   - [Cómo rinde cada agente](#cómo-rinde-cada-agente)
   - [Dónde se guardan las cosas](#dónde-se-guardan-las-cosas)
 - **[Comodidades](#comodidades)**
@@ -860,7 +861,7 @@ pide ceñirse a la corrección y a lo pedido, nada de gustos. Si ve fallos, **el
 ya hay (recibe la lista) y se vuelve a verificar; después se da por buena con el veredicto que tenga. En el chat lo
 ves en el mensaje de la tarea («Claude comprobó … y vio fallos; Codex los corrige», y al final «✔ Claude comprobó el
 resultado: cumple» o «⚠ … sigue viendo fallos», que además queda en la memoria como pendiente). La verificación
-cuenta en «Consumo y tokens…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
+cuenta en «Uso y coste…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
 petición, si la tarea es solo de texto o si no hay ningún otro agente de otra familia disponible.
 
 **Si la tarea toca una web** (HTML, CSS, componentes…), kywai la abre antes en una ventana oculta, a tamaño
@@ -1393,6 +1394,9 @@ empezar otra mientras el equipo trabaja en ese proyecto**: espera a que termine 
 
 **Clic derecho** (o el botón **⋯** que sale al pasar el ratón) abre el menú de lo que tocas, como en Claude. Con el
 menú abierto, la letra de la derecha hace esa acción sin el ratón.
+Los botones **⋯** y la flecha de desplegar no llevan bloque de fondo propio: el nombre se desvanece antes de
+llegar a ellos y la hora o el punto de «trabajando» se apartan mientras están a la vista, así quedan sobre la
+misma tarjeta y con el color del tema que tengas.
 
 - En una **conversación**: **Fijar** (P), **Cambiar nombre** (R; por defecto es el principio de tu primer mensaje),
   **Bifurcar** (F: una copia aparte, con los mensajes y las tareas, para seguir por otro camino sin tocar la
@@ -1430,7 +1434,7 @@ API son `listConversations`, `recentConversations`, `newConversation`, `openConv
 ### La rueda ⚙ y los Ajustes
 
 La **rueda ⚙** (abajo en la barra lateral) abre un menú corto, como en Claude: arriba dice dónde estás y debajo
-están **Ajustes…** (también **Ctrl+,**; ⌘, en el Mac), **Consumo y tokens…**, **Cómo rinde cada agente…**,
+están **Ajustes…** (también **Ctrl+,**; ⌘, en el Mac), **Uso y coste…**, **Cómo rinde cada agente…**,
 **Archivos del servidor…** (desde el navegador), **Abrir carpeta del proyecto**, **Buscar actualizaciones…**,
 **Reiniciar kywai** (pulsa dos veces) y **Apoyar kywai ☕**.
 
@@ -1522,7 +1526,7 @@ entrada, salida y la parte leída de caché), cuánto tardó, si salió bien y c
 (se mide antes y después). Se ve en dos sitios:
 
 - Bajo cada plan del chat: «14 min · 339 k tokens · Claude 5 h +5 % · GPT semana +2 %».
-- ⚙ → **«Consumo y tokens…»**: totales de hoy, 7 o 30 días (peticiones, tiempo real y tiempo de agentes en
+- ⚙ → **«Uso y coste…»** (antes «Consumo y tokens…»): totales de hoy, 7 o 30 días (peticiones, tiempo real y tiempo de agentes en
   paralelo, tokens, qué parte se fue en planificar y en intentos fallidos), cuota gastada de cada suscripción,
   reparto por agente y el detalle de cada petición. Se puede exportar a CSV.
 
@@ -1531,9 +1535,65 @@ Para comparar con un solo agente (por ejemplo Codex aparte), haz la misma petici
 `usage-runs.json`, dentro de la carpeta de datos, y lleva también tu 👍/👎 de cada resultado (ver
 [Valorar un resultado](#valorar-un-resultado-)): así se puede comparar no solo lo que costó, sino lo que sirvió.
 
+### Uso y coste: dinero por agente
+
+El mismo panel (⚙ → **«Uso y coste…»**) dice también cuánto dinero supone lo que haces, para cada agente:
+
+- **Pagado por uso**: lo que pagaste en el periodo por los agentes que van **por API** (pagas lo que gastas).
+- **A precios de API**: lo que valdría todo lo usado si lo pagaras por API, también lo de tus suscripciones. Lo que
+  sale de tokens estimados lleva «≈» (Hermes, ver abajo) y se avisa de las llamadas que no tienen precio.
+- **Presupuesto del mes** (si lo pones): lo pagado por API desde el día 1, con su barra. Al llegar al **80 %** sale un
+  aviso en **«Te necesita»** (escritorio, web y Órbita) y otro al **pasarlo**; cada uno una vez al mes. No para a
+  los agentes: solo avisa.
+- **Gráfico por día** (7 días, 30 días o todo; como mucho los últimos 30 días): la barra es lo que valió a precios de
+  API y la parte naranja lo que pagaste por uso.
+- **¿Te compensan tus suscripciones?**: para cada suscripción con precio, compara lo que pagas al mes con lo que
+  habría costado por API lo que hiciste con ella en los **últimos 30 días** (sea cual sea el periodo elegido), y
+  cuánto te sale cada petición. Solo cuenta lo hecho desde kywai: si usas la misma cuenta en otros sitios, te rinde
+  más de lo que sale.
+- En **«Por agente»** hay dos columnas más: cómo pagas ese agente y su coste a precios de API. En el detalle de cada
+  petición, el coste de cada paso (con «≈» si es estimado y «—» si no tiene precio). El CSV lleva `coste_api_usd` y
+  `coste_origen` (cli, tabla, estimado, gratis o sin_precio).
+
+**Cómo pagas cada agente, precios y presupuesto** (desplegable al final de la sección «Coste»):
+
+- **Moneda**: euros o dólares; con euros, cuántos euros es 1 $ (0,87 de fábrica; cámbialo si quieres el cambio del
+  día). Los precios de API van en dólares y se convierten.
+- **Cómo pagas**: una línea por suscripción (los grupos de cuota: Claude, GPT, Gemini, Muse, Local) y por cada agente
+  suelto (Hermes y los de catálogo). Suscripción (con su precio al mes), pago por uso (API), gratis o en tu equipo.
+  Una suscripción vale para todos los agentes de su grupo, también sus becarios. Lo local ya sale «En tu equipo» y
+  un agente con un modelo gratis (Kilo con `kilo/…/free`, OpenRouter `…:free`) sale «Gratis». Los agentes sin indicar
+  cuentan a precios de API, pero no como pagado.
+- **Presupuesto al mes por API** (vacío: sin límite).
+- **Precios por millón de tokens (en dólares)**: entrada, entrada leída de caché y salida de cada modelo. Vienen los
+  oficiales comprobados el 7 nov 2026 (Claude, GPT y Gemini); los que salen de una fuente no oficial o son de
+  promoción lo dicen al lado. Se pueden cambiar (el cambiado sale en otro color, con «Original» para volver) y
+  añadir otros modelos por su nombre o parte de él («deepseek» vale para «deepseek-v4-chat»). Los alias de Claude
+  Code (opus, sonnet, haiku, fable) son el modelo actual. Sin modelo elegido se usa el de fábrica del CLI (Codex:
+  GPT-6.1 Sol; Gemini: 3.8 Flash).
+
+De dónde sale cada cifra:
+
+| Agente | Coste |
+|---|---|
+| Claude Code | **Dato real**: lo dice el propio Claude Code al terminar (`total_cost_usd`, a precios de API también con suscripción) |
+| Codex, Gemini, Qwen | Sus tokens × la tabla de precios |
+| Hermes, Muse y los de catálogo | No dicen sus tokens: se **estiman** por la longitud del encargo y de la respuesta (unos 4 caracteres por token) × la tabla. Es un mínimo: no cuenta lo que el agente leyó o pensó por dentro |
+| Ollama, LM Studio, modelos gratis | 0 |
+
+**En Órbita**, el panel **«Uso y coste»** (antes «Consumo») enseña lo mismo de los últimos 30 días arriba del
+todo: pagado por uso y a precios de API, el presupuesto del mes con su barra y si compensa cada suscripción; y en
+«Por agente», debajo de los tokens, su coste a precios de API. Lo que pagas y los precios se cambian en el
+escritorio o la web. La API móvil lo da en `GET /usage/cost` y en `usage.cost` de la instantánea (ver
+[docs/mobile-api](mobile-api/README.md)).
+
+Se guarda en `config.json` (`costs`) y en cada llamada del registro (`costUsd` del CLI y, si no dio tokens,
+`estInput`/`estOutput`). Las peticiones de antes de esta versión salen con el coste calculado con la tabla (las de
+Claude, sin su dato real).
+
 ### Cómo rinde cada agente
 
-⚙ → **«Cómo rinde cada agente…»** (también desde el enlace «¿Y la calidad?» de «Consumo y tokens…») enseña, para
+⚙ → **«Cómo rinde cada agente…»** (también desde el enlace «¿Y la calidad?» de «Uso y coste…») enseña, para
 cada agente y por dificultad (difíciles, normales y fáciles, la que pone el coordinador a cada tarea; kywai no
 clasifica las tareas por tipo), en los últimos 7 o 30 días o en todo el registro, y si quieres solo del proyecto
 abierto:
@@ -1558,7 +1618,7 @@ las filas que se apartan del total. Se le pide que, entre los que pueden hacer l
 en esa dificultad aunque tarde o gaste más: la calidad pesa más que la velocidad y el coste; la cuota y estar libre
 deciden solo entre agentes parecidos.
 
-Sale del mismo registro que «Consumo y tokens…» (`usage-runs.json`): para ello cada llamada de tarea guarda su
+Sale del mismo registro que «Uso y coste…» (`usage-runs.json`): para ello cada llamada de tarea guarda su
 dificultad, cada verificación su veredicto y cada llamada si la detuviste. Los registros de antes de esta versión
 no tenían esos datos: sus tareas salen como dificultad «Sin dato», sin verificación, y una llamada que no salió
 bien en una petición cancelada se toma como cancelada. La API móvil lo da en `GET /quality` (ver
