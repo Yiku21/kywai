@@ -117,7 +117,23 @@
   background: var(--bg-surface);
 }
 
+.linkItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.linkName {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
 .link {
+  margin-top: 2px;
   display: flex;
   align-items: center;
   gap: 8px;

@@ -2235,4 +2235,13 @@ export const zh: Record<string, string> = {
   "Dejará de conectarse con el otro kywai y se reiniciará: aquí correrán los agentes y se guardarán los proyectos.": "它将不再连接另一个 kywai 并重新启动：代理将在这里运行，项目也保存在这里。",
   "Usar este equipo como servidor…": "将这台电脑用作服务器…",
   "Deja de conectarse con el otro kywai y se reinicia: aquí correrán los agentes": "不再连接另一个 kywai 并重新启动：代理将在这里运行",
+  // Ajustes → Acceso remoto: nombre de cada enlace de acceso
+  "Seguro con Tailscale": "Tailscale 安全链接",
+  "Funciona en Órbita y con el micrófono, y el navegador no muestra avisos.": "可用于 Órbita 和麦克风，浏览器不会显示警告。",
+  "Seguro (Órbita y micrófono)": "安全链接（Órbita 和麦克风）",
+  "Es el que pide la app Órbita, y en el navegador te deja grabar notas de voz. La primera vez el navegador avisa del certificado: acéptalo.": "Órbita 应用需要的就是这个；在浏览器中可以录制语音笔记。第一次打开时浏览器会提示证书，接受即可。",
+  "Navegador por IP": "浏览器（IP）",
+  "Es el más directo para abrir kywai en el navegador de otro equipo de tu red de Tailscale. No deja usar el micrófono.": "在 Tailscale 网络中其他设备的浏览器里打开 kywai 最直接的方式。无法使用麦克风。",
+  "Navegador por nombre del equipo": "浏览器（设备名）",
+  "Hace lo mismo que el anterior, pero con el nombre del equipo en Tailscale, así que sigue valiendo aunque cambie la IP.": "与上一个相同，但使用设备在 Tailscale 中的名称，即使 IP 变化也仍然有效。",
 }
