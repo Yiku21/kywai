@@ -40,6 +40,8 @@ export interface McpLaunch {
   configFile: string
   /** Para anularlo al terminar la tarea. */
   token: string
+  /** Los servidores del usuario que van en el mismo archivo (sus herramientas se permiten sin preguntar). */
+  extraNames: string[]
 }
 
 interface ToolDef {
@@ -124,8 +126,11 @@ export function stopCoworkMcp(): void {
   sessions.clear()
 }
 
-/** Las herramientas para una tarea (null si el servidor no está en marcha). */
-export function mcpForTask(ctx: McpTaskContext): McpLaunch | null {
+/**
+ * Las herramientas para una tarea (null si el servidor no está en marcha). `extra` son los servidores que el usuario
+ * encendió para este agente (⚙ → Ajustes → Extensiones), ya en el formato de Claude: van en el mismo archivo.
+ */
+export function mcpForTask(ctx: McpTaskContext, extra: Record<string, unknown> = {}): McpLaunch | null {
   if (!server || !scriptPath) return null
   const token = randomBytes(24).toString('hex')
   const command = process.execPath
@@ -133,12 +138,12 @@ export function mcpForTask(ctx: McpTaskContext): McpLaunch | null {
   const env = { ELECTRON_RUN_AS_NODE: '1', AICW_MCP_URL: `http://127.0.0.1:${port}`, AICW_MCP_TOKEN: token }
   const configFile = join(dirname(scriptPath), `tarea-${token.slice(0, 16)}.json`)
   try {
-    writeFileSync(configFile, JSON.stringify({ mcpServers: { [MCP_SERVER_NAME]: { type: 'stdio', command, args, env } } }), { encoding: 'utf8', mode: 0o600 })
+    writeFileSync(configFile, JSON.stringify({ mcpServers: { ...extra, [MCP_SERVER_NAME]: { type: 'stdio', command, args, env } } }), { encoding: 'utf8', mode: 0o600 })
   } catch {
     return null
   }
   sessions.set(token, { ...ctx, questions: 0 })
-  return { command, args, env, token, configFile }
+  return { command, args, env, token, configFile, extraNames: Object.keys(extra).filter((n) => n !== MCP_SERVER_NAME) }
 }
 
 export function releaseMcp(launch: McpLaunch | null | undefined): void {

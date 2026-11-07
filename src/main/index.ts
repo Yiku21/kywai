@@ -4,6 +4,7 @@ import { basename, join } from 'node:path'
 import { hostname } from 'node:os'
 import { pathToFileURL } from 'node:url'
 import type { AddAgentInput, AgentId, ProjectState, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
   finishSetup,
@@ -41,7 +42,7 @@ import { ensureWebCert } from './selfCert'
 import { mobileSigningKey } from './mobileAuth'
 import { disableHttps, enableHttps, httpsInfo } from './tailscale'
 import { setAgentKeyResolver } from './agents/generic'
-import { agentKey } from './keys'
+import { agentKey, systemCipher } from './keys'
 import { checkAuth, detectTools, installTool, openLogin, refreshPath, saveAgentKey, saveGeminiKey } from './setup'
 import { modelOptions } from './models'
 import { contextMenuItems } from './contextMenu'
@@ -82,6 +83,7 @@ import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
+import { McpRegistry, initExtensions, listMcp, removeMcp, saveMcp, setMcpAgents, testMcp } from './extensions'
 import { deleteTraces, flushTaskTraces, getTaskTrace, initTaskTraces } from './taskTrace'
 import { onMacPermissionPrompt, startMacPermissionWatch, stopMacPermissionWatch } from './macPermissions'
 import { launchCommand, linuxAutostartEnabled, setLinuxAutostart } from './linuxDesktop'
@@ -691,6 +693,12 @@ function registerIpc(): void {
     setUiTheme(id)
     emit({ kind: 'config.updated', config: getConfig() })
   })
+  // Extensiones: servidores MCP del usuario y a qué agentes llegan. Las claves solo entran (nunca vuelven a la interfaz).
+  handle('listMcpServers', () => listMcp())
+  handle('saveMcpServer', (input: unknown, replaces?: unknown) => saveMcp(input as McpServerInput, typeof replaces === 'string' ? replaces : undefined))
+  handle('removeMcpServer', (id: unknown) => removeMcp(String(id)))
+  handle('testMcpServer', (id: unknown) => testMcp(String(id)))
+  handle('setMcpServerAgents', (id: unknown, agents: unknown) => setMcpAgents(String(id), agents))
   handle('setPlanApproval', (on: unknown) => {
     if (typeof on !== 'boolean') throw new Error(tr('Valor no válido'))
     setPlanApproval(on)
@@ -894,6 +902,7 @@ async function boot(): Promise<void> {
   initAgentSessions(cfg.workspaceRoot)
   initInbox(cfg.workspaceRoot)
   initSkills(cfg.workspaceRoot)
+  initExtensions(new McpRegistry(join(app.getPath('userData'), 'mcp-servers.json'), systemCipher))
   void startCoworkMcp(cfg.workspaceRoot)
   // El botón «Abrir Compartir pantalla» de los avisos de permisos: solo tiene sentido con el servidor en un Mac.
   if (process.platform === 'darwin') setScreenShareUrl(() => {
