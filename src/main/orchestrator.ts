@@ -56,6 +56,8 @@ import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, rem
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
 import { parseDirect } from '@shared/directMessage'
+import { createRoutine } from './routines'
+import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
 
 type Deliverable = 'file' | 'text'
 
@@ -962,6 +964,28 @@ function removeBecario(id: AgentId, delayMs = BECARIO_LINGER_MS): void {
 
 /** «/model» y sus variantes, como en el cuadro de texto del escritorio y de Órbita. */
 const MODEL_COMMAND = /^\/(model|models|modelo|modelos)$/i
+/** «/rutina …»: crea una rutina (src/shared/routines.ts entiende el horario), no es un encargo para el equipo. */
+const ROUTINE_COMMAND = /^\/(rutina|rutinas|routine)\b/i
+
+/**
+ * «/rutina …» que llega como mensaje (desde Órbita, el MCP o cualquier cliente que no la cree él mismo): se crea
+ * aquí la rutina y se contesta en el chat, sin gastar una llamada a Hermes. Sola, «/rutina» explica cómo se escribe.
+ */
+function routineCommandReply(projectId: string, text: string): { text: string; routine?: { id: string; name: string } } {
+  if (/^\/\w+\s*$/.test(text)) return { text: routineCommandHelp() }
+  const cmd = parseRoutineCommand(text)
+  if ('error' in cmd) return { text: cmd.error }
+  try {
+    const r = createRoutine(projectId, { ...cmd, enabled: true })
+    const next = r.nextAt ?? null
+    return {
+      text: tr('Rutina creada: «{name}» · {when}{next}. Está en la pestaña Rutinas.', { name: r.name, when: describeTrigger(r.trigger), next: next ? tr(' (la próxima, {when})', { when: describeWhen(next) }) : '' }),
+      routine: { id: r.id, name: r.name }
+    }
+  } catch (e) {
+    return { text: (e as Error).message }
+  }
+}
 
 /**
  * Una petición al chat. Con `routine`, la lanza una rutina (src/main/routines.ts): es una petición normal (plan,
@@ -1004,6 +1028,15 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
       author: { type: 'system' },
       text: tr('«/model» abre la lista de modelos de Hermes para cambiarlo: escríbelo en el chat del ordenador o en Órbita (actualízala en Ajustes → Órbita), o pulsa a Hermes en el espacio → «Modelo».')
     })
+    return { runId }
+  }
+
+  if (!routine && !atts.length && ROUTINE_COMMAND.test(text.trim())) {
+    const runId = randomUUID()
+    const base = { projectId, runId, createdAt: Date.now() }
+    pushMessage({ ...base, id: randomUUID(), ...(input.clientMessageId ? { clientMessageId: input.clientMessageId } : {}), author: { type: 'user' }, text })
+    const reply = routineCommandReply(projectId, text.trim())
+    pushMessage({ ...base, id: randomUUID(), author: { type: 'system' }, text: reply.text, ...(reply.routine ? { routine: reply.routine } : {}) })
     return { runId }
   }
 
