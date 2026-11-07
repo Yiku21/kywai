@@ -220,7 +220,7 @@ describe('lo que recibe cada CLI', () => {
   it('Codex: un lanzador por servidor local, que arranca el servidor con sus claves', async () => {
     const c = codexMcp([server()], join(dir, 'mcp'), 'abc', false)
     expect(c.files).toHaveLength(1)
-    expect(c.args).toEqual(['-c', `mcp_servers.eco.command=${c.files[0]}`, '-c', 'mcp_servers.eco.startup_timeout_sec=60'])
+    expect(c.args).toEqual(['-c', `mcp_servers.eco.command=${c.files[0].replace(/\\/g, '/')}`, '-c', 'mcp_servers.eco.startup_timeout_sec=60'])
     // Todo cabe en la consola sin comillas raras.
     expect(() => buildCommandLine('codex', codexArgs('', 'work', [], 'project', undefined, undefined, c.args))).not.toThrow()
     // El lanzador funciona de verdad: el servidor recibe su variable.

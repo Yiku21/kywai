@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, normalize } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { McpRegistry, initExtensions, listMcp } from './extensions'
 import { initSkills, listSkills } from './skills'
@@ -178,7 +178,7 @@ describe('plugins', () => {
       ['local', 'notas', 0],
       ['remoto', 'notas', 0]
     ])
-    expect(servers[0].command).toBe(join(root, 'data', 'plugins', 'notas', 'bin', 'server'))
+    expect(normalize(servers[0].command ?? '')).toBe(join(root, 'data', 'plugins', 'notas', 'bin', 'server'))
     expect(existsSync(join(root, 'data', 'plugins', 'notas', '.claude-plugin', 'plugin.json'))).toBe(true)
   })
 
