@@ -258,12 +258,14 @@
 }
 
 .row:hover .rowActions,
-.row:focus-within .rowActions {
+.row:focus-within .rowActions,
+.rowMenu .rowActions {
   opacity: 1;
   pointer-events: auto;
 }
 
-.row:hover .item {
+.row:hover .item,
+.rowMenu .item {
   background: var(--bg-hover);
 }
 

@@ -421,6 +421,31 @@ function registerIpc(): void {
     emit({ kind: 'conversations.updated', projectId })
     return conversations.listConversations(projectId)
   })
+  handle('setConversationPinned', (projectId: unknown, conversationId: unknown, pinned: unknown) => {
+    if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
+    conversations.setConversationPinned(projectId, conversationId, pinned === true)
+    emit({ kind: 'conversations.updated', projectId })
+    return conversations.listConversations(projectId)
+  })
+  handle('pinnedConversations', () => conversations.pinnedConversations())
+  handle('forkConversation', (projectId: unknown, conversationId: unknown) => {
+    if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
+    const id = conversations.forkConversation(projectId, conversationId)
+    emit({ kind: 'conversations.updated', projectId })
+    return id
+  })
+  handle('moveConversation', (projectId: unknown, conversationId: unknown, toProjectId: unknown) => {
+    if (!store.isValidProjectId(projectId) || !store.isValidProjectId(toProjectId) || !conversations.isValidConversationId(conversationId)) {
+      throw new Error(tr('Conversación no válida'))
+    }
+    const wasOpen = store.getProject(projectId).conversation?.id === conversationId
+    if (wasOpen && activeRunFor(projectId)) throw new Error(tr('El equipo está trabajando en esta conversación: espera a que termine o detenlo para moverla'))
+    const id = conversations.moveConversation(projectId, conversationId, toProjectId)
+    if (wasOpen) emit({ kind: 'chat.cleared', projectId, conversationId: store.getProject(projectId).conversation?.id })
+    emit({ kind: 'conversations.updated', projectId })
+    emit({ kind: 'conversations.updated', projectId: toProjectId })
+    return id
+  })
   handle('setProjectPinned', (projectId: unknown, pinned: unknown) => {
     if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     conversations.setPinned(projectId, pinned === true)
