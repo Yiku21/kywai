@@ -4607,6 +4607,11 @@
           "planApproval": {
             "type": "boolean",
             "description": "El coordinador espera el visto bueno antes de ejecutar cada plan."
+          },
+          "theme": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,39}$",
+            "description": "Tema elegido en el escritorio (id de lib/theme.ts: «grafito», «mundo-bosque»…). Órbita se pinta igual."
           }
         },
         "required": [

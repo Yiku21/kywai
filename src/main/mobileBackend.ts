@@ -108,7 +108,7 @@ export class MobileBackend {
       }) ?? [],
       memory: state?.memory ?? [],
       usage: usageProjection(runs, runtime.quotas),
-      settings: { agentAccess: config.agentAccess, planApproval: config.planApproval !== false },
+      settings: { agentAccess: config.agentAccess, planApproval: config.planApproval !== false, theme: config.uiTheme ?? 'clasico' },
       sequence: watermark,
       capabilities: {
         apiVersion: 'v1', chat: true, conversations: true, stop: true, resume: true,

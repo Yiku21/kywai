@@ -43,7 +43,8 @@ export interface MobileSnapshot {
   memory: MemoryEntry[]
   usage: MobileUsage
   /** planApproval: el coordinador espera tu visto bueno antes de ejecutar cada plan. */
-  settings: { agentAccess: AgentAccess; planApproval: boolean }
+  /** theme: el tema elegido en el escritorio (id de lib/theme.ts), para que Órbita se vea igual. */
+  settings: { agentAccess: AgentAccess; planApproval: boolean; theme?: string }
   sequence: number
   capabilities: {
     apiVersion: 'v1'

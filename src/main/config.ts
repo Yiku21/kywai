@@ -375,6 +375,18 @@ export function setLanguage(id: Lang): void {
   saveConfig()
 }
 
+/** Ids de tema válidos (los de lib/theme.ts del escritorio: «grafito», «mundo-bosque»…). */
+export const UI_THEME_RE = /^[a-z][a-z0-9-]{0,39}$/
+
+/** Tema de la interfaz: lo guarda el escritorio y lo lee Órbita para verse igual. */
+export function setUiTheme(id: string): void {
+  if (!UI_THEME_RE.test(id)) return
+  const cfg = getConfig()
+  if (cfg.uiTheme === id) return
+  cfg.uiTheme = id
+  saveConfig()
+}
+
 /** Pedir (o no) el visto bueno del usuario antes de ejecutar cada plan (afecta a los planes que vengan). */
 export function setPlanApproval(on: boolean): void {
   getConfig().planApproval = !!on
