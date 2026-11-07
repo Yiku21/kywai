@@ -1,0 +1,118 @@
+# Publica Órbita (la app de Android) sola cada vez que cambia su código en master: pasa las pruebas, la compila
+# firmada con la clave de siempre, comprueba que el certificado es el mismo de la versión anterior y sube
+# android/release/ (orbita.apk + orbita.json). El servidor la recibe con «Buscar actualizaciones» y el móvil la
+# instala desde Ajustes → Órbita → «Buscar actualizaciones».
+#
+# Secretos del repositorio (Settings → Secrets and variables → Actions):
+#   ORBITA_KEYSTORE_BASE64   el archivo .jks de la clave estable, en base64
+#   ORBITA_KEYSTORE_PASSWORD storePassword
+#   ORBITA_KEY_ALIAS         keyAlias
+#   ORBITA_KEY_PASSWORD      keyPassword
+name: Publicar Órbita
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'android/**'
+      - '!android/release/**'
+      - '.github/workflows/publicar-orbita.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publicar-orbita
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Comprobar que la clave de firma está guardada
+        env:
+          KEYSTORE: ${{ secrets.ORBITA_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ORBITA_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ORBITA_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ORBITA_KEY_PASSWORD }}
+        run: |
+          for v in KEYSTORE STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Falta el secreto de la clave de Órbita ($v). Guárdalo en Settings → Secrets and variables → Actions (ver docs/MANUAL.md)."
+              exit 1
+            fi
+          done
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # el número de versión cuenta los commits
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Pruebas de Órbita
+        working-directory: android
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+
+      - name: Preparar la clave de firma
+        env:
+          KEYSTORE: ${{ secrets.ORBITA_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ORBITA_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ORBITA_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ORBITA_KEY_PASSWORD }}
+        run: |
+          dir="$RUNNER_TEMP/firma-orbita"
+          mkdir -p "$dir" && chmod 700 "$dir"
+          printf '%s' "$KEYSTORE" | tr -d '\r\n ' | base64 -d > "$dir/orbita.jks"
+          {
+            echo "storeFile=$dir/orbita.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > "$dir/firma.properties"
+          echo "FIRMA_ORBITA=$dir/firma.properties" >> "$GITHUB_ENV"
+
+      - name: Compilar y publicar la versión firmada
+        working-directory: android
+        run: ./gradlew --no-daemon :app:publishOrbita -PaicoworkSigning="$FIRMA_ORBITA"
+
+      - name: Comprobar que la firma es la de siempre
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          huella() { "$apksigner" verify --print-certs "$1" | grep -m1 'certificate SHA-256 digest' | awk '{print $NF}'; }
+          nueva=$(huella android/release/orbita.apk)
+          [ -n "$nueva" ] || { echo "::error::La APK nueva no está firmada."; exit 1; }
+          if git cat-file -e HEAD:android/release/orbita.apk 2>/dev/null; then
+            git show HEAD:android/release/orbita.apk > "$RUNNER_TEMP/anterior.apk"
+            anterior=$(huella "$RUNNER_TEMP/anterior.apk")
+            if [ "$nueva" != "$anterior" ]; then
+              echo "::error::La APK nueva está firmada con otro certificado que la anterior: el móvil no la instalaría encima. Revisa los secretos de la clave."
+              exit 1
+            fi
+          fi
+          echo "Firma correcta (mismo certificado que la versión anterior)."
+
+      - name: Subir la APK
+        run: |
+          version=$(sed -n 's/.*"versionName":"\([^"]*\)".*/\1/p' android/release/orbita.json)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android/release/orbita.apk
+          git add android/release/orbita.json
+          git commit -m "Órbita $version publicada automáticamente desde GitHub con la clave de siempre"
+          for intento in 1 2 3 4; do
+            git pull --rebase origin master && git push origin HEAD:master && exit 0
+            sleep $((2 ** intento))
+          done
+          echo "::error::No se pudo subir la APK a master."
+          exit 1
+
+      - name: Borrar la clave de firma
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/firma-orbita"

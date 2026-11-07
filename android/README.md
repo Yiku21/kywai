@@ -23,7 +23,8 @@ JDK 17 o superior (probado con 21) y Android SDK 35 (`local.properties` → `sdk
 
 ## Publicar una versión para el móvil
 
-Después de cambiar la app: `./gradlew :app:publishOrbita` y sube `android/release/` con el resto del código. La
+Al subir a `master` un cambio en `android/`, GitHub Actions («Publicar Órbita») la publica sola con la clave guardada
+como secreto del repositorio (ver docs/MANUAL.md). A mano: `./gradlew :app:publishOrbita` y sube `android/release/` con el resto del código. La
 compila firmada con la clave estable (`aicoworkSigning` en `~/.gradle/gradle.properties`, fuera del repositorio) y
 deja `orbita.apk` y `orbita.json` (número de versión, huella SHA-256 y fecha). El número de versión son los commits
 del repositorio y nunca baja de la versión ya publicada + 1 (así el repositorio público, con menos historial, tampoco
