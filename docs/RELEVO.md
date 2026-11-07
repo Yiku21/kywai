@@ -17,6 +17,7 @@
      nombre viejo** (rompería la redirección).
    - Un cambio se hace en el original y se pasa al público con `git format-patch -1` + `git am -3` (si falla,
      `git apply --reject` y arreglar a mano). No empujes el historial privado al público.
+   - **Diferencias que existen hoy a propósito o pendientes** (no las «arregles» sin preguntar; ver §2.1).
 3. **Nada personal en el repo público**: ni el nombre del dueño ni de su equipo, ni sus rutas personales
    (se escribe «el dueño», `mac-mini`, `usuario`).
 4. **Nunca escribas el código de acceso (`?t=…`), llaves de dispositivo, claves de API ni la IP del servidor** en
@@ -88,6 +89,18 @@ ko-fi.com (página de kywai) (Ko-fi renombrado a kywai). Logo: SVG en `/mnt/proj
 | **Órbita** | Android (móvil y tableta) | Habla con la API móvil v1. APK en cada Release como `kywai-orbita.apk` y en kywai.app. |
 | **Web pública** | kywai.app | Carpeta `web/` del repo **público**; `node web/build.mjs`; textos en `web/textos.mjs` (5 idiomas, el build falla si falta uno). Se publica sola con cada push a master del público. |
 
+### 2.1 Diferencias entre los dos repos (comprobado con `diff -rq` el 7 nov)
+- Solo en el público: `web/`, `.github/workflows/publicar-web.yml`, `docs/video/`, `docs/img/video-presentacion.gif`.
+- Solo en el original: la **verificación con evidencia propia de pruebas** (`src/main/projectChecks.ts`,
+  `src/shared/testEvidence.ts` + test, y sus cambios en `orchestrator.ts`, `types.ts`, `agentQuality.ts`,
+  `QualityDialog.tsx`, `coordinatorGuide.ts`, diccionarios i18n y pruebas). **Pendiente de portar al público.**
+- Algunas pruebas y documentos difieren solo por quitar datos personales en el público.
+- `android/release/orbita.json`: el original va por la **1.27x** y el público por la **1.16x** (cada uno cuenta sus
+  commits). Android no instala una versión menor encima: una APK del público no se instala sobre una del original. El
+  servidor (Mac mini) sirve la del original; las Releases y kywai.app, la del público.
+- Para comprobarlo tras un cambio: `diff -rq --exclude=.git --exclude=node_modules --exclude=web kywai kywai-original`;
+  no deben aparecer diferencias nuevas aparte de estas.
+
 ### Trampas del Mac mini
 - **El actualizador de la app resetea el repo local a `origin/master`** y aparta los commits sin subir en una rama
   `apartado/<fecha>`. Si trabajas allí, sube enseguida lo commiteado.
@@ -139,6 +152,13 @@ scripts/       instalar/actualizar en Mac y Linux, firmar-mac.sh, publicar-clien
 - Para añadir un método: tipo en `CoworkApi` (`src/shared/types.ts`) → `handle(...)` en `index.ts` → línea en
   `src/preload/index.ts` (`ipcRenderer.invoke('cowork:x', …)`) → si el cliente lo necesita, también
   `src/preload/client.ts` → si se usa desde Órbita, endpoint en la API móvil + openapi + capacidad.
+- **Red**: el servidor escucha en **8787** (HTTP) y **8788** (HTTPS con certificado propio, el puerto siguiente;
+  opcional Tailscale Serve para el micrófono), **solo en `127.0.0.1` y en la IP de Tailscale**, nunca en la red local.
+  `npm run web` usa 5199 y es solo demo, sin motor.
+- Cómo viaja una petición: `orchestrator.sendMessage` (expande `/rutina`, plantillas, órdenes de mods, `@Agente`) →
+  el coordinador planifica (JSON) → visto bueno opcional → tareas (en paralelo si no dependen) → cada una lanza el
+  CLI oficial con el encargo por stdin/archivo → `TraceUpdate` → `taskTrace` → `workSteps` lo resume en el chat →
+  `verifyTask` (otra familia) → `finalAnswer`.
 - Eventos al vivo: `events.ts` (`config.updated`, `templates.updated`, `inbox.updated`…) llegan por IPC y por WebSocket.
 - **API móvil v1** (`/api/mobile/v1/...`): contrato en `docs/mobile-api/openapi.json`. Órbita mira `capabilities` para
   enseñar o esconder funciones (p. ej. `modPanels`, `usageCost`, `theme`, `templates`): un servidor
@@ -186,7 +206,16 @@ al reiniciar; si tocas `config.ts`, comprueba que los campos opcionales sobreviv
   por tarea), `templates.json`, rutinas.
 - **userData** (`AI Cowork`): `mcp-servers.json` (servidores MCP del usuario; claves cifradas), `agent-keys.json`
   (claves de API, cifrado con el llavero; **nunca** van por web, API móvil ni config.json), `devices.json`,
-  `mobile-key`, `plugins.json` + `plugins/`, `mods/` + permisos de hooks, certificado web propio.
+  `mobile-key`, `access-log.jsonl` (registro de accesos), `plugins.json` + `plugins/`, `mods/` + permisos de hooks,
+  `templates.json`, `sync.json` + `sync-state/` (sincronización del cliente), `client-release/`, `source-dir.txt`
+  (carpeta del código para «Buscar actualizaciones»), certificado web propio (`workspace/web-cert/`).
+- **`client.json`** (userData): el **modo de esta instalación**:
+  `{ mode: 'server' | 'client', server?: { origin, name, deviceId, token, encrypted }, lastOrigin? }`. Sin archivo, una
+  instalación nueva pregunta; si ya hay `workspace/config.json`, es servidor. **El instalador no lo borra** (por eso un
+  PC que fue cliente seguía de cliente). Si el servidor rechaza la llave, se olvida la llave y se guarda solo
+  `lastOrigin`. El botón «Usar este equipo como servidor» (pantalla de conectar, sin conexión, Ajustes → Conexión, menú
+  del Mac) lo vuelve servidor. El `token` va cifrado con el llavero si se puede: no lo imprimas.
+- En desarrollo `workspace/` está en la raíz del repo y **no va a git**.
 
 ---
 
@@ -233,13 +262,25 @@ al reiniciar; si tocas `config.ts`, comprueba que los campos opcionales sobreviv
   y si no, «sin verificar»; **hasta 2 correcciones por tarea** (el relevo no reinicia la cuenta), un relevo y luego
   «requiere intervención» en «Te necesita». En el simulador de pruebas del motor el verificador se reconoce por el texto
   literal del veredicto: **no pongas ese texto literal en `coordinatorGuide.ts`**.
-- Verificación con evidencia propia de pruebas; se salta la revisión si la tarea no cambió archivos.
+- Verificación con evidencia propia de pruebas (de momento solo en el repo original, §2.1); se salta la revisión si la tarea no cambió archivos.
 - kywai espera a Hermes hasta **6 min** y le pide planes escuetos (2 a 6 frases por tarea).
 - **LM Studio** se enciende solo (`lms server start`) al arrancar, con ⟳/cuota/«Reiniciar» y antes de una tarea local;
   espera sin dar falsos «apagado».
 - **«@Agente …» o «/directo Agente …»** manda el texto tal cual a ese agente, sin Hermes.
-- **Rutinas**: hora, cada N h, webhook (`/hooks/…` con secreto; GitHub firmado), carpeta; nunca dos a la vez; una
-  sola recuperación de las horas perdidas. `/rutina …` lo resuelve el servidor.
+- **Rutinas** (PR #18 **FUSIONADO** en los dos repos el 7 nov): hora, cada N h, **una sola vez** (trigger `once`
+  {date, time}: «mañana a las 7», «el viernes», «el 15/11», «dentro de 2 horas»; se desactiva sola al lanzarse),
+  webhook (`/hooks/…` con secreto; GitHub firmado), carpeta; nunca dos a la vez; una sola recuperación de las horas
+  perdidas con aviso.
+  - `/rutina …` lo resuelve el **servidor** en `orchestrator.sendMessage`, antes que las plantillas y sin Hermes (por
+    eso vale desde Órbita).
+  - Visto bueno: `needsApproval(run)` = `askPlan` de la plantilla, `askApproval` de la rutina o `config.planApproval`
+    en un chat normal. **Por defecto las rutinas no esperan visto bueno.**
+  - Hermes puede devolver `"routine"` en su JSON → `ChatMessage.routineProposal` → tarjeta Crear rutina / Cambiar /
+    Descartar (`decideRoutineProposal`). **Nunca la crea solo.**
+  - API móvil: `GET /routines`, `POST /routines`, `/routines/{id}`, `/routines/{id}/delete`, `/routines/{id}/run`,
+    `/messages/{id}/routine-proposal/(create|dismiss)`; capacidades `routines`, `routinesEdit`, `routineProposals`.
+    **Nunca devuelve el secreto del webhook.** Órbita: `ui/orbita/PanelsRoutines.kt`, sección Rutinas en «Más»
+    (sus traducciones van en una `partN` propia de cada `I18n*.kt`).
 - **Plantillas de tareas** (`templates.ts`, `templates.json`): huecos `{pr}`, `{carpeta}`…, `/orden`, agente directo,
   visto bueno por plantilla, «Convertir en rutina».
 - **Cambios por tarea** con diff y «Deshacer» (`checkpoints.ts`, repo git en la sombra); copias aparte si dos tareas
@@ -247,8 +288,28 @@ al reiniciar; si tocas `config.ts`, comprueba que los campos opcionales sobreviv
 - **Aviso de permisos de macOS** (`macPermissions.ts`) a «Te necesita»; aviso a los 3 min de silencio de un agente.
 - **Uso y coste**: ⚙ → «Uso y coste…»; dinero por agente, «¿compensa la suscripción?», presupuesto de API con aviso.
   Hermes no informa tokens (va por OmniRoute): se estima.
-- Música: pestañas Audius y Radios (SomaFM). **openspot y Suno descartados** (ilegal / sin API y sus condiciones lo
-  prohíben). No los añadas.
+- Música: YouTube con el reproductor oficial youtube-nocookie (con anuncios: es lo que lo hace legal), pestañas Audius
+  y Radios (SomaFM). **openspot y Suno descartados** (ilegal / sin API y sus condiciones lo prohíben). No los añadas.
+  SomaFM da 403 si la página viene de localhost (desde file:// suena).
+- **Temas**: id en `lib/theme.ts`; grupos Mapas (`mundo-*`, `scene/worlds/`), Ciudad digital (Índigo, Frost Glass
+  = id `orbita`, Perla, Ónix, Esmeralda, Neón, Ultravioleta: **los ids no cambian**) y Decorados. Se sincroniza por el
+  servidor (`config.uiTheme`, `setUiTheme`, `POST /settings/theme`). Órbita solo toma los colores de los mapas (no sus
+  escenarios). En la escena 3D **no uses `state.clock.elapsedTime`** (R3F lo pone a 0 al cambiar de frameloop): usa
+  `registry.time` de `SceneClock` en `scene/World.tsx`.
+- **Barra lateral y conversaciones** (`conversations.ts`, `ui/sidebar/`): varias conversaciones por proyecto (la
+  abierta en `project.json`, las demás en `conversaciones/<id>.json` con sus sesiones de CLI); no se cambia de
+  conversación mientras el equipo trabaja; bifurcar y mover no copian sesiones de CLI. Buscar (Ctrl+K) e Historial
+  (`searchHistory`, `allConversations`, `GET /search`, `GET /chats/all`). Rueda ⚙ = menú corto + ventana de Ajustes
+  (Ctrl+,) con pestañas.
+- **Órbita**: cola **sin conexión** (mensajes y fotos guardados en `noBackupFilesDir`, salen en orden con WorkManager
+  `OutboxWorker`; el servidor ignora repetidos por `clientMessageId`; aprobar plan, detener y los botones de «Te
+  necesita» **siguen necesitando conexión, a propósito**). **Dictado**: un toque = reconocimiento del móvil en directo
+  (`LiveDictation.kt`), mantener pulsado = nota de voz que el servidor pasa por Whisper. Botón de cámara con «Hacer una
+  foto» / «Elegir de la galería» (el dueño **no** quiere «Desde archivos»: eso ya es el clip). Menú al mantener pulsado en
+  proyectos y chats (`SidebarRows.kt`). Avisos de «Te necesita» solo con la app abierta o hasta 10 min en segundo plano.
+- **Agentes gratis**: Kilo CLI está en el catálogo (modelo `kilo/kilo-auto/free`; sin ese modelo falla) con etiqueta
+  «Gratis» y botón «Solo gratis». Gemini CLI ya no es gratis con cuenta de Google (desde jun 2026): solo con clave de
+  AI Studio.
 
 ---
 
@@ -262,7 +323,11 @@ al reiniciar; si tocas `config.ts`, comprueba que los campos opcionales sobreviv
 - **Órbita** (`publicar-orbita.yml`): pruebas, firma con los secretos `ORBITA_KEYSTORE_BASE64`, `ORBITA_KEYSTORE_PASSWORD`,
   `ORBITA_KEY_ALIAS`, `ORBITA_KEY_PASSWORD` (ya guardados en ambos repos), **compara el certificado con la APK anterior**
   y commitea `android/release/orbita.apk` + `orbita.json`. `versionCode = max(nº commits, publicado + 1)`;
-  `versionName "1.N"`. Una APK con otra clave no se instala encima: nunca firmes con otra.
+  `versionName "1.N"`. Una APK con otra clave no se instala encima: nunca firmes con otra. Nunca publiques con
+  `-PorbitaVersionCode` (solo para emulador). Se dispara con cambios en `android/**` (menos `android/release/**`).
+  **Después de subir algo de Android, haz `git pull` antes del siguiente push**: el bot añade a master el commit
+  «Órbita 1.N publicada automáticamente…». Un clon superficial cuenta mal los commits: `git fetch --unshallow`.
+- El flujo del escritorio ignora `android/**`, `docs/**` y `*.md`: cambiar solo documentación no crea Release.
 - **Web** (público): `publicar-web.yml` construye `web/` y publica en Pages con dominio kywai.app. `build.mjs` añade
   `?v=<hash>` a los recursos (sin caché vieja).
 - **Cliente Windows instalado**: su parte nativa se publica con `npm run publicar-cliente` desde el PC (firma con
@@ -289,9 +354,15 @@ cd android && ./gradlew :app:testDebugUnitTest   # Órbita (~10 min, ~190 prueba
   Central da 429 → init script en `~/.gradle/init.d/` que cambia repo.maven.apache.org por
   `https://maven-central.storage-download.googleapis.com/maven2/` (el proyecto usa FAIL_ON_PROJECT_REPOS: no añadas
   repos con allprojects); Robolectric necesita a mano `android-all-instrumented` 14-robolectric-10818077-i7 y
-  15-robolectric-12650502-i7 en `~/.m2`. `captureToImage` no sirve en Órbita (el 3D nunca está quieto).
+  15-robolectric-12650502-i7 en `~/.m2`. `captureToImage` no sirve en Órbita (el 3D nunca está quieto). Un
+  `AlertDialog` con qualifiers de móvil (`w411dp`) se cuelga en Robolectric (`AppNotIdleException`): prueba los
+  diálogos con `w1280dp-h800dp`.
 - **Si fusionas master y chocan**: los `i18n-*.ts` suelen chocar porque todos añaden al final: quédate con las dos
-  partes. `openapi.json`: toma la de master y vuelve a añadir tus rutas. `capabilities`: une las dos listas.
+  partes. `openapi.json`: toma la de master y vuelve a añadir tus rutas. `capabilities`: une las dos listas. **La
+  unión automática vale solo para los diccionarios**: en código (p. ej. `App.tsx`) duplicó un import; revisa a mano.
+- **Cliente desactualizado**: si alguien ve la interfaz vieja, casi siempre es el cliente instalado, no el servidor.
+  Los textos de `src/main/client.ts` solo le llegan al republicar el cliente.
+- **Codex**: `codex exec resume` se implementó por documentación, sin probar con el CLI real.
 
 ---
 
@@ -305,15 +376,24 @@ cd android && ./gradlew :app:testDebugUnitTest   # Órbita (~10 min, ~190 prueba
   plantillas; Órbita sin conexión, cámara/galería, menú al mantener pulsado (falta probar en el móvil real).
 - Linux en escritorio real y ARM; actualización entre dos versiones descargadas de Releases (Windows/Mac/AppImage).
 
-**PR abiertos:** `kywai-original#18` y `kywai#18` (borrador; rutinas de una vez, sin visto bueno, `/rutina` en el
-servidor, tarjeta «Crear rutina» de Hermes, panel en Órbita), rama `claude/project-thread-w2nwte`. Sin probar con
-Hermes real. Revisa conflictos con master antes de fusionar.
+- Órbita en el móvil real: rediseño (color del 3D por tema), plantillas, uso y coste, historial, paneles de mods y el
+  panel de rutinas. **El dictado sí lo probó el dueño y funciona.**
+- Con agentes reales: verificación con evidencia de pruebas, retomar sesiones de Codex, «a dos manos», avances con
+  imágenes, rutinas propuestas por Hermes y rutinas de una sola vez.
+- Descarga real de plugins (codeload) y actualización desde una versión anterior al renombrado (0.1.126).
+
+**PR abiertos:** ninguno. Los #18 de rutinas están **fusionados** en los dos repos (7 nov).
 
 **Ideas aprobadas o propuestas sin hacer:**
 - Mejoras inspiradas en GG Framework (GG pasó a AGPL-3.0 el 4 nov: **reimplementa ideas, no copies código**):
   revisión automática de planes, avisar al agente de que nadie mira, informe de cierre, presupuesto por petición,
   banco de pruebas nocturno con agentes reales, detección de modelos locales. Hecho: verificación con evidencia propia.
-- Agentes gratis: propuesta de añadir **Kilo CLI** + etiqueta «Gratis» esperando el visto bueno del dueño.
+- Portar al repo público la verificación con evidencia de pruebas (§2.1).
+- Dar el servidor MCP propio de kywai (`coworkMcp.ts`) también a Codex (hoy Codex recibe los MCP del usuario, no el de kywai).
+- Avisos de Órbita con la app cerrada (plan propuesto: servicio en primer plano por Tailscale, canales por tipo,
+  Aprobar/Descartar en la notificación, título «Terminado» sin `tr()` en `runInbox`): esperando visto bueno.
+- Lista completa de conversaciones en Órbita.
+- Revisar precios no oficiales de Uso y coste (Gemini 3.8-flash, 3.5-flash-lite, gpt-6-sol).
 - Copias de seguridad (zip con manifest, sin secretos, rotación 7 diarias + 4 semanales): plan propuesto, sin visto
   bueno.
 - Hermes sin aprobaciones en el Mac (`approvals: mode: off` en su config, lo hace el dueño a mano).
@@ -324,6 +404,9 @@ Hermes real. Revisa conflictos con master antes de fusionar.
 **Cosas que el dueño tiene que hacer (no tú):** `claude auth login` en el Mac mini; `git remote set-url origin
 https://github.com/Yiku21/kywai-original.git` en el PC y el Mac; poner https://kywai.app en «Website» del About de
 GitHub; dar «Acceso total al disco» a kywai en el Mac tras la versión con firma estable.
+
+**Descartado (no lo propongas otra vez):** Telegram/WhatsApp, Suno, openspot, Jev (optimiza velocidad/coste),
+DeepSeek-TUI (DeepSeek va por Aider), música local, suplantar a Claude Code.
 
 ---
 
