@@ -98,7 +98,10 @@ function readState(dir: string): ProjectState | null {
       attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
       memory: Array.isArray(raw.memory) ? raw.memory.filter((e) => e && typeof e.id === 'string' && typeof e.text === 'string') : [],
       instructions: typeof raw.instructions === 'string' ? raw.instructions : '',
-      routines: Array.isArray(raw.routines) ? raw.routines.filter((r) => r && typeof r.id === 'string' && r.trigger && typeof r.request === 'string') : []
+      routines: Array.isArray(raw.routines) ? raw.routines.filter((r) => r && typeof r.id === 'string' && r.trigger && typeof r.request === 'string') : [],
+      conversation: raw.conversation && typeof raw.conversation.id === 'string' ? raw.conversation : undefined,
+      conversations: Array.isArray(raw.conversations) ? raw.conversations.filter((c) => c && typeof c.id === 'string') : [],
+      historyImported: raw.historyImported === true
     }
   } catch {
     return null
@@ -345,27 +348,6 @@ export function flushAll(): void {
     }
   }
   timers.clear()
-}
-
-const FINISHED: ReadonlySet<Task['status']> = new Set(['done', 'failed', 'cancelled'])
-
-/**
- * Conversación nueva: guarda una copia del chat y de las tareas terminadas en historial/ (dentro del
- * proyecto) y los vacía. Los adjuntos y resultados no se tocan. Devuelve la ruta relativa de la copia.
- */
-export function clearChat(id: string): string {
-  const st = getProject(id)
-  const finished = st.tasks.filter((t) => FINISHED.has(t.status))
-  const stamp = new Date().toLocaleString('sv-SE').slice(0, 16).replace(' ', '_').replace(':', '-')
-  const rel = `historial/chat-${stamp}.json`
-  if (st.messages.length || finished.length) {
-    mkdirSync(join(st.project.dir, 'historial'), { recursive: true })
-    writeFileSync(join(st.project.dir, rel), JSON.stringify({ project: st.project.name, savedAt: Date.now(), messages: st.messages, tasks: finished }, null, 1), 'utf8')
-  }
-  st.messages = []
-  st.tasks = st.tasks.filter((t) => !FINISHED.has(t.status))
-  scheduleSave(id)
-  return rel
 }
 
 // ---------- mutations (keep store and events in sync from the orchestrator) ----------
