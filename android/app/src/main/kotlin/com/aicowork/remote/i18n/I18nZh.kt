@@ -190,7 +190,6 @@ private fun part2(m: HashMap<String, String>) {
     m["Crear"] = "创建"
     m["Más"] = "更多"
     m["Cerrar"] = "关闭"
-    m["Equipo · {working} trabajando"] = "团队 · {working} 个工作中"
     m["Equipo"] = "团队"
     m["Esperando a {waitingFor}"] = "等待 {waitingFor}"
     m["Reiniciar agente"] = "重启代理"
@@ -681,4 +680,7 @@ private fun part5(m: HashMap<String, String>) {
     m["sin conexión"] = "未连接"
     m["¿Borrar «{title}»?"] = "删除“{title}”？"
     m["Espacio"] = "空间"
+    m["Agente anterior"] = "上一个智能体"
+    m["Agente siguiente"] = "下一个智能体"
+    m["{activity} · {n} de {total}"] = "{activity} · 第 {n} 个，共 {total} 个"
 }

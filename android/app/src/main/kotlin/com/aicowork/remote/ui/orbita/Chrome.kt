@@ -79,6 +79,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aicowork.remote.data.Connection
 import com.aicowork.remote.data.CoworkUiState
@@ -211,18 +219,84 @@ fun activityColor(activity: String): Color = when (activity) {
     else -> Color(0xFF8FA3C2)
 }
 
-/** Selector del Equipo (desplegado): los agentes, aparte de la navegación entre secciones. */
+/**
+ * Un agente a la vez sobre el mundo, con ‹ › (o deslizando) para pasar al siguiente. Tocarlo abre su ficha y acerca
+ * la cámara a su estación; las flechas solo acercan la cámara (y cambian la ficha si ya estaba abierta).
+ */
 @Composable
-fun TeamBar(snapshot: Snapshot, model: OrbitaModel, onSelect: (Agent) -> Unit, modifier: Modifier = Modifier) {
+fun AgentSwitcher(snapshot: Snapshot, model: OrbitaModel, onFocus: (Agent) -> Unit, modifier: Modifier = Modifier) {
     val agents = teamOrder(snapshot)
     if (agents.isEmpty()) return
-    val working = workingCount(snapshot)
-    Column(modifier.glass(radius = 30.dp).padding(horizontal = 14.dp, vertical = 8.dp).testTag("team-bar"), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(if (working > 0) t("Equipo · {working} trabajando", "working" to working) else t("Equipo"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(6.dp))
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            agents.forEach { a -> TeamAvatar(a, selected = model.selectedAgentId == a.id) { onSelect(a) } }
+    var index by remember { mutableIntStateOf(0) }
+    // Si eliges un agente en el mundo, el selector se pone en él.
+    LaunchedEffect(model.selectedAgentId, agents.size) {
+        val i = agents.indexOfFirst { it.id == model.selectedAgentId }
+        if (i >= 0) index = i
+    }
+    val i = index.coerceIn(0, agents.lastIndex)
+    val agent = agents[i]
+    fun go(step: Int) {
+        index = (i + step + agents.size) % agents.size
+        val next = agents[index]
+        model.feedback.select()
+        if (model.selectedAgentId != null) model.selectAgent(next.id, poke = false)
+        onFocus(next)
+    }
+    var drag by remember { mutableFloatStateOf(0f) }
+    Row(
+        modifier
+            .heightIn(min = 60.dp)
+            .glass(radius = 30.dp)
+            .pointerInput(agents.size) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (abs(drag) > 60f) go(if (drag < 0) 1 else -1)
+                        drag = 0f
+                    },
+                    onDragCancel = { drag = 0f },
+                ) { _, delta -> drag += delta }
+            }
+            .padding(horizontal = 4.dp)
+            .testTag("agent-switcher"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (agents.size > 1) IconAction(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, t("Agente anterior"), onClick = { go(-1) }, modifier = Modifier.testTag("agent-prev"))
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .tappable(haptic = Haptic.Select) {
+                    val again = model.selectedAgentId == agent.id
+                    model.selectAgent(if (again) null else agent.id)
+                    if (!again) onFocus(agent)
+                }
+                .semantics(mergeDescendants = true) { selected = model.selectedAgentId == agent.id }
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .testTag("agent-current"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RobotFace(agent, 36.dp)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.widthIn(min = 120.dp, max = 220.dp)) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(agent.name, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (agent.modelLabel.isNotBlank()) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(agent.modelLabel, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Dot(activityColor(agent.activity), 7.dp, pulse = agent.activity == "working" || agent.activity == "thinking")
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        t("{activity} · {n} de {total}", "activity" to Labels.activity(agent.activity), "n" to (i + 1), "total" to agents.size),
+                        color = Orbita.TextSoft,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
+        if (agents.size > 1) IconAction(Icons.AutoMirrored.Outlined.KeyboardArrowRight, t("Agente siguiente"), onClick = { go(1) }, modifier = Modifier.testTag("agent-next"))
     }
 }
 

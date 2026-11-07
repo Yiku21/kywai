@@ -190,7 +190,6 @@ private fun part2(m: HashMap<String, String>) {
     m["Crear"] = "Criar"
     m["Más"] = "Mais"
     m["Cerrar"] = "Fechar"
-    m["Equipo · {working} trabajando"] = "Equipe · {working} trabalhando"
     m["Equipo"] = "Equipe"
     m["Esperando a {waitingFor}"] = "Aguardando {waitingFor}"
     m["Reiniciar agente"] = "Reiniciar agente"
@@ -681,4 +680,7 @@ private fun part5(m: HashMap<String, String>) {
     m["sin conexión"] = "sem conexão"
     m["¿Borrar «{title}»?"] = "Apagar «{title}»?"
     m["Espacio"] = "Espaço"
+    m["Agente anterior"] = "Agente anterior"
+    m["Agente siguiente"] = "Próximo agente"
+    m["{activity} · {n} de {total}"] = "{activity} · {n} de {total}"
 }
