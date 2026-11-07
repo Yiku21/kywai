@@ -190,3 +190,144 @@
     display: none;
   }
 }
+
+/* ---------- Historial: filtros, coincidencias y «Ver más» ---------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 6px 16px 4px;
+}
+
+.select {
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-ctl);
+  background: var(--bg-elevated);
+  color: var(--text-2);
+  font: 12px var(--font);
+}
+
+.tip {
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.historyLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-2);
+  font: 12.5px var(--font);
+  cursor: pointer;
+}
+
+.historyLink:hover {
+  color: var(--text-1);
+}
+
+.count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-2);
+  font: 11.5px var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.count:hover {
+  color: var(--text-1);
+  border-color: var(--border-strong);
+}
+
+.matches {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 6px 36px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+}
+
+.match {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--radius-ctl);
+  background: none;
+  color: var(--text-2);
+  font: 12.5px var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.match:hover,
+.match:focus-visible {
+  background: var(--bg-active);
+  color: var(--text-1);
+}
+
+.matchBy {
+  flex: none;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.matchText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matchAt,
+.matchMore {
+  flex: none;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.matchMore {
+  margin: 2px 8px 0;
+}
+
+.more {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 8px;
+  padding: 7px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-ctl);
+  background: none;
+  color: var(--text-2);
+  font: 12.5px var(--font);
+  cursor: pointer;
+}
+
+.more:hover:not(:disabled) {
+  color: var(--text-1);
+}
+
+.total {
+  margin-left: auto;
+}
