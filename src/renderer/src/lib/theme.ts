@@ -11,7 +11,11 @@ import { setScenePalette } from '@/scene/palette'
 import type { WorldStyle } from '@/scene/worlds/models'
 import { t } from '@/lib/i18n'
 
-/** Los colores de la Ciudad digital. 'orbita' es Frost Glass (el id es el de antes del cambio de nombre). */
+/**
+ * Los colores de la Ciudad digital, con nombres propios para no repetir los de los mapas. Los ids son los de cuando
+ * eran temas sueltos (así nadie pierde el suyo): clasico = Índigo, orbita = Frost Glass, marfil = Perla,
+ * grafito = Ónix, bosque = Esmeralda, matrix = Neón, eva = Ultravioleta.
+ */
 export type CityColor = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva'
 export type DecorTheme = 'relicario' | 'telar' | 'halloween' | 'navidad'
 export type WorldTheme = `mundo-${WorldStyle}`
@@ -36,13 +40,13 @@ export const WORLDS: ReadonlyArray<ThemeInfo<WorldTheme>> = [
 
 /** Los colores de la Ciudad digital (el espacio de siempre). */
 export const CITY_COLORS: ReadonlyArray<ThemeInfo<CityColor> & { swatch: [string, string] }> = [
-  { id: 'clasico', name: t('Clásico'), hint: t('Paneles oscuros y sobrios, el de siempre'), swatch: ['#3f7bff', '#8b5cff'] },
+  { id: 'clasico', name: t('Índigo'), hint: t('Paneles oscuros y sobrios, el de siempre'), swatch: ['#3f7bff', '#8b5cff'] },
   { id: 'orbita', name: 'Frost Glass', hint: t('Cristal azulado con brillos, como la app del móvil'), swatch: ['#9fd8ff', '#3f7bff'] },
-  { id: 'marfil', name: t('Marfil'), hint: t('Claro y cálido: marfil, verde y oro'), swatch: ['#ece7dc', '#2f8f68'] },
-  { id: 'grafito', name: t('Grafito'), hint: t('Negro grafito con detalles dorados'), swatch: ['#1a1b1f', '#d4a24a'] },
-  { id: 'bosque', name: t('Bosque'), hint: t('Verde bosque profundo con oro'), swatch: ['#0f2a1d', '#d4af5a'] },
-  { id: 'matrix', name: 'Matrix', hint: t('Negro y verde neón'), swatch: ['#020a04', '#2bff6a'] },
-  { id: 'eva', name: 'EVA-01', hint: t('Morado y verde lima, como la Unidad 01'), swatch: ['#3b1d6e', '#a6ff3a'] }
+  { id: 'marfil', name: t('Perla'), hint: t('Claro y cálido: marfil, verde y oro'), swatch: ['#ece7dc', '#2f8f68'] },
+  { id: 'grafito', name: t('Ónix'), hint: t('Negro grafito con detalles dorados'), swatch: ['#1a1b1f', '#d4a24a'] },
+  { id: 'bosque', name: t('Esmeralda'), hint: t('Verde bosque profundo con oro'), swatch: ['#0f2a1d', '#d4af5a'] },
+  { id: 'matrix', name: t('Neón'), hint: t('Negro y verde neón'), swatch: ['#020a04', '#2bff6a'] },
+  { id: 'eva', name: t('Ultravioleta'), hint: t('Morado y verde lima, como la Unidad 01'), swatch: ['#3b1d6e', '#a6ff3a'] }
 ]
 
 /** Los temas con decoración propia en el espacio. */

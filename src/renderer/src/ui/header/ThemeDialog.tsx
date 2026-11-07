@@ -21,8 +21,8 @@ import { t } from '@/lib/i18n'
 import { WorldPreview } from './WorldPreview'
 
 /**
- * Los temas (Ajustes → General), en tres grupos: los mapas, la Ciudad digital con su fila de colores debajo y los
- * decorados. Cada tarjeta es un botón de opción; los colores de la ciudad, otro grupo de opciones dentro de su tarjeta.
+ * Los temas (Ajustes → General), en dos grupos: los mapas (con la Ciudad digital como una tarjeta más, que al elegirla
+ * despliega debajo la fila de sus colores) y los decorados. Cada tarjeta es un botón de opción; los colores, otro grupo.
  */
 export function ThemeGrid() {
   const theme = useTheme()
@@ -34,31 +34,16 @@ export function ThemeGrid() {
         {WORLDS.map((th) => (
           <Card key={th.id} info={th} on={theme === th.id} onPick={() => setTheme(th.id)} />
         ))}
-      </Group>
-      <Group title={t('Ciudad digital')} hint={t('El espacio de siempre: elige la ciudad y luego su color')}>
-        <div className={cx(s.card, s.cityCard, inCity && s.cardOn)}>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={inCity}
-            className={s.cardMain}
-            onClick={() => setCityColor(cityPreview)}
-          >
-            <Preview id={cityPreview} />
-            <span className={s.cardText}>
-              <span className={s.cardName}>
-                {t('Ciudad digital')}
-                {DEFAULT_THEME === cityPreview && <span className={s.default}>{t('predeterminado')}</span>}
-              </span>
-              <span className={s.cardHint}>{CITY_COLORS.find((c) => c.id === cityPreview)?.hint}</span>
-            </span>
-            {inCity && (
-              <span className={s.check} aria-hidden="true">
-                <Check size={14} />
-              </span>
-            )}
-          </button>
+        {/* La Ciudad digital, una tarjeta más; al elegirla se despliega debajo la fila de sus colores. */}
+        <Card
+          info={{ id: cityPreview, name: t('Ciudad digital'), hint: t('El espacio de siempre, con el color que elijas') }}
+          on={inCity}
+          isDefault={DEFAULT_THEME === cityPreview}
+          onPick={() => setCityColor(cityPreview)}
+        />
+        {inCity && (
           <div className={s.colors} role="radiogroup" aria-label={t('Color de la ciudad')}>
+            <span className={s.colorsTitle}>{t('Color de la ciudad')}</span>
             {CITY_COLORS.map((c) => (
               <button
                 key={c.id}
@@ -74,7 +59,7 @@ export function ThemeGrid() {
               </button>
             ))}
           </div>
-        </div>
+        )}
       </Group>
       <Group title={t('Decorados')} hint={t('La ciudad con decoración de temporada o de fantasía')}>
         {DECORS.map((th) => (
@@ -112,12 +97,15 @@ function Group({ title, hint, children }: { title: string; hint: string; childre
   )
 }
 
-function Card({ info, on, onPick }: { info: ThemeInfo; on: boolean; onPick: () => void }) {
+function Card({ info, on, isDefault, onPick }: { info: ThemeInfo; on: boolean; isDefault?: boolean; onPick: () => void }) {
   return (
     <button type="button" role="radio" aria-checked={on} className={cx(s.card, on && s.cardOn)} onClick={onPick}>
       <Preview id={info.id} />
       <span className={s.cardText}>
-        <span className={s.cardName}>{info.name}</span>
+        <span className={s.cardName}>
+          {info.name}
+          {isDefault && <span className={s.default}>{t('predeterminado')}</span>}
+        </span>
         <span className={s.cardHint}>{info.hint}</span>
       </span>
       {on && (
