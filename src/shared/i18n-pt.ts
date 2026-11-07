@@ -1889,5 +1889,12 @@ export const pt: Record<string, string> = {
   'Ese agente ya no existe': 'Esse agente já não existe',
   'Hablar directamente con un agente': 'Falar diretamente com um agente',
   'Directo, sin pasar por Hermes: recibe tu texto tal cual': 'Direto, sem passar pelo Hermes: recebe o seu texto tal como está',
-  'Tú → {name} (directo, sin Hermes)': 'Você → {name} (direto, sem Hermes)'
+  'Tú → {name} (directo, sin Hermes)': 'Você → {name} (direto, sem Hermes)',
+  // updater.ts
+  "Hay una versión nueva de AI Cowork ({version}).": "Há uma nova versão do AI Cowork ({version}).",
+  "Descárgala y arrástrala a Aplicaciones para reemplazar esta. Tus proyectos y ajustes se conservan.": "Baixe e arraste para Aplicativos para substituir esta. Seus projetos e ajustes são mantidos.",
+  "Descargando la versión {version}…": "Baixando a versão {version}…",
+  "Instalando la versión {version}. AI Cowork se reabre solo.": "Instalando a versão {version}. O AI Cowork reabre sozinho.",
+  "La versión {version} se instalará al cerrar AI Cowork.": "A versão {version} será instalada ao fechar o AI Cowork.",
+  "Esta versión se descargó de GitHub y se actualiza sola: al abrirse busca la última y la instala. Ahora mismo también lo está comprobando.": "Esta versão foi baixada do GitHub e se atualiza sozinha: ao abrir, procura a mais recente e a instala. Agora mesmo também está verificando.",
 }
