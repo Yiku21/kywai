@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { RobotAvatar } from '@shared/types'
 import { LOGOS, drawLogo } from '@/lib/logos'
 import { glowTexture } from './assets'
@@ -246,58 +247,41 @@ function chevronShape(dir: 1 | -1): THREE.Shape {
   return s
 }
 
-/** Onda «∿» de trazo grueso y puntas redondas (ojos de Muse, como su logo). [dir] = -1 la refleja. */
-function waveShape(w: number, amp: number, t: number, dir: 1 | -1): THREE.Shape {
-  const N = 28
-  const center: THREE.Vector2[] = []
-  const normal: THREE.Vector2[] = []
-  for (let i = 0; i <= N; i++) {
-    const x = -w / 2 + (w * i) / N
-    const a = (Math.PI * 2 * x) / w
-    center.push(new THREE.Vector2(x, dir * amp * Math.sin(a)))
-    const slope = dir * amp * ((Math.PI * 2) / w) * Math.cos(a)
-    normal.push(new THREE.Vector2(-slope, 1).normalize())
-  }
-  const s = new THREE.Shape()
-  center.forEach((c, i) => {
-    const p = c.clone().addScaledVector(normal[i], t / 2)
-    if (i) s.lineTo(p.x, p.y)
-    else s.moveTo(p.x, p.y)
-  })
-  // Punta final: media vuelta de la normal hacia la contraria, pasando por delante.
-  const cap = (c: THREE.Vector2, n: THREE.Vector2, forward: number): void => {
-    const a0 = Math.atan2(n.y, n.x)
-    for (let k = 1; k < 10; k++) {
-      const a = a0 - forward * ((Math.PI * k) / 10)
-      s.lineTo(c.x + Math.cos(a) * (t / 2), c.y + Math.sin(a) * (t / 2))
-    }
-  }
-  cap(center[N], normal[N], 1)
-  for (let i = N; i >= 0; i--) {
-    const p = center[i].clone().addScaledVector(normal[i], -t / 2)
-    s.lineTo(p.x, p.y)
-  }
-  cap(center[0], normal[0].clone().negate(), 1)
-  s.closePath()
-  return s
-}
-
 function shapeGeo(s: THREE.Shape): THREE.ShapeGeometry {
   return new THREE.ShapeGeometry(s, 16)
 }
 
+/** Medio óvalo con el borde de arriba recto: ojos cansados, con el párpado a media altura. */
+function lidShape(rx: number, ry: number): THREE.Shape {
+  const s = new THREE.Shape()
+  s.moveTo(-rx, 0)
+  for (let i = 1; i <= 24; i++) {
+    const a = Math.PI + (Math.PI * i) / 24
+    s.lineTo(Math.cos(a) * rx, Math.sin(a) * ry)
+  }
+  s.closePath()
+  return s
+}
+
+/** «×» de trazo grueso y puntas redondas (ojos de error). */
+function crossGeo(size: number, t: number): THREE.BufferGeometry {
+  const a = shapeGeo(pillShape(size, t)).rotateZ(Math.PI / 4)
+  const b = shapeGeo(pillShape(size, t)).rotateZ(-Math.PI / 4)
+  const g = mergeGeometries([a, b])!
+  a.dispose()
+  b.dispose()
+  return g
+}
+
 const SHARED = {
+  // Juego de ojos común a todos los robots (las expresiones se funden por escala).
+  eye: shapeGeo(circleShape(0.066)).scale(1, 1.12, 1),
+  lid: shapeGeo(lidShape(0.078, 0.068)).translate(0, 0.016, 0),
+  cross: crossGeo(0.15, 0.034),
   happy: shapeGeo(arcShape(0.07, 0.026)),
   flat: shapeGeo(pillShape(0.12, 0.028)),
-  round: shapeGeo(circleShape(0.068)),
-  dotL: shapeGeo(circleShape(0.074)),
-  dotR: shapeGeo(circleShape(0.061)),
-  pill: shapeGeo(pillShape(0.15, 0.074)),
-  arc: shapeGeo(arcShape(0.078, 0.028)),
   chevR: shapeGeo(chevronShape(1)),
   chevL: shapeGeo(chevronShape(-1)),
-  waveL: shapeGeo(waveShape(0.15, 0.022, 0.034, 1)),
-  waveR: shapeGeo(waveShape(0.15, 0.022, 0.034, -1)),
   halo: new THREE.TorusGeometry(0.25, 0.024, 14, 72),
   ear: new THREE.CapsuleGeometry(0.082, 0.12, 6, 18),
   stem: new THREE.CylinderGeometry(0.022, 0.026, 0.17, 12),
@@ -521,9 +505,18 @@ function baseRingGeometry(b: BodySpec): THREE.BufferGeometry {
 
 export interface EyeRig {
   group: THREE.Group
+  /** Ojo redondo normal. */
   base: THREE.Mesh
+  /** Arco feliz «◠» (terminado, sonrisa). */
   happy: THREE.Mesh
+  /** Rayita (dormido, apagado). */
   flat: THREE.Mesh
+  /** «>» «<» (esfuerzo al trabajar). */
+  chevron: THREE.Mesh
+  /** «×» (error). */
+  cross: THREE.Mesh
+  /** Medio ojo con el párpado caído (cansado, aburrido, en reposo). */
+  lid: THREE.Mesh
   x: number
   y: number
   side: 1 | -1
@@ -621,28 +614,13 @@ export function buildRobot(avatar: RobotAvatar, color: string): RobotModel {
   const glass = new THREE.Mesh(vg.glass, glassMat)
   root.add(glass)
 
-  // Ojos: forma propia + arco feliz + línea (error/reposo), con fundido por escala.
-  const eyeGeo = (side: 1 | -1): THREE.BufferGeometry => {
-    switch (avatar.eyes) {
-      case 'pill':
-        return SHARED.pill
-      case 'arc':
-        return SHARED.arc
-      case 'chevron':
-        return side < 0 ? SHARED.chevR : SHARED.chevL
-      case 'dots':
-        return side < 0 ? SHARED.dotL : SHARED.dotR
-      case 'wave':
-        return side < 0 ? SHARED.waveL : SHARED.waveR
-      default:
-        return SHARED.round
-    }
-  }
+  // Ojos: el mismo juego de formas para todos (según la referencia visual); el color es el de cada agente.
+  // La forma de `avatar.eyes` ya solo se usa en el avatar 2D de la interfaz.
   const makeEye = (side: 1 | -1): EyeRig => {
     const x = side * b.eyes.spacing
     const y = b.visor.cy + b.eyes.dy
     const group = new THREE.Group()
-    const z = frontZ(b, x, y) + 0.008 + 0.018 * 0.85 + 0.006
+    const z = frontZ(b, x, y) + 0.008 + 0.018 * 0.85 + 0.01
     group.position.set(x, y, z)
     // Orientar según la curvatura del cuerpo
     const dzdx = (frontZ(b, x + 0.01, y) - frontZ(b, x - 0.01, y)) / 0.02
@@ -650,14 +628,19 @@ export function buildRobot(avatar: RobotAvatar, color: string): RobotModel {
     // …y a la inclinación vertical, para que el cristal abombado no tape la parte baja del ojo.
     const dzdy = (frontZ(b, x, y + 0.01) - frontZ(b, x, y - 0.01)) / 0.02
     group.rotation.x = Math.atan(dzdy)
-    const baseMesh = new THREE.Mesh(eyeGeo(side), eyeMat)
+    const baseMesh = new THREE.Mesh(SHARED.eye, eyeMat)
     const happy = new THREE.Mesh(SHARED.happy, eyeMat)
     const flat = new THREE.Mesh(SHARED.flat, eyeMat)
-    happy.scale.setScalar(0.001)
-    flat.scale.setScalar(0.001)
-    group.add(baseMesh, happy, flat)
+    const chevron = new THREE.Mesh(side < 0 ? SHARED.chevR : SHARED.chevL, eyeMat)
+    const cross = new THREE.Mesh(SHARED.cross, eyeMat)
+    const lid = new THREE.Mesh(SHARED.lid, eyeMat)
+    for (const m of [happy, flat, chevron, cross, lid]) {
+      m.scale.setScalar(0.001)
+      m.visible = false
+    }
+    group.add(baseMesh, happy, flat, chevron, cross, lid)
     root.add(group)
-    return { group, base: baseMesh, happy, flat, x, y, side }
+    return { group, base: baseMesh, happy, flat, chevron, cross, lid, x, y, side }
   }
   const eyes: [EyeRig, EyeRig] = [makeEye(-1), makeEye(1)]
 

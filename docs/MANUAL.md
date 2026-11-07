@@ -47,6 +47,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Temas](#temas)
   - [Voces de los agentes](#voces-de-los-agentes)
   - [Música (como YouTube Music)](#música-como-youtube-music)
+  - [Expresiones de los robots](#expresiones-de-los-robots)
   - [Modo Demo](#modo-demo)
   - [Rendimiento](#rendimiento)
   - [Apoyar AI Cowork (donaciones)](#apoyar-ai-cowork-donaciones)
@@ -1249,6 +1250,35 @@ de su web muchas canciones de discográficas (error 150). Entonces:
 - **Otra versión:** se busca otra subida de la misma canción y la app la recuerda para la próxima vez.
 - **Si tampoco hay:** pasa a la siguiente. Tras tres seguidas que no suenan, se para y ofrece abrirla en YouTube
   Music.
+
+### Expresiones de los robots
+
+Todos los robots tienen el mismo juego de ojos, cada uno con su color, y la forma cuenta lo que está haciendo de
+verdad: ojos redondos (normal), «> <» (esfuerzo), párpados caídos (cansado o aburrido), rayitas (dormido o
+apagado), «× ×» en rojo (error) y arcos felices «◠ ◠» (terminado). Junto a la cabeza aparecen «?» cuando duda,
+«zzz» cuando duerme y «⚠» con un error. Además hacen gestos cada pocos segundos; cada robot los elige al azar con su
+propia semilla, así que no van todos a la vez:
+
+- **Disponible:** alterna entre tranquilo, curioso (ladea la cabeza y abre más un ojo), distraído (se queda
+  mirando a otro lado), doble parpadeo, aburrido (párpados a media altura), juguetón (guiño «<»), somnoliento
+  (cierra los ojos con «zzz» y vuelve) y contento (ojos felices).
+- **Pensando:** un ojo entornado, mira hacia arriba, la mirada da vueltas, duda con «?» y a veces abre mucho los
+  ojos («¡ajá!»).
+- **Trabajando:** ojos «> <» de concentración; a ratos «lee» de izquierda a derecha con los ojos redondos y aprieta
+  con esfuerzo. Se esfuerza más cuanto más difícil es la tarea y cuanto más tiempo lleva con ella.
+- **Esperando a otro:** mira hacia ese agente y vuelve, impaciente. Si la espera se alarga, se aburre: párpados
+  caídos y bostezos.
+- **En reposo:** párpados caídos, bostezos y cabezadas. Tras un rato largo se duerme (rayitas y «zzz») y de vez en
+  cuando abre un ojo. Si le llega trabajo, se despierta de golpe.
+- **Cansado:** si a su cuenta le queda poca cuota (por debajo del umbral de aviso de Cuotas) o tiene el contexto casi
+  lleno: párpados caídos, ojos inclinados hacia fuera, parpadeos lentos y algún bostezo.
+- **Error:** «× ×» en rojo que tiemblan, con «⚠». **Apagado** (p. ej. LM Studio sin encender): rayitas grises,
+  que se siguen viendo. **Terminado:** ojos felices y «✓».
+
+Solo se mueven los ojos y unos símbolos sencillos (escalas, posiciones y color): no cuesta rendimiento. Con «Efectos
+reducidos» los gestos son más suaves y menos frecuentes. El código está en `scene/robotBrain.ts` (gestos),
+`scene/robotEyes.ts` (formas de los ojos) y `scene/Robot.tsx` (cansancio y esfuerzo a partir del estado real).
+La forma de ojos de cada avatar (`avatar.eyes`) ya solo se usa en el avatar 2D de la interfaz.
 
 ### Modo Demo
 
