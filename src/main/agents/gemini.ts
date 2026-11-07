@@ -24,13 +24,15 @@ export const GEMINI_AUTH_MESSAGE =
 /** `-p` is appended to stdin; the real prompt goes through stdin. Fixed ASCII text only. */
 export const GEMINI_P_TEXT = 'Follow the instructions above.'
 
-export function geminiArgs(model: string, mode: 'plan' | 'work', access: AgentAccess = 'project'): string[] {
+export function geminiArgs(model: string, mode: 'plan' | 'work', access: AgentAccess = 'project', mcpNames: string[] = []): string[] {
   const approval = mode === 'plan' ? 'plan' : access === 'full' ? 'yolo' : 'auto_edit'
   const args = ['-p', GEMINI_P_TEXT, '-o', 'stream-json', '--skip-trust', '--approval-mode', approval]
   const m = safeModel(model)
   if (m) args.push('-m', m)
-  // Same policy as Claude's --strict-mcp-config: no user MCP servers in automated runs.
-  args.push('--allowed-mcp-server-names', 'none')
+  // Same policy as Claude's --strict-mcp-config: none of the user's own Gemini servers in automated runs, only the
+  // ones turned on for Gemini in kywai (Ajustes › Extensiones: they come from kywai's «kywai» Gemini extension).
+  const names = mcpNames.filter((n) => /^[a-z][a-z0-9_-]{0,30}$/.test(n))
+  args.push('--allowed-mcp-server-names', names.length ? names.join(',') : 'none')
   return args
 }
 
@@ -206,8 +208,9 @@ export function createGeminiParser(cb: ParserCallbacks, cliName = 'Gemini'): Jso
 export function runGemini(opts: RunAgentOptions): Promise<RunAgentResult> {
   return runCli({
     command: 'gemini',
-    args: geminiArgs(opts.model, opts.mode, opts.access),
+    args: geminiArgs(opts.model, opts.mode, opts.access, opts.extraMcp?.names),
     cwd: opts.cwd,
+    ...(opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
     stdin: opts.prompt,
     signal: opts.signal,
     parser: createGeminiParser(opts),
