@@ -51,7 +51,7 @@ const startMinute = (run: UsageRun, c: UsageCall): string =>
 
 const pct = (part: number, total: number): string => (total > 0 ? `${Math.round((part / total) * 100)} %` : '—')
 
-/** ⋮ → Consumo: lo que gasta cada petición (tokens, tiempo y cuota de tus suscripciones), para ver si compensa. */
+/** ⚙ → Consumo: lo que gasta cada petición (tokens, tiempo y cuota de tus suscripciones), para ver si compensa. */
 export function UsageDialog({ onClose }: { onClose: () => void }) {
   const all = useCowork((st) => st.usageRuns)
   const project = useCowork((st) => st.live.project)

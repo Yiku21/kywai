@@ -1,10 +1,12 @@
-import { useEffect, useId, useRef, useState } from 'react'
-import { ArrowLeftRight, Award, BarChart3, Check, ChevronDown, Coffee, Download, DownloadCloud, Eraser, FolderOpen, FolderSync, Globe, HardDrive, Info, Languages, LogOut, Monitor, MoreVertical, Palette, RefreshCw, RotateCcw, RotateCw, Server, SlidersHorizontal, Smartphone, Wand2 } from 'lucide-react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
+import { ArrowLeftRight, Award, BarChart3, Check, ChevronDown, Coffee, Download, DownloadCloud, FolderOpen, FolderSync, Globe, HardDrive, Info, Languages, LogOut, Monitor, MoreVertical, Palette, Settings, Volume2, VolumeX, RefreshCw, RotateCcw, RotateCw, Server, SlidersHorizontal, Smartphone, Wand2 } from 'lucide-react'
 import { useCowork } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
 import type { ClientUpdateState } from '@shared/types'
 import { RemoteAccess } from './RemoteAccess'
+import { SoundRows } from './AudioToggle'
+import { isMuted, setMuted, subscribeAudio } from '@/lib/audio'
 import { UpdateDialog } from './UpdateDialog'
 import { ThemeDialog } from './ThemeDialog'
 import { SyncDialog } from '../files/SyncDialog'
@@ -22,8 +24,11 @@ const SETTINGS_OPEN_KEY = 'aicowork.menu.settingsOpen'
 /** Página de Ko-fi del autor: «Apoyar AI Cowork» la abre en el navegador para quien quiera invitar a un café. */
 export const DONATE_URL = 'https://ko-fi.com/yilsander'
 
-/** Menú ⋮ de la cabecera. */
-export function HeaderMenu() {
+/**
+ * Menú de Ajustes: la rueda del pie de la barra lateral (antes el ⚙ de la cabecera). Con `sidebar`, el botón es la
+ * rueda, el menú sale a su derecha y lleva también lo que había arriba a la derecha (abrir la carpeta y el sonido).
+ */
+export function HeaderMenu({ sidebar }: { sidebar?: { button: string } } = {}) {
   const mode = useCowork((st) => st.mode)
   const hasBackend = useCowork((st) => st.hasBackend)
   const reduced = useCowork((st) => st.reducedEffects)
@@ -51,38 +56,6 @@ export function HeaderMenu() {
   const where = useWhere()
   /** Reiniciar pide un segundo toque (detiene las tareas en curso). */
   const [confirmRestart, setConfirmRestart] = useState(false)
-
-  /** Limpiar el chat también pide un segundo toque. */
-  const [confirmClear, setConfirmClear] = useState(false)
-
-  useEffect(() => {
-    if (!confirmRestart) return
-    const t = window.setTimeout(() => setConfirmRestart(false), 5000)
-    return () => window.clearTimeout(t)
-  }, [confirmRestart])
-
-  useEffect(() => {
-    if (!confirmClear) return
-    const t = window.setTimeout(() => setConfirmClear(false), 5000)
-    return () => window.clearTimeout(t)
-  }, [confirmClear])
-
-  async function clearChat(): Promise<void> {
-    const a = api
-    if (!a || !project) return
-    if (!confirmClear) {
-      setConfirmClear(true)
-      return
-    }
-    setConfirmClear(false)
-    setError(null)
-    try {
-      await a.clearChat(project.id)
-      setOpen(false)
-    } catch (e) {
-      setError(errorText(e))
-    }
-  }
 
   async function restart(): Promise<void> {
     const a = api
@@ -214,9 +187,9 @@ export function HeaderMenu() {
       <button
         ref={btnRef}
         type="button"
-        className={cx(u.iconBtn, h.headerBtn, s.trigger)}
-        aria-label={t('Más opciones')}
-        title={t('Más opciones')}
+        className={sidebar ? sidebar.button : cx(u.iconBtn, h.headerBtn, s.trigger)}
+        aria-label={sidebar ? t('Ajustes y más opciones') : t('Más opciones')}
+        title={sidebar ? t('Ajustes y más opciones') : t('Más opciones')}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -225,7 +198,7 @@ export function HeaderMenu() {
           setOpen((o) => !o)
         }}
       >
-        <MoreVertical size={18} aria-hidden="true" />
+        {sidebar ? <Settings size={17} aria-hidden="true" /> : <MoreVertical size={18} aria-hidden="true" />}
       </button>
 
       <Popover
@@ -233,6 +206,7 @@ export function HeaderMenu() {
         onClose={() => setOpen(false)}
         anchorRef={btnRef}
         align="end"
+        side={sidebar ? 'right' : 'below'}
         role="menu"
         ariaLabel={t('Más opciones')}
         id={menuId}
@@ -267,6 +241,7 @@ export function HeaderMenu() {
             <div className={s.sep} role="separator" />
           </>
         )}
+        {sidebar && <SidebarExtras />}
         <button
           type="button"
           role="menuitem"
@@ -430,27 +405,6 @@ export function HeaderMenu() {
             <span className={s.itemHint}>{t('El aspecto de la app · ahora')} {THEMES.find((t) => t.id === theme)?.name}</span>
           </span>
         </button>
-
-        {hasBackend && (
-          <button
-            type="button"
-            role="menuitem"
-            className={s.item}
-            disabled={!live || !project}
-            title={!live ? t('No disponible en modo demo') : !project ? t('Abre o crea un proyecto primero') : undefined}
-            onClick={() => void clearChat()}
-          >
-            <Eraser size={16} aria-hidden="true" className={s.itemIcon} />
-            <span className={s.itemText}>
-              <span className={s.itemLabel}>{confirmClear ? t('Pulsa otra vez para limpiar el chat') : t('Limpiar el chat')}</span>
-              <span className={s.itemHint}>
-                {confirmClear
-                  ? t('Se guarda una copia en la carpeta historial del proyecto')
-                  : t('Conversación nueva en este proyecto; los archivos y resultados se quedan')}
-              </span>
-            </span>
-          </button>
-        )}
 
         {hasBackend && (
           <button type="button" role="menuitem" className={s.item} onClick={() => void restart()}>
@@ -711,6 +665,28 @@ export function HeaderMenu() {
       {updateOpen && <UpdateDialog onClose={() => setUpdateOpen(false)} />}
       {themeOpen && <ThemeDialog onClose={() => setThemeOpen(false)} />}
       {syncOpen && <SyncDialog onClose={() => setSyncOpen(false)} />}
+    </>
+  )
+}
+
+/** El sonido, que estaba arriba a la derecha (abrir la carpeta del proyecto ya estaba en este menú). */
+function SidebarExtras() {
+  const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
+  return (
+    <>
+      <button type="button" role="menuitemcheckbox" aria-checked={!muted} className={s.item} onClick={() => setMuted(!isMuted())}>
+        {muted ? <VolumeX size={16} aria-hidden="true" className={s.itemIcon} /> : <Volume2 size={16} aria-hidden="true" className={s.itemIcon} />}
+        <span className={s.itemText}>
+          <span className={s.itemLabel}>{t('Sonido')}</span>
+          <span className={s.itemHint}>{muted ? t('Silenciado') : t('Música, efectos y voces de los agentes')}</span>
+        </span>
+      </button>
+      {!muted && (
+        <div className={s.sound}>
+          <SoundRows />
+        </div>
+      )}
+      <div className={s.sep} role="separator" />
     </>
   )
 }

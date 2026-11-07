@@ -77,7 +77,7 @@ export function writeClientFile(file: string, data: ClientFile): void {
 
 /** Qué se le dice a quien intenta conectar según lo que respondió el servidor al emparejar. */
 export function pairingProblem(status: number, code?: string): string {
-  if (status === 401 || code === 'INVALID_PAIRING_CODE') return 'El código no es correcto. Genera uno nuevo en el servidor (⋮ → Acceso desde otros dispositivos).'
+  if (status === 401 || code === 'INVALID_PAIRING_CODE') return 'El código no es correcto. Genera uno nuevo en el servidor (⚙ → Acceso desde otros dispositivos).'
   if (status === 429) return 'Demasiados intentos con un código incorrecto. Espera un minuto.'
   if (status === 404 || status === 503) return 'El servidor no tiene activado el acceso desde otros dispositivos.'
   return `El servidor respondió con un error (${status}).`

@@ -36,7 +36,8 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Memoria e instrucciones del proyecto](#memoria-e-instrucciones-del-proyecto)
   - [AGENTS.md, habilidades y herramientas de AI Cowork](#agentsmd-habilidades-y-herramientas-de-ai-cowork)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
-  - [Limpiar el chat](#limpiar-el-chat)
+  - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
+  - [Buscar (Ctrl+K)](#buscar-ctrlk)
   - [Eliminar un proyecto](#eliminar-un-proyecto)
   - [Cuotas](#cuotas)
   - [Consumo: ¿compensa?](#consumo-compensa)
@@ -95,7 +96,7 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
 - El workflow solo corre en el repositorio público; en ai-cowork-original no hace nada.
 
 Al abrir la app instalada por primera vez aparece el **asistente de configuración** (también desde
-⋮ → «Configurar agentes…»):
+⚙ → «Configurar agentes…»):
 
 1. **Agentes**: eliges cuáles usar (Hermes, Claude, Codex, Gemini, Muse y el agente local con LM Studio u Ollama).
 2. **Programas**: comprueba si están sus CLIs y, si falta alguno, lo instala desde ahí con su instalador
@@ -180,7 +181,7 @@ Para volver a crear los accesos directos: `npm run accesos`. Para regenerar el i
 
 ### Actualizar y reiniciar
 
-- **⋮ → «Buscar actualizaciones…»** compara con GitHub y, si hay cambios, los descarga, instala lo que haga
+- **⚙ → «Buscar actualizaciones…»** compara con GitHub y, si hay cambios, los descarga, instala lo que haga
   falta, compila y reinicia. Si el código de ese equipo tiene cambios hechos allí (por ejemplo, por tus agentes),
   aparece **«Apartar cambios y actualizar»**: se guardan con `git stash` (no se borran; `git stash list` en la
   carpeta del código) y se actualiza. Si alguien hizo commits en ese equipo que no están en GitHub, también se
@@ -194,7 +195,7 @@ Para volver a crear los accesos directos: `npm run accesos`. Para regenerar el i
   allí, el botón es «Apartar sus cambios y actualizar» (igual que arriba: se guardan en git, no se borran). Si la
   actualización falla, el servidor vuelve a su versión y «Ver cómo va» o la próxima consulta dicen por qué. El
   servidor tiene que tener ya esta función: la primera vez se actualiza desde el ordenador.
-- **⋮ → «Reiniciar AI Cowork»** (pulsa dos veces para confirmar) cierra y vuelve a abrir la app si se queda
+- **⚙ → «Reiniciar AI Cowork»** (pulsa dos veces para confirmar) cierra y vuelve a abrir la app si se queda
   pillada; también desde el navegador del móvil, que se recarga solo cuando vuelve. Si la app está cerrada del
   todo, no hay nada que responda al enlace: hay que abrirla en el equipo.
 
@@ -203,7 +204,7 @@ Para volver a crear los accesos directos: `npm run accesos`. Para regenerar el i
 Un equipo con AI Cowork abierto (por ejemplo el Mac mini, encendido 24/7) puede servir la app a tus otros
 dispositivos de Tailscale:
 
-1. En ese equipo: ⋮ → «Acceso desde otros dispositivos…» → activa «Permitir el acceso por Tailscale».
+1. En ese equipo: ⚙ → «Acceso desde otros dispositivos…» → activa «Permitir el acceso por Tailscale».
 2. Copia el **enlace de acceso** (`http://<ip-de-tailscale>:8787/?t=<código>`) y ábrelo una vez en el móvil o
    el portátil con Tailscale activo. Queda recordado; el código es tu llave (puedes cambiarlo y anular los
    enlaces anteriores).
@@ -228,7 +229,7 @@ emparejados), comprueba que es exactamente la anunciada y la instala encima: sig
 Android pide permitir que Órbita instale apps («Permitir de esta fuente»); después se instala sola, sin
 preguntar. Órbita se cierra al instalarse: vuelve a abrirla. La versión sale del código de AI Cowork
 (`android/release/`, publicada con `./gradlew :app:publishOrbita` y firmada con la clave de siempre), así que
-basta con actualizar AI Cowork en el ordenador (⋮ → «Buscar actualizaciones…») para que el móvil la vea. Solo
+basta con actualizar AI Cowork en el ordenador (⚙ → «Buscar actualizaciones…») para que el móvil la vea. Solo
 hay que instalar la APK a mano una vez: la primera versión que trae este botón.
 
 **La APK se publica sola desde GitHub.** Cada vez que cambia el código de Órbita en `master`, GitHub Actions
@@ -257,7 +258,7 @@ completa**: sin la barra de abajo ni la de arriba, todo el sitio para el chat. S
 app) hasta que vuelvas a pulsarlas; atrás o ✕ cierran el panel. Desplegado, las flechas siguen ampliando el panel
 sobre el mundo.
 
-**Dispositivos emparejados:** en ⋮ → «Acceso desde otros dispositivos…» aparece la lista de móviles y clientes
+**Dispositivos emparejados:** en ⚙ → «Acceso desde otros dispositivos…» aparece la lista de móviles y clientes
 emparejados, con cuándo se usó cada uno por última vez. **Revocar** uno lo desempareja sin tocar los demás (y corta
 sus conexiones abiertas); el que lleva 90 días sin usarse deja de valer solo. Cambiar el código de acceso los revoca
 todos. Un móvil emparejado antes de esta lista sigue funcionando hasta que se cambie el código.
@@ -272,7 +273,7 @@ Puedes instalar AI Cowork en otro Mac, Windows o Linux y usarlo como **cliente**
 siempre encendido): no ejecuta agentes ni guarda proyectos, enseña la interfaz del servidor, con sus agentes, su
 chat, sus proyectos y sus archivos, desde una app instalada y no desde el navegador.
 
-1. En el servidor: ⋮ → «Acceso desde otros dispositivos…» → activa el acceso y pulsa «Generar código de 6 cifras».
+1. En el servidor: ⚙ → «Acceso desde otros dispositivos…» → activa el acceso y pulsa «Generar código de 6 cifras».
 2. En el otro equipo, con **Tailscale conectado**: instala AI Cowork y ábrelo. La primera vez pregunta cómo vas a
    usarlo: elige **«Conectar con mi AI Cowork principal»**. (Un equipo que ya tenía AI Cowork como servidor no
    pregunta nada: para convertirlo en cliente, cierra la app y crea en su carpeta de datos un archivo `client.json`
@@ -285,17 +286,17 @@ dispositivos emparejados del servidor y se revoca desde allí sin tocar los dem�
 usarse. El cliente nunca recibe el código de acceso del servidor (ni en la configuración, ni en los avisos, ni en el
 enlace a la versión HTTPS), así que al revocarlo se queda fuera de verdad. La interfaz siempre es la del servidor, así que cliente y servidor nunca quedan desfasados. Si el servidor
 no responde, el cliente lo dice y reintenta solo; si ya no lo reconoce, vuelve a pedir un código. La ventana no lleva barra de
-menús: en el menú ⋮, al final, están **Recargar la interfaz** (también Ctrl+R o F5), **Cambiar de servidor…** y
+menús: en el menú ⚙, al final, están **Recargar la interfaz** (también Ctrl+R o F5), **Cambiar de servidor…** y
 **Olvidar este dispositivo y desconectar**.
 
-**Para no confundir un equipo con otro**, la primera fila del menú ⋮ dice dónde estás: **Este equipo es el
+**Para no confundir un equipo con otro**, la primera fila del menú ⚙ dice dónde estás: **Este equipo es el
 servidor** (cian, con su nombre), **Cliente de escritorio → nombre-del-servidor** (violeta) o **Navegador**, con la
 explicación de dónde están los agentes y los proyectos. En el cliente, además, una franja violeta fina recorre lo alto
 de la ventana. El título de la ventana del cliente también lleva el nombre del servidor.
 
 #### Archivos del servidor
 
-En el cliente (y en el navegador), ⋮ → **«Archivos del servidor…»** abre un explorador del disco del equipo servidor:
+En el cliente (y en el navegador), ⚙ → **«Archivos del servidor…»** abre un explorador del disco del equipo servidor:
 
 - **Navegar** por sus discos, la carpeta del usuario y las carpetas de los proyectos, con las migas de pan y «subir».
 - **Abrir** un archivo: en el cliente se descarga a una carpeta temporal y se abre con tu aplicación; en el navegador,
@@ -306,7 +307,7 @@ En el cliente (y en el navegador), ⋮ → **«Archivos del servidor…»** abre
 
 Por defecto el cliente ve **todo el disco** del servidor (eres tú desde otro sitio). Hay dos cosas más:
 
-- **Interruptor** en ⋮ → «Acceso desde otros dispositivos…» → «Restringir los clientes a las carpetas de los
+- **Interruptor** en ⚙ → «Acceso desde otros dispositivos…» → «Restringir los clientes a las carpetas de los
   proyectos» (apagado por defecto): con él, un cliente solo ve las carpetas de los proyectos y de sus adjuntos y
   resultados.
 - **Registro de accesos** (en ese mismo panel): quién (dispositivo o navegador) vio, abrió, bajó o puso como carpeta de
@@ -317,7 +318,7 @@ dispositivos, el `config.json` con el código de acceso y el certificado propio.
 
 #### Sincronizar carpetas
 
-En el cliente de escritorio, ⋮ → **«Sincronizar carpetas…»** mantiene una carpeta de este equipo **igual que una del
+En el cliente de escritorio, ⚙ → **«Sincronizar carpetas…»** mantiene una carpeta de este equipo **igual que una del
 servidor**, en los dos sentidos (la sincronización corre en el cliente; el servidor solo sirve y guarda). «Añadir una
 carpeta…» pide primero la del servidor (el explorador de arriba) y luego la de este equipo.
 
@@ -342,7 +343,7 @@ los archivos protegidos y queda en el registro de accesos.
 
 #### Actualizar el cliente
 
-«Buscar actualizaciones…» del menú ⋮ actualiza el **servidor** (y con él la interfaz que ves). La app instalada en el
+«Buscar actualizaciones…» del menú ⚙ actualiza el **servidor** (y con él la interfaz que ves). La app instalada en el
 cliente, su ventana y su puente con el sistema, se actualiza aparte y **desde tu servidor**, sin GitHub ni ninguna
 cuenta:
 
@@ -361,7 +362,7 @@ cuenta:
   escribe en `src/main/clientReleaseKey.ts`: **súbela con un commit** y **guarda una copia de la privada** (sin ella,
   los clientes instalados no aceptan versiones nuevas y habría que reinstalarlos a mano). La privada nunca va al
   repositorio. Un cliente compilado sin clave pública no se actualiza desde el servidor.
-- **Instalar** (en cada cliente): al abrirse y cada 6 horas pregunta si hay una versión más nueva; también desde ⋮ →
+- **Instalar** (en cada cliente): al abrirse y cada 6 horas pregunta si hay una versión más nueva; también desde ⚙ →
   **«Actualizar este equipo…»** (primero busca; si la hay, un segundo toque la descarga del servidor, la instala y
   reinicia). El emparejamiento se mantiene.
 
@@ -383,7 +384,7 @@ páginas **HTTPS**. Si entras por el enlace `http://`, al tocar el micrófono ap
   primera vez el navegador avisa de que la conexión no es privada, porque ese certificado no lo firma ninguna
   autoridad: pulsa «Configuración avanzada» → «Continuar» (en iPhone, «Mostrar detalles» → «visitar este sitio
   web»). Después ya deja grabar. Guarda ese enlace en el móvil.
-- Si en el Mac activas «HTTPS para usar el micrófono desde el móvil» (⋮ → «Acceso desde otros dispositivos…»),
+- Si en el Mac activas «HTTPS para usar el micrófono desde el móvil» (⚙ → «Acceso desde otros dispositivos…»),
   lo publica Tailscale Serve en `https://<equipo>.<red>.ts.net` con un certificado válido, sin aviso, y el botón
   lleva ahí.
 
@@ -392,7 +393,7 @@ páginas **HTTPS**. Si entras por el enlace `http://`, al tocar el micrófono ap
 ### Tu equipo: añadir, quitar y elegir quién coordina
 
 AI Cowork no es solo para los agentes de fábrica: es una plataforma donde conectas **los agentes que ya pagas**. En
-⋮ → «Configurar agentes…» (paso «Agentes»):
+⚙ → «Configurar agentes…» (paso «Agentes»):
 
 - **Añadir un agente**: «Añadir un agente» abre el catálogo con los que se pueden conectar (Aider, **DeepSeek**, OpenCode,
   GitHub Copilot CLI, Cursor, Amp, Goose, Kimi Code, Mistral Vibe, Grok Build, Cline, Continue, OpenHands, Factory Droid,
@@ -504,7 +505,7 @@ documentación no confirma y pueden necesitar ajustes.
   Si aun así sale «No disponible: Servidor de LM Studio apagado», la tarjeta del agente (clic en su robot) tiene el
   botón **Encender LM Studio**: enciende el servidor, carga el modelo y deja el agente disponible. Si no puede, dice
   por qué (por ejemplo, que LM Studio no está instalado).
-- **Permisos de los agentes** (menú ⋮ → «Acceso completo para los agentes», activado por defecto): Claude, Codex y
+- **Permisos de los agentes** (menú ⚙ → «Acceso completo para los agentes», activado por defecto): Claude, Codex y
   Gemini ejecutan comandos, instalan dependencias y usan internet sin pedir permiso, para no quedarse parados.
   Se les indica que trabajen en la carpeta del proyecto y que no borren nada fuera de ella ni hagan acciones
   irreversibles que no se hayan pedido, pero no hay nada que se lo impida: desactívalo si prefieres que solo editen la
@@ -599,7 +600,7 @@ entendido, cada tarea con el agente que la hará y por qué ese, y si AI Cowork 
 
 El plan queda guardado en su mensaje: se puede aprobar aunque AI Cowork se haya reiniciado entre medias. Lo que
 dijiste que conviene recordar se anota en la memoria al aprobarlo. Las preguntas y respuestas directas no
-necesitan visto bueno. Para que las tareas empiecen sin esperar, desactiva ⋮ → «Pedir mi visto bueno a cada
+necesitan visto bueno. Para que las tareas empiecen sin esperar, desactiva ⚙ → «Pedir mi visto bueno a cada
 plan» (también en la app del móvil: Ajustes o Herramientas → Planes de Hermes).
 
 ### «Te necesita»: lo que espera una decisión tuya
@@ -832,7 +833,7 @@ Lo que cambia frente a una petición normal:
 
 Un `@` que no es el nombre de ningún agente (un correo, «@alguien») no cuenta: el mensaje va a Hermes como siempre.
 `/directo` con un nombre que no existe da un error con la pista de escribir `@` para ver la lista. El agente
-trabaja en la carpeta del proyecto con el mismo permiso de siempre (⋮ → «Acceso completo para los agentes»).
+trabaja en la carpeta del proyecto con el mismo permiso de siempre (⚙ → «Acceso completo para los agentes»).
 
 Para desarrolladores: las reglas están en `src/shared/directMessage.ts` (y su copia en Órbita,
 `android/.../ui/orbita/DirectMention.kt`); el motor las aplica en `sendDirect` de `src/main/orchestrator.ts`
@@ -897,7 +898,7 @@ con el navegador.
 ### Memoria e instrucciones del proyecto
 
 La pestaña **Memoria** (o el edificio «Memoria» del espacio) guarda lo que el equipo debe recordar en ese
-proyecto. El coordinador y cada agente la leen en cada encargo, así que sobrevive a «Limpiar el chat» y a los
+proyecto. El coordinador y cada agente la leen en cada encargo, así que sobrevive a un «Nuevo chat» y a los
 reinicios:
 
 - **Instrucciones para los agentes**: normas tuyas que todos siguen siempre (cómo probar, estilo, qué no tocar…).
@@ -981,7 +982,7 @@ Reglas:
   una pregunta, hace lo razonable y explica lo que dio por supuesto.
 
 **Webhook**: cada rutina de webhook tiene su dirección propia en el acceso web (hace falta tenerlo encendido:
-⋮ → «Acceso desde otros dispositivos…») con un **secreto aleatorio** suyo, que no es el código de acceso de la app.
+⚙ → «Acceso desde otros dispositivos…») con un **secreto aleatorio** suyo, que no es el código de acceso de la app.
 El botón «Webhook» de la rutina la enseña con botones para copiarla (también en el móvil):
 
 - `POST http://<ip-de-tailscale>:8787/hooks/<proyecto>/<rutina>/<secreto>`, o
@@ -1010,13 +1011,52 @@ el escritorio o el navegador.
 
 Se guardan en el `project.json` del proyecto (`routines`) y las lanza `src/main/routines.ts`, que mira cada 30 s.
 
-### Limpiar el chat
+### Barra lateral y conversaciones
 
-⋮ → **«Limpiar el chat»** (pulsa dos veces), o escribe `/new`, `/nuevo`, `/limpiar` o `/clear` en el cuadro de
-texto: empieza una conversación nueva en el proyecto, también para los agentes, que dejan de ver los mensajes
-anteriores. Se vacían el chat y las tareas terminadas; los archivos y resultados se quedan. Antes se guarda una
-copia en `historial/chat-<fecha>.json` dentro de la carpeta del proyecto. No se puede mientras el equipo está
-trabajando en ese proyecto.
+A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
+
+- **Nuevo chat** (Ctrl+Mayús+O; ⌘⇧O en el Mac), o escribir `/new`, `/nuevo`, `/limpiar` o `/clear` en el cuadro de
+  texto: empieza una conversación nueva en el proyecto abierto, también para los agentes, que dejan de ver los
+  mensajes anteriores. La conversación anterior **no se pierde**: queda guardada en la lista de su proyecto. Los
+  archivos, los resultados y la memoria del proyecto se quedan; las tareas que estaban en pausa siguen a la vista.
+- **Buscar** (Ctrl+K): ver [Buscar](#buscar-ctrlk).
+- **Te necesita**: la bandeja de avisos (antes era la campana de arriba a la derecha).
+- **Tareas**, **Resultados** y **Rutinas** abren esa pestaña del panel del chat (con el número de tareas en curso).
+- **Fijados**: los proyectos que fijas con la chincheta (al pasar el ratón por un proyecto). Se guarda en el proyecto,
+  así que se ve igual en el navegador y en los clientes.
+- **Proyectos**: todos, con **+** para crear uno. La flecha de cada proyecto despliega sus conversaciones (el abierto
+  se despliega solo); un punto azul que late indica que el equipo está trabajando en él.
+- **Recientes**: las últimas conversaciones de todos los proyectos.
+- Abajo, **dónde estás conectado** (el servidor) y la **rueda ⚙**: es el menú que antes estaba en ⋮ arriba a la
+  derecha, con todo lo de siempre y además el **sonido** (silenciar y los volúmenes de música y voces). Abrir la
+  carpeta del proyecto también está ahí.
+
+**Retomar una conversación**: pulsa cualquiera de la lista y vuelve con sus mensajes, sus tareas terminadas y la
+sesión de cada agente (Claude y Codex siguen donde lo dejaron, si no han pasado más de 14 días). La que estaba
+abierta se guarda antes. Al pasar el ratón por una conversación puedes **cambiarle el nombre** (lápiz; por defecto
+es el principio de tu primer mensaje) o **borrarla** (papelera, pulsa dos veces; va a `conversaciones/borradas/`
+dentro del proyecto, no se pierde del todo). La abierta no se puede borrar. **No se puede cambiar de conversación ni
+empezar otra mientras el equipo trabaja en ese proyecto**: espera a que termine o detenlo. En otro proyecto sí.
+
+El botón de arriba de la barra la **pliega** a una columna de iconos (con los números de los avisos); se recuerda en
+cada dispositivo. Si nunca la has tocado, en ventanas de menos de 1300 px empieza plegada. En ventanas estrechas
+(móvil o menos de 950 px) se abre con el botón de la izquierda de la cabecera, por encima del chat.
+
+Dónde se guarda: la conversación abierta va en el `project.json` del proyecto, como siempre; las demás en
+`conversaciones/<id>.json` (con sus tareas y las sesiones de los agentes) y su lista en `project.json`
+(`conversations`). Las copias que dejaba antes «Limpiar el chat» en `historial/chat-<fecha>.json` se importan solas
+la primera vez que se abre la lista, así que también se pueden retomar. Lo hace `src/main/conversations.ts`; en la
+API son `listConversations`, `recentConversations`, `newConversation`, `openConversation`, `renameConversation`,
+`deleteConversation`, `setProjectPinned` y `search`. Al cambiar de conversación se emite `chat.cleared` (con
+`conversationId`) y `conversations.updated`: los otros dispositivos y Órbita vuelven a cargar el chat solos.
+
+### Buscar (Ctrl+K)
+
+**Buscar** en la barra lateral, o Ctrl+K (⌘K en el Mac), abre un buscador que mira a la vez en **todas las
+conversaciones** (abiertas y guardadas), las **tareas** (título, encargo y resultado), los **resultados** (nombre del
+archivo), la **memoria** y los nombres de los proyectos, de todos los proyectos o, con «Solo este proyecto», del
+abierto. No distingue mayúsculas ni tildes. Los chips filtran por tipo; ↑↓ y ↵ para abrir: lleva al proyecto y a la
+conversación donde está, en la pestaña que toca (una tarea abre Tareas; un resultado, su visor; una nota, Memoria).
 
 ### Eliminar un proyecto
 
@@ -1035,7 +1075,7 @@ se borra la subcarpeta `.ai-cowork` que creó la app dentro. No se puede elimina
 | Gemini | Con clave de API, Google no informa la cuota: se muestran los usos de hoy («3 hoy»), o una estimación si configuras un presupuesto (clic en el indicador) |
 | Local | Sin cuota (ejecución en tu PC) |
 
-⋮ → «Actualizar cuotas», o escribir `/usage` (también `/uso` o `/cuotas`) en el chat, las vuelve a consultar en el
+⚙ → «Actualizar cuotas», o escribir `/usage` (también `/uso` o `/cuotas`) en el chat, las vuelve a consultar en el
 momento; `/usage` las muestra bajo el cuadro de texto y no crea ninguna tarea para los agentes.
 
 Los umbrales (advertencia ≤ 20 %, alerta < 10 %) se cambian en `workspace/config.json`.
@@ -1047,7 +1087,7 @@ entrada, salida y la parte leída de caché), cuánto tardó, si salió bien y c
 (se mide antes y después). Se ve en dos sitios:
 
 - Bajo cada plan del chat: «14 min · 339 k tokens · Claude 5 h +5 % · GPT semana +2 %».
-- ⋮ → **«Consumo y tokens…»**: totales de hoy, 7 o 30 días (peticiones, tiempo real y tiempo de agentes en
+- ⚙ → **«Consumo y tokens…»**: totales de hoy, 7 o 30 días (peticiones, tiempo real y tiempo de agentes en
   paralelo, tokens, qué parte se fue en planificar y en intentos fallidos), cuota gastada de cada suscripción,
   reparto por agente y el detalle de cada petición. Se puede exportar a CSV.
 
@@ -1058,7 +1098,7 @@ Para comparar con un solo agente (por ejemplo Codex aparte), haz la misma petici
 
 ### Cómo rinde cada agente
 
-⋮ → **«Cómo rinde cada agente…»** (también desde el enlace «¿Y la calidad?» de «Consumo y tokens…») enseña, para
+⚙ → **«Cómo rinde cada agente…»** (también desde el enlace «¿Y la calidad?» de «Consumo y tokens…») enseña, para
 cada agente y por dificultad (difíciles, normales y fáciles, la que pone el coordinador a cada tarea; AI Cowork no
 clasifica las tareas por tipo), en los últimos 7 o 30 días o en todo el registro, y si quieres solo del proyecto
 abierto:
@@ -1119,13 +1159,17 @@ el chat:
 - **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
   el ancho, en vez de dejar libre la columna del avatar.
 
+- **Barra lateral:** ocupa unos 250 px abierta y 58 px plegada; los porcentajes de arriba se reparten en lo que deja.
+- **Controles de la cámara:** vista general, acercar, alejar y pantalla completa flotan en la esquina de abajo a la
+  derecha del espacio 3D (ya no hay barra debajo; «Reducir efectos ambientales» está en ⚙ → Ajustes).
+
 Para desarrolladores: los cortes están en `App.module.css` (y `TABS_QUERY` en `ui/left/chatWidth.ts`, que debe
 coincidir con el `@media (max-width: 949.98px)`); el asa es `ui/left/ChatResizer.tsx` y el ancho elegido se guarda en
 `localStorage` (`ai-cowork.chatWidth`).
 
 ### Idioma
 
-La interfaz está en **español**, **inglés**, **portugués**, **francés** y **chino** (simplificado). ⋮ → **Ajustes** →
+La interfaz está en **español**, **inglés**, **portugués**, **francés** y **chino** (simplificado). ⚙ → **Ajustes** →
 **«Idioma · Language»** despliega la lista de idiomas, cada uno con su nombre en su propio idioma (Español, English,
 Português, Français, 中文), y el elegido lleva una marca; al tocar otro, la ventana se recarga para que todo salga ya
 traducido. Se recuerda en cada dispositivo, como el tema: la app del Mac,
@@ -1181,7 +1225,7 @@ se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cua
 
 ### Temas
 
-⋮ → **«Temas…»** cambia el aspecto de la app: **Clásico** (el predeterminado, paneles oscuros y sobrios) u
+⚙ → **«Temas…»** cambia el aspecto de la app: **Clásico** (el predeterminado, paneles oscuros y sobrios) u
 **Órbita** (cristal esmerilado, como la app del móvil: el espacio 3D ocupa toda la ventana y el chat, la cabecera,
 las barras, los menús y las ventanas flotan encima como cristal que lo deja ver difuminado; el mundo se centra en la
 zona que deja libre el chat). Y cinco más con la distribución del clásico y sus propios colores, en la interfaz
@@ -1232,9 +1276,9 @@ resultado (sin repetir la última frase); lo que ya había contado antes de abri
 Lo que llega de golpe **se escribe letra a letra al ritmo de su voz** (como en Animal Crossing): una letra por
 sílaba mientras balbucea y, cuando calla, lo que queda sale deprisa. Con las voces silenciadas, el texto sale entero.
 
-Tienen **su propio volumen y su propio silencio**: pasa el ratón por el botón de sonido (o púlsalo) y bajo el
-volumen de la música y los efectos aparece el de las voces, con el botón de la burbuja para silenciarlas sin
-tocar la música. El botón del altavoz silencia todo, voces incluidas. Se recuerda en cada dispositivo.
+Tienen **su propio volumen y su propio silencio**: en la rueda ⚙ de la barra lateral → **Sonido**, bajo el volumen
+de la música y los efectos está el de las voces, con el botón de la burbuja para silenciarlas sin tocar la música.
+«Sonido» silencia todo, voces incluidas. Se recuerda en cada dispositivo.
 
 En **Órbita** suenan igual (mismos timbres, sintetizados en el móvil): Ajustes → Respuesta al tacto → **«Voces de
 los agentes»**, con su propio volumen; «Sonidos» apagado las silencia también.
@@ -1325,7 +1369,7 @@ hacia el chat unos segundos, esperando el siguiente encargo; alguno dice algo co
 
 ### Modo Demo
 
-Menú ⋮ → **Modo demo**, o el interruptor en la cabecera del Espacio digital. Reproduce un guion fijo que muestra
+Menú ⚙ → **Modo demo**, o el interruptor en la cabecera del Espacio digital. Reproduce un guion fijo que muestra
 todos los estados: disponible, trabajo individual, espera, desplazamiento, delegación y recepción, sub-agente,
 error, cuota baja y finalización. No hace ninguna llamada a los CLIs. Se reconoce por el borde ámbar y la
 etiqueta «Demo · datos simulados».
@@ -1355,7 +1399,7 @@ Lo que hace AI Cowork para ir fluido sin que tengas que tocar nada:
 AI Cowork es gratis. Quien quiera agradecerlo puede invitar al autor a un café en Ko-fi
 (https://ko-fi.com/yilsander). El enlace está en cuatro sitios:
 
-- **Escritorio y navegador:** ⋮ → **Apoyar AI Cowork ☕**. Abre la página de Ko-fi en el navegador.
+- **Escritorio y navegador:** ⚙ → **Apoyar AI Cowork ☕**. Abre la página de Ko-fi en el navegador.
 - **Órbita:** Ajustes → **Apoyar AI Cowork** (al final) → **Invitar a un café ☕**.
 - **GitHub:** el botón **Sponsor** de arriba del repositorio (`.github/FUNDING.yml`) y la insignia Ko-fi de los
   README.

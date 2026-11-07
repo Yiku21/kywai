@@ -1,4 +1,4 @@
-// Explorador de los archivos del servidor (cliente de escritorio o navegador). Quien lo pide (el menú ⋮, o elegir la
+// Explorador de los archivos del servidor (cliente de escritorio o navegador). Quien lo pide (el menú ⚙, o elegir la
 // carpeta de trabajo de un proyecto) no pinta nada: deja una petición aquí y el panel que está montado en la app la
 // atiende. Así la API de la interfaz, que no es de React, también puede pedir una carpeta y esperar la respuesta.
 

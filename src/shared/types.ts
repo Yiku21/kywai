@@ -699,6 +699,8 @@ export interface ProjectSummary {
   updatedAt: number
   /** Fijado en la barra lateral (arriba del todo, en «Fijados»). */
   pinned?: boolean
+  /** El equipo está trabajando en él ahora (solo en la lista de proyectos; no se guarda). */
+  busy?: boolean
 }
 
 /** Una conversación de un proyecto. La abierta vive en el proyecto; las demás, guardadas en conversaciones/. */

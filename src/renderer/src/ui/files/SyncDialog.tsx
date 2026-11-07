@@ -85,7 +85,7 @@ export function SyncDialog({ onClose }: { onClose: () => void }) {
         </header>
 
         <div className={s.body}>
-          {!supported && <p className={s.warn}>{t('Esta versión del cliente no sincroniza carpetas: instala la nueva con ⋮ → «Actualizar este equipo…».')}</p>}
+          {!supported && <p className={s.warn}>{t('Esta versión del cliente no sincroniza carpetas: instala la nueva con ⚙ → «Actualizar este equipo…».')}</p>}
           {supported && pairs && pairs.length === 0 && <p className={s.empty}>{t('Todavía no sincronizas ninguna carpeta.')}</p>}
           {pairs?.map((p) => (
             <article key={p.id} className={s.pair}>

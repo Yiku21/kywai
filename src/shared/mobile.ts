@@ -78,7 +78,7 @@ export interface MobileSnapshot {
     hermesModel: boolean
     /** «Reiniciar agente» tras un fallo: POST /agents/{agentId}/reset. */
     agentReset: boolean
-    /** Actualizar el servidor desde el móvil (como ⋮ → «Buscar actualizaciones…»): GET y POST /server/update. */
+    /** Actualizar el servidor desde el móvil (como ⚙ → «Buscar actualizaciones…»): GET y POST /server/update. */
     serverUpdate: boolean
     /** GET /quality: calidad de cada agente (👍, verificación a la primera, correcciones, fallos) por dificultad. */
     agentQuality: boolean
@@ -122,7 +122,7 @@ export interface MobileUsage {
   byAgent: Array<{ agentId: string; input: number; output: number }>
 }
 
-/** GET /quality: lo mismo que ⋮ → «Cómo rinde cada agente…». */
+/** GET /quality: lo mismo que ⚙ → «Cómo rinde cada agente…». */
 export interface MobileQuality {
   days: number
   /** Desde cuántas tareas lo ve el coordinador en la ficha del agente. */

@@ -318,7 +318,7 @@ function WebhookBox({ projectId, routineId, call }: { projectId: string; routine
     <div className={s.hook}>
       {!info.webAccess ? (
         <p className={s.warn}>
-          {t('El acceso web está apagado: actívalo en ⋮ → «Acceso desde otros dispositivos…» para que este webhook reciba avisos.')}
+          {t('El acceso web está apagado: actívalo en ⚙ → «Acceso desde otros dispositivos…» para que este webhook reciba avisos.')}
         </p>
       ) : (
         <>

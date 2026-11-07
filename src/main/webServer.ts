@@ -372,7 +372,7 @@ const LOGIN_PAGE = `<!doctype html><html lang="es"><head><meta charset="utf-8"><
 form{width:min(340px,90vw);padding:28px;border-radius:16px;background:#0e1524;border:1px solid #23324d}h1{margin:0 0 6px;font-size:20px}
 p{margin:0 0 18px;color:#9aa8bf;line-height:1.45}input{width:100%;box-sizing:border-box;height:42px;padding:0 12px;border-radius:10px;border:1px solid #2c3d5c;background:#0a101d;color:#e9eef8;font-size:15px}
 button{margin-top:12px;width:100%;height:42px;border:0;border-radius:10px;background:#38d6ff;color:#04121c;font-weight:650;font-size:15px}</style></head>
-<body><form method="get" action="/"><h1>AI Cowork</h1><p>Abre el enlace de acceso que muestra AI Cowork en el Mac (⋮ → Acceso desde otros dispositivos), o pega aquí su código.</p>
+<body><form method="get" action="/"><h1>AI Cowork</h1><p>Abre el enlace de acceso que muestra AI Cowork en el Mac (⚙ → Acceso desde otros dispositivos), o pega aquí su código.</p>
 <input name="t" placeholder="Código de acceso" autocomplete="off" autofocus required><button>Entrar</button></form></body></html>`
 
 function rendererDir(): string {

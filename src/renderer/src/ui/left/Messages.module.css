@@ -403,7 +403,7 @@
   color: var(--alert);
 }
 
-/* Lo que costó la petición (tiempo, tokens, cuota): abre ⋮ → Consumo. */
+/* Lo que costó la petición (tiempo, tokens, cuota): abre ⚙ → Consumo. */
 .planUsage {
   display: inline-flex;
   align-items: center;

@@ -8,6 +8,24 @@
   background: var(--bg-app);
 }
 
+/* Barra lateral a la izquierda y, al lado, el chat y el espacio 3D. */
+.main {
+  display: flex;
+  min-height: 0;
+}
+
+.side {
+  display: flex;
+  flex: none;
+  min-height: 0;
+  padding: 0 0 14px 14px;
+}
+
+.main > .body {
+  flex: 1;
+  min-width: 0;
+}
+
 .body {
   display: grid;
   /* El chat es lo importante: el 3D es el escenario. En pantallas grandes el chat ocupa algo menos de un tercio. */
@@ -78,7 +96,7 @@
   position: relative;
   flex: 1;
   min-height: 0;
-  margin: 0 10px;
+  margin: 0 10px 10px;
   border-radius: 12px;
   overflow: hidden;
   background: var(--stage, #050913);
@@ -122,6 +140,9 @@
 }
 
 @media (max-width: 1100px) {
+  .side {
+    padding: 0 0 10px 10px;
+  }
   .body {
     grid-template-columns: clamp(380px, 52%, 600px) minmax(0, 1fr);
     gap: 10px;
@@ -131,6 +152,9 @@
 
 /* Ventana estrecha: el chat ocupa toda la ventana y el 3D va en la pestaña «Espacio» de la cabecera. */
 @media (max-width: 949.98px) {
+  .side {
+    padding: 0;
+  }
   .body,
   .body[data-expanded='true'],
   .body[data-custom-width='true'] {

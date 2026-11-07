@@ -19,7 +19,7 @@ describe('lo que sabe el coordinador de AI Cowork', () => {
   it('sin acceso completo: no lanzar lo que necesita instalar (APK, npm…) y pedir que se active', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false }, env()))
     expect(g).toContain('Ahora los agentes NO pueden instalar nada ni usar internet')
-    expect(g).toMatch(/el SDK de Android con Java y Gradle para una APK[\s\S]*⋮ → «Acceso completo para los agentes»/)
+    expect(g).toMatch(/el SDK de Android con Java y Gradle para una APK[\s\S]*⚙ → «Acceso completo para los agentes»/)
     const full = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env()))
     expect(full).toContain('Ahora los agentes tienen acceso completo')
     expect(full).not.toContain('NO lances tareas que acabarán bloqueadas')
@@ -80,7 +80,7 @@ describe('lo que sabe el coordinador de AI Cowork', () => {
     expect(g).toContain('Ver imágenes y capturas, leer PDFs y buscar en internet lo hacen Claude y Codex.')
   })
 
-  it('reparte por calidad (línea «calidad» de la ficha) antes que por velocidad y coste; el panel está en ⋮', () => {
+  it('reparte por calidad (línea «calidad» de la ficha) antes que por velocidad y coste; el panel está en ⚙', () => {
     const lean = text(coordinatorGuide({ projectDir: proj, fullAccess: true, aboutApp: false }, env()))
     expect(lean).toContain('### La calidad de cada agente manda al repartir')
     expect(lean).toMatch(/5 tareas o más en 30 días lleva una línea «calidad»/)
@@ -88,7 +88,7 @@ describe('lo que sabe el coordinador de AI Cowork', () => {
     expect(lean).toContain('La cuota y estar libre deciden solo entre agentes de calidad parecida.')
     expect(lean).not.toContain('«Cómo rinde cada agente…»')
     const full = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env()))
-    expect(full).toMatch(/⋮ → «Cómo rinde cada agente…»: por agente y por dificultad/)
+    expect(full).toMatch(/⚙ → «Cómo rinde cada agente…»: por agente y por dificultad/)
     expect(mentionsApp('¿qué agente rinde mejor?')).toBe(true)
   })
 

@@ -8,7 +8,7 @@ import u from '../common/ui.module.css'
 import s from './RemoteAccess.module.css'
 import { t } from '@/lib/i18n'
 
-/** Buscar e instalar actualizaciones desde GitHub (⋮ → Buscar actualizaciones). */
+/** Buscar e instalar actualizaciones desde GitHub (⚙ → Buscar actualizaciones). */
 export function UpdateDialog({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState<UpdateStatus | null>(null)
   const [checking, setChecking] = useState(false)
@@ -91,7 +91,7 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
         <div className={s.body}>
           {isClient && (
             <p className={s.note}>
-              {t('Esto actualiza el')} <strong>{t('servidor')}</strong> {t('al que estás conectado. Para actualizar este equipo (la app instalada aquí) usa «Actualizar este equipo…» en el menú ⋮.')}
+              {t('Esto actualiza el')} <strong>{t('servidor')}</strong> {t('al que estás conectado. Para actualizar este equipo (la app instalada aquí) usa «Actualizar este equipo…» en el menú ⚙.')}
             </p>
           )}
           {checking && !status ? (

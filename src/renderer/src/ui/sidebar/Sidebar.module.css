@@ -1,0 +1,487 @@
+/* Barra lateral: conversaciones, proyectos y accesos. Mismos colores y radios que el resto de paneles. */
+.bar {
+  display: flex;
+  flex-direction: column;
+  width: 252px;
+  min-height: 0;
+  height: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+  font-size: 13.5px;
+  color: var(--text-1);
+  transition: width var(--dur-slow) var(--ease);
+}
+
+.rail {
+  width: 58px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  padding: 10px 10px 6px;
+}
+
+.rail .top {
+  justify-content: center;
+}
+
+.iconBtn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-ctl);
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.iconBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+.iconBtn[aria-expanded='true'] {
+  background: var(--bg-active);
+  color: var(--cyan);
+  border-color: var(--border);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 8px 10px;
+  scrollbar-width: thin;
+}
+
+.rail .scroll {
+  padding: 0 6px 10px;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-ctl);
+  background: none;
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.item:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.item[aria-expanded='true'] {
+  background: var(--bg-active);
+}
+
+.active,
+.active:hover:not(:disabled) {
+  background: var(--bg-active);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.active .icon {
+  color: var(--cyan);
+}
+
+.icon,
+.item > svg {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-2);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  flex: none;
+  max-width: 76px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.kbd {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font: 10.5px var(--mono);
+  color: var(--text-3);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.item:hover .kbd,
+.item:focus-visible .kbd {
+  opacity: 1;
+}
+
+.badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badgeWarn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+/* «Te necesita» usa el botón de la bandeja con el aspecto de la barra. */
+.inboxItem > svg {
+  color: var(--text-2);
+}
+
+.section {
+  margin-top: 12px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  padding: 0 4px 2px 10px;
+}
+
+.sectionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font: 600 11.5px var(--font);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.sectionTitle:hover {
+  color: var(--text-2);
+}
+
+.chev {
+  transition: transform var(--dur) var(--ease);
+}
+
+.chevClosed {
+  transform: rotate(-90deg);
+}
+
+.sectionAction {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.sectionAction:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+/* Fila con acciones que aparecen al pasar el ratón (fijar, desplegar, renombrar, borrar). */
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.row > .item {
+  padding-right: 10px;
+}
+
+.rowActions {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  display: flex;
+  gap: 1px;
+  padding-left: 14px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, var(--bg-panel) 12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.row:hover .rowActions,
+.row:focus-within .rowActions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.row:hover .item {
+  background: var(--bg-hover);
+}
+
+.rowCurrent > .item {
+  color: var(--text-1);
+  font-weight: 500;
+}
+
+.mini {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.mini:hover,
+.mini[aria-expanded='true'] {
+  background: var(--bg-active);
+  color: var(--text-1);
+}
+
+.miniDanger,
+.miniDanger:hover {
+  background: var(--alert-soft);
+  color: var(--alert);
+}
+
+.sub {
+  margin: 2px 0 4px 18px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+
+.convItem {
+  height: 30px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.convItem.active {
+  color: var(--text-1);
+}
+
+.busy {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  animation: busy 1.6s var(--ease) infinite;
+}
+
+@keyframes busy {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .busy {
+    animation: none;
+  }
+}
+
+.newProject {
+  padding: 2px 4px 4px;
+}
+
+.input {
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-ctl);
+  background: var(--bg-input);
+  color: var(--text-1);
+  font: inherit;
+  outline: none;
+}
+
+.error {
+  margin: 8px 6px 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-ctl);
+  background: var(--alert-soft);
+  color: var(--alert);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.hint {
+  margin: 14px 10px 0;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 10px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.rail .footer {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.where {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--demo);
+}
+
+.dotLive {
+  background: var(--live);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--live) 70%, transparent);
+}
+
+.whereText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.whereName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.whereHint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+/* Plegada: solo iconos, centrados; los números van en una esquina del icono. */
+.rail .label,
+.rail .kbd,
+.rail .meta {
+  display: none;
+}
+
+.rail .item {
+  justify-content: center;
+  padding: 0;
+}
+
+.rail .badge {
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  font-size: 10px;
+}
+
+/* Ventana estrecha: se abre por encima del chat, con el fondo oscurecido. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  padding: 10px;
+  background: rgba(2, 5, 10, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.drawer {
+  width: min(300px, calc(100vw - 40px));
+  box-shadow: var(--shadow-pop);
+}
+
+/* Tema Órbita: cristal esmerilado como el chat. */
+:global(:root[data-theme='orbita']) .bar {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border-color: rgba(130, 185, 255, 0.32);
+  box-shadow: inset 0 1px 0 rgba(190, 220, 255, 0.16), 0 0 30px rgba(64, 132, 255, 0.16), 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
+:global(:root[data-theme='orbita']) .bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(20, 34, 66, 0.42), rgba(6, 12, 28, 0.5));
+  backdrop-filter: blur(26px) saturate(160%);
+}
+
+:global(:root[data-theme='orbita']) .rowActions {
+  background: linear-gradient(90deg, transparent, rgba(12, 22, 44, 0.95) 12px);
+}

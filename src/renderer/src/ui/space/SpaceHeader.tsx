@@ -8,7 +8,7 @@ import u from '../common/ui.module.css'
 import s from './SpaceHeader.module.css'
 import { t } from '@/lib/i18n'
 
-/** Fila superior del panel del espacio digital (la demo se activa en ⋮ → «Modo demo»). */
+/** Fila superior del panel del espacio digital (la demo se activa en ⚙ → «Modo demo»). */
 export function SpaceHeader() {
   const mode = useCowork((st) => st.mode)
   const reduced = useCowork((st) => st.reducedEffects)

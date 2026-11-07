@@ -409,7 +409,7 @@ export class MobileApi {
         case 'orbitaApk': {
           query(url, [])
           const release = await orbitaRelease()
-          if (!release) throw new MobileError(404, 'NO_ORBITA_RELEASE', 'El ordenador aún no tiene ninguna versión de Órbita para descargar: actualiza AI Cowork en él (⋮ → «Buscar actualizaciones…»).')
+          if (!release) throw new MobileError(404, 'NO_ORBITA_RELEASE', 'El ordenador aún no tiene ninguna versión de Órbita para descargar: actualiza AI Cowork en él (⚙ → «Buscar actualizaciones…»).')
           if (target.name === 'orbitaRelease') mobileJson(res, 200, release.info)
           else await sendFile(res, release.apk, new MobileError(404, 'NO_ORBITA_RELEASE', 'La APK de Órbita ya no está en el ordenador'))
           break

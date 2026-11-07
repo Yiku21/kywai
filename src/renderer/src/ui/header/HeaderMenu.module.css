@@ -123,3 +123,10 @@
   padding-left: 8px;
   border-left: 1px solid var(--border-strong);
 }
+
+/* Volumen dentro del menú de Ajustes (barra lateral). */
+.sound {
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px 4px 36px;
+}
