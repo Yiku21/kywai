@@ -126,6 +126,7 @@ export class MobileBackend {
         projectActions: this.methods.has('renameProject') && this.methods.has('deleteProject') && this.methods.has('setProjectPinned'),
         search: this.methods.has('search'),
         serverName: this.methods.has('setServerName'),
+        theme: this.methods.has('setUiTheme'),
         music: this.methods.has('searchMusic'),
         agentThinking: this.methods.has('setAgentThinking')
       }
@@ -566,6 +567,12 @@ export class MobileBackend {
   async setServerName(name: string): Promise<{ serverName: string | null }> {
     await this.call('setServerName', name)
     return { serverName: (await this.call<AppConfig>('getConfig')).serverName ?? null }
+  }
+
+  /** Órbita elige el tema: el servidor lo guarda y lo siguen el escritorio, los clientes y el navegador. */
+  async setTheme(id: string): Promise<{ theme: string }> {
+    await this.call('setUiTheme', id)
+    return { theme: (await this.call<AppConfig>('getConfig')).uiTheme ?? 'clasico' }
   }
 
   async setPlanApproval(enabled: boolean): Promise<{ planApproval: boolean }> {

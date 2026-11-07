@@ -108,6 +108,8 @@ export interface MobileSnapshot {
     search?: boolean
     /** POST /settings/server-name: cambiar el nombre del ordenador que se ve en la barra lateral. */
     serverName?: boolean
+    /** POST /settings/theme: elegir el tema desde el móvil (lo siguen el escritorio, los clientes y el navegador). */
+    theme?: boolean
     /** GET /music/search: radios de SomaFM y canciones de Audius para escuchar en el móvil. */
     music?: boolean
     /** Razonamiento del modelo local: POST /agents/{agentId}/thinking. */

@@ -11,6 +11,7 @@ import { MobileError, mobileErrorBody, mobileJson } from './mobileErrors'
 import { receiveUpload, sendFile, uploadName } from './mobileFiles'
 import { MobileWebSocket, rejectUpgrade } from './mobileWebSocket'
 import { orbitaRelease } from './orbitaRelease'
+import { UI_THEME_RE } from './config'
 
 export const MOBILE_PREFIX = '/api/mobile/v1'
 const MAX_BODY = 256 * 1024
@@ -50,6 +51,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/settings\/agent-access$/, 'agentAccess', ['POST']],
   [/^\/settings\/plan-approval$/, 'planApproval', ['POST']],
   [/^\/settings\/server-name$/, 'serverName', ['POST']],
+  [/^\/settings\/theme$/, 'theme', ['POST']],
   [/^\/usage\/refresh$/, 'usageRefresh', ['POST']],
   [/^\/quality$/, 'quality', ['GET']],
   [/^\/inbox$/, 'inbox', ['GET']],
@@ -433,6 +435,13 @@ export class MobileApi {
           fields(input, ['name'])
           if (typeof input.name !== 'string' || input.name.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'name debe ser un texto de hasta 200 caracteres')
           mobileJson(res, 200, await this.backend.setServerName(input.name))
+          break
+        }
+        case 'theme': {
+          const input = await body(req)
+          fields(input, ['theme'])
+          if (typeof input.theme !== 'string' || !UI_THEME_RE.test(input.theme)) throw new MobileError(400, 'INVALID_INPUT', 'theme debe ser un id de tema («mundo-bosque», «grafito»…)')
+          mobileJson(res, 200, await this.backend.setTheme(input.theme))
           break
         }
         case 'planApproval': {
