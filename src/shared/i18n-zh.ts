@@ -1897,4 +1897,9 @@ export const zh: Record<string, string> = {
   "Instalando la versión {version}. AI Cowork se reabre solo.": "正在安装 {version} 版本，AI Cowork 会自动重新打开。",
   "La versión {version} se instalará al cerrar AI Cowork.": "{version} 版本将在关闭 AI Cowork 时安装。",
   "Esta versión se descargó de GitHub y se actualiza sola: al abrirse busca la última y la instala. Ahora mismo también lo está comprobando.": "此版本从 GitHub 下载，会自动更新：打开时会查找最新版本并安装。现在也正在检查。",
+  'El modelo no escribió nada: se le pide la respuesta': '模型什么也没写：正在请它给出回答',
+  'Escribe ahora tu respuesta.': '现在请写出你的回答。',
+  'El modelo no escribió ninguna respuesta; esto es lo que razonó:': '模型没有写出任何回答；以下是它的推理：',
+  'El modelo local terminó sin escribir ninguna respuesta (ni texto ni razonamiento).': '本地模型结束时没有写出任何回答（既没有文字也没有推理）。',
+  '{name} no escribió ninguna respuesta.': '{name} 没有写出任何回答。'
 }

@@ -1897,4 +1897,9 @@ export const fr: Record<string, string> = {
   "Instalando la versión {version}. AI Cowork se reabre solo.": "Installation de la version {version}. AI Cowork se rouvrira tout seul.",
   "La versión {version} se instalará al cerrar AI Cowork.": "La version {version} sera installée à la fermeture d’AI Cowork.",
   "Esta versión se descargó de GitHub y se actualiza sola: al abrirse busca la última y la instala. Ahora mismo también lo está comprobando.": "Cette version a été téléchargée depuis GitHub et se met à jour toute seule : à l’ouverture, elle cherche la dernière et l’installe. Elle vérifie aussi en ce moment.",
+  'El modelo no escribió nada: se le pide la respuesta': 'Le modèle n\'a rien écrit : on lui demande la réponse',
+  'Escribe ahora tu respuesta.': 'Écris maintenant ta réponse.',
+  'El modelo no escribió ninguna respuesta; esto es lo que razonó:': 'Le modèle n\'a écrit aucune réponse ; voici son raisonnement :',
+  'El modelo local terminó sin escribir ninguna respuesta (ni texto ni razonamiento).': 'Le modèle local a terminé sans écrire de réponse (ni texte ni raisonnement).',
+  '{name} no escribió ninguna respuesta.': '{name} n\'a écrit aucune réponse.'
 }

@@ -225,7 +225,12 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     onFile: (p) => opts.onFile?.(p),
     onTrace: opts.onTrace
   }
-  const tools = toolDefinitions(ctx.canWrite)
+  // Un mensaje directo es una charla, como en el chat de LM Studio: sin herramientas (con ellas, algunos modelos
+  // se ponen a buscar y acaban sin escribir nada).
+  const tools = opts.direct ? [] : toolDefinitions(ctx.canWrite)
+  /** Lo último que razonó (por si no escribe nada más). */
+  let lastReasoning = ''
+  let nudged = false
   // Un mensaje directo («@Agente …») va solo, como en el chat de LM Studio: sin el mensaje de sistema del equipo.
   const messages: ChatMsg[] = [
     ...(opts.direct ? [] : [{ role: 'system' as const, content: SYSTEM_PROMPT }]),
@@ -239,7 +244,7 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     try {
       res = await postJson(
         `${LMSTUDIO_URL}/v1/chat/completions`,
-        JSON.stringify({ model, messages, tools, tool_choice: 'auto', temperature: 0.3, stream: false }),
+        JSON.stringify({ model, messages, ...(tools.length ? { tools, tool_choice: 'auto' } : {}), temperature: opts.direct ? 0.7 : 0.3, stream: false }),
         opts.signal
       )
     } catch (e) {
@@ -281,7 +286,9 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
       opts.onTrace?.({ type: 'thinking', text: reasoning })
       opts.onThinking?.(reasoning)
     }
-    const content = str(msg.content)
+    // Si la plantilla del modelo ya abrió <think>, la respuesta trae solo el cierre: lo de antes es razonamiento.
+    const rawContent = str(msg.content)
+    const content = rawContent.includes('</think>') && !rawContent.includes('<think>') ? `<think>${rawContent}` : rawContent
     const calls = (Array.isArray(msg.tool_calls) ? msg.tool_calls : [])
       .map((c) => obj(c))
       .filter((c): c is Record<string, unknown> => !!c && !!obj(c.function))
@@ -309,6 +316,23 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
       opts.onThinking?.(think)
     }
     const text = (visible || splitter.visible).trim()
+    if (reasoning || think) lastReasoning = (think || reasoning).trim()
+    // Solo razonó (o nada): en un mensaje directo se le pide una vez que escriba la respuesta y, si tampoco,
+    // se enseña lo que razonó o se dice claramente que no respondió.
+    if (!text && opts.direct) {
+      if (!nudged && step < MAX_STEPS - 1) {
+        nudged = true
+        opts.onTrace?.({ type: 'text', text: tr('El modelo no escribió nada: se le pide la respuesta') })
+        messages.push({ role: 'assistant', content: content || '' }, { role: 'user', content: tr('Escribe ahora tu respuesta.') })
+        continue
+      }
+      if (lastReasoning) {
+        const fallback = `${tr('El modelo no escribió ninguna respuesta; esto es lo que razonó:')}\n\n${lastReasoning}`
+        opts.onText?.(fallback)
+        return { ok: true, text: fallback, usage, model }
+      }
+      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: tr('El modelo local terminó sin escribir ninguna respuesta (ni texto ni razonamiento).'), model }
+    }
     if (text) {
       opts.onTrace?.({ type: 'text', text })
       opts.onActivity?.('Redactando', 'text')

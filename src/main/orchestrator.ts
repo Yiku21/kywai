@@ -2782,7 +2782,7 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     meta.touched.add(savedTo)
   }
   const arts = await collectArtifacts(run, t, owner)
-  if (!text) text = arts.length ? tr('Tarea completada.') : tr('Tarea completada (sin texto de respuesta).')
+  if (!text) text = arts.length ? tr('Tarea completada.') : t.direct ? tr('{name} no escribió ninguna respuesta.', { name: owner.name }) : tr('Tarea completada (sin texto de respuesta).')
 
   t.status = 'done'
   t.result = clip(text, RESULT_KEEP)
