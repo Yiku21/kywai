@@ -12,4 +12,5 @@ fun orbitaModelForTests(
     prefs: PreferencesStore = InMemoryPreferencesStore(),
     world: WorldController = WorldController(),
     installer: AppInstaller? = null,
-) = OrbitaModel(controller, prefs, world, Feedback(null), null, systemReducedMotion = { false }, installer = installer)
+    liveDictation: LiveDictation? = null,
+) = OrbitaModel(controller, prefs, world, Feedback(null), null, systemReducedMotion = { false }, installer = installer, liveDictation = liveDictation)

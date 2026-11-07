@@ -288,13 +288,15 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             VoiceBar(model, voice, allowSend = true, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp))
         } else Composer(
             value = model.chatDraft,
-            onValue = { model.chatDraft = it },
+            onValue = { model.editDraft(VoiceTarget.Chat, it) },
             // Con un plan esperando tu visto bueno, lo que escribas son cambios a ese plan (o «sí» para aprobarlo).
-            placeholder = if (messages.any { it.proposal?.isPending == true }) t("Qué cambiar del plan, o «sí»…") else t("Escribe una tarea o una pregunta…"),
+            placeholder = if (model.dictation?.target == VoiceTarget.Chat) t("Habla, te escucho…") else if (messages.any { it.proposal?.isPending == true }) t("Qué cambiar del plan, o «sí»…") else t("Escribe una tarea o una pregunta…"),
             canSend = model.chatDraft.text.isNotBlank() || pending.isNotEmpty(),
             onAttach = if (snapshot?.capabilities?.upload == true) ({ model.open(Section.Files); model.filesTab = FilesTab.Attachments }) else null,
             photo = if (snapshot?.capabilities?.upload == true) ({ PhotoButton(model, Modifier.padding(bottom = 4.dp)) }) else null,
-            mic = if (snapshot?.capabilities?.voice == true && model.canRecord) ({ MicButton(model, VoiceTarget.Chat, Modifier.padding(bottom = 4.dp)) }) else null,
+            mic = model.canRecordNote(snapshot?.capabilities?.voice == true).let { note ->
+                if (note || model.canDictate) ({ MicButton(model, VoiceTarget.Chat, note, Modifier.padding(bottom = 4.dp)) }) else null
+            },
         ) {
             val text = model.chatDraft.text
             if (OrbitaModel.isModelCommand(text) && pending.isEmpty()) {
@@ -308,6 +310,7 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
                 }
                 return@Composer
             }
+            model.cancelDictation()
             model.feedback.confirm()
             model.controller.sendMessage(text, pending.map { it.id })
             model.pendingAttachments = emptySet()
