@@ -1248,6 +1248,9 @@ export const en: Record<string, string> = {
   'Reiniciado: vuelve a estar disponible y lo pendiente puede empezar.': 'Restarted: it\'s available again and pending work can start.',
   'Reiniciar agente': 'Restart agent',
   'Olvida el error, comprueba que responde y lo deja disponible.': 'Forgets the error, checks that it responds and makes it available.',
+  'LM Studio encendido: el modelo se está cargando y lo pendiente puede empezar.': 'LM Studio is on: the model is loading and pending work can start.',
+  'Encender LM Studio': 'Turn on LM Studio',
+  'Enciende el servidor de LM Studio, carga el modelo y deja el agente disponible.': 'Starts the LM Studio server, loads the model and makes the agent available.',
 
   // ui/space/SpaceHeader.tsx
   'Espacio digital': 'Digital space',
@@ -1818,7 +1821,7 @@ export const en: Record<string, string> = {
   'Sesión de Claude expirada: abre una terminal, ejecuta `claude` e inicia sesión': 'Claude session expired: open a terminal, run `claude` and sign in',
   'Sesión de Codex caducada: ejecuta `codex login` en una terminal': 'Codex session expired: run `codex login` in a terminal',
   'Sesión de Muse Code caducada: abre `muse` en una terminal y usa /login': 'Muse Code session expired: open `muse` in a terminal and use /login',
-  'Servidor de LM Studio apagado: enciéndelo desde la configuración local o en LM Studio (Developer → Start server)': 'LM Studio server is off: turn it on from the local settings or in LM Studio (Developer → Start server)',
+  'Servidor de LM Studio apagado: pulsa «Encender LM Studio» o enciéndelo en LM Studio (Developer → Start server)': 'LM Studio server is off: press «Turn on LM Studio» or start it in LM Studio (Developer → Start server)',
   'Lleva 3 min sin dar señales: si sigue así, puede que espere un aviso de permisos en la pantalla del servidor': 'No signs of life for 3 min: if this continues, it may be waiting for a permission prompt on the server\'s screen',
   'Interrumpida al cerrar la app': 'Interrupted when the app closed',
   'Coordinador: planifica y reparte el trabajo (con memoria entre sesiones)': 'Coordinator: plans and splits the work (with memory across sessions)',

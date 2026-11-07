@@ -11,7 +11,7 @@ import { runTool, toolDefinitions, type ToolContext } from './localTools'
 import { tr } from '@shared/i18n'
 
 export const LMSTUDIO_URL = 'http://127.0.0.1:1234'
-export const LMSTUDIO_OFFLINE = 'Servidor de LM Studio apagado: enciéndelo desde la configuración local o en LM Studio (Developer → Start server)'
+export const LMSTUDIO_OFFLINE = 'Servidor de LM Studio apagado: pulsa «Encender LM Studio» o enciéndelo en LM Studio (Developer → Start server)'
 
 /** Ruta del CLI `lms` (lo instala LM Studio en ~/.lmstudio/bin). */
 export function lmsPath(): string | null {
@@ -61,10 +61,38 @@ export async function lmsStartServer(): Promise<void> {
   await lms(['server', 'start'], 60_000)
 }
 
-/** ¿Servidor activo y modelo descargado? (sin generar nada). */
-export async function checkLmStudio(model: string): Promise<{ ok: boolean; reason?: string }> {
+let starting: Promise<boolean> | null = null
+
+/**
+ * Enciende el servidor de LM Studio si está apagado (con su CLI `lms`). Devuelve si queda encendido. Si se piden
+ * varias a la vez (varios agentes, comprobación y tarea), se hace una sola.
+ */
+export function ensureLmsServer(): Promise<boolean> {
+  if (!starting) {
+    starting = (async () => {
+      if (await lmsServerRunning()) return true
+      if (!lmsPath()) return false
+      try {
+        await lmsStartServer()
+      } catch (e) {
+        console.warn('[cowork] no se pudo encender el servidor de LM Studio', e)
+      }
+      return lmsServerRunning()
+    })().finally(() => {
+      starting = null
+    })
+  }
+  return starting
+}
+
+/**
+ * ¿Servidor activo y modelo descargado? (sin generar nada). Con `autoStart`, si el servidor está apagado lo
+ * enciende y deja cargando el modelo en segundo plano, para que la primera tarea no espere.
+ */
+export async function checkLmStudio(model: string, autoStart = false): Promise<{ ok: boolean; reason?: string }> {
   if (!lmsPath()) return { ok: false, reason: tr('LM Studio no está instalado') }
   if (!model) return { ok: false, reason: tr('No hay un modelo local configurado') }
+  if (autoStart && !(await lmsServerRunning()) && (await ensureLmsServer())) void ensureContext(model)
   let ids: string[] = []
   try {
     const res = await fetch(`${LMSTUDIO_URL}/v1/models`, { signal: AbortSignal.timeout(2500) })
@@ -89,12 +117,24 @@ const MAX_STEPS = 24
 const MAX_HISTORY_CHARS = 80_000
 const contextReady = new Set<string>()
 
+const contextLoading = new Map<string, Promise<void>>()
+
+/** Una sola carga por modelo a la vez (la de «Encender LM Studio» y la de una tarea que llega mientras). */
+function ensureContext(model: string, onActivity?: (t: string) => void): Promise<void> {
+  if (contextReady.has(model)) return Promise.resolve()
+  let p = contextLoading.get(model)
+  if (!p) {
+    p = loadWithContext(model, onActivity).finally(() => contextLoading.delete(model))
+    contextLoading.set(model, p)
+  } else onActivity?.(tr('Preparando el modelo local'))
+  return p
+}
+
 /**
  * LM Studio carga los modelos con poco contexto por defecto (4–8 k tokens), insuficiente para
  * trabajar con archivos. Si hace falta, se recarga el modelo con 32 k.
  */
-async function ensureContext(model: string, onActivity?: (t: string) => void): Promise<void> {
-  if (contextReady.has(model)) return
+async function loadWithContext(model: string, onActivity?: (t: string) => void): Promise<void> {
   try {
     const loaded = JSON.parse(await lms(['ps', '--json'])) as Record<string, unknown>[]
     const base = model.split('@')[0]
@@ -171,6 +211,8 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
   const usage: TokenUsage = { input: 0, output: 0 }
   const model = opts.model
   if (!model) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr('No hay un modelo local configurado') }
+  // Si alguien apagó el servidor desde la última comprobación, se enciende antes de empezar.
+  if (!(await ensureLmsServer())) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr(LMSTUDIO_OFFLINE) }
   await ensureContext(model, (t) => opts.onActivity?.(t, 'tool'))
   if (opts.signal.aborted) return { ok: false, text: '', usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
 

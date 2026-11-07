@@ -7,6 +7,7 @@ import {
   Folder,
   Hourglass,
   LoaderCircle,
+  Power,
   RotateCcw,
   Sparkles,
   SquareTerminal,
@@ -197,7 +198,9 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
         <span className={s.location}>{runtime?.location === 'core' ? t('En el núcleo') : t('En su estación')}</span>
       </div>
 
-      {!!api && mode === 'live' && (activity === 'error' || activity === 'offline') && <ResetAgent agentId={agent.id} />}
+      {!!api && mode === 'live' && (activity === 'error' || activity === 'offline') && (
+        <ResetAgent agentId={agent.id} startsLmStudio={agent.provider === 'lmstudio' && activity === 'offline'} />
+      )}
 
       {agent.role && <p className={s.role}>{t(agent.role)}</p>}
 
@@ -490,8 +493,11 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
   )
 }
 
-/** «Reiniciar agente» cuando falla: olvida el error, comprueba que responde y lo deja disponible. */
-function ResetAgent({ agentId }: { agentId: string }) {
+/**
+ * «Reiniciar agente» cuando falla: olvida el error, comprueba que responde y lo deja disponible. Con el agente local
+ * de LM Studio apagado es «Encender LM Studio»: la comprobación enciende su servidor y carga el modelo.
+ */
+function ResetAgent({ agentId, startsLmStudio }: { agentId: string; startsLmStudio?: boolean }) {
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ text: string; ok: boolean } | null>(null)
   const reset = async (): Promise<void> => {
@@ -503,7 +509,9 @@ function ResetAgent({ agentId }: { agentId: string }) {
       setNote(
         rt.activity === 'offline'
           ? { text: t('Sigue sin responder{reason}. Revisa su instalación o su sesión.', { reason: rt.reason ? `: ${rt.reason}` : '' }), ok: false }
-          : { text: t('Reiniciado: vuelve a estar disponible y lo pendiente puede empezar.'), ok: true }
+          : startsLmStudio
+            ? { text: t('LM Studio encendido: el modelo se está cargando y lo pendiente puede empezar.'), ok: true }
+            : { text: t('Reiniciado: vuelve a estar disponible y lo pendiente puede empezar.'), ok: true }
       )
     } catch (e) {
       setNote({ text: errorText(e), ok: false })
@@ -514,11 +522,20 @@ function ResetAgent({ agentId }: { agentId: string }) {
   return (
     <div className={s.reset}>
       <button type="button" className={cx(u.btn, u.btnSm, s.resetBtn)} disabled={busy} onClick={() => void reset()}>
-        {busy ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : <RotateCcw size={14} aria-hidden="true" />}
-        {t('Reiniciar agente')}
+        {busy ? (
+          <LoaderCircle size={14} className={u.spin} aria-hidden="true" />
+        ) : startsLmStudio ? (
+          <Power size={14} aria-hidden="true" />
+        ) : (
+          <RotateCcw size={14} aria-hidden="true" />
+        )}
+        {startsLmStudio ? t('Encender LM Studio') : t('Reiniciar agente')}
       </button>
       <span className={cx(s.resetNote, note && !note.ok && s.resetBad)} role="status">
-        {note?.text ?? t('Olvida el error, comprueba que responde y lo deja disponible.')}
+        {note?.text ??
+          (startsLmStudio
+            ? t('Enciende el servidor de LM Studio, carga el modelo y deja el agente disponible.')
+            : t('Olvida el error, comprueba que responde y lo deja disponible.'))}
       </span>
     </div>
   )
