@@ -6,7 +6,11 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -28,6 +32,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -59,28 +65,81 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 
 /**
- * Botón del micrófono: graba una nota de voz que el ordenador convierte en texto con su dictado (como el escritorio).
- * La primera vez pide el permiso del micrófono.
+ * Botón del micrófono. Si el móvil tiene reconocimiento de voz, un toque **dicta en directo** (el texto va saliendo
+ * en la caja mientras hablas; otro toque para) y mantenerlo pulsado graba una **nota de voz** que el ordenador pasa
+ * a texto con su dictado (Whisper). Sin reconocimiento de voz, el toque graba la nota como siempre.
+ * [note]: el ordenador admite notas de voz. La primera vez pide el permiso del micrófono.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MicButton(model: OrbitaModel, target: VoiceTarget, modifier: Modifier = Modifier) {
+fun MicButton(model: OrbitaModel, target: VoiceTarget, note: Boolean, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val live = model.canDictate
+    // Lo que se quería hacer cuando se pidió el permiso: dictar (true) o grabar una nota (false).
+    var wantLive by remember { mutableStateOf(true) }
+    fun go(liveNow: Boolean) {
+        if (liveNow) model.startDictation(target, noteFallback = note) else model.startVoice(target)
+    }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) model.startVoice(target)
+        if (granted) go(wantLive)
         else {
             model.feedback.reject()
             model.toast(t("Sin permiso para el micrófono: actívalo en Ajustes › Aplicaciones › kywai › Permisos."), Toast.Tone.Error)
         }
     }
-    IconAction(
-        Icons.Outlined.Mic,
-        t("Grabar una nota de voz"),
-        onClick = {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) model.startVoice(target)
-            else ask.launch(Manifest.permission.RECORD_AUDIO)
-        },
-        modifier = modifier.testTag("mic"),
-    )
+    fun request(liveNow: Boolean) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) go(liveNow)
+        else {
+            wantLive = liveNow
+            ask.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+    val dictating = model.dictation?.target == target
+    val level = model.dictation?.takeIf { dictating }?.level ?: 0f
+    val ring by animateFloatAsState(if (dictating) level else 0f, tween(120), label = "micLevel")
+    val description = when {
+        dictating -> t("Dejar de dictar")
+        live && note -> t("Dictar (mantén pulsado para grabar una nota de voz)")
+        live -> t("Dictar")
+        else -> t("Grabar una nota de voz")
+    }
+    val feedback = LocalFeedback.current
+    Box(
+        modifier
+            .size(44.dp)
+            .drawBehind {
+                if (dictating) {
+                    // Anillo que crece con tu voz: se ve que te está oyendo.
+                    drawCircle(Orbita.Accent.copy(alpha = 0.18f + 0.22f * ring), radius = size.minDimension / 2 * (0.78f + 0.22f * ring))
+                }
+            }
+            .clip(CircleShape)
+            .combinedClickable(
+                onClick = {
+                    feedback.tap()
+                    when {
+                        dictating -> model.stopDictation()
+                        live -> request(liveNow = true)
+                        note -> request(liveNow = false)
+                    }
+                },
+                onLongClick = if (note && !dictating) ({
+                    feedback.select()
+                    request(liveNow = false)
+                }) else null,
+                onLongClickLabel = if (note && live && !dictating) t("Grabar una nota de voz") else null,
+            )
+            .semantics { contentDescription = description }
+            .testTag("mic"),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            if (dictating) Icons.Outlined.Stop else Icons.Outlined.Mic,
+            contentDescription = null,
+            tint = if (dictating) Orbita.Accent else Orbita.TextSoft,
+            modifier = Modifier.size(22.dp),
+        )
+    }
 }
 
 /** Barra de la nota de voz: grabando (tiempo y onda), pasando a texto o fallida (reintentar sin volver a grabar). */

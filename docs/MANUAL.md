@@ -252,9 +252,20 @@ entero) y queda emparejada para siempre, aunque kywai se reinicie o se actualice
 acceso se guarda en `mobile-key`, en la carpeta de datos de la app). Para desemparejar todos los móviles, genera
 un código de acceso nuevo.
 
-En el chat de la app (y en «Nueva tarea») el micrófono graba **notas de voz**: el móvil las envía al ordenador
-por Tailscale y este las pasa a texto con su propio dictado (Whisper, igual que el escritorio: sin servicios
-externos y el audio se borra). Al terminar se elige revisar el texto antes de enviarlo o enviarlo directamente.
+En el chat de la app (y en «Nueva tarea») el micrófono, al lado de la cámara, tiene dos usos:
+
+- **Un toque: dictado en directo.** El texto va saliendo en la caja mientras hablas, con el reconocimiento de voz
+  del propio móvil y en el idioma de la app. Las pausas no cortan: sigue escuchando hasta que vuelvas a tocar el
+  botón (sale un cuadrado y un anillo que crece con tu voz) o te calles un buen rato. Lo dictado se queda en la caja
+  para corregirlo antes de enviar; si escribes a mano o envías mientras dictas, el dictado se para. Según el móvil,
+  este reconocimiento puede usar los servidores de Google (Android decide); si quieres que nada salga de tu red,
+  usa la nota de voz.
+- **Mantener pulsado: nota de voz.** El móvil graba la nota, la envía al ordenador por Tailscale y este la pasa a
+  texto con su propio dictado (Whisper, igual que el escritorio: sin servicios externos y el audio se borra). Al
+  terminar se elige revisar el texto antes de enviarlo o enviarlo directamente.
+
+Si el móvil no tiene reconocimiento de voz, un toque graba la nota de voz como antes. Si el dictado del móvil falla
+(sin internet, o sin ese idioma), el aviso recuerda que puedes mantener pulsado para grabar una nota.
 
 **Actualizar la app del móvil:** ☰ → Ajustes → Acerca de → **Órbita** → «Buscar actualizaciones». Al abrir Ajustes ya
 dice si hay una versión nueva; «Instalar la versión …» la descarga del ordenador (por Tailscale, solo a móviles
