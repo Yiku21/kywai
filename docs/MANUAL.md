@@ -28,6 +28,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Entregables en una carpeta](#entregables-en-una-carpeta)
   - [Reanudar lo interrumpido](#reanudar-lo-interrumpido)
   - [Reiniciar un agente que falla](#reiniciar-un-agente-que-falla)
+  - [Hablar directamente con un agente (@Agente)](#hablar-directamente-con-un-agente-agente)
   - [El modelo de Hermes (/model)](#el-modelo-de-hermes-model)
   - [Muse (Meta)](#muse-meta)
 - **[Proyectos, memoria y consumo](#proyectos-memoria-y-consumo)**
@@ -778,6 +779,39 @@ Si un agente se queda en error o sin conexión (un fallo de su API, la cuota, la
 aparece **«Reiniciar agente»** (en Órbita, en su tarjeta): olvida el error y los modelos que se le dieron por rotos,
 vuelve a comprobar que su CLI responde (sin llamadas de pago) y, si responde, queda disponible y lo que esperaba por
 él empieza. Si sigue sin responder, lo dice. Si está trabajando no se toca: para eso está «Detener».
+
+### Hablar directamente con un agente (`@Agente`)
+
+Normalmente todo lo que escribes pasa primero por Hermes, que decide qué hacer y a quién dárselo. Si quieres que
+un agente concreto reciba tu texto **tal cual**, sin que Hermes lo lea, lo reinterprete ni lo filtre, empieza el
+mensaje con su nombre:
+
+- `@Qwen escribe un cuento corto` (también vale su id o el nombre sin espacios: `@LMStudio …`).
+- `/directo Qwen escribe un cuento corto` (o `/direct`, `/dm`).
+
+Al teclear `@` al principio del cuadro sale la lista de agentes (en el escritorio, la web y Órbita): elige uno con
+las flechas e Intro o Tab (o tocándolo) y escribe el mensaje detrás. En el chat, tu mensaje sale como
+«Tú → Qwen (directo, sin Hermes)».
+
+Lo que cambia frente a una petición normal:
+
+- **Sin Hermes**: no hay plan ni visto bueno, ni resumen final. Es una sola tarea para ese agente.
+- **Texto literal**: el agente recibe solo lo que escribiste detrás de su nombre, sin las instrucciones del equipo
+  (si adjuntas archivos, se añade dónde están). Al modelo de LM Studio tampoco se le pone su mensaje de sistema de
+  «agente del equipo»: es como escribirle en el chat de LM Studio, con sus herramientas de archivos a mano.
+- **Su respuesta tal cual**: sin verificador de otra familia; un «BLOQUEADA: …» no se trata como fallo.
+- **Solo ese agente**: si está apagado, sin cuota o falla, la tarea queda fallida con el motivo y **no** se pasa a
+  otro agente.
+- **Conversación seguida**: si tu mensaje anterior en el proyecto también fue directo al mismo agente, Claude y
+  Codex retoman su sesión (recuerdan lo anterior). LM Studio y Ollama reciben cada mensaje suelto.
+
+Un `@` que no es el nombre de ningún agente (un correo, «@alguien») no cuenta: el mensaje va a Hermes como siempre.
+`/directo` con un nombre que no existe da un error con la pista de escribir `@` para ver la lista. El agente
+trabaja en la carpeta del proyecto con el mismo permiso de siempre (⋮ → «Acceso completo para los agentes»).
+
+Para desarrolladores: las reglas están en `src/shared/directMessage.ts` (y su copia en Órbita,
+`android/.../ui/orbita/DirectMention.kt`); el motor las aplica en `sendDirect` de `src/main/orchestrator.ts`
+(la tarea lleva `direct: true`). La API móvil lo anuncia con `capabilities.directMessages`.
 
 ### El modelo de Hermes (`/model`)
 

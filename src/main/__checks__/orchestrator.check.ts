@@ -1299,6 +1299,52 @@ async function main(): Promise<void> {
       workBehaviour = () => null
     })
 
+    await check('mensaje directo: «@Codex …» llega tal cual, sin Hermes, sin verificador y sin relevo', async () => {
+      __clearBlocksForChecks()
+      // Respuesta que en una tarea normal contaría como fallo y pasaría a otro agente.
+      workBehaviour = (o) =>
+        o.mode === 'work' && o.agent.id === 'codex' ? Promise.resolve({ ok: true, text: 'BLOQUEADA: respuesta tal cual', usage: { input: 5, output: 5 } }) : null
+      planResponses = {}
+      const fromCalls = calls.length
+      const fromEv = events.length
+      const r = await sendMessage({ projectId: project.id, text: '  @codex: hola, ¿qué tal?  ', filePaths: [] })
+      await waitFor(() => !!finished(r.runId), 10000, 'directo a Codex')
+      const mine = calls.slice(fromCalls)
+      assert.deepEqual(mine.map((c) => `${c.agentId}:${c.mode}`), ['codex:work'], 'solo trabaja Codex: ni plan ni verificación')
+      assert.equal(mine[0].prompt, 'hola, ¿qué tal?', 'el texto llega sin la mención y sin instrucciones')
+      const t = [...lastTasks(fromEv).values()].find((x) => x.runId === r.runId)!
+      assert.ok(t.direct && t.status === 'done' && t.agentId === 'codex')
+      assert.equal(t.result, 'BLOQUEADA: respuesta tal cual')
+      const msgs = store.getProject(project.id).messages.filter((m) => m.runId === r.runId)
+      assert.deepEqual(msgs.find((m) => m.author.type === 'user')?.direct, { agentId: 'codex', name: 'Codex' })
+      assert.ok(msgs.some((m) => m.author.type === 'agent' && m.text.includes('BLOQUEADA: respuesta tal cual')), 'la respuesta sale sin retocar')
+
+      // Si falla, no se le pasa a otro agente.
+      workBehaviour = (o) =>
+        o.mode === 'work' ? Promise.resolve({ ok: false, text: '', usage: { input: 0, output: 0 }, errorKind: 'failed', errorMessage: 'se cayó' }) : null
+      const fromCalls2 = calls.length
+      const fromEv2 = events.length
+      const r2 = await sendMessage({ projectId: project.id, text: '/directo Gemini cuéntame algo', filePaths: [] })
+      await waitFor(() => !!finished(r2.runId), 10000, 'directo a Gemini')
+      assert.deepEqual(calls.slice(fromCalls2).map((c) => c.agentId), ['gemini'], 'nadie más lo intenta')
+      assert.equal([...lastTasks(fromEv2).values()].find((x) => x.runId === r2.runId)!.status, 'failed')
+
+      // Un agente apagado no recibe nada y tampoco se reparte a otro.
+      const fromCalls3 = calls.length
+      const fromEv3 = events.length
+      const r3 = await sendMessage({ projectId: project.id, text: '@Qwen hola', filePaths: [] })
+      await waitFor(() => !!finished(r3.runId), 10000, 'directo a Qwen apagado')
+      assert.equal(calls.length, fromCalls3, 'no se llama a ningún agente')
+      const t3 = [...lastTasks(fromEv3).values()].find((x) => x.runId === r3.runId)!
+      assert.equal(t3.status, 'failed')
+      assert.match(t3.error ?? '', /Qwen no está disponible/)
+
+      // «/directo» con un agente que no existe es un error; «@algo» que no es un agente va al equipo como siempre.
+      await assert.rejects(sendMessage({ projectId: project.id, text: '/directo Nadie hola', filePaths: [] }), /No hay ningún agente «Nadie»/)
+      await assert.rejects(sendMessage({ projectId: project.id, text: '@Codex', filePaths: [] }), /Escribe el mensaje para Codex/)
+      workBehaviour = () => null
+    })
+
     await check('registro de consumo: cada petición con sus llamadas (planificar y tareas), tiempo y resultado', async () => {
       const list = usageRuns()
       assert.ok(list.length >= 5, `peticiones registradas: ${list.length}`)

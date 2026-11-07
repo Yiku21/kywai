@@ -1875,5 +1875,17 @@ export const zh: Record<string, string> = {
   " tras una corrección": "（经过一次修正）",
   "⚠ {byName} comprobó el resultado tras la corrección y sigue viendo fallos: {clip}": "⚠ {byName} 检查了修正后的结果，仍然发现问题：{clip}",
   "{byName} sigue viendo fallos en «{title}» tras la corrección": "{byName} 在修正后仍发现「{title}」有问题",
-  "«{title}»: {byName} aún veía fallos tras la corrección: {oneLine}": "「{title}」：{byName} 在修正后仍发现问题：{oneLine}"
+  "«{title}»: {byName} aún veía fallos tras la corrección: {oneLine}": "「{title}」：{byName} 在修正后仍发现问题：{oneLine}",
+
+  // Mensaje directo a un agente (directMessage.ts, sendDirect, Composer)
+  'No hay ningún agente «{name}». Escribe @ y elige uno de la lista, o usa el nombre que sale en su ficha.': '没有名为「{name}」的智能体。输入 @ 从列表中选择一个，或使用其卡片上显示的名称。',
+  'Escribe el mensaje para {name} después de su nombre.': '请在 {name} 的名字后面写下消息。',
+  '(Solo archivos adjuntos)': '（仅附件）',
+  'Mensaje directo: {text}': '直接消息：{text}',
+  'archivos adjuntos': '附件',
+  '{name} no está disponible{why}. El mensaje no se ha pasado a ningún otro agente.': '{name} 当前不可用{why}。消息没有转给其他智能体。',
+  'Ese agente ya no existe': '该智能体已不存在',
+  'Hablar directamente con un agente': '直接与智能体对话',
+  'Directo, sin pasar por Hermes: recibe tu texto tal cual': '直接发送，不经过 Hermes：对方原样收到你的文字',
+  'Tú → {name} (directo, sin Hermes)': '你 → {name}（直接，不经过 Hermes）'
 }

@@ -88,6 +88,8 @@ export interface MobileSnapshot {
     taskChanges: boolean
     /** Rutinas del proyecto: GET /routines (ver) y POST /routines/{routineId}/run («Ejecutar ahora»). */
     routines: boolean
+    /** «@Agente …» o «/directo Agente …» en el chat: el texto va tal cual a ese agente, sin pasar por Hermes. */
+    directMessages: boolean
   }
 }
 

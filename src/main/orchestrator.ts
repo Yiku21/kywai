@@ -51,6 +51,7 @@ import { captureUi, pagesToShoot, type UiShots } from './uiShots'
 import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './coworkMcp'
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
+import { parseDirect } from '@shared/directMessage'
 
 type Deliverable = 'file' | 'text'
 
@@ -986,6 +987,13 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     return { runId }
   }
 
+  // «@Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes.
+  const direct = parseDirect(text, baseAgents())
+  if (direct && 'error' in direct) {
+    throw new Error(tr('No hay ningún agente «{name}». Escribe @ y elige uno de la lista, o usa el nombre que sale en su ficha.', { name: direct.error }))
+  }
+  if (direct) return sendDirect(st, direct.agentId, direct.text, atts, input.clientMessageId, routine)
+
   // Hay un plan esperando tu visto bueno: un «sí» lo aprueba; cualquier otra cosa son cambios a ese plan.
   // Una rutina no responde a planes pendientes: su petición es aparte.
   const pending = routine ? undefined : pendingProposal(projectId)
@@ -1058,6 +1066,80 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
       void finishRun(run, false)
     }
   })
+  return { runId }
+}
+
+/**
+ * Mensaje directo a un agente («@Qwen …»): una sola tarea para él con tu texto tal cual. Sin plan de Hermes, sin
+ * verificador, sin relevo a otro agente si falla y sin resumen final: su respuesta sale en el chat sin retocar.
+ * Si el anterior mensaje tuyo en el proyecto también fue directo a ese agente, retoma su sesión del CLI (si la
+ * admite), para que la conversación siga.
+ */
+async function sendDirect(
+  st: ReturnType<typeof store.getProject>,
+  agentId: AgentId,
+  text: string,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined
+): Promise<{ runId: string }> {
+  const agent = findAgent(agentId)!
+  const projectId = st.project.id
+  if (!text && !atts.length) throw new Error(tr('Escribe el mensaje para {name} después de su nombre.', { name: agent.name }))
+  const lastMine = [...st.messages].reverse().find((m) => m.author.type === 'user')
+  const continues = lastMine?.direct?.agentId === agent.id
+  const runId = randomUUID()
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: text || tr('(Solo archivos adjuntos)'),
+    createdAt: Date.now(),
+    attachments: atts.length ? atts : undefined,
+    direct: { agentId: agent.id, name: agent.name },
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+  })
+  const run: Run = {
+    id: runId,
+    projectId,
+    userText: text,
+    ...(routine ? { routine: routine.name } : {}),
+    attachments: atts,
+    attPaths: store.stageAttachments(projectId, atts),
+    planning: false,
+    taskIds: [],
+    meta: new Map(),
+    controllers: new Map(),
+    cancelled: false,
+    finished: false
+  }
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId,
+    title: tr('Mensaje directo: {text}', { text: oneLine(text, 60) || tr('archivos adjuntos') }),
+    description: text,
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'text',
+    direct: true,
+    ...(continues ? { continues: true } : {})
+  }
+  run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
+  runs.set(runId, run)
+  emit({ kind: 'run.started', runId, projectId })
+  startRunUsage({ runId, projectId, projectName: st.project.name, request: text })
+  await baseline(run)
+  tasks.set(t.id, t)
+  run.taskIds.push(t.id)
+  pushTask(t)
+  schedule()
   return { runId }
 }
 
@@ -1916,6 +1998,18 @@ export function schedule(): void {
 
       let agent = findAgent(t.agentId)
       if (agent?.isSubagent) agent = findAgent(agent.parentId)
+      if (t.direct && (!agent || !usable(agent))) {
+        // Un mensaje directo es para ese agente: no se le pasa a otro.
+        const why = agent ? offlineReason(agent) : null
+        t.status = 'failed'
+        t.error = agent
+          ? tr('{name} no está disponible{why}. El mensaje no se ha pasado a ningún otro agente.', { name: agent.name, why: why ? `: ${why}` : '' })
+          : tr('Ese agente ya no existe')
+        t.finishedAt = Date.now()
+        pushTask(t)
+        systemMessage(run, t.error, 'error')
+        continue
+      }
       if (!agent || !usable(agent)) {
         const alt = bestAgentFor(`${t.title} ${t.description}`, new Set([t.agentId]))
         if (!alt) {
@@ -2047,6 +2141,7 @@ const NARRATE_RULE = '- Mientras trabajas, cuenta lo que haces en frases cortas 
 function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, deps: Task[], tools = false): string {
   const st = store.getProject(run.projectId)
   const meta = run.meta.get(t.id)!
+  if (t.direct) return directPrompt(run, t, !!meta.copy)
   const textOnly = isTextOnly(exec.provider)
   const files: string[] = []
   for (const a of run.attachments) files.push(`- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
@@ -2308,7 +2403,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   if (resume) traceNote(t.id, tr('{name} retoma su sesión anterior en este proyecto', { name: exec.name }))
   // Herramientas de AI Cowork (memoria, equipo, preguntas, habilidades). Solo Claude: lee la configuración de un
   // archivo; Codex solo la admite con valores TOML entre comillas, que no pueden ir por la consola.
-  const mcp: McpLaunch | null = exec.provider === 'claude'
+  const mcp: McpLaunch | null = exec.provider === 'claude' && !t.direct
     ? mcpForTask({ projectId: run.projectId, runId: run.id, taskId: t.id, taskTitle: t.title, agentId: (parent ?? exec).id, agentName: (parent ?? exec).name })
     : null
   const attempt = (resuming: string | undefined): Promise<RunAgentResult> => {
@@ -2318,6 +2413,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
       model,
       effort,
       prompt: buildTaskPrompt(run, t, exec, parent, deps, !!mcp),
+      ...(t.direct ? { direct: true } : {}),
       ...(mcp ? { mcp: { name: MCP_SERVER_NAME, command: mcp.command, args: mcp.args, env: mcp.env, configFile: mcp.configFile } } : {}),
       cwd: dir,
       mode: 'work',
@@ -2383,7 +2479,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
 
   // «BLOQUEADA: …» cuenta como fallo en el registro (la tarea pasa a otro o se da por fallida).
   taskInboxDone(t)
-  logCall(run, 'task', exec, model, res.ok && blockedReason(res.text) ? { ...res, ok: false } : res, taskStart, t.id, effort, {
+  logCall(run, 'task', exec, model, res.ok && !t.direct && blockedReason(res.text) ? { ...res, ok: false } : res, taskStart, t.id, effort, {
     difficulty: t.difficulty
   })
   endTrace(t.id, res, taskStart)
@@ -2403,7 +2499,8 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   scheduleQuotaRefresh(exec.provider === 'codex')
 
   try {
-    const blocked = res.ok ? blockedReason(res.text) : null
+    // En un mensaje directo la respuesta es la que es: «BLOQUEADA:» no significa nada especial.
+    const blocked = res.ok && !t.direct ? blockedReason(res.text) : null
     if (blocked) handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: blocked })
     else if (res.ok) {
       const verdict = await verifyTask(run, t, exec, parent, res, dir)
@@ -2423,6 +2520,16 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   }
   if (run.controllers.get(t.id) === ctrl) run.controllers.delete(t.id)
   schedule()
+}
+
+/**
+ * Lo que recibe el agente en un mensaje directo: el texto del usuario tal cual. Solo si hay adjuntos se añade
+ * dónde están (el agente no tendría otra forma de encontrarlos).
+ */
+export function directPrompt(run: Pick<Run, 'attachments' | 'attPaths' | 'projectId'>, t: Pick<Task, 'description'>, inCopy = false): string {
+  if (!run.attachments.length) return t.description
+  const files = run.attachments.map((a) => `- ${attPath(run as Run, a.relPath, inCopy)}`)
+  return [t.description, '', ...files].join('\n').trim()
 }
 
 /** Nombre legible del modelo con el que trabaja un agente. */
@@ -2521,7 +2628,7 @@ function pickVerifier(author: AgentConfig, wantsEyes = false): AgentConfig | nul
 
 /** Tareas cuyo resultado se comprueba: cambiaron archivos del proyecto y el usuario no ha pedido saltárselo. */
 function shouldVerify(run: Run, t: Task, exec: AgentConfig, changed: string[]): boolean {
-  if (isTextOnly(exec.provider) || wantsNoReview(run.userText)) return false
+  if (t.direct || isTextOnly(exec.provider) || wantsNoReview(run.userText)) return false
   const meta = run.meta.get(t.id)
   return !!meta && (meta.deliverable === 'file' || changed.length > 0)
 }
@@ -2814,7 +2921,8 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   // el becario se la devuelve a su jefe, que la hace con su modelo principal; sin jefe, pasa al mejor compañero.
   let alt: AgentConfig | null = null
   let noStrongAlt = false
-  if (!meta.retried && (BLOCKING_KINDS.includes(kind) || kind === 'failed')) {
+  // Un mensaje directo no pasa a otro agente: era para este.
+  if (!t.direct && !meta.retried && (BLOCKING_KINDS.includes(kind) || kind === 'failed')) {
     if (kind === 'failed' && parent && usable(parent)) alt = parent
     else {
       // El relevo de una tarea que no es fácil va a otro agente fuerte, nunca al modelo local (lento y ligero):

@@ -97,7 +97,7 @@ function UserMessage({ m }: { m: ChatMessage }) {
         {m.routine ? <CalendarClock size={18} /> : <User size={18} />}
       </span>
       <div className={s.main}>
-        <Meta name={m.routine ? t('Rutina: {name}', { name: m.routine.name }) : t('Tú')} ts={m.createdAt} />
+        <Meta name={m.routine ? t('Rutina: {name}', { name: m.routine.name }) : m.direct ? t('Tú → {name} (directo, sin Hermes)', { name: m.direct.name }) : t('Tú')} ts={m.createdAt} />
         <div className={cx(s.bubble, s.userBubble)}>
           {parts.request && <p className={s.userText}>{parts.request}</p>}
           {parts.data && (

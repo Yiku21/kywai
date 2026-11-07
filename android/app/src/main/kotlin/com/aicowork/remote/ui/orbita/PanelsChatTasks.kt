@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -212,6 +214,32 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             is VoiceState.Failed -> voice.target == VoiceTarget.Chat
             VoiceState.Idle -> false
         }
+        // «@» al principio: los agentes, para escribirle a uno directamente sin pasar por Hermes.
+        val directTargets = snapshot?.takeIf { it.capabilities.directMessages }?.let { DirectMention.targets(it.agents) }.orEmpty()
+        val mention = if (!voiceHere && directTargets.isNotEmpty()) DirectMention.query(model.chatDraft.text) else null
+        val mentionList = mention?.let { DirectMention.matches(it.query, directTargets) }.orEmpty()
+        if (mention != null && mentionList.isNotEmpty()) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).testTag("mentions")) {
+                Text(t("Directo, sin pasar por Hermes: recibe tu texto tal cual"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    mentionList.forEach { a ->
+                        Row(
+                            Modifier.clip(Orbita.PillShape).background(Orbita.AccentSoft).tappable {
+                                val next = DirectMention.text(mention.prefix, a)
+                                model.chatDraft = TextFieldValue(next, selection = androidx.compose.ui.text.TextRange(next.length))
+                            }.padding(horizontal = 12.dp, vertical = 8.dp).testTag("mention-${a.id}"),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Dot(parseColor(a.color), 8.dp)
+                            Spacer(Modifier.width(6.dp))
+                            Text(a.name, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+        }
         if (voiceHere) {
             VoiceBar(model, voice, allowSend = true, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp))
         } else Composer(
@@ -239,7 +267,8 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             model.controller.sendMessage(text, pending.map { it.id })
             model.pendingAttachments = emptySet()
             model.chatDraft = TextFieldValue("")
-            model.awaitingPlanSince = System.currentTimeMillis()
+            // Un mensaje directo no pasa por Hermes: no hay plan que esperar.
+            if (DirectMention.target(text, directTargets) == null) model.awaitingPlanSince = System.currentTimeMillis()
             model.chatSends++
         }
     }
@@ -280,6 +309,10 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                 }
             }
             Row(Modifier.padding(top = 3.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                message.direct?.let { d ->
+                    Text(t("Tú → {name} (directo, sin Hermes)", "name" to d.name), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.width(6.dp))
+                }
                 Text(Format.time(message.createdAt), color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium)
                 if (message.clientMessageId != null && message.clientMessageId in state.delivered) {
                     Spacer(Modifier.width(6.dp))

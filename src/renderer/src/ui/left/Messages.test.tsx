@@ -83,6 +83,12 @@ describe('chat del escritorio', () => {
     }
   }
 
+  it('un mensaje directo a un agente dice a quién fue y que no pasó por Hermes', async () => {
+    await show({ id: 'md', projectId: 'p1', runId: 'r8', author: { type: 'user' }, text: 'hola', createdAt: 1, direct: { agentId: 'qwen', name: 'Qwen' } })
+    expect(host.textContent).toContain('Tú → Qwen (directo, sin Hermes)')
+    expect(host.querySelector('p')?.textContent).toBe('hola')
+  })
+
   it('un mensaje que lanzó una rutina lleva «Rutina: <nombre>» y sus datos externos van plegados', async () => {
     await show({
       id: 'mr',

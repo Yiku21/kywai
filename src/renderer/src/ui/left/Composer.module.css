@@ -236,6 +236,67 @@
   background: var(--cyan);
 }
 
+/* ---------- Lista del «@» (mensaje directo a un agente) ---------- */
+
+.mentions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: rgba(var(--popover-rgb, 17, 25, 41), 0.97);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  backdrop-filter: blur(14px);
+  font-size: 13px;
+}
+
+.mentionHead {
+  padding: 4px 10px 6px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.mention {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+.mentionOn {
+  background: var(--bg-hover);
+}
+
+.mentionDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.mentionName {
+  font-weight: 600;
+}
+
+.mentionModel {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
 /* ---------- Pista ---------- */
 
 .hint {

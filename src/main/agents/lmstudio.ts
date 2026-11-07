@@ -226,8 +226,9 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     onTrace: opts.onTrace
   }
   const tools = toolDefinitions(ctx.canWrite)
+  // Un mensaje directo («@Agente …») va solo, como en el chat de LM Studio: sin el mensaje de sistema del equipo.
   const messages: ChatMsg[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    ...(opts.direct ? [] : [{ role: 'system' as const, content: SYSTEM_PROMPT }]),
     { role: 'user', content: opts.prompt }
   ]
   opts.onActivity?.(tr('Leyendo la tarea'), 'tool')
