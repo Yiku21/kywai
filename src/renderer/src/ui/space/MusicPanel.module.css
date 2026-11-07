@@ -736,6 +736,76 @@
   display: none;
 }
 
+/* Volumen del minimizado y de la barra: un altavoz que despliega el deslizador encima. */
+.volumePop {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.volumePopBox {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 168px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-ctl);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-pop);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    visibility 0s linear var(--dur);
+}
+
+/* Puente invisible entre el altavoz y el deslizador, para no perder el «hover» al subir el ratón. */
+.volumePopBox::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 12px;
+}
+
+.volumePopOpen .volumePopBox,
+.volumePop:has(:focus-visible) .volumePopBox {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    visibility 0s;
+}
+
+.volumePopValue {
+  min-width: 4.5ch;
+  color: var(--text-2);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.volumePopMuted .volumeSlider {
+  accent-color: var(--text-3);
+}
+
+.volumePopMuted .volumePopValue {
+  color: var(--text-3);
+}
+
 .mini .buttons {
   gap: 6px;
 }

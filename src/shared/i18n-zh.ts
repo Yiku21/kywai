@@ -278,6 +278,8 @@ export const zh: Record<string, string> = {
   "Volumen de música y efectos": "音乐和音效音量",
   ", silenciado": "，已静音",
   "Volumen: {percentage} %{muted}": "音量：{percentage} %{muted}",
+  "Mudo": "静音",
+  "{label} · volumen {percentage} %": "{label} · 音量 {percentage} %",
   " (silenciado)": " （已静音）",
   "Activar las voces de los agentes": "打开代理的语音",
   "Silenciar las voces de los agentes": "关闭代理的语音",

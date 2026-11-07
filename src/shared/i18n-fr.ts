@@ -278,6 +278,8 @@ export const fr: Record<string, string> = {
   "Volumen de música y efectos": "Volume de la musique et des effets",
   ", silenciado": ", coupé",
   "Volumen: {percentage} %{muted}": "Volume : {percentage} %{muted}",
+  "Mudo": "Muet",
+  "{label} · volumen {percentage} %": "{label} · volume {percentage} %",
   " (silenciado)": " (coupé)",
   "Activar las voces de los agentes": "Activer les voix des agents",
   "Silenciar las voces de los agentes": "Couper les voix des agents",

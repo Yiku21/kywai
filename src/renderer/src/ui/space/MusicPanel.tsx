@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   ExternalLink,
   Hand,
@@ -242,7 +242,7 @@ export function MusicPanel() {
       )}
 
       {videoId && !mini && <TrackInfo />}
-      {videoId && <Transport bar={bar} />}
+      {videoId && <Transport bar={bar} compact={mini} />}
       {queueLength > 1 && !mini && <Queue />}
       {videoId && !mini && (
         <details className={s.lights}>
@@ -468,8 +468,11 @@ function SearchBox() {
   )
 }
 
-/** Posición de la canción, atrás / pausa / adelante y volumen. En la barra, solo los tres botones (y ampliar). */
-function Transport({ bar = false }: { bar?: boolean }) {
+/**
+ * Posición de la canción, atrás / pausa / adelante y volumen. Minimizado y en la barra, el volumen es un altavoz que
+ * despliega su deslizador (y en la barra no hay posición, solo los botones y ampliar).
+ */
+function Transport({ bar = false, compact = false }: { bar?: boolean; compact?: boolean }) {
   const status = useMusic((st) => st.status)
   const index = useMusic((st) => st.index)
   const queueLength = useMusic((st) => st.queue.length)
@@ -551,7 +554,8 @@ function Transport({ bar = false }: { bar?: boolean }) {
         >
           <SkipForward size={18} aria-hidden="true" />
         </button>
-        {bar ? (
+        {compact ? <CompactVolume /> : <VolumeControl />}
+        {bar && (
           <button
             type="button"
             className={cx(u.iconBtn, u.iconBtnSm)}
@@ -561,8 +565,6 @@ function Transport({ bar = false }: { bar?: boolean }) {
           >
             <Maximize2 size={14} aria-hidden="true" />
           </button>
-        ) : (
-          <VolumeControl />
         )}
       </div>
     </div>
@@ -597,6 +599,97 @@ function VolumeControl() {
         title={t('Volumen: {percentage} %{muted}', { percentage: pct, muted: '' })}
         onChange={(e) => setVolume(Number(e.currentTarget.value) / 100)}
       />
+    </div>
+  )
+}
+
+/** Margen para pasar del altavoz al deslizador sin que se cierre. */
+const VOLUME_LEAVE_MS = 250
+
+/**
+ * Volumen en el reproductor minimizado y en la barra: el altavoz silencia o activa, y al pasar el ratón (o con el
+ * teclado) sale encima el deslizador. En el móvil el primer toque lo enseña y el segundo silencia. Es el mismo volumen
+ * de la cabecera, así que vale igual para YouTube, Audius y las radios.
+ */
+function CompactVolume() {
+  const volume = useSyncExternalStore(subscribeAudio, getVolume, getVolume)
+  const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
+  const [hover, setHover] = useState(false)
+  const [pinned, setPinned] = useState(false)
+  const leaveTimer = useRef<number | undefined>(undefined)
+  const hovering = useRef(false)
+  const root = useRef<HTMLDivElement>(null)
+  const open = hover || pinned
+  const pct = Math.round(volume * 100)
+  const label = muted ? t('Activar sonido') : t('Silenciar')
+
+  useEscape(pinned, () => setPinned(false))
+  useEffect(() => () => window.clearTimeout(leaveTimer.current), [])
+  // Pulsar fuera lo cierra.
+  useEffect(() => {
+    if (!pinned) return
+    const onDown = (e: globalThis.PointerEvent): void => {
+      if (!root.current?.contains(e.target as Node)) setPinned(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [pinned])
+
+  const enter = (e: ReactPointerEvent): void => {
+    if (e.pointerType !== 'mouse') return
+    window.clearTimeout(leaveTimer.current)
+    hovering.current = true
+    setHover(true)
+  }
+  const leave = (e: ReactPointerEvent): void => {
+    if (e.pointerType !== 'mouse') return
+    window.clearTimeout(leaveTimer.current)
+    hovering.current = false
+    leaveTimer.current = window.setTimeout(() => {
+      setHover(false)
+      setPinned(false)
+    }, VOLUME_LEAVE_MS)
+  }
+  const onButton = (): void => {
+    if (!hovering.current && !pinned) {
+      setPinned(true)
+      return
+    }
+    setMuted(!isMuted())
+  }
+
+  return (
+    <div ref={root} className={cx(s.volumePop, open && s.volumePopOpen)} onPointerEnter={enter} onPointerLeave={leave}>
+      <button
+        type="button"
+        className={cx(u.iconBtn, u.iconBtnSm)}
+        onClick={onButton}
+        aria-label={label}
+        aria-pressed={muted}
+        aria-expanded={open}
+        title={t('{label} · volumen {percentage} %', { label, percentage: pct })}
+      >
+        {muted || pct === 0 ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
+      </button>
+      <div className={cx(s.volumePopBox, muted && s.volumePopMuted)}>
+        <input
+          className={s.volumeSlider}
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={pct}
+          aria-label={t('Volumen')}
+          aria-valuetext={`${pct} %${muted ? t(', silenciado') : ''}`}
+          onChange={(e) => {
+            const v = Number(e.currentTarget.value)
+            setVolume(v / 100)
+            // Mover el volumen con el sonido quitado lo vuelve a activar.
+            if (v > 0 && isMuted()) setMuted(false)
+          }}
+        />
+        <span className={s.volumePopValue}>{muted ? t('Mudo') : `${pct} %`}</span>
+      </div>
     </div>
   )
 }
