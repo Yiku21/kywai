@@ -5,6 +5,7 @@ import com.aicowork.remote.i18n.t
 import com.aicowork.remote.data.model.AgentAccessRequest
 import com.aicowork.remote.data.model.AgentAccessResponse
 import com.aicowork.remote.data.model.AgentResetResponse
+import com.aicowork.remote.data.model.AgentThinkingResponse
 import com.aicowork.remote.data.model.ApiErrorBody
 import com.aicowork.remote.data.model.AppRelease
 import com.aicowork.remote.data.model.Attachment
