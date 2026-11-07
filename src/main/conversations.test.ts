@@ -16,7 +16,10 @@ import {
   pinnedConversations,
   recentConversations,
   renameConversation,
+  allConversations,
+  parseQuery,
   search,
+  searchHistory,
   setConversationPinned,
   setPinned,
   snippetOf,
@@ -233,5 +236,84 @@ describe('buscador', () => {
     const s = snippetOf(`${'a '.repeat(100)}aquí está la palabra clave ${'b '.repeat(100)}`, 'clave', 60)
     expect(s.startsWith('…')).toBe(true)
     expect(s).toContain('clave')
+  })
+
+  it('separa palabras y deja juntas las frases entre comillas', () => {
+    expect(parseQuery('Barra  LATERAL')).toEqual(['barra', 'lateral'])
+    expect(parseQuery('«modo oscuro» botón')).toEqual(['modo oscuro', 'boton'])
+    expect(parseQuery('"Plan B" y 3')).toEqual(['plan b', '3'])
+    expect(parseQuery('a')).toEqual([])
+  })
+
+  it('con varias palabras, todas en el mismo mensaje y en cualquier orden; con comillas, tal cual', () => {
+    const p = store.createProject('Palabras')
+    const st = store.getProject(p.id)
+    st.messages.push(msg(p.id, 'Pon el modo oscuro en la barra'), msg(p.id, 'El modo de la barra es claro', false))
+    expect(searchHistory('barra oscuro').hits).toHaveLength(1)
+    expect(searchHistory('barra oscuro').hits[0].matchCount).toBe(1)
+    expect(searchHistory('barra modo').hits[0].matchCount).toBe(2)
+    expect(searchHistory('"modo oscuro"').hits[0].matchCount).toBe(1)
+    expect(searchHistory('"oscuro modo"').hits).toEqual([])
+  })
+
+  it('cuenta las coincidencias y dice a qué mensaje ir', () => {
+    const p = store.createProject('Saltos')
+    const st = store.getProject(p.id)
+    const a = msg(p.id, 'primera mención de la palabra cohete')
+    const b = msg(p.id, 'otra cosa')
+    const c = msg(p.id, 'segunda mención: cohete', false)
+    st.messages.push(a, b, c)
+    const hit = searchHistory('cohete').hits.find((h) => h.kind === 'conversation')!
+    expect(hit.matchCount).toBe(2)
+    expect(hit.messageId).toBe(a.id)
+    expect(hit.matches?.map((m) => m.messageId)).toEqual([a.id, c.id])
+    expect(hit.matches?.[1].by).toBe('claude')
+  })
+
+  it('filtra por fecha y por quién lo escribió', () => {
+    const p = store.createProject('Filtros')
+    const st = store.getProject(p.id)
+    st.messages.push(msg(p.id, 'gato viejo', true, 1000), msg(p.id, 'gato del agente', false, 5000))
+    st.tasks.push(task(p.id, 'Dibujar un gato'))
+    expect(searchHistory('gato', { since: 4000 }).hits.find((h) => h.kind === 'conversation')?.matchCount).toBe(1)
+    const mine = searchHistory('gato', { author: 'user' })
+    expect(mine.hits.map((h) => h.kind)).toEqual(['conversation'])
+    expect(mine.hits[0].matches?.[0].by).toBe('user')
+    expect(searchHistory('gato', { author: 'claude' }).hits.map((h) => h.kind).sort()).toEqual(['conversation', 'task'])
+    expect(searchHistory('gato', { author: 'agents' }).hits.find((h) => h.kind === 'conversation')?.matchCount).toBe(1)
+    expect(searchHistory('gato', { author: 'codex' }).hits).toEqual([])
+  })
+
+  it('da el total aunque corte en el límite (para «Ver más»)', () => {
+    for (let i = 0; i < 5; i++) {
+      const p = store.createProject(`P${i}`)
+      store.getProject(p.id).messages.push(msg(p.id, 'tema común'))
+    }
+    const r = searchHistory('comun', { limit: 2 })
+    expect(r.hits).toHaveLength(2)
+    expect(r.total).toBe(5)
+    expect(search('comun')).toHaveLength(5)
+  })
+
+  it('ve los cambios de una conversación guardada aunque ya la hubiera leído', () => {
+    const p = store.createProject('Cambia')
+    const st = store.getProject(p.id)
+    st.messages.push(msg(p.id, 'texto original'))
+    newConversation(p.id)
+    const cid = st.conversations![0].id
+    expect(searchHistory('original').total).toBe(1)
+    renameConversation(p.id, cid, 'Ahora se llama girasol')
+    expect(searchHistory('girasol').total).toBe(1)
+  })
+
+  it('historial: todas las conversaciones con mensajes, sin el tope de las recientes', () => {
+    const p = store.createProject('Muchas')
+    const st = store.getProject(p.id)
+    for (let i = 0; i < 55; i++) {
+      st.messages.push(msg(p.id, `mensaje ${i}`))
+      newConversation(p.id)
+    }
+    expect(allConversations()).toHaveLength(55)
+    expect(recentConversations(100)).toHaveLength(50)
   })
 })
