@@ -753,4 +753,9 @@ private fun part5(m: HashMap<String, String>) {
     m["Dictar (mantén pulsado para grabar una nota de voz)"] = "听写（长按可录制语音备注）"
     m["Dictar"] = "听写"
     m["Habla, te escucho…"] = "请说，我在听…"
+    m["Mensajes enviados"] = "消息已发送"
+    m["Aviso de que salieron los mensajes que escribiste sin conexión"] = "提醒你离线时写的消息已发出"
+    m["Se envió tu mensaje"] = "你的消息已发送"
+    m["Se enviaron tus {n} mensajes"] = "你的 {n} 条消息已发送"
+    m["Lo que escribiste sin conexión ya está en el ordenador"] = "你离线时写的内容已到达电脑"
 }

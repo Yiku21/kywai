@@ -188,6 +188,24 @@ class MockServerIntegrationTest {
     }
 
     @Test
+    fun `the background send empties the queue without opening the live connection`() = runBlocking<Unit> {
+        val mock = server()
+        val repo = repository()
+        repo.pair(mock.baseUrl.toHttpUrl(), mock.pairingCode, "Pixel", null)
+        repo.awaitState { it.connection == Connection.Online }
+        repo.disconnect()
+        val queued = OutgoingMessage("segundo-plano", "Desde el bolsillo", 0, OutgoingStatus.Queued, conversationId = mock.currentConversationId)
+        // Como si Android abriera la app solo para enviar (la cola viene del disco y no hay nada a la vista).
+        val background = CoworkRepository(sessions, tokens, cache, scope, backoff = { 60L }, outbox = InMemoryOutboxStore(listOf(queued)))
+        val result = background.drainOutbox()
+        assertEquals(OutboxDrain(sent = 1, waiting = 0), result)
+        assertTrue(background.state.value.outgoing.isEmpty())
+        assertEquals(Connection.Idle, background.state.value.connection)
+        repo.connect()
+        repo.awaitState { s -> s.snapshot!!.conversation.messages.any { it.text == "Desde el bolsillo" } }
+    }
+
+    @Test
     fun `a message rejected by the server does not block the next ones`() = runBlocking<Unit> {
         val mock = server()
         val outbox = InMemoryOutboxStore()

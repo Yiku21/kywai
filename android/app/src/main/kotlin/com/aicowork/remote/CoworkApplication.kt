@@ -8,7 +8,9 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.aicowork.remote.data.Connection
 import com.aicowork.remote.data.CoworkRepository
+import com.aicowork.remote.data.OutgoingStatus
 import com.aicowork.remote.data.store.FileOutboxStore
 import com.aicowork.remote.data.store.FileSnapshotCache
 import com.aicowork.remote.data.store.KeystoreTokenStore
@@ -20,6 +22,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -84,6 +88,14 @@ class CoworkApplication : Application() {
                 }
             }
         })
+
+        // Mensajes en cola sin conexión: Android los envía en cuanto vuelve la red, aunque se cierre la app.
+        container.scope.launch {
+            repository.state
+                .map { s -> s.session != null && s.connection != Connection.Online && s.outgoing.any { it.status == OutgoingStatus.Queued } }
+                .distinctUntilChanged()
+                .collect { waiting -> if (waiting) OutboxWorker.schedule(this@CoworkApplication) }
+        }
 
         // Al recuperar la red, reconecta sin esperar al siguiente reintento.
         val connectivity = getSystemService(ConnectivityManager::class.java)
