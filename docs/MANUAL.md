@@ -1361,6 +1361,12 @@ lo cierra y lo pausa. El icono de reducir de esa tarjeta lo deja en una barra co
 vídeo en pequeño como carátula (al pasar el ratón por encima se ve la canción); el icono de ampliar de la barra
 vuelve a la tarjeta. Se recuerda cómo se dejó la última vez.
 
+**Volumen en el reproductor pequeño:** la tarjeta y la barra llevan un altavoz junto a los botones. Al pasar el ratón
+por encima sale el deslizador con el porcentaje; un clic en el altavoz silencia o vuelve a dar sonido (en el móvil, el
+primer toque enseña el deslizador y el segundo silencia). Mover el deslizador con el sonido quitado lo activa otra vez.
+Es el mismo volumen de «música y efectos» de la cabecera y de Ajustes → General, así que vale igual para YouTube,
+Audius y las radios.
+
 **Luces con el sonido real (sin micrófono):** en la app de escritorio, kywai escucha lo que suena en su propia
 ventana y detecta los golpes:
 - **El pulso:** la luz entera cae en cada golpe del pulso de la canción, y las notas de bajo de en medio dan un

@@ -102,13 +102,38 @@ describe('reproductor musical', () => {
     const click = (label: string) => act(async () => (host.querySelector(`[aria-label="${label}"]`) as HTMLButtonElement).click())
     await click('Dejar solo los botones')
     expect(useMusic.getState()).toMatchObject({ open: true, mini: true, bar: true })
-    expect(host.querySelector('input[type="range"]')).toBeNull()
+    expect(host.querySelector('[aria-label="Posición de la canción"]')).toBeNull()
     expect(host.querySelector('[aria-label="Abrir el reproductor"]')).toBeNull()
     for (const label of ['Anterior', 'Reproducir', 'Siguiente', 'Ampliar el reproductor']) expect(host.querySelector(`[aria-label="${label}"]`)).not.toBeNull()
     expect(host.querySelector('[class*="player"]')).toBe(frame)
     expect(JSON.parse(localStorage.getItem('aicowork.music.v1')!).bar).toBe(true)
     await click('Ampliar el reproductor')
     expect(useMusic.getState()).toMatchObject({ mini: true, bar: false })
-    expect(host.querySelector('input[type="range"]')).not.toBeNull()
+    expect(host.querySelector('[aria-label="Posición de la canción"]')).not.toBeNull()
+  })
+
+  it('en la barra hay volumen: el altavoz silencia y el deslizador lo cambia (y quita el silencio)', async () => {
+    const audio = await import('@/lib/audio')
+    audio.setMuted(false)
+    audio.setVolume(0.8)
+    useMusic.setState({ mini: true, bar: true })
+    await act(async () => root.render(<MusicPanel />))
+    const { playFrom } = await import('@/lib/music')
+    await act(async () => playFrom([{ videoId: 'aaaaaaaaaaa', title: 'Uno', artist: 'A' }], 0))
+    const speaker = host.querySelector('[aria-label="Silenciar"]') as HTMLButtonElement
+    expect(speaker).not.toBeNull()
+    // Con ratón encima, un clic silencia.
+    await act(async () => speaker.dispatchEvent(Object.assign(new MouseEvent('pointerover', { bubbles: true }), { pointerType: 'mouse' })))
+    await act(async () => speaker.click())
+    expect(audio.isMuted()).toBe(true)
+    const slider = host.querySelector('input[aria-label="Volumen"]') as HTMLInputElement
+    expect(slider).not.toBeNull()
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    await act(async () => {
+      setValue.call(slider, '35')
+      slider.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(audio.getVolume()).toBeCloseTo(0.35)
+    expect(audio.isMuted()).toBe(false)
   })
 })
