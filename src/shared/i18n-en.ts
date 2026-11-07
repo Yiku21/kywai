@@ -2353,4 +2353,13 @@ export const en: Record<string, string> = {
   "Dejará de conectarse con el otro kywai y se reiniciará: aquí correrán los agentes y se guardarán los proyectos.": "It will stop connecting to the other kywai and restart: agents will run and projects will be kept here.",
   "Usar este equipo como servidor…": "Use this computer as the server…",
   "Deja de conectarse con el otro kywai y se reinicia: aquí correrán los agentes": "Stops connecting to the other kywai and restarts: agents will run here",
+  // Ajustes → Acceso remoto: nombre de cada enlace de acceso
+  'Seguro con Tailscale': 'Secure with Tailscale',
+  'Funciona en Órbita y con el micrófono, y el navegador no muestra avisos.': 'Works in Órbita and with the microphone, and the browser shows no warnings.',
+  'Seguro (Órbita y micrófono)': 'Secure (Órbita and microphone)',
+  'Es el que pide la app Órbita, y en el navegador te deja grabar notas de voz. La primera vez el navegador avisa del certificado: acéptalo.': 'This is the one the Órbita app asks for, and in the browser it lets you record voice notes. The first time, the browser warns about the certificate: accept it.',
+  'Navegador por IP': 'Browser by IP',
+  'Es el más directo para abrir kywai en el navegador de otro equipo de tu red de Tailscale. No deja usar el micrófono.': 'The most direct way to open kywai in the browser of another device on your Tailscale network. The microphone doesn\'t work here.',
+  'Navegador por nombre del equipo': 'Browser by device name',
+  'Hace lo mismo que el anterior, pero con el nombre del equipo en Tailscale, así que sigue valiendo aunque cambie la IP.': 'Same as the one above, but with the device\'s Tailscale name, so it keeps working even if the IP changes.',
 }
