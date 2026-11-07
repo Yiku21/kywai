@@ -59,6 +59,9 @@ enum class Section(val label: String, val icon: ImageVector) {
     Team(t("Equipo"), Icons.Outlined.Groups),
 }
 
+/** Pestañas de Ajustes, como en el escritorio. */
+enum class SettingsTab(val label: String) { General(t("General")), Agents(t("Agentes")), Connection(t("Conexión")), About(t("Acerca de")) }
+
 enum class TaskFilter(val label: String) { Active(t("En curso")), Review(t("Por revisar")), Done(t("Hechas")) }
 enum class ResultFilter(val label: String) { All(t("Todos")), Documents(t("Documentos")), Code(t("Código")) }
 enum class FilesTab(val label: String) { Attachments(t("Adjuntos")), Project(t("Proyecto")) }
@@ -186,6 +189,8 @@ class OrbitaModel(
     val toolsList = LazyListState()
     val usageList = LazyListState()
     val settingsList = LazyListState()
+    /** Pestaña abierta de Ajustes (como la ventana de Ajustes del escritorio). */
+    var settingsTab by mutableStateOf(SettingsTab.General)
     val teamList = LazyListState()
 
     /** Vistas previas de los resultados ya descargadas. */

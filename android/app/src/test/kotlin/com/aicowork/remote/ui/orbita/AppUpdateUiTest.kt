@@ -66,6 +66,8 @@ class AppUpdateUiTest {
         val model = orbitaModelForTests(controller, installer = installer)
         compose.setContent { Box(Modifier.fillMaxSize()) { OrbitaApp(model, "Pixel", null) } }
         compose.onNodeWithTag("nav-Settings").performClick()
+        // La versión de Órbita está en Ajustes → Acerca de, como en el escritorio.
+        compose.onNodeWithText("Acerca de").performClick()
         compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag("app-update"))
         compose.onNodeWithText("Versión 1.40").assertIsDisplayed()
         compose.waitUntil(5_000) { idleMain(); "appRelease" in controller.calls }
