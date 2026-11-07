@@ -34,7 +34,7 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 /**
- * Servidor simulado que cumple el contrato móvil `/api/mobile/v1` de AI Cowork.
+ * Servidor simulado que cumple el contrato móvil `/api/mobile/v1` de kywai.
  *
  * Sirve para desarrollar y probar la app sin depender del backend real: empareja con un código,
  * devuelve la instantánea, acepta mensajes, detiene y reanuda peticiones y emite eventos por WebSocket
@@ -185,14 +185,14 @@ class MockCoworkServer(
             return error(400, "bad_request", "Faltan code o deviceName", false)
         }
         if (code != pairingCode) {
-            return error(401, "invalid_code", "El código no es válido o ha caducado. Genera otro en AI Cowork.", false)
+            return error(401, "invalid_code", "El código no es válido o ha caducado. Genera otro en kywai.", false)
         }
         val token = "mock_" + UUID.randomUUID().toString().replace("-", "")
         synchronized(lock) { tokens += token }
         return ok(buildJsonObject {
             put("accessToken", token)
             put("expiresAt", Instant.ofEpochMilli(clock()).plus(30, ChronoUnit.DAYS).toString())
-            put("serverName", "AI Cowork (simulado)")
+            put("serverName", "kywai (simulado)")
         })
     }
 
@@ -295,7 +295,7 @@ class MockCoworkServer(
             sockets += webSocket
             synchronized(lock) {
                 webSocket.send(envelope("hello", buildJsonObject {
-                    put("serverName", "AI Cowork (simulado)")
+                    put("serverName", "kywai (simulado)")
                     put("sequence", sequence)
                 }, sequence).toString())
             }
@@ -559,7 +559,7 @@ class MockCoworkServer(
 
     private fun conversationJson() = buildJsonObject {
         put("id", conversationId)
-        put("title", "Proyecto AI Cowork")
+        put("title", "Proyecto kywai")
         put("createdAt", conversationCreatedAt)
         put("messages", JsonArray(messages.map { it.toJson() }))
         putJsonArray("activeRequestIds") { requests.values.filter { it.active }.forEach { add(JsonPrimitive(it.id)) } }
@@ -706,9 +706,9 @@ class MockCoworkServer(
         const val PREFIX = "/api/mobile/v1"
         const val DEFAULT_CODE = "246810"
 
-        /** Certificado propio como el que genera AI Cowork para su puerto HTTPS. */
+        /** Certificado propio como el que genera kywai para su puerto HTTPS. */
         fun selfSigned(hosts: List<String>): HeldCertificate = HeldCertificate.Builder()
-            .commonName("AI Cowork (simulado)")
+            .commonName("kywai (simulado)")
             .apply { hosts.forEach { addSubjectAlternativeName(it) } }
             .duration(365, TimeUnit.DAYS)
             .build()

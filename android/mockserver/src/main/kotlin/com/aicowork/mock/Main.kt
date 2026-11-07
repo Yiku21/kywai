@@ -21,7 +21,7 @@ fun main(args: Array<String>) {
     val server = MockCoworkServer(pairingCode = code, heldCertificate = if (tls) MockCoworkServer.selfSigned(hosts) else null)
     server.start(port, InetAddress.getByName(host))
     val scheme = if (tls) "https" else "http"
-    println("Servidor simulado de AI Cowork escuchando en $scheme://$host:$port")
+    println("Servidor simulado de kywai escuchando en $scheme://$host:$port")
     println("  Emulador Android: $scheme://10.0.2.2:$port")
     println("  Código de emparejamiento: $code")
     server.certificateSha256?.let { println("  Huella SHA-256 del certificado: $it") }
