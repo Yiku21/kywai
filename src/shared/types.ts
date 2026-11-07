@@ -1,5 +1,5 @@
 import type { Lang } from './i18n'
-import type { McpAgentKind, McpServerInfo, McpServerInput } from './extensions'
+import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, SkillCatalogItem, SkillInfo } from './extensions'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
 // Todo lo que cruza IPC está definido aquí.
 
@@ -1225,6 +1225,17 @@ export interface CoworkApi {
   testMcpServer(id: string): Promise<McpServerInfo[]>
   /** A qué agentes llega. Al encenderlo para uno nuevo se prueba antes: si falla, se queda apagado. */
   setMcpServerAgents(id: string, agents: McpAgentKind[]): Promise<McpServerInfo[]>
+  /** Catálogo de servidores: sin búsqueda, los destacados; con ella, el registro oficial de MCP (por páginas). */
+  mcpCatalog(query: string, cursor?: string): Promise<{ items: McpCatalogItem[]; next?: string }>
+  /** Catálogo de habilidades: sin búsqueda, las destacadas; con ella, skills.sh. */
+  skillCatalog(query: string): Promise<SkillCatalogItem[]>
+  /** Habilidades instaladas (carpeta «habilidades»). */
+  listSkills(): Promise<SkillInfo[]>
+  /** Instala una del catálogo (skillId vacío: todas las de su repositorio). */
+  installSkill(source: string, skillId: string): Promise<{ installed: string[]; skills: SkillInfo[] }>
+  /** Instala las de un enlace de GitHub (una carpeta con SKILL.md o todo un repositorio). */
+  installSkillLink(url: string): Promise<{ installed: string[]; skills: SkillInfo[] }>
+  removeSkill(name: string): Promise<SkillInfo[]>
   /** Idioma de los avisos del motor y de las respuestas de Hermes y los agentes (lo cambia el selector de Ajustes). */
   setLanguage(lang: Lang): Promise<void>
   /** Tema elegido en este equipo: el servidor lo guarda para que Órbita se vea igual. */
