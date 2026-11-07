@@ -103,7 +103,7 @@ export function HeaderMenu({ sidebar }: { sidebar: { button: string } }) {
         {hasBackend && (
           <button type="button" role="menuitem" className={s.item} onClick={go(() => useCowork.setState({ usageOpen: true }))}>
             <BarChart3 size={16} aria-hidden="true" className={s.itemIcon} />
-            <span className={s.itemLabel}>{t('Consumo y tokens…')}</span>
+            <span className={s.itemLabel}>{t('Uso y coste…')}</span>
           </button>
         )}
 
