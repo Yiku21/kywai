@@ -130,3 +130,18 @@
   flex-direction: column;
   padding: 0 10px 4px 36px;
 }
+
+/* Atajo de teclado a la derecha de «Ajustes…». */
+.kbd {
+  margin-left: auto;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font: 11px var(--mono);
+  color: var(--text-3);
+}
+
+.danger,
+.danger .itemIcon {
+  color: var(--alert);
+}

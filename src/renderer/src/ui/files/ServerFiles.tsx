@@ -46,7 +46,7 @@ const q = (p: string): string => encodeURIComponent(p)
 async function openRemote(path: string): Promise<void> {
   if (clientBridge()?.openRemotePath) return clientBridge()!.openRemotePath!(path)
   // Un cliente anterior no sabe abrir archivos del servidor y su navegador externo no tendría la llave.
-  if (isClient) throw new Error(t('Esta versión del cliente no puede abrir archivos: instala la nueva con ⚙ → «Actualizar este equipo…». Mientras, usa el botón de descargar.'))
+  if (isClient) throw new Error(t('Esta versión del cliente no puede abrir archivos: instala la nueva con ⚙ → Ajustes → «Actualizar este equipo…». Mientras, usa el botón de descargar.'))
   window.open(`/api/fs/read?path=${q(path)}`, '_blank', 'noopener')
 }
 

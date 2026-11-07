@@ -1,0 +1,240 @@
+/* Ventana de Ajustes: pestañas a la izquierda y su contenido a la derecha (como en Claude). */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(var(--scrim-rgb, 3, 5, 14), 0.66);
+  backdrop-filter: blur(5px);
+}
+
+.win {
+  display: flex;
+  width: min(860px, 100%);
+  height: min(640px, calc(100dvh - 40px));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-pop);
+  color: var(--text-1);
+  overflow: hidden;
+}
+
+:global(:root[data-theme='orbita']) .win {
+  background: rgba(var(--popover-rgb, 17, 25, 41), 0.98);
+}
+
+.nav {
+  flex: none;
+  width: 210px;
+  padding: 18px 10px;
+  border-right: 1px solid var(--border);
+}
+
+.navTitle {
+  margin: 2px 10px 16px;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-ctl);
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+.tabOn,
+.tabOn:hover {
+  background: var(--bg-active);
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.tabIcon {
+  display: inline-flex;
+}
+
+.tabOn .tabIcon {
+  color: var(--cyan);
+}
+
+.body {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 22px 28px 24px;
+  overflow-y: auto;
+}
+
+.close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.head {
+  margin-bottom: 8px;
+  padding-right: 40px;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--text-3);
+  font-size: 12.5px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 60px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rowDisabled {
+  opacity: 0.5;
+}
+
+.rowIcon {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-2);
+}
+
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowLabel {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.rowHint {
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.rowCtl {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
+.switchBtn {
+  display: inline-grid;
+  place-items: center;
+  padding: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.switchBtn:focus-visible {
+  outline: 2px solid var(--border-focus);
+}
+
+.select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-ctl);
+  background: var(--bg-input, transparent);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+}
+
+.indent {
+  padding: 6px 0 10px 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.block {
+  padding: 14px 0 4px;
+}
+
+.blockHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.error {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-ctl);
+  background: var(--alert-soft);
+  color: var(--alert);
+  font-size: 12.5px;
+}
+
+/* Ventana estrecha: las pestañas pasan arriba, en una fila que se desplaza. */
+@media (max-width: 700px) {
+  .win {
+    flex-direction: column;
+    height: calc(100dvh - 24px);
+  }
+
+  .nav {
+    width: auto;
+    padding: 12px 10px 6px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .navTitle {
+    margin: 0 8px 8px;
+    font-size: 16px;
+  }
+
+  .tabs {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .tab {
+    flex: none;
+  }
+
+  .body {
+    padding: 16px 16px 20px;
+  }
+}

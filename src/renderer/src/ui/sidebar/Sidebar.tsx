@@ -31,6 +31,7 @@ import { ROLE_TITLE, useWhere } from '../header/useWhere'
 import { useEscape, useMediaQuery } from '../common/hooks'
 import { cx, errorText } from '../common/util'
 import { TABS_QUERY } from '../left/chatWidth'
+import { isSettingsKey, openSettings } from '../settings/SettingsDialog'
 import { ContextMenu, menuPoint, type MenuAt, type MenuEntry } from './ContextMenu'
 import { NEW_CHAT_KEYS, SEARCH_KEYS, isNewChatKey, isSearchKey, readCollapsed, saveCollapsed, shortDate } from './sidebarState'
 import s from './Sidebar.module.css'
@@ -53,7 +54,7 @@ export function Sidebar() {
   const closeDrawer = useCallback(() => useCowork.setState({ drawerOpen: false }), [])
   useEscape(narrow && drawerOpen, closeDrawer)
 
-  // Atajos: Ctrl+K busca, Ctrl+Mayús+O empieza un chat nuevo (como en otras apps de chat).
+  // Atajos: Ctrl+K busca, Ctrl+Mayús+O empieza un chat nuevo y Ctrl+, abre los Ajustes (como en otras apps de chat).
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (isSearchKey(e)) {
@@ -62,6 +63,9 @@ export function Sidebar() {
       } else if (isNewChatKey(e)) {
         e.preventDefault()
         void startNewChat()
+      } else if (isSettingsKey(e)) {
+        e.preventDefault()
+        openSettings(useCowork.getState().settingsTab ? null : 'general')
       }
     }
     window.addEventListener('keydown', onKey)

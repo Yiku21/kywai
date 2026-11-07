@@ -63,7 +63,7 @@ const PAGE_TEXTS: Array<[string, string]> = [
   ['Conectar con mi AI Cowork principal', 'Conectar con mi AI Cowork principal'],
   ['Se empareja con tu servidor y usa su espacio, sus proyectos y sus archivos desde aquí.', 'Se empareja con tu servidor y usa su espacio, sus proyectos y sus archivos desde aquí.'],
   ['>Conectar con tu AI Cowork<', 'Conectar con tu AI Cowork'],
-  ['En el equipo servidor abre ⚙ → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.', 'En el equipo servidor abre ⚙ → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.'],
+  ['En el equipo servidor abre ⚙ → Ajustes → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.', 'En el equipo servidor abre ⚙ → Ajustes → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.'],
   ['>Dirección del servidor<', 'Dirección del servidor'],
   ['"100.101.102.103 o mac-mini"', '100.101.102.103 o mac-mini'],
   ['>Código de 6 cifras (o el código de acceso)<', 'Código de 6 cifras (o el código de acceso)'],
@@ -142,7 +142,7 @@ function render(v){
     document.getElementById('server').onclick = () => api.chooseMode('server')
     document.getElementById('client').onclick = () => api.chooseMode('client')
   } else if (v.name === 'connect') {
-    el('<h1>Conectar con tu AI Cowork</h1><p>En el equipo servidor abre ⚙ → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.</p>' +
+    el('<h1>Conectar con tu AI Cowork</h1><p>En el equipo servidor abre ⚙ → Ajustes → «Acceso desde otros dispositivos…», activa el acceso y genera un código de 6 cifras. Este equipo necesita Tailscale conectado.</p>' +
       '<form id="f"><label for="a">Dirección del servidor</label><input id="a" placeholder="100.101.102.103 o mac-mini" autocomplete="off" spellcheck="false" value="' + esc(v.address) + '">' +
       '<label for="c">Código de 6 cifras (o el código de acceso)</label><input id="c" placeholder="123 456" autocomplete="off" spellcheck="false">' +
       '<div class="row"><button id="go">Conectar</button></div></form>' + msg(v) +

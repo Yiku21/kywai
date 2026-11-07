@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { applyTheme, setTheme, storedTheme } from '@/lib/theme'
 import { PALETTES, palette, tone } from '@/scene/palette'
-import { ThemeDialog } from './ThemeDialog'
+import { ThemeGrid } from './ThemeDialog'
 
 let root: Root
 let host: HTMLDivElement
@@ -26,7 +26,7 @@ describe('temas', () => {
   it('el clásico es el predeterminado; Órbita se aplica al momento y se recuerda', async () => {
     expect(storedTheme()).toBe('clasico')
     expect(document.documentElement.dataset.theme).toBe('clasico')
-    await act(async () => root.render(<ThemeDialog onClose={() => undefined} />))
+    await act(async () => root.render(<ThemeGrid />))
     const radios = [...host.querySelectorAll('[role="radio"]')] as HTMLButtonElement[]
     const names = ['Clásico', 'Órbita', 'Marfil', 'Grafito', 'Bosque', 'Matrix', 'EVA-01', 'Relicario', 'Telar', 'Halloween', 'Navidad']
     expect(radios.map((r) => [names.find((n) => r.textContent?.startsWith(n)), r.getAttribute('aria-checked')])).toEqual(
@@ -42,7 +42,7 @@ describe('temas', () => {
   })
 
   it('los temas nuevos cambian también los colores del espacio; el clásico los deja como estaban', async () => {
-    await act(async () => root.render(<ThemeDialog onClose={() => undefined} />))
+    await act(async () => root.render(<ThemeGrid />))
     expect(palette).toBe(PALETTES.clasico)
     expect(tone('#7fb0ff')).toBe('#7fb0ff')
     const radios = [...host.querySelectorAll('[role="radio"]')] as HTMLButtonElement[]
