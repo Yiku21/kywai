@@ -1,4 +1,5 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, symlinkSync, lstatSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, lstatSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -148,8 +149,20 @@ describe('instantáneas', () => {
     put('t.txt', 't')
     const before = await shadow.snapshot(dir, 'main', 'antes')
     rmSync(join(dir, 't.txt'))
-    symlinkSync('t.txt', join(dir, 'enlace'))
+    // Git representa los enlaces como archivos de texto cuando Windows no permite crearlos.
+    // Preparar el enlace con Git comprueba ambos casos sin pedir privilegios al sistema.
+    const git = (args: string[], input?: string): string => execFileSync('git', ['--git-dir', shadow.gitDir, '--work-tree', dir, ...args], {
+      cwd: dir, windowsHide: true, encoding: 'utf8', input,
+      env: { ...process.env, GIT_INDEX_FILE: join(shadow.gitDir, 'index-main') }
+    }).trim()
+    if (process.platform === 'win32') git(['config', 'core.symlinks', 'false'])
+    const blob = git(['hash-object', '-w', '--stdin'], 't.txt')
+    git(['update-index', '--add', '--cacheinfo', `120000,${blob},enlace`])
+    git(['checkout-index', '-f', '--', 'enlace'])
     const after = await shadow.snapshot(dir, 'main', 'después')
+    const changes = await shadow.changes(before, after)
+    expect(changes.files.map((f) => f.path).sort()).toEqual(['enlace', 't.txt'])
+    expect(changes.patch).toContain('new file mode 120000')
     const r = await shadow.apply(dir, 'main', after, before, { strict: true, label: 'deshacer' })
     expect(r.conflicts).toEqual([])
     expect(read('t.txt')).toBe('t')

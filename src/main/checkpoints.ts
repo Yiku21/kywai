@@ -134,7 +134,8 @@ export class Shadow {
     if (o.workTree) env.GIT_WORK_TREE = o.workTree
     if (o.index) env.GIT_INDEX_FILE = o.index
     env.GIT_CONFIG_NOSYSTEM = '1'
-    env.GIT_CONFIG_GLOBAL = devNull
+    // Git para Windows reconoce NUL, pero rechaza la ruta \\.\nul que devuelve node:os.
+    env.GIT_CONFIG_GLOBAL = process.platform === 'win32' ? 'NUL' : devNull
     env.GIT_TERMINAL_PROMPT = '0'
     env.GIT_AUTHOR_NAME = env.GIT_COMMITTER_NAME = 'AI Cowork'
     env.GIT_AUTHOR_EMAIL = env.GIT_COMMITTER_EMAIL = 'ai-cowork@localhost'

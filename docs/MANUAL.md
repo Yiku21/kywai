@@ -886,6 +886,9 @@ y otra al terminar. Las guarda en un repositorio git propio (`workspace/instanta
 25 MB. Hace falta tener git instalado (en el Mac viene con las herramientas de Xcode); sin git todo sigue como antes,
 sin deshacer.
 
+Las instantáneas aíslan la configuración global de Git. En Windows usan el dispositivo `NUL` que entiende Git,
+para que una ruta de dispositivo de Node.js no impida guardar los cambios ni deshacerlos.
+
 Bajo el mensaje de cada tarea terminada sale **«N archivos cambiados +a −b»**:
 
 - Al pulsarlo se despliega **cada archivo** (nuevo, cambiado o borrado, con sus líneas) y el **parche** coloreado.
