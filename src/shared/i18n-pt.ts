@@ -2228,4 +2228,5 @@ export const pt: Record<string, string> = {
   "Al empezar una tarea": "Ao começar uma tarefa",
   "Al acabar bien una tarea": "Ao terminar bem uma tarefa",
   "Al fallar una tarea": "Ao falhar uma tarefa",
+  "Hermes ya tiene una configuración gestionada (/etc/hermes): no se le añaden servidores": "O Hermes já tem uma configuração gerida (/etc/hermes): não lhe são adicionados servidores",
 }

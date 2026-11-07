@@ -50,7 +50,7 @@ import { hasGit, Shadow } from './checkpoints'
 import { addInbox, onInboxAction, resolveInboxWhere } from './inbox'
 import { captureUi, pagesToShoot, type UiShots } from './uiShots'
 import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './coworkMcp'
-import { claudeServers, codexMcp, geminiEnv, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
+import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
 import { parseDirect } from '@shared/directMessage'
@@ -2435,6 +2435,13 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     if (c.skipped.length) traceNote(t.id, tr('Sin {list}: su configuración no se puede pasar a Codex', { list: c.skipped.join(', ') }), true)
   } else if (userMcp.length && exec.provider === 'gemini') {
     extraMcp = { names: userMcp.map((x) => x.id), args: [], env: geminiEnv(userMcp) }
+  } else if (userMcp.length && exec.provider === 'hermes') {
+    const h = hermesMcp(userMcp, join(getConfig().workspaceRoot, 'mcp'), taskTag())
+    if ('skipped' in h) traceNote(t.id, h.skipped, true)
+    else {
+      extraFiles = [h.dir]
+      extraMcp = { names: h.names, args: [], env: h.env }
+    }
   }
   const extraNames = mcp ? mcp.extraNames : (extraMcp?.names ?? [])
   if (extraNames.length) traceNote(t.id, tr('Herramientas de Extensiones: {list}', { list: extraNames.join(', ') }))
