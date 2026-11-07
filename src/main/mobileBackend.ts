@@ -118,7 +118,8 @@ export class MobileBackend {
         planApproval: this.methods.has('approvePlan'), appUpdate: true, hermesModel: this.methods.has('getHermesModels'),
         agentReset: this.methods.has('resetAgent'), serverUpdate: this.methods.has('applyUpdate'), agentQuality: true, inbox: this.methods.has('listInbox'), taskChanges: this.methods.has('undoTask'),
         routines: this.methods.has('runRoutineNow'),
-        directMessages: true
+        directMessages: true,
+        agentThinking: this.methods.has('setAgentThinking')
       }
     }
   }
@@ -428,6 +429,15 @@ export class MobileBackend {
     if (!known) throw new MobileError(404, 'AGENT_NOT_FOUND', 'No existe ese agente')
     const rt = await this.call<AgentRuntime>('resetAgent', agentId)
     return { agentId, activity: rt.activity, reason: rt.reason ?? null }
+  }
+
+  /** Razonamiento («think») del modelo local de LM Studio, como el interruptor de su tarjeta en el escritorio. */
+  async setAgentThinking(agentId: string, enabled: boolean): Promise<{ agentId: string; thinking: boolean }> {
+    const agent = (await this.call<AppConfig>('getConfig')).agents.find((a) => a.id === agentId)
+    if (!agent) throw new MobileError(404, 'AGENT_NOT_FOUND', 'No existe ese agente')
+    if (agent.provider !== 'lmstudio') throw new MobileError(400, 'INVALID_INPUT', 'El razonamiento solo se cambia en el agente de LM Studio')
+    await this.call('setAgentThinking', agentId, enabled)
+    return { agentId, thinking: enabled }
   }
 
   /** Calidad de cada agente en los últimos días (como ⋮ → «Cómo rinde cada agente…»). */

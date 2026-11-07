@@ -1,6 +1,7 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   ArrowRight,
+  Brain,
   CircleAlert,
   CircleCheck,
   CircleSlash,
@@ -203,6 +204,8 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
       )}
 
       {agent.role && <p className={s.role}>{t(agent.role)}</p>}
+
+      {!!api && mode === 'live' && agent.provider === 'lmstudio' && <ThinkingToggle agentId={agent.id} on={agent.thinking === true} />}
 
       {!!api && mode === 'live' && !agent.isSubagent && !agent.plannerOnly && agent.provider !== 'ollama' && agent.provider !== 'lmstudio' && (
         <Section title={t('Modelos según la dificultad')}>
@@ -489,6 +492,51 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
           </div>
         </Section>
       )}
+    </div>
+  )
+}
+
+/**
+ * Razonamiento («think») del modelo de LM Studio: apagado responde antes; se enciende para lo que necesite pensar
+ * más. Se guarda en la configuración y vale para las tareas y los mensajes directos.
+ */
+function ThinkingToggle({ agentId, on }: { agentId: string; on: boolean }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const toggle = async (): Promise<void> => {
+    if (!api || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      await api.setAgentThinking(agentId, !on)
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className={s.thinking}>
+      <div className={s.thinkingText}>
+        <span className={s.thinkingTitle}>
+          <Brain size={14} aria-hidden="true" />
+          {t('Razonamiento (think)')}
+        </span>
+        <span className={cx(s.resetNote, error && s.resetBad)} role="status">
+          {error ?? (on ? t('Encendido: piensa antes de responder (más lento, para lo que necesita mucha información).') : t('Apagado: responde directamente, más rápido.'))}
+        </span>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={t('Razonamiento (think)')}
+        className={s.thinkingSwitch}
+        onClick={() => void toggle()}
+        disabled={busy}
+      >
+        <span className={cx(u.switch, on && u.switchOn)} />
+      </button>
     </div>
   )
 }

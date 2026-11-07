@@ -55,6 +55,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/hermes\/models$/, 'hermesModels', ['GET']],
   [/^\/hermes\/model$/, 'hermesModel', ['POST']],
   [/^\/agents\/([^/]+)\/reset$/, 'agentReset', ['POST']],
+  [/^\/agents\/([^/]+)\/thinking$/, 'agentThinking', ['POST']],
   [/^\/server\/update$/, 'serverUpdate', ['GET', 'POST']]
 ]
 
@@ -355,6 +356,13 @@ export class MobileApi {
           fields(await body(req), [])
           mobileJson(res, 200, await this.backend.resetAgent(id(param, 'agentId')))
           break
+        case 'agentThinking': {
+          const input = await body(req)
+          fields(input, ['enabled'])
+          if (typeof input.enabled !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', 'enabled debe ser true o false')
+          mobileJson(res, 200, await this.backend.setAgentThinking(id(param, 'agentId'), input.enabled))
+          break
+        }
         case 'serverUpdate':
           if (req.method === 'GET') {
             query(url, [])

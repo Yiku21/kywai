@@ -500,6 +500,23 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
                 modifier = Modifier.fillMaxWidth().testTag("agent-reset"),
             )
         }
+        // Agente local (LM Studio): razonamiento del modelo. Apagado responde antes; encendido piensa (para lo que necesita mucha información).
+        if (agent.provider == "lmstudio" && snapshot.capabilities.agentThinking) {
+            Spacer(Modifier.height(10.dp))
+            var pending by remember(agent.id, agent.thinking) { mutableStateOf<Boolean?>(null) }
+            val on = pending ?: agent.thinking
+            Box(Modifier.fillMaxWidth().card()) {
+                ToggleRow(
+                    t("Razonamiento (think)"),
+                    if (on) t("Encendido: piensa antes de responder (más lento, para lo que necesita mucha información).") else t("Apagado: responde directamente, más rápido."),
+                    on,
+                    "agent-thinking",
+                ) { next ->
+                    pending = next
+                    model.run({ model.controller.setAgentThinking(agent.id, next) }) { if (!it.ok) pending = null }
+                }
+            }
+        }
         if (task != null) {
             Spacer(Modifier.height(12.dp))
             Column(Modifier.fillMaxWidth().card().tappable { model.openTask(task.id) }.padding(12.dp)) {

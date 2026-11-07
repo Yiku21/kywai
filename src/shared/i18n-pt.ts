@@ -1901,5 +1901,8 @@ export const pt: Record<string, string> = {
   'Escribe ahora tu respuesta.': 'Agora escreva a sua resposta.',
   'El modelo no escribió ninguna respuesta; esto es lo que razonó:': 'O modelo não escreveu nenhuma resposta; isto é o que ele raciocinou:',
   'El modelo local terminó sin escribir ninguna respuesta (ni texto ni razonamiento).': 'O modelo local terminou sem escrever nenhuma resposta (nem texto nem raciocínio).',
-  '{name} no escribió ninguna respuesta.': '{name} não escreveu nenhuma resposta.'
+  '{name} no escribió ninguna respuesta.': '{name} não escreveu nenhuma resposta.',
+  'Razonamiento (think)': 'Raciocínio (think)',
+  'Encendido: piensa antes de responder (más lento, para lo que necesita mucha información).': 'Ligado: pensa antes de responder (mais lento, para o que precisa de muita informação).',
+  'Apagado: responde directamente, más rápido.': 'Desligado: responde diretamente, mais rápido.'
 }

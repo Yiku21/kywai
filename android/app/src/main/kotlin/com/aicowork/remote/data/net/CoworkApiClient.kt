@@ -306,6 +306,10 @@ class CoworkApiClient(
     /** «Reiniciar agente» tras un fallo: olvida su bloqueo, comprueba que responde y lo deja disponible. */
     suspend fun resetAgent(agentId: String): AgentResetResponse = post("/agents/${agentId.encodeSegment()}/reset", "{}", AgentResetResponse.serializer())
 
+    /** Enciende o apaga el razonamiento («think») del agente de LM Studio. */
+    suspend fun setAgentThinking(agentId: String, enabled: Boolean): AgentThinkingResponse =
+        post("/agents/${agentId.encodeSegment()}/thinking", "{\"enabled\":$enabled}", AgentThinkingResponse.serializer())
+
     /** «/model»: el modelo de Hermes y los disponibles. */
     suspend fun hermesModels(): HermesModelsInfo = get("/hermes/models", HermesModelsInfo.serializer())
 

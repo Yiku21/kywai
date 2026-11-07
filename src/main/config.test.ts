@@ -64,3 +64,16 @@ describe('configuración guardada', () => {
     expect(muse.quotaGroupId).toBe('meta')
   })
 })
+
+describe('razonamiento del modelo local', () => {
+  it('se guarda solo en el agente de LM Studio y solo si está encendido', () => {
+    const qwen = DEFAULT_AGENTS.find((a) => a.id === 'qwen')!
+    const cfg = mergeConfig(
+      { agents: [{ ...qwen, provider: 'lmstudio', thinking: true }, { ...DEFAULT_AGENTS.find((a) => a.id === 'claude')!, thinking: true }] },
+      '/tmp/aicw'
+    )
+    expect(cfg.agents.find((a) => a.id === 'qwen')?.thinking).toBe(true)
+    expect(cfg.agents.find((a) => a.id === 'claude')?.thinking).toBeUndefined()
+    expect(mergeConfig({ agents: [{ ...qwen, provider: 'lmstudio', thinking: 'sí' }] }, '/tmp/aicw').agents.find((a) => a.id === 'qwen')?.thinking).toBeUndefined()
+  })
+})

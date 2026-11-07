@@ -1901,5 +1901,8 @@ export const zh: Record<string, string> = {
   'Escribe ahora tu respuesta.': '现在请写出你的回答。',
   'El modelo no escribió ninguna respuesta; esto es lo que razonó:': '模型没有写出任何回答；以下是它的推理：',
   'El modelo local terminó sin escribir ninguna respuesta (ni texto ni razonamiento).': '本地模型结束时没有写出任何回答（既没有文字也没有推理）。',
-  '{name} no escribió ninguna respuesta.': '{name} 没有写出任何回答。'
+  '{name} no escribió ninguna respuesta.': '{name} 没有写出任何回答。',
+  'Razonamiento (think)': '推理（think）',
+  'Encendido: piensa antes de responder (más lento, para lo que necesita mucha información).': '开启：先思考再回答（更慢，适合需要大量信息的问题）。',
+  'Apagado: responde directamente, más rápido.': '关闭：直接回答，更快。'
 }

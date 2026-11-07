@@ -112,6 +112,7 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     }
 
     override suspend fun resetAgent(agentId: String): ActionResult { calls += "reset:$agentId"; return nextResult }
+    override suspend fun setAgentThinking(agentId: String, enabled: Boolean): ActionResult { calls += "thinking:$agentId:$enabled"; return nextResult }
 
     // La versión de Órbita que ofrece el ordenador y su APK.
     var release: Result<com.aicowork.remote.data.model.AppRelease> = Result.failure(IllegalStateException("Sin versión"))

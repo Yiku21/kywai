@@ -35,6 +35,7 @@ const api: CoworkApi = {
   listInbox: () => ipcRenderer.invoke('cowork:listInbox'),
   actInbox: (id, actionId) => ipcRenderer.invoke('cowork:actInbox', id, actionId),
   resetAgent: (agentId) => ipcRenderer.invoke('cowork:resetAgent', agentId),
+  setAgentThinking: (agentId, enabled) => ipcRenderer.invoke('cowork:setAgentThinking', agentId, enabled),
   searchMusic: (query, kind) => ipcRenderer.invoke('cowork:searchMusic', query, kind),
   addMemory: (projectId, input) => ipcRenderer.invoke('cowork:addMemory', projectId, { kind: input.kind, text: input.text }),
   updateMemory: (projectId, id, patch) =>
