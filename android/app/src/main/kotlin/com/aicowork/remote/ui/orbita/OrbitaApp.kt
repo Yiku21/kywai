@@ -314,6 +314,8 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsets.ime)).padding(horizontal = if (full) 6.dp else 12.dp, vertical = if (full) 4.dp else 8.dp)) {
         // Arriba: barra (menú, chat abierto, avisos) y las pestañas Chat · Espacio · Tareas · Resultados.
         val topBlock = 112.dp
+        // A la izquierda, a lo largo, la barra plegada en columna fina de iconos (el logo arriba); lo demás va a su lado.
+        val railPad = if (full) 0.dp else RailWidthSlim + 8.dp
         val panelHeight by animateDpAsState(
             when {
                 full -> maxHeight
@@ -329,23 +331,18 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
             with(density) {
                 val top = (topBlock + 24.dp).toPx()
                 val bottom = (20.dp + if (panelOpen) panelHeight else if (model.selectedAgentId != null) 272.dp else 72.dp).toPx()
-                model.world.insets = WorldInsets(top = top, bottom = bottom.coerceAtMost(constraints.maxHeight * 0.8f))
+                model.world.insets = WorldInsets(left = railPad.toPx(), top = top, bottom = bottom.coerceAtMost(constraints.maxHeight * 0.8f))
                 model.world.covered = full
             }
         }
 
-        if (!full) Column(Modifier.align(Alignment.TopStart).fillMaxWidth()) {
+        if (!full) SidebarRail(model, state, labels = false, onOpen = { model.drawerOpen = true }, openTag = "menu-button", modifier = Modifier.align(Alignment.TopStart))
+        if (!full) Column(Modifier.align(Alignment.TopStart).padding(start = railPad).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                MenuButton(model)
-                Spacer(Modifier.width(8.dp))
                 ChatTitleChip(state, Modifier.weight(1f, fill = false))
                 Spacer(Modifier.weight(1f))
                 if (model.music.current != null) {
                     MiniPlayer(model, compact = true)
-                    Spacer(Modifier.width(8.dp))
-                }
-                if (inboxSupported(state)) {
-                    InboxButton(state, model)
                     Spacer(Modifier.width(8.dp))
                 }
                 LiveStatus(state, onRetry = model.controller::retryNow, compact = true)
@@ -361,6 +358,7 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
             model, state,
             Modifier
                 .align(Alignment.BottomCenter)
+                .padding(start = railPad)
                 .fillMaxWidth()
                 .height(panelHeight)
                 .windowInsetsPadding(WindowInsets.ime),
@@ -369,11 +367,11 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
 
         // En el Espacio: un agente a la vez (‹ ›) y, encima, su ficha.
         if (!panelOpen && snapshot != null) {
-            AgentSwitcher(snapshot, model, onFocus = { a -> model.world.focusAgent(SpaceSceneBuilder.build(snapshot), a.id) }, modifier = Modifier.align(Alignment.BottomCenter))
+            AgentSwitcher(snapshot, model, onFocus = { a -> model.world.focusAgent(SpaceSceneBuilder.build(snapshot), a.id) }, modifier = Modifier.align(Alignment.BottomCenter).padding(start = railPad))
         }
         AnimatedVisibility(
             visible = !panelOpen && model.selectedAgentId != null && snapshot != null,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(start = railPad, bottom = 72.dp),
             enter = fadeIn() + slideInVertically { it / 3 },
             exit = fadeOut() + slideOutVertically { it / 3 },
         ) {
@@ -381,9 +379,9 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
             if (agent != null) AgentCard(snapshot, agent, model, attention, Modifier.fillMaxWidth())
         }
 
-        ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = topBlock).fillMaxWidth())
+        ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = topBlock, start = railPad).fillMaxWidth())
     }
-    // La barra lateral como cajón, por encima de todo (☰ arriba a la izquierda).
+    // La barra lateral entera como cajón, por encima de todo (se abre desde la columna de la izquierda).
     SidebarDrawer(model, state)
 }
 
@@ -403,7 +401,7 @@ private fun WideLayout(
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsets.ime)).padding(12.dp)) {
         val gap = 12.dp
         val aspect = maxWidth / maxHeight
-        val side = if (model.sidebarOpen) SidebarWidth else 46.dp
+        val side = if (model.sidebarOpen) SidebarWidth else RailWidth
         val free = maxWidth - side - gap
         val sideWidth = (maxWidth * 0.42f).coerceIn(340.dp, 460.dp)
         // Sobre la mesa: arriba el mundo, abajo el panel a todo lo ancho (debajo de la bisagra).
@@ -423,7 +421,8 @@ private fun WideLayout(
         if (model.sidebarOpen) {
             Sidebar(model, state, onCollapse = { model.sidebarOpen = false }, modifier = Modifier.align(Alignment.TopStart))
         } else {
-            SidebarToggle(model, Modifier.align(Alignment.TopStart))
+            // Plegada no desaparece: queda la columna estrecha con el logo y los accesos (con su nombre debajo).
+            SidebarRail(model, state, labels = true, onOpen = { model.sidebarOpen = true }, openTag = "sidebar-toggle", modifier = Modifier.align(Alignment.TopStart))
         }
 
         // Barra superior sobre el mundo: marca, proyecto, estado en vivo (se adapta al hueco que deja el panel).
@@ -434,11 +433,6 @@ private fun WideLayout(
                 if (model.music.current != null) {
                     Spacer(Modifier.width(8.dp))
                     MiniPlayer(model)
-                }
-                // Con la barra plegada, «Te necesita» sigue a mano arriba.
-                if (!model.sidebarOpen && inboxSupported(state)) {
-                    Spacer(Modifier.width(8.dp))
-                    InboxButton(state, model)
                 }
             }
             AttentionChip(attention, onClick = { attention?.let(model::openAttention) }, modifier = Modifier.padding(top = 8.dp))

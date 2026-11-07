@@ -279,9 +279,13 @@ desde el PC (`./gradlew :app:publishOrbita` y subir `android/release/`) sigue fu
 **Cómo es Órbita.** El mundo 3D ocupa toda la pantalla y todo lo demás flota encima en cristal, sin recuadros que
 lo corten:
 
-- **☰ (arriba a la izquierda)** abre la barra lateral, como en el escritorio: «Nuevo chat», el buscador (busca en los
-  títulos y en los mensajes de todos los chats), los proyectos con sus chats retomables (toca uno para seguirlo;
-  mantén pulsado para renombrarlo o borrarlo), «Música» y «Ajustes».
+- **Barra lateral**, como en el escritorio: «Nuevo chat», el buscador (busca en los títulos y en los mensajes de todos
+  los chats), los proyectos con sus chats retomables (toca uno para seguirlo; mantén pulsado para renombrarlo o
+  borrarlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
+  con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Te necesita con su número, Chat,
+  Tareas, Resultados, Música, Más y Ajustes abajo). En la tableta cada icono lleva su nombre debajo; en el móvil en
+  vertical es una columna fina solo de iconos. El logo o el botón de debajo la despliegan entera (en el móvil, como
+  cajón por encima). Lo hace `SidebarRail` en `ui/orbita/Sidebar.kt`.
 - **Pestañas Chat · Archivos · Tareas · Resultados** en la cabecera del panel (en el móvil: Chat · Espacio · Tareas ·
   Resultados, bajo la barra de arriba). La pestaña Tareas lleva el número de tareas en marcha.
 - **Un agente a la vez:** abajo, en vez de la barra del Equipo, sale la ficha de un agente con **‹ ›** (o deslizando)
@@ -1148,7 +1152,9 @@ estado de leído.
 
 El botón de arriba de la barra la **pliega** a una columna de iconos (con los números de los avisos); se recuerda en
 cada dispositivo. Si nunca la has tocado, en ventanas de menos de 1300 px empieza plegada. En ventanas estrechas
-(móvil o menos de 950 px) se abre con el botón de la izquierda de la cabecera, por encima del chat.
+(navegador del móvil, tableta en vertical o menos de 950 px) la barra **siempre queda plegada en su columna de iconos**
+a lo largo de la izquierda, bajo el logo de la cabecera, y se usa sin abrirla; su botón de arriba abre la barra entera
+por encima del chat.
 
 Dónde se guarda: la conversación abierta va en el `project.json` del proyecto, como siempre; las demás en
 `conversaciones/<id>.json` (con sus tareas y las sesiones de los agentes) y su lista en `project.json`

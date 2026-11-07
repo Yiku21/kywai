@@ -88,4 +88,32 @@ class SidebarTest {
         compose.waitForIdle()
         assertTrue(!model.drawerOpen && model.section == Section.Tasks)
     }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun collapsedItStaysAsARailWithTheLogoAndUsableIcons() {
+        val controller = controller()
+        val model = show(controller)
+        compose.runOnIdle { model.sidebarOpen = false }
+        compose.onAllNodesWithTag("sidebar").assertCountEquals(0)
+        compose.onNodeWithTag("sidebar-rail").assertIsDisplayed()
+        compose.onNodeWithTag("rail-Tasks").performClick()
+        compose.waitForIdle()
+        assertTrue(model.section == Section.Tasks)
+        compose.onNodeWithTag("rail-new-chat").performClick()
+        compose.waitUntil(5_000) { "newChat" in controller.calls }
+        compose.onNodeWithTag("sidebar-toggle").performClick()
+        compose.onNodeWithTag("sidebar").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun onThePhoneTheSlimRailIsAlwaysThere() {
+        val controller = controller()
+        val model = show(controller)
+        compose.onNodeWithTag("sidebar-rail").assertIsDisplayed()
+        compose.onNodeWithTag("rail-Results").performClick()
+        compose.waitForIdle()
+        assertTrue(model.section == Section.Results && !model.drawerOpen)
+    }
 }
