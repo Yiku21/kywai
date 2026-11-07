@@ -262,6 +262,14 @@ Y cuatro que decoran el mundo, cambian la forma de su núcleo y, en los de fiest
 - Al menos un agente: cualquiera del catálogo (Claude Code, Codex CLI, Gemini CLI, DeepSeek, Qwen Code, Copilot…), un modelo local o cualquier agente de línea de comandos. **Hermes Agent** coordina por defecto, pero puede hacerlo cualquier agente.
 - Opcional: **LM Studio** u **Ollama** para el agente local, **git** para Deshacer y **Tailscale** para usarlo desde otros dispositivos.
 
+### Descargar (lo más fácil)
+
+Baja el instalador de tu sistema desde la **[última versión](https://github.com/Yiku21/Ai-cowork/releases/latest)**: `.exe` para Windows, `.dmg` para macOS (Apple silicon o Intel) y `.AppImage` para Linux. Una vez instalada, la app busca una versión nueva cada vez que se abre y se actualiza sola (en macOS te avisa y abre la descarga).
+
+Aún no van firmadas: en Windows pulsa «Más información» → «Ejecutar de todas formas»; en macOS, la primera vez, clic derecho en la app → Abrir (si dice que está dañada, ejecuta `xattr -cr "/Applications/AI Cowork.app"`); en Linux dale permiso de ejecución al AppImage con `chmod +x`.
+
+O compílala tú:
+
 ### Windows
 
 ```bash

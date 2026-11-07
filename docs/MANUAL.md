@@ -73,6 +73,24 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
 
 ### Instalar en otro equipo
 
+#### Descargar la versión lista (GitHub Releases)
+
+Con cada cambio en master del repositorio público, `.github/workflows/publicar-escritorio.yml` compila el instalador
+de Windows (`.exe`), el de macOS (`.dmg` y `.zip`, Apple silicon e Intel) y el AppImage de Linux (x64 y ARM) y los
+sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yiku21/Ai-cowork/releases/latest.
+
+- **Se actualiza sola.** Esas versiones traen `app-update.yml` y, al abrirse (y cada 6 horas), buscan la última
+  Release (`src/main/updater.ts`). En Windows y en el AppImage la descargan y, si llega en los primeros 5 minutos
+  desde que se abrió, la instalan y la app se reabre sola; si llega más tarde, se instala al cerrar. En el Mac, como
+  no va firmada por Apple, no puede reemplazarse sola: avisa con «Descargar» y abre la página de la Release.
+- **«Buscar actualizaciones…»** en esas versiones no usa git: dice que se actualiza sola y lanza la comprobación.
+- **Sin firma de código:** Windows avisa con SmartScreen («Más información» → «Ejecutar de todas formas»). En el Mac
+  va firmada «ad hoc»: la primera vez, clic derecho → Abrir; si dice que está dañada,
+  `xattr -cr "/Applications/AI Cowork.app"`.
+- Las compiladas en el propio equipo (`instalar-mac.sh`, `instalar-linux.sh`, `npm run dist:*`) no traen
+  `app-update.yml` y siguen actualizándose desde su clon de git. Es lo que usa el servidor (Mac mini).
+- El workflow solo corre en el repositorio público; en ai-cowork-original no hace nada.
+
 Al abrir la app instalada por primera vez aparece el **asistente de configuración** (también desde
 ⋮ → «Configurar agentes…»):
 

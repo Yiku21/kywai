@@ -264,6 +264,14 @@ And four that decorate the world, reshape its core and, in the festive ones, dre
 
 > **Note:** the app's interface is in Spanish for now. The menu names in this README are translated.
 
+### Download (easiest)
+
+Get the installer for your system from the **[latest release](https://github.com/Yiku21/Ai-cowork/releases/latest)**: `.exe` for Windows, `.dmg` for macOS (Apple silicon or Intel) and `.AppImage` for Linux. Once installed, the app checks for a newer version every time it opens and updates itself (on macOS it tells you and opens the download).
+
+They are not code-signed yet: on Windows click "More info" → "Run anyway"; on macOS right-click the app → Open the first time (if it says it is damaged, run `xattr -cr "/Applications/AI Cowork.app"`); on Linux make the AppImage executable with `chmod +x`.
+
+Or build it yourself:
+
 ### Windows
 
 ```bash
