@@ -146,6 +146,7 @@ export function TemplateBar({ disabled, onLaunch }: { disabled: boolean; onLaunc
         open={!!menu}
         onClose={() => setMenu(null)}
         anchorRef={anchorRef}
+        side="above"
         role="menu"
         ariaLabel={menu ? t('Opciones de «{name}»', { name: menu.tpl.name }) : undefined}
         className={s.menu}
@@ -211,7 +212,7 @@ function FillPopover({
   }
 
   return (
-    <Popover open onClose={onClose} anchorRef={anchorRef} ariaLabel={tpl.name} className={s.fill} initialFocus="first">
+    <Popover open onClose={onClose} anchorRef={anchorRef} side="above" ariaLabel={tpl.name} className={s.fill} initialFocus="first">
       <form className={s.fillForm} onSubmit={submit}>
         <p className={s.fillTitle}>
           {tpl.icon && <span aria-hidden="true">{tpl.icon} </span>}

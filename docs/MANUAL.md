@@ -1309,6 +1309,9 @@ Encima del cuadro del chat hay una fila de botones con las peticiones que repite
 equipo como si la escribieras. Está en el escritorio, en el navegador (también el del móvil) y en Órbita, y todos ven
 las mismas porque las guarda el servidor (`templates.json` en la carpeta de datos de kywai).
 
+En el escritorio y el navegador, los formularios y menús de estas plantillas se abren **encima del botón**,
+dentro de la ventana. Si falta altura, se puede desplazar su contenido sin que quede cortado por abajo.
+
 - **Huecos**: si el texto lleva algo entre llaves, como `{pr}` o `{carpeta}`, al tocarla se abre un cuadrito para
   rellenarlo (con una vista previa del texto) y luego se envía. Sin huecos se envía al momento. Un hueco empieza por
   una letra y lleva letras, cifras, `_` o `-`; como mucho 6 por plantilla. `{"a": 1}` o `{ b }` no son huecos.
