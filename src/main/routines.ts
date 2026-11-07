@@ -8,8 +8,8 @@
 // las atrasadas. El secreto del webhook no sale del motor salvo cuando lo pides para copiar la dirección.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http'
-import type { CoworkEvent, Routine, RoutineInput, RoutineRun, RoutineRunReason, RoutineWebhookInfo, SendMessageInput } from '@shared/types'
-import { cleanTrigger, describeWhen, isScheduled, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, nextRoutineRun, slotsBetween } from '@shared/routines'
+import type { CoworkEvent, Routine, RoutineInput, RoutineTrigger, RoutineRun, RoutineRunReason, RoutineWebhookInfo, SendMessageInput } from '@shared/types'
+import { cleanTrigger, describeWhen, isScheduled, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, nextRoutineRun, onceAt, slotsBetween } from '@shared/routines'
 import { emit, tapEvents } from './events'
 import * as store from './projects'
 import { tr } from '@shared/i18n'
@@ -99,6 +99,11 @@ function changed(projectId: string): void {
   emit({ kind: 'routines.updated', projectId, routines: publicRoutines(routinesOf(projectId)) })
 }
 
+/** Una rutina de una sola vez tiene que ser para más adelante (si no, nunca se lanzaría). */
+function checkFuture(trigger: RoutineTrigger, now: number): void {
+  if (trigger.type === 'once' && onceAt(trigger) <= now) throw new Error(tr('Esa hora ya ha pasado: elige una que esté por llegar.'))
+}
+
 function addRun(projectId: string, r: Routine, run: RoutineRun): void {
   r.runs = [...(r.runs ?? []), run].slice(-MAX_RUNS_KEPT)
   changed(projectId)
@@ -114,6 +119,7 @@ export function createRoutine(projectId: string, input: RoutineInput, now = Date
   if (!name) throw new Error(tr('Ponle un nombre a la rutina'))
   if (request.length < 3) throw new Error(tr('Escribe lo que tiene que hacer la rutina (lo que se enviará al chat)'))
   const trigger = cleanTrigger(input?.trigger)
+  if (input.enabled !== false) checkFuture(trigger, now)
   const r: Routine = {
     id: newId(list),
     name,
@@ -147,6 +153,7 @@ export function updateRoutine(projectId: string, id: string, patch: Partial<Rout
   if (patch.trigger !== undefined) {
     const trigger = cleanTrigger(patch.trigger)
     if (JSON.stringify(trigger) !== JSON.stringify(r.trigger)) {
+      if (patch.enabled !== false && (r.enabled || patch.enabled === true)) checkFuture(trigger, now)
       r.trigger = trigger
       // El horario nuevo cuenta desde ahora: no se «recupera» nada del anterior.
       r.scheduleFrom = now
@@ -156,8 +163,9 @@ export function updateRoutine(projectId: string, id: string, patch: Partial<Rout
     if (trigger.type === 'webhook' && !r.webhookSecret) r.webhookSecret = newSecret()
   }
   if (typeof patch.enabled === 'boolean' && patch.enabled !== r.enabled) {
-    r.enabled = patch.enabled
     // Al volver a activarla no se lanza lo que tocó mientras estaba desactivada.
+    if (patch.enabled) checkFuture(r.trigger, now)
+    r.enabled = patch.enabled
     if (r.enabled) {
       r.scheduleFrom = now
       r.lastSlotAt = undefined
@@ -301,6 +309,8 @@ async function checkSchedule(projectId: string, r: Routine, now: number): Promis
   // Se marca antes de lanzar: aunque falle o se salte, esa hora ya está atendida (no se reintenta en cada vuelta).
   // Cada N horas con retraso: se cuenta desde ahora para no lanzarla otra vez enseguida.
   r.lastSlotAt = r.trigger.type === 'interval' && d.late ? now : d.slot
+  // Una sola vez: ya está atendida, se desactiva (queda en la lista con su historial; se puede reprogramar).
+  if (r.trigger.type === 'once') r.enabled = false
   if (d.late) {
     const note = lateNote(d, now)
     notice(projectId, r, note)
