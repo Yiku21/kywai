@@ -223,6 +223,7 @@ export function runHookCommand(cmd: string, cwd: string, env: Record<string, str
       resolveRun(r)
     }
     let out = ''
+    let timedOut = false
     const add = (b: Buffer): void => {
       out = (out + b.toString('utf8')).slice(-MAX_OUTPUT)
     }
@@ -235,13 +236,18 @@ export function runHookCommand(cmd: string, cwd: string, env: Record<string, str
       return
     }
     const timer = setTimeout(() => {
+      timedOut = true
       try {
-        if (IS_WIN) spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true })
-        else process.kill(-child.pid!, 'SIGKILL')
+        if (IS_WIN) {
+          const killer = spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' })
+          killer.on('error', () => child.kill('SIGKILL'))
+          killer.on('close', (code) => {
+            if (code !== 0) child.kill('SIGKILL')
+          })
+        } else process.kill(-child.pid!, 'SIGKILL')
       } catch {
         child.kill('SIGKILL')
       }
-      done({ ok: false, output: `${out}\n${tr('Cortado: pasó de {n} s', { n: timeoutSec })}`.trim() })
     }, timeoutSec * 1000)
     child.stdout?.on('data', add)
     child.stderr?.on('data', add)
@@ -251,7 +257,10 @@ export function runHookCommand(cmd: string, cwd: string, env: Record<string, str
     })
     child.on('close', (code) => {
       clearTimeout(timer)
-      done({ ok: code === 0, output: out.trim() })
+      // Esperar al cierre libera también la carpeta de trabajo en Windows.
+      done(timedOut
+        ? { ok: false, output: `${out}\n${tr('Cortado: pasó de {n} s', { n: timeoutSec })}`.trim() }
+        : { ok: code === 0, output: out.trim() })
     })
   })
 }
