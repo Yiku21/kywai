@@ -46,6 +46,10 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/instructions$/, 'instructions', ['POST']],
   [/^\/routines$/, 'routines', ['GET']],
   [/^\/routines\/([^/]+)\/run$/, 'routineRun', ['POST']],
+  [/^\/templates$/, 'templates', ['GET', 'POST']],
+  [/^\/templates\/restore$/, 'templatesRestore', ['POST']],
+  [/^\/templates\/([^/]+)\/delete$/, 'templateDelete', ['POST']],
+  [/^\/templates\/([^/]+)$/, 'templateUpdate', ['POST']],
   [/^\/artifacts\/([^/]+)\/raw$/, 'artifactRaw', ['GET']],
   [/^\/files$/, 'files', ['GET', 'POST']],
   [/^\/files\/raw$/, 'fileRaw', ['GET']],
@@ -162,6 +166,29 @@ function id(input: string, name: string): string {
   return input
 }
 
+const TEMPLATE_OPTIONAL = ['icon', 'command', 'projectId', 'agentId', 'askPlan', 'pinned']
+
+/** Los campos de una plantilla con su tipo (el motor comprueba el resto: largos, orden, proyecto…). */
+function templateInput(input: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const k of ['name', 'prompt', 'icon', 'command'] as const) {
+    if (input[k] === undefined) continue
+    if (typeof input[k] !== 'string') throw new MobileError(400, 'INVALID_INPUT', `${k} debe ser texto`)
+    out[k] = input[k]
+  }
+  for (const k of ['projectId', 'agentId'] as const) {
+    if (input[k] === undefined) continue
+    if (input[k] !== null && typeof input[k] !== 'string') throw new MobileError(400, 'INVALID_INPUT', `${k} debe ser texto o null`)
+    out[k] = input[k]
+  }
+  for (const k of ['askPlan', 'pinned'] as const) {
+    if (input[k] === undefined) continue
+    if (typeof input[k] !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', `${k} debe ser true o false`)
+    out[k] = input[k]
+  }
+  return out
+}
+
 /** El almacén une espacios, descarta lo que queda con menos de 3 caracteres y recorta a 400. */
 function memoryText(input: unknown): string {
   const text = string(input, 'text', 2000)
@@ -234,12 +261,13 @@ export class MobileApi {
           throw new MobileError(426, 'WEBSOCKET_REQUIRED', 'Abre este endpoint con WebSocket y Authorization: Bearer')
         case 'chat': {
           const input = await body(req)
-          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds'])
+          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds', 'templateId'])
           const clientMessageId = string(input.clientMessageId, 'clientMessageId', 128)
           if (!ID.test(clientMessageId)) throw new MobileError(400, 'INVALID_INPUT', 'clientMessageId no válido')
           const attachmentIds = input.attachmentIds ?? []
           if (!Array.isArray(attachmentIds) || attachmentIds.length > 20 || attachmentIds.some((a) => typeof a !== 'string' || !ID.test(a))) throw new MobileError(400, 'INVALID_INPUT', 'attachmentIds debe ser una lista de hasta 20 identificadores de adjunto')
-          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[]))
+          const templateId = input.templateId === undefined || input.templateId === null ? undefined : id(String(input.templateId), 'templateId')
+          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[], templateId))
           break
         }
         case 'conversations': {
@@ -427,6 +455,34 @@ export class MobileApi {
           const input = await body(req)
           fields(input, ['conversationId'])
           mobileJson(res, 200, await this.backend.runRoutine(projectId(input.conversationId), routineId))
+          break
+        }
+        // Plantillas de tareas (de todos los proyectos; projectId null = general). Los cambios llegan por templates.updated.
+        case 'templates':
+          if (req.method === 'GET') {
+            query(url, [])
+            mobileJson(res, 200, await this.backend.templates())
+          } else {
+            const input = await body(req)
+            fields(input, ['name', 'prompt'], TEMPLATE_OPTIONAL)
+            mobileJson(res, 201, await this.backend.createTemplate(templateInput(input)))
+          }
+          break
+        case 'templatesRestore':
+          fields(await body(req), [])
+          mobileJson(res, 200, await this.backend.restoreTemplates())
+          break
+        case 'templateUpdate': {
+          const templateId = id(param, 'templateId')
+          const input = await body(req)
+          fields(input, [], ['name', 'prompt', ...TEMPLATE_OPTIONAL])
+          mobileJson(res, 200, await this.backend.updateTemplate(templateId, templateInput(input)))
+          break
+        }
+        case 'templateDelete': {
+          const templateId = id(param, 'templateId')
+          fields(await body(req), [])
+          mobileJson(res, 200, await this.backend.deleteTemplate(templateId))
           break
         }
         case 'artifactRaw': {

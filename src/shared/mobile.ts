@@ -1,4 +1,4 @@
-import type { AgentAccess, AgentConfig, AgentRuntime, Artifact, ArtifactKind, Attachment, ChatMessage, MemoryEntry, BillingMode, CostCurrency, QuotaInfo, StationConfig, Task, TraceEntry, UsageRun } from './types'
+import type { AgentAccess, AgentConfig, AgentRuntime, Artifact, ArtifactKind, Attachment, ChatMessage, MemoryEntry, BillingMode, CostCurrency, QuotaInfo, StationConfig, Task, TaskTemplate, TraceEntry, UsageRun } from './types'
 import type { AgentQuality } from './agentQuality'
 
 /** Carpeta de trabajo del proyecto (la del usuario a la que tienen acceso los agentes). */
@@ -43,6 +43,8 @@ export interface MobileSnapshot {
   stations: StationConfig[]
   tasks: MobileTask[]
   memory: MemoryEntry[]
+  /** Plantillas de tareas de todos los proyectos (las de otro proyecto tienen su projectId). */
+  templates?: TaskTemplate[]
   usage: MobileUsage
   /** planApproval: el coordinador espera tu visto bueno antes de ejecutar cada plan. */
   /**
@@ -96,6 +98,11 @@ export interface MobileSnapshot {
     taskChanges: boolean
     /** Rutinas del proyecto: GET /routines (ver) y POST /routines/{routineId}/run («Ejecutar ahora»). */
     routines: boolean
+    /**
+     * Plantillas de tareas: GET/POST /templates, POST /templates/{id} (cambiar), /templates/{id}/delete y
+     * /templates/restore; en POST /chat/messages, templateId. Los cambios llegan con el evento templates.updated.
+     */
+    templates?: boolean
     /** «@Agente …» o «/directo Agente …» en el chat: el texto va tal cual a ese agente, sin pasar por Hermes. */
     directMessages: boolean
     /** Varios chats por proyecto, retomables (GET/POST /chats, /chats/:id/open|rename|delete). */

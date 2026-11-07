@@ -33,7 +33,8 @@ const api: CoworkApi = {
     ipcRenderer.invoke('cowork:sendMessage', {
       projectId: input.projectId,
       text: input.text,
-      filePaths: [...(input.filePaths ?? [])]
+      filePaths: [...(input.filePaths ?? [])],
+      ...(typeof input.templateId === 'string' ? { templateId: input.templateId } : {})
     }),
   cancelRun: (runId) => ipcRenderer.invoke('cowork:cancelRun', runId),
   pickFiles: (kind) => ipcRenderer.invoke('cowork:pickFiles', kind),
@@ -56,6 +57,11 @@ const api: CoworkApi = {
     ipcRenderer.invoke('cowork:updateMemory', projectId, id, { kind: patch.kind, text: patch.text, status: patch.status }),
   deleteMemory: (projectId, id) => ipcRenderer.invoke('cowork:deleteMemory', projectId, id),
   setInstructions: (projectId, text) => ipcRenderer.invoke('cowork:setInstructions', projectId, text),
+  listTemplates: () => ipcRenderer.invoke('cowork:listTemplates'),
+  createTemplate: (input) => ipcRenderer.invoke('cowork:createTemplate', JSON.parse(JSON.stringify(input ?? {}))),
+  updateTemplate: (id, patch) => ipcRenderer.invoke('cowork:updateTemplate', id, JSON.parse(JSON.stringify(patch ?? {}))),
+  deleteTemplate: (id) => ipcRenderer.invoke('cowork:deleteTemplate', id),
+  restoreTemplates: () => ipcRenderer.invoke('cowork:restoreTemplates'),
   createRoutine: (projectId, input) => ipcRenderer.invoke('cowork:createRoutine', projectId, routineInput(input)),
   updateRoutine: (projectId, id, patch) => ipcRenderer.invoke('cowork:updateRoutine', projectId, id, routineInput(patch)),
   deleteRoutine: (projectId, id) => ipcRenderer.invoke('cowork:deleteRoutine', projectId, id),

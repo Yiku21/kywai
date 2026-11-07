@@ -34,6 +34,7 @@ import { isPlanApproval, parsePlan, streamlinePlan, twoHandsPlan, wantsNoReview 
 import { allRuntimes, deleteRuntime, emit, getRuntime, setRuntime } from './events'
 import * as store from './projects'
 import { expandModCommand } from './mods'
+import { resolveTemplate } from './templates'
 import { freshQuotaSnapshot, latestQuotas, recordUsage, refreshQuotas, setClaudeRateLimit } from './quota'
 import { finishRunUsage, rateUsage, recordCall, resumeRunUsage, setRunQuota, startRunUsage, usageRuns } from './usageLog'
 import { agentHistory, agentQualityFor, profileLines } from './agentProfile'
@@ -104,6 +105,8 @@ interface Run {
   contract?: string
   /** La lanzó una rutina (su nombre): nadie la está escribiendo en ese momento. */
   routine?: string
+  /** Lanzada con una plantilla que pide tu visto bueno al plan (aunque en Ajustes esté apagado). */
+  askPlan?: boolean
   /** Nuevo plan para uno que el coordinador propuso y al que el usuario respondió con cambios. */
   revision?: { request: string; tasks: ProposedTask[]; feedback: string; memory: MemoryNote[] }
   taskIds: string[]
@@ -1002,16 +1005,26 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     return { runId }
   }
 
+  // Plantilla de tareas: la elegida en la fila de encima del chat (el texto ya llega relleno) o «/orden …» (se rellena
+  // aquí). En el chat se ve lo que enviaste; al equipo le llega el texto de la plantilla.
+  const tpl = resolveTemplate(text, projectId, input.templateId)
+  const tplMark = tpl ? { template: { id: tpl.template.id, name: tpl.template.name } } : {}
+  const tplAgent = tpl?.template.agentId ? baseAgents().find((a) => a.id === tpl.template.agentId) : undefined
+  if (tpl?.template.agentId && !tplAgent) {
+    throw new Error(tr('El agente de la plantilla «{name}» ya no está en el equipo: edítala y elige otro.', { name: tpl.template.name }))
+  }
+
   // «@Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes.
-  const direct = parseDirect(text, baseAgents())
+  const direct = tplAgent ? { agentId: tplAgent.id, text: tpl!.text } : parseDirect(tpl ? tpl.text : text, baseAgents())
   if (direct && 'error' in direct) {
     throw new Error(tr('No hay ningún agente «{name}». Escribe @ y elige uno de la lista, o usa el nombre que sale en su ficha.', { name: direct.error }))
   }
-  if (direct) return sendDirect(st, direct.agentId, direct.text, atts, input.clientMessageId, routine)
+  if (direct) return sendDirect(st, direct.agentId, direct.text, atts, input.clientMessageId, routine, tpl ? { shown: text.trim(), ...tplMark } : {})
 
   // Hay un plan esperando tu visto bueno: un «sí» lo aprueba; cualquier otra cosa son cambios a ese plan.
   // Una rutina no responde a planes pendientes: su petición es aparte.
-  const pending = routine ? undefined : pendingProposal(projectId)
+  // Una plantilla tampoco: es una petición nueva, no un cambio al plan.
+  const pending = routine || tpl ? undefined : pendingProposal(projectId)
   if (pending && !atts.length && isPlanApproval(text)) {
     pushMessage({
       id: randomUUID(),
@@ -1036,11 +1049,12 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     text,
     createdAt: Date.now(),
     attachments: atts.length ? atts : undefined,
-    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {}),
+    ...tplMark
   })
   // «/orden …» de un mod: en el chat se ve lo que escribiste; al equipo le llega el texto de la orden.
-  const modCommand = expandModCommand(text)
-  let userText = modCommand?.text || text.trim() || '(El usuario solo ha enviado archivos adjuntos.)'
+  const modCommand = tpl ? null : expandModCommand(text)
+  let userText = tpl?.text || modCommand?.text || text.trim() || '(El usuario solo ha enviado archivos adjuntos.)'
   let revision: Run['revision']
   const runAtts = [...atts]
   if (pending?.proposal) {
@@ -1059,6 +1073,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     userText,
     revision,
     ...(routine ? { routine: routine.name } : {}),
+    ...(tpl?.template.askPlan ? { askPlan: true } : {}),
     attachments: runAtts,
     attPaths: store.stageAttachments(projectId, runAtts),
     planning: true,
@@ -1098,7 +1113,9 @@ async function sendDirect(
   text: string,
   atts: Attachment[],
   clientMessageId: string | undefined,
-  routine: { id: string; name: string } | undefined
+  routine: { id: string; name: string } | undefined,
+  /** Lanzado con una plantilla: lo que se ve en el chat (lo que escribiste) y su nombre. */
+  extra: { shown?: string; template?: { id: string; name: string } } = {}
 ): Promise<{ runId: string }> {
   const agent = findAgent(agentId)!
   const projectId = st.project.id
@@ -1112,11 +1129,12 @@ async function sendDirect(
     runId,
     ...(clientMessageId ? { clientMessageId } : {}),
     author: { type: 'user' },
-    text: text || tr('(Solo archivos adjuntos)'),
+    text: extra.shown || text || tr('(Solo archivos adjuntos)'),
     createdAt: Date.now(),
     attachments: atts.length ? atts : undefined,
     direct: { agentId: agent.id, name: agent.name },
-    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {}),
+    ...(extra.template ? { template: extra.template } : {})
   })
   const run: Run = {
     id: runId,
@@ -1426,7 +1444,7 @@ async function executeRun(run: Run): Promise<void> {
   }
   const { planner, reply, planned, contract, memory } = plan
   // Con tareas, primero tu visto bueno: el plan se enseña y nada empieza hasta que lo apruebes.
-  if (planned.length && getConfig().planApproval) {
+  if (planned.length && (getConfig().planApproval || run.askPlan)) {
     proposePlan(run, planner, reply, planned, contract, memory)
     return
   }
@@ -1817,7 +1835,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     ...coordinatorGuide({
       projectDir: store.workRoot(run.projectId),
       fullAccess: getConfig().agentAccess === 'full',
-      planApproval: getConfig().planApproval,
+      planApproval: getConfig().planApproval || !!run.askPlan,
       routine: run.routine,
       extraTools: extraToolLines(),
       // La lista de funciones de la app solo si la conversación va de kywai: si no, son 5 000 caracteres de ruido.

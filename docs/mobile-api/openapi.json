@@ -3856,6 +3856,266 @@
         },
         "description": "La app debe cargarla sin dirección base, exponer KywaiBridge.send(text) (pide confirmación y exige chat=true) y KywaiBridge.context(), y mandar el contexto con window.postMessage({kywai:'context', project, tasks, messages}, '*'). No debe dejar navegar a otras páginas."
       }
+    },
+    "/api/mobile/v1/templates": {
+      "get": {
+        "operationId": "listTemplates",
+        "summary": "Plantillas de tareas",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Todas las plantillas (de todos los proyectos).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Las mismas que la fila de encima del chat del escritorio. Las de un proyecto llevan projectId."
+      },
+      "post": {
+        "operationId": "createTemplate",
+        "summary": "Crear una plantilla",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plantilla creada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "400 INVALID_INPUT con el motivo si el nombre o el texto faltan, la orden no es válida, ya es de kywai o la usa otra plantilla del mismo ámbito, o el proyecto no existe. Como mucho 100."
+      }
+    },
+    "/api/mobile/v1/templates/restore": {
+      "post": {
+        "operationId": "restoreTemplates",
+        "summary": "Volver a poner las de serie",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Todas las plantillas, con las de serie que faltaban.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/templates/{templateId}/delete": {
+      "post": {
+        "operationId": "deleteTemplate",
+        "summary": "Borrar una plantilla",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Borrada (o ya no existía).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/templates/{templateId}": {
+      "post": {
+        "operationId": "updateTemplate",
+        "summary": "Cambiar una plantilla",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La plantilla cambiada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "404 TEMPLATE_NOT_FOUND si ya no existe."
+      }
     }
   },
   "components": {
@@ -4001,6 +4261,12 @@
             },
             "maxItems": 20,
             "description": "Opcional. ids de conversation.attachments (p. ej. los subidos con POST /files) que van con el mensaje: quedan en message.attachments y los agentes los reciben como los adjuntos del escritorio, sin copiarlos ni duplicarlos. Los repetidos se ignoran. Un id que no es de la conversación → 400 INVALID_INPUT (el mensaje lo nombra)."
+          },
+          "templateId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128,
+            "description": "Opcional. Se lanza con esa plantilla (text ya va con los huecos rellenos): el mensaje lleva template y se aplican sus opciones (agentId, askPlan). Una plantilla que no existe → 400 INVALID_INPUT. Sin templateId, un text que empieza por «/command …» de una plantilla también la lanza (lo de detrás rellena el hueco; con varios, separados por «|»)."
           }
         },
         "required": [
@@ -4169,6 +4435,23 @@
             },
             "required": [
               "agentId",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "template": {
+            "type": "object",
+            "description": "Mensaje lanzado con una plantilla de tareas: la interfaz enseña su nombre.",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
               "name"
             ],
             "additionalProperties": false
@@ -5319,6 +5602,10 @@
           "modPanels": {
             "type": "boolean",
             "description": "Paneles de los mods: GET /mods/panels y GET /mods/panel."
+          },
+          "templates": {
+            "type": "boolean",
+            "description": "Plantillas de tareas: GET/POST /templates, POST /templates/{templateId}, /templates/{templateId}/delete y /templates/restore; templateId en POST /chat/messages."
           }
         },
         "required": [
@@ -5410,6 +5697,13 @@
           },
           "settings": {
             "$ref": "#/components/schemas/Settings"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskTemplate"
+            },
+            "description": "Plantillas de tareas de todos los proyectos (filtrar por projectId). Los cambios llegan con el evento templates.updated ({templates})."
           }
         },
         "required": [
@@ -8000,6 +8294,192 @@
           "title",
           "chat"
         ],
+        "additionalProperties": false
+      },
+      "TaskTemplate": {
+        "type": "object",
+        "description": "Una plantilla de tareas: una petición que se repite, lanzable con un toque desde la fila de encima del chat o escribiendo «/command …». Sus huecos van entre llaves ({pr}, {carpeta}): letras, cifras, «_» o «-», empezando por letra; como mucho 6. Las de serie (builtin) siguen el idioma de la app mientras no se cambien.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "icon": {
+            "type": "string",
+            "description": "Emoji del botón."
+          },
+          "command": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,29}$",
+            "description": "Se lanza también escribiendo «/command …» en el chat."
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 8000,
+            "description": "Texto que se envía, con sus huecos."
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Solo sale en ese proyecto (conversationId). Sin él, en todos."
+          },
+          "agentId": {
+            "type": "string",
+            "description": "Va directa a ese agente, sin pasar por Hermes."
+          },
+          "askPlan": {
+            "type": "boolean",
+            "description": "Pide el visto bueno al plan aunque settings.planApproval esté apagado."
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "Sale la primera de la fila."
+          },
+          "builtin": {
+            "type": "string",
+            "description": "Id de la plantilla de serie de la que viene."
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "command",
+          "prompt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "TemplatesResponse": {
+        "type": "object",
+        "properties": {
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskTemplate"
+            }
+          }
+        },
+        "required": [
+          "templates"
+        ],
+        "additionalProperties": false
+      },
+      "TemplateResponse": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "$ref": "#/components/schemas/TaskTemplate"
+          }
+        },
+        "required": [
+          "template"
+        ],
+        "additionalProperties": false
+      },
+      "TemplateCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "command": {
+            "type": "string",
+            "maxLength": 31,
+            "description": "Sin ella (o vacía) sale del nombre."
+          },
+          "projectId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null: general (en todos los proyectos)."
+          },
+          "agentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null: pasa por Hermes."
+          },
+          "askPlan": {
+            "type": "boolean"
+          },
+          "pinned": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "prompt"
+        ],
+        "additionalProperties": false
+      },
+      "TemplateUpdateRequest": {
+        "type": "object",
+        "description": "Solo lo que cambia.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "command": {
+            "type": "string",
+            "maxLength": 31,
+            "description": "Sin ella (o vacía) sale del nombre."
+          },
+          "projectId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null: general (en todos los proyectos)."
+          },
+          "agentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null: pasa por Hermes."
+          },
+          "askPlan": {
+            "type": "boolean"
+          },
+          "pinned": {
+            "type": "boolean"
+          }
+        },
         "additionalProperties": false
       }
     }
