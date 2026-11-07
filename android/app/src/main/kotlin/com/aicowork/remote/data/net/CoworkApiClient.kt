@@ -6,6 +6,8 @@ import com.aicowork.remote.data.model.AgentAccessRequest
 import com.aicowork.remote.data.model.ChatRenameRequest
 import com.aicowork.remote.data.model.ChatSummary
 import com.aicowork.remote.data.model.ChatsResponse
+import com.aicowork.remote.data.model.MusicResponse
+import com.aicowork.remote.data.model.MusicResult
 import com.aicowork.remote.data.model.SearchHit
 import com.aicowork.remote.data.model.SearchResponse
 import com.aicowork.remote.data.model.AgentAccessResponse
@@ -228,6 +230,9 @@ class CoworkApiClient(
 
     suspend fun search(query: String): List<SearchHit> =
         get("/search?q=${query.trim().encodeQuery()}", SearchResponse.serializer()).hits
+
+    suspend fun music(kind: String, query: String): List<MusicResult> =
+        get("/music/search?kind=${kind.encodeQuery()}&q=${query.trim().encodeQuery()}", MusicResponse.serializer()).results
 
     suspend fun projects(): List<ProjectSummary> = get("/projects", ProjectsResponse.serializer()).projects
 

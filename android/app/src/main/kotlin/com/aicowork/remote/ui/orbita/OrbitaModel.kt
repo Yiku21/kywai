@@ -125,6 +125,9 @@ class OrbitaModel(
     var drawerOpen by mutableStateOf(false)
     /** «Buscar» de la barra lateral. */
     var searchOpen by mutableStateOf(false)
+    /** «Música»: radios y canciones sin anuncios. */
+    var musicOpen by mutableStateOf(false)
+    val music = MusicPlayer()
     /** Chats de cada proyecto ya pedidos al ordenador (se vuelven a pedir al abrir la barra o cambiar de chat). */
     val chats = mutableStateMapOf<String, List<ChatSummary>>()
     /** Proyecto desplegado en la barra lateral (por defecto, el abierto). */

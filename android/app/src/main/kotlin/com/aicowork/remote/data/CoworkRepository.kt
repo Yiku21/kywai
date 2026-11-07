@@ -5,6 +5,7 @@ import com.aicowork.remote.i18n.t
 import com.aicowork.remote.data.model.AppRelease
 import com.aicowork.remote.data.model.Artifact
 import com.aicowork.remote.data.model.ChatSummary
+import com.aicowork.remote.data.model.MusicResult
 import com.aicowork.remote.data.model.SearchHit
 import com.aicowork.remote.data.model.ChatMessage
 import com.aicowork.remote.data.model.CoworkJson
@@ -171,6 +172,8 @@ interface CoworkController {
     /** «Buscar»: chats, tareas, resultados y memoria de todos los proyectos. */
     suspend fun search(query: String): Result<List<SearchHit>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun createProject(name: String): ActionResult = unsupported
+    /** Radios («radio») o canciones de Audius («audius») para el reproductor. */
+    suspend fun music(kind: String, query: String): Result<List<MusicResult>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun addMemory(kind: String, text: String): ActionResult = unsupported
     suspend fun setMemoryStatus(id: String, status: String): ActionResult = unsupported
@@ -691,6 +694,8 @@ class CoworkRepository(
     }
 
     override suspend fun search(query: String): Result<List<SearchHit>> = fetch { it.search(query) }
+
+    override suspend fun music(kind: String, query: String): Result<List<MusicResult>> = fetch { it.music(kind, query) }
 
     override suspend fun createProject(name: String): ActionResult = action(t("Proyecto creado")) { c ->
         val conversation = c.newConversation(name.trim())

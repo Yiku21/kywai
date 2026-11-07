@@ -39,7 +39,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -173,9 +176,10 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
     val blur = model.worldAvailable && scene != null && model.preferences.effects != EffectsPreference.Soft && glassActive
     val glass = remember(blur) { GlassContext(model.world.glass, blur) }
 
-    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
+    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.musicOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
         when {
             model.searchOpen -> model.searchOpen = false
+            model.musicOpen -> model.musicOpen = false
             model.drawerOpen -> model.drawerOpen = false
             model.viewer != null -> model.viewer = null
             model.traceTaskId != null -> model.traceTaskId = null
@@ -193,7 +197,11 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     androidx.compose.runtime.DisposableEffect(lifecycle) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP && model.voice is VoiceState.Recording) model.finishVoice(send = false)
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+                if (model.voice is VoiceState.Recording) model.finishVoice(send = false)
+                // Sin reproductor en segundo plano: la música se pausa y sigue al volver con ▶.
+                model.music.pause()
+            }
         }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
@@ -330,6 +338,10 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
                 Spacer(Modifier.width(8.dp))
                 ChatTitleChip(state, Modifier.weight(1f, fill = false))
                 Spacer(Modifier.weight(1f))
+                if (model.music.current != null) {
+                    MiniPlayer(model, compact = true)
+                    Spacer(Modifier.width(8.dp))
+                }
                 if (inboxSupported(state)) {
                     InboxButton(state, model)
                     Spacer(Modifier.width(8.dp))
@@ -417,6 +429,10 @@ private fun WideLayout(
         Column(Modifier.align(Alignment.TopStart).padding(start = side + gap, end = topEnd).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ChatTitleChip(state, Modifier.weight(1f, fill = false))
+                if (model.music.current != null) {
+                    Spacer(Modifier.width(8.dp))
+                    MiniPlayer(model)
+                }
                 // Con la barra plegada, «Te necesita» sigue a mano arriba.
                 if (!model.sidebarOpen && inboxSupported(state)) {
                     Spacer(Modifier.width(8.dp))
@@ -454,6 +470,10 @@ private fun WideLayout(
             }
         }
 
+        // Controles de la cámara, flotando abajo a la derecha del mundo (como en el escritorio).
+        if (scene3d(model) && !(model.expanded && panelOpen && tabletop == null)) {
+            CameraControls(model, Modifier.align(Alignment.BottomEnd).padding(end = worldEnd, bottom = worldBottom))
+        }
         ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = side + gap, end = if (panelOpen) panelWidth + gap else 0.dp).fillMaxWidth())
     }
 }
@@ -512,5 +532,18 @@ private fun PanelContent(section: Section, model: OrbitaModel, state: CoworkUiSt
         Section.Settings -> SettingsPanel(model, state)
         Section.Team -> TeamPanel(model, state)
         Section.World -> Unit
+    }
+}
+
+/** El mundo 3D se está dibujando (hay OpenGL): solo entonces tienen sentido los controles de la cámara. */
+private fun scene3d(model: OrbitaModel) = model.worldAvailable
+
+/** Acercar, alejar y vista general: botones de cristal sobre el mundo. */
+@Composable
+private fun CameraControls(model: OrbitaModel, modifier: Modifier = Modifier) {
+    Column(modifier.glass(radius = 22.dp).padding(2.dp).testTag("camera-controls")) {
+        IconAction(Icons.Outlined.Add, t("Acercar"), onClick = { model.world.camera.dolly(1) })
+        IconAction(Icons.Outlined.Remove, t("Alejar"), onClick = { model.world.camera.dolly(-1) })
+        IconAction(Icons.Outlined.CenterFocusStrong, t("Vista general"), onClick = { model.world.overview() })
     }
 }
