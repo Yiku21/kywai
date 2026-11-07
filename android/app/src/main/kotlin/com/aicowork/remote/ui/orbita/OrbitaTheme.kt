@@ -1,5 +1,6 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -92,6 +93,16 @@ object OrbitaThemes {
     fun uiOf(id: String?): String? = id?.removePrefix("mundo-")?.takeIf { it in ui }
 
     fun tokens(id: String?): ThemeTokens = uiOf(id)?.let { ui[it] } ?: Default
+
+    private val cityNames = mapOf("clasico" to "Índigo", "orbita" to "Frost Glass", "marfil" to "Perla", "grafito" to "Ónix", "bosque" to "Esmeralda", "matrix" to "Neón", "eva" to "Ultravioleta")
+    private val otherNames = mapOf(
+        "relicario" to "Relicario", "telar" to "Telar", "halloween" to "Halloween", "navidad" to "Navidad",
+        "mundo-clasico" to "Clásico", "mundo-orbita" to "Órbita", "mundo-marfil" to "Marfil", "mundo-grafito" to "Grafito",
+        "mundo-bosque" to "Bosque", "mundo-matrix" to "Matrix", "mundo-eva" to "EVA-01",
+    )
+
+    /** El nombre del tema como en el escritorio («Ciudad digital · Ónix», «Bosque»…); null si no se conoce. */
+    fun displayName(id: String?): String? = id?.let { cityNames[it]?.let { n -> "${t("Ciudad digital")} · $n" } ?: otherNames[it] }
 }
 
 /**

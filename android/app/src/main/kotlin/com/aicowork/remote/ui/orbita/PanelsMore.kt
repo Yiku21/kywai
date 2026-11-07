@@ -452,8 +452,15 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
     var confirmForget by remember { mutableStateOf(false) }
     PanelColumn {
         PanelHeader(model, t("Ajustes"), icon = Icons.Outlined.Settings)
+        val tab = model.settingsTab
+        Segmented(
+            SettingsTab.entries.map { it to it.label },
+            tab,
+            { model.settingsTab = it },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).testTag("settings-tabs"),
+        )
         LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("settings-list"), state = model.settingsList, contentPadding = listPadding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            item {
+            if (tab == SettingsTab.General) item {
                 SectionLabel("Idioma · Language")
                 val context = LocalContext.current
                 var langOpen by remember { mutableStateOf(false) }
@@ -500,7 +507,8 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                     modifier = Modifier.padding(start = 4.dp, top = 8.dp),
                 )
             }
-            item {
+            if (tab == SettingsTab.General) item { ThemeSection(state) }
+            if (tab == SettingsTab.General) item {
                 SectionLabel(t("Respuesta al tacto"))
                 Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp)) {
                     ToggleRow(t("Sonidos"), t("Tonos cortos al terminar tareas, llegar mensajes o fallar algo"), p.sound, "toggle-sound") { v -> model.updatePreferences { it.copy(sound = v) }; if (v) model.feedback.play(Sfx.Message) }
@@ -527,7 +535,7 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                     }
                 }
             }
-            item {
+            if (tab == SettingsTab.General) item {
                 SectionLabel(t("Mundo"))
                 Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp)) {
                     ToggleRow(t("Animación ambiental"), t("Luces, globo y cúpula en movimiento. La actividad real de los agentes se ve siempre."), p.ambient, "toggle-ambient") { v -> model.updatePreferences { it.copy(ambient = v) } }
@@ -563,7 +571,7 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                     modifier = Modifier.padding(start = 4.dp, top = 8.dp),
                 )
             }
-            item {
+            if (tab == SettingsTab.Connection) item {
                 SectionLabel(t("Ordenador"))
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
                     Text(session?.serverName ?: "kywai", color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
@@ -586,7 +594,15 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                 }
             }
             // También en Herramientas; aquí porque en el escritorio está en ⋮ → Ajustes y es donde se busca.
-            state.snapshot?.takeIf { it.capabilities.planApproval }?.let { snapshot ->
+            if (tab == SettingsTab.Agents) item {
+                SectionLabel(t("Equipo"))
+                Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
+                    Text(t("Los agentes, sus modelos y su estado. Se añaden y configuran en kywai del ordenador."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(10.dp))
+                    OrbitaButton(t("Ver el equipo"), onClick = { model.open(Section.Team) }, icon = Icons.Outlined.Groups, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth().testTag("settings-team"))
+                }
+            }
+            if (tab == SettingsTab.Agents) state.snapshot?.takeIf { it.capabilities.planApproval }?.let { snapshot ->
                 item {
                     SectionLabel(t("Planes de Hermes"))
                     Column(Modifier.fillMaxWidth().card().padding(vertical = 4.dp)) {
@@ -600,9 +616,9 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                     }
                 }
             }
-            item { ServerUpdateSection(model, state.snapshot?.capabilities?.serverUpdate == true) }
-            model.updater?.let { updater -> item { UpdateSection(updater) } }
-            item {
+            if (tab == SettingsTab.Connection) item { ServerUpdateSection(model, state.snapshot?.capabilities?.serverUpdate == true) }
+            if (tab == SettingsTab.About) model.updater?.let { updater -> item { UpdateSection(updater) } }
+            if (tab == SettingsTab.Connection) item {
                 SectionLabel(t("Este móvil"))
                 Column(Modifier.fillMaxWidth().card().padding(14.dp)) {
                     Text(session?.deviceName.orEmpty(), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
@@ -612,7 +628,7 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                     OrbitaButton(t("Desvincular este móvil"), onClick = { confirmForget = true }, icon = Icons.Outlined.LinkOff, style = ButtonStyle.Danger, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth())
                 }
             }
-            item { SupportSection(model) }
+            if (tab == SettingsTab.About) item { SupportSection(model) }
         }
     }
     if (confirmForget) {
@@ -623,6 +639,21 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
             danger = true,
             onConfirm = { confirmForget = false; model.feedback.confirm(); model.controller.forget() },
             onDismiss = { confirmForget = false },
+        )
+    }
+}
+
+/** Tema: el mismo que en kywai del ordenador (se elige allí, en ⚙ → Ajustes → Tema). */
+@Composable
+private fun ThemeSection(state: CoworkUiState) {
+    SectionLabel(t("Tema"))
+    Column(Modifier.fillMaxWidth().card().padding(14.dp).testTag("settings-theme")) {
+        val id = state.snapshot?.settings?.theme
+        Text(OrbitaThemes.displayName(id) ?: t("Órbita (el de siempre)"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
+        Text(
+            if (id == null) t("Actualiza kywai en el ordenador para que Órbita use su mismo tema.") else t("Se elige en kywai del ordenador y Órbita lo sigue: colores de la app y del espacio."),
+            color = Orbita.TextSoft,
+            style = MaterialTheme.typography.bodySmall,
         )
     }
 }
