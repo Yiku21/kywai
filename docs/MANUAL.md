@@ -66,6 +66,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
   - [Buscar (Ctrl+K)](#buscar-ctrlk)
+  - [Historial](#historial)
   - [Eliminar un proyecto](#eliminar-un-proyecto)
   - [Cuotas](#cuotas)
   - [Consumo: ¿compensa?](#consumo-compensa)
@@ -330,8 +331,8 @@ desde el PC (`./gradlew :app:publishOrbita` y subir `android/release/`) sigue fu
 lo corten:
 
 - **Barra lateral**, como en el escritorio: «Nuevo chat», el buscador (busca en los títulos y en los mensajes de todos
-  los chats), «Fijados», los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
-  con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Te necesita con su número, Chat,
+  los chats, con filtros y salto al mensaje), «Historial» (todos los chats por fechas, ver [Historial](#historial)), «Fijados», los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
+  con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Historial, Te necesita con su número, Chat,
   Tareas, Resultados, Música, Más y Ajustes abajo). En la tableta cada icono lleva su nombre debajo; en el móvil en
   vertical es una columna fina solo de iconos. El logo o el botón de debajo la despliegan entera (en el móvil, como
   cajón por encima). Lo hace `SidebarRail` en `ui/orbita/Sidebar.kt`.
@@ -1370,13 +1371,14 @@ A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
   mensajes anteriores. La conversación anterior **no se pierde**: queda guardada en la lista de su proyecto. Los
   archivos, los resultados y la memoria del proyecto se quedan; las tareas que estaban en pausa siguen a la vista.
 - **Buscar** (Ctrl+K): ver [Buscar](#buscar-ctrlk).
+- **Historial**: todas las conversaciones de todos los proyectos, por fechas: ver [Historial](#historial).
 - **Te necesita**: la bandeja de avisos (antes era la campana de arriba a la derecha).
 - **Tareas**, **Resultados** y **Rutinas** abren esa pestaña del panel del chat (con el número de tareas en curso).
 - **Fijados**: los proyectos y las conversaciones que fijas (clic derecho → «Fijar»). Se guarda en el proyecto,
   así que se ve igual en el navegador y en los clientes.
 - **Proyectos**: todos, con **+** para crear uno. La flecha de cada proyecto despliega sus conversaciones (el abierto
   se despliega solo); un punto azul que late indica que el equipo está trabajando en él.
-- **Recientes**: las últimas conversaciones de todos los proyectos.
+- **Recientes**: las últimas conversaciones de todos los proyectos; al final, «Ver todo el historial».
 - Abajo, **dónde estás conectado** (el servidor) y la **rueda ⚙**: ver [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes).
 
 
@@ -1447,8 +1449,45 @@ Ajustes, y al cerrarla vuelves a la misma pestaña. Esc o la ✕ cierran. Lo hac
 **Buscar** en la barra lateral, o Ctrl+K (⌘K en el Mac), abre un buscador que mira a la vez en **todas las
 conversaciones** (abiertas y guardadas), las **tareas** (título, encargo y resultado), los **resultados** (nombre del
 archivo), la **memoria** y los nombres de los proyectos, de todos los proyectos o, con «Solo este proyecto», del
-abierto. No distingue mayúsculas ni tildes. Los chips filtran por tipo; ↑↓ y ↵ para abrir: lleva al proyecto y a la
-conversación donde está, en la pestaña que toca (una tarea abre Tareas; un resultado, su visor; una nota, Memoria).
+abierto. No distingue mayúsculas ni tildes.
+
+- **Varias palabras**: tienen que estar **todas** en el mismo mensaje (o tarea, o nota), en cualquier orden.
+  `barra oscuro` encuentra «pon el modo oscuro en la barra».
+- **Entre comillas** («…», "…" o “…”): la **frase exacta**. `"modo oscuro"` no encuentra «oscuro el modo».
+- **Fecha**: cualquier fecha, hoy, últimos 7 días o últimos 30 días.
+- **Quién lo escribió**: cualquiera, tú, cualquier agente o uno en concreto. Con este filtro solo salen mensajes (y
+  las tareas de ese agente), no resultados, memoria ni proyectos.
+- Los chips filtran por tipo; ↑↓ y ↵ para abrir: lleva al proyecto y a la conversación donde está, en la pestaña que
+  toca (una tarea abre Tareas; un resultado, su visor; una nota, Memoria).
+- **Al mensaje exacto**: al abrir una conversación, el chat baja hasta el mensaje encontrado, lo resalta un momento y
+  marca lo buscado dentro de él.
+- **«N coincidencias»**: si en una conversación coinciden varios mensajes, el botón despliega los primeros cinco (quién
+  lo dijo, el trozo y la fecha) para ir directo al que quieras.
+- Salen 40 resultados; **«Ver más»** trae otros 40 (abajo se ve el total).
+
+Por dentro, el ordenador guarda en memoria el texto ya preparado de cada mensaje y solo vuelve a leer una conversación
+guardada si su archivo cambió, así que buscar a cada tecla no relee todos los proyectos
+(`searchHistory` en `src/main/conversations.ts`).
+
+### Historial
+
+**Historial** en la barra lateral (o «Ver todo el historial» al pie de Recientes y en el buscador vacío) abre una
+ventana con **todas las conversaciones de todos los proyectos**, agrupadas por **Hoy, Ayer, Últimos 7 días, Últimos
+30 días** y, las de antes, por **meses**. Cada una dice su proyecto, cuántos mensajes tiene y cuándo se habló por última
+vez (y «abierta» la que tienes abierta).
+
+- Arriba se **filtra por nombre** (el de la conversación o el del proyecto) y por **proyecto**.
+- «**Buscar «…» dentro de los mensajes**» pasa lo escrito al buscador.
+- ↑↓ y ↵, o un clic, abren la conversación.
+
+**En Órbita** es igual: «Historial» en la barra lateral (y en la columna de iconos), con los mismos grupos, el filtro
+por nombre y por proyecto. El «Buscar» de Órbita tiene los mismos filtros (fecha, tú o agentes), «N coincidencias» para
+elegir el mensaje, «Ver más» y, al abrir un chat, baja hasta el mensaje encontrado y lo resalta. Necesita un ordenador
+con esta versión (si no, se ve el buscador de antes).
+
+API móvil: `GET /chats/all` (el historial) y `GET /search` con `since` (ms), `author` (`user`, `agents` o el id de un
+agente) y `limit` (hasta 400); la respuesta trae `total` y, en cada chat, `messageId`, `matchCount` y `matches`. La
+capacidad `history` del snapshot dice si el ordenador lo tiene.
 
 ### Eliminar un proyecto
 

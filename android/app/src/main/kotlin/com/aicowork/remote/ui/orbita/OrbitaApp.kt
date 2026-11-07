@@ -178,9 +178,10 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
     val blur = model.worldAvailable && scene != null && model.preferences.effects != EffectsPreference.Soft && glassActive
     val glass = remember(blur) { GlassContext(model.world.glass, blur) }
 
-    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.musicOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
+    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.historyOpen || model.musicOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
         when {
             model.searchOpen -> model.searchOpen = false
+            model.historyOpen -> model.historyOpen = false
             model.musicOpen -> model.musicOpen = false
             model.drawerOpen -> model.drawerOpen = false
             model.viewer != null -> model.viewer = null

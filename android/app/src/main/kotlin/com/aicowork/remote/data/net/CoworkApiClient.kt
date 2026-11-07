@@ -278,6 +278,20 @@ class CoworkApiClient(
     suspend fun search(query: String): List<SearchHit> =
         get("/search?q=${query.trim().encodeQuery()}", SearchResponse.serializer()).hits
 
+    /** Buscador del historial: desde [since] (ms), de [author] («user», «agents» o un agente) y hasta [limit] resultados. */
+    suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): SearchResponse {
+        val params = buildString {
+            append("q=").append(query.trim().encodeQuery())
+            if (since != null) append("&since=").append(since)
+            if (!author.isNullOrBlank()) append("&author=").append(author.encodeQuery())
+            append("&limit=").append(limit.coerceIn(1, 400))
+        }
+        return get("/search?$params", SearchResponse.serializer())
+    }
+
+    /** Historial: todos los chats con mensajes de todos los proyectos. */
+    suspend fun allChats(): List<ChatSummary> = get("/chats/all", ChatsResponse.serializer()).chats
+
     suspend fun music(kind: String, query: String): List<MusicResult> =
         get("/music/search?kind=${kind.encodeQuery()}&q=${query.trim().encodeQuery()}", MusicResponse.serializer()).results
 

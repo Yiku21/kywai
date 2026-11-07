@@ -35,14 +35,14 @@ class SidebarTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun controller(menus: Boolean = false, running: Boolean = true): FakeController {
+    private fun controller(menus: Boolean = false, running: Boolean = true, history: Boolean = false): FakeController {
         val base = SampleData.state()
         val snap = base.snapshot!!.let { s -> s.copy(projects = s.projects.map { it.copy(running = running && it.running, pinned = menus && it.id == "c2") }) }
         return FakeController(
             base.copy(
                 snapshot = snap.copy(
                     conversation = snap.conversation.copy(chat = OpenChat("ch1", "Pantallas de la app")),
-                    capabilities = snap.capabilities.copy(chats = true, search = true, serverName = true, chatActions = menus, projectActions = menus),
+                    capabilities = snap.capabilities.copy(chats = true, search = true, history = history, serverName = true, chatActions = menus, projectActions = menus),
                 ),
             ),
         )
@@ -79,6 +79,48 @@ class SidebarTest {
         compose.waitUntil(5_000) { "search:informe" in controller.calls }
         compose.onNodeWithText("…el informe semanal…").performClick()
         compose.waitUntil(5_000) { "openChat:c1:ch0" in controller.calls }
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun historySearchFiltersByAuthorAndJumpsToTheMessage() {
+        val controller = controller(history = true)
+        val model = show(controller)
+        compose.onNodeWithTag("side-search").performClick()
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("search"))).performTextInput("informe")
+        compose.waitUntil(5_000) { controller.calls.any { it.startsWith("searchHistory:informe::false") } }
+        compose.onNodeWithTag("search-by-user").performClick()
+        compose.waitUntil(5_000) { controller.calls.any { it.startsWith("searchHistory:informe:user:") } }
+        compose.onNodeWithTag("search-when-week").performClick()
+        compose.waitUntil(5_000) { controller.calls.any { it.startsWith("searchHistory:informe:user:true") } }
+        compose.onNodeWithTag("search-matches").performClick()
+        compose.onNodeWithText("aquí va el informe pedido").performClick()
+        compose.waitUntil(5_000) { "openChat:c1:ch0" in controller.calls }
+        assertTrue(model.focusMessageId == "m-b" || model.flashMessageId == "m-b")
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun historyListsEveryChatByDateAndOpensOne() {
+        val controller = controller(history = true)
+        val model = show(controller)
+        compose.onNodeWithTag("side-history").performClick()
+        compose.onNodeWithTag("history").assertIsDisplayed()
+        compose.waitUntil(5_000) { "allChats" in controller.calls }
+        compose.onNodeWithText("Hoy").assertIsDisplayed()
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("history"))).performTextInput("lanzamiento")
+        compose.onAllNodesWithTag("history-chat-ch0").assertCountEquals(0)
+        compose.onNodeWithTag("history-chat-ch9").performClick()
+        compose.waitUntil(5_000) { "openChat:c2:ch9" in controller.calls }
+        assertTrue(!model.historyOpen)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun withoutHistoryTheOldSearchStillWorksAndThereIsNoHistoryItem() {
+        val controller = controller()
+        show(controller)
+        compose.onAllNodesWithTag("side-history").assertCountEquals(0)
     }
 
     @Test

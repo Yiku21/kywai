@@ -50,6 +50,7 @@ import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ViewSidebar
@@ -139,6 +140,9 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
                     model.drawerOpen = false
                     model.searchOpen = true
                 }
+            }
+            if (model.historySupported()) {
+                SidebarItem(Icons.Outlined.History, t("Historial"), tag = "side-history") { model.openHistory() }
             }
             if (inboxSupported(state)) {
                 SidebarItem(Icons.Outlined.Notifications, t("Te necesita"), badge = state.inbox.size, warn = true, selected = model.inboxOpen, tag = "side-inbox") { model.openInbox() }
@@ -378,6 +382,9 @@ fun SidebarRail(model: OrbitaModel, state: CoworkUiState, labels: Boolean, onOpe
                     model.drawerOpen = false
                     model.searchOpen = true
                 }
+            }
+            if (model.historySupported()) {
+                RailItem(Icons.Outlined.History, t("Historial"), t("Historial"), labels, tag = "rail-history") { model.openHistory() }
             }
             if (inboxSupported(state)) {
                 RailItem(Icons.Outlined.Notifications, t("Te necesita"), t("Te necesita"), labels, badge = state.inbox.size, selected = model.inboxOpen, tag = "rail-inbox") { model.openInbox() }
