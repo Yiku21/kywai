@@ -1,5 +1,6 @@
 // Cuentas del registro de consumo: totales, reparto por agente, cuota gastada y exportación a CSV.
-import type { QuotaSnapshot, UsageCall, UsageRun } from '@shared/types'
+import type { CostSettings, QuotaSnapshot, UsageCall, UsageRun } from '@shared/types'
+import { callCost } from '@shared/costs'
 import { locale, t } from '@/lib/i18n'
 
 /** Tokens de una llamada (entrada + salida). */
@@ -209,7 +210,7 @@ function csvCell(v: string | number): string {
 }
 
 /** Una fila por llamada a un agente, con los datos de su petición (para abrirlo en Excel o Numbers). */
-export function usageCsv(runs: UsageRun[]): string {
+export function usageCsv(runs: UsageRun[], costs?: CostSettings): string {
   const head = [
     'fecha',
     'proyecto',
@@ -225,7 +226,9 @@ export function usageCsv(runs: UsageRun[]): string {
     'tokens_salida',
     'tokens_cache',
     'duracion_llamada_s',
-    'llamada_ok'
+    'llamada_ok',
+    'coste_api_usd',
+    'coste_origen'
   ]
   const rows = [head.join(',')]
   for (const r of runs) {
@@ -245,7 +248,12 @@ export function usageCsv(runs: UsageRun[]): string {
           c.noTokens ? '' : c.output,
           c.noTokens ? '' : c.cached,
           Math.round(c.durationMs / 1000),
-          c.ok ? 'si' : 'no'
+          c.ok ? 'si' : 'no',
+          ...(() => {
+            const cost = callCost(c, costs)
+            const origin = { real: 'cli', price: 'tabla', estimated: 'estimado', free: 'gratis', unpriced: 'sin_precio' }[cost.source]
+            return [cost.usd == null ? '' : Math.round(cost.usd * 1e6) / 1e6, origin]
+          })()
         ]
           .map(csvCell)
           .join(',')

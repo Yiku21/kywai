@@ -14,7 +14,9 @@ import {
   summarize,
   usageCsv
 } from '@/lib/usageStats'
+import { callCost } from '@shared/costs'
 import { useNow } from '../common/hooks'
+import { CostPanel, costText, MODE_LABEL, useCostSummary, useMoney } from './CostPanel'
 import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import r from '../header/RemoteAccess.module.css'
@@ -90,9 +92,14 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
     [all, from, onlyProject, project?.id]
   )
   const sum = useMemo(() => summarize(runs, now), [runs, now])
+  const everything = useMemo(() => Object.values(all), [all])
+  const costs = useCowork((st) => st.config.costs)
+  const cost = useCostSummary(runs, everything, now)
+  const money = useMoney()
+  const agentCost = new Map(cost.byAgent.map((a) => [a.key, a]))
 
   function exportCsv(): void {
-    const csv = usageCsv([...runs].reverse())
+    const csv = usageCsv([...runs].reverse(), costs)
     // Con BOM para que Excel lea bien los acentos.
     const url = URL.createObjectURL(new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8' }))
     const a = document.createElement('a')
@@ -119,9 +126,9 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
           <BarChart3 size={20} aria-hidden="true" className={r.headIcon} />
           <div>
             <h2 id="usage-title" className={r.title}>
-              {t('Consumo')}
+              {t('Uso y coste')}
             </h2>
-            <p className={r.subtitle}>{t('Lo que gasta cada petición: tokens, tiempo y cuota de tus suscripciones. Para ver si compensa.')}</p>
+            <p className={r.subtitle}>{t('Lo que gasta cada agente: tokens, tiempo, dinero y cuota de tus suscripciones. Para ver si compensa.')}</p>
           </div>
           <button type="button" className={cx(u.iconBtn, r.close)} aria-label={t('Cerrar')} onClick={onClose}>
             <X size={18} />
@@ -166,6 +173,8 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
                 <Card label={t('Coordinar')} big={pct(sum.planTokens, sum.tokens)} sub={t('de los tokens en planificar · {pct} en intentos fallidos', { pct: pct(sum.wastedTokens, sum.tokens) })} />
               </div>
 
+              <CostPanel sum={cost} from={from} now={now} showDays={period !== 'today'} />
+
               <section className={s.section} aria-labelledby="usage-quota">
                 <h3 id="usage-quota" className={s.h3}>
                   {t('Cuota de tus suscripciones gastada')}
@@ -201,26 +210,39 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
                     <thead>
                       <tr>
                         <th scope="col">{t('Agente')}</th>
+                        <th scope="col">{t('Cómo pagas')}</th>
                         <th scope="col">{t('Llamadas')}</th>
                         <th scope="col">{t('Entrada')}</th>
                         <th scope="col">{t('Salida')}</th>
                         <th scope="col">{t('De caché')}</th>
                         <th scope="col">{t('Tiempo')}</th>
                         <th scope="col">{t('Fallos')}</th>
+                        <th scope="col" title={t('Lo que valió a precios de API (≈: con tokens estimados)')}>
+                          {t('Coste API')}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {sum.byAgent.map((a) => (
-                        <tr key={a.key}>
-                          <th scope="row">{a.name}</th>
-                          <td>{a.calls}</td>
-                          <td>{a.noTokens ? '—' : compactTokens(a.input)}</td>
-                          <td>{a.noTokens ? '—' : compactTokens(a.output)}</td>
-                          <td>{a.noTokens ? '—' : compactTokens(a.cached)}</td>
-                          <td>{shortDuration(a.durationMs)}</td>
-                          <td className={a.failed ? s.bad : undefined}>{a.failed}</td>
-                        </tr>
-                      ))}
+                      {sum.byAgent.map((a) => {
+                        const ac = agentCost.get(a.key)
+                        return (
+                          <tr key={a.key}>
+                            <th scope="row">{a.name}</th>
+                            <td className={s.muted}>{ac?.mode ? MODE_LABEL[ac.mode] : t('Sin indicar')}</td>
+                            <td>{a.calls}</td>
+                            <td>{a.noTokens ? '—' : compactTokens(a.input)}</td>
+                            <td>{a.noTokens ? '—' : compactTokens(a.output)}</td>
+                            <td>{a.noTokens ? '—' : compactTokens(a.cached)}</td>
+                            <td>{shortDuration(a.durationMs)}</td>
+                            <td className={a.failed ? s.bad : undefined}>{a.failed}</td>
+                            <td>
+                              {!ac || (ac.apiUsd === 0 && ac.unpriced === ac.calls)
+                                ? '—'
+                                : `${ac.estimatedUsd > 0 && ac.estimatedUsd >= ac.apiUsd / 2 ? '≈' : ''}${money(ac.apiUsd)}`}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -232,7 +254,9 @@ export function UsageDialog({ onClose }: { onClose: () => void }) {
                   {t(': lo que te sirvió, lo que pasó la verificación a la primera y lo que falló.')}
                 </p>
                 {sum.noTokenCalls > 0 && (
-                  <p className={s.note}>{t('Hermes no informa sus tokens (pasa por OmniRoute): sus llamadas cuentan, pero sus tokens no.')}</p>
+                  <p className={s.note}>
+                    {t('Hermes no informa sus tokens (pasa por OmniRoute): sus llamadas cuentan, pero sus tokens no. Su coste (≈) se estima por la longitud del encargo y la respuesta, así que es un mínimo.')}
+                  </p>
                 )}
               </section>
 
@@ -269,6 +293,10 @@ function Card({ label, big, sub }: { label: string; big: string; sub: string }) 
 
 function RunItem({ run, now }: { run: UsageRun; now: number }) {
   const tokens = run.calls.reduce((n, c) => n + callTokens(c), 0)
+  const costs = useCowork((st) => st.config.costs)
+  const money = useMoney()
+  const callCosts = run.calls.map((c) => callCost(c, costs))
+  const runUsd = callCosts.reduce((n, c) => n + (c.usd ?? 0), 0)
   const deltas = quotaDeltas(run.quotaBefore, run.quotaAfter).filter((d) => d.delta > 0)
   return (
     <li>
@@ -281,6 +309,7 @@ function RunItem({ run, now }: { run: UsageRun; now: number }) {
           <span className={cx(s.status, s[`st_${run.status}`])}>{statusLabel(run.status)}</span>
           <span className={s.runNums}>
             {shortDuration(runDuration(run, now))} · {compactTokens(tokens)} {t('tokens')}
+            {runUsd > 0 && ` · ${money(runUsd)}`}
             {deltas.map((d) => ` · ${deltaText(d)}`).join('')}
           </span>
         </summary>
@@ -299,6 +328,7 @@ function RunItem({ run, now }: { run: UsageRun; now: number }) {
                 </th>
                 <th scope="col">{t('Tiempo')}</th>
                 <th scope="col">{t('Resultado')}</th>
+                <th scope="col">{t('Coste API')}</th>
               </tr>
             </thead>
             <tbody>
@@ -313,6 +343,7 @@ function RunItem({ run, now }: { run: UsageRun; now: number }) {
                   <td>{t('min')} {startMinute(run, c)}</td>
                   <td>{shortDuration(c.durationMs)}</td>
                   <td className={c.ok ? undefined : s.bad}>{c.ok ? t('Bien') : t('Falló')}</td>
+                  <td title={callCosts[i].source === 'real' ? t('Lo dijo el propio CLI') : undefined}>{costText(callCosts[i], money)}</td>
                 </tr>
               ))}
             </tbody>
