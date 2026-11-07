@@ -1556,6 +1556,7 @@ push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
 - La primera visita a la raíz lleva al idioma del navegador; elegir idioma en el menú se recuerda.
 - El vídeo de la web (`web/assets/video/presentacion.mp4`, 58 s, 1280×720, unos 4 MB) es la versión comprimida del vídeo de presentación de kywai hecho con HyperFrames; su portada es `portada.jpg`. Para cambiarlo, comprimir el vídeo nuevo a 720p con un tamaño parecido y ajustar `video.title` en `web/textos.mjs` si cambia la duración.
 - Las descargas se leen de la última Release de GitHub al abrir la página y enlazan el instalador del sistema de quien la visita. Si GitHub no responde, enlazan a la página de versiones.
+- La sección de apoyo tiene dos tarjetas de Ko-fi: «Una vez» lleva a https://ko-fi.com/yilsander (donación única; quien quiera puede marcar allí «Make this monthly») y «Cada mes» lleva a https://ko-fi.com/yilsander/tiers (membresías mensuales estilo Patreon). Para que la segunda funcione hay que tener activadas las Memberships en el panel de Ko-fi (Settings → Memberships) con al menos un nivel. Ko-fi cobra un 5 % en membresías sin Ko-fi Gold; las donaciones únicas no tienen comisión de Ko-fi.
 - El dominio kywai.app está en Hostinger con los registros de GitHub Pages (A y AAAA de GitHub, CNAME `www` → `yiku21.github.io`) y verificado en la cuenta. En el repo: Settings → Pages → Source «GitHub Actions», Custom domain `kywai.app` y «Enforce HTTPS».
 
 ### Licencia

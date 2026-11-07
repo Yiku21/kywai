@@ -200,9 +200,18 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .rename { margin-top: 28px; font-size: 14px; color: var(--muted); }
 
 /* Apoyo */
-.support { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 48px; align-items: center; }
+.support { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 28px 48px; align-items: start; }
 .support .section-head { margin-bottom: 0; }
+.support .section-head .btn { margin-top: 20px; justify-self: start; }
 .kofi { background: #ff5e5b; color: #fff; }
+.give { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.give article { display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); min-width: 0; }
+.give article.monthly { border-color: #ff5e5b; }
+.give .tag { justify-self: start; font: 600 12px/1 var(--body); letter-spacing: .04em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; background: var(--bg-2); color: var(--muted); }
+.give .monthly .tag { background: #ff5e5b; color: #fff; }
+.give h3 { margin: 0; }
+.give p { color: var(--muted); font-size: 15px; margin: 0; }
+.give .btn { justify-self: start; margin-top: 6px; }
 
 /* Pie */
 .foot { border-top: 1px solid var(--line); padding-block: 28px; font-size: 14px; color: var(--muted); }
@@ -224,7 +233,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   body { font-size: 16px; }
   .top .btn { display: none; }
   .mark { max-width: 140px; }
-  .steps, .why-grid { grid-template-columns: minmax(0, 1fr); }
+  .steps, .why-grid, .give { grid-template-columns: minmax(0, 1fr); }
   .themes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .team ul { gap: 4px; }
   .team li img { width: 44px; height: 44px; }
@@ -415,10 +424,21 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       <div class="section-head">
         <h2>{{support.title}}</h2>
         <p class="lede">{{support.body}}</p>
-      </div>
-      <div class="ctas">
-        <a class="btn kofi" href="https://ko-fi.com/yilsander" rel="noopener">☕ {{support.kofi}}</a>
         <a class="btn btn-ghost" href="https://github.com/Yiku21/ai-cowork" rel="noopener">★ {{support.star}}</a>
+      </div>
+      <div class="give">
+        <article>
+          <span class="tag">{{support.onceTag}}</span>
+          <h3>{{support.onceT}}</h3>
+          <p>{{support.once}}</p>
+          <a class="btn kofi" href="https://ko-fi.com/yilsander" rel="noopener">☕ {{support.kofi}}</a>
+        </article>
+        <article class="monthly">
+          <span class="tag">{{support.monthlyTag}}</span>
+          <h3>{{support.monthlyT}}</h3>
+          <p>{{support.monthly}}</p>
+          <a class="btn kofi" href="https://ko-fi.com/yilsander/tiers" rel="noopener">♥ {{support.member}}</a>
+        </article>
       </div>
     </div>
   </section>
