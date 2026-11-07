@@ -1,6 +1,6 @@
 import { generateKeyPairSync, sign } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
-import { releaseMessage, verifyRelease } from './clientRelease'
+import { isFeedFile, releaseMessage, verifyRelease } from './clientRelease'
 
 const pair = generateKeyPairSync('ed25519')
 const publicPem = pair.publicKey.export({ type: 'spki', format: 'pem' }).toString()
@@ -33,6 +33,14 @@ describe('firma de las actualizaciones del cliente', () => {
     expect(verifyRelease(release, sha, '')).toMatch(/no trae la clave/)
   })
   it('firma el texto interno de siempre, el que comprueban los clientes ya instalados', () => {
-    expect(releaseMessage('0.1.5', 'AI-Cowork-Setup-0.1.5.exe', 'x')).toBe('AI Cowork cliente\n0.1.5\nAI-Cowork-Setup-0.1.5.exe\nx')
+    expect(releaseMessage('0.1.5', 'kywai-Setup-0.1.5.exe', 'x')).toBe('AI Cowork cliente\n0.1.5\nkywai-Setup-0.1.5.exe\nx')
+  })
+
+  it('acepta el instalador con el nombre nuevo (kywai-Setup) y con el antiguo (AI-Cowork-Setup)', () => {
+    expect(isFeedFile('kywai-Setup-0.1.130.exe')).toBe(true)
+    expect(isFeedFile('AI-Cowork-Setup-0.1.130.exe')).toBe(true)
+    expect(isFeedFile('latest.yml')).toBe(true)
+    expect(isFeedFile('otro-Setup-0.1.130.exe')).toBe(false)
+    expect(isFeedFile('../kywai-Setup-0.1.130.exe')).toBe(false)
   })
 })

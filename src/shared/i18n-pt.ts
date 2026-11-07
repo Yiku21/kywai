@@ -1470,7 +1470,7 @@ export const pt: Record<string, string> = {
   "macOS pide permiso para {serviceLabel} en la pantalla del Mac": "O macOS está pedindo permissão para {serviceLabel} na tela do Mac",
   "Esperando a que aceptes en la pantalla del Mac el permiso de macOS para {label}": "Aguardando você aceitar a permissão do macOS para {label} na tela do Mac",
   "Un agente espera para entrar en {dir}": "Um agente está esperando para entrar em {dir}",
-  "macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → AI Cowork": "O macOS não deixa o kywai entrar em {label}: ative-o em Ajustes do Sistema → Privacidade e Segurança → Acesso Total ao Disco → AI Cowork",
+  "macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → kywai": "O macOS não deixa o kywai entrar em {label}: ative-o em Ajustes do Sistema → Privacidade e Segurança → Acesso Total ao Disco → kywai",
   "Antes de «{title}»": "Antes de «{title}»",
   "Copia para «{title}»": "Cópia para «{title}»",
   "Trabaja en una copia aparte de la carpeta: «{title}» la está usando. Al terminar, sus cambios se integran en la carpeta del proyecto.": "Trabalhando numa cópia à parte da pasta: «{title}» a está usando. Ao terminar, suas mudanças são integradas na pasta do projeto.",

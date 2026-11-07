@@ -1470,7 +1470,7 @@ export const zh: Record<string, string> = {
   "macOS pide permiso para {serviceLabel} en la pantalla del Mac": "macOS 正在 Mac 屏幕上请求 {serviceLabel} 的权限",
   "Esperando a que aceptes en la pantalla del Mac el permiso de macOS para {label}": "正在等待你在 Mac 屏幕上接受 {label} 的 macOS 权限",
   "Un agente espera para entrar en {dir}": "一个代理正在等待进入 {dir}",
-  "macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → AI Cowork": "macOS 不允许 kywai 进入 {label}：请在 系统设置 → 隐私与安全性 → 完全磁盘访问权限 → AI Cowork 中开启",
+  "macOS no deja a kywai entrar en {label}: actívalo en Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco → kywai": "macOS 不允许 kywai 进入 {label}：请在 系统设置 → 隐私与安全性 → 完全磁盘访问权限 → kywai 中开启",
   "Antes de «{title}»": "「{title}」之前",
   "Copia para «{title}»": "「{title}」的副本",
   "Trabaja en una copia aparte de la carpeta: «{title}» la está usando. Al terminar, sus cambios se integran en la carpeta del proyecto.": "在文件夹的单独副本中工作：「{title}」正在使用它。完成后，它的更改会合并到项目文件夹中。",
