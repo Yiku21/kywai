@@ -26,6 +26,7 @@ import { HermesModelDialog } from '@/ui/space/HermesModelDialog'
 import { Sidebar } from '@/ui/sidebar/Sidebar'
 import { SearchDialog } from '@/ui/sidebar/SearchDialog'
 import { followServerTheme, onThemeChosen, ownTheme, storedTheme, useUiTheme } from '@/lib/theme'
+import { HistoryDialog } from '@/ui/sidebar/HistoryDialog'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
 import { lang, t } from '@/lib/i18n'
@@ -108,6 +109,8 @@ export function App() {
   const qualityOpen = useCowork((st) => st.qualityOpen)
   const hermesModelOpen = useCowork((st) => st.hermesModelOpen)
   const searchOpen = useCowork((st) => st.searchOpen)
+  const searchSeed = useCowork((st) => st.searchSeed)
+  const historyOpen = useCowork((st) => st.historyOpen)
   const showSetup = useCowork((st) => !isWeb && st.hasBackend && st.configLoaded && (!st.config.setupDone || st.setupOpen))
   // Tema Órbita: el espacio 3D ocupa toda la ventana y la interfaz flota encima como cristal esmerilado.
   const glass = useUiTheme() === 'orbita'
@@ -191,7 +194,8 @@ export function App() {
         </section>
       </div>
       </div>
-      {searchOpen && <SearchDialog onClose={() => useCowork.setState({ searchOpen: false })} />}
+      {searchOpen && <SearchDialog initialQuery={searchSeed} onClose={() => useCowork.setState({ searchOpen: false, searchSeed: '' })} />}
+      {historyOpen && <HistoryDialog onClose={() => useCowork.setState({ historyOpen: false })} />}
       <ArtifactViewer />
       {showSetup && <SetupWizard />}
       {usageOpen && <UsageDialog onClose={() => useCowork.setState({ usageOpen: false })} />}
