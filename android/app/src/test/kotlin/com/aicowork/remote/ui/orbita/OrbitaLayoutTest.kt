@@ -65,10 +65,10 @@ class OrbitaLayoutTest {
     }
 
     @Test
-    fun unfoldedShowsRailWorldTeamAndAPanelThatExpandsAndCloses() {
+    fun unfoldedShowsSidebarWorldTeamAndAPanelThatExpandsAndCloses() {
         val controller = FakeController(SampleData.state())
         val model = show(controller)
-        compose.onNodeWithTag("rail").assertIsDisplayed()
+        compose.onNodeWithTag("sidebar").assertIsDisplayed()
         compose.onNodeWithTag("team-bar").assertIsDisplayed()
         compose.onNodeWithTag("nav-Tasks").performClick()
         compose.onNodeWithTag("panel").assertIsDisplayed()
@@ -101,18 +101,18 @@ class OrbitaLayoutTest {
         val model = show(controller, size = size)
         compose.onNodeWithTag("nav-Chat").performClick()
         compose.onNodeWithTag("composer").performTextInput("Borrador que no se pierde")
-        compose.onNodeWithTag("rail").assertIsDisplayed()
+        compose.onNodeWithTag("sidebar").assertIsDisplayed()
 
         size.value = folded
         compose.waitForIdle()
         compose.onNodeWithTag("bottom-nav").assertIsDisplayed()
-        compose.onAllNodesWithTag("rail").assertCountEquals(0)
+        compose.onAllNodesWithTag("sidebar").assertCountEquals(0)
         compose.onNodeWithTag("composer").assertTextContains("Borrador que no se pierde")
         assertEquals(Section.Chat, model.section)
 
         size.value = unfolded
         compose.waitForIdle()
-        compose.onNodeWithTag("rail").assertIsDisplayed()
+        compose.onNodeWithTag("sidebar").assertIsDisplayed()
         compose.onNodeWithTag("composer").assertTextContains("Borrador que no se pierde")
     }
 
@@ -194,7 +194,7 @@ class OrbitaLayoutTest {
     fun projectsResultsAndFilesComeFromTheComputer() {
         val controller = FakeController(SampleData.state())
         show(controller)
-        compose.onNodeWithTag("project-chip").performClick()
+        // Los proyectos están en la barra lateral: tocar uno lo abre.
         compose.onNodeWithText("Otro proyecto").performClick()
         compose.waitUntil(5_000) { "select:c2" in controller.calls }
 
@@ -205,6 +205,8 @@ class OrbitaLayoutTest {
         compose.onNodeWithText("Hola").assertIsDisplayed()
         compose.onNodeWithTag("viewer-close").performClick()
 
+        // Archivos está en «Más».
+        compose.onNodeWithTag("side-more").performClick()
         compose.onNodeWithTag("nav-Files").performClick()
         compose.onNodeWithText("brief.pdf").assertIsDisplayed()
         compose.onNodeWithText("Proyecto").performClick()

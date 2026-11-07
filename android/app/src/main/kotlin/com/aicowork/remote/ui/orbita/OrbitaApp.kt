@@ -169,8 +169,10 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
     val blur = model.worldAvailable && scene != null && model.preferences.effects != EffectsPreference.Soft && glassActive
     val glass = remember(blur) { GlassContext(model.world.glass, blur) }
 
-    BackHandler(enabled = model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.moreOpen || model.projectMenu || model.section != Section.World || model.selectedAgentId != null) {
+    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.moreOpen || model.projectMenu || model.section != Section.World || model.selectedAgentId != null) {
         when {
+            model.searchOpen -> model.searchOpen = false
+            model.drawerOpen -> model.drawerOpen = false
             model.viewer != null -> model.viewer = null
             model.traceTaskId != null -> model.traceTaskId = null
             model.hermesModelOpen -> model.hermesModelOpen = false
@@ -325,7 +327,9 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
         // Barra superior: proyecto, estado en vivo y quién trabaja.
         if (!full) Column(Modifier.align(Alignment.TopStart).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ProjectChip(state, model, Modifier.weight(1f, fill = false))
+                MenuButton(model)
+                Spacer(Modifier.width(8.dp))
+                ChatTitleChip(state, Modifier.weight(1f, fill = false))
                 Spacer(Modifier.weight(1f))
                 if (inboxSupported(state)) {
                     InboxButton(state, model)
@@ -389,6 +393,8 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
             ToastHost(model, Modifier.fillMaxWidth())
         }
     }
+    // La barra lateral como cajón, por encima de todo (☰ arriba a la izquierda).
+    SidebarDrawer(model, state)
 }
 
 // ---------------------------------------------------------------------------------------------- Desplegado
@@ -408,7 +414,8 @@ private fun WideLayout(
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsets.ime)).padding(12.dp)) {
         val gap = 12.dp
         val aspect = maxWidth / maxHeight
-        val free = maxWidth - RailWidth - gap
+        val side = if (model.sidebarOpen) SidebarWidth else 46.dp
+        val free = maxWidth - side - gap
         val sideWidth = (maxWidth * 0.42f).coerceIn(340.dp, 460.dp)
         // Sobre la mesa: arriba el mundo, abajo el panel a todo lo ancho (debajo de la bisagra).
         val hingeTopDp = tabletop?.let { with(density) { it.hingeTop.toDp() } }
@@ -416,7 +423,7 @@ private fun WideLayout(
 
         SideEffect {
             with(density) {
-                val left = (RailWidth + gap * 2).toPx()
+                val left = (side + gap * 2).toPx()
                 val right = if (panelOpen && tabletop == null) (panelWidth + gap * 2).toPx() else gap.toPx()
                 val bottom = if (tabletop != null) (constraints.maxHeight - hingeTopDp!!.toPx() + 60.dp.toPx()) else 120.dp.toPx()
                 model.world.insets = WorldInsets(left = left, top = 74.dp.toPx(), right = right, bottom = bottom)
@@ -424,23 +431,19 @@ private fun WideLayout(
             }
         }
 
-        Rail(model, badges, Modifier.align(Alignment.TopStart))
+        if (model.sidebarOpen) {
+            Sidebar(model, state, onCollapse = { model.sidebarOpen = false }, modifier = Modifier.align(Alignment.TopStart))
+        } else {
+            SidebarToggle(model, Modifier.align(Alignment.TopStart))
+        }
 
         // Barra superior sobre el mundo: marca, proyecto, estado en vivo (se adapta al hueco que deja el panel).
         val topEnd = if (panelOpen && tabletop == null) panelWidth + gap else 0.dp
-        val topWidth = maxWidth - RailWidth - gap - 8.dp - topEnd
-        Column(Modifier.align(Alignment.TopStart).padding(start = RailWidth + gap + 8.dp, end = topEnd).fillMaxWidth()) {
+        Column(Modifier.align(Alignment.TopStart).padding(start = side + gap, end = topEnd).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LogoMark(32.dp)
-                if (topWidth >= 560.dp) {
-                    Spacer(Modifier.width(10.dp))
-                    Text("kywai", color = Orbita.Text, style = MaterialTheme.typography.titleLarge, maxLines = 1)
-                }
-                Spacer(Modifier.width(12.dp))
-                ProjectChip(state, model, Modifier.weight(1f, fill = false))
-                Spacer(Modifier.width(8.dp))
-                LiveStatus(state, onRetry = model.controller::retryNow, glassy = false, compact = topWidth < 400.dp)
-                if (inboxSupported(state)) {
+                ChatTitleChip(state, Modifier.weight(1f, fill = false))
+                // Con la barra plegada, «Te necesita» sigue a mano arriba.
+                if (!model.sidebarOpen && inboxSupported(state)) {
                     Spacer(Modifier.width(8.dp))
                     InboxButton(state, model)
                 }
@@ -461,7 +464,7 @@ private fun WideLayout(
         val worldBottom = if (tabletop != null) with(density) { (constraints.maxHeight - tabletop.hingeTop).toDp() } else 0.dp
         if (snapshot != null && !(model.expanded && panelOpen && tabletop == null)) {
             Column(
-                Modifier.align(Alignment.BottomStart).padding(start = RailWidth + gap, end = worldEnd, bottom = worldBottom).fillMaxWidth(),
+                Modifier.align(Alignment.BottomStart).padding(start = side + gap, end = worldEnd, bottom = worldBottom).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 AnimatedVisibility(
@@ -481,13 +484,13 @@ private fun WideLayout(
         }
 
         Column(
-            Modifier.align(Alignment.TopStart).padding(start = RailWidth + gap * 2, top = 56.dp).widthIn(max = 420.dp),
+            Modifier.align(Alignment.TopStart).padding(start = side + gap * 2, top = 56.dp).widthIn(max = 420.dp),
         ) {
             AnimatedVisibility(model.projectMenu, enter = fadeIn() + scaleIn(initialScale = 0.96f), exit = fadeOut() + scaleOut(targetScale = 0.96f)) {
                 ProjectMenu(state, model)
             }
         }
-        ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = RailWidth + gap, end = if (panelOpen) panelWidth + gap else 0.dp).fillMaxWidth())
+        ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = side + gap, end = if (panelOpen) panelWidth + gap else 0.dp).fillMaxWidth())
     }
 }
 

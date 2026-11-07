@@ -4,6 +4,8 @@ import com.aicowork.remote.i18n.t
 
 import com.aicowork.remote.data.model.AppRelease
 import com.aicowork.remote.data.model.Artifact
+import com.aicowork.remote.data.model.ChatSummary
+import com.aicowork.remote.data.model.SearchHit
 import com.aicowork.remote.data.model.ChatMessage
 import com.aicowork.remote.data.model.CoworkJson
 import com.aicowork.remote.data.model.FilesResponse
@@ -158,6 +160,16 @@ interface CoworkController {
 
     /** Cambia el proyecto que se ve (y se recuerda). */
     suspend fun selectConversation(id: String): ActionResult = unsupported
+    /** Chats de un proyecto (el abierto y los guardados), como en la barra lateral del escritorio. */
+    suspend fun listChats(projectId: String): Result<List<ChatSummary>> = Result.failure(IllegalStateException(unsupported.message))
+    /** Chat nuevo en el proyecto abierto: el de ahora se guarda y queda uno vacío. */
+    suspend fun newChat(): ActionResult = unsupported
+    /** Vuelve a un chat guardado (de este proyecto o de otro, que pasa a ser el abierto). */
+    suspend fun openChat(projectId: String, chatId: String): ActionResult = unsupported
+    suspend fun renameChat(projectId: String, chatId: String, title: String): ActionResult = unsupported
+    suspend fun deleteChat(projectId: String, chatId: String): ActionResult = unsupported
+    /** «Buscar»: chats, tareas, resultados y memoria de todos los proyectos. */
+    suspend fun search(query: String): Result<List<SearchHit>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun createProject(name: String): ActionResult = unsupported
     suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun addMemory(kind: String, text: String): ActionResult = unsupported
@@ -652,6 +664,33 @@ class CoworkRepository(
         cache.clear()
         resync(c)
     }
+
+    override suspend fun listChats(projectId: String): Result<List<ChatSummary>> = fetch { it.chats(projectId) }
+
+    override suspend fun newChat(): ActionResult = action(t("Chat nuevo")) { c ->
+        c.newChat(needConversation())
+        resync(c)
+    }
+
+    override suspend fun openChat(projectId: String, chatId: String): ActionResult = action(t("Chat abierto")) { c ->
+        c.openChat(projectId, chatId)
+        if (projectId != currentConversation()) {
+            rememberConversation(projectId)
+            cache.clear()
+        }
+        resync(c)
+    }
+
+    override suspend fun renameChat(projectId: String, chatId: String, title: String): ActionResult = action(t("Chat renombrado")) { c ->
+        c.renameChat(projectId, chatId, title.trim())
+        if (projectId == currentConversation()) resync(c)
+    }
+
+    override suspend fun deleteChat(projectId: String, chatId: String): ActionResult = action(t("Chat borrado")) { c ->
+        c.deleteChat(projectId, chatId)
+    }
+
+    override suspend fun search(query: String): Result<List<SearchHit>> = fetch { it.search(query) }
 
     override suspend fun createProject(name: String): ActionResult = action(t("Proyecto creado")) { c ->
         val conversation = c.newConversation(name.trim())

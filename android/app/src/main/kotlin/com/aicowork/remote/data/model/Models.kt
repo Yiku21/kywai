@@ -65,7 +65,47 @@ data class Conversation(
     val folder: ProjectFolder? = null,
     /** Instrucciones del proyecto para todos los agentes. */
     val instructions: String? = null,
+    /** El chat abierto en el proyecto (los demás, con GET /chats). */
+    val chat: OpenChat? = null,
 )
+
+@Serializable
+data class OpenChat(val id: String, val title: String = "")
+
+/** Un chat de un proyecto (las conversaciones retomables de la barra lateral). */
+@Serializable
+data class ChatSummary(
+    val id: String,
+    val projectId: String = "",
+    val title: String = "",
+    @Serializable(with = FlexibleTimeSerializer::class) val createdAt: Long? = null,
+    @Serializable(with = FlexibleTimeSerializer::class) val updatedAt: Long? = null,
+    val messageCount: Int = 0,
+    val current: Boolean = false,
+    val pinned: Boolean = false,
+)
+
+@Serializable
+data class ChatsResponse(val chats: List<ChatSummary> = emptyList())
+
+/** Algo encontrado con «Buscar»: un chat, una tarea, un resultado o una entrada de memoria. */
+@Serializable
+data class SearchHit(
+    val kind: String,
+    val projectId: String,
+    val projectName: String = "",
+    val conversationId: String? = null,
+    val title: String = "",
+    val snippet: String = "",
+    @Serializable(with = FlexibleTimeSerializer::class) val at: Long? = null,
+    val ref: String? = null,
+)
+
+@Serializable
+data class SearchResponse(val hits: List<SearchHit> = emptyList())
+
+@Serializable
+data class ChatRenameRequest(val conversationId: String, val title: String)
 
 @Serializable
 data class ProjectSummary(
@@ -447,6 +487,10 @@ data class Capabilities(
     val directMessages: Boolean = false,
     /** Interruptor «Razonamiento (think)» del agente de LM Studio (POST /agents/{id}/thinking). */
     val agentThinking: Boolean = false,
+    /** Varios chats por proyecto (GET/POST /chats, /chats/{id}/open|rename|delete). */
+    val chats: Boolean = false,
+    /** Buscador de todos los proyectos (GET /search). */
+    val search: Boolean = false,
 )
 
 /** Botón de un aviso de la bandeja. Con [url] (p. ej. vnc://… para Compartir pantalla) se abre en el móvil y no va al servidor. */

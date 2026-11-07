@@ -27,6 +27,7 @@ import androidx.lifecycle.viewModelScope
 import com.aicowork.remote.data.ActionResult
 import com.aicowork.remote.data.CoworkController
 import com.aicowork.remote.data.LiveEvent
+import com.aicowork.remote.data.model.ChatSummary
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.InboxAction
 import com.aicowork.remote.data.model.InboxItem
@@ -119,6 +120,16 @@ class OrbitaModel(
 
     var section by mutableStateOf(Section.World)
         private set
+    /** Desplegado: la barra lateral a la vista (se pliega con su botón). */
+    var sidebarOpen by mutableStateOf(true)
+    /** Plegado: la barra lateral abierta como cajón por encima de todo. */
+    var drawerOpen by mutableStateOf(false)
+    /** «Buscar» de la barra lateral. */
+    var searchOpen by mutableStateOf(false)
+    /** Chats de cada proyecto ya pedidos al ordenador (se vuelven a pedir al abrir la barra o cambiar de chat). */
+    val chats = mutableStateMapOf<String, List<ChatSummary>>()
+    /** Proyecto desplegado en la barra lateral (por defecto, el abierto). */
+    var expandedProject by mutableStateOf<String?>(null)
     var expanded by mutableStateOf(false)
     var moreOpen by mutableStateOf(false)
     var projectMenu by mutableStateOf(false)
@@ -237,10 +248,63 @@ class OrbitaModel(
         open(Section.Tasks)
     }
 
+    // ------------------------------------------------------------------ Chats (barra lateral)
+
+    fun chatsSupported(): Boolean = snapshot()?.capabilities?.chats == true
+
+    fun loadChats(projectId: String) {
+        if (!chatsSupported()) return
+        viewModelScope.launch { controller.listChats(projectId).onSuccess { chats[projectId] = it } }
+    }
+
+    /** Chat nuevo en el proyecto abierto; sin chats en el ordenador (versión anterior), limpia la conversación. */
+    fun newChat() {
+        drawerOpen = false
+        run({ if (chatsSupported()) controller.newChat() else controller.newConversation() }) { r ->
+            if (r.ok) {
+                open(Section.Chat)
+                snapshot()?.conversation?.id?.let(::loadChats)
+            }
+        }
+    }
+
+    fun openChat(projectId: String, chatId: String) {
+        val s = snapshot()
+        if (s?.conversation?.id == projectId && s.conversation.chat?.id == chatId) {
+            drawerOpen = false
+            open(Section.Chat)
+            return
+        }
+        run({ controller.openChat(projectId, chatId) }) { r ->
+            if (r.ok) {
+                drawerOpen = false
+                open(Section.Chat)
+                loadChats(projectId)
+            }
+        }
+    }
+
+    fun renameChat(projectId: String, chatId: String, title: String) {
+        run({ controller.renameChat(projectId, chatId, title) }) { if (it.ok) loadChats(projectId) }
+    }
+
+    fun deleteChat(projectId: String, chatId: String) {
+        run({ controller.deleteChat(projectId, chatId) }) { if (it.ok) loadChats(projectId) }
+    }
+
+    /** Abre un proyecto desde la barra lateral (su chat abierto). */
+    fun openProject(projectId: String) {
+        expandedProject = projectId
+        loadChats(projectId)
+        if (snapshot()?.conversation?.id == projectId) return
+        run({ controller.selectConversation(projectId) })
+    }
+
     // ------------------------------------------------------------------ Bandeja «Te necesita»
 
     fun openInbox() {
         moreOpen = false
+        drawerOpen = false
         projectMenu = false
         inboxOpen = true
         onInboxVisible(true)

@@ -140,7 +140,7 @@ class PlanAndFoldedChatTest {
         compose.waitForIdle()
         assertTrue(prefs.preferences.value.foldedFullPanels)
         compose.onAllNodesWithTag("bottom-nav").assertCountEquals(0)
-        compose.onAllNodesWithTag("project-chip").assertCountEquals(0)
+        compose.onAllNodesWithTag("chat-title").assertCountEquals(0)
         val full = compose.onNodeWithTag("panel").fetchSemanticsNode().boundsInRoot.height
         assertTrue("pantalla completa ($full de $screen)", full > screen * 0.9f)
 
