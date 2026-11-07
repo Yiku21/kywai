@@ -2018,5 +2018,8 @@ export const en: Record<string, string> = {
   'Escribe ahora tu respuesta.': 'Now write your answer.',
   'El modelo no escribió ninguna respuesta; esto es lo que razonó:': 'The model did not write an answer; this is what it reasoned:',
   'El modelo local terminó sin escribir ninguna respuesta (ni texto ni razonamiento).': 'The local model finished without writing any answer (no text and no reasoning).',
-  '{name} no escribió ninguna respuesta.': '{name} did not write any answer.'
+  '{name} no escribió ninguna respuesta.': '{name} did not write any answer.',
+  'Razonamiento (think)': 'Reasoning (think)',
+  'Encendido: piensa antes de responder (más lento, para lo que necesita mucha información).': 'On: thinks before answering (slower, for things that need a lot of information).',
+  'Apagado: responde directamente, más rápido.': 'Off: answers directly, faster.'
 }

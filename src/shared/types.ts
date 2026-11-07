@@ -111,6 +111,11 @@ export interface AgentConfig {
   modelProvider?: string
   /** Cómo se lanza (solo en los agentes de catálogo, con proveedor 'cli'). */
   cli?: CliAgentSpec
+  /**
+   * Solo el agente de LM Studio: razonamiento («think») del modelo. Sin indicar o false, apagado (responde antes);
+   * se enciende desde su tarjeta para lo que necesite pensar más.
+   */
+  thinking?: boolean
   /** Solo en sub-agentes creados en tiempo de ejecución. */
   isSubagent?: boolean
   parentId?: AgentId
@@ -1153,6 +1158,8 @@ export interface CoworkApi {
   actInbox(id: string, actionId: string): Promise<{ item: InboxItem; message?: string }>
   /** «Reiniciar agente» tras un fallo: olvida su bloqueo, comprueba que responde y lo deja disponible. */
   resetAgent(agentId: string): Promise<AgentRuntime>
+  /** Enciende o apaga el razonamiento («think») del modelo local de LM Studio. */
+  setAgentThinking(agentId: AgentId, enabled: boolean): Promise<void>
   /**
    * Quita de ~/.claude/settings.json lo que desvía Claude Code a otro servidor (con copia antes), para que use
    * directamente tu cuenta de Claude y pueda dar la cuota. Devuelve un mensaje con lo hecho y lo que falta.

@@ -90,6 +90,8 @@ export interface MobileSnapshot {
     routines: boolean
     /** «@Agente …» o «/directo Agente …» en el chat: el texto va tal cual a ese agente, sin pasar por Hermes. */
     directMessages: boolean
+    /** Razonamiento del modelo local: POST /agents/{agentId}/thinking. */
+    agentThinking: boolean
   }
 }
 

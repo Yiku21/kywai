@@ -78,6 +78,21 @@ describe('mensaje directo a LM Studio', () => {
     expect(await run()).toMatchObject({ ok: false, errorMessage: expect.stringMatching(/terminó sin escribir ninguna respuesta/) })
   })
 
+  it('razonamiento apagado salvo que se encienda en la tarjeta del agente', async () => {
+    const got = await fakeLmStudio([{ role: 'assistant', content: 'Hola.' }, { role: 'assistant', content: 'Hola.' }])
+    await run()
+    expect(got[0]).toMatchObject({ chat_template_kwargs: { enable_thinking: false }, enable_thinking: false })
+    await runLmStudio({ agent: { ...agent, thinking: true }, model: 'qwen', prompt: 'hola', cwd: process.cwd(), mode: 'work', signal: new AbortController().signal, direct: true })
+    expect(got[1]).toMatchObject({ chat_template_kwargs: { enable_thinking: true }, enable_thinking: true })
+  })
+
+  it('preparar el modelo y leer la tarea no cuentan como herramientas', async () => {
+    await fakeLmStudio([{ role: 'assistant', content: 'Hola.' }])
+    const kinds: string[] = []
+    await runLmStudio({ agent, model: 'qwen', prompt: 'hola', cwd: process.cwd(), mode: 'work', signal: new AbortController().signal, direct: true, onActivity: (_t, k) => kinds.push(k) })
+    expect(kinds).not.toContain('tool')
+  })
+
   it('una tarea normal sigue con su mensaje de sistema y sus herramientas', async () => {
     const got = await fakeLmStudio([{ role: 'assistant', content: 'Hecho.' }])
     expect(await run(false)).toMatchObject({ ok: true, text: 'Hecho.' })

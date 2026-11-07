@@ -296,6 +296,8 @@ data class Agent(
     val enabled: Boolean = true,
     val isSubagent: Boolean = false,
     val context: ContextUsage? = null,
+    /** Solo el agente de LM Studio: razonamiento («think») del modelo local encendido. */
+    val thinking: Boolean = false,
 )
 
 /** Cambio parcial del estado de un agente (evento `agent.runtime`). */
@@ -443,6 +445,8 @@ data class Capabilities(
     val taskChanges: Boolean = false,
     /** «@Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes. */
     val directMessages: Boolean = false,
+    /** Interruptor «Razonamiento (think)» del agente de LM Studio (POST /agents/{id}/thinking). */
+    val agentThinking: Boolean = false,
 )
 
 /** Botón de un aviso de la bandeja. Con [url] (p. ej. vnc://… para Compartir pantalla) se abre en el móvil y no va al servidor. */
@@ -507,6 +511,10 @@ data class ServerUpdateRequest(val setAside: Boolean)
 /** Estado de un agente tras reiniciarlo (POST /agents/{agentId}/reset). */
 @Serializable
 data class AgentResetResponse(val agentId: String, val activity: String = "idle", val reason: String? = null)
+
+/** Respuesta de POST /agents/{id}/thinking. */
+@Serializable
+data class AgentThinkingResponse(val agentId: String, val thinking: Boolean = false)
 
 /** El modelo de Hermes y los de cada proveedor con el que tiene sesión (GET /hermes/models, «/model»). */
 @Serializable

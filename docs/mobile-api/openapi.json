@@ -1901,6 +1901,82 @@
         "description": "Lo mismo que «Reiniciar agente» en su panel del escritorio: olvida su bloqueo (cuota, sesión, error de la API) y los modelos que se le dieron por rotos, comprueba que su CLI responde (sin llamadas de pago) y lo deja disponible; lo que esperaba por él puede empezar. 404 AGENT_NOT_FOUND si no existe. Emite agent.runtime."
       }
     },
+    "/api/mobile/v1/agents/{agentId}/thinking": {
+      "post": {
+        "operationId": "setAgentThinking",
+        "summary": "Encender o apagar el razonamiento del modelo local",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cómo queda.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentThinkingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Lo mismo que el interruptor «Razonamiento (think)» de la tarjeta del agente de LM Studio en el escritorio. 404 AGENT_NOT_FOUND si no existe; 400 INVALID_INPUT si no es el agente de LM Studio. Emite config.updated."
+      }
+    },
     "/api/mobile/v1/device": {
       "get": {
         "operationId": "getCurrentDevice",
@@ -3132,6 +3208,10 @@
           },
           "context": {
             "$ref": "#/components/schemas/Context"
+          },
+          "thinking": {
+            "type": "boolean",
+            "description": "Solo el agente de LM Studio: razonamiento («think») encendido. Sin indicar, apagado."
           }
         },
         "required": [
@@ -3812,6 +3892,10 @@
           "directMessages": {
             "type": "boolean",
             "description": "«@Agente …» o «/directo Agente …» en el chat: el texto va tal cual a ese agente, sin pasar por Hermes."
+          },
+          "agentThinking": {
+            "type": "boolean",
+            "description": "Razonamiento del modelo local: POST /agents/{agentId}/thinking."
           }
         },
         "required": [
@@ -3848,7 +3932,8 @@
           "inbox",
           "taskChanges",
           "routines",
-          "directMessages"
+          "directMessages",
+          "agentThinking"
         ],
         "additionalProperties": false
       },
@@ -5917,6 +6002,22 @@
         },
         "required": [
           "run"
+        ],
+        "additionalProperties": false
+      },
+      "AgentThinkingResponse": {
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "thinking": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "agentId",
+          "thinking"
         ],
         "additionalProperties": false
       }

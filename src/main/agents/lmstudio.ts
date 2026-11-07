@@ -207,13 +207,24 @@ export function postJson(url: string, body: string, signal: AbortSignal): Promis
   })
 }
 
+/**
+ * Razonamiento («think») apagado salvo que se encienda en la tarjeta del agente: se pide a la plantilla del modelo
+ * (Qwen y similares) con enable_thinking. Si el LM Studio instalado no lo aplica, el modelo razona igual y la
+ * respuesta sigue saliendo (el razonamiento va aparte).
+ */
+export function thinkingFields(agent: { thinking?: boolean }): Record<string, unknown> {
+  const on = agent.thinking === true
+  return { chat_template_kwargs: { enable_thinking: on }, enable_thinking: on }
+}
+
 export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult> {
   const usage: TokenUsage = { input: 0, output: 0 }
   const model = opts.model
   if (!model) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr('No hay un modelo local configurado') }
   // Si alguien apagó el servidor desde la última comprobación, se enciende antes de empezar.
   if (!(await ensureLmsServer())) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr(LMSTUDIO_OFFLINE) }
-  await ensureContext(model, (t) => opts.onActivity?.(t, 'tool'))
+  // Avisos de la app, no herramientas del modelo (si no, la tarea diría «Usó una herramienta»).
+  await ensureContext(model, (t) => opts.onActivity?.(t, 'text'))
   if (opts.signal.aborted) return { ok: false, text: '', usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
 
   const ctx: ToolContext = {
@@ -236,7 +247,7 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     ...(opts.direct ? [] : [{ role: 'system' as const, content: SYSTEM_PROMPT }]),
     { role: 'user', content: opts.prompt }
   ]
-  opts.onActivity?.(tr('Leyendo la tarea'), 'tool')
+  opts.onActivity?.(tr('Leyendo la tarea'), 'text')
 
   for (let step = 0; step < MAX_STEPS; step++) {
     prune(messages)
@@ -244,7 +255,7 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     try {
       res = await postJson(
         `${LMSTUDIO_URL}/v1/chat/completions`,
-        JSON.stringify({ model, messages, ...(tools.length ? { tools, tool_choice: 'auto' } : {}), temperature: opts.direct ? 0.7 : 0.3, stream: false }),
+        JSON.stringify({ model, messages, ...(tools.length ? { tools, tool_choice: 'auto' } : {}), ...thinkingFields(opts.agent), temperature: opts.direct ? 0.7 : 0.3, stream: false }),
         opts.signal
       )
     } catch (e) {

@@ -74,6 +74,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -823,13 +826,14 @@ private fun updateText(s: UpdateState): String = when (s) {
 private fun megabytes(bytes: Long): String = String.format(com.aicowork.remote.i18n.I18n.locale, "%.1f MB", bytes / 1_048_576.0)
 
 @Composable
-private fun ToggleRow(title: String, subtitle: String?, checked: Boolean, tag: String, onChange: (Boolean) -> Unit) {
+internal fun ToggleRow(title: String, subtitle: String?, checked: Boolean, tag: String, onChange: (Boolean) -> Unit) {
     val feedback = LocalFeedback.current
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .tappable(role = Role.Switch, haptic = Haptic.None) { feedback.select(); onChange(!checked) }
+            .semantics { toggleableState = ToggleableState(checked) }
             .padding(horizontal = 14.dp, vertical = 8.dp)
             .testTag(tag),
         verticalAlignment = Alignment.CenterVertically,

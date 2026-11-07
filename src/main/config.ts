@@ -100,6 +100,7 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
       role: typeof a.role === 'string' ? a.role : '',
       enabled: a.enabled !== false,
       modelProvider: typeof a.modelProvider === 'string' && /^[\w.\-:]+$/.test(a.modelProvider) ? a.modelProvider : undefined,
+      thinking: a.provider === 'lmstudio' && a.thinking === true ? true : undefined,
       isSubagent: undefined,
       parentId: undefined
     }))
@@ -392,6 +393,17 @@ export function setQuotaUnlimited(groupId: string, unlimited: boolean): void {
 const MODEL_ID_RE = /^[\w.:\-/@]*$/
 
 /** Cambia los modelos de un agente para tareas fáciles, normales y difíciles. */
+/** Razonamiento («think») del modelo local de LM Studio: apagado por defecto para que responda antes. */
+export function setAgentThinking(agentId: unknown, enabled: unknown): void {
+  const a = getConfig().agents.find((x) => x.id === agentId)
+  if (!a) throw new Error('Agente desconocido')
+  if (a.provider !== 'lmstudio') throw new Error('El razonamiento solo se cambia en el agente de LM Studio')
+  if (typeof enabled !== 'boolean') throw new Error('Datos no válidos')
+  if (enabled) a.thinking = true
+  else delete a.thinking
+  saveConfig()
+}
+
 export function setAgentModels(input: SetAgentModelsInput): void {
   const a = getConfig().agents.find((x) => x.id === input.agentId)
   if (!a) throw new Error('Agente desconocido')

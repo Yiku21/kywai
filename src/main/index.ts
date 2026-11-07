@@ -11,6 +11,7 @@ import {
   loadConfig,
   setAgentAccess,
   setAgentModels,
+  setAgentThinking,
   setHermesModel,
   setPlanApproval,
   setLanguage,
@@ -458,6 +459,10 @@ function registerIpc(): void {
   handle('resetAgent', (id: unknown) => {
     if (typeof id !== 'string') throw new Error(tr('Agente no válido'))
     return resetAgent(id)
+  })
+  handle('setAgentThinking', (id: unknown, enabled: unknown) => {
+    setAgentThinking(id, enabled)
+    emit({ kind: 'config.updated', config: getConfig() })
   })
   // Memoria e instrucciones del proyecto (lo que escribe el usuario queda confirmado).
   const projectArg = (projectId: unknown): string => {

@@ -186,6 +186,8 @@ interface CoworkController {
     suspend fun hermesModels(): Result<HermesModelsInfo> = Result.failure(IllegalStateException(unsupported.message))
     /** «Reiniciar agente» tras un fallo. */
     suspend fun resetAgent(agentId: String): ActionResult = unsupported
+    /** Razonamiento («think») del agente de LM Studio: encendido o apagado. */
+    suspend fun setAgentThinking(agentId: String, enabled: Boolean): ActionResult = unsupported
     /** Cambia el modelo de Hermes (null: el de su configuración). */
     suspend fun setHermesModel(choice: HermesChoice?): Result<HermesModelsInfo> = Result.failure(IllegalStateException(unsupported.message))
     /** Ajustes → «Servidor»: si tiene versión nueva en GitHub. */
@@ -787,6 +789,9 @@ class CoworkRepository(
             ActionResult(false, e.message)
         }
     }
+
+    override suspend fun setAgentThinking(agentId: String, enabled: Boolean): ActionResult =
+        action(if (enabled) t("Razonamiento encendido: piensa antes de responder") else t("Razonamiento apagado: responde directamente")) { it.setAgentThinking(agentId, enabled) }
 
     override suspend fun setHermesModel(choice: HermesChoice?): Result<HermesModelsInfo> = fetch { it.setHermesModel(choice) }
 

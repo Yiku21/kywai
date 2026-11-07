@@ -13,7 +13,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { MobileChatReceipt, MobileEventEnvelope, MobileFolderFile, MobileSnapshot } from '@shared/mobile'
 import type { Attachment, ChatMessage, UpdateStatus } from '@shared/types'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
-import { getConfig, loadConfig, setAgentAccess, setPlanApproval } from './config'
+import { getConfig, loadConfig, setAgentAccess, setAgentThinking, setPlanApproval } from './config'
 import { emit, setRuntime } from './events'
 import { addMemory, deleteMemory, setInstructions, updateMemory } from './memory'
 import { MAX_FILE_BYTES, __setFileLimitsForChecks } from './mobileFiles'
@@ -206,6 +206,10 @@ beforeAll(() => {
   // Igual que index.ts.
   webMethods.set('mobileRunningProjects', () => store.listProjects().filter((p) => activeRunsFor(p.id).length).map((p) => p.id))
   webMethods.set('resetAgent', (id) => resetAgent(id as string))
+  webMethods.set('setAgentThinking', (id, enabled) => {
+    setAgentThinking(id, enabled)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
   webMethods.set('addMemory', (id, input) => addMemory(id as string, input as Parameters<typeof addMemory>[1], { status: 'confirmed', by: 'user', byName: 'Tú' }))
   webMethods.set('updateMemory', (id, memoryId, patch) => updateMemory(id as string, memoryId as string, patch as Parameters<typeof updateMemory>[2]))
   webMethods.set('deleteMemory', (id, memoryId) => deleteMemory(id as string, memoryId as string))
@@ -1481,6 +1485,25 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect((await api('/agents/nadie/reset', {})).body.code).toBe('AGENT_NOT_FOUND')
     expect((await api('/agents/codex/reset', { force: true })).status).toBe(400)
     expect((await api('/agents/codex/reset')).status).toBe(405)
+  })
+
+  it('razonamiento del modelo local desde el móvil: solo en el agente de LM Studio', async () => {
+    expect((await api('/snapshot')).body.capabilities.agentThinking).toBe(true)
+    const local = getConfig().agents.find((a) => a.id === 'codex')!
+    const before = local.provider
+    local.provider = 'lmstudio'
+    try {
+      expect(await api('/agents/codex/thinking', { enabled: true })).toEqual({ status: 200, body: { agentId: 'codex', thinking: true } })
+      expect(getConfig().agents.find((a) => a.id === 'codex')?.thinking).toBe(true)
+      expect((await api('/snapshot')).body.agents.find((a: { id: string }) => a.id === 'codex').thinking).toBe(true)
+      expect(await api('/agents/codex/thinking', { enabled: false })).toEqual({ status: 200, body: { agentId: 'codex', thinking: false } })
+      expect(getConfig().agents.find((a) => a.id === 'codex')?.thinking).toBeUndefined()
+      expect((await api('/agents/codex/thinking', { enabled: 'sí' })).status).toBe(400)
+    } finally {
+      local.provider = before
+    }
+    expect((await api('/agents/codex/thinking', { enabled: true })).body.code).toBe('INVALID_INPUT')
+    expect((await api('/agents/nadie/thinking', { enabled: true })).body.code).toBe('AGENT_NOT_FOUND')
   })
 
   it('rutinas desde el móvil: las ve sin el secreto del webhook y las lanza («Ejecutar ahora»), sin duplicar', async () => {

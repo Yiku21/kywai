@@ -661,4 +661,9 @@ private fun part5(m: HashMap<String, String>) {
     m["Nuevas"] = "Nova"
     m["Directo, sin pasar por Hermes: recibe tu texto tal cual"] = "Direto, sem passar pelo Hermes: recebe o seu texto tal como está"
     m["Tú → {name} (directo, sin Hermes)"] = "Você → {name} (direto, sem Hermes)"
+    m["Razonamiento (think)"] = "Raciocínio (think)"
+    m["Encendido: piensa antes de responder (más lento, para lo que necesita mucha información)."] = "Ligado: pensa antes de responder (mais lento, para o que precisa de muita informação)."
+    m["Apagado: responde directamente, más rápido."] = "Desligado: responde diretamente, mais rápido."
+    m["Razonamiento encendido: piensa antes de responder"] = "Raciocínio ligado: pensa antes de responder"
+    m["Razonamiento apagado: responde directamente"] = "Raciocínio desligado: responde diretamente"
 }

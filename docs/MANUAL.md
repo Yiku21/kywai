@@ -29,6 +29,7 @@ Todo lo que hace AI Cowork, en detalle. Para una presentación rápida, ver el [
   - [Reanudar lo interrumpido](#reanudar-lo-interrumpido)
   - [Reiniciar un agente que falla](#reiniciar-un-agente-que-falla)
   - [Hablar directamente con un agente (@Agente)](#hablar-directamente-con-un-agente-agente)
+  - [Razonamiento (think) del modelo local](#razonamiento-think-del-modelo-local)
   - [El modelo de Hermes (/model)](#el-modelo-de-hermes-model)
   - [Muse (Meta)](#muse-meta)
 - **[Proyectos, memoria y consumo](#proyectos-memoria-y-consumo)**
@@ -834,6 +835,28 @@ trabaja en la carpeta del proyecto con el mismo permiso de siempre (⋮ → «Ac
 Para desarrolladores: las reglas están en `src/shared/directMessage.ts` (y su copia en Órbita,
 `android/.../ui/orbita/DirectMention.kt`); el motor las aplica en `sendDirect` de `src/main/orchestrator.ts`
 (la tarea lleva `direct: true`). La API móvil lo anuncia con `capabilities.directMessages`.
+
+### Razonamiento (think) del modelo local
+
+Los modelos que «piensan» (Qwen 3, Qwen 3.5…) escriben un razonamiento largo antes de responder, y eso hace que
+tarden bastante más. Por eso el agente de LM Studio va **con el razonamiento apagado** y responde directamente.
+Cuando quieras que piense (algo que necesita mucha información o pasos), pulsa su robot en el espacio (o su
+tarjeta en el Equipo de Órbita) y enciende **«Razonamiento (think)»**; apágalo igual. Se guarda en la
+configuración y vale para todo lo que le mandes después, tanto con `@Agente` como en tareas normales.
+
+- **Cómo se aplica**: AI Cowork manda a LM Studio `enable_thinking` (en `chat_template_kwargs` y suelto) con el
+  valor del interruptor. Funciona con los modelos cuya plantilla lo admite (la de Qwen sí). Si con el interruptor
+  apagado el modelo sigue pensando, tu versión de LM Studio o la plantilla de ese modelo lo ignoran: en LM Studio,
+  en los ajustes del modelo, apaga «Enable Thinking» (o «Reasoning») si aparece, o pon `/no_think` al principio
+  del mensaje con los modelos Qwen 3.
+- **«Usó una herramienta» que no era tal**: «Preparando el modelo local» y «Leyendo la tarea» salían en la
+  tarjeta como si el agente hubiera usado una herramienta. Eran pasos de AI Cowork: ahora salen como texto
+  normal. En un mensaje directo el modelo local no tiene herramientas.
+
+Para desarrolladores: el ajuste es `thinking` del agente (solo `provider: 'lmstudio'`; sin indicar, apagado),
+se cambia con `setAgentThinking` (IPC y web) o `POST /api/mobile/v1/agents/{agentId}/thinking` con
+`{"enabled": true|false}`, y la API móvil lo anuncia con `capabilities.agentThinking`. Lo manda
+`thinkingFields` en `src/main/agents/lmstudio.ts`.
 
 ### El modelo de Hermes (`/model`)
 
