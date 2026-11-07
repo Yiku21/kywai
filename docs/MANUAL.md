@@ -62,6 +62,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Extensiones: catálogo de servidores MCP y de habilidades](#extensiones-catálogo-de-servidores-mcp-y-de-habilidades)
   - [Extensiones: plugins](#extensiones-plugins)
   - [Extensiones: mods](#extensiones-mods)
+  - [Plantillas de tareas: lo que repites, con un toque](#plantillas-de-tareas-lo-que-repites-con-un-toque)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
@@ -1294,6 +1295,51 @@ botón que pide un resumen, y un hook): en la pestaña Mods, «Prueba con el de 
 descarga como los plugins) o la ruta de una carpeta del equipo donde corre kywai (para probar uno que estás
 haciendo; vuelve a instalarlo tras cambiarlo). Se guarda en `mods/<nombre>` de la carpeta de datos. «Apagar» lo deja
 instalado sin órdenes, hooks ni paneles; la papelera lo borra.
+
+### Plantillas de tareas: lo que repites, con un toque
+
+Encima del cuadro del chat hay una fila de botones con las peticiones que repites a menudo. Un toque la envía al
+equipo como si la escribieras. Está en el escritorio, en el navegador (también el del móvil) y en Órbita, y todos ven
+las mismas porque las guarda el servidor (`templates.json` en la carpeta de datos de kywai).
+
+- **Huecos**: si el texto lleva algo entre llaves, como `{pr}` o `{carpeta}`, al tocarla se abre un cuadrito para
+  rellenarlo (con una vista previa del texto) y luego se envía. Sin huecos se envía al momento. Un hueco empieza por
+  una letra y lleva letras, cifras, `_` o `-`; como mucho 6 por plantilla. `{"a": 1}` o `{ b }` no son huecos.
+- **Con una orden**: cada plantilla tiene su orden, `/revisar-pr 42`. Al escribir `/` sale la lista de las que
+  encajan. Lo que va detrás rellena el hueco; con varios huecos, separados por `|` en orden
+  (`/traducir hola | francés`); sin huecos, va al final del texto. En el chat se ve lo que escribiste y al equipo le
+  llega el texto de la plantilla. También vale en las rutinas: una rutina cuya petición sea `/revisar-pr 42` la lanza.
+- **Los archivos** que tengas preparados en el cuadro van con la plantilla; lo que hubieras escrito se queda.
+- En el chat, el mensaje dice con qué plantilla se lanzó («Tú · plantilla «Revisar PR»»).
+
+**Crear y cambiar.** «+» al final de la fila crea una: emoji, nombre del botón, lo que se envía, la orden (si la dejas
+vacía sale del nombre: «Revisar PR» → `/revisar-pr`, y lo sigue si le cambias el nombre), dónde sale (en todos los
+proyectos o solo en el abierto) y quién la hace:
+
+- **Hermes reparte el trabajo** (lo normal): pasa por el plan, los agentes y la verificación.
+- **Directo a un agente**: como `@Agente …`, va tal cual a ese agente sin pasar por Hermes. Si quitas ese agente del
+  equipo, la plantilla avisa al lanzarla para que elijas otro.
+- **Pedir mi visto bueno al plan**: el coordinador enseña el plan y espera, aunque en Ajustes esté apagado (solo
+  para esa plantilla). Sin efecto si va directa a un agente.
+
+Clic derecho en una plantilla (o mantenerla pulsada en el móvil): **Editar**, **Fijar al principio** (las fijadas van
+primero, con el borde de color), **Convertir en rutina** (deja `/rutina cada día a las 9:00: <su texto>` en el
+cuadro para que cambies el horario y lo envíes; solo en las que no tienen huecos ni van directas a un agente) y
+**Borrar** (hay que pulsarlo dos veces). Al eliminar un proyecto se borran sus plantillas.
+
+**Las de serie**: Revisar PR, Resumir carpeta, Buscar fallos, Escribir pruebas, Actualizar dependencias y Explicar
+código. Mientras no las cambies, su nombre, su orden y su texto siguen el idioma de la app (en inglés, `/review-pr`).
+Si las borras no vuelven solas; «Volver a poner las de serie» (en la ventana de crear o editar) pone las que falten.
+
+**Límites**: 100 plantillas, 60 caracteres el nombre, 8 000 el texto; la orden, de 1 a 30 letras sin acentos, cifras
+o guiones, empezando por letra, y no puede ser una de kywai (`/rutina`, `/directo`, `/model`, `/new`, `/usage`,
+`/recuerda`…) ni repetir la de otra plantilla del mismo sitio (una general y una de proyecto sí pueden coincidir: en
+ese proyecto gana la suya). Una plantilla gana a la orden de un mod con el mismo nombre.
+
+**Órbita / API móvil**: el snapshot trae `templates` (todas, con su `projectId` si son de un proyecto) y la capacidad
+`templates`; `GET/POST /templates`, `POST /templates/{id}` (cambiar), `POST /templates/{id}/delete` y
+`POST /templates/restore`. Para lanzar una con un toque, `POST /chat/messages` con el texto ya relleno y `templateId`.
+Los cambios llegan con el evento `templates.updated`.
 
 ### Rutinas: peticiones que se lanzan solas
 
