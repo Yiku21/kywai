@@ -40,6 +40,8 @@ export interface McpServerInfo {
   /** A qué agentes llega. */
   agents: McpAgentKind[]
   test?: McpTestResult
+  /** El plugin que lo trajo, si vino con uno. */
+  plugin?: string
 }
 
 /** Lo que se manda al añadir o cambiar un servidor. Un valor secreto vacío deja el que estaba guardado. */
@@ -52,6 +54,8 @@ export interface McpServerInput {
   url?: string
   env?: Record<string, string>
   headers?: Record<string, string>
+  /** Solo al instalarlo un plugin: su nombre. */
+  plugin?: string
 }
 
 export const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
@@ -264,4 +268,44 @@ export interface SkillCatalogItem {
 export interface SkillInfo {
   name: string
   description: string
+}
+
+/** De dónde se descarga un plugin: una carpeta de un repositorio de GitHub. */
+export interface PluginSource {
+  repo: string
+  ref: string
+  /** Carpeta del plugin dentro del repositorio ('' = la raíz). */
+  path: string
+}
+
+/** Un plugin de un catálogo (marketplace de plugins de Claude Code). */
+export interface PluginCatalogItem {
+  name: string
+  title: string
+  description: string
+  category?: string
+  author?: string
+  homepage?: string
+  /** El catálogo del que sale (dueño/repositorio). */
+  marketplace: string
+  /** Catálogo oficial de Anthropic o uno conocido. */
+  verified: boolean
+  /** null si no se puede descargar desde aquí (no está en GitHub…). */
+  source: PluginSource | null
+}
+
+/** Un plugin instalado y lo que trajo. */
+export interface PluginInfo {
+  name: string
+  title: string
+  description: string
+  version?: string
+  source: PluginSource
+  /** Habilidades que añadió (sus carpetas en «habilidades»), incluidos sus comandos y subagentes. */
+  skills: string[]
+  /** Servidores MCP que añadió (apagados hasta que los enciendas). */
+  mcp: string[]
+  /** Lo que traía y kywai no usa (hooks, servidores de lenguaje, servidores que piden iniciar sesión…). */
+  skipped: string[]
+  installedAt: string
 }
