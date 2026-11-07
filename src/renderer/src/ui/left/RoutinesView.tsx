@@ -175,6 +175,7 @@ function RoutineCard({ r, projectId, editable, call }: { r: Routine; projectId: 
           <span className={s.name}>{r.name}</span>
           <span className={s.trigger}>
             {describeTrigger(r.trigger)}
+            {r.askApproval ? t(' · con tu visto bueno') : ''}
             {r.enabled ? (next ? t(' · próxima {when}', { when: describeWhen(next) }) : '') : r.trigger.type === 'once' && last ? t(' · ya se lanzó') : t(' · desactivada')}
           </span>
         </div>
@@ -397,6 +398,7 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
   const [name, setName] = useState(initial?.name ?? '')
   const [request, setRequest] = useState(initial?.request ?? '')
   const [trigger, setTrigger] = useState<RoutineTrigger>(initial?.trigger ?? { type: 'daily', time: '09:00' })
+  const [askApproval, setAskApproval] = useState(initial?.askApproval === true)
   const [busy, setBusy] = useState(false)
   const id = useId()
 
@@ -406,7 +408,7 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
     setBusy(true)
     // Al reprogramar una de una sola vez (se desactiva sola al lanzarse), vuelve a quedar activa.
     const replanned = !!initial && trigger.type === 'once' && JSON.stringify(trigger) !== JSON.stringify(initial.trigger)
-    void onSave({ name: name.trim(), request: request.trim(), trigger, ...(!initial || replanned ? { enabled: true } : {}) }).then(() => setBusy(false))
+    void onSave({ name: name.trim(), request: request.trim(), trigger, askApproval, ...(!initial || replanned ? { enabled: true } : {}) }).then(() => setBusy(false))
   }
 
   return (
@@ -513,6 +515,10 @@ function RoutineForm({ initial, onSave, onCancel }: { initial?: Routine; onSave:
         </label>
       )}
       <p className={s.hint}>{describeTriggerSafe(trigger)}</p>
+      <label className={s.check}>
+        <input type="checkbox" checked={askApproval} onChange={(e) => setAskApproval(e.target.checked)} />
+        <span>{t('Pedir mi visto bueno a su plan antes de empezar (si no, la rutina sigue sola aunque no estés)')}</span>
+      </label>
       <div className={s.formRow}>
         <button type="button" className={cx(u.btn, u.btnSm)} onClick={onCancel}>
           {t('Cancelar')}

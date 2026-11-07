@@ -2540,4 +2540,6 @@ export const en: Record<string, string> = {
   "Día": "Day",
   "Elige el día.": "Choose the day.",
   " · ya se lanzó": " · already ran",
+  "Pedir mi visto bueno a su plan antes de empezar (si no, la rutina sigue sola aunque no estés)": "Ask for my approval of its plan before starting (otherwise the routine carries on by itself even if you are away)",
+  " · con tu visto bueno": " · with your approval",
 }

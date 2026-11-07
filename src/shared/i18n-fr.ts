@@ -2422,4 +2422,6 @@ export const fr: Record<string, string> = {
   "Día": "Jour",
   "Elige el día.": "Choisissez le jour.",
   " · ya se lanzó": " · déjà lancée",
+  "Pedir mi visto bueno a su plan antes de empezar (si no, la rutina sigue sola aunque no estés)": "Demander mon accord sur son plan avant de commencer (sinon la routine continue seule même en votre absence)",
+  " · con tu visto bueno": " · avec votre accord",
 }

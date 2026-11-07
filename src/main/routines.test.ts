@@ -332,6 +332,21 @@ describe('una sola vez', () => {
   })
 })
 
+describe('visto bueno al plan', () => {
+  it('por defecto la rutina no lo pide; con la casilla, se lo dice al lanzarla', async () => {
+    const r = createRoutine(projectId, { name: 'X', request: 'Haz X', trigger: { type: 'webhook' } })
+    expect(r.askApproval).toBeUndefined()
+    await runRoutineNow(projectId, r.id)
+    expect(sent[0].routine).toEqual({ id: r.id, name: 'X' })
+    finish('run-1')
+    expect(updateRoutine(projectId, r.id, { askApproval: true }).askApproval).toBe(true)
+    await runRoutineNow(projectId, r.id)
+    expect(sent[1].routine).toEqual({ id: r.id, name: 'X', askApproval: true })
+    expect(updateRoutine(projectId, r.id, { askApproval: false }).askApproval).toBeUndefined()
+    expect(createRoutine(projectId, { name: 'Y', request: 'Haz Y', trigger: { type: 'webhook' }, askApproval: true }).askApproval).toBe(true)
+  })
+})
+
 describe('crear, cambiar y borrar', () => {
   it('valida lo que llega y nunca enseña el secreto fuera del motor', () => {
     expect(() => createRoutine(projectId, { name: '', request: 'Haz algo', trigger: { type: 'webhook' } })).toThrow(/nombre/)

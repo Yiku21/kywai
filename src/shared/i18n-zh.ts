@@ -2422,4 +2422,6 @@ export const zh: Record<string, string> = {
   "Día": "日期",
   "Elige el día.": "请选择日期。",
   " · ya se lanzó": " · 已执行",
+  "Pedir mi visto bueno a su plan antes de empezar (si no, la rutina sigue sola aunque no estés)": "开始前先请我批准它的计划（否则即使你不在，例行任务也会自行继续）",
+  " · con tu visto bueno": " · 需你批准",
 }
