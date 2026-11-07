@@ -65,6 +65,57 @@ export const checkTexture = canvasTexture(128, 128, (ctx) => {
   ctx.stroke()
 })
 
+/** «z z Z» de un robot dormido (se tiñe con el color del material). */
+export const zzzTexture = canvasTexture(128, 128, (ctx) => {
+  ctx.strokeStyle = 'white'
+  ctx.lineWidth = 8
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  const z = (x: number, y: number, s: number): void => {
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    ctx.lineTo(x + s, y)
+    ctx.lineTo(x, y + s)
+    ctx.lineTo(x + s, y + s)
+    ctx.stroke()
+  }
+  z(12, 84, 26)
+  z(48, 52, 30)
+  z(84, 14, 34)
+})
+
+/** Triángulo de aviso «!» (error). */
+export const warnTexture = canvasTexture(128, 128, (ctx) => {
+  ctx.strokeStyle = 'white'
+  ctx.fillStyle = 'white'
+  ctx.lineWidth = 9
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  ctx.moveTo(64, 14)
+  ctx.lineTo(116, 108)
+  ctx.lineTo(12, 108)
+  ctx.closePath()
+  ctx.stroke()
+  ctx.lineCap = 'round'
+  ctx.lineWidth = 11
+  ctx.beginPath()
+  ctx.moveTo(64, 48)
+  ctx.lineTo(64, 76)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.arc(64, 94, 6, 0, Math.PI * 2)
+  ctx.fill()
+})
+
+/** «?» de duda (pensando). */
+export const questionTexture = canvasTexture(128, 128, (ctx) => {
+  ctx.fillStyle = 'white'
+  ctx.font = 'bold 112px system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('?', 64, 70)
+})
+
 /** Icono de documento para paquetes y el núcleo. */
 export const docTexture = canvasTexture(128, 160, (ctx) => {
   const r = 14
