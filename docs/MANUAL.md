@@ -15,6 +15,8 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   directos «AI Cowork» pasan a llamarse «kywai» y el exe pasa a `kywai.exe`. Si estaba activado «Abrir kywai al
   iniciar sesión», la primera vez que se abre la versión nueva lo apunta a `kywai.exe` (`migrateWindowsLoginItem`).
   Un anclaje a la barra de tareas del exe viejo deja de funcionar: hay que volver a anclar kywai.
+- **Acceso directo en el Escritorio (Windows):** el instalador lo crea siempre, también al actualizar
+  (`createDesktopShortcut: "always"`): si se borró, la siguiente actualización lo vuelve a poner.
 - **Mac (compilada en el equipo, como el Mac mini):** «Buscar actualizaciones» compila `kywai.app`, la deja en la misma
   carpeta que la instalada y quita la `AI Cowork.app` (`scripts/actualizar-mac.sh`, que también entiende la ruta vieja
   que le pasa una versión anterior). `instalar-mac.sh` hace lo mismo. Como el identificador y el certificado no
