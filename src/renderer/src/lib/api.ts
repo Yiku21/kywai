@@ -26,6 +26,7 @@ const w = window as unknown as {
     reload?: () => Promise<void>
     switchServer?: () => Promise<void>
     forget?: () => Promise<void>
+    useAsServer?: () => Promise<void>
   }
 }
 
@@ -45,6 +46,8 @@ export interface ClientActions {
   reload: () => Promise<void>
   switchServer: () => Promise<void>
   forget: () => Promise<void>
+  /** Reinicia esta app como servidor (null si la app es una versión anterior que no lo sabe hacer). */
+  useAsServer: (() => Promise<void>) | null
   /** Busca una versión nueva del cliente en el servidor (null si esta app no lo sabe: es una versión anterior). */
   checkUpdate: (() => Promise<ClientUpdateState | null>) | null
   installUpdate: (() => Promise<void>) | null
@@ -53,7 +56,7 @@ export interface ClientActions {
 export function clientActions(): ClientActions | null {
   const c = w.coworkClient
   if (!isClient || !c?.reload || !c.switchServer || !c.forget) return null
-  return { reload: c.reload, switchServer: c.switchServer, forget: c.forget, checkUpdate: c.update ?? null, installUpdate: c.installUpdate ?? null }
+  return { reload: c.reload, switchServer: c.switchServer, forget: c.forget, useAsServer: c.useAsServer ?? null, checkUpdate: c.update ?? null, installUpdate: c.installUpdate ?? null }
 }
 
 /** Datos del cliente de escritorio: nombre del servidor y de este equipo (null fuera del cliente). */
