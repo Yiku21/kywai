@@ -116,11 +116,18 @@ Al abrir la app instalada por primera vez aparece el **asistente de configuraci�
 ⚙ → Ajustes → «Configurar agentes…»):
 
 1. **Agentes**: eliges cuáles usar (Hermes, Claude, Codex, Gemini, Muse y el agente local con LM Studio u Ollama).
+   Debajo, el recuadro plegable **«¿No pagas ninguna suscripción? Así puedes usar kywai gratis»** explica cómo
+   montar un equipo sin pagar: «Ver los agentes gratis» abre el catálogo con «Solo gratis» (Kilo CLI primero, que ni
+   siquiera pide cuenta), «Conseguir la clave» abre la página de la clave gratis de Google AI Studio (para Gemini) o
+   la de OpenRouter (para que Hermes coordine con un modelo `:free`; se elige en «Sesiones» → «Configurar»), y
+   recuerda que el agente local siempre es gratis.
 2. **Programas**: comprueba si están sus CLIs y, si falta alguno, lo instala desde ahí con su instalador
    oficial (y Node.js si hace falta). En Mac conviene tener [Homebrew](https://brew.sh).
 3. **Sesiones**: abre el inicio de sesión oficial de cada CLI en una ventana aparte (normalmente en el
    navegador) y comprueba que quedó hecho. kywai no ve ni guarda contraseñas; para Gemini también puedes
-   pegar una clave de API de Google AI Studio. Una sesión ya conectada lleva un lápiz para **cambiarla**
+   pegar una clave de API de Google AI Studio (gratis y sin tarjeta). Desde el 18 de junio de 2026, Google ya no deja
+   usar Gemini CLI con una cuenta personal de Google sin pagar (la pasó a Antigravity CLI): con cuenta personal, usa
+   la clave de AI Studio. Una sesión ya conectada lleva un lápiz para **cambiarla**
    (otra cuenta, otra clave o, en Hermes, otro proveedor): abre el mismo inicio de sesión y, al volver a la app,
    se comprueba y enseña la nueva. En Gemini, dentro se cambia de cuenta con `/auth`.
 4. **Listo**: resumen de lo que queda pendiente.
@@ -465,10 +472,29 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
 - **Añadir un agente**: «Añadir un agente» abre el catálogo con los que se pueden conectar (Aider, **DeepSeek**, OpenCode,
   GitHub Copilot CLI, Cursor, Amp, Goose, Kimi Code, Mistral Vibe, Grok Build, Cline, Continue, OpenHands, Factory Droid,
   Auggie, Junie, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw, Kiro, **Qwen Code**, **Antigravity CLI**,
-  **Rovo Dev**, **MiniMax Code**, **Qoder CLI**… y los de fábrica que hayas
+  **Rovo Dev**, **MiniMax Code**, **Qoder CLI**, **Kilo CLI**… y los de fábrica que hayas
   quitado), con la cuenta o suscripción con la que funciona cada uno. Elige uno y se añade con su robot y su estación en el
   espacio digital. **«Otro programa…»** conecta cualquiera: el comando, cómo recibe el encargo (por stdin, en un
   archivo o como argumento) y sus argumentos.
+- **Agentes gratis**: los que se pueden usar sin pagar una suscripción llevan la etiqueta verde **«Gratis»** en el
+  catálogo y en las tarjetas del asistente, con la condición y el límite (pasa el ratón por encima en el asistente). El
+  botón **«Solo gratis»** del catálogo deja solo esos. Comprobado en sus páginas oficiales en noviembre de 2026:
+  - **Kilo CLI**: sin tarjeta y sin cuenta, con sus modelos gratuitos (empieza con Kilo Auto Free).
+  - **Gemini** (de fábrica): con una clave de API de Google AI Studio, sin tarjeta, solo modelos Flash y unas 250
+    peticiones al día. Google usa lo que le envías para mejorar sus productos.
+  - **OpenCode**: con los modelos gratuitos de OpenCode Zen (solo desde OpenCode; límite compartido y sin cifra).
+  - **GitHub Copilot CLI**: con el plan Copilot Free (GitHub no publica el cupo).
+  - **Cline**: con los modelos marcados FREE de una cuenta de Cline.
+  - **Aider** y **Hermes**: con una clave de OpenRouter y sus modelos `:free`: 50 peticiones al día, o 1000 si
+    alguna vez compraste 10 $ de saldo.
+  - **Mistral Vibe**: con una clave del plan gratuito Experiment de Mistral.
+  - **Antigravity CLI**: con una cuenta personal de Google y un límite semanal (ojo con sus condiciones, más abajo).
+  - El **agente local** (LM Studio u Ollama) siempre es gratis.
+
+  No llevan la etiqueta: Qwen Code (su acceso gratis cerró el 15 de abril de 2026), Kiro (con el plan gratis no hay
+  modo sin pantalla: la clave es de Pro o superior), Amp (Amp Free está en pausa y su modo de scripts es de pago) y los
+  de suscripción (Claude, Codex, Muse…). Las capas gratis cambian a menudo: el texto vive en el campo `free` de
+  `src/shared/agentCatalog.ts` y `src/shared/agentCatalogData.ts`.
 - **Quitar un agente**: «Quitar» (se pulsa dos veces) lo saca del equipo y de la lista de quienes pueden coordinar; el
   de fábrica no vuelve a aparecer al actualizar, y se puede añadir otra vez desde el catálogo. Siempre tiene que
   quedar al menos uno que trabaje.
@@ -492,10 +518,13 @@ Los añadidos en octubre de 2026, con lo que hay que saber de cada uno:
   `coding-intl` fuera de China) u otro proveedor: «Iniciar sesión» abre `qwen`, y dentro se elige con `/auth`. Es
   distinto del agente local «Qwen» de Ollama. Al planificar va en modo `plan`; en el proyecto, `auto-edit`; con acceso
   completo, `yolo`.
-- **Antigravity CLI** (`agy`, de Google): sustituye a Gemini CLI en las cuentas de Google AI Pro y Ultra. La sesión se
+- **Antigravity CLI** (`agy`, de Google): desde junio de 2026 sustituye a Gemini CLI en las cuentas personales de
+  Google. Tiene un plan gratis con un límite semanal y más cuota con Google AI Pro o Ultra. La sesión se
   inicia con Google la primera vez que se abre `agy`. Sin acceso completo no puede editar (en modo sin pantalla deniega
   lo que pediría permiso) y la versión 1.0.6 falla con `-p` sin terminal: actualízalo. Ojo: sus condiciones adicionales
-  prohíben acceder al servicio con software de terceros y Google no ha aclarado si eso incluye lanzarlo así.
+  prohíben acceder al servicio con software de terceros (su ejemplo es OpenClaw con el inicio de sesión de Antigravity)
+  y avisan de que pueden suspender la cuenta de Antigravity y la de Gemini CLI. kywai lanza el programa oficial, pero
+  Google no ha aclarado si eso cuenta: por eso no es el agente gratis que se recomienda primero.
 - **Rovo Dev** (Atlassian): va dentro de la CLI de Atlassian (`acli rovodev run`), con tu cuenta de Atlassian y
   `acli rovodev auth login`. Con acceso completo, `--yolo`.
 - **MiniMax Code** (`mcode exec`, encargo por stdin): necesita Node.js 22.19 o superior; «Iniciar sesión» usa una
@@ -503,6 +532,15 @@ Los añadidos en octubre de 2026, con lo que hay que saber de cada uno:
 - **Qoder CLI**: se lanza como `qodercli -p` (el comando `qoder` reparte entre la CLI y el editor), con la sesión de
   `qodercli login` o un token `QODER_PERSONAL_ACCESS_TOKEN`. Planifica en modo `plan`, edita con `accept_edits` y con
   acceso completo va con `--yolo`.
+
+Añadido en noviembre de 2026:
+
+- **Kilo CLI** (`kilo run`, de Kilo): funciona **gratis y sin cuenta** con sus modelos gratuitos. Al añadirlo empieza
+  con **Kilo Auto Free** (`kilo/kilo-auto/free`), porque su modelo por defecto es de pago y pide cuenta (sin él falla
+  con «Authorization header is badly formatted»). Para los de pago, «Iniciar sesión» abre `kilo auth login`. Planifica
+  con su agente `plan` (no edita ni ejecuta nada que cambie archivos), en el proyecto edita sin preguntar y con acceso
+  completo va con `--auto`. Probado con kilo 7.8. Los modelos gratuitos cambian cuando acaban sus promociones:
+  `kilo models kilo` los lista (los que terminan en `:free`).
 
 Ninguno de los de catálogo retoma su sesión anterior en una continuación (eso solo lo hacen Claude y Codex): aunque
 sus programas tengan `--continue` o `--resume`, kywai les da cada encargo con el contexto completo. Un agente que

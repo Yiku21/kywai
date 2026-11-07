@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { AlertTriangle, Check, CircleCheck, Crown, Download, ExternalLink, KeyRound, LoaderCircle, LogIn, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Check, CircleCheck, Crown, Download, ExternalLink, Gift, KeyRound, LoaderCircle, LogIn, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import type { AgentConfig, SetupAuth, SetupTool, SetupToolId } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
@@ -22,10 +22,10 @@ const isLocal = (a: AgentConfig): boolean => a.provider === 'ollama' || a.provid
 
 /** Qué hace cada agente y qué cuenta necesita (texto de las tarjetas). */
 const ABOUT: Record<string, { what: string; account: string }> = {
-  hermes: { what: t('Coordinador: planifica y reparte el trabajo entre los demás.'), account: t('Necesita un proveedor de modelos (OmniRoute, Nous Portal u otra cuenta).') },
+  hermes: { what: t('Coordinador: planifica y reparte el trabajo entre los demás.'), account: t('Necesita un proveedor de modelos (OmniRoute, Nous Portal, OpenRouter u otra cuenta).') },
   claude: { what: t('Diseño, textos y código de calidad.'), account: t('Con tu suscripción de Claude (Pro o Max).') },
   codex: { what: t('Programación y tareas técnicas.'), account: t('Con tu cuenta de ChatGPT.') },
-  gemini: { what: t('Análisis, investigación y documentos largos.'), account: t('Con tu cuenta de Google o una clave de API.') },
+  gemini: { what: t('Análisis, investigación y documentos largos.'), account: t('Con una clave de API de Google AI Studio (gratis) o una cuenta de empresa de Gemini Code Assist. Desde junio de 2026, las cuentas personales de Google usan Antigravity CLI.') },
   muse: { what: t('Vídeos y refuerzo cuando los demás no tienen cuota.'), account: t('Con tu suscripción de Muse Code (cuenta de Meta).') },
   local: { what: t('Tareas sencillas gratis, en tu propio equipo.'), account: t('Sin cuenta: LM Studio u Ollama con un modelo descargado.') }
 }
@@ -37,6 +37,14 @@ function aboutAgent(a: AgentConfig): { what: string; account: string } {
   const entry = a.cli?.presetId ? catalogEntry(a.cli.presetId) : undefined
   if (entry) return { what: entry.summary, account: entry.account }
   return { what: a.role ? t(a.role) : t('Agente conectado.'), account: a.provider === 'cli' ? t('Con la sesión que tengas iniciada en su programa.') : '' }
+}
+
+/** Cómo se usa gratis (la etiqueta «Gratis»): el agente local siempre; los demás, según el catálogo. */
+function freeOf(a: AgentConfig): string | undefined {
+  if (isLocal(a)) return t('Gratis: funciona en tu propio equipo, sin cuenta ni límites.')
+  // Uno a medida (sin presetId) no es del catálogo aunque su programa se llame igual.
+  const entry = a.cli ? (a.cli.presetId ? catalogEntry(a.cli.presetId) : undefined) : catalogEntry(a.id)
+  return entry?.free ? t(entry.free) : undefined
 }
 
 function toolFor(a: AgentConfig, engine: LocalEngine): SetupToolId | null {
@@ -68,7 +76,8 @@ export function SetupWizard() {
   // Sesiones que el usuario ha pedido cambiar (lápiz): se enseñan como si faltaran hasta la siguiente comprobación.
   const [changing, setChanging] = useState<ReadonlySet<SetupToolId>>(new Set())
   const [busy, setBusy] = useState(false)
-  const [adding, setAdding] = useState(false)
+  // Catálogo abierto: con todos o solo con los gratis.
+  const [adding, setAdding] = useState<false | 'all' | 'free'>(false)
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
 
   // Un agente que se acaba de añadir entra elegido.
@@ -335,75 +344,121 @@ export function SetupWizard() {
 
         <div className={s.body}>
           {step === 0 && (
-            <div className={s.cards}>
-              {main.map((a) => {
-                const about = aboutAgent(a)
-                const on = chosen.has(a.id)
-                const isCoordinator = coordinatorId === a.id
-                return (
-                  <div key={a.id} className={cx(s.card, on && s.cardOn)} style={{ ['--agent' as string]: a.color }}>
-                    <button type="button" className={s.cardMain} aria-pressed={on} onClick={() => toggle(a.id)}>
-                      <RobotAvatar agent={a} size={52} />
-                      <span className={s.cardText}>
-                        <span className={s.cardName}>
-                          {isLocal(a) ? t('Agente local') : a.name}
-                          {isCoordinator && <span className={s.tag}>{t('Coordinador')}</span>}
-                          {a.provider === 'cli' && a.cli && !a.cli.presetId && <span className={s.tagSoft}>{t('a medida')}</span>}
+            <>
+              <div className={s.cards}>
+                {main.map((a) => {
+                  const about = aboutAgent(a)
+                  const on = chosen.has(a.id)
+                  const isCoordinator = coordinatorId === a.id
+                  return (
+                    <div key={a.id} className={cx(s.card, on && s.cardOn)} style={{ ['--agent' as string]: a.color }}>
+                      <button type="button" className={s.cardMain} aria-pressed={on} onClick={() => toggle(a.id)}>
+                        <RobotAvatar agent={a} size={52} />
+                        <span className={s.cardText}>
+                          <span className={s.cardName}>
+                            {isLocal(a) ? t('Agente local') : a.name}
+                            {isCoordinator && <span className={s.tag}>{t('Coordinador')}</span>}
+                            {freeOf(a) && (
+                              <span className={s.tagFree} title={freeOf(a)}>
+                                {t('Gratis')}
+                              </span>
+                            )}
+                            {a.provider === 'cli' && a.cli && !a.cli.presetId && <span className={s.tagSoft}>{t('a medida')}</span>}
+                          </span>
+                          <span className={s.cardWhat}>{about.what}</span>
+                          <span className={s.cardAccount}>{about.account}</span>
                         </span>
-                        <span className={s.cardWhat}>{about.what}</span>
-                        <span className={s.cardAccount}>{about.account}</span>
-                      </span>
-                      <span className={cx(s.check, on && s.checkOn)} aria-hidden="true">
-                        {on && <Check size={14} />}
-                      </span>
-                    </button>
-                    <div className={s.cardTools}>
-                      {on && !isCoordinator && (
-                        <button type="button" className={s.cardTool} onClick={() => void makeCoordinator(a.id)} title={t('Que este agente planifique y reparta el trabajo')}>
-                          <Crown size={12} aria-hidden="true" /> {t('Hacer coordinador')}
-                        </button>
-                      )}
-                      {main.length > 1 && (
-                        <button
-                          type="button"
-                          className={cx(s.cardTool, confirmRemove === a.id && s.cardToolDanger)}
-                          onClick={() => void removeAgent(a.id)}
-                          onBlur={() => setConfirmRemove((c) => (c === a.id ? null : c))}
-                          title={t('Quitar este agente de tu equipo')}
-                        >
-                          <Trash2 size={12} aria-hidden="true" /> {confirmRemove === a.id ? t('Pulsa otra vez para quitarlo') : t('Quitar')}
-                        </button>
+                        <span className={cx(s.check, on && s.checkOn)} aria-hidden="true">
+                          {on && <Check size={14} />}
+                        </span>
+                      </button>
+                      <div className={s.cardTools}>
+                        {on && !isCoordinator && (
+                          <button type="button" className={s.cardTool} onClick={() => void makeCoordinator(a.id)} title={t('Que este agente planifique y reparta el trabajo')}>
+                            <Crown size={12} aria-hidden="true" /> {t('Hacer coordinador')}
+                          </button>
+                        )}
+                        {main.length > 1 && (
+                          <button
+                            type="button"
+                            className={cx(s.cardTool, confirmRemove === a.id && s.cardToolDanger)}
+                            onClick={() => void removeAgent(a.id)}
+                            onBlur={() => setConfirmRemove((c) => (c === a.id ? null : c))}
+                            title={t('Quitar este agente de tu equipo')}
+                          >
+                            <Trash2 size={12} aria-hidden="true" /> {confirmRemove === a.id ? t('Pulsa otra vez para quitarlo') : t('Quitar')}
+                          </button>
+                        )}
+                      </div>
+                      {isLocal(a) && on && (
+                        <div className={s.engines} role="radiogroup" aria-label={t('Programa del agente local')}>
+                          {(['lmstudio', 'ollama'] as const).map((eng) => (
+                            <button
+                              key={eng}
+                              type="button"
+                              role="radio"
+                              aria-checked={engine === eng}
+                              className={cx(s.engine, engine === eng && s.engineOn)}
+                              onClick={() => setEngine(eng)}
+                            >
+                              {eng === 'lmstudio' ? 'LM Studio' : 'Ollama'}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    {isLocal(a) && on && (
-                      <div className={s.engines} role="radiogroup" aria-label={t('Programa del agente local')}>
-                        {(['lmstudio', 'ollama'] as const).map((eng) => (
-                          <button
-                            key={eng}
-                            type="button"
-                            role="radio"
-                            aria-checked={engine === eng}
-                            className={cx(s.engine, engine === eng && s.engineOn)}
-                            onClick={() => setEngine(eng)}
-                          >
-                            {eng === 'lmstudio' ? 'LM Studio' : 'Ollama'}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-              <button type="button" className={cx(s.card, s.addCard)} onClick={() => setAdding(true)}>
-                <span className={s.addIcon} aria-hidden="true">
-                  <Plus size={22} />
-                </span>
-                <span className={s.cardText}>
-                  <span className={s.cardName}>{t('Añadir un agente')}</span>
-                  <span className={s.cardWhat}>{t('Conecta otro de los que ya usas con tu suscripción: Aider, OpenCode, Copilot, Cursor… o cualquier programa de terminal.')}</span>
-                </span>
-              </button>
-            </div>
+                  )
+                })}
+                <button type="button" className={cx(s.card, s.addCard)} onClick={() => setAdding('all')}>
+                  <span className={s.addIcon} aria-hidden="true">
+                    <Plus size={22} />
+                  </span>
+                  <span className={s.cardText}>
+                    <span className={s.cardName}>{t('Añadir un agente')}</span>
+                    <span className={s.cardWhat}>{t('Conecta otro de los que ya usas con tu suscripción: Aider, OpenCode, Copilot, Cursor… o cualquier programa de terminal.')}</span>
+                  </span>
+                </button>
+              </div>
+              <details className={s.freeBox}>
+                <summary className={s.freeSummary}>
+                  <Gift size={15} aria-hidden="true" /> {t('¿No pagas ninguna suscripción? Así puedes usar kywai gratis')}
+                </summary>
+                <p className={s.rowDetail}>
+                  {t('Los agentes con la etiqueta «Gratis» funcionan sin suscripción de pago, cada uno con su límite. Para empezar:')}
+                </p>
+                <ul className={s.freeList}>
+                  <li>
+                    <span>
+                      <strong>{t('Para trabajar')}</strong>: {t('Kilo CLI, gratis y sin cuenta; también OpenCode, Copilot CLI (con Copilot Free) o Cline.')}
+                    </span>
+                    <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setAdding('free')}>
+                      <Plus size={13} aria-hidden="true" /> {t('Ver los agentes gratis')}
+                    </button>
+                  </li>
+                  <li>
+                    <span>
+                      <strong>Gemini</strong>: {t('con una clave gratis de Google AI Studio (sin tarjeta). Pégala en el paso «Sesiones».')}
+                    </span>
+                    <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void api?.openExternal('https://aistudio.google.com/apikey')}>
+                      <ExternalLink size={13} aria-hidden="true" /> {t('Conseguir la clave')}
+                    </button>
+                  </li>
+                  <li>
+                    <span>
+                      <strong>{t('Para coordinar (Hermes)')}</strong>: {t('con una clave gratis de OpenRouter. En «Sesiones», pulsa «Configurar» en Hermes, elige OpenRouter y un modelo que acabe en «:free» (unas 50 peticiones al día).')}
+                    </span>
+                    <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost)} onClick={() => void api?.openExternal('https://openrouter.ai/settings/keys')}>
+                      <ExternalLink size={13} aria-hidden="true" /> {t('Conseguir la clave')}
+                    </button>
+                  </li>
+                  <li>
+                    <span>
+                      <strong>{t('Agente local')}</strong>: {t('siempre gratis y sin límites, con LM Studio u Ollama en tu propio equipo.')}
+                    </span>
+                  </li>
+                </ul>
+              </details>
+            </>
           )}
 
           {step === 1 && (
@@ -615,7 +670,7 @@ export function SetupWizard() {
           </p>
         )}
 
-        {adding && <AddAgent existing={main} onClose={() => setAdding(false)} onAdded={(id) => setChosen((prev) => new Set(prev).add(id))} />}
+        {adding && <AddAgent existing={main} freeOnly={adding === 'free'} onClose={() => setAdding(false)} onAdded={(id) => setChosen((prev) => new Set(prev).add(id))} />}
 
         <footer className={s.foot}>
           <button type="button" className={cx(u.btn, u.btnGhost)} onClick={() => void finish()}>
