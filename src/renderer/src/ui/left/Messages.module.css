@@ -1282,3 +1282,24 @@ button.itemHead:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Rutina que propone Hermes («Crear rutina»): en verde, para no confundirla con un plan. */
+.routineProposal {
+  border-color: color-mix(in srgb, var(--live) 35%, transparent);
+  background: color-mix(in srgb, var(--live) 6%, var(--bg-panel));
+}
+
+.routineProposal .planIcon {
+  color: var(--live);
+  background: var(--live-soft);
+  border-color: color-mix(in srgb, var(--live) 30%, transparent);
+}
+
+.routineRequest {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

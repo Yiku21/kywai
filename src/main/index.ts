@@ -57,6 +57,7 @@ import {
   activeRunFor,
   activeRunsFor,
   approvePlan,
+  decideRoutineProposal,
   rateMessage,
   getTaskChanges,
   undoTask,
@@ -625,6 +626,11 @@ function registerIpc(): void {
   handle('approvePlan', (projectId: unknown, messageId: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('Plan no válido'))
     return approvePlan(projectArg(projectId), messageId)
+  })
+  // Rutina que propuso Hermes: «Crear rutina» la crea activa; «Descartar», no.
+  handle('decideRoutineProposal', (projectId: unknown, messageId: unknown, action: unknown) => {
+    if (typeof messageId !== 'string') throw new Error(tr('No se encontró esa propuesta de rutina'))
+    return decideRoutineProposal(projectArg(projectId), messageId, action === 'create' ? 'create' : 'dismiss')
   })
   handle('rateMessage', (projectId: unknown, messageId: unknown, rating: unknown) => {
     if (typeof messageId !== 'string') throw new Error('messageId inválido')

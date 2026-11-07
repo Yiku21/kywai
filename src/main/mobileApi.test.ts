@@ -18,7 +18,7 @@ import { emit, setRuntime } from './events'
 import { addMemory, deleteMemory, setInstructions, updateMemory } from './memory'
 import { MAX_FILE_BYTES, __setFileLimitsForChecks } from './mobileFiles'
 import { __setOrbitaReleaseDirForChecks } from './orbitaRelease'
-import { __setBackendsForChecks, activeRunsFor, allAgents, approvePlan, cancelAll, getTaskChanges, undoTask, cancelRun, discardRun, rejectPlan, resetAgent, resumeRun, runtimeSnapshot, sendMessage } from './orchestrator'
+import { __setBackendsForChecks, activeRunsFor, allAgents, approvePlan, cancelAll, decideRoutineProposal, getTaskChanges, undoTask, cancelRun, discardRun, rejectPlan, resetAgent, resumeRun, runtimeSnapshot, sendMessage } from './orchestrator'
 import { actInbox, listInbox } from './inbox'
 import * as store from './projects'
 import * as conversations from './conversations'
@@ -179,6 +179,8 @@ beforeAll(() => {
     presence: async () => null,
     run: async (o) => {
       prompts.push(o.prompt)
+      // «PRUEBA-RUTINA …»: el coordinador propone además dejarlo programado (la tarjeta «Crear rutina»).
+      if (o.mode === 'plan' && o.prompt.includes('PRUEBA-RUTINA')) return { ok: true, text: JSON.stringify({ reply: 'Lo reviso ahora y te propongo la rutina.', tasks: [], routine: o.prompt.includes('PRUEBA-RUTINA-MAL') ? 'cuando quieras: algo' : '/rutina de lunes a viernes a las 8:30: revisa los PR abiertos' }), usage: { input: 1, output: 1 } }
       if (o.mode === 'plan') return { ok: true, text: JSON.stringify({ reply: 'Plan', tasks: [{ key: 't1', title: 'Prueba móvil', description: 'Trabajo de prueba', agent: 'codex', difficulty: 'medium', dependsOn: [], deliverable: 'text' }] }), usage: { input: 1, output: 1 } }
       return new Promise((resolve) => {
         const completion = process.env.AI_COWORK_ANDROID_INTEGRATION === '1' ? setTimeout(() => {
@@ -1980,6 +1982,35 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect(store.getProject(conversation).routines).toHaveLength(1)
     expect(prompts).toEqual([])
     expect(activeRunsFor(conversation)).toEqual([])
+  })
+
+  it('Hermes propone una rutina: sale como tarjeta y se crea (o se descarta) con un toque, una sola vez', async () => {
+    const conversation = (await api('/conversations', {})).body.conversation.id as string
+    const proposalMsg = (): ChatMessage | undefined => store.snapshotProject(conversation).messages.find((m) => m.routineProposal)
+    await sendMessage({ projectId: conversation, text: 'PRUEBA-RUTINA cada mañana de diario revisa los PR', filePaths: [] })
+    await vi.waitFor(() => expect(proposalMsg()).toBeTruthy())
+    const m = proposalMsg()!
+    expect(m.author).toEqual({ type: 'agent', agentId: 'codex' })
+    expect(m.routineProposal).toEqual({ status: 'pending', name: 'Revisa los PR abiertos', request: 'revisa los PR abiertos', trigger: { type: 'weekly', days: [1, 2, 3, 4, 5], time: '08:30' }, command: '/rutina de lunes a viernes a las 8:30: revisa los PR abiertos' })
+    expect(m.text).toMatch(/Crear rutina.*De lunes a viernes a las 08:30/)
+    // Nadie la crea sola: hasta pulsar «Crear rutina» no hay rutina.
+    expect(store.getProject(conversation).routines ?? []).toEqual([])
+    const created = decideRoutineProposal(conversation, m.id, 'create')
+    const routines = store.getProject(conversation).routines!
+    expect(routines).toEqual([expect.objectContaining({ name: 'Revisa los PR abiertos', enabled: true, trigger: { type: 'weekly', days: [1, 2, 3, 4, 5], time: '08:30' } })])
+    expect(created.routineProposal).toMatchObject({ status: 'created', routineId: routines[0].id })
+    expect(() => decideRoutineProposal(conversation, m.id, 'create')).toThrow(/ya está creada/)
+    expect(() => decideRoutineProposal(conversation, 'no-existe', 'dismiss')).toThrow(/No se encontró/)
+    // Una orden que no se entiende no saca tarjeta.
+    await sendMessage({ projectId: conversation, text: 'PRUEBA-RUTINA-MAL otra', filePaths: [] })
+    await vi.waitFor(() => expect(activeRunsFor(conversation)).toEqual([]))
+    expect(store.snapshotProject(conversation).messages.filter((x) => x.routineProposal)).toHaveLength(1)
+    // Lo que lanza una rutina no propone otra (y su guía se lo dice).
+    prompts.length = 0
+    await sendMessage({ projectId: conversation, text: 'PRUEBA-RUTINA desde una rutina', filePaths: [] }, { routine: { id: routines[0].id, name: 'R' } })
+    await vi.waitFor(() => expect(activeRunsFor(conversation)).toEqual([]))
+    expect(store.snapshotProject(conversation).messages.filter((x) => x.routineProposal)).toHaveLength(1)
+    expect(prompts.find((p) => p.includes('Ahora SOLO tienes que planificar') || p.includes('"routine"'))).toContain('"routine": "" (esta petición ya la lanza una rutina)')
   })
 
   it('con «Pedir mi visto bueno» encendido, una rutina sigue sola; solo espera si esa rutina lo pide', async () => {
