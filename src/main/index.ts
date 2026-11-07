@@ -15,6 +15,8 @@ import {
   setHermesModel,
   setPlanApproval,
   setLanguage,
+  setUiTheme,
+  UI_THEME_RE,
   addAgent,
   removeAgent,
   setCoordinator,
@@ -681,6 +683,12 @@ function registerIpc(): void {
   handle('setLanguage', (id: unknown) => {
     if (!isLang(id)) throw new Error(tr('Idioma no válido'))
     setLanguage(id)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
+  handle('setUiTheme', (id: unknown) => {
+    if (typeof id !== 'string' || !UI_THEME_RE.test(id)) throw new Error(tr('Valor no válido'))
+    if (getConfig().uiTheme === id) return
+    setUiTheme(id)
     emit({ kind: 'config.updated', config: getConfig() })
   })
   handle('setPlanApproval', (on: unknown) => {

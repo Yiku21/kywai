@@ -113,9 +113,18 @@ export function applyTheme(id: ThemeId): void {
   setScenePalette(id)
 }
 
+/** Quien guarda el tema en el servidor (para que Órbita, la app del móvil, se vea igual). */
+let tellEngine: ((id: ThemeId) => void) | null = null
+
+/** Al elegir un tema, se le dice también al motor (App lo conecta con api.setUiTheme). */
+export function onThemeChosen(fn: ((id: ThemeId) => void) | null): void {
+  tellEngine = fn
+}
+
 export function setTheme(id: ThemeId): void {
   if (!isTheme(id)) return
   applyTheme(id)
+  tellEngine?.(id)
   try {
     localStorage.setItem(KEY, id)
   } catch {

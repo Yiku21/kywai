@@ -778,6 +778,11 @@ export interface AppConfig {
   setupDone: boolean
   /** Idioma de los avisos del motor y de las respuestas de los agentes (el último elegido en Ajustes; si no, español). */
   language?: Lang
+  /**
+   * Tema de la interfaz y del espacio (el id de lib/theme.ts: «grafito», «mundo-bosque»…). Lo elige el escritorio y lo
+   * sigue Órbita, para que el móvil se vea igual. Sin él, el clásico.
+   */
+  uiTheme?: string
   /** Acceso desde otros dispositivos de Tailscale (navegador del móvil o del portátil). */
   webAccess: WebAccessConfig
 }
@@ -1207,6 +1212,8 @@ export interface CoworkApi {
   setPlanApproval(on: boolean): Promise<void>
   /** Idioma de los avisos del motor y de las respuestas de Hermes y los agentes (lo cambia el selector de Ajustes). */
   setLanguage(lang: Lang): Promise<void>
+  /** Tema elegido en este equipo: el servidor lo guarda para que Órbita se vea igual. */
+  setUiTheme?(id: string): Promise<void>
   /** «/model»: modelo con el que coordina Hermes y los que puede usar (según sus proveedores con sesión). */
   getHermesModels(): Promise<HermesModelsInfo>
   /** Cambia el modelo de Hermes en kywai (null: volver al de su configuración). */

@@ -25,7 +25,7 @@ import { MusicPanel } from '@/ui/space/MusicPanel'
 import { HermesModelDialog } from '@/ui/space/HermesModelDialog'
 import { Sidebar } from '@/ui/sidebar/Sidebar'
 import { SearchDialog } from '@/ui/sidebar/SearchDialog'
-import { useUiTheme } from '@/lib/theme'
+import { onThemeChosen, storedTheme, useUiTheme } from '@/lib/theme'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
 import { lang, t } from '@/lib/i18n'
@@ -46,6 +46,9 @@ function useBoot(): void {
       st.hydrateLive(config, runtime.runtimes, runtime.quotas)
       // El motor aún no sabe en qué idioma escribir los avisos y las respuestas: el de esta interfaz.
       if (!config.language) api.setLanguage?.(lang()).catch(() => {})
+      // El tema que se elija se guarda también en el servidor, para que Órbita (el móvil) se vea igual.
+      onThemeChosen((id) => void api?.setUiTheme?.(id).catch(() => {}))
+      if (!config.uiTheme) api.setUiTheme?.(storedTheme()).catch(() => {})
       st.setProjects(projects)
       // Bandeja «Te necesita» (lo nuevo llega por eventos inbox.updated).
       api.listInbox().then(

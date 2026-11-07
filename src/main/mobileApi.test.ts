@@ -13,7 +13,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { MobileChatReceipt, MobileEventEnvelope, MobileFolderFile, MobileSnapshot } from '@shared/mobile'
 import type { Attachment, ChatMessage, UpdateStatus } from '@shared/types'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
-import { getConfig, loadConfig, setAgentAccess, setAgentThinking, setPlanApproval } from './config'
+import { getConfig, loadConfig, setAgentAccess, setAgentThinking, setPlanApproval, setUiTheme } from './config'
 import { emit, setRuntime } from './events'
 import { addMemory, deleteMemory, setInstructions, updateMemory } from './memory'
 import { MAX_FILE_BYTES, __setFileLimitsForChecks } from './mobileFiles'
@@ -1028,7 +1028,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       expect(state.projects.map((p) => p.id)).toEqual(store.listProjects().map((p) => p.id))
       expect(state.projects.find((p) => p.id === id)).toEqual({ id, name: 'Conversación móvil', createdAt: expect.any(Number), updatedAt: expect.any(Number), running: false })
       expect(state.stations).toEqual(getConfig().stations)
-      expect(state.settings).toEqual({ agentAccess: getConfig().agentAccess, planApproval: false })
+      expect(state.settings).toEqual({ agentAccess: getConfig().agentAccess, planApproval: false, theme: 'clasico' })
       expect(state.conversation.attachments).toEqual([])
       expect(state.conversation.folder).toEqual({ name: basename(folder), path: folder })
       expect(state.capabilities).toMatchObject({ attachments: true, projects: true, memoryEdit: true, files: true, upload: true, artifacts: true, traceEndpoint: true, agentAccess: true, usageRefresh: true })
@@ -1368,6 +1368,19 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     }
   })
 
+  it('el tema elegido en el escritorio llega a Órbita en la instantánea', async () => {
+    try {
+      setUiTheme('mundo-bosque')
+      expect((await api('/snapshot')).body.settings.theme).toBe('mundo-bosque')
+      // Un id raro no se guarda (el escritorio solo manda los suyos).
+      setUiTheme('../../etc')
+      expect(getConfig().uiTheme).toBe('mundo-bosque')
+    } finally {
+      delete getConfig().uiTheme
+    }
+    expect((await api('/snapshot')).body.settings.theme).toBe('clasico')
+  })
+
   it('cambia el permiso de los agentes como el escritorio y actualiza las cuotas a petición', async () => {
     const client = await websocket(token)
     try {
@@ -1375,7 +1388,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       expect(getConfig().agentAccess).toBe('project')
       const update = await event(client.frames, 'config.updated')
       expect((update.payload.config as { agentAccess: string }).agentAccess).toBe('project')
-      expect((await api('/snapshot')).body.settings).toEqual({ agentAccess: 'project', planApproval: false })
+      expect((await api('/snapshot')).body.settings).toEqual({ agentAccess: 'project', planApproval: false, theme: 'clasico' })
     } finally {
       expect(await api('/settings/agent-access', { access: 'full' })).toEqual({ status: 200, body: { agentAccess: 'full' } })
     }
