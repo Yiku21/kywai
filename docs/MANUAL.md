@@ -210,7 +210,7 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
   apartan, en una rama `apartado/<fecha>`, y el código vuelve a ser el de GitHub. Y si el código descargado es
   más nuevo que la app instalada (por ejemplo, porque se subió desde ese mismo equipo sin recompilar), ofrece
   instalarlo: la app sabe con qué commit se compiló.
-- **Desde Órbita**: Más → Ajustes → **Servidor** hace lo mismo en el servidor al que está emparejada. Al abrir
+- **Desde Órbita**: ☰ → Ajustes → Conexión → **Servidor** hace lo mismo en el servidor al que está emparejada. Al abrir
   Ajustes ya dice si hay cambios nuevos en GitHub (con los últimos títulos); «Actualizar el servidor» (pide
   confirmación) lo descarga, compila, instala y reinicia. Mientras tanto Órbita se queda sin conexión unos minutos y
   se reconecta sola; lo que estuviera trabajando queda en pausa para reanudarlo. Si el servidor tiene cambios hechos
@@ -245,7 +245,7 @@ En el chat de la app (y en «Nueva tarea») el micrófono graba **notas de voz**
 por Tailscale y este las pasa a texto con su propio dictado (Whisper, igual que el escritorio: sin servicios
 externos y el audio se borra). Al terminar se elige revisar el texto antes de enviarlo o enviarlo directamente.
 
-**Actualizar la app del móvil:** Más → Ajustes → **Órbita** → «Buscar actualizaciones». Al abrir Ajustes ya
+**Actualizar la app del móvil:** ☰ → Ajustes → Acerca de → **Órbita** → «Buscar actualizaciones». Al abrir Ajustes ya
 dice si hay una versión nueva; «Instalar la versión …» la descarga del ordenador (por Tailscale, solo a móviles
 emparejados), comprueba que es exactamente la anunciada y la instala encima: sigue emparejada. La primera vez
 Android pide permitir que Órbita instale apps («Permitir de esta fuente»); después se instala sola, sin
@@ -274,6 +274,28 @@ New repository secret), con los datos del archivo que indica `aicoworkSigning` e
 
 Sin esos secretos la publicación se para con el aviso «Falta el secreto de la clave de Órbita». Publicar a mano
 desde el PC (`./gradlew :app:publishOrbita` y subir `android/release/`) sigue funcionando igual.
+
+**Cómo es Órbita.** El mundo 3D ocupa toda la pantalla y todo lo demás flota encima en cristal, sin recuadros que
+lo corten:
+
+- **☰ (arriba a la izquierda)** abre la barra lateral, como en el escritorio: «Nuevo chat», el buscador (busca en los
+  títulos y en los mensajes de todos los chats), los proyectos con sus chats retomables (toca uno para seguirlo;
+  mantén pulsado para renombrarlo o borrarlo), «Música» y «Ajustes».
+- **Pestañas Chat · Archivos · Tareas · Resultados** en la cabecera del panel (en el móvil: Chat · Espacio · Tareas ·
+  Resultados, bajo la barra de arriba). La pestaña Tareas lleva el número de tareas en marcha.
+- **Un agente a la vez:** abajo, en vez de la barra del Equipo, sale la ficha de un agente con **‹ ›** (o deslizando)
+  para pasar al siguiente; tocarla abre su tarjeta. Las tareas en pausa avisan arriba.
+- **Controles de la cámara** (acercar, alejar, centrar) flotando abajo a la derecha en la tableta.
+- **Música sin anuncios:** ☰ → Música abre las radios de SomaFM y Audius con buscador y volumen. Mientras suena
+  queda un reproductor pequeño en la barra de arriba; se para al salir de la app.
+- **Ajustes en pestañas:** General (idioma, tema, tacto y mundo 3D), Agentes (planes de Hermes, ver el equipo), Conexión
+  (ordenador, servidor y este móvil) y Acerca de (actualizaciones de Órbita y apoyar kywai).
+- **Mismo tema que el escritorio:** el tema que eliges en kywai (⚙ → Ajustes → General → Tema) se guarda en el
+  servidor y Órbita lo aplica sola: colores de la interfaz y del mundo 3D (los robots conservan los suyos). Los
+  mapas con escenario propio no se pasan al móvil, solo sus colores. Para desarrolladores: `config.uiTheme`
+  (`setUiTheme`), `settings.theme` en la API móvil, `OrbitaThemes`/`OrbitaPalette` y `ui/space/SpaceGrade.kt`, que
+  recolorea en el sombreador.
+- **Iconos de un solo estilo y color:** el color se reserva para avisos y estados.
 
 Con el móvil plegado (pantalla exterior), las flechas de arriba a la derecha de un panel lo ponen **a pantalla
 completa**: sin la barra de abajo ni la de arriba, todo el sitio para el chat. Se recuerda (también al cerrar la
@@ -1256,7 +1278,7 @@ comandos del chat y la aprobación de planes entienden español e inglés en cua
 El portugués, el francés y el chino están traducidos a partir del inglés con IA: conviene que los revise alguien
 nativo. Si a un texto le falta la traducción, sale en inglés.
 
-**En Órbita** (el móvil) el idioma se elige aparte: Más → Ajustes → **«Idioma · Language»**: al tocarlo se despliega la
+**En Órbita** (el móvil) el idioma se elige aparte: ☰ → Ajustes → General → **«Idioma · Language»**: al tocarlo se despliega la
 lista (Del sistema, Español, English, Português, Français, 中文) y se elige uno. «Del sistema» sigue al del teléfono
 si es uno de esos cinco; si no, inglés. Al cambiarlo la app se
 reinicia sola y sigue emparejada. Cambia los textos de Órbita (pantallas, avisos, notificaciones y el mundo 3D); lo
