@@ -1,6 +1,6 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
+import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun } from '@shared/types'
 import type { MobileChatReceipt, MobileConversation, MobileCost, MobileFiles, MobileMusicResult, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
 import { mobileCost } from '@shared/costs'
@@ -98,6 +98,7 @@ export class MobileBackend {
       this.call<{ runtimes: AgentRuntime[]; quotas: QuotaInfo[] }>('getRuntime'),
       this.call<UsageRun[]>('getUsageRuns')
     ])
+    const templates = this.methods.has('listTemplates') ? await this.call<TaskTemplate[]>('listTemplates') : []
     const watermark = eventSequence()
     const configured = new Set(config.agents.map((a) => a.id))
     const agents = [...config.agents, ...(this.agents?.() ?? []).filter((a) => !configured.has(a.id))]
@@ -111,6 +112,7 @@ export class MobileBackend {
         return { ...task, trace: trace.slice(-SNAPSHOT_TRACE), traceCount: trace.length }
       }) ?? [],
       memory: state?.memory ?? [],
+      templates,
       usage: usageProjection(runs, runtime.quotas, config),
       settings: { agentAccess: config.agentAccess, planApproval: config.planApproval !== false, theme: config.uiTheme ?? 'clasico', ...(config.serverName ? { serverName: config.serverName } : {}) },
       sequence: watermark,
@@ -123,6 +125,7 @@ export class MobileBackend {
         planApproval: this.methods.has('approvePlan'), appUpdate: true, hermesModel: this.methods.has('getHermesModels'),
         agentReset: this.methods.has('resetAgent'), serverUpdate: this.methods.has('applyUpdate'), agentQuality: true, inbox: this.methods.has('listInbox'), taskChanges: this.methods.has('undoTask'),
         routines: this.methods.has('runRoutineNow'),
+        templates: this.methods.has('listTemplates'),
         directMessages: true,
         chats: this.methods.has('listConversations') && this.methods.has('openConversation'),
         chatActions: this.methods.has('forkConversation') && this.methods.has('moveConversation') && this.methods.has('pinnedConversations'),
@@ -302,7 +305,7 @@ export class MobileBackend {
     return { results }
   }
 
-  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = []): Promise<MobileChatReceipt> {
+  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = [], templateId?: string): Promise<MobileChatReceipt> {
     // Con id=null, un reintento sigue encontrando el mensaje aunque otro proyecto haya pasado a ser el más reciente.
     if (conversationId === null) {
       const projects = await this.call<ProjectSummary[]>('listProjects')
@@ -325,8 +328,12 @@ export class MobileBackend {
     // Adjuntos ya subidos (POST /files): van con el mensaje y a los agentes igual que los elegidos en el escritorio.
     const unknown = attachmentIds.find((attachmentId) => !state.attachments.some((a) => a.id === attachmentId))
     if (unknown) throw new MobileError(400, 'INVALID_INPUT', `attachmentIds: la conversación no tiene el adjunto ${unknown}`)
+    if (templateId) {
+      const tpl = (await this.call<TaskTemplate[]>('listTemplates')).find((x) => x.id === templateId)
+      if (!tpl || (tpl.projectId && tpl.projectId !== state.project.id)) throw new MobileError(400, 'INVALID_INPUT', 'templateId: esa plantilla ya no existe')
+    }
     try {
-      const { runId } = await this.call<{ runId: string }>('sendMessage', { projectId: state.project.id, text, filePaths: [], clientMessageId, attachmentIds })
+      const { runId } = await this.call<{ runId: string }>('sendMessage', { projectId: state.project.id, text, filePaths: [], clientMessageId, attachmentIds, ...(templateId ? { templateId } : {}) })
       return this.receipt(await this.call<LoadedProject>('loadProject', state.project.id), runId, clientMessageId)
     } catch (e) {
       if (e instanceof Error && e.message === 'clientMessageId ya se usó con otro texto') throw new MobileError(409, 'CLIENT_MESSAGE_CONFLICT', 'Ese clientMessageId ya se usó con otro texto')
@@ -451,6 +458,39 @@ export class MobileBackend {
       if (e instanceof MobileError) throw e
       throw new MobileError(404, 'NOT_FOUND', (e as Error).message)
     }
+  }
+
+  // ---- Plantillas de tareas (los cambios llegan por el evento templates.updated) ----
+
+  /** Lo que el motor rechaza al comprobar una plantilla (nombre vacío, orden repetida…) es un 400 con su motivo. */
+  private async templateCall<T>(name: string, ...args: unknown[]): Promise<T> {
+    try {
+      return await this.call<T>(name, ...args)
+    } catch (e) {
+      if (e instanceof MobileError) throw e
+      throw new MobileError(e instanceof Error && /ya no existe/.test(e.message) ? 404 : 400, e instanceof Error && /ya no existe/.test(e.message) ? 'TEMPLATE_NOT_FOUND' : 'INVALID_INPUT', e instanceof Error ? e.message : 'Plantilla no válida')
+    }
+  }
+
+  async templates(): Promise<{ templates: TaskTemplate[] }> {
+    return { templates: await this.call<TaskTemplate[]>('listTemplates') }
+  }
+
+  async createTemplate(input: Record<string, unknown>): Promise<{ template: TaskTemplate }> {
+    return { template: await this.templateCall<TaskTemplate>('createTemplate', input) }
+  }
+
+  async updateTemplate(templateId: string, patch: Record<string, unknown>): Promise<{ template: TaskTemplate }> {
+    return { template: await this.templateCall<TaskTemplate>('updateTemplate', templateId, patch) }
+  }
+
+  async deleteTemplate(templateId: string): Promise<{ deleted: true }> {
+    await this.templateCall<void>('deleteTemplate', templateId)
+    return { deleted: true }
+  }
+
+  async restoreTemplates(): Promise<{ templates: TaskTemplate[] }> {
+    return { templates: await this.templateCall<TaskTemplate[]>('restoreTemplates') }
   }
 
   // ---- Rutinas (los cambios llegan por el evento routines.updated) ----

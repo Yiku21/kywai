@@ -1,5 +1,7 @@
 import type { Lang } from './i18n'
 import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
+import type { TaskTemplate, TaskTemplateInput } from './templates'
+export type { TaskTemplate, TaskTemplateInput } from './templates'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
 // Todo lo que cruza IPC está definido aquí.
 
@@ -436,6 +438,8 @@ export interface ChatMessage {
   routine?: { id: string; name: string }
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
   direct?: { agentId: AgentId; name: string }
+  /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
+  template?: { id: string; name: string }
 }
 
 /** Te sirvió (up) o no (down). */
@@ -1162,6 +1166,7 @@ export type CoworkEvent = EventBase &
     | { kind: 'task.trace'; taskId: string; projectId: string; entry: TraceEntry }
     | { kind: 'memory.updated'; projectId: string; memory: MemoryEntry[]; instructions: string }
     | { kind: 'routines.updated'; projectId: string; routines: Routine[] }
+    | { kind: 'templates.updated'; templates: TaskTemplate[] }
     | { kind: 'project.deleted'; projectId: string }
     | { kind: 'local.pull'; pull: LocalPullState }
     | { kind: 'setup.log'; toolId: SetupToolId; line: string }
@@ -1225,6 +1230,11 @@ export interface SendMessageInput {
   filePaths: string[]
   /** Adjuntos que ya están en el proyecto (subidos antes desde el móvil): van con el mensaje sin copiarlos otra vez. */
   attachmentIds?: string[]
+  /**
+   * Se lanza con esta plantilla de tareas (el texto ya llega con sus huecos rellenos): el chat la nombra y se aplican
+   * sus opciones (agente directo, pedir visto bueno al plan).
+   */
+  templateId?: string
 }
 
 export interface CoworkApi {
@@ -1294,6 +1304,14 @@ export interface CoworkApi {
   /** Cambia nombre, petición, disparador o la activa/desactiva. */
   updateRoutine(projectId: string, id: string, patch: Partial<RoutineInput>): Promise<Routine>
   deleteRoutine(projectId: string, id: string): Promise<void>
+  /** Plantillas de tareas de todos los proyectos (los cambios llegan por el evento templates.updated). */
+  listTemplates(): Promise<TaskTemplate[]>
+  createTemplate(input: TaskTemplateInput): Promise<TaskTemplate>
+  /** Cambia lo que se indique (projectId o agentId a null: general / por Hermes). */
+  updateTemplate(id: string, patch: Partial<TaskTemplateInput>): Promise<TaskTemplate>
+  deleteTemplate(id: string): Promise<void>
+  /** Vuelve a poner las de serie que se hayan borrado. */
+  restoreTemplates(): Promise<TaskTemplate[]>
   /** «Ejecutar ahora»: la lanza ya (si la anterior sigue en marcha, se apunta como saltada). */
   runRoutineNow(projectId: string, id: string): Promise<RoutineRun>
   /** Dirección del webhook con su secreto (regenerate: secreto nuevo; la dirección anterior deja de valer). */

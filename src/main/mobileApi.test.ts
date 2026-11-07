@@ -31,6 +31,7 @@ import { localIO, syncOnce } from './syncEngine'
 import { connectRemote } from './syncRemote'
 import { DEVICE_INACTIVE_MS, DeviceRegistry } from './devices'
 import { createRoutine, initRoutines, runRoutineNow, stopRoutines } from './routines'
+import { createTemplate, deleteTemplate, initTemplates, listTemplates, restoreBuiltinTemplates, updateTemplate } from './templates'
 
 const env = vi.hoisted(() => ({ root: '' }))
 vi.mock('electron', () => ({ app: { isPackaged: false, getAppPath: () => env.root, getPath: () => env.root } }))
@@ -76,7 +77,7 @@ async function api(path: string, data?: unknown, access = token): Promise<{ stat
   const response = { status: res.status, body: await res.json() }
   if (res.status >= 400) schemaFormat('Error', response.body)
   else {
-    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/')
+    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/templates\/(?!restore$)[^/]+/, '/templates/{templateId}').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/')
     const operation = openapi.paths[route][data === undefined ? 'get' : 'post']
     const schemaName = operation.responses[String(res.status)].content['application/json'].schema.$ref.split('/').at(-1)
     schemaFormat(schemaName, response.body)
@@ -1801,6 +1802,62 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     } finally {
       webMethods.delete('listMods')
       webMethods.delete('modPanel')
+    }
+  })
+
+  it('plantillas de tareas desde el móvil: las ve, las crea, las cambia y las lanza con un toque o con «/orden»', async () => {
+    expect((await api('/snapshot')).body.capabilities.templates).toBe(false)
+    const dir = mkdtempSync(join(tmpdir(), 'aicw-plantillas-'))
+    initTemplates(dir, { isProject: (pid) => store.listProjects().some((p) => p.id === pid) })
+    webMethods.set('listTemplates', () => listTemplates())
+    webMethods.set('createTemplate', (input) => createTemplate(input))
+    webMethods.set('updateTemplate', (tid, patch) => updateTemplate(tid, patch))
+    webMethods.set('deleteTemplate', (tid) => deleteTemplate(tid))
+    webMethods.set('restoreTemplates', () => restoreBuiltinTemplates())
+    try {
+      const id = (await api('/conversations', {})).body.conversation.id as string
+      const snap = (await api(`/snapshot?conversationId=${id}`)).body as MobileSnapshot
+      expect(snap.capabilities.templates).toBe(true)
+      // Vienen las de serie.
+      expect(snap.templates!.map((x) => x.command)).toContain('revisar-pr')
+      const created = await api('/templates', { name: 'Resumen diario', prompt: 'Resume lo de {tema} en tres frases', icon: '📝', projectId: id })
+      expect(created.status).toBe(201)
+      expect(created.body.template).toEqual(expect.objectContaining({ name: 'Resumen diario', command: 'resumen-diario', projectId: id, icon: '📝' }))
+      const tid = created.body.template.id as string
+      expect((await api('/templates', { name: 'Otra', prompt: 'x', command: 'rutina' })).body).toEqual(expect.objectContaining({ code: 'INVALID_INPUT' }))
+      expect((await api('/templates', { name: 'Otra', prompt: 'x', projectId: 'no-existe' })).status).toBe(400)
+      expect((await api('/templates', { name: 'Otra', prompt: 'x', pinned: 'sí' })).status).toBe(400)
+      expect((await api(`/templates/${tid}`, { pinned: true, askPlan: false })).body.template.pinned).toBe(true)
+      expect((await api('/templates/noexiste', { name: 'x' })).body.code).toBe('TEMPLATE_NOT_FOUND')
+
+      // Con un toque: el texto llega relleno y el mensaje nombra la plantilla.
+      let seen = prompts.length
+      const sent = await api('/chat/messages', { conversationId: id, text: 'Resume lo de los pagos en tres frases', clientMessageId: 'client-plantilla', templateId: tid })
+      expect(sent.status).toBe(202)
+      expect(sent.body.message.template).toEqual({ id: tid, name: 'Resumen diario' })
+      await vi.waitFor(() => expect(prompts.slice(seen).some((p) => p.includes('Resume lo de los pagos en tres frases'))).toBe(true))
+      cancelAll()
+      expect((await api('/chat/messages', { conversationId: id, text: 'x', clientMessageId: 'client-plantilla-2', templateId: 'noexiste' })).body.code).toBe('INVALID_INPUT')
+
+      // Escribiendo la orden: en el chat se ve lo escrito; al equipo le llega el texto de la plantilla.
+      seen = prompts.length
+      const typed = await api('/chat/messages', { conversationId: id, text: '/resumen-diario las ventas', clientMessageId: 'client-plantilla-3' })
+      expect(typed.body.message.text).toBe('/resumen-diario las ventas')
+      expect(typed.body.message.template.name).toBe('Resumen diario')
+      await vi.waitFor(() => expect(prompts.slice(seen).some((p) => p.includes('Resume lo de las ventas en tres frases'))).toBe(true))
+      cancelAll()
+
+      expect((await api(`/templates/${tid}/delete`, {})).body).toEqual({ deleted: true })
+      const builtin = listTemplates().find((x) => x.builtin === 'review-pr')!
+      await api(`/templates/${builtin.id}/delete`, {})
+      expect(listTemplates().some((x) => x.builtin === 'review-pr')).toBe(false)
+      expect((await api('/templates/restore', {})).body.templates.some((x: { builtin?: string }) => x.builtin === 'review-pr')).toBe(true)
+      expect((await api('/templates')).body.templates.length).toBe(6)
+    } finally {
+      cancelAll()
+      for (const m of ['listTemplates', 'createTemplate', 'updateTemplate', 'deleteTemplate', 'restoreTemplates']) webMethods.delete(m)
+      initTemplates('')
+      rmSync(dir, { recursive: true, force: true, maxRetries: 3 })
     }
   })
 
