@@ -205,6 +205,10 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   useEffect(() => {
     model.root.traverse((o) => {
       if (o instanceof THREE.Sprite) o.raycast = () => {}
+      if (o instanceof THREE.Mesh && palette.world) {
+        o.castShadow = true
+        o.receiveShadow = true
+      }
     })
   }, [model])
 

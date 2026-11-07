@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import type * as THREE from 'three'
 import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei'
-import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
+import { Bloom, EffectComposer, Vignette, N8AO } from '@react-three/postprocessing'
 import type { AgentConfig, StationConfig } from '@shared/types'
 import { useCowork, useData } from '@/store/cowork'
 import { musicLightLevel } from '@/lib/music'
@@ -165,6 +165,10 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   const theme = useTheme()
   const p = palette
   const L = p.lights
+  // Los entornos nuevos usan materiales físicos también en el suelo y la arquitectura.
+  const worldLight = p.world ? (p.light ? 0.85 : 2.4) : 1
+  const fogNear = p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
+  const fogFar = p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
 
   // Pausa total cuando la ventana o pestaña está oculta.
   useEffect(() => {
@@ -176,36 +180,41 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   return (
     <Canvas
       dpr={q.dpr}
+      shadows={!!p.world && q.bloom}
       frameloop={!visible ? 'never' : focused ? 'always' : 'demand'}
-      camera={{ fov: 30, position: [0, 15.4, 19.8], near: 0.5, far: 150 }}
+      camera={{ fov: 30, position: [0, 15.4, 19.8], near: 0.5, far: 420 }}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false, stencil: false }}
       onPointerMissed={() => useCowork.getState().select(null)}
       aria-label={t('Espacio digital con los agentes trabajando')}
     >
       <color key={`bg-${theme}`} attach="background" args={[p.bg]} />
-      <fog key={`fog-${theme}`} attach="fog" args={[p.fog, FOG_NEAR, FOG_FAR]} />
+      <fog key={`fog-${theme}`} attach="fog" args={[p.fog, fogNear, fogFar]} />
       <SceneClock />
       <IdleFrames active={visible && !focused} />
       {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. */}
       {focused && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />}
 
       <group key={theme}>
-        <hemisphereLight args={[L.sky, L.ground, L.hemi]} />
-        <ambientLight intensity={L.ambientI} color={L.ambient} />
-        <directionalLight position={[-7, 14, 9]} intensity={L.keyI} color={L.key} />
-        <directionalLight position={[8, 6, -6]} intensity={L.fillI} color={L.fill} />
+        <hemisphereLight args={[L.sky, L.ground, L.hemi * worldLight]} />
+        <ambientLight intensity={L.ambientI * worldLight} color={L.ambient} />
+        <directionalLight position={[-7, 14, 9]} intensity={L.keyI * worldLight} color={L.key}
+          castShadow={!!p.world && q.bloom} shadow-mapSize={[2048, 2048]} shadow-bias={-0.00015} shadow-normalBias={0.035}
+          shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20}
+          shadow-camera-near={0.5} shadow-camera-far={65} />
+        <directionalLight position={[8, 6, -6]} intensity={L.fillI * worldLight} color={L.fill} />
+        {p.world && <directionalLight position={[1, 8, -12]} intensity={p.light ? 0.4 : p.world === 'bosque' ? 0.75 : 0.3} color={p.world === 'bosque' ? '#d5db9b' : p.world === 'eva' ? '#a4bbde' : '#c3d8ef'} />}
 
         {/* Entorno para reflejos de los visores (generado localmente, sin descargas) */}
-        <Environment resolution={128} frames={1}>
+        <Environment resolution={p.world ? 256 : 128} frames={1}>
           <Lightformer form="rect" intensity={1.3} color={L.env[0]} position={[0, 4, 6]} scale={[9, 2.2, 1]} />
           <Lightformer form="rect" intensity={1.2} color={L.env[1]} position={[-6, 2, 1]} rotation-y={Math.PI / 2} scale={[6, 2, 1]} />
           <Lightformer form="ring" intensity={0.9} color={L.env[2]} position={[5, 5, -3]} scale={2.5} />
           <Lightformer form="rect" intensity={0.6} color={L.env[3]} position={[0, -3, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
         </Environment>
 
-        <Backdrop reduced={reduced} />
+        {!p.world && <Backdrop reduced={reduced} />}
         <Ambient q={q} reduced={reduced} />
-        <Circuits stations={stations} reduced={reduced} />
+        {!['bosque', 'marfil', 'orbita'].includes(p.world ?? '') && <Circuits stations={stations} reduced={reduced} />}
         <Zones />
         <Core />
         <Stations stations={stations} showLights={q.stationLights} />
@@ -219,6 +228,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
 
       {q.bloom && (
         <EffectComposer multisampling={q.msaa} enableNormalPass={false}>
+          <N8AO enabled={!!p.world} aoRadius={0.55} intensity={1.1} distanceFalloff={0.8} quality="medium" halfRes />
           <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 : 1) * (p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
           <Vignette offset={0.28} darkness={p.vignette} />
         </EffectComposer>

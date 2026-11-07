@@ -1,7 +1,11 @@
-// Colores del espacio digital según el tema (⚙ → Ajustes → «Tema»). El clásico es índigo con acentos azul eléctrico y
-// violeta; los demás recolorean suelo, ciudad, estaciones, circuitos, núcleo y luces. Al cambiar de tema el mundo se
-// vuelve a montar (los materiales leen la paleta al crearse) y los compartidos se repintan con onPalette.
+// Apariencia del espacio digital según el tema (⚙ → Ajustes → «Tema»). Hay tres clases de tema:
+// - la Ciudad digital con siete colores (PALETTES: el clásico índigo y los que recolorean suelo, ciudad, estaciones,
+//   circuitos, núcleo y luces);
+// - los siete mapas con entorno, plataformas y núcleo propios (WORLD_PALETTES, montados desde worlds/);
+// - los cuatro decorados (Relicario, Telar, Halloween y Navidad, también en PALETTES).
+// Al cambiar de tema el mundo se vuelve a montar (los materiales leen la paleta al crearse) y los compartidos se repintan con onPalette.
 import * as THREE from 'three'
+import type { WorldStyle } from './worlds/models'
 
 export const FOG_NEAR = 28
 export const FOG_FAR = 62
@@ -9,6 +13,8 @@ export const FOG_FAR = 62
 type V3 = [number, number, number]
 
 export interface ScenePalette {
+  /** Mapa con entorno y plataformas propios (worlds/). Sin él, la Ciudad digital o un tema decorado. */
+  world?: WorldStyle
   /** Tema claro: los brillos se mezclan normal (sumados, sobre un fondo claro, no se verían). */
   light: boolean
   bg: string
@@ -77,7 +83,7 @@ export interface ScenePalette {
 }
 
 export type DecorId = 'relicario' | 'telar' | 'halloween' | 'navidad'
-export type CoreStyle = 'sphere' | 'crystal' | 'weave' | 'pumpkin' | 'globe'
+export type CoreStyle = 'sphere' | 'crystal' | 'weave' | 'pumpkin' | 'globe' | 'hologram' | 'planetarium' | 'sculpture' | 'reactor' | 'tree' | 'voxel' | 'capsule'
 
 const CLASSIC: ScenePalette = {
   light: false,
@@ -588,6 +594,32 @@ export const PALETTES: Record<SceneThemeId, ScenePalette> = {
   })
 }
 
+/** Los siete mapas: parten de los colores de la Ciudad del mismo nombre y cambian entorno, núcleo, niebla y luces. */
+export const WORLD_PALETTES: Record<WorldStyle, ScenePalette> = {
+  clasico: { ...CLASSIC, world: 'clasico', core: 'hologram' },
+  orbita: {
+    ...CLASSIC,
+    world: 'orbita',
+    core: 'planetarium',
+    bg: '#020611',
+    fog: '#050b1b',
+    primary: '#649fff',
+    accent: '#a0e7ff',
+    lights: { ...CLASSIC.lights, sky: '#7d9bb8', ground: '#060d16', hemi: 0.45, ambientI: 0.16, key: '#eaf5ff', keyI: 1.8, fill: '#75aad4', fillI: 0.3, env: ['#edf6ff', '#a1c5e1', '#497189', '#131c24'] }
+  },
+  marfil: { ...PALETTES.marfil, world: 'marfil', core: 'sculpture', bloom: 0.25, frost: { opacity: 0.9, color: [0.86, 0.84, 0.77] }, bg: '#d8e9ef', fog: '#dae8eb' },
+  grafito: { ...PALETTES.grafito, world: 'grafito', core: 'reactor', fog: '#303236' },
+  bosque: {
+    ...PALETTES.bosque,
+    world: 'bosque',
+    core: 'tree',
+    fog: '#304a42',
+    lights: { ...PALETTES.bosque.lights, sky: '#8ca698', ground: '#292016', ambient: '#cddcd1', key: '#ffe4af' }
+  },
+  matrix: { ...PALETTES.matrix, world: 'matrix', core: 'voxel' },
+  eva: { ...PALETTES.eva, world: 'eva', core: 'capsule' }
+}
+
 /** La paleta del tema actual (se cambia con setScenePalette antes de montar el mundo). */
 export let palette: ScenePalette = CLASSIC
 
@@ -599,8 +631,10 @@ export function onPalette(fn: (p: ScenePalette) => void): void {
   fn(palette)
 }
 
+/** [id]: un color de la Ciudad o un tema decorado ('grafito', 'halloween'…) o un mapa ('mundo-grafito'). */
 export function setScenePalette(id: string): void {
-  const next = PALETTES[id as SceneThemeId] ?? CLASSIC
+  const world = id.startsWith('mundo-') ? WORLD_PALETTES[id.slice(6) as WorldStyle] : undefined
+  const next = world ?? PALETTES[id as SceneThemeId] ?? CLASSIC
   if (next === palette) return
   palette = next
   listeners.forEach((fn) => fn(next))
@@ -618,7 +652,7 @@ export function glowBlending(): THREE.Blending {
  */
 export function tone(hex: string): string {
   const p = palette
-  if (p === CLASSIC) return hex
+  if (p === CLASSIC || p === WORLD_PALETTES.clasico) return hex
   const src = rgbOf(hex)
   const { h, l } = hslOf(src)
   if (l < 0.2) return mixHex(p.body, p.bodyTop, Math.min(1, Math.max(0, (l - 0.09) / 0.09)))

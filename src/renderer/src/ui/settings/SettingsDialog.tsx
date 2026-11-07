@@ -40,7 +40,7 @@ import { UpdateDialog } from '../header/UpdateDialog'
 import { SyncDialog } from '../files/SyncDialog'
 import { SoundRows } from '../header/AudioToggle'
 import { ThemeGrid } from '../header/ThemeDialog'
-import { THEMES, useTheme } from '@/lib/theme'
+import { themeLabel, useTheme } from '@/lib/theme'
 import { ROLE_TITLE, explainWhere, useWhere } from '../header/useWhere'
 import { useEscape } from '../common/hooks'
 import { cx, errorText } from '../common/util'
@@ -228,7 +228,7 @@ function GeneralTab() {
             <span className={s.rowHint}>{t('El aspecto de kywai en este dispositivo. Se aplica al momento y se recuerda.')}</span>
           </span>
           <button type="button" className={cx(u.btn, u.btnSm, s.expand)} aria-expanded={themesOpen} onClick={() => setThemesOpen((v) => !v)}>
-            {THEMES.find((x) => x.id === theme)?.name}
+            {themeLabel(theme)}
             <ChevronDown size={15} aria-hidden="true" className={cx(s.chev, themesOpen && s.chevOpen)} />
           </button>
         </div>

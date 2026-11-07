@@ -25,7 +25,7 @@ import { MusicPanel } from '@/ui/space/MusicPanel'
 import { HermesModelDialog } from '@/ui/space/HermesModelDialog'
 import { Sidebar } from '@/ui/sidebar/Sidebar'
 import { SearchDialog } from '@/ui/sidebar/SearchDialog'
-import { useTheme } from '@/lib/theme'
+import { useUiTheme } from '@/lib/theme'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
 import { lang, t } from '@/lib/i18n'
@@ -102,7 +102,7 @@ export function App() {
   const searchOpen = useCowork((st) => st.searchOpen)
   const showSetup = useCowork((st) => !isWeb && st.hasBackend && st.configLoaded && (!st.config.setupDone || st.setupOpen))
   // Tema Órbita: el espacio 3D ocupa toda la ventana y la interfaz flota encima como cristal esmerilado.
-  const glass = useTheme() === 'orbita'
+  const glass = useUiTheme() === 'orbita'
   // Ventana estrecha: el chat ocupa todo y el 3D pasa a la pestaña «Espacio» de la cabecera (el chat manda).
   const narrow = useMediaQuery(TABS_QUERY)
   const left = useRef<HTMLElement>(null)

@@ -14,6 +14,9 @@ import { GiftDressing, giftBase } from './navidad'
 import { StoneDressing, pedestal, stoneMaterial } from './halloween'
 import { GlassDressing, glassMaterial, glassTiers } from './relicario'
 import { LoomSeat, invisibleMaterial } from './telar'
+import { WorldCenterpiece, WorldPlatform } from './worlds/WorldScenery'
+import { EvaChamber } from './worlds/EvaChamber'
+import { GrafitoReactor } from './worlds/GrafitoReactor'
 
 const BLUE_C = new THREE.Color()
 const CYAN_C = new THREE.Color()
@@ -39,8 +42,12 @@ const geo = {
 
 /** Núcleo central del proyecto: una esfera de cristal con los documentos del equipo dentro. */
 export function Core() {
-  // Forma del tema (la esfera, salvo en Relicario, Telar, Halloween y Navidad).
+  // Cada tema conserva las transferencias y documentos dentro de su propia forma.
   const style = palette.core ?? 'sphere'
+  const world = palette.world
+  const containment = style === 'capsule' || style === 'reactor'
+  const sculptural = style === 'tree' || style === 'sculpture' || style === 'planetarium' || containment
+  const orbitVisible = !world || world === 'clasico' || world === 'orbita'
   const shape = coreShape(style, R)
   const sphere = useRef<THREE.Group>(null!)
   const wire = useRef<THREE.LineSegments>(null!)
@@ -72,13 +79,13 @@ export function Core() {
       wire: new THREE.LineBasicMaterial({ color: new THREE.Color(tone('#6fa8ff')), opacity: 0.32, ...additive }),
       orbit: new THREE.MeshBasicMaterial({ color: CYAN_C.clone().multiplyScalar(1.3), opacity: 0.9, ...additive }),
       orbit2: new THREE.MeshBasicMaterial({ color: BLUE_C.clone().multiplyScalar(1.2), opacity: 0.6, ...additive }),
-      card: new THREE.MeshBasicMaterial({ map: docTexture, color: new THREE.Color(tone('#a9d4ff')).multiplyScalar(1.35), side: THREE.DoubleSide, ...additive }),
+      card: new THREE.MeshBasicMaterial({ map: docTexture, color: new THREE.Color(tone('#a9d4ff')).multiplyScalar(1.35), opacity: containment ? 0.49 : 1, side: THREE.DoubleSide, ...additive }),
       node: new THREE.MeshBasicMaterial({ color: new THREE.Color(tone('#cfe0ff')).multiplyScalar(1.6), toneMapped: false }),
       glow: new THREE.MeshBasicMaterial({ map: glowTexture, color: BLUE_C.clone(), opacity: 0.45, ...additive }),
       inner: new THREE.SpriteMaterial({ map: glowTexture, color: new THREE.Color(tone('#3d6bff')), opacity: 0.35, ...additive }),
       rings: [0, 1, 2].map(() => new THREE.MeshBasicMaterial({ color: CYAN_C.clone(), opacity: 0, side: THREE.DoubleSide, ...additive }))
     }
-  }, [])
+  }, [containment, style])
 
   useEffect(
     () => () => {
@@ -149,7 +156,7 @@ export function Core() {
     // Pulso de la música: se suma a los destellos de las transferencias.
     boost += registry.beat * 0.9
     // La calabaza no gira: su cara mira siempre al frente. El resto gira con sus líneas.
-    if (style !== 'pumpkin') wire.current.rotation.y += dt * (0.06 * amb + spinBoost.current * 0.4)
+    if (!['pumpkin', 'reactor', 'capsule'].includes(style)) wire.current.rotation.y += dt * (0.06 * amb + spinBoost.current * 0.4)
     shell.current.rotation.y = wire.current.rotation.y
     orbit.current.rotation.y -= dt * (0.25 * amb + spinBoost.current * 0.6)
     sphere.current.position.y = CENTER_Y + Math.sin(t * 0.7) * 0.05 * amb
@@ -179,8 +186,17 @@ export function Core() {
 
   return (
     <group>
+      {world && <>
+        <group scale={[1.48, 1, 1.48]} onClick={focus}><WorldPlatform style={world} /></group>
+        <group onClick={focus}>
+          <WorldCenterpiece style={world} />
+          {style === 'capsule' && <EvaChamber reduced={reduced} charge={spinBoost} />}
+          {style === 'reactor' && <GrafitoReactor reduced={reduced} charge={spinBoost} />}
+        </group>
+      </>}
       {/* Base hexagonal baja con anillo luminoso */}
       <mesh
+        visible={!world}
         geometry={style === 'globe' ? GLOBE_BASE : style === 'pumpkin' ? pedestal(2.65, 0, 0.32) : style === 'crystal' ? glassTiers(2.75, 0, 0.36) : geo.base}
         material={style === 'pumpkin' ? stoneMaterial() : style === 'crystal' ? glassMaterial() : style === 'weave' ? invisibleMaterial() : graphiteMat}
         position={[0, style === 'pumpkin' || style === 'crystal' ? 0 : 0.13, 0]}
@@ -190,8 +206,8 @@ export function Core() {
       {style === 'weave' && <LoomSeat r={2.7} y={0.6} reduced={reduced} yaw={0.4} />}
       {style === 'pumpkin' && <StoneDressing r={2.65} top={0.32} ground={0} reduced={reduced} seed={9} pumpkins={false} />}
       {style === 'globe' && <GiftDressing r={2.5} y0={-0.02} h={0.3} snowCap="ring" reduced={reduced} seed={7} />}
-      <mesh geometry={geo.plate} material={mats.plate} position={[0, 0.27, 0]} />
-      <mesh geometry={geo.rimBase} material={mats.rim} position={[0, 0.29, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh visible={!world} geometry={geo.plate} material={mats.plate} position={[0, 0.27, 0]} />
+      <mesh visible={!world} geometry={geo.rimBase} material={mats.rim} position={[0, 0.29, 0]} rotation={[Math.PI / 2, 0, 0]} />
       <mesh geometry={GEO.glowPlane} material={mats.glow} position={[0, 0.3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={6.5} />
       {[0, 1, 2].map((i) => (
         <mesh
@@ -209,11 +225,11 @@ export function Core() {
 
       <group ref={sphere} position={[0, CENTER_Y, 0]}>
         {/* Lo propio de cada forma va dentro de la superficie y gira con ella (la calabaza no gira). */}
-        <mesh ref={shell} geometry={shape.shell} material={mats.shell} onClick={focus}>
+        <mesh visible={!sculptural} ref={shell} geometry={shape.shell} material={mats.shell} onClick={focus}>
           <CoreExtras style={style} radius={R} reduced={reduced} />
         </mesh>
-        <lineSegments ref={wire} geometry={shape.wire} material={mats.wire} />
-        <sprite material={mats.inner} scale={[2.6, 2.6, 1]} />
+        <lineSegments visible={!sculptural} ref={wire} geometry={shape.wire} material={mats.wire} />
+        <sprite visible={!sculptural} material={mats.inner} scale={[2.6, 2.6, 1]} />
         {shape.nodes &&
           nodes.map((p, i) => <mesh key={i} geometry={geo.node} material={mats.node} position={p} />)}
         <group ref={cards}>
@@ -222,15 +238,15 @@ export function Core() {
               key={i}
               geometry={geo.card}
               material={mats.card}
-              position={[Math.cos(c.a) * c.r, c.y, Math.sin(c.a) * c.r]}
-              scale={c.s}
+              position={[Math.cos(c.a) * (containment ? 1.7 : c.r), c.y, Math.sin(c.a) * (containment ? 1.7 : c.r)]}
+              scale={c.s * (containment ? 0.56 : 1)}
             />
           ))}
         </group>
-        <group ref={orbit} rotation={[0.42, 0, 0.18]}>
+        <group visible={orbitVisible} ref={orbit} rotation={[0.42, 0, 0.18]}>
           <mesh geometry={geo.orbit} material={mats.orbit} rotation={[Math.PI / 2, 0, 0]} />
         </group>
-        <mesh geometry={geo.orbit2} material={mats.orbit2} rotation={[Math.PI / 2 - 0.2, 0.3, 0]} />
+        <mesh visible={orbitVisible} geometry={geo.orbit2} material={mats.orbit2} rotation={[Math.PI / 2 - 0.2, 0.3, 0]} />
       </group>
       <pointLight ref={light} position={[0, 2.2, 0]} color={BLUE_C} distance={10} decay={2} intensity={2} />
       <group ref={labelAnchor} position={[0, 0.4, 2.85]} />
