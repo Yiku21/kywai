@@ -12,6 +12,7 @@ import type { AgentConfig, CoworkEvent, WebAccessInfo } from '@shared/types'
 import { tapEvents, tapMobileEvents } from './events'
 import { savePastedFile } from './local'
 import * as store from './projects'
+import { modPanelResponse } from './mods'
 import type { TlsPair } from './selfCert'
 import { MobileApi } from './mobileApi'
 import { handleRoutineWebhook } from './routines'
@@ -514,6 +515,12 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (path === '/api/ping' && req.method === 'GET') return json(res, 200, { boot: BOOT_ID })
   if (path === '/api/events' && req.method === 'GET') return openEvents(req, res)
   if (path.startsWith('/api/file/') && req.method === 'GET') return serveProjectFile(res, path)
+  if (path.startsWith('/api/mod-panel/') && req.method === 'GET') {
+    const r = modPanelResponse(path.slice('/api/mod-panel/'.length))
+    res.writeHead(r.status, r.headers)
+    res.end(r.body)
+    return
+  }
 
   if (path.startsWith('/api/fs/')) return handleFs(req, res, url)
 
