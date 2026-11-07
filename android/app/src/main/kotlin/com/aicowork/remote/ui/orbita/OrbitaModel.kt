@@ -139,6 +139,14 @@ class OrbitaModel(
     var drawerOpen by mutableStateOf(false)
     /** «Buscar» de la barra lateral. */
     var searchOpen by mutableStateOf(false)
+    /** Texto con el que se abre «Buscar» (desde el Historial: «Buscar … dentro de los mensajes»). */
+    var searchSeed by mutableStateOf("")
+    /** «Historial»: todos los chats de todos los proyectos. */
+    var historyOpen by mutableStateOf(false)
+    /** Mensaje al que el chat tiene que bajar (lo pide el buscador al abrir un resultado). */
+    var focusMessageId by mutableStateOf<String?>(null)
+    /** Mensaje resaltado un momento después de llegar a él desde el buscador. */
+    var flashMessageId by mutableStateOf<String?>(null)
     /** «Música»: radios y canciones sin anuncios. */
     var musicOpen by mutableStateOf(false)
     val music = MusicPlayer()
@@ -316,6 +324,15 @@ class OrbitaModel(
 
     /** El ordenador sabe renombrar, fijar y eliminar proyectos desde aquí. */
     fun projectActionsSupported(): Boolean = snapshot()?.capabilities?.projectActions == true
+
+    /** El ordenador tiene el Historial (todos los chats, filtros de búsqueda y el mensaje exacto). */
+    fun historySupported(): Boolean = snapshot()?.capabilities?.history == true
+
+    fun openHistory() {
+        drawerOpen = false
+        searchOpen = false
+        historyOpen = true
+    }
 
     fun loadPinned() {
         if (!chatActionsSupported()) return
@@ -516,6 +533,13 @@ class OrbitaModel(
     // ------------------------------------------------------------------ Actividad real
 
     private fun snapshot(): Snapshot? = controller.state.value.snapshot
+
+    /** Quién escribió un mensaje encontrado: «Tú», «Aviso» o el nombre del agente. */
+    fun authorName(by: String): String = when (by) {
+        "user" -> t("Tú")
+        "system" -> t("Aviso")
+        else -> snapshot()?.agents?.firstOrNull { it.id == by }?.name ?: by
+    }
 
     private fun agentName(id: String?): String = snapshot()?.agents?.firstOrNull { it.id == id }?.name ?: when (id) {
         "core" -> t("el proyecto")

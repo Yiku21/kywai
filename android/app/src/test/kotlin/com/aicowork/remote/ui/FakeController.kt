@@ -105,6 +105,20 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
         calls += "search:$query"
         return Result.success(listOf(com.aicowork.remote.data.model.SearchHit("conversation", "c1", "Proyecto demo", "ch0", "Informe semanal", "…el informe semanal…", 1)))
     }
+    override suspend fun searchHistory(query: String, since: Long?, author: String?, limit: Int): Result<com.aicowork.remote.data.model.SearchResponse> {
+        calls += "searchHistory:$query:${author ?: ""}:${since != null}:$limit"
+        val matches = listOf(
+            com.aicowork.remote.data.model.SearchMatch("m-a", "el informe semanal de lunes", 1, "user"),
+            com.aicowork.remote.data.model.SearchMatch("m-b", "aquí va el informe pedido", 2, "claude"),
+        )
+        val hit = com.aicowork.remote.data.model.SearchHit("conversation", "c1", "Proyecto demo", "ch0", "Informe semanal", "…el informe semanal…", 1, messageId = "m-a", matchCount = 2, matches = matches)
+        return Result.success(com.aicowork.remote.data.model.SearchResponse(listOf(hit), total = 1))
+    }
+    var allChatsList = listOf(
+        com.aicowork.remote.data.model.ChatSummary("ch0", "c1", "Informe semanal", 1, System.currentTimeMillis(), 4),
+        com.aicowork.remote.data.model.ChatSummary("ch9", "c2", "Plan del lanzamiento", 1, System.currentTimeMillis() - 40L * 86_400_000, 2),
+    )
+    override suspend fun allChats(): Result<List<com.aicowork.remote.data.model.ChatSummary>> { calls += "allChats"; return Result.success(allChatsList) }
     override suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> {
         calls += "trace:$taskId"
         return Result.success(state.value.snapshot?.tasks?.firstOrNull { it.id == taskId }?.trace.orEmpty())
