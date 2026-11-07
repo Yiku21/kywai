@@ -1554,6 +1554,7 @@ push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
 
 - `node web/build.mjs` genera la web; `node web/build.mjs --preview` la genera con enlaces `index.html` para abrirla sin servidor.
 - La primera visita a la raíz lleva al idioma del navegador; elegir idioma en el menú se recuerda.
+- El vídeo de la web (`web/assets/video/presentacion.mp4`, 58 s, 1280×720, unos 4 MB) es la versión comprimida del vídeo de presentación de kywai hecho con HyperFrames; su portada es `portada.jpg`. Para cambiarlo, comprimir el vídeo nuevo a 720p con un tamaño parecido y ajustar `video.title` en `web/textos.mjs` si cambia la duración.
 - Las descargas se leen de la última Release de GitHub al abrir la página y enlazan el instalador del sistema de quien la visita. Si GitHub no responde, enlazan a la página de versiones.
 - El dominio kywai.app está en Hostinger con los registros de GitHub Pages (A y AAAA de GitHub, CNAME `www` → `yiku21.github.io`) y verificado en la cuenta. En el repo: Settings → Pages → Source «GitHub Actions», Custom domain `kywai.app` y «Enforce HTTPS».
 
