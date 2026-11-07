@@ -124,12 +124,30 @@ data class MusicResponse(val results: List<MusicResult> = emptyList())
 data class ChatRenameRequest(val conversationId: String, val title: String)
 
 @Serializable
+data class ChatPinRequest(val conversationId: String, val pinned: Boolean)
+
+@Serializable
+data class ChatMoveRequest(val conversationId: String, val toConversationId: String)
+
+/** Respuesta de bifurcar o mover un chat: su id (en el destino) y los chats del proyecto de origen. */
+@Serializable
+data class ChatCopyResponse(val chatId: String, val chats: List<ChatSummary> = emptyList())
+
+@Serializable
+data class ProjectRenameRequest(val name: String)
+
+@Serializable
+data class PinRequest(val pinned: Boolean)
+
+@Serializable
 data class ProjectSummary(
     val id: String,
     val name: String = id,
     @Serializable(with = FlexibleTimeSerializer::class) val createdAt: Long? = null,
     @Serializable(with = FlexibleTimeSerializer::class) val updatedAt: Long? = null,
     val running: Boolean = false,
+    /** Fijado en la barra lateral (sección «Fijados»). */
+    val pinned: Boolean = false,
 )
 
 @Serializable
@@ -521,6 +539,10 @@ data class Capabilities(
     val search: Boolean = false,
     /** Cambiar el nombre del ordenador que se ve abajo en la barra lateral (POST /settings/server-name). */
     val serverName: Boolean = false,
+    /** Menú de un chat al mantenerlo pulsado: fijar, bifurcar, mover y borrar también el abierto (GET /chats/pinned). */
+    val chatActions: Boolean = false,
+    /** Menú de un proyecto al mantenerlo pulsado: renombrar, fijar y eliminar (POST /projects/{id}/rename|pin|delete). */
+    val projectActions: Boolean = false,
 )
 
 /** Botón de un aviso de la bandeja. Con [url] (p. ej. vnc://… para Compartir pantalla) se abre en el móvil y no va al servidor. */

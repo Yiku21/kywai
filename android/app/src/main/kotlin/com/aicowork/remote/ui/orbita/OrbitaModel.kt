@@ -288,11 +288,88 @@ class OrbitaModel(
     }
 
     fun renameChat(projectId: String, chatId: String, title: String) {
-        run({ controller.renameChat(projectId, chatId, title) }) { if (it.ok) loadChats(projectId) }
+        run({ controller.renameChat(projectId, chatId, title) }) { if (it.ok) { loadChats(projectId); loadPinned() } }
     }
 
     fun deleteChat(projectId: String, chatId: String) {
-        run({ controller.deleteChat(projectId, chatId) }) { if (it.ok) loadChats(projectId) }
+        run({ controller.deleteChat(projectId, chatId) }) { if (it.ok) { loadChats(projectId); loadPinned() } }
+    }
+
+    // ------------------------------------------------------------------ Menú de mantener pulsado (como el clic derecho del escritorio)
+
+    /** Chats fijados de todos los proyectos (sección «Fijados» de la barra lateral). */
+    var pinnedChats by mutableStateOf<List<ChatSummary>>(emptyList())
+
+    /** El ordenador sabe fijar, bifurcar, mover y borrar el chat abierto (servidores anteriores, no). */
+    fun chatActionsSupported(): Boolean = snapshot()?.capabilities?.chatActions == true
+
+    /** El ordenador sabe renombrar, fijar y eliminar proyectos desde aquí. */
+    fun projectActionsSupported(): Boolean = snapshot()?.capabilities?.projectActions == true
+
+    fun loadPinned() {
+        if (!chatActionsSupported()) return
+        viewModelScope.launch { controller.pinnedChats().onSuccess { pinnedChats = it } }
+    }
+
+    fun pinChat(projectId: String, chatId: String, pinned: Boolean) {
+        run({ controller.pinChat(projectId, chatId, pinned) }) { if (it.ok) { loadChats(projectId); loadPinned() } }
+    }
+
+    /** Copia aparte del chat; se abre sola, salvo si el equipo está trabajando en ese proyecto (entonces queda en la lista). */
+    fun forkChat(projectId: String, chatId: String) {
+        val busy = snapshot()?.projects?.firstOrNull { it.id == projectId }?.running == true
+        run({ controller.forkChat(projectId, chatId, open = !busy) }) { r ->
+            if (r.ok) {
+                loadChats(projectId)
+                if (!busy) {
+                    drawerOpen = false
+                    open(Section.Chat)
+                }
+            }
+        }
+    }
+
+    fun moveChat(projectId: String, chatId: String, toProjectId: String) {
+        run({ controller.moveChat(projectId, chatId, toProjectId) }) {
+            if (it.ok) {
+                loadChats(projectId)
+                loadChats(toProjectId)
+                loadPinned()
+            }
+        }
+    }
+
+    /** «Nuevo chat en este proyecto»: lo abre (si no lo estaba) y empieza uno vacío. */
+    fun newChatIn(projectId: String) {
+        drawerOpen = false
+        expandedProject = projectId
+        run({
+            if (snapshot()?.conversation?.id == projectId) controller.newChat()
+            else controller.selectConversation(projectId).let { if (it.ok) controller.newChat() else it }
+        }) { r ->
+            if (r.ok) {
+                open(Section.Chat)
+                loadChats(projectId)
+            }
+        }
+    }
+
+    fun renameProject(projectId: String, name: String) {
+        run({ controller.renameProject(projectId, name) }) { if (it.ok) loadPinned() }
+    }
+
+    fun pinProject(projectId: String, pinned: Boolean) {
+        run({ controller.pinProject(projectId, pinned) })
+    }
+
+    fun deleteProject(projectId: String) {
+        run({ controller.deleteProject(projectId) }) {
+            if (it.ok) {
+                chats.remove(projectId)
+                if (expandedProject == projectId) expandedProject = null
+                loadPinned()
+            }
+        }
     }
 
     /** Abre un proyecto desde la barra lateral (su chat abierto). */

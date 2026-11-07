@@ -76,7 +76,7 @@ async function api(path: string, data?: unknown, access = token): Promise<{ stat
   const response = { status: res.status, body: await res.json() }
   if (res.status >= 400) schemaFormat('Error', response.body)
   else {
-    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/')
+    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/')
     const operation = openapi.paths[route][data === undefined ? 'get' : 'post']
     const schemaName = operation.responses[String(res.status)].content['application/json'].schema.$ref.split('/').at(-1)
     schemaFormat(schemaName, response.body)
@@ -205,6 +205,19 @@ beforeAll(() => {
   webMethods.set('openConversation', (id, cid) => conversations.openConversation(id as string, cid as string))
   webMethods.set('renameConversation', (id, cid, title) => { conversations.renameConversation(id as string, cid as string, title); return conversations.listConversations(id as string) })
   webMethods.set('deleteConversation', (id, cid) => { conversations.deleteConversation(id as string, cid as string); return conversations.listConversations(id as string) })
+  webMethods.set('setConversationPinned', (id, cid, pinned) => { conversations.setConversationPinned(id as string, cid as string, pinned === true); return conversations.listConversations(id as string) })
+  webMethods.set('pinnedConversations', () => conversations.pinnedConversations())
+  webMethods.set('forkConversation', (id, cid) => conversations.forkConversation(id as string, cid as string))
+  webMethods.set('moveConversation', (id, cid, to) => conversations.moveConversation(id as string, cid as string, to as string))
+  // Proyectos: como index.ts, pero borrando la carpeta en vez de mandarla a la Papelera.
+  webMethods.set('renameProject', (id, name) => store.renameProject(id as string, name))
+  webMethods.set('setProjectPinned', (id, pinned) => { conversations.setPinned(id as string, pinned === true); return { ...store.getProject(id as string).project } })
+  webMethods.set('deleteProject', (id) => {
+    if (activeRunsFor(id as string).length) throw new Error('Este proyecto tiene trabajo en marcha: detenlo antes de eliminarlo')
+    for (const dir of store.forgetProject(id as string).dirs) rmSync(dir, { recursive: true, force: true })
+    store.ensureFirstProject()
+    return store.listProjects()
+  })
   webMethods.set('search', (q, id) => conversations.search(q, id))
   // Música: como musicSearch.ts, sin salir a internet.
   webMethods.set('searchMusic', (q, kind) => {
@@ -352,13 +365,54 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect(back.body.conversation.messages.map((m: { text: string }) => m.text)).toEqual(['Revisa la ficha de seguridad'])
     expect(back.body.conversation.chat).toEqual({ id: original.id, title: 'Fichas CLP' })
 
-    const openOne = await api(`/chats/${original.id}/delete`, { conversationId: project.id })
-    expect(openOne.status).toBe(409)
-    expect(openOne.body.code).toBe('CHAT_OPEN')
     const missing = await api(`/chats/c-no-existe/open`, { conversationId: project.id })
     expect(missing.status).toBe(404)
     expect((await api('/chats/..%2Fx/open', { conversationId: project.id })).status).toBe(400)
     expect((await api(`/chats?conversationId=${project.id}&otro=1`)).status).toBe(400)
+  })
+
+  it('menú de mantener pulsado: fijar, bifurcar, mover y borrar chats (también el abierto) y renombrar, fijar y eliminar proyectos', async () => {
+    const project = store.createProject('Menú del móvil')
+    const other = store.createProject('Destino del menú')
+    store.getProject(project.id).messages.push({ id: 'm-menu-1', projectId: project.id, author: { type: 'user', name: 'Tú' }, text: 'Plan de obra', createdAt: Date.now() } as ChatMessage)
+    const open = (await api(`/chats?conversationId=${project.id}`)).body.chats.find((c: { current?: boolean }) => c.current)
+
+    const caps = (await api(`/snapshot?conversationId=${project.id}`)).body.capabilities
+    expect(caps).toMatchObject({ chatActions: true, projectActions: true })
+
+    const pinned = await api(`/chats/${open.id}/pin`, { conversationId: project.id, pinned: true })
+    expect(pinned.status).toBe(200)
+    expect(pinned.body.chats.find((c: { id: string }) => c.id === open.id).pinned).toBe(true)
+    expect((await api('/chats/pinned')).body.chats.map((c: { id: string }) => c.id)).toContain(open.id)
+    expect((await api(`/chats/${open.id}/pin`, { conversationId: project.id, pinned: 'sí' })).status).toBe(400)
+
+    const fork = await api(`/chats/${open.id}/fork`, { conversationId: project.id })
+    expect(fork.status).toBe(200)
+    expect(fork.body.chats.map((c: { id: string }) => c.id)).toContain(fork.body.chatId)
+
+    const moved = await api(`/chats/${fork.body.chatId}/move`, { conversationId: project.id, toConversationId: other.id })
+    expect(moved.status).toBe(200)
+    expect(moved.body.chats.map((c: { id: string }) => c.id)).not.toContain(fork.body.chatId)
+    expect((await api(`/chats?conversationId=${other.id}`)).body.chats.map((c: { id: string }) => c.id)).toContain(moved.body.chatId)
+
+    // El abierto también se borra: antes se empieza uno nuevo.
+    const deleted = await api(`/chats/${open.id}/delete`, { conversationId: project.id })
+    expect(deleted.status).toBe(200)
+    expect(deleted.body.chats.map((c: { id: string }) => c.id)).not.toContain(open.id)
+    expect(deleted.body.chats.find((c: { current?: boolean }) => c.current)).toBeTruthy()
+
+    const renamed = await api(`/projects/${project.id}/rename`, { name: 'Obra nueva' })
+    expect(renamed.status).toBe(200)
+    expect(renamed.body.projects.find((p: { id: string }) => p.id === project.id).name).toBe('Obra nueva')
+    const pin = await api(`/projects/${project.id}/pin`, { pinned: true })
+    expect(pin.body.projects.find((p: { id: string }) => p.id === project.id).pinned).toBe(true)
+    expect((await api(`/projects/${project.id}/rename`, { name: '' })).status).toBe(400)
+    expect((await api('/projects/NO_VALE/pin', { pinned: true })).status).toBe(400)
+
+    const gone = await api(`/projects/${project.id}/delete`, {})
+    expect(gone.status).toBe(200)
+    expect(gone.body.projects.map((p: { id: string }) => p.id)).not.toContain(project.id)
+    expect((await api(`/projects/${project.id}/delete`, {})).status).toBe(404)
   })
 
   it('envía y deduplica reintentos concurrentes, persiste clientMessageId y rechaza reutilizarlo con otro texto', async () => {

@@ -79,6 +79,14 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     override suspend fun openChat(projectId: String, chatId: String): ActionResult { calls += "openChat:$projectId:$chatId"; return nextResult }
     override suspend fun renameChat(projectId: String, chatId: String, title: String): ActionResult { calls += "renameChat:$chatId:$title"; return nextResult }
     override suspend fun deleteChat(projectId: String, chatId: String): ActionResult { calls += "deleteChat:$chatId"; return nextResult }
+    override suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): ActionResult { calls += "pinChat:$chatId:$pinned"; return nextResult }
+    override suspend fun forkChat(projectId: String, chatId: String, open: Boolean): ActionResult { calls += "forkChat:$chatId:$open"; return nextResult }
+    override suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ActionResult { calls += "moveChat:$chatId:$toProjectId"; return nextResult }
+    var pinnedList = emptyList<com.aicowork.remote.data.model.ChatSummary>()
+    override suspend fun pinnedChats(): Result<List<com.aicowork.remote.data.model.ChatSummary>> { calls += "pinnedChats"; return Result.success(pinnedList) }
+    override suspend fun renameProject(projectId: String, name: String): ActionResult { calls += "renameProject:$projectId:$name"; return nextResult }
+    override suspend fun pinProject(projectId: String, pinned: Boolean): ActionResult { calls += "pinProject:$projectId:$pinned"; return nextResult }
+    override suspend fun deleteProject(projectId: String): ActionResult { calls += "deleteProject:$projectId"; return nextResult }
     override suspend fun music(kind: String, query: String): Result<List<com.aicowork.remote.data.model.MusicResult>> {
         calls += "music:$kind:$query"
         return Result.success(
