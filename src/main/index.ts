@@ -1,10 +1,14 @@
 // Primero: fija la carpeta de datos («AI Cowork») antes de que ningún módulo la lea.
 import { migrateWindowsLoginItem } from './dataDir'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, net, powerSaveBlocker, protocol, session, shell, systemPreferences, type OpenDialogOptions } from 'electron'
-import { copyFileSync, existsSync, promises as fsp, statSync } from 'node:fs'
+import { copyFileSync, createWriteStream, existsSync, promises as fsp, statSync } from 'node:fs'
+import { prepareArtifactDownload, writeArtifactDownload } from './artifactDownloads'
 import { basename, join } from 'node:path'
 import { hostname } from 'node:os'
 import { pathToFileURL } from 'node:url'
+import { randomUUID } from 'node:crypto'
+import { once } from 'node:events'
+import { finished } from 'node:stream/promises'
 import type { AddAgentInput, AgentId, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
@@ -506,6 +510,26 @@ function registerIpc(): void {
     return r.canceled ? [] : r.filePaths
   })
   handle('readArtifact', (projectId: unknown, relPath: unknown) => readArtifact(projectId, relPath))
+  // Solo escritorio: por web la descarga se guarda en el dispositivo del navegador, nunca en el servidor.
+  ipcMain.handle('cowork:downloadArtifacts', async (e, projectId: unknown, ids: unknown) => {
+    const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow
+    const download = prepareArtifactDownload(projectId, ids)
+    const opts = { title: tr('Descargar'), defaultPath: join(app.getPath('downloads'), download.name) }
+    const chosen = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+    if (chosen.canceled || !chosen.filePath) return
+    const temporary = `${chosen.filePath}.${randomUUID()}.part`
+    const output = createWriteStream(temporary, { flags: 'wx' })
+    try {
+      await once(output, 'open')
+      await writeArtifactDownload(download, output)
+      await finished(output)
+      await fsp.rename(temporary, chosen.filePath)
+    } finally {
+      output.destroy()
+      await finished(output).catch(() => undefined)
+      await fsp.rm(temporary, { force: true })
+    }
+  })
   ipcMain.handle('cowork:openPath', async (_e, projectId: unknown, relPath?: unknown) => {
     if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     let target = store.workRoot(projectId)

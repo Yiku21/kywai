@@ -301,6 +301,7 @@ fun DeliverablesCard(messageId: String, artifactIds: List<String>, snapshot: Sna
                     color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
             }
+            ArtifactDownloadButton(list, model, enabled = snapshot.capabilities.artifacts)
             Icon(Icons.Outlined.ExpandMore, contentDescription = if (open) t("Plegar la carpeta") else t("Desplegar la carpeta"), tint = Orbita.TextSoft, modifier = Modifier.rotate(if (open) 180f else 0f))
         }
         if (open) {
@@ -332,6 +333,7 @@ private fun DeliverableRow(a: Artifact, snapshot: Snapshot, model: OrbitaModel) 
             Text(a.name, color = Orbita.Text, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(a.relPath, color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        ArtifactDownloadButton(listOf(a), model, enabled = canOpen)
         if (canOpen) Text(t("Abrir"), color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
     }
 }

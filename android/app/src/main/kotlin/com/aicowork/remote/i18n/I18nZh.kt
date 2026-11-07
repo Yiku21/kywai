@@ -16,6 +16,7 @@ internal val ZH: Map<String, String> by lazy {
 }
 
 private fun part1(m: HashMap<String, String>) {
+    m["Descargar {name}"] = "下载 {name}"
     m["Te necesita"] = "需要你"
     m["Avisos del equipo que esperan tu respuesta: planes, preguntas, permisos en el Mac, fallos…"] = "等待你回复的团队通知：计划、问题、Mac 上的权限、失败…"
     m["y {v1} más"] = "以及另外 {v1} 个"

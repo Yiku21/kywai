@@ -16,6 +16,7 @@ internal val PT: Map<String, String> by lazy {
 }
 
 private fun part1(m: HashMap<String, String>) {
+    m["Descargar {name}"] = "Baixar {name}"
     m["Te necesita"] = "Precisa de você"
     m["Avisos del equipo que esperan tu respuesta: planes, preguntas, permisos en el Mac, fallos…"] = "Avisos da equipe que esperam a sua resposta: planos, perguntas, permissões no Mac, falhas…"
     m["y {v1} más"] = "e mais {v1}"

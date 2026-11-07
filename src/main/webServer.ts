@@ -12,6 +12,7 @@ import type { AgentConfig, CoworkEvent, WebAccessInfo } from '@shared/types'
 import { tapEvents, tapMobileEvents } from './events'
 import { savePastedFile } from './local'
 import * as store from './projects'
+import { prepareArtifactDownload, writeArtifactDownload } from './artifactDownloads'
 import { modPanelResponse } from './mods'
 import type { TlsPair } from './selfCert'
 import { MobileApi } from './mobileApi'
@@ -514,6 +515,23 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   }
   if (path === '/api/ping' && req.method === 'GET') return json(res, 200, { boot: BOOT_ID })
   if (path === '/api/events' && req.method === 'GET') return openEvents(req, res)
+  if (path.startsWith('/api/artifact-download/') && req.method === 'GET') {
+    try {
+      const projectId = decodeURIComponent(path.slice('/api/artifact-download/'.length))
+      const download = prepareArtifactDownload(projectId, (url.searchParams.get('ids') ?? '').split(','))
+      res.writeHead(200, {
+        'Content-Type': download.files.length === 1 ? 'application/octet-stream' : 'application/zip',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(download.name)}`,
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'no-store'
+      })
+      await writeArtifactDownload(download, res)
+    } catch (e) {
+      if (res.headersSent) res.destroy()
+      else json(res, 400, { error: (e as Error).message })
+    }
+    return
+  }
   if (path.startsWith('/api/file/') && req.method === 'GET') return serveProjectFile(res, path)
   if (path.startsWith('/api/mod-panel/') && req.method === 'GET') {
     const r = modPanelResponse(path.slice('/api/mod-panel/'.length))

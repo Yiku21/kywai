@@ -326,6 +326,20 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect(mobileForWeb.status).toBe(401)
   })
 
+  it('descarga entregables por web con nombre, bytes originales y autenticación', async () => {
+    const project = store.createProject('Descarga web')
+    const payload = Buffer.from([0, 255, 3, 0, 128])
+    writeFileSync(join(project.dir, 'artifacts', 'imagen ñ.png'), payload)
+    store.upsertArtifact({ id: 'descarga', projectId: project.id, name: 'imagen ñ.png', relPath: 'artifacts/imagen ñ.png', kind: 'image', size: payload.length, createdAt: 1 })
+    const url = `${base}/api/artifact-download/${project.id}?ids=descarga`
+    expect((await fetch(url)).status).toBe(401)
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${CODE}` } })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-disposition')).toContain("attachment; filename*=UTF-8''imagen%20%C3%B1.png")
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(payload)
+    expect((await fetch(`${url},ajeno`, { headers: { Authorization: `Bearer ${CODE}` } })).status).toBe(400)
+  })
+
   it('crea una conversación en el almacén existente y proyecta agentes, tareas, memoria y consumo actuales', async () => {
     const created = await api('/conversations', {})
     expect(created.status).toBe(201)

@@ -467,6 +467,7 @@
 
 .artifact {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
@@ -485,6 +486,16 @@
   flex-direction: column;
   min-width: 0;
   flex: 1;
+}
+
+.artifactError {
+  flex-basis: 100%;
+}
+
+@media (max-width: 520px) {
+  .downloadLabel {
+    display: none;
+  }
 }
 
 .artifactName {
@@ -531,6 +542,7 @@
 
 .folderHead {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -540,7 +552,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
+  flex: 1 1 180px;
   min-width: 0;
   padding: 2px 4px;
   border: 0;

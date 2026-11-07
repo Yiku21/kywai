@@ -987,6 +987,13 @@ archivos son, de qué tipo y quién los hizo) en vez de ponerlos uno detrás de 
 abrir cada uno; en el escritorio, «Abrir carpeta» la abre en el Finder. El resumen final del trabajo junta todos
 los archivos de la petición en otra carpeta. Igual en la app del móvil.
 
+Cada archivo tiene **Descargar**, junto a Abrir. La carpeta permite **Descargar como zip**: incluye únicamente los
+entregables de esa tarjeta, con sus nombres y subcarpetas, sin añadir otros archivos del proyecto. En el navegador
+(también desde el móvil) y en la app de escritorio como cliente, se guardan en el dispositivo que estás usando;
+en el escritorio del servidor se elige dónde guardar una copia. Órbita ofrece el mismo botón en el chat y en
+Resultados, con el selector de destino de Android. Cancelar el selector no guarda ninguna copia. Los archivos originales
+se conservan en el servidor. Para obtenerlo en Órbita hay que actualizar la app del móvil.
+
 ### Reanudar lo interrumpido
 
 Si la app se cierra con trabajo a medias (al actualizar, reiniciar o por un fallo), el plan de esa petición
