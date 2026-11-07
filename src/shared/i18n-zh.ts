@@ -2424,4 +2424,13 @@ export const zh: Record<string, string> = {
   " · ya se lanzó": " · 已执行",
   "Pedir mi visto bueno a su plan antes de empezar (si no, la rutina sigue sola aunque no estés)": "开始前先请我批准它的计划（否则即使你不在，例行任务也会自行继续）",
   " · con tu visto bueno": " · 需你批准",
+  "Rutina propuesta: {name}": "建议的例行任务：{name}",
+  "Rutina creada: {name}": "例行任务已创建：{name}",
+  "Rutina descartada: {name}": "例行任务已舍弃：{name}",
+  "Ver en Rutinas": "在例行任务中查看",
+  "¿Lo dejo programado? Con «Crear rutina» se lanzará solo: {when}.": "要我把它排上日程吗？点「创建例行任务」后会自动执行：{when}。",
+  "No se encontró esa propuesta de rutina": "找不到这个例行任务建议",
+  "Esa rutina ya está creada": "这个例行任务已经创建",
+  "Esa propuesta ya se descartó": "这个建议已被舍弃",
+  "Acción no válida": "无效操作",
 }

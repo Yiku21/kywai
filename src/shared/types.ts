@@ -445,6 +445,8 @@ export interface ChatMessage {
   rating?: MessageRating
   /** Mensaje que lanzó una rutina (no lo escribiste tú en ese momento): el chat enseña «Rutina: <nombre>». */
   routine?: { id: string; name: string }
+  /** Rutina que Hermes propone crear porque le pediste algo que se repite o para más tarde («Crear rutina»). */
+  routineProposal?: RoutineProposal
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
   direct?: { agentId: AgentId; name: string }
   /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
@@ -557,6 +559,20 @@ export interface HermesModelsInfo {
  * Plan del coordinador a la espera de tu visto bueno. pending: espera tu respuesta; approved: aprobado (ya en
  * marcha); revised: le pediste cambios y propuso otro; rejected: lo descartaste.
  */
+/**
+ * Rutina que propone Hermes. pending: espera que la crees o la descartes · created: creada (routineId) ·
+ * dismissed: descartada. `command` es la orden «/rutina …» equivalente (para cambiarla en el cuadro de texto).
+ */
+export interface RoutineProposal {
+  status: 'pending' | 'created' | 'dismissed'
+  name: string
+  request: string
+  trigger: RoutineTrigger
+  command: string
+  routineId?: string
+  decidedAt?: number
+}
+
 export interface PlanProposal {
   status: 'pending' | 'approved' | 'revised' | 'rejected'
   tasks: ProposedTask[]
@@ -1327,6 +1343,8 @@ export interface CoworkApi {
   getRoutineWebhook(projectId: string, id: string, regenerate?: boolean): Promise<RoutineWebhookInfo>
   /** Retoma una petición interrumpida al cerrar la app: vuelve a lanzar sus tareas sin terminar. */
   resumeRun(projectId: string, runId: string): Promise<void>
+  /** Rutina que propuso Hermes (mensaje con routineProposal): «create» la crea (activa), «dismiss» la descarta. */
+  decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): Promise<ChatMessage>
   /** Da el visto bueno al plan que propone el coordinador (mensaje con proposal): sus tareas empiezan. */
   /** 👍/👎 en un resultado del chat (null lo quita): queda en el mensaje, en el registro de consumo y en la ficha del agente. */
   rateMessage(projectId: string, messageId: string, rating: MessageRating | null): Promise<void>

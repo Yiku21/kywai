@@ -2542,4 +2542,13 @@ export const en: Record<string, string> = {
   " · ya se lanzó": " · already ran",
   "Pedir mi visto bueno a su plan antes de empezar (si no, la rutina sigue sola aunque no estés)": "Ask for my approval of its plan before starting (otherwise the routine carries on by itself even if you are away)",
   " · con tu visto bueno": " · with your approval",
+  "Rutina propuesta: {name}": "Proposed routine: {name}",
+  "Rutina creada: {name}": "Routine created: {name}",
+  "Rutina descartada: {name}": "Routine dismissed: {name}",
+  "Ver en Rutinas": "See in Routines",
+  "¿Lo dejo programado? Con «Crear rutina» se lanzará solo: {when}.": "Shall I schedule it? With «Create routine» it will run by itself: {when}.",
+  "No se encontró esa propuesta de rutina": "That routine proposal was not found",
+  "Esa rutina ya está creada": "That routine has already been created",
+  "Esa propuesta ya se descartó": "That proposal was already dismissed",
+  "Acción no válida": "Invalid action",
 }

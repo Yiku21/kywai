@@ -13,6 +13,7 @@ import type {
   MessageRating,
   PlanProposal,
   ProposedTask,
+  RoutineProposal,
   SendMessageInput,
   Task,
   TaskChanges,
@@ -1325,6 +1326,47 @@ export function rateMessage(projectId: string, messageId: string, rating: Messag
 }
 
 /** Descarta el plan propuesto: no se hace nada. */
+/**
+ * Hermes propone dejar programado algo que le pediste («cada mañana…», «mañana a las 7…»): sale en el chat como una
+ * tarjeta con «Crear rutina». Solo si la orden se entiende y no la propone una rutina (no se encadenan). Va antes de
+ * su respuesta para que se lea a la vez que el plan.
+ */
+export function routineProposalFrom(command: string, now = Date.now()): RoutineProposal | null {
+  const raw = command.trim()
+  if (!raw) return null
+  const full = /^\/(rutina|rutinas|routine)\b/i.test(raw) ? raw : `/rutina ${raw}`
+  const cmd = parseRoutineCommand(full, now)
+  if ('error' in cmd) return null
+  return { status: 'pending', name: cmd.name, request: cmd.request, trigger: cmd.trigger, command: full }
+}
+
+function proposeRoutine(run: Run, planner: AgentConfig, command: string): void {
+  if (run.routine || !command) return
+  const proposal = routineProposalFrom(command)
+  if (!proposal) {
+    console.warn(`[cowork] ${planner.id} propuso una rutina que no se entiende: ${command.slice(0, 200)}`)
+    return
+  }
+  agentMessage(run, planner.id, tr('¿Lo dejo programado? Con «Crear rutina» se lanzará solo: {when}.', { when: describeTrigger(proposal.trigger) }), { routineProposal: proposal })
+}
+
+/** «Crear rutina» o «Descartar» en la tarjeta que propuso Hermes. */
+export function decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): ChatMessage {
+  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const p = m?.routineProposal
+  if (!m || !p) throw new Error(tr('No se encontró esa propuesta de rutina'))
+  if (p.status !== 'pending') throw new Error(p.status === 'created' ? tr('Esa rutina ya está creada') : tr('Esa propuesta ya se descartó'))
+  if (action !== 'create' && action !== 'dismiss') throw new Error(tr('Acción no válida'))
+  let next: RoutineProposal
+  if (action === 'create') {
+    const r = createRoutine(projectId, { name: p.name, request: p.request, trigger: p.trigger, enabled: true })
+    next = { ...p, status: 'created', routineId: r.id, decidedAt: Date.now() }
+  } else next = { ...p, status: 'dismissed', decidedAt: Date.now() }
+  const updated = { ...m, routineProposal: next }
+  pushMessage(updated)
+  return updated
+}
+
 export function rejectPlan(projectId: string, messageId: string): void {
   const msg = proposalMessage(projectId, messageId)
   pushMessage({ ...msg, proposal: { ...msg.proposal, status: 'rejected', decidedAt: Date.now() } })
@@ -1487,6 +1529,7 @@ async function executeRun(run: Run): Promise<void> {
     return
   }
   const { planner, reply, planned, contract, memory } = plan
+  proposeRoutine(run, planner, plan.routine)
   // Con tareas, primero tu visto bueno: el plan se enseña y nada empieza hasta que lo apruebes.
   if (planned.length && needsApproval(run)) {
     proposePlan(run, planner, reply, planned, contract, memory)
@@ -1611,7 +1654,7 @@ function pickPlanner(tried: Set<AgentId>, images = false): AgentConfig | null {
 
 async function planRun(
   run: Run
-): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[] } | null> {
+): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string } | null> {
   const tried = new Set<AgentId>()
   const failures: string[] = []
   const st = store.getProject(run.projectId)
@@ -1702,7 +1745,7 @@ async function planRun(
     }
     // Lo que se ve en el plan es lo que se hará: si kywai lo ajustó, se dice.
     if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de kywai al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
-    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory) }
+    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine }
   }
 }
 
@@ -1909,7 +1952,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '',
     '## Qué debes responder',
     'Responde ÚNICAMENTE con un objeto JSON (puede ir dentro de un bloque ```json), sin ningún otro texto, con esta forma:',
-    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false}]}',
+    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\""}',
     '',
     'Reglas:',
     `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
@@ -1936,7 +1979,12 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '- "files": archivos o carpetas que la tarea puede crear o modificar (por ejemplo ["artifacts/app/motor/"]). Obligatorio si varias tareas trabajan a la vez: cada archivo, de una sola tarea. «Integrar y probar» puede tocarlo todo: [].',
     '- "continues": true cuando la tarea continúa, amplía o corrige lo que ESE MISMO agente hizo en la petición anterior de este proyecto (mira «Lo que se hizo en la petición anterior»): dásela al mismo agente y márcala así, y retomará su sesión del CLI con todo lo que leyó, hizo y decidió. Si lo anterior lo hizo otro agente o es trabajo nuevo, false.',
     '- "memory": SOLO lo que el usuario ha decidido, preferido o pedido EN ESTE MENSAJE y convenga recordar en futuras peticiones (por ejemplo «todo en TypeScript», «el servidor en Python»). Nada de suposiciones tuyas ni de detalles de esta tarea. Si contradice una entrada de la memoria, pon su id en "replaces". Si no hay nada, [].',
-    '- Respeta las instrucciones y la memoria del proyecto. Si la petición contradice algo confirmado, lo que pide ahora manda (y anótalo en "memory" con "replaces").'
+    '- Respeta las instrucciones y la memoria del proyecto. Si la petición contradice algo confirmado, lo que pide ahora manda (y anótalo en "memory" con "replaces").',
+    ...(run.routine
+      ? ['- "routine": "" (esta petición ya la lanza una rutina).']
+      : [
+          '- "routine": si el usuario pide algo que se repite o para más tarde («cada mañana revisa…», «todos los lunes prepara…», «mañana a las 7 recuérdame…», «dentro de 2 horas comprueba…», «cuando llegue un PR, revísalo»), escribe aquí la orden de la rutina, con el horario y luego la petición que se enviará sola, completa y en la voz del usuario: «/rutina de lunes a viernes a las 8:30: revisa las dependencias y avísame de las que tengan fallos de seguridad». Horarios que se entienden: «cada día a las 9:00», «de lunes a viernes a las 8:30», «lunes y jueves a las 7:00», «cada 6 horas», «mañana a las 7:00», «el viernes a las 18:00», «el 15/11 a las 9:00», «dentro de 2 horas», «webhook», «al cambiar archivos de <carpeta>». kywai le enseña una tarjeta «Crear rutina»: no la des por creada en "reply" ni crees tareas para montar un cron o un script. Si además conviene hacerlo ya, añade las tareas de esta vez. Si no pide nada periódico ni para más tarde, "".'
+        ])
   ].join('\n')
 }
 
