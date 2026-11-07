@@ -1508,6 +1508,23 @@ scripts/       instalación y actualización en Mac y Linux, accesos de Windows,
 Para retomar el desarrollo desde otro chat u otro equipo (arquitectura, reglas del repositorio, trampas conocidas y
 pendientes), ver [CONTEXTO-DEL-PROYECTO.md](CONTEXTO-DEL-PROYECTO.md).
 
+### La web kywai.app
+
+La web pública vive en `web/` y se publica sola en GitHub Pages (`.github/workflows/publicar-web.yml`) con cada
+push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
+
+| Archivo | Qué es |
+|---|---|
+| `web/textos.mjs` | Todos los textos en inglés, español, portugués, francés y chino. El generador falla si a un idioma le falta una clave |
+| `web/plantilla.html` | La página (estilos y script incluidos), con huecos `{{clave}}` |
+| `web/build.mjs` | Genera `web/dist/`: inglés en la raíz y `/es/`, `/pt/`, `/fr/`, `/zh/`, más CNAME, sitemap y robots |
+| `web/assets/` | Logo, fuentes, capturas por idioma, robots y el vídeo comprimido |
+
+- `node web/build.mjs` genera la web; `node web/build.mjs --preview` la genera con enlaces `index.html` para abrirla sin servidor.
+- La primera visita a la raíz lleva al idioma del navegador; elegir idioma en el menú se recuerda.
+- Las descargas se leen de la última Release de GitHub al abrir la página y enlazan el instalador del sistema de quien la visita. Si GitHub no responde, enlazan a la página de versiones.
+- El dominio kywai.app está en Hostinger con los registros de GitHub Pages (A y AAAA de GitHub, CNAME `www` → `yiku21.github.io`) y verificado en la cuenta. En el repo: Settings → Pages → Source «GitHub Actions», Custom domain `kywai.app` y «Enforce HTTPS».
+
 ### Licencia
 
 AI Cowork se publica con licencia MIT (archivo `LICENSE` en la raíz, también `"license": "MIT"` en `package.json`):

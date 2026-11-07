@@ -1,0 +1,37 @@
+# Publica la web de kywai.app (carpeta web/) en GitHub Pages con cada push a master que la toque.
+# Requiere una vez: Settings → Pages → Source: «GitHub Actions» y Custom domain: kywai.app.
+name: Publicar web
+
+on:
+  push:
+    branches: [master]
+    paths: ['web/**', '.github/workflows/publicar-web.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+      - name: Generar la web
+        run: node web/build.mjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+      - id: despliegue
+        uses: actions/deploy-pages@v4

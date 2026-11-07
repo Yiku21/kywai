@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{meta.title}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="{{meta.desc}}">
+<meta name="theme-color" content="#0a0e1a">
+<link rel="canonical" href="{{canonical}}">
+{{hreflangs}}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Kywai">
+<meta property="og:title" content="{{meta.title}}">
+<meta property="og:description" content="{{meta.desc}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{site}}assets/og.png">
+<meta property="og:locale" content="{{ogLocale}}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="{{base}}assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{base}}assets/apple-touch-icon.png">
+<link rel="preload" href="{{base}}assets/fonts/outfit.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* Concepto: el símbolo de tres colores del logo de kywai como único gesto fuerte (portada), el resto sobrio sobre azul noche. */
+@font-face { font-family: "Outfit"; src: url("{{base}}assets/fonts/outfit.woff2") format("woff2"); font-weight: 500 800; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url("{{base}}assets/fonts/figtree.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("{{base}}assets/fonts/jetbrains-mono.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+
+:root {
+  --bg: #0a0e1a;
+  --bg-2: #0f1526;
+  --surface: #141b30;
+  --line: #24304d;
+  --fg: #e8ecf6;
+  --muted: #98a3bf;
+  --blue: #4a92ff;
+  --green: #1fca85;
+  --orange: #ff8a3d;
+  --btn-fg: #06101f;
+  --glow: .55;
+  --display: "Outfit", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --body: "Figtree", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --wrap: 1180px;
+  --gutter-l: max(20px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(20px, env(safe-area-inset-right, 0px));
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f3f5fa; --bg-2: #e9edf6; --surface: #ffffff; --line: #d6dcea;
+    --fg: #0c1222; --muted: #4f5a75; --blue: #0f62d9; --green: #0b8f58; --orange: #c9520a;
+    --btn-fg: #ffffff; --glow: .28; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f3f5fa; --bg-2: #e9edf6; --surface: #ffffff; --line: #d6dcea;
+  --fg: #0c1222; --muted: #4f5a75; --blue: #0f62d9; --green: #0b8f58; --orange: #c9520a;
+  --btn-fg: #ffffff; --glow: .28; color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 17px/1.6 var(--body); overflow-x: hidden; }
+img, video { max-width: 100%; display: block; }
+a { color: inherit; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 6px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.08; letter-spacing: -.02em; }
+h2 { font-size: clamp(30px, 4.2vw, 46px); font-weight: 700; }
+h3 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; line-height: 1.25; }
+p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: .88em; }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
+.section { padding-block: clamp(64px, 9vw, 112px); }
+.section-head { display: grid; gap: 14px; max-width: 680px; margin-bottom: clamp(32px, 5vw, 52px); }
+.lede { color: var(--muted); font-size: 19px; }
+.eyebrow { font: 600 13px/1.3 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 16px; top: 16px; z-index: 50; background: var(--surface); padding: 8px 12px; border-radius: 8px; }
+
+/* Botones */
+.btn { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; border-radius: 12px; font: 600 16px/1 var(--body); text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform .15s ease, background-color .15s ease, border-color .15s ease; }
+.btn:hover { transform: translateY(-1px); }
+.btn-primary { background: var(--fg); color: var(--bg); }
+.btn-ghost { border-color: var(--line); color: var(--fg); background: transparent; }
+.btn-ghost:hover { border-color: var(--muted); }
+.btn svg { width: 18px; height: 18px; flex: none; }
+
+/* Cabecera */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+.top .wrap { display: flex; align-items: center; gap: 24px; min-height: 64px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font: 700 22px/1 var(--display); letter-spacing: -.02em; }
+.brand .logo { height: 30px; width: auto; aspect-ratio: {{logoRatio}}; color: var(--fg); display: block; }
+.nav { display: flex; gap: 22px; margin-left: auto; }
+.nav a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 15px; }
+.nav a:hover { color: var(--fg); }
+.lang { position: relative; }
+.lang summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 15px; font-weight: 500; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.lang summary::-webkit-details-marker { display: none; }
+.lang summary svg { width: 16px; height: 16px; }
+.lang ul { position: absolute; right: 0; top: calc(100% + 8px); margin: 0; padding: 6px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 160px; box-shadow: 0 18px 40px rgb(0 0 0 / .25); }
+.lang li a { display: block; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-size: 15px; }
+.lang li a:hover, .lang li a[aria-current] { background: var(--bg-2); }
+.top .btn { min-height: 40px; padding: 0 16px; font-size: 15px; border-radius: 10px; }
+
+/* Portada */
+.hero { position: relative; overflow: hidden; padding-block: clamp(48px, 7vw, 88px) 0; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: clamp(24px, 4vw, 56px); align-items: center; }
+.hero-copy { display: grid; gap: 22px; min-width: 0; }
+.hero h1 { font-size: clamp(40px, 6.2vw, 76px); font-weight: 800; letter-spacing: -.035em; }
+.hero h1 .tri { background: linear-gradient(100deg, var(--blue) 0%, var(--green) 50%, var(--orange) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero .lede { max-width: 620px; }
+.say { display: inline-flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 15px; color: var(--muted); }
+.say b { font: 700 15px/1 var(--display); color: var(--fg); }
+.say .ipa { font-family: var(--mono); font-size: 13px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.ctas .small { font-size: 14px; color: var(--muted); }
+.mark { position: relative; aspect-ratio: 1; width: 100%; max-width: 420px; justify-self: center; }
+.mark::before { content: ""; position: absolute; inset: 14%; border-radius: 50%; background: conic-gradient(from 20deg, var(--blue), var(--green), var(--orange), var(--blue)); filter: blur(60px); opacity: var(--glow); }
+.mark img { position: relative; width: 100%; height: 100%; animation: spin 60s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.shot { margin-top: clamp(40px, 6vw, 72px); position: relative; }
+.window { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--surface); box-shadow: 0 40px 90px -30px rgb(0 0 0 / .55); }
+.window-bar { display: flex; gap: 7px; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+.window-bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+.window img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+
+/* Equipo */
+.team { padding-block: 36px 0; display: grid; gap: 14px; justify-items: center; text-align: center; }
+.team ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 10px; margin: 0; padding: 0; list-style: none; }
+.team li img { width: 64px; height: 64px; transition: transform .2s ease; }
+.team li img:hover { transform: translateY(-4px) rotate(-4deg); }
+.team p { color: var(--muted); font-size: 15px; }
+
+/* Cómo funciona */
+.steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; margin: 0; padding: 0; list-style: none; counter-reset: paso; }
+.steps li { counter-increment: paso; display: grid; gap: 10px; align-content: start; padding-top: 18px; border-top: 2px solid var(--c); min-width: 0; }
+.steps li::before { content: counter(paso); font: 700 14px/1 var(--mono); color: var(--c); }
+.steps li:nth-child(3n+1) { --c: var(--blue); }
+.steps li:nth-child(3n+2) { --c: var(--green); }
+.steps li:nth-child(3n) { --c: var(--orange); }
+.steps p { color: var(--muted); font-size: 16px; }
+.goal { margin-top: 40px; font: 600 clamp(20px, 2.4vw, 26px)/1.35 var(--display); max-width: 820px; text-wrap: balance; }
+
+/* Vídeo */
+.video-wrap { display: grid; gap: 14px; }
+.video-wrap video { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 16px; border: 1px solid var(--line); background: #000; }
+.video-wrap p { color: var(--muted); font-size: 15px; }
+
+/* Por qué */
+.why { background: var(--bg-2); }
+.why-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px 32px; }
+.why-grid article { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.why-grid article::before { content: ""; width: 28px; height: 4px; border-radius: 4px; background: var(--c); }
+.why-grid article:nth-child(3n+1) { --c: var(--blue); }
+.why-grid article:nth-child(3n+2) { --c: var(--green); }
+.why-grid article:nth-child(3n) { --c: var(--orange); }
+.why-grid p { color: var(--muted); font-size: 16px; }
+
+/* Agentes */
+.agents { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(28px, 5vw, 64px); align-items: start; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.chips li { font: 500 14px/1 var(--mono); padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chips li.more { border-style: dashed; color: var(--muted); background: transparent; }
+.direct { margin-top: 22px; color: var(--muted); font-size: 16px; }
+.direct code { color: var(--fg); background: var(--surface); border: 1px solid var(--line); padding: 2px 7px; border-radius: 6px; }
+
+/* Desde cualquier sitio */
+.anywhere { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: center; }
+.ways { display: grid; gap: 24px; margin: 0; padding: 0; list-style: none; }
+.ways li { display: grid; gap: 6px; padding-left: 18px; border-left: 2px solid var(--line); }
+.ways li p { color: var(--muted); font-size: 16px; }
+.phones { display: flex; gap: 16px; justify-content: center; align-items: end; }
+.phones img { width: 46%; max-width: 250px; height: auto; border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 30px 60px -30px rgb(0 0 0 / .5); }
+
+/* Temas */
+.themes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 0; padding: 0; list-style: none; }
+.themes figure { margin: 0; display: grid; gap: 8px; }
+.themes img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); }
+.themes figcaption { font: 600 15px/1.2 var(--display); }
+
+/* Descargas */
+.download { background: var(--bg-2); }
+.dl-meta { font-size: 15px; color: var(--muted); }
+.dl-meta b { color: var(--fg); font-family: var(--mono); font-weight: 500; }
+.dl { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--surface); }
+.dl li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 18px; align-items: center; padding: 18px 22px; border-top: 1px solid var(--line); }
+.dl li:first-child { border-top: 0; }
+.dl li.mine { background: color-mix(in srgb, var(--blue) 9%, var(--surface)); }
+.dl .os { font: 600 17px/1.3 var(--display); }
+.dl .file { grid-column: 1; font: 500 13px/1.3 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.dl .btn { grid-column: 2; grid-row: 1 / span 2; min-height: 44px; }
+.dl li:not(.mine) .btn { background: transparent; color: var(--fg); border-color: var(--line); }
+.dl-all { display: inline-block; margin-top: 16px; font-weight: 600; }
+.notes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin-top: 40px; }
+.notes section { display: grid; gap: 10px; align-content: start; }
+.notes ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 6px; }
+.notes p { color: var(--muted); font-size: 15px; }
+.rename { margin-top: 28px; font-size: 14px; color: var(--muted); }
+
+/* Apoyo */
+.support { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 48px; align-items: center; }
+.support .section-head { margin-bottom: 0; }
+.kofi { background: #ff5e5b; color: #fff; }
+
+/* Pie */
+.foot { border-top: 1px solid var(--line); padding-block: 28px; font-size: 14px; color: var(--muted); }
+.foot .wrap { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
+.foot .brand { font-size: 17px; color: var(--fg); }
+.foot .brand .logo { height: 24px; }
+.foot a { color: var(--muted); }
+
+@media (max-width: 980px) {
+  .nav { display: none; }
+  .lang { margin-left: auto; }
+  .hero-grid { grid-template-columns: minmax(0, 1fr); }
+  .mark { max-width: 220px; justify-self: start; order: -1; }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .why-grid, .themes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .agents, .anywhere, .support, .notes { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  .top .btn { display: none; }
+  .mark { max-width: 140px; }
+  .steps, .why-grid { grid-template-columns: minmax(0, 1fr); }
+  .themes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .team ul { gap: 4px; }
+  .team li img { width: 44px; height: 44px; }
+  .dl li { grid-template-columns: minmax(0, 1fr); }
+  .dl .btn { grid-column: 1; grid-row: auto; justify-self: start; }
+  .window-bar { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .mark img { animation: none; }
+  .btn, .team li img { transition: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip</a>
+<header class="top">
+  <div class="wrap">
+    {{logoDefs}}<a class="brand" href="{{home}}" aria-label="Kywai"><svg class="logo" viewBox="{{logoViewBox}}" aria-hidden="true"><use href="#kywai-logo"/></svg></a>
+    <nav class="nav" aria-label="Kywai">
+      <a href="#how">{{nav.how}}</a>
+      <a href="#features">{{nav.features}}</a>
+      <a href="#anywhere">{{nav.anywhere}}</a>
+      <a href="#download">{{nav.download}}</a>
+    </nav>
+    <details class="lang">
+      <summary aria-label="{{nav.lang}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>{{langLabel}}</summary>
+      <ul>{{langLinks}}</ul>
+    </details>
+    <a class="btn btn-primary" href="#download">{{nav.download}}</a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">{{hero.eyebrow}}</p>
+          <h1>{{hero.h1}}</h1>
+          <p class="lede">{{hero.lede}}</p>
+          <div class="ctas">
+            <a class="btn btn-primary" id="hero-dl" href="#download" data-for="{{hero.ctaFor}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg><span>{{hero.cta}}</span></a>
+            <a class="btn btn-ghost" href="https://github.com/Yiku21/ai-cowork" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>{{hero.github}}</a>
+          </div>
+          <p class="say"><b>Kywai</b><span class="ipa">/kiː.waɪ/</span><span>{{hero.say}}</span></p>
+        </div>
+        <div class="mark" aria-hidden="true"><img src="{{base}}assets/kywai-simbolo.svg" alt="" width="420" height="420"></div>
+      </div>
+      <div class="shot">
+        <div class="window">
+          <div class="window-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+          <img src="{{base}}assets/img/{{img}}/escritorio.jpg" alt="{{hero.shotAlt}}" width="1600" height="900" fetchpriority="high">
+        </div>
+      </div>
+      <div class="team">
+        <ul>
+          <li><img src="{{base}}assets/robots/hermes.png" alt="{{team.hermes}}" title="{{team.hermes}}" width="64" height="64" loading="lazy"></li>
+          <li><img src="{{base}}assets/robots/claude.png" alt="{{team.claude}}" title="{{team.claude}}" width="64" height="64" loading="lazy"></li>
+          <li><img src="{{base}}assets/robots/codex.png" alt="{{team.codex}}" title="{{team.codex}}" width="64" height="64" loading="lazy"></li>
+          <li><img src="{{base}}assets/robots/gemini.png" alt="{{team.gemini}}" title="{{team.gemini}}" width="64" height="64" loading="lazy"></li>
+          <li><img src="{{base}}assets/robots/muse.png" alt="{{team.muse}}" title="{{team.muse}}" width="64" height="64" loading="lazy"></li>
+          <li><img src="{{base}}assets/robots/qwen.png" alt="{{team.local}}" title="{{team.local}}" width="64" height="64" loading="lazy"></li>
+          <li><img src="{{base}}assets/robots/becario.png" alt="{{team.intern}}" title="{{team.intern}}" width="64" height="64" loading="lazy"></li>
+        </ul>
+        <p>{{team.caption}}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>{{how.title}}</h2>
+        <p class="lede">{{how.lede}}</p>
+      </div>
+      <ol class="steps">
+        <li><h3>{{how.s1t}}</h3><p>{{how.s1b}}</p></li>
+        <li><h3>{{how.s2t}}</h3><p>{{how.s2b}}</p></li>
+        <li><h3>{{how.s3t}}</h3><p>{{how.s3b}}</p></li>
+        <li><h3>{{how.s4t}}</h3><p>{{how.s4b}}</p></li>
+        <li><h3>{{how.s5t}}</h3><p>{{how.s5b}}</p></li>
+      </ol>
+      <p class="goal">{{how.goal}}</p>
+    </div>
+  </section>
+
+  <section class="section" id="video" style="padding-top:0">
+    <div class="wrap video-wrap">
+      <h2>{{video.title}}</h2>
+      <video controls preload="none" playsinline poster="{{base}}assets/video/portada.jpg" width="1280" height="720">
+        <source src="{{base}}assets/video/presentacion.mp4" type="video/mp4">
+      </video>
+      <p>{{video.caption}}</p>
+    </div>
+  </section>
+
+  <section class="section why" id="features">
+    <div class="wrap">
+      <div class="section-head"><h2>{{why.title}}</h2></div>
+      <div class="why-grid">
+        <article><h3>{{why.1t}}</h3><p>{{why.1b}}</p></article>
+        <article><h3>{{why.2t}}</h3><p>{{why.2b}}</p></article>
+        <article><h3>{{why.3t}}</h3><p>{{why.3b}}</p></article>
+        <article><h3>{{why.4t}}</h3><p>{{why.4b}}</p></article>
+        <article><h3>{{why.5t}}</h3><p>{{why.5b}}</p></article>
+        <article><h3>{{why.6t}}</h3><p>{{why.6b}}</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap agents">
+      <div class="section-head" style="margin-bottom:0">
+        <h2>{{agents.title}}</h2>
+        <p class="lede">{{agents.lede}}</p>
+        <p class="direct">{{agents.direct}} <code>@Claude …</code> {{agents.directTail}}</p>
+      </div>
+      <ul class="chips">
+        <li>Claude Code</li><li>Codex CLI</li><li>Gemini CLI</li><li>Antigravity CLI</li><li>Muse Code</li><li>Aider</li><li>DeepSeek</li><li>Qwen Code</li><li>Kimi Code</li><li>MiniMax Code</li><li>Mistral Vibe</li><li>Grok Build</li><li>GitHub Copilot CLI</li><li>Cursor</li><li>Amp</li><li>Goose</li><li>OpenCode</li><li>Cline</li><li>Continue</li><li>OpenHands</li><li>Factory Droid</li><li>Auggie</li><li>Junie</li><li>Kiro</li><li>Rovo Dev</li><li>Qoder CLI</li><li>Crush</li><li>Open Interpreter</li><li>gptme</li><li>Letta Code</li><li>LM Studio</li><li>Ollama</li><li class="more">+ …</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" id="anywhere" style="padding-top:0">
+    <div class="wrap anywhere">
+      <div>
+        <div class="section-head">
+          <h2>{{anywhere.title}}</h2>
+          <p class="lede">{{anywhere.lede}}</p>
+        </div>
+        <ul class="ways">
+          <li><h3>{{anywhere.desktopT}}</h3><p>{{anywhere.desktopB}}</p></li>
+          <li><h3>{{anywhere.clientT}}</h3><p>{{anywhere.clientB}}</p></li>
+          <li><h3>{{anywhere.browserT}}</h3><p>{{anywhere.browserB}}</p></li>
+          <li><h3>{{anywhere.orbitaT}}</h3><p>{{anywhere.orbitaB}}</p></li>
+        </ul>
+      </div>
+      <div class="phones">
+        <img src="{{base}}assets/img/movil-chat.jpg" alt="{{anywhere.phoneAlt1}}" width="460" height="727" loading="lazy">
+        <img src="{{base}}assets/img/movil-desplegado.jpg" alt="{{anywhere.phoneAlt2}}" width="700" height="927" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>{{themes.title}}</h2>
+        <p class="lede">{{themes.lede}}</p>
+      </div>
+      <ul class="themes">
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-orbita.jpg" alt="Órbita" width="800" height="450" loading="lazy"><figcaption>Órbita</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-marfil.jpg" alt="Marfil" width="800" height="450" loading="lazy"><figcaption>Marfil</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-matrix.jpg" alt="Matrix" width="800" height="450" loading="lazy"><figcaption>Matrix</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-relicario.jpg" alt="Relicario" width="800" height="450" loading="lazy"><figcaption>Relicario</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-halloween.jpg" alt="Halloween" width="800" height="450" loading="lazy"><figcaption>Halloween</figcaption></figure></li>
+        <li><figure><img src="{{base}}assets/img/{{img}}/tema-navidad.jpg" alt="Navidad" width="800" height="450" loading="lazy"><figcaption>Navidad</figcaption></figure></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section download" id="download">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>{{download.title}}</h2>
+        <p class="lede">{{download.lede}}</p>
+        <p class="dl-meta">{{download.latest}}: <b id="dl-version">{{download.loading}}</b></p>
+      </div>
+      <ul class="dl">
+        <li data-os="win"><span class="os">{{download.win}}</span><span class="file" data-match="Setup.*\.exe$">.exe</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
+        <li data-os="mac-arm"><span class="os">{{download.macArm}}</span><span class="file" data-match="arm64\.dmg$">.dmg</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
+        <li data-os="mac-intel"><span class="os">{{download.macIntel}}</span><span class="file" data-match="x64\.dmg$">.dmg</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
+        <li data-os="linux-x64"><span class="os">{{download.linuxX64}}</span><span class="file" data-match="x86_64\.AppImage$">.AppImage</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
+        <li data-os="linux-arm"><span class="os">{{download.linuxArm}}</span><span class="file" data-match="arm64\.AppImage$">.AppImage</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
+      </ul>
+      <a class="dl-all" href="{{releases}}" rel="noopener">{{download.all}} →</a>
+      <div class="notes">
+        <section><h3>{{download.needT}}</h3><p>{{download.need}}</p></section>
+        <section><h3>{{download.unsignedT}}</h3><ul><li>{{download.unsignedWin}}</li><li>{{download.unsignedMac}}</li><li>{{download.unsignedLinux}}</li></ul></section>
+      </div>
+      <p class="rename">{{download.rename}}</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap support">
+      <div class="section-head">
+        <h2>{{support.title}}</h2>
+        <p class="lede">{{support.body}}</p>
+      </div>
+      <div class="ctas">
+        <a class="btn kofi" href="https://ko-fi.com/yilsander" rel="noopener">☕ {{support.kofi}}</a>
+        <a class="btn btn-ghost" href="https://github.com/Yiku21/ai-cowork" rel="noopener">★ {{support.star}}</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <a class="brand" href="{{home}}" aria-label="Kywai"><svg class="logo" viewBox="{{logoViewBox}}" aria-hidden="true"><use href="#kywai-logo"/></svg></a>
+    <span>{{footer.made}}</span>
+    <a href="https://github.com/Yiku21/ai-cowork/blob/master/LICENSE" rel="noopener">{{footer.license}}</a>
+    <a href="https://github.com/Yiku21/ai-cowork" rel="noopener">GitHub</a>
+    <a href="https://ko-fi.com/yilsander" rel="noopener">Ko-fi</a>
+    <span>{{footer.privacy}}</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var REPO = 'Yiku21/ai-cowork';
+  var LANGS = {{langsJson}};
+  var here = '{{lang}}';
+
+  // Primera visita a la portada en inglés: llevar al idioma del navegador si lo tenemos.
+  try {
+    var chosen = localStorage.getItem('kywai-lang');
+    if (here === 'en' && !chosen && !/[?&]lang=en/.test(location.search)) {
+      var want = (navigator.languages || [navigator.language || 'en']).map(function (l) { return String(l).slice(0, 2).toLowerCase(); });
+      for (var i = 0; i < want.length; i++) {
+        if (want[i] === 'en') break;
+        if (LANGS[want[i]]) { location.replace(LANGS[want[i]] + location.hash); return; }
+      }
+    }
+  } catch (e) {}
+  document.querySelectorAll('.lang a[data-lang]').forEach(function (a) {
+    a.addEventListener('click', function () { try { localStorage.setItem('kywai-lang', a.getAttribute('data-lang')); } catch (e) {} });
+  });
+
+  // Qué sistema tiene quien mira la página.
+  var ua = navigator.userAgent || '';
+  var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+  var os = null;
+  if (/Android|iPhone|iPad/i.test(ua)) os = null;
+  else if (/Win/i.test(plat) || /Windows/i.test(ua)) os = 'win';
+  else if (/Mac/i.test(plat) || /Mac OS X/i.test(ua)) os = 'mac-arm';
+  else if (/Linux/i.test(plat) || /Linux/i.test(ua)) os = /aarch64|arm/i.test(plat + ua) ? 'linux-arm' : 'linux-x64';
+  var names = { 'win': 'Windows', 'mac-arm': 'macOS', 'linux-x64': 'Linux', 'linux-arm': 'Linux' };
+  var hero = document.getElementById('hero-dl');
+  if (os) {
+    var row = document.querySelector('.dl li[data-os="' + os + '"]');
+    if (row) row.classList.add('mine');
+    hero.querySelector('span').textContent = hero.getAttribute('data-for') + ' ' + names[os];
+  }
+
+  // Enlaces directos a la última versión publicada en GitHub Releases.
+  function mb(n) { return Math.round(n / 1048576) + ' MB'; }
+  fetch('https://api.github.com/repos/' + REPO + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (rel) {
+      document.getElementById('dl-version').textContent = String(rel.tag_name || '').replace(/^v/, '');
+      document.querySelectorAll('.dl li').forEach(function (li) {
+        var f = li.querySelector('.file');
+        var re = new RegExp(f.getAttribute('data-match'));
+        var asset = (rel.assets || []).filter(function (a) { return re.test(a.name); })[0];
+        if (!asset) return;
+        f.textContent = asset.name + ' · ' + mb(asset.size);
+        li.querySelector('a').href = asset.browser_download_url;
+        if (li.classList.contains('mine')) hero.href = asset.browser_download_url;
+      });
+    })
+    .catch(function () {
+      var v = document.getElementById('dl-version');
+      v.textContent = 'GitHub';
+      v.parentNode.innerHTML = '<a href="https://github.com/' + REPO + '/releases/latest">github.com/' + REPO + '/releases</a>';
+    });
+})();
+</script>
+</body>
+</html>
