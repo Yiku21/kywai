@@ -14,6 +14,10 @@ function splitArgs(text: string): string[] | null {
   return parts.every((p) => /^[\p{L}\p{N}_.:\-\/=,@{}]+$/u.test(p)) ? parts : null
 }
 
+/** Orden de los gratis: de lo más fácil (sin cuenta ni tarjeta) a lo que pide más condiciones. */
+const FREE_FIRST = ['kilo', 'gemini', 'opencode', 'copilot', 'cline', 'aider', 'mistral-vibe', 'antigravity']
+const freeRank = (id: string): number => (FREE_FIRST.includes(id) ? FREE_FIRST.indexOf(id) : FREE_FIRST.length)
+
 /**
  * Elegir un agente para añadir: del catálogo (los que ya tienes con tu suscripción) o cualquier otro programa de
  * terminal. Al añadirlo se le da su robot y su estación; luego el asistente se encarga de instalarlo y de iniciar sesión.
@@ -43,6 +47,8 @@ export function AddAgent({
     return AGENT_CATALOG.filter((e) => e.repeatable || !have.has(e.id))
       .filter((e) => !freeOnly || !!e.free)
       .filter((e) => !q || `${e.name} ${t(e.summary)} ${t(e.account)} ${e.free ? `${t('Gratis')} ${t(e.free)}` : ''} ${e.cli?.command ?? ''}`.toLowerCase().includes(q))
+      // Con «Solo gratis», primero los que menos piden (Kilo ni siquiera necesita cuenta).
+      .sort((x, y) => (freeOnly ? freeRank(x.id) - freeRank(y.id) : 0))
   }, [have, query, freeOnly])
 
   async function add(entry: CatalogEntry): Promise<void> {

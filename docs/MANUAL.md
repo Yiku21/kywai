@@ -115,6 +115,11 @@ Al abrir la app instalada por primera vez aparece el **asistente de configuraci�
 ⚙ → Ajustes → «Configurar agentes…»):
 
 1. **Agentes**: eliges cuáles usar (Hermes, Claude, Codex, Gemini, Muse y el agente local con LM Studio u Ollama).
+   Debajo, el recuadro plegable **«¿No pagas ninguna suscripción? Así puedes usar kywai gratis»** explica cómo
+   montar un equipo sin pagar: «Ver los agentes gratis» abre el catálogo con «Solo gratis» (Kilo CLI primero, que ni
+   siquiera pide cuenta), «Conseguir la clave» abre la página de la clave gratis de Google AI Studio (para Gemini) o
+   la de OpenRouter (para que Hermes coordine con un modelo `:free`; se elige en «Sesiones» → «Configurar»), y
+   recuerda que el agente local siempre es gratis.
 2. **Programas**: comprueba si están sus CLIs y, si falta alguno, lo instala desde ahí con su instalador
    oficial (y Node.js si hace falta). En Mac conviene tener [Homebrew](https://brew.sh).
 3. **Sesiones**: abre el inicio de sesión oficial de cada CLI en una ventana aparte (normalmente en el
