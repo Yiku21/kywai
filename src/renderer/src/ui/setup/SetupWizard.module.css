@@ -385,6 +385,62 @@
   font-size: 12.5px;
 }
 
+.freeBox {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--live) 35%, var(--border));
+  background: color-mix(in srgb, var(--live) 6%, var(--bg-surface));
+}
+
+.freeSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+.freeSummary svg {
+  color: var(--live);
+  flex: none;
+}
+
+.freeBox[open] .freeSummary {
+  margin-bottom: 8px;
+}
+
+.freeList {
+  margin: 8px 0 2px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.freeList li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.freeList li > span {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.freeList strong {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
 .localBox {
   display: flex;
   flex-direction: column;
