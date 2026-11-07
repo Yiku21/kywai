@@ -1889,5 +1889,12 @@ export const zh: Record<string, string> = {
   'Ese agente ya no existe': '该智能体已不存在',
   'Hablar directamente con un agente': '直接与智能体对话',
   'Directo, sin pasar por Hermes: recibe tu texto tal cual': '直接发送，不经过 Hermes：对方原样收到你的文字',
-  'Tú → {name} (directo, sin Hermes)': '你 → {name}（直接，不经过 Hermes）'
+  'Tú → {name} (directo, sin Hermes)': '你 → {name}（直接，不经过 Hermes）',
+  // updater.ts
+  "Hay una versión nueva de AI Cowork ({version}).": "AI Cowork 有新版本（{version}）。",
+  "Descárgala y arrástrala a Aplicaciones para reemplazar esta. Tus proyectos y ajustes se conservan.": "下载后拖到“应用程序”中替换当前版本。你的项目和设置会保留。",
+  "Descargando la versión {version}…": "正在下载 {version} 版本…",
+  "Instalando la versión {version}. AI Cowork se reabre solo.": "正在安装 {version} 版本，AI Cowork 会自动重新打开。",
+  "La versión {version} se instalará al cerrar AI Cowork.": "{version} 版本将在关闭 AI Cowork 时安装。",
+  "Esta versión se descargó de GitHub y se actualiza sola: al abrirse busca la última y la instala. Ahora mismo también lo está comprobando.": "此版本从 GitHub 下载，会自动更新：打开时会查找最新版本并安装。现在也正在检查。",
 }

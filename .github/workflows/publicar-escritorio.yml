@@ -1,0 +1,118 @@
+# Publica la app de escritorio en GitHub Releases con cada cambio en master: compila el instalador de Windows (.exe),
+# el de macOS (.dmg y .zip, Apple silicon e Intel) y el AppImage de Linux (x64 y ARM) y los sube a una Release nueva
+# (v0.1.<número de commits>), que pasa a ser la última. Las apps descargadas de ahí se actualizan solas al abrirse
+# (src/main/updater.ts lee los latest*.yml de la Release).
+#
+# Solo corre en el repositorio público (Yiku21/Ai-cowork). Sin firma de código: Windows avisa con SmartScreen
+# («Más información» → «Ejecutar de todas formas») y en el Mac hay que abrirla con clic derecho → Abrir.
+name: Publicar escritorio
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - 'android/**'
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/FUNDING.yml'
+      - '.github/workflows/publicar-orbita.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publicar-escritorio
+  cancel-in-progress: true
+
+jobs:
+  version:
+    if: github.repository_owner == 'Yiku21' && github.event.repository.name == 'Ai-cowork'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # el número de versión cuenta los commits
+      - id: v
+        run: echo "version=0.1.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
+  compilar:
+    needs: version
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            args: --win nsis --x64
+          - os: macos-latest
+            args: --mac dmg zip --arm64 --x64 -c.mac.identity=- -c.mac.hardenedRuntime=false
+          - os: ubuntu-latest
+            args: --linux AppImage --x64 --arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Compilar
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          npx electron-vite build
+          npx electron-builder ${{ matrix.args }} --publish never \
+            -c.extraMetadata.version=${{ needs.version.outputs.version }} \
+            -c.publish.provider=github -c.publish.owner=Yiku21 -c.publish.repo=Ai-cowork -c.publish.releaseType=release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: escritorio-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.blockmap
+            release/latest*.yml
+
+  publicar:
+    needs: [version, compilar]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Crear la Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ needs.version.outputs.version }}
+        run: |
+          ls -la dist
+          cat > notas.md <<EOF
+          Automatic build from commit ${GITHUB_SHA::7}. Once installed, AI Cowork checks for a newer version every time it opens.
+
+          | System | Download |
+          |---|---|
+          | Windows 10/11 | \`AI-Cowork-Setup-${V}.exe\` |
+          | macOS, Apple silicon (M1 and later) | \`AI-Cowork-${V}-arm64.dmg\` |
+          | macOS, Intel | \`AI-Cowork-${V}-x64.dmg\` |
+          | Linux x64 | \`AI-Cowork-${V}-x86_64.AppImage\` |
+          | Linux ARM | \`AI-Cowork-${V}-arm64.AppImage\` |
+
+          The apps are not code-signed yet:
+          - **Windows:** if SmartScreen warns you, click "More info" → "Run anyway".
+          - **macOS:** drag the app to Applications, then right-click it → Open (only the first time). If macOS says it is damaged, run \`xattr -cr "/Applications/AI Cowork.app"\` in Terminal.
+          - **Linux:** \`chmod +x AI-Cowork-*.AppImage\` and open it.
+
+          You still need at least one AI agent (Claude Code, Codex CLI, Gemini CLI, a local model…). The setup assistant installs and signs in to them on first launch.
+          EOF
+          gh release create "v${V}" dist/* --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" \
+            --title "AI Cowork ${V}" --notes-file notas.md --latest
