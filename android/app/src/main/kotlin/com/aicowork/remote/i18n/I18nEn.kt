@@ -753,4 +753,9 @@ private fun part5(m: HashMap<String, String>) {
     m["Dictar (mantén pulsado para grabar una nota de voz)"] = "Dictate (press and hold to record a voice note)"
     m["Dictar"] = "Dictate"
     m["Habla, te escucho…"] = "Go ahead, I'm listening…"
+    m["Mensajes enviados"] = "Messages sent"
+    m["Aviso de que salieron los mensajes que escribiste sin conexión"] = "Lets you know the messages you wrote offline went out"
+    m["Se envió tu mensaje"] = "Your message was sent"
+    m["Se enviaron tus {n} mensajes"] = "Your {n} messages were sent"
+    m["Lo que escribiste sin conexión ya está en el ordenador"] = "What you wrote offline is now on the computer"
 }

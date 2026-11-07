@@ -119,6 +119,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
+    // Envía la cola de mensajes escritos sin conexión cuando vuelve la red, aunque la app esté cerrada.
+    implementation(libs.androidx.work.runtime)
 
     // El servidor simulado se incluye exclusivamente en las pruebas.
     debugImplementation(libs.compose.ui.tooling)
