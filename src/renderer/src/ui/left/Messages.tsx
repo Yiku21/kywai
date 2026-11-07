@@ -36,6 +36,7 @@ import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDu
 import { useCowork, useData } from '@/store/cowork'
 import { revealKey, useRevealed } from '@/lib/reveal'
 import { api, isWeb } from '@/lib/api'
+import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 import { fileSize, timeHM } from '@/lib/format'
 import { projectFileUrl } from '@/lib/localRefs'
 import { AgentAvatar, AgentPill } from '../common/AgentBits'
@@ -1009,6 +1010,7 @@ function ArtifactCards({ ids, projectId }: { ids: string[]; projectId: string })
 
 function ArtifactRow({ a }: { a: Artifact }) {
   const openViewer = useCowork((st) => st.openViewer)
+  const [error, setError] = useState<string | null>(null)
   const lookup = useAgentLookup()
   const look = lookup(a.agentId)
   return (
@@ -1023,9 +1025,11 @@ function ArtifactRow({ a }: { a: Artifact }) {
           {t('Creado por')} {look.name}
         </span>
       </div>
+      <ArtifactDownloadButton projectId={a.projectId} ids={[a.id]} name={a.name} onError={setError} />
       <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => openViewer(a.id)} aria-label={t('Abrir {name}', { name: a.name })}>
         {t('Abrir')}
       </button>
+      {error && <p className={cx(s.resumeError, s.artifactError)} role="alert">{error}</p>}
     </li>
   )
 }
@@ -1062,6 +1066,7 @@ function DeliverablesFolder({ list, projectId }: { list: Artifact[]; projectId: 
           </span>
           <ChevronDown size={16} aria-hidden="true" className={s.folderChevron} />
         </button>
+        <ArtifactDownloadButton projectId={projectId} ids={list.map((a) => a.id)} name={name} onError={setError} />
         {canOpenFolder && (
           <button
             type="button"

@@ -63,6 +63,7 @@ src/
     orchestrator.ts   planificación, reparto, ejecución de tareas, mensajes de trabajo, avances
     agents/           un lector por programa (claude, codex, gemini, muse, ollama…) y generic.ts (catálogo)
     taskTrace.ts      registro paso a paso de cada tarea (workspace/traces, 30 días)
+    artifactDownloads.ts  descarga de entregables originales o selección en zip, por IPC y web; Órbita usa ArtifactDownloads.kt con la API existente
     progressFiles.ts  qué archivos nuevos merecen enseñarse en el chat mientras una tarea trabaja
     coordinatorGuide.ts  lo que Hermes sabe de kywai (se inyecta en cada planificación) + test
     projectBrief.ts   ficha automática de la carpeta del proyecto para el coordinador (README, pruebas, árbol) + test

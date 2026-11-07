@@ -40,6 +40,7 @@ const api: CoworkApi = {
   pickFiles: (kind) => ipcRenderer.invoke('cowork:pickFiles', kind),
   pathForFile: (file) => webUtils.getPathForFile(file),
   readArtifact: (projectId, relPath) => ipcRenderer.invoke('cowork:readArtifact', projectId, relPath),
+  downloadArtifacts: (projectId, artifactIds) => ipcRenderer.invoke('cowork:downloadArtifacts', projectId, artifactIds),
   openPath: (projectId, relPath) => ipcRenderer.invoke('cowork:openPath', projectId, relPath),
   setQuotaBudget: (groupId, budget) => ipcRenderer.invoke('cowork:setQuotaBudget', groupId, budget),
   refreshQuotas: () => ipcRenderer.invoke('cowork:refreshQuotas'),

@@ -170,6 +170,14 @@ function createWebApi(): CoworkApi {
       const r = (await call('readArtifact', [projectId, relPath])) as { text?: string; url?: string }
       return r.url ? { ...r, url: webFileUrl(projectId, relPath) } : r
     },
+    downloadArtifacts: async (projectId: string, artifactIds: string[]) => {
+      const link = document.createElement('a')
+      link.href = `/api/artifact-download/${encodeURIComponent(projectId)}?ids=${artifactIds.map(encodeURIComponent).join(',')}`
+      link.download = ''
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    },
     openPath: async (projectId: string, relPath?: string) => {
       if (!relPath) throw new Error(t('La carpeta del proyecto se abre desde el Mac'))
       // En el cliente de escritorio se abre con la aplicación de este equipo; en el navegador, en otra pestaña.

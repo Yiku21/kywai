@@ -1313,6 +1313,8 @@ export interface CoworkApi {
   /** Ruta absoluta de un archivo soltado en la ventana. */
   pathForFile(file: File): string
   readArtifact(projectId: string, relPath: string): Promise<{ text?: string; url?: string }>
+  /** Guarda un entregable, o varios como zip, en el dispositivo desde el que se usa la app. */
+  downloadArtifacts(projectId: string, artifactIds: string[]): Promise<void>
   openPath(projectId: string, relPath?: string): Promise<void>
   setQuotaBudget(groupId: string, budget: QuotaBudget | null): Promise<void>
   refreshQuotas(): Promise<void>

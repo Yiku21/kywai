@@ -16,7 +16,8 @@ const fake = vi.hoisted(() => {
     rejectPlan: async (p, m) => void calls.push(`reject:${p}:${m}`),
     decideRoutineProposal: async (p, m, a) => void calls.push(`routine:${p}:${m}:${String(a)}`),
     rateMessage: async (p, m, r) => void calls.push(`rate:${p}:${m}:${String(r)}`),
-    openPath: async (p, rel) => void calls.push(`open:${p}:${rel}`)
+    openPath: async (p, rel) => void calls.push(`open:${p}:${rel}`),
+    downloadArtifacts: async (p, ids) => void calls.push(`download:${p}:${(ids as string[]).join(',')}`)
   }
   ;(window as unknown as { cowork: unknown }).cowork = new Proxy(methods, {
     get: (t, k: string) => t[k] ?? (async () => undefined)
@@ -169,6 +170,10 @@ describe('chat del escritorio', () => {
     expect(host.querySelectorAll('li').length).toBe(3)
     await act(async () => button('Abrir carpeta').click())
     expect(fake.calls).toEqual(['open:p1:artifacts/conceptos'])
+    await act(async () => button('Descargar 01.png').click())
+    expect(fake.calls.at(-1)).toBe('download:p1:a1')
+    await act(async () => button('Descargar conceptos como zip').click())
+    expect(fake.calls.at(-1)).toBe('download:p1:a1,a2,a3')
   })
 
   it('mientras trabaja, el chat enseña en corto qué hace y todo lo demás se despliega en tres niveles', async () => {

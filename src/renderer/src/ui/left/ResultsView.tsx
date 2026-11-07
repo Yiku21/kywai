@@ -7,6 +7,7 @@ import { agentVars, shortTime } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './Views.module.css'
 import { t } from '@/lib/i18n'
+import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 
 /** Pestaña Resultados: cuadrícula de lo que ha generado el equipo. */
 export function ResultsView() {
@@ -60,6 +61,7 @@ export function ResultsView() {
                   <span className={s.cardTime}>{shortTime(a.createdAt)}</span>
                 </span>
               </button>
+              <ArtifactDownloadButton projectId={a.projectId} ids={[a.id]} name={a.name} />
             </li>
           )
         })}

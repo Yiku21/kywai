@@ -348,6 +348,7 @@ private fun ResultCard(a: Artifact, model: OrbitaModel, snapshot: com.aicowork.r
                 Text(a.name, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("${agent?.name ?: "Equipo"} · ${kindLabel(a.kind, a.name)}", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
+            ArtifactDownloadButton(listOf(a), model, enabled = canFetch)
             Box {
                 IconAction(Icons.Outlined.MoreHoriz, t("Opciones de {name}", "name" to a.name), onClick = { menu = true }, size = 40.dp)
                 DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
