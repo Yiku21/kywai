@@ -32,4 +32,7 @@ describe('firma de las actualizaciones del cliente', () => {
   it('un cliente sin clave pública no instala nada', () => {
     expect(verifyRelease(release, sha, '')).toMatch(/no trae la clave/)
   })
+  it('firma el texto interno de siempre, el que comprueban los clientes ya instalados', () => {
+    expect(releaseMessage('0.1.5', 'AI-Cowork-Setup-0.1.5.exe', 'x')).toBe('AI Cowork cliente\n0.1.5\nAI-Cowork-Setup-0.1.5.exe\nx')
+  })
 })
