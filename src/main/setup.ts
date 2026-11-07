@@ -11,6 +11,7 @@ import { emit } from './events'
 import { getConfig } from './config'
 import { agentKey, keys } from './keys'
 import { lmsPath } from './agents/lmstudio'
+import { isGeminiKey } from './agents/gemini'
 import { asAdmin, detectPackageManager, findTerminal, LINUX_PACKAGES, nodeInstall, packageInstall, terminalArgs, which, withUserNpmPrefix, type LinuxPackageManager } from './linuxDesktop'
 import { tr } from '@shared/i18n'
 
@@ -499,7 +500,7 @@ export async function saveAgentKey(agentId: string, key: string): Promise<SetupA
 /** Guarda la clave de API de Gemini donde la lee Gemini CLI y la selecciona como método de acceso. */
 export async function saveGeminiKey(key: string): Promise<SetupAuth> {
   const clean = typeof key === 'string' ? key.trim() : ''
-  if (!/^[\w-]{20,200}$/.test(clean)) throw new Error(tr('Esa clave no parece válida'))
+  if (!isGeminiKey(clean)) throw new Error(tr('Esa clave no parece válida'))
   const dir = join(HOME, '.gemini')
   mkdirSync(dir, { recursive: true })
   const envFile = join(dir, '.env')
