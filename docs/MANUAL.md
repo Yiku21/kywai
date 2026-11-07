@@ -356,6 +356,20 @@ completa**: sin la barra de abajo ni la de arriba, todo el sitio para el chat. S
 app) hasta que vuelvas a pulsarlas; atrás o ✕ cierran el panel. Desplegado, las flechas siguen ampliando el panel
 sobre el mundo.
 
+**Sin conexión.** Órbita se puede usar aunque no llegue al ordenador (sin cobertura, en el metro, con el Mac
+reiniciándose). Enseña lo último que recibió y lo que escribas se queda **en cola** hasta que vuelva la conexión:
+
+- **La cola se guarda en el móvil** (`outbox.json` en los datos privados de la app, `FileOutboxStore`): si cierras
+  Órbita, Android la cierra o reinicias el teléfono, los mensajes siguen ahí y salen al volver.
+- **Salen de uno en uno y en el orden en que los escribiste**, cada uno **al proyecto donde lo escribiste** aunque al
+  volver estés mirando otro. Nunca llegan dos veces: cada mensaje lleva su `clientMessageId` y el servidor ignora el
+  repetido. Si el servidor rechaza uno (por ejemplo, su proyecto ya no existe) queda como «No se envió» con
+  Reintentar y Descartar, y los siguientes salen igual.
+- Las acciones (aprobar un plan, detener una tarea, los botones de «Te necesita») siguen necesitando conexión: hacerlas
+  a destiempo podría aprobar algo que ya cambió.
+- Para desarrolladores: `CoworkRepository.drainOutbox()` vacía la cola (con un `Mutex`, de uno en uno); las pruebas
+  están en `MockServerIntegrationTest`.
+
 **Dispositivos emparejados:** en ⚙ → Ajustes → «Acceso desde otros dispositivos…» aparece la lista de móviles y clientes
 emparejados, con cuándo se usó cada uno por última vez. **Revocar** uno lo desempareja sin tocar los demás (y corta
 sus conexiones abiertas); el que lleva 90 días sin usarse deja de valer solo. Cambiar el código de acceso los revoca
