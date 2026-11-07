@@ -29,7 +29,7 @@ export const PAYLOAD_CHARS = 6000
 
 export interface RoutineDeps {
   /** Envía la petición al chat como una normal del usuario, marcada como de la rutina (orchestrator.sendMessage). */
-  send(input: SendMessageInput, routine: { id: string; name: string }): Promise<{ runId: string }>
+  send(input: SendMessageInput, routine: { id: string; name: string; askApproval?: boolean }): Promise<{ runId: string }>
   /** En qué está esa petición: trabajando, esperando tu visto bueno a su plan, o null si ya terminó. */
   runState(projectId: string, runId: string): 'running' | 'waiting' | null
   /** Hay trabajo en marcha en el proyecto (los cambios de los agentes no cuentan como cambios en la carpeta). */
@@ -130,6 +130,7 @@ export function createRoutine(projectId: string, input: RoutineInput, now = Date
     updatedAt: now,
     scheduleFrom: now,
     runs: [],
+    ...(input.askApproval === true ? { askApproval: true } : {}),
     ...(trigger.type === 'webhook' ? { webhookSecret: newSecret() } : {})
   }
   list.push(r)
@@ -161,6 +162,10 @@ export function updateRoutine(projectId: string, id: string, patch: Partial<Rout
       folders.delete(r.id)
     }
     if (trigger.type === 'webhook' && !r.webhookSecret) r.webhookSecret = newSecret()
+  }
+  if (typeof patch.askApproval === 'boolean') {
+    if (patch.askApproval) r.askApproval = true
+    else delete r.askApproval
   }
   if (typeof patch.enabled === 'boolean' && patch.enabled !== r.enabled) {
     // Al volver a activarla no se lanza lo que tocó mientras estaba desactivada.
@@ -239,7 +244,7 @@ export async function fireRoutine(
   launching.add(r.id)
   addRun(projectId, r, entry)
   try {
-    const { runId } = await deps.send({ projectId, text: `${r.request}${extra.data ?? ''}`, filePaths: [] }, { id: r.id, name: r.name })
+    const { runId } = await deps.send({ projectId, text: `${r.request}${extra.data ?? ''}`, filePaths: [] }, { id: r.id, name: r.name, ...(r.askApproval ? { askApproval: true } : {}) })
     entry.runId = runId
     const early = finishedEarly.get(runId)
     if (early !== undefined) {

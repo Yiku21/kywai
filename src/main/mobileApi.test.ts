@@ -1962,6 +1962,26 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     }
   })
 
+  it('con «Pedir mi visto bueno» encendido, una rutina sigue sola; solo espera si esa rutina lo pide', async () => {
+    expect((await api('/settings/plan-approval', { enabled: true })).body).toEqual({ planApproval: true })
+    try {
+      const conversation = (await api('/conversations', {})).body.conversation.id as string
+      const snap = (): ReturnType<typeof store.snapshotProject> => store.snapshotProject(conversation)
+      // La rutina sin casilla: el plan se pone en marcha sin esperar.
+      const alone = await sendMessage({ projectId: conversation, text: 'Rutina sola', filePaths: [] }, { routine: { id: 'r1', name: 'Sola' } })
+      await vi.waitFor(() => expect(snap().tasks.some((t) => t.runId === alone.runId)).toBe(true))
+      expect(snap().messages.some((m) => m.runId === alone.runId && m.proposal)).toBe(false)
+      cancelAll()
+      // La que pide tu visto bueno: queda esperando como lo que escribes tú.
+      const asks = await sendMessage({ projectId: conversation, text: 'Rutina con visto bueno', filePaths: [] }, { routine: { id: 'r2', name: 'Con visto bueno', askApproval: true } })
+      await vi.waitFor(() => expect(snap().messages.find((m) => m.runId === asks.runId && m.proposal)?.proposal?.status).toBe('pending'))
+      expect(snap().tasks.filter((t) => t.runId === asks.runId)).toEqual([])
+    } finally {
+      cancelAll()
+      expect((await api('/settings/plan-approval', { enabled: false })).body).toEqual({ planApproval: false })
+    }
+  })
+
   it('convierte una nota de voz en texto con el dictado del propio equipo y no guarda el audio', async () => {
     expect((await api('/snapshot')).body.capabilities.voice).toBe(false)
     const seen: { path: string; language: unknown; bytes: number; exists: boolean }[] = []
