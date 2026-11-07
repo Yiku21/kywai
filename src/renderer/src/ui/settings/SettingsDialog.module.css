@@ -194,7 +194,25 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 12px;
+}
+
+.blockHead + * {
+  margin-top: 14px;
+}
+
+.expand {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.chev {
+  transition: transform var(--dur) var(--ease);
+}
+
+.chevOpen {
+  transform: rotate(180deg);
 }
 
 .error {

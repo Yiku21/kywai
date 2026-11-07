@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react
 import {
   ArrowLeftRight,
   Bot,
+  ChevronDown,
   Coffee,
   Download,
   DownloadCloud,
@@ -39,6 +40,7 @@ import { UpdateDialog } from '../header/UpdateDialog'
 import { SyncDialog } from '../files/SyncDialog'
 import { SoundRows } from '../header/AudioToggle'
 import { ThemeGrid } from '../header/ThemeDialog'
+import { THEMES, useTheme } from '@/lib/theme'
 import { ROLE_TITLE, explainWhere, useWhere } from '../header/useWhere'
 import { useEscape } from '../common/hooks'
 import { cx, errorText } from '../common/util'
@@ -179,6 +181,9 @@ function GeneralTab() {
   const hasBackend = useCowork((st) => st.hasBackend)
   const reduced = useCowork((st) => st.reducedEffects)
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
+  const theme = useTheme()
+  /** Los temas van plegados: se despliegan con la flecha (casi nunca se cambian). */
+  const [themesOpen, setThemesOpen] = useState(false)
   const currentLang = LANGS.find((l) => l.id === lang()) ?? LANGS[0]
   return (
     <>
@@ -222,8 +227,12 @@ function GeneralTab() {
             <span className={s.rowLabel}>{t('Tema')}</span>
             <span className={s.rowHint}>{t('El aspecto de AI Cowork en este dispositivo. Se aplica al momento y se recuerda.')}</span>
           </span>
+          <button type="button" className={cx(u.btn, u.btnSm, s.expand)} aria-expanded={themesOpen} onClick={() => setThemesOpen((v) => !v)}>
+            {THEMES.find((x) => x.id === theme)?.name}
+            <ChevronDown size={15} aria-hidden="true" className={cx(s.chev, themesOpen && s.chevOpen)} />
+          </button>
         </div>
-        <ThemeGrid />
+        {themesOpen && <ThemeGrid />}
       </div>
     </>
   )
