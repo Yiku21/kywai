@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -269,16 +271,16 @@ private fun WorldPlaceholder(status: SpaceStatus, onRetry: () -> Unit) {
             is SpaceStatus.Unavailable -> {
                 Icon(Icons.Outlined.CloudOff, contentDescription = null, tint = Orbita.Accent, modifier = Modifier.size(44.dp))
                 Spacer(Modifier.height(12.dp))
-                Text("Sin conexión con el ordenador", color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
+                Text(t("Sin conexión con el ordenador"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(4.dp))
-                Text("${status.reason}. El mundo aparecerá en cuanto vuelva la conexión.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium)
+                Text(t("{reason}. El mundo aparecerá en cuanto vuelva la conexión.", "reason" to status.reason), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(16.dp))
-                OrbitaButton("Reintentar", onClick = onRetry, haptic = Haptic.Tap)
+                OrbitaButton(t("Reintentar"), onClick = onRetry, haptic = Haptic.Tap)
             }
             else -> {
                 CircularProgressIndicator(color = Orbita.Accent)
                 Spacer(Modifier.height(16.dp))
-                Text("Entrando en el mundo de AI Cowork…", color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
+                Text(t("Entrando en el mundo de AI Cowork…"), color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -338,7 +340,7 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
                     Row(Modifier.padding(start = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Groups, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("$working trabajando", color = Orbita.Text, style = MaterialTheme.typography.labelLarge)
+                        Text(t("{working} trabajando", "working" to working), color = Orbita.Text, style = MaterialTheme.typography.labelLarge)
                     }
                     Spacer(Modifier.width(10.dp))
                 }

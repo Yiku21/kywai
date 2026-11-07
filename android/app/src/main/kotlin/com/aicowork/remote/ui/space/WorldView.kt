@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.space
 
+import com.aicowork.remote.i18n.t
+
 import android.app.ActivityManager
 import android.content.Context
 import android.opengl.GLSurfaceView
@@ -167,7 +169,7 @@ internal fun WorldTouchLayer(scene: SpaceScene, controller: WorldController, onP
         Modifier
             .fillMaxSize()
             .testTag("space-canvas")
-            .semantics { contentDescription = "Vista 3D del equipo. ${scene.summary}" }
+            .semantics { contentDescription = t("Vista 3D del equipo. {summary}", "summary" to scene.summary) }
             .pointerInput(controller) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)

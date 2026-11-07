@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -67,13 +69,13 @@ object Deliverables {
         return first.take(n).joinToString("/")
     }
 
-    fun folderName(folder: String): String = folder.split('/').lastOrNull { it.isNotEmpty() } ?: "Entregables"
+    fun folderName(folder: String): String = folder.split('/').lastOrNull { it.isNotEmpty() } ?: t("Entregables")
 
     private val words = mapOf(
-        "image" to ("imagen" to "imágenes"),
-        "html" to ("página" to "páginas"),
+        "image" to ("imagen" to t("imágenes")),
+        "html" to (t("página") to t("páginas")),
         "markdown" to ("documento" to "documentos"),
-        "code" to ("archivo de código" to "archivos de código"),
+        "code" to (t("archivo de código") to t("archivos de código")),
         "text" to ("texto" to "textos"),
     )
 
@@ -99,13 +101,13 @@ object Deliverables {
     fun folderSummary(kinds: List<String>, authors: List<String>): String = listOf(
         "${kinds.size} ${if (kinds.size == 1) "archivo" else "archivos"}",
         kindsSummary(kinds),
-        if (authors.isEmpty()) "" else "por ${authors.joinToString(" y ")}",
+        if (authors.isEmpty()) "" else t("por {v1}", "v1" to (authors.joinToString(t(" y ")))),
     ).filter { it.isNotEmpty() }.joinToString(" · ")
 }
 
 private fun plural(n: Int, one: String, many: String) = "$n ${if (n == 1) one else many}"
 
-private val DIFFICULTY = mapOf("easy" to "fácil", "medium" to "normal", "hard" to "difícil")
+private val DIFFICULTY = mapOf("easy" to t("fácil"), "medium" to "normal", "hard" to t("difícil"))
 
 /**
  * Plan que propone Hermes: cada tarea con su agente (toca una para ver qué hará). Nada empieza hasta que lo
@@ -145,16 +147,16 @@ fun ProposalCard(message: ChatMessage, proposal: PlanProposal, snapshot: Snapsho
             Column(Modifier.weight(1f)) {
                 Text(
                     when (proposal.status) {
-                        "pending" -> "Plan propuesto: espera tu visto bueno"
-                        "revised" -> "Plan cambiado por tu respuesta"
-                        "approved" -> "Plan aprobado"
-                        else -> "Plan descartado"
+                        "pending" -> t("Plan propuesto: espera tu visto bueno")
+                        "revised" -> t("Plan cambiado por tu respuesta")
+                        "approved" -> t("Plan aprobado")
+                        else -> t("Plan descartado")
                     },
                     color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                 )
-                Text("${plural(agents, "agente", "agentes")} · ${plural(proposal.tasks.size, "tarea", "tareas")}", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                Text("${plural(agents, t("agente"), t("agentes"))} · ${plural(proposal.tasks.size, t("tarea"), t("tareas"))}", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
-            if (!pending) Icon(Icons.Outlined.ExpandMore, contentDescription = if (showTasks) "Ocultar el plan" else "Ver el plan", tint = Orbita.TextSoft, modifier = Modifier.rotate(if (showTasks) 180f else 0f))
+            if (!pending) Icon(Icons.Outlined.ExpandMore, contentDescription = if (showTasks) t("Ocultar el plan") else t("Ver el plan"), tint = Orbita.TextSoft, modifier = Modifier.rotate(if (showTasks) 180f else 0f))
         }
         AnimatedVisibility(showTasks, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
             Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -167,7 +169,7 @@ fun ProposalCard(message: ChatMessage, proposal: PlanProposal, snapshot: Snapsho
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OrbitaButton(
-                    "Aprobar y empezar",
+                    t("Aprobar y empezar"),
                     onClick = {
                         busy = true
                         model.run({ model.controller.decidePlan(message.id, approve = true) }) { busy = null }
@@ -179,7 +181,7 @@ fun ProposalCard(message: ChatMessage, proposal: PlanProposal, snapshot: Snapsho
                     modifier = Modifier.weight(1f).testTag("plan-approve"),
                 )
                 OrbitaButton(
-                    "Descartar",
+                    t("Descartar"),
                     onClick = {
                         busy = false
                         model.run({ model.controller.decidePlan(message.id, approve = false) }) { busy = null }
@@ -193,7 +195,7 @@ fun ProposalCard(message: ChatMessage, proposal: PlanProposal, snapshot: Snapsho
                 )
             }
             Spacer(Modifier.height(6.dp))
-            Text("¿Algo no encaja? Escríbele aquí abajo qué cambiar.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+            Text(t("¿Algo no encaja? Escríbele aquí abajo qué cambiar."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -208,7 +210,7 @@ private fun ProposedTaskRow(number: Int, task: com.aicowork.remote.data.model.Pr
             .clip(RoundedCornerShape(12.dp))
             .background(if (open) Color(0x22B4CCF5) else Color.Transparent)
             .tappable(haptic = Haptic.Tap) { open = !open }
-            .semantics { stateDescription = if (open) "Desplegada" else "Plegada" }
+            .semantics { stateDescription = if (open) t("Desplegada") else t("Plegada") }
             .padding(horizontal = 6.dp, vertical = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -221,13 +223,13 @@ private fun ProposedTaskRow(number: Int, task: com.aicowork.remote.data.model.Pr
             Text(agent?.name ?: task.agentId, color = agent?.let { parseColor(it.color) } ?: Orbita.Accent, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(8.dp))
             Text(task.title, color = Orbita.Text, style = MaterialTheme.typography.bodyMedium, maxLines = if (open) 4 else 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            if (after.isNotEmpty()) Text(" tras ${after.joinToString(", ")}", color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium)
+            if (after.isNotEmpty()) Text(t(" tras {v1}", "v1" to (after.joinToString(", "))), color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium)
         }
         if (open) {
             Spacer(Modifier.height(6.dp))
             Column(Modifier.padding(start = 30.dp)) {
                 MarkdownText(task.description)
-                val meta = listOfNotNull("Dificultad ${DIFFICULTY[task.difficulty] ?: task.difficulty}", task.acceptance?.takeIf { it.isNotBlank() }?.let { "Hecha cuando: $it" })
+                val meta = listOfNotNull(t("Dificultad {difficulty}", "difficulty" to (DIFFICULTY[task.difficulty] ?: task.difficulty)), task.acceptance?.takeIf { it.isNotBlank() }?.let { t("Hecha cuando: {v1}", "v1" to it) })
                 Text(meta.joinToString(" · "), color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
             }
         }
@@ -243,7 +245,7 @@ fun PlanTasksCard(taskIds: List<String>, snapshot: Snapshot, model: OrbitaModel)
     val active = snapshot.conversation.activeRequestIds
     Column(Modifier.padding(top = 8.dp).fillMaxWidth().card(radius = 16.dp).padding(horizontal = 6.dp, vertical = 6.dp)) {
         Text(
-            if (done == tasks.size) "Plan completado · ${plural(tasks.size, "tarea", "tareas")}" else "Plan en marcha · $done de ${tasks.size} hechas",
+            if (done == tasks.size) t("Plan completado · {plural}", "plural" to plural(tasks.size, t("tarea"), t("tareas"))) else t("Plan en marcha · {done} de {size} hechas", "done" to done, "size" to tasks.size),
             color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = 8.dp, top = 2.dp, bottom = 4.dp),
         )
         tasks.forEach { t ->
@@ -284,7 +286,7 @@ fun DeliverablesCard(messageId: String, artifactIds: List<String>, snapshot: Sna
             Modifier
                 .fillMaxWidth()
                 .tappable(role = Role.Button, haptic = Haptic.Tap) { open = !open }
-                .semantics { stateDescription = if (open) "Desplegada" else "Plegada" }
+                .semantics { stateDescription = if (open) t("Desplegada") else t("Plegada") }
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -299,7 +301,7 @@ fun DeliverablesCard(messageId: String, artifactIds: List<String>, snapshot: Sna
                     color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
             }
-            Icon(Icons.Outlined.ExpandMore, contentDescription = if (open) "Plegar la carpeta" else "Desplegar la carpeta", tint = Orbita.TextSoft, modifier = Modifier.rotate(if (open) 180f else 0f))
+            Icon(Icons.Outlined.ExpandMore, contentDescription = if (open) t("Plegar la carpeta") else t("Desplegar la carpeta"), tint = Orbita.TextSoft, modifier = Modifier.rotate(if (open) 180f else 0f))
         }
         if (open) {
             Column(Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -320,7 +322,7 @@ private fun DeliverableRow(a: Artifact, snapshot: Snapshot, model: OrbitaModel) 
             .background(Color(0x2E0B1324))
             .border(1.dp, Orbita.CardEdge, RoundedCornerShape(14.dp))
             .tappable(enabled = canOpen, haptic = Haptic.Tap) { model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }
-            .semantics { contentDescription = "Abrir ${a.name}" }
+            .semantics { contentDescription = t("Abrir {name}", "name" to a.name) }
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -330,6 +332,6 @@ private fun DeliverableRow(a: Artifact, snapshot: Snapshot, model: OrbitaModel) 
             Text(a.name, color = Orbita.Text, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(a.relPath, color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (canOpen) Text("Abrir", color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
+        if (canOpen) Text(t("Abrir"), color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
     }
 }

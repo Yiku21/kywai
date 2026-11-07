@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.space
 
+import com.aicowork.remote.i18n.t
+
 import com.aicowork.remote.ui.space.gl.SceneGeometry
 import kotlin.math.abs
 import kotlin.math.max
@@ -166,13 +168,13 @@ internal class WorldSim {
                 val agent = sc.agent(event.agentId) ?: return
                 brains[agent.id]?.onCelebrate(t)
                 stationFx(agent.stationId).pulse(DONE_COLOR, 1f, t)
-                setOverride(agent.id, "Completado", Tone.Done, 1.8f)
+                setOverride(agent.id, t("Completado"), Tone.Done, 1.8f)
             }
             is WorldEvent.TaskFailed -> {
                 val agent = sc.agent(event.agentId) ?: return
                 brains[agent.id]?.onAlert(t)
                 stationFx(agent.stationId).pulse(ERROR_COLOR, 1f, t)
-                setOverride(agent.id, "Tarea fallida", Tone.Error, 2.2f)
+                setOverride(agent.id, t("Tarea fallida"), Tone.Error, 2.2f)
             }
             is WorldEvent.Poke -> brains[event.agentId]?.onPoke(t)
         }
@@ -233,13 +235,13 @@ internal class WorldSim {
             brains[fromAgent.id]?.onSend(toPos, t)
             stationFx(fromAgent.stationId).pulse(color, 0.45f, t)
             val what = tr.title?.takeIf { it.isNotBlank() } ?: tr.label
-            setOverride(fromAgent.id, "Enviando: $what", Tone.Send, duration)
+            setOverride(fromAgent.id, t("Enviando: {what}", "what" to what), Tone.Send, duration)
         } else {
             corePulse(color, 0.3f, t)
         }
         if (toAgent != null) {
             brains[toAgent.id]?.onExpect(fromPos, t, t + duration)
-            setOverride(toAgent.id, "Recibiendo tarea", Tone.Receive, duration + 0.3f)
+            setOverride(toAgent.id, t("Recibiendo tarea"), Tone.Receive, duration + 0.3f)
         }
         packets += Packet(
             tr.id, fromAgent?.id ?: CORE, toAgent?.id ?: CORE, path, t, duration, color, traceStation,
@@ -266,7 +268,7 @@ internal class WorldSim {
         if (p.toAgent != null) {
             brains[p.toAgent]?.onReceive(t)
             sc?.agent(p.toAgent)?.let { stationFx(it.stationId).pulse(p.color, 1f, t) }
-            setOverride(p.toAgent, "Recibido", Tone.Done, 1.3f)
+            setOverride(p.toAgent, t("Recibido"), Tone.Done, 1.3f)
         } else if (p.toCore) {
             corePulse(p.color, 1f, t)
             // El coordinador (Hermes) recibe los resultados: asiente un poco.

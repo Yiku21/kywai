@@ -1,5 +1,7 @@
 package com.aicowork.remote.data
 
+import com.aicowork.remote.i18n.t
+
 import com.aicowork.remote.data.model.AppRelease
 import com.aicowork.remote.data.model.Artifact
 import com.aicowork.remote.data.model.ChatMessage
@@ -129,7 +131,7 @@ sealed interface LiveEvent {
     data class RequestFinished(val requestId: String, val ok: Boolean) : LiveEvent
 }
 
-private val unsupported = ActionResult(false, "El ordenador todavía no admite esto: actualiza AI Cowork en el ordenador.")
+private val unsupported = ActionResult(false, t("El ordenador todavía no admite esto: actualiza AI Cowork en el ordenador."))
 
 /** Lo que la interfaz puede pedir. La implementación real es [CoworkRepository]; las pruebas usan un doble. */
 interface CoworkController {
@@ -237,7 +239,7 @@ class CoworkRepository(
             cache.clear()
             _state.value = CoworkUiState(
                 previousSession = session,
-                notice = if (session.demo) "Empareja con tu ordenador para usar el servidor real de AI Cowork." else null,
+                notice = if (session.demo) t("Empareja con tu ordenador para usar el servidor real de AI Cowork.") else null,
             )
             return
         }
@@ -342,14 +344,14 @@ class CoworkRepository(
             _state.update { it.copy(connection = Connection.Connecting) }
             val outcome = runSocket(c)
             if (outcome.unauthorized) {
-                expire(outcome.reason ?: "La sesión ya no es válida. Vuelve a emparejar el dispositivo.")
+                expire(outcome.reason ?: t("La sesión ya no es válida. Vuelve a emparejar el dispositivo."))
                 return
             }
             attempt = if (outcome.wasOnline) 0 else attempt + 1
             val wait = backoff(attempt)
             _state.update {
                 it.copy(
-                    connection = Connection.Offline(outcome.reason ?: "Se perdió la conexión", now() + wait),
+                    connection = Connection.Offline(outcome.reason ?: t("Se perdió la conexión"), now() + wait),
                     outgoing = it.outgoing.map { m -> if (m.status == OutgoingStatus.Sending) m.copy(status = OutgoingStatus.Queued) else m },
                 )
             }
@@ -403,11 +405,11 @@ class CoworkRepository(
                         }
                     }
                     is SocketEvent.Failure -> {
-                        if (event.status == 401) return Outcome(online, "La sesión ya no es válida. Vuelve a emparejar el dispositivo.", true)
-                        return Outcome(online, ApiException.network(event.error).message.takeIf { !online } ?: "Se perdió la conexión")
+                        if (event.status == 401) return Outcome(online, t("La sesión ya no es válida. Vuelve a emparejar el dispositivo."), true)
+                        return Outcome(online, ApiException.network(event.error).message.takeIf { !online } ?: t("Se perdió la conexión"))
                     }
                     is SocketEvent.Closed -> return Outcome(online,
-                        if (event.reason == "TOKEN_EXPIRED") "La sesión caducó. Vuelve a emparejar el dispositivo." else "El servidor cerró la conexión",
+                        if (event.reason == "TOKEN_EXPIRED") t("La sesión caducó. Vuelve a emparejar el dispositivo.") else t("El servidor cerró la conexión"),
                         unauthorized = event.code == 1008 && event.reason == "TOKEN_EXPIRED")
                 }
             }
@@ -588,29 +590,29 @@ class CoworkRepository(
 
     // ------------------------------------------------------------------ Acciones
 
-    override suspend fun newConversation(): ActionResult = action("Conversación nueva") { c ->
+    override suspend fun newConversation(): ActionResult = action(t("Conversación nueva")) { c ->
         c.newConversation()
         // La conversación, las tareas y la memoria forman una única instantánea del servidor.
         resync(c)
     }
 
-    override suspend fun stopRequest(requestId: String): ActionResult = action("Petición detenida") { c ->
+    override suspend fun stopRequest(requestId: String): ActionResult = action(t("Petición detenida")) { c ->
         c.stopRequest(requestId)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
-    override suspend fun resumeRequest(requestId: String): ActionResult = action("Petición reanudada") { c ->
+    override suspend fun resumeRequest(requestId: String): ActionResult = action(t("Petición reanudada")) { c ->
         c.resumeRequest(requestId)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
-    override suspend fun discardRequest(requestId: String): ActionResult = action("Tarea en pausa quitada") { c ->
+    override suspend fun discardRequest(requestId: String): ActionResult = action(t("Tarea en pausa quitada")) { c ->
         c.discardRequest(requestId)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
     private suspend fun action(success: String, block: suspend (CoworkApiClient) -> Unit): ActionResult {
-        val c = client ?: return ActionResult(false, "No hay ningún ordenador emparejado")
+        val c = client ?: return ActionResult(false, t("No hay ningún ordenador emparejado"))
         return try {
             block(c)
             ActionResult(true, success)
@@ -621,7 +623,7 @@ class CoworkRepository(
     }
 
     private suspend fun <T> fetch(block: suspend (CoworkApiClient) -> T): Result<T> {
-        val c = client ?: return Result.failure(ApiException(0, "not_paired", "No hay ningún ordenador emparejado", false))
+        val c = client ?: return Result.failure(ApiException(0, "not_paired", t("No hay ningún ordenador emparejado"), false))
         return try {
             Result.success(block(c))
         } catch (e: ApiException) {
@@ -633,7 +635,7 @@ class CoworkRepository(
     private fun currentConversation(): String? = _state.value.snapshot?.conversation?.id ?: _state.value.session?.conversationId
 
     private fun needConversation(): String = currentConversation()
-        ?: throw ApiException(409, "NO_CONVERSATION", "Todavía no hay ningún proyecto abierto.", false)
+        ?: throw ApiException(409, "NO_CONVERSATION", t("Todavía no hay ningún proyecto abierto."), false)
 
     private fun rememberConversation(id: String) {
         val session = _state.value.session ?: return
@@ -643,13 +645,13 @@ class CoworkRepository(
         _state.update { it.copy(session = updated) }
     }
 
-    override suspend fun selectConversation(id: String): ActionResult = action("Proyecto abierto") { c ->
+    override suspend fun selectConversation(id: String): ActionResult = action(t("Proyecto abierto")) { c ->
         rememberConversation(id)
         cache.clear()
         resync(c)
     }
 
-    override suspend fun createProject(name: String): ActionResult = action("Proyecto creado") { c ->
+    override suspend fun createProject(name: String): ActionResult = action(t("Proyecto creado")) { c ->
         val conversation = c.newConversation(name.trim())
         conversation?.id?.let { rememberConversation(it) }
         resync(c)
@@ -657,28 +659,28 @@ class CoworkRepository(
 
     override suspend fun loadTrace(taskId: String): Result<List<TraceEntry>> = fetch { it.trace(taskId) }
 
-    override suspend fun addMemory(kind: String, text: String): ActionResult = action("Recuerdo añadido") { c ->
+    override suspend fun addMemory(kind: String, text: String): ActionResult = action(t("Recuerdo añadido")) { c ->
         c.addMemory(needConversation(), kind, text.trim())
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
     override suspend fun setMemoryStatus(id: String, status: String): ActionResult =
-        action(if (status == "confirmed") "Confirmado" else if (status == "superseded") "Descartado" else "Actualizado") { c ->
+        action(if (status == "confirmed") t("Confirmado") else if (status == "superseded") t("Descartado") else t("Actualizado")) { c ->
             c.updateMemory(MemoryUpdateRequest(needConversation(), status = status), id)
             if (_state.value.connection != Connection.Online) resync(c)
         }
 
-    override suspend fun editMemory(id: String, text: String): ActionResult = action("Recuerdo actualizado") { c ->
+    override suspend fun editMemory(id: String, text: String): ActionResult = action(t("Recuerdo actualizado")) { c ->
         c.updateMemory(MemoryUpdateRequest(needConversation(), text = text.trim()), id)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
-    override suspend fun deleteMemory(id: String): ActionResult = action("Recuerdo borrado") { c ->
+    override suspend fun deleteMemory(id: String): ActionResult = action(t("Recuerdo borrado")) { c ->
         c.deleteMemory(needConversation(), id)
         if (_state.value.connection != Connection.Online) resync(c)
     }
 
-    override suspend fun setInstructions(text: String): ActionResult = action("Instrucciones guardadas") { c ->
+    override suspend fun setInstructions(text: String): ActionResult = action(t("Instrucciones guardadas")) { c ->
         val saved = c.setInstructions(needConversation(), text.trim())
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(conversation = it.conversation.copy(instructions = saved ?: text.trim())) }) }
     }
@@ -696,7 +698,7 @@ class CoworkRepository(
         scope.launch {
             val c = client
             if (c == null) {
-                set { it.copy(error = "No hay ningún ordenador emparejado") }
+                set { it.copy(error = t("No hay ningún ordenador emparejado")) }
                 return@launch
             }
             try {
@@ -721,7 +723,7 @@ class CoworkRepository(
                 if (e.isUnauthorized) expire(e.message)
                 set { it.copy(error = e.message) }
             } catch (e: java.io.IOException) {
-                set { it.copy(error = "No se pudo leer el archivo: ${e.message ?: "error"}") }
+                set { it.copy(error = t("No se pudo leer el archivo: {v1}", "v1" to (e.message ?: "error"))) }
             }
         }
     }
@@ -731,14 +733,14 @@ class CoworkRepository(
     }
 
     override suspend fun setAgentAccess(access: String): ActionResult = action(
-        if (access == "project") "Los agentes solo trabajan en la carpeta del proyecto" else "Los agentes tienen acceso completo",
+        if (access == "project") t("Los agentes solo trabajan en la carpeta del proyecto") else t("Los agentes tienen acceso completo"),
     ) { c ->
         val saved = c.setAgentAccess(access)
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(agentAccess = saved)) }) }
     }
 
     override suspend fun decidePlan(messageId: String, approve: Boolean): ActionResult = action(
-        if (approve) "Plan aprobado: el equipo empieza" else "Plan descartado",
+        if (approve) t("Plan aprobado: el equipo empieza") else t("Plan descartado"),
     ) { c ->
         c.decidePlan(needConversation(), messageId, approve)
         // Se ve al momento; el mensaje definitivo (con sus tareas) llega por el WebSocket.
@@ -754,13 +756,13 @@ class CoworkRepository(
     }
 
     override suspend fun setPlanApproval(enabled: Boolean): ActionResult = action(
-        if (enabled) "Hermes te pedirá el visto bueno antes de empezar" else "Los planes empiezan sin esperar tu visto bueno",
+        if (enabled) t("Hermes te pedirá el visto bueno antes de empezar") else t("Los planes empiezan sin esperar tu visto bueno"),
     ) { c ->
         val saved = c.setPlanApproval(enabled)
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(settings = it.settings.copy(planApproval = saved)) }) }
     }
 
-    override suspend fun refreshUsage(): ActionResult = action("Cuotas actualizadas") { c ->
+    override suspend fun refreshUsage(): ActionResult = action(t("Cuotas actualizadas")) { c ->
         val quotas = c.refreshUsage()
         _state.update { s -> s.copy(snapshot = s.snapshot?.let { it.copy(usage = it.usage.copy(quotas = quotas)) }) }
     }
@@ -774,12 +776,12 @@ class CoworkRepository(
     override suspend fun hermesModels(): Result<HermesModelsInfo> = fetch { it.hermesModels() }
 
     override suspend fun resetAgent(agentId: String): ActionResult {
-        val c = client ?: return ActionResult(false, "No hay ningún ordenador emparejado")
+        val c = client ?: return ActionResult(false, t("No hay ningún ordenador emparejado"))
         return try {
             val r = c.resetAgent(agentId)
             val name = _state.value.snapshot?.agents?.firstOrNull { it.id == agentId }?.name ?: agentId
-            if (r.activity == "offline") ActionResult(false, "$name sigue sin responder${r.reason?.let { ": $it" } ?: ""}")
-            else ActionResult(true, "$name reiniciado: vuelve a estar disponible")
+            if (r.activity == "offline") ActionResult(false, t("{name} sigue sin responder{v2}", "name" to name, "v2" to (r.reason?.let { ": $it" } ?: "")))
+            else ActionResult(true, t("{name} reiniciado: vuelve a estar disponible", "name" to name))
         } catch (e: ApiException) {
             if (e.isUnauthorized) expire(e.message)
             ActionResult(false, e.message)
@@ -791,7 +793,7 @@ class CoworkRepository(
     override suspend fun serverUpdate(): Result<ServerUpdate> = fetch { it.serverUpdate() }
 
     override suspend fun startServerUpdate(setAside: Boolean): ActionResult =
-        action("El servidor se está actualizando: se reiniciará al terminar") { it.startServerUpdate(setAside) }
+        action(t("El servidor se está actualizando: se reiniciará al terminar")) { it.startServerUpdate(setAside) }
 
     override fun refreshInbox() {
         val c = client ?: return
@@ -807,7 +809,7 @@ class CoworkRepository(
     }
 
     override suspend fun inboxAction(itemId: String, actionId: String): ActionResult {
-        val c = client ?: return ActionResult(false, "No hay ningún ordenador emparejado")
+        val c = client ?: return ActionResult(false, t("No hay ningún ordenador emparejado"))
         return try {
             val response = c.inboxAction(itemId, actionId)
             val item = response.item
@@ -815,7 +817,7 @@ class CoworkRepository(
             _state.update { s ->
                 s.copy(inbox = if (item == null || !item.isOpen) s.inbox.filterNot { it.id == itemId } else s.inbox.map { if (it.id == itemId) item else it })
             }
-            ActionResult(true, response.message?.takeIf { it.isNotBlank() } ?: "Hecho")
+            ActionResult(true, response.message?.takeIf { it.isNotBlank() } ?: t("Hecho"))
         } catch (e: ApiException) {
             if (e.isUnauthorized) expire(e.message)
             // El aviso (o ese botón) ya no existe: se quita de la lista y se vuelve a leer.

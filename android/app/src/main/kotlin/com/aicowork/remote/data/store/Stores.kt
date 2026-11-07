@@ -1,6 +1,7 @@
 package com.aicowork.remote.data.store
 
 import com.aicowork.remote.data.model.CoworkJson
+import com.aicowork.remote.i18n.AppLanguage
 import com.aicowork.remote.data.model.Snapshot
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,6 +71,8 @@ data class Preferences(
     val voices: Boolean = true,
     /** Volumen de las voces (0–1), aparte de los sonidos. */
     val voiceVolume: Float = 0.7f,
+    /** Idioma de la app en este móvil (Ajustes → «Idioma · Language»); «Del sistema», el del teléfono. */
+    val language: AppLanguage = AppLanguage.System,
 )
 
 interface PreferencesStore {

@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -67,12 +69,12 @@ fun MicButton(model: OrbitaModel, target: VoiceTarget, modifier: Modifier = Modi
         if (granted) model.startVoice(target)
         else {
             model.feedback.reject()
-            model.toast("Sin permiso para el micrófono: actívalo en Ajustes › Aplicaciones › AI Cowork › Permisos.", Toast.Tone.Error)
+            model.toast(t("Sin permiso para el micrófono: actívalo en Ajustes › Aplicaciones › AI Cowork › Permisos."), Toast.Tone.Error)
         }
     }
     IconAction(
         Icons.Outlined.Mic,
-        "Grabar una nota de voz",
+        t("Grabar una nota de voz"),
         onClick = {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) model.startVoice(target)
             else ask.launch(Manifest.permission.RECORD_AUDIO)
@@ -110,9 +112,9 @@ fun VoiceBar(model: OrbitaModel, state: VoiceState, allowSend: Boolean, modifier
                 CircularProgressIndicator(Modifier.size(20.dp), color = Orbita.Accent, strokeWidth = 2.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f).padding(vertical = 8.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
-                    Text(if (state.send) "Pasando a texto para enviarla…" else "Pasando tu nota a texto en el ordenador…", color = Orbita.Text, style = MaterialTheme.typography.bodyMedium)
+                    Text(if (state.send) t("Pasando a texto para enviarla…") else t("Pasando tu nota a texto en el ordenador…"), color = Orbita.Text, style = MaterialTheme.typography.bodyMedium)
                     if (now - state.since > 12_000) {
-                        Text("La primera vez el ordenador prepara el dictado y puede tardar unos minutos.", color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
+                        Text(t("La primera vez el ordenador prepara el dictado y puede tardar unos minutos."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -121,8 +123,8 @@ fun VoiceBar(model: OrbitaModel, state: VoiceState, allowSend: Boolean, modifier
                 Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = Orbita.Danger, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(10.dp))
                 Text(state.message, color = Orbita.Text, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Text("Reintentar", color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable(haptic = Haptic.Tap) { model.retryVoice() }.padding(10.dp))
-                IconAction(Icons.Outlined.Close, "Descartar la nota", onClick = { model.discardVoice() }, size = 40.dp)
+                Text(t("Reintentar"), color = Orbita.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(Orbita.PillShape).tappable(haptic = Haptic.Tap) { model.retryVoice() }.padding(10.dp))
+                IconAction(Icons.Outlined.Close, t("Descartar la nota"), onClick = { model.discardVoice() }, size = 40.dp)
             }
             VoiceState.Idle -> Unit
         }
@@ -144,11 +146,11 @@ private fun RowScope.Recording(model: OrbitaModel, allowSend: Boolean) {
             delay(80)
         }
     }
-    IconAction(Icons.Outlined.Close, "Cancelar la nota", onClick = { model.cancelVoice() }, size = 44.dp)
+    IconAction(Icons.Outlined.Close, t("Cancelar la nota"), onClick = { model.cancelVoice() }, size = 44.dp)
     Box(Modifier.size(10.dp).clip(CircleShape).background(if (on) Orbita.Danger else Orbita.Danger.copy(alpha = 0.4f)))
     Spacer(Modifier.width(8.dp))
     val seconds = elapsed / 1000
-    Text("%d:%02d".format(seconds / 60, seconds % 60), color = Orbita.Text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.semantics { contentDescription = "Grabando, $seconds segundos" })
+    Text("%d:%02d".format(seconds / 60, seconds % 60), color = Orbita.Text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.semantics { contentDescription = t("Grabando, {seconds} segundos", "seconds" to seconds) })
     Spacer(Modifier.width(10.dp))
     Canvas(Modifier.weight(1f).height(32.dp)) {
         val bars = 40
@@ -165,7 +167,7 @@ private fun RowScope.Recording(model: OrbitaModel, allowSend: Boolean) {
         }
     }
     Spacer(Modifier.width(6.dp))
-    IconAction(Icons.Outlined.Check, "Terminar y revisar el texto", onClick = { model.finishVoice(send = false) }, tint = Orbita.Text, size = 44.dp, modifier = Modifier.testTag("voice-review"))
+    IconAction(Icons.Outlined.Check, t("Terminar y revisar el texto"), onClick = { model.finishVoice(send = false) }, tint = Orbita.Text, size = 44.dp, modifier = Modifier.testTag("voice-review"))
     if (allowSend) {
         Box(
             Modifier
@@ -173,7 +175,7 @@ private fun RowScope.Recording(model: OrbitaModel, allowSend: Boolean) {
                 .clip(CircleShape)
                 .background(Orbita.AccentButtonTop)
                 .tappable(haptic = Haptic.None) { model.finishVoice(send = true) }
-                .semantics { contentDescription = "Terminar y enviar" }
+                .semantics { contentDescription = t("Terminar y enviar") }
                 .testTag("voice-send"),
             contentAlignment = Alignment.Center,
         ) {

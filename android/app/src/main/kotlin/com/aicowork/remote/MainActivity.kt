@@ -12,6 +12,7 @@ import androidx.activity.viewModels
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.aicowork.remote.data.update.PackageInstallerAppInstaller
+import com.aicowork.remote.i18n.I18n
 import com.aicowork.remote.ui.orbita.AgentVoices
 import com.aicowork.remote.ui.orbita.Feedback
 import com.aicowork.remote.ui.orbita.OrbitaApp
@@ -45,6 +46,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // El idioma antes de pintar nada (y antes de crear el estado, que ya prepara textos).
+        I18n.apply((application as CoworkApplication).container.preferences.preferences.value.language)
         super.onCreate(savedInstanceState)
         // Órbita es oscuro: barras del sistema transparentes con iconos claros.
         enableEdgeToEdge(

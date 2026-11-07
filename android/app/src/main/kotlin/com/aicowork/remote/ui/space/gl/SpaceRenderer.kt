@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.space.gl
 
+import com.aicowork.remote.i18n.t
+
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.util.Log
@@ -241,11 +243,11 @@ internal class SpaceRenderer(
         textures["glow"] = upload(SceneTextures.glow())
         textures["check"] = upload(SceneTextures.check())
         textures["doc"] = upload(SceneTextures.document(), mipmaps = true)
-        textures["wallL"] = upload(SceneTextures.wall(listOf("IDEAS", "PERSONAS", "PROYECTOS", "RESULTADOS"), alignRight = false), mipmaps = true)
-        textures["wallR"] = upload(SceneTextures.wall(listOf("UN MUNDO", "DE IA", "TRABAJANDO", "JUNTOS"), alignRight = true), mipmaps = true)
+        textures["wallL"] = upload(SceneTextures.wall(listOf(t("IDEAS"), t("PERSONAS"), t("PROYECTOS"), t("RESULTADOS")), alignRight = false), mipmaps = true)
+        textures["wallR"] = upload(SceneTextures.wall(listOf(t("UN MUNDO"), t("DE IA"), t("TRABAJANDO"), t("JUNTOS")), alignRight = true), mipmaps = true)
         textures["tasks"] = upload(SceneTextures.tasks(), mipmaps = true)
         textures["sheet"] = upload(SceneTextures.folderSheet(), mipmaps = true)
-        textures["tools"] = upload(SceneTextures.titleOnly("Herramientas"), mipmaps = true)
+        textures["tools"] = upload(SceneTextures.titleOnly(t("Herramientas")), mipmaps = true)
         SceneTextures.Tool.entries.forEach { textures["tool:${it.name}"] = upload(SceneTextures.toolIcon(it), mipmaps = true) }
     }
 
@@ -262,8 +264,8 @@ internal class SpaceRenderer(
         zoneKey = key
         textures.remove("files")?.let { GLES20.glDeleteTextures(1, intArrayOf(it), 0) }
         textures.remove("memory")?.let { GLES20.glDeleteTextures(1, intArrayOf(it), 0) }
-        textures["files"] = upload(SceneTextures.iconTitle("Archivos", listOf("Tareas · ${z.tasks}", "Resultados · ${z.results}", "Carpeta del proyecto", "En el ordenador"), SceneTextures.ZoneIcon.Folder), mipmaps = true)
-        textures["memory"] = upload(SceneTextures.iconTitle("Memoria", listOf("Decisiones · ${z.decisions}", "Preferencias · ${z.preferences}", "Hechos · ${z.facts}", "Pendientes · ${z.pending}"), SceneTextures.ZoneIcon.Brain), mipmaps = true)
+        textures["files"] = upload(SceneTextures.iconTitle(t("Archivos"), listOf(t("Tareas · {n}", "n" to z.tasks), t("Resultados · {n}", "n" to z.results), t("Carpeta del proyecto"), t("En el ordenador")), SceneTextures.ZoneIcon.Folder), mipmaps = true)
+        textures["memory"] = upload(SceneTextures.iconTitle(t("Memoria"), listOf(t("Decisiones · {n}", "n" to z.decisions), t("Preferencias · {n}", "n" to z.preferences), t("Hechos · {n}", "n" to z.facts), t("Pendientes · {n}", "n" to z.pending)), SceneTextures.ZoneIcon.Brain), mipmaps = true)
     }
 
     private fun labelTextures(): LabelTextures {

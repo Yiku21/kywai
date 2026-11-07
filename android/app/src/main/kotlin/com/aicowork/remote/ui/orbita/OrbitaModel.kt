@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import com.aicowork.remote.i18n.t
+
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.icons.Icons
@@ -45,21 +47,21 @@ import kotlinx.coroutines.launch
 
 /** Secciones de Órbita. El Equipo es aparte de la navegación (selector propio), pero también tiene panel. */
 enum class Section(val label: String, val icon: ImageVector) {
-    World("Mundo", Icons.Outlined.Home),
-    Chat("Chat", Icons.AutoMirrored.Outlined.Chat),
-    Tasks("Tareas", Icons.Outlined.TaskAlt),
-    Files("Archivos", Icons.Outlined.Description),
-    Results("Resultados", Icons.Outlined.Inventory2),
-    Memory("Memoria", Icons.Outlined.Psychology),
-    Tools("Herramientas", Icons.Outlined.Build),
-    Usage("Consumo", Icons.Outlined.DataUsage),
-    Settings("Ajustes", Icons.Outlined.Settings),
-    Team("Equipo", Icons.Outlined.Groups),
+    World(t("Mundo"), Icons.Outlined.Home),
+    Chat(t("Chat"), Icons.AutoMirrored.Outlined.Chat),
+    Tasks(t("Tareas"), Icons.Outlined.TaskAlt),
+    Files(t("Archivos"), Icons.Outlined.Description),
+    Results(t("Resultados"), Icons.Outlined.Inventory2),
+    Memory(t("Memoria"), Icons.Outlined.Psychology),
+    Tools(t("Herramientas"), Icons.Outlined.Build),
+    Usage(t("Consumo"), Icons.Outlined.DataUsage),
+    Settings(t("Ajustes"), Icons.Outlined.Settings),
+    Team(t("Equipo"), Icons.Outlined.Groups),
 }
 
-enum class TaskFilter(val label: String) { Active("En curso"), Review("Por revisar"), Done("Hechas") }
-enum class ResultFilter(val label: String) { All("Todos"), Documents("Documentos"), Code("Código") }
-enum class FilesTab(val label: String) { Attachments("Adjuntos"), Project("Proyecto") }
+enum class TaskFilter(val label: String) { Active(t("En curso")), Review(t("Por revisar")), Done(t("Hechas")) }
+enum class ResultFilter(val label: String) { All(t("Todos")), Documents(t("Documentos")), Code(t("Código")) }
+enum class FilesTab(val label: String) { Attachments(t("Adjuntos")), Project(t("Proyecto")) }
 
 /** Lo que se abre a pantalla completa para leerlo. */
 sealed interface ViewerTarget {
@@ -262,7 +264,7 @@ class OrbitaModel(
     fun openInboxItem(item: InboxItem) {
         val projectId = item.projectId ?: return
         if (!inboxTargetExists(item)) {
-            toast("Esa conversación ya no está en el ordenador", Toast.Tone.Error)
+            toast(t("Esa conversación ya no está en el ordenador"), Toast.Tone.Error)
             return
         }
         fun show() {
@@ -305,7 +307,7 @@ class OrbitaModel(
 
     /** Muestra de las voces (al activarlas o cambiar su volumen): Hermes saluda. */
     fun previewVoice() {
-        if (preferences.sound && preferences.voices) voices?.speak("hermes", Voices.profile("hermes"), "¡Hola! Así suena Hermes.")
+        if (preferences.sound && preferences.voices) voices?.speak("hermes", Voices.profile("hermes"), t("¡Hola! Así suena Hermes."))
     }
 
     private fun applyPreferences(p: Preferences) {
@@ -363,8 +365,8 @@ class OrbitaModel(
     private fun snapshot(): Snapshot? = controller.state.value.snapshot
 
     private fun agentName(id: String?): String = snapshot()?.agents?.firstOrNull { it.id == id }?.name ?: when (id) {
-        "core" -> "el proyecto"
-        "user" -> "tú"
+        "core" -> t("el proyecto")
+        "user" -> t("tú")
         else -> id ?: "?"
     }
 
@@ -382,17 +384,17 @@ class OrbitaModel(
             is LiveEvent.TaskCompleted -> {
                 world.post(WorldEvent.TaskCompleted(event.taskId, event.agentId))
                 feedback.play(Sfx.TaskComplete)
-                toast("${agentName(event.agentId)} terminó «${event.title ?: "una tarea"}»", Toast.Tone.Success, "Ver") { openTask(event.taskId) }
+                toast(t("{v1} terminó «{v2}»", "v1" to (agentName(event.agentId)), "v2" to (event.title ?: t("una tarea"))), Toast.Tone.Success, t("Ver")) { openTask(event.taskId) }
             }
             is LiveEvent.TaskFailed -> {
                 world.post(WorldEvent.TaskFailed(event.task.id, event.task.agentId))
                 feedback.play(Sfx.Error)
-                toast("Falló «${event.task.title}»: ${event.task.error ?: "sin detalle"}", Toast.Tone.Error, "Revisar") { openTask(event.task.id) }
+                toast(t("Falló «{title}»: {v1}", "title" to event.task.title, "v1" to (event.task.error ?: t("sin detalle"))), Toast.Tone.Error, t("Revisar")) { openTask(event.task.id) }
             }
             is LiveEvent.ArtifactCreated -> {
                 feedback.play(Sfx.FileCreated)
                 val a = event.artifact
-                toast("Nuevo resultado: ${a.name}", Toast.Tone.Info, "Abrir") { viewer = ViewerTarget.Result(a.id, a.name, a.kind) }
+                toast(t("Nuevo resultado: {name}", "name" to a.name), Toast.Tone.Info, t("Abrir")) { viewer = ViewerTarget.Result(a.id, a.name, a.kind) }
             }
             is LiveEvent.AgentSpoke -> {
                 // Cada agente con su voz, y lo que dice se escribe a su ritmo; «Sonidos» apaga también las voces.
@@ -414,11 +416,11 @@ class OrbitaModel(
                 if (m.tone == "error" || fromCoordinator || !m.author.isAgent) {
                     feedback.play(if (m.tone == "error") Sfx.Error else Sfx.Message)
                     if (section != Section.Chat && m.proposal?.isPending == true) {
-                        toast("${m.author.agentId?.let { agentName(it) } ?: "Hermes"} te propone un plan: revísalo antes de empezar", Toast.Tone.Info, "Ver el plan") { open(Section.Chat) }
+                        toast(t("{v1} te propone un plan: revísalo antes de empezar", "v1" to (m.author.agentId?.let { agentName(it) } ?: "Hermes")), Toast.Tone.Info, t("Ver el plan")) { open(Section.Chat) }
                     } else if (section != Section.Chat) {
                         val who = m.author.agentId?.let { agentName(it) } ?: "AI Cowork"
                         val line = inline(m.text.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty().trimStart('#', ' ')).text
-                        toast("$who: ${line.take(90)}", if (m.tone == "error") Toast.Tone.Error else Toast.Tone.Info, "Abrir chat") { open(Section.Chat) }
+                        toast("$who: ${line.take(90)}", if (m.tone == "error") Toast.Tone.Error else Toast.Tone.Info, t("Abrir chat")) { open(Section.Chat) }
                     }
                 }
             }
@@ -447,7 +449,7 @@ class OrbitaModel(
             rec.start(onLimit = { viewModelScope.launch { finishVoice(send = false) } })
         } catch (e: Exception) {
             feedback.reject()
-            toast(e.message ?: "No se pudo usar el micrófono", Toast.Tone.Error)
+            toast(e.message ?: t("No se pudo usar el micrófono"), Toast.Tone.Error)
             return
         }
         recorder = rec
@@ -479,7 +481,7 @@ class OrbitaModel(
                 voiceFile = null
                 voice = VoiceState.Idle
                 feedback.reject()
-                toast(e.message ?: "No se grabó nada", Toast.Tone.Error)
+                toast(e.message ?: t("No se grabó nada"), Toast.Tone.Error)
                 return@launch
             }
             voiceFile = file
@@ -509,7 +511,7 @@ class OrbitaModel(
                     voice = VoiceState.Idle
                     if (said.isBlank()) {
                         feedback.reject()
-                        toast("No se entendió nada en la nota de voz", Toast.Tone.Error)
+                        toast(t("No se entendió nada en la nota de voz"), Toast.Tone.Error)
                         return@fold
                     }
                     when (target) {
@@ -536,7 +538,7 @@ class OrbitaModel(
                 },
                 { e ->
                     feedback.reject()
-                    voice = VoiceState.Failed(target, send, e.message ?: "No se pudo pasar a texto")
+                    voice = VoiceState.Failed(target, send, e.message ?: t("No se pudo pasar a texto"))
                 },
             )
         }
@@ -568,21 +570,21 @@ class OrbitaModel(
             val active = snapshot.conversation.activeRequestIds.toSet()
             val messages = snapshot.conversation.messages
             // Un plan que espera tu visto bueno: nada empieza hasta que respondas.
-            if (messages.any { it.proposal?.isPending == true }) return Attention(hermes.id, "Hermes espera tu visto bueno al plan")
+            if (messages.any { it.proposal?.isPending == true }) return Attention(hermes.id, t("Hermes espera tu visto bueno al plan"))
             val lastUser = messages.indexOfLast { it.author.isUser }
             val question = messages.withIndex().lastOrNull { (i, m) ->
                 i > lastUser && m.author.agentId == hermes.id && m.text.trimEnd().endsWith("?")
             }
-            if (question != null && active.isEmpty()) return Attention(hermes.id, "Hermes te ha hecho una pregunta")
+            if (question != null && active.isEmpty()) return Attention(hermes.id, t("Hermes te ha hecho una pregunta"))
             // Dice cuál es (la más reciente) y tocarlo lleva a ella, para reanudarla o quitarla.
             val paused = snapshot.tasks.filter { it.isPaused && it.requestId !in active }
             paused.maxByOrNull { it.startedAt ?: it.createdAt ?: 0 }?.let { task ->
-                val reason = if (paused.size == 1) "En pausa: «${task.title.ifBlank { "una tarea" }}»" else "${paused.size} tareas en pausa: revísalas"
-                return Attention(hermes.id, reason, task.id, "Trabajo en pausa")
+                val reason = if (paused.size == 1) t("En pausa: «{v1}»", "v1" to task.title.ifBlank { t("una tarea") }) else t("{size} tareas en pausa: revísalas", "size" to paused.size)
+                return Attention(hermes.id, reason, task.id, t("Trabajo en pausa"))
             }
             val lastRequest = snapshot.tasks.maxByOrNull { it.createdAt ?: 0 }?.requestId
             val failed = snapshot.tasks.firstOrNull { it.status == "failed" && it.requestId == lastRequest && it.requestId !in active }
-            if (failed != null) return Attention(hermes.id, "Una tarea falló: revísala", failed.id, "Una tarea falló")
+            if (failed != null) return Attention(hermes.id, t("Una tarea falló: revísala"), failed.id, t("Una tarea falló"))
             return null
         }
     }

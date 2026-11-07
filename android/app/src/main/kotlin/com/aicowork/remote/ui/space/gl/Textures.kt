@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.space.gl
 
+import com.aicowork.remote.i18n.t
+
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -106,7 +108,7 @@ internal object SceneTextures {
 
     /** Panel «Nuevas tareas» con el símbolo +. */
     fun tasks(): Bitmap = canvas(512, 620) { c ->
-        title(c, listOf("Nuevas", "tareas"), 44f, 104f, 72f)
+        title(c, listOf(t("Nuevas"), t("tareas")), 44f, 104f, 72f)
         c.drawCircle(256f, 410f, 118f, stroke(10f, rgba(235, 245, 255, 0.95f)))
         val plus = stroke(16f, rgba(235, 245, 255, 0.95f))
         c.drawLine(256f, 350f, 256f, 470f, plus)
