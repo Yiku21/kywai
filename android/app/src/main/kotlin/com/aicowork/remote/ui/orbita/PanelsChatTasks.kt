@@ -99,6 +99,25 @@ fun PanelHeader(
     icon: ImageVector? = null,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
+    val compact = LocalCompactPanel.current
+    // Chat, Archivos, Tareas y Resultados comparten pestañas (desplegado, aquí arriba; plegado, bajo la barra superior).
+    val tabbed = model.section in panelTabs(compact)
+    if (tabbed) {
+        Row(Modifier.fillMaxWidth().padding(start = if (compact) 16.dp else 8.dp, end = 8.dp, top = if (compact) 6.dp else 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Plegado a pantalla completa no hay barra de arriba: las pestañas pasan aquí.
+            if (compact && !model.isExpanded(true)) {
+                Text(listOfNotNull(subtitle?.takeIf { it.isNotBlank() }, title).first(), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).semantics { heading() })
+            } else {
+                PanelTabs(model, compact = compact, modifier = Modifier.weight(1f))
+            }
+            trailing()
+            PanelWindowActions(model, compact)
+        }
+        if (!compact && !subtitle.isNullOrBlank()) {
+            Text(subtitle, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 4.dp).semantics { heading() })
+        }
+        return
+    }
     Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         if (icon != null) {
             Icon(icon, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(28.dp))
@@ -109,21 +128,26 @@ fun PanelHeader(
             if (!subtitle.isNullOrBlank()) Text(subtitle, color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         trailing()
-        val compact = LocalCompactPanel.current
-        val expanded = model.isExpanded(compact)
-        IconAction(
-            if (expanded) Icons.Outlined.CloseFullscreen else Icons.Outlined.OpenInFull,
-            when {
-                compact && expanded -> t("Salir de pantalla completa")
-                compact -> t("Pantalla completa")
-                expanded -> t("Reducir el panel")
-                else -> t("Ampliar el panel")
-            },
-            onClick = { model.toggleExpanded(compact) },
-            modifier = Modifier.testTag("panel-expand"),
-        )
-        IconAction(Icons.Outlined.Close, t("Cerrar el panel"), onClick = { model.close() }, modifier = Modifier.testTag("panel-close"))
+        PanelWindowActions(model, compact)
     }
+}
+
+/** Ampliar/reducir y cerrar el panel. */
+@Composable
+private fun PanelWindowActions(model: OrbitaModel, compact: Boolean) {
+    val expanded = model.isExpanded(compact)
+    IconAction(
+        if (expanded) Icons.Outlined.CloseFullscreen else Icons.Outlined.OpenInFull,
+        when {
+            compact && expanded -> t("Salir de pantalla completa")
+            compact -> t("Pantalla completa")
+            expanded -> t("Reducir el panel")
+            else -> t("Ampliar el panel")
+        },
+        onClick = { model.toggleExpanded(compact) },
+        modifier = Modifier.testTag("panel-expand"),
+    )
+    IconAction(Icons.Outlined.Close, t("Cerrar el panel"), onClick = { model.close() }, modifier = Modifier.testTag("panel-close"))
 }
 
 /** Columna de un panel: cabecera, contenido desplazable y acción principal abajo. */
@@ -174,7 +198,7 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
     }
     val pending = snapshot?.conversation?.attachments.orEmpty().filter { it.id in model.pendingAttachments }
     PanelColumn {
-        PanelHeader(model, t("Chat"), snapshot?.conversation?.title ?: t("Hermes y el equipo"))
+        PanelHeader(model, t("Chat"), snapshot?.conversation?.let { c -> listOfNotNull(c.title, c.chat?.title).joinToString(" › ") } ?: t("Hermes y el equipo"))
         ActiveRequestStrip(model, snapshot)
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth().testTag("chat-list"),

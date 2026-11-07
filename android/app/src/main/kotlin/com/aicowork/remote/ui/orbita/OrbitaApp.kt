@@ -13,8 +13,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -42,7 +40,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -169,7 +166,7 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
     val blur = model.worldAvailable && scene != null && model.preferences.effects != EffectsPreference.Soft && glassActive
     val glass = remember(blur) { GlassContext(model.world.glass, blur) }
 
-    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.moreOpen || model.projectMenu || model.section != Section.World || model.selectedAgentId != null) {
+    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
         when {
             model.searchOpen -> model.searchOpen = false
             model.drawerOpen -> model.drawerOpen = false
@@ -178,8 +175,6 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
             model.hermesModelOpen -> model.hermesModelOpen = false
             model.inboxOpen -> model.closeInbox()
             model.newTaskOpen -> model.newTaskOpen = false
-            model.projectMenu -> model.projectMenu = false
-            model.moreOpen -> model.moreOpen = false
             // Plegado, la pantalla completa se recuerda: atrás cierra el panel (como cualquier pantalla).
             model.expanded && with(density) { rootSize.width.toDp() } >= 600.dp -> model.expanded = false
             model.section != Section.World -> model.close()
@@ -299,16 +294,14 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
     val panelOpen = model.section != Section.World
     // Pantalla completa (las flechas del panel): sin barra de arriba ni navegación, todo el sitio para el panel.
     val full = panelOpen && model.isExpanded(compact = true)
-    val badges = badgesOf(snapshot)
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsets.ime)).padding(horizontal = if (full) 6.dp else 12.dp, vertical = if (full) 4.dp else 8.dp)) {
-        val navHeight = 76.dp
-        val topBlock = 104.dp
-        val panelMax = maxHeight - navHeight - 12.dp - topBlock
+        // Arriba: barra (menú, chat abierto, avisos) y las pestañas Chat · Espacio · Tareas · Resultados.
+        val topBlock = 112.dp
         val panelHeight by animateDpAsState(
             when {
                 full -> maxHeight
                 ime -> maxHeight - 58.dp
-                else -> panelMax * 0.86f
+                else -> (maxHeight - topBlock) * 0.74f
             },
             tween(260),
             label = "panelH",
@@ -318,13 +311,12 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
         SideEffect {
             with(density) {
                 val top = (topBlock + 24.dp).toPx()
-                val bottom = (navHeight + 20.dp + if (panelOpen) panelHeight else if (model.selectedAgentId != null) 200.dp else 0.dp).toPx()
+                val bottom = (20.dp + if (panelOpen) panelHeight else if (model.selectedAgentId != null) 200.dp else 0.dp).toPx()
                 model.world.insets = WorldInsets(top = top, bottom = bottom.coerceAtMost(constraints.maxHeight * 0.8f))
                 model.world.covered = full
             }
         }
 
-        // Barra superior: proyecto, estado en vivo y quién trabaja.
         if (!full) Column(Modifier.align(Alignment.TopStart).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 MenuButton(model)
@@ -335,39 +327,29 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
                     InboxButton(state, model)
                     Spacer(Modifier.width(8.dp))
                 }
-                LiveStatus(state, onRetry = model.controller::retryNow)
+                LiveStatus(state, onRetry = model.controller::retryNow, compact = true)
             }
             Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val working = workingCount(snapshot)
-                if (working > 0) {
-                    Row(Modifier.padding(start = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Groups, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(t("{working} trabajando", "working" to working), color = Orbita.Text, style = MaterialTheme.typography.labelLarge)
-                    }
-                    Spacer(Modifier.width(10.dp))
-                }
-                AttentionChip(attention, onClick = { attention?.let(model::openAttention) })
-            }
+            PanelTabs(model, compact = true, modifier = Modifier.fillMaxWidth().glass(radius = 22.dp))
+            Spacer(Modifier.height(8.dp))
+            if (!panelOpen) AttentionChip(attention, onClick = { attention?.let(model::openAttention) })
         }
 
-        // Panel: sube desde abajo hasta encima de la navegación (o del teclado).
+        // Panel: ocupa lo que queda debajo de las pestañas (o sube hasta el teclado).
         PanelHost(
             model, state,
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(panelHeight)
-                .padding(bottom = if (ime || full) 0.dp else navHeight + 12.dp)
                 .windowInsetsPadding(WindowInsets.ime),
             compact = true,
         )
 
         // Tarjeta del agente elegido (sin panel abierto).
         AnimatedVisibility(
-            visible = !panelOpen && !model.moreOpen && model.selectedAgentId != null && snapshot != null,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navHeight + 12.dp),
+            visible = !panelOpen && model.selectedAgentId != null && snapshot != null,
+            modifier = Modifier.align(Alignment.BottomCenter),
             enter = fadeIn() + slideInVertically { it / 3 },
             exit = fadeOut() + slideOutVertically { it / 3 },
         ) {
@@ -375,23 +357,7 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
             if (agent != null) AgentCard(snapshot, agent, model, attention, Modifier.fillMaxWidth())
         }
 
-        AnimatedVisibility(
-            visible = model.moreOpen,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navHeight + 12.dp),
-            enter = fadeIn() + slideInVertically { it / 3 },
-            exit = fadeOut() + slideOutVertically { it / 3 },
-        ) { MorePanels(model, badges) }
-
-        if (!ime && !full) BottomNav(model, badges, Modifier.align(Alignment.BottomCenter))
-
-        // Menú de proyectos y avisos, debajo de la barra superior.
-        Column(Modifier.align(Alignment.TopCenter).padding(top = 54.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            AnimatedVisibility(model.projectMenu, enter = fadeIn() + scaleIn(initialScale = 0.96f), exit = fadeOut() + scaleOut(targetScale = 0.96f)) {
-                ProjectMenu(state, model, Modifier.fillMaxWidth())
-            }
-            Spacer(Modifier.height(8.dp))
-            ToastHost(model, Modifier.fillMaxWidth())
-        }
+        ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = topBlock).fillMaxWidth())
     }
     // La barra lateral como cajón, por encima de todo (☰ arriba a la izquierda).
     SidebarDrawer(model, state)
@@ -409,7 +375,6 @@ private fun WideLayout(
     width: Dp,
     density: androidx.compose.ui.unit.Density,
 ) {
-    val badges = badgesOf(snapshot)
     val panelOpen = model.section != Section.World
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsets.ime)).padding(12.dp)) {
         val gap = 12.dp
@@ -483,13 +448,6 @@ private fun WideLayout(
             }
         }
 
-        Column(
-            Modifier.align(Alignment.TopStart).padding(start = side + gap * 2, top = 56.dp).widthIn(max = 420.dp),
-        ) {
-            AnimatedVisibility(model.projectMenu, enter = fadeIn() + scaleIn(initialScale = 0.96f), exit = fadeOut() + scaleOut(targetScale = 0.96f)) {
-                ProjectMenu(state, model)
-            }
-        }
         ToastHost(model, Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = side + gap, end = if (panelOpen) panelWidth + gap else 0.dp).fillMaxWidth())
     }
 }
@@ -500,15 +458,6 @@ fun focusAgent(model: OrbitaModel, snapshot: Snapshot, agentId: String, aspect: 
     model.world.focusAgent(SpaceSceneBuilder.build(snapshot), agentId)
 }
 
-/** Avisos numéricos de la navegación. */
-private fun badgesOf(snapshot: Snapshot?): Map<Section, Int> {
-    if (snapshot == null) return emptyMap()
-    return mapOf(
-        Section.Tasks to snapshot.tasks.count { it.isActive },
-        Section.Memory to snapshot.memory.count { it.status == "provisional" },
-    )
-}
-
 // ---------------------------------------------------------------------------------------------- Panel
 
 /**
@@ -517,7 +466,7 @@ private fun badgesOf(snapshot: Snapshot?): Map<Section, Int> {
  */
 @Composable
 fun PanelHost(model: OrbitaModel, state: CoworkUiState, modifier: Modifier, compact: Boolean) {
-    val visible = model.section != Section.World && !(compact && model.moreOpen)
+    val visible = model.section != Section.World
     var shown by remember { mutableStateOf(Section.Chat) }
     if (visible) shown = model.section
     val reduced = model.reducedMotion()

@@ -1,5 +1,6 @@
 package com.aicowork.remote.ui
 
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -65,7 +66,7 @@ class EndToEndMockServerTest {
         compose.onNodeWithTag("pairCode").performTextReplacement(server.pairingCode)
         compose.onNodeWithText("Emparejar").performScrollTo().performClick()
 
-        compose.waitUntil(10_000) { compose.onAllNodes(hasText("En vivo")).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(10_000) { compose.onAllNodes(hasContentDescription("En vivo", substring = true)).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("nav-Chat").performClick()
         compose.onNodeWithTag("composer").performTextInput("Hazme un resumen")
         compose.onNodeWithContentDescription("Enviar").performClick()
