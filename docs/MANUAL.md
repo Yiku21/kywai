@@ -1342,3 +1342,9 @@ scripts/       instalación y actualización en Mac y Linux, accesos de Windows,
 
 Para retomar el desarrollo desde otro chat u otro equipo (arquitectura, reglas del repositorio, trampas conocidas y
 pendientes), ver [CONTEXTO-DEL-PROYECTO.md](CONTEXTO-DEL-PROYECTO.md).
+
+### Licencia
+
+AI Cowork se publica con licencia MIT (archivo `LICENSE` en la raíz, también `"license": "MIT"` en `package.json`):
+cualquiera puede usarlo, cambiarlo y compartirlo siempre que mantenga el aviso de copyright. Cada README lo dice en
+su sección final.
