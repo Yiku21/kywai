@@ -121,6 +121,8 @@ fun OrbitaApp(model: OrbitaModel, deviceName: String, demoServer: DemoServer?) {
     val state by model.controller.state.collectAsStateWithLifecycle()
     val view = LocalView.current
     SideEffect { model.feedback.view = view }
+    // Lo subido (desde el chat o desde Archivos) va con el próximo mensaje aunque el panel se cierre.
+    AttachFinishedUploads(model, state)
     // El mismo tema que el ordenador: colores de la interfaz y del espacio 3D.
     val themeId = state.snapshot?.settings?.theme
     SideEffect {

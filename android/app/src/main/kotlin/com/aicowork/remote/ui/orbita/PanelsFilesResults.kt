@@ -4,7 +4,6 @@ import com.aicowork.remote.i18n.t
 
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -166,28 +165,8 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
         model.controller.listFiles(model.filesQuery).fold({ listing = it; error = null }, { error = it.message })
         loading = false
     }
-    // Lo subido va al equipo con el próximo mensaje.
-    LaunchedEffect(state.uploads) {
-        state.uploads.filter { it.done && it.attachmentId != null }.forEach { u ->
-            model.pendingAttachments = model.pendingAttachments + u.attachmentId!!
-            model.feedback.play(Sfx.FileCreated)
-            delay(2_500)
-            model.controller.dismissUpload(u.id)
-        }
-    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris: List<Uri> ->
-        uris.forEach { uri ->
-            val resolver = context.contentResolver
-            var name = "archivo"
-            var size = -1L
-            resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
-                if (c.moveToFirst()) {
-                    name = c.getString(0) ?: name
-                    if (!c.isNull(1)) size = c.getLong(1)
-                }
-            }
-            model.controller.upload(name, size, resolver.getType(uri)) { resolver.openInputStream(uri) ?: throw java.io.IOException(t("No se puede abrir {name}", "name" to name)) }
-        }
+        uris.forEach { uploadUri(context, model, it) }
     }
     val query = model.filesQuery.trim().lowercase()
     val attachments = (listing?.attachments ?: snapshot?.conversation?.attachments.orEmpty())
