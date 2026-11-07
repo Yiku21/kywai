@@ -409,11 +409,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         <li data-os="mac-intel"><span class="os">{{download.macIntel}}</span><span class="file" data-match="x64\.dmg$">.dmg</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
         <li data-os="linux-x64"><span class="os">{{download.linuxX64}}</span><span class="file" data-match="x86_64\.AppImage$">.AppImage</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
         <li data-os="linux-arm"><span class="os">{{download.linuxArm}}</span><span class="file" data-match="arm64\.AppImage$">.AppImage</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
+        <li data-os="android"><span class="os">{{download.android}}</span><span class="file" data-match="orbita\.apk$">.apk</span><a class="btn btn-primary" href="{{releases}}/download/kywai-orbita.apk">{{download.get}}</a></li>
       </ul>
       <a class="dl-all" href="{{releases}}" rel="noopener">{{download.all}} →</a>
       <div class="notes">
         <section><h3>{{download.needT}}</h3><p>{{download.need}}</p></section>
-        <section><h3>{{download.unsignedT}}</h3><ul><li>{{download.unsignedWin}}</li><li>{{download.unsignedMac}}</li><li>{{download.unsignedLinux}}</li></ul></section>
+        <section><h3>{{download.unsignedT}}</h3><ul><li>{{download.unsignedWin}}</li><li>{{download.unsignedMac}}</li><li>{{download.unsignedLinux}}</li><li>{{download.unsignedAndroid}}</li></ul></section>
       </div>
       <p class="rename">{{download.rename}}</p>
     </div>
@@ -480,15 +481,18 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   var ua = navigator.userAgent || '';
   var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
   var os = null;
-  if (/Android|iPhone|iPad/i.test(ua)) os = null;
+  if (/Android/i.test(ua)) os = 'android';
+  else if (/iPhone|iPad/i.test(ua)) os = null;
   else if (/Win/i.test(plat) || /Windows/i.test(ua)) os = 'win';
   else if (/Mac/i.test(plat) || /Mac OS X/i.test(ua)) os = 'mac-arm';
   else if (/Linux/i.test(plat) || /Linux/i.test(ua)) os = /aarch64|arm/i.test(plat + ua) ? 'linux-arm' : 'linux-x64';
-  var names = { 'win': 'Windows', 'mac-arm': 'macOS', 'linux-x64': 'Linux', 'linux-arm': 'Linux' };
+  var names = { 'win': 'Windows', 'mac-arm': 'macOS', 'linux-x64': 'Linux', 'linux-arm': 'Linux', 'android': 'Android' };
   var hero = document.getElementById('hero-dl');
   if (os) {
     var row = document.querySelector('.dl li[data-os="' + os + '"]');
     if (row) row.classList.add('mine');
+    // La APK tiene un enlace fijo a la última Release: vale aunque no responda la API de GitHub.
+    if (os === 'android' && row) hero.href = row.querySelector('a').href;
     hero.querySelector('span').textContent = hero.getAttribute('data-for') + ' ' + names[os];
   }
 
