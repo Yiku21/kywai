@@ -9,6 +9,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.aicowork.remote.data.CoworkRepository
+import com.aicowork.remote.data.store.FileOutboxStore
 import com.aicowork.remote.data.store.FileSnapshotCache
 import com.aicowork.remote.data.store.KeystoreTokenStore
 import com.aicowork.remote.data.store.PrefsPreferencesStore
@@ -33,6 +34,7 @@ class AppContainer(context: Context) {
         tokens = tokens,
         cache = FileSnapshotCache(File(context.noBackupFilesDir, "snapshot.json")),
         scope = scope,
+        outbox = FileOutboxStore(File(context.noBackupFilesDir, "outbox.json")),
     )
     /** Notificaciones de «Te necesita» (solo mientras la app sigue conectada). */
     val inboxNotifier = InboxNotifier(context, repository, scope)
