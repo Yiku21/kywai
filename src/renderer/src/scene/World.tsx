@@ -186,7 +186,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   return (
     <Canvas
       dpr={q.dpr}
-      shadows={!!p.world && q.bloom}
+      shadows={!!p.world && q.shadows}
       frameloop={!visible ? 'never' : focused ? 'always' : 'demand'}
       camera={{ fov: 30, position: [0, 15.4, 19.8], near: 0.5, far: 420 }}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false, stencil: false }}
@@ -204,7 +204,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
         <hemisphereLight args={[L.sky, L.ground, L.hemi * worldLight]} />
         <ambientLight intensity={L.ambientI * worldLight} color={L.ambient} />
         <directionalLight position={[-7, 14, 9]} intensity={L.keyI * worldLight} color={L.key}
-          castShadow={!!p.world && q.bloom} shadow-mapSize={[2048, 2048]} shadow-bias={-0.00015} shadow-normalBias={0.035}
+          castShadow={!!p.world && q.shadows} shadow-mapSize={[2048, 2048]} shadow-bias={-0.00015} shadow-normalBias={0.035}
           shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20}
           shadow-camera-near={0.5} shadow-camera-far={65} />
         <directionalLight position={[8, 6, -6]} intensity={L.fillI * worldLight} color={L.fill} />
@@ -234,7 +234,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
 
       {q.bloom && (
         <EffectComposer multisampling={q.msaa} enableNormalPass={false}>
-          <N8AO enabled={!!p.world} aoRadius={0.55} intensity={1.1} distanceFalloff={0.8} quality="medium" halfRes />
+          <N8AO enabled={!!p.world && q.shadows} aoRadius={0.55} intensity={1.1} distanceFalloff={0.8} quality="medium" halfRes />
           <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 : 1) * (p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
           <Vignette offset={0.28} darkness={p.vignette} />
         </EffectComposer>
