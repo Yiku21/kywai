@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import com.aicowork.remote.data.CoworkUiState
 import com.aicowork.remote.data.OutgoingMessage
 import com.aicowork.remote.data.OutgoingStatus
+import com.aicowork.remote.data.QueuedFile
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.ChatMessage
 import com.aicowork.remote.data.model.Snapshot
@@ -196,7 +197,9 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
     LaunchedEffect(model.chatSends) {
         if (model.chatSends > 0 && rows.isNotEmpty()) list.animateScrollToItem(rows.size - 1)
     }
-    val pending = snapshot?.conversation?.attachments.orEmpty().filter { it.id in model.pendingAttachments }
+    // Lo que va con el próximo mensaje: adjuntos ya en el proyecto y copias guardadas sin conexión (id y nombre).
+    val pending = snapshot?.conversation?.attachments.orEmpty().filter { it.id in model.pendingAttachments }.map { it.id to it.name } +
+        state.queuedFiles.filter { it.localId in model.pendingAttachments }.map { it.localId to it.name }
     PanelColumn {
         PanelHeader(model, t("Chat"), snapshot?.conversation?.let { c -> listOfNotNull(c.title, c.chat?.title).joinToString(" › ") } ?: t("Hermes y el equipo"))
         ActiveRequestStrip(model, snapshot)
@@ -240,11 +243,11 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
         }
         if (pending.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                pending.take(3).forEach { a ->
+                pending.take(3).forEach { (id, name) ->
                     Row(Modifier.clip(Orbita.PillShape).background(Orbita.AccentSoft).padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.AttachFile, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(16.dp))
-                        Text(a.name, color = Orbita.Text, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 140.dp))
-                        IconAction(Icons.Outlined.Close, t("Quitar {name}", "name" to a.name), onClick = { model.pendingAttachments = model.pendingAttachments - a.id }, size = 32.dp)
+                        Icon(if (id.startsWith(QueuedFile.LOCAL_ATTACHMENT)) Icons.Outlined.Schedule else Icons.Outlined.AttachFile, contentDescription = null, tint = Orbita.Text, modifier = Modifier.size(16.dp))
+                        Text(name, color = Orbita.Text, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 140.dp))
+                        IconAction(Icons.Outlined.Close, t("Quitar {name}", "name" to name), onClick = { model.pendingAttachments = model.pendingAttachments - id }, size = 32.dp)
                     }
                 }
                 if (pending.size > 3) Text("+${pending.size - 3}", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, modifier = Modifier.align(Alignment.CenterVertically))
@@ -312,7 +315,7 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             }
             model.cancelDictation()
             model.feedback.confirm()
-            model.controller.sendMessage(text, pending.map { it.id })
+            model.controller.sendMessage(text, pending.map { it.first })
             model.pendingAttachments = emptySet()
             model.chatDraft = TextFieldValue("")
             // Un mensaje directo no pasa por Hermes: no hay plan que esperar.
@@ -417,7 +420,15 @@ private fun LocalMessage(message: OutgoingMessage, model: OrbitaModel) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
         val failed = message.status == OutgoingStatus.Failed
         Box(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(if (failed) Color(0x40FF6D7C) else Orbita.UserBubble.copy(alpha = 0.5f)).padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text(message.text.ifBlank { t("(adjuntos)") }, color = Orbita.Text.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyLarge)
+            Column {
+                Text(message.text.ifBlank { t("(adjuntos)") }, color = Orbita.Text.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyLarge)
+                message.files.forEach { f ->
+                    Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.AttachFile, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(14.dp))
+                        Text(" " + f.name, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
         }
         Row(Modifier.padding(top = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             when (message.status) {

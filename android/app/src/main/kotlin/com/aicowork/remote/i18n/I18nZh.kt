@@ -758,4 +758,9 @@ private fun part5(m: HashMap<String, String>) {
     m["Se envió tu mensaje"] = "你的消息已发送"
     m["Se enviaron tus {n} mensajes"] = "你的 {n} 条消息已发送"
     m["Lo que escribiste sin conexión ya está en el ordenador"] = "你离线时写的内容已到达电脑"
+    m["Ya no está la copia de {name} en el móvil"] = "手机上已没有 {name} 的副本"
+    m["No se pudo guardar {name} para enviarlo luego"] = "无法保存 {name} 以便稍后发送"
+    m["Sin conexión: {name} se enviará con tu mensaje al volver"] = "离线：{name} 将在恢复连接后随你的消息发送"
+    m["En cola"] = "排队中"
+    m["Sin conexión: se subirá con tu próximo mensaje al volver"] = "离线：恢复连接后将随你的下一条消息上传"
 }

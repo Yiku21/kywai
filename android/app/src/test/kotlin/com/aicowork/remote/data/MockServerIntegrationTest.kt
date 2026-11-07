@@ -188,6 +188,43 @@ class MockServerIntegrationTest {
     }
 
     @Test
+    fun `a photo picked offline is kept on the phone and uploaded with its message`() = runBlocking<Unit> {
+        val spool = java.nio.file.Files.createTempDirectory("cola-archivos").toFile()
+        val outbox = InMemoryOutboxStore()
+        val mock = server()
+        val firstScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val first = CoworkRepository(sessions, tokens, cache, firstScope, backoff = { 200L }, outbox = outbox, spoolDir = spool)
+        first.pair(mock.baseUrl.toHttpUrl(), mock.pairingCode, "Pixel", null)
+        first.awaitState { it.connection == Connection.Online }
+        val project = mock.currentConversationId
+        mock.close()
+        first.awaitState { it.connection is Connection.Offline }
+
+        first.upload("foto.jpg", 4, "image/jpeg") { java.io.ByteArrayInputStream(byteArrayOf(1, 2, 3, 4)) }
+        val queued = first.awaitState { s -> s.uploads.any { it.done } }.uploads.single()
+        assertTrue(queued.queued)
+        val localId = queued.attachmentId!!
+        assertTrue(localId.startsWith(QueuedFile.LOCAL_ATTACHMENT))
+        first.sendMessage("Con foto", listOf(localId))
+        val waiting = first.awaitState { s -> s.outgoing.size == 1 }
+        assertTrue(waiting.queuedFiles.isEmpty())
+        assertEquals("foto.jpg", waiting.outgoing.single().files.single().name)
+        withTimeout(5_000) { while (outbox.load().isEmpty()) kotlinx.coroutines.delay(20) }
+        firstScope.cancel()
+
+        val back = MockCoworkServer(tickMillis = 25, initialConversationId = project).also { it.start(); servers += it }
+        back.authorize(tokens.read()!!)
+        sessions.save(sessions.load()!!.copy(serverUrl = back.baseUrl + "/"))
+        val reopened = CoworkRepository(sessions, tokens, cache, scope, backoff = { 200L }, outbox = outbox, spoolDir = spool)
+        reopened.connect()
+        reopened.awaitState(10_000) { s -> s.outgoing.isEmpty() && s.snapshot!!.conversation.messages.any { it.text == "Con foto" } }
+        assertEquals(listOf("foto.jpg" to 4L), back.uploads)
+        assertEquals(1, back.attachmentsOf("Con foto").size)
+        // La copia del móvil se borra en cuanto el ordenador confirma el mensaje.
+        withTimeout(5_000) { while (spool.listFiles().orEmpty().isNotEmpty()) kotlinx.coroutines.delay(20) }
+    }
+
+    @Test
     fun `the background send empties the queue without opening the live connection`() = runBlocking<Unit> {
         val mock = server()
         val repo = repository()
