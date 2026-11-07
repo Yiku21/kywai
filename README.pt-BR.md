@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="build/icon-256.png" alt="AI Cowork" width="112" height="112">
+<img src="docs/img/logo/kywai-simbolo.svg" alt="AI Cowork" width="112" height="112">
 
 # AI Cowork
 
