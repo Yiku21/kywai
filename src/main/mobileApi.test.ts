@@ -1962,6 +1962,26 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     }
   })
 
+  it('«/rutina …» desde el móvil crea la rutina en el servidor y contesta en el chat, sin pasar por Hermes', async () => {
+    const conversation = (await api('/conversations', {})).body.conversation.id as string
+    prompts.length = 0
+    const sentOk = await api('/chat/messages', { conversationId: conversation, text: '/rutina cada día a las 8:30: revisa las dependencias', clientMessageId: 'rutina-1' })
+    expect(sentOk.status).toBe(202)
+    const routines = store.getProject(conversation).routines ?? []
+    expect(routines).toEqual([expect.objectContaining({ name: 'Revisa las dependencias', request: 'revisa las dependencias', enabled: true, trigger: { type: 'daily', time: '08:30' } })])
+    const msgs = store.snapshotProject(conversation).messages
+    expect(msgs.map((m) => m.author.type)).toEqual(['user', 'system'])
+    expect(msgs[1]).toMatchObject({ text: expect.stringMatching(/^Rutina creada: «Revisa las dependencias» · Cada día a las 08:30/), routine: { id: routines[0].id, name: 'Revisa las dependencias' } })
+    // Lo que no entiende da la ayuda; «/rutina» sola explica cómo se escribe. Nada de eso va a Hermes.
+    await api('/chat/messages', { conversationId: conversation, text: '/rutina revisa 3 cosas', clientMessageId: 'rutina-2' })
+    await api('/chat/messages', { conversationId: conversation, text: '/rutina', clientMessageId: 'rutina-3' })
+    const replies = store.snapshotProject(conversation).messages.filter((m) => m.author.type === 'system').map((m) => m.text)
+    expect(replies.slice(1)).toEqual([expect.stringMatching(/^No entendí cuándo/), expect.stringMatching(/^Escribe, por ejemplo/)])
+    expect(store.getProject(conversation).routines).toHaveLength(1)
+    expect(prompts).toEqual([])
+    expect(activeRunsFor(conversation)).toEqual([])
+  })
+
   it('con «Pedir mi visto bueno» encendido, una rutina sigue sola; solo espera si esa rutina lo pide', async () => {
     expect((await api('/settings/plan-approval', { enabled: true })).body).toEqual({ planApproval: true })
     try {
