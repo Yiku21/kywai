@@ -16,13 +16,17 @@ on:
       - '**/*.md'
       - '.github/FUNDING.yml'
       - '.github/workflows/publicar-orbita.yml'
+  # En un PR que cambie este archivo solo compila (para probarlo), sin publicar nada.
+  pull_request:
+    paths:
+      - '.github/workflows/publicar-escritorio.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: publicar-escritorio
+  group: publicar-escritorio-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -83,6 +87,7 @@ jobs:
             release/latest*.yml
 
   publicar:
+    if: github.event_name != 'pull_request'
     needs: [version, compilar]
     runs-on: ubuntu-latest
     steps:
