@@ -18,6 +18,8 @@ describe('agentes añadidos y quitados', () => {
     const added = config.addAgent({ custom, name: 'Mi agente' })
     const agent = added.agents.find((a) => a.id === 'miagente')!
     expect(agent.provider).toBe('cli')
+    expect(agent.quotaGroupId).toBe('agent-miagente')
+    expect(added.quotaGroups.find((g) => g.id === agent.quotaGroupId)).toMatchObject({ label: 'Mi agente', provider: 'cli' })
     expect(added.stations.some((s) => s.id === agent.stationId)).toBe(true)
     expect(added.plannerOrder).toContain('miagente')
 
@@ -29,6 +31,10 @@ describe('agentes añadidos y quitados', () => {
     expect(again.agents.find((a) => a.id === 'miagente')?.cli?.command).toBe('miagente')
     expect(again.plannerOrder[0]).toBe('miagente')
     expect(again.stations.some((s) => s.id === 'st-miagente')).toBe(true)
+    expect(again.agents.find((a) => a.id === 'miagente')?.quotaGroupId).toBe(agent.quotaGroupId)
+    expect(again.quotaGroups.filter((g) => g.id === agent.quotaGroupId)).toHaveLength(1)
+    config.setQuotaBudget(agent.quotaGroupId!, { limit: 10, unit: 'solicitudes', period: 'diario' })
+    expect(config.loadConfig().quotaGroups.find((g) => g.id === agent.quotaGroupId)?.budget?.limit).toBe(10)
   })
 
   it('quitar un agente de fábrica no lo trae de vuelta al recargar, ni su estación; volver a añadirlo sí', () => {

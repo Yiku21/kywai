@@ -342,7 +342,7 @@ function geminiNote(): string {
 
 export function computeQuotas(cfg: AppConfig, agents: AgentConfig[], now = Date.now()): QuotaInfo[] {
   return cfg.quotaGroups.map((g): QuotaInfo => {
-    const agentIds = agents.filter((a) => a.quotaGroupId === g.id).map((a) => a.id)
+    const agentIds = agents.filter((a) => a.enabled && a.quotaGroupId === g.id).map((a) => a.id)
     const todayStart = periodWindow('diario', g.id, now).start
     const usedWindowStart = g.budget ? periodWindow(g.budget.period, g.id, now).start : todayStart
     const used = usedSince(g.id, usedWindowStart)
@@ -384,7 +384,7 @@ export function computeQuotas(cfg: AppConfig, agents: AgentConfig[], now = Date.
     if (g.provider === 'muse') {
       return withBudgetOr(tr('Muse Code no informa la cuota restante de la suscripción (límites cada 5 horas). Puedes configurar un presupuesto para estimarla.'))
     }
-    return withBudgetOr('No disponible')
+    return withBudgetOr(tr('No disponible'))
   })
     // Un grupo sin ningún agente (se quitó o está desactivado) no enseña su indicador.
     .filter((q) => q.agentIds.length > 0)
@@ -420,6 +420,13 @@ export async function freshQuotaSnapshot(maxWaitMs: number): Promise<QuotaSnapsh
 
 let refreshing: Promise<QuotaInfo[]> | null = null
 
+/** Publica los grupos del equipo actual sin esperar a consultas externas de cuota o presencia. */
+export function recomputeQuotas(): QuotaInfo[] {
+  latest = computeQuotas(getCfg(), getAgents())
+  emit({ kind: 'quota.update', quotas: latest })
+  return latest
+}
+
 /**
  * Recompute (optionally re-reading Codex rollout files, or asking Claude and Codex directly with `probe`)
  * and emit `quota.update`.
@@ -441,7 +448,5 @@ export async function refreshQuotas(opts: { codex?: boolean; probe?: boolean } =
     }
     await refreshing
   }
-  latest = computeQuotas(getCfg(), getAgents())
-  emit({ kind: 'quota.update', quotas: latest })
-  return latest
+  return recomputeQuotas()
 }
