@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowLeftRight, Award, BarChart3, Check, ChevronDown, Coffee, Download, DownloadCloud, FolderOpen, FolderSync, Globe, HardDrive, Info, Languages, LogOut, Monitor, MoreVertical, Palette, Settings, Volume2, VolumeX, RefreshCw, RotateCcw, RotateCw, Server, SlidersHorizontal, Smartphone, Wand2 } from 'lucide-react'
 import { useCowork } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
@@ -661,10 +662,16 @@ export function HeaderMenu({ sidebar }: { sidebar?: { button: string } } = {}) {
           </p>
         )}
       </Popover>
-      {remoteOpen && <RemoteAccess onClose={() => setRemoteOpen(false)} />}
-      {updateOpen && <UpdateDialog onClose={() => setUpdateOpen(false)} />}
-      {themeOpen && <ThemeDialog onClose={() => setThemeOpen(false)} />}
-      {syncOpen && <SyncDialog onClose={() => setSyncOpen(false)} />}
+      {/* En el cuerpo de la página: dentro de la barra lateral quedarían debajo del chat (su capa los encierra). */}
+      {createPortal(
+        <>
+          {remoteOpen && <RemoteAccess onClose={() => setRemoteOpen(false)} />}
+          {updateOpen && <UpdateDialog onClose={() => setUpdateOpen(false)} />}
+          {themeOpen && <ThemeDialog onClose={() => setThemeOpen(false)} />}
+          {syncOpen && <SyncDialog onClose={() => setSyncOpen(false)} />}
+        </>,
+        document.body
+      )}
     </>
   )
 }
