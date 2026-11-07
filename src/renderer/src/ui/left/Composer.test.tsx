@@ -95,3 +95,58 @@ describe('«@» en el cuadro del chat', () => {
     expect(fake.sent).toEqual([{ projectId: 'p1', text: '@Qwen hola', filePaths: [] }])
   })
 })
+
+describe('plantillas de tareas encima del cuadro', () => {
+  const tpl = (id: string, name: string, prompt: string, extra: Record<string, unknown> = {}) => ({ id, name, command: name.toLowerCase().replace(/\s+/g, '-'), prompt, createdAt: 1, updatedAt: 1, ...extra })
+
+  beforeEach(async () => {
+    // El popover para rellenar los huecos se recoloca con ResizeObserver (jsdom no lo trae).
+    globalThis.ResizeObserver ??= class {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    } as unknown as typeof ResizeObserver
+    await act(async () =>
+      useCowork.setState({
+        templates: [
+          tpl('t1', 'Actualizar', 'Actualiza las dependencias.', { icon: '📦' }),
+          tpl('t2', 'Revisar PR', 'Revisa el PR {pr} del repo {repo}'),
+          tpl('t3', 'De otro', 'x', { projectId: 'p2' })
+        ]
+      })
+    )
+  })
+
+  const chips = (): HTMLButtonElement[] => [...host.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button')]
+
+  it('salen las del proyecto y las generales, y un toque envía la que no tiene huecos', async () => {
+    expect(chips().map((b) => b.textContent)).toEqual(['📦Actualizar', 'Revisar PR', ''])
+    await act(async () => chips()[0].click())
+    expect(fake.sent).toEqual([{ projectId: 'p1', text: 'Actualiza las dependencias.', filePaths: [], templateId: 't1' }])
+  })
+
+  it('con huecos, antes pide rellenarlos y envía el texto relleno', async () => {
+    await act(async () => chips()[1].click())
+    const inputs = [...document.body.querySelectorAll<HTMLInputElement>('form input')]
+    expect(inputs).toHaveLength(2)
+    const send = [...document.body.querySelectorAll<HTMLButtonElement>('form button[type="submit"]')][0]
+    expect(send.disabled).toBe(true)
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    await act(async () => {
+      for (const [i, v] of ['42', 'kywai'].entries()) {
+        setValue.call(inputs[i], v)
+        inputs[i].dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+    await act(async () => send.click())
+    expect(fake.sent).toEqual([{ projectId: 'p1', text: 'Revisa el PR 42 del repo kywai', filePaths: [], templateId: 't2' }])
+  })
+
+  it('al escribir «/» salen sus órdenes y se elige una', async () => {
+    await type('/rev')
+    expect([...host.querySelectorAll('#composer-commands [role="option"]')].map((o) => o.textContent)).toEqual(['/revisar-prRevisar PR'])
+    await key('Enter')
+    expect(useComposer.getState().text).toBe('/revisar-pr ')
+    expect(fake.sent).toEqual([])
+  })
+})

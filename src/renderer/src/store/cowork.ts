@@ -17,6 +17,7 @@ import type {
   Routine,
   SetupToolId,
   Task,
+  TaskTemplate,
   TraceEntry,
   Transfer,
   UsageRun
@@ -87,6 +88,8 @@ interface CoworkState {
   localPull: LocalPullState | null
   /** Bandeja «Te necesita»: avisos abiertos (de todos los proyectos), del más reciente al más antiguo. */
   inbox: InboxItem[]
+  /** Plantillas de tareas (de todos los proyectos): la fila de botones de encima del chat. Llegan por templates.updated. */
+  templates: TaskTemplate[]
   /** Ya llegó la configuración real del motor (antes solo hay valores por defecto). */
   configLoaded: boolean
   /** Asistente de configuración abierto a mano (en el primer arranque se abre solo). */
@@ -288,6 +291,7 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
     case 'project.deleted':
     case 'inbox.updated':
     case 'conversations.updated':
+    case 'templates.updated':
       return d
   }
 }
@@ -343,6 +347,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
   projects: [],
   localPull: null,
   inbox: [],
+  templates: [],
   configLoaded: false,
   setupOpen: false,
   setupLog: [],
@@ -422,6 +427,10 @@ export const useCowork = create<CoworkState>((set, get) => ({
     }
     if (e.kind === 'setup.log') {
       set((s) => ({ setupLog: [...s.setupLog, { toolId: e.toolId, line: e.line }].slice(-400) }))
+      return
+    }
+    if (e.kind === 'templates.updated') {
+      if (!e.demo) set({ templates: e.templates })
       return
     }
     if (e.kind === 'config.updated') {
