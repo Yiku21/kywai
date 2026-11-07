@@ -319,6 +319,8 @@ export const zh: Record<string, string> = {
   "Hermes te enseña qué hará cada agente y espera a que lo apruebes": "Hermes 会展示每个代理要做的事，并等待你批准",
   "Las tareas empiezan en cuanto Hermes reparte el trabajo": "Hermes 分配工作后任务立即开始",
   "Temas…": "主题…",
+  "Apoyar AI Cowork ☕": "支持 AI Cowork ☕",
+  "Si te gusta la app, invítame a un café en Ko-fi": "如果你喜欢这个应用，可以在 Ko-fi 请我喝杯咖啡",
   "El aspecto de la app · ahora": "应用外观 · 当前",
   "No disponible en modo demo": "演示模式下不可用",
   "Abre o crea un proyecto primero": "请先打开或创建一个项目",

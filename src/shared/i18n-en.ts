@@ -374,6 +374,8 @@ export const en: Record<string, string> = {
   'Hermes te enseña qué hará cada agente y espera a que lo apruebes': 'Hermes shows you what each agent will do and waits for you to approve it',
   'Las tareas empiezan en cuanto Hermes reparte el trabajo': 'Tasks start as soon as Hermes assigns the work',
   'Temas…': 'Themes…',
+  'Apoyar AI Cowork ☕': 'Support AI Cowork ☕',
+  'Si te gusta la app, invítame a un café en Ko-fi': 'If you like the app, buy me a coffee on Ko-fi',
   'El aspecto de la app · ahora': 'How the app looks · now',
   'No disponible en modo demo': 'Not available in demo mode',
   'Abre o crea un proyecto primero': 'Open or create a project first',

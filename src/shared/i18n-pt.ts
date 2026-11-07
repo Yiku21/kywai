@@ -319,6 +319,8 @@ export const pt: Record<string, string> = {
   "Hermes te enseña qué hará cada agente y espera a que lo apruebes": "O Hermes mostra o que cada agente vai fazer e espera você aprovar",
   "Las tareas empiezan en cuanto Hermes reparte el trabajo": "As tarefas começam assim que o Hermes distribui o trabalho",
   "Temas…": "Temas…",
+  "Apoyar AI Cowork ☕": "Apoiar o AI Cowork ☕",
+  "Si te gusta la app, invítame a un café en Ko-fi": "Se você gosta do app, me pague um café no Ko-fi",
   "El aspecto de la app · ahora": "Como o app aparece · agora",
   "No disponible en modo demo": "Indisponível no modo demo",
   "Abre o crea un proyecto primero": "Abra ou crie um projeto primeiro",

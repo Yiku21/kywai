@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { ArrowLeftRight, Award, BarChart3, Check, ChevronDown, Download, DownloadCloud, Eraser, FolderOpen, FolderSync, Globe, HardDrive, Info, Languages, LogOut, Monitor, MoreVertical, Palette, RefreshCw, RotateCcw, RotateCw, Server, SlidersHorizontal, Smartphone, Wand2 } from 'lucide-react'
+import { ArrowLeftRight, Award, BarChart3, Check, ChevronDown, Coffee, Download, DownloadCloud, Eraser, FolderOpen, FolderSync, Globe, HardDrive, Info, Languages, LogOut, Monitor, MoreVertical, Palette, RefreshCw, RotateCcw, RotateCw, Server, SlidersHorizontal, Smartphone, Wand2 } from 'lucide-react'
 import { useCowork } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
@@ -18,6 +18,9 @@ import s from './HeaderMenu.module.css'
 import { LANGS, lang, setLang, t } from '@/lib/i18n'
 
 const SETTINGS_OPEN_KEY = 'aicowork.menu.settingsOpen'
+
+/** Página de Ko-fi del autor: «Apoyar AI Cowork» la abre en el navegador para quien quiera invitar a un café. */
+export const DONATE_URL = 'https://ko-fi.com/yilsander'
 
 /** Menú ⋮ de la cabecera. */
 export function HeaderMenu() {
@@ -596,6 +599,25 @@ export function HeaderMenu() {
         >
           <FolderOpen size={16} aria-hidden="true" className={s.itemIcon} />
           <span className={s.itemLabel}>{t('Abrir carpeta del proyecto')}</span>
+        </button>
+
+        <div className={s.sep} role="separator" />
+
+        <button
+          type="button"
+          role="menuitem"
+          className={s.item}
+          onClick={() => {
+            if (api) void api.openExternal(DONATE_URL).catch(() => {})
+            else window.open(DONATE_URL, '_blank', 'noopener')
+            setOpen(false)
+          }}
+        >
+          <Coffee size={16} aria-hidden="true" className={s.itemIcon} />
+          <span className={s.itemText}>
+            <span className={s.itemLabel}>{t('Apoyar AI Cowork ☕')}</span>
+            <span className={s.itemHint}>{t('Si te gusta la app, invítame a un café en Ko-fi')}</span>
+          </span>
         </button>
 
         {client && (
