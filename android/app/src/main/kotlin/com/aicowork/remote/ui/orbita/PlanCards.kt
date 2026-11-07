@@ -214,7 +214,7 @@ private fun ProposedTaskRow(number: Int, task: com.aicowork.remote.data.model.Pr
             .padding(horizontal = 6.dp, vertical = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(22.dp).clip(CircleShape).background(Color(0x26B4CCF5)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(22.dp).clip(CircleShape).background(Orbita.Divider), contentAlignment = Alignment.Center) {
                 Text("$number", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
             }
             Spacer(Modifier.width(8.dp))

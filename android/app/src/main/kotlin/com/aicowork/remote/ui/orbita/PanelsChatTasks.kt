@@ -323,7 +323,7 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
     val author = message.author
     when {
         author.isUser -> Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
-            Column(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(Color(0x662A6F86)).border(1.dp, Color(0x334FC3D6), RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Column(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(Orbita.UserBubble).border(1.dp, Orbita.AccentEdge.copy(alpha = 0.25f), RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).padding(horizontal = 14.dp, vertical = 10.dp)) {
                 if (message.text.isNotBlank()) Text(message.text, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge)
                 message.attachments.forEach { a ->
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
@@ -392,7 +392,7 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
 private fun LocalMessage(message: OutgoingMessage, model: OrbitaModel) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
         val failed = message.status == OutgoingStatus.Failed
-        Box(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(if (failed) Color(0x40FF6D7C) else Color(0x40456A80)).padding(horizontal = 14.dp, vertical = 10.dp)) {
+        Box(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(if (failed) Color(0x40FF6D7C) else Orbita.UserBubble.copy(alpha = 0.5f)).padding(horizontal = 14.dp, vertical = 10.dp)) {
             Text(message.text.ifBlank { t("(adjuntos)") }, color = Orbita.Text.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyLarge)
         }
         Row(Modifier.padding(top = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -462,7 +462,7 @@ fun Composer(
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences, imeAction = ImeAction.Default),
             modifier = Modifier.weight(1f).testTag("composer"),
             decorationBox = { inner ->
-                Box(Modifier.clip(shape).background(Color(0x40101A30)).border(1.dp, Color(0x2EB4CCF5), shape).heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 14.dp)) {
+                Box(Modifier.clip(shape).background(Orbita.Card).border(1.dp, Orbita.GlassEdgeTop, shape).heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 14.dp)) {
                     if (value.text.isEmpty()) Text(placeholder, color = Orbita.TextFaint, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                     inner()
                 }
@@ -473,7 +473,7 @@ fun Composer(
             Modifier
                 .size(52.dp)
                 .clip(CircleShape)
-                .background(if (canSend) Orbita.AccentButtonTop else Color(0x26B4CCF5))
+                .background(if (canSend) Orbita.AccentButtonTop else Orbita.Divider)
                 .tappable(enabled = canSend, haptic = Haptic.None, onClick = onSend)
                 .semantics { contentDescription = t("Enviar") }
                 .testTag("send"),
@@ -612,7 +612,7 @@ fun statusOf(task: TaskItem, active: List<String>): Pair<String, Color> = when {
 @Composable
 private fun TaskMenu(open: Boolean, onDismiss: () -> Unit, task: TaskItem, snapshot: Snapshot, model: OrbitaModel) {
     val active = snapshot.conversation.activeRequestIds
-    DropdownMenu(open, onDismissRequest = onDismiss, containerColor = Color(0xF00E1730)) {
+    DropdownMenu(open, onDismissRequest = onDismiss, containerColor = Orbita.GlassPopover) {
         DropdownMenuItem(text = { Text(t("Ver actividad")) }, onClick = { onDismiss(); model.traceTaskId = task.id }, leadingIcon = { Icon(Icons.Outlined.Description, null) })
         val requestId = task.requestId
         if (requestId != null && requestId in active && snapshot.capabilities.stopRequests) {

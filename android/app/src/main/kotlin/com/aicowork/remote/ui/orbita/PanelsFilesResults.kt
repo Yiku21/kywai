@@ -93,11 +93,11 @@ fun kindLabel(kind: String, name: String = ""): String = when {
 }
 
 fun kindIcon(kind: String, name: String = ""): Pair<ImageVector, Color> = when {
-    name.endsWith(".pdf", true) -> Icons.Outlined.PictureAsPdf to Color(0xFFFF6B6B)
-    kind == "image" -> Icons.Outlined.Image to Color(0xFFB08CFF)
-    kind == "code" -> Icons.Outlined.Code to Color(0xFF63DCA4)
-    kind == "html" -> Icons.Outlined.Language to Color(0xFF6FB1FF)
-    else -> Icons.Outlined.Description to Color(0xFFC9D6EA)
+    name.endsWith(".pdf", true) -> Icons.Outlined.PictureAsPdf to Orbita.TextSoft
+    kind == "image" -> Icons.Outlined.Image to Orbita.TextSoft
+    kind == "code" -> Icons.Outlined.Code to Orbita.TextSoft
+    kind == "html" -> Icons.Outlined.Language to Orbita.TextSoft
+    else -> Icons.Outlined.Description to Orbita.TextSoft
 }
 
 /** Tipo del motor para un adjunto (por su MIME o su extensión). */
@@ -241,7 +241,7 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                         FileRow(a.name, "${kindLabel(kind, a.name)} · ${sizeLabel(a.size)}${if (pending) " · irá con tu próximo mensaje" else ""}", kind, selected = pending, trailing = {
                             Box {
                                 IconAction(Icons.Outlined.MoreHoriz, t("Opciones de {name}", "name" to a.name), onClick = { menu = true }, size = 40.dp)
-                                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Color(0xF00E1730)) {
+                                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
                                     DropdownMenuItem(text = { Text(t("Abrir")) }, onClick = { menu = false; model.viewer = ViewerTarget.File("attachment", a.relPath, a.name, kind) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, null) })
                                     DropdownMenuItem(
                                         text = { Text(if (pending) t("No enviar con mi próximo mensaje") else t("Enviar con mi próximo mensaje")) },
@@ -278,7 +278,7 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                     Modifier.fillMaxWidth().heightIn(min = 60.dp).card().tappable { model.filesTab = FilesTab.Project }.padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Outlined.Folder, contentDescription = null, tint = Color(0xFF6FA0E8), modifier = Modifier.size(28.dp))
+                    Icon(Icons.Outlined.Folder, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(28.dp))
                     Spacer(Modifier.width(12.dp))
                     Text(name ?: t("Sin carpeta propia"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                 }
@@ -369,14 +369,14 @@ private fun ResultCard(a: Artifact, model: OrbitaModel, snapshot: com.aicowork.r
             }
             Box {
                 IconAction(Icons.Outlined.MoreHoriz, t("Opciones de {name}", "name" to a.name), onClick = { menu = true }, size = 40.dp)
-                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Color(0xF00E1730)) {
+                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
                     DropdownMenuItem(text = { Text(t("Abrir")) }, onClick = { menu = false; model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, null) })
                     a.taskId?.let { id -> DropdownMenuItem(text = { Text(t("Ver la tarea")) }, onClick = { menu = false; model.openTask(id) }, leadingIcon = { Icon(Icons.Outlined.Description, null) }) }
                 }
             }
         }
         Spacer(Modifier.height(10.dp))
-        Box(Modifier.fillMaxWidth().height(132.dp).clip(RoundedCornerShape(16.dp)).background(Color(0x5A0A1222)), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().height(132.dp).clip(RoundedCornerShape(16.dp)).background(Orbita.Card), contentAlignment = Alignment.Center) {
             when (preview) {
                 is Preview.Picture -> Image(preview.image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                 is Preview.Text -> Text(

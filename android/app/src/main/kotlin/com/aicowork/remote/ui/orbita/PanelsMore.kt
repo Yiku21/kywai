@@ -191,7 +191,7 @@ private fun MemoryCard(m: MemoryEntry, snapshot: Snapshot, model: OrbitaModel, c
             Spacer(Modifier.weight(1f))
             if (canEdit) Box {
                 IconAction(Icons.Outlined.MoreHoriz, t("Opciones del recuerdo"), onClick = { menu = true }, size = 40.dp)
-                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Color(0xF00E1730)) {
+                DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
                     DropdownMenuItem(text = { Text(t("Editar")) }, onClick = { menu = false; draft = m.text; editing = true }, leadingIcon = { Icon(Icons.Outlined.Edit, null) })
                     if (m.status == "confirmed") DropdownMenuItem(text = { Text(t("Archivar")) }, onClick = { menu = false; model.run({ model.controller.setMemoryStatus(m.id, "superseded") }) }, leadingIcon = { Icon(Icons.Outlined.Archive, null) })
                     if (m.status == "superseded") DropdownMenuItem(text = { Text(t("Recuperar")) }, onClick = { menu = false; model.run({ model.controller.setMemoryStatus(m.id, "confirmed") }) }, leadingIcon = { Icon(Icons.Outlined.Undo, null) })

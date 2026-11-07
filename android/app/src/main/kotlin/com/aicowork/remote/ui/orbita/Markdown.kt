@@ -140,7 +140,7 @@ private fun parse(markdown: String): List<Block> {
 }
 
 /** Negritas, cursivas, `código` y enlaces [texto](url) (se muestra el texto). */
-fun inline(text: String, codeColor: Color = Color(0xFFBFE6EE)): AnnotatedString = buildAnnotatedString {
+fun inline(text: String, codeColor: Color = Orbita.Text): AnnotatedString = buildAnnotatedString {
     var i = 0
     while (i < text.length) {
         when {
@@ -150,7 +150,7 @@ fun inline(text: String, codeColor: Color = Color(0xFFBFE6EE)): AnnotatedString 
             }
             text[i] == '`' -> {
                 val end = text.indexOf('`', i + 1)
-                if (end > i) { withStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = codeColor, background = Color(0x33223654))) { append(text.substring(i + 1, end)) }; i = end + 1 } else { append(text[i]); i++ }
+                if (end > i) { withStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = codeColor, background = Orbita.Card)) { append(text.substring(i + 1, end)) }; i = end + 1 } else { append(text[i]); i++ }
             }
             text[i] == '*' || text[i] == '_' -> {
                 val c = text[i]
@@ -193,13 +193,13 @@ fun MarkdownText(markdown: String, modifier: Modifier = Modifier, color: Color =
                 }
                 is Block.Code -> Text(
                     b.text,
-                    color = Color(0xFFD5E3F5),
+                    color = Orbita.Text,
                     style = Mono,
                     softWrap = false,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0x66070D1A)).horizontalScroll(rememberScrollState()).padding(12.dp),
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Orbita.Card).horizontalScroll(rememberScrollState()).padding(12.dp),
                 )
                 is Block.Quote -> Text(inline(b.text), color = Orbita.TextSoft, style = body, fontStyle = FontStyle.Italic, modifier = Modifier.padding(start = 10.dp))
-                Block.Rule -> androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).background(Color(0x26B4CCF5)).padding(top = 1.dp))
+                Block.Rule -> androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).background(Orbita.Divider).padding(top = 1.dp))
             }
         }
     }

@@ -118,6 +118,13 @@ fun OrbitaApp(model: OrbitaModel, deviceName: String, demoServer: DemoServer?) {
     val state by model.controller.state.collectAsStateWithLifecycle()
     val view = LocalView.current
     SideEffect { model.feedback.view = view }
+    // El mismo tema que el ordenador: colores de la interfaz y del espacio 3D.
+    val themeId = state.snapshot?.settings?.theme
+    SideEffect {
+        val tokens = OrbitaThemes.tokens(themeId)
+        if (Orbita.palette.tokens != tokens) Orbita.palette = OrbitaPalette(tokens)
+        model.world.theme = themeId
+    }
     OrbitaTheme {
         CompositionLocalProvider(LocalFeedback provides model.feedback, LocalMarkdownImages provides remember(model) { MarkdownImages(model) }) {
             if (state.session == null) {
