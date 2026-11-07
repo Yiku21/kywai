@@ -28,6 +28,9 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/events$/, 'events', ['GET']],
   [/^\/chat\/messages$/, 'chat', ['POST']],
   [/^\/conversations$/, 'conversations', ['POST']],
+  [/^\/chats$/, 'chats', ['GET', 'POST']],
+  [/^\/chats\/([^/]+)\/(open|rename|delete)$/, 'chatAction', ['POST']],
+  [/^\/search$/, 'search', ['GET']],
   [/^\/requests\/([^/]+)\/(stop|resume|discard)$/, 'control', ['POST']],
   [/^\/plans\/([^/]+)\/(approve|reject)$/, 'plan', ['POST']],
   [/^\/projects$/, 'projects', ['GET']],
@@ -138,6 +141,12 @@ function projectId(input: unknown): string {
   return conversationId(input)!
 }
 
+/** Id de un chat de un proyecto (el mismo formato que admite conversations.ts). */
+function chatId(input: string): string {
+  if (!/^[a-z0-9][a-z0-9-]{0,60}$/.test(input)) throw new MobileError(400, 'INVALID_INPUT', 'chatId no válido')
+  return input
+}
+
 function id(input: string, name: string): string {
   if (!ID.test(input)) throw new MobileError(400, 'INVALID_INPUT', `${name} no válido`)
   return input
@@ -228,6 +237,37 @@ export class MobileApi {
           fields(input, [], ['name'])
           const name = input.name === undefined ? undefined : string(input.name, 'name', 120).trim()
           mobileJson(res, 201, { conversation: await this.backend.createConversation(name) })
+          break
+        }
+        // Chats de un proyecto (las conversaciones retomables de la barra lateral); conversationId es el proyecto.
+        case 'chats': {
+          if (req.method === 'GET') {
+            mobileJson(res, 200, await this.backend.chats(projectId(query(url, ['conversationId'], ['conversationId']).conversationId)))
+          } else {
+            const input = await body(req)
+            fields(input, ['conversationId'])
+            mobileJson(res, 200, { conversation: await this.backend.newChat(projectId(input.conversationId)) })
+          }
+          break
+        }
+        case 'chatAction': {
+          const chat = chatId(param)
+          const input = await body(req)
+          if (action === 'rename') {
+            fields(input, ['conversationId', 'title'])
+            mobileJson(res, 200, await this.backend.renameChat(projectId(input.conversationId), chat, string(input.title, 'title', 80)))
+          } else {
+            fields(input, ['conversationId'])
+            const project = projectId(input.conversationId)
+            mobileJson(res, 200, action === 'open' ? { conversation: await this.backend.openChat(project, chat) } : await this.backend.deleteChat(project, chat))
+          }
+          break
+        }
+        case 'search': {
+          const params = query(url, ['q', 'conversationId'], ['q'])
+          const q = params.q!.trim()
+          if (!q || q.length > 200) throw new MobileError(400, 'INVALID_INPUT', 'q debe ser texto de hasta 200 caracteres')
+          mobileJson(res, 200, await this.backend.search(q, params.conversationId === undefined ? undefined : projectId(params.conversationId)))
           break
         }
         case 'control':
