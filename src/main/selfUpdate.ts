@@ -11,6 +11,7 @@ import { emit } from './events'
 import { sh } from './setup'
 import { launchCommand } from './linuxDesktop'
 import { tr } from '@shared/i18n'
+import { checkReleaseNow, isReleaseBuild } from './updater'
 
 const IS_MAC = process.platform === 'darwin'
 const IS_LINUX = process.platform === 'linux'
@@ -53,6 +54,14 @@ const FORMAT = '--format=%h%x09%ad%x09%s --date=short'
 
 export async function checkForUpdates(): Promise<UpdateStatus> {
   const dir = sourceDir()
+  if (!dir && isReleaseBuild()) {
+    checkReleaseNow()
+    return {
+      canUpdate: false,
+      commits: [],
+      reason: tr('Esta versión se descargó de GitHub y se actualiza sola: al abrirse busca la última y la instala. Ahora mismo también lo está comprobando.')
+    }
+  }
   if (!dir) {
     return {
       canUpdate: false,
