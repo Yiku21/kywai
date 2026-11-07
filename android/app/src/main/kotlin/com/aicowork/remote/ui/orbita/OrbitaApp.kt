@@ -336,7 +336,10 @@ private fun CompactLayout(model: OrbitaModel, state: CoworkUiState, snapshot: Sn
             }
         }
 
-        if (!full) SidebarRail(model, state, labels = false, onOpen = { model.drawerOpen = true }, openTag = "menu-button", modifier = Modifier.align(Alignment.TopStart))
+        // Con la barra entera abierta encima, la columna se aparta para que no se transparente por detrás.
+        AnimatedVisibility(!full && !model.drawerOpen, modifier = Modifier.align(Alignment.TopStart), enter = fadeIn(), exit = fadeOut()) {
+            SidebarRail(model, state, labels = false, onOpen = { model.drawerOpen = true }, openTag = "menu-button")
+        }
         if (!full) Column(Modifier.align(Alignment.TopStart).padding(start = railPad).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ChatTitleChip(state, Modifier.weight(1f, fill = false))
