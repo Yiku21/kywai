@@ -1273,19 +1273,48 @@ se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cua
 
 ### Temas
 
-⚙ → Ajustes → General → **Tema** cambia el aspecto de la app: **Clásico** (el predeterminado, paneles oscuros y sobrios) u
-**Órbita** (cristal esmerilado, como la app del móvil: el espacio 3D ocupa toda la ventana y el chat, la cabecera,
-las barras, los menús y las ventanas flotan encima como cristal que lo deja ver difuminado; el mundo se centra en la
-zona que deja libre el chat). Y cinco más con la distribución del clásico y sus propios colores, en la interfaz
-y en el espacio 3D (suelo, ciudad, estaciones, circuitos, núcleo y luces):
+⚙ → Ajustes → General → **Tema** (se despliega con la flecha) cambia el aspecto de la app. Los temas van en tres
+grupos.
 
+**Mapas.** Siete escenarios, cada uno con su entorno, sus plataformas y su núcleo propios (`scene/worlds/`). La
+interfaz toma los colores del color de la Ciudad con su mismo nombre (el de Órbita es el cristal de Frost Glass):
+
+- **Clásico:** centro de operaciones del ciberespacio, con racks de servidores, un núcleo holográfico y tráfico de
+  datos por la red del suelo.
+- **Órbita:** estación sobre la Tierra (texturas reales con día, noche y nubes), con muelles flotantes, la Luna,
+  Júpiter, Saturno y el Sol, y un planetario en el centro.
+- **Marfil:** jardín del Olimpo de piedra clara, con arcos, árboles, canales y fuentes de agua.
+- **Grafito:** fábrica térmica con engranajes, grúa, vapor y un reactor ámbar en el centro.
+- **Bosque:** claro élfico con árboles que se mecen, plataformas de madera, haces de luz, niebla y luciérnagas.
+- **Matrix:** ciudad entre código y niebla, con naves que patrullan el horizonte y un núcleo de datos de vóxeles.
+- **EVA-01:** cámara de contención con compuertas y una cápsula de energía que se carga.
+
+Los mapas **reaccionan al trabajo del equipo**: cuando hay agentes pensando o trabajando, Grafito y EVA cargan su
+reactor y su cápsula, la lluvia de código de Matrix y el tráfico del Clásico van más deprisa, las fuentes de Marfil
+corren más, las luciérnagas del Bosque se avivan y en Órbita se encienden más las luces de las ciudades de la
+Tierra. Con dos agentes ocupados ya van a tope, y se calman poco a poco al terminar. Las sombras y el sombreado de
+contacto solo se ven en equipos que aguantan la calidad gráfica alta. Las texturas de Órbita son de Solar System
+Scope (CC BY 4.0) y del NASA SVS; los créditos están al pie del selector de temas y en `assets/orbit/CREDITS.md`.
+
+**Ciudad digital.** El espacio de siempre con siete colores a elegir en la fila de debajo de su tarjeta. Al pulsar
+la tarjeta vuelve al último color elegido. El color cambia la interfaz y el espacio 3D (suelo, ciudad, estaciones,
+circuitos, núcleo y luces):
+
+- **Clásico:** el predeterminado, paneles oscuros y sobrios.
+- **Frost Glass** (antes se llamaba Órbita): cristal esmerilado, como la app del móvil. El espacio 3D ocupa toda la
+  ventana y el chat, la cabecera, las barras, los menús y las ventanas flotan encima como cristal que lo deja ver
+  difuminado; el mundo se centra en la zona que deja libre el chat.
 - **Marfil:** claro y cálido; suelo de piedra, ciudad blanca, circuitos verdes y aros dorados.
 - **Grafito:** negro neutro con detalles dorados.
 - **Bosque:** verde bosque profundo con oro.
 - **Matrix:** negro y verde neón.
 - **EVA-01:** morado y verde lima.
 
-Y cuatro que además decoran el espacio, cambian la forma del núcleo y, en los de fiesta, disfrazan a los robots:
+Quien tenía elegido uno de estos colores cuando eran temas sueltos lo sigue viendo igual: el tema guardado
+(`aicowork.theme`) conserva los mismos nombres internos (`orbita` es Frost Glass) y los mapas usan otros
+(`mundo-clasico`, `mundo-orbita`…).
+
+**Decorados.** Cuatro que además decoran el espacio, cambian la forma del núcleo y, en los de fiesta, disfrazan a los robots:
 
 - **Relicario:** cristal y oro sobre piedra negra pulida. El núcleo es una gema tallada con otra más pequeña que
   brilla dentro, dos anillos de oro a su alrededor y un haz de luz que sube. Las estaciones se apoyan en tres discos
