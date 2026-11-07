@@ -37,7 +37,7 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 <br>
 
-![AI Cowork : le chat avec le plan de Hermes à gauche et l'espace numérique 3D avec les agents au travail](docs/img/escritorio.jpg)
+![AI Cowork : le chat avec le plan de Hermes à gauche et l'espace numérique 3D avec les agents au travail](docs/img/fr/escritorio.jpg)
 
 ## ✨ Ce que c'est
 
@@ -229,14 +229,14 @@ L'ordinateur sur lequel AI Cowork est installé (par exemple un Mac mini toujour
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-orbita.jpg" alt="Thème Órbita" width="260"><br><b>Órbita</b> : verre dépoli</td>
-    <td align="center"><img src="docs/img/tema-marfil.jpg" alt="Thème Marfil" width="260"><br><b>Marfil</b> : clair et chaleureux</td>
-    <td align="center"><img src="docs/img/tema-grafito.jpg" alt="Thème Grafito" width="260"><br><b>Grafito</b> : noir et or</td>
+    <td align="center"><img src="docs/img/fr/tema-orbita.jpg" alt="Thème Órbita" width="260"><br><b>Órbita</b> : verre dépoli</td>
+    <td align="center"><img src="docs/img/fr/tema-marfil.jpg" alt="Thème Marfil" width="260"><br><b>Marfil</b> : clair et chaleureux</td>
+    <td align="center"><img src="docs/img/fr/tema-grafito.jpg" alt="Thème Grafito" width="260"><br><b>Grafito</b> : noir et or</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-bosque.jpg" alt="Thème Bosque" width="260"><br><b>Bosque</b> : vert profond et or</td>
-    <td align="center"><img src="docs/img/tema-matrix.jpg" alt="Thème Matrix" width="260"><br><b>Matrix</b> : noir et vert néon</td>
-    <td align="center"><img src="docs/img/tema-eva.jpg" alt="Thème EVA-01" width="260"><br><b>EVA-01</b> : violet et vert citron</td>
+    <td align="center"><img src="docs/img/fr/tema-bosque.jpg" alt="Thème Bosque" width="260"><br><b>Bosque</b> : vert profond et or</td>
+    <td align="center"><img src="docs/img/fr/tema-matrix.jpg" alt="Thème Matrix" width="260"><br><b>Matrix</b> : noir et vert néon</td>
+    <td align="center"><img src="docs/img/fr/tema-eva.jpg" alt="Thème EVA-01" width="260"><br><b>EVA-01</b> : violet et vert citron</td>
   </tr>
 </table>
 
@@ -244,12 +244,12 @@ Et quatre qui décorent le monde, remodèlent son noyau et, pour les thèmes fes
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-relicario.jpg" alt="Thème Relicario" width="400"><br><b>Relicario</b> : un noyau en cristal taillé et des plateformes de verre et d'or</td>
-    <td align="center"><img src="docs/img/tema-telar.jpg" alt="Thème Telar" width="400"><br><b>Telar</b> : des membranes de fils d'argent aux étincelles dorées</td>
+    <td align="center"><img src="docs/img/fr/tema-relicario.jpg" alt="Thème Relicario" width="400"><br><b>Relicario</b> : un noyau en cristal taillé et des plateformes de verre et d'or</td>
+    <td align="center"><img src="docs/img/fr/tema-telar.jpg" alt="Thème Telar" width="400"><br><b>Telar</b> : des membranes de fils d'argent aux étincelles dorées</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-halloween.jpg" alt="Thème Halloween" width="400"><br><b>Halloween</b> : citrouilles, bougies, lune, chauves-souris, une sorcière et un vampire</td>
-    <td align="center"><img src="docs/img/tema-navidad.jpg" alt="Thème Noël" width="400"><br><b>Navidad</b> : neige, sapins, cadeaux, une boule à neige et des bonnets de père Noël</td>
+    <td align="center"><img src="docs/img/fr/tema-halloween.jpg" alt="Thème Halloween" width="400"><br><b>Halloween</b> : citrouilles, bougies, lune, chauves-souris, une sorcière et un vampire</td>
+    <td align="center"><img src="docs/img/fr/tema-navidad.jpg" alt="Thème Noël" width="400"><br><b>Navidad</b> : neige, sapins, cadeaux, une boule à neige et des bonnets de père Noël</td>
   </tr>
 </table>
 

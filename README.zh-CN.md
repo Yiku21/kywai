@@ -37,7 +37,7 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 <br>
 
-![AI Cowork：左侧是包含 Hermes 计划的聊天，右侧是智能体正在工作的 3D 数字空间](docs/img/escritorio.jpg)
+![AI Cowork：左侧是包含 Hermes 计划的聊天，右侧是智能体正在工作的 3D 数字空间](docs/img/zh/escritorio.jpg)
 
 ## ✨ 简介
 
@@ -229,14 +229,14 @@ flowchart TD
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-orbita.jpg" alt="Órbita 主题" width="260"><br><b>Órbita</b>：磨砂玻璃</td>
-    <td align="center"><img src="docs/img/tema-marfil.jpg" alt="Marfil 主题" width="260"><br><b>Marfil</b>：明亮温暖</td>
-    <td align="center"><img src="docs/img/tema-grafito.jpg" alt="Grafito 主题" width="260"><br><b>Grafito</b>：黑与金</td>
+    <td align="center"><img src="docs/img/zh/tema-orbita.jpg" alt="Órbita 主题" width="260"><br><b>Órbita</b>：磨砂玻璃</td>
+    <td align="center"><img src="docs/img/zh/tema-marfil.jpg" alt="Marfil 主题" width="260"><br><b>Marfil</b>：明亮温暖</td>
+    <td align="center"><img src="docs/img/zh/tema-grafito.jpg" alt="Grafito 主题" width="260"><br><b>Grafito</b>：黑与金</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-bosque.jpg" alt="Bosque 主题" width="260"><br><b>Bosque</b>：深绿与金</td>
-    <td align="center"><img src="docs/img/tema-matrix.jpg" alt="Matrix 主题" width="260"><br><b>Matrix</b>：黑与霓虹绿</td>
-    <td align="center"><img src="docs/img/tema-eva.jpg" alt="EVA-01 主题" width="260"><br><b>EVA-01</b>：紫与青柠绿</td>
+    <td align="center"><img src="docs/img/zh/tema-bosque.jpg" alt="Bosque 主题" width="260"><br><b>Bosque</b>：深绿与金</td>
+    <td align="center"><img src="docs/img/zh/tema-matrix.jpg" alt="Matrix 主题" width="260"><br><b>Matrix</b>：黑与霓虹绿</td>
+    <td align="center"><img src="docs/img/zh/tema-eva.jpg" alt="EVA-01 主题" width="260"><br><b>EVA-01</b>：紫与青柠绿</td>
   </tr>
 </table>
 
@@ -244,12 +244,12 @@ flowchart TD
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-relicario.jpg" alt="Relicario 主题" width="400"><br><b>Relicario</b>：切割水晶核心与玻璃镶金平台</td>
-    <td align="center"><img src="docs/img/tema-telar.jpg" alt="Telar 主题" width="400"><br><b>Telar</b>：银丝薄膜与金色火花</td>
+    <td align="center"><img src="docs/img/zh/tema-relicario.jpg" alt="Relicario 主题" width="400"><br><b>Relicario</b>：切割水晶核心与玻璃镶金平台</td>
+    <td align="center"><img src="docs/img/zh/tema-telar.jpg" alt="Telar 主题" width="400"><br><b>Telar</b>：银丝薄膜与金色火花</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-halloween.jpg" alt="Halloween 主题" width="400"><br><b>Halloween</b>：南瓜、蜡烛、月亮、蝙蝠、女巫和吸血鬼</td>
-    <td align="center"><img src="docs/img/tema-navidad.jpg" alt="圣诞主题" width="400"><br><b>Navidad</b>：雪花、圣诞树、礼物、雪花水晶球和圣诞帽</td>
+    <td align="center"><img src="docs/img/zh/tema-halloween.jpg" alt="Halloween 主题" width="400"><br><b>Halloween</b>：南瓜、蜡烛、月亮、蝙蝠、女巫和吸血鬼</td>
+    <td align="center"><img src="docs/img/zh/tema-navidad.jpg" alt="圣诞主题" width="400"><br><b>Navidad</b>：雪花、圣诞树、礼物、雪花水晶球和圣诞帽</td>
   </tr>
 </table>
 

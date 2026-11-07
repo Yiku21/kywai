@@ -37,7 +37,7 @@ https://github.com/user-attachments/assets/d9df3fa8-9d52-4fb6-93e9-2f37d54fb362
 
 <br>
 
-![AI Cowork: the chat with Hermes's plan on the left and the 3D digital space with the agents working](docs/img/escritorio.jpg)
+![AI Cowork: the chat with Hermes's plan on the left and the 3D digital space with the agents working](docs/img/en/escritorio.jpg)
 
 ## ✨ What it is
 
@@ -229,14 +229,14 @@ The computer where AI Cowork is installed (for example a Mac mini that is always
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-orbita.jpg" alt="Órbita theme" width="260"><br><b>Órbita</b>: frosted glass</td>
-    <td align="center"><img src="docs/img/tema-marfil.jpg" alt="Marfil theme" width="260"><br><b>Marfil</b>: light and warm</td>
-    <td align="center"><img src="docs/img/tema-grafito.jpg" alt="Grafito theme" width="260"><br><b>Grafito</b>: black and gold</td>
+    <td align="center"><img src="docs/img/en/tema-orbita.jpg" alt="Órbita theme" width="260"><br><b>Órbita</b>: frosted glass</td>
+    <td align="center"><img src="docs/img/en/tema-marfil.jpg" alt="Marfil theme" width="260"><br><b>Marfil</b>: light and warm</td>
+    <td align="center"><img src="docs/img/en/tema-grafito.jpg" alt="Grafito theme" width="260"><br><b>Grafito</b>: black and gold</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-bosque.jpg" alt="Bosque theme" width="260"><br><b>Bosque</b>: deep green and gold</td>
-    <td align="center"><img src="docs/img/tema-matrix.jpg" alt="Matrix theme" width="260"><br><b>Matrix</b>: black and neon green</td>
-    <td align="center"><img src="docs/img/tema-eva.jpg" alt="EVA-01 theme" width="260"><br><b>EVA-01</b>: purple and lime</td>
+    <td align="center"><img src="docs/img/en/tema-bosque.jpg" alt="Bosque theme" width="260"><br><b>Bosque</b>: deep green and gold</td>
+    <td align="center"><img src="docs/img/en/tema-matrix.jpg" alt="Matrix theme" width="260"><br><b>Matrix</b>: black and neon green</td>
+    <td align="center"><img src="docs/img/en/tema-eva.jpg" alt="EVA-01 theme" width="260"><br><b>EVA-01</b>: purple and lime</td>
   </tr>
 </table>
 
@@ -244,12 +244,12 @@ And four that decorate the world, reshape its core and, in the festive ones, dre
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/tema-relicario.jpg" alt="Relicario theme" width="400"><br><b>Relicario</b>: a cut-crystal core and glass-and-gold platforms</td>
-    <td align="center"><img src="docs/img/tema-telar.jpg" alt="Telar theme" width="400"><br><b>Telar</b>: silver-thread membranes with golden sparks</td>
+    <td align="center"><img src="docs/img/en/tema-relicario.jpg" alt="Relicario theme" width="400"><br><b>Relicario</b>: a cut-crystal core and glass-and-gold platforms</td>
+    <td align="center"><img src="docs/img/en/tema-telar.jpg" alt="Telar theme" width="400"><br><b>Telar</b>: silver-thread membranes with golden sparks</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/tema-halloween.jpg" alt="Halloween theme" width="400"><br><b>Halloween</b>: pumpkins, candles, moon, bats, a witch and a vampire</td>
-    <td align="center"><img src="docs/img/tema-navidad.jpg" alt="Christmas theme" width="400"><br><b>Navidad</b>: snow, trees, presents, a snow globe and Santa hats</td>
+    <td align="center"><img src="docs/img/en/tema-halloween.jpg" alt="Halloween theme" width="400"><br><b>Halloween</b>: pumpkins, candles, moon, bats, a witch and a vampire</td>
+    <td align="center"><img src="docs/img/en/tema-navidad.jpg" alt="Christmas theme" width="400"><br><b>Navidad</b>: snow, trees, presents, a snow globe and Santa hats</td>
   </tr>
 </table>
 
