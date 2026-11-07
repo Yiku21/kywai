@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Globe, Pencil, Plus, RefreshCw, Server, Trash2 } from 'lucide-react'
+import { BadgeCheck, BookOpen, ExternalLink, Globe, Pencil, Plus, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
 import type { ProviderKind } from '@shared/types'
-import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpServerInfo, type McpServerInput } from '@shared/extensions'
+import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpServerInfo, type McpServerInput, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { t } from '@/lib/i18n'
@@ -21,6 +21,10 @@ interface Draft {
   url: string
   /** Variables (local) o cabeceras (remoto): nombre, valor nuevo y si ya hay uno guardado. */
   secrets: Array<{ name: string; value: string; saved: boolean }>
+  /** Qué es cada clave (del catálogo). */
+  help?: Record<string, string>
+  /** Viene del catálogo con algo entre <> o {} que hay que poner a mano. */
+  needsEdit?: boolean
 }
 
 function lineOf(command = '', args: string[] = []): string {
@@ -59,11 +63,40 @@ function ago(at: number): string {
   return h < 48 ? t('hace {n} h', { n: h }) : t('hace {n} días', { n: Math.round(h / 24) })
 }
 
+type Section = 'mcp' | 'skills'
+
 /**
- * Ajustes › Extensiones: los servidores MCP que añades tú y a qué agentes llegan (un chip por agente). Al encender
- * uno para un agente, kywai lo prueba antes; si falla, se queda apagado y dice por qué.
+ * Ajustes › Extensiones: los servidores MCP que añades tú y a qué agentes llegan (un chip por agente), y las
+ * habilidades del equipo. Las dos cosas se pueden instalar desde su catálogo.
  */
 export function ExtensionsTab() {
+  const [section, setSection] = useState<Section>('mcp')
+  return (
+    <>
+      <header className={s.head}>
+        <h3 className={s.title}>{t('Extensiones')}</h3>
+        <p className={s.subtitle}>{t('Herramientas y habilidades para los agentes, con su catálogo para instalarlas con un clic.')}</p>
+      </header>
+      <div className={s.seg} role="tablist" aria-label={t('Extensiones')}>
+        <button type="button" role="tab" aria-selected={section === 'mcp'} className={cx(s.segBtn, section === 'mcp' && s.segOn)} onClick={() => setSection('mcp')}>
+          <Server size={14} aria-hidden="true" />
+          {t('Servidores MCP')}
+        </button>
+        <button type="button" role="tab" aria-selected={section === 'skills'} className={cx(s.segBtn, section === 'skills' && s.segOn)} onClick={() => setSection('skills')}>
+          <BookOpen size={14} aria-hidden="true" />
+          {t('Habilidades')}
+        </button>
+      </div>
+      {section === 'mcp' ? <McpSection /> : <SkillsSection />}
+    </>
+  )
+}
+
+/**
+ * Los servidores MCP que añades tú y a qué agentes llegan (un chip por agente). Al encender uno para un agente,
+ * kywai lo prueba antes; si falla, se queda apagado y dice por qué.
+ */
+function McpSection() {
   const agents = useCowork((st) => st.config.agents)
   const live = useCowork((st) => st.mode === 'live') && !!api
   const [list, setList] = useState<McpServerInfo[]>([])
@@ -72,6 +105,7 @@ export function ExtensionsTab() {
   const [error, setError] = useState<string | null>(null)
   const [paste, setPaste] = useState<string | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [catalog, setCatalog] = useState(false)
 
   useEffect(() => {
     if (!live) return
@@ -107,6 +141,13 @@ export function ExtensionsTab() {
   }
   kinds.sort((a, b) => rank(a.kind) - rank(b.kind))
 
+  /** Abre el formulario con lo entendido (si el nombre ya existe, se sugiere otro). */
+  function open(first: McpServerInput, extra: Partial<Draft> = {}): void {
+    let id = first.id
+    for (let i = 2; list.some((x) => x.id === id); i++) id = `${first.id.slice(0, 28)}-${i}`
+    setDraft({ ...draftFrom({ ...first, id }), ...extra })
+  }
+
   function understand(): void {
     const r = parseMcpPaste(paste ?? '')
     if (typeof r === 'string') {
@@ -115,11 +156,14 @@ export function ExtensionsTab() {
     }
     setError(null)
     setPaste(null)
-    const first = r[0]
-    // Si el nombre ya existe, se sugiere otro.
-    let id = first.id
-    for (let i = 2; list.some((x) => x.id === id); i++) id = `${first.id.slice(0, 28)}-${i}`
-    setDraft(draftFrom({ ...first, id }))
+    open(r[0])
+  }
+
+  function fromCatalog(item: McpCatalogItem): void {
+    if (!item.install) return
+    setCatalog(false)
+    setError(null)
+    open(item.install, { help: Object.fromEntries(item.keys.map((k) => [k.name, k.description])), needsEdit: item.needsEdit })
   }
 
   async function save(d: Draft): Promise<void> {
@@ -151,18 +195,21 @@ export function ExtensionsTab() {
 
   return (
     <>
-      <header className={s.head}>
-        <h3 className={s.title}>{t('Extensiones')}</h3>
-        <p className={s.subtitle}>{t('Servidores MCP que das a los agentes. Cada tarea recibe solo los que su agente tiene encendidos.')}</p>
-      </header>
-
       <div className={s.bar}>
-        <span className={s.section}>{t('Servidores MCP')}</span>
-        <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={!live || paste !== null || !!draft} onClick={() => setPaste('')}>
-          <Plus size={15} aria-hidden="true" />
-          {t('Añadir servidor')}
-        </button>
+        <span className={s.muted}>{t('Servidores MCP que das a los agentes. Cada tarea recibe solo los que su agente tiene encendidos.')}</span>
+        <span className={s.barBtns}>
+          <button type="button" className={cx(u.btn, u.btnSm)} disabled={!live || paste !== null || !!draft} onClick={() => setPaste('')}>
+            <Plus size={15} aria-hidden="true" />
+            {t('Añadir a mano')}
+          </button>
+          <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={!live || !!draft} aria-pressed={catalog} onClick={() => setCatalog(!catalog)}>
+            <Search size={15} aria-hidden="true" />
+            {catalog ? t('Cerrar catálogo') : t('Explorar catálogo')}
+          </button>
+        </span>
       </div>
+
+      {catalog && live && <McpCatalog installed={list.map((x) => x.title.toLowerCase())} onInstall={fromCatalog} />}
 
       {!live && <p className={s.muted}>{t('No disponible en modo demo')}</p>}
 
@@ -281,6 +328,7 @@ function DraftForm({ draft, onChange, onCancel, onSave, saving }: { draft: Draft
   const http = draft.transport === 'http'
   return (
     <div className={s.form}>
+      {draft.needsEdit && <p className={s.warnNote}>{t('Cambia lo que va entre <> o {} por tu valor antes de guardar.')}</p>}
       <div className={s.grid}>
         <label className={s.label}>
           {t('Nombre')}
@@ -303,7 +351,8 @@ function DraftForm({ draft, onChange, onCancel, onSave, saving }: { draft: Draft
       <div className={s.label}>
         {http ? t('Cabeceras (por ejemplo Authorization: Bearer …)') : t('Variables (claves de API, tokens…)')}
         {draft.secrets.map((x, i) => (
-          <div key={i} className={s.secret}>
+          <div key={i} className={s.secretWrap}>
+          <div className={s.secret}>
             <input className={cx(s.input, s.mono)} value={x.name} spellCheck={false} placeholder={http ? 'Authorization' : 'API_KEY'} aria-label={t('Nombre')} onChange={(e) => setSecret(i, { name: e.target.value })} />
             <input
               className={cx(s.input, s.mono)}
@@ -317,6 +366,8 @@ function DraftForm({ draft, onChange, onCancel, onSave, saving }: { draft: Draft
             <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} title={t('Quitar')} aria-label={t('Quitar')} onClick={() => set({ secrets: draft.secrets.filter((_, j) => j !== i) })}>
               <Trash2 size={14} aria-hidden="true" />
             </button>
+          </div>
+          {draft.help?.[x.name] && <span className={s.hint}>{t(draft.help[x.name])}</span>}
           </div>
         ))}
         <button type="button" className={cx(u.btn, u.btnSm, u.btnGhost, s.addSecret)} onClick={() => set({ secrets: [...draft.secrets, { name: http ? 'Authorization' : '', value: '', saved: false }] })}>
@@ -334,5 +385,242 @@ function DraftForm({ draft, onChange, onCancel, onSave, saving }: { draft: Draft
         </button>
       </div>
     </div>
+  )
+}
+
+/** Catálogo de servidores: los destacados y, al buscar, el registro oficial de MCP. */
+function McpCatalog({ installed, onInstall }: { installed: string[]; onInstall: (item: McpCatalogItem) => void }) {
+  const [query, setQuery] = useState('')
+  const [items, setItems] = useState<McpCatalogItem[]>([])
+  const [next, setNext] = useState<string | undefined>()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [searched, setSearched] = useState('')
+
+  async function load(q: string, cursor?: string): Promise<void> {
+    setLoading(true)
+    setError(null)
+    try {
+      const r = await api!.mcpCatalog(q, cursor)
+      setItems((prev) => (cursor ? [...prev, ...r.items] : r.items))
+      setNext(r.next)
+      setSearched(q)
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void load('')
+  }, [])
+
+  return (
+    <div className={s.catalog}>
+      <form
+        className={s.searchRow}
+        onSubmit={(e) => {
+          e.preventDefault()
+          void load(query)
+        }}
+      >
+        <input className={s.input} value={query} placeholder={t('Buscar en el registro oficial de MCP (notion, postgres, slack…)')} aria-label={t('Buscar')} onChange={(e) => setQuery(e.target.value)} />
+        <button type="submit" className={cx(u.btn, u.btnSm)} disabled={loading}>
+          {t('Buscar')}
+        </button>
+      </form>
+      <p className={s.hint}>{searched ? t('Resultados del registro oficial de MCP. Cualquiera puede publicar en él: los marcados con ✓ son de empresas conocidas.') : t('Destacados. Busca para ver los miles del registro oficial de MCP.')}</p>
+      {error && (
+        <p className={s.error} role="alert">
+          {error}
+        </p>
+      )}
+      <ul className={s.list}>
+        {items.map((x) => {
+          const have = installed.includes(x.title.toLowerCase())
+          return (
+            <li key={x.name} className={s.item}>
+              <span className={s.icon} aria-hidden="true">
+                {x.kind === 'http' ? <Globe size={18} /> : <Server size={18} />}
+              </span>
+              <span className={s.text}>
+                <span className={s.name}>
+                  {x.title}
+                  {x.verified && <BadgeCheck size={14} className={s.verified} aria-label={t('Verificado')} />}
+                  <small>{x.name}</small>
+                </span>
+                {x.description && <span className={s.desc}>{t(x.description)}</span>}
+                <span className={s.status}>
+                  {x.kind === 'http' ? t('Remoto') : t('En este equipo')}
+                  {x.keys.length > 0 && ` · ${t('Pide: {list}', { list: x.keys.map((k) => k.name).join(', ') })}`}
+                  {x.unsupported && ` · ${x.unsupported}`}
+                </span>
+              </span>
+              <span className={s.tools}>
+                {(x.repo || x.website) && (
+                  <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} title={t('Ver su página')} aria-label={t('Ver su página')} onClick={() => void api!.openExternal((x.repo || x.website)!)}>
+                    <ExternalLink size={15} aria-hidden="true" />
+                  </button>
+                )}
+                <button type="button" className={cx(u.btn, u.btnSm, !have && u.btnPrimary)} disabled={!x.install} onClick={() => onInstall(x)}>
+                  {have ? t('Instalar otra vez') : t('Instalar')}
+                </button>
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      {next && (
+        <button type="button" className={cx(u.btn, u.btnSm, s.more)} disabled={loading} onClick={() => void load(searched, next)}>
+          {t('Más resultados')}
+        </button>
+      )}
+      {loading && <p className={s.muted}>{t('Buscando…')}</p>}
+    </div>
+  )
+}
+
+/** Las habilidades del equipo (carpeta «habilidades»): las instaladas y su catálogo. */
+function SkillsSection() {
+  const live = useCowork((st) => st.mode === 'live') && !!api
+  const [skills, setSkills] = useState<SkillInfo[]>([])
+  const [items, setItems] = useState<SkillCatalogItem[]>([])
+  const [query, setQuery] = useState('')
+  const [link, setLink] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState<string | null>(null)
+  const [searched, setSearched] = useState(false)
+
+  useEffect(() => {
+    if (!live) return
+    api!.listSkills().then(setSkills, (e) => setError(errorText(e)))
+    api!.skillCatalog('').then(setItems, () => undefined)
+  }, [live])
+
+  async function run(key: string, fn: () => Promise<void>): Promise<void> {
+    setBusy(key)
+    setError(null)
+    setDone(null)
+    try {
+      await fn()
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const installed = (r: { installed: string[]; skills: SkillInfo[] }): void => {
+    setSkills(r.skills)
+    setDone(t('Instalada: {list}', { list: r.installed.join(', ') }))
+  }
+
+  return (
+    <>
+      <p className={s.muted}>{t('Procedimientos escritos (SKILL.md) que leen todos los agentes, sea cual sea su programa. Están en la carpeta «habilidades» de kywai.')}</p>
+
+      {live && skills.length === 0 && <p className={s.muted}>{t('Aún no hay ninguna. Instala alguna del catálogo o desde un enlace de GitHub.')}</p>}
+      <ul className={s.list}>
+        {skills.map((x) => (
+          <li key={x.name} className={s.item}>
+            <span className={s.icon} aria-hidden="true">
+              <BookOpen size={18} />
+            </span>
+            <span className={s.text}>
+              <span className={s.name}>{x.name}</span>
+              {x.description && <span className={s.desc}>{x.description}</span>}
+            </span>
+            <span className={s.tools}>
+              <button
+                type="button"
+                className={cx(u.iconBtn, u.iconBtnSm)}
+                disabled={!!busy}
+                title={t('Quitar')}
+                aria-label={t('Quitar')}
+                onClick={() => {
+                  if (window.confirm(t('¿Quitar «{name}»? Dejará de llegar a los agentes.', { name: x.name }))) void run(`rm:${x.name}`, async () => setSkills(await api!.removeSkill(x.name)))
+                }}
+              >
+                <Trash2 size={15} aria-hidden="true" />
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className={s.catalog}>
+        <span className={s.section}>{t('Instalar habilidades')}</span>
+        <form
+          className={s.searchRow}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void run('search', async () => {
+              setItems(await api!.skillCatalog(query))
+              setSearched(!!query.trim())
+            })
+          }}
+        >
+          <input className={s.input} value={query} disabled={!live} placeholder={t('Buscar en skills.sh (pdf, diseño, pruebas…)')} aria-label={t('Buscar')} onChange={(e) => setQuery(e.target.value)} />
+          <button type="submit" className={cx(u.btn, u.btnSm)} disabled={!live || !!busy}>
+            {t('Buscar')}
+          </button>
+        </form>
+        <form
+          className={s.searchRow}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void run('link', async () => {
+              installed(await api!.installSkillLink(link))
+              setLink('')
+            })
+          }}
+        >
+          <input className={cx(s.input, s.mono)} value={link} disabled={!live} spellCheck={false} placeholder="https://github.com/dueño/repositorio" aria-label={t('Enlace de GitHub')} onChange={(e) => setLink(e.target.value)} />
+          <button type="submit" className={cx(u.btn, u.btnSm)} disabled={!live || !!busy || !link.trim()}>
+            {busy === 'link' ? t('Instalando…') : t('Instalar desde el enlace')}
+          </button>
+        </form>
+        <p className={s.hint}>{searched ? t('Resultados de skills.sh. Cualquiera puede publicar: los marcados con ✓ son de fuentes conocidas.') : t('Destacadas. Busca para ver las de skills.sh, o pega el enlace de un repositorio de GitHub con skills.')}</p>
+        {error && (
+          <p className={s.error} role="alert">
+            {error}
+          </p>
+        )}
+        {done && <p className={s.okNote}>{done}</p>}
+        <ul className={s.list}>
+          {items.map((x) => {
+            const key = `${x.source}/${x.skillId}`
+            const have = skills.some((k) => k.name.toLowerCase() === (x.skillId || x.name).toLowerCase())
+            return (
+              <li key={key} className={s.item}>
+                <span className={s.icon} aria-hidden="true">
+                  <BookOpen size={18} />
+                </span>
+                <span className={s.text}>
+                  <span className={s.name}>
+                    {t(x.name)}
+                    {x.verified && <BadgeCheck size={14} className={s.verified} aria-label={t('Verificado')} />}
+                    <small>{x.source}</small>
+                  </span>
+                  {x.description && <span className={s.desc}>{t(x.description)}</span>}
+                  {x.installs > 0 && <span className={s.status}>{t('{n} instalaciones', { n: x.installs.toLocaleString() })}</span>}
+                </span>
+                <span className={s.tools}>
+                  <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} title={t('Ver su página')} aria-label={t('Ver su página')} onClick={() => void api!.openExternal(x.url ?? `https://github.com/${x.source}`)}>
+                    <ExternalLink size={15} aria-hidden="true" />
+                  </button>
+                  <button type="button" className={cx(u.btn, u.btnSm, !have && u.btnPrimary)} disabled={!live || !!busy} onClick={() => void run(key, async () => installed(await api!.installSkill(x.source, x.skillId)))}>
+                    {busy === key ? t('Instalando…') : have ? t('Instalar otra vez') : t('Instalar')}
+                  </button>
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+      <p className={s.note}>{t('Las habilidades son instrucciones que siguen los agentes: instala solo las de fuentes en las que confíes. Los servidores MCP ejecutan programas en este equipo: revisa la orden antes de guardar.')}</p>
+    </>
   )
 }

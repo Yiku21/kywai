@@ -84,6 +84,7 @@ import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
+import { installCatalogSkill, installSkillLink, installedSkills, mcpCatalog, removeSkill, skillCatalog } from './catalog'
 import { McpRegistry, initExtensions, listMcp, removeMcp, saveMcp, setMcpAgents, testMcp } from './extensions'
 import { deleteTraces, flushTaskTraces, getTaskTrace, initTaskTraces } from './taskTrace'
 import { onMacPermissionPrompt, startMacPermissionWatch, stopMacPermissionWatch } from './macPermissions'
@@ -700,6 +701,13 @@ function registerIpc(): void {
   handle('removeMcpServer', (id: unknown) => removeMcp(String(id)))
   handle('testMcpServer', (id: unknown) => testMcp(String(id)))
   handle('setMcpServerAgents', (id: unknown, agents: unknown) => setMcpAgents(String(id), agents))
+  // Catálogo: servidores del registro oficial de MCP y habilidades de skills.sh o de un enlace de GitHub.
+  handle('mcpCatalog', (query: unknown, cursor?: unknown) => mcpCatalog(query, cursor))
+  handle('skillCatalog', (query: unknown) => skillCatalog(query))
+  handle('listSkills', () => installedSkills())
+  handle('installSkill', (source: unknown, skillId: unknown) => installCatalogSkill(source, skillId))
+  handle('installSkillLink', (url: unknown) => installSkillLink(url))
+  handle('removeSkill', (name: unknown) => removeSkill(name))
   handle('setServerName', (name: unknown) => {
     if (typeof name !== 'string' || name.length > 200) throw new Error(tr('Valor no válido'))
     setServerName(name)
