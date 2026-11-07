@@ -1320,7 +1320,7 @@ suelto mientras está libre. Lo de tarea, terminado y error se dice siempre; lo 
 más de una frase cada 14 s por robot. Las frases están en los cinco idiomas de la app (`scene/personality.ts`; los
 bocadillos, en `scene/bubbleStore.ts`).
 
-**Cuando escribes en el chat**, los que duermen o están en reposo se despiertan de golpe y todos los libres miran
+**Cuando escribes en el chat**, los que duermen o están en reposo se despiertan de golpe y todos los libres giran el cuerpo y miran
 hacia el chat unos segundos, esperando el siguiente encargo; alguno dice algo como «¿Sí? Te escucho.» o «¡Presente!».
 
 ### Modo Demo

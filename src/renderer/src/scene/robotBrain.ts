@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { AgentActivity } from '@shared/types'
-import { CORE_POS, damp, dampAngle, hash01, smootherstep, yawTo } from './layout'
+import { CORE_POS, ROBOT_Y, damp, dampAngle, hash01, smootherstep, yawTo } from './layout'
 import { PERSONAS, type Persona, type SayEvent } from './personality'
 
 /** Estado visual base, derivado del estado real del agente. */
@@ -91,6 +91,27 @@ function easeOutBack(x: number): number {
   const c1 = 1.5
   const c3 = c1 + 1
   return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2)
+}
+
+/**
+ * Punto del suelo de la escena que queda bajo el chat: el borde izquierdo de la pantalla, hacia abajo (el chat va a la
+ * izquierda del espacio 3D). Se calcula una vez por fotograma y lo comparten todos los robots.
+ */
+const chatNdc = new THREE.Vector3()
+const chatDir = new THREE.Vector3()
+let chatFrameCam: THREE.Camera | null = null
+let chatFrameT = -1
+const chatCached = new THREE.Vector3()
+export function chatPoint(camera: THREE.Camera, t: number, out: THREE.Vector3): void {
+  if (camera !== chatFrameCam || t !== chatFrameT) {
+    chatFrameCam = camera
+    chatFrameT = t
+    chatNdc.set(-1.25, -0.55, 0.5).unproject(camera)
+    chatDir.copy(chatNdc).sub(camera.position).normalize()
+    const k = chatDir.y < -0.05 ? (ROBOT_Y - camera.position.y) / chatDir.y : 14
+    chatCached.copy(camera.position).addScaledVector(chatDir, Math.min(40, Math.max(2, k)))
+  }
+  out.copy(chatCached)
 }
 
 /** Generador pseudoaleatorio con semilla (variación estable por agente). */
@@ -486,7 +507,8 @@ export class RobotBrain {
     else {
       switch (visual) {
         case 'idle':
-          targetYaw = t < this.attentionUntil ? camYaw : camYaw + this.lookYaw * (r ? 0.4 : 1)
+          // Atento al chat: gira el cuerpo hacia el chat (abajo a la izquierda de la pantalla) sin dar la espalda.
+          targetYaw = t < this.attentionUntil ? lerpAngle(camYaw, yawTo(this.pos, this.chatPos), 0.55) : camYaw + this.lookYaw * (r ? 0.4 : 1)
           break
         case 'resting':
           targetYaw = camYaw + this.lookYaw * 0.25
@@ -504,7 +526,7 @@ export class RobotBrain {
           targetYaw = camYaw
       }
     }
-    const yawLambda = this.moving ? 3.2 : visual === 'resting' ? 1.2 : 2.6
+    const yawLambda = this.moving ? 3.2 : visual === 'resting' ? 1.2 : t < this.attentionUntil ? 4.5 : 2.6
     this.yaw = dampAngle(this.yaw, targetYaw, yawLambda, dt)
 
     // ---- Inclinaciones ----
@@ -515,6 +537,7 @@ export class RobotBrain {
     if (visual === 'waiting') rollT = Math.sin(t * 0.55 + this.phase * 5) * 0.05 * ambient
     if (visual === 'error') rollT = prof.roll
     if (working) pitchT += Math.sin(this.nodPhase) * 0.035
+    if (visual === 'idle' && t < this.attentionUntil) pitchT += 0.1
     if (this.moving) {
       pitchT = THREE.MathUtils.clamp(speed * 0.07, 0, 0.22)
       rollT = THREE.MathUtils.clamp(-Math.atan2(Math.sin(heading - this.yaw), Math.cos(heading - this.yaw)) * 0.35, -0.2, 0.2)
@@ -790,8 +813,9 @@ export class RobotBrain {
     if (fat > 0.3 && visual !== 'thinking') lookY -= fat * 0.1
     if (attentive) {
       // Mira hacia el chat (a la izquierda de la pantalla), atento al siguiente encargo.
-      lookX = -0.5
-      lookY = 0.08
+      // Los ojos terminan el giro (la cara sigue a la vista).
+      lookX = -0.6
+      lookY = -0.25
     }
     if (gLookX !== null) lookX = visual === 'working' || visual === 'thinking' ? gLookX + 0.15 * this.consoleSide : gLookX
     if (gLookY !== null) lookY = gLookY
@@ -829,6 +853,8 @@ export class RobotBrain {
   /** Ladeo de cabeza de algunos gestos (curioso, guiño). */
   private gestureRoll = 0
   private attentionUntil = -10
+  /** Punto de la escena hacia el que queda el chat (lo pone el componente cada fotograma desde la cámara). */
+  readonly chatPos = new THREE.Vector3(-20, 0, 20)
   private wasAsleep = false
   private wasBored = false
 }
