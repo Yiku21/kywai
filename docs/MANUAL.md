@@ -42,6 +42,7 @@ hay no pierdan nada: la carpeta de datos (`AI Cowork`), la app del Mac (`AI Cowo
   - [AGENTS.md, habilidades y herramientas de kywai](#agentsmd-habilidades-y-herramientas-de-kywai)
   - [Extensiones: tus servidores MCP para los agentes](#extensiones-tus-servidores-mcp-para-los-agentes)
   - [Extensiones: catálogo de servidores MCP y de habilidades](#extensiones-catálogo-de-servidores-mcp-y-de-habilidades)
+  - [Extensiones: plugins](#extensiones-plugins)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
@@ -1124,6 +1125,39 @@ archivos de 400 KB. Para saber qué archivos tiene se usa la API de GitHub sin s
 responde, se buscan en los sitios de siempre (`skills/`, `.claude/skills/`…) y se traen los que cita su SKILL.md.
 Nada de lo descargado se ejecuta al instalar, y ningún nombre puede escribir fuera de la carpeta de habilidades.
 Las habilidades son instrucciones que siguen los agentes: instala solo las de fuentes en las que confíes.
+
+### Extensiones: plugins
+
+La tercera parte de **Extensiones** es **Plugins**: paquetes con el formato de los plugins de Claude Code. kywai no
+los ejecuta como Claude Code; reparte lo que traen para que lo usen todos sus agentes:
+
+| Lo que trae el plugin | Qué hace kywai |
+|---|---|
+| `skills/<nombre>/SKILL.md` | Lo copia a «habilidades» con sus archivos. Si ya hay una con ese nombre, la del plugin va como `plugin-nombre`. |
+| `commands/*.md` (órdenes «/algo») | Una habilidad `plugin-orden` con su texto y una nota: «donde ponga $ARGUMENTS van los detalles de la petición». |
+| `agents/*.md` (subagentes) | Una habilidad `plugin-subagente`: «sigue estas instrucciones como si fueras él». |
+| `.mcp.json` o `mcpServers` | Servidores MCP en «Servidores MCP», con la etiqueta «Plugin: …» y **apagados**: los enciendes por agente (se prueban antes). `${CLAUDE_PLUGIN_ROOT}` pasa a ser su carpeta, y las claves `${TOKEN}` quedan vacías para rellenarlas con el lápiz. |
+| hooks, servidores de lenguaje (LSP), estilos | No se instalan: el plugin lo dice en «Sin usar». Los cambios de comportamiento serán los mods. |
+
+Los remotos que solo admiten **iniciar sesión en el navegador** (OAuth; responden 401 sin token) y los que solo
+van por SSE no se añaden: salen en «Sin usar» con el motivo.
+
+**Catálogos.** Salen los dos de Anthropic (el oficial, `anthropics/claude-plugins-official`, unos 300 plugins, y
+el de plugins de trabajo, `anthropics/knowledge-work-plugins`), con ✓, y se buscan por nombre, descripción,
+categoría o autor. Con «Añadir el enlace» pegas:
+- el enlace de **otro catálogo** (un repositorio con `.claude-plugin/marketplace.json`): se añade y sus plugins salen en la lista;
+- el de **un plugin** (`https://github.com/dueño/repo` o una carpeta `…/tree/main/plugins/x`): se instala.
+
+**Cómo se descarga.** Cada plugin baja de GitHub en un solo `.tar.gz` (codeload.github.com, sin el límite de la
+API), se lee en memoria y se guarda entero en `plugins/<nombre>` de la carpeta de datos (sus servidores locales
+arrancan desde ahí). Límites: 60 MB el repositorio, 40 MB el plugin, 60 habilidades por plugin. Los que no están en
+GitHub (GitLab, npm…) salen sin poder instalarse. Nada se ejecuta al instalar.
+
+**Quitar** borra sus habilidades, sus servidores MCP y su carpeta. **Instalar otra vez** lo actualiza y conserva sus
+servidores con sus claves y sus agentes encendidos (si el servidor sigue en el plugin).
+
+**Muchas habilidades.** El encargo de cada tarea lista hasta 150 habilidades con la descripción recortada a 160
+caracteres; el texto entero lo leen cuando lo necesitan.
 
 ### Rutinas: peticiones que se lanzan solas
 

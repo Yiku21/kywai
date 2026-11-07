@@ -75,6 +75,7 @@ src/
     coworkMcp.ts      servidor MCP «ai-cowork» para Claude (memoria, equipo, preguntas, habilidades) + test
     extensions.ts     Extensiones: servidores MCP del usuario por agente (Claude, Codex, Gemini), su prueba y claves + test
     catalog.ts        catálogo de Extensiones: registro oficial de MCP, skills.sh e instalar skills desde GitHub + test
+    plugins.ts        plugins con formato de Claude Code (marketplaces, .tar.gz de GitHub): skills, órdenes y subagentes → habilidades; .mcp.json → servidores apagados + test
     skills.ts / repoInstructions.ts   habilidades compartidas (workspace/habilidades) y AGENTS.md/CLAUDE.md/GEMINI.md
     macPermissions.ts ventanas de permisos de macOS pendientes (van a «Te necesita»)
     webServer.ts / mobileApi.ts / mobileBackend.ts   acceso web, API `/api/call/*`, `/api/fs/*`, API móvil v1
