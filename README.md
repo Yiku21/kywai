@@ -12,7 +12,10 @@ Ask once. A coordinator plans the work and gives each task to the agent that doe
 
 **English** · [Español](README.es.md) · [Português](README.pt-BR.md) · [Français](README.fr.md) · [简体中文](README.zh-CN.md) · 🌐 [kywai.app](https://kywai.app)
 
-https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
+[![Watch kywai in action — 30 seconds](docs/video/kywai-promo-cover.jpg)](https://kywai.app/?lang=en#video)
+
+**[▶ Watch kywai in action — 30 seconds](https://kywai.app/?lang=en#video)** · [Download MP4](docs/video/kywai-promo-30s.mp4)
+Real app footage, original music and English on-screen text.
 
 [![Website: kywai.app](https://img.shields.io/badge/Website-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 

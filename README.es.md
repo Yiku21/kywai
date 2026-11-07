@@ -12,7 +12,10 @@ Pídelo una vez. Un coordinador planifica el trabajo y le da cada tarea al agent
 
 [English](README.md) · **Español** · [Português](README.pt-BR.md) · [Français](README.fr.md) · [简体中文](README.zh-CN.md) · 🌐 [kywai.app](https://kywai.app)
 
-https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
+[![Mira kywai en acción — 30 segundos](docs/video/kywai-promo-cover.jpg)](https://kywai.app/es/#video)
+
+**[▶ Mira kywai en acción — 30 segundos](https://kywai.app/es/#video)** · [Descargar MP4](docs/video/kywai-promo-30s.mp4)
+Grabación real de la app, música original y textos en inglés.
 
 [![Web: kywai.app](https://img.shields.io/badge/Web-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 

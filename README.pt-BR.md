@@ -12,7 +12,10 @@ Peça uma vez. Um coordenador planeja o trabalho e entrega cada tarefa ao agente
 
 [English](README.md) · [Español](README.es.md) · **Português** · [Français](README.fr.md) · [简体中文](README.zh-CN.md) · 🌐 [kywai.app](https://kywai.app)
 
-https://github.com/user-attachments/assets/624a3572-8c56-460d-be5a-40af6966df2d
+[![Veja kywai em ação — 30 segundos](docs/video/kywai-promo-cover.jpg)](https://kywai.app/pt/#video)
+
+**[▶ Veja kywai em ação — 30 segundos](https://kywai.app/pt/#video)** · [Baixar MP4](docs/video/kywai-promo-30s.mp4)
+Gravação real do app, música original e textos em inglês.
 
 [![Site: kywai.app](https://img.shields.io/badge/Site-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 
