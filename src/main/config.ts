@@ -387,6 +387,24 @@ export function setUiTheme(id: string): void {
   saveConfig()
 }
 
+/** Largo máximo del nombre del ordenador. */
+export const SERVER_NAME_MAX = 40
+
+/** Limpia el nombre que el usuario le pone al ordenador: una línea, sin espacios de sobra y como mucho 40 caracteres. */
+export function cleanServerName(name: string): string {
+  return name.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, SERVER_NAME_MAX).trim()
+}
+
+/** Nombre que se ve del ordenador (barra lateral del escritorio, la web y Órbita). Vacío: vuelve al de la red. */
+export function setServerName(name: string): void {
+  const clean = cleanServerName(name)
+  const cfg = getConfig()
+  if ((cfg.serverName ?? '') === clean) return
+  if (clean) cfg.serverName = clean
+  else delete cfg.serverName
+  saveConfig()
+}
+
 /** Pedir (o no) el visto bueno del usuario antes de ejecutar cada plan (afecta a los planes que vengan). */
 export function setPlanApproval(on: boolean): void {
   getConfig().planApproval = !!on

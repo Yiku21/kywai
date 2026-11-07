@@ -71,6 +71,7 @@ const api: CoworkApi = {
   setMcpServerAgents: (id, agents) => ipcRenderer.invoke('cowork:setMcpServerAgents', id, agents),
   setLanguage: (lang) => ipcRenderer.invoke('cowork:setLanguage', lang),
   setUiTheme: (id) => ipcRenderer.invoke('cowork:setUiTheme', id),
+  setServerName: (name) => ipcRenderer.invoke('cowork:setServerName', name),
   getHermesModels: () => ipcRenderer.invoke('cowork:getHermesModels'),
   setHermesModel: (choice) =>
     ipcRenderer.invoke('cowork:setHermesModel', choice ? { provider: choice.provider, model: choice.model } : null),

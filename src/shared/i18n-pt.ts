@@ -2052,4 +2052,8 @@ export const pt: Record<string, string> = {
   "No hay ningún servidor en ese JSON (busca «command» o «url»)": "Não há nenhum servidor nesse JSON (procure “command” ou “url”)",
   "Falta el nombre del servidor en la orden": "Falta o nome do servidor no comando",
   "Falta la dirección del servidor": "Falta o endereço do servidor",
+  'Cambiar el nombre de este ordenador': 'Mudar o nome deste computador',
+  'Cambiar el nombre de este ordenador ({name})': 'Mudar o nome deste computador ({name})',
+  'Nombre del ordenador': 'Nome do computador',
+  'Nombre de este ordenador': 'Nome deste computador',
 }

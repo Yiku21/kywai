@@ -781,20 +781,86 @@ function ConversationRow({
 function Footer({ rail }: { rail: boolean }) {
   const where = useWhere()
   const mode = useCowork((st) => st.mode)
-  const label = !api ? t('Sin motor de agentes') : where ? (where.host ? where.host : ROLE_TITLE[where.role]) : ''
+  // El nombre que le puso el usuario al ordenador manda sobre el de la red (y se ve al momento al cambiarlo).
+  const custom = useCowork((st) => (st.mode === 'live' ? st.config.serverName : undefined))
+  const host = custom || where?.host || ''
+  const label = !api ? t('Sin motor de agentes') : where ? (host ? host : ROLE_TITLE[where.role]) : ''
   const hint = !api ? t('Demo') : mode === 'demo' ? t('Modo demo') : where ? ROLE_TITLE[where.role] : ''
+  const canRename = !!api?.setServerName && mode === 'live' && !!where
+  const [editing, setEditing] = useState(false)
   return (
     <div className={s.footer}>
       {!rail && (
-        <div className={s.where} title={hint}>
+        <div className={s.where} title={editing ? undefined : hint}>
           <span className={cx(s.dot, api && mode === 'live' && s.dotLive)} aria-hidden="true" />
           <span className={s.whereText}>
-            <span className={s.whereName}>{label || 'kywai'}</span>
-            {hint && <span className={s.whereHint}>{hint}</span>}
+            {editing ? (
+              <ServerNameField initial={custom || where?.host || ''} onDone={() => setEditing(false)} />
+            ) : canRename ? (
+              <button
+                type="button"
+                className={cx(s.whereName, s.whereRename)}
+                onClick={() => setEditing(true)}
+                title={t('Cambiar el nombre de este ordenador')}
+                aria-label={t('Cambiar el nombre de este ordenador ({name})', { name: label || 'kywai' })}
+              >
+                {label || 'kywai'}
+                <Pencil size={11} aria-hidden="true" className={s.whereEdit} />
+              </button>
+            ) : (
+              <span className={s.whereName}>{label || 'kywai'}</span>
+            )}
+            {hint && !editing && <span className={s.whereHint}>{hint}</span>}
           </span>
         </div>
       )}
       <HeaderMenu sidebar={{ button: s.iconBtn }} />
     </div>
+  )
+}
+
+/**
+ * Campo para ponerle nombre al ordenador (abajo en la barra lateral): Intro guarda, Esc cancela y vacío vuelve al
+ * nombre del equipo en la red. Se guarda en el servidor, así que se ve igual en el escritorio, la web y Órbita.
+ */
+function ServerNameField({ initial, onDone }: { initial: string; onDone: () => void }) {
+  const [value, setValue] = useState(initial)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  async function save(e?: FormEvent): Promise<void> {
+    e?.preventDefault()
+    if (busy) return
+    if (value.trim() === initial.trim()) return onDone()
+    setBusy(true)
+    try {
+      await api?.setServerName?.(value)
+      onDone()
+    } catch (err) {
+      setError(errorText(err))
+      setBusy(false)
+    }
+  }
+  return (
+    <form onSubmit={(e) => void save(e)} className={s.whereForm}>
+      <input
+        className={s.whereInput}
+        value={value}
+        maxLength={40}
+        autoFocus
+        disabled={busy}
+        placeholder={t('Nombre del ordenador')}
+        aria-label={t('Nombre de este ordenador')}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => void save()}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            e.stopPropagation()
+            onDone()
+          }
+        }}
+      />
+      {error && <span className={s.whereHint} role="alert">{error}</span>}
+    </form>
   )
 }

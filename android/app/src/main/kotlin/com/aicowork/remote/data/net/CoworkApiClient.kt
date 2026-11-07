@@ -39,6 +39,8 @@ import com.aicowork.remote.data.model.NewConversationRequest
 import com.aicowork.remote.data.model.PairRequest
 import com.aicowork.remote.data.model.PairResponse
 import com.aicowork.remote.data.model.PlanApprovalRequest
+import com.aicowork.remote.data.model.ServerNameRequest
+import com.aicowork.remote.data.model.ServerNameResponse
 import com.aicowork.remote.data.model.PlanApprovalResponse
 import com.aicowork.remote.data.model.ProjectSummary
 import com.aicowork.remote.data.model.ProjectsResponse
@@ -316,6 +318,13 @@ class CoworkApiClient(
             ).close()
         }
     }
+
+    /** Nombre del ordenador que se ve en la barra lateral («» vuelve al de la red). Devuelve el que queda guardado. */
+    suspend fun setServerName(name: String): String? = post(
+        "/settings/server-name",
+        CoworkJson.encodeToString(ServerNameRequest.serializer(), ServerNameRequest(name)),
+        ServerNameResponse.serializer(),
+    ).serverName
 
     suspend fun setPlanApproval(enabled: Boolean): Boolean = post(
         "/settings/plan-approval",

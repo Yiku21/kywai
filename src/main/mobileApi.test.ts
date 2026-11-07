@@ -13,7 +13,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { MobileChatReceipt, MobileEventEnvelope, MobileFolderFile, MobileSnapshot } from '@shared/mobile'
 import type { Attachment, ChatMessage, UpdateStatus } from '@shared/types'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
-import { getConfig, loadConfig, setAgentAccess, setAgentThinking, setPlanApproval, setUiTheme } from './config'
+import { getConfig, loadConfig, setAgentAccess, setAgentThinking, setPlanApproval, setServerName, setUiTheme } from './config'
 import { emit, setRuntime } from './events'
 import { addMemory, deleteMemory, setInstructions, updateMemory } from './memory'
 import { MAX_FILE_BYTES, __setFileLimitsForChecks } from './mobileFiles'
@@ -245,6 +245,10 @@ beforeAll(() => {
     setPlanApproval(on as boolean)
     emit({ kind: 'config.updated', config: getConfig() })
   })
+  webMethods.set('setServerName', (name) => {
+    setServerName(name as string)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
 })
 
 beforeEach(async () => {
@@ -281,7 +285,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
   it.each([
     ...GET_ROUTES, '/chat/messages', '/conversations', '/requests/abc/stop', '/requests/abc/resume', '/requests/abc/discard', '/memory', '/memory/m1', '/memory/m1/delete',
     '/instructions', '/files?conversationId=x&name=a.txt', '/settings/agent-access', '/usage/refresh', '/voice/transcribe',
-    '/plans/abc/approve', '/plans/abc/reject', '/settings/plan-approval', '/server/update'
+    '/plans/abc/approve', '/plans/abc/reject', '/settings/plan-approval', '/settings/server-name', '/server/update'
   ])('exige Bearer en %s', async (path) => {
     const result = await api(path, GET_ROUTES.includes(path) ? undefined : {}, '')
     expect(result.status).toBe(401)
@@ -437,6 +441,8 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     ['/instructions', { conversationId: 'proyecto' }],
     ['/settings/agent-access', { access: 'todo' }],
     ['/settings/plan-approval', { enabled: 'sí' }],
+    ['/settings/server-name', { name: 7 }],
+    ['/settings/server-name', { name: 'Mac', extra: 1 }],
     ['/plans/m1/approve', {}],
     ['/plans/m1/reject', { conversationId: 'proyecto', extra: 1 }],
     ['/plans/m.1/approve', { conversationId: 'proyecto' }],
@@ -1403,6 +1409,22 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       delete getConfig().uiTheme
     }
     expect((await api('/snapshot')).body.settings.theme).toBe('clasico')
+  })
+
+  it('el nombre del ordenador se cambia desde Órbita y llega a la instantánea', async () => {
+    try {
+      expect((await api('/snapshot')).body.capabilities.serverName).toBe(true)
+      expect(await api('/settings/server-name', { name: '  Mac   mini\n de casa  ' })).toEqual({ status: 200, body: { serverName: 'Mac mini de casa' } })
+      expect(getConfig().serverName).toBe('Mac mini de casa')
+      expect((await api('/snapshot')).body.settings.serverName).toBe('Mac mini de casa')
+      expect((await api('/settings/server-name', { name: 'x'.repeat(60) })).body).toEqual({ serverName: 'x'.repeat(40) })
+      // Vacío: vuelve al nombre de la red (y la instantánea deja de traerlo).
+      expect(await api('/settings/server-name', { name: '' })).toEqual({ status: 200, body: { serverName: null } })
+      expect(getConfig().serverName).toBeUndefined()
+      expect((await api('/snapshot')).body.settings.serverName).toBeUndefined()
+    } finally {
+      delete getConfig().serverName
+    }
   })
 
   it('cambia el permiso de los agentes como el escritorio y actualiza las cuotas a petición', async () => {

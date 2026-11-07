@@ -2170,4 +2170,8 @@ export const en: Record<string, string> = {
   "No hay ningún servidor en ese JSON (busca «command» o «url»)": "There’s no server in that JSON (look for “command” or “url”)",
   "Falta el nombre del servidor en la orden": "The command is missing the server name",
   "Falta la dirección del servidor": "The server URL is missing",
+  'Cambiar el nombre de este ordenador': 'Rename this computer',
+  'Cambiar el nombre de este ordenador ({name})': 'Rename this computer ({name})',
+  'Nombre del ordenador': 'Computer name',
+  'Nombre de este ordenador': 'This computer’s name',
 }

@@ -17,6 +17,7 @@ import {
   setPlanApproval,
   setLanguage,
   setUiTheme,
+  setServerName,
   UI_THEME_RE,
   addAgent,
   removeAgent,
@@ -699,6 +700,11 @@ function registerIpc(): void {
   handle('removeMcpServer', (id: unknown) => removeMcp(String(id)))
   handle('testMcpServer', (id: unknown) => testMcp(String(id)))
   handle('setMcpServerAgents', (id: unknown, agents: unknown) => setMcpAgents(String(id), agents))
+  handle('setServerName', (name: unknown) => {
+    if (typeof name !== 'string' || name.length > 200) throw new Error(tr('Valor no válido'))
+    setServerName(name)
+    emit({ kind: 'config.updated', config: getConfig() })
+  })
   handle('setPlanApproval', (on: unknown) => {
     if (typeof on !== 'boolean') throw new Error(tr('Valor no válido'))
     setPlanApproval(on)
@@ -783,7 +789,7 @@ function registerIpc(): void {
   })
   handle('applyUpdate', (setAside?: unknown) => applyUpdate(setAside === true))
   // Qué equipo es este (el cliente de escritorio lo muestra: su interfaz es la de este servidor).
-  handle('getHostInfo', () => ({ name: hostname().replace(/\.local$/i, ''), platform: process.platform }))
+  handle('getHostInfo', () => ({ name: getConfig().serverName || hostname().replace(/\.local$/i, ''), platform: process.platform }))
   ipcMain.handle('cowork:getWebAccess', () => currentWebAccess())
   // Solo en el Mac: código corto para emparejar la app del móvil.
   ipcMain.handle('cowork:mobilePairingPin', () => mobilePairingPin())

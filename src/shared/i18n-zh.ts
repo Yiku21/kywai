@@ -2052,4 +2052,8 @@ export const zh: Record<string, string> = {
   "No hay ningún servidor en ese JSON (busca «command» o «url»)": "该 JSON 中没有服务器（查找“command”或“url”）",
   "Falta el nombre del servidor en la orden": "命令中缺少服务器名称",
   "Falta la dirección del servidor": "缺少服务器地址",
+  'Cambiar el nombre de este ordenador': '重命名这台电脑',
+  'Cambiar el nombre de este ordenador ({name})': '重命名这台电脑（{name}）',
+  'Nombre del ordenador': '电脑名称',
+  'Nombre de este ordenador': '这台电脑的名称',
 }
