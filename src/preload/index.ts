@@ -77,6 +77,7 @@ const api: CoworkApi = {
   saveMcpServer: (input, replaces) => ipcRenderer.invoke('cowork:saveMcpServer', input, replaces),
   removeMcpServer: (id) => ipcRenderer.invoke('cowork:removeMcpServer', id),
   testMcpServer: (id) => ipcRenderer.invoke('cowork:testMcpServer', id),
+  installMcpRuntime: (id) => ipcRenderer.invoke('cowork:installMcpRuntime', id),
   setMcpServerAgents: (id, agents) => ipcRenderer.invoke('cowork:setMcpServerAgents', id, agents),
   mcpCatalog: (query, cursor) => ipcRenderer.invoke('cowork:mcpCatalog', query, cursor),
   skillCatalog: (query) => ipcRenderer.invoke('cowork:skillCatalog', query),

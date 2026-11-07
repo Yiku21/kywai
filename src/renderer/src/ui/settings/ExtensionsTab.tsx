@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BadgeCheck, BookOpen, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
 import type { ProviderKind } from '@shared/types'
-import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpServerInfo, type McpServerInput, type ModInfo, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
+import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpRuntime, type McpServerInfo, type McpServerInput, type ModInfo, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { t } from '@/lib/i18n'
@@ -9,6 +9,9 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './ExtensionsTab.module.css'
 import { MODS_CHANGED } from '../left/ModsView'
+
+/** Lo que instala el botón de un servidor que no arranca porque falta su programa. */
+const RUNTIME_LABEL: Record<McpRuntime, string> = { uv: 'uv', node: 'Node.js' }
 
 const KIND_LABEL: Record<string, string> = { claude: 'Claude', codex: 'Codex', gemini: 'Gemini', hermes: 'Hermes', qwen: 'Qwen' }
 
@@ -263,6 +266,8 @@ function McpSection() {
       <ul className={s.list}>
         {list.map((x) => {
           const testing = busy === `test:${x.id}` || (busy?.startsWith(`agents:${x.id}:`) ?? false)
+          const installing = busy === `runtime:${x.id}`
+          const runtime = !testing && x.test && !x.test.ok ? x.test.runtime : undefined
           return (
             <li key={x.id} className={s.item}>
               <span className={s.icon} aria-hidden="true">
@@ -280,10 +285,29 @@ function McpSection() {
                 <span className={cx(s.status, testing ? s.wait : x.test?.ok ? s.ok : x.test ? s.bad : undefined)}>
                   {testing
                     ? t('Probando… (la primera vez puede tardar: descarga el servidor)')
-                    : x.test
-                      ? `${x.test.ok ? '●' : '▲'} ${x.test.message} · ${ago(x.test.at)}`
-                      : t('Sin probar')}
+                    : installing
+                      ? t('Instalando {name}… (puede tardar unos minutos)', { name: RUNTIME_LABEL[x.test?.runtime ?? 'uv'] })
+                      : x.test
+                        ? `${x.test.ok ? '●' : '▲'} ${x.test.message} · ${ago(x.test.at)}`
+                        : t('Sin probar')}
                 </span>
+                {runtime && !installing && (
+                  <button
+                    type="button"
+                    className={cx(u.btn, u.btnSm, s.fixBtn)}
+                    disabled={!!busy}
+                    title={t('Se instala en el equipo donde trabajan los agentes, y después se vuelve a probar el servidor')}
+                    onClick={() =>
+                      void run(`runtime:${x.id}`, async () => {
+                        const r = await api!.installMcpRuntime(x.id)
+                        if (!r.ok) setError(r.message)
+                        return r.servers
+                      })
+                    }
+                  >
+                    {t('Instalar {name}', { name: RUNTIME_LABEL[runtime] })}
+                  </button>
+                )}
               </span>
               <span className={s.side}>
                 <span className={s.chips}>

@@ -458,3 +458,8 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.fixBtn {
+  align-self: flex-start;
+  margin-top: 6px;
+}

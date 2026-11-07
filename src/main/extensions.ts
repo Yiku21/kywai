@@ -23,6 +23,7 @@ import {
   MCP_ID_RE,
   MCP_RESERVED_IDS,
   isMcpAgentKind,
+  mcpRuntimeFor,
   type McpAgentKind,
   type McpServerInfo,
   type McpServerInput,
@@ -331,8 +332,16 @@ export function testStdio(s: Pick<ResolvedMcpServer, 'command' | 'args' | 'env'>
         /* se cerró */
       }
     }
-    child.on('error', (e) => finish(failResult(/ENOENT/.test(e.message) ? tr('No se encontró «{command}» en este equipo', { command: s.command }) : tr('No se pudo arrancar: {msg}', { msg: e.message }))))
-    child.on('exit', (code) => finish(failResult(tr('Se cerró al arrancar (código {code})', { code: code ?? '?' }) + (stderr.trim() ? `: ${lastLine(stderr)}` : ''))))
+    const missing = (): McpTestResult => {
+      const runtime = mcpRuntimeFor(s.command)
+      return { ...failResult(tr('No se encontró «{command}» en este equipo', { command: s.command })), ...(runtime ? { runtime } : {}) }
+    }
+    child.on('error', (e) => finish(/ENOENT/.test(e.message) ? missing() : failResult(tr('No se pudo arrancar: {msg}', { msg: e.message }))))
+    child.on('exit', (code) => {
+      // En Windows se lanza por la consola: si falta el programa, cmd lo dice con el código 9009 o «no se reconoce».
+      if (IS_WIN && (code === 9009 || /not recognized|no se reconoce/i.test(stderr))) return finish(missing())
+      finish(failResult(tr('Se cerró al arrancar (código {code})', { code: code ?? '?' }) + (stderr.trim() ? `: ${lastLine(stderr)}` : '')))
+    })
     child.stderr?.on('data', (d: Buffer) => {
       stderr = (stderr + d.toString('utf8')).slice(-4000)
     })

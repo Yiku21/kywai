@@ -1,6 +1,6 @@
 import type { SetupToolId } from './types'
 
-const BUILT_IN = new Set(['node', 'brew', 'python', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama'])
+const BUILT_IN = new Set(['node', 'brew', 'python', 'uv', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama'])
 
 /**
  * Comprueba el programa que pide instalar, iniciar sesión o revisar la interfaz: uno de fábrica o el de un agente
