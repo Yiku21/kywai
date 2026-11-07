@@ -80,8 +80,11 @@ class AppUpdater(
     /** Descarga (si hace falta) e instala la versión encontrada. */
     fun install() {
         if (busy) return
-        val release = releaseOf(_state.value) ?: return
+        val announced = releaseOf(_state.value) ?: return
         job = scope.launch {
+            // El ordenador puede tener ya otra versión desde que se le preguntó (se actualiza solo y sirve siempre la
+            // última APK): se vuelve a preguntar justo antes de descargar, para no comparar con una versión vieja.
+            val release = controller.appRelease().getOrNull()?.takeIf { it.versionCode > installer.versionCode } ?: announced
             val file = File(installer.downloadDir, "orbita-${release.versionCode}.apk")
             if (!(file.isFile && sha256(file) == release.sha256)) {
                 _state.value = UpdateState.Downloading(release, 0f)
