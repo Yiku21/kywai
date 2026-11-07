@@ -53,7 +53,8 @@ export function titleFrom(messages: ChatMessage[], at = Date.now()): string {
 }
 
 function lastAt(messages: ChatMessage[], fallback: number): number {
-  return messages.length ? Math.max(fallback, ...messages.map((m) => m.createdAt || 0)) : fallback
+  const last = messages.reduce((max, m) => Math.max(max, m.createdAt || 0), 0)
+  return last || fallback
 }
 
 /** La conversación abierta tiene id desde el primer momento que se necesita (proyectos de antes no lo tenían). */
