@@ -15,6 +15,7 @@ import { SetupWizard } from './ui/setup/SetupWizard'
 import { RestartOverlay } from './ui/RestartOverlay'
 import { UsageDialog } from './ui/usage/UsageDialog'
 import { QualityDialog } from './ui/usage/QualityDialog'
+import { SettingsDialog } from './ui/settings/SettingsDialog'
 import { ServerFiles } from './ui/files/ServerFiles'
 import { TaskTraceDialog } from './ui/trace/TaskTraceDialog'
 import { SpaceHeader } from '@/ui/space/SpaceHeader'
@@ -187,6 +188,7 @@ export function App() {
       {showSetup && <SetupWizard />}
       {usageOpen && <UsageDialog onClose={() => useCowork.setState({ usageOpen: false })} />}
       {qualityOpen && <QualityDialog onClose={() => useCowork.setState({ qualityOpen: false })} />}
+      <SettingsDialog />
       <ServerFiles />
       {hermesModelOpen && <HermesModelDialog onClose={() => useCowork.setState({ hermesModelOpen: false })} />}
       <TaskTraceDialog />

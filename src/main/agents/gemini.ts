@@ -175,7 +175,7 @@ export function createGeminiParser(cb: ParserCallbacks, cliName = 'Gemini'): Jso
           model,
           errorKind: 'auth',
           errorMessage:
-            tr('Tu cuenta de Google no puede usar Gemini CLI con inicio de sesión: usa una clave de API de Google AI Studio (⚙ → Configurar agentes → Sesiones)')
+            tr('Tu cuenta de Google no puede usar Gemini CLI con inicio de sesión: usa una clave de API de Google AI Studio (⚙ → Ajustes → Configurar agentes → Sesiones)')
         }
       }
       if (AUTH_RE.test(errText)) {

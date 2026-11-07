@@ -68,6 +68,9 @@ export type CameraCommand =
   | { type: 'zoom'; dir: 1 | -1; nonce: number }
   | { type: 'focus'; x: number; z: number; nonce: number }
 
+/** Pestañas de la ventana de Ajustes. */
+export type SettingsTab = 'general' | 'agents' | 'connection' | 'about'
+
 export type LeftTab = 'chat' | 'files' | 'tasks' | 'results' | 'memory' | 'routines'
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
@@ -100,6 +103,8 @@ interface CoworkState {
   usageOpen: boolean
   /** Panel ⚙ → Cómo rinde cada agente (calidad por agente y dificultad). */
   qualityOpen: boolean
+  /** Ventana de Ajustes (⚙ → «Ajustes…» o Ctrl+,) abierta en esa pestaña. */
+  settingsTab: SettingsTab | null
   /** Ventana del modelo de Hermes («/model» en el chat o su panel en el espacio). */
   hermesModelOpen: boolean
   /** Ventana con lo que hace el agente en una tarea (paso a paso, en directo). */
@@ -340,6 +345,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
   usageRuns: {},
   usageOpen: false,
   qualityOpen: false,
+  settingsTab: null,
   hermesModelOpen: false,
   trace: null,
   conversationsTick: 0,

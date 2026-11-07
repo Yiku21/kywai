@@ -597,7 +597,7 @@ export function SetupWizard() {
                       <span className={s.rowText}>
                         <span className={s.rowName}>{isLocal(a) ? t('Agente local') : a.name}</span>
                         <span className={cx(s.rowDetail, ok && s.okText)}>
-                          {ok ? t('Listo') : t('Pendiente: vuelve a los pasos anteriores o termínalo más tarde desde ⚙ → Configurar agentes')}
+                          {ok ? t('Listo') : t('Pendiente: vuelve a los pasos anteriores o termínalo más tarde desde ⚙ → Ajustes → Configurar agentes')}
                         </span>
                       </span>
                       {ok ? <CircleCheck size={18} className={s.okIcon} aria-hidden="true" /> : <AlertTriangle size={17} className={s.warnIcon} aria-hidden="true" />}

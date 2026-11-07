@@ -19,7 +19,7 @@ describe('lo que sabe el coordinador de AI Cowork', () => {
   it('sin acceso completo: no lanzar lo que necesita instalar (APK, npm…) y pedir que se active', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false }, env()))
     expect(g).toContain('Ahora los agentes NO pueden instalar nada ni usar internet')
-    expect(g).toMatch(/el SDK de Android con Java y Gradle para una APK[\s\S]*⚙ → «Acceso completo para los agentes»/)
+    expect(g).toMatch(/el SDK de Android con Java y Gradle para una APK[\s\S]*⚙ → Ajustes → «Acceso completo para los agentes»/)
     const full = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env()))
     expect(full).toContain('Ahora los agentes tienen acceso completo')
     expect(full).not.toContain('NO lances tareas que acabarán bloqueadas')
@@ -50,7 +50,7 @@ describe('lo que sabe el coordinador de AI Cowork', () => {
     expect(g).toContain('Ajustes → Órbita → «Buscar actualizaciones»')
     expect(g).toContain('cada tarea tiene su mensaje donde el agente cuenta lo que hace mientras trabaja')
     expect(g).toContain('«Reiniciar agente»')
-    expect(g).toContain('«Temas…» (Clásico, Órbita')
+    expect(g).toContain('el tema: Clásico, Órbita')
     expect(g).toContain('Marfil —claro—, Grafito, Bosque, Matrix, EVA-01, y con decoración en el espacio Relicario, Telar, Halloween y Navidad')
     expect(g).toMatch(/Los modelos locales \(Gemma, Qwen…\)[^\n]*se inventan fuentes/)
     expect(g).toContain('Ahora mismo: http://100.1.2.3:8787, https://100.1.2.3:8788 (con micrófono).')

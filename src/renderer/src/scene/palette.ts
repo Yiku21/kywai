@@ -1,4 +1,4 @@
-// Colores del espacio digital según el tema (⚙ → «Temas…»). El clásico es índigo con acentos azul eléctrico y
+// Colores del espacio digital según el tema (⚙ → Ajustes → «Tema»). El clásico es índigo con acentos azul eléctrico y
 // violeta; los demás recolorean suelo, ciudad, estaciones, circuitos, núcleo y luces. Al cambiar de tema el mundo se
 // vuelve a montar (los materiales leen la paleta al crearse) y los compartidos se repintan con onPalette.
 import * as THREE from 'three'

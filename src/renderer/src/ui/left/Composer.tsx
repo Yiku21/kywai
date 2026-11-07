@@ -304,7 +304,7 @@ export function Composer() {
       try {
         const link = await a.getHttpsLink(location.hostname)
         if (link) setHttpsLink(link)
-        else setError(t('El navegador solo deja usar el micrófono con HTTPS y no se pudo preparar la versión segura. Revisa en el Mac: ⚙ → Acceso desde otros dispositivos'))
+        else setError(t('El navegador solo deja usar el micrófono con HTTPS y no se pudo preparar la versión segura. Revisa en el Mac: ⚙ → Ajustes → Acceso desde otros dispositivos'))
       } catch (e) {
         setError(errorText(e))
       }
