@@ -1071,7 +1071,7 @@ lo revises. Al guardarlo se prueba.
 tarea. Debajo de cada servidor se ve el resultado: «Responde: 25 herramientas» o por qué falla («No se encontró
 "uvx" en este equipo», «Pide autorización…»). La primera vez puede tardar: npx y uvx descargan el servidor.
 
-**Dárselo a un agente.** Un chip por agente: Claude, Codex y Gemini se pueden encender; Hermes y los demás salen
+**Dárselo a un agente.** Un chip por agente: Claude, Codex, Gemini y Hermes se pueden encender; los demás salen
 en gris (aún no pueden recibirlos). Al encender un chip se vuelve a probar: si falla, se queda apagado y dice por
 qué, así que ninguna tarea se rompe por una extensión. Si al probarlo más tarde falla, se apaga para todos. Cambiar
 cómo se arranca (orden, dirección o claves) también lo apaga: se vuelve a encender tras probarlo.
@@ -1083,6 +1083,7 @@ cómo se arranca (orden, dirección o claves) también lo apaga: se vuelve a enc
 | Claude | En el mismo archivo `--mcp-config` de la tarea que el servidor de kywai, con sus herramientas permitidas sin preguntar. Se borra al terminar. |
 | Codex | Con `-c mcp_servers.<nombre>.…`. Los locales se arrancan con un lanzador pequeño (`mcp/ext-….sh` o `.cmd` en la carpeta de trabajo, con sus variables) que se borra al terminar; los remotos llevan sus cabeceras en variables del propio Codex. Si una dirección lleva caracteres que la consola no admite (`?`, `&`), ese servidor no se le pasa y la traza lo dice. |
 | Gemini | Con una extensión **kywai** en `~/.gemini/extensions/kywai` que lista los servidores encendidos para Gemini (sin sus claves: van como `${KYWAI_MCP_…}` y kywai se las pasa al lanzar la tarea) y `--allowed-mcp-server-names` con los de la tarea. Esa extensión también la verá tu Gemini cuando lo uses a mano (sin las claves). Los archivos de sistema de Gemini no sirven: solo los lee si son de root. |
+| Hermes | Solo en sus tareas de trabajo (al planificar sigue con herramientas de consulta). Hermes lee los servidores de su `config.yaml`, pero mezcla encima los de su «ámbito gestionado» (`HERMES_MANAGED_DIR`): kywai escribe ahí, en `mcp/hermes-…/config.yaml` de la carpeta de trabajo, solo `mcp_servers` (con sus claves; se borra al terminar), y añade sus nombres a `-t`. Tu configuración de Hermes no se toca. Si el equipo ya tiene un ámbito gestionado de verdad (`/etc/hermes`), no se pisa y la traza lo dice. Probado con Hermes Agent 0.19, que necesita su soporte MCP instalado (`hermes-agent[mcp]`, viene con `[all]`); sin él, o con un Hermes viejo, simplemente trabaja sin ellos. |
 
 **Las claves** se guardan en `mcp-servers.json` de la carpeta de datos de este equipo, cifradas con el llavero del
 sistema si se puede, y nunca vuelven a la interfaz: al cambiar un servidor salen como «Guardada»; déjala vacía para

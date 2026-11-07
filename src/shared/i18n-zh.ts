@@ -2228,4 +2228,5 @@ export const zh: Record<string, string> = {
   "Al empezar una tarea": "任务开始时",
   "Al acabar bien una tarea": "任务成功完成时",
   "Al fallar una tarea": "任务失败时",
+  "Hermes ya tiene una configuración gestionada (/etc/hermes): no se le añaden servidores": "Hermes 已有托管配置（/etc/hermes）：不会为其添加服务器",
 }

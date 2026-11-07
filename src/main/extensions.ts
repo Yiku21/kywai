@@ -13,7 +13,7 @@
 // falla, se queda apagado y se dice por qué. Así ninguna tarea se rompe por una extensión.
 import { spawn } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import {
@@ -30,6 +30,7 @@ import {
 } from '@shared/extensions'
 import type { KeyCipher } from './secrets'
 import { quoteArg } from './agents/spawn'
+import type { ExtraMcp } from './agents/types'
 import { tr } from '@shared/i18n'
 
 const IS_WIN = process.platform === 'win32'
@@ -493,6 +494,36 @@ export function codexMcp(list: ResolvedMcpServer[], dir: string, tag: string, wi
   return out
 }
 
+/**
+ * Los servidores de Hermes para una tarea. Hermes solo lee servidores MCP de su config.yaml, pero mezcla encima la de
+ * su «ámbito gestionado» (HERMES_MANAGED_DIR): kywai escribe ahí, en una carpeta propia de la tarea (se borra al
+ * terminar), un config.yaml solo con «mcp_servers», sin tocar la configuración del usuario. Si ya hay un ámbito
+ * gestionado de verdad (/etc/hermes o la variable puesta), no se pisa: Hermes trabaja sin ellos.
+ */
+export function hermesMcp(
+  list: ResolvedMcpServer[],
+  root: string,
+  tag: string,
+  opts: { env?: NodeJS.ProcessEnv; managedExists?: boolean } = {}
+): (ExtraMcp & { dir: string }) | { skipped: string } {
+  const env = opts.env ?? process.env
+  if (env.HERMES_MANAGED_DIR?.trim() || (opts.managedExists ?? (!IS_WIN && existsSync('/etc/hermes')))) {
+    return { skipped: tr('Hermes ya tiene una configuración gestionada (/etc/hermes): no se le añaden servidores') }
+  }
+  const servers: Record<string, unknown> = {}
+  for (const s of list) {
+    servers[s.id] =
+      s.transport === 'http'
+        ? { url: s.url, ...(Object.keys(s.headers).length ? { headers: s.headers } : {}), connect_timeout: STARTUP_TIMEOUT_SEC }
+        : { command: s.command, args: s.args, ...(Object.keys(s.env).length ? { env: s.env } : {}), connect_timeout: STARTUP_TIMEOUT_SEC }
+  }
+  const dir = join(root, `hermes-${tag}`)
+  mkdirSync(dir, { recursive: true, mode: 0o700 })
+  // JSON es YAML válido: así no hace falta escapar nada a mano.
+  writeFileSync(join(dir, 'config.yaml'), JSON.stringify({ mcp_servers: servers }, null, 2), { encoding: 'utf8', mode: 0o600 })
+  return { dir, names: list.map((s) => s.id), args: [], env: { HERMES_MANAGED_DIR: dir } }
+}
+
 /** La extensión «kywai» de Gemini: los servidores encendidos para Gemini, con las claves como ${VARIABLE}. */
 export function geminiExtension(list: ResolvedMcpServer[]): Record<string, unknown> {
   const servers: Record<string, unknown> = {}
@@ -638,5 +669,5 @@ export function taskTag(): string {
 }
 
 export function removeFiles(files: string[]): void {
-  for (const f of files) rmSync(f, { force: true })
+  for (const f of files) rmSync(f, { force: true, recursive: true })
 }

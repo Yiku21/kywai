@@ -3,11 +3,11 @@
 // de su README, su JSON o su dirección).
 
 /** Agentes a los que kywai sabe pasar servidores MCP en cada tarea. */
-export type McpAgentKind = 'claude' | 'codex' | 'gemini'
-export const MCP_AGENT_KINDS: McpAgentKind[] = ['claude', 'codex', 'gemini']
+export type McpAgentKind = 'claude' | 'codex' | 'gemini' | 'hermes'
+export const MCP_AGENT_KINDS: McpAgentKind[] = ['claude', 'codex', 'gemini', 'hermes']
 
 export function isMcpAgentKind(v: unknown): v is McpAgentKind {
-  return v === 'claude' || v === 'codex' || v === 'gemini'
+  return v === 'claude' || v === 'codex' || v === 'gemini' || v === 'hermes'
 }
 
 /** Nombre de un servidor: clave de la configuración y prefijo de sus herramientas (mcp__nombre__…). */
