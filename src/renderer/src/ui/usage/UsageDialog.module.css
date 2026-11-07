@@ -1,4 +1,5 @@
-.dialog {
+/* Doble clase: gana al ancho de 560 px del diálogo base, cargue en el orden que cargue. */
+.dialog.dialog {
   width: min(900px, 100%);
 }
 

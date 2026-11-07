@@ -34,7 +34,30 @@ export function isLocalProvider(provider: ProviderKind): boolean {
   return provider === 'ollama' || provider === 'lmstudio'
 }
 
-export function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
+/** Proveedores cuyo CLI no informa de los tokens que gasta. */
+export function reportsNoTokens(provider: ProviderKind): boolean {
+  return provider === 'hermes' || provider === 'muse' || provider === 'cli'
+}
+
+/** Unos 4 caracteres por token (texto en español o inglés y código). */
+const CHARS_PER_TOKEN = 4
+
+/**
+ * Si el CLI no dijo sus tokens, se estiman por la longitud del encargo y de la respuesta (para poder estimar su coste).
+ * Es un mínimo: no incluye lo que el agente leyó, pensó o pidió por dentro.
+ */
+export function withEstimatedUsage(provider: ProviderKind, prompt: string, res: RunAgentResult): RunAgentResult {
+  if (!reportsNoTokens(provider) || res.usage.input > 0 || res.usage.output > 0) return res
+  const input = Math.ceil(prompt.length / CHARS_PER_TOKEN)
+  const output = Math.ceil((res.text ?? '').length / CHARS_PER_TOKEN)
+  return { ...res, usage: { ...res.usage, input, output, cached: 0, estimated: true } }
+}
+
+export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
+  return withEstimatedUsage(opts.agent.provider, opts.prompt, await runAgentRaw(opts))
+}
+
+function runAgentRaw(opts: RunAgentOptions): Promise<RunAgentResult> {
   switch (opts.agent.provider) {
     case 'claude':
       return runClaude(opts)

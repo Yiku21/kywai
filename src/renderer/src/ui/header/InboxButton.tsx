@@ -18,7 +18,8 @@ const KIND_LABEL: Record<string, string> = {
   'verify-failed': t('Revisión'),
   conflict: t('Choque'),
   failed: t('Fallo'),
-  done: t('Terminado')
+  done: t('Terminado'),
+  budget: t('Presupuesto')
 }
 
 function ago(ts: number): string {

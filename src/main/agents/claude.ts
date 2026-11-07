@@ -265,6 +265,10 @@ export function createClaudeParser(cb: ParserCallbacks): JsonlParser {
         usage.output = num(ru.output_tokens)
         usage.cached = cacheRead
       }
+      // Lo que costó a precios de API (lo calcula Claude Code; también lo da con suscripción).
+      if (result && typeof result.total_cost_usd === 'number' && Number.isFinite(result.total_cost_usd) && result.total_cost_usd >= 0) {
+        usage.costUsd = result.total_cost_usd
+      }
       if (outcome.cancelled) {
         return { ok: false, text: lastText, usage, errorKind: 'cancelled', errorMessage: 'Cancelada', model }
       }

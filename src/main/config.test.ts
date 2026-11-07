@@ -17,6 +17,15 @@ const firstMuse = {
 }
 
 describe('configuración guardada', () => {
+  it('conserva el tema y el nombre del ordenador al volver a abrir la app', () => {
+    const cfg = mergeConfig({ configVersion: 10, uiTheme: 'mundo-bosque', serverName: '  Mac   mini  ' }, '/tmp/aicw')
+    expect(cfg.uiTheme).toBe('mundo-bosque')
+    expect(cfg.serverName).toBe('Mac mini')
+    const bad = mergeConfig({ configVersion: 10, uiTheme: 'Tema <raro>', serverName: '   ' }, '/tmp/aicw')
+    expect(bad.uiTheme).toBeUndefined()
+    expect(bad.serverName).toBeUndefined()
+  })
+
   it('Muse con su primera ficha pasa a vídeo y refuerzo (su cuota es muy pequeña)', () => {
     const cfg = mergeConfig({ configVersion: 8, agents: [firstMuse] }, '/tmp/aicw')
     const muse = cfg.agents.find((a) => a.id === 'muse')!

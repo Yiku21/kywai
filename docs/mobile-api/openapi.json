@@ -3712,6 +3712,55 @@
         "description": "Todo lo suyo va a la Papelera del ordenador. 409 PROJECT_BUSY si tiene trabajo en marcha. Si era el último, queda uno vacío."
       }
     },
+    "/api/mobile/v1/usage/cost": {
+      "get": {
+        "operationId": "getUsageCost",
+        "summary": "Uso y coste: dinero por agente, suscripciones y presupuesto",
+        "tags": [
+          "Mobile"
+        ],
+        "description": "Lo mismo que la sección «Coste» de ⚙ → «Uso y coste…»: lo pagado por uso (agentes por API), lo que vale todo a precios de API, el presupuesto del mes y si compensa cada suscripción (precio al mes frente a lo hecho en 30 días). Los importes van en la moneda elegida.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,2}$"
+            },
+            "description": "Días hacia atrás (1–999). Por defecto 30."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coste del periodo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageCost"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/mods/panels": {
       "get": {
         "operationId": "getMobileModPanels",
@@ -4950,6 +4999,24 @@
           "cancelled": {
             "type": "boolean",
             "description": "La detuvo el usuario (no cuenta como fallo del agente)."
+          },
+          "costUsd": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Coste en dólares que dio el propio CLI (Claude Code), a precios de API."
+          },
+          "estInput": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Si el CLI no da tokens (Hermes, catálogo): tokens de entrada estimados por longitud, solo para el coste."
+          },
+          "estOutput": {
+            "type": "number",
+            "minimum": 0
+          },
+          "noTokens": {
+            "type": "boolean",
+            "description": "El CLI no informa tokens: input/output valen 0."
           }
         },
         "required": [
@@ -5074,6 +5141,10 @@
             "items": {
               "$ref": "#/components/schemas/AgentUsage"
             }
+          },
+          "cost": {
+            "$ref": "#/components/schemas/UsageCost",
+            "description": "Dinero de los últimos 30 días (como GET /usage/cost). Falta en servidores anteriores."
           }
         },
         "required": [
@@ -5241,6 +5312,10 @@
             "type": "boolean",
             "description": "GET /chats/all (historial de todos los chats) y GET /search con since, author y limit."
           },
+          "usageCost": {
+            "type": "boolean",
+            "description": "GET /usage/cost y usage.cost en la instantánea: dinero por agente, suscripciones y presupuesto."
+          },
           "modPanels": {
             "type": "boolean",
             "description": "Paneles de los mods: GET /mods/panels y GET /mods/panel."
@@ -5282,6 +5357,7 @@
           "routines",
           "directMessages",
           "agentThinking",
+          "usageCost",
           "modPanels"
         ],
         "additionalProperties": false
@@ -7074,7 +7150,8 @@
               "verify-failed",
               "conflict",
               "failed",
-              "done"
+              "done",
+              "budget"
             ]
           },
           "title": {
@@ -7679,6 +7756,187 @@
           "snippet",
           "at",
           "by"
+        ],
+        "additionalProperties": false
+      },
+      "UsageCost": {
+        "type": "object",
+        "description": "Lo mismo que la sección «Coste» de ⚙ → «Uso y coste…». Importes en la moneda elegida (currency); los precios de API van convertidos.",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "enum": [
+              "USD",
+              "EUR"
+            ]
+          },
+          "days": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "paid": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Pagado por uso (agentes que van por API) en el periodo."
+          },
+          "api": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Todo lo usado, a precios de API (también lo de las suscripciones)."
+          },
+          "estimated": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Parte de api que sale de tokens estimados (Hermes y agentes de catálogo)."
+          },
+          "unpricedCalls": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "budget": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "spent": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "pct": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "limit",
+                  "spent",
+                  "pct"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "Presupuesto del mes de lo que se paga por API; null si no hay."
+          },
+          "byAgent": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "agentId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "subscription",
+                    "api",
+                    "free",
+                    "local",
+                    null
+                  ]
+                },
+                "calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "api": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "estimated": {
+                  "type": "boolean",
+                  "description": "El valor sale sobre todo de tokens estimados (se enseña con ≈)."
+                }
+              },
+              "required": [
+                "agentId",
+                "name",
+                "mode",
+                "calls",
+                "api",
+                "estimated"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "monthly": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "api30": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "runs30": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "verdict": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "worth",
+                    "cheaper-api",
+                    null
+                  ],
+                  "description": "worth: por API habría costado más (compensa); cheaper-api: por API saldría más barato; null sin precio al mes."
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "monthly",
+                "api30",
+                "runs30",
+                "verdict"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pricesChecked": {
+            "type": "string",
+            "description": "Día en que se comprobaron los precios de fábrica (AAAA-MM-DD)."
+          }
+        },
+        "required": [
+          "currency",
+          "days",
+          "paid",
+          "api",
+          "estimated",
+          "unpricedCalls",
+          "budget",
+          "byAgent",
+          "subscriptions",
+          "pricesChecked"
         ],
         "additionalProperties": false
       },

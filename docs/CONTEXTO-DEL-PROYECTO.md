@@ -242,7 +242,7 @@ pruebas en emulador). Tras publicar, se commitea `android/release` junto con el 
   cubiertos con pruebas y con un mensaje simulado en el navegador).
 - Probar con **agentes reales** lo de calidad: retomar sesiones (`codex exec resume` se implementó por su
   documentación: no había Codex en el PATH del Mac para comprobar la ayuda), la verificación, «a dos manos» y la
-  respuesta final; y mirar en «Consumo y tokens…» cuánto suben el gasto y el tiempo.
+  respuesta final; y mirar en «Uso y coste…» cuánto suben el gasto y el tiempo.
 - **👍/👎 desde Órbita** (hoy solo en el escritorio; la API móvil ya expone `rating`).
 - Compilar y probar en el Mac la **bandeja de Órbita** (escrita sin SDK de Android) y publicarla desde el PC;
   dar el **servidor MCP** también a Codex (sus `-c` con comillas no pasan por la consola: haría falta otra vía).
