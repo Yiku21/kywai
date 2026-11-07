@@ -83,6 +83,14 @@ describe('catálogo de agentes', () => {
     expect(e.model).toBe('kilo/kilo-auto/free')
   })
 
+  it('marca como «Gratis» los que se pueden usar sin pagar (comprobado en nov. de 2026), y no los que ya no', () => {
+    const free = AGENT_CATALOG.filter((e) => e.free).map((e) => e.id)
+    for (const id of ['hermes', 'gemini', 'kilo', 'opencode', 'copilot', 'cline', 'aider', 'mistral-vibe', 'antigravity']) expect(free, id).toContain(id)
+    // Qwen Code cerró su acceso gratuito; Kiro gratis no tiene modo sin pantalla; Amp Free está en pausa.
+    for (const id of ['qwen-code', 'kiro', 'amp', 'claude', 'codex']) expect(free, id).not.toContain(id)
+    for (const e of AGENT_CATALOG.filter((x) => x.free)) expect(e.free!.startsWith('Gratis'), e.id).toBe(true)
+  })
+
   it('Kiro vale con la sesión de kiro-cli login o con su clave', () => {
     const spec = catalogEntry('kiro')!.cli!
     expect(spec.login).toBe('kiro-cli login')

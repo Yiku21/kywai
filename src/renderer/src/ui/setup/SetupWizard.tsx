@@ -39,6 +39,14 @@ function aboutAgent(a: AgentConfig): { what: string; account: string } {
   return { what: a.role ? t(a.role) : t('Agente conectado.'), account: a.provider === 'cli' ? t('Con la sesión que tengas iniciada en su programa.') : '' }
 }
 
+/** Cómo se usa gratis (la etiqueta «Gratis»): el agente local siempre; los demás, según el catálogo. */
+function freeOf(a: AgentConfig): string | undefined {
+  if (isLocal(a)) return t('Gratis: funciona en tu propio equipo, sin cuenta ni límites.')
+  // Uno a medida (sin presetId) no es del catálogo aunque su programa se llame igual.
+  const entry = a.cli ? (a.cli.presetId ? catalogEntry(a.cli.presetId) : undefined) : catalogEntry(a.id)
+  return entry?.free ? t(entry.free) : undefined
+}
+
 function toolFor(a: AgentConfig, engine: LocalEngine): SetupToolId | null {
   if (isLocal(a)) return engine
   if (a.provider === 'cli') return `cli:${a.id}`
@@ -348,6 +356,11 @@ export function SetupWizard() {
                         <span className={s.cardName}>
                           {isLocal(a) ? t('Agente local') : a.name}
                           {isCoordinator && <span className={s.tag}>{t('Coordinador')}</span>}
+                          {freeOf(a) && (
+                            <span className={s.tagFree} title={freeOf(a)}>
+                              {t('Gratis')}
+                            </span>
+                          )}
                           {a.provider === 'cli' && a.cli && !a.cli.presetId && <span className={s.tagSoft}>{t('a medida')}</span>}
                         </span>
                         <span className={s.cardWhat}>{about.what}</span>
