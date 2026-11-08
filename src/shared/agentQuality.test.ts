@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { UsageCall, UsageRun } from './types'
-import { agentQuality, compareVerifiers, poorRecordReason, verifierStats, baseAgentId, qualityLine, type AgentQuality } from './agentQuality'
+import { agentQuality, baseAgentId, compareVerifiers, poorRecordReason, qualityLine, verifierStats, type AgentQuality } from './agentQuality'
 
 let clock = 1_000_000
 const task = (agentId: string, taskId: string, ok: boolean, extra: Partial<UsageCall> = {}): UsageCall => ({
@@ -18,7 +18,7 @@ const task = (agentId: string, taskId: string, ok: boolean, extra: Partial<Usage
   difficulty: 'medium',
   ...extra
 })
-const verify = (taskId: string, verdict?: 'pass' | 'fail'): UsageCall => ({
+const verify = (taskId: string, verdict?: 'pass' | 'fail' | 'unverified'): UsageCall => ({
   ts: (clock += 1000),
   kind: 'verify',
   taskId,
@@ -76,6 +76,9 @@ describe('calidad por agente', () => {
       firstPassPct: 50,
       fixed: 1,
       fixedPct: 50,
+      passedAfterFix: 1,
+      reviewFailed: 0,
+      unverified: 0,
       failed: 1,
       failedPct: 33,
       medianMs: 60_000,
@@ -88,6 +91,37 @@ describe('calidad por agente', () => {
     // La tarea corregida cuenta su tiempo y sus tokens de las dos llamadas.
     expect(codex.byDifficulty[0]).toMatchObject({ medianMs: 90_000, medianTokens: 3000, fixed: 1 })
     expect(claude).toMatchObject({ tasks: 1, liked: 1, rated: 1, failed: 0, verified: 0, firstPassPct: null })
+  })
+
+  it('separa aprobada a la primera, tras corregir, sin superar la revisión y sin verificar; el relevo tiene sus veredictos', () => {
+    const runs = [
+      run([
+        // a: dos correcciones y aprobada después.
+        task('codex', 'a', true),
+        verify('a', 'fail'),
+        task('codex', 'a', true),
+        verify('a', 'fail'),
+        task('codex', 'a', true),
+        verify('a', 'pass'),
+        // b: sin veredicto ni al pedirlo otra vez (la primera llamada no deja veredicto, la segunda «unverified»).
+        task('codex', 'b', true),
+        verify('b'),
+        verify('b', 'unverified'),
+        // c: Codex agota sus correcciones y la releva Claude, que tampoco pasa la revisión.
+        task('codex', 'c', true),
+        verify('c', 'fail'),
+        task('codex', 'c', true),
+        verify('c', 'fail'),
+        task('codex', 'c', true),
+        verify('c', 'fail'),
+        task('claude', 'c', true),
+        verify('c', 'fail')
+      ])
+    ]
+    const [codex, claude] = agentQuality(runs)
+    // «sin verificar» no cuenta como verificada (ni aprobada ni suspendida).
+    expect(codex).toMatchObject({ tasks: 3, verified: 2, firstPass: 0, fixed: 2, passedAfterFix: 1, reviewFailed: 1, unverified: 1, unverifiedPct: 33 })
+    expect(claude).toMatchObject({ tasks: 1, verified: 1, firstPass: 0, fixed: 1, passedAfterFix: 0, reviewFailed: 1, unverified: 0 })
   })
 
   it('los becarios cuentan para su jefe; lo cancelado no cuenta; registros antiguos sin dificultad ni veredicto', () => {
@@ -123,20 +157,26 @@ describe('calidad por agente', () => {
       verified: 8,
       firstPass: 6,
       fixed: 2,
+      passedAfterFix: 1,
+      reviewFailed: 1,
+      unverified: 1,
       failed: 1,
       likedPct: 78,
       firstPassPct: 75,
       fixedPct: 25,
+      passedAfterFixPct: 13,
+      reviewFailedPct: 13,
+      unverifiedPct: 8,
       failedPct: 8,
       medianMs: 4 * 60_000,
       medianTokens: 120_000,
       byDifficulty: [
-        { difficulty: 'hard', tasks: 4, rated: 3, liked: 1, verified: 4, firstPass: 2, fixed: 2, failed: 1, likedPct: 33, firstPassPct: 50, fixedPct: 50, failedPct: 25, medianMs: 1, medianTokens: 1 },
-        { difficulty: 'medium', tasks: 8, rated: 6, liked: 6, verified: 4, firstPass: 4, fixed: 0, failed: 0, likedPct: 100, firstPassPct: 100, fixedPct: 0, failedPct: 0, medianMs: 1, medianTokens: 1 }
+        { difficulty: 'hard', tasks: 4, rated: 3, liked: 1, verified: 4, firstPass: 2, fixed: 2, passedAfterFix: 1, reviewFailed: 1, unverified: 0, failed: 1, likedPct: 33, firstPassPct: 50, fixedPct: 50, passedAfterFixPct: 25, reviewFailedPct: 25, unverifiedPct: 0, failedPct: 25, medianMs: 1, medianTokens: 1 },
+        { difficulty: 'medium', tasks: 8, rated: 6, liked: 6, verified: 4, firstPass: 4, fixed: 0, passedAfterFix: 0, reviewFailed: 0, unverified: 1, failed: 0, likedPct: 100, firstPassPct: 100, fixedPct: 0, passedAfterFixPct: 0, reviewFailedPct: 0, unverifiedPct: 13, failedPct: 0, medianMs: 1, medianTokens: 1 }
       ]
     }
     expect(qualityLine(q)).toBe(
-      'calidad (30 días, 12 tareas): le sirvieron al usuario 7 de 9 valoradas; verificación: 6 de 8 a la primera, 2 necesitaron corrección; 1 falló o pasó a otro (8 %); mediana unos 4 min y 120 k tokens por tarea · por dificultad → difíciles 4: le sirvieron al usuario 1 de 3 valoradas; verificación: 2 de 4 a la primera, 2 necesitaron corrección; 1 falló o pasó a otro (25 %)'
+      'calidad (30 días, 12 tareas): le sirvieron al usuario 7 de 9 valoradas; verificación: 6 de 8 a la primera, 2 necesitaron corrección (1 aprobada después), 1 sin superar la revisión; 1 sin verificar; 1 falló o pasó a otro (8 %); mediana unos 4 min y 120 k tokens por tarea · por dificultad → difíciles 4: le sirvieron al usuario 1 de 3 valoradas; verificación: 2 de 4 a la primera, 2 necesitaron corrección (1 aprobada después), 1 sin superar la revisión; 1 falló o pasó a otro (25 %) · normales 8: le sirvieron al usuario 6 de 6 valoradas; verificación: 4 de 4 a la primera; 1 sin verificar; ninguna falló'
     )
     expect(qualityLine({ ...q, tasks: 4 })).toBeNull()
     expect(qualityLine(null)).toBeNull()
@@ -144,27 +184,43 @@ describe('calidad por agente', () => {
 })
 
 describe('mala racha', () => {
-  it('avisa con 3 tareas si casi todas suspendieron la revisión o fallaron', () => {
-    const bad = agentQuality([run([task('codex', 'a1', true), verify('a1', 'fail'), task('codex', 'a2', false), task('codex', 'a3', true), verify('a3', 'fail')])])[0]
-    expect(poorRecordReason(bad)).toBe('3 de 3 tareas sin pasar la revisión o fallidas en 14 días')
-    const good = agentQuality([run([task('claude', 'b1', true), verify('b1', 'pass'), task('claude', 'b2', true), task('claude', 'b3', false)])])[0]
-    expect(poorRecordReason(good)).toBeNull()
+  it('avisa con 3 tareas si casi todas acabaron suspendidas o fallidas; corregir y aprobar no cuenta en contra', () => {
+    const bad = agentQuality([
+      run([
+        task('codex', 'a1', true),
+        verify('a1', 'fail'),
+        task('codex', 'a1', true),
+        verify('a1', 'fail'),
+        task('codex', 'a2', false),
+        task('codex', 'a3', true),
+        verify('a3', 'fail')
+      ])
+    ])[0]
+    expect(poorRecordReason(bad)).toBe('3 de 3 tareas sin superar la revisión o fallidas en 14 días')
+    const fixedThenPassed = agentQuality([
+      run([task('claude', 'b1', true), verify('b1', 'fail'), task('claude', 'b1', true), verify('b1', 'pass'), task('claude', 'b2', true), task('claude', 'b3', false)])
+    ])[0]
+    // 1 de 3 mal: no es mala racha.
+    expect(poorRecordReason(fixedThenPassed)).toBeNull()
+    // Con 2 tareas aún no se juzga.
     expect(poorRecordReason(agentQuality([run([task('codex', 'c1', false), task('codex', 'c2', false)])])[0])).toBeNull()
     expect(poorRecordReason(null)).toBeNull()
   })
 })
 
 describe('verificadores', () => {
-  const v = (agentId: string, durationMs: number, verdict: 'pass' | 'fail' = 'pass'): UsageCall => ({ ...verify('t', verdict), agentId, durationMs })
-  it('entre dos válidos prefiere al claramente más rápido; sin datos o parecidos no decide', () => {
+  const v = (agentId: string, durationMs: number, verdict: 'pass' | 'fail' | 'unverified' = 'pass'): UsageCall => ({ ...verify('t', verdict), agentId, durationMs })
+  it('entre dos válidos prefiere al que da veredicto claro y, si no, al claramente más rápido; sin datos no decide', () => {
     const stats = verifierStats([
-      run([v('claude', 17_000), v('claude', 20_000), v('claude', 15_000), v('codex', 77_000), v('codex', 90_000, 'fail'), v('codex', 60_000)]),
+      run([v('claude', 17_000), v('claude', 20_000), v('claude', 15_000), v('codex', 77_000), v('codex', 90_000, 'fail'), v('codex', 60_000), v('gemini', 10_000, 'unverified'), v('gemini', 9_000, 'unverified'), v('gemini', 8_000)]),
       run([{ ...v('claude', 999_000), cancelled: true }])
     ])
-    expect(stats.get('claude')).toEqual({ count: 3, medianMs: 17_000 })
+    expect(stats.get('claude')).toEqual({ count: 3, medianMs: 17_000, unclear: 0 })
     expect(compareVerifiers(stats.get('claude'), stats.get('codex'))).toBeLessThan(0)
     expect(compareVerifiers(stats.get('codex'), stats.get('claude'))).toBeGreaterThan(0)
+    // Gemini es más rápido, pero casi nunca da veredicto: mejor Codex.
+    expect(compareVerifiers(stats.get('codex'), stats.get('gemini'))).toBeLessThan(0)
     expect(compareVerifiers(stats.get('claude'), undefined)).toBe(0)
-    expect(compareVerifiers({ count: 3, medianMs: 20_000 }, { count: 5, medianMs: 25_000 })).toBe(0)
+    expect(compareVerifiers({ count: 3, medianMs: 20_000, unclear: 0 }, { count: 5, medianMs: 25_000, unclear: 0 })).toBe(0)
   })
 })

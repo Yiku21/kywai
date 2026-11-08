@@ -229,16 +229,44 @@ export interface TaskChangeSet {
 }
 
 /** Veredicto del verificador sobre una tarea que cambió archivos. */
+/**
+ * Estado de la verificación, aparte de la ejecución: una tarea puede haber hecho bien sus archivos (terminada) y seguir
+ * sin verificar o con fallos. passed: el revisor dijo «CUMPLE» · failed: dijo «FALLOS» · unverified: no dio un veredicto
+ * reconocible ni al pedírselo otra vez (no cuenta como aprobada).
+ */
+export type VerificationStatus = 'passed' | 'failed' | 'unverified'
+
 export interface TaskVerification {
   /** Agente que verificó. */
   by: AgentId
   byName: string
-  /** Cumple la petición y el criterio de aceptación. */
+  status: VerificationStatus
+  /** Cumple la petición y el criterio de aceptación (status === 'passed'). */
   ok: boolean
   /** Fallos concretos que vio (si no cumple), o su comentario. */
   notes?: string
-  /** Veces que el autor corrigió a petición del verificador (0 o 1). */
+  /** Correcciones pedidas por el verificador en toda la tarea (0 a 2). No se reinicia con el relevo. */
   fixes: number
+  /** Tras agotar las correcciones del autor, otro agente fuerte retomó la tarea (solo una vez por tarea). */
+  relayedTo?: string
+  /** Agotó correcciones y relevo y sigue con fallos: queda en «Te necesita» como «requiere intervención». */
+  needsAttention?: boolean
+  /** Pruebas que se ejecutaron de verdad tras el último cambio (no lo que contó el agente). */
+  tests?: TaskTests
+}
+
+/**
+ * Pruebas de una tarea verificada. passed / failed: resultado real tras el último cambio; none: el proyecto no tiene
+ * pruebas o no se pudieron ejecutar, así que un «cumple» queda como «cumple, sin pruebas ejecutadas».
+ */
+export interface TaskTests {
+  status: 'passed' | 'failed' | 'none'
+  /** Quién las ejecutó: el agente durante la tarea o kywai antes de verificar. */
+  by?: 'agent' | 'cowork'
+  /** Los comandos (npm test, npx tsc --noEmit…). */
+  commands?: string[]
+  /** Por qué no hay pruebas (sin pruebas en el proyecto, faltan dependencias, tardaron demasiado…). */
+  reason?: string
 }
 
 // ---------- Memoria del proyecto ----------
@@ -1025,8 +1053,11 @@ export interface UsageCall {
   rating?: MessageRating
   /** Llamadas de tarea: dificultad que le puso el coordinador (para la calidad por agente; falta en registros antiguos). */
   difficulty?: Difficulty
-  /** Llamadas de verificar: veredicto del verificador (pass: cumple; fail: vio fallos). Falta si no pudo verificar. */
-  verdict?: 'pass' | 'fail'
+  /**
+   * Llamadas de verificar: veredicto del verificador (pass: cumple; fail: vio fallos; unverified: respondió sin un veredicto
+   * reconocible ni al pedírselo otra vez). Falta si no pudo verificar (error, cancelado).
+   */
+  verdict?: 'pass' | 'fail' | 'unverified'
   /** La detuvo el usuario (no cuenta como fallo del agente). Falta en registros antiguos. */
   cancelled?: boolean
 }

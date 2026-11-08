@@ -18,7 +18,9 @@ import type {
   Task,
   TaskChanges,
   TaskChangeSet,
+  TaskTests,
   TaskVerification,
+  VerificationStatus,
   TaskWork,
   Transfer,
   UsageCall,
@@ -54,6 +56,8 @@ import { lastSession, rememberSession, supportsResume } from './agentSessions'
 import { hasGit, Shadow } from './checkpoints'
 import { addInbox, onInboxAction, resolveInboxWhere } from './inbox'
 import { captureUi, pagesToShoot, type UiShots } from './uiShots'
+import { runProjectCheck } from './projectChecks'
+import { testEvidence } from '@shared/testEvidence'
 import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './coworkMcp'
 import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
 import { repoInstructionLines } from './repoInstructions'
@@ -75,7 +79,7 @@ interface TaskMeta {
   /** Files the agent reported writing (relPaths). */
   touched: Set<string>
   retried: boolean
-  /** Agentes que ya hicieron (y fallaron) esta tarea: un relevo nunca vuelve a ellos. */
+  /** Agentes que ya hicieron (y fallaron o no superaron la revisión) esta tarea: un relevo nunca vuelve a ellos. */
   tried?: Set<AgentId>
   /** Light model was rejected: run on the parent with its main model. */
   forceMainModel: boolean
@@ -84,8 +88,12 @@ interface TaskMeta {
   /** Se retoma tras cerrarse la app a medias: puede haber archivos a medio hacer. */
   resumed?: boolean
   updateTimer?: NodeJS.Timeout
-  /** Lo que el verificador pidió corregir (la tarea se repite una vez con esto). */
+  /** Lo que el verificador pidió corregir (la tarea se repite con esto; ver MAX_REVIEW_FIXES y el relevo). */
   fixRequest?: string
+  /** Correcciones pedidas por el verificador en esta tarea. Cuenta por tarea: el relevo no lo reinicia. */
+  fixesDone?: number
+  /** La tarea ya pasó a otro agente fuerte por no superar la revisión (una sola vez por tarea). */
+  reviewRelay?: { fromId: AgentId; fromName: string }
   /** Quién verificó y qué dijo, acumulado entre rondas. */
   verification?: TaskVerification
   /** Sesión del CLI con la que trabajó el último intento (para retomarla al corregir o continuar). */
@@ -591,7 +599,7 @@ function poorAgents(now = Date.now()): Map<AgentId, { bad: number; tasks: number
 
 /** Lo que ve el coordinador en la ficha de un agente en mala racha (en español, como el resto de la ficha). */
 function poorLine(r: { bad: number; tasks: number } | undefined): string | null {
-  return r ? `${r.bad} de ${r.tasks} tareas sin pasar la revisión o fallidas en ${POOR_RECORD_DAYS} días` : null
+  return r ? `${r.bad} de ${r.tasks} tareas sin superar la revisión o fallidas en ${POOR_RECORD_DAYS} días` : null
 }
 
 /** El usuario nombró a ese agente en su petición («que lo haga Aider»): se respeta aunque esté en mala racha. */
@@ -1459,7 +1467,10 @@ export async function resumeRun(projectId: string, runId: string): Promise<void>
       touched: new Set(),
       retried: false,
       forceMainModel: false,
-      resumed: todo.includes(t)
+      resumed: todo.includes(t),
+      // Lo que ya llevaba la revisión antes de cerrarse la app: el límite no se reinicia al retomar.
+      ...(t.verification ? { verification: t.verification, fixesDone: t.verification.fixes } : {}),
+      ...(t.verification?.relayedTo ? { reviewRelay: { fromId: t.assignedBy ?? t.agentId, fromName: t.verification.relayedTo } } : {})
     })
   }
   runs.set(runId, run)
@@ -2102,7 +2113,7 @@ function validatePlan(raw: unknown[], context: string, projectId: string): { tas
     const alt = bestAgentFor(`${p.title} ${p.description}`, new Set([...poor.keys(), ...(p.difficulty === 'hard' ? locals : [])]))
     if (!alt) continue
     changes.push(
-      tr('«{title}» la hace {name} ({agent} no pasó la revisión o falló en {bad} de sus {tasks} últimas tareas)', { title: p.title, name: alt.name, agent: a.name, bad: why.bad, tasks: why.tasks })
+      tr('«{title}» la hace {name} ({agent} no superó la revisión o falló en {bad} de sus {tasks} últimas tareas)', { title: p.title, name: alt.name, agent: a.name, bad: why.bad, tasks: why.tasks })
     )
     p.agentId = alt.id
   }
@@ -2726,8 +2737,8 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     if (blocked) handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: blocked })
     else if (res.ok) {
       const verdict = await verifyTask(run, t, exec, parent, res, dir)
-      if (verdict && !verdict.ok && verdict.fixes === 0) requeueForFix(run, t, exec, parent, verdict)
-      else if (await settleChanges(run, t, exec, parent)) await completeTask(run, t, exec, parent, res)
+      if (!(verdict?.status === 'failed' && reviewFailed(run, t, exec, parent, res, verdict)) && (await settleChanges(run, t, exec, parent)))
+        await completeTask(run, t, exec, parent, res)
     } else handleFailure(run, t, exec, parent, res)
   } catch (e) {
     console.error('[cowork] task post-processing failed', e)
@@ -2845,11 +2856,14 @@ function pickVerifier(author: AgentConfig, wantsEyes = false): AgentConfig | nul
     const i = cfg.plannerOrder.indexOf(a.id)
     return i < 0 ? 99 : i
   }
-  // Entre los válidos y libres: el claramente más rápido (medido en 30 días); sin datos de los dos, el orden de
-  // siempre. No cambia lo que se comprueba, solo quién lo comprueba.
+  // Entre los válidos y libres: el que da veredicto claro y, si no, el claramente más rápido (medido en 30 días);
+  // sin datos de los dos, el orden de siempre. No cambia lo que se comprueba, solo quién lo comprueba.
   const stats = verifierStats(usageRuns(), Date.now() - 30 * 86_400_000)
   return [...cands].sort(
-    (a, b) => Number(busy.has(a.id)) - Number(busy.has(b.id)) || compareVerifiers(stats.get(a.id), stats.get(b.id)) || order(a) - order(b)
+    (a, b) =>
+      Number(busy.has(a.id)) - Number(busy.has(b.id)) ||
+      compareVerifiers(stats.get(a.id), stats.get(b.id)) ||
+      order(a) - order(b)
   )[0]
 }
 
@@ -2860,15 +2874,89 @@ function shouldVerify(run: Run, t: Task, exec: AgentConfig, changed: string[]): 
   return !!meta && (meta.deliverable === 'file' || changed.length > 0)
 }
 
+/** Pruebas de la tarea para la verificación, con el final de su salida si las ejecutó kywai. */
+interface TestProof {
+  tests: TaskTests
+  output?: string
+}
+
+/**
+ * Pruebas reales de la tarea. Si el registro muestra que el agente pasó pruebas después de su último cambio, valen
+ * esas. Si no (no probó, probó antes de cambiar o le fallaron), kywai ejecuta él mismo las del proyecto.
+ * Si no hay pruebas o no se pudieron ejecutar, queda «none»: un «cumple» será «cumple, sin pruebas ejecutadas».
+ */
+async function taskTests(t: Task, author: AgentConfig, dir: string, signal: AbortSignal): Promise<TestProof> {
+  const ev = testEvidence(getTaskTrace(t.id))
+  if (ev.status === 'passed') {
+    const commands = ev.checks.map((c) => c.command)
+    traceNote(t.id, tr('Pruebas: {name} ejecutó {v2} después de su último cambio y pasaron', { name: author.name, v2: commands.map((c) => `«${clip(c, 60)}»`).join(', ') }))
+    return { tests: { status: 'passed', by: 'agent', commands } }
+  }
+  const failedByAgent = ev.checks.filter((c) => !c.ok).map((c) => c.command)
+  const command = testCommand(dir)
+  if (!command) {
+    if (failedByAgent.length) return { tests: { status: 'failed', by: 'agent', commands: failedByAgent } }
+    return { tests: { status: 'none', reason: tr('el proyecto no tiene pruebas que kywai sepa ejecutar') } }
+  }
+  const why =
+    ev.status === 'failed' ? tr('a {name} le fallaron las pruebas', { name: author.name }) : ev.status === 'stale' ? tr('{name} cambió archivos después de probar', { name: author.name }) : tr('{name} no ejecutó pruebas', { name: author.name })
+  traceNote(t.id, tr('Pruebas: {why}; kywai ejecuta «{command}» antes de verificar', { why, command }))
+  t.lastActivity = tr('Ejecutando las pruebas ({command})', { command })
+  taskDirty(t)
+  const r = await runProjectCheck(dir, command, signal)
+  if (r.status === 'unavailable') {
+    traceNote(t.id, tr('Pruebas: no se pudieron ejecutar ({v1})', { v1: r.reason ?? 'error' }), true)
+    if (failedByAgent.length) return { tests: { status: 'failed', by: 'agent', commands: failedByAgent } }
+    return { tests: { status: 'none', reason: tr('no se pudieron ejecutar «{command}»: {v2}', { command, v2: r.reason ?? 'error' }) }, output: r.output }
+  }
+  traceNote(t.id, `Pruebas: «${command}» ${r.status === 'passed' ? 'pasa' : 'falla'} (${Math.round(r.ms / 1000)} s)`, r.status === 'failed')
+  return { tests: { status: r.status, by: 'cowork', commands: [command] }, output: r.output }
+}
+
+/** Sección «Pruebas» del encargo del verificador: lo que se ejecutó de verdad y cómo tenerlo en cuenta. */
+function testsSection(proof: TestProof, author: AgentConfig): string[] {
+  const { tests, output } = proof
+  const cmds = (tests.commands ?? []).map((c) => `«${c}»`).join(', ')
+  const who = tests.by === 'cowork' ? 'kywai ejecutó' : `${author.name} ejecutó`
+  const lines = ['## Pruebas (lo que se ejecutó de verdad, según el registro de kywai)']
+  if (tests.status === 'passed') lines.push(`${who} ${cmds} después del último cambio y pasaron.`)
+  else if (tests.status === 'failed') {
+    lines.push(`${who} ${cmds} después del último cambio y fallaron.`)
+    if (output) lines.push('Final de la salida:', '```', clip(output, 2500), '```')
+    lines.push(
+      'Si fallan por lo que hizo esta tarea, el veredicto es FALLOS: di qué prueba y qué hay que cambiar. Si el fallo no tiene nada que ver con la tarea (ya fallaba antes o es de otra parte del proyecto), puedes dar CUMPLE, pero explícalo en la frase de debajo.'
+    )
+  } else lines.push(`No se ejecutó ninguna prueba (${tests.reason ?? 'sin pruebas'}). Compruébalo leyendo el código y no digas que las pruebas pasan.`)
+  lines.push('')
+  return lines
+}
+
+/** Coletilla de las pruebas tras un «cumple» (registro, resultado y respuesta final). */
+export function testsSuffix(tests: TaskTests | undefined, verifierName: string): string {
+  if (!tests) return ''
+  const cmds = (tests.commands ?? []).join(', ')
+  if (tests.status === 'passed') return tr('; las pruebas pasan ({cmds})', { cmds })
+  if (tests.status === 'failed') return tr(', aunque las pruebas fallan ({cmds}); según {verifierName}, no por esta tarea', { cmds, verifierName })
+  return tr(', sin pruebas ejecutadas ({v1})', { v1: tests.reason ?? tr('no hay pruebas') })
+}
+
 // También en inglés (VERDICT: PASS/FAIL): con la app en inglés el verificador escribe en inglés y a veces traduce la línea.
 const VERDICT_RE = /(?:VEREDICTO|VERDICT)\s*[:\-–—]\s*\**\s*(CUMPLE|FALLOS?|PASS(?:ES|ED)?|FAIL(?:S|ED|URES?)?)\b/i
 
 /** Encargo del verificador: solo corrección y lo pedido, nada de gustos; veredicto en la primera línea. */
-function buildVerifyPrompt(run: Run, t: Task, author: AgentConfig, verifier: AgentConfig, changed: string[], resultText: string, ui: UiShots | null = null): string {
+function buildVerifyPrompt(
+  run: Run,
+  t: Task,
+  author: AgentConfig,
+  verifier: AgentConfig,
+  changed: string[],
+  resultText: string,
+  ui: UiShots | null = null,
+  proof: TestProof = { tests: { status: 'none' } }
+): string {
   const st = store.getProject(run.projectId)
-  const test = testCommand(store.workRoot(run.projectId))
   return [
-    `Eres ${verifier.name}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". Responde en español.`,
+    `Eres ${verifier.name}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". ${replyLanguage()}`,
     `${author.name} acaba de hacer una tarea y tú compruebas el resultado con ojos nuevos, antes de darlo por bueno. No cambies ningún archivo: solo lee, ejecuta pruebas si puedes y da tu veredicto.`,
     '',
     '## Petición original del usuario',
@@ -2893,9 +2981,10 @@ function buildVerifyPrompt(run: Run, t: Task, author: AgentConfig, verifier: Age
           ''
         ]
       : []),
+    ...testsSection(proof, author),
     '## Qué debes comprobar',
     '- Que lo que hay en los archivos hace lo que pidió el usuario y cumple el criterio de aceptación: léelos de verdad, sigue el flujo principal y busca errores que impidan que funcione (lógica, casos límite que el usuario mencionó, archivos que faltan, rutas o nombres que no encajan).',
-    test ? `- Si puedes ejecutar las pruebas del proyecto («${test}»), hazlo y cuenta el resultado.` : '- Si hay pruebas o una forma rápida de ejecutar el resultado sin modificar nada, úsala.',
+    '- Si puedes ejecutar algo más sin modificar nada (otra prueba, el programa), hazlo. No digas que algo pasa o funciona si no lo viste: lo que se ejecutó de verdad está arriba, en «Pruebas».',
     '- Limítate a la corrección y a lo que se pidió: nada de gustos de estilo, mejoras que nadie pidió ni refactorizaciones. Si funciona y cumple, CUMPLE, aunque lo hubieras hecho de otra forma.',
     '',
     '## Qué debes responder',
@@ -2904,10 +2993,23 @@ function buildVerifyPrompt(run: Run, t: Task, author: AgentConfig, verifier: Age
   ].join('\n')
 }
 
+/** Correcciones del autor que puede pedir el verificador en una tarea (cada una seguida de otra revisión). */
+export const MAX_REVIEW_FIXES = 2
+
+/** Segundo intento cuando el verificador respondió sin la línea del veredicto (con su respuesta si no retoma la sesión). */
+function missingVerdictPrompt(previous?: string): string {
+  return [
+    ...(previous ? ['## Tu respuesta anterior', clip(previous, 4000), ''] : []),
+    'Tu respuesta no empezaba por el veredicto, así que kywai no puede saber si el resultado cumple. No repitas la revisión: con lo que ya comprobaste, responde de nuevo.',
+    'Primera línea exacta: «VEREDICTO: CUMPLE» o «VEREDICTO: FALLOS». Debajo, los fallos concretos (archivo y qué cambiar, como mucho 5) o una frase con qué comprobaste.'
+  ].join('\n')
+}
+
 /**
  * Comprueba el resultado de una tarea con otro agente de otra familia y contexto fresco (en modo plan: solo lectura).
  * Devuelve el veredicto, o null si no toca verificar (tarea de solo texto, «sin revisión», nadie que pueda hacerlo).
- * Si pide correcciones, el autor las hace una vez; después se da por buena con el veredicto que tenga.
+ * Sin un veredicto reconocible se le pide una vez más; si sigue sin darlo, la tarea queda «sin verificar» (nunca aprobada).
+ * Con fallos, ver reviewFailed: hasta MAX_REVIEW_FIXES correcciones, un relevo y después «requiere intervención».
  */
 async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult, dir: string): Promise<TaskVerification | null> {
   const meta = run.meta.get(t.id)!
@@ -2921,71 +3023,170 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
     return null
   }
   // La web que tocó la tarea se abre y se captura a tamaño de escritorio y de móvil para que el verificador la vea.
-  const ui = wantsEyes && seesImages(verifier) ? await captureUi(dir, changed, t.id.slice(0, 8)) : null
+  const ctrl = run.controllers.get(t.id) ?? new AbortController()
+  // Las capturas de la web y las pruebas del proyecto no dependen la una de la otra: se hacen a la vez.
+  const [ui, proof] = await Promise.all([
+    wantsEyes && seesImages(verifier) ? captureUi(dir, changed, t.id.slice(0, 8)) : Promise.resolve(null),
+    taskTests(t, owner, dir, ctrl.signal)
+  ])
   if (ui) traceNote(t.id, tr('Capturas de la interfaz para la verificación: {v1}{v2}', { v1: ui.shots.map((s) => s.path).join(', '), v2: ui.errors.length ? tr(' · {length} errores al abrirla', { length: ui.errors.length }) : '' }))
-  const previous = meta.verification
-  const fixes = previous ? previous.fixes + 1 : 0
+  if (run.cancelled || ctrl.signal.aborted) return null
+  const fixes = meta.fixesDone ?? 0
   t.lastActivity = tr('{name} comprueba el resultado', { name: verifier.name })
   taskDirty(t)
-  traceNote(t.id, tr('{name} comprueba el resultado contra la petición{v2}', { name: verifier.name, v2: fixes ? tr(' (tras la corrección)') : '' }))
+  traceNote(t.id, tr('{name} comprueba el resultado contra la petición{v2}', { name: verifier.name, v2: meta.reviewRelay ? tr(' (tras el relevo de {fromName})', { fromName: meta.reviewRelay.fromName }) : fixes ? tr(' (tras la corrección {fixes} de {MAX_REVIEW_FIXES})', { fixes, MAX_REVIEW_FIXES }) : '' }))
   workDirty(run, t)
   const wasIdle = !busy.has(verifier.id) && !planningAgents.has(verifier.id) && !integrating.has(verifier.id)
   if (wasIdle) {
     integrating.add(verifier.id)
     setRuntime(verifier.id, { activity: 'working', lastActivity: tr('Verificando «{title}»', { title: t.title }), reason: undefined, waitingFor: undefined })
   }
-  const ctrl = run.controllers.get(t.id) ?? new AbortController()
   const start = Date.now()
   const effort = effortFor(verifier.provider, 'medium')
-  let out: RunAgentResult
-  try {
-    out = await runner({
-      agent: verifier,
-      model: verifier.model,
-      effort,
-      prompt: buildVerifyPrompt(run, t, owner, verifier, changed, res.text, ui),
-      cwd: dir,
-      ...(ui ? { images: ui.shots.map((s) => s.path) } : {}),
-      mode: 'plan',
-      signal: ctrl.signal,
-      onRateLimit
-    })
-  } catch (e) {
-    out = { ok: false, text: '', usage: { input: 0, output: 0 }, errorKind: 'failed', errorMessage: (e as Error).message }
+  const ask = async (prompt: string, resume?: string): Promise<RunAgentResult> => {
+    try {
+      return await runner({
+        agent: verifier,
+        model: verifier.model,
+        effort,
+        prompt,
+        cwd: dir,
+        ...(ui ? { images: ui.shots.map((s) => s.path) } : {}),
+        ...(resume ? { resume } : {}),
+        mode: 'plan',
+        signal: ctrl.signal,
+        onRateLimit
+      })
+    } catch (e) {
+      return { ok: false, text: '', usage: { input: 0, output: 0 }, errorKind: 'failed', errorMessage: (e as Error).message }
+    }
+  }
+  const prompt = buildVerifyPrompt(run, t, owner, verifier, changed, res.text, ui, proof)
+  let out = await ask(prompt)
+  let m = out.ok ? VERDICT_RE.exec(out.text) : null
+  // Respondió sin un veredicto reconocible: se le pide una vez más, conservando lo que ya revisó (su sesión del CLI
+  // si se puede retomar; si no, su respuesta va en el encargo). Nunca se da por buena sin un «CUMPLE» explícito.
+  let missing = out.ok && !m && !run.cancelled && !ctrl.signal.aborted
+  if (missing) {
+    traceNote(t.id, tr('{name} respondió sin veredicto: se lo pido otra vez', { name: verifier.name }), true)
+    logCall(run, 'verify', verifier, verifier.model, out, start, t.id, effort)
+    recordUsage(verifier.quotaGroupId, out.usage.input + out.usage.output, 1)
+    const first = out
+    const resume = supportsResume(verifier.provider) ? first.sessionId : undefined
+    out = await ask(resume ? missingVerdictPrompt() : `${prompt}\n\n${missingVerdictPrompt(first.text)}`, resume)
+    m = out.ok ? VERDICT_RE.exec(out.text) : null
+    missing = !m
+    // Si el segundo intento ni siquiera respondió, lo que cuenta es la primera respuesta (sin veredicto).
+    if (!out.ok) out = { ...first, usage: out.usage }
   }
   if (wasIdle) {
     integrating.delete(verifier.id)
     if (!busy.has(verifier.id)) setRuntime(verifier.id, { activity: 'idle', lastActivity: tr('Verificó: {title}', { title: t.title }) })
   }
   const stopped = run.cancelled || ctrl.signal.aborted
-  const m = out.ok ? VERDICT_RE.exec(out.text) : null
-  // Sin veredicto claro no se bloquea nada: se da por buena y se deja constancia.
-  const ok = !m || /^(cumple|pass)/i.test(m[1])
-  // El veredicto queda en el registro: es la base de «pasó la verificación a la primera» en la calidad por agente.
-  logCall(run, 'verify', verifier, verifier.model, out, start, t.id, effort, out.ok && !stopped ? { verdict: ok ? 'pass' : 'fail' } : {})
+  const status: VerificationStatus = missing ? 'unverified' : m && /^(cumple|pass)/i.test(m[1]) ? 'passed' : 'failed'
+  const ok = status === 'passed'
+  // El veredicto queda en el registro: es la base de la calidad por agente (aprobada, con fallos o sin verificar).
+  logCall(run, 'verify', verifier, verifier.model, out, start, t.id, effort, out.ok && !stopped ? { verdict: status === 'passed' ? 'pass' : status === 'failed' ? 'fail' : 'unverified' } : {})
   recordUsage(verifier.quotaGroupId, out.usage.input + out.usage.output, 1)
   if (stopped) return null
   if (!out.ok) {
     traceNote(t.id, tr('{name} no pudo verificar: {v2}', { name: verifier.name, v2: out.errorMessage ?? 'error' }), true)
     return null
   }
-  const notes = clip(out.text.replace(VERDICT_RE, '').trim(), 2500)
-  const v: TaskVerification = { by: verifier.id, byName: verifier.name, ok, notes: notes || undefined, fixes }
+  let notes = clip(out.text.replace(VERDICT_RE, '').trim(), 2500)
+  // Con fallos y pruebas que fallan, la salida de las pruebas va con las notas: el autor la tiene al corregir.
+  if (status === 'failed' && proof.tests.status === 'failed' && proof.output)
+    notes = `${notes}\n\nSalida de las pruebas (${proof.tests.commands?.join(', ') ?? ''}):\n${clip(proof.output, 1500)}`.trim()
+  const v: TaskVerification = {
+    by: verifier.id,
+    byName: verifier.name,
+    status,
+    ok,
+    notes: notes || undefined,
+    fixes,
+    ...(meta.reviewRelay ? { relayedTo: owner.name } : {}),
+    tests: proof.tests
+  }
   meta.verification = v
   t.verification = v
-  traceNote(t.id, ok ? tr('{name}: cumple', { name: verifier.name }) : tr('{name} vio fallos: {oneLine}', { name: verifier.name, oneLine: oneLine(notes, 300) }), !ok)
+  traceNote(
+    t.id,
+    status === 'passed'
+      ? `${verifier.name}: cumple${testsSuffix(proof.tests, verifier.name)}`
+      : status === 'unverified'
+        ? tr('{name} no dio un veredicto claro ni al pedírselo otra vez: queda sin verificar', { name: verifier.name })
+        : tr('{name} vio fallos: {oneLine}', { name: verifier.name, oneLine: oneLine(notes, 300) }),
+    !ok
+  )
   return v
+}
+
+/**
+ * El verificador vio fallos. La cuenta es por tarea y no se reinicia con el relevo:
+ *  1. hasta MAX_REVIEW_FIXES correcciones del autor, cada una seguida de otra revisión;
+ *  2. si sigue fallando, un relevo a otro agente fuerte libre, con las notas, los cambios y lo que contó el autor;
+ *  3. si el relevo tampoco pasa la revisión (o no hay a quién pasársela), «requiere intervención» (ver completeTask).
+ * Devuelve true si la tarea vuelve a la cola; false si se cierra ya con los fallos a la vista.
+ */
+function reviewFailed(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult, v: TaskVerification): boolean {
+  const meta = run.meta.get(t.id)!
+  if (meta.reviewRelay) return markNeedsAttention(t, v)
+  if ((meta.fixesDone ?? 0) < MAX_REVIEW_FIXES) {
+    requeueForFix(run, t, exec, parent, v)
+    return true
+  }
+  const owner = parent ?? exec
+  // Otro agente fuerte: ni el autor ni su becario, ni quien ya la intentó, ni un modelo local para lo que no es fácil.
+  const alt = relayAgent(t, meta, owner, exec)
+  if (!alt) return markNeedsAttention(t, v)
+  meta.reviewRelay = { fromId: owner.id, fromName: owner.name }
+  const files = [...meta.touched]
+  meta.fixRequest = [
+    `${owner.name} hizo esta tarea y la corrigió ${meta.fixesDone} veces, pero ${v.byName} sigue viendo fallos al revisarla. Ahora la retomas tú, sobre lo que ya hay en la carpeta (no empieces de cero si lo hecho sirve).`,
+    '',
+    `### Fallos que ve ${v.byName}`,
+    v.notes ?? 'No los detalló: repasa el resultado contra la petición y el criterio de aceptación.',
+    '',
+    `### Archivos que cambió ${owner.name}`,
+    ...(files.length ? files.map((f) => `- ${f}`) : ['(no informó de ninguno)']),
+    '',
+    `### Lo que contó ${owner.name} al terminar (incluye las pruebas que hizo)`,
+    clip(res.text, 3000) || '(sin texto)'
+  ].join('\n')
+  // Otro CLI: no puede retomar la sesión del autor. Lo fácil no va a un becario: lo hace el agente con su modelo.
+  meta.resume = undefined
+  meta.forceMainModel = t.difficulty === 'easy'
+  closeWork(run, t, 'stopped', {
+    text: tr('{byName} sigue viendo fallos en «{title}» tras {fixesDone} correcciones de {name}; se la paso a {name2} con las notas:\n\n{clip}', { byName: v.byName, title: t.title, fixesDone: meta.fixesDone, name: owner.name, name2: alt.name, clip: clip(v.notes, 1500) })
+  })
+  traceNote(t.id, tr('Relevo tras la revisión: de {name} a {name2}', { name: owner.name, name2: alt.name }), true)
+  setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Relevada: {title}', { title: t.title }) })
+  reassign(t, exec.id, alt, owner.id)
+  if (parent) removeBecario(exec.id)
+  return true
+}
+
+/** Agotó correcciones y relevo: se cierra con sus archivos (se pueden abrir y deshacer) pero no como aprobada. */
+function markNeedsAttention(t: Task, v: TaskVerification): boolean {
+  v.needsAttention = true
+  t.verification = v
+  traceNote(t.id, tr('Requiere intervención: sigue sin superar la revisión tras las correcciones y el relevo'), true)
+  return false
 }
 
 /** El verificador vio fallos: la misma tarea vuelve al autor (al jefe, si la hizo un becario) con lo que hay que corregir. */
 function requeueForFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, v: TaskVerification): void {
   const meta = run.meta.get(t.id)!
   const owner = parent ?? exec
+  meta.fixesDone = (meta.fixesDone ?? 0) + 1
   meta.fixRequest = v.notes ?? 'El verificador no detalló los fallos: repasa el resultado contra la petición y el criterio de aceptación.'
   meta.forceMainModel = true
   // Corrige en la misma sesión del CLI: recuerda lo que hizo y por qué.
   meta.resume = meta.sessionId
-  closeWork(run, t, 'stopped', { text: tr('{byName} comprobó «{title}» y vio fallos; {name} los corrige:\n\n{clip}', { byName: v.byName, title: t.title, name: owner.name, clip: clip(v.notes, 1500) }) })
+  closeWork(run, t, 'stopped', {
+    text: tr('{byName} comprobó «{title}» y vio fallos; {name} los corrige (corrección {fixesDone} de {MAX_REVIEW_FIXES}):\n\n{clip}', { byName: v.byName, title: t.title, name: owner.name, fixesDone: meta.fixesDone, MAX_REVIEW_FIXES, clip: clip(v.notes, 1500) })
+  })
   if (parent) {
     transfer({ fromId: exec.id, toId: parent.id, label: tr('Corregir: {title}', { title: t.title }), taskId: t.id, payload: { title: t.title, summary: oneLine(v.notes, 200) } })
     removeBecario(exec.id)
@@ -2997,6 +3198,20 @@ function requeueForFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   t.lastActivity = undefined
   t.progress = undefined
   pushTask(t)
+}
+
+/** Línea de la verificación al final del resultado: aprobada solo con un «CUMPLE» explícito. */
+export function verificationLine(v: TaskVerification): string {
+  const after = [v.fixes ? tr('tras {v1}', { v1: v.fixes === 1 ? tr('una corrección') : tr('{fixes} correcciones', { fixes: v.fixes }) }) : '', v.relayedTo ? tr('y el relevo a {relayedTo}', { relayedTo: v.relayedTo }) : '']
+    .filter(Boolean)
+    .join(' ')
+  if (v.status === 'passed') {
+    const base = tr('✔ {byName} comprobó el resultado{v2}: cumple{testsSuffix}.', { byName: v.byName, v2: after ? ` ${after}` : '', testsSuffix: testsSuffix(v.tests, v.byName) })
+    return v.tests?.status === 'failed' ? tr('{base} Mira esas pruebas antes de darlo por bueno.', { base }) : base
+  }
+  if (v.status === 'unverified')
+    return tr('⚠ Sin verificar: {byName} revisó el resultado pero no dio un veredicto claro, ni al pedírselo otra vez. Los archivos están hechos; revísalos antes de darlos por buenos.', { byName: v.byName })
+  return tr('⚠ Requiere intervención: {byName} sigue viendo fallos{v2}. Los archivos se quedan para que los abras o deshagas la tarea:\n\n{clip}', { byName: v.byName, v2: after ? ` ${after}` : '', clip: clip(v.notes, 800) })
 }
 
 async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
@@ -3029,9 +3244,7 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     payload: { title: t.title, summary: oneLine(text, 200), files }
   })
   const v = meta.verification
-  const verified = v
-    ? `\n\n${v.ok ? tr('✔ {byName} comprobó el resultado{v2}: cumple.', { byName: v.byName, v2: v.fixes ? tr(' tras una corrección') : '' }) : tr('⚠ {byName} comprobó el resultado tras la corrección y sigue viendo fallos: {clip}', { byName: v.byName, clip: clip(v.notes, 800) })}`
-    : ''
+  const verified = v ? `\n\n${verificationLine(v)}` : ''
   const msgText = (savedTo ? tr('Guardé el resultado de «{title}» en `{savedTo}`.\n\n{clip}', { title: t.title, savedTo, clip: clip(text, 600) }) : clip(text, 8000)) + verified
   const delivered = arts.length ? { artifactIds: arts.map((a) => a.id) } : {}
   if (!closeWork(run, t, 'done', { text: msgText, ...delivered }, !!res.text.trim())) agentMessage(run, owner.id, msgText, delivered)
@@ -3044,12 +3257,16 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
       { status: 'provisional', by: owner.id, byName: owner.name, taskId: t.id, taskTitle: t.title, runId: run.id, replaces: n.replaces }
     )
   }
-  if (v && !v.ok) {
+  if (v?.status === 'failed') {
     addInbox({
       kind: 'verify-failed',
       key: `verify:${t.id}`,
-      title: tr('{byName} sigue viendo fallos en «{title}» tras la corrección', { byName: v.byName, title: t.title }),
-      detail: clip(v.notes, 1500),
+      title: tr('Requiere intervención: {byName} sigue viendo fallos en «{title}»', { byName: v.byName, title: t.title }),
+      detail: [
+        tr('{fixes} {v2}{v3}. Los archivos se quedan: puedes abrirlos o deshacer la tarea.', { fixes: v.fixes, v2: v.fixes === 1 ? tr('corrección') : tr('correcciones'), v3: v.relayedTo ? tr(' y relevo a {relayedTo}', { relayedTo: v.relayedTo }) : tr(' (no había otro agente fuerte libre para relevar)') }),
+        '',
+        clip(v.notes, 1500)
+      ].join('\n'),
       projectId: run.projectId,
       runId: run.id,
       taskId: t.id,
@@ -3058,7 +3275,7 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     })
     addMemory(
       run.projectId,
-      { kind: 'pending', text: tr('«{title}»: {byName} aún veía fallos tras la corrección: {oneLine}', { title: t.title, byName: v.byName, oneLine: oneLine(v.notes, 250) }) },
+      { kind: 'pending', text: tr('«{title}»: requiere intervención, {byName} aún veía fallos tras las correcciones{v3}: {oneLine}', { title: t.title, byName: v.byName, v3: v.relayedTo ? tr(' y el relevo') : '', oneLine: oneLine(v.notes, 250) }) },
       { status: 'provisional', by: v.by, byName: v.byName, taskId: t.id, taskTitle: t.title, runId: run.id }
     )
   }
@@ -3289,7 +3506,10 @@ async function finalAnswer(run: Run, planner: AgentConfig, ts: Task[]): Promise<
   const results = ts.map((t) => {
     const files = t.artifactIds.map((id) => st.artifacts.find((a) => a.id === id)?.relPath).filter((p): p is string => !!p)
     const state = t.status === 'done' ? 'hecha' : t.status === 'cancelled' ? `cancelada${t.error ? ` (${t.error})` : ''}` : `falló: ${t.error ?? ''}`
-    const v = t.verification ? `\nVerificación de ${t.verification.byName}: ${t.verification.ok ? 'cumple' : `vio fallos: ${oneLine(t.verification.notes, 300)}`}` : ''
+    const tv = t.verification
+    const v = tv
+      ? `\nVerificación de ${tv.byName}: ${tv.status === 'passed' ? `cumple${testsSuffix(tv.tests, tv.byName)}` : tv.status === 'unverified' ? 'sin verificar (no dio veredicto)' : `requiere intervención, sigue viendo fallos: ${oneLine(tv.notes, 300)}`}`
+      : ''
     return `### «${t.title}» (${agentName(liveOwner(t))}, ${state})\n${clip(t.result, RESULT_KEEP) || t.error || '(sin texto)'}${files.length ? `\nArchivos: ${files.join(', ')}` : ''}${v}`
   })
   const prompt = [
