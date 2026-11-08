@@ -1356,6 +1356,38 @@ async function main(): Promise<void> {
       }
     })
 
+    await check('W: dos becarios a la vez → el segundo en un puesto temporal que se va con él', async () => {
+      hermesOnline = false
+      await refreshPresence()
+      __clearBlocksForChecks()
+      const up = store.createProject('Dos becarios')
+      planResponses = {
+        claude: plan('Dos cosas fáciles.', [
+          { key: 't1', title: 'Resumen corto A', description: 'Resume A.', agent: 'codex', difficulty: 'easy', deliverable: 'text' },
+          { key: 't2', title: 'Resumen corto B', description: 'Resume B.', agent: 'codex', difficulty: 'easy', deliverable: 'text' }
+        ])
+      }
+      const fromEv = events.length
+      const spawnedNow = (): string[] => events.slice(fromEv).flatMap((e) => (e.kind === 'agent.spawned' ? [e.agent.stationId] : []))
+      // Cada becario espera a que esté el otro: así trabajan a la vez.
+      workBehaviour = (o) =>
+        o.mode === 'work' && o.agent.id.startsWith('codex-becario-')
+          ? (async () => {
+              await waitFor(() => spawnedNow().length >= 2, 5000, 'los dos becarios')
+              return defaultWork(o)
+            })()
+          : null
+      try {
+        const { runId } = await sendMessage({ projectId: up.id, text: 'Resume A y B', filePaths: [] })
+        await waitFor(() => !!finished(runId), 15000, 'run W')
+        assert.deepEqual(spawnedNow().sort(), ['st-sub-1', 'st-sub-tmp-1'], 'el fijo y uno temporal')
+        await waitFor(() => events.slice(fromEv).filter((e) => e.kind === 'agent.removed').length >= 2, 8000, 'se van los dos')
+        assert.ok(!runtimeSnapshot().some((r) => r.agentId.startsWith('codex-becario-')), 'no queda ningún becario')
+      } finally {
+        workBehaviour = () => null
+      }
+    })
+
     await check('U5: mientras otro revisa su tarea, el autor libre sale «esperando la revisión»', async () => {
       hermesOnline = false
       await refreshPresence()

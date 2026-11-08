@@ -29,6 +29,7 @@ import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
 import { LabelProjector } from './LabelProjector'
 import { t } from '@/lib/i18n'
+import { withTempStations } from '@shared/tempStations'
 
 /**
  * Reloj de la escena y pulso de la música: se actualizan antes que cualquier otra animación.
@@ -178,7 +179,11 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   // Cada tema tiene sus colores (palette.ts, ya aplicados al cambiarlo): la escena se vuelve a montar con ellos.
   const theme = useTheme()
   const nightPreference = useHomeNight(), night = theme === 'kywai' && nightPreference
-  const stations = useMemo(() => theme === 'kywai' ? homeLayout(configuredStations, agents) : theme === 'submarino' ? underseaLayout(configuredStations) : configuredStations, [theme, configuredStations, agents])
+  // Más los puestos temporales de los becarios cuando el de apoyo ya está ocupado (src/shared/tempStations.ts).
+  const stations = useMemo(() => {
+    const all = withTempStations(configuredStations, agents)
+    return theme === 'kywai' ? homeLayout(all, agents) : theme === 'submarino' ? underseaLayout(all) : all
+  }, [theme, configuredStations, agents])
   const p = palette
   const L = night ? HOME_NIGHT_LIGHTS : p.lights
   // Los entornos nuevos usan materiales físicos también en el suelo y la arquitectura.

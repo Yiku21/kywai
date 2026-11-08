@@ -694,6 +694,11 @@ documentación no confirma y pueden necesitar ajustes.
   Claude: Haiku (texto) / Sonnet / Opus. Codex: GPT-6 Luna (texto) / GPT-6.1 Sol / GPT-6.1 Sol con esfuerzo muy alto
   (requiere Codex CLI 0.162 o superior). Gemini: 3.5 Flash-Lite (texto) / 3.8 Flash. Se cambian desde el panel de
   cada robot. Si un modelo no está disponible, se usa el principal y, si tampoco, el predeterminado del CLI.
+- **Puestos de los becarios**: siempre hay un puesto de apoyo fijo («Apoyo»). Si está ocupado y otro agente necesita
+  un becario, se crea un **puesto temporal** al fondo del mapa: aparece con el becario y desaparece cuando se va.
+  Así varios becarios trabajan a la vez en lugar de esperar (hasta 6 en puestos temporales). Se ve igual en el
+  escritorio, el navegador y Órbita. Para desarrolladores: `src/shared/tempStations.ts` (ids `st-sub-tmp-N`, sitios y
+  `withTempStations` para el 3D) y `freeSubStation` en `orchestrator.ts`.
 - **Gemini CLI** está configurado con una clave de API: si esa clave tiene facturación activa, su uso puede tener coste.
 - **Agente local**: se configura desde el indicador **Local** de la cabecera → «Agente local». Puedes elegir
   **LM Studio** u **Ollama**, el modelo, el nombre del agente y si su uso es sin límite. Con Ollama se pueden
