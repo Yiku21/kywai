@@ -44,10 +44,10 @@ const geo = {
 export function Core() {
   // Cada tema conserva las transferencias y documentos dentro de su propia forma.
   const style = palette.core ?? 'sphere'
-  const world = palette.world
+  const world = palette.decor ? undefined : palette.world
   const containment = style === 'capsule' || style === 'reactor'
   const sculptural = style === 'tree' || style === 'sculpture' || style === 'planetarium' || containment
-  const orbitVisible = !world || world === 'clasico' || world === 'orbita'
+  const orbitVisible = !palette.decor && (!world || world === 'clasico' || world === 'orbita')
   const shape = coreShape(style, R)
   const sphere = useRef<THREE.Group>(null!)
   const wire = useRef<THREE.LineSegments>(null!)
@@ -69,6 +69,7 @@ export function Core() {
       rim: new THREE.MeshBasicMaterial({ color: BLUE_C.clone(), toneMapped: false }),
       plate: new THREE.MeshStandardMaterial({ color: tone('#141a3a'), metalness: 0.5, roughness: 0.3, emissive: BLUE_C, emissiveIntensity: 0.1 }),
       shell: new THREE.ShaderMaterial({
+        colorWrite: style !== 'weave' && style !== 'crystal',
         vertexShader: shellVert,
         fragmentShader: shellFrag,
         side: THREE.DoubleSide,
@@ -79,7 +80,7 @@ export function Core() {
       wire: new THREE.LineBasicMaterial({ color: new THREE.Color(tone('#6fa8ff')), opacity: 0.32, ...additive }),
       orbit: new THREE.MeshBasicMaterial({ color: CYAN_C.clone().multiplyScalar(1.3), opacity: 0.9, ...additive }),
       orbit2: new THREE.MeshBasicMaterial({ color: BLUE_C.clone().multiplyScalar(1.2), opacity: 0.6, ...additive }),
-      card: new THREE.MeshBasicMaterial({ map: docTexture, color: new THREE.Color(tone('#a9d4ff')).multiplyScalar(1.35), opacity: containment ? 0.49 : 1, side: THREE.DoubleSide, ...additive }),
+      card: new THREE.MeshBasicMaterial({ map: docTexture, color: new THREE.Color(tone('#a9d4ff')).multiplyScalar(1.35), opacity: containment ? 0.49 : palette.decor ? .62 : 1, side: THREE.DoubleSide, ...additive }),
       node: new THREE.MeshBasicMaterial({ color: new THREE.Color(tone('#cfe0ff')).multiplyScalar(1.6), toneMapped: false }),
       glow: new THREE.MeshBasicMaterial({ map: glowTexture, color: BLUE_C.clone(), opacity: 0.45, ...additive }),
       inner: new THREE.SpriteMaterial({ map: glowTexture, color: new THREE.Color(tone('#3d6bff')), opacity: 0.35, ...additive }),
@@ -169,11 +170,11 @@ export function Core() {
     })
     mats.rim.color.copy(BLUE_C).multiplyScalar(0.8 + breathe * 0.35 * amb + boost * 1.2)
     mats.shell.uniforms.uTime.value = t
-    mats.shell.uniforms.uIntensity.value = 0.9 + breathe * 0.2 * amb + boost * 0.8
+    mats.shell.uniforms.uIntensity.value = (palette.decor ? .25 : .9) + breathe * .12 * amb + boost * .8
     // Las líneas son lo que dibuja las formas de los temas (aristas, gajos, trama): más visibles que en la esfera.
-    mats.wire.opacity = (0.28 + boost * 0.3) * (style === 'sphere' ? 1 : 2.2)
+    mats.wire.opacity = (style === 'weave' || style === 'crystal' ? 0 : 1) * (0.28 + boost * 0.3) * (palette.decor ? .45 : style === 'sphere' ? 1 : 2.2)
     mats.glow.opacity = 0.35 + breathe * 0.1 * amb + boost * 0.25
-    mats.inner.opacity = 0.3 + breathe * 0.1 * amb + boost * 0.35
+    mats.inner.opacity = (palette.decor ? .06 : .3) + breathe * 0.1 * amb + boost * 0.35
     if (light.current) light.current.intensity = 2 + breathe * 0.6 * amb + boost * 3
   })
 
@@ -194,6 +195,7 @@ export function Core() {
           {style === 'reactor' && <GrafitoReactor reduced={reduced} charge={spinBoost} />}
         </group>
       </>}
+      {palette.decor && palette.world && <group onClick={focus}><WorldCenterpiece style={palette.world} /></group>}
       {/* Base hexagonal baja con anillo luminoso */}
       <mesh
         visible={!world}
@@ -206,8 +208,8 @@ export function Core() {
       {style === 'weave' && <LoomSeat r={2.7} y={0.6} reduced={reduced} yaw={0.4} />}
       {style === 'pumpkin' && <StoneDressing r={2.65} top={0.32} ground={0} reduced={reduced} seed={9} pumpkins={false} />}
       {style === 'globe' && <GiftDressing r={2.5} y0={-0.02} h={0.3} snowCap="ring" reduced={reduced} seed={7} />}
-      <mesh visible={!world} geometry={geo.plate} material={mats.plate} position={[0, 0.27, 0]} />
-      <mesh visible={!world} geometry={geo.rimBase} material={mats.rim} position={[0, 0.29, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh visible={!world && style !== 'weave'} geometry={geo.plate} material={mats.plate} position={[0, 0.27, 0]} />
+      <mesh visible={!world && style !== 'weave'} geometry={geo.rimBase} material={mats.rim} position={[0, 0.29, 0]} rotation={[Math.PI / 2, 0, 0]} />
       <mesh geometry={GEO.glowPlane} material={mats.glow} position={[0, 0.3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={6.5} />
       {[0, 1, 2].map((i) => (
         <mesh
@@ -239,7 +241,7 @@ export function Core() {
               geometry={geo.card}
               material={mats.card}
               position={[Math.cos(c.a) * (containment ? 1.7 : c.r), c.y, Math.sin(c.a) * (containment ? 1.7 : c.r)]}
-              scale={c.s * (containment ? 0.56 : 1)}
+              scale={c.s * (containment ? 0.56 : palette.decor ? .76 : 1)}
             />
           ))}
         </group>

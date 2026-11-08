@@ -5,7 +5,7 @@ import type { Solid, WorldStyle } from './models'
 import { curvedHomeTimber } from './homeJoinery'
 import { homeSurfaceMaps, type HomeSurface } from './homeMaterials'
 
-type Surface = HomeSurface | 'alloy' | 'paint' | 'rubber' | 'brass' | 'stone' | 'water' | 'wood' | 'endgrain' | 'leaf' | 'earth'
+type Surface = HomeSurface | 'alloy' | 'paint' | 'rubber' | 'brass' | 'stone' | 'water' | 'wood' | 'endgrain' | 'leaf' | 'earth' | 'masonry'
 
 /** Fine-scale surface structure. Generated locally, so the worlds need no asset downloads. */
 export function surfaceMaps(surface: Surface) {
@@ -28,6 +28,7 @@ export function surfaceMaps(surface: Surface) {
     if (surface === 'paint') { h = 0.5 + noise * 0.004; shade = 0.97 + noise * 0.02; r = 0.5 + noise * 0.04 }
     if (surface === 'rubber') { h = 0.5 + noise * 0.02; shade = 0.9 + noise * 0.07; r = 0.85 }
     if (surface === 'stone') { const vein = Math.abs(Math.sin(u * 2 + 1.6 * Math.sin(v * 3))); h = 0.5 + noise * 0.004; shade = 0.97 - Math.exp(-vein * 60) * 0.045 + noise * 0.01; r = 0.5 + noise * 0.04 }
+    if (surface === 'masonry') { const coarse = noiseAt(x / 18, y / 18); h = .45 + noise * .04 + coarse * .06; shade = .80 + coarse * .15 + noise * .05; r = .83 + noise * .1 }
     if (surface === 'water') { h = 0.5 + Math.sin(u * 4 + Math.sin(v * 3)) * 0.15 + Math.cos(v * 7) * 0.04; shade = 0.95; r = 0.14 }
     if (surface === 'wood') { h = 0.45 + Math.sin(u * 22 + Math.sin(v * 2) * 2 + Math.sin(u * 4)) * 0.065 + noise * 0.025; shade = 0.65 + h * 0.45; r = 0.7 }
     if (surface === 'endgrain') { const radial = Math.hypot(x - N * 0.49, y - N * 0.53); const ring = Math.pow(0.5 + Math.sin(radial * 0.39 + Math.sin(u * 3) * 0.3) * 0.5, 16); h = 0.5 - ring * 0.02; shade = 0.91 - ring * 0.2 + noise * 0.025; r = 0.68 }
@@ -60,6 +61,10 @@ export function surfaceMaps(surface: Surface) {
 }
 
 export function surfaceFor(world: WorldStyle, shape: Solid, color: string): Surface {
+  if (world === 'submarino') {
+    if (['#a47a39','#ac8544','#8e672f','#c59a52','#a87c3c','#b78e4b','#9d7c43'].includes(color)) return 'brass'
+    return shape === 'rock' ? 'masonry' : 'stone'
+  }
   if (world === 'kywai') {
     if (['#b88754','#c69b65','#84613f','#bba17b','#8e623f','#a8794f','#d0ae7c'].includes(color)) return 'oak'
     if (['#659994','#88afa5','#8fa7a0','#b8a590','#9b829e','#547665','#d1b28a','#c9ba9e'].includes(color)) return 'linen'
@@ -68,6 +73,13 @@ export function surfaceFor(world: WorldStyle, shape: Solid, color: string): Surf
     if (shape === 'leaf') return 'foliage'
     if (color === '#b99a60') return 'brass'
     return 'limestone'
+  }
+  if (color === '#b99a60') return 'brass'
+  if (['relicario', 'telar', 'halloween', 'navidad'].includes(world)) {
+    if (['#539b9c','#32687c'].includes(color)) return 'water'
+    if (['#644b40', '#71614f', '#4d3734'].includes(color)) return 'wood'
+    if (['#aab6cd', '#c4ac78'].includes(color)) return 'alloy'
+    if (shape !== 'leaf') return world === 'halloween' ? 'masonry' : 'stone'
   }
   if (shape === 'leaf') return 'leaf'
   if (shape === 'cable') return 'rubber'

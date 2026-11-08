@@ -1,6 +1,7 @@
 // Telar en el espacio digital: membranas de tela tejida (superficie con trama, hilos y orillos con cuentas doradas)
 // alrededor y entre las estaciones, cada estación sobre una silla de tela tejida, hilos sueltos que cuelgan con gotas
 // de rocío, destellos que parpadean y paneles de vidrio con trama. El núcleo son cintas tejidas (CoreExtras).
+import { CrystalSeat } from './worlds/CrystalWeave'
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
@@ -21,9 +22,10 @@ function seeded(seed: number): () => number {
 
 /** Trama de tela: hilos de plata en dos sentidos que pasan por encima y por debajo, con alguno dorado. */
 export const weaveTexture = (): THREE.CanvasTexture => {
-  const t = canvasTexture(256, 256, (ctx) => {
-    const n = 16
-    const s = 256 / n
+  const t = canvasTexture(1024, 1024, (ctx) => {
+    ctx.fillStyle = "#555c71"; ctx.fillRect(0, 0, 1024, 1024)
+    const n = 64
+    const s = 1024 / n
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
         const over = (i + j) % 2 === 0
@@ -122,8 +124,8 @@ function makeRes() {
   return {
     weave,
     cloth: new THREE.MeshBasicMaterial({ map: weave, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false, blending: glowBlending() }),
-    padCloth: new THREE.MeshBasicMaterial({ map: weave, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, color: new THREE.Color('#e8ecf6').multiplyScalar(1.1) }),
-    thread: new THREE.LineBasicMaterial({ color: '#cfd6e6', transparent: true, opacity: 0.22, blending: glowBlending(), depthWrite: false }),
+    padCloth: new THREE.MeshPhysicalMaterial({ map: weave, bumpMap: weave, bumpScale: .035, roughness: .78, sheen: 1, sheenColor: new THREE.Color('#b5c6e3'), sheenRoughness: .38, side: THREE.DoubleSide, color: '#a0a8bf' }),
+    thread: new THREE.LineBasicMaterial({ color: '#cfd6e6', transparent: true, opacity: 0.47, blending: glowBlending(), depthWrite: false }),
     strand: new THREE.LineBasicMaterial({ color: '#e8ecf6', transparent: true, opacity: 0.35, depthWrite: false }),
     hem: new THREE.LineBasicMaterial({ color: new THREE.Color('#f4f6ff').multiplyScalar(1.3), transparent: true, opacity: 0.85, toneMapped: false, depthWrite: false }),
     glass: new THREE.MeshPhysicalMaterial({ color: '#cfd6e6', roughness: 0.05, transparent: true, opacity: 0.22, envMapIntensity: 2.2, depthWrite: false }),
@@ -141,27 +143,7 @@ export const invisibleMaterial = (): THREE.Material => res().invisible
 
 /** Silla de tela tejida de una estación, con orillo brillante y cuentas doradas. */
 export function LoomSeat({ r, y, reduced, yaw = 0 }: { r: number; y: number; reduced: boolean; yaw?: number }) {
-  const R = res()
-  const data = useMemo(() => {
-    const m = new THREE.Matrix4().compose(new THREE.Vector3(0, y, 0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0)), new THREE.Vector3(r, r * 0.46, r))
-    return buildSheets([{ m, n: 14, repeat: 3 }], 3)
-  }, [r, y, yaw])
-  useEffect(
-    () => () => {
-      data.surface.dispose()
-      data.threads.dispose()
-      data.hem.dispose()
-    },
-    [data]
-  )
-  return (
-    <group>
-      <mesh geometry={data.surface} material={R.padCloth} />
-      <lineSegments geometry={data.threads} material={R.thread} />
-      <lineSegments geometry={data.hem} material={R.hem} />
-      <GlowPoints positions={data.beads} color="#f0c27a" intensity={2} size={0.09} flicker={0.6} reduced={reduced} />
-    </group>
-  )
+  return <CrystalSeat r={r} y={y} reduced={reduced} yaw={yaw} />
 }
 
 /** Panel de vidrio con una trama tenue detrás y un orillo de plata. */
@@ -187,7 +169,6 @@ export function LoomPanel({ size, position }: { size: [number, number]; position
   return (
     <group position={position}>
       <mesh geometry={geos.slab} material={R.glass} position={[0, 0, -0.05]} />
-      <mesh geometry={geos.cloth} material={R.panelCloth} position={[0, 0, -0.02]} />
       <lineSegments geometry={hem} material={R.hem} position={[0, 0, 0.01]} />
     </group>
   )
@@ -277,7 +258,7 @@ export function LoomScene({ stations, density, reduced, free }: { stations: Stat
 /** Cintas del núcleo con la trama de tela y cuentas doradas por los bordes. */
 export function WovenBands({ geometry, reduced }: { geometry: THREE.BufferGeometry; reduced: boolean }) {
   const R = res()
-  const mat = useMemo(() => new THREE.MeshBasicMaterial({ map: R.weave, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: glowBlending(), color: new THREE.Color('#ffffff').multiplyScalar(1.2) }), [R])
+  const mat = useMemo(() => new THREE.MeshPhysicalMaterial({ map: R.weave, bumpMap: R.weave, bumpScale: .025, roughness: .66, sheen: 1, sheenColor: new THREE.Color('#c7cce1'), sheenRoughness: .42, side: THREE.DoubleSide, color: '#a6afc9', transparent: true, opacity: .88 }), [R])
   useEffect(() => () => mat.dispose(), [mat])
   const beads = useMemo(() => {
     const p = geometry.attributes.position as THREE.BufferAttribute

@@ -215,6 +215,8 @@ Détails et exemple de mod dans le [manuel](docs/MANUAL.md#extensiones-tus-servi
 
 ### 🎨 Confort
 
+**Fonds marins** ajoute des bancs de poissons, des baleines, des méduses et une cité engloutie autour d’une perle lumineuse. Relicario, Telar, Halloween et Noël possèdent désormais des univers de sanctuaire, d’îles de cristal, d’abbaye gothique et de village enneigé, tout en conservant les choix existants.
+
 **Refuge Kywai** ajoute un observatoire-serre face à la mer : dôme de bois et de verre, ciel et eau animés, ateliers individuels, arbre commun et siège turquoise. Activez le mode nuit à côté de Musique ; le choix est mémorisé par appareil.
 
 - **Le chat d'abord.** Dans les petites fenêtres il prend plus de place, vous pouvez faire glisser son bord à la largeur voulue (double-clic pour revenir en automatique) et dans les fenêtres étroites le chat et le monde 3D deviennent deux onglets.

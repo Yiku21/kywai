@@ -4,8 +4,6 @@ import { useMemo } from 'react'
 import type { StationConfig } from '@shared/types'
 import { ChristmasScene } from './navidad'
 import { HalloweenScene } from './halloween'
-import { RelicScene } from './relicario'
-import { LoomScene } from './telar'
 import { ZONE_SPOTS } from './Zones'
 import { palette } from './palette'
 import type { QualitySettings } from './quality'
@@ -45,13 +43,13 @@ export function Decor({ stations, q, reduced }: { stations: StationConfig[]; q: 
   const free = useMemo(() => (n: number, seed: number, a: number, b: number, gap?: number) => freeSpots(n, seed, a, b, stations, gap), [stations])
   switch (palette.decor) {
     case 'halloween':
-      return <HalloweenScene stations={stations} density={density} reduced={reduced} cityCount={q.structures} free={free} />
+      return <HalloweenScene stations={stations} density={density * .7} reduced={reduced} cityCount={0} free={free} />
     case 'navidad':
-      return <ChristmasScene stations={stations} density={density} reduced={reduced} cityCount={q.structures} free={free} />
+      return <ChristmasScene stations={stations} density={density * .7} reduced={reduced} cityCount={0} free={free} />
     case 'relicario':
-      return <RelicScene stations={stations} density={density} reduced={reduced} free={free} />
+      return null
     case 'telar':
-      return <LoomScene stations={stations} density={density} reduced={reduced} free={free} />
+      return null
     default:
       return null
   }

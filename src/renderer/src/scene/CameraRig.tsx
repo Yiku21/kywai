@@ -31,9 +31,27 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
       const aspect = width / Math.max(1, height)
       // La zona libre es más pequeña que el lienzo: se aleja lo que haga falta para que el mundo quepa en ella.
       const room = view ? Math.max(1, size.height / Math.max(1, height)) : 1
+      if (theme === 'submarino') {
+        const k = Math.max(1, 1.65 / aspect) * room
+        void controls.setLookAt(0, 11.2 * k, 25.8 * k, 0, 2.0, -2.5, smooth)
+        atOverview.current = true
+        return
+      }
       if (theme === 'kywai') {
         const k = Math.max(1, 1.38 / aspect) * room
         void controls.setLookAt(0, 11.2 * k, 32.5 * k, 0, 3.6, -2, smooth)
+        atOverview.current = true
+        return
+      }
+      if (theme === 'relicario' || theme === 'telar') {
+        const k = Math.max(1, (aspect >= 1.1 ? 1.58 : 1.10) / aspect) * room
+        void controls.setLookAt((theme === 'relicario' ? 9 : 7) * k, 21 * k, 49.5 * k, 0, 5.8, -7, smooth)
+        atOverview.current = true
+        return
+      }
+      if (['halloween', 'navidad'].includes(theme)) {
+        const k = Math.max(1, (aspect >= 1.1 ? 1.6 : 1.08) / aspect) * room
+        void controls.setLookAt(0, 16 * k, 34 * k, 0, 3.5, -4, smooth)
         atOverview.current = true
         return
       }
@@ -85,7 +103,7 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
 
   useEffect(() => {
     if (!controls) return
-    controls.setBoundary(new THREE.Box3(theme === 'kywai' ? new THREE.Vector3(-36,-4,-62) : new THREE.Vector3(-11,-.5,-9), theme === 'kywai' ? new THREE.Vector3(36,18,16) : new THREE.Vector3(11,4,9)))
+    controls.setBoundary(new THREE.Box3(['kywai','relicario','telar','submarino'].includes(theme) ? new THREE.Vector3(-36,-4,-62) : new THREE.Vector3(-11,-.5,-9), ['kywai','relicario','telar','submarino'].includes(theme) ? new THREE.Vector3(36,18,16) : new THREE.Vector3(11,4,9)))
     controls.boundaryEnclosesCamera = false
     if (import.meta.env.DEV) (window as unknown as { __cam: CameraControls }).__cam = controls
   }, [controls, theme])

@@ -62,8 +62,8 @@ function makeRes() {
   const card = cardTexture()
   return {
     card,
-    glass: new THREE.MeshPhysicalMaterial({ color: '#d6deea', roughness: 0.04, metalness: 0.05, transparent: true, opacity: 0.32, envMapIntensity: 2.6, clearcoat: 1, clearcoatRoughness: 0.05, depthWrite: false }),
-    gold: new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffd27a').multiplyScalar(1.1), toneMapped: false }),
+    glass: new THREE.MeshPhysicalMaterial({ color: '#dce8ed', roughness: .045, metalness: 0, transmission: .92, thickness: .3, ior: 1.5, envMapIntensity: 1.7, clearcoat: 1, clearcoatRoughness: .07 }),
+    gold: new THREE.MeshStandardMaterial({ color: '#c3a367', metalness: .78, roughness: .3, emissive: '#c3a367', emissiveIntensity: .12 }),
     goldSoft: new THREE.MeshStandardMaterial({ color: '#e8c27a', roughness: 0.25, metalness: 0.9, emissive: '#6a4a10', emissiveIntensity: 0.6 }),
     under: new THREE.MeshBasicMaterial({ map: glowTexture, color: '#ffcf7a', transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending }),
     cardMat: new THREE.MeshStandardMaterial({ map: card, transparent: true, roughness: 0.05, metalness: 0.2, emissive: '#ffd890', emissiveMap: card, emissiveIntensity: 0.6, side: THREE.DoubleSide, depthWrite: false }),

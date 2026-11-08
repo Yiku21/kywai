@@ -2001,6 +2001,10 @@ se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cua
 
 ### Temas
 
+**Fondo marino** se elige en **⚙ → Ajustes → General → Mapas**: arrecife con bancos de peces, ballenas, medusas, mantarraya, vegetación y una ciudad sumergida. Las estaciones son plataformas de investigación y el centro es una concha con una perla luminosa; siguen mostrando el estado real de los agentes y los intercambios de archivos. Su distribución es visual: conserva los identificadores y posiciones guardados de las estaciones. **Reducir efectos** detiene los movimientos ambientales y la calidad adaptativa reduce partículas y detalles. El escenario está disponible en escritorio, cliente conectado y navegador; Órbita todavía no dibuja este mundo 3D.
+
+**Relicario, Telar, Halloween y Navidad** conservan sus nombres e identificadores anteriores, pero ahora tienen escenarios completos: santuario con galerías, torres, canales y suelo reflectante; islas de cristal y redes de hilos; patio de una abadía gótica con luna y niebla; y villa nevada con abetos, humo y aurora. Se mantienen las formas del núcleo, los disfraces de fiesta y las acciones habituales del espacio. Las tarjetas del selector muestran sus siluetas y se eligen en **Decorados**.
+
 **Refugio Kywai** aparece en **⚙ → Ajustes → General → Mapas**. Es un observatorio-invernadero frente al mar: cúpula de madera y cristal, cielo panorámico con nubes y agua animadas, jardines, talleres individuales, mesa circular con árbol central y asiento turquesa para el usuario. Los robots tienen acabados de cerámica y ropa propia, conservando sus estados, gestos y bocadillos. La distribución se adapta a los agentes visibles sin cambiar las posiciones guardadas de los proyectos.
 
 El interruptor **Modo noche**, junto a Música en la cabecera del espacio, cambia este refugio a luna, estrellas e iluminación cálida, con colores oscuros en la interfaz. Se recuerda por dispositivo y no cambia otros mapas. **Reducir efectos** detiene las animaciones del cielo, agua y vegetación. El tema se elige y sincroniza por los mecanismos habituales del servidor; está disponible en escritorio, cliente conectado y navegador. Órbita todavía no dibuja este escenario 3D.
@@ -2058,29 +2062,14 @@ Quien tenía elegido uno de estos colores cuando eran temas sueltos lo sigue vie
 (`aicowork.theme`) conserva los mismos nombres internos (`clasico` es Índigo, `orbita` Frost Glass, `marfil` Perla, `grafito` Ónix, `bosque` Esmeralda, `matrix` Neón y `eva` Ultravioleta) y los mapas usan otros
 (`mundo-clasico`, `mundo-orbita`…).
 
-**Decorados.** Cuatro que además decoran el espacio, cambian la forma del núcleo y, en los de fiesta, disfrazan a los robots:
+**Decorados.** Cuatro escenarios de fantasía y temporada que cambian la forma del núcleo y, en los de fiesta, disfrazan a los robots:
 
-- **Relicario:** cristal y oro sobre piedra negra pulida. El núcleo es una gema tallada con otra más pequeña que
-  brilla dentro, dos anillos de oro a su alrededor y un haz de luz que sube. Las estaciones se apoyan en tres discos
-  de vidrio escalonados con filos de oro y luz debajo. Por el suelo hay láminas de cristal enmarcadas en oro y
-  obeliscos de cristal con la punta encendida; flota polvo de oro y los edificios tienen las aristas iluminadas.
-- **Telar:** tela tejida de plata y oro. Membranas con trama, hilos y orillos con cuentas doradas por todo el
-  espacio; cada estación es una silla de tela tejida, el núcleo son tres cintas tejidas con cuentas. El suelo lleva
-  una trama de hilos, cuelgan hilos sueltos con gotas de rocío, hay carretes de hilo por el suelo y destellos que
-  parpadean.
-- **Halloween:** noche morada sobre adoquines con hojas secas y niebla. Las estaciones y el núcleo son pedestales de
-  piedra tallada con el filo encendido, velas y telarañas; los paneles son lápidas (con un cuervo en una). El núcleo
-  es una calabaza con la cara encendida. Hay calabazas, calaveras, fantasmas que flotan, fuegos fatuos que suben, la
-  luna tras una ciudad gótica de ventanas en arco con agujas y estandartes, y murciélagos. El agente local lleva
-  sombrero de bruja y Codex, capa de vampiro.
-- **Navidad:** suelo de hielo oscuro con bombillas por todos los caminos. Las estaciones son regalos (cintas rojas,
-  filos dorados, guirnalda con bolas y luces, nieve con chorretones y un lazo); los paneles, losas de cristal con
-  nieve y un lazo. El núcleo es una bola de nieve de cristal con un árbol decorado, copos y nieve que cae. Hay árboles
-  nevados con bolas, luces y estrella, regalos, faroles, bastones de caramelo, muñecos de nieve, montones de nieve y
-  la ciudad con guirnaldas de luces y coronas. Gemini y el agente local llevan gorro de Papá Noel, Claude bufanda y
-  Hermes una ramita de acebo; la interfaz lleva nieve en el borde de los paneles.
+- **Relicario:** santuario de cristal y oro, con galerías, torres, canales y un patio de piedra pulida que refleja la arquitectura. La gema central tiene facetas, reflejos y destellos; las estaciones conservan sus discos de vidrio con filos dorados.
+- **Telar:** islas de cristal flotantes, capullos y grandes redes tridimensionales que conectan el paisaje y los puestos. Las estaciones son asientos de trama cristalina y el núcleo es un nudo de hilos con destellos de plata y oro.
+- **Halloween:** patio de una abadía gótica con árboles sin hojas, luna, niebla, murciélagos, velas y calabazas. Las estaciones conservan sus pedestales de piedra, los paneles son lápidas y el núcleo una calabaza encendida. Se mantienen los disfraces de los robots.
+- **Navidad:** villa nevada con casas iluminadas, abetos, chimeneas con humo y aurora boreal. Las estaciones son regalos con nieve, el núcleo es una bola de nieve con árbol decorado y hay faroles, muñecos, guirnaldas y adornos. Se mantienen los gorros y accesorios navideños de los agentes.
 
-Con menos calidad gráfica (o «Reducir efectos ambientales») hay menos piezas y se mueven más despacio.
+Con menor calidad gráfica se dibujan menos piezas. «Reducir efectos» limita o detiene los movimientos ambientales.
 
 Se aplica al momento (el espacio se vuelve a montar con los colores nuevos) y se recuerda en cada dispositivo (la
 app del Mac, el navegador…).

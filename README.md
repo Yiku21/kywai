@@ -215,6 +215,8 @@ Details and a sample mod in the [manual](docs/MANUAL.md#extensiones-tus-servidor
 
 ### 🎨 Comfort
 
+**Undersea** brings fish shoals, whales, jellyfish and a submerged city around a luminous pearl. Relicario, Telar, Halloween and Christmas now have full sanctuary, crystal-island, gothic-abbey and snowy-village worlds, while keeping their existing theme selections.
+
 **Kywai Retreat** adds a seaside greenhouse observatory with a timber-and-glass dome, animated sky and water, personal workshops, a shared tree and a turquoise seat. Switch to night beside Music; the preference is remembered on each device.
 
 - **The chat comes first.** In smaller windows it takes more room, you can drag its edge to the width you like (double-click to go back to automatic), and in narrow windows the chat and the 3D world become two tabs.

@@ -155,9 +155,9 @@ function crystalGeometry(R: number): THREE.BufferGeometry {
     [0.66, 0.24],
     [0.5, 0.62],
     [0.24, 0.98],
-    [0, 1.12]
+    [0, 0.98]
   ]
-  const g = new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x * R, y * R)), 8).toNonIndexed()
+  const g = new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x * R, y * R)), 16).toNonIndexed()
   g.rotateY(Math.PI / 8)
   g.computeVertexNormals()
   g.translate(0, 0.02, 0)

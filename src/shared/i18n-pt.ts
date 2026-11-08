@@ -142,7 +142,6 @@ export const pt: Record<string, string> = {
   "El espacio de siempre, con el color que elijas": "O espaço de sempre, na cor que você escolher",
   "Color de la ciudad": "Cor da cidade",
   "Decorados": "Decorados",
-  "La ciudad con decoración de temporada o de fantasía": "A cidade com decoração sazonal ou de fantasia",
   "Texturas de Órbita": "Texturas de Órbita",
   "Clásico": "Clássico",
   "Paneles oscuros y sobrios, el de siempre": "Escuro, painéis sóbrios, o visual original",
@@ -2550,4 +2549,7 @@ export const pt: Record<string, string> = {
   "Visto": "Visto",
   "1 terminado sin ver": "1 concluído não visto",
   "{n} terminados sin ver": "{n} concluídos não vistos",
+  "Fondo marino": "Fundo do mar",
+  "Un arrecife vivo con peces, medusas y una perla de luz": "Um recife vivo com peixes, águas-vivas e uma pérola de luz",
+  "Escenarios propios de fantasía o de temporada": "Cenários próprios de fantasia ou de temporada",
 }

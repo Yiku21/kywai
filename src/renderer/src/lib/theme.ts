@@ -21,7 +21,8 @@ export type CityColor = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' |
 export type DecorTheme = 'relicario' | 'telar' | 'halloween' | 'navidad'
 export type WorldTheme = `mundo-${WorldStyle}`
 export type HomeTheme = 'kywai'
-export type ThemeId = CityColor | DecorTheme | WorldTheme | HomeTheme
+export type SeaTheme = 'submarino'
+export type ThemeId = CityColor | DecorTheme | WorldTheme | HomeTheme | SeaTheme
 
 export interface ThemeInfo<Id extends ThemeId = ThemeId> {
   id: Id
@@ -61,8 +62,10 @@ export const DECORS: ReadonlyArray<ThemeInfo<DecorTheme>> = [
 
 export const HOME: ThemeInfo<HomeTheme> = { id: 'kywai', name: t('Refugio Kywai'), hint: t('Observatorio-invernadero frente al mar, con talleres y un árbol compartido') }
 
+export const SEA: ThemeInfo<SeaTheme> = { id: 'submarino', name: t('Fondo marino'), hint: t('Un arrecife vivo con peces, medusas y una perla de luz') }
+
 /** Todos los temas que se pueden elegir. */
-export const THEMES: ReadonlyArray<ThemeInfo> = [HOME, ...WORLDS, ...CITY_COLORS, ...DECORS]
+export const THEMES: ReadonlyArray<ThemeInfo> = [HOME, SEA, ...WORLDS, ...CITY_COLORS, ...DECORS]
 
 export const DEFAULT_THEME: ThemeId = 'clasico'
 
@@ -76,8 +79,8 @@ export function worldOf(id: ThemeId): WorldStyle | undefined {
 }
 
 /** Los colores de la interfaz (data-theme): un mapa usa los del color con su nombre; el resto, los suyos. */
-export function uiThemeOf(id: ThemeId): CityColor | DecorTheme | HomeTheme {
-  return worldOf(id) ?? (id as CityColor | DecorTheme | HomeTheme)
+export function uiThemeOf(id: ThemeId): CityColor | DecorTheme | HomeTheme | SeaTheme {
+  return worldOf(id) ?? (id as CityColor | DecorTheme | HomeTheme | SeaTheme)
 }
 
 /** El nombre para mostrar: «Ciudad digital · Grafito» en la ciudad, el nombre a secas en los demás. */
@@ -227,7 +230,7 @@ export function useTheme(): ThemeId {
 }
 
 /** Los colores de la interfaz del tema actual (lo que hay en data-theme). */
-export function useUiTheme(): CityColor | DecorTheme | HomeTheme {
+export function useUiTheme(): CityColor | DecorTheme | HomeTheme | SeaTheme {
   return uiThemeOf(useTheme())
 }
 

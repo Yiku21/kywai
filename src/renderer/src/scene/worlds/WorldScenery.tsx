@@ -18,7 +18,10 @@ import { IndustrialFactory } from './IndustrialEffects'
 import { OrbitalSpace } from './OrbitalSpace'
 import { MatrixAtmosphere } from './MatrixAtmosphere'
 import { CyberNetwork } from './CyberNetwork'
+import { HeritageAtmosphere } from './HeritageAtmosphere'
+import { HERITAGE_WORLDS } from './heritageWorlds'
 import { HOME_PLANT_DECLARATIONS, HOME_PLANT_TRANSFORM } from './homeBreeze'
+import { UnderseaPlatform } from './UnderseaWorld'
 import { MarfilGarden } from './MarfilGarden'
 
 /** Shared geometry and material per batch; cleaned up when changing theme. No per-frame rebuilds. */
@@ -60,11 +63,12 @@ export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldSty
         emissive: first.color, emissiveIntensity: first.glow || 0 })
       if (surface === 'linen') { mat.metalness=0;mat.sheen=1;mat.sheenColor.copy(new THREE.Color(first.color)).lerp(new THREE.Color('#f3ead7'),.3);mat.sheenRoughness=.85;mat.clearcoat=0 }
       if (style === 'kywai' && first.shape === 'leaf') {mat.metalness=0;mat.roughness=1;mat.sheen=0;mat.clearcoat=0;mat.emissiveIntensity=0}
-      if (style === 'kywai' && first.shape === 'crystal' && ['#b7d6e3','#8daebb','#c4dce9','#85bac9','#bfdce3'].includes(first.color)) {
+      if (first.shape === 'crystal' && ['#b7d6e3','#8daebb','#c4dce9','#85bac9','#bfdce3'].includes(first.color)) {
         mat.map = null; mat.normalMap = null; mat.roughnessMap = null; mat.metalness = 0; mat.roughness = .035;
         mat.transmission = ['#85bac9','#bfdce3'].includes(first.color) ? .58 : .94; mat.thickness = .6; mat.ior = 1.46; mat.attenuationColor = new THREE.Color('#b1d1de'); mat.attenuationDistance = 5;
         mat.clearcoat = 1; mat.envMapIntensity = 1.7; mat.emissiveIntensity = 0; mat.flatShading = true;
       }
+      if(style === 'relicario' && first.color === '#4c7d89') { mat.map=null;mat.normalMap=null;mat.roughnessMap=null;mat.roughness=.10;mat.metalness=.12;mat.clearcoat=1;mat.transparent=true;mat.opacity=.31;mat.depthWrite=false;mat.envMapIntensity=1.8 }
       if (!moving && first.shape === 'leaf') {
         mat.onBeforeCompile = shader => {
           shader.uniforms.worldWind = wind
@@ -123,6 +127,7 @@ export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldSty
 
 export function WorldPlatform({ style }: { style: WorldStyle }) {
   const pieces = useMemo(() => [...platformModel(style), ...platformDetails(style)], [style])
+  if (style === 'submarino') return <UnderseaPlatform />
   if (style === 'kywai') return <mesh><cylinderGeometry args={[1.8,1.8,.75,48]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
   return <WorldModel pieces={pieces} style={style} />
 }
@@ -200,6 +205,7 @@ export function WorldScenery({ style, stations, q, reduced }: { style: WorldStyl
   const trees = useMemo(() => style === 'bosque' ? forestStands(stations, detail) : [], [style, stations, detail])
   return <group name={`environment-${style}`}>
     <WorldModel pieces={pieces} style={style} />
+    {(HERITAGE_WORLDS as readonly string[]).includes(style) && <HeritageAtmosphere style={style} stations={stations} reduced={reduced} detailed={detail} />}
     <WorldMarkings style={style} stations={stations} />
     {style === 'grafito' && <IndustrialFactory stations={stations} reduced={reduced} detailed={detail} />}
     {style === 'clasico' && <CyberNetwork reduced={reduced} />}

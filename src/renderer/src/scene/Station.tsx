@@ -101,7 +101,7 @@ export function Station({ station, occupant, showLight }: Props) {
   const glass = palette.decor === 'relicario'
   // Telar: la estación es una silla de tela tejida (la base sigue ahí para pulsarla, pero no se ve).
   const loom = palette.decor === 'telar'
-  const world = palette.world
+  const world = palette.decor ? undefined : palette.world
   const lift = gift ? 0.16 : stone || glass ? 0.04 : loom ? 0.2 : 0
   const phase = hash01(station.id)
   const side = consoleSide(station)

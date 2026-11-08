@@ -8,7 +8,7 @@ const noRaycast = () => {}
 const foliageColors = ['#346044', '#426d49', '#628544', '#80964d', '#a2a254'].map(color => new THREE.Color(color))
 const heartGold = new THREE.Color('#b6a653')
 
-function treeMeshes(trees: ForestTree[], detailed: boolean, centerpiece: boolean) {
+function treeMeshes(trees: ForestTree[], detailed: boolean, centerpiece: boolean, bare: boolean) {
   const positions: number[] = [], uvs: number[] = [], colors: number[] = [], indices: number[] = []
   const leafGeometry = new THREE.BufferGeometry()
   leafGeometry.setAttribute('position', new THREE.Float32BufferAttribute([
@@ -36,9 +36,9 @@ function treeMeshes(trees: ForestTree[], detailed: boolean, centerpiece: boolean
         diffuseColor.rgb *= .72 + .24 * forestLeafUv.y + .20 * vein;`)
   }
   leafMaterial.customProgramCacheKey = () => 'enchanted-forest-leaves'
-  const leavesPerCluster = (tree: ForestTree) => centerpiece ? 100 : tree.fine ? (detailed ? 78 : 55) : detailed ? 37 : 27
+  const leavesPerCluster = (tree: ForestTree) => bare ? 0 : centerpiece ? 100 : tree.fine ? (detailed ? 78 : 55) : detailed ? 37 : 27
   const limbCount = (tree: ForestTree) => tree.fine ? 7 : 5
-  const capacity = trees.reduce((total, tree) => total + (limbCount(tree) * 3 + 1) * leavesPerCluster(tree), 0)
+  const capacity = Math.max(1, trees.reduce((total, tree) => total + (limbCount(tree) * 3 + 1) * leavesPerCluster(tree), 0))
   const leaves = new THREE.InstancedMesh(leafGeometry, leafMaterial, capacity)
   const dummy = new THREE.Object3D(), leafColor = new THREE.Color(), barkColor = new THREE.Color()
   const point = new THREE.Vector3()
@@ -145,15 +145,15 @@ function treeMeshes(trees: ForestTree[], detailed: boolean, centerpiece: boolean
   leaves.count = leafCount
   leaves.instanceMatrix.needsUpdate = true
   if (leaves.instanceColor) leaves.instanceColor.needsUpdate = true
-  leaves.computeBoundingSphere()
+  if (leafCount) leaves.computeBoundingSphere()
   leaves.raycast = noRaycast
   leaves.castShadow = centerpiece || detailed
   leaves.receiveShadow = true
   return { leaves, wind, bark, barkGeometry, barkMaterial }
 }
 
-export function ForestGrove({ trees, detailed, reduced, centerpiece = false }: { trees: ForestTree[]; detailed: boolean; reduced: boolean; centerpiece?: boolean }) {
-  const grove = useMemo(() => treeMeshes(trees, detailed, centerpiece), [trees, detailed, centerpiece])
+export function ForestGrove({ trees, detailed, reduced, centerpiece = false, bare = false }: { trees: ForestTree[]; detailed: boolean; reduced: boolean; centerpiece?: boolean; bare?: boolean }) {
+  const grove = useMemo(() => treeMeshes(trees, detailed, centerpiece, bare), [trees, detailed, centerpiece, bare])
   useFrame((_, dt) => { if (!reduced) grove.wind.value += Math.min(dt, .1) * .85 })
   useEffect(() => () => {
     grove.bark.dispose(); grove.barkGeometry.dispose(); grove.barkMaterial.dispose()
@@ -161,6 +161,6 @@ export function ForestGrove({ trees, detailed, reduced, centerpiece = false }: {
   }, [grove])
   return <group>
     <mesh geometry={grove.barkGeometry} material={grove.barkMaterial} castShadow receiveShadow raycast={centerpiece ? undefined : noRaycast} />
-    <primitive object={grove.leaves} />
+    {!bare && <primitive object={grove.leaves} />}
   </group>
 }
