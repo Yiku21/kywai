@@ -1735,6 +1735,14 @@ las filas que se apartan del total. Se le pide que, entre los que pueden hacer l
 en esa dificultad aunque tarde o gaste más: la calidad pesa más que la velocidad y el coste; la cuota y estar libre
 deciden solo entre agentes parecidos.
 
+**Mala racha: kywai no repite con quien casi siempre suspende.** Si en los últimos 14 días un agente hizo 3 tareas o
+más y en el 60 % o más no pasó la revisión a la primera o no pudo hacerla, su ficha lleva «⚠ mala racha: 3 de 3
+tareas sin pasar la revisión o fallidas en 14 días» (aunque tenga menos de 5 tareas), y lo que no es fácil que el
+plan le dé pasa a otro agente. El plan lo dice en «Ajustes de kywai al plan». Si lo nombras en la petición («que lo
+haga Aider»), se respeta. El relevo tras un fallo tampoco vuelve nunca a un agente que ya intentó esa tarea, y
+prefiere a uno que no esté en mala racha. Así una petición no se alarga con correcciones y relevos que se veían
+venir (medido el 8 nov: la mitad de las tareas verificadas repetían, y un agente suspendió 3 de 3).
+
 Sale del mismo registro que «Uso y coste…» (`usage-runs.json`): para ello cada llamada de tarea guarda su
 dificultad, cada verificación su veredicto y cada llamada si la detuviste. Los registros de antes de esta versión
 no tenían esos datos: sus tareas salen como dificultad «Sin dato», sin verificación, y una llamada que no salió

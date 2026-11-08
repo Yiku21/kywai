@@ -37,7 +37,7 @@ import { setGuideEnv } from '../coordinatorGuide'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import * as store from '../projects'
 import { initQuota, setQuotaProbing } from '../quota'
-import { initUsageLog, usageRuns } from '../usageLog'
+import { finishRunUsage, initUsageLog, recordCall, startRunUsage, usageRuns } from '../usageLog'
 import { __setUiCapturerForChecks } from '../uiShots'
 import { buildCommandLine } from '../agents/spawn'
 import { claudeArgs } from '../agents/claude'
@@ -1389,6 +1389,42 @@ async function main(): Promise<void> {
       assert.ok(ok.calls.every((c) => c.durationMs >= 0 && c.input >= 0 && c.output >= 0 && c.agentName))
       assert.ok(list.some((r) => r.status === 'cancelled'), 'las canceladas también quedan registradas')
       assert.ok(list.some((r) => r.calls.some((c) => !c.ok)), 'las llamadas fallidas también cuentan')
+    })
+
+    await check('B: un agente en mala racha no recibe lo que no es fácil (salvo que lo nombres)', async () => {
+      hermesOnline = false
+      await refreshPresence()
+      // Gemini suspendió diez tareas en los últimos días (registro de consumo): casi todas las suyas.
+      const old = 'racha-gemini'
+      startRunUsage({ runId: old, projectId: 'x', projectName: 'X', request: 'antes' })
+      for (const k of ['g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8', 'g9', 'g10']) {
+        const base = { ts: Date.now() - 3600_000, taskId: k, input: 1, output: 1, cached: 0, durationMs: 200_000 }
+        recordCall(old, { ...base, kind: 'task', agentId: 'gemini', agentName: 'Gemini', provider: 'gemini', ok: true, difficulty: 'medium' })
+        recordCall(old, { ...base, kind: 'verify', agentId: 'claude', agentName: 'Claude', provider: 'claude', ok: true, verdict: 'fail' })
+      }
+      finishRunUsage(old, 'ok', 10, 10)
+      const up = store.createProject('Racha')
+      planResponses = {
+        claude: plan('Gemini lo hace.', [
+          { key: 't1', title: 'Página de contacto', description: 'Crea artifacts/contacto.html.', agent: 'gemini', difficulty: 'medium', deliverable: 'file', acceptance: 'existe' }
+        ])
+      }
+      verdicts = []
+      const from = calls.length
+      const { runId } = await sendMessage({ projectId: up.id, text: 'Haz la página de contacto, sin revisión', filePaths: [] })
+      await waitFor(() => !!finished(runId), 15000, 'run B')
+      const work = calls.slice(from).find((c) => c.mode === 'work')!
+      assert.notEqual(work.agentId, 'gemini', 'pasa a otro agente')
+      const msgs = store.snapshotProject(up.id).messages
+      assert.ok(msgs.some((m) => /Gemini no pasó la revisión o falló en \d+ de sus \d+ últimas tareas/.test(m.text)), 'el plan dice por qué')
+      // La ficha del coordinador lo avisa.
+      assert.match(calls.slice(from)[0].prompt, /⚠ mala racha: \d+ de \d+ tareas/, 'el coordinador lo ve')
+
+      // Si lo nombras, se respeta.
+      const from2 = calls.length
+      const r2 = await sendMessage({ projectId: up.id, text: 'Que lo haga Gemini, sin revisión', filePaths: [] })
+      await waitFor(() => !!finished(r2.runId), 15000, 'run B2')
+      assert.equal(calls.slice(from2).find((c) => c.mode === 'work')!.agentId, 'gemini')
     })
 
     console.log(`\n${passed} orchestrator checks passed`)

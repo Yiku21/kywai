@@ -1528,6 +1528,7 @@ export const fr: Record<string, string> = {
   "No devolvió un plan válido (su modelo puede ser demasiado pequeño)": "N'a pas renvoyé de plan valide (son modèle est peut-être trop petit)",
   "{reply}\n\n(No hay agentes disponibles para ejecutar las tareas propuestas.)": "{reply}\n\n(Aucun agent n'est disponible pour réaliser les tâches proposées.)",
   "{v1}\n\n*Ajustes de kywai al plan:* {v2}.": "{v1}\n\n*Ajustements de kywai au plan :* {v2}.",
+  "«{title}» la hace {name} ({agent} no pasó la revisión o falló en {bad} de sus {tasks} últimas tareas)": "« {title} » est confiée à {name} ({agent} n'a pas passé la revue ou a échoué dans {bad} de ses {tasks} dernières tâches)",
   "«{title}» la hace {name} (el modelo local es lento para lo difícil)": "« {title} » est confiée à {name} (le modèle local est lent pour le travail difficile)",
   "Depende de una tarea fallida": "Dépend d'une tâche qui a échoué",
   "{name} no está disponible y no hay otro agente libre": "{name} n'est pas disponible et il n'y a pas d'autre agent libre",

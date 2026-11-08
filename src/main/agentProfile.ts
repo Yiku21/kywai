@@ -90,6 +90,8 @@ export function profileLines(
     history?: AgentHistory | null
     /** Con QUALITY_MIN_TASKS tareas o más, una línea con su calidad (sustituye a las valoraciones del historial). */
     quality?: AgentQuality | null
+    /** Mala racha reciente (poorRecordReason): se avisa aunque tenga pocas tareas. */
+    poor?: string | null
     abilities: string[]
   }
 ): string[] {
@@ -106,6 +108,7 @@ export function profileLines(
     out.push(`  historial en kywai (30 días): ${h.tasks} tareas, ${h.okPct} % bien, unos ${took(h.medianMs)} cada una${liked}`)
   }
   if (quality) out.push(`  ${quality}`)
+  if (extra.poor) out.push(`  ⚠ mala racha: ${extra.poor}. No le des nada que no sea fácil salvo que el usuario lo pida por su nombre; kywai lo pasa a otro`)
   for (const ab of extra.abilities) out.push(`  ${ab}`)
   return out
 }

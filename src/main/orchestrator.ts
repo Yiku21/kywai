@@ -40,6 +40,7 @@ import { resolveTemplate } from './templates'
 import { freshQuotaSnapshot, latestQuotas, recordUsage, refreshQuotas, setClaudeRateLimit } from './quota'
 import { finishRunUsage, rateUsage, recordCall, resumeRunUsage, setRunQuota, startRunUsage, usageRuns } from './usageLog'
 import { agentHistory, agentQualityFor, profileLines } from './agentProfile'
+import { agentQuality, POOR_RECORD_DAYS, poorRecord } from '@shared/agentQuality'
 import { EFFORT_LABEL, effortFor, planEffortFor } from '@shared/modelCatalog'
 import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpdate } from './taskTrace'
 import { withoutClosingNotes, workSteps } from '@shared/work'
@@ -74,6 +75,8 @@ interface TaskMeta {
   /** Files the agent reported writing (relPaths). */
   touched: Set<string>
   retried: boolean
+  /** Agentes que ya hicieron (y fallaron) esta tarea: un relevo nunca vuelve a ellos. */
+  tried?: Set<AgentId>
   /** Light model was rejected: run on the parent with its main model. */
   forceMainModel: boolean
   /** El modelo habitual también fue rechazado: usar el predeterminado del CLI. */
@@ -569,6 +572,46 @@ function bestAgentFor(text: string, exclude: Set<AgentId> = new Set()): AgentCon
     return i < 0 ? 99 : i
   }
   return [...cands].sort((a, b) => score(b) - score(a) || order(a) - order(b))[0]
+}
+
+/**
+ * Agentes en mala racha (ver poorRecordReason): en los últimos días casi todas sus tareas acabaron sin superar la
+ * revisión o fallidas. Repetir con ellos solo alarga la petición con correcciones y relevos, así que lo que no es
+ * fácil va a otro (salvo que el usuario lo nombre). Id → motivo.
+ */
+function poorAgents(now = Date.now()): Map<AgentId, { bad: number; tasks: number }> {
+  const out = new Map<AgentId, { bad: number; tasks: number }>()
+  const ids = new Set(workers().map((a) => a.id))
+  for (const q of agentQuality(usageRuns(), now - POOR_RECORD_DAYS * 86_400_000)) {
+    const r = ids.has(q.agentId) ? poorRecord(q) : null
+    if (r) out.set(q.agentId, r)
+  }
+  return out
+}
+
+/** Lo que ve el coordinador en la ficha de un agente en mala racha (en español, como el resto de la ficha). */
+function poorLine(r: { bad: number; tasks: number } | undefined): string | null {
+  return r ? `${r.bad} de ${r.tasks} tareas sin pasar la revisión o fallidas en ${POOR_RECORD_DAYS} días` : null
+}
+
+/** El usuario nombró a ese agente en su petición («que lo haga Aider»): se respeta aunque esté en mala racha. */
+function namedByUser(a: AgentConfig, text: string): boolean {
+  const name = norm(a.name).trim()
+  return name.length >= 3 && new RegExp(`(^|[^a-z0-9])${name.replace(/[^a-z0-9 ]/g, '')}([^a-z0-9]|$)`).test(norm(text))
+}
+
+/**
+ * Relevo de una tarea: el mejor compañero que no la haya intentado ya y, si se puede, que no esté en mala racha.
+ * Lo que no es fácil nunca va al modelo local.
+ */
+function relayAgent(t: Task, meta: TaskMeta, owner: AgentConfig, exec: AgentConfig): AgentConfig | null {
+  meta.tried = new Set([...(meta.tried ?? []), owner.id, exec.id])
+  const exclude = new Set(meta.tried)
+  if (t.difficulty !== 'easy' && !isLocalProvider(owner.provider)) {
+    for (const a of workers()) if (isLocalProvider(a.provider)) exclude.add(a.id)
+  }
+  const text = `${t.title} ${t.description}`
+  return bestAgentFor(text, new Set([...exclude, ...poorAgents().keys()])) ?? bestAgentFor(text, exclude)
 }
 
 // ---------- emit helpers (store + event together) ----------
@@ -1868,6 +1911,7 @@ function teamLine(a: AgentConfig): string {
     warn: getConfig().thresholds.warn,
     history: agentHistory(usageRuns(), a.id),
     quality: agentQualityFor(usageRuns(), a.id),
+    poor: poorLine(poorAgents().get(a.id)),
     abilities
   }).join('\n')
 }
@@ -2046,6 +2090,19 @@ function validatePlan(raw: unknown[], context: string, projectId: string): { tas
     const alt = bestAgentFor(`${p.title} ${p.description}`, locals)
     if (!alt) continue
     changes.push(tr('«{title}» la hace {name} (el modelo local es lento para lo difícil)', { title: p.title, name: alt.name }))
+    p.agentId = alt.id
+  }
+  // Mala racha: lo que no es fácil no va a un agente que casi siempre suspende la revisión o falla (salvo que lo nombres).
+  const poor = poorAgents()
+  for (const p of lean) {
+    const a = findAgent(p.agentId)
+    const why = poor.get(p.agentId)
+    if (!a || !why || p.difficulty === 'easy' || namedByUser(a, context)) continue
+    const alt = bestAgentFor(`${p.title} ${p.description}`, new Set([...poor.keys(), ...(p.difficulty === 'hard' ? locals : [])]))
+    if (!alt) continue
+    changes.push(
+      tr('«{title}» la hace {name} ({agent} no pasó la revisión o falló en {bad} de sus {tasks} últimas tareas)', { title: p.title, name: alt.name, agent: a.name, bad: why.bad, tasks: why.tasks })
+    )
     p.agentId = alt.id
   }
   // «A dos manos»: si el usuario lo pidió y el coordinador no lo hizo, se hace aquí (otra familia y un juez).
@@ -3091,12 +3148,8 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
     else {
       // El relevo de una tarea que no es fácil va a otro agente fuerte, nunca al modelo local (lento y ligero):
       // si no hay ninguno libre, se dice en vez de pasársela a quien casi seguro también fallará.
-      const exclude = new Set([owner.id, exec.id])
-      if (t.difficulty !== 'easy' && !isLocalProvider(owner.provider)) {
-        for (const a of workers()) if (isLocalProvider(a.provider)) exclude.add(a.id)
-      }
-      alt = bestAgentFor(`${t.title} ${t.description}`, exclude)
-      noStrongAlt = !alt && exclude.size > 2
+      alt = relayAgent(t, meta, owner, exec)
+      noStrongAlt = !alt && t.difficulty !== 'easy' && !isLocalProvider(owner.provider) && workers().some((a) => isLocalProvider(a.provider) && usable(a))
     }
   }
   const failText = tr('No pude completar «{title}»: {msg}{v3}', { title: t.title, msg, v3: alt ? tr(' Se la paso a {name}.', { name: alt.name }) : noStrongAlt ? tr(' No hay otro agente fuerte libre para relevarme (el modelo local no sirve para esta tarea): pídemela de nuevo cuando quieras.') : '' })

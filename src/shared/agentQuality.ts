@@ -210,3 +210,25 @@ export function qualityLine(q: AgentQuality | null | undefined, days = 30): stri
     .map((g) => `${DIFFICULTY_LABEL[g.difficulty].toLowerCase()} ${g.tasks}: ${statsPhrase(g)}`)
   return `calidad (${days} días, ${q.tasks} tareas): ${statsPhrase(q)}${cost ? `; mediana ${cost} por tarea` : ''}${groups.length ? ` · por dificultad → ${groups.join(' · ')}` : ''}`
 }
+
+/** Ventana y umbrales de «mala racha»: con pocas tareas ya se ve si un agente suspende casi siempre. */
+export const POOR_RECORD_DAYS = 14
+export const POOR_RECORD_MIN_TASKS = 3
+export const POOR_RECORD_PCT = 60
+
+/**
+ * Cifras de la mala racha (tareas que acabaron mal y tareas en total), o null si no la hay: en los últimos
+ * POOR_RECORD_DAYS días hizo al menos POOR_RECORD_MIN_TASKS tareas y en el POOR_RECORD_PCT % o más no pasó la
+ * revisión a la primera o no pudo hacerlas.
+ */
+export function poorRecord(q: QualityStats | null | undefined): { bad: number; tasks: number } | null {
+  if (!q || q.tasks < POOR_RECORD_MIN_TASKS) return null
+  const bad = Math.min(q.fixed + q.failed, q.tasks)
+  return bad * 100 < POOR_RECORD_PCT * q.tasks ? null : { bad, tasks: q.tasks }
+}
+
+/** «3 de 3 tareas sin pasar la revisión o fallidas en 14 días», o null. */
+export function poorRecordReason(q: QualityStats | null | undefined, days = POOR_RECORD_DAYS): string | null {
+  const r = poorRecord(q)
+  return r && `${r.bad} de ${r.tasks} tareas sin pasar la revisión o fallidas en ${days} días`
+}
