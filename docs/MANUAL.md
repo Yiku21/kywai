@@ -78,6 +78,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Cómo rinde cada agente](#cómo-rinde-cada-agente)
   - [Dónde se guardan las cosas](#dónde-se-guardan-las-cosas)
 - **[Comodidades](#comodidades)**
+  - [Un chat que se lee bien](#un-chat-que-se-lee-bien)
   - [Ancho del chat y ventanas pequeñas](#ancho-del-chat-y-ventanas-pequeñas)
   - [Idioma](#idioma)
   - [Temas](#temas)
@@ -1923,6 +1924,29 @@ bien en una petición cancelada se toma como cancelada. La API móvil lo da en `
 - `workspace/web-cert/`: certificado propio de la versión HTTPS del acceso web.
 
 ## Comodidades
+
+### Un chat que se lee bien
+
+El chat se lee como ChatGPT o Claude, sin «muro de letras»:
+
+- **La respuesta de un agente va sin caja:** el texto suelto, junto a su avatar. Tus mensajes siguen en su burbuja, y
+  los errores en su caja roja para que no pasen desapercibidos.
+- **Letra e interlineado:** 15 px con interlineado 1,7 en el escritorio y la web (antes 14 px y 1,55), y líneas de
+  unos 72 caracteres como mucho. En Órbita el interlineado pasa a 1,55 veces la letra.
+- **Aire:** 16 px entre párrafos, más antes de cada título y entre un mensaje y el siguiente. Los puntos de una lista
+  van separados (10 px), con el número en negrita, para que se vean como pasos. Tablas y bloques de código llevan
+  más margen.
+- **Órbita** mantiene la tarjeta de la respuesta (encima del 3D hace falta contraste), pero con más margen dentro y el
+  mismo reparto de aire entre párrafos, títulos y puntos.
+- **Cómo escriben:** a Hermes (su respuesta y el resumen final de cada petición) y a cada agente se les pide que
+  empiecen por el resultado, con párrafos de 2 o 3 frases, listas para pasos y opciones, negrita solo en lo
+  importante y títulos solo si la respuesta es larga. Los mensajes directos («@Agente …») no se tocan.
+
+Para desarrolladores: el tamaño, el interlineado y el aire del Markdown son variables CSS (`--md-size`, `--md-lh`,
+`--md-gap`, `--md-li-gap` en `MarkdownView.module.css`) que el chat sube en `.agentBubble` (`Messages.module.css`);
+fichas de tareas, memoria y documentos se quedan con 14 px. Órbita: `gapBefore` en `ui/orbita/Markdown.kt`. La guía de
+estilo es `CHAT_STYLE` en `src/main/coordinatorGuide.ts` (va en el prompt de Hermes, en las reglas de cada tarea y en la
+respuesta final).
 
 ### Ancho del chat y ventanas pequeñas
 
