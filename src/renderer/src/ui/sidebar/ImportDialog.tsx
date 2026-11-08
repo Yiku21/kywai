@@ -180,6 +180,14 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                 )
               })
             )}
+            {scan && (
+              <p className={m.hint}>
+                {t('¿Buscas tus chats de la app Claude o de Claude.ai? No se guardan en el ordenador, sino en tu cuenta:')}{' '}
+                <button type="button" className={m.link} onClick={() => setTab('file')}>
+                  {t('tráelos con su exportación')}
+                </button>
+              </p>
+            )}
           </div>
         ) : (
           <div className={cx(s.results, m.body)}>

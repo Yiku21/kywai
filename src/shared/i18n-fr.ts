@@ -2490,6 +2490,8 @@ export const fr: Record<string, string> = {
   "Buscando en este equipo…": "Recherche sur cet ordinateur…",
   "{n} conversaciones en {f} carpetas": "{n} conversations dans {f} dossiers",
   "No hay nada en este equipo": "Rien sur cet ordinateur",
+  "¿Buscas tus chats de la app Claude o de Claude.ai? No se guardan en el ordenador, sino en tu cuenta:": "Vous cherchez vos conversations de l'app Claude ou de Claude.ai ? Elles ne sont pas sur l'ordinateur mais dans votre compte :",
+  "tráelos con su exportación": "importez-les avec leur export",
   "Se buscó en {dir}": "Recherché dans {dir}",
   "Ajustes → Controles de datos → Exportar datos. Te llega un correo con un zip: elígelo tal cual.": "Paramètres → Contrôle des données → Exporter les données. Vous recevez un e-mail avec un zip : choisissez-le tel quel.",
   "Ajustes → Privacidad → Exportar datos. Te llega un correo con un zip; sus proyectos se traen con sus instrucciones y documentos.": "Paramètres → Confidentialité → Exporter les données. Vous recevez un e-mail avec un zip ; ses projets arrivent avec leurs instructions et documents.",

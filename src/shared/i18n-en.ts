@@ -2608,6 +2608,8 @@ export const en: Record<string, string> = {
   "Buscando en este equipo…": "Searching this computer…",
   "{n} conversaciones en {f} carpetas": "{n} conversations in {f} folders",
   "No hay nada en este equipo": "Nothing on this computer",
+  "¿Buscas tus chats de la app Claude o de Claude.ai? No se guardan en el ordenador, sino en tu cuenta:": "Looking for your chats from the Claude app or Claude.ai? They aren't stored on the computer but in your account:",
+  "tráelos con su exportación": "bring them in with their export",
   "Se buscó en {dir}": "Searched in {dir}",
   "Ajustes → Controles de datos → Exportar datos. Te llega un correo con un zip: elígelo tal cual.": "Settings → Data controls → Export data. You’ll get an email with a zip: choose it as is.",
   "Ajustes → Privacidad → Exportar datos. Te llega un correo con un zip; sus proyectos se traen con sus instrucciones y documentos.": "Settings → Privacy → Export data. You’ll get an email with a zip; its projects come with their instructions and documents.",

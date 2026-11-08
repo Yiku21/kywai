@@ -2490,6 +2490,8 @@ export const zh: Record<string, string> = {
   "Buscando en este equipo…": "正在这台电脑上查找…",
   "{n} conversaciones en {f} carpetas": "{n} 个对话，位于 {f} 个文件夹",
   "No hay nada en este equipo": "这台电脑上没有",
+  "¿Buscas tus chats de la app Claude o de Claude.ai? No se guardan en el ordenador, sino en tu cuenta:": "在找 Claude 应用或 Claude.ai 的聊天？它们不保存在电脑上，而是在你的账户里：",
+  "tráelos con su exportación": "用导出文件导入",
   "Se buscó en {dir}": "已在 {dir} 中查找",
   "Ajustes → Controles de datos → Exportar datos. Te llega un correo con un zip: elígelo tal cual.": "设置 → 数据控制 → 导出数据。你会收到一封带 zip 的邮件：直接选择它即可。",
   "Ajustes → Privacidad → Exportar datos. Te llega un correo con un zip; sus proyectos se traen con sus instrucciones y documentos.": "设置 → 隐私 → 导出数据。你会收到一封带 zip 的邮件；其中的项目会连同说明和文档一起导入。",
