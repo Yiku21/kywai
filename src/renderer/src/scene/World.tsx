@@ -237,7 +237,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
         <Robots stations={stations} />
         <Decor stations={stations} q={q} reduced={reduced} />
       </group>
-      <CameraRig view={view} />
+      <CameraRig view={view} stations={stations} />
       <ViewShift view={view} />
       <LabelProjector />
 

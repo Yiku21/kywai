@@ -2031,6 +2031,8 @@ se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cua
 
 ### Temas
 
+En **Fondo marino**, cada estación conserva una plataforma separada también al añadir agentes. Los puestos adicionales se colocan en espacios libres alrededor del arrecife, sin solapar las plataformas existentes ni cambiar las posiciones guardadas del proyecto. La vista general amplía su encuadre para incluir los nuevos puestos.
+
 **Fondo marino** se elige en **⚙ → Ajustes → General → Mapas**: arrecife con bancos de peces, ballenas, medusas, mantarraya, vegetación y una ciudad sumergida. Las estaciones son plataformas de investigación y el centro es una concha con una perla luminosa; siguen mostrando el estado real de los agentes y los intercambios de archivos. Su distribución es visual: conserva los identificadores y posiciones guardados de las estaciones. **Reducir efectos** detiene los movimientos ambientales y la calidad adaptativa reduce partículas y detalles. El escenario está disponible en escritorio, cliente conectado y navegador; Órbita todavía no dibuja este mundo 3D.
 
 **Relicario, Telar, Halloween y Navidad** conservan sus nombres e identificadores anteriores, pero ahora tienen escenarios completos: santuario con galerías, torres, canales y suelo reflectante; islas de cristal y redes de hilos; patio de una abadía gótica con luna y niebla; y villa nevada con abetos, humo y aurora. Se mantienen las formas del núcleo, los disfraces de fiesta y las acciones habituales del espacio. Las tarjetas del selector muestran sus siluetas y se eligen en **Decorados**.
