@@ -11,7 +11,7 @@ import { Header } from '@/ui/Header'
 import { LeftPanel } from '@/ui/left/LeftPanel'
 import { ChatResizer } from '@/ui/left/ChatResizer'
 import { readChatWidth, saveChatWidth, TABS_QUERY } from '@/ui/left/chatWidth'
-import { ArtifactViewer } from '@/ui/ArtifactViewer'
+import { FilePreview } from '@/ui/preview/FilePreview'
 import { SetupWizard } from './ui/setup/SetupWizard'
 import { RestartOverlay } from './ui/RestartOverlay'
 import { UsageDialog } from './ui/usage/UsageDialog'
@@ -202,12 +202,13 @@ export function App() {
             )}
           </div>
         </section>
+        {/* Vista previa de archivos: encima del espacio 3D, a la derecha del chat. */}
+        <FilePreview />
       </div>
       </div>
       {searchOpen && <SearchDialog initialQuery={searchSeed} onClose={() => useCowork.setState({ searchOpen: false, searchSeed: '' })} />}
       {historyOpen && <HistoryDialog onClose={() => useCowork.setState({ historyOpen: false })} />}
       {importOpen && <ImportDialog onClose={() => useCowork.setState({ importOpen: false })} />}
-      <ArtifactViewer />
       {showSetup && <SetupWizard />}
       {usageOpen && <UsageDialog onClose={() => useCowork.setState({ usageOpen: false })} />}
       {qualityOpen && <QualityDialog onClose={() => useCowork.setState({ qualityOpen: false })} />}

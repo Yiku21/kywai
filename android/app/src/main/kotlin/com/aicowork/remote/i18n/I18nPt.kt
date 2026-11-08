@@ -923,4 +923,14 @@ private fun part7(m: HashMap<String, String>) {
     m["Marcar todo como visto"] = "Marcar tudo como visto"
     m["Visto"] = "Visto"
     m["Avisos de que el equipo terminó una petición (salen en Resultados)."] = "Avisos de que a equipe concluiu um pedido (aparecem em Resultados)."
+    // Lector: pasar de un archivo a otro, ver el código, copiar y abrir con otra app.
+    m["Ver {name}"] = "Ver {name}"
+    m["Copiar el contenido"] = "Copiar o conteúdo"
+    m["Copiado"] = "Copiado"
+    m["Abrir con otra app"] = "Abrir com outro app"
+    m["Ninguna app del móvil puede abrirlo"] = "Nenhum app do celular consegue abri-lo"
+    m["Vista previa"] = "Pré-visualização"
+    m["Archivo anterior"] = "Arquivo anterior"
+    m["{n} de {total}"] = "{n} de {total}"
+    m["Archivo siguiente"] = "Próximo arquivo"
 }

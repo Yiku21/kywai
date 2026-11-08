@@ -1,8 +1,9 @@
 import { useId, useMemo } from 'react'
-import { ChevronRight, ExternalLink, Paperclip, Sparkles } from 'lucide-react'
+import { ChevronRight, Paperclip, Sparkles } from 'lucide-react'
 import { useCowork, useData } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { fileSize } from '@/lib/format'
+import { fromAttachment, fromArtifact } from '@/lib/preview'
 import { useAgentLookup } from '../common/agents'
 import { FileTypeIcon, KindTile, ARTIFACT_KIND_LABEL } from '../common/icons'
 import { agentVars, cx, shortTime } from '../common/util'
@@ -16,7 +17,7 @@ export function FilesView() {
   const artifactsMap = useData((d) => d.artifacts)
   const mode = useCowork((st) => st.mode)
   const project = useCowork((st) => st.live.project)
-  const openViewer = useCowork((st) => st.openViewer)
+  const openPreview = useCowork((st) => st.openPreview)
   const lookup = useAgentLookup()
   const idA = useId()
   const idG = useId()
@@ -64,9 +65,9 @@ export function FilesView() {
                   type="button"
                   className={cx(s.fileRow, !canOpen && s.rowStatic)}
                   disabled={!canOpen}
-                  title={openTitle ?? t('Abrir {name}', { name: a.name })}
+                  title={openTitle ?? t('Ver {name}', { name: a.name })}
                   onClick={() => {
-                    if (api && project) api.openPath(project.id, a.relPath).catch(() => {})
+                    if (project) openPreview(attachments.map((x) => fromAttachment(x, project.id)), attachments.indexOf(a))
                   }}
                 >
                   <span className={s.fileIcon}>
@@ -76,7 +77,7 @@ export function FilesView() {
                     <span className={s.fileName}>{a.name}</span>
                     <span className={s.fileMeta}>{fileSize(a.size)}</span>
                   </span>
-                  {canOpen && <ExternalLink size={14} aria-hidden="true" className={s.rowAction} />}
+                  {canOpen && <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />}
                 </button>
               </li>
             ))}
@@ -98,7 +99,7 @@ export function FilesView() {
               const look = lookup(a.agentId)
               return (
                 <li key={a.id}>
-                  <button type="button" className={s.fileRow} onClick={() => openViewer(a.id)} title={t('Ver {name}', { name: a.name })}>
+                  <button type="button" className={s.fileRow} onClick={() => openPreview(artifacts.map(fromArtifact), artifacts.indexOf(a))} title={t('Ver {name}', { name: a.name })}>
                     <KindTile kind={a.kind} size={34} />
                     <span className={s.fileMain}>
                       <span className={s.fileName}>{a.name}</span>

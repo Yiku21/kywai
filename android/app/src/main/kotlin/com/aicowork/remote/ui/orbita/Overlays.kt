@@ -47,11 +47,15 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -83,7 +87,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -190,6 +196,16 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
         }
     }
     val kind = when (target) { is ViewerTarget.Result -> target.kind; is ViewerTarget.File -> target.kind }
+    // Markdown, HTML y SVG se pueden ver como quedan o como código (como en el escritorio).
+    val hasSource = kind == "markdown" || kind == "html" || target.title.endsWith(".svg", true)
+    var source by remember(target) { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
+    val ready = (loaded as? Loaded.Ready)?.raw
+    val textual = ready != null && (ready.isText || ready.isHtml || kind in setOf("markdown", "code", "text", "html") || ready.contentType.contains("svg"))
+    // Otros archivos del mismo mensaje: se pasa con ‹ › (o deslizando).
+    val items = model.viewerItems
+    val position = items.indexOf(target)
+    val paged = items.size > 1 && position >= 0
     Column(Modifier.fillMaxSize().widthIn(max = 1100.dp).glass(radius = 30.dp, tint = Orbita.GlassSolid).testTag("viewer")) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             val (icon, tint) = kindIcon(kind, target.title)
@@ -200,8 +216,27 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
                 val raw = (loaded as? Loaded.Ready)?.raw
                 Text(listOfNotNull(kindLabel(kind, target.title), raw?.let { sizeLabel(it.bytes.size.toLong()) }).joinToString(" · "), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
+            if (textual) IconAction(Icons.Outlined.ContentCopy, t("Copiar el contenido"), onClick = {
+                clipboard.setText(AnnotatedString(ready!!.text()))
+                model.feedback.confirm()
+                model.toast(t("Copiado"), Toast.Tone.Success)
+            }, modifier = Modifier.testTag("viewer-copy"))
             IconAction(Icons.Outlined.Download, t("Guardar en el móvil"), onClick = { saver.launch(target.title) }, enabled = loaded is Loaded.Ready)
+            IconAction(Icons.AutoMirrored.Outlined.OpenInNew, t("Abrir con otra app"), onClick = { ready?.let { openWithOtherApp(context, it, target.title, model) } }, enabled = ready != null)
             IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.viewer = null }, modifier = Modifier.testTag("viewer-close"))
+        }
+        if (paged || hasSource) {
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Las flechas se miden primero: en un móvil estrecho, lo que se encoge es el selector de vista.
+                Box(Modifier.weight(1f)) {
+                    if (hasSource) Segmented(listOf(false to t("Vista previa"), true to t("Código")), source, { source = it }, Modifier.widthIn(max = 280.dp).testTag("viewer-source"))
+                }
+                if (paged) {
+                    IconAction(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, t("Archivo anterior"), onClick = { model.viewer = items[(position - 1 + items.size) % items.size] }, modifier = Modifier.testTag("viewer-prev"))
+                    Text(t("{n} de {total}", "n" to (position + 1), "total" to items.size), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge)
+                    IconAction(Icons.AutoMirrored.Outlined.KeyboardArrowRight, t("Archivo siguiente"), onClick = { model.viewer = items[(position + 1) % items.size] }, modifier = Modifier.testTag("viewer-next"))
+                }
+            }
         }
         Box(Modifier.weight(1f).fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp).clip(RoundedCornerShape(22.dp)).background(Color(0x33060B16)), contentAlignment = Alignment.Center) {
             when (val l = loaded) {
@@ -217,7 +252,7 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
                     Spacer(Modifier.height(14.dp))
                     OrbitaButton(t("Reintentar"), onClick = { attempt++ }, haptic = Haptic.Tap)
                 }
-                is Loaded.Ready -> Content(l.raw, kind)
+                is Loaded.Ready -> if (source) CodeText(l.raw.text(), true) else Content(l.raw, kind)
             }
         }
     }
@@ -232,20 +267,42 @@ private fun Content(raw: RawContent, kind: String) {
         kind == "markdown" -> SelectionContainer {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp)) { MarkdownText(raw.text()) }
         }
-        raw.isText || kind == "code" || kind == "text" || raw.contentType.contains("svg") -> SelectionContainer {
-            Text(
-                raw.text(),
-                color = Orbita.Text,
-                style = Mono,
-                softWrap = kind != "code",
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState()).padding(16.dp),
-            )
-        }
+        raw.isText || kind == "code" || kind == "text" || raw.contentType.contains("svg") -> CodeText(raw.text(), kind == "code")
         else -> Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Outlined.Info, contentDescription = null, tint = Orbita.Accent, modifier = Modifier.size(34.dp))
             Spacer(Modifier.height(10.dp))
             Text(t("Este tipo de archivo no se puede ver aquí ({contentType}). Guárdalo en el móvil para abrirlo con otra app.", "contentType" to raw.contentType), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyLarge)
         }
+    }
+}
+
+/** Texto o código tal cual, que se puede seleccionar. */
+@Composable
+private fun CodeText(text: String, code: Boolean) {
+    SelectionContainer {
+        Text(
+            text,
+            color = Orbita.Text,
+            style = Mono,
+            softWrap = !code,
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState()).padding(16.dp),
+        )
+    }
+}
+
+/** Lo abre con otra app del móvil (visor de PDF, galería, editor…): se copia a la caché y se comparte solo para leerlo. */
+private fun openWithOtherApp(context: android.content.Context, raw: RawContent, title: String, model: OrbitaModel) {
+    runCatching {
+        val dir = File(context.cacheDir, "fotos/abrir").apply { mkdirs() }
+        val safe = title.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "archivo" }
+        val file = File(dir, safe).apply { writeBytes(raw.bytes) }
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fotos", file)
+        val type = raw.contentType.substringBefore(';').trim().ifBlank { "*/*" }
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(uri, type).addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(android.content.Intent.createChooser(intent, t("Abrir con otra app")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+    }.onFailure {
+        model.feedback.reject()
+        model.toast(t("Ninguna app del móvil puede abrirlo"), Toast.Tone.Error)
     }
 }
 

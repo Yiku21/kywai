@@ -1948,6 +1948,49 @@ fichas de tareas, memoria y documentos se quedan con 14 px. Órbita: `gapBefore`
 estilo es `CHAT_STYLE` en `src/main/coordinatorGuide.ts` (va en el prompt de Hermes, en las reglas de cada tarea y en la
 respuesta final).
 
+### Ver los archivos del chat sin salir de kywai (panel de vista previa)
+
+Al pulsar un archivo en el chat se abre **dentro de kywai**, en un panel a la derecha del chat (en el sitio del
+espacio 3D), como en Claude. Sirve para todo lo que aparece en la conversación:
+
+- tus **adjuntos** (y los de la pestaña Archivos);
+- los **entregables** de un agente (la ficha del resultado o la carpeta con varios, y la pestaña Resultados);
+- los archivos que un agente **crea o abre mientras trabaja** (las miniaturas y fichas de su tarjeta de trabajo);
+- un **nombre de archivo escrito entre comillas de código** en un mensaje (por ejemplo `` `00_LEEME.md` ``), si es un
+  archivo del proyecto: sale subrayado y se abre al pulsarlo;
+- los **enlaces e imágenes** de un mensaje que apuntan a archivos del proyecto.
+
+Arriba del panel:
+
+- **👁 / `</>`:** en Markdown, HTML y SVG, cambia entre la vista bonita y el código (con números de línea).
+- **Copiar:** copia el texto (o la imagen, como PNG).
+- **Descargar:** guarda una copia donde elijas (en el navegador, en la carpeta de descargas de ese dispositivo).
+- **Abrir con la aplicación del equipo:** lo de antes; en un cliente, con una aplicación de ese equipo; en el
+  navegador, en otra pestaña.
+- **Ampliar:** el panel ocupa toda la ventana (otra vez para reducirlo). **Esc** o la **✕** lo cierran.
+- **‹ 1 de 3 ›:** pasa a los demás archivos del mismo mensaje (o de la misma carpeta). También con las flechas
+  izquierda y derecha del teclado.
+
+Qué se ve en el panel: Markdown renderizado, imágenes (un clic las pone a tamaño real), páginas HTML funcionando
+(aisladas: no pueden usar la sesión de kywai), PDF con el visor del navegador, vídeo y audio con su reproductor, y
+código o texto con números de línea. Lo demás muestra «Vista previa no disponible» con el botón **Abrir con…**.
+
+Con la ventana estrecha (menos de 950 px) el panel ocupa toda la zona del chat. Al cambiar de proyecto se cierra.
+
+**Miniaturas:** las **imágenes que adjuntas** se ven en pequeño dentro de tu mensaje (una sola, más grande; varias, en
+cuadrícula). Si una no se puede cargar (se borró del disco), vuelve a ser una ficha con su nombre.
+
+Por debajo: el panel lee el archivo con `readArtifact` (con `{ text: true }` para ver el código de un HTML o un SVG) y
+lo muestra por `cowork://file/…` en el escritorio o por `/api/file/…` en el cliente y el navegador. `/api/file/…`
+admite peticiones por partes (para adelantar vídeos) y sirve los PDF sin el `sandbox` que se pone a lo demás (el
+visor de PDF del navegador no abre dentro de uno). «Descargar» usa `downloadFile` (diálogo de guardar en el
+escritorio; enlace de descarga en la web). La ventana de Electron tiene activado el visor de PDF (`plugins`).
+
+**En Órbita (móvil):** tus adjuntos del chat también salen en miniatura (las imágenes) o como fichas, y al tocarlos se
+abren en el lector a pantalla completa. El lector tiene **‹ 1 de 3 ›** para pasar a los demás archivos del mensaje
+(adjuntos, entregables o archivos de la tarea), **Vista previa / Código** en Markdown, HTML y SVG, **copiar** el
+texto, **guardar en el móvil** y **abrir con otra app** del móvil (visor de PDF, galería…).
+
 ### Ancho del chat y ventanas pequeñas
 
 El chat es lo importante; el espacio 3D es el escenario. Por eso, cuanto más pequeña es la ventana, más sitio se lleva

@@ -236,7 +236,7 @@ private fun MarkdownImage(alt: String, url: String) = ProjectImage(url, alt)
  * ordenador al verse, se guarda y, al pulsarla, se abre a pantalla completa. Con [crop] llena su espacio recortándose.
  */
 @Composable
-fun ProjectImage(url: String, alt: String, modifier: Modifier = Modifier.fillMaxWidth(), crop: Boolean = false) {
+fun ProjectImage(url: String, alt: String, modifier: Modifier = Modifier.fillMaxWidth(), crop: Boolean = false, onOpen: (() -> Unit)? = null) {
     val images = LocalMarkdownImages.current
     val remote = url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")
     val key = "img:$url"
@@ -272,7 +272,7 @@ fun ProjectImage(url: String, alt: String, modifier: Modifier = Modifier.fillMax
             contentScale = if (crop) ContentScale.Crop else ContentScale.FillWidth,
             modifier = modifier
                 .clip(RoundedCornerShape(14.dp))
-                .clickable { model.viewer = ViewerTarget.File("project", url, alt.ifBlank { url.substringAfterLast('/').substringAfterLast('\\') }, "image") },
+                .clickable { if (onOpen != null) onOpen() else model.viewer = ViewerTarget.File("project", url, alt.ifBlank { url.substringAfterLast('/').substringAfterLast('\\') }, "image") },
         )
         is Preview.None -> Text(
             (alt.ifBlank { t("imagen") }) + (preview.reason?.let { t(" — no se pudo cargar") } ?: ""),

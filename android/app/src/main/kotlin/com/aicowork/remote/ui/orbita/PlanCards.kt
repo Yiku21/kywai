@@ -273,7 +273,7 @@ fun DeliverablesCard(messageId: String, artifactIds: List<String>, snapshot: Sna
     val list = artifactIds.mapNotNull { id -> snapshot.conversation.artifacts.firstOrNull { it.id == id } }
     if (list.isEmpty()) return
     if (list.size == 1) {
-        Box(Modifier.padding(top = 8.dp)) { DeliverableRow(list.first(), snapshot, model) }
+        Box(Modifier.padding(top = 8.dp)) { DeliverableRow(list.first(), list, snapshot, model) }
         return
     }
     var open by rememberSaveable(messageId) { mutableStateOf(false) }
@@ -306,14 +306,14 @@ fun DeliverablesCard(messageId: String, artifactIds: List<String>, snapshot: Sna
         }
         if (open) {
             Column(Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                list.forEach { DeliverableRow(it, snapshot, model) }
+                list.forEach { DeliverableRow(it, list, snapshot, model) }
             }
         }
     }
 }
 
 @Composable
-private fun DeliverableRow(a: Artifact, snapshot: Snapshot, model: OrbitaModel) {
+private fun DeliverableRow(a: Artifact, list: List<Artifact>, snapshot: Snapshot, model: OrbitaModel) {
     val (icon, color) = kindIcon(a.kind, a.name)
     val canOpen = snapshot.capabilities.artifacts
     Row(
@@ -322,7 +322,10 @@ private fun DeliverableRow(a: Artifact, snapshot: Snapshot, model: OrbitaModel) 
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0x2E0B1324))
             .border(1.dp, Orbita.CardEdge, RoundedCornerShape(14.dp))
-            .tappable(enabled = canOpen, haptic = Haptic.Tap) { model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }
+            .tappable(enabled = canOpen, haptic = Haptic.Tap) {
+                // En el lector se pasa con ‹ › a los demás entregables del mensaje.
+                model.openViewer(list.map { ViewerTarget.Result(it.id, it.name, it.kind) }, list.indexOf(a))
+            }
             .semantics { contentDescription = t("Abrir {name}", "name" to a.name) }
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
