@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useThree } from '@react-three/fiber'
 import { CameraControls } from '@react-three/drei'
 import * as THREE from 'three'
+import type { StationConfig } from '@shared/types'
 import { useCowork, type CameraCommand } from '@/store/cowork'
 import type { ViewInsets } from './World'
 import { useTheme } from '@/lib/theme'
@@ -12,7 +13,7 @@ import { palette } from './palette'
  * estación). Las transiciones son suaves y respetan "efectos reducidos".
  */
 /** [view]: lo que tapa la interfaz (tema Órbita): la vista general se encuadra en la zona libre. */
-export function CameraRig({ view }: { view?: ViewInsets } = {}) {
+export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: StationConfig[] } = {}) {
   const [controls, setControls] = useState<CameraControls | null>(null)
   const size = useThree((s) => s.size)
   const reduced = useCowork((s) => s.reducedEffects)
@@ -22,6 +23,8 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
   useEffect(() => { camera.fov = theme === 'kywai' ? 38 : 30; camera.updateProjectionMatrix() }, [camera, theme])
   // El mapa del tema (cada uno se encuadra a su manera; la Ciudad y los decorados, como siempre).
   const world = palette.world
+  // El arrecife crece al añadir puestos; el encuadre inicial debe incluirlos también.
+  const marineScale = theme === 'submarino' ? stations?.reduce((scale, { position: [x, z] }) => Math.max(scale, Math.abs(x) / 7.4, z / 5.6, -z / 18), 1) ?? 1 : 1
 
   const overview = useCallback(
     (smooth: boolean) => {
@@ -32,7 +35,7 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
       // La zona libre es más pequeña que el lienzo: se aleja lo que haga falta para que el mundo quepa en ella.
       const room = view ? Math.max(1, size.height / Math.max(1, height)) : 1
       if (theme === 'submarino') {
-        const k = Math.max(1, 1.65 / aspect) * room
+        const k = Math.max(1, 1.65 / aspect) * room * marineScale
         void controls.setLookAt(0, 11.2 * k, 25.8 * k, 0, 2.0, -2.5, smooth)
         atOverview.current = true
         return
@@ -98,7 +101,7 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
       }
       atOverview.current = true
     },
-    [controls, size.width, size.height, view?.left, view?.top, view?.bottom, theme, world]
+    [controls, size.width, size.height, view?.left, view?.top, view?.bottom, theme, world, marineScale]
   )
 
   useEffect(() => {
@@ -135,7 +138,7 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
       ref={setControls}
       makeDefault
       minDistance={6}
-      maxDistance={64}
+      maxDistance={64 * marineScale}
       minPolarAngle={0.32}
       maxPolarAngle={theme === 'kywai' ? 1.4 : 1.2}
       minAzimuthAngle={-0.95}

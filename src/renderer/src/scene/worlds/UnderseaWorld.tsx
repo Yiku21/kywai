@@ -16,9 +16,21 @@ import reefUrl from '../../assets/submarino/reef.png'
 import nacreUrl from '../../assets/submarino/nacre.png'
 const TAU = Math.PI * 2
 const rand = (n: number) => { const x=Math.sin(n*127.13+31.7)*43758.5453;return x-Math.floor(x) }
-const spots: [number,number][] = [[-7.3,-.3],[-5.8,-6.6],[7.4,-.4],[5.5,5.6],[-5.5,5.6],[.1,-18],[5.8,-6.5]]
+const spots: [number,number][] = [[-7.3,-.3],[-5.8,-6.6],[7.4,-.4],[5.5,5.6],[-5.5,5.6],[.1,-18],[5.8,-6.5],[-12.8,-.3],[12.8,-.4],[-11.3,-6.6],[11.3,-6.5],[-11,5.6],[11,5.6]]
+const PLATFORM_CLEARANCE = 5.2
+/** Distribución solo visual: los puestos adicionales siempre dejan espacio entre plataformas. */
 export function underseaLayout(stations: StationConfig[]): StationConfig[] {
-  return stations.map((s,i)=>({...s,position: spots[i] ?? [Math.cos(i*2.4)*11,Math.sin(i*2.4)*8] as [number,number]}))
+  const positions = spots.slice(0, stations.length)
+  for (let ring = 0; positions.length < stations.length; ring++) {
+    const radius = 12 + ring * PLATFORM_CLEARANCE
+    const count = Math.floor(TAU * radius / PLATFORM_CLEARANCE)
+    for (let i = 0; i < count && positions.length < stations.length; i++) {
+      const angle = i * TAU / count
+      const point: [number, number] = [Math.sin(angle) * radius, Math.cos(angle) * radius]
+      if (positions.every(([x, z]) => Math.hypot(x - point[0], z - point[1]) >= PLATFORM_CLEARANCE)) positions.push(point)
+    }
+  }
+  return stations.map((station, i) => ({ ...station, position: [...positions[i]] }))
 }
 function tube(points: THREE.Vector3[], radius: number, segments=32) {
   return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),segments,radius,6,false)
