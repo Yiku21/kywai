@@ -879,6 +879,11 @@ comprueba cómo se ve de verdad: una página en blanco, cortada o que no se pued
 abren las HTML que cambió la tarea o, si cambió estilos o componentes, la entrada ya compilada (`dist/`, `build/`…
 o `index.html`). Lo ves en «Ver qué está haciendo» de la tarea.
 
+**La verificación no frena la cola.** En cuanto el autor termina, queda libre: si tiene otra tarea que no depende de
+la que se está verificando, la empieza ya (en una copia aparte de la carpeta si hace falta, que se integra al
+terminar), en vez de esperar a que acabe la revisión. Las tareas que dependen de la verificada siguen esperando a
+que la apruebe.
+
 ### Cambios de cada tarea: verlos, deshacerlos y copias aparte
 
 Antes de que una tarea que cambia archivos empiece, kywai guarda una **instantánea** de la carpeta del proyecto,
