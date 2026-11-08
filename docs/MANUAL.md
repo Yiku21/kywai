@@ -1986,6 +1986,11 @@ admite peticiones por partes (para adelantar vídeos) y sirve los PDF sin el `sa
 visor de PDF del navegador no abre dentro de uno). «Descargar» usa `downloadFile` (diálogo de guardar en el
 escritorio; enlace de descarga en la web). La ventana de Electron tiene activado el visor de PDF (`plugins`).
 
+**En Órbita (móvil):** tus adjuntos del chat también salen en miniatura (las imágenes) o como fichas, y al tocarlos se
+abren en el lector a pantalla completa. El lector tiene **‹ 1 de 3 ›** para pasar a los demás archivos del mensaje
+(adjuntos, entregables o archivos de la tarea), **Vista previa / Código** en Markdown, HTML y SVG, **copiar** el
+texto, **guardar en el móvil** y **abrir con otra app** del móvil (visor de PDF, galería…).
+
 ### Ancho del chat y ventanas pequeñas
 
 El chat es lo importante; el espacio 3D es el escenario. Por eso, cuanto más pequeña es la ventana, más sitio se lleva

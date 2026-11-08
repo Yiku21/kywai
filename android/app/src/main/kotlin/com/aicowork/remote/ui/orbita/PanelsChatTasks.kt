@@ -379,12 +379,8 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
         author.isUser -> Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
             Column(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(Orbita.UserBubble).border(1.dp, Orbita.AccentEdge.copy(alpha = 0.25f), RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).padding(horizontal = 14.dp, vertical = 10.dp)) {
                 if (message.text.isNotBlank()) Text(message.text, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge)
-                message.attachments.forEach { a ->
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                        Icon(Icons.Outlined.AttachFile, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(16.dp))
-                        Text(a.name, color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
+                // Las imágenes en miniatura; al tocar un adjunto se abre en el lector.
+                ChatAttachments(message.attachments, model, canOpen = snapshot.capabilities.files)
             }
             Row(Modifier.padding(top = 3.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 message.direct?.let { d ->
