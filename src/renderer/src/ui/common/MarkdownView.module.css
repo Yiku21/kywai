@@ -186,3 +186,21 @@
   max-width: 100%;
   border-radius: 8px;
 }
+
+/* Nombre de un archivo del proyecto: se abre en el panel de vista previa al pulsarlo. */
+.md code.fileCode {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--cyan) 50%, transparent);
+  text-underline-offset: 3px;
+}
+
+.md code.fileCode:hover,
+.md code.fileCode:focus-visible {
+  color: var(--cyan);
+  outline: none;
+}
+
+.md img.previewable {
+  cursor: zoom-in;
+}

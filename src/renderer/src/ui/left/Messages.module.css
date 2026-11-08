@@ -1422,3 +1422,57 @@ button.itemHead:hover {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Imágenes adjuntas (miniaturas) y entregables que se abren al pulsarlos ---------- */
+
+.attThumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attThumbsOne {
+  grid-template-columns: minmax(0, 320px);
+}
+
+.attThumb {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-input);
+  overflow: hidden;
+  cursor: zoom-in;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.attThumb:hover {
+  border-color: color-mix(in srgb, var(--cyan) 55%, transparent);
+}
+
+.attThumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.attThumbsOne .attThumb img {
+  aspect-ratio: auto;
+  max-height: 280px;
+  object-fit: contain;
+}
+
+.artifactOpen {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
