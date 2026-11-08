@@ -6,6 +6,8 @@ import com.aicowork.remote.data.model.Conversation
 import com.aicowork.remote.data.model.CoworkJson
 import com.aicowork.remote.data.model.Snapshot
 import com.aicowork.remote.data.model.TaskItem
+import com.aicowork.remote.data.model.TaskWork
+import com.aicowork.remote.data.model.numberedTitle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -50,6 +52,20 @@ class EventReducerTest {
         assertEquals(listOf("m1", "m2"), added.conversation.messages.map { it.id })
         val replaced = EventReducer.reduce(added, 5, EventReducer.parse("""{"type":"message.upsert","sequence":6,"payload":{"message":{"id":"m2","text":"Hecho"}}}""")!!)
         assertEquals("Hecho", (replaced as ReduceResult.Applied).snapshot.conversation.messages.last().text)
+    }
+
+    @Test
+    fun `a task block that works again moves to the end, other updates stay in place`() {
+        val c = Conversation(id = "c1", messages = listOf(
+            ChatMessage(id = "w1", text = "", createdAt = 1, work = TaskWork(taskId = "t1", status = "stopped", seq = 7)),
+            ChatMessage(id = "m2", text = "Codex comprobó y vio fallos", createdAt = 2),
+        ))
+        val reopened = c.upsert(ChatMessage(id = "w1", text = "", createdAt = 3, work = TaskWork(taskId = "t1", status = "running", seq = 7)))
+        assertEquals(listOf("m2", "w1"), reopened.messages.map { it.id })
+        val updated = c.upsert(ChatMessage(id = "w1", text = "Hecho", createdAt = 1, work = TaskWork(taskId = "t1", status = "done")))
+        assertEquals(listOf("w1", "m2"), updated.messages.map { it.id })
+        assertEquals("#7 Guía", numberedTitle(7, "Guía"))
+        assertEquals("Guía", numberedTitle(null, "Guía"))
     }
 
     @Test

@@ -24,6 +24,7 @@ import type {
 } from '@shared/types'
 import { localizeInbox } from '@shared/inbox'
 import { DEFAULT_CONFIG } from '@shared/defaults'
+import { upsertChatMessage } from '@shared/chatOrder'
 import { sceneBus } from '@/lib/bus'
 import { api } from '@/lib/api'
 import { fromArtifact, type PreviewItem, type PreviewState } from '@/lib/preview'
@@ -262,9 +263,7 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
       return { ...d, transfers }
     }
     case 'message.upsert': {
-      const i = d.messages.findIndex((m) => m.id === e.message.id)
-      const messages = i === -1 ? [...d.messages, e.message] : d.messages.map((m, j) => (j === i ? e.message : m))
-      return { ...d, messages }
+      return { ...d, messages: upsertChatMessage(d.messages, e.message) }
     }
     case 'message.delta': {
       const messages = d.messages.map((m) => (m.id === e.messageId ? { ...m, text: m.text + e.text } : m))

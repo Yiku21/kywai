@@ -13,6 +13,7 @@ import s from './Views.module.css'
 import { t } from '@/lib/i18n'
 import { serverNow } from '@/lib/serverClock'
 import { TaskStages } from './TaskStages'
+import { TaskSeq } from '../common/TaskSeq'
 
 type GroupId = 'running' | 'waiting' | 'done' | 'error'
 
@@ -151,7 +152,10 @@ function TaskRow({
     >
       <TaskStatusIcon status={task.status} size={16} className={s.taskStatus} />
       <span className={s.taskMain}>
-        <span className={s.taskTitle}>{task.title}</span>
+        <span className={s.taskTitle}>
+          <TaskSeq seq={task.seq} />
+          {task.title}
+        </span>
         <span className={s.taskMeta}>
           <AgentPill look={look} size="sm" />
           {model && <span className={s.model}>{model}</span>}

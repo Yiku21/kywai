@@ -93,6 +93,7 @@ import com.aicowork.remote.data.CoworkUiState
 import com.aicowork.remote.data.OutgoingStatus
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.Snapshot
+import com.aicowork.remote.data.model.numberedTitle
 import com.aicowork.remote.ui.components.Labels
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -390,7 +391,7 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
         if (task != null) {
             Spacer(Modifier.height(12.dp))
             Column(Modifier.fillMaxWidth().card().tappable { model.openTask(task.id) }.padding(12.dp)) {
-                Text(task.title, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(numberedTitle(task.seq, task.title), color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(6.dp))
                 if (task.status == "running") ProgressLine(task.progress?.toFloat(), Orbita.Accent)
                 else Text(Labels.taskStatus(task.status), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)

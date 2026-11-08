@@ -41,6 +41,7 @@ import { fileSize, timeHM } from '@/lib/format'
 import { projectFileUrl } from '@/lib/localRefs'
 import { fromArtifact, fromAttachment, fromWorkFile, isImageFile } from '@/lib/preview'
 import { AgentAvatar, AgentPill } from '../common/AgentBits'
+import { TaskSeq } from '../common/TaskSeq'
 import { useAgentLookup } from '../common/agents'
 import { useComposer } from './composerStore'
 import { FileTypeIcon, KindTile, TaskStatusIcon } from '../common/icons'
@@ -219,7 +220,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
       <AgentAvatar look={look} size={40} className={s.robot} />
       <div className={s.main}>
         <Meta
-          name={look.name}
+          name={m.work?.by ? `${look.name} · ${m.work.by}` : look.name}
           ts={m.createdAt}
           onName={look.present ? () => select({ type: 'agent', id: agentId }) : undefined}
           nameTitle={t('Ver a {name} en el espacio', { name: look.name })}
@@ -406,7 +407,9 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
   // Solo sigue «trabajando» si la tarea sigue en marcha (tras reiniciar la app, ya no).
   const live = work.status === 'running' && task?.status === 'running'
   // Ya entregó y otro agente lo revisa: no está «trabajando» (su robot queda libre en el 3D).
-  const state = work.status === 'running' && !live ? t('Detenida') : live && task?.phase === 'verify' ? t('En revisión') : WORK_STATE[work.status]
+  // Cerrado pero la tarea vuelve a la cola (a corregir lo que vio el verificador): no está detenida, espera.
+  const queued = work.status === 'stopped' && (task?.status === 'pending' || task?.status === 'blocked')
+  const state = work.status === 'running' && !live ? t('Detenida') : live && task?.phase === 'verify' ? t('En revisión') : queued ? t('En cola') : WORK_STATE[work.status]
   const count = work.steps.length + (work.hidden ?? 0)
   const totals = work.totals
 
@@ -452,7 +455,10 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
         title={count > 0 ? (open ? t('Ocultar lo que hizo') : t('Ver lo que hizo')) : t('Ver todo lo que hizo, paso a paso')}
       >
         {live ? <LoaderCircle size={14} className={cx(s.workSpin, !reduced && u.spin)} aria-hidden="true" /> : <ListChecks size={14} aria-hidden="true" />}
-        <span className={s.workTitle}>{work.title}</span>
+        <span className={s.workTitle}>
+          <TaskSeq seq={work.seq} />
+          {work.title}
+        </span>
         <span className={cx(s.workState, work.status === 'failed' && s.workFailed)}>{state}</span>
       </button>
       {!open && (!!note || !!files || live) && (
@@ -937,6 +943,7 @@ function PlanBlock({ taskIds, runId, contract }: { taskIds: string[]; runId?: st
           <li key={task.id} className={s.taskRow}>
             <AgentPill look={lookup(task.agentId)} size="sm" />
             <span className={s.taskTitle} title={task.title}>
+              <TaskSeq seq={task.seq} />
               {task.title}
             </span>
             <TaskStatusIcon status={task.status} size={15} />

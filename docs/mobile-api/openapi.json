@@ -5497,6 +5497,11 @@
           "direct": {
             "type": "boolean",
             "description": "Mensaje directo del usuario a este agente: sin plan de Hermes, sin verificador y sin relevo."
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Número de la tarea en el proyecto (#1, #2…)."
           }
         },
         "required": [
@@ -7328,6 +7333,15 @@
               "summary"
             ],
             "additionalProperties": false
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Número de la tarea en el proyecto (#7): distingue dos tareas en paralelo del mismo agente."
+          },
+          "by": {
+            "type": "string",
+            "description": "Quién la hace de verdad si no es el autor del mensaje (un becario): «Claude · Becario»."
           }
         },
         "required": [

@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { Artifact, ArtifactKind, Attachment, ChatMessage, ProjectState, ProjectSummary, Task } from '@shared/types'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
+import { reopensWork } from '@shared/chatOrder'
 import { emitMobileOnly } from './events'
 
 const SAVE_DEBOUNCE_MS = 400
@@ -360,6 +361,9 @@ function upsertBy<T extends { id: string }>(list: T[], item: T): void {
 
 export function upsertMessage(m: ChatMessage): void {
   const st = getProject(m.projectId)
+  const i = st.messages.findIndex((x) => x.id === m.id)
+  // El bloque de una tarea que vuelve a trabajar (una corrección) baja al final, como en el chat.
+  if (i >= 0 && reopensWork(st.messages[i], m)) st.messages.splice(i, 1)
   upsertBy(st.messages, { ...m })
   scheduleSave(m.projectId)
 }

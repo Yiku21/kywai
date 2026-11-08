@@ -272,16 +272,21 @@ async function main(): Promise<void> {
       assert.equal(script.agentId, 'codex') // fell back to the parent with its main model
       assert.equal(script.model, 'gpt-6.1-sol')
       // Registro de la tarea: los dos intentos (el becario, rechazado, y Codex) con cómo acabó cada uno, y la verificación.
+      // Los dos intentos van en el mismo mensaje del chat: por qué se repitió queda entre sus pasos.
       const notes = getTaskTrace(script.id).filter((e) => e.kind === 'note' || e.kind === 'error').map((e) => `${e.kind}:${e.title}`)
-      assert.equal(notes.length, 7, notes.join(' | '))
-      assert.match(notes[4], /^note:Claude comprueba el resultado contra la petición$/)
-      assert.match(notes[5], /^note:Claude: cumple, sin pruebas ejecutadas/)
+      assert.equal(notes.length, 8, notes.join(' | '))
+      assert.match(notes[5], /^note:Claude comprueba el resultado contra la petición$/)
+      assert.match(notes[6], /^note:Claude: cumple, sin pruebas ejecutadas/)
       // Lo que cambió queda guardado como instantáneas: se puede ver y deshacer.
-      assert.match(notes[6], /^note:Cambios guardados: 1 archivo \(\+1 −0\)/)
+      assert.match(notes[7], /^note:Cambios guardados: 1 archivo \(\+1 −0\)/)
       assert.match(notes[0], /^note:.+ empieza con .+ · esfuerzo medio$/)
       assert.match(notes[1], /^error:.*not supported/)
-      assert.match(notes[2], /^note:Codex empieza con .+ · esfuerzo medio$/)
-      assert.match(notes[3], /^note:Terminó en \d+ s/)
+      assert.match(notes[2], /^note:El modelo .+ no está disponible: lo repito con el principal\.$/)
+      assert.match(notes[3], /^note:Codex empieza con .+ · esfuerzo medio$/)
+      assert.match(notes[4], /^note:Terminó en \d+ s/)
+      const scriptBlocks = (store.getProject(project.id).messages as ChatMessage[]).filter((m) => m.work?.taskId === script.id)
+      assert.equal(scriptBlocks.length, 1, 'una tarea, un solo bloque en el chat aunque se repita')
+      assert.equal(scriptBlocks[0].work?.by, undefined, 'al final la hizo Codex, no su becario')
       const web = [...ts.values()].find((t) => t.title === 'Diseñar la web')!
       assert.equal(web.artifactIds.length, 1)
       assert.equal(web.progress, 1)
@@ -1080,7 +1085,14 @@ async function main(): Promise<void> {
       const verify = calls.slice(from)[2]
       assert.ok(verify.prompt.includes('## Petición original del usuario') && verify.prompt.includes('Formulario de alta'), 'el verificador ve la petición y la tarea')
       const msgs = store.snapshotProject(up.id).messages
-      assert.ok(msgs.some((m) => m.text.includes('Claude comprobó «Formulario de alta» y vio fallos; Codex los corrige')), 'se cuenta la corrección')
+      const review = msgs.find((m) => m.text.includes('Claude comprobó «Formulario de alta» y vio fallos; Codex los corrige'))
+      assert.ok(review, 'se cuenta la corrección')
+      // La revisión la firma quien la hizo, no el autor; y la corrección sigue en el mismo bloque, que baja al final.
+      assert.deepEqual(review.author, { type: 'agent', agentId: 'claude' })
+      assert.ok(!review.work, 'la revisión es un mensaje aparte, no el bloque de la tarea')
+      const blocks = msgs.filter((m) => m.work && m.runId === runId)
+      assert.equal(blocks.length, 1, 'un solo bloque para la tarea y su corrección')
+      assert.ok(msgs.indexOf(blocks[0]) > msgs.indexOf(review), 'el bloque corregido queda debajo de la revisión')
       const done = msgs.find((m) => m.work?.status === 'done')!
       assert.ok(done.text.includes('✔ Claude comprobó el resultado tras una corrección: cumple, sin pruebas ejecutadas'), done.text)
       const task = store.snapshotProject(up.id).tasks.find((t) => t.runId === runId)!

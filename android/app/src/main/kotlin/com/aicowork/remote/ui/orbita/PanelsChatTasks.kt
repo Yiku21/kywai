@@ -82,6 +82,7 @@ import com.aicowork.remote.data.QueuedFile
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.ChatMessage
 import com.aicowork.remote.data.model.Snapshot
+import com.aicowork.remote.data.model.numberedTitle
 import com.aicowork.remote.data.model.TaskItem
 import com.aicowork.remote.ui.components.Format
 import com.aicowork.remote.ui.components.Labels
@@ -406,7 +407,7 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(agent?.name ?: author.name ?: t("Agente"), color = agent?.let { parseColor(it.color) } ?: Orbita.Accent, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        Text((agent?.name ?: author.name ?: t("Agente")) + (message.work?.by?.let { " · $it" } ?: ""), color = agent?.let { parseColor(it.color) } ?: Orbita.Accent, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.width(8.dp))
                         Text(Format.time(message.createdAt), color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium)
                     }
@@ -660,7 +661,7 @@ private fun TaskCard(task: TaskItem, snapshot: Snapshot, selected: Boolean, mode
             RobotFace(agent, 46.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(task.title, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(numberedTitle(task.seq, task.title), color = Orbita.Text, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(agent?.name ?: task.agentId, color = agent?.let { parseColor(it.color).copy(alpha = 0.9f) } ?: Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                     Text("  ·  ", color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall)
@@ -725,7 +726,7 @@ private fun SelectedTask(task: TaskItem, snapshot: Snapshot, model: OrbitaModel)
                 RobotFace(agent, 52.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(task.title, color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
+                    Text(numberedTitle(task.seq, task.title), color = Orbita.Text, style = MaterialTheme.typography.titleMedium)
                     Text(t("Responsable: {v1}", "v1" to (agent?.name ?: task.agentId)), color = Orbita.Accent.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium)
                 }
             }

@@ -638,6 +638,7 @@ export const zh: Record<string, string> = {
   "Hecha": "完成",
   "No pudo hacerla": "没能完成",
   "Detenida": "已停止",
+  "En cola": "排队中",
   "paso": "步",
   "pasos": "步",
   "con error": "有错误",
@@ -2606,4 +2607,7 @@ export const zh: Record<string, string> = {
   "Bailando": "跳舞中",
   "En revisión": "审核中",
   "Esperando la revisión de {agentName}": "等待 {agentName} 审核",
+  "Ojo: «{fresh}» se parece mucho a «{existing}», que sigue en marcha. Si es lo mismo, detén una de las dos para que no se pisen.": "注意：「{fresh}」与仍在进行的「{existing}」非常相似。如果是同一件事，请停止其中一个，以免互相干扰。",
+  "Era un becario de {name}: terminó su parte y deja el puesto libre. Su tarea sigue con {name}.": "这是 {name} 的实习生：它完成了自己的部分并空出了工位。它的任务由 {name} 继续。",
+  "Ver a {name}": "查看 {name}",
 }
