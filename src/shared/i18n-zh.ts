@@ -2476,4 +2476,5 @@ export const zh: Record<string, string> = {
   "Ese zip no tiene conversations.json: elige la exportación de ChatGPT o de Claude.ai": "该 zip 中没有 conversations.json：请选择 ChatGPT 或 Claude.ai 的导出文件",
   "No reconozco ese archivo: elige la exportación de ChatGPT o de Claude.ai": "无法识别该文件：请选择 ChatGPT 或 Claude.ai 的导出文件",
   "Elige la exportación de ChatGPT o de Claude.ai": "请选择 ChatGPT 或 Claude.ai 的导出文件",
+  "La exportación supera los límites de lectura; divídela en archivos más pequeños": "导出文件超过读取限制，请拆分为较小文件",
 }

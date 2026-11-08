@@ -12,6 +12,8 @@ export const IDIOMAS = [
 
 export const TEXTOS = {
   en: {
+    'features.9t': "Bring your existing chats",
+    'features.9b': "Import local Claude Code, Codex and Hermes sessions, including Hermes Desktop, or ChatGPT and Claude.ai JSON/ZIP exports. Keep your conversations, recover included Claude projects and documents, and continue with your team. Originals are preserved; local sessions are read on the server.",
     'themes.gallery1': "Frost Glass",
     'themes.gallery2': "Pearl",
     'themes.gallery3': "Neon",
@@ -158,6 +160,8 @@ export const TEXTOS = {
   },
 
   es: {
+    'features.9t': "Trae los chats que ya tienes",
+    'features.9b': "Importa sesiones locales de Claude Code, Codex y Hermes, incluido Hermes Desktop, o exportaciones JSON/ZIP de ChatGPT y Claude.ai. Conserva conversaciones, recupera los proyectos y documentos de Claude incluidos y continúa con tu equipo. Los originales se conservan; las sesiones locales se buscan en el servidor.",
     'themes.gallery1': "Frost Glass",
     'themes.gallery2': "Perla",
     'themes.gallery3': "Neón",
@@ -304,6 +308,8 @@ export const TEXTOS = {
   },
 
   pt: {
+    'features.9t': "Traga os chats que você já tem",
+    'features.9b': "Importe sessões locais do Claude Code, Codex e Hermes, incluindo Hermes Desktop, ou exportações JSON/ZIP do ChatGPT e Claude.ai. Preserve conversas, recupere os projetos e documentos do Claude incluídos e continue com sua equipe. Os originais são preservados; as sessões locais são lidas no servidor.",
     'themes.gallery1': "Frost Glass",
     'themes.gallery2': "Pérola",
     'themes.gallery3': "Néon",
@@ -450,6 +456,8 @@ export const TEXTOS = {
   },
 
   fr: {
+    'features.9t': "Importez vos chats existants",
+    'features.9b': "Importez les sessions locales de Claude Code, Codex et Hermes, dont Hermes Desktop, ou les archives JSON/ZIP de ChatGPT et Claude.ai. Conservez les conversations, récupérez les projets et documents Claude inclus et poursuivez avec votre équipe. Les originaux sont conservés ; les sessions locales sont lues sur le serveur.",
     'themes.gallery1': "Frost Glass",
     'themes.gallery2': "Perle",
     'themes.gallery3': "Néon",
@@ -596,6 +604,8 @@ export const TEXTOS = {
   },
 
   zh: {
+    'features.9t': "带上你已有的对话",
+    'features.9b': "导入本地 Claude Code、Codex、Hermes 会话（包括 Hermes Desktop），或 ChatGPT、Claude.ai 的 JSON/ZIP 导出文件。保留对话，恢复导出文件中包含的 Claude 项目和文档，并与团队继续工作。原始数据会保留；本地会话从服务器读取。",
     'themes.gallery1': "Frost Glass",
     'themes.gallery2': "珍珠",
     'themes.gallery3': "霓虹",

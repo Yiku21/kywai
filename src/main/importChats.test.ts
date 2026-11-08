@@ -201,6 +201,24 @@ describe('importar', () => {
     expect(store.getProject(p.id).messages[1]).toMatchObject({ author: { type: 'agent', agentId: 'Claude Code' }, importedFrom: 'Claude Code' })
   })
 
+  it('rechaza tamaños declarados enormes y rutas fuera del ZIP antes de reservar memoria', () => {
+    const file = join(root, 'limites.zip')
+    const bytes = Buffer.from(zipSync({ 'conversations.json': strToU8('[]') }))
+    const central = bytes.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]))
+    bytes.writeUInt32LE(512 * 1024 * 1024, central + 24)
+    writeFileSync(file, bytes)
+    const zip = new ZipReader(file)
+    try {
+      expect(() => zip.data(zip.entries[0])).toThrow(/límites/)
+      expect(() => zip.data({ ...zip.entries[0], size: 2, offset: 2 ** 50 })).toThrow(/zip válido/)
+    } finally { zip.close() }
+    // Directorio central falsificado: no se reserva el tamaño indicado por el archivo.
+    const end = bytes.length - 22
+    bytes.writeUInt32LE(1024 * 1024 * 1024, end + 12)
+    writeFileSync(file, bytes)
+    expect(() => new ZipReader(file)).toThrow(/límites/)
+  })
+
   it('ChatGPT: zip con imágenes a un proyecto «ChatGPT», y otra vez no duplica', () => {
     const file = join(root, 'chatgpt.zip')
     writeFileSync(file, zipSync({ 'conversations.json': strToU8(JSON.stringify(chatGpt)), 'file-ABC123-foto.png': new Uint8Array([137, 80, 78, 71]) }))

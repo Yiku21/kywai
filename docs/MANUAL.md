@@ -1655,6 +1655,8 @@ en `workspace/importados.json`; si borras una conversación importada, se puede 
 **Claude.ai** (Ajustes → Privacidad → Exportar datos): el zip que llega por correo tal cual, o solo su
 `conversations.json`. Desde el navegador o el cliente se sube entero al servidor (hasta 8 GB) y se borra al acabar.
 
+Cada JSON o entrada descomprimida tiene un límite de 256 MB, y el directorio del ZIP, 32 MB y 100.000 entradas. Los tamaños y posiciones inválidos se rechazan antes de reservar memoria; la descompresión también tiene límite. Si se supera, divide la exportación. [Claude confirma](https://support.claude.com/en/articles/9450526-export-your-claude-data) que su exportación no incluye los archivos originales subidos: solo se recupera lo presente en el archivo. Los historiales de Gemini/Takeout todavía no se importan.
+
 - **ChatGPT**: todas las conversaciones van a un proyecto «ChatGPT», con su título, sus fechas y la rama que se veía en
   la app (las respuestas regeneradas que descartaste no). Las **imágenes** que adjuntaste se copian a los adjuntos del
   proyecto. Las llamadas internas a herramientas (Python, navegador) no se traen. La exportación no dice el nombre de los

@@ -386,6 +386,10 @@ export function parseClaudeAi(conversations: unknown, projects?: unknown): { con
 
 // ---------- Leer un zip sin cargarlo entero (las exportaciones de ChatGPT pasan de 1 GB con imágenes) ----------
 
+/** El ZIP puede ser grande; cada entrada se lee y descomprime con un límite independiente. */
+const MAX_IMPORT_ENTRY = 256 * 1024 * 1024
+const MAX_IMPORT_DIRECTORY = 32 * 1024 * 1024
+
 interface ZipEntry {
   name: string
   method: number
@@ -396,12 +400,14 @@ interface ZipEntry {
 
 export class ZipReader {
   private fd: number
+  private fileSize: number
   readonly entries: ZipEntry[] = []
 
   constructor(path: string) {
     this.fd = openSync(path, 'r')
+    this.fileSize = statSync(path).size
     try {
-      this.readDirectory(statSync(path).size)
+      this.readDirectory(this.fileSize)
     } catch (e) {
       this.close()
       throw e
@@ -409,6 +415,7 @@ export class ZipReader {
   }
 
   private read(pos: number, len: number): Buffer {
+    if (!Number.isSafeInteger(pos) || !Number.isSafeInteger(len) || pos < 0 || len < 0 || len > MAX_IMPORT_ENTRY || pos > this.fileSize - len) throw new Error(tr('No es un archivo zip válido'))
     const buf = Buffer.alloc(len)
     let done = 0
     while (done < len) {
@@ -442,6 +449,7 @@ export class ZipReader {
         dirOffset = Number(rec.readBigUInt64LE(48))
       }
     }
+    if (dirSize > MAX_IMPORT_DIRECTORY || count > 100_000) throw new Error(tr('La exportación supera los límites de lectura; divídela en archivos más pequeños'))
     const dir = this.read(dirOffset, dirSize)
     let p = 0
     for (let i = 0; i < count && p + 46 <= dir.length; i++) {
@@ -477,12 +485,16 @@ export class ZipReader {
   }
 
   data(entry: ZipEntry): Buffer {
+    if (!Number.isSafeInteger(entry.size) || entry.size < 0 || entry.size > MAX_IMPORT_ENTRY || entry.compressed > MAX_IMPORT_ENTRY) throw new Error(tr('La exportación supera los límites de lectura; divídela en archivos más pequeños'))
     const head = this.read(entry.offset, 30)
     if (head.readUInt32LE(0) !== 0x04034b50) throw new Error(tr('No es un archivo zip válido'))
     const start = entry.offset + 30 + head.readUInt16LE(26) + head.readUInt16LE(28)
     const raw = this.read(start, entry.compressed)
     if (entry.method === 0) return raw
-    if (entry.method === 8) return inflateRawSync(raw)
+    if (entry.method === 8) {
+      try { return inflateRawSync(raw, { maxOutputLength: MAX_IMPORT_ENTRY }) }
+      catch { throw new Error(tr('No es un archivo zip válido')) }
+    }
     throw new Error(tr('El zip usa una compresión que kywai no sabe leer'))
   }
 
@@ -1073,7 +1085,10 @@ export function importArchive(path: unknown, agents: AgentConfig[]): ImportResul
   let convData: unknown
   let projData: unknown
   try {
-    if (ext === '.json') convData = parseJson(readFileSync(file))
+    if (ext === '.json') {
+      if (statSync(file).size > MAX_IMPORT_ENTRY) throw new Error(tr('La exportación supera los límites de lectura; divídela en archivos más pequeños'))
+      convData = parseJson(readFileSync(file))
+    }
     else zip = new ZipReader(file)
     if (zip) {
       const entry = zip.find(isConvsJson)
