@@ -1147,63 +1147,137 @@ function importClaudeAi(ctx: Ctx, parsed: ReturnType<typeof parseClaudeAi>): voi
   }
 }
 
-const isConvsJson = (n: string): boolean => n === 'conversations.json' || n.endsWith('/conversations.json')
-const isProjectsJson = (n: string): boolean => n === 'projects.json' || n.endsWith('/projects.json')
+// Claude.ai manda ahora la exportación partida: un manifest-….json que nombra los zips (conversations-000.zip,
+// projects-000.zip, memories-000.zip…) y los zips sueltos. Dentro puede venir un conversations.json con todas o un
+// JSON por conversación en una carpeta. Se buscan por el nombre y se reconocen por su forma.
+const jsonName = (n: string): string => basename(n).toLowerCase()
+const isConvsJson = (n: string): boolean => /^conversations?(-\d+)?\.json$/.test(jsonName(n)) || (/(^|\/)conversations?\//i.test(n) && n.toLowerCase().endsWith('.json'))
+const isProjectsJson = (n: string): boolean => /^projects?(-\d+)?\.json$/.test(jsonName(n)) || (/(^|\/)projects?\//i.test(n) && jsonName(n).endsWith('.json') && !/\/docs?\//i.test(n))
 
-function parseJson(buf: Buffer): unknown {
+function parseJson(buf: Buffer, name = 'conversations.json'): unknown {
   try {
     return JSON.parse(buf.toString('utf8')) as unknown
   } catch {
-    throw new Error(tr('El archivo conversations.json no se puede leer'))
+    throw new Error(tr('El archivo {name} no se puede leer', { name: basename(name) }))
   }
+}
+
+/** Una lista de conversaciones (o proyectos), una sola, o envuelta en { conversations: [...] }. */
+function asItems(data: unknown, key: string): unknown[] {
+  if (Array.isArray(data)) return data
+  if (data && typeof data === 'object') {
+    const inner = (data as Record<string, unknown>)[key]
+    if (Array.isArray(inner)) return inner
+    return [data]
+  }
+  return []
 }
 
 /** ChatGPT o Claude.ai, por la forma de sus conversaciones. */
 function detect(data: unknown): 'chatgpt' | 'claude-ai' | null {
   if (!Array.isArray(data)) return null
   const first = data.find((c) => c && typeof c === 'object') as Record<string, unknown> | undefined
-  if (!first) return Array.isArray(data) ? 'chatgpt' : null
+  if (!first) return 'chatgpt'
   if ('mapping' in first) return 'chatgpt'
   if ('chat_messages' in first) return 'claude-ai'
   return null
 }
 
-/** Importa un archivo exportado de ChatGPT o Claude.ai: el zip tal cual o solo su conversations.json. */
-export function importArchive(path: unknown, agents: AgentConfig[]): ImportResult {
-  if (typeof path !== 'string' || !path.trim()) throw new Error(tr('Elige el archivo exportado'))
-  const file = resolve(path)
-  if (!existsSync(file) || !statSync(file).isFile()) throw new Error(tr('No se encuentra el archivo'))
-  const ext = extname(file).toLowerCase()
-  let zip: ZipReader | undefined
-  let convData: unknown
-  let projData: unknown
+/** No se reconoce: se dicen los campos que trae (solo los nombres) para poder añadir ese formato. */
+function unknownShape(items: unknown[]): string {
+  const first = items.find((c) => c && typeof c === 'object' && !Array.isArray(c)) as Record<string, unknown> | undefined
+  const keys = first ? Object.keys(first).slice(0, 12).join(', ') : ''
+  return tr('No reconozco ese archivo: elige la exportación de ChatGPT o de Claude.ai') + (keys ? ` (${tr('campos: {keys}', { keys })})` : '')
+}
+
+/** Los zips que nombra un manifiesto de Claude.ai y están en su misma carpeta. */
+function manifestFiles(file: string, data: unknown): string[] | null {
+  const list = data && typeof data === 'object' ? (data as { data_files?: unknown }).data_files : undefined
+  if (!Array.isArray(list)) return null
+  return list
+    .map((x) => (x && typeof x === 'object' ? str((x as { filename?: unknown }).filename) : ''))
+    .filter((n) => n && basename(n) === n)
+    .map((n) => join(dirname(file), n))
+    .filter((p) => existsSync(p))
+}
+
+/**
+ * Importa la exportación de ChatGPT o Claude.ai: el zip tal cual, solo su conversations.json o, si viene partida
+ * (Claude.ai), varios zips a la vez o su manifiesto con los zips al lado.
+ */
+export function importArchive(paths: unknown, agents: AgentConfig[]): ImportResult {
+  const list = (Array.isArray(paths) ? paths : [paths]).filter((x): x is string => typeof x === 'string' && !!x.trim())
+  if (!list.length) throw new Error(tr('Elige el archivo exportado'))
+  const files = list.map((p) => resolve(p))
+  for (const file of files) if (!existsSync(file) || !statSync(file).isFile()) throw new Error(tr('No se encuentra el archivo'))
+  const zips: ZipReader[] = []
+  const convs: unknown[] = []
+  const projs: unknown[] = []
+  let sawConvs = false
+  let sawProjects = false
+  let manifest = false
+  /** El zip con las conversaciones (ChatGPT guarda ahí las imágenes). */
+  let convZip: ZipReader | undefined
   try {
-    if (ext === '.json') {
-      if (statSync(file).size > MAX_IMPORT_ENTRY) throw new Error(tr('La exportación supera los límites de lectura; divídela en archivos más pequeños'))
-      convData = parseJson(readFileSync(file))
+    const seen = new Set<string>()
+    const queue = [...files]
+    while (queue.length) {
+      const file = queue.shift()!
+      if (seen.has(file)) continue
+      seen.add(file)
+      if (extname(file).toLowerCase() === '.json') {
+        if (statSync(file).size > MAX_IMPORT_ENTRY) throw new Error(tr('La exportación supera los límites de lectura; divídela en archivos más pequeños'))
+        const data = parseJson(readFileSync(file), file)
+        const named = manifestFiles(file, data)
+        if (named) {
+          manifest = true
+          queue.push(...named)
+        } else if (isProjectsJson(file)) {
+          sawProjects = true
+          projs.push(...asItems(data, 'projects'))
+        } else {
+          sawConvs = true
+          convs.push(...asItems(data, 'conversations'))
+        }
+        continue
+      }
+      const zip = new ZipReader(file)
+      zips.push(zip)
+      for (const e of zip.entries) {
+        if (isConvsJson(e.name)) {
+          sawConvs = true
+          convZip ??= zip
+          convs.push(...asItems(parseJson(zip.data(e), e.name), 'conversations'))
+        } else if (isProjectsJson(e.name)) {
+          sawProjects = true
+          projs.push(...asItems(parseJson(zip.data(e), e.name), 'projects'))
+        }
+      }
     }
-    else zip = new ZipReader(file)
-    if (zip) {
-      const entry = zip.find(isConvsJson)
-      if (!entry) throw new Error(tr('Ese zip no tiene conversations.json: elige la exportación de ChatGPT o de Claude.ai'))
-      convData = parseJson(zip.data(entry))
-      const pe = zip.find(isProjectsJson)
-      if (pe) projData = parseJson(zip.data(pe))
+    if (!sawConvs && !sawProjects) {
+      throw new Error(
+        manifest
+          ? tr('Pon los zips de la exportación (conversations-000.zip, projects-000.zip) en la misma carpeta que el manifiesto, o elígelos a la vez')
+          : tr('Ahí no hay conversaciones: elige conversations-000.zip (y projects-000.zip) de Claude.ai, o el zip de ChatGPT')
+      )
     }
-    const kind = detect(convData)
-    if (!kind) throw new Error(tr('No reconozco ese archivo: elige la exportación de ChatGPT o de Claude.ai'))
+    const kind = convs.length ? detect(convs) : 'claude-ai'
+    if (!kind) throw new Error(unknownShape(convs))
+    const parsed = kind === 'claude-ai' ? parseClaudeAi(convs, projs.length ? projs : undefined) : null
+    // Hay conversaciones pero ninguna con la forma conocida: un formato nuevo. Mejor decirlo que importar cero.
+    if (parsed && convs.length && !parsed.conversations.length && !parsed.projects.length) throw new Error(unknownShape(convs))
     const ctx: Ctx = { ix: loadIndex(), agents, result: newResult(kind) }
     try {
-      if (kind === 'chatgpt') importChatGpt(ctx, parseChatGpt(convData), zip)
-      else importClaudeAi(ctx, parseClaudeAi(convData, projData))
+      if (kind === 'chatgpt') importChatGpt(ctx, parseChatGpt(convs), convZip)
+      else importClaudeAi(ctx, parsed!)
     } finally {
       saveIndex(ctx.ix)
     }
     return ctx.result
   } finally {
-    zip?.close()
+    for (const z of zips) z.close()
     // Lo que se subió por la web para importarlo (ver /api/import-upload) ya no hace falta.
     const uploads = join(tmpdir(), 'kywai-importar') + sep
-    if (file.startsWith(uploads)) rmSync(dirname(file), { recursive: true, force: true })
+    for (const file of files) if (file.startsWith(uploads)) rmSync(dirname(file), { recursive: true, force: true })
   }
 }

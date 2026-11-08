@@ -588,7 +588,10 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (path === '/api/import-upload' && req.method === 'POST') {
     try {
-      const name = (url.searchParams.get('name') ?? '').toLowerCase().endsWith('.json') ? 'conversations.json' : 'exportacion.zip'
+      // Se guarda con su nombre (conversations-000.zip, projects-000.zip…: así se reconoce cada parte), sin rutas.
+      const asked = basename((url.searchParams.get('name') ?? '').replace(/\\/g, '/')).replace(/[^\w.-]/g, '_').slice(-100)
+      const isJson = asked.toLowerCase().endsWith('.json')
+      const name = /^[\w-][\w.-]*\.(zip|json)$/i.test(asked) ? asked : isJson ? 'conversations.json' : 'exportacion.zip'
       const dir = join(tmpdir(), 'kywai-importar', `${Date.now()}-${randomId(4).toString('hex')}`)
       makeDir(dir, { recursive: true })
       const file = join(dir, name)

@@ -267,10 +267,34 @@ describe('importar', () => {
   it('un archivo que no es una exportación se rechaza con un motivo claro', () => {
     const file = join(root, 'otro.zip')
     writeFileSync(file, zipSync({ 'leeme.txt': strToU8('x') }))
-    expect(() => importArchive(file, agents)).toThrow(/conversations\.json/)
+    expect(() => importArchive(file, agents)).toThrow(/conversations-000\.zip/)
     const json = join(root, 'conversations.json')
     writeFileSync(json, JSON.stringify([{ foo: 1 }]))
-    expect(() => importArchive(json, agents)).toThrow(/No reconozco/)
+    expect(() => importArchive(json, agents)).toThrow(/No reconozco.*campos: foo/)
+  })
+
+  it('Claude.ai partida en varios zips: elegidos a la vez, por su manifiesto o solo el de conversaciones', () => {
+    const dir = join(root, 'descargas')
+    mkdirSync(dir, { recursive: true })
+    const convZip = join(dir, 'conversations-000.zip')
+    const projZip = join(dir, 'projects-000.zip')
+    // Las conversaciones en una carpeta, una por archivo; los proyectos en un projects.json.
+    writeFileSync(convZip, zipSync({ 'conversations/conv-1.json': strToU8(JSON.stringify(claudeConvs[0])), 'conversations/conv-2.json': strToU8(JSON.stringify(claudeConvs[1])) }))
+    writeFileSync(projZip, zipSync({ 'projects.json': strToU8(JSON.stringify(claudeProjects)), 'projects/proj-1/docs/estilo.json': strToU8('{}') }))
+    writeFileSync(join(dir, 'memories-000.zip'), zipSync({ 'memories.json': strToU8('[]') }))
+    const manifest = join(dir, 'manifest-x.json')
+    const files = ['conversations-000.zip', 'projects-000.zip', 'memories-000.zip', 'frames-000.zip'].map((filename, i) => ({ batch_index: i, export_url: 'https://claude.ai/export/x', filename }))
+    writeFileSync(manifest, JSON.stringify({ version: '1.0', total_files: 4, data_files: files }))
+    // Por el manifiesto (los zips al lado; el que falta se ignora).
+    expect(importArchive(manifest, agents)).toMatchObject({ kind: 'claude-ai', conversations: 2, projectsCreated: 2, documents: 1 })
+    expect(store.listProjects().some((p) => p.name === 'Mi libro')).toBe(true)
+    // Elegidos a la vez, otra vez: no duplica.
+    expect(importArchive([convZip, projZip], agents)).toMatchObject({ conversations: 0, skipped: 2 })
+    // Un zip que no lleva conversaciones dice cuál elegir; el manifiesto solo, también.
+    expect(() => importArchive(join(dir, 'memories-000.zip'), agents)).toThrow(/conversations-000\.zip/)
+    const lone = join(root, 'manifest-solo.json')
+    writeFileSync(lone, JSON.stringify({ data_files: files }))
+    expect(() => importArchive(lone, agents)).toThrow(/misma carpeta que el manifiesto/)
   })
 })
 
