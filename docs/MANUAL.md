@@ -1941,6 +1941,8 @@ El chat se lee como ChatGPT o Claude, sin «muro de letras»:
 - **Cómo escriben:** a Hermes (su respuesta y el resumen final de cada petición) y a cada agente se les pide que
   empiecen por el resultado, con párrafos de 2 o 3 frases, listas para pasos y opciones, negrita solo en lo
   importante y títulos solo si la respuesta es larga. Los mensajes directos («@Agente …») no se tocan.
+- **Baja solo:** si estás al final, el chat sigue lo que van escribiendo los agentes, aunque llegue de golpe un bloque
+  alto (una tabla, una lista). Solo se queda quieto, con el botón «Nuevos mensajes», si subes tú a leer algo.
 
 Para desarrolladores: el tamaño, el interlineado y el aire del Markdown son variables CSS (`--md-size`, `--md-lh`,
 `--md-gap`, `--md-li-gap` en `MarkdownView.module.css`) que el chat sube en `.agentBubble` (`Messages.module.css`);

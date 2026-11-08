@@ -68,17 +68,30 @@ export function ChatView() {
   const flashTimer = useRef(0)
   const firstId = messages[0]?.id
 
+  const lastTop = useRef(0)
+
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
-    if (el) el.scrollTop = el.scrollHeight
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+    lastTop.current = el.scrollTop
   }, [])
 
+  /*
+   * Solo deja de seguir el final si TÚ subes (la posición baja). El aviso de scroll llega un fotograma tarde: si entre
+   * medias el texto que se va revelando añadió de golpe un bloque alto (una tabla, una lista), la distancia al final
+   * ya es grande aunque nadie haya subido. Antes eso soltaba el chat y se quedaba quieto con «Nuevos mensajes».
+   */
   const onScroll = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 56
-    stick.current = atBottom
-    if (atBottom) setShowNew(false)
+    const top = el.scrollTop
+    const atBottom = el.scrollHeight - top - el.clientHeight < 56
+    if (atBottom) {
+      stick.current = true
+      setShowNew(false)
+    } else if (top < lastTop.current - 2) stick.current = false
+    lastTop.current = top
   }, [])
 
   // Nueva conversación (cambio de modo o de proyecto): empezar abajo.
