@@ -812,7 +812,8 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
 - **Un permiso de macOS** (Documentos, Escritorio…) que solo se acepta delante del servidor: «Abrir Compartir
   pantalla» lo abre desde el móvil o el portátil. Para que no vuelva a pasar, da «Acceso total al disco» a kywai.
 - **Un agente callado** desde hace rato (suele ser un aviso así en la pantalla del servidor).
-- **Una pregunta** del equipo, una **verificación** que sigue viendo fallos, **choques** al integrar una copia
+- **Una pregunta** del equipo, una tarea que **requiere intervención** (la verificación sigue viendo fallos tras 2
+  correcciones y un relevo; sus archivos se quedan y «Deshacer la tarea» los quita), **choques** al integrar una copia
   aparte o una tarea que **no se pudo hacer** («Deshacer» deja sus archivos como estaban).
 - **Lo terminado**: la última petición acabada de cada proyecto, para enterarte desde el móvil.
 
@@ -866,14 +867,47 @@ empiezan de nuevo. Para que esto funcione, las sesiones de trabajo de Claude Cod
 
 Cuando una tarea que crea o cambia archivos termina, **otro agente de otra familia** (Codex si lo hizo Claude, y al
 revés; nunca el autor ni un modelo local) comprueba el resultado con ojos nuevos y en modo de solo lectura: recibe
-tu petición, la tarea, el criterio de aceptación, los archivos que cambió y lo que dijo el autor; los lee, ejecuta
-las pruebas si puede y responde «VEREDICTO: CUMPLE» o «VEREDICTO: FALLOS» con hasta cinco fallos concretos. Se le
-pide ceñirse a la corrección y a lo pedido, nada de gustos. Si ve fallos, **el autor corrige una vez** sobre lo que
-ya hay (recibe la lista) y se vuelve a verificar; después se da por buena con el veredicto que tenga. En el chat lo
-ves en el mensaje de la tarea («Claude comprobó … y vio fallos; Codex los corrige», y al final «✔ Claude comprobó el
-resultado: cumple» o «⚠ … sigue viendo fallos», que además queda en la memoria como pendiente). La verificación
-cuenta en «Uso y coste…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
+tu petición, la tarea, el criterio de aceptación, los archivos que cambió y lo que dijo el autor; los lee, recibe
+las pruebas que se ejecutaron de verdad (ver abajo) y responde «VEREDICTO: CUMPLE» o «VEREDICTO: FALLOS» con hasta cinco fallos concretos. Se le
+pide ceñirse a la corrección y a lo pedido, nada de gustos. **Solo un «CUMPLE» explícito aprueba una tarea.**
+
+| Situación | Qué hace kywai |
+|---|---|
+| El verificador responde sin veredicto reconocible | Se lo pide una vez más, conservando lo que ya revisó (retoma su sesión del CLI si puede; si no, su respuesta va en el encargo) |
+| Tampoco lo da la segunda vez | La tarea queda **«sin verificar»**: «⚠ Sin verificar» en el resultado y no cuenta como aprobada ni como suspendida en las cifras |
+| Veredicto «FALLOS» | El autor corrige sobre lo que ya hay (recibe la lista), **hasta 2 veces**, y cada corrección se vuelve a verificar |
+| Sigue fallando tras las 2 correcciones | **Un relevo** a otro agente fuerte libre (nunca el autor ni un modelo local para lo que no es fácil), con las notas del verificador, los archivos que cambió el autor y lo que contó (sus pruebas). No retoma la sesión del autor: es otro CLI |
+| El relevo tampoco supera la revisión (o no hay a quién pasársela) | **«Requiere intervención»**: aviso en la campana [«Te necesita»](#te-necesita-lo-que-espera-una-decisión-tuya) con las notas y queda en la memoria como pendiente |
+| Veredicto «CUMPLE» | Terminada y verificada: «✔ Claude comprobó el resultado: cumple» (o «tras 2 correcciones», «y el relevo a…»), con lo que dicen las pruebas detrás |
+
+Las correcciones **cuentan por tarea**: el relevo no reinicia la cuenta, ni retomar la tarea tras cerrar la app, así
+que no hay bucles. **Ejecución y verificación van por separado**: una tarea «sin verificar» o que «requiere
+intervención» está terminada y sus archivos se quedan (los abres, los ves en «N archivos cambiados» y puedes
+deshacerla), pero no se presenta como aprobada. En el chat lo ves en el mensaje de la tarea («Claude comprobó … y vio
+fallos; Codex los corrige (corrección 1 de 2)», el relevo y el veredicto final). La verificación cuenta en «Uso y
+coste…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
 petición, si la tarea es solo de texto o si no hay ningún otro agente de otra familia disponible.
+
+**Pruebas ejecutadas de verdad.** kywai no se fía de un «las pruebas pasan» en el texto del autor: mira en el
+registro de la tarea los comandos que ejecutó y cómo terminaron. Solo cuenta una prueba que demuestra algo y
+termina sola (`npm test`, `npm run typecheck`, `vitest run`, `tsc --noEmit`, `pytest`, `cargo test`, `go test`,
+`./gradlew test`…), ejecutada **tal cual** (con `| tail`, `|| true` o `;` detrás su resultado queda escondido y no
+vale; tampoco el modo vigilancia, `--help`, `tsc` sin `--noEmit` ni lo que actualiza instantáneas o arregla
+archivos) y **después del último cambio** en los archivos. Si no la hay —no probó, probó antes de cambiar o le
+fallaron—, kywai ejecuta él mismo las pruebas del proyecto en la carpeta de la tarea (con `CI=1` y un máximo
+de 8 minutos) antes de llamar al verificador.
+
+| Pruebas | Qué recibe el verificador | Cómo acaba un «CUMPLE» |
+|---|---|---|
+| El autor las pasó tras su último cambio | «Codex ejecutó «npm test» … y pasaron» | «✔ … cumple; las pruebas pasan (npm test)» |
+| kywai las ejecutó y pasan | Lo mismo, diciendo que las ejecutó kywai | Igual |
+| Fallan | El final de la salida y la regla: si fallan por esta tarea, es FALLOS. La salida viaja con las notas a la corrección | Solo si el verificador explica que el fallo no es de esta tarea: «cumple, aunque las pruebas fallan (…); según Claude, no por esta tarea. Mira esas pruebas…» |
+| El proyecto no tiene pruebas o no se pudieron ejecutar (falta el programa o las dependencias, más de 8 min) | «No se ejecutó ninguna prueba; no digas que pasan» | «✔ … cumple, sin pruebas ejecutadas (motivo)»: nunca «pasan» |
+
+El registro de la tarea lo cuenta («Pruebas: Codex no ejecutó pruebas; kywai ejecuta «npm test» antes de
+verificar», «Pruebas: «npm test» pasa (12 s)»). Si una tarea no cambió ningún archivo y no tenía que entregarlos,
+no se verifica (no hay nada que revisar). La idea de la evidencia propia viene de GG Coder; el código es nuevo
+(`src/shared/testEvidence.ts` y `src/main/projectChecks.ts`).
 
 **Si la tarea toca una web** (HTML, CSS, componentes…), kywai la abre antes en una ventana oculta, a tamaño
 de escritorio (1280 px) y de móvil (390 px), con un servidor local de solo lectura y sin acceso a la red ni a tus
@@ -883,15 +917,16 @@ comprueba cómo se ve de verdad: una página en blanco, cortada o que no se pued
 abren las HTML que cambió la tarea o, si cambió estilos o componentes, la entrada ya compilada (`dist/`, `build/`…
 o `index.html`). Lo ves en «Ver qué está haciendo» de la tarea.
 
-**Quién verifica.** Entre los agentes de otra familia que valen (libres antes que ocupados), kywai elige el
-claramente más rápido (al menos 1,5 veces) según lo medido en los últimos 30 días, con 3 verificaciones o más de
-cada uno. Sin esos datos, el orden de `plannerOrder`. La revisión es la misma; solo cambia quién la hace (medido el
-8 nov: Claude verificaba en 17 s de mediana y Codex en 77 s, con el mismo resultado).
+**Quién verifica.** Entre los agentes de otra familia que valen (libres antes que ocupados), kywai elige con lo
+medido en los últimos 30 días: primero el que da un veredicto claro (menos «sin verificar») y, si se parecen, el
+claramente más rápido (al menos 1,5 veces), con 3 verificaciones o más de cada uno. Sin esos datos, el orden de
+`plannerOrder`. La revisión es la misma; solo cambia quién la hace (medido el 8 nov: Claude verificaba en 17 s de
+mediana y Codex en 77 s, con el mismo resultado).
 
 **La verificación no frena la cola.** En cuanto el autor termina, queda libre: si tiene otra tarea que no depende de
 la que se está verificando, la empieza ya (en una copia aparte de la carpeta si hace falta, que se integra al
-terminar), en vez de esperar a que acabe la revisión. Las tareas que dependen de la verificada siguen esperando a
-que la apruebe.
+terminar), en vez de esperar a que acabe la revisión. Y las capturas de la web y las pruebas del proyecto se hacen a
+la vez antes de llamar al verificador. Las tareas que dependen de la verificada siguen esperando a su «CUMPLE».
 
 ### Cambios de cada tarea: verlos, deshacerlos y copias aparte
 
@@ -1788,27 +1823,32 @@ abierto:
 | Le sirvió 👍 | De las que [valoraste](#valorar-un-resultado-), cuántas con 👍. La valoración es de quien terminó la tarea, no de quien falló antes |
 | Verificada a la primera | De las que comprobó [otro agente](#verificación-por-otro-agente), cuántas cumplían en el primer veredicto |
 | Necesitó corrección | De las comprobadas, cuántas tuvo que corregir porque el verificador vio fallos |
+| Aprobada tras corregir | De las comprobadas, las que tuvieron fallos y acabaron con «CUMPLE» tras sus correcciones |
+| Sin superar la revisión | De las comprobadas, las que acabaron con fallos en su trabajo: se pasaron a otro agente o requieren intervención |
+| Sin verificar | De todas, las que el verificador no aprobó ni suspendió (no dio veredicto ni al pedírselo otra vez). No cuentan en las tres columnas de arriba |
 | Falló o pasó a otro | No pudo hacerla (error, «BLOQUEADA», sin cuota…) y la terminó otro agente o se dio por fallida |
 | Tiempo y tokens (mediana) | Lo que suele tardar y gastar en una tarea, con su corrección incluida. «—» si no informa de tokens (Hermes, Muse, agentes de catálogo) |
 
 Cada cifra lleva su base («7 de 9»), y en rojo lo que conviene mirar (le sirvió menos del 60 %, corrigió el 40 % o
-más, falló el 20 % o más). Con menos de 5 tareas pone «pocos datos». En el móvil (navegador), cada agente y cada
+más, falló, no superó la revisión o quedó sin verificar el 20 % o más). Con menos de 5 tareas pone «pocos datos». En el móvil (navegador), cada agente y cada
 dificultad se ven como una tarjeta, sin tabla que desplazar. Las tareas que detienes no cuentan.
 
 **El coordinador lo usa al repartir.** Cuando un agente tiene 5 tareas o más en 30 días, su ficha lleva una línea
 como «calidad (30 días, 12 tareas): le sirvieron al usuario 7 de 9 valoradas; verificación: 6 de 8 a la primera, 2
-necesitaron corrección; 1 falló o pasó a otro (8 %); mediana unos 4 min y 120 k tokens por tarea», y por dificultad
+necesitaron corrección (1 aprobada después), 1 sin superar la revisión; 1 sin verificar; 1 falló o pasó a otro (8 %); mediana unos 4 min y 120 k tokens por tarea», y por dificultad
 las filas que se apartan del total. Se le pide que, entre los que pueden hacer la tarea, elija al de mejor calidad
 en esa dificultad aunque tarde o gaste más: la calidad pesa más que la velocidad y el coste; la cuota y estar libre
 deciden solo entre agentes parecidos.
 
 **Mala racha: kywai no repite con quien casi siempre suspende.** Si en los últimos 14 días un agente hizo 3 tareas o
-más y en el 60 % o más no pasó la revisión a la primera o no pudo hacerla, su ficha lleva «⚠ mala racha: 3 de 3
-tareas sin pasar la revisión o fallidas en 14 días» (aunque tenga menos de 5 tareas), y lo que no es fácil que el
-plan le dé pasa a otro agente. El plan lo dice en «Ajustes de kywai al plan». Si lo nombras en la petición («que lo
-haga Aider»), se respeta. El relevo tras un fallo tampoco vuelve nunca a un agente que ya intentó esa tarea, y
-prefiere a uno que no esté en mala racha. Así una petición no se alarga con correcciones y relevos que se veían
-venir (medido el 8 nov: la mitad de las tareas verificadas repetían, y un agente suspendió 3 de 3).
+más y en el 60 % o más acabó sin superar la revisión (tras sus correcciones) o sin poder hacerla, su ficha lleva
+«⚠ mala racha: 3 de 3 tareas sin superar la revisión o fallidas en 14 días» (aunque tenga menos de 5 tareas), y lo
+que no es fácil que el plan le dé pasa a otro agente. El plan lo dice en «Ajustes de kywai al plan». Corregir y
+aprobar no cuenta en contra: solo lo que no llegó a buen puerto. Si lo nombras en la petición («que lo haga
+Aider»), se respeta. Los relevos (tras un fallo o tras suspender la revisión) tampoco vuelven nunca a un agente que
+ya intentó esa tarea, y prefieren a uno que no esté en mala racha. Así una petición no se alarga con correcciones y
+relevos que se veían venir (medido el 8 nov: la mitad de las tareas verificadas repetían, y un agente suspendió 3 de
+3).
 
 Sale del mismo registro que «Uso y coste…» (`usage-runs.json`): para ello cada llamada de tarea guarda su
 dificultad, cada verificación su veredicto y cada llamada si la detuviste. Los registros de antes de esta versión

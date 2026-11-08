@@ -91,7 +91,7 @@ describe('ficha de cada agente', () => {
     const runs = [run([done('a', 'up'), pass('a', 'pass'), done('b', 'down'), pass('b', 'fail'), done('b', 'down'), done('c'), done('d'), done('e')])]
     const quality = agentQualityFor(runs, 'claude', NOW)
     const lines = profileLines(claude, { available: 'sí', warn: 20, history: agentHistory(runs, 'claude', NOW), quality, abilities: [] }).join('\n')
-    expect(lines).toContain('  calidad (30 días, 5 tareas): le sirvieron al usuario 1 de 2 valoradas; verificación: 1 de 2 a la primera, 1 necesitó corrección; ninguna falló')
+    expect(lines).toContain('  calidad (30 días, 5 tareas): le sirvieron al usuario 1 de 2 valoradas; verificación: 1 de 2 a la primera, 1 necesitó corrección, 1 sin superar la revisión; ninguna falló')
     expect(lines).not.toContain('que valoró')
     const few = agentQualityFor([run([done('a'), done('b')])], 'claude', NOW)
     expect(profileLines(claude, { available: 'sí', warn: 20, quality: few, abilities: [] }).join('\n')).not.toContain('calidad (')

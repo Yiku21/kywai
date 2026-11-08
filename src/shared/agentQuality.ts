@@ -14,16 +14,29 @@ export interface QualityStats {
   /** Valoradas por el usuario y, de ellas, con 👍. */
   rated: number
   liked: number
-  /** Comprobadas por otro agente; pasaron a la primera; necesitaron corrección (el primer veredicto vio fallos). */
+  /**
+   * Comprobadas por otro agente con un veredicto claro (CUMPLE o FALLOS); pasaron a la primera; necesitaron corrección
+   * (el primer veredicto vio fallos) y, de esas, aprobadas tras corregir; y las que acabaron con fallos (requieren
+   * intervención o se relevaron). Las «sin verificar» no cuentan en ninguna de estas: van aparte.
+   */
   verified: number
   firstPass: number
   fixed: number
+  passedAfterFix: number
+  reviewFailed: number
+  /** El verificador no dio un veredicto reconocible ni al pedírselo otra vez (no es aprobada ni suspendida). */
+  unverified: number
   /** Fallaron con él (no pudo, o la terminó otro agente). */
   failed: number
   /** % de 👍 sobre las valoradas; % a la primera y % corregidas sobre las verificadas; % falladas sobre todas. null sin base. */
   likedPct: number | null
   firstPassPct: number | null
   fixedPct: number | null
+  /** % sobre las verificadas. */
+  passedAfterFixPct: number | null
+  reviewFailedPct: number | null
+  /** % sobre todas las tareas. */
+  unverifiedPct: number | null
   failedPct: number | null
   /** Tiempo mediano de trabajo del agente en una tarea (incluida su corrección). */
   medianMs: number | null
@@ -61,8 +74,8 @@ interface Attempt {
   difficulty: QualityGroup
   ok: boolean
   cancelled: boolean
-  /** Primer veredicto del verificador sobre su trabajo. */
-  verdict?: 'pass' | 'fail'
+  /** Veredictos del verificador sobre su trabajo, en orden (uno por revisión: la primera y las de cada corrección). */
+  verdicts: Array<'pass' | 'fail' | 'unverified'>
   rating?: 'up' | 'down'
   durationMs: number
   tokens: number
@@ -87,8 +100,8 @@ function attempts(runs: UsageRun[], from: number): Attempt[] {
       let rating: 'up' | 'down' | undefined
       for (const c of calls) {
         if (c.kind === 'verify') {
-          // El veredicto es sobre el trabajo de quien acaba de hacer la tarea; cuenta el primero.
-          if (last && c.verdict && !last.verdict) last.verdict = c.verdict
+          // El veredicto es sobre el trabajo de quien acaba de hacer la tarea (el relevo tiene los suyos).
+          if (last && c.verdict) last.verdicts.push(c.verdict)
           continue
         }
         rating ??= c.rating
@@ -99,6 +112,7 @@ function attempts(runs: UsageRun[], from: number): Attempt[] {
           difficulty: c.difficulty ?? 'unknown',
           ok: false,
           cancelled: false,
+          verdicts: [],
           durationMs: 0,
           tokens: 0,
           noTokens: false
@@ -135,10 +149,16 @@ const pct = (part: number, total: number): number | null => (total > 0 ? Math.ro
 
 function stats(list: Attempt[]): QualityStats {
   const rated = list.filter((a) => a.rating)
-  const verified = list.filter((a) => a.verdict)
+  // Primer veredicto claro (el «sin verificar» de un intento no cuenta como aprobado ni como suspenso) y el último.
+  const first = (a: Attempt) => a.verdicts.find((v) => v !== 'unverified')
+  const final = (a: Attempt) => a.verdicts[a.verdicts.length - 1]
+  const verified = list.filter((a) => first(a))
   const liked = rated.filter((a) => a.rating === 'up').length
-  const firstPass = verified.filter((a) => a.verdict === 'pass').length
+  const firstPass = verified.filter((a) => first(a) === 'pass').length
   const fixed = verified.length - firstPass
+  const passedAfterFix = verified.filter((a) => first(a) === 'fail' && final(a) === 'pass').length
+  const reviewFailed = verified.filter((a) => final(a) === 'fail').length
+  const unverified = list.filter((a) => a.verdicts.length && final(a) === 'unverified').length
   const failed = list.filter((a) => !a.ok).length
   return {
     tasks: list.length,
@@ -147,10 +167,16 @@ function stats(list: Attempt[]): QualityStats {
     verified: verified.length,
     firstPass,
     fixed,
+    passedAfterFix,
+    reviewFailed,
+    unverified,
     failed,
     likedPct: pct(liked, rated.length),
     firstPassPct: pct(firstPass, verified.length),
     fixedPct: pct(fixed, verified.length),
+    passedAfterFixPct: pct(passedAfterFix, verified.length),
+    reviewFailedPct: pct(reviewFailed, verified.length),
+    unverifiedPct: pct(unverified, list.length),
     failedPct: pct(failed, list.length),
     medianMs: median(list.map((a) => a.durationMs)),
     medianTokens: median(list.filter((a) => !a.noTokens).map((a) => a.tokens))
@@ -193,7 +219,11 @@ const kTokens = (n: number): string => (n >= 1000 ? `${Math.round(n / 1000)} k` 
 function statsPhrase(q: QualityStats): string {
   const parts: string[] = []
   if (q.rated) parts.push(`le sirvieron al usuario ${q.liked} de ${q.rated} valoradas`)
-  if (q.verified) parts.push(`verificación: ${q.firstPass} de ${q.verified} a la primera${q.fixed ? `, ${q.fixed} ${q.fixed === 1 ? 'necesitó' : 'necesitaron'} corrección` : ''}`)
+  if (q.verified)
+    parts.push(
+      `verificación: ${q.firstPass} de ${q.verified} a la primera${q.fixed ? `, ${q.fixed} ${q.fixed === 1 ? 'necesitó' : 'necesitaron'} corrección${q.passedAfterFix ? ` (${q.passedAfterFix} aprobada${q.passedAfterFix === 1 ? '' : 's'} después)` : ''}` : ''}${q.reviewFailed ? `, ${q.reviewFailed} sin superar la revisión` : ''}`
+    )
+  if (q.unverified) parts.push(`${q.unverified} sin verificar`)
   parts.push(q.failed ? `${q.failed} ${q.failed === 1 ? 'falló o pasó' : 'fallaron o pasaron'} a otro (${q.failedPct} %)` : 'ninguna falló')
   return parts.join('; ')
 }
@@ -206,7 +236,7 @@ export function qualityLine(q: AgentQuality | null | undefined, days = 30): stri
   if (!q || q.tasks < QUALITY_MIN_TASKS) return null
   const cost = [q.medianMs != null && `unos ${took(q.medianMs)}`, q.medianTokens != null && `${kTokens(q.medianTokens)} tokens`].filter(Boolean).join(' y ')
   const groups = q.byDifficulty
-    .filter((g) => g.difficulty !== 'unknown' && g.tasks >= 3 && (g.failed || g.fixed || g.rated > g.liked))
+    .filter((g) => g.difficulty !== 'unknown' && g.tasks >= 3 && (g.failed || g.fixed || g.unverified || g.rated > g.liked))
     .map((g) => `${DIFFICULTY_LABEL[g.difficulty].toLowerCase()} ${g.tasks}: ${statsPhrase(g)}`)
   return `calidad (${days} días, ${q.tasks} tareas): ${statsPhrase(q)}${cost ? `; mediana ${cost} por tarea` : ''}${groups.length ? ` · por dificultad → ${groups.join(' · ')}` : ''}`
 }
@@ -217,38 +247,43 @@ export const POOR_RECORD_MIN_TASKS = 3
 export const POOR_RECORD_PCT = 60
 
 /**
- * Cifras de la mala racha (tareas que acabaron mal y tareas en total), o null si no la hay: en los últimos
- * POOR_RECORD_DAYS días hizo al menos POOR_RECORD_MIN_TASKS tareas y en el POOR_RECORD_PCT % o más no pasó la
- * revisión a la primera o no pudo hacerlas.
+ * Motivo («3 de 3 tareas sin superar la revisión o fallidas en 14 días») si el agente está en mala racha: en los
+ * últimos POOR_RECORD_DAYS días hizo al menos POOR_RECORD_MIN_TASKS tareas y en el POOR_RECORD_PCT % o más acabó
+ * suspendido por el verificador (tras correcciones) o sin poder hacerlas. Corregir y aprobar no cuenta en contra:
+ * solo lo que no llegó a buen puerto. null si no.
  */
+export function poorRecordReason(q: QualityStats | null | undefined, days = POOR_RECORD_DAYS): string | null {
+  const r = poorRecord(q)
+  return r && `${r.bad} de ${r.tasks} tareas sin superar la revisión o fallidas en ${days} días`
+}
+
+/** Las cifras de la mala racha (tareas que acabaron mal y tareas en total), o null si no la hay. */
 export function poorRecord(q: QualityStats | null | undefined): { bad: number; tasks: number } | null {
   if (!q || q.tasks < POOR_RECORD_MIN_TASKS) return null
-  const bad = Math.min(q.fixed + q.failed, q.tasks)
+  const bad = Math.min(q.reviewFailed + q.failed, q.tasks)
   return bad * 100 < POOR_RECORD_PCT * q.tasks ? null : { bad, tasks: q.tasks }
 }
 
-/** «3 de 3 tareas sin pasar la revisión o fallidas en 14 días», o null. */
-export function poorRecordReason(q: QualityStats | null | undefined, days = POOR_RECORD_DAYS): string | null {
-  const r = poorRecord(q)
-  return r && `${r.bad} de ${r.tasks} tareas sin pasar la revisión o fallidas en ${days} días`
-}
-
-/** Cómo verifica cada agente: cuántas revisiones hizo y cuánto tarda (mediana). */
+/** Cómo verifica cada agente: cuántas revisiones hizo, cuánto tarda (mediana) y cuántas sin veredicto claro. */
 export interface VerifierStats {
   count: number
   medianMs: number
+  unclear: number
 }
 
-/** Verificaciones con veredicto desde `from` (ms), por agente. Las detenidas no cuentan. */
+/** Verificaciones desde `from` (ms), por agente. Las detenidas no cuentan. */
 export function verifierStats(runs: UsageRun[], from = 0): Map<string, VerifierStats> {
-  const by = new Map<string, number[]>()
+  const by = new Map<string, { ms: number[]; unclear: number }>()
   for (const run of runs)
     for (const c of run.calls) {
       if (c.kind !== 'verify' || c.ts < from || c.cancelled || !c.verdict) continue
       const id = baseAgentId(c.agentId)
-      by.set(id, [...(by.get(id) ?? []), c.durationMs])
+      const s = by.get(id) ?? { ms: [], unclear: 0 }
+      s.ms.push(c.durationMs)
+      if (c.verdict === 'unverified') s.unclear++
+      by.set(id, s)
     }
-  return new Map([...by].map(([id, ms]) => [id, { count: ms.length, medianMs: median(ms) ?? 0 }]))
+  return new Map([...by].map(([id, s]) => [id, { count: s.ms.length, medianMs: median(s.ms) ?? 0, unclear: s.unclear }]))
 }
 
 /** Mínimo de verificaciones para fiarse de su tiempo, y cuánto más rápido tiene que ser uno para preferirlo. */
@@ -256,11 +291,14 @@ export const VERIFIER_MIN_SAMPLES = 3
 export const VERIFIER_FASTER = 1.5
 
 /**
- * Compara dos verificadores igual de válidos: < 0 si conviene `a`. Solo decide con datos de los dos: el claramente
- * más rápido (VERIFIER_FASTER veces). 0 si no hay datos o se parecen.
+ * Compara dos verificadores igual de válidos: < 0 si conviene `a`. Solo decide con datos de los dos: el que da menos
+ * veces «sin veredicto» y, si no, el claramente más rápido (VERIFIER_FASTER veces). 0 si no hay datos o se parecen.
  */
 export function compareVerifiers(a: VerifierStats | undefined, b: VerifierStats | undefined): number {
   if (!a || !b || a.count < VERIFIER_MIN_SAMPLES || b.count < VERIFIER_MIN_SAMPLES) return 0
+  const ua = a.unclear / a.count
+  const ub = b.unclear / b.count
+  if (Math.abs(ua - ub) >= 0.2) return ua - ub
   if (a.medianMs * VERIFIER_FASTER <= b.medianMs) return -1
   if (b.medianMs * VERIFIER_FASTER <= a.medianMs) return 1
   return 0
