@@ -6,6 +6,10 @@ import { Bloom, EffectComposer, Vignette, N8AO } from '@react-three/postprocessi
 import type { AgentConfig, StationConfig } from '@shared/types'
 import { currentData, useCowork, useData } from '@/store/cowork'
 import { musicLightLevel } from '@/lib/music'
+import { useHomeNight } from '@/lib/homeLighting'
+import { HOME_NIGHT_LIGHTS } from './worlds/homeNight'
+import { homeLayout } from './worlds/homeLayout'
+import { KywaiHome } from './worlds/KywaiHome'
 import { useTheme } from '@/lib/theme'
 import { sceneQuality, useQuality } from './quality'
 import { registry } from './registry'
@@ -164,17 +168,20 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   const max = useQuality((s) => s.max)
   const q = useMemo(() => sceneQuality(level, max), [level, max])
   const reduced = useCowork((s) => s.reducedEffects)
-  const stations = useCowork((s) => s.config.stations)
+  const configuredStations = useCowork((s) => s.config.stations)
+  const agents = useData(d => d.agents)
   const [visible, setVisible] = useState(() => !document.hidden)
   const focused = useWindowFocus()
   // Cada tema tiene sus colores (palette.ts, ya aplicados al cambiarlo): la escena se vuelve a montar con ellos.
   const theme = useTheme()
+  const nightPreference = useHomeNight(), night = theme === 'kywai' && nightPreference
+  const stations = useMemo(() => theme === 'kywai' ? homeLayout(configuredStations, agents) : configuredStations, [theme, configuredStations, agents])
   const p = palette
-  const L = p.lights
+  const L = night ? HOME_NIGHT_LIGHTS : p.lights
   // Los entornos nuevos usan materiales físicos también en el suelo y la arquitectura.
   const worldLight = p.world ? (p.light ? 0.85 : 2.4) : 1
-  const fogNear = p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
-  const fogFar = p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
+  const fogNear = p.world === 'kywai' ? 160 : p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
+  const fogFar = p.world === 'kywai' ? 300 : p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
 
   // Pausa total cuando la ventana o pestaña está oculta.
   useEffect(() => {
@@ -193,8 +200,8 @@ export function World({ view }: { view?: ViewInsets } = {}) {
       onPointerMissed={() => useCowork.getState().select(null)}
       aria-label={t('Espacio digital con los agentes trabajando')}
     >
-      <color key={`bg-${theme}`} attach="background" args={[p.bg]} />
-      <fog key={`fog-${theme}`} attach="fog" args={[p.fog, fogNear, fogFar]} />
+      <color key={`bg-${theme}`} attach="background" args={[night ? '#050d1a' : p.bg]} />
+      <fog key={`fog-${theme}`} attach="fog" args={[night ? '#0a1727' : p.fog, fogNear, fogFar]} />
       <SceneClock />
       <IdleFrames active={visible && !focused} />
       {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. */}
@@ -203,7 +210,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
       <group key={theme}>
         <hemisphereLight args={[L.sky, L.ground, L.hemi * worldLight]} />
         <ambientLight intensity={L.ambientI * worldLight} color={L.ambient} />
-        <directionalLight position={[-7, 14, 9]} intensity={L.keyI * worldLight} color={L.key}
+        <directionalLight position={theme === 'kywai' ? night ? [13,17,-16] : [-12,12,-16] : [-7,14,9]} intensity={L.keyI * worldLight} color={L.key}
           castShadow={!!p.world && q.shadows} shadow-mapSize={[2048, 2048]} shadow-bias={-0.00015} shadow-normalBias={0.035}
           shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20}
           shadow-camera-near={0.5} shadow-camera-far={65} />
@@ -211,7 +218,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
         {p.world && <directionalLight position={[1, 8, -12]} intensity={p.light ? 0.4 : p.world === 'bosque' ? 0.75 : 0.3} color={p.world === 'bosque' ? '#d5db9b' : p.world === 'eva' ? '#a4bbde' : '#c3d8ef'} />}
 
         {/* Entorno para reflejos de los visores (generado localmente, sin descargas) */}
-        <Environment resolution={p.world ? 256 : 128} frames={1}>
+        <Environment key={`reflections-${theme}-${night}`} resolution={p.world ? 256 : 128} frames={1}>
           <Lightformer form="rect" intensity={1.3} color={L.env[0]} position={[0, 4, 6]} scale={[9, 2.2, 1]} />
           <Lightformer form="rect" intensity={1.2} color={L.env[1]} position={[-6, 2, 1]} rotation-y={Math.PI / 2} scale={[6, 2, 1]} />
           <Lightformer form="ring" intensity={0.9} color={L.env[2]} position={[5, 5, -3]} scale={2.5} />
@@ -219,10 +226,9 @@ export function World({ view }: { view?: ViewInsets } = {}) {
         </Environment>
 
         {!p.world && <Backdrop reduced={reduced} />}
-        <Ambient q={q} reduced={reduced} />
-        {!['bosque', 'marfil', 'orbita'].includes(p.world ?? '') && <Circuits stations={stations} reduced={reduced} />}
-        <Zones />
-        <Core />
+        {theme === 'kywai' ? <KywaiHome stations={stations} detailed={q.structures > 120} reduced={reduced} /> : <Ambient q={q} reduced={reduced} />}
+        {!['bosque', 'marfil', 'orbita', 'kywai'].includes(p.world ?? '') && <Circuits stations={stations} reduced={reduced} />}
+        {theme !== 'kywai' && <><Zones /><Core /></>}
         <Stations stations={stations} showLights={q.stationLights} />
         <Transfers stations={stations} />
         <Robots stations={stations} />
@@ -235,8 +241,8 @@ export function World({ view }: { view?: ViewInsets } = {}) {
       {q.bloom && (
         <EffectComposer multisampling={q.msaa} enableNormalPass={false}>
           <N8AO enabled={!!p.world && q.shadows} aoRadius={0.55} intensity={1.1} distanceFalloff={0.8} quality="medium" halfRes />
-          <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 : 1) * (p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
-          <Vignette offset={0.28} darkness={p.vignette} />
+          <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 : 1) * (night ? .8 : p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
+          <Vignette offset={0.28} darkness={night ? .25 : p.vignette} />
         </EffectComposer>
       )}
     </Canvas>

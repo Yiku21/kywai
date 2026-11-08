@@ -2,11 +2,14 @@ import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Solid, WorldStyle } from './models'
+import { curvedHomeTimber } from './homeJoinery'
+import { homeSurfaceMaps, type HomeSurface } from './homeMaterials'
 
-type Surface = 'alloy' | 'paint' | 'rubber' | 'brass' | 'stone' | 'water' | 'wood' | 'endgrain' | 'leaf' | 'earth'
+type Surface = HomeSurface | 'alloy' | 'paint' | 'rubber' | 'brass' | 'stone' | 'water' | 'wood' | 'endgrain' | 'leaf' | 'earth'
 
 /** Fine-scale surface structure. Generated locally, so the worlds need no asset downloads. */
 export function surfaceMaps(surface: Surface) {
+  if (['oak','linen','limestone','terracotta','garden','foliage'].includes(surface)) return homeSurfaceMaps(surface as HomeSurface)
   const N = 256, albedo = new Uint8Array(N * N * 4), normals = new Uint8Array(N * N * 4), rough = new Uint8Array(N * N * 4)
   const height = new Float32Array(N * N)
   const hash = (x: number, y: number) => {
@@ -57,6 +60,15 @@ export function surfaceMaps(surface: Surface) {
 }
 
 export function surfaceFor(world: WorldStyle, shape: Solid, color: string): Surface {
+  if (world === 'kywai') {
+    if (['#b88754','#c69b65','#84613f','#bba17b','#8e623f','#a8794f','#d0ae7c'].includes(color)) return 'oak'
+    if (['#659994','#88afa5','#8fa7a0','#b8a590','#9b829e','#547665','#d1b28a','#c9ba9e'].includes(color)) return 'linen'
+    if (['#aa7658','#b58464'].includes(color)) return 'terracotta'
+    if (color === '#596447') return 'garden'
+    if (shape === 'leaf') return 'foliage'
+    if (color === '#b99a60') return 'brass'
+    return 'limestone'
+  }
   if (shape === 'leaf') return 'leaf'
   if (shape === 'cable') return 'rubber'
   if (shape === 'rock' && world === 'orbita') return 'stone'
@@ -73,6 +85,27 @@ export function surfaceFor(world: WorldStyle, shape: Solid, color: string): Surf
 /** Curved, bevelled silhouettes replace the blockout primitives. */
 export function detailedGeometry(shape: Solid, small = false): THREE.BufferGeometry {
   switch (shape) {
+    case 'crystal': {
+      const g = new THREE.LatheGeometry([new THREE.Vector2(0,-.65),new THREE.Vector2(.72,-.5),new THREE.Vector2(1,-.28),new THREE.Vector2(1,.38),new THREE.Vector2(0,.76)],6);
+      g.computeVertexNormals(); return g
+    }
+    case 'gable': {
+      const s=new THREE.Shape();s.moveTo(-.5,0);s.lineTo(0,1);s.lineTo(.5,0);s.closePath();
+      const g=new THREE.ExtrudeGeometry(s,{depth:1,bevelEnabled:false});g.translate(0,0,-.5);return g
+    }
+    case 'pointedArch': {
+      const s = new THREE.Shape(); s.moveTo(-1,0); s.bezierCurveTo(-1,.52,-.58,.82,0,1); s.bezierCurveTo(.58,.82,1,.52,1,0);
+      s.lineTo(.9,0); s.bezierCurveTo(.9,.46,.52,.73,0,.91); s.bezierCurveTo(-.52,.73,-.9,.46,-.9,0); s.closePath();
+      const g=new THREE.ExtrudeGeometry(s,{depth:1,bevelEnabled:true,bevelSegments:2,bevelSize:.013,bevelThickness:.013,curveSegments:40});g.translate(0,0,-.5);return g
+    }
+    case 'homeRib': return curvedHomeTimber()
+    case 'homeMullion': return curvedHomeTimber(.075,.075,.88)
+    case 'cushion': {
+      const g=new RoundedBoxGeometry(1,1,1,6,.19),p=g.getAttribute('position')
+      for(let i=0;i<p.count;i++) p.setZ(i,p.getZ(i)*(1+.12*Math.cos(p.getX(i)*Math.PI)*Math.cos(p.getY(i)*Math.PI)))
+      g.computeVertexNormals();return g
+    }
+    case 'planter': return new THREE.LatheGeometry([[.61,-.5],[.88,.46],[.97,.46],[.99,.56],[.84,.56],[.79,.39],[.54,-.41],[.61,-.5]].map(([x,y])=>new THREE.Vector2(x,y)),64)
     case 'box': return new RoundedBoxGeometry(1, 1, 1, small ? 1 : 3, 0.035)
     case 'cylinder': return new THREE.CylinderGeometry(1, 1, 1, small ? 12 : 96, 1)
     case 'hex': {
@@ -134,6 +167,7 @@ export function detailedGeometry(shape: Solid, small = false): THREE.BufferGeome
       })
       return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 192, 0.025, 8, false)
     }
+    case 'inlayRing': return new THREE.TorusGeometry(1,.002,8,160)
     case 'ring': return new THREE.TorusGeometry(1, 0.012, 12, 128)
     case 'leaf': {
       const g = new THREE.PlaneGeometry(1, 1, 8, 10), p = g.getAttribute('position')

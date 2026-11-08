@@ -91,6 +91,7 @@ src/
   renderer/src/
     ui/        left/ (chat: Messages.tsx), header/, files/, setup/ (asistente, añadir agente), trace/, space/…
     scene/     espacio 3D (Three.js)
+               worlds/KywaiHome.tsx y Home*.tsx / home*.ts: Refugio Kywai (cúpula, costa, cielo y talleres), con layout visual propio y pruebas de geometría; homeRobot.ts / homeIdentity.ts mantienen el rig de ojos y animación; lib/homeLighting.ts y ui/space/HomeNightToggle.tsx recuerdan el modo noche por dispositivo.
     store/     estado (datos reales y demo separados) · lib/ utilidades (api, audio, rutas locales…)
 android/       Órbita (Kotlin + Compose + Robolectric); release/ lleva orbita.apk y orbita.json
 docs/          MANUAL.md, GUIA-MODELOS.md, mobile-api/openapi.json (contrato de la API móvil)

@@ -18,6 +18,8 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
   const reduced = useCowork((s) => s.reducedEffects)
   const atOverview = useRef(true)
   const theme = useTheme()
+  const camera = useThree(s => s.camera) as THREE.PerspectiveCamera
+  useEffect(() => { camera.fov = theme === 'kywai' ? 38 : 30; camera.updateProjectionMatrix() }, [camera, theme])
   // El mapa del tema (cada uno se encuadra a su manera; la Ciudad y los decorados, como siempre).
   const world = palette.world
 
@@ -29,6 +31,12 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
       const aspect = width / Math.max(1, height)
       // La zona libre es más pequeña que el lienzo: se aleja lo que haga falta para que el mundo quepa en ella.
       const room = view ? Math.max(1, size.height / Math.max(1, height)) : 1
+      if (theme === 'kywai') {
+        const k = Math.max(1, 1.38 / aspect) * room
+        void controls.setLookAt(0, 11.2 * k, 32.5 * k, 0, 3.6, -2, smooth)
+        atOverview.current = true
+        return
+      }
       if (world === 'grafito') {
         const k = Math.max(1, (aspect >= 1.1 ? 1.60 : 1.09) / aspect) * room
         void controls.setLookAt(0, 15.4 * k, 32 * k, 0, 3.18, -3.3, smooth)
@@ -77,10 +85,10 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
 
   useEffect(() => {
     if (!controls) return
-    controls.setBoundary(new THREE.Box3(new THREE.Vector3(-11, -0.5, -9), new THREE.Vector3(11, 4, 9)))
+    controls.setBoundary(new THREE.Box3(theme === 'kywai' ? new THREE.Vector3(-36,-4,-62) : new THREE.Vector3(-11,-.5,-9), theme === 'kywai' ? new THREE.Vector3(36,18,16) : new THREE.Vector3(11,4,9)))
     controls.boundaryEnclosesCamera = false
     if (import.meta.env.DEV) (window as unknown as { __cam: CameraControls }).__cam = controls
-  }, [controls])
+  }, [controls, theme])
 
   // Encuadre inicial y ajuste al tamaño, solo mientras el usuario está en la vista general.
   useEffect(() => {
@@ -111,7 +119,7 @@ export function CameraRig({ view }: { view?: ViewInsets } = {}) {
       minDistance={6}
       maxDistance={64}
       minPolarAngle={0.32}
-      maxPolarAngle={1.2}
+      maxPolarAngle={theme === 'kywai' ? 1.4 : 1.2}
       minAzimuthAngle={-0.95}
       maxAzimuthAngle={0.95}
       smoothTime={reduced ? 0.12 : 0.55}

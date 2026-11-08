@@ -2477,4 +2477,8 @@ export const zh: Record<string, string> = {
   "No reconozco ese archivo: elige la exportación de ChatGPT o de Claude.ai": "无法识别该文件：请选择 ChatGPT 或 Claude.ai 的导出文件",
   "Elige la exportación de ChatGPT o de Claude.ai": "请选择 ChatGPT 或 Claude.ai 的导出文件",
   "La exportación supera los límites de lectura; divídela en archivos más pequeños": "导出文件超过读取限制，请拆分为较小文件",
+  "Refugio Kywai": "Kywai 静居",
+  "Observatorio-invernadero frente al mar, con talleres y un árbol compartido": "面朝大海的温室天文台，设有工作坊和共享树木",
+  "Modo noche": "夜间模式",
+  "¿Qué creamos hoy?": "今天我们创造什么？",
 }

@@ -269,7 +269,7 @@ export function Station({ station, occupant, showLight }: Props) {
             <mesh geometry={GEO.hexRimLow} material={lowRimMat} position={[0, -0.15, 0]} rotation={HEX_RING_ROT} />
           </>
         )}
-        <mesh geometry={GEO.pad} material={mats.pad} position={[0, 0.185 + lift, 0]} rotation={[Math.PI / 2, 0, 0]} />
+        <mesh visible={world !== 'kywai'} geometry={GEO.pad} material={mats.pad} position={[0, 0.185 + lift, 0]} rotation={[Math.PI / 2, 0, 0]} />
         {[0, 1].map((i) => (
           <mesh
             key={i}
@@ -284,12 +284,12 @@ export function Station({ station, occupant, showLight }: Props) {
             visible={false}
           />
         ))}
-        <mesh geometry={GEO.glowPlane} material={mats.glow} position={[0, -0.32, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={4.2} />
+        <mesh visible={world !== 'kywai'} geometry={GEO.glowPlane} material={mats.glow} position={[0, -0.32, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={4.2} />
         {/* Consola */}
-        <mesh geometry={GEO.pedestal} material={graphiteMat} position={[side * 1.02, 0.4, -0.42]} rotation={[0, screenYaw, 0]} />
-        <mesh geometry={GEO.screenMain} material={mats.screenA} position={screenPos} rotation={[-0.08, screenYaw, 0]} />
-        <mesh geometry={GEO.screenSmall} material={mats.screenB} position={smallPos} rotation={[-0.05, smallYaw, 0]} />
-        {showLight && <pointLight ref={light} position={[0, 1.4, 0.3]} distance={5.5} decay={2} intensity={0.3} />}
+        <mesh visible={world !== 'kywai'} geometry={GEO.pedestal} material={graphiteMat} position={[side * 1.02, 0.4, -0.42]} rotation={[0, screenYaw, 0]} />
+        <mesh visible={world !== 'kywai'} geometry={GEO.screenMain} material={mats.screenA} position={screenPos} rotation={[-0.08, screenYaw, 0]} />
+        <mesh visible={world !== 'kywai'} geometry={GEO.screenSmall} material={mats.screenB} position={smallPos} rotation={[-0.05, smallYaw, 0]} />
+        {showLight && world !== 'kywai' && <pointLight ref={light} position={[0, 1.4, 0.3]} distance={5.5} decay={2} intensity={0.3} />}
       </group>
     </group>
   )

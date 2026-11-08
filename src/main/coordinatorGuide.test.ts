@@ -8,6 +8,12 @@ const env = (urls: string[] = []): GuideEnv => ({ codeDir: code, webUrls: () => 
 const text = (lines: string[]): string => lines.join('\n')
 
 describe('lo que sabe el coordinador de kywai', () => {
+  it('conoce el refugio y su iluminación como función de la app', () => {
+    const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false }, env()))
+    expect(g).toContain('Refugio Kywai se elige en ⚙ → Ajustes → General → Mapas')
+    expect(g).toContain('«Modo noche» cambia la iluminación')
+    expect(g).toContain('no un proyecto que deba construir el equipo')
+  })
   it('distingue la carpeta del código de kywai', () => {
     expect(isInside(code, code)).toBe(true)
     expect(isInside(join(code, 'src'), code)).toBe(true)

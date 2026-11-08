@@ -20,7 +20,8 @@ import { t } from '@/lib/i18n'
 export type CityColor = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva'
 export type DecorTheme = 'relicario' | 'telar' | 'halloween' | 'navidad'
 export type WorldTheme = `mundo-${WorldStyle}`
-export type ThemeId = CityColor | DecorTheme | WorldTheme
+export type HomeTheme = 'kywai'
+export type ThemeId = CityColor | DecorTheme | WorldTheme | HomeTheme
 
 export interface ThemeInfo<Id extends ThemeId = ThemeId> {
   id: Id
@@ -58,8 +59,10 @@ export const DECORS: ReadonlyArray<ThemeInfo<DecorTheme>> = [
   { id: 'navidad', name: t('Navidad'), hint: t('Nieve, regalos, árboles con luces y una bola de nieve') }
 ]
 
+export const HOME: ThemeInfo<HomeTheme> = { id: 'kywai', name: t('Refugio Kywai'), hint: t('Observatorio-invernadero frente al mar, con talleres y un árbol compartido') }
+
 /** Todos los temas que se pueden elegir. */
-export const THEMES: ReadonlyArray<ThemeInfo> = [...WORLDS, ...CITY_COLORS, ...DECORS]
+export const THEMES: ReadonlyArray<ThemeInfo> = [HOME, ...WORLDS, ...CITY_COLORS, ...DECORS]
 
 export const DEFAULT_THEME: ThemeId = 'clasico'
 
@@ -73,8 +76,8 @@ export function worldOf(id: ThemeId): WorldStyle | undefined {
 }
 
 /** Los colores de la interfaz (data-theme): un mapa usa los del color con su nombre; el resto, los suyos. */
-export function uiThemeOf(id: ThemeId): CityColor | DecorTheme {
-  return worldOf(id) ?? (id as CityColor | DecorTheme)
+export function uiThemeOf(id: ThemeId): CityColor | DecorTheme | HomeTheme {
+  return worldOf(id) ?? (id as CityColor | DecorTheme | HomeTheme)
 }
 
 /** El nombre para mostrar: «Ciudad digital · Grafito» en la ciudad, el nombre a secas en los demás. */
@@ -224,7 +227,7 @@ export function useTheme(): ThemeId {
 }
 
 /** Los colores de la interfaz del tema actual (lo que hay en data-theme). */
-export function useUiTheme(): CityColor | DecorTheme {
+export function useUiTheme(): CityColor | DecorTheme | HomeTheme {
   return uiThemeOf(useTheme())
 }
 

@@ -5,7 +5,8 @@
  */
 
 /* ---------- Marfil: claro y cálido, con verde y oro ---------- */
-:root[data-theme='marfil'] {
+:root[data-theme='marfil'],
+:root[data-theme='kywai'] {
   --bg-app: #e9e3d6;
   --bg-panel: #f6f2ea;
   --bg-surface: #fbf8f2;
@@ -356,4 +357,19 @@
   --avatar-bg: linear-gradient(160deg, #24423a, #142824);
   --logo-bg: linear-gradient(160deg, #1f3a33, #0d1a18);
   --hover-mix: #2b4a42;
+}
+
+/* Refugio Kywai: limestone, oak and a quiet turquoise accent. */
+:root[data-theme='kywai'] { --bg-app:#e9dfcf; --bg-panel:#f4eddf; --bg-surface:#faf5ea; --bg-input:#fffbf2; --cyan:#358c82; --accent-text:#28695f; --stage:#d7bb9a; --label-text:#443a2d; --label-dim:#766956; }
+
+/* Refugio Kywai at night; the preference only changes this home. */
+:root[data-theme='kywai'][data-kywai-night='true']{
+  --bg-app:#08121d;--bg-panel:#101e2b;--bg-surface:#182b39;--bg-elevated:#203444;--bg-input:#0b1926;
+  --bg-hover:rgba(210,225,239,.06);--bg-active:rgba(228,187,115,.12);--line-rgb:167,194,213;--wash-rgb:167,194,213;
+  --border:rgba(167,194,213,.16);--border-strong:rgba(211,222,225,.32);
+  --text-1:#f1e8d5;--text-2:#b5c7d0;--text-3:#829eae;--cyan:#dfbd7e;--accent-text:#e9ce9b;
+  --float-rgb:16,30,43;--popover-rgb:19,34,48;--bubble-rgb:25,44,58;--label-rgb:15,29,42;--scrim-rgb:3,9,15;
+  --stage:#0a1523;--code-bg:#091623;--code-text:#d5e1e7;--label-text:#eee4ce;--label-dim:#a4bdca;--label-ok:#86d1b0;
+  --avatar-bg:linear-gradient(160deg,#344b58,#1a2d3b);--logo-bg:linear-gradient(160deg,#344b58,#1a2d3b);
+  --hover-mix:#344b58;--mix-to:#ffffff;--badge-bg:rgba(129,98,48,.22);--badge-text:#f0cc8a;color-scheme:dark;
 }

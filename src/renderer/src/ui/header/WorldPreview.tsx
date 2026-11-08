@@ -2,9 +2,10 @@ import type { WorldStyle } from '@/scene/worlds/models'
 
 /** Silueta fija de cada mapa en su tarjeta (sin más lienzos WebGL en el selector). */
 export function WorldPreview({ id }: { id: WorldStyle }) {
-  const colors: Record<WorldStyle, string> = { clasico: '#6bd5ff', orbita: '#a3dfff', marfil: '#467c68', grafito: '#e4ac53', bosque: '#88c379', matrix: '#4cff94', eva: '#b2eb58' }
+  const colors: Record<WorldStyle, string> = { clasico: '#6bd5ff', orbita: '#a3dfff', marfil: '#467c68', grafito: '#e4ac53', bosque: '#88c379', matrix: '#4cff94', eva: '#b2eb58', kywai: '#76aa92' }
   const color = colors[id]
   return <svg viewBox="0 0 120 84" width="100%" height="100%" aria-hidden="true" fill="none" stroke={color} strokeWidth="1.4">
+    {id === 'kywai' && <><path d='M9 69V44a51 39 0 0 1 102 0v25 M9 44h102 M35 69V39a25 34 0 0 1 50 0v30 M60 5v39 M10 69h100 M60 60V35 M60 46l-9-8 M60 42l10-10' /><ellipse cx='60' cy='64' rx='24' ry='7' /><path d='M4 74h112 M8 79h104' /></>}
     {id === 'clasico' && <>
       {[8, 91].map(x => <g key={x}><rect x={x} y="17" width="20" height="43" rx="2" />{[24, 32, 40, 48].map(y => <path key={y} d={`M${x + 4} ${y}h12`} />)}</g>)}
       <path d="M60 16 79 37 60 57 41 37Z M41 37h38 M60 16v41 M24 70h72 M35 66v-6 M85 66v-6" />

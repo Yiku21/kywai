@@ -215,6 +215,8 @@ Détails et exemple de mod dans le [manuel](docs/MANUAL.md#extensiones-tus-servi
 
 ### 🎨 Confort
 
+**Refuge Kywai** ajoute un observatoire-serre face à la mer : dôme de bois et de verre, ciel et eau animés, ateliers individuels, arbre commun et siège turquoise. Activez le mode nuit à côté de Musique ; le choix est mémorisé par appareil.
+
 - **Le chat d'abord.** Dans les petites fenêtres il prend plus de place, vous pouvez faire glisser son bord à la largeur voulue (double-clic pour revenir en automatique) et dans les fenêtres étroites le chat et le monde 3D deviennent deux onglets.
 - **Dictée vocale locale** avec Whisper sur votre propre ordinateur. Aucun service externe, et l'audio est supprimé ensuite.
 - **Cartes, couleurs et décors.** Sept cartes 3D, la Cité numérique en sept couleurs et quatre décors. Suivez le thème du serveur ou choisissez-en un par appareil ; Órbita adapte sa palette sans reproduire les cartes de l’ordinateur.
