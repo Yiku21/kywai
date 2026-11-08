@@ -1,6 +1,7 @@
 // Ficha de cada agente para el coordinador: qué se le da mejor, qué evitar, sus modelos, cuánta cuota le queda
 // y cómo le ha ido en kywai (tareas, aciertos, tiempo y calidad). Así reparte con datos y no solo por el nombre.
 import type { AgentConfig, Difficulty, QuotaInfo, UsageRun } from '@shared/types'
+import type { TaskCategory } from '@shared/taskCategory'
 import { EFFORT_LABEL, effortFor, modelFacts } from '@shared/modelCatalog'
 import { agentQuality, qualityLine, type AgentQuality } from '@shared/agentQuality'
 
@@ -34,8 +35,14 @@ export function agentHistory(runs: UsageRun[], agentId: string, now = Date.now()
 }
 
 /** Calidad de un agente en los últimos días (👍, verificación, correcciones, fallos), o null si no hizo tareas. */
-export function agentQualityFor(runs: UsageRun[], agentId: string, now = Date.now(), days = 30): AgentQuality | null {
-  return agentQuality(runs, now - days * 86_400_000).find((q) => q.agentId === agentId) ?? null
+export function agentQualityFor(
+  runs: UsageRun[],
+  agentId: string,
+  now = Date.now(),
+  days = 30,
+  categoryOf?: (taskId: string) => TaskCategory | undefined
+): AgentQuality | null {
+  return agentQuality(runs, now - days * 86_400_000, categoryOf).find((q) => q.agentId === agentId) ?? null
 }
 
 /** «81 % (ventana semanal)» o «12 % (…): queda poca…». */

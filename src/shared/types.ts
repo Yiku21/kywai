@@ -1061,6 +1061,8 @@ export interface UsageCall {
   rating?: MessageRating
   /** Llamadas de tarea: dificultad que le puso el coordinador (para la calidad por agente; falta en registros antiguos). */
   difficulty?: Difficulty
+  /** Llamadas de tarea: tipo (imagen, web, código, texto…), para saber qué agente rinde mejor en cada uno. */
+  category?: import('./taskCategory').TaskCategory
   /**
    * Llamadas de verificar: veredicto del verificador (pass: cumple; fail: vio fallos; unverified: respondió sin un veredicto
    * reconocible ni al pedírselo otra vez). Falta si no pudo verificar (error, cancelado).

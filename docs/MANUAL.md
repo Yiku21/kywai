@@ -852,8 +852,9 @@ del equipo, plegado bajo el plan en el chat.
 ### A dos manos: dos agentes, dos opciones y un juez
 
 Para lo que depende del gusto (una web, una landing, una interfaz, un póster, una presentación, un logo) no hay
-truco que suba el techo de calidad de forma tan segura como hacerlo dos veces y elegir. Por eso, en trabajo nuevo
-de ese tipo, el coordinador lo reparte **a dos manos**: dos agentes de familias distintas (por ejemplo Codex y
+truco que suba el techo de calidad de forma tan segura como hacerlo dos veces y elegir. Pero duplica la espera (hay
+que esperar a la versión más lenta y luego al juez: medido, un mapa pasó de unos 4 min a 13), así que **solo se
+hace si lo pides**; por defecto, una sola versión. Cuando lo pides, el coordinador lo reparte **a dos manos**: dos agentes de familias distintas (por ejemplo Codex y
 Claude) hacen la misma tarea por separado, cada uno en su carpeta (`artifacts/opcion-a/` y `artifacts/opcion-b/`,
 o `.ai-cowork/entregables/opcion-a/` y `opcion-b/` si el proyecto es una carpeta tuya), sin verse, y un tercero de
 otra familia (Gemini, si está) abre las dos, las prueba, las compara contra tu petición en los dos órdenes (para
@@ -861,10 +862,18 @@ no favorecer a la primera que mira) y responde «GANA: A» o «GANA: B» con el 
 cambiaría de la ganadora. La respuesta final te dice dónde está cada opción y cuál recomienda; tú te quedas con
 la que quieras y puedes pedir que se siga con ella.
 
-Lo pides tú mismo con **«a dos manos»** o **«dos opciones»** en la petición (vale para cualquier cosa, no solo lo
-visual: si el coordinador no lo hace, kywai lo hace por él, siempre que el plan sea una sola tarea con archivos
-y haya otro agente de otra familia disponible). Con **«a una mano»** o **«una sola versión»** no se hace nunca.
-Tampoco en continuaciones ni correcciones. Gasta el doble, pero es lo que pediste: calidad antes que coste.
+Se pide con **«a dos manos»**, **«dos opciones»** o **«dos propuestas»** en la petición (vale para cualquier cosa, no
+solo lo visual: si el coordinador no lo hace, kywai lo hace por él, siempre que el plan sea una sola tarea con
+archivos y haya otro agente de otra familia disponible). Nunca en continuaciones ni correcciones.
+
+### Imágenes: generadas, no dibujadas con código
+
+Si pides una imagen (una ilustración, un mapa visual, un póster, un logo, un icono), el coordinador se la da al
+agente que genera imágenes (hoy Codex) y le pide que la **genere con su herramienta de imágenes** en vez de
+dibujarla con un programa (SVG o scripts), que tarda mucho más. Si quieres algo editable o exacto (un diagrama SVG,
+un plano), dilo y se hará con código. Las piezas visuales (imágenes, pósteres, logos, mapas, infografías, no las
+webs ni las apps) van con **esfuerzo medio**: ahí manda el ojo, no el razonamiento, y con esfuerzo alto Opus llegó
+a pasar más de 4 minutos pensando en silencio antes de empezar un mapa.
 
 ### Los agentes retoman su sesión en las continuaciones
 
@@ -892,7 +901,7 @@ pide ceñirse a la corrección y a lo pedido, nada de gustos. **Solo un «CUMPLE
 
 | Situación | Qué hace kywai |
 |---|---|
-| El verificador responde sin veredicto reconocible | Se lo pide una vez más, conservando lo que ya revisó (retoma su sesión del CLI si puede; si no, su respuesta va en el encargo) |
+| El verificador responde sin veredicto reconocible | Se lo pide a **otro verificador fiable** desde cero (insistir al mismo suele dar lo mismo: un CLI con un modelo retirado responde siempre con el mismo error). Si no hay otro, se lo pide una vez más al mismo, conservando lo que ya revisó. Un agente que en 30 días acabó sin veredicto la mitad de sus revisiones o más deja de verificar mientras haya otro |
 | Tampoco lo da la segunda vez | La tarea queda **«sin verificar»**: «⚠ Sin verificar» en el resultado y no cuenta como aprobada ni como suspendida en las cifras |
 | Veredicto «FALLOS» | El autor corrige sobre lo que ya hay (recibe la lista), **hasta 2 veces**, y cada corrección se vuelve a verificar |
 | Sigue fallando tras las 2 correcciones | **Un relevo** a otro agente fuerte libre (nunca el autor ni un modelo local para lo que no es fácil), con las notas del verificador, los archivos que cambió el autor y lo que contó (sus pruebas). No retoma la sesión del autor: es otro CLI |
@@ -1890,9 +1899,10 @@ Claude, sin su dato real).
 ### Cómo rinde cada agente
 
 ⚙ → **«Cómo rinde cada agente…»** (también desde el enlace «¿Y la calidad?» de «Uso y coste…») enseña, para
-cada agente y por dificultad (difíciles, normales y fáciles, la que pone el coordinador a cada tarea; kywai no
-clasifica las tareas por tipo), en los últimos 7 o 30 días o en todo el registro, y si quieres solo del proyecto
-abierto:
+cada agente, por dificultad (difíciles, normales y fáciles, la que pone el coordinador a cada tarea) y **por tipo de
+tarea** (imágenes y piezas visuales, webs e interfaces, código y scripts, textos y documentos, investigar y
+analizar; kywai lo deduce del título y la descripción de cada tarea, también de las antiguas), en los últimos 7 o
+30 días o en todo el registro, y si quieres solo del proyecto abierto:
 
 | Columna | Qué cuenta |
 |---|---|
@@ -1932,6 +1942,13 @@ dificultad, cada verificación su veredicto y cada llamada si la detuviste. Los 
 no tenían esos datos: sus tareas salen como dificultad «Sin dato», sin verificación, y una llamada que no salió
 bien en una petición cancelada se toma como cancelada. La API móvil lo da en `GET /quality` (ver
 [mobile-api/README.md](mobile-api/README.md)); Órbita aún no lo enseña.
+
+
+**Reparto con estos datos.** El coordinador ve en la ficha de cada agente cómo le va en cada tipo de tarea y, con
+calidad parecida, elige al que tiene **más cuota libre** (salvo que el otro sea muchas veces más rápido). kywai lo
+comprueba después del plan: si otro agente tiene al menos 3 tareas verificadas de ese tipo, un % a la primera a
+menos de 15 puntos, no más fallidas, no tarda más del doble y le quedan al menos 25 puntos más de cuota, la tarea
+pasa a él y el plan dice por qué. Si lo nombras tú, se respeta. Sin datos suficientes no se cambia nada.
 
 ### Dónde se guardan las cosas
 

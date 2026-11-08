@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { UsageCall, UsageRun } from './types'
-import { agentQuality, baseAgentId, compareVerifiers, poorRecordReason, qualityLine, verifierStats, type AgentQuality } from './agentQuality'
+import { agentQuality, baseAgentId, compareVerifiers, poorRecordReason, qualityLine, freerPeerChoice, unreliableVerifier, verifierStats, type QualityStats, type AgentQuality } from './agentQuality'
 
 let clock = 1_000_000
 const task = (agentId: string, taskId: string, ok: boolean, extra: Partial<UsageCall> = {}): UsageCall => ({
@@ -170,6 +170,7 @@ describe('calidad por agente', () => {
       failedPct: 8,
       medianMs: 4 * 60_000,
       medianTokens: 120_000,
+      byCategory: [],
       byDifficulty: [
         { difficulty: 'hard', tasks: 4, rated: 3, liked: 1, verified: 4, firstPass: 2, fixed: 2, passedAfterFix: 1, reviewFailed: 1, unverified: 0, failed: 1, likedPct: 33, firstPassPct: 50, fixedPct: 50, passedAfterFixPct: 25, reviewFailedPct: 25, unverifiedPct: 0, failedPct: 25, medianMs: 1, medianTokens: 1 },
         { difficulty: 'medium', tasks: 8, rated: 6, liked: 6, verified: 4, firstPass: 4, fixed: 0, passedAfterFix: 0, reviewFailed: 0, unverified: 1, failed: 0, likedPct: 100, firstPassPct: 100, fixedPct: 0, passedAfterFixPct: 0, reviewFailedPct: 0, unverifiedPct: 13, failedPct: 0, medianMs: 1, medianTokens: 1 }
@@ -222,5 +223,31 @@ describe('verificadores', () => {
     expect(compareVerifiers(stats.get('codex'), stats.get('gemini'))).toBeLessThan(0)
     expect(compareVerifiers(stats.get('claude'), undefined)).toBe(0)
     expect(compareVerifiers({ count: 3, medianMs: 20_000, unclear: 0 }, { count: 5, medianMs: 25_000, unclear: 0 })).toBe(0)
+  })
+})
+
+describe('unreliableVerifier', () => {
+  it('fuera quien acaba sin veredicto la mitad de las veces o más (Aider con un modelo retirado)', () => {
+    expect(unreliableVerifier({ count: 1, medianMs: 3000, unclear: 1 })).toBe(true)
+    expect(unreliableVerifier({ count: 4, medianMs: 3000, unclear: 2 })).toBe(true)
+  })
+  it('un «sin veredicto» suelto entre muchos no lo descarta, y sin datos tampoco', () => {
+    expect(unreliableVerifier({ count: 15, medianMs: 17000, unclear: 1 })).toBe(false)
+    expect(unreliableVerifier({ count: 3, medianMs: 17000, unclear: 0 })).toBe(false)
+    expect(unreliableVerifier(undefined)).toBe(false)
+  })
+})
+
+describe('freerPeerChoice', () => {
+  const st = (firstPassPct: number, medianMs: number, verified = 4, failedPct = 0) => ({ firstPassPct, medianMs, verified, failedPct }) as QualityStats
+  it('con calidad parecida, al que tiene bastante más cuota', () => {
+    expect(freerPeerChoice({ pct: 20, stats: st(80, 300_000) }, [{ id: 'codex', pct: 70, stats: st(75, 250_000) }])).toEqual({ id: 'codex', pct: 70 })
+  })
+  it('no cambia si el otro es claramente peor, mucho más lento, tiene poca más cuota o no hay datos', () => {
+    expect(freerPeerChoice({ pct: 20, stats: st(80, 300_000) }, [{ id: 'a', pct: 90, stats: st(50, 250_000) }])).toBeNull()
+    expect(freerPeerChoice({ pct: 20, stats: st(80, 60_000) }, [{ id: 'b', pct: 90, stats: st(80, 600_000) }])).toBeNull()
+    expect(freerPeerChoice({ pct: 50, stats: st(80, 300_000) }, [{ id: 'c', pct: 60, stats: st(80, 300_000) }])).toBeNull()
+    expect(freerPeerChoice({ pct: 20, stats: st(80, 300_000) }, [{ id: 'd', pct: 90, stats: st(80, 300_000, 2) }])).toBeNull()
+    expect(freerPeerChoice({ pct: 20, stats: undefined }, [{ id: 'e', pct: 90, stats: st(80, 300_000) }])).toBeNull()
   })
 })
