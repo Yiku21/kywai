@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { finished } from 'node:stream/promises'
-import type { AddAgentInput, AgentId, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { AddAgentInput, AgentId, ImportResult, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
@@ -86,6 +86,7 @@ import { addMemory, deleteMemory, isMemoryKind, setInstructions, updateMemory } 
 import { initUpdater } from './updater'
 import * as store from './projects'
 import * as conversations from './conversations'
+import { importArchive, importLocal, initImports, scanImports } from './importChats'
 import { computeQuotas, initQuota, latestQuotas, recomputeQuotas, refreshQuotas, startQuotaTimer, stopQuota } from './quota'
 import { claudeAuthMethod, removeClaudeOverrides } from './quotaProbe'
 import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
@@ -478,6 +479,24 @@ function registerIpc(): void {
   handle('search', (query: unknown, projectId?: unknown) => conversations.search(query, typeof projectId === 'string' ? projectId : undefined))
   handle('searchHistory', (query: unknown, options?: unknown) => conversations.searchHistory(query, options && typeof options === 'object' ? (options as SearchOptions) : {}))
   handle('allConversations', () => conversations.allConversations())
+  // Importar de otras apps (Claude Code, Codex, ChatGPT, Claude.ai): ver importChats.ts.
+  const afterImport = (r: ImportResult): ImportResult => {
+    for (const projectId of r.projectIds) emit({ kind: 'conversations.updated', projectId })
+    return r
+  }
+  handle('scanImports', () => scanImports())
+  handle('importLocal', (ids: unknown) => afterImport(importLocal(ids, getConfig().agents)))
+  handle('importArchive', (path: unknown) => afterImport(importArchive(path, getConfig().agents)))
+  ipcMain.handle('cowork:pickImportFile', async (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow
+    const opts: OpenDialogOptions = {
+      title: tr('Elige la exportación de ChatGPT o de Claude.ai'),
+      properties: ['openFile'],
+      filters: [{ name: 'ZIP / JSON', extensions: ['zip', 'json'] }]
+    }
+    const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    return r.canceled ? null : (r.filePaths[0] ?? null)
+  })
   handle('sendMessage', (input: SendMessageInput) => {
     if (!input || typeof input !== 'object') throw new Error(tr('Mensaje no válido'))
     return sendMessage(input)
@@ -998,6 +1017,7 @@ async function boot(): Promise<void> {
   initQuota(cfg.workspaceRoot, getConfig, allAgents)
   initUsageLog(cfg.workspaceRoot)
   initAgentSessions(cfg.workspaceRoot)
+  initImports(cfg.workspaceRoot)
   initInbox(cfg.workspaceRoot)
   initSkills(cfg.workspaceRoot)
   initExtensions(new McpRegistry(join(app.getPath('userData'), 'mcp-servers.json'), systemCipher))

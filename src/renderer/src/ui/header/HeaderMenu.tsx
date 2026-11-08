@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Award, BarChart3, Coffee, Download, FolderOpen, Globe, HardDrive, Monitor, RotateCcw, Server, Settings } from 'lucide-react'
+import { Award, BarChart3, Coffee, Download, FolderOpen, Globe, HardDrive, Import, Monitor, RotateCcw, Server, Settings } from 'lucide-react'
 import { useCowork } from '@/store/cowork'
 import { api, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
@@ -104,6 +104,13 @@ export function HeaderMenu({ sidebar }: { sidebar: { button: string } }) {
           <button type="button" role="menuitem" className={s.item} onClick={go(() => useCowork.setState({ usageOpen: true }))}>
             <BarChart3 size={16} aria-hidden="true" className={s.itemIcon} />
             <span className={s.itemLabel}>{t('Uso y coste…')}</span>
+          </button>
+        )}
+
+        {hasBackend && (
+          <button type="button" role="menuitem" className={s.item} onClick={go(() => useCowork.setState({ importOpen: true }))}>
+            <Import size={16} aria-hidden="true" className={s.itemIcon} />
+            <span className={s.itemLabel}>{t('Importar de otras apps…')}</span>
           </button>
         )}
 
