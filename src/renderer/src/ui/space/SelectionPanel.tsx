@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   ArrowRight,
   Brain,
@@ -132,6 +132,16 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
       .sort((a, b) => b.createdAt - a.createdAt)
   }, [artifacts, agentTasks, id])
 
+  // Un becario se va al acabar su parte (o al devolver la tarea a su jefe): el panel pasa solo a su jefe, que la sigue.
+  const bossId = !agent && id.includes('-becario-') ? id.slice(0, id.indexOf('-becario-')) : null
+  const bossAgent = useData((d) => (bossId ? d.agents[bossId] : undefined))
+  const boss = bossAgent ? { id: bossAgent.id, name: bossAgent.name } : null
+  useEffect(() => {
+    if (!boss) return
+    const timer = window.setTimeout(() => select({ type: 'agent', id: boss.id }), 4000)
+    return () => window.clearTimeout(timer)
+  }, [boss?.id, select]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const recent = useMemo(
     () =>
       agentTasks
@@ -148,10 +158,17 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
           <AgentAvatar look={look} size={44} dim />
           <div className={s.headInfo}>
             <h2 className={s.name}>{look.name}</h2>
-            <p className={s.sub}>{t('Este agente ya no está en el espacio.')}</p>
+            <p className={s.sub}>
+              {boss ? t('Era un becario de {name}: terminó su parte y deja el puesto libre. Su tarea sigue con {name}.', { name: boss.name }) : t('Este agente ya no está en el espacio.')}
+            </p>
           </div>
           <CloseButton onClose={onClose} />
         </div>
+        {boss && (
+          <button type="button" className={s.traceBtn} onClick={() => select({ type: 'agent', id: boss.id })}>
+            {t('Ver a {name}', { name: boss.name })}
+          </button>
+        )}
       </>
     )
   }
