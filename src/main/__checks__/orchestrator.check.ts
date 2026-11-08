@@ -1312,9 +1312,20 @@ async function main(): Promise<void> {
       verdicts = []
       verifyDelay = 400
       const seenVerifying: number[] = []
+      // Mientras Codex hace la segunda, la primera termina su revisión: Codex debe seguir «trabajando», no «disponible».
+      let busyAfterFirst: string | undefined
       workBehaviour = (o) => {
-        if (o.agent.id === 'codex') seenVerifying.push(verifying)
-        return null
+        if (o.agent.id !== 'codex') return null
+        seenVerifying.push(verifying)
+        if (seenVerifying.length !== 2) return null
+        return (async () => {
+          o.onActivity?.('Creando baja.html', 'tool')
+          await waitFor(() => [...lastTasks(0).values()].some((x) => x.title === 'Página de alta' && x.status === 'done'), 5000, 'alta revisada')
+          await sleep(30)
+          const rt = runtimeSnapshot().find((r) => r.agentId === 'codex')!
+          busyAfterFirst = `${rt.activity}:${rt.lastActivity}`
+          return defaultWork(o)
+        })()
       }
       try {
         const { runId } = await sendMessage({ projectId: up.id, text: 'Haz las páginas de alta y baja', filePaths: [] })
@@ -1324,6 +1335,7 @@ async function main(): Promise<void> {
         const planPrompt = calls.find((c) => c.mode === 'plan' && c.prompt.includes('Haz las páginas de alta y baja'))!.prompt
         assert.ok(planPrompt.includes('así empiezan a la vez') && planPrompt.includes('no encadenes tareas solo «por orden»'))
         assert.equal(seenVerifying[1], 1, 'la segunda empieza mientras Claude verifica la primera')
+        assert.equal(busyAfterFirst, 'working:Creando baja.html', 'al cerrar la primera no se pisa el estado de la segunda')
         const ts = store.snapshotProject(up.id).tasks.filter((t) => t.runId === runId)
         assert.deepEqual(ts.map((t) => [t.status, t.verification?.ok]), [['done', true], ['done', true]])
       } finally {

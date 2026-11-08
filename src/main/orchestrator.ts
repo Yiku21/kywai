@@ -371,7 +371,7 @@ function requeueForMerge(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     removeBecario(exec.id)
     t.agentId = parent.id
   }
-  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Resolviendo choques: {title}', { title: t.title }) })
+  settleRuntime(owner.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Resolviendo choques: {title}', { title: t.title }) })
   t.status = 'pending'
   t.startedAt = undefined
   t.lastActivity = undefined
@@ -514,6 +514,17 @@ function isBlocked(id: AgentId): boolean {
   blocked.delete(id)
   if (!busy.has(id)) setRuntime(id, { activity: 'idle', reason: undefined, lastActivity: tr('Disponible de nuevo') })
   return false
+}
+
+/**
+ * Estado del agente al cerrar una tarea que ya no ocupa (tras revisarla, corregirla, relevarla o fallar). Como el
+ * agente queda libre en cuanto entrega (la revisión va aparte), puede estar ya con otra tarea o verificando la de otro:
+ * entonces no se toca, para no poner «Disponible» a un agente que está trabajando.
+ */
+function settleRuntime(id: AgentId, t: Task, patch: Parameters<typeof setRuntime>[1]): void {
+  const current = busy.get(id)
+  if ((current && current !== t.id) || integrating.has(id) || planningAgents.has(id)) return
+  setRuntime(id, patch)
 }
 
 function offlineReason(a: AgentConfig): string | null {
@@ -3300,7 +3311,7 @@ function reviewFailed(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig 
     text: tr('{byName} sigue viendo fallos en «{title}» tras {fixesDone} correcciones de {name}; se la paso a {name2} con las notas:\n\n{clip}', { byName: v.byName, title: t.title, fixesDone: meta.fixesDone, name: owner.name, name2: alt.name, clip: clip(v.notes, 1500) })
   })
   traceNote(t.id, tr('Relevo tras la revisión: de {name} a {name2}', { name: owner.name, name2: alt.name }), true)
-  setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Relevada: {title}', { title: t.title }) })
+  settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Relevada: {title}', { title: t.title }) })
   reassign(t, exec.id, alt, owner.id)
   if (parent) removeBecario(exec.id)
   return true
@@ -3331,7 +3342,7 @@ function requeueForFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
     removeBecario(exec.id)
     t.agentId = parent.id
   }
-  setRuntime(owner.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Corrigiendo: {title}', { title: t.title }) })
+  settleRuntime(owner.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Corrigiendo: {title}', { title: t.title }) })
   t.status = 'pending'
   t.startedAt = undefined
   t.lastActivity = undefined
@@ -3419,7 +3430,7 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     )
   }
   warnOutOfScope(run, t, owner, files)
-  setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Terminó: {title}', { title: t.title }), context: undefined })
+  settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Terminó: {title}', { title: t.title }), context: undefined })
   if (parent) removeBecario(exec.id)
 }
 
@@ -3461,7 +3472,7 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
     meta.forceCliDefault = true
     console.warn(`[cowork] modelo habitual ${t.model} de ${owner.id} rechazado: ${msg}`)
     closeWork(run, t, 'stopped', { text: tr('El modelo {model} no está disponible: lo repito con el predeterminado.', { model: t.model }) })
-    setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Cambiando al modelo predeterminado') })
+    settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Cambiando al modelo predeterminado') })
     t.status = 'pending'
     t.startedAt = undefined
     t.lastActivity = undefined
@@ -3481,7 +3492,7 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
       removeBecario(exec.id)
       t.agentId = parent.id
     } else {
-      setRuntime(exec.id, { activity: 'idle', taskId: undefined, lastActivity: tr('Cambiando al modelo principal') })
+      settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Cambiando al modelo principal') })
     }
     t.status = 'pending'
     t.startedAt = undefined
@@ -3492,7 +3503,7 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   }
 
   if (BLOCKING_KINDS.includes(kind)) blockAgent(exec, kind, msg)
-  setRuntime(exec.id, {
+  settleRuntime(exec.id, t, {
     activity: kind === 'offline' || kind === 'missing' ? 'offline' : 'error',
     reason: msg,
     taskId: undefined,
