@@ -717,6 +717,7 @@ export const en: Record<string, string> = {
   'Hecha': 'Done',
   'No pudo hacerla': 'Couldn\'t do it',
   'Detenida': 'Stopped',
+  'En cola': 'Queued',
   'paso': 'step',
   'pasos': 'steps',
   'con error': 'with errors',
@@ -2725,4 +2726,7 @@ export const en: Record<string, string> = {
   "Bailando": "Dancing",
   "En revisión": "In review",
   "Esperando la revisión de {agentName}": "Waiting for {agentName} to review",
+  "Ojo: «{fresh}» se parece mucho a «{existing}», que sigue en marcha. Si es lo mismo, detén una de las dos para que no se pisen.": "Heads up: “{fresh}” looks a lot like “{existing}”, which is still running. If they are the same, stop one so they don’t clash.",
+  "Era un becario de {name}: terminó su parte y deja el puesto libre. Su tarea sigue con {name}.": "This was an intern of {name}: it finished its part and freed its desk. Its task continues with {name}.",
+  "Ver a {name}": "Show {name}",
 }

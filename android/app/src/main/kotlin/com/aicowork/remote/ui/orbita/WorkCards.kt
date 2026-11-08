@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aicowork.remote.data.model.Snapshot
+import com.aicowork.remote.data.model.numberedTitle
 import com.aicowork.remote.data.model.TaskWork
 import com.aicowork.remote.data.model.TraceEntry
 import com.aicowork.remote.data.model.WorkFile
@@ -75,6 +76,8 @@ fun WorkBlock(messageId: String, work: TaskWork, accent: Color, snapshot: Snapsh
     val live = work.status == "running" && task?.status == "running"
     val state = when (work.status) {
         "running" -> if (!live) t("Detenida") else if (task?.phase == "verify") t("En revisión") else t("Trabajando")
+        // Cerrado pero la tarea vuelve a la cola (a corregir lo que vio el verificador): no está detenida.
+        "stopped" -> if (task?.status == "pending" || task?.status == "blocked") t("En cola") else t("Detenida")
         "done" -> t("Hecha")
         "failed" -> t("No pudo hacerla")
         else -> t("Detenida")
@@ -105,7 +108,7 @@ fun WorkBlock(messageId: String, work: TaskWork, accent: Color, snapshot: Snapsh
             if (live) CircularProgressIndicator(Modifier.size(14.dp), color = accent, strokeWidth = 2.dp)
             else Icon(Icons.Outlined.ChecklistRtl, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
-            Text(work.title, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+            Text(numberedTitle(work.seq, work.title), color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
             Text(" · $state", color = if (work.status == "failed") Orbita.Danger else Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
         }
         if (!open && (note != null || files != null || live)) {

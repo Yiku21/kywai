@@ -576,6 +576,8 @@ data class TaskItem(
     val model: String? = null,
     /** Etapa de la tarea en marcha: work, fix, tests o verify (otro agente la revisa). */
     val phase: String? = null,
+    /** Número de la tarea en el proyecto (#1, #2…). */
+    val seq: Int? = null,
 ) {
     val isActive get() = status == "running" || status == "pending" || status == "blocked"
     val isResumable get() = status == "cancelled" || status == "failed"
@@ -856,6 +858,9 @@ data class HermesProvider(val id: String, val label: String = id, val models: Li
 @Serializable
 data class HermesResetRequest(val reset: Boolean)
 
+/** El título con su número delante («#7 Guía…»), para distinguir dos tareas a la vez del mismo agente. */
+fun numberedTitle(seq: Int?, title: String): String = if (seq != null && seq > 0) "#$seq $title" else title
+
 /** Lo que cuenta un agente mientras hace una tarea. status: running, done, failed o stopped. */
 @Serializable
 data class TaskWork(
@@ -867,6 +872,10 @@ data class TaskWork(
     val hidden: Int = 0,
     /** Todo lo que hizo hasta ahora (también lo que ya no cabe en steps), en una línea. */
     val totals: WorkTotals? = null,
+    /** Número de la tarea en el proyecto (#7): distingue dos tareas en paralelo del mismo agente. */
+    val seq: Int? = null,
+    /** Quién la hace de verdad si no es el autor del mensaje (un becario): «Claude · Becario». */
+    val by: String? = null,
 )
 
 /** «Ejecutó 14 comandos, editó 3 archivos y creó 2 archivos», con lo que falló y las líneas que cambió. */

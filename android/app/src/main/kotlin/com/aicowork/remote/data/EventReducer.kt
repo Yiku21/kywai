@@ -223,8 +223,19 @@ object EventReducer {
 
 fun Conversation.upsert(message: ChatMessage): Conversation {
     val index = messages.indexOfFirst { it.id == message.id }
-    val list = if (index >= 0) messages.toMutableList().also { it[index] = message } else messages + message
+    val list = when {
+        index < 0 -> messages + message
+        // El bloque de una tarea que vuelve a trabajar (una corrección) baja al final, como en el escritorio.
+        reopensWork(messages[index], message) -> messages.filterIndexed { i, _ -> i != index } + message
+        else -> messages.toMutableList().also { it[index] = message }
+    }
     return copy(messages = list)
+}
+
+/** El mismo agente retoma su tarea: el bloque estaba cerrado y vuelve a trabajar (ver src/shared/chatOrder.ts). */
+fun reopensWork(before: ChatMessage, after: ChatMessage): Boolean {
+    val old = before.work ?: return false
+    return old.status != "running" && after.work?.status == "running" && (after.createdAt ?: 0L) > (before.createdAt ?: 0L)
 }
 
 fun Agent.merge(runtime: AgentRuntime) = copy(

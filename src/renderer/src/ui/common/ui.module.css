@@ -344,3 +344,11 @@
   border: 1px solid var(--border-strong);
   color: var(--text-2);
 }
+
+/* Número de la tarea en el proyecto (#7) delante de su título: distingue dos tareas a la vez del mismo agente. */
+.taskSeq {
+  margin-right: 0.35em;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}

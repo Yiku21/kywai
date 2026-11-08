@@ -168,6 +168,8 @@ export interface Task {
   id: string
   projectId: string
   runId: string
+  /** Número de la tarea en el proyecto (#1, #2…), para distinguirla en el chat y en la lista de tareas. */
+  seq?: number
   title: string
   description: string
   agentId: AgentId
@@ -556,6 +558,10 @@ export interface TaskWork {
   hidden?: number
   /** Todo lo que hizo hasta ahora (también lo que ya no cabe en steps), en una línea. */
   totals?: WorkTotals
+  /** Número de la tarea en el proyecto (#7): distingue dos tareas en paralelo del mismo agente. */
+  seq?: number
+  /** Quién la hace de verdad si no es el autor del mensaje (un becario de ese agente): «Claude · Becario». */
+  by?: string
 }
 
 /** Una tarea del plan propuesto: todavía no existe; se crea al aprobar el plan. */

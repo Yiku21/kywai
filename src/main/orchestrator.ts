@@ -101,8 +101,13 @@ interface TaskMeta {
   sessionId?: string
   /** Sesión anterior que este intento retoma (Claude --resume, Codex exec resume). */
   resume?: string
-  /** Mensaje del chat donde el agente va contando lo que hace (uno por intento) y desde cuándo. */
+  /** Mensaje del chat donde el agente va contando lo que hace y desde cuándo. */
   work?: ChatMessage
+  /**
+   * El último mensaje de la tarea ya cerrado: si el mismo agente la retoma (una corrección, un choque al integrar, otro
+   * modelo), sigue en ese mismo mensaje, que baja al final del chat, en vez de abrir otro que se mezcle con las demás.
+   */
+  lastWork?: ChatMessage
   workSince?: number
   workTimer?: NodeJS.Timeout
   /** Instantánea de la carpeta antes del primer intento (para ver y deshacer lo que hizo la tarea). */
@@ -847,12 +852,43 @@ function agentMessage(run: Run, agentId: AgentId, text: string, extra: Partial<C
   return m
 }
 
-/** El mensaje de la tarea en el chat: aparece al empezar y va contando lo que hace el agente. */
-function openWork(run: Run, t: Task, owner: AgentConfig): void {
+/**
+ * El mensaje de la tarea en el chat: aparece al empezar y va contando lo que hace el agente. Una tarea tiene un solo
+ * mensaje por agente: si vuelve al mismo (a corregir lo que vio el verificador, a resolver un choque…), se reabre el
+ * suyo y baja al final del chat (ver reopenedWork), con lo de antes plegado. Si la retoma otro agente (relevo), ese
+ * abre el suyo. `exec`: quien la hace de verdad, si no es `owner` (un becario suyo).
+ */
+function openWork(run: Run, t: Task, owner: AgentConfig, exec: AgentConfig = owner): void {
   const meta = run.meta.get(t.id)
   if (!meta) return
+  const work: TaskWork = { taskId: t.id, title: t.title, status: 'running', steps: [], ...workTags(t, owner, exec) }
+  const prev = meta.lastWork
+  meta.lastWork = undefined
+  if (prev && prev.author.type === 'agent' && prev.author.agentId === owner.id) {
+    // Lo que se dijo al cerrarlo (por qué se repite) queda entre sus pasos; el texto vuelve a ser el resultado final.
+    const said = prev.text.trim()
+    if (said && !getTaskTrace(t.id).some((e) => e.title === said || e.body === said)) traceNote(t.id, said)
+    meta.work = Object.assign(prev, { text: '', createdAt: Date.now(), artifactIds: undefined, tone: undefined, work: { ...work, ...workSnapshot(meta, t.id) } })
+    pushMessage(meta.work)
+    return
+  }
   meta.workSince = Date.now()
-  meta.work = agentMessage(run, owner.id, '', { work: { taskId: t.id, title: t.title, status: 'running', steps: [] } })
+  meta.work = agentMessage(run, owner.id, '', { work })
+}
+
+/** Número de la tarea y, si la hace un becario, su nombre: el chat los enseña junto al agente. */
+function workTags(t: Task, owner: AgentConfig, exec: AgentConfig): Pick<TaskWork, 'seq' | 'by'> {
+  return { ...(t.seq ? { seq: t.seq } : {}), ...(exec.id !== owner.id ? { by: exec.name } : {}) }
+}
+
+/** Siguiente número de tarea del proyecto (#1, #2…): sigue contando aunque se vacíe la conversación. */
+function nextTaskSeq(projectId: string): number {
+  // Las tareas de antes de numerarlas cuentan igual, para no repetir números bajos.
+  const saved = store.getProject(projectId).tasks
+  let max = saved.length
+  for (const t of saved) max = Math.max(max, t.seq ?? 0)
+  for (const t of tasks.values()) if (t.projectId === projectId) max = Math.max(max, t.seq ?? 0)
+  return max + 1
 }
 
 function workSnapshot(meta: TaskMeta, taskId: string): Pick<TaskWork, 'steps' | 'hidden' | 'totals'> {
@@ -944,7 +980,7 @@ function workDirty(run: Run, t: Task): void {
     meta.workTimer = undefined
     const m = meta.work
     if (!m?.work || m.work.status !== 'running') return
-    m.work = { taskId: m.work.taskId, title: m.work.title, status: 'running', ...workSnapshot(meta, t.id) }
+    m.work = { taskId: m.work.taskId, title: m.work.title, status: 'running', ...workSnapshot(meta, t.id), ...tagsOf(m.work) }
     pushMessage(m)
   }, 1000)
 }
@@ -960,11 +996,16 @@ function closeWork(run: Run, t: Task, status: TaskWork['status'], patch: Partial
   if (meta.workTimer) clearTimeout(meta.workTimer)
   meta.workTimer = undefined
   meta.work = undefined
+  meta.lastWork = m
   const snap = workSnapshot(meta, t.id)
-  m.work = { taskId: m.work.taskId, title: m.work.title, status, ...snap, steps: trimClosing ? withoutClosingNotes(snap.steps) : snap.steps }
+  m.work = { taskId: m.work.taskId, title: m.work.title, status, ...snap, steps: trimClosing ? withoutClosingNotes(snap.steps) : snap.steps, ...tagsOf(m.work) }
   Object.assign(m, patch)
   pushMessage(m)
   return m
+}
+
+function tagsOf(w: TaskWork): Pick<TaskWork, 'seq' | 'by'> {
+  return { ...(w.seq ? { seq: w.seq } : {}), ...(w.by ? { by: w.by } : {}) }
 }
 
 function systemMessage(run: Run, text: string, tone: ChatMessage['tone'] = 'normal'): void {
@@ -1346,6 +1387,7 @@ async function sendDirect(
     id: randomUUID(),
     projectId,
     runId,
+    seq: nextTaskSeq(projectId),
     title: tr('Mensaje directo: {text}', { text: oneLine(text, 60) || tr('archivos adjuntos') }),
     description: text,
     agentId: agent.id,
@@ -1728,6 +1770,7 @@ function createTasks(run: Run, planned: PlannedTask[]): Task[] {
   const now = Date.now()
   const keyToId = new Map<string, string>()
   for (const p of planned) keyToId.set(p.key, randomUUID())
+  let seq = nextTaskSeq(run.projectId)
   return planned.map((p) => {
     const id = keyToId.get(p.key)!
     const deps = p.dependsOn.map((k) => keyToId.get(k)).filter((x): x is string => !!x)
@@ -1735,6 +1778,7 @@ function createTasks(run: Run, planned: PlannedTask[]): Task[] {
       id,
       projectId: run.projectId,
       runId: run.id,
+      seq: seq++,
       title: p.title,
       description: p.description,
       agentId: p.agentId,
@@ -2725,7 +2769,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     ? (meta.resume ?? (t.continues && dir === mainDir ? lastSession(run.projectId, sessionOwner.id, { provider: exec.provider, cwd: dir })?.sessionId : undefined))
     : undefined
   startTrace(t.id, run.projectId)
-  openWork(run, t, parent ?? exec)
+  openWork(run, t, parent ?? exec, exec)
   const progress = watchProgress(run, t, dir, taskStart)
   traceNote(t.id, tr('{name} empieza con {modelNameFor}{v3}', { name: exec.name, modelNameFor: modelNameFor(exec, model), v3: effort ? ` · ${tr(EFFORT_LABEL[effort])}` : '' }))
   if (resume) traceNote(t.id, tr('{name} retoma su sesión anterior en este proyecto', { name: exec.name }))
@@ -3353,9 +3397,9 @@ function requeueForFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   meta.forceMainModel = true
   // Corrige en la misma sesión del CLI: recuerda lo que hizo y por qué.
   meta.resume = meta.sessionId
-  closeWork(run, t, 'stopped', {
-    text: tr('{byName} comprobó «{title}» y vio fallos; {name} los corrige (corrección {fixesDone} de {MAX_REVIEW_FIXES}):\n\n{clip}', { byName: v.byName, title: t.title, name: owner.name, fixesDone: meta.fixesDone, MAX_REVIEW_FIXES, clip: clip(v.notes, 1500) })
-  })
+  // La revisión la firma quien la hizo (no el autor de la tarea): sale como mensaje suyo, debajo del bloque de la tarea.
+  closeWork(run, t, 'stopped', {})
+  agentMessage(run, v.by, tr('{byName} comprobó «{title}» y vio fallos; {name} los corrige (corrección {fixesDone} de {MAX_REVIEW_FIXES}):\n\n{clip}', { byName: v.byName, title: t.title, name: owner.name, fixesDone: meta.fixesDone, MAX_REVIEW_FIXES, clip: clip(v.notes, 1500) }))
   if (parent) {
     transfer({ fromId: exec.id, toId: parent.id, label: tr('Corregir: {title}', { title: t.title }), taskId: t.id, payload: { title: t.title, summary: oneLine(v.notes, 200) } })
     removeBecario(exec.id)

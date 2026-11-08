@@ -638,6 +638,7 @@ export const pt: Record<string, string> = {
   "Hecha": "Concluída",
   "No pudo hacerla": "Não conseguiu",
   "Detenida": "Parada",
+  "En cola": "Na fila",
   "paso": "passo",
   "pasos": "passos",
   "con error": "com erros",
@@ -2606,4 +2607,7 @@ export const pt: Record<string, string> = {
   "Bailando": "Dançando",
   "En revisión": "Em revisão",
   "Esperando la revisión de {agentName}": "Aguardando a revisão de {agentName}",
+  "Ojo: «{fresh}» se parece mucho a «{existing}», que sigue en marcha. Si es lo mismo, detén una de las dos para que no se pisen.": "Atenção: «{fresh}» parece muito com «{existing}», que ainda está em andamento. Se for o mesmo, pare uma das duas para que não se atropelem.",
+  "Era un becario de {name}: terminó su parte y deja el puesto libre. Su tarea sigue con {name}.": "Era um estagiário de {name}: terminou a sua parte e deixou o posto livre. A tarefa continua com {name}.",
+  "Ver a {name}": "Ver {name}",
 }
