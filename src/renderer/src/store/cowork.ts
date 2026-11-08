@@ -118,6 +118,8 @@ interface CoworkState {
   searchOpen: boolean
   /** Ventana «Historial» (todas las conversaciones) abierta. */
   historyOpen: boolean
+  /** Ventana «Importar de otras apps» (⚙, asistente o barra lateral vacía). */
+  importOpen: boolean
   /** Texto con el que se abre el buscador (desde el Historial: «Buscar … dentro de los mensajes»). */
   searchSeed: string
   /** Mensaje al que el chat tiene que bajar y resaltar (lo pide el buscador al abrir un resultado). */
@@ -362,6 +364,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
   conversationsTick: 0,
   searchOpen: false,
   historyOpen: false,
+  importOpen: false,
   searchSeed: '',
   focusMessage: null,
   drawerOpen: false,

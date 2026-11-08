@@ -1,6 +1,8 @@
 import type { Lang } from './i18n'
 import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
 import type { TaskTemplate, TaskTemplateInput } from './templates'
+import type { ImportResult, ImportScan } from './imports'
+export type { ImportResult, ImportScan } from './imports'
 export type { TaskTemplate, TaskTemplateInput } from './templates'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
 // Todo lo que cruza IPC está definido aquí.
@@ -451,6 +453,8 @@ export interface ChatMessage {
   direct?: { agentId: AgentId; name: string }
   /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
   template?: { id: string; name: string }
+  /** Mensaje traído de otra app (⚙ → «Importar de otras apps…»): el chat enseña ese nombre como autor de la respuesta. */
+  importedFrom?: string
 }
 
 /** Te sirvió (up) o no (down). */
@@ -751,6 +755,8 @@ export interface ConversationSummary {
   current?: boolean
   /** Fijada arriba en la barra lateral. */
   pinned?: boolean
+  /** Traída de otra app («Claude Code», «Codex», «ChatGPT», «Claude.ai»). */
+  importedFrom?: string
 }
 
 /** Un resultado del buscador (Ctrl+K): conversaciones, tareas, resultados y memoria de todos los proyectos. */
@@ -807,7 +813,7 @@ export interface SearchResult {
 export interface ProjectState {
   project: ProjectSummary
   /** Conversación abierta: su id, título y cuándo empezó (los proyectos antiguos no lo tienen hasta el primer cambio). */
-  conversation?: { id: string; title: string; createdAt: number; pinned?: boolean }
+  conversation?: { id: string; title: string; createdAt: number; pinned?: boolean; importedFrom?: string }
   /** Conversaciones guardadas (no la abierta), de la más reciente a la más antigua. */
   conversations?: ConversationSummary[]
   /** Ya se pasaron a conversaciones las copias antiguas de historial/ (las de «Limpiar el chat»). */
@@ -1304,12 +1310,20 @@ export interface CoworkApi {
   searchHistory(query: string, options?: SearchOptions): Promise<SearchResult>
   /** Historial: todas las conversaciones con mensajes de todos los proyectos, de la más reciente a la más antigua. */
   allConversations(): Promise<ConversationSummary[]>
+  /** Importar: lo que hay en este equipo (el servidor) de Claude Code y Codex, por carpeta. */
+  scanImports(): Promise<ImportScan>
+  /** Importa las sesiones elegidas de «En este equipo» (ids de scanImports). */
+  importLocal(sessionIds: string[]): Promise<ImportResult>
+  /** Importa un archivo exportado de ChatGPT o Claude.ai (el zip o su conversations.json), ya en el servidor. */
+  importArchive(path: string): Promise<ImportResult>
   loadProject(projectId: string): Promise<ProjectState>
   /** Estado actual de agentes y cuotas (para pintar al arrancar). */
   getRuntime(): Promise<{ runtimes: AgentRuntime[]; quotas: QuotaInfo[] }>
   sendMessage(input: SendMessageInput): Promise<{ runId: string }>
   cancelRun(runId: string): Promise<void>
   pickFiles(kind: 'any' | 'image'): Promise<string[]>
+  /** Elige la exportación de ChatGPT o Claude.ai (zip o json) y devuelve su ruta en el servidor (por web, la sube entera). */
+  pickImportFile(): Promise<string | null>
   /** Ruta absoluta de un archivo soltado en la ventana. */
   pathForFile(file: File): string
   readArtifact(projectId: string, relPath: string): Promise<{ text?: string; url?: string }>

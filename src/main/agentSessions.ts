@@ -17,6 +17,11 @@ export interface AgentSession {
   cwd: string
   taskTitle: string
   at: number
+  /**
+   * Traída de otra app al importar (Claude Code, Codex): se retoma aunque tenga más de SESSION_MAX_AGE_MS, porque
+   * el archivo de la sesión sigue en el disco (se comprobó al importarla) y es justo lo que el usuario quiere seguir.
+   */
+  imported?: boolean
 }
 
 let dir = ''
@@ -80,7 +85,7 @@ export function rememberSession(projectId: string, agentId: string, s: AgentSess
 export function lastSession(projectId: string, agentId: string, want: { provider: ProviderKind; cwd: string }, now = Date.now()): AgentSession | undefined {
   const s = load(projectId)[agentId]
   if (!s || s.provider !== want.provider || s.cwd !== want.cwd) return undefined
-  if (now - s.at > SESSION_MAX_AGE_MS) return undefined
+  if (!s.imported && now - s.at > SESSION_MAX_AGE_MS) return undefined
   return s
 }
 

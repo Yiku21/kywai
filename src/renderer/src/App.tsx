@@ -27,6 +27,7 @@ import { Sidebar } from '@/ui/sidebar/Sidebar'
 import { SearchDialog } from '@/ui/sidebar/SearchDialog'
 import { followServerTheme, onThemeChosen, ownTheme, storedTheme, useUiTheme } from '@/lib/theme'
 import { HistoryDialog } from '@/ui/sidebar/HistoryDialog'
+import { ImportDialog } from '@/ui/sidebar/ImportDialog'
 import { useMediaQuery } from '@/ui/common/hooks'
 import s from './App.module.css'
 import { lang, t } from '@/lib/i18n'
@@ -118,6 +119,7 @@ export function App() {
   const searchOpen = useCowork((st) => st.searchOpen)
   const searchSeed = useCowork((st) => st.searchSeed)
   const historyOpen = useCowork((st) => st.historyOpen)
+  const importOpen = useCowork((st) => st.importOpen)
   const showSetup = useCowork((st) => !isWeb && st.hasBackend && st.configLoaded && (!st.config.setupDone || st.setupOpen))
   // Tema Órbita: el espacio 3D ocupa toda la ventana y la interfaz flota encima como cristal esmerilado.
   const glass = useUiTheme() === 'orbita'
@@ -203,6 +205,7 @@ export function App() {
       </div>
       {searchOpen && <SearchDialog initialQuery={searchSeed} onClose={() => useCowork.setState({ searchOpen: false, searchSeed: '' })} />}
       {historyOpen && <HistoryDialog onClose={() => useCowork.setState({ historyOpen: false })} />}
+      {importOpen && <ImportDialog onClose={() => useCowork.setState({ importOpen: false })} />}
       <ArtifactViewer />
       {showSetup && <SetupWizard />}
       {usageOpen && <UsageDialog onClose={() => useCowork.setState({ usageOpen: false })} />}
