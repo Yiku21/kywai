@@ -35,6 +35,7 @@ import type { AgentErrorKind, ExtraMcp, RateLimitInfo, RunAgentResult } from './
 import { getConfig, markBudgetAlerted } from './config'
 import { budgetAlertDue, budgetUsd, formatMoney, monthApiSpendUsd, monthKey, usdTo } from '@shared/costs'
 import { isPlanApproval, parsePlan, streamlinePlan, twoHandsPlan, wantsNoReview } from './plan'
+import { lookalikes } from './duplicateTasks'
 import { allRuntimes, deleteRuntime, emit, getRuntime, setRuntime } from './events'
 import * as store from './projects'
 import { expandModCommand } from './mods'
@@ -1758,6 +1759,7 @@ async function executeRun(run: Run): Promise<void> {
     run.taskIds.push(t.id)
     pushTask(t)
   }
+  warnLookalikes(run, created.map((t) => t.title))
   if (!created.length) {
     void finishRun(run, true)
     return
@@ -1835,6 +1837,7 @@ function proposePlan(run: Run, planner: AgentConfig, reply: string, planned: Pla
   }
   const n = planned.length
   agentMessage(run, planner.id, reply.trim() || `Te propongo ${n === 1 ? 'una tarea' : `${n} tareas`}. ¿Empezamos?`, { proposal })
+  warnLookalikes(run, planned.map((p) => p.title))
   run.finished = true
   // La cuota se mide al terminar el trabajo de verdad (si lo apruebas, la petición sigue con el mismo registro).
   usageEnded(run, 'ok', false)
@@ -2040,6 +2043,20 @@ function busyNote(a: AgentConfig): string | null {
 }
 
 /** Tareas de OTRAS peticiones del mismo proyecto que siguen en marcha o en cola, con los archivos que tocan. */
+/** Una tarea nueva que parece repetir otra que sigue en marcha o en cola: el chat lo avisa (ver duplicateTasks.ts). */
+function warnLookalikes(run: Run, titles: string[]): void {
+  const existing: string[] = []
+  for (const r of runs.values()) {
+    if (r.projectId !== run.projectId || r.id === run.id || r.finished || r.cancelled) continue
+    for (const tid of r.taskIds) {
+      const t = tasks.get(tid)
+      if (t && ['running', 'pending', 'blocked'].includes(t.status)) existing.push(t.title)
+    }
+  }
+  for (const d of lookalikes(titles, existing))
+    systemMessage(run, tr('Ojo: «{fresh}» se parece mucho a «{existing}», que sigue en marcha. Si es lo mismo, detén una de las dos para que no se pisen.', d))
+}
+
 function otherWork(projectId: string, exceptRunId: string): string[] {
   const out: string[] = []
   for (const r of runs.values()) {
@@ -2181,6 +2198,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '- Si varios agentes sirven, elige el de mejor calidad según su ficha («calidad»: lo que le sirvió al usuario, verificaciones a la primera, pocas correcciones y pocos fallos, mirando la fila de la misma dificultad y, sobre todo, la de su «tipo de tarea»: imágenes, webs, código, textos o investigar); la calidad pesa más que la velocidad y el coste. Con calidad parecida, SIEMPRE el que tenga más cuota restante, salvo que el otro sea muchas veces más rápido. kywai lo aplica también después: si hay datos de que otro rinde igual en ese tipo de tarea y le queda bastante más cuota, se la pasa. A un agente con poca cuota, solo lo imprescindible.',
     '- Mira «disponible» en cada ficha: si un agente está ocupado y otro libre puede hacerlo bien, dáselo al libre para que empiece ya; uno ocupado solo si es claramente el único adecuado (su tarea esperará a que termine).',
     '- Si hay trabajo en marcha en esta carpeta, no planifiques cambios en los archivos que está tocando: trabaja en otros archivos o, si la petición necesita esos mismos, dilo en "reply" y propón esperar a que termine.',
+    '- Si lo que pide ya lo está haciendo una tarea de «Trabajo en marcha» (aunque lo diga con otras palabras), NO crees otra que lo repita: dos tareas sobre lo mismo se pisan y confunden en el chat. Díselo en "reply"; si añade algo nuevo, crea solo una tarea con eso, en otros archivos, o propón esperar a que termine la que está en marcha.',
     '- "dependsOn": keys de las tareas cuyo resultado o archivos necesita de verdad antes de empezar (deja [] si no hay); no encadenes tareas solo «por orden»: cada dependencia hace esperar a la siguiente hasta que la anterior termine y se verifique.',
     '- Si la petición trae varios encargos distintos que no se necesitan entre sí (por ejemplo «arregla el login y además escribe el README»), cada uno es su tarea, con "dependsOn": [] y archivos distintos en "files": así empiezan a la vez. Si varios agentes sirven igual de bien, dáselas a agentes distintos: dos tareas del mismo agente van una detrás de otra. Esto no es repartir un mismo trabajo (eso sigue las reglas de arriba).',
     '- "difficulty": "hard" para el trabajo principal cuando es complejo o cuando el resultado importa de verdad (usa el modelo más potente, aunque tarde más); "medium" para lo normal; "easy" SOLO para respuestas de texto cortas o cambios mecánicos de una línea que no exijan entender el proyecto (va con menos esfuerzo). En la duda, sube la dificultad.',
