@@ -15,6 +15,9 @@ export interface SocialPose {
   surprise: number
   bounce: number
   tilt: number
+  pitch?: number
+  turn?: number
+  wink?: number
 }
 
 /** Segundos esperando a otro agente antes de aburrirse. */
@@ -532,7 +535,7 @@ export class RobotBrain {
       this.nextLook = t + 2.6 + this.rnd() * 4.5
     }
     let targetYaw = camYaw
-    if (social) targetYaw = yawTo(this.pos, social.lookAt)
+    if (social) targetYaw = yawTo(this.pos, social.lookAt) + (social.turn ?? 0)
     else if (this.moving) targetYaw = heading
     else if (this.anchor === 'core') targetYaw = yawTo(this.pos, CORE_POS)
     else if (t - this.sendStart < 1.5) targetYaw = yawTo(this.pos, this.sendTarget)
@@ -578,7 +581,7 @@ export class RobotBrain {
     pitchT -= ack * 0.2
     pitchT += emit * 0.12
     if (!this.moving) pitchT += this.gesturePitch
-    if (social) rollT += social.tilt
+    if (social) { rollT += social.tilt; pitchT += social.pitch ?? 0 }
     this.pitch = damp(this.pitch, pitchT, 5, dt)
     this.roll = damp(this.roll, rollT, 4, dt)
 
@@ -807,7 +810,7 @@ export class RobotBrain {
     const chevT = (visual === 'working' && !roundGesture && !tiredT) || g === 'effort'
     this.eyeChevron = damp(this.eyeChevron, chevT ? 1 : 0, 14, dt)
     this.eyeTired = damp(this.eyeTired, tiredT ? 1 : 0, 10, dt)
-    this.eyeWink = damp(this.eyeWink, gWink * (r ? 0.7 : 1), 16, dt)
+    this.eyeWink = damp(this.eyeWink, social?.wink ?? gWink * (r ? 0.7 : 1), 16, dt)
     this.eyeBig = damp(this.eyeBig, gBig * amp, 8, dt)
     this.gestureRoll = damp(this.gestureRoll, gRoll * amp, 5, dt)
     this.questionAmt = damp(this.questionAmt, visual === 'thinking' && (g === 'doubt' || g === 'ponder') ? 1 : 0, 6, dt)

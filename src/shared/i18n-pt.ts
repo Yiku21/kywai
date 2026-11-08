@@ -2595,4 +2595,12 @@ export const pt: Record<string, string> = {
   "¡Je, je! Ya estás despierto.": "Hehe! Agora você acordou.",
   "¡Hola, vecino!": "Oi, vizinho!",
   "¡Buenas! ¿Todo bien?": "Oi! Tudo bem?",
+  "¿Bailamos?": "Vamos dançar?",
+  "¡Sigue el ritmo!": "Siga o ritmo!",
+  "¡Haz como yo!": "Faça como eu!",
+  "¡Casi me sale!": "Quase consegui!",
+  "¡Choca esa antena!": "Toque de antenas!",
+  "¡Equipo!": "Equipe!",
+  "¡Ánimo, compañero!": "Ânimo, companheiro!",
+  "¡Gracias por los ánimos!": "Obrigado pelo incentivo!",
 }

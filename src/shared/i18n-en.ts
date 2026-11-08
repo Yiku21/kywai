@@ -2714,4 +2714,12 @@ export const en: Record<string, string> = {
   "¡Je, je! Ya estás despierto.": "Hehe! You’re awake now.",
   "¡Hola, vecino!": "Hey, neighbor!",
   "¡Buenas! ¿Todo bien?": "Hey! All good?",
+  "¿Bailamos?": "Shall we dance?",
+  "¡Sigue el ritmo!": "Follow the beat!",
+  "¡Haz como yo!": "Do as I do!",
+  "¡Casi me sale!": "Almost got it!",
+  "¡Choca esa antena!": "Antenna bump!",
+  "¡Equipo!": "Team spirit!",
+  "¡Ánimo, compañero!": "You’ve got this, buddy!",
+  "¡Gracias por los ánimos!": "Thanks for cheering me on!",
 }

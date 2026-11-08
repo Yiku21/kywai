@@ -2,20 +2,23 @@ import * as THREE from 'three'
 import type { RobotBrain, SocialPose } from './robotBrain'
 import { smootherstep } from './layout'
 
-export type SocialKind = 'catch' | 'wake' | 'greet'
-export type SocialEvent = 'invite' | 'caught' | 'boo' | 'startled' | 'laugh' | 'hello' | 'reply'
+export type SocialKind = 'catch' | 'wake' | 'greet' | 'dance' | 'mirror' | 'bump' | 'encourage'
+export type SocialEvent = 'invite' | 'caught' | 'boo' | 'startled' | 'laugh' | 'hello' | 'reply' |
+  'danceInvite' | 'danceReply' | 'copyMe' | 'copied' | 'bumpInvite' | 'team' | 'cheer' | 'thanks'
+const REPERTOIRE: readonly SocialKind[] = ['catch', 'dance', 'bump', 'mirror', 'greet', 'encourage', 'wake', 'catch']
 interface Scene {
   kind: SocialKind
   actors: [RobotBrain, RobotBrain]
   homes: [THREE.Vector3, THREE.Vector3]
   poses: [SocialPose, SocialPose]
   destination: THREE.Vector3
+  direction: THREE.Vector3
   start: number
   duration: number
   events: Set<string>
 }
 
-const pose = (home: THREE.Vector3): SocialPose => ({ position: home.clone(), lookAt: home.clone(), awake: true, happy: 0, surprise: 0, bounce: 0, tilt: 0 })
+const pose = (home: THREE.Vector3): SocialPose => ({ position: home.clone(), lookAt: home.clone(), awake: true, happy: 0, surprise: 0, bounce: 0, tilt: 0, pitch: 0, turn: 0, wink: 0 })
 
 /** Sigue el borde del espacio, evitando cruzar el núcleo para visitar otra plataforma. */
 export function socialRoute(from: THREE.Vector3, to: THREE.Vector3, progress: number, out: THREE.Vector3): void {
@@ -31,7 +34,7 @@ export class SocialLife {
   active: Scene | null = null
   onEvent: ((agentId: string, event: SocialEvent) => void) | null = null
   onCancel: ((agentId: string) => void) | null = null
-  readonly toy = { visible: false, kind: 'document' as 'document' | 'browser', position: new THREE.Vector3(), rotation: 0, scale: 1 }
+  readonly toy = { visible: false, kind: 'document' as 'document' | 'browser' | 'spark' | 'heart', position: new THREE.Vector3(), rotation: 0, scale: 1 }
   private nextAt = 5
   private cycle = 0
   private lastUsed = new Map<string, number>()
@@ -62,19 +65,24 @@ export class SocialLife {
     if (!scene && t >= this.nextAt) {
       const available = [...brains.values()].filter(brain => brain.canSocialize(t) && t - (this.lastUsed.get(brain.agentId) ?? -100) > 20)
       available.sort((a, b) => (this.lastUsed.get(a.agentId) ?? -100) - (this.lastUsed.get(b.agentId) ?? -100) || b.persona.chatty - a.persona.chatty || a.agentId.localeCompare(b.agentId))
-      const sleeping = available.find(brain => brain.eyeSleep > 0.55)
-      const first = available.find(brain => brain !== sleeping && brain.eyeSleep < 0.55) ?? available.find(brain => brain !== sleeping)
+      const scheduled = REPERTOIRE[this.cycle % REPERTOIRE.length]
+      // Las siestas no monopolizan las escenas: también quedan turnos para bailar e imitarse.
+      const sleeping = scheduled === 'wake' || this.cycle === 0 ? available.find(brain => brain.eyeSleep > 0.55) : undefined
+      const tired = scheduled === 'encourage' ? available.filter(brain => brain.fatigue >= 0.5).sort((a, b) => b.fatigue - a.fatigue)[0] : undefined
+      const recipient = sleeping ?? tired
+      const first = available.find(brain => brain !== recipient && brain.eyeSleep < 0.55) ?? available.find(brain => brain !== recipient)
       if (!first) { this.nextAt = t + 2; return }
-      const second = sleeping ?? available.filter(brain => brain !== first && brain.home.distanceTo(first.home) > 2.5)
+      const second = recipient ?? available.filter(brain => brain !== first && brain.home.distanceTo(first.home) > 2.5)
         .sort((a, b) => a.home.distanceToSquared(first.home) - b.home.distanceToSquared(first.home))[0]
       if (!second || second.home.distanceTo(first.home) < 2.5) { this.nextAt = t + 2; return }
-      const kind: SocialKind = sleeping ? 'wake' : this.cycle % 3 === 2 ? 'greet' : 'catch'
+      const kind: SocialKind = sleeping ? 'wake' : scheduled === 'wake' ? 'greet' : scheduled
       const homes: [THREE.Vector3, THREE.Vector3] = [first.home.clone(), second.home.clone()]
       const destination = first.home.clone().sub(second.home).setY(0).normalize().multiplyScalar(2.4).add(second.home)
       destination.y = first.home.y
+      const direction = destination.clone().sub(second.home).setY(0).normalize()
       const poses: [SocialPose, SocialPose] = [pose(homes[0]), pose(homes[1])]
       poses[1].awake = kind !== 'wake'
-      scene = { kind, actors: [first, second], homes, poses, destination, start: t, duration: kind === 'catch' ? 18 : 15, events: new Set() }
+      scene = { kind, actors: [first, second], homes, poses, destination, direction, start: t, duration: kind === 'catch' ? 18 : kind === 'dance' ? 17 : kind === 'mirror' ? 16 : 15, events: new Set() }
       this.active = scene
       first.social = poses[0]; second.social = poses[1]
       this.lastUsed.set(first.agentId, t); this.lastUsed.set(second.agentId, t)
@@ -85,7 +93,7 @@ export class SocialLife {
     const elapsed = Math.max(0, t - scene.start)
     const [a, b] = scene.poses
     a.position.copy(scene.homes[0]); b.position.copy(scene.homes[1])
-    for (const p of scene.poses) { p.happy = 0; p.surprise = 0; p.bounce = 0; p.tilt = 0 }
+    for (const p of scene.poses) { p.happy = 0; p.surprise = 0; p.bounce = 0; p.tilt = 0; p.pitch = 0; p.turn = 0; p.wink = 0 }
     this.toy.visible = false
     if (scene.kind === 'catch') {
       a.awake = b.awake = true
@@ -107,6 +115,34 @@ export class SocialLife {
       }
       this.emit(scene, 'invite', 0.2, elapsed, 0, 'invite')
       this.emit(scene, 'caught', 3.8, elapsed, 1, 'caught')
+    } else if (scene.kind === 'dance') {
+      const envelope = smootherstep((elapsed - 1) / 1.5) * (1 - smootherstep((elapsed - 14) / 2))
+      for (const [i, actor] of scene.poses.entries()) {
+        const beat = (elapsed - 1) * Math.PI * 2 / 1.35 + i * Math.PI
+        actor.position.x += Math.sin(beat) * 0.32 * envelope
+        actor.position.z += Math.cos(beat) * 0.12 * envelope
+        actor.bounce = Math.abs(Math.sin(beat)) * 0.3 * envelope
+        actor.tilt = Math.cos(beat) * 0.22 * envelope
+        actor.pitch = Math.sin(beat) * 0.11 * envelope
+        actor.turn = Math.PI * 2 * smootherstep((elapsed - 7) / 2.2) * (i ? -1 : 1)
+        actor.happy = 0.95
+      }
+      this.emit(scene, 'danceInvite', 0.3, elapsed, 0, 'danceInvite')
+      this.emit(scene, 'danceReply', 1.6, elapsed, 1, 'danceReply')
+    } else if (scene.kind === 'mirror') {
+      for (const [i, actor] of scene.poses.entries()) {
+        const play = Math.max(0, elapsed - 1.5 - i * 0.65)
+        const action = Math.floor(play / 2.6) % 4
+        const pulse = Math.sin(Math.PI * (play / 2.6 % 1)) * (1 - smootherstep((elapsed - 13) / 2))
+        const side = i ? -1 : 1
+        if (action === 0) actor.tilt = side * pulse * 0.26
+        if (action === 1) actor.wink = side * pulse
+        if (action === 2) actor.bounce = pulse * 0.42
+        if (action === 3) { actor.pitch = -pulse * 0.18; actor.turn = side * pulse * 0.5 }
+        actor.happy = 0.65
+      }
+      this.emit(scene, 'copyMe', 0.3, elapsed, 0, 'copyMe')
+      this.emit(scene, 'copied', 6, elapsed, 1, 'copied')
     } else {
       const returning = elapsed > 10
       socialRoute(scene.homes[0], scene.destination, returning ? 1 - (elapsed - 10) / 5 : elapsed / 4.5, a.position)
@@ -125,6 +161,36 @@ export class SocialLife {
         this.emit(scene, 'boo', 4.8, elapsed, 0, 'boo')
         this.emit(scene, 'startled', 5.2, elapsed, 1, 'startled')
         this.emit(scene, 'laugh', 7, elapsed, 0, 'laugh')
+      } else if (scene.kind === 'bump') {
+        const contact = Math.sin(Math.PI * THREE.MathUtils.clamp((elapsed - 5) / 1.2, 0, 1))
+        a.position.addScaledVector(scene.direction, -0.12 * contact)
+        b.position.addScaledVector(scene.direction, 0.12 * contact)
+        a.bounce = b.bounce = contact * 0.22
+        a.tilt = -contact * 0.14; b.tilt = contact * 0.14
+        a.happy = b.happy = 1
+        a.wink = elapsed > 6 && elapsed < 8 ? Math.sin((elapsed - 6) * Math.PI / 2) : 0
+        this.toy.visible = contact > 0.01
+        this.toy.kind = 'spark'
+        this.toy.position.lerpVectors(a.position, b.position, 0.5)
+        this.toy.position.y += 1.15
+        this.toy.scale = contact * 1.1
+        this.toy.rotation = elapsed * 2
+        this.emit(scene, 'bumpInvite', 4.5, elapsed, 0, 'bumpInvite')
+        this.emit(scene, 'team', 5.7, elapsed, 1, 'team')
+      } else if (scene.kind === 'encourage') {
+        const encouraged = smootherstep((elapsed - 5) / 2)
+        a.happy = 0.85; b.happy = 0.1 + encouraged * 0.9
+        b.pitch = (1 - encouraged) * 0.14 + Math.sin(elapsed * 4) * encouraged * 0.06
+        a.wink = Math.sin(Math.PI * THREE.MathUtils.clamp((elapsed - 5.5) / 1.5, 0, 1))
+        b.bounce = Math.sin(Math.PI * THREE.MathUtils.clamp((elapsed - 6) / 1.4, 0, 1)) * 0.18
+        this.toy.visible = elapsed > 4.5 && elapsed < 9
+        this.toy.kind = 'heart'
+        this.toy.position.lerpVectors(a.position, b.position, encouraged)
+        this.toy.position.y += 1 + Math.sin(encouraged * Math.PI) * 0.6
+        this.toy.scale = smootherstep((elapsed - 4.5) / 0.5) * (1 - smootherstep((elapsed - 8) / 1))
+        this.toy.rotation = Math.sin(elapsed * 2) * 0.3
+        this.emit(scene, 'cheer', 4.5, elapsed, 0, 'cheer')
+        this.emit(scene, 'thanks', 6.4, elapsed, 1, 'thanks')
       } else {
         a.happy = b.happy = 0.8
         a.tilt = elapsed > 4 && elapsed < 9 ? Math.sin(elapsed * 3) * 0.13 : 0

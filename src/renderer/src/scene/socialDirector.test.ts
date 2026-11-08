@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import type { AgentActivity } from '@shared/types'
 import { RobotBrain } from './robotBrain'
 import { PERSONAS } from './personality'
-import { SocialLife, socialRoute, type SocialEvent } from './socialDirector'
+import { SocialLife, socialRoute, type SocialEvent, type SocialKind } from './socialDirector'
 
 const camera = new THREE.Vector3(0, 15, 25)
 function brain(id: string, x: number, z: number, activity: AgentActivity = 'idle') {
@@ -21,6 +21,20 @@ function pair() {
 function step(life: SocialLife, brains: Map<string, RobotBrain>, t: number, reduced = false) {
   life.update(t, brains, reduced)
   for (const b of brains.values()) b.update(t, 0.1, camera)
+}
+
+function reach(kind: SocialKind, tired = false) {
+  const setup = pair()
+  if (tired) setup.b.fatigue = 0.8
+  for (let t = 5; t < 350; t += 0.1) {
+    step(setup.life, setup.brains, t)
+    if (setup.life.active?.kind === kind) return { ...setup, start: setup.life.active.start }
+  }
+  throw new Error(`No apareció ${kind}`)
+}
+
+function advance(setup: ReturnType<typeof reach>, from: number, to: number) {
+  for (let elapsed = from; elapsed <= to + 0.001; elapsed += 0.1) step(setup.life, setup.brains, setup.start + elapsed)
 }
 
 describe('vida social de los agentes libres', () => {
@@ -114,9 +128,9 @@ describe('vida social de los agentes libres', () => {
     expect(life.toy.kind).toBe('document')
     step(life, brains, 23); step(life, brains, 27)
     expect(life.active!.actors.every(b => !first.includes(b.agentId))).toBe(true)
-    expect(life.toy.kind).toBe('browser')
+    expect(life.active!.kind).toBe('dance')
     step(life, brains, 45); step(life, brains, 49)
-    expect(life.active!.kind).toBe('greet')
+    expect(life.active!.kind).toBe('bump')
   })
 
   it('al cancelar una visita vuelve suavemente sin retrasar el trabajo', () => {
@@ -151,5 +165,81 @@ describe('vida social de los agentes libres', () => {
     for (let frame = 0; frame < 600; frame++) a.update(5 + frame / 60, 1 / 60, camera)
     expect(Math.abs(a.roll)).toBeLessThan(0.3)
     expect(a.eyeHappy).toBeGreaterThan(0.9)
+  })
+
+  it('los dos compañeros bailan con pasos y un giro sin salir de su plataforma', () => {
+    const setup = reach('dance')
+    const bounce = [0, 0], tilt = [0, 0]
+    for (let elapsed = 0; elapsed <= 4; elapsed += 0.1) {
+      step(setup.life, setup.brains, setup.start + elapsed)
+      for (const [i, p] of setup.life.active!.poses.entries()) {
+        bounce[i] = Math.max(bounce[i], p.bounce)
+        tilt[i] = Math.max(tilt[i], Math.abs(p.tilt))
+      }
+    }
+    for (const peak of bounce) expect(peak).toBeGreaterThan(0.2)
+    for (const peak of tilt) expect(peak).toBeGreaterThan(0.15)
+    advance(setup, 4.1, 10)
+    for (const [i, p] of setup.life.active!.poses.entries()) {
+      expect(Math.abs(p.turn!)).toBeCloseTo(Math.PI * 2)
+      expect(p.position.clone().setY(setup.life.active!.homes[i].y).distanceTo(setup.life.active!.homes[i])).toBeLessThan(0.5)
+    }
+  })
+
+  it('el compañero imita el gesto con retraso y devuelve el guiño', () => {
+    const setup = reach('mirror')
+    advance(setup, 0, 2.6)
+    const [a, b] = setup.life.active!.poses
+    expect(a.tilt * b.tilt).toBeLessThan(0)
+    expect(Math.abs(Math.abs(a.tilt) - Math.abs(b.tilt))).toBeGreaterThan(0.04)
+    advance(setup, 2.7, 6)
+    expect(a.wink! * b.wink!).toBeLessThan(0)
+  })
+
+  it('se acercan para chocar antenas y aparece un destello sin solapar sus cuerpos', () => {
+    const setup = reach('bump')
+    advance(setup, 0, 5.6)
+    const [a, b] = setup.life.active!.poses
+    expect(a.position.distanceTo(b.position)).toBeGreaterThanOrEqual(2.1)
+    expect(setup.life.toy.visible).toBe(true)
+    expect(setup.life.toy.kind).toBe('spark')
+    expect(setup.life.toy.scale).toBeGreaterThan(0.8)
+    expect(a.happy).toBe(1); expect(b.happy).toBe(1)
+  })
+
+  it('dan ánimos al más cansado sin cambiar su cuota ni su cansancio real', () => {
+    const setup = reach('encourage', true)
+    expect(setup.life.active!.actors[1]).toBe(setup.b)
+    advance(setup, 0, 5.3)
+    expect(setup.life.toy.visible).toBe(true)
+    expect(setup.life.toy.kind).toBe('heart')
+    const before = setup.life.active!.poses[1].happy
+    advance(setup, 5.4, 7)
+    expect(setup.life.active!.poses[1].happy).toBeGreaterThan(before)
+    expect(setup.b.fatigue).toBe(0.8)
+    expect(setup.b.activity).toBe('idle')
+  })
+
+  it.each(['dance', 'mirror', 'bump', 'encourage'] as const)('cancela %s de inmediato cuando llega trabajo o se reducen los efectos', kind => {
+    for (const reduced of [false, true]) {
+      const setup = reach(kind)
+      advance(setup, 0, 6)
+      if (!reduced) setup.life.active!.actors[0].setInputs('working', 'station', null, setup.start + 6)
+      step(setup.life, setup.brains, setup.start + 6.1, reduced)
+      expect(setup.life.active).toBeNull()
+      expect(setup.life.toy.visible).toBe(false)
+      expect(setup.a.social).toBeNull(); expect(setup.b.social).toBeNull()
+    }
+  })
+
+  it('las siestas no impiden que aparezca todo el repertorio nuevo', () => {
+    const { brains, life } = pair()
+    const kinds = new Set<SocialKind>()
+    for (let t = 5; t < 210; t += 0.1) {
+      for (const b of brains.values()) b.eyeSleep = 1
+      step(life, brains, t)
+      if (life.active) kinds.add(life.active.kind)
+    }
+    expect([...kinds]).toEqual(expect.arrayContaining(['wake', 'dance', 'bump', 'mirror', 'greet', 'encourage', 'catch']))
   })
 })
