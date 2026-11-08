@@ -13,7 +13,7 @@ export function TaskStages({ task, reduced }: { task: Task; reduced: boolean }) 
   const current = task.phase === 'verify' ? 2 : task.phase === 'tests' ? 1 : 0
   const steps = [task.phase === 'fix' ? t('Corrigiendo') : t('Trabajando'), t('Pruebas'), t('Verificación'), t('Lista')]
   return (
-    <ol className={s.stages} aria-label={t('Etapas de la tarea')}>
+    <ol className={cx(s.stages, !reduced && s.stagesAnim)} aria-label={t('Etapas de la tarea')}>
       {steps.map((label, i) => (
         <li
           key={i}

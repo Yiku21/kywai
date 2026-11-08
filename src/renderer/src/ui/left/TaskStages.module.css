@@ -58,6 +58,21 @@
   background: color-mix(in srgb, var(--live) 30%, transparent);
 }
 
+/* La etapa que acaba se marca con un ✓ que salta (al cambiar de etapa de verdad). */
+.stagesAnim .past .dot {
+  animation: checkPop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes checkPop {
+  from {
+    transform: scale(0.3);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 70%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
 .anim .dot {
   animation: stagePulse 1.6s ease-in-out infinite;
 }
@@ -73,7 +88,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .anim .dot {
+  .anim .dot,
+  .stagesAnim .past .dot {
     animation: none;
   }
 }
