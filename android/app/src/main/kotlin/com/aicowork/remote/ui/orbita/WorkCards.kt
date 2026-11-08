@@ -74,7 +74,7 @@ fun WorkBlock(messageId: String, work: TaskWork, accent: Color, snapshot: Snapsh
     // Solo sigue «trabajando» si la tarea sigue en marcha (tras reiniciar el ordenador, ya no).
     val live = work.status == "running" && task?.status == "running"
     val state = when (work.status) {
-        "running" -> if (live) t("Trabajando") else t("Detenida")
+        "running" -> if (!live) t("Detenida") else if (task?.phase == "verify") t("En revisión") else t("Trabajando")
         "done" -> t("Hecha")
         "failed" -> t("No pudo hacerla")
         else -> t("Detenida")

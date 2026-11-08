@@ -159,7 +159,8 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const activity: AgentActivity = runtime?.activity ?? 'offline'
   const parent = agent.isSubagent && agent.parentId ? lookup(agent.parentId) : null
   let statusText: string = ACTIVITY_LABEL[activity]
-  if (activity === 'waiting') statusText = runtime?.waitingFor ? t('Esperando a {name}', { name: lookup(runtime.waitingFor).name }) : t('Esperando')
+  if (activity === 'waiting')
+    statusText = runtime?.lastActivity || (runtime?.waitingFor ? t('Esperando a {name}', { name: lookup(runtime.waitingFor).name }) : t('Esperando'))
   const reason = (activity === 'error' || activity === 'offline') && runtime?.reason ? runtime.reason : null
   const deps = current ? current.dependsOn.map((d) => tasks[d]).filter((task): task is Task => !!task) : []
   const prog = current ? taskProgress(current, Object.values(tasks), now) : null

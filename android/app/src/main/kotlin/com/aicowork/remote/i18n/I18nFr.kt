@@ -933,4 +933,5 @@ private fun part7(m: HashMap<String, String>) {
     m["Archivo anterior"] = "Fichier précédent"
     m["{n} de {total}"] = "{n} sur {total}"
     m["Archivo siguiente"] = "Fichier suivant"
+    m["En revisión"] = "En révision"
 }

@@ -933,4 +933,5 @@ private fun part7(m: HashMap<String, String>) {
     m["Archivo anterior"] = "上一个文件"
     m["{n} de {total}"] = "第 {n} 个，共 {total} 个"
     m["Archivo siguiente"] = "下一个文件"
+    m["En revisión"] = "审核中"
 }

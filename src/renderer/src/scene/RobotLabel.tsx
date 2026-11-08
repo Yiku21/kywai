@@ -90,9 +90,12 @@ export function RobotLabel({ agent }: Props) {
       break;
     case "waiting":
       icon = <Hourglass size={12} />;
-      text = waitingName
-        ? t("Esperando a {waitingName}", { waitingName })
-        : t("En espera");
+      // El servidor dice a qué espera («Esperando a Gemini», «Esperando la revisión de Codex»).
+      text =
+        rt?.lastActivity ||
+        (waitingName
+          ? t("Esperando a {waitingName}", { waitingName })
+          : t("En espera"));
       break;
     case "error":
       icon = <AlertTriangle size={12} />;
