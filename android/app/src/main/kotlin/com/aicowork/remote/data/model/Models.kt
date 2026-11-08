@@ -736,9 +736,14 @@ data class Capabilities(
 @Serializable
 data class InboxAction(val id: String, val label: String = id, val url: String? = null)
 
+/** El aviso escrito en un idioma de la app (el servidor lo manda en todos: cada móvil lo lee en el suyo). */
+@Serializable
+data class InboxTexts(val title: String = "", val detail: String? = null, val actions: Map<String, String> = emptyMap())
+
 /**
- * Aviso de la bandeja «Te necesita». kind: plan, stalled, mac-permission, question, verify-failed, conflict, failed o
- * done. [projectId] es el id de la conversación. Abierto mientras no tiene [resolvedAt].
+ * Aviso de la bandeja. kind: plan, stalled, mac-permission, question, verify-failed, conflict, failed, paused, budget
+ * o done. [projectId] es el id de la conversación. Abierto mientras no tiene [resolvedAt]. Los «done» no esperan nada
+ * de ti: no salen en «Te necesita» sino en Resultados, como recién terminados.
  */
 @Serializable
 data class InboxItem(
@@ -756,8 +761,22 @@ data class InboxItem(
     @Serializable(with = FlexibleTimeSerializer::class) val createdAt: Long? = null,
     @Serializable(with = FlexibleTimeSerializer::class) val resolvedAt: Long? = null,
     val resolution: String? = null,
+    val texts: Map<String, InboxTexts> = emptyMap(),
 ) {
     val isOpen: Boolean get() = resolvedAt == null
+
+    /** ¿Espera algo de ti (sale en «Te necesita»)? Un «Terminado» no: va a Resultados. */
+    val needsYou: Boolean get() = kind != "done"
+
+    /** El aviso en el idioma [lang] si el servidor lo mandó escrito en él; si no, como venga. */
+    fun localized(lang: String): InboxItem {
+        val tx = texts[lang] ?: return this
+        return copy(
+            title = tx.title.ifBlank { title },
+            detail = tx.detail ?: detail,
+            actions = actions.map { a -> tx.actions[a.id]?.let { a.copy(label = it) } ?: a },
+        )
+    }
 }
 
 /** Un panel de un mod encendido (la pestaña «Mods» del escritorio). */

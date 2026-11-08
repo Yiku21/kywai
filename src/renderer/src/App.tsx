@@ -4,6 +4,7 @@ import { FlaskConical } from 'lucide-react'
 import { api, isWeb } from '@/lib/api'
 import { initAudio } from '@/lib/audio'
 import { lastProjectId, useCowork } from '@/store/cowork'
+import { localizeInbox } from '@shared/inbox'
 import { demoEngine } from '@/demo/engine'
 import { SceneLabels } from '@/scene/SceneLabels'
 import { Header } from '@/ui/Header'
@@ -60,7 +61,7 @@ function useBoot(): void {
       // Bandeja «Te necesita» (lo nuevo llega por eventos inbox.updated).
       api.listInbox().then(
         (list) => {
-          if (alive) useCowork.setState({ inbox: list.filter((i) => !i.resolvedAt) })
+          if (alive) useCowork.setState({ inbox: list.filter((i) => !i.resolvedAt).map((i) => localizeInbox(i, lang())) })
         },
         () => undefined
       )

@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.PauseCircle
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Sync
@@ -84,6 +85,7 @@ object InboxKinds {
         "verify-failed" -> t("Comprobación fallida")
         "conflict" -> t("Conflicto")
         "failed" -> t("Falló")
+        "paused" -> t("En pausa")
         "done" -> t("Terminado")
         "budget" -> t("Presupuesto")
         else -> t("Aviso")
@@ -97,6 +99,7 @@ object InboxKinds {
         "verify-failed" -> Icons.Outlined.WarningAmber
         "conflict" -> Icons.Outlined.Sync
         "failed" -> Icons.Outlined.ErrorOutline
+        "paused" -> Icons.Outlined.PauseCircle
         "done" -> Icons.Outlined.CheckCircle
         "budget" -> Icons.Outlined.Savings
         else -> Icons.Outlined.Notifications
@@ -105,7 +108,7 @@ object InboxKinds {
     fun tint(kind: String): Color = when (kind) {
         "failed", "verify-failed", "conflict" -> Orbita.Danger
         "done" -> Orbita.Success
-        "stalled", "mac-permission", "budget" -> Orbita.Warn
+        "stalled", "mac-permission", "budget", "paused" -> Orbita.Warn
         else -> Orbita.Accent
     }
 }
@@ -117,7 +120,7 @@ fun inboxSupported(state: CoworkUiState): Boolean = state.snapshot?.capabilities
 @Composable
 fun InboxButton(state: CoworkUiState, model: OrbitaModel, modifier: Modifier = Modifier) {
     if (!inboxSupported(state)) return
-    val count = state.inbox.size
+    val count = state.inbox.count { it.needsYou }
     // La insignia va fuera del cristal (que recorta en círculo) para que no se corte.
     Box(modifier.size(46.dp)) {
         Box(
@@ -165,7 +168,8 @@ fun InboxSheet(model: OrbitaModel, state: CoworkUiState) {
         }
     }
 
-    val pending = state.inbox
+    // Solo lo que espera algo de ti: los «Terminado» van a Resultados.
+    val pending = state.inbox.filter { it.needsYou }
     Column(Modifier.fillMaxWidth().widthIn(max = 640.dp).glass(radius = 30.dp, tint = Orbita.GlassSolid).testTag("inbox")) {
         Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.Notifications, null, tint = Orbita.Accent)
@@ -201,7 +205,7 @@ fun InboxSheet(model: OrbitaModel, state: CoworkUiState) {
 }
 
 @Composable
-private fun InboxCard(item: InboxItem, model: OrbitaModel, now: Long, onPress: (InboxAction) -> Unit) {
+internal fun InboxCard(item: InboxItem, model: OrbitaModel, now: Long, onPress: (InboxAction) -> Unit) {
     val canOpen = model.inboxTargetExists(item)
     Column(Modifier.fillMaxWidth().card().padding(14.dp).testTag("inbox-item-${item.id}")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -272,7 +276,7 @@ fun AskNotificationsOnce(model: OrbitaModel, state: CoworkUiState) {
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (!granted) model.toast(t("Sin notificaciones: verás los avisos de «Te necesita» al abrir la app. Puedes activarlas en Ajustes › Aplicaciones › kywai."), Toast.Tone.Info)
     }
-    val wanted = inboxSupported(state) && (state.inbox.isNotEmpty() || model.inboxOpen)
+    val wanted = inboxSupported(state) && (state.inbox.any { it.needsYou } || model.inboxOpen)
     LaunchedEffect(wanted) {
         if (!wanted) return@LaunchedEffect
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return@LaunchedEffect

@@ -919,4 +919,8 @@ private fun part7(m: HashMap<String, String>) {
     m["{days} a las {time}"] = "{days} {time}"
     m["¿Borrar «{name}»?"] = "删除“{name}”？"
     m["Última: {status} · {when}"] = "上次：{status} · {when}"
+    m["Recién terminado"] = "刚完成"
+    m["Marcar todo como visto"] = "全部标为已看"
+    m["Visto"] = "已看"
+    m["Avisos de que el equipo terminó una petición (salen en Resultados)."] = "团队完成请求的通知（显示在“结果”中）。"
 }

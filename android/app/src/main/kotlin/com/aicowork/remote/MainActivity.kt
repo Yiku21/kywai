@@ -17,6 +17,7 @@ import com.aicowork.remote.ui.orbita.AgentVoices
 import com.aicowork.remote.ui.orbita.Feedback
 import com.aicowork.remote.ui.orbita.OrbitaApp
 import com.aicowork.remote.ui.orbita.OrbitaModel
+import com.aicowork.remote.ui.orbita.Section
 import com.aicowork.remote.ui.orbita.UiSounds
 import com.aicowork.remote.ui.space.WorldController
 
@@ -68,8 +69,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openInboxIfAsked(intent: Intent?) {
-        if (intent?.action != InboxNotifier.ACTION_OPEN_INBOX) return
-        model.openInbox()
+        when (intent?.action) {
+            InboxNotifier.ACTION_OPEN_INBOX -> model.openInbox()
+            InboxNotifier.ACTION_OPEN_RESULTS -> model.open(Section.Results)
+        }
     }
 
     override fun onResume() {

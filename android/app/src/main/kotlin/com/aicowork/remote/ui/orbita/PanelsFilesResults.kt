@@ -45,6 +45,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,6 +68,7 @@ import com.aicowork.remote.data.model.Artifact
 import com.aicowork.remote.data.model.Attachment
 import com.aicowork.remote.data.model.FilesResponse
 import com.aicowork.remote.data.model.FolderFile
+import com.aicowork.remote.data.model.InboxAction
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -305,6 +307,21 @@ fun ResultsPanel(model: OrbitaModel, state: CoworkUiState) {
             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Lo recién terminado (de cualquier conversación) que aún no has visto: antes iba en «Te necesita».
+            val finished = state.inbox.filter { !it.needsYou }
+            if (finished.isNotEmpty()) {
+                item(key = "finished-head") {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(t("Recién terminado") + " · ${finished.size}", color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                        if (finished.size > 1) {
+                            TextButton(onClick = { finished.forEach { model.inboxSeen(it) } }, enabled = model.inboxBusy == null) { Text(t("Marcar todo como visto")) }
+                        }
+                    }
+                }
+                items(finished, key = { "finished-${it.id}" }) { item ->
+                    InboxCard(item.copy(actions = listOf(InboxAction("dismiss", t("Visto")))), model, System.currentTimeMillis(), onPress = { model.inboxSeen(item) })
+                }
+            }
             if (shown.isEmpty()) item {
                 Note(Icons.Outlined.Inventory2, if (artifacts.isEmpty()) t("Todavía no hay resultados") else t("Nada en este filtro"), if (artifacts.isEmpty()) t("Cuando un agente cree un documento, una página o código, aparecerá aquí.") else null)
             }

@@ -919,4 +919,8 @@ private fun part7(m: HashMap<String, String>) {
     m["{days} a las {time}"] = "{days} à {time}"
     m["¿Borrar «{name}»?"] = "Supprimer « {name} » ?"
     m["Última: {status} · {when}"] = "Dernière : {status} · {when}"
+    m["Recién terminado"] = "Tout juste terminé"
+    m["Marcar todo como visto"] = "Tout marquer comme vu"
+    m["Visto"] = "Vu"
+    m["Avisos de que el equipo terminó una petición (salen en Resultados)."] = "Avis indiquant que l'équipe a terminé une demande (ils apparaissent dans Résultats)."
 }

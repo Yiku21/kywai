@@ -7977,6 +7977,7 @@
               "verify-failed",
               "conflict",
               "failed",
+              "paused",
               "done",
               "budget"
             ]
@@ -8019,6 +8020,13 @@
           },
           "resolution": {
             "type": "string"
+          },
+          "texts": {
+            "type": "object",
+            "description": "El mismo aviso en cada idioma de la app (es, en, pt, fr, zh): cada app muestra el suyo.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/InboxTexts"
+            }
           }
         },
         "required": [
@@ -8029,7 +8037,7 @@
           "createdAt"
         ],
         "additionalProperties": false,
-        "description": "projectId es el id de la conversación."
+        "description": "projectId es el id de la conversación. «done» no espera nada del usuario: las apps lo muestran en Resultados, no en «Te necesita»."
       },
       "Inbox": {
         "type": "object",
@@ -9087,6 +9095,27 @@
         },
         "required": [
           "message"
+        ],
+        "additionalProperties": false
+      },
+      "InboxTexts": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title"
         ],
         "additionalProperties": false
       }
