@@ -1373,7 +1373,7 @@ async function main(): Promise<void> {
         const rt = runtimeSnapshot().find((r) => r.agentId === 'codex')!
         assert.equal(rt.activity, 'waiting')
         assert.ok(rt.waitingFor && rt.waitingFor !== 'codex', 'espera a quien revisa')
-        assert.ok(rt.lastActivity?.startsWith('Esperando la revisión de '), rt.lastActivity)
+        assert.ok(rt.lastActivity?.startsWith('Esperando la revisión de '), String(rt.lastActivity))
         await waitFor(() => !!finished(runId), 15000, 'run U5')
         const after = runtimeSnapshot().find((r) => r.agentId === 'codex')!
         assert.equal(after.activity, 'idle', 'al acabar la revisión vuelve a estar libre')
