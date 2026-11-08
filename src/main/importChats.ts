@@ -36,9 +36,12 @@ interface ImportIndex {
 let indexFile = ''
 /** Carpeta personal donde buscar (las pruebas la cambian). */
 let home = homedir()
+/** Carpeta de datos de kywai: lo que se trabajó dentro es de kywai (proyectos, entornos aislados), no del usuario. */
+let workspace = ''
 
 export function initImports(workspaceRoot: string, homeDir = homedir()): void {
   indexFile = join(workspaceRoot, 'importados.json')
+  workspace = workspaceRoot
   home = homeDir
 }
 
@@ -599,8 +602,75 @@ function listCodexFiles(): LocalFile[] {
   return out
 }
 
-function parseLocal(f: LocalFile, text: string): ParsedConversation {
-  return f.kind === 'claude-code' ? parseClaudeCode(text, basename(f.file, '.jsonl'), f.mtime) : parseCodex(text, f.mtime)
+// ---------- La app Claude de escritorio ----------
+// Sus sesiones de código son de Claude Code (los mensajes están en ~/.claude/projects), pero el título que se ve en
+// la app y la carpeta que eligió el usuario solo están en su índice: claude-code-sessions/<cuenta>/<org>/local_<id>.json
+// (cliSessionId = el id del .jsonl). Las que se borraron en la app quedan como deleted_<id>.json. Los chats normales
+// de la app no se guardan en el equipo: están en la cuenta y se traen con la exportación de Claude.ai.
+
+interface DesktopSession {
+  title: string
+  cwd: string
+  deleted: boolean
+}
+
+let desktopCache: Map<string, DesktopSession> | null = null
+
+function claudeDesktopRoot(): string {
+  if (process.platform === 'darwin') return join(home, 'Library', 'Application Support', 'Claude')
+  if (process.platform === 'win32') return join(process.env.APPDATA || join(home, 'AppData', 'Roaming'), 'Claude')
+  return join(process.env.XDG_CONFIG_HOME || join(home, '.config'), 'Claude')
+}
+
+/** Las carpetas sin elegir de la app Claude («scratch-AAAA-MM-DD-xxxxxx»): no son un proyecto del usuario. */
+const isDesktopScratch = (cwd: string): boolean => /^scratch-\d{4}-\d{2}-\d{2}-[0-9a-z]{4,}$/i.test(basename(cwd))
+
+export function claudeDesktopSessions(): Map<string, DesktopSession> {
+  if (desktopCache) return desktopCache
+  const out = new Map<string, DesktopSession>()
+  const walk = (dir: string, depth: number): void => {
+    let names: string[] = []
+    try {
+      names = readdirSync(dir)
+    } catch {
+      return
+    }
+    for (const n of names) {
+      const p = join(dir, n)
+      if (/^(local|deleted)_.+\.json$/.test(n)) {
+        try {
+          const o = JSON.parse(readFileSync(p, 'utf8')) as Record<string, unknown>
+          const id = str(o.cliSessionId)
+          if (!id) continue
+          // De varias carpetas posibles, la primera que sigue existiendo (si no, la que tenía).
+          const dirs = [str(o.cwd), str(o.originCwd)].filter((d) => d && !isDesktopScratch(d))
+          const deleted = n.startsWith('deleted_')
+          if (out.get(id)?.deleted === false && deleted) continue
+          out.set(id, { title: str(o.title).trim().slice(0, TITLE_MAX), cwd: dirs.find((d) => existsSync(d)) ?? dirs[0] ?? '', deleted })
+        } catch {
+          /* índice a medio escribir o de otra versión */
+        }
+      } else if (depth < 3 && !n.includes('.')) {
+        walk(p, depth + 1)
+      }
+    }
+  }
+  walk(join(claudeDesktopRoot(), 'claude-code-sessions'), 0)
+  desktopCache = out
+  return out
+}
+
+function parseLocal(f: LocalFile, text: string): ParsedConversation | null {
+  if (f.kind !== 'claude-code') return parseCodex(text, f.mtime)
+  const conv = parseClaudeCode(text, basename(f.file, '.jsonl'), f.mtime)
+  const desk = claudeDesktopSessions().get(conv.sourceId)
+  // Borrada en la app Claude: el usuario no la quería.
+  if (desk?.deleted) return null
+  if (desk?.title) conv.title = desk.title
+  if (desk?.cwd) conv.cwd = desk.cwd
+  // Sin carpeta elegida en la app Claude: va al proyecto «Claude Code», sin la carpeta temporal.
+  else if (conv.cwd && isDesktopScratch(conv.cwd)) conv.cwd = undefined
+  return conv
 }
 
 // ---------- Hermes (también Hermes Desktop: usan la misma base) ----------
@@ -650,6 +720,33 @@ function hermesDbs(): { file: string; profile: string }[] {
  */
 export const KYWAI_PROMPT_RE = /^Eres [^\n]{1,80}?(el coordinador|parte de un equipo de agentes)/
 
+/**
+ * Sesiones que no abrió una persona: encargos de kywai, las de Claude cuando lo maneja un proyecto a distancia
+ * (empiezan con un aviso «<wake …>»), las revisiones automáticas de permisos de Codex y las pruebas de «¿responde?».
+ */
+const AUTOMATIC_RES = [
+  KYWAI_PROMPT_RE,
+  /^<wake\b/,
+  /^The following is the Codex agent history whose request action you are assessing/,
+  /^Responde (únicamente|solo)\b[^\n]{0,30}$/i
+]
+
+/** Una carpeta de kywai: su carpeta de datos (proyectos, entornos aislados del verificador) aunque ya se borrara. */
+function isKywaiDir(cwd: string): boolean {
+  const p = resolve(cwd)
+  const inside = (root: string): boolean => !!root && (p + sep).startsWith(resolve(root) + sep)
+  return inside(workspace) || inside(store.projectsRoot()) || /[\\/]AI Cowork[\\/]workspace[\\/]/i.test(p)
+}
+
+/** No la empezó el usuario: trabajo de kywai (por su carpeta o por cómo empieza) o algo automático. */
+export function isAutomaticSession(cwd: string | undefined, firstUserText: string): boolean {
+  if (cwd && isKywaiDir(cwd)) return true
+  const t = firstUserText.trimStart()
+  return AUTOMATIC_RES.some((re) => re.test(t))
+}
+
+const firstUserText = (conv: ParsedConversation): string => conv.turns.find((t) => t.role === 'user')?.text ?? ''
+
 interface HermesSessionRow {
   id: string
   source: string
@@ -696,19 +793,17 @@ export function readHermesDb(file: string, withMessages: boolean, only?: Set<str
     // El resumen que Hermes mete al compactar no es parte de la conversación.
     const active = mc.has('_compressed_summary') ? ' AND (_compressed_summary IS NULL OR _compressed_summary = 0)' : ''
     const hidden = new Set(sc.has('hidden') ? (db.prepare('SELECT id FROM sessions WHERE hidden = 1').all() as { id: string }[]).map((r) => r.id) : [])
-    const internal = resolve(store.projectsRoot()) + sep
     const msgSql = `SELECT role, content, ${mc.has('tool_calls') ? 'tool_calls' : 'NULL AS tool_calls'}, timestamp FROM messages WHERE session_id = ?${active} ORDER BY timestamp, id`
     const firstSql = `SELECT content FROM messages WHERE session_id = ? AND role = 'user'${active} ORDER BY timestamp, id LIMIT 1`
     const out: ParsedConversation[] = []
     for (const root of rows) {
       if (continues(root)) continue
       if (only && !only.has(root.id)) continue
-      // Ocultas en Hermes, o trabajo de kywai en la carpeta interna de uno de sus proyectos.
-      if (hidden.has(root.id) || (root.cwd && resolve(root.cwd).startsWith(internal))) continue
+      if (hidden.has(root.id)) continue
       const chain = [root]
       while (next.has(chain[chain.length - 1].id) && chain.length < 200) chain.push(next.get(chain[chain.length - 1].id)!)
       const first = str((db.prepare(firstSql).all(root.id)[0] as { content?: unknown } | undefined)?.content)
-      if (!first.trim() || KYWAI_PROMPT_RE.test(first.trimStart())) continue
+      if (!first.trim() || isAutomaticSession(root.cwd, first)) continue
       const turns: Turn[] = []
       if (withMessages) {
         for (const s of chain) {
@@ -779,11 +874,13 @@ function projectForDir(cwd: string): { id: string; name: string } | undefined {
 export function scanImports(): ImportScan {
   const ix = loadIndex()
   lastScan.clear()
+  desktopCache = null
   const sources: ImportSource[] = []
   const fromFiles = (files: LocalFile[]): { f: LocalFile; conv: ParsedConversation }[] =>
     files.flatMap((f) => {
       try {
-        return [{ f, conv: parseLocal(f, readHead(f.file)) }]
+        const conv = parseLocal(f, readHead(f.file))
+        return conv ? [{ f, conv }] : []
       } catch {
         return []
       }
@@ -796,8 +893,9 @@ export function scanImports(): ImportScan {
   ] as const) {
     const byDir = new Map<string, ImportFolder>()
     for (const { f, conv } of found) {
-      // Sin nada que el usuario escribiera: una sesión vacía o solo de arranque. Hermes puede no tener carpeta.
-      if (!conv.sourceId || (!conv.cwd && kind !== 'hermes') || !conv.turns.some((t) => t.role === 'user')) continue
+      // Sin nada que el usuario escribiera: una sesión vacía o solo de arranque.
+      if (!conv.sourceId || !conv.turns.some((t) => t.role === 'user')) continue
+      if (isAutomaticSession(conv.cwd, firstUserText(conv))) continue
       const id = `${kind}:${conv.sourceId}`
       lastScan.set(id, f)
       const dir = conv.cwd ?? ''
@@ -907,7 +1005,7 @@ function importLocalOne(ctx: Ctx, key: string, f: LocalFile): void {
     f.kind === 'hermes'
       ? readHermesDb(f.file, true, new Set(f.sessionIds ?? []))[0]
       : parseLocal(f, readFileSync(f.file, 'utf8'))
-  if (!conv || !conv.turns.length || (!conv.cwd && f.kind !== 'hermes')) return
+  if (!conv || !conv.turns.length || isAutomaticSession(conv.cwd, firstUserText(conv))) return
   // Sin carpeta, o en la carpeta personal entera (kywai no da acceso a toda ella): a un proyecto con el nombre de la app.
   const projectId = conv.cwd && !sameDir(conv.cwd, home) ? projectForCwd(ctx, conv.cwd) : projectFor(ctx, f.kind, IMPORT_LABEL[f.kind])
   const provider: ProviderKind = f.kind === 'claude-code' ? 'claude' : f.kind === 'codex' ? 'codex' : 'hermes'

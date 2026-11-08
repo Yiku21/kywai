@@ -1676,6 +1676,16 @@ en `workspace/importados.json`; si borras una conversación importada, se puede 
   el agente vuelve a **su sesión real**, con todo lo que leyó y decidió, aunque tenga más de 14 días (el límite normal
   de las sesiones de kywai no se aplica a las importadas). Sin ese agente, o si la carpeta ya no existe («solo
   lectura»), la conversación se lee igual y al seguirla el coordinador recibe lo hablado como contexto.
+- **Solo lo que empezaste tú**: no salen los encargos que el propio kywai da a Claude, Codex y Hermes (empiezan por
+  «Eres …, parte de un equipo de agentes» o «… el coordinador», o se hicieron en la carpeta de datos de kywai, aunque
+  el proyecto ya se borrara), ni las sesiones de Claude manejadas a distancia por un proyecto (empiezan con «<wake …>»),
+  ni las revisiones automáticas de permisos de Codex, ni las pruebas de «Responde solo: ok».
+- **App Claude de escritorio**: sus sesiones de código son de Claude Code. Se usa el **título** que les puso la app y
+  la **carpeta que elegiste** (su índice `claude-code-sessions/` en `~/Library/Application Support/Claude`,
+  `%APPDATA%\Claude` o `~/.config/Claude`); las que borraste en la app no salen y las hechas sin carpeta («scratch-…»)
+  van a «Claude Code». Los **chats normales** de la app Claude y de Claude.ai no se guardan en el ordenador (están en
+  tu cuenta): se traen con la exportación de Claude.ai, en «Desde un archivo».
+- Se busca en el **servidor**: las sesiones que hiciste en otro ordenador (por ejemplo el PC cliente) no salen todavía.
 - Una sesión hecha en tu carpeta personal entera, o sin carpeta (Hermes por Telegram, Discord…), va a un proyecto con
   el nombre de la app («Hermes», «Claude Code»…) con carpeta interna: kywai no da acceso a la carpeta personal completa.
 - **Hermes** (y **Hermes Desktop**, que usa la misma base): se lee la base SQLite de Hermes solo para leer, con el

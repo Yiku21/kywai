@@ -67,6 +67,17 @@
   margin-left: 4px;
 }
 
+.hint {
+  margin: 12px 4px 4px;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.hint .link {
+  font-size: 12px;
+}
+
 .folderHead {
   display: flex;
   align-items: center;

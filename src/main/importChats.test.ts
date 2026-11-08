@@ -96,6 +96,7 @@ beforeEach(() => {
   vi.stubEnv('CLAUDE_CONFIG_DIR', '')
   vi.stubEnv('CODEX_HOME', '')
   vi.stubEnv('HERMES_HOME', join(home, '.hermes'))
+  vi.stubEnv('XDG_CONFIG_HOME', join(home, '.config'))
   const cdir = join(home, '.claude', 'projects', work.replace(/[^A-Za-z0-9]/g, '-'))
   mkdirSync(cdir, { recursive: true })
   writeFileSync(join(cdir, `${SID}.jsonl`), claudeSession(work))
@@ -336,5 +337,56 @@ describe('Hermes (también Hermes Desktop)', () => {
     expect(store.getProject(hermesProject.id).messages.map((m) => m.text)).toEqual(['Apunta leche', 'Apuntada.'])
     expect(store.getProject(hermesProject.id).messages[1].author).toEqual({ type: 'agent', agentId: 'hermes' })
     expect(importLocal(['hermes:local-a'], agents)).toMatchObject({ conversations: 0, skipped: 1 })
+  })
+})
+
+describe('solo lo que empezó el usuario', () => {
+  const claudeAt = (cwd: string, id: string, text: string): void => {
+    const dir = join(home, '.claude', 'projects', cwd.replace(/[^A-Za-z0-9]/g, '-'))
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(
+      join(dir, `${id}.jsonl`),
+      jsonl([
+        { type: 'user', cwd, sessionId: id, timestamp: '2026-11-01T10:00:00Z', message: { role: 'user', content: text } },
+        { type: 'assistant', cwd, timestamp: '2026-11-01T10:00:05Z', message: { role: 'assistant', content: [{ type: 'text', text: 'Vale.' }] } }
+      ])
+    )
+  }
+  const desktopIndex = (file: string, o: Record<string, unknown>): void => {
+    const dir = join(home, '.config', 'Claude', 'claude-code-sessions', 'cuenta', 'org')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, file), JSON.stringify(o))
+  }
+  const listed = (): string[] =>
+    scanImports()
+      .sources.flatMap((x) => x.folders.flatMap((f) => f.sessions.map((c) => c.id)))
+      .sort()
+
+  it('deja fuera los encargos de kywai, el control a distancia, las revisiones automáticas y las pruebas', () => {
+    claudeAt(work, 'k1', 'Eres Claude, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "x".')
+    claudeAt(work, 'k2', 'Eres Becario (becario de Codex), parte de un equipo de agentes de IA que trabajan juntos.')
+    claudeAt(join(root, 'ws', 'aislado', 'abc'), 'k3', 'Comprueba la web')
+    claudeAt('/Users/alguien/Library/Application Support/AI Cowork/workspace/projects/borrado-xyz', 'k4', 'Haz la tarea')
+    claudeAt(work, 'k5', '<wake reason="mention"><project id="p">hola</project></wake>')
+    claudeAt(work, 'k6', 'Responde solo: ok')
+    claudeAt(work, 'u1', 'Quiero cambiar el color del botón')
+    expect(listed()).toEqual([`claude-code:${SID}`, 'claude-code:u1', `codex:${TID}`])
+  })
+
+  it('usa el título y la carpeta de la app Claude, sin las borradas ni las carpetas temporales', () => {
+    const scratch = join(root, 'tmp', 'scratch-2026-11-06-5ba214')
+    mkdirSync(scratch, { recursive: true })
+    claudeAt(scratch, 'd1', 'Hazme un logo')
+    desktopIndex('local_a.json', { sessionId: 'local_a', cliSessionId: 'd1', cwd: work, originCwd: work, title: 'Logo de colibrí' })
+    claudeAt(scratch, 'd2', 'Una pregunta suelta')
+    desktopIndex('local_b.json', { sessionId: 'local_b', cliSessionId: 'd2', cwd: scratch, title: 'Pregunta suelta' })
+    claudeAt(work, 'd3', 'Esto lo borré')
+    desktopIndex('deleted_c.json', { sessionId: 'local_c', cliSessionId: 'd3', cwd: work, title: 'Borrada' })
+    const folders = scanImports().sources.find((x) => x.kind === 'claude-code')!.folders
+    const byCwd = Object.fromEntries(folders.map((f) => [f.cwd, f.sessions.map((c) => c.title).sort()]))
+    expect(byCwd).toEqual({ [work]: ['Arreglar el login', 'Logo de colibrí'], '': ['Pregunta suelta'] })
+    const r = importLocal(['claude-code:d1', 'claude-code:d2'], agents)
+    expect(r).toMatchObject({ conversations: 2, resumable: 1 })
+    expect(store.listProjects().some((p) => p.name === 'Claude Code')).toBe(true)
   })
 })
