@@ -237,6 +237,17 @@ describe('importar', () => {
     expect(importArchive(file, agents)).toMatchObject({ conversations: 0, skipped: 1, projectsCreated: 0 })
   })
 
+  it('conserva mensajes de más de 40.000 caracteres sin recortarlos al guardar', () => {
+    const text = 'Texto de ejemplo '.repeat(4000) + 'Final conservado'
+    const file = join(root, 'largo.json')
+    writeFileSync(file, JSON.stringify([{ id: 'long-example', title: 'Texto completo', current_node: 'message', mapping: { message: { parent: null, message: { author: { role: 'user' }, content: { content_type: 'text', parts: [text] } } } } }]))
+    const result = importArchive(file, agents)
+    const projectId = result.projectIds[0]
+    const conversation = listConversations(projectId).find(c => c.importedFrom)!
+    openConversation(projectId, conversation.id)
+    expect(store.getProject(projectId).messages[0].text).toBe(text)
+  })
+
   it('Claude.ai: sus proyectos con instrucciones y documentos; lo suelto a «Claude.ai»', () => {
     const file = join(root, 'claude.zip')
     writeFileSync(file, zipSync({ 'conversations.json': strToU8(JSON.stringify(claudeConvs)), 'projects.json': strToU8(JSON.stringify(claudeProjects)) }))
