@@ -39,6 +39,7 @@ import { api, isWeb } from '@/lib/api'
 import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 import { fileSize, timeHM } from '@/lib/format'
 import { projectFileUrl } from '@/lib/localRefs'
+import { fromArtifact, fromAttachment, fromWorkFile, isImageFile } from '@/lib/preview'
 import { AgentAvatar, AgentPill } from '../common/AgentBits'
 import { useAgentLookup } from '../common/agents'
 import { useComposer } from './composerStore'
@@ -115,24 +116,58 @@ function UserMessage({ m }: { m: ChatMessage }) {
               <pre>{parts.data}</pre>
             </details>
           )}
-          {m.attachments && m.attachments.length > 0 && (
-            <ul className={s.attachments} aria-label={t('Adjuntos')}>
-              {m.attachments.map((a) => (
-                <li key={a.id}>
-                  <AttachmentChip a={a} projectId={m.projectId} />
-                </li>
-              ))}
-            </ul>
-          )}
+          {m.attachments && m.attachments.length > 0 && <Attachments list={m.attachments} projectId={m.projectId} />}
         </div>
       </div>
     </article>
   )
 }
 
-function AttachmentChip({ a, projectId }: { a: Attachment; projectId: string }) {
+/** Los adjuntos de un mensaje: las imágenes en miniatura y el resto como fichas; al pulsarlos se abren en el panel de vista previa. */
+function Attachments({ list, projectId }: { list: Attachment[]; projectId: string }) {
   const mode = useCowork((st) => st.mode)
+  const openPreview = useCowork((st) => st.openPreview)
   const canOpen = !!api && mode === 'live'
+  // Si una miniatura no carga (archivo borrado, demo…), ese adjunto vuelve a ser una ficha con su nombre.
+  const [broken, setBroken] = useState<Set<string>>(() => new Set())
+  const isThumb = (a: Attachment): boolean => canOpen && isImageFile(a.name, a.mime) && !broken.has(a.id)
+  const images = list.filter(isThumb)
+  const others = list.filter((a) => !isThumb(a))
+  // Se recorren con ‹ › en el mismo orden en que se ven: primero las imágenes.
+  const ordered = [...images, ...others]
+  const open = (a: Attachment): void => openPreview(ordered.map((x) => fromAttachment(x, projectId)), ordered.indexOf(a))
+  return (
+    <>
+      {images.length > 0 && (
+        <ul className={cx(s.attThumbs, images.length === 1 && s.attThumbsOne)} aria-label={t('Imágenes adjuntas')}>
+          {images.map((a) => (
+            <li key={a.id}>
+              <button type="button" className={s.attThumb} title={t('Ver {name} ({size})', { name: a.name, size: fileSize(a.size) })} aria-label={t('Ver {name}', { name: a.name })} onClick={() => open(a)}>
+                <img
+                  src={projectFileUrl(projectId, a.relPath, isWeb)}
+                  alt={a.name}
+                  loading="lazy"
+                  onError={() => setBroken((b) => new Set(b).add(a.id))}
+                />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {others.length > 0 && (
+        <ul className={s.attachments} aria-label={t('Adjuntos')}>
+          {others.map((a) => (
+            <li key={a.id}>
+              <AttachmentChip a={a} canOpen={canOpen} onOpen={() => open(a)} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  )
+}
+
+function AttachmentChip({ a, canOpen, onOpen }: { a: Attachment; canOpen: boolean; onOpen: () => void }) {
   const content = (
     <>
       <span className={s.attIcon}>
@@ -152,11 +187,9 @@ function AttachmentChip({ a, projectId }: { a: Attachment; projectId: string }) 
     <button
       type="button"
       className={cx(s.att, s.attBtn)}
-      title={t('Abrir {name} ({size})', { name: a.name, size: fileSize(a.size) })}
-      aria-label={t('Abrir {name}', { name: a.name })}
-      onClick={() => {
-        api?.openPath(projectId, a.relPath).catch(() => {})
-      }}
+      title={t('Ver {name} ({size})', { name: a.name, size: fileSize(a.size) })}
+      aria-label={t('Ver {name}', { name: a.name })}
+      onClick={onOpen}
     >
       {content}
     </button>
@@ -491,15 +524,16 @@ function Note({ messageId, text, reduced }: { messageId: string; text: string; r
 function FilesStep({ projectId, files }: { projectId: string; files: WorkFile[] }) {
   const images = files.filter((f) => f.image)
   const docs = files.filter((f) => !f.image)
-  const open = (f: WorkFile): void => {
-    api?.openPath(projectId, f.relPath).catch(() => {})
-  }
+  const openPreview = useCowork((st) => st.openPreview)
+  // Se abren en el panel de vista previa y se recorren con ‹ › en el orden en que se ven.
+  const ordered = [...images, ...docs]
+  const open = (f: WorkFile): void => openPreview(ordered.map((x) => fromWorkFile(x, projectId)), ordered.indexOf(f))
   return (
     <li className={s.filesStep}>
       {images.length > 0 && (
         <div className={s.thumbs}>
           {images.map((f) => (
-            <button key={f.relPath} type="button" className={s.thumb} title={t('Abrir {name}', { name: f.name })} onClick={() => open(f)}>
+            <button key={f.relPath} type="button" className={s.thumb} title={t('Ver {name}', { name: f.name })} onClick={() => open(f)}>
               <img src={projectFileUrl(projectId, f.relPath, isWeb)} alt={f.name} loading="lazy" />
               <span>{f.name}</span>
             </button>
@@ -509,7 +543,7 @@ function FilesStep({ projectId, files }: { projectId: string; files: WorkFile[] 
       {docs.length > 0 && (
         <div className={s.docChips}>
           {docs.map((f) => (
-            <button key={f.relPath} type="button" className={s.docChip} title={t('Abrir {name} ({size})', { name: f.name, size: fileSize(f.size) })} onClick={() => open(f)}>
+            <button key={f.relPath} type="button" className={s.docChip} title={t('Ver {name} ({size})', { name: f.name, size: fileSize(f.size) })} onClick={() => open(f)}>
               <FileTypeIcon name={f.name} size={13} />
               <span>{f.name}</span>
             </button>
@@ -1047,22 +1081,26 @@ function ArtifactCards({ ids, projectId }: { ids: string[]; projectId: string })
   if (list.length === 1) {
     return (
       <ul className={s.artifacts} aria-label={t('Resultados')}>
-        <ArtifactRow a={list[0]} />
+        <ArtifactRow a={list[0]} list={list} />
       </ul>
     )
   }
   return <DeliverablesFolder list={list} projectId={projectId} />
 }
 
-function ArtifactRow({ a }: { a: Artifact }) {
-  const openViewer = useCowork((st) => st.openViewer)
+/** Un entregable: al pulsarlo se abre en el panel de vista previa (con ‹ › para pasar a los demás del mensaje). */
+function ArtifactRow({ a, list }: { a: Artifact; list: Artifact[] }) {
+  const openPreview = useCowork((st) => st.openPreview)
+  const open = (): void => openPreview(list.map(fromArtifact), Math.max(0, list.indexOf(a)))
   const [error, setError] = useState<string | null>(null)
   const lookup = useAgentLookup()
   const look = lookup(a.agentId)
   return (
     <li className={s.artifact}>
-      <KindTile kind={a.kind} size={38} />
-      <div className={s.artifactInfo}>
+      <button type="button" className={s.artifactOpen} onClick={open} title={t('Ver {name}', { name: a.name })} tabIndex={-1} aria-hidden="true">
+        <KindTile kind={a.kind} size={38} />
+      </button>
+      <button type="button" className={cx(s.artifactInfo, s.artifactOpen)} onClick={open} tabIndex={-1} aria-hidden="true">
         <span className={s.artifactName} title={a.relPath}>
           {a.name}
         </span>
@@ -1070,9 +1108,9 @@ function ArtifactRow({ a }: { a: Artifact }) {
           <span className={s.byDot} style={agentVars(look.color)} aria-hidden="true" />
           {t('Creado por')} {look.name}
         </span>
-      </div>
+      </button>
       <ArtifactDownloadButton projectId={a.projectId} ids={[a.id]} name={a.name} onError={setError} />
-      <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => openViewer(a.id)} aria-label={t('Abrir {name}', { name: a.name })}>
+      <button type="button" className={cx(u.btn, u.btnSm)} onClick={open} aria-label={t('Abrir {name}', { name: a.name })}>
         {t('Abrir')}
       </button>
       {error && <p className={cx(s.resumeError, s.artifactError)} role="alert">{error}</p>}
@@ -1135,7 +1173,7 @@ function DeliverablesFolder({ list, projectId }: { list: Artifact[]; projectId: 
       {open && (
         <ul id={listId} className={s.folderList} aria-label={t('Archivos de {name}', { name })}>
           {list.map((a) => (
-            <ArtifactRow key={a.id} a={a} />
+            <ArtifactRow key={a.id} a={a} list={list} />
           ))}
         </ul>
       )}

@@ -26,6 +26,7 @@ import { localizeInbox } from '@shared/inbox'
 import { DEFAULT_CONFIG } from '@shared/defaults'
 import { sceneBus } from '@/lib/bus'
 import { api } from '@/lib/api'
+import { fromArtifact, type PreviewItem, type PreviewState } from '@/lib/preview'
 import { playSfx, playVoice, voiceProfile } from '@/lib/audio'
 import { createEventAudio } from '@/lib/audioEvents'
 import { lang, t } from '@/lib/i18n'
@@ -131,7 +132,10 @@ interface CoworkState {
   // Interfaz
   selection: Selection
   leftTab: LeftTab
-  viewerArtifactId: string | null
+  /** Panel de vista previa de archivos (a la derecha del chat), o null si está cerrado. */
+  preview: PreviewState | null
+  /** El panel ocupa toda la ventana (botón «Ampliar»). */
+  previewMaximized: boolean
   reducedEffects: boolean
   spaceExpanded: boolean
   /** En pantallas pequeñas: qué vista ocupa la pantalla. */
@@ -146,7 +150,11 @@ interface CoworkState {
   setProjects(p: ProjectSummary[]): void
   select(s: Selection): void
   setLeftTab(t: LeftTab): void
+  /** Abre un entregable en el panel de vista previa (null lo cierra). */
   openViewer(artifactId: string | null): void
+  /** Abre archivos en el panel: `items` son los que se recorren con ‹ ›, empezando por `index`. */
+  openPreview(items: PreviewItem[], index?: number): void
+  closePreview(): void
   setReducedEffects(v: boolean): void
   setSpaceExpanded(v: boolean): void
   setMobileView(v: 'chat' | 'space'): void
@@ -372,7 +380,8 @@ export const useCowork = create<CoworkState>((set, get) => ({
 
   selection: null,
   leftTab: 'chat',
-  viewerArtifactId: null,
+  preview: null,
+  previewMaximized: false,
   reducedEffects: !!prefersReduced,
   spaceExpanded: false,
   mobileView: 'chat',
@@ -471,7 +480,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
 
   setMode(mode) {
     if (mode === get().mode) return
-    set({ mode, selection: null, viewerArtifactId: null })
+    set({ mode, selection: null, preview: null, previewMaximized: false })
   },
 
   resetDemoSlice() {
@@ -513,7 +522,9 @@ export const useCowork = create<CoworkState>((set, get) => ({
         routines: state.routines ?? [],
         conversation: state.conversation ?? null
       },
-      conversationsTick: s.conversationsTick + 1
+      conversationsTick: s.conversationsTick + 1,
+      // Otro proyecto: el archivo que se estaba viendo ya no es de este.
+      ...(s.preview && s.preview.items[s.preview.index]?.projectId !== state.project.id ? { preview: null, previewMaximized: false } : {})
     }))
     rememberProject(state.project.id)
     if (get().mode === 'live' && previousProjectId && previousProjectId !== state.project.id) playSfx('click')
@@ -531,8 +542,17 @@ export const useCowork = create<CoworkState>((set, get) => ({
   setLeftTab(leftTab) {
     set({ leftTab })
   },
-  openViewer(viewerArtifactId) {
-    set({ viewerArtifactId })
+  openViewer(artifactId) {
+    const a = artifactId ? get()[get().mode].artifacts[artifactId] : undefined
+    if (!a) return set({ preview: null, previewMaximized: false })
+    set({ preview: { items: [fromArtifact(a)], index: 0 } })
+  },
+  openPreview(items, index = 0) {
+    if (items.length === 0) return
+    set({ preview: { items, index: Math.max(0, Math.min(index, items.length - 1)) } })
+  },
+  closePreview() {
+    set({ preview: null, previewMaximized: false })
   },
   setReducedEffects(reducedEffects) {
     set({ reducedEffects })

@@ -59,6 +59,17 @@
   flex: 1;
 }
 
+/* Sitio fijo en la rejilla: el panel de vista previa de archivos se pone encima del espacio, en su misma celda. */
+.leftCol {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.space {
+  grid-column: 2;
+  grid-row: 1;
+}
+
 .body[data-expanded='true'] {
   grid-template-columns: 0 minmax(0, 1fr);
   gap: 0;
@@ -161,6 +172,10 @@
   .body[data-custom-width='true'] {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
+  }
+  .leftCol,
+  .space {
+    grid-column: 1;
   }
   .body[data-mobile='chat'] .space {
     display: none;
