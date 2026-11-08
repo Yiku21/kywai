@@ -10,6 +10,7 @@ describe('audio', () => {
     expect(audio.releaseAudioClip).toBeTypeOf('function')
     expect(audio.getVolume()).toBeGreaterThanOrEqual(0)
     expect(audio.getVolume()).toBeLessThanOrEqual(1)
+    expect(audio.ambientMusicBeat()).toBeNull()
   })
 })
 

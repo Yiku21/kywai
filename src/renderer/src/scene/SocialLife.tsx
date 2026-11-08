@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useCowork } from '@/store/cowork'
 import { t } from '@/lib/i18n'
+import { musicDanceSignal } from '@/lib/music'
 import { registry } from './registry'
 import { SocialLife as SocialDirector, type SocialEvent } from './socialDirector'
 import { useBubbles } from './bubbleStore'
@@ -38,8 +39,8 @@ export function SocialLife() {
     director.onCancel = id => useBubbles.getState().clearSocial(id)
     return () => { director.clear(); director.onEvent = null; director.onCancel = null }
   }, [director])
-  useFrame(() => {
-    director.update(registry.time, registry.brains, useCowork.getState().reducedEffects)
+  useFrame(sceneState => {
+    director.update(registry.time, registry.brains, useCowork.getState().reducedEffects, musicDanceSignal(performance.now()), sceneState.camera.position)
     const state = director.toy
     toy.current.visible = state.visible
     if (!state.visible) return

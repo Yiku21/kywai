@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { bindPlayer, chooseVideo, musicClock, musicLightLevel, onPlayerState, setManualBpm, tapBeat, tempoOf, unbindPlayer, useMusic } from './music'
+import { bindPlayer, chooseVideo, musicClock, musicDanceSignal, musicLightLevel, onPlayerState, setManualBpm, tapBeat, tempoOf, unbindPlayer, useMusic } from './music'
+import * as audio from './audio'
+import * as audioSync from './audioSync'
 import { YT_STATE, type YtPlayer } from './youtube'
 
 /** Reproductor de YouTube simulado: avanza con el reloj falso cuando está en reproducción. */
@@ -104,5 +106,50 @@ describe('música del espacio', () => {
     player.playVideo()
     useMusic.setState({ lightsOn: false })
     expect(musicLightLevel(performance.now() + 20, false)).toBe(0)
+  })
+
+  it('el baile sigue al tempo aunque las luces estén apagadas y se detiene al pausar', () => {
+    const { player } = fakePlayer()
+    bindPlayer(player); player.playVideo()
+    useMusic.setState({ lightsOn: false })
+    expect(musicLightLevel(performance.now() + 40, false)).toBe(0)
+    expect(musicDanceSignal(performance.now() + 40)).toMatchObject({ playing: true, beats: 0.08 })
+    expect(musicDanceSignal(performance.now() + 40).pulse).toBeGreaterThan(0.5)
+    player.pauseVideo()
+    expect(musicDanceSignal(performance.now())).toEqual({ playing: false, beats: null, pulse: 0 })
+  })
+
+  it('el baile se resincroniza al saltar de canción y al cambiar la velocidad', () => {
+    const { player, setRate } = fakePlayer()
+    bindPlayer(player); player.playVideo()
+    vi.advanceTimersByTime(1000)
+    expect(musicDanceSignal(performance.now()).beats).toBeCloseTo(2)
+    setRate(2); vi.advanceTimersByTime(1000)
+    expect(musicDanceSignal(performance.now()).beats).toBeCloseTo(6)
+    player.seekTo(42.25, true); vi.advanceTimersByTime(260)
+    expect(musicDanceSignal(performance.now()).beats).toBeCloseTo(musicClock.mediaTimeAt(performance.now()) * 2)
+    expect(musicDanceSignal(performance.now()).beats).toBeGreaterThan(84)
+  })
+
+  it('sin BPM usa los golpes del audio propio y al silenciar deja de bailar', () => {
+    const { player } = fakePlayer()
+    bindPlayer(player); player.playVideo(); setManualBpm(null)
+    const spy = vi.spyOn(audioSync, 'audioLightLevel').mockReturnValue(0.8)
+    const previous = audio.getVolume(), muted = audio.isMuted()
+    try {
+      expect(musicDanceSignal(performance.now())).toEqual({ playing: true, beats: null, pulse: 0.8 })
+      audio.setMuted(true)
+      expect(musicDanceSignal(performance.now()).playing).toBe(false)
+      audio.setMuted(false); audio.setVolume(0)
+      expect(musicDanceSignal(performance.now()).playing).toBe(false)
+    } finally { spy.mockRestore(); audio.setVolume(previous); audio.setMuted(muted) }
+  })
+
+  it('la música ambiental también comparte su pulso real con el baile', () => {
+    const spy = vi.spyOn(audio, 'ambientMusicBeat').mockReturnValue(3.08)
+    try {
+      expect(musicDanceSignal(performance.now()).playing).toBe(true)
+      expect(musicDanceSignal(performance.now()).beats).toBe(3.08)
+    } finally { spy.mockRestore() }
   })
 })

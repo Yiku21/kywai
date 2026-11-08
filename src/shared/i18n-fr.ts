@@ -2603,4 +2603,5 @@ export const fr: Record<string, string> = {
   "¡Equipo!": "L’équipe !",
   "¡Ánimo, compañero!": "Courage, camarade !",
   "¡Gracias por los ánimos!": "Merci pour les encouragements !",
+  "Bailando": "Danse",
 }

@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { RobotBrain, SocialPose } from './robotBrain'
 import { smootherstep } from './layout'
+import type { MusicDanceSignal } from '@/lib/music'
 
 export type SocialKind = 'catch' | 'wake' | 'greet' | 'dance' | 'mirror' | 'bump' | 'encourage'
 export type SocialEvent = 'invite' | 'caught' | 'boo' | 'startled' | 'laugh' | 'hello' | 'reply' |
@@ -38,6 +39,8 @@ export class SocialLife {
   private nextAt = 5
   private cycle = 0
   private lastUsed = new Map<string, number>()
+  private musicPoses = new Map<RobotBrain, SocialPose>()
+  private musicStarted = -1
 
   clear(): void {
     if (this.active) for (const brain of this.active.actors) {
@@ -46,6 +49,46 @@ export class SocialLife {
     }
     this.active = null
     this.toy.visible = false
+    this.clearMusic()
+  }
+
+  private clearMusic(): void {
+    for (const [brain, p] of this.musicPoses) if (brain.social === p) brain.social = null
+    this.musicPoses.clear()
+    this.musicStarted = -1
+  }
+
+  private danceToMusic(t: number, brains: ReadonlyMap<string, RobotBrain>, music: MusicDanceSignal, facing?: THREE.Vector3): void {
+    if (this.musicStarted < 0) this.musicStarted = t
+    for (const [brain, p] of this.musicPoses) {
+      if (brains.get(brain.agentId) !== brain || !brain.canSocialize(t)) {
+        if (brain.social === p) brain.social = null
+        this.musicPoses.delete(brain)
+      }
+    }
+    const fade = smootherstep((t - this.musicStarted) / 0.8)
+    for (const brain of brains.values()) {
+      if (!brain.canSocialize(t)) continue
+      let p = this.musicPoses.get(brain)
+      if (!p) { p = pose(brain.home); this.musicPoses.set(brain, p); brain.social = p }
+      p.music = true
+      const beats = music.beats ?? t * 0.65
+      const sway = (beats * 0.5 + brain.phase) * Math.PI * 2
+      const pulse = THREE.MathUtils.clamp(music.pulse, 0, 1)
+      p.position.copy(brain.home)
+      p.position.x += Math.sin(sway) * 0.12 * fade
+      p.position.z += Math.cos(sway) * 0.05 * fade
+      p.awake = true
+      p.happy = 0.6 + pulse * 0.2
+      p.surprise = 0
+      p.bounce = (music.beats !== null ? Math.max(0, Math.cos(beats * Math.PI * 2)) * 0.18 : 0.025 * (1 + Math.sin(sway))) * fade + pulse * 0.14 * fade
+      p.tilt = Math.sin(sway) * 0.15 * fade
+      p.pitch = pulse * 0.08 * fade
+      p.turn = Math.cos(sway) * 0.12 * fade
+      p.wink = music.beats !== null && Math.floor(beats) % 16 === 12 ? Math.sin((beats % 1) * Math.PI) * (brain.phase > 0.5 ? 1 : -1) : 0
+      if (facing) p.lookAt.copy(facing)
+      else p.lookAt.set(brain.home.x, brain.home.y, brain.home.z + 4)
+    }
   }
 
   private emit(scene: Scene, key: string, at: number, elapsed: number, actor: number, event: SocialEvent): void {
@@ -54,8 +97,16 @@ export class SocialLife {
     this.onEvent?.(scene.actors[actor].agentId, event)
   }
 
-  update(t: number, brains: ReadonlyMap<string, RobotBrain>, reduced: boolean): void {
+  update(t: number, brains: ReadonlyMap<string, RobotBrain>, reduced: boolean, music?: MusicDanceSignal, facing?: THREE.Vector3): void {
     if (reduced) { this.clear(); this.nextAt = t + 5; return }
+    if (music?.playing) {
+      if (this.active) this.clear()
+      this.toy.visible = false
+      this.nextAt = t + 5
+      this.danceToMusic(t, brains, music, facing)
+      return
+    }
+    if (this.musicStarted >= 0) this.clearMusic()
     let scene = this.active
     if (scene && (scene.actors.some((brain, i) => brains.get(brain.agentId) !== brain || !brain.canSocialize(t) || brain.home.distanceToSquared(scene!.homes[i]) > 0.01) || t >= scene.start + scene.duration)) {
       this.clear()

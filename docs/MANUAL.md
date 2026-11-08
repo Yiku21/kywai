@@ -2321,6 +2321,8 @@ hacia el chat unos segundos, esperando el siguiente encargo; alguno dice algo co
 
 ### Vida entre compañeros
 
+**Cuando suena música**, los agentes libres permanecen despiertos y su etiqueta cambia a **Bailando**. Los pasos y saltitos siguen el reloj del reproductor de YouTube, Audius o radio, y los golpes de audio cuando están disponibles; también siguen el pulso de la música ambiental sintetizada. Sin BPM conocido, se balancean suavemente y responden a los golpes detectados. El interruptor de luces musicales es independiente. Al parar toda la música vuelven a su comportamiento habitual; si al pausar una canción sigue sonando la música ambiental, siguen bailando con ella. El trabajo real, escribir en el chat y **Reducir efectos** tienen prioridad.
+
 El repertorio incluye **bailes compartidos**, con pasos, saltitos y un giro; **juegos de imitación**, donde un compañero copia la inclinación, el guiño o el salto del otro con un pequeño retraso; **choques de antenas**, acercándose y celebrando con un destello; y **visitas de ánimo**, con un corazón luminoso y una sonrisa para el compañero más cansado que esté libre. Los ánimos cambian su expresión, no la cuota ni el cansancio real que informa el agente.
 
 Mientras unos agentes trabajan, los libres pueden jugar pasándose un documento de juguete o una pelota de colores, acercarse a saludar y despertar a un compañero dormido con un susto amistoso. Se miran, sonríen, saltan al atrapar el objeto y reaccionan al susto; después vuelven a su puesto. Los turnos se reparten entre los disponibles, con pausas entre escenas.
