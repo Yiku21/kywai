@@ -475,6 +475,11 @@ class OrbitaModel(
         run({ controller.inboxAction(item.id, action.id) }) { inboxBusy = null }
     }
 
+    /** «Visto» en un recién terminado de Resultados: se cierra el aviso (sin esperar a otro botón). */
+    fun inboxSeen(item: InboxItem) {
+        viewModelScope.launch { controller.inboxAction(item.id, item.actions.firstOrNull { it.id == "dismiss" }?.id ?: item.actions.firstOrNull()?.id ?: "dismiss") }
+    }
+
     /** Tocar el aviso de Hermes: lleva a la tarea de la que trata (en pausa o que falló); si es una pregunta o un plan, al chat. */
     fun openAttention(attention: Attention) {
         val taskId = attention.taskId

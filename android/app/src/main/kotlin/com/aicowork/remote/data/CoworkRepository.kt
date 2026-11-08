@@ -1,5 +1,6 @@
 package com.aicowork.remote.data
 
+import com.aicowork.remote.i18n.I18n
 import com.aicowork.remote.i18n.t
 
 import com.aicowork.remote.data.model.AppRelease
@@ -569,17 +570,20 @@ class CoworkRepository(
 
     /** Los avisos abiertos de la bandeja, o null si no se pudo leer (se conserva lo que había). */
     private suspend fun fetchOpenInbox(c: CoworkApiClient): List<InboxItem>? = try {
-        c.inbox().filter { it.isOpen }
+        c.inbox().openForMe()
     } catch (e: ApiException) {
         if (e.isUnauthorized) throw e
         null
     }
 
+    /** Los avisos abiertos, en el idioma de este móvil (el servidor puede tener otro). */
+    private fun List<InboxItem>.openForMe(): List<InboxItem> = filter { it.isOpen }.map { it.localized(I18n.lang) }
+
     /** Evento `inbox.updated`: trae la lista completa de los abiertos. */
     private fun applyInboxEvent(payload: JsonObject) {
         val element = payload["items"] ?: return
         val items = runCatching { CoworkJson.decodeFromJsonElement(ListSerializer(InboxItem.serializer()), element) }.getOrNull() ?: return
-        _state.update { it.copy(inbox = items.filter { item -> item.isOpen }) }
+        _state.update { it.copy(inbox = items.openForMe()) }
     }
 
     private suspend fun handleEvent(c: CoworkApiClient, text: String) {
@@ -1214,7 +1218,7 @@ class CoworkRepository(
         if (_state.value.snapshot?.capabilities?.inbox != true) return
         scope.launch {
             try {
-                val items = c.inbox().filter { it.isOpen }
+                val items = c.inbox().openForMe()
                 _state.update { it.copy(inbox = items) }
             } catch (e: ApiException) {
                 if (e.isUnauthorized) expire(e.message)
@@ -1226,7 +1230,7 @@ class CoworkRepository(
         val c = client ?: return ActionResult(false, t("No hay ningún ordenador emparejado"))
         return try {
             val response = c.inboxAction(itemId, actionId)
-            val item = response.item
+            val item = response.item?.localized(I18n.lang)
             // Se ve al momento; la lista definitiva llega también con `inbox.updated`.
             _state.update { s ->
                 s.copy(inbox = if (item == null || !item.isOpen) s.inbox.filterNot { it.id == itemId } else s.inbox.map { if (it.id == itemId) item else it })

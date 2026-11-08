@@ -5,9 +5,9 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { InboxAction, InboxItem, InboxKind } from '@shared/types'
+import type { InboxAction, InboxItem, InboxKind, InboxTexts } from '@shared/types'
 import { emit } from './events'
-import { tr } from '@shared/i18n'
+import { LANGS, lang, renderMsg, tl, tr, type Msg } from '@shared/i18n'
 
 /** Avisos que se guardan (los cerrados se van borrando, los más antiguos primero). */
 const KEEP = 150
@@ -82,40 +82,74 @@ export function listInbox(limit = 60): InboxItem[] {
   return [...items].sort((a, b) => b.createdAt - a.createdAt).slice(0, limit).map((i) => ({ ...i }))
 }
 
+/** Un botón de un aviso: su nombre puede ir por traducir (tl(…)) para que cada app lo lea en su idioma. */
+export interface InboxActionInput extends Omit<InboxAction, 'label'> {
+  label: string | Msg
+}
+
 export interface InboxInput {
   kind: InboxKind
-  title: string
-  detail?: string
+  /** Mejor con tl(…): así cada app lo muestra en su idioma. Un texto tal cual sale igual en todos. */
+  title: string | Msg
+  /** Varias partes (una lista) van en líneas separadas. */
+  detail?: string | Msg | Array<string | Msg>
   projectId?: string
   runId?: string
   taskId?: string
   messageId?: string
   agentId?: string
-  actions?: InboxAction[]
+  actions?: InboxActionInput[]
   /** Clave para no repetir el mismo aviso mientras siga abierto (si existe, se actualiza). */
   key?: string
+}
+
+const TITLE_MAX = 300
+const DETAIL_MAX = 2000
+
+/** El aviso escrito en cada idioma de la app (el del servidor va también en title/detail/label). */
+function written(input: InboxInput, actions: InboxActionInput[]): { title: string; detail?: string; actions: InboxAction[]; texts: Record<string, InboxTexts> } {
+  const texts: Record<string, InboxTexts> = {}
+  for (const { id } of LANGS) {
+    const parts = input.detail == null ? [] : Array.isArray(input.detail) ? input.detail : [input.detail]
+    const detail = parts.map((d) => renderMsg(d, id)).join('\n').slice(0, DETAIL_MAX) || undefined
+    texts[id] = {
+      title: renderMsg(input.title, id).slice(0, TITLE_MAX),
+      ...(detail ? { detail } : {}),
+      actions: Object.fromEntries(actions.map((a) => [a.id, renderMsg(a.label, id)]))
+    }
+  }
+  const here = texts[lang()]
+  return {
+    title: here.title,
+    ...(here.detail ? { detail: here.detail } : {}),
+    actions: actions.map((a) => ({ ...a, label: here.actions?.[a.id] ?? renderMsg(a.label) })),
+    texts
+  }
 }
 
 /** Añade un aviso (o actualiza el abierto con la misma clave) y lo anuncia. */
 export function addInbox(input: InboxInput): InboxItem {
   const existing = input.key ? items.find((i) => !i.resolvedAt && i.key === input.key) : undefined
   if (existing) {
-    Object.assign(existing, { title: input.title, detail: input.detail, actions: input.actions ?? existing.actions })
+    const w = written(input, input.actions ?? existing.actions)
+    Object.assign(existing, { title: w.title, detail: w.detail, actions: w.actions, texts: w.texts })
     changed()
     return { ...existing }
   }
+  const w = written(input, input.actions ?? [{ id: 'dismiss', label: tl('Entendido') }])
   const item: InboxItem = {
     id: randomUUID(),
     kind: input.kind,
-    title: input.title.slice(0, 300),
-    ...(input.detail ? { detail: input.detail.slice(0, 2000) } : {}),
+    title: w.title,
+    ...(w.detail ? { detail: w.detail } : {}),
     ...(input.projectId ? { projectId: input.projectId } : {}),
     ...(input.runId ? { runId: input.runId } : {}),
     ...(input.taskId ? { taskId: input.taskId } : {}),
     ...(input.messageId ? { messageId: input.messageId } : {}),
     ...(input.agentId ? { agentId: input.agentId } : {}),
     ...(input.key ? { key: input.key } : {}),
-    actions: input.actions ?? [{ id: 'dismiss', label: tr('Entendido') }],
+    actions: w.actions,
+    texts: w.texts,
     createdAt: Date.now()
   }
   items.push(item)
@@ -182,13 +216,13 @@ export function notifyMacPermission(p: { service: string; serviceLabel: string; 
   addInbox({
     kind: 'mac-permission',
     key: `mac:${p.service}`,
-    title: tr('macOS pide permiso para «{serviceLabel}» en la pantalla del servidor', { serviceLabel: p.serviceLabel }),
+    title: tl('macOS pide permiso para «{serviceLabel}» en la pantalla del servidor', { serviceLabel: p.serviceLabel }),
     detail:
       p.detail ??
-      tr('Un agente está esperando a que se acepte el aviso de Privacidad de macOS, y solo se puede aceptar delante del Mac. Ábrelo con Compartir pantalla y pulsa «Permitir»; para que no vuelva a pasar, activa «Acceso total al disco» para kywai (Ajustes del Sistema → Privacidad y seguridad).'),
+      tl('Un agente está esperando a que se acepte el aviso de Privacidad de macOS, y solo se puede aceptar delante del Mac. Ábrelo con Compartir pantalla y pulsa «Permitir»; para que no vuelva a pasar, activa «Acceso total al disco» para kywai (Ajustes del Sistema → Privacidad y seguridad).'),
     taskId: p.taskId,
     agentId: p.agentId,
     projectId: p.projectId,
-    actions: [...(url ? [{ id: 'open', label: tr('Abrir Compartir pantalla'), url }] : []), { id: 'dismiss', label: tr('Ya lo he aceptado') }]
+    actions: [...(url ? [{ id: 'open', label: tl('Abrir Compartir pantalla'), url }] : []), { id: 'dismiss', label: tl('Ya lo he aceptado') }]
   })
 }

@@ -56,10 +56,42 @@ export function locale(): string {
 
 /** Traduce un texto escrito en español. Los {huecos} se rellenan con vars. */
 export function t(text: string, vars?: Record<string, string | number | null | undefined>): string {
-  const dict = current === 'es' ? undefined : DICTS[current]
-  const out = dict?.[text] ?? (current === 'es' ? undefined : en[text]) ?? text
+  return tIn(current, text, vars)
+}
+
+/** Lo mismo que t(), en un idioma concreto (no el del proceso). */
+export function tIn(id: Lang, text: string, vars?: Record<string, string | number | null | undefined>): string {
+  const dict = id === 'es' ? undefined : DICTS[id]
+  const out = dict?.[text] ?? (id === 'es' ? undefined : en[text]) ?? text
   if (!vars) return out
   return out.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k] ?? '') : m))
+}
+
+/**
+ * Un texto por traducir más tarde, en el idioma de quien lo lea (los avisos de «Te necesita» los crea el motor del
+ * servidor, pero cada app los muestra en el suyo). Los huecos pueden ser texto tal cual (lo que escribe un agente,
+ * nombres) o, a su vez, otro texto por traducir.
+ */
+export interface Msg {
+  msg: string
+  vars?: Record<string, string | number | Msg | null | undefined>
+}
+
+/** Un texto por traducir más tarde (translate later): como tr(), pero se escribe en el idioma de quien lo lea. */
+export function tl(text: string, vars?: Msg['vars']): Msg {
+  return vars ? { msg: text, vars } : { msg: text }
+}
+
+export function isMsg(v: unknown): v is Msg {
+  return !!v && typeof v === 'object' && typeof (v as Msg).msg === 'string'
+}
+
+/** Escribe un Msg (o un texto tal cual) en un idioma. */
+export function renderMsg(m: Msg | string, id: Lang = current): string {
+  if (!isMsg(m)) return m
+  const vars: Record<string, string | number | null | undefined> = {}
+  for (const [k, v] of Object.entries(m.vars ?? {})) vars[k] = isMsg(v) ? renderMsg(v, id) : v
+  return tIn(id, m.msg, m.vars ? vars : undefined)
 }
 
 /** Lo mismo que t(), para el motor (allí «t» suele ser una tarea). */

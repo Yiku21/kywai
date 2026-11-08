@@ -27,6 +27,7 @@ import { useCowork, type LeftTab } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { playSfx } from '@/lib/audio'
 import { InboxButton } from '../header/InboxButton'
+import { useFinished } from '../left/ResultsView'
 import { HeaderMenu } from '../header/HeaderMenu'
 import { ROLE_TITLE, useWhere } from '../header/useWhere'
 import { useEscape, useMediaQuery } from '../common/hooks'
@@ -145,6 +146,8 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   const projects = useCowork((st) => st.projects)
   const tick = useCowork((st) => st.conversationsTick)
   const leftTab = useCowork((st) => st.leftTab)
+  // «Terminado» sin ver: sale en Resultados como nuevo (no en «Te necesita»).
+  const finished = useFinished()
   const running = useCowork((st) => {
     let n = 0
     for (const id in st.live.tasks) if (st.live.tasks[id].status === 'running') n++
@@ -300,7 +303,15 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
         badgeTitle={running === 1 ? t('1 tarea en curso') : t('{n} tareas en curso', { n: running })}
         onClick={() => go('tasks')}
       />
-      <NavItem icon={<Package size={17} />} label={t('Resultados')} rail={rail} active={leftTab === 'results'} onClick={() => go('results')} />
+      <NavItem
+        icon={<Package size={17} />}
+        label={t('Resultados')}
+        rail={rail}
+        active={leftTab === 'results'}
+        badge={finished.length || undefined}
+        badgeTitle={finished.length === 1 ? t('1 terminado sin ver') : t('{n} terminados sin ver', { n: finished.length })}
+        onClick={() => go('results')}
+      />
       <NavItem icon={<CalendarClock size={17} />} label={t('Rutinas')} rail={rail} active={leftTab === 'routines'} onClick={() => go('routines')} />
 
       {error && !rail && (
