@@ -91,6 +91,8 @@
 .userBubble {
   background: var(--bg-surface);
   border-top-left-radius: 4px;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .userText {
@@ -124,14 +126,33 @@
   overflow-wrap: anywhere;
 }
 
+/*
+ * La respuesta de un agente va sin caja, como en ChatGPT o Claude: el texto suelto, con letra un poco mayor, más
+ * interlineado, aire entre párrafos y puntos de lista, y líneas de ~72 caracteres como mucho. Los errores sí
+ * llevan su caja roja para que se vean.
+ */
 .agentBubble {
-  background: rgba(var(--bubble-rgb, 16, 24, 40), 0.55);
-  border-top-left-radius: 4px;
+  --md-size: 15px;
+  --md-lh: 1.7;
+  --md-gap: 16px;
+  --md-li-gap: 10px;
+  padding: 2px 0 0;
+  background: none;
+  border-color: transparent;
+  border-radius: 0;
+  gap: 16px;
+}
+
+.agentBubble .textRow > div {
+  max-width: 72ch;
 }
 
 .errorBubble {
+  padding: 12px 14px;
   background: var(--alert-soft);
   border-color: color-mix(in srgb, var(--alert) 35%, transparent);
+  border-radius: 12px;
+  border-top-left-radius: 4px;
 }
 
 .textRow {
@@ -441,6 +462,9 @@
   }
   .bubble {
     padding: 10px 12px;
+  }
+  .agentBubble:not(.errorBubble) {
+    padding: 2px 0 0;
   }
 }
 
