@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Award, X } from 'lucide-react'
 import { agentQuality, DIFFICULTY_LABEL, QUALITY_MIN_TASKS, type QualityStats } from '@shared/agentQuality'
+import type { TaskCategory } from '@shared/taskCategory'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { compactTokens, shortDuration } from '@/lib/usageStats'
@@ -68,6 +69,16 @@ function Cells({ st }: { st: QualityStats }) {
 }
 
 /** ⚙ → Cómo rinde cada agente: calidad de cada uno (👍, verificación, correcciones, fallos) por dificultad. */
+
+/** Filas por tipo de tarea: qué agente rinde mejor en imágenes, webs, código, textos o investigar. */
+const CATEGORY_NAME: Record<TaskCategory, string> = {
+  visual: t('Imágenes y piezas visuales'),
+  web: t('Webs e interfaces'),
+  code: t('Código y scripts'),
+  text: t('Textos y documentos'),
+  research: t('Investigar y analizar'),
+  other: t('Otras')
+}
 export function QualityDialog({ onClose }: { onClose: () => void }) {
   const all = useCowork((st) => st.usageRuns)
   const project = useCowork((st) => st.live.project)
@@ -188,6 +199,17 @@ export function QualityDialog({ onClose }: { onClose: () => void }) {
                               <th scope="row">
                                 <span className={q.subName}>{a.agentName} · </span>
                                 {DIFFICULTY_LABEL[g.difficulty]}
+                              </th>
+                              <Cells st={g} />
+                            </tr>
+                          ))}
+                        {a.byCategory
+                          .filter((g) => g.category !== 'other')
+                          .map((g) => (
+                            <tr key={g.category} className={q.subRow}>
+                              <th scope="row">
+                                <span className={q.subName}>{a.agentName} · </span>
+                                {CATEGORY_NAME[g.category]}
                               </th>
                               <Cells st={g} />
                             </tr>

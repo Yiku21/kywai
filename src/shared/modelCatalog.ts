@@ -49,12 +49,31 @@ export function modelFacts(model: string | undefined): ModelFacts | undefined {
  * Medido: el mismo encargo con Opus tardó 16/22/33/79 min en low/medium/high/max; «max» sigue sin compensar
  * (minutos solo para empezar y poca mejora), así que nunca se usa.
  */
-export function effortFor(provider: ProviderKind, difficulty: Difficulty): Effort | undefined {
+export function effortFor(provider: ProviderKind, difficulty: Difficulty, opts: { visual?: boolean } = {}): Effort | undefined {
+  // Imágenes y piezas visuales (un mapa, un póster, un logo): medido el 8 nov, Opus con «high» pasó 4,4 min pensando
+  // en silencio para un mapa que fuera de kywai salía en 3,5 min. Ahí manda el ojo, no el razonamiento: «medium».
+  if (opts.visual && (provider === 'claude' || provider === 'codex' || provider === 'muse')) return 'medium'
   if (provider === 'claude') return difficulty === 'easy' ? 'medium' : 'high'
   if (provider === 'codex') return difficulty === 'easy' ? 'medium' : difficulty === 'hard' ? 'xhigh' : 'high'
   // Muse Code usa «high» por defecto; lo fácil con «medium» ahorra su pequeña cuota.
   if (provider === 'muse') return difficulty === 'easy' ? 'medium' : 'high'
   return undefined
+}
+
+/**
+ * Tarea cuyo entregable es una pieza visual (imagen, ilustración, póster, logo, icono, mapa visual, infografía,
+ * diagrama, portada, banner…), no una web, una app o código. Manda el título; la descripción solo si el título no
+ * dice nada (en ella suelen salir «script» o «SVG» como forma de hacerlo).
+ */
+export function isVisualTask(title: string, description = ''): boolean {
+  const code = /\b(web|landing|app|aplicaci[oó]n|interfaz|p[aá]gina|componente|pantalla|api|servidor|juego)\b/
+  const visual =
+    /\b(imagen|im[aá]genes|ilustraci[oó]n|p[oó]ster|cartel|logo|logotipo|icono|iconos|mapa visual|infograf[ií]a|diagrama|portada|banner|miniatura|fondo de pantalla|image|illustration|poster|icon|infographic|diagram|cover)\b/
+  const t = title.toLowerCase()
+  if (code.test(t)) return false
+  if (visual.test(t)) return true
+  const d = description.toLowerCase()
+  return !code.test(d) && visual.test(d)
 }
 
 /** Esfuerzo con el que se planifica: el plan decide quién hace qué y cómo se reparte, así que va con el alto. */

@@ -4,6 +4,7 @@
 // (kywai no clasifica las tareas por tipo: la dificultad que pone el coordinador es lo que hay).
 // Función pura: la usan el panel «Cómo rinde cada agente», la ficha que ve el coordinador y la API móvil.
 import type { Difficulty, ProviderKind, UsageCall, UsageRun } from './types'
+import { CATEGORY_LABEL, type TaskCategory } from './taskCategory'
 
 /** Dificultad de la tarea; «unknown» para registros anteriores a que se guardara. */
 export type QualityGroup = Difficulty | 'unknown'
@@ -50,6 +51,8 @@ export interface AgentQuality extends QualityStats {
   provider: ProviderKind
   /** Lo mismo, por dificultad (fáciles, normales, difíciles y sin dato), solo las que tienen tareas. */
   byDifficulty: Array<QualityStats & { difficulty: QualityGroup }>
+  /** Lo mismo, por tipo de tarea (imágenes, webs, código…), solo los que tienen tareas. */
+  byCategory: Array<QualityStats & { category: TaskCategory }>
 }
 
 /** Mínimo de tareas para que el coordinador vea las cifras de calidad en la ficha (con menos, es ruido). */
@@ -72,6 +75,7 @@ interface Attempt {
   agentId: string
   ts: number
   difficulty: QualityGroup
+  category?: TaskCategory
   ok: boolean
   cancelled: boolean
   /** Veredictos del verificador sobre su trabajo, en orden (uno por revisión: la primera y las de cada corrección). */
@@ -83,7 +87,7 @@ interface Attempt {
 }
 
 /** Agrupa las llamadas de cada tarea y las reparte por agente. */
-function attempts(runs: UsageRun[], from: number): Attempt[] {
+function attempts(runs: UsageRun[], from: number, categoryOf?: (taskId: string) => TaskCategory | undefined): Attempt[] {
   const out: Attempt[] = []
   for (const run of runs) {
     const byTask = new Map<string, UsageCall[]>()
@@ -110,6 +114,7 @@ function attempts(runs: UsageRun[], from: number): Attempt[] {
           agentId: id,
           ts: c.ts,
           difficulty: c.difficulty ?? 'unknown',
+          category: c.category ?? categoryOf?.(c.taskId!),
           ok: false,
           cancelled: false,
           verdicts: [],
@@ -121,6 +126,7 @@ function attempts(runs: UsageRun[], from: number): Attempt[] {
         // Registros antiguos sin «cancelled»: una llamada que no salió bien en una petición cancelada se canceló.
         a.cancelled = !c.ok && (!!c.cancelled || (c.cancelled === undefined && run.status === 'cancelled'))
         if (c.difficulty) a.difficulty = c.difficulty
+        if (c.category) a.category = c.category
         a.durationMs += c.durationMs
         a.tokens += c.input + c.output
         a.noTokens ||= !!c.noTokens
@@ -187,8 +193,8 @@ function stats(list: Attempt[]): QualityStats {
  * Calidad de cada agente en las tareas desde `from` (ms; 0 = todo el registro), de más a menos tareas.
  * Solo cuenta tareas (no planificar ni verificar); lo cancelado no cuenta.
  */
-export function agentQuality(runs: UsageRun[], from = 0): AgentQuality[] {
-  const list = attempts(runs, from)
+export function agentQuality(runs: UsageRun[], from = 0, categoryOf?: (taskId: string) => TaskCategory | undefined): AgentQuality[] {
+  const list = attempts(runs, from, categoryOf)
   // Nombre y programa: de las llamadas del propio agente (las de sus becarios dicen «Becario»).
   const info = new Map<string, { name: string; provider: ProviderKind }>()
   for (const run of runs) {
@@ -207,7 +213,11 @@ export function agentQuality(runs: UsageRun[], from = 0): AgentQuality[] {
       ...stats(mine),
       byDifficulty: GROUP_ORDER.map((difficulty) => ({ difficulty, list: mine.filter((a) => a.difficulty === difficulty) }))
         .filter((g) => g.list.length)
-        .map((g) => ({ difficulty: g.difficulty, ...stats(g.list) }))
+        .map((g) => ({ difficulty: g.difficulty, ...stats(g.list) })),
+      byCategory: (Object.keys(CATEGORY_LABEL) as TaskCategory[])
+        .map((category) => ({ category, list: mine.filter((a) => a.category === category) }))
+        .filter((g) => g.list.length)
+        .map((g) => ({ category: g.category, ...stats(g.list) }))
     }))
     .sort((a, b) => b.tasks - a.tasks || a.agentName.localeCompare(b.agentName))
 }
@@ -238,7 +248,10 @@ export function qualityLine(q: AgentQuality | null | undefined, days = 30): stri
   const groups = q.byDifficulty
     .filter((g) => g.difficulty !== 'unknown' && g.tasks >= 3 && (g.failed || g.fixed || g.unverified || g.rated > g.liked))
     .map((g) => `${DIFFICULTY_LABEL[g.difficulty].toLowerCase()} ${g.tasks}: ${statsPhrase(g)}`)
-  return `calidad (${days} días, ${q.tasks} tareas): ${statsPhrase(q)}${cost ? `; mediana ${cost} por tarea` : ''}${groups.length ? ` · por dificultad → ${groups.join(' · ')}` : ''}`
+  const kinds = q.byCategory
+    .filter((g) => g.category !== 'other' && g.tasks >= 2)
+    .map((g) => `${CATEGORY_LABEL[g.category]} ${g.tasks}: ${g.verified ? `${g.firstPass} de ${g.verified} a la primera` : 'sin verificar'}${g.failed ? `, ${g.failed} fallida${g.failed === 1 ? '' : 's'}` : ''}${g.medianMs != null ? `, unos ${took(g.medianMs)}` : ''}`)
+  return `calidad (${days} días, ${q.tasks} tareas): ${statsPhrase(q)}${cost ? `; mediana ${cost} por tarea` : ''}${groups.length ? ` · por dificultad → ${groups.join(' · ')}` : ''}${kinds.length ? ` · por tipo de tarea → ${kinds.join(' · ')}` : ''}`
 }
 
 /** Ventana y umbrales de «mala racha»: con pocas tareas ya se ve si un agente suspende casi siempre. */
@@ -286,6 +299,14 @@ export function verifierStats(runs: UsageRun[], from = 0): Map<string, VerifierS
   return new Map([...by].map(([id, s]) => [id, { count: s.ms.length, medianMs: median(s.ms) ?? 0, unclear: s.unclear }]))
 }
 
+/**
+ * Verificador que no sirve: la mitad o más de sus revisiones acabaron sin veredicto (p. ej. Aider con un modelo
+ * retirado, que responde con un error). Basta una: no se le vuelve a dar si hay otro.
+ */
+export function unreliableVerifier(s: VerifierStats | undefined): boolean {
+  return !!s && s.unclear > 0 && s.unclear / s.count >= 0.5
+}
+
 /** Mínimo de verificaciones para fiarse de su tiempo, y cuánto más rápido tiene que ser uno para preferirlo. */
 export const VERIFIER_MIN_SAMPLES = 3
 export const VERIFIER_FASTER = 1.5
@@ -302,4 +323,35 @@ export function compareVerifiers(a: VerifierStats | undefined, b: VerifierStats 
   if (a.medianMs * VERIFIER_FASTER <= b.medianMs) return -1
   if (b.medianMs * VERIFIER_FASTER <= a.medianMs) return 1
   return 0
+}
+
+/** Diferencia máxima (puntos de % a la primera o de % fallidas) para considerar que dos agentes rinden igual. */
+export const PEER_QUALITY_GAP = 15
+/** Cuánta más cuota libre (puntos de %) hace falta para cambiar de agente, y cuántas veces más lento puede ser el otro. */
+export const PEER_QUOTA_GAP = 25
+export const PEER_SLOWER = 2
+
+interface PeerInput {
+  pct: number | null
+  stats: QualityStats | undefined
+}
+
+/**
+ * Con calidad parecida, al que tiene más cuota: el compañero que en ese tipo de tarea tiene al menos 3 verificadas
+ * (igual que el elegido), un % a la primera a menos de PEER_QUALITY_GAP puntos y no más fallidas, no tarda más de
+ * PEER_SLOWER veces lo que el elegido (si el elegido es mucho más rápido, se queda) y tiene al menos PEER_QUOTA_GAP
+ * puntos más de cuota libre. El de más cuota de los que cumplen; null si ninguno.
+ */
+export function freerPeerChoice(from: PeerInput, peers: Array<PeerInput & { id: string }>): { id: string; pct: number } | null {
+  const mine = from.stats
+  if (from.pct == null || !mine || mine.verified < 3 || mine.firstPassPct == null) return null
+  let best: { id: string; pct: number } | null = null
+  for (const p of peers) {
+    const s = p.stats
+    if (p.pct == null || p.pct < from.pct + PEER_QUOTA_GAP || !s || s.verified < 3 || s.firstPassPct == null) continue
+    if (s.firstPassPct < mine.firstPassPct - PEER_QUALITY_GAP || (s.failedPct ?? 0) > (mine.failedPct ?? 0) + PEER_QUALITY_GAP) continue
+    if (mine.medianMs != null && s.medianMs != null && s.medianMs > mine.medianMs * PEER_SLOWER) continue
+    if (!best || p.pct > best.pct) best = { id: p.id, pct: p.pct }
+  }
+  return best
 }

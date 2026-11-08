@@ -1167,21 +1167,24 @@ async function main(): Promise<void> {
       }
       const verdictsOf = (runId: string) => usageRuns().find((r) => r.runId === runId)!.calls.filter((c) => c.kind === 'verify').map((c) => c.verdict ?? '-')
 
-      // 1. Responde sin veredicto dos veces: no se da por buena. Se pide una vez más con su respuesta y queda sin verificar.
+      // 1. Responde sin veredicto: no se da por buena. Se le pide a OTRO verificador desde cero (insistir al mismo
+      //    suele dar lo mismo); si tampoco da veredicto, queda sin verificar y ese no vuelve a verificar.
       verdicts = ['Lo revisé y parece que está bien.', 'Sí, está bien.']
       const a = await go('Haz el formulario de pago')
-      assert.deepEqual(a.seq, ['plan:claude', 'work:codex', 'plan:claude', 'plan:claude'])
-      assert.ok(a.calls[3].prompt.includes('## Tu respuesta anterior') && a.calls[3].prompt.includes('Lo revisé y parece que está bien.'), 'conserva lo que ya revisó')
+      assert.deepEqual(a.seq, ['plan:claude', 'work:codex', 'plan:claude', 'plan:gemini'])
+      assert.ok(!a.calls[3].prompt.includes('## Tu respuesta anterior') && a.calls[3].prompt.includes('Formulario de pago'), 'el segundo revisa desde cero')
       assert.equal(a.task.status, 'done', 'la ejecución terminó: los archivos se quedan')
-      assert.deepEqual([a.task.verification?.status, a.task.verification?.ok], ['unverified', false])
+      assert.deepEqual([a.task.verification?.status, a.task.verification?.ok, a.task.verification?.by], ['unverified', false, 'gemini'])
       assert.ok(a.done.includes('⚠ Sin verificar') && !a.done.includes('cumple'), a.done)
       assert.deepEqual(verdictsOf(a.runId), ['-', 'unverified'])
 
-      // 2. Sin veredicto y al pedírselo otra vez, «CUMPLE»: aprobada.
+
+      // 2. Sin veredicto y el otro verificador, «CUMPLE»: aprobada (Gemini tiene más revisiones con veredicto, sigue siendo fiable).
       verdicts = ['Todo correcto.', 'VEREDICTO: CUMPLE\nValida la tarjeta.']
       const b = await go('Haz el formulario de pago otra vez')
+      assert.deepEqual(b.seq.slice(2), ['plan:claude', 'plan:gemini'])
       assert.deepEqual(b.task.verification?.status, 'passed')
-      assert.ok(b.done.includes('✔ Claude comprobó el resultado: cumple, sin pruebas ejecutadas'), b.done)
+      assert.ok(b.done.includes('✔ Gemini comprobó el resultado: cumple, sin pruebas ejecutadas'), b.done)
 
       // 3. Dos correcciones y a la tercera revisión cumple: no hay relevo.
       verdicts = ['VEREDICTO: FALLOS\n- falta el CVV', 'VEREDICTO: FALLOS\n- el CVV acepta letras', 'VEREDICTO: CUMPLE\nok']

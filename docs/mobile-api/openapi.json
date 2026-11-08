@@ -7887,6 +7887,178 @@
               ],
               "additionalProperties": false
             }
+          },
+          "byCategory": {
+            "type": "array",
+            "description": "Por tipo de tarea (visual: imágenes y piezas visuales; web: webs e interfaces; code: código y scripts; text: textos y documentos; research: investigar y analizar; other), solo los que tienen tareas.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "visual",
+                    "web",
+                    "code",
+                    "text",
+                    "research",
+                    "other"
+                  ]
+                },
+                "tasks": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Tareas en las que trabajó (una tarea con varios intentos suyos cuenta una vez)."
+                },
+                "rated": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Valoradas por el usuario con 👍/👎."
+                },
+                "liked": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Valoradas con 👍."
+                },
+                "verified": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Comprobadas por un agente de otra familia."
+                },
+                "firstPass": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Cumplían a la primera."
+                },
+                "fixed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "El primer veredicto vio fallos y tuvo que corregir."
+                },
+                "passedAfterFix": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "El primer veredicto vio fallos y el último dijo CUMPLE (aprobada tras corregir)."
+                },
+                "reviewFailed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "El último veredicto sobre su trabajo vio fallos (pasó a otro agente o requiere intervención)."
+                },
+                "unverified": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "El verificador no dio un veredicto reconocible ni al pedírselo otra vez. No cuenta como verificada."
+                },
+                "failed": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Fallaron con él: no pudo hacerla o la terminó otro agente."
+                },
+                "likedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "liked / rated; null sin valoradas."
+                },
+                "firstPassPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "firstPass / verified; null sin verificadas."
+                },
+                "fixedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "fixed / verified; null sin verificadas."
+                },
+                "passedAfterFixPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "passedAfterFix / verified; null sin verificadas."
+                },
+                "reviewFailedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "reviewFailed / verified; null sin verificadas."
+                },
+                "unverifiedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "unverified / tasks; null sin tareas."
+                },
+                "failedPct": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "failed / tasks."
+                },
+                "medianMs": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "description": "Tiempo mediano de trabajo por tarea (incluida su corrección)."
+                },
+                "medianTokens": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "description": "Tokens medianos (entrada + salida) por tarea; null si el agente no informa de sus tokens."
+                }
+              },
+              "required": [
+                "category",
+                "tasks",
+                "rated",
+                "liked",
+                "verified",
+                "firstPass",
+                "fixed",
+                "passedAfterFix",
+                "reviewFailed",
+                "unverified",
+                "failed",
+                "likedPct",
+                "firstPassPct",
+                "fixedPct",
+                "passedAfterFixPct",
+                "reviewFailedPct",
+                "unverifiedPct",
+                "failedPct",
+                "medianMs",
+                "medianTokens"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
@@ -7912,7 +8084,8 @@
           "failedPct",
           "medianMs",
           "medianTokens",
-          "byDifficulty"
+          "byDifficulty",
+          "byCategory"
         ],
         "additionalProperties": false
       },

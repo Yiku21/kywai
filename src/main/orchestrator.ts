@@ -42,8 +42,9 @@ import { resolveTemplate } from './templates'
 import { freshQuotaSnapshot, latestQuotas, recordUsage, refreshQuotas, setClaudeRateLimit } from './quota'
 import { finishRunUsage, rateUsage, recordCall, resumeRunUsage, setRunQuota, startRunUsage, usageRuns } from './usageLog'
 import { agentHistory, agentQualityFor, profileLines } from './agentProfile'
-import { agentQuality, compareVerifiers, POOR_RECORD_DAYS, poorRecord, verifierStats } from '@shared/agentQuality'
-import { EFFORT_LABEL, effortFor, planEffortFor } from '@shared/modelCatalog'
+import { agentQuality, compareVerifiers, freerPeerChoice, POOR_RECORD_DAYS, poorRecord, unreliableVerifier, verifierStats } from '@shared/agentQuality'
+import { EFFORT_LABEL, effortFor, isVisualTask, planEffortFor } from '@shared/modelCatalog'
+import { taskCategory, type TaskCategory } from '@shared/taskCategory'
 import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpdate } from './taskTrace'
 import { withoutClosingNotes, workSteps } from '@shared/work'
 import { lang, locale, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
@@ -580,6 +581,47 @@ function bestAgentFor(text: string, exclude: Set<AgentId> = new Set()): AgentCon
     return i < 0 ? 99 : i
   }
   return [...cands].sort((a, b) => score(b) - score(a) || order(a) - order(b))[0]
+}
+
+/** Tipo de una tarea por su id: las de la petición en curso y, si no, las guardadas en los proyectos (índice de 5 min). */
+let categoryIndex: { at: number; map: Map<string, TaskCategory> } | null = null
+function categoryOfTask(taskId: string): TaskCategory | undefined {
+  const live = tasks.get(taskId)
+  if (live) return taskCategory(live.title, live.description)
+  if (!categoryIndex || Date.now() - categoryIndex.at > 5 * 60_000) {
+    const map = new Map<string, TaskCategory>()
+    for (const p of store.listProjects()) {
+      try {
+        for (const t of store.getProject(p.id).tasks) map.set(t.id, taskCategory(t.title, t.description))
+      } catch {
+        // Un proyecto que no se puede leer no quita el resto.
+      }
+    }
+    categoryIndex = { at: Date.now(), map }
+  }
+  return categoryIndex.map.get(taskId)
+}
+
+/**
+ * Otro agente que rinde igual de bien en ESTE tipo de tarea y tiene bastante más cuota libre (ver freerPeerChoice).
+ * Sin datos de los dos no se cambia nada: decide el coordinador por la ficha.
+ */
+function freerPeer(from: AgentConfig, category: TaskCategory, exclude: Set<AgentId>): { agent: AgentConfig; pct: number; fromPct: number } | null {
+  const quotaOf = (a: AgentConfig): number | null => {
+    const q = latestQuotas().find((x) => x.id === a.quotaGroupId)
+    if (q?.unlimited) return 100
+    return q?.remainingPct ?? null
+  }
+  const fromPct = quotaOf(from)
+  if (fromPct == null || category === 'other') return null
+  const quality = agentQuality(usageRuns(), Date.now() - 30 * 86_400_000, categoryOfTask)
+  const statsOf = (id: string) => quality.find((q) => q.agentId === id)?.byCategory.find((g) => g.category === category)
+  const peers = workers()
+    .filter((a) => a.id !== from.id && !exclude.has(a.id) && usable(a) && isTextOnly(a.provider) === isTextOnly(from.provider))
+    .map((a) => ({ id: a.id, pct: quotaOf(a), stats: statsOf(a.id) }))
+  const pick = freerPeerChoice({ pct: fromPct, stats: statsOf(from.id) }, peers)
+  const agent = pick && findAgent(pick.id)
+  return agent ? { agent, pct: Math.round(pick.pct), fromPct: Math.round(fromPct) } : null
 }
 
 /**
@@ -1970,7 +2012,7 @@ function teamLine(a: AgentConfig): string {
     quota: latestQuotas().find((q) => q.id === a.quotaGroupId),
     warn: getConfig().thresholds.warn,
     history: agentHistory(usageRuns(), a.id),
-    quality: agentQualityFor(usageRuns(), a.id),
+    quality: agentQualityFor(usageRuns(), a.id, Date.now(), 30, categoryOfTask),
     poor: poorLine(poorAgents().get(a.id)),
     abilities
   }).join('\n')
@@ -2072,13 +2114,14 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '- Trabajo pequeño o muy enlazado (un script, un documento, un arreglo, algo de menos de unos 20 minutos): UNA sola tarea para el agente más adecuado, que lo hace y lo prueba. Nunca crees tareas aparte de «diseñar», «arquitectura» o «contratos».',
     '- Trabajo grande con partes REALMENTE independientes que se pueden construir A LA VEZ (por ejemplo, en una app: el motor o la lógica, la interfaz y el servidor): reparte esas partes en paralelo, cada una al agente que mejor la hace según su ficha (por ejemplo, la interfaz a quien es mejor en diseño y la lógica a quien es mejor programando). Escribe tú en "contract" el contrato común: carpetas, qué archivos son de cada tarea y las funciones, rutas HTTP y formatos de datos que se usan entre partes, con nombres exactos, parámetros y lo que devuelven. Las tareas en paralelo NO dependen entre sí y no comparten archivos: los comunes (package.json, README, configuración) son solo de la integración. Añade al final UNA tarea «Integrar y probar» (para el agente de la parte principal, dificultad "medium") que dependa de ellas: junta las partes, ejecuta las pruebas, comprueba el conjunto contra la petición del usuario y arregla lo que no encaje.',
     '- Reparte SOLO si se cumplen las tres: cada parte tiene trabajo de sobra (más de unos 10 minutos), las partes van en archivos distintos sin estado compartido, y la interfaz entre ellas se puede fijar de antemano en el contrato con nombres exactos. Si falta cualquiera de las tres, una sola tarea: dividir un trabajo acoplado o encadenado lo empeora (cada traspaso pierde contexto y las decisiones implícitas divergen).',
-    `- «A dos manos» para lo que depende del gusto: si el entregable es visual o de diseño (una web, una landing, una interfaz, un póster, una presentación, un logo o una imagen) y es trabajo NUEVO (no una continuación), dos agentes de familias distintas lo hacen por separado y un tercero elige: crea DOS tareas iguales sin dependencias, con las mismas instrucciones completas, una para cada agente, cada una solo en su carpeta ("files": ["${twoHandsBase(run.projectId)}opcion-a/"] y ["${twoHandsBase(run.projectId)}opcion-b/"], dilo en la descripción: «crea todo dentro de … y no toques la otra carpeta»), y una tercera tarea de texto «Elegir la mejor opción» ("deliverable": "text", "medium") para un agente de una tercera familia (si no la hay, para uno que no sea autor; en último caso, un autor), que dependa de las dos: que abra y pruebe ambas, las compare contra la petición en los dos órdenes (fidelidad, funcionamiento, calidad visual, código) y responda empezando con «GANA: A» o «GANA: B» y por qué. Aquí no hace falta "contract". Hazlo siempre que el usuario pida «a dos manos» o «dos opciones» (sea lo que sea), y nunca si pide «a una mano» o «una sola versión», si solo hay una familia disponible o si es una corrección.`,
+    `- Por defecto, UNA sola versión de cada entregable: dos versiones para elegir duplican la espera (hay que esperar a la más lenta y luego al juez). «A dos manos» solo si el usuario lo pide («a dos manos», «dos opciones», «dos propuestas», «varias versiones»): dos agentes de familias distintas lo hacen por separado y un tercero elige: crea DOS tareas iguales sin dependencias, con las mismas instrucciones completas, una para cada agente, cada una solo en su carpeta ("files": ["${twoHandsBase(run.projectId)}opcion-a/"] y ["${twoHandsBase(run.projectId)}opcion-b/"], dilo en la descripción: «crea todo dentro de … y no toques la otra carpeta»), y una tercera tarea de texto «Elegir la mejor opción» ("deliverable": "text", "medium") para un agente de una tercera familia (si no la hay, para uno que no sea autor; en último caso, un autor), que dependa de las dos: que abra y pruebe ambas, las compare contra la petición en los dos órdenes (fidelidad, funcionamiento, calidad visual, código) y responda empezando con «GANA: A» o «GANA: B» y por qué. Aquí no hace falta "contract". Nunca lo hagas si no lo pidió, si solo hay una familia disponible o si es una corrección.`,
+    '- Si el usuario pide una IMAGEN (ilustración, mapa visual, póster, logo, foto, icono, concepto visual), es UNA tarea para el agente que genera imágenes según su ficha (hoy Codex), y en la descripción dile que la GENERE con su herramienta de generación de imágenes ($imagegen) en vez de dibujarla con código (SVG, HTML o scripts), salvo que el usuario pida algo editable o exacto al píxel (un diagrama SVG, un plano). Si la imagen lleva datos (nombres, direcciones, rótulos), pásaselos en la descripción para que salgan bien escritos.',
     '- Nunca repartas una CONTINUACIÓN: si la petición corrige, amplía o retoma lo que se hizo antes en este proyecto («no funciona…», «ahora añade…», «cámbialo…»), es UNA tarea para el mismo agente que hizo ese trabajo (mira la conversación y los archivos recientes), con lo que hay que cambiar y dónde está.',
     '- Si el usuario pide «en equipo», reparte así en paralelo siempre que el trabajo tenga partes separables; si pide «un solo agente», crea una sola tarea.',
     '- No añadas tareas de revisar, auditar, validar, verificar o corregir el trabajo de otra tarea, salvo que el usuario pida expresamente una revisión (por ejemplo «con revisión»): kywai ya hace que cada tarea que cambia archivos la compruebe un agente de otra familia contra la petición y su "acceptance", y el autor corrige lo que vea. Por eso "acceptance" tiene que ser concreto y comprobable.',
     '- Como máximo 6 tareas.',
     '- Asigna cada tarea al agente más adecuado según su ficha («se le da mejor» y «evitar») y SOLO a agentes disponibles. Al agente local, solo tareas cortas y sencillas: es más lento.',
-    '- Si varios agentes sirven, elige el de mejor calidad según su ficha («calidad»: lo que le sirvió al usuario, verificaciones a la primera, pocas correcciones y pocos fallos, mirando la fila de la misma dificultad); la calidad pesa más que la velocidad y el coste. Con calidad parecida, el que tenga más cuota restante. A un agente con poca cuota, solo lo imprescindible.',
+    '- Si varios agentes sirven, elige el de mejor calidad según su ficha («calidad»: lo que le sirvió al usuario, verificaciones a la primera, pocas correcciones y pocos fallos, mirando la fila de la misma dificultad y, sobre todo, la de su «tipo de tarea»: imágenes, webs, código, textos o investigar); la calidad pesa más que la velocidad y el coste. Con calidad parecida, SIEMPRE el que tenga más cuota restante, salvo que el otro sea muchas veces más rápido. kywai lo aplica también después: si hay datos de que otro rinde igual en ese tipo de tarea y le queda bastante más cuota, se la pasa. A un agente con poca cuota, solo lo imprescindible.',
     '- Mira «disponible» en cada ficha: si un agente está ocupado y otro libre puede hacerlo bien, dáselo al libre para que empiece ya; uno ocupado solo si es claramente el único adecuado (su tarea esperará a que termine).',
     '- Si hay trabajo en marcha en esta carpeta, no planifiques cambios en los archivos que está tocando: trabaja en otros archivos o, si la petición necesita esos mismos, dilo en "reply" y propón esperar a que termine.',
     '- "dependsOn": keys de las tareas cuyo resultado o archivos necesita de verdad antes de empezar (deja [] si no hay); no encadenes tareas solo «por orden»: cada dependencia hace esperar a la siguiente hasta que la anterior termine y se verifique.',
@@ -2165,6 +2208,15 @@ function validatePlan(raw: unknown[], context: string, projectId: string): { tas
       tr('«{title}» la hace {name} ({agent} no superó la revisión o falló en {bad} de sus {tasks} últimas tareas)', { title: p.title, name: alt.name, agent: a.name, bad: why.bad, tasks: why.tasks })
     )
     p.agentId = alt.id
+  }
+  // Con calidad parecida en ese tipo de tarea, al que tiene más cuota libre (si no es mucho más lento).
+  for (const p of lean) {
+    const a = findAgent(p.agentId)
+    if (!a || namedByUser(a, context)) continue
+    const alt = freerPeer(a, taskCategory(p.title, p.description), new Set([...poor.keys(), ...(p.difficulty === 'hard' ? locals : [])]))
+    if (!alt) continue
+    changes.push(tr('«{title}» la hace {name}: rinde igual de bien en este tipo de tarea y le queda más cuota ({v1} % frente a {v2} %)', { title: p.title, name: alt.agent.name, v1: alt.pct, v2: alt.fromPct }))
+    p.agentId = alt.agent.id
   }
   // «A dos manos»: si el usuario lo pidió y el coordinador no lo hizo, se hace aquí (otra familia y un juez).
   const order = getConfig().plannerOrder
@@ -2646,7 +2698,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   let res: RunAgentResult
   const taskStart = Date.now()
   // Esfuerzo según la dificultad: bajo en lo fácil (más rápido y gasta menos), alto solo en lo difícil.
-  const effort = effortFor(exec.provider, t.difficulty)
+  const effort = effortFor(exec.provider, t.difficulty, { visual: isVisualTask(t.title, t.description) })
   // Corrección o continuación: el mismo CLI retoma su sesión anterior, con lo que leyó, hizo y decidió en la memoria.
   const sessionOwner = parent ?? exec
   const resume = supportsResume(exec.provider)
@@ -2760,7 +2812,8 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // «BLOQUEADA: …» cuenta como fallo en el registro (la tarea pasa a otro o se da por fallida).
   taskInboxDone(t)
   logCall(run, 'task', exec, model, res.ok && !t.direct && blockedReason(res.text) ? { ...res, ok: false } : res, taskStart, t.id, effort, {
-    difficulty: t.difficulty
+    difficulty: t.difficulty,
+    category: taskCategory(t.title, t.description)
   })
   endTrace(t.id, res, taskStart)
   // El controlador sigue registrado mientras se verifica el resultado («Detener» también lo corta).
@@ -2893,12 +2946,21 @@ async function collectArtifacts(run: Run, t: Task, owner: AgentConfig): Promise<
   return out
 }
 
-/** Agentes que pueden comprobar el trabajo de otro: leen archivos y no son el autor ni de su misma familia. */
-function pickVerifier(author: AgentConfig, wantsEyes = false): AgentConfig | null {
+/**
+ * Agentes que pueden comprobar el trabajo de otro: leen archivos y no son el autor ni de su misma familia. Fuera los
+ * que en los últimos 30 días acabaron sin veredicto la mitad de las veces o más (si queda otro; con `reliableOnly`,
+ * siempre), y los de `exclude`.
+ */
+function pickVerifier(author: AgentConfig, wantsEyes = false, exclude: string[] = [], reliableOnly = false): AgentConfig | null {
   const cfg = getConfig()
   let cands = workers().filter(
-    (a) => usable(a) && a.id !== author.id && a.provider !== author.provider && !isTextOnly(a.provider) && !isLocalProvider(a.provider)
+    (a) =>
+      usable(a) && a.id !== author.id && !exclude.includes(a.id) && a.provider !== author.provider && !isTextOnly(a.provider) && !isLocalProvider(a.provider)
   )
+  if (!cands.length) return null
+  const stats = verifierStats(usageRuns(), Date.now() - 30 * 86_400_000)
+  const reliable = cands.filter((a) => !unreliableVerifier(stats.get(a.id)))
+  if (reliable.length || reliableOnly) cands = reliable
   if (!cands.length) return null
   // Si hay capturas de la interfaz, mejor quien pueda verlas.
   if (wantsEyes && cands.some(seesImages)) cands = cands.filter(seesImages)
@@ -2908,7 +2970,6 @@ function pickVerifier(author: AgentConfig, wantsEyes = false): AgentConfig | nul
   }
   // Entre los válidos y libres: el que da veredicto claro y, si no, el claramente más rápido (medido en 30 días);
   // sin datos de los dos, el orden de siempre. No cambia lo que se comprueba, solo quién lo comprueba.
-  const stats = verifierStats(usageRuns(), Date.now() - 30 * 86_400_000)
   return [...cands].sort(
     (a, b) =>
       Number(busy.has(a.id)) - Number(busy.has(b.id)) ||
@@ -3068,7 +3129,7 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   const changed = [...meta.touched]
   if (!shouldVerify(run, t, exec, changed)) return null
   const wantsEyes = pagesToShoot(dir, changed).length > 0
-  const verifier = pickVerifier(owner, wantsEyes)
+  let verifier = pickVerifier(owner, wantsEyes)
   if (!verifier) {
     traceNote(t.id, tr('Sin verificador: ningún otro agente de otra familia disponible'))
     return null
@@ -3088,18 +3149,28 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   taskDirty(t)
   traceNote(t.id, tr('{name} comprueba el resultado contra la petición{v2}', { name: verifier.name, v2: meta.reviewRelay ? tr(' (tras el relevo de {fromName})', { fromName: meta.reviewRelay.fromName }) : fixes ? tr(' (tras la corrección {fixes} de {MAX_REVIEW_FIXES})', { fixes, MAX_REVIEW_FIXES }) : '' }))
   workDirty(run, t)
-  const wasIdle = !busy.has(verifier.id) && !planningAgents.has(verifier.id) && !integrating.has(verifier.id)
-  if (wasIdle) {
-    integrating.add(verifier.id)
-    setRuntime(verifier.id, { activity: 'working', lastActivity: tr('Verificando «{title}»', { title: t.title }), reason: undefined, waitingFor: undefined })
+  const claim = (a: AgentConfig): boolean => {
+    const idle = !busy.has(a.id) && !planningAgents.has(a.id) && !integrating.has(a.id)
+    if (idle) {
+      integrating.add(a.id)
+      setRuntime(a.id, { activity: 'working', lastActivity: tr('Verificando «{title}»', { title: t.title }), reason: undefined, waitingFor: undefined })
+    }
+    return idle
   }
-  const start = Date.now()
-  const effort = effortFor(verifier.provider, 'medium')
+  const release = (a: AgentConfig, idle: boolean): void => {
+    if (!idle) return
+    integrating.delete(a.id)
+    if (!busy.has(a.id)) setRuntime(a.id, { activity: 'idle', lastActivity: tr('Verificó: {title}', { title: t.title }) })
+  }
+  let wasIdle = claim(verifier)
+  let start = Date.now()
+  let effort = effortFor(verifier.provider, 'medium')
   const ask = async (prompt: string, resume?: string): Promise<RunAgentResult> => {
+    const agent = verifier!
     try {
       return await runner({
-        agent: verifier,
-        model: verifier.model,
+        agent,
+        model: agent.model,
         effort,
         prompt,
         cwd: dir,
@@ -3119,22 +3190,36 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   // Respondió sin un veredicto reconocible: se le pide una vez más, conservando lo que ya revisó (su sesión del CLI
   // si se puede retomar; si no, su respuesta va en el encargo). Nunca se da por buena sin un «CUMPLE» explícito.
   let missing = out.ok && !m && !run.cancelled && !ctrl.signal.aborted
+  let askedOther = false
   if (missing) {
     traceNote(t.id, tr('{name} respondió sin veredicto: se lo pido otra vez', { name: verifier.name }), true)
     logCall(run, 'verify', verifier, verifier.model, out, start, t.id, effort)
     recordUsage(verifier.quotaGroupId, out.usage.input + out.usage.output, 1)
     const first = out
-    const resume = supportsResume(verifier.provider) ? first.sessionId : undefined
-    out = await ask(resume ? missingVerdictPrompt() : `${prompt}\n\n${missingVerdictPrompt(first.text)}`, resume)
+    // Si hay otro verificador fiable, se le pide a él desde cero: insistir al mismo suele dar lo mismo (un CLI con
+    // un modelo retirado responde siempre con el mismo error). Si no lo hay, se le pide otra vez al mismo.
+    const other = pickVerifier(owner, wantsEyes, [verifier.id], true)
+    askedOther = !!other
+    if (other) {
+      traceNote(t.id, tr('Se lo pido a {name}', { name: other.name }))
+      release(verifier, wasIdle)
+      verifier = other
+      wasIdle = claim(verifier)
+      start = Date.now()
+      effort = effortFor(verifier.provider, 'medium')
+      t.lastActivity = tr('{name} comprueba el resultado', { name: verifier.name })
+      taskDirty(t)
+      out = await ask(buildVerifyPrompt(run, t, owner, verifier, changed, res.text, ui, proof))
+    } else {
+      const resume = supportsResume(verifier.provider) ? first.sessionId : undefined
+      out = await ask(resume ? missingVerdictPrompt() : `${prompt}\n\n${missingVerdictPrompt(first.text)}`, resume)
+    }
     m = out.ok ? VERDICT_RE.exec(out.text) : null
     missing = !m
     // Si el segundo intento ni siquiera respondió, lo que cuenta es la primera respuesta (sin veredicto).
     if (!out.ok) out = { ...first, usage: out.usage }
   }
-  if (wasIdle) {
-    integrating.delete(verifier.id)
-    if (!busy.has(verifier.id)) setRuntime(verifier.id, { activity: 'idle', lastActivity: tr('Verificó: {title}', { title: t.title }) })
-  }
+  release(verifier, wasIdle)
   const stopped = run.cancelled || ctrl.signal.aborted
   const status: VerificationStatus = missing ? 'unverified' : m && /^(cumple|pass)/i.test(m[1]) ? 'passed' : 'failed'
   const ok = status === 'passed'
@@ -3167,7 +3252,9 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
     status === 'passed'
       ? `${verifier.name}: cumple${testsSuffix(proof.tests, verifier.name)}`
       : status === 'unverified'
-        ? tr('{name} no dio un veredicto claro ni al pedírselo otra vez: queda sin verificar', { name: verifier.name })
+        ? askedOther
+          ? tr('Tampoco {name} dio un veredicto claro: queda sin verificar', { name: verifier.name })
+          : tr('{name} no dio un veredicto claro ni al pedírselo otra vez: queda sin verificar', { name: verifier.name })
         : tr('{name} vio fallos: {oneLine}', { name: verifier.name, oneLine: oneLine(notes, 300) }),
     !ok
   )
@@ -3468,7 +3555,7 @@ function logCall(
   startedAt: number,
   taskId?: string,
   effort?: Effort,
-  extra: Pick<UsageCall, 'difficulty' | 'verdict'> = {}
+  extra: Pick<UsageCall, 'difficulty' | 'verdict' | 'category'> = {}
 ): void {
   recordCall(run.id, {
     ...extra,
