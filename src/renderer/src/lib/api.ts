@@ -134,23 +134,13 @@ async function uploadImport(file: File): Promise<string> {
   return data.path
 }
 
-function pickOneFile(accept: string): Promise<File | null> {
-  return new Promise((resolve) => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = accept
-    input.onchange = () => resolve(input.files?.[0] ?? null)
-    input.oncancel = () => resolve(null)
-    input.click()
-  })
-}
-
-function pickLocalFiles(kind: 'any' | 'image'): Promise<File[]> {
+function pickLocalFiles(kind: 'any' | 'image' | 'import'): Promise<File[]> {
   return new Promise((resolve) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.multiple = true
     if (kind === 'image') input.accept = 'image/*'
+    if (kind === 'import') input.accept = '.zip,.json,application/zip,application/json'
     input.onchange = () => resolve([...(input.files ?? [])])
     input.oncancel = () => resolve([])
     input.click()
@@ -185,8 +175,12 @@ function createWebApi(): CoworkApi {
       return Promise.all(files.map((f) => upload(f.name, f)))
     },
     pickImportFile: async () => {
-      const file = await pickOneFile('.zip,.json,application/zip,application/json')
-      return file ? uploadImport(file) : null
+      const files = await pickLocalFiles('import')
+      if (!files.length) return null
+      // Uno a uno: cada archivo puede pesar gigas.
+      const paths: string[] = []
+      for (const f of files) paths.push(await uploadImport(f))
+      return paths
     },
     savePastedFile: (name: string, data: Uint8Array) => upload(name, new Blob([data as BlobPart])),
     readArtifact: async (projectId: string, relPath: string) => {

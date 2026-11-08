@@ -486,16 +486,17 @@ function registerIpc(): void {
   }
   handle('scanImports', () => scanImports())
   handle('importLocal', (ids: unknown) => afterImport(importLocal(ids, getConfig().agents)))
-  handle('importArchive', (path: unknown) => afterImport(importArchive(path, getConfig().agents)))
+  handle('importArchive', (paths: unknown) => afterImport(importArchive(paths, getConfig().agents)))
   ipcMain.handle('cowork:pickImportFile', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow
     const opts: OpenDialogOptions = {
       title: tr('Elige la exportación de ChatGPT o de Claude.ai'),
-      properties: ['openFile'],
+      // Claude.ai manda la exportación en varios zips: se pueden elegir todos a la vez.
+      properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'ZIP / JSON', extensions: ['zip', 'json'] }]
     }
     const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
-    return r.canceled ? null : (r.filePaths[0] ?? null)
+    return r.canceled || !r.filePaths.length ? null : r.filePaths
   })
   handle('sendMessage', (input: SendMessageInput) => {
     if (!input || typeof input !== 'object') throw new Error(tr('Mensaje no válido'))

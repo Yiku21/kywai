@@ -75,10 +75,10 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
     if (!api) return
     setError(null)
     try {
-      const path = await api.pickImportFile()
-      if (!path) return
+      const paths = await api.pickImportFile()
+      if (!paths?.length) return
       setBusy(true)
-      await finished(await api.importArchive(path))
+      await finished(await api.importArchive(paths))
     } catch (e) {
       setError(errorText(e))
     } finally {
@@ -197,11 +197,11 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
             </div>
             <div className={m.howto}>
               <strong>Claude.ai</strong>
-              <span>{t('Ajustes → Privacidad → Exportar datos. Te llega un correo con un zip; sus proyectos se traen con sus instrucciones y documentos.')}</span>
+              <span>{t('Ajustes → Privacidad → Exportar datos. Te llega un correo con varios zips: elígelos todos a la vez (o al menos conversations-000.zip y projects-000.zip). Sus proyectos se traen con sus instrucciones y documentos.')}</span>
             </div>
             <button type="button" className={m.primary} disabled={busy} onClick={() => void importFile()}>
               <FileArchive size={15} aria-hidden="true" />
-              {busy ? t('Importando…') : t('Elegir el zip…')}
+              {busy ? t('Importando…') : t('Elegir los archivos…')}
             </button>
           </div>
         )}

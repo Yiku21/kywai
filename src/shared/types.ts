@@ -1346,7 +1346,8 @@ export interface CoworkApi {
   /** Importa las sesiones elegidas de «En este equipo» (ids de scanImports). */
   importLocal(sessionIds: string[]): Promise<ImportResult>
   /** Importa un archivo exportado de ChatGPT o Claude.ai (el zip o su conversations.json), ya en el servidor. */
-  importArchive(path: string): Promise<ImportResult>
+  /** Uno o varios archivos de la exportación (Claude.ai la manda partida en varios zips). */
+  importArchive(paths: string | string[]): Promise<ImportResult>
   loadProject(projectId: string): Promise<ProjectState>
   /** Estado actual de agentes y cuotas (para pintar al arrancar). */
   getRuntime(): Promise<{ runtimes: AgentRuntime[]; quotas: QuotaInfo[] }>
@@ -1354,7 +1355,7 @@ export interface CoworkApi {
   cancelRun(runId: string): Promise<void>
   pickFiles(kind: 'any' | 'image'): Promise<string[]>
   /** Elige la exportación de ChatGPT o Claude.ai (zip o json) y devuelve su ruta en el servidor (por web, la sube entera). */
-  pickImportFile(): Promise<string | null>
+  pickImportFile(): Promise<string[] | null>
   /** Ruta absoluta de un archivo soltado en la ventana. */
   pathForFile(file: File): string
   readArtifact(projectId: string, relPath: string): Promise<{ text?: string; url?: string }>

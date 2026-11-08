@@ -1698,7 +1698,16 @@ en `workspace/importados.json`; si borras una conversación importada, se puede 
 
 **Desde un archivo** importa la exportación de **ChatGPT** (Ajustes → Controles de datos → Exportar datos) o de
 **Claude.ai** (Ajustes → Privacidad → Exportar datos): el zip que llega por correo tal cual, o solo su
-`conversations.json`. Desde el navegador o el cliente se sube entero al servidor (hasta 8 GB) y se borra al acabar.
+`conversations.json`. Desde el navegador o el cliente se sube entero al servidor (hasta 8 GB por archivo) y se borra al acabar.
+
+Claude.ai manda ahora la exportación **partida**: un `manifest-….json` y varios zips (`conversations-000.zip`,
+`projects-000.zip`, `memories-000.zip`, `design_chats-000.zip`, `frames-000.zip`, `claude_code_cloud-000.zip`,
+`light_metadata-000.zip`). Se pueden **elegir todos a la vez** (el selector admite varios), elegir solo
+`conversations-000.zip` (y `projects-000.zip` para los proyectos), o, en la app del servidor, elegir el manifiesto con
+los zips en la misma carpeta. Las conversaciones pueden venir en un `conversations.json` o una por archivo; los demás
+zips (memorias, diseños, sesiones de Claude Code en la nube) de momento no se importan. Si el formato cambia y no se
+reconoce, el error dice los nombres de los campos que trae, para poder añadirlo. El manifiesto lleva enlaces privados
+de descarga: kywai no los usa ni los guarda.
 
 Cada JSON o entrada descomprimida tiene un límite de 256 MB, y el directorio del ZIP, 32 MB y 100.000 entradas. Los tamaños y posiciones inválidos se rechazan antes de reservar memoria; la descompresión también tiene límite. Si se supera, divide la exportación. [Claude confirma](https://support.claude.com/en/articles/9450526-export-your-claude-data) que su exportación no incluye los archivos originales subidos: solo se recupera lo presente en el archivo. Los historiales de Gemini/Takeout todavía no se importan.
 
