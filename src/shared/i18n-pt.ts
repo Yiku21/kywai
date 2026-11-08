@@ -2437,6 +2437,7 @@ export const pt: Record<string, string> = {
   "Esa propuesta ya se descartó": "Essa proposta já foi descartada",
   "Acción no válida": "Ação inválida",
   // Importar de otras apps (importChats.ts, ImportDialog.tsx)
+  "Sin carpeta": "Sem pasta",
   "1 conversación": "1 conversa",
   "Importar de otras apps…": "Importar de outros apps…",
   "¿Traes conversaciones de otras apps? Importa las de Claude Code y Codex de este equipo, o la exportación de ChatGPT o Claude.ai, y síguelas aquí.": "Vem de outros apps? Importe as sessões do Claude Code e do Codex deste computador, ou a exportação do ChatGPT ou do Claude.ai, e continue-as aqui.",

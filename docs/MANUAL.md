@@ -1628,6 +1628,7 @@ en `workspace/importados.json`; si borras una conversación importada, se puede 
 |---|---|---|
 | Claude Code | `~/.claude/projects/<carpeta>/<sesión>.jsonl` (o `$CLAUDE_CONFIG_DIR`) | Una conversación por sesión, retomable con su sesión real (`--resume`) |
 | Codex | `~/.codex/sessions/AAAA/MM/DD/rollout-*.jsonl` (o `$CODEX_HOME`) | Una conversación por sesión, retomable con su sesión real (`exec resume`) |
+| Hermes y Hermes Desktop | `~/.hermes/state.db` y `~/.hermes/profiles/<perfil>/state.db` (o `$HERMES_HOME`; en Windows también `%LOCALAPPDATA%\hermes`) | Una conversación por sesión, para leer y seguir con lo hablado como contexto |
 
 - Se agrupa **por carpeta de trabajo**: cada carpeta pasa a ser un proyecto de kywai **con esa carpeta** (si ya tienes
   un proyecto que trabaja en ella, se usa ese; la etiqueta «→ nombre» lo dice). De entrada va marcado todo lo que no se
@@ -1640,8 +1641,15 @@ en `workspace/importados.json`; si borras una conversación importada, se puede 
   el agente vuelve a **su sesión real**, con todo lo que leyó y decidió, aunque tenga más de 14 días (el límite normal
   de las sesiones de kywai no se aplica a las importadas). Sin ese agente, o si la carpeta ya no existe («solo
   lectura»), la conversación se lee igual y al seguirla el coordinador recibe lo hablado como contexto.
-- Una sesión hecha en tu carpeta personal entera (sin carpeta de proyecto) queda en un proyecto con carpeta interna:
-  kywai no da acceso a la carpeta personal completa.
+- Una sesión hecha en tu carpeta personal entera, o sin carpeta (Hermes por Telegram, Discord…), va a un proyecto con
+  el nombre de la app («Hermes», «Claude Code»…) con carpeta interna: kywai no da acceso a la carpeta personal completa.
+- **Hermes** (y **Hermes Desktop**, que usa la misma base): se lee la base SQLite de Hermes solo para leer, con el
+  SQLite que trae la app (sin instalar nada). Cuando Hermes compacta una conversación larga y la sigue en otra sesión,
+  se juntan en una. No se traen los encargos que kywai le hace a Hermes (empiezan por «Eres Hermes, el coordinador…»
+  o «… parte de un equipo de agentes…» y ya están en tus chats), ni lo que trabajó en la carpeta interna de un
+  proyecto de kywai, ni las sesiones ocultas en Hermes. Hermes Desktop no tiene proyectos (solo perfiles), así que no
+  hay proyectos que traer. De momento la sesión de Hermes no se retoma (kywai lanza Hermes de una vez); al seguirla, el
+  coordinador recibe lo hablado como contexto.
 
 **Desde un archivo** importa la exportación de **ChatGPT** (Ajustes → Controles de datos → Exportar datos) o de
 **Claude.ai** (Ajustes → Privacidad → Exportar datos): el zip que llega por correo tal cual, o solo su
@@ -1660,7 +1668,7 @@ en `workspace/importados.json`; si borras una conversación importada, se puede 
 
 Motor: `src/main/importChats.ts` (lectores de cada formato, un lector de zip que no carga el archivo entero y la
 conversión a conversaciones con `addImportedConversation` de `conversations.ts`); ventana: `ui/sidebar/ImportDialog.tsx`.
-Faltan, para otra fase: Gemini CLI / Antigravity, Qwen Code y OpenCode, traer las sesiones del PC de un cliente y
+Faltan, para otra fase: retomar la sesión real de Hermes (`hermes --resume <id>`), Gemini CLI / Antigravity, Qwen Code y OpenCode, traer las sesiones del PC de un cliente y
 Órbita.
 
 ### Eliminar un proyecto

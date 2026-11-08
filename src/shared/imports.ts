@@ -3,19 +3,20 @@
 // son los tipos que comparten el motor y la interfaz.
 
 /** De dónde viene lo importado. */
-export type ImportKind = 'claude-code' | 'codex' | 'chatgpt' | 'claude-ai'
+export type ImportKind = 'claude-code' | 'codex' | 'hermes' | 'chatgpt' | 'claude-ai'
 
 /** Nombre que se enseña de cada origen (es una marca: no se traduce). */
 export const IMPORT_LABEL: Record<ImportKind, string> = {
   'claude-code': 'Claude Code',
   codex: 'Codex',
+  hermes: 'Hermes',
   chatgpt: 'ChatGPT',
   'claude-ai': 'Claude.ai'
 }
 
 /** Una sesión encontrada en este equipo. */
 export interface ImportSession {
-  /** Id para importarla («claude-code:<sessionId>» o «codex:<threadId>»). */
+  /** Id para importarla («claude-code:<sessionId>», «codex:<threadId>» o «hermes:<sesión>»). */
   id: string
   title: string
   /** Última actividad. */
@@ -26,6 +27,7 @@ export interface ImportSession {
 
 /** Una carpeta en la que se trabajó con esa app: pasa a ser un proyecto de kywai con esa carpeta. */
 export interface ImportFolder {
+  /** Carpeta de trabajo ('' = sin carpeta: conversaciones de Hermes por Telegram, Discord…, van a un proyecto «Hermes»). */
   cwd: string
   /** Nombre de la carpeta (el del proyecto). */
   name: string

@@ -6,15 +6,15 @@ import { inflateRawSync } from 'node:zlib'
 import type { AgentConfig, ChatMessage, ProviderKind } from '@shared/types'
 import { IMPORT_LABEL, type ImportFolder, type ImportKind, type ImportResult, type ImportScan, type ImportSession, type ImportSource } from '@shared/imports'
 import { tr } from '@shared/i18n'
-import type { AgentSession } from './agentSessions'
+import { supportsResume, type AgentSession } from './agentSessions'
 import { addImportedConversation, hasConversation } from './conversations'
 import * as store from './projects'
 
 /**
  * Importar conversaciones de otras apps, para no perder lo que el usuario ya tiene al pasarse a kywai:
  *
- * - **En este equipo** (el servidor): las sesiones de Claude Code (~/.claude/projects/<carpeta>/<id>.jsonl) y de
- *   Codex (~/.codex/sessions/AAAA/MM/DD/rollout-*.jsonl). Cada carpeta donde se trabajó pasa a ser un proyecto de
+ * - **En este equipo** (el servidor): las sesiones de Claude Code (~/.claude/projects/<carpeta>/<id>.jsonl), de
+ *   Codex (~/.codex/sessions/AAAA/MM/DD/rollout-*.jsonl) y de Hermes / Hermes Desktop (~/.hermes/state.db, solo leer). Cada carpeta donde se trabajó pasa a ser un proyecto de
  *   kywai con esa carpeta (o el que ya trabaja en ella) y cada sesión, una conversación retomable: lleva la sesión
  *   del programa, así que al seguirla el agente vuelve con `--resume` / `exec resume` a su sesión real.
  * - **Desde un archivo**: la exportación de ChatGPT (zip con conversations.json e imágenes) y la de Claude.ai (zip
@@ -498,9 +498,12 @@ export class ZipReader {
 // ---------- Buscar en este equipo ----------
 
 interface LocalFile {
-  kind: 'claude-code' | 'codex'
+  kind: 'claude-code' | 'codex' | 'hermes'
+  /** El .jsonl de la sesión (Claude Code, Codex) o la base state.db (Hermes). */
   file: string
   mtime: number
+  /** Hermes: las sesiones de la base que forman esta conversación (la primera y sus continuaciones al compactar). */
+  sessionIds?: string[]
 }
 
 /** Ids de sesión → archivo, de la última búsqueda (importar no vuelve a recorrer el disco entero). */
@@ -589,6 +592,168 @@ function parseLocal(f: LocalFile, text: string): ParsedConversation {
   return f.kind === 'claude-code' ? parseClaudeCode(text, basename(f.file, '.jsonl'), f.mtime) : parseCodex(text, f.mtime)
 }
 
+// ---------- Hermes (también Hermes Desktop: usan la misma base) ----------
+
+interface SqliteDb {
+  prepare(sql: string): { all(...params: unknown[]): unknown[] }
+  close(): void
+}
+
+/** Abre una base SQLite solo para leer con el SQLite que trae Node (Electron 44 → Node 24), sin dependencias. */
+function openSqlite(file: string): SqliteDb | null {
+  const get = (process as unknown as { getBuiltinModule?: (id: string) => unknown }).getBuiltinModule
+  const mod = get?.('node:sqlite') as { DatabaseSync: new (path: string, opts?: { readOnly?: boolean }) => SqliteDb } | undefined
+  if (!mod) return null
+  return new mod.DatabaseSync(file, { readOnly: true })
+}
+
+/** Dónde guarda Hermes sus sesiones: $HERMES_HOME o ~/.hermes (en Windows, %LOCALAPPDATA%\hermes). */
+function hermesRoots(): string[] {
+  const env = process.env.HERMES_HOME
+  if (env && env.trim()) return [env]
+  const roots = [join(home, '.hermes')]
+  if (process.platform === 'win32' && process.env.LOCALAPPDATA) roots.push(join(process.env.LOCALAPPDATA, 'hermes'))
+  return roots
+}
+
+/** state.db del perfil por defecto y de cada perfil (profiles/<nombre>/state.db). */
+function hermesDbs(): { file: string; profile: string }[] {
+  const out: { file: string; profile: string }[] = []
+  for (const root of hermesRoots()) {
+    if (existsSync(join(root, 'state.db'))) out.push({ file: join(root, 'state.db'), profile: '' })
+    try {
+      for (const name of readdirSync(join(root, 'profiles'))) {
+        const file = join(root, 'profiles', name, 'state.db')
+        if (existsSync(file)) out.push({ file, profile: name })
+      }
+    } catch {
+      /* sin perfiles */
+    }
+  }
+  return out
+}
+
+/**
+ * Las conversaciones que kywai le encarga a Hermes (planificar, trabajar, verificar, responder) también acaban en su
+ * base; ya están en los chats de kywai, así que no se importan. Sus encargos empiezan siempre así (orchestrator.ts).
+ */
+export const KYWAI_PROMPT_RE = /^Eres [^\n]{1,80}?(el coordinador|parte de un equipo de agentes)/
+
+interface HermesSessionRow {
+  id: string
+  source: string
+  title: string
+  cwd: string
+  started: number
+  ended: number
+  parent: string
+  endReason: string
+}
+
+const cols = (db: SqliteDb, table: string): Set<string> => new Set((db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name))
+
+/**
+ * Las conversaciones de una base de Hermes. Al compactar una conversación larga, Hermes la sigue en una sesión
+ * nueva con parent_session_id: se juntan en una sola. Las delegaciones (sub-agentes) no se siguen.
+ */
+export function readHermesDb(file: string, withMessages: boolean, only?: Set<string>): ParsedConversation[] {
+  const db = openSqlite(file)
+  if (!db) return []
+  try {
+    const sc = cols(db, 'sessions')
+    const mc = cols(db, 'messages')
+    const pick = (c: string, as = c): string => (sc.has(c) ? `${c} AS ${as}` : `NULL AS ${as}`)
+    const rows = (db
+      .prepare(`SELECT id, ${pick('source')}, ${pick('title')}, ${pick('cwd')}, ${pick('started_at', 'started')}, ${pick('ended_at', 'ended')}, ${pick('parent_session_id', 'parent')}, ${pick('end_reason', 'endReason')} FROM sessions`)
+      .all() as Record<string, unknown>[]).map(
+      (r): HermesSessionRow => ({
+        id: str(r.id),
+        source: str(r.source),
+        title: str(r.title),
+        cwd: str(r.cwd),
+        started: time(r.started, 0),
+        ended: time(r.ended, 0),
+        parent: str(r.parent),
+        endReason: str(r.endReason)
+      })
+    )
+    const byId = new Map(rows.map((r) => [r.id, r]))
+    // Solo se sigue la continuación de una sesión que acabó por compactarse.
+    const continues = (r: HermesSessionRow): boolean => !!r.parent && byId.has(r.parent) && /compress|compact|split/i.test(byId.get(r.parent)!.endReason)
+    const next = new Map<string, HermesSessionRow>()
+    for (const r of rows) if (continues(r) && !next.has(r.parent)) next.set(r.parent, r)
+    // El resumen que Hermes mete al compactar no es parte de la conversación.
+    const active = mc.has('_compressed_summary') ? ' AND (_compressed_summary IS NULL OR _compressed_summary = 0)' : ''
+    const hidden = new Set(sc.has('hidden') ? (db.prepare('SELECT id FROM sessions WHERE hidden = 1').all() as { id: string }[]).map((r) => r.id) : [])
+    const internal = resolve(store.projectsRoot()) + sep
+    const msgSql = `SELECT role, content, ${mc.has('tool_calls') ? 'tool_calls' : 'NULL AS tool_calls'}, timestamp FROM messages WHERE session_id = ?${active} ORDER BY timestamp, id`
+    const firstSql = `SELECT content FROM messages WHERE session_id = ? AND role = 'user'${active} ORDER BY timestamp, id LIMIT 1`
+    const out: ParsedConversation[] = []
+    for (const root of rows) {
+      if (continues(root)) continue
+      if (only && !only.has(root.id)) continue
+      // Ocultas en Hermes, o trabajo de kywai en la carpeta interna de uno de sus proyectos.
+      if (hidden.has(root.id) || (root.cwd && resolve(root.cwd).startsWith(internal))) continue
+      const chain = [root]
+      while (next.has(chain[chain.length - 1].id) && chain.length < 200) chain.push(next.get(chain[chain.length - 1].id)!)
+      const first = str((db.prepare(firstSql).all(root.id)[0] as { content?: unknown } | undefined)?.content)
+      if (!first.trim() || KYWAI_PROMPT_RE.test(first.trimStart())) continue
+      const turns: Turn[] = []
+      if (withMessages) {
+        for (const s of chain) {
+          for (const m of db.prepare(msgSql).all(s.id) as Record<string, unknown>[]) {
+            const at = time(m.timestamp, s.started)
+            if (m.role === 'user') {
+              pushTurn(turns, { role: 'user', text: cleanUserText(str(m.content)), at })
+            } else if (m.role === 'assistant') {
+              const tools: Record<string, number> = {}
+              try {
+                const calls = JSON.parse(str(m.tool_calls) || '[]') as { function?: { name?: unknown }; name?: unknown }[]
+                for (const c of Array.isArray(calls) ? calls : []) {
+                  const name = str(c?.function?.name) || str(c?.name)
+                  if (name) tools[name] = (tools[name] ?? 0) + 1
+                }
+              } catch {
+                /* llamadas ilegibles: solo se pierde el resumen */
+              }
+              pushTurn(turns, { role: 'assistant', text: str(m.content).trim(), at, tools: Object.keys(tools).length ? tools : undefined })
+            }
+          }
+        }
+      } else {
+        turns.push({ role: 'user', text: first, at: root.started })
+      }
+      const last = chain[chain.length - 1]
+      out.push({
+        sourceId: root.id,
+        title: root.title.slice(0, TITLE_MAX) || firstUserTitle(turns.length ? turns : [{ role: 'user', text: first, at: 0 }]),
+        createdAt: root.started || Date.now(),
+        updatedAt: Math.max(last.ended, last.started, turns[turns.length - 1]?.at ?? 0) || root.started || Date.now(),
+        cwd: chain.map((s) => s.cwd).find(Boolean) || undefined,
+        turns
+      })
+    }
+    return out
+  } finally {
+    db.close()
+  }
+}
+
+function listHermes(): { f: LocalFile; conv: ParsedConversation }[] {
+  const out: { f: LocalFile; conv: ParsedConversation }[] = []
+  for (const { file } of hermesDbs()) {
+    let convs: ParsedConversation[] = []
+    try {
+      convs = readHermesDb(file, false)
+    } catch (e) {
+      console.warn('[cowork] no se pudo leer la base de Hermes', (e as Error).message)
+      continue
+    }
+    for (const conv of convs) out.push({ f: { kind: 'hermes', file, mtime: conv.updatedAt, sessionIds: [conv.sourceId] }, conv })
+  }
+  return out
+}
+
 const sameDir = (a: string, b: string): boolean => {
   const norm = (p: string): string => resolve(p).replace(/[\\/]+$/, '')
   return process.platform === 'win32' || process.platform === 'darwin' ? norm(a).toLowerCase() === norm(b).toLowerCase() : norm(a) === norm(b)
@@ -599,40 +764,44 @@ function projectForDir(cwd: string): { id: string; name: string } | undefined {
   return p ? { id: p.id, name: p.name } : undefined
 }
 
-/** Lo que hay en este equipo de Claude Code y Codex, agrupado por carpeta (las más recientes primero). */
+/** Lo que hay en este equipo de Claude Code, Codex y Hermes, agrupado por carpeta (las más recientes primero). */
 export function scanImports(): ImportScan {
   const ix = loadIndex()
   lastScan.clear()
   const sources: ImportSource[] = []
-  for (const [kind, files, where] of [
-    ['claude-code', listClaudeFiles(), claudeRoot()],
-    ['codex', listCodexFiles(), codexRoot()]
+  const fromFiles = (files: LocalFile[]): { f: LocalFile; conv: ParsedConversation }[] =>
+    files.flatMap((f) => {
+      try {
+        return [{ f, conv: parseLocal(f, readHead(f.file)) }]
+      } catch {
+        return []
+      }
+    })
+  const hermesWhere = hermesRoots()[0] ?? join(home, '.hermes')
+  for (const [kind, found, where] of [
+    ['claude-code', fromFiles(listClaudeFiles()), claudeRoot()],
+    ['codex', fromFiles(listCodexFiles()), codexRoot()],
+    ['hermes', listHermes(), hermesWhere]
   ] as const) {
     const byDir = new Map<string, ImportFolder>()
-    for (const f of files) {
-      let head = ''
-      try {
-        head = readHead(f.file)
-      } catch {
-        continue
-      }
-      const conv = parseLocal(f, head)
-      // Sin nada que el usuario escribiera: una sesión vacía o solo de arranque.
-      if (!conv.sourceId || !conv.cwd || !conv.turns.some((t) => t.role === 'user')) continue
+    for (const { f, conv } of found) {
+      // Sin nada que el usuario escribiera: una sesión vacía o solo de arranque. Hermes puede no tener carpeta.
+      if (!conv.sourceId || (!conv.cwd && kind !== 'hermes') || !conv.turns.some((t) => t.role === 'user')) continue
       const id = `${kind}:${conv.sourceId}`
       lastScan.set(id, f)
-      let folder = byDir.get(conv.cwd)
+      const dir = conv.cwd ?? ''
+      let folder = byDir.get(dir)
       if (!folder) {
-        const proj = projectForDir(conv.cwd)
+        const proj = dir ? projectForDir(dir) : undefined
         folder = {
-          cwd: conv.cwd,
-          name: basename(conv.cwd) || conv.cwd,
-          exists: existsSync(conv.cwd),
+          cwd: dir,
+          name: dir ? basename(dir) || dir : tr('Sin carpeta'),
+          exists: dir ? existsSync(dir) : true,
           projectId: proj?.id,
           projectName: proj?.name,
           sessions: []
         }
-        byDir.set(conv.cwd, folder)
+        byDir.set(dir, folder)
       }
       const s: ImportSession = { id, title: conv.title || tr('Sin título'), updatedAt: Math.max(f.mtime, conv.updatedAt), imported: alreadyImported(ix, id) }
       folder.sessions.push(s)
@@ -727,15 +896,19 @@ function importLocalOne(ctx: Ctx, key: string, f: LocalFile): void {
     ctx.result.skipped++
     return
   }
-  const conv = parseLocal(f, readFileSync(f.file, 'utf8'))
-  if (!conv.cwd || !conv.turns.length) return
-  const projectId = projectForCwd(ctx, conv.cwd)
-  const provider: ProviderKind = f.kind === 'claude-code' ? 'claude' : 'codex'
+  const conv =
+    f.kind === 'hermes'
+      ? readHermesDb(f.file, true, new Set(f.sessionIds ?? []))[0]
+      : parseLocal(f, readFileSync(f.file, 'utf8'))
+  if (!conv || !conv.turns.length || (!conv.cwd && f.kind !== 'hermes')) return
+  // Sin carpeta, o en la carpeta personal entera (kywai no da acceso a toda ella): a un proyecto con el nombre de la app.
+  const projectId = conv.cwd && !sameDir(conv.cwd, home) ? projectForCwd(ctx, conv.cwd) : projectFor(ctx, f.kind, IMPORT_LABEL[f.kind])
+  const provider: ProviderKind = f.kind === 'claude-code' ? 'claude' : f.kind === 'codex' ? 'codex' : 'hermes'
   const agent = agentFor(provider, ctx.agents)
   const label = IMPORT_LABEL[f.kind]
   // La sesión real solo se puede retomar desde su misma carpeta y con un agente de kywai de ese programa.
   const sessions: Record<string, AgentSession> = {}
-  if (agent && sameDir(store.workRoot(projectId), conv.cwd)) {
+  if (agent && conv.cwd && supportsResume(provider) && sameDir(store.workRoot(projectId), conv.cwd)) {
     sessions[agent.id] = { sessionId: conv.sourceId, provider, cwd: store.workRoot(projectId), taskTitle: conv.title, at: conv.updatedAt, imported: true }
     ctx.result.resumable++
   }
