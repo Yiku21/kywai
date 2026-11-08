@@ -9,5 +9,6 @@ Antes de cambiar nada, lee [docs/RELEVO.md](docs/RELEVO.md) (reglas, configuraci
 - Todo texto visible lleva traducción en `src/shared/i18n-{en,pt,fr,zh}.ts`.
 - Nunca escribas el código de acceso, claves, llaves de dispositivo ni la IP del servidor.
 - En el repositorio público, usa atribuciones genéricas y omite nombres personales, enlaces o identificadores de chats y campos como `Claude-Session` en código, commits y descripciones de PR. Conserva los créditos de autoría sin enlaces a conversaciones.
+- Antes de publicar en el público, comprueba los mensajes de los commits nuevos y elimina cualquier enlace de sesión añadido automáticamente por el CLI. No publiques ramas derivadas de un historial anterior a una limpieza: trae el `master` público actual y vuelve a aplicar los cambios mediante parches, para no reintroducir referencias antiguas.
 - No renombres lo interno «AI Cowork» (carpeta de datos, appId, paquete Android): ver RELEVO §1.
 - Nada de JSON ni comillas en los argumentos de los CLIs de los agentes (`src/main/agents/spawn.ts`).
