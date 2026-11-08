@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { UsageCall, UsageRun } from './types'
-import { agentQuality, baseAgentId, qualityLine, type AgentQuality } from './agentQuality'
+import { agentQuality, poorRecordReason, baseAgentId, qualityLine, type AgentQuality } from './agentQuality'
 
 let clock = 1_000_000
 const task = (agentId: string, taskId: string, ok: boolean, extra: Partial<UsageCall> = {}): UsageCall => ({
@@ -140,5 +140,16 @@ describe('calidad por agente', () => {
     )
     expect(qualityLine({ ...q, tasks: 4 })).toBeNull()
     expect(qualityLine(null)).toBeNull()
+  })
+})
+
+describe('mala racha', () => {
+  it('avisa con 3 tareas si casi todas suspendieron la revisión o fallaron', () => {
+    const bad = agentQuality([run([task('codex', 'a1', true), verify('a1', 'fail'), task('codex', 'a2', false), task('codex', 'a3', true), verify('a3', 'fail')])])[0]
+    expect(poorRecordReason(bad)).toBe('3 de 3 tareas sin pasar la revisión o fallidas en 14 días')
+    const good = agentQuality([run([task('claude', 'b1', true), verify('b1', 'pass'), task('claude', 'b2', true), task('claude', 'b3', false)])])[0]
+    expect(poorRecordReason(good)).toBeNull()
+    expect(poorRecordReason(agentQuality([run([task('codex', 'c1', false), task('codex', 'c2', false)])])[0])).toBeNull()
+    expect(poorRecordReason(null)).toBeNull()
   })
 })

@@ -1528,6 +1528,7 @@ export const zh: Record<string, string> = {
   "No devolvió un plan válido (su modelo puede ser demasiado pequeño)": "没有返回有效的计划（它的模型可能太小）",
   "{reply}\n\n(No hay agentes disponibles para ejecutar las tareas propuestas.)": "{reply}\n\n（没有可用的代理来执行所提议的任务。）",
   "{v1}\n\n*Ajustes de kywai al plan:* {v2}.": "{v1}\n\n*kywai 对计划的调整：* {v2}。",
+  "«{title}» la hace {name} ({agent} no pasó la revisión o falló en {bad} de sus {tasks} últimas tareas)": "「{title}」由 {name} 完成（{agent} 在最近 {tasks} 个任务中有 {bad} 个未通过审查或失败）",
   "«{title}» la hace {name} (el modelo local es lento para lo difícil)": "「{title}」由 {name} 完成（本地模型处理困难工作较慢）",
   "Depende de una tarea fallida": "依赖一个失败的任务",
   "{name} no está disponible y no hay otro agente libre": "{name} 不可用，也没有其他空闲的代理",
