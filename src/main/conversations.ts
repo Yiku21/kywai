@@ -605,6 +605,39 @@ export function addImportedConversation(projectId: string, input: ImportedConver
   return conv.id
 }
 
+/**
+ * Quita una conversación importada para volver a importarla ordenada (reimportar desde ⚙ → «Importar de otras
+ * apps…»). Su archivo va a conversaciones/borradas/. Si era la abierta, el proyecto queda con el chat vacío y
+ * devuelve true (hay que avisar a la ventana).
+ */
+export function dropImportedConversation(projectId: string, conversationId: string): boolean {
+  const st = load(projectId)
+  if (!isValidConversationId(conversationId)) throw new Error('Conversación no válida')
+  const wasOpen = st.conversation?.id === conversationId
+  if (wasOpen) {
+    st.messages = []
+    st.tasks = st.tasks.filter((t) => !FINISHED.has(t.status))
+    st.conversation = undefined
+    replaceSessions(projectId, {})
+  }
+  const trash = join(folder(st), 'borradas')
+  try {
+    mkdirSync(trash, { recursive: true })
+    renameSync(fileOf(st, conversationId), join(trash, `${conversationId}.json`))
+  } catch {
+    /* no tenía archivo (la abierta sin guardar): basta con quitarla de la lista */
+  }
+  st.conversations = (st.conversations ?? []).filter((c) => c.id !== conversationId)
+  scheduleSave(projectId)
+  return wasOpen
+}
+
+/** Mensajes de una conversación (la abierta o una guardada), para saber si alguien siguió escribiendo en ella. */
+export function conversationMessages(projectId: string, conversationId: string): ChatMessage[] {
+  const st = load(projectId)
+  return st.conversation?.id === conversationId ? st.messages : readConversation(st, conversationId).messages
+}
+
 /** La conversación sigue existiendo en el proyecto (guardada o abierta): sirve para no duplicar al importar otra vez. */
 export function hasConversation(projectId: string, conversationId: string): boolean {
   if (!isValidProjectId(projectId) || !isValidConversationId(conversationId)) return false

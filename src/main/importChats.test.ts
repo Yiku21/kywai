@@ -9,7 +9,7 @@ import * as store from './projects'
 import { exportSessions, initAgentSessions, lastSession } from './agentSessions'
 import { listConversations, openConversation } from './conversations'
 import { DatabaseSync } from 'node:sqlite'
-import { importArchive, importLocal, initImports, parseChatGpt, parseClaudeAi, parseClaudeCode, parseCodex, readHermesDb, scanImports, ZipReader } from './importChats'
+import { guessClaudeProject, importArchive, importLocal, initImports, parseChatGpt, parseClaudeAi, parseClaudeCode, parseCodex, previewArchive, readHermesDb, scanImports, ZipReader } from './importChats'
 
 let root = ''
 let home = ''
@@ -84,6 +84,78 @@ const claudeProjects = [
   { uuid: 'starter', name: 'How to use Claude', is_starter_project: true, docs: [] }
 ]
 
+
+// Como la exportación real de Claude.ai: sin proyecto en las conversaciones, con ramas (respuesta regenerada),
+// adjuntos con su texto, archivos solo con el nombre (repetidos) y archivos que crea el asistente.
+const ROOT = '00000000-0000-4000-8000-000000000000'
+const realProjects = [
+  { uuid: 'p-hl', name: 'Homelab', prompt_template: '', docs: [{ filename: 'mapa_de_red.md', content: '# Red' }] },
+  { uuid: 'p-dgx', name: 'DGX AI', prompt_template: '', docs: [] },
+  { uuid: 'p-inv', name: 'Inventario IT', prompt_template: 'Lleva el inventario', docs: [] }
+]
+const realConvs = [
+  {
+    uuid: 'c-hl',
+    name: 'Montar el proxy',
+    summary: 'Configurar el Homelab con un proxy inverso',
+    created_at: '2026-10-01T10:00:00Z',
+    updated_at: '2026-10-01T10:02:00Z',
+    chat_messages: [
+      {
+        uuid: 'm1',
+        parent_message_uuid: ROOT,
+        sender: 'human',
+        text: 'Monta el proxy',
+        content: [{ type: 'text', text: 'Monta el proxy' }],
+        created_at: '2026-10-01T10:00:00Z',
+        attachments: [{ file_name: 'notas.txt', file_size: 7, file_type: 'txt', extracted_content: 'puertos' }],
+        files: [
+          { file_uuid: 'f1', file_name: 'foto.png' },
+          { file_uuid: 'f1', file_name: 'foto.png' }
+        ]
+      },
+      { uuid: 'm2', parent_message_uuid: 'm1', sender: 'assistant', text: '', content: [{ type: 'text', text: 'Respuesta descartada' }], created_at: '2026-10-01T10:01:00Z', attachments: [], files: [] },
+      {
+        uuid: 'm3',
+        parent_message_uuid: 'm1',
+        sender: 'assistant',
+        text: '',
+        content: [
+          { type: 'thinking', thinking: 'pensando' },
+          { type: 'text', text: 'Hecho.' },
+          { type: 'tool_use', name: 'create_file', input: { path: '/mnt/user-data/outputs/proxy.md', file_text: '# Proxy\nviejo', description: '' } },
+          { type: 'tool_result', name: 'create_file', content: [] },
+          { type: 'tool_use', name: 'str_replace', input: { path: '/mnt/user-data/outputs/proxy.md', old_str: 'viejo', new_str: 'nuevo', description: '' } },
+          { type: 'tool_use', name: 'bash_tool', input: { command: 'ls' } },
+          { type: 'tool_use', name: 'present_files', input: { filepaths: ['/mnt/user-data/outputs/proxy.md'] } }
+        ],
+        created_at: '2026-10-01T10:02:00Z',
+        attachments: [],
+        files: [{ file_uuid: 'f2', file_name: 'proxy.md' }]
+      }
+    ]
+  },
+  {
+    uuid: 'c-docs',
+    name: 'Revisar la red',
+    summary: '',
+    created_at: '2026-10-02T10:00:00Z',
+    updated_at: '2026-10-02T10:01:00Z',
+    chat_messages: [
+      { uuid: 'd1', parent_message_uuid: ROOT, sender: 'human', text: 'Mira el mapa_de_red.md', content: [{ type: 'text', text: 'Mira el mapa_de_red.md' }], created_at: '2026-10-02T10:00:00Z', attachments: [], files: [] },
+      { uuid: 'd2', parent_message_uuid: 'd1', sender: 'assistant', text: '', content: [{ type: 'text', text: 'Visto.' }], created_at: '2026-10-02T10:01:00Z', attachments: [], files: [] }
+    ]
+  },
+  {
+    uuid: 'c-loose',
+    name: 'Receta de pan',
+    summary: '',
+    created_at: '2026-10-03T10:00:00Z',
+    updated_at: '2026-10-03T10:00:00Z',
+    chat_messages: [{ uuid: 'l1', parent_message_uuid: ROOT, sender: 'human', text: '¿Pan?', content: [{ type: 'text', text: '¿Pan?' }], created_at: '2026-10-03T10:00:00Z', attachments: [], files: [] }]
+  }
+]
+
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'kywai-importar-test-'))
   home = join(root, 'home')
@@ -147,10 +219,35 @@ describe('leer cada app', () => {
 
   it('Claude.ai: mensajes, adjuntos nombrados y proyectos (sin el de ejemplo)', () => {
     const r = parseClaudeAi(claudeConvs, claudeProjects)
-    expect(r.conversations[0].turns.map((t) => t.text)).toEqual(['Ayúdame con el índice\n\n📎 notas.txt', 'Propongo 10 capítulos.'])
+    expect(r.conversations[0].turns.map((t) => t.text)).toEqual(['Ayúdame con el índice', 'Propongo 10 capítulos.'])
+    expect(r.conversations[0].turns[0].files).toEqual([{ name: 'notas.txt', content: '…' }])
     expect(r.conversations[0].sourceProject).toBe('proj-1')
     expect(r.conversations[1].title).toBe('Suelta')
     expect(r.projects).toEqual([{ uuid: 'proj-1', name: 'Mi libro', instructions: 'Escribe en tono cercano', docs: [{ name: 'estilo.md', content: '# Estilo' }] }])
+  })
+
+
+  it('Claude.ai real: la rama que quedó, sin herramientas, archivos sin repetir y lo que creó el asistente', () => {
+    const { conversations } = parseClaudeAi(realConvs, realProjects)
+    const c = conversations[0]
+    expect(c.summary).toBe('Configurar el Homelab con un proxy inverso')
+    expect(c.turns.map((t) => [t.role, t.text])).toEqual([
+      ['user', 'Monta el proxy'],
+      ['assistant', 'Hecho.']
+    ])
+    expect(c.turns[0].files).toEqual([{ name: 'notas.txt', content: 'puertos' }, { name: 'foto.png', content: undefined }])
+    expect(c.turns[1].files).toEqual([{ name: 'proxy.md', content: '# Proxy\nnuevo' }])
+  })
+
+  it('Claude.ai: deduce el proyecto por el nombre o por sus documentos; si no, suelta', () => {
+    const parsed = parseClaudeAi(realConvs, realProjects)
+    const [hl, docs, loose] = parsed.conversations
+    expect(guessClaudeProject(hl, parsed.projects)).toEqual({ uuid: 'p-hl', reason: 'name' })
+    expect(guessClaudeProject(docs, parsed.projects)).toEqual({ uuid: 'p-hl', reason: 'docs' })
+    expect(guessClaudeProject(loose, parsed.projects)).toBeUndefined()
+    // Dos proyectos empatados: no se adivina.
+    const both = { ...hl, title: 'Homelab e Inventario IT', summary: '' }
+    expect(guessClaudeProject(both, parsed.projects)).toBeUndefined()
   })
 
   it('lee zips comprimidos y sin comprimir', () => {
@@ -184,7 +281,8 @@ describe('importar', () => {
     const cc = convs.find((c) => c.importedFrom === 'Claude Code')!
     openConversation(projectId, cc.id)
     const st = store.getProject(projectId)
-    expect(st.messages.map((m) => m.text)).toEqual(['El login falla con tildes', 'Miro el código.\n\nArreglado.\n\n_🔧 Read · Edit ×2_'])
+    // Sin la línea de herramientas al final de la respuesta: es ruido para leerla.
+    expect(st.messages.map((m) => m.text)).toEqual(['El login falla con tildes', 'Miro el código.\n\nArreglado.'])
     expect(st.messages[1].author).toEqual({ type: 'agent', agentId: 'claude' })
     expect(exportSessions(projectId).claude.sessionId).toBe(SID)
     // Se retoma aunque tenga más de 14 días.
@@ -264,6 +362,69 @@ describe('importar', () => {
     expect(listConversations(book.id).some((c) => c.title === 'Plan del libro')).toBe(true)
     expect(store.listProjects().some((p) => p.name === 'Claude.ai')).toBe(true)
     expect(store.listProjects().some((p) => p.name === 'How to use Claude')).toBe(false)
+  })
+
+
+  it('Claude.ai: cada conversación a su proyecto, sin proyectos vacíos, con sus archivos y revisable antes', () => {
+    const file = join(root, 'claude-real.zip')
+    writeFileSync(file, zipSync({ 'conversations.json': strToU8(JSON.stringify(realConvs)), 'projects/p.json': strToU8(JSON.stringify(realProjects)) }))
+    const preview = previewArchive(file)
+    expect(preview.projects.map((p) => p.name)).toEqual(['Homelab', 'DGX AI', 'Inventario IT'])
+    expect(preview.conversations.map((c) => [c.id, c.project, c.reason ?? ''])).toEqual([
+      ['c-loose', '', ''],
+      ['c-docs', 'p-hl', 'docs'],
+      ['c-hl', 'p-hl', 'name']
+    ])
+    // El usuario pone la suelta en Inventario IT.
+    const r = importArchive(file, agents, { 'c-loose': 'p-inv' })
+    expect(r).toMatchObject({ conversations: 3, projectsCreated: 2 })
+    const names = store.listProjects().map((p) => p.name)
+    expect(names).toContain('Homelab')
+    expect(names).toContain('Inventario IT')
+    // Sin conversaciones, instrucciones ni documentos no se crea; y no hace falta el proyecto «Claude.ai».
+    expect(names).not.toContain('DGX AI')
+    expect(names).not.toContain('Claude.ai')
+    const hl = store.listProjects().find((p) => p.name === 'Homelab')!
+    const convs = listConversations(hl.id).filter((c) => c.messageCount > 0)
+    expect(convs.map((c) => c.title).sort()).toEqual(['Montar el proxy', 'Revisar la red'])
+    openConversation(hl.id, convs.find((c) => c.title === 'Montar el proxy')!.id)
+    const st = store.getProject(hl.id)
+    expect(st.messages[0].text).toBe('Monta el proxy\n\n_📎 foto.png_')
+    expect(st.messages[0].attachments?.map((a) => a.name)).toEqual(['notas.txt'])
+    const made = st.messages[1].attachments![0]
+    expect(made).toMatchObject({ name: 'proxy.md', mime: 'text/markdown' })
+    expect(readFileSync(join(st.project.dir, made.relPath), 'utf8')).toBe('# Proxy\nnuevo')
+    expect(st.messages[1].text).toBe('Hecho.')
+  })
+
+  it('reimportar ordena lo importado antes sin duplicar, respeta lo que siguió el usuario y quita lo vacío', () => {
+    const file = join(root, 'claude-real.zip')
+    writeFileSync(file, zipSync({ 'conversations.json': strToU8(JSON.stringify(realConvs)), 'projects/p.json': strToU8(JSON.stringify(realProjects)) }))
+    // Como la importación de antes: todo suelto en «Claude.ai», sin versión, y un proyecto vacío que creó.
+    importArchive(file, agents, { 'c-hl': '', 'c-docs': '', 'c-loose': '' })
+    const ixFile = join(root, 'ws', 'importados.json')
+    const ix = JSON.parse(readFileSync(ixFile, 'utf8'))
+    const dgx = store.createProject('DGX AI')
+    ix.projects['claude-ai-project:p-dgx'] = dgx.id
+    for (const v of Object.values(ix.conversations) as { v?: number }[]) delete v.v
+    writeFileSync(ixFile, JSON.stringify(ix))
+    const old = store.listProjects().find((p) => p.name === 'Claude.ai')!
+    // El usuario siguió escribiendo en una (la deja abierta).
+    const docs = listConversations(old.id).find((c) => c.title === 'Revisar la red')!
+    openConversation(old.id, docs.id)
+    store.getProject(old.id).messages.push({ id: 'm-nuevo', projectId: old.id, author: { type: 'user' }, text: 'Y ahora el DNS', createdAt: Date.now() + 1000 })
+
+    const r = importArchive(file, agents, { 'c-loose': 'p-inv' })
+    expect(r).toMatchObject({ conversations: 0, reordered: 3 })
+    expect(r.emptyProjectIds?.sort()).toEqual([dgx.id, old.id].sort())
+    const hl = store.listProjects().find((p) => p.name === 'Homelab')!
+    const hlConvs = listConversations(hl.id).filter((c) => c.messageCount > 0)
+    expect(hlConvs.map((c) => c.title).sort()).toEqual(['Montar el proxy', 'Revisar la red'])
+    // La que siguió el usuario se movió con su mensaje nuevo (no se reescribió).
+    expect(hlConvs.find((c) => c.title === 'Revisar la red')!.messageCount).toBe(3)
+    expect(listConversations(old.id).filter((c) => c.messageCount > 0)).toEqual([])
+    // Otra vez: nada que hacer.
+    expect(importArchive(file, agents, { 'c-loose': 'p-inv' })).toMatchObject({ conversations: 0, skipped: 3 })
   })
 
   it('un archivo que no es una exportación se rechaza con un motivo claro', () => {
