@@ -2595,4 +2595,12 @@ export const fr: Record<string, string> = {
   "¡Je, je! Ya estás despierto.": "Héhé ! Te voilà réveillé.",
   "¡Hola, vecino!": "Salut, voisin !",
   "¡Buenas! ¿Todo bien?": "Salut ! Tout va bien ?",
+  "¿Bailamos?": "On danse ?",
+  "¡Sigue el ritmo!": "Suis le rythme !",
+  "¡Haz como yo!": "Fais comme moi !",
+  "¡Casi me sale!": "J’y suis presque !",
+  "¡Choca esa antena!": "Tape-m’en l’antenne !",
+  "¡Equipo!": "L’équipe !",
+  "¡Ánimo, compañero!": "Courage, camarade !",
+  "¡Gracias por los ánimos!": "Merci pour les encouragements !",
 }

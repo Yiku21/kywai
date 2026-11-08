@@ -2595,4 +2595,12 @@ export const zh: Record<string, string> = {
   "¡Je, je! Ya estás despierto.": "嘿嘿！这下醒了吧。",
   "¡Hola, vecino!": "嗨，邻居！",
   "¡Buenas! ¿Todo bien?": "你好！一切都好吗？",
+  "¿Bailamos?": "跳支舞吗？",
+  "¡Sigue el ritmo!": "跟上节奏！",
+  "¡Haz como yo!": "跟我学！",
+  "¡Casi me sale!": "差点就学会了！",
+  "¡Choca esa antena!": "碰个天线！",
+  "¡Equipo!": "好搭档！",
+  "¡Ánimo, compañero!": "加油，伙伴！",
+  "¡Gracias por los ánimos!": "谢谢你的鼓励！",
 }
