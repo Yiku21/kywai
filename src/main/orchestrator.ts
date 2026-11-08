@@ -2658,6 +2658,9 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
 
   recordUsage(exec.quotaGroupId, res.usage.input + res.usage.output, 1)
   scheduleQuotaRefresh(exec.provider === 'codex')
+  // El agente ya está libre: su siguiente tarea (si no depende de esta) empieza ya, sin esperar a que acabe la
+  // verificación. Si comparte la carpeta, trabaja en una copia aparte y se integra al terminar (prepareWorkplace).
+  schedule()
 
   try {
     // En un mensaje directo la respuesta es la que es: «BLOQUEADA:» no significa nada especial.
