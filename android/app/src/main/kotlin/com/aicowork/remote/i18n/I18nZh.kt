@@ -923,4 +923,14 @@ private fun part7(m: HashMap<String, String>) {
     m["Marcar todo como visto"] = "全部标为已看"
     m["Visto"] = "已看"
     m["Avisos de que el equipo terminó una petición (salen en Resultados)."] = "团队完成请求的通知（显示在“结果”中）。"
+    // Lector: pasar de un archivo a otro, ver el código, copiar y abrir con otra app.
+    m["Ver {name}"] = "查看 {name}"
+    m["Copiar el contenido"] = "复制内容"
+    m["Copiado"] = "已复制"
+    m["Abrir con otra app"] = "用其他应用打开"
+    m["Ninguna app del móvil puede abrirlo"] = "手机上没有应用能打开它"
+    m["Vista previa"] = "预览"
+    m["Archivo anterior"] = "上一个文件"
+    m["{n} de {total}"] = "第 {n} 个，共 {total} 个"
+    m["Archivo siguiente"] = "下一个文件"
 }

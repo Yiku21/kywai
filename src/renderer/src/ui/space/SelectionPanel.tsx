@@ -400,6 +400,7 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const tasks = useData((d) => d.tasks)
   const mode = useCowork((st) => st.mode)
   const project = useCowork((st) => st.live.project)
+  const openPreview = useCowork((st) => st.openPreview)
   const lookup = useAgentLookup()
   const now = useNow(5000)
 
@@ -463,7 +464,7 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
                     disabled={!canOpen}
                     title={canOpen ? t('Abrir {name}', { name }) : f}
                     onClick={() => {
-                      if (api && project) api.openPath(project.id, f).catch(() => {})
+                      if (project) openPreview(files.map((x) => ({ projectId: project.id, relPath: x, name: basename(x) })), files.indexOf(f))
                     }}
                   >
                     <span className={s.fileIcon}>

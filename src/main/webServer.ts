@@ -64,7 +64,16 @@ const TYPES: Record<string, string> = {
   '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav',
   '.ogg': 'audio/ogg',
-  '.mp4': 'video/mp4'
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.m4v': 'video/mp4',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
+  '.opus': 'audio/ogg',
+  '.avif': 'image/avif',
+  '.bmp': 'image/bmp'
 }
 
 export function newWebToken(): string {
@@ -417,7 +426,7 @@ function serveStatic(res: ServerResponse, pathname: string, acceptEncoding?: str
 }
 
 /** Archivos de un proyecto (adjuntos, resultados, carpeta de trabajo). Se sirven aislados (sandbox). */
-function serveProjectFile(res: ServerResponse, pathname: string): void {
+function serveProjectFile(req: IncomingMessage, res: ServerResponse, pathname: string): void {
   const segments = pathname.slice('/api/file/'.length).split('/').filter(Boolean).map((s) => decodeURIComponent(s))
   const [projectId, ...rest] = segments
   if (!store.isValidProjectId(projectId) || !rest.length || rest.some((s) => s === '..' || s.includes('\\') || s.includes('\0'))) {
@@ -432,15 +441,34 @@ function serveProjectFile(res: ServerResponse, pathname: string): void {
   if (!abs) return send(res, 404, 'Not found')
   const st = statSync(abs)
   if (!st.isFile()) return send(res, 404, 'Not found')
-  res.writeHead(200, {
-    'Content-Type': TYPES[extname(abs).toLowerCase()] ?? 'application/octet-stream',
-    'Content-Length': st.size,
+  const ext = extname(abs).toLowerCase()
+  // Por partes (Range): los vídeos y audios del panel de vista previa se pueden adelantar.
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '')
+  let start = 0
+  let end = st.size - 1
+  let status = 200
+  if (range && st.size > 0 && (range[1] || range[2])) {
+    start = range[1] ? Number(range[1]) : Math.max(0, st.size - Number(range[2] || 0))
+    end = range[1] && range[2] ? Math.min(Number(range[2]), st.size - 1) : st.size - 1
+    if (start > end || start >= st.size) {
+      res.writeHead(416, { 'Content-Range': `bytes */${st.size}` })
+      return void res.end()
+    }
+    status = 206
+  }
+  res.writeHead(status, {
+    'Content-Type': TYPES[ext] ?? 'application/octet-stream',
+    'Content-Length': st.size === 0 ? 0 : end - start + 1,
+    'Accept-Ranges': 'bytes',
     'X-Content-Type-Options': 'nosniff',
-    // Un HTML creado por un agente no puede usar la sesión de kywai aunque se abra directamente.
-    'Content-Security-Policy': 'sandbox allow-scripts',
-    'Cache-Control': 'no-cache'
+    // Un HTML creado por un agente no puede usar la sesión de kywai aunque se abra directamente. Un PDF no ejecuta
+    // nada de la página y el visor de PDF del navegador no abre dentro de un sandbox.
+    ...(ext === '.pdf' ? {} : { 'Content-Security-Policy': 'sandbox allow-scripts' }),
+    'Cache-Control': 'no-cache',
+    ...(status === 206 ? { 'Content-Range': `bytes ${start}-${end}/${st.size}` } : {})
   })
-  createReadStream(abs).pipe(res)
+  if (st.size === 0) return void res.end()
+  createReadStream(abs, { start, end }).on('error', () => res.destroy()).pipe(res)
 }
 
 function openEvents(req: IncomingMessage, res: ServerResponse): void {
@@ -535,7 +563,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     }
     return
   }
-  if (path.startsWith('/api/file/') && req.method === 'GET') return serveProjectFile(res, path)
+  if (path.startsWith('/api/file/') && req.method === 'GET') return serveProjectFile(req, res, path)
   if (path.startsWith('/api/mod-panel/') && req.method === 'GET') {
     const r = modPanelResponse(path.slice('/api/mod-panel/'.length))
     res.writeHead(r.status, r.headers)
