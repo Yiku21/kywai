@@ -26,6 +26,8 @@ interface StoredConversation {
   /** Sesiones de CLI de los agentes en esta conversación (agentId → sesión). */
   sessions?: Record<string, AgentSession>
   pinned?: boolean
+  /** Traída de otra app (ver importChats.ts). */
+  importedFrom?: string
 }
 
 export function isValidConversationId(id: unknown): id is string {
@@ -78,7 +80,8 @@ function currentSummary(st: ProjectState): ConversationSummary {
     updatedAt: lastAt(st.messages, c.createdAt),
     messageCount: st.messages.length,
     current: true,
-    pinned: c.pinned || undefined
+    pinned: c.pinned || undefined,
+    importedFrom: c.importedFrom
   }
 }
 
@@ -130,7 +133,8 @@ function summaryOf(st: ProjectState, c: StoredConversation): ConversationSummary
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
     messageCount: c.messages.length,
-    pinned: c.pinned || undefined
+    pinned: c.pinned || undefined,
+    importedFrom: c.importedFrom
   }
 }
 
@@ -197,7 +201,8 @@ function stashCurrent(st: ProjectState): void {
       messages: st.messages,
       tasks: finished,
       sessions: exportSessions(st.project.id),
-      pinned: cur.pinned || undefined
+      pinned: cur.pinned || undefined,
+      importedFrom: cur.importedFrom
     }
     writeConversation(st, conv)
     st.conversations = [summaryOf(st, conv), ...(st.conversations ?? []).filter((c) => c.id !== conv.id)]
@@ -228,7 +233,7 @@ export function openConversation(projectId: string, conversationId: string): voi
   stashCurrent(st)
   st.messages = conv.messages
   st.tasks = [...st.tasks, ...conv.tasks.filter((t) => !st.tasks.some((x) => x.id === t.id))]
-  st.conversation = { id: conv.id, title: conv.title, createdAt: conv.createdAt, pinned: conv.pinned || undefined }
+  st.conversation = { id: conv.id, title: conv.title, createdAt: conv.createdAt, pinned: conv.pinned || undefined, importedFrom: conv.importedFrom }
   st.conversations = (st.conversations ?? []).filter((c) => c.id !== conv.id)
   // Su archivo se queda tal cual (sirve de copia): el índice ya no la lista y se reescribe al volver a guardarla.
   replaceSessions(projectId, conv.sessions)
@@ -309,7 +314,8 @@ function fullConversation(st: ProjectState, conversationId: string): StoredConve
     updatedAt: lastAt(st.messages, cur.createdAt),
     messages: st.messages,
     tasks: st.tasks.filter((t) => FINISHED.has(t.status)),
-    pinned: cur.pinned
+    pinned: cur.pinned,
+    importedFrom: cur.importedFrom
   }
 }
 
@@ -564,4 +570,48 @@ export function searchHistory(query: unknown, options: SearchOptions = {}): Sear
 /** El buscador de antes (Órbita y clientes antiguos): una sola caja, de uno o de todos los proyectos, 40 resultados. */
 export function search(query: unknown, onlyProject?: unknown): SearchHit[] {
   return searchHistory(query, { projectId: typeof onlyProject === 'string' ? onlyProject : undefined }).hits
+}
+
+/** Lo que trae una conversación importada de otra app (ver importChats.ts). */
+export interface ImportedConversation {
+  title: string
+  createdAt: number
+  updatedAt: number
+  messages: ChatMessage[]
+  sessions?: Record<string, AgentSession>
+  importedFrom: string
+}
+
+/**
+ * Guarda en el proyecto una conversación traída de otra app, como una más de la barra lateral (no la abre: la
+ * abierta sigue igual). Los mensajes llevan el id del proyecto. Devuelve su id.
+ */
+export function addImportedConversation(projectId: string, input: ImportedConversation): string {
+  const st = load(projectId)
+  const conv: StoredConversation = {
+    id: newId(input.createdAt),
+    title: cleanTitle(input.title) || titleFrom(input.messages, input.createdAt),
+    createdAt: input.createdAt,
+    updatedAt: Math.max(input.createdAt, input.updatedAt),
+    messages: input.messages.map((m) => ({ ...m, projectId })),
+    tasks: [],
+    sessions: input.sessions && Object.keys(input.sessions).length ? input.sessions : undefined,
+    importedFrom: input.importedFrom
+  }
+  while (existsSync(fileOf(st, conv.id))) conv.id = newId(conv.createdAt)
+  writeConversation(st, conv)
+  st.conversations = [summaryOf(st, conv), ...(st.conversations ?? [])].sort((a, b) => b.updatedAt - a.updatedAt)
+  scheduleSave(projectId)
+  return conv.id
+}
+
+/** La conversación sigue existiendo en el proyecto (guardada o abierta): sirve para no duplicar al importar otra vez. */
+export function hasConversation(projectId: string, conversationId: string): boolean {
+  if (!isValidProjectId(projectId) || !isValidConversationId(conversationId)) return false
+  try {
+    const st = load(projectId)
+    return st.conversation?.id === conversationId || (st.conversations ?? []).some((c) => c.id === conversationId)
+  } catch {
+    return false
+  }
 }

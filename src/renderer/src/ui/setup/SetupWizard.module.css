@@ -560,3 +560,22 @@
   color: var(--cyan);
   background: var(--cyan-soft);
 }
+
+/* Último paso: invitación a traer las conversaciones de otras apps. */
+.importBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-ctl);
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.importBox span {
+  flex: 1 1 260px;
+}

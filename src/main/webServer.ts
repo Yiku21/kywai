@@ -5,7 +5,7 @@ import { createReadStream, readFileSync, realpathSync, statSync } from 'node:fs'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { createServer as createTlsServer, type Server as TlsServer } from 'node:https'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { hostname, networkInterfaces } from 'node:os'
+import { hostname, networkInterfaces, tmpdir } from 'node:os'
 import { basename, dirname, extname, join, normalize, sep } from 'node:path'
 import { app } from 'electron'
 import type { AgentConfig, CoworkEvent, WebAccessInfo } from '@shared/types'
@@ -39,6 +39,8 @@ const COOKIE = 'cowork_token'
 const BOOT_ID = randomBytes(6).toString('hex')
 const MAX_JSON = 4 * 1024 * 1024
 const MAX_UPLOAD = 25 * 1024 * 1024
+/** Exportaciones de ChatGPT o Claude.ai para importar (con imágenes pasan de 1 GB): van a disco, no a memoria. */
+const MAX_IMPORT_UPLOAD = 8 * 1024 * 1024 * 1024
 
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -579,6 +581,24 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
         return json(res, 200, { published: release })
       }
       return json(res, 200, { saved: name, size: body.length })
+    } catch (e) {
+      return json(res, 400, { error: (e as Error).message })
+    }
+  }
+
+  if (path === '/api/import-upload' && req.method === 'POST') {
+    try {
+      const name = (url.searchParams.get('name') ?? '').toLowerCase().endsWith('.json') ? 'conversations.json' : 'exportacion.zip'
+      const dir = join(tmpdir(), 'kywai-importar', `${Date.now()}-${randomId(4).toString('hex')}`)
+      makeDir(dir, { recursive: true })
+      const file = join(dir, name)
+      let size = 0
+      req.on('data', (c: Buffer) => {
+        size += c.length
+        if (size > MAX_IMPORT_UPLOAD) req.destroy(new Error('Demasiado grande'))
+      })
+      await pipeline(req, createWriteStream(file))
+      return json(res, 200, { path: file })
     } catch (e) {
       return json(res, 400, { error: (e as Error).message })
     }
