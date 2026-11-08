@@ -12,6 +12,8 @@ export const IDIOMAS = [
 
 export const TEXTOS = {
   en: {
+    'features.10t': "A team that feels alive",
+    'features.10b': "Free robots play catch with a toy document or colorful ball, visit one another and gently startle a sleeping teammate awake. Smiles, jumps and reactions bring the space to life while others work. These local animations use no AI quota, stop for real work and can be disabled with reduced effects.",
     'features.9t': "Bring your existing chats",
     'features.9b': "Import local Claude Code, Codex and Hermes sessions, including Hermes Desktop, or ChatGPT and Claude.ai JSON/ZIP exports. Keep your conversations, recover included Claude projects and documents, and continue with your team. Originals are preserved; local sessions are read on the server.",
     'themes.gallery1': "Frost Glass",
@@ -163,6 +165,8 @@ export const TEXTOS = {
   },
 
   es: {
+    'features.10t': "Un equipo que se siente vivo",
+    'features.10b': "Los robots libres juegan con un documento de juguete o una pelota de colores, se visitan y despiertan a un compañero dormido con un susto amistoso. Sonrisas, saltos y reacciones animan el espacio mientras otros trabajan. Estas animaciones locales no gastan cuota, se interrumpen por el trabajo real y se desactivan al reducir efectos.",
     'features.9t': "Trae los chats que ya tienes",
     'features.9b': "Importa sesiones locales de Claude Code, Codex y Hermes, incluido Hermes Desktop, o exportaciones JSON/ZIP de ChatGPT y Claude.ai. Conserva conversaciones, recupera los proyectos y documentos de Claude incluidos y continúa con tu equipo. Los originales se conservan; las sesiones locales se buscan en el servidor.",
     'themes.gallery1': "Frost Glass",
@@ -314,6 +318,8 @@ export const TEXTOS = {
   },
 
   pt: {
+    'features.10t': "Uma equipe que parece viva",
+    'features.10b': "Os robôs livres brincam com um documento de brinquedo ou uma bola colorida, visitam os colegas e acordam um companheiro com um susto amigável. Sorrisos, saltos e reações animam o espaço enquanto outros trabalham. Essas animações locais não gastam cota, param pelo trabalho real e podem ser desativadas ao reduzir efeitos.",
     'features.9t': "Traga os chats que você já tem",
     'features.9b': "Importe sessões locais do Claude Code, Codex e Hermes, incluindo Hermes Desktop, ou exportações JSON/ZIP do ChatGPT e Claude.ai. Preserve conversas, recupere os projetos e documentos do Claude incluídos e continue com sua equipe. Os originais são preservados; as sessões locais são lidas no servidor.",
     'themes.gallery1': "Frost Glass",
@@ -465,6 +471,8 @@ export const TEXTOS = {
   },
 
   fr: {
+    'features.10t': "Une équipe pleine de vie",
+    'features.10b': "Les robots libres se lancent un document jouet ou une balle colorée, se rendent visite et réveillent gentiment un collègue endormi. Sourires, sauts et réactions animent l’espace pendant que les autres travaillent. Ces animations locales ne consomment aucun quota, s’arrêtent pour le travail réel et se désactivent en réduisant les effets.",
     'features.9t': "Importez vos chats existants",
     'features.9b': "Importez les sessions locales de Claude Code, Codex et Hermes, dont Hermes Desktop, ou les archives JSON/ZIP de ChatGPT et Claude.ai. Conservez les conversations, récupérez les projets et documents Claude inclus et poursuivez avec votre équipe. Les originaux sont conservés ; les sessions locales sont lues sur le serveur.",
     'themes.gallery1': "Frost Glass",
@@ -616,6 +624,8 @@ export const TEXTOS = {
   },
 
   zh: {
+    'features.10t': "充满活力的团队",
+    'features.10b': "空闲机器人会传接玩具文档或彩球、互相串门，还会友善地吓醒睡着的同伴。微笑、跳跃和反应，让其他成员工作时的空间也充满生气。这些本地动画不消耗模型额度，会让位于实际工作，也可通过减少特效关闭。",
     'features.9t': "带上你已有的对话",
     'features.9b': "导入本地 Claude Code、Codex、Hermes 会话（包括 Hermes Desktop），或 ChatGPT、Claude.ai 的 JSON/ZIP 导出文件。保留对话，恢复导出文件中包含的 Claude 项目和文档，并与团队继续工作。原始数据会保留；本地会话从服务器读取。",
     'themes.gallery1': "Frost Glass",
