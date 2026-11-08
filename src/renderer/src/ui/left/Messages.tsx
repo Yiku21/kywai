@@ -1,4 +1,4 @@
-import { memo, useEffect, useId, useMemo, useState, type CSSProperties } from 'react'
+import { memo, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   AlertCircle,
   ArrowRight,
@@ -387,6 +387,18 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
     }
   }
   const liveLine = live ? <LiveLine task={task!} reduced={reduced} /> : null
+  // Al terminar bien mientras la mirabas: un destello verde una vez (no al abrir un chat ya terminado).
+  const wasLive = useRef(live)
+  const [celebrate, setCelebrate] = useState(false)
+  useEffect(() => {
+    if (wasLive.current && !live && work.status === 'done' && !reduced) {
+      setCelebrate(true)
+      const id = window.setTimeout(() => setCelebrate(false), 1800)
+      wasLive.current = live
+      return () => window.clearTimeout(id)
+    }
+    wasLive.current = live
+  }, [live, work.status, reduced])
   const toggle =
     count > 0 ? (
       <button type="button" className={s.moreHead} aria-expanded={open} aria-controls={listId} onClick={() => setOpen((o) => !o)}>
@@ -398,7 +410,7 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
     ) : null
 
   return (
-    <div className={s.work}>
+    <div className={cx(s.work, celebrate && s.workCelebrate)}>
       <button
         type="button"
         className={s.workHead}
@@ -623,6 +635,13 @@ function LiveLine({ task, reduced }: { task: Task; reduced: boolean }) {
   const runtime = useData((d) => d.runtimes[task.agentId])
   const now = useNow(1000)
   const quiet = quietText(quietFor(runtime, now))
+  // Las últimas acciones reales del agente: la nueva entra deslizándose y empuja a las anteriores, que se apagan.
+  const [feed, setFeed] = useState<{ text: string; at: number }[]>([])
+  useEffect(() => {
+    const text = task.lastActivity
+    if (!text) return
+    setFeed((f) => (f[0]?.text === text ? f : [{ text, at: Date.now() }, ...f].slice(0, 3)))
+  }, [task.lastActivity])
   return (
     <>
       {task.phase && (
@@ -633,8 +652,13 @@ function LiveLine({ task, reduced }: { task: Task; reduced: boolean }) {
       <li className={s.liveLine}>
         <TypingDots reduced={reduced} />
         {task.startedAt && <span className={s.liveClock}>{formatDuration(now - task.startedAt)}</span>}
-        {(quiet || task.lastActivity) && <span>{quiet ?? t(task.lastActivity!)}</span>}
+        {quiet && <span>{quiet}</span>}
       </li>
+      {feed.map((f, i) => (
+        <li key={`${f.at}-${f.text}`} className={cx(s.feedItem, i === 0 && !reduced && s.feedNew)} style={{ opacity: 1 - i * 0.3 }}>
+          {t(f.text)}
+        </li>
+      ))}
     </>
   )
 }

@@ -1210,6 +1210,79 @@ button.itemHead:hover {
   white-space: nowrap;
 }
 
+/* Últimas acciones del agente: la nueva entra deslizándose con un brillo breve. */
+.feedItem {
+  position: relative;
+  padding-left: 14px;
+  font-size: 12px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 0.4s ease;
+}
+
+.feedItem::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: var(--agent, var(--live));
+}
+
+.feedNew {
+  animation: feedIn 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.feedNew::before {
+  animation: feedDot 1.2s ease-out;
+}
+
+@keyframes feedIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes feedDot {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--agent, var(--live)) 70%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+/* Tarea recién terminada: destello verde una vez. */
+.workCelebrate {
+  border-radius: 10px;
+  animation: workDone 1.8s ease-out;
+}
+
+@keyframes workDone {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--live, #34d399) 60%, transparent);
+    background: color-mix(in srgb, var(--live, #34d399) 14%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedNew,
+  .feedNew::before,
+  .workCelebrate {
+    animation: none;
+  }
+}
+
 /* ---------- Tema Órbita: burbujas de cristal ---------- */
 
 :global(:root[data-theme='orbita']) .agentBubble {
