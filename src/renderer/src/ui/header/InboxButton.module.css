@@ -66,6 +66,7 @@
 }
 
 .k_mac_permission,
+.k_paused,
 .k_stalled {
   border-left-color: var(--warning, #f5a524);
 }
@@ -123,4 +124,9 @@
 
 .actions a {
   text-decoration: none;
+}
+
+/* «Recién terminado» en Resultados: no espera nada de ti. */
+.k_done {
+  border-left-color: var(--live, #3fb950);
 }

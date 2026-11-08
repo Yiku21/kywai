@@ -46,7 +46,7 @@ import { agentQuality, compareVerifiers, POOR_RECORD_DAYS, poorRecord, verifierS
 import { EFFORT_LABEL, effortFor, planEffortFor } from '@shared/modelCatalog'
 import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpdate } from './taskTrace'
 import { withoutClosingNotes, workSteps } from '@shared/work'
-import { lang, locale, replyLanguage, tr, userLanguageName } from '@shared/i18n'
+import { lang, locale, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
 import { addMemory, KIND_LABEL, memoryPromptSections, parseMemoryNotes, planMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
@@ -312,12 +312,12 @@ async function settleChanges(run: Run, t: Task, exec: AgentConfig, parent: Agent
         addInbox({
           kind: 'conflict',
           key: `conflict:${t.id}`,
-          title: tr('Choques sin resolver al integrar «{title}»', { title: t.title }),
-          detail: tr('Estos archivos llevan marcas <<<<<<< de dos tareas que cambiaron lo mismo a la vez: {v1}.', { v1: r.conflicts.join(', ') }),
+          title: tl('Choques sin resolver al integrar «{title}»', { title: t.title }),
+          detail: tl('Estos archivos llevan marcas <<<<<<< de dos tareas que cambiaron lo mismo a la vez: {v1}.', { v1: r.conflicts.join(', ') }),
           projectId: run.projectId,
           runId: run.id,
           taskId: t.id,
-          actions: [{ id: 'dismiss', label: tr('Lo reviso yo') }]
+          actions: [{ id: 'dismiss', label: tl('Lo reviso yo') }]
         })
         systemMessage(run, tr('Aviso: al integrar «{title}» quedaron choques sin resolver en {v2} (llevan marcas <<<<<<<). Revísalos.', { title: t.title, v2: r.conflicts.map((f) => `\`${f}\``).join(', ') }), 'error')
       }
@@ -659,18 +659,18 @@ function planInbox(m: ChatMessage): void {
     resolveInboxWhere((i) => i.kind === 'plan' && i.messageId === m.id, p.status === 'approved' ? 'Aprobado' : p.status === 'rejected' ? 'Descartado' : 'Cambiado')
     return
   }
-  const who = m.author.type === 'agent' ? agentName(m.author.agentId) : 'El coordinador'
+  const who = m.author.type === 'agent' ? agentName(m.author.agentId) : tl('El coordinador')
   addInbox({
     kind: 'plan',
     key: `plan:${m.id}`,
-    title: tr('{who} propone un plan de {length} tarea{v3}: {oneLine}', { who, length: p.tasks.length, v3: p.tasks.length === 1 ? '' : 's', oneLine: oneLine(p.request, 120) }),
+    title: tl('{who} propone un plan de {length} tarea{v3}: {oneLine}', { who, length: p.tasks.length, v3: p.tasks.length === 1 ? '' : 's', oneLine: oneLine(p.request, 120) }),
     detail: p.tasks.map((t) => `• ${t.title} (${agentName(t.agentId)})`).join('\n'),
     projectId: m.projectId,
     runId: m.runId,
     messageId: m.id,
     actions: [
-      { id: 'approve', label: tr('Aprobar') },
-      { id: 'reject', label: tr('Descartar') }
+      { id: 'approve', label: tl('Aprobar') },
+      { id: 'reject', label: tl('Descartar') }
     ]
   })
 }
@@ -693,6 +693,49 @@ function registerInboxActions(): void {
     return tr('Plan descartado')
   })
   onInboxAction('undo', (i) => (i.projectId && i.taskId ? undoTask(i.projectId, i.taskId) : tr('No sé qué tarea deshacer')))
+  onInboxAction('resume', async (i) => {
+    if (!i.projectId || !i.runId) return tr('No sé qué petición reanudar')
+    if (runs.has(i.runId)) return tr('Esa petición ya está en marcha')
+    await resumeRun(i.projectId, i.runId)
+    return tr('Reanudada: el equipo sigue donde lo dejó')
+  })
+  onInboxAction('discard', (i) => {
+    if (!i.projectId || !i.runId) return tr('No sé qué petición quitar')
+    discardRun(i.projectId, i.runId)
+    return tr('Quitado: no se reanudará')
+  })
+}
+
+/**
+ * Tareas que quedaron en pausa (al cerrar o reiniciar el servidor, o al detenerlas desde el móvil) esperan que digas
+ * si siguen: a la bandeja, con Reanudar y Quitar. Se cierra al reanudar o quitar (aquí, en el chat o en Órbita).
+ */
+function pausedInbox(run: Run, titles: string[], reason: 'quit' | 'pause'): void {
+  if (!titles.length) return
+  try {
+    const name = store.getProject(run.projectId).project.name
+    addInbox({
+      kind: 'paused',
+      key: `paused:${run.id}`,
+      title:
+        reason === 'quit'
+          ? tl('Quedó en pausa al cerrarse kywai ({name}): {request}', { name, request: oneLine(run.userText, 100) })
+          : tl('Detuviste la petición ({name}): {request}', { name, request: oneLine(run.userText, 100) }),
+      detail: tl('Tareas a medias: {list}. ¿Las reanudo donde se quedaron?', { list: titles.map((x) => `«${x}»`).join(', ') }),
+      projectId: run.projectId,
+      runId: run.id,
+      actions: [
+        { id: 'resume', label: tl('Reanudar') },
+        { id: 'discard', label: tl('Quitar') }
+      ]
+    })
+  } catch (e) {
+    console.warn('[cowork] bandeja: no se pudo anotar la pausa', e)
+  }
+}
+
+function pausedInboxDone(runId: string, resolution: string): void {
+  resolveInboxWhere((i) => i.kind === 'paused' && i.runId === runId, resolution)
 }
 
 /**
@@ -706,18 +749,19 @@ function runInbox(run: Run, ok: boolean): void {
     const last = msgs[msgs.length - 1]
     resolveInboxWhere((i) => i.projectId === run.projectId && (i.kind === 'done' || i.kind === 'question'), tr('Hay una petición más reciente'))
     const q = last ? asksUser(last.text) : null
-    const who = last?.author.type === 'agent' ? agentName(last.author.agentId) : 'El equipo'
+    const who = last?.author.type === 'agent' ? agentName(last.author.agentId) : tl('El equipo')
     if (q) {
-      addInbox({ kind: 'question', title: tr('{who} te pregunta ({name})', { who, name: st.project.name }), detail: q, projectId: run.projectId, runId: run.id, messageId: last!.id, actions: [{ id: 'dismiss', label: tr('Lo contesto en el chat') }] })
+      addInbox({ kind: 'question', title: tl('{who} te pregunta ({name})', { who, name: st.project.name }), detail: q, projectId: run.projectId, runId: run.id, messageId: last!.id, actions: [{ id: 'dismiss', label: tl('Lo contesto en el chat') }] })
       return
     }
+    const request = oneLine(run.userText, 100)
     addInbox({
       kind: 'done',
-      title: `${ok ? 'Terminado' : 'Terminado con fallos'} (${st.project.name}): ${oneLine(run.userText, 100)}`,
+      title: ok ? tl('Terminado ({name}): {request}', { name: st.project.name, request }) : tl('Terminado con fallos ({name}): {request}', { name: st.project.name, request }),
       detail: last ? oneLine(last.text, 400) : undefined,
       projectId: run.projectId,
       runId: run.id,
-      actions: [{ id: 'dismiss', label: tr('Entendido') }]
+      actions: [{ id: 'dismiss', label: tl('Entendido') }]
     })
   } catch (e) {
     console.warn('[cowork] bandeja: no se pudo anotar el final de la petición', e)
@@ -1485,6 +1529,7 @@ export async function resumeRun(projectId: string, runId: string): Promise<void>
     t.progress = undefined
     pushTask(t)
   }
+  pausedInboxDone(runId, tr('Reanudada'))
   emit({ kind: 'run.started', runId, projectId })
   resumeRunUsage(runId)
   try {
@@ -1508,6 +1553,7 @@ export function discardRun(projectId: string, runId: string): void {
     t.error = tr('Cancelada por el usuario')
     pushTask(t)
   }
+  pausedInboxDone(runId, tr('Quitado'))
   pushMessage({
     id: randomUUID(),
     projectId,
@@ -1526,12 +1572,14 @@ export function cancelRun(runId: string, reason: 'user' | 'quit' | 'pause' = 'us
   run.planController?.abort()
   for (const c of run.controllers.values()) c.abort()
   const now = Date.now()
+  const paused: string[] = []
   for (const tid of run.taskIds) {
     const t = tasks.get(tid)
     if (!t || !['pending', 'blocked', 'running'].includes(t.status)) continue
     const wasRunning = t.status === 'running'
     t.status = 'cancelled'
     t.error = reason !== 'user' ? INTERRUPTED_ERROR : tr('Cancelada por el usuario')
+    if (reason !== 'user') paused.push(t.title)
     t.finishedAt = now
     pushTask(t)
     if (wasRunning) {
@@ -1544,6 +1592,7 @@ export function cancelRun(runId: string, reason: 'user' | 'quit' | 'pause' = 'us
     planningAgents.delete(run.plannerId)
     if (!busy.has(run.plannerId) && !isBlocked(run.plannerId)) setRuntime(run.plannerId, { activity: 'idle', lastActivity: tr('Cancelada') })
   }
+  if (reason !== 'user') pausedInbox(run, paused, reason)
   systemMessage(run, reason === 'quit' ? tr('Ejecución interrumpida al cerrar la app.') : reason === 'pause' ? tr('Has detenido la ejecución. Puedes reanudar sus tareas pendientes.') : tr('Has cancelado la ejecución.'))
   run.finished = true
   // Al cerrar la app no se consulta la cuota (no da tiempo y dejaría procesos sueltos).
@@ -2571,16 +2620,16 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
       addInbox({
         kind: 'stalled',
         key: `stall:${t.id}`,
-        title: tr('{name} lleva 3 minutos sin dar señales en «{title}»', { name: exec.name, title: t.title }),
+        title: tl('{name} lleva 3 minutos sin dar señales en «{title}»', { name: exec.name, title: t.title }),
         detail:
           text === GEMINI_LOGIN_STALL_NOTICE
-            ? tr('Gemini está usando tu sesión de Google, que ya no es gratis y suele quedarse colgada sin dar error. Pega una clave de API de Google AI Studio en ⚙ → Ajustes → Configurar agentes → Sesiones y vuelve a intentarlo.')
-            : tr('Puede que esté esperando un aviso de permisos en la pantalla del servidor (macOS o el llavero), que solo se contesta delante del equipo. Si no vuelve a dar señales en 20 minutos, se corta.'),
+            ? tl('Gemini está usando tu sesión de Google, que ya no es gratis y suele quedarse colgada sin dar error. Pega una clave de API de Google AI Studio en ⚙ → Ajustes → Configurar agentes → Sesiones y vuelve a intentarlo.')
+            : tl('Puede que esté esperando un aviso de permisos en la pantalla del servidor (macOS o el llavero), que solo se contesta delante del equipo. Si no vuelve a dar señales en 20 minutos, se corta.'),
         projectId: run.projectId,
         runId: run.id,
         taskId: t.id,
         agentId: exec.id,
-        actions: [{ id: 'dismiss', label: tr('Entendido') }]
+        actions: [{ id: 'dismiss', label: tl('Entendido') }]
       })
     } else if (isStallNotice(t.lastActivity)) taskInboxDone(t)
     if (!working) {
@@ -3261,17 +3310,17 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     addInbox({
       kind: 'verify-failed',
       key: `verify:${t.id}`,
-      title: tr('Requiere intervención: {byName} sigue viendo fallos en «{title}»', { byName: v.byName, title: t.title }),
+      title: tl('Requiere intervención: {byName} sigue viendo fallos en «{title}»', { byName: v.byName, title: t.title }),
       detail: [
-        tr('{fixes} {v2}{v3}. Los archivos se quedan: puedes abrirlos o deshacer la tarea.', { fixes: v.fixes, v2: v.fixes === 1 ? tr('corrección') : tr('correcciones'), v3: v.relayedTo ? tr(' y relevo a {relayedTo}', { relayedTo: v.relayedTo }) : tr(' (no había otro agente fuerte libre para relevar)') }),
+        tl('{fixes} {v2}{v3}. Los archivos se quedan: puedes abrirlos o deshacer la tarea.', { fixes: v.fixes, v2: v.fixes === 1 ? tl('corrección') : tl('correcciones'), v3: v.relayedTo ? tl(' y relevo a {relayedTo}', { relayedTo: v.relayedTo }) : tl(' (no había otro agente fuerte libre para relevar)') }),
         '',
         clip(v.notes, 1500)
-      ].join('\n'),
+      ],
       projectId: run.projectId,
       runId: run.id,
       taskId: t.id,
       agentId: owner.id,
-      actions: [...(t.changes ? [{ id: 'undo', label: tr('Deshacer la tarea') }] : []), { id: 'dismiss', label: tr('Lo reviso yo') }]
+      actions: [...(t.changes ? [{ id: 'undo', label: tl('Deshacer la tarea') }] : []), { id: 'dismiss', label: tl('Lo reviso yo') }]
     })
     addMemory(
       run.projectId,
@@ -3394,13 +3443,13 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   addInbox({
     kind: 'failed',
     key: `failed:${t.id}`,
-    title: tr('No se pudo hacer «{title}»', { title: t.title }),
+    title: tl('No se pudo hacer «{title}»', { title: t.title }),
     detail: msg,
     projectId: run.projectId,
     runId: run.id,
     taskId: t.id,
     agentId: owner.id,
-    actions: [{ id: 'dismiss', label: tr('Entendido') }]
+    actions: [{ id: 'dismiss', label: tl('Entendido') }]
   })
 }
 
@@ -3459,9 +3508,9 @@ function checkBudget(now = Date.now()): void {
   addInbox({
     kind: 'budget',
     key: `budget:${month}`,
-    title: level === 100 ? tr('Te has pasado del presupuesto de API de este mes') : tr('Llevas el 80 % del presupuesto de API de este mes'),
-    detail: tr('Llevas {spent} de {limit} en agentes que pagas por uso. Lo ves por agente en ⚙ → «Uso y coste…».', { spent: money(spentUsd), limit: money(limitUsd) }),
-    actions: [{ id: 'dismiss', label: tr('Entendido') }]
+    title: level === 100 ? tl('Te has pasado del presupuesto de API de este mes') : tl('Llevas el 80 % del presupuesto de API de este mes'),
+    detail: tl('Llevas {spent} de {limit} en agentes que pagas por uso. Lo ves por agente en ⚙ → «Uso y coste…».', { spent: money(spentUsd), limit: money(limitUsd) }),
+    actions: [{ id: 'dismiss', label: tl('Entendido') }]
   })
 }
 

@@ -20,10 +20,10 @@ function sourceFiles(dir: string): string[] {
   })
 }
 
-/** Textos literales pasados a t(…) o tr(…): t('…'), t("…") y t(`…`) sin ${}. */
+/** Textos literales pasados a t(…), tr(…) o tl(…): t('…'), t("…") y t(`…`) sin ${}. */
 function extractKeys(code: string): string[] {
   const keys: string[] = []
-  const re = /(?<![\w$.])tr?\(\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\$]|\\.)*)`)/g
+  const re = /(?<![\w$.])t[rl]?\(\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\$]|\\.)*)`)/g
   for (const m of code.matchAll(re)) {
     const raw = m[1] ?? m[2] ?? m[3] ?? ''
     keys.push(raw.replace(/\\(.)/g, (_, c: string) => (c === 'n' ? '\n' : c)))
