@@ -1166,6 +1166,9 @@ async function main(): Promise<void> {
         const { runId } = await sendMessage({ projectId: up.id, text: 'Haz las páginas de alta y baja', filePaths: [] })
         await waitFor(() => !!finished(runId), 15000, 'run U4')
         assert.equal(seenVerifying.length, 2, 'Codex hace las dos tareas')
+        // El coordinador sabe que lo que no se necesita entre sí va sin dependencias y, si puede, a agentes distintos.
+        const planPrompt = calls.find((c) => c.mode === 'plan' && c.prompt.includes('Haz las páginas de alta y baja'))!.prompt
+        assert.ok(planPrompt.includes('así empiezan a la vez') && planPrompt.includes('no encadenes tareas solo «por orden»'))
         const ts = store.snapshotProject(up.id).tasks.filter((t) => t.runId === runId)
         assert.deepEqual(ts.map((t) => [t.status, t.verification?.ok]), [['done', true], ['done', true]])
       } finally {
