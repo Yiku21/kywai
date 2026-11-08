@@ -210,11 +210,16 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
     }
   }
 
-  const openProject = (p: ProjectSummary): Promise<void> =>
+  // Clic en un proyecto: si es otro, lo abre y lo despliega. Si ya es el abierto, en la lista de Proyectos el clic
+  // pliega o despliega sus conversaciones (como en Claude y en Órbita); en Fijados solo lleva al chat.
+  const openProject = (p: ProjectSummary, toggle = false): Promise<void> =>
     run(async () => {
       if (!api) return
-      if (project?.id !== p.id) useCowork.getState().loadProjectState(await api.loadProject(p.id))
-      setExpanded((e) => ({ ...e, [p.id]: true }))
+      if (project?.id !== p.id) {
+        useCowork.getState().loadProjectState(await api.loadProject(p.id))
+        setExpanded((e) => ({ ...e, [p.id]: true }))
+      } else if (toggle) setExpanded((e) => ({ ...e, [p.id]: !e[p.id] }))
+      else setExpanded((e) => ({ ...e, [p.id]: true }))
       go('chat')
     })
 
@@ -378,7 +383,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
                     icon={isOpen ? <FolderOpen size={15} /> : <Folder size={15} />}
                     expanded={isOpen}
                     onExpand={() => setExpanded((e) => ({ ...e, [p.id]: !isOpen }))}
-                    onOpen={() => void openProject(p)}
+                    onOpen={() => void openProject(p, true)}
                     actions={actions}
                   />
                   {isOpen && (
