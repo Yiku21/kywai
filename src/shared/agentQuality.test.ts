@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { UsageCall, UsageRun } from './types'
-import { agentQuality, poorRecordReason, baseAgentId, qualityLine, type AgentQuality } from './agentQuality'
+import { agentQuality, compareVerifiers, poorRecordReason, verifierStats, baseAgentId, qualityLine, type AgentQuality } from './agentQuality'
 
 let clock = 1_000_000
 const task = (agentId: string, taskId: string, ok: boolean, extra: Partial<UsageCall> = {}): UsageCall => ({
@@ -151,5 +151,20 @@ describe('mala racha', () => {
     expect(poorRecordReason(good)).toBeNull()
     expect(poorRecordReason(agentQuality([run([task('codex', 'c1', false), task('codex', 'c2', false)])])[0])).toBeNull()
     expect(poorRecordReason(null)).toBeNull()
+  })
+})
+
+describe('verificadores', () => {
+  const v = (agentId: string, durationMs: number, verdict: 'pass' | 'fail' = 'pass'): UsageCall => ({ ...verify('t', verdict), agentId, durationMs })
+  it('entre dos válidos prefiere al claramente más rápido; sin datos o parecidos no decide', () => {
+    const stats = verifierStats([
+      run([v('claude', 17_000), v('claude', 20_000), v('claude', 15_000), v('codex', 77_000), v('codex', 90_000, 'fail'), v('codex', 60_000)]),
+      run([{ ...v('claude', 999_000), cancelled: true }])
+    ])
+    expect(stats.get('claude')).toEqual({ count: 3, medianMs: 17_000 })
+    expect(compareVerifiers(stats.get('claude'), stats.get('codex'))).toBeLessThan(0)
+    expect(compareVerifiers(stats.get('codex'), stats.get('claude'))).toBeGreaterThan(0)
+    expect(compareVerifiers(stats.get('claude'), undefined)).toBe(0)
+    expect(compareVerifiers({ count: 3, medianMs: 20_000 }, { count: 5, medianMs: 25_000 })).toBe(0)
   })
 })

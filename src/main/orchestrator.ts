@@ -40,7 +40,7 @@ import { resolveTemplate } from './templates'
 import { freshQuotaSnapshot, latestQuotas, recordUsage, refreshQuotas, setClaudeRateLimit } from './quota'
 import { finishRunUsage, rateUsage, recordCall, resumeRunUsage, setRunQuota, startRunUsage, usageRuns } from './usageLog'
 import { agentHistory, agentQualityFor, profileLines } from './agentProfile'
-import { agentQuality, POOR_RECORD_DAYS, poorRecord } from '@shared/agentQuality'
+import { agentQuality, compareVerifiers, POOR_RECORD_DAYS, poorRecord, verifierStats } from '@shared/agentQuality'
 import { EFFORT_LABEL, effortFor, planEffortFor } from '@shared/modelCatalog'
 import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpdate } from './taskTrace'
 import { withoutClosingNotes, workSteps } from '@shared/work'
@@ -2844,7 +2844,12 @@ function pickVerifier(author: AgentConfig, wantsEyes = false): AgentConfig | nul
     const i = cfg.plannerOrder.indexOf(a.id)
     return i < 0 ? 99 : i
   }
-  return [...cands].sort((a, b) => Number(busy.has(a.id)) - Number(busy.has(b.id)) || order(a) - order(b))[0]
+  // Entre los válidos y libres: el claramente más rápido (medido en 30 días); sin datos de los dos, el orden de
+  // siempre. No cambia lo que se comprueba, solo quién lo comprueba.
+  const stats = verifierStats(usageRuns(), Date.now() - 30 * 86_400_000)
+  return [...cands].sort(
+    (a, b) => Number(busy.has(a.id)) - Number(busy.has(b.id)) || compareVerifiers(stats.get(a.id), stats.get(b.id)) || order(a) - order(b)
+  )[0]
 }
 
 /** Tareas cuyo resultado se comprueba: cambiaron archivos del proyecto y el usuario no ha pedido saltárselo. */
