@@ -13,6 +13,7 @@ describe('lo que sabe el coordinador de kywai', () => {
     expect(g).toContain('Los robots libres juegan, se saludan y despiertan a un compañero dormido')
     expect(g).toContain('no gastan cuota ni cambian los archivos del proyecto')
     expect(g).toContain('bailes compartidos, imitaciones con guiños y saltos, choques de antenas')
+    expect(g).toContain('Con música sonando, los robots libres permanecen despiertos')
   })
   it('conoce el mapa marino y los cuatro decorados como funciones de la app', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false }, env()))

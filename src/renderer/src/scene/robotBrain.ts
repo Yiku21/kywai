@@ -18,6 +18,7 @@ export interface SocialPose {
   pitch?: number
   turn?: number
   wink?: number
+  music?: boolean
 }
 
 /** Segundos esperando a otro agente antes de aburrirse. */

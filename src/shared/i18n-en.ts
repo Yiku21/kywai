@@ -2722,4 +2722,5 @@ export const en: Record<string, string> = {
   "¡Equipo!": "Team spirit!",
   "¡Ánimo, compañero!": "You’ve got this, buddy!",
   "¡Gracias por los ánimos!": "Thanks for cheering me on!",
+  "Bailando": "Dancing",
 }

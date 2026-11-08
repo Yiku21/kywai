@@ -242,4 +242,63 @@ describe('vida social de los agentes libres', () => {
     }
     expect([...kinds]).toEqual(expect.arrayContaining(['wake', 'dance', 'bump', 'mirror', 'greet', 'encourage', 'catch']))
   })
+
+  it('con música todos los libres permanecen despiertos, incluso si solo queda uno', () => {
+    const { a, b, brains, life } = pair()
+    a.persona = { ...PERSONAS.lazy, restAfter: 0, sleepAfter: 0 }
+    b.setInputs('working', 'station', null, 0)
+    for (let t = 5; t < 80; t += 0.1) {
+      life.update(t, brains, false, { playing: true, beats: t * 2, pulse: 0.5 }, camera)
+      for (const actor of brains.values()) actor.update(t, 0.1, camera)
+    }
+    expect(a.social).not.toBeNull(); expect(a.visual).toBe('idle'); expect(a.eyeSleep).toBeLessThan(0.1)
+    expect(b.social).toBeNull(); expect(b.visual).toBe('working')
+    expect(life.active).toBeNull(); expect(life.toy.visible).toBe(false)
+  })
+
+  it('el salto sigue la fase del reproductor, no el tiempo de la escena', () => {
+    const { a, brains, life } = pair()
+    life.update(5, brains, false, { playing: true, beats: 4, pulse: 0 }, camera)
+    life.update(8, brains, false, { playing: true, beats: 4, pulse: 0 }, camera)
+    const onBeat = a.social!.bounce
+    life.update(9, brains, false, { playing: true, beats: 4.5, pulse: 0 }, camera)
+    expect(a.social!.bounce).toBeLessThan(onBeat * 0.1)
+    life.update(12, brains, false, { playing: true, beats: 5, pulse: 0 }, camera)
+    expect(a.social!.bounce).toBeCloseTo(onBeat)
+  })
+
+  it('sin BPM mantiene un balanceo suave y reacciona a los golpes detectados', () => {
+    const { a, brains, life } = pair()
+    life.update(5, brains, false, { playing: true, beats: null, pulse: 0 }, camera)
+    life.update(8, brains, false, { playing: true, beats: null, pulse: 0 }, camera)
+    const quiet = a.social!.bounce
+    life.update(8.1, brains, false, { playing: true, beats: null, pulse: 1 }, camera)
+    expect(a.social!.bounce).toBeGreaterThan(quiet + 0.1)
+    expect(a.social!.position.toArray().every(Number.isFinite)).toBe(true)
+  })
+
+  it.each(['pause', 'reduced', 'work', 'typing', 'removed'] as const)('interrumpe el baile musical por %s y deja libres las poses', reason => {
+    const { a, b, brains, life } = pair()
+    const music = { playing: true, beats: 4, pulse: 0.5 }
+    life.update(5, brains, false, music, camera)
+    expect(a.social).not.toBeNull()
+    if (reason === 'work') a.setInputs('working', 'station', null, 6)
+    if (reason === 'typing') a.onUserTyping(6)
+    if (reason === 'removed') brains.delete('a')
+    life.update(6, brains, reason === 'reduced', { ...music, playing: reason !== 'pause' }, camera)
+    expect(a.social).toBeNull()
+    if (reason === 'pause' || reason === 'reduced') expect(b.social).toBeNull()
+    else expect(b.social).not.toBeNull()
+    life.clear()
+    expect(b.social).toBeNull()
+  })
+
+  it('al empezar música cancela la visita y bailan también los demás libres', () => {
+    const setup = reach('bump')
+    advance(setup, 0, 5)
+    setup.life.update(setup.start + 5.1, setup.brains, false, { playing: true, beats: 10, pulse: 0.5 }, camera)
+    expect(setup.life.active).toBeNull(); expect(setup.life.toy.visible).toBe(false)
+    expect(setup.a.social).not.toBeNull(); expect(setup.b.social).not.toBeNull()
+    expect(setup.a.social!.position.distanceTo(setup.a.home)).toBeLessThan(0.2)
+  })
 })

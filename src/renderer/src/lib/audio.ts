@@ -264,6 +264,7 @@ function createMusic(ctx: AudioContext) {
 
   let step = 0
   let nextTime = ctx.currentTime + 0.05
+  const firstBeatAt = nextTime
   let preparedBar = -1
   let voicing = CHORDS[0].notes.slice()
   let pattern = MUSIC_PATTERNS[0]
@@ -342,7 +343,13 @@ function createMusic(ctx: AudioContext) {
     setTimeout(() => sound.nodes.forEach((node) => node.disconnect()), 35)
   }
   schedule()
-  return { stop }
+  return { stop, beats: () => Math.max(0, (ctx.currentTime - firstBeatAt) / beat) }
+}
+
+/** Pulso real del sintetizador ambiental; null si no está sonando. */
+export function ambientMusicBeat(): number | null {
+  if (muted || volume <= 0 || !musicWanted || ambientSuppressed || context?.state !== 'running' || !music) return null
+  return music.beats()
 }
 
 export function startMusic(): void {

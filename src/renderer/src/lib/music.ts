@@ -3,7 +3,7 @@ import { MIN_TEMPO_SCORE, parseVideoTitle, plausibleBpm, type TempoConfidence, t
 import { isLive, musicSourceOf } from '@shared/musicSources'
 import type { MusicResult } from '@shared/types'
 import { api, isWeb } from './api'
-import { getVolume, isMuted, setAmbientMusicSuppressed, subscribeAudio } from './audio'
+import { ambientMusicBeat, getVolume, isMuted, setAmbientMusicSuppressed, subscribeAudio } from './audio'
 import { audioLightLevel } from './audioSync'
 import { addTap, MusicClock, pulseEnvelope, tempoFromTaps, wrapOffset } from './musicClock'
 import { YT_STATE, type YtPlayer } from './youtube'
@@ -426,6 +426,29 @@ export function tapBeat(now = performance.now()): number {
       : { offset: result.offset })
   }
   return taps.length
+}
+
+export interface MusicDanceSignal {
+  playing: boolean
+  /** Posición continua en pulsos, incluida la velocidad del reproductor; null si aún no hay BPM. */
+  beats: number | null
+  pulse: number
+}
+
+/** El baile sigue al reproductor y al sonido, independientemente del interruptor de luces. */
+export function musicDanceSignal(now: number): MusicDanceSignal {
+  const st = useMusic.getState()
+  if (isMuted() || getVolume() <= 0) return { playing: false, beats: null, pulse: 0 }
+  const playing = !!st.videoId && st.status === 'playing' && musicClock.isPlaying
+  if (!playing) {
+    const beats = ambientMusicBeat()
+    if (beats === null) return { playing: false, beats: null, pulse: 0 }
+    const index = Math.floor(beats)
+    return { playing: true, beats, pulse: pulseEnvelope({ beats, index, phase: beats - index, inBar: index % 4 }) }
+  }
+  const beat = musicClock.beatAt(now)
+  const live = audioLightLevel(now, false)
+  return { playing: true, beats: beat?.beats ?? null, pulse: live ?? (beat ? pulseEnvelope(beat) : 0) }
 }
 
 /** Intensidad 0..1 de las luces de la escena al ritmo de la música (0 si no suena o no hay tempo). */

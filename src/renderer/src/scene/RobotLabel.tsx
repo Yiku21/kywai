@@ -8,6 +8,7 @@ import {
   Hourglass,
   Loader,
   Moon,
+  Music2,
   PowerOff,
   Sparkles,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { modelLabelFor } from "@/ui/common/agents";
 import { useSceneHover } from "./anchors";
 import { restAfterFor } from "./personality";
 import { useBubbles } from "./bubbleStore";
+import { registry } from "./registry";
 import {
   progressHint,
   isSilent,
@@ -59,15 +61,17 @@ export function RobotLabel({ agent }: Props) {
     const busyNow = rt?.activity === "thinking" || rt?.activity === "working";
     const id = window.setInterval(
       () => tick((n) => n + 1),
-      busyNow ? 1500 : 4000,
+      busyNow ? 1500 : 1000,
     );
     return () => window.clearInterval(id);
   }, [rt?.activity]);
 
   const activity = rt?.activity ?? "idle";
   const lastAt = rt?.lastActivityAt ?? 0;
+  const dancing = activity === "idle" && !override && !reduced && registry.brains.get(agent.id)?.social?.music === true;
   const resting =
     activity === "idle" &&
+    !dancing &&
     !override &&
     Date.now() - Math.max(lastAt, mountedAt) > restAfterMs(agent);
 
@@ -99,7 +103,10 @@ export function RobotLabel({ agent }: Props) {
       text = t("No disponible");
       break;
     default:
-      if (resting) {
+      if (dancing) {
+        icon = <Music2 size={12} />;
+        text = t("Bailando");
+      } else if (resting) {
         icon = <Moon size={12} />;
         text = t("En reposo");
       }
