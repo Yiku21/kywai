@@ -86,7 +86,7 @@ import { addMemory, deleteMemory, isMemoryKind, setInstructions, updateMemory } 
 import { initUpdater } from './updater'
 import * as store from './projects'
 import * as conversations from './conversations'
-import { importArchive, importLocal, initImports, scanImports } from './importChats'
+import { importArchive, importLocal, initImports, previewArchive, scanImports } from './importChats'
 import { computeQuotas, initQuota, latestQuotas, recomputeQuotas, refreshQuotas, startQuotaTimer, stopQuota } from './quota'
 import { claudeAuthMethod, removeClaudeOverrides } from './quotaProbe'
 import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
@@ -359,6 +359,22 @@ async function currentWebAccess(https?: WebHttpsInfo): Promise<WebAccessInfo> {
   }
 }
 
+/** Quita un proyecto de kywai: va a la Papelera de este equipo todo lo suyo (si no se puede, se borra del todo). */
+async function removeProject(projectId: string): Promise<void> {
+  const { dirs, taskIds } = store.forgetProject(projectId)
+  deleteTraces(taskIds)
+  for (const dir of dirs) {
+    try {
+      await shell.trashItem(dir)
+    } catch {
+      await fsp.rm(dir, { recursive: true, force: true })
+    }
+  }
+  forgetProjectTemplates(projectId)
+  store.ensureFirstProject()
+  emit({ kind: 'project.deleted', projectId })
+}
+
 function registerIpc(): void {
   /** Registra una función para la app de escritorio (IPC) y para el acceso web. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -385,18 +401,7 @@ function registerIpc(): void {
   handle('deleteProject', async (projectId: unknown) => {
     if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     if (activeRunsFor(projectId).length) throw new Error(tr('Este proyecto tiene trabajo en marcha: detenlo antes de eliminarlo'))
-    const { dirs, taskIds } = store.forgetProject(projectId)
-    deleteTraces(taskIds)
-    for (const dir of dirs) {
-      try {
-        await shell.trashItem(dir)
-      } catch {
-        await fsp.rm(dir, { recursive: true, force: true })
-      }
-    }
-    forgetProjectTemplates(projectId)
-    store.ensureFirstProject()
-    emit({ kind: 'project.deleted', projectId })
+    await removeProject(projectId)
     return store.listProjects()
   })
   handle('renameProject', (projectId: unknown, name: unknown) => {
@@ -480,13 +485,24 @@ function registerIpc(): void {
   handle('searchHistory', (query: unknown, options?: unknown) => conversations.searchHistory(query, options && typeof options === 'object' ? (options as SearchOptions) : {}))
   handle('allConversations', () => conversations.allConversations())
   // Importar de otras apps (Claude Code, Codex, ChatGPT, Claude.ai): ver importChats.ts.
-  const afterImport = (r: ImportResult): ImportResult => {
+  const afterImport = async (r: ImportResult): Promise<ImportResult> => {
+    // Reimportar Claude.ai deja vacíos el proyecto «Claude.ai» y los que se crearon sin nada: van a la Papelera.
+    for (const projectId of r.emptyProjectIds ?? []) {
+      if (activeRunsFor(projectId).length) continue
+      try {
+        await removeProject(projectId)
+      } catch (e) {
+        console.warn('[cowork] no se pudo quitar el proyecto vacío', projectId, (e as Error).message)
+      }
+    }
+    for (const projectId of r.clearedProjectIds ?? []) emit({ kind: 'chat.cleared', projectId, conversationId: store.getProject(projectId).conversation?.id })
     for (const projectId of r.projectIds) emit({ kind: 'conversations.updated', projectId })
     return r
   }
   handle('scanImports', () => scanImports())
   handle('importLocal', (ids: unknown) => afterImport(importLocal(ids, getConfig().agents)))
-  handle('importArchive', (paths: unknown) => afterImport(importArchive(paths, getConfig().agents)))
+  handle('previewArchive', (paths: unknown) => previewArchive(paths))
+  handle('importArchive', (paths: unknown, choices?: unknown) => afterImport(importArchive(paths, getConfig().agents, choices)))
   ipcMain.handle('cowork:pickImportFile', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow
     const opts: OpenDialogOptions = {
