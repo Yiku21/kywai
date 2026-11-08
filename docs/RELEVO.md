@@ -23,7 +23,9 @@
 4. **Nunca escribas el código de acceso (`?t=…`), llaves de dispositivo, claves de API ni la IP del servidor** en
    código, documentos, commits ni mensajes.
 5. **Un commit por mejora**, en español, descriptivo (mira `git log`). Terminan con una línea `Co-Authored-By:` del
-   modelo que lo hizo.
+   modelo que lo hizo. El autor del commit es la identidad de GitHub del dueño
+   (`194587829+Yiku21@users.noreply.github.com`), nunca un email `ALGO@users.noreply.github.com` inventado: GitHub lo
+   asocia a la cuenta con ese nombre (`kywai@…` es de un desconocido y apareció como colaborador del repo).
 6. **Añade los archivos uno a uno por ruta.** Nunca `git add -A`, `git add .` ni `git add src`: varias sesiones editan
    el mismo repo a la vez. Antes de commitear: `git status` y deja sin tocar lo modificado que no es tuyo.
 7. **Sube enseguida** (`git push origin HEAD:master`): el Mac mini se actualiza desde GitHub y lo no subido no le
