@@ -232,3 +232,36 @@ export function poorRecordReason(q: QualityStats | null | undefined, days = POOR
   const r = poorRecord(q)
   return r && `${r.bad} de ${r.tasks} tareas sin pasar la revisión o fallidas en ${days} días`
 }
+
+/** Cómo verifica cada agente: cuántas revisiones hizo y cuánto tarda (mediana). */
+export interface VerifierStats {
+  count: number
+  medianMs: number
+}
+
+/** Verificaciones con veredicto desde `from` (ms), por agente. Las detenidas no cuentan. */
+export function verifierStats(runs: UsageRun[], from = 0): Map<string, VerifierStats> {
+  const by = new Map<string, number[]>()
+  for (const run of runs)
+    for (const c of run.calls) {
+      if (c.kind !== 'verify' || c.ts < from || c.cancelled || !c.verdict) continue
+      const id = baseAgentId(c.agentId)
+      by.set(id, [...(by.get(id) ?? []), c.durationMs])
+    }
+  return new Map([...by].map(([id, ms]) => [id, { count: ms.length, medianMs: median(ms) ?? 0 }]))
+}
+
+/** Mínimo de verificaciones para fiarse de su tiempo, y cuánto más rápido tiene que ser uno para preferirlo. */
+export const VERIFIER_MIN_SAMPLES = 3
+export const VERIFIER_FASTER = 1.5
+
+/**
+ * Compara dos verificadores igual de válidos: < 0 si conviene `a`. Solo decide con datos de los dos: el claramente
+ * más rápido (VERIFIER_FASTER veces). 0 si no hay datos o se parecen.
+ */
+export function compareVerifiers(a: VerifierStats | undefined, b: VerifierStats | undefined): number {
+  if (!a || !b || a.count < VERIFIER_MIN_SAMPLES || b.count < VERIFIER_MIN_SAMPLES) return 0
+  if (a.medianMs * VERIFIER_FASTER <= b.medianMs) return -1
+  if (b.medianMs * VERIFIER_FASTER <= a.medianMs) return 1
+  return 0
+}

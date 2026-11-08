@@ -879,6 +879,11 @@ comprueba cómo se ve de verdad: una página en blanco, cortada o que no se pued
 abren las HTML que cambió la tarea o, si cambió estilos o componentes, la entrada ya compilada (`dist/`, `build/`…
 o `index.html`). Lo ves en «Ver qué está haciendo» de la tarea.
 
+**Quién verifica.** Entre los agentes de otra familia que valen (libres antes que ocupados), kywai elige el
+claramente más rápido (al menos 1,5 veces) según lo medido en los últimos 30 días, con 3 verificaciones o más de
+cada uno. Sin esos datos, el orden de `plannerOrder`. La revisión es la misma; solo cambia quién la hace (medido el
+8 nov: Claude verificaba en 17 s de mediana y Codex en 77 s, con el mismo resultado).
+
 **La verificación no frena la cola.** En cuanto el autor termina, queda libre: si tiene otra tarea que no depende de
 la que se está verificando, la empieza ya (en una copia aparte de la carpeta si hace falta, que se integra al
 terminar), en vez de esperar a que acabe la revisión. Las tareas que dependen de la verificada siguen esperando a
