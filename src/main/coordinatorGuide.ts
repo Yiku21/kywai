@@ -59,6 +59,13 @@ export function mentionsApp(text: string): boolean {
   return APP_WORDS.test(t)
 }
 
+/**
+ * Cómo se escribe lo que sale en el chat. El chat lo pinta como ChatGPT o Claude (párrafos con aire, listas
+ * marcadas), pero solo se lee bien si el texto viene breve y ordenado: un muro de texto sigue siendo un muro.
+ */
+export const CHAT_STYLE =
+  'empieza por el resultado o la respuesta en una o dos frases; después, párrafos cortos (2 o 3 frases) separados por una línea en blanco; los pasos, opciones o hallazgos en lista (numerada si hay orden), un punto por idea; **negrita** solo para lo que no se puede pasar por alto; títulos (##) solo si la respuesta es larga. Nada de muros de texto, de relleno ni de repetir lo que el usuario ya ve.'
+
 /** Sección «Cómo funciona kywai» para el prompt del coordinador. */
 export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[] {
   const ownCode = isInside(opts.projectDir, e.codeDir)
@@ -66,6 +73,9 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
   return [
     '',
     '## Cómo funciona kywai (tenlo en cuenta antes de decidir)',
+    '',
+    '### Cómo escribes en "reply"',
+    `- Se lee en el chat: ${CHAT_STYLE}`,
     '',
     '### Dónde trabaja el equipo',
     '- Todos trabajáis DENTRO de la carpeta de este proyecto. Nadie del equipo puede cambiar kywai en sí (su interfaz, su música y sus sonidos, el espacio 3D, sus funciones, cómo planificas tú): es otro programa, con su código aparte, que se cambia desde su desarrollo y llega aquí con ⚙ → «Buscar actualizaciones…».',
@@ -168,6 +178,7 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
 /** Regla para el encargo de cada tarea: no tocar el código de kywai (salvo que sea la carpeta del proyecto). */
 export function taskGuideRules(projectDir: string, e: GuideEnv = env): string[] {
   const rules = [
+    `- Tu respuesta final sale en el chat: ${CHAT_STYLE}`,
     '- Si la tarea pide algo que no puedes producir de verdad (audio, música, voz, vídeo, o imágenes si no tienes una herramienta para generarlas), no entregues archivos vacíos ni de mentira: haz lo más cercano que sí puedas (por ejemplo, código que lo genere) y explícalo en tu respuesta.',
     '- No hagas git commit ni git push, ni publiques nada (GitHub, paquetes, webs), salvo que la tarea lo pida expresamente: deja los cambios en los archivos para que el usuario los revise.'
   ]
