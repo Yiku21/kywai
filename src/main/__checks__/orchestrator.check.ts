@@ -84,6 +84,9 @@ async function defaultWork(o: RunAgentOptions): Promise<RunAgentResult> {
 
 /** Qué contesta el verificador (otra familia, modo plan) a cada comprobación; sin lista, «cumple». */
 let verdicts: string[] = []
+/** Cuánto tarda de más cada verificación, y cuántas hay en marcha (para ver qué se hace a la vez). */
+let verifyDelay = 0
+let verifying = 0
 const isVerify = (o: RunAgentOptions): boolean => o.mode === 'plan' && o.prompt.includes('«VEREDICTO: CUMPLE»')
 const isVerifyCall = (c: { mode: string; prompt: string }): boolean => c.mode === 'plan' && c.prompt.includes('«VEREDICTO: CUMPLE»')
 
@@ -97,7 +100,9 @@ async function fakeRun(o: RunAgentOptions): Promise<RunAgentResult> {
     return { ok: true, text: 'Ya está hecho: el motor, la web y el script de build quedan en artifacts/. Para probarlo, abre artifacts/index.html.', usage: { input: 40, output: 20 } }
   }
   if (isVerify(o)) {
-    await sleep(10)
+    verifying++
+    await sleep(10 + verifyDelay)
+    verifying--
     return { ok: true, text: verdicts.shift() ?? 'VEREDICTO: CUMPLE\nLeí los archivos y hacen lo pedido.', usage: { input: 30, output: 5 } }
   }
   if (o.mode === 'plan') {
@@ -1136,6 +1141,35 @@ async function main(): Promise<void> {
         assert.ok(v4.prompt.includes('## Cómo se ve') && v4.prompt.includes('boom is not defined'), 'el verificador sabe qué mirar y ve los errores')
       } finally {
         __setUiCapturerForChecks(null)
+        workBehaviour = () => null
+      }
+    })
+
+    await check('U4: un agente libre empieza su siguiente tarea mientras se verifica la anterior', async () => {
+      hermesOnline = false
+      await refreshPresence()
+      const up = store.createProject('Cola sin esperas')
+      planResponses = {
+        claude: plan('Codex hace las dos.', [
+          { key: 't1', title: 'Página de alta', description: 'Crea artifacts/alta.html.', agent: 'codex', difficulty: 'medium', deliverable: 'file', acceptance: 'existe' },
+          { key: 't2', title: 'Página de baja', description: 'Crea artifacts/baja.html.', agent: 'codex', difficulty: 'medium', deliverable: 'file', acceptance: 'existe' }
+        ])
+      }
+      verdicts = []
+      verifyDelay = 400
+      const seenVerifying: number[] = []
+      workBehaviour = (o) => {
+        if (o.agent.id === 'codex') seenVerifying.push(verifying)
+        return null
+      }
+      try {
+        const { runId } = await sendMessage({ projectId: up.id, text: 'Haz las páginas de alta y baja', filePaths: [] })
+        await waitFor(() => !!finished(runId), 15000, 'run U4')
+        assert.equal(seenVerifying.length, 2, 'Codex hace las dos tareas')
+        const ts = store.snapshotProject(up.id).tasks.filter((t) => t.runId === runId)
+        assert.deepEqual(ts.map((t) => [t.status, t.verification?.ok]), [['done', true], ['done', true]])
+      } finally {
+        verifyDelay = 0
         workBehaviour = () => null
       }
     })
