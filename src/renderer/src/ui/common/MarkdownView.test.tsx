@@ -66,3 +66,19 @@ describe('imágenes y enlaces con rutas locales', () => {
     expect(container.querySelector('a')!.getAttribute('href')).toBe('/Users/usuario/Proyecto/artifacts/mapas/rutas.md')
   })
 })
+
+describe('MarkdownView: botón de copiar en los bloques de código', () => {
+  it('cada bloque lleva su botón y copia el texto tal cual, sin el salto final', async () => {
+    const writeText = vi.fn(async () => {})
+    vi.stubGlobal('isSecureContext', true)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    await render(false, 'Entra:\n\n```bash\napt update && apt install -y samba\nuseradd -M esposa\n```\n\nY luego `ls`.')
+    const buttons = container.querySelectorAll('button')
+    expect(buttons).toHaveLength(1)
+    await act(async () => {
+      buttons[0].click()
+    })
+    expect(writeText).toHaveBeenCalledWith('apt update && apt install -y samba\nuseradd -M esposa')
+    expect(buttons[0].textContent).toBe('Copiado')
+  })
+})

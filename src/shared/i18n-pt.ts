@@ -425,6 +425,8 @@ export const pt: Record<string, string> = {
   "Ábrelo una vez en cada dispositivo (con Tailscale activo). Es tu llave: no lo compartas.": "Abra-o uma vez em cada dispositivo (com o Tailscale ativo). É a sua chave: não compartilhe.",
   "Copiado": "Copiado",
   "Copiar": "Copiar",
+  "Copiar el código": "Copiar o código",
+  "No se pudo copiar": "Não foi possível copiar",
   "Cambiar el código (anula los enlaces anteriores)": "Trocar o código (invalida os links anteriores)",
   "Restringir los clientes a las carpetas de los proyectos": "Limitar os clientes às pastas dos projetos",
   "Los clientes de escritorio solo ven las carpetas de los proyectos.": "Os clientes de desktop só veem as pastas dos projetos.",

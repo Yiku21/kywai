@@ -486,6 +486,8 @@ export const en: Record<string, string> = {
   'Ábrelo una vez en cada dispositivo (con Tailscale activo). Es tu llave: no lo compartas.': 'Open it once on each device (with Tailscale on). It\'s your key: don\'t share it.',
   'Copiado': 'Copied',
   'Copiar': 'Copy',
+  'Copiar el código': 'Copy code',
+  'No se pudo copiar': 'Could not copy',
   'Cambiar el código (anula los enlaces anteriores)': 'Change the code (invalidates previous links)',
   'Restringir los clientes a las carpetas de los proyectos': 'Restrict clients to the project folders',
   'Los clientes de escritorio solo ven las carpetas de los proyectos.': 'Desktop clients only see the project folders.',
