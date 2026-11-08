@@ -97,6 +97,8 @@ beforeEach(() => {
   vi.stubEnv('CODEX_HOME', '')
   vi.stubEnv('HERMES_HOME', join(home, '.hermes'))
   vi.stubEnv('XDG_CONFIG_HOME', join(home, '.config'))
+  vi.stubEnv('APPDATA', join(home, 'AppData', 'Roaming'))
+  vi.stubEnv('LOCALAPPDATA', join(home, 'AppData', 'Local'))
   const cdir = join(home, '.claude', 'projects', work.replace(/[^A-Za-z0-9]/g, '-'))
   mkdirSync(cdir, { recursive: true })
   writeFileSync(join(cdir, `${SID}.jsonl`), claudeSession(work))
@@ -377,7 +379,10 @@ describe('solo lo que empezó el usuario', () => {
     )
   }
   const desktopIndex = (file: string, o: Record<string, unknown>): void => {
-    const dir = join(home, '.config', 'Claude', 'claude-code-sessions', 'cuenta', 'org')
+    const config = process.platform === 'darwin'
+      ? join(home, 'Library', 'Application Support')
+      : process.platform === 'win32' ? process.env.APPDATA! : process.env.XDG_CONFIG_HOME!
+    const dir = join(config, 'Claude', 'claude-code-sessions', 'cuenta', 'org')
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, file), JSON.stringify(o))
   }
