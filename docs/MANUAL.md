@@ -656,7 +656,10 @@ documentación no confirma y pueden necesitar ajustes.
   «Integrar y probar» que ejecuta las pruebas y comprueba el conjunto contra lo pedido. Solo reparte si se cumplen
   las tres condiciones: cada parte tiene trabajo de sobra, las partes van en archivos distintos sin estado compartido
   y la interfaz entre ellas se puede fijar de antemano; si falta alguna, una sola tarea (dividir trabajo acoplado lo
-  empeora). Y nunca reparte una **continuación** («no funciona…», «ahora añade…»): va entera al mismo agente que
+  empeora). Si una petición trae **varios encargos distintos** que no se necesitan entre sí («arregla el login y además
+  escribe el README»), cada uno es su tarea sin dependencias y, si varios agentes sirven igual de bien, para agentes
+  distintos: así empiezan a la vez (dos tareas del mismo agente van una detrás de otra). Solo encadena una tarea a
+  otra si necesita de verdad su resultado o sus archivos. Y nunca reparte una **continuación** («no funciona…», «ahora añade…»): va entera al mismo agente que
   hizo ese trabajo. Puedes forzarlo escribiendo **«en equipo»** o **«un solo agente»** en la petición. No añade revisiones, auditorías ni correcciones encadenadas salvo que lo pidas (escribe **«con
   revisión»**), y entonces van con el modelo normal. El agente local no recibe trabajo pesado. (Medido en la prueba
   de la app de gastos: con revisiones encadenadas tardó 49 min frente a 25 de Codex solo, con la misma calidad.)
