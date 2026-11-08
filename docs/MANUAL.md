@@ -1053,6 +1053,12 @@ dice cuánto suelen tardar las tareas parecidas. Ya no hay una barra estimada qu
 agente lleva más de 30 s sin contar nada (por ejemplo, escribiendo un archivo largo de una vez), lo dice: «Pensando
 o escribiendo algo largo · sin novedades desde hace N min». Con «Reducir efectos» el brillo y el latido se quitan.
 
+Cada paso real del agente se nota: en el chat, su última acción **entra deslizándose** y empuja a las dos
+anteriores, que se van apagando; la etapa que termina se marca con un ✓ que salta, y cuando la tarea acaba bien
+mientras miras, su bloque da un **destello verde**. En el espacio 3D, cada comando, archivo o mensaje del agente
+lanza una **chispa de su color** desde su robot al proyecto, que late al recibirla. Nada de esto va con
+temporizador: si el agente no hace nada, no se mueve nada. «Reducir efectos» lo quita todo.
+
 ### Respuesta final del coordinador
 
 Cuando un plan de varias tareas termina, el coordinador no se limita a la lista de ✓: con todos los resultados
