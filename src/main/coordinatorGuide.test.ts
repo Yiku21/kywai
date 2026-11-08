@@ -157,6 +157,7 @@ describe('lo que sabe el coordinador de kywai', () => {
     expect(CHAT_STYLE).toContain('empieza por el resultado')
     expect(CHAT_STYLE).toContain('párrafos cortos')
     expect(CHAT_STYLE).toContain('en lista')
+    expect(CHAT_STYLE).toContain('nunca con «§»')
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false, aboutApp: false }, env()))
     expect(g).toContain(`Se lee en el chat: ${CHAT_STYLE}`)
     expect(text(taskGuideRules(proj, env()))).toContain(`Tu respuesta final sale en el chat: ${CHAT_STYLE}`)

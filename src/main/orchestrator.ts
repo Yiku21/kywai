@@ -2388,7 +2388,7 @@ const TODO_TOOL: Partial<Record<AgentConfig['provider'], string>> = {
 }
 
 /** Lo que cuenta un agente mientras trabaja sale en el chat como avisos cortos (como hace Claude en su app). */
-const NARRATE_RULE = '- Mientras trabajas, cuenta lo que haces en frases cortas (una o dos líneas) antes de cada paso importante: qué vas a hacer, qué problema encontraste y cómo lo vas a resolver. Se ven en el chat como avisos de progreso: nada de párrafos largos, listas ni repetir la tarea. Si haces capturas o generas imágenes para comprobar tu trabajo, guárdalas dentro de la carpeta del proyecto (por ejemplo en artifacts/) para que se vean en el chat.'
+const NARRATE_RULE = '- Mientras trabajas, cuenta lo que haces en frases cortas (una o dos líneas) antes de cada paso importante: qué vas a hacer, qué problema encontraste y cómo lo vas a resolver. Se ven en el chat como avisos de progreso: nada de párrafos largos, listas ni repetir la tarea, y sin símbolos como «§» (di «apartado 3.1»). Si haces capturas o generas imágenes para comprobar tu trabajo, guárdalas dentro de la carpeta del proyecto (por ejemplo en artifacts/) para que se vean en el chat.'
 
 function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, deps: Task[], tools = false): string {
   const st = store.getProject(run.projectId)
