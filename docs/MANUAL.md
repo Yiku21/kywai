@@ -1621,7 +1621,8 @@ A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
 - **Fijados**: los proyectos y las conversaciones que fijas (clic derecho → «Fijar»). Se guarda en el proyecto,
   así que se ve igual en el navegador y en los clientes.
 - **Proyectos**: todos, con **+** para crear uno. La flecha de cada proyecto despliega sus conversaciones (el abierto
-  se despliega solo); un punto azul que late indica que el equipo está trabajando en él.
+  se despliega solo); un punto azul que late indica que el equipo está trabajando en él. Clic en un proyecto: lo abre
+  y lo despliega; **otro clic en el que ya está abierto lo pliega** (y otro más lo vuelve a desplegar), como en Órbita.
 - **Recientes**: las últimas conversaciones de todos los proyectos; al final, «Ver todo el historial».
 - Abajo, **dónde estás conectado** (el servidor) y la **rueda ⚙**: ver [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes).
 
