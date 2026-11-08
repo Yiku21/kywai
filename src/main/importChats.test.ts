@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { zipSync, strToU8 } from 'fflate'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConfig } from '@shared/types'
 import * as store from './projects'
 import { exportSessions, initAgentSessions, lastSession } from './agentSessions'
@@ -93,8 +93,9 @@ beforeEach(() => {
   store.initProjects(join(root, 'ws'))
   initAgentSessions(join(root, 'ws'))
   initImports(join(root, 'ws'), home)
-  delete process.env.CLAUDE_CONFIG_DIR
-  delete process.env.CODEX_HOME
+  vi.stubEnv('CLAUDE_CONFIG_DIR', '')
+  vi.stubEnv('CODEX_HOME', '')
+  vi.stubEnv('HERMES_HOME', join(home, '.hermes'))
   const cdir = join(home, '.claude', 'projects', work.replace(/[^A-Za-z0-9]/g, '-'))
   mkdirSync(cdir, { recursive: true })
   writeFileSync(join(cdir, `${SID}.jsonl`), claudeSession(work))
@@ -105,6 +106,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.unstubAllEnvs()
   store.flushAll()
   rmSync(root, { recursive: true, force: true })
 })
