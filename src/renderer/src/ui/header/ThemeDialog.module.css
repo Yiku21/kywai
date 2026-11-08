@@ -412,3 +412,9 @@
     radial-gradient(circle at 70% 70%, #fff 0 1px, transparent 1.5px) 0 0 / 18px 18px, linear-gradient(180deg, #0a1220 55%, #6a7686);
   --pv-glow: rgba(240, 192, 80, 0.5);
 }
+
+.preview[data-preview='kywai'] {
+  --pv-app:#e5d5ba; --pv-panel:#f5eddf; --pv-border:rgba(118,94,59,.3);
+  --pv-line:rgba(91,83,65,.32); --pv-bubble:#ddd1b8; --pv-accent:#478e80;
+  --pv-stage:linear-gradient(180deg,#af93ba,#ecc18d 42%,#b4c7bd); --pv-glow:rgba(235,184,106,.4);
+}

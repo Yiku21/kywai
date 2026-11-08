@@ -215,6 +215,8 @@ Detalles y ejemplo de mod en el [manual](docs/MANUAL.md#extensiones-tus-servidor
 
 ### 🎨 Comodidades
 
+**Refugio Kywai** añade un observatorio-invernadero frente al mar: cúpula de madera y cristal, cielo y agua animados, talleres individuales, árbol compartido y asiento turquesa. Cambia al modo noche junto a Música; se recuerda por dispositivo.
+
 - **El chat, lo primero.** En ventanas pequeñas ocupa más sitio, puedes arrastrar su borde al ancho que quieras (doble clic para volver al automático) y en ventanas estrechas el chat y el mundo 3D pasan a ser dos pestañas.
 - **Dictado por voz en local** con Whisper en tu propio ordenador. Sin servicios externos, y el audio se borra después.
 - **Mapas, colores y decorados.** Siete mapas 3D, la Ciudad digital en siete colores y cuatro decorados. El tema puede seguir al servidor o ser propio de cada dispositivo; Órbita adapta su paleta, sin reproducir los mapas del escritorio.

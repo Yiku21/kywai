@@ -156,7 +156,7 @@ export const TEXTOS = {
     'features.7t': "Work you can watch",
     'features.7b': "Progress messages, expandable commands and results, edited files, screenshots and images as work happens. The 3D world reflects the team’s status, and you can rate results.",
     'features.8t': "A space of your own",
-    'features.8b': "Seven maps, Digital City in seven colors and four decorations, with a shared or per-device theme. Adjustable chat, five languages, voices, YouTube music, Audius and radio; Órbita adds a camera, dictation and an offline message queue.",
+    'features.8b': "Kywai Retreat adds a seaside greenhouse with personal workshops, a shared tree and night mode. Seven maps, Digital City in seven colors and four decorations, with a shared or per-device theme. Adjustable chat, five languages, voices, YouTube music, Audius and radio; Órbita adds a camera, dictation and an offline message queue.",
   },
 
   es: {
@@ -304,7 +304,7 @@ export const TEXTOS = {
     'features.7t': "Trabajo a la vista",
     'features.7b': "Mensajes de progreso, comandos y resultados desplegables, archivos editados, capturas e imágenes en directo. El mundo 3D refleja el estado del equipo y puedes valorar sus resultados.",
     'features.8t': "Tu espacio, a tu gusto",
-    'features.8b': "Siete mapas, Ciudad digital en siete colores y cuatro decorados, con tema compartido o por dispositivo. Chat ajustable, cinco idiomas, voces, música de YouTube, Audius y radios; Órbita añade cámara, dictado y mensajes en cola sin conexión.",
+    'features.8b': "Refugio Kywai añade un invernadero frente al mar con talleres individuales, árbol compartido y modo noche. Siete mapas, Ciudad digital en siete colores y cuatro decorados, con tema compartido o por dispositivo. Chat ajustable, cinco idiomas, voces, música de YouTube, Audius y radios; Órbita añade cámara, dictado y mensajes en cola sin conexión.",
   },
 
   pt: {
@@ -452,7 +452,7 @@ export const TEXTOS = {
     'features.7t': "Trabalho à vista",
     'features.7b': "Mensagens de progresso, comandos e resultados expansíveis, arquivos editados, capturas e imagens ao vivo. O mundo 3D reflete o estado da equipe, e você pode avaliar os resultados.",
     'features.8t': "Seu espaço, do seu jeito",
-    'features.8b': "Sete mapas, Cidade digital em sete cores e quatro decorações, com tema compartilhado ou por dispositivo. Chat ajustável, cinco idiomas, vozes, música do YouTube, Audius e rádios; o Órbita inclui câmera, ditado e fila de mensagens sem conexão.",
+    'features.8b': "Refúgio Kywai traz uma estufa à beira-mar com oficinas individuais, árvore compartilhada e modo noturno. Sete mapas, Cidade digital em sete cores e quatro decorações, com tema compartilhado ou por dispositivo. Chat ajustável, cinco idiomas, vozes, música do YouTube, Audius e rádios; o Órbita inclui câmera, ditado e fila de mensagens sem conexão.",
   },
 
   fr: {
@@ -600,7 +600,7 @@ export const TEXTOS = {
     'features.7t': "Un travail visible",
     'features.7b': "Messages de progression, commandes et résultats dépliables, fichiers modifiés, captures et images en direct. Le monde 3D reflète l’état de l’équipe et vous pouvez évaluer les résultats.",
     'features.8t': "Un espace à votre goût",
-    'features.8b': "Sept cartes, Cité numérique en sept couleurs et quatre décors, avec thème partagé ou par appareil. Chat ajustable, cinq langues, voix, musique YouTube, Audius et radios ; Órbita ajoute caméra, dictée et file de messages hors connexion.",
+    'features.8b': "Refuge Kywai ajoute une serre face à la mer avec des ateliers individuels, un arbre commun et un mode nuit. Sept cartes, Cité numérique en sept couleurs et quatre décors, avec thème partagé ou par appareil. Chat ajustable, cinq langues, voix, musique YouTube, Audius et radios ; Órbita ajoute caméra, dictée et file de messages hors connexion.",
   },
 
   zh: {
@@ -748,6 +748,6 @@ export const TEXTOS = {
     'features.7t': "看得见的工作过程",
     'features.7b': "实时进度消息、可展开的命令与结果、修改的文件、截图和图片。3D 世界反映团队状态，你还可以评价结果。",
     'features.8t': "属于你的空间",
-    'features.8b': "七款地图、七种配色的数字城市与四款装饰场景，主题可共享或按设备设置。可调整聊天宽度、五种语言、语音、YouTube 音乐、Audius 和电台；Órbita 还提供相机、听写和离线消息队列。",
+    'features.8b': "Kywai 静居带来面朝大海的温室、独立工作坊、共享树木和夜间模式。七款地图、七种配色的数字城市与四款装饰场景，主题可共享或按设备设置。可调整聊天宽度、五种语言、语音、YouTube 音乐、Audius 和电台；Órbita 还提供相机、听写和离线消息队列。",
   },
 }

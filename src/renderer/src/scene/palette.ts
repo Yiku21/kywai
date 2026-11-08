@@ -157,9 +157,15 @@ function theme(p: Omit<ScenePalette, 'rimLow' | 'idle'>): ScenePalette {
   return { ...p, rimLow: p.rim, idle: mixHex(p.primary, p.body, 0.45) }
 }
 
-export type SceneThemeId = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'relicario' | 'telar' | 'halloween' | 'navidad'
+export type SceneThemeId = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'relicario' | 'telar' | 'halloween' | 'navidad' | 'kywai'
 
 export const PALETTES: Record<SceneThemeId, ScenePalette> = {
+  kywai: { ...CLASSIC, world: 'kywai', core: 'tree', light: true, bloom: .28,
+    bg: '#a49bb6', fog: '#d7a9a1', primary: '#4fd1c5', secondary: '#ba955e', accent: '#eab770',
+    body: '#c89b6a', bodyTop: '#f2e6d0', rim: '#4fd1c5', rimLow: '#357b77', idle: '#7d9e95',
+    vignette: .16, ink: [.13,.12,.10], frost: { opacity: .86, color: [.89,.83,.71] },
+    lights: { sky: '#ede5f5', ground: '#9a795c', hemi: 1.3, ambient: '#fff3df', ambientI: .65,
+      key: '#ffd2a1', keyI: 2.05, fill: '#c3cdeb', fillI: .85, env: ['#fff3d8','#e5c4a0','#b8c8eb','#91765e'] } },
   clasico: CLASSIC,
   orbita: CLASSIC,
   // Claro y cálido: suelo de piedra, ciudad blanca con ventanas doradas, circuitos verdes y aros dorados.
@@ -596,6 +602,7 @@ export const PALETTES: Record<SceneThemeId, ScenePalette> = {
 
 /** Los siete mapas: parten de los colores de la Ciudad del mismo nombre y cambian entorno, núcleo, niebla y luces. */
 export const WORLD_PALETTES: Record<WorldStyle, ScenePalette> = {
+  kywai: PALETTES.kywai,
   clasico: { ...CLASSIC, world: 'clasico', core: 'hologram' },
   orbita: {
     ...CLASSIC,

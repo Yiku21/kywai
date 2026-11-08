@@ -215,6 +215,8 @@ Details and a sample mod in the [manual](docs/MANUAL.md#extensiones-tus-servidor
 
 ### 🎨 Comfort
 
+**Kywai Retreat** adds a seaside greenhouse observatory with a timber-and-glass dome, animated sky and water, personal workshops, a shared tree and a turquoise seat. Switch to night beside Music; the preference is remembered on each device.
+
 - **The chat comes first.** In smaller windows it takes more room, you can drag its edge to the width you like (double-click to go back to automatic), and in narrow windows the chat and the 3D world become two tabs.
 - **Local voice dictation** with Whisper on your own computer. No external services, and the audio is deleted afterwards.
 - **Maps, colors and decorations.** Seven 3D maps, the Digital City in seven colors and four decorated worlds. Follow the server’s theme or choose one per device; Órbita adapts its palette without reproducing the desktop maps.

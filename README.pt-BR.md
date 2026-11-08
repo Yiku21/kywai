@@ -215,6 +215,8 @@ Detalhes e exemplo de mod no [manual](docs/MANUAL.md#extensiones-tus-servidores-
 
 ### 🎨 Conforto
 
+**Refúgio Kywai** traz um observatório-estufa à beira-mar: cúpula de madeira e vidro, céu e água animados, oficinas individuais, árvore compartilhada e assento turquesa. Ative o modo noturno ao lado de Música; a preferência é lembrada por dispositivo.
+
 - **O chat em primeiro lugar.** Em janelas menores ele ocupa mais espaço, você pode arrastar a borda até a largura que quiser (clique duplo volta ao automático) e em janelas estreitas o chat e o mundo 3D viram duas abas.
 - **Ditado por voz local** com Whisper no seu próprio computador. Sem serviços externos, e o áudio é apagado em seguida.
 - **Mapas, cores e decorações.** Sete mapas 3D, a Cidade digital em sete cores e quatro decorações. Siga o tema do servidor ou escolha um por dispositivo; o Órbita adapta a paleta, sem reproduzir os mapas do desktop.

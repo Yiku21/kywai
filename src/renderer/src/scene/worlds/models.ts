@@ -6,9 +6,9 @@ import { addMarfilPalace } from './marfilPalace'
 import { addGrafitoFactory, addGrafitoReactor } from './grafitoFactory'
 import { forestClear, forestHeight, forestRandom } from './forestLayout'
 
-export type WorldStyle = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva'
+export type WorldStyle = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'kywai'
 export type Vec = [number, number, number]
-export type Solid = 'box' | 'cylinder' | 'hex' | 'sphere' | 'dome' | 'rock' | 'cone' | 'ring' | 'leaf' | 'arch' | 'cable' | 'trunk' | 'orbitDeck' | 'orbitRail'
+export type Solid = 'box' | 'cylinder' | 'hex' | 'sphere' | 'dome' | 'rock' | 'cone' | 'ring' | 'leaf' | 'arch' | 'cable' | 'trunk' | 'orbitDeck' | 'orbitRail' | 'crystal' | 'gable' | 'pointedArch' | 'inlayRing' | 'cushion' | 'planter' | 'homeRib' | 'homeMullion'
 export interface Piece {
   shape: Solid
   at: Vec
@@ -16,6 +16,7 @@ export interface Piece {
   color: string
   glow?: number
   rotation?: Vec
+  wind?: { root: Vec; height: number; flexibility: number }
   quaternion?: THREE.Quaternion
 }
 

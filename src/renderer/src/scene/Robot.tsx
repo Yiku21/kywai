@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import type { AgentConfig, AgentRuntime, QuotaInfo, StationConfig } from '@shared/types'
 import { avatarFor } from '@shared/defaults'
 import { currentData, useCowork } from '@/store/cowork'
+import { buildHomeRobot } from './homeRobot'
 import { buildRobot } from './robotModel'
 import { applyEyes } from './robotEyes'
 import { personaFor } from './personality'
@@ -67,7 +68,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
 
   const avatar = avatarFor(agent)
   const avatarKey = JSON.stringify(avatar)
-  const model = useMemo(() => buildRobot(avatar, agent.color), [avatarKey, agent.color]) // eslint-disable-line react-hooks/exhaustive-deps
+  const model = useMemo(() => palette.world === 'kywai' ? buildHomeRobot(avatar, agent.color, `${agent.name} ${agent.id}`) : buildRobot(avatar, agent.color), [avatarKey, agent.color, agent.name, agent.id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => model.dispose(), [model])
 
   const brain = useMemo(() => new RobotBrain(agent.id), [agent.id])
@@ -122,9 +123,11 @@ export function Robot({ agent, station, stations, leaving }: Props) {
 
   // Posiciones de referencia (estación, punto junto al núcleo, consola)
   useLayoutEffect(() => {
-    brain.home.copy(stationVec(station, ROBOT_Y))
+    const height = palette.world === 'kywai' ? 2.35 : ROBOT_Y
+    brain.home.copy(stationVec(station, height))
     brain.bay.copy(coreBay(station))
-    brain.consolePos.copy(stationVec(station, ROBOT_Y + 0.1)).add(consoleOffset(station))
+    if (palette.world === 'kywai') brain.bay.y = height
+    brain.consolePos.copy(stationVec(station, height + 0.1)).add(consoleOffset(station))
     brain.consoleSide = consoleSide(station)
   }, [brain, station])
 
@@ -233,7 +236,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     const g = outer.current
     g.position.copy(brain.pos)
     const sc = Math.max(0.0001, brain.scale)
-    g.scale.setScalar(sc * ROBOT_SCALE)
+    g.scale.setScalar(sc * ROBOT_SCALE * (palette.world === 'kywai' ? 1.28 : 1))
     g.visible = brain.scale > 0.01
     if (!leaving) setAnchorOpacity(`robot:${agent.id}`, brain.scale < 0.4 ? 0 : Math.min(1, (brain.scale - 0.4) / 0.4))
 
@@ -248,9 +251,9 @@ export function Robot({ agent, station, stations, leaving }: Props) {
 
     applyEyes(model, brain, h)
 
-    model.bodyMat.emissiveIntensity = 0.06 + brain.glow * 0.55 + h * 0.08
+    model.bodyMat.emissiveIntensity = palette.world === 'kywai' ? .015 + brain.glow * .08 : 0.06 + brain.glow * 0.55 + h * 0.08
     if (model.logoMat) model.logoMat.opacity = 0.5 + brain.glow * 1.4 - brain.offlineAmt * 0.3
-    model.thrusterMat.opacity = 0.18 + brain.glow * 1.1 - brain.restAmt * 0.12
+    model.thrusterMat.opacity = palette.world === 'kywai' ? 0 : 0.18 + brain.glow * 1.1 - brain.restAmt * 0.12
 
     // Accesorios: movimiento secundario
     const w = Math.sin(t * 1.6 + brain.phase * 9)

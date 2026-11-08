@@ -6,6 +6,7 @@ import { useDemoLabel, useDemoRunning } from '../common/useDemoEngine'
 import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SpaceHeader.module.css'
+import { HomeNightToggle } from './HomeNightToggle'
 import { t } from '@/lib/i18n'
 
 /** Fila superior del panel del espacio digital (la demo se activa en ⚙ → Ajustes → «Modo demo»). */
@@ -22,6 +23,7 @@ export function SpaceHeader() {
       </div>
 
       <div className={s.right}>
+        <HomeNightToggle />
         <MusicButton reduced={reduced} />
         {isDemo ? (
           <>

@@ -18,6 +18,7 @@ import {
 import { cx } from '../common/util'
 import s from './ThemeDialog.module.css'
 import { t } from '@/lib/i18n'
+import { HOME } from '@/lib/theme'
 import { WorldPreview } from './WorldPreview'
 
 /**
@@ -34,6 +35,7 @@ export function ThemeGrid() {
         {WORLDS.map((th) => (
           <Card key={th.id} info={th} on={theme === th.id} onPick={() => setTheme(th.id)} />
         ))}
+        <Card info={HOME} on={theme === HOME.id} onPick={() => setTheme(HOME.id)} />
         {/* La Ciudad digital, una tarjeta más; al elegirla se despliega debajo la fila de sus colores. */}
         <Card
           info={{ id: cityPreview, name: t('Ciudad digital'), hint: t('El espacio de siempre, con el color que elijas') }}
@@ -139,7 +141,7 @@ function Preview({ id }: { id: ThemeId }) {
         </span>
         <span className={s.pvSpace}>
           <span className={s.pvStage}>
-            {worldOf(id) ? <WorldPreview id={worldOf(id)!} /> : <span className={s.pvCore} />}
+            {id === 'kywai' ? <WorldPreview id='kywai' /> : worldOf(id) ? <WorldPreview id={worldOf(id)!} /> : <span className={s.pvCore} />}
           </span>
         </span>
       </span>

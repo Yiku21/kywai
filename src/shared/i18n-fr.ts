@@ -2477,4 +2477,8 @@ export const fr: Record<string, string> = {
   "No reconozco ese archivo: elige la exportación de ChatGPT o de Claude.ai": "Je ne reconnais pas ce fichier : choisissez l’export de ChatGPT ou de Claude.ai",
   "Elige la exportación de ChatGPT o de Claude.ai": "Choisissez l’export de ChatGPT ou de Claude.ai",
   "La exportación supera los límites de lectura; divídela en archivos más pequeños": "L’exportation dépasse les limites de lecture ; divisez-la en fichiers plus petits",
+  "Refugio Kywai": "Refuge Kywai",
+  "Observatorio-invernadero frente al mar, con talleres y un árbol compartido": "Observatoire-serre face à la mer, avec des ateliers et un arbre commun",
+  "Modo noche": "Mode nuit",
+  "¿Qué creamos hoy?": "Que créons-nous aujourd’hui ?",
 }

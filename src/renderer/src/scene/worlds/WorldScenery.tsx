@@ -18,14 +18,15 @@ import { IndustrialFactory } from './IndustrialEffects'
 import { OrbitalSpace } from './OrbitalSpace'
 import { MatrixAtmosphere } from './MatrixAtmosphere'
 import { CyberNetwork } from './CyberNetwork'
+import { HOME_PLANT_DECLARATIONS, HOME_PLANT_TRANSFORM } from './homeBreeze'
 import { MarfilGarden } from './MarfilGarden'
 
 /** Shared geometry and material per batch; cleaned up when changing theme. No per-frame rebuilds. */
-function Model({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
+export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
   const resources = useMemo(() => {
     const textures = new Map<string, ReturnType<typeof surfaceMaps>>()
     const geometry = new Map<string, THREE.BufferGeometry>()
-    const wind = { value: 0 }
+    const wind = { value: 0 }, breezeEnabled = { value: 1 }
     const groups = new Map<string, Piece[]>()
     for (const p of pieces) {
       const key = `${p.shape}:${p.color}:${p.glow ?? 0}`
@@ -37,9 +38,16 @@ function Model({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
       const first = parts[0]
       const small = parts.every(p => Math.max(...p.size) < 0.13)
       const glazing = style === 'matrix' && first.shape === 'box' && parts.every(p => Math.min(...p.size) < 0.06)
-      const geometryKey = `${first.shape}:${small}:${glazing}`
+      const moving = style === 'kywai' && parts.some(p => p.wind)
+      const geometryKey = `${first.shape}:${small}:${glazing}${moving ? `:wind-${key}` : ''}`
       if (!geometry.has(geometryKey)) geometry.set(geometryKey, glazing ? new THREE.BoxGeometry(1, 1, 1) : detailedGeometry(first.shape, small))
       const geo = geometry.get(geometryKey)!
+      if(moving) {
+        const roots=new Float32Array(parts.length*4),flex=new Float32Array(parts.length)
+        parts.forEach((p,i)=>{if(p.wind){roots.set([...p.wind.root,p.wind.height],i*4);flex[i]=p.wind.flexibility}})
+        geo.setAttribute('homePlantRoot',new THREE.InstancedBufferAttribute(roots,4))
+        geo.setAttribute('homePlantFlex',new THREE.InstancedBufferAttribute(flex,1))
+      }
       const surface = surfaceFor(style, first.shape, first.color)
       if (!textures.has(surface)) textures.set(surface, surfaceMaps(surface))
       const maps = textures.get(surface)!
@@ -50,7 +58,14 @@ function Model({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
         clearcoatRoughness: 0.3, envMapIntensity: metallic ? 1.0 : 0.7,
         side: first.shape === 'leaf' ? THREE.DoubleSide : THREE.FrontSide,
         emissive: first.color, emissiveIntensity: first.glow || 0 })
-      if (first.shape === 'leaf') {
+      if (surface === 'linen') { mat.metalness=0;mat.sheen=1;mat.sheenColor.copy(new THREE.Color(first.color)).lerp(new THREE.Color('#f3ead7'),.3);mat.sheenRoughness=.85;mat.clearcoat=0 }
+      if (style === 'kywai' && first.shape === 'leaf') {mat.metalness=0;mat.roughness=1;mat.sheen=0;mat.clearcoat=0;mat.emissiveIntensity=0}
+      if (style === 'kywai' && first.shape === 'crystal' && ['#b7d6e3','#8daebb','#c4dce9','#85bac9','#bfdce3'].includes(first.color)) {
+        mat.map = null; mat.normalMap = null; mat.roughnessMap = null; mat.metalness = 0; mat.roughness = .035;
+        mat.transmission = ['#85bac9','#bfdce3'].includes(first.color) ? .58 : .94; mat.thickness = .6; mat.ior = 1.46; mat.attenuationColor = new THREE.Color('#b1d1de'); mat.attenuationDistance = 5;
+        mat.clearcoat = 1; mat.envMapIntensity = 1.7; mat.emissiveIntensity = 0; mat.flatShading = true;
+      }
+      if (!moving && first.shape === 'leaf') {
         mat.onBeforeCompile = shader => {
           shader.uniforms.worldWind = wind
           shader.vertexShader = `uniform float worldWind;\n${shader.vertexShader}`.replace('#include <begin_vertex>', `#include <begin_vertex>\ntransformed.x += sin(worldWind + instanceMatrix[3].x * 0.8 + instanceMatrix[3].z * 0.5) * 0.035 * (position.y + 0.5);`)
@@ -58,6 +73,20 @@ function Model({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
         mat.customProgramCacheKey = () => 'world-leaf-wind'
       }
       const mesh = new THREE.InstancedMesh(geo, mat, parts.length)
+      if(moving) {
+        const animate=(shader:{uniforms:Record<string,{value:unknown}>;vertexShader:string})=>{
+          shader.uniforms.homeWindTime=wind;shader.uniforms.homeWindEnabled=breezeEnabled
+          shader.vertexShader=HOME_PLANT_DECLARATIONS+shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>\n${HOME_PLANT_TRANSFORM}`)
+        }
+        mat.onBeforeCompile=shader=>{
+          animate(shader)
+          if(first.shape==='leaf') shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nif(!gl_FrontFacing) diffuseColor.rgb*=vec3(1.12,1.10,.94);')
+        }
+        mat.customProgramCacheKey=()=>`kywai-coastal-breeze-${first.shape==='leaf'}`
+        const depth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide})
+        depth.onBeforeCompile=animate;depth.customProgramCacheKey=()=> 'kywai-coastal-breeze-depth'
+        mesh.customDepthMaterial=depth
+      }
       mesh.castShadow = !small && !(first.glow && first.glow > 0.4)
       mesh.receiveShadow = true
       const matrix = new THREE.Matrix4(), pos = new THREE.Vector3(), size = new THREE.Vector3(), quat = new THREE.Quaternion()
@@ -72,10 +101,11 @@ function Model({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
       mesh.name = `world-${key}`
       return mesh
     })
-    return { batches, textures, geometry, wind }
+    return { batches, textures, geometry, wind, breezeEnabled }
   }, [pieces, style])
   useFrame(() => {
-    resources.wind.value = useCowork.getState().reducedEffects ? 0 : registry.time * 0.7
+    resources.wind.value = style === 'kywai' || !useCowork.getState().reducedEffects ? registry.time * 0.7 : 0
+    resources.breezeEnabled.value = useCowork.getState().reducedEffects ? 0 : 1
     const water = resources.textures.get('water')
     if (water && !useCowork.getState().reducedEffects) water.normalMap.offset.set(registry.time * 0.014, registry.time * 0.009)
   })
@@ -84,6 +114,7 @@ function Model({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
     resources.geometry.forEach(g => g.dispose())
     resources.batches.forEach(m => {
       ;(m.material as THREE.Material).dispose()
+      m.customDepthMaterial?.dispose()
       m.dispose()
     })
   }, [resources])
@@ -92,7 +123,8 @@ function Model({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
 
 export function WorldPlatform({ style }: { style: WorldStyle }) {
   const pieces = useMemo(() => [...platformModel(style), ...platformDetails(style)], [style])
-  return <Model pieces={pieces} style={style} />
+  if (style === 'kywai') return <mesh><cylinderGeometry args={[1.8,1.8,.75,48]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
+  return <WorldModel pieces={pieces} style={style} />
 }
 
 const heartTree: ForestTree[] = [{ x: 0, z: 0, height: 4.45, seed: 18691, fine: true }]
@@ -101,7 +133,7 @@ export function WorldCenterpiece({ style }: { style: WorldStyle }) {
   const pieces = useMemo(() => centerpieceModel(style), [style])
   const reduced = useCowork(s => s.reducedEffects)
   return <>
-    <Model pieces={pieces} style={style} />
+    <WorldModel pieces={pieces} style={style} />
     {style === 'orbita' && <Suspense fallback={null}><OrbitalPlanet position={[0, 2.05, 0]} radius={0.94} /></Suspense>}
     {style === 'bosque' && <ForestGrove trees={heartTree} detailed reduced={reduced} centerpiece />}
   </>
@@ -167,7 +199,7 @@ export function WorldScenery({ style, stations, q, reduced }: { style: WorldStyl
   const pieces = useMemo(() => [...environmentModel(style, stations, detail), ...environmentDetails(style, stations, detail)], [style, stations, detail])
   const trees = useMemo(() => style === 'bosque' ? forestStands(stations, detail) : [], [style, stations, detail])
   return <group name={`environment-${style}`}>
-    <Model pieces={pieces} style={style} />
+    <WorldModel pieces={pieces} style={style} />
     <WorldMarkings style={style} stations={stations} />
     {style === 'grafito' && <IndustrialFactory stations={stations} reduced={reduced} detailed={detail} />}
     {style === 'clasico' && <CyberNetwork reduced={reduced} />}

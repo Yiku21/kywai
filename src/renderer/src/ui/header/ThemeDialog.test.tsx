@@ -29,12 +29,24 @@ const group = (label: string): HTMLButtonElement[] =>
 const colorButton = (name: string): HTMLButtonElement => group('Color de la ciudad').find((b) => b.textContent === name)!
 
 describe('temas', () => {
+  it('Refugio Kywai se elige, se recuerda y conserva los otros mapas', async () => {
+    await act(async () => root.render(<ThemeGrid />))
+    const retreat = radios().find(b => b.textContent?.startsWith('Refugio Kywai'))!
+    await act(async () => retreat.click())
+    expect(storedTheme()).toBe('kywai')
+    expect(palette).toBe(PALETTES.kywai)
+    expect(palette.world).toBe('kywai')
+    expect(document.documentElement.dataset.theme).toBe('kywai')
+    expect(retreat.getAttribute('aria-checked')).toBe('true')
+    expect(WORLDS).toHaveLength(7)
+  })
   it('los siete mapas y la Ciudad digital como una tarjeta más (sus siete colores debajo), y cuatro decorados', async () => {
     await act(async () => root.render(<ThemeGrid />))
     const maps = group('Mapas')
-    expect(maps).toHaveLength(8)
+    expect(maps).toHaveLength(9)
     expect(maps.slice(0, 7).map((b) => WORLDS.find((w) => b.textContent?.startsWith(w.name))?.id)).toEqual(WORLDS.map((w) => w.id))
-    expect(maps[7].textContent).toContain('Ciudad digital')
+    expect(maps[7].textContent).toContain('Refugio Kywai')
+    expect(maps[8].textContent).toContain('Ciudad digital')
     expect(group('Color de la ciudad').map((b) => b.textContent)).toEqual(['Índigo', 'Frost Glass', 'Perla', 'Ónix', 'Esmeralda', 'Neón', 'Ultravioleta'])
     expect(group('Decorados')).toHaveLength(4)
     expect(WORLDS.length + CITY_COLORS.length + DECORS.length).toBe(18)
@@ -89,7 +101,7 @@ describe('temas', () => {
     setTheme('mundo-bosque')
     await act(async () => root.render(<ThemeGrid />))
     expect(group('Color de la ciudad')).toHaveLength(0)
-    await act(async () => group('Mapas')[7].click())
+    await act(async () => group('Mapas')[8].click())
     expect(storedTheme()).toBe('clasico')
     expect(group('Color de la ciudad')).toHaveLength(7)
     await act(async () => group('Mapas')[3].click())
