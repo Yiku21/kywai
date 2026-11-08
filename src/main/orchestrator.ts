@@ -36,6 +36,7 @@ import { getConfig, markBudgetAlerted } from './config'
 import { budgetAlertDue, budgetUsd, formatMoney, monthApiSpendUsd, monthKey, usdTo } from '@shared/costs'
 import { isPlanApproval, parsePlan, streamlinePlan, twoHandsPlan, wantsNoReview } from './plan'
 import { lookalikes } from './duplicateTasks'
+import { MAX_TEMP_STATIONS, tempStationId } from '@shared/tempStations'
 import { allRuntimes, deleteRuntime, emit, getRuntime, setRuntime } from './events'
 import * as store from './projects'
 import { expandModCommand } from './mods'
@@ -1111,9 +1112,16 @@ function blockAgent(a: AgentConfig, kind: AgentErrorKind, reason: string, ms?: n
 
 // ---------- sub-agents ----------
 
+/**
+ * Puesto para un becario: el de apoyo fijo si está libre y, si no, uno temporal (st-sub-tmp-N) que el 3D dibuja
+ * mientras lo ocupa y desaparece cuando el becario se va (ver src/shared/tempStations.ts). null solo si ya hay
+ * MAX_TEMP_STATIONS becarios en puestos temporales.
+ */
 function freeSubStation(): string | null {
   const st = getConfig().stations.find((s) => s.forSubagents && !stationUse.has(s.id))
-  return st ? st.id : null
+  if (st) return st.id
+  for (let n = 1; n <= MAX_TEMP_STATIONS; n++) if (!stationUse.has(tempStationId(n))) return tempStationId(n)
+  return null
 }
 
 function spawnBecario(parent: AgentConfig, stationId: string, model: string): AgentConfig {
