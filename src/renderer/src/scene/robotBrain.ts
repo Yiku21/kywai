@@ -6,6 +6,17 @@ import { PERSONAS, type Persona, type SayEvent } from './personality'
 /** Estado visual base, derivado del estado real del agente. */
 export type BaseVisual = 'idle' | 'resting' | 'thinking' | 'working' | 'waiting' | 'error' | 'offline'
 
+/** Actuación ambiental coordinada; nunca cambia la actividad real del agente. */
+export interface SocialPose {
+  position: THREE.Vector3
+  lookAt: THREE.Vector3
+  awake: boolean
+  happy: number
+  surprise: number
+  bounce: number
+  tilt: number
+}
+
 /** Segundos esperando a otro agente antes de aburrirse. */
 const BORED_AFTER = 22
 
@@ -153,6 +164,8 @@ export class RobotBrain {
   persona: Persona = PERSONAS.rookie
   /** Aviso de momentos en los que el robot puede decir algo (bocadillos). */
   onSay: ((e: SayEvent) => void) | null = null
+  social: SocialPose | null = null
+  private readonly socialOffset = new THREE.Vector3()
 
   // Eventos puntuales
   private lastBusy = 0
@@ -326,6 +339,18 @@ export class RobotBrain {
     } else if (fresh && this.rnd() < this.persona.chatty) this.onSay?.('listen')
   }
 
+  /** El trabajo, las transferencias y la atención al usuario tienen prioridad absoluta. */
+  canSocialize(t: number): boolean {
+    return this.initialized && this.activity === 'idle' && this.location === 'station' && !this.moving && !this.leaving && !this.reduced &&
+      t >= this.attentionUntil && t - this.sendStart > 2 && t > this.expectUntil + 1 && t - this.celebrateStart > 2 &&
+      (this.social !== null || t - this.lastBusy > 4)
+  }
+
+  wakeForSocial(t: number): void {
+    this.lastBusy = t
+    this.startGesture('startle', t)
+  }
+
   /** 0..1: cuánto se esfuerza ahora (dificultad de la tarea y tiempo que lleva con ella). */
   private effortLevel(): number {
     const mins = this.taskStartedAt ? Math.max(0, Date.now() - this.taskStartedAt) / 60000 : 0
@@ -397,13 +422,14 @@ export class RobotBrain {
   update(t: number, dt: number, camPos: THREE.Vector3): void {
     dt = Math.min(dt, 0.1)
     const r = this.reduced
+    const social = this.social && this.canSocialize(t) ? this.social : null
     const busy = this.activity === 'thinking' || this.activity === 'working' || this.activity === 'waiting'
     if (busy) this.lastBusy = t
 
     // ---- Estado visual base ----
     let visual: BaseVisual =
       this.activity === 'idle' ? (t - this.lastBusy > this.persona.restAfter + this.phase * 10 ? 'resting' : 'idle') : this.activity
-    if (this.moving || t - this.celebrateStart < 1.4 || t < this.expectUntil + 0.6 || t < this.attentionUntil) {
+    if (social?.awake || this.moving || t - this.celebrateStart < 1.4 || t < this.expectUntil + 0.6 || t < this.attentionUntil) {
       if (visual === 'resting') visual = 'idle'
     }
     if (visual !== this.prevVisual) {
@@ -490,6 +516,12 @@ export class RobotBrain {
       base.y + this.drop + Math.sin(this.bobPhase) * this.bobAmp + hop + working * Math.abs(Math.sin(this.nodPhase)) * 0.018,
       base.z
     )
+    // Al interrumpirse una escena vuelve suavemente al puesto, mostrando ya su estado real.
+    const socialBlend = 1 - Math.exp(-dt * (r ? 12 : 9))
+    this.socialOffset.x += ((social ? social.position.x - base.x : 0) - this.socialOffset.x) * socialBlend
+    this.socialOffset.y += ((social ? social.position.y - base.y + social.bounce : 0) - this.socialOffset.y) * socialBlend
+    this.socialOffset.z += ((social ? social.position.z - base.z : 0) - this.socialOffset.z) * socialBlend
+    this.pos.add(this.socialOffset)
 
     // ---- Orientación ----
     const camYaw = yawTo(this.pos, camPos)
@@ -500,7 +532,8 @@ export class RobotBrain {
       this.nextLook = t + 2.6 + this.rnd() * 4.5
     }
     let targetYaw = camYaw
-    if (this.moving) targetYaw = heading
+    if (social) targetYaw = yawTo(this.pos, social.lookAt)
+    else if (this.moving) targetYaw = heading
     else if (this.anchor === 'core') targetYaw = yawTo(this.pos, CORE_POS)
     else if (t - this.sendStart < 1.5) targetYaw = yawTo(this.pos, this.sendTarget)
     else if (t < this.expectUntil + 0.4) targetYaw = yawTo(this.pos, this.expectFrom)
@@ -545,6 +578,7 @@ export class RobotBrain {
     pitchT -= ack * 0.2
     pitchT += emit * 0.12
     if (!this.moving) pitchT += this.gesturePitch
+    if (social) rollT += social.tilt
     this.pitch = damp(this.pitch, pitchT, 5, dt)
     this.roll = damp(this.roll, rollT, 4, dt)
 
@@ -578,7 +612,7 @@ export class RobotBrain {
     const effortNow = visual === 'working' || visual === 'thinking' ? this.effortLevel() : 0
 
     // Gestos: uno cada pocos segundos, según el estado real.
-    if (t > this.nextGesture && !this.leaving && !this.moving && cp >= 1.4 && !attentive) {
+    if (t > this.nextGesture && !social && !this.leaving && !this.moving && cp >= 1.4 && !attentive) {
       const g = this.pickGesture(visual, asleep, bored, effortNow)
       if (g !== 'none') this.startGesture(g, t)
       // De vez en cuando suelta algo, según lo hablador que sea.
@@ -595,7 +629,7 @@ export class RobotBrain {
     const env = Math.sin(Math.PI * gp) // entra y sale suave
     const amp = r ? 0.5 : 1
 
-    this.eyeHappy = damp(this.eyeHappy, happy ? 1 : this.gesture === 'smile' ? Math.min(1, env * 2.2) : 0, 10, dt)
+    this.eyeHappy = damp(this.eyeHappy, social ? social.happy : happy ? 1 : this.gesture === 'smile' ? Math.min(1, env * 2.2) : 0, 10, dt)
     this.eyeError = damp(this.eyeError, visual === 'error' ? 1 : 0, 3, dt)
 
     // Apertura de base del estado, más pesada si está cansado o aburrido.
@@ -843,6 +877,13 @@ export class RobotBrain {
     this.ackAmt = ack
     this.emitAmt = emit
     this.speed = speed
+
+    if (social) {
+      this.eyeScale += social.surprise * 0.3
+      this.eyeOpenL *= 1 + social.surprise * 0.4
+      this.eyeOpenR *= 1 + social.surprise * 0.4
+      this.eyeLookY = damp(this.eyeLookY, social.surprise > 0.05 ? 0.3 : 0, 8, dt)
+    }
 
     this.yawWithSpin = this.yaw + this.spin
   }

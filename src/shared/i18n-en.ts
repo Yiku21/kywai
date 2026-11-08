@@ -2687,4 +2687,11 @@ export const en: Record<string, string> = {
   "Ajustar al panel": "Fit to panel",
   "Ver a tamaño real": "View at actual size",
   "No es un archivo de texto": "It isn't a text file",
+  "¿Una partida rápida?": "Fancy a quick game?",
+  "¡Lo tengo! ¡Te toca!": "Got it! Your turn!",
+  "¡Buuu!": "Boo!",
+  "¡Ay, qué susto!": "Oh! You scared me!",
+  "¡Je, je! Ya estás despierto.": "Hehe! You’re awake now.",
+  "¡Hola, vecino!": "Hey, neighbor!",
+  "¡Buenas! ¿Todo bien?": "Hey! All good?",
 }

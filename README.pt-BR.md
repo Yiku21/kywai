@@ -173,6 +173,7 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 - **Progresso visível.** Novas capturas de tela e imagens aparecem como miniaturas no chat, e documentos como cartões, enquanto a tarefa ainda está rodando.
 - **Sino "Precisa de você"** que reúne tudo o que está esperando uma decisão sua (um plano, uma pergunta, uma permissão, um agente em silêncio) com seus botões, além de notificações no seu celular.
 - **Espaço digital 3D** que mostra cada estado: trabalhando, esperando outro agente, delegando a um estagiário, sem cota ou falhando, com arquivos viajando entre os robôs.
+- **Uma equipe que parece viva.** Os robôs livres brincam com um documento de brinquedo ou uma bola colorida, visitam os colegas e acordam um companheiro com um susto amigável. Reagem, sorriem e voltam ao posto quando o trabalho real precisa deles; reduzir efeitos desativa essas animações locais.
 - **Robôs com personalidade.** Os olhos mostram o que cada um está realmente fazendo (concentrado, pensando, cansado, dormindo, com erro, concluído), cada um tem sua personalidade e seus balões de fala no seu idioma, e quando você digita no chat eles acordam e se viram para olhar para você.
 
 <p align="center"><img src="docs/img/pt/robots.jpg" alt="O espaço digital 3D: os robôs em suas estações, com balões de fala e o estado em cada etiqueta" width="700"></p>

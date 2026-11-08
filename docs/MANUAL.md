@@ -2278,6 +2278,12 @@ bocadillos, en `scene/bubbleStore.ts`).
 **Cuando escribes en el chat**, los que duermen o están en reposo se despiertan de golpe y todos los libres giran el cuerpo y miran
 hacia el chat unos segundos, esperando el siguiente encargo; alguno dice algo como «¿Sí? Te escucho.» o «¡Presente!».
 
+### Vida entre compañeros
+
+Mientras unos agentes trabajan, los libres pueden jugar pasándose un documento de juguete o una pelota de colores, acercarse a saludar y despertar a un compañero dormido con un susto amistoso. Se miran, sonríen, saltan al atrapar el objeto y reaccionan al susto; después vuelven a su puesto. Los turnos se reparten entre los disponibles, con pausas entre escenas.
+
+Son animaciones locales del espacio 3D: no ejecutan modelos, no gastan cuota ni mueven archivos del proyecto. Los avisos de trabajo tienen prioridad sobre las frases del juego. Si llega una tarea, una transferencia real, una espera o empiezas a escribir, dejan la interacción de inmediato y vuelven suavemente al puesto. **Reducir efectos** desactiva estas escenas. Funcionan en los mapas del escritorio, cliente conectado y navegador; no se reproducen en el mundo nativo de Órbita.
+
 ### Modo Demo
 
 Menú ⚙ → **Modo demo**, o el interruptor en la cabecera del Espacio digital. Reproduce un guion fijo que muestra

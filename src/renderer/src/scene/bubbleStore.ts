@@ -4,12 +4,12 @@ import { lineFor, type PersonaId, type SayEvent } from './personality'
 /** Bocadillo de texto junto a la cabeza de un robot. */
 export interface Bubble {
   text: string
-  event: SayEvent
+  event: SayEvent | 'social'
   until: number
 }
 
 /** Lo importante (tarea, terminado, error) se dice siempre; lo demás, si no hay mucho jaleo. */
-const IMPORTANT: ReadonlySet<SayEvent> = new Set(['task', 'done', 'error'])
+const IMPORTANT: ReadonlySet<Bubble['event']> = new Set(['task', 'done', 'error'])
 /** Bocadillos a la vez como mucho (los importantes no cuentan para este límite). */
 const MAX_CASUAL = 2
 /** Segundos mínimos entre dos frases del mismo robot (las importantes, menos). */
@@ -20,11 +20,14 @@ interface BubbleState {
   map: Record<string, Bubble>
   /** Intenta que un robot diga algo. Devuelve si lo dijo. */
   say(agentId: string, persona: PersonaId, event: SayEvent): boolean
+  social(agentId: string, text: string): boolean
+  clearSocial(agentId: string): void
   clearAll(): void
 }
 
 const timers = new Map<string, number>()
 const lastSaid = new Map<string, number>()
+const lastSocial = new Map<string, number>()
 
 export const useBubbles = create<BubbleState>((set, get) => ({
   map: {},
@@ -59,10 +62,35 @@ export const useBubbles = create<BubbleState>((set, get) => ({
     )
     return true
   },
+  social(agentId, text) {
+    const now = Date.now(), current = get().map[agentId]
+    if (current && current.until > now && IMPORTANT.has(current.event)) return false
+    if (now - (lastSocial.get(agentId) ?? -Infinity) < 1800) return false
+    const casual = Object.entries(get().map).filter(([id, b]) => id !== agentId && b.until > now && !IMPORTANT.has(b.event)).length
+    if (casual >= MAX_CASUAL) return false
+    const ms = 2800
+    lastSocial.set(agentId, now)
+    set(s => ({ map: { ...s.map, [agentId]: { text, event: 'social', until: now + ms } } }))
+    const previous = timers.get(agentId)
+    if (previous) window.clearTimeout(previous)
+    timers.set(agentId, window.setTimeout(() => {
+      timers.delete(agentId)
+      get().clearSocial(agentId)
+    }, ms))
+    return true
+  },
+  clearSocial(agentId) {
+    if (get().map[agentId]?.event !== 'social') return
+    const timer = timers.get(agentId)
+    if (timer) window.clearTimeout(timer)
+    timers.delete(agentId)
+    set(s => { const map = { ...s.map }; delete map[agentId]; return { map } })
+  },
   clearAll() {
     for (const t of timers.values()) window.clearTimeout(t)
     timers.clear()
     lastSaid.clear()
+    lastSocial.clear()
     set({ map: {} })
   }
 }))

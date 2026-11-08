@@ -2568,4 +2568,11 @@ export const zh: Record<string, string> = {
   "Ajustar al panel": "适应面板",
   "Ver a tamaño real": "查看实际大小",
   "No es un archivo de texto": "不是文本文件",
+  "¿Una partida rápida?": "来玩一小局吗？",
+  "¡Lo tengo! ¡Te toca!": "接住了！轮到你！",
+  "¡Buuu!": "吓你一跳！",
+  "¡Ay, qué susto!": "哎呀，吓我一跳！",
+  "¡Je, je! Ya estás despierto.": "嘿嘿！这下醒了吧。",
+  "¡Hola, vecino!": "嗨，邻居！",
+  "¡Buenas! ¿Todo bien?": "你好！一切都好吗？",
 }
