@@ -416,7 +416,7 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                     }
                     Spacer(Modifier.height(4.dp))
                     val error = message.tone == "error"
-                    Box(Modifier.clip(RoundedCornerShape(6.dp, 22.dp, 22.dp, 22.dp)).background(if (error) Color(0x33FF6D7C) else Orbita.Card).border(1.dp, if (error) Color(0x55FF6D7C) else Orbita.CardEdge, RoundedCornerShape(6.dp, 22.dp, 22.dp, 22.dp)).padding(horizontal = 14.dp, vertical = 10.dp)) {
+                    Box(Modifier.clip(RoundedCornerShape(6.dp, 22.dp, 22.dp, 22.dp)).background(if (error) Color(0x33FF6D7C) else Orbita.Card).border(1.dp, if (error) Color(0x55FF6D7C) else Orbita.CardEdge, RoundedCornerShape(6.dp, 22.dp, 22.dp, 22.dp)).padding(horizontal = 16.dp, vertical = 13.dp)) {
                         val work = message.work
                         // Lo que acaba de llegar se escribe al ritmo de la voz del agente.
                         val text = rememberRevealed(model, model.revealKey(message.id), message.text)
