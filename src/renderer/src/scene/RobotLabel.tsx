@@ -19,8 +19,7 @@ import { useSceneHover } from "./anchors";
 import { restAfterFor } from "./personality";
 import { useBubbles } from "./bubbleStore";
 import {
-  ESTIMATE_HINT,
-  REAL_HINT,
+  progressHint,
   isSilent,
   progressText,
   taskProgress,
@@ -180,7 +179,7 @@ export function RobotLabel({ agent }: Props) {
           {prog && (
             <span
               className={s.pct}
-              title={prog.real ? REAL_HINT : ESTIMATE_HINT}
+              title={progressHint(prog)}
             >
               {progressText(prog)}
             </span>
