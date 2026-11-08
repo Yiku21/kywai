@@ -13,6 +13,7 @@ import type { ChatMessage, CoworkEvent, ProjectState, Task } from '@shared/types
 import { SUBAGENT_COLOR } from '@shared/defaults'
 import type { RunAgentOptions, RunAgentResult } from '../agents/types'
 import { getConfig, loadConfig } from '../config'
+import { listInbox } from '../inbox'
 import { tapEvents } from '../events'
 import {
   __clearBlocksForChecks,
@@ -39,6 +40,7 @@ import * as store from '../projects'
 import { initQuota, setQuotaProbing } from '../quota'
 import { finishRunUsage, initUsageLog, recordCall, startRunUsage, usageRuns } from '../usageLog'
 import { __setUiCapturerForChecks } from '../uiShots'
+import { __setProjectCheckRunnerForChecks } from '../projectChecks'
 import { buildCommandLine } from '../agents/spawn'
 import { claudeArgs } from '../agents/claude'
 import { codexArgs } from '../agents/codex'
@@ -273,7 +275,7 @@ async function main(): Promise<void> {
       const notes = getTaskTrace(script.id).filter((e) => e.kind === 'note' || e.kind === 'error').map((e) => `${e.kind}:${e.title}`)
       assert.equal(notes.length, 7, notes.join(' | '))
       assert.match(notes[4], /^note:Claude comprueba el resultado contra la petición$/)
-      assert.equal(notes[5], 'note:Claude: cumple')
+      assert.match(notes[5], /^note:Claude: cumple, sin pruebas ejecutadas/)
       // Lo que cambió queda guardado como instantáneas: se puede ver y deshacer.
       assert.match(notes[6], /^note:Cambios guardados: 1 archivo \(\+1 −0\)/)
       assert.match(notes[0], /^note:.+ empieza con .+ · esfuerzo medio$/)
@@ -1080,7 +1082,7 @@ async function main(): Promise<void> {
       const msgs = store.snapshotProject(up.id).messages
       assert.ok(msgs.some((m) => m.text.includes('Claude comprobó «Formulario de alta» y vio fallos; Codex los corrige')), 'se cuenta la corrección')
       const done = msgs.find((m) => m.work?.status === 'done')!
-      assert.ok(done.text.includes('✔ Claude comprobó el resultado tras una corrección: cumple.'), done.text)
+      assert.ok(done.text.includes('✔ Claude comprobó el resultado tras una corrección: cumple, sin pruebas ejecutadas'), done.text)
       const task = store.snapshotProject(up.id).tasks.find((t) => t.runId === runId)!
       assert.equal(task.status, 'done')
       assert.deepEqual([task.verification?.by, task.verification?.ok, task.verification?.fixes], ['claude', true, 1])
@@ -1145,6 +1147,155 @@ async function main(): Promise<void> {
       }
     })
 
+    await check('U2: sin veredicto se pide otra vez y si no llega queda «sin verificar»; con fallos, 2 correcciones, un relevo y «requiere intervención»', async () => {
+      hermesOnline = false
+      await refreshPresence()
+      const pr = store.createProject('Revisión estricta')
+      planResponses = {
+        claude: plan('Codex lo hace.', [
+          { key: 't1', title: 'Formulario de pago', description: 'Crea artifacts/pago.html con validación.', agent: 'codex', difficulty: 'medium', deliverable: 'file', acceptance: 'la tarjeta se valida' }
+        ])
+      }
+      workBehaviour = () => null
+      const go = async (text: string) => {
+        const from = calls.length
+        const { runId } = await sendMessage({ projectId: pr.id, text, filePaths: [] })
+        await waitFor(() => !!finished(runId), 20000, text)
+        const task = store.snapshotProject(pr.id).tasks.find((t) => t.runId === runId)!
+        const done = store.snapshotProject(pr.id).messages.filter((m) => m.runId === runId && m.work?.status === 'done').pop()
+        return { runId, task, done: done?.text ?? '', seq: calls.slice(from).map((c) => `${c.mode}:${c.agentId}`), calls: calls.slice(from) }
+      }
+      const verdictsOf = (runId: string) => usageRuns().find((r) => r.runId === runId)!.calls.filter((c) => c.kind === 'verify').map((c) => c.verdict ?? '-')
+
+      // 1. Responde sin veredicto dos veces: no se da por buena. Se pide una vez más con su respuesta y queda sin verificar.
+      verdicts = ['Lo revisé y parece que está bien.', 'Sí, está bien.']
+      const a = await go('Haz el formulario de pago')
+      assert.deepEqual(a.seq, ['plan:claude', 'work:codex', 'plan:claude', 'plan:claude'])
+      assert.ok(a.calls[3].prompt.includes('## Tu respuesta anterior') && a.calls[3].prompt.includes('Lo revisé y parece que está bien.'), 'conserva lo que ya revisó')
+      assert.equal(a.task.status, 'done', 'la ejecución terminó: los archivos se quedan')
+      assert.deepEqual([a.task.verification?.status, a.task.verification?.ok], ['unverified', false])
+      assert.ok(a.done.includes('⚠ Sin verificar') && !a.done.includes('cumple'), a.done)
+      assert.deepEqual(verdictsOf(a.runId), ['-', 'unverified'])
+
+      // 2. Sin veredicto y al pedírselo otra vez, «CUMPLE»: aprobada.
+      verdicts = ['Todo correcto.', 'VEREDICTO: CUMPLE\nValida la tarjeta.']
+      const b = await go('Haz el formulario de pago otra vez')
+      assert.deepEqual(b.task.verification?.status, 'passed')
+      assert.ok(b.done.includes('✔ Claude comprobó el resultado: cumple, sin pruebas ejecutadas'), b.done)
+
+      // 3. Dos correcciones y a la tercera revisión cumple: no hay relevo.
+      verdicts = ['VEREDICTO: FALLOS\n- falta el CVV', 'VEREDICTO: FALLOS\n- el CVV acepta letras', 'VEREDICTO: CUMPLE\nok']
+      const c = await go('Haz el formulario de pago con CVV')
+      assert.deepEqual(c.seq, ['plan:claude', 'work:codex', 'plan:claude', 'work:codex', 'plan:claude', 'work:codex', 'plan:claude'])
+      assert.deepEqual([c.task.verification?.status, c.task.verification?.fixes, c.task.verification?.relayedTo], ['passed', 2, undefined])
+      assert.ok(c.done.includes('tras 2 correcciones: cumple'), c.done)
+      assert.ok(store.snapshotProject(pr.id).messages.some((m) => m.runId === c.runId && m.text.includes('(corrección 2 de 2)')))
+
+      // 4. Sigue fallando: un relevo a otro agente fuerte con las notas, y si tampoco pasa, «requiere intervención».
+      verdicts = ['VEREDICTO: FALLOS\n- uno', 'VEREDICTO: FALLOS\n- dos', 'VEREDICTO: FALLOS\n- tres', 'VEREDICTO: FALLOS\n- cuatro: sigue sin validar']
+      const d = await go('Haz el formulario de pago con todo')
+      const works = d.calls.filter((x) => x.mode === 'work')
+      assert.deepEqual(works.slice(0, 3).map((x) => x.agentId), ['codex', 'codex', 'codex'], 'el autor corrige dos veces')
+      assert.equal(works.length, 4, 'un solo relevo y ninguna corrección más: el límite es por tarea')
+      const relay = works[3]
+      assert.ok(relay.agentId !== 'codex' && !relay.agentId.startsWith('qwen'), `relevo a otro agente fuerte: ${relay.agentId}`)
+      assert.equal(relay.resume, undefined, 'otro CLI: no retoma la sesión del autor')
+      assert.ok(relay.prompt.includes('- tres') && relay.prompt.includes('### Archivos que cambió Codex') && relay.prompt.includes('Hecho por codex'), 'el relevo recibe notas, cambios y lo que contó el autor')
+      assert.equal(d.calls.filter(isVerifyCall).length, 4)
+      assert.equal(d.task.status, 'done', 'los archivos se conservan')
+      assert.deepEqual([d.task.verification?.status, d.task.verification?.fixes, d.task.verification?.needsAttention], ['failed', 2, true])
+      assert.ok(d.task.verification?.relayedTo, 'se sabe que hubo relevo')
+      assert.ok(d.done.includes('⚠ Requiere intervención') && d.done.includes('cuatro: sigue sin validar'), d.done)
+      const item = listInbox().find((i) => i.taskId === d.task.id && i.kind === 'verify-failed')
+      assert.ok(item && item.title.startsWith('Requiere intervención') && item.detail?.includes('cuatro'), 'queda en «Te necesita» con las notas')
+      assert.deepEqual(verdictsOf(d.runId), ['fail', 'fail', 'fail', 'fail'])
+      verdicts = []
+    })
+
+    await check('U3: las pruebas cuentan solo si se ejecutaron de verdad; si faltan, kywai las ejecuta antes de verificar', async () => {
+      hermesOnline = false
+      await refreshPresence()
+      const tp = store.createProject('Con pruebas')
+      writeFileSync(join(store.workRoot(tp.id), 'package.json'), JSON.stringify({ name: 'x', scripts: { test: 'vitest run' } }))
+      planResponses = {
+        claude: plan('Codex lo hace.', [
+          { key: 't1', title: 'Validar el CVV', description: 'Crea artifacts/cvv.js y su prueba.', agent: 'codex', difficulty: 'medium', deliverable: 'file', acceptance: 'npm test pasa' }
+        ])
+      }
+      const hostRuns: string[] = []
+      let hostResult: 'passed' | 'failed' | 'unavailable' = 'passed'
+      __setProjectCheckRunnerForChecks(async (_dir, command) => {
+        hostRuns.push(command)
+        const status = hostResult
+        return { status, command, ms: 5, output: status === 'failed' ? 'FAIL cvv.test.js > acepta letras' : 'ok', ...(status === 'unavailable' ? { reason: 'falta el programa o las dependencias para ejecutarlas' } : {}) }
+      })
+      // El agente edita y, según el caso, ejecuta «npm test» después (pasa) o no prueba nada.
+      let agentTests: 'pass' | 'none' | 'pipe' = 'pass'
+      workBehaviour = (o) =>
+        o.mode === 'work'
+          ? (async () => {
+              const r = await defaultWork(o)
+              o.onTrace?.({ type: 'tool', id: 'e1', tool: 'edit', title: 'Editando artifacts/cvv.js' })
+              o.onTrace?.({ type: 'result', id: 'e1', ok: true })
+              if (agentTests !== 'none') {
+                const cmd = agentTests === 'pipe' ? 'npm test | tail -3' : 'npm test'
+                o.onTrace?.({ type: 'tool', id: 'c1', tool: 'command', title: `Ejecutando: ${cmd}`, body: cmd })
+                o.onTrace?.({ type: 'result', id: 'c1', ok: true, output: 'Tests 3 passed' })
+              }
+              return { ...r, text: `${r.text}. Las pruebas pasan.` }
+            })()
+          : null
+      const go = async (text: string) => {
+        const from = calls.length
+        const { runId } = await sendMessage({ projectId: tp.id, text, filePaths: [] })
+        await waitFor(() => !!finished(runId), 20000, text)
+        const task = store.snapshotProject(tp.id).tasks.find((t) => t.runId === runId)!
+        const done = store.snapshotProject(tp.id).messages.filter((m) => m.runId === runId && m.work?.status === 'done').pop()
+        return { task, done: done?.text ?? '', verifies: calls.slice(from).filter(isVerifyCall) }
+      }
+      try {
+        // 1. El agente pasó «npm test» después de su cambio: vale eso y kywai no lo repite.
+        const a = await go('Valida el CVV')
+        assert.deepEqual(hostRuns, [])
+        assert.deepEqual(a.task.verification?.tests, { status: 'passed', by: 'agent', commands: ['npm test'] })
+        assert.ok(a.verifies[0].prompt.includes('Codex ejecutó «npm test» después del último cambio y pasaron.'), 'el verificador sabe qué se probó')
+        assert.ok(a.done.includes('cumple; las pruebas pasan (npm test)'), a.done)
+
+        // 2. Con «| tail» el resultado queda escondido: no cuenta. kywai ejecuta las pruebas, fallan, y la salida
+        //    viaja con los fallos a la corrección; en la corrección el agente las pasa y queda aprobada.
+        agentTests = 'pipe'
+        hostResult = 'failed'
+        verdicts = ['VEREDICTO: FALLOS\n- artifacts/cvv.js: acepta letras']
+        const fixWork = workBehaviour
+        let round = 0
+        workBehaviour = (o) => {
+          if (o.mode === 'work' && round++ === 1) agentTests = 'pass'
+          return fixWork(o)
+        }
+        const b = await go('Valida el CVV sin letras')
+        assert.deepEqual(hostRuns, ['npm test'], 'solo la primera revisión necesitó ejecutarlas')
+        assert.ok(b.verifies[0].prompt.includes('kywai ejecutó «npm test» después del último cambio y fallaron.') && b.verifies[0].prompt.includes('acepta letras'), 'el verificador ve la salida')
+        const fix = calls.filter((c) => c.mode === 'work' && c.prompt.includes('FAIL cvv.test.js'))
+        assert.equal(fix.length, 1, 'la corrección lleva la salida de las pruebas')
+        assert.deepEqual([b.task.verification?.status, b.task.verification?.tests?.status, b.task.verification?.tests?.by], ['passed', 'passed', 'agent'])
+
+        // 3. No prueba nada y las pruebas no se pueden ejecutar: «cumple, sin pruebas ejecutadas», nunca «pasan».
+        workBehaviour = fixWork
+        agentTests = 'none'
+        hostResult = 'unavailable'
+        hostRuns.length = 0
+        const c = await go('Valida el CVV otra vez')
+        assert.deepEqual(hostRuns, ['npm test'])
+        assert.equal(c.task.verification?.tests?.status, 'none')
+        assert.ok(c.verifies[0].prompt.includes('No se ejecutó ninguna prueba') && c.verifies[0].prompt.includes('no digas que las pruebas pasan'))
+        assert.ok(c.done.includes('cumple, sin pruebas ejecutadas (no se pudieron ejecutar «npm test»'), c.done)
+      } finally {
+        __setProjectCheckRunnerForChecks(null)
+        workBehaviour = () => null
+        verdicts = []
+      }
+    })
+
     await check('U4: un agente libre empieza su siguiente tarea mientras se verifica la anterior', async () => {
       hermesOnline = false
       await refreshPresence()
@@ -1169,6 +1320,7 @@ async function main(): Promise<void> {
         // El coordinador sabe que lo que no se necesita entre sí va sin dependencias y, si puede, a agentes distintos.
         const planPrompt = calls.find((c) => c.mode === 'plan' && c.prompt.includes('Haz las páginas de alta y baja'))!.prompt
         assert.ok(planPrompt.includes('así empiezan a la vez') && planPrompt.includes('no encadenes tareas solo «por orden»'))
+        assert.equal(seenVerifying[1], 1, 'la segunda empieza mientras Claude verifica la primera')
         const ts = store.snapshotProject(up.id).tasks.filter((t) => t.runId === runId)
         assert.deepEqual(ts.map((t) => [t.status, t.verification?.ok]), [['done', true], ['done', true]])
       } finally {
@@ -1419,7 +1571,7 @@ async function main(): Promise<void> {
       const work = calls.slice(from).find((c) => c.mode === 'work')!
       assert.notEqual(work.agentId, 'gemini', 'pasa a otro agente')
       const msgs = store.snapshotProject(up.id).messages
-      assert.ok(msgs.some((m) => /Gemini no pasó la revisión o falló en \d+ de sus \d+ últimas tareas/.test(m.text)), 'el plan dice por qué')
+      assert.ok(msgs.some((m) => /Gemini no superó la revisión o falló en \d+ de sus \d+ últimas tareas/.test(m.text)), 'el plan dice por qué')
       // La ficha del coordinador lo avisa.
       assert.match(calls.slice(from)[0].prompt, /⚠ mala racha: \d+ de \d+ tareas/, 'el coordinador lo ve')
 
