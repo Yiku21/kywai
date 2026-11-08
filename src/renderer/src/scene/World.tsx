@@ -23,6 +23,8 @@ import { FOG_FAR, FOG_NEAR, palette } from './palette'
 import { Core } from './Core'
 import { Station } from './Station'
 import { Robot } from './Robot'
+import { SocialLife } from './SocialLife'
+import { Sparks } from './Sparks'
 import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
 import { LabelProjector } from './LabelProjector'
@@ -232,10 +234,12 @@ export function World({ view }: { view?: ViewInsets } = {}) {
         {theme !== 'kywai' && theme !== 'submarino' && <><Zones /><Core /></>}
         <Stations stations={stations} showLights={q.stationLights} />
         <Transfers stations={stations} />
+        <Sparks stations={stations} />
         <Robots stations={stations} />
+        <SocialLife />
         <Decor stations={stations} q={q} reduced={reduced} />
       </group>
-      <CameraRig view={view} />
+      <CameraRig view={view} stations={stations} />
       <ViewShift view={view} />
       <LabelProjector />
 

@@ -202,9 +202,17 @@ function createWebApi(): CoworkApi {
       return paths
     },
     savePastedFile: (name: string, data: Uint8Array) => upload(name, new Blob([data as BlobPart])),
-    readArtifact: async (projectId: string, relPath: string) => {
-      const r = (await call('readArtifact', [projectId, relPath])) as { text?: string; url?: string }
+    readArtifact: async (projectId: string, relPath: string, opts?: { text?: boolean }) => {
+      const r = (await call('readArtifact', opts ? [projectId, relPath, opts] : [projectId, relPath])) as { text?: string; url?: string }
       return r.url ? { ...r, url: webFileUrl(projectId, relPath) } : r
+    },
+    downloadFile: async (projectId: string, relPath: string) => {
+      const link = document.createElement('a')
+      link.href = webFileUrl(projectId, relPath)
+      link.download = relPath.split('/').pop() || ''
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
     },
     downloadArtifacts: async (projectId: string, artifactIds: string[]) => {
       const link = document.createElement('a')

@@ -171,6 +171,15 @@ class OrbitaModel(
     var newTaskDraft by mutableStateOf(TextFieldValue(""))
     var newTaskOpen by mutableStateOf(false)
     var viewer by mutableStateOf<ViewerTarget?>(null)
+    /** Los archivos entre los que se pasa con ‹ › en el lector: los del mismo mensaje (o de la misma carpeta). */
+    var viewerItems by mutableStateOf<List<ViewerTarget>>(emptyList())
+
+    /** Abre en el lector uno de varios archivos, para poder pasar a los demás con ‹ ›. */
+    fun openViewer(items: List<ViewerTarget>, index: Int) {
+        if (items.isEmpty()) return
+        viewerItems = items
+        viewer = items[index.coerceIn(0, items.size - 1)]
+    }
     var traceTaskId by mutableStateOf<String?>(null)
     private val traceCache = HashMap<String, Pair<Long, List<com.aicowork.remote.data.model.TraceEntry>>>()
 

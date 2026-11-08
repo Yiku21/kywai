@@ -1,0 +1,383 @@
+/*
+ * Panel de vista previa: ocupa la columna del espacio 3D (a la derecha del chat), encima de él. En ventanas estrechas,
+ * la única columna. «Ampliar» lo saca a toda la ventana.
+ */
+.panel {
+  grid-column: 2;
+  grid-row: 1;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+  outline: none;
+  animation: slideIn var(--dur-slow) var(--ease);
+}
+
+@media (max-width: 949.98px) {
+  .panel {
+    grid-column: 1;
+  }
+}
+
+.maxBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  padding: 14px;
+  background: rgba(var(--scrim-rgb, 3, 6, 12), 0.66);
+  backdrop-filter: blur(6px);
+}
+
+.maximized {
+  flex: 1;
+  box-shadow: var(--shadow-pop);
+  animation: none;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+
+/* ---------- Cabecera ---------- */
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 10px 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.toggle {
+  flex: none;
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+}
+
+.toggleBtn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 28px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.toggleBtn:hover {
+  color: var(--text-1);
+}
+
+.toggleOn {
+  background: var(--bg-elevated);
+  color: var(--text-1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.fileIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(var(--wash-rgb, 255, 255, 255), 0.05);
+  color: var(--text-2);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleName {
+  font-weight: 600;
+}
+
+.titleType {
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.copyBtn {
+  margin-right: 4px;
+}
+
+.sub {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pageBtn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.pageBtn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-1);
+}
+
+.agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+}
+
+.agentDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--agent);
+}
+
+.demoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: var(--demo);
+  background: var(--demo-soft);
+}
+
+.actionError {
+  flex: none;
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  color: var(--alert);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---------- Contenido ---------- */
+
+.body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+}
+
+.doc {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 26px 30px 40px;
+}
+
+.docInner {
+  max-width: 760px;
+  margin: 0 auto;
+  font-size: 14.5px;
+}
+
+.frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #fff;
+}
+
+.code {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--code-bg, #070b14);
+}
+
+.pre {
+  margin: 0;
+  padding: 14px 18px 24px 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--code-text, #d6e2f5);
+  tab-size: 2;
+  white-space: pre;
+  counter-reset: line;
+}
+
+.line {
+  counter-increment: line;
+}
+
+.line::before {
+  content: counter(line);
+  display: inline-block;
+  box-sizing: content-box;
+  width: var(--gutter, 3ch);
+  padding: 0 14px 0 12px;
+  margin-right: 4px;
+  text-align: right;
+  color: var(--text-3);
+  opacity: 0.6;
+  user-select: none;
+}
+
+.imageWrap {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow: auto;
+  background: conic-gradient(#0d1422 25%, #0a101b 0 50%, #0d1422 0 75%, #0a101b 0) 0 0 / 20px 20px;
+}
+
+.image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  cursor: zoom-in;
+}
+
+.imageZoomed {
+  place-items: start;
+}
+
+.imageZoomed .image {
+  max-width: none;
+  max-height: none;
+  cursor: zoom-out;
+}
+
+.media {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+  background: #000;
+  color: var(--text-2);
+}
+
+.video {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.audio {
+  width: min(460px, 100%);
+}
+
+.state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+
+.stateError {
+  color: var(--alert);
+}
+
+.stateTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.stateText {
+  max-width: 420px;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+
+@media (max-width: 760px) {
+  .copyBtn span {
+    display: none;
+  }
+  .doc {
+    padding: 18px 16px 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}
+
+/* Tema Órbita: el resto flota en cristal sobre el 3D; el panel es casi opaco para que se lea bien lo que enseña. */
+:global(:root[data-theme='orbita']) .panel {
+  background: color-mix(in srgb, #060a14 88%, transparent);
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+
+:global(:root[data-theme='orbita']) .head,
+:global(:root[data-theme='orbita']) .body {
+  background: transparent;
+}

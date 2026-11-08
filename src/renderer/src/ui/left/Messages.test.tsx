@@ -284,4 +284,43 @@ describe('chat del escritorio', () => {
     expect(host.textContent).toContain('informe.png')
     expect(host.querySelector('button[aria-expanded]')).toBeNull()
   })
+
+  it('las imágenes adjuntas se ven en miniatura y, como los demás adjuntos, se abren en el panel de vista previa', async () => {
+    useCowork.setState({ preview: null })
+    await show({
+      id: 'mu',
+      projectId: 'p1',
+      author: { type: 'user' },
+      text: 'mira esto',
+      createdAt: 1,
+      attachments: [
+        { id: 'f1', name: 'notas.md', relPath: 'attachments/notas.md', mime: 'text/markdown', size: 20 },
+        { id: 'f2', name: 'captura.png', relPath: 'attachments/captura.png', mime: 'image/png', size: 300 }
+      ]
+    })
+    const img = host.querySelector('img[alt="captura.png"]') as HTMLImageElement
+    expect(img.getAttribute('src')).toBe('cowork://file/p1/attachments/captura.png')
+    await act(async () => button('Ver notas.md').click())
+    const p = useCowork.getState().preview!
+    // Primero las imágenes (como se ven) y luego el resto; se abre el pulsado.
+    expect(p.items.map((x) => x.name)).toEqual(['captura.png', 'notas.md'])
+    expect(p.index).toBe(1)
+    expect(fake.calls).toEqual([])
+    // Si la miniatura no carga, vuelve a ser una ficha con su nombre.
+    await act(async () => img.dispatchEvent(new Event('error')))
+    expect(host.querySelector('img[alt="captura.png"]')).toBeNull()
+    expect(button('Ver captura.png')).toBeDefined()
+  })
+
+  it('un entregable se abre en el panel de vista previa, con los demás del mensaje para pasar de uno a otro', async () => {
+    useCowork.setState({ preview: null })
+    const two = [art('a1', 'artifacts/web/index.html'), art('a2', 'artifacts/web/logo.png')]
+    await show({ id: 'm4', projectId: 'p1', author: { type: 'agent', agentId: 'codex' }, text: 'Listo.', createdAt: 3, artifactIds: ['a1', 'a2'] }, two)
+    await act(async () => (host.querySelector('button[aria-expanded]') as HTMLButtonElement).click())
+    await act(async () => button('Abrir logo.png').click())
+    const p = useCowork.getState().preview!
+    expect(p.items.map((x) => x.relPath)).toEqual(['artifacts/web/index.html', 'artifacts/web/logo.png'])
+    expect(p.index).toBe(1)
+    expect(p.items[1].artifactId).toBe('a2')
+  })
 })

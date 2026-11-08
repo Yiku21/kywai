@@ -59,6 +59,13 @@ export function mentionsApp(text: string): boolean {
   return APP_WORDS.test(t)
 }
 
+/**
+ * Cómo se escribe lo que sale en el chat. El chat lo pinta como ChatGPT o Claude (párrafos con aire, listas
+ * marcadas), pero solo se lee bien si el texto viene breve y ordenado: un muro de texto sigue siendo un muro.
+ */
+export const CHAT_STYLE =
+  'empieza por el resultado o la respuesta en una o dos frases; después, párrafos cortos (2 o 3 frases) separados por una línea en blanco; los pasos, opciones o hallazgos en lista (numerada si hay orden), un punto por idea; **negrita** solo para lo que no se puede pasar por alto; títulos (##) solo si la respuesta es larga. Nada de muros de texto, de relleno ni de repetir lo que el usuario ya ve.'
+
 /** Sección «Cómo funciona kywai» para el prompt del coordinador. */
 export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[] {
   const ownCode = isInside(opts.projectDir, e.codeDir)
@@ -66,6 +73,9 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
   return [
     '',
     '## Cómo funciona kywai (tenlo en cuenta antes de decidir)',
+    '',
+    '### Cómo escribes en "reply"',
+    `- Se lee en el chat: ${CHAT_STYLE}`,
     '',
     '### Dónde trabaja el equipo',
     '- Todos trabajáis DENTRO de la carpeta de este proyecto. Nadie del equipo puede cambiar kywai en sí (su interfaz, su música y sus sonidos, el espacio 3D, sus funciones, cómo planificas tú): es otro programa, con su código aparte, que se cambia desde su desarrollo y llega aquí con ⚙ → «Buscar actualizaciones…».',
@@ -159,6 +169,7 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
         '- Campana «Te necesita» (cabecera y Órbita, con notificación en el móvil): planes por aprobar, permisos de macOS que solo se aceptan delante del servidor (con botón para abrir Compartir pantalla), agentes callados, preguntas, tareas que requieren intervención (la verificación sigue viendo fallos tras las correcciones y el relevo), choques al integrar, tareas fallidas, tareas en pausa (Reanudar o Quitar) y el presupuesto de API, cada uno con sus botones. Solo lo que espera algo del usuario: lo terminado sale en Resultados, en «Recién terminado». Si el usuario dice que no se entera de lo que le espera, mándale ahí.',
         '- Refugio Kywai se elige en ⚙ → Ajustes → General → Mapas: cúpula de madera y cristal frente al mar, talleres de los agentes y una mesa común. En su cabecera, junto a Música, «Modo noche» cambia la iluminación y se recuerda por dispositivo. Reducir efectos detiene sus animaciones. Es una función del escritorio, cliente y navegador, no un proyecto que deba construir el equipo.',
         '- Fondo marino se elige en ⚙ → Ajustes → General → Mapas: peces, ballenas, medusas, ciudad sumergida y una concha con perla en el centro. En Decorados, Relicario, Telar, Halloween y Navidad tienen escenarios propios de santuario, islas de cristal, abadía gótica y villa nevada. Son funciones del escritorio, cliente y navegador; no encargos para construir con los agentes. Reducir efectos detiene sus movimientos ambientales.',
+        '- Los robots libres juegan, se saludan y despiertan a un compañero dormido con un susto amistoso. Son animaciones locales: no gastan cuota ni cambian los archivos del proyecto. Las interrumpen el trabajo real, las transferencias o el usuario al escribir; Reducir efectos las desactiva. Están en escritorio, cliente y navegador, no en el mundo nativo de Órbita.',
         '- Los archivos que entrega cada tarea aparecen en el chat agrupados en una carpeta que se despliega al pulsarla (y en la pestaña Resultados).',
         '- Cambios de cada tarea: bajo su mensaje, «N archivos cambiados» despliega el diff de cada archivo; «Deshacer» deja sus archivos como estaban aunque después cambiaran otros (si chocan las mismas líneas, no deshace nada y lo dice), y «Pedir cambios» prepara una continuación. Si dos tareas coinciden en el tiempo, la segunda trabaja en una copia aparte de la carpeta y sus cambios se integran al terminar; si chocan, ella misma resuelve las marcas de conflicto. Así que puedes repartir en paralelo sin miedo a que se pisen, aunque dividir trabajo acoplado sigue empeorando el resultado.'
       ])
@@ -168,6 +179,7 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
 /** Regla para el encargo de cada tarea: no tocar el código de kywai (salvo que sea la carpeta del proyecto). */
 export function taskGuideRules(projectDir: string, e: GuideEnv = env): string[] {
   const rules = [
+    `- Tu respuesta final sale en el chat: ${CHAT_STYLE}`,
     '- Si la tarea pide algo que no puedes producir de verdad (audio, música, voz, vídeo, o imágenes si no tienes una herramienta para generarlas), no entregues archivos vacíos ni de mentira: haz lo más cercano que sí puedas (por ejemplo, código que lo genere) y explícalo en tu respuesta.',
     '- No hagas git commit ni git push, ni publiques nada (GitHub, paquetes, webs), salvo que la tarea lo pida expresamente: deja los cambios en los archivos para que el usuario los revise.'
   ]
