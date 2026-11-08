@@ -50,7 +50,7 @@ import { lang, locale, replyLanguage, tl, tr, userLanguageName } from '@shared/i
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
 import { addMemory, KIND_LABEL, memoryPromptSections, parseMemoryNotes, planMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
-import { coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
+import { CHAT_STYLE, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
 import { projectBrief, testCommand } from './projectBrief'
 import { lastSession, rememberSession, supportsResume } from './agentSessions'
 import { hasGit, Shadow } from './checkpoints'
@@ -3574,7 +3574,8 @@ async function finalAnswer(run: Run, planner: AgentConfig, ts: Task[]): Promise<
     ...results,
     '',
     '## Qué debes responder',
-    'Redacta la respuesta final para el usuario, como si hubieras hecho tú el trabajo con tu equipo: qué se ha hecho y dónde está (archivos, rutas), cómo probarlo o usarlo, qué decisiones se tomaron que le convenga saber, y qué quedó fuera, falló o conviene revisar (sin esconder nada). Si el trabajo fue «a dos manos» (opción A y opción B con un juez), di dónde está cada opción, cuál recomienda el juez y por qué, y que puede pedir que se siga con la otra. Entre 5 y 20 líneas, en Markdown sencillo, sin listas de tareas ni de agentes (eso ya lo ve), sin inventar nada que no esté arriba. Solo el texto de la respuesta, sin títulos ni preámbulos.'
+    'Redacta la respuesta final para el usuario, como si hubieras hecho tú el trabajo con tu equipo: qué se ha hecho y dónde está (archivos, rutas), cómo probarlo o usarlo, qué decisiones se tomaron que le convenga saber, y qué quedó fuera, falló o conviene revisar (sin esconder nada). Si el trabajo fue «a dos manos» (opción A y opción B con un juez), di dónde está cada opción, cuál recomienda el juez y por qué, y que puede pedir que se siga con la otra. Entre 5 y 20 líneas, en Markdown sencillo, sin listas de tareas ni de agentes (eso ya lo ve), sin inventar nada que no esté arriba. Solo el texto de la respuesta, sin preámbulos.',
+    `Cómo escribirla: ${CHAT_STYLE}`
   ].join('\n')
   const ctrl = new AbortController()
   run.planController = ctrl

@@ -149,7 +149,9 @@ function createWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       sandbox: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      // Visor de PDF de Chromium (panel de vista previa de archivos).
+      plugins: true
     }
   })
   win.once('ready-to-show', () => win.show())
@@ -258,7 +260,9 @@ function encodeRel(relPath: string): string {
 
 const TEXT_CAP = 400 * 1024
 
-async function readArtifact(projectId: unknown, relPath: unknown): Promise<{ text?: string; url?: string }> {
+async function readArtifact(projectId: unknown, relPath: unknown, opts?: unknown): Promise<{ text?: string; url?: string }> {
+  // El panel de vista previa pide el texto de un HTML o un SVG para enseñar su código.
+  const asText = !!opts && typeof opts === 'object' && (opts as { text?: unknown }).text === true
   if (!store.isValidProjectId(projectId) || typeof relPath !== 'string') throw new Error(tr('Ruta no válida'))
   const rel = relPath.replace(/\\/g, '/')
   const abs = store.resolveProjectFile(projectId, rel)
@@ -267,7 +271,8 @@ async function readArtifact(projectId: unknown, relPath: unknown): Promise<{ tex
   if (!st.isFile()) throw new Error('No es un archivo')
   const kind = store.artifactKind(rel)
   const url = `cowork://file/${projectId}/${encodeRel(rel)}`
-  if (kind === 'html' || kind === 'image') return { url }
+  if (!asText && (kind === 'html' || kind === 'image')) return { url }
+  if (asText && kind === 'image' && !/\.svg$/i.test(rel)) throw new Error(tr('No es un archivo de texto'))
   const fh = await fsp.open(abs, 'r')
   try {
     const len = Math.min(st.size, TEXT_CAP)
@@ -545,7 +550,18 @@ function registerIpc(): void {
     const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
     return r.canceled ? [] : r.filePaths
   })
-  handle('readArtifact', (projectId: unknown, relPath: unknown) => readArtifact(projectId, relPath))
+  handle('readArtifact', (projectId: unknown, relPath: unknown, opts?: unknown) => readArtifact(projectId, relPath, opts))
+  // Solo escritorio: guarda una copia de un archivo del proyecto donde elijas (botón «Descargar» del panel de vista previa).
+  ipcMain.handle('cowork:downloadFile', async (e, projectId: unknown, relPath: unknown) => {
+    if (!store.isValidProjectId(projectId) || typeof relPath !== 'string') throw new Error(tr('Ruta no válida'))
+    const abs = store.resolveProjectFile(projectId, relPath.replace(/\\/g, '/'))
+    if (!abs || !statSync(abs).isFile()) throw new Error(tr('No se encontró el archivo en el proyecto'))
+    const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow
+    const opts = { title: tr('Descargar'), defaultPath: join(app.getPath('downloads'), basename(abs)) }
+    const chosen = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+    if (chosen.canceled || !chosen.filePath) return
+    await fsp.copyFile(abs, chosen.filePath)
+  })
   // Solo escritorio: por web la descarga se guarda en el dispositivo del navegador, nunca en el servidor.
   ipcMain.handle('cowork:downloadArtifacts', async (e, projectId: unknown, ids: unknown) => {
     const win = BrowserWindow.fromWebContents(e.sender) ?? mainWindow

@@ -91,6 +91,7 @@ src/
   renderer/src/
     ui/        left/ (chat: Messages.tsx), header/, files/, setup/ (asistente, añadir agente), trace/, space/…
     scene/     espacio 3D (Three.js)
+               socialDirector.ts / SocialLife.tsx: juegos, visitas y sustos amistosos entre agentes libres; robotBrain.ts aplica sus poses sin cambiar el trabajo real. Pruebas de prioridad, interrupción, turnos y bocadillos.
                worlds/UnderseaWorld.tsx, UnderseaLife.tsx y AtlantisCity.tsx: Fondo marino, fauna animada y estaciones; heritageWorlds.ts / HeritageAtmosphere.tsx y módulos Relic*, Crystal*, SeasonalWeather y WinterConifers: escenarios completos de Relicario, Telar, Halloween y Navidad. Pruebas de distribución, geometría y selector; texturas utilizadas en assets/submarino/.
                worlds/KywaiHome.tsx y Home*.tsx / home*.ts: Refugio Kywai (cúpula, costa, cielo y talleres), con layout visual propio y pruebas de geometría; homeRobot.ts / homeIdentity.ts mantienen el rig de ojos y animación; lib/homeLighting.ts y ui/space/HomeNightToggle.tsx recuerdan el modo noche por dispositivo.
     store/     estado (datos reales y demo separados) · lib/ utilidades (api, audio, rutas locales…)

@@ -1385,7 +1385,10 @@ export interface CoworkApi {
   pickImportFile(): Promise<string[] | null>
   /** Ruta absoluta de un archivo soltado en la ventana. */
   pathForFile(file: File): string
-  readArtifact(projectId: string, relPath: string): Promise<{ text?: string; url?: string }>
+  /** Lee un archivo del proyecto: texto, o la dirección para verlo. Con `{ text: true }`, un HTML o un SVG llega como texto. */
+  readArtifact(projectId: string, relPath: string, opts?: { text?: boolean }): Promise<{ text?: string; url?: string }>
+  /** Guarda una copia de un archivo del proyecto en el dispositivo desde el que se usa la app. */
+  downloadFile?(projectId: string, relPath: string): Promise<void>
   /** Guarda un entregable, o varios como zip, en el dispositivo desde el que se usa la app. */
   downloadArtifacts(projectId: string, artifactIds: string[]): Promise<void>
   openPath(projectId: string, relPath?: string): Promise<void>

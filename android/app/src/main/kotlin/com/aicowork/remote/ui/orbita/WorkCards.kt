@@ -178,12 +178,15 @@ private fun DiffStat(add: Int, del: Int) {
 private fun FilesLine(files: List<WorkFile>, model: OrbitaModel, key: String) {
     val images = files.filter { it.image }
     val docs = files.filter { !it.image }
+    // Se abren en el lector y se pasa de uno a otro con ‹ ›, en el orden en que se ven.
+    val ordered = images + docs
+    val open = { f: WorkFile -> model.openViewer(ordered.map { ViewerTarget.File("project", it.relPath, it.name, kindOfName(it.name)) }, ordered.indexOf(f)) }
     Column(Modifier.testTag("files-$key"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (images.isNotEmpty()) {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 images.forEach { f ->
                     Column(Modifier.width(168.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        ProjectImage(f.relPath, f.name, Modifier.fillMaxWidth().aspectRatio(1.6f), crop = true)
+                        ProjectImage(f.relPath, f.name, Modifier.fillMaxWidth().aspectRatio(1.6f), crop = true, onOpen = { open(f) })
                         Text(f.name, color = Orbita.TextFaint, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
@@ -193,7 +196,7 @@ private fun FilesLine(files: List<WorkFile>, model: OrbitaModel, key: String) {
             Row(
                 Modifier
                     .heightIn(min = 32.dp)
-                    .tappable(role = Role.Button, haptic = Haptic.Tap) { model.viewer = ViewerTarget.File("project", f.relPath, f.name, kindOfName(f.name)) },
+                    .tappable(role = Role.Button, haptic = Haptic.Tap) { open(f) },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Description, contentDescription = null, tint = Orbita.TextFaint, modifier = Modifier.size(14.dp))

@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { coordinatorGuide, isInside, mentionsApp, taskGuideRules, type GuideEnv } from './coordinatorGuide'
+import { CHAT_STYLE, coordinatorGuide, isInside, mentionsApp, taskGuideRules, type GuideEnv } from './coordinatorGuide'
 
 const code = join('/Users', 'usuario', 'ai-cowork')
 const proj = join('/Users', 'usuario', 'Library', 'AI Cowork', 'projects', 'reservas')
@@ -8,6 +8,11 @@ const env = (urls: string[] = []): GuideEnv => ({ codeDir: code, webUrls: () => 
 const text = (lines: string[]): string => lines.join('\n')
 
 describe('lo que sabe el coordinador de kywai', () => {
+  it('conoce las interacciones ambientales sin confundirlas con trabajo real', () => {
+    const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false }, env()))
+    expect(g).toContain('Los robots libres juegan, se saludan y despiertan a un compañero dormido')
+    expect(g).toContain('no gastan cuota ni cambian los archivos del proyecto')
+  })
   it('conoce el mapa marino y los cuatro decorados como funciones de la app', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false }, env()))
     expect(g).toContain('Fondo marino se elige en ⚙ → Ajustes → General → Mapas')
@@ -146,5 +151,14 @@ describe('lo que sabe el coordinador de kywai', () => {
     const own = text(taskGuideRules(code, env()))
     expect(own).not.toContain('No modifiques nada en')
     expect(own).toContain('Esta carpeta es el código de kywai: nunca hagas commits ni git push aquí')
+  })
+
+  it('Hermes y cada agente escriben breve y ordenado: resultado primero, párrafos cortos, listas', () => {
+    expect(CHAT_STYLE).toContain('empieza por el resultado')
+    expect(CHAT_STYLE).toContain('párrafos cortos')
+    expect(CHAT_STYLE).toContain('en lista')
+    const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false, aboutApp: false }, env()))
+    expect(g).toContain(`Se lee en el chat: ${CHAT_STYLE}`)
+    expect(text(taskGuideRules(proj, env()))).toContain(`Tu respuesta final sale en el chat: ${CHAT_STYLE}`)
   })
 })

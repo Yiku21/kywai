@@ -173,33 +173,55 @@ fun inline(text: String, codeColor: Color = Orbita.Text): AnnotatedString = buil
     }
 }
 
+/**
+ * Aire antes de cada bloque, como en ChatGPT o Claude: más entre párrafos y antes de un título, algo menos entre los
+ * puntos de una lista (para que se vean como pasos y no como un bloque) y nada antes del primero.
+ */
+internal fun gapBefore(prev: String?, cur: String): Int = when {
+    prev == null -> 0
+    cur == "heading" -> 20
+    prev == "heading" -> 8
+    cur == "bullet" && prev == "bullet" -> 8
+    else -> 14
+}
+
+private fun Block.kind(): String = when (this) {
+    is Block.Heading -> "heading"
+    is Block.Bullet -> "bullet"
+    else -> "other"
+}
+
 @Composable
 fun MarkdownText(markdown: String, modifier: Modifier = Modifier, color: Color = Orbita.Text, body: TextStyle = MaterialTheme.typography.bodyLarge) {
     val blocks = remember(markdown) { parse(markdown) }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        blocks.forEach { b ->
+    // Interlineado holgado (1,55 veces la letra): el texto de los agentes no se lee apretado.
+    val text = if (body.fontSize.isSp) body.copy(lineHeight = body.fontSize * 1.55f) else body
+    Column(modifier) {
+        blocks.forEachIndexed { i, b ->
+            val top = gapBefore(blocks.getOrNull(i - 1)?.kind(), b.kind()).dp
             when (b) {
-                is Block.Image -> MarkdownImage(b.alt, b.url)
+                is Block.Image -> androidx.compose.foundation.layout.Box(Modifier.padding(top = top)) { MarkdownImage(b.alt, b.url) }
                 is Block.Heading -> Text(
                     inline(b.text),
                     color = color,
                     style = when (b.level) { 1 -> MaterialTheme.typography.titleLarge; 2 -> MaterialTheme.typography.titleMedium; else -> MaterialTheme.typography.titleSmall },
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = top),
                 )
-                is Block.Paragraph -> Text(inline(b.text), color = color, style = body)
-                is Block.Bullet -> Row(Modifier.padding(start = (b.indent * 14).dp)) {
-                    Text(b.marker, color = Orbita.Accent, style = body, modifier = Modifier.width(22.dp))
-                    Text(inline(b.text), color = color, style = body)
+                is Block.Paragraph -> Text(inline(b.text), color = color, style = text, modifier = Modifier.padding(top = top))
+                is Block.Bullet -> Row(Modifier.padding(start = (b.indent * 14).dp, top = top)) {
+                    val numbered = b.marker != "•"
+                    Text(b.marker, color = if (numbered) Orbita.TextSoft else Orbita.Accent, style = text, fontWeight = if (numbered) FontWeight.SemiBold else null, modifier = Modifier.width(if (numbered) 26.dp else 22.dp))
+                    Text(inline(b.text), color = color, style = text)
                 }
                 is Block.Code -> Text(
                     b.text,
                     color = Orbita.Text,
                     style = Mono,
                     softWrap = false,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Orbita.Card).horizontalScroll(rememberScrollState()).padding(12.dp),
+                    modifier = Modifier.padding(top = top).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Orbita.Card).horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 12.dp),
                 )
-                is Block.Quote -> Text(inline(b.text), color = Orbita.TextSoft, style = body, fontStyle = FontStyle.Italic, modifier = Modifier.padding(start = 10.dp))
-                Block.Rule -> androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).background(Orbita.Divider).padding(top = 1.dp))
+                is Block.Quote -> Text(inline(b.text), color = Orbita.TextSoft, style = text, fontStyle = FontStyle.Italic, modifier = Modifier.padding(start = 10.dp, top = top))
+                Block.Rule -> androidx.compose.foundation.layout.Box(Modifier.padding(top = top).fillMaxWidth().padding(vertical = 4.dp).background(Orbita.Divider).padding(top = 1.dp))
             }
         }
     }
@@ -214,7 +236,7 @@ private fun MarkdownImage(alt: String, url: String) = ProjectImage(url, alt)
  * ordenador al verse, se guarda y, al pulsarla, se abre a pantalla completa. Con [crop] llena su espacio recortándose.
  */
 @Composable
-fun ProjectImage(url: String, alt: String, modifier: Modifier = Modifier.fillMaxWidth(), crop: Boolean = false) {
+fun ProjectImage(url: String, alt: String, modifier: Modifier = Modifier.fillMaxWidth(), crop: Boolean = false, onOpen: (() -> Unit)? = null) {
     val images = LocalMarkdownImages.current
     val remote = url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")
     val key = "img:$url"
@@ -250,7 +272,7 @@ fun ProjectImage(url: String, alt: String, modifier: Modifier = Modifier.fillMax
             contentScale = if (crop) ContentScale.Crop else ContentScale.FillWidth,
             modifier = modifier
                 .clip(RoundedCornerShape(14.dp))
-                .clickable { model.viewer = ViewerTarget.File("project", url, alt.ifBlank { url.substringAfterLast('/').substringAfterLast('\\') }, "image") },
+                .clickable { if (onOpen != null) onOpen() else model.viewer = ViewerTarget.File("project", url, alt.ifBlank { url.substringAfterLast('/').substringAfterLast('\\') }, "image") },
         )
         is Preview.None -> Text(
             (alt.ifBlank { t("imagen") }) + (preview.reason?.let { t(" — no se pudo cargar") } ?: ""),

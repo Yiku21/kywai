@@ -91,6 +91,8 @@
 .userBubble {
   background: var(--bg-surface);
   border-top-left-radius: 4px;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .userText {
@@ -124,14 +126,33 @@
   overflow-wrap: anywhere;
 }
 
+/*
+ * La respuesta de un agente va sin caja, como en ChatGPT o Claude: el texto suelto, con letra un poco mayor, más
+ * interlineado, aire entre párrafos y puntos de lista, y líneas de ~72 caracteres como mucho. Los errores sí
+ * llevan su caja roja para que se vean.
+ */
 .agentBubble {
-  background: rgba(var(--bubble-rgb, 16, 24, 40), 0.55);
-  border-top-left-radius: 4px;
+  --md-size: 15px;
+  --md-lh: 1.7;
+  --md-gap: 16px;
+  --md-li-gap: 10px;
+  padding: 2px 0 0;
+  background: none;
+  border-color: transparent;
+  border-radius: 0;
+  gap: 16px;
+}
+
+.agentBubble .textRow > div {
+  max-width: 72ch;
 }
 
 .errorBubble {
+  padding: 12px 14px;
   background: var(--alert-soft);
   border-color: color-mix(in srgb, var(--alert) 35%, transparent);
+  border-radius: 12px;
+  border-top-left-radius: 4px;
 }
 
 .textRow {
@@ -441,6 +462,9 @@
   }
   .bubble {
     padding: 10px 12px;
+  }
+  .agentBubble:not(.errorBubble) {
+    padding: 2px 0 0;
   }
 }
 
@@ -1210,6 +1234,79 @@ button.itemHead:hover {
   white-space: nowrap;
 }
 
+/* Últimas acciones del agente: la nueva entra deslizándose con un brillo breve. */
+.feedItem {
+  position: relative;
+  padding-left: 14px;
+  font-size: 12px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 0.4s ease;
+}
+
+.feedItem::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: var(--agent, var(--live));
+}
+
+.feedNew {
+  animation: feedIn 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.feedNew::before {
+  animation: feedDot 1.2s ease-out;
+}
+
+@keyframes feedIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes feedDot {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--agent, var(--live)) 70%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+/* Tarea recién terminada: destello verde una vez. */
+.workCelebrate {
+  border-radius: 10px;
+  animation: workDone 1.8s ease-out;
+}
+
+@keyframes workDone {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--live, #34d399) 60%, transparent);
+    background: color-mix(in srgb, var(--live, #34d399) 14%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedNew,
+  .feedNew::before,
+  .workCelebrate {
+    animation: none;
+  }
+}
+
 /* ---------- Tema Órbita: burbujas de cristal ---------- */
 
 :global(:root[data-theme='orbita']) .agentBubble {
@@ -1324,4 +1421,58 @@ button.itemHead:hover {
   color: var(--text-2);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* ---------- Imágenes adjuntas (miniaturas) y entregables que se abren al pulsarlos ---------- */
+
+.attThumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attThumbsOne {
+  grid-template-columns: minmax(0, 320px);
+}
+
+.attThumb {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-input);
+  overflow: hidden;
+  cursor: zoom-in;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.attThumb:hover {
+  border-color: color-mix(in srgb, var(--cyan) 55%, transparent);
+}
+
+.attThumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.attThumbsOne .attThumb img {
+  aspect-ratio: auto;
+  max-height: 280px;
+  object-fit: contain;
+}
+
+.artifactOpen {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }

@@ -78,6 +78,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Cómo rinde cada agente](#cómo-rinde-cada-agente)
   - [Dónde se guardan las cosas](#dónde-se-guardan-las-cosas)
 - **[Comodidades](#comodidades)**
+  - [Un chat que se lee bien](#un-chat-que-se-lee-bien)
   - [Ancho del chat y ventanas pequeñas](#ancho-del-chat-y-ventanas-pequeñas)
   - [Idioma](#idioma)
   - [Temas](#temas)
@@ -1053,6 +1054,12 @@ dice cuánto suelen tardar las tareas parecidas. Ya no hay una barra estimada qu
 agente lleva más de 30 s sin contar nada (por ejemplo, escribiendo un archivo largo de una vez), lo dice: «Pensando
 o escribiendo algo largo · sin novedades desde hace N min». Con «Reducir efectos» el brillo y el latido se quitan.
 
+Cada paso real del agente se nota: en el chat, su última acción **entra deslizándose** y empuja a las dos
+anteriores, que se van apagando; la etapa que termina se marca con un ✓ que salta, y cuando la tarea acaba bien
+mientras miras, su bloque da un **destello verde**. En el espacio 3D, cada comando, archivo o mensaje del agente
+lanza una **chispa de su color** desde su robot al proyecto, que late al recibirla. Nada de esto va con
+temporizador: si el agente no hace nada, no se mueve nada. «Reducir efectos» lo quita todo.
+
 ### Respuesta final del coordinador
 
 Cuando un plan de varias tareas termina, el coordinador no se limita a la lista de ✓: con todos los resultados
@@ -1939,6 +1946,74 @@ bien en una petición cancelada se toma como cancelada. La API móvil lo da en `
 
 ## Comodidades
 
+### Un chat que se lee bien
+
+El chat se lee como ChatGPT o Claude, sin «muro de letras»:
+
+- **La respuesta de un agente va sin caja:** el texto suelto, junto a su avatar. Tus mensajes siguen en su burbuja, y
+  los errores en su caja roja para que no pasen desapercibidos.
+- **Letra e interlineado:** 15 px con interlineado 1,7 en el escritorio y la web (antes 14 px y 1,55), y líneas de
+  unos 72 caracteres como mucho. En Órbita el interlineado pasa a 1,55 veces la letra.
+- **Aire:** 16 px entre párrafos, más antes de cada título y entre un mensaje y el siguiente. Los puntos de una lista
+  van separados (10 px), con el número en negrita, para que se vean como pasos. Tablas y bloques de código llevan
+  más margen.
+- **Órbita** mantiene la tarjeta de la respuesta (encima del 3D hace falta contraste), pero con más margen dentro y el
+  mismo reparto de aire entre párrafos, títulos y puntos.
+- **Cómo escriben:** a Hermes (su respuesta y el resumen final de cada petición) y a cada agente se les pide que
+  empiecen por el resultado, con párrafos de 2 o 3 frases, listas para pasos y opciones, negrita solo en lo
+  importante y títulos solo si la respuesta es larga. Los mensajes directos («@Agente …») no se tocan.
+- **Baja solo:** si estás al final, el chat sigue lo que van escribiendo los agentes, aunque llegue de golpe un bloque
+  alto (una tabla, una lista). Solo se queda quieto, con el botón «Nuevos mensajes», si subes tú a leer algo.
+
+Para desarrolladores: el tamaño, el interlineado y el aire del Markdown son variables CSS (`--md-size`, `--md-lh`,
+`--md-gap`, `--md-li-gap` en `MarkdownView.module.css`) que el chat sube en `.agentBubble` (`Messages.module.css`);
+fichas de tareas, memoria y documentos se quedan con 14 px. Órbita: `gapBefore` en `ui/orbita/Markdown.kt`. La guía de
+estilo es `CHAT_STYLE` en `src/main/coordinatorGuide.ts` (va en el prompt de Hermes, en las reglas de cada tarea y en la
+respuesta final).
+
+### Ver los archivos del chat sin salir de kywai (panel de vista previa)
+
+Al pulsar un archivo en el chat se abre **dentro de kywai**, en un panel a la derecha del chat (en el sitio del
+espacio 3D), como en Claude. Sirve para todo lo que aparece en la conversación:
+
+- tus **adjuntos** (y los de la pestaña Archivos);
+- los **entregables** de un agente (la ficha del resultado o la carpeta con varios, y la pestaña Resultados);
+- los archivos que un agente **crea o abre mientras trabaja** (las miniaturas y fichas de su tarjeta de trabajo);
+- un **nombre de archivo escrito entre comillas de código** en un mensaje (por ejemplo `` `00_LEEME.md` ``), si es un
+  archivo del proyecto: sale subrayado y se abre al pulsarlo;
+- los **enlaces e imágenes** de un mensaje que apuntan a archivos del proyecto.
+
+Arriba del panel:
+
+- **👁 / `</>`:** en Markdown, HTML y SVG, cambia entre la vista bonita y el código (con números de línea).
+- **Copiar:** copia el texto (o la imagen, como PNG).
+- **Descargar:** guarda una copia donde elijas (en el navegador, en la carpeta de descargas de ese dispositivo).
+- **Abrir con la aplicación del equipo:** lo de antes; en un cliente, con una aplicación de ese equipo; en el
+  navegador, en otra pestaña.
+- **Ampliar:** el panel ocupa toda la ventana (otra vez para reducirlo). **Esc** o la **✕** lo cierran.
+- **‹ 1 de 3 ›:** pasa a los demás archivos del mismo mensaje (o de la misma carpeta). También con las flechas
+  izquierda y derecha del teclado.
+
+Qué se ve en el panel: Markdown renderizado, imágenes (un clic las pone a tamaño real), páginas HTML funcionando
+(aisladas: no pueden usar la sesión de kywai), PDF con el visor del navegador, vídeo y audio con su reproductor, y
+código o texto con números de línea. Lo demás muestra «Vista previa no disponible» con el botón **Abrir con…**.
+
+Con la ventana estrecha (menos de 950 px) el panel ocupa toda la zona del chat. Al cambiar de proyecto se cierra.
+
+**Miniaturas:** las **imágenes que adjuntas** se ven en pequeño dentro de tu mensaje (una sola, más grande; varias, en
+cuadrícula). Si una no se puede cargar (se borró del disco), vuelve a ser una ficha con su nombre.
+
+Por debajo: el panel lee el archivo con `readArtifact` (con `{ text: true }` para ver el código de un HTML o un SVG) y
+lo muestra por `cowork://file/…` en el escritorio o por `/api/file/…` en el cliente y el navegador. `/api/file/…`
+admite peticiones por partes (para adelantar vídeos) y sirve los PDF sin el `sandbox` que se pone a lo demás (el
+visor de PDF del navegador no abre dentro de uno). «Descargar» usa `downloadFile` (diálogo de guardar en el
+escritorio; enlace de descarga en la web). La ventana de Electron tiene activado el visor de PDF (`plugins`).
+
+**En Órbita (móvil):** tus adjuntos del chat también salen en miniatura (las imágenes) o como fichas, y al tocarlos se
+abren en el lector a pantalla completa. El lector tiene **‹ 1 de 3 ›** para pasar a los demás archivos del mensaje
+(adjuntos, entregables o archivos de la tarea), **Vista previa / Código** en Markdown, HTML y SVG, **copiar** el
+texto, **guardar en el móvil** y **abrir con otra app** del móvil (visor de PDF, galería…).
+
 ### Ancho del chat y ventanas pequeñas
 
 El chat es lo importante; el espacio 3D es el escenario. Por eso, cuanto más pequeña es la ventana, más sitio se lleva
@@ -2021,6 +2096,8 @@ se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cua
 `userLanguageName()`. No se llama a `tr()` al cargar un módulo (el idioma aún no está fijado): dentro de funciones.
 
 ### Temas
+
+En **Fondo marino**, cada estación conserva una plataforma separada también al añadir agentes. Los puestos adicionales se colocan en espacios libres alrededor del arrecife, sin solapar las plataformas existentes ni cambiar las posiciones guardadas del proyecto. La vista general amplía su encuadre para incluir los nuevos puestos.
 
 **Fondo marino** se elige en **⚙ → Ajustes → General → Mapas**: arrecife con bancos de peces, ballenas, medusas, mantarraya, vegetación y una ciudad sumergida. Las estaciones son plataformas de investigación y el centro es una concha con una perla luminosa; siguen mostrando el estado real de los agentes y los intercambios de archivos. Su distribución es visual: conserva los identificadores y posiciones guardados de las estaciones. **Reducir efectos** detiene los movimientos ambientales y la calidad adaptativa reduce partículas y detalles. El escenario está disponible en escritorio, cliente conectado y navegador; Órbita todavía no dibuja este mundo 3D.
 
@@ -2223,6 +2300,12 @@ bocadillos, en `scene/bubbleStore.ts`).
 
 **Cuando escribes en el chat**, los que duermen o están en reposo se despiertan de golpe y todos los libres giran el cuerpo y miran
 hacia el chat unos segundos, esperando el siguiente encargo; alguno dice algo como «¿Sí? Te escucho.» o «¡Presente!».
+
+### Vida entre compañeros
+
+Mientras unos agentes trabajan, los libres pueden jugar pasándose un documento de juguete o una pelota de colores, acercarse a saludar y despertar a un compañero dormido con un susto amistoso. Se miran, sonríen, saltan al atrapar el objeto y reaccionan al susto; después vuelven a su puesto. Los turnos se reparten entre los disponibles, con pausas entre escenas.
+
+Son animaciones locales del espacio 3D: no ejecutan modelos, no gastan cuota ni mueven archivos del proyecto. Los avisos de trabajo tienen prioridad sobre las frases del juego. Si llega una tarea, una transferencia real, una espera o empiezas a escribir, dejan la interacción de inmediato y vuelven suavemente al puesto. **Reducir efectos** desactiva estas escenas. Funcionan en los mapas del escritorio, cliente conectado y navegador; no se reproducen en el mundo nativo de Órbita.
 
 ### Modo Demo
 
