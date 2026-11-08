@@ -2476,4 +2476,5 @@ export const fr: Record<string, string> = {
   "Ese zip no tiene conversations.json: elige la exportación de ChatGPT o de Claude.ai": "Ce zip n’a pas de conversations.json : choisissez l’export de ChatGPT ou de Claude.ai",
   "No reconozco ese archivo: elige la exportación de ChatGPT o de Claude.ai": "Je ne reconnais pas ce fichier : choisissez l’export de ChatGPT ou de Claude.ai",
   "Elige la exportación de ChatGPT o de Claude.ai": "Choisissez l’export de ChatGPT ou de Claude.ai",
+  "La exportación supera los límites de lectura; divídela en archivos más pequeños": "L’exportation dépasse les limites de lecture ; divisez-la en fichiers plus petits",
 }

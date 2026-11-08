@@ -186,6 +186,7 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 
 ### 🧩 Context and automation
 
+- **Bring your existing work.** Import local Claude Code, Codex and Hermes sessions (including Hermes Desktop), or ChatGPT and Claude.ai JSON/ZIP exports, from ⚙ → Import from other apps. Keep conversations, recover included Claude projects and documents, and continue with your team. Originals stay unchanged; local sessions are read on the server.
 - **Conversations like in Claude.** A sidebar with your projects, pinned ones and recent chats. "New chat" starts a fresh conversation without losing the previous one, and any of them can be resumed later with its tasks and each agent's session. Ctrl+K searches conversations, tasks, results and memory across all projects.
 - **Project memory** with instructions, decisions, preferences and to-dos, each with its author and status. Every agent reads it on every task, even after you clear the chat.
 - **One AGENTS.md for the whole team.** Each CLI reads only its own file; kywai passes the others along, so one `AGENTS.md` gives every agent the same rules.
