@@ -44,10 +44,11 @@ import { useAgentLookup } from '../common/agents'
 import { useComposer } from './composerStore'
 import { FileTypeIcon, KindTile, TaskStatusIcon } from '../common/icons'
 import { MarkdownView } from '../common/MarkdownView'
-import { agentVars, cx, errorText, isoTime, plural } from '../common/util'
+import { agentVars, cx, errorText, formatDuration, isoTime, plural } from '../common/util'
 import u from '../common/ui.module.css'
-import { ESTIMATE_HINT, REAL_HINT, planProgress } from '@/lib/progress'
+import { planProgress, progressHint, quietFor, quietText, shortClock } from '@/lib/progress'
 import { useNow } from '../common/hooks'
+import { TaskStages } from './TaskStages'
 import s from './Messages.module.css'
 import { t } from '@/lib/i18n'
 
@@ -385,12 +386,7 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
       else if (st.kind === 'files' && !files) files = st
     }
   }
-  const liveLine = live ? (
-    <li className={s.liveLine}>
-      <TypingDots reduced={reduced} />
-      {task?.lastActivity && <span>{t(task.lastActivity)}</span>}
-    </li>
-  ) : null
+  const liveLine = live ? <LiveLine task={task!} reduced={reduced} /> : null
   const toggle =
     count > 0 ? (
       <button type="button" className={s.moreHead} aria-expanded={open} aria-controls={listId} onClick={() => setOpen((o) => !o)}>
@@ -616,6 +612,30 @@ function CodeBlock({ text, diff }: { text: string; diff?: boolean }) {
         </span>
       ))}
     </pre>
+  )
+}
+
+/**
+ * Lo que hace ahora una tarea en marcha, con su reloj corriendo. Si el agente lleva un rato callado (pensando o
+ * escribiendo un archivo largo de una vez), lo dice con el tiempo: así se ve que sigue vivo y no parece atascado.
+ */
+function LiveLine({ task, reduced }: { task: Task; reduced: boolean }) {
+  const runtime = useData((d) => d.runtimes[task.agentId])
+  const now = useNow(1000)
+  const quiet = quietText(quietFor(runtime, now))
+  return (
+    <>
+      {task.phase && (
+        <li className={s.liveStages}>
+          <TaskStages task={task} reduced={reduced} />
+        </li>
+      )}
+      <li className={s.liveLine}>
+        <TypingDots reduced={reduced} />
+        {task.startedAt && <span className={s.liveClock}>{formatDuration(now - task.startedAt)}</span>}
+        {(quiet || task.lastActivity) && <span>{quiet ?? t(task.lastActivity!)}</span>}
+      </li>
+    </>
   )
 }
 
@@ -889,7 +909,7 @@ function PlanBlock({ taskIds, runId, contract }: { taskIds: string[]; runId?: st
           </button>
         </div>
         <div
-          className={u.track}
+          className={cx(u.track, measurable && running > 0 && !reduced && u.trackLive)}
           role="progressbar"
           aria-label={t('Progreso del plan')}
           aria-valuemin={0}
@@ -910,8 +930,8 @@ function PlanBlock({ taskIds, runId, contract }: { taskIds: string[]; runId?: st
             {failed > 0 && done > 0 && <span className={s.planFail}> · {failed} {t('con error')}</span>}
           </span>
           {measurable ? (
-            <span className={s.planPct} title={plan.real ? REAL_HINT : ESTIMATE_HINT}>
-              {plan.real ? `${pct}%` : `≈ ${pct}%`}
+            <span className={s.planPct} title={progressHint(plan)}>
+              {plan.real || finished ? `${pct}%` : shortClock(plan.elapsedMs)}
             </span>
           ) : (
             <span className={s.planActivity}>{t('En curso')}</span>

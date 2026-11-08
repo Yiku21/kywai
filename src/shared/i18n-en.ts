@@ -138,7 +138,6 @@ export const en: Record<string, string> = {
 
   // lib/progress.ts
   'Progreso real: pasos completados de la lista de trabajo del agente': 'Real progress: completed steps from the agent\'s to-do list',
-  'Estimación (≈): este agente no informa sus pasos; se calcula con lo que tardaron tareas parecidas': 'Estimate (≈): this agent doesn\'t report its steps; it\'s calculated from how long similar tasks took',
 
   // lib/theme.ts
   "Centro de operaciones del ciberespacio, con servidores y un núcleo holográfico": "Cyberspace operations center, with servers and a holographic core",
@@ -856,6 +855,16 @@ export const en: Record<string, string> = {
   'Ver lo que hizo {name}, paso a paso': 'See what {name} did, step by step',
   'Ver a {name} en el espacio': 'See {name} in the space',
   'Espera a:': 'Waiting for:',
+  'Pensando o escribiendo algo largo · sin novedades desde hace {time}': 'Thinking or writing something long · nothing new for {time}',
+  'Este agente no informa de sus pasos: se ve cuánto lleva, sin inventar un porcentaje': 'This agent doesn\'t report its steps: you see how long it has been working, without a made-up percentage',
+  'Lleva {elapsed}; las tareas parecidas suelen tardar unos {expected}. {hint}': 'Running for {elapsed}; similar tasks usually take about {expected}. {hint}',
+  '{name} prepara el plan': '{name} is preparing the plan',
+  'Recibido. Decide qué agentes lo hacen y cómo; cuando lo tenga, empiezan.': 'Received. It is deciding which agents do it and how; once the plan is ready, they start.',
+  'Corrigiendo': 'Fixing',
+  'Pruebas': 'Tests',
+  'Verificación': 'Review',
+  'Lista': 'Done',
+  'Etapas de la tarea': 'Task stages',
   'Razonando… (sin novedades por ahora)': 'Thinking… (nothing new yet)',
   'Progreso de {title}{v2}': 'Progress of {title}{v2}',
   ' (estimado)': ' (estimated)',

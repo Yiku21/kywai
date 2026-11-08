@@ -2583,6 +2583,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   t.startedAt = Date.now()
   t.finishedAt = undefined
   t.model = model || undefined
+  t.phase = meta.fixRequest ? 'fix' : 'work'
   t.lastActivity = tr('Leyendo la tarea')
   t.error = undefined
   t.progress = undefined
@@ -2950,6 +2951,7 @@ async function taskTests(t: Task, author: AgentConfig, dir: string, signal: Abor
   const why =
     ev.status === 'failed' ? tr('a {name} le fallaron las pruebas', { name: author.name }) : ev.status === 'stale' ? tr('{name} cambió archivos después de probar', { name: author.name }) : tr('{name} no ejecutó pruebas', { name: author.name })
   traceNote(t.id, tr('Pruebas: {why}; kywai ejecuta «{command}» antes de verificar', { why, command }))
+  t.phase = 'tests'
   t.lastActivity = tr('Ejecutando las pruebas ({command})', { command })
   taskDirty(t)
   const r = await runProjectCheck(dir, command, signal)
@@ -3081,6 +3083,7 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   if (ui) traceNote(t.id, tr('Capturas de la interfaz para la verificación: {v1}{v2}', { v1: ui.shots.map((s) => s.path).join(', '), v2: ui.errors.length ? tr(' · {length} errores al abrirla', { length: ui.errors.length }) : '' }))
   if (run.cancelled || ctrl.signal.aborted) return null
   const fixes = meta.fixesDone ?? 0
+  t.phase = 'verify'
   t.lastActivity = tr('{name} comprueba el resultado', { name: verifier.name })
   taskDirty(t)
   traceNote(t.id, tr('{name} comprueba el resultado contra la petición{v2}', { name: verifier.name, v2: meta.reviewRelay ? tr(' (tras el relevo de {fromName})', { fromName: meta.reviewRelay.fromName }) : fixes ? tr(' (tras la corrección {fixes} de {MAX_REVIEW_FIXES})', { fixes, MAX_REVIEW_FIXES }) : '' }))

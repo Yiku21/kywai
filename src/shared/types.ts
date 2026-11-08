@@ -161,6 +161,9 @@ export type Difficulty = 'easy' | 'medium' | 'hard'
 /** Esfuerzo de razonamiento que admiten Claude Code (--effort) y Codex (model_reasoning_effort). */
 export type Effort = 'low' | 'medium' | 'high' | 'xhigh'
 
+/** Etapa real de una tarea en marcha (ver Task.phase). */
+export type TaskPhase = 'work' | 'fix' | 'tests' | 'verify'
+
 export interface Task {
   id: string
   projectId: string
@@ -179,6 +182,11 @@ export interface Task {
   finishedAt?: number
   /** 0..1 SOLO si existe una medida real. null/undefined = indicador de actividad. */
   progress?: number | null
+  /**
+   * Etapa real en la que está una tarea en marcha: trabajando, corrigiendo lo que vio el verificador, pasando las
+   * pruebas del proyecto o en la verificación. La interfaz la enseña como pasos (Trabajando → Pruebas → Verificación).
+   */
+  phase?: TaskPhase
   lastActivity?: string
   result?: string
   artifactIds: string[]

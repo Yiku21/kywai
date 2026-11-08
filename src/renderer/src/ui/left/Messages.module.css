@@ -1194,6 +1194,16 @@ button.itemHead:hover {
   color: var(--text-3);
 }
 
+.liveStages {
+  margin-bottom: 2px;
+}
+
+.liveClock {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
 .liveLine > span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -142,6 +142,24 @@
   transition: width calc(var(--dur-slow) * 1.6) var(--ease);
 }
 
+/* Barra de algo en marcha: un brillo la recorre sin parar, para que se vea que sigue vivo aunque el porcentaje no
+   cambie durante un rato (un agente pensando o escribiendo un archivo largo no avisa). */
+.trackLive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bar, var(--live)) 55%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
 /* Indicador de actividad (sin medida real de progreso). */
 .shimmer {
   position: absolute;
@@ -208,7 +226,8 @@
 @media (prefers-reduced-motion: reduce) {
   .spin,
   .pulse,
-  .shimmer {
+  .shimmer,
+  .trackLive::after {
     animation: none;
   }
 }

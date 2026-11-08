@@ -2,14 +2,35 @@ import type { AgentRuntime, Task } from '@shared/types'
 import { t } from '@/lib/i18n'
 import { serverNow } from './serverClock'
 
-/** Progreso de una tarea en porcentaje. `real` = viene de la lista de pasos del agente. */
+/**
+ * Progreso de una tarea. `real` = viene de la lista de pasos del agente y `pct` es su porcentaje. Si el agente no
+ * informa de sus pasos no se inventa un porcentaje (una barra que sube sola y se queda en el 95 % engaña): `pct` es 0
+ * y se enseña cuánto lleva (`elapsedMs`) y cuánto suelen tardar las parecidas (`expectedMs`), con un brillo que
+ * recorre la barra para que se vea que sigue vivo.
+ */
 export interface TaskProgress {
   pct: number
   real: boolean
+  elapsedMs: number
+  expectedMs: number
 }
 
 export const REAL_HINT = t('Progreso real: pasos completados de la lista de trabajo del agente')
-export const ESTIMATE_HINT = t('Estimación (≈): este agente no informa sus pasos; se calcula con lo que tardaron tareas parecidas')
+export const ESTIMATE_HINT = t('Este agente no informa de sus pasos: se ve cuánto lleva, sin inventar un porcentaje')
+
+/** «45 s», «4 min», «1 h 05». */
+export function shortClock(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  if (s < 60) return `${s} s`
+  const m = Math.floor(s / 60)
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`
+}
+
+/** Explicación de una tarea sin progreso real: cuánto lleva y cuánto suelen tardar las parecidas. */
+export function progressHint(p: TaskProgress): string {
+  if (p.real) return REAL_HINT
+  return t('Lleva {elapsed}; las tareas parecidas suelen tardar unos {expected}. {hint}', { elapsed: shortClock(p.elapsedMs), expected: shortClock(p.expectedMs), hint: ESTIMATE_HINT })
+}
 
 /** Duración por defecto (s) cuando aún no hay historial. */
 const DEFAULT_SECONDS: Record<Task['difficulty'], number> = { easy: 60, medium: 180, hard: 420 }
@@ -40,18 +61,22 @@ export function expectedDuration(task: Task, history: Iterable<Task>): number {
 
 /** Progreso de una tarea: real si el agente lo informa; si no, estimado. null si no ha empezado. */
 export function taskProgress(task: Task, history: Iterable<Task>, now = serverNow()): TaskProgress | null {
-  if (task.status === 'done') return { pct: 100, real: true }
+  const elapsedMs = Math.max(0, now - (task.startedAt ?? now))
+  const expectedMs = task.status === 'running' ? expectedDuration(task, history) : 0
+  if (task.status === 'done') return { pct: 100, real: true, elapsedMs, expectedMs }
   if (task.status !== 'running') return null
-  if (task.progress != null) return { pct: Math.round(Math.min(0.99, Math.max(0, task.progress)) * 100), real: true }
-  const elapsed = Math.max(0, now - (task.startedAt ?? now))
-  // Curva que avanza rápido al principio y nunca llega al 100 % hasta que la tarea termina de verdad.
-  const p = 0.95 * (1 - Math.exp(-elapsed / expectedDuration(task, history)))
-  return { pct: Math.max(2, Math.round(p * 100)), real: false }
+  if (task.progress != null) return { pct: Math.round(Math.min(0.99, Math.max(0, task.progress)) * 100), real: true, elapsedMs, expectedMs }
+  return { pct: 0, real: false, elapsedMs, expectedMs }
 }
 
-/** Progreso global de un plan: tareas terminadas más la parte hecha de las que están en curso. */
+/**
+ * Progreso global de un plan: tareas terminadas más la parte hecha (real) de las que están en curso. Las que no
+ * informan de sus pasos no suman hasta terminar: es el avance seguro, no una estimación.
+ */
 export function planProgress(tasks: Task[], history: Iterable<Task>, now = serverNow()): TaskProgress {
-  if (tasks.length === 0) return { pct: 0, real: true }
+  const started = tasks.map((x) => x.startedAt).filter((x): x is number => !!x)
+  const elapsedMs = started.length ? Math.max(0, now - Math.min(...started)) : 0
+  if (tasks.length === 0) return { pct: 0, real: true, elapsedMs, expectedMs: 0 }
   let sum = 0
   let real = true
   for (const t of tasks) {
@@ -65,11 +90,30 @@ export function planProgress(tasks: Task[], history: Iterable<Task>, now = serve
       if (!p.real) real = false
     }
   }
-  return { pct: Math.round((sum / tasks.length) * 100), real }
+  return { pct: Math.round((sum / tasks.length) * 100), real, elapsedMs, expectedMs: 0 }
 }
 
+/** «37%» si es real; si no, cuánto lleva («4 min»). */
 export function progressText(p: TaskProgress): string {
-  return p.real ? `${p.pct}%` : `≈ ${p.pct}%`
+  return p.real ? `${p.pct}%` : shortClock(p.elapsedMs)
+}
+
+/** Cuánto lleva el agente sin contar nada nuevo mientras trabaja (ms), o 0 si no está trabajando. */
+export function quietFor(rt: AgentRuntime | undefined, now = serverNow()): number {
+  if (!rt || (rt.activity !== 'working' && rt.activity !== 'thinking') || !rt.lastActivityAt) return 0
+  return Math.max(0, now - rt.lastActivityAt)
+}
+
+/**
+ * Frase para cuando el agente lleva un rato callado (30 s o más): dice cuánto y qué suele estar haciendo, para que
+ * no parezca atascado. Los CLI no avisan mientras piensan ni mientras escriben un archivo largo de una vez (medido:
+ * Codex estuvo 4 min 41 s escribiendo un documento de 43 KB sin ningún aviso). null si no hace falta.
+ */
+export function quietText(ms: number): string | null {
+  if (ms < SILENT_MS) return null
+  const m = Math.floor(ms / 60_000)
+  const time = m < 1 ? `${Math.floor(ms / 1000)} s` : `${m} min`
+  return t('Pensando o escribiendo algo largo · sin novedades desde hace {time}', { time })
 }
 
 /** El agente lleva un rato sin informar nada (suele estar razonando). */

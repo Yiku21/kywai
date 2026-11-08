@@ -1041,6 +1041,18 @@ edita (con los cambios en verde y rojo), sus búsquedas, su lista de pasos y lo 
 las tareas terminadas («Tareas recientes» en el panel del agente): cada registro se guarda 30 días en `traces/`
 dentro de la carpeta de datos. Funciona con Claude, Codex, Gemini, Qwen Code y los modelos locales.
 
+### Cómo se ve que una tarea avanza
+
+kywai no se inventa el avance. Nada más enviar tu petición aparece una fila con el coordinador **preparando el
+plan**, con puntos animados y un reloj, para que veas que se ha recibido aunque el plan tarde unos segundos. Cada
+tarea en marcha enseña sus **etapas reales**: Trabajando (o Corrigiendo) → Pruebas → Verificación → Lista; el punto
+de la etapa actual late y cambia solo cuando el motor pasa de verdad a la siguiente. Debajo, el reloj de lo que
+lleva y lo último que hizo el agente. El porcentaje solo sale si el agente informa de sus pasos; si no, la barra
+muestra un **brillo que la recorre** (señal de que sigue trabajando) y el tiempo que lleva, y al pasar el ratón
+dice cuánto suelen tardar las tareas parecidas. Ya no hay una barra estimada que suba sola y se quede parada. Si el
+agente lleva más de 30 s sin contar nada (por ejemplo, escribiendo un archivo largo de una vez), lo dice: «Pensando
+o escribiendo algo largo · sin novedades desde hace N min». Con «Reducir efectos» el brillo y el latido se quitan.
+
 ### Respuesta final del coordinador
 
 Cuando un plan de varias tareas termina, el coordinador no se limita a la lista de ✓: con todos los resultados

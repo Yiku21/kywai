@@ -1,7 +1,7 @@
 import { useMemo, type CSSProperties } from 'react'
 import { ClipboardList, Link2, Timer } from 'lucide-react'
 import type { AgentRuntime, Task } from '@shared/types'
-import { ESTIMATE_HINT, REAL_HINT, isSilent, progressText, taskProgress } from '@/lib/progress'
+import { isSilent, progressHint, progressText, quietFor, quietText, taskProgress } from '@/lib/progress'
 import { useCowork, useData } from '@/store/cowork'
 import { AgentPill } from '../common/AgentBits'
 import { modelLabelFor, useAgentLookup, type AgentLook } from '../common/agents'
@@ -12,6 +12,7 @@ import u from '../common/ui.module.css'
 import s from './Views.module.css'
 import { t } from '@/lib/i18n'
 import { serverNow } from '@/lib/serverClock'
+import { TaskStages } from './TaskStages'
 
 type GroupId = 'running' | 'waiting' | 'done' | 'error'
 
@@ -138,6 +139,7 @@ function TaskRow({
   if (task.status === 'running' && task.startedAt) duration = formatDuration(Math.max(0, (now || serverNow()) - task.startedAt))
   else if (task.startedAt && task.finishedAt) duration = formatDuration(task.finishedAt - task.startedAt)
   const prog = task.status === 'running' ? taskProgress(task, Object.values(tasks), now || serverNow()) : null
+  const reduced = useCowork((st) => st.reducedEffects)
   const silent = task.status === 'running' && isSilent(runtime, now || serverNow())
 
   return (
@@ -169,14 +171,15 @@ function TaskRow({
         {task.status === 'failed' && task.error ? (
           <span className={s.taskError}>{task.error}</span>
         ) : silent ? (
-          <span className={s.activity}>{t('Razonando… (sin novedades por ahora)')}</span>
+          <span className={s.activity}>{quietText(quietFor(runtime, now || serverNow())) ?? t('Razonando… (sin novedades por ahora)')}</span>
         ) : task.lastActivity && task.status !== 'done' ? (
           <span className={s.activity}>{t(task.lastActivity)}</span>
         ) : null}
+        {task.status === 'running' && <TaskStages task={task} reduced={reduced} />}
         {prog && (
-          <span className={cx(s.progressRow, !prog.real && s.progressEstimate)} title={prog.real ? REAL_HINT : ESTIMATE_HINT}>
+          <span className={cx(s.progressRow, !prog.real && s.progressEstimate)} title={progressHint(prog)}>
             <span
-              className={cx(u.track, u.trackThin, s.progress)}
+              className={cx(u.track, u.trackThin, s.progress, !reduced && u.trackLive)}
               role="progressbar"
               aria-label={t('Progreso de {title}{v2}', { title: task.title, v2: prog.real ? '' : t(' (estimado)') })}
               aria-valuemin={0}

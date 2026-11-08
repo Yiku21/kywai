@@ -22,7 +22,7 @@ import { relativeTime, timeHM } from '@/lib/format'
 import { AgentAvatar, AgentPill } from '../common/AgentBits'
 import { ACTIVITY_LABEL, endpointLook, modelLabelFor, PROVIDER_LABEL, useAgentLookup, type AgentLook } from '../common/agents'
 import { useEscape, useNow } from '../common/hooks'
-import { ESTIMATE_HINT, REAL_HINT, isSilent, progressText, taskProgress } from '@/lib/progress'
+import { isSilent, progressHint, progressText, taskProgress } from '@/lib/progress'
 import { FileTypeIcon, KindTile, TaskStatusIcon, TASK_STATUS_LABEL } from '../common/icons'
 import { agentVars, basename, cx, errorText, kTokens } from '../common/util'
 import u from '../common/ui.module.css'
@@ -235,9 +235,9 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
             </div>
             {current.description && <p className={s.taskDesc}>{current.description}</p>}
             {prog && current.status === 'running' ? (
-              <div className={s.progressRow} title={prog.real ? REAL_HINT : ESTIMATE_HINT}>
+              <div className={s.progressRow} title={progressHint(prog)}>
                 <div
-                  className={u.track}
+                  className={cx(u.track, !prog.real && u.trackLive)}
                   role="progressbar"
                   aria-label={prog.real ? t('Progreso de la tarea') : t('Progreso estimado de la tarea')}
                   aria-valuemin={0}
