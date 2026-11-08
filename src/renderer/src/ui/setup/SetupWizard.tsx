@@ -660,6 +660,19 @@ export function SetupWizard() {
                   )
                 })}
               </ul>
+              <div className={s.importBox}>
+                <span>{t('¿Traes conversaciones de otras apps? Importa las de Claude Code y Codex de este equipo, o la exportación de ChatGPT o Claude.ai, y síguelas aquí.')}</span>
+                <button
+                  type="button"
+                  className={u.btn}
+                  onClick={() => {
+                    void finish()
+                    useCowork.setState({ importOpen: true })
+                  }}
+                >
+                  {t('Importar de otras apps…')}
+                </button>
+              </div>
             </div>
           )}
         </div>

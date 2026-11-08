@@ -70,6 +70,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
   - [Buscar (Ctrl+K)](#buscar-ctrlk)
   - [Historial](#historial)
+  - [Importar de otras apps](#importar-de-otras-apps)
   - [Eliminar un proyecto](#eliminar-un-proyecto)
   - [Cuotas](#cuotas)
   - [Consumo: ¿compensa?](#consumo-compensa)
@@ -1613,6 +1614,54 @@ con esta versión (si no, se ve el buscador de antes).
 API móvil: `GET /chats/all` (el historial) y `GET /search` con `since` (ms), `author` (`user`, `agents` o el id de un
 agente) y `limit` (hasta 400); la respuesta trae `total` y, en cada chat, `messageId`, `matchCount` y `matches`. La
 capacidad `history` del snapshot dice si el ordenador lo tiene.
+
+### Importar de otras apps
+
+Para no empezar de cero al pasarte a kywai: ⚙ → «**Importar de otras apps…**» (también al final del asistente de
+bienvenida y, mientras tengas pocas conversaciones, «Traer conversaciones de otras apps…» al pie de la barra lateral).
+Los originales **no se tocan** y nada sale del servidor. Volver a importar **no duplica** lo que ya se trajo (se apunta
+en `workspace/importados.json`; si borras una conversación importada, se puede volver a traer).
+
+**En este equipo** busca lo que ya hay en el disco del **servidor** (el ordenador donde corre el motor):
+
+| App | Dónde lo busca | Qué queda en kywai |
+|---|---|---|
+| Claude Code | `~/.claude/projects/<carpeta>/<sesión>.jsonl` (o `$CLAUDE_CONFIG_DIR`) | Una conversación por sesión, retomable con su sesión real (`--resume`) |
+| Codex | `~/.codex/sessions/AAAA/MM/DD/rollout-*.jsonl` (o `$CODEX_HOME`) | Una conversación por sesión, retomable con su sesión real (`exec resume`) |
+
+- Se agrupa **por carpeta de trabajo**: cada carpeta pasa a ser un proyecto de kywai **con esa carpeta** (si ya tienes
+  un proyecto que trabaja en ella, se usa ese; la etiqueta «→ nombre» lo dice). De entrada va marcado todo lo que no se
+  importó; se puede elegir por programa, por carpeta o conversación a conversación.
+- Se trae lo que escribiste y lo que respondió el agente. Lo que hizo con las herramientas queda resumido en una línea
+  al final de su respuesta (`🔧 Read · Edit ×2`); los resultados de las herramientas, los sub-agentes y los avisos
+  internos del programa no se traen.
+- **Seguir donde lo dejaste**: si tu equipo de kywai tiene un agente de ese programa (Claude o Codex) y el proyecto
+  trabaja en la misma carpeta, la conversación lleva la sesión del programa. Al pedir una continuación («sigue con…»)
+  el agente vuelve a **su sesión real**, con todo lo que leyó y decidió, aunque tenga más de 14 días (el límite normal
+  de las sesiones de kywai no se aplica a las importadas). Sin ese agente, o si la carpeta ya no existe («solo
+  lectura»), la conversación se lee igual y al seguirla el coordinador recibe lo hablado como contexto.
+- Una sesión hecha en tu carpeta personal entera (sin carpeta de proyecto) queda en un proyecto con carpeta interna:
+  kywai no da acceso a la carpeta personal completa.
+
+**Desde un archivo** importa la exportación de **ChatGPT** (Ajustes → Controles de datos → Exportar datos) o de
+**Claude.ai** (Ajustes → Privacidad → Exportar datos): el zip que llega por correo tal cual, o solo su
+`conversations.json`. Desde el navegador o el cliente se sube entero al servidor (hasta 8 GB) y se borra al acabar.
+
+- **ChatGPT**: todas las conversaciones van a un proyecto «ChatGPT», con su título, sus fechas y la rama que se veía en
+  la app (las respuestas regeneradas que descartaste no). Las **imágenes** que adjuntaste se copian a los adjuntos del
+  proyecto. Las llamadas internas a herramientas (Python, navegador) no se traen. La exportación no dice el nombre de los
+  proyectos de ChatGPT, así que no se separan por proyecto.
+- **Claude.ai**: cada proyecto de Claude.ai pasa a un proyecto de kywai con su nombre, sus **instrucciones** (en la
+  memoria del proyecto) y sus **documentos** (en `documentos/`, visibles en Resultados y para los agentes). El proyecto
+  de ejemplo de Anthropic no se trae. Las conversaciones van a su proyecto si la exportación lo indica; si no, a un
+  proyecto «Claude.ai». De los adjuntos solo se trae el nombre (📎).
+- Las respuestas se ven con el nombre de la app de la que vienen («ChatGPT», «Claude.ai»), no con un robot de tu
+  equipo. En la barra lateral, al pasar por encima de una conversación, dice «Importada de …».
+
+Motor: `src/main/importChats.ts` (lectores de cada formato, un lector de zip que no carga el archivo entero y la
+conversión a conversaciones con `addImportedConversation` de `conversations.ts`); ventana: `ui/sidebar/ImportDialog.tsx`.
+Faltan, para otra fase: Gemini CLI / Antigravity, Qwen Code y OpenCode, traer las sesiones del PC de un cliente y
+Órbita.
 
 ### Eliminar un proyecto
 

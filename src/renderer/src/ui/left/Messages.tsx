@@ -168,7 +168,9 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
   const lookup = useAgentLookup()
   const reduced = useCowork((st) => st.reducedEffects)
   const select = useCowork((st) => st.select)
-  const look = lookup(agentId)
+  const known = lookup(agentId)
+  // Respuesta traída de otra app sin agente de kywai que la represente: se ve con el nombre de esa app.
+  const look = m.importedFrom ? { ...known, name: m.importedFrom, initial: m.importedFrom.charAt(0).toUpperCase(), present: false } : known
   const isError = m.tone === 'error'
   const hasTasks = !!m.taskIds && m.taskIds.length > 0
   const hasArtifacts = !!m.artifactIds && m.artifactIds.length > 0
