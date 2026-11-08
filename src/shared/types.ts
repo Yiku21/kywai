@@ -1,8 +1,8 @@
 import type { Lang } from './i18n'
 import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
 import type { TaskTemplate, TaskTemplateInput } from './templates'
-import type { ImportResult, ImportScan } from './imports'
-export type { ImportResult, ImportScan } from './imports'
+import type { ArchivePreview, ImportResult, ImportScan } from './imports'
+export type { ArchivePreview, ImportResult, ImportScan } from './imports'
 export type { TaskTemplate, TaskTemplateInput } from './templates'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
 // Todo lo que cruza IPC está definido aquí.
@@ -1370,8 +1370,11 @@ export interface CoworkApi {
   /** Importa las sesiones elegidas de «En este equipo» (ids de scanImports). */
   importLocal(sessionIds: string[]): Promise<ImportResult>
   /** Importa un archivo exportado de ChatGPT o Claude.ai (el zip o su conversations.json), ya en el servidor. */
-  /** Uno o varios archivos de la exportación (Claude.ai la manda partida en varios zips). */
-  importArchive(paths: string | string[]): Promise<ImportResult>
+  /** Uno o varios archivos de la exportación (Claude.ai la manda partida en varios zips). `choices`: conversación de
+   *  Claude.ai → uuid de su proyecto ('' = suelta), lo revisado con previewArchive; sin él, se deduce. */
+  importArchive(paths: string | string[], choices?: Record<string, string>): Promise<ImportResult>
+  /** Lo que trae la exportación, sin importar nada: cada conversación con el proyecto donde irá, para revisarlo. */
+  previewArchive(paths: string | string[]): Promise<ArchivePreview>
   loadProject(projectId: string): Promise<ProjectState>
   /** Estado actual de agentes y cuotas (para pintar al arrancar). */
   getRuntime(): Promise<{ runtimes: AgentRuntime[]; quotas: QuotaInfo[] }>

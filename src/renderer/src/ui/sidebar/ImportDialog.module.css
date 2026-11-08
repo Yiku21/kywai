@@ -215,3 +215,21 @@
   font: 13px var(--font);
   cursor: pointer;
 }
+
+/* Revisar el proyecto de cada conversación de Claude.ai antes de importar. */
+.pick {
+  flex: none;
+  max-width: 38%;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctl);
+  background: var(--bg-input);
+  color: var(--text-1);
+  font: 12px var(--font);
+}
+
+.reviewList {
+  margin: 0 0 6px 4px;
+  padding: 0;
+  list-style: none;
+}
