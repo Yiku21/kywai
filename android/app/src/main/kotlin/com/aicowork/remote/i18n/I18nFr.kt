@@ -927,6 +927,7 @@ private fun part7(m: HashMap<String, String>) {
     m["Ver {name}"] = "Voir {name}"
     m["Copiar el contenido"] = "Copier le contenu"
     m["Copiado"] = "Copié"
+    m["Copiar el código"] = "Copier le code"
     m["Abrir con otra app"] = "Ouvrir avec une autre app"
     m["Ninguna app del móvil puede abrirlo"] = "Aucune app du téléphone ne peut l'ouvrir"
     m["Vista previa"] = "Aperçu"

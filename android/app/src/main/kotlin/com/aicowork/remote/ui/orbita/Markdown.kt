@@ -39,6 +39,17 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.testTag
+import kotlinx.coroutines.delay
 
 /** Una imagen `![texto](ruta)` y lo que hay antes y después en la misma línea. */
 internal sealed interface LinePart {
@@ -213,17 +224,44 @@ fun MarkdownText(markdown: String, modifier: Modifier = Modifier, color: Color =
                     Text(b.marker, color = if (numbered) Orbita.TextSoft else Orbita.Accent, style = text, fontWeight = if (numbered) FontWeight.SemiBold else null, modifier = Modifier.width(if (numbered) 26.dp else 22.dp))
                     Text(inline(b.text), color = color, style = text)
                 }
-                is Block.Code -> Text(
-                    b.text,
-                    color = Orbita.Text,
-                    style = Mono,
-                    softWrap = false,
-                    modifier = Modifier.padding(top = top).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Orbita.Card).horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 12.dp),
-                )
+                is Block.Code -> CodeBlock(b.text, Modifier.padding(top = top))
                 is Block.Quote -> Text(inline(b.text), color = Orbita.TextSoft, style = text, fontStyle = FontStyle.Italic, modifier = Modifier.padding(start = 10.dp, top = top))
                 Block.Rule -> androidx.compose.foundation.layout.Box(Modifier.padding(top = top).fillMaxWidth().padding(vertical = 4.dp).background(Orbita.Divider).padding(top = 1.dp))
             }
         }
+    }
+}
+
+/**
+ * Un bloque de código o de comandos con el botón de copiar en la esquina (como en Claude y ChatGPT): un toque copia
+ * el texto tal cual. El botón queda fijo aunque el código se desplace de lado.
+ */
+@Composable
+private fun CodeBlock(code: String, modifier: Modifier = Modifier) {
+    val clipboard = LocalClipboardManager.current
+    var copied by remember(code) { mutableStateOf(false) }
+    LaunchedEffect(copied) {
+        if (copied) { delay(1600); copied = false }
+    }
+    Box(modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Orbita.Card)) {
+        Text(
+            code,
+            color = Orbita.Text,
+            style = Mono,
+            softWrap = false,
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 14.dp, end = 48.dp, top = 12.dp, bottom = 12.dp),
+        )
+        IconAction(
+            if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
+            if (copied) t("Copiado") else t("Copiar el código"),
+            onClick = {
+                clipboard.setText(AnnotatedString(code))
+                copied = true
+            },
+            modifier = Modifier.align(Alignment.TopEnd).padding(2.dp).testTag("code-copy"),
+            tint = if (copied) Orbita.Accent else Orbita.TextSoft,
+            size = 40.dp,
+        )
     }
 }
 

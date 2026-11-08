@@ -425,6 +425,8 @@ export const zh: Record<string, string> = {
   "Ábrelo una vez en cada dispositivo (con Tailscale activo). Es tu llave: no lo compartas.": "在每台设备上打开一次（需开启 Tailscale）。这是你的钥匙：不要分享。",
   "Copiado": "已复制",
   "Copiar": "复制",
+  "Copiar el código": "复制代码",
+  "No se pudo copiar": "无法复制",
   "Cambiar el código (anula los enlaces anteriores)": "更换代码（之前的链接将失效）",
   "Restringir los clientes a las carpetas de los proyectos": "将客户端限制在项目文件夹内",
   "Los clientes de escritorio solo ven las carpetas de los proyectos.": "桌面客户端只能看到项目文件夹。",

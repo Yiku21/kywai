@@ -204,3 +204,56 @@
 .md img.previewable {
   cursor: zoom-in;
 }
+
+/* Bloque de código con el botón de copiar en la esquina (fijo aunque el bloque se desplace de lado). */
+.codeBlock {
+  position: relative;
+  margin: 0 0 var(--md-gap, 12px);
+}
+
+.md .codeBlock pre {
+  margin: 0;
+  padding-right: 52px;
+}
+
+.copyCode {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  min-width: 30px;
+  justify-content: center;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated, #111a2b);
+  color: var(--text-2);
+  line-height: 1;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.copyCode svg {
+  flex: none;
+}
+
+.copyCode:hover,
+.copyCode:focus-visible {
+  color: var(--text-1);
+  background: var(--bg-hover, #1a2438);
+}
+
+.copyCode:focus-visible {
+  outline: 2px solid var(--border-focus, var(--cyan));
+  outline-offset: 1px;
+}
+
+.copyCodeDone {
+  color: var(--live, #4ade80);
+}

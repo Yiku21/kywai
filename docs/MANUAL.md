@@ -2030,6 +2030,21 @@ fichas de tareas, memoria y documentos se quedan con 14 px. Órbita: `gapBefore`
 estilo es `CHAT_STYLE` en `src/main/coordinatorGuide.ts` (va en el prompt de Hermes, en las reglas de cada tarea y en la
 respuesta final).
 
+### Copiar código y comandos con un clic
+
+Cada **bloque de código o de comandos** que escribe un agente (los que van en recuadro oscuro) lleva un **botón de
+copiar en la esquina de arriba a la derecha**, como en Claude y ChatGPT. Un clic copia el bloque entero tal cual
+(sin el formato y sin el salto de línea del final), aunque sea más largo que el recuadro y haya que desplazarlo de
+lado; el botón se queda fijo en su esquina. Al copiar, el icono pasa a ✓ «Copiado» un momento.
+
+Sale en todas partes donde se ve Markdown: el chat, el panel de vista previa de un documento, las fichas de tareas y
+los planes, en el escritorio, en el cliente y en el navegador (también por http desde el móvil, donde se copia con el
+método antiguo del navegador). En **Órbita** cada bloque de código del chat lleva el mismo botón: un toque lo copia.
+El código suelto dentro de una frase (`` `ls` ``) no lleva botón: se copia seleccionándolo, como siempre.
+
+Por debajo: el componente `pre` de `MarkdownView.tsx` (`CodeBlock`) y la función común `copyText` de
+`src/renderer/src/lib/clipboard.ts` (la usan también las rutinas). En Órbita, `CodeBlock` en `ui/orbita/Markdown.kt`.
+
 ### Ver los archivos del chat sin salir de kywai (panel de vista previa)
 
 Al pulsar un archivo en el chat se abre **dentro de kywai**, en un panel a la derecha del chat (en el sitio del

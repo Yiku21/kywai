@@ -1,4 +1,5 @@
-import { memo, useMemo, type MouseEvent, type ReactNode } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { Check, Copy } from 'lucide-react'
 import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useCowork, useData } from '@/store/cowork'
@@ -6,6 +7,7 @@ import { clientBridge, isWeb } from '@/lib/api'
 import { projectFileUrl, resolveLocalRef, serverUrlFor, type LocalRef } from '@/lib/localRefs'
 import { fromArtifact, fromAttachment, nameOf, type PreviewItem } from '@/lib/preview'
 import { t } from '@/lib/i18n'
+import { copyText } from '@/lib/clipboard'
 import { cx } from './util'
 import s from './MarkdownView.module.css'
 
@@ -16,6 +18,44 @@ const table: Components['table'] = ({ node: _node, ...props }) => (
     <table {...props} />
   </div>
 )
+
+/**
+ * Bloque de código o de comandos con un botón de copiar en la esquina (como en Claude y ChatGPT): un clic copia el
+ * texto tal cual, sin el formato. El botón queda fijo aunque el bloque se desplace de lado.
+ */
+function CodeBlock({ children }: { children?: ReactNode }) {
+  const pre = useRef<HTMLPreElement>(null)
+  const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle')
+  useEffect(() => {
+    if (state === 'idle') return
+    const id = window.setTimeout(() => setState('idle'), 1600)
+    return () => window.clearTimeout(id)
+  }, [state])
+  const label = state === 'copied' ? t('Copiado') : state === 'error' ? t('No se pudo copiar') : t('Copiar el código')
+  return (
+    <div className={s.codeBlock}>
+      <pre ref={pre}>{children}</pre>
+      <button
+        type="button"
+        className={cx(s.copyCode, state === 'copied' && s.copyCodeDone)}
+        title={label}
+        aria-label={label}
+        onClick={() => {
+          const text = (pre.current?.textContent ?? '').replace(/\n$/, '')
+          copyText(text).then(
+            () => setState('copied'),
+            () => setState('error')
+          )
+        }}
+      >
+        {state === 'copied' ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+        {state !== 'idle' && <span>{label}</span>}
+      </button>
+    </div>
+  )
+}
+
+const pre: Components['pre'] = ({ children }) => <CodeBlock>{children}</CodeBlock>
 
 /** Abre un archivo del proyecto en el panel de vista previa (como en Claude), en vez de fuera de la app. */
 function previewRef(ref: LocalRef | null, e: MouseEvent): boolean {
@@ -73,6 +113,7 @@ function desktopComponents(projectId: string | null): Components {
   return {
     table,
     code,
+    pre,
     img: ({ node: _node, src, alt, ...props }) => {
       const ref = typeof src === 'string' ? resolveLocalRef(src, projectId) : null
       if (ref?.kind !== 'project') return <img {...props} alt={alt ?? ''} src={src} loading="lazy" />
@@ -104,6 +145,7 @@ function webComponents(projectId: string | null): Components {
   return {
     table,
     code,
+    pre,
     img: ({ node: _node, src, alt, ...props }) => {
       const ref = typeof src === 'string' ? resolveLocalRef(src, projectId) : null
       return (

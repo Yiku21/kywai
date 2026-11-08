@@ -4,6 +4,7 @@ import type { Routine, RoutineInput, RoutineRun, RoutineTrigger, RoutineTriggerT
 import { dateOf, normalizeDate, dayName, dayShort, describeTrigger, describeWhen, MAX_INTERVAL_HOURS, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, WEEK_ORDER } from '@shared/routines'
 import { useCowork, useData } from '@/store/cowork'
 import { api } from '@/lib/api'
+import { copyText } from '@/lib/clipboard'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import v from './Views.module.css'
@@ -39,25 +40,6 @@ const REASON_LABEL: Record<RoutineRun['reason'], string> = {
 
 function when(ts: number): string {
   return new Date(ts).toLocaleString(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
-
-/** Copia al portapapeles; en http (sin contexto seguro, como el navegador del móvil por Tailscale) con execCommand. */
-async function copyText(text: string): Promise<void> {
-  if (window.isSecureContext && navigator.clipboard) {
-    await navigator.clipboard.writeText(text)
-    return
-  }
-  const ta = document.createElement('textarea')
-  ta.value = text
-  ta.setAttribute('readonly', '')
-  ta.style.position = 'fixed'
-  ta.style.opacity = '0'
-  document.body.appendChild(ta)
-  ta.select()
-  ta.setSelectionRange(0, text.length)
-  const ok = document.execCommand('copy')
-  ta.remove()
-  if (!ok) throw new Error(t('No se pudo copiar: mantén pulsada la dirección y cópiala a mano'))
 }
 
 /** Pestaña Rutinas: peticiones que se lanzan solas (a una hora, por webhook o al cambiar archivos) y su historial. */
@@ -301,7 +283,7 @@ function WebhookBox({ projectId, routineId, call }: { projectId: string; routine
   async function copy(text: string): Promise<void> {
     setCopyError(null)
     try {
-      await copyText(text)
+      await copyText(text, t('No se pudo copiar: mantén pulsada la dirección y cópiala a mano'))
       setCopied(text)
       window.setTimeout(() => setCopied(null), 1600)
     } catch (e) {
