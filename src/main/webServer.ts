@@ -515,7 +515,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   if (path === '/__cowork_web.js') {
     return send(res, 200, `window.__COWORK_WEB__ = true\nwindow.__COWORK_BOOT__ = ${JSON.stringify(BOOT_ID)}\n`, TYPES['.js'])
   }
-  if (path === '/api/ping' && req.method === 'GET') return json(res, 200, { boot: BOOT_ID })
+  // `now`: la hora del servidor, para que el navegador y el cliente cuenten los tiempos con ella (serverClock.ts).
+  if (path === '/api/ping' && req.method === 'GET') return json(res, 200, { boot: BOOT_ID, now: Date.now() })
   if (path === '/api/events' && req.method === 'GET') return openEvents(req, res)
   if (path.startsWith('/api/artifact-download/') && req.method === 'GET') {
     try {

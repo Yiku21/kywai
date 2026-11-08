@@ -2,6 +2,7 @@ import type { ClientUpdateState, CoworkApi, CoworkEvent, ProjectSummary } from '
 import type { SyncPairStatus } from '@shared/sync'
 import { requestServerFolder } from './serverFiles'
 import { t } from '@/lib/i18n'
+import { noteServerTime } from './serverClock'
 
 const w = window as unknown as {
   cowork?: CoworkApi
@@ -147,14 +148,32 @@ function pickLocalFiles(kind: 'any' | 'image' | 'import'): Promise<File[]> {
   })
 }
 
+/** Mide la diferencia de hora con el servidor (ver serverClock.ts). Sin respuesta, se queda la que había. */
+async function syncServerClock(): Promise<void> {
+  try {
+    const sentAt = Date.now()
+    const res = await fetch('/api/ping', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(5000) })
+    const receivedAt = Date.now()
+    if (!res.ok) return
+    const { now } = (await res.json()) as { now?: number }
+    if (typeof now === 'number') noteServerTime(now, sentAt, receivedAt)
+  } catch {
+    // Sin conexión ahora: se vuelve a medir más tarde.
+  }
+}
+
 /** Misma API que la app de escritorio, por HTTP: llamadas con fetch y eventos con EventSource. */
 function createWebApi(): CoworkApi {
+  // La hora del servidor, al abrir y cada 10 minutos (por si este equipo cambia de hora).
+  void syncServerClock()
+  window.setInterval(() => void syncServerClock(), 10 * 60_000)
   const special: Partial<Record<keyof CoworkApi, unknown>> = {
     onEvent: (cb: (e: CoworkEvent) => void) => {
       const es = new EventSource('/api/events')
       // Al reconectar después de un reinicio de la app (desde aquí, desde el Mac o por una actualización),
       // la página se recarga para no seguir con datos de la sesión anterior.
       es.addEventListener('hello', (m) => {
+        void syncServerClock()
         try {
           if (isNewBoot((JSON.parse((m as MessageEvent).data as string) as { boot?: string }).boot)) location.reload()
         } catch {

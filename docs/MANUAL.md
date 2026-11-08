@@ -460,6 +460,12 @@ servidor** (cian, con su nombre), **Cliente de escritorio → nombre-del-servido
 explicación de dónde están los agentes y los proyectos. En el cliente, además, una franja violeta fina recorre lo alto
 de la ventana. El título de la ventana del cliente también lleva el nombre del servidor.
 
+**Los tiempos van con la hora del servidor.** El cliente y el navegador piden la hora al servidor al abrir (y cada
+10 minutos) y cuentan con ella cuánto lleva cada tarea, la barra de progreso y «sin novedades desde hace…». Así,
+aunque este equipo vaya mal de hora (por ejemplo, con la zona horaria mal puesta y la hora corregida a mano), el
+reloj de la tarea no se queda en «0 s» ni la barra en «≈ 2 %». Aun así, conviene poner la hora automática en el
+equipo (Windows: Configuración → Hora e idioma → «Establecer zona horaria automáticamente»).
+
 #### Archivos del servidor
 
 En el cliente (y en el navegador), ⚙ → **«Archivos del servidor…»** abre un explorador del disco del equipo servidor:

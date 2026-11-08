@@ -2,6 +2,7 @@
 import type { CostSettings, QuotaSnapshot, UsageCall, UsageRun } from '@shared/types'
 import { callCost } from '@shared/costs'
 import { locale, t } from '@/lib/i18n'
+import { serverNow } from './serverClock'
 
 /** Tokens de una llamada (entrada + salida). */
 export const callTokens = (c: UsageCall): number => c.input + c.output
@@ -9,7 +10,7 @@ export const callTokens = (c: UsageCall): number => c.input + c.output
 /** Tokens «nuevos»: sin la entrada leída de caché, que cuesta mucho menos. */
 export const freshTokens = (c: UsageCall): number => Math.max(0, c.input - c.cached) + c.output
 
-export function runDuration(r: UsageRun, now = Date.now()): number {
+export function runDuration(r: UsageRun, now = serverNow()): number {
   return Math.max(0, (r.finishedAt ?? now) - r.startedAt - (r.pausedMs ?? 0))
 }
 
@@ -102,7 +103,7 @@ export interface UsageTotals {
   quota: QuotaTotal[]
 }
 
-export function summarize(runs: UsageRun[], now = Date.now()): UsageTotals {
+export function summarize(runs: UsageRun[], now = serverNow()): UsageTotals {
   const t: UsageTotals = {
     runs: runs.length,
     ok: 0,

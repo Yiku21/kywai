@@ -1,9 +1,10 @@
 import { locale, t } from '@/lib/i18n'
+import { serverNow } from './serverClock'
 export function timeHM(ts: number): string {
   return new Date(ts).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
 }
 
-export function relativeTime(ts: number | null | undefined, now = Date.now()): string {
+export function relativeTime(ts: number | null | undefined, now = serverNow()): string {
   if (!ts) return t('Sin datos')
   const s = Math.round((now - ts) / 1000)
   if (s < 5) return t('ahora')
@@ -15,7 +16,7 @@ export function relativeTime(ts: number | null | undefined, now = Date.now()): s
   return new Date(ts).toLocaleDateString(locale())
 }
 
-export function untilTime(ts: number | null | undefined, now = Date.now()): string {
+export function untilTime(ts: number | null | undefined, now = serverNow()): string {
   if (!ts) return t('No disponible')
   const s = Math.round((ts - now) / 1000)
   if (s <= 0) return t('ya renovada')
