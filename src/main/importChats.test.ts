@@ -8,7 +8,8 @@ import type { AgentConfig } from '@shared/types'
 import * as store from './projects'
 import { exportSessions, initAgentSessions, lastSession } from './agentSessions'
 import { listConversations, openConversation } from './conversations'
-import { importArchive, importLocal, initImports, parseChatGpt, parseClaudeAi, parseClaudeCode, parseCodex, scanImports, ZipReader } from './importChats'
+import { DatabaseSync } from 'node:sqlite'
+import { importArchive, importLocal, initImports, parseChatGpt, parseClaudeAi, parseClaudeCode, parseCodex, readHermesDb, scanImports, ZipReader } from './importChats'
 
 let root = ''
 let home = ''
@@ -238,5 +239,71 @@ describe('importar', () => {
     const json = join(root, 'conversations.json')
     writeFileSync(json, JSON.stringify([{ foo: 1 }]))
     expect(() => importArchive(json, agents)).toThrow(/No reconozco/)
+  })
+})
+
+describe('Hermes (también Hermes Desktop)', () => {
+  function hermesDb(): string {
+    const dir = join(home, '.hermes')
+    mkdirSync(dir, { recursive: true })
+    const file = join(dir, 'state.db')
+    const db = new DatabaseSync(file)
+    db.exec(`CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT NOT NULL, title TEXT, cwd TEXT, started_at REAL, ended_at REAL, parent_session_id TEXT, end_reason TEXT, hidden INTEGER DEFAULT 0);
+      CREATE TABLE messages (id INTEGER PRIMARY KEY, session_id TEXT NOT NULL, role TEXT NOT NULL, content TEXT, tool_calls TEXT, tool_name TEXT, timestamp REAL NOT NULL, _compressed_summary INTEGER);`)
+    const ses = db.prepare('INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    const msg = db.prepare('INSERT INTO messages (session_id, role, content, tool_calls, tool_name, timestamp, _compressed_summary) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    // Del usuario, en una carpeta, compactada en dos sesiones.
+    ses.run('local-a', 'local', 'Identificar proveedor', work, 1_762_000_000, 1_762_000_100, null, 'compression', 0)
+    ses.run('local-a2', 'local', null, work, 1_762_000_101, 1_762_000_200, 'local-a', null, 0)
+    msg.run('local-a', 'user', '¿Qué proveedor usas?', null, null, 1_762_000_001, null)
+    msg.run('local-a', 'assistant', '', '[{"id":"c1","function":{"name":"skill_view"}}]', null, 1_762_000_002, null)
+    msg.run('local-a', 'tool', '{"success": true}', null, 'skill_view', 1_762_000_003, null)
+    msg.run('local-a', 'assistant', 'Uso el proveedor custom.', null, null, 1_762_000_004, null)
+    msg.run('local-a2', 'user', 'Resumen de lo anterior', null, null, 1_762_000_101, 1)
+    msg.run('local-a2', 'user', '¿Y cuál es custom?', null, null, 1_762_000_102, null)
+    msg.run('local-a2', 'assistant', 'OmniRoute.', null, null, 1_762_000_103, null)
+    // Por Telegram, sin carpeta.
+    ses.run('tg-1', 'telegram', 'Lista de la compra', null, 1_762_100_000, null, null, null, 0)
+    msg.run('tg-1', 'user', 'Apunta leche', null, null, 1_762_100_001, null)
+    msg.run('tg-1', 'assistant', 'Apuntada.', null, null, 1_762_100_002, null)
+    // Encargo de kywai: no se importa.
+    ses.run('one-1', 'oneshot', 'Planificar coordinación', work, 1_762_200_000, null, null, null, 0)
+    msg.run('one-1', 'user', 'Eres Hermes, el coordinador de un equipo de agentes de IA que trabajan juntos en el proyecto "x".', null, null, 1_762_200_001, null)
+    // Trabajo en la carpeta interna de un proyecto de kywai, y una oculta: tampoco.
+    ses.run('int-1', 'oneshot', 'Interna', join(root, 'ws', 'projects', 'proyecto-x'), 1_762_300_000, null, null, null, 0)
+    msg.run('int-1', 'user', 'hola', null, null, 1_762_300_001, null)
+    ses.run('hid-1', 'local', 'Oculta', work, 1_762_400_000, null, null, null, 1)
+    msg.run('hid-1', 'user', 'secreto', null, null, 1_762_400_001, null)
+    db.close()
+    return file
+  }
+
+  it('junta las sesiones compactadas, cuenta las herramientas y deja fuera lo de kywai y lo oculto', () => {
+    const convs = readHermesDb(hermesDb(), true)
+    expect(convs.map((c) => c.sourceId).sort()).toEqual(['local-a', 'tg-1'])
+    const a = convs.find((c) => c.sourceId === 'local-a')!
+    expect(a.cwd).toBe(work)
+    expect(a.turns.map((t) => [t.role, t.text])).toEqual([
+      ['user', '¿Qué proveedor usas?'],
+      ['assistant', 'Uso el proveedor custom.'],
+      ['user', '¿Y cuál es custom?'],
+      ['assistant', 'OmniRoute.']
+    ])
+    expect(a.turns[1].tools).toEqual({ skill_view: 1 })
+    expect(a.updatedAt).toBe(1_762_000_200_000)
+  })
+
+  it('sale en «En este equipo» y lo que no tiene carpeta va a un proyecto «Hermes»', () => {
+    hermesDb()
+    const src = scanImports().sources.find((x) => x.kind === 'hermes')!
+    expect(src.folders.map((f) => f.cwd).sort()).toEqual(['', work])
+    const r = importLocal(['hermes:local-a', 'hermes:tg-1'], [...agents, { id: 'hermes', name: 'Hermes', provider: 'hermes' } as AgentConfig])
+    expect(r).toMatchObject({ conversations: 2, resumable: 0 })
+    const hermesProject = store.listProjects().find((p) => p.name === 'Hermes')!
+    const conv = listConversations(hermesProject.id).find((c) => c.importedFrom === 'Hermes')!
+    openConversation(hermesProject.id, conv.id)
+    expect(store.getProject(hermesProject.id).messages.map((m) => m.text)).toEqual(['Apunta leche', 'Apuntada.'])
+    expect(store.getProject(hermesProject.id).messages[1].author).toEqual({ type: 'agent', agentId: 'hermes' })
+    expect(importLocal(['hermes:local-a'], agents)).toMatchObject({ conversations: 0, skipped: 1 })
   })
 })

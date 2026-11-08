@@ -2437,6 +2437,7 @@ export const zh: Record<string, string> = {
   "Esa propuesta ya se descartó": "这个建议已被舍弃",
   "Acción no válida": "无效操作",
   // Importar de otras apps (importChats.ts, ImportDialog.tsx)
+  "Sin carpeta": "无文件夹",
   "1 conversación": "1 个对话",
   "Importar de otras apps…": "从其他应用导入…",
   "¿Traes conversaciones de otras apps? Importa las de Claude Code y Codex de este equipo, o la exportación de ChatGPT o Claude.ai, y síguelas aquí.": "来自其他应用？导入这台电脑上的 Claude Code 和 Codex 会话，或 ChatGPT、Claude.ai 的导出文件，在这里继续。",
