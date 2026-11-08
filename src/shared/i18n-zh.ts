@@ -142,7 +142,6 @@ export const zh: Record<string, string> = {
   "El espacio de siempre, con el color que elijas": "经典空间，颜色由你选择",
   "Color de la ciudad": "城市颜色",
   "Decorados": "装饰主题",
-  "La ciudad con decoración de temporada o de fantasía": "带有节日或奇幻装饰的城市",
   "Texturas de Órbita": "Órbita 纹理",
   "Clásico": "经典",
   "Paneles oscuros y sobrios, el de siempre": "深色、简洁的面板，原始外观",
@@ -2550,4 +2549,7 @@ export const zh: Record<string, string> = {
   "Visto": "已看",
   "1 terminado sin ver": "1 项已完成未查看",
   "{n} terminados sin ver": "{n} 项已完成未查看",
+  "Fondo marino": "海底世界",
+  "Un arrecife vivo con peces, medusas y una perla de luz": "充满鱼群、水母和发光珍珠的活力珊瑚礁",
+  "Escenarios propios de fantasía o de temporada": "独特的幻想和季节场景",
 }

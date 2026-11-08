@@ -215,6 +215,8 @@ Detalles y ejemplo de mod en el [manual](docs/MANUAL.md#extensiones-tus-servidor
 
 ### 🎨 Comodidades
 
+**Fondo marino** añade bancos de peces, ballenas, medusas y una ciudad sumergida alrededor de una perla luminosa. Relicario, Telar, Halloween y Navidad estrenan escenarios completos de santuario, islas de cristal, abadía gótica y villa nevada, conservando las preferencias existentes.
+
 **Refugio Kywai** añade un observatorio-invernadero frente al mar: cúpula de madera y cristal, cielo y agua animados, talleres individuales, árbol compartido y asiento turquesa. Cambia al modo noche junto a Música; se recuerda por dispositivo.
 
 - **El chat, lo primero.** En ventanas pequeñas ocupa más sitio, puedes arrastrar su borde al ancho que quieras (doble clic para volver al automático) y en ventanas estrechas el chat y el mundo 3D pasan a ser dos pestañas.

@@ -215,6 +215,8 @@ Detalhes e exemplo de mod no [manual](docs/MANUAL.md#extensiones-tus-servidores-
 
 ### 🎨 Conforto
 
+**Fundo do mar** traz cardumes, baleias, águas-vivas e uma cidade submersa ao redor de uma pérola luminosa. Relicario, Telar, Halloween e Natal agora têm cenários completos de santuário, ilhas de cristal, abadia gótica e vila nevada, preservando as preferências existentes.
+
 **Refúgio Kywai** traz um observatório-estufa à beira-mar: cúpula de madeira e vidro, céu e água animados, oficinas individuais, árvore compartilhada e assento turquesa. Ative o modo noturno ao lado de Música; a preferência é lembrada por dispositivo.
 
 - **O chat em primeiro lugar.** Em janelas menores ele ocupa mais espaço, você pode arrastar a borda até a largura que quiser (clique duplo volta ao automático) e em janelas estreitas o chat e o mundo 3D viram duas abas.

@@ -418,3 +418,9 @@
   --pv-line:rgba(91,83,65,.32); --pv-bubble:#ddd1b8; --pv-accent:#478e80;
   --pv-stage:linear-gradient(180deg,#af93ba,#ecc18d 42%,#b4c7bd); --pv-glow:rgba(235,184,106,.4);
 }
+
+.preview[data-preview='submarino'] {
+ --pv-app:#072d3b;--pv-panel:#0a3745;--pv-border:rgba(126,218,230,.3);
+ --pv-line:rgba(173,225,230,.35);--pv-bubble:#174e5b;--pv-accent:#64eaff;
+ --pv-stage:linear-gradient(180deg,#14b4ca,#086a90 48%,#87b9bf);--pv-glow:rgba(110,231,255,.55);
+}

@@ -8,6 +8,12 @@ const env = (urls: string[] = []): GuideEnv => ({ codeDir: code, webUrls: () => 
 const text = (lines: string[]): string => lines.join('\n')
 
 describe('lo que sabe el coordinador de kywai', () => {
+  it('conoce el mapa marino y los cuatro decorados como funciones de la app', () => {
+    const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false }, env()))
+    expect(g).toContain('Fondo marino se elige en ⚙ → Ajustes → General → Mapas')
+    expect(g).toContain('Relicario, Telar, Halloween y Navidad tienen escenarios propios')
+    expect(g).toContain('no encargos para construir con los agentes')
+  })
   it('conoce el refugio y su iluminación como función de la app', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false }, env()))
     expect(g).toContain('Refugio Kywai se elige en ⚙ → Ajustes → General → Mapas')

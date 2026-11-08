@@ -536,8 +536,8 @@ export function HalloweenScene({ stations, density, reduced, cityCount, free }: 
         />
       ))}
       <group ref={sky}>
-        <mesh geometry={R.plane} material={R.moonMat} position={MOON} scale={12} renderOrder={-3} />
-        <sprite material={R.moonGlow} position={[MOON[0], MOON[1], MOON[2] - 1]} scale={[34, 34, 1]} renderOrder={-3} />
+        <mesh visible={false} geometry={R.plane} material={R.moonMat} position={MOON} scale={12} renderOrder={-3} />
+        <sprite visible={false} material={R.moonGlow} position={[MOON[0], MOON[1], MOON[2] - 1]} scale={[34, 34, 1]} renderOrder={-3} />
         {batSpecs.map((_, i) => (
           <mesh
             key={i}

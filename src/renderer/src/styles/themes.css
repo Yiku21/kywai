@@ -373,3 +373,12 @@
   --avatar-bg:linear-gradient(160deg,#344b58,#1a2d3b);--logo-bg:linear-gradient(160deg,#344b58,#1a2d3b);
   --hover-mix:#344b58;--mix-to:#ffffff;--badge-bg:rgba(129,98,48,.22);--badge-text:#f0cc8a;color-scheme:dark;
 }
+
+/* A deep teal interface around the warm brass research stations. */
+:root[data-theme='submarino'] {
+ --bg-app:#072d3b;--bg-panel:#0a3745;--bg-surface:#104555;--bg-input:#062b38;
+ --text-1:#e4f7f4;--text-2:#acd4d9;--text-3:#79aeb8;--cyan:#61dce9;
+ --accent-text:#8aeaf3;--stage:#096c84;--label-rgb:4,40,52;--label-text:#d9ffff;--label-dim:#9dcad2;
+ --float-rgb:7,45,59;--popover-rgb:10,55,69;--bubble-rgb:16,69,85;--scrim-rgb:2,18,27;
+ --border:rgba(126,218,230,.18);--border-strong:rgba(126,218,230,.35);--code-bg:#052532;--code-text:#d9eff1;
+}

@@ -157,7 +157,7 @@ function theme(p: Omit<ScenePalette, 'rimLow' | 'idle'>): ScenePalette {
   return { ...p, rimLow: p.rim, idle: mixHex(p.primary, p.body, 0.45) }
 }
 
-export type SceneThemeId = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'relicario' | 'telar' | 'halloween' | 'navidad' | 'kywai'
+export type SceneThemeId = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'relicario' | 'telar' | 'halloween' | 'navidad' | 'kywai' | 'submarino'
 
 export const PALETTES: Record<SceneThemeId, ScenePalette> = {
   kywai: { ...CLASSIC, world: 'kywai', core: 'tree', light: true, bloom: .28,
@@ -166,6 +166,7 @@ export const PALETTES: Record<SceneThemeId, ScenePalette> = {
     vignette: .16, ink: [.13,.12,.10], frost: { opacity: .86, color: [.89,.83,.71] },
     lights: { sky: '#ede5f5', ground: '#9a795c', hemi: 1.3, ambient: '#fff3df', ambientI: .65,
       key: '#ffd2a1', keyI: 2.05, fill: '#c3cdeb', fillI: .85, env: ['#fff3d8','#e5c4a0','#b8c8eb','#91765e'] } },
+  submarino: { ...CLASSIC, world: 'submarino', light: false, bg: '#03435f', fog: '#075570', body:'#cecbb9', bodyTop:'#eee5ce', rim:'#d5b572', rimLow:'#32cbd8', idle:'#53e6ff', primary:'#39d4ed', secondary:'#b28bea', accent:'#74efff', bloom:.55, vignette:.12, lights:{ sky:'#9ae9ff',ground:'#18384c',hemi:.65,ambient:'#56a7bc',ambientI:.24,key:'#e0f5ff',keyI:1.65,fill:'#238cd4',fillI:.65,env:['#b7ffff','#42bddd','#eddcb9','#0c718f'] } },
   clasico: CLASSIC,
   orbita: CLASSIC,
   // Claro y cálido: suelo de piedra, ciudad blanca con ventanas doradas, circuitos verdes y aros dorados.
@@ -391,6 +392,7 @@ export const PALETTES: Record<SceneThemeId, ScenePalette> = {
   }),
   // Relicario: cristal y oro sobre negro pulido; el núcleo es un cristal tallado.
   relicario: theme({
+    world: 'relicario',
     light: false,
     bg: '#06070a',
     fog: '#0a0b0e',
@@ -443,6 +445,7 @@ export const PALETTES: Record<SceneThemeId, ScenePalette> = {
   }),
   // Telar: hilos de plata tejidos en membranas, con destellos dorados; el núcleo es una cinta entrelazada.
   telar: theme({
+    world: 'telar',
     light: false,
     bg: '#0a0b0f',
     fog: '#0e1015',
@@ -496,6 +499,7 @@ export const PALETTES: Record<SceneThemeId, ScenePalette> = {
   }),
   // Halloween: noche morada, ventanas y velas naranjas, calabazas; el núcleo es una calabaza encendida.
   halloween: theme({
+    world: 'halloween',
     light: false,
     bg: '#0d0714',
     fog: '#170b22',
@@ -549,6 +553,7 @@ export const PALETTES: Record<SceneThemeId, ScenePalette> = {
   }),
   // Navidad: suelo nevado, plataformas como regalos, luces doradas; el núcleo es una bola de nieve con su árbol.
   navidad: theme({
+    world: 'navidad',
     light: false,
     bg: '#0b1424',
     fog: '#0d1626',
@@ -602,6 +607,11 @@ export const PALETTES: Record<SceneThemeId, ScenePalette> = {
 
 /** Los siete mapas: parten de los colores de la Ciudad del mismo nombre y cambian entorno, núcleo, niebla y luces. */
 export const WORLD_PALETTES: Record<WorldStyle, ScenePalette> = {
+  submarino: PALETTES.submarino,
+  relicario: PALETTES.relicario,
+  telar: PALETTES.telar,
+  halloween: PALETTES.halloween,
+  navidad: PALETTES.navidad,
   kywai: PALETTES.kywai,
   clasico: { ...CLASSIC, world: 'clasico', core: 'hologram' },
   orbita: {

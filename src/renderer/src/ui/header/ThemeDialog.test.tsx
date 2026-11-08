@@ -29,6 +29,18 @@ const group = (label: string): HTMLButtonElement[] =>
 const colorButton = (name: string): HTMLButtonElement => group('Color de la ciudad').find((b) => b.textContent === name)!
 
 describe('temas', () => {
+  it('Fondo marino se elige y se recuerda con su paleta y miniatura propias', async () => {
+    await act(async () => root.render(<ThemeGrid />))
+    const sea = radios().find(b => b.textContent?.startsWith('Fondo marino'))!
+    expect(sea.querySelector('svg[viewBox="0 0 120 84"]')).not.toBeNull()
+    await act(async () => sea.click())
+    expect(storedTheme()).toBe('submarino')
+    expect(document.documentElement.dataset.theme).toBe('submarino')
+    expect(palette).toBe(PALETTES.submarino)
+    applyTheme(storedTheme())
+    expect(palette.world).toBe('submarino')
+    expect(sea.getAttribute('aria-checked')).toBe('true')
+  })
   it('Refugio Kywai se elige, se recuerda y conserva los otros mapas', async () => {
     await act(async () => root.render(<ThemeGrid />))
     const retreat = radios().find(b => b.textContent?.startsWith('Refugio Kywai'))!
@@ -43,10 +55,11 @@ describe('temas', () => {
   it('los siete mapas y la Ciudad digital como una tarjeta más (sus siete colores debajo), y cuatro decorados', async () => {
     await act(async () => root.render(<ThemeGrid />))
     const maps = group('Mapas')
-    expect(maps).toHaveLength(9)
+    expect(maps).toHaveLength(10)
     expect(maps.slice(0, 7).map((b) => WORLDS.find((w) => b.textContent?.startsWith(w.name))?.id)).toEqual(WORLDS.map((w) => w.id))
     expect(maps[7].textContent).toContain('Refugio Kywai')
-    expect(maps[8].textContent).toContain('Ciudad digital')
+    expect(maps[8].textContent).toContain('Fondo marino')
+    expect(maps[9].textContent).toContain('Ciudad digital')
     expect(group('Color de la ciudad').map((b) => b.textContent)).toEqual(['Índigo', 'Frost Glass', 'Perla', 'Ónix', 'Esmeralda', 'Neón', 'Ultravioleta'])
     expect(group('Decorados')).toHaveLength(4)
     expect(WORLDS.length + CITY_COLORS.length + DECORS.length).toBe(18)
@@ -101,7 +114,7 @@ describe('temas', () => {
     setTheme('mundo-bosque')
     await act(async () => root.render(<ThemeGrid />))
     expect(group('Color de la ciudad')).toHaveLength(0)
-    await act(async () => group('Mapas')[8].click())
+    await act(async () => group('Mapas')[9].click())
     expect(storedTheme()).toBe('clasico')
     expect(group('Color de la ciudad')).toHaveLength(7)
     await act(async () => group('Mapas')[3].click())
@@ -120,7 +133,7 @@ describe('temas', () => {
     expect(city.getAttribute('aria-checked')).toBe('true')
   })
 
-  it('cada mapa monta su mundo con los colores de la interfaz de su nombre; los decorados siguen igual', async () => {
+  it('cada mapa monta su mundo y los decorados conservan sus ids con sus nuevos escenarios', async () => {
     await act(async () => root.render(<ThemeGrid />))
     for (const [i, w] of WORLDS.entries()) {
       await act(async () => group('Mapas')[i].click())
@@ -136,8 +149,10 @@ describe('temas', () => {
     for (const [i, d] of DECORS.entries()) {
       await act(async () => group('Decorados')[i].click())
       expect(palette).toBe(PALETTES[d.id])
-      expect(palette.world).toBeUndefined()
+      expect(palette.world).toBe(d.id)
       expect(palette.decor).toBe(d.id)
+      expect(storedTheme()).toBe(d.id)
+      expect(group('Decorados')[i].querySelector('svg[viewBox="0 0 120 84"]')).not.toBeNull()
       expect(document.documentElement.dataset.world).toBeUndefined()
     }
   })

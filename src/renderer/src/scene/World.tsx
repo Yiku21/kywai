@@ -9,6 +9,7 @@ import { musicLightLevel } from '@/lib/music'
 import { useHomeNight } from '@/lib/homeLighting'
 import { HOME_NIGHT_LIGHTS } from './worlds/homeNight'
 import { homeLayout } from './worlds/homeLayout'
+import { UnderseaWorld, underseaLayout } from './worlds/UnderseaWorld'
 import { KywaiHome } from './worlds/KywaiHome'
 import { useTheme } from '@/lib/theme'
 import { sceneQuality, useQuality } from './quality'
@@ -175,13 +176,13 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   // Cada tema tiene sus colores (palette.ts, ya aplicados al cambiarlo): la escena se vuelve a montar con ellos.
   const theme = useTheme()
   const nightPreference = useHomeNight(), night = theme === 'kywai' && nightPreference
-  const stations = useMemo(() => theme === 'kywai' ? homeLayout(configuredStations, agents) : configuredStations, [theme, configuredStations, agents])
+  const stations = useMemo(() => theme === 'kywai' ? homeLayout(configuredStations, agents) : theme === 'submarino' ? underseaLayout(configuredStations) : configuredStations, [theme, configuredStations, agents])
   const p = palette
   const L = night ? HOME_NIGHT_LIGHTS : p.lights
   // Los entornos nuevos usan materiales físicos también en el suelo y la arquitectura.
   const worldLight = p.world ? (p.light ? 0.85 : 2.4) : 1
-  const fogNear = p.world === 'kywai' ? 160 : p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
-  const fogFar = p.world === 'kywai' ? 300 : p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
+  const fogNear = p.world === 'submarino' ? 30 : p.world === 'kywai' ? 160 : p.world === 'relicario' || p.world === 'telar' ? 68 : p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
+  const fogFar = p.world === 'submarino' ? 78 : p.world === 'kywai' ? 300 : p.world === 'relicario' || p.world === 'telar' ? 185 : p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
 
   // Pausa total cuando la ventana o pestaña está oculta.
   useEffect(() => {
@@ -226,9 +227,9 @@ export function World({ view }: { view?: ViewInsets } = {}) {
         </Environment>
 
         {!p.world && <Backdrop reduced={reduced} />}
-        {theme === 'kywai' ? <KywaiHome stations={stations} detailed={q.structures > 120} reduced={reduced} /> : <Ambient q={q} reduced={reduced} />}
-        {!['bosque', 'marfil', 'orbita', 'kywai'].includes(p.world ?? '') && <Circuits stations={stations} reduced={reduced} />}
-        {theme !== 'kywai' && <><Zones /><Core /></>}
+        {theme === 'submarino' ? <UnderseaWorld stations={stations} reduced={reduced} detailed={q.structures > 120} /> : theme === 'kywai' ? <KywaiHome stations={stations} detailed={q.structures > 120} reduced={reduced} /> : <Ambient q={q} reduced={reduced} />}
+        {!['bosque', 'marfil', 'orbita', 'kywai', 'submarino', 'relicario', 'telar'].includes(p.world ?? '') && <Circuits stations={stations} reduced={reduced} />}
+        {theme !== 'kywai' && theme !== 'submarino' && <><Zones /><Core /></>}
         <Stations stations={stations} showLights={q.stationLights} />
         <Transfers stations={stations} />
         <Robots stations={stations} />

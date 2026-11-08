@@ -4,11 +4,12 @@ import { addMatrixCity } from './matrixBuildings'
 import { addCyberOperations } from './cyberOperations'
 import { addMarfilPalace } from './marfilPalace'
 import { addGrafitoFactory, addGrafitoReactor } from './grafitoFactory'
+import { addHeritageWorld, addHeritageCore, HERITAGE_WORLDS } from './heritageWorlds'
 import { forestClear, forestHeight, forestRandom } from './forestLayout'
 
-export type WorldStyle = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'kywai'
+export type WorldStyle = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'relicario' | 'telar' | 'halloween' | 'navidad' | 'kywai' | 'submarino'
 export type Vec = [number, number, number]
-export type Solid = 'box' | 'cylinder' | 'hex' | 'sphere' | 'dome' | 'rock' | 'cone' | 'ring' | 'leaf' | 'arch' | 'cable' | 'trunk' | 'orbitDeck' | 'orbitRail' | 'crystal' | 'gable' | 'pointedArch' | 'inlayRing' | 'cushion' | 'planter' | 'homeRib' | 'homeMullion'
+export type Solid = 'box' | 'cylinder' | 'hex' | 'sphere' | 'dome' | 'rock' | 'cone' | 'ring' | 'leaf' | 'arch' | 'cable' | 'trunk' | 'orbitDeck' | 'orbitRail' | 'crystal' | 'pointedArch' | 'gable' | 'inlayRing' | 'cushion' | 'planter' | 'homeRib' | 'homeMullion'
 export interface Piece {
   shape: Solid
   at: Vec
@@ -16,8 +17,8 @@ export interface Piece {
   color: string
   glow?: number
   rotation?: Vec
-  wind?: { root: Vec; height: number; flexibility: number }
   quaternion?: THREE.Quaternion
+  wind?: { root: Vec; height: number; flexibility: number }
 }
 
 /** Models are deterministic and batched by geometry/material, including the small details. */
@@ -49,6 +50,7 @@ function foliage(m: Model, center: Vec, radius: number, seed: number, count = 10
 /** Architecture stays outside the work area so custom station layouts remain usable. */
 export function environmentModel(style: WorldStyle, stations: StationConfig[], detail: boolean): Piece[] {
   const m = new Model()
+  if ((HERITAGE_WORLDS as readonly string[]).includes(style)) { addHeritageWorld(m, style, stations, detail); return m.pieces }
   const occupied = (x: number, z: number, gap = 2.8) => stations.some(s => Math.hypot(s.position[0] - x, s.position[1] - z) < gap)
   if (style === 'clasico') addCyberOperations(m, stations, detail)
   if (style === 'orbita') {
@@ -291,6 +293,7 @@ export function platformModel(style: WorldStyle): Piece[] {
 /** Solid centerpieces; documents and transfer effects remain handled by Core. */
 export function centerpieceModel(style: WorldStyle): Piece[] {
   const m = new Model()
+  if ((HERITAGE_WORLDS as readonly string[]).includes(style)) { addHeritageCore(m,style); return m.pieces }
   if (style === 'clasico') {
     m.add('cylinder', [0, .27, 0], [1.28, .14, 1.28], '#233652')
     m.add('cylinder', [0, .36, 0], [1.16, .075, 1.16], '#101c31')
