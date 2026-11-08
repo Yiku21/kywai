@@ -179,6 +179,8 @@ const stationUse = new Map<string, AgentId>()
 const becarioCounter = new Map<AgentId, number>()
 const planningAgents = new Map<AgentId, string>()
 const integrating = new Set<AgentId>()
+/** Autor libre cuya última tarea está en revisión: en el 3D sale «Esperando la revisión de …» (ver updateWaiting). */
+const reviewWaits = new Map<AgentId, { taskId: string; verifierId: AgentId }>()
 /** Agents whose light model the CLI rejected this session (e.g. not available for the account). */
 const lightModelBroken = new Set<AgentId>()
 /** Agentes cuyo modelo para lo difícil rechazó el CLI en esta sesión. */
@@ -2388,9 +2390,16 @@ function updateWaiting(): void {
     if (busy.has(a.id) || isBlocked(a.id) || presence.get(a.id) || planningAgents.has(a.id) || integrating.has(a.id)) continue
     const rt = getRuntime(a.id)
     const w = waitingFor.get(a.id)
+    const review = reviewWaits.get(a.id)
     if (w) {
       if (rt.activity !== 'waiting' || rt.waitingFor !== w) {
         setRuntime(a.id, { activity: 'waiting', waitingFor: w, lastActivity: tr('Esperando a {agentName}', { agentName: agentName(w) }), reason: undefined })
+      }
+    } else if (review && tasks.get(review.taskId)?.status === 'running') {
+      // Entregó y otro agente revisa su tarea: está libre para otra, pero su tarea aún no está cerrada.
+      const text = tr('Esperando la revisión de {agentName}', { agentName: agentName(review.verifierId) })
+      if (rt.activity !== 'waiting' || rt.waitingFor !== review.verifierId || rt.lastActivity !== text) {
+        setRuntime(a.id, { activity: 'waiting', waitingFor: review.verifierId, taskId: review.taskId, lastActivity: text, reason: undefined })
       }
     } else if (rt.activity === 'waiting') {
       setRuntime(a.id, { activity: 'idle', waitingFor: undefined })
@@ -3174,6 +3183,11 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
     if (!busy.has(a.id)) setRuntime(a.id, { activity: 'idle', lastActivity: tr('Verificó: {title}', { title: t.title }) })
   }
   let wasIdle = claim(verifier)
+  const awaitReview = (by: AgentConfig): void => {
+    reviewWaits.set(exec.id, { taskId: t.id, verifierId: by.id })
+    updateWaiting()
+  }
+  awaitReview(verifier)
   let start = Date.now()
   let effort = effortFor(verifier.provider, 'medium')
   const ask = async (prompt: string, resume?: string): Promise<RunAgentResult> => {
@@ -3216,6 +3230,7 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
       release(verifier, wasIdle)
       verifier = other
       wasIdle = claim(verifier)
+      awaitReview(verifier)
       start = Date.now()
       effort = effortFor(verifier.provider, 'medium')
       t.lastActivity = tr('{name} comprueba el resultado', { name: verifier.name })
@@ -3231,6 +3246,10 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
     if (!out.ok) out = { ...first, usage: out.usage }
   }
   release(verifier, wasIdle)
+  if (reviewWaits.get(exec.id)?.taskId === t.id) {
+    reviewWaits.delete(exec.id)
+    updateWaiting()
+  }
   const stopped = run.cancelled || ctrl.signal.aborted
   const status: VerificationStatus = missing ? 'unverified' : m && /^(cumple|pass)/i.test(m[1]) ? 'passed' : 'failed'
   const ok = status === 'passed'

@@ -339,6 +339,7 @@ fun AgentCard(snapshot: Snapshot, agent: Agent, model: OrbitaModel, attention: A
             val (color, label) = when {
                 needs != null -> Orbita.Warn to needs.reason
                 paused -> Orbita.Warn to t("En pausa")
+                agent.activity == "waiting" && !agent.lastActivity.isNullOrBlank() -> Orbita.Warn to agent.lastActivity.orEmpty()
                 agent.activity == "waiting" && agent.waitingFor != null -> Orbita.Warn to t("Esperando a {waitingFor}", "waitingFor" to (snapshot.agents.firstOrNull { it.id == agent.waitingFor }?.name ?: agent.waitingFor))
                 else -> activityColor(agent.activity) to Labels.activity(agent.activity)
             }

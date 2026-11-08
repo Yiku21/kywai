@@ -2723,4 +2723,6 @@ export const en: Record<string, string> = {
   "¡Ánimo, compañero!": "You’ve got this, buddy!",
   "¡Gracias por los ánimos!": "Thanks for cheering me on!",
   "Bailando": "Dancing",
+  "En revisión": "In review",
+  "Esperando la revisión de {agentName}": "Waiting for {agentName} to review",
 }

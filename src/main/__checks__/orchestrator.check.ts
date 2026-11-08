@@ -1344,6 +1344,32 @@ async function main(): Promise<void> {
       }
     })
 
+    await check('U5: mientras otro revisa su tarea, el autor libre sale «esperando la revisión»', async () => {
+      hermesOnline = false
+      await refreshPresence()
+      const up = store.createProject('Esperando revisión')
+      planResponses = {
+        claude: plan('Codex la hace.', [
+          { key: 't1', title: 'Página de contacto', description: 'Crea artifacts/contacto.html.', agent: 'codex', difficulty: 'medium', deliverable: 'file', acceptance: 'existe' }
+        ])
+      }
+      verdicts = []
+      verifyDelay = 300
+      try {
+        const { runId } = await sendMessage({ projectId: up.id, text: 'Haz la página de contacto', filePaths: [] })
+        await waitFor(() => verifying > 0, 10000, 'revisión en marcha')
+        const rt = runtimeSnapshot().find((r) => r.agentId === 'codex')!
+        assert.equal(rt.activity, 'waiting')
+        assert.ok(rt.waitingFor && rt.waitingFor !== 'codex', 'espera a quien revisa')
+        assert.ok(rt.lastActivity?.startsWith('Esperando la revisión de '), rt.lastActivity)
+        await waitFor(() => !!finished(runId), 15000, 'run U5')
+        const after = runtimeSnapshot().find((r) => r.agentId === 'codex')!
+        assert.equal(after.activity, 'idle', 'al acabar la revisión vuelve a estar libre')
+      } finally {
+        verifyDelay = 0
+      }
+    })
+
     await check('V: «a dos manos» — otra familia hace la misma tarea en su carpeta y una tercera elige', async () => {
       hermesOnline = false
       await refreshPresence()

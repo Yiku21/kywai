@@ -574,6 +574,8 @@ data class TaskItem(
     /** Archivos de otras tareas que modificó (hay que revisarlo). */
     val outOfScope: List<String> = emptyList(),
     val model: String? = null,
+    /** Etapa de la tarea en marcha: work, fix, tests o verify (otro agente la revisa). */
+    val phase: String? = null,
 ) {
     val isActive get() = status == "running" || status == "pending" || status == "blocked"
     val isResumable get() = status == "cancelled" || status == "failed"

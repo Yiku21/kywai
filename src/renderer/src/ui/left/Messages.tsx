@@ -405,7 +405,8 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
   const listId = useId()
   // Solo sigue «trabajando» si la tarea sigue en marcha (tras reiniciar la app, ya no).
   const live = work.status === 'running' && task?.status === 'running'
-  const state = work.status === 'running' && !live ? t('Detenida') : WORK_STATE[work.status]
+  // Ya entregó y otro agente lo revisa: no está «trabajando» (su robot queda libre en el 3D).
+  const state = work.status === 'running' && !live ? t('Detenida') : live && task?.phase === 'verify' ? t('En revisión') : WORK_STATE[work.status]
   const count = work.steps.length + (work.hidden ?? 0)
   const totals = work.totals
 

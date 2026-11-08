@@ -2604,4 +2604,6 @@ export const zh: Record<string, string> = {
   "¡Ánimo, compañero!": "加油，伙伴！",
   "¡Gracias por los ánimos!": "谢谢你的鼓励！",
   "Bailando": "跳舞中",
+  "En revisión": "审核中",
+  "Esperando la revisión de {agentName}": "等待 {agentName} 审核",
 }

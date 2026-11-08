@@ -916,6 +916,17 @@ fallos; Codex los corrige (corrección 1 de 2)», el relevo y el veredicto final
 coste…» como «Verificar». Se salta si escribes **«sin revisión»** (o «sin verificar») en la
 petición, si la tarea es solo de texto o si no hay ningún otro agente de otra familia disponible.
 
+**Mientras se revisa, el autor queda libre.** En cuanto entrega, el autor puede empezar otra tarea; la revisión va
+aparte. Por eso, durante la revisión:
+
+- En el chat, el mensaje de la tarea pasa de «Trabajando» a **«En revisión»**, con «Codex comprueba el resultado»
+  debajo. En el 3D trabaja el robot del verificador, no el del autor.
+- El robot del autor, si no ha cogido otra tarea, dice **«Esperando la revisión de Codex»** (reloj de arena y mirando
+  al verificador). Si la revisión pide correcciones, vuelve a trabajar en ella.
+- Si ya está con otra tarea, sigue saliendo **«Trabajando»** con lo que hace: al cerrar la tarea anterior (revisada,
+  corregida, relevada, fallida o con choques al integrarla) kywai no le pone «Disponible» si está ocupado
+  (`settleRuntime` en `src/main/orchestrator.ts`; pruebas U4 y U5 de `orchestrator.check.ts`).
+
 **Pruebas ejecutadas de verdad.** kywai no se fía de un «las pruebas pasan» en el texto del autor: mira en el
 registro de la tarea los comandos que ejecutó y cómo terminaron. Solo cuenta una prueba que demuestra algo y
 termina sola (`npm test`, `npm run typecheck`, `vitest run`, `tsc --noEmit`, `pytest`, `cargo test`, `go test`,

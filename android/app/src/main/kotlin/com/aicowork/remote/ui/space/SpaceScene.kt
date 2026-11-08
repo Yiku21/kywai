@@ -414,7 +414,8 @@ object SpaceSceneBuilder {
     fun statusText(agent: Agent, visual: AgentVisual, waitingName: String?): String = when (visual) {
         AgentVisual.Thinking -> agent.lastActivity?.ifBlank { null } ?: t("Pensando")
         AgentVisual.Working -> agent.lastActivity?.ifBlank { null } ?: t("Trabajando")
-        AgentVisual.Waiting -> if (waitingName != null) t("Esperando a {waitingName}", "waitingName" to waitingName) else t("En espera")
+        AgentVisual.Waiting -> agent.lastActivity?.ifBlank { null }
+            ?: if (waitingName != null) t("Esperando a {waitingName}", "waitingName" to waitingName) else t("En espera")
         AgentVisual.Error -> t("Bloqueado")
         AgentVisual.Offline -> t("No disponible")
         AgentVisual.Resting -> t("En reposo")
