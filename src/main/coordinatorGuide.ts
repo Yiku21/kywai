@@ -64,7 +64,7 @@ export function mentionsApp(text: string): boolean {
  * marcadas), pero solo se lee bien si el texto viene breve y ordenado: un muro de texto sigue siendo un muro.
  */
 export const CHAT_STYLE =
-  'empieza por el resultado o la respuesta en una o dos frases; después, párrafos cortos (2 o 3 frases) separados por una línea en blanco; los pasos, opciones o hallazgos en lista (numerada si hay orden), un punto por idea; **negrita** solo para lo que no se puede pasar por alto; títulos (##) solo si la respuesta es larga. Nada de muros de texto, de relleno ni de repetir lo que el usuario ya ve.'
+  'empieza por el resultado o la respuesta en una o dos frases; después, párrafos cortos (2 o 3 frases) separados por una línea en blanco; los pasos, opciones o hallazgos en lista (numerada si hay orden), un punto por idea; **negrita** solo para lo que no se puede pasar por alto; títulos (##) solo si la respuesta es larga; para citar una parte de un documento, nómbrala con palabras («apartado 3.1» o su título), nunca con «§» ni otros símbolos o abreviaturas que el usuario tenga que adivinar. Nada de muros de texto, de relleno ni de repetir lo que el usuario ya ve.'
 
 /** Sección «Cómo funciona kywai» para el prompt del coordinador. */
 export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[] {
