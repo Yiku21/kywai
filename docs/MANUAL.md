@@ -815,7 +815,19 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
 - **Una pregunta** del equipo, una tarea que **requiere intervención** (la verificación sigue viendo fallos tras 2
   correcciones y un relevo; sus archivos se quedan y «Deshacer la tarea» los quita), **choques** al integrar una copia
   aparte o una tarea que **no se pudo hacer** («Deshacer» deja sus archivos como estaban).
-- **Lo terminado**: la última petición acabada de cada proyecto, para enterarte desde el móvil.
+- **Tareas en pausa**: lo que quedó a medias al cerrarse o reiniciar el servidor (o al detenerlo desde el móvil),
+  con «Reanudar» (sigue donde se quedó) y «Quitar» (no se reanudará).
+- **El presupuesto de API** del mes, al llegar al 80 % y al pasarlo.
+
+Solo cuenta lo que espera algo de ti. **Lo terminado no va aquí**: la última petición acabada de cada proyecto sale
+arriba en **Resultados**, en «Recién terminado», con su número en la barra lateral, «Visto» y «Marcar todo como visto»
+(Órbita igual, y además manda la notificación al terminar por su propio canal, «Terminado», que se puede silenciar
+aparte en Android; tocarla abre Resultados).
+
+Los avisos salen **en el idioma de cada app**, aunque el servidor use otro: el motor guarda cada aviso escrito en todos
+los idiomas (`texts` en la API) y el escritorio, la web y Órbita muestran el suyo. Lo que un agente escribe con sus
+palabras (las notas del revisor, una pregunta) va en el idioma con el que trabaja el servidor (⚙ → Ajustes → Idioma
+en el servidor).
 
 Tocar el título lleva a su proyecto. Los avisos se cierran solos cuando ya no hacen falta (el plan se aprueba,
 la tarea termina o el agente vuelve a hablar). La lista se guarda en `inbox.json` de la carpeta de trabajo;

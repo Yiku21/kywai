@@ -13,6 +13,7 @@ import { dirname, join } from 'node:path'
 import type { MemoryKind } from '@shared/types'
 import { getConfig } from './config'
 import { addInbox } from './inbox'
+import { tl } from '@shared/i18n'
 import { addMemory, instructionsOf, KIND_LABEL, memoryLines, memoryOf } from './memory'
 import * as store from './projects'
 import { listSkills, readSkill } from './skills'
@@ -234,13 +235,13 @@ export async function callTool(ctx: McpTaskContext & { questions?: number }, nam
       ctx.questions = (ctx.questions ?? 0) + 1
       addInbox({
         kind: 'question',
-        title: `${ctx.agentName} te pregunta («${ctx.taskTitle}»)`,
+        title: tl('{agentName} te pregunta («{taskTitle}»)', { agentName: ctx.agentName, taskTitle: ctx.taskTitle }),
         detail: q,
         projectId: ctx.projectId,
         runId: ctx.runId,
         taskId: ctx.taskId,
         agentId: ctx.agentId,
-        actions: [{ id: 'dismiss', label: 'Lo contesto en el chat' }]
+        actions: [{ id: 'dismiss', label: tl('Lo contesto en el chat') }]
       })
       return 'Pregunta enviada a «Te necesita». No esperes: sigue con la opción más razonable y di en tu respuesta final qué supusiste.'
     }

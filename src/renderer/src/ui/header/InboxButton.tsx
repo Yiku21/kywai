@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Bell, BellDot } from 'lucide-react'
 import type { InboxItem } from '@shared/types'
+import { needsYou } from '@shared/inbox'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { Popover } from '../common/Popover'
@@ -18,11 +19,12 @@ const KIND_LABEL: Record<string, string> = {
   'verify-failed': t('Revisión'),
   conflict: t('Choque'),
   failed: t('Fallo'),
+  paused: t('En pausa'),
   done: t('Terminado'),
   budget: t('Presupuesto')
 }
 
-function ago(ts: number): string {
+export function ago(ts: number): string {
   const m = Math.round((Date.now() - ts) / 60_000)
   if (m < 1) return t('ahora')
   if (m < 60) return t('hace {m} min', { m })
@@ -32,10 +34,12 @@ function ago(ts: number): string {
 
 /**
  * Bandeja «Te necesita»: lo que espera una decisión tuya (un plan, un permiso de macOS en la pantalla del servidor,
- * un agente parado, choques al integrar…), con sus botones. Lo mismo sale en Órbita y en la web.
+ * un agente parado, tareas en pausa, choques al integrar…), con sus botones. Lo mismo sale en Órbita y en la web.
+ * Los «Terminado» no esperan nada de ti: salen en Resultados como nuevos (ResultsView) y no cuentan aquí.
  */
 export function InboxButton({ sidebar }: { sidebar?: { button: string; label: string; badge: string } } = {}) {
-  const items = useCowork((st) => st.inbox)
+  const all = useCowork((st) => st.inbox)
+  const items = useMemo(() => all.filter(needsYou), [all])
   const project = useCowork((st) => st.live.project)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)

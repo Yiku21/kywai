@@ -1245,9 +1245,20 @@ export type CoworkEventKind = CoworkEvent['kind']
  * plan: un plan espera tu visto bueno · stalled: un agente lleva rato callado (suele ser un aviso de permisos en la
  * pantalla del servidor) · mac-permission: macOS pide un permiso de Privacidad · question: el equipo te pregunta algo ·
  * verify-failed: el verificador sigue viendo fallos · conflict: choques al integrar · failed: una tarea no se pudo
- * hacer · done: terminó una petición · budget: el gasto por API del mes llega al 80 % o pasa del presupuesto.
+ * hacer · paused: tareas que quedaron en pausa (al reiniciar el servidor o al detenerlas) esperan Reanudar o Quitar ·
+ * budget: el gasto por API del mes llega al 80 % o pasa del presupuesto · done: terminó una petición.
+ *
+ * «done» no espera nada de ti: no sale en «Te necesita» sino en Resultados, como «nuevo» (y el móvil avisa igual).
  */
-export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'done' | 'budget'
+export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget'
+
+/** El aviso escrito en un idioma de la app (título, detalle y el nombre de cada botón). */
+export interface InboxTexts {
+  title: string
+  detail?: string
+  /** Por id del botón. */
+  actions?: Record<string, string>
+}
 
 export interface InboxAction {
   /** approve, reject, undo, open, dismiss… */
@@ -1274,6 +1285,11 @@ export interface InboxItem {
   resolvedAt?: number
   /** Cómo se cerró («Aprobar», «La tarea terminó»…). */
   resolution?: string
+  /**
+   * El mismo aviso en cada idioma de la app («en», «pt»…): el motor del servidor lo escribe en el suyo, pero cada app
+   * lo muestra en el de quien lo lee. Lo que escribió un agente con sus palabras va igual en todos.
+   */
+  texts?: Record<string, InboxTexts>
 }
 
 /**

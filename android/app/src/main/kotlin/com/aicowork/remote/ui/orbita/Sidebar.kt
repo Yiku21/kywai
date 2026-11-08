@@ -149,12 +149,12 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
                 SidebarItem(Icons.Outlined.History, t("Historial"), tag = "side-history") { model.openHistory() }
             }
             if (inboxSupported(state)) {
-                SidebarItem(Icons.Outlined.Notifications, t("Te necesita"), badge = state.inbox.size, warn = true, selected = model.inboxOpen, tag = "side-inbox") { model.openInbox() }
+                SidebarItem(Icons.Outlined.Notifications, t("Te necesita"), badge = state.inbox.count { it.needsYou }, warn = true, selected = model.inboxOpen, tag = "side-inbox") { model.openInbox() }
             }
             val active = snapshot?.tasks?.count { it.isActive } ?: 0
             SidebarItem(Section.Chat.icon, t("Chat"), selected = model.section == Section.Chat, tag = "nav-Chat") { go(Section.Chat) }
             SidebarItem(Section.Tasks.icon, t("Tareas en marcha"), badge = active, selected = model.section == Section.Tasks, tag = "nav-Tasks") { go(Section.Tasks) }
-            SidebarItem(Section.Results.icon, t("Resultados"), selected = model.section == Section.Results, tag = "nav-Results") { go(Section.Results) }
+            SidebarItem(Section.Results.icon, t("Resultados"), badge = state.inbox.count { !it.needsYou }, selected = model.section == Section.Results, tag = "nav-Results") { go(Section.Results) }
             if (snapshot?.capabilities?.music == true) {
                 SidebarItem(Icons.Outlined.MusicNote, t("Música"), selected = model.musicOpen, tag = "side-music") {
                     model.drawerOpen = false
@@ -391,12 +391,12 @@ fun SidebarRail(model: OrbitaModel, state: CoworkUiState, labels: Boolean, onOpe
                 RailItem(Icons.Outlined.History, t("Historial"), t("Historial"), labels, tag = "rail-history") { model.openHistory() }
             }
             if (inboxSupported(state)) {
-                RailItem(Icons.Outlined.Notifications, t("Te necesita"), t("Te necesita"), labels, badge = state.inbox.size, selected = model.inboxOpen, tag = "rail-inbox") { model.openInbox() }
+                RailItem(Icons.Outlined.Notifications, t("Te necesita"), t("Te necesita"), labels, badge = state.inbox.count { it.needsYou }, selected = model.inboxOpen, tag = "rail-inbox") { model.openInbox() }
             }
             val active = snapshot?.tasks?.count { it.isActive } ?: 0
             RailItem(Section.Chat.icon, t("Chat"), t("Chat"), labels, selected = model.section == Section.Chat, tag = "rail-Chat") { go(Section.Chat) }
             RailItem(Section.Tasks.icon, t("Tareas en marcha"), t("Tareas"), labels, badge = active, warn = false, selected = model.section == Section.Tasks, tag = "rail-Tasks") { go(Section.Tasks) }
-            RailItem(Section.Results.icon, t("Resultados"), t("Resultados"), labels, selected = model.section == Section.Results, tag = "rail-Results") { go(Section.Results) }
+            RailItem(Section.Results.icon, t("Resultados"), t("Resultados"), labels, badge = state.inbox.count { !it.needsYou }, warn = false, selected = model.section == Section.Results, tag = "rail-Results") { go(Section.Results) }
             if (snapshot?.capabilities?.music == true) {
                 RailItem(Icons.Outlined.MusicNote, t("Música"), t("Música"), labels, selected = model.musicOpen, tag = "rail-music") {
                     model.drawerOpen = false

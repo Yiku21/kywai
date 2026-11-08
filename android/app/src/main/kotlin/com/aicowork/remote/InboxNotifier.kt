@@ -27,7 +27,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Notificaciones del sistema de la bandeja «Te necesita»: una por cada aviso abierto nuevo (id que este móvil no
- * había visto), salvo si estás mirando la bandeja. Tocarla abre la app en la bandeja.
+ * había visto), salvo si estás mirando la bandeja. Tocarla abre la app en la bandeja. Los «Terminado» no esperan nada
+ * de ti: van por su propio canal («Terminado», que se puede silenciar aparte) y tocarlos abre Resultados.
  *
  * Solo avisa mientras la app sigue conectada al ordenador (a la vista o poco después de pasar a segundo plano): no hay
  * servicio en primer plano ni push (FCM), porque kywai no tiene servidor de push.
@@ -74,13 +75,17 @@ class InboxNotifier(
             summaryPosted = false
         }
 
-        val fresh = open.filter { it.id !in seen }
-        if (fresh.isEmpty()) return
-        fresh.forEach { remember(it.id) }
+        val all = open.filter { it.id !in seen }
+        if (all.isEmpty()) return
+        all.forEach { remember(it.id) }
         saveSeen()
+        // Los «Terminado»: uno por petición, por su canal y abriendo Resultados.
+        all.filterNot { it.needsYou }.takeLast(MAX_SINGLE).forEach { item -> if (notifySafely(item.id, single(item))) posted += item.id }
+        val fresh = all.filter { it.needsYou }
+        if (fresh.isEmpty()) return
         if (sheetVisible && inForeground()) return
         if (fresh.size > MAX_SINGLE) {
-            notifySafely(SUMMARY_TAG, summary(fresh, open.size))
+            notifySafely(SUMMARY_TAG, summary(fresh, open.count { it.needsYou }))
             summaryPosted = true
         } else {
             fresh.forEach { item -> if (notifySafely(item.id, single(item))) posted += item.id }
@@ -117,12 +122,17 @@ class InboxNotifier(
             .setDescription(t("Avisos del equipo que esperan tu respuesta: planes, preguntas, permisos en el Mac, fallos…"))
             .build()
         manager.createNotificationChannel(channel)
+        val done = NotificationChannelCompat.Builder(CHANNEL_DONE_ID, NotificationManagerCompat.IMPORTANCE_DEFAULT)
+            .setName(t("Terminado"))
+            .setDescription(t("Avisos de que el equipo terminó una petición (salen en Resultados)."))
+            .build()
+        manager.createNotificationChannel(done)
     }
 
     private fun single(item: InboxItem): Notification {
         val kind = InboxKinds.label(item.kind)
         val detail = item.detail?.takeIf { it.isNotBlank() }
-        return builder()
+        return builder(done = !item.needsYou)
             .setContentTitle(item.title.ifBlank { kind })
             .setContentText(detail ?: kind)
             .setSubText(kind)
@@ -143,21 +153,21 @@ class InboxNotifier(
             .build()
     }
 
-    private fun builder(): NotificationCompat.Builder = NotificationCompat.Builder(context, CHANNEL_ID)
+    private fun builder(done: Boolean = false): NotificationCompat.Builder = NotificationCompat.Builder(context, if (done) CHANNEL_DONE_ID else CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_stat_inbox)
-        .setPriority(NotificationCompat.PRIORITY_HIGH)
-        .setCategory(NotificationCompat.CATEGORY_REMINDER)
+        .setPriority(if (done) NotificationCompat.PRIORITY_DEFAULT else NotificationCompat.PRIORITY_HIGH)
+        .setCategory(if (done) NotificationCompat.CATEGORY_STATUS else NotificationCompat.CATEGORY_REMINDER)
         .setAutoCancel(true)
         .setShowWhen(true)
-        .setContentIntent(openInbox())
+        .setContentIntent(open(if (done) ACTION_OPEN_RESULTS else ACTION_OPEN_INBOX))
 
-    /** Abre la app (la misma pantalla si ya estaba abierta) directamente en la bandeja. */
-    private fun openInbox(): PendingIntent {
+    /** Abre la app (la misma pantalla si ya estaba abierta) directamente en la bandeja o en Resultados. */
+    private fun open(what: String): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
-            action = ACTION_OPEN_INBOX
+            action = what
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
-        return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        return PendingIntent.getActivity(context, if (what == ACTION_OPEN_RESULTS) 1 else 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
     /** Sin permiso (Android 13+) o con las notificaciones apagadas no se muestra nada: la bandeja sigue en la app. */
@@ -177,8 +187,11 @@ class InboxNotifier(
 
     companion object {
         const val CHANNEL_ID = "te-necesita"
+        const val CHANNEL_DONE_ID = "terminado"
         /** Acción del Intent que abre la app en la bandeja. */
         const val ACTION_OPEN_INBOX = "com.aicowork.remote.action.OPEN_INBOX"
+        /** Acción del Intent que abre la app en Resultados (al tocar un «Terminado»). */
+        const val ACTION_OPEN_RESULTS = "com.aicowork.remote.action.OPEN_RESULTS"
         private const val PREFS = "inbox_notifications"
         private const val KEY_SEEN = "seen"
         private const val NOTIFICATION_ID = 7_001
