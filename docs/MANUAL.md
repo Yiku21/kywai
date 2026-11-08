@@ -1030,6 +1030,30 @@ mismo mensaje dice «Hecha» y trae su resultado y sus entregables, y vuelve a v
 ahí. Se les pide que lo cuenten con frases cortas (nada de párrafos largos); se actualiza como mucho una vez por
 segundo y, si cuenta mucho, se ven los últimos 40 pasos (el resumen de arriba cuenta todo).
 
+**Varias tareas a la vez sin mezclarse.** Cuando un agente lleva dos tareas a la vez (él y un becario suyo, por
+ejemplo), el chat las separa así:
+
+- **Cada tarea lleva su número** (`#7 Guía…`) en su mensaje, en la lista de **Tareas** y en el plan, en escritorio,
+  navegador y Órbita. El número es del proyecto y no se repite aunque vacíes la conversación.
+- **Una tarea, un solo mensaje.** Si el mismo agente la retoma (para corregir lo que vio el verificador, resolver un
+  choque al integrar o repetirla con otro modelo), sigue en **su mismo mensaje**, que **baja al final del chat**. Lo
+  de antes queda plegado entre sus pasos, junto con el motivo de la repetición. Mientras espera turno dice **«En
+  cola»**, no «Detenida». Si la retoma otro agente (el relevo), ese agente abre su propio mensaje.
+- **La revisión la firma quien la hizo.** «Codex comprobó «…» y vio fallos; Claude los corrige» sale como mensaje
+  de **Codex**, con su avatar, y no dentro del mensaje de Claude.
+- **El trabajo de un becario** sale con su jefe y la marca **«Claude · Becario»**. Cuando el becario acaba su parte
+  (o devuelve la tarea a su jefe), deja su puesto libre. Si tenías abierto su panel en el 3D, dice con quién sigue
+  la tarea y a los 4 segundos pasa al panel del jefe.
+- **Tareas repetidas.** Hermes ve el trabajo que sigue en marcha y se le pide no crear otra tarea que lo repita,
+  aunque se lo pidas con otras palabras. Si aun así una tarea nueva se parece mucho a otra en marcha del mismo
+  proyecto, el chat avisa («Ojo: «…» se parece mucho a «…»…») para que detengas una si son lo mismo. No se borra nada
+  solo, porque podría ser trabajo distinto.
+
+Para desarrolladores: `openWork`/`closeWork` en `orchestrator.ts` (`meta.lastWork` reabre el mensaje del mismo
+agente), `src/shared/chatOrder.ts` (cuándo un mensaje reabierto baja al final, igual en el servidor, la interfaz y
+`Conversation.upsert` de Órbita), `TaskWork.seq`/`by` y `Task.seq`, y `src/main/duplicateTasks.ts` (el aviso de
+tareas parecidas, solo entre peticiones distintas).
+
 **Capturas y documentos a medida que avanza.** Para ver por dónde va sin esperar al final, el chat enseña lo que
 el agente va creando mientras trabaja: las **imágenes** nuevas (capturas del juego, mapas, maquetas) salen como
 miniaturas en el sitio del mensaje donde ocurrieron y, al pulsarlas, se abren; los **documentos** (`.md`, `.html`,
