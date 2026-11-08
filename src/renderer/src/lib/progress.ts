@@ -1,5 +1,6 @@
 import type { AgentRuntime, Task } from '@shared/types'
 import { t } from '@/lib/i18n'
+import { serverNow } from './serverClock'
 
 /** Progreso de una tarea en porcentaje. `real` = viene de la lista de pasos del agente. */
 export interface TaskProgress {
@@ -38,7 +39,7 @@ export function expectedDuration(task: Task, history: Iterable<Task>): number {
 }
 
 /** Progreso de una tarea: real si el agente lo informa; si no, estimado. null si no ha empezado. */
-export function taskProgress(task: Task, history: Iterable<Task>, now = Date.now()): TaskProgress | null {
+export function taskProgress(task: Task, history: Iterable<Task>, now = serverNow()): TaskProgress | null {
   if (task.status === 'done') return { pct: 100, real: true }
   if (task.status !== 'running') return null
   if (task.progress != null) return { pct: Math.round(Math.min(0.99, Math.max(0, task.progress)) * 100), real: true }
@@ -49,7 +50,7 @@ export function taskProgress(task: Task, history: Iterable<Task>, now = Date.now
 }
 
 /** Progreso global de un plan: tareas terminadas más la parte hecha de las que están en curso. */
-export function planProgress(tasks: Task[], history: Iterable<Task>, now = Date.now()): TaskProgress {
+export function planProgress(tasks: Task[], history: Iterable<Task>, now = serverNow()): TaskProgress {
   if (tasks.length === 0) return { pct: 0, real: true }
   let sum = 0
   let real = true
@@ -72,7 +73,7 @@ export function progressText(p: TaskProgress): string {
 }
 
 /** El agente lleva un rato sin informar nada (suele estar razonando). */
-export function isSilent(rt: AgentRuntime | undefined, now = Date.now()): boolean {
+export function isSilent(rt: AgentRuntime | undefined, now = serverNow()): boolean {
   if (!rt || (rt.activity !== 'working' && rt.activity !== 'thinking')) return false
   return !!rt.lastActivityAt && now - rt.lastActivityAt > SILENT_MS
 }

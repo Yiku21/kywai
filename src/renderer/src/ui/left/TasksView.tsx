@@ -11,6 +11,7 @@ import { cx, formatDuration } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './Views.module.css'
 import { t } from '@/lib/i18n'
+import { serverNow } from '@/lib/serverClock'
 
 type GroupId = 'running' | 'waiting' | 'done' | 'error'
 
@@ -134,10 +135,10 @@ function TaskRow({
       : []
   const model = modelLabelFor(task.model, look.config)
   let duration: string | null = null
-  if (task.status === 'running' && task.startedAt) duration = formatDuration(Math.max(0, (now || Date.now()) - task.startedAt))
+  if (task.status === 'running' && task.startedAt) duration = formatDuration(Math.max(0, (now || serverNow()) - task.startedAt))
   else if (task.startedAt && task.finishedAt) duration = formatDuration(task.finishedAt - task.startedAt)
-  const prog = task.status === 'running' ? taskProgress(task, Object.values(tasks), now || Date.now()) : null
-  const silent = task.status === 'running' && isSilent(runtime, now || Date.now())
+  const prog = task.status === 'running' ? taskProgress(task, Object.values(tasks), now || serverNow()) : null
+  const silent = task.status === 'running' && isSilent(runtime, now || serverNow())
 
   return (
     <button

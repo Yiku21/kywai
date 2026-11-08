@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { serverNow } from '@/lib/serverClock'
 
 // ---------- Escape: solo se cierra la capa superior (popover > visor > panel) ----------
 
@@ -40,11 +41,11 @@ export function useEscape(active: boolean, cb: () => void): void {
 
 /** Devuelve Date.now() y vuelve a renderizar cada `intervalMs` mientras `enabled`. */
 export function useNow(intervalMs: number, enabled = true): number {
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => serverNow())
   useEffect(() => {
     if (!enabled) return
-    setNow(Date.now())
-    const id = window.setInterval(() => setNow(Date.now()), intervalMs)
+    setNow(serverNow())
+    const id = window.setInterval(() => setNow(serverNow()), intervalMs)
     return () => window.clearInterval(id)
   }, [intervalMs, enabled])
   return now
