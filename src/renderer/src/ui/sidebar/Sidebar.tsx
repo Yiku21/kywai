@@ -384,7 +384,8 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
                   {isOpen && (
                     <div className={s.sub}>
                       {(convs[p.id] ?? [])
-                        .filter((c) => c.messageCount > 0 || c.current)
+                        // El chat vacío solo se enseña si es el que está abierto (si no, sale «Conversación nueva» de relleno).
+                        .filter((c) => c.messageCount > 0 || (c.current && project?.id === p.id && conversation?.id === c.id))
                         .map((c) => (
                           <ConversationRow
                             key={c.id}

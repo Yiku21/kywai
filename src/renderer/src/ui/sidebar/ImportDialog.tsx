@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, FileArchive, FolderGit2, HardDrive, Import, X } from 'lucide-react'
-import type { ImportFolder, ImportResult, ImportScan } from '@shared/imports'
+import type { ArchivePreview, ImportFolder, ImportResult, ImportScan } from '@shared/imports'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { t } from '@/lib/i18n'
@@ -26,6 +26,9 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
+  /** Exportación de Claude.ai leída y a la espera de revisar a qué proyecto va cada conversación. */
+  const [review, setReview] = useState<{ paths: string[]; preview: ArchivePreview } | null>(null)
+  const [choices, setChoices] = useState<Record<string, string>>({})
 
   useEscape(!busy, onClose)
 
@@ -74,11 +77,33 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   async function importFile(): Promise<void> {
     if (!api) return
     setError(null)
+    setResult(null)
     try {
       const paths = await api.pickImportFile()
       if (!paths?.length) return
       setBusy(true)
-      await finished(await api.importArchive(paths))
+      const preview = await api.previewArchive(paths)
+      // Claude.ai no dice en qué proyecto estaba cada conversación: se enseña lo deducido para revisarlo antes.
+      if (preview.kind === 'claude-ai' && preview.conversations.length) {
+        setReview({ paths, preview })
+        setChoices(Object.fromEntries(preview.conversations.map((c) => [c.id, c.project])))
+      } else {
+        await finished(await api.importArchive(paths))
+      }
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function importReviewed(): Promise<void> {
+    if (!api || !review) return
+    setBusy(true)
+    setError(null)
+    try {
+      await finished(await api.importArchive(review.paths, choices))
+      setReview(null)
     } catch (e) {
       setError(errorText(e))
     } finally {
@@ -123,15 +148,19 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
         {result && (
           <div className={m.done} role="status">
             <p>
-              {result.conversations === 0
+              {result.conversations === 0 && result.reordered
+                ? t('Listo: {n} conversaciones ordenadas en su proyecto, sin duplicar.', { n: result.reordered })
+                : result.conversations === 0
                 ? t('No había nada nuevo que importar.')
                 : t('Listo: {n} conversaciones en {p} proyectos.', { n: result.conversations, p: result.projectIds.length })}
               {result.projectsCreated > 0 && ` ${t('{n} proyectos nuevos.', { n: result.projectsCreated })}`}
               {result.documents > 0 && ` ${t('{n} documentos.', { n: result.documents })}`}
               {result.resumable > 0 && ` ${t('{n} se pueden seguir con la sesión real del programa.', { n: result.resumable })}`}
+              {result.conversations > 0 && !!result.reordered && ` ${t('{n} ya importadas se ordenaron sin duplicar.', { n: result.reordered })}`}
+              {!!result.emptyProjectIds?.length && ` ${t('{n} proyectos vacíos quitados.', { n: result.emptyProjectIds.length })}`}
               {result.skipped > 0 && ` ${t('{n} ya estaban importadas.', { n: result.skipped })}`}
             </p>
-            {result.conversations > 0 && (
+            {(result.conversations > 0 || !!result.reordered) && (
               <button type="button" className={m.link} onClick={() => (onClose(), useCowork.setState({ historyOpen: true }))}>
                 {t('Verlas en el Historial')}
               </button>
@@ -189,6 +218,8 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
               </p>
             )}
           </div>
+        ) : review ? (
+          <ReviewList review={review.preview} choices={choices} busy={busy} onChoose={(id, uuid) => setChoices((c) => ({ ...c, [id]: uuid }))} />
         ) : (
           <div className={cx(s.results, m.body)}>
             <div className={m.howto}>
@@ -199,9 +230,21 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
               <strong>Claude.ai</strong>
               <span>{t('Ajustes → Privacidad → Exportar datos. Te llega un correo con varios zips: elígelos todos a la vez (o al menos conversations-000.zip y projects-000.zip). Sus proyectos se traen con sus instrucciones y documentos.')}</span>
             </div>
+            <p className={m.hint}>{t('¿Ya la importaste y quedó desordenada? Elige otra vez los mismos zips: cada conversación se pone en su proyecto, sin duplicar.')}</p>
             <button type="button" className={m.primary} disabled={busy} onClick={() => void importFile()}>
               <FileArchive size={15} aria-hidden="true" />
-              {busy ? t('Importando…') : t('Elegir los archivos…')}
+              {busy ? t('Leyendo…') : t('Elegir los archivos…')}
+            </button>
+          </div>
+        )}
+
+        {tab === 'file' && review && (
+          <div className={m.foot}>
+            <button type="button" className={m.link} disabled={busy} onClick={() => setReview(null)}>
+              {t('Cancelar')}
+            </button>
+            <button type="button" className={m.primary} disabled={busy} onClick={() => void importReviewed()}>
+              {busy ? t('Importando…') : t('Importar {n}', { n: review.preview.conversations.length })}
             </button>
           </div>
         )}
@@ -273,6 +316,78 @@ function FolderRow({
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+/**
+ * Revisar a qué proyecto va cada conversación de Claude.ai antes de importarla. La exportación no lo dice: kywai lo
+ * deduce (nombre del proyecto en el título o el resumen, o que cite sus documentos) y aquí se puede cambiar.
+ */
+function ReviewList({
+  review,
+  choices,
+  busy,
+  onChoose
+}: {
+  review: ArchivePreview
+  choices: Record<string, string>
+  busy: boolean
+  onChoose: (id: string, uuid: string) => void
+}) {
+  // Agrupadas por lo deducido al leer (no se recolocan al cambiar una, para no perderla de vista).
+  const groups = useMemo(() => {
+    const order = [...review.projects.map((p) => p.uuid), '']
+    return order
+      .map((uuid) => ({ uuid, name: review.projects.find((p) => p.uuid === uuid)?.name ?? '', items: review.conversations.filter((c) => c.project === uuid) }))
+      .filter((g) => g.items.length)
+  }, [review])
+  const guessed = review.conversations.filter((c) => c.project).length
+  const again = review.conversations.filter((c) => c.imported).length
+  return (
+    <div className={cx(s.results, m.body)}>
+      <p className={m.lead}>
+        {t('La exportación de Claude.ai no dice en qué proyecto estaba cada conversación. kywai lo ha deducido en {k} de {n}; las demás van a «Claude.ai». Cámbialo donde no acierte.', {
+          k: guessed,
+          n: review.conversations.length
+        })}
+        {again > 0 && ` ${t('{n} ya estaban importadas: se vuelven a escribir limpias en su proyecto, sin duplicar.', { n: again })}`}
+      </p>
+      {groups.map((g) => (
+        <section key={g.uuid || 'suelta'} className={m.source}>
+          <div className={m.sourceHead}>
+            <strong>{g.uuid ? g.name : t('Sin proyecto (van a «Claude.ai»)')}</strong>
+            <span className={m.dim}>{g.items.length === 1 ? t('1 conversación') : t('{n} conversaciones', { n: g.items.length })}</span>
+          </div>
+          <ul className={m.reviewList}>
+            {g.items.map((c) => (
+              <li key={c.id} className={m.session}>
+                <span className={m.name} title={c.title}>
+                  {c.title}
+                </span>
+                {c.reason && c.reason !== 'export' && (
+                  <span className={m.dim}>{c.reason === 'name' ? t('por el nombre') : t('por sus documentos')}</span>
+                )}
+                {c.imported && <span className={m.tag}>{t('ya importada')}</span>}
+                <select
+                  className={m.pick}
+                  value={choices[c.id] ?? ''}
+                  disabled={busy}
+                  onChange={(e) => onChoose(c.id, e.target.value)}
+                  aria-label={t('Proyecto de «{title}»', { title: c.title })}
+                >
+                  {review.projects.map((p) => (
+                    <option key={p.uuid} value={p.uuid}>
+                      {p.name}
+                    </option>
+                  ))}
+                  <option value="">{t('Sin proyecto')}</option>
+                </select>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   )
 }

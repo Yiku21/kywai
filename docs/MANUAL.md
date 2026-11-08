@@ -1754,13 +1754,34 @@ Cada JSON o entrada descomprimida tiene un límite de 256 MB, y el directorio de
   proyectos de ChatGPT, así que no se separan por proyecto.
 - **Claude.ai**: cada proyecto de Claude.ai pasa a un proyecto de kywai con su nombre, sus **instrucciones** (en la
   memoria del proyecto) y sus **documentos** (en `documentos/`, visibles en Resultados y para los agentes). El proyecto
-  de ejemplo de Anthropic no se trae. Las conversaciones van a su proyecto si la exportación lo indica; si no, a un
-  proyecto «Claude.ai». De los adjuntos solo se trae el nombre (📎).
+  de ejemplo de Anthropic no se trae. Un proyecto sin instrucciones, sin documentos y sin conversaciones no se crea
+  (saldría vacío).
+  - **A qué proyecto va cada conversación.** La exportación de Claude.ai **no dice** en qué proyecto estaba cada chat
+    (las conversaciones solo traen `uuid`, `name`, `summary`, fechas y mensajes). kywai lo deduce: el nombre del
+    proyecto en el título o el resumen («por el nombre») o que la conversación cite los documentos del proyecto («por
+    sus documentos»). Solo si un proyecto gana claro; si empatan o no hay pista, la conversación queda suelta en el
+    proyecto «Claude.ai». Antes de importar, la ventana enseña la lista agrupada por proyecto con un desplegable en
+    cada conversación para cambiarlo.
+  - **Mensajes limpios.** Solo la rama que quedó (las respuestas regeneradas y los mensajes editados que cuelgan del
+    mismo mensaje no se mezclan; se sigue hacia atrás desde el último mensaje). Sin la línea de herramientas
+    («Write ×2 · Bash…») ni el razonamiento interno.
+  - **Archivos.** Los adjuntos que traen su texto (`extracted_content`) y los archivos que **creó Claude** en la
+    conversación (`create_file`/`Write`, con sus cambios `str_replace`, y entregados con `present_files`) se guardan en
+    los adjuntos del proyecto y se abren desde el mensaje. Las imágenes y archivos subidos no vienen en la exportación:
+    de ellos queda solo el nombre, una vez por mensaje y sin repetir (_📎 nombre_).
+  - **Reimportar para ordenar.** Elegir otra vez los mismos zips no duplica: las conversaciones importadas con una
+    versión anterior (se apunta en `importados.json` con `v`) se vuelven a escribir limpias en su proyecto (la vieja va
+    a `conversaciones/borradas/`). Si ya escribiste en una, no se reescribe: solo se mueve a su proyecto. Si la moviste
+    tú a mano, se queda donde la pusiste. Después, el proyecto «Claude.ai» y los proyectos que creó la importación y
+    quedaron sin nada (sin conversaciones, instrucciones, documentos, tareas ni carpeta) van a la Papelera.
+  - Las conversaciones de Claude.ai vacías (sin ningún texto) no se traen.
+- En la barra lateral, el chat vacío de un proyecto («Conversación nueva») solo sale si es el que tienes abierto.
 - Las respuestas se ven con el nombre de la app de la que vienen («ChatGPT», «Claude.ai»), no con un robot de tu
   equipo. En la barra lateral, al pasar por encima de una conversación, dice «Importada de …».
 
 Motor: `src/main/importChats.ts` (lectores de cada formato, un lector de zip que no carga el archivo entero y la
-conversión a conversaciones con `addImportedConversation` de `conversations.ts`); ventana: `ui/sidebar/ImportDialog.tsx`.
+conversión a conversaciones con `addImportedConversation` de `conversations.ts`; `previewArchive` lee la exportación sin
+importar para revisarla, `guessClaudeProject` deduce el proyecto); ventana: `ui/sidebar/ImportDialog.tsx`.
 Faltan, para otra fase: retomar la sesión real de Hermes (`hermes --resume <id>`), Gemini CLI / Antigravity, Qwen Code y OpenCode, traer las sesiones del PC de un cliente y
 Órbita.
 

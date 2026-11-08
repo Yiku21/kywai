@@ -4,10 +4,10 @@ import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, extname, join, resolve, sep } from 'node:path'
 import { inflateRawSync } from 'node:zlib'
 import type { AgentConfig, ChatMessage, ProviderKind } from '@shared/types'
-import { IMPORT_LABEL, type ImportFolder, type ImportKind, type ImportResult, type ImportScan, type ImportSession, type ImportSource } from '@shared/imports'
+import { IMPORT_LABEL, type ArchiveConversation, type ArchivePreview, type ImportFolder, type ImportKind, type ImportResult, type ImportScan, type ImportSession, type ImportSource, type ProjectReason } from '@shared/imports'
 import { tr } from '@shared/i18n'
 import { supportsResume, type AgentSession } from './agentSessions'
-import { addImportedConversation, hasConversation } from './conversations'
+import { addImportedConversation, conversationMessages, dropImportedConversation, hasConversation, listConversations, moveConversation } from './conversations'
 import * as store from './projects'
 
 /**
@@ -28,7 +28,7 @@ import * as store from './projects'
 
 interface ImportIndex {
   /** «claude-code:<id>», «chatgpt:<id>»… → dónde quedó. */
-  conversations: Record<string, { projectId: string; conversationId: string; at: number }>
+  conversations: Record<string, { projectId: string; conversationId: string; at: number; v?: number }>
   /** «chatgpt», «claude-ai», «claude-ai-project:<uuid>» → proyecto de kywai creado para ellos. */
   projects: Record<string, string>
 }
@@ -78,6 +78,14 @@ export interface Turn {
   tools?: Record<string, number>
   /** Imágenes que adjuntó el usuario (ChatGPT): ids de archivo de la exportación. */
   images?: string[]
+  /** Archivos del turno (Claude.ai): los adjuntos con su texto y lo que creó el asistente; sin contenido, solo el nombre. */
+  files?: TurnFile[]
+}
+
+/** Un archivo de un mensaje importado. Sin `content` es que la exportación solo trae el nombre (imágenes, PDF subidos). */
+export interface TurnFile {
+  name: string
+  content?: string
 }
 
 export interface ParsedConversation {
@@ -90,6 +98,8 @@ export interface ParsedConversation {
   cwd?: string
   /** Proyecto de la app de origen (Claude.ai). */
   sourceProject?: string
+  /** Resumen que trae la app de origen (Claude.ai): ayuda a saber de qué proyecto era. */
+  summary?: string
   turns: Turn[]
 }
 
@@ -138,11 +148,24 @@ function pushTurn(turns: Turn[], t: Turn): void {
   if (t.role === 'assistant' && last?.role === 'assistant') {
     if (t.text) last.text = last.text ? `${last.text}\n\n${t.text}` : t.text
     for (const [k, n] of Object.entries(t.tools ?? {})) (last.tools ??= {})[k] = (last.tools[k] ?? 0) + n
+    if (t.files?.length) last.files = mergeFiles(last.files ?? [], t.files)
     return
   }
-  if (t.role === 'assistant' && !t.text && !t.tools) return
-  if (t.role === 'user' && !t.text && !t.images?.length) return
+  if (t.role === 'assistant' && !t.text && !t.tools && !t.files?.length) return
+  if (t.role === 'user' && !t.text && !t.images?.length && !t.files?.length) return
   turns.push(t)
+}
+
+/** Junta archivos sin repetir nombres: si uno viene con contenido y otro sin él, se queda el que lo tiene (el último). */
+function mergeFiles(a: TurnFile[], b: TurnFile[]): TurnFile[] {
+  const out = new Map<string, TurnFile>()
+  for (const f of [...a, ...b]) {
+    const name = f.name.trim()
+    if (!name) continue
+    // Uno sin contenido no pisa al que lo tiene; entre dos con contenido gana el último (la versión final).
+    if (!out.has(name) || f.content !== undefined) out.set(name, { name, content: f.content })
+  }
+  return [...out.values()]
 }
 
 function parseLines(text: string): Record<string, unknown>[] {
@@ -340,6 +363,57 @@ export interface ClaudeAiProject {
   docs: { name: string; content: string }[]
 }
 
+/** Padre de los primeros mensajes en la exportación de Claude.ai. */
+const CLAUDE_ROOT = '00000000-0000-4000-8000-000000000000'
+
+/**
+ * Los mensajes de la rama que quedó: Claude.ai exporta también las respuestas regeneradas y los mensajes editados
+ * (cuelgan del mismo padre). Se sigue hacia atrás desde el último mensaje escrito. Si los enlaces no cuadran, todos.
+ */
+function claudeBranch(msgs: Record<string, unknown>[]): Record<string, unknown>[] {
+  if (msgs.length < 2 || !msgs.every((m) => str(m.uuid) && str(m.parent_message_uuid))) return msgs
+  const byId = new Map(msgs.map((m) => [str(m.uuid), m]))
+  let leaf = msgs[msgs.length - 1]
+  for (const m of msgs) if (time(m.created_at, 0) >= time(leaf.created_at, 0)) leaf = m
+  const chain: Record<string, unknown>[] = []
+  const seen = new Set<string>()
+  let cur: Record<string, unknown> | undefined = leaf
+  while (cur && !seen.has(str(cur.uuid))) {
+    seen.add(str(cur.uuid))
+    chain.push(cur)
+    const parent = str(cur.parent_message_uuid)
+    if (parent === CLAUDE_ROOT) return chain.reverse()
+    cur = byId.get(parent)
+  }
+  return msgs
+}
+
+/** Herramientas con las que el asistente de Claude.ai crea o cambia archivos (y las que los enseña al usuario). */
+function claudeFileTool(b: Record<string, unknown>, made: Map<string, string>): string[] {
+  const input = (b.input && typeof b.input === 'object' ? b.input : {}) as Record<string, unknown>
+  const name = str(b.name)
+  if (name === 'create_file' && str(input.path)) made.set(str(input.path), str(input.file_text))
+  else if (name === 'Write' && str(input.file_path)) made.set(str(input.file_path), str(input.content))
+  else if ((name === 'str_replace' || name === 'Edit') && made.has(str(input.path) || str(input.file_path))) {
+    const path = str(input.path) || str(input.file_path)
+    const before = made.get(path)!
+    const old = str(input.old_str) || str(input.old_string)
+    if (old && before.includes(old)) made.set(path, before.replace(old, str(input.new_str) || str(input.new_string)))
+  } else if (name === 'present_files' && Array.isArray(input.filepaths)) {
+    return (input.filepaths as unknown[]).map(str).filter(Boolean)
+  }
+  return []
+}
+
+/** El contenido de un archivo creado en la conversación, por su ruta o, si no, por su nombre. */
+function madeFile(made: Map<string, string>, pathOrName: string): TurnFile {
+  const name = basename(pathOrName.replace(/\\/g, '/'))
+  if (made.has(pathOrName)) return { name, content: made.get(pathOrName) }
+  let content: string | undefined
+  for (const [p, c] of made) if (basename(p.replace(/\\/g, '/')) === name) content = c
+  return { name, content }
+}
+
 /** Exportación de Claude.ai: conversations.json (chat_messages) y projects.json (instrucciones y documentos). */
 export function parseClaudeAi(conversations: unknown, projects?: unknown): { conversations: ParsedConversation[]; projects: ClaudeAiProject[] } {
   const convs: ParsedConversation[] = []
@@ -347,19 +421,31 @@ export function parseClaudeAi(conversations: unknown, projects?: unknown): { con
     if (!c || typeof c !== 'object' || !Array.isArray(c.chat_messages)) continue
     const created = time(c.created_at, Date.now())
     const turns: Turn[] = []
-    for (const m of c.chat_messages as Record<string, unknown>[]) {
+    /** Archivos que el asistente creó en esta conversación: ruta → contenido (con sus cambios). */
+    const made = new Map<string, string>()
+    for (const m of claudeBranch((c.chat_messages as Record<string, unknown>[]).filter((m) => m && typeof m === 'object'))) {
       const role = m.sender === 'human' ? 'user' : m.sender === 'assistant' ? 'assistant' : null
       if (!role) continue
-      const blocks = Array.isArray(m.content) ? (m.content as Record<string, unknown>[]) : []
-      const fromBlocks = blocks.filter((b) => b?.type === 'text').map((b) => str(b.text).trim()).filter(Boolean).join('\n\n')
-      let text = fromBlocks || str(m.text).trim()
+      const blocks = Array.isArray(m.content) ? (m.content as Record<string, unknown>[]).filter((b) => b && typeof b === 'object') : []
+      const fromBlocks = blocks.filter((b) => b.type === 'text').map((b) => str(b.text).trim()).filter(Boolean).join('\n\n')
+      const text = fromBlocks || str(m.text).trim()
       const tools: Record<string, number> = {}
-      for (const b of blocks) if (b?.type === 'tool_use' && str(b.name)) tools[str(b.name)] = (tools[str(b.name)] ?? 0) + 1
-      const files = [...(Array.isArray(m.attachments) ? m.attachments : []), ...(Array.isArray(m.files) ? m.files : [])]
-        .map((f) => str((f as { file_name?: unknown }).file_name))
-        .filter(Boolean)
-      if (files.length) text = `${text}${text ? '\n\n' : ''}${files.map((f) => `📎 ${f}`).join('\n')}`
-      pushTurn(turns, { role, text, at: time(m.created_at, created), tools: Object.keys(tools).length ? tools : undefined })
+      let files: TurnFile[] = []
+      for (const b of blocks) {
+        if (b.type !== 'tool_use' || !str(b.name)) continue
+        tools[str(b.name)] = (tools[str(b.name)] ?? 0) + 1
+        files = mergeFiles(files, claudeFileTool(b, made).map((p) => madeFile(made, p)))
+      }
+      // Adjuntos del usuario: traen su texto. Los «files» (imágenes, PDF…) solo el nombre; los del asistente son lo que entregó.
+      for (const a of Array.isArray(m.attachments) ? (m.attachments as Record<string, unknown>[]) : []) {
+        const name = str(a?.file_name)
+        if (name) files = mergeFiles(files, [{ name, content: str(a.extracted_content) || undefined }])
+      }
+      for (const f of Array.isArray(m.files) ? (m.files as Record<string, unknown>[]) : []) {
+        const name = str(f?.file_name)
+        if (name) files = mergeFiles(files, [role === 'assistant' ? madeFile(made, name) : { name }])
+      }
+      pushTurn(turns, { role, text, at: time(m.created_at, created), tools: Object.keys(tools).length ? tools : undefined, files: files.length ? files : undefined })
     }
     if (!turns.length) continue
     const project = c.project && typeof c.project === 'object' ? str((c.project as { uuid?: unknown }).uuid) : ''
@@ -369,6 +455,7 @@ export function parseClaudeAi(conversations: unknown, projects?: unknown): { con
       createdAt: created,
       updatedAt: time(c.updated_at, turns[turns.length - 1].at),
       sourceProject: str(c.project_uuid) || project || undefined,
+      summary: str(c.summary).trim() || undefined,
       turns
     })
   }
@@ -384,6 +471,35 @@ export function parseClaudeAi(conversations: unknown, projects?: unknown): { con
     projs.push({ uuid: str(p.uuid), name: str(p.name).trim() || 'Proyecto de Claude.ai', instructions, docs })
   }
   return { conversations: convs, projects: projs }
+}
+
+const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** La palabra o frase entera dentro del texto (no «lab» dentro de «homelab»). */
+function wordIn(text: string, phrase: string): boolean {
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(phrase)}($|[^\\p{L}\\p{N}])`, 'u').test(text)
+}
+
+/**
+ * El proyecto de Claude.ai de una conversación. La exportación no lo dice (las conversaciones no traen su proyecto),
+ * así que se deduce: el nombre del proyecto en el título o el resumen, o que la conversación cite sus documentos.
+ * Solo si un proyecto gana claramente; si no, la conversación queda suelta.
+ */
+export function guessClaudeProject(conv: ParsedConversation, projects: ClaudeAiProject[]): { uuid: string; reason: ProjectReason } | undefined {
+  if (conv.sourceProject && projects.some((p) => p.uuid === conv.sourceProject)) return { uuid: conv.sourceProject, reason: 'export' }
+  const head = `${conv.title}\n${conv.summary ?? ''}`.toLowerCase()
+  const body = conv.turns.map((t) => `${t.text}\n${(t.files ?? []).map((f) => f.name).join('\n')}`).join('\n').toLowerCase()
+  const scored = projects
+    .map((p) => {
+      const name = p.name.trim().toLowerCase()
+      const byName = name.length >= 3 && wordIn(head, name)
+      const docs = p.docs.filter((d) => d.name.length > 6 && body.includes(d.name.toLowerCase())).length
+      return { uuid: p.uuid, score: (byName ? 3 : 0) + Math.min(docs, 3) * 2, reason: (byName ? 'name' : 'docs') as ProjectReason }
+    })
+    .filter((x) => x.score >= 2)
+    .sort((x, y) => y.score - x.score)
+  if (!scored.length || (scored[1] && scored[1].score === scored[0].score)) return undefined
+  return { uuid: scored[0].uuid, reason: scored[0].reason }
 }
 
 // ---------- Leer un zip sin cargarlo entero (las exportaciones de ChatGPT pasan de 1 GB con imágenes) ----------
@@ -930,21 +1046,24 @@ function agentFor(provider: ProviderKind, agents: AgentConfig[]): AgentConfig | 
   return agents.find((a) => a.provider === provider && !a.isSubagent)
 }
 
-function toolLine(tools: Record<string, number> | undefined): string {
-  const list = Object.entries(tools ?? {})
-  if (!list.length) return ''
-  return `_🔧 ${list.map(([k, n]) => (n > 1 ? `${k} ×${n}` : k)).join(' · ')}_`
-}
-
 /**
  * Los turnos como mensajes del chat. Las respuestas llevan al agente de kywai de esa familia si existe (se ve su
  * robot); si no, el nombre de la app de origen.
  */
-export function toMessages(conv: ParsedConversation, projectId: string, label: string, agentId: string | undefined, images?: Map<string, ChatMessage['attachments']>): ChatMessage[] {
+export function toMessages(
+  conv: ParsedConversation,
+  projectId: string,
+  label: string,
+  agentId: string | undefined,
+  images?: Map<string, ChatMessage['attachments']>
+): ChatMessage[] {
   return conv.turns.map((t) => {
-    const tools = t.role === 'assistant' ? toolLine(t.tools) : ''
-    const text = [t.text, tools].filter(Boolean).join('\n\n')
-    const atts = (t.images ?? []).flatMap((id) => images?.get(id) ?? [])
+    const saved = (t.files ?? []).filter((f) => f.content !== undefined)
+    const named = (t.files ?? []).filter((f) => f.content === undefined).map((f) => f.name)
+    // Lo que la exportación no trae (imágenes, PDF subidos): solo su nombre, una vez y discreto.
+    const missing = named.length ? `_📎 ${named.join(' · ')}_` : ''
+    const text = [t.text, missing].filter(Boolean).join('\n\n')
+    const atts = [...(t.images ?? []).flatMap((id) => images?.get(id) ?? []), ...saveFiles(projectId, saved)]
     return {
       id: `m-${randomUUID()}`,
       projectId,
@@ -957,10 +1076,34 @@ export function toMessages(conv: ParsedConversation, projectId: string, label: s
   })
 }
 
+const TEXT_MIME: Record<string, string> = { '.md': 'text/markdown', '.html': 'text/html', '.htm': 'text/html', '.json': 'application/json', '.csv': 'text/csv', '.svg': 'image/svg+xml' }
+
+/** Guarda en los adjuntos del proyecto los archivos de un mensaje que traen su contenido, para abrirlos desde el chat. */
+function saveFiles(projectId: string, files: TurnFile[]): NonNullable<ChatMessage['attachments']> {
+  if (!files.length) return []
+  const dir = join(store.projectDir(projectId), 'attachments')
+  const out: NonNullable<ChatMessage['attachments']> = []
+  for (const f of files) {
+    try {
+      mkdirSync(dir, { recursive: true })
+      const name = store.sanitizeFileName(f.name) || 'archivo.txt'
+      const fileName = `imp-${randomUUID().slice(0, 8)}-${name}`.slice(0, 120)
+      const bytes = Buffer.from(f.content ?? '', 'utf8')
+      writeFileSync(join(dir, fileName), bytes)
+      out.push({ id: `a-${randomUUID()}`, name, relPath: `attachments/${fileName}`, mime: TEXT_MIME[extname(name).toLowerCase()] ?? 'text/plain', size: bytes.length })
+    } catch {
+      /* un archivo que no se guarda no impide la conversación */
+    }
+  }
+  return out
+}
+
 interface Ctx {
   ix: ImportIndex
   agents: AgentConfig[]
   result: ImportResult
+  /** Proyectos cuyo chat abierto era una conversación que se volvió a importar. */
+  cleared?: Set<string>
 }
 
 function newResult(kind: ImportKind): ImportResult {
@@ -1099,9 +1242,51 @@ function importChatGpt(ctx: Ctx, convs: ParsedConversation[], zip?: ZipReader): 
   }
 }
 
-function importClaudeAi(ctx: Ctx, parsed: ReturnType<typeof parseClaudeAi>): void {
+/** Versión de cómo se escriben las conversaciones de Claude.ai: las importadas con una anterior se reescriben al reimportar. */
+const CLAUDE_FORMAT = 2
+
+/** Lo que eligió el usuario al revisar: id de la conversación en Claude.ai → uuid de su proyecto ('' = suelta). */
+export type ProjectChoices = Record<string, string>
+
+/** El proyecto de Claude.ai de cada conversación: el que eligió el usuario o, si no, el que se deduce. */
+function claudeTargets(parsed: ReturnType<typeof parseClaudeAi>, choices?: ProjectChoices): Map<string, { uuid: string; reason?: ProjectReason }> {
+  const known = new Set(parsed.projects.map((p) => p.uuid))
+  const out = new Map<string, { uuid: string; reason?: ProjectReason }>()
+  for (const conv of parsed.conversations) {
+    const picked = choices && Object.prototype.hasOwnProperty.call(choices, conv.sourceId) ? choices[conv.sourceId] : undefined
+    if (typeof picked === 'string' && (picked === '' || known.has(picked))) out.set(conv.sourceId, { uuid: picked })
+    else out.set(conv.sourceId, guessClaudeProject(conv, parsed.projects) ?? { uuid: '' })
+  }
+  return out
+}
+
+/** Dónde está ahora una conversación importada: donde se dejó o, si el usuario la movió, en otro proyecto. */
+function locate(hit: ImportIndex['conversations'][string]): string | undefined {
+  if (hasConversation(hit.projectId, hit.conversationId)) return hit.projectId
+  return store.listProjects().find((p) => hasConversation(p.id, hit.conversationId))?.id
+}
+
+/** Un proyecto sin nada: ni conversaciones con mensajes, ni instrucciones, ni documentos, ni tareas, ni carpeta. */
+function isEmptyProject(id: string): boolean {
+  const st = store.getProject(id)
+  return (
+    !st.messages.length &&
+    !st.tasks.length &&
+    !st.artifacts.length &&
+    !st.instructions?.trim() &&
+    !st.routines?.length &&
+    !st.project.workDir &&
+    listConversations(id).every((c) => c.messageCount === 0)
+  )
+}
+
+function importClaudeAi(ctx: Ctx, parsed: ReturnType<typeof parseClaudeAi>, choices?: ProjectChoices): void {
+  const target = claudeTargets(parsed, choices)
+  const used = new Set([...target.values()].map((t) => t.uuid))
   const projectOf = new Map<string, string>()
   for (const p of parsed.projects) {
+    // Un proyecto sin instrucciones, sin documentos y sin conversaciones no se crea (saldría vacío).
+    if (!p.instructions && !p.docs.length && !used.has(p.uuid)) continue
     const key = `claude-ai-project:${p.uuid}`
     const isNew = !ctx.ix.projects[key] || !store.listProjects().some((x) => x.id === ctx.ix.projects[key])
     const id = projectFor(ctx, key, p.name)
@@ -1129,11 +1314,37 @@ function importClaudeAi(ctx: Ctx, parsed: ReturnType<typeof parseClaudeAi>): voi
   }
   for (const conv of parsed.conversations) {
     const key = `claude-ai:${conv.sourceId}`
-    if (alreadyImported(ctx.ix, key)) {
-      ctx.result.skipped++
-      continue
+    const uuid = target.get(conv.sourceId)?.uuid ?? ''
+    const projectId = (uuid && projectOf.get(uuid)) || projectFor(ctx, 'claude-ai', 'Claude.ai')
+    const hit = ctx.ix.conversations[key]
+    const where = hit ? locate(hit) : undefined
+    if (hit && where) {
+      // La movió el usuario a mano: se respeta donde la puso.
+      if (where !== hit.projectId) {
+        ctx.result.skipped++
+        continue
+      }
+      // Ya siguió escribiendo en ella (no se reescribe: se perdería lo nuevo) o ya se importó limpia: como mucho,
+      // se pone en su proyecto.
+      if (hit.v === CLAUDE_FORMAT || conversationMessages(where, hit.conversationId).some((m) => m.createdAt > hit.at)) {
+        if (where === projectId) {
+          ctx.result.skipped++
+        } else {
+          const conversationId = moveConversation(where, hit.conversationId, projectId)
+          ctx.ix.conversations[key] = { ...hit, projectId, conversationId }
+          ctx.result.reordered = (ctx.result.reordered ?? 0) + 1
+          noteProject(ctx.result, where)
+          noteProject(ctx.result, projectId)
+        }
+        continue
+      }
+      // Importada tal cual y sin tocar: se vuelve a escribir limpia en su proyecto (sin duplicarla).
+      if (dropImportedConversation(where, hit.conversationId)) (ctx.cleared ??= new Set()).add(where)
+      noteProject(ctx.result, where)
+      ctx.result.reordered = (ctx.result.reordered ?? 0) + 1
+    } else {
+      ctx.result.conversations++
     }
-    const projectId = (conv.sourceProject && projectOf.get(conv.sourceProject)) || projectFor(ctx, 'claude-ai', 'Claude.ai')
     const conversationId = addImportedConversation(projectId, {
       title: conv.title,
       createdAt: conv.createdAt,
@@ -1141,10 +1352,25 @@ function importClaudeAi(ctx: Ctx, parsed: ReturnType<typeof parseClaudeAi>): voi
       messages: toMessages(conv, projectId, IMPORT_LABEL['claude-ai'], undefined),
       importedFrom: IMPORT_LABEL['claude-ai']
     })
-    ctx.ix.conversations[key] = { projectId, conversationId, at: Date.now() }
-    ctx.result.conversations++
+    ctx.ix.conversations[key] = { projectId, conversationId, at: Date.now(), v: CLAUDE_FORMAT }
     noteProject(ctx.result, projectId)
   }
+  // Lo que importaciones anteriores dejaron vacío (el proyecto «Claude.ai» ya ordenado, proyectos sin nada): fuera.
+  const empty: string[] = []
+  for (const [key, id] of Object.entries(ctx.ix.projects)) {
+    if (key !== 'claude-ai' && !key.startsWith('claude-ai-project:')) continue
+    if (!store.listProjects().some((p) => p.id === id)) continue
+    try {
+      if (!isEmptyProject(id)) continue
+    } catch {
+      continue
+    }
+    empty.push(id)
+    delete ctx.ix.projects[key]
+  }
+  if (empty.length) ctx.result.emptyProjectIds = empty
+  ctx.result.projectIds = ctx.result.projectIds.filter((id) => !empty.includes(id))
+  if (ctx.cleared?.size) ctx.result.clearedProjectIds = [...ctx.cleared].filter((id) => !empty.includes(id))
 }
 
 // Claude.ai manda ahora la exportación partida: un manifest-….json que nombra los zips (conversations-000.zip,
@@ -1201,11 +1427,18 @@ function manifestFiles(file: string, data: unknown): string[] | null {
     .filter((p) => existsSync(p))
 }
 
-/**
- * Importa la exportación de ChatGPT o Claude.ai: el zip tal cual, solo su conversations.json o, si viene partida
- * (Claude.ai), varios zips a la vez o su manifiesto con los zips al lado.
- */
-export function importArchive(paths: unknown, agents: AgentConfig[]): ImportResult {
+/** Lo leído de una exportación: sus conversaciones ya entendidas y el zip de las imágenes (ChatGPT). */
+interface ReadArchive {
+  kind: 'chatgpt' | 'claude-ai'
+  chatgpt?: ParsedConversation[]
+  claude?: ReturnType<typeof parseClaudeAi>
+  convZip?: ZipReader
+  zips: ZipReader[]
+  files: string[]
+}
+
+/** Lee la exportación de ChatGPT o Claude.ai: el zip tal cual, solo su conversations.json o varios zips / su manifiesto. */
+function readArchive(paths: unknown): ReadArchive {
   const list = (Array.isArray(paths) ? paths : [paths]).filter((x): x is string => typeof x === 'string' && !!x.trim())
   if (!list.length) throw new Error(tr('Elige el archivo exportado'))
   const files = list.map((p) => resolve(p))
@@ -1263,21 +1496,71 @@ export function importArchive(paths: unknown, agents: AgentConfig[]): ImportResu
     }
     const kind = convs.length ? detect(convs) : 'claude-ai'
     if (!kind) throw new Error(unknownShape(convs))
-    const parsed = kind === 'claude-ai' ? parseClaudeAi(convs, projs.length ? projs : undefined) : null
+    if (kind === 'chatgpt') return { kind, chatgpt: parseChatGpt(convs), convZip, zips, files }
+    const claude = parseClaudeAi(convs, projs.length ? projs : undefined)
     // Hay conversaciones pero ninguna con la forma conocida: un formato nuevo. Mejor decirlo que importar cero.
-    if (parsed && convs.length && !parsed.conversations.length && !parsed.projects.length) throw new Error(unknownShape(convs))
-    const ctx: Ctx = { ix: loadIndex(), agents, result: newResult(kind) }
+    if (convs.length && !claude.conversations.length && !claude.projects.length) throw new Error(unknownShape(convs))
+    return { kind, claude, zips, files }
+  } catch (e) {
+    for (const z of zips) z.close()
+    throw e
+  }
+}
+
+/** Lo que se subió por la web para importarlo (ver /api/import-upload) ya no hace falta. */
+function dropUploads(files: string[]): void {
+  const uploads = join(tmpdir(), 'kywai-importar') + sep
+  for (const file of files) if (file.startsWith(uploads)) rmSync(dirname(file), { recursive: true, force: true })
+}
+
+/**
+ * Lo que trae una exportación, sin importar nada: cada conversación con el proyecto donde irá (en Claude.ai se
+ * deduce, porque la exportación no lo dice) para que el usuario lo revise y lo cambie antes de importar.
+ */
+export function previewArchive(paths: unknown): ArchivePreview {
+  const read = readArchive(paths)
+  try {
+    const ix = loadIndex()
+    const imported = (key: string): boolean => {
+      const hit = ix.conversations[key]
+      return !!hit && !!locate(hit)
+    }
+    if (read.kind === 'chatgpt') {
+      return {
+        kind: 'chatgpt',
+        projects: [],
+        conversations: read.chatgpt!.map((c) => ({ id: c.sourceId, title: c.title, updatedAt: c.updatedAt, project: '', imported: imported(`chatgpt:${c.sourceId}`) }))
+      }
+    }
+    const parsed = read.claude!
+    const target = claudeTargets(parsed)
+    const conversations: ArchiveConversation[] = parsed.conversations
+      .map((c) => ({ id: c.sourceId, title: c.title, updatedAt: c.updatedAt, project: target.get(c.sourceId)?.uuid ?? '', reason: target.get(c.sourceId)?.reason, imported: imported(`claude-ai:${c.sourceId}`) }))
+      .sort((x, y) => y.updatedAt - x.updatedAt)
+    return { kind: 'claude-ai', projects: parsed.projects.map((p) => ({ uuid: p.uuid, name: p.name })), conversations }
+  } finally {
+    for (const z of read.zips) z.close()
+  }
+}
+
+/**
+ * Importa la exportación de ChatGPT o Claude.ai. En Claude.ai, `choices` dice a qué proyecto va cada conversación
+ * (lo revisado en la ventana); sin él, se deduce. Volver a importar la misma exportación no duplica: reescribe
+ * limpias las ya importadas, las pone en su proyecto y quita los proyectos que se quedan vacíos.
+ */
+export function importArchive(paths: unknown, agents: AgentConfig[], choices?: unknown): ImportResult {
+  const read = readArchive(paths)
+  try {
+    const ctx: Ctx = { ix: loadIndex(), agents, result: newResult(read.kind) }
     try {
-      if (kind === 'chatgpt') importChatGpt(ctx, parseChatGpt(convs), convZip)
-      else importClaudeAi(ctx, parsed!)
+      if (read.kind === 'chatgpt') importChatGpt(ctx, read.chatgpt!, read.convZip)
+      else importClaudeAi(ctx, read.claude!, choices && typeof choices === 'object' && !Array.isArray(choices) ? (choices as ProjectChoices) : undefined)
     } finally {
       saveIndex(ctx.ix)
     }
     return ctx.result
   } finally {
-    for (const z of zips) z.close()
-    // Lo que se subió por la web para importarlo (ver /api/import-upload) ya no hace falta.
-    const uploads = join(tmpdir(), 'kywai-importar') + sep
-    for (const file of files) if (file.startsWith(uploads)) rmSync(dirname(file), { recursive: true, force: true })
+    for (const z of read.zips) z.close()
+    dropUploads(read.files)
   }
 }

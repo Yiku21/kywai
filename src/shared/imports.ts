@@ -65,4 +65,34 @@ export interface ImportResult {
   documents: number
   /** Conversaciones que se pueden seguir con la sesión real del programa (Claude Code, Codex). */
   resumable: number
+  /** Ya importadas antes que se volvieron a escribir limpias y se pusieron en su proyecto (reimportar). */
+  reordered?: number
+  /** Proyectos que la importación había creado y se quedaron vacíos: el motor los quita después. */
+  emptyProjectIds?: string[]
+  /** Proyectos cuyo chat abierto era una conversación reimportada: la ventana tiene que recargarlo. */
+  clearedProjectIds?: string[]
+}
+
+/** Por qué una conversación de Claude.ai va a ese proyecto (la exportación no lo dice: se deduce). */
+export type ProjectReason = 'export' | 'name' | 'docs'
+
+/** Una conversación de la exportación, antes de importarla, con el proyecto donde irá. */
+export interface ArchiveConversation {
+  /** Id en la app de origen. */
+  id: string
+  title: string
+  updatedAt: number
+  /** Proyecto de la exportación (uuid) o '' = suelta (va al proyecto «Claude.ai»). */
+  project: string
+  reason?: ProjectReason
+  /** Ya se importó antes: al importar se vuelve a escribir limpia y se pone en su proyecto, sin duplicarla. */
+  imported: boolean
+}
+
+/** Lo que trae una exportación, para revisarlo antes de importar. */
+export interface ArchivePreview {
+  kind: ImportKind
+  /** Proyectos de la exportación (Claude.ai), sin el de ejemplo. */
+  projects: { uuid: string; name: string }[]
+  conversations: ArchiveConversation[]
 }
