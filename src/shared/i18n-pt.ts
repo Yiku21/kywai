@@ -2568,4 +2568,11 @@ export const pt: Record<string, string> = {
   "Ajustar al panel": "Ajustar ao painel",
   "Ver a tamaño real": "Ver em tamanho real",
   "No es un archivo de texto": "Não é um arquivo de texto",
+  "¿Una partida rápida?": "Uma partida rápida?",
+  "¡Lo tengo! ¡Te toca!": "Peguei! Sua vez!",
+  "¡Buuu!": "Buuu!",
+  "¡Ay, qué susto!": "Ai, que susto!",
+  "¡Je, je! Ya estás despierto.": "Hehe! Agora você acordou.",
+  "¡Hola, vecino!": "Oi, vizinho!",
+  "¡Buenas! ¿Todo bien?": "Oi! Tudo bem?",
 }

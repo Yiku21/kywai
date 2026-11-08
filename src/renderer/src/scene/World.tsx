@@ -23,6 +23,7 @@ import { FOG_FAR, FOG_NEAR, palette } from './palette'
 import { Core } from './Core'
 import { Station } from './Station'
 import { Robot } from './Robot'
+import { SocialLife } from './SocialLife'
 import { Sparks } from './Sparks'
 import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
@@ -235,6 +236,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
         <Transfers stations={stations} />
         <Sparks stations={stations} />
         <Robots stations={stations} />
+        <SocialLife />
         <Decor stations={stations} q={q} reduced={reduced} />
       </group>
       <CameraRig view={view} stations={stations} />
