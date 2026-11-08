@@ -405,6 +405,11 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
               ))}
             </Section>
           )}
+          {recent.length < 3 && (
+            <button type="button" className={s.seeAll} onClick={() => useCowork.setState({ importOpen: true })}>
+              {t('Traer conversaciones de otras apps…')}
+            </button>
+          )}
         </>
       )}
       {mode === 'demo' && !rail && <p className={s.hint}>{t('Modo demo: tus proyectos y conversaciones salen al volver a los datos reales.')}</p>}
@@ -766,7 +771,7 @@ function ConversationRow({
         type="button"
         className={cx(s.item, !flat && s.convItem, active && s.active)}
         onClick={onOpen}
-        title={meta ? `${title} · ${meta}` : title}
+        title={[title, meta, c.importedFrom ? t('Importada de {app}', { app: c.importedFrom }) : ''].filter(Boolean).join(' · ')}
         aria-current={active ? 'true' : undefined}
       >
         <MessageSquare size={flat ? 15 : 14} aria-hidden="true" className={s.icon} />

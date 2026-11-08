@@ -126,6 +126,25 @@ async function upload(name: string, body: Blob): Promise<string> {
   return data.path
 }
 
+/** Sube la exportación de ChatGPT o Claude.ai al servidor (puede pasar de 1 GB: va sin pasar por la memoria). */
+async function uploadImport(file: File): Promise<string> {
+  const res = await fetch(`/api/import-upload?name=${encodeURIComponent(file.name)}`, { method: 'POST', credentials: 'same-origin', body: file })
+  const data = (await res.json().catch(() => ({}))) as { path?: string; error?: string }
+  if (!res.ok || !data.path) throw new Error(data.error ?? t('No se pudo subir el archivo'))
+  return data.path
+}
+
+function pickOneFile(accept: string): Promise<File | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = accept
+    input.onchange = () => resolve(input.files?.[0] ?? null)
+    input.oncancel = () => resolve(null)
+    input.click()
+  })
+}
+
 function pickLocalFiles(kind: 'any' | 'image'): Promise<File[]> {
   return new Promise((resolve) => {
     const input = document.createElement('input')
@@ -164,6 +183,10 @@ function createWebApi(): CoworkApi {
     pickFiles: async (kind: 'any' | 'image') => {
       const files = await pickLocalFiles(kind)
       return Promise.all(files.map((f) => upload(f.name, f)))
+    },
+    pickImportFile: async () => {
+      const file = await pickOneFile('.zip,.json,application/zip,application/json')
+      return file ? uploadImport(file) : null
     },
     savePastedFile: (name: string, data: Uint8Array) => upload(name, new Blob([data as BlobPart])),
     readArtifact: async (projectId: string, relPath: string) => {
