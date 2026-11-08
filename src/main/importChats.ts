@@ -90,7 +90,6 @@ export interface ParsedConversation {
   turns: Turn[]
 }
 
-const TEXT_MAX = 40_000
 const TITLE_MAX = 80
 
 const time = (v: unknown, fallback: number): number => {
@@ -839,10 +838,6 @@ function toolLine(tools: Record<string, number> | undefined): string {
   return `_🔧 ${list.map(([k, n]) => (n > 1 ? `${k} ×${n}` : k)).join(' · ')}_`
 }
 
-function clip(text: string): string {
-  return text.length > TEXT_MAX ? `${text.slice(0, TEXT_MAX)}\n\n…` : text
-}
-
 /**
  * Los turnos como mensajes del chat. Las respuestas llevan al agente de kywai de esa familia si existe (se ve su
  * robot); si no, el nombre de la app de origen.
@@ -850,7 +845,7 @@ function clip(text: string): string {
 export function toMessages(conv: ParsedConversation, projectId: string, label: string, agentId: string | undefined, images?: Map<string, ChatMessage['attachments']>): ChatMessage[] {
   return conv.turns.map((t) => {
     const tools = t.role === 'assistant' ? toolLine(t.tools) : ''
-    const text = clip([t.text, tools].filter(Boolean).join('\n\n'))
+    const text = [t.text, tools].filter(Boolean).join('\n\n')
     const atts = (t.images ?? []).flatMap((id) => images?.get(id) ?? [])
     return {
       id: `m-${randomUUID()}`,
