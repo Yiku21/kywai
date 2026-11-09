@@ -8,6 +8,14 @@ export type VideoFormat = 'horizontal' | 'vertical'
 export const VIDEO_THEMES = ['noche', 'amanecer', 'oceano', 'bosque', 'neon', 'papel'] as const
 export type VideoTheme = (typeof VIDEO_THEMES)[number]
 
+/** «dinamico»: texto grande al estilo TikTok. «cartoon»: un personaje dibujado que lo explica (tutoriales con humor). */
+export const VIDEO_STYLES = ['dinamico', 'cartoon'] as const
+export type VideoStyle = (typeof VIDEO_STYLES)[number]
+
+/** Lo que hace el personaje del estilo cartoon en cada escena. */
+export const CHARACTER_POSES = ['explain', 'point', 'surprised', 'laugh', 'shrug', 'thumbs', 'think', 'wave'] as const
+export type CharacterPose = (typeof CHARACTER_POSES)[number]
+
 export interface VideoScene {
   /** Rótulo grande en pantalla (pocas palabras). */
   heading: string
@@ -15,6 +23,12 @@ export interface VideoScene {
   narration: string
   /** Descripción de la imagen de fondo (para generarla). Vacía: fondo de diseño sin imagen. */
   image: string
+  /** Estilo cartoon: gesto del personaje. */
+  pose?: CharacterPose
+  /** Estilo cartoon: número de paso del tutorial (0 o sin él: escena sin paso). */
+  step?: number
+  /** Estilo cartoon: escena de broma (el personaje se ríe y suena un «boing»). */
+  joke?: boolean
 }
 
 export interface VideoScript {
@@ -22,6 +36,7 @@ export interface VideoScript {
   /** Código de idioma de la voz y los textos (es, en, pt, fr…). */
   lang: string
   theme: VideoTheme
+  style: VideoStyle
   scenes: VideoScene[]
   /** Frase del cierre. */
   outro: string
@@ -65,16 +80,23 @@ export function parseVideoScript(text: string): VideoScript {
     const narration = clean(o.narration, 400)
     const heading = clean(o.heading, 60) || narration.split(' ').slice(0, 5).join(' ')
     if (!narration) continue
-    scenes.push({ heading, narration, image: clean(o.image, 400) })
+    const scene: VideoScene = { heading, narration, image: clean(o.image, 400) }
+    if (CHARACTER_POSES.includes(o.pose as CharacterPose)) scene.pose = o.pose as CharacterPose
+    const step = Number(o.step)
+    if (Number.isInteger(step) && step > 0 && step < 100) scene.step = step
+    if (o.joke === true) scene.joke = true
+    scenes.push(scene)
   }
   if (scenes.length < MIN_SCENES) throw new Error(`El guion necesita al menos ${MIN_SCENES} escenas con «narration» (tiene ${scenes.length}).`)
   const theme = VIDEO_THEMES.includes(raw.theme as VideoTheme) ? (raw.theme as VideoTheme) : 'noche'
   const lang = (clean(raw.lang, 8).toLowerCase().match(/^[a-z]{2}/)?.[0] ?? 'es')
-  return { title, lang, theme, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title }
+  const style = VIDEO_STYLES.includes(raw.style as VideoStyle) ? (raw.style as VideoStyle) : 'dinamico'
+  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title }
 }
 
 /** Encargo para el agente: solo el guion, en JSON. */
-export function videoScriptPrompt(input: { topic: string; source?: string; format: VideoFormat; lang: string; retry?: string }): string {
+export function videoScriptPrompt(input: { topic: string; source?: string; format: VideoFormat; lang: string; style?: VideoStyle; retry?: string }): string {
+  if (input.style === 'cartoon') return cartoonScriptPrompt(input)
   const seconds = input.format === 'vertical' ? '30 a 45' : '40 a 70'
   return [
     'Escribe el guion de un vídeo corto. kywai pondrá la voz, las imágenes, la música, las animaciones y el montaje: tú solo escribes el guion.',
@@ -101,6 +123,37 @@ export function videoScriptPrompt(input: { topic: string; source?: string; forma
   ].join('\n')
 }
 
+/** Encargo del estilo cartoon: un tutorial que explica un personaje, con pasos claros y alguna broma. */
+function cartoonScriptPrompt(input: { topic: string; source?: string; format: VideoFormat; lang: string; retry?: string }): string {
+  const seconds = input.format === 'vertical' ? '40 a 70' : '50 a 100'
+  return [
+    'Escribe el guion de un vídeo de dibujos animados en el que un personaje cartoon (un presentador simpático con gafas) lo explica todo hablando a cámara. kywai dibuja y anima al personaje, pone la voz, las ilustraciones, la música y el montaje: tú solo escribes el guion.',
+    '',
+    `Tema: ${input.topic}`,
+    ...(input.source ? ['', 'El vídeo trata de este mensaje (explícalo bien, sin copiarlo entero):', ', input.source.slice(0, 6000), '] : []),
+    '',
+    `Formato: ${input.format === 'vertical' ? 'vertical 9:16 (TikTok, Reels, Shorts)' : 'horizontal 16:9 (YouTube)'}; duración total de ${seconds} segundos.`,
+    `Idioma de la voz y los textos: ${input.lang}.`,
+    '',
+    'Reglas:',
+    `- Entre ${MIN_SCENES + 3} y ${MAX_SCENES} escenas. La primera es un gancho con gracia (el personaje saluda y promete algo en menos de 4 segundos). Si es un tutorial, después van los pasos EN ORDEN, completos y correctos (con los avisos de seguridad que hagan falta), y al final un resumen corto.`,
+    '- "narration": lo que dice el personaje en primera persona, como un youtuber cercano: una o dos frases cortas (como mucho 30 palabras). Sin emojis ni listas: se lee en voz alta. Marca con *asteriscos* la palabra clave de cada frase.',
+    '- Humor: en 2 o 3 escenas mete una broma corta y blanca (una exageración, una comparación absurda, un despiste del personaje) y marca esas escenas con "joke": true. Las bromas nunca sustituyen a la instrucción: el paso tiene que quedar claro igual.',
+    '- "step": el número del paso (1, 2, 3…) en las escenas que son un paso; 0 en el gancho, las bromas sueltas y el resumen.',
+    '- "heading": lo que se ve escrito en la ilustración: la instrucción en 2 a 5 palabras («Desenchufa el PC», «Abre las pestañas»).',
+    `- "pose": el gesto del personaje, uno de ${CHARACTER_POSES.map((p) => `"${p}"`).join(', ')} (explain: explica; point: señala la ilustración; surprised: se sorprende; laugh: se ríe; shrug: se encoge de hombros; thumbs: pulgar arriba; think: piensa; wave: saluda). Varíalos y que encajen con lo que dice; "point" cuando hay que mirar algo concreto.`,
+    '- "image": la ilustración de la escena, descrita en inglés en una frase concreta que enseñe exactamente la acción del paso (primer plano de las manos y los objetos, desde el ángulo que mejor se entienda). Sin personas de cuerpo entero ni caras, sin texto, letras ni logotipos.',
+    `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}; para dibujos van mejor "papel", "amanecer" u "oceano".`,
+    '- "outro": frase final corta y con gracia.',
+    '- Si el tema necesita datos actuales o técnicos, compruébalos antes; no inventes.',
+    '- No crees ni cambies archivos: responde solo con el JSON.',
+    ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
+    '',
+    'Responde SOLO con este JSON, sin nada antes ni después:',
+    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", "scenes": [{"heading": "…", "narration": "…", "image": "…", "pose": "wave", "step": 0, "joke": false}], "outro": "…"}'
+  ].join('\n')
+}
+
 // ---------- petición del usuario ----------
 
 export interface VideoRequest {
@@ -108,7 +161,11 @@ export interface VideoRequest {
   format: VideoFormat
   /** «de esto», «de este mensaje»: el vídeo es del mensaje anterior del chat. */
   fromPrevious: boolean
+  style: VideoStyle
 }
+
+/** Piden dibujos con personaje: «estilo cartoon», «dibujos animados», «un personaje que lo explique», «tutorial»… */
+const CARTOON_RE = /\b(cartoons?|caricaturas?|dibujos?(?:\s+animados?)?|animaci[oó]n\s+2d|personajes?|mu[ñn]ecos?|presentador(?:a)?|tutorial(?:es)?|una persona explicando|alguien explicando|animated character|explainer)\b/i
 
 const VERTICAL_RE = /\b(vertical|tiktok|reels?|shorts?|9:16|historia de instagram)\b/i
 const HORIZONTAL_RE = /\b(horizontal|youtube|16:9|apaisado)\b/i
@@ -143,8 +200,13 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     .replace(/[\s,]+(?:en\s+)?(?:formato\s+)?(?:vertical|horizontal)\s*$/i, '')
     .replace(/[\s,]+para\s+(?:tiktok|reels?|shorts?|youtube)\s*$/i, '')
     .trim()
-  const fromPrevious = !stripped || PREVIOUS_RE.test(stripped)
-  return { topic: fromPrevious ? '' : stripped, format, fromPrevious }
+  // «estilo cartoon de…», «de dibujos animados sobre…»: el estilo no es parte del tema.
+  const style: VideoStyle = CARTOON_RE.test(t) ? 'cartoon' : 'dinamico'
+  const bare = stripped
+    .replace(/^(?:(?:al?|en|con|de)\s+)?(?:estilo|tipo|formato)?\s*(?:cartoon|caricatura|dibujos?(?:\s+animados?)?|animado|tutorial)\s*(?:(?:de|sobre|con|para)\s+)?/i, '')
+    .trim()
+  const fromPrevious = !bare || PREVIOUS_RE.test(bare)
+  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style }
 }
 
 // ---------- composición ----------
@@ -181,7 +243,7 @@ export function buildTimeline(voiceDurations: number[]): VideoTimeline {
   return { intro: INTRO_S, scenes, outroStart: round(at), outro: OUTRO_S, total: round(at + OUTRO_S) }
 }
 
-const round = (n: number): number => Math.round(n * 100) / 100
+export const round = (n: number): number => Math.round(n * 100) / 100
 
 /** Lo que lee la voz: sin los asteriscos que marcan las palabras clave. */
 export function spokenText(narration: string): string {
@@ -251,7 +313,7 @@ export function captionChunks(text: string, start: number, voice: number): { tex
   })
 }
 
-const THEMES: Record<VideoTheme, { bg: string; bg2: string; ink: string; accent: string; accent2: string; onAccent: string; font: string }> = {
+export const THEMES: Record<VideoTheme, { bg: string; bg2: string; ink: string; accent: string; accent2: string; onAccent: string; font: string }> = {
   noche: { bg: '#0b1020', bg2: '#1f2a66', ink: '#ffffff', accent: '#ffd23f', accent2: '#5b8cff', onAccent: '#111111', font: 'sans' },
   amanecer: { bg: '#2a0f2e', bg2: '#ff6b4a', ink: '#ffffff', accent: '#ffd166', accent2: '#ff4d8d', onAccent: '#1a0b12', font: 'sans' },
   oceano: { bg: '#03263f', bg2: '#0a7fa8', ink: '#ffffff', accent: '#3dffd0', accent2: '#ffd166', onAccent: '#032030', font: 'sans' },
@@ -260,10 +322,10 @@ const THEMES: Record<VideoTheme, { bg: string; bg2: string; ink: string; accent:
   papel: { bg: '#f6f0e4', bg2: '#ffd9b8', ink: '#141210', accent: '#ff5a1f', accent2: '#1c7ed6', onAccent: '#ffffff', font: 'sans' }
 }
 
-const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+export const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 /** Números pseudoaleatorios deterministas (el render salta de fotograma en fotograma: nada de Math.random). */
-function rng(seed: number): () => number {
+export function rng(seed: number): () => number {
   let s = seed >>> 0 || 1
   return () => {
     s = (s * 1664525 + 1013904223) >>> 0
@@ -283,7 +345,7 @@ export interface CompositionInput {
   gsap: string
 }
 
-export type SfxKind = 'whoosh' | 'pop' | 'impact' | 'riser'
+export type SfxKind = 'whoosh' | 'pop' | 'impact' | 'riser' | 'boing'
 
 export interface Composition {
   html: string
@@ -643,8 +705,9 @@ export function synthSfx(events: { at: number; kind: SfxKind }[], seconds: numbe
   }
   for (const ev of events) {
     const i0 = Math.floor(ev.at * sampleRate)
-    const len = Math.floor(sampleRate * (ev.kind === 'whoosh' ? 0.45 : ev.kind === 'pop' ? 0.09 : ev.kind === 'riser' ? 0.9 : 0.5))
+    const len = Math.floor(sampleRate * (ev.kind === 'whoosh' ? 0.45 : ev.kind === 'pop' ? 0.09 : ev.kind === 'riser' ? 0.9 : ev.kind === 'boing' ? 0.55 : 0.5))
     let lp = 0
+    let ph = 0
     for (let k = 0; k < len && i0 + k < n; k++) {
       if (i0 + k < 0) continue
       const t = k / sampleRate
@@ -657,6 +720,11 @@ export function synthSfx(events: { at: number; kind: SfxKind }[], seconds: numbe
         v = lp * Math.sin(Math.PI * x) * 1.4
       } else if (ev.kind === 'pop') {
         v = Math.sin(2 * Math.PI * (900 - 500 * x) * t) * Math.exp(-x * 6) * 0.6
+      } else if (ev.kind === 'boing') {
+        // Muelle de dibujos animados: tono que oscila y cae.
+        const f = 180 + 140 * Math.sin(2 * Math.PI * 9 * t) * Math.exp(-t * 4) + 120 * (1 - x)
+        ph += f / sampleRate
+        v = Math.sin(2 * Math.PI * ph) * Math.exp(-x * 3.5) * 0.7
       } else if (ev.kind === 'impact') {
         const f = 40 + 120 * Math.exp(-t * 25)
         lp += 0.08 * (noise() - lp)

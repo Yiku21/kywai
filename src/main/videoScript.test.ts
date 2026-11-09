@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { buildCartoonComposition } from './videoCartoon'
 import { beatsOf, buildComposition, buildTimeline, captionChunks, parseVideoRequest, parseVideoScript, spokenText, synthMusic, synthSfx, timedWords, videoScriptPrompt, videoSlug } from './videoScript'
 
 const SCRIPT = JSON.stringify({
@@ -15,16 +16,26 @@ const SCRIPT = JSON.stringify({
 
 describe('parseVideoRequest', () => {
   it('reconoce la orden y las frases habituales', () => {
-    expect(parseVideoRequest('/video la fotosíntesis')).toEqual({ topic: 'la fotosíntesis', format: 'horizontal', fromPrevious: false })
+    expect(parseVideoRequest('/video la fotosíntesis')).toEqual({ topic: 'la fotosíntesis', format: 'horizontal', fromPrevious: false, style: 'dinamico' })
     expect(parseVideoRequest('créame un vídeo de los agujeros negros')).toMatchObject({ topic: 'los agujeros negros', format: 'horizontal' })
     expect(parseVideoRequest('Hazme un video corto sobre el café')).toMatchObject({ topic: 'el café' })
     expect(parseVideoRequest('make a video about black holes')).toMatchObject({ topic: 'black holes' })
   })
 
   it('saca el formato vertical y lo quita del tema', () => {
-    expect(parseVideoRequest('/video vertical el sistema solar')).toEqual({ topic: 'el sistema solar', format: 'vertical', fromPrevious: false })
+    expect(parseVideoRequest('/video vertical el sistema solar')).toEqual({ topic: 'el sistema solar', format: 'vertical', fromPrevious: false, style: 'dinamico' })
     expect(parseVideoRequest('créame un vídeo para TikTok de recetas rápidas')).toMatchObject({ topic: 'recetas rápidas', format: 'vertical' })
     expect(parseVideoRequest('crea un vídeo de recetas rápidas para reels')).toMatchObject({ topic: 'recetas rápidas', format: 'vertical' })
+  })
+
+  it('dibujos con personaje: estilo cartoon, y el estilo no entra en el tema', () => {
+    expect(parseVideoRequest('créame un vídeo estilo cartoon de una persona explicando cómo se instala la RAM en un PC')).toMatchObject({
+      topic: 'una persona explicando cómo se instala la RAM en un PC',
+      style: 'cartoon'
+    })
+    expect(parseVideoRequest('hazme un vídeo tutorial de cómo cambiar una rueda')).toMatchObject({ topic: 'cómo cambiar una rueda', style: 'cartoon' })
+    expect(parseVideoRequest('/video vertical dibujos animados sobre el ciclo del agua')).toMatchObject({ topic: 'el ciclo del agua', style: 'cartoon', format: 'vertical' })
+    expect(parseVideoRequest('/video el ciclo del agua')).toMatchObject({ style: 'dinamico' })
   })
 
   it('«de esto» o sin tema: el vídeo es del mensaje anterior', () => {
@@ -124,9 +135,54 @@ describe('palabras clave y golpes', () => {
   })
 })
 
+describe('estilo cartoon', () => {
+  const CARTOON = JSON.stringify({
+    title: 'Cómo instalar la RAM',
+    style: 'cartoon',
+    theme: 'papel',
+    scenes: [
+      { heading: '¡Hola!', narration: '¡Hola! Hoy instalamos la *RAM*.', image: '', pose: 'wave', step: 0 },
+      { heading: 'Desenchufa', narration: 'Primero *desenchufa* el PC.', image: 'a hand unplugging a cable', pose: 'point', step: 1 },
+      { heading: 'Ups', narration: 'El polvo *no es decoración*.', image: '', pose: 'bailar', step: 'dos', joke: true }
+    ],
+    outro: '¡Hecho!'
+  })
+
+  it('lee gesto, paso y broma, y descarta lo que no vale', () => {
+    const s = parseVideoScript(CARTOON)
+    expect(s.style).toBe('cartoon')
+    expect(s.scenes[1]).toMatchObject({ pose: 'point', step: 1 })
+    expect(s.scenes[2].pose).toBeUndefined()
+    expect(s.scenes[2].step).toBeUndefined()
+    expect(s.scenes[2].joke).toBe(true)
+    expect(parseVideoScript(SCRIPT).style).toBe('dinamico')
+  })
+
+  it('el personaje habla, señala, se ríe en la broma y la composición es determinista', () => {
+    const script = parseVideoScript(CARTOON)
+    const input = { script, format: 'horizontal' as const, timeline: buildTimeline([3, 3, 3]), images: [null, 'assets/escena-2.png', null], audio: 'a.wav', gsap: 'g.js' }
+    const { html, sfx } = buildCartoonComposition(input)
+    expect(html).toContain('id="mouth"')
+    expect(html).toContain('id="s2arrow"')
+    expect(html).toContain('id="s3ja"')
+    expect(html).toContain('PASO')
+    expect(html).toContain('assets/escena-2.png')
+    expect(sfx.some((x) => x.kind === 'boing')).toBe(true)
+    expect(html).not.toMatch(/Math\.random|Date\.now|https?:\/\/(?!www\.w3\.org)/)
+    expect(buildCartoonComposition(input).html).toBe(html)
+  })
+
+  it('el encargo cartoon pide pasos, bromas y gestos', () => {
+    const p = videoScriptPrompt({ topic: 'instalar la RAM', format: 'horizontal', lang: 'es', style: 'cartoon' })
+    expect(p).toContain('"joke": true')
+    expect(p).toContain('"pose"')
+    expect(p).toContain('"style": "cartoon"')
+  })
+})
+
 describe('música y nombres', () => {
   it('los efectos son un WAV de la duración del vídeo', () => {
-    const a = synthSfx([{ at: 0.1, kind: 'whoosh' }, { at: 0.5, kind: 'impact' }, { at: 0.9, kind: 'pop' }, { at: 0.2, kind: 'riser' }], 1.5, 8000)
+    const a = synthSfx([{ at: 0.1, kind: 'whoosh' }, { at: 0.5, kind: 'impact' }, { at: 0.9, kind: 'pop' }, { at: 0.2, kind: 'riser' }, { at: 1, kind: 'boing' }], 1.5, 8000)
     expect(a.length).toBe(44 + 12000 * 2)
   })
 

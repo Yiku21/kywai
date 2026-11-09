@@ -1525,6 +1525,8 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **De un mensaje**: el botón **«Crear vídeo de esto»** bajo cualquier respuesta con texto, o escribir «créame un vídeo
   de esto» (usa la última respuesta del chat).
 - **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
+- **Dibujos con personaje** (tutoriales): «créame un vídeo estilo cartoon de…», «…de dibujos animados…», «hazme un
+  vídeo tutorial de…», «…con un personaje…». Ver más abajo.
 
 **Qué pasa por dentro.** Un agente (el mejor para redactar que esté libre; mejor uno en la nube que un modelo local)
 escribe solo el **guion** en JSON, pensado para enganchar a quien tiene poca paciencia: título, de 5 a 9 escenas cortas
@@ -1547,6 +1549,17 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
    manchas de color, anillo que gira, partículas, número de escena gigante y franjas); etiqueta de escena que rebota;
    cuatro transiciones que se turnan (zoom con destello, franjas, círculo y glitch); barra de progreso y cierre.
 5. **Comprobación** con ffprobe (imagen, sonido y duración) antes de entregarlo.
+
+**Estilo cartoon (tutoriales con personaje).** Si la petición dice cartoon, dibujos, personaje, presentador o
+tutorial, el vídeo lo presenta un **muñeco dibujado por kywai** (siempre el mismo: chico con gafas, camiseta del color
+del tema y un destornillador en el bolsillo; `src/main/videoCartoon.ts`). El agente escribe un tutorial de 6 a 10
+escenas: gancho, los pasos en orden con sus avisos de seguridad, 2 o 3 bromas cortas y un resumen; en cada escena dice
+el gesto del personaje (explica, señala, se sorprende, se ríe, se encoge de hombros, pulgar arriba, piensa, saluda), el
+número de paso y si es una broma. En pantalla: el personaje **mueve la boca sílaba a sílaba con la voz**, parpadea,
+respira, brinca en cada cambio y gesticula; al lado (o encima, en vertical) una **tarjeta con la ilustración del paso**
+(Gemini, siempre en el mismo estilo de dibujo plano con contorno; sin clave, el número del paso en grande), la
+instrucción escrita, la insignia «PASO n», una flecha cuando señala y un «¡JA, JA!» con «boing» en las bromas;
+subtítulos con la palabra que suena resaltada; al final, pulgar arriba.
 
 Mientras, la tarea dice por qué paso va («Poniendo la voz (2 de 6)», «Animando y montando el vídeo»…). Un vídeo de
 medio minuto tarda unos minutos.

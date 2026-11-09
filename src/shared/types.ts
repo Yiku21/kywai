@@ -242,7 +242,7 @@ export interface Task {
    * Petición de vídeo («/video …», «créame un vídeo de …»): el agente solo escribe el guion en JSON y kywai monta el
    * vídeo (voz, imágenes, música, animación). Se entrega solo el MP4; el material de trabajo queda oculto.
    */
-  video?: { format: 'horizontal' | 'vertical'; topic: string; source?: string }
+  video?: { format: 'horizontal' | 'vertical'; topic: string; source?: string; style?: 'dinamico' | 'cartoon' }
 }
 
 /** Cambios de una tarea en la carpeta del proyecto, guardados como dos instantáneas (ver checkpoints.ts). */
