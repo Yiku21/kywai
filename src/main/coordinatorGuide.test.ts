@@ -38,7 +38,10 @@ describe('lo que sabe el coordinador de kywai', () => {
   it('sin acceso completo: no lanzar lo que necesita instalar (APK, npm…) y pedir que se active', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: false }, env()))
     expect(g).toContain('Ahora los agentes NO pueden instalar nada ni usar internet')
-    expect(g).toMatch(/el SDK de Android con Java y Gradle para una APK[\s\S]*⚙ → Ajustes → «Acceso completo para los agentes»/)
+    expect(g).toMatch(/el SDK de Android con Java y Gradle para una APK[\s\S]*⚙ → Ajustes → «Permisos de los agentes»/)
+    const ask = text(coordinatorGuide({ projectDir: proj, fullAccess: false, askAccess: true }, env()))
+    expect(ask).toContain('Ahora los agentes piden permiso al usuario')
+    expect(ask).not.toContain('NO lances tareas que acabarán bloqueadas')
     const full = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env()))
     expect(full).toContain('Ahora los agentes tienen acceso completo')
     expect(full).not.toContain('NO lances tareas que acabarán bloqueadas')

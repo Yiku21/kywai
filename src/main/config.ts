@@ -178,7 +178,7 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
       return known.length ? known : d.plannerOrder.filter((id) => agents.some((a) => a.id === id))
     })(),
     ...(removed.length ? { removedAgents: removed } : {}),
-    agentAccess: u.agentAccess === 'project' ? 'project' : 'full',
+    agentAccess: u.agentAccess === 'project' || u.agentAccess === 'ask' ? u.agentAccess : 'full',
     planApproval: u.planApproval !== false,
     ...(isLang(u.language) ? { language: u.language } : {}),
     // El tema y el nombre del ordenador también se conservan al volver a abrir la app.
@@ -363,7 +363,7 @@ export function finishSetup(): void {
 
 /** Permisos de los agentes al trabajar (afecta a las tareas que empiecen a partir de ahora). */
 export function setAgentAccess(access: AgentAccess): void {
-  getConfig().agentAccess = access === 'project' ? 'project' : 'full'
+  getConfig().agentAccess = access === 'project' || access === 'ask' ? access : 'full'
   saveConfig()
 }
 
