@@ -71,7 +71,7 @@ import { skillPromptLines, videoSkillPromptLines } from './skills'
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, type VideoFormat, type VideoStyle } from './videoScript'
-import { renderVideo } from './videoStudio'
+import { manimSupport, renderVideo } from './videoStudio'
 import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
@@ -2780,7 +2780,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang() })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport() })].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)

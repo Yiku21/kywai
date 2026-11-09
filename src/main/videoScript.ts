@@ -31,7 +31,12 @@ export interface VideoScene {
   joke?: boolean
   /** Estilo cartoon: de 1 a 3 planos de la ilustración del paso (general, de cerca, detalle). El primero es `image`. */
   shots?: string[]
+  /** Animación de Manim (código Python con la clase `Escena`) que ocupa la escena en vez de la imagen. */
+  manim?: string
 }
+
+/** Escenas con Manim como mucho (cada una tarda en renderizarse). */
+export const MAX_MANIM = 3
 
 export const MAX_SHOTS = 3
 
@@ -91,6 +96,8 @@ export function parseVideoScript(text: string): VideoScript {
     const step = Number(o.step)
     if (Number.isInteger(step) && step > 0 && step < 100) scene.step = step
     if (o.joke === true) scene.joke = true
+    const manim = typeof o.manim === 'string' ? o.manim.trim() : ''
+    if (manim && manim.length <= 8000 && /class\s+Escena\s*\(/.test(manim) && scenes.filter((x) => x.manim).length < MAX_MANIM) scene.manim = manim
     scenes.push(scene)
   }
   if (scenes.length < MIN_SCENES) throw new Error(`El guion necesita al menos ${MIN_SCENES} escenas con «narration» (tiene ${scenes.length}).`)
@@ -101,7 +108,17 @@ export function parseVideoScript(text: string): VideoScript {
 }
 
 /** Encargo para el agente: solo el guion, en JSON. */
-export function videoScriptPrompt(input: { topic: string; source?: string; format: VideoFormat; lang: string; style?: VideoStyle; retry?: string }): string {
+type PromptInput = { topic: string; source?: string; format: VideoFormat; lang: string; style?: VideoStyle; retry?: string; manim?: { latex: boolean } | null }
+
+/** Reglas de Manim para el guion (solo si está instalado en el estudio). */
+function manimRules(format: VideoFormat, manim: { latex: boolean }, cartoon = false): string[] {
+  const frame = format === 'vertical' ? '4,5 de ancho × 8 de alto' : '14,2 de ancho × 8 de alto'
+  return [
+    `- "manim" (opcional, como mucho en ${MAX_MANIM} escenas): SOLO cuando una fórmula, una gráfica, un diagrama, una geometría o un proceso se entiende mejor animado. Es código Python de Manim Community con \`from manim import *\` y una clase \`class Escena(Scene)\`; kywai lo renderiza a pantalla completa en esa escena, con el fondo del tema, en lugar de la imagen. Que dure lo que la narración (de 3 a 8 s: usa run_time y self.wait). El cuadro mide ${frame} unidades: que ocupe casi todo el ancho, centrado y en la mitad de arriba (abajo van los subtítulos${cartoon ? '; arriba a la izquierda va el número de paso y abajo a la izquierda el personaje' : ''}). Colores claros y vivos (YELLOW, TEAL, WHITE…). ${manim.latex ? 'Para fórmulas, MathTex.' : 'Usa Text para todo el texto y las fórmulas (sin MathTex ni Tex: no hay LaTeX en este equipo).'} Sin leer ni escribir archivos, sin red y sin imágenes externas. Pon también la imagen de la escena por si la animación falla.`
+  ]
+}
+
+export function videoScriptPrompt(input: PromptInput): string {
   if (input.style === 'cartoon') return cartoonScriptPrompt(input)
   const seconds = input.format === 'vertical' ? '30 a 45' : '40 a 70'
   return [
@@ -120,6 +137,7 @@ export function videoScriptPrompt(input: { topic: string; source?: string; forma
     '- "image": la imagen de fondo de la escena, descrita en inglés en una frase concreta (sujeto, ambiente, luz). Sin texto, letras ni logotipos en la imagen.',
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}, el que mejor le vaya al tema.`,
     '- "outro": frase final corta para la última pantalla.',
+    ...(input.manim ? manimRules(input.format, input.manim) : []),
     '- Si el tema necesita datos actuales, compruébalos antes; no inventes cifras.',
     '- No crees ni cambies archivos: responde solo con el JSON.',
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
@@ -130,7 +148,7 @@ export function videoScriptPrompt(input: { topic: string; source?: string; forma
 }
 
 /** Encargo del estilo cartoon: un tutorial que explica un personaje, con pasos claros y alguna broma. */
-function cartoonScriptPrompt(input: { topic: string; source?: string; format: VideoFormat; lang: string; retry?: string }): string {
+function cartoonScriptPrompt(input: PromptInput): string {
   const seconds = input.format === 'vertical' ? '40 a 70' : '50 a 100'
   return [
     'Escribe el guion de un vídeo de dibujos animados en el que un personaje cartoon (un presentador simpático con gafas) lo explica todo hablando a cámara. kywai dibuja y anima al personaje, pone la voz, las ilustraciones, la música y el montaje: tú solo escribes el guion.',
@@ -151,6 +169,7 @@ function cartoonScriptPrompt(input: { topic: string; source?: string; format: Vi
     '- Es un tutorial VISUAL: lo importante es lo que se ve. "shots": de 1 a 3 ilustraciones de la escena, descritas en inglés, cada una en una frase concreta: en un paso, primero el plano general (dónde estamos) y después el primer plano de la acción exacta (manos, piezas, la pestaña, la muesca…) y, si ayuda, el detalle o el resultado. Lo importante de cada plano, en el CENTRO de la imagen (ahí se pone el círculo de «mira aquí»). Sin personas de cuerpo entero ni caras, sin texto, letras ni logotipos. En el gancho, las bromas y el resumen basta con 1.',
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}; para dibujos van mejor "papel", "amanecer" u "oceano".`,
     '- "outro": frase final corta y con gracia.',
+    ...(input.manim ? manimRules(input.format, input.manim, true) : []),
     '- Si el tema necesita datos actuales o técnicos, compruébalos antes; no inventes.',
     '- No crees ni cambies archivos: responde solo con el JSON.',
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
@@ -347,6 +366,8 @@ export interface CompositionInput {
   images: (string | null)[]
   /** Estilo cartoon: las imágenes de cada plano de cada escena (si no, una por escena: `images`). */
   shots?: (string | null)[][]
+  /** Animación de Manim de cada escena (MP4 relativo, ya con la duración de la escena) o null. */
+  clips?: (string | null)[]
   /** Pista de audio ya mezclada (relativa). */
   audio: string
   /** Ruta relativa de gsap.min.js. */
@@ -380,6 +401,7 @@ export function buildComposition(input: CompositionInput): Composition {
   const html: string[] = []
   const a: string[] = []
   const sfx: Composition['sfx'] = []
+  const clipHtml: string[] = []
   const r = rng(script.title.length * 7919 + script.scenes.length)
   const R = (n: number): number => round(n)
 
@@ -419,12 +441,18 @@ export function buildComposition(input: CompositionInput): Composition {
   script.scenes.forEach((sc, i) => {
     const t = tl.scenes[i]
     const id = `s${i + 1}`
-    const img = images[i]
+    const clip = input.clips?.[i] ?? null
+    const img = clip ? null : images[i]
     const words = timedWords(sc.narration, t.start + VOICE_LEAD_S, t.voice)
     const beats = beatsOf(words)
-    const bgHtml = img
-      ? `<div class="photo"><img src="${esc(img)}" alt=""></div><div class="tint"></div>`
-      : `<div class="bignum">${String(i + 1).padStart(2, '0')}</div><div class="stripes"></div>`
+    // La animación de Manim va debajo de la escena (un <video> no puede ir dentro de algo con tiempo), que se queda
+    // transparente y con los subtítulos abajo.
+    if (clip) clipHtml.push(`<video id="${id}m" class="clip manimv" src="${esc(clip)}" muted playsinline data-start="${t.start}" data-duration="${t.duration}"></video>`)
+    const bgHtml = clip
+      ? ''
+      : img
+        ? `<div class="photo"><img src="${esc(img)}" alt=""></div><div class="tint"></div>`
+        : `<div class="bignum">${String(i + 1).padStart(2, '0')}</div><div class="stripes"></div>`
     const beatHtml = beats
       .map((b, k) => {
         const s = b[0].start
@@ -435,14 +463,16 @@ export function buildComposition(input: CompositionInput): Composition {
         return `<div class="clip beat" id="${id}b${k}" data-start="${R(s - 0.05)}" data-duration="${R(e - s + 0.05)}"><div class="bt">${wordsHtml}</div></div>`
       })
       .join('\n  ')
-    html.push(`<section id="${id}" class="clip scene${img ? ' has-img' : ''}" data-start="${t.start}" data-duration="${t.duration}">
+    html.push(`<section id="${id}" class="clip scene${img ? ' has-img' : ''}${clip ? ' has-manim' : ''}" data-start="${t.start}" data-duration="${t.duration}">
   ${bgHtml}
   <div class="tag" id="${id}tag"><span>${esc(sc.heading)}</span></div>
   ${beatHtml}
 </section>`)
 
     // Fondo de la escena.
-    if (img) {
+    if (clip) {
+      // La animación ya se mueve sola.
+    } else if (img) {
       const dir = i % 2 ? 1 : -1
       a.push(`tl.fromTo('#${id} .photo img', {scale: 1.32, x: ${dir * 60}, rotation: ${dir * 1.5}}, {scale: 1.05, x: ${-dir * 40}, rotation: 0, duration: ${t.duration}, ease: 'power1.out'}, ${t.start})`)
     } else {
@@ -557,6 +587,9 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: var(--
 .bt { text-align: center; font-size: ${big}px; line-height: 1.08; font-weight: 900; letter-spacing: -0.035em; max-width: ${vertical ? 940 : 1600}px; }
 .w { display: inline-block; padding: 0 0.08em; border-radius: 0.14em; text-shadow: 0 8px 0 rgba(0,0,0,0.28); }
 .w.key { color: var(--accent); }
+.manimv { width: 100%; height: 100%; object-fit: cover; background: var(--bg); }
+.has-manim .beat { align-items: flex-end; padding-bottom: ${vertical ? 260 : 90}px; }
+.has-manim .bt { font-size: ${vertical ? 72 : 64}px; padding: 14px 28px; border-radius: 22px; background: rgba(0,0,0,0.6); color: #fff; }
 .has-img .w.key { color: var(--accent); }
 #intro, #outro { display: flex; align-items: center; justify-content: center; flex-direction: column; }
 .title { position: relative; z-index: 3; text-align: center; padding: 0 ${vertical ? 70 : 180}px; font-size: ${vertical ? 136 : 150}px; line-height: 1.02; font-weight: 900;
@@ -581,6 +614,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: var(--
 <div id="root" data-composition-id="main" data-start="0" data-duration="${tl.total}" data-width="${W}" data-height="${H}">
 ${html[0]}
 <div id="shake"><div id="punch">
+${clipHtml.join('\n')}
 ${html.slice(1).join('\n')}
 </div></div>
 <div id="barwrap"><div id="bar"></div></div>

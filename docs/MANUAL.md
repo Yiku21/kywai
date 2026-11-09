@@ -1639,7 +1639,7 @@ escribe solo el **guion** en JSON, pensado para enganchar a quien tiene poca pac
 marcadas entre *asteriscos*, una descripción de la imagen de cada escena, un tema de color y la frase final. Si el guion no vale, la tarea pasa a otro agente. Lo demás lo
 hace kywai siempre igual (`src/main/videoStudio.ts`):
 
-1. **Voz** de cada escena con **Kokoro** (natural, gratis, en el propio equipo; español, inglés, francés, portugués,
+1. **Voz** de cada escena con Voicebox o Gemini si los hay (ver «Voz» más abajo) y si no con **Kokoro** (natural, gratis, en el propio equipo; español, inglés, francés, portugués,
    italiano, japonés, chino e hindi). Sin Kokoro, la voz del sistema (`say` en macOS, la de Windows, espeak-ng en Linux).
 2. **Imágenes.** Por defecto, con **ComfyUI** (comfy.org) si está encendido en el equipo donde corren los agentes:
    gratis, sin clave y sin salir del equipo. kywai lo busca en `http://127.0.0.1:8188` (otra dirección con la
@@ -1674,9 +1674,29 @@ arriba, piensa, saluda); en las bromas, «¡JA, JA!» y un «boing». El agente 
 pasos en orden con sus avisos de seguridad, 2 o 3 bromas cortas y un resumen. Sin ComfyUI ni clave de Gemini no hay ilustraciones:
 cada paso muestra su instrucción en grande.
 
-**Voz.** Con clave de Gemini, la voz es la de **Gemini** (la más natural; se le pide el tono: cercano y con energía en
-los tutoriales, de broma en los chistes, rápido en los vídeos dinámicos); si una escena no sale (cuota, sin red),
-todo el vídeo se rehace con Kokoro para no mezclar voces. La voz y las imágenes se generan **a la vez**.
+**Voz.** El orden es Voicebox, Gemini, Kokoro:
+- **Voicebox** (voicebox.sh, MIT) va primero si su app está abierta en el equipo donde corren los agentes y tiene
+  un perfil de voz en el idioma del vídeo: gratis, sin salir del equipo y con **tu propia voz** si la clonas en
+  Voicebox (las clonadas van antes que las predefinidas; una concreta con `KYWAI_VOICEBOX_VOICE`, nombre o id). kywai
+  la pide por su API compatible con OpenAI (`POST /v1/audio/speech` en `http://127.0.0.1:17493`, otra dirección con
+  `KYWAI_VOICEBOX_URL`), una escena detrás de otra, con el tono como instrucción (lo usan los motores que lo
+  entienden, como Qwen). kywai no instala Voicebox: se descarga de voicebox.sh.
+- Si no, con clave de Gemini, la de **Gemini** (se le pide el tono: cercano y con energía en los tutoriales, de broma
+  en los chistes, rápido en los vídeos dinámicos).
+- Si una escena no sale, todo el vídeo se rehace con la siguiente (al final Kokoro) para no mezclar voces.
+
+La voz, las imágenes y las animaciones de Manim se generan **a la vez**.
+
+**Animaciones de fórmulas y diagramas (Manim).** Si Manim Community (MIT) está instalado en el estudio, el guion
+puede traer en hasta 3 escenas un campo `manim` con código Python (`class Escena(Scene)`) para lo que se entiende
+mejor animado: una fórmula, una gráfica, un diagrama, una geometría, un proceso. kywai lo renderiza a pantalla
+completa con el fondo del tema (`estudio-video/.venv`, `manim render -qm`, 30 fps, como mucho 4 min por escena), lo
+alarga con el último fotograma o lo corta a lo que dura la voz de la escena y lo pone **debajo** de la escena como
+`<video>` con su propio tiempo (HyperFrames no admite un vídeo dentro de algo con tiempo); los subtítulos bajan a una
+banda. Esas escenas no piden imagen; si la animación falla, van con fondo de diseño. Sin LaTeX en el equipo, el
+agente escribe las fórmulas con `Text`. **«Instalar lo que falta»** instala Manim con pip (en Linux necesita antes
+`libpango1.0-dev`, `libcairo2-dev` y `pkg-config`). El código y el registro de cada animación quedan en la carpeta
+de trabajo del vídeo (`manim/`).
 
 Mientras, la tarea dice por qué paso va («Poniendo la voz (2 de 6)», «Animando y montando el vídeo»…). Un vídeo de
 medio minuto tarda unos minutos.

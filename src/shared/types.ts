@@ -1398,8 +1398,14 @@ export interface VideoStudioStatus {
   engine: boolean
   /** ffmpeg y ffprobe. */
   ffmpeg: boolean
-  /** «gemini» (la más natural, con la clave de Gemini), «kokoro» (gratis, en este equipo), «system» (la del sistema) o null. */
-  voice: 'gemini' | 'kokoro' | 'system' | null
+  /** «voicebox» (la app Voicebox abierta en este equipo), «gemini» (con la clave de Gemini), «kokoro» (gratis, en este equipo), «system» (la del sistema) o null. */
+  voice: 'voicebox' | 'gemini' | 'kokoro' | 'system' | null
+  /** Voicebox en este equipo: si responde y sus voces («nombre (idioma)»). */
+  voicebox?: { running: boolean; voices: string[] }
+  /** Hay clave de API de Gemini. */
+  gemini?: boolean
+  /** Manim instalado (animaciones de fórmulas, gráficas y diagramas). */
+  manim?: boolean
   /** Kokoro instalado (la voz de reserva si Gemini falla). */
   kokoro: boolean
   /** «comfyui» si hay un ComfyUI encendido con modelo (el de por defecto), «gemini» si hay clave; null: fondos de diseño. */

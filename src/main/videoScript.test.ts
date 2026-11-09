@@ -226,3 +226,48 @@ describe('música y nombres', () => {
     expect(p).toContain('faltaba title')
   })
 })
+
+describe('animaciones de Manim', () => {
+  const CODE = 'from manim import *\nclass Escena(Scene):\n    def construct(self):\n        self.play(Create(Circle()))'
+  const withManim = (n: number): string =>
+    JSON.stringify({
+      title: 'Ondas',
+      lang: 'es',
+      scenes: Array.from({ length: 5 }, (_, i) => ({ heading: `E${i}`, narration: `Escena número ${i} del vídeo.`, image: 'x', ...(i < n ? { manim: CODE } : {}) })),
+      outro: 'Fin'
+    })
+
+  it('lee el código si trae la clase Escena, como mucho en 3 escenas', () => {
+    expect(parseVideoScript(withManim(5)).scenes.filter((s) => s.manim)).toHaveLength(3)
+    const bad = JSON.parse(withManim(1))
+    bad.scenes[0].manim = 'print("hola")'
+    expect(parseVideoScript(JSON.stringify(bad)).scenes[0].manim).toBeUndefined()
+  })
+
+  it('el encargo explica Manim solo si está instalado, y sin LaTeX pide Text', () => {
+    const base = { topic: 'ondas', format: 'vertical' as const, lang: 'es' }
+    expect(videoScriptPrompt(base)).not.toContain('"manim"')
+    const p = videoScriptPrompt({ ...base, manim: { latex: false } })
+    expect(p).toContain('class Escena(Scene)')
+    expect(p).toContain('sin MathTex')
+    expect(videoScriptPrompt({ ...base, manim: { latex: true } })).toContain('MathTex')
+    expect(videoScriptPrompt({ ...base, style: 'cartoon', manim: { latex: false } })).toContain('el personaje')
+  })
+
+  it('el clip va como <video> con tiempo propio, fuera de la escena, y la escena deja los subtítulos abajo', () => {
+    const script = parseVideoScript(withManim(1))
+    const timeline = buildTimeline(script.scenes.map(() => 3))
+    const input = { script, format: 'vertical' as const, timeline, images: script.scenes.map(() => 'assets/x.png'), clips: ['assets/manim-1.mp4', null, null, null, null], audio: 'a.wav', gsap: 'g.js' }
+    for (const html of [buildComposition(input).html, buildCartoonComposition({ ...input, script: { ...script, style: 'cartoon' } }).html]) {
+      const video = html.match(/<video id="s1m"[^>]*>/)?.[0] ?? ''
+      expect(video).toContain('src="assets/manim-1.mp4"')
+      expect(video).toContain('muted')
+      expect(video).toContain(`data-start="${timeline.scenes[0].start}"`)
+      // Antes que las escenas (debajo) y no dentro de ninguna.
+      expect(html.indexOf('<video id="s1m"')).toBeLessThan(html.indexOf('<section id="s1"'))
+      const s1 = html.slice(html.indexOf('<section id="s1"'), html.indexOf('</section>', html.indexOf('<section id="s1"')))
+      expect(s1).not.toContain('<img')
+    }
+    expect(buildComposition(input).html).toContain('class="clip scene has-manim"')
+  })
+})

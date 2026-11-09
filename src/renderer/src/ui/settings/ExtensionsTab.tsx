@@ -916,9 +916,16 @@ function VideoSection() {
         { label: 'ffmpeg', ok: status.ffmpeg, detail: status.ffmpeg ? t('Instalado') : t('Falta') },
         {
           label: t('Voz'),
-          ok: status.voice === 'gemini' || status.voice === 'kokoro',
+          ok: status.voice === 'voicebox' || status.voice === 'gemini' || status.voice === 'kokoro',
           detail:
-            status.voice === 'gemini'
+            status.voice === 'voicebox'
+              ? t('Voicebox en este equipo, gratis, con la voz del idioma del vídeo ({voices}); si no tiene ese idioma, {next}', {
+                  voices: (status.voicebox?.voices ?? []).slice(0, 4).join(', '),
+                  next: status.gemini ? 'Gemini' : 'Kokoro'
+                })
+              : status.voicebox?.running
+                ? t('Voicebox está abierto pero sin voces: crea un perfil de voz en Voicebox')
+                : status.voice === 'gemini'
               ? status.kokoro
                 ? t('Gemini: la más natural, con tu clave (Kokoro de reserva)')
                 : t('Gemini: la más natural, con tu clave (instala Kokoro de reserva)')
@@ -927,6 +934,11 @@ function VideoSection() {
                 : status.voice === 'system'
                   ? t('La del sistema (instala Kokoro para una más natural)')
                   : t('Sin voz')
+        },
+        {
+          label: t('Animaciones de fórmulas y diagramas (Manim)'),
+          ok: !!status.manim,
+          detail: status.manim ? t('Instalado') : t('Falta (opcional): «Instalar lo que falta» lo instala')
         },
         {
           label: t('Imágenes'),
@@ -942,7 +954,7 @@ function VideoSection() {
         }
       ]
     : []
-  const complete = !!status && status.ready && status.kokoro
+  const complete = !!status && status.ready && status.kokoro && !!status.manim
 
   return (
     <>
