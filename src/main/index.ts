@@ -11,6 +11,7 @@ import { once } from 'node:events'
 import { finished } from 'node:stream/promises'
 import type { AddAgentInput, AgentId, ImportResult, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
+import type { HermesSetupChoice } from '@shared/imports'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
   finishSetup,
@@ -93,7 +94,8 @@ import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
 import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
-import { initSkills } from './skills'
+import { initSkills, listSkills, skillsDir } from './skills'
+import { applyHermesSetup, applyHermesSetupFile, readHermesSetup, scanHermesSetup } from './hermesSetup'
 import { installCatalogSkill, installSkillLink, installedSkills, mcpCatalog, removeSkill, skillCatalog } from './catalog'
 import { allowModHooks, modPanelResponse, initMods, installModFolder, installModLink, listMods, modPanelHtml, removeMod, setModEnabled } from './mods'
 import { addPluginLink, initPlugins, installCatalogPlugin, listPlugins, pluginCatalog, removeMarketplace, removePlugin } from './plugins'
@@ -507,6 +509,15 @@ function registerIpc(): void {
   handle('scanImports', () => scanImports())
   handle('importLocal', (ids: unknown) => afterImport(importLocal(ids, getConfig().agents)))
   handle('importedIds', (ids: unknown) => importedIds(ids))
+  // La configuración de Hermes de este servidor (skills, memoria, MCP), o la que sube un PC cliente.
+  const haveSetup = (): { skills: string[]; mcp: string[] } => ({ skills: listSkills(skillsDir()).map((s) => s.name), mcp: listMcp().map((s) => s.id) })
+  const saveImportedMcp = (s: McpServerInput): void => void saveMcp(s)
+  handle('hermesSetupStatus', () => haveSetup())
+  handle('scanHermesSetup', () => scanHermesSetup(undefined, haveSetup()))
+  handle('importHermesSetup', (choice: unknown) =>
+    applyHermesSetup(readHermesSetup(choice as HermesSetupChoice, hostname().replace(/\.local$/i, '')), skillsDir(), saveImportedMcp, haveSetup().mcp)
+  )
+  handle('importHermesSetupFile', (path: unknown) => applyHermesSetupFile(path, skillsDir(), saveImportedMcp, haveSetup().mcp))
   handle('previewArchive', (paths: unknown) => previewArchive(paths))
   handle('importArchive', (paths: unknown, choices?: unknown) => afterImport(importArchive(paths, getConfig().agents, choices)))
   ipcMain.handle('cowork:pickImportFile', async (e) => {

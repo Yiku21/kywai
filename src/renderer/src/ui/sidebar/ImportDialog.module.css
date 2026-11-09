@@ -233,3 +233,33 @@
   padding: 0;
   list-style: none;
 }
+
+/* Configuración de Hermes (HermesSetupPanel): skills, memoria y MCP. */
+.setup {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.setup > .session {
+  margin-left: 30px;
+}
+
+.setupDone {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 4px 8px 30px;
+  font-size: 13px;
+}
+
+.setupSkip {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.setupFoot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 4px 0;
+}

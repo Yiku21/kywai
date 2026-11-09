@@ -96,3 +96,32 @@ export interface ArchivePreview {
   projects: { uuid: string; name: string }[]
   conversations: ArchiveConversation[]
 }
+
+/** La configuración de Hermes / Hermes Desktop que se puede traer a kywai (ver src/main/hermesSetup.ts). */
+export interface HermesSetupScan {
+  /** Hay instalación de Hermes en ese equipo. */
+  found: boolean
+  where: string
+  /** Sus skills; `own` = no venían con Hermes (las que hizo o instaló el usuario). */
+  skills: { name: string; description: string; own: boolean; imported: boolean }[]
+  /** Lo que Hermes sabe del usuario: memories/MEMORY.md, USER.md y SOUL.md (solo los que tienen algo). */
+  memory: { name: string; chars: number }[]
+  /** Ya se trajo su memoria (está la habilidad «lo-que-sabe-hermes»). */
+  memoryImported: boolean
+  /** Sus servidores MCP (los apagados en Hermes no salen). `secrets` = variables y cabeceras que llevan. */
+  mcp: { id: string; transport: 'stdio' | 'http'; summary: string; secrets: number; imported: boolean }[]
+}
+
+export interface HermesSetupChoice {
+  skills: string[]
+  memory: boolean
+  mcp: string[]
+}
+
+export interface HermesSetupResult {
+  skills: string[]
+  memory: boolean
+  mcp: string[]
+  /** Lo que no se trajo y por qué. */
+  skipped: string[]
+}

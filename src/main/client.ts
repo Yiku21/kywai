@@ -12,6 +12,8 @@ import { contextMenuItems } from './contextMenu'
 import { verifyRelease, type SignedRelease } from './clientRelease'
 import { CLIENT_RELEASE_PUBLIC_KEY } from './clientReleaseKey'
 import { exportLocal, scanImports } from './importChats'
+import { readHermesSetup, scanHermesSetup } from './hermesSetup'
+import type { HermesSetupChoice } from '@shared/imports'
 import { SyncManager } from './syncManager'
 import { defaultWorkspaceRoot } from './config'
 import {
@@ -576,13 +578,18 @@ async function saveRemoteFolder(path: unknown): Promise<string | null> {
  * se juntan en un JSON con sus imágenes y se suben como una exportación más (el servidor las importa con importArchive).
  */
 async function sendImports(ids: unknown): Promise<string> {
-  if (!current) throw new Error(tr('Sin conexión con el servidor'))
   const bundle = exportLocal(ids, hostname().replace(/\.local$/i, ''))
   if (!bundle.conversations.length) throw new Error(tr('No había nada nuevo que importar.'))
-  const res = await fetch(`${current.server.origin}/api/import-upload?name=kywai-chats.json`, {
+  return uploadJson('kywai-chats.json', bundle)
+}
+
+/** Sube un JSON a la carpeta de importación del servidor y devuelve su ruta allí. */
+async function uploadJson(name: string, value: unknown): Promise<string> {
+  if (!current) throw new Error(tr('Sin conexión con el servidor'))
+  const res = await fetch(`${current.server.origin}/api/import-upload?name=${encodeURIComponent(name)}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${current.token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(bundle),
+    body: JSON.stringify(value),
     signal: AbortSignal.timeout(10 * 60_000)
   })
   const data = (await res.json().catch(() => ({}))) as { path?: string; error?: string }
@@ -721,6 +728,14 @@ function registerClientIpc(): void {
   ipcMain.handle('client:importSend', async (e, ids: unknown) => {
     if (!fromServerPage(e)) throw new Error('No permitido')
     return sendImports(ids)
+  })
+  ipcMain.handle('client:hermesSetupScan', (e, have: unknown) => {
+    if (!fromServerPage(e)) throw new Error('No permitido')
+    return scanHermesSetup(undefined, have && typeof have === 'object' ? (have as { skills?: string[]; mcp?: string[] }) : {})
+  })
+  ipcMain.handle('client:hermesSetupSend', async (e, choice: unknown) => {
+    if (!fromServerPage(e)) throw new Error('No permitido')
+    return uploadJson('kywai-hermes.json', readHermesSetup(choice as HermesSetupChoice, hostname().replace(/\.local$/i, '')))
   })
   ipcMain.handle('client:update', async (e) => (fromServerPage(e) ? checkUpdate() : null))
   ipcMain.handle('client:installUpdate', async (e) => {

@@ -1,7 +1,7 @@
 import type { Lang } from './i18n'
 import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
 import type { TaskTemplate, TaskTemplateInput } from './templates'
-import type { ArchivePreview, ImportResult, ImportScan } from './imports'
+import type { ArchivePreview, HermesSetupChoice, HermesSetupResult, HermesSetupScan, ImportResult, ImportScan } from './imports'
 export type { ArchivePreview, ImportResult, ImportScan } from './imports'
 export type { TaskTemplate, TaskTemplateInput } from './templates'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
@@ -1379,6 +1379,13 @@ export interface CoworkApi {
   importLocal(sessionIds: string[]): Promise<ImportResult>
   /** De estas sesiones (de un cliente: «hermes:<id>»…), las que ya están importadas en el servidor. */
   importedIds(ids: string[]): Promise<string[]>
+  /** Habilidades y servidores MCP que ya hay en el servidor (para marcar lo ya traído de Hermes desde un cliente). */
+  hermesSetupStatus(): Promise<{ skills: string[]; mcp: string[] }>
+  /** La configuración de Hermes de este servidor (skills, memoria, MCP) y traer lo elegido. */
+  scanHermesSetup(): Promise<HermesSetupScan>
+  importHermesSetup(choice: HermesSetupChoice): Promise<HermesSetupResult>
+  /** Aplica la configuración de Hermes que subió un PC cliente (ruta de /api/import-upload). */
+  importHermesSetupFile(path: string): Promise<HermesSetupResult>
   /** Importa un archivo exportado de ChatGPT o Claude.ai (el zip o su conversations.json), ya en el servidor. */
   /** Uno o varios archivos de la exportación (Claude.ai la manda partida en varios zips). `choices`: conversación de
    *  Claude.ai → uuid de su proyecto ('' = suelta), lo revisado con previewArchive; sin él, se deduce. */

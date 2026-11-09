@@ -1793,6 +1793,26 @@ el motor) o, si abres la ventana desde un **PC cliente**, ese PC (y lo del servi
   proyecto y se ven en el chat; si ya no están en el disco, el mensaje se trae sin ellas. De momento la sesión de Hermes no se retoma (kywai lanza Hermes de una vez); al seguirla, el
   coordinador recibe lo hablado como contexto.
 
+**Configuración de Hermes** (debajo de las conversaciones, en «En este equipo» y en «En el servidor»): trae lo que
+configuraste en Hermes / Hermes Desktop para que lo usen **todos** los agentes de kywai, no solo Hermes:
+
+- **Skills**: las de `~/.hermes/skills/<categoría>/<skill>/` (en Windows `%LOCALAPPDATA%\hermes\skills`) pasan a la
+  carpeta «habilidades» de kywai con sus archivos de texto. De entrada van marcadas las **tuyas** (las que no trae
+  Hermes de serie en `hermes-agent/skills`); «N en total» enseña también las de serie. Las archivadas (`.archive`) no
+  salen. Una que ya existe en kywai con ese nombre no se pisa.
+- **Lo que Hermes sabe de ti**: `memories/USER.md`, `memories/MEMORY.md` y `SOUL.md` quedan en la habilidad
+  `lo-que-sabe-hermes` (un punto por recuerdo), que los agentes leen cuando importan tus gustos o tu contexto.
+  Volver a traerla la reescribe con lo último. La memoria del proyecto y lo que digas mandan sobre ella.
+- **Servidores MCP**: los de `mcp_servers:` de su `config.yaml` (salvo los `enabled: false`) pasan a Extensiones,
+  **apagados**; las `${VAR}` se cambian por su valor de `~/.hermes/.env` y las claves se guardan cifradas, como las
+  demás. Enciéndelos para los agentes que quieras (se prueban al encenderlos). Desde un PC cliente, un servidor que es
+  un programa de ese PC (rutas de Windows, por ejemplo) no se trae a un servidor con otro sistema: no arrancaría.
+- **No se copian** el modelo ni las claves de tus proveedores: el Hermes de kywai ya usa su propia configuración
+  (y, desde ahora, también sus MCP y plugins al trabajar).
+
+Desde un PC cliente, la app del PC lo lee y lo sube al servidor (`kywai-hermes.json`, se borra al acabar). El motor
+está en `src/main/hermesSetup.ts`.
+
 **Desde un archivo** importa la exportación de **ChatGPT** (Ajustes → Controles de datos → Exportar datos) o de
 **Claude.ai** (Ajustes → Privacidad → Exportar datos): el zip que llega por correo tal cual, o solo su
 `conversations.json`. Desde el navegador o el cliente se sube entero al servidor (hasta 8 GB por archivo) y se borra al acabar.

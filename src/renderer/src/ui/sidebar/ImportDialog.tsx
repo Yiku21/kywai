@@ -7,6 +7,7 @@ import { t } from '@/lib/i18n'
 import { useEscape } from '../common/hooks'
 import { cx, errorText } from '../common/util'
 import { shortDate } from './sidebarState'
+import { HermesSetupPanel } from './HermesSetupPanel'
 import s from './SearchDialog.module.css'
 import h from './HistoryDialog.module.css'
 import m from './ImportDialog.module.css'
@@ -238,6 +239,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                 )
               })
             )}
+            <HermesSetupPanel here={tab === 'local'} busy={busy} setBusy={setBusy} />
             {scan && (
               <p className={m.hint}>
                 {t('¿Buscas tus chats de la app Claude o de Claude.ai? No se guardan en el ordenador, sino en tu cuenta:')}{' '}

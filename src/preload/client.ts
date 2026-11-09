@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld('coworkClient', {
   /** Conversaciones de Claude Code, Codex y Hermes Desktop de este equipo: buscarlas y subirlas al servidor para importarlas. */
   importScan: (): Promise<unknown> => ipcRenderer.invoke('client:importScan'),
   importSend: (ids: string[]): Promise<string> => ipcRenderer.invoke('client:importSend', ids),
+  /** La configuración de Hermes Desktop de este equipo (skills, memoria, MCP): verla y subir lo elegido. */
+  hermesSetupScan: (have: { skills: string[]; mcp: string[] }): Promise<unknown> => ipcRenderer.invoke('client:hermesSetupScan', have),
+  hermesSetupSend: (choice: unknown): Promise<string> => ipcRenderer.invoke('client:hermesSetupSend', choice),
   /** Busca una versión nueva del propio cliente en el servidor; installUpdate la descarga, la instala y reinicia. */
   update: (): Promise<unknown> => ipcRenderer.invoke('client:update'),
   installUpdate: (): Promise<void> => ipcRenderer.invoke('client:installUpdate')
