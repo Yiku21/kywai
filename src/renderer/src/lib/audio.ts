@@ -480,7 +480,8 @@ const VOICES: Record<string, VoiceProfile> = {
   muse: { base: 659, wave: 'triangle', rate: 16, level: 0.09, glide: 1.18 }, // burbujeante y agudo
   qwen: { base: 247, wave: 'sawtooth', rate: 11, level: 0.035, glide: 0.95 }, // grave y lento
   ollama: { base: 233, wave: 'sawtooth', rate: 11, level: 0.035, glide: 0.95 },
-  lmstudio: { base: 262, wave: 'sawtooth', rate: 11, level: 0.035, glide: 0.95 }
+  lmstudio: { base: 262, wave: 'sawtooth', rate: 11, level: 0.035, glide: 0.95 },
+  colibri: { base: 330, wave: 'sawtooth', rate: 12, level: 0.035, glide: 0.95 }
 }
 
 /** Notas (en semitonos sobre el tono base) que recorren las letras: pentatónica, nunca suena desafinado. */

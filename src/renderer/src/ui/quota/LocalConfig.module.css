@@ -1,6 +1,6 @@
 .engines {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   padding: 4px;
   border-radius: var(--radius-ctl);
@@ -250,4 +250,26 @@
   .spin {
     animation-duration: 2.4s;
   }
+}
+
+/* Última línea de la instalación de un motor (como en el asistente). */
+.installLog {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  max-height: 3.2em;
+  overflow: hidden;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }

@@ -222,7 +222,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
       {runtime?.notice && <BlockedNotice notice={runtime.notice} />}
 
       {!!api && mode === 'live' && (activity === 'error' || activity === 'offline') && (
-        <ResetAgent agentId={agent.id} startsLmStudio={agent.provider === 'lmstudio' && activity === 'offline'} />
+        <ResetAgent agentId={agent.id} startsEngine={activity === 'offline' && (agent.provider === 'lmstudio' || agent.provider === 'colibri') ? agent.provider : undefined} />
       )}
 
       {agent.role && <p className={s.role}>{t(agent.role)}</p>}
@@ -566,9 +566,11 @@ function ThinkingToggle({ agentId, on }: { agentId: string; on: boolean }) {
 
 /**
  * «Reiniciar agente» cuando falla: olvida el error, comprueba que responde y lo deja disponible. Con el agente local
- * de LM Studio apagado es «Encender LM Studio»: la comprobación enciende su servidor y carga el modelo.
+ * de LM Studio (o de Colibri) apagado es «Encender LM Studio»: la comprobación enciende su servidor y carga el modelo.
  */
-function ResetAgent({ agentId, startsLmStudio }: { agentId: string; startsLmStudio?: boolean }) {
+function ResetAgent({ agentId, startsEngine }: { agentId: string; startsEngine?: 'lmstudio' | 'colibri' }) {
+  const startsLmStudio = startsEngine === 'lmstudio'
+  const startsColibri = startsEngine === 'colibri'
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ text: string; ok: boolean } | null>(null)
   const reset = async (): Promise<void> => {
@@ -582,6 +584,8 @@ function ResetAgent({ agentId, startsLmStudio }: { agentId: string; startsLmStud
           ? { text: t('Sigue sin responder{reason}. Revisa su instalación o su sesión.', { reason: rt.reason ? `: ${rt.reason}` : '' }), ok: false }
           : startsLmStudio
             ? { text: t('LM Studio encendido: el modelo se está cargando y lo pendiente puede empezar.'), ok: true }
+            : startsColibri
+              ? { text: t('Colibri encendido: lo pendiente puede empezar.'), ok: true }
             : { text: t('Reiniciado: vuelve a estar disponible y lo pendiente puede empezar.'), ok: true }
       )
     } catch (e) {
@@ -595,17 +599,19 @@ function ResetAgent({ agentId, startsLmStudio }: { agentId: string; startsLmStud
       <button type="button" className={cx(u.btn, u.btnSm, s.resetBtn)} disabled={busy} onClick={() => void reset()}>
         {busy ? (
           <LoaderCircle size={14} className={u.spin} aria-hidden="true" />
-        ) : startsLmStudio ? (
+        ) : startsEngine ? (
           <Power size={14} aria-hidden="true" />
         ) : (
           <RotateCcw size={14} aria-hidden="true" />
         )}
-        {startsLmStudio ? t('Encender LM Studio') : t('Reiniciar agente')}
+        {startsLmStudio ? t('Encender LM Studio') : startsColibri ? t('Encender Colibri') : t('Reiniciar agente')}
       </button>
       <span className={cx(s.resetNote, note && !note.ok && s.resetBad)} role="status">
         {note?.text ??
           (startsLmStudio
             ? t('Enciende el servidor de LM Studio, carga el modelo y deja el agente disponible.')
+            : startsColibri
+              ? t('Enciende Colibri con el modelo de su instalación (tarda unos minutos en cargarlo) y deja el agente disponible.')
             : t('Olvida el error, comprueba que responde y lo deja disponible.'))}
       </span>
     </div>

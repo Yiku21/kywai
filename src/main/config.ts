@@ -5,6 +5,7 @@ import type { AddAgentInput, AgentAccess, AgentConfig, AgentId, AppConfig, CostS
 import { buildAgent } from '@shared/agentCatalog'
 import { cleanCostSettings } from '@shared/costs'
 import { isLang, langFromLocale, setCurrentLang, type Lang } from '@shared/i18n'
+import { cleanLocalUrl, isLocalEngine } from '@shared/localEngines'
 import { CONFIG_VERSION, DEFAULT_CONFIG, avatarFor, localLogoFor, upgradeAgentModels, upgradeAgentProfile, upgradeAgentRole } from '@shared/defaults'
 
 let config: AppConfig | null = null
@@ -68,7 +69,7 @@ function validAgent(a: AgentConfig): boolean {
     typeof a.id === 'string' &&
     /^[\w\-]+$/.test(a.id) &&
     typeof a.name === 'string' &&
-    ['claude', 'codex', 'gemini', 'qwen', 'ollama', 'lmstudio', 'hermes', 'muse', 'cli'].includes(a.provider) &&
+    ['claude', 'codex', 'gemini', 'qwen', 'ollama', 'lmstudio', 'colibri', 'hermes', 'muse', 'cli'].includes(a.provider) &&
     typeof a.stationId === 'string' &&
     (a.provider !== 'cli' || validCliSpec(a.cli))
   )
@@ -183,6 +184,7 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
     // El tema y el nombre del ordenador también se conservan al volver a abrir la app.
     ...(typeof u.uiTheme === 'string' && UI_THEME_RE.test(u.uiTheme) ? { uiTheme: u.uiTheme } : {}),
     ...(typeof u.serverName === 'string' && cleanServerName(u.serverName) ? { serverName: cleanServerName(u.serverName) } : {}),
+    ...(typeof u.colibriUrl === 'string' && cleanLocalUrl(u.colibriUrl) ? { colibriUrl: cleanLocalUrl(u.colibriUrl)! } : {}),
     // Versión 6: el asistente de configuración. Quien ya usaba la app no lo necesita.
     setupDone: u.setupDone === true || (isObj(user) && version < 6),
     webAccess: mergeWebAccess(u.webAccess),
@@ -270,8 +272,8 @@ export function setLocalAgent(input: SetLocalAgentInput): void {
   const cfg = getConfig()
   const a = cfg.agents.find((x) => x.id === input.agentId)
   if (!a) throw new Error('Agente desconocido')
-  if (a.provider !== 'ollama' && a.provider !== 'lmstudio') throw new Error('Este agente no es local')
-  if (input.engine !== 'ollama' && input.engine !== 'lmstudio') throw new Error('Motor no válido')
+  if (!isLocalEngine(a.provider)) throw new Error('Este agente no es local')
+  if (!isLocalEngine(input.engine)) throw new Error('Motor no válido')
   if (typeof input.model !== 'string' || !MODEL_RE.test(input.model)) throw new Error('Nombre de modelo no válido')
   a.provider = input.engine
   a.model = input.model
@@ -424,6 +426,20 @@ export function setServerName(name: string): void {
   saveConfig()
 }
 
+/**
+ * Dirección del servidor de Colibri (u otro compatible con la API de OpenAI). Vacía: la que guardó su instalación.
+ * Lanza un error si no es una dirección http(s)://equipo:puerto.
+ */
+export function setColibriUrl(url: string): void {
+  const cfg = getConfig()
+  const clean = url.trim() ? cleanLocalUrl(url) : ''
+  if (clean === null) throw new Error('Dirección no válida: escribe algo como http://127.0.0.1:8000')
+  if ((cfg.colibriUrl ?? '') === clean) return
+  if (clean) cfg.colibriUrl = clean
+  else delete cfg.colibriUrl
+  saveConfig()
+}
+
 /** Cómo pagas cada agente, precios por modelo y presupuesto. El aviso ya dado del presupuesto se conserva. */
 export function setCostSettings(input: unknown): CostSettings {
   const clean = cleanCostSettings(input)
@@ -475,7 +491,7 @@ export function setAgentThinking(agentId: unknown, enabled: unknown): void {
 export function setAgentModels(input: SetAgentModelsInput): void {
   const a = getConfig().agents.find((x) => x.id === input.agentId)
   if (!a) throw new Error('Agente desconocido')
-  if (a.provider === 'ollama' || a.provider === 'lmstudio') throw new Error('El agente local se configura desde el indicador Local')
+  if (isLocalEngine(a.provider)) throw new Error('El agente local se configura desde el indicador Local')
   const ok = (m: { model: string; label: string } | null): boolean =>
     m === null || (typeof m.model === 'string' && MODEL_ID_RE.test(m.model) && typeof m.label === 'string')
   if (!input.standard || !ok(input.standard) || !ok(input.light) || !ok(input.strong)) throw new Error('Modelo no válido')

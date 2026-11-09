@@ -25,6 +25,7 @@ import {
   setLanguage,
   setUiTheme,
   setServerName,
+  setColibriUrl,
   UI_THEME_RE,
   addAgent,
   removeAgent,
@@ -40,6 +41,7 @@ import {
 import { applyUpdate, checkForUpdates, sourceDir } from './selfUpdate'
 import { setGuideEnv } from './coordinatorGuide'
 import { transcribeAudio } from './voice'
+import { isLocalEngine } from '@shared/localEngines'
 import { lookupTempo, tempoResponse } from './musicTempo'
 import { searchMusic } from './musicSearch'
 import { mobilePairingPin, newWebToken, revokeMobileDevice, setClientReleaseDir, setFsAccess, startWebServer, stopWebServer, tailscaleIPv4, webAccessInfo, webHttpsPort, webMethods, type WebMethod } from './webServer'
@@ -50,6 +52,7 @@ import { ensureWebCert } from './selfCert'
 import { mobileSigningKey } from './mobileAuth'
 import { disableHttps, enableHttps, httpsInfo } from './tailscale'
 import { setAgentKeyResolver } from './agents/generic'
+import { setColibriUrlSource } from './agents/colibri'
 import { agentKey, systemCipher } from './keys'
 import { checkAuth, detectTools, installTool, openLogin, refreshPath, saveAgentKey, saveGeminiKey } from './setup'
 import { modelOptions } from './models'
@@ -744,9 +747,14 @@ function registerIpc(): void {
   }
   handle('listLocalEngines', () => listLocalEngines())
   handle('startLocalServer', async (engine: unknown) => {
-    if (engine !== 'lmstudio' && engine !== 'ollama') throw new Error(tr('Motor no válido'))
+    if (!isLocalEngine(engine)) throw new Error(tr('Motor no válido'))
     await startLocalServer(engine)
     await checkPresence(true, true)
+  })
+  handle('setColibriUrl', async (url: unknown) => {
+    if (typeof url !== 'string' || url.length > 300) throw new Error(tr('Valor no válido'))
+    setColibriUrl(url)
+    await afterLocalChange()
   })
   handle('pullLocalModel', (model: unknown, agentId?: unknown) => {
     if (typeof model !== 'string') throw new Error(tr('Modelo no válido'))
@@ -1080,6 +1088,8 @@ async function boot(): Promise<void> {
   registerProtocol()
   // Las claves de API de los agentes conectados salen de este equipo (cifradas) y solo van al suyo.
   setAgentKeyResolver(agentKey)
+  // La dirección de Colibri que se eligió en el indicador Local (sin ella, la de su instalación).
+  setColibriUrlSource(() => getConfig().colibriUrl)
   // Instalador del cliente de escritorio que este servidor ofrece a sus clientes (se publica con npm run publicar-cliente).
   setClientReleaseDir(join(app.getPath('userData'), 'client-release'))
   setFsAccess({

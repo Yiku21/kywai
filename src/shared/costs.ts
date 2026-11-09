@@ -63,7 +63,7 @@ const PROVIDER_DEFAULT_MODEL: Partial<Record<ProviderKind, string>> = {
   gemini: 'gemini-3.8-flash'
 }
 
-const LOCAL_PROVIDERS: ProviderKind[] = ['ollama', 'lmstudio']
+const LOCAL_PROVIDERS: ProviderKind[] = ['ollama', 'lmstudio', 'colibri']
 
 /** Grupo de cuota de fábrica de cada proveedor (para las llamadas de becarios y agentes que ya no existen). */
 const PROVIDER_GROUP: Partial<Record<ProviderKind, string>> = {
@@ -72,7 +72,8 @@ const PROVIDER_GROUP: Partial<Record<ProviderKind, string>> = {
   gemini: 'google',
   muse: 'meta',
   ollama: 'local',
-  lmstudio: 'local'
+  lmstudio: 'local',
+  colibri: 'local'
 }
 
 export function normModel(model: string | undefined): string {

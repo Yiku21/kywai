@@ -36,6 +36,7 @@ export const PROVIDER_LABEL: Record<ProviderKind, string> = {
   qwen: 'Qwen Code',
   ollama: t('Ollama · local'),
   lmstudio: 'LM Studio · local',
+  colibri: 'Colibri · local',
   hermes: 'Nous Research · Hermes Agent',
   muse: 'Meta · Muse Code',
   cli: t('Agente conectado · tu suscripción')
