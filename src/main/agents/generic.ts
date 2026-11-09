@@ -27,7 +27,7 @@ export function expandArgs(template: string[], vars: Record<string, string>): st
 /** Los argumentos de una consulta: base + (solo lectura al planificar, o aprobar todo con acceso completo) + modelo. */
 export function genericArgs(
   spec: CliAgentSpec,
-  opts: { mode: 'plan' | 'work'; access?: 'full' | 'project'; model: string },
+  opts: { mode: 'plan' | 'work'; access?: 'full' | 'project' | 'ask'; model: string },
   vars: { prompt: string; promptFile: string }
 ): string[] {
   const template = [...spec.args]

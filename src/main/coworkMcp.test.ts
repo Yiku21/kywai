@@ -9,7 +9,7 @@ const env = vi.hoisted(() => ({ root: '' }))
 vi.mock('electron', () => ({ app: { isPackaged: false, getAppPath: () => env.root, getPath: () => env.root } }))
 
 import { loadConfig } from './config'
-import { initInbox, listInbox } from './inbox'
+import { actInbox, initInbox, listInbox } from './inbox'
 import { memoryOf } from './memory'
 import * as store from './projects'
 import { initSkills, readSkill, skillPromptLines } from './skills'
@@ -82,6 +82,65 @@ describe('servidor MCP de kywai', () => {
     const r = await talk({ AICW_MCP_TOKEN: 'f'.repeat(48) }, [{ id: 1, method: 'tools/list' }, { id: 2, method: 'tools/call', params: { name: 'memoria_proyecto' } }])
     expect(r[1].error.message).toMatch(/terminó|token/)
     expect(r[2].result.isError).toBe(true)
+  })
+})
+
+describe('«Preguntarme antes»: Claude pide permiso y espera', () => {
+  it('pedir_permiso espera tu respuesta en «Te necesita» y «Permitir siempre en esta sesión» no vuelve a preguntar', async () => {
+    const launch = mcpForTask({ projectId, runId: 'r2', taskId: 't-perm', taskTitle: 'Instalar', agentId: 'claude', agentName: 'Claude', askPermission: true })!
+    const child = spawn(process.execPath, launch.args, { env: { ...process.env, ...launch.env }, stdio: ['pipe', 'pipe', 'inherit'] })
+    const out = new Map<number, any>()
+    const waiters = new Map<number, (m: any) => void>()
+    createInterface({ input: child.stdout }).on('line', (l) => {
+      const m = JSON.parse(l)
+      out.set(m.id, m)
+      waiters.get(m.id)?.(m)
+    })
+    const call = (id: number, method: string, params?: object): Promise<any> =>
+      new Promise((ok) => {
+        waiters.set(id, ok)
+        child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n')
+      })
+    const tools = await call(1, 'tools/list')
+    expect(tools.result.tools.map((t: { name: string }) => t.name)).toContain('pedir_permiso')
+
+    const asked = call(2, 'tools/call', { name: 'pedir_permiso', arguments: { tool_name: 'Bash', input: { command: 'npm install ffmpeg-static' } } })
+    let item = undefined as ReturnType<typeof listInbox>[number] | undefined
+    for (let i = 0; i < 100 && !item; i++) {
+      await new Promise((r) => setTimeout(r, 20))
+      item = listInbox().find((x) => x.kind === 'permission' && x.taskId === 't-perm' && !x.resolvedAt)
+    }
+    expect(item?.actions.map((a) => a.id)).toEqual(['perm-deny', 'perm-once', 'perm-session'])
+    expect(item?.detail).toContain('npm install ffmpeg-static')
+    expect(out.has(2)).toBe(false)
+    await actInbox(item!.id, 'perm-session')
+    expect(JSON.parse((await asked).result.content[0].text)).toEqual({ behavior: 'allow', updatedInput: { command: 'npm install ffmpeg-static' } })
+
+    // El mismo programa ya está permitido en esta sesión: no se pregunta otra vez.
+    const again = await call(3, 'tools/call', { name: 'pedir_permiso', arguments: { tool_name: 'Bash', input: { command: 'npm run build' } } })
+    expect(JSON.parse(again.result.content[0].text).behavior).toBe('allow')
+
+    // Otro programa sí se pregunta; «Denegar» le dice que no lo haga.
+    const other = call(4, 'tools/call', { name: 'pedir_permiso', arguments: { tool_name: 'Bash', input: { command: 'rm -rf build' } } })
+    let second = undefined as ReturnType<typeof listInbox>[number] | undefined
+    for (let i = 0; i < 100 && !second; i++) {
+      await new Promise((r) => setTimeout(r, 20))
+      second = listInbox().find((x) => x.kind === 'permission' && x.taskId === 't-perm' && !x.resolvedAt)
+    }
+    await actInbox(second!.id, 'perm-deny')
+    expect(JSON.parse((await other).result.content[0].text)).toMatchObject({ behavior: 'deny' })
+    child.kill()
+    releaseMcp(launch)
+  })
+
+  it('sin «Preguntarme antes» la herramienta no existe y Claude no recibe --permission-prompt-tool', () => {
+    const launch = mcpForTask({ projectId, runId: 'r1', taskId: 't1', taskTitle: 'Tarea', agentId: 'claude', agentName: 'Claude' })!
+    expect(claudeArgs('', 'work', 'project', undefined, undefined, { name: 'ai-cowork', ...launch })).not.toContain('--permission-prompt-tool')
+    const a = claudeArgs('', 'work', 'ask', undefined, undefined, { name: 'ai-cowork', ...launch })
+    expect(a[a.indexOf('--permission-prompt-tool') + 1]).toBe('mcp__ai-cowork__pedir_permiso')
+    expect(a[a.indexOf('--permission-mode') + 1]).toBe('acceptEdits')
+    expect(() => buildCommandLine('claude', a)).not.toThrow()
+    releaseMcp(launch)
   })
 })
 

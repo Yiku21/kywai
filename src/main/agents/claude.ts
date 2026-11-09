@@ -44,6 +44,8 @@ export function claudeArgs(model: string, mode: 'plan' | 'work', access: AgentAc
   if (effort) args.push('--effort', effort)
   args.push('--permission-mode', mode === 'plan' ? 'plan' : access === 'full' ? 'bypassPermissions' : 'acceptEdits')
   args.push('--strict-mcp-config')
+  // «Preguntarme antes»: lo que no tiene permitido se lo pregunta a kywai (que te lo pregunta a ti) en vez de denegarse.
+  if (mode === 'work' && access === 'ask' && mcp && MCP_NAME_RE.test(mcp.name) && mcp.configFile) args.push('--permission-prompt-tool', `mcp__${mcp.name}__pedir_permiso`)
   // El servidor de kywai y los que el usuario encendió para Claude en Ajustes › Extensiones (nunca los de su propia
   // configuración de Claude), con sus herramientas permitidas sin preguntar.
   // La configuración va en un archivo: por la consola solo pasan argumentos de texto sencillo (sin comillas ni llaves).
@@ -337,7 +339,12 @@ export function runClaude(opts: RunAgentOptions): Promise<RunAgentResult> {
     signal: opts.signal,
     parser: createClaudeParser(opts),
     onStall: (text) => opts.onActivity?.(text, 'tool'),
-    // La variable manda sobre --effort: se fija también para que no gane una que el usuario tenga puesta.
-    env: opts.effort ? { CLAUDE_CODE_EFFORT_LEVEL: opts.effort } : undefined
+    isWaitingUser: opts.isWaitingUser,
+    env: {
+      // La variable manda sobre --effort: se fija también para que no gane una que el usuario tenga puesta.
+      ...(opts.effort ? { CLAUDE_CODE_EFFORT_LEVEL: opts.effort } : {}),
+      // Pedir permiso espera tu respuesta: que Claude no dé la herramienta por colgada (24 h).
+      ...(opts.access === 'ask' ? { MCP_TOOL_TIMEOUT: String(24 * 60 * 60 * 1000) } : {})
+    }
   })
 }

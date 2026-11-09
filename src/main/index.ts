@@ -773,7 +773,7 @@ function registerIpc(): void {
     await refreshQuotas()
   })
   handle('setAgentAccess', (access: unknown) => {
-    if (access !== 'full' && access !== 'project') throw new Error(tr('Permiso no válido'))
+    if (access !== 'full' && access !== 'project' && access !== 'ask') throw new Error(tr('Permiso no válido'))
     setAgentAccess(access)
     emit({ kind: 'config.updated', config: getConfig() })
   })
