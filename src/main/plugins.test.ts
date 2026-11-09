@@ -218,6 +218,48 @@ describe('plugins', () => {
     expect(r).toMatchObject({ kind: 'plugin', name: 'notas' })
   })
 
+  it('repositorio enorme: baja solo la carpeta del plugin, archivo a archivo', async () => {
+    // codeload dice que el .tar.gz pasa del límite: no se descarga entero.
+    web['https://codeload.github.com/acme/kit/tar.gz/HEAD'] = 'GRANDE'
+    const base = (async (input: string | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url === 'https://codeload.github.com/acme/kit/tar.gz/HEAD') return new Response('x', { status: 200, headers: { 'content-length': String(500 * 1024 * 1024) } })
+      if (url === 'https://api.github.com/repos/acme/kit/contents/plugins?ref=HEAD') return new Response(JSON.stringify([{ name: 'notas', type: 'dir', sha: 'arbolnotas' }]))
+      if (url === 'https://api.github.com/repos/acme/kit/git/trees/arbolnotas?recursive=1') {
+        const tree = Object.keys(PLUGIN).filter((k) => k.startsWith('plugins/notas/')).map((k) => ({ path: k.slice('plugins/notas/'.length), type: 'blob', size: 10 }))
+        return new Response(JSON.stringify({ tree }))
+      }
+      const raw = 'https://raw.githubusercontent.com/acme/kit/HEAD/'
+      if (url.startsWith(raw)) {
+        const key = decodeURIComponent(url.slice(raw.length))
+        return PLUGIN[key] !== undefined ? new Response(PLUGIN[key]) : new Response('no', { status: 404 })
+      }
+      if (init?.method === 'POST') return new Response('', { status: url.includes('login') ? 401 : 200 })
+      return new Response('no', { status: 404 })
+    }) as typeof fetch
+    __setFetchForTests(base)
+    const r = await addPluginLink('https://github.com/acme/kit/tree/HEAD/plugins/notas')
+    expect(r).toMatchObject({ kind: 'plugin', name: 'notas' })
+    expect(readFileSync(join(root, 'workspace', 'habilidades', 'resumir', 'scripts', 'r.py'), 'utf8')).toBe('print(1)')
+  })
+
+  it('un plugin de vídeo deja sus habilidades en la carpeta del estudio de vídeo', async () => {
+    const video: Record<string, string> = {
+      'plugins/clips/.claude-plugin/plugin.json': JSON.stringify({ name: 'clips', description: 'Make videos with HyperFrames' }),
+      'plugins/clips/skills/montar/SKILL.md': SKILL('montar')
+    }
+    web['https://codeload.github.com/acme/kit/tar.gz/HEAD'] = gzipSync(tar(video))
+    const r = await addPluginLink('https://github.com/acme/kit/tree/HEAD/plugins/clips')
+    expect(r.plugins[0].video).toBe(true)
+    const ws = join(root, 'workspace', 'habilidades')
+    expect(existsSync(join(ws, 'video', 'montar', 'SKILL.md'))).toBe(true)
+    expect(existsSync(join(ws, 'montar'))).toBe(false)
+    // No llega a las tareas normales, y al quitarlo se borra de la carpeta de vídeo.
+    expect(listSkills().map((x) => x.name)).not.toContain('montar')
+    removePlugin('clips')
+    expect(existsSync(join(ws, 'video', 'montar'))).toBe(false)
+  })
+
   it('busca en todos los catálogos y dice cuál falla', async () => {
     await addPluginLink('acme/kit')
     const r = await pluginCatalog('notas')

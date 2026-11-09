@@ -281,6 +281,8 @@ export interface SkillCatalogItem {
 export interface SkillInfo {
   name: string
   description: string
+  /** Es de vídeo: está en la carpeta del estudio de vídeo y la usa el guion de los vídeos. */
+  video?: boolean
 }
 
 /** De dónde se descarga un plugin: una carpeta de un repositorio de GitHub. */
@@ -321,6 +323,8 @@ export interface PluginInfo {
   /** Lo que traía y kywai no usa (hooks, servidores de lenguaje, servidores que piden iniciar sesión…). */
   skipped: string[]
   installedAt: string
+  /** Es de vídeo: sus habilidades van a la carpeta del estudio de vídeo. */
+  video?: boolean
 }
 
 /** Cuándo salta un hook de un mod. */

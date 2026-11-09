@@ -5,6 +5,7 @@
 // la herramienta «leer_habilidad» de kywai (o abriendo el archivo).
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { VIDEO_SKILLS_FOLDER } from '@shared/videoExtensions'
 
 export interface Skill {
   name: string
@@ -51,6 +52,23 @@ export function initSkills(workspaceRoot: string): void {
 
 export function skillsDir(): string {
   return root
+}
+
+/** Habilidades de vídeo (habilidades/video): solo las ve el agente que escribe el guion de un vídeo. */
+export function videoSkillsDir(): string {
+  return root ? join(root, VIDEO_SKILLS_FOLDER) : ''
+}
+
+/** Las habilidades de vídeo en el encargo del guion (con su ruta, para leerlas). */
+export function videoSkillPromptLines(): string[] {
+  const list = listSkills(videoSkillsDir())
+  if (!list.length) return []
+  return [
+    '',
+    '## Habilidades de vídeo instaladas',
+    'Guías de vídeo que el usuario instaló. Si alguna encaja con este vídeo (estilo, ritmo, guion, tipo de vídeo), léela antes y aplica lo que sirva al guion:',
+    ...list.map((s) => `- ${s.name}: ${(s.description || '(sin descripción)').slice(0, MAX_DESC_IN_PROMPT)} — ${s.file}`)
+  ]
 }
 
 /** Encabezado «--- name / description ---» (lo demás se ignora). */

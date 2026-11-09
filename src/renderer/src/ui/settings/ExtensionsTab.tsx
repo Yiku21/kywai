@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BadgeCheck, BookOpen, Clapperboard, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
 import type { ProviderKind, VideoStudioStatus } from '@shared/types'
+import { isVideoExtension } from '@shared/videoExtensions'
 import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpRuntime, type McpServerInfo, type McpServerInput, type ModInfo, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
@@ -552,7 +553,12 @@ function SkillsSection() {
 
   const installed = (r: { installed: string[]; skills: SkillInfo[] }): void => {
     setSkills(r.skills)
-    setDone(t('Instalada: {list}', { list: r.installed.join(', ') }))
+    const video = r.skills.filter((x) => x.video && r.installed.includes(x.name)).map((x) => x.name)
+    setDone(
+      video.length === r.installed.length
+        ? t('Instalada en el estudio de vídeo: {list}', { list: r.installed.join(', ') })
+        : t('Instalada: {list}', { list: r.installed.join(', ') })
+    )
   }
 
   return (
@@ -563,12 +569,13 @@ function SkillsSection() {
       <ul className={s.list}>
         {skills.map((x) => (
           <li key={x.name} className={s.item}>
-            <span className={s.icon} aria-hidden="true">
-              <BookOpen size={18} />
+            <span className={s.icon} aria-hidden="true" title={x.video ? t('De vídeo: está en la carpeta del estudio de vídeo y la usa el guion de los vídeos') : undefined}>
+              {x.video ? <Clapperboard size={18} /> : <BookOpen size={18} />}
             </span>
             <span className={s.text}>
               <span className={s.name}>{x.name}</span>
               {x.description && <span className={s.desc}>{x.description}</span>}
+              {x.video && <span className={s.status}>{t('En el estudio de vídeo')}</span>}
             </span>
             <span className={s.tools}>
               <button
@@ -721,8 +728,8 @@ function PluginsSection() {
       <ul className={s.list}>
         {plugins.map((p) => (
           <li key={p.name} className={s.item}>
-            <span className={s.icon} aria-hidden="true">
-              <Package size={18} />
+            <span className={s.icon} aria-hidden="true" title={p.video ? t('De vídeo: sus habilidades están en la carpeta del estudio de vídeo') : undefined}>
+              {p.video ? <Clapperboard size={18} /> : <Package size={18} />}
             </span>
             <span className={s.text}>
               <span className={s.name}>
@@ -869,8 +876,25 @@ function VideoSection() {
   const [log, setLog] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
+  const [ext, setExt] = useState<{ kind: 'skill' | 'plugin' | 'mcp'; name: string; desc: string }[]>([])
+
   useEffect(() => {
-    if (live) api!.videoStudioStatus().then(setStatus, (e) => setError(errorText(e)))
+    if (!live) return
+    api!.videoStudioStatus().then(setStatus, (e) => setError(errorText(e)))
+    // Lo instalado que es de vídeo: habilidades (carpeta del estudio), plugins y servidores MCP.
+    void Promise.all([api!.listSkills(), api!.listPlugins(), api!.listMcpServers()]).then(
+      ([sk, pl, mcp]) => {
+        const videoPlugins = new Set(pl.filter((p) => p.video).map((p) => p.name))
+        setExt([
+          ...sk.filter((x) => x.video).map((x) => ({ kind: 'skill' as const, name: x.name, desc: x.description })),
+          ...pl.filter((p) => p.video).map((p) => ({ kind: 'plugin' as const, name: p.title, desc: p.description })),
+          ...mcp
+            .filter((m) => (m.plugin && videoPlugins.has(m.plugin)) || isVideoExtension(m.id, m.title, m.command, (m.args ?? []).join(' '), m.url))
+            .map((m) => ({ kind: 'mcp' as const, name: m.title, desc: m.agents.length ? t('Servidor MCP encendido') : t('Servidor MCP apagado: enciéndelo en «Servidores MCP»') }))
+        ])
+      },
+      () => undefined
+    )
   }, [live])
 
   const install = (): void => {
@@ -946,6 +970,28 @@ function VideoSection() {
         </p>
       )}
       {log.length > 0 && <pre className={s.mono}>{log.join('\n')}</pre>}
+
+      <span className={s.section}>{t('Extensiones de vídeo')}</span>
+      <p className={s.muted}>
+        {t('Las habilidades, plugins y servidores MCP de vídeo que instales en las otras pestañas vienen aquí solos: sus habilidades se guardan en la carpeta del estudio (habilidades/video) y el agente que escribe el guion de cada vídeo las lee.')}
+      </p>
+      {ext.length === 0 ? (
+        <p className={s.muted}>{t('Aún no has instalado ninguna.')}</p>
+      ) : (
+        <ul className={s.list}>
+          {ext.map((x) => (
+            <li key={`${x.kind}:${x.name}`} className={s.item}>
+              <span className={s.icon} aria-hidden="true">
+                {x.kind === 'skill' ? <BookOpen size={18} /> : x.kind === 'plugin' ? <Package size={18} /> : <Server size={18} />}
+              </span>
+              <span className={s.text}>
+                <span className={s.name}>{x.name}</span>
+                {x.desc && <span className={s.desc}>{x.desc}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   )
 }

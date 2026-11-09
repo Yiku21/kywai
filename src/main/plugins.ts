@@ -15,7 +15,8 @@ import { gunzipSync } from 'node:zlib'
 import { MCP_ID_RE, MCP_RESERVED_IDS, mcpIdFrom, type McpServerInput, type PluginCatalogItem, type PluginInfo, type PluginSource } from '@shared/extensions'
 import { tr } from '@shared/i18n'
 import { mcpRegistry, removeMcp, syncGemini } from './extensions'
-import { skillsDir } from './skills'
+import { skillsDir, videoSkillsDir } from './skills'
+import { isVideoExtension, VIDEO_SKILLS_FOLDER } from '@shared/videoExtensions'
 
 /** Catálogos que salen siempre (los de Anthropic). */
 export const DEFAULT_MARKETPLACES = ['anthropics/claude-plugins-official', 'anthropics/knowledge-work-plugins']
@@ -91,8 +92,14 @@ export async function downloadFolder(src: PluginSource): Promise<Map<string, Buf
     throw new Error(tr('No se pudo descargar {repo} de GitHub', { repo: src.repo }))
   }
   if (!r.ok) throw new Error(tr('GitHub respondió con un error al descargar {repo} ({code})', { repo: src.repo, code: r.status }))
+  const len = Number(r.headers.get('content-length') ?? 0)
+  // Repositorio enorme (p. ej. un monorepo): solo la carpeta del plugin, archivo a archivo.
+  if (len > MAX_DOWNLOAD) {
+    void r.body?.cancel()
+    return downloadFolderByFiles(src)
+  }
   const gz = Buffer.from(await r.arrayBuffer())
-  if (gz.length > MAX_DOWNLOAD) throw new Error(tr('El repositorio es demasiado grande'))
+  if (gz.length > MAX_DOWNLOAD) return downloadFolderByFiles(src)
   const all = readTar(gunzipSync(gz, { maxOutputLength: MAX_DOWNLOAD * 4 }))
   // Todo va dentro de «repo-<versión>/»: se quita, y se queda solo la carpeta del plugin.
   const base = src.path ? `${src.path.replace(/^\.?\/+|\/+$/g, '')}/` : ''
@@ -104,6 +111,50 @@ export async function downloadFolder(src: PluginSource): Promise<Map<string, Buf
     if (!inner || inner.split('/').some((p) => p === '..' || p === '.git')) continue
     out.set(inner, data)
   }
+  if (!out.size) throw new Error(tr('No se encontró el plugin en {repo}', { repo: src.repo }))
+  return out
+}
+
+/**
+ * La carpeta del plugin sin bajar el repositorio entero: su lista de archivos con la API de GitHub y cada archivo de
+ * raw.githubusercontent.com. Para repositorios que pasan del límite de descarga.
+ */
+async function downloadFolderByFiles(src: PluginSource): Promise<Map<string, Buffer>> {
+  const base = src.path.replace(/^\.?\/+|\/+$/g, '')
+  const api = `https://api.github.com/repos/${src.repo}`
+  const json = async (url: string): Promise<unknown> => {
+    const r = await fetcher(url, { headers: { 'user-agent': 'kywai', accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(60_000) })
+    if (!r.ok) throw new Error(tr('GitHub respondió con un error al descargar {repo} ({code})', { repo: src.repo, code: r.status }))
+    return r.json()
+  }
+  // El árbol solo de la carpeta del plugin (el del repositorio entero puede venir cortado).
+  let sha = src.ref
+  if (base) {
+    const parent = base.includes('/') ? base.slice(0, base.lastIndexOf('/')) : ''
+    const list = (await json(`${api}/contents/${parent.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(src.ref)}`)) as { name?: string; type?: string; sha?: string }[]
+    const entry = Array.isArray(list) ? list.find((x) => x.type === 'dir' && x.name === base.split('/').pop()) : undefined
+    if (!entry?.sha) throw new Error(tr('No se encontró el plugin en {repo}', { repo: src.repo }))
+    sha = entry.sha
+  }
+  const tree = (await json(`${api}/git/trees/${encodeURIComponent(sha)}?recursive=1`)) as { tree?: { path?: string; type?: string; size?: number }[] }
+  const blobs = (tree.tree ?? []).filter((x) => x.type === 'blob' && typeof x.path === 'string' && (x.size ?? 0) <= MAX_FILE_BYTES && !x.path.split('/').some((p) => p === '..' || p === '.git'))
+  if (blobs.length > MAX_FILES) throw new Error(tr('El plugin es demasiado grande'))
+  const out = new Map<string, Buffer>()
+  let total = 0
+  let next = 0
+  const worker = async (): Promise<void> => {
+    while (next < blobs.length) {
+      const b = blobs[next++]
+      const path = (base ? `${base}/${b.path}` : b.path!).split('/').map(encodeURIComponent).join('/')
+      const r = await fetcher(`https://raw.githubusercontent.com/${src.repo}/${encodeURIComponent(src.ref)}/${path}`, { headers: { 'user-agent': 'kywai' }, signal: AbortSignal.timeout(60_000) })
+      if (!r.ok) throw new Error(tr('No se pudo descargar {repo} de GitHub', { repo: src.repo }))
+      const data = Buffer.from(await r.arrayBuffer())
+      total += data.length
+      if (total > MAX_PLUGIN_BYTES) throw new Error(tr('El plugin es demasiado grande'))
+      out.set(b.path!, data)
+    }
+  }
+  await Promise.all([worker(), worker(), worker(), worker()])
   if (!out.size) throw new Error(tr('No se encontró el plugin en {repo}', { repo: src.repo }))
   return out
 }
@@ -351,6 +402,9 @@ export async function installFiles(files: Map<string, Buffer>, source: PluginSou
   let total = 0
   for (const b of files.values()) total += b.length
   if (total > MAX_PLUGIN_BYTES) throw new Error(tr('El plugin es demasiado grande'))
+  // Los plugins de vídeo dejan sus habilidades en la carpeta del estudio de vídeo (las usa el guion de los vídeos).
+  const video = isVideoExtension(plan.name, plan.title, plan.description)
+  const skillsTarget = video ? join(opts.skills, VIDEO_SKILLS_FOLDER) : opts.skills
   const reg = readReg()
   const previous = reg.plugins.find((p) => p.name === plan.name)
   // Al reinstalar, sus servidores MCP se conservan (con sus claves y sus agentes) si siguen en el plugin.
@@ -365,8 +419,8 @@ export async function installFiles(files: Map<string, Buffer>, source: PluginSou
   const owned = new Set(reg.plugins.flatMap((p) => p.skills))
   const place = (wanted: string): string => {
     let n = skillName(wanted)
-    if (existsSync(join(opts.skills, n)) || skills.includes(n) || owned.has(n)) n = skillName(`${plan.name}-${wanted}`)
-    for (let i = 2; existsSync(join(opts.skills, n)) || skills.includes(n); i++) n = skillName(`${plan.name}-${wanted}-${i}`)
+    if (existsSync(join(skillsTarget, n)) || skills.includes(n) || owned.has(n)) n = skillName(`${plan.name}-${wanted}`)
+    for (let i = 2; existsSync(join(skillsTarget, n)) || skills.includes(n); i++) n = skillName(`${plan.name}-${wanted}-${i}`)
     return n
   }
   for (const dir of plan.skillDirs) {
@@ -375,7 +429,7 @@ export async function installFiles(files: Map<string, Buffer>, source: PluginSou
     const name = place(frontmatter(md).name || dir.split('/').pop() || plan.name)
     const prefix = dir ? `${dir}/` : ''
     const own = [...files].filter(([p]) => p.startsWith(prefix) && (dir || !p.includes('/') || p.startsWith('scripts/') || p.startsWith('references/'))).map(([p, b]): [string, Buffer] => [p.slice(prefix.length), b])
-    writeFolder(join(opts.skills, name), own)
+    writeFolder(join(skillsTarget, name), own)
     skills.push(name)
   }
   const fromMd = (path: string, kind: 'command' | 'agent'): void => {
@@ -391,7 +445,7 @@ export async function installFiles(files: Map<string, Buffer>, source: PluginSou
         ? tr('Es una orden del plugin {plugin}. Donde ponga $ARGUMENTS van los detalles de la petición.', { plugin: plan.title })
         : tr('Es un subagente del plugin {plugin}: sigue estas instrucciones como si fueras él.', { plugin: plan.title })
     const skill = `---\nname: ${name}\ndescription: ${JSON.stringify(desc)}\n---\n\n> ${note}\n\n${body(text).trim()}\n`
-    writeFolder(join(opts.skills, name), [['SKILL.md', Buffer.from(skill, 'utf8')]])
+    writeFolder(join(skillsTarget, name), [['SKILL.md', Buffer.from(skill, 'utf8')]])
     skills.push(name)
   }
   for (const p of plan.commands) fromMd(p, 'command')
@@ -442,7 +496,8 @@ export async function installFiles(files: Map<string, Buffer>, source: PluginSou
     skills,
     mcp,
     skipped,
-    installedAt: new Date().toISOString()
+    installedAt: new Date().toISOString(),
+    ...(video ? { video: true } : {})
   }
   const fresh = readReg()
   writeReg({ ...fresh, plugins: [...fresh.plugins.filter((p) => p.name !== info.name), info] })
@@ -467,7 +522,7 @@ async function needsLogin(url: string): Promise<boolean> {
 
 /** Quita lo que trajo un plugin (sus habilidades, sus servidores y sus archivos). No toca el registro. */
 function uninstall(p: PluginInfo, keepMcp = false): void {
-  const dir = skillsDir()
+  const dir = p.video ? videoSkillsDir() : skillsDir()
   for (const s of p.skills) {
     const abs = dir ? safeJoin(dir, s) : null
     if (abs) rmSync(abs, { recursive: true, force: true })
