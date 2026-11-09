@@ -69,6 +69,7 @@ import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, rem
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
 import { parseDirect } from '@shared/directMessage'
+import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
 
@@ -1291,6 +1292,23 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     pushMessage({ ...base, id: randomUUID(), ...(input.clientMessageId ? { clientMessageId: input.clientMessageId } : {}), author: { type: 'user' }, text })
     const reply = routineCommandReply(projectId, text.trim())
     pushMessage({ ...base, id: randomUUID(), author: { type: 'system' }, text: reply.text, ...(reply.routine ? { routine: reply.routine } : {}) })
+    return { runId }
+  }
+
+  // «/recuerda …» que llega como mensaje (Órbita, el MCP…): se anota en la memoria del proyecto y se contesta aquí,
+  // sin gastar una llamada a Hermes (el escritorio lo hace él mismo).
+  const remember = !routine && !atts.length ? REMEMBER_COMMAND.exec(text.trim()) : null
+  if (remember) {
+    const runId = randomUUID()
+    const base = { projectId, runId, createdAt: Date.now() }
+    pushMessage({ ...base, id: randomUUID(), ...(input.clientMessageId ? { clientMessageId: input.clientMessageId } : {}), author: { type: 'user' }, text })
+    const entry = addMemory(projectId, rememberInput(remember[2]), { status: 'confirmed', by: 'user', byName: 'Tú' })
+    pushMessage({
+      ...base,
+      id: randomUUID(),
+      author: { type: 'system' },
+      text: entry ? tr('Anotado en la memoria del proyecto ({id}, confirmado): {text}', { id: entry.id, text: entry.text }) : tr('Eso ya estaba en la memoria.')
+    })
     return { runId }
   }
 

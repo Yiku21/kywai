@@ -6048,6 +6048,10 @@
           "routineProposals": {
             "type": "boolean",
             "description": "Tarjeta «Crear rutina» de Hermes: POST /messages/{messageId}/routine-proposal/create y …/dismiss."
+          },
+          "chatCommands": {
+            "type": "boolean",
+            "description": "Órdenes del chat: «/recuerda …» enviado como mensaje se anota en la memoria del proyecto y la instantánea trae modCommands (las órdenes «/…» de los mods encendidos)."
           }
         },
         "required": [
@@ -6146,6 +6150,31 @@
               "$ref": "#/components/schemas/TaskTemplate"
             },
             "description": "Plantillas de tareas de todos los proyectos (filtrar por projectId). Los cambios llegan con el evento templates.updated ({templates})."
+          },
+          "modCommands": {
+            "type": "array",
+            "description": "Las órdenes «/…» de los mods encendidos, para la lista que sale al escribir «/» (las de kywai ya las sabe la app).",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "mod": {
+                  "type": "string",
+                  "description": "Nombre del mod que la trae."
+                }
+              },
+              "required": [
+                "name",
+                "description",
+                "mod"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
