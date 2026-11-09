@@ -743,7 +743,8 @@ documentación no confirma y pueden necesitar ajustes.
   que macOS pide para mostrar esas ventanas, y se firma con un certificado propio de este Mac (ver «Firma en Mac»)
   para que los permisos no se pierdan al actualizar. Riesgo: un agente que se equivoque, o un texto malicioso que lea
   en una web, puede tocar cualquier archivo del Mac sin que nadie lo pare.
-- **Si un agente no puede con una tarea** (error o «BLOQUEADA»), la intenta otro una vez antes de darla por fallida:
+- **Si un agente no puede con una tarea** (error, o «BLOQUEADA» sin nada hecho), la intenta otro una vez antes de
+  darla por fallida (una «BLOQUEADA» con algo hecho va a «Te necesita»: ver «Tareas bloqueadas»):
   un becario se la devuelve a su jefe y, si no, pasa al compañero más adecuado. Si la tarea no es fácil, el relevo
   nunca es el modelo local (es lento y ligero): va a otro agente fuerte y, si no hay ninguno libre, el mensaje lo dice
   en vez de pasársela a quien casi seguro también fallará. Para elegirlo cuentan las fortalezas y «lo que conviene no
@@ -829,6 +830,8 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
   aparte o una tarea que **no se pudo hacer** («Deshacer» deja sus archivos como estaban).
 - **Tareas en pausa**: lo que quedó a medias al cerrarse o reiniciar el servidor (o al detenerlo desde el móvil),
   con «Reanudar» (sigue donde se quedó) y «Quitar» (no se reanudará).
+- **Una tarea bloqueada** (ver [abajo](#tareas-bloqueadas-le-falta-algo-no-es-un-error)): el agente dijo que le falta
+  algo para terminarla. «Darla por buena así», «Contestarle en el chat» o «Pasársela a otro agente».
 - **El presupuesto de API** del mes, al llegar al 80 % y al pasarlo.
 
 Solo cuenta lo que espera algo de ti. **Lo terminado no va aquí**: la última petición acabada de cada proyecto sale
@@ -844,6 +847,34 @@ en el servidor).
 Tocar el título lleva a su proyecto. Los avisos se cierran solos cuando ya no hacen falta (el plan se aprueba,
 la tarea termina o el agente vuelve a hablar). La lista se guarda en `inbox.json` de la carpeta de trabajo;
 la API del móvil la da en `GET /inbox` y `POST /inbox/{id}/{acción}`, y avisa con el evento `inbox.updated`.
+
+### Tareas bloqueadas: le falta algo, no es un error
+
+Cuando un agente empieza su respuesta con «BLOQUEADA: …» es que le falta algo que no puede conseguir solo (una
+herramienta, un dato, acceso, una decisión tuya). Antes kywai lo trataba como si el agente se hubiera roto: tarjeta en
+rojo con «Error» y «Reiniciar agente», el motivo cortado a 400 caracteres y lo que sí había hecho (por ejemplo, dos
+vídeos de prueba) sin salir en el chat. Ahora:
+
+- **El agente no se pone en error.** Queda «Disponible» y su tarjeta del 3D lleva un aviso ámbar «Bloqueada: «tarea»»
+  con todo lo que explicó (se pliega si es largo, «Ver todo») y los enlaces a sus archivos, que se abren en la vista
+  previa. El aviso se quita al decidir qué hacer o cuando el agente empieza otra tarea.
+- **Si no dejó nada hecho**, otro agente lo intenta una vez como antes (quizá a él no le falta la herramienta): un
+  becario se la devuelve a su jefe y si no pasa al compañero más adecuado.
+- **Si dejó algo hecho, o nadie más puede**, lo hecho sale en el chat como **resultado parcial** (la tarea dice
+  «Bloqueada: te necesita» en ámbar, con sus archivos y su explicación entera), lo que dependía de ella espera y va a
+  «Te necesita» con tres botones:
+  - **Darla por buena así** (solo si dejó algo hecho): queda como hecha y sigue lo que dependía de ella (si la
+    petición ya había terminado, se reanuda).
+  - **Contestarle en el chat**: le respondes con lo que le faltaba y el coordinador le encarga la continuación al
+    mismo agente, que retoma su sesión.
+  - **Pasársela a otro agente**: la retoma el más adecuado, sabiendo quién se bloqueó y por qué, y continúa desde lo
+    que quedó hecho.
+- **No castiga al agente**: en «Cómo rinde cada agente» una tarea bloqueada no cuenta como «Falló o pasó a otro», y por
+  tanto tampoco para la mala racha.
+
+En un mensaje directo («@Codex …») «BLOQUEADA» no significa nada especial: la respuesta sale tal cual. En el código:
+`handleBlocked`, `blockedNeedsYou` y `settleBlocked` en `src/main/orchestrator.ts` (pruebas G, G3 y G4 de
+`orchestrator.check.ts`); el aviso de la tarjeta es `AgentRuntime.notice` y la tarea lleva `needsYou`.
 
 ### Criterio de aceptación y archivos de cada tarea
 
@@ -1954,7 +1985,7 @@ analizar; kywai lo deduce del título y la descripción de cada tarea, también 
 | Aprobada tras corregir | De las comprobadas, las que tuvieron fallos y acabaron con «CUMPLE» tras sus correcciones |
 | Sin superar la revisión | De las comprobadas, las que acabaron con fallos en su trabajo: se pasaron a otro agente o requieren intervención |
 | Sin verificar | De todas, las que el verificador no aprobó ni suspendió (no dio veredicto ni al pedírselo otra vez). No cuentan en las tres columnas de arriba |
-| Falló o pasó a otro | No pudo hacerla (error, «BLOQUEADA», sin cuota…) y la terminó otro agente o se dio por fallida |
+| Falló o pasó a otro | No pudo hacerla (error, sin cuota…) y la terminó otro agente o se dio por fallida. Una tarea «BLOQUEADA» (le faltaba algo) no cuenta aquí |
 | Tiempo y tokens (mediana) | Lo que suele tardar y gastar en una tarea, con su corrección incluida. «—» si no informa de tokens (Hermes, Muse, agentes de catálogo) |
 
 Cada cifra lleva su base («7 de 9»), y en rojo lo que conviene mirar (le sirvió menos del 60 %, corrigió el 40 % o

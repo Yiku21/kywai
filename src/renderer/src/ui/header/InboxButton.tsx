@@ -20,6 +20,7 @@ const KIND_LABEL: Record<string, string> = {
   conflict: t('Choque'),
   failed: t('Fallo'),
   paused: t('En pausa'),
+  blocked: t('Bloqueada'),
   done: t('Terminado'),
   budget: t('Presupuesto')
 }

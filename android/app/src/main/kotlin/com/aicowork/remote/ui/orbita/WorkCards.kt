@@ -80,6 +80,8 @@ fun WorkBlock(messageId: String, work: TaskWork, accent: Color, snapshot: Snapsh
         "stopped" -> if (task?.status == "pending" || task?.status == "blocked") t("En cola") else t("Detenida")
         "done" -> t("Hecha")
         "failed" -> t("No pudo hacerla")
+        // Le falta algo y espera tu decisión en «Te necesita»: no es un fallo.
+        "blocked" -> t("Bloqueada")
         else -> t("Detenida")
     }
     var open by rememberSaveable(messageId) { mutableStateOf(false) }

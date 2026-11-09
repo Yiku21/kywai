@@ -7292,9 +7292,10 @@
               "running",
               "done",
               "failed",
-              "stopped"
+              "stopped",
+              "blocked"
             ],
-            "description": "running solo es «trabajando» si la tarea sigue en marcha (tras reiniciar, stopped)."
+            "description": "running solo es «trabajando» si la tarea sigue en marcha (tras reiniciar, stopped). blocked: el agente dijo que le falta algo y espera tu decisión en la bandeja (no es un fallo; puede traer resultado parcial)."
           },
           "steps": {
             "type": "array",
@@ -8166,7 +8167,8 @@
               "failed",
               "paused",
               "done",
-              "budget"
+              "budget",
+              "blocked"
             ]
           },
           "title": {

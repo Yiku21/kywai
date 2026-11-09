@@ -215,7 +215,7 @@ function TraceWindow({ trace }: { trace: TraceView }) {
               {model && <span>{model}</span>}
               {task && (
                 <span className={s.status}>
-                  <TaskStatusIcon status={task.status} size={13} />
+                  <TaskStatusIcon status={task.status} needsYou={task.needsYou} size={13} />
                   {TASK_STATUS_LABEL[task.status]}
                 </span>
               )}

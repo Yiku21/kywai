@@ -370,7 +370,7 @@ function RatingRow({ m }: { m: ChatMessage }) {
 
 // ---------- Lo que cuenta un agente mientras trabaja ----------
 
-const WORK_STATE: Record<TaskWork['status'], string> = { running: t('Trabajando'), done: t('Hecha'), failed: t('No pudo hacerla'), stopped: t('Detenida') }
+const WORK_STATE: Record<TaskWork['status'], string> = { running: t('Trabajando'), done: t('Hecha'), failed: t('No pudo hacerla'), stopped: t('Detenida'), blocked: t('Bloqueada: te necesita') }
 
 const TOOL_ICON: Record<TraceTool, typeof Wrench> = {
   command: SquareTerminal,
@@ -459,7 +459,7 @@ function WorkBlock({ messageId, projectId, work, reduced }: { messageId: string;
           <TaskSeq seq={work.seq} />
           {work.title}
         </span>
-        <span className={cx(s.workState, work.status === 'failed' && s.workFailed)}>{state}</span>
+        <span className={cx(s.workState, work.status === 'failed' && s.workFailed, work.status === 'blocked' && s.workBlocked)}>{state}</span>
       </button>
       {!open && (!!note || !!files || live) && (
         <ul className={s.steps}>
@@ -946,7 +946,7 @@ function PlanBlock({ taskIds, runId, contract }: { taskIds: string[]; runId?: st
               <TaskSeq seq={task.seq} />
               {task.title}
             </span>
-            <TaskStatusIcon status={task.status} size={15} />
+            <TaskStatusIcon status={task.status} needsYou={task.needsYou} size={15} />
           </li>
         ))}
       </ul>

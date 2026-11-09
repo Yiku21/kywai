@@ -45,6 +45,12 @@ const run = (calls: UsageCall[], status: UsageRun['status'] = 'ok'): UsageRun =>
 })
 
 describe('calidad por agente', () => {
+  it('una tarea «BLOQUEADA» no cuenta como fallo del agente', () => {
+    const [q] = agentQuality([run([task('codex', 'b1', false, { blocked: true }), task('codex', 'b2', false)])])
+    expect(q.tasks).toBe(2)
+    expect(q.failed).toBe(1)
+  })
+
   it('cuenta tareas, 👍, verificación a la primera, correcciones, fallos y medianas', () => {
     const runs = [
       run([

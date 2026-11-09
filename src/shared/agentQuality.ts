@@ -78,6 +78,8 @@ interface Attempt {
   category?: TaskCategory
   ok: boolean
   cancelled: boolean
+  /** Dijo «BLOQUEADA» (le faltaba algo): no cuenta como fallo del agente. */
+  blocked: boolean
   /** Veredictos del verificador sobre su trabajo, en orden (uno por revisión: la primera y las de cada corrección). */
   verdicts: Array<'pass' | 'fail' | 'unverified'>
   rating?: 'up' | 'down'
@@ -117,12 +119,14 @@ function attempts(runs: UsageRun[], from: number, categoryOf?: (taskId: string) 
           category: c.category ?? categoryOf?.(c.taskId!),
           ok: false,
           cancelled: false,
+          blocked: false,
           verdicts: [],
           durationMs: 0,
           tokens: 0,
           noTokens: false
         }
         a.ok = c.ok
+        a.blocked = !c.ok && !!c.blocked
         // Registros antiguos sin «cancelled»: una llamada que no salió bien en una petición cancelada se canceló.
         a.cancelled = !c.ok && (!!c.cancelled || (c.cancelled === undefined && run.status === 'cancelled'))
         if (c.difficulty) a.difficulty = c.difficulty
@@ -165,7 +169,8 @@ function stats(list: Attempt[]): QualityStats {
   const passedAfterFix = verified.filter((a) => first(a) === 'fail' && final(a) === 'pass').length
   const reviewFailed = verified.filter((a) => final(a) === 'fail').length
   const unverified = list.filter((a) => a.verdicts.length && final(a) === 'unverified').length
-  const failed = list.filter((a) => !a.ok).length
+  // Bloquearse por algo que falta (y decirlo) no es fallar: no castiga al agente.
+  const failed = list.filter((a) => !a.ok && !a.blocked).length
   return {
     tasks: list.length,
     rated: rated.length,
