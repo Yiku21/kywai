@@ -64,6 +64,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Extensiones: catálogo de servidores MCP y de habilidades](#extensiones-catálogo-de-servidores-mcp-y-de-habilidades)
   - [Extensiones: plugins](#extensiones-plugins)
   - [Extensiones: mods](#extensiones-mods)
+  - [Todas las órdenes al escribir / o @](#todas-las-órdenes-al-escribir--o-)
   - [Plantillas de tareas: lo que repites, con un toque](#plantillas-de-tareas-lo-que-repites-con-un-toque)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
@@ -1588,6 +1589,37 @@ Si supera su tiempo máximo, kywai corta su árbol de procesos y espera al cierr
 descarga como los plugins) o la ruta de una carpeta del equipo donde corre kywai (para probar uno que estás
 haciendo; vuelve a instalarlo tras cambiarlo). Se guarda en `mods/<nombre>` de la carpeta de datos. «Apagar» lo deja
 instalado sin órdenes, hooks ni paneles; la papelera lo borra.
+
+### Todas las órdenes al escribir / o @
+
+Al escribir **«/»** al principio del cuadro del chat sale la lista de **todas** las órdenes que tienes, cada una con
+lo que hace a la derecha; si sigues escribiendo se filtra («/re» deja `/recuerda` y `/revisar-pr`). Con las flechas
+eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web y Órbita.
+
+| Orden | Lo que hace |
+|---|---|
+| `/video tema` | Crea un vídeo completo y te da solo el MP4 (ver «Crear vídeos con solo pedirlo») |
+| `/rutina cuándo: qué` | Programa una tarea a una hora o que se repita |
+| `/directo Agente mensaje` | Habla con un agente sin pasar por Hermes (lo mismo que `@Agente mensaje`) |
+| `/recuerda texto` | Guarda un dato en la memoria del proyecto (admite `decisión:`, `pendiente:`, `preferencia:`, `hecho:`) |
+| `/model` | Cambia el modelo de Hermes |
+| `/uso` | Mira cuánta cuota le queda a cada agente (también `/usage`, `/cuotas`) |
+| `/nuevo` | Empieza un chat nuevo en este proyecto (también `/new`, `/limpiar`) |
+| `/orden-de-plantilla` | Tus plantillas de tareas, con su nombre a la derecha |
+| `/orden-de-mod` | Las órdenes de los mods encendidos, con su descripción |
+
+Las que no llevan nada detrás (`/model`, `/uso`, `/nuevo`) se hacen nada más elegirlas; las demás dejan «/orden » en
+el cuadro para que escribas lo de detrás. Al escribir **«@»** sale la lista de agentes, cada uno con su modelo a la
+derecha, para hablarle directamente.
+
+Una plantilla o un mod con el nombre de una orden de kywai no sale en la lista (manda la de kywai). En Órbita,
+`/uso` abre «Uso y coste», `/nuevo` abre un chat nuevo y `/recuerda` lo anota el servidor (contesta en el chat, sin
+pasar por Hermes).
+
+**Para programadores.** La lista está en `src/shared/chatCommands.ts` (`BUILTIN_COMMANDS` y `commandSuggestions`) y
+su copia de Órbita en `android/.../orbita/ChatCommands.kt`: una orden nueva se añade en los dos. El snapshot móvil
+trae `modCommands` (las órdenes de los mods encendidos) y la capacidad `chatCommands`; `/recuerda …` enviado como
+mensaje lo resuelve el motor (`sendMessage` en `src/main/orchestrator.ts`).
 
 ### Plantillas de tareas: lo que repites, con un toque
 
