@@ -86,7 +86,7 @@ import { addMemory, deleteMemory, isMemoryKind, setInstructions, updateMemory } 
 import { initUpdater } from './updater'
 import * as store from './projects'
 import * as conversations from './conversations'
-import { importArchive, importLocal, initImports, previewArchive, scanImports } from './importChats'
+import { importArchive, importedIds, importLocal, initImports, previewArchive, scanImports } from './importChats'
 import { computeQuotas, initQuota, latestQuotas, recomputeQuotas, refreshQuotas, startQuotaTimer, stopQuota } from './quota'
 import { claudeAuthMethod, removeClaudeOverrides } from './quotaProbe'
 import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
@@ -506,6 +506,7 @@ function registerIpc(): void {
   }
   handle('scanImports', () => scanImports())
   handle('importLocal', (ids: unknown) => afterImport(importLocal(ids, getConfig().agents)))
+  handle('importedIds', (ids: unknown) => importedIds(ids))
   handle('previewArchive', (paths: unknown) => previewArchive(paths))
   handle('importArchive', (paths: unknown, choices?: unknown) => afterImport(importArchive(paths, getConfig().agents, choices)))
   ipcMain.handle('cowork:pickImportFile', async (e) => {

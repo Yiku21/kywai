@@ -11,6 +11,7 @@ import { basename, join } from 'node:path'
 import { contextMenuItems } from './contextMenu'
 import { verifyRelease, type SignedRelease } from './clientRelease'
 import { CLIENT_RELEASE_PUBLIC_KEY } from './clientReleaseKey'
+import { exportLocal, scanImports } from './importChats'
 import { SyncManager } from './syncManager'
 import { defaultWorkspaceRoot } from './config'
 import {
@@ -568,6 +569,27 @@ async function saveRemoteFolder(path: unknown): Promise<string | null> {
 
 // ---------- Arranque ----------
 
+// ---------- Importar las conversaciones de este equipo ----------
+
+/**
+ * Las sesiones de Claude Code, Codex y Hermes Desktop de este equipo (no del servidor) van al servidor: se leen aquí,
+ * se juntan en un JSON con sus imágenes y se suben como una exportación más (el servidor las importa con importArchive).
+ */
+async function sendImports(ids: unknown): Promise<string> {
+  if (!current) throw new Error(tr('Sin conexión con el servidor'))
+  const bundle = exportLocal(ids, hostname().replace(/\.local$/i, ''))
+  if (!bundle.conversations.length) throw new Error(tr('No había nada nuevo que importar.'))
+  const res = await fetch(`${current.server.origin}/api/import-upload?name=kywai-chats.json`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${current.token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(bundle),
+    signal: AbortSignal.timeout(10 * 60_000)
+  })
+  const data = (await res.json().catch(() => ({}))) as { path?: string; error?: string }
+  if (!res.ok || !data.path) throw new Error(data.error ?? tr('No se pudo subir el archivo'))
+  return data.path
+}
+
 function fromLocalPage(e: IpcMainInvokeEvent): boolean {
   return !!win && !win.isDestroyed() && e.sender === win.webContents && e.senderFrame?.url.startsWith('data:') === true
 }
@@ -691,6 +713,14 @@ function registerClientIpc(): void {
   ipcMain.handle('client:saveRemoteFolder', async (e, path: unknown) => {
     if (!fromServerPage(e)) throw new Error('No permitido')
     return saveRemoteFolder(path)
+  })
+  ipcMain.handle('client:importScan', (e) => {
+    if (!fromServerPage(e)) throw new Error('No permitido')
+    return scanImports()
+  })
+  ipcMain.handle('client:importSend', async (e, ids: unknown) => {
+    if (!fromServerPage(e)) throw new Error('No permitido')
+    return sendImports(ids)
   })
   ipcMain.handle('client:update', async (e) => (fromServerPage(e) ? checkUpdate() : null))
   ipcMain.handle('client:installUpdate', async (e) => {

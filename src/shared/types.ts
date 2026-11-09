@@ -1377,6 +1377,8 @@ export interface CoworkApi {
   scanImports(): Promise<ImportScan>
   /** Importa las sesiones elegidas de «En este equipo» (ids de scanImports). */
   importLocal(sessionIds: string[]): Promise<ImportResult>
+  /** De estas sesiones (de un cliente: «hermes:<id>»…), las que ya están importadas en el servidor. */
+  importedIds(ids: string[]): Promise<string[]>
   /** Importa un archivo exportado de ChatGPT o Claude.ai (el zip o su conversations.json), ya en el servidor. */
   /** Uno o varios archivos de la exportación (Claude.ai la manda partida en varios zips). `choices`: conversación de
    *  Claude.ai → uuid de su proyecto ('' = suelta), lo revisado con previewArchive; sin él, se deduce. */

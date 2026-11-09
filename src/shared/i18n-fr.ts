@@ -2612,4 +2612,8 @@ export const fr: Record<string, string> = {
   "Ojo: «{fresh}» se parece mucho a «{existing}», que sigue en marcha. Si es lo mismo, detén una de las dos para que no se pisen.": "Attention : « {fresh} » ressemble beaucoup à « {existing} », encore en cours. Si c’est la même chose, arrêtez l’une des deux pour qu’elles ne se marchent pas dessus.",
   "Era un becario de {name}: terminó su parte y deja el puesto libre. Su tarea sigue con {name}.": "C’était un stagiaire de {name} : il a fini sa partie et libéré son poste. Sa tâche continue avec {name}.",
   "Ver a {name}": "Voir {name}",
+  "Trae tus conversaciones y proyectos para seguirlos aquí. Los originales no se tocan; lo de este equipo se copia a tu servidor.": "Apportez vos conversations et projets pour les poursuivre ici. Les originaux ne sont pas modifiés ; ce qui est sur cet ordinateur est copié sur votre serveur.",
+  "En el servidor": "Sur le serveur",
+  "Buscando en el servidor…": "Recherche sur le serveur…",
+  "No hay nada en el servidor": "Rien sur le serveur",
 }

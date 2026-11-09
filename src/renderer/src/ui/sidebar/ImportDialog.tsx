@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, FileArchive, FolderGit2, HardDrive, Import, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, FileArchive, FolderGit2, HardDrive, Import, Server, X } from 'lucide-react'
 import type { ArchivePreview, ImportFolder, ImportResult, ImportScan } from '@shared/imports'
 import { useCowork } from '@/store/cowork'
-import { api } from '@/lib/api'
+import { api, clientBridge } from '@/lib/api'
 import { t } from '@/lib/i18n'
 import { useEscape } from '../common/hooks'
 import { cx, errorText } from '../common/util'
@@ -11,7 +11,7 @@ import s from './SearchDialog.module.css'
 import h from './HistoryDialog.module.css'
 import m from './ImportDialog.module.css'
 
-type Tab = 'local' | 'file'
+type Tab = 'local' | 'server' | 'file'
 
 /**
  * Importar de otras apps: las sesiones de Claude Code y Codex que ya hay en el servidor (por carpeta) y las
@@ -19,6 +19,9 @@ type Tab = 'local' | 'file'
  * Code y Codex se siguen con la sesión real del programa. El motor está en src/main/importChats.ts.
  */
 export function ImportDialog({ onClose }: { onClose: () => void }) {
+  // En un PC cliente, «En este equipo» es ese PC (lo lee la app de aquí y lo sube) y lo del servidor va aparte.
+  const bridge = clientBridge()
+  const onClient = !!bridge?.importScan && !!bridge.importSend
   const [tab, setTab] = useState<Tab>('local')
   const [scan, setScan] = useState<ImportScan | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
@@ -32,11 +35,19 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
 
   useEscape(!busy, onClose)
 
-  async function rescan(): Promise<void> {
+  async function rescan(which: Tab = tab): Promise<void> {
     if (!api) return
     setError(null)
     try {
-      const r = await api.scanImports()
+      let r: ImportScan
+      if (which === 'local' && onClient) {
+        r = await bridge!.importScan!()
+        // Lo ya importado lo sabe el servidor.
+        const done = new Set(await api.importedIds(r.sources.flatMap((x) => x.folders.flatMap((f) => f.sessions.map((c) => c.id)))))
+        r = { sources: r.sources.map((x) => ({ ...x, folders: x.folders.map((f) => ({ ...f, sessions: f.sessions.map((c) => ({ ...c, imported: c.imported || done.has(c.id) })) })) })) }
+      } else {
+        r = await api.scanImports()
+      }
       setScan(r)
       // De entrada, todo lo que aún no se importó.
       setPicked(new Set(r.sources.flatMap((x) => x.folders.flatMap((f) => f.sessions.filter((c) => !c.imported).map((c) => c.id)))))
@@ -46,8 +57,10 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
   }
 
   useEffect(() => {
-    void rescan()
-  }, [])
+    if (tab === 'file') return
+    setScan(null)
+    void rescan(tab)
+  }, [tab])
 
   async function finished(r: ImportResult): Promise<void> {
     setResult(r)
@@ -65,7 +78,13 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
     setBusy(true)
     setError(null)
     try {
-      await finished(await api.importLocal([...picked]))
+      if (tab === 'local' && onClient) {
+        // Se sube lo elegido de este equipo y el servidor lo importa como una exportación.
+        const path = await bridge!.importSend!([...picked])
+        await finished(await api.importArchive([path]))
+      } else {
+        await finished(await api.importLocal([...picked]))
+      }
       await rescan()
     } catch (e) {
       setError(errorText(e))
@@ -133,12 +152,22 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
             <X size={16} />
           </button>
         </div>
-        <p className={m.lead}>{t('Trae tus conversaciones y proyectos para seguirlos aquí. Los originales no se tocan y nada sale de tu servidor.')}</p>
+        <p className={m.lead}>
+          {onClient
+            ? t('Trae tus conversaciones y proyectos para seguirlos aquí. Los originales no se tocan; lo de este equipo se copia a tu servidor.')
+            : t('Trae tus conversaciones y proyectos para seguirlos aquí. Los originales no se tocan y nada sale de tu servidor.')}
+        </p>
         <div className={m.tabs} role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'local'} className={cx(m.tab, tab === 'local' && m.tabOn)} onClick={() => setTab('local')}>
             <HardDrive size={14} aria-hidden="true" />
             {t('En este equipo')}
           </button>
+          {onClient && (
+            <button type="button" role="tab" aria-selected={tab === 'server'} className={cx(m.tab, tab === 'server' && m.tabOn)} onClick={() => setTab('server')}>
+              <Server size={14} aria-hidden="true" />
+              {t('En el servidor')}
+            </button>
+          )}
           <button type="button" role="tab" aria-selected={tab === 'file'} className={cx(m.tab, tab === 'file' && m.tabOn)} onClick={() => setTab('file')}>
             <FileArchive size={14} aria-hidden="true" />
             {t('Desde un archivo')}
@@ -173,10 +202,10 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
           </p>
         )}
 
-        {tab === 'local' ? (
+        {tab !== 'file' ? (
           <div className={cx(s.results, m.body)}>
             {!scan ? (
-              <p className={s.empty}>{t('Buscando en este equipo…')}</p>
+              <p className={s.empty}>{tab === 'server' ? t('Buscando en el servidor…') : t('Buscando en este equipo…')}</p>
             ) : (
               scan.sources.map((src) => {
                 const ids = src.folders.flatMap((f) => f.sessions.filter((c) => !c.imported).map((c) => c.id))
@@ -190,7 +219,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                       <span className={m.dim}>
                         {count
                           ? t('{n} conversaciones en {f} carpetas', { n: count, f: src.folders.length })
-                          : t('No hay nada en este equipo')}
+                          : tab === 'server' ? t('No hay nada en el servidor') : t('No hay nada en este equipo')}
                       </span>
                     </label>
                     {!count && <p className={m.where}>{t('Se buscó en {dir}', { dir: src.where })}</p>}
@@ -249,7 +278,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {tab === 'local' && (
+        {tab !== 'file' && (
           <div className={m.foot}>
             <span className={m.dim}>{scan ? t('{n} de {total} elegidas', { n: picked.size, total }) : ''}</span>
             <button type="button" className={m.primary} disabled={busy || !picked.size} onClick={() => void importPicked()}>

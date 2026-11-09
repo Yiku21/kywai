@@ -24,6 +24,7 @@ const api: CoworkApi = {
   forkConversation: (projectId, conversationId) => ipcRenderer.invoke('cowork:forkConversation', projectId, conversationId),
   scanImports: () => ipcRenderer.invoke('cowork:scanImports'),
   importLocal: (sessionIds) => ipcRenderer.invoke('cowork:importLocal', sessionIds),
+  importedIds: (ids) => ipcRenderer.invoke('cowork:importedIds', ids),
   importArchive: (paths, choices) => ipcRenderer.invoke('cowork:importArchive', paths, choices),
   previewArchive: (paths) => ipcRenderer.invoke('cowork:previewArchive', paths),
   moveConversation: (projectId, conversationId, toProjectId) => ipcRenderer.invoke('cowork:moveConversation', projectId, conversationId, toProjectId),

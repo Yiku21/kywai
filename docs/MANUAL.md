@@ -1744,7 +1744,8 @@ bienvenida y, mientras tengas pocas conversaciones, «Traer conversaciones de ot
 Los originales **no se tocan** y nada sale del servidor. Volver a importar **no duplica** lo que ya se trajo (se apunta
 en `workspace/importados.json`; si borras una conversación importada, se puede volver a traer).
 
-**En este equipo** busca lo que ya hay en el disco del **servidor** (el ordenador donde corre el motor):
+**En este equipo** busca lo que ya hay en el disco del ordenador desde el que importas: el **servidor** (donde corre
+el motor) o, si abres la ventana desde un **PC cliente**, ese PC (y lo del servidor sale en la pestaña «En el servidor»):
 
 | App | Dónde lo busca | Qué queda en kywai |
 |---|---|---|
@@ -1766,21 +1767,30 @@ en `workspace/importados.json`; si borras una conversación importada, se puede 
 - **Solo lo que empezaste tú**: no salen los encargos que el propio kywai da a Claude, Codex y Hermes (empiezan por
   «Eres …, parte de un equipo de agentes» o «… el coordinador», o se hicieron en la carpeta de datos de kywai, aunque
   el proyecto ya se borrara), ni las sesiones de Claude manejadas a distancia por un proyecto (empiezan con «<wake …>»),
-  ni las revisiones automáticas de permisos de Codex, ni las pruebas de «Responde solo: ok».
+  ni las revisiones automáticas de permisos de Codex, ni las pruebas de «Responde solo: ok» o «Responde SOLO con este
+  JSON…», ni lo hecho en las carpetas temporales de kywai (`aicw`, `aicw-…`, `ai-cowork-hermes`).
 - **App Claude de escritorio**: sus sesiones de código son de Claude Code. Se usa el **título** que les puso la app y
   la **carpeta que elegiste** (su índice `claude-code-sessions/` en `~/Library/Application Support/Claude`,
   `%APPDATA%\Claude` o `~/.config/Claude`); las que borraste en la app no salen y las hechas sin carpeta («scratch-…»)
   van a «Claude Code». Los **chats normales** de la app Claude y de Claude.ai no se guardan en el ordenador (están en
   tu cuenta): se traen con la exportación de Claude.ai, en «Desde un archivo».
-- Se busca en el **servidor**: las sesiones que hiciste en otro ordenador (por ejemplo el PC cliente) no salen todavía.
+- **Desde un PC cliente**: la app del PC lee sus propias sesiones (Claude Code, Codex, Hermes Desktop), las junta en un
+  `kywai-chats.json` con las imágenes pegadas dentro (hasta 200 MB de imágenes por envío, 30 MB por imagen) y lo sube
+  al servidor, que lo importa como una exportación y lo borra al acabar. La carpeta del PC no existe en el servidor:
+  cada carpeta va a un proyecto con su nombre (o al que ya se llame así) y la conversación queda «Hermes · pc-…» para
+  leer y seguir como contexto (la sesión real está en el PC, no se retoma). Lo ya importado sale marcado, también desde
+  el PC, y no se duplica.
+- La carpeta del sistema (`C:\Windows\System32`, donde empieza una terminal de administrador) o la raíz de un disco no
+  son un proyecto: lo hablado ahí va al proyecto con el nombre de la app.
 - Una sesión hecha en tu carpeta personal entera, o sin carpeta (Hermes por Telegram, Discord…), va a un proyecto con
   el nombre de la app («Hermes», «Claude Code»…) con carpeta interna: kywai no da acceso a la carpeta personal completa.
 - **Hermes** (y **Hermes Desktop**, que usa la misma base): se lee la base SQLite de Hermes solo para leer, con el
   SQLite que trae la app (sin instalar nada). Cuando Hermes compacta una conversación larga y la sigue en otra sesión,
   se juntan en una. No se traen los encargos que kywai le hace a Hermes (empiezan por «Eres Hermes, el coordinador…»
   o «… parte de un equipo de agentes…» y ya están en tus chats), ni lo que trabajó en la carpeta interna de un
-  proyecto de kywai, ni las sesiones ocultas en Hermes. Hermes Desktop no tiene proyectos (solo perfiles), así que no
-  hay proyectos que traer. De momento la sesión de Hermes no se retoma (kywai lanza Hermes de una vez); al seguirla, el
+  proyecto de kywai, ni las sesiones ocultas en Hermes. Las **imágenes que pegaste** en Hermes Desktop (las guarda
+  aparte, en `%APPDATA%\Hermes\composer-images`, y el mensaje solo dice `@image:<ruta>`) se copian a los adjuntos del
+  proyecto y se ven en el chat; si ya no están en el disco, el mensaje se trae sin ellas. De momento la sesión de Hermes no se retoma (kywai lanza Hermes de una vez); al seguirla, el
   coordinador recibe lo hablado como contexto.
 
 **Desde un archivo** importa la exportación de **ChatGPT** (Ajustes → Controles de datos → Exportar datos) o de

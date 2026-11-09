@@ -1,5 +1,6 @@
 import type { ClientUpdateState, CoworkApi, CoworkEvent, ProjectSummary } from '@shared/types'
 import type { SyncPairStatus } from '@shared/sync'
+import type { ImportScan } from '@shared/imports'
 import { requestServerFolder } from './serverFiles'
 import { t } from '@/lib/i18n'
 import { noteServerTime } from './serverClock'
@@ -22,6 +23,10 @@ const w = window as unknown as {
     openRemotePath?: (path: string) => Promise<void>
     /** Baja una carpeta del servidor como zip, donde se elija en este equipo. */
     saveRemoteFolder?: (path: string) => Promise<string | null>
+    /** Lo que hay en este equipo de Claude Code, Codex y Hermes Desktop (no en el servidor). */
+    importScan?: () => Promise<ImportScan>
+    /** Sube al servidor las sesiones elegidas de este equipo; devuelve su ruta allí para importArchive. */
+    importSend?: (ids: string[]) => Promise<string>
     update?: () => Promise<ClientUpdateState | null>
     installUpdate?: () => Promise<void>
     reload?: () => Promise<void>

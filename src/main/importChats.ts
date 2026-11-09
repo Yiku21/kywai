@@ -80,6 +80,17 @@ export interface Turn {
   images?: string[]
   /** Archivos del turno (Claude.ai): los adjuntos con su texto y lo que creó el asistente; sin contenido, solo el nombre. */
   files?: TurnFile[]
+  /** Imágenes que pegó el usuario (Hermes Desktop): rutas en el equipo donde se leyó la conversación. */
+  localImages?: string[]
+  /** Las mismas imágenes ya leídas, cuando la conversación llega de otro equipo (un cliente de kywai). */
+  inlineImages?: InlineImage[]
+}
+
+/** Una imagen que viaja dentro de la conversación (de un cliente al servidor), en base64. */
+export interface InlineImage {
+  name: string
+  mime: string
+  data: string
 }
 
 /** Un archivo de un mensaje importado. Sin `content` es que la exportación solo trae el nombre (imágenes, PDF subidos). */
@@ -844,14 +855,26 @@ const AUTOMATIC_RES = [
   KYWAI_PROMPT_RE,
   /^<wake\b/,
   /^The following is the Codex agent history whose request action you are assessing/,
-  /^Responde (únicamente|solo)\b[^\n]{0,30}$/i
+  /^Responde (únicamente|solo)\b[^\n]{0,30}$/i,
+  // La prueba de «¿Hermes responde?» de kywai y de sus pruebas de desarrollo.
+  /^Responde (únicamente|solo) con (este|un|el) JSON\b/i
 ]
+
+/** La carpeta de proyectos; en un cliente de kywai no hay (sus proyectos están en el servidor). */
+function safeProjectsRoot(): string {
+  try {
+    return store.projectsRoot()
+  } catch {
+    return ''
+  }
+}
 
 /** Una carpeta de kywai: su carpeta de datos (proyectos, entornos aislados del verificador) aunque ya se borrara. */
 function isKywaiDir(cwd: string): boolean {
   const p = resolve(cwd)
   const inside = (root: string): boolean => !!root && (p + sep).startsWith(resolve(root) + sep)
-  return inside(workspace) || inside(store.projectsRoot()) || /[\\/]AI Cowork[\\/]workspace[\\/]/i.test(p)
+  // Las carpetas temporales de kywai («aicw», «aicw-…», «ai-cowork-hermes»): pruebas y consultas sueltas.
+  return inside(workspace) || inside(safeProjectsRoot()) || /[\\/]AI Cowork[\\/]workspace[\\/]/i.test(p) || /[\\/](aicw(-[\w-]+)?|ai-cowork-hermes)([\\/]|$)/i.test(p)
 }
 
 /** No la empezó el usuario: trabajo de kywai (por su carpeta o por cómo empieza) o algo automático. */
@@ -919,14 +942,15 @@ export function readHermesDb(file: string, withMessages: boolean, only?: Set<str
       const chain = [root]
       while (next.has(chain[chain.length - 1].id) && chain.length < 200) chain.push(next.get(chain[chain.length - 1].id)!)
       const first = str((db.prepare(firstSql).all(root.id)[0] as { content?: unknown } | undefined)?.content)
-      if (!first.trim() || isAutomaticSession(root.cwd, first)) continue
+      if (!first.trim() || isAutomaticSession(root.cwd, hermesImages(first).text || first)) continue
       const turns: Turn[] = []
       if (withMessages) {
         for (const s of chain) {
           for (const m of db.prepare(msgSql).all(s.id) as Record<string, unknown>[]) {
             const at = time(m.timestamp, s.started)
             if (m.role === 'user') {
-              pushTurn(turns, { role: 'user', text: cleanUserText(str(m.content)), at })
+              const { text, images } = hermesImages(cleanUserText(str(m.content)))
+              pushTurn(turns, { role: 'user', text, at, localImages: images.length ? images : undefined })
             } else if (m.role === 'assistant') {
               const tools: Record<string, number> = {}
               try {
@@ -961,6 +985,26 @@ export function readHermesDb(file: string, withMessages: boolean, only?: Set<str
   }
 }
 
+/**
+ * Hermes Desktop guarda cada imagen pegada aparte (…\\Hermes\\composer-images\\composer_….png) y en el mensaje deja
+ * una línea «@image:<ruta>», a veces seguida de «[screenshot]». Se quitan del texto y se devuelven las rutas.
+ */
+export function hermesImages(text: string): { text: string; images: string[] } {
+  const images: string[] = []
+  const rest = text
+    .split(/\r?\n/)
+    .filter((line) => {
+      const m = /^\s*@image:(.+?)\s*$/.exec(line)
+      if (!m) return true
+      images.push(m[1].replace(/^["']|["']$/g, ''))
+      return false
+    })
+    .filter((line) => !(images.length && /^\s*\[(screenshot|image|imagen)\]\s*$/i.test(line)))
+    .join('\n')
+    .trim()
+  return { text: rest, images }
+}
+
 function listHermes(): { f: LocalFile; conv: ParsedConversation }[] {
   const out: { f: LocalFile; conv: ParsedConversation }[] = []
   for (const { file } of hermesDbs()) {
@@ -982,7 +1026,13 @@ const sameDir = (a: string, b: string): boolean => {
 }
 
 function projectForDir(cwd: string): { id: string; name: string } | undefined {
-  const p = store.listProjects().find((x) => x.workDir && sameDir(x.workDir, cwd))
+  let projects: ReturnType<typeof store.listProjects> = []
+  try {
+    projects = store.listProjects()
+  } catch {
+    /* en un cliente de kywai no hay proyectos aquí: están en el servidor */
+  }
+  const p = projects.find((x) => x.workDir && sameDir(x.workDir, cwd))
   return p ? { id: p.id, name: p.name } : undefined
 }
 
@@ -1063,7 +1113,7 @@ export function toMessages(
     // Lo que la exportación no trae (imágenes, PDF subidos): solo su nombre, una vez y discreto.
     const missing = named.length ? `_📎 ${named.join(' · ')}_` : ''
     const text = [t.text, missing].filter(Boolean).join('\n\n')
-    const atts = [...(t.images ?? []).flatMap((id) => images?.get(id) ?? []), ...saveFiles(projectId, saved)]
+    const atts = [...(t.images ?? []).flatMap((id) => images?.get(id) ?? []), ...saveImages(projectId, t), ...saveFiles(projectId, saved)]
     return {
       id: `m-${randomUUID()}`,
       projectId,
@@ -1074,6 +1124,44 @@ export function toMessages(
       importedFrom: t.role === 'assistant' && !agentId ? label : undefined
     }
   })
+}
+
+/** Lo más que se copia de una imagen pegada (las capturas normales pesan mucho menos). */
+const MAX_IMAGE_BYTES = 30 * 1024 * 1024
+const IMAGE_MIME: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' }
+
+/** Lee una imagen pegada de este equipo para mandarla a otro (null si ya no está, no es imagen o pesa demasiado). */
+export function readInlineImage(path: string): InlineImage | null {
+  const mime = IMAGE_MIME[extname(path).toLowerCase()]
+  if (!mime) return null
+  try {
+    if (statSync(path).size > MAX_IMAGE_BYTES) return null
+    return { name: basename(path), mime, data: readFileSync(path).toString('base64') }
+  } catch {
+    return null
+  }
+}
+
+/** Copia a los adjuntos del proyecto las imágenes que pegó el usuario (de este equipo o llegadas de un cliente). */
+function saveImages(projectId: string, t: Turn): NonNullable<ChatMessage['attachments']> {
+  const list = [...(t.localImages ?? []).map((p) => readInlineImage(p)), ...(t.inlineImages ?? [])].filter((x): x is InlineImage => !!x && !!IMAGE_MIME[extname(x.name).toLowerCase()])
+  if (!list.length) return []
+  const dir = join(store.projectDir(projectId), 'attachments')
+  const out: NonNullable<ChatMessage['attachments']> = []
+  for (const img of list) {
+    try {
+      const bytes = Buffer.from(img.data, 'base64')
+      if (!bytes.length || bytes.length > MAX_IMAGE_BYTES) continue
+      mkdirSync(dir, { recursive: true })
+      const name = store.sanitizeFileName(img.name) || 'imagen.png'
+      const fileName = `imp-${randomUUID().slice(0, 8)}-${name}`.slice(0, 120)
+      writeFileSync(join(dir, fileName), bytes)
+      out.push({ id: `a-${randomUUID()}`, name, relPath: `attachments/${fileName}`, mime: IMAGE_MIME[extname(name).toLowerCase()] ?? 'image/png', size: bytes.length })
+    } catch {
+      /* una imagen que no se guarda no impide la conversación */
+    }
+  }
+  return out
 }
 
 const TEXT_MIME: Record<string, string> = { '.md': 'text/markdown', '.html': 'text/html', '.htm': 'text/html', '.json': 'application/json', '.csv': 'text/csv', '.svg': 'image/svg+xml' }
@@ -1139,18 +1227,20 @@ function projectForCwd(ctx: Ctx, cwd: string): string {
   return id
 }
 
+/** La conversación entera de una sesión encontrada en este equipo. */
+function readLocalFull(f: LocalFile): ParsedConversation | null | undefined {
+  return f.kind === 'hermes' ? readHermesDb(f.file, true, new Set(f.sessionIds ?? []))[0] : parseLocal(f, readFileSync(f.file, 'utf8'))
+}
+
 function importLocalOne(ctx: Ctx, key: string, f: LocalFile): void {
   if (alreadyImported(ctx.ix, key)) {
     ctx.result.skipped++
     return
   }
-  const conv =
-    f.kind === 'hermes'
-      ? readHermesDb(f.file, true, new Set(f.sessionIds ?? []))[0]
-      : parseLocal(f, readFileSync(f.file, 'utf8'))
+  const conv = readLocalFull(f)
   if (!conv || !conv.turns.length || isAutomaticSession(conv.cwd, firstUserText(conv))) return
   // Sin carpeta, o en la carpeta personal entera (kywai no da acceso a toda ella): a un proyecto con el nombre de la app.
-  const projectId = conv.cwd && !sameDir(conv.cwd, home) ? projectForCwd(ctx, conv.cwd) : projectFor(ctx, f.kind, IMPORT_LABEL[f.kind])
+  const projectId = conv.cwd && !isSystemDir(conv.cwd) && !sameDir(conv.cwd, home) ? projectForCwd(ctx, conv.cwd) : projectFor(ctx, f.kind, IMPORT_LABEL[f.kind])
   const provider: ProviderKind = f.kind === 'claude-code' ? 'claude' : f.kind === 'codex' ? 'codex' : 'hermes'
   const agent = agentFor(provider, ctx.agents)
   const label = IMPORT_LABEL[f.kind]
@@ -1193,6 +1283,164 @@ export function importLocal(ids: unknown, agents: AgentConfig[]): ImportResult {
     saveIndex(ctx.ix)
   }
   return ctx.result
+}
+
+// ---------- Desde un cliente de kywai ----------
+// Un PC cliente no tiene proyectos ni agentes: sus sesiones de Claude Code, Codex y Hermes Desktop las lee él mismo,
+// las junta en un JSON («kywai-chats», con las imágenes pegadas dentro) y lo sube al servidor por /api/import-upload;
+// el servidor lo importa como cualquier exportación. No se pueden retomar (la sesión real está en el otro equipo).
+
+export const BUNDLE_FORMAT = 'kywai-chats'
+type LocalKind = LocalFile['kind']
+const LOCAL_KINDS: LocalKind[] = ['claude-code', 'codex', 'hermes']
+
+export interface ChatsBundle {
+  format: typeof BUNDLE_FORMAT
+  v: 1
+  /** Nombre del equipo de donde vienen. */
+  device: string
+  /** Su carpeta personal: lo trabajado ahí mismo no es un proyecto. */
+  home: string
+  conversations: { kind: LocalKind; conv: ParsedConversation }[]
+}
+
+/** Lo más que pesan juntas las imágenes de un envío (en base64), para no mandar gigas por la red. */
+const MAX_BUNDLE_IMAGES = 200 * 1024 * 1024
+
+/** Junta las sesiones elegidas de este equipo (ids de scanImports) para mandarlas al servidor. */
+export function exportLocal(ids: unknown, device: string): ChatsBundle {
+  const list = Array.isArray(ids) ? ids.filter((x): x is string => typeof x === 'string') : []
+  if (!lastScan.size) scanImports()
+  const out: ChatsBundle = { format: BUNDLE_FORMAT, v: 1, device: device.slice(0, 80), home, conversations: [] }
+  let budget = MAX_BUNDLE_IMAGES
+  for (const id of list) {
+    const f = lastScan.get(id)
+    if (!f) continue
+    let conv: ParsedConversation | null | undefined
+    try {
+      conv = readLocalFull(f)
+    } catch (e) {
+      console.warn('[cowork] no se pudo leer', id, (e as Error).message)
+      continue
+    }
+    if (!conv || !conv.turns.length || isAutomaticSession(conv.cwd, firstUserText(conv))) continue
+    for (const t of conv.turns) {
+      if (!t.localImages?.length) continue
+      const imgs: InlineImage[] = []
+      for (const path of t.localImages) {
+        const img = readInlineImage(path)
+        if (!img || img.data.length > budget) continue
+        budget -= img.data.length
+        imgs.push(img)
+      }
+      delete t.localImages
+      if (imgs.length) t.inlineImages = imgs
+    }
+    out.conversations.push({ kind: f.kind, conv })
+  }
+  return out
+}
+
+function isBundle(data: unknown): data is ChatsBundle {
+  return !!data && typeof data === 'object' && (data as { format?: unknown }).format === BUNDLE_FORMAT && Array.isArray((data as { conversations?: unknown }).conversations)
+}
+
+/** Lo que llega de otro equipo, comprobado campo a campo (no se fía de su forma). */
+function cleanBundle(data: ChatsBundle): ChatsBundle {
+  const turns = (v: unknown): Turn[] =>
+    (Array.isArray(v) ? v : []).flatMap((x): Turn[] => {
+      if (!x || typeof x !== 'object') return []
+      const o = x as Record<string, unknown>
+      if (o.role !== 'user' && o.role !== 'assistant') return []
+      const tools = o.tools && typeof o.tools === 'object' && !Array.isArray(o.tools) ? Object.fromEntries(Object.entries(o.tools as Record<string, unknown>).filter(([, n]) => typeof n === 'number').slice(0, 50)) as Record<string, number> : undefined
+      const imgs = (Array.isArray(o.inlineImages) ? o.inlineImages : [])
+        .map((i) => (i && typeof i === 'object' ? (i as Record<string, unknown>) : {}))
+        .filter((i) => typeof i.name === 'string' && typeof i.data === 'string' && typeof i.mime === 'string')
+        .map((i) => ({ name: basename(String(i.name).replace(/\\/g, '/')), mime: String(i.mime), data: String(i.data) }))
+      return [{ role: o.role, text: str(o.text), at: time(o.at, 0), tools: tools && Object.keys(tools).length ? tools : undefined, inlineImages: imgs.length ? imgs : undefined }]
+    })
+  return {
+    format: BUNDLE_FORMAT,
+    v: 1,
+    device: str(data.device).slice(0, 80),
+    home: str(data.home),
+    conversations: data.conversations.flatMap((x) => {
+      const kind = (x as { kind?: unknown })?.kind as LocalKind
+      const c = (x as { conv?: unknown })?.conv as Record<string, unknown> | undefined
+      if (!LOCAL_KINDS.includes(kind) || !c || typeof c !== 'object' || !str(c.sourceId)) return []
+      const conv: ParsedConversation = {
+        sourceId: str(c.sourceId).slice(0, 200),
+        title: str(c.title).slice(0, TITLE_MAX),
+        createdAt: time(c.createdAt, Date.now()),
+        updatedAt: time(c.updatedAt, Date.now()),
+        cwd: str(c.cwd) || undefined,
+        turns: turns(c.turns)
+      }
+      if (!conv.title) conv.title = firstUserTitle(conv.turns)
+      return conv.turns.length ? [{ kind, conv }] : []
+    })
+  }
+}
+
+/**
+ * Carpetas que no son un proyecto: la raíz de un disco o la del sistema (una terminal de Windows abierta como
+ * administrador empieza en C:\\Windows\\System32). Lo hablado ahí va al proyecto con el nombre de la app.
+ */
+export function isSystemDir(cwd: string): boolean {
+  const p = cwd.trim().replace(/[\\/]+$/, '')
+  return !p || /^[a-z]:$/i.test(p) || /^[a-z]:[\\/]windows([\\/]|$)/i.test(p) || /^\/(usr|bin|sbin|etc|System|private|var|tmp)?$/.test(p)
+}
+
+/** El último nombre de una ruta, sea de Windows o de Mac/Linux (la ruta es del otro equipo). */
+const lastName = (p: string): string => p.split(/[\\/]+/).filter(Boolean).pop() ?? p
+const samePath = (a: string, b: string): boolean => {
+  const n = (p: string): string => p.replace(/[\\/]+$/, '').replace(/\\/g, '/').toLowerCase()
+  return n(a) === n(b)
+}
+
+/** Proyecto para una carpeta de otro equipo: el ya creado para ella, uno de kywai con ese nombre o uno nuevo. */
+function projectForRemoteDir(ctx: Ctx, device: string, cwd: string): string {
+  const key = `dir:${device}:${cwd}`
+  const known = ctx.ix.projects[key]
+  if (known && store.listProjects().some((p) => p.id === known)) return known
+  const name = lastName(cwd) || cwd
+  const same = store.listProjects().find((p) => p.name.trim().toLowerCase() === name.trim().toLowerCase())
+  if (same) {
+    ctx.ix.projects[key] = same.id
+    return same.id
+  }
+  return projectFor(ctx, key, name)
+}
+
+function importBundle(ctx: Ctx, bundle: ChatsBundle): void {
+  for (const { kind, conv } of bundle.conversations) {
+    const key = `${kind}:${conv.sourceId}`
+    if (alreadyImported(ctx.ix, key)) {
+      ctx.result.skipped++
+      continue
+    }
+    if (isAutomaticSession(conv.cwd, firstUserText(conv))) continue
+    const projectId = conv.cwd && !isSystemDir(conv.cwd) && !(bundle.home && samePath(conv.cwd, bundle.home)) ? projectForRemoteDir(ctx, bundle.device, conv.cwd) : projectFor(ctx, kind, IMPORT_LABEL[kind])
+    const provider: ProviderKind = kind === 'claude-code' ? 'claude' : kind === 'codex' ? 'codex' : 'hermes'
+    const agent = agentFor(provider, ctx.agents)
+    const label = IMPORT_LABEL[kind]
+    const conversationId = addImportedConversation(projectId, {
+      title: conv.title,
+      createdAt: conv.createdAt,
+      updatedAt: conv.updatedAt,
+      messages: toMessages(conv, projectId, label, agent?.id),
+      importedFrom: bundle.device ? `${label} · ${bundle.device}` : label
+    })
+    ctx.ix.conversations[key] = { projectId, conversationId, at: Date.now() }
+    ctx.result.conversations++
+    noteProject(ctx.result, projectId)
+  }
+}
+
+/** De estas sesiones (ids de scanImports, «hermes:<id>»…), las que ya se importaron en este servidor. */
+export function importedIds(ids: unknown): string[] {
+  const ix = loadIndex()
+  return (Array.isArray(ids) ? ids : []).filter((id): id is string => typeof id === 'string' && alreadyImported(ix, id))
 }
 
 const MIME: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' }
@@ -1429,7 +1677,8 @@ function manifestFiles(file: string, data: unknown): string[] | null {
 
 /** Lo leído de una exportación: sus conversaciones ya entendidas y el zip de las imágenes (ChatGPT). */
 interface ReadArchive {
-  kind: 'chatgpt' | 'claude-ai'
+  kind: 'chatgpt' | 'claude-ai' | 'bundle'
+  bundle?: ChatsBundle
   chatgpt?: ParsedConversation[]
   claude?: ReturnType<typeof parseClaudeAi>
   convZip?: ZipReader
@@ -1451,6 +1700,7 @@ function readArchive(paths: unknown): ReadArchive {
   let manifest = false
   /** El zip con las conversaciones (ChatGPT guarda ahí las imágenes). */
   let convZip: ZipReader | undefined
+  let bundle: ChatsBundle | undefined
   try {
     const seen = new Set<string>()
     const queue = [...files]
@@ -1462,7 +1712,11 @@ function readArchive(paths: unknown): ReadArchive {
         if (statSync(file).size > MAX_IMPORT_ENTRY) throw new Error(tr('La exportación supera los límites de lectura; divídela en archivos más pequeños'))
         const data = parseJson(readFileSync(file), file)
         const named = manifestFiles(file, data)
-        if (named) {
+        if (isBundle(data)) {
+          const clean = cleanBundle(data)
+          if (bundle) bundle.conversations.push(...clean.conversations)
+          else bundle = clean
+        } else if (named) {
           manifest = true
           queue.push(...named)
         } else if (isProjectsJson(file)) {
@@ -1487,6 +1741,7 @@ function readArchive(paths: unknown): ReadArchive {
         }
       }
     }
+    if (bundle && !sawConvs && !sawProjects) return { kind: 'bundle', bundle, zips, files }
     if (!sawConvs && !sawProjects) {
       throw new Error(
         manifest
@@ -1525,6 +1780,14 @@ export function previewArchive(paths: unknown): ArchivePreview {
       const hit = ix.conversations[key]
       return !!hit && !!locate(hit)
     }
+    if (read.kind === 'bundle') {
+      const b = read.bundle!
+      return {
+        kind: b.conversations[0]?.kind ?? 'hermes',
+        projects: [],
+        conversations: b.conversations.map(({ kind, conv }) => ({ id: conv.sourceId, title: conv.title, updatedAt: conv.updatedAt, project: '', imported: imported(`${kind}:${conv.sourceId}`) }))
+      }
+    }
     if (read.kind === 'chatgpt') {
       return {
         kind: 'chatgpt',
@@ -1551,9 +1814,10 @@ export function previewArchive(paths: unknown): ArchivePreview {
 export function importArchive(paths: unknown, agents: AgentConfig[], choices?: unknown): ImportResult {
   const read = readArchive(paths)
   try {
-    const ctx: Ctx = { ix: loadIndex(), agents, result: newResult(read.kind) }
+    const ctx: Ctx = { ix: loadIndex(), agents, result: newResult(read.kind === 'bundle' ? (read.bundle!.conversations[0]?.kind ?? 'hermes') : read.kind) }
     try {
-      if (read.kind === 'chatgpt') importChatGpt(ctx, read.chatgpt!, read.convZip)
+      if (read.kind === 'bundle') importBundle(ctx, read.bundle!)
+      else if (read.kind === 'chatgpt') importChatGpt(ctx, read.chatgpt!, read.convZip)
       else importClaudeAi(ctx, read.claude!, choices && typeof choices === 'object' && !Array.isArray(choices) ? (choices as ProjectChoices) : undefined)
     } finally {
       saveIndex(ctx.ix)

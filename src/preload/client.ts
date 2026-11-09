@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('coworkClient', {
   /** Archivos del servidor: abrir uno con la aplicación de este equipo o bajar una carpeta como zip. */
   openRemotePath: (path: string): Promise<void> => ipcRenderer.invoke('client:openRemotePath', path),
   saveRemoteFolder: (path: string): Promise<string | null> => ipcRenderer.invoke('client:saveRemoteFolder', path),
+  /** Conversaciones de Claude Code, Codex y Hermes Desktop de este equipo: buscarlas y subirlas al servidor para importarlas. */
+  importScan: (): Promise<unknown> => ipcRenderer.invoke('client:importScan'),
+  importSend: (ids: string[]): Promise<string> => ipcRenderer.invoke('client:importSend', ids),
   /** Busca una versión nueva del propio cliente en el servidor; installUpdate la descarga, la instala y reinicia. */
   update: (): Promise<unknown> => ipcRenderer.invoke('client:update'),
   installUpdate: (): Promise<void> => ipcRenderer.invoke('client:installUpdate')

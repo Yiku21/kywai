@@ -9,7 +9,7 @@ import * as store from './projects'
 import { exportSessions, initAgentSessions, lastSession } from './agentSessions'
 import { listConversations, openConversation } from './conversations'
 import { DatabaseSync } from 'node:sqlite'
-import { guessClaudeProject, importArchive, importLocal, initImports, parseChatGpt, parseClaudeAi, parseClaudeCode, parseCodex, previewArchive, readHermesDb, scanImports, ZipReader } from './importChats'
+import { exportLocal, guessClaudeProject, hermesImages, isSystemDir, importArchive, importedIds, importLocal, initImports, isAutomaticSession, parseChatGpt, parseClaudeAi, parseClaudeCode, parseCodex, previewArchive, readHermesDb, scanImports, ZipReader } from './importChats'
 
 let root = ''
 let home = ''
@@ -524,6 +524,82 @@ describe('Hermes (también Hermes Desktop)', () => {
     expect(store.getProject(hermesProject.id).messages.map((m) => m.text)).toEqual(['Apunta leche', 'Apuntada.'])
     expect(store.getProject(hermesProject.id).messages[1].author).toEqual({ type: 'agent', agentId: 'hermes' })
     expect(importLocal(['hermes:local-a'], agents)).toMatchObject({ conversations: 0, skipped: 1 })
+  })
+})
+
+describe('Hermes Desktop: imágenes y otro equipo', () => {
+  const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex')
+  function desktopDb(image: string): void {
+    const dir = join(home, '.hermes')
+    mkdirSync(dir, { recursive: true })
+    const db = new DatabaseSync(join(dir, 'state.db'))
+    db.exec(`CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT NOT NULL, title TEXT, cwd TEXT, started_at REAL, ended_at REAL, parent_session_id TEXT, end_reason TEXT, hidden INTEGER DEFAULT 0);
+      CREATE TABLE messages (id INTEGER PRIMARY KEY, session_id TEXT NOT NULL, role TEXT NOT NULL, content TEXT, tool_calls TEXT, tool_name TEXT, timestamp REAL NOT NULL, _compressed_summary INTEGER);`)
+    const ses = db.prepare('INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    const msg = db.prepare('INSERT INTO messages (session_id, role, content, tool_calls, tool_name, timestamp, _compressed_summary) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    ses.run('desk-1', 'desktop', 'Menús de mejora', work, 1_762_000_000, null, null, null, 0)
+    msg.run('desk-1', 'user', `quiero que los menús se vean así\n@image:${image}\n[screenshot]`, null, null, 1_762_000_001, null)
+    msg.run('desk-1', 'assistant', 'Hecho.', null, null, 1_762_000_002, null)
+    // La prueba de «¿responde?» de kywai, en su carpeta temporal.
+    ses.run('probe-1', 'oneshot', null, join(root, 'Temp', 'aicw', 'hermes'), 1_762_100_000, null, null, null, 0)
+    msg.run('probe-1', 'user', 'Responde SOLO con este JSON, sin texto adicional: {"reply":"ok","tasks":[]}', null, null, 1_762_100_001, null)
+    db.close()
+  }
+
+  it('la carpeta del sistema o la raíz de un disco no son un proyecto', () => {
+    expect(['C:\\WINDOWS\\system32', 'D:\\', '/', 'C:'].map(isSystemDir)).toEqual([true, true, true, true])
+    expect(['E:\\Umbral', '/Users/yil/AI-Cowork', 'C:\\Users\\yo\\web'].map(isSystemDir)).toEqual([false, false, false])
+  })
+
+  it('saca las imágenes pegadas del texto', () => {
+    expect(hermesImages('mira esto\n@image:C:\\x\\composer_1.png\n[screenshot]')).toEqual({ text: 'mira esto', images: ['C:\\x\\composer_1.png'] })
+    expect(hermesImages('sin nada [screenshot]')).toEqual({ text: 'sin nada [screenshot]', images: [] })
+  })
+
+  it('deja fuera las pruebas de kywai y sus carpetas temporales', () => {
+    expect(isAutomaticSession(undefined, 'Responde SOLO con este JSON, sin texto adicional: {"reply":"ok"}')).toBe(true)
+    expect(isAutomaticSession('C:\\Users\\yo\\AppData\\Local\\Temp\\aicw\\hermes', 'hola')).toBe(true)
+    expect(isAutomaticSession('E:\\Umbral', 'Responde a este correo de forma amable')).toBe(false)
+  })
+
+  it('importa la conversación con su imagen en los adjuntos', () => {
+    const img = join(root, 'composer_1.png')
+    writeFileSync(img, PNG)
+    desktopDb(img)
+    const ids = scanImports().sources.find((x) => x.kind === 'hermes')!.folders.flatMap((f) => f.sessions.map((c) => c.id))
+    expect(ids).toEqual(['hermes:desk-1'])
+    importLocal(ids, agents)
+    const p = store.listProjects().find((x) => x.workDir === work)!
+    const conv = listConversations(p.id).find((c) => c.importedFrom === 'Hermes')!
+    openConversation(p.id, conv.id)
+    const first = store.getProject(p.id).messages[0]
+    expect(first.text).toBe('quiero que los menús se vean así')
+    expect(first.attachments?.[0]).toMatchObject({ name: 'composer_1.png', mime: 'image/png', size: PNG.length })
+    expect(readFileSync(join(store.projectDir(p.id), first.attachments![0].relPath))).toEqual(PNG)
+    expect(importedIds(['hermes:desk-1', 'hermes:otra'])).toEqual(['hermes:desk-1'])
+  })
+
+  it('desde un PC cliente: se junta con las imágenes dentro y el servidor lo importa sin duplicar', () => {
+    const img = join(root, 'composer_2.png')
+    writeFileSync(img, PNG)
+    desktopDb(img)
+    scanImports()
+    const bundle = exportLocal(['hermes:desk-1', 'hermes:probe-1'], 'pc-yil')
+    expect(bundle.conversations.map((c) => c.conv.sourceId)).toEqual(['desk-1'])
+    expect(bundle.conversations[0].conv.turns[0].inlineImages?.[0]).toMatchObject({ name: 'composer_2.png', mime: 'image/png' })
+    expect(bundle.conversations[0].conv.turns[0].localImages).toBeUndefined()
+    // En el servidor la carpeta del PC no existe: va a un proyecto con su nombre (o al que ya se llame así).
+    const umbral = store.createProject('Web')
+    const file = join(root, 'kywai-chats.json')
+    writeFileSync(file, JSON.stringify({ ...bundle, conversations: bundle.conversations.map((c) => ({ ...c, conv: { ...c.conv, cwd: 'E:\\Proyectos\\web' } })) }))
+    expect(previewArchive([file])).toMatchObject({ kind: 'hermes', conversations: [{ id: 'desk-1', imported: false }] })
+    const r = importArchive([file], agents)
+    expect(r).toMatchObject({ kind: 'hermes', conversations: 1, projectIds: [umbral.id], resumable: 0 })
+    const conv = listConversations(umbral.id).find((c) => c.importedFrom === 'Hermes · pc-yil')!
+    openConversation(umbral.id, conv.id)
+    expect(store.getProject(umbral.id).messages[0].attachments?.[0]).toMatchObject({ name: 'composer_2.png', mime: 'image/png' })
+    writeFileSync(file, JSON.stringify(bundle))
+    expect(importArchive([file], agents)).toMatchObject({ conversations: 0, skipped: 1 })
   })
 })
 
