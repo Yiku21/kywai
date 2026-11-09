@@ -91,6 +91,8 @@ export interface RunAgentOptions {
   mcp?: McpServerLaunch
   extraMcp?: ExtraMcp
   signal: AbortSignal
+  /** Está esperando que el usuario conteste un permiso: no se le avisa ni se le corta por estar callado. */
+  isWaitingUser?: () => boolean
   /** Human readable activity (Spanish). `kind` tells if it came from a tool or from text output. */
   onActivity?: (text: string, kind: 'tool' | 'text') => void
   onThinking?: (text: string) => void

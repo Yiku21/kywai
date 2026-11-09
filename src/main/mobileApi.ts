@@ -561,7 +561,7 @@ export class MobileApi {
         case 'agentAccess': {
           const input = await body(req)
           fields(input, ['access'])
-          if (input.access !== 'full' && input.access !== 'project') throw new MobileError(400, 'INVALID_INPUT', 'access debe ser full o project')
+          if (input.access !== 'full' && input.access !== 'project' && input.access !== 'ask') throw new MobileError(400, 'INVALID_INPUT', 'access debe ser full, project o ask')
           mobileJson(res, 200, await this.backend.setAgentAccess(input.access))
           break
         }

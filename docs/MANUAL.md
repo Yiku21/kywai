@@ -717,11 +717,41 @@ documentación no confirma y pueden necesitar ajustes.
   Si aun así sale «No disponible: Servidor de LM Studio apagado», la tarjeta del agente (clic en su robot) tiene el
   botón **Encender LM Studio**: enciende el servidor, carga el modelo y deja el agente disponible. Si no puede, dice
   por qué (por ejemplo, que LM Studio no está instalado).
-- **Permisos de los agentes** (menú ⚙ → Ajustes → «Acceso completo para los agentes», activado por defecto): Claude, Codex y
-  Gemini ejecutan comandos, instalan dependencias y usan internet sin pedir permiso, para no quedarse parados.
-  Se les indica que trabajen en la carpeta del proyecto y que no borren nada fuera de ella ni hagan acciones
-  irreversibles que no se hayan pedido, pero no hay nada que se lo impida: desactívalo si prefieres que solo editen la
-  carpeta del proyecto (entonces los comandos que necesitan aprobación se deniegan y Codex no tiene internet).
+- **Permisos de los agentes** (menú ⚙ → Ajustes → «Permisos de los agentes»; también en Ajustes de Órbita), tres modos:
+  - **Acceso completo** (por defecto): Claude, Codex y Gemini ejecutan comandos, instalan dependencias y usan internet
+    sin pedir permiso, para no quedarse parados. Se les indica que trabajen en la carpeta del proyecto y que no borren
+    nada fuera de ella ni hagan acciones irreversibles que no se hayan pedido, pero no hay nada que se lo impida.
+  - **Preguntarme antes**: lo que no tienen permitido te lo piden y esperan, como hace Claude Code en su terminal (ver
+    [«Preguntarme antes»](#preguntarme-antes-los-agentes-te-piden-permiso)).
+  - **Solo el proyecto**: solo editan la carpeta del proyecto; los comandos que necesitan aprobación se deniegan (y
+    Codex no tiene internet). Si la tarea lo necesita, acaba «BLOQUEADA».
+
+#### «Preguntarme antes»: los agentes te piden permiso
+
+En este modo nada se hace a tus espaldas y nada se queda parado sin preguntarte. Cuando un agente quiere hacer algo
+que no tiene permitido, sale **en el chat** (con los botones debajo del mensaje), **en «Te necesita»** y **en Órbita**
+(con notificación): «Claude pide permiso para ejecutar un comando: `npm install`». Tres botones:
+
+- **Denegar**: no lo hace; sigue con lo que pueda sin eso y, si sin eso no se puede, acaba «BLOQUEADA».
+- **Permitir una vez**: lo hace esta vez.
+- **Permitir siempre en esta sesión**: no vuelve a preguntarlo ese agente en ese proyecto hasta que kywai se reinicie.
+  En un comando cuenta el programa (permitir `npm install` permite también `npm run build`, no `rm`).
+
+Contestar en un sitio cierra los otros. Mientras espera, el agente sale «Esperando tu permiso» y **no se le corta**
+por estar callado (el aviso de los 3 minutos y el corte de los 20 no cuentan mientras espera). Si detienes la
+petición, lo que esperaba respuesta se deniega.
+
+- **Claude Code** pregunta a mitad de tarea cada cosa que necesite (usa las herramientas de kywai con
+  `--permission-prompt-tool`; las ediciones dentro de la carpeta del proyecto no se preguntan).
+- **Codex, Gemini, Qwen y Muse** no pueden preguntar a mitad de tarea cuando trabajan solos: trabajan en la carpeta
+  del proyecto y, si necesitan más, responden «PERMISO: lo que necesitan». Se te pregunta «trabajar con acceso
+  completo en esta tarea» y la tarea se repite en su misma sesión: con acceso completo si lo permites («siempre en
+  esta sesión» se lo da para el resto de tareas de ese proyecto) o sabiendo que lo denegaste.
+
+En el código: `src/main/permissions.ts` (peticiones, respuestas y lo permitido en la sesión), la herramienta
+`pedir_permiso` de `coworkMcp.ts`, `accessFor` y `handlePermissionNeed` en `orchestrator.ts`; pruebas en
+`coworkMcp.test.ts` y G5/G6 de `orchestrator.check.ts`. Los avisos son del tipo `permission` y el mensaje del chat
+lleva `permission` con su estado.
 - **Si un agente se queda callado** 3 minutos, su línea de actividad (también en Órbita y en el navegador) avisa de
   que puede estar esperando un aviso de permisos en la pantalla del servidor (macOS o el llavero), que solo se
   contesta delante del equipo. Si no vuelve a dar señales en 20 minutos, se corta (y si el programa no se cierra
@@ -775,7 +805,7 @@ En cada petición, el coordinador recibe una guía de cómo funciona kywai
 - **Imágenes**: solo las genera Codex. Gemini también puede, pero no alcanzan la calidad necesaria.
 - **Lo que nadie puede hacer**: audio, música, voz o vídeo de verdad (lo más cercano es código que lo genere).
   Los modelos locales son lentos y flojos investigando o creando: si se piden, avisa de qué saldrá.
-- **Instalar y usar internet**: sabe si está activado «Acceso completo para los agentes». Sin él, no lanza lo que
+- **Instalar y usar internet**: sabe qué modo de «Permisos de los agentes» está puesto. Con «Solo el proyecto», no lanza lo que
   necesita instalar (una APK necesita el SDK de Android, Java y Gradle) y pide que se active antes.
 - **Ficha automática del proyecto**: en cada planificación recibe una ficha de la carpeta que kywai hace sin
   llamar a ningún modelo: el principio del README, con qué se construye y se prueba (`package.json` y otros
@@ -830,6 +860,8 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
   aparte o una tarea que **no se pudo hacer** («Deshacer» deja sus archivos como estaban).
 - **Tareas en pausa**: lo que quedó a medias al cerrarse o reiniciar el servidor (o al detenerlo desde el móvil),
   con «Reanudar» (sigue donde se quedó) y «Quitar» (no se reanudará).
+- **Un permiso que pide un agente** (modo [«Preguntarme antes»](#preguntarme-antes-los-agentes-te-piden-permiso)):
+  «Denegar», «Permitir una vez» o «Permitir siempre en esta sesión». Sale también en el chat con los mismos botones.
 - **Una tarea bloqueada** (ver [abajo](#tareas-bloqueadas-le-falta-algo-no-es-un-error)): el agente dijo que le falta
   algo para terminarla. «Darla por buena así», «Contestarle en el chat» o «Pasársela a otro agente».
 - **El presupuesto de API** del mes, al llegar al 80 % y al pasarlo.
@@ -1214,7 +1246,7 @@ Lo que cambia frente a una petición normal:
 
 Un `@` que no es el nombre de ningún agente (un correo, «@alguien») no cuenta: el mensaje va a Hermes como siempre.
 `/directo` con un nombre que no existe da un error con la pista de escribir `@` para ver la lista. El agente
-trabaja en la carpeta del proyecto con el mismo permiso de siempre (⚙ → Ajustes → «Acceso completo para los agentes»).
+trabaja en la carpeta del proyecto con el mismo permiso de siempre (⚙ → Ajustes → «Permisos de los agentes»).
 
 Para desarrolladores: las reglas están en `src/shared/directMessage.ts` (y su copia en Órbita,
 `android/.../ui/orbita/DirectMention.kt`); el motor las aplica en `sendDirect` de `src/main/orchestrator.ts`

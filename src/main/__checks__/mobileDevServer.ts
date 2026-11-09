@@ -159,7 +159,7 @@ webMethods.set('transcribeAudio', async (path) => {
   return `Nota de voz de prueba de ${Math.max(1, Math.round((bytes - 44) / 32000))} s: revisa el prototipo y dime qué cambiarías`
 })
 webMethods.set('setAgentAccess', (access) => {
-  setAgentAccess(access as 'full' | 'project')
+  setAgentAccess(access as 'full' | 'project' | 'ask')
   emit({ kind: 'config.updated', config: getConfig() })
 })
 webMethods.set('approvePlan', (id, messageId) => approvePlan(id as string, messageId as string))
