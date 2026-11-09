@@ -1522,6 +1522,8 @@ Se copia la carpeta de la skill entera (scripts, referencias…) a `habilidades/
 archivos de 400 KB. Para saber qué archivos tiene se usa la API de GitHub sin sesión (60 consultas por hora); si no
 responde, se buscan en los sitios de siempre (`skills/`, `.claude/skills/`…) y se traen los que cita su SKILL.md.
 Nada de lo descargado se ejecuta al instalar, y ningún nombre puede escribir fuera de la carpeta de habilidades.
+Si una skill del directorio ya no está en su repositorio (el autor la renombró), el aviso dice qué skills tiene
+ahora ese repositorio, para instalar la buena.
 Las habilidades son instrucciones que siguen los agentes: instala solo las de fuentes en las que confíes.
 
 ### Extensiones: plugins
@@ -1548,7 +1550,9 @@ categoría o autor. Con «Añadir el enlace» pegas:
 
 **Cómo se descarga.** Cada plugin baja de GitHub en un solo `.tar.gz` (codeload.github.com, sin el límite de la
 API), se lee en memoria y se guarda entero en `plugins/<nombre>` de la carpeta de datos (sus servidores locales
-arrancan desde ahí). Límites: 60 MB el repositorio, 40 MB el plugin, 60 habilidades por plugin. Los que no están en
+arrancan desde ahí). Límites: 40 MB el plugin, 60 habilidades por plugin. Si el
+repositorio entero pasa de 60 MB (por ejemplo `heygen-com/hyperframes`), kywai baja solo la carpeta del plugin,
+archivo a archivo (API de GitHub para la lista y raw.githubusercontent.com para el contenido). Los que no están en
 GitHub (GitLab, npm…) salen sin poder instalarse. Nada se ejecuta al instalar.
 
 **Quitar** borra sus habilidades, sus servidores MCP y su carpeta. **Instalar otra vez** lo actualiza y conserva sus
@@ -1680,6 +1684,12 @@ la web): HyperFrames y GSAP en la carpeta `estudio-video` de la carpeta de traba
 se monte igual dentro de meses), ffmpeg (Homebrew en macOS, winget en Windows; en Linux, con tu gestor de paquetes),
 la voz Kokoro en un entorno de Python propio (`estudio-video/.venv`) y el navegador del render. La primera voz
 descarga el modelo de Kokoro (unos cientos de MB). Si falta el motor o ffmpeg, pedir un vídeo dice qué instalar.
+
+**Extensiones de vídeo.** Las habilidades y los plugins que tratan de vídeo (vídeo, HyperFrames, Remotion, ffmpeg,
+voz/TTS, subtítulos, motion graphics…) se instalan en la carpeta del estudio, `habilidades/video`, y no en la
+general: no llenan el encargo de las tareas normales y las lee el agente que escribe el guion de cada vídeo. Salen
+con un icono de claqueta en Extensiones y juntas, con los servidores MCP de vídeo, en **Estudio de vídeo →
+Extensiones de vídeo**.
 
 **Publicar.** De momento no se publica nada: el vídeo se queda en el proyecto y lo subes tú. (Subir a YouTube con tu
 propia cuenta es posible más adelante; TikTok no deja automatizar la publicación en una cuenta propia.)

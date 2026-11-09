@@ -8,10 +8,11 @@
 //     «habilidades» de kywai, que ya ven todos los agentes.
 // Lo que llega de fuera son datos: nada de aquí se ejecuta al buscar, y al instalar un servidor se enseña antes la
 // orden y sus claves para revisarlas.
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, normalize, relative, sep } from 'node:path'
 import { mcpIdFrom, type McpCatalogItem, type McpServerInput, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
-import { listSkills, skillsDir } from './skills'
+import { listSkills, skillsDir, videoSkillsDir } from './skills'
+import { isVideoExtension } from '@shared/videoExtensions'
 import { tr } from '@shared/i18n'
 
 export const MCP_REGISTRY = 'https://registry.modelcontextprotocol.io/v0/servers'
@@ -240,10 +241,13 @@ async function getText(url: string): Promise<string | null> {
 }
 
 /** Todos los archivos del repositorio (la API de GitHub sin sesión: 60 consultas por hora), o null si no responde. */
-async function repoTree(repo: string, ref: string): Promise<string[] | null> {
+/** Los archivos de un repositorio (null si la API no responde). `truncated`: GitHub cortó la lista (repos enormes). */
+async function repoTree(repo: string, ref: string): Promise<(string[] & { truncated?: boolean }) | null> {
   try {
-    const data = (await getJson(`https://api.github.com/repos/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`)) as { tree?: Array<{ path?: string; type?: string; size?: number }> }
-    return (data.tree ?? []).filter((x) => x.type === 'blob' && typeof x.path === 'string' && (x.size ?? 0) <= MAX_SKILL_BYTES).map((x) => x.path!)
+    const data = (await getJson(`https://api.github.com/repos/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`)) as { tree?: Array<{ path?: string; type?: string; size?: number }>; truncated?: boolean }
+    const files: string[] & { truncated?: boolean } = (data.tree ?? []).filter((x) => x.type === 'blob' && typeof x.path === 'string' && (x.size ?? 0) <= MAX_SKILL_BYTES).map((x) => x.path!)
+    if (data.truncated) files.truncated = true
+    return files
   } catch {
     return null
   }
@@ -307,6 +311,11 @@ export async function installSkill(skillsDir: string, repo: string, skillId: str
     const md = files.filter((f) => f === 'SKILL.md' || f.endsWith('/SKILL.md'))
     const dir = md.map((f) => f.replace(/\/?SKILL\.md$/, '')).find((d) => d.split('/').pop() === skillId) ?? (md.length === 1 ? md[0].replace(/\/?SKILL\.md$/, '') : undefined)
     if (dir !== undefined) return [await copySkill(skillsDir, repo, 'HEAD', dir, files)]
+    // El repositorio se lee bien pero no la tiene (la quitaron o la renombraron; skills.sh puede ir con retraso).
+    if (md.length && !files.truncated) {
+      const names = md.map((f) => f.replace(/\/?SKILL\.md$/, '').split('/').pop() || repo.split('/')[1]).slice(0, 12)
+      throw new Error(tr('«{name}» ya no está en {repo}. Tiene: {list}', { name: skillId, repo, list: names.join(', ') }))
+    }
   }
   // Sin la API de GitHub: en los sitios de siempre, con los archivos que cita su SKILL.md.
   for (const dir of SKILL_DIRS(skillId)) {
@@ -452,7 +461,34 @@ export async function skillCatalog(query: unknown): Promise<SkillCatalogItem[]> 
 }
 
 export function installedSkills(): SkillInfo[] {
-  return listSkills().map((s) => ({ name: s.name, description: s.description }))
+  return [
+    ...listSkills().map((s) => ({ name: s.name, description: s.description })),
+    ...listSkills(videoSkillsDir()).map((s) => ({ name: s.name, description: s.description, video: true }))
+  ]
+}
+
+/**
+ * Las habilidades de vídeo recién instaladas pasan a la carpeta del estudio de vídeo (habilidades/video): las lee el
+ * agente que escribe el guion de cada vídeo y no ocupan el encargo de las demás tareas.
+ */
+export function routeVideoSkills(names: string[]): void {
+  const root = skillsDir()
+  const vdir = videoSkillsDir()
+  if (!root || !vdir) return
+  for (const s of listSkills(root)) {
+    if (!names.includes(s.name) || !isVideoExtension(s.name, s.description)) continue
+    const rel = relative(root, s.file).split(sep)[0]
+    const from = safeJoin(root, rel)
+    const to = safeJoin(vdir, rel)
+    if (!from || !to) continue
+    try {
+      mkdirSync(vdir, { recursive: true })
+      if (existsSync(to)) rmSync(to, { recursive: true, force: true })
+      renameSync(from, to)
+    } catch {
+      /* se queda donde estaba */
+    }
+  }
 }
 
 /** Instala una del catálogo (sin carpeta: todas las de su repositorio). Devuelve lo instalado y la lista nueva. */
@@ -461,6 +497,7 @@ export async function installCatalogSkill(source: unknown, skillId: unknown): Pr
   if (!dir) throw new Error(tr('Las habilidades no están disponibles'))
   if (typeof source !== 'string' || typeof skillId !== 'string') throw new Error(tr('Datos no válidos'))
   const installed = skillId ? await installSkill(dir, source, skillId) : await installSkillsFromUrl(dir, `https://github.com/${source}`)
+  routeVideoSkills(installed)
   return { installed, skills: installedSkills() }
 }
 
@@ -468,12 +505,16 @@ export async function installSkillLink(url: unknown): Promise<{ installed: strin
   const dir = skillsDir()
   if (!dir) throw new Error(tr('Las habilidades no están disponibles'))
   if (typeof url !== 'string') throw new Error(tr('Datos no válidos'))
-  return { installed: await installSkillsFromUrl(dir, url), skills: installedSkills() }
+  const installed = await installSkillsFromUrl(dir, url)
+  routeVideoSkills(installed)
+  return { installed, skills: installedSkills() }
 }
 
 export function removeSkill(name: unknown): SkillInfo[] {
   const s = listSkills().find((x) => x.name === name)
-  if (!s) throw new Error(tr('Esa habilidad ya no está'))
-  removeSkillFiles(skillsDir(), s.file)
+  const v = s ? undefined : listSkills(videoSkillsDir()).find((x) => x.name === name)
+  if (!s && !v) throw new Error(tr('Esa habilidad ya no está'))
+  if (s) removeSkillFiles(skillsDir(), s.file)
+  else removeSkillFiles(videoSkillsDir(), v!.file)
   return installedSkills()
 }

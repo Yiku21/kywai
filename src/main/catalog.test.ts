@@ -141,6 +141,12 @@ describe('catálogo de habilidades', () => {
     expect(existsSync(join(dir, 'otra'))).toBe(false)
   })
 
+  it('si el repositorio ya no la tiene, lo dice y enseña las que hay', async () => {
+    const dir = tmp()
+    fakeWeb({ 'https://api.github.com/repos/acme/kit/git/trees/HEAD?recursive=1': { tree: [{ path: 'skills/pdf/SKILL.md', type: 'blob' }, { path: 'skills/otra/SKILL.md', type: 'blob' }] } })
+    await expect(installSkill(dir, 'acme/kit', 'general-video')).rejects.toThrow(/ya no está en acme\/kit.*pdf, otra/)
+  })
+
   it('sin la API de GitHub la busca en los sitios de siempre y trae lo que cita', async () => {
     const dir = tmp()
     fakeWeb({
@@ -188,5 +194,35 @@ describe('catálogo de habilidades', () => {
   it('quitar solo borra dentro de la carpeta de habilidades', () => {
     const dir = tmp()
     expect(() => removeSkillFiles(dir, join(dir, '..', 'otra', 'SKILL.md'))).toThrow()
+  })
+})
+
+describe('habilidades de vídeo', () => {
+  it('reconoce lo que es de vídeo y lo que no', async () => {
+    const { isVideoExtension } = await import('@shared/videoExtensions')
+    expect(isVideoExtension('hyperframes', 'Make videos from HTML')).toBe(true)
+    expect(isVideoExtension('montaje', 'Edita vídeos con ffmpeg')).toBe(true)
+    expect(isVideoExtension('pdf', 'Rellena formularios PDF')).toBe(false)
+    expect(isVideoExtension('docs', 'Writes documentation')).toBe(false)
+  })
+
+  it('al instalarla, la de vídeo pasa a habilidades/video y sale marcada', async () => {
+    const { initSkills } = await import('./skills')
+    const { installCatalogSkill, installedSkills, removeSkill } = await import('./catalog')
+    const ws = tmp()
+    initSkills(ws)
+    fakeWeb({
+      'https://api.github.com/repos/acme/kit/git/trees/HEAD?recursive=1': { tree: [{ path: 'skills/clips/SKILL.md', type: 'blob' }, { path: 'skills/pdf/SKILL.md', type: 'blob' }] },
+      'https://raw.githubusercontent.com/acme/kit/HEAD/skills/clips/SKILL.md': '---\nname: clips\ndescription: Make short videos\n---\n# clips\n',
+      'https://raw.githubusercontent.com/acme/kit/HEAD/skills/pdf/SKILL.md': SKILL('pdf')
+    })
+    await installCatalogSkill('acme/kit', 'clips')
+    await installCatalogSkill('acme/kit', 'pdf')
+    expect(existsSync(join(ws, 'habilidades', 'video', 'clips', 'SKILL.md'))).toBe(true)
+    expect(existsSync(join(ws, 'habilidades', 'pdf', 'SKILL.md'))).toBe(true)
+    expect(installedSkills()).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'clips', video: true }), expect.objectContaining({ name: 'pdf' })]))
+    expect(installedSkills().find((x) => x.name === 'pdf')?.video).toBeUndefined()
+    removeSkill('clips')
+    expect(existsSync(join(ws, 'habilidades', 'video', 'clips'))).toBe(false)
   })
 })

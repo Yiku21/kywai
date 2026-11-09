@@ -1817,7 +1817,7 @@ async function main(): Promise<void> {
       // Con un estudio instalado de verdad (VIDEO_STUDIO_DIR = la carpeta de trabajo que contiene «estudio-video») se
       // monta el vídeo entero; sin él, la tarea falla diciendo qué instalar.
       const studio = process.env.VIDEO_STUDIO_DIR
-      initVideoStudio(studio || join(root, 'sin-estudio'))
+      initVideoStudio(studio || join(root, 'sin-estudio'), { autoInstall: false })
       const vp = store.createProject('Vídeos')
       const guion = {
         title: 'Prueba de vídeo',

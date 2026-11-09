@@ -35,9 +35,12 @@ const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image'
 const GEMINI_TTS_MODELS = ['gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-tts']
 
 let root = ''
+let autoInstall = true
 
-export function initVideoStudio(workspaceRoot: string): void {
+/** autoInstall=false: si falta algo, la tarea falla al momento en vez de instalarlo (lo usan las comprobaciones). */
+export function initVideoStudio(workspaceRoot: string, opts: { autoInstall?: boolean } = {}): void {
   root = join(workspaceRoot, 'estudio-video')
+  autoInstall = opts.autoInstall ?? true
 }
 
 export function videoStudioDir(): string {
@@ -387,7 +390,7 @@ export async function renderVideo(input: {
     // La primera vez que se pide un vídeo, kywai instala solo lo que falta (sin pasar por Ajustes).
     step('Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)', 0.01)
     const log: string[] = []
-    status = await ensureVideoStudio((l) => log.push(l))
+    if (autoInstall) status = await ensureVideoStudio((l) => log.push(l))
     if (!status.ready) {
       const missing = [!status.engine && 'HyperFrames', !status.ffmpeg && 'ffmpeg'].filter(Boolean).join(' y ')
       throw new Error(`No se pudo instalar ${missing}: ${log.slice(-3).join(' ').slice(0, 400)}. Prueba en Ajustes → Extensiones → Estudio de vídeo → «Instalar lo que falta».`)
