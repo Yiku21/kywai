@@ -16,17 +16,22 @@ export interface ChatCommand {
   args?: string
   /** Una frase corta: lo que hace (en español; se traduce al enseñarla). */
   description: string
+  /** Su icono en la lista (de línea, como los de la app): el escritorio y Órbita lo dibujan cada uno con el suyo. */
+  icon: CommandIcon
 }
+
+/** Los iconos de la lista del «/». */
+export type CommandIcon = 'video' | 'routine' | 'direct' | 'memory' | 'model' | 'usage' | 'new' | 'template' | 'mod'
 
 /** Las órdenes de kywai, en el orden en que salen. */
 export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
-  { name: 'video', aliases: [], args: 'tema', description: 'Crea un vídeo completo y te da solo el MP4' },
-  { name: 'rutina', aliases: ['rutinas', 'routine'], args: 'cuándo: qué', description: 'Programa una tarea a una hora o que se repita' },
-  { name: 'directo', aliases: ['direct', 'dm'], args: 'Agente mensaje', description: 'Habla con un agente sin pasar por Hermes' },
-  { name: 'recuerda', aliases: ['recordar', 'memoria', 'remember'], args: 'texto', description: 'Guarda un dato en la memoria del proyecto' },
-  { name: 'model', aliases: ['modelo', 'models', 'modelos'], description: 'Cambia el modelo de Hermes' },
-  { name: 'uso', aliases: ['usage', 'cuotas', 'cuota', 'quota', 'quotas', 'limits', 'limit'], description: 'Mira cuánta cuota le queda a cada agente' },
-  { name: 'nuevo', aliases: ['new', 'clear', 'limpiar'], description: 'Empieza un chat nuevo en este proyecto' }
+  { name: 'video', aliases: [], args: 'tema', description: 'Crea un vídeo completo y te da solo el MP4', icon: 'video' },
+  { name: 'rutina', aliases: ['rutinas', 'routine'], args: 'cuándo: qué', description: 'Programa una tarea a una hora o que se repita', icon: 'routine' },
+  { name: 'directo', aliases: ['direct', 'dm'], args: 'Agente mensaje', description: 'Habla con un agente sin pasar por Hermes', icon: 'direct' },
+  { name: 'recuerda', aliases: ['recordar', 'memoria', 'remember'], args: 'texto', description: 'Guarda un dato en la memoria del proyecto', icon: 'memory' },
+  { name: 'model', aliases: ['modelo', 'models', 'modelos'], description: 'Cambia el modelo de Hermes', icon: 'model' },
+  { name: 'uso', aliases: ['usage', 'cuotas', 'cuota', 'quota', 'quotas', 'limits', 'limit'], description: 'Mira cuánta cuota le queda a cada agente', icon: 'usage' },
+  { name: 'nuevo', aliases: ['new', 'clear', 'limpiar'], description: 'Empieza un chat nuevo en este proyecto', icon: 'new' }
 ]
 
 /** Una fila de la lista del «/». */
@@ -40,8 +45,8 @@ export interface CommandSuggestion {
   args?: string
   /** Lo que hace, ya traducido. */
   description: string
-  /** Emoji de la plantilla. */
-  icon?: string
+  /** Su icono (de línea, el mismo estilo para todas). */
+  icon: CommandIcon
   /** Hace su trabajo nada más elegirla (no lleva nada detrás). */
   runs: boolean
   /** La plantilla, si es una. */
@@ -73,17 +78,17 @@ export function commandSuggestions(query: string, src: CommandSources = {}): Com
     for (const k of [c.name, ...c.aliases]) taken.add(k)
     const name = matchName(c, q)
     if (!name) continue
-    out.push({ key: `b:${c.name}`, kind: 'builtin', command: name, ...(c.args ? { args: t(c.args) } : {}), description: t(c.description), runs: !c.args })
+    out.push({ key: `b:${c.name}`, kind: 'builtin', command: name, ...(c.args ? { args: t(c.args) } : {}), description: t(c.description), icon: c.icon, runs: !c.args })
   }
   for (const tpl of src.templates ?? []) {
     if (!tpl.command || taken.has(tpl.command) || !tpl.command.startsWith(q)) continue
     taken.add(tpl.command)
-    out.push({ key: `t:${tpl.id}`, kind: 'template', command: tpl.command, description: tpl.name, ...(tpl.icon ? { icon: tpl.icon } : {}), runs: false, templateId: tpl.id })
+    out.push({ key: `t:${tpl.id}`, kind: 'template', command: tpl.command, description: tpl.name, icon: 'template', runs: false, templateId: tpl.id })
   }
   for (const m of src.mods ?? []) {
     if (taken.has(m.name) || !m.name.startsWith(q)) continue
     taken.add(m.name)
-    out.push({ key: `m:${m.mod}:${m.name}`, kind: 'mod', command: m.name, description: m.description || t('Orden del mod «{mod}»', { mod: m.mod }), runs: false })
+    out.push({ key: `m:${m.mod}:${m.name}`, kind: 'mod', command: m.name, description: m.description || t('Orden del mod «{mod}»', { mod: m.mod }), icon: 'mod', runs: false })
   }
   return out
 }

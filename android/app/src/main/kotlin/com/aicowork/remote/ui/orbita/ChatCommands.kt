@@ -2,6 +2,8 @@ package com.aicowork.remote.ui.orbita
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,12 +16,24 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Memory
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -36,23 +50,23 @@ import com.aicowork.remote.i18n.t
  * Copia de src/shared/chatCommands.ts: si se añade o cambia una orden, cambiarla en los dos sitios.
  */
 object ChatCommands {
-    data class Command(val name: String, val aliases: List<String>, val args: String?, val description: String)
+    data class Command(val name: String, val aliases: List<String>, val args: String?, val description: String, val icon: ImageVector)
 
     /** Las órdenes de kywai, en el orden en que salen, en el idioma de Órbita. */
     fun builtin(): List<Command> = listOf(
-        Command("video", emptyList(), t("tema"), t("Crea un vídeo completo y te da solo el MP4")),
-        Command("rutina", listOf("rutinas", "routine"), t("cuándo: qué"), t("Programa una tarea a una hora o que se repita")),
-        Command("directo", listOf("direct", "dm"), t("Agente mensaje"), t("Habla con un agente sin pasar por Hermes")),
-        Command("recuerda", listOf("recordar", "memoria", "remember"), t("texto"), t("Guarda un dato en la memoria del proyecto")),
-        Command("model", listOf("modelo", "models", "modelos"), null, t("Cambia el modelo de Hermes")),
-        Command("uso", listOf("usage", "cuotas", "cuota", "quota", "quotas", "limits", "limit"), null, t("Mira cuánta cuota le queda a cada agente")),
-        Command("nuevo", listOf("new", "clear", "limpiar"), null, t("Empieza un chat nuevo en este proyecto")),
+        Command("video", emptyList(), t("tema"), t("Crea un vídeo completo y te da solo el MP4"), Icons.Outlined.Movie),
+        Command("rutina", listOf("rutinas", "routine"), t("cuándo: qué"), t("Programa una tarea a una hora o que se repita"), Icons.Outlined.Schedule),
+        Command("directo", listOf("direct", "dm"), t("Agente mensaje"), t("Habla con un agente sin pasar por Hermes"), Icons.Outlined.AlternateEmail),
+        Command("recuerda", listOf("recordar", "memoria", "remember"), t("texto"), t("Guarda un dato en la memoria del proyecto"), Icons.Outlined.Psychology),
+        Command("model", listOf("modelo", "models", "modelos"), null, t("Cambia el modelo de Hermes"), Icons.Outlined.Memory),
+        Command("uso", listOf("usage", "cuotas", "cuota", "quota", "quotas", "limits", "limit"), null, t("Mira cuánta cuota le queda a cada agente"), Icons.Outlined.Speed),
+        Command("nuevo", listOf("new", "clear", "limpiar"), null, t("Empieza un chat nuevo en este proyecto"), Icons.Outlined.EditNote),
     )
 
     enum class Kind { Builtin, Template, Mod }
 
     /** Una fila de la lista. `runs`: hace su trabajo nada más elegirla (no lleva nada detrás). */
-    data class Suggestion(val key: String, val kind: Kind, val command: String, val args: String?, val description: String, val icon: String?, val runs: Boolean)
+    data class Suggestion(val key: String, val kind: Kind, val command: String, val args: String?, val description: String, val icon: ImageVector, val runs: Boolean)
 
     data class ModCommand(val name: String, val description: String, val mod: String)
 
@@ -77,17 +91,17 @@ object ChatCommands {
             taken += c.name
             taken += c.aliases
             val name = if (c.name.startsWith(q)) c.name else c.aliases.firstOrNull { it.startsWith(q) } ?: continue
-            out += Suggestion("b:${c.name}", Kind.Builtin, name, c.args, c.description, null, c.args == null)
+            out += Suggestion("b:${c.name}", Kind.Builtin, name, c.args, c.description, c.icon, c.args == null)
         }
         for (tpl in templates) {
             if (tpl.command.isEmpty() || tpl.command in taken || !tpl.command.startsWith(q)) continue
             taken += tpl.command
-            out += Suggestion("t:${tpl.id}", Kind.Template, tpl.command, null, tpl.name, tpl.icon?.takeIf { it.isNotBlank() }, false)
+            out += Suggestion("t:${tpl.id}", Kind.Template, tpl.command, null, tpl.name, Icons.Outlined.Dashboard, false)
         }
         for (m in mods) {
             if (m.name in taken || !m.name.startsWith(q)) continue
             taken += m.name
-            out += Suggestion("m:${m.mod}:${m.name}", Kind.Mod, m.name, null, m.description.ifBlank { t("Orden del mod «{mod}»", "mod" to m.mod) }, null, false)
+            out += Suggestion("m:${m.mod}:${m.name}", Kind.Mod, m.name, null, m.description.ifBlank { t("Orden del mod «{mod}»", "mod" to m.mod) }, Icons.Outlined.Extension, false)
         }
         return out
     }
@@ -123,10 +137,12 @@ fun ChatCommandList(model: OrbitaModel, snapshot: Snapshot?, onRun: (String) -> 
                     }.padding(horizontal = 12.dp, vertical = 9.dp).testTag("command-${c.key}"),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    c.icon?.let {
-                        Text(it, style = MaterialTheme.typography.labelLarge)
-                        Spacer(Modifier.width(6.dp))
-                    }
+                    // Icono de línea, del mismo estilo que el resto de Órbita, con el color del tema.
+                    Box(
+                        Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(Orbita.AccentSoft),
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(c.icon, contentDescription = null, tint = Orbita.Accent, modifier = Modifier.size(17.dp)) }
+                    Spacer(Modifier.width(10.dp))
                     Text("/${c.command}", color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     c.args?.let {
                         Spacer(Modifier.width(4.dp))

@@ -279,9 +279,22 @@
 
 .cmdIcon {
   flex: none;
-  width: 18px;
-  text-align: center;
-  color: var(--text-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--text-2);
+  background: color-mix(in srgb, var(--text-1) 5%, transparent);
+  border: 1px solid var(--border);
+}
+
+/* La fila elegida: el icono toma el color del tema. */
+.mentionOn .cmdIcon {
+  color: var(--cyan);
+  border-color: color-mix(in srgb, var(--cyan) 45%, transparent);
+  background: var(--cyan-soft);
 }
 
 .mentionDot {
