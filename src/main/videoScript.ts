@@ -650,8 +650,8 @@ export function synthMusic(seconds: number, seed: string, sampleRate = 44100): B
     [0, -5, -3, 2]
   ]
   const root = roots[h % roots.length]
-  const prog = progs[(h >> 3) % progs.length]
-  const minor = (h >> 5) % 2 === 0
+  const prog = progs[(h >>> 3) % progs.length]
+  const minor = (h >>> 5) % 2 === 0
   const bpm = 112
   const beat = 60 / bpm
   const bar = beat * 4

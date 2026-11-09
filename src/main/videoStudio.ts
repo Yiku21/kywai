@@ -147,6 +147,16 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
  * «Instalar lo que falta»: HyperFrames y GSAP en la carpeta del estudio, ffmpeg (Homebrew en macOS, winget en Windows)
  * y la voz Kokoro en un entorno de Python propio. Cada paso dice cómo fue; un paso que falla no frena los demás.
  */
+let installing: Promise<VideoStudioStatus> | null = null
+
+/** Instala lo que falta una sola vez aunque lleguen varios vídeos a la vez (o se pulse el botón de Ajustes mientras). */
+export function ensureVideoStudio(onLine: (l: string) => void = () => undefined): Promise<VideoStudioStatus> {
+  installing ??= installVideoStudio(onLine).finally(() => {
+    installing = null
+  })
+  return installing
+}
+
 export async function installVideoStudio(onLine: (l: string) => void = () => undefined): Promise<VideoStudioStatus> {
   if (!root) throw new Error('El estudio de vídeo no está preparado')
   mkdirSync(root, { recursive: true })
@@ -372,10 +382,16 @@ export async function renderVideo(input: {
 }): Promise<RenderedVideo> {
   const { script, format, workDir: dir, signal } = input
   const step = input.onStep ?? (() => undefined)
-  const status = await videoStudioStatus()
-  if (!status.ready) {
-    const missing = [!status.engine && 'HyperFrames', !status.ffmpeg && 'ffmpeg'].filter(Boolean).join(' y ')
-    throw new Error(`Falta ${missing} para montar vídeos: instálalo en Ajustes → Extensiones → Estudio de vídeo → «Instalar lo que falta».`)
+  let status = await videoStudioStatus()
+  if (!status.ready || !status.voice) {
+    // La primera vez que se pide un vídeo, kywai instala solo lo que falta (sin pasar por Ajustes).
+    step('Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)', 0.01)
+    const log: string[] = []
+    status = await ensureVideoStudio((l) => log.push(l))
+    if (!status.ready) {
+      const missing = [!status.engine && 'HyperFrames', !status.ffmpeg && 'ffmpeg'].filter(Boolean).join(' y ')
+      throw new Error(`No se pudo instalar ${missing}: ${log.slice(-3).join(' ').slice(0, 400)}. Prueba en Ajustes → Extensiones → Estudio de vídeo → «Instalar lo que falta».`)
+    }
   }
   if (!status.voice) throw new Error('Este equipo no tiene voz: instala la voz Kokoro en Ajustes → Extensiones → Estudio de vídeo.')
   mkdirSync(join(dir, 'assets'), { recursive: true })

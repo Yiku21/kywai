@@ -201,6 +201,12 @@ describe('música y nombres', () => {
     expect(a.length).toBe(44 + 12000 * 2)
   })
 
+  it('la música sale con cualquier título (antes fallaba con algunos, p. ej. «Un niño corre»)', () => {
+    for (const t of ['Un niño corre', 'Cómo instalar la RAM', 'x', 'Un título bastante largo con acentos: ñandú, pingüino']) {
+      expect(synthMusic(0.2, t, 8000).length).toBe(44 + 1600 * 2)
+    }
+  })
+
   it('la música es un WAV de la duración pedida, igual para el mismo título', () => {
     const a = synthMusic(1, 'hola', 8000)
     expect(a.subarray(0, 4).toString()).toBe('RIFF')
