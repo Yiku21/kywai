@@ -2474,7 +2474,6 @@ export const zh: Record<string, string> = {
   "El agente de la plantilla «{name}» ya no está en el equipo: edítala y elige otro.": "模板“{name}”的代理已不在团队中：请编辑它并选择另一个。",
 
   // Plantillas de tareas (TemplateBar, TemplateEditor)
-  "Plantillas: elige una y escribe detrás lo que cambia": "模板：选一个，然后在后面写上会变的内容",
   "{who} · plantilla «{name}»": "{who} · 模板“{name}”",
   "/rutina cada día a las 9:00: {text}": "/rutina cada día a las 9:00: {text}",
   "Convertir en rutina…": "转为例行任务…",
@@ -2688,4 +2687,19 @@ export const zh: Record<string, string> = {
   "kywai lo instala y lo abre una vez para que prepare su servidor.": "kywai 会安装它并打开一次，让它准备好服务器。",
   "kywai lo instala y lo deja en marcha.": "kywai 会安装它并让它保持运行。",
   "Sí, instalar": "是的，安装",
+  // Lista de órdenes del «/» (shared/chatCommands.ts, ui/left/Composer.tsx)
+  "Crea un vídeo completo y te da solo el MP4": "制作一段完整的视频，只给你 MP4",
+  "Programa una tarea a una hora o que se repita": "把任务安排在某个时间，或让它重复执行",
+  "Habla con un agente sin pasar por Hermes": "不经过 Hermes 直接和某个智能体对话",
+  "Guarda un dato en la memoria del proyecto": "把一条信息存进项目记忆",
+  "Cambia el modelo de Hermes": "更换 Hermes 的模型",
+  "Mira cuánta cuota le queda a cada agente": "查看每个智能体还剩多少额度",
+  "Empieza un chat nuevo en este proyecto": "在这个项目里开始新的对话",
+  "tema": "主题",
+  "cuándo: qué": "何时：做什么",
+  "Agente mensaje": "智能体 消息",
+  "texto": "文字",
+  "Orden del mod «{mod}»": "模组「{mod}」的命令",
+  "Órdenes del chat": "聊天命令",
+  "Órdenes: elige una o sigue escribiendo para filtrar": "命令：选一个，或继续输入来筛选",
 }

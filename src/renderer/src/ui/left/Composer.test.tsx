@@ -149,4 +149,22 @@ describe('plantillas de tareas encima del cuadro', () => {
     expect(useComposer.getState().text).toBe('/revisar-pr ')
     expect(fake.sent).toEqual([])
   })
+
+  it('con «/» sola salen todas las órdenes, cada una con lo que hace', async () => {
+    await type('/')
+    const rows = [...host.querySelectorAll('#composer-commands [role="option"]')]
+    const names = rows.map((o) => o.querySelector('span:nth-child(2)')?.textContent ?? '')
+    expect(names.slice(0, 7)).toEqual(['/video tema', '/rutina cuándo: qué', '/directo Agente mensaje', '/recuerda texto', '/model', '/uso', '/nuevo'])
+    expect(names).toContain('/revisar-pr')
+    expect(rows.every((o) => (o.querySelector('span:nth-child(3)')?.textContent ?? '').length > 0)).toBe(true)
+    expect(rows[0].textContent).toContain('MP4')
+  })
+
+  it('una orden sin nada detrás se hace al elegirla, sin ir a los agentes', async () => {
+    await type('/mod')
+    await key('Enter')
+    expect(useCowork.getState().hermesModelOpen).toBe(true)
+    expect(useComposer.getState().text).toBe('')
+    expect(fake.sent).toEqual([])
+  })
 })

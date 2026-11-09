@@ -1799,7 +1799,7 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
 
   it('paneles de los mods en Órbita: la lista de los encendidos y su página con el puente del WebView', async () => {
     const mods = [
-      { name: 'notas', title: 'Notas', enabled: true, permissions: ['chat'], panels: [{ id: 'equipo', title: 'Equipo', file: 'p.html' }] },
+      { name: 'notas', title: 'Notas', enabled: true, permissions: ['chat'], panels: [{ id: 'equipo', title: 'Equipo', file: 'p.html' }], commands: [{ name: 'resumir', description: 'Resume el chat', prompt: 'x' }, { name: 'rutina', description: 'Tapada', prompt: 'y' }], shadowed: ['rutina'] },
       { name: 'apagado', title: 'Apagado', enabled: false, permissions: [], panels: [{ id: 'x', title: 'X', file: 'x.html' }] }
     ]
     webMethods.set('listMods', () => mods)
@@ -1808,7 +1808,11 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       return { html: '<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src \'none\'"><p>hola</p>', title: 'Equipo', chat: true }
     })
     try {
-      expect((await api('/snapshot')).body.capabilities.modPanels).toBe(true)
+      const snap = (await api('/snapshot')).body
+      expect(snap.capabilities.modPanels).toBe(true)
+      // Sus órdenes «/…», para la lista del «/» de Órbita (sin las que tapa otra orden).
+      expect(snap.capabilities.chatCommands).toBe(true)
+      expect(snap.modCommands).toEqual([{ name: 'resumir', description: 'Resume el chat', mod: 'Notas' }])
       expect((await api('/mods/panels')).body).toEqual({ panels: [{ mod: 'notas', modTitle: 'Notas', id: 'equipo', title: 'Equipo', chat: true }] })
       const page = await api('/mods/panel?mod=notas&id=equipo')
       expect(page.status).toBe(200)
@@ -1995,6 +1999,18 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     const replies = store.snapshotProject(conversation).messages.filter((m) => m.author.type === 'system').map((m) => m.text)
     expect(replies.slice(1)).toEqual([expect.stringMatching(/^No entendí cuándo/), expect.stringMatching(/^Escribe, por ejemplo/)])
     expect(store.getProject(conversation).routines).toHaveLength(1)
+    expect(prompts).toEqual([])
+    expect(activeRunsFor(conversation)).toEqual([])
+  })
+
+  it('«/recuerda …» desde el móvil va a la memoria del proyecto (confirmado) y contesta en el chat, sin pasar por Hermes', async () => {
+    const conversation = (await api('/conversations', {})).body.conversation.id as string
+    prompts.length = 0
+    expect((await api('/chat/messages', { conversationId: conversation, text: '/recuerda decisión: la licencia es MIT', clientMessageId: 'mem-1' })).status).toBe(202)
+    expect(store.getProject(conversation).memory).toEqual([expect.objectContaining({ kind: 'decision', text: 'la licencia es MIT', status: 'confirmed' })])
+    await api('/chat/messages', { conversationId: conversation, text: '/recuerda decisión: la licencia es MIT', clientMessageId: 'mem-2' })
+    const replies = store.snapshotProject(conversation).messages.filter((m) => m.author.type === 'system').map((m) => m.text)
+    expect(replies).toEqual([expect.stringMatching(/^Anotado en la memoria del proyecto \(.+, confirmado\): la licencia es MIT$/), 'Eso ya estaba en la memoria.'])
     expect(prompts).toEqual([])
     expect(activeRunsFor(conversation)).toEqual([])
   })

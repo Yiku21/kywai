@@ -304,6 +304,33 @@
   font-size: 12px;
 }
 
+/* Lista del «/»: la orden (con lo que va detrás) y, a la derecha, lo que hace. */
+.cmdName {
+  flex: none;
+  width: 38%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmdArgs {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.cmdDesc {
+  flex: 1;
+  min-width: 0;
+  margin-left: 10px;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* ---------- Pista ---------- */
 
 .hint {

@@ -52,7 +52,7 @@ export const MAX_SLOTS = 6
 export const RESERVED_TEMPLATE_COMMANDS = [
   'directo', 'direct', 'dm', 'rutina', 'rutinas', 'routine', 'model', 'models', 'modelo', 'modelos',
   'new', 'nuevo', 'clear', 'limpiar', 'usage', 'uso', 'cuota', 'cuotas', 'quota', 'quotas', 'limit', 'limits',
-  'recuerda', 'recordar', 'memoria', 'remember', 'plantilla', 'plantillas', 'template', 'templates'
+  'recuerda', 'recordar', 'memoria', 'remember', 'plantilla', 'plantillas', 'template', 'templates', 'video'
 ]
 
 /** Un hueco: letras (de cualquier idioma), cifras, «_» o «-», empezando por letra. */

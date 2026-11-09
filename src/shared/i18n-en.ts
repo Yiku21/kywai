@@ -2592,7 +2592,6 @@ export const en: Record<string, string> = {
   "El agente de la plantilla «{name}» ya no está en el equipo: edítala y elige otro.": "The agent of the template “{name}” is no longer in the team: edit it and choose another one.",
 
   // Plantillas de tareas (TemplateBar, TemplateEditor)
-  "Plantillas: elige una y escribe detrás lo que cambia": "Templates: pick one and type what changes after it",
   "{who} · plantilla «{name}»": "{who} · template “{name}”",
   "/rutina cada día a las 9:00: {text}": "/routine every day at 9:00: {text}",
   "Convertir en rutina…": "Turn into a routine…",
@@ -2807,4 +2806,19 @@ export const en: Record<string, string> = {
   "kywai lo instala y lo abre una vez para que prepare su servidor.": "kywai installs it and opens it once so it sets up its server.",
   "kywai lo instala y lo deja en marcha.": "kywai installs it and leaves it running.",
   "Sí, instalar": "Yes, install",
+  // Lista de órdenes del «/» (shared/chatCommands.ts, ui/left/Composer.tsx)
+  "Crea un vídeo completo y te da solo el MP4": "Makes a complete video and gives you just the MP4",
+  "Programa una tarea a una hora o que se repita": "Schedules a task for a set time or to repeat",
+  "Habla con un agente sin pasar por Hermes": "Talks to an agent without going through Hermes",
+  "Guarda un dato en la memoria del proyecto": "Saves a fact to the project memory",
+  "Cambia el modelo de Hermes": "Changes Hermes's model",
+  "Mira cuánta cuota le queda a cada agente": "Shows how much quota each agent has left",
+  "Empieza un chat nuevo en este proyecto": "Starts a new chat in this project",
+  "tema": "topic",
+  "cuándo: qué": "when: what",
+  "Agente mensaje": "Agent message",
+  "texto": "text",
+  "Orden del mod «{mod}»": "Command from the «{mod}» mod",
+  "Órdenes del chat": "Chat commands",
+  "Órdenes: elige una o sigue escribiendo para filtrar": "Commands: pick one or keep typing to filter",
 }
