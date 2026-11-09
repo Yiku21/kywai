@@ -97,7 +97,7 @@ import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
-import { initVideoStudio, installVideoStudio, videoStudioStatus } from './videoStudio'
+import { initVideoStudio, ensureVideoStudio, videoStudioStatus } from './videoStudio'
 import { installCatalogSkill, installSkillLink, installedSkills, mcpCatalog, removeSkill, skillCatalog } from './catalog'
 import { allowModHooks, modPanelResponse, initMods, installModFolder, installModLink, listMods, modPanelHtml, removeMod, setModEnabled } from './mods'
 import { addPluginLink, initPlugins, installCatalogPlugin, listPlugins, pluginCatalog, removeMarketplace, removePlugin } from './plugins'
@@ -831,7 +831,7 @@ function registerIpc(): void {
   handle('videoStudioStatus', () => videoStudioStatus())
   handle('installVideoStudio', async () => {
     const log: string[] = []
-    const status = await installVideoStudio((l) => {
+    const status = await ensureVideoStudio((l) => {
       if (log.length < 400) log.push(l.slice(0, 300))
     })
     return { status, log: log.slice(-60) }

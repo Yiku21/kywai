@@ -2746,4 +2746,5 @@ export const fr: Record<string, string> = {
   "Orden del mod «{mod}»": "Commande du mod «{mod}»",
   "Órdenes del chat": "Commandes du chat",
   "Órdenes: elige una o sigue escribiendo para filtrar": "Commandes : choisis-en une ou continue d'écrire pour filtrer",
+  "Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)": "Installation du studio vidéo (la première fois seulement ; quelques minutes)",
 }
