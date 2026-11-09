@@ -440,7 +440,9 @@ La llave de ese equipo se guarda cifrada con el llavero del sistema, es **solo s
 dispositivos emparejados del servidor y se revoca desde allí sin tocar los demás) y deja de valer tras 90 días sin
 usarse. El cliente nunca recibe el código de acceso del servidor (ni en la configuración, ni en los avisos, ni en el
 enlace a la versión HTTPS), así que al revocarlo se queda fuera de verdad. La interfaz siempre es la del servidor, así que cliente y servidor nunca quedan desfasados. Si el servidor
-no responde, el cliente lo dice y reintenta solo; si ya no lo reconoce, vuelve a pedir un código. La ventana no lleva barra de
+no responde, el cliente lo dice y reintenta solo; si ya no lo reconoce, vuelve a pedir un código. Aunque la carga de la
+interfaz se corte a medias (el servidor se reinicia o rechaza la llave mientras carga), la app no se cierra: se queda en
+«Sin conexión» o en la pantalla de conectar (antes salía «No se pudo iniciar: (-3) loading data:…» y se cerraba). La ventana no lleva barra de
 menús: en ⚙ → «Ajustes…» están **Recargar la interfaz** (pestaña Acerca de; también Ctrl+R o F5), y **Cambiar de
 servidor…** y **Olvidar este dispositivo y desconectar** (pestaña Conexión).
 
