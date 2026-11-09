@@ -2758,4 +2758,5 @@ export const pt: Record<string, string> = {
   "Órdenes del chat": "Comandos do chat",
   "Órdenes: elige una o sigue escribiendo para filtrar": "Comandos: escolha um ou continue digitando para filtrar",
   "Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)": "A instalar o estúdio de vídeo (só na primeira vez; demora uns minutos)",
+  "El código mínimo que resuelve la tarea: reutilizar antes que escribir, sin extras que nadie pidió (MIT).": "O código mínimo que resolve a tarefa: reutilizar antes de escrever, sem extras que ninguém pediu (MIT).",
 }

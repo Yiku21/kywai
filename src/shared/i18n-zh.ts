@@ -2758,4 +2758,5 @@ export const zh: Record<string, string> = {
   "Órdenes del chat": "聊天命令",
   "Órdenes: elige una o sigue escribiendo para filtrar": "命令：选一个，或继续输入来筛选",
   "Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)": "正在安装视频工作室（仅首次，需要几分钟）",
+  "El código mínimo que resuelve la tarea: reutilizar antes que escribir, sin extras que nadie pidió (MIT).": "解决任务所需的最少代码：先复用再编写，不加没人要的功能（MIT）。",
 }

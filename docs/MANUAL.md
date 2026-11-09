@@ -1502,8 +1502,9 @@ salen primero. El resto se puede instalar, pero revisa su orden.
 **Habilidades.** Arriba, las instaladas (las de la carpeta «habilidades», que leen todos los agentes sean del
 programa que sean) con su papelera. Debajo:
 - **Buscar** en **skills.sh**, el directorio grande de skills (el mismo formato SKILL.md de Claude, Codex y Gemini),
-  con cuántas veces se ha instalado cada una. Sin buscar salen destacadas (Superpowers, Impeccable, la auditoría de
-  seguridad de Cloudflare, las de Anthropic, HyperFrames).
+  con cuántas veces se ha instalado cada una. Sin buscar salen destacadas (Superpowers, Impeccable, Ponytail, la
+  auditoría de seguridad de Cloudflare, las de Anthropic, HyperFrames). Ponytail (MIT) pide a los agentes el código
+  mínimo que resuelve la tarea; instalada aquí la ven todos los proyectos.
 - **Instalar desde el enlace** de GitHub: un repositorio entero (`https://github.com/dueño/repo`: instala todas sus
   carpetas con SKILL.md, sin las de pruebas y sin partir las anidadas) o una carpeta (`…/tree/main/skills/pdf`).
 

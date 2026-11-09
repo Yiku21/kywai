@@ -2877,4 +2877,5 @@ export const en: Record<string, string> = {
   "Órdenes del chat": "Chat commands",
   "Órdenes: elige una o sigue escribiendo para filtrar": "Commands: pick one or keep typing to filter",
   "Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)": "Installing the video studio (first time only; takes a few minutes)",
+  "El código mínimo que resuelve la tarea: reutilizar antes que escribir, sin extras que nadie pidió (MIT).": "The least code that solves the task: reuse before writing, no extras nobody asked for (MIT).",
 }
