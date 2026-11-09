@@ -2759,4 +2759,8 @@ export const zh: Record<string, string> = {
   "Órdenes: elige una o sigue escribiendo para filtrar": "命令：选一个，或继续输入来筛选",
   "Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)": "正在安装视频工作室（仅首次，需要几分钟）",
   "El código mínimo que resuelve la tarea: reutilizar antes que escribir, sin extras que nadie pidió (MIT).": "解决任务所需的最少代码：先复用再编写，不加没人要的功能（MIT）。",
+  "Código escueto (Ponytail)": "精简代码（Ponytail）",
+  "Descargando las reglas de Ponytail…": "正在下载 Ponytail 规则…",
+  "Los agentes escriben el código mínimo que resuelve la tarea, sin extras que nadie pidió, y el verificador señala lo que sobra. No recorta pruebas ni verificación.": "智能体只写解决任务所需的最少代码，不加没人要的功能，验证者会指出多余的部分。不会削减测试和验证。",
+  "Sin carpeta de trabajo": "没有工作文件夹",
 }

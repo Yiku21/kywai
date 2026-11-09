@@ -37,6 +37,8 @@ function source(e: MemoryEntry): string {
 export function MemoryView() {
   const memory = useData((d) => d.memory)
   const instructions = useData((d) => d.instructions)
+  const leanCode = useData((d) => d.leanCode)
+  const [leanBusy, setLeanBusy] = useState(false)
   const project = useCowork((st) => st.live.project)
   const mode = useCowork((st) => st.mode)
   const editable = !!api && mode === 'live' && !!project
@@ -79,6 +81,28 @@ export function MemoryView() {
           {t('Instrucciones para los agentes')}
         </h3>
         <Instructions text={instructions} editable={editable} onSave={(t) => call(() => api!.setInstructions(pid, t))} />
+        <button
+          type="button"
+          role="switch"
+          aria-checked={leanCode}
+          className={s.leanRow}
+          disabled={!editable || leanBusy}
+          onClick={async () => {
+            setLeanBusy(true)
+            await call(() => api!.setLeanCode(pid, !leanCode))
+            setLeanBusy(false)
+          }}
+        >
+          <span className={s.leanText}>
+            <span className={s.leanLabel}>{t('Código escueto (Ponytail)')}</span>
+            <span className={s.leanHint}>
+              {leanBusy && !leanCode
+                ? t('Descargando las reglas de Ponytail…')
+                : t('Los agentes escriben el código mínimo que resuelve la tarea, sin extras que nadie pidió, y el verificador señala lo que sobra. No recorta pruebas ni verificación.')}
+            </span>
+          </span>
+          <span className={cx(u.switch, leanCode && u.switchOn)} aria-hidden="true" />
+        </button>
       </section>
 
       <section className={v.section} aria-labelledby={idM}>

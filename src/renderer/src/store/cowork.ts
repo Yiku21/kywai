@@ -54,6 +54,8 @@ export interface DataSlice {
   memory: MemoryEntry[]
   /** Instrucciones del usuario para todos los agentes del proyecto. */
   instructions: string
+  /** «Código escueto (Ponytail)» encendido en el proyecto. */
+  leanCode: boolean
   /** Rutinas del proyecto (sin el secreto de los webhooks). En la demo, siempre vacío. */
   routines: Routine[]
   project: ProjectSummary | null
@@ -205,6 +207,7 @@ export function emptySlice(config: AppConfig, offlineReason?: string): DataSlice
     activeRunIds: [],
     memory: [],
     instructions: '',
+    leanCode: false,
     routines: [],
     project: null,
     conversation: null
@@ -283,7 +286,7 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
       return { ...d, activeRunIds, activeRunId: activeRunIds[activeRunIds.length - 1] ?? null }
     }
     case 'memory.updated':
-      return { ...d, memory: e.memory, instructions: e.instructions }
+      return { ...d, memory: e.memory, instructions: e.instructions, leanCode: e.leanCode === true }
     case 'routines.updated':
       return { ...d, routines: e.routines }
     case 'chat.cleared': {
@@ -518,6 +521,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
         activeRunIds: state.activeRunIds ?? (state.activeRunId ? [state.activeRunId] : []),
         memory: state.memory ?? [],
         instructions: state.instructions ?? '',
+        leanCode: state.leanCode === true,
         routines: state.routines ?? [],
         conversation: state.conversation ?? null
       },

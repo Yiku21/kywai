@@ -53,7 +53,7 @@ import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpda
 import { withoutClosingNotes, workSteps } from '@shared/work'
 import { lang, locale, renderMsg, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
-import { addMemory, KIND_LABEL, memoryPromptSections, parseMemoryNotes, planMemoryNotes, type MemoryNote } from './memory'
+import { addMemory, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNotes, planMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
 import { CHAT_STYLE, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
 import { projectBrief, testCommand } from './projectBrief'
@@ -68,6 +68,7 @@ import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './cowor
 import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
+import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, type VideoFormat, type VideoStyle } from './videoScript'
 import { renderVideo } from './videoStudio'
@@ -2925,6 +2926,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   lines.push(...memoryPromptSections(run.projectId))
   lines.push(...repoInstructionLines(store.workRoot(run.projectId), exec.provider))
   lines.push(...skillPromptLines(tools))
+  if (!textOnly) lines.push(...ponytailPromptLines(leanCodeOf(run.projectId)))
   lines.push(
     '',
     '## Reglas',
@@ -3457,6 +3459,7 @@ function buildVerifyPrompt(
         ]
       : []),
     ...testsSection(proof, author),
+    ...ponytailReviewLines(leanCodeOf(run.projectId)),
     '## Qué debes comprobar',
     '- Que lo que hay en los archivos hace lo que pidió el usuario y cumple el criterio de aceptación: léelos de verdad, sigue el flujo principal y busca errores que impidan que funcione (lógica, casos límite que el usuario mencionó, archivos que faltan, rutas o nombres que no encajan).',
     '- Si puedes ejecutar algo más sin modificar nada (otra prueba, el programa), hazlo. No digas que algo pasa o funciona si no lo viste: lo que se ejecutó de verdad está arriba, en «Pruebas».',

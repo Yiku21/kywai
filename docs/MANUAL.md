@@ -1399,6 +1399,16 @@ proyecto. El coordinador y cada agente la leen en cada encargo, así que sobrevi
 reinicios:
 
 - **Instrucciones para los agentes**: normas tuyas que todos siguen siempre (cómo probar, estilo, qué no tocar…).
+- **Código escueto (Ponytail)**: interruptor debajo de las instrucciones, **apagado de fábrica** y por proyecto.
+  Encendido, el encargo de cada tarea con archivos lleva las reglas de [Ponytail](https://github.com/DietrichGebert/ponytail)
+  (licencia MIT): el código mínimo que resuelve la tarea entera, reutilizando lo que ya hay en el proyecto, la
+  librería estándar o una dependencia instalada antes de escribir nada, y sin opciones ni abstracciones que nadie
+  pidió. Nunca recorta la tarea, las pruebas, la validación ni la seguridad. El verificador añade, después de su
+  veredicto, una nota «Código de más:» con hasta 3 casos; es solo informativa y no cuenta como fallo. Las reglas
+  no van dentro de kywai: al encenderlo por primera vez se descargan de GitHub a `extensiones/ponytail` de la
+  carpeta de trabajo (fuera de «habilidades», para que no las vean los demás proyectos); sin conexión, el
+  interruptor no se enciende y dice por qué. Las órdenes `/ponytail …` del propio Ponytail no se usan aquí.
+  Instalarla desde Extensiones → Habilidades, en cambio, la deja a la vista de todos los proyectos.
 - **Memoria**: decisiones, preferencias, hechos y pendientes, cada uno con quién lo aportó (tú o qué agente, en
   qué tarea), cuándo y su estado:
   - **Confirmado**: lo dijiste tú. El coordinador anota lo que decides o prefieres en tus mensajes («todo en
@@ -1411,7 +1421,7 @@ reinicios:
     agentes dejan de verla; sigue en «Ver lo sustituido». Un agente no puede sustituir lo que confirmaste tú:
     su nota queda como propuesta.
 
-Se guarda en el `project.json` del proyecto.
+Se guarda en el `project.json` del proyecto (también el interruptor de Código escueto).
 
 ### AGENTS.md, habilidades y herramientas de kywai
 

@@ -65,6 +65,7 @@ const api: CoworkApi = {
     ipcRenderer.invoke('cowork:updateMemory', projectId, id, { kind: patch.kind, text: patch.text, status: patch.status }),
   deleteMemory: (projectId, id) => ipcRenderer.invoke('cowork:deleteMemory', projectId, id),
   setInstructions: (projectId, text) => ipcRenderer.invoke('cowork:setInstructions', projectId, text),
+  setLeanCode: (projectId, on) => ipcRenderer.invoke('cowork:setLeanCode', projectId, on),
   listTemplates: () => ipcRenderer.invoke('cowork:listTemplates'),
   createTemplate: (input) => ipcRenderer.invoke('cowork:createTemplate', JSON.parse(JSON.stringify(input ?? {}))),
   updateTemplate: (id, patch) => ipcRenderer.invoke('cowork:updateTemplate', id, JSON.parse(JSON.stringify(patch ?? {}))),

@@ -2759,4 +2759,8 @@ export const fr: Record<string, string> = {
   "Órdenes: elige una o sigue escribiendo para filtrar": "Commandes : choisis-en une ou continue d'écrire pour filtrer",
   "Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)": "Installation du studio vidéo (la première fois seulement ; quelques minutes)",
   "El código mínimo que resuelve la tarea: reutilizar antes que escribir, sin extras que nadie pidió (MIT).": "Le moins de code qui résout la tâche : réutiliser avant d’écrire, sans extras que personne n’a demandés (MIT).",
+  "Código escueto (Ponytail)": "Code sobre (Ponytail)",
+  "Descargando las reglas de Ponytail…": "Téléchargement des règles de Ponytail…",
+  "Los agentes escriben el código mínimo que resuelve la tarea, sin extras que nadie pidió, y el verificador señala lo que sobra. No recorta pruebas ni verificación.": "Les agents écrivent le moins de code qui résout la tâche, sans extras que personne n’a demandés, et le vérificateur signale ce qui est en trop. Les tests et la vérification ne sont pas réduits.",
+  "Sin carpeta de trabajo": "Pas de dossier de travail",
 }

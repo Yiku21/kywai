@@ -30,6 +30,45 @@
   color: var(--alert);
 }
 
+/* ---------- Código escueto (Ponytail) ---------- */
+
+.leanRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  text-align: left;
+}
+
+.leanRow:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.leanText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.leanLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.leanHint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
 /* ---------- Instrucciones ---------- */
 
 .instr {

@@ -188,7 +188,7 @@ export function instructionsOf(projectId: string): string {
 function changed(projectId: string): void {
   const st = store.getProject(projectId)
   store.scheduleSave(projectId)
-  emit({ kind: 'memory.updated', projectId, memory: JSON.parse(JSON.stringify(st.memory ?? [])) as MemoryEntry[], instructions: st.instructions ?? '' })
+  emit({ kind: 'memory.updated', projectId, memory: JSON.parse(JSON.stringify(st.memory ?? [])) as MemoryEntry[], instructions: st.instructions ?? '', leanCode: st.leanCode === true })
 }
 
 export function addMemory(projectId: string, input: MemoryInput, opts: AddOptions): MemoryEntry | null {
@@ -227,6 +227,16 @@ export function deleteMemory(projectId: string, id: string): void {
 export function setInstructions(projectId: string, text: string): void {
   const st = store.getProject(projectId)
   st.instructions = text.slice(0, MAX_INSTRUCTIONS)
+  changed(projectId)
+}
+
+export function leanCodeOf(projectId: string): boolean {
+  return store.getProject(projectId).leanCode === true
+}
+
+export function setLeanCode(projectId: string, on: boolean): void {
+  const st = store.getProject(projectId)
+  st.leanCode = on || undefined
   changed(projectId)
 }
 

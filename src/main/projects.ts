@@ -99,6 +99,7 @@ function readState(dir: string): ProjectState | null {
       attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
       memory: Array.isArray(raw.memory) ? raw.memory.filter((e) => e && typeof e.id === 'string' && typeof e.text === 'string') : [],
       instructions: typeof raw.instructions === 'string' ? raw.instructions : '',
+      leanCode: raw.leanCode === true || undefined,
       routines: Array.isArray(raw.routines) ? raw.routines.filter((r) => r && typeof r.id === 'string' && r.trigger && typeof r.request === 'string') : [],
       conversation: raw.conversation && typeof raw.conversation.id === 'string' ? raw.conversation : undefined,
       conversations: Array.isArray(raw.conversations) ? raw.conversations.filter((c) => c && typeof c.id === 'string') : [],
