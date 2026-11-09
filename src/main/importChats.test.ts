@@ -548,7 +548,7 @@ describe('Hermes Desktop: imágenes y otro equipo', () => {
 
   it('la carpeta del sistema o la raíz de un disco no son un proyecto', () => {
     expect(['C:\\WINDOWS\\system32', 'D:\\', '/', 'C:'].map(isSystemDir)).toEqual([true, true, true, true])
-    expect(['E:\\Umbral', '/Users/yil/AI-Cowork', 'C:\\Users\\yo\\web'].map(isSystemDir)).toEqual([false, false, false])
+    expect(['E:\\Juego', '/Users/yo/proyectos', 'C:\\Users\\yo\\web'].map(isSystemDir)).toEqual([false, false, false])
   })
 
   it('saca las imágenes pegadas del texto', () => {
@@ -559,7 +559,7 @@ describe('Hermes Desktop: imágenes y otro equipo', () => {
   it('deja fuera las pruebas de kywai y sus carpetas temporales', () => {
     expect(isAutomaticSession(undefined, 'Responde SOLO con este JSON, sin texto adicional: {"reply":"ok"}')).toBe(true)
     expect(isAutomaticSession('C:\\Users\\yo\\AppData\\Local\\Temp\\aicw\\hermes', 'hola')).toBe(true)
-    expect(isAutomaticSession('E:\\Umbral', 'Responde a este correo de forma amable')).toBe(false)
+    expect(isAutomaticSession('E:\\Juego', 'Responde a este correo de forma amable')).toBe(false)
   })
 
   it('importa la conversación con su imagen en los adjuntos', () => {
@@ -584,20 +584,20 @@ describe('Hermes Desktop: imágenes y otro equipo', () => {
     writeFileSync(img, PNG)
     desktopDb(img)
     scanImports()
-    const bundle = exportLocal(['hermes:desk-1', 'hermes:probe-1'], 'pc-yil')
+    const bundle = exportLocal(['hermes:desk-1', 'hermes:probe-1'], 'mi-pc')
     expect(bundle.conversations.map((c) => c.conv.sourceId)).toEqual(['desk-1'])
     expect(bundle.conversations[0].conv.turns[0].inlineImages?.[0]).toMatchObject({ name: 'composer_2.png', mime: 'image/png' })
     expect(bundle.conversations[0].conv.turns[0].localImages).toBeUndefined()
     // En el servidor la carpeta del PC no existe: va a un proyecto con su nombre (o al que ya se llame así).
-    const umbral = store.createProject('Web')
+    const web = store.createProject('Web')
     const file = join(root, 'kywai-chats.json')
     writeFileSync(file, JSON.stringify({ ...bundle, conversations: bundle.conversations.map((c) => ({ ...c, conv: { ...c.conv, cwd: 'E:\\Proyectos\\web' } })) }))
     expect(previewArchive([file])).toMatchObject({ kind: 'hermes', conversations: [{ id: 'desk-1', imported: false }] })
     const r = importArchive([file], agents)
-    expect(r).toMatchObject({ kind: 'hermes', conversations: 1, projectIds: [umbral.id], resumable: 0 })
-    const conv = listConversations(umbral.id).find((c) => c.importedFrom === 'Hermes · pc-yil')!
-    openConversation(umbral.id, conv.id)
-    expect(store.getProject(umbral.id).messages[0].attachments?.[0]).toMatchObject({ name: 'composer_2.png', mime: 'image/png' })
+    expect(r).toMatchObject({ kind: 'hermes', conversations: 1, projectIds: [web.id], resumable: 0 })
+    const conv = listConversations(web.id).find((c) => c.importedFrom === 'Hermes · mi-pc')!
+    openConversation(web.id, conv.id)
+    expect(store.getProject(web.id).messages[0].attachments?.[0]).toMatchObject({ name: 'composer_2.png', mime: 'image/png' })
     writeFileSync(file, JSON.stringify(bundle))
     expect(importArchive([file], agents)).toMatchObject({ conversations: 0, skipped: 1 })
   })

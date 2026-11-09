@@ -49,7 +49,7 @@ beforeEach(() => {
   writeFileSync(join(home, 'config.yaml'), CONFIG)
   writeFileSync(join(home, '.env'), 'NOTAS_TOKEN=secreto-123\nOTRA=x\n')
   writeFileSync(join(home, 'memories', 'USER.md'), 'Habla español.\n§\nNo escribe código; prueba el juego.')
-  writeFileSync(join(home, 'memories', 'MEMORY.md'), 'El proyecto Umbral está en E:\\Umbral.')
+  writeFileSync(join(home, 'memories', 'MEMORY.md'), 'El proyecto Juego está en E:\\Juego.')
   writeFileSync(join(home, 'SOUL.md'), 'Eres cercano y directo.')
   // Una de serie (está también en la instalación de Hermes), una propia con un archivo de más y una archivada.
   skill(join(home, 'skills', 'github', 'github-auth'), 'github-auth', 'Autenticarse en GitHub')
@@ -99,7 +99,7 @@ describe('configuración de Hermes', () => {
 
   it('trae skills, memoria y MCP; no pisa lo que ya hay ni trae un programa de otro sistema', () => {
     const saved: McpServerInput[] = []
-    const bundle = readHermesSetup({ skills: ['plan'], memory: true, mcp: ['godot-ai', 'notas'] }, 'pc-yil', home)
+    const bundle = readHermesSetup({ skills: ['plan'], memory: true, mcp: ['godot-ai', 'notas'] }, 'mi-pc', home)
     expect(bundle.skills[0].files).toEqual({ 'SKILL.md': expect.stringContaining('name: plan'), 'references/ejemplo.md': 'Un ejemplo.' })
     const r = applyHermesSetup({ ...bundle, os: process.platform === 'win32' ? 'darwin' : 'win32' }, skills, (s) => saved.push(s), [])
     expect(r).toMatchObject({ skills: ['plan'], memory: true, mcp: ['notas'] })
