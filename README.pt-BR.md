@@ -92,7 +92,7 @@ O coordenador conhece os pontos fortes, os modelos, a cota e o histórico de cad
 <td valign="top">
 
 **🏆 Qualidade em primeiro lugar, por padrão**<br>
-Cada tarefa tem um critério de aceitação. Um agente de outra família revisa cada alteração e, em trabalhos que dependem de gosto (um site, um logotipo, uma apresentação), dois agentes fazem cada um a sua versão e um terceiro escolhe a vencedora.
+Cada tarefa tem um critério de aceitação. Um agente de outra família revisa cada alteração, roda ele mesmo os testes e só um *aprovado* explícito a aceita. Em trabalhos que dependem de gosto (um site, um logotipo, uma apresentação) você pode pedir duas versões e um terceiro escolhe a vencedora.
 
 </td>
 <td valign="top">
@@ -159,10 +159,12 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 
 - **Planos que você aprova.** Nada começa sem o seu OK, e você pode mudar o plano com uma frase ("deixa o Codex fazer", "pula a pesquisa"). Aprove com um toque ou simplesmente respondendo "sim". Se preferir, desative a aprovação e deixe a equipe ir direto ao trabalho.
 - **Vários pedidos ao mesmo tempo.** O trabalho novo vai para agentes livres sem mexer em arquivos que outro agente está editando.
+- **Mais rápido, sem baixar o nível.** Um agente começa a próxima tarefa enquanto a anterior é revisada, o Hermes dispara ao mesmo tempo as tarefas independentes, testes e capturas rodam em paralelo e, entre revisores igualmente confiáveis, escolhe-se o claramente mais rápido. Agentes em má fase deixam de receber o que não for fácil.
+- **Sem trabalho repetido.** O Hermes não repete uma tarefa que já está em andamento, e o chat avisa se um pedido novo parece com um em curso.
 - **Fale direto com um agente.** Escreva `@Claude …` (ou `/directo Claude …`) e o seu texto vai direto para esse agente, sem plano, revisão nem resumo do Hermes. Ao digitar `@` aparece a lista de agentes, no desktop, no navegador e no Órbita.
 - **Critérios de aceitação por tarefa**, além de um aviso se um agente mexer em arquivos que não eram dele.
-- **Duas mãos para trabalhos de gosto.** Dois agentes de famílias diferentes constroem a mesma coisa separadamente (opção A e opção B), e um terceiro testa as duas, compara com o seu pedido e diz qual vence e por quê.
-- **Revisão por pares.** Quando uma tarefa altera arquivos, um agente de outra família a revisa em modo somente leitura, roda os testes se puder e responde *aprovado* ou *problemas*. O autor corrige, e o resultado é revisado de novo.
+- **Duas mãos para trabalhos de gosto, quando você pede.** Dois agentes de famílias diferentes constroem a mesma coisa separadamente (opção A e opção B), e um terceiro testa as duas, compara com o seu pedido e diz qual vence e por quê.
+- **Revisão rigorosa e com testes de verdade.** Quando uma tarefa altera arquivos, um agente de outra família a revisa em modo somente leitura, roda ele mesmo os testes e responde *aprovado* ou *problemas*; só um *aprovado* explícito a aceita. Sem veredito, pede-se a outro revisor confiável. Cada tarefa tem até duas correções e um repasse para outro agente forte; se ainda falhar, aparece em "Precisa de você" como precisando da sua intervenção.
 - **Retomada e repasse.** Tarefas interrompidas continuam de onde pararam. Se um agente falha, outro agente forte assume a tarefa, nunca um mais fraco. Os agentes também retomam a própria sessão nos acompanhamentos.
 - **Chave de acesso total.** Deixe os agentes instalarem coisas e usarem a internet sem perguntar, ou limite-os a editar a pasta do projeto.
 
@@ -171,8 +173,10 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 - **Atualizações curtas ao vivo** de cada agente enquanto trabalha, com suas ferramentas recolhidas em uma única linha expansível, como no app do Claude.
 - **Visão passo a passo ao vivo** de qualquer tarefa: raciocínio, cada comando e sua saída, arquivos lidos e editados com suas alterações, buscas e a resposta final. Guardada por 30 dias.
 - **Progresso visível.** Novas capturas de tela e imagens aparecem como miniaturas no chat, e documentos como cartões, enquanto a tarefa ainda está rodando.
-- **Sino "Precisa de você"** que reúne tudo o que está esperando uma decisão sua (um plano, uma pergunta, uma permissão, um agente em silêncio) com seus botões, além de notificações no seu celular.
-- **Espaço digital 3D** que mostra cada estado: trabalhando, esperando outro agente, delegando a um estagiário, sem cota ou falhando, com arquivos viajando entre os robôs.
+- **Cada tarefa no seu bloco.** No chat cada tarefa tem seu número, suas etapas reais (trabalhando, corrigindo, testes, revisão) e a revisão assinada pelo agente que a fez. Assim que você envia, uma linha mostra que o Hermes está preparando o plano, e se um agente fica em silêncio você vê "sem novidades há N min" em vez de uma barra de progresso inventada.
+- **Pré-visualização de arquivos ao lado do chat.** Clique num anexo, numa entrega ou no nome de um arquivo e ele abre num painel lateral, como no Claude: documentos, código, imagens e PDF, com miniaturas das imagens anexadas. O Órbita tem o mesmo leitor com ‹ ›, visão de código, copiar e "Abrir com outro app".
+- **Sino "Precisa de você"** só com o que realmente espera por você (um plano, uma pergunta, uma permissão, um agente em silêncio ou uma tarefa pausada com Retomar / Remover), com seus botões e notificações no celular. O que terminou vai para Resultados como "Recém-terminado".
+- **Espaço digital 3D** que mostra cada estado: trabalhando, em revisão, esperando a revisão de outro agente, delegando a um estagiário, sem cota ou falhando, com arquivos viajando entre os robôs e uma faísca a cada passo real do agente.
 - **Uma equipe que parece viva.** Os robôs livres brincam com um documento de brinquedo ou uma bola colorida, visitam os colegas e acordam um companheiro com um susto amigável. Reagem, sorriem e voltam ao posto quando o trabalho real precisa deles; reduzir efeitos desativa essas animações locais. Também dançam juntos, brincam de imitar, tocam as antenas e visitam o colega cansado para animá-lo. Com música tocando, os livres ficam acordados e dançam seguindo o pulso do player ou da música ambiente; a etiqueta mostra «Dançando».
 - **Robôs com personalidade.** Os olhos mostram o que cada um está realmente fazendo (concentrado, pensando, cansado, dormindo, com erro, concluído), cada um tem sua personalidade e seus balões de fala no seu idioma, e quando você digita no chat eles acordam e se viram para olhar para você.
 
@@ -187,8 +191,8 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 
 ### 🧩 Contexto e automação
 
-- **Traga o trabalho que você já tem.** Importe sessões locais do Claude Code, Codex e Hermes (incluindo Hermes Desktop), ou exportações JSON/ZIP do ChatGPT e Claude.ai, em ⚙ → Importar de outros apps. Preserve conversas, recupere projetos e documentos do Claude incluídos e continue com sua equipe. Os originais são preservados; as sessões locais são lidas no servidor.
-- **Conversas como no Claude.** Uma barra lateral com seus projetos, os fixados e os chats recentes. "Novo chat" começa uma conversa nova sem perder a anterior, e qualquer uma pode ser retomada depois com suas tarefas e a sessão de cada agente. Ctrl+K busca em conversas, tarefas, resultados e memória de todos os projetos.
+- **Traga o trabalho que você já tem.** Importe sessões locais do Claude Code, Codex e Hermes (incluindo Hermes Desktop), ou exportações JSON/ZIP do ChatGPT e Claude.ai, em ⚙ → Importar de outros apps. Preserve conversas, recupere projetos e documentos do Claude incluídos e continue com sua equipe. Os originais são preservados; as sessões locais são lidas no servidor. Os chats do Claude.ai vão para o próprio projeto, e importar de novo nunca duplica nada.
+- **Conversas como no Claude.** Uma barra lateral com seus projetos, os fixados e os chats recentes. Ela se recolhe numa coluna de ícones, outro clique no projeto aberto o recolhe e o clique direito (toque longo no Órbita) permite fixar, renomear, bifurcar, mover ou excluir. "Novo chat" começa uma conversa nova sem perder a anterior, e qualquer uma pode ser retomada depois com suas tarefas e a sessão de cada agente. Ctrl+K busca em conversas, tarefas, resultados e memória de todos os projetos.
 - **Memória do projeto** com instruções, decisões, preferências e pendências, cada uma com seu autor e status. Todo agente a lê em cada tarefa, mesmo depois que você limpa o chat.
 - **Um único AGENTS.md para toda a equipe.** Cada CLI lê apenas o próprio arquivo; o kywai repassa os outros, então um único `AGENTS.md` dá a todos os agentes as mesmas regras.
 - **Rotinas.** Programe um pedido uma única vez, em horário fixo, em certos dias, a cada N horas, por webhook assinado do GitHub ou quando arquivos de uma pasta mudarem. Crie com /rutina, consulte o histórico e escolha se exige aprovação. Propostas do coordenador só são salvas após sua confirmação.
@@ -221,6 +225,7 @@ Detalhes e exemplo de mod no [manual](docs/MANUAL.md#extensiones-tus-servidores-
 **Refúgio Kywai** traz um observatório-estufa à beira-mar: cúpula de madeira e vidro, céu e água animados, oficinas individuais, árvore compartilhada e assento turquesa. Ative o modo noturno ao lado de Música; a preferência é lembrada por dispositivo.
 
 - **O chat em primeiro lugar.** Em janelas menores ele ocupa mais espaço, você pode arrastar a borda até a largura que quiser (clique duplo volta ao automático) e em janelas estreitas o chat e o mundo 3D viram duas abas.
+- **Um chat fácil de ler,** com respostas sem caixa, mais espaço entre parágrafos e um botão de copiar no canto de cada bloco de código ou de comandos. O Hermes e os agentes escrevem curto, com o resultado primeiro.
 - **Ditado por voz local** com Whisper no seu próprio computador. Sem serviços externos, e o áudio é apagado em seguida.
 - **Mapas, cores e decorações.** Sete mapas 3D, a Cidade digital em sete cores e quatro decorações. Siga o tema do servidor ou escolha um por dispositivo; o Órbita adapta a paleta, sem reproduzir os mapas do desktop.
 - **Vozes dos agentes,** cada uma com seu próprio timbre, e texto que vai sendo digitado no ritmo da voz, como em Animal Crossing.
@@ -257,6 +262,10 @@ O computador onde o kywai está instalado (por exemplo, um Mac mini sempre ligad
 </p>
 
 O Órbita guarda a cópia mais recente para que você possa usá-lo **offline**, coloca suas mensagens na fila até a conexão voltar e se adapta a dobráveis e tablets. Mais em [android/README.md](android/README.md).
+
+No chat, o Órbita tem **ditado ao vivo** (um toque no microfone; segure para gravar uma nota de voz que o seu computador transcreve com o Whisper), um **botão de câmera** para tirar uma foto ou escolher da galeria, e os mesmos menus de toque longo que o clique direito do desktop.
+
+Um computador era cliente e você quer que ele seja o servidor? Toque em **"Usar este computador como servidor"** na tela de conexão ou em ⚙ → Configurações → Conexão.
 
 ## 🎨 Temas
 
@@ -301,7 +310,7 @@ E quatro que decoram o mundo, remodelam o seu núcleo e, nos festivos, vestem os
 
 ### Baixar (o mais fácil)
 
-Baixe o instalador do seu sistema na **[versão mais recente](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` para Windows, `.dmg` para macOS (Apple silicon ou Intel) e `.AppImage` para Linux. Depois de instalado, o app procura uma versão nova toda vez que abre e se atualiza sozinho (no macOS ele avisa e abre o download).
+Baixe o instalador do seu sistema na **[versão mais recente](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` para Windows, `.dmg` para macOS (Apple silicon ou Intel) e `.AppImage` para Linux. Android: baixe `kywai-orbita.apk` da mesma versão. Depois de instalado, o app procura uma versão nova toda vez que abre e se atualiza sozinho (no macOS ele avisa e abre o download).
 
 Ainda não são assinados: no Windows clique em "Mais informações" → "Executar assim mesmo"; no macOS, na primeira vez, clique com o botão direito no app → Abrir (se disser que está danificado, rode `xattr -cr "/Applications/kywai.app"`); no Linux torne o AppImage executável com `chmod +x`.
 
