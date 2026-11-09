@@ -92,7 +92,7 @@ El coordinador conoce los puntos fuertes, los modelos, la cuota y el historial d
 <td valign="top">
 
 **🏆 La calidad primero, de serie**<br>
-Cada tarea tiene un criterio de aceptación. Un agente de otra familia revisa cada cambio, y en los trabajos que dependen del gusto (una web, un logo, una presentación) dos agentes hacen cada uno su versión y un tercero elige la ganadora.
+Cada tarea tiene un criterio de aceptación. Un agente de otra familia revisa cada cambio, ejecuta él mismo las pruebas y solo un *aprobado* explícito lo da por bueno. En los trabajos que dependen del gusto (una web, un logo, una presentación) puedes pedir dos versiones y un tercero elige la ganadora.
 
 </td>
 <td valign="top">
@@ -159,10 +159,12 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 
 - **Planes con tu visto bueno.** Nada empieza sin tu OK, y puedes cambiar el plan con una frase («mejor que lo haga Codex», «sáltate la investigación»). Apruébalo con un toque o simplemente respondiendo «sí». Si lo prefieres, desactiva la aprobación y deja que el equipo se ponga manos a la obra directamente.
 - **Varias peticiones a la vez.** El trabajo nuevo va a los agentes libres sin tocar los archivos que otro agente está editando.
+- **Más rápido, sin bajar el listón.** Un agente empieza su siguiente tarea mientras se revisa la anterior, Hermes lanza a la vez las tareas que no dependen entre sí, las pruebas y las capturas van en paralelo y, entre revisores igual de fiables, se elige el claramente más rápido. Los agentes en mala racha dejan de recibir lo que no sea fácil.
+- **Sin trabajo repetido.** Hermes no repite una tarea que ya está en marcha, y el chat te avisa si una petición nueva se parece a una en curso.
 - **Habla directo con un agente.** Escribe `@Claude …` (o `/directo Claude …`) y tu texto le llega tal cual a ese agente, sin plan, revisión ni resumen de Hermes. Al teclear `@` sale la lista de agentes, en el escritorio, en el navegador y en Órbita.
 - **Criterios de aceptación por tarea**, y un aviso si un agente toca archivos que no eran suyos.
-- **Dos manos para los trabajos de gusto.** Dos agentes de familias distintas hacen lo mismo por separado (opción A y opción B), y un tercero prueba las dos, las compara con tu petición y te dice cuál gana y por qué.
-- **Revisión entre pares.** Cuando una tarea cambia archivos, un agente de otra familia la revisa en modo solo lectura, ejecuta las pruebas si puede y responde *aprobado* o *hay problemas*. El autor los corrige y el resultado se vuelve a revisar.
+- **Dos manos para los trabajos de gusto, si lo pides.** Dos agentes de familias distintas hacen lo mismo por separado (opción A y opción B), y un tercero prueba las dos, las compara con tu petición y te dice cuál gana y por qué.
+- **Revisión estricta y con pruebas de verdad.** Cuando una tarea cambia archivos, un agente de otra familia la revisa en modo solo lectura, ejecuta él mismo las pruebas y responde *aprobado* o *hay problemas*; solo un *aprobado* explícito la da por buena. Si no da veredicto, se pide a otro revisor fiable. Cada tarea tiene hasta dos correcciones y un relevo a otro agente potente; si aun así falla, aparece en «Te necesita» como que requiere tu intervención.
 - **Reanudar y tomar el relevo.** Las tareas interrumpidas se reanudan donde se quedaron. Si un agente falla, otro agente potente se encarga de la tarea, nunca uno más flojo. Los agentes también retoman su propia sesión en los encargos de seguimiento.
 - **Interruptor «Acceso completo».** Deja que los agentes instalen cosas y usen internet sin pedir permiso, o limítalos a editar la carpeta del proyecto.
 
@@ -171,8 +173,10 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 - **Mensajes cortos en directo** de cada agente mientras trabaja, con sus herramientas recogidas en una línea desplegable, como en la app de Claude.
 - **Vista paso a paso en directo** de cualquier tarea: el razonamiento, cada comando y su salida, los archivos leídos y editados con sus cambios, las búsquedas y la respuesta final. Se guarda 30 días.
 - **Progreso a la vista.** Las capturas e imágenes nuevas aparecen como miniaturas en el chat, y los documentos como tarjetas, mientras la tarea sigue en marcha.
-- **Campana «Te necesita»**, que reúne todo lo que espera una decisión tuya (un plan, una pregunta, un permiso, un agente que no da señales) con sus botones, además de notificaciones en el móvil.
-- **Espacio digital 3D** con todos los estados: trabajando, esperando a otro agente, delegando en un becario, sin cuota o con errores, y con los archivos viajando de un robot a otro.
+- **Cada tarea en su bloque.** En el chat cada tarea lleva su número, sus etapas reales (trabajando, corrigiendo, pruebas, revisión) y la revisión firmada por el agente que la hizo. Nada más enviar, una fila te dice que Hermes prepara el plan, y si un agente se queda callado ves «sin novedades desde hace N min» en vez de una barra de progreso inventada.
+- **Vista previa de archivos al lado del chat.** Pulsa un adjunto, un entregable o el nombre de un archivo y se abre en un panel lateral, como en Claude: documentos, código, imágenes y PDF, con miniaturas de las imágenes adjuntas. Órbita tiene el mismo lector con ‹ ›, vista de código, copiar y «Abrir con otra app».
+- **Campana «Te necesita»** solo con lo que de verdad espera por ti (un plan, una pregunta, un permiso, un agente que no da señales o una tarea en pausa con Reanudar / Quitar), con sus botones y notificaciones en el móvil. Lo terminado va a Resultados como «Recién terminado».
+- **Espacio digital 3D** con todos los estados: trabajando, en revisión, esperando la revisión de otro agente, delegando en un becario, sin cuota o con errores, con los archivos viajando de un robot a otro y una chispa por cada paso real del agente.
 - **Un equipo que se siente vivo.** Los robots libres juegan con un documento de juguete o una pelota de colores, se visitan y despiertan a un compañero dormido con un susto amistoso. Reaccionan, sonríen y vuelven al puesto en cuanto los necesita el trabajo real; reducir efectos desactiva estas animaciones locales. También comparten bailes, juegan a imitarse, chocan las antenas y visitan al compañero cansado para darle ánimos. Con música sonando, los libres permanecen despiertos y bailan siguiendo el pulso del reproductor o de la música ambiental; su etiqueta muestra «Bailando».
 - **Robots con carácter.** Sus ojos muestran lo que hace de verdad cada uno (concentrado, pensando, cansado, dormido, con un error, terminado), cada uno tiene su personalidad y sus bocadillos en tu idioma, y cuando escribes en el chat se despiertan y se giran a mirarte.
 
@@ -187,8 +191,8 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 
 ### 🧩 Contexto y automatización
 
-- **Trae el trabajo que ya tienes.** Importa sesiones locales de Claude Code, Codex y Hermes (incluido Hermes Desktop), o exportaciones JSON/ZIP de ChatGPT y Claude.ai, desde ⚙ → Importar de otras apps. Conserva conversaciones, recupera los proyectos y documentos de Claude incluidos y continúa con tu equipo. Los originales se conservan; las sesiones locales se buscan en el servidor.
-- **Conversaciones como en Claude.** Una barra lateral con tus proyectos, los fijados y los chats recientes. «Nuevo chat» empieza una conversación nueva sin perder la anterior, y cualquiera se retoma después con sus tareas y la sesión de cada agente. Ctrl+K busca en conversaciones, tareas, resultados y memoria de todos los proyectos.
+- **Trae el trabajo que ya tienes.** Importa sesiones locales de Claude Code, Codex y Hermes (incluido Hermes Desktop), o exportaciones JSON/ZIP de ChatGPT y Claude.ai, desde ⚙ → Importar de otras apps. Conserva conversaciones, recupera los proyectos y documentos de Claude incluidos y continúa con tu equipo. Los originales se conservan; las sesiones locales se buscan en el servidor. Los chats de Claude.ai van a su propio proyecto, y volver a importar nunca duplica nada.
+- **Conversaciones como en Claude.** Una barra lateral con tus proyectos, los fijados y los chats recientes. Se pliega en una columna de iconos, otro clic en el proyecto abierto lo pliega y el clic derecho (mantener pulsado en Órbita) permite fijar, cambiar el nombre, bifurcar, mover o eliminar. «Nuevo chat» empieza una conversación nueva sin perder la anterior, y cualquiera se retoma después con sus tareas y la sesión de cada agente. Ctrl+K busca en conversaciones, tareas, resultados y memoria de todos los proyectos.
 - **Memoria del proyecto** con instrucciones, decisiones, preferencias y pendientes, cada una con su autor y su estado. Todos los agentes la leen en cada tarea, aunque limpies el chat.
 - **Un solo AGENTS.md para todo el equipo.** Cada CLI lee solo su propio archivo; kywai les pasa los demás, así que con un único `AGENTS.md` todos los agentes siguen las mismas reglas.
 - **Rutinas.** Programa una petición para una sola vez, a una hora fija, ciertos días, cada N horas, por webhook firmado de GitHub o cuando cambien archivos de una carpeta. Puedes crearlas con /rutina, revisar su historial y decidir si requieren visto bueno. Las propuestas del coordinador solo se guardan cuando las confirmas.
@@ -221,6 +225,7 @@ Detalles y ejemplo de mod en el [manual](docs/MANUAL.md#extensiones-tus-servidor
 **Refugio Kywai** añade un observatorio-invernadero frente al mar: cúpula de madera y cristal, cielo y agua animados, talleres individuales, árbol compartido y asiento turquesa. Cambia al modo noche junto a Música; se recuerda por dispositivo.
 
 - **El chat, lo primero.** En ventanas pequeñas ocupa más sitio, puedes arrastrar su borde al ancho que quieras (doble clic para volver al automático) y en ventanas estrechas el chat y el mundo 3D pasan a ser dos pestañas.
+- **Un chat fácil de leer,** con respuestas sin caja, más aire entre párrafos y un botón de copiar en la esquina de cada bloque de código o de comandos. Hermes y los agentes escriben breve y con el resultado primero.
 - **Dictado por voz en local** con Whisper en tu propio ordenador. Sin servicios externos, y el audio se borra después.
 - **Mapas, colores y decorados.** Siete mapas 3D, la Ciudad digital en siete colores y cuatro decorados. El tema puede seguir al servidor o ser propio de cada dispositivo; Órbita adapta su paleta, sin reproducir los mapas del escritorio.
 - **Voces de los agentes,** cada una con su timbre, y texto que se escribe al ritmo de la voz, como en Animal Crossing.
@@ -257,6 +262,10 @@ El ordenador donde está instalado kywai (por ejemplo, un Mac mini siempre encen
 </p>
 
 Órbita guarda la última copia para que puedas usarla **sin conexión**, deja tus mensajes en cola hasta que vuelve la conexión y se adapta a plegables y tablets. Más en [android/README.md](android/README.md).
+
+En el chat, Órbita tiene **dictado en directo** (un toque en el micrófono; mantenlo pulsado para grabar una nota de voz que tu ordenador pasa a texto con Whisper), un **botón de cámara** para hacer una foto o elegirla de la galería, y los mismos menús al mantener pulsado que el clic derecho del escritorio.
+
+¿Un ordenador era cliente y quieres que sea el servidor? Pulsa **«Usar este equipo como servidor»** en la pantalla de conectar o en ⚙ → Ajustes → Conexión.
 
 ## 🎨 Temas
 
@@ -301,7 +310,7 @@ Y cuatro que decoran el mundo, cambian la forma de su núcleo y, en los de fiest
 
 ### Descargar (lo más fácil)
 
-Baja el instalador de tu sistema desde la **[última versión](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` para Windows, `.dmg` para macOS (Apple silicon o Intel) y `.AppImage` para Linux. Una vez instalada, la app busca una versión nueva cada vez que se abre y se actualiza sola (en macOS te avisa y abre la descarga).
+Baja el instalador de tu sistema desde la **[última versión](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` para Windows, `.dmg` para macOS (Apple silicon o Intel) y `.AppImage` para Linux. Android: baja `kywai-orbita.apk` de la misma versión. Una vez instalada, la app busca una versión nueva cada vez que se abre y se actualiza sola (en macOS te avisa y abre la descarga).
 
 Aún no van firmadas: en Windows pulsa «Más información» → «Ejecutar de todas formas»; en macOS, la primera vez, clic derecho en la app → Abrir (si dice que está dañada, ejecuta `xattr -cr "/Applications/kywai.app"`); en Linux dale permiso de ejecución al AppImage con `chmod +x`.
 

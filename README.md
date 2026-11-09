@@ -92,7 +92,7 @@ The coordinator knows each agent's strengths, models, quota and track record. Ea
 <td valign="top">
 
 **🏆 Quality first, by default**<br>
-Each task has an acceptance criterion. An agent from a different family reviews every change, and for work that depends on taste (a website, a logo, a deck) two agents each make their own version and a third one picks the winner.
+Each task has an acceptance criterion. An agent from a different family reviews every change, runs the tests itself and only an explicit *passes* approves it. For work that depends on taste (a website, a logo, a deck) you can ask for two versions and a third agent picks the winner.
 
 </td>
 <td valign="top">
@@ -159,10 +159,12 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 
 - **Plans you approve.** Nothing starts without your OK, and you can change the plan with one sentence ("let Codex do it", "skip the research"). Approve with a tap or just by answering "yes". If you prefer, turn approval off and let the team go straight to work.
 - **Several requests at once.** New work goes to free agents without touching files another agent is editing.
+- **Faster, without lowering the bar.** An agent starts its next task while the previous one is being reviewed, Hermes launches independent tasks at the same time, tests and screenshots run in parallel, and among equally reliable reviewers the clearly faster one is chosen. Agents on a bad streak stop getting anything but easy work.
+- **No duplicated work.** Hermes does not repeat a task that is already running, and the chat warns you if a new request looks like one in progress.
 - **Talk to one agent directly.** Write `@Claude …` (or `/directo Claude …`) and your text goes straight to that agent, with no plan, review or summary from Hermes. Typing `@` shows the list of agents, on desktop, in the browser and in Órbita.
 - **Acceptance criteria per task**, plus a warning if an agent touches files that were not its own.
-- **Two hands for taste-driven work.** Two agents from different families build the same thing separately (option A and option B), and a third one tests both, compares them against your request and tells you which one wins and why.
-- **Peer review.** When a task changes files, an agent from another family checks it in read-only mode, runs the tests if it can and answers *passes* or *issues*. The author fixes them, and the result is checked again.
+- **Two hands for taste-driven work, when you ask for it.** Two agents from different families build the same thing separately (option A and option B), and a third one tests both, compares them against your request and tells you which one wins and why.
+- **Strict review with real evidence.** When a task changes files, an agent from another family checks it in read-only mode, runs the tests itself and answers *passes* or *issues*; only an explicit *passes* approves it. With no verdict it asks another reliable reviewer. Each task gets up to two fixes and one hand-off to another strong agent; if it still fails, it shows up in "Needs you" as needing your intervention.
 - **Resume and hand-off.** Interrupted tasks resume where they stopped. If an agent fails, another strong agent takes over the task, never a weaker one. Agents also resume their own session on follow-ups.
 - **Full access switch.** Let agents install things and use the internet without asking, or limit them to editing the project folder.
 
@@ -171,8 +173,10 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 - **Short live updates** from each agent while it works, with its tools folded into one expandable line, like the Claude app.
 - **Live step-by-step view** of any task: reasoning, every command and its output, files read and edited with their changes, searches and the final answer. Kept for 30 days.
 - **Progress you can see.** New screenshots and images appear as thumbnails in the chat, and documents as cards, while the task is still running.
-- **"Needs you" bell** that gathers everything waiting for your decision (a plan, a question, a permission, a silent agent) with its buttons, plus notifications on your phone.
-- **3D digital space** showing every state: working, waiting for another agent, delegating to an intern, out of quota or failing, with files traveling between robots.
+- **Each task in its own block.** In the chat every task has its number, its real stages (working, fixing, tests, review) and the review signed by the agent who did it. As soon as you send something, a row shows that Hermes is preparing the plan, and if an agent goes quiet you see “no news for N min” instead of a fake progress bar.
+- **Preview files beside the chat.** Click an attachment, a deliverable or a file name and it opens in a side panel, like in Claude: documents, code, images and PDFs, with thumbnails of attached images. Órbita has the same viewer with ‹ ›, code view, copy and “Open with another app”.
+- **"Needs you" bell** only for what is really waiting for you (a plan, a question, a permission, a silent agent or a paused task with Resume / Remove), with its buttons and notifications on your phone. Finished work goes to Results as “Just finished”.
+- **3D digital space** showing every state: working, in review, waiting for another agent's review, delegating to an intern, out of quota or failing, with files traveling between robots and a spark for every real step an agent takes.
 - **A team that feels alive.** Free robots play catch with a toy document or a colorful ball, visit each other and gently startle a sleeping teammate awake. They react, smile and return to their stations as soon as real work needs them; reduced effects disables these local animations. Shared dances, imitation games, antenna bumps and visits to cheer up a tired teammate add more ways to interact. While music plays, free robots stay awake and dance to the player or ambient music pulse; their label reads “Dancing”.
 - **Robots with character.** Their eyes show what each one is really doing (focused, thinking, tired, asleep, error, done), each has its own personality and speech bubbles in your language, and when you type in the chat they wake up and turn to look at you.
 
@@ -187,8 +191,8 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 
 ### 🧩 Context and automation
 
-- **Bring your existing work.** Import local Claude Code, Codex and Hermes sessions (including Hermes Desktop), or ChatGPT and Claude.ai JSON/ZIP exports, from ⚙ → Import from other apps. Keep conversations, recover included Claude projects and documents, and continue with your team. Originals stay unchanged; local sessions are read on the server.
-- **Conversations like in Claude.** A sidebar with your projects, pinned ones and recent chats. "New chat" starts a fresh conversation without losing the previous one, and any of them can be resumed later with its tasks and each agent's session. Ctrl+K searches conversations, tasks, results and memory across all projects.
+- **Bring your existing work.** Import local Claude Code, Codex and Hermes sessions (including Hermes Desktop), or ChatGPT and Claude.ai JSON/ZIP exports, from ⚙ → Import from other apps. Keep conversations, recover included Claude projects and documents, and continue with your team. Originals stay unchanged; local sessions are read on the server. Claude.ai chats are placed in their own project, and importing again never duplicates anything.
+- **Conversations like in Claude.** A sidebar with your projects, pinned ones and recent chats. It folds into a rail of icons, another click on the open project collapses it, and right-click (long-press in Órbita) lets you pin, rename, fork, move or delete. "New chat" starts a fresh conversation without losing the previous one, and any of them can be resumed later with its tasks and each agent's session. Ctrl+K searches conversations, tasks, results and memory across all projects.
 - **Project memory** with instructions, decisions, preferences and to-dos, each with its author and status. Every agent reads it on every task, even after you clear the chat.
 - **One AGENTS.md for the whole team.** Each CLI reads only its own file; kywai passes the others along, so one `AGENTS.md` gives every agent the same rules.
 - **Routines.** Schedule a request once, at a fixed time, on chosen days, every N hours, from a signed GitHub webhook or when files in a folder change. Create them with /rutina, review their history and choose whether approval is required. Coordinator proposals are only saved after you confirm them.
@@ -221,6 +225,7 @@ Details and a sample mod in the [manual](docs/MANUAL.md#extensiones-tus-servidor
 **Kywai Retreat** adds a seaside greenhouse observatory with a timber-and-glass dome, animated sky and water, personal workshops, a shared tree and a turquoise seat. Switch to night beside Music; the preference is remembered on each device.
 
 - **The chat comes first.** In smaller windows it takes more room, you can drag its edge to the width you like (double-click to go back to automatic), and in narrow windows the chat and the 3D world become two tabs.
+- **A chat that is easy to read,** with answers without boxes, more space between paragraphs, and a copy button in the corner of every code or command block. Hermes and the agents write short, with the result first.
 - **Local voice dictation** with Whisper on your own computer. No external services, and the audio is deleted afterwards.
 - **Maps, colors and decorations.** Seven 3D maps, the Digital City in seven colors and four decorated worlds. Follow the server’s theme or choose one per device; Órbita adapts its palette without reproducing the desktop maps.
 - **Agent voices,** each with its own timbre, and text that types out at the pace of the voice, like in Animal Crossing.
@@ -257,6 +262,10 @@ The computer where kywai is installed (for example a Mac mini that is always on)
 </p>
 
 Órbita keeps the latest copy so you can use it **offline**, queues your messages until the connection comes back, and adapts to foldables and tablets. More in [android/README.md](android/README.md).
+
+In the chat, Órbita has **live dictation** (tap the microphone; hold it to record a voice note that your computer transcribes with Whisper), a **camera button** to take a photo or pick one from the gallery, and the same long-press menus as the desktop's right-click.
+
+Was a computer a client and you want it to be the server? Press **“Use this computer as server”** on the connect screen or in ⚙ → Settings → Connection.
 
 ## 🎨 Themes
 
@@ -301,7 +310,7 @@ And four that decorate the world, reshape its core and, in the festive ones, dre
 
 ### Download (easiest)
 
-Get the installer for your system from the **[latest release](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` for Windows, `.dmg` for macOS (Apple silicon or Intel) and `.AppImage` for Linux. Once installed, the app checks for a newer version every time it opens and updates itself (on macOS it tells you and opens the download).
+Get the installer for your system from the **[latest release](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` for Windows, `.dmg` for macOS (Apple silicon or Intel) and `.AppImage` for Linux. Android: get `kywai-orbita.apk` from the same release. Once installed, the app checks for a newer version every time it opens and updates itself (on macOS it tells you and opens the download).
 
 They are not code-signed yet: on Windows click "More info" → "Run anyway"; on macOS right-click the app → Open the first time (if it says it is damaged, run `xattr -cr "/Applications/kywai.app"`); on Linux make the AppImage executable with `chmod +x`.
 
