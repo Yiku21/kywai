@@ -32,7 +32,7 @@ import {
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { describeTrigger } from '@shared/routines'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
-import type { Artifact, Attachment, ChatMessage, MessageRating, PlanProposal, RoutineProposal, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
+import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
 import { useCowork, useData } from '@/store/cowork'
 import { revealKey, useRevealed } from '@/lib/reveal'
@@ -244,6 +244,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
             )}
             {proposal && <ProposalBlock m={m} proposal={proposal} />}
             {m.routineProposal && <RoutineProposalBlock m={m} proposal={m.routineProposal} />}
+            {m.permission && <PermissionBlock permission={m.permission} />}
             {hasTasks && <PlanBlock taskIds={m.taskIds!} runId={m.runId} contract={m.contract} />}
           </div>
         )}
@@ -858,6 +859,62 @@ function ProposalBlock({ m, proposal }: { m: ChatMessage; proposal: PlanProposal
 }
 
 /** Rutina que propone Hermes: se crea con un toque, se cambia en el cuadro de texto («/rutina …») o se descarta. */
+const PERMISSION_DONE: Record<PermissionAnswer, string> = {
+  deny: t('Denegado'),
+  once: t('Permitido una vez'),
+  session: t('Permitido en esta sesión')
+}
+
+/**
+ * Un agente pide permiso (modo «Preguntarme antes») y espera: Denegar, Permitir una vez o Permitir siempre en esta
+ * sesión. Son los mismos botones que el aviso de «Te necesita» (contestar en un sitio cierra el otro).
+ */
+function PermissionBlock({ permission }: { permission: ChatPermission }) {
+  const live = useCowork((st) => st.mode === 'live')
+  const [busy, setBusy] = useState<PermissionAnswer | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  if (permission.state !== 'pending') {
+    return (
+      <p className={cx(s.permissionDone, permission.state === 'deny' && s.permissionDenied)}>
+        {permission.state === 'deny' ? <X size={14} aria-hidden="true" /> : <CircleCheck size={14} aria-hidden="true" />}
+        {PERMISSION_DONE[permission.state]}
+      </p>
+    )
+  }
+  const canAct = !!api && live && !busy
+  function act(answer: PermissionAnswer): void {
+    const a = api
+    if (!a || busy) return
+    setBusy(answer)
+    setError(null)
+    a.actInbox(permission.inboxId, `perm-${answer}`).then(
+      () => setBusy(null),
+      (e) => {
+        setBusy(null)
+        setError(errorText(e))
+      }
+    )
+  }
+  const spin = (a: PermissionAnswer) => busy === a && <LoaderCircle size={14} aria-hidden="true" className={u.spin} />
+  return (
+    <div className={s.proposalActions} role="group" aria-label={t('Permiso')}>
+      <button type="button" className={u.btn} disabled={!canAct} onClick={() => act('deny')}>
+        {spin('deny')}
+        {t('Denegar')}
+      </button>
+      <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!canAct} onClick={() => act('once')}>
+        {spin('once')}
+        {t('Permitir una vez')}
+      </button>
+      <button type="button" className={u.btn} disabled={!canAct} onClick={() => act('session')}>
+        {spin('session')}
+        {t('Permitir siempre en esta sesión')}
+      </button>
+      {error && <span className={s.permissionError}>{error}</span>}
+    </div>
+  )
+}
+
 function RoutineProposalBlock({ m, proposal }: { m: ChatMessage; proposal: RoutineProposal }) {
   const live = useCowork((st) => st.mode === 'live')
   const setLeftTab = useCowork((st) => st.setLeftTab)

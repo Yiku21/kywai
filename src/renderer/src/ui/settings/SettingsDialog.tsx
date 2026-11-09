@@ -31,7 +31,7 @@ import {
   Wand2,
   X
 } from 'lucide-react'
-import type { ClientUpdateState } from '@shared/types'
+import type { AgentAccess, ClientUpdateState } from '@shared/types'
 import { useCowork, type SettingsTab } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
@@ -291,10 +291,20 @@ function AgentsTab() {
       )}
       <Row
         icon={<ShieldCheck size={18} />}
-        label={t('Acceso completo para los agentes')}
-        hint={access === 'full' ? t('Ejecutan comandos, instalan y usan internet sin pedir permiso') : t('Solo editan la carpeta del proyecto; no instalan ni usan internet')}
+        label={t('Permisos de los agentes')}
+        hint={
+          access === 'full'
+            ? t('Ejecutan comandos, instalan y usan internet sin pedir permiso')
+            : access === 'ask'
+              ? t('Lo que no tienen permitido te lo piden en el chat y en «Te necesita»: Denegar, Permitir una vez o Permitir siempre en esta sesión')
+              : t('Solo editan la carpeta del proyecto; no instalan ni usan internet')
+        }
       >
-        <Switch on={access === 'full'} label={t('Acceso completo para los agentes')} onChange={() => void call(() => api!.setAgentAccess(access === 'full' ? 'project' : 'full'))} />
+        <select className={s.select} value={access} aria-label={t('Permisos de los agentes')} onChange={(e) => void call(() => api!.setAgentAccess(e.currentTarget.value as AgentAccess))}>
+          <option value="full">{t('Acceso completo')}</option>
+          <option value="ask">{t('Preguntarme antes')}</option>
+          <option value="project">{t('Solo el proyecto')}</option>
+        </select>
       </Row>
       <Row
         icon={<UserCheck size={18} />}

@@ -123,8 +123,38 @@ class TaskTemplatesTest {
         val controller = controller()
         val model = show(controller)
         compose.runOnIdle { model.chatDraft = androidx.compose.ui.text.input.TextFieldValue("/rev") }
-        compose.onNodeWithTag("template-command-t2").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("command-t:t2").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals("/revisar-pr ", model.chatDraft.text) }
+    }
+
+    @Test
+    fun aSlashAloneListsEveryCommandWithWhatItDoes() {
+        val controller = controller()
+        val model = show(controller)
+        compose.runOnIdle { model.chatDraft = androidx.compose.ui.text.input.TextFieldValue("/") }
+        for (key in listOf("b:video", "b:rutina", "b:directo", "b:recuerda", "b:model", "b:uso", "b:nuevo", "t:t1", "t:t2")) {
+            compose.onNodeWithTag("command-$key").assertExists()
+        }
+        compose.onAllNodesWithTag("command-t:t3").assertCountEquals(0)
+        compose.onNodeWithTag("command-b:video").performClick()
+        compose.runOnIdle { assertEquals("/video ", model.chatDraft.text) }
+        // «/uso» no lleva nada detrás: se hace al tocarla (abre «Uso y coste») y no va a los agentes.
+        compose.runOnIdle { model.chatDraft = androidx.compose.ui.text.input.TextFieldValue("/us") }
+        compose.onNodeWithTag("command-b:uso").performClick()
+        compose.runOnIdle {
+            assertEquals("", model.chatDraft.text)
+            assertEquals(Section.Usage, model.section)
+            assertTrue(controller.calls.none { it.startsWith("send:") })
+        }
+    }
+
+    @Test
+    fun rulesOfTheCommandList() {
+        assertEquals(listOf("usage"), ChatCommands.suggestions("usa").map { it.command })
+        val mods = listOf(ChatCommands.ModCommand("resumir", "Resume", "Notas"), ChatCommands.ModCommand("rutina", "Tapada", "Notas"))
+        assertEquals(listOf("recuerda", "revisar-pr", "resumir"), ChatCommands.suggestions("re", templates, mods).map { it.command })
+        assertTrue(ChatCommands.isUsageCommand(" /cuotas "))
+        assertTrue(ChatCommands.isClearCommand("/nuevo chat"))
     }
 
     @Test

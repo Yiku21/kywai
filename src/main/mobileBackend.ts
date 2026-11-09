@@ -99,6 +99,8 @@ export class MobileBackend {
       this.call<UsageRun[]>('getUsageRuns')
     ])
     const templates = this.methods.has('listTemplates') ? await this.call<TaskTemplate[]>('listTemplates') : []
+    const mods = this.methods.has('listMods') ? await this.call<ModInfo[]>('listMods').catch(() => [] as ModInfo[]) : []
+    const modCommands = mods.filter((m) => m.enabled).flatMap((m) => (m.commands ?? []).filter((c) => !m.shadowed?.includes(c.name)).map((c) => ({ name: c.name, description: c.description, mod: m.title || m.name })))
     const watermark = eventSequence()
     const configured = new Set(config.agents.map((a) => a.id))
     const agents = [...config.agents, ...(this.agents?.() ?? []).filter((a) => !configured.has(a.id))]
@@ -113,6 +115,7 @@ export class MobileBackend {
       }) ?? [],
       memory: state?.memory ?? [],
       templates,
+      modCommands,
       usage: usageProjection(runs, runtime.quotas, config),
       settings: { agentAccess: config.agentAccess, planApproval: config.planApproval !== false, theme: config.uiTheme ?? 'clasico', ...(config.serverName ? { serverName: config.serverName } : {}) },
       sequence: watermark,
@@ -139,6 +142,7 @@ export class MobileBackend {
         music: this.methods.has('searchMusic'),
         agentThinking: this.methods.has('setAgentThinking'),
         modPanels: this.methods.has('modPanel') && this.methods.has('listMods'),
+        chatCommands: true,
         usageCost: true
       }
     }

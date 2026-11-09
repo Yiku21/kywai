@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -292,27 +293,53 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).testTag("mentions")) {
                 Text(t("Directo, sin pasar por Hermes: recibe tu texto tal cual"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(6.dp))
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Como la lista del «/»: el agente a la izquierda y su modelo a la derecha.
+                Column(
+                    Modifier.fillMaxWidth().heightIn(max = 232.dp).clip(RoundedCornerShape(16.dp)).background(Orbita.GlassPopover).verticalScroll(rememberScrollState()).padding(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
                     mentionList.forEach { a ->
                         Row(
-                            Modifier.clip(Orbita.PillShape).background(Orbita.AccentSoft).tappable {
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).tappable {
                                 val next = DirectMention.text(mention.prefix, a)
                                 model.chatDraft = TextFieldValue(next, selection = androidx.compose.ui.text.TextRange(next.length))
-                            }.padding(horizontal = 12.dp, vertical = 8.dp).testTag("mention-${a.id}"),
+                            }.padding(horizontal = 12.dp, vertical = 9.dp).testTag("mention-${a.id}"),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Dot(parseColor(a.color), 8.dp)
-                            Spacer(Modifier.width(6.dp))
-                            Text(a.name, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.width(8.dp))
+                            Text("@${a.name}", color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                            Spacer(Modifier.width(12.dp))
+                            Text(a.modelLabel.ifBlank { a.role }, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
                         }
                     }
                 }
                 Spacer(Modifier.height(4.dp))
             }
         }
-        // Plantillas de tareas: la lista de órdenes al escribir «/» y la fila de botones encima del cuadro.
+        // Órdenes que hace Órbita misma (no van a los agentes): «/model», «/uso» y «/nuevo». true si era una de ellas.
+        fun runLocal(text: String): Boolean {
+            when {
+                OrbitaModel.isModelCommand(text) -> {
+                    if (snapshot?.capabilities?.hermesModel == true) {
+                        model.feedback.confirm()
+                        model.hermesModelOpen = true
+                    } else {
+                        model.feedback.reject()
+                        model.toast(t("Actualiza kywai en el ordenador para cambiar el modelo de Hermes desde aquí"), Toast.Tone.Error)
+                        return true
+                    }
+                }
+                ChatCommands.isUsageCommand(text) -> { model.feedback.confirm(); model.open(Section.Usage) }
+                ChatCommands.isClearCommand(text) -> { model.feedback.confirm(); model.newChat() }
+                else -> return false
+            }
+            model.chatDraft = TextFieldValue("")
+            return true
+        }
+        // La lista de órdenes al escribir «/» (cada una con lo que hace) y la fila de plantillas encima del cuadro.
         if (!voiceHere) {
-            TemplateCommandList(model, snapshot)
+            ChatCommandList(model, snapshot) { cmd -> if (!runLocal(cmd)) model.chatDraft = TextFieldValue("$cmd ", selection = androidx.compose.ui.text.TextRange(cmd.length + 1)) }
             TemplateRow(model, snapshot, pending.map { it.first })
         }
         if (voiceHere) {
@@ -330,17 +357,7 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             },
         ) {
             val text = model.chatDraft.text
-            if (OrbitaModel.isModelCommand(text) && pending.isEmpty()) {
-                if (snapshot?.capabilities?.hermesModel == true) {
-                    model.feedback.confirm()
-                    model.chatDraft = TextFieldValue("")
-                    model.hermesModelOpen = true
-                } else {
-                    model.feedback.reject()
-                    model.toast(t("Actualiza kywai en el ordenador para cambiar el modelo de Hermes desde aquí"), Toast.Tone.Error)
-                }
-                return@Composer
-            }
+            if (pending.isEmpty() && runLocal(text)) return@Composer
             model.cancelDictation()
             model.feedback.confirm()
             model.controller.sendMessage(text, pending.map { it.first })

@@ -65,6 +65,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Extensiones: plugins](#extensiones-plugins)
   - [Extensiones: mods](#extensiones-mods)
   - [Crear vídeos con solo pedirlo (/video)](#crear-vídeos-con-solo-pedirlo-video)
+  - [Todas las órdenes al escribir / o @](#todas-las-órdenes-al-escribir--o-)
   - [Plantillas de tareas: lo que repites, con un toque](#plantillas-de-tareas-lo-que-repites-con-un-toque)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
@@ -112,6 +113,36 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   ```
 
 ### Instalar en otro equipo
+
+#### Con una sola orden (lo más fácil)
+
+Se pega una línea en una terminal y kywai queda instalada y abierta con la última versión de las Releases:
+
+| Sistema | Dónde pegarla | Orden |
+|---|---|---|
+| Windows 10/11 | PowerShell | `irm https://kywai.app/install.ps1 \| iex` |
+| macOS y Linux | Terminal | `curl -fsSL https://kywai.app/install.sh \| bash` |
+
+- Los scripts son `scripts/instalar-kywai.ps1` y `scripts/instalar-kywai.sh`. `web/build.mjs` los copia tal cual a la web como
+  `install.ps1` e `install.sh`, y `publicar-web.yml` vuelve a publicar la web cuando cambian. Si se cambia un script, se cambia en
+  `scripts/` (nunca en `web/dist/`).
+- Los dos buscan la última versión en la API de GitHub y, si no responde (límite de peticiones sin cuenta), la deducen de la
+  redirección de `releases/latest`. Con `KYWAI_VERSION=0.1.252` (o `$env:KYWAI_VERSION` en Windows) instalan una versión concreta.
+- **Windows:** baja `kywai-Setup-<versión>.exe` a la carpeta temporal y lo ejecuta en silencio (`/S`): se instala para el usuario,
+  sin permisos de administrador, con acceso directo en el Escritorio y en Inicio; si ya estaba instalada, se actualiza en la
+  misma carpeta (la que guarda el registro). Luego abre kywai. Si kywai está abierta, avisa y no hace nada. El archivo es solo
+  ASCII y los acentos van como `\u00e1` (Windows PowerShell 5.1 puede leer la descarga con otra codificación).
+- **macOS:** elige Apple silicon o Intel (también desde un Terminal con Rosetta), baja el `.zip` de la Release, deja `kywai.app` en
+  `/Applications` (o en `~/Applications` si no se puede escribir allí), le quita la cuarentena (`xattr -cr`) para que no salga «está
+  dañada» y la abre. Si sigue la antigua `AI Cowork.app`, lo dice (se puede borrar; los datos se conservan).
+- **Linux** (x64 o ARM): deja el AppImage en `~/.local/share/kywai/kywai.AppImage` (nombre fijo, para que la actualización
+  automática lo reemplace), el icono, la entrada del menú de aplicaciones y la orden `~/.local/bin/kywai`. Si falta libfuse2,
+  intenta instalarla con sudo (apt, dnf, pacman o zypper); si no puede, la orden abre el AppImage con `APPIMAGE_EXTRACT_AND_RUN=1`
+  (arranca algo más lento). Si el sistema restringe los espacios de nombres de usuario (Ubuntu 24.04…), añade `--no-sandbox`,
+  porque dentro de un AppImage el ayudante chrome-sandbox no puede ser de root.
+- Ninguno toca la carpeta de datos: se puede repetir la orden para reinstalar o actualizar.
+- Probado: Linux x64 en un contenedor (descarga la 0.1.255, instala, crea menú y orden, y la app abre con Xvfb), y la
+  deducción de versión sin la API. Sin probar todavía en un Windows, un Mac ni un escritorio Linux reales.
 
 #### Descargar la versión lista (GitHub Releases)
 
@@ -441,7 +472,9 @@ La llave de ese equipo se guarda cifrada con el llavero del sistema, es **solo s
 dispositivos emparejados del servidor y se revoca desde allí sin tocar los demás) y deja de valer tras 90 días sin
 usarse. El cliente nunca recibe el código de acceso del servidor (ni en la configuración, ni en los avisos, ni en el
 enlace a la versión HTTPS), así que al revocarlo se queda fuera de verdad. La interfaz siempre es la del servidor, así que cliente y servidor nunca quedan desfasados. Si el servidor
-no responde, el cliente lo dice y reintenta solo; si ya no lo reconoce, vuelve a pedir un código. La ventana no lleva barra de
+no responde, el cliente lo dice y reintenta solo; si ya no lo reconoce, vuelve a pedir un código. Aunque la carga de la
+interfaz se corte a medias (el servidor se reinicia o rechaza la llave mientras carga), la app no se cierra: se queda en
+«Sin conexión» o en la pantalla de conectar (antes salía «No se pudo iniciar: (-3) loading data:…» y se cerraba). La ventana no lleva barra de
 menús: en ⚙ → «Ajustes…» están **Recargar la interfaz** (pestaña Acerca de; también Ctrl+R o F5), y **Cambiar de
 servidor…** y **Olvidar este dispositivo y desconectar** (pestaña Conexión).
 
@@ -718,12 +751,57 @@ documentación no confirma y pueden necesitar ajustes.
   Si aun así sale «No disponible: Servidor de LM Studio apagado», la tarjeta del agente (clic en su robot) tiene el
   botón **Encender LM Studio**: enciende el servidor, carga el modelo y deja el agente disponible. Si no puede, dice
   por qué (por ejemplo, que LM Studio no está instalado).
+- **Permisos de los agentes** (menú ⚙ → Ajustes → «Permisos de los agentes»; también en Ajustes de Órbita), tres modos:
+  - **Acceso completo** (por defecto): Claude, Codex y Gemini ejecutan comandos, instalan dependencias y usan internet
+    sin pedir permiso, para no quedarse parados. Se les indica que trabajen en la carpeta del proyecto y que no borren
+    nada fuera de ella ni hagan acciones irreversibles que no se hayan pedido, pero no hay nada que se lo impida.
+  - **Preguntarme antes**: lo que no tienen permitido te lo piden y esperan, como hace Claude Code en su terminal (ver
+    [«Preguntarme antes»](#preguntarme-antes-los-agentes-te-piden-permiso)).
+  - **Solo el proyecto**: solo editan la carpeta del proyecto; los comandos que necesitan aprobación se deniegan (y
+    Codex no tiene internet). Si la tarea lo necesita, acaba «BLOQUEADA».
+
+#### «Preguntarme antes»: los agentes te piden permiso
+
+En este modo nada se hace a tus espaldas y nada se queda parado sin preguntarte. Cuando un agente quiere hacer algo
+que no tiene permitido, sale **en el chat** (con los botones debajo del mensaje), **en «Te necesita»** y **en Órbita**
+(con notificación): «Claude pide permiso para ejecutar un comando: `npm install`». Tres botones:
+
+- **Denegar**: no lo hace; sigue con lo que pueda sin eso y, si sin eso no se puede, acaba «BLOQUEADA».
+- **Permitir una vez**: lo hace esta vez.
+- **Permitir siempre en esta sesión**: no vuelve a preguntarlo ese agente en ese proyecto hasta que kywai se reinicie.
+  En un comando cuenta el programa (permitir `npm install` permite también `npm run build`, no `rm`).
+
+Contestar en un sitio cierra los otros. Mientras espera, el agente sale «Esperando tu permiso» y **no se le corta**
+por estar callado (el aviso de los 3 minutos y el corte de los 20 no cuentan mientras espera). Si detienes la
+petición, lo que esperaba respuesta se deniega.
+
+- **Claude Code** pregunta a mitad de tarea cada cosa que necesite (usa las herramientas de kywai con
+  `--permission-prompt-tool`; las ediciones dentro de la carpeta del proyecto no se preguntan).
+- **Codex, Gemini, Qwen y Muse** no pueden preguntar a mitad de tarea cuando trabajan solos: trabajan en la carpeta
+  del proyecto y, si necesitan más, responden «PERMISO: lo que necesitan». Se te pregunta «trabajar con acceso
+  completo en esta tarea» y la tarea se repite en su misma sesión: con acceso completo si lo permites («siempre en
+  esta sesión» se lo da para el resto de tareas de ese proyecto) o sabiendo que lo denegaste.
+
+En el código: `src/main/permissions.ts` (peticiones, respuestas y lo permitido en la sesión), la herramienta
+`pedir_permiso` de `coworkMcp.ts`, `accessFor` y `handlePermissionNeed` en `orchestrator.ts`; pruebas en
+`coworkMcp.test.ts` y G5/G6 de `orchestrator.check.ts`. Los avisos son del tipo `permission` y el mensaje del chat
+lleva `permission` con su estado.
+- **Instalar el motor local desde kywai**: en el indicador Local → «Agente local», la pestaña de un motor que no está
+  instalado (LM Studio, Ollama o Colibri) tiene el botón **Instalar**, como los agentes en el asistente: usa la misma
+  instalación (Homebrew en Mac, winget en Windows, su instalador en Linux) y enseña la última línea de lo que va
+  haciendo. LM Studio se abre una vez al terminar, porque su CLI `lms` aparece la primera vez que se abre; Ollama
+  queda en marcha.
 - **Colibri como motor local** (pestaña **Colibri** en el indicador Local → «Agente local», y en el paso Agentes del
   asistente). [Colibri](https://github.com/JustVugg/colibri) (licencia Apache-2.0) sirve modelos MoE grandes
   (Qwen3.6, GLM, DeepSeek…) dejando en la GPU lo que más se usa, en RAM lo templado y leyendo del disco el resto.
   Habla la API de OpenAI con herramientas, así que el agente local trabaja con él igual que con LM Studio (mismas
   herramientas, sin terminal, razonamiento apagado). Cómo funciona:
-  - **Instalación**: a mano con su `./start-here.sh` (elige un modelo que quepa y lo descarga, 19 GB o más). kywai lo
+  - **Instalación**: botón **Instalar** en su pestaña (pide un segundo toque) o en el paso «Programas» del asistente.
+    kywai lo baja en `~/colibri` (con git; en Windows, el zip) y ejecuta su instalación sin preguntas
+    (`start-here.sh --yes --background --no-browser`): elige el modelo recomendado para la RAM y el disco del equipo,
+    prepara el motor y descarga el modelo (19 GB o más; hasta 6 horas de espera, y si se corta, volver a pulsar
+    reanuda la descarga). En Mac instala antes con Homebrew `libomp` y un Python 3.10 o más nuevo si faltan. También
+    se puede instalar a mano con su `./start-here.sh`. kywai lo
     detecta por el `setup.json` que deja (`~/Library/Application Support/colibri` en Mac,
     `~/.local/share/colibri` en Linux, `%LOCALAPPDATA%\colibri` en Windows; `COLI_SETUP_HOME` lo cambia) y usa su
     dirección y su puerto (127.0.0.1:8000 de fábrica). En el asistente sale como programa con su enlace.
@@ -801,7 +879,7 @@ En cada petición, el coordinador recibe una guía de cómo funciona kywai
 - **Imágenes**: solo las genera Codex. Gemini también puede, pero no alcanzan la calidad necesaria.
 - **Lo que nadie puede hacer**: audio, música, voz o vídeo de verdad (lo más cercano es código que lo genere).
   Los modelos locales son lentos y flojos investigando o creando: si se piden, avisa de qué saldrá.
-- **Instalar y usar internet**: sabe si está activado «Acceso completo para los agentes». Sin él, no lanza lo que
+- **Instalar y usar internet**: sabe qué modo de «Permisos de los agentes» está puesto. Con «Solo el proyecto», no lanza lo que
   necesita instalar (una APK necesita el SDK de Android, Java y Gradle) y pide que se active antes.
 - **Ficha automática del proyecto**: en cada planificación recibe una ficha de la carpeta que kywai hace sin
   llamar a ningún modelo: el principio del README, con qué se construye y se prueba (`package.json` y otros
@@ -856,6 +934,8 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
   aparte o una tarea que **no se pudo hacer** («Deshacer» deja sus archivos como estaban).
 - **Tareas en pausa**: lo que quedó a medias al cerrarse o reiniciar el servidor (o al detenerlo desde el móvil),
   con «Reanudar» (sigue donde se quedó) y «Quitar» (no se reanudará).
+- **Un permiso que pide un agente** (modo [«Preguntarme antes»](#preguntarme-antes-los-agentes-te-piden-permiso)):
+  «Denegar», «Permitir una vez» o «Permitir siempre en esta sesión». Sale también en el chat con los mismos botones.
 - **Una tarea bloqueada** (ver [abajo](#tareas-bloqueadas-le-falta-algo-no-es-un-error)): el agente dijo que le falta
   algo para terminarla. «Darla por buena así», «Contestarle en el chat» o «Pasársela a otro agente».
 - **El presupuesto de API** del mes, al llegar al 80 % y al pasarlo.
@@ -1240,7 +1320,7 @@ Lo que cambia frente a una petición normal:
 
 Un `@` que no es el nombre de ningún agente (un correo, «@alguien») no cuenta: el mensaje va a Hermes como siempre.
 `/directo` con un nombre que no existe da un error con la pista de escribir `@` para ver la lista. El agente
-trabaja en la carpeta del proyecto con el mismo permiso de siempre (⚙ → Ajustes → «Acceso completo para los agentes»).
+trabaja en la carpeta del proyecto con el mismo permiso de siempre (⚙ → Ajustes → «Permisos de los agentes»).
 
 Para desarrolladores: las reglas están en `src/shared/directMessage.ts` (y su copia en Órbita,
 `android/.../ui/orbita/DirectMention.kt`); el motor las aplica en `sendDirect` de `src/main/orchestrator.ts`
@@ -1587,6 +1667,36 @@ Para desarrolladores: la petición se reconoce en `parseVideoRequest` y el guion
 (`src/main/videoScript.ts`, con la composición HTML y la música); el motor lo lanza en `sendVideo` y lo remata en
 `completeVideo` (`src/main/orchestrator.ts`, la tarea lleva `video`). El botón del chat envía `videoFrom` con el id
 del mensaje.
+### Todas las órdenes al escribir / o @
+
+Al escribir **«/»** al principio del cuadro del chat sale la lista de **todas** las órdenes que tienes, cada una con
+lo que hace a la derecha; si sigues escribiendo se filtra («/re» deja `/recuerda` y `/revisar-pr`). Con las flechas
+eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web y Órbita.
+
+| Orden | Lo que hace |
+|---|---|
+| `/video tema` | Crea un vídeo completo y te da solo el MP4 (ver «Crear vídeos con solo pedirlo») |
+| `/rutina cuándo: qué` | Programa una tarea a una hora o que se repita |
+| `/directo Agente mensaje` | Habla con un agente sin pasar por Hermes (lo mismo que `@Agente mensaje`) |
+| `/recuerda texto` | Guarda un dato en la memoria del proyecto (admite `decisión:`, `pendiente:`, `preferencia:`, `hecho:`) |
+| `/model` | Cambia el modelo de Hermes |
+| `/uso` | Mira cuánta cuota le queda a cada agente (también `/usage`, `/cuotas`) |
+| `/nuevo` | Empieza un chat nuevo en este proyecto (también `/new`, `/limpiar`) |
+| `/orden-de-plantilla` | Tus plantillas de tareas, con su nombre a la derecha |
+| `/orden-de-mod` | Las órdenes de los mods encendidos, con su descripción |
+
+Las que no llevan nada detrás (`/model`, `/uso`, `/nuevo`) se hacen nada más elegirlas; las demás dejan «/orden » en
+el cuadro para que escribas lo de detrás. Al escribir **«@»** sale la lista de agentes, cada uno con su modelo a la
+derecha, para hablarle directamente.
+
+Una plantilla o un mod con el nombre de una orden de kywai no sale en la lista (manda la de kywai). En Órbita,
+`/uso` abre «Uso y coste», `/nuevo` abre un chat nuevo y `/recuerda` lo anota el servidor (contesta en el chat, sin
+pasar por Hermes).
+
+**Para programadores.** La lista está en `src/shared/chatCommands.ts` (`BUILTIN_COMMANDS` y `commandSuggestions`) y
+su copia de Órbita en `android/.../orbita/ChatCommands.kt`: una orden nueva se añade en los dos. El snapshot móvil
+trae `modCommands` (las órdenes de los mods encendidos) y la capacidad `chatCommands`; `/recuerda …` enviado como
+mensaje lo resuelve el motor (`sendMessage` en `src/main/orchestrator.ts`).
 
 ### Plantillas de tareas: lo que repites, con un toque
 
@@ -2633,6 +2743,7 @@ push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
 - `node web/build.mjs` genera la web; `node web/build.mjs --preview` la genera con enlaces `index.html` para abrirla sin servidor.
 - La primera visita a la raíz lleva al idioma del navegador; elegir idioma en el menú se recuerda.
 - El vídeo de la web (`web/assets/video/presentacion.mp4`, 30 s, 1920×1080, unos 16 MB) está montado con Remotion a partir de grabaciones reales de Launch Lab: agentes trabajando en distintas fases, cuatro escenarios y un prototipo interactivo. Su portada es `portada.jpg`; los detalles están en [docs/video](video/README.md). Para cambiarlo, sustituir ambos archivos y actualizar `video.caption` en los cinco idiomas de `web/textos.mjs`.
+- La sección de descarga empieza con la instalación de una sola orden (Windows y macOS/Linux, con botón Copiar); se resalta la del sistema de quien mira. Ver [Con una sola orden](#con-una-sola-orden-lo-más-fácil).
 - Las descargas se leen de la última Release de GitHub al abrir la página y enlazan el instalador del sistema de quien la visita. Si GitHub no responde, enlazan a la página de versiones.
 - La fila «Android (Órbita)» enlaza a `releases/latest/download/kywai-orbita.apk`, un enlace fijo que funciona aunque la API de GitHub no responda. Desde un móvil Android, el botón grande de la portada descarga la APK; en iPhone no se marca nada porque Órbita es solo para Android.
 - Al generar la web, cada enlace a `assets/` lleva `?v=` con una huella de su contenido. Así, al cambiar una imagen o el vídeo, el navegador pide la nueva enseguida en vez de enseñar la que tenía guardada (GitHub Pages deja guardar 10 minutos). No hay que hacer nada a mano: basta con sustituir el archivo.

@@ -17,6 +17,7 @@ import { tl } from '@shared/i18n'
 import { addMemory, instructionsOf, KIND_LABEL, memoryLines, memoryOf } from './memory'
 import * as store from './projects'
 import { listSkills, readSkill } from './skills'
+import { askPermission, describeToolRequest } from './permissions'
 
 export const MCP_SERVER_NAME = 'ai-cowork'
 
@@ -27,7 +28,15 @@ export interface McpTaskContext {
   taskTitle: string
   agentId: string
   agentName: string
+  /**
+   * Modo «Preguntarme antes»: Claude pide aquí (con --permission-prompt-tool) lo que no tiene permitido y espera tu
+   * respuesta. Solo entonces existe la herramienta pedir_permiso.
+   */
+  askPermission?: boolean
 }
+
+/** La herramienta que usa Claude con --permission-prompt-tool (no la llama el agente por su cuenta). */
+export const PERMISSION_TOOL_NAME = 'pedir_permiso'
 
 /** Lo que el CLI necesita para lanzar el servidor. */
 export interface McpLaunch {
@@ -90,6 +99,16 @@ export const MCP_TOOLS: ToolDef[] = [
     inputSchema: { type: 'object', properties: { nombre: { type: 'string' } }, additionalProperties: false }
   }
 ]
+
+const PERMISSION_TOOL: ToolDef = {
+  name: PERMISSION_TOOL_NAME,
+  description: 'Pide al usuario permiso para una acción que no está permitida y espera su respuesta (la usa el propio Claude Code con --permission-prompt-tool).',
+  inputSchema: {
+    type: 'object',
+    properties: { tool_name: { type: 'string' }, input: { type: 'object' }, tool_use_id: { type: 'string' } },
+    required: ['tool_name', 'input']
+  }
+}
 
 const TIPO: Record<string, MemoryKind> = { decision: 'decision', decisión: 'decision', hecho: 'fact', preferencia: 'preference', pendiente: 'pending' }
 
@@ -186,7 +205,7 @@ async function handleHttp(req: import('node:http').IncomingMessage, res: import(
   }
   const ctx = session(body.token)
   if (!ctx) return reply(403, { error: 'Esta tarea ya terminó o el token no es válido' })
-  if (req.url === '/tools') return reply(200, { tools: MCP_TOOLS })
+  if (req.url === '/tools') return reply(200, { tools: ctx.askPermission ? [...MCP_TOOLS, PERMISSION_TOOL] : MCP_TOOLS })
   try {
     reply(200, { text: await callTool(ctx, String(body.name ?? ''), (body.arguments ?? {}) as Record<string, unknown>) })
   } catch (e) {
@@ -245,6 +264,19 @@ export async function callTool(ctx: McpTaskContext & { questions?: number }, nam
       })
       return 'Pregunta enviada a «Te necesita». No esperes: sigue con la opción más razonable y di en tu respuesta final qué supusiste.'
     }
+    case PERMISSION_TOOL_NAME: {
+      if (!ctx.askPermission) throw new Error('Esta tarea no pide permisos')
+      const tool = str(args.tool_name, 80) || 'una herramienta'
+      const input = args.input && typeof args.input === 'object' && !Array.isArray(args.input) ? (args.input as Record<string, unknown>) : {}
+      const what = describeToolRequest(tool, input)
+      const answer = await askPermission({ projectId: ctx.projectId, runId: ctx.runId, taskId: ctx.taskId, taskTitle: ctx.taskTitle, agentId: ctx.agentId, agentName: ctx.agentName, ...what })
+      // El formato que espera Claude Code de su --permission-prompt-tool.
+      return JSON.stringify(
+        answer === 'deny'
+          ? { behavior: 'deny', message: 'El usuario lo ha denegado. No lo intentes de otra forma: sigue con lo que puedas sin eso y, si sin eso no se puede hacer la tarea, empieza tu respuesta con «BLOQUEADA:» y explica qué falta.' }
+          : { behavior: 'allow', updatedInput: input }
+      )
+    }
     case 'leer_habilidad': {
       const n = str(args.nombre, 64)
       if (!n) {
@@ -282,7 +314,8 @@ function post(path, body) {
       })
     })
     req.on('error', ko)
-    req.setTimeout(60000, () => req.destroy(new Error('kywai no respondió a tiempo')))
+    // Pedir permiso espera a que el usuario conteste (puede tardar horas): sin límite.
+    if (!(body && body.name === 'pedir_permiso')) req.setTimeout(60000, () => req.destroy(new Error('kywai no respondió a tiempo')))
     req.end(data)
   })
 }

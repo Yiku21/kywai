@@ -208,6 +208,15 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .dl .btn { grid-column: 2; grid-row: 1 / span 2; min-height: 44px; }
 .dl li:not(.mine) .btn { background: transparent; color: var(--fg); border-color: var(--line); }
 .dl-all { display: inline-block; margin-top: 16px; font-weight: 600; }
+.cmd { margin: 0 0 28px; display: grid; gap: 12px; }
+.cmd h3 { font: 600 19px/1.3 var(--display); }
+.cmd > p { color: var(--muted); font-size: 15px; }
+.cmd-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.cmd-row.mine { background: color-mix(in srgb, var(--blue) 9%, var(--surface)); }
+.cmd-row .os { font: 600 15px/1.3 var(--display); }
+.cmd-row code { grid-column: 1; display: block; font-size: 14px; overflow-wrap: anywhere; padding: 2px 0; }
+.cmd-row button { grid-column: 2; grid-row: 1 / span 2; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: 600 14px/1 var(--body, inherit); cursor: pointer; }
+.cmd-row button:hover { border-color: var(--blue); }
 .notes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin-top: 40px; }
 .notes section { display: grid; gap: 10px; align-content: start; }
 .notes ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 6px; }
@@ -477,6 +486,13 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         <p class="lede">{{download.lede}}</p>
         <p class="dl-meta">{{download.latest}}: <b id="dl-version">{{download.loading}}</b></p>
       </div>
+      <div class="cmd" id="install">
+        <h3>{{download.cmdT}}</h3>
+        <p>{{download.cmd}}</p>
+        <div class="cmd-row" data-os="win"><span class="os">{{download.cmdWin}}</span><code>irm https://kywai.app/install.ps1 | iex</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div>
+        <div class="cmd-row" data-os="unix"><span class="os">{{download.cmdUnix}}</span><code>curl -fsSL https://kywai.app/install.sh | bash</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div>
+        <p>{{download.cmdOr}}</p>
+      </div>
       <ul class="dl">
         <li data-os="win"><span class="os">{{download.win}}</span><span class="file" data-match="Setup.*\.exe$">.exe</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
         <li data-os="mac-arm"><span class="os">{{download.macArm}}</span><span class="file" data-match="arm64\.dmg$">.dmg</span><a class="btn btn-primary" href="{{releases}}">{{download.get}}</a></li>
@@ -569,6 +585,17 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     if (os === 'android' && row) hero.href = row.querySelector('a').href;
     hero.querySelector('span').textContent = hero.getAttribute('data-for') + ' ' + names[os];
   }
+  // La orden de una línea del sistema de quien mira, resaltada; el botón la copia.
+  var cmdRow = os && os !== 'android' && document.querySelector('.cmd-row[data-os="' + (os === 'win' ? 'win' : 'unix') + '"]');
+  if (cmdRow) cmdRow.classList.add('mine');
+  document.querySelectorAll('.cmd-row button').forEach(function (b) {
+    var label = b.textContent;
+    b.addEventListener('click', function () {
+      var text = b.parentNode.querySelector('code').textContent;
+      var done = function () { b.textContent = b.getAttribute('data-copy'); setTimeout(function () { b.textContent = label; }, 1800); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    });
+  });
 
   // Enlaces directos a la última versión publicada en GitHub Releases.
   function mb(n) { return Math.round(n / 1048576) + ' MB'; }
