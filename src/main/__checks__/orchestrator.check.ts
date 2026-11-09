@@ -47,6 +47,7 @@ import { claudeArgs } from '../agents/claude'
 import { codexArgs } from '../agents/codex'
 import { initAgentSessions } from '../agentSessions'
 import { getTaskTrace } from '../taskTrace'
+import { initVideoStudio } from '../videoStudio'
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
@@ -1749,6 +1750,55 @@ async function main(): Promise<void> {
       const r2 = await sendMessage({ projectId: up.id, text: 'Que lo haga Gemini, sin revisión', filePaths: [] })
       await waitFor(() => !!finished(r2.runId), 15000, 'run B2')
       assert.equal(calls.slice(from2).find((c) => c.mode === 'work')!.agentId, 'gemini')
+    })
+
+    await check('V: «/video …» sin plan: el agente escribe el guion, kywai monta el vídeo y solo entrega el MP4', async () => {
+      // Con un estudio instalado de verdad (VIDEO_STUDIO_DIR = la carpeta de trabajo que contiene «estudio-video») se
+      // monta el vídeo entero; sin él, la tarea falla diciendo qué instalar.
+      const studio = process.env.VIDEO_STUDIO_DIR
+      initVideoStudio(studio || join(root, 'sin-estudio'))
+      const vp = store.createProject('Vídeos')
+      const guion = {
+        title: 'Prueba de vídeo',
+        lang: 'es',
+        theme: 'oceano',
+        scenes: [1, 2, 3].map((i) => ({ heading: `Escena ${i}`, narration: `Esta es la escena número ${i} del vídeo de prueba.`, image: '' })),
+        outro: 'Fin'
+      }
+      let bad = true
+      workBehaviour = (o) => {
+        if (!o.prompt.includes('Escribe el guion de un vídeo corto')) return null
+        // La primera vez, un guion que no vale: pasa a otro agente.
+        const text = bad ? 'No sé hacerlo' : '```json\n' + JSON.stringify(guion) + '\n```'
+        bad = false
+        return Promise.resolve({ ok: true, text, usage: { input: 10, output: 10 } })
+      }
+      const from = calls.length
+      const before = calls.filter((c) => c.mode === 'plan').length
+      const { runId } = await sendMessage({ projectId: vp.id, text: 'créame un vídeo vertical sobre las mareas', filePaths: [] })
+      await waitFor(() => !!finished(runId), studio ? 600_000 : 15000, 'run V')
+      workBehaviour = () => null
+      assert.equal(calls.filter((c) => c.mode === 'plan').length, before, 'sin plan de Hermes ni resumen')
+      const work = calls.slice(from).filter((c) => c.mode === 'work')
+      assert.ok(work.length >= 2, 'el guion que no valía pasó a otro agente')
+      assert.match(work[0].prompt, /Tema: las mareas/)
+      assert.match(work[0].prompt, /vertical 9:16/)
+      const snap = store.snapshotProject(vp.id)
+      const t = snap.tasks.find((x) => x.runId === runId)!
+      assert.equal(t.video?.format, 'vertical')
+      if (studio) {
+        assert.equal(t.status, 'done', t.error ?? '')
+        const arts = t.artifactIds.map((id) => snap.artifacts.find((a) => a.id === id)!)
+        assert.deepEqual(arts.map((a) => a.relPath), ['artifacts/videos/prueba-de-video-vertical.mp4'], 'solo el MP4')
+        assert.ok(snap.messages.some((m) => /Aquí tienes tu vídeo «Prueba de vídeo» \(\d+ s, vertical\)/.test(m.text)))
+      } else {
+        assert.equal(t.status, 'failed')
+        assert.match(t.error ?? '', /Instalar lo que falta/)
+      }
+      // «de esto» usa la última respuesta; sin ninguna, lo pide.
+      const empty = store.createProject('Vacío')
+      await assert.rejects(sendMessage({ projectId: empty.id, text: 'créame un vídeo de esto', filePaths: [] }), /¿De qué hago el vídeo\?/)
+      await assert.rejects(sendMessage({ projectId: empty.id, text: '', filePaths: [], videoFrom: 'nada' }), /No encuentro ese mensaje/)
     })
 
     console.log(`\n${passed} orchestrator checks passed`)

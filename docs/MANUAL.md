@@ -64,6 +64,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Extensiones: catálogo de servidores MCP y de habilidades](#extensiones-catálogo-de-servidores-mcp-y-de-habilidades)
   - [Extensiones: plugins](#extensiones-plugins)
   - [Extensiones: mods](#extensiones-mods)
+  - [Crear vídeos con solo pedirlo (/video)](#crear-vídeos-con-solo-pedirlo-video)
   - [Plantillas de tareas: lo que repites, con un toque](#plantillas-de-tareas-lo-que-repites-con-un-toque)
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
@@ -1509,6 +1510,60 @@ Si supera su tiempo máximo, kywai corta su árbol de procesos y espera al cierr
 descarga como los plugins) o la ruta de una carpeta del equipo donde corre kywai (para probar uno que estás
 haciendo; vuelve a instalarlo tras cambiarlo). Se guarda en `mods/<nombre>` de la carpeta de datos. «Apagar» lo deja
 instalado sin órdenes, hooks ni paneles; la papelera lo borra.
+
+### Crear vídeos con solo pedirlo (`/video`)
+
+Pides un vídeo y te llega **solo el vídeo**: un MP4 que se ve en el propio chat (con Abrir y Descargar debajo). Sin
+plan que aprobar, sin informes ni archivos sueltos.
+
+**Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
+
+- `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
+  video about…».
+- **Vertical** para TikTok, Reels o Shorts: `/video vertical …`, «…para TikTok», «…para reels». Si no se dice nada,
+  sale horizontal (16:9, YouTube).
+- **De un mensaje**: el botón **«Crear vídeo de esto»** bajo cualquier respuesta con texto, o escribir «créame un vídeo
+  de esto» (usa la última respuesta del chat).
+- **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
+
+**Qué pasa por dentro.** Un agente (el mejor para redactar que esté libre; mejor uno en la nube que un modelo local)
+escribe solo el **guion** en JSON: título, de 4 a 8 escenas con su rótulo y lo que dice la voz, una descripción de la
+imagen de cada escena, un tema de color y la frase final. Si el guion no vale, la tarea pasa a otro agente. Lo demás lo
+hace kywai siempre igual (`src/main/videoStudio.ts`):
+
+1. **Voz** de cada escena con **Kokoro** (natural, gratis, en el propio equipo; español, inglés, francés, portugués,
+   italiano, japonés, chino e hindi). Sin Kokoro, la voz del sistema (`say` en macOS, la de Windows, espeak-ng en Linux).
+2. **Imágenes** con Gemini (`gemini-2.5-flash-image`) si hay clave de API de Gemini (la del asistente, en
+   `~/.gemini/.env`), tres a la vez y en el formato del vídeo. Sin clave, o si una falla, esa escena lleva un fondo de
+   diseño animado.
+3. **Música** propia generada para cada vídeo (acordes suaves con pulso; sin derechos de nadie) que **baja sola cuando
+   habla la voz**; todo normalizado a -16 LUFS.
+4. **Animación y montaje** con **HyperFrames** (Apache 2.0) y GSAP: portada, escenas que alternan imagen a pantalla
+   completa con movimiento lento, tarjeta que entra deslizándose y rótulo grande, rótulos que suben palabra a palabra,
+   subtítulos al ritmo de la voz, cortinillas entre escenas, barra de progreso y cierre.
+5. **Comprobación** con ffprobe (imagen, sonido y duración) antes de entregarlo.
+
+Mientras, la tarea dice por qué paso va («Poniendo la voz (2 de 6)», «Animando y montando el vídeo»…). Un vídeo de
+medio minuto tarda unos minutos.
+
+**Dónde queda.** El MP4 en `artifacts/videos/<título>.mp4` (en una carpeta tuya, `.ai-cowork/entregables/videos/`).
+El material de trabajo (guion, voces, imágenes, música, composición) se guarda en la carpeta oculta
+`.ai-cowork/videos/` del proyecto: no sale en el chat ni en Entregables.
+
+**Instalar.** ⚙ → Ajustes → Extensiones → **Estudio de vídeo** dice qué tiene el equipo (motor, ffmpeg, voz,
+imágenes) y **«Instalar lo que falta»** lo instala en el equipo donde corren los agentes (también si lo pulsas desde
+la web): HyperFrames y GSAP en la carpeta `estudio-video` de la carpeta de trabajo (versiones fijas, para que un guion
+se monte igual dentro de meses), ffmpeg (Homebrew en macOS, winget en Windows; en Linux, con tu gestor de paquetes),
+la voz Kokoro en un entorno de Python propio (`estudio-video/.venv`) y el navegador del render. La primera voz
+descarga el modelo de Kokoro (unos cientos de MB). Si falta el motor o ffmpeg, pedir un vídeo dice qué instalar.
+
+**Publicar.** De momento no se publica nada: el vídeo se queda en el proyecto y lo subes tú. (Subir a YouTube con tu
+propia cuenta es posible más adelante; TikTok no deja automatizar la publicación en una cuenta propia.)
+
+Para desarrolladores: la petición se reconoce en `parseVideoRequest` y el guion en `parseVideoScript`
+(`src/main/videoScript.ts`, con la composición HTML y la música); el motor lo lanza en `sendVideo` y lo remata en
+`completeVideo` (`src/main/orchestrator.ts`, la tarea lleva `video`). El botón del chat envía `videoFrom` con el id
+del mensaje.
 
 ### Plantillas de tareas: lo que repites, con un toque
 

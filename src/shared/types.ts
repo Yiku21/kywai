@@ -238,6 +238,11 @@ export interface Task {
   needsYou?: boolean
   /** Lo que dijo el agente al bloquearse, para quien la retome (se le cuenta en el encargo). */
   blockedNote?: { by: string; text: string }
+  /**
+   * Petición de vídeo («/video …», «créame un vídeo de …»): el agente solo escribe el guion en JSON y kywai monta el
+   * vídeo (voz, imágenes, música, animación). Se entrega solo el MP4; el material de trabajo queda oculto.
+   */
+  video?: { format: 'horizontal' | 'vertical'; topic: string; source?: string }
 }
 
 /** Cambios de una tarea en la carpeta del proyecto, guardados como dos instantáneas (ver checkpoints.ts). */
@@ -1353,6 +1358,22 @@ export type MobileOnlyEvent = EventBase & { kind: 'attachments.updated'; project
 
 // ---------- API expuesta por el preload (window.cowork) ----------
 
+/** Lo que tiene el equipo del servidor para montar vídeos (src/main/videoStudio.ts). */
+export interface VideoStudioStatus {
+  /** HyperFrames y GSAP instalados en la carpeta del estudio. */
+  engine: boolean
+  /** ffmpeg y ffprobe. */
+  ffmpeg: boolean
+  /** «kokoro» (natural, gratis, en este equipo), «system» (la voz del sistema) o null (sin voz). */
+  voice: 'kokoro' | 'system' | null
+  /** «gemini» si hay clave de API de Gemini; null: fondos de diseño en vez de imágenes. */
+  images: 'gemini' | null
+  node: boolean
+  python: boolean
+  /** Lo imprescindible para montar un vídeo. */
+  ready: boolean
+}
+
 export interface SendMessageInput {
   projectId: string
   text: string
@@ -1366,6 +1387,8 @@ export interface SendMessageInput {
    * sus opciones (agente directo, pedir visto bueno al plan).
    */
   templateId?: string
+  /** «Crear vídeo de esto» en un mensaje del chat: el vídeo cuenta ese mensaje (su id). */
+  videoFrom?: string
 }
 
 export interface CoworkApi {
@@ -1512,6 +1535,10 @@ export interface CoworkApi {
   removePlugin(name: string): Promise<PluginInfo[]>
   /** Quita un catálogo añadido con un enlace. */
   removeMarketplace(repo: string): Promise<string[]>
+  /** Estudio de vídeo: qué tiene este equipo para montar vídeos (motor, ffmpeg, voz, imágenes). */
+  videoStudioStatus(): Promise<VideoStudioStatus>
+  /** Instala lo que falte del estudio de vídeo (puede tardar varios minutos) y dice cómo fue cada paso. */
+  installVideoStudio(): Promise<{ status: VideoStudioStatus; log: string[] }>
   /** Mods instalados: sus órdenes «/…», hooks y paneles. */
   listMods(): Promise<ModInfo[]>
   /** Instala un mod desde un enlace de GitHub a su carpeta (con kywai-mod.json). */
