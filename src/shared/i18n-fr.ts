@@ -2705,8 +2705,6 @@ export const fr: Record<string, string> = {
   "La del sistema (instala Kokoro para una más natural)": "Celle du système (installez Kokoro pour une voix plus naturelle)",
   "Sin voz": "Pas de voix",
   "Imágenes": "Images",
-  "Las genera Gemini con tu clave de API": "Gemini les génère avec votre clé d’API",
-  "Sin clave de API de Gemini: fondos de diseño animados (ponla en el asistente de configuración)": "Pas de clé d’API Gemini : fonds graphiques animés (ajoutez-la dans l’assistant de configuration)",
   "Escribe «/video» y el tema, o «créame un vídeo de…», o pulsa «Crear vídeo de esto» bajo un mensaje. Un agente escribe el guion y kywai pone la voz, las imágenes, la música, las animaciones y el montaje. Solo te llega el vídeo; el material de trabajo queda guardado en la carpeta oculta .ai-cowork/videos del proyecto. Para TikTok, Reels o Shorts, di «vertical».": "Écrivez « /video » et le sujet, ou « crée-moi une vidéo sur… », ou appuyez sur « Créer une vidéo de ceci » sous un message. Un agent écrit le script et kywai ajoute la voix, les images, la musique, les animations et le montage. Vous ne recevez que la vidéo ; les fichiers de travail restent dans le dossier caché .ai-cowork/videos du projet. Pour TikTok, Reels ou Shorts, dites « vertical ».",
   "Instalando… (puede tardar varios minutos)": "Installation… (cela peut prendre plusieurs minutes)",
   "Comprobar e instalar otra vez": "Vérifier et réinstaller",
@@ -2772,4 +2770,8 @@ export const fr: Record<string, string> = {
   "Las habilidades, plugins y servidores MCP de vídeo que instales en las otras pestañas vienen aquí solos: sus habilidades se guardan en la carpeta del estudio (habilidades/video) y el agente que escribe el guion de cada vídeo las lee.": "Les compétences, plugins et serveurs MCP vidéo que vous installez dans les autres onglets arrivent ici tout seuls : leurs compétences sont enregistrées dans le dossier du studio (habilidades/video) et l’agent qui écrit le script de chaque vidéo les lit.",
   "Aún no has instalado ninguna.": "Vous n’en avez encore installé aucune.",
   "«{name}» ya no está en {repo}. Tiene: {list}": "« {name} » n’est plus dans {repo}. Il contient : {list}",
+  "ComfyUI en este equipo, gratis ({model}); Gemini de reserva si hay clave": "ComfyUI sur cet ordinateur, gratuit ({model}) ; Gemini en secours s’il y a une clé",
+  "ComfyUI está encendido pero sin un modelo que sirva (descarga uno SDXL o SD 1.5 en ComfyUI)": "ComfyUI est lancé mais sans modèle utilisable (téléchargez-en un SDXL ou SD 1.5 dans ComfyUI)",
+  "Las genera Gemini con tu clave de API (si enciendes ComfyUI, lo usa primero, gratis)": "Gemini les crée avec votre clé d’API (si vous lancez ComfyUI, il passe en premier, gratuitement)",
+  "Sin ComfyUI ni clave de Gemini: fondos de diseño animados. Enciende ComfyUI (comfy.org) o pon la clave de Gemini": "Ni ComfyUI ni clé Gemini : fonds graphiques animés. Lancez ComfyUI (comfy.org) ou ajoutez la clé Gemini",
 }

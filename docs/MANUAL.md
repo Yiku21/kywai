@@ -1641,9 +1641,16 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
 
 1. **Voz** de cada escena con **Kokoro** (natural, gratis, en el propio equipo; español, inglés, francés, portugués,
    italiano, japonés, chino e hindi). Sin Kokoro, la voz del sistema (`say` en macOS, la de Windows, espeak-ng en Linux).
-2. **Imágenes** con Gemini (`gemini-2.5-flash-image`) si hay clave de API de Gemini (la del asistente, en
-   `~/.gemini/.env`), tres a la vez y en el formato del vídeo. Sin clave, o si una falla, esa escena lleva un fondo de
-   diseño animado.
+2. **Imágenes.** Por defecto, con **ComfyUI** (comfy.org) si está encendido en el equipo donde corren los agentes:
+   gratis, sin clave y sin salir del equipo. kywai lo busca en `http://127.0.0.1:8188` (otra dirección con la
+   variable `KYWAI_COMFYUI_URL`), usa el primer modelo SDXL que tenga (o SD 1.5; otro con `KYWAI_COMFYUI_CHECKPOINT`;
+   FLUX y SD3 necesitan otro flujo y se saltan) y le pide las imágenes de una en una en el formato del vídeo, con una
+   semilla fija por texto (el mismo guion da las mismas imágenes). Si ComfyUI no está, no tiene modelo o una imagen
+   falla, la pide **Gemini** (`gemini-2.5-flash-image`) si hay clave de API (la del asistente, en `~/.gemini/.env`),
+   tres a la vez; tras dos fallos seguidos de ComfyUI, el resto va directo a Gemini. Sin ninguno de los dos, esa
+   escena lleva un fondo de diseño animado. kywai no instala ComfyUI (pide gráfica y varios GB de modelos): instala
+   la app de escritorio de comfy.org, descarga un modelo SDXL y déjala abierta. ComfyUI es GPL-3.0: kywai solo le
+   habla por HTTP (`src/main/comfyui.ts`).
 3. **Música** propia generada para cada vídeo (acordes con pulso; sin derechos de nadie) que **baja sola cuando habla
    la voz**, y **efectos de sonido** sintetizados: «whoosh» en cada transición, golpes en la portada y el cierre, un
    «pop» al entrar cada etiqueta. Todo normalizado a -16 LUFS.
@@ -1657,14 +1664,14 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
 
 **Estilo cartoon (tutoriales con personaje).** Si la petición dice cartoon, dibujos, personaje, presentador o
 tutorial, sale un **tutorial visual**: lo que se ve manda. Cada paso ocupa **toda la pantalla** con 1 a 3 planos
-ilustrados por Gemini (general, primer plano de la acción y detalle; siempre en el mismo estilo de dibujo plano con
+ilustrados por ComfyUI o Gemini (general, primer plano de la acción y detalle; siempre en el mismo estilo de dibujo plano con
 contorno y con lo importante en el centro), que entran con un golpe de zoom, se acercan despacio y el último lleva un
 **círculo de «mira aquí»** que late. Arriba, la insignia «PASO n» y la instrucción; abajo, subtítulos con la palabra
 que suena resaltada. En una esquina, un **presentador dibujado por kywai** (siempre el mismo: estilo chibi con gafas y
 sudadera del color del tema; `src/main/videoCartoon.ts`) que mueve la boca con la voz, parpadea, respira, brinca en
 cada cambio y hace el gesto de la escena (explica, señala al centro, se sorprende, se ríe, se encoge de hombros, pulgar
 arriba, piensa, saluda); en las bromas, «¡JA, JA!» y un «boing». El agente escribe de 6 a 10 escenas: gancho, los
-pasos en orden con sus avisos de seguridad, 2 o 3 bromas cortas y un resumen. Sin clave de Gemini no hay ilustraciones:
+pasos en orden con sus avisos de seguridad, 2 o 3 bromas cortas y un resumen. Sin ComfyUI ni clave de Gemini no hay ilustraciones:
 cada paso muestra su instrucción en grande.
 
 **Voz.** Con clave de Gemini, la voz es la de **Gemini** (la más natural; se le pide el tono: cercano y con energía en

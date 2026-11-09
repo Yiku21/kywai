@@ -1402,8 +1402,10 @@ export interface VideoStudioStatus {
   voice: 'gemini' | 'kokoro' | 'system' | null
   /** Kokoro instalado (la voz de reserva si Gemini falla). */
   kokoro: boolean
-  /** «gemini» si hay clave de API de Gemini; null: fondos de diseño en vez de imágenes. */
-  images: 'gemini' | null
+  /** «comfyui» si hay un ComfyUI encendido con modelo (el de por defecto), «gemini» si hay clave; null: fondos de diseño. */
+  images: 'comfyui' | 'gemini' | null
+  /** ComfyUI en este equipo: si responde, el modelo que se usa y cuántos tiene. */
+  comfyui?: { running: boolean; checkpoint: string | null; models: number }
   node: boolean
   python: boolean
   /** Lo imprescindible para montar un vídeo. */

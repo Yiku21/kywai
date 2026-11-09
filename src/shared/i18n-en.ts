@@ -2824,8 +2824,6 @@ export const en: Record<string, string> = {
   "La del sistema (instala Kokoro para una más natural)": "The system voice (install Kokoro for a more natural one)",
   "Sin voz": "No voice",
   "Imágenes": "Images",
-  "Las genera Gemini con tu clave de API": "Gemini makes them with your API key",
-  "Sin clave de API de Gemini: fondos de diseño animados (ponla en el asistente de configuración)": "No Gemini API key: animated design backgrounds (add it in the setup assistant)",
   "Escribe «/video» y el tema, o «créame un vídeo de…», o pulsa «Crear vídeo de esto» bajo un mensaje. Un agente escribe el guion y kywai pone la voz, las imágenes, la música, las animaciones y el montaje. Solo te llega el vídeo; el material de trabajo queda guardado en la carpeta oculta .ai-cowork/videos del proyecto. Para TikTok, Reels o Shorts, di «vertical».": "Type “/video” and the topic, or “make a video about…”, or press “Make a video of this” under a message. An agent writes the script and kywai adds the voice, images, music, animations and editing. You only get the video; the working files stay in the project’s hidden .ai-cowork/videos folder. For TikTok, Reels or Shorts, say “vertical”.",
   "Instalando… (puede tardar varios minutos)": "Installing… (this may take several minutes)",
   "Comprobar e instalar otra vez": "Check and install again",
@@ -2891,4 +2889,8 @@ export const en: Record<string, string> = {
   "Las habilidades, plugins y servidores MCP de vídeo que instales en las otras pestañas vienen aquí solos: sus habilidades se guardan en la carpeta del estudio (habilidades/video) y el agente que escribe el guion de cada vídeo las lee.": "Video skills, plugins and MCP servers you install in the other tabs show up here on their own: their skills are saved in the studio folder (habilidades/video) and the agent that writes each video's script reads them.",
   "Aún no has instalado ninguna.": "You haven't installed any yet.",
   "«{name}» ya no está en {repo}. Tiene: {list}": "“{name}” is no longer in {repo}. It has: {list}",
+  "ComfyUI en este equipo, gratis ({model}); Gemini de reserva si hay clave": "ComfyUI on this computer, free ({model}); Gemini as backup if there's a key",
+  "ComfyUI está encendido pero sin un modelo que sirva (descarga uno SDXL o SD 1.5 en ComfyUI)": "ComfyUI is running but has no usable model (download an SDXL or SD 1.5 one in ComfyUI)",
+  "Las genera Gemini con tu clave de API (si enciendes ComfyUI, lo usa primero, gratis)": "Gemini makes them with your API key (if you start ComfyUI, it's used first, for free)",
+  "Sin ComfyUI ni clave de Gemini: fondos de diseño animados. Enciende ComfyUI (comfy.org) o pon la clave de Gemini": "No ComfyUI or Gemini key: animated design backgrounds. Start ComfyUI (comfy.org) or add the Gemini key",
 }

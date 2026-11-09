@@ -2705,8 +2705,6 @@ export const zh: Record<string, string> = {
   "La del sistema (instala Kokoro para una más natural)": "系统语音（安装 Kokoro 可获得更自然的语音）",
   "Sin voz": "没有语音",
   "Imágenes": "图片",
-  "Las genera Gemini con tu clave de API": "由 Gemini 用你的 API 密钥生成",
-  "Sin clave de API de Gemini: fondos de diseño animados (ponla en el asistente de configuración)": "没有 Gemini API 密钥：使用动画设计背景（可在设置向导中添加）",
   "Escribe «/video» y el tema, o «créame un vídeo de…», o pulsa «Crear vídeo de esto» bajo un mensaje. Un agente escribe el guion y kywai pone la voz, las imágenes, la música, las animaciones y el montaje. Solo te llega el vídeo; el material de trabajo queda guardado en la carpeta oculta .ai-cowork/videos del proyecto. Para TikTok, Reels o Shorts, di «vertical».": "输入「/video」加主题，或「帮我做一个关于……的视频」，或点消息下方的「用这条做个视频」。一个智能体写脚本，kywai 负责配音、图片、音乐、动画和剪辑。你只会收到视频；工作文件保存在项目的隐藏文件夹 .ai-cowork/videos 中。要做 TikTok、Reels 或 Shorts，就说「竖屏」。",
   "Instalando… (puede tardar varios minutos)": "正在安装……（可能需要几分钟）",
   "Comprobar e instalar otra vez": "检查并重新安装",
@@ -2772,4 +2770,8 @@ export const zh: Record<string, string> = {
   "Las habilidades, plugins y servidores MCP de vídeo que instales en las otras pestañas vienen aquí solos: sus habilidades se guardan en la carpeta del estudio (habilidades/video) y el agente que escribe el guion de cada vídeo las lee.": "你在其他标签页安装的视频类技能、插件和 MCP 服务器会自动出现在这里：技能保存在工作室文件夹（habilidades/video）中，编写每个视频脚本的智能体会读取它们。",
   "Aún no has instalado ninguna.": "你还没有安装任何扩展。",
   "«{name}» ya no está en {repo}. Tiene: {list}": "{repo} 中已没有「{name}」。现有：{list}",
+  "ComfyUI en este equipo, gratis ({model}); Gemini de reserva si hay clave": "本机的 ComfyUI，免费（{model}）；有密钥时以 Gemini 备用",
+  "ComfyUI está encendido pero sin un modelo que sirva (descarga uno SDXL o SD 1.5 en ComfyUI)": "ComfyUI 已运行，但没有可用模型（请在 ComfyUI 中下载 SDXL 或 SD 1.5 模型）",
+  "Las genera Gemini con tu clave de API (si enciendes ComfyUI, lo usa primero, gratis)": "由 Gemini 用你的 API 密钥生成（如果启动 ComfyUI，会优先免费使用它）",
+  "Sin ComfyUI ni clave de Gemini: fondos de diseño animados. Enciende ComfyUI (comfy.org) o pon la clave de Gemini": "没有 ComfyUI 也没有 Gemini 密钥：使用动画设计背景。请启动 ComfyUI（comfy.org）或填写 Gemini 密钥",
 }

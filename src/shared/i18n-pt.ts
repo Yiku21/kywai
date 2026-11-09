@@ -2705,8 +2705,6 @@ export const pt: Record<string, string> = {
   "La del sistema (instala Kokoro para una más natural)": "A do sistema (instale Kokoro para uma mais natural)",
   "Sin voz": "Sem voz",
   "Imágenes": "Imagens",
-  "Las genera Gemini con tu clave de API": "O Gemini gera-as com a sua chave de API",
-  "Sin clave de API de Gemini: fondos de diseño animados (ponla en el asistente de configuración)": "Sem chave de API do Gemini: fundos de design animados (coloque-a no assistente de configuração)",
   "Escribe «/video» y el tema, o «créame un vídeo de…», o pulsa «Crear vídeo de esto» bajo un mensaje. Un agente escribe el guion y kywai pone la voz, las imágenes, la música, las animaciones y el montaje. Solo te llega el vídeo; el material de trabajo queda guardado en la carpeta oculta .ai-cowork/videos del proyecto. Para TikTok, Reels o Shorts, di «vertical».": "Escreva «/video» e o tema, ou «cria-me um vídeo sobre…», ou toque em «Criar vídeo disto» por baixo de uma mensagem. Um agente escreve o guião e o kywai põe a voz, as imagens, a música, as animações e a montagem. Só recebe o vídeo; o material de trabalho fica na pasta oculta .ai-cowork/videos do projeto. Para TikTok, Reels ou Shorts, diga «vertical».",
   "Instalando… (puede tardar varios minutos)": "A instalar… (pode demorar vários minutos)",
   "Comprobar e instalar otra vez": "Verificar e instalar de novo",
@@ -2772,4 +2770,8 @@ export const pt: Record<string, string> = {
   "Las habilidades, plugins y servidores MCP de vídeo que instales en las otras pestañas vienen aquí solos: sus habilidades se guardan en la carpeta del estudio (habilidades/video) y el agente que escribe el guion de cada vídeo las lee.": "As habilidades, plugins e servidores MCP de vídeo que instalar nos outros separadores aparecem aqui sozinhos: as suas habilidades ficam na pasta do estúdio (habilidades/video) e o agente que escreve o guião de cada vídeo lê-as.",
   "Aún no has instalado ninguna.": "Ainda não instalou nenhuma.",
   "«{name}» ya no está en {repo}. Tiene: {list}": "«{name}» já não está em {repo}. Tem: {list}",
+  "ComfyUI en este equipo, gratis ({model}); Gemini de reserva si hay clave": "ComfyUI neste computador, grátis ({model}); Gemini de reserva se houver chave",
+  "ComfyUI está encendido pero sin un modelo que sirva (descarga uno SDXL o SD 1.5 en ComfyUI)": "O ComfyUI está ligado mas sem um modelo que sirva (descarregue um SDXL ou SD 1.5 no ComfyUI)",
+  "Las genera Gemini con tu clave de API (si enciendes ComfyUI, lo usa primero, gratis)": "O Gemini gera-as com a sua chave de API (se ligar o ComfyUI, é usado primeiro, grátis)",
+  "Sin ComfyUI ni clave de Gemini: fondos de diseño animados. Enciende ComfyUI (comfy.org) o pon la clave de Gemini": "Sem ComfyUI nem chave do Gemini: fundos de design animados. Ligue o ComfyUI (comfy.org) ou ponha a chave do Gemini",
 }
