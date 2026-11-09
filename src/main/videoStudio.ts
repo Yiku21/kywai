@@ -13,7 +13,9 @@ import { delimiter, join } from 'node:path'
 import {
   buildComposition,
   buildTimeline,
+  spokenText,
   synthMusic,
+  synthSfx,
   videoSlug,
   VOICE_LEAD_S,
   type VideoFormat,
@@ -269,18 +271,19 @@ async function geminiImage(prompt: string, format: VideoFormat, out: string, key
 
 /** Voz de cada escena en su sitio + música que baja cuando habla la voz, normalizado a -16 LUFS (lo que piden YouTube y TikTok). */
 async function mixAudio(dir: string, voices: string[], starts: number[], total: number, signal?: AbortSignal): Promise<string> {
-  const args = ['-y', '-v', 'error', '-i', join(dir, 'musica.wav')]
+  const args = ['-y', '-v', 'error', '-i', join(dir, 'musica.wav'), '-i', join(dir, 'efectos.wav')]
   for (const v of voices) args.push('-i', v)
   const parts: string[] = []
   voices.forEach((_, i) => {
     const ms = Math.round(starts[i] * 1000)
-    parts.push(`[${i + 1}:a]aresample=48000,aformat=channel_layouts=mono,adelay=${ms}:all=1,apad[v${i}]`)
+    parts.push(`[${i + 2}:a]aresample=48000,aformat=channel_layouts=mono,adelay=${ms}:all=1,apad[v${i}]`)
   })
   parts.push(`${voices.map((_, i) => `[v${i}]`).join('')}amix=inputs=${voices.length}:normalize=0:duration=longest,atrim=0:${total}[voice]`)
   parts.push('[voice]asplit=2[va][vsc]')
   parts.push(`[0:a]aresample=48000,aformat=channel_layouts=mono,apad,atrim=0:${total},volume=0.32[m]`)
   parts.push('[m][vsc]sidechaincompress=threshold=0.02:ratio=10:attack=15:release=450[md]')
-  parts.push(`[md][va]amix=inputs=2:normalize=0:duration=first,loudnorm=I=-16:TP=-1.5:LRA=11,aformat=channel_layouts=stereo,atrim=0:${total}[out]`)
+  parts.push(`[1:a]aresample=48000,aformat=channel_layouts=mono,apad,atrim=0:${total},volume=0.45[fx]`)
+  parts.push(`[md][fx][va]amix=inputs=3:normalize=0:duration=first,loudnorm=I=-16:TP=-1.5:LRA=11,aformat=channel_layouts=stereo,atrim=0:${total}[out]`)
   const out = join(dir, 'mezcla.wav')
   args.push('-filter_complex', parts.join(';'), '-map', '[out]', '-ar', '48000', out)
   const r = await run('ffmpeg', args, { timeoutMs: 5 * 60_000, signal })
@@ -331,7 +334,7 @@ export async function renderVideo(input: {
     if (signal?.aborted) throw new Error('Cancelada')
     step('Poniendo la voz ({n} de {total})', 0.05 + (0.3 * i) / script.scenes.length, { n: i + 1, total: script.scenes.length })
     const out = join(dir, 'assets', `voz-${i + 1}.wav`)
-    await speak(script.scenes[i].narration, script.lang, out, status.voice === 'kokoro', signal)
+    await speak(spokenText(script.scenes[i].narration), script.lang, out, status.voice === 'kokoro', signal)
     voices.push(out)
     durations.push(await duration(out))
   }
@@ -358,15 +361,14 @@ export async function renderVideo(input: {
   // 3. Música y mezcla.
   if (signal?.aborted) throw new Error('Cancelada')
   step('Componiendo la música y mezclando', 0.55)
+  const comp = buildComposition({ script, format, timeline: tl, images, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' })
   writeFileSync(join(dir, 'musica.wav'), synthMusic(tl.total, script.title))
+  writeFileSync(join(dir, 'efectos.wav'), synthSfx(comp.sfx, tl.total))
   const mix = await mixAudio(dir, voices, tl.scenes.map((s) => s.start + VOICE_LEAD_S), tl.total, signal)
   renameSync(mix, join(dir, 'assets', 'mezcla.wav'))
 
   // 4. Composición y render.
-  writeFileSync(
-    join(dir, 'index.html'),
-    buildComposition({ script, format, timeline: tl, images, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' })
-  )
+  writeFileSync(join(dir, 'index.html'), comp.html)
   writeFileSync(join(dir, 'hyperframes.json'), JSON.stringify({ paths: { assets: 'assets' } }, null, 2))
   step('Animando y montando el vídeo', 0.62)
   const rendered = join(dir, 'video.mp4')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildComposition, buildTimeline, captionChunks, parseVideoRequest, parseVideoScript, synthMusic, videoScriptPrompt, videoSlug } from './videoScript'
+import { beatsOf, buildComposition, buildTimeline, captionChunks, parseVideoRequest, parseVideoScript, spokenText, synthMusic, synthSfx, timedWords, videoScriptPrompt, videoSlug } from './videoScript'
 
 const SCRIPT = JSON.stringify({
   title: 'Cómo nace una estrella',
@@ -82,7 +82,13 @@ describe('composición', () => {
   it('el HTML es una composición HyperFrames determinista con todas las escenas', () => {
     const script = parseVideoScript(SCRIPT)
     const tl = buildTimeline([3, 3, 3])
-    const html = buildComposition({ script, format: 'vertical', timeline: tl, images: ['assets/escena-1.png', null, null], audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' })
+    const { html, sfx } = buildComposition({ script, format: 'vertical', timeline: tl, images: ['assets/escena-1.png', null, null], audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' })
+    // Un «whoosh» por transición (tres escenas y el cierre) y golpes en la portada.
+    expect(sfx.filter((x) => x.kind === 'whoosh')).toHaveLength(4)
+    expect(sfx.some((x) => x.kind === 'impact')).toBe(true)
+    expect(sfx.every((x, i) => i === 0 || x.at >= sfx[i - 1].at)).toBe(true)
+    // GSAP 3 no anima clases.
+    expect(html).not.toContain('className')
     expect(html).toContain('data-composition-id="main"')
     expect(html).toContain('data-width="1080" data-height="1920"')
     expect(html).toContain('window.__timelines["main"]')
@@ -93,12 +99,37 @@ describe('composición', () => {
 
   it('escapa el texto del guion', () => {
     const script = { ...parseVideoScript(SCRIPT), title: '<b>x</b> & "y"' }
-    const html = buildComposition({ script, format: 'horizontal', timeline: buildTimeline([3, 3, 3]), images: [null, null, null], audio: 'a.wav', gsap: 'g.js' })
-    expect(html).toContain('&lt;b&gt;x&lt;/b&gt; &amp; &quot;y&quot;')
+    const { html } = buildComposition({ script, format: 'horizontal', timeline: buildTimeline([3, 3, 3]), images: [null, null, null], audio: 'a.wav', gsap: 'g.js' })
+    expect(html).toContain('&lt;b&gt;x&lt;/b&gt;')
+    expect(html).toContain('&quot;y&quot;')
+    expect(html).not.toContain('<b>x</b>')
+  })
+})
+
+describe('palabras clave y golpes', () => {
+  it('los *asteriscos* marcan la palabra clave y la voz no los lee', () => {
+    const n = 'Esto lo hace una *inteligencia artificial* sin ayuda.'
+    expect(spokenText(n)).toBe('Esto lo hace una inteligencia artificial sin ayuda.')
+    const w = timedWords(n, 0, 4)
+    expect(w.filter((x) => x.key).map((x) => x.text)).toEqual(['inteligencia', 'artificial'])
+    expect(w[0].start).toBe(0)
+    expect(w.every((x, i) => i === 0 || x.start > w[i - 1].start)).toBe(true)
+  })
+
+  it('cada golpe lleva como mucho 4 palabras y corta en las pausas', () => {
+    const beats = beatsOf(timedWords('Tú solo escribes una frase, y kywai se encarga de todo lo demás.', 0, 5))
+    expect(beats.flat()).toHaveLength(13)
+    for (const b of beats) expect(b.length).toBeLessThanOrEqual(5)
+    expect(beats[1].map((w) => w.text).join(' ')).toMatch(/frase,$/)
   })
 })
 
 describe('música y nombres', () => {
+  it('los efectos son un WAV de la duración del vídeo', () => {
+    const a = synthSfx([{ at: 0.1, kind: 'whoosh' }, { at: 0.5, kind: 'impact' }, { at: 0.9, kind: 'pop' }, { at: 0.2, kind: 'riser' }], 1.5, 8000)
+    expect(a.length).toBe(44 + 12000 * 2)
+  })
+
   it('la música es un WAV de la duración pedida, igual para el mismo título', () => {
     const a = synthMusic(1, 'hola', 8000)
     expect(a.subarray(0, 4).toString()).toBe('RIFF')
