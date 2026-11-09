@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { BadgeCheck, BookOpen, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
-import type { ProviderKind } from '@shared/types'
+import { BadgeCheck, BookOpen, Clapperboard, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
+import type { ProviderKind, VideoStudioStatus } from '@shared/types'
 import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpRuntime, type McpServerInfo, type McpServerInput, type ModInfo, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
@@ -67,7 +67,7 @@ function ago(at: number): string {
   return h < 48 ? t('hace {n} h', { n: h }) : t('hace {n} días', { n: Math.round(h / 24) })
 }
 
-type Section = 'mcp' | 'skills' | 'plugins' | 'mods'
+type Section = 'mcp' | 'skills' | 'plugins' | 'mods' | 'video'
 
 /**
  * Ajustes › Extensiones: los servidores MCP que añades tú y a qué agentes llegan (un chip por agente), y las
@@ -98,8 +98,12 @@ export function ExtensionsTab() {
           <Puzzle size={14} aria-hidden="true" />
           {t('Mods')}
         </button>
+        <button type="button" role="tab" aria-selected={section === 'video'} className={cx(s.segBtn, section === 'video' && s.segOn)} onClick={() => setSection('video')}>
+          <Clapperboard size={14} aria-hidden="true" />
+          {t('Estudio de vídeo')}
+        </button>
       </div>
-      {section === 'mcp' ? <McpSection /> : section === 'skills' ? <SkillsSection /> : section === 'plugins' ? <PluginsSection /> : <ModsSection />}
+      {section === 'mcp' ? <McpSection /> : section === 'skills' ? <SkillsSection /> : section === 'plugins' ? <PluginsSection /> : section === 'mods' ? <ModsSection /> : <VideoSection />}
     </>
   )
 }
@@ -854,6 +858,98 @@ const HOOK_LABEL: Record<string, string> = {
 }
 
 /** Mods: cambian kywai en sí (órdenes «/…», hooks y paneles junto al chat). */
+/**
+ * Estudio de vídeo: qué tiene el equipo para montar vídeos («/video …», «créame un vídeo de …») e «Instalar lo que
+ * falta». Se instala en el equipo donde corren los agentes, también si se pide desde la web.
+ */
+function VideoSection() {
+  const live = useCowork((st) => st.mode === 'live') && !!api
+  const [status, setStatus] = useState<VideoStudioStatus | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [log, setLog] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (live) api!.videoStudioStatus().then(setStatus, (e) => setError(errorText(e)))
+  }, [live])
+
+  const install = (): void => {
+    setBusy(true)
+    setError(null)
+    setLog([])
+    api!.installVideoStudio().then(
+      (r) => {
+        setStatus(r.status)
+        setLog(r.log)
+      },
+      (e) => setError(errorText(e))
+    ).finally(() => setBusy(false))
+  }
+
+  const rows: { label: string; ok: boolean; detail: string }[] = status
+    ? [
+        { label: t('Motor de animación (HyperFrames)'), ok: status.engine, detail: status.engine ? t('Instalado') : t('Falta') },
+        { label: 'ffmpeg', ok: status.ffmpeg, detail: status.ffmpeg ? t('Instalado') : t('Falta') },
+        {
+          label: t('Voz'),
+          ok: status.voice === 'gemini' || status.voice === 'kokoro',
+          detail:
+            status.voice === 'gemini'
+              ? status.kokoro
+                ? t('Gemini: la más natural, con tu clave (Kokoro de reserva)')
+                : t('Gemini: la más natural, con tu clave (instala Kokoro de reserva)')
+              : status.voice === 'kokoro'
+                ? t('Kokoro: natural, gratis y en este equipo')
+                : status.voice === 'system'
+                  ? t('La del sistema (instala Kokoro para una más natural)')
+                  : t('Sin voz')
+        },
+        {
+          label: t('Imágenes'),
+          ok: status.images === 'gemini',
+          detail: status.images === 'gemini' ? t('Las genera Gemini con tu clave de API') : t('Sin clave de API de Gemini: fondos de diseño animados (ponla en el asistente de configuración)')
+        }
+      ]
+    : []
+  const complete = !!status && status.ready && status.kokoro
+
+  return (
+    <>
+      <p className={s.muted}>
+        {t('Escribe «/video» y el tema, o «créame un vídeo de…», o pulsa «Crear vídeo de esto» bajo un mensaje. Un agente escribe el guion y kywai pone la voz, las imágenes, la música, las animaciones y el montaje. Solo te llega el vídeo; el material de trabajo queda guardado en la carpeta oculta .ai-cowork/videos del proyecto. Para TikTok, Reels o Shorts, di «vertical».')}
+      </p>
+      {status && (
+        <ul className={s.list}>
+          {rows.map((r) => (
+            <li key={r.label} className={cx(s.item, !r.ok && s.off)}>
+              <span className={s.icon} aria-hidden="true">
+                {r.ok ? <BadgeCheck size={18} /> : <Clapperboard size={18} />}
+              </span>
+              <span className={s.text}>
+                <span className={s.name}>{r.label}</span>
+                <span className={s.desc}>{r.detail}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {live && (
+        <div className={s.searchRow}>
+          <button type="button" className={cx(u.btn, u.btnSm, !complete && u.btnPrimary)} disabled={busy || !status} onClick={install}>
+            {busy ? t('Instalando… (puede tardar varios minutos)') : complete ? t('Comprobar e instalar otra vez') : t('Instalar lo que falta')}
+          </button>
+        </div>
+      )}
+      {error && (
+        <p className={s.error} role="alert">
+          {error}
+        </p>
+      )}
+      {log.length > 0 && <pre className={s.mono}>{log.join('\n')}</pre>}
+    </>
+  )
+}
+
 function ModsSection() {
   const live = useCowork((st) => st.mode === 'live') && !!api
   const [mods, setMods] = useState<ModInfo[]>([])

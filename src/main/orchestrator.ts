@@ -69,6 +69,8 @@ import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, rem
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
 import { parseDirect } from '@shared/directMessage'
+import { parseVideoRequest, parseVideoScript, videoScriptPrompt, type VideoFormat, type VideoStyle } from './videoScript'
+import { renderVideo } from './videoStudio'
 import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
@@ -1269,7 +1271,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   }
   const paths = Array.isArray(input.filePaths) ? input.filePaths.filter((p): p is string => typeof p === 'string') : []
   const atts = [...reused, ...store.copyAttachments(projectId, paths)]
-  if (!text.trim() && !atts.length) throw new Error(tr('El mensaje está vacío'))
+  if (!text.trim() && !atts.length && typeof input.videoFrom !== 'string') throw new Error(tr('El mensaje está vacío'))
 
   // «/model» es de la app (abre la lista de modelos de Hermes), no un encargo: si llega como mensaje (desde una
   // versión de Órbita que aún no lo abre), se contesta aquí sin gastar una llamada a Hermes.
@@ -1327,6 +1329,21 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     throw new Error(tr('No hay ningún agente «{name}». Escribe @ y elige uno de la lista, o usa el nombre que sale en su ficha.', { name: direct.error }))
   }
   if (direct) return sendDirect(st, direct.agentId, direct.text, atts, input.clientMessageId, routine, tpl ? { shown: text.trim(), ...tplMark } : {})
+
+  // Vídeo: «/video …», «créame un vídeo de …» o «Crear vídeo de esto» en un mensaje. Sin plan: el agente escribe el
+  // guion y kywai monta el vídeo entero; solo se entrega el MP4.
+  const fromMsg = typeof input.videoFrom === 'string' ? st.messages.find((m) => m.id === input.videoFrom) : undefined
+  if (input.videoFrom && !fromMsg) throw new Error(tr('No encuentro ese mensaje para hacer el vídeo'))
+  const videoReq = fromMsg ? { ...(parseVideoRequest(text) ?? { topic: '', format: 'horizontal' as const, style: 'dinamico' as const }), fromPrevious: true } : parseVideoRequest(tpl ? tpl.text : text)
+  if (videoReq) {
+    let source: string | undefined
+    if (videoReq.fromPrevious) {
+      const prev = fromMsg ?? [...st.messages].reverse().find((m) => m.author.type !== 'user' && m.author.type !== 'system' && m.text.trim().length >= 40)
+      if (!prev) throw new Error(tr('¿De qué hago el vídeo? Escribe el tema («/video cómo funciona la fotosíntesis») o pulsa «Crear vídeo de esto» en un mensaje.'))
+      source = prev.text
+    }
+    return sendVideo(st, { ...videoReq, source }, atts, input.clientMessageId, routine, fromMsg ? tr('Crea un vídeo de este mensaje: «{text}»', { text: oneLine(fromMsg.text, 90) }) : text.trim(), tplMark)
+  }
 
   // Hay un plan esperando tu visto bueno: un «sí» lo aprueba; cualquier otra cosa son cambios a ese plan.
   // Una rutina no responde a planes pendientes: su petición es aparte.
@@ -1484,6 +1501,138 @@ async function sendDirect(
   pushTask(t)
   schedule()
   return { runId }
+}
+
+/** Quién escribe el guion de un vídeo: el mejor para redactar entre los que funcionan, mejor uno con internet que un modelo local. */
+function videoWriter(): AgentConfig | null {
+  const locals = new Set(workers().filter((a) => isLocalProvider(a.provider)).map((a) => a.id))
+  const hint = 'guion redacción escritura creativa contenido comunicación vídeo'
+  return bestAgentFor(hint, locals) ?? bestAgentFor(hint)
+}
+
+/**
+ * Petición de vídeo: una sola tarea en la que el agente escribe el guion (JSON) y, al terminar, kywai monta el vídeo
+ * (completeVideo). Sin plan de Hermes ni resumen final: la respuesta es el vídeo. Si el agente falla, pasa a otro.
+ */
+async function sendVideo(
+  st: ReturnType<typeof store.getProject>,
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string },
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string,
+  tplMark: { template?: { id: string; name: string } }
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  const agent = videoWriter()
+  if (!agent) throw new Error(tr('No hay ningún agente disponible para escribir el guion del vídeo.'))
+  const runId = randomUUID()
+  const label = req.topic || oneLine(req.source ?? '', 60) || tr('vídeo')
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: shown,
+    createdAt: Date.now(),
+    attachments: atts.length ? atts : undefined,
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {}),
+    ...tplMark
+  })
+  const userText = req.topic || tr('Un vídeo del mensaje elegido')
+  const run: Run = {
+    id: runId,
+    projectId,
+    userText,
+    ...(routine ? { routine: routine.name } : {}),
+    attachments: atts,
+    attPaths: store.stageAttachments(projectId, atts),
+    planning: false,
+    taskIds: [],
+    meta: new Map(),
+    controllers: new Map(),
+    cancelled: false,
+    finished: false
+  }
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId,
+    seq: nextTaskSeq(projectId),
+    title: tr('Vídeo: {label}', { label: oneLine(label, 60) }),
+    description: req.topic || tr('Vídeo del mensaje elegido'),
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'file',
+    video: { format: req.format, topic: req.topic, style: req.style, ...(req.source ? { source: clip(req.source, 6000) } : {}) }
+  }
+  run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
+  runs.set(runId, run)
+  emit({ kind: 'run.started', runId, projectId })
+  startRunUsage({ runId, projectId, projectName: st.project.name, request: userText })
+  await baseline(run)
+  tasks.set(t.id, t)
+  run.taskIds.push(t.id)
+  pushTask(t)
+  schedule()
+  return { runId }
+}
+
+/** El guion ya está: kywai monta el vídeo y la tarea entrega solo el MP4 con una frase. */
+async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  const v = t.video!
+  let script
+  try {
+    script = parseVideoScript(res.text)
+  } catch (e) {
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('El guion no valía: {message}', { message: (e as Error).message }) })
+    return
+  }
+  // El estilo lo decide lo que pidió el usuario, no el agente.
+  script.style = v.style ?? script.style
+  const meta = run.meta.get(t.id)!
+  const root = store.workRoot(run.projectId)
+  const outDir = join(root, twoHandsBase(run.projectId), 'videos')
+  const workDir = join(root, '.ai-cowork', 'videos', `${Date.now().toString(36)}-${t.seq}`)
+  const signal = run.controllers.get(t.id)?.signal
+  settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Guion listo: {title}', { title: script.title }), context: undefined })
+  let video
+  try {
+    video = await renderVideo({
+      script,
+      format: v.format,
+      workDir,
+      outDir,
+      signal,
+      onStep: (text, p, vars) => {
+        t.lastActivity = tr(text, vars)
+        t.progress = p
+        taskDirty(t)
+      }
+    })
+  } catch (e) {
+    if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+    t.status = 'failed'
+    t.error = tr('No se pudo montar el vídeo: {message}', { message: (e as Error).message })
+    t.finishedAt = Date.now()
+    pushTask(t)
+    closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
+    return
+  }
+  const rel = store.toRelPath(root, video.file)
+  if (rel) meta.touched.add(rel)
+  const notes = [
+    video.voice === 'system' ? tr('Va con la voz del sistema: instala la voz Kokoro en Ajustes → Extensiones → Estudio de vídeo para una más natural.') : '',
+    script.scenes.some((s) => s.image) && video.images === 0 ? tr('Sin clave de API de Gemini las escenas llevan fondos de diseño en lugar de imágenes.') : ''
+  ].filter(Boolean)
+  const secs = Math.round(video.seconds)
+  const text = [tr('Aquí tienes tu vídeo «{title}» ({secs} s, {format}).', { title: script.title, secs, format: v.format === 'vertical' ? tr('vertical') : tr('horizontal') }), ...notes].join('\n\n')
+  await completeTask(run, t, exec, parent, { ...res, text })
 }
 
 /** Archivos que ya había, para no darlos por resultados nuevos (sin pisar lo que mide otra petición en marcha). */
@@ -2626,6 +2775,11 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   const st = store.getProject(run.projectId)
   const meta = run.meta.get(t.id)!
   if (t.direct) return directPrompt(run, t, !!meta.copy)
+  if (t.video) {
+    const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
+    const prompt = videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang() })
+    return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
+  }
   const textOnly = isTextOnly(exec.provider)
   const files: string[] = []
   for (const a of run.attachments) files.push(`- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
@@ -3046,6 +3200,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   try {
     if (permNeed) await handlePermissionNeed(run, t, exec, parent, permNeed)
     else if (blocked) await handleBlocked(run, t, exec, parent, res, blocked)
+    else if (res.ok && t.video) await completeVideo(run, t, exec, parent, res)
     else if (res.ok) {
       const verdict = await verifyTask(run, t, exec, parent, res, dir)
       if (!(verdict?.status === 'failed' && reviewFailed(run, t, exec, parent, res, verdict)) && (await settleChanges(run, t, exec, parent)))
