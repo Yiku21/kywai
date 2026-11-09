@@ -59,7 +59,9 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
   const [choice, setChoice] = useState<string>(agent?.model ?? '')
   const [name, setName] = useState(agent?.name ?? '')
   const [download, setDownload] = useState('')
-  const [busy, setBusy] = useState<null | 'save' | 'start' | 'unlimited' | 'pull' | 'url'>(null)
+  const [busy, setBusy] = useState<null | 'save' | 'start' | 'unlimited' | 'pull' | 'url' | 'install'>(null)
+  const [confirmInstall, setConfirmInstall] = useState(false)
+  const setupLog = useCowork((st) => st.setupLog)
   const [msg, setMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
 
   const refresh = useCallback(async () => {
@@ -84,6 +86,8 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
   }, [pull?.status, refresh])
 
   if (!api || !agent) return null
+
+  const installLine = [...setupLog].reverse().find((l) => l.toolId === engine)?.line ?? ''
 
   const status = engines?.find((e) => e.engine === engine)
   const models = status?.models ?? []
@@ -144,6 +148,28 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
     }
   }
 
+  /** Instala el motor como el asistente instala los agentes (Homebrew, winget o su propio instalador). */
+  async function install(): Promise<void> {
+    if (!api || busy) return
+    // Colibri descarga un modelo de 19 GB o más: se pide un segundo toque.
+    if (engine === 'colibri' && !confirmInstall) {
+      setConfirmInstall(true)
+      return
+    }
+    setConfirmInstall(false)
+    setBusy('install')
+    setMsg(null)
+    try {
+      const r = await api.setupInstall(engine)
+      await refresh()
+      setMsg({ tone: r.ok ? 'ok' : 'error', text: r.ok ? t('{engine} instalado. Elige el modelo abajo.', { engine: ENGINE_LABEL[engine] }) : r.message })
+    } catch (e) {
+      setMsg({ tone: 'error', text: errorText(e) })
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function startPull(): Promise<void> {
     const model = download.trim()
     if (!api || !model || busy || pulling) return
@@ -196,6 +222,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
               className={cx(s.engine, engine === en && s.engineOn)}
               onClick={() => {
                 setEngine(en)
+                setConfirmInstall(false)
                 setChoice(agent.provider === en ? agent.model : '')
                 setMsg(null)
               }}
@@ -211,17 +238,31 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
       </div>
 
       {status && !status.installed && (
-        <p className={q.muted}>
-          {ENGINE_LABEL[engine]} {t('no está instalado en este equipo.')}
-          {engine === 'colibri' && (
-            <>
-              {' '}
-              {t('Se instala con su «start-here.sh» (elige un modelo que quepa) o escribe abajo la dirección de otro servidor compatible con OpenAI.')}{' '}
-              <a href={COLIBRI_REPO} target="_blank" rel="noreferrer">
-                {t('Cómo instalarlo')} <ExternalLink size={11} aria-hidden="true" />
-              </a>
-            </>
-          )}
+        <div className={s.notice}>
+          <span>
+            {ENGINE_LABEL[engine]} {t('no está instalado en este equipo.')}{' '}
+            {engine === 'colibri'
+              ? confirmInstall
+                ? t('Descarga el motor y el modelo recomendado para este equipo (19 GB o más, puede tardar horas; si se corta, vuelve a pulsar y sigue). Pulsa otra vez para empezar.')
+                : t('kywai lo instala con el modelo que mejor cabe en este equipo. También puedes escribir abajo la dirección de otro servidor compatible con OpenAI.')
+              : engine === 'lmstudio'
+                ? t('kywai lo instala y lo abre una vez para que prepare su servidor.')
+                : t('kywai lo instala y lo deja en marcha.')}{' '}
+            {engine === 'colibri' && (
+              <button type="button" className={s.link} onClick={() => void api!.openExternal(COLIBRI_REPO)}>
+                {t('Más información')} <ExternalLink size={11} aria-hidden="true" />
+              </button>
+            )}
+          </span>
+          <button type="button" className={cx(u.btn, u.btnSm, confirmInstall && u.btnPrimary)} onClick={() => void install()} disabled={!!busy}>
+            {busy === 'install' ? <Loader2 size={13} className={s.spin} aria-hidden="true" /> : <Download size={13} aria-hidden="true" />}
+            {busy === 'install' ? t('Instalando…') : confirmInstall ? t('Sí, instalar') : t('Instalar')}
+          </button>
+        </div>
+      )}
+      {busy === 'install' && installLine && (
+        <p className={cx(q.muted, s.installLog)} role="status" aria-live="polite">
+          {installLine}
         </p>
       )}
       {status?.installed && !status.running && (

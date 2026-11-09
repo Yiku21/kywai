@@ -120,9 +120,39 @@ interface ToolDef {
   version: string
   url: string
   /** Orden de instalación en esta plataforma, o null si hay que descargarlo a mano. */
-  install(ctx: InstallContext): { cmd: string; needs?: SetupToolId } | null
+  install(ctx: InstallContext): { cmd: string; needs?: SetupToolId; timeoutMs?: number } | null
   /** Inicio de sesión interactivo (se abre en una terminal). */
   login?: string
+}
+
+/** La descarga del modelo de Colibri puede llevar horas: si se corta, volver a instalar la reanuda. */
+const COLIBRI_INSTALL_TIMEOUT_MS = 6 * 60 * 60 * 1000
+const COLIBRI_REPO = 'https://github.com/JustVugg/colibri'
+
+/** Baja (o actualiza) Colibri en ~/colibri y ejecuta su instalación sin preguntas. */
+export function colibriInstallCommand(brew: boolean, platform: NodeJS.Platform = process.platform): string {
+  const flags = '--yes --background --no-browser'
+  if (platform === 'win32') {
+    // Sin depender de git: el zip del repositorio. Sin compilador, la instalación baja el motor ya hecho.
+    return ps(
+      [
+        "$ErrorActionPreference='Stop'",
+        "$d=Join-Path $env:USERPROFILE 'colibri'",
+        `if (!(Test-Path (Join-Path $d 'c\\coli'))) { $z=Join-Path $env:TEMP 'colibri.zip'; Invoke-WebRequest '${COLIBRI_REPO}/archive/refs/heads/main.zip' -OutFile $z; Expand-Archive $z $env:TEMP -Force; Move-Item (Join-Path $env:TEMP 'colibri-main') $d; Remove-Item $z }`,
+        `python (Join-Path $d 'c\\coli') setup ${flags}`
+      ].join('; ')
+    )
+  }
+  // En Mac: OpenMP para compilar el motor con varios hilos y un Python 3.10 o más nuevo (el de macOS es el 3.9).
+  // Sin Homebrew, la instalación baja el motor ya hecho. start-here.sh busca él mismo el Python que sirve.
+  const mac =
+    platform === 'darwin' && brew
+      ? "brew list libomp >/dev/null 2>&1 || brew install libomp; python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null || brew install python; "
+      : ''
+  return (
+    `${mac}if [ -d "$HOME/colibri/.git" ]; then git -C "$HOME/colibri" pull --ff-only || true; ` +
+    `else git clone --depth 1 ${COLIBRI_REPO}.git "$HOME/colibri"; fi && sh "$HOME/colibri/start-here.sh" ${flags}`
+  )
 }
 
 const ps = (script: string): string => `powershell -NoProfile -ExecutionPolicy Bypass -Command "${script}"`
@@ -221,8 +251,17 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
     label: 'LM Studio',
     version: '',
     url: 'https://lmstudio.ai/',
+    // Su CLI `lms` (lo que usa kywai) aparece la primera vez que se abre la app: se abre y se espera a que esté.
     install: ({ brew, winget: wg }) =>
-      IS_WIN ? (wg ? { cmd: winget('ElementLabs.LMStudio') } : null) : brew ? { cmd: 'brew install --cask lm-studio' } : null
+      IS_WIN
+        ? wg
+          ? {
+              cmd: `${winget('ElementLabs.LMStudio')} && ${ps("$e=Join-Path $env:LOCALAPPDATA 'Programs\\LM Studio\\LM Studio.exe'; if (Test-Path $e) { Start-Process $e }; $l=Join-Path $env:USERPROFILE '.lmstudio\\bin\\lms.exe'; for ($i=0; $i -lt 60 -and !(Test-Path $l); $i++) { Start-Sleep 2 }")}`
+            }
+          : null
+        : brew
+          ? { cmd: 'brew install --cask lm-studio && open -a "LM Studio" && for i in $(seq 60); do [ -x "$HOME/.lmstudio/bin/lms" ] && break; sleep 2; done' }
+          : null
   },
   ollama: {
     label: 'Ollama',
@@ -244,9 +283,10 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
     label: 'Colibri',
     version: '',
     url: 'https://github.com/JustVugg/colibri#quick-start',
-    // Su instalación elige un modelo que quepa en el equipo y lo descarga (de 19 GB en adelante): se hace a mano con
-    // «./start-here.sh», que lo deja listo para que kywai lo encienda.
-    install: () => null
+    // Su propia instalación («coli setup --yes»): mira la RAM, el disco y la GPU, elige el modelo recomendado para
+    // este equipo, prepara el motor (lo compila o baja el ya hecho), descarga el modelo (de 19 GB en adelante, se
+    // reanuda si se corta) y lo deja encendido en segundo plano, sin abrir el navegador. Se queda en ~/colibri.
+    install: ({ brew }) => ({ cmd: colibriInstallCommand(brew), needs: 'python', timeoutMs: COLIBRI_INSTALL_TIMEOUT_MS })
   }
 }
 
@@ -357,7 +397,7 @@ export async function installTool(id: SetupToolId): Promise<SetupInstallResult> 
     const cmd = IS_LINUX && /\bnpm (install|i) -g\b/.test(plan.cmd) && !(await npmGlobalWritable()) ? withUserNpmPrefix(plan.cmd) : plan.cmd
     log(`$ ${cmd}`)
     if (cmd.startsWith('pkexec ')) log(tr('Escribe tu contraseña en la ventana del sistema para continuar…'))
-    const r = await sh(cmd, 25 * 60 * 1000, log)
+    const r = await sh(cmd, plan.timeoutMs ?? 25 * 60 * 1000, log)
     await refreshPath()
     const after = await probe(id)
     if (after.installed) {
