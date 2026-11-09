@@ -19,6 +19,8 @@ Capture réelle de l’application, musique originale et textes en anglais.
 
 [![Site web: kywai.app](https://img.shields.io/badge/Site%20web-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 
+**[⚡ Installez-la en une seule commande](#-installation)**
+
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-x64%20%26%20ARM-FCC624?logo=linux&logoColor=black)
@@ -318,6 +320,28 @@ Et quatre qui décorent le monde, remodèlent son noyau et, pour les thèmes fes
 </table>
 
 ## 📥 Installation
+
+### ⚡ Installer en une seule commande
+
+Collez une ligne dans un terminal. Elle télécharge depuis les Releases la dernière version pour votre ordinateur, l’installe et l’ouvre. Relancez-la quand vous voulez réinstaller ou mettre à jour : vos projets et réglages sont conservés.
+
+**Windows 10/11** : ouvrez **PowerShell** et collez :
+
+```powershell
+irm https://kywai.app/install.ps1 | iex
+```
+
+**macOS et Linux** : ouvrez le **Terminal** et collez :
+
+```bash
+curl -fsSL https://kywai.app/install.sh | bash
+```
+
+- **Windows :** s’installe pour votre utilisateur seulement (sans droits administrateur), avec des raccourcis sur le Bureau et dans le menu Démarrer.
+- **macOS :** choisit Apple silicon ou Intel, place `kywai.app` dans Applications et lève le blocage « app endommagée », donc pas besoin du clic droit → Ouvrir.
+- **Linux** (x64 ou ARM) : place l’AppImage dans `~/.local/share/kywai`, l’ajoute au menu des applications et crée la commande `kywai`. Il ne demande votre mot de passe que pour installer libfuse2 si besoin.
+
+Vous voulez le lire avant ? Voici les scripts : [install.sh](https://github.com/Yiku21/kywai/blob/master/scripts/instalar-kywai.sh) et [install.ps1](https://github.com/Yiku21/kywai/blob/master/scripts/instalar-kywai.ps1).
 
 ### Prérequis
 

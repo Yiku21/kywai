@@ -112,6 +112,36 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
 
 ### Instalar en otro equipo
 
+#### Con una sola orden (lo más fácil)
+
+Se pega una línea en una terminal y kywai queda instalada y abierta con la última versión de las Releases:
+
+| Sistema | Dónde pegarla | Orden |
+|---|---|---|
+| Windows 10/11 | PowerShell | `irm https://kywai.app/install.ps1 \| iex` |
+| macOS y Linux | Terminal | `curl -fsSL https://kywai.app/install.sh \| bash` |
+
+- Los scripts son `scripts/instalar-kywai.ps1` y `scripts/instalar-kywai.sh`. `web/build.mjs` los copia tal cual a la web como
+  `install.ps1` e `install.sh`, y `publicar-web.yml` vuelve a publicar la web cuando cambian. Si se cambia un script, se cambia en
+  `scripts/` (nunca en `web/dist/`).
+- Los dos buscan la última versión en la API de GitHub y, si no responde (límite de peticiones sin cuenta), la deducen de la
+  redirección de `releases/latest`. Con `KYWAI_VERSION=0.1.252` (o `$env:KYWAI_VERSION` en Windows) instalan una versión concreta.
+- **Windows:** baja `kywai-Setup-<versión>.exe` a la carpeta temporal y lo ejecuta en silencio (`/S`): se instala para el usuario,
+  sin permisos de administrador, con acceso directo en el Escritorio y en Inicio; si ya estaba instalada, se actualiza en la
+  misma carpeta (la que guarda el registro). Luego abre kywai. Si kywai está abierta, avisa y no hace nada. El archivo es solo
+  ASCII y los acentos van como `\u00e1` (Windows PowerShell 5.1 puede leer la descarga con otra codificación).
+- **macOS:** elige Apple silicon o Intel (también desde un Terminal con Rosetta), baja el `.zip` de la Release, deja `kywai.app` en
+  `/Applications` (o en `~/Applications` si no se puede escribir allí), le quita la cuarentena (`xattr -cr`) para que no salga «está
+  dañada» y la abre. Si sigue la antigua `AI Cowork.app`, lo dice (se puede borrar; los datos se conservan).
+- **Linux** (x64 o ARM): deja el AppImage en `~/.local/share/kywai/kywai.AppImage` (nombre fijo, para que la actualización
+  automática lo reemplace), el icono, la entrada del menú de aplicaciones y la orden `~/.local/bin/kywai`. Si falta libfuse2,
+  intenta instalarla con sudo (apt, dnf, pacman o zypper); si no puede, la orden abre el AppImage con `APPIMAGE_EXTRACT_AND_RUN=1`
+  (arranca algo más lento). Si el sistema restringe los espacios de nombres de usuario (Ubuntu 24.04…), añade `--no-sandbox`,
+  porque dentro de un AppImage el ayudante chrome-sandbox no puede ser de root.
+- Ninguno toca la carpeta de datos: se puede repetir la orden para reinstalar o actualizar.
+- Probado: Linux x64 en un contenedor (descarga la 0.1.255, instala, crea menú y orden, y la app abre con Xvfb), y la
+  deducción de versión sin la API. Sin probar todavía en un Windows, un Mac ni un escritorio Linux reales.
+
 #### Descargar la versión lista (GitHub Releases)
 
 Con cada cambio en master del repositorio público, `.github/workflows/publicar-escritorio.yml` compila el instalador
@@ -2604,6 +2634,7 @@ push a `master` que toque esa carpeta. Es estática y no necesita dependencias:
 - `node web/build.mjs` genera la web; `node web/build.mjs --preview` la genera con enlaces `index.html` para abrirla sin servidor.
 - La primera visita a la raíz lleva al idioma del navegador; elegir idioma en el menú se recuerda.
 - El vídeo de la web (`web/assets/video/presentacion.mp4`, 30 s, 1920×1080, unos 16 MB) está montado con Remotion a partir de grabaciones reales de Launch Lab: agentes trabajando en distintas fases, cuatro escenarios y un prototipo interactivo. Su portada es `portada.jpg`; los detalles están en [docs/video](video/README.md). Para cambiarlo, sustituir ambos archivos y actualizar `video.caption` en los cinco idiomas de `web/textos.mjs`.
+- La sección de descarga empieza con la instalación de una sola orden (Windows y macOS/Linux, con botón Copiar); se resalta la del sistema de quien mira. Ver [Con una sola orden](#con-una-sola-orden-lo-más-fácil).
 - Las descargas se leen de la última Release de GitHub al abrir la página y enlazan el instalador del sistema de quien la visita. Si GitHub no responde, enlazan a la página de versiones.
 - La fila «Android (Órbita)» enlaza a `releases/latest/download/kywai-orbita.apk`, un enlace fijo que funciona aunque la API de GitHub no responda. Desde un móvil Android, el botón grande de la portada descarga la APK; en iPhone no se marca nada porque Órbita es solo para Android.
 - Al generar la web, cada enlace a `assets/` lleva `?v=` con una huella de su contenido. Así, al cambiar una imagen o el vídeo, el navegador pide la nueva enseguida en vez de enseñar la que tenía guardada (GitHub Pages deja guardar 10 minutos). No hay que hacer nada a mano: basta con sustituir el archivo.

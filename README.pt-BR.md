@@ -19,6 +19,8 @@ Gravação real do app, música original e textos em inglês.
 
 [![Site: kywai.app](https://img.shields.io/badge/Site-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 
+**[⚡ Instale com um só comando](#-instalação)**
+
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-x64%20e%20ARM-FCC624?logo=linux&logoColor=black)
@@ -318,6 +320,28 @@ E quatro que decoram o mundo, remodelam o seu núcleo e, nos festivos, vestem os
 </table>
 
 ## 📥 Instalação
+
+### ⚡ Instalar com um só comando
+
+Cole uma linha em um terminal. Ela baixa das Releases a versão mais recente para o seu computador, instala e abre. Rode de novo quando quiser reinstalar ou atualizar: seus projetos e ajustes são mantidos.
+
+**Windows 10/11**: abra o **PowerShell** e cole:
+
+```powershell
+irm https://kywai.app/install.ps1 | iex
+```
+
+**macOS e Linux**: abra o **Terminal** e cole:
+
+```bash
+curl -fsSL https://kywai.app/install.sh | bash
+```
+
+- **Windows:** instala só para o seu usuário (sem permissão de administrador), com atalhos na Área de Trabalho e no menu Iniciar.
+- **macOS:** escolhe Apple silicon ou Intel, coloca `kywai.app` em Aplicativos e remove o bloqueio de "app danificado", então não precisa do clique direito → Abrir.
+- **Linux** (x64 ou ARM): coloca o AppImage em `~/.local/share/kywai`, adiciona ao menu de aplicativos e cria o comando `kywai`. Só pede sua senha se precisar instalar a libfuse2.
+
+Quer ler antes? Aqui estão os scripts: [install.sh](https://github.com/Yiku21/kywai/blob/master/scripts/instalar-kywai.sh) e [install.ps1](https://github.com/Yiku21/kywai/blob/master/scripts/instalar-kywai.ps1).
 
 ### Requisitos
 
