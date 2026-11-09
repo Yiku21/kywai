@@ -86,6 +86,7 @@ object InboxKinds {
         "conflict" -> t("Conflicto")
         "failed" -> t("Falló")
         "paused" -> t("En pausa")
+        "blocked" -> t("Bloqueada")
         "done" -> t("Terminado")
         "budget" -> t("Presupuesto")
         else -> t("Aviso")
@@ -100,6 +101,7 @@ object InboxKinds {
         "conflict" -> Icons.Outlined.Sync
         "failed" -> Icons.Outlined.ErrorOutline
         "paused" -> Icons.Outlined.PauseCircle
+        "blocked" -> Icons.Outlined.WarningAmber
         "done" -> Icons.Outlined.CheckCircle
         "budget" -> Icons.Outlined.Savings
         else -> Icons.Outlined.Notifications
@@ -108,7 +110,7 @@ object InboxKinds {
     fun tint(kind: String): Color = when (kind) {
         "failed", "verify-failed", "conflict" -> Orbita.Danger
         "done" -> Orbita.Success
-        "stalled", "mac-permission", "budget", "paused" -> Orbita.Warn
+        "stalled", "mac-permission", "budget", "paused", "blocked" -> Orbita.Warn
         else -> Orbita.Accent
     }
 }

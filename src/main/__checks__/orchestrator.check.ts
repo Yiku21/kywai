@@ -31,7 +31,8 @@ import {
   resetAgent,
   resumeRun,
   runtimeSnapshot,
-  sendMessage
+  sendMessage,
+  settleBlocked
 } from '../orchestrator'
 import { memoryOf, setInstructions } from '../memory'
 import { setGuideEnv } from '../coordinatorGuide'
@@ -486,7 +487,7 @@ async function main(): Promise<void> {
     })
 
     // ---------- G: un agente que no puede hacer la tarea no la da por hecha ----------
-    await check('G: «BLOQUEADA: motivo» → tarea con error, no completada', async () => {
+    await check('G: «BLOQUEADA: motivo» sin nadie que releve → espera tu decisión, sin poner al agente en error', async () => {
       planResponses = {
         codex: plan('Ok', [{ key: 'b', title: 'Tocar la app', description: 'editar src/', agent: 'codex', difficulty: 'medium', dependsOn: [], deliverable: 'file' }])
       }
@@ -500,8 +501,16 @@ async function main(): Promise<void> {
       const t = [...lastTasks(fromEv).values()][0]
       assert.equal(t.status, 'failed')
       assert.equal(t.error, 'Bloqueada: el código está fuera de la carpeta permitida.')
+      assert.equal(t.needsYou, true, 'espera tu decisión')
       const fin = finished(runId)!
       assert.equal(fin.kind === 'run.finished' && fin.ok, false)
+      const rt = runtimeSnapshot().find((r) => r.agentId === 'codex')!
+      assert.notEqual(rt.activity, 'error', 'bloquearse no es un error del agente')
+      assert.equal(rt.notice?.taskId, t.id, 'la tarjeta del agente lo avisa')
+      assert.ok(rt.notice?.text.startsWith('el código está fuera'), 'con lo que explicó, sin el «BLOQUEADA:»')
+      const item = listInbox().find((i) => i.kind === 'blocked' && i.taskId === t.id && !i.resolvedAt)!
+      assert.ok(item, 'sale en «Te necesita»')
+      assert.deepEqual(item.actions.map((a) => a.id), ['reply-blocked', 'relay-blocked'], 'sin nada hecho no se ofrece darla por buena')
     })
 
     // ---------- G2: si un agente se bloquea, otro compañero termina la tarea ----------
@@ -526,6 +535,81 @@ async function main(): Promise<void> {
       assert.ok(events.slice(fromEv).some((e) => e.kind === 'message.upsert' && e.message.text.includes('Se la paso a')))
       const fin = finished(runId)!
       assert.equal(fin.kind === 'run.finished' && fin.ok, true)
+    })
+
+    // ---------- G3: se bloquea tras dejar algo hecho → resultado parcial y la decides tú ----------
+    await check('G3: «BLOQUEADA» con archivos hechos → resultado parcial, sin relevo, y «Darla por buena» sigue con lo que dependía', async () => {
+      __clearBlocksForChecks()
+      const p = plan('Ok', [
+        { key: 'v', title: 'Hacer los vídeos', description: 'generar vídeos', agent: 'codex', difficulty: 'medium', dependsOn: [], deliverable: 'file' },
+        { key: 'r', title: 'Resumir los vídeos', description: 'resumen', agent: 'claude', difficulty: 'easy', dependsOn: ['v'], deliverable: 'text' }
+      ])
+      planResponses = { claude: p, codex: p }
+      workBehaviour = (o) => {
+        if (o.mode !== 'work' || o.agent.id !== 'codex') return null
+        mkdirSync(join(o.cwd, 'artifacts', 'videos'), { recursive: true })
+        writeFileSync(join(o.cwd, 'artifacts', 'videos', 'prueba.mp4'), 'mp4')
+        o.onFile?.(join(o.cwd, 'artifacts', 'videos', 'prueba.mp4'))
+        return Promise.resolve({ ok: true, text: 'BLOQUEADA: falta un comando que genere el guion. El vídeo de prueba está en [vertical](<artifacts/videos/prueba.mp4>).', usage: { input: 1, output: 1 } })
+      }
+      const from = calls.length
+      const fromEv = events.length
+      const { runId } = await sendMessage({ projectId: project.id, text: 'Haz los vídeos', filePaths: [] })
+      await waitFor(() => !!finished(runId), 10000, 'run G3')
+      const work = calls.slice(from).filter((c) => c.mode === 'work')
+      assert.deepEqual(work.map((c) => c.agentId), ['codex'], 'con algo hecho no se pasa a otro agente')
+      const ts = [...lastTasks(fromEv).values()].filter((x) => x.runId === runId)
+      const v = ts.find((x) => x.title === 'Hacer los vídeos')!
+      const r = ts.find((x) => x.title === 'Resumir los vídeos')!
+      assert.ok(v.needsYou && v.status === 'failed' && v.artifactIds.length === 1, 'el vídeo queda como resultado parcial')
+      assert.equal(r.status, 'cancelled')
+      const msg = store.getProject(project.id).messages.find((m) => m.work?.taskId === v.id)!
+      assert.equal(msg.work?.status, 'blocked')
+      assert.ok(msg.text.includes('[vertical](<artifacts/videos/prueba.mp4>)') && msg.artifactIds?.length === 1, 'el chat enseña lo hecho, con sus enlaces')
+      const item = listInbox().find((i) => i.kind === 'blocked' && i.taskId === v.id && !i.resolvedAt)!
+      assert.deepEqual(item.actions.map((a) => a.id), ['accept-blocked', 'reply-blocked', 'relay-blocked'])
+      assert.equal(runtimeSnapshot().find((x) => x.agentId === 'codex')?.activity === 'error', false)
+
+      // Darla por buena: queda hecha y la que dependía de ella sigue.
+      workBehaviour = () => null
+      const fromCalls = calls.length
+      const fromEv2 = events.length
+      await settleBlocked(project.id, v.id, 'accept')
+      await waitFor(() => events.slice(fromEv2).some((e) => e.kind === 'run.finished' && e.runId === runId), 10000, 'run G3 reanudada')
+      const after = store.getProject(project.id).tasks.filter((x) => x.runId === runId)
+      assert.equal(after.find((x) => x.id === v.id)?.status, 'done')
+      assert.equal(after.find((x) => x.id === r.id)?.status, 'done')
+      assert.equal(calls.slice(fromCalls).filter((c) => c.mode === 'work').length, 1, 'se hace la que dependía (y nada más)')
+      assert.equal(runtimeSnapshot().find((x) => x.agentId === 'codex')?.notice, undefined, 'el aviso de la tarjeta se quita')
+    })
+
+    await check('G4: «Pasársela a otro agente» → la retoma otro sabiendo por qué se bloqueó', async () => {
+      __clearBlocksForChecks()
+      const p = plan('Ok', [{ key: 'w', title: 'Hacer el póster', description: 'póster', agent: 'codex', difficulty: 'medium', dependsOn: [], deliverable: 'file' }])
+      planResponses = { claude: p, codex: p }
+      workBehaviour = (o) => {
+        if (o.mode !== 'work' || o.agent.id !== 'codex') return null
+        writeFileSync(join(o.cwd, 'poster-borrador.txt'), 'borrador')
+        o.onFile?.(join(o.cwd, 'poster-borrador.txt'))
+        return Promise.resolve({ ok: true, text: 'BLOQUEADA: no tengo la fuente tipográfica.', usage: { input: 1, output: 1 } })
+      }
+      const fromEv = events.length
+      const { runId } = await sendMessage({ projectId: project.id, text: 'Haz el póster', filePaths: [] })
+      await waitFor(() => !!finished(runId), 10000, 'run G4')
+      const t = [...lastTasks(fromEv).values()].find((x) => x.runId === runId)!
+      assert.ok(t.needsYou)
+      workBehaviour = () => null
+      const fromCalls = calls.length
+      const fromEv2 = events.length
+      const text = await settleBlocked(project.id, t.id, 'relay')
+      assert.ok(text.includes('Le pasas'))
+      await waitFor(() => events.slice(fromEv2).some((e) => e.kind === 'run.finished' && e.runId === runId), 10000, 'run G4 relevada')
+      const work = calls.slice(fromCalls).filter((c) => c.mode === 'work')
+      assert.equal(work.length, 1)
+      assert.notEqual(work[0].agentId, 'codex')
+      assert.ok(work[0].prompt.includes('Otro agente se bloqueó en esta tarea') && work[0].prompt.includes('no tengo la fuente tipográfica'), 'sabe por qué se bloqueó')
+      assert.ok(!work[0].prompt.includes('se cerró la app'), 'no se le dice que se cerró la app')
+      assert.equal(store.getProject(project.id).tasks.find((x) => x.id === t.id)?.status, 'done')
     })
 
     // ---------- H: Hermes coordina (planifica) pero nunca recibe tareas ----------

@@ -150,7 +150,7 @@ function TaskRow({
       onClick={onSelect}
       title={task.startedAt ? (task.status === 'running' ? t('Ver lo que está haciendo {name}, paso a paso', { name: look.name }) : t('Ver lo que hizo {name}, paso a paso', { name: look.name })) : t('Ver a {name} en el espacio', { name: look.name })}
     >
-      <TaskStatusIcon status={task.status} size={16} className={s.taskStatus} />
+      <TaskStatusIcon status={task.status} needsYou={task.needsYou} size={16} className={s.taskStatus} />
       <span className={s.taskMain}>
         <span className={s.taskTitle}>
           <TaskSeq seq={task.seq} />

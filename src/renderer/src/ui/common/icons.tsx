@@ -9,6 +9,7 @@ import {
   Globe,
   Image,
   LoaderCircle,
+  TriangleAlert,
   type LucideIcon
 } from 'lucide-react'
 import type { ArtifactKind, TaskStatus } from '@shared/types'
@@ -27,7 +28,16 @@ export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
 }
 
 /** Icono de estado de tarea con etiqueta accesible (no depende solo del color). */
-export function TaskStatusIcon({ status, size = 15, className }: { status: TaskStatus; size?: number; className?: string }) {
+export function TaskStatusIcon({ status, size = 15, className, needsYou }: { status: TaskStatus; size?: number; className?: string; needsYou?: boolean }) {
+  // Bloqueada esperando tu decisión: no es un error (ámbar, no rojo).
+  if (status === 'failed' && needsYou) {
+    const label = t('Bloqueada: te necesita')
+    return (
+      <span className={cx(s.status, s.needsYou, className)} role="img" aria-label={label} title={label}>
+        <TriangleAlert size={size} aria-hidden="true" />
+      </span>
+    )
+  }
   const label = TASK_STATUS_LABEL[status]
   let icon: ReactNode
   let tone: string

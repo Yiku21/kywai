@@ -12,10 +12,11 @@ import {
   RotateCcw,
   Sparkles,
   SquareTerminal,
+  TriangleAlert,
   User,
   X
 } from 'lucide-react'
-import type { AgentActivity, Artifact, Task } from '@shared/types'
+import type { AgentActivity, AgentNotice, Artifact, Task } from '@shared/types'
 import { useCowork, useData } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { relativeTime, timeHM } from '@/lib/format'
@@ -28,6 +29,7 @@ import { agentVars, basename, cx, errorText, kTokens } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SelectionPanel.module.css'
 import { AgentModels, HermesModelRow } from './AgentModels'
+import { MarkdownView } from '../common/MarkdownView'
 import { t } from '@/lib/i18n'
 
 /** Panel flotante con el detalle del agente o la transferencia seleccionados en el espacio. */
@@ -217,6 +219,8 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
         <span className={s.location}>{runtime?.location === 'core' ? t('En el núcleo') : t('En su estación')}</span>
       </div>
 
+      {runtime?.notice && <BlockedNotice notice={runtime.notice} />}
+
       {!!api && mode === 'live' && (activity === 'error' || activity === 'offline') && (
         <ResetAgent agentId={agent.id} startsLmStudio={agent.provider === 'lmstudio' && activity === 'offline'} />
       )}
@@ -360,7 +364,7 @@ function AgentDetails({ id, onClose }: { id: string; onClose: () => void }) {
             {recent.map((task) => (
               <li key={task.id}>
                 <button type="button" className={cx(s.depRow, s.recentRow)} title={t('Ver lo que hizo en «{title}»', { title: task.title })} onClick={() => openTrace(task.id)}>
-                  <TaskStatusIcon status={task.status} size={14} />
+                  <TaskStatusIcon status={task.status} needsYou={task.needsYou} size={14} />
                   <span className={s.depTitle}>{task.title}</span>
                   <span className={s.when}>{task.finishedAt ? relativeTime(task.finishedAt, now) : TASK_STATUS_LABEL[task.status]}</span>
                 </button>
@@ -501,7 +505,7 @@ function TransferDetails({ id, onClose }: { id: string; onClose: () => void }) {
         <Section title={t('Tarea relacionada')}>
           <div className={s.task}>
             <div className={s.taskHead}>
-              <TaskStatusIcon status={task.status} size={15} />
+              <TaskStatusIcon status={task.status} needsYou={task.needsYou} size={15} />
               <span className={s.taskTitle}>{task.title}</span>
             </div>
             <div className={s.taskFoot}>
@@ -604,6 +608,32 @@ function ResetAgent({ agentId, startsLmStudio }: { agentId: string; startsLmStud
             ? t('Enciende el servidor de LM Studio, carga el modelo y deja el agente disponible.')
             : t('Olvida el error, comprueba que responde y lo deja disponible.'))}
       </span>
+    </div>
+  )
+}
+
+/**
+ * Se bloqueó en una tarea («BLOQUEADA: …») y espera tu decisión: aviso ámbar, no un error (el agente sigue disponible),
+ * con todo lo que explicó y los enlaces a los archivos que dejó hechos (se abren en la vista previa).
+ */
+function BlockedNotice({ notice }: { notice: AgentNotice }) {
+  const [open, setOpen] = useState(false)
+  const long = notice.text.length > 280
+  return (
+    <div className={s.notice} role="status">
+      <div className={s.noticeHead}>
+        <TriangleAlert size={15} aria-hidden="true" />
+        <span>{t('Bloqueada: «{title}»', { title: notice.title })}</span>
+      </div>
+      <div className={cx(s.noticeBody, long && !open && s.noticeClamp)}>
+        <MarkdownView text={notice.text} />
+      </div>
+      {long && (
+        <button type="button" className={s.noticeMore} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+          {open ? t('Ver menos') : t('Ver todo')}
+        </button>
+      )}
+      <p className={s.noticeHint}>{t('No es un error: el agente está disponible. Decide qué hacer en «Te necesita».')}</p>
     </div>
   )
 }

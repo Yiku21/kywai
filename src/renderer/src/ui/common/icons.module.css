@@ -23,6 +23,9 @@
 .blocked {
   color: var(--warn);
 }
+.needsYou {
+  color: var(--warn);
+}
 
 .tile {
   display: inline-grid;

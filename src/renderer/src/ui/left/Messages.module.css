@@ -994,6 +994,10 @@
   color: var(--alert);
 }
 
+.workBlocked {
+  color: var(--warn);
+}
+
 .steps {
   display: flex;
   flex-direction: column;

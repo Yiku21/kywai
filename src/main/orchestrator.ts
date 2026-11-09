@@ -761,6 +761,12 @@ function registerInboxActions(): void {
     await resumeRun(i.projectId, i.runId)
     return tr('Reanudada: el equipo sigue donde lo dejó')
   })
+  onInboxAction('accept-blocked', (i) => (i.projectId && i.taskId ? settleBlocked(i.projectId, i.taskId, 'accept') : tr('No sé qué tarea')))
+  onInboxAction('relay-blocked', (i) => (i.projectId && i.taskId ? settleBlocked(i.projectId, i.taskId, 'relay') : tr('No sé qué tarea')))
+  onInboxAction('reply-blocked', (i) => {
+    if (i.taskId) clearBlockedNotice(i.taskId)
+    return tr('Contéstale en el chat del proyecto: retoma la tarea con lo que le digas.')
+  })
   onInboxAction('discard', (i) => {
     if (!i.projectId || !i.runId) return tr('No sé qué petición quitar')
     discardRun(i.projectId, i.runId)
@@ -1617,7 +1623,8 @@ export async function resumeRun(projectId: string, runId: string): Promise<void>
       touched: new Set(),
       retried: false,
       forceMainModel: false,
-      resumed: todo.includes(t),
+      // Solo se retoma lo que llegó a empezar (lo que esperaba a otra tarea empieza de cero).
+      resumed: todo.includes(t) && !!t.startedAt && !t.blockedNote,
       // Lo que ya llevaba la revisión antes de cerrarse la app: el límite no se reinicia al retomar.
       ...(t.verification ? { verification: t.verification, fixesDone: t.verification.fixes } : {}),
       ...(t.verification?.relayedTo ? { reviewRelay: { fromId: t.assignedBy ?? t.agentId, fromName: t.verification.relayedTo } } : {})
@@ -2321,16 +2328,16 @@ function runningCount(): number {
   return n
 }
 
-function cancelDependents(run: Run, failedId: string): void {
+function cancelDependents(run: Run, failedId: string, reason = tr('Depende de una tarea fallida')): void {
   for (const tid of run.taskIds) {
     const t = tasks.get(tid)
     if (!t || (t.status !== 'pending' && t.status !== 'blocked')) continue
     if (!t.dependsOn.includes(failedId)) continue
     t.status = 'cancelled'
-    t.error = tr('Depende de una tarea fallida')
+    t.error = reason
     t.finishedAt = Date.now()
     pushTask(t)
-    cancelDependents(run, t.id)
+    cancelDependents(run, t.id, reason)
   }
 }
 
@@ -2618,6 +2625,15 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
           'Esta conversación continúa la sesión en la que ya trabajaste en este proyecto: recuerdas lo que leíste, hiciste y decidiste entonces, así que no empieces de cero ni vuelvas a explorarlo todo. Eso sí, otros agentes (o el usuario) pueden haber cambiado archivos desde entonces: comprueba el estado actual de lo que vayas a tocar antes de cambiarlo.'
         ]
       : []),
+    // Otro agente se bloqueó en esta tarea y se la pasaron: sabe por qué y que lo hecho sigue en la carpeta.
+    ...(t.blockedNote && t.blockedNote.by !== (parent ?? exec).name
+      ? [
+          '',
+          '## Otro agente se bloqueó en esta tarea',
+          `${t.blockedNote.by} la dejó a medias y explicó: «${t.blockedNote.text}»`,
+          'Lo que hizo sigue en la carpeta del proyecto: revísalo y continúa desde ahí en vez de empezar de cero. Si a ti también te falta lo mismo, empieza tu respuesta con «BLOQUEADA:» y explica qué falta.'
+        ]
+      : []),
     ...(meta.resumed
       ? [
           '',
@@ -2737,6 +2753,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     reason: undefined,
     waitingFor: undefined,
     context: undefined,
+    notice: undefined,
     location: 'station'
   })
   updateWaiting()
@@ -2899,11 +2916,14 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     rememberSession(run.projectId, sessionOwner.id, { sessionId: res.sessionId, provider: exec.provider, cwd: dir, taskTitle: t.title, at: Date.now() })
   }
 
-  // «BLOQUEADA: …» cuenta como fallo en el registro (la tarea pasa a otro o se da por fallida).
+  // «BLOQUEADA: …» no sale bien en el registro, pero va marcada aparte: no es un fallo del agente.
+  // En un mensaje directo la respuesta es la que es: «BLOQUEADA:» no significa nada especial.
   taskInboxDone(t)
-  logCall(run, 'task', exec, model, res.ok && !t.direct && blockedReason(res.text) ? { ...res, ok: false } : res, taskStart, t.id, effort, {
+  const blocked = res.ok && !t.direct ? blockedReason(res.text) : null
+  logCall(run, 'task', exec, model, blocked ? { ...res, ok: false } : res, taskStart, t.id, effort, {
     difficulty: t.difficulty,
-    category: taskCategory(t.title, t.description)
+    category: taskCategory(t.title, t.description),
+    ...(blocked ? { blocked: true } : {})
   })
   endTrace(t.id, res, taskStart)
   // El controlador sigue registrado mientras se verifica el resultado («Detener» también lo corta).
@@ -2925,9 +2945,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   schedule()
 
   try {
-    // En un mensaje directo la respuesta es la que es: «BLOQUEADA:» no significa nada especial.
-    const blocked = res.ok && !t.direct ? blockedReason(res.text) : null
-    if (blocked) handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: blocked })
+    if (blocked) await handleBlocked(run, t, exec, parent, res, blocked)
     else if (res.ok) {
       const verdict = await verifyTask(run, t, exec, parent, res, dir)
       if (!(verdict?.status === 'failed' && reviewFailed(run, t, exec, parent, res, verdict)) && (await settleChanges(run, t, exec, parent)))
@@ -3549,6 +3567,171 @@ export function blockedReason(text: string): string | null {
   return clip(reason ? tr('Bloqueada: {reason}', { reason }) : tr('Bloqueada: el agente no pudo hacer la tarea'), 400)
 }
 
+/** Quién sigue con una tarea que no salió: el jefe del becario si no pudo hacerla, o el mejor compañero. */
+function relayFor(t: Task, meta: TaskMeta, owner: AgentConfig, exec: AgentConfig, parent: AgentConfig | null, kind: AgentErrorKind): { alt: AgentConfig | null; noStrongAlt: boolean } {
+  if (kind === 'failed' && parent && usable(parent)) return { alt: parent, noStrongAlt: false }
+  // El relevo de una tarea que no es fácil va a otro agente fuerte, nunca al modelo local (lento y ligero):
+  // si no hay ninguno libre, se dice en vez de pasársela a quien casi seguro también fallará.
+  const alt = relayAgent(t, meta, owner, exec)
+  const noStrongAlt = !alt && t.difficulty !== 'easy' && !isLocalProvider(owner.provider) && workers().some((a) => isLocalProvider(a.provider) && usable(a))
+  return { alt, noStrongAlt }
+}
+
+/** Lo que explicó el agente al bloquearse, sin el «BLOQUEADA:» del principio. */
+export function blockedText(text: string): string {
+  return (text ?? '').trim().replace(/^[\s>*_#`]*BLOQUEADA\s*[:.\-–—]\s*/i, '').replace(/^[*_`\s]+/, '').trim()
+}
+
+/**
+ * El agente dijo «BLOQUEADA: …»: no se rompió, le falta algo (una herramienta, información, una decisión). No se pone
+ * en rojo ni hay que reiniciarlo. Si no dejó nada hecho, otro agente lo intenta una vez (quizá a él no le falta). Si
+ * dejó algo hecho, o nadie más puede, lo hecho sale en el chat como resultado parcial y la decisión va a «Te necesita».
+ */
+async function handleBlocked(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult, reason: string): Promise<void> {
+  const meta = run.meta.get(t.id)!
+  const owner = parent ?? exec
+  const said = blockedText(res.text) || reason
+  t.blockedNote = { by: owner.name, text: clip(said, 2000) }
+  // Lo que cambió en la carpeta se integra y se puede deshacer, como el de una tarea terminada.
+  if (!(await settleChanges(run, t, exec, parent))) return
+  const arts = await collectArtifacts(run, t, owner)
+  settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, reason: undefined, lastActivity: tr('Bloqueada: {title}', { title: t.title }), context: undefined })
+  if (!arts.length && !meta.retried) {
+    const { alt } = relayFor(t, meta, owner, exec, parent, 'failed')
+    if (alt) {
+      const text = tr('No pude terminar «{title}»: {msg} Se la paso a {name}.', { title: t.title, msg: oneLine(said, 400), name: alt.name })
+      if (!closeWork(run, t, 'blocked', { text })) agentMessage(run, owner.id, text)
+      meta.retried = true
+      meta.forceMainModel = alt.id === parent?.id
+      reassign(t, exec.id, alt, owner.id)
+      if (parent) removeBecario(exec.id)
+      return
+    }
+  }
+  blockedNeedsYou(run, t, exec, parent, res, reason, said, arts)
+}
+
+/** La tarea queda bloqueada esperando tu decisión: resultado parcial en el chat, aviso en el agente y en «Te necesita». */
+function blockedNeedsYou(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult, reason: string, said: string, arts: Artifact[]): void {
+  const owner = parent ?? exec
+  t.status = 'failed'
+  t.needsYou = true
+  t.error = reason
+  t.result = clip(res.text.trim(), RESULT_KEEP)
+  t.usage = res.usage
+  t.finishedAt = Date.now()
+  t.artifactIds = [...new Set([...t.artifactIds, ...arts.map((a) => a.id)])]
+  pushTask(t)
+  const files = arts.map((a) => a.relPath)
+  if (files.length) {
+    transfer({
+      fromId: exec.id,
+      toId: parent ? parent.id : 'core',
+      label: tr('A medias: {title}', { title: t.title }),
+      taskId: t.id,
+      payload: { title: t.title, summary: oneLine(said, 200), files }
+    })
+  }
+  const text = `${clip(said, 8000)}\n\n${tr('_Me falta algo para terminarla. Decide en «Te necesita»: darla por buena así, contestarme aquí o pasársela a otro agente._')}`
+  const delivered = arts.length ? { artifactIds: arts.map((a) => a.id) } : {}
+  if (!closeWork(run, t, 'blocked', { text, ...delivered }, true)) agentMessage(run, owner.id, text, delivered)
+  cancelDependents(run, t.id, tr('Depende de una tarea bloqueada'))
+  if (parent) removeBecario(exec.id)
+  setRuntime(owner.id, { notice: { kind: 'blocked', taskId: t.id, title: t.title, text: clip(said, 6000) } })
+  addInbox({
+    kind: 'blocked',
+    key: `blocked:${t.id}`,
+    title: tl('{name} necesita algo para terminar «{title}»', { name: owner.name, title: t.title }),
+    detail: [clip(said, 1500), ...(files.length ? ['', tl('Lo que dejó hecho: {list}', { list: files.slice(0, 8).join(', ') + (files.length > 8 ? '…' : '') })] : [])],
+    projectId: run.projectId,
+    runId: run.id,
+    taskId: t.id,
+    agentId: owner.id,
+    actions: [
+      ...(arts.length || t.changes ? [{ id: 'accept-blocked', label: tl('Darla por buena así') }] : []),
+      { id: 'reply-blocked', label: tl('Contestarle en el chat') },
+      { id: 'relay-blocked', label: tl('Pasársela a otro agente') }
+    ]
+  })
+}
+
+/** Quita el aviso de «Bloqueada» de la tarjeta del agente (ya se decidió qué hacer con esa tarea). */
+function clearBlockedNotice(taskId: string): void {
+  for (const rt of allRuntimes()) if (rt.notice?.taskId === taskId) setRuntime(rt.agentId, { notice: undefined })
+}
+
+/**
+ * Lo que decides en «Te necesita» sobre una tarea bloqueada: darla por buena tal como quedó o pasársela a otro agente.
+ * Lo que se canceló por depender de ella vuelve a la cola (y la petición se reanuda si ya había terminado).
+ */
+export async function settleBlocked(projectId: string, taskId: string, mode: 'accept' | 'relay'): Promise<string> {
+  const live = [...runs.values()].find((r) => !r.finished && !r.cancelled && r.taskIds.includes(taskId))
+  const st = store.getProject(projectId)
+  const t = live ? tasks.get(taskId) : st.tasks.find((x) => x.id === taskId)
+  if (!t || t.status !== 'failed' || !t.needsYou) throw new Error(tr('Esa tarea ya no está bloqueada'))
+  const all = live ? live.taskIds.map((id) => tasks.get(id)).filter((x): x is Task => !!x) : st.tasks.filter((x) => x.runId === t.runId)
+  const depReasons = [tr('Depende de una tarea bloqueada'), tr('Depende de una tarea fallida')]
+  const deps: Task[] = []
+  const walk = (id: string): void => {
+    for (const o of all) {
+      if (o.status !== 'cancelled' || !depReasons.includes(o.error ?? '') || !o.dependsOn.includes(id) || deps.includes(o)) continue
+      deps.push(o)
+      walk(o.id)
+    }
+  }
+  walk(t.id)
+  let alt: AgentConfig | null = null
+  if (mode === 'relay') {
+    alt = bestAgentFor(`${t.title} ${t.description}`, new Set([t.agentId, ...(t.assignedBy ? [t.assignedBy] : [])]))
+    if (!alt) throw new Error(tr('No hay otro agente disponible para pasársela'))
+  }
+  t.needsYou = undefined
+  clearBlockedNotice(taskId)
+  if (mode === 'accept') {
+    t.status = 'done'
+    t.error = undefined
+    pushTask(t)
+  } else {
+    t.assignedBy ??= t.agentId
+    t.agentId = alt!.id
+  }
+  const reopen = mode === 'relay' ? [t, ...deps] : deps
+  const list = deps.map((o) => `«${o.title}»`).join(', ')
+  const text =
+    mode === 'accept'
+      ? tr('Diste por buena «{title}» tal como quedó.', { title: t.title }) + (deps.length ? ' ' + tr('Sigue lo que dependía de ella: {list}.', { list }) : '')
+      : tr('Le pasas «{title}» a {name}: sigue desde lo que quedó hecho.', { title: t.title, name: alt!.name })
+  if (live) {
+    for (const o of reopen) {
+      o.status = o.dependsOn.every((d) => tasks.get(d)?.status === 'done') ? 'pending' : 'blocked'
+      o.error = undefined
+      o.startedAt = undefined
+      o.finishedAt = undefined
+      o.lastActivity = undefined
+      o.progress = undefined
+      pushTask(o)
+    }
+    const meta = live.meta.get(t.id)
+    if (mode === 'relay' && meta) {
+      meta.retried = true
+      meta.forceMainModel = false
+    }
+    systemMessage(live, text)
+    schedule()
+    return text
+  }
+  pushMessage({ id: randomUUID(), projectId, runId: t.runId, author: { type: 'system' }, text, createdAt: Date.now(), tone: 'normal' })
+  if (reopen.length) {
+    for (const o of reopen) {
+      o.status = 'cancelled'
+      o.error = INTERRUPTED_ERROR
+      pushTask(o)
+    }
+    await resumeRun(projectId, t.runId)
+  } else if (mode === 'relay') pushTask(t)
+  return text
+}
+
 function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): void {
   const meta = run.meta.get(t.id)!
   const owner = parent ?? exec
@@ -3602,18 +3785,8 @@ function handleFailure(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   // Antes de dar la tarea por fallida, otro agente lo intenta una vez. Si el problema es del agente
   // (cuota, sesión, CLI ausente) pasa al mejor compañero. Si no pudo hacerla (error o «BLOQUEADA»),
   // el becario se la devuelve a su jefe, que la hace con su modelo principal; sin jefe, pasa al mejor compañero.
-  let alt: AgentConfig | null = null
-  let noStrongAlt = false
   // Un mensaje directo no pasa a otro agente: era para este.
-  if (!t.direct && !meta.retried && (BLOCKING_KINDS.includes(kind) || kind === 'failed')) {
-    if (kind === 'failed' && parent && usable(parent)) alt = parent
-    else {
-      // El relevo de una tarea que no es fácil va a otro agente fuerte, nunca al modelo local (lento y ligero):
-      // si no hay ninguno libre, se dice en vez de pasársela a quien casi seguro también fallará.
-      alt = relayAgent(t, meta, owner, exec)
-      noStrongAlt = !alt && t.difficulty !== 'easy' && !isLocalProvider(owner.provider) && workers().some((a) => isLocalProvider(a.provider) && usable(a))
-    }
-  }
+  const { alt, noStrongAlt } = !t.direct && !meta.retried && (BLOCKING_KINDS.includes(kind) || kind === 'failed') ? relayFor(t, meta, owner, exec, parent, kind) : { alt: null, noStrongAlt: false }
   const failText = tr('No pude completar «{title}»: {msg}{v3}', { title: t.title, msg, v3: alt ? tr(' Se la paso a {name}.', { name: alt.name }) : noStrongAlt ? tr(' No hay otro agente fuerte libre para relevarme (el modelo local no sirve para esta tarea): pídemela de nuevo cuando quieras.') : '' })
   if (!closeWork(run, t, 'failed', { text: failText, tone: 'error' })) agentMessage(run, owner.id, failText, { tone: 'error' })
   if (alt) {
@@ -3655,7 +3828,7 @@ function logCall(
   startedAt: number,
   taskId?: string,
   effort?: Effort,
-  extra: Pick<UsageCall, 'difficulty' | 'verdict' | 'category'> = {}
+  extra: Pick<UsageCall, 'difficulty' | 'verdict' | 'category' | 'blocked'> = {}
 ): void {
   recordCall(run.id, {
     ...extra,

@@ -154,6 +154,19 @@ export interface AgentRuntime {
   location: 'station' | 'core'
   /** Tokens de contexto usados en la tarea actual y capacidad, si el CLI lo informa. */
   context?: { used: number; capacity?: number }
+  /**
+   * Aviso que se queda en la tarjeta del agente aunque esté disponible: se bloqueó en una tarea («BLOQUEADA: …») y
+   * espera tu decisión en «Te necesita». No es un error del agente. Se quita al decidir o al empezar otra tarea.
+   */
+  notice?: AgentNotice
+}
+
+export interface AgentNotice {
+  kind: 'blocked'
+  taskId: string
+  title: string
+  /** Lo que explicó el agente, entero (Markdown, con enlaces a los archivos). */
+  text: string
 }
 
 export type TaskStatus = 'pending' | 'blocked' | 'running' | 'done' | 'failed' | 'cancelled'
@@ -213,6 +226,14 @@ export interface Task {
    * verificador y sin relevo a otro agente si falla. Su respuesta sale en el chat sin retocar.
    */
   direct?: boolean
+  /**
+   * El agente la declaró «BLOQUEADA» (le falta algo que no puede conseguir solo) y espera tu decisión en «Te necesita»:
+   * darla por buena, contestarle en el chat o pasársela a otro agente. Va con status «failed» y el motivo en error,
+   * pero no es un fallo del agente: lo que dejó hecho está en artifactIds.
+   */
+  needsYou?: boolean
+  /** Lo que dijo el agente al bloquearse, para quien la retome (se le cuenta en el encargo). */
+  blockedNote?: { by: string; text: string }
 }
 
 /** Cambios de una tarea en la carpeta del proyecto, guardados como dos instantáneas (ver checkpoints.ts). */
@@ -551,8 +572,11 @@ export type WorkStep =
 export interface TaskWork {
   taskId: string
   title: string
-  /** running mientras trabaja; stopped si se detuvo o se cerró la app antes de acabar. */
-  status: 'running' | 'done' | 'failed' | 'stopped'
+  /**
+   * running mientras trabaja; stopped si se detuvo o se cerró la app antes de acabar; blocked si el agente dijo que le
+   * falta algo («BLOQUEADA») y espera tu decisión (no es un fallo: puede traer resultado parcial).
+   */
+  status: 'running' | 'done' | 'failed' | 'stopped' | 'blocked'
   steps: WorkStep[]
   /** Pasos del principio que ya no caben (están en el registro completo de la tarea). */
   hidden?: number
@@ -1076,6 +1100,8 @@ export interface UsageCall {
   verdict?: 'pass' | 'fail' | 'unverified'
   /** La detuvo el usuario (no cuenta como fallo del agente). Falta en registros antiguos. */
   cancelled?: boolean
+  /** El agente dijo «BLOQUEADA» (le faltaba algo): no salió bien, pero tampoco cuenta como fallo del agente. */
+  blocked?: boolean
 }
 
 export interface QuotaWindowSnapshot {
@@ -1262,11 +1288,13 @@ export type CoworkEventKind = CoworkEvent['kind']
  * pantalla del servidor) · mac-permission: macOS pide un permiso de Privacidad · question: el equipo te pregunta algo ·
  * verify-failed: el verificador sigue viendo fallos · conflict: choques al integrar · failed: una tarea no se pudo
  * hacer · paused: tareas que quedaron en pausa (al reiniciar el servidor o al detenerlas) esperan Reanudar o Quitar ·
- * budget: el gasto por API del mes llega al 80 % o pasa del presupuesto · done: terminó una petición.
+ * budget: el gasto por API del mes llega al 80 % o pasa del presupuesto · done: terminó una petición · blocked: un
+ * agente dijo que le falta algo para terminar su tarea («BLOQUEADA») y espera que la des por buena, le contestes o se
+ * la pases a otro agente.
  *
  * «done» no espera nada de ti: no sale en «Te necesita» sino en Resultados, como «nuevo» (y el móvil avisa igual).
  */
-export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget'
+export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget' | 'blocked'
 
 /** El aviso escrito en un idioma de la app (título, detalle y el nombre de cada botón). */
 export interface InboxTexts {
