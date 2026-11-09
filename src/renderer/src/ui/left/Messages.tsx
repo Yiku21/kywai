@@ -9,6 +9,7 @@ import {
   ClipboardList,
   CircleCheck,
   CircleX,
+  Clapperboard,
   FilePen,
   FilePlus,
   FileText,
@@ -214,6 +215,9 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
   const proposal = m.proposal && m.proposal.status !== 'approved' ? m.proposal : undefined
   // Un resultado se puede valorar: el de una tarea terminada o la respuesta final de un plan.
   const ratable = !m.streaming && !isError && (m.work?.status === 'done' || (hasTasks && !proposal && !!m.text))
+  // «Crear vídeo de esto»: en cualquier respuesta con algo que contar (en vivo, no en el modo demo).
+  const live = useCowork((st) => st.mode === 'live')
+  const videoable = live && !m.streaming && !isError && !proposal && (m.text?.trim().length ?? 0) >= 40
 
   return (
     <article className={s.msg} style={agentVars(look.color)}>
@@ -246,7 +250,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
         )}
         {hasArtifacts && <ArtifactCards ids={m.artifactIds!} projectId={m.projectId} />}
         {m.work && m.work.status !== 'running' && <ChangesRow projectId={m.projectId} taskId={m.work.taskId} />}
-        {ratable && <RatingRow m={m} />}
+        {ratable ? <RatingRow m={m} video={videoable} /> : videoable && <div className={s.rating}><VideoFromButton m={m} /></div>}
       </div>
     </article>
   )
@@ -338,7 +342,36 @@ function ChangesRow({ projectId, taskId }: { projectId: string; taskId: string }
 }
 
 /** 👍/👎 bajo un resultado: lo que mide si el trabajo te sirvió (va al registro de consumo y a la ficha del agente). */
-function RatingRow({ m }: { m: ChatMessage }) {
+/** «Crear vídeo de esto»: el equipo hace un vídeo que cuenta este mensaje y solo entrega el MP4. */
+function VideoFromButton({ m }: { m: ChatMessage }) {
+  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [error, setError] = useState<string | null>(null)
+  const go = (): void => {
+    const a = api
+    if (!a || state !== 'idle') return
+    setState('sending')
+    setError(null)
+    a.sendMessage({ projectId: m.projectId, text: '', filePaths: [], videoFrom: m.id }).then(
+      () => setState('sent'),
+      (e) => {
+        setState('idle')
+        setError(errorText(e))
+      }
+    )
+  }
+  const label = state === 'sent' ? t('Vídeo pedido') : t('Crear vídeo de esto')
+  return (
+    <>
+      <button type="button" className={cx(s.ratingBtn, s.videoBtn)} title={t('Crear un vídeo que cuente este mensaje')} disabled={state !== 'idle'} onClick={go}>
+        <Clapperboard size={14} aria-hidden="true" />
+        <span>{label}</span>
+      </button>
+      {error && <span className={s.ratingNote} role="alert">{error}</span>}
+    </>
+  )
+}
+
+function RatingRow({ m, video = false }: { m: ChatMessage; video?: boolean }) {
   const [pending, setPending] = useState<MessageRating | null>(null)
   const rate = (r: MessageRating): void => {
     const a = api
@@ -364,6 +397,7 @@ function RatingRow({ m }: { m: ChatMessage }) {
     <div className={s.rating} aria-label={t('¿Te sirvió este resultado?')}>
       {btn('up', ThumbsUp, t('Me sirvió'))}
       {btn('down', ThumbsDown, t('No me sirvió'))}
+      {video && <VideoFromButton m={m} />}
       {m.rating && <span className={s.ratingNote}>{m.rating === 'up' ? t('Te sirvió: lo tendrá en cuenta el coordinador.') : t('No te sirvió: lo tendrá en cuenta el coordinador.')}</span>}
     </div>
   )
@@ -1145,12 +1179,28 @@ function ArtifactCards({ ids, projectId }: { ids: string[]; projectId: string })
   if (list.length === 0) return null
   if (list.length === 1) {
     return (
-      <ul className={s.artifacts} aria-label={t('Resultados')}>
-        <ArtifactRow a={list[0]} list={list} />
-      </ul>
+      <>
+        {VIDEO_EXT.test(list[0].relPath) && <InlineVideo a={list[0]} />}
+        <ul className={s.artifacts} aria-label={t('Resultados')}>
+          <ArtifactRow a={list[0]} list={list} />
+        </ul>
+      </>
     )
   }
   return <DeliverablesFolder list={list} projectId={projectId} />
+}
+
+const VIDEO_EXT = /\.(mp4|webm|mov|m4v)$/i
+
+/** Un vídeo entregado se ve en el propio chat (con sus controles), encima de su fila de Abrir/Descargar. */
+function InlineVideo({ a }: { a: Artifact }) {
+  const live = useCowork((st) => st.mode === 'live')
+  if (!live) return null
+  return (
+    <div className={s.inlineVideo}>
+      <video src={projectFileUrl(a.projectId, a.relPath, isWeb)} controls preload="metadata" playsInline aria-label={t('Vídeo {name}', { name: a.name })} />
+    </div>
+  )
 }
 
 /** Un entregable: al pulsarlo se abre en el panel de vista previa (con ‹ › para pasar a los demás del mensaje). */

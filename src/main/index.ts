@@ -97,6 +97,7 @@ import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
+import { initVideoStudio, installVideoStudio, videoStudioStatus } from './videoStudio'
 import { installCatalogSkill, installSkillLink, installedSkills, mcpCatalog, removeSkill, skillCatalog } from './catalog'
 import { allowModHooks, modPanelResponse, initMods, installModFolder, installModLink, listMods, modPanelHtml, removeMod, setModEnabled } from './mods'
 import { addPluginLink, initPlugins, installCatalogPlugin, listPlugins, pluginCatalog, removeMarketplace, removePlugin } from './plugins'
@@ -826,6 +827,15 @@ function registerIpc(): void {
   handle('addPluginLink', (url: unknown) => addPluginLink(url))
   handle('removePlugin', (name: unknown) => removePlugin(name))
   handle('removeMarketplace', (repo: unknown) => removeMarketplace(repo))
+  // Estudio de vídeo: lo que tiene este equipo e «Instalar lo que falta» (en el equipo donde se montan los vídeos).
+  handle('videoStudioStatus', () => videoStudioStatus())
+  handle('installVideoStudio', async () => {
+    const log: string[] = []
+    const status = await installVideoStudio((l) => {
+      if (log.length < 400) log.push(l.slice(0, 300))
+    })
+    return { status, log: log.slice(-60) }
+  })
   // Mods: órdenes «/…», hooks (con permiso) y paneles aislados junto al chat.
   handle('listMods', () => listMods())
   handle('installModLink', (url: unknown) => installModLink(url))
@@ -1061,6 +1071,7 @@ async function boot(): Promise<void> {
   initImports(cfg.workspaceRoot)
   initInbox(cfg.workspaceRoot)
   initSkills(cfg.workspaceRoot)
+  initVideoStudio(cfg.workspaceRoot)
   initExtensions(new McpRegistry(join(app.getPath('userData'), 'mcp-servers.json'), systemCipher))
   initPlugins(app.getPath('userData'))
   initTemplates(app.getPath('userData'), { isProject: (id) => store.isValidProjectId(id) && store.listProjects().some((p) => p.id === id) })
