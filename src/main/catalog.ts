@@ -18,7 +18,7 @@ export const MCP_REGISTRY = 'https://registry.modelcontextprotocol.io/v0/servers
 export const SKILLS_SEARCH = 'https://skills.sh/api/search'
 
 /** Fuentes de habilidades conocidas: salen como verificadas y primero. */
-export const TRUSTED_SKILL_SOURCES = ['anthropics/skills', 'openai/skills', 'obra/superpowers', 'pbakaus/impeccable', 'cloudflare/security-audit-skill', 'heygen-com/hyperframes', 'vercel-labs/agent-skills', 'anthropics/knowledge-work-plugins']
+export const TRUSTED_SKILL_SOURCES = ['anthropics/skills', 'openai/skills', 'obra/superpowers', 'pbakaus/impeccable', 'cloudflare/security-audit-skill', 'heygen-com/hyperframes', 'vercel-labs/agent-skills', 'anthropics/knowledge-work-plugins', 'dietrichgebert/ponytail']
 
 const MAX_SKILL_FILES = 40
 const MAX_SKILL_BYTES = 400_000
@@ -432,6 +432,7 @@ export const FEATURED_MCP: McpCatalogItem[] = [
 export const FEATURED_SKILLS: Array<SkillCatalogItem & { description: string; url: string }> = [
   { source: 'obra/superpowers', skillId: '', name: 'Superpowers', installs: 0, verified: true, description: 'Planificar, TDD, depurar con método y revisar código (todas sus habilidades).', url: 'https://github.com/obra/superpowers' },
   { source: 'pbakaus/impeccable', skillId: 'impeccable', name: 'Impeccable', installs: 0, verified: true, description: 'Diseño de interfaces que no parecen hechas por IA.', url: 'https://github.com/pbakaus/impeccable' },
+  { source: 'DietrichGebert/ponytail', skillId: 'ponytail', name: 'Ponytail', installs: 0, verified: true, description: 'El código mínimo que resuelve la tarea: reutilizar antes que escribir, sin extras que nadie pidió (MIT).', url: 'https://github.com/DietrichGebert/ponytail' },
   { source: 'cloudflare/security-audit-skill', skillId: '', name: 'Auditoría de seguridad', installs: 0, verified: true, description: 'Revisión de seguridad del código antes de publicar (Cloudflare).', url: 'https://github.com/cloudflare/security-audit-skill' },
   { source: 'anthropics/skills', skillId: '', name: 'Skills de Anthropic', installs: 0, verified: true, description: 'PDF, Word, Excel, PowerPoint, diseño, pruebas de webs… (las oficiales de Claude).', url: 'https://github.com/anthropics/skills' },
   { source: 'heygen-com/hyperframes', skillId: '', name: 'HyperFrames', installs: 0, verified: true, description: 'Vídeos a partir de HTML (con el que se hizo la presentación de kywai).', url: 'https://github.com/heygen-com/hyperframes' }
