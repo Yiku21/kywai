@@ -38,7 +38,8 @@ const api: CoworkApi = {
       projectId: input.projectId,
       text: input.text,
       filePaths: [...(input.filePaths ?? [])],
-      ...(typeof input.templateId === 'string' ? { templateId: input.templateId } : {})
+      ...(typeof input.templateId === 'string' ? { templateId: input.templateId } : {}),
+      ...(typeof input.videoFrom === 'string' ? { videoFrom: input.videoFrom } : {})
     }),
   cancelRun: (runId) => ipcRenderer.invoke('cowork:cancelRun', runId),
   pickFiles: (kind) => ipcRenderer.invoke('cowork:pickFiles', kind),
@@ -99,6 +100,8 @@ const api: CoworkApi = {
   addPluginLink: (url) => ipcRenderer.invoke('cowork:addPluginLink', url),
   removePlugin: (name) => ipcRenderer.invoke('cowork:removePlugin', name),
   removeMarketplace: (repo) => ipcRenderer.invoke('cowork:removeMarketplace', repo),
+  videoStudioStatus: () => ipcRenderer.invoke('cowork:videoStudioStatus'),
+  installVideoStudio: () => ipcRenderer.invoke('cowork:installVideoStudio'),
   listMods: () => ipcRenderer.invoke('cowork:listMods'),
   installModLink: (url) => ipcRenderer.invoke('cowork:installModLink', url),
   installModFolder: (folder) => ipcRenderer.invoke('cowork:installModFolder', folder),
