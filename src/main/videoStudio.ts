@@ -21,6 +21,7 @@ import {
   type VideoFormat,
   type VideoScript
 } from './videoScript'
+import { buildCartoonComposition } from './videoCartoon'
 import type { VideoStudioStatus } from '@shared/types'
 
 const IS_WIN = process.platform === 'win32'
@@ -246,9 +247,13 @@ async function speak(text: string, lang: string, out: string, useKokoro: boolean
 }
 
 /** Imagen de una escena con Gemini (o null si no hay clave o falla: la escena va con fondo de diseño). */
-async function geminiImage(prompt: string, format: VideoFormat, out: string, key: string, signal?: AbortSignal): Promise<boolean> {
+async function geminiImage(prompt: string, format: VideoFormat, out: string, key: string, cartoon: boolean, signal?: AbortSignal): Promise<boolean> {
+  // En cartoon todas las ilustraciones piden el mismo estilo, para que el vídeo se vea de una pieza.
+  const text = cartoon
+    ? `Flat 2D cartoon illustration in a friendly explainer-video style: bold dark outlines, bright cheerful colors, simple soft shading, clean uncluttered background, clear close-up of the action. ${prompt}. No text, no letters, no numbers, no logos, no watermark, no faces.`
+    : `${prompt}. Cinematic, high detail, no text, no letters, no logos, no watermark.`
   const body = {
-    contents: [{ parts: [{ text: `${prompt}. Cinematic, high detail, no text, no letters, no logos, no watermark.` }] }],
+    contents: [{ parts: [{ text }] }],
     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: format === 'vertical' ? '9:16' : '16:9' } }
   }
   try {
@@ -342,6 +347,8 @@ export async function renderVideo(input: {
 
   // 2. Imágenes (tres a la vez).
   const images: (string | null)[] = script.scenes.map(() => null)
+  // En cartoon la ilustración va en una tarjeta apaisada también en vertical.
+  const cartoon = script.style === 'cartoon'
   const key = geminiApiKey()
   if (key) {
     step('Creando las imágenes', 0.38)
@@ -352,7 +359,7 @@ export async function renderVideo(input: {
         const prompt = script.scenes[i].image
         if (!prompt) continue
         const rel = `assets/escena-${i + 1}.png`
-        if (await geminiImage(prompt, format, join(dir, rel), key, signal)) images[i] = rel
+        if (await geminiImage(prompt, cartoon ? 'horizontal' : format, join(dir, rel), key, cartoon, signal)) images[i] = rel
       }
     }
     await Promise.all([worker(), worker(), worker()])
@@ -361,7 +368,8 @@ export async function renderVideo(input: {
   // 3. Música y mezcla.
   if (signal?.aborted) throw new Error('Cancelada')
   step('Componiendo la música y mezclando', 0.55)
-  const comp = buildComposition({ script, format, timeline: tl, images, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' })
+  const compInput = { script, format, timeline: tl, images, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' }
+  const comp = cartoon ? buildCartoonComposition(compInput) : buildComposition(compInput)
   writeFileSync(join(dir, 'musica.wav'), synthMusic(tl.total, script.title))
   writeFileSync(join(dir, 'efectos.wav'), synthSfx(comp.sfx, tl.total))
   const mix = await mixAudio(dir, voices, tl.scenes.map((s) => s.start + VOICE_LEAD_S), tl.total, signal)

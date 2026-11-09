@@ -66,7 +66,7 @@ import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, rem
 import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines } from './skills'
 import { parseDirect } from '@shared/directMessage'
-import { parseVideoRequest, parseVideoScript, videoScriptPrompt, type VideoFormat } from './videoScript'
+import { parseVideoRequest, parseVideoScript, videoScriptPrompt, type VideoFormat, type VideoStyle } from './videoScript'
 import { renderVideo } from './videoStudio'
 import { createRoutine } from './routines'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
@@ -1275,7 +1275,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   // guion y kywai monta el vídeo entero; solo se entrega el MP4.
   const fromMsg = typeof input.videoFrom === 'string' ? st.messages.find((m) => m.id === input.videoFrom) : undefined
   if (input.videoFrom && !fromMsg) throw new Error(tr('No encuentro ese mensaje para hacer el vídeo'))
-  const videoReq = fromMsg ? { ...(parseVideoRequest(text) ?? { topic: '', format: 'horizontal' as const }), fromPrevious: true } : parseVideoRequest(tpl ? tpl.text : text)
+  const videoReq = fromMsg ? { ...(parseVideoRequest(text) ?? { topic: '', format: 'horizontal' as const, style: 'dinamico' as const }), fromPrevious: true } : parseVideoRequest(tpl ? tpl.text : text)
   if (videoReq) {
     let source: string | undefined
     if (videoReq.fromPrevious) {
@@ -1457,7 +1457,7 @@ function videoWriter(): AgentConfig | null {
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; source?: string },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -1510,7 +1510,7 @@ async function sendVideo(
     createdAt: Date.now(),
     artifactIds: [],
     deliverable: 'file',
-    video: { format: req.format, topic: req.topic, ...(req.source ? { source: clip(req.source, 6000) } : {}) }
+    video: { format: req.format, topic: req.topic, style: req.style, ...(req.source ? { source: clip(req.source, 6000) } : {}) }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
   runs.set(runId, run)
@@ -1534,6 +1534,8 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
     handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('El guion no valía: {message}', { message: (e as Error).message }) })
     return
   }
+  // El estilo lo decide lo que pidió el usuario, no el agente.
+  script.style = v.style ?? script.style
   const meta = run.meta.get(t.id)!
   const root = store.workRoot(run.projectId)
   const outDir = join(root, twoHandsBase(run.projectId), 'videos')
@@ -2693,7 +2695,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   if (t.direct) return directPrompt(run, t, !!meta.copy)
   if (t.video) {
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
-    const prompt = videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, lang: lang() })
+    const prompt = videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang() })
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)
