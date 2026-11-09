@@ -1551,15 +1551,20 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
 5. **Comprobación** con ffprobe (imagen, sonido y duración) antes de entregarlo.
 
 **Estilo cartoon (tutoriales con personaje).** Si la petición dice cartoon, dibujos, personaje, presentador o
-tutorial, el vídeo lo presenta un **muñeco dibujado por kywai** (siempre el mismo: chico con gafas, camiseta del color
-del tema y un destornillador en el bolsillo; `src/main/videoCartoon.ts`). El agente escribe un tutorial de 6 a 10
-escenas: gancho, los pasos en orden con sus avisos de seguridad, 2 o 3 bromas cortas y un resumen; en cada escena dice
-el gesto del personaje (explica, señala, se sorprende, se ríe, se encoge de hombros, pulgar arriba, piensa, saluda), el
-número de paso y si es una broma. En pantalla: el personaje **mueve la boca sílaba a sílaba con la voz**, parpadea,
-respira, brinca en cada cambio y gesticula; al lado (o encima, en vertical) una **tarjeta con la ilustración del paso**
-(Gemini, siempre en el mismo estilo de dibujo plano con contorno; sin clave, el número del paso en grande), la
-instrucción escrita, la insignia «PASO n», una flecha cuando señala y un «¡JA, JA!» con «boing» en las bromas;
-subtítulos con la palabra que suena resaltada; al final, pulgar arriba.
+tutorial, sale un **tutorial visual**: lo que se ve manda. Cada paso ocupa **toda la pantalla** con 1 a 3 planos
+ilustrados por Gemini (general, primer plano de la acción y detalle; siempre en el mismo estilo de dibujo plano con
+contorno y con lo importante en el centro), que entran con un golpe de zoom, se acercan despacio y el último lleva un
+**círculo de «mira aquí»** que late. Arriba, la insignia «PASO n» y la instrucción; abajo, subtítulos con la palabra
+que suena resaltada. En una esquina, un **presentador dibujado por kywai** (siempre el mismo: estilo chibi con gafas y
+sudadera del color del tema; `src/main/videoCartoon.ts`) que mueve la boca con la voz, parpadea, respira, brinca en
+cada cambio y hace el gesto de la escena (explica, señala al centro, se sorprende, se ríe, se encoge de hombros, pulgar
+arriba, piensa, saluda); en las bromas, «¡JA, JA!» y un «boing». El agente escribe de 6 a 10 escenas: gancho, los
+pasos en orden con sus avisos de seguridad, 2 o 3 bromas cortas y un resumen. Sin clave de Gemini no hay ilustraciones:
+cada paso muestra su instrucción en grande.
+
+**Voz.** Con clave de Gemini, la voz es la de **Gemini** (la más natural; se le pide el tono: cercano y con energía en
+los tutoriales, de broma en los chistes, rápido en los vídeos dinámicos); si una escena no sale (cuota, sin red),
+todo el vídeo se rehace con Kokoro para no mezclar voces. La voz y las imágenes se generan **a la vez**.
 
 Mientras, la tarea dice por qué paso va («Poniendo la voz (2 de 6)», «Animando y montando el vídeo»…). Un vídeo de
 medio minuto tarda unos minutos.

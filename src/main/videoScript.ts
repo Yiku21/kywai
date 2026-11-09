@@ -29,7 +29,11 @@ export interface VideoScene {
   step?: number
   /** Estilo cartoon: escena de broma (el personaje se ríe y suena un «boing»). */
   joke?: boolean
+  /** Estilo cartoon: de 1 a 3 planos de la ilustración del paso (general, de cerca, detalle). El primero es `image`. */
+  shots?: string[]
 }
+
+export const MAX_SHOTS = 3
 
 export interface VideoScript {
   title: string
@@ -80,7 +84,9 @@ export function parseVideoScript(text: string): VideoScript {
     const narration = clean(o.narration, 400)
     const heading = clean(o.heading, 60) || narration.split(' ').slice(0, 5).join(' ')
     if (!narration) continue
-    const scene: VideoScene = { heading, narration, image: clean(o.image, 400) }
+    const shots = (Array.isArray(o.shots) ? o.shots : []).map((x) => clean(x, 400)).filter(Boolean).slice(0, MAX_SHOTS)
+    const scene: VideoScene = { heading, narration, image: shots[0] ?? clean(o.image, 400) }
+    if (shots.length) scene.shots = shots
     if (CHARACTER_POSES.includes(o.pose as CharacterPose)) scene.pose = o.pose as CharacterPose
     const step = Number(o.step)
     if (Number.isInteger(step) && step > 0 && step < 100) scene.step = step
@@ -142,7 +148,7 @@ function cartoonScriptPrompt(input: { topic: string; source?: string; format: Vi
     '- "step": el número del paso (1, 2, 3…) en las escenas que son un paso; 0 en el gancho, las bromas sueltas y el resumen.',
     '- "heading": lo que se ve escrito en la ilustración: la instrucción en 2 a 5 palabras («Desenchufa el PC», «Abre las pestañas»).',
     `- "pose": el gesto del personaje, uno de ${CHARACTER_POSES.map((p) => `"${p}"`).join(', ')} (explain: explica; point: señala la ilustración; surprised: se sorprende; laugh: se ríe; shrug: se encoge de hombros; thumbs: pulgar arriba; think: piensa; wave: saluda). Varíalos y que encajen con lo que dice; "point" cuando hay que mirar algo concreto.`,
-    '- "image": la ilustración de la escena, descrita en inglés en una frase concreta que enseñe exactamente la acción del paso (primer plano de las manos y los objetos, desde el ángulo que mejor se entienda). Sin personas de cuerpo entero ni caras, sin texto, letras ni logotipos.',
+    '- Es un tutorial VISUAL: lo importante es lo que se ve. "shots": de 1 a 3 ilustraciones de la escena, descritas en inglés, cada una en una frase concreta: en un paso, primero el plano general (dónde estamos) y después el primer plano de la acción exacta (manos, piezas, la pestaña, la muesca…) y, si ayuda, el detalle o el resultado. Lo importante de cada plano, en el CENTRO de la imagen (ahí se pone el círculo de «mira aquí»). Sin personas de cuerpo entero ni caras, sin texto, letras ni logotipos. En el gancho, las bromas y el resumen basta con 1.',
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}; para dibujos van mejor "papel", "amanecer" u "oceano".`,
     '- "outro": frase final corta y con gracia.',
     '- Si el tema necesita datos actuales o técnicos, compruébalos antes; no inventes.',
@@ -150,7 +156,7 @@ function cartoonScriptPrompt(input: { topic: string; source?: string; format: Vi
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", "scenes": [{"heading": "…", "narration": "…", "image": "…", "pose": "wave", "step": 0, "joke": false}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", "scenes": [{"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -339,6 +345,8 @@ export interface CompositionInput {
   timeline: VideoTimeline
   /** Imagen de cada escena (ruta relativa a la carpeta del vídeo) o null. */
   images: (string | null)[]
+  /** Estilo cartoon: las imágenes de cada plano de cada escena (si no, una por escena: `images`). */
+  shots?: (string | null)[][]
   /** Pista de audio ya mezclada (relativa). */
   audio: string
   /** Ruta relativa de gsap.min.js. */
