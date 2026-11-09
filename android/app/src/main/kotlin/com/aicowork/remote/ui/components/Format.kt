@@ -125,6 +125,7 @@ object Labels {
         "qwen" -> "Qwen"
         "ollama" -> t("Ollama (local)")
         "lmstudio" -> t("LM Studio (local)")
+        "colibri" -> t("Colibri (local)")
         "hermes" -> "Hermes"
         "muse" -> "Muse Code"
         else -> provider

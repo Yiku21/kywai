@@ -115,6 +115,7 @@ const api: CoworkApi = {
   fixClaudeDirect: () => ipcRenderer.invoke('cowork:fixClaudeDirect'),
   listLocalEngines: () => ipcRenderer.invoke('cowork:listLocalEngines'),
   startLocalServer: (engine) => ipcRenderer.invoke('cowork:startLocalServer', engine),
+  setColibriUrl: (url) => ipcRenderer.invoke('cowork:setColibriUrl', url),
   pullLocalModel: (model, agentId) => ipcRenderer.invoke('cowork:pullLocalModel', model, agentId),
   cancelLocalPull: () => ipcRenderer.invoke('cowork:cancelLocalPull'),
   setLocalAgent: (input) =>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { Check, Cpu, Download, Loader2, Play, RefreshCw, X } from 'lucide-react'
+import { Check, Cpu, Download, ExternalLink, Loader2, Play, RefreshCw, X } from 'lucide-react'
 import type { AgentConfig, LocalEngine, LocalEngineStatus, LocalModel } from '@shared/types'
+import { LOCAL_ENGINES, LOCAL_ENGINE_LABEL, isLocalEngine } from '@shared/localEngines'
 import { api } from '@/lib/api'
 import { fileSize } from '@/lib/format'
 import { useCowork } from '@/store/cowork'
@@ -10,13 +11,15 @@ import q from './QuotaPopover.module.css'
 import s from './LocalConfig.module.css'
 import { t } from '@/lib/i18n'
 
-const ENGINE_LABEL: Record<LocalEngine, string> = { lmstudio: 'LM Studio', ollama: 'Ollama' }
+const ENGINE_LABEL = LOCAL_ENGINE_LABEL
+
+const COLIBRI_REPO = 'https://github.com/JustVugg/colibri'
 
 /** Sugerencias para descargar con Ollama (se puede escribir cualquier otro). */
 const OLLAMA_SUGGESTIONS = ['qwen3:14b', 'qwen3:8b', 'qwen3:4b', 'gemma3:12b', 'llama3.1:8b']
 
 function isLocal(a: AgentConfig): boolean {
-  return a.provider === 'ollama' || a.provider === 'lmstudio'
+  return isLocalEngine(a.provider)
 }
 
 /** Nombre sugerido para el agente según la familia del modelo. */
@@ -36,7 +39,7 @@ function suggestName(model: LocalModel): string | null {
 
 /** Etiqueta corta del modelo para la tarjeta del robot. */
 function shortLabel(engine: LocalEngine, model: LocalModel): string {
-  if (engine === 'lmstudio') return model.label.slice(0, 24)
+  if (engine !== 'ollama') return model.label.slice(0, 24)
   const [name, tag] = model.id.split(':')
   const pretty = name.replace(/(^|[-_.])(\w)/g, (_, sep: string, c: string) => `${sep === '' ? '' : ' '}${c.toUpperCase()}`)
   return `${pretty}${tag && tag !== 'latest' ? ` ${tag.toUpperCase()}` : ''}`.slice(0, 24)
@@ -45,6 +48,8 @@ function shortLabel(engine: LocalEngine, model: LocalModel): string {
 /** Configuración del agente local: motor, modelo, nombre, descarga y límite de uso. */
 export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited: boolean }) {
   const configAgents = useCowork((st) => st.config.agents)
+  const colibriUrl = useCowork((st) => st.config.colibriUrl) ?? ''
+  const [url, setUrl] = useState(colibriUrl)
   const pull = useCowork((st) => st.localPull)
   const agent = useMemo(() => configAgents.find((a) => a.enabled && isLocal(a) && a.quotaGroupId === groupId), [configAgents, groupId])
 
@@ -54,7 +59,9 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
   const [choice, setChoice] = useState<string>(agent?.model ?? '')
   const [name, setName] = useState(agent?.name ?? '')
   const [download, setDownload] = useState('')
-  const [busy, setBusy] = useState<null | 'save' | 'start' | 'unlimited' | 'pull'>(null)
+  const [busy, setBusy] = useState<null | 'save' | 'start' | 'unlimited' | 'pull' | 'url' | 'install'>(null)
+  const [confirmInstall, setConfirmInstall] = useState(false)
+  const setupLog = useCowork((st) => st.setupLog)
   const [msg, setMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
 
   const refresh = useCallback(async () => {
@@ -79,6 +86,8 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
   }, [pull?.status, refresh])
 
   if (!api || !agent) return null
+
+  const installLine = [...setupLog].reverse().find((l) => l.toolId === engine)?.line ?? ''
 
   const status = engines?.find((e) => e.engine === engine)
   const models = status?.models ?? []
@@ -117,6 +126,43 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
       await api.startLocalServer(engine)
       await refresh()
       setMsg({ tone: 'ok', text: t('Servidor de {engine} encendido.', { engine: ENGINE_LABEL[engine] }) })
+    } catch (e) {
+      setMsg({ tone: 'error', text: errorText(e) })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function saveUrl(): Promise<void> {
+    if (!api?.setColibriUrl || busy) return
+    setBusy('url')
+    setMsg(null)
+    try {
+      await api.setColibriUrl(url.trim())
+      await refresh()
+      setMsg({ tone: 'ok', text: url.trim() ? t('Dirección guardada: kywai usará ese servidor.') : t('Vuelve a usar la dirección de la instalación de Colibri.') })
+    } catch (e) {
+      setMsg({ tone: 'error', text: errorText(e) })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  /** Instala el motor como el asistente instala los agentes (Homebrew, winget o su propio instalador). */
+  async function install(): Promise<void> {
+    if (!api || busy) return
+    // Colibri descarga un modelo de 19 GB o más: se pide un segundo toque.
+    if (engine === 'colibri' && !confirmInstall) {
+      setConfirmInstall(true)
+      return
+    }
+    setConfirmInstall(false)
+    setBusy('install')
+    setMsg(null)
+    try {
+      const r = await api.setupInstall(engine)
+      await refresh()
+      setMsg({ tone: r.ok ? 'ok' : 'error', text: r.ok ? t('{engine} instalado. Elige el modelo abajo.', { engine: ENGINE_LABEL[engine] }) : r.message })
     } catch (e) {
       setMsg({ tone: 'error', text: errorText(e) })
     } finally {
@@ -164,7 +210,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
       </div>
 
       <div className={s.engines} role="tablist" aria-label={t('Motor local')}>
-        {(['lmstudio', 'ollama'] as LocalEngine[]).map((en) => {
+        {LOCAL_ENGINES.map((en) => {
           const st = engines?.find((e) => e.engine === en)
           const state = !st ? 'unknown' : !st.installed ? 'missing' : st.running ? 'on' : 'off'
           return (
@@ -176,6 +222,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
               className={cx(s.engine, engine === en && s.engineOn)}
               onClick={() => {
                 setEngine(en)
+                setConfirmInstall(false)
                 setChoice(agent.provider === en ? agent.model : '')
                 setMsg(null)
               }}
@@ -191,14 +238,43 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
       </div>
 
       {status && !status.installed && (
-        <p className={q.muted}>{ENGINE_LABEL[engine]} {t('no está instalado en este equipo.')}</p>
+        <div className={s.notice}>
+          <span>
+            {ENGINE_LABEL[engine]} {t('no está instalado en este equipo.')}{' '}
+            {engine === 'colibri'
+              ? confirmInstall
+                ? t('Descarga el motor y el modelo recomendado para este equipo (19 GB o más, puede tardar horas; si se corta, vuelve a pulsar y sigue). Pulsa otra vez para empezar.')
+                : t('kywai lo instala con el modelo que mejor cabe en este equipo. También puedes escribir abajo la dirección de otro servidor compatible con OpenAI.')
+              : engine === 'lmstudio'
+                ? t('kywai lo instala y lo abre una vez para que prepare su servidor.')
+                : t('kywai lo instala y lo deja en marcha.')}{' '}
+            {engine === 'colibri' && (
+              <button type="button" className={s.link} onClick={() => void api!.openExternal(COLIBRI_REPO)}>
+                {t('Más información')} <ExternalLink size={11} aria-hidden="true" />
+              </button>
+            )}
+          </span>
+          <button type="button" className={cx(u.btn, u.btnSm, confirmInstall && u.btnPrimary)} onClick={() => void install()} disabled={!!busy}>
+            {busy === 'install' ? <Loader2 size={13} className={s.spin} aria-hidden="true" /> : <Download size={13} aria-hidden="true" />}
+            {busy === 'install' ? t('Instalando…') : confirmInstall ? t('Sí, instalar') : t('Instalar')}
+          </button>
+        </div>
+      )}
+      {busy === 'install' && installLine && (
+        <p className={cx(q.muted, s.installLog)} role="status" aria-live="polite">
+          {installLine}
+        </p>
       )}
       {status?.installed && !status.running && (
         <div className={s.notice}>
           <span>
             {engine === 'lmstudio'
               ? t('El servidor local de LM Studio está apagado: el agente no puede trabajar hasta encenderlo.')
-              : t('Ollama no está en ejecución: abre la aplicación de Ollama.')}
+              : engine === 'colibri'
+                ? status.canStart
+                  ? t('Colibri está apagado. Al encenderlo carga el modelo desde el disco, que puede tardar unos minutos.')
+                  : t('No responde ningún servidor en esa dirección: enciéndelo desde su propio programa.')
+                : t('Ollama no está en ejecución: abre la aplicación de Ollama.')}
           </span>
           {status.canStart && (
             <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void startServer()} disabled={!!busy}>
@@ -215,7 +291,9 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
             <p className={q.muted}>
               {engine === 'lmstudio'
                 ? t('No hay modelos descargados. Descárgalos desde la aplicación de LM Studio y pulsa ⟳.')
-                : t('No hay modelos descargados. Escribe uno abajo para descargarlo.')}
+                : engine === 'colibri'
+                  ? t('Colibri no tiene ningún modelo listo. Elige uno con «./start-here.sh --reconfigure» y pulsa ⟳.')
+                  : t('No hay modelos descargados. Escribe uno abajo para descargarlo.')}
             </p>
           ) : (
             models.map((m) => {
@@ -277,6 +355,30 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
             </div>
           </label>
           <p className={q.muted}>{t('Los modelos grandes razonan mejor pero necesitan más memoria de vídeo.')}</p>
+        </div>
+      )}
+
+      {engine === 'colibri' && (
+        <div className={s.pull}>
+          <label className={q.field}>
+            <span>{t('Dirección del servidor')}</span>
+            <div className={s.pullRow}>
+              <input
+                className={q.input}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="http://127.0.0.1:8000"
+                spellCheck={false}
+                autoCapitalize="off"
+              />
+              <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void saveUrl()} disabled={url.trim() === colibriUrl || !!busy}>
+                {busy === 'url' ? <Loader2 size={13} className={s.spin} aria-hidden="true" /> : <Check size={13} aria-hidden="true" />} {t('Guardar')}
+              </button>
+            </div>
+          </label>
+          <p className={q.muted}>
+            {t('Vacía: la de la instalación de Colibri. Sirve también para otro servidor compatible con OpenAI (llama.cpp, MLX…). Colibri es lento con los modelos gigantes: en un equipo normal, mejor uno mediano como Qwen3.6-35B-A3B.')}
+          </p>
         </div>
       )}
 

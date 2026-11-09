@@ -115,7 +115,7 @@ async function work(o: RunAgentOptions): Promise<RunAgentResult> {
 
 const cfg = loadConfig()
 // Todos «instalados»; el coordinador planifica sin modelo.
-cfg.agents = cfg.agents.map((a) => ({ ...a, enabled: a.provider !== 'ollama' && a.provider !== 'lmstudio' }))
+cfg.agents = cfg.agents.map((a) => ({ ...a, enabled: a.provider !== 'ollama' && a.provider !== 'lmstudio' && a.provider !== 'colibri' }))
 store.initProjects(cfg.workspaceRoot)
 store.ensureFirstProject()
 mkdirSync(cfg.workspaceRoot, { recursive: true })

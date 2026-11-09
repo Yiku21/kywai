@@ -143,6 +143,7 @@ private fun part1(m: HashMap<String, String>) {
     m["Demostración"] = "Démo"
     m["Sin datos"] = "Pas de données"
     m["Ollama (local)"] = "Ollama (local)"
+    m["Colibri (local)"] = "Colibri (local)"
     m["LM Studio (local)"] = "LM Studio (local)"
     m["Sin petición"] = "Aucune demande"
     m["Petición {v1}"] = "Demande {v1}"

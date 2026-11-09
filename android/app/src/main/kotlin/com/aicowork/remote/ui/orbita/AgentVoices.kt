@@ -43,6 +43,7 @@ object Voices {
         "qwen" to VoiceProfile(247.0, Wave.Sawtooth, 11.0, 0.035, 0.95), // grave y lento
         "ollama" to VoiceProfile(233.0, Wave.Sawtooth, 11.0, 0.035, 0.95),
         "lmstudio" to VoiceProfile(262.0, Wave.Sawtooth, 11.0, 0.035, 0.95),
+        "colibri" to VoiceProfile(330.0, Wave.Sawtooth, 12.0, 0.035, 0.95),
     )
 
     /** Mismo hash que el escritorio (FNV-1a): un proveedor desconocido recibe siempre la misma voz. */

@@ -320,6 +320,7 @@ const PROVIDER_AVATAR: Record<string, RobotAvatar> = {
   ollama: { body: 'egg', accessory: 'none', eyes: 'pill', logo: 'qwen', eyeColor: '#ecdcff' },
   qwen: { body: 'egg', accessory: 'none', eyes: 'pill', logo: 'qwen', eyeColor: '#ecdcff' },
   lmstudio: { body: 'egg', accessory: 'none', eyes: 'pill', logo: 'local', eyeColor: '#ecdcff' },
+  colibri: { body: 'egg', accessory: 'none', eyes: 'pill', logo: 'local', eyeColor: '#c8f7e1' },
   hermes: { body: 'dome', accessory: 'hair', eyes: 'round', logo: 'hermes', eyeColor: '#ffc65a', accentColor: '#141419', trimColor: '#d6a743' },
   claude: { body: 'blob', accessory: 'tuft', eyes: 'arc', logo: 'claude', eyeColor: '#fff0c8' },
   codex: { body: 'cube', accessory: 'vents', eyes: 'chevron', logo: 'openai', eyeColor: '#8cffd0' },
