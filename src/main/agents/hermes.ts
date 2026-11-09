@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { AUTH_RE, QUOTA_RE, clip, looksMissing, runCli, safeModel, stderrSummary } from './spawn'
 import { EMPTY_USAGE, type JsonlParser, type RunAgentOptions, type RunAgentResult } from './types'
 import { tr } from '@shared/i18n'
+import { hermesOwnToolsets } from '../hermesModels'
 
 /** Para planificar, solo herramientas de consulta: nada de archivos, terminal ni subagentes propios. */
 export const HERMES_PLAN_TOOLSETS = 'web,memory,skills,todo,session_search'
@@ -88,7 +89,8 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
   try {
     const res = await runCli({
       command: 'hermes',
-      args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, opts.extraMcp?.names),
+      // Al trabajar, también sus propios MCP y plugins (los de su config.yaml), además de los de Extensiones.
+      args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, [...new Set([...(opts.extraMcp?.names ?? []), ...(opts.mode === 'work' ? hermesOwnToolsets() : [])])]),
       ...(opts.mode === 'work' && opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
       cwd: opts.cwd,
       stdin: '',

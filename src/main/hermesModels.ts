@@ -141,6 +141,66 @@ export function hermesModelsInfo(agent: AgentConfig | undefined, home = hermesHo
   }
 }
 
+/**
+ * Las herramientas propias de Hermes que el usuario configuró en su config.yaml (en Hermes Desktop o con `hermes`):
+ * sus servidores MCP (`mcp_servers:`, salvo los que tienen `enabled: false`) y sus plugins encendidos
+ * (`plugins: enabled:`). kywai lanza a Hermes con una lista cerrada de herramientas (-t), así que sin añadir estos
+ * nombres no los usaría al trabajar.
+ */
+export function parseHermesToolsets(yaml: string): { mcp: string[]; plugins: string[] } {
+  const mcp: string[] = []
+  const off = new Set<string>()
+  const plugins: string[] = []
+  let section = ''
+  let entry = ''
+  let inEnabled = false
+  for (const raw of yaml.split(/\r?\n/)) {
+    if (!raw.trim() || raw.trimStart().startsWith('#')) continue
+    const indent = raw.length - raw.trimStart().length
+    if (indent === 0) {
+      section = (/^([\w.\-]+):/.exec(raw) ?? [])[1] ?? ''
+      entry = ''
+      inEnabled = false
+      continue
+    }
+    if (section === 'mcp_servers') {
+      const m = /^\s*([\w.\-]+):\s*(.*)$/.exec(raw)
+      if (indent === 2 && m) {
+        entry = m[1]
+        mcp.push(entry)
+      } else if (indent === 4 && m && entry && m[1] === 'enabled' && /^(false|no|off)$/i.test(unquote(m[2]))) {
+        off.add(entry)
+      }
+    } else if (section === 'plugins') {
+      const m = /^\s*([\w.\-]+):\s*(.*)$/.exec(raw)
+      if (indent === 2 && m) {
+        inEnabled = m[1] === 'enabled'
+        const inline = /^\[(.*)\]$/.exec(m[2].trim())
+        if (inEnabled && inline) plugins.push(...inline[1].split(',').map(unquote).filter(Boolean))
+      } else if (inEnabled) {
+        const item = /^\s*-\s*(.+)$/.exec(raw)
+        if (item) plugins.push(unquote(item[1]))
+      }
+    }
+  }
+  return { mcp: mcp.filter((n) => !off.has(n)), plugins }
+}
+
+/** Nombres de toolset que acepta -t (los de kywai usan la misma regla). */
+const TOOLSET_RE = /^[a-z][a-z0-9_-]{0,30}$/
+
+/** Los toolsets propios de Hermes (sus MCP y plugins) para añadir a -t al trabajar. */
+export function hermesOwnToolsets(home = hermesHome()): string[] {
+  const file = join(home, 'config.yaml')
+  if (!existsSync(file)) return []
+  try {
+    const { mcp, plugins } = parseHermesToolsets(readFileSync(file, 'utf8'))
+    return [...new Set([...mcp, ...plugins])].filter((n) => TOOLSET_RE.test(n))
+  } catch {
+    return []
+  }
+}
+
 /** Etiqueta corta del modelo («claude/claude-opus-5» → «claude-opus-5»). */
 export function hermesModelLabel(model: string): string {
   return model.split('/').filter(Boolean).pop() || model

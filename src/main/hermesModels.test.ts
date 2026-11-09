@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { hermesArgs } from './agents/hermes'
-import { hermesModelLabel, hermesModelsInfo, hermesProviders, parseHermesConfig } from './hermesModels'
+import { hermesModelLabel, hermesModelsInfo, hermesOwnToolsets, hermesProviders, parseHermesConfig, parseHermesToolsets } from './hermesModels'
 
 // Como el config.yaml y la caché reales de Hermes (sin claves).
 const CONFIG = `model:
@@ -106,6 +106,47 @@ providers:
       })
     } finally {
       rmSync(empty, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('herramientas propias de Hermes (su config.yaml)', () => {
+  // Como el de Hermes Desktop en Windows: un MCP con argumentos en línea, uno apagado y un plugin encendido.
+  const YAML = `mcp_servers:
+  godot-ai:
+    command: "C:\\\\Users\\\\yo\\\\pythonw.exe"
+    args: ["-c", "x", "--key: ***"]
+  viejo:
+    command: npx
+    enabled: false
+known_plugin_toolsets:
+  acp:
+    - homeassistant
+plugins:
+  enabled:
+    - homeassistant
+  disabled: []
+`
+
+  it('lee sus servidores MCP encendidos y sus plugins', () => {
+    expect(parseHermesToolsets(YAML)).toEqual({ mcp: ['godot-ai'], plugins: ['homeassistant'] })
+    expect(parseHermesToolsets('plugins:\n  enabled: [uno, "dos"]\n')).toEqual({ mcp: [], plugins: ['uno', 'dos'] })
+    expect(parseHermesToolsets('model:\n  default: x\n')).toEqual({ mcp: [], plugins: [] })
+  })
+
+  it('se añaden a -t al trabajar, no al planificar', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'hermes-tools-'))
+    try {
+      writeFileSync(join(dir, 'config.yaml'), YAML)
+      const own = hermesOwnToolsets(dir)
+      expect(own).toEqual(['godot-ai', 'homeassistant'])
+      const work = hermesArgs('/tmp/q.txt', '', 'work', undefined, own)
+      expect(work[work.indexOf('-t') + 1]).toBe('web,file,terminal,memory,skills,todo,vision,godot-ai,homeassistant')
+      const plan = hermesArgs('/tmp/q.txt', '', 'plan', undefined, own)
+      expect(plan[plan.indexOf('-t') + 1]).not.toContain('godot-ai')
+      expect(hermesOwnToolsets(join(dir, 'no-existe'))).toEqual([])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
     }
   })
 })
