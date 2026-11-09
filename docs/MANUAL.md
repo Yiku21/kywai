@@ -154,7 +154,17 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   Release (`src/main/updater.ts`). En Windows y en el AppImage la descargan y, si llega en los primeros 5 minutos
   desde que se abrió, la instalan y la app se reabre sola; si llega más tarde, se instala al cerrar. En el Mac, como
   no va firmada por Apple, no puede reemplazarse sola: avisa con «Descargar» y abre la página de la Release.
-- **«Buscar actualizaciones…»** en esas versiones no usa git: dice que se actualiza sola y lanza la comprobación.
+- **«Buscar actualizaciones…»** en esas versiones no usa git: pregunta a GitHub y espera la respuesta. Dice la versión
+  instalada y si es la última («Tienes la última versión (0.1.N), comprobado en GitHub») o si hay una nueva: en
+  Windows y en el AppImage se está descargando y el botón «Instalar y reiniciar» la instala ya (o en cuanto termine de
+  bajar); en el Mac, «Descargar» abre la Release. Aunque quede anotado un clon de git de una instalación anterior con
+  `instalar-linux.sh` o `instalar-mac.sh` (`source-dir.txt` en la carpeta de datos), la app de la Release lo ignora y
+  se actualiza desde GitHub.
+- **También en modo cliente.** Un Linux o un Mac con la app de la Release conectado a otro kywai busca igual su versión
+  nueva en GitHub al abrirse y cada 6 horas (antes no lo hacía: «Buscar actualizaciones» mira el servidor, que estaba
+  al día, y contestaba «Tienes la última versión» aunque este equipo fuera viejo). ⚙ → Ajustes → «Actualizar este
+  equipo…» también pregunta a GitHub: dice la versión, y un segundo toque la instala y reabre (AppImage) o abre la
+  descarga (Mac). Los clientes de Windows siguen actualizándose desde su servidor.
 - **Sin firma de código:** Windows avisa con SmartScreen («Más información» → «Ejecutar de todas formas»). En el Mac
   va firmada «ad hoc»: la primera vez, clic derecho → Abrir; si dice que está dañada,
   `xattr -cr "/Applications/kywai.app"`.
@@ -573,8 +583,8 @@ cuenta:
   **«Actualizar este equipo…»** (primero busca; si la hay, un segundo toque la descarga del servidor, la instala y
   reinicia). El emparejamiento se mantiene.
 
-Hoy es solo para clientes Windows; en el Mac el cliente se actualiza con `scripts/actualizar-mac.sh` y en Linux con
-`scripts/actualizar-linux.sh`. Un cliente
+Hoy es solo para clientes Windows. Un cliente Linux o Mac descargado de la Release se actualiza desde GitHub (ver
+«Descargar la versión lista (GitHub Releases)»); uno compilado en el equipo, con `scripts/actualizar-mac.sh` o `scripts/actualizar-linux.sh`. Un cliente
 instalado antes de este sistema hay que cambiarlo una vez a mano.
 
 ### Dictado por voz
