@@ -196,7 +196,8 @@ function showView(next: View): void {
   const w = ensureWindow()
   const onLocal = w.webContents.getURL().startsWith('data:')
   if (onLocal) sendView()
-  else void w.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(localizedPage())}`)
+  // Si otra carga la interrumpe (por ejemplo, la del servidor), la promesa falla con ERR_ABORTED: no es un error.
+  else w.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(localizedPage())}`).catch(() => undefined)
   if (next.name === 'offline') retryTimer = setInterval(() => void openServer(), 5000)
 }
 
@@ -313,7 +314,17 @@ async function openServer(): Promise<void> {
     expirationDate: Math.floor(Date.now() / 1000) + 365 * 24 * 3600
   })
   win!.setTitle(`kywai · ${server.name}`)
-  await win!.loadURL(`${server.origin}/`)
+  try {
+    await win!.loadURL(`${server.origin}/`)
+  } catch (e) {
+    // La carga se cortó: el servidor rechazó la llave (401) o falló a medias, y ya se está mostrando la pantalla
+    // de conectar o «Sin conexión» (que reintenta sola). Antes este fallo tumbaba el arranque con «No se pudo iniciar».
+    console.warn('[cliente] no se pudo cargar la interfaz del servidor', (e as Error).message)
+    if (win && !win.isDestroyed() && !win.webContents.getURL().startsWith('data:') && !win.webContents.isLoading()) {
+      showView({ name: 'offline', server: { name: server.name, origin: server.origin }, message: tr('No se pudo cargar kywai desde el servidor.') })
+    }
+    return
+  }
   scheduleUpdateChecks()
   syncManager().start()
 }
@@ -734,7 +745,12 @@ export async function bootClient(): Promise<void> {
   buildMenu()
   startedWith = readClientFile(clientFilePath())?.server?.origin ?? null
   showView({ name: 'opening', message: tr('Conectando con el servidor…') })
-  await openServer()
+  // Pase lo que pase al conectar, la app no se cierra: se queda en «Sin conexión» y reintenta.
+  await openServer().catch((e) => {
+    console.warn('[cliente] fallo al abrir el servidor', (e as Error).message)
+    const s = readClientFile(clientFilePath())?.server
+    if (s) showView({ name: 'offline', server: { name: s.name, origin: s.origin }, message: tr('No se pudo cargar kywai desde el servidor.') })
+  })
 }
 
 /** Cierra la ventana de elegir modo cuando ya hay otra (el arranque de servidor crea la suya). */
