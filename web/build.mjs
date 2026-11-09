@@ -69,6 +69,24 @@ for (const idioma of IDIOMAS) {
     hreflangs,
     langLinks,
     langsJson,
+    jsonld: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'kywai',
+      alternateName: 'AI Cowork',
+      url: SITIO + idioma.dir,
+      description: t['meta.desc'],
+      inLanguage: idioma.hreflang,
+      applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Windows, macOS, Linux, Android',
+      license: 'https://opensource.org/licenses/MIT',
+      isAccessibleForFree: true,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      image: SITIO + 'assets/og.png',
+      downloadUrl: RELEASES,
+      codeRepository: 'https://github.com/Yiku21/kywai',
+      sameAs: ['https://github.com/Yiku21/kywai', 'https://ko-fi.com/yilsander'],
+    }).replace(/</g, '\\u003c'),
     logoDefs,
     logoViewBox,
     logoRatio: `${logoW} / ${logoH}`,
@@ -91,8 +109,11 @@ if (!PREVIEW) {
   writeFileSync(join(SALIDA, 'CNAME'), 'kywai.app\n')
   writeFileSync(join(SALIDA, '.nojekyll'), '')
   writeFileSync(join(SALIDA, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITIO}sitemap.xml\n`)
-  const urls = IDIOMAS.map((o) => `  <url><loc>${SITIO}${o.dir}</loc></url>`).join('\n')
-  writeFileSync(join(SALIDA, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`)
+  // Cada idioma enlaza a sus traducciones (hreflang) para que Google muestre la de cada país.
+  const hoy = new Date().toISOString().slice(0, 10)
+  const alternos = IDIOMAS.map((o) => `    <xhtml:link rel="alternate" hreflang="${o.hreflang}" href="${SITIO}${o.dir}"/>`).join('\n')
+  const urls = IDIOMAS.map((o) => `  <url>\n    <loc>${SITIO}${o.dir}</loc>\n    <lastmod>${hoy}</lastmod>\n${alternos}\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITIO}"/>\n  </url>`).join('\n')
+  writeFileSync(join(SALIDA, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls}\n</urlset>\n`)
   writeFileSync(join(SALIDA, '404.html'), `<!doctype html><meta charset="utf-8"><title>Kywai</title><meta http-equiv="refresh" content="0; url=/"><a href="/">kywai.app</a>`)
 }
 
