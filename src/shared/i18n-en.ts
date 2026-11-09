@@ -2878,4 +2878,8 @@ export const en: Record<string, string> = {
   "Órdenes: elige una o sigue escribiendo para filtrar": "Commands: pick one or keep typing to filter",
   "Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)": "Installing the video studio (first time only; takes a few minutes)",
   "El código mínimo que resuelve la tarea: reutilizar antes que escribir, sin extras que nadie pidió (MIT).": "The least code that solves the task: reuse before writing, no extras nobody asked for (MIT).",
+  "Código escueto (Ponytail)": "Lean code (Ponytail)",
+  "Descargando las reglas de Ponytail…": "Downloading the Ponytail rules…",
+  "Los agentes escriben el código mínimo que resuelve la tarea, sin extras que nadie pidió, y el verificador señala lo que sobra. No recorta pruebas ni verificación.": "Agents write the least code that solves the task, with no extras nobody asked for, and the verifier points out what is left over. It does not cut tests or verification.",
+  "Sin carpeta de trabajo": "No working folder",
 }

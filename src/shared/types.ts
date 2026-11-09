@@ -916,6 +916,8 @@ export interface ProjectState {
   memory?: MemoryEntry[]
   /** Instrucciones del usuario para todos los agentes de este proyecto (cómo probar, estilo, qué no tocar…). */
   instructions?: string
+  /** «Código escueto (Ponytail)»: los agentes reciben las reglas de Ponytail (el código mínimo que resuelve la tarea). */
+  leanCode?: boolean
   /** Rutinas: peticiones que se lanzan solas (a una hora, por webhook o al cambiar archivos). */
   routines?: Routine[]
   /** Ejecución en curso al abrir el proyecto (la más reciente; no se guarda). */
@@ -1313,7 +1315,7 @@ export type CoworkEvent = EventBase &
     | { kind: 'conversations.updated'; projectId: string }
     | { kind: 'usage.run'; run: UsageRun }
     | { kind: 'task.trace'; taskId: string; projectId: string; entry: TraceEntry }
-    | { kind: 'memory.updated'; projectId: string; memory: MemoryEntry[]; instructions: string }
+    | { kind: 'memory.updated'; projectId: string; memory: MemoryEntry[]; instructions: string; leanCode?: boolean }
     | { kind: 'routines.updated'; projectId: string; routines: Routine[] }
     | { kind: 'templates.updated'; templates: TaskTemplate[] }
     | { kind: 'project.deleted'; projectId: string }
@@ -1504,6 +1506,8 @@ export interface CoworkApi {
   updateMemory(projectId: string, id: string, patch: Partial<MemoryInput> & { status?: MemoryStatus }): Promise<void>
   deleteMemory(projectId: string, id: string): Promise<void>
   setInstructions(projectId: string, text: string): Promise<void>
+  /** Enciende o apaga «Código escueto (Ponytail)» en el proyecto; al encenderlo descarga sus reglas si no están. */
+  setLeanCode(projectId: string, on: boolean): Promise<void>
   /** Rutinas del proyecto (los cambios llegan por eventos routines.updated, sin el secreto del webhook). */
   createRoutine(projectId: string, input: RoutineInput): Promise<Routine>
   /** Cambia nombre, petición, disparador o la activa/desactiva. */

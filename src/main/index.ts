@@ -85,7 +85,8 @@ import {
 } from './orchestrator'
 import { createTemplate, deleteTemplate, forgetProjectTemplates, initTemplates, listTemplates, restoreBuiltinTemplates, updateTemplate } from './templates'
 import { createRoutine, deleteRoutine, initRoutines, publicRoutines, routineWebhook, runRoutineNow, stopRoutines, updateRoutine } from './routines'
-import { addMemory, deleteMemory, isMemoryKind, setInstructions, updateMemory } from './memory'
+import { addMemory, deleteMemory, isMemoryKind, setInstructions, setLeanCode, updateMemory } from './memory'
+import { ensurePonytail, initPonytail } from './ponytail'
 import { initUpdater } from './updater'
 import * as store from './projects'
 import * as conversations from './conversations'
@@ -657,6 +658,11 @@ function registerIpc(): void {
     if (typeof text !== 'string') throw new Error(tr('Instrucciones no válidas'))
     setInstructions(projectArg(projectId), text)
   })
+  handle('setLeanCode', async (projectId: unknown, on: unknown) => {
+    const id = projectArg(projectId)
+    if (on === true) await ensurePonytail()
+    setLeanCode(id, on === true)
+  })
   // Plantillas de tareas (la fila de botones de encima del chat y «/orden …»): de todos los proyectos o de uno.
   handle('listTemplates', () => listTemplates())
   handle('createTemplate', (input: unknown) => createTemplate(input))
@@ -1071,6 +1077,7 @@ async function boot(): Promise<void> {
   initImports(cfg.workspaceRoot)
   initInbox(cfg.workspaceRoot)
   initSkills(cfg.workspaceRoot)
+  initPonytail(cfg.workspaceRoot)
   initVideoStudio(cfg.workspaceRoot)
   initExtensions(new McpRegistry(join(app.getPath('userData'), 'mcp-servers.json'), systemCipher))
   initPlugins(app.getPath('userData'))
