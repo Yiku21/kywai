@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, Brain, CalendarClock, Gauge, ImagePlus, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Square, SquareSlash, X } from 'lucide-react'
+import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, ImagePlus, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
 import type { CoworkApi, HttpsLink, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
@@ -14,7 +14,7 @@ import { useComposer } from './composerStore'
 import { describeTrigger, describeWhen, parseRoutineCommand } from '@shared/routines'
 import { mentionMatches, mentionQuery, mentionText } from '@shared/directMessage'
 import { commandQuery, templatesFor } from '@shared/templates'
-import { commandSuggestions, REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
+import { commandSuggestions, REMEMBER_COMMAND, rememberInput, type CommandIcon } from '@shared/chatCommands'
 import { useMods } from './ModsView'
 import { TemplateBar } from './TemplateBar'
 import u from '../common/ui.module.css'
@@ -34,6 +34,24 @@ const QUOTA_COMMAND = /^\/(usage|uso|cuotas?|quotas?|limits?)$/i
 const MODEL_COMMAND = /^\/(model|models|modelo|modelos)$/i
 /** «/rutina cada día a las 9:00: …»: crea una rutina del proyecto (no va a los agentes). Sola, abre la pestaña Rutinas. */
 const ROUTINE_COMMAND = /^\/(rutina|rutinas|routine)\b/i
+
+/** Los iconos de la lista del «/»: de línea, como el resto de la app (sin emojis ni animaciones). */
+const COMMAND_ICONS: Record<CommandIcon, LucideIcon> = {
+  video: Clapperboard,
+  routine: CalendarClock,
+  direct: AtSign,
+  memory: Brain,
+  model: Cpu,
+  usage: Gauge,
+  new: SquarePen,
+  template: LayoutTemplate,
+  mod: Puzzle
+}
+
+function CommandGlyph({ icon }: { icon: CommandIcon }) {
+  const Icon = COMMAND_ICONS[icon]
+  return <Icon size={15} strokeWidth={1.75} />
+}
 
 function micError(e: unknown): string {
   const name = (e as { name?: string })?.name
@@ -591,7 +609,7 @@ export function Composer() {
                   onMouseEnter={() => setMentionIdx(i)}
                 >
                   <span className={s.cmdIcon} aria-hidden="true">
-                    {c.icon || (c.kind === 'builtin' ? <SquareSlash size={14} /> : c.kind === 'mod' ? <Puzzle size={14} /> : <LayoutTemplate size={14} />)}
+                    <CommandGlyph icon={c.icon} />
                   </span>
                   <span className={s.cmdName}>
                     <span className={s.mentionName}>/{c.command}</span>
