@@ -31,6 +31,8 @@ const IS_MAC = process.platform === 'darwin'
 export const HYPERFRAMES_VERSION = '0.9.26'
 export const GSAP_VERSION = '3.13.0'
 const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image'
+/** Voz de Gemini (la misma clave que las imágenes): se prueba en orden por si alguno deja de existir. */
+const GEMINI_TTS_MODELS = ['gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-tts']
 
 let root = ''
 
@@ -136,8 +138,9 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
     systemVoice()
   ])
   const engine = !!root && existsSync(bin('hyperframes')) && existsSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js'))
-  const voice = kokoro ? 'kokoro' : sys ? 'system' : null
-  return { engine, ffmpeg: ffmpeg && ffprobe, voice, images: geminiApiKey() ? 'gemini' : null, node, python, ready: engine && ffmpeg && ffprobe }
+  const key = !!geminiApiKey()
+  const voice = key ? 'gemini' : kokoro ? 'kokoro' : sys ? 'system' : null
+  return { engine, ffmpeg: ffmpeg && ffprobe, voice, kokoro, images: key ? 'gemini' : null, node, python, ready: engine && ffmpeg && ffprobe }
 }
 
 /**
@@ -246,6 +249,53 @@ async function speak(text: string, lang: string, out: string, useKokoro: boolean
   if (c.code !== 0) throw new Error(`No se pudo convertir la voz: ${c.out.trim().slice(-300)}`)
 }
 
+/**
+ * Voz de Gemini: mucho más humana que Kokoro y con el tono que se le pide (con humor, con energía). Devuelve false si no
+ * sale (sin red, cuota, modelo retirado): entonces todo el vídeo va con Kokoro, para que no mezcle voces.
+ */
+async function geminiSpeak(text: string, tone: string, voiceName: string, out: string, key: string, signal?: AbortSignal): Promise<boolean> {
+  for (const model of GEMINI_TTS_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (signal?.aborted) return false
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `${tone}: ${text}` }] }],
+            generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } }
+          }),
+          signal: signal ?? AbortSignal.timeout(120_000)
+        })
+        if (res.status === 404) break
+        if (!res.ok) {
+          // Cuota por minuto: espera un poco y reintenta.
+          if (res.status === 429) await new Promise((r) => setTimeout(r, 8000))
+          continue
+        }
+        const json = (await res.json()) as { candidates?: { content?: { parts?: { inlineData?: { data?: string; mimeType?: string } }[] } }[] }
+        const part = json.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data)
+        if (!part?.inlineData?.data) continue
+        const rate = /rate=(\d+)/.exec(part.inlineData.mimeType ?? '')?.[1] ?? '24000'
+        const pcm = `${out}.pcm`
+        writeFileSync(pcm, Buffer.from(part.inlineData.data, 'base64'))
+        const c = await run('ffmpeg', ['-y', '-v', 'error', '-f', 's16le', '-ar', rate, '-ac', '1', '-i', pcm, '-ar', '48000', '-ac', '1', out], { timeoutMs: 60_000, signal })
+        if (c.code === 0 && existsSync(out)) return true
+      } catch {
+        /* reintenta */
+      }
+    }
+  }
+  return false
+}
+
+/** Cómo debe sonar cada escena (instrucción para la voz de Gemini, en inglés: la entiende mejor). */
+function voiceTone(style: VideoScript['style'], joke: boolean): string {
+  if (joke) return 'Say this as a joke, playful and funny, with a little laugh, like a friendly YouTuber'
+  if (style === 'cartoon') return 'Say this warmly and with energy, like a friendly, upbeat YouTuber explaining a tutorial to a friend, natural and smiling'
+  return 'Say this fast and punchy, full of energy, like a viral short-video creator hooking the viewer'
+}
+
 /** Imagen de una escena con Gemini (o null si no hay clave o falla: la escena va con fondo de diseño). */
 async function geminiImage(prompt: string, format: VideoFormat, out: string, key: string, cartoon: boolean, signal?: AbortSignal): Promise<boolean> {
   // En cartoon todas las ilustraciones piden el mismo estilo, para que el vídeo se vea de una pieza.
@@ -304,7 +354,7 @@ export interface RenderedVideo {
   height: number
   /** Escenas con imagen generada. */
   images: number
-  voice: 'kokoro' | 'system'
+  voice: 'gemini' | 'kokoro' | 'system'
 }
 
 /**
@@ -332,43 +382,77 @@ export async function renderVideo(input: {
   copyFileSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js'), join(dir, 'assets', 'gsap.min.js'))
   writeFileSync(join(dir, 'guion.json'), JSON.stringify({ format, ...script }, null, 2))
 
-  // 1. Voz (de una en una: Kokoro ya usa todos los núcleos).
-  const voices: string[] = []
-  const durations: number[] = []
-  for (let i = 0; i < script.scenes.length; i++) {
-    if (signal?.aborted) throw new Error('Cancelada')
-    step('Poniendo la voz ({n} de {total})', 0.05 + (0.3 * i) / script.scenes.length, { n: i + 1, total: script.scenes.length })
-    const out = join(dir, 'assets', `voz-${i + 1}.wav`)
-    await speak(spokenText(script.scenes[i].narration), script.lang, out, status.voice === 'kokoro', signal)
-    voices.push(out)
-    durations.push(await duration(out))
-  }
-  const tl = buildTimeline(durations)
-
-  // 2. Imágenes (tres a la vez).
-  const images: (string | null)[] = script.scenes.map(() => null)
-  // En cartoon la ilustración va en una tarjeta apaisada también en vertical.
   const cartoon = script.style === 'cartoon'
   const key = geminiApiKey()
-  if (key) {
-    step('Creando las imágenes', 0.38)
+  const n = script.scenes.length
+  let spoken = 0
+  const voiceStep = (): void => step('Poniendo la voz ({n} de {total})', 0.05 + (0.45 * spoken) / n, { n: Math.min(n, spoken + 1), total: n })
+
+  // 1. Voz e imágenes a la vez (lo que más tarda).
+  const voices = script.scenes.map((_, i) => join(dir, 'assets', `voz-${i + 1}.wav`))
+  let voiceUsed: RenderedVideo['voice'] = 'kokoro'
+  const doVoices = async (): Promise<void> => {
+    // Gemini (dos a la vez); si una escena no sale, todo el vídeo con Kokoro o la del sistema, para no mezclar voces.
+    if (key) {
+      let next = 0
+      let failed = false
+      const worker = async (): Promise<void> => {
+        while (next < n && !failed && !signal?.aborted) {
+          const i = next++
+          const sc = script.scenes[i]
+          const voiceName = cartoon ? 'Puck' : 'Fenrir'
+          if (await geminiSpeak(spokenText(sc.narration), voiceTone(script.style, !!sc.joke), voiceName, voices[i], key, signal)) {
+            spoken++
+            voiceStep()
+          } else failed = true
+        }
+      }
+      voiceStep()
+      await Promise.all([worker(), worker()])
+      if (!failed && !signal?.aborted) {
+        voiceUsed = 'gemini'
+        return
+      }
+      spoken = 0
+    }
+    voiceUsed = status.kokoro ? 'kokoro' : 'system'
+    // De una en una: Kokoro ya usa todos los núcleos.
+    for (let i = 0; i < n; i++) {
+      if (signal?.aborted) throw new Error('Cancelada')
+      voiceStep()
+      await speak(spokenText(script.scenes[i].narration), script.lang, voices[i], status.kokoro, signal)
+      spoken++
+    }
+  }
+
+  // Imágenes (tres a la vez). En cartoon, cada escena puede tener varios planos.
+  const shotPrompts = script.scenes.map((sc) => (cartoon ? (sc.shots?.length ? sc.shots : sc.image ? [sc.image] : []) : sc.image ? [sc.image] : []))
+  const shots: (string | null)[][] = shotPrompts.map((list) => list.map(() => null))
+  const doImages = async (): Promise<void> => {
+    if (!key) return
+    const jobs = shotPrompts.flatMap((list, i) => list.map((prompt, k) => ({ i, k, prompt })))
     let next = 0
     const worker = async (): Promise<void> => {
-      while (next < script.scenes.length && !signal?.aborted) {
-        const i = next++
-        const prompt = script.scenes[i].image
-        if (!prompt) continue
-        const rel = `assets/escena-${i + 1}.png`
-        if (await geminiImage(prompt, cartoon ? 'horizontal' : format, join(dir, rel), key, cartoon, signal)) images[i] = rel
+      while (next < jobs.length && !signal?.aborted) {
+        const { i, k, prompt } = jobs[next++]
+        const rel = `assets/escena-${i + 1}${k ? `-${k + 1}` : ''}.png`
+        if (await geminiImage(prompt, format, join(dir, rel), key, cartoon, signal)) shots[i][k] = rel
       }
     }
     await Promise.all([worker(), worker(), worker()])
   }
+  if (key) step('Creando las imágenes y la voz', 0.05)
+  await Promise.all([doVoices(), doImages()])
+  if (signal?.aborted) throw new Error('Cancelada')
+  const durations: number[] = []
+  for (const v of voices) durations.push(await duration(v))
+  const tl = buildTimeline(durations)
+  const images = shots.map((list) => list.find((x) => !!x) ?? null)
 
   // 3. Música y mezcla.
   if (signal?.aborted) throw new Error('Cancelada')
   step('Componiendo la música y mezclando', 0.55)
-  const compInput = { script, format, timeline: tl, images, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' }
+  const compInput = { script, format, timeline: tl, images, shots, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' }
   const comp = cartoon ? buildCartoonComposition(compInput) : buildComposition(compInput)
   writeFileSync(join(dir, 'musica.wav'), synthMusic(tl.total, script.title))
   writeFileSync(join(dir, 'efectos.wav'), synthSfx(comp.sfx, tl.total))
@@ -409,5 +493,5 @@ export async function renderVideo(input: {
   let file = join(input.outDir, `${base}.mp4`)
   for (let n = 2; existsSync(file); n++) file = join(input.outDir, `${base}-${n}.mp4`)
   copyFileSync(rendered, file)
-  return { file, seconds, width: vs.width ?? 0, height: vs.height ?? 0, images: images.filter(Boolean).length, voice: status.voice }
+  return { file, seconds, width: vs.width ?? 0, height: vs.height ?? 0, images: shots.flat().filter(Boolean).length, voice: voiceUsed }
 }

@@ -1364,8 +1364,10 @@ export interface VideoStudioStatus {
   engine: boolean
   /** ffmpeg y ffprobe. */
   ffmpeg: boolean
-  /** «kokoro» (natural, gratis, en este equipo), «system» (la voz del sistema) o null (sin voz). */
-  voice: 'kokoro' | 'system' | null
+  /** «gemini» (la más natural, con la clave de Gemini), «kokoro» (gratis, en este equipo), «system» (la del sistema) o null. */
+  voice: 'gemini' | 'kokoro' | 'system' | null
+  /** Kokoro instalado (la voz de reserva si Gemini falla). */
+  kokoro: boolean
   /** «gemini» si hay clave de API de Gemini; null: fondos de diseño en vez de imágenes. */
   images: 'gemini' | null
   node: boolean

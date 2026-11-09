@@ -163,13 +163,28 @@ describe('estilo cartoon', () => {
     const input = { script, format: 'horizontal' as const, timeline: buildTimeline([3, 3, 3]), images: [null, 'assets/escena-2.png', null], audio: 'a.wav', gsap: 'g.js' }
     const { html, sfx } = buildCartoonComposition(input)
     expect(html).toContain('id="mouth"')
-    expect(html).toContain('id="s2arrow"')
+    expect(html).toContain('id="s2k0ring"')
     expect(html).toContain('id="s3ja"')
     expect(html).toContain('PASO')
     expect(html).toContain('assets/escena-2.png')
     expect(sfx.some((x) => x.kind === 'boing')).toBe(true)
     expect(html).not.toMatch(/Math\.random|Date\.now|https?:\/\/(?!www\.w3\.org)/)
     expect(buildCartoonComposition(input).html).toBe(html)
+  })
+
+  it('varios planos por paso: cada uno a pantalla completa y el círculo de «mira aquí» en el último', () => {
+    const script = parseVideoScript(CARTOON)
+    const shots = [[null], ['assets/escena-2.png', 'assets/escena-2-2.png', 'assets/escena-2-3.png'], [null]]
+    const { html } = buildCartoonComposition({ script, format: 'vertical', timeline: buildTimeline([3, 6, 3]), images: [null, null, null], shots, audio: 'a.wav', gsap: 'g.js' })
+    for (const k of [0, 1, 2]) expect(html).toContain(`id="s2k${k}"`)
+    expect(html).toContain('id="s2k2ring"')
+    expect(html).not.toContain('id="s2k0ring"')
+  })
+
+  it('lee hasta 3 planos y el primero hace de imagen', () => {
+    const s = parseVideoScript(JSON.stringify({ title: 't', style: 'cartoon', scenes: [1, 2, 3].map((i) => ({ narration: `frase ${i}`, shots: ['a', 'b', 'c', 'd'] })) }))
+    expect(s.scenes[0].shots).toEqual(['a', 'b', 'c'])
+    expect(s.scenes[0].image).toBe('a')
   })
 
   it('el encargo cartoon pide pasos, bromas y gestos', () => {

@@ -2695,4 +2695,7 @@ export const fr: Record<string, string> = {
   "Componiendo la música y mezclando": "Composition de la musique et mixage",
   "Animando y montando el vídeo": "Animation et montage de la vidéo",
   "Comprobando el resultado": "Vérification du résultat",
+  "Creando las imágenes y la voz": "Création des images et de la voix",
+  "Gemini: la más natural, con tu clave (Kokoro de reserva)": "Gemini : la plus naturelle, avec votre clé (Kokoro en secours)",
+  "Gemini: la más natural, con tu clave (instala Kokoro de reserva)": "Gemini : la plus naturelle, avec votre clé (installez Kokoro en secours)",
 }

@@ -892,8 +892,17 @@ function VideoSection() {
         { label: 'ffmpeg', ok: status.ffmpeg, detail: status.ffmpeg ? t('Instalado') : t('Falta') },
         {
           label: t('Voz'),
-          ok: status.voice === 'kokoro',
-          detail: status.voice === 'kokoro' ? t('Kokoro: natural, gratis y en este equipo') : status.voice === 'system' ? t('La del sistema (instala Kokoro para una más natural)') : t('Sin voz')
+          ok: status.voice === 'gemini' || status.voice === 'kokoro',
+          detail:
+            status.voice === 'gemini'
+              ? status.kokoro
+                ? t('Gemini: la más natural, con tu clave (Kokoro de reserva)')
+                : t('Gemini: la más natural, con tu clave (instala Kokoro de reserva)')
+              : status.voice === 'kokoro'
+                ? t('Kokoro: natural, gratis y en este equipo')
+                : status.voice === 'system'
+                  ? t('La del sistema (instala Kokoro para una más natural)')
+                  : t('Sin voz')
         },
         {
           label: t('Imágenes'),
@@ -902,7 +911,7 @@ function VideoSection() {
         }
       ]
     : []
-  const complete = !!status && status.ready && status.voice === 'kokoro'
+  const complete = !!status && status.ready && status.kokoro
 
   return (
     <>

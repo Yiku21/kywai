@@ -54,8 +54,8 @@ const SHOULDER_R = '282 336'
 const ELBOW_L = '118 446'
 const ELBOW_R = '282 446'
 const NECK = '200 310'
-const MOUTH = '200 266'
-const EYES = '200 205'
+const MOUTH = '200 257'
+const EYES = '200 200'
 
 const INK = '#1d1a2b'
 const SKIN = '#f4c7a1'
@@ -63,68 +63,88 @@ const SKIN_SHADE = '#e3a983'
 const HAIR = '#3b2416'
 const JEANS = '#34437c'
 
-/** El presentador. `shirt` es el color de la camiseta. */
+/** El presentador (estilo chibi: cabeza grande, sudadera con capucha, sombras suaves). `shirt` es el color de la sudadera. */
 function characterSvg(shirt: string): string {
   const arm = (side: 'L' | 'R'): string => {
     const x = side === 'L' ? 118 : 282
     return `<g id="arm${side}">
-      <rect x="${x - 23}" y="322" width="46" height="132" rx="23" fill="${shirt}" stroke="${INK}" stroke-width="6"/>
+      <rect x="${x - 25}" y="320" width="50" height="136" rx="25" fill="${shirt}" stroke="${INK}" stroke-width="6"/>
+      <rect x="${x - 25}" y="320" width="50" height="136" rx="25" fill="url(#shade)"/>
       <g id="fore${side}">
-        <rect x="${x - 19}" y="430" width="38" height="112" rx="19" fill="${SKIN}" stroke="${INK}" stroke-width="6"/>
-        <circle cx="${x}" cy="548" r="29" fill="${SKIN}" stroke="${INK}" stroke-width="6"/>
-        ${side === 'R' ? `<g id="thumb" opacity="0"><rect x="${x - 12}" y="552" width="24" height="54" rx="12" fill="${SKIN}" stroke="${INK}" stroke-width="6"/></g>` : ''}
+        <rect x="${x - 23}" y="428" width="46" height="70" rx="20" fill="${shirt}" stroke="${INK}" stroke-width="6"/>
+        <rect x="${x - 23}" y="484" width="46" height="16" rx="6" fill="rgba(0,0,0,0.18)" stroke="${INK}" stroke-width="5"/>
+        <rect x="${x - 17}" y="496" width="34" height="40" rx="14" fill="url(#skin)" stroke="${INK}" stroke-width="6"/>
+        <circle cx="${x}" cy="548" r="30" fill="url(#skin)" stroke="${INK}" stroke-width="6"/>
+        <path d="M${x - 14} 560 Q${x} 568 ${x + 14} 560" fill="none" stroke="${SKIN_SHADE}" stroke-width="5" stroke-linecap="round"/>
+        ${side === 'R' ? `<g id="thumb" opacity="0"><rect x="${x - 12}" y="552" width="24" height="56" rx="12" fill="url(#skin)" stroke="${INK}" stroke-width="6"/></g>` : ''}
       </g>
     </g>`
   }
   return `<svg viewBox="0 0 400 760" width="100%" height="100%" style="overflow: visible" xmlns="http://www.w3.org/2000/svg">
-  <ellipse cx="200" cy="742" rx="135" ry="16" fill="rgba(0,0,0,0.22)"/>
+  <defs>
+    <radialGradient id="skin" cx="40%" cy="35%" r="75%"><stop offset="0%" stop-color="#ffe0c4"/><stop offset="70%" stop-color="${SKIN}"/><stop offset="100%" stop-color="${SKIN_SHADE}"/></radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#fff" stop-opacity="0.28"/><stop offset="45%" stop-color="#fff" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity="0.22"/></linearGradient>
+    <linearGradient id="hairG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5a3622"/><stop offset="100%" stop-color="${HAIR}"/></linearGradient>
+    <linearGradient id="jeansG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#4657a0"/><stop offset="100%" stop-color="${JEANS}"/></linearGradient>
+  </defs>
+  <ellipse cx="200" cy="742" rx="140" ry="17" fill="rgba(0,0,0,0.25)"/>
   <g id="ch">
-    <rect x="142" y="500" width="52" height="218" rx="24" fill="${JEANS}" stroke="${INK}" stroke-width="6"/>
-    <rect x="206" y="500" width="52" height="218" rx="24" fill="${JEANS}" stroke="${INK}" stroke-width="6"/>
-    <ellipse cx="160" cy="718" rx="50" ry="22" fill="#2a2a33" stroke="${INK}" stroke-width="6"/>
-    <ellipse cx="242" cy="718" rx="50" ry="22" fill="#2a2a33" stroke="${INK}" stroke-width="6"/>
+    <rect x="144" y="500" width="50" height="210" rx="22" fill="url(#jeansG)" stroke="${INK}" stroke-width="6"/>
+    <rect x="206" y="500" width="50" height="210" rx="22" fill="url(#jeansG)" stroke="${INK}" stroke-width="6"/>
+    <path d="M110 726 Q110 690 160 690 Q200 690 200 718 Q200 738 160 738 Q110 738 110 726 Z" fill="#f4f4f6" stroke="${INK}" stroke-width="6"/>
+    <path d="M290 726 Q290 690 240 690 Q200 690 200 718 Q200 738 240 738 Q290 738 290 726 Z" fill="#f4f4f6" stroke="${INK}" stroke-width="6"/>
+    <path d="M114 724 L196 724 M204 724 L286 724" stroke="${shirt}" stroke-width="7"/>
     <g id="torso">
-      <rect x="106" y="300" width="188" height="236" rx="62" fill="${shirt}" stroke="${INK}" stroke-width="6"/>
-      <path d="M170 304 L200 344 L230 304" fill="none" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
-      <rect x="222" y="372" width="44" height="46" rx="8" fill="rgba(0,0,0,0.12)" stroke="${INK}" stroke-width="5"/>
-      <rect x="234" y="340" width="12" height="40" rx="5" fill="#ff4d4d" stroke="${INK}" stroke-width="4"/>
-      <rect x="237" y="326" width="6" height="18" rx="2" fill="#c9ced8" stroke="${INK}" stroke-width="3"/>
+      <path d="M150 300 Q200 268 250 300 L258 318 Q200 300 142 318 Z" fill="${shirt}" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
+      <rect x="104" y="300" width="192" height="238" rx="64" fill="${shirt}" stroke="${INK}" stroke-width="6"/>
+      <rect x="104" y="300" width="192" height="238" rx="64" fill="url(#shade)"/>
+      <path d="M140 446 Q200 430 260 446 L256 500 Q200 512 144 500 Z" fill="rgba(0,0,0,0.14)" stroke="${INK}" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M182 314 L180 368 M218 314 L220 368" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="180" cy="372" r="6" fill="#fff" stroke="${INK}" stroke-width="3"/><circle cx="220" cy="372" r="6" fill="#fff" stroke="${INK}" stroke-width="3"/>
+      <rect x="232" y="396" width="12" height="40" rx="5" fill="#ff4d4d" stroke="${INK}" stroke-width="4" transform="rotate(18 238 416)"/>
+      <rect x="238" y="382" width="6" height="18" rx="2" fill="#c9ced8" stroke="${INK}" stroke-width="3" transform="rotate(18 238 416)"/>
     </g>
     ${arm('L')}
     ${arm('R')}
     <g id="head">
-      <rect x="182" y="282" width="36" height="34" fill="${SKIN_SHADE}" stroke="${INK}" stroke-width="6"/>
-      <circle cx="86" cy="212" r="23" fill="${SKIN}" stroke="${INK}" stroke-width="6"/>
-      <circle cx="314" cy="212" r="23" fill="${SKIN}" stroke="${INK}" stroke-width="6"/>
-      <ellipse cx="200" cy="200" rx="116" ry="110" fill="${SKIN}" stroke="${INK}" stroke-width="6"/>
-      <path d="M86 186 C 80 110, 140 72, 206 74 C 270 76, 322 112, 316 186 C 300 150, 280 132, 250 128 C 236 150, 196 150, 170 132 C 150 150, 112 156, 86 186 Z" fill="${HAIR}" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
-      <circle cx="132" cy="250" r="17" fill="#ff8b8b" opacity="0.45"/>
-      <circle cx="268" cy="250" r="17" fill="#ff8b8b" opacity="0.45"/>
+      <rect x="182" y="282" width="36" height="30" fill="${SKIN_SHADE}" stroke="${INK}" stroke-width="6"/>
+      <circle cx="78" cy="206" r="24" fill="url(#skin)" stroke="${INK}" stroke-width="6"/>
+      <circle cx="322" cy="206" r="24" fill="url(#skin)" stroke="${INK}" stroke-width="6"/>
+      <path d="M72 200 Q78 214 88 204 M328 200 Q322 214 312 204" fill="none" stroke="${SKIN_SHADE}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M76 196 C 76 100, 136 66, 200 66 C 264 66, 324 100, 324 196 C 324 268, 270 304, 200 304 C 130 304, 76 268, 76 196 Z" fill="url(#skin)" stroke="${INK}" stroke-width="6"/>
+      <path d="M78 180 C 70 96, 138 52, 214 56 C 292 60, 336 112, 322 180 C 312 146, 296 128, 272 118 C 276 136, 262 150, 240 146 C 246 130, 238 116, 226 110 C 214 132, 176 140, 150 124 C 152 140, 138 152, 118 150 C 104 158, 88 168, 78 180 Z" fill="url(#hairG)" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M150 84 Q190 66 236 76" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="9" stroke-linecap="round"/>
+      <path d="M196 60 Q214 26 246 34 Q226 42 222 62" fill="url(#hairG)" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
+      <ellipse cx="124" cy="246" rx="20" ry="13" fill="#ff7f8a" opacity="0.5"/>
+      <ellipse cx="276" cy="246" rx="20" ry="13" fill="#ff7f8a" opacity="0.5"/>
       <g id="eyes">
         <g id="eyesOpen">
-          <ellipse cx="160" cy="206" rx="22" ry="25" fill="#fff"/>
-          <ellipse cx="240" cy="206" rx="22" ry="25" fill="#fff"/>
-          <g id="pupils"><circle cx="162" cy="208" r="11" fill="${INK}"/><circle cx="242" cy="208" r="11" fill="${INK}"/>
-          <circle cx="166" cy="203" r="4" fill="#fff"/><circle cx="246" cy="203" r="4" fill="#fff"/></g>
+          <ellipse cx="158" cy="200" rx="25" ry="30" fill="#fff" stroke="${INK}" stroke-width="4"/>
+          <ellipse cx="242" cy="200" rx="25" ry="30" fill="#fff" stroke="${INK}" stroke-width="4"/>
+          <g id="pupils"><ellipse cx="160" cy="204" rx="14" ry="16" fill="#3a2a1e"/><ellipse cx="244" cy="204" rx="14" ry="16" fill="#3a2a1e"/>
+          <circle cx="160" cy="206" r="7" fill="${INK}"/><circle cx="244" cy="206" r="7" fill="${INK}"/>
+          <circle cx="166" cy="197" r="5" fill="#fff"/><circle cx="250" cy="197" r="5" fill="#fff"/>
+          <circle cx="155" cy="211" r="2.5" fill="#fff"/><circle cx="239" cy="211" r="2.5" fill="#fff"/></g>
         </g>
         <g id="eyesHappy" opacity="0">
-          <path d="M140 214 Q160 188 180 214" fill="none" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>
-          <path d="M220 214 Q240 188 260 214" fill="none" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M136 208 Q158 180 180 208" fill="none" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>
+          <path d="M220 208 Q242 180 264 208" fill="none" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>
         </g>
       </g>
-      <g id="glasses" fill="rgba(255,255,255,0.18)" stroke="${INK}" stroke-width="7">
-        <circle cx="160" cy="206" r="38"/><circle cx="240" cy="206" r="38"/>
-        <path d="M198 204 Q200 196 202 204" fill="none"/>
+      <g id="glasses" fill="rgba(200,230,255,0.16)" stroke="${INK}" stroke-width="6">
+        <rect x="118" y="164" width="80" height="74" rx="30"/><rect x="202" y="164" width="80" height="74" rx="30"/>
+        <path d="M196 196 Q200 188 204 196" fill="none"/>
+        <path d="M128 176 L146 170" stroke="#fff" stroke-opacity="0.7" stroke-width="5" stroke-linecap="round"/>
       </g>
       <g id="brows">
-        <path id="browL" d="M128 152 Q160 138 190 150" fill="none" stroke="${HAIR}" stroke-width="11" stroke-linecap="round"/>
-        <path id="browR" d="M210 150 Q240 138 272 152" fill="none" stroke="${HAIR}" stroke-width="11" stroke-linecap="round"/>
+        <path id="browL" d="M128 146 Q156 132 186 142" fill="none" stroke="${HAIR}" stroke-width="10" stroke-linecap="round"/>
+        <path id="browR" d="M214 142 Q244 132 272 146" fill="none" stroke="${HAIR}" stroke-width="10" stroke-linecap="round"/>
       </g>
-      <path d="M196 226 Q204 244 194 250" fill="none" stroke="${SKIN_SHADE}" stroke-width="6" stroke-linecap="round"/>
+      <path d="M200 228 Q208 240 198 246" fill="none" stroke="${SKIN_SHADE}" stroke-width="5" stroke-linecap="round"/>
       <g id="mouth">
-        <ellipse cx="200" cy="266" rx="36" ry="27" fill="#6b1f2a" stroke="${INK}" stroke-width="6"/>
-        <ellipse cx="200" cy="282" rx="20" ry="9" fill="#ff7a8a"/>
-        <rect x="178" y="241" width="44" height="10" rx="4" fill="#fff"/>
+        <path d="M166 256 Q200 262 234 256 Q230 298 200 298 Q170 298 166 256 Z" fill="#6b1f2a" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
+        <path d="M174 260 Q200 265 226 260 L224 268 Q200 272 176 268 Z" fill="#fff"/>
+        <ellipse cx="200" cy="288" rx="18" ry="8" fill="#ff7a8a"/>
       </g>
     </g>
   </g>
@@ -147,12 +167,12 @@ function stepWord(lang: string): string {
 }
 
 export function buildCartoonComposition(input: CompositionInput): Composition {
-  const { script, format, timeline: tl, images } = input
+  const { script, format, timeline: tl } = input
+  const shotsOf = input.shots ?? input.images.map((x) => [x])
   const vertical = format === 'vertical'
   const W = vertical ? 1080 : 1920
   const H = vertical ? 1920 : 1080
   const th = THEMES[script.theme]
-  const light = script.theme === 'papel'
   const font = "'Arial Rounded MT Bold', 'Nunito', 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif"
   const R = (n: number): number => round(n)
   const r = rng(script.title.length * 104729 + script.scenes.length * 31)
@@ -160,10 +180,10 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
   const scenes: string[] = []
   const sfx: Composition['sfx'] = []
 
-  // Medidas: personaje a la izquierda (horizontal) o abajo (vertical); tarjeta con la ilustración al lado o arriba.
-  const ch = vertical ? { left: 325, top: 1100, w: 430, h: 817 } : { left: 40, top: 230, w: 440, h: 836 }
-  const card = vertical ? { left: 50, top: 150, w: 980, h: 820 } : { left: 580, top: 90, w: 1270, h: 730 }
-  const cap = vertical ? { left: 60, top: 985, w: 960, h: 140 } : { left: 580, top: 850, w: 1270, h: 190 }
+  // Lo que se ve manda: la ilustración del paso ocupa toda la pantalla; el personaje, en una esquina, señala y reacciona;
+  // subtítulos en una franja abajo.
+  const ch = vertical ? { left: 700, top: 1290, w: 350, h: 665 } : { left: 14, top: 560, w: 290, h: 551 }
+  const cap = vertical ? { left: 40, top: 1090, w: 1000, h: 180 } : { left: 330, top: 905, w: 1560, h: 150 }
 
   // ---------- personaje ----------
   a.push(
@@ -197,8 +217,11 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
   }
   const pose = (name: CharacterPose | 'idle'): Pose => {
     const p = POSES[name]
-    // En vertical la tarjeta está encima: señala hacia arriba.
-    return vertical && name === 'point' ? { ...p, aR: -168, fR: -6, head: -4, lookX: 3, lookY: -8 } : p
+    if (name !== 'point') return p
+    // Señala al centro de la pantalla desde su esquina: hacia arriba a la derecha, o a la izquierda en vertical.
+    return vertical
+      ? { ...p, aL: 140, fL: 12, aR: -8, fR: 0, head: -6, lookX: -7, lookY: -8 }
+      : { ...p, aR: -128, fR: -10, head: 6, lookX: 7, lookY: -6 }
   }
 
   // Respira todo el vídeo y parpadea cada pocos segundos.
@@ -207,12 +230,11 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
     a.push(`tl.fromTo('#eyes', {scaleY: 1}, {scaleY: 0.08, duration: 0.07, ease: 'power1.in', yoyo: true, repeat: 1, immediateRender: false}, ${R(t)})`)
   }
 
-  // Entrada: llega de un salto y saluda.
-  a.push(`tl.fromTo('#char', {x: ${vertical ? -500 : -600}, y: 0}, {x: 0, duration: 0.55, ease: 'back.out(1.4)'}, 0.05)`)
-  a.push(`tl.fromTo('#char', {y: 0}, {y: -70, duration: 0.2, ease: 'power2.out', yoyo: true, repeat: 1, immediateRender: false}, 0.15)`)
-  poseTo(pose('wave'), 0.55)
-  a.push(`tl.fromTo('#foreR', {rotation: -20}, {rotation: 25, duration: 0.22, ease: 'sine.inOut', yoyo: true, repeat: 5, immediateRender: false}, 0.95)`)
-  sfx.push({ at: 0.6, kind: 'pop' })
+  // Entrada: sale de abajo de un salto y saluda.
+  a.push(`tl.fromTo('#char', {y: ${ch.h}}, {y: 0, duration: 0.5, ease: 'back.out(1.6)'}, 0.1)`)
+  poseTo(pose('wave'), 0.5)
+  a.push(`tl.fromTo('#foreR', {rotation: -20}, {rotation: 25, duration: 0.22, ease: 'sine.inOut', yoyo: true, repeat: 5, immediateRender: false}, 0.9)`)
+  sfx.push({ at: 0.5, kind: 'pop' })
 
   // Boca al ritmo de la voz, palabra a palabra y sílaba a sílaba.
   const lip = (narration: string, start: number, voice: number): void => {
@@ -233,37 +255,39 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
     })
   }
 
-  // ---------- portada: cartel con el título ----------
+  // ---------- portada ----------
   const titleWords = script.title.split(/\s+/).filter(Boolean)
   scenes.push(`<section id="intro" class="clip" data-start="0" data-duration="${R(tl.intro + 0.3)}">
-  <div class="card" id="introcard"><div class="board"><h1 class="title">${titleWords.map((w, i) => `<span class="tw" id="tw${i}">${esc(w)}</span>`).join(' ')}</h1></div></div>
+  <div class="board"><h1 class="title">${titleWords.map((w, i) => `<span class="tw" id="tw${i}">${esc(w)}</span>`).join(' ')}</h1></div>
 </section>`)
-  a.push(`tl.fromTo('#introcard', {scale: 0.2, rotation: -12, opacity: 0}, {scale: 1, rotation: -2, opacity: 1, duration: 0.5, ease: 'back.out(2.2)'}, 0.25)`)
-  sfx.push({ at: 0.25, kind: 'whoosh' })
   titleWords.forEach((_, i) => {
-    const at = R(0.55 + i * Math.min(0.2, 1.1 / titleWords.length))
-    a.push(`tl.fromTo('#tw${i}', {scale: 2.6, opacity: 0}, {scale: 1, opacity: 1, duration: 0.2, ease: 'power4.in'}, ${at})`)
-    if (i === titleWords.length - 1) sfx.push({ at: R(at + 0.18), kind: 'impact' })
+    const at = R(0.2 + i * Math.min(0.2, 1.1 / titleWords.length))
+    a.push(`tl.fromTo('#tw${i}', {scale: 2.6, opacity: 0, rotation: ${i % 2 ? 8 : -8}}, {scale: 1, opacity: 1, rotation: 0, duration: 0.22, ease: 'power4.in'}, ${at})`)
+    sfx.push({ at: R(at + 0.2), kind: i === titleWords.length - 1 ? 'impact' : 'pop' })
   })
-  a.push(`tl.to('#introcard', {scale: 0.6, rotation: 8, opacity: 0, duration: 0.25, ease: 'power2.in'}, ${R(tl.intro - 0.1)})`)
 
-  // ---------- escenas ----------
+  // ---------- escenas: cada paso, sus planos a pantalla completa ----------
   script.scenes.forEach((sc, i) => {
     const t = tl.scenes[i]
     const id = `s${i + 1}`
-    const img = images[i]
+    const shots = (shotsOf[i] ?? []).filter((x): x is string => !!x)
     const voiceAt = t.start + VOICE_LEAD_S
     const words = timedWords(sc.narration, voiceAt, t.voice)
     const beats = beatsOf(words)
-    const tilt = i % 2 ? 1.6 : -1.6
-    const art = img
-      ? `<div class="pic"><img src="${esc(img)}" alt=""></div>`
+    const shotLen = shots.length ? t.duration / shots.length : t.duration
+    const shotHtml = shots.length
+      ? shots
+          .map((src, k) => {
+            const s = R(t.start + k * shotLen)
+            const ring = k === shots.length - 1 && (shots.length > 1 || sc.step) ? `<div class="ring" id="${id}k${k}ring"></div>` : ''
+            return `<div class="clip shot" id="${id}k${k}" data-start="${s}" data-duration="${R(shotLen + (k + 1 < shots.length ? 0.05 : 0))}"><img src="${esc(src)}" alt="">${ring}</div>`
+          })
+          .join('\n  ')
       : `<div class="board"><div class="btext">${sc.heading.split(/\s+/).map((w, k) => `<span class="bw" id="${id}bw${k}">${esc(w)}</span>`).join(' ')}</div></div>`
-    const badge = sc.step ? `<div class="badge" id="${id}badge"><small>${stepWord(script.lang)}</small><b>${sc.step}</b></div>` : ''
-    const joke = sc.joke ? `<div class="ja" id="${id}ja"><span>${esc(laughWord(script.lang))}</span></div>` : ''
-    const arrow = (sc.pose ?? 'explain') === 'point'
-      ? `<svg class="arrow" id="${id}arrow" viewBox="0 0 200 120"><path d="M10 90 Q 90 10 170 40" fill="none" stroke="${INK}" stroke-width="14" stroke-linecap="round"/><path d="M140 14 L184 44 L134 70" fill="none" stroke="${INK}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+    const top = shots.length || sc.step
+      ? `<div class="top" id="${id}top">${sc.step ? `<div class="badge"><small>${stepWord(script.lang)}</small><b>${sc.step}</b></div>` : ''}${shots.length ? `<div class="instr"><span>${esc(sc.heading)}</span></div>` : ''}</div>`
       : ''
+    const joke = sc.joke ? `<div class="ja" id="${id}ja"><span>${esc(laughWord(script.lang))}</span></div>` : ''
     const capHtml = beats
       .map((b, k) => {
         const s = b[0].start
@@ -274,40 +298,53 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
       })
       .join('\n  ')
     scenes.push(`<section id="${id}" class="clip" data-start="${t.start}" data-duration="${t.duration}">
-  <div class="card" id="${id}card" style="transform: rotate(${tilt}deg)">${art}${img ? `<div class="head"><span>${esc(sc.heading)}</span></div>` : ''}</div>
-  ${badge}${arrow}${joke}
+  ${shotHtml}
+  <div class="flash" id="${id}flash"></div>
+  ${top}${joke}
   ${capHtml}
 </section>`)
 
-    // La tarjeta entra de un salto y la ilustración se acerca despacio.
-    const from = i % 3 === 0 ? `{y: ${H}, rotation: ${tilt * 6}}` : i % 3 === 1 ? `{x: ${W}, rotation: ${tilt * 8}}` : `{scale: 0.1, rotation: ${tilt * 10}}`
-    a.push(`tl.fromTo('#${id}card', ${from}, {x: 0, y: 0, scale: 1, rotation: ${tilt}, duration: 0.5, ease: 'back.out(1.6)'}, ${R(t.start)})`)
-    a.push(`tl.to('#${id}card', {x: ${i % 2 ? -W : W}, rotation: ${-tilt * 8}, duration: 0.3, ease: 'power3.in'}, ${R(t.start + t.duration - 0.3)})`)
-    sfx.push({ at: R(t.start - 0.05), kind: 'whoosh' })
-    if (img) a.push(`tl.fromTo('#${id}card .pic img', {scale: 1.04}, {scale: 1.16, duration: ${t.duration}, ease: 'none'}, ${t.start})`)
-    else {
-      // Sin ilustración: la instrucción, grande, palabra a palabra.
+    // Corte de entrada: destello, whoosh y la imagen que se asienta.
+    sfx.push({ at: R(t.start - 0.08), kind: 'whoosh' })
+    a.push(`tl.fromTo('#${id}flash', {opacity: 0.85}, {opacity: 0, duration: 0.3, ease: 'power2.out'}, ${R(t.start)})`)
+    if (shots.length) {
+      shots.forEach((_, k) => {
+        const s = t.start + k * shotLen
+        const sel = `#${id}k${k} img`
+        // Cada plano entra con un pequeño golpe y se acerca despacio al centro (donde está lo importante).
+        a.push(`tl.fromTo('${sel}', {scale: ${k ? 1.35 : 1.2}}, {scale: 1.04, duration: 0.45, ease: 'expo.out'}, ${R(s)})`)
+        a.push(`tl.fromTo('${sel}', {scale: 1.04}, {scale: ${k === shots.length - 1 ? 1.2 : 1.12}, duration: ${R(Math.max(0.5, shotLen - 0.45))}, ease: 'none', immediateRender: false}, ${R(s + 0.45)})`)
+        if (k) {
+          a.push(`tl.fromTo('#${id}flash', {opacity: 0.6}, {opacity: 0, duration: 0.22, ease: 'power2.out', immediateRender: false}, ${R(s)})`)
+          sfx.push({ at: R(s - 0.03), kind: 'pop' })
+        }
+        if (k === shots.length - 1 && (shots.length > 1 || sc.step)) {
+          a.push(`tl.fromTo('#${id}k${k}ring', {scale: 2.4, opacity: 0}, {scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(2)'}, ${R(s + 0.5)})`)
+          a.push(`tl.fromTo('#${id}k${k}ring', {scale: 1}, {scale: 1.12, duration: 0.4, ease: 'sine.inOut', yoyo: true, repeat: ${Math.max(1, Math.floor((shotLen - 1) / 0.4))}, immediateRender: false}, ${R(s + 0.9)})`)
+          sfx.push({ at: R(s + 0.5), kind: 'pop' })
+        }
+      })
+    } else {
       sc.heading.split(/\s+/).forEach((_, k) => {
-        a.push(`tl.fromTo('#${id}bw${k}', {scale: 0, rotation: ${k % 2 ? 10 : -10}}, {scale: 1, rotation: 0, duration: 0.4, ease: 'back.out(2.5)'}, ${R(t.start + 0.35 + k * 0.12)})`)
+        a.push(`tl.fromTo('#${id}bw${k}', {scale: 0, rotation: ${k % 2 ? 10 : -10}}, {scale: 1, rotation: 0, duration: 0.4, ease: 'back.out(2.5)'}, ${R(t.start + 0.2 + k * 0.12)})`)
       })
     }
-    if (img) a.push(`tl.fromTo('#${id}card .head', {scale: 0, rotation: -8}, {scale: 1, rotation: -2, duration: 0.45, ease: 'back.out(3)'}, ${R(t.start + 0.35)})`)
-    if (sc.step) {
-      a.push(`tl.fromTo('#${id}badge', {scale: 0, rotation: -60}, {scale: 1, rotation: -8, duration: 0.5, ease: 'back.out(3)'}, ${R(t.start + 0.25)})`)
-      a.push(`tl.to('#${id}badge', {rotation: 6, duration: ${R(Math.max(0.6, t.duration - 1))}, ease: 'sine.inOut'}, ${R(t.start + 0.75)})`)
-      sfx.push({ at: R(t.start + 0.27), kind: 'pop' })
+    if (top) {
+      a.push(`tl.fromTo('#${id}top', {x: -700}, {x: 0, duration: 0.45, ease: 'back.out(1.6)'}, ${R(t.start + 0.15)})`)
+      if (sc.step) sfx.push({ at: R(t.start + 0.2), kind: 'pop' })
     }
 
     // El personaje: brinco al cambiar, su gesto y gestos pequeños mientras habla.
-    a.push(`tl.fromTo('#char', {y: 0}, {y: -34, duration: 0.16, ease: 'power2.out', yoyo: true, repeat: 1, immediateRender: false}, ${R(t.start)})`)
+    a.push(`tl.fromTo('#char', {y: 0}, {y: -30, duration: 0.16, ease: 'power2.out', yoyo: true, repeat: 1, immediateRender: false}, ${R(t.start)})`)
     const p = pose(sc.joke ? 'laugh' : sc.pose ?? 'explain')
     poseTo(p, t.start + 0.05)
     if (sc.pose === 'point' && !sc.joke) {
-      a.push(`tl.fromTo('#${id}arrow', {scale: 0, opacity: 0}, {scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(3)'}, ${R(t.start + 0.4)})`)
-      a.push(`tl.fromTo('#${id}arrow', {x: 0}, {x: 22, duration: 0.35, ease: 'sine.inOut', yoyo: true, repeat: ${Math.max(1, Math.floor((t.duration - 0.8) / 0.35))}, immediateRender: false}, ${R(t.start + 0.7)})`)
+      const fore = vertical ? 'foreL' : 'foreR'
+      const base = vertical ? p.fL : p.fR
+      a.push(`tl.fromTo('#${fore}', {rotation: ${base}}, {rotation: ${base + (vertical ? 10 : -10)}, duration: 0.3, ease: 'sine.inOut', yoyo: true, repeat: ${Math.max(1, Math.floor((t.duration - 0.8) / 0.3))}, immediateRender: false}, ${R(t.start + 0.5)})`)
     }
     if (sc.pose === 'surprised' && !sc.joke) {
-      a.push(`tl.fromTo('#char', {y: 0}, {y: -90, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 1, immediateRender: false}, ${R(t.start + 0.4)})`)
+      a.push(`tl.fromTo('#char', {y: 0}, {y: -80, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 1, immediateRender: false}, ${R(t.start + 0.4)})`)
       sfx.push({ at: R(t.start + 0.4), kind: 'boing' })
     }
     if (sc.joke) {
@@ -319,7 +356,6 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
     if ((sc.pose ?? 'explain') === 'explain' && !sc.joke) {
       a.push(`tl.fromTo('#foreR', {rotation: ${p.fR}}, {rotation: ${p.fR - 22}, duration: 0.45, ease: 'sine.inOut', yoyo: true, repeat: ${Math.max(1, Math.floor((t.duration - 0.8) / 0.45))}, immediateRender: false}, ${R(t.start + 0.5)})`)
     }
-    // La cabeza acompaña cada golpe de voz.
     beats.forEach((b, k) => {
       a.push(`tl.fromTo('#head', {rotation: ${p.head + (k % 2 ? 3 : -3)}}, {rotation: ${p.head}, duration: 0.3, ease: 'power2.out', immediateRender: false}, ${R(b[0].start)})`)
     })
@@ -327,11 +363,11 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
 
     // Subtítulos: la palabra que suena, resaltada.
     beats.forEach((b, k) => {
-      a.push(`tl.fromTo('#${id}c${k} .ct', {y: 30, scale: 0.9, opacity: 0}, {y: 0, scale: 1, opacity: 1, duration: 0.2, ease: 'back.out(2.5)'}, ${R(b[0].start - 0.05)})`)
+      a.push(`tl.fromTo('#${id}c${k} .ct', {y: 24, opacity: 0}, {y: 0, opacity: 1, duration: 0.18, ease: 'back.out(2.5)'}, ${R(b[0].start - 0.05)})`)
       b.forEach((w, j) => {
         const wid = `#${id}c${k}w${j}`
         const next = j + 1 < b.length ? b[j + 1].start : k + 1 < beats.length ? beats[k + 1][0].start : t.start + t.duration
-        const rest = w.key ? th.accent : light ? INK : '#ffffff'
+        const rest = w.key ? th.accent : '#ffffff'
         a.push(`tl.set('${wid}', {backgroundColor: '${w.key ? th.accent2 : th.accent}', color: '${w.key ? '#ffffff' : th.onAccent}'}, ${R(w.start)})`)
         a.push(`tl.set('${wid}', {backgroundColor: 'rgba(0,0,0,0)', color: '${rest}'}, ${R(Math.max(w.start + 0.12, next - 0.02))})`)
       })
@@ -341,23 +377,20 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
   // ---------- cierre: pulgar arriba ----------
   const outWords = script.outro.split(/\s+/).filter(Boolean)
   scenes.push(`<section id="outro" class="clip" data-start="${tl.outroStart}" data-duration="${tl.outro}">
-  <div class="card" id="outcard"><div class="board"><h2 class="title outro">${outWords.map((w, i) => `<span class="tw" id="ow${i}">${esc(w)}</span>`).join(' ')}</h2></div></div>
+  <div class="board"><h2 class="title outro">${outWords.map((w, i) => `<span class="tw" id="ow${i}">${esc(w)}</span>`).join(' ')}</h2></div>
+  <div class="flash" id="outflash"></div>
 </section>`)
-  a.push(`tl.fromTo('#outcard', {scale: 0.2, rotation: 12, opacity: 0}, {scale: 1, rotation: 2, opacity: 1, duration: 0.5, ease: 'back.out(2.2)'}, ${R(tl.outroStart)})`)
-  sfx.push({ at: R(tl.outroStart - 0.05), kind: 'whoosh' })
+  a.push(`tl.fromTo('#outflash', {opacity: 0.85}, {opacity: 0, duration: 0.3, ease: 'power2.out'}, ${R(tl.outroStart)})`)
+  sfx.push({ at: R(tl.outroStart - 0.08), kind: 'whoosh' })
   outWords.forEach((_, i) => {
-    a.push(`tl.fromTo('#ow${i}', {y: 80, opacity: 0}, {y: 0, opacity: 1, duration: 0.3, ease: 'back.out(2.5)'}, ${R(tl.outroStart + 0.3 + i * 0.1)})`)
+    a.push(`tl.fromTo('#ow${i}', {y: 80, opacity: 0}, {y: 0, opacity: 1, duration: 0.3, ease: 'back.out(2.5)'}, ${R(tl.outroStart + 0.2 + i * 0.1)})`)
   })
   poseTo(pose('thumbs'), tl.outroStart + 0.1)
   a.push(`tl.fromTo('#char', {y: 0}, {y: -60, duration: 0.2, ease: 'power2.out', yoyo: true, repeat: 1, immediateRender: false}, ${R(tl.outroStart + 0.1)})`)
-  sfx.push({ at: R(tl.outroStart + 0.35 + outWords.length * 0.1), kind: 'impact' })
-  a.push(`tl.to('#outcard, #char', {opacity: 0, duration: 0.45, ease: 'power2.in'}, ${R(tl.total - 0.5)})`)
-
-  // Fondo: lunares que se desplazan y suelo.
-  a.push(`tl.fromTo('#dots', {backgroundPosition: '0px 0px'}, {backgroundPosition: '${Math.round(tl.total * 30)}px ${Math.round(tl.total * 18)}px', duration: ${tl.total}, ease: 'none'}, 0)`)
+  sfx.push({ at: R(tl.outroStart + 0.25 + outWords.length * 0.1), kind: 'impact' })
+  a.push(`tl.to('#outro .title, #char', {opacity: 0, duration: 0.45, ease: 'power2.in'}, ${R(tl.total - 0.5)})`)
   a.push(`tl.fromTo('#bar', {scaleX: 0}, {scaleX: 1, duration: ${tl.total}, ease: 'none'}, 0)`)
 
-  const capInk = light ? INK : '#ffffff'
   const doc = `<!doctype html>
 <html lang="${esc(script.lang)}">
 <head>
@@ -367,52 +400,49 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
 <style>
 :root { --bg: ${th.bg}; --bg2: ${th.bg2}; --ink: ${th.ink}; --accent: ${th.accent}; --accent2: ${th.accent2}; --on: ${th.onAccent}; --line: ${INK}; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: var(--bg); }
-#root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: ${font}; color: var(--ink);
-  background: radial-gradient(120% 90% at 70% 10%, var(--bg2) 0%, var(--bg) 70%); }
+html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #fff4dc; }
+#root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: ${font}; color: var(--line); background: #fff4dc; }
 .clip { position: absolute; inset: 0; }
-#dots { position: absolute; inset: 0; opacity: ${light ? 0.12 : 0.1};
-  background-image: radial-gradient(circle, var(--ink) 5px, transparent 6px); background-size: 56px 56px; }
-#floor { position: absolute; left: 0; right: 0; bottom: 0; height: ${vertical ? 120 : 110}px; background: rgba(0,0,0,0.16); border-top: 6px solid rgba(0,0,0,0.12); }
-#char { position: absolute; left: ${ch.left}px; top: ${ch.top}px; width: ${ch.w}px; height: ${ch.h}px; z-index: 6; }
-.card { position: absolute; left: ${card.left}px; top: ${card.top}px; width: ${card.w}px; height: ${card.h}px; border-radius: 42px;
-  background: #fffaf0; border: 10px solid var(--line); box-shadow: 0 22px 0 rgba(0,0,0,0.25); overflow: hidden; z-index: 3; }
-.pic { position: absolute; inset: 0; }
-.pic img { width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; }
-.board { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: repeating-linear-gradient(-45deg, #fff4dc 0 34px, #ffecc4 34px 68px); }
-.btext { text-align: center; padding: 0 80px; font-size: ${vertical ? 120 : 130}px; line-height: 1.05; font-weight: 900; letter-spacing: -0.02em; color: var(--accent);
-  -webkit-text-stroke: 7px var(--line); paint-order: stroke fill; }
+.shot { overflow: hidden; background: #fff4dc; }
+.shot img { width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; }
+.ring { position: absolute; left: 50%; top: ${vertical ? 44 : 48}%; width: ${vertical ? 380 : 400}px; height: ${vertical ? 380 : 400}px; margin: -${vertical ? 190 : 200}px 0 0 -${vertical ? 190 : 200}px;
+  border-radius: 50%; border: 14px solid var(--accent); box-shadow: 0 0 0 8px rgba(0,0,0,0.35), inset 0 0 0 6px rgba(255,255,255,0.6); }
+.flash { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 4; pointer-events: none; }
+.board { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding-bottom: ${vertical ? 420 : 160}px;
+  background: repeating-linear-gradient(-45deg, #fff4dc 0 40px, #ffecc4 40px 80px); }
+.btext { text-align: center; padding: 0 ${vertical ? 60 : 200}px; font-size: ${vertical ? 132 : 150}px; line-height: 1.05; font-weight: 900; letter-spacing: -0.02em; color: var(--accent);
+  -webkit-text-stroke: 8px var(--line); paint-order: stroke fill; }
 .bw { display: inline-block; }
 .bw:nth-child(2n) { color: var(--accent2); }
-.card .head { position: absolute; left: 0; right: 0; bottom: 34px; display: flex; justify-content: center; transform-origin: 50% 50%; }
-.card .head span { display: inline-block; max-width: 88%; text-align: center; padding: 14px 34px; border-radius: 22px; background: var(--accent); color: var(--on);
-  border: 7px solid var(--line); font-size: ${vertical ? 56 : 58}px; font-weight: 900; letter-spacing: -0.01em; line-height: 1.05; box-shadow: 0 10px 0 rgba(0,0,0,0.25); }
-.badge { position: absolute; left: ${card.left - 34}px; top: ${card.top - 40}px; width: 190px; height: 190px; border-radius: 50%; z-index: 5;
-  background: var(--accent2); color: #fff; border: 9px solid var(--line); box-shadow: 0 12px 0 rgba(0,0,0,0.25);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 0.9; }
-.badge small { font-size: 34px; font-weight: 900; letter-spacing: 0.06em; }
-.badge b { font-size: 104px; font-weight: 900; }
-.arrow { position: absolute; z-index: 7; width: 200px; height: 120px; ${vertical ? `left: 760px; top: 1200px; transform-origin: 50% 50%; rotate: -120deg;` : `left: 440px; top: 340px;`} }
-.ja { position: absolute; z-index: 8; ${vertical ? 'left: 680px; top: 1130px;' : 'left: 300px; top: 140px;'} }
-.ja span { display: inline-block; padding: 18px 34px; background: #fff; color: var(--line); border: 8px solid var(--line); border-radius: 50% 46% 52% 44%;
-  font-size: 78px; font-weight: 900; box-shadow: 0 10px 0 rgba(0,0,0,0.25); }
+.top { position: absolute; left: ${vertical ? 30 : 40}px; top: ${vertical ? 60 : 36}px; right: ${vertical ? 30 : 40}px; display: flex; align-items: center; gap: 22px; z-index: 5; }
+.badge { flex: none; width: ${vertical ? 170 : 160}px; height: ${vertical ? 170 : 160}px; border-radius: 50%; background: var(--accent2); color: #fff; border: 8px solid var(--line);
+  box-shadow: 0 10px 0 rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 0.9; }
+.badge small { font-size: 30px; font-weight: 900; letter-spacing: 0.06em; }
+.badge b { font-size: 92px; font-weight: 900; }
+.instr span { display: inline-block; padding: 16px 32px; border-radius: 22px; background: var(--accent); color: var(--on); border: 7px solid var(--line);
+  font-size: ${vertical ? 58 : 60}px; font-weight: 900; line-height: 1.05; box-shadow: 0 10px 0 rgba(0,0,0,0.3); }
+.ja { position: absolute; z-index: 8; ${vertical ? 'left: 380px; top: 1340px;' : 'left: 230px; top: 470px;'} }
+.ja span { display: inline-block; padding: 16px 30px; background: #fff; color: var(--line); border: 8px solid var(--line); border-radius: 50% 46% 52% 44%;
+  font-size: 70px; font-weight: 900; box-shadow: 0 10px 0 rgba(0,0,0,0.25); }
+#capband { position: absolute; left: 0; right: 0; bottom: 0; height: ${vertical ? 900 : 300}px; z-index: 5; pointer-events: none;
+  background: linear-gradient(180deg, rgba(10,8,20,0) 0%, rgba(10,8,20,0.55) 45%, rgba(10,8,20,0.82) 100%); }
 .cap { display: flex; align-items: center; justify-content: center; z-index: 7; left: ${cap.left}px; top: ${cap.top}px; width: ${cap.w}px; height: ${cap.h}px; right: auto; bottom: auto; }
-.ct { text-align: center; font-size: ${vertical ? 66 : 70}px; line-height: 1.12; font-weight: 900; letter-spacing: -0.02em; }
-.w { display: inline-block; padding: 0 0.1em; border-radius: 0.18em; color: ${capInk}; }
+.ct { text-align: center; font-size: ${vertical ? 68 : 66}px; line-height: 1.12; font-weight: 900; letter-spacing: -0.015em; }
+.w { display: inline-block; padding: 0 0.1em; border-radius: 0.18em; color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,0.45); }
 .w.key { color: var(--accent); }
-.title { text-align: center; padding: 0 70px; font-size: ${vertical ? 120 : 132}px; line-height: 1.04; font-weight: 900; letter-spacing: -0.03em; color: var(--line); }
+#char { position: absolute; left: ${ch.left}px; top: ${ch.top}px; width: ${ch.w}px; height: ${ch.h}px; z-index: 6; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.35)); }
+.title { text-align: center; padding: 0 70px; font-size: ${vertical ? 120 : 140}px; line-height: 1.04; font-weight: 900; letter-spacing: -0.03em; color: var(--line); }
 .title .tw { display: inline-block; }
 .title .tw:nth-child(3n+2) { color: var(--accent2); }
-.outro { font-size: ${vertical ? 100 : 110}px; }
-#barwrap { position: absolute; left: 0; right: 0; ${vertical ? 'top: 0;' : 'bottom: 0;'} height: 12px; z-index: 9; background: rgba(0,0,0,0.12); }
+.outro { font-size: ${vertical ? 104 : 120}px; }
+#barwrap { position: absolute; left: 0; right: 0; ${vertical ? 'top: 0;' : 'bottom: 0;'} height: 12px; z-index: 9; background: rgba(0,0,0,0.15); }
 #bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transform-origin: left center; }
 </style>
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="${tl.total}" data-width="${W}" data-height="${H}">
-<div id="dots"></div><div id="floor"></div>
 ${scenes.join('\n')}
+<div id="capband"></div>
 <div id="char">${characterSvg(th.accent2)}</div>
 <div id="barwrap"><div id="bar"></div></div>
 <audio id="mix" src="${esc(input.audio)}" data-start="0" data-duration="${tl.total}" data-volume="1"></audio>
