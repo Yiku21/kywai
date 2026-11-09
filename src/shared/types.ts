@@ -1189,6 +1189,20 @@ export interface UpdateCommit {
   subject: string
 }
 
+/** Lo que se sabe de la última versión en GitHub Releases para una app descargada de ahí. */
+export interface ReleaseUpdate {
+  /** current: al día · available: hay una nueva (en el Mac, para descargar a mano) · downloading: bajando ·
+   * downloaded: lista para instalar · error: no se pudo consultar. */
+  state: 'current' | 'available' | 'downloading' | 'downloaded' | 'error'
+  /** Versión instalada. */
+  current: string
+  /** Última versión publicada (si se sabe). */
+  latest?: string
+  message?: string
+  /** true si esta app puede instalar la nueva sola (Windows y AppImage); en el Mac se descarga a mano. */
+  selfInstall: boolean
+}
+
 export interface UpdateStatus {
   /** Se puede actualizar desde aquí (hay un clon de git del código). */
   canUpdate: boolean
@@ -1204,6 +1218,8 @@ export interface UpdateStatus {
   localCommits?: UpdateCommit[]
   /** El código ya descargado es más nuevo que la app instalada: «commits» es lo que falta por instalar. */
   pendingInstall?: boolean
+  /** App descargada de GitHub Releases: se actualiza desde ahí (no por git) y esto dice qué encontró. */
+  release?: ReleaseUpdate
 }
 
 /** Un acceso de un cliente o navegador a los archivos de este servidor. */
