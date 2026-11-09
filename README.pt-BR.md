@@ -58,6 +58,19 @@ O kywai transforma os agentes e as assinaturas de IA que você já tem, de qualq
 
 O objetivo é simples: **deixar uma tarefa e voltar para encontrar um resultado, nunca um erro sem nada para mostrar.**
 
+## 🎬 O que você pode pedir
+
+Alguns exemplos reais do que a equipe faz enquanto você cuida de outra coisa:
+
+| Você escreve | O que acontece |
+|---|---|
+| “Faça uma landing page para minha padaria” | O Claude desenha e constrói, outro agente abre no navegador e confere capturas e testes, e você recebe os arquivos prontos para publicar. Acrescente “duas opções” e um terceiro escolhe a melhor. |
+| “Descubra por que o login falha e corrija” | O Codex reproduz o erro, corrige e roda os testes; um revisor de outra família confirma. Se algo quebrar, Desfazer deixa seus arquivos exatamente como estavam. |
+| “Resuma esses 300 PDFs e compare” | O Gemini lê muito material de uma vez e devolve um relatório com o essencial e uma tabela. Arraste os arquivos para o chat, até pelo celular. |
+| “Crie a imagem de capa do meu post” | A imagem é gerada com a ferramenta de imagens do Codex (não desenhada com código) e aparece no chat como miniatura para abrir, baixar ou pedir mudanças. |
+| “Toda manhã às 9, revise os PRs novos” | Uma rotina dispara todo dia no seu computador sempre ligado. Você lê o resultado no celular, e “Precisa de você” só toca se algo precisar da sua decisão. |
+| “@Qwen escreva cinco títulos” | O que é rápido vai direto ao agente que você nomeia, sem plano nem revisão. Com um modelo local é grátis e nada sai do seu computador. |
+
 ## 🔌 Qualquer agente, qualquer provedor
 
 O kywai não está preso a um conjunto fixo de modelos. É uma plataforma em que **você monta a sua própria equipe**:
@@ -163,6 +176,8 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 - **Sem trabalho repetido.** O Hermes não repete uma tarefa que já está em andamento, e o chat avisa se um pedido novo parece com um em curso.
 - **Fale direto com um agente.** Escreva `@Claude …` (ou `/directo Claude …`) e o seu texto vai direto para esse agente, sem plano, revisão nem resumo do Hermes. Ao digitar `@` aparece a lista de agentes, no desktop, no navegador e no Órbita.
 - **Critérios de aceitação por tarefa**, além de um aviso se um agente mexer em arquivos que não eram dele.
+- **Dividido como uma equipe de verdade.** Trabalhos grandes com partes separáveis (motor, interface, servidor…) são divididos em paralelo entre os melhores agentes, com um contrato comum escrito pelo coordenador (quais arquivos são de quem e como as partes se falam), e uma tarefa final “Integrar e testar” que roda os testes e confere o conjunto contra o pedido.
+- **Imagens geradas, não desenhadas.** Peça uma ilustração, pôster, logotipo ou ícone e ele vai ao agente com ferramenta de imagens, que gera em vez de desenhar devagar com SVG ou scripts. Se quiser algo exato ou editável, diga e será feito com código.
 - **Duas mãos para trabalhos de gosto, quando você pede.** Dois agentes de famílias diferentes constroem a mesma coisa separadamente (opção A e opção B), e um terceiro testa as duas, compara com o seu pedido e diz qual vence e por quê.
 - **Revisão rigorosa e com testes de verdade.** Quando uma tarefa altera arquivos, um agente de outra família a revisa em modo somente leitura, roda ele mesmo os testes e responde *aprovado* ou *problemas*; só um *aprovado* explícito a aceita. Sem veredito, pede-se a outro revisor confiável. Cada tarefa tem até duas correções e um repasse para outro agente forte; se ainda falhar, aparece em "Precisa de você" como precisando da sua intervenção.
 - **Retomada e repasse.** Tarefas interrompidas continuam de onde pararam. Se um agente falha, outro agente forte assume a tarefa, nunca um mais fraco. Os agentes também retomam a própria sessão nos acompanhamentos.
@@ -173,6 +188,7 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 - **Atualizações curtas ao vivo** de cada agente enquanto trabalha, com suas ferramentas recolhidas em uma única linha expansível, como no app do Claude.
 - **Visão passo a passo ao vivo** de qualquer tarefa: raciocínio, cada comando e sua saída, arquivos lidos e editados com suas alterações, buscas e a resposta final. Guardada por 30 dias.
 - **Progresso visível.** Novas capturas de tela e imagens aparecem como miniaturas no chat, e documentos como cartões, enquanto a tarefa ainda está rodando.
+- **Respostas, não só ✓.** Quando um pedido termina, o coordenador lê os resultados reais e escreve o que foi feito e onde está, como testar, o que foi decidido e o que ficou de fora. Abaixo de cada plano você vê tempo, tokens e cota usada (“14 min · 339 k tokens · Claude 5 h +5 %”).
 - **Cada tarefa no seu bloco.** No chat cada tarefa tem seu número, suas etapas reais (trabalhando, corrigindo, testes, revisão) e a revisão assinada pelo agente que a fez. Assim que você envia, uma linha mostra que o Hermes está preparando o plano, e se um agente fica em silêncio você vê "sem novidades há N min" em vez de uma barra de progresso inventada.
 - **Pré-visualização de arquivos ao lado do chat.** Clique num anexo, numa entrega ou no nome de um arquivo e ele abre num painel lateral, como no Claude: documentos, código, imagens e PDF, com miniaturas das imagens anexadas. O Órbita tem o mesmo leitor com ‹ ›, visão de código, copiar e "Abrir com outro app".
 - **Sino "Precisa de você"** só com o que realmente espera por você (um plano, uma pergunta, uma permissão, um agente em silêncio ou uma tarefa pausada com Retomar / Remover), com seus botões e notificações no celular. O que terminou vai para Resultados como "Recém-terminado".
@@ -187,12 +203,13 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 - **Alterações por tarefa, com Desfazer.** Um snapshot é feito antes e depois de cada tarefa, em um armazenamento separado, nunca no `.git` do seu projeto. Veja "N arquivos alterados +a −b", revise o diff e desfaça uma única tarefa. Se as tarefas se sobrepuserem, o resultado é mantido como uma cópia separada.
 - **Reinicie um agente com falha** pelo painel dele: ele limpa o bloqueio (cota, sessão, erro de API), verifica sua CLI de novo e retoma o que estava esperando por ele.
 - **Avalie qualquer resultado** 👍 / 👎. As avaliações alimentam o coordenador, que assim aprende quem realmente entrega.
-- **Painel "Como cada agente se sai"**: tarefas, veredictos de revisão, avaliações, tempo e custo por agente e por dificuldade.
+- **Painel "Como cada agente se sai"**: tarefas, 👍, revisões aprovadas de primeira, correções, tempo e custo por agente, por dificuldade e por tipo de tarefa (visual, web, código, texto, pesquisa). O coordenador usa esse histórico ao distribuir, então aprende quem realmente entrega.
 
 ### 🧩 Contexto e automação
 
 - **Traga o trabalho que você já tem.** Importe sessões locais do Claude Code, Codex e Hermes (incluindo Hermes Desktop), ou exportações JSON/ZIP do ChatGPT e Claude.ai, em ⚙ → Importar de outros apps. Preserve conversas, recupere projetos e documentos do Claude incluídos e continue com sua equipe. Os originais são preservados; as sessões locais são lidas no servidor. Os chats do Claude.ai vão para o próprio projeto, e importar de novo nunca duplica nada.
 - **Conversas como no Claude.** Uma barra lateral com seus projetos, os fixados e os chats recentes. Ela se recolhe numa coluna de ícones, outro clique no projeto aberto o recolhe e o clique direito (toque longo no Órbita) permite fixar, renomear, bifurcar, mover ou excluir. "Novo chat" começa uma conversa nova sem perder a anterior, e qualquer uma pode ser retomada depois com suas tarefas e a sessão de cada agente. Ctrl+K busca em conversas, tarefas, resultados e memória de todos os projetos.
+- **Busca e histórico.** Ctrl+K busca de uma vez em todas as conversas, tarefas, resultados e notas de memória, com frase exata (“…”) e filtros de data e autor, e abre o chat direto na mensagem encontrada, destacada. A janela Histórico agrupa todas as conversas de todos os projetos por Hoje, Ontem, últimos 7 e 30 dias e por mês. Também no Órbita.
 - **Memória do projeto** com instruções, decisões, preferências e pendências, cada uma com seu autor e status. Todo agente a lê em cada tarefa, mesmo depois que você limpa o chat.
 - **Um único AGENTS.md para toda a equipe.** Cada CLI lê apenas o próprio arquivo; o kywai repassa os outros, então um único `AGENTS.md` dá a todos os agentes as mesmas regras.
 - **Rotinas.** Programe um pedido uma única vez, em horário fixo, em certos dias, a cada N horas, por webhook assinado do GitHub ou quando arquivos de uma pasta mudarem. Crie com /rutina, consulte o histórico e escolha se exige aprovação. Propostas do coordenador só são salvas após sua confirmação.
@@ -232,6 +249,7 @@ Detalhes e exemplo de mod no [manual](docs/MANUAL.md#extensiones-tus-servidores-
 - **Player de música** com busca no YouTube Music, Audius e rádios da SomaFM sem anúncios, e fila de reprodução, e luzes que acompanham o BPM da música sem microfone.
 - **Assistente de configuração** que instala os programas que faltam com seus instaladores oficiais e abre cada login oficial.
 - **Modo demo** para mostrar o app sem gastar nada.
+- **Leve para o seu computador.** A qualidade do 3D se ajusta sozinha à sua máquina sem travadas, descansa com a janela oculta e desacelera quando você está em outro app, e “Reduzir efeitos” tira o supérfluo. A equipe continua trabalhando com a janela fechada.
 
 ### ⌨️ Comandos do chat
 
@@ -262,6 +280,8 @@ O computador onde o kywai está instalado (por exemplo, um Mac mini sempre ligad
 </p>
 
 O Órbita guarda a cópia mais recente para que você possa usá-lo **offline**, coloca suas mensagens na fila até a conexão voltar e se adapta a dobráveis e tablets. Mais em [android/README.md](android/README.md).
+
+O Órbita é pareado uma vez com um código de 6 dígitos e continua pareado mesmo quando o kywai reinicia ou atualiza. Ele se atualiza sozinho a partir do seu computador, avisa o que precisa de você também em segundo plano e tem o mesmo histórico, busca, resultados e uso do desktop.
 
 No chat, o Órbita tem **ditado ao vivo** (um toque no microfone; segure para gravar uma nota de voz que o seu computador transcreve com o Whisper), um **botão de câmera** para tirar uma foto ou escolher da galeria, e os mesmos menus de toque longo que o clique direito do desktop.
 

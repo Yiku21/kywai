@@ -58,6 +58,19 @@ kywai transforme les agents et abonnements IA que vous avez déjà, quel que soi
 
 L'objectif est simple : **lancer une tâche et revenir à un résultat, jamais à une erreur sans rien à montrer.**
 
+## 🎬 Ce que vous pouvez demander
+
+Quelques exemples réels de ce que fait l’équipe pendant que vous faites autre chose :
+
+| Vous écrivez | Ce qui se passe |
+|---|---|
+| « Fais-moi une page d’accueil pour ma boulangerie » | Claude la conçoit et la construit, un autre agent l’ouvre dans un navigateur et vérifie captures et tests, et vous recevez les fichiers prêts à publier. Ajoutez « deux options » et un troisième choisit la meilleure. |
+| « Trouve pourquoi la connexion échoue et corrige-la » | Codex reproduit le bug, le corrige et lance les tests ; un relecteur d’une autre famille le confirme. Si quelque chose casse, Annuler remet vos fichiers exactement comme avant. |
+| « Résume ces 300 PDF et compare-les » | Gemini lit énormément de documents d’un coup et rend un rapport avec l’essentiel et un tableau. Glissez les fichiers dans le chat, même depuis le téléphone. |
+| « Crée l’image de couverture de mon article » | L’image est générée avec l’outil d’images de Codex (pas dessinée avec du code) et apparaît dans le chat en miniature à ouvrir, télécharger ou faire modifier. |
+| « Chaque matin à 9 h, relis les nouvelles PR » | Une routine la lance chaque jour sur votre ordinateur toujours allumé. Vous lisez le résultat sur votre téléphone, et « On a besoin de vous » ne sonne que si une décision vous attend. |
+| « @Qwen écris-moi cinq titres » | Les petites choses vont directement à l’agent nommé, sans plan ni relecture. Avec un modèle local, c’est gratuit et rien ne quitte votre ordinateur. |
+
 ## 🔌 Tout agent, tout fournisseur
 
 kywai n'est pas lié à un ensemble figé de modèles. C'est une plateforme où **vous composez votre propre équipe** :
@@ -163,6 +176,8 @@ Tout agent que vous ajoutez depuis le catalogue ou avec « Autre programme… »
 - **Pas de travail en double.** Hermes ne relance pas une tâche déjà en cours, et le chat vous prévient si une nouvelle demande ressemble à une demande en cours.
 - **Parlez directement à un agent.** Écrivez `@Claude …` (ou `/directo Claude …`) et votre texte va tel quel à cet agent, sans plan, relecture ni résumé de Hermes. Taper `@` affiche la liste des agents, sur le bureau, dans le navigateur et dans Órbita.
 - **Critères d'acceptation par tâche**, et un avertissement si un agent touche à des fichiers qui ne le concernent pas.
+- **Réparti comme une vraie équipe.** Les gros travaux aux parties séparables (moteur, interface, serveur…) sont répartis en parallèle entre les meilleurs agents, avec un contrat commun écrit par le coordinateur (quels fichiers sont à qui et comment les parties communiquent), et une tâche finale « Intégrer et tester » qui lance les tests et vérifie l’ensemble par rapport à la demande.
+- **Des images générées, pas dessinées.** Demandez une illustration, une affiche, un logo ou une icône et elle va à l’agent qui a un outil d’images, qui la génère au lieu de la dessiner lentement en SVG ou en scripts. Pour quelque chose d’exact ou de modifiable, dites-le et ce sera fait en code.
 - **Deux mains pour le travail qui relève du goût, si vous le demandez.** Deux agents de familles différentes réalisent la même chose séparément (option A et option B), puis un troisième teste les deux, les compare à votre demande et vous dit laquelle l'emporte et pourquoi.
 - **Relecture stricte, avec de vrais tests.** Quand une tâche modifie des fichiers, un agent d'une autre famille la vérifie en lecture seule, lance lui-même les tests et répond *validé* ou *problèmes* ; seul un *validé* explicite l'accepte. Sans verdict, un autre relecteur fiable est sollicité. Chaque tâche a droit à deux corrections et un relais vers un autre agent solide ; si elle échoue encore, elle apparaît dans « On a besoin de vous » comme nécessitant votre intervention.
 - **Reprise et relais.** Les tâches interrompues reprennent là où elles s'étaient arrêtées. Si un agent échoue, un autre agent puissant reprend la tâche, jamais un plus faible. Les agents reprennent aussi leur propre session lors des demandes de suivi.
@@ -173,6 +188,7 @@ Tout agent que vous ajoutez depuis le catalogue ou avec « Autre programme… »
 - **De courtes mises à jour en direct** de chaque agent pendant qu'il travaille, avec ses outils regroupés sur une seule ligne dépliable, comme dans l'application Claude.
 - **Vue pas à pas en direct** de n'importe quelle tâche : raisonnement, chaque commande et sa sortie, fichiers lus et modifiés avec leurs changements, recherches et réponse finale. Conservée pendant 30 jours.
 - **Une progression visible.** Les nouvelles captures d'écran et images apparaissent en miniatures dans le chat, et les documents sous forme de cartes, pendant que la tâche est encore en cours.
+- **Des réponses, pas seulement des ✓.** À la fin d’une demande, le coordinateur lit les vrais résultats et écrit ce qui a été fait et où, comment l’essayer, ce qui a été décidé et ce qui reste. Sous chaque plan, vous voyez son temps, ses tokens et le quota utilisé (« 14 min · 339 k tokens · Claude 5 h +5 % »).
 - **Chaque tâche dans son bloc.** Dans le chat, chaque tâche a son numéro, ses vraies étapes (travail, correction, tests, relecture) et la relecture signée par l'agent qui l'a faite. Dès l'envoi, une ligne indique qu'Hermes prépare le plan, et si un agent se tait vous voyez « rien de neuf depuis N min » au lieu d'une fausse barre de progression.
 - **Aperçu des fichiers à côté du chat.** Cliquez sur une pièce jointe, un livrable ou un nom de fichier et il s'ouvre dans un panneau latéral, comme dans Claude : documents, code, images et PDF, avec des miniatures des images jointes. Órbita a le même lecteur avec ‹ ›, vue du code, copier et « Ouvrir avec une autre app ».
 - **Cloche « On a besoin de vous »** uniquement pour ce qui vous attend vraiment (un plan, une question, une autorisation, un agent silencieux ou une tâche en pause avec Reprendre / Retirer), avec ses boutons et des notifications sur votre téléphone. Le travail terminé va dans Résultats comme « Tout juste terminé ».
@@ -187,12 +203,13 @@ Tout agent que vous ajoutez depuis le catalogue ou avec « Autre programme… »
 - **Modifications par tâche, avec Annuler.** Un instantané est pris avant et après chaque tâche, dans un stockage séparé, jamais dans le `.git` de votre projet. Consultez « N fichiers modifiés +a −b », examinez le diff et annulez une seule tâche. Si des tâches se chevauchent, le résultat est conservé dans une copie séparée.
 - **Redémarrez un agent en échec** depuis son panneau : il lève le blocage (quota, session, erreur d'API), revérifie sa CLI et reprend tout ce qui l'attendait.
 - **Notez n'importe quel résultat** 👍 / 👎. Les notes alimentent le coordinateur, qui apprend ainsi qui livre vraiment.
-- **Panneau « Performances de chaque agent »** : tâches, verdicts de relecture, notes, temps et coût par agent et par difficulté.
+- **Panneau « Performances de chaque agent »** : tâches, 👍, relectures validées du premier coup, corrections, temps et coût par agent, par difficulté et par type de tâche (visuel, web, code, texte, recherche). Le coordinateur s’en sert pour répartir le travail : il apprend qui assure vraiment.
 
 ### 🧩 Contexte et automatisation
 
 - **Importez votre travail existant.** Importez les sessions locales de Claude Code, Codex et Hermes (dont Hermes Desktop) ou les archives JSON/ZIP de ChatGPT et Claude.ai depuis ⚙ → Importer depuis d’autres applications. Conservez vos conversations, récupérez les projets et documents Claude inclus et poursuivez avec votre équipe. Les originaux sont conservés ; les sessions locales sont lues sur le serveur. Les chats Claude.ai sont rangés dans leur propre projet, et réimporter ne crée jamais de doublons.
 - **Des conversations comme dans Claude.** Une barre latérale avec vos projets, ceux épinglés et les discussions récentes. Elle se replie en une colonne d'icônes, un autre clic sur le projet ouvert le replie et le clic droit (appui long dans Órbita) permet d'épingler, renommer, dupliquer, déplacer ou supprimer. « Nouveau chat » démarre une nouvelle conversation sans perdre la précédente, et chacune peut être reprise plus tard avec ses tâches et la session de chaque agent. Ctrl+K cherche dans les conversations, tâches, résultats et la mémoire de tous les projets.
+- **Recherche et historique.** Ctrl+K cherche à la fois dans toutes les conversations, tâches, résultats et notes de mémoire, avec phrase exacte (« … ») et filtres par date et auteur, et ouvre le chat directement sur le message trouvé, surligné. La fenêtre Historique regroupe toutes les conversations de tous les projets par Aujourd’hui, Hier, 7 et 30 derniers jours et par mois. Aussi dans Órbita.
 - **Mémoire du projet** avec instructions, décisions, préférences et tâches à faire, chacune avec son auteur et son statut. Chaque agent la lit à chaque tâche, même après que vous avez vidé le chat.
 - **Un seul AGENTS.md pour toute l'équipe.** Chaque CLI ne lit que son propre fichier ; kywai transmet les autres, si bien qu'un seul `AGENTS.md` donne les mêmes règles à tous les agents.
 - **Routines.** Programmez une demande une seule fois, à heure fixe, certains jours, toutes les N heures, par webhook GitHub signé ou lorsqu’un dossier change. Créez-les avec /rutina, consultez leur historique et choisissez si une approbation est requise. Les propositions du coordinateur ne sont enregistrées qu’après votre confirmation.
@@ -232,6 +249,7 @@ Détails et exemple de mod dans le [manuel](docs/MANUAL.md#extensiones-tus-servi
 - **Lecteur de musique** avec recherche YouTube Music, Audius et les radios SomaFM sans publicité, et file d'attente, et des lumières qui suivent le BPM du morceau sans microphone.
 - **Assistant de configuration** qui installe les programmes manquants avec leurs installateurs officiels et ouvre chaque page de connexion officielle.
 - **Mode démo** pour présenter l'application sans rien dépenser.
+- **Léger pour votre ordinateur.** La qualité 3D s’adapte seule à votre machine sans saccades, se met en pause quand la fenêtre est cachée et ralentit quand vous êtes dans une autre application, et « Réduire les effets » retire le superflu. L’équipe continue de travailler fenêtre fermée.
 
 ### ⌨️ Commandes du chat
 
@@ -262,6 +280,8 @@ L'ordinateur sur lequel kywai est installé (par exemple un Mac mini toujours al
 </p>
 
 Órbita conserve la dernière copie pour que vous puissiez l'utiliser **hors ligne**, met vos messages en file d'attente jusqu'au retour de la connexion, et s'adapte aux appareils pliables et aux tablettes. Plus d'informations dans [android/README.md](android/README.md).
+
+Órbita s’appaire une seule fois avec un code à 6 chiffres et reste appairée même quand kywai redémarre ou se met à jour. Elle se met à jour toute seule depuis votre ordinateur, vous prévient de ce qui vous attend même en arrière-plan et a le même historique, la même recherche, les mêmes résultats et la même consommation que le bureau.
 
 Dans le chat, Órbita propose la **dictée en direct** (un appui sur le micro ; maintenez-le pour enregistrer une note vocale que votre ordinateur transcrit avec Whisper), un **bouton appareil photo** pour prendre une photo ou la choisir dans la galerie, et les mêmes menus à l'appui long que le clic droit du bureau.
 
