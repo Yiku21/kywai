@@ -178,6 +178,7 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
   const r = rng(script.title.length * 104729 + script.scenes.length * 31)
   const a: string[] = []
   const scenes: string[] = []
+  const clipHtml: string[] = []
   const sfx: Composition['sfx'] = []
 
   // Lo que se ve manda: la ilustración del paso ocupa toda la pantalla; el personaje, en una esquina, señala y reacciona;
@@ -270,12 +271,17 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
   script.scenes.forEach((sc, i) => {
     const t = tl.scenes[i]
     const id = `s${i + 1}`
-    const shots = (shotsOf[i] ?? []).filter((x): x is string => !!x)
+    const clip = input.clips?.[i] ?? null
+    const shots = clip ? [] : (shotsOf[i] ?? []).filter((x): x is string => !!x)
+    // La animación de Manim va debajo de la escena (un <video> no puede ir dentro de algo con tiempo).
+    if (clip) clipHtml.push(`<video id="${id}m" class="clip manimv" src="${esc(clip)}" muted playsinline data-start="${t.start}" data-duration="${t.duration}"></video>`)
     const voiceAt = t.start + VOICE_LEAD_S
     const words = timedWords(sc.narration, voiceAt, t.voice)
     const beats = beatsOf(words)
     const shotLen = shots.length ? t.duration / shots.length : t.duration
-    const shotHtml = shots.length
+    const shotHtml = clip
+      ? ''
+      : shots.length
       ? shots
           .map((src, k) => {
             const s = R(t.start + k * shotLen)
@@ -284,8 +290,8 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
           })
           .join('\n  ')
       : `<div class="board"><div class="btext">${sc.heading.split(/\s+/).map((w, k) => `<span class="bw" id="${id}bw${k}">${esc(w)}</span>`).join(' ')}</div></div>`
-    const top = shots.length || sc.step
-      ? `<div class="top" id="${id}top">${sc.step ? `<div class="badge"><small>${stepWord(script.lang)}</small><b>${sc.step}</b></div>` : ''}${shots.length ? `<div class="instr"><span>${esc(sc.heading)}</span></div>` : ''}</div>`
+    const top = shots.length || clip || sc.step
+      ? `<div class="top" id="${id}top">${sc.step ? `<div class="badge"><small>${stepWord(script.lang)}</small><b>${sc.step}</b></div>` : ''}${shots.length || clip ? `<div class="instr"><span>${esc(sc.heading)}</span></div>` : ''}</div>`
       : ''
     const joke = sc.joke ? `<div class="ja" id="${id}ja"><span>${esc(laughWord(script.lang))}</span></div>` : ''
     const capHtml = beats
@@ -324,7 +330,7 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
           sfx.push({ at: R(s + 0.5), kind: 'pop' })
         }
       })
-    } else {
+    } else if (!clip) {
       sc.heading.split(/\s+/).forEach((_, k) => {
         a.push(`tl.fromTo('#${id}bw${k}', {scale: 0, rotation: ${k % 2 ? 10 : -10}}, {scale: 1, rotation: 0, duration: 0.4, ease: 'back.out(2.5)'}, ${R(t.start + 0.2 + k * 0.12)})`)
       })
@@ -403,6 +409,7 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
 html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #fff4dc; }
 #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: ${font}; color: var(--line); background: #fff4dc; }
 .clip { position: absolute; inset: 0; }
+.manimv { width: 100%; height: 100%; object-fit: cover; }
 .shot { overflow: hidden; background: #fff4dc; }
 .shot img { width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; }
 .ring { position: absolute; left: 50%; top: ${vertical ? 44 : 48}%; width: ${vertical ? 380 : 400}px; height: ${vertical ? 380 : 400}px; margin: -${vertical ? 190 : 200}px 0 0 -${vertical ? 190 : 200}px;
@@ -441,6 +448,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #fff4d
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="${tl.total}" data-width="${W}" data-height="${H}">
+${clipHtml.join('\n')}
 ${scenes.join('\n')}
 <div id="capband"></div>
 <div id="char">${characterSvg(th.accent2)}</div>

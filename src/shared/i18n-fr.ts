@@ -2774,4 +2774,8 @@ export const fr: Record<string, string> = {
   "ComfyUI está encendido pero sin un modelo que sirva (descarga uno SDXL o SD 1.5 en ComfyUI)": "ComfyUI est lancé mais sans modèle utilisable (téléchargez-en un SDXL ou SD 1.5 dans ComfyUI)",
   "Las genera Gemini con tu clave de API (si enciendes ComfyUI, lo usa primero, gratis)": "Gemini les crée avec votre clé d’API (si vous lancez ComfyUI, il passe en premier, gratuitement)",
   "Sin ComfyUI ni clave de Gemini: fondos de diseño animados. Enciende ComfyUI (comfy.org) o pon la clave de Gemini": "Ni ComfyUI ni clé Gemini : fonds graphiques animés. Lancez ComfyUI (comfy.org) ou ajoutez la clé Gemini",
+  "Voicebox en este equipo, gratis, con la voz del idioma del vídeo ({voices}); si no tiene ese idioma, {next}": "Voicebox sur cet ordinateur, gratuit, avec une voix dans la langue de la vidéo ({voices}) ; sinon, {next}",
+  "Voicebox está abierto pero sin voces: crea un perfil de voz en Voicebox": "Voicebox est ouvert mais sans voix : créez un profil de voix dans Voicebox",
+  "Animaciones de fórmulas y diagramas (Manim)": "Animations de formules et de schémas (Manim)",
+  "Falta (opcional): «Instalar lo que falta» lo instala": "Manquant (facultatif) : « Installer ce qui manque » l’installe",
 }

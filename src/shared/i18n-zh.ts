@@ -2774,4 +2774,8 @@ export const zh: Record<string, string> = {
   "ComfyUI está encendido pero sin un modelo que sirva (descarga uno SDXL o SD 1.5 en ComfyUI)": "ComfyUI 已运行，但没有可用模型（请在 ComfyUI 中下载 SDXL 或 SD 1.5 模型）",
   "Las genera Gemini con tu clave de API (si enciendes ComfyUI, lo usa primero, gratis)": "由 Gemini 用你的 API 密钥生成（如果启动 ComfyUI，会优先免费使用它）",
   "Sin ComfyUI ni clave de Gemini: fondos de diseño animados. Enciende ComfyUI (comfy.org) o pon la clave de Gemini": "没有 ComfyUI 也没有 Gemini 密钥：使用动画设计背景。请启动 ComfyUI（comfy.org）或填写 Gemini 密钥",
+  "Voicebox en este equipo, gratis, con la voz del idioma del vídeo ({voices}); si no tiene ese idioma, {next}": "本机的 Voicebox，免费，使用视频语言的声音（{voices}）；没有该语言时用 {next}",
+  "Voicebox está abierto pero sin voces: crea un perfil de voz en Voicebox": "Voicebox 已打开但没有声音：请在 Voicebox 中创建声音配置",
+  "Animaciones de fórmulas y diagramas (Manim)": "公式与图表动画（Manim）",
+  "Falta (opcional): «Instalar lo que falta» lo instala": "缺少（可选）：「安装缺少的部分」会安装它",
 }

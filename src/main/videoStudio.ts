@@ -7,11 +7,12 @@
 // (say en macOS, la de Windows o espeak-ng en Linux). Las imágenes las genera Gemini si hay clave de API; sin clave, cada
 // escena lleva un fondo de diseño animado.
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import {
   buildComposition,
+  THEMES,
   buildTimeline,
   spokenText,
   synthMusic,
@@ -23,10 +24,12 @@ import {
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
 import { comfyImage, comfyStatus } from './comfyui'
+import { voiceboxProfiles, voiceboxSpeak, voiceboxVoice } from './voicebox'
 import type { VideoStudioStatus } from '@shared/types'
 
 const IS_WIN = process.platform === 'win32'
 const IS_MAC = process.platform === 'darwin'
+const IS_LINUX = process.platform === 'linux'
 
 /** Versiones fijas: el mismo guion se monta igual dentro de meses. */
 export const HYPERFRAMES_VERSION = '0.9.26'
@@ -42,6 +45,7 @@ let autoInstall = true
 export function initVideoStudio(workspaceRoot: string, opts: { autoInstall?: boolean } = {}): void {
   root = join(workspaceRoot, 'estudio-video')
   autoInstall = opts.autoInstall ?? true
+  void has('latex', ['--version']).then((ok) => (latexKnown = ok))
 }
 
 export function videoStudioDir(): string {
@@ -50,6 +54,27 @@ export function videoStudioDir(): string {
 
 const bin = (name: string): string => join(root, 'node_modules', '.bin', IS_WIN ? `${name}.cmd` : name)
 const venvPython = (): string => join(root, '.venv', IS_WIN ? 'Scripts\\python.exe' : 'bin/python')
+
+// ---------- Manim (animaciones de fórmulas, gráficas y diagramas) ----------
+
+let latexKnown = false
+
+/** ¿Está Manim en el entorno de Python del estudio? (Sin lanzar Python: se mira la carpeta del paquete.) */
+export function manimInstalled(): boolean {
+  if (!root) return false
+  const venv = join(root, '.venv')
+  if (IS_WIN) return existsSync(join(venv, 'Lib', 'site-packages', 'manim'))
+  try {
+    return readdirSync(join(venv, 'lib')).some((d) => d.startsWith('python') && existsSync(join(venv, 'lib', d, 'site-packages', 'manim')))
+  } catch {
+    return false
+  }
+}
+
+/** Lo que el guion puede usar de Manim: null si no está; `latex` si hay LaTeX para fórmulas (MathTex). */
+export function manimSupport(): { latex: boolean } | null {
+  return manimInstalled() ? { latex: latexKnown } : null
+}
 
 interface RunOut {
   code: number | null
@@ -133,20 +158,24 @@ async function kokoroReady(): Promise<boolean> {
 }
 
 export async function videoStudioStatus(): Promise<VideoStudioStatus> {
-  const [node, ffmpeg, ffprobe, python, kokoro, sys, comfy] = await Promise.all([
+  const [node, ffmpeg, ffprobe, python, kokoro, sys, comfy, vbox] = await Promise.all([
     has('npm', ['--version']),
     has('ffmpeg'),
     has('ffprobe'),
     has(pythonCmd(), ['--version']),
     kokoroReady(),
     systemVoice(),
-    comfyStatus()
+    comfyStatus(),
+    voiceboxProfiles()
   ])
   const engine = !!root && existsSync(bin('hyperframes')) && existsSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js'))
   const key = !!geminiApiKey()
-  const voice = key ? 'gemini' : kokoro ? 'kokoro' : sys ? 'system' : null
+  const voice = vbox?.length ? 'voicebox' : key ? 'gemini' : kokoro ? 'kokoro' : sys ? 'system' : null
   return { engine, ffmpeg: ffmpeg && ffprobe, voice, kokoro, images: comfy.info ? 'comfyui' : key ? 'gemini' : null,
     comfyui: { running: comfy.running, checkpoint: comfy.info?.checkpoint ?? null, models: comfy.models },
+    voicebox: { running: !!vbox, voices: (vbox ?? []).map((p) => `${p.name} (${p.language})`) },
+    manim: manimInstalled(),
+    gemini: key,
     node, python, ready: engine && ffmpeg && ffprobe }
 }
 
@@ -190,6 +219,16 @@ export async function installVideoStudio(onLine: (l: string) => void = () => und
       const pip = await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'kokoro-onnx', 'soundfile'], { timeoutMs: 30 * 60_000, onLine })
       if (pip.code !== 0) onLine('No se pudo instalar Kokoro: se usará la voz del sistema.')
     } else onLine('Sin Python: se usará la voz del sistema (instala Python en el asistente para tener la voz Kokoro).')
+  }
+  if (!manimInstalled() && existsSync(venvPython())) {
+    onLine('Instalando Manim (animaciones de fórmulas y diagramas)…')
+    const pip = await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'manim'], { timeoutMs: 30 * 60_000, onLine })
+    if (pip.code !== 0)
+      onLine(
+        IS_LINUX
+          ? 'No se pudo instalar Manim: en Linux necesita «libpango1.0-dev», «libcairo2-dev» y «pkg-config» (sudo apt install …). Los vídeos salen igual, con imágenes.'
+          : 'No se pudo instalar Manim: los vídeos salen igual, con imágenes.'
+      )
   }
   // El navegador del render se descarga la primera vez: mejor aquí que en mitad del primer vídeo.
   if (existsSync(bin('hyperframes'))) {
@@ -345,6 +384,54 @@ async function geminiImage(prompt: string, format: VideoFormat, out: string, key
   }
 }
 
+/** Busca un archivo por nombre dentro de una carpeta (Manim lo deja en videos/<escena>/<resolución>/). */
+function findFile(dir: string, name: string, depth = 4): string | null {
+  if (!existsSync(dir) || depth < 0) return null
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name)
+    if (e.isFile() && e.name === name) return p
+    if (e.isDirectory() && e.name !== 'partial_movie_files') {
+      const hit = findFile(p, name, depth - 1)
+      if (hit) return hit
+    }
+  }
+  return null
+}
+
+/**
+ * Renderiza con Manim el código de una escena (clase `Escena`) a pantalla completa y con el fondo del tema. Devuelve
+ * el MP4 o null si falla (la escena sigue con su imagen o con el fondo de diseño).
+ */
+async function renderManim(code: string, n: number, format: VideoFormat, bg: string, dir: string, signal?: AbortSignal): Promise<string | null> {
+  const work = join(dir, 'manim')
+  mkdirSync(work, { recursive: true })
+  const name = `escena-${n}`
+  // El fondo del tema va delante; el código del guion, tal cual (ya trae su «from manim import *»).
+  writeFileSync(join(work, `${name}.py`), `from manim import *\nconfig.background_color = "${bg}"\n\n${code}\n`)
+  const [w, h] = format === 'vertical' ? [1080, 1920] : [1920, 1080]
+  const out = await run(
+    venvPython(),
+    ['-m', 'manim', 'render', '-qm', '--format', 'mp4', '--disable_caching', '-r', `${w},${h}`, '--fps', '30', '--media_dir', join(work, 'media'), '-o', name, `${name}.py`, 'Escena'],
+    { cwd: work, timeoutMs: 4 * 60_000, signal }
+  )
+  if (out.code !== 0) {
+    writeFileSync(join(work, `${name}.log`), out.out.slice(-4000))
+    return null
+  }
+  return findFile(join(work, 'media'), `${name}.mp4`)
+}
+
+/** Ajusta el clip de Manim a lo que dura su escena: si es más corto, se queda en el último fotograma; si es más largo, se corta. */
+async function fitClip(src: string, seconds: number, out: string, signal?: AbortSignal): Promise<boolean> {
+  const d = seconds.toFixed(3)
+  const r = await run(
+    'ffmpeg',
+    ['-y', '-v', 'error', '-i', src, '-vf', `tpad=stop_mode=clone:stop_duration=${d}`, '-t', d, '-an', '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', out],
+    { timeoutMs: 3 * 60_000, signal }
+  )
+  return r.code === 0 && existsSync(out)
+}
+
 /** Voz de cada escena en su sitio + música que baja cuando habla la voz, normalizado a -16 LUFS (lo que piden YouTube y TikTok). */
 async function mixAudio(dir: string, voices: string[], starts: number[], total: number, signal?: AbortSignal): Promise<string> {
   const args = ['-y', '-v', 'error', '-i', join(dir, 'musica.wav'), '-i', join(dir, 'efectos.wav')]
@@ -375,7 +462,7 @@ export interface RenderedVideo {
   height: number
   /** Escenas con imagen generada. */
   images: number
-  voice: 'gemini' | 'kokoro' | 'system'
+  voice: 'voicebox' | 'gemini' | 'kokoro' | 'system'
 }
 
 /**
@@ -419,6 +506,22 @@ export async function renderVideo(input: {
   const voices = script.scenes.map((_, i) => join(dir, 'assets', `voz-${i + 1}.wav`))
   let voiceUsed: RenderedVideo['voice'] = 'kokoro'
   const doVoices = async (): Promise<void> => {
+    // Voicebox abierto en el equipo, con una voz en el idioma del vídeo: va primero (local y gratis). De una en una
+    // (usa la gráfica). Si una escena no sale, se pasa a Gemini o Kokoro para todo el vídeo.
+    const vb = await voiceboxVoice(script.lang)
+    if (vb) {
+      let ok = true
+      for (let i = 0; i < n && ok && !signal?.aborted; i++) {
+        voiceStep()
+        ok = await voiceboxSpeak(vb, spokenText(script.scenes[i].narration), voices[i], { instructions: voiceTone(script.style, !!script.scenes[i].joke), signal })
+        if (ok) spoken++
+      }
+      if (ok && !signal?.aborted) {
+        voiceUsed = 'voicebox'
+        return
+      }
+      spoken = 0
+    }
     // Gemini (dos a la vez); si una escena no sale, todo el vídeo con Kokoro o la del sistema, para no mezclar voces.
     if (key) {
       let next = 0
@@ -453,7 +556,11 @@ export async function renderVideo(input: {
   }
 
   // Imágenes (tres a la vez). En cartoon, cada escena puede tener varios planos.
-  const shotPrompts = script.scenes.map((sc) => (cartoon ? (sc.shots?.length ? sc.shots : sc.image ? [sc.image] : []) : sc.image ? [sc.image] : []))
+  // Con Manim, las escenas que traen su animación no necesitan imagen.
+  const useManim = manimInstalled() && script.scenes.some((sc) => !!sc.manim)
+  const shotPrompts = script.scenes.map((sc) =>
+    useManim && sc.manim ? [] : cartoon ? (sc.shots?.length ? sc.shots : sc.image ? [sc.image] : []) : sc.image ? [sc.image] : []
+  )
   const shots: (string | null)[][] = shotPrompts.map((list) => list.map(() => null))
   // ComfyUI en este equipo va primero (gratis y local); si una imagen falla, la pide Gemini (con clave).
   const comfy = (await comfyStatus()).info
@@ -483,17 +590,33 @@ export async function renderVideo(input: {
     await Promise.all(comfy ? [worker()] : [worker(), worker(), worker()])
   }
   if (key || comfy) step('Creando las imágenes y la voz', 0.05)
-  await Promise.all([doVoices(), doImages()])
+  // Animaciones de Manim, una detrás de otra (cada una usa todos los núcleos), mientras se hacen la voz y las imágenes.
+  const rawClips: (string | null)[] = script.scenes.map(() => null)
+  const doManim = async (): Promise<void> => {
+    if (!useManim) return
+    for (let i = 0; i < n && !signal?.aborted; i++) {
+      const code = script.scenes[i].manim
+      if (code) rawClips[i] = await renderManim(code, i + 1, format, THEMES[script.theme].bg, dir, signal)
+    }
+  }
+  await Promise.all([doVoices(), doImages(), doManim()])
   if (signal?.aborted) throw new Error('Cancelada')
   const durations: number[] = []
   for (const v of voices) durations.push(await duration(v))
   const tl = buildTimeline(durations)
   const images = shots.map((list) => list.find((x) => !!x) ?? null)
+  const clips: (string | null)[] = script.scenes.map(() => null)
+  for (let i = 0; i < n; i++) {
+    const raw = rawClips[i]
+    if (!raw || signal?.aborted) continue
+    const rel = `assets/manim-${i + 1}.mp4`
+    if (await fitClip(raw, tl.scenes[i].duration, join(dir, rel), signal)) clips[i] = rel
+  }
 
   // 3. Música y mezcla.
   if (signal?.aborted) throw new Error('Cancelada')
   step('Componiendo la música y mezclando', 0.55)
-  const compInput = { script, format, timeline: tl, images, shots, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' }
+  const compInput = { script, format, timeline: tl, images, shots, clips, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' }
   const comp = cartoon ? buildCartoonComposition(compInput) : buildComposition(compInput)
   writeFileSync(join(dir, 'musica.wav'), synthMusic(tl.total, script.title))
   writeFileSync(join(dir, 'efectos.wav'), synthSfx(comp.sfx, tl.total))
