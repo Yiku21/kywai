@@ -1527,8 +1527,9 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
 
 **Qué pasa por dentro.** Un agente (el mejor para redactar que esté libre; mejor uno en la nube que un modelo local)
-escribe solo el **guion** en JSON: título, de 4 a 8 escenas con su rótulo y lo que dice la voz, una descripción de la
-imagen de cada escena, un tema de color y la frase final. Si el guion no vale, la tarea pasa a otro agente. Lo demás lo
+escribe solo el **guion** en JSON, pensado para enganchar a quien tiene poca paciencia: título, de 5 a 9 escenas cortas
+(la primera, un gancho de menos de 3 segundos) con su etiqueta, una frase de voz por escena con sus palabras clave
+marcadas entre *asteriscos*, una descripción de la imagen de cada escena, un tema de color y la frase final. Si el guion no vale, la tarea pasa a otro agente. Lo demás lo
 hace kywai siempre igual (`src/main/videoStudio.ts`):
 
 1. **Voz** de cada escena con **Kokoro** (natural, gratis, en el propio equipo; español, inglés, francés, portugués,
@@ -1536,11 +1537,15 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
 2. **Imágenes** con Gemini (`gemini-2.5-flash-image`) si hay clave de API de Gemini (la del asistente, en
    `~/.gemini/.env`), tres a la vez y en el formato del vídeo. Sin clave, o si una falla, esa escena lleva un fondo de
    diseño animado.
-3. **Música** propia generada para cada vídeo (acordes suaves con pulso; sin derechos de nadie) que **baja sola cuando
-   habla la voz**; todo normalizado a -16 LUFS.
-4. **Animación y montaje** con **HyperFrames** (Apache 2.0) y GSAP: portada, escenas que alternan imagen a pantalla
-   completa con movimiento lento, tarjeta que entra deslizándose y rótulo grande, rótulos que suben palabra a palabra,
-   subtítulos al ritmo de la voz, cortinillas entre escenas, barra de progreso y cierre.
+3. **Música** propia generada para cada vídeo (acordes con pulso; sin derechos de nadie) que **baja sola cuando habla
+   la voz**, y **efectos de sonido** sintetizados: «whoosh» en cada transición, golpes en la portada y el cierre, un
+   «pop» al entrar cada etiqueta. Todo normalizado a -16 LUFS.
+4. **Animación y montaje** con **HyperFrames** (Apache 2.0) y GSAP, al estilo de TikTok: el título golpea palabra a
+   palabra con sacudida; la voz sale **a pantalla grande en golpes de hasta 4 palabras** que entran cada uno de una
+   forma (salto, subida, giro, lateral, caída), con la palabra que suena resaltada y las clave en otro color; golpe de
+   cámara en cada cambio y sacudida en las palabras clave; fondo siempre en movimiento (la imagen con zoom rápido, o
+   manchas de color, anillo que gira, partículas, número de escena gigante y franjas); etiqueta de escena que rebota;
+   cuatro transiciones que se turnan (zoom con destello, franjas, círculo y glitch); barra de progreso y cierre.
 5. **Comprobación** con ffprobe (imagen, sonido y duración) antes de entregarlo.
 
 Mientras, la tarea dice por qué paso va («Poniendo la voz (2 de 6)», «Animando y montando el vídeo»…). Un vídeo de

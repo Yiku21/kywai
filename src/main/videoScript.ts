@@ -86,9 +86,9 @@ export function videoScriptPrompt(input: { topic: string; source?: string; forma
     `Idioma de la voz y los textos: ${input.lang}.`,
     '',
     'Reglas:',
-    `- Entre ${MIN_SCENES + 1} y ${MAX_SCENES - 2} escenas. La primera engancha en una frase; la última cierra con una idea clara.`,
-    '- "narration": lo que dice la voz, 1 o 2 frases naturales por escena (unas 12 a 30 palabras). Sin emojis, sin listas, sin siglas raras: se lee en voz alta.',
-    '- "heading": el rótulo grande de la escena, de 2 a 6 palabras.',
+    `- Entre ${MIN_SCENES + 2} y ${MAX_SCENES - 1} escenas cortas y con ritmo, para gente con poca paciencia. La primera es un gancho que obliga a seguir mirando (una pregunta, un dato sorprendente o una promesa) en menos de 3 segundos; cada escena aporta algo nuevo; la última cierra con una idea clara.`,
+    '- "narration": lo que dice la voz, UNA frase corta y directa por escena (de 8 a 20 palabras), como habla un buen creador de TikTok. Sin emojis, sin listas, sin siglas raras: se lee en voz alta. Marca con *asteriscos* la palabra o las dos palabras clave de cada frase (salen resaltadas en pantalla).',
+    '- "heading": la etiqueta de la escena, de 1 a 3 palabras.',
     '- "image": la imagen de fondo de la escena, descrita en inglés en una frase concreta (sujeto, ambiente, luz). Sin texto, letras ni logotipos en la imagen.',
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}, el que mejor le vaya al tema.`,
     '- "outro": frase final corta para la última pantalla.',
@@ -164,16 +164,16 @@ export interface VideoTimeline {
   total: number
 }
 
-export const INTRO_S = 2.4
-export const OUTRO_S = 3.2
-const SCENE_PAD_S = 0.7
+export const INTRO_S = 2.2
+export const OUTRO_S = 2.8
+const SCENE_PAD_S = 0.45
 /** La voz de cada escena empieza este rato después del corte. */
-export const VOICE_LEAD_S = 0.35
+export const VOICE_LEAD_S = 0.3
 
 export function buildTimeline(voiceDurations: number[]): VideoTimeline {
   let at = INTRO_S
   const scenes = voiceDurations.map((v) => {
-    const duration = Math.max(2.5, VOICE_LEAD_S + v + SCENE_PAD_S)
+    const duration = Math.max(2.2, VOICE_LEAD_S + v + SCENE_PAD_S)
     const s = { start: round(at), duration: round(duration), voice: round(v) }
     at += duration
     return s
@@ -183,44 +183,93 @@ export function buildTimeline(voiceDurations: number[]): VideoTimeline {
 
 const round = (n: number): number => Math.round(n * 100) / 100
 
-/** Trozos del subtítulo (de 3 a 6 palabras) con su momento, repartidos por longitud dentro de la voz. */
-export function captionChunks(text: string, start: number, voice: number): { text: string; start: number; duration: number }[] {
-  const words = text.split(/\s+/).filter(Boolean)
-  const chunks: string[][] = []
-  let cur: string[] = []
-  for (const w of words) {
-    cur.push(w)
-    const ends = /[.,;:!?…]$/.test(w)
-    if (cur.length >= 6 || (ends && cur.length >= 3)) {
-      chunks.push(cur)
-      cur = []
-    }
-  }
-  if (cur.length) {
-    if (cur.length < 3 && chunks.length) chunks[chunks.length - 1].push(...cur)
-    else chunks.push(cur)
-  }
-  const weight = (c: string[]): number => c.join(' ').length + 4
-  const totalW = chunks.reduce((a, c) => a + weight(c), 0) || 1
+/** Lo que lee la voz: sin los asteriscos que marcan las palabras clave. */
+export function spokenText(narration: string): string {
+  return narration.replace(/\*+([^*]+)\*+/g, '$1').replace(/\*/g, '').replace(/\s+/g, ' ').trim()
+}
+
+export interface TimedWord {
+  text: string
+  start: number
+  /** Palabra clave (*así* en el guion): sale resaltada. */
+  key: boolean
+}
+
+/**
+ * Cada palabra con su momento dentro de la voz, repartidas por longitud y con más pausa tras comas y puntos (Kokoro
+ * habla a ritmo constante, así que el reparto cae muy cerca de lo que se oye).
+ */
+export function timedWords(narration: string, start: number, voice: number): TimedWord[] {
+  const raw = narration.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
+  let open = false
+  const words = raw.map((w) => {
+    const opens = w.startsWith('*')
+    const closes = /\*[.,;:!?…»"')]*$/.test(w)
+    const key = open || opens
+    if (opens && !closes) open = true
+    if (closes) open = false
+    return { text: w.replace(/\*/g, ''), key }
+  }).filter((w) => w.text)
+  const weight = (w: string): number => w.length + 2 + (/[.!?…]$/.test(w) ? 6 : /[,;:]$/.test(w) ? 3 : 0)
+  const total = words.reduce((a, w) => a + weight(w.text), 0) || 1
   let at = start
-  return chunks.map((c) => {
-    const d = (voice * weight(c)) / totalW
-    const out = { text: c.join(' '), start: round(at), duration: round(d) }
-    at += d
+  return words.map((w) => {
+    const out = { text: w.text, start: round(at), key: w.key }
+    at += (voice * weight(w.text)) / total
     return out
   })
 }
 
-const THEMES: Record<VideoTheme, { bg: string; bg2: string; ink: string; accent: string; accent2: string; font: string }> = {
-  noche: { bg: '#0b1020', bg2: '#1b2450', ink: '#f4f6ff', accent: '#7c9cff', accent2: '#ff7ab6', font: 'sans' },
-  amanecer: { bg: '#2a0f2e', bg2: '#ff7a59', ink: '#fff7f0', accent: '#ffc36b', accent2: '#ff5d8f', font: 'sans' },
-  oceano: { bg: '#04223a', bg2: '#0a6c8f', ink: '#effbff', accent: '#4fe3d2', accent2: '#ffd166', font: 'sans' },
-  bosque: { bg: '#0f1f17', bg2: '#2f5d3a', ink: '#f3f7ea', accent: '#a7e06b', accent2: '#f2c14e', font: 'serif' },
-  neon: { bg: '#07060f', bg2: '#251046', ink: '#ffffff', accent: '#00f0ff', accent2: '#ff2bd6', font: 'sans' },
-  papel: { bg: '#f4efe6', bg2: '#e6dccb', ink: '#1d1b18', accent: '#d9480f', accent2: '#1c7ed6', font: 'serif' }
+/** Golpes de pantalla: grupos de hasta 4 palabras que cortan en cada pausa (una sola palabra también golpea). */
+export function beatsOf(words: TimedWord[]): TimedWord[][] {
+  const beats: TimedWord[][] = []
+  let cur: TimedWord[] = []
+  for (const w of words) {
+    cur.push(w)
+    const pause = /[.,;:!?…]$/.test(w.text)
+    const long = cur.map((x) => x.text).join(' ').length
+    if (cur.length >= 4 || long >= 22 || pause) {
+      beats.push(cur)
+      cur = []
+    }
+  }
+  if (cur.length) {
+    if (cur.length === 1 && beats.length && beats[beats.length - 1].length < 4) beats[beats.length - 1].push(...cur)
+    else beats.push(cur)
+  }
+  return beats
+}
+
+/** Compatibilidad: trozos de subtítulo (texto, inicio, duración). */
+export function captionChunks(text: string, start: number, voice: number): { text: string; start: number; duration: number }[] {
+  const beats = beatsOf(timedWords(text, start, voice))
+  const end = start + voice
+  return beats.map((b, i) => {
+    const s = b[0].start
+    const e = i + 1 < beats.length ? beats[i + 1][0].start : end
+    return { text: b.map((w) => w.text).join(' '), start: s, duration: round(e - s) }
+  })
+}
+
+const THEMES: Record<VideoTheme, { bg: string; bg2: string; ink: string; accent: string; accent2: string; onAccent: string; font: string }> = {
+  noche: { bg: '#0b1020', bg2: '#1f2a66', ink: '#ffffff', accent: '#ffd23f', accent2: '#5b8cff', onAccent: '#111111', font: 'sans' },
+  amanecer: { bg: '#2a0f2e', bg2: '#ff6b4a', ink: '#ffffff', accent: '#ffd166', accent2: '#ff4d8d', onAccent: '#1a0b12', font: 'sans' },
+  oceano: { bg: '#03263f', bg2: '#0a7fa8', ink: '#ffffff', accent: '#3dffd0', accent2: '#ffd166', onAccent: '#032030', font: 'sans' },
+  bosque: { bg: '#0d1f15', bg2: '#2f6b3f', ink: '#fbfff4', accent: '#c6ff5e', accent2: '#ffb84d', onAccent: '#0d1f15', font: 'sans' },
+  neon: { bg: '#07060f', bg2: '#2a0f57', ink: '#ffffff', accent: '#00f0ff', accent2: '#ff2bd6', onAccent: '#07060f', font: 'sans' },
+  papel: { bg: '#f6f0e4', bg2: '#ffd9b8', ink: '#141210', accent: '#ff5a1f', accent2: '#1c7ed6', onAccent: '#ffffff', font: 'sans' }
 }
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+/** Números pseudoaleatorios deterministas (el render salta de fotograma en fotograma: nada de Math.random). */
+function rng(seed: number): () => number {
+  let s = seed >>> 0 || 1
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0
+    return s / 4294967296
+  }
+}
 
 export interface CompositionInput {
   script: VideoScript
@@ -234,180 +283,285 @@ export interface CompositionInput {
   gsap: string
 }
 
+export type SfxKind = 'whoosh' | 'pop' | 'impact' | 'riser'
+
+export interface Composition {
+  html: string
+  /** Efectos de sonido en su momento (se mezclan con la música). */
+  sfx: { at: number; kind: SfxKind }[]
+}
+
+const TRANSITIONS = ['zoom', 'stripes', 'iris', 'glitch'] as const
+const BEAT_IN = ['pop', 'up', 'tilt', 'side', 'drop'] as const
+
 /**
- * La composición entera en un HTML (HyperFrames): portada, una escena por bloque del guion con su rótulo animado,
- * imagen con movimiento lento, subtítulos al ritmo de la voz y barra de progreso, cortinillas entre escenas y cierre.
- * Todo determinista: nada de Math.random ni fechas (el render salta a cada fotograma).
+ * La composición entera en un HTML (HyperFrames), pensada para enganchar: portada que golpea palabra a palabra, la
+ * narración a pantalla grande en golpes de 2 a 4 palabras que entran saltando (cada uno distinto) con la palabra que
+ * suena resaltada, golpes de cámara en cada cambio, sacudidas, fondo siempre en movimiento (imagen con zoom rápido o
+ * formas, anillos y partículas), etiqueta de escena que rebota, cuatro tipos de transición y cierre. Todo determinista.
  */
-export function buildComposition(input: CompositionInput): string {
+export function buildComposition(input: CompositionInput): Composition {
   const { script, format, timeline: tl, images } = input
   const vertical = format === 'vertical'
   const W = vertical ? 1080 : 1920
   const H = vertical ? 1920 : 1080
   const th = THEMES[script.theme]
-  const fontStack = th.font === 'serif' ? "Georgia, 'Times New Roman', serif" : "'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif"
-  const layouts = ['cover', 'split', 'kinetic'] as const
-  const sceneHtml: string[] = []
-  const anims: string[] = []
+  const font = "'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif"
+  const html: string[] = []
+  const a: string[] = []
+  const sfx: Composition['sfx'] = []
+  const r = rng(script.title.length * 7919 + script.scenes.length)
+  const R = (n: number): number => round(n)
 
-  // Portada.
-  sceneHtml.push(`<section id="intro" class="clip scene intro" data-start="0" data-duration="${tl.intro + 0.4}">
-  <div class="glow g1"></div><div class="glow g2"></div>
-  <div class="intro-inner"><div class="kicker"></div><h1 class="intro-title">${esc(script.title)}</h1></div>
+  // Fondo vivo durante todo el vídeo: manchas de color que se mueven, un anillo que gira y partículas que suben.
+  const parts: string[] = []
+  for (let i = 0; i < 18; i++) {
+    const size = 6 + Math.round(r() * 16)
+    parts.push(`<i class="pt" id="pt${i}" style="left:${Math.round(r() * W)}px;top:${Math.round(r() * H)}px;width:${size}px;height:${size}px;opacity:${(0.25 + r() * 0.5).toFixed(2)}"></i>`)
+    a.push(`tl.fromTo('#pt${i}', {y: 0, x: 0}, {y: -${Math.round(H * (0.4 + r() * 0.6))}, x: ${Math.round((r() - 0.5) * 300)}, duration: ${tl.total}, ease: 'none'}, 0)`)
+  }
+  html.push(`<div id="bglife"><div class="blob b1"></div><div class="blob b2"></div><div class="ring"></div>${parts.join('')}</div>`)
+  a.push(
+    `tl.fromTo('#bglife .b1', {x: -200, y: -100, scale: 1}, {x: 260, y: 160, scale: 1.3, duration: ${tl.total}, ease: 'sine.inOut'}, 0)`,
+    `tl.fromTo('#bglife .b2', {x: 200, y: 120, scale: 1.2}, {x: -240, y: -140, scale: 0.9, duration: ${tl.total}, ease: 'sine.inOut'}, 0)`,
+    `tl.fromTo('#bglife .ring', {rotation: 0}, {rotation: ${Math.round(tl.total * 18)}, duration: ${tl.total}, ease: 'none'}, 0)`
+  )
+
+  // Portada: el título golpea palabra a palabra con sacudida.
+  const titleWords = script.title.split(/\s+/).filter(Boolean)
+  const slam = Math.min(0.28, 1.3 / Math.max(1, titleWords.length))
+  html.push(`<section id="intro" class="clip scene" data-start="0" data-duration="${R(tl.intro + 0.3)}">
+  <div class="burst"></div><div class="burst bb"></div>
+  <h1 class="title">${titleWords.map((w, i) => `<span class="tw" id="tw${i}">${esc(w)}</span>`).join(' ')}</h1>
 </section>`)
-  anims.push(
-    `tl.fromTo('#intro .kicker', {scaleX: 0}, {scaleX: 1, duration: 0.6, ease: 'power3.out'}, 0.15)`,
-    `tl.fromTo('#intro .intro-title', {y: 60, opacity: 0, filter: 'blur(10px)'}, {y: 0, opacity: 1, filter: 'blur(0px)', duration: 0.9, ease: 'power4.out'}, 0.3)`,
-    `tl.fromTo('#intro .g1', {x: -120, y: -40}, {x: 120, y: 40, duration: ${tl.intro + 0.4}, ease: 'none'}, 0)`,
-    `tl.fromTo('#intro .g2', {x: 100, y: 60}, {x: -100, y: -60, duration: ${tl.intro + 0.4}, ease: 'none'}, 0)`
+  titleWords.forEach((_, i) => {
+    const at = R(0.15 + i * slam)
+    a.push(`tl.fromTo('#tw${i}', {scale: 3.2, opacity: 0, rotation: ${i % 2 ? 8 : -8}}, {scale: 1, opacity: 1, rotation: 0, duration: 0.22, ease: 'power4.in'}, ${at})`)
+    a.push(`tl.fromTo('#shake', {x: ${i % 2 ? 14 : -14}, y: ${i % 2 ? -8 : 8}}, {x: 0, y: 0, duration: 0.25, ease: 'elastic.out(1.2, 0.3)', immediateRender: false}, ${R(at + 0.22)})`)
+    sfx.push({ at: R(at + 0.2), kind: 'impact' })
+  })
+  a.push(
+    `tl.fromTo('#intro .burst', {scale: 0.2, opacity: 0.9}, {scale: 3, opacity: 0, duration: 1.1, ease: 'power2.out'}, 0.35)`,
+    `tl.fromTo('#intro .bb', {scale: 0.2, opacity: 0.8}, {scale: 3.6, opacity: 0, duration: 1.3, ease: 'power2.out'}, ${R(0.15 + titleWords.length * slam)})`,
+    `tl.to('#intro .title', {scale: 1.08, duration: ${R(tl.intro)}, ease: 'none'}, ${R(0.15 + titleWords.length * slam)})`
   )
 
   script.scenes.forEach((sc, i) => {
     const t = tl.scenes[i]
     const id = `s${i + 1}`
-    const layout = images[i] ? layouts[i % layouts.length] : 'kinetic'
     const img = images[i]
-    const words = sc.heading.split(/\s+/).filter(Boolean)
-    const heading = words.map((w) => `<span class="w"><span>${esc(w)}</span></span>`).join(' ')
-    const caps = captionChunks(sc.narration, t.start + VOICE_LEAD_S, t.voice)
-    const capsHtml = caps
-      .map((c, k) => `<div class="cap clip" id="${id}c${k}" data-start="${c.start}" data-duration="${c.duration}"><span>${esc(c.text)}</span></div>`)
+    const words = timedWords(sc.narration, t.start + VOICE_LEAD_S, t.voice)
+    const beats = beatsOf(words)
+    const bgHtml = img
+      ? `<div class="photo"><img src="${esc(img)}" alt=""></div><div class="tint"></div>`
+      : `<div class="bignum">${String(i + 1).padStart(2, '0')}</div><div class="stripes"></div>`
+    const beatHtml = beats
+      .map((b, k) => {
+        const s = b[0].start
+        const e = k + 1 < beats.length ? beats[k + 1][0].start : t.start + t.duration
+        const wordsHtml = b
+          .map((w, j) => `<span class="w${w.key ? ' key' : ''}" id="${id}b${k}w${j}">${esc(w.text)}</span>`)
+          .join(' ')
+        return `<div class="clip beat" id="${id}b${k}" data-start="${R(s - 0.05)}" data-duration="${R(e - s + 0.05)}"><div class="bt">${wordsHtml}</div></div>`
+      })
       .join('\n  ')
-    const media = img
-      ? layout === 'split'
-        ? `<div class="card"><img src="${esc(img)}" alt=""></div>`
-        : `<div class="bg"><img src="${esc(img)}" alt=""></div><div class="shade"></div>`
-      : `<div class="glow g1"></div><div class="glow g2"></div><div class="grid"></div>`
-    sceneHtml.push(`<section id="${id}" class="clip scene ${layout}${img ? ' has-img' : ''}" data-start="${t.start}" data-duration="${t.duration}">
-  ${media}
-  <div class="text"><div class="num">${String(i + 1).padStart(2, '0')}</div><h2 class="heading">${heading}</h2></div>
-</section>
-<div class="caps">
-  ${capsHtml}
-</div>`)
-    const at = t.start
-    if (img && layout !== 'split') {
-      const from = i % 2 ? 'scale: 1.18, x: -40' : 'scale: 1.05, x: 40'
-      const to = i % 2 ? 'scale: 1.04, x: 30' : 'scale: 1.2, x: -30'
-      anims.push(`tl.fromTo('#${id} .bg img', {${from}}, {${to}, duration: ${t.duration}, ease: 'none'}, ${at})`)
-    }
-    if (layout === 'split') {
-      anims.push(
-        `tl.fromTo('#${id} .card', {x: ${vertical ? 0 : 260}, y: ${vertical ? 220 : 0}, rotate: ${i % 2 ? -4 : 4}, opacity: 0}, {x: 0, y: 0, rotate: ${i % 2 ? -2 : 2}, opacity: 1, duration: 0.9, ease: 'power3.out'}, ${at + 0.1})`,
-        `tl.fromTo('#${id} .card img', {scale: 1.15}, {scale: 1, duration: ${t.duration}, ease: 'none'}, ${at})`
+    html.push(`<section id="${id}" class="clip scene${img ? ' has-img' : ''}" data-start="${t.start}" data-duration="${t.duration}">
+  ${bgHtml}
+  <div class="tag" id="${id}tag"><span>${esc(sc.heading)}</span></div>
+  ${beatHtml}
+</section>`)
+
+    // Fondo de la escena.
+    if (img) {
+      const dir = i % 2 ? 1 : -1
+      a.push(`tl.fromTo('#${id} .photo img', {scale: 1.32, x: ${dir * 60}, rotation: ${dir * 1.5}}, {scale: 1.05, x: ${-dir * 40}, rotation: 0, duration: ${t.duration}, ease: 'power1.out'}, ${t.start})`)
+    } else {
+      a.push(
+        `tl.fromTo('#${id} .bignum', {x: ${vertical ? 300 : 700}, opacity: 0}, {x: ${vertical ? -200 : -500}, opacity: 1, duration: ${t.duration}, ease: 'power1.inOut'}, ${t.start})`,
+        `tl.fromTo('#${id} .stripes', {backgroundPositionX: '0px'}, {backgroundPositionX: '${vertical ? 600 : 900}px', duration: ${t.duration}, ease: 'none'}, ${t.start})`
       )
     }
-    if (!img) {
-      anims.push(
-        `tl.fromTo('#${id} .g1', {x: -160, y: 0}, {x: 160, y: -80, duration: ${t.duration}, ease: 'none'}, ${at})`,
-        `tl.fromTo('#${id} .g2', {x: 140, y: 80}, {x: -140, y: -40, duration: ${t.duration}, ease: 'none'}, ${at})`,
-        `tl.fromTo('#${id} .grid', {backgroundPosition: '0px 0px'}, {backgroundPosition: '0px 240px', duration: ${t.duration}, ease: 'none'}, ${at})`
-      )
-    }
-    anims.push(
-      `tl.fromTo('#${id} .num', {opacity: 0, x: -30}, {opacity: 1, x: 0, duration: 0.5, ease: 'power2.out'}, ${at + 0.15})`,
-      `tl.fromTo('#${id} .heading .w > span', {yPercent: 110}, {yPercent: 0, duration: 0.7, ease: 'power4.out', stagger: 0.08}, ${at + 0.2})`
+    // Etiqueta que rebota y se balancea.
+    a.push(
+      `tl.fromTo('#${id}tag', {scale: 0, rotation: -14}, {scale: 1, rotation: -3, duration: 0.5, ease: 'back.out(3)'}, ${R(t.start + 0.12)})`,
+      `tl.to('#${id}tag', {rotation: 2, duration: ${R(Math.max(0.5, t.duration - 0.8))}, ease: 'sine.inOut'}, ${R(t.start + 0.62)})`
     )
-    for (let k = 0; k < caps.length; k++) {
-      anims.push(`tl.fromTo('#${id}c${k} span', {y: 18, opacity: 0, scale: 0.96}, {y: 0, opacity: 1, scale: 1, duration: 0.25, ease: 'power2.out'}, ${caps[k].start})`)
-    }
-    // Cortinilla al entrar en la escena (tapa el corte).
-    const wipeAt = Math.max(0, at - 0.3)
-    sceneHtml.push(`<div id="w${id}" class="clip wipe" data-start="${round(wipeAt)}" data-duration="0.62"><div class="wipe-a"></div><div class="wipe-b"></div></div>`)
-    const axis = vertical ? 'yPercent' : 'xPercent'
-    anims.push(
-      `tl.fromTo('#w${id} .wipe-a', {${axis}: -101}, {${axis}: 101, duration: 0.6, ease: 'power3.inOut'}, ${round(wipeAt)})`,
-      `tl.fromTo('#w${id} .wipe-b', {${axis}: -101}, {${axis}: 101, duration: 0.6, ease: 'power3.inOut'}, ${round(wipeAt + 0.06)})`
-    )
+    sfx.push({ at: R(t.start + 0.14), kind: 'pop' })
+
+    // Golpes de narración.
+    beats.forEach((b, k) => {
+      const bid = `#${id}b${k}`
+      const s = b[0].start
+      const style = BEAT_IN[(i * 3 + k) % BEAT_IN.length]
+      const from =
+        style === 'pop' ? '{scale: 1.6, opacity: 0}' :
+        style === 'up' ? '{y: 140, skewY: 8, opacity: 0}' :
+        style === 'tilt' ? '{rotation: -10, scale: 0.7, opacity: 0}' :
+        style === 'side' ? `{x: ${k % 2 ? 260 : -260}, opacity: 0}` :
+        '{y: -160, scale: 1.2, opacity: 0}'
+      a.push(`tl.fromTo('${bid} .bt', ${from}, {x: 0, y: 0, scale: 1, rotation: 0, skewY: 0, opacity: 1, duration: 0.28, ease: 'back.out(2.2)'}, ${R(s - 0.05)})`)
+      // Golpe de cámara en cada cambio.
+      a.push(`tl.fromTo('#punch', {scale: ${k % 2 ? 1.05 : 1.08}}, {scale: 1, duration: 0.35, ease: 'power3.out', immediateRender: false}, ${R(s - 0.05)})`)
+      b.forEach((w, j) => {
+        const wid = `#${id}b${k}w${j}`
+        const next = j + 1 < b.length ? b[j + 1].start : k + 1 < beats.length ? beats[k + 1][0].start : t.start + t.duration
+        a.push(`tl.fromTo('${wid}', {scale: 0.3, y: 50, opacity: 0}, {scale: 1, y: 0, opacity: 1, duration: 0.2, ease: 'back.out(3)'}, ${R(w.start - 0.04)})`)
+        // La palabra que suena: resaltada mientras se dice (GSAP 3 no anima clases: colores directos).
+        const rest = w.key ? th.accent : img ? '#ffffff' : th.ink
+        const on = w.key ? `{backgroundColor: '${th.accent2}', color: '#ffffff', textShadow: 'none'}` : `{backgroundColor: '${th.accent}', color: '${th.onAccent}', textShadow: 'none'}`
+        a.push(`tl.set('${wid}', ${on}, ${R(w.start)})`)
+        a.push(`tl.set('${wid}', {backgroundColor: 'rgba(0,0,0,0)', color: '${rest}', textShadow: '0 8px 0 rgba(0,0,0,0.28)'}, ${R(Math.max(w.start + 0.12, next - 0.02))})`)
+        if (w.key) {
+          a.push(`tl.fromTo('${wid}', {rotation: -6}, {rotation: 0, duration: 0.35, ease: 'elastic.out(1.4, 0.35)', immediateRender: false}, ${R(w.start + 0.1)})`)
+          a.push(`tl.fromTo('#shake', {x: 10, y: -6}, {x: 0, y: 0, duration: 0.3, ease: 'elastic.out(1.2, 0.3)', immediateRender: false}, ${R(w.start)})`)
+        }
+      })
+    })
+
+    // Transición de entrada a la escena.
+    const kind = TRANSITIONS[i % TRANSITIONS.length]
+    const at = R(Math.max(0, t.start - 0.22))
+    html.push(transitionHtml(`tr${i}`, kind, at, vertical))
+    a.push(...transitionAnims(`tr${i}`, kind, at, vertical))
+    sfx.push({ at: R(at - 0.05), kind: 'whoosh' })
   })
 
   // Cierre.
-  sceneHtml.push(`<section id="outro" class="clip scene intro" data-start="${tl.outroStart}" data-duration="${tl.outro}">
-  <div class="glow g1"></div><div class="glow g2"></div>
-  <div class="intro-inner"><h2 class="outro-text">${esc(script.outro)}</h2><div class="kicker"></div></div>
+  const outWords = script.outro.split(/\s+/).filter(Boolean)
+  html.push(`<section id="outro" class="clip scene" data-start="${tl.outroStart}" data-duration="${tl.outro}">
+  <div class="burst"></div>
+  <h2 class="title outro">${outWords.map((w, i) => `<span class="tw" id="ow${i}">${esc(w)}</span>`).join(' ')}</h2>
+  <div class="underline"></div>
 </section>`)
-  sceneHtml.push(`<div id="wout" class="clip wipe" data-start="${round(tl.outroStart - 0.3)}" data-duration="0.62"><div class="wipe-a"></div><div class="wipe-b"></div></div>`)
-  const axis = vertical ? 'yPercent' : 'xPercent'
-  anims.push(
-    `tl.fromTo('#wout .wipe-a', {${axis}: -101}, {${axis}: 101, duration: 0.6, ease: 'power3.inOut'}, ${round(tl.outroStart - 0.3)})`,
-    `tl.fromTo('#wout .wipe-b', {${axis}: -101}, {${axis}: 101, duration: 0.6, ease: 'power3.inOut'}, ${round(tl.outroStart - 0.24)})`,
-    `tl.fromTo('#outro .outro-text', {scale: 0.92, opacity: 0}, {scale: 1, opacity: 1, duration: 0.8, ease: 'power3.out'}, ${tl.outroStart + 0.2})`,
-    `tl.fromTo('#outro .kicker', {scaleX: 0}, {scaleX: 1, duration: 0.6, ease: 'power3.out'}, ${tl.outroStart + 0.5})`,
-    `tl.to('#outro .intro-inner', {opacity: 0, duration: 0.6, ease: 'power1.in'}, ${round(tl.total - 0.7)})`,
+  html.push(transitionHtml('trout', 'zoom', R(tl.outroStart - 0.22), vertical))
+  a.push(...transitionAnims('trout', 'zoom', R(tl.outroStart - 0.22), vertical))
+  sfx.push({ at: R(tl.outroStart - 0.27), kind: 'whoosh' })
+  outWords.forEach((_, i) => {
+    const at = R(tl.outroStart + 0.1 + i * 0.12)
+    a.push(`tl.fromTo('#ow${i}', {y: 120, opacity: 0, rotation: ${i % 2 ? 6 : -6}}, {y: 0, opacity: 1, rotation: 0, duration: 0.35, ease: 'back.out(2.5)'}, ${at})`)
+  })
+  sfx.push({ at: R(tl.outroStart + 0.1 + outWords.length * 0.12), kind: 'impact' })
+  a.push(
+    `tl.fromTo('#outro .burst', {scale: 0.2, opacity: 0.9}, {scale: 3.2, opacity: 0, duration: 1.2, ease: 'power2.out'}, ${R(tl.outroStart + 0.1 + outWords.length * 0.12)})`,
+    `tl.fromTo('#outro .underline', {scaleX: 0}, {scaleX: 1, duration: 0.5, ease: 'power3.out'}, ${R(tl.outroStart + 0.3 + outWords.length * 0.12)})`,
+    `tl.to('#outro .title, #outro .underline', {opacity: 0, scale: 0.94, duration: 0.45, ease: 'power2.in'}, ${R(tl.total - 0.5)})`,
     `tl.fromTo('#bar', {scaleX: 0}, {scaleX: 1, duration: ${tl.total}, ease: 'none'}, 0)`
   )
+  sfx.push({ at: R(Math.max(0, tl.intro - 0.9)), kind: 'riser' })
 
-  const big = vertical ? 112 : 104
-  return `<!doctype html>
+  const big = vertical ? 142 : 150
+  const doc = `<!doctype html>
 <html lang="${esc(script.lang)}">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=${W}, height=${H}" />
 <script src="${esc(input.gsap)}"></script>
 <style>
-:root { --bg: ${th.bg}; --bg2: ${th.bg2}; --ink: ${th.ink}; --accent: ${th.accent}; --accent2: ${th.accent2}; }
+:root { --bg: ${th.bg}; --bg2: ${th.bg2}; --ink: ${th.ink}; --accent: ${th.accent}; --accent2: ${th.accent2}; --on: ${th.onAccent}; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: var(--bg); }
-#root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: ${fontStack}; color: var(--ink);
-  background: radial-gradient(120% 90% at 20% 10%, var(--bg2) 0%, var(--bg) 60%); }
+#root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: ${font}; color: var(--ink);
+  background: radial-gradient(130% 100% at 30% 0%, var(--bg2) 0%, var(--bg) 62%); }
 .clip { position: absolute; inset: 0; }
+#bglife { position: absolute; inset: 0; overflow: hidden; }
+.blob { position: absolute; width: ${vertical ? 900 : 1000}px; height: ${vertical ? 900 : 1000}px; border-radius: 50%; filter: blur(90px); opacity: 0.55; }
+.b1 { background: var(--accent2); left: -15%; top: -20%; }
+.b2 { background: var(--accent); right: -25%; bottom: -25%; opacity: 0.35; }
+.ring { position: absolute; left: 50%; top: 50%; width: ${vertical ? 1300 : 1400}px; height: ${vertical ? 1300 : 1400}px; margin: -${vertical ? 650 : 700}px 0 0 -${vertical ? 650 : 700}px;
+  border-radius: 50%; border: 3px dashed var(--ink); opacity: 0.12; }
+.pt { position: absolute; border-radius: 50%; background: var(--ink); }
+#shake, #punch { position: absolute; inset: 0; transform-origin: 50% 50%; }
 .scene { overflow: hidden; }
-.glow { position: absolute; width: ${vertical ? 900 : 1100}px; height: ${vertical ? 900 : 1100}px; border-radius: 50%; filter: blur(120px); opacity: 0.55; }
-.g1 { background: var(--accent); left: -20%; top: -25%; }
-.g2 { background: var(--accent2); right: -25%; bottom: -30%; opacity: 0.4; }
-.grid { position: absolute; inset: -240px 0 0 0; opacity: 0.12;
-  background-image: linear-gradient(var(--ink) 1px, transparent 1px), linear-gradient(90deg, var(--ink) 1px, transparent 1px);
-  background-size: 120px 120px; }
-.intro-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px; padding: 0 ${vertical ? 90 : 220}px; text-align: center; }
-.kicker { width: 180px; height: 10px; border-radius: 6px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transform-origin: left center; }
-.intro-title { font-size: ${vertical ? 118 : 112}px; line-height: 1.02; font-weight: 800; letter-spacing: -0.035em; }
-.outro-text { font-size: ${vertical ? 96 : 92}px; line-height: 1.06; font-weight: 800; letter-spacing: -0.03em; }
-.bg { position: absolute; inset: 0; }
-.bg img { width: 100%; height: 100%; object-fit: cover; transform-origin: center; }
-.shade { position: absolute; inset: 0; background: linear-gradient(${vertical ? '180deg' : '90deg'}, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.1) 100%); }
-.cover .shade { background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.25) 55%, rgba(0,0,0,0.15) 100%); }
-.text { position: absolute; z-index: 2; }
-.num { font-size: 40px; font-weight: 700; letter-spacing: 0.2em; color: var(--accent); margin-bottom: 18px; }
-.heading { font-size: ${big}px; line-height: 1.02; font-weight: 800; letter-spacing: -0.035em; }
-.heading .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; }
-.heading .w > span { display: inline-block; }
-.cover .text { left: ${vertical ? 80 : 140}px; right: ${vertical ? 80 : 140}px; bottom: ${vertical ? 620 : 300}px; color: #fff; }
-.kinetic .text { left: ${vertical ? 80 : 160}px; right: ${vertical ? 80 : 160}px; top: 50%; transform: translateY(-${vertical ? 75 : 62}%); }
-.kinetic .heading { font-size: ${vertical ? 132 : 150}px; }
-.kinetic.has-img .text { color: #fff; }
-.split .text { ${vertical ? 'left: 80px; right: 80px; top: 1060px;' : 'left: 140px; width: 760px; top: 300px;'} }
-.split .card { position: absolute; ${vertical ? 'left: 90px; right: 90px; top: 200px; height: 780px;' : 'right: 120px; top: 150px; width: 860px; height: 780px;'}
-  border-radius: 36px; overflow: hidden; box-shadow: 0 40px 120px rgba(0,0,0,0.45); border: 2px solid rgba(255,255,255,0.18); }
-.split .card img { width: 100%; height: 100%; object-fit: cover; }
-.caps { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
-.cap { display: flex; align-items: flex-end; justify-content: center; padding: 0 ${vertical ? 70 : 220}px ${vertical ? 330 : 90}px; }
-.cap span { display: inline-block; max-width: 100%; text-align: center; font-family: 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif;
-  font-size: ${vertical ? 62 : 52}px; line-height: 1.18; font-weight: 750; color: #fff; padding: 14px 28px; border-radius: 18px;
-  background: rgba(8, 10, 20, 0.62); box-shadow: 0 10px 40px rgba(0,0,0,0.35); }
-.wipe { z-index: 8; overflow: hidden; }
-.wipe-a, .wipe-b { position: absolute; inset: 0; }
-.wipe-a { background: var(--accent); }
-.wipe-b { background: var(--bg); }
-#barwrap { position: absolute; left: 0; right: 0; top: 0; height: 8px; z-index: 9; background: rgba(255,255,255,0.12); }
+.photo { position: absolute; inset: 0; }
+.photo img { width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; }
+.tint { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.75) 100%); }
+.has-img .w { color: #fff; }
+.bignum { position: absolute; top: ${vertical ? 180 : 40}px; left: 0; font-size: ${vertical ? 620 : 760}px; font-weight: 900; line-height: 1; letter-spacing: -0.06em;
+  color: transparent; -webkit-text-stroke: 4px var(--ink); opacity: 0.12; white-space: nowrap; }
+.stripes { position: absolute; left: 0; right: 0; bottom: 0; height: ${vertical ? 160 : 120}px; opacity: 0.18;
+  background-image: repeating-linear-gradient(-45deg, var(--accent) 0 28px, transparent 28px 64px); }
+.tag { position: absolute; z-index: 4; ${vertical ? 'left: 0; right: 0; top: 230px; display: flex; justify-content: center;' : 'left: 110px; top: 90px;'} transform-origin: 0% 50%; }
+.tag span { display: inline-block; padding: 14px 30px; border-radius: 16px; background: var(--accent); color: var(--on); font-size: ${vertical ? 52 : 46}px;
+  font-weight: 900; letter-spacing: -0.01em; text-transform: uppercase; box-shadow: 0 14px 0 rgba(0,0,0,0.25); }
+.beat { display: flex; align-items: center; justify-content: center; z-index: 5; padding: 0 ${vertical ? 70 : 160}px; }
+.bt { text-align: center; font-size: ${big}px; line-height: 1.08; font-weight: 900; letter-spacing: -0.035em; max-width: ${vertical ? 940 : 1600}px; }
+.w { display: inline-block; padding: 0 0.08em; border-radius: 0.14em; text-shadow: 0 8px 0 rgba(0,0,0,0.28); }
+.w.key { color: var(--accent); }
+.has-img .w.key { color: var(--accent); }
+#intro, #outro { display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.title { position: relative; z-index: 3; text-align: center; padding: 0 ${vertical ? 70 : 180}px; font-size: ${vertical ? 136 : 150}px; line-height: 1.02; font-weight: 900;
+  letter-spacing: -0.045em; text-transform: uppercase; }
+.title .tw { display: inline-block; text-shadow: 0 10px 0 rgba(0,0,0,0.3); }
+.title .tw:nth-child(3n+2) { color: var(--accent); }
+.outro { font-size: ${vertical ? 112 : 120}px; text-transform: none; }
+.underline { width: 340px; height: 18px; margin-top: 40px; border-radius: 10px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transform-origin: 50% 50%; z-index: 3; }
+.burst { position: absolute; left: 50%; top: 50%; width: 600px; height: 600px; margin: -300px 0 0 -300px; border-radius: 50%; border: 24px solid var(--accent); z-index: 2; }
+.bb { border-color: var(--accent2); }
+.tr { z-index: 8; overflow: hidden; pointer-events: none; }
+.tr .flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+.tr .sb { position: absolute; top: -20%; bottom: -20%; width: 24%; background: var(--accent); transform: skewX(-18deg); }
+.tr .sb:nth-child(2n) { background: var(--accent2); }
+.tr .iris { position: absolute; left: 50%; top: 50%; width: ${vertical ? 2400 : 2400}px; height: ${vertical ? 2400 : 2400}px; margin: -1200px 0 0 -1200px; border-radius: 50%; background: var(--accent); }
+.tr .slab { position: absolute; left: -10%; right: -10%; height: 34%; background: var(--accent2); mix-blend-mode: normal; }
+#barwrap { position: absolute; left: 0; right: 0; ${vertical ? 'top: 0;' : 'bottom: 0;'} height: 12px; z-index: 9; background: rgba(255,255,255,0.15); }
 #bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transform-origin: left center; }
 </style>
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="${tl.total}" data-width="${W}" data-height="${H}">
-${sceneHtml.join('\n')}
+${html[0]}
+<div id="shake"><div id="punch">
+${html.slice(1).join('\n')}
+</div></div>
 <div id="barwrap"><div id="bar"></div></div>
 <audio id="mix" src="${esc(input.audio)}" data-start="0" data-duration="${tl.total}" data-volume="1"></audio>
 </div>
 <script>
 window.__timelines = window.__timelines || {};
 const tl = gsap.timeline({ paused: true });
-${anims.join(';\n')};
+${a.join(';\n')};
 window.__timelines["main"] = tl;
 tl.seek(0);
 </script>
 </body>
 </html>
 `
+  return { html: doc, sfx: sfx.filter((s) => s.at >= 0).sort((x, y) => x.at - y.at) }
+}
+
+function transitionHtml(id: string, kind: (typeof TRANSITIONS)[number], at: number, vertical: boolean): string {
+  const inner =
+    kind === 'zoom' ? '<div class="flash"></div>' :
+    kind === 'stripes' ? '<div class="sb"></div><div class="sb"></div><div class="sb"></div><div class="sb"></div><div class="sb"></div>' :
+    kind === 'iris' ? '<div class="iris"></div>' :
+    `<div class="slab" style="top:0"></div><div class="slab" style="top:33%"></div><div class="slab" style="top:66%"></div>`
+  void vertical
+  return `<div id="${id}" class="clip tr" data-start="${at}" data-duration="0.5">${inner}</div>`
+}
+
+function transitionAnims(id: string, kind: (typeof TRANSITIONS)[number], at: number, vertical: boolean): string[] {
+  const s = `#${id}`
+  if (kind === 'zoom') {
+    return [
+      `tl.fromTo('${s} .flash', {opacity: 0}, {opacity: 0.85, duration: 0.12, ease: 'power2.in', yoyo: true, repeat: 1}, ${at})`,
+      `tl.fromTo('#punch', {scale: 1.35, rotation: -2}, {scale: 1, rotation: 0, duration: 0.45, ease: 'expo.out', immediateRender: false}, ${round(at + 0.2)})`
+    ]
+  }
+  if (kind === 'stripes') {
+    const W = vertical ? 1080 : 1920
+    return [`tl.fromTo('${s} .sb', {x: ${-W * 0.5}}, {x: ${W * 1.4}, duration: 0.5, ease: 'power3.inOut', stagger: 0.03}, ${at})`]
+  }
+  if (kind === 'iris') {
+    return [
+      `tl.fromTo('${s} .iris', {scale: 0}, {scale: 1, duration: 0.22, ease: 'power3.in'}, ${at})`,
+      `tl.to('${s} .iris', {scale: 0, duration: 0.26, ease: 'power3.out'}, ${round(at + 0.22)})`
+    ]
+  }
+  return [
+    `tl.fromTo('${s} .slab', {x: -2200}, {x: 0, duration: 0.12, ease: 'steps(3)', stagger: 0.04}, ${at})`,
+    `tl.to('${s} .slab', {x: 2200, duration: 0.14, ease: 'steps(3)', stagger: 0.04}, ${round(at + 0.24)})`,
+    `tl.fromTo('#shake', {x: -24, y: 6}, {x: 0, y: 0, duration: 0.3, ease: 'steps(6)', immediateRender: false}, ${round(at + 0.2)})`
+  ]
 }
 
 // ---------- música ----------
@@ -428,7 +582,7 @@ export function synthMusic(seconds: number, seed: string, sampleRate = 44100): B
   const root = roots[h % roots.length]
   const prog = progs[(h >> 3) % progs.length]
   const minor = (h >> 5) % 2 === 0
-  const bpm = 96
+  const bpm = 112
   const beat = 60 / bpm
   const bar = beat * 4
   const n = Math.max(1, Math.floor(seconds * sampleRate))
@@ -469,17 +623,61 @@ export function synthMusic(seconds: number, seed: string, sampleRate = 44100): B
     }
     out[i] = v
   }
-  // Fundidos de entrada y salida, y normalizado.
+  // Fundidos de entrada y salida (wav16 normaliza).
   const fade = Math.min(n / 2, sampleRate * 1.5)
-  let peak = 0
-  for (let i = 0; i < n; i++) {
-    const g = Math.min(1, i / fade, (n - 1 - i) / fade)
-    out[i] *= g
-    peak = Math.max(peak, Math.abs(out[i]))
+  for (let i = 0; i < n; i++) out[i] *= Math.min(1, i / fade, (n - 1 - i) / fade)
+  return wav16(out, sampleRate, 0.8)
+}
+
+/**
+ * Efectos de sonido sintetizados (sin derechos de nadie) en su momento: «whoosh» en cada transición, «pop» al entrar la
+ * etiqueta, «impact» en los golpes de la portada y el cierre, «riser» antes de la primera escena. WAV mono de 16 bits.
+ */
+export function synthSfx(events: { at: number; kind: SfxKind }[], seconds: number, sampleRate = 44100): Buffer {
+  const n = Math.max(1, Math.floor(seconds * sampleRate))
+  const out = new Float32Array(n)
+  let seed = 12345
+  const noise = (): number => {
+    seed = (seed * 1664525 + 1013904223) >>> 0
+    return seed / 2147483648 - 1
   }
-  const norm = peak > 0 ? 0.8 / peak : 1
-  const data = Buffer.alloc(n * 2)
-  for (let i = 0; i < n; i++) data.writeInt16LE(Math.max(-32767, Math.min(32767, Math.round(out[i] * norm * 32767))), i * 2)
+  for (const ev of events) {
+    const i0 = Math.floor(ev.at * sampleRate)
+    const len = Math.floor(sampleRate * (ev.kind === 'whoosh' ? 0.45 : ev.kind === 'pop' ? 0.09 : ev.kind === 'riser' ? 0.9 : 0.5))
+    let lp = 0
+    for (let k = 0; k < len && i0 + k < n; k++) {
+      if (i0 + k < 0) continue
+      const t = k / sampleRate
+      const x = k / len
+      let v = 0
+      if (ev.kind === 'whoosh') {
+        // Ruido filtrado que sube y baja (filtro paso bajo con corte que barre).
+        const cut = 0.02 + 0.5 * Math.sin(Math.PI * x)
+        lp += cut * (noise() - lp)
+        v = lp * Math.sin(Math.PI * x) * 1.4
+      } else if (ev.kind === 'pop') {
+        v = Math.sin(2 * Math.PI * (900 - 500 * x) * t) * Math.exp(-x * 6) * 0.6
+      } else if (ev.kind === 'impact') {
+        const f = 40 + 120 * Math.exp(-t * 25)
+        lp += 0.08 * (noise() - lp)
+        v = (Math.sin(2 * Math.PI * f * t) * 0.9 + lp * 1.5) * Math.exp(-t * 7)
+      } else {
+        const f = 200 + 900 * x * x
+        lp += (0.01 + 0.2 * x) * (noise() - lp)
+        v = (Math.sin(2 * Math.PI * f * t) * 0.15 + lp) * x * x
+      }
+      out[i0 + k] += v
+    }
+  }
+  return wav16(out, sampleRate, 0.9)
+}
+
+function wav16(samples: Float32Array, sampleRate: number, peakTarget: number): Buffer {
+  let peak = 0
+  for (const v of samples) peak = Math.max(peak, Math.abs(v))
+  const norm = peak > 0 ? peakTarget / peak : 1
+  const data = Buffer.alloc(samples.length * 2)
+  for (let i = 0; i < samples.length; i++) data.writeInt16LE(Math.max(-32767, Math.min(32767, Math.round(samples[i] * norm * 32767))), i * 2)
   const header = Buffer.alloc(44)
   header.write('RIFF', 0)
   header.writeUInt32LE(36 + data.length, 4)
