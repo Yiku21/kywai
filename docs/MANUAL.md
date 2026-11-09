@@ -145,7 +145,7 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
 Al abrir la app instalada por primera vez aparece el **asistente de configuración** (también desde
 ⚙ → Ajustes → «Configurar agentes…»):
 
-1. **Agentes**: eliges cuáles usar (Hermes, Claude, Codex, Gemini, Muse y el agente local con LM Studio u Ollama).
+1. **Agentes**: eliges cuáles usar (Hermes, Claude, Codex, Gemini, Muse y el agente local con LM Studio, Ollama o Colibri).
    Debajo, el recuadro plegable **«¿No pagas ninguna suscripción? Así puedes usar kywai gratis»** explica cómo
    montar un equipo sin pagar: «Ver los agentes gratis» abre el catálogo con «Solo gratis» (Kilo CLI primero, que ni
    siquiera pide cuenta), «Conseguir la clave» abre la página de la clave gratis de Google AI Studio (para Gemini) o
@@ -717,6 +717,31 @@ documentación no confirma y pueden necesitar ajustes.
   Si aun así sale «No disponible: Servidor de LM Studio apagado», la tarjeta del agente (clic en su robot) tiene el
   botón **Encender LM Studio**: enciende el servidor, carga el modelo y deja el agente disponible. Si no puede, dice
   por qué (por ejemplo, que LM Studio no está instalado).
+- **Colibri como motor local** (pestaña **Colibri** en el indicador Local → «Agente local», y en el paso Agentes del
+  asistente). [Colibri](https://github.com/JustVugg/colibri) (licencia Apache-2.0) sirve modelos MoE grandes
+  (Qwen3.6, GLM, DeepSeek…) dejando en la GPU lo que más se usa, en RAM lo templado y leyendo del disco el resto.
+  Habla la API de OpenAI con herramientas, así que el agente local trabaja con él igual que con LM Studio (mismas
+  herramientas, sin terminal, razonamiento apagado). Cómo funciona:
+  - **Instalación**: a mano con su `./start-here.sh` (elige un modelo que quepa y lo descarga, 19 GB o más). kywai lo
+    detecta por el `setup.json` que deja (`~/Library/Application Support/colibri` en Mac,
+    `~/.local/share/colibri` en Linux, `%LOCALAPPDATA%\colibri` en Windows; `COLI_SETUP_HOME` lo cambia) y usa su
+    dirección y su puerto (127.0.0.1:8000 de fábrica). En el asistente sale como programa con su enlace.
+  - **Encender**: con «Encender» en el indicador Local, el botón **Encender Colibri** de la tarjeta del robot o al
+    arrancar una tarea, kywai ejecuta `coli start --background --no-browser` y espera hasta 15 minutos a que cargue
+    el modelo. Al arrancar la app, con ⟳ o /cuota se enciende en segundo plano y el agente sale «Colibri se está
+    encendiendo» hasta que el modelo responde.
+  - **Un modelo a la vez**: Colibri sirve el que eligió su instalación. Si el nombre guardado en kywai no coincide con
+    el que sirve (por ejemplo `qwen36-35b` frente a `qwen3.6`), se usa el que sirve. Para cambiarlo:
+    `./start-here.sh --reconfigure` y ⟳.
+  - **Otra dirección** («Dirección del servidor», vacía por defecto): sirve para un Colibri en otro puerto o en otro
+    equipo de Tailscale, y para cualquier otro servidor compatible con OpenAI (llama.cpp, MLX…). Con otra dirección
+    kywai no lo enciende: solo lo usa. Se guarda en `config.json` como `colibriUrl`.
+  - **Velocidad**: con un modelo mediano que cabe en RAM (Qwen3.6-35B-A3B, unos 6 tokens/s solo con CPU) va bien
+    para tareas sin prisa. Con los gigantes (GLM-5.2, DeepSeek V4) baja de 1 token/s y no sirve para tareas de
+    agente. Hermes sabe que es lento y le da solo tareas acotadas.
+  - **AirLLM** se estudió y se descartó: es una librería de Python sin servidor, muy lenta y sin herramientas.
+  - Para desarrolladores: `src/main/agents/colibri.ts` (instalación, encendido y `runColibri`), que reutiliza el
+    bucle de LM Studio (`runOpenAiLocal` en `lmstudio.ts`); motores en `src/shared/localEngines.ts`.
 - **Permisos de los agentes** (menú ⚙ → Ajustes → «Acceso completo para los agentes», activado por defecto): Claude, Codex y
   Gemini ejecutan comandos, instalan dependencias y usan internet sin pedir permiso, para no quedarse parados.
   Se les indica que trabajen en la carpeta del proyecto y que no borren nada fuera de ella ni hagan acciones
@@ -1956,7 +1981,7 @@ De dónde sale cada cifra:
 | Claude Code | **Dato real**: lo dice el propio Claude Code al terminar (`total_cost_usd`, a precios de API también con suscripción) |
 | Codex, Gemini, Qwen | Sus tokens × la tabla de precios |
 | Hermes, Muse y los de catálogo | No dicen sus tokens: se **estiman** por la longitud del encargo y de la respuesta (unos 4 caracteres por token) × la tabla. Es un mínimo: no cuenta lo que el agente leyó o pensó por dentro |
-| Ollama, LM Studio, modelos gratis | 0 |
+| Ollama, LM Studio, Colibri, modelos gratis | 0 |
 
 **En Órbita**, el panel **«Uso y coste»** (antes «Consumo») enseña lo mismo de los últimos 30 días arriba del
 todo: pagado por uso y a precios de API, el presupuesto del mes con su barra y si compensa cada suscripción; y en

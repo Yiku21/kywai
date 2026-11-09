@@ -503,6 +503,7 @@ object SpaceSceneBuilder {
             "gemini" -> look(RobotBody.Capsule, Accessory.Ears, EyeShape.Round, RobotLogo.Gemini, 0xFF6EF3FF, 0xFF3AB8FF)
             "ollama", "qwen" -> look(RobotBody.Egg, Accessory.None, EyeShape.Pill, RobotLogo.Qwen, 0xFFECDCFF)
             "lmstudio" -> look(RobotBody.Egg, Accessory.None, EyeShape.Pill, RobotLogo.Local, 0xFFECDCFF)
+            "colibri" -> look(RobotBody.Egg, Accessory.None, EyeShape.Pill, RobotLogo.Local, 0xFFC8F7E1)
             "hermes" -> look(RobotBody.Dome, Accessory.Hair, EyeShape.Round, RobotLogo.Hermes, 0xFFFFC65A, 0xFF141419, 0xFFD6A743)
             "claude" -> look(RobotBody.Blob, Accessory.Tuft, EyeShape.Arc, RobotLogo.Claude, 0xFFFFF0C8)
             "codex" -> look(RobotBody.Cube, Accessory.Vents, EyeShape.Chevron, RobotLogo.OpenAI, 0xFF8CFFD0)

@@ -26,7 +26,7 @@ export function AgentModels({ agent }: { agent: AgentConfig }) {
     }
   }, [agent.id])
 
-  if (!api || mode !== 'live' || agent.isSubagent || agent.provider === 'ollama' || agent.provider === 'lmstudio' || agent.provider === 'cli') return null
+  if (!api || mode !== 'live' || agent.isSubagent || agent.provider === 'ollama' || agent.provider === 'lmstudio' || agent.provider === 'colibri' || agent.provider === 'cli') return null
 
   // Asegura que los modelos actuales aparezcan aunque no estén en la lista.
   const list: ModelOption[] = [...(options ?? [])]

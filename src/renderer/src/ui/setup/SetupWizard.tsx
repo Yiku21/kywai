@@ -12,13 +12,14 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SetupWizard.module.css'
 import { t } from '@/lib/i18n'
+import { LOCAL_ENGINES, LOCAL_ENGINE_LABEL, isLocalEngine } from '@shared/localEngines'
 
 type Step = 0 | 1 | 2 | 3
-type LocalEngine = 'lmstudio' | 'ollama'
+type LocalEngine = 'lmstudio' | 'ollama' | 'colibri'
 
 const STEPS = [t('Agentes'), t('Programas'), t('Sesiones'), t('Listo')]
 
-const isLocal = (a: AgentConfig): boolean => a.provider === 'ollama' || a.provider === 'lmstudio'
+const isLocal = (a: AgentConfig): boolean => isLocalEngine(a.provider)
 
 /** Qué hace cada agente y qué cuenta necesita (texto de las tarjetas). */
 const ABOUT: Record<string, { what: string; account: string }> = {
@@ -65,7 +66,7 @@ export function SetupWizard() {
 
   const [step, setStep] = useState<Step>(0)
   const [chosen, setChosen] = useState<Set<string>>(() => new Set(main.filter((a) => a.enabled).map((a) => a.id)))
-  const [engine, setEngine] = useState<LocalEngine>(localAgent?.provider === 'ollama' ? 'ollama' : 'lmstudio')
+  const [engine, setEngine] = useState<LocalEngine>(localAgent && isLocalEngine(localAgent.provider) ? localAgent.provider : 'lmstudio')
   const [tools, setTools] = useState<SetupTool[] | null>(null)
   const [detecting, setDetecting] = useState(false)
   const [installing, setInstalling] = useState<SetupToolId | null>(null)
@@ -392,7 +393,7 @@ export function SetupWizard() {
                       </div>
                       {isLocal(a) && on && (
                         <div className={s.engines} role="radiogroup" aria-label={t('Programa del agente local')}>
-                          {(['lmstudio', 'ollama'] as const).map((eng) => (
+                          {LOCAL_ENGINES.map((eng) => (
                             <button
                               key={eng}
                               type="button"
@@ -401,7 +402,7 @@ export function SetupWizard() {
                               className={cx(s.engine, engine === eng && s.engineOn)}
                               onClick={() => setEngine(eng)}
                             >
-                              {eng === 'lmstudio' ? 'LM Studio' : 'Ollama'}
+                              {LOCAL_ENGINE_LABEL[eng]}
                             </button>
                           ))}
                         </div>

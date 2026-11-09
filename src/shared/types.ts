@@ -8,7 +8,7 @@ export type { TaskTemplate, TaskTemplateInput } from './templates'
 // Todo lo que cruza IPC está definido aquí.
 
 export type AgentId = string
-export type ProviderKind = 'claude' | 'codex' | 'gemini' | 'qwen' | 'ollama' | 'lmstudio' | 'hermes' | 'muse' | 'cli'
+export type ProviderKind = 'claude' | 'codex' | 'gemini' | 'qwen' | 'ollama' | 'lmstudio' | 'colibri' | 'hermes' | 'muse' | 'cli'
 
 /**
  * Cómo se lanza un agente «de catálogo» (cualquier programa de terminal que atienda un encargo y devuelva texto):
@@ -65,8 +65,12 @@ export interface CliAgentSpec {
  */
 export type AgentAccess = 'full' | 'project'
 
-/** Motores de ejecución local. */
-export type LocalEngine = 'ollama' | 'lmstudio'
+/**
+ * Motores de ejecución local. Colibri (github.com/JustVugg/colibri) sirve modelos MoE grandes leyendo del disco lo que
+ * no cabe en memoria; como habla la API de OpenAI, su dirección se puede cambiar para usar otro servidor parecido
+ * (llama.cpp, MLX…).
+ */
+export type LocalEngine = 'ollama' | 'lmstudio' | 'colibri'
 
 /** Apariencia del robot. Si falta, se elige según el proveedor (sub-agentes: "becario"). */
 export interface RobotAvatar {
@@ -930,6 +934,11 @@ export interface AppConfig {
    * escritorio, la web y Órbita. Sin él, el nombre del equipo en la red («macmini.lan»).
    */
   serverName?: string
+  /**
+   * Dirección del servidor de Colibri (o de otro compatible con la API de OpenAI: llama.cpp, MLX…), p. ej.
+   * «http://127.0.0.1:8080». Sin ella, la que guardó la instalación de Colibri (127.0.0.1:8000 de fábrica).
+   */
+  colibriUrl?: string
   /** Acceso desde otros dispositivos de Tailscale (navegador del móvil o del portátil). */
   webAccess: WebAccessConfig
   /** Cómo pagas cada agente, precios por modelo y presupuesto del mes (panel «Uso y coste»). */
@@ -1211,7 +1220,7 @@ export interface SetWebAccessInput {
 // ---------- Asistente de configuración ----------
 
 /** Programas que el asistente comprueba e instala. */
-export type SetupToolId = 'node' | 'brew' | 'python' | 'uv' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | `cli:${string}`
+export type SetupToolId = 'node' | 'brew' | 'python' | 'uv' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | 'colibri' | `cli:${string}`
 
 export interface SetupTool {
   id: SetupToolId
@@ -1549,9 +1558,11 @@ export interface CoworkApi {
    * directamente tu cuenta de Claude y pueda dar la cuota. Devuelve un mensaje con lo hecho y lo que falta.
    */
   fixClaudeDirect(): Promise<string>
-  /** Estado de Ollama y LM Studio con sus modelos instalados. */
+  /** Estado de LM Studio, Ollama y Colibri con sus modelos instalados. */
   listLocalEngines(): Promise<LocalEngineStatus[]>
   startLocalServer(engine: LocalEngine): Promise<void>
+  /** Cambia la dirección del servidor de Colibri (u otro compatible con OpenAI). Vacía: la de su instalación. */
+  setColibriUrl(url: string): Promise<void>
   /** Descarga un modelo de Ollama (progreso por eventos local.pull). Si se indica agentId, al terminar se le asigna. */
   pullLocalModel(model: string, agentId?: AgentId): Promise<void>
   cancelLocalPull(): Promise<void>

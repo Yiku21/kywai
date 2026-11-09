@@ -11,6 +11,7 @@ import { emit } from './events'
 import { getConfig } from './config'
 import { agentKey, keys } from './keys'
 import { lmsPath } from './agents/lmstudio'
+import { readColibriSetup } from './agents/colibri'
 import { isGeminiKey } from './agents/gemini'
 import { asAdmin, detectPackageManager, findTerminal, LINUX_PACKAGES, nodeInstall, packageInstall, terminalArgs, which, withUserNpmPrefix, type LinuxPackageManager } from './linuxDesktop'
 import { tr } from '@shared/i18n'
@@ -238,6 +239,14 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
           : brew
             ? { cmd: 'brew install ollama && brew services start ollama' }
             : null
+  },
+  colibri: {
+    label: 'Colibri',
+    version: '',
+    url: 'https://github.com/JustVugg/colibri#quick-start',
+    // Su instalación elige un modelo que quepa en el equipo y lo descarga (de 19 GB en adelante): se hace a mano con
+    // «./start-here.sh», que lo deja listo para que kywai lo encienda.
+    install: () => null
   }
 }
 
@@ -267,6 +276,7 @@ async function probe(id: SetupToolId): Promise<{ installed: boolean; version?: s
     const lms = lmsPath()
     return { installed: !!lms }
   }
+  if (id === 'colibri') return { installed: !!readColibriSetup() }
   const def = toolDef(id)
   if (!def) return { installed: false }
   const r = await sh(def.version, 20000)
@@ -306,8 +316,8 @@ async function context(): Promise<InstallContext> {
 }
 
 const PLATFORM_TOOLS: SetupToolId[] = IS_MAC
-  ? ['brew', 'node', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama']
-  : ['node', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama']
+  ? ['brew', 'node', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama', 'colibri']
+  : ['node', 'claude', 'codex', 'gemini', 'hermes', 'muse', 'lmstudio', 'ollama', 'colibri']
 
 /** Estado de todos los programas que puede necesitar kywai en este equipo. */
 export async function detectTools(): Promise<SetupTool[]> {
