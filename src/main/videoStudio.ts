@@ -22,6 +22,7 @@ import {
   type VideoScript
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
+import { comfyImage, comfyStatus } from './comfyui'
 import type { VideoStudioStatus } from '@shared/types'
 
 const IS_WIN = process.platform === 'win32'
@@ -132,18 +133,21 @@ async function kokoroReady(): Promise<boolean> {
 }
 
 export async function videoStudioStatus(): Promise<VideoStudioStatus> {
-  const [node, ffmpeg, ffprobe, python, kokoro, sys] = await Promise.all([
+  const [node, ffmpeg, ffprobe, python, kokoro, sys, comfy] = await Promise.all([
     has('npm', ['--version']),
     has('ffmpeg'),
     has('ffprobe'),
     has(pythonCmd(), ['--version']),
     kokoroReady(),
-    systemVoice()
+    systemVoice(),
+    comfyStatus()
   ])
   const engine = !!root && existsSync(bin('hyperframes')) && existsSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js'))
   const key = !!geminiApiKey()
   const voice = key ? 'gemini' : kokoro ? 'kokoro' : sys ? 'system' : null
-  return { engine, ffmpeg: ffmpeg && ffprobe, voice, kokoro, images: key ? 'gemini' : null, node, python, ready: engine && ffmpeg && ffprobe }
+  return { engine, ffmpeg: ffmpeg && ffprobe, voice, kokoro, images: comfy.info ? 'comfyui' : key ? 'gemini' : null,
+    comfyui: { running: comfy.running, checkpoint: comfy.info?.checkpoint ?? null, models: comfy.models },
+    node, python, ready: engine && ffmpeg && ffprobe }
 }
 
 /**
@@ -310,11 +314,15 @@ function voiceTone(style: VideoScript['style'], joke: boolean): string {
 }
 
 /** Imagen de una escena con Gemini (o null si no hay clave o falla: la escena va con fondo de diseño). */
-async function geminiImage(prompt: string, format: VideoFormat, out: string, key: string, cartoon: boolean, signal?: AbortSignal): Promise<boolean> {
+function imagePromptText(prompt: string, cartoon: boolean): string {
   // En cartoon todas las ilustraciones piden el mismo estilo, para que el vídeo se vea de una pieza.
-  const text = cartoon
+  return cartoon
     ? `Flat 2D cartoon illustration in a friendly explainer-video style: bold dark outlines, bright cheerful colors, simple soft shading, clean uncluttered background, clear close-up of the action. ${prompt}. No text, no letters, no numbers, no logos, no watermark, no faces.`
     : `${prompt}. Cinematic, high detail, no text, no letters, no logos, no watermark.`
+}
+
+async function geminiImage(prompt: string, format: VideoFormat, out: string, key: string, cartoon: boolean, signal?: AbortSignal): Promise<boolean> {
+  const text = imagePromptText(prompt, cartoon)
   const body = {
     contents: [{ parts: [{ text }] }],
     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: format === 'vertical' ? '9:16' : '16:9' } }
@@ -447,20 +455,34 @@ export async function renderVideo(input: {
   // Imágenes (tres a la vez). En cartoon, cada escena puede tener varios planos.
   const shotPrompts = script.scenes.map((sc) => (cartoon ? (sc.shots?.length ? sc.shots : sc.image ? [sc.image] : []) : sc.image ? [sc.image] : []))
   const shots: (string | null)[][] = shotPrompts.map((list) => list.map(() => null))
+  // ComfyUI en este equipo va primero (gratis y local); si una imagen falla, la pide Gemini (con clave).
+  const comfy = (await comfyStatus()).info
   const doImages = async (): Promise<void> => {
-    if (!key) return
+    if (!key && !comfy) return
     const jobs = shotPrompts.flatMap((list, i) => list.map((prompt, k) => ({ i, k, prompt })))
     let next = 0
+    let comfyFails = 0
     const worker = async (): Promise<void> => {
       while (next < jobs.length && !signal?.aborted) {
         const { i, k, prompt } = jobs[next++]
         const rel = `assets/escena-${i + 1}${k ? `-${k + 1}` : ''}.png`
-        if (await geminiImage(prompt, format, join(dir, rel), key, cartoon, signal)) shots[i][k] = rel
+        const out = join(dir, rel)
+        // Tras dos fallos seguidos de ComfyUI, el resto va directo a Gemini.
+        if (comfy && comfyFails < 2) {
+          if (await comfyImage(comfy, imagePromptText(prompt, cartoon), format === 'vertical', out, { signal })) {
+            shots[i][k] = rel
+            comfyFails = 0
+            continue
+          }
+          comfyFails++
+        }
+        if (key && (await geminiImage(prompt, format, out, key, cartoon, signal))) shots[i][k] = rel
       }
     }
-    await Promise.all([worker(), worker(), worker()])
+    // ComfyUI hace una imagen detrás de otra (una sola gráfica); Gemini, tres a la vez.
+    await Promise.all(comfy ? [worker()] : [worker(), worker(), worker()])
   }
-  if (key) step('Creando las imágenes y la voz', 0.05)
+  if (key || comfy) step('Creando las imágenes y la voz', 0.05)
   await Promise.all([doVoices(), doImages()])
   if (signal?.aborted) throw new Error('Cancelada')
   const durations: number[] = []

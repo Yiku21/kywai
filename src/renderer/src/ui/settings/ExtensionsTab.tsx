@@ -930,8 +930,15 @@ function VideoSection() {
         },
         {
           label: t('Imágenes'),
-          ok: status.images === 'gemini',
-          detail: status.images === 'gemini' ? t('Las genera Gemini con tu clave de API') : t('Sin clave de API de Gemini: fondos de diseño animados (ponla en el asistente de configuración)')
+          ok: status.images !== null,
+          detail:
+            status.images === 'comfyui'
+              ? t('ComfyUI en este equipo, gratis ({model}); Gemini de reserva si hay clave', { model: status.comfyui?.checkpoint ?? '' })
+              : status.comfyui?.running
+                ? t('ComfyUI está encendido pero sin un modelo que sirva (descarga uno SDXL o SD 1.5 en ComfyUI)')
+                : status.images === 'gemini'
+                  ? t('Las genera Gemini con tu clave de API (si enciendes ComfyUI, lo usa primero, gratis)')
+                  : t('Sin ComfyUI ni clave de Gemini: fondos de diseño animados. Enciende ComfyUI (comfy.org) o pon la clave de Gemini')
         }
       ]
     : []
