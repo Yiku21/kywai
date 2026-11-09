@@ -6307,7 +6307,8 @@
             "type": "string",
             "enum": [
               "full",
-              "project"
+              "project",
+              "ask"
             ]
           },
           "planApproval": {
@@ -6638,7 +6639,8 @@
             "type": "string",
             "enum": [
               "full",
-              "project"
+              "project",
+              "ask"
             ]
           }
         },
@@ -6654,7 +6656,8 @@
             "type": "string",
             "enum": [
               "full",
-              "project"
+              "project",
+              "ask"
             ]
           }
         },
@@ -8168,7 +8171,8 @@
               "paused",
               "done",
               "budget",
-              "blocked"
+              "blocked",
+              "permission"
             ]
           },
           "title": {

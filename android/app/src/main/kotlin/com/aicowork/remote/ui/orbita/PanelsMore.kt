@@ -321,21 +321,28 @@ fun ToolsPanel(model: OrbitaModel, state: CoworkUiState) {
                     if (snapshot.capabilities.agentAccess) {
                         var asking by remember { mutableStateOf<String?>(null) }
                         Segmented(
-                            listOf("full" to t("Acceso completo"), "project" to t("Solo el proyecto")),
+                            listOf("full" to t("Acceso completo"), "ask" to t("Preguntarme antes"), "project" to t("Solo el proyecto")),
                             snapshot.settings.agentAccess,
                             onSelect = { if (it != snapshot.settings.agentAccess) asking = it },
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            if (snapshot.settings.agentAccess == "project") t("Los agentes solo leen y escriben en la carpeta del proyecto y no instalan nada.")
-                            else t("Los agentes pueden instalar herramientas y usar internet cuando una tarea lo necesita."),
+                            when (snapshot.settings.agentAccess) {
+                                "project" -> t("Los agentes solo leen y escriben en la carpeta del proyecto y no instalan nada.")
+                                "ask" -> t("Lo que no tienen permitido te lo piden en «Te necesita»: Denegar, Permitir una vez o Permitir siempre en esta sesión.")
+                                else -> t("Los agentes pueden instalar herramientas y usar internet cuando una tarea lo necesita.")
+                            },
                             color = Orbita.TextSoft,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(horizontal = 4.dp),
                         )
                         asking?.let { target ->
                             ConfirmDialog(
-                                title = if (target == "project") t("¿Limitar a la carpeta del proyecto?") else t("¿Dar acceso completo?"),
+                                title = when (target) {
+                                    "project" -> t("¿Limitar a la carpeta del proyecto?")
+                                    "ask" -> t("¿Que te pidan permiso antes?")
+                                    else -> t("¿Dar acceso completo?")
+                                },
                                 text = t("Afecta a las tareas que empiecen a partir de ahora."),
                                 confirm = t("Cambiar"),
                                 onConfirm = { asking = null; model.run({ model.controller.setAgentAccess(target) }) },

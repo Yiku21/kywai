@@ -77,6 +77,8 @@ export interface CliRun {
   unsetEnv?: string[]
   /** Se llama con STALL_NOTICE si el CLI lleva STALL_NOTICE_MS sin escribir nada. */
   onStall?: (text: string) => void
+  /** Está esperando que el usuario conteste (un permiso): su silencio no es un cuelgue y no se corta. */
+  isWaitingUser?: () => boolean
 }
 
 /**
@@ -128,6 +130,7 @@ function runCliProcess(run: CliRun): Promise<RunAgentResult> {
     const resetIdle = (): void => {
       if (idleTimer) clearTimeout(idleTimer)
       idleTimer = setTimeout(() => {
+        if (run.isWaitingUser?.()) return resetIdle()
         timedOut = true
         killTree(child)
         setTimeout(() => {
@@ -137,7 +140,7 @@ function runCliProcess(run: CliRun): Promise<RunAgentResult> {
         }, KILL_GRACE_MS).unref()
       }, IDLE_TIMEOUT_MS)
       if (stallTimer) clearTimeout(stallTimer)
-      if (run.onStall) stallTimer = setTimeout(() => run.onStall?.(STALL_NOTICE), STALL_NOTICE_MS)
+      if (run.onStall) stallTimer = setTimeout(() => (run.isWaitingUser?.() ? resetIdle() : run.onStall?.(STALL_NOTICE)), STALL_NOTICE_MS)
     }
     resetIdle()
 

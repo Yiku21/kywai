@@ -21,6 +21,7 @@ const KIND_LABEL: Record<string, string> = {
   failed: t('Fallo'),
   paused: t('En pausa'),
   blocked: t('Bloqueada'),
+  permission: t('Permiso'),
   done: t('Terminado'),
   budget: t('Presupuesto')
 }

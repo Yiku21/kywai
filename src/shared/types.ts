@@ -63,7 +63,12 @@ export interface CliAgentSpec {
  * Permisos de los agentes al trabajar. 'full': ejecutan comandos, instalan dependencias y usan internet
  * sin pedir permiso. 'project': solo editan la carpeta del proyecto y se deniegan los comandos que pedirían aprobación.
  */
-export type AgentAccess = 'full' | 'project'
+/**
+ * Permisos de los agentes al trabajar. full: hacen lo que necesiten sin preguntar · project: solo la carpeta del
+ * proyecto (lo demás se deniega) · ask: «Preguntarme antes», lo que no tienen permitido te lo piden (Denegar,
+ * Permitir una vez, Permitir siempre en esta sesión) y esperan tu respuesta.
+ */
+export type AgentAccess = 'full' | 'project' | 'ask'
 
 /**
  * Motores de ejecución local. Colibri (github.com/JustVugg/colibri) sirve modelos MoE grandes leyendo del disco lo que
@@ -163,6 +168,14 @@ export interface AgentRuntime {
    * espera tu decisión en «Te necesita». No es un error del agente. Se quita al decidir o al empezar otra tarea.
    */
   notice?: AgentNotice
+}
+
+export type PermissionAnswer = 'deny' | 'once' | 'session'
+
+export interface ChatPermission {
+  /** El aviso de «Te necesita» con los mismos botones (los del chat lo contestan). */
+  inboxId: string
+  state: 'pending' | PermissionAnswer
 }
 
 export interface AgentNotice {
@@ -496,6 +509,8 @@ export interface ChatMessage {
   attachments?: Attachment[]
   /** Tareas que este mensaje presenta (mensaje del planificador). */
   taskIds?: string[]
+  /** Un agente pide permiso (modo «Preguntarme antes»): el chat enseña los botones mientras espera. */
+  permission?: ChatPermission
   artifactIds?: string[]
   /** El texto se está recibiendo en streaming. */
   streaming?: boolean
@@ -1299,11 +1314,12 @@ export type CoworkEventKind = CoworkEvent['kind']
  * hacer · paused: tareas que quedaron en pausa (al reiniciar el servidor o al detenerlas) esperan Reanudar o Quitar ·
  * budget: el gasto por API del mes llega al 80 % o pasa del presupuesto · done: terminó una petición · blocked: un
  * agente dijo que le falta algo para terminar su tarea («BLOQUEADA») y espera que la des por buena, le contestes o se
- * la pases a otro agente.
+ * la pases a otro agente · permission: un agente te pide permiso para algo que no tiene permitido (modo «Preguntarme
+ * antes») y espera Denegar, Permitir una vez o Permitir siempre en esta sesión.
  *
  * «done» no espera nada de ti: no sale en «Te necesita» sino en Resultados, como «nuevo» (y el móvil avisa igual).
  */
-export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget' | 'blocked'
+export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget' | 'blocked' | 'permission'
 
 /** El aviso escrito en un idioma de la app (título, detalle y el nombre de cada botón). */
 export interface InboxTexts {
