@@ -12,6 +12,7 @@ import { contextMenuItems } from './contextMenu'
 import { verifyRelease, type SignedRelease } from './clientRelease'
 import { CLIENT_RELEASE_PUBLIC_KEY } from './clientReleaseKey'
 import { SyncManager } from './syncManager'
+import { checkRelease, initUpdater, installRelease, isReleaseBuild } from './updater'
 import { defaultWorkspaceRoot } from './config'
 import {
   parseServerAddress,
@@ -424,6 +425,7 @@ function syncManager(): SyncManager {
 // ---------- Actualizar este equipo (el propio cliente) ----------
 // El instalador lo publica el servidor (npm run publicar-cliente) y se descarga de él con la llave de este dispositivo.
 // «Buscar actualizaciones» de la interfaz actualiza el SERVIDOR; esto actualiza la app instalada aquí.
+// En Linux y en el Mac, la app descargada de GitHub Releases se actualiza desde GitHub (updater.ts), no desde el servidor.
 
 const UPDATE_EVERY_MS = 6 * 3600_000
 let updateTimer: NodeJS.Timeout | null = null
@@ -436,8 +438,26 @@ function updaterSupported(): boolean {
   return process.platform === 'win32' && (app.isPackaged || process.env['AICW_UPDATE_DEV'] === '1')
 }
 
+/** Linux o Mac con la app de GitHub Releases: se actualiza desde GitHub, como en modo servidor. */
+function fromGitHub(): boolean {
+  return process.platform !== 'win32' && isReleaseBuild()
+}
+
+async function checkGitHubUpdate(): Promise<ClientUpdateState> {
+  const r = await checkRelease()
+  if (r.state === 'error') return { state: 'error', current: r.current, message: r.message }
+  if (r.state === 'current') return { state: 'current', current: r.current, message: tr('comprobado en GitHub') }
+  return {
+    state: 'available',
+    current: r.current,
+    latest: r.latest,
+    message: r.state === 'downloaded' ? tr('ya descargada') : r.selfInstall ? tr('descargándose') : tr('se descarga de GitHub')
+  }
+}
+
 async function checkUpdate(): Promise<ClientUpdateState> {
   const installed = app.getVersion()
+  if (fromGitHub()) return checkGitHubUpdate()
   if (!updaterSupported()) {
     return {
       state: 'unsupported',
@@ -475,6 +495,11 @@ function sha512Of(file: string): Promise<string> {
 
 /** Descarga la versión nueva del servidor y la instala (la app se cierra y vuelve a abrirse sola). */
 async function installUpdate(): Promise<void> {
+  if (fromGitHub()) {
+    const problem = await installRelease()
+    if (problem) throw new Error(problem)
+    return
+  }
   if (installing) return
   installing = true
   try {
@@ -745,6 +770,8 @@ export async function bootClient(): Promise<void> {
   buildMenu()
   startedWith = readClientFile(clientFilePath())?.server?.origin ?? null
   showView({ name: 'opening', message: tr('Conectando con el servidor…') })
+  // La app de GitHub Releases en Linux o en el Mac busca su versión nueva en GitHub, igual que un servidor.
+  initUpdater({ client: true })
   // Pase lo que pase al conectar, la app no se cierra: se queda en «Sin conexión» y reintenta.
   await openServer().catch((e) => {
     console.warn('[cliente] fallo al abrir el servidor', (e as Error).message)

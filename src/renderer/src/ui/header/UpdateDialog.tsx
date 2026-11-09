@@ -56,6 +56,9 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
         setError(msg)
         setUpdating(false)
         void check()
+      } else if (status?.release && !status.release.selfInstall) {
+        // Mac: solo se abre la página de descarga de GitHub; la app sigue abierta.
+        setUpdating(false)
       }
     } catch (e) {
       // Por web, la conexión se corta al reiniciarse: es lo esperado.
@@ -69,6 +72,9 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
   // Cambios o commits hechos en este equipo (por ejemplo, por un agente) que impiden actualizar: se apartan.
   const localCommits = status?.localCommits ?? []
   const blockedLocal = !!status && !status.canUpdate && (!!status.localChanges?.length || localCommits.length > 0)
+  // App descargada de GitHub Releases: se actualiza desde ahí y el motor dice qué versión hay.
+  const release = status?.release
+  const releaseAction = release && (release.state === 'downloading' || release.state === 'downloaded' || release.state === 'available')
 
   return (
     <div className={s.backdrop} role="dialog" aria-modal="true" aria-labelledby="update-title" onMouseDown={(e) => e.target === e.currentTarget && !updating && onClose()}>
@@ -80,7 +86,7 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
               {t('Actualizaciones')}
             </h2>
             <p className={s.subtitle}>
-              {status?.current ? t('Versión actual: {hash} · {date} · {subject}', { hash: status.current.hash, date: status.current.date, subject: status.current.subject }) : t('Comprueba si hay cambios nuevos en GitHub.')}
+              {release ? t('Versión instalada: {current}', { current: release.current }) : status?.current ? t('Versión actual: {hash} · {date} · {subject}', { hash: status.current.hash, date: status.current.date, subject: status.current.subject }) : t('Comprueba si hay cambios nuevos en GitHub.')}
             </p>
           </div>
           <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={onClose} disabled={updating}>
@@ -98,6 +104,15 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
             <p className={s.rowHint}>
               <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> {t('Consultando GitHub…')}
             </p>
+          ) : release ? (
+            release.state === 'current' ? (
+              <p className={cx(s.rowLabel)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CircleCheck size={18} style={{ color: 'var(--live)' }} aria-hidden="true" />
+                {status!.reason}
+              </p>
+            ) : (
+              <p className={release.state === 'error' ? s.warn : s.rowLabel}>{status!.reason}</p>
+            )
           ) : status && !status.canUpdate && !n && !blockedLocal ? (
             <p className={s.warn}>{status.reason}</p>
           ) : n === 0 && !blockedLocal ? (
@@ -153,6 +168,12 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
               <RefreshCw size={14} className={cx(checking && u.spin)} aria-hidden="true" />
               {t('Comprobar de nuevo')}
             </button>
+            {releaseAction && (
+              <button type="button" className={cx(u.btn, u.btnPrimary)} onClick={() => void update()} disabled={updating}>
+                {updating ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : <Download size={14} aria-hidden="true" />}
+                {release.selfInstall ? t('Instalar y reiniciar') : t('Descargar')}
+              </button>
+            )}
             {n > 0 && status?.canUpdate && (
               <button type="button" className={cx(u.btn, u.btnPrimary)} onClick={() => void update()} disabled={updating}>
                 {updating ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : <Download size={14} aria-hidden="true" />}

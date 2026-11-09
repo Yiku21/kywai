@@ -6,12 +6,12 @@ import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { app } from 'electron'
-import type { UpdateCommit, UpdateStatus } from '@shared/types'
+import type { ReleaseUpdate, UpdateCommit, UpdateStatus } from '@shared/types'
 import { emit } from './events'
 import { sh } from './setup'
 import { launchCommand } from './linuxDesktop'
 import { tr } from '@shared/i18n'
-import { checkReleaseNow, isReleaseBuild } from './updater'
+import { checkRelease, installRelease, isReleaseBuild } from './updater'
 
 const IS_MAC = process.platform === 'darwin'
 const IS_LINUX = process.platform === 'linux'
@@ -52,16 +52,30 @@ function parseCommits(out: string): UpdateCommit[] {
 
 const FORMAT = '--format=%h%x09%ad%x09%s --date=short'
 
-export async function checkForUpdates(): Promise<UpdateStatus> {
-  const dir = sourceDir()
-  if (!dir && isReleaseBuild()) {
-    checkReleaseNow()
-    return {
-      canUpdate: false,
-      commits: [],
-      reason: tr('Esta versión se descargó de GitHub y se actualiza sola: al abrirse busca la última y la instala. Ahora mismo también lo está comprobando.')
-    }
+/** Lo que dice «Buscar actualizaciones» (y Órbita) de una app de GitHub Releases. */
+function releaseReason(r: ReleaseUpdate): string {
+  switch (r.state) {
+    case 'current':
+      return tr('Tienes la última versión ({current}), comprobado en GitHub.', { current: r.current })
+    case 'downloading':
+      return tr('Hay la versión {latest} (tienes la {current}): se está descargando y kywai se reabre solo al terminar.', { latest: r.latest ?? '', current: r.current })
+    case 'downloaded':
+      return tr('La versión {latest} ya está descargada: se instala al cerrar kywai o ahora con «Instalar y reiniciar».', { latest: r.latest ?? '' })
+    case 'available':
+      return tr('Hay la versión {latest} (tienes la {current}). Descárgala de GitHub y arrástrala a Aplicaciones: tus proyectos y ajustes se conservan.', { latest: r.latest ?? '', current: r.current })
+    default:
+      return r.message ?? tr('No se pudo consultar GitHub')
   }
+}
+
+export async function checkForUpdates(): Promise<UpdateStatus> {
+  // La app descargada de GitHub Releases se actualiza desde ahí, aunque quede un clon de git anotado de una
+  // instalación anterior hecha con scripts/instalar-linux.sh o instalar-mac.sh (se compilaría otra app aparte).
+  if (isReleaseBuild()) {
+    const release = await checkRelease()
+    return { canUpdate: false, commits: [], release, reason: releaseReason(release) }
+  }
+  const dir = sourceDir()
   if (!dir) {
     return {
       canUpdate: false,
@@ -186,6 +200,7 @@ function runningBundle(): string | null {
 
 export async function applyUpdate(setAside = false): Promise<string> {
   if (running) return tr('Ya hay una actualización en curso')
+  if (isReleaseBuild()) return installRelease()
   let status = await checkForUpdates()
   if (!status.canUpdate && setAside && (status.localChanges?.length || status.localCommits?.length)) {
     if (status.localChanges?.length) {
