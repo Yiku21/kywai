@@ -4,6 +4,7 @@ import { runCodex } from './codex'
 import { runGemini } from './gemini'
 import { checkOllama, runOllama } from './ollama'
 import { checkLmStudio, runLmStudio } from './lmstudio'
+import { checkColibri, runColibri } from './colibri'
 import { runHermes } from './hermes'
 import { runMuse } from './muse'
 import { runQwen } from './qwen'
@@ -11,10 +12,11 @@ import { runGeneric } from './generic'
 import { commandExists } from './spawn'
 import type { RunAgentOptions, RunAgentResult } from './types'
 import { tr } from '@shared/i18n'
+import { isLocalEngine } from '@shared/localEngines'
 
 export type { RunAgentOptions, RunAgentResult, RateLimitInfo, AgentErrorKind } from './types'
 
-const CLI: Record<Exclude<ProviderKind, 'ollama' | 'lmstudio' | 'cli'>, { command: string; label: string }> = {
+const CLI: Record<Exclude<ProviderKind, 'ollama' | 'lmstudio' | 'colibri' | 'cli'>, { command: string; label: string }> = {
   claude: { command: 'claude', label: 'Claude Code' },
   codex: { command: 'codex', label: 'Codex' },
   gemini: { command: 'gemini', label: 'Gemini' },
@@ -25,13 +27,13 @@ const CLI: Record<Exclude<ProviderKind, 'ollama' | 'lmstudio' | 'cli'>, { comman
 
 /** Providers that can only produce text (no file tools). */
 export function isTextOnly(provider: ProviderKind): boolean {
-  // LM Studio tiene herramientas propias (localTools); Ollama, por ahora, solo texto.
+  // LM Studio y Colibri tienen herramientas propias (localTools); Ollama, por ahora, solo texto.
   return provider === 'ollama'
 }
 
 /** Proveedores que se ejecutan en este equipo (se re-comprueban a menudo). */
 export function isLocalProvider(provider: ProviderKind): boolean {
-  return provider === 'ollama' || provider === 'lmstudio'
+  return isLocalEngine(provider)
 }
 
 /** Proveedores cuyo CLI no informa de los tokens que gasta. */
@@ -71,6 +73,8 @@ function runAgentRaw(opts: RunAgentOptions): Promise<RunAgentResult> {
       return runOllama(opts)
     case 'lmstudio':
       return runLmStudio(opts)
+    case 'colibri':
+      return runColibri(opts)
     case 'hermes':
       return runHermes(opts)
     case 'muse':
@@ -100,6 +104,11 @@ export async function checkAgentPresence(agent: AgentConfig, fresh = false): Pro
     // Comprobación pedida (arranque, «Encender LM Studio», ⟳): si el servidor está apagado, se enciende.
     const r = await checkLmStudio(agent.model, fresh)
     return r.ok ? null : (r.reason ?? tr('LM Studio no disponible'))
+  }
+  if (agent.provider === 'colibri') {
+    // Igual que LM Studio: en una comprobación pedida, si está apagado se enciende (tarda en cargar el modelo).
+    const r = await checkColibri(agent.model, fresh)
+    return r.ok ? null : (r.reason ?? tr('Colibri no disponible'))
   }
   // Agente de catálogo: su programa es el que dice su ficha.
   const cli = agent.provider === 'cli' ? (agent.cli ? { command: agent.cli.command, label: agent.name } : undefined) : CLI[agent.provider]

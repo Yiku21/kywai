@@ -242,7 +242,7 @@ fun robotDrawable(agent: Agent?): Int = when {
         "codex" -> R.drawable.robot_codex
         "gemini" -> R.drawable.robot_gemini
         "muse" -> R.drawable.robot_muse
-        "qwen", "ollama", "lmstudio" -> R.drawable.robot_qwen
+        "qwen", "ollama", "lmstudio", "colibri" -> R.drawable.robot_qwen
         else -> R.drawable.robot_becario
     }
 }

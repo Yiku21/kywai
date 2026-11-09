@@ -55,6 +55,7 @@ export function personaFor(agent: Pick<AgentConfig, 'id' | 'provider' | 'isSubag
     case 'ollama':
     case 'qwen':
     case 'lmstudio':
+    case 'colibri':
       return PERSONAS.lazy
     case 'muse':
       return PERSONAS.dreamer

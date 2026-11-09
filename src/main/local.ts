@@ -4,6 +4,7 @@ import { extname, join } from 'node:path'
 import type { AgentId, LocalEngine, LocalEngineStatus, LocalModel, LocalPullState } from '@shared/types'
 import { OLLAMA_URL } from './agents/ollama'
 import { lmsListModels, lmsPath, lmsServerRunning, lmsStartServer } from './agents/lmstudio'
+import { colibriStatus, ensureColibriServer } from './agents/colibri'
 import { commandExists, num, obj, str } from './agents/spawn'
 import { emit } from './events'
 import { tr } from '@shared/i18n'
@@ -43,11 +44,21 @@ async function lmStudioStatus(): Promise<LocalEngineStatus> {
   return { engine: 'lmstudio', installed, running, models, canStart: !running, canPull: false }
 }
 
+async function colibriEngineStatus(): Promise<LocalEngineStatus> {
+  const st = await colibriStatus()
+  return { engine: 'colibri', ...st, canPull: false }
+}
+
 export async function listLocalEngines(): Promise<LocalEngineStatus[]> {
-  return Promise.all([lmStudioStatus(), ollamaStatus()])
+  return Promise.all([lmStudioStatus(), ollamaStatus(), colibriEngineStatus()])
 }
 
 export async function startLocalServer(engine: LocalEngine): Promise<void> {
+  if (engine === 'colibri') {
+    // Espera a que cargue el modelo (de segundos a minutos): así la lista de modelos sale ya con el que sirve.
+    if (!(await ensureColibriServer())) throw new Error(tr('Colibri no arrancó: mira «coli logs -n 50» en su carpeta'))
+    return
+  }
   if (engine !== 'lmstudio') throw new Error(tr('Este motor se inicia desde su propia aplicación'))
   await lmsStartServer()
 }

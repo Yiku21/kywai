@@ -2095,6 +2095,7 @@ function teamLine(a: AgentConfig): string {
   if (isTextOnly(a.provider)) abilities.push('solo texto: no puede leer ni crear archivos (la app guarda su respuesta como archivo)')
   else abilities.push(terminalLine(a))
   if (a.provider === 'lmstudio') abilities.push('modelo local (gratis): lee, busca, crea y edita archivos del proyecto y puede buscar en internet')
+  if (a.provider === 'colibri') abilities.push('modelo local (gratis) con Colibri: lee, busca, crea y edita archivos del proyecto y puede buscar en internet, pero es LENTO (pocos tokens por segundo y tarda en leer el encargo): dale solo tareas sin prisa y acotadas')
   if (a.lightModel) abilities.push('las tareas fáciles las puede hacer un becario suyo, en paralelo')
   return profileLines(a, {
     available: reason ? `no (${reason})` : busyNow ? `sí, pero ${busyNow}` : 'sí, libre',
@@ -2109,7 +2110,7 @@ function teamLine(a: AgentConfig): string {
 
 /** Qué puede hacer el agente con la terminal, según su tipo y los permisos configurados. */
 function terminalLine(a: AgentConfig): string {
-  if (a.provider === 'lmstudio') return 'sin terminal: no puede ejecutar comandos ni instalar nada'
+  if (a.provider === 'lmstudio' || a.provider === 'colibri') return 'sin terminal: no puede ejecutar comandos ni instalar nada'
   return getConfig().agentAccess === 'full'
     ? 'terminal con acceso completo: ejecuta comandos, instala dependencias y usa internet'
     : 'terminal limitada a la carpeta del proyecto: no puede instalar dependencias'
@@ -2117,7 +2118,7 @@ function terminalLine(a: AgentConfig): string {
 
 /** Regla de permisos para el prompt de una tarea. */
 function accessRule(exec: AgentConfig): string {
-  if (exec.provider === 'lmstudio') {
+  if (exec.provider === 'lmstudio' || exec.provider === 'colibri') {
     return '- No tienes terminal: si la tarea necesita ejecutar comandos o instalar algo, empieza tu respuesta con «BLOQUEADA:» y otro agente se encargará.'
   }
   return getConfig().agentAccess === 'full'

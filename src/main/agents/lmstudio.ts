@@ -178,7 +178,6 @@ function prune(messages: ChatMsg[]): void {
   }
 }
 
-/** Agente local con herramientas a través de la API compatible con OpenAI de LM Studio. */
 interface PostResult {
   ok: boolean
   status: number
@@ -217,15 +216,54 @@ export function thinkingFields(agent: { thinking?: boolean }): Record<string, un
   return { chat_template_kwargs: { enable_thinking: on }, enable_thinking: on }
 }
 
-export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult> {
+/**
+ * Un servidor local con la API de OpenAI y herramientas (LM Studio, Colibri…): lo que cambia entre ellos. El bucle de
+ * trabajo (herramientas, razonamiento, recortes) es el mismo para todos.
+ */
+export interface OpenAiLocalBackend {
+  /** Nombre visible en los errores («LM Studio», «Colibri»). */
+  name: string
+  /** Dirección base, sin «/v1». */
+  url: () => string
+  /** Enciende el servidor si hace falta; devuelve si queda encendido. */
+  ensureServer: () => Promise<boolean>
+  /** Mensaje (ya traducido) de servidor apagado. */
+  offline: () => string
+  /** Prepara el modelo antes de la primera llamada (p. ej. cargarlo con más contexto). */
+  prepare?: (model: string, onActivity: (t: string) => void) => Promise<void>
+  /** Identificador que hay que mandar como «model» (Colibri sirve uno solo, con su propio nombre). */
+  resolveModel?: (model: string) => Promise<string>
+  /** Contexto del modelo, para la barra de uso. */
+  contextCapacity: () => number
+  /** El servidor se quejó del contexto: volver a prepararlo la próxima vez. */
+  onContextError?: (model: string) => void
+}
+
+const LMSTUDIO_BACKEND: OpenAiLocalBackend = {
+  name: 'LM Studio',
+  url: () => LMSTUDIO_URL,
+  ensureServer: ensureLmsServer,
+  offline: () => tr(LMSTUDIO_OFFLINE),
+  prepare: (model, onActivity) => ensureContext(model, onActivity),
+  contextCapacity: () => TARGET_CONTEXT,
+  onContextError: (model) => contextReady.delete(model)
+}
+
+export function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult> {
+  return runOpenAiLocal(opts, LMSTUDIO_BACKEND)
+}
+
+/** Agente local con herramientas a través de la API compatible con OpenAI de un servidor de este equipo. */
+export async function runOpenAiLocal(opts: RunAgentOptions, backend: OpenAiLocalBackend): Promise<RunAgentResult> {
   const usage: TokenUsage = { input: 0, output: 0 }
-  const model = opts.model
-  if (!model) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr('No hay un modelo local configurado') }
+  if (!opts.model) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr('No hay un modelo local configurado') }
   // Si alguien apagó el servidor desde la última comprobación, se enciende antes de empezar.
-  if (!(await ensureLmsServer())) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr(LMSTUDIO_OFFLINE) }
+  if (!(await backend.ensureServer())) return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: backend.offline() }
   // Avisos de la app, no herramientas del modelo (si no, la tarea diría «Usó una herramienta»).
-  await ensureContext(model, (t) => opts.onActivity?.(t, 'text'))
+  await backend.prepare?.(opts.model, (t) => opts.onActivity?.(t, 'text'))
   if (opts.signal.aborted) return { ok: false, text: '', usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
+  const model = backend.resolveModel ? await backend.resolveModel(opts.model) : opts.model
+  const engine = backend.name
 
   const ctx: ToolContext = {
     cwd: opts.cwd,
@@ -254,15 +292,15 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
     let res: PostResult
     try {
       res = await postJson(
-        `${LMSTUDIO_URL}/v1/chat/completions`,
+        `${backend.url()}/v1/chat/completions`,
         JSON.stringify({ model, messages, ...(tools.length ? { tools, tool_choice: 'auto' } : {}), ...thinkingFields(opts.agent), temperature: opts.direct ? 0.7 : 0.3, stream: false }),
         opts.signal
       )
     } catch (e) {
       if (opts.signal.aborted) return { ok: false, text: '', usage, errorKind: 'cancelled', errorMessage: 'Cancelada' }
       // Solo «conexión rechazada» es que el servidor está apagado; lo demás es que se cortó a mitad.
-      if ((e as NodeJS.ErrnoException).code === 'ECONNREFUSED') return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr(LMSTUDIO_OFFLINE) }
-      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: clip(tr('LM Studio cortó la respuesta: {message}', { message: (e as Error).message }), 200) }
+      if ((e as NodeJS.ErrnoException).code === 'ECONNREFUSED') return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: backend.offline() }
+      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: clip(tr('{engine} cortó la respuesta: {message}', { engine, message: (e as Error).message }), 200) }
     }
     const body = res.text
     if (!res.ok) {
@@ -273,22 +311,22 @@ export async function runLmStudio(opts: RunAgentOptions): Promise<RunAgentResult
         /* texto plano */
       }
       if (/not found|no models? loaded|does not exist/i.test(msg)) {
-        return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr('Modelo no disponible en LM Studio: {model}', { model }) }
+        return { ok: false, text: '', usage, errorKind: 'offline', errorMessage: tr('Modelo no disponible en {engine}: {model}', { engine, model }) }
       }
-      if (/context/i.test(msg)) contextReady.delete(model)
-      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: clip(`LM Studio: ${msg || res.statusText}`, 200) }
+      if (/context/i.test(msg)) backend.onContextError?.(model)
+      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: clip(`${engine}: ${msg || res.statusText}`, 200) }
     }
     let data: Record<string, unknown>
     try {
       data = JSON.parse(body) as Record<string, unknown>
     } catch {
-      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: tr('LM Studio devolvió una respuesta no válida') }
+      return { ok: false, text: '', usage, errorKind: 'failed', errorMessage: tr('{engine} devolvió una respuesta no válida', { engine }) }
     }
     const u = obj(data.usage)
     if (u) {
       usage.input += num(u.prompt_tokens)
       usage.output += num(u.completion_tokens)
-      opts.onUsage?.({ contextUsed: num(u.prompt_tokens) + num(u.completion_tokens), contextCapacity: TARGET_CONTEXT })
+      opts.onUsage?.({ contextUsed: num(u.prompt_tokens) + num(u.completion_tokens), contextCapacity: backend.contextCapacity() })
     }
     const choice = obj((Array.isArray(data.choices) ? data.choices : [])[0])
     const msg = obj(choice?.message) ?? {}
