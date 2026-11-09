@@ -31,6 +31,10 @@ const escapar = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').re
 rmSync(SALIDA, { recursive: true, force: true })
 mkdirSync(SALIDA, { recursive: true })
 cpSync(join(AQUI, 'assets'), join(SALIDA, 'assets'), { recursive: true })
+// Instalación de una línea (README y sección de descarga): «curl -fsSL https://kywai.app/install.sh | bash» y
+// «irm https://kywai.app/install.ps1 | iex» sirven los scripts del repositorio tal cual.
+cpSync(join(AQUI, '..', 'scripts', 'instalar-kywai.sh'), join(SALIDA, 'install.sh'))
+cpSync(join(AQUI, '..', 'scripts', 'instalar-kywai.ps1'), join(SALIDA, 'install.ps1'))
 
 const ruta = (desde, hacia) => {
   // Enlace relativo de la página de «desde» a la de «hacia».
