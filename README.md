@@ -58,6 +58,19 @@ kywai turns the AI agents and subscriptions you already have, from any provider,
 
 The goal is simple: **leave a task and come back to a result, never to an error with nothing to show for it.**
 
+## 🎬 What you can ask for
+
+A few real examples of what the team does while you get on with something else:
+
+| You write | What happens |
+|---|---|
+| “Make me a landing page for my bakery” | Claude designs and builds it, another agent opens it in a browser and checks the screenshots and tests, and you get the files ready to publish. Add “two options” and a third agent picks the better one. |
+| “Find out why the login fails and fix it” | Codex reproduces the bug, fixes it and runs the tests; a reviewer from another family confirms it. If something breaks, Undo puts your files back exactly as they were. |
+| “Summarize these 300 PDFs and compare them” | Gemini reads huge amounts of material in one go and returns a report with the key points and a table. Drop the files in the chat, even from your phone. |
+| “Draw the cover image for my post” | The image is generated with Codex’s image tool (not drawn with code) and shows up in the chat as a thumbnail you can open, download or ask to change. |
+| “Every morning at 9, review the new PRs” | A routine launches it every day on your always-on computer. You read the result on your phone, and “Needs you” only rings if something needs your decision. |
+| “@Qwen write me five headlines” | Quick things go straight to the agent you name, without a plan or review. With a local model it is free and nothing leaves your computer. |
+
 ## 🔌 Any agent, any provider
 
 kywai is not tied to a fixed set of models. It is a platform where **you build your own team**:
@@ -163,6 +176,8 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 - **No duplicated work.** Hermes does not repeat a task that is already running, and the chat warns you if a new request looks like one in progress.
 - **Talk to one agent directly.** Write `@Claude …` (or `/directo Claude …`) and your text goes straight to that agent, with no plan, review or summary from Hermes. Typing `@` shows the list of agents, on desktop, in the browser and in Órbita.
 - **Acceptance criteria per task**, plus a warning if an agent touches files that were not its own.
+- **Split like a real team.** Big jobs with separable parts (engine, interface, server…) are split in parallel between the best agents, with a shared contract written by the coordinator (which files belong to whom and how the parts talk), plus a final “Integrate and test” task that runs the tests and checks the whole against your request.
+- **Images generated, not drawn.** Ask for an illustration, poster, logo or icon and it goes to the agent with an image tool, which generates it instead of slowly drawing it with SVG or scripts. If you want something exact or editable, say so and it is done with code.
 - **Two hands for taste-driven work, when you ask for it.** Two agents from different families build the same thing separately (option A and option B), and a third one tests both, compares them against your request and tells you which one wins and why.
 - **Strict review with real evidence.** When a task changes files, an agent from another family checks it in read-only mode, runs the tests itself and answers *passes* or *issues*; only an explicit *passes* approves it. With no verdict it asks another reliable reviewer. Each task gets up to two fixes and one hand-off to another strong agent; if it still fails, it shows up in "Needs you" as needing your intervention.
 - **Resume and hand-off.** Interrupted tasks resume where they stopped. If an agent fails, another strong agent takes over the task, never a weaker one. Agents also resume their own session on follow-ups.
@@ -173,6 +188,7 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 - **Short live updates** from each agent while it works, with its tools folded into one expandable line, like the Claude app.
 - **Live step-by-step view** of any task: reasoning, every command and its output, files read and edited with their changes, searches and the final answer. Kept for 30 days.
 - **Progress you can see.** New screenshots and images appear as thumbnails in the chat, and documents as cards, while the task is still running.
+- **Answers, not just checkmarks.** When a request ends, the coordinator reads the real results and writes what was done and where, how to try it, what decisions were made and what was left out. Under each plan you see its time, tokens and quota used (“14 min · 339 k tokens · Claude 5 h +5 %”).
 - **Each task in its own block.** In the chat every task has its number, its real stages (working, fixing, tests, review) and the review signed by the agent who did it. As soon as you send something, a row shows that Hermes is preparing the plan, and if an agent goes quiet you see “no news for N min” instead of a fake progress bar.
 - **Preview files beside the chat.** Click an attachment, a deliverable or a file name and it opens in a side panel, like in Claude: documents, code, images and PDFs, with thumbnails of attached images. Órbita has the same viewer with ‹ ›, code view, copy and “Open with another app”.
 - **"Needs you" bell** only for what is really waiting for you (a plan, a question, a permission, a silent agent or a paused task with Resume / Remove), with its buttons and notifications on your phone. Finished work goes to Results as “Just finished”.
@@ -187,12 +203,13 @@ Any agent you add from the catalog or with "Other program…" works exactly like
 - **Changes per task, with Undo.** A snapshot is taken before and after every task, in a separate store, never in your project's `.git`. See "N files changed +a −b", review the diff and undo a single task. If tasks overlap, the result is kept as a separate copy.
 - **Restart a failing agent** from its panel: it clears the block (quota, session, API error), checks its CLI again and picks up whatever was waiting for it.
 - **Rate any result** 👍 / 👎. Ratings feed the coordinator, so it learns who really delivers.
-- **"How each agent performs"** panel: tasks, review verdicts, ratings, time and cost per agent and difficulty.
+- **"How each agent performs"** panel: tasks, 👍 ratings, first-time review passes, fixes, time and cost per agent, by difficulty and by kind of task (visual, web, code, text, research). The coordinator uses this track record when it assigns work, so it learns who really delivers.
 
 ### 🧩 Context and automation
 
 - **Bring your existing work.** Import local Claude Code, Codex and Hermes sessions (including Hermes Desktop), or ChatGPT and Claude.ai JSON/ZIP exports, from ⚙ → Import from other apps. Keep conversations, recover included Claude projects and documents, and continue with your team. Originals stay unchanged; local sessions are read on the server. Claude.ai chats are placed in their own project, and importing again never duplicates anything.
 - **Conversations like in Claude.** A sidebar with your projects, pinned ones and recent chats. It folds into a rail of icons, another click on the open project collapses it, and right-click (long-press in Órbita) lets you pin, rename, fork, move or delete. "New chat" starts a fresh conversation without losing the previous one, and any of them can be resumed later with its tasks and each agent's session. Ctrl+K searches conversations, tasks, results and memory across all projects.
+- **Search and history.** Ctrl+K searches every conversation, task, result and memory note at once, with exact phrases (“…”) and filters by date and author, and opens the chat right at the matching message, highlighted. The History window groups every conversation of every project by Today, Yesterday, last 7 and 30 days and by month. Also in Órbita.
 - **Project memory** with instructions, decisions, preferences and to-dos, each with its author and status. Every agent reads it on every task, even after you clear the chat.
 - **One AGENTS.md for the whole team.** Each CLI reads only its own file; kywai passes the others along, so one `AGENTS.md` gives every agent the same rules.
 - **Routines.** Schedule a request once, at a fixed time, on chosen days, every N hours, from a signed GitHub webhook or when files in a folder change. Create them with /rutina, review their history and choose whether approval is required. Coordinator proposals are only saved after you confirm them.
@@ -232,6 +249,7 @@ Details and a sample mod in the [manual](docs/MANUAL.md#extensiones-tus-servidor
 - **Music player** with YouTube Music search, ad-free Audius and SomaFM radio stations, and a queue, and lights that follow the song's BPM without a microphone.
 - **Setup assistant** that installs missing programs with their official installers and opens each official login.
 - **Demo mode** to show the app without spending anything.
+- **Light on your computer.** The 3D quality adjusts itself to your machine without stutters, it rests when the window is hidden and slows down when you are in another app, and “Reduce effects” turns off the extras. The team keeps working with the window closed.
 
 ### ⌨️ Chat commands
 
@@ -262,6 +280,8 @@ The computer where kywai is installed (for example a Mac mini that is always on)
 </p>
 
 Órbita keeps the latest copy so you can use it **offline**, queues your messages until the connection comes back, and adapts to foldables and tablets. More in [android/README.md](android/README.md).
+
+Pair Órbita once with a 6-digit code and it stays paired, even when kywai restarts or updates. It updates itself from your computer, notifies you of what needs you even in the background, and has the same history, search, results and usage as the desktop.
 
 In the chat, Órbita has **live dictation** (tap the microphone; hold it to record a voice note that your computer transcribes with Whisper), a **camera button** to take a photo or pick one from the gallery, and the same long-press menus as the desktop's right-click.
 
