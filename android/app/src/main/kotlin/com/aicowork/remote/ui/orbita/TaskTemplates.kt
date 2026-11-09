@@ -213,35 +213,6 @@ fun TemplateRow(model: OrbitaModel, snapshot: Snapshot?, attachmentIds: List<Str
     }
 }
 
-/** «/» al principio del cuadro: las órdenes de las plantillas que encajan; al tocar una queda «/orden ». */
-@Composable
-fun TemplateCommandList(model: OrbitaModel, snapshot: Snapshot?) {
-    if (snapshot?.capabilities?.templates != true) return
-    val q = TemplateRules.commandQuery(model.chatDraft.text) ?: return
-    val list = TemplateRules.forProject(snapshot.templates, snapshot.conversation.id).filter { it.command.startsWith(q) }.take(8)
-    if (list.isEmpty()) return
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).testTag("template-commands")) {
-        Text(t("Plantillas: elige una y escribe detrás lo que cambia"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(6.dp))
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            list.forEach { tpl ->
-                Row(
-                    Modifier.clip(Orbita.PillShape).background(Orbita.AccentSoft).tappable {
-                        val next = "/${tpl.command} "
-                        model.chatDraft = TextFieldValue(next, selection = androidx.compose.ui.text.TextRange(next.length))
-                    }.padding(horizontal = 12.dp, vertical = 8.dp).testTag("template-command-${tpl.id}"),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("/${tpl.command}", color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.width(6.dp))
-                    Text(tpl.name, color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-                }
-            }
-        }
-        Spacer(Modifier.height(4.dp))
-    }
-}
-
 /** Rellenar los huecos de una plantilla antes de enviarla, con la vista previa del texto. */
 @Composable
 internal fun FillDialog(tpl: TaskTemplate, onDismiss: () -> Unit, onSend: (String) -> Unit) {

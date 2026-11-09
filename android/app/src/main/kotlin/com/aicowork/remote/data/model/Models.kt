@@ -50,7 +50,13 @@ data class Snapshot(
     val settings: ServerSettings = ServerSettings(),
     /** Plantillas de tareas de todos los proyectos (las de uno llevan su projectId). Cambian con `templates.updated`. */
     val templates: List<TaskTemplate> = emptyList(),
+    /** Las órdenes «/…» de los mods encendidos, para la lista del «/» (las de kywai las sabe Órbita). */
+    val modCommands: List<ModChatCommand> = emptyList(),
 )
+
+/** Una orden «/…» de un mod: su nombre, lo que hace y el mod que la trae. */
+@Serializable
+data class ModChatCommand(val name: String, val description: String = "", val mod: String = "")
 
 /** Una plantilla de tareas: una petición que se repite, lanzable con un toque o con «/command …». */
 @Serializable
@@ -712,6 +718,8 @@ data class Capabilities(
     val agentThinking: Boolean = false,
     /** Paneles de los mods (GET /mods/panels y /mods/panel). */
     val modPanels: Boolean = false,
+    /** «/recuerda …» enviado como mensaje va a la memoria; la instantánea trae modCommands. */
+    val chatCommands: Boolean = false,
     /** Varios chats por proyecto (GET/POST /chats, /chats/{id}/open|rename|delete). */
     val chats: Boolean = false,
     /** Radios y canciones sin anuncios (GET /music/search). */
