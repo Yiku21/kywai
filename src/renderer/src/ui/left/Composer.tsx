@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, Brain, CalendarClock, Gauge, ImagePlus, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Square, X } from 'lucide-react'
-import type { CoworkApi, HttpsLink, MemoryInput, MemoryKind, TaskTemplate } from '@shared/types'
+import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, ImagePlus, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
+import type { CoworkApi, HttpsLink, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
 import { menuKeyNav, Popover } from '../common/Popover'
@@ -14,6 +14,8 @@ import { useComposer } from './composerStore'
 import { describeTrigger, describeWhen, parseRoutineCommand } from '@shared/routines'
 import { mentionMatches, mentionQuery, mentionText } from '@shared/directMessage'
 import { commandQuery, templatesFor } from '@shared/templates'
+import { commandSuggestions, REMEMBER_COMMAND, rememberInput, type CommandIcon } from '@shared/chatCommands'
+import { useMods } from './ModsView'
 import { TemplateBar } from './TemplateBar'
 import u from '../common/ui.module.css'
 import s from './Composer.module.css'
@@ -30,17 +32,25 @@ const CLEAR_COMMAND = /^\/(new|nuevo|clear|limpiar)(\s+(chat|conversaci[oó]n))?
 const QUOTA_COMMAND = /^\/(usage|uso|cuotas?|quotas?|limits?)$/i
 /** «/model»: ver y cambiar el modelo de Hermes (el coordinador), como `hermes model` en la terminal. */
 const MODEL_COMMAND = /^\/(model|models|modelo|modelos)$/i
-/** «/recuerda texto»: va a la memoria del proyecto (confirmado), no a los agentes. Admite «decisión: …», «pendiente: …»… */
-const REMEMBER_COMMAND = /^\/(recuerda|recordar|memoria|remember)\s+([\s\S]+)$/i
 /** «/rutina cada día a las 9:00: …»: crea una rutina del proyecto (no va a los agentes). Sola, abre la pestaña Rutinas. */
 const ROUTINE_COMMAND = /^\/(rutina|rutinas|routine)\b/i
 
-function memoryInput(raw: string): MemoryInput {
-  const m = /^(decisi[oó]n|hecho|dato|preferencia|pendiente)\s*:\s*([\s\S]+)$/i.exec(raw.trim())
-  if (!m) return { kind: 'fact', text: raw.trim() }
-  const w = m[1].toLowerCase()
-  const kind: MemoryKind = w.startsWith('decisi') ? 'decision' : w.startsWith('pref') ? 'preference' : w === 'pendiente' ? 'pending' : 'fact'
-  return { kind, text: m[2].trim() }
+/** Los iconos de la lista del «/»: de línea, como el resto de la app (sin emojis ni animaciones). */
+const COMMAND_ICONS: Record<CommandIcon, LucideIcon> = {
+  video: Clapperboard,
+  routine: CalendarClock,
+  direct: AtSign,
+  memory: Brain,
+  model: Cpu,
+  usage: Gauge,
+  new: SquarePen,
+  template: LayoutTemplate,
+  mod: Puzzle
+}
+
+function CommandGlyph({ icon }: { icon: CommandIcon }) {
+  const Icon = COMMAND_ICONS[icon]
+  return <Icon size={15} strokeWidth={1.75} />
 }
 
 function micError(e: unknown): string {
@@ -98,16 +108,30 @@ export function Composer() {
           agentOrder.map((id) => liveAgents[id]).filter((a) => !!a && !a.isSubagent)
         )
       : []
-  // «/» al principio: las plantillas cuya orden empieza por lo escrito.
+  // «/» al principio: todas las órdenes que empiezan por lo escrito (las de kywai, tus plantillas y las de los mods),
+  // cada una con lo que hace a la derecha.
   const templates = useCowork((st) => st.templates)
+  const mods = useMods()
   const cmd = mention ? null : commandQuery(text)
-  const cmdList = cmd !== null && mentionClosed !== text && !!api ? templatesFor(templates, project?.id).filter((x) => x.command.startsWith(cmd)).slice(0, 8) : []
+  const cmdList =
+    cmd !== null && mentionClosed !== text && !!api
+      ? commandSuggestions(cmd, {
+          templates: templatesFor(templates, project?.id),
+          mods: mods.filter((m) => m.enabled).flatMap((m) => m.commands.filter((c) => !m.shadowed.includes(c.name)).map((c) => ({ name: c.name, description: c.description, mod: m.title || m.name })))
+        })
+      : []
   const mentionOpen = mentionList.length > 0
   const cmdOpen = !mentionOpen && cmdList.length > 0
   const suggestCount = mentionOpen ? mentionList.length : cmdList.length
   const mentionSel = Math.min(mentionIdx, Math.max(0, suggestCount - 1))
   const [sending, setSending] = useState(false)
   useEffect(() => setMentionIdx(0), [mention?.query, cmd])
+  // Con las flechas, la fila elegida se ve aunque la lista sea más larga que el hueco.
+  const suggestOpen = mentionList.length > 0 || cmdList.length > 0
+  useEffect(() => {
+    if (!suggestOpen) return
+    document.getElementById(mentionList.length > 0 ? `composer-mention-${mentionSel}` : `composer-command-${mentionSel}`)?.scrollIntoView?.({ block: 'nearest' })
+  }, [mentionSel, suggestOpen, mentionList.length])
   const [stopping, setStopping] = useState(false)
   // Varias peticiones en marcha: menú para elegir cuál detener.
   const [stopOpen, setStopOpen] = useState(false)
@@ -187,8 +211,9 @@ export function Composer() {
     if (activeRunIds.length < 2) setStopOpen(false)
   }, [activeRunIds.length])
 
-  async function send(): Promise<void> {
-    const trimmed = text.trim()
+  /** Envía lo escrito (o `typed`, una orden elegida de la lista del «/» que no lleva nada detrás). */
+  async function send(typed?: string): Promise<void> {
+    const trimmed = (typed ?? text).trim()
     if (!trimmed || sending || blockedReason) return
     setError(null)
     if (simulate) {
@@ -230,7 +255,7 @@ export function Composer() {
         }
       }
       else if (remember) {
-        const entry = await a.addMemory(project.id, memoryInput(remember[2]))
+        const entry = await a.addMemory(project.id, rememberInput(remember[2]))
         setQuotaNotice({
           lines: [entry ? t('Anotado en la memoria del proyecto ({id}, confirmado): {text}', { id: entry.id, text: entry.text }) : t('Eso ya estaba en la memoria.')],
           fix: false,
@@ -266,10 +291,18 @@ export function Composer() {
     }
   }
 
-  /** Elige una plantilla de la lista del «/»: el cuadro queda con «/orden » para escribir lo de detrás. */
+  /**
+   * Elige una orden de la lista del «/». Las que no llevan nada detrás («/uso», «/model», «/nuevo») se hacen ya; las
+   * demás dejan «/orden » en el cuadro para escribir lo de detrás.
+   */
   function chooseCommand(i: number): void {
     const c = cmdList[i]
     if (!c) return
+    if (c.runs) {
+      setMentionClosed(`/${c.command}`)
+      void send(`/${c.command}`)
+      return
+    }
     setText(`/${c.command} `)
     taRef.current?.focus()
   }
@@ -557,14 +590,15 @@ export function Composer() {
             </ul>
           )}
           {cmdOpen && (
-            <ul id="composer-commands" className={s.mentions} role="listbox" aria-label={t('Plantillas de tareas')}>
+            <ul id="composer-commands" className={s.mentions} role="listbox" aria-label={t('Órdenes del chat')}>
               <li className={s.mentionHead} aria-hidden="true">
-                {t('Plantillas: elige una y escribe detrás lo que cambia')}
+                {t('Órdenes: elige una o sigue escribiendo para filtrar')}
               </li>
               {cmdList.map((c, i) => (
                 <li
-                  key={c.id}
+                  key={c.key}
                   id={`composer-command-${i}`}
+                  title={`/${c.command}${c.args ? ` ${c.args}` : ''} · ${c.description}`}
                   role="option"
                   aria-selected={i === mentionSel}
                   className={cx(s.mention, i === mentionSel && s.mentionOn)}
@@ -575,10 +609,13 @@ export function Composer() {
                   onMouseEnter={() => setMentionIdx(i)}
                 >
                   <span className={s.cmdIcon} aria-hidden="true">
-                    {c.icon || <LayoutTemplate size={14} />}
+                    <CommandGlyph icon={c.icon} />
                   </span>
-                  <span className={s.mentionName}>/{c.command}</span>
-                  <span className={s.mentionModel}>{c.name}</span>
+                  <span className={s.cmdName}>
+                    <span className={s.mentionName}>/{c.command}</span>
+                    {c.args && <span className={s.cmdArgs}> {c.args}</span>}
+                  </span>
+                  <span className={s.cmdDesc}>{c.description}</span>
                 </li>
               ))}
             </ul>

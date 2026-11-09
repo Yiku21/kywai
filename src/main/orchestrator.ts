@@ -5,7 +5,9 @@ import type {
   AgentConfig,
   AgentId,
   AgentRuntime,
+  AgentAccess,
   Artifact,
+  PermissionAnswer,
   Attachment,
   ChatMessage,
   Difficulty,
@@ -49,7 +51,7 @@ import { EFFORT_LABEL, effortFor, isVisualTask, planEffortFor } from '@shared/mo
 import { taskCategory, type TaskCategory } from '@shared/taskCategory'
 import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpdate } from './taskTrace'
 import { withoutClosingNotes, workSteps } from '@shared/work'
-import { lang, locale, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
+import { lang, locale, renderMsg, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
 import { addMemory, KIND_LABEL, memoryPromptSections, parseMemoryNotes, planMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
@@ -58,6 +60,7 @@ import { projectBrief, testCommand } from './projectBrief'
 import { lastSession, rememberSession, supportsResume } from './agentSessions'
 import { hasGit, Shadow } from './checkpoints'
 import { addInbox, onInboxAction, resolveInboxWhere } from './inbox'
+import { askPermission, dropPermissions, onPermissionChange, sessionAllows, waitingPermission, type PermissionRequest } from './permissions'
 import { captureUi, pagesToShoot, type UiShots } from './uiShots'
 import { runProjectCheck } from './projectChecks'
 import { testEvidence } from '@shared/testEvidence'
@@ -68,6 +71,7 @@ import { skillPromptLines } from './skills'
 import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, type VideoFormat, type VideoStyle } from './videoScript'
 import { renderVideo } from './videoStudio'
+import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
 
@@ -120,6 +124,11 @@ interface TaskMeta {
   copy?: { dir: string; key: string; base: string }
   /** Veces que se le pidió resolver un choque al integrar su copia. */
   mergeFixes?: number
+  /**
+   * Modo «Preguntarme antes» con un agente que no puede preguntar a mitad de tarea (Codex, Gemini…): respondió
+   * «PERMISO: …», se te preguntó y se repite con lo que contestaste.
+   */
+  permission?: { need: string; granted: boolean }
 }
 
 interface Run {
@@ -840,6 +849,39 @@ function runInbox(run: Run, ok: boolean): void {
 
 registerInboxActions()
 
+/**
+ * Cada permiso que pide un agente sale también en el chat, con los mismos botones que en «Te necesita»; al contestar
+ * (en cualquiera de los dos sitios, o en Órbita) el mensaje dice qué se decidió. Mientras espera, el agente sale
+ * «Esperando tu permiso».
+ */
+const permissionMessages = new Map<string, { projectId: string; messageId: string }>()
+onPermissionChange((req: PermissionRequest, inboxId: string, state: 'pending' | PermissionAnswer) => {
+  try {
+    const t = tasks.get(req.taskId)
+    const working = t && busy.get(t.agentId) === t.id ? t.agentId : null
+    if (state === 'pending') {
+      const run = runs.get(req.runId)
+      if (!run) return
+      const shell = /^(Bash|PowerShell):/.test(req.key)
+      const detail = shell ? `\`\`\`\n${req.detail}\n\`\`\`` : `> ${req.detail.replace(/\n/g, '\n> ')}`
+      const m = agentMessage(run, req.agentId, tr('Necesito tu permiso para {action}:\n\n{detail}', { action: renderMsg(req.action), detail }), { permission: { inboxId, state: 'pending' } })
+      permissionMessages.set(inboxId, { projectId: req.projectId, messageId: m.id })
+      if (working) setRuntime(working, { activity: 'waiting', lastActivity: tr('Esperando tu permiso') })
+      return
+    }
+    const ref = permissionMessages.get(inboxId)
+    permissionMessages.delete(inboxId)
+    const m = ref ? store.getProject(ref.projectId).messages.find((x) => x.id === ref.messageId) : undefined
+    if (m) {
+      m.permission = { inboxId, state }
+      pushMessage(m)
+    }
+    if (working) setRuntime(working, { activity: 'working', lastActivity: state === 'deny' ? tr('Sigue sin el permiso') : tr('Permiso concedido: sigue') })
+  } catch (e) {
+    console.warn('[cowork] permisos: no se pudo anotar en el chat', e)
+  }
+})
+
 /** La respuesta del equipo termina preguntándote algo (¿sigo con…?, ¿cuál prefieres?): sale en la bandeja. */
 export function asksUser(text: string): string | null {
   const paras = text.trim().split(/\n\s*\n/)
@@ -1252,6 +1294,23 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     pushMessage({ ...base, id: randomUUID(), ...(input.clientMessageId ? { clientMessageId: input.clientMessageId } : {}), author: { type: 'user' }, text })
     const reply = routineCommandReply(projectId, text.trim())
     pushMessage({ ...base, id: randomUUID(), author: { type: 'system' }, text: reply.text, ...(reply.routine ? { routine: reply.routine } : {}) })
+    return { runId }
+  }
+
+  // «/recuerda …» que llega como mensaje (Órbita, el MCP…): se anota en la memoria del proyecto y se contesta aquí,
+  // sin gastar una llamada a Hermes (el escritorio lo hace él mismo).
+  const remember = !routine && !atts.length ? REMEMBER_COMMAND.exec(text.trim()) : null
+  if (remember) {
+    const runId = randomUUID()
+    const base = { projectId, runId, createdAt: Date.now() }
+    pushMessage({ ...base, id: randomUUID(), ...(input.clientMessageId ? { clientMessageId: input.clientMessageId } : {}), author: { type: 'user' }, text })
+    const entry = addMemory(projectId, rememberInput(remember[2]), { status: 'confirmed', by: 'user', byName: 'Tú' })
+    pushMessage({
+      ...base,
+      id: randomUUID(),
+      author: { type: 'system' },
+      text: entry ? tr('Anotado en la memoria del proyecto ({id}, confirmado): {text}', { id: entry.id, text: entry.text }) : tr('Eso ya estaba en la memoria.')
+    })
     return { runId }
   }
 
@@ -1838,6 +1897,7 @@ export function cancelRun(runId: string, reason: 'user' | 'quit' | 'pause' = 'us
   for (const tid of run.taskIds) {
     const t = tasks.get(tid)
     if (!t || !['pending', 'blocked', 'running'].includes(t.status)) continue
+    dropPermissions(t.id, tr('Se detuvo la tarea'))
     const wasRunning = t.status === 'running'
     t.status = 'cancelled'
     t.error = reason !== 'user' ? INTERRUPTED_ERROR : tr('Cancelada por el usuario')
@@ -2257,20 +2317,41 @@ function teamLine(a: AgentConfig): string {
   }).join('\n')
 }
 
+/**
+ * Los permisos con los que trabaja una tarea. En «Preguntarme antes», Claude pregunta lo que necesita a mitad de
+ * tarea (con las herramientas de kywai); los demás trabajan en la carpeta del proyecto y, si necesitan más, lo dicen
+ * («PERMISO: …») y se te pregunta. Lo que ya permitiste (una vez para esta tarea, o en esta sesión) cuenta.
+ */
+function accessFor(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, tools: boolean): AgentAccess {
+  const cfg = getConfig().agentAccess
+  if (cfg !== 'ask') return cfg
+  if (run.meta.get(t.id)?.permission?.granted || sessionAllows(run.projectId, (parent ?? exec).id, 'full')) return 'full'
+  return exec.provider === 'claude' && tools && !t.direct ? 'ask' : 'project'
+}
+
 /** Qué puede hacer el agente con la terminal, según su tipo y los permisos configurados. */
 function terminalLine(a: AgentConfig): string {
   if (a.provider === 'lmstudio' || a.provider === 'colibri') return 'sin terminal: no puede ejecutar comandos ni instalar nada'
-  return getConfig().agentAccess === 'full'
+  const access = getConfig().agentAccess
+  return access === 'full'
     ? 'terminal con acceso completo: ejecuta comandos, instala dependencias y usa internet'
-    : 'terminal limitada a la carpeta del proyecto: no puede instalar dependencias'
+    : access === 'ask'
+      ? 'terminal que pide permiso al usuario para instalar, usar internet o salir de la carpeta del proyecto'
+      : 'terminal limitada a la carpeta del proyecto: no puede instalar dependencias'
 }
 
 /** Regla de permisos para el prompt de una tarea. */
-function accessRule(exec: AgentConfig): string {
+function accessRule(exec: AgentConfig, access: AgentAccess = getConfig().agentAccess): string {
   if (exec.provider === 'lmstudio' || exec.provider === 'colibri') {
     return '- No tienes terminal: si la tarea necesita ejecutar comandos o instalar algo, empieza tu respuesta con «BLOQUEADA:» y otro agente se encargará.'
   }
-  return getConfig().agentAccess === 'full'
+  if (access === 'ask') {
+    return '- Puedes editar los archivos de la carpeta del proyecto. Para lo demás (ejecutar comandos, instalar dependencias, usar internet, tocar fuera de la carpeta) pide el permiso con normalidad: kywai se lo pregunta al usuario y esperas su respuesta. Si lo deniega, no lo intentes de otra forma: sigue con lo que puedas y, si sin eso no se puede hacer la tarea, empieza tu respuesta con «BLOQUEADA:» y explica qué falta. Nunca hagas acciones irreversibles que no se hayan pedido (borrados masivos, formatear, publicar, pagar, enviar mensajes).'
+  }
+  if (access === 'project' && getConfig().agentAccess === 'ask') {
+    return '- Solo puedes editar archivos de la carpeta del proyecto: los comandos que necesitan aprobación (instalar dependencias, acceder a internet…) se deniegan. Si la tarea los necesita, para y empieza tu respuesta con «PERMISO:» seguido, en una frase, de lo que necesitas hacer y por qué (por ejemplo «PERMISO: instalar ffmpeg con brew para generar los vídeos»). kywai se lo pregunta al usuario y, si lo permite, sigues con acceso completo.'
+  }
+  return access === 'full'
     ? '- Tienes acceso completo a este equipo: puedes ejecutar comandos, instalar dependencias (npm, pip…) y usar internet sin pedir permiso. Hazlo tú mismo cuando la tarea lo necesite, en lugar de pararte. Fuera de la carpeta del proyecto haz solo lo imprescindible (instalar herramientas, configurar programas): nunca borres ni sobrescribas archivos del usuario fuera de ella ni hagas acciones irreversibles que no se hayan pedido (borrados masivos, formatear, publicar, pagar, enviar mensajes).'
     : '- Solo puedes editar archivos de la carpeta del proyecto: los comandos que necesitan aprobación (instalar dependencias, acceder a internet…) se deniegan. Si la tarea los necesita, empieza tu respuesta con «BLOQUEADA:» y explica qué falta.'
 }
@@ -2313,6 +2394,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     ...coordinatorGuide({
       projectDir: store.workRoot(run.projectId),
       fullAccess: getConfig().agentAccess === 'full',
+      askAccess: getConfig().agentAccess === 'ask',
       planApproval: needsApproval(run),
       routine: run.routine,
       extraTools: extraToolLines(),
@@ -2717,7 +2799,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
           meta.copy
             ? `- Trabajas en una copia aparte de la carpeta del proyecto (la carpeta actual: ${meta.copy.dir}), porque otra tarea está usando a la vez la carpeta original (${st.project.workDir}). Haz todos tus cambios aquí y no toques la original: al terminar, la app integra tus cambios en ella.`
             : `- Trabajas directamente en la carpeta del proyecto del usuario (la carpeta actual: ${st.project.workDir}). Tienes permiso para leer y editar sus archivos para cumplir la tarea.`,
-          accessRule(exec),
+          accessRule(exec, accessFor(run, t, exec, parent, tools)),
           '- Si creas documentos que no forman parte del proyecto (informes, notas, resúmenes), guárdalos en .ai-cowork/entregables/.',
           '- No modifiques .ai-cowork/adjuntos/ (son los adjuntos del usuario).',
           '- No pegues el contenido completo de los archivos en tu respuesta.',
@@ -2733,7 +2815,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         meta.copy
           ? '- Trabaja dentro de la carpeta actual: es una copia aparte de la carpeta del proyecto, porque otra tarea la usa a la vez. Al terminar, la app integra tus cambios.'
           : '- Trabaja dentro de la carpeta actual (la carpeta del proyecto).',
-        accessRule(exec),
+        accessRule(exec, accessFor(run, t, exec, parent, tools)),
         '- Guarda los entregables como archivos dentro de la carpeta artifacts/ (créala si no existe), con nombres claros y sin espacios.',
         '- No pegues el contenido completo de los archivos en tu respuesta.',
         '- No modifiques los archivos de attachments/.',
@@ -2778,6 +2860,15 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
           '',
           '## Retomas tu sesión anterior',
           'Esta conversación continúa la sesión en la que ya trabajaste en este proyecto: recuerdas lo que leíste, hiciste y decidiste entonces, así que no empieces de cero ni vuelvas a explorarlo todo. Eso sí, otros agentes (o el usuario) pueden haber cambiado archivos desde entonces: comprueba el estado actual de lo que vayas a tocar antes de cambiarlo.'
+        ]
+      : []),
+    ...(meta.permission
+      ? [
+          '',
+          meta.permission.granted ? '## Permiso concedido' : '## Permiso denegado',
+          meta.permission.granted
+            ? `El usuario te ha dado acceso completo para esta tarea, para lo que pediste («${meta.permission.need}»). Sigue desde donde lo dejaste y hazlo.`
+            : `El usuario ha denegado lo que pediste («${meta.permission.need}»). No lo intentes de otra forma: haz lo que puedas sin eso y, si sin eso no se puede hacer la tarea, empieza tu respuesta con «BLOQUEADA:» y explica qué falta.`
         ]
       : []),
     // Otro agente se bloqueó en esta tarea y se la pasaron: sabe por qué y que lo hecho sigue en la carpeta.
@@ -2976,7 +3067,10 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // Con ellas, los servidores MCP que el usuario encendió para este agente en Ajustes › Extensiones.
   const userMcp = t.direct ? [] : serversFor(exec.provider)
   const mcp: McpLaunch | null = exec.provider === 'claude' && !t.direct
-    ? mcpForTask({ projectId: run.projectId, runId: run.id, taskId: t.id, taskTitle: t.title, agentId: (parent ?? exec).id, agentName: (parent ?? exec).name }, claudeServers(userMcp))
+    ? mcpForTask(
+        { projectId: run.projectId, runId: run.id, taskId: t.id, taskTitle: t.title, agentId: (parent ?? exec).id, agentName: (parent ?? exec).name, askPermission: accessFor(run, t, exec, parent, true) === 'ask' },
+        claudeServers(userMcp)
+      )
     : null
   let extraMcp: ExtraMcp | undefined
   let extraFiles: string[] = []
@@ -3010,8 +3104,9 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
       ...(extraMcp ? { extraMcp } : {}),
       cwd: dir,
       mode: 'work',
-      access: getConfig().agentAccess,
+      access: accessFor(run, t, exec, parent, !!mcp),
       images: imageAttachments(run, dir !== mainDir),
+      isWaitingUser: () => waitingPermission(t.id),
       resume: resuming,
       signal: ctrl.signal,
       onActivity: (text, kind) => {
@@ -3065,6 +3160,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   meta.resume = undefined
   releaseMcp(mcp)
   removeFiles(extraFiles)
+  dropPermissions(t.id, tr('La tarea siguió o terminó'))
   progress.stop()
   if (res.sessionId && !ctrl.signal.aborted) {
     meta.sessionId = res.sessionId
@@ -3074,11 +3170,13 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // «BLOQUEADA: …» no sale bien en el registro, pero va marcada aparte: no es un fallo del agente.
   // En un mensaje directo la respuesta es la que es: «BLOQUEADA:» no significa nada especial.
   taskInboxDone(t)
-  const blocked = res.ok && !t.direct ? blockedReason(res.text) : null
-  logCall(run, 'task', exec, model, blocked ? { ...res, ok: false } : res, taskStart, t.id, effort, {
+  // «PERMISO: …» (modo «Preguntarme antes», agentes que no pueden preguntar a mitad de tarea): se te pregunta y se repite.
+  const permNeed = res.ok && !t.direct && getConfig().agentAccess === 'ask' && !meta.permission ? permissionNeed(res.text) : null
+  const blocked = res.ok && !t.direct ? (permNeed ? null : (blockedReason(res.text) ?? (permissionNeed(res.text) ? tr('Bloqueada: {reason}', { reason: permissionNeed(res.text)! }) : null))) : null
+  logCall(run, 'task', exec, model, blocked || permNeed ? { ...res, ok: false } : res, taskStart, t.id, effort, {
     difficulty: t.difficulty,
     category: taskCategory(t.title, t.description),
-    ...(blocked ? { blocked: true } : {})
+    ...(blocked || permNeed ? { blocked: true } : {})
   })
   endTrace(t.id, res, taskStart)
   // El controlador sigue registrado mientras se verifica el resultado («Detener» también lo corta).
@@ -3100,7 +3198,8 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   schedule()
 
   try {
-    if (blocked) await handleBlocked(run, t, exec, parent, res, blocked)
+    if (permNeed) await handlePermissionNeed(run, t, exec, parent, permNeed)
+    else if (blocked) await handleBlocked(run, t, exec, parent, res, blocked)
     else if (res.ok && t.video) await completeVideo(run, t, exec, parent, res)
     else if (res.ok) {
       const verdict = await verifyTask(run, t, exec, parent, res, dir)
@@ -3731,6 +3830,50 @@ function relayFor(t: Task, meta: TaskMeta, owner: AgentConfig, exec: AgentConfig
   const alt = relayAgent(t, meta, owner, exec)
   const noStrongAlt = !alt && t.difficulty !== 'easy' && !isLocalProvider(owner.provider) && workers().some((a) => isLocalProvider(a.provider) && usable(a))
   return { alt, noStrongAlt }
+}
+
+/** Si el agente respondió «PERMISO: …» (le falta un permiso, modo «Preguntarme antes»), lo que necesita. */
+export function permissionNeed(text: string): string | null {
+  const m = /^[\s>*_#`]*PERMISO\s*[:.\-–—]\s*([\s\S]*)/i.exec(text ?? '')
+  if (!m) return null
+  const need = m[1].replace(/^[*_`\s]+/, '').replace(/\s+/g, ' ').trim()
+  return clip(need || tr('trabajar con acceso completo'), 600)
+}
+
+/**
+ * Un agente que no puede preguntar a mitad de tarea (Codex, Gemini…) dijo que le falta un permiso: se te pregunta
+ * (Denegar, Permitir una vez, Permitir siempre en esta sesión) y la tarea se repite en su misma sesión, con acceso
+ * completo si lo permites o sabiendo que lo denegaste si no. Mientras, el agente queda libre para otras tareas.
+ */
+async function handlePermissionNeed(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, need: string): Promise<void> {
+  const meta = run.meta.get(t.id)!
+  const owner = parent ?? exec
+  settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Esperando tu permiso: {title}', { title: t.title }), context: undefined })
+  if (parent) removeBecario(exec.id)
+  t.agentId = owner.id
+  t.lastActivity = tr('Esperando tu permiso')
+  pushTask(t)
+  closeWork(run, t, 'stopped', { text: tr('Necesito un permiso para seguir: {need}', { need }) })
+  const answer = await askPermission({
+    projectId: run.projectId,
+    runId: run.id,
+    taskId: t.id,
+    taskTitle: t.title,
+    agentId: owner.id,
+    agentName: owner.name,
+    action: tl('trabajar con acceso completo en esta tarea'),
+    detail: need,
+    key: 'full'
+  })
+  if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+  meta.permission = { need, granted: answer !== 'deny' }
+  // Sigue en su misma sesión: recuerda lo que ya hizo.
+  meta.resume = meta.sessionId
+  t.status = t.dependsOn.every((d) => tasks.get(d)?.status === 'done') ? 'pending' : 'blocked'
+  t.startedAt = undefined
+  t.lastActivity = undefined
+  t.progress = undefined
+  pushTask(t)
 }
 
 /** Lo que explicó el agente al bloquearse, sin el «BLOQUEADA:» del principio. */

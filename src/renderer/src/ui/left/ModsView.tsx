@@ -21,7 +21,7 @@ export function useMods(): ModInfo[] {
   const [mods, setMods] = useState<ModInfo[]>([])
   useEffect(() => {
     if (!live) return
-    const load = (): void => void api!.listMods().then(setMods, () => undefined)
+    const load = (): void => void api!.listMods().then((m) => setMods(Array.isArray(m) ? m : []), () => undefined)
     load()
     window.addEventListener(MODS_CHANGED, load)
     return () => window.removeEventListener(MODS_CHANGED, load)

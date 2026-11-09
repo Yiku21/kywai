@@ -13,7 +13,7 @@ import type { ChatMessage, CoworkEvent, ProjectState, Task } from '@shared/types
 import { SUBAGENT_COLOR } from '@shared/defaults'
 import type { RunAgentOptions, RunAgentResult } from '../agents/types'
 import { getConfig, loadConfig } from '../config'
-import { listInbox } from '../inbox'
+import { actInbox, listInbox } from '../inbox'
 import { tapEvents } from '../events'
 import {
   __clearBlocksForChecks,
@@ -611,6 +611,67 @@ async function main(): Promise<void> {
       assert.ok(work[0].prompt.includes('Otro agente se bloqueó en esta tarea') && work[0].prompt.includes('no tengo la fuente tipográfica'), 'sabe por qué se bloqueó')
       assert.ok(!work[0].prompt.includes('se cerró la app'), 'no se le dice que se cerró la app')
       assert.equal(store.getProject(project.id).tasks.find((x) => x.id === t.id)?.status, 'done')
+    })
+
+    await check('G5: «Preguntarme antes» — Codex dice «PERMISO: …», se te pregunta en el chat y en «Te necesita» y sigue con acceso completo', async () => {
+      __clearBlocksForChecks()
+      getConfig().agentAccess = 'ask'
+      try {
+        const p = plan('Ok', [{ key: 'f', title: 'Instalar ffmpeg', description: 'instalar ffmpeg', agent: 'codex', difficulty: 'medium', dependsOn: [], deliverable: 'text' }])
+        planResponses = { claude: p, codex: p }
+        const seen: RunAgentOptions[] = []
+        workBehaviour = (o) => {
+          if (o.mode !== 'work' || o.agent.id !== 'codex') return null
+          seen.push(o)
+          return Promise.resolve(
+            seen.length === 1
+              ? { ok: true, text: 'PERMISO: instalar ffmpeg con brew para generar los vídeos.', usage: { input: 1, output: 1 }, sessionId: 'hilo-codex-1' }
+              : { ok: true, text: 'Instalado.', usage: { input: 1, output: 1 } }
+          )
+        }
+        const fromEv = events.length
+        const { runId } = await sendMessage({ projectId: project.id, text: 'Instala ffmpeg', filePaths: [] })
+        let item: ReturnType<typeof listInbox>[number] | undefined
+        await waitFor(() => !!(item = listInbox().find((i) => i.kind === 'permission' && i.runId === runId && !i.resolvedAt)), 10000, 'permiso G5')
+        assert.equal(seen[0].access, 'project', 'Codex no puede preguntar a mitad: trabaja en la carpeta')
+        assert.ok(seen[0].prompt.includes('«PERMISO:»'), 'sabe cómo pedirlo')
+        assert.deepEqual(item!.actions.map((a) => a.id), ['perm-deny', 'perm-once', 'perm-session'])
+        const msg = store.getProject(project.id).messages.find((m) => m.permission?.inboxId === item!.id)
+        assert.ok(msg && msg.permission?.state === 'pending' && msg.text.includes('instalar ffmpeg con brew'), 'también en el chat, con botones')
+        assert.ok(!finished(runId), 'la petición espera tu respuesta')
+        await actInbox(item!.id, 'perm-once')
+        await waitFor(() => !!finished(runId), 10000, 'run G5')
+        assert.equal(seen.length, 2)
+        assert.equal(seen[1].access, 'full', 'con el permiso, acceso completo para esta tarea')
+        assert.equal(seen[1].resume, 'hilo-codex-1', 'sigue en su misma sesión')
+        assert.ok(seen[1].prompt.includes('## Permiso concedido'))
+        assert.equal([...lastTasks(fromEv).values()].find((x) => x.runId === runId)?.status, 'done')
+        assert.equal(store.getProject(project.id).messages.find((m) => m.id === msg!.id)?.permission?.state, 'once')
+      } finally {
+        getConfig().agentAccess = 'full'
+      }
+    })
+
+    await check('G6: «Preguntarme antes» — Claude sabe cuándo espera tu respuesta (no se le corta por estar callado)', async () => {
+      __clearBlocksForChecks()
+      getConfig().agentAccess = 'ask'
+      try {
+        const p = plan('Ok', [{ key: 'c', title: 'Compilar', description: 'npm run build', agent: 'claude', difficulty: 'medium', dependsOn: [], deliverable: 'text' }])
+        planResponses = { claude: p, codex: p }
+        const seen: RunAgentOptions[] = []
+        workBehaviour = (o) => {
+          if (o.mode !== 'work' || o.agent.id !== 'claude') return null
+          seen.push(o)
+          return Promise.resolve({ ok: true, text: 'Hecho.', usage: { input: 1, output: 1 } })
+        }
+        const { runId } = await sendMessage({ projectId: project.id, text: 'Compila', filePaths: [] })
+        await waitFor(() => !!finished(runId), 10000, 'run G6')
+        // Sin el servidor MCP de kywai (las pruebas no lo arrancan) Claude no puede preguntar: trabaja en la carpeta y pide con «PERMISO:».
+        assert.ok(seen[0].access === 'ask' || seen[0].access === 'project')
+        assert.equal(typeof seen[0].isWaitingUser, 'function', 'se le dice cuándo espera tu respuesta')
+      } finally {
+        getConfig().agentAccess = 'full'
+      }
     })
 
     // ---------- H: Hermes coordina (planifica) pero nunca recibe tareas ----------

@@ -45,6 +45,8 @@ export interface MobileSnapshot {
   memory: MemoryEntry[]
   /** Plantillas de tareas de todos los proyectos (las de otro proyecto tienen su projectId). */
   templates?: TaskTemplate[]
+  /** Las órdenes «/…» de los mods encendidos, para la lista del «/» (las de kywai Órbita ya las sabe). */
+  modCommands?: Array<{ name: string; description: string; mod: string }>
   usage: MobileUsage
   /** planApproval: el coordinador espera tu visto bueno antes de ejecutar cada plan. */
   /**
@@ -129,6 +131,8 @@ export interface MobileSnapshot {
     agentThinking: boolean
     /** Paneles de los mods (GET /mods/panels y /mods/panel). */
     modPanels: boolean
+    /** «/recuerda …» enviado como mensaje se anota en la memoria (y llegan modCommands en la instantánea). */
+    chatCommands?: boolean
     /** GET /usage/cost y usage.cost en la instantánea: dinero por agente, suscripciones y presupuesto. */
     usageCost: boolean
   }

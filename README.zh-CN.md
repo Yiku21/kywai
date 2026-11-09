@@ -19,6 +19,8 @@
 
 [![官网: kywai.app](https://img.shields.io/badge/%E5%AE%98%E7%BD%91-kywai.app-1F7FFC?style=for-the-badge&logo=googlechrome&logoColor=white)](https://kywai.app)
 
+**[⚡ 一条命令即可安装](#-安装)**
+
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Apple%20%26%20Intel-111111?logo=apple&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-x64%20%26%20ARM-FCC624?logo=linux&logoColor=black)
@@ -318,6 +320,28 @@ flowchart TD
 </table>
 
 ## 📥 安装
+
+### ⚡ 一条命令安装
+
+在终端里粘贴一行命令。它会从 Releases 下载适合你电脑的最新版本，安装并打开。想重装或更新时再运行一次即可：你的项目和设置都会保留。
+
+**Windows 10/11**：打开 **PowerShell** 并粘贴：
+
+```powershell
+irm https://kywai.app/install.ps1 | iex
+```
+
+**macOS 和 Linux**：打开**终端**并粘贴：
+
+```bash
+curl -fsSL https://kywai.app/install.sh | bash
+```
+
+- **Windows：** 只为当前用户安装（无需管理员权限），并在桌面和开始菜单创建快捷方式。
+- **macOS：** 自动选择 Apple 芯片或 Intel 版本，把 `kywai.app` 放进“应用程序”，并解除“应用已损坏”的拦截，无需右键 → 打开。
+- **Linux**（x64 或 ARM）：把 AppImage 放在 `~/.local/share/kywai`，加入应用菜单并创建 `kywai` 命令。只有在需要安装 libfuse2 时才会要求输入密码。
+
+想先看看脚本？在这里：[install.sh](https://github.com/Yiku21/kywai/blob/master/scripts/instalar-kywai.sh) 和 [install.ps1](https://github.com/Yiku21/kywai/blob/master/scripts/instalar-kywai.ps1)。
 
 ### 系统要求
 
