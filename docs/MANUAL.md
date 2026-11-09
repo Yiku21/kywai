@@ -717,12 +717,22 @@ documentación no confirma y pueden necesitar ajustes.
   Si aun así sale «No disponible: Servidor de LM Studio apagado», la tarjeta del agente (clic en su robot) tiene el
   botón **Encender LM Studio**: enciende el servidor, carga el modelo y deja el agente disponible. Si no puede, dice
   por qué (por ejemplo, que LM Studio no está instalado).
+- **Instalar el motor local desde kywai**: en el indicador Local → «Agente local», la pestaña de un motor que no está
+  instalado (LM Studio, Ollama o Colibri) tiene el botón **Instalar**, como los agentes en el asistente: usa la misma
+  instalación (Homebrew en Mac, winget en Windows, su instalador en Linux) y enseña la última línea de lo que va
+  haciendo. LM Studio se abre una vez al terminar, porque su CLI `lms` aparece la primera vez que se abre; Ollama
+  queda en marcha.
 - **Colibri como motor local** (pestaña **Colibri** en el indicador Local → «Agente local», y en el paso Agentes del
   asistente). [Colibri](https://github.com/JustVugg/colibri) (licencia Apache-2.0) sirve modelos MoE grandes
   (Qwen3.6, GLM, DeepSeek…) dejando en la GPU lo que más se usa, en RAM lo templado y leyendo del disco el resto.
   Habla la API de OpenAI con herramientas, así que el agente local trabaja con él igual que con LM Studio (mismas
   herramientas, sin terminal, razonamiento apagado). Cómo funciona:
-  - **Instalación**: a mano con su `./start-here.sh` (elige un modelo que quepa y lo descarga, 19 GB o más). kywai lo
+  - **Instalación**: botón **Instalar** en su pestaña (pide un segundo toque) o en el paso «Programas» del asistente.
+    kywai lo baja en `~/colibri` (con git; en Windows, el zip) y ejecuta su instalación sin preguntas
+    (`start-here.sh --yes --background --no-browser`): elige el modelo recomendado para la RAM y el disco del equipo,
+    prepara el motor y descarga el modelo (19 GB o más; hasta 6 horas de espera, y si se corta, volver a pulsar
+    reanuda la descarga). En Mac instala antes con Homebrew `libomp` y un Python 3.10 o más nuevo si faltan. También
+    se puede instalar a mano con su `./start-here.sh`. kywai lo
     detecta por el `setup.json` que deja (`~/Library/Application Support/colibri` en Mac,
     `~/.local/share/colibri` en Linux, `%LOCALAPPDATA%\colibri` en Windows; `COLI_SETUP_HOME` lo cambia) y usa su
     dirección y su puerto (127.0.0.1:8000 de fábrica). En el asistente sale como programa con su enlace.

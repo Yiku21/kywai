@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process'
+import { execFile, execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -130,8 +130,21 @@ export async function colibriStatus(): Promise<ColibriState> {
   return { installed, running: false, models, canStart: !!setup && !custom }
 }
 
-/** Python con el que se lanza `coli` (el lanzador es un script de Python 3). */
+/**
+ * Python con el que se lanza `coli` (un script que pide Python 3.10 o más nuevo; el python3 de macOS es el 3.9, así
+ * que se prueban antes los de Homebrew).
+ */
 function python(): { cmd: string; pre: string[] } {
+  const candidates = process.platform === 'win32' ? ['python', 'py'] : ['python3.13', 'python3.12', 'python3.11', 'python3.10', 'python3', 'python']
+  for (const cmd of candidates) {
+    const pre = cmd === 'py' ? ['-3'] : []
+    try {
+      execFileSync(cmd, [...pre, '-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'], { timeout: 5000, stdio: 'ignore', windowsHide: true })
+      return { cmd, pre }
+    } catch {
+      /* el siguiente */
+    }
+  }
   return process.platform === 'win32' ? { cmd: 'py', pre: ['-3'] } : { cmd: 'python3', pre: [] }
 }
 
