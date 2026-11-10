@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BadgeCheck, BookOpen, Clapperboard, Send, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
+import { BadgeCheck, BookOpen, CircleHelp, Clapperboard, Send, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
 import type { InstagramStatus, TikTokStatus, ProviderKind, VideoStudioStatus } from '@shared/types'
 import { isVideoExtension } from '@shared/videoExtensions'
 import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpRuntime, type McpServerInfo, type McpServerInput, type ModInfo, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
@@ -1058,6 +1058,49 @@ function VideoSection() {
   )
 }
 
+/** Un paso de una guía «¿Cómo lo hago?»: el texto y, si hace falta, la web que hay que abrir. */
+interface GuideStep {
+  text: string
+  link?: { label: string; url: string }
+}
+
+/**
+ * El título de una sección con su botón «¿Cómo lo hago?», que despliega debajo los pasos numerados para conseguir lo
+ * que piden los cuadros (tokens, claves…), con botones que abren las webs. No envía nada: solo explica.
+ */
+function SectionWithGuide({ title, steps, note }: { title: string; steps: GuideStep[]; note?: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <div className={s.sectionRow}>
+        <span className={s.section}>{title}</span>
+        <button type="button" className={cx(u.btn, u.btnSm, s.howBtn)} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+          <CircleHelp size={14} aria-hidden="true" />
+          {open ? t('Ocultar la guía') : t('¿Cómo lo hago?')}
+        </button>
+      </div>
+      {open && (
+        <div className={s.howTo} role="region" aria-label={t('Guía: {title}', { title })}>
+          <ol className={s.howSteps}>
+            {steps.map((step, i) => (
+              <li key={i}>
+                {step.text}
+                {step.link && (
+                  <button type="button" className={s.howLink} onClick={() => window.open(step.link!.url, '_blank', 'noopener')}>
+                    {step.link.label}
+                    <ExternalLink size={12} aria-hidden="true" />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ol>
+          {note && <p className={s.howNote}>{note}</p>}
+        </div>
+      )}
+    </>
+  )
+}
+
 /**
  * El Instagram de kywai: la cuenta PROPIA de kywai (profesional), con el token de la API oficial de Meta. Nunca se pide
  * la contraseña. «/instagram» prepara el último vídeo con su texto; sin «Publicar sin preguntar», espera tu «Publicar».
@@ -1087,7 +1130,20 @@ function InstagramPanel({ live }: { live: boolean }) {
 
   return (
     <>
-      <span className={s.section}>{t('El Instagram de kywai')}</span>
+      <SectionWithGuide
+        title={t('El Instagram de kywai')}
+        steps={[
+          { text: t('Pon la cuenta de Instagram de kywai en modo profesional: en la app de Instagram, Configuración → Tipo de cuenta → Creador o Empresa. Es gratis.') },
+          {
+            text: t('Entra en developers.facebook.com → Mis apps → Crear app y elige el caso de uso «Administrar mensajes y contenido en Instagram» (si pregunta el tipo, «Empresa»).'),
+            link: { label: t('Abrir Meta for Developers'), url: 'https://developers.facebook.com/apps' }
+          },
+          { text: t('Dentro de la app: Configuración de la API con inicio de sesión de Instagram → Generar identificadores de acceso → Añadir cuenta, e inicia sesión con el Instagram de kywai. Si llega una invitación de probador, acéptala en Instagram (Configuración → Apps y sitios web).') },
+          { text: t('Junto a la cuenta sale un número: es el ID de la cuenta. Pulsa «Generar identificador» y copia el texto largo que empieza por IG…: es el token de acceso.') },
+          { text: t('Pega los dos aquí abajo y pulsa «Conectar». El token dura unos 60 días: cuando caduque, kywai te avisa al publicar y repites el paso anterior.') }
+        ]}
+        note={t('Nunca hace falta la contraseña de Instagram. No compartas el token con nadie (tampoco en un chat): kywai lo guarda cifrado.')}
+      />
       <p className={s.muted}>
         {t('Escribe «/instagram» (y, si quieres, qué debe decir el texto) y kywai prepara el último vídeo del chat con su texto para publicarlo en la cuenta de Instagram de kywai. Se conecta con la API oficial de Instagram: hace falta una cuenta profesional (de empresa o de creador) y un token de acceso de tu app de Meta. Nunca se pide la contraseña.')}
       </p>
@@ -1184,7 +1240,22 @@ function TikTokPanel({ live }: { live: boolean }) {
 
   return (
     <>
-      <span className={s.section}>{t('El TikTok de kywai')}</span>
+      <SectionWithGuide
+        title={t('El TikTok de kywai')}
+        steps={[
+          {
+            text: t('Entra en developers.tiktok.com con la cuenta de TikTok de kywai → Manage apps → Connect an app.'),
+            link: { label: t('Abrir TikTok for Developers'), url: 'https://developers.tiktok.com/apps' }
+          },
+          { text: t('Rellena el icono, el nombre, la descripción y la categoría. También pide la dirección de unos términos del servicio y de una política de privacidad.') },
+          { text: t('En Platforms marca «Desktop». En Products añade «Login Kit» y «Content Posting API» (con «Direct Post» activado). En Scopes: user.info.basic, video.upload y video.publish.') },
+          { text: t('En Login Kit → Desktop → Redirect URI pon esta dirección: {uri}', { uri: st?.redirectUri || 'http://localhost:3455/tiktok/callback' }) },
+          { text: t('Mientras TikTok no revise la app, usa el Sandbox: crea uno, añade la cuenta de kywai en «Target users» y copia su Client key y Client secret (salen en «Credentials»).') },
+          { text: t('Pégalos aquí abajo y pulsa «Guardar». Luego «Iniciar sesión en TikTok», autoriza la cuenta de kywai y, cuando el navegador vaya a una página de localhost que no carga, copia esa dirección entera, pégala aquí y pulsa «Conectar».') },
+          { text: t('Para publicar en público, pide la revisión de la app en developers.tiktok.com. Cuando la aprueben, pulsa «Desconectar» → «Cambiar la app», pega la clave y el secreto de producción (no los del Sandbox), vuelve a iniciar sesión y pulsa «TikTok ya aprobó la app».') }
+        ]}
+        note={t('Nunca hace falta la contraseña de TikTok. No compartas el Client secret con nadie (tampoco en un chat): kywai lo guarda cifrado.')}
+      />
       <p className={s.muted}>
         {t('Escribe «/tiktok» y kywai prepara el último vídeo del chat con su texto para la cuenta de TikTok de kywai, con la API oficial de TikTok (nunca con la contraseña). Hace falta una app en developers.tiktok.com con «Login Kit» y «Content Posting API», y en Login Kit → Desktop esta dirección de vuelta: {uri}', { uri: st?.redirectUri ?? '' })}
       </p>

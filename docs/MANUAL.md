@@ -1826,7 +1826,8 @@ Código: `src/main/series.ts` y `sendSeries` en el orquestador.
 kywai puede llevar **su propia cuenta de Instagram** (la de kywai, no la tuya) y publicar ahí los reels que hace.
 Se conecta con la **API oficial de Instagram**: nunca se pide ni se guarda la contraseña.
 
-**Conectar la cuenta** (una vez, en ⚙ → Ajustes → Extensiones → Estudio de vídeo → «El Instagram de kywai»):
+**Conectar la cuenta** (una vez, en ⚙ → Ajustes → Extensiones → Estudio de vídeo → «El Instagram de kywai»). El botón
+**«¿Cómo lo hago?»**, junto al título, despliega estos pasos con un botón que abre la web de Meta:
 1. La cuenta de Instagram tiene que ser **profesional** (de empresa o de creador; se cambia gratis en la app de
    Instagram → Configuración → Tipo de cuenta).
 2. En [developers.facebook.com](https://developers.facebook.com) crea una app de tipo «Empresa» y añade el producto
@@ -1856,14 +1857,15 @@ Código: `src/main/instagram.ts` (la API) y `sendInstagram`/`publishPost` en el 
 Igual que con Instagram, kywai puede llevar **su propia cuenta de TikTok** (la de kywai, no la tuya). Usa la **API
 oficial de TikTok** (Content Posting API): nunca se pide ni se guarda la contraseña.
 
-**Crear la app** (una vez, en [developers.tiktok.com](https://developers.tiktok.com) con la cuenta de kywai):
+**Crear la app** (una vez, en [developers.tiktok.com](https://developers.tiktok.com) con la cuenta de kywai). El botón
+**«¿Cómo lo hago?»**, junto al título «El TikTok de kywai» en Ajustes, despliega estos pasos con un botón que abre la web:
 1. Crea una app y añade los productos **Login Kit** y **Content Posting API** (con «Direct Post» activado).
 2. Pide los permisos `user.info.basic`, `video.upload` y `video.publish`.
 3. En Login Kit → **Desktop**, registra la dirección de vuelta que enseña kywai en Ajustes
    (`http://localhost:3455/tiktok/callback`).
-4. Copia el **Client key** y el **Client secret**. Si te equivocaste al pegarlos, o pasas a otra app (por ejemplo, de
-   la del Sandbox a la aprobada), pulsa **Cambiar la app** junto a «Iniciar sesión en TikTok» (si ya estaba conectada,
-   antes **Desconectar**) y pega los nuevos.
+4. Copia el **Client key** y el **Client secret**. Mientras TikTok no revise la app, usa los del **Sandbox** (crea uno y
+   añade la cuenta de kywai en «Target users»). Cuando la aprueben, pulsa **Desconectar** → **Cambiar la app**, pega la
+   clave y el secreto de producción y vuelve a iniciar sesión. «Cambiar la app» sirve también si te equivocaste al pegar.
 
 **Conectar la cuenta** (⚙ → Ajustes → Extensiones → Estudio de vídeo → «El TikTok de kywai»): pega la clave y el
 secreto y pulsa **Guardar**; luego **Iniciar sesión en TikTok**, autoriza la cuenta de kywai y, cuando el navegador

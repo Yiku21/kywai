@@ -32,6 +32,56 @@
   text-transform: uppercase;
 }
 
+/* El título de una sección con su botón «¿Cómo lo hago?» al lado. */
+.sectionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.howBtn {
+  gap: 5px;
+}
+
+/* La guía desplegada: pasos numerados en una caja suave. */
+.howTo {
+  margin: 10px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.howSteps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 7px;
+  color: var(--text-2);
+}
+
+.howLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.howNote {
+  margin: 10px 0 0;
+  color: var(--text-3);
+}
+
 .muted {
   margin: 10px 0;
   color: var(--text-3);
