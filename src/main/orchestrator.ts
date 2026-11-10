@@ -16,6 +16,7 @@ import type {
   PlanProposal,
   ProposedTask,
   RoutineProposal,
+  SkillProposal,
   SendMessageInput,
   Task,
   TaskChanges,
@@ -67,7 +68,7 @@ import { testEvidence } from '@shared/testEvidence'
 import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './coworkMcp'
 import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
 import { repoInstructionLines } from './repoInstructions'
-import { listSkills, skillPromptLines, skillsDir, videoSkillPromptLines } from './skills'
+import { listSkills, skillPromptLines, skillsDir, videoSkillPromptLines, videoSkillsDir } from './skills'
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
@@ -81,6 +82,8 @@ import { KYWAI_FILM_GUIDES } from './kywaiFilmGuides'
 import { filmStyle } from '@shared/filmStyles'
 import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
+import { installCatalogSkill, searchSkillCatalog } from './catalog'
+import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSuggest'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
 
 /** ¿Es un aviso de «lleva 3 minutos sin dar señales»? (el general o el de Gemini con la sesión de Google) */
@@ -2033,6 +2036,58 @@ function proposeRoutine(run: Run, planner: AgentConfig, command: string): void {
   agentMessage(run, planner.id, tr('¿Lo dejo programado? Con «Crear rutina» se lanzará solo: {when}.', { when: describeTrigger(proposal.trigger) }), { routineProposal: proposal })
 }
 
+/**
+ * Hermes cree que una habilidad de skills.sh ayudaría con esta petición: kywai la busca (sin frenar el plan) y, si
+ * encuentra alguna que no tienes, enseña una tarjeta con «Instalar». Nunca instala nada sin que lo pulses. No en
+ * las rutinas (se lanzan solas) ni con una búsqueda que ya salió en este proyecto.
+ */
+async function proposeSkills(run: Run, planner: AgentConfig, query: string): Promise<void> {
+  if (run.routine || !query || !skillsDir()) return
+  const before = proposedBefore(store.getProject(run.projectId).messages)
+  if (before.queries.has(skillQueryKey(query))) return
+  let found: Awaited<ReturnType<typeof searchSkillCatalog>>
+  try {
+    found = await searchSkillCatalog(query)
+  } catch (e) {
+    console.warn(`[cowork] no se pudo buscar habilidades («${query}»): ${e instanceof Error ? e.message : String(e)}`)
+    return
+  }
+  const items = pickSkillSuggestions(found, installedSkillList(), before.keys)
+  if (!items.length || run.cancelled) return
+  const proposal: SkillProposal = { status: 'pending', query, items }
+  agentMessage(
+    run,
+    planner.id,
+    items.length === 1
+      ? tr('Hay una habilidad en skills.sh que puede ayudar con esto. Si la instalas, los agentes la usarán en las próximas tareas.')
+      : tr('Hay {n} habilidades en skills.sh que pueden ayudar con esto. Si instalas alguna, los agentes la usarán en las próximas tareas.', { n: items.length }),
+    { skillProposal: proposal }
+  )
+}
+
+/** «Instalar» (una de la tarjeta) o «Descartar» en las habilidades que sugirió Hermes. */
+export async function decideSkillProposal(projectId: string, messageId: string, action: 'install' | 'dismiss', index = 0): Promise<ChatMessage> {
+  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const p = m?.skillProposal
+  if (!m || !p) throw new Error(tr('No se encontró esa propuesta de habilidades'))
+  if (p.status === 'dismissed') throw new Error(tr('Esa propuesta ya se descartó'))
+  let next: SkillProposal
+  if (action === 'install') {
+    const it = p.items[index]
+    if (!it) throw new Error(tr('Datos no válidos'))
+    if (!it.installed) await installCatalogSkill(it.source, it.skillId)
+    const items = p.items.map((x, i) => (i === index ? { ...x, installed: true } : x))
+    next = { ...p, items, status: items.every((x) => x.installed) ? 'done' : p.status, decidedAt: Date.now() }
+  } else if (action === 'dismiss') {
+    next = { ...p, status: p.items.some((x) => x.installed) ? 'done' : 'dismissed', decidedAt: Date.now() }
+  } else throw new Error(tr('Acción no válida'))
+  // Se vuelve a leer: mientras se instalaba pudo cambiar el mensaje.
+  const cur = store.getProject(projectId).messages.find((x) => x.id === messageId) ?? m
+  const updated = { ...cur, skillProposal: next }
+  pushMessage(updated)
+  return updated
+}
+
 /** «Crear rutina» o «Descartar» en la tarjeta que propuso Hermes. */
 export function decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): ChatMessage {
   const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
@@ -2223,6 +2278,7 @@ async function executeRun(run: Run): Promise<void> {
   }
   const { planner, reply, planned, contract, memory } = plan
   proposeRoutine(run, planner, plan.routine)
+  void proposeSkills(run, planner, plan.skills)
   // Con tareas, primero tu visto bueno: el plan se enseña y nada empieza hasta que lo apruebes.
   // Un plan que solo consulta (no cambia nada) no espera: pedir permiso para mirar sería más lento que mirar.
   if (planned.some((p) => !p.quick) && needsApproval(run)) {
@@ -2361,7 +2417,7 @@ function pickPlanner(tried: Set<AgentId>, images = false): AgentConfig | null {
 
 async function planRun(
   run: Run
-): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string } | null> {
+): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string; skills: string } | null> {
   const tried = new Set<AgentId>()
   const failures: string[] = []
   const st = store.getProject(run.projectId)
@@ -2452,7 +2508,7 @@ async function planRun(
     }
     // Lo que se ve en el plan es lo que se hará: si kywai lo ajustó, se dice.
     if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de kywai al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
-    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine }
+    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine, skills: parsed.skills }
   }
 }
 
@@ -2699,7 +2755,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '',
     '## Qué debes responder',
     'Responde ÚNICAMENTE con un objeto JSON (puede ir dentro de un bloque ```json), sin ningún otro texto, con esta forma:',
-    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false, "quick": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\""}',
+    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false, "quick": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\"", "skills": "búsqueda en skills.sh, o \"\""}',
     '',
     'Reglas:',
     `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
@@ -2739,8 +2795,18 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
       ? ['- "routine": "" (esta petición ya la lanza una rutina).']
       : [
           '- "routine": si el usuario pide algo que se repite o para más tarde («cada mañana revisa…», «todos los lunes prepara…», «mañana a las 7 recuérdame…», «dentro de 2 horas comprueba…», «cuando llegue un PR, revísalo»), escribe aquí la orden de la rutina, con el horario y luego la petición que se enviará sola, completa y en la voz del usuario: «/rutina de lunes a viernes a las 8:30: revisa las dependencias y avísame de las que tengan fallos de seguridad». Horarios que se entienden: «cada día a las 9:00», «de lunes a viernes a las 8:30», «lunes y jueves a las 7:00», «cada 6 horas», «mañana a las 7:00», «el viernes a las 18:00», «el 15/11 a las 9:00», «dentro de 2 horas», «webhook», «al cambiar archivos de <carpeta>». kywai le enseña una tarjeta «Crear rutina»: no la des por creada en "reply" ni crees tareas para montar un cron o un script. Si además conviene hacerlo ya, añade las tareas de esta vez. Si no pide nada periódico ni para más tarde, "".'
+        ]),
+    ...(run.routine
+      ? []
+      : [
+          `- "skills": si la petición es de un campo especializado (un framework, un formato de archivo, un tipo de diseño, marketing, seguridad, datos…) y una habilidad ya escrita por otros ayudaría claramente a hacerlo mejor, escribe 1 a 4 palabras en inglés para buscarla en skills.sh (por ejemplo «nextjs», «pdf forms», «landing page copy», «security audit»). kywai la buscará y enseñará al usuario una tarjeta para instalarla si quiere: no la menciones en "reply" ni esperes a que se instale. Ya instaladas: ${installedSkillList().join(', ').slice(0, 1500) || 'ninguna'}. Si ya hay una que sirve, o es charla o algo sencillo, "".`
         ])
   ].join('\n')
+}
+
+/** Nombres de las habilidades instaladas (las normales y las de vídeo). */
+function installedSkillList(): string[] {
+  return [...listSkills(skillsDir()), ...listSkills(videoSkillsDir())].map((x) => x.name)
 }
 
 /** El plan listo para ejecutar y lo que kywai cambió del que propuso el coordinador (para contárselo al usuario). */

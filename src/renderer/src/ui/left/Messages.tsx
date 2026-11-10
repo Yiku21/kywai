@@ -16,8 +16,10 @@ import {
   Folder,
   FolderOpen,
   Gauge,
+  Download,
   Globe,
   ListChecks,
+  Sparkles,
   LoaderCircle,
   PenLine,
   Play,
@@ -32,7 +34,7 @@ import {
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { describeTrigger } from '@shared/routines'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
-import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
+import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
 import { useCowork, useData } from '@/store/cowork'
 import { revealKey, useRevealed } from '@/lib/reveal'
@@ -244,6 +246,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
             )}
             {proposal && <ProposalBlock m={m} proposal={proposal} />}
             {m.routineProposal && <RoutineProposalBlock m={m} proposal={m.routineProposal} />}
+            {m.skillProposal && <SkillProposalBlock m={m} proposal={m.skillProposal} />}
             {m.permission && <PermissionBlock permission={m.permission} />}
             {hasTasks && <PlanBlock taskIds={m.taskIds!} runId={m.runId} contract={m.contract} />}
           </div>
@@ -911,6 +914,86 @@ function PermissionBlock({ permission }: { permission: ChatPermission }) {
         {t('Permitir siempre en esta sesión')}
       </button>
       {error && <span className={s.permissionError}>{error}</span>}
+    </div>
+  )
+}
+
+/** Habilidades de skills.sh que sugiere Hermes: cada una con «Instalar»; nada se instala sin pulsarlo. */
+function SkillProposalBlock({ m, proposal }: { m: ChatMessage; proposal: SkillProposal }) {
+  const live = useCowork((st) => st.mode === 'live')
+  const [busy, setBusy] = useState<number | 'dismiss' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const open = proposal.status !== 'dismissed'
+  const canAct = !!api && live && open
+
+  function act(kind: 'install' | 'dismiss', index?: number): void {
+    const a = api
+    if (!a || busy !== null) return
+    setBusy(kind === 'dismiss' ? 'dismiss' : (index ?? 0))
+    setError(null)
+    a.decideSkillProposal(m.projectId, m.id, kind, index).then(
+      () => setBusy(null),
+      (e) => {
+        setBusy(null)
+        setError(errorText(e))
+      }
+    )
+  }
+
+  const title =
+    proposal.status === 'dismissed' ? t('Habilidades descartadas') : proposal.status === 'done' ? t('Habilidades instaladas') : t('Habilidades que pueden ayudar')
+  return (
+    <div className={cx(s.proposal, s.skillProposal, proposal.status === 'dismissed' && s.proposalClosed)}>
+      <div className={s.planHead}>
+        <span className={s.planIcon} aria-hidden="true">
+          {proposal.status === 'dismissed' ? <X size={18} /> : proposal.status === 'done' ? <CircleCheck size={18} /> : <Sparkles size={18} />}
+        </span>
+        <div className={s.planInfo}>
+          <span className={s.planTitle}>{title}</span>
+          <span className={s.planSub}>{t('Buscado en skills.sh: «{q}»', { q: proposal.query })}</span>
+        </div>
+      </div>
+      {open && (
+        <ul className={s.skillList}>
+          {proposal.items.map((it, i) => (
+            <li key={`${it.source}/${it.skillId}`} className={s.skillItem}>
+              <div className={s.skillInfo}>
+                <span className={s.skillName}>
+                  {it.name}
+                  {it.verified && <span className={s.skillBadge}>{t('de confianza')}</span>}
+                </span>
+                <span className={s.skillMeta}>
+                  {it.source} · {t('{n} instalaciones', { n: it.installs.toLocaleString() })}
+                </span>
+              </div>
+              {it.installed ? (
+                <span className={s.skillDone}>
+                  <CircleCheck size={14} aria-hidden="true" />
+                  {t('Instalada')}
+                </span>
+              ) : (
+                <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={!canAct || busy !== null} onClick={() => act('install', i)}>
+                  {busy === i ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <Download size={14} aria-hidden="true" />}
+                  {t('Instalar')}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {proposal.status === 'pending' && (
+        <div className={s.proposalActions}>
+          <button type="button" className={u.btn} disabled={!canAct || busy !== null} onClick={() => act('dismiss')}>
+            {busy === 'dismiss' && <LoaderCircle size={14} aria-hidden="true" className={u.spin} />}
+            {t('Descartar')}
+          </button>
+        </div>
+      )}
+      {error && (
+        <p className={s.resumeError} role="alert">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

@@ -1670,6 +1670,23 @@ tarea.
 Si YouTube u otra web pide iniciar sesión («no eres un robot»), kywai lo dice: se descarga el vídeo y se adjunta. El
 audio no sale del equipo. Código: `src/main/learn.ts` (y `sendLearn`/`prepareLearn`/`completeLearn` en el orquestador).
 
+### Hermes te propone habilidades
+
+Cuando una petición es de un campo especializado (un framework, un formato de archivo, un tipo de diseño, marketing,
+seguridad, datos…) y Hermes cree que una habilidad escrita por otros ayudaría a hacerlo mejor, en su plan pone una
+búsqueda corta en inglés (`"skills"`). kywai la busca en **skills.sh** sin frenar el plan y, si encuentra alguna que
+no tienes, enseña en el chat una tarjeta **«Habilidades que pueden ayudar»** con hasta 3 (primero las de fuentes de
+confianza y luego las más instaladas; las que casi nadie usa no salen). Cada una tiene **Instalar**; **Descartar**
+cierra la tarjeta.
+
+- **Nunca instala nada solo**: solo al pulsar «Instalar». Lo que instalas lo ven los agentes desde la siguiente tarea
+  (con el visto bueno del plan activado, puedes instalarla antes de aprobarlo).
+- No repite: una búsqueda o una habilidad que ya salió en el proyecto no vuelve a salir. Hermes ve la lista de las que
+  ya tienes y no propone ninguna si ya hay una que sirve. Las rutinas no proponen habilidades.
+- Si skills.sh no responde, no pasa nada: no sale la tarjeta.
+
+Código: `proposeSkills` y `decideSkillProposal` en el orquestador, y `src/main/skillSuggest.ts`.
+
 ### Crear vídeos con solo pedirlo (`/video`)
 
 Pides un vídeo y te llega **solo el vídeo**: un MP4 que se ve en el propio chat (con Abrir y Descargar debajo). Sin

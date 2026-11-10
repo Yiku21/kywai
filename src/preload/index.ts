@@ -79,6 +79,7 @@ const api: CoworkApi = {
   resumeRun: (projectId, runId) => ipcRenderer.invoke('cowork:resumeRun', projectId, runId),
   approvePlan: (projectId, messageId) => ipcRenderer.invoke('cowork:approvePlan', projectId, messageId),
   decideRoutineProposal: (projectId, messageId, action) => ipcRenderer.invoke('cowork:decideRoutineProposal', projectId, messageId, action),
+  decideSkillProposal: (projectId, messageId, action, index) => ipcRenderer.invoke('cowork:decideSkillProposal', projectId, messageId, action, index),
   rateMessage: (projectId, messageId, rating) => ipcRenderer.invoke('cowork:rateMessage', projectId, messageId, rating),
   rejectPlan: (projectId, messageId) => ipcRenderer.invoke('cowork:rejectPlan', projectId, messageId),
   setPlanApproval: (on) => ipcRenderer.invoke('cowork:setPlanApproval', on),

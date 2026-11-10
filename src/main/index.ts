@@ -65,6 +65,7 @@ import {
   activeRunsFor,
   approvePlan,
   decideRoutineProposal,
+  decideSkillProposal,
   rateMessage,
   getTaskChanges,
   undoTask,
@@ -722,6 +723,12 @@ function registerIpc(): void {
   handle('decideRoutineProposal', (projectId: unknown, messageId: unknown, action: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('No se encontró esa propuesta de rutina'))
     return decideRoutineProposal(projectArg(projectId), messageId, action === 'create' ? 'create' : 'dismiss')
+  })
+  // Habilidades que sugirió Hermes: «Instalar» una (por su posición) o «Descartar» la tarjeta.
+  handle('decideSkillProposal', (projectId: unknown, messageId: unknown, action: unknown, index: unknown) => {
+    if (typeof messageId !== 'string') throw new Error(tr('No se encontró esa propuesta de habilidades'))
+    const i = typeof index === 'number' && Number.isInteger(index) && index >= 0 ? index : 0
+    return decideSkillProposal(projectArg(projectId), messageId, action === 'install' ? 'install' : 'dismiss', i)
   })
   handle('rateMessage', (projectId: unknown, messageId: unknown, rating: unknown) => {
     if (typeof messageId !== 'string') throw new Error('messageId inválido')

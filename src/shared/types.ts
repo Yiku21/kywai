@@ -569,6 +569,8 @@ export interface ChatMessage {
   routine?: { id: string; name: string }
   /** Rutina que Hermes propone crear porque le pediste algo que se repite o para más tarde («Crear rutina»). */
   routineProposal?: RoutineProposal
+  /** Habilidades de skills.sh que Hermes sugiere instalar para esta petición (nunca se instalan sin tu «Instalar»). */
+  skillProposal?: SkillProposal
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
   direct?: { agentId: AgentId; name: string }
   /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
@@ -704,6 +706,27 @@ export interface RoutineProposal {
   command: string
   routineId?: string
   decidedAt?: number
+}
+
+/**
+ * Habilidades que propone Hermes antes de una tarea. pending: esperan a que instales alguna o las descartes ·
+ * done: instalaste alguna · dismissed: descartadas. `query` es lo que buscó en skills.sh.
+ */
+export interface SkillProposal {
+  status: 'pending' | 'done' | 'dismissed'
+  query: string
+  items: SkillSuggestion[]
+  decidedAt?: number
+}
+
+export interface SkillSuggestion {
+  source: string
+  skillId: string
+  name: string
+  installs: number
+  verified: boolean
+  /** Ya la instalaste desde esta tarjeta. */
+  installed?: boolean
 }
 
 export interface PlanProposal {
@@ -1619,6 +1642,8 @@ export interface CoworkApi {
   resumeRun(projectId: string, runId: string): Promise<void>
   /** Rutina que propuso Hermes (mensaje con routineProposal): «create» la crea (activa), «dismiss» la descarta. */
   decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): Promise<ChatMessage>
+  /** Habilidades que sugirió Hermes: «install» instala la número `index`, «dismiss» descarta la tarjeta. */
+  decideSkillProposal(projectId: string, messageId: string, action: 'install' | 'dismiss', index?: number): Promise<ChatMessage>
   /** Da el visto bueno al plan que propone el coordinador (mensaje con proposal): sus tareas empiezan. */
   /** 👍/👎 en un resultado del chat (null lo quita): queda en el mensaje, en el registro de consumo y en la ficha del agente. */
   rateMessage(projectId: string, messageId: string, rating: MessageRating | null): Promise<void>
