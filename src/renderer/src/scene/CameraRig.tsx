@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { CameraControls } from '@react-three/drei'
 import * as THREE from 'three'
 import type { StationConfig } from '@shared/types'
@@ -7,10 +7,20 @@ import { useCowork, type CameraCommand } from '@/store/cowork'
 import type { ViewInsets } from './World'
 import { useTheme } from '@/lib/theme'
 import { palette } from './palette'
+import { registry } from './registry'
+
+/**
+ * Cámara que respira: en la vista general, sin tocar nada, la cámara gira un pelo a un lado y a otro (unos 2,5° en
+ * casi un minuto) y sube y baja un poco con otro ritmo. Devuelve el giro [azimut, altura] en radianes para el instante
+ * [t] y la fuerza [amp] (0–1, que entra poco a poco para que no dé un salto).
+ */
+export function cameraBreath(t: number, amp: number): [number, number] {
+  return [amp * 0.045 * Math.sin(t * 0.11), amp * 0.012 * Math.sin(t * 0.073 + 1.3)]
+}
 
 /**
  * Cámara estable: solo se mueve por acción del usuario (arrastrar, rueda, botones, clic en una
- * estación). Las transiciones son suaves y respetan "efectos reducidos".
+ * estación), salvo la respiración lenta de la vista general. Las transiciones son suaves y respetan "efectos reducidos".
  */
 /** [view]: lo que tapa la interfaz (tema Órbita): la vista general se encuadra en la zona libre. */
 export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: StationConfig[] } = {}) {
@@ -18,6 +28,8 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
   const size = useThree((s) => s.size)
   const reduced = useCowork((s) => s.reducedEffects)
   const atOverview = useRef(true)
+  // Lo que la respiración ya ha girado la cámara (se descuenta en cada fotograma) y su fuerza actual.
+  const breath = useRef({ az: 0, polar: 0, amp: 0 })
   const theme = useTheme()
   const camera = useThree(s => s.camera) as THREE.PerspectiveCamera
   useEffect(() => { camera.fov = theme === 'kywai' ? 38 : 30; camera.updateProjectionMatrix() }, [camera, theme])
@@ -29,6 +41,7 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
   const overview = useCallback(
     (smooth: boolean) => {
       if (!controls) return
+      breath.current = { az: 0, polar: 0, amp: 0 }
       const width = size.width - (view?.left ?? 0)
       const height = size.height - (view ? view.top + view.bottom : 0)
       const aspect = width / Math.max(1, height)
@@ -103,6 +116,21 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
     },
     [controls, size.width, size.height, view?.left, view?.top, view?.bottom, theme, world, marineScale]
   )
+
+  // En la vista general y sin tocar nada, la cámara respira; al tocarla se queda donde está (no vuelve de golpe).
+  useFrame((_, delta) => {
+    const b = breath.current
+    if (!controls || reduced || !atOverview.current) {
+      b.az = b.polar = b.amp = 0
+      return
+    }
+    if (controls.active) return
+    b.amp = Math.min(1, b.amp + Math.min(delta, 0.25) / 4)
+    const [az, polar] = cameraBreath(registry.time, b.amp)
+    void controls.rotate(az - b.az, polar - b.polar, false)
+    b.az = az
+    b.polar = polar
+  })
 
   useEffect(() => {
     if (!controls) return

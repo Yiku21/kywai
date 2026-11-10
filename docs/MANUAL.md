@@ -3021,6 +3021,10 @@ Los temas usan las mismas reglas que las escenas 3D de los vídeos para que el e
 - **Luz viva.** La luz nunca está del todo quieta: la principal, el relleno y el borde «respiran» muy despacio,
   cada una con su propio ritmo (unos 20 a 40 segundos), y se avivan un poco cuando el equipo está trabajando.
   Con **Reducir efectos** se quedan quietas (`lightBreath` en `scene/CinemaLights.tsx`).
+- **Cámara que respira.** En la vista general, si no tocas nada, la cámara gira un pelo a un lado y a otro (unos
+  2,5° en casi un minuto) y sube y baja un poco con otro ritmo, como en un plano de cine. Entra poco a poco, sin
+  saltos. En cuanto arrastras, haces zoom o eliges un puesto se queda donde está, y vuelve a respirar al pulsar
+  «Vista general». Con **Reducir efectos** está quieta (`cameraBreath` en `scene/CameraRig.tsx`).
 
 ### Voces de los agentes
 
