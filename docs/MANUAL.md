@@ -174,6 +174,11 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   con los últimos 12 cambios hasta la versión instalada («Estos son los últimos cambios»). Sin internet dice que
   no pudo cargar la lista. Los títulos de los commits se enseñan tal cual (en español): escríbelos pensando en quien
   usa la app. Para probarla en desarrollo: `AICW_WHATS_NEW=1`.
+  **También en el navegador, el cliente de escritorio y Órbita:** el servidor guarda las novedades de su versión
+  (`novedades-ultimas.json`) y las da con `latestWhatsNew` (web y cliente) y `GET /api/mobile/v1/server/news`
+  (Órbita, capacidad `whatsNew`). Cada dispositivo apunta por su cuenta qué versión vio (el navegador en su
+  `localStorage`, `kywai.novedades.vista`; Órbita en sus preferencias), así que cada uno la ve una vez aunque se
+  conecte horas después. Si el servidor no pudo leer la lista de cambios, en esos dispositivos no sale.
 - **«Buscar actualizaciones…»** en esas versiones no usa git: pregunta a GitHub y espera la respuesta. Dice la versión
   instalada y si es la última («Tienes la última versión (0.1.N), comprobado en GitHub») o si hay una nueva: en
   Windows, en el AppImage y en el Mac se está descargando y el botón «Instalar y reiniciar» la instala ya (o en cuanto

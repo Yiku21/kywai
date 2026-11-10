@@ -39,7 +39,7 @@ import {
   validBudget
 } from './config'
 import { applyUpdate, checkForUpdates, sourceDir, startUpdateWatch, updatePending } from './selfUpdate'
-import { getWhatsNew, markWhatsNewSeen, noteConfiguredAtBoot } from './whatsNew'
+import { getWhatsNew, latestWhatsNew, markWhatsNewSeen, noteConfiguredAtBoot } from './whatsNew'
 import { setGuideEnv } from './coordinatorGuide'
 import { transcribeAudio } from './voice'
 import { isLocalEngine } from '@shared/localEngines'
@@ -1093,6 +1093,8 @@ function registerIpc(): void {
   handle('applyUpdate', (setAside?: unknown) => applyUpdate(setAside === true))
   handle('getWhatsNew', () => getWhatsNew())
   handle('markWhatsNewSeen', () => markWhatsNewSeen())
+  // Para la web, el cliente de escritorio y Órbita: las novedades de la versión de este servidor.
+  handle('latestWhatsNew', () => latestWhatsNew())
   // Qué equipo es este (el cliente de escritorio lo muestra: su interfaz es la de este servidor).
   handle('getHostInfo', () => ({ name: getConfig().serverName || hostname().replace(/\.local$/i, ''), platform: process.platform }))
   ipcMain.handle('cowork:getWebAccess', () => currentWebAccess())

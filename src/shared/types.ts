@@ -1933,6 +1933,8 @@ export interface CoworkApi {
   getWhatsNew(): Promise<WhatsNew | null>
   /** Se cerró la ventana de novedades: no vuelve a salir hasta la próxima actualización. */
   markWhatsNewSeen(): Promise<void>
+  /** Las novedades de la versión del servidor, para los dispositivos conectados (cada uno apunta cuál vio). */
+  latestWhatsNew(): Promise<WhatsNew | null>
   setWebAccess(input: SetWebAccessInput): Promise<WebAccessInfo>
   /** Modelos disponibles para un agente (según su CLI y tu cuenta). */
   listModelOptions(agentId: AgentId): Promise<ModelOption[]>

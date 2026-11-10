@@ -20,6 +20,7 @@ import com.aicowork.remote.data.model.ModPanelInfo
 import com.aicowork.remote.data.model.ModPanelPage
 import com.aicowork.remote.data.model.InboxItem
 import com.aicowork.remote.data.model.ServerUpdate
+import com.aicowork.remote.data.model.WhatsNewInfo
 import com.aicowork.remote.data.model.MemoryUpdateRequest
 import com.aicowork.remote.data.model.Snapshot
 import com.aicowork.remote.data.model.TaskTemplateInput
@@ -297,6 +298,8 @@ interface CoworkController {
     suspend fun setHermesModel(choice: HermesChoice?): Result<HermesModelsInfo> = Result.failure(IllegalStateException(unsupported.message))
     /** Ajustes → «Servidor»: si tiene versión nueva en GitHub. */
     suspend fun serverUpdate(): Result<ServerUpdate> = Result.failure(IllegalStateException(unsupported.message))
+    /** «Novedades» de la versión del servidor (se enseñan una vez en este móvil). */
+    suspend fun serverNews(): Result<WhatsNewInfo?> = Result.failure(IllegalStateException(unsupported.message))
     /** Pide al servidor que se actualice y se reinicie ([setAside]: apartar antes lo hecho en él que no está en GitHub). */
     suspend fun startServerUpdate(setAside: Boolean): ActionResult = unsupported
     /** Vuelve a pedir la bandeja «Te necesita» (al abrirla). */
@@ -1209,6 +1212,8 @@ class CoworkRepository(
     override suspend fun setHermesModel(choice: HermesChoice?): Result<HermesModelsInfo> = fetch { it.setHermesModel(choice) }
 
     override suspend fun serverUpdate(): Result<ServerUpdate> = fetch { it.serverUpdate() }
+
+    override suspend fun serverNews(): Result<WhatsNewInfo?> = fetch { it.serverNews() }
 
     override suspend fun startServerUpdate(setAside: Boolean): ActionResult =
         action(t("El servidor se está actualizando: se reiniciará al terminar")) { it.startServerUpdate(setAside) }

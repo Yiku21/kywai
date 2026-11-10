@@ -11,18 +11,45 @@ import { t } from '@/lib/i18n'
 
 /**
  * «Novedades»: al abrir kywai después de una actualización, una ventana con las mejoras de la versión nueva.
- * Sale una sola vez por versión (al cerrarla se apunta como vista). No sale en el navegador ni en el asistente inicial.
+ * Sale una sola vez por versión (al cerrarla se apunta como vista). No sale en el asistente inicial.
+ * En el navegador y en el cliente de escritorio (la interfaz del servidor) se enseñan las novedades de la versión del
+ * servidor y cada dispositivo apunta en su navegador cuál vio, así cada uno la ve una vez.
  */
+
+const SEEN_KEY = 'kywai.novedades.vista'
+
+function seenOnDevice(): string | null {
+  try {
+    return localStorage.getItem(SEEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+function markSeenOnDevice(version: string): void {
+  try {
+    localStorage.setItem(SEEN_KEY, version)
+  } catch {
+    // Sin almacenamiento (ventana privada): volverá a salir la próxima vez, no pasa nada.
+  }
+}
+
+/** Web y cliente: las novedades del servidor si este dispositivo no las ha visto. */
+async function deviceNews(): Promise<WhatsNew | null> {
+  const news = await api!.latestWhatsNew()
+  if (!news || news.failed || !news.items.length || seenOnDevice() === news.to) return null
+  return news
+}
 export function WhatsNewDialog() {
   const [news, setNews] = useState<WhatsNew | null>(null)
-  const ready = useCowork((st) => !isWeb && st.hasBackend && st.configLoaded && !!st.config.setupDone && !st.setupOpen)
+  const ready = useCowork((st) => (isWeb || st.hasBackend) && st.configLoaded && !!st.config.setupDone && !st.setupOpen)
 
   useEffect(() => {
-    if (!ready || !api?.getWhatsNew) return
+    if (!ready || !api) return
     let alive = true
     // Un poco después de abrir, para no taparlo todo mientras carga.
     const timer = window.setTimeout(() => {
-      api!.getWhatsNew().then(
+      ;(isWeb ? deviceNews() : api!.getWhatsNew()).then(
         (n) => alive && setNews(n),
         () => undefined
       )
@@ -43,8 +70,10 @@ export function WhatsNewDialog() {
   }, [news])
 
   function close(): void {
+    if (isWeb) {
+      if (news) markSeenOnDevice(news.to)
+    } else void api?.markWhatsNewSeen().catch(() => undefined)
     setNews(null)
-    void api?.markWhatsNewSeen().catch(() => undefined)
   }
 
   if (!news) return null

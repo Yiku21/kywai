@@ -212,6 +212,8 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
 
     // Android 13+: el permiso de notificaciones para «Te necesita», una sola vez y cuando ya tiene sentido.
     AskNotificationsOnce(model, state)
+    // «Novedades»: si el servidor se actualizó, sus mejoras (una vez en este móvil).
+    WhatsNewPopup(model.controller, snapshot?.capabilities?.whatsNew == true)
 
     CompositionLocalProvider(LocalGlass provides glass) {
         Box(Modifier.fillMaxSize().background(Orbita.Night).onSizeChanged { rootSize = it }.testTag("orbita")) {

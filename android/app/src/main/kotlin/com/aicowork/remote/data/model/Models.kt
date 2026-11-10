@@ -706,6 +706,8 @@ data class Capabilities(
     val agentReset: Boolean = false,
     /** Ajustes → «Servidor»: buscar e instalar su versión nueva desde aquí. */
     val serverUpdate: Boolean = false,
+    /** «Novedades» de la versión del servidor (GET /server/news): salen una vez en cada móvil. */
+    val whatsNew: Boolean = false,
     /** Bandeja «Te necesita» (GET /inbox y el evento `inbox.updated`). */
     val inbox: Boolean = false,
     /** Cambios de una tarea y deshacerlos (GET /tasks/{id}/changes, POST /tasks/{id}/undo). */
@@ -832,6 +834,22 @@ data class ServerUpdate(
 
 @Serializable
 data class ServerUpdateRequest(val setAside: Boolean)
+
+/** «Novedades»: los cambios de la última actualización del servidor (GET /server/news). */
+@Serializable
+data class WhatsNewInfo(
+    /** Versión que había antes; vacío si no se sabe (entonces son los últimos cambios). */
+    val from: String = "",
+    /** Versión del servidor: lo que este móvil apunta como vista. */
+    val to: String = "",
+    val items: List<String> = emptyList(),
+    val more: Int = 0,
+    val failed: Boolean = false,
+    val url: String? = null,
+)
+
+@Serializable
+data class WhatsNewResponse(val news: WhatsNewInfo? = null)
 
 /** Estado de un agente tras reiniciarlo (POST /agents/{agentId}/reset). */
 @Serializable

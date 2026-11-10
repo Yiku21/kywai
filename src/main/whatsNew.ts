@@ -103,21 +103,8 @@ function gitSubjects(dir: string, from: string | null, to: string): Promise<stri
   })
 }
 
-/**
- * Si kywai se actualizó desde la última vez que se abrió, las novedades que hay que enseñar; si no, null.
- * No marca nada como visto: eso lo hace markWhatsNewSeen al cerrar la ventana.
- */
-export async function getWhatsNew(): Promise<WhatsNew | null> {
-  if (!app.isPackaged && process.env['AICW_WHATS_NEW'] !== '1') return null
-  const to = currentKey()
-  if (!to) return null
-  const from = readSeen()
-  // Instalación nueva: se apunta la versión y no se enseña nada.
-  if (!from && !configuredAtBoot) {
-    writeSeen(to)
-    return null
-  }
-  if (from === to) return null
+/** Las novedades entre [from] (null: no se sabe, salen los últimos cambios) y [to]. */
+async function buildNews(from: string | null, to: string): Promise<WhatsNew> {
   const release = isReleaseBuild()
   let items: string[] = []
   let failed = false
@@ -133,7 +120,7 @@ export async function getWhatsNew(): Promise<WhatsNew | null> {
     failed = true
   }
   if (!from) items = items.slice(0, RECENT_ITEMS)
-  return {
+  const news: WhatsNew = {
     from: !from ? '' : release ? from : from.slice(0, 7),
     to: release ? to : to.slice(0, 7),
     items: items.slice(0, MAX_ITEMS),
@@ -141,6 +128,63 @@ export async function getWhatsNew(): Promise<WhatsNew | null> {
     failed,
     url: release ? `https://github.com/${REPO}/releases/tag/v${to}` : null
   }
+  // Se guardan para los dispositivos conectados (latestWhatsNew), que las verán aunque se abran más tarde.
+  if (!failed) writeLatest(to, news)
+  return news
+}
+
+function latestFile(): string {
+  return join(app.getPath('userData'), 'novedades-ultimas.json')
+}
+
+function readLatest(key: string): WhatsNew | null {
+  try {
+    const data = JSON.parse(readFileSync(latestFile(), 'utf8')) as { key?: unknown; news?: WhatsNew }
+    return data.key === key && data.news && Array.isArray(data.news.items) ? data.news : null
+  } catch {
+    return null
+  }
+}
+
+function writeLatest(key: string, news: WhatsNew): void {
+  try {
+    writeFileSync(latestFile(), JSON.stringify({ key, news }))
+  } catch (e) {
+    console.error('[novedades] No se pudieron guardar las novedades:', e)
+  }
+}
+
+/**
+ * Si kywai se actualizó desde la última vez que se abrió, las novedades que hay que enseñar; si no, null.
+ * No marca nada como visto: eso lo hace markWhatsNewSeen al cerrar la ventana.
+ */
+export async function getWhatsNew(): Promise<WhatsNew | null> {
+  if (!app.isPackaged && process.env['AICW_WHATS_NEW'] !== '1') return null
+  const to = currentKey()
+  if (!to) return null
+  const from = readSeen()
+  // Instalación nueva: se apunta la versión y no se enseña nada.
+  if (!from && !configuredAtBoot) {
+    writeSeen(to)
+    return null
+  }
+  if (from === to) return null
+  return buildNews(from, to)
+}
+
+/**
+ * Las novedades de la versión que tiene este servidor, para los dispositivos conectados (la web, el cliente de
+ * escritorio y Órbita): cada uno apunta por su cuenta cuál vio (news.to) y la enseña una vez. No marca nada aquí.
+ * null si no se sabe la versión (en desarrollo sin AICW_WHATS_NEW).
+ */
+export async function latestWhatsNew(): Promise<WhatsNew | null> {
+  if (!app.isPackaged && process.env['AICW_WHATS_NEW'] !== '1') return null
+  const to = currentKey()
+  if (!to) return null
+  const cached = readLatest(to)
+  if (cached) return cached
+  const from = readSeen()
+  return buildNews(from && from !== to ? from : null, to)
 }
 
 /** Se cerró la ventana de novedades: no vuelve a salir hasta la próxima actualización. */

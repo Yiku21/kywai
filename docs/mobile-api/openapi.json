@@ -2272,6 +2272,43 @@
         }
       }
     },
+    "/api/mobile/v1/server/news": {
+      "get": {
+        "operationId": "getMobileServerNews",
+        "summary": "Novedades de la versión del servidor",
+        "tags": [
+          "Mobile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Las novedades de la versión que tiene el servidor (null si no hay).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsNewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Los cambios de la última actualización del servidor, para enseñarlos una vez en cada móvil (cada uno apunta news.to como vista)."
+      }
+    },
     "/api/mobile/v1/tasks/{taskId}/changes": {
       "get": {
         "operationId": "getMobileTaskChanges",
@@ -6056,6 +6093,10 @@
           "chatCommands": {
             "type": "boolean",
             "description": "Órdenes del chat: «/recuerda …» enviado como mensaje se anota en la memoria del proyecto y la instantánea trae modCommands (las órdenes «/…» de los mods encendidos)."
+          },
+          "whatsNew": {
+            "type": "boolean",
+            "description": "«Novedades» de la versión del servidor: GET /server/news. Cada móvil apunta cuál vio y la enseña una vez."
           }
         },
         "required": [
@@ -6095,7 +6136,8 @@
           "directMessages",
           "agentThinking",
           "usageCost",
-          "modPanels"
+          "modPanels",
+          "whatsNew"
         ],
         "additionalProperties": false
       },
@@ -9348,6 +9390,69 @@
           "title"
         ],
         "additionalProperties": false
+      },
+      "WhatsNew": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "items",
+          "more",
+          "failed",
+          "url"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Versión que había antes; vacío si no se sabe (entonces items son los últimos cambios)."
+          },
+          "to": {
+            "type": "string",
+            "description": "Versión del servidor (lo que cada móvil apunta como vista)."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Títulos de los cambios, del más nuevo al más viejo."
+          },
+          "more": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed": {
+            "type": "boolean",
+            "description": "true si el servidor no pudo leer la lista de cambios."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Página de la Release en GitHub (null en las compiladas en el equipo)."
+          }
+        }
+      },
+      "WhatsNewResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "news"
+        ],
+        "properties": {
+          "news": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WhatsNew"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
       }
     }
   }

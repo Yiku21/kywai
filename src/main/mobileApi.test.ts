@@ -1720,6 +1720,21 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect((await api('/snapshot')).body.capabilities.serverUpdate).toBe(false)
   })
 
+  it('«Novedades» del servidor para el móvil', async () => {
+    expect((await api('/server/news')).body).toEqual({ news: null })
+    const news = { from: '0.1.300', to: '0.1.310', items: ['Vídeo: varios vídeos con un solo /video'], more: 0, failed: false, url: null }
+    webMethods.set('latestWhatsNew', () => news)
+    try {
+      expect((await api('/snapshot')).body.capabilities.whatsNew).toBe(true)
+      const body = (await api('/server/news')).body
+      expect(body).toEqual({ news })
+      schemaFormat('WhatsNewResponse', body)
+    } finally {
+      webMethods.delete('latestWhatsNew')
+    }
+    expect((await api('/snapshot')).body.capabilities.whatsNew).toBe(false)
+  })
+
   it('«Reiniciar agente» desde el móvil: lo deja disponible; uno que no existe da 404', async () => {
     expect((await api('/snapshot')).body.capabilities.agentReset).toBe(true)
     setRuntime('codex', { activity: 'error', reason: '[API Error: An unknown error occurred.]' })

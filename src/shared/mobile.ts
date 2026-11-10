@@ -92,6 +92,8 @@ export interface MobileSnapshot {
     agentReset: boolean
     /** Actualizar el servidor desde el móvil (como ⚙ → «Buscar actualizaciones…»): GET y POST /server/update. */
     serverUpdate: boolean
+    /** «Novedades» de la versión del servidor: GET /server/news ({ news }); cada móvil apunta cuál vio. */
+    whatsNew: boolean
     /** GET /quality: calidad de cada agente (👍, verificación a la primera, correcciones, fallos) por dificultad. */
     agentQuality: boolean
     /** Bandeja «Te necesita»: GET /inbox y POST /inbox/{id}/{actionId}; los cambios llegan con el evento inbox.updated. */

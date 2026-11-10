@@ -179,6 +179,7 @@ const api: CoworkApi = {
   applyUpdate: (setAside) => ipcRenderer.invoke('cowork:applyUpdate', setAside),
   getWhatsNew: () => ipcRenderer.invoke('cowork:getWhatsNew'),
   markWhatsNewSeen: () => ipcRenderer.invoke('cowork:markWhatsNewSeen'),
+  latestWhatsNew: () => ipcRenderer.invoke('cowork:latestWhatsNew'),
   setWebAccess: (input) => ipcRenderer.invoke('cowork:setWebAccess', input),
   savePastedFile: (name, data) => ipcRenderer.invoke('cowork:savePastedFile', name, data),
   pickProjectFolder: (projectId) => ipcRenderer.invoke('cowork:pickProjectFolder', projectId),

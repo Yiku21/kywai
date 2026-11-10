@@ -1,6 +1,6 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun, RoutineInput, ChatMessage } from '@shared/types'
+import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun, WhatsNew, RoutineInput, ChatMessage } from '@shared/types'
 import type { MobileChatReceipt, MobileConversation, MobileCost, MobileFiles, MobileMusicResult, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
 import { mobileCost } from '@shared/costs'
@@ -126,7 +126,7 @@ export class MobileBackend {
         projects: true, memoryEdit: true, files: true, upload: true, artifacts: true, traceEndpoint: true,
         agentAccess: true, usageRefresh: true, voice: this.methods.has('transcribeAudio'),
         planApproval: this.methods.has('approvePlan'), appUpdate: true, hermesModel: this.methods.has('getHermesModels'),
-        agentReset: this.methods.has('resetAgent'), serverUpdate: this.methods.has('applyUpdate'), agentQuality: true, inbox: this.methods.has('listInbox'), taskChanges: this.methods.has('undoTask'),
+        agentReset: this.methods.has('resetAgent'), serverUpdate: this.methods.has('applyUpdate'), whatsNew: this.methods.has('latestWhatsNew'), agentQuality: true, inbox: this.methods.has('listInbox'), taskChanges: this.methods.has('undoTask'),
         routines: this.methods.has('runRoutineNow'),
         templates: this.methods.has('listTemplates'),
         routinesEdit: this.methods.has('createRoutine') && this.methods.has('updateRoutine') && this.methods.has('deleteRoutine'),
@@ -742,6 +742,12 @@ export class MobileBackend {
   /** Actualización del servidor pedida desde el móvil: si sigue en marcha y, si falló, por qué. */
   private serverUpdating = false
   private serverUpdateError: string | null = null
+
+  /** «Novedades» de la versión del servidor (null si no hay o este servidor no lo sabe). */
+  async serverNews(): Promise<WhatsNew | null> {
+    if (!this.methods.has('latestWhatsNew')) return null
+    return this.call<WhatsNew | null>('latestWhatsNew')
+  }
 
   /** ¿Hay versión nueva del servidor en GitHub? (git fetch y comparar, como ⚙ → «Buscar actualizaciones…»). */
   async serverUpdate(): Promise<MobileServerUpdate> {

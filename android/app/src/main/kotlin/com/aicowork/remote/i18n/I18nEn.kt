@@ -868,6 +868,12 @@ private fun part6(m: HashMap<String, String>) {
 
 // Rutinas (sección Rutinas y la tarjeta «Crear rutina» del chat).
 private fun part7(m: HashMap<String, String>) {
+    m["Novedades de kywai"] = "What's new in kywai"
+    m["Se actualizó a la versión {to} (tenías la {from})."] = "Updated to version {to} (you had {from})."
+    m["Se actualizó a la versión {to}. Estos son los últimos cambios:"] = "Updated to version {to}. Here are the latest changes:"
+    m["y {n} cambios más"] = "and {n} more changes"
+    m["Ver en GitHub"] = "View on GitHub"
+    m["Entendido"] = "Got it"
     m["Activar la rutina"] = "Turn the routine on"
     m["Al cambiar archivos de {path}"] = "When files change in {path}"
     m["Al cambiar archivos del proyecto"] = "When project files change"

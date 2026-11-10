@@ -32,6 +32,8 @@ import com.aicowork.remote.data.model.FilesResponse
 import com.aicowork.remote.data.model.HermesChoice
 import com.aicowork.remote.data.model.HermesModelsInfo
 import com.aicowork.remote.data.model.ServerUpdate
+import com.aicowork.remote.data.model.WhatsNewInfo
+import com.aicowork.remote.data.model.WhatsNewResponse
 import com.aicowork.remote.data.model.ServerUpdateRequest
 import com.aicowork.remote.data.model.HermesResetRequest
 import com.aicowork.remote.data.model.InboxActionResponse
@@ -553,6 +555,9 @@ class CoworkApiClient(
     /** Pulsa el botón [actionId] del aviso [itemId] (404 si ya no existe el aviso o la acción). */
     suspend fun inboxAction(itemId: String, actionId: String): InboxActionResponse =
         post("/inbox/${itemId.encodeSegment()}/${actionId.encodeSegment()}", "{}", InboxActionResponse.serializer())
+
+    /** «Novedades» de la versión del servidor (null si no hay). */
+    suspend fun serverNews(): WhatsNewInfo? = get("/server/news", WhatsNewResponse.serializer()).news
 
     /** ¿Tiene el servidor versión nueva en GitHub? (consulta GitHub: puede tardar). */
     suspend fun serverUpdate(): ServerUpdate =

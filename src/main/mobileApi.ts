@@ -76,7 +76,8 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/hermes\/model$/, 'hermesModel', ['POST']],
   [/^\/agents\/([^/]+)\/reset$/, 'agentReset', ['POST']],
   [/^\/agents\/([^/]+)\/thinking$/, 'agentThinking', ['POST']],
-  [/^\/server\/update$/, 'serverUpdate', ['GET', 'POST']]
+  [/^\/server\/update$/, 'serverUpdate', ['GET', 'POST']],
+  [/^\/server\/news$/, 'serverNews', ['GET']]
 ]
 
 /** Lo que se le pasa a Hermes con --provider y -m (como valida el escritorio). */
@@ -597,6 +598,10 @@ export class MobileApi {
           mobileJson(res, 200, await this.backend.setAgentThinking(id(param, 'agentId'), input.enabled))
           break
         }
+        case 'serverNews':
+          query(url, [])
+          mobileJson(res, 200, { news: await this.backend.serverNews() })
+          break
         case 'serverUpdate':
           if (req.method === 'GET') {
             query(url, [])
