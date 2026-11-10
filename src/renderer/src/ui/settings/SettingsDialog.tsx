@@ -78,6 +78,8 @@ export function SettingsDialog() {
   const [sub, setSub] = useState<Sub>(null)
   const close = (): void => openSettings(null)
   useEscape(!!tab && !sub, close)
+  // Versión nueva esperando: «Acerca de» (donde se actualiza) brilla en amarillo, como la rueda ⚙.
+  const updateGlow = useCowork((st) => hasPendingUpdate(st))
   if (!tab) return null
 
   if (sub === 'remote') return <RemoteAccess onClose={() => setSub(null)} />
@@ -92,8 +94,6 @@ export function SettingsDialog() {
     { id: 'about', label: t('Acerca de'), icon: <Info size={17} /> }
   ]
   const current = tabs.find((x) => x.id === tab) ?? tabs[0]
-  // Versión nueva esperando: «Acerca de» (donde se actualiza) brilla en amarillo, como la rueda ⚙.
-  const updateGlow = useCowork((st) => hasPendingUpdate(st))
 
   return (
     <div className={s.backdrop} onMouseDown={(e) => e.target === e.currentTarget && close()}>
