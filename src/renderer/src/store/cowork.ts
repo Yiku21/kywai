@@ -32,6 +32,7 @@ import { fromArtifact, type PreviewItem, type PreviewState } from '@/lib/preview
 import { playSfx, playVoice, voiceProfile } from '@/lib/audio'
 import { createEventAudio } from '@/lib/audioEvents'
 import { lang, t } from '@/lib/i18n'
+import { readSpaceHidden, saveSpaceHidden } from '@/ui/left/chatWidth'
 
 export type Mode = 'live' | 'demo'
 
@@ -146,6 +147,8 @@ interface CoworkState {
   previewMaximized: boolean
   reducedEffects: boolean
   spaceExpanded: boolean
+  /** Espacio 3D cerrado del todo: el chat ocupa todo y la escena se para (se recuerda en este equipo). */
+  spaceHidden: boolean
   /** En pantallas pequeñas: qué vista ocupa la pantalla. */
   mobileView: 'chat' | 'space'
   camera: CameraCommand | null
@@ -165,6 +168,7 @@ interface CoworkState {
   closePreview(): void
   setReducedEffects(v: boolean): void
   setSpaceExpanded(v: boolean): void
+  setSpaceHidden(v: boolean): void
   setMobileView(v: 'chat' | 'space'): void
   cameraCommand(c: CameraInput): void
   openSetup(open: boolean): void
@@ -394,6 +398,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
   previewMaximized: false,
   reducedEffects: !!prefersReduced,
   spaceExpanded: false,
+  spaceHidden: readSpaceHidden(),
   mobileView: 'chat',
   camera: null,
 
@@ -576,7 +581,13 @@ export const useCowork = create<CoworkState>((set, get) => ({
     set({ reducedEffects })
   },
   setSpaceExpanded(spaceExpanded) {
-    set({ spaceExpanded })
+    // Ampliar el 3D lo vuelve a mostrar si estaba cerrado.
+    if (spaceExpanded && get().spaceHidden) saveSpaceHidden(false)
+    set(spaceExpanded ? { spaceExpanded, spaceHidden: false } : { spaceExpanded })
+  },
+  setSpaceHidden(spaceHidden) {
+    saveSpaceHidden(spaceHidden)
+    set(spaceHidden ? { spaceHidden, spaceExpanded: false } : { spaceHidden })
   },
   setMobileView(mobileView) {
     set({ mobileView })

@@ -31,3 +31,70 @@
 .handle:focus-visible::after {
   opacity: 0.7;
 }
+
+/* Arrastrado hasta un extremo: la raya se queda encendida y un aviso dice qué pasará al soltar. */
+.handle[data-snap]::after {
+  opacity: 1;
+  background: var(--warn);
+}
+
+.snap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
+  color: var(--text-1);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-pop);
+}
+
+.handle[data-snap='hide-space'] .snap {
+  left: auto;
+  right: 50%;
+  transform: translate(-8px, -50%);
+}
+
+.handle[data-snap='hide-chat'] .snap {
+  transform: translate(8px, -50%);
+}
+
+/* Con el espacio 3D cerrado: pestaña fina pegada al borde derecho del chat para volver a abrirlo. */
+.reopen {
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 4px;
+  transform: translateY(-50%);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.reopen:hover,
+.reopen:focus-visible {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--cyan) 55%, transparent);
+  outline: none;
+}
+
+.reopenLabel {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}

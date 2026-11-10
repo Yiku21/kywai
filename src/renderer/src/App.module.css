@@ -75,6 +75,23 @@
   gap: 0;
 }
 
+/* Espacio 3D cerrado del todo: el chat ocupa todo el ancho. El panel sigue montado (la música sigue sonando) pero no
+   se ve ni ocupa sitio, y la escena está parada. */
+.body[data-space-hidden='true'],
+.body[data-space-hidden='true'][data-custom-width='true'] {
+  grid-template-columns: minmax(0, 1fr) 0;
+  gap: 0;
+}
+
+.body[data-space-hidden='true'] .space {
+  visibility: hidden;
+  border-width: 0;
+}
+
+.world[data-hidden='true'] {
+  visibility: hidden;
+}
+
 .left {
   min-width: 0;
   min-height: 0;

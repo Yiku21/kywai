@@ -166,8 +166,11 @@ function useWindowFocus(): boolean {
   return focused
 }
 
-/** Espacio digital 3D. [view]: lo que tapa la interfaz cuando ocupa toda la ventana (tema Órbita). */
-export function World({ view }: { view?: ViewInsets } = {}) {
+/**
+ * Espacio digital 3D. [view]: lo que tapa la interfaz cuando ocupa toda la ventana (tema Órbita).
+ * [paused]: el 3D no se ve (espacio cerrado o pestaña Chat en ventana estrecha): no se dibuja ni se anima nada.
+ */
+export function World({ view, paused = false }: { view?: ViewInsets; paused?: boolean } = {}) {
   const level = useQuality((s) => s.level)
   const lower = useQuality((s) => s.lower)
   const raise = useQuality((s) => s.raise)
@@ -176,7 +179,8 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   const reduced = useCowork((s) => s.reducedEffects)
   const configuredStations = useCowork((s) => s.config.stations)
   const agents = useData(d => d.agents)
-  const [visible, setVisible] = useState(() => !document.hidden)
+  const [pageVisible, setVisible] = useState(() => !document.hidden)
+  const visible = pageVisible && !paused
   const focused = useWindowFocus()
   // Cada tema tiene sus colores (palette.ts, ya aplicados al cambiarlo): la escena se vuelve a montar con ellos.
   const theme = useTheme()
@@ -194,7 +198,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   const fogNear = p.world === 'submarino' ? 30 : p.world === 'kywai' ? 160 : p.world === 'relicario' || p.world === 'telar' ? 68 : p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
   const fogFar = p.world === 'submarino' ? 78 : p.world === 'kywai' ? 300 : p.world === 'relicario' || p.world === 'telar' ? 185 : p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
 
-  // Pausa total cuando la ventana o pestaña está oculta.
+  // Pausa total cuando la ventana o pestaña está oculta (y cuando el espacio 3D está cerrado: [paused]).
   useEffect(() => {
     const onVis = () => setVisible(!document.hidden)
     document.addEventListener('visibilitychange', onVis)
@@ -216,7 +220,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
       <SceneClock />
       <IdleFrames active={visible && !focused} />
       {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. */}
-      {focused && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />}
+      {focused && visible && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />}
 
       <group key={theme}>
         <CinemaLights palette={p} lights={L} worldLight={worldLight} shadows={!!p.world && q.shadows} shadowSize={q.shadowMap}

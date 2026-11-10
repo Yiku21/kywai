@@ -10,7 +10,7 @@ import { demoEngine } from '@/demo/engine'
 import { SceneLabels } from '@/scene/SceneLabels'
 import { Header } from '@/ui/Header'
 import { LeftPanel } from '@/ui/left/LeftPanel'
-import { ChatResizer } from '@/ui/left/ChatResizer'
+import { ChatResizer, SpaceReopen } from '@/ui/left/ChatResizer'
 import { readChatWidth, saveChatWidth, TABS_QUERY } from '@/ui/left/chatWidth'
 import { FilePreview } from '@/ui/preview/FilePreview'
 import { SetupWizard } from './ui/setup/SetupWizard'
@@ -116,6 +116,7 @@ export function App() {
   const mode = useCowork((st) => st.mode)
   const expanded = useCowork((st) => st.spaceExpanded)
   const mobileView = useCowork((st) => st.mobileView)
+  const spaceHidden = useCowork((st) => st.spaceHidden)
   // Primer arranque en este equipo (o abierto desde el menú ⚙): asistente de configuración.
   // Solo en el propio equipo: instala programas y abre ventanas de inicio de sesión allí.
   const restarting = useCowork((st) => st.restarting)
@@ -132,6 +133,16 @@ export function App() {
   // Ventana estrecha: el chat ocupa todo y el 3D pasa a la pestaña «Espacio» de la cabecera (el chat manda).
   const narrow = useMediaQuery(TABS_QUERY)
   const left = useRef<HTMLElement>(null)
+  // Espacio 3D cerrado del todo (arrastrando el borde del chat a la derecha o con su botón): en ventana ancha, el chat
+  // ocupa todo. En ventana estrecha manda la pestaña Chat / Espacio.
+  const hidden = spaceHidden && !narrow
+  // Mientras el 3D no se ve, la escena se para del todo: ni se dibuja ni se mueve nada (ahorra CPU y GPU). En Órbita el
+  // 3D se ve detrás del chat de cristal, así que solo se para si está cerrado.
+  const sceneOff = hidden || (narrow && mobileView === 'chat' && !glass)
+  const onClose = (side: 'space' | 'chat'): void => {
+    if (side === 'space') useCowork.getState().setSpaceHidden(true)
+    else useCowork.getState().setSpaceExpanded(true)
+  }
   // Ancho del chat elegido arrastrando su borde (null = automático). Mientras se arrastra no hay animación.
   const [chatWidth, setChatWidth] = useState<number | null>(readChatWidth)
   const [resizing, setResizing] = useState(false)
@@ -158,12 +169,12 @@ export function App() {
   return (
     <div className={s.app}>
       {glass && (
-        <div className={s.world}>
+        <div className={s.world} data-hidden={hidden || undefined}>
           {/* El centro del mundo, en la zona que deja libre el chat. */}
           <Suspense fallback={null}>
-            <World view={narrow ? undefined : { left: inset, top: 140, bottom: 14 }} />
+            <World paused={sceneOff} view={narrow ? undefined : { left: inset, top: 140, bottom: 14 }} />
           </Suspense>
-          <SceneLabels />
+          {!sceneOff && <SceneLabels />}
         </div>
       )}
       <Header />
@@ -176,6 +187,7 @@ export function App() {
       <div
         className={s.body}
         data-expanded={expanded}
+        data-space-hidden={hidden || undefined}
         data-mobile={mobileView}
         data-custom-width={chatWidth != null || undefined}
         data-resizing={resizing || undefined}
@@ -185,17 +197,18 @@ export function App() {
           <aside ref={left} className={s.left} aria-label={t('Chat, archivos, tareas y resultados')} aria-hidden={expanded || undefined}>
             <LeftPanel />
           </aside>
-          {!narrow && !expanded && <ChatResizer panel={left} width={chatWidth} onResize={onResize} />}
+          {!narrow && !expanded && !hidden && <ChatResizer panel={left} width={chatWidth} onResize={onResize} onClose={onClose} />}
+          {hidden && <SpaceReopen onOpen={() => useCowork.getState().setSpaceHidden(false)} />}
         </div>
-        <section className={s.space} data-demo={mode === 'demo'} aria-label={t('Espacio digital')}>
+        <section className={s.space} data-demo={mode === 'demo'} aria-label={t('Espacio digital')} aria-hidden={hidden || undefined} inert={hidden || undefined}>
           <SpaceHeader />
           <div className={s.stage}>
             {!glass && (
               <Suspense fallback={null}>
-                <World />
+                <World paused={sceneOff} />
               </Suspense>
             )}
-            {!glass && <SceneLabels />}
+            {!glass && !sceneOff && <SceneLabels />}
             <SelectionPanel />
             <MusicPanel />
             <BottomBar />

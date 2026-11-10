@@ -1,4 +1,4 @@
-import { Building2, Music, Pause, Play, RotateCcw } from 'lucide-react'
+import { Building2, Music, PanelRightClose, Pause, Play, RotateCcw } from 'lucide-react'
 import { useCowork } from '@/store/cowork'
 import { demoEngine } from '@/demo/engine'
 import { toggleMusicPanel, useMusic } from '@/lib/music'
@@ -8,6 +8,8 @@ import u from '../common/ui.module.css'
 import s from './SpaceHeader.module.css'
 import { HomeNightToggle } from './HomeNightToggle'
 import { t } from '@/lib/i18n'
+import { useMediaQuery } from '../common/hooks'
+import { TABS_QUERY } from '../left/chatWidth'
 
 /** Fila superior del panel del espacio digital (la demo se activa en ⚙ → Ajustes → «Modo demo»). */
 export function SpaceHeader() {
@@ -40,9 +42,23 @@ export function SpaceHeader() {
             {t('En vivo')}
           </span>
         )}
-
+        <HideSpaceButton />
       </div>
     </div>
+  )
+}
+
+/** Cierra el espacio 3D del todo: el chat ocupa toda la ventana y la escena se para hasta volver a abrirlo. */
+function HideSpaceButton() {
+  const setSpaceHidden = useCowork((st) => st.setSpaceHidden)
+  // En ventana estrecha ya están las pestañas Chat / Espacio (y con Chat el 3D también se para).
+  const narrow = useMediaQuery(TABS_QUERY)
+  if (narrow) return null
+  const label = t('Ocultar el espacio 3D (se para y el chat ocupa todo)')
+  return (
+    <button type="button" className={cx(u.iconBtn, u.iconBtnSm, s.hide)} onClick={() => setSpaceHidden(true)} aria-label={label} title={label}>
+      <PanelRightClose size={16} aria-hidden="true" />
+    </button>
   )
 }
 

@@ -221,3 +221,9 @@
   background: rgba(8, 14, 32, 0.42);
   backdrop-filter: blur(22px) saturate(160%);
 }
+
+/* Ocultar el espacio 3D: discreto, al final de la fila. */
+.hide {
+  flex: none;
+  color: var(--text-2);
+}

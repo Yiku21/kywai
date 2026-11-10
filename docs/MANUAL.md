@@ -2962,6 +2962,12 @@ el chat:
   se recuerda en ese equipo al volver a abrir la app; si luego estrechas la ventana, se ajusta solo para dejar al 3D
   al menos 320 px. **Doble clic** en el borde vuelve al ancho automático. Con el teclado: Tab hasta el borde, flechas
   izquierda/derecha para ensanchar o estrechar e Inicio para volver al automático.
+- **Cerrar un lado del todo:** arrastra el borde del chat **casi hasta la derecha** y, al soltar, el espacio 3D se
+  oculta y el chat ocupa toda la ventana (mientras arrastras, un aviso dice «Suelta para ocultar el espacio 3D»).
+  También con el botón del final de la fila del **Espacio digital** (icono de panel) o, con el foco en el borde, la
+  tecla Fin. Para volver a verlo, pulsa la pestaña **Espacio digital** pegada al borde derecho del chat. Se recuerda
+  en ese equipo al volver a abrir la app. Llevar el borde **casi hasta la izquierda** hace lo contrario: deja solo el
+  3D (como el botón de pantalla completa; Escape vuelve).
 - **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
   el ancho, en vez de dejar libre la columna del avatar.
 
@@ -2971,7 +2977,9 @@ el chat:
 
 Para desarrolladores: los cortes están en `App.module.css` (y `TABS_QUERY` en `ui/left/chatWidth.ts`, que debe
 coincidir con el `@media (max-width: 949.98px)`); el asa es `ui/left/ChatResizer.tsx` y el ancho elegido se guarda en
-`localStorage` (`ai-cowork.chatWidth`).
+`localStorage` (`ai-cowork.chatWidth`). Cerrar un lado lo decide `dragOutcome` (`ui/left/chatWidth.ts`: al 3D le
+quedarían menos de 160 px, o al chat menos de 180); el espacio cerrado es `spaceHidden` en el store y se guarda en
+`ai-cowork.spaceHidden`. El panel cerrado sigue montado (la música sigue sonando) pero sin sitio ni visibilidad.
 
 ### Idioma
 
@@ -3338,6 +3346,10 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
 - **El 3D descansa cuando no lo miras.** Con la ventana o la pestaña oculta (minimizada, o tapada del todo si el sistema lo avisa) se para.
   Con la ventana a la vista pero sin foco (estás en otra app) se dibuja a 20 fotogramas por segundo: se sigue viendo
   a los robots trabajar y gasta mucho menos. Al volver a la ventana recupera la fluidez normal.
+  **Con el espacio 3D cerrado** (ver «Ancho del chat y ventanas pequeñas») o, en ventana estrecha, con la pestaña
+  **Chat** delante, la escena se para del todo: no se dibuja ningún fotograma ni se mueve ningún robot, y las etiquetas
+  de los agentes dejan de actualizarse (medido: 0 dibujos de WebGL por segundo). En el tema Órbita el 3D se ve detrás
+  del chat de cristal, así que ahí solo se para al cerrarlo (`World paused` en `scene/World.tsx`).
   Al volver, las animaciones siguen justo donde se quedaron: el reloj de la escena no se reinicia al pausar (antes
   un archivo que ya había llegado aparecía gigante y se iba encogiendo poco a poco).
 - **El chat aparece antes.** El espacio 3D (Three.js y compañía) se carga aparte, después de la interfaz, y todo
