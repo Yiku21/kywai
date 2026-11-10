@@ -316,7 +316,7 @@ let ident = a[1], name = a[2], lang = a[3], out = a[5]
 let text = (try? String(contentsOfFile: a[4], encoding: .utf8)) ?? ""
 var voice = AVSpeechSynthesisVoice(identifier: ident)
 if voice == nil { voice = AVSpeechSynthesisVoice.speechVoices().first { $0.name.contains(name) && $0.language == lang } }
-guard let v = voice else { FileHandle.standardError.write("No está la voz \(ident)\n".data(using: .utf8)!); exit(2) }
+guard let v = voice else { FileHandle.standardError.write("No está la voz \\(ident)\\n".data(using: .utf8)!); exit(2) }
 let u = AVSpeechUtterance(string: text)
 u.voice = v
 let synth = AVSpeechSynthesizer()
@@ -366,7 +366,10 @@ async function macSpeak(key: string, text: string, out: string, signal?: AbortSi
   const caf = `${out}.mac.caf`
   // El texto va en un archivo (los argumentos no llevan bien las comillas y los saltos de línea).
   writeFileSync(`${caf}.txt`, text)
-  const r = await run(cmd[0], [...cmd.slice(1), v.identifier, v.name, v.lang, `${caf}.txt`, caf], { timeoutMs: 5 * 60_000, signal })
+  // Las voces de Siri (Carmen) no las ve un programa compilado con swiftc: macOS solo se las da a `swift` (firmado por
+  // Apple). Con ellas va el programa interpretado (tarda unos segundos más en arrancar).
+  const prog = v.identifier.includes('.siri.') ? ['swift', join(root, 'voz-mac', 'voz.swift')] : cmd
+  const r = await run(prog[0], [...prog.slice(1), v.identifier, v.name, v.lang, `${caf}.txt`, caf], { timeoutMs: 5 * 60_000, signal })
   rmSync(`${caf}.txt`, { force: true })
   if (r.code !== 0 || !existsSync(caf)) {
     rmSync(caf, { force: true })

@@ -2006,7 +2006,12 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    entorno de Python del estudio (lo instala «Instalar lo que falta» o la primera vez que se usa; necesita internet).
    Carmen no sale con `say`: kywai compila una vez un programa pequeño en Swift (`<studio>/voz-mac/`, con `swiftc`)
    que usa AVSpeechSynthesizer con `com.apple.siri.natural.Carmen`; hay que tenerla descargada en Ajustes del Sistema →
-   Accesibilidad → Contenido leído. Si una de estas falla en un vídeo, el vídeo sale con el orden de siempre.
+   Accesibilidad → Contenido leído. **Ojo:** un programa compilado con `swiftc` no ve las voces de Siri (macOS solo se
+   las da a `swift`, firmado por Apple), así que Carmen se lee con el mismo programa **interpretado** (`swift voz.swift`,
+   tarda unos segundos más); las demás voces del Mac usan el compilado. En la lista de voces de macOS Carmen se llama
+   «Voice 2»: se busca por su identificador, no por el nombre. La muestra ▶ la prepara siempre el servidor, así que
+   desde un cliente (Linux, Windows) Carmen suena si funciona en el Mac servidor. Si una de estas falla en un vídeo,
+   el vídeo sale con el orden de siempre.
    **En inglés salen solo 11**, elegidas por Yil de 60 muestras: de Kokoro **Bella** (la de por defecto), Heart,
    Nicole, Sarah, Adam (Estados Unidos), Isabella y George (Reino Unido), y de Edge **Aria**, **Guy** (Estados Unidos),
    **Sonia** y **Ryan** (Reino Unido). Sin Kokoro instalado, la de por defecto se salta y va el orden de siempre. La
