@@ -63,6 +63,19 @@ const MISSING: Record<VoiceEngine, string> = {
   mac: ''
 }
 
+/**
+ * La muestra llega como data: URL, pero la política de seguridad de la página no deja reproducir audio «data:» (solo
+ * «blob:»): se pasa a un Blob.
+ */
+const dataToBlobUrl = (url: string): string => {
+  const m = /^data:([^;,]+);base64,(.*)$/.exec(url)
+  if (!m) return url
+  const bin = atob(m[2])
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return URL.createObjectURL(new Blob([bytes], { type: m[1] }))
+}
+
 const langName = (code: string | undefined): string => {
   if (!code) return ''
   try {
@@ -266,7 +279,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
     try {
       let url = samples.current.get(v.id)
       if (!url) {
-        url = await api.previewVideoVoice(v.id)
+        url = dataToBlobUrl(await api.previewVideoVoice(v.id))
         samples.current.set(v.id, url)
       }
       const a = new Audio(url)
