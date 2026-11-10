@@ -1402,15 +1402,23 @@ vuelve a comprobar que su CLI responde (sin llamadas de pago) y, si responde, qu
 ### Hablar directamente con un agente (`@Agente`)
 
 Normalmente todo lo que escribes pasa primero por Hermes, que decide qué hacer y a quién dárselo. Si quieres que
-un agente concreto reciba tu texto **tal cual**, sin que Hermes lo lea, lo reinterprete ni lo filtre, empieza el
-mensaje con su nombre:
+un agente concreto reciba tu texto **tal cual**, sin que Hermes lo lea, lo reinterprete ni lo filtre, nómbralo con
+`@` donde quieras del mensaje:
 
 - `@Qwen escribe un cuento corto` (también vale su id o el nombre sin espacios: `@LMStudio …`).
+- `Revisa el archivo de ventas y dime qué números no cuadran @Claude` (al final: escribes todo y luego eliges a quién).
+- `Pregunta a @Qwen qué opina del plan` (en medio).
 - `/directo Qwen escribe un cuento corto` (o `/direct`, `/dm`).
 
-Al teclear `@` al principio del cuadro sale la lista de agentes (en el escritorio, la web y Órbita): elige uno con
-las flechas e Intro o Tab (o tocándolo) y escribe el mensaje detrás. En el chat, tu mensaje sale como
-«Tú → Qwen (directo, sin Hermes)».
+Al teclear `@` en cualquier parte del cuadro (al principio, en medio o al final, donde esté el cursor) sale la lista
+de agentes (en el escritorio, la web y Órbita): elige uno con las flechas e Intro o Tab (o tocándolo) y el nombre
+queda donde escribiste la `@`, sin tocar el resto del mensaje. En el chat, tu mensaje sale como
+«Tú → Qwen (directo, sin Hermes)»; si la mención iba en medio o al final, se ve tal como lo escribiste.
+
+Qué recibe el agente: con la mención al principio, lo que va detrás; al final, el mensaje sin ella (y sin la coma de
+delante: «Revisa esto, @Claude.» → «Revisa esto.»); en medio, el mensaje con su nombre sin la `@` («Pregunta a Qwen
+qué opina del plan»). Si nombras a **dos agentes distintos** («que lo haga @Qwen y lo revise @Claude»), no es
+directo: va a Hermes, que reparte el trabajo.
 
 Lo que cambia frente a una petición normal:
 
@@ -1427,7 +1435,9 @@ Lo que cambia frente a una petición normal:
 - **Conversación seguida**: si tu mensaje anterior en el proyecto también fue directo al mismo agente, Claude y
   Codex retoman su sesión (recuerdan lo anterior). LM Studio y Ollama reciben cada mensaje suelto.
 
-Un `@` que no es el nombre de ningún agente (un correo, «@alguien») no cuenta: el mensaje va a Hermes como siempre.
+Un `@` que no es el nombre de ningún agente («@alguien») no cuenta, y tampoco un `@` pegado a otra palabra (un
+correo como `qwen@correo.com`) ni dentro de código (`` `@Qwen` `` o un bloque con ```): el mensaje va a Hermes como
+siempre. El nombre tiene que acabar ahí: `@Qwen.` o `@Qwen?` valen, `@Qwen3` o `@Qwen.ts` no.
 `/directo` con un nombre que no existe da un error con la pista de escribir `@` para ver la lista. El agente
 trabaja en la carpeta del proyecto con el mismo permiso de siempre (⚙ → Ajustes → «Permisos de los agentes»).
 

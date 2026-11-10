@@ -89,6 +89,15 @@ describe('«@» en el cuadro del chat', () => {
     expect(options()).toEqual([])
   })
 
+  it('también sale al escribir @ en medio o al final del mensaje', async () => {
+    await type('Revisa el archivo y dime qué ves @cl')
+    expect(options()).toEqual(['Claude'])
+    await key('Enter')
+    expect(useComposer.getState().text).toBe('Revisa el archivo y dime qué ves @Claude ')
+    await type('Escribe a yo@cor')
+    expect(options()).toEqual([])
+  })
+
   it('el mensaje se envía tal cual al motor (él decide que es directo)', async () => {
     await type('@Qwen hola')
     await key('Enter')

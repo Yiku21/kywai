@@ -1415,12 +1415,13 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     throw new Error(tr('El agente de la plantilla «{name}» ya no está en el equipo: edítala y elige otro.', { name: tpl.template.name }))
   }
 
-  // «@Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes.
-  const direct = tplAgent ? { agentId: tplAgent.id, text: tpl!.text } : parseDirect(tpl ? tpl.text : text, baseAgents())
+  // «@Agente …», «… @Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes.
+  const direct: ReturnType<typeof parseDirect> = tplAgent ? { agentId: tplAgent.id, text: tpl!.text } : parseDirect(tpl ? tpl.text : text, baseAgents())
   if (direct && 'error' in direct) {
     throw new Error(tr('No hay ningún agente «{name}». Escribe @ y elige uno de la lista, o usa el nombre que sale en su ficha.', { name: direct.error }))
   }
-  if (direct) return sendDirect(st, direct.agentId, direct.text, atts, input.clientMessageId, routine, tpl ? { shown: text.trim(), ...tplMark } : {})
+  // Con la mención en medio o al final, en el chat se ve el mensaje tal como lo escribiste.
+  if (direct) return sendDirect(st, direct.agentId, direct.text, atts, input.clientMessageId, routine, tpl ? { shown: text.trim(), ...tplMark } : direct.inline ? { shown: text.trim() } : {})
 
   // Vídeo: «/video …», «créame un vídeo de …» o «Crear vídeo de esto» en un mensaje. Sin plan: el agente escribe el
   // guion y kywai monta el vídeo entero; solo se entrega el MP4.

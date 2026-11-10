@@ -12,7 +12,7 @@ import { FileTypeIcon } from '../common/icons'
 import { basename, cx, errorText } from '../common/util'
 import { useComposer } from './composerStore'
 import { describeTrigger, describeWhen, parseRoutineCommand } from '@shared/routines'
-import { mentionMatches, mentionQuery, mentionText } from '@shared/directMessage'
+import { insertMention, mentionMatches, mentionQuery } from '@shared/directMessage'
 import { commandQuery, templatesFor } from '@shared/templates'
 import { commandSuggestions, REMEMBER_COMMAND, rememberInput, type CommandIcon } from '@shared/chatCommands'
 import { useMods } from './ModsView'
@@ -101,12 +101,15 @@ export function Composer() {
   const activeRunIds = useCowork((st) => st.live.activeRunIds)
   // Con un plan esperando tu visto bueno, lo que escribas son cambios a ese plan (o «sí» para aprobarlo).
   const planPending = useCowork((st) => st.mode === 'live' && st.live.messages.some((m) => m.proposal?.status === 'pending'))
-  // «@» al principio: lista de agentes para hablar con uno directamente, sin pasar por Hermes.
+  // «@» en cualquier parte del mensaje: lista de agentes para hablar con uno directamente, sin pasar por Hermes.
+  // Se mira lo escrito justo antes del cursor, así que vale al principio, en medio o al final.
   const liveAgents = useCowork((st) => st.live.agents)
   const agentOrder = useCowork((st) => st.live.agentOrder)
   const [mentionIdx, setMentionIdx] = useState(0)
   const [mentionClosed, setMentionClosed] = useState<string | null>(null)
-  const mention = mentionQuery(text)
+  // El cursor, con el texto al que corresponde: si el cuadro cambia por otro lado (dictado, plantilla), cuenta el final.
+  const [caret, setCaret] = useState<{ text: string; at: number } | null>(null)
+  const mention = mentionQuery(text, caret?.text === text ? caret.at : text.length)
   const mentionList =
     mention && mentionClosed !== text && !!api
       ? mentionMatches(
@@ -321,12 +324,17 @@ export function Composer() {
     taRef.current?.focus()
   }
 
-  /** Elige un agente de la lista del «@»: el cuadro queda con «@Nombre » para escribir el mensaje. */
+  /** Elige un agente de la lista del «@»: donde estaba lo escrito queda «@Nombre » y el resto del mensaje sigue igual. */
   function chooseMention(i: number): void {
     const a = mentionList[i]
     if (!a || !mention) return
-    setText(mentionText(mention.prefix, a))
-    taRef.current?.focus()
+    const next = insertMention(text, mention, a)
+    setText(next.text)
+    setCaret({ text: next.text, at: next.caret })
+    const ta = taRef.current
+    ta?.focus()
+    // El cursor, justo detrás del nombre, para seguir escribiendo donde estabas.
+    requestAnimationFrame(() => ta?.setSelectionRange(next.caret, next.caret))
   }
 
   /** Ctrl+V con imágenes o archivos: se guardan y se adjuntan. El texto se pega como siempre. */
@@ -559,7 +567,11 @@ export function Composer() {
             aria-label={t('Escribe una tarea para el equipo')}
             data-composer=""
             title={blockedReason ?? t('Intro para enviar · Mayús+Intro para nueva línea')}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value)
+              setCaret({ text: e.target.value, at: e.target.selectionStart })
+            }}
+            onSelect={(e) => setCaret({ text: e.currentTarget.value, at: e.currentTarget.selectionStart })}
             onPaste={(e) => void onPaste(e)}
             role={mentionOpen || cmdOpen ? 'combobox' : undefined}
             aria-expanded={mentionOpen || cmdOpen ? true : undefined}
