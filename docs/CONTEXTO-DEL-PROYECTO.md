@@ -280,3 +280,7 @@ con el archivo y la función afectados; el cambio real se aplica desde una sesi�
 > Trabajamos en kywai (Electron + React + Three.js, con la app Android Órbita). Lee `docs/CONTEXTO-DEL-PROYECTO.md`
 > y la sección relevante de `docs/MANUAL.md`. Hoy quiero: <qué>. Sigue las reglas del documento (commits por mejora,
 > subir a master, archivos uno a uno, documentar en el MANUAL).
+
+### Continuidad de los escenarios
+
+`scene/worlds/surroundings.ts` genera dos capas de entorno de 360° para cada mapa y decorado; `WorldSurround.tsx` las dibuja por lotes y adapta la paleta de Ciudad digital. El radio incluye los puestos personalizados y la calidad baja conserva las siluetas. `CameraRig.tsx` permite el giro completo y usa `cameraFraming.ts` para mantener 18° de elevación frontal en cualquier proporción de ventana, también al enfocar agentes. `nearCourt` conecta la plataforma con galerías próximas y terreno continuo; no basta con decorar el horizonte. Pruebas de cobertura y separación en `surroundings.test.ts`.

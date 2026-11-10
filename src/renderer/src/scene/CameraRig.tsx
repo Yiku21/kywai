@@ -8,6 +8,7 @@ import type { ViewInsets } from './World'
 import { useTheme } from '@/lib/theme'
 import { palette } from './palette'
 import { registry } from './registry'
+import { frontalOverview, framedFog, OVERVIEW_FOV, OVERVIEW_ELEVATION } from './cameraFraming'
 
 /**
  * Cámara que respira: en la vista general, sin tocar nada, la cámara gira un pelo a un lado y a otro (unos 2,5° en
@@ -26,13 +27,16 @@ export function cameraBreath(t: number, amp: number): [number, number] {
 export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: StationConfig[] } = {}) {
   const [controls, setControls] = useState<CameraControls | null>(null)
   const size = useThree((s) => s.size)
+  const scene = useThree((s) => s.scene)
+  const fogBase = useRef<{ fog: THREE.Fog; near: number; far: number } | null>(null)
+  const fogTarget = useRef(new THREE.Vector3())
   const reduced = useCowork((s) => s.reducedEffects)
   const atOverview = useRef(true)
   // Lo que la respiración ya ha girado la cámara (se descuenta en cada fotograma) y su fuerza actual.
   const breath = useRef({ az: 0, polar: 0, amp: 0 })
   const theme = useTheme()
   const camera = useThree(s => s.camera) as THREE.PerspectiveCamera
-  useEffect(() => { camera.fov = theme === 'kywai' ? 38 : 30; camera.updateProjectionMatrix() }, [camera, theme])
+  useEffect(() => { camera.fov = OVERVIEW_FOV; camera.updateProjectionMatrix() }, [camera, theme])
   // El mapa del tema (cada uno se encuadra a su manera; la Ciudad y los decorados, como siempre).
   const world = palette.world
   // El arrecife crece al añadir puestos; el encuadre inicial debe incluirlos también.
@@ -41,84 +45,31 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
   const overview = useCallback(
     (smooth: boolean) => {
       if (!controls) return
+      // Tras varias vueltas, vuelve por el arco corto en vez de deshacer todos los giros.
+      controls.normalizeRotations()
       breath.current = { az: 0, polar: 0, amp: 0 }
       const width = size.width - (view?.left ?? 0)
       const height = size.height - (view ? view.top + view.bottom : 0)
       const aspect = width / Math.max(1, height)
       // La zona libre es más pequeña que el lienzo: se aleja lo que haga falta para que el mundo quepa en ella.
       const room = view ? Math.max(1, size.height / Math.max(1, height)) : 1
-      if (theme === 'submarino') {
-        const k = Math.max(1, 1.65 / aspect) * room * marineScale
-        void controls.setLookAt(0, 11.2 * k, 25.8 * k, 0, 2.0, -2.5, smooth)
-        atOverview.current = true
-        return
-      }
-      if (theme === 'kywai') {
-        const k = Math.max(1, 1.38 / aspect) * room
-        void controls.setLookAt(0, 11.2 * k, 32.5 * k, 0, 3.6, -2, smooth)
-        atOverview.current = true
-        return
-      }
-      if (theme === 'relicario' || theme === 'telar') {
-        const k = Math.max(1, (aspect >= 1.1 ? 1.58 : 1.10) / aspect) * room
-        void controls.setLookAt((theme === 'relicario' ? 9 : 7) * k, 21 * k, 49.5 * k, 0, 5.8, -7, smooth)
-        atOverview.current = true
-        return
-      }
-      if (['halloween', 'navidad'].includes(theme)) {
-        const k = Math.max(1, (aspect >= 1.1 ? 1.6 : 1.08) / aspect) * room
-        void controls.setLookAt(0, 16 * k, 34 * k, 0, 3.5, -4, smooth)
-        atOverview.current = true
-        return
-      }
-      if (world === 'grafito') {
-        const k = Math.max(1, (aspect >= 1.1 ? 1.60 : 1.09) / aspect) * room
-        void controls.setLookAt(0, 15.4 * k, 32 * k, 0, 3.18, -3.3, smooth)
-        atOverview.current = true
-        return
-      }
-      if (world === 'marfil') {
-        const k = Math.max(1, (aspect >= 1.1 ? 1.65 : 1.29) / aspect) * room
-        void controls.setLookAt(0, 15.2 * k, (aspect >= 1.1 ? 35.9 : 30.8) * k, 0, 2.22, -3.04, smooth)
-        atOverview.current = true
-        return
-      }
-      if (world === 'clasico') {
-        const k = Math.max(1, (aspect >= 1.1 ? 1.54 : 1.05) / aspect) * room
-        void controls.setLookAt(0, 14 * k, 28.6 * k, 0, 2.4, -2.4, smooth)
-        atOverview.current = true
-        return
-      }
-      if (world === 'bosque') {
-        const k = Math.max(1, (aspect >= 1.1 ? 1.56 : 1.06) / aspect) * room
-        void controls.setLookAt(0, 14 * k, 29 * k, 0, 2.35, -2.45, smooth)
-        atOverview.current = true
-        return
-      }
-      // En Matrix tiene que verse el horizonte de la ciudad, por donde patrullan las naves.
-      if (world === 'matrix') {
-        const k = Math.max(1, (aspect >= 1.1 ? 1.55 : 1.15) / aspect) * room
-        void controls.setLookAt(0, 16.8 * k, 32 * k, 0, 4, -3.5, smooth)
-        atOverview.current = true
-        return
-      }
-      if (aspect >= 1.1) {
-        // Lo bastante lejos para que quepan las zonas de los lados.
-        const k = Math.max(1, 1.78 / aspect) * room
-        if (palette.world) void controls.setLookAt(0, 15.2 * k, 24 * k, 0, 1, -0.6, smooth)
-        else void controls.setLookAt(0, 13.6 * k, 21.2 * k, 0, 0.3, 1.2, smooth)
-      } else {
-        // Pantallas verticales: vista más cenital para que quepan todas las estaciones.
-        const k = Math.max(1, 1.32 / aspect) * room
-        void controls.setLookAt(0, 21 * k, 11.5 * k, 0, 0, 0.6, smooth)
-      }
+      const { eye, target } = frontalOverview(world, stations ?? [], aspect, room)
+      void controls.setLookAt(...eye, ...target, smooth)
       atOverview.current = true
     },
-    [controls, size.width, size.height, view?.left, view?.top, view?.bottom, theme, world, marineScale]
+    [controls, size.width, size.height, view?.left, view?.top, view?.bottom, world, stations]
   )
 
   // En la vista general y sin tocar nada, la cámara respira; al tocarla se queda donde está (no vuelve de golpe).
   useFrame((_, delta) => {
+    if (controls && scene.fog instanceof THREE.Fog) {
+      const fog = scene.fog
+      if (fogBase.current?.fog !== fog) fogBase.current = { fog, near: fog.near, far: fog.far }
+      const base = fogBase.current!
+      controls.getTarget(fogTarget.current)
+      const limits = framedFog(base.near, base.far, camera.position.distanceTo(fogTarget.current))
+      fog.near = limits.near; fog.far = limits.far
+    }
     const b = breath.current
     if (!controls || reduced || !atOverview.current) {
       b.az = b.polar = b.amp = 0
@@ -139,10 +90,16 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
     if (import.meta.env.DEV) (window as unknown as { __cam: CameraControls }).__cam = controls
   }, [controls, theme])
 
-  // Encuadre inicial y ajuste al tamaño, solo mientras el usuario está en la vista general.
+  const lastTheme = useRef(theme)
+
+  // Cambiar de mapa recupera la vista frontal; redimensionar respeta una cámara movida a mano.
   useEffect(() => {
+    if (lastTheme.current !== theme) {
+      lastTheme.current = theme
+      atOverview.current = true
+    }
     if (atOverview.current) overview(false)
-  }, [overview])
+  }, [overview, theme])
 
   useEffect(() => {
     if (!controls) return
@@ -152,7 +109,8 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
         void controls.dolly(cmd.dir * 4.5, true)
         atOverview.current = false
       } else if (cmd.type === 'focus') {
-        void controls.setLookAt(cmd.x * 0.85, 7.6, cmd.z + 9.4, cmd.x, 0.9, cmd.z, true)
+        controls.normalizeRotations()
+        void controls.setLookAt(cmd.x * 0.85, 0.9 + 9.4 * Math.tan(OVERVIEW_ELEVATION), cmd.z + 9.4, cmd.x, 0.9, cmd.z, true)
         atOverview.current = false
       }
     }
@@ -166,11 +124,11 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
       ref={setControls}
       makeDefault
       minDistance={6}
-      maxDistance={64 * marineScale}
+      maxDistance={Math.max(200, 64 * marineScale)}
       minPolarAngle={0.32}
-      maxPolarAngle={theme === 'kywai' ? 1.4 : 1.2}
-      minAzimuthAngle={-0.95}
-      maxAzimuthAngle={0.95}
+      maxPolarAngle={1.47}
+      minAzimuthAngle={-Infinity}
+      maxAzimuthAngle={Infinity}
       smoothTime={reduced ? 0.12 : 0.55}
       draggingSmoothTime={reduced ? 0.06 : 0.18}
       dollyToCursor

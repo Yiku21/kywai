@@ -3077,6 +3077,12 @@ se traducen al usarlas, como `t(agente.role)`, si el texto está escrito tal cua
 
 ### Temas
 
+**Escenarios alrededor del equipo.** Todos los mapas y decorados tienen dos capas de entorno en los 360 grados, también detrás de la cámara inicial: arboledas y raíces, arrecifes ramificados, pabellones abiertos, cristales, muelles orbitales y edificios con cuatro fachadas según el tema. Los siete colores de Ciudad digital conservan su paleta. El perímetro se amplía con los puestos personalizados para mantener despejados los accesos. La calidad baja conserva el horizonte y reduce los adornos. Las columnas tienen bordes redondeados y las rocas combinan erosión gruesa y fina.
+
+**Perspectiva y giro.** La cámara mira al equipo de frente, con una elevación ligera de 18° y un campo de visión de 36°. Las caras de los agentes y la profundidad del espacio quedan visibles. En ventanas estrechas se aleja sin cambiar la inclinación. «Vista general», el cambio de mapa y el enfoque de un agente recuperan esta perspectiva frontal. La niebla se adapta a la distancia de la cámara para no borrar los puestos al alejarse. Se puede girar una vuelta completa alrededor del equipo.
+
+**Continuidad desde los bordes.** EVA-01, Grafito, Clásico y Matrix tienen galerías técnicas próximas, pilares, puentes elevados, laterales y pavimento continuo con carriles. La transición de los mapas naturales, el jardín, los cristales y los muelles orbitales también empieza cerca del patio, además de las capas lejanas.
+
 En **Fondo marino**, cada estación conserva una plataforma separada también al añadir agentes. Los puestos adicionales se colocan en espacios libres alrededor del arrecife, sin solapar las plataformas existentes ni cambiar las posiciones guardadas del proyecto. La vista general amplía su encuadre para incluir los nuevos puestos.
 
 **Fondo marino** se elige en **⚙ → Ajustes → General → Mapas**: arrecife con bancos de peces, ballenas, medusas, mantarraya, vegetación y una ciudad sumergida. Las estaciones son plataformas de investigación y el centro es una concha con una perla luminosa; siguen mostrando el estado real de los agentes y los intercambios de archivos. Su distribución es visual: conserva los identificadores y posiciones guardados de las estaciones. **Reducir efectos** detiene los movimientos ambientales y la calidad adaptativa reduce partículas y detalles. El escenario está disponible en escritorio, cliente conectado y navegador; Órbita todavía no dibuja este mundo 3D.

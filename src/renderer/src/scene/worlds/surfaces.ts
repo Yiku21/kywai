@@ -119,7 +119,14 @@ export function detailedGeometry(shape: Solid, small = false): THREE.BufferGeome
     }
     case 'planter': return new THREE.LatheGeometry([[.61,-.5],[.88,.46],[.97,.46],[.99,.56],[.84,.56],[.79,.39],[.54,-.41],[.61,-.5]].map(([x,y])=>new THREE.Vector2(x,y)),64)
     case 'box': return new RoundedBoxGeometry(1, 1, 1, small ? 1 : 3, 0.035)
-    case 'cylinder': return new THREE.CylinderGeometry(1, 1, 1, small ? 12 : 96, 1)
+    case 'cylinder': {
+      if (small) return new THREE.CylinderGeometry(1, 1, 1, 12, 1)
+      // Borde redondeado real: conserva radio/altura y recoge la luz en columnas y maquinaria.
+      return new THREE.LatheGeometry([
+        [0, -.5], [.965, -.5], [.99, -.49], [1, -.465],
+        [1, .465], [.99, .49], [.965, .5], [0, .5]
+      ].map(([r, y]) => new THREE.Vector2(r, y)), 64)
+    }
     case 'hex': {
       const s = new THREE.Shape()
       for (let i = 0; i < 6; i++) {
@@ -135,13 +142,15 @@ export function detailedGeometry(shape: Solid, small = false): THREE.BufferGeome
     case 'sphere': return new THREE.SphereGeometry(1, small ? 12 : 64, small ? 8 : 32)
     case 'dome': return new THREE.SphereGeometry(1, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2)
     case 'rock': {
-      const raw = new THREE.IcosahedronGeometry(1, 4)
+      const raw = new THREE.IcosahedronGeometry(1, small ? 2 : 4)
       raw.deleteAttribute('normal'); raw.deleteAttribute('uv')
       const g = mergeVertices(raw); raw.dispose()
       const p = g.getAttribute('position'), uv = new Float32Array(p.count * 2)
       for (let i = 0; i < p.count; i++) {
         const x = p.getX(i), y = p.getY(i), z = p.getZ(i)
-        const n = 1 + 0.08 * Math.sin(x * 8 + z * 3) * Math.cos(y * 7)
+        // Masa principal erosionada y relieve fino: evita el contorno de esfera abollada uniforme.
+        const n = 1 + .12 * Math.sin(x * 3.1 + z * 2.4) * Math.cos(y * 3.7 - x)
+          + .025 * Math.sin(x * 11 + z * 7) * Math.cos(y * 9)
         p.setXYZ(i, x * n, y * n, z * n)
         uv[i * 2] = Math.atan2(z, x) / (Math.PI * 2) + 0.5
         uv[i * 2 + 1] = y * 0.5 + 0.5
@@ -180,7 +189,7 @@ export function detailedGeometry(shape: Solid, small = false): THREE.BufferGeome
       return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 192, 0.025, 8, false)
     }
     case 'inlayRing': return new THREE.TorusGeometry(1,.002,8,160)
-    case 'ring': return new THREE.TorusGeometry(1, 0.012, 12, 128)
+    case 'ring': return new THREE.TorusGeometry(1, 0.012, small ? 6 : 12, small ? 40 : 128)
     case 'leaf': {
       const g = new THREE.PlaneGeometry(1, 1, 8, 10), p = g.getAttribute('position')
       for (let i = 0; i < p.count; i++) {
