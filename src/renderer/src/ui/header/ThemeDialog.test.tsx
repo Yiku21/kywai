@@ -32,7 +32,7 @@ describe('temas', () => {
   it('Fondo marino se elige y se recuerda con su paleta y miniatura propias', async () => {
     await act(async () => root.render(<ThemeGrid />))
     const sea = radios().find(b => b.textContent?.startsWith('Fondo marino'))!
-    expect(sea.querySelector('svg[viewBox="0 0 120 84"]')).not.toBeNull()
+    expect(sea.querySelector('img, svg[viewBox="0 0 120 84"]')).not.toBeNull()
     await act(async () => sea.click())
     expect(storedTheme()).toBe('submarino')
     expect(document.documentElement.dataset.theme).toBe('submarino')
@@ -64,7 +64,7 @@ describe('temas', () => {
     expect(group('Decorados')).toHaveLength(4)
     expect(WORLDS.length + CITY_COLORS.length + DECORS.length).toBe(18)
     // Los mapas llevan su silueta en la miniatura (la ciudad, su núcleo de siempre).
-    for (const b of maps.slice(0, 7)) expect(b.querySelector('svg[viewBox="0 0 120 84"]')).not.toBeNull()
+    for (const b of maps.slice(0, 7)) expect(b.querySelector('img, svg[viewBox="0 0 120 84"]')).not.toBeNull()
   })
 
   it('la Ciudad en Clásico es la predeterminada; Frost Glass (el Órbita de antes) se aplica al momento y se recuerda', async () => {
@@ -152,7 +152,7 @@ describe('temas', () => {
       expect(palette.world).toBe(d.id)
       expect(palette.decor).toBe(d.id)
       expect(storedTheme()).toBe(d.id)
-      expect(group('Decorados')[i].querySelector('svg[viewBox="0 0 120 84"]')).not.toBeNull()
+      expect(group('Decorados')[i].querySelector('img, svg[viewBox="0 0 120 84"]')).not.toBeNull()
       expect(document.documentElement.dataset.world).toBeUndefined()
     }
   })

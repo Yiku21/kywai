@@ -2700,7 +2700,7 @@ El interruptor **Modo noche**, junto a Música en la cabecera del espacio, cambi
 
 ⚙ → Ajustes → General → **Tema** (justo debajo del idioma; se despliega con la flecha) cambia el aspecto de la app.
 Los temas van en dos grupos: los mapas (con la Ciudad digital) y los decorados. Cada tema es una tarjeta pequeña,
-cuatro por fila (tres o dos si la ventana es estrecha), con un dibujo de su escenario, el nombre y una descripción
+cuatro por fila (tres o dos si la ventana es estrecha), con una foto de su escenario 3D (en `assets/temas/`), el nombre y una descripción
 corta de dos líneas; la descripción completa sale al pasar el ratón por encima.
 
 **El mismo tema en todos tus dispositivos.** El tema lo guarda el servidor: al cambiarlo en la app del Mac, en un

@@ -120,13 +120,26 @@ function Card({ info, on, isDefault, onPick }: { info: ThemeInfo; on: boolean; i
   )
 }
 
-/** Miniatura de cada tema: solo su escenario, con sus colores propios (sea cual sea el actual). */
+/** Fotos reales del escenario 3D de cada tema (`assets/temas/<id>.webp`, 320×200), sacadas del modo Demo. */
+const SHOTS: Record<string, string> = Object.fromEntries(
+  Object.entries(import.meta.glob('../../assets/temas/*.webp', { eager: true, import: 'default' }) as Record<string, string>).map(([path, url]) => [
+    path.slice(path.lastIndexOf('/') + 1, -'.webp'.length),
+    url
+  ])
+)
+
+/** Miniatura de cada tema: una foto de su escenario; si falta, un dibujo con sus colores propios. */
 function Preview({ id }: { id: ThemeId }) {
+  const shot = SHOTS[id]
   return (
     <span className={s.preview} data-preview={uiThemeOf(id)} aria-hidden="true">
-      <span className={s.pvStage}>
-        {id === 'kywai' || id === 'submarino' || DECORS.some(d => d.id === id) ? <WorldPreview id={id} /> : worldOf(id) ? <WorldPreview id={worldOf(id)!} /> : <span className={s.pvCore} />}
-      </span>
+      {shot ? (
+        <img className={s.pvShot} src={shot} alt="" loading="lazy" draggable={false} />
+      ) : (
+        <span className={s.pvStage}>
+          {id === 'kywai' || id === 'submarino' || DECORS.some(d => d.id === id) ? <WorldPreview id={id} /> : worldOf(id) ? <WorldPreview id={worldOf(id)!} /> : <span className={s.pvCore} />}
+        </span>
+      )}
     </span>
   )
 }

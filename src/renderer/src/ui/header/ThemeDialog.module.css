@@ -238,6 +238,18 @@
   box-shadow: inset 0 0 0 1px var(--pv-border);
 }
 
+/* Con foto, la imagen ocupa toda la miniatura. */
+.preview:has(.pvShot) {
+  padding: 0;
+}
+
+.pvShot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .pvCore {
   width: 34px;
   height: 34px;
