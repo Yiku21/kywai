@@ -25,6 +25,7 @@ import {
 import { buildCartoonComposition } from './videoCartoon'
 import { comfyImage, comfyStatus } from './comfyui'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxVoice } from './voicebox'
+import { animateStill, findFreeVideo, freeVideoStatus, motionPrompt } from './freevideo'
 import type { VideoStudioStatus } from '@shared/types'
 import {
   ANIMATION_BASE_COMMIT,
@@ -170,7 +171,7 @@ async function kokoroReady(): Promise<boolean> {
 }
 
 export async function videoStudioStatus(): Promise<VideoStudioStatus> {
-  const [node, ffmpeg, ffprobe, python, kokoro, sys, comfy, vbox] = await Promise.all([
+  const [node, ffmpeg, ffprobe, python, kokoro, sys, comfy, vbox, fv] = await Promise.all([
     has('npm', ['--version']),
     has('ffmpeg'),
     has('ffprobe'),
@@ -178,7 +179,8 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
     kokoroReady(),
     systemVoice(),
     comfyStatus(),
-    voiceboxProfiles()
+    voiceboxProfiles(),
+    freeVideoStatus()
   ])
   const engine = !!root && existsSync(bin('hyperframes')) && existsSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js'))
   const key = !!geminiApiKey()
@@ -188,6 +190,7 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
     voicebox: { running: !!vbox, voices: (vbox ?? []).map((p) => `${p.name} (${p.language})`) },
     manim: manimInstalled(),
     films: { library: lemoReady(filmPaths(root).lib), painted: kitReady(filmPaths(root).kit) },
+    freevideo: fv,
     gemini: key,
     node, python, ready: engine && ffmpeg && ffprobe }
 }
@@ -599,6 +602,8 @@ export interface RenderedVideo {
   /** Escenas con imagen generada. */
   images: number
   voice: 'voicebox' | 'gemini' | 'kokoro' | 'system'
+  /** Escenas que FreeVideo convirtió en clips con movimiento. */
+  moving?: number
 }
 
 /**
@@ -751,6 +756,7 @@ export async function renderVideo(input: {
     const rel = `assets/manim-${i + 1}.mp4`
     if (await fitClip(raw, tl.scenes[i].duration, join(dir, rel), signal)) clips[i] = rel
   }
+  const moving = await animateScenes({ script, format, dir, durations: tl.scenes.map((x) => x.duration), images, clips, step, signal })
 
   // 3. Música y mezcla.
   if (signal?.aborted) throw new Error('Cancelada')
@@ -796,6 +802,47 @@ export async function renderVideo(input: {
   let file = join(input.outDir, `${base}.mp4`)
   for (let n = 2; existsSync(file); n++) file = join(input.outDir, `${base}-${n}.mp4`)
   copyFileSync(rendered, file)
-  return { file, seconds, width: vs.width ?? 0, height: vs.height ?? 0, images: shots.flat().filter(Boolean).length, voice: voiceUsed }
+  return { file, seconds, width: vs.width ?? 0, height: vs.height ?? 0, images: shots.flat().filter(Boolean).length, voice: voiceUsed, moving }
 }
 
+/**
+ * Con FreeVideo abierto en el equipo, las escenas que el guion marcó con «motion» (como mucho 3) pasan de imagen fija
+ * a clip con movimiento, empezando en su imagen. De una en una (una sola gráfica); la que falla se queda con su imagen.
+ */
+async function animateScenes(a: {
+  script: VideoScript
+  format: VideoFormat
+  dir: string
+  durations: number[]
+  images: (string | null)[]
+  clips: (string | null)[]
+  step: (text: string, progress: number, vars?: Record<string, string | number>) => void
+  signal?: AbortSignal
+}): Promise<number> {
+  const todo = a.script.scenes.map((sc, i) => ({ sc, i })).filter(({ sc, i }) => sc.motion && a.images[i] && !a.clips[i])
+  if (!todo.length) return 0
+  const srv = findFreeVideo()
+  if (!srv || !(await freeVideoStatus(srv)).ready) return 0
+  let done = 0
+  for (let k = 0; k < todo.length && !a.signal?.aborted; k++) {
+    const { sc, i } = todo[k]
+    const base = 0.5 + (0.05 * k) / todo.length
+    a.step('Dando movimiento a las escenas con FreeVideo ({n} de {total}; cada una tarda varios minutos)', base, { n: k + 1, total: todo.length })
+    const raw = join(a.dir, 'assets', `freevideo-${i + 1}-original.mp4`)
+    const ok = await animateStill(srv, {
+      image: join(a.dir, a.images[i]!),
+      prompt: motionPrompt(sc.motion!, sc.image, a.script.look),
+      seconds: a.durations[i],
+      vertical: a.format === 'vertical',
+      out: raw,
+      signal: a.signal,
+      timeoutMs: 45 * 60_000
+    })
+    const rel = `assets/freevideo-${i + 1}.mp4`
+    if (ok && (await fitClip(raw, a.durations[i], join(a.dir, rel), a.signal))) {
+      a.clips[i] = rel
+      done++
+    }
+  }
+  return done
+}

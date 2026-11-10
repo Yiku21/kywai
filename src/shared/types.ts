@@ -1410,6 +1410,8 @@ export interface VideoStudioStatus {
   manim?: boolean
   /** Estilos de película (src/shared/filmStyles.ts): la biblioteca Lemo-Opuscar y el kit de animación pintada con los robots. */
   films?: { library: boolean; painted: boolean }
+  /** FreeVideo (MiniMax H3) en este equipo: instalado y abierto; da movimiento a las escenas clave. */
+  freevideo?: { installed: boolean; ready: boolean; problem?: string }
   /** Kokoro instalado (la voz de reserva si Gemini falla). */
   kokoro: boolean
   /** «comfyui» si hay un ComfyUI encendido con modelo (el de por defecto), «gemini» si hay clave; null: fondos de diseño. */

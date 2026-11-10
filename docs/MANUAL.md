@@ -1739,6 +1739,19 @@ que sale en ellas. Sin imágenes, el guion trae igualmente un `look` único para
 presentador, el dibujo de siempre se cambia por el tuyo solo si diste referencias. Lo hace `imagePromptText` y
 `geminiImage` en `src/main/videoStudio.ts`.
 
+**Escenas con movimiento (FreeVideo).** Si en el equipo está instalado y abierto
+[FreeVideo](https://github.com/FlashML-org/FreeVideo) (vídeo local con el modelo MiniMax H3), el guion puede marcar con
+`motion` hasta 3 escenas (el gancho y los momentos fuertes) con una frase de qué se mueve. Después de hacer la imagen de
+la escena, kywai se la manda a FreeVideo como primer fotograma, con esa frase y el `look`, y pone el clip que devuelve
+en lugar de la imagen fija (`assets/freevideo-N.mp4`, ajustado a lo que dura la escena). De una en una, en calidad
+ligera (0,5 MP); cada clip tarda varios minutos (en un Mac M5 de 24 GB, unos 20 min por 10 s). Si FreeVideo está
+cerrado, falla o se pasa de 45 min, la escena se queda con su imagen y el vídeo sale igual. kywai habla con su API para
+agentes (`/freevideo/agent/v1`) con el token de su instalación (`agent/token`), solo en una dirección de este equipo;
+no copia su código. La fila «Escenas con movimiento (FreeVideo)» de Ajustes → Extensiones → Estudio de vídeo dice si
+está listo. Licencias: el código de FreeVideo es Apache-2.0; los pesos de MiniMax H3 van con su propia licencia
+(MiniMax H3 Community License, con límites de uso y de países), que acepta quien instala FreeVideo. Código:
+`src/main/freevideo.ts`; las variables `FREEVIDEO_HOME` y `FREEVIDEO_URL` cambian dónde lo busca.
+
 **Animaciones de fórmulas y diagramas (Manim).** Si Manim Community (MIT) está instalado en el estudio, el guion
 puede traer en hasta 3 escenas un campo `manim` con código Python (`class Escena(Scene)`) para lo que se entiende
 mejor animado: una fórmula, una gráfica, un diagrama, una geometría, un proceso. kywai lo renderiza a pantalla

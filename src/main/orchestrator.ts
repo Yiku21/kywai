@@ -72,6 +72,7 @@ import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
 import { ensureVideoStudio, manimSupport, mediaSeconds, renderVideo, videoStudioDir } from './videoStudio'
+import { findFreeVideo } from './freevideo'
 import { filmPrompt, filmReady, filmTitle, findFilm } from './filmLibrary'
 import { filmStyle } from '@shared/filmStyles'
 import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
@@ -1678,6 +1679,7 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
   if (rel) meta.touched.add(rel)
   const notes = [
     video.voice === 'system' ? tr('Va con la voz del sistema: instala la voz Kokoro en Ajustes → Extensiones → Estudio de vídeo para una más natural.') : '',
+    video.moving ? tr('{n} escenas llevan movimiento hecho con FreeVideo en este equipo.', { n: video.moving }) : '',
     script.scenes.some((s) => s.image) && video.images === 0 ? tr('Sin clave de API de Gemini las escenas llevan fondos de diseño en lugar de imágenes.') : ''
   ].filter(Boolean)
   const secs = Math.round(video.seconds)
@@ -2878,7 +2880,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: imageAttachments(run) })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: imageAttachments(run), motion: !!findFreeVideo() })].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)

@@ -951,6 +951,15 @@ function VideoSection() {
                 : t('Falta (opcional): «Instalar lo que falta» los instala, o se instalan solos con el primer vídeo con estilo')
         },
         {
+          label: t('Escenas con movimiento (FreeVideo)'),
+          ok: !!status.freevideo?.ready,
+          detail: status.freevideo?.ready
+            ? t('FreeVideo abierto: da movimiento a hasta 3 escenas por vídeo (cada una tarda varios minutos)')
+            : status.freevideo?.installed
+              ? t('FreeVideo instalado pero cerrado o sin el modelo: ábrelo para que kywai lo use')
+              : t('Opcional: instala FreeVideo (github.com/FlashML-org/FreeVideo) para que las escenas clave se muevan. Su modelo MiniMax H3 tiene licencia propia con límites de uso')
+        },
+        {
           label: t('Imágenes'),
           ok: status.images !== null,
           detail:

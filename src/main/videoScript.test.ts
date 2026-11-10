@@ -281,22 +281,24 @@ describe('animaciones de Manim', () => {
   })
 })
 
-describe('estilo de las imágenes', () => {
+describe('estilo de las imágenes y escenas con movimiento', () => {
   const scenes = (n: number, extra: Record<string, unknown> = {}) =>
     Array.from({ length: n }, (_, i) => ({ narration: `frase número ${i} con varias palabras`, image: `escena ${i}`, ...extra }))
 
-  it('lee el «look»', () => {
-    const s = parseVideoScript(JSON.stringify({ title: 't', look: 'Ink doodle: black pen lines on cream paper', scenes: scenes(5) }))
+  it('lee el «look» y como mucho 3 escenas con «motion»', () => {
+    const s = parseVideoScript(JSON.stringify({ title: 't', look: 'Ink doodle: black pen lines on cream paper', scenes: scenes(5, { motion: 'the camera pushes in slowly' }) }))
     expect(s.look).toBe('Ink doodle: black pen lines on cream paper')
+    expect(s.scenes.filter((x) => x.motion)).toHaveLength(3)
     expect(parseVideoScript(JSON.stringify({ title: 't', scenes: scenes(3) })).look).toBeUndefined()
   })
 
-  it('con referencias pide sacar el estilo de ellas', () => {
+  it('con referencias pide sacar el estilo de ellas; «motion» solo si hay FreeVideo', () => {
     const base = { topic: 'el café', format: 'vertical' as const, lang: 'es' }
     const p = videoScriptPrompt({ ...base, refs: ['/p/ref-1.png'] })
     expect(p).toContain('/p/ref-1.png')
     expect(p).toContain('"look"')
-    expect(videoScriptPrompt({ ...base, style: 'cartoon' })).not.toContain('"look"')
-    expect(videoScriptPrompt({ ...base, style: 'cartoon', refs: ['/p/r.jpg'] })).toContain('"look"')
+    expect(p).not.toContain('"motion"')
+    expect(videoScriptPrompt({ ...base, motion: true })).toContain('"motion"')
+    expect(videoScriptPrompt({ ...base, style: 'cartoon', refs: ['/p/r.jpg'], motion: true })).toContain('"motion"')
   })
 })

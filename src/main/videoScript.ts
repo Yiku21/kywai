@@ -34,7 +34,12 @@ export interface VideoScene {
   shots?: string[]
   /** Animación de Manim (código Python con la clase `Escena`) que ocupa la escena en vez de la imagen. */
   manim?: string
+  /** Con FreeVideo: qué se mueve en la imagen (en inglés). La escena pasa a ser un clip con movimiento. */
+  motion?: string
 }
+
+/** Escenas a las que FreeVideo da movimiento como mucho (cada clip tarda minutos). */
+export const MAX_MOTION = 3
 
 /** Escenas con Manim como mucho (cada una tarda en renderizarse). */
 export const MAX_MANIM = 3
@@ -104,6 +109,8 @@ export function parseVideoScript(text: string): VideoScript {
     if (o.joke === true) scene.joke = true
     const manim = typeof o.manim === 'string' ? o.manim.trim() : ''
     if (manim && manim.length <= 8000 && /class\s+Escena\s*\(/.test(manim) && scenes.filter((x) => x.manim).length < MAX_MANIM) scene.manim = manim
+    const motion = clean(o.motion, 300)
+    if (motion && !scene.manim && scenes.filter((x) => x.motion).length < MAX_MOTION) scene.motion = motion
     scenes.push(scene)
   }
   if (scenes.length < MIN_SCENES) throw new Error(`El guion necesita al menos ${MIN_SCENES} escenas con «narration» (tiene ${scenes.length}).`)
@@ -125,9 +132,11 @@ type PromptInput = {
   manim?: { latex: boolean } | null
   /** El usuario adjuntó imágenes: son referencias del estilo (rutas para leerlas). */
   refs?: string[]
+  /** FreeVideo está en el equipo: el guion puede pedir movimiento en las escenas clave. */
+  motion?: boolean
 }
 
-/** Reglas del bloque de estilo (comunes a los dos estilos rápidos). */
+/** Reglas del bloque de estilo y del movimiento (comunes a los dos estilos rápidos). */
 function lookRules(input: PromptInput): string[] {
   // En el estilo con presentador el dibujo es siempre el mismo, salvo que el usuario dé referencias.
   const look = input.style !== 'cartoon' || !!input.refs?.length
@@ -138,6 +147,11 @@ function lookRules(input: PromptInput): string[] {
       ? `- "look": el bloque de estilo de las imágenes, sacado de las imágenes de referencia del usuario (${input.refs.join(', ')}): ábrelas y míralas antes de escribir. En inglés, de 40 a 90 palabras, SOLO cómo está hecho (técnica o medio, tipo de línea, paleta de colores concreta, luz, textura, encuadre habitual), nunca lo que sale en ellas (ni personas, ni objetos, ni lugares). Ponle al principio un nombre corto del estilo. Ese texto se añade al final de cada imagen, así todas salen iguales y en ese estilo.`
         : '- "look": el bloque de estilo de las imágenes, uno solo para todo el vídeo, en inglés y de 30 a 70 palabras: técnica o medio, tipo de línea, paleta de colores concreta, luz y textura (nunca el tema). Se añade al final de cada imagen para que todas salgan iguales.',
     look ? '- En "image" (y "shots") describe solo lo que se ve; el estilo ya va en "look".' : '',
+    ...(input.motion
+      ? [
+          `- "motion" (opcional, como mucho en ${MAX_MOTION} escenas, las que más ganan moviéndose: el gancho y los momentos fuertes): qué se mueve en la imagen de esa escena, en inglés y en una frase (la acción y el movimiento de cámara). kywai convierte esa imagen en un clip con movimiento. Que sea una acción sencilla que quepa en la duración de la escena.`
+        ]
+      : [])
   ].filter(Boolean)
 }
 
@@ -175,7 +189,7 @@ export function videoScriptPrompt(input: PromptInput): string {
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", "scenes": [{"heading": "…", "narration": "…", "image": "…"}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", "scenes": [{"heading": "…", "narration": "…", "image": "…"' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -208,7 +222,7 @@ function cartoonScriptPrompt(input: PromptInput): string {
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", ' + (input.refs?.length ? '"look": "…", ' : '') + '"scenes": [{"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", ' + (input.refs?.length ? '"look": "…", ' : '') + '"scenes": [{"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
