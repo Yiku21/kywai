@@ -2021,6 +2021,22 @@ rápido (de 20 minutos a una hora, según el estilo y el equipo). El proyecto co
 y `CREDITS` con la licencia de cada cosa que usa) queda en esa carpeta. El encargo está en `src/main/filmLibrary.ts`
 (`filmPrompt`) y el catálogo en `src/shared/filmStyles.ts`.
 
+**Hoja de beats, acción viva y doble comprobación.** Antes de animar, el agente escribe `beats.md` en la carpeta de la
+película: el concepto en una frase, los fotogramas por segundo y cada beat con su tramo de fotogramas («0–22 flota ·
+22–44 carga · 44–48 latigazo · 64 impacto, 5 fotogramas quietos»). Todas las películas llevan la lista de **acción viva**
+(`ALIVE_ACTION` en `filmLibrary.ts`): anticipación, pausa en el impacto, solapamiento, aplastar y estirar, y pares
+«evita → haz» (línea recta → arco con gravedad, velocidad fija → curvas suaves, fundido al golpear → fotogramas de
+impacto, salto entre poses → fotograma de barrido); las de 3D, además, la de «escena 3D viva». Cuando el agente
+termina, **kywai comprueba el MP4 con ffmpeg** (`checkFilmFile` en `videoStudio.ts`, reglas en `src/main/filmCheck.ts`):
+pantallas negras de más de 0,8 s, imagen congelada 4 s o más, silencio total 4 s o más, sin pista de sonido o menos de
+5 s (se perdonan los fundidos del principio y del final y el cierre quieto de hasta 5 s). Si está limpio, **otro agente
+de otra familia que vea imágenes** revisa una hoja de contacto (`hoja-de-contacto.jpg`, 12 fotogramas repartidos)
+contra `beats.md` y las reglas, en solo lectura, y responde «VEREDICTO: CUMPLE» o «FALLOS». Con fallos, la película
+vuelve a quien la hizo, en su misma sesión, con la lista (hasta 2 correcciones, `MAX_FILM_FIXES`); si se agotan, se
+entrega igual con lo que aún se ve y el aviso de «requiere intervención». Sin otro agente que vea imágenes, solo cuenta
+la comprobación de kywai. Idea tomada de un reel de animación con IA («Good vs Bad AI animation»): prompt
+estructurado (concepto, beats, reglas, evitar, revisar) y comprobación por fotograma antes del MP4 final.
+
 **Pintado a mano (acuarela y tinta)** (antes «Robots de kywai pintados a mano»; sin otro personaje elegido, salen
 los robots) usa **Claude Animation Base** (MIT, github.com/JohnHeibel/ClaudeAnimationBase:
 p5.js + p5.brush, acuarela, tinta y línea que tiembla, sin texto) con los robots del equipo en lugar del personaje del

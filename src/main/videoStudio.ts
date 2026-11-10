@@ -24,6 +24,7 @@ import {
   type VideoScript
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
+import { contactSheetArgs, filmCheckArgs, parseFilmCheck } from './filmCheck'
 import { EARSHOT_DEPS, EARSHOT_PIP, earshotInstalledIn, ensureSfxBank, loadSfxBank, sfxBankSummary } from './sfxBank'
 import { comfyImage, comfyStatus } from './comfyui'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
@@ -590,6 +591,26 @@ async function installFilms(onLine: (l: string) => void): Promise<void> {
 /** Duración de un vídeo o audio en segundos (0 si no se puede leer). */
 export async function mediaSeconds(file: string): Promise<number> {
   return duration(file).catch(() => 0)
+}
+
+/**
+ * Comprueba una película antes de entregarla (filmCheck.ts): devuelve los fallos que se ven con ffmpeg. Si ffmpeg no
+ * responde, no se inventa nada: sin fallos.
+ */
+export async function checkFilmFile(file: string): Promise<{ seconds: number; issues: string[] }> {
+  const seconds = await mediaSeconds(file)
+  const a = await run('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', file], { timeoutMs: 30_000 })
+  if (a.code !== 0) return { seconds, issues: [] }
+  const hasAudio = /audio/.test(a.out)
+  const r = await run('ffmpeg', filmCheckArgs(file, hasAudio), { timeoutMs: 10 * 60_000 })
+  if (r.code !== 0) return { seconds, issues: [] }
+  return { seconds, issues: parseFilmCheck(r.out, seconds, hasAudio) }
+}
+
+/** Hoja de contacto de la película (12 fotogramas repartidos en una imagen); null si no se pudo hacer. */
+export async function filmContactSheet(file: string, out: string, seconds: number, vertical: boolean): Promise<string | null> {
+  const r = await run('ffmpeg', contactSheetArgs(file, out, seconds, vertical), { timeoutMs: 5 * 60_000 })
+  return r.code === 0 && existsSync(out) ? out : null
 }
 
 // ---------- pasos del montaje ----------

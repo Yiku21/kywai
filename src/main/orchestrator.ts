@@ -80,10 +80,11 @@ import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
 import { videoLang, type VideoKind } from '../shared/videoChoice'
-import { CAST_DIR, CAST_NOTES, ensureVideoStudio, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
+import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { isMediaFile, learnPrompt, parseLearnedSkill, parseLearnRequest, prepareLearnSource, saveLearnedSkill, type LearnRequest } from './learn'
-import { filmPrompt, filmReady, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
+import { BEATS_FILE, FILM_3D, filmPrompt, filmReady, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
+import { filmFixRequest, filmReviewPrompt, MAX_FILM_FIXES } from './filmCheck'
 import { KYWAI_FILM_GUIDES } from './kywaiFilmGuides'
 import { filmStyle } from '@shared/filmStyles'
 import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
@@ -2417,13 +2418,31 @@ async function completeFilm(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('Terminó sin dejar el vídeo ({file}).', { file: 'pelicula.mp4' }) })
     return
   }
+  const work = join(root, v.work!)
+  const meta = run.meta.get(t.id)!
+  const canFix = (meta.fixesDone ?? 0) < MAX_FILM_FIXES
+  // El veredicto de una ronda anterior no vale para esta película: se vuelve a revisar.
+  meta.verification = undefined
+  t.verification = undefined
+  // 1. kywai mira el MP4 (negro, congelado, silencio). 2. Si está limpio, otro agente revisa la hoja de contacto.
+  t.phase = 'verify'
+  t.lastActivity = tr('kywai comprueba la película')
+  taskDirty(t)
+  const check = await checkFilmFile(found)
+  if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+  if (check.issues.length) {
+    traceNote(t.id, tr('kywai vio fallos en la película: {v1}', { v1: oneLine(check.issues.join(' '), 300) }), true)
+    if (canFix) return requeueFilmFix(run, t, exec, parent, 'kywai', check.issues.map((x) => `- ${x}`).join('\n'))
+  }
+  const review = check.issues.length ? null : await reviewFilm(run, t, exec, parent, res, found, work, check.seconds)
+  if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+  if (review?.status === 'failed' && canFix) return requeueFilmFix(run, t, exec, parent, review.byName, review.notes ?? '', review.by)
   const title = filmTitle(res.text) ?? (v.topic ? oneLine(v.topic, 60) : tr('vídeo'))
   const outDir = join(root, twoHandsBase(run.projectId), 'videos')
   mkdirSync(outDir, { recursive: true })
   let out = join(outDir, `${videoSlug(title)}.mp4`)
   for (let n = 2; existsSync(out); n++) out = join(outDir, `${videoSlug(title)}-${n}.mp4`)
   copyFileSync(found, out)
-  const meta = run.meta.get(t.id)!
   // Lo que tocó en su carpeta de trabajo (oculta) no son resultados: solo el vídeo.
   meta.touched.clear()
   const rel = store.toRelPath(root, out)
@@ -2439,9 +2458,112 @@ async function completeFilm(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     tr('Aquí tienes tu vídeo «{title}» en estilo {style}{secs}.', { title, style: style ? (lang() === 'es' ? style.name : style.en) : v.film!, secs: secs ? ` (${secs} s)` : '' }),
     about ? clip(about, 400) : '',
     episodeNote,
+    check.issues.length ? tr('⚠ kywai aún ve esto en el vídeo tras {n} correcciones:\n{v1}', { n: meta.fixesDone ?? 0, v1: check.issues.map((x) => `- ${x}`).join('\n') }) : '',
     tr('El proyecto completo (guion, código y créditos de lo que usa) queda en {dir}.', { dir: v.work! })
   ].filter(Boolean).join('\n\n')
   await completeTask(run, t, exec, parent, { ...res, text })
+}
+
+/**
+ * La película no pasó la comprobación: vuelve a quien la hizo (al jefe, si la hizo un becario), en su misma sesión,
+ * con lo que hay que arreglar. `byId` es el agente que la revisó (sin él, la comprobó kywai).
+ */
+function requeueFilmFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, byName: string, issues: string, byId?: AgentId): void {
+  const meta = run.meta.get(t.id)!
+  const owner = parent ?? exec
+  meta.fixesDone = (meta.fixesDone ?? 0) + 1
+  meta.fixRequest = filmFixRequest(byName, issues || '- No detalló los fallos: repasa la película contra beats.md.', join(store.workRoot(run.projectId), t.video!.work!), meta.fixesDone)
+  meta.forceMainModel = true
+  meta.resume = meta.sessionId
+  const note = tr('{byName} comprobó la película «{title}» y vio fallos; {name} los corrige (corrección {fixesDone} de {max}):\n\n{clip}', { byName, title: t.title, name: owner.name, fixesDone: meta.fixesDone, max: MAX_FILM_FIXES, clip: clip(issues, 1500) })
+  if (byId) {
+    closeWork(run, t, 'stopped', {})
+    agentMessage(run, byId, note)
+  } else closeWork(run, t, 'stopped', { text: note })
+  if (parent) {
+    removeBecario(exec.id)
+    t.agentId = parent.id
+  }
+  settleRuntime(owner.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Corrigiendo: {title}', { title: t.title }) })
+  t.status = 'pending'
+  t.startedAt = undefined
+  t.lastActivity = undefined
+  t.progress = undefined
+  pushTask(t)
+}
+
+/**
+ * Otro agente (de otra familia, que vea imágenes) revisa la hoja de contacto de la película contra beats.md y las
+ * reglas de animación, en modo solo lectura. Devuelve el veredicto (y lo deja en la tarea), o null si no hay quién.
+ */
+async function reviewFilm(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult, file: string, work: string, seconds: number): Promise<TaskVerification | null> {
+  const v = t.video!
+  const meta = run.meta.get(t.id)!
+  const owner = parent ?? exec
+  const verifier = pickVerifier(owner, true)
+  if (!verifier || !seesImages(verifier) || !seconds) {
+    traceNote(t.id, tr('Sin revisión de la película: ningún otro agente que vea imágenes disponible'))
+    return null
+  }
+  const sheet = await filmContactSheet(file, join(work, 'hoja-de-contacto.jpg'), seconds, v.format === 'vertical')
+  if (!sheet) return null
+  let beats = ''
+  try {
+    beats = readFileSync(join(work, BEATS_FILE), 'utf8')
+  } catch {
+    /* no la dejó */
+  }
+  const style = filmStyle(v.film!)
+  t.lastActivity = tr('{name} revisa la película', { name: verifier.name })
+  taskDirty(t)
+  traceNote(t.id, tr('{name} revisa la película fotograma a fotograma', { name: verifier.name }))
+  const busyBefore = busy.has(verifier.id) || planningAgents.has(verifier.id) || integrating.has(verifier.id)
+  if (!busyBefore) {
+    integrating.add(verifier.id)
+    setRuntime(verifier.id, { activity: 'working', lastActivity: tr('Revisando «{title}»', { title: t.title }), reason: undefined, waitingFor: undefined })
+  }
+  const start = Date.now()
+  const effort = effortFor(verifier.provider, 'medium')
+  const ctrl = run.controllers.get(t.id) ?? new AbortController()
+  const prompt = [
+    `Eres ${verifier.name}, parte de un equipo de agentes de IA. ${replyLanguage()}`,
+    filmReviewPrompt({
+      styleName: style ? style.name : v.film!,
+      topic: v.topic || tr('vídeo'),
+      work,
+      sheet,
+      seconds,
+      beats,
+      author: owner.name,
+      reply: res.text,
+      is3d: FILM_3D.has(v.film!),
+      vertical: v.format === 'vertical'
+    })
+  ].join('\n')
+  let out: RunAgentResult
+  try {
+    out = await runner({ agent: verifier, model: verifier.model, effort, prompt, cwd: work, images: [sheet], mode: 'plan', signal: ctrl.signal, onRateLimit })
+  } catch (e) {
+    out = { ok: false, text: '', usage: { input: 0, output: 0 }, errorKind: 'failed', errorMessage: (e as Error).message }
+  }
+  if (!busyBefore) {
+    integrating.delete(verifier.id)
+    if (!busy.has(verifier.id)) setRuntime(verifier.id, { activity: 'idle', lastActivity: tr('Revisó: {title}', { title: t.title }) })
+  }
+  const m = out.ok ? VERDICT_RE.exec(out.text) : null
+  logCall(run, 'verify', verifier, verifier.model, out, start, t.id, effort, out.ok && m ? { verdict: /^(cumple|pass)/i.test(m[1]) ? 'pass' : 'fail' } : {})
+  recordUsage(verifier.quotaGroupId, out.usage.input + out.usage.output, 1)
+  if (!out.ok || !m) {
+    traceNote(t.id, tr('{name} no dio un veredicto sobre la película', { name: verifier.name }), true)
+    return null
+  }
+  const passed = /^(cumple|pass)/i.test(m[1])
+  const notes = clip(out.text.replace(VERDICT_RE, '').trim(), 2500)
+  const result: TaskVerification = { by: verifier.id, byName: verifier.name, status: passed ? 'passed' : 'failed', ok: passed, notes: notes || undefined, fixes: meta.fixesDone ?? 0 }
+  meta.verification = result
+  t.verification = result
+  traceNote(t.id, passed ? tr('{name}: la película cumple', { name: verifier.name }) : tr('{name} vio fallos en la película: {v1}', { name: verifier.name, v1: oneLine(notes, 300) }), !passed)
+  return result
 }
 
 /** Archivos que ya había, para no darlos por resultados nuevos (sin pisar lo que mide otra petición en marcha). */
@@ -3747,7 +3869,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   if (t.video?.film && t.video.work) {
     const style = filmStyle(t.video.film)
     if (style)
-      return filmPrompt({
+      return (meta.fixRequest ? `## Corrección pedida\n${meta.fixRequest}\n\n## El encargo original\n` : '') + filmPrompt({
         style,
         topic: withBatch(t.video.topic, t.video.batch),
         source: t.video.source,
