@@ -3018,6 +3018,9 @@ Los temas usan las mismas reglas que las escenas 3D de los vídeos para que el e
   en los demás los mapas se veían planos. Ahora la calidad media también las tiene, con un mapa de sombras más
   pequeño (1024 en vez de 2048) para que pese menos; el sombreado de contacto (N8AO) sigue siendo solo de la alta
   (`shadowMap` y `ao` en `scene/quality.ts`).
+- **Luz viva.** La luz nunca está del todo quieta: la principal, el relleno y el borde «respiran» muy despacio,
+  cada una con su propio ritmo (unos 20 a 40 segundos), y se avivan un poco cuando el equipo está trabajando.
+  Con **Reducir efectos** se quedan quietas (`lightBreath` en `scene/CinemaLights.tsx`).
 
 ### Voces de los agentes
 

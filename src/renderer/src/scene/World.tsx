@@ -220,7 +220,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
 
       <group key={theme}>
         <CinemaLights palette={p} lights={L} worldLight={worldLight} shadows={!!p.world && q.shadows} shadowSize={q.shadowMap}
-          home={theme === 'kywai' ? { night } : undefined} />
+          home={theme === 'kywai' ? { night } : undefined} reduced={reduced} />
 
         {/* Entorno para reflejos de los visores (generado localmente, sin descargas) */}
         <Environment key={`reflections-${theme}-${night}`} resolution={p.world ? 256 : 128} frames={1}>
