@@ -1434,7 +1434,6 @@ export const zh: Record<string, string> = {
   "\n\n…(archivo truncado)": "\n\n…（文件已截断）",
   "Proyecto no válido": "无效的项目",
   "Este proyecto tiene trabajo en marcha: detenlo antes de eliminarlo": "此项目有正在进行的工作：删除前请先停止",
-  "El equipo está trabajando en este proyecto: detenlo antes de limpiar el chat": "团队正在处理此项目：清空聊天前请先停止",
   "Mensaje no válido": "无效的消息",
   "Petición no válida": "无效的请求",
   "Todos los archivos": "所有文件",
@@ -2095,8 +2094,6 @@ export const zh: Record<string, string> = {
   "Conversación nueva": "新对话",
   "ayer": "昨天",
   "Conversación no válida": "无效的对话",
-  "El equipo está trabajando en este proyecto: espera a que termine o detenlo para empezar otra conversación": "团队正在处理此项目：请等待完成或停止后再开始新对话",
-  "El equipo está trabajando en este proyecto: espera a que termine o detenlo para cambiar de conversación": "团队正在处理此项目：请等待完成或停止后再切换对话",
 
   // Extensiones (servidores MCP)
   "ahora mismo": "刚刚",

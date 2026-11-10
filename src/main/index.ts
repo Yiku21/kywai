@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { finished } from 'node:stream/promises'
-import type { AddAgentInput, AgentId, ImportResult, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { AddAgentInput, AgentId, ConversationSummary, ImportResult, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
@@ -64,7 +64,6 @@ import { hermesModelLabel, hermesModelsInfo } from './hermesModels'
 import { emit, setEventWindow } from './events'
 import { cancelLocalPull, listLocalEngines, pullOllamaModel, savePastedFile, startLocalServer } from './local'
 import {
-  activeRunFor,
   activeRunsFor,
   approvePlan,
   decideRoutineProposal,
@@ -416,9 +415,26 @@ function registerIpc(): void {
   )
   handle('listProjects', () => store.listProjects().map((p) => (activeRunsFor(p.id).length ? { ...p, busy: true } : p)))
   handle('createProject', (name: unknown) => store.createProject(typeof name === 'string' ? name : ''))
+  /** Conversaciones donde el equipo trabaja ahora en un proyecto (la abierta o alguna en segundo plano). */
+  const busyConversations = (projectId: string): Set<string> =>
+    new Set(activeRunsFor(projectId).map((runId) => conversations.conversationOfRun(projectId, runId)))
+  /** Las peticiones en marcha de la conversación abierta («Detener» es para ellas, no para las de otra en segundo plano). */
+  const openRuns = (projectId: string): string[] => {
+    const cid = store.getProject(projectId).conversation?.id
+    return activeRunsFor(projectId).filter((runId) => conversations.conversationOfRun(projectId, runId) === cid)
+  }
+  /** Marca las conversaciones en las que el equipo trabaja (punto verde en la barra). */
+  const withBusy = (list: ConversationSummary[]): ConversationSummary[] => {
+    const busy = new Map<string, Set<string>>()
+    return list.map((c) => {
+      let set = busy.get(c.projectId)
+      if (!set) busy.set(c.projectId, (set = busyConversations(c.projectId)))
+      return set.has(c.id) ? { ...c, busy: true } : c
+    })
+  }
   handle('loadProject', (projectId: unknown) => {
     if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
-    const active = activeRunsFor(projectId)
+    const active = openRuns(projectId)
     const snap = store.snapshotProject(projectId)
     // Las rutinas van sin el secreto de su webhook (se pide aparte con getRoutineWebhook).
     return { ...snap, routines: publicRoutines(snap.routines), activeRunId: active[active.length - 1], activeRunIds: active }
@@ -438,33 +454,36 @@ function registerIpc(): void {
     const quotas = latestQuotas().length ? latestQuotas() : computeQuotas(getConfig(), allAgents())
     return { runtimes: runtimeSnapshot(), quotas }
   })
-  /** Conversación nueva o volver a otra: no mientras el equipo trabaja en el proyecto (sus mensajes irían a la otra). */
-  const switchConversation = (projectId: unknown, change: (id: string) => void, busyText: string): ProjectState => {
+  /**
+   * Conversación nueva o volver a otra. Se puede aunque el equipo esté trabajando: la conversación que deja sigue
+   * en segundo plano y lo que llegue de sus peticiones va a ella (ver «Segundo plano» en conversations.ts).
+   */
+  const switchConversation = (projectId: unknown, change: (id: string) => void): ProjectState => {
     if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
-    if (activeRunFor(projectId)) throw new Error(tr(busyText))
+    // Las peticiones en marcha quedan atadas a la conversación donde empezaron antes de cambiar.
+    for (const runId of activeRunsFor(projectId)) conversations.conversationOfRun(projectId, runId)
     change(projectId)
     const cid = store.getProject(projectId).conversation?.id
     emit({ kind: 'chat.cleared', projectId, conversationId: cid })
     emit({ kind: 'conversations.updated', projectId })
     const snap = store.snapshotProject(projectId)
-    return { ...snap, routines: publicRoutines(snap.routines), activeRunId: undefined, activeRunIds: [] }
+    const active = openRuns(projectId)
+    return { ...snap, routines: publicRoutines(snap.routines), activeRunId: active[active.length - 1], activeRunIds: active }
   }
   handle('clearChat', (projectId: unknown) => {
-    switchConversation(projectId, (id) => conversations.newConversation(id), 'El equipo está trabajando en este proyecto: detenlo antes de limpiar el chat')
+    switchConversation(projectId, (id) => conversations.newConversation(id))
     return store.getProject(projectId as string).conversation?.id ?? ''
   })
-  handle('newConversation', (projectId: unknown) =>
-    switchConversation(projectId, (id) => conversations.newConversation(id), 'El equipo está trabajando en este proyecto: espera a que termine o detenlo para empezar otra conversación')
-  )
+  handle('newConversation', (projectId: unknown) => switchConversation(projectId, (id) => conversations.newConversation(id)))
   handle('openConversation', (projectId: unknown, conversationId: unknown) => {
     if (!conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
-    return switchConversation(projectId, (id) => conversations.openConversation(id, conversationId), 'El equipo está trabajando en este proyecto: espera a que termine o detenlo para cambiar de conversación')
+    return switchConversation(projectId, (id) => conversations.openConversation(id, conversationId))
   })
   handle('listConversations', (projectId: unknown) => {
     if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
-    return conversations.listConversations(projectId)
+    return withBusy(conversations.listConversations(projectId))
   })
-  handle('recentConversations', (limit?: unknown) => conversations.recentConversations(typeof limit === 'number' ? limit : 12))
+  handle('recentConversations', (limit?: unknown) => withBusy(conversations.recentConversations(typeof limit === 'number' ? limit : 12)))
   handle('renameConversation', (projectId: unknown, conversationId: unknown, title: unknown) => {
     if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
     conversations.renameConversation(projectId, conversationId, title)
@@ -473,6 +492,7 @@ function registerIpc(): void {
   })
   handle('deleteConversation', (projectId: unknown, conversationId: unknown) => {
     if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
+    if (busyConversations(projectId).has(conversationId)) throw new Error(tr('El equipo está trabajando en esta conversación: espera a que termine o detenlo'))
     conversations.deleteConversation(projectId, conversationId)
     emit({ kind: 'conversations.updated', projectId })
     return conversations.listConversations(projectId)
@@ -483,7 +503,7 @@ function registerIpc(): void {
     emit({ kind: 'conversations.updated', projectId })
     return conversations.listConversations(projectId)
   })
-  handle('pinnedConversations', () => conversations.pinnedConversations())
+  handle('pinnedConversations', () => withBusy(conversations.pinnedConversations()))
   handle('forkConversation', (projectId: unknown, conversationId: unknown) => {
     if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
     const id = conversations.forkConversation(projectId, conversationId)
@@ -495,7 +515,7 @@ function registerIpc(): void {
       throw new Error(tr('Conversación no válida'))
     }
     const wasOpen = store.getProject(projectId).conversation?.id === conversationId
-    if (wasOpen && activeRunFor(projectId)) throw new Error(tr('El equipo está trabajando en esta conversación: espera a que termine o detenlo para moverla'))
+    if (busyConversations(projectId).has(conversationId)) throw new Error(tr('El equipo está trabajando en esta conversación: espera a que termine o detenlo para moverla'))
     const id = conversations.moveConversation(projectId, conversationId, toProjectId)
     if (wasOpen) emit({ kind: 'chat.cleared', projectId, conversationId: store.getProject(projectId).conversation?.id })
     emit({ kind: 'conversations.updated', projectId })
@@ -509,7 +529,7 @@ function registerIpc(): void {
   })
   handle('search', (query: unknown, projectId?: unknown) => conversations.search(query, typeof projectId === 'string' ? projectId : undefined))
   handle('searchHistory', (query: unknown, options?: unknown) => conversations.searchHistory(query, options && typeof options === 'object' ? (options as SearchOptions) : {}))
-  handle('allConversations', () => conversations.allConversations())
+  handle('allConversations', () => withBusy(conversations.allConversations()))
   // Importar de otras apps (Claude Code, Codex, ChatGPT, Claude.ai): ver importChats.ts.
   const afterImport = async (r: ImportResult): Promise<ImportResult> => {
     // Reimportar Claude.ai deja vacíos el proyecto «Claude.ai» y los que se crearon sin nada: van a la Papelera.
@@ -1345,6 +1365,7 @@ app.on('before-quit', () => {
   stopQuota()
   stopMacPermissionWatch()
   void stopWebServer()
+  conversations.flushBackground()
   store.flushAll()
   flushUsageLog()
   flushInbox()

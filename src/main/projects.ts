@@ -360,18 +360,48 @@ function upsertBy<T extends { id: string }>(list: T[], item: T): void {
   else list.push(item)
 }
 
-export function upsertMessage(m: ChatMessage): void {
+/** Pone un mensaje en una lista de chat: el bloque de una tarea que vuelve a trabajar (una corrección) baja al final. */
+export function placeMessage(list: ChatMessage[], m: ChatMessage): void {
+  const i = list.findIndex((x) => x.id === m.id)
+  if (i >= 0 && reopensWork(list[i], m)) list.splice(i, 1)
+  upsertBy(list, { ...m })
+}
+
+/**
+ * Lo de una petición cuya conversación ya no es la abierta (el equipo sigue en segundo plano mientras miras
+ * otra): conversations.ts lo guarda en esa conversación y devuelve true. Sin router, todo va a la abierta.
+ */
+export interface ChatRouter {
+  message(m: ChatMessage): boolean
+  task(t: Task): boolean
+}
+let router: ChatRouter | null = null
+export function setChatRouter(r: ChatRouter | null): void {
+  router = r
+}
+
+const FINISHED_TASK: ReadonlySet<Task['status']> = new Set(['done', 'failed', 'cancelled'])
+
+/** Guarda un mensaje. Devuelve false si fue a una conversación en segundo plano (no hay que enseñarlo en el chat abierto). */
+export function upsertMessage(m: ChatMessage): boolean {
+  if (router?.message(m)) return false
   const st = getProject(m.projectId)
-  const i = st.messages.findIndex((x) => x.id === m.id)
-  // El bloque de una tarea que vuelve a trabajar (una corrección) baja al final, como en el chat.
-  if (i >= 0 && reopensWork(st.messages[i], m)) st.messages.splice(i, 1)
-  upsertBy(st.messages, { ...m })
+  placeMessage(st.messages, m)
   scheduleSave(m.projectId)
+  return true
 }
 
 export function upsertTask(t: Task): void {
   const st = getProject(t.projectId)
-  upsertBy(st.tasks, JSON.parse(JSON.stringify(t)) as Task)
+  const copy = JSON.parse(JSON.stringify(t)) as Task
+  if (router?.task(copy)) {
+    // De una conversación en segundo plano: mientras trabaja sigue en el proyecto (el equipo y el 3D la ven);
+    // al terminar se queda solo en su conversación, para no guardarla con la que tengas abierta.
+    if (FINISHED_TASK.has(copy.status)) st.tasks = st.tasks.filter((x) => x.id !== copy.id)
+    else upsertBy(st.tasks, copy)
+  } else {
+    upsertBy(st.tasks, copy)
+  }
   scheduleSave(t.projectId)
 }
 

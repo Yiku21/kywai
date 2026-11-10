@@ -990,6 +990,8 @@ export interface ConversationSummary {
   pinned?: boolean
   /** Traída de otra app («Claude Code», «Codex», «ChatGPT», «Claude.ai»). */
   importedFrom?: string
+  /** El equipo está trabajando en ella (aunque no sea la abierta: sigue en segundo plano). */
+  busy?: boolean
 }
 
 /** Un resultado del buscador (Ctrl+K): conversaciones, tareas, resultados y memoria de todos los proyectos. */
@@ -1478,8 +1480,8 @@ export type CoworkEvent = EventBase &
     | { kind: 'message.delta'; messageId: string; text: string }
     | { kind: 'artifact.created'; artifact: Artifact }
     | { kind: 'quota.update'; quotas: QuotaInfo[] }
-    | { kind: 'run.started'; runId: string; projectId: string }
-    | { kind: 'run.finished'; runId: string; projectId: string; ok: boolean }
+    | { kind: 'run.started'; runId: string; projectId: string; conversationId?: string }
+    | { kind: 'run.finished'; runId: string; projectId: string; conversationId?: string; ok: boolean }
     | { kind: 'chat.cleared'; projectId: string; conversationId?: string }
     | { kind: 'conversations.updated'; projectId: string }
     | { kind: 'usage.run'; run: UsageRun }

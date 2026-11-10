@@ -64,7 +64,8 @@ import { addMemory, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNot
 import { normalizeScope, outsideScope } from './scope'
 import { CHAT_STYLE, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
 import { projectBrief, testCommand } from './projectBrief'
-import { lastSession, rememberSession, supportsResume } from './agentSessions'
+import { supportsResume } from './agentSessions'
+import { conversationOfRun, findMessage, lastRunSession, rememberRunSession, runChat } from './conversations'
 import { hasGit, Shadow } from './checkpoints'
 import { addInbox, onInboxAction, resolveInboxWhere } from './inbox'
 import { askPermission, dropPermissions, onPermissionChange, sessionAllows, waitingPermission, type PermissionRequest } from './permissions'
@@ -791,8 +792,8 @@ function taskDirty(t: Task): void {
 }
 
 function pushMessage(m: ChatMessage): void {
-  store.upsertMessage(m)
-  emit({ kind: 'message.upsert', message: { ...m } })
+  // Si su conversación sigue en segundo plano (miras otra), se guarda allí y no sale en el chat abierto.
+  if (store.upsertMessage(m)) emit({ kind: 'message.upsert', message: { ...m } })
   if (m.proposal) planInbox(m)
 }
 
@@ -917,7 +918,7 @@ function pausedInboxDone(runId: string, resolution: string): void {
 function runInbox(run: Run, ok: boolean): void {
   try {
     const st = store.getProject(run.projectId)
-    const msgs = st.messages.filter((m) => m.runId === run.id && m.author.type === 'agent' && !!m.text.trim() && !m.proposal)
+    const msgs = runChat(run.projectId, run.id).messages.filter((m) => m.runId === run.id && m.author.type === 'agent' && !!m.text.trim() && !m.proposal)
     const last = msgs[msgs.length - 1]
     resolveInboxWhere((i) => i.projectId === run.projectId && (i.kind === 'done' || i.kind === 'question'), tr('Hay una petición más reciente'))
     const q = last ? asksUser(last.text) : null
@@ -964,7 +965,7 @@ onPermissionChange((req: PermissionRequest, inboxId: string, state: 'pending' | 
     }
     const ref = permissionMessages.get(inboxId)
     permissionMessages.delete(inboxId)
-    const m = ref ? store.getProject(ref.projectId).messages.find((x) => x.id === ref.messageId) : undefined
+    const m = ref ? findMessage(ref.projectId, ref.messageId) : undefined
     if (m) {
       m.permission = { inboxId, state }
       pushMessage(m)
@@ -1521,7 +1522,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     finished: false
   }
   runs.set(runId, run)
-  emit({ kind: 'run.started', runId, projectId })
+  emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
   // Registro de consumo: la petición y la cuota de cada suscripción al empezar.
   startRunUsage({ runId, projectId, projectName: st.project.name, request: run.userText })
   void freshQuotaSnapshot(10_000).then((snap) => setRunQuota(runId, 'before', snap))
@@ -1606,7 +1607,7 @@ async function sendDirect(
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
   runs.set(runId, run)
-  emit({ kind: 'run.started', runId, projectId })
+  emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
   startRunUsage({ runId, projectId, projectName: st.project.name, request: text })
   await baseline(run)
   tasks.set(t.id, t)
@@ -1753,7 +1754,7 @@ async function sendVideo(
     newTasks.push(t)
   }
   runs.set(runId, run)
-  emit({ kind: 'run.started', runId, projectId })
+  emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
   startRunUsage({ runId, projectId, projectName: st.project.name, request: userText })
   await baseline(run)
   for (const t of newTasks) {
@@ -1967,7 +1968,7 @@ async function sendInstagram(
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
   runs.set(runId, run)
-  emit({ kind: 'run.started', runId, projectId })
+  emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
   startRunUsage({ runId, projectId, projectName: st.project.name, request: shown })
   await baseline(run)
   tasks.set(t.id, t)
@@ -2015,7 +2016,7 @@ async function completeInstagram(run: Run, t: Task, exec: AgentConfig, parent: A
 
 /** Sube y publica el reel de la tarjeta; el chat va contando cómo va y acaba con el enlace (o el error). */
 async function publishPost(projectId: string, messageId: string, caption: string, auto = false): Promise<void> {
-  const get = (): ChatMessage | undefined => store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const get = (): ChatMessage | undefined => findMessage(projectId, messageId)
   const m = get()
   const p = m?.instagramPost
   if (!m || !p) return
@@ -2054,7 +2055,7 @@ async function publishPost(projectId: string, messageId: string, caption: string
 
 /** «Publicar» (con el texto que dejes en la tarjeta) o «Descartar» el reel preparado. Publicar no espera a que acabe. */
 export function decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string): ChatMessage {
-  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const m = findMessage(projectId, messageId)
   const p = m?.instagramPost
   if (!m || !p) throw new Error(tr('No se encontró ese reel'))
   if (p.status === 'published') throw new Error(tr('Ese reel ya está publicado'))
@@ -2158,7 +2159,7 @@ async function completeTikTok(run: Run, t: Task, exec: AgentConfig, parent: Agen
 
 /** Sube el vídeo de la tarjeta a TikTok (borrador o directo); el chat va contando y acaba con el resultado o el error. */
 async function sendTikTok(projectId: string, messageId: string, mode: 'draft' | 'direct', choice: TikTokDirectChoice, auto = false): Promise<void> {
-  const get = (): ChatMessage | undefined => store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const get = (): ChatMessage | undefined => findMessage(projectId, messageId)
   const m = get()
   const p = m?.tiktokPost
   if (!m || !p) return
@@ -2200,7 +2201,7 @@ async function sendTikTok(projectId: string, messageId: string, mode: 'draft' | 
 
 /** «Enviar como borrador», «Publicar» (directo, con lo elegido en la tarjeta) o «Descartar». No espera a que acabe. */
 export function decideTikTokPost(projectId: string, messageId: string, action: 'draft' | 'publish' | 'dismiss', choice: TikTokDirectChoice = {}): ChatMessage {
-  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const m = findMessage(projectId, messageId)
   const p = m?.tiktokPost
   if (!m || !p) throw new Error(tr('No se encontró ese vídeo'))
   if (p.status === 'published' || p.status === 'drafted') throw new Error(tr('Ese vídeo ya está en TikTok'))
@@ -2294,7 +2295,7 @@ async function sendLearn(
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
   runs.set(runId, run)
-  emit({ kind: 'run.started', runId, projectId })
+  emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
   startRunUsage({ runId, projectId, projectName: st.project.name, request: shown })
   await baseline(run)
   tasks.set(t.id, t)
@@ -2589,7 +2590,7 @@ function pendingProposal(projectId: string): ChatMessage | undefined {
 
 /** Un plan propuesto y guardado en su mensaje (sigue ahí aunque se reinicie la app). */
 function proposalMessage(projectId: string, messageId: string): ChatMessage & { proposal: PlanProposal; runId: string } {
-  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const m = findMessage(projectId, messageId)
   if (!m?.proposal || !m.runId) throw new Error(tr('No se encontró ese plan'))
   if (m.proposal.status === 'approved' || runs.has(m.runId)) throw new Error(tr('Ese plan ya está en marcha'))
   if (m.proposal.status !== 'pending') throw new Error(tr('Ese plan ya no está pendiente'))
@@ -2639,7 +2640,7 @@ export async function approvePlan(projectId: string, messageId: string): Promise
     }
   })
   runs.set(run.id, run)
-  emit({ kind: 'run.started', runId: run.id, projectId })
+  emit({ kind: 'run.started', runId: run.id, projectId, conversationId: conversationOfRun(projectId, run.id) })
   resumeRunUsage(run.id)
   await baseline(run)
   const created = createTasks(run, planned)
@@ -2665,8 +2666,7 @@ export async function approvePlan(projectId: string, messageId: string): Promise
  * que el coordinador ve de cada agente: lo que mide si el trabajo sirvió, no solo si la llamada terminó bien.
  */
 export function rateMessage(projectId: string, messageId: string, rating: MessageRating | null): void {
-  const st = store.getProject(projectId)
-  const m = st.messages.find((x) => x.id === messageId)
+  const m = findMessage(projectId, messageId)
   if (!m) throw new Error(tr('No se encontró ese mensaje'))
   if (m.author.type !== 'agent') throw new Error(tr('Solo se valoran los resultados de los agentes'))
   if (rating !== 'up' && rating !== 'down' && rating !== null) throw new Error(tr('Valoración no válida'))
@@ -2710,7 +2710,7 @@ function proposeRoutine(run: Run, planner: AgentConfig, command: string): void {
  */
 async function proposeSkills(run: Run, planner: AgentConfig, query: string): Promise<void> {
   if (run.routine || !query || !skillsDir()) return
-  const before = proposedBefore(store.getProject(run.projectId).messages)
+  const before = proposedBefore(runChat(run.projectId, run.id).messages)
   if (before.queries.has(skillQueryKey(query))) return
   let found: Awaited<ReturnType<typeof searchSkillCatalog>>
   try {
@@ -2734,7 +2734,7 @@ async function proposeSkills(run: Run, planner: AgentConfig, query: string): Pro
 
 /** «Instalar» (una de la tarjeta) o «Descartar» en las habilidades que sugirió Hermes. */
 export async function decideSkillProposal(projectId: string, messageId: string, action: 'install' | 'dismiss', index = 0): Promise<ChatMessage> {
-  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const m = findMessage(projectId, messageId)
   const p = m?.skillProposal
   if (!m || !p) throw new Error(tr('No se encontró esa propuesta de habilidades'))
   if (p.status === 'dismissed') throw new Error(tr('Esa propuesta ya se descartó'))
@@ -2749,7 +2749,7 @@ export async function decideSkillProposal(projectId: string, messageId: string, 
     next = { ...p, status: p.items.some((x) => x.installed) ? 'done' : 'dismissed', decidedAt: Date.now() }
   } else throw new Error(tr('Acción no válida'))
   // Se vuelve a leer: mientras se instalaba pudo cambiar el mensaje.
-  const cur = store.getProject(projectId).messages.find((x) => x.id === messageId) ?? m
+  const cur = findMessage(projectId, messageId) ?? m
   const updated = { ...cur, skillProposal: next }
   pushMessage(updated)
   return updated
@@ -2757,7 +2757,7 @@ export async function decideSkillProposal(projectId: string, messageId: string, 
 
 /** «Crear rutina» o «Descartar» en la tarjeta que propuso Hermes. */
 export function decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): ChatMessage {
-  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const m = findMessage(projectId, messageId)
   const p = m?.routineProposal
   if (!m || !p) throw new Error(tr('No se encontró esa propuesta de rutina'))
   if (p.status !== 'pending') throw new Error(p.status === 'created' ? tr('Esa rutina ya está creada') : tr('Esa propuesta ya se descartó'))
@@ -2835,7 +2835,7 @@ export async function resumeRun(projectId: string, runId: string): Promise<void>
     pushTask(t)
   }
   pausedInboxDone(runId, tr('Reanudada'))
-  emit({ kind: 'run.started', runId, projectId })
+  emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
   resumeRunUsage(runId)
   try {
     projectKnown.set(projectId, await store.snapshotFiles(store.workRoot(projectId)))
@@ -2903,7 +2903,7 @@ export function cancelRun(runId: string, reason: 'user' | 'quit' | 'pause' = 'us
   run.finished = true
   // Al cerrar la app no se consulta la cuota (no da tiempo y dejaría procesos sueltos).
   usageEnded(run, 'cancelled', reason !== 'quit')
-  emit({ kind: 'run.finished', runId: run.id, projectId: run.projectId, ok: false })
+  emit({ kind: 'run.finished', runId: run.id, projectId: run.projectId, conversationId: conversationOfRun(run.projectId, run.id), ok: false })
   cleanupRun(run)
   schedule()
 }
@@ -3053,7 +3053,7 @@ function proposePlan(run: Run, planner: AgentConfig, reply: string, planned: Pla
   run.finished = true
   // La cuota se mide al terminar el trabajo de verdad (si lo apruebas, la petición sigue con el mismo registro).
   usageEnded(run, 'ok', false)
-  emit({ kind: 'run.finished', runId: run.id, projectId: run.projectId, ok: true })
+  emit({ kind: 'run.finished', runId: run.id, projectId: run.projectId, conversationId: conversationOfRun(run.projectId, run.id), ok: true })
   cleanupRun(run)
   schedule()
 }
@@ -3199,8 +3199,7 @@ function authorLabel(m: ChatMessage): string {
  * mensajes atrás («como habíamos dicho») tiene que llegar a quien hace el trabajo, no solo al coordinador.
  */
 function recentConversation(projectId: string, exceptRunId: string): string[] {
-  return store
-    .getProject(projectId)
+  return runChat(projectId, exceptRunId)
     .messages.filter((m) => m.runId !== exceptRunId && m.text.trim() && m.proposal?.status !== 'rejected')
     .slice(-HISTORY_MESSAGES)
     .map((m) => `${authorLabel(m)}: ${clip(m.text, HISTORY_CHARS)}`)
@@ -3213,10 +3212,12 @@ function recentConversation(projectId: string, exceptRunId: string): string[] {
  */
 function previousWork(projectId: string, exceptRunId: string): string[] {
   const st = store.getProject(projectId)
-  const prev = [...st.tasks].reverse().find((t) => t.runId !== exceptRunId && t.status === 'done')
+  // La petición anterior de esta conversación (si sigue en segundo plano, la suya, no la que tengas abierta).
+  const chat = runChat(projectId, exceptRunId)
+  const prev = [...chat.tasks].reverse().find((t) => t.runId !== exceptRunId && t.status === 'done')
   if (!prev) return []
-  const ts = st.tasks.filter((t) => t.runId === prev.runId)
-  const request = st.messages.find((m) => m.runId === prev.runId && m.author.type === 'user')
+  const ts = chat.tasks.filter((t) => t.runId === prev.runId)
+  const request = chat.messages.find((m) => m.runId === prev.runId && m.author.type === 'user')
   const out = ['## Lo que se hizo en la petición anterior']
   if (request) out.push(`El usuario pidió: ${clip(request.text, HISTORY_CHARS)}`)
   for (const t of ts) {
@@ -3396,7 +3397,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
       extraTools: extraToolLines(),
       plannerReads: reads,
       // La lista de funciones de la app solo si la conversación va de kywai: si no, son 5 000 caracteres de ruido.
-      aboutApp: mentionsApp([run.userText, ...st.messages.filter((m) => m.author.type === 'user').slice(-3).map((m) => m.text)].join('\n'))
+      aboutApp: mentionsApp([run.userText, ...runChat(run.projectId, run.id).messages.filter((m) => m.author.type === 'user').slice(-3).map((m) => m.text)].join('\n'))
     }),
     '',
     '## Conversación reciente',
@@ -4188,7 +4189,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // Corrección o continuación: el mismo CLI retoma su sesión anterior, con lo que leyó, hizo y decidió en la memoria.
   const sessionOwner = parent ?? exec
   const resume = supportsResume(exec.provider)
-    ? (meta.resume ?? (t.continues && dir === mainDir ? lastSession(run.projectId, sessionOwner.id, { provider: exec.provider, cwd: dir })?.sessionId : undefined))
+    ? (meta.resume ?? (t.continues && dir === mainDir ? lastRunSession(run.projectId, run.id, sessionOwner.id, { provider: exec.provider, cwd: dir })?.sessionId : undefined))
     : undefined
   startTrace(t.id, run.projectId)
   openWork(run, t, parent ?? exec, exec)
@@ -4298,7 +4299,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   progress.stop()
   if (res.sessionId && !ctrl.signal.aborted) {
     meta.sessionId = res.sessionId
-    rememberSession(run.projectId, sessionOwner.id, { sessionId: res.sessionId, provider: exec.provider, cwd: dir, taskTitle: t.title, at: Date.now() })
+    rememberRunSession(run.projectId, run.id, sessionOwner.id, { sessionId: res.sessionId, provider: exec.provider, cwd: dir, taskTitle: t.title, at: Date.now() })
   }
 
   // «BLOQUEADA: …» no sale bien en el registro, pero va marcada aparte: no es un fallo del agente.
@@ -5337,7 +5338,7 @@ async function finishRun(run: Run, forcedOk?: boolean): Promise<void> {
   usageEnded(run, ok ? 'ok' : 'failed')
   if (done.length >= 2) await integrate(run, ts)
   if (!run.cancelled) {
-    emit({ kind: 'run.finished', runId: run.id, projectId: run.projectId, ok })
+    emit({ kind: 'run.finished', runId: run.id, projectId: run.projectId, conversationId: conversationOfRun(run.projectId, run.id), ok })
     runInbox(run, ok)
   }
   cleanupRun(run)
@@ -5476,7 +5477,7 @@ export function activeRunsFor(projectId: string): string[] {
  * terminó (o se descartó su plan).
  */
 export function runState(projectId: string, runId: string): 'running' | 'waiting' | null {
-  const msgs = store.getProject(projectId).messages
+  const msgs = runChat(projectId, runId).messages
   for (let i = msgs.length - 1; i >= 0; i--) {
     const m = msgs[i]
     if (m.runId === runId && m.proposal?.status === 'pending') return 'waiting'

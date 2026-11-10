@@ -1434,7 +1434,6 @@ export const fr: Record<string, string> = {
   "\n\n…(archivo truncado)": "\n\n…(fichier tronqué)",
   "Proyecto no válido": "Projet invalide",
   "Este proyecto tiene trabajo en marcha: detenlo antes de eliminarlo": "Ce projet a du travail en cours : arrêtez-le avant de le supprimer",
-  "El equipo está trabajando en este proyecto: detenlo antes de limpiar el chat": "L'équipe travaille sur ce projet : arrêtez-la avant de vider le chat",
   "Mensaje no válido": "Message invalide",
   "Petición no válida": "Demande invalide",
   "Todos los archivos": "Tous les fichiers",
@@ -2095,8 +2094,6 @@ export const fr: Record<string, string> = {
   "Conversación nueva": "Nouvelle conversation",
   "ayer": "hier",
   "Conversación no válida": "Conversation non valide",
-  "El equipo está trabajando en este proyecto: espera a que termine o detenlo para empezar otra conversación": "L’équipe travaille sur ce projet : attendez la fin ou arrêtez-la pour commencer une autre conversation",
-  "El equipo está trabajando en este proyecto: espera a que termine o detenlo para cambiar de conversación": "L’équipe travaille sur ce projet : attendez la fin ou arrêtez-la pour changer de conversation",
 
   // Extensiones (servidores MCP)
   "ahora mismo": "à l’instant",

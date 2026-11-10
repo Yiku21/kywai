@@ -1,15 +1,20 @@
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { ChatMessage, ConversationSummary, ProjectState, SearchHit, SearchOptions, SearchResult, Task } from '@shared/types'
-import { exportSessions, replaceSessions, type AgentSession } from './agentSessions'
-import { getProject, isValidProjectId, listProjects, scheduleSave } from './projects'
+import { INTERRUPTED_ERROR } from '@shared/defaults'
+import type { ChatMessage, ConversationSummary, ProjectState, ProviderKind, SearchHit, SearchOptions, SearchResult, Task } from '@shared/types'
+import { exportSessions, lastSession, rememberSession, replaceSessions, usableSession, type AgentSession } from './agentSessions'
+import { getProject, isValidProjectId, listProjects, placeMessage, scheduleSave, setChatRouter } from './projects'
 
 /**
  * Varias conversaciones por proyecto, como en Claude: la abierta vive en el proyecto (messages y tasks, como
  * siempre, así el motor no cambia) y las demás se guardan en conversaciones/<id>.json dentro de la carpeta
  * interna del proyecto, con las sesiones de CLI de cada agente para retomarlas donde se dejaron.
  * Abrir una guardada intercambia: la abierta se guarda y la elegida pasa a ser la abierta.
+ *
+ * Conversaciones en paralelo: cada petición recuerda la conversación donde empezó. Si cambias a otra mientras el
+ * equipo trabaja, lo que siga llegando de esa petición (mensajes, tareas, sesiones de los CLI) va a su
+ * conversación en segundo plano (ver «Segundo plano» más abajo) y no a la que tienes abierta.
  */
 
 const FINISHED: ReadonlySet<Task['status']> = new Set(['done', 'failed', 'cancelled'])
@@ -147,12 +152,25 @@ function writeConversation(st: ProjectState, c: StoredConversation): void {
 
 function readConversation(st: ProjectState, cid: string): StoredConversation {
   if (!isValidConversationId(cid)) throw new Error('Conversación no válida')
+  // Si el equipo trabaja en ella en segundo plano, la de memoria es la buena (el archivo va unos instantes por detrás).
+  const live = background.get(bgKey(st.project.id, cid))
+  if (live) return live.conv
+  let conv: StoredConversation
   try {
     const raw = JSON.parse(readFileSync(fileOf(st, cid), 'utf8')) as StoredConversation
-    return { ...raw, id: cid, messages: Array.isArray(raw.messages) ? raw.messages : [], tasks: Array.isArray(raw.tasks) ? raw.tasks : [] }
+    conv = { ...raw, id: cid, messages: Array.isArray(raw.messages) ? raw.messages : [], tasks: Array.isArray(raw.tasks) ? raw.tasks : [] }
   } catch {
     throw new Error('No se encuentra esa conversación')
   }
+  // Tareas que se quedaron a medias en segundo plano al cerrar la app: ya no pueden seguir.
+  for (const t of conv.tasks) {
+    if (t.status === 'running' || t.status === 'pending' || t.status === 'blocked') {
+      t.status = 'cancelled'
+      t.error = t.error ?? INTERRUPTED_ERROR
+      t.finishedAt = t.finishedAt ?? Date.now()
+    }
+  }
+  return conv
 }
 
 function load(projectId: string): ProjectState {
@@ -160,6 +178,140 @@ function load(projectId: string): ProjectState {
   const st = getProject(projectId)
   importHistory(st)
   return st
+}
+
+// ---------- Segundo plano: conversaciones donde el equipo sigue trabajando mientras miras otra ----------
+
+/** Petición → conversación donde empezó. En memoria: al reiniciar la app no queda ninguna petición en marcha. */
+const runConversation = new Map<string, string>()
+
+interface Background {
+  st: ProjectState
+  conv: StoredConversation
+  timer?: NodeJS.Timeout
+}
+/** Conversaciones no abiertas que reciben trabajo: se cargan de su archivo y se guardan al rato de cada cambio. */
+const background = new Map<string, Background>()
+const BG_SAVE_MS = 400
+const bgKey = (projectId: string, cid: string): string => `${projectId}/${cid}`
+
+/** La conversación de una petición; si aún no tiene, la abierta ahora (donde la escribiste). */
+export function conversationOfRun(projectId: string, runId: string): string {
+  let cid = runConversation.get(runId)
+  if (!cid) {
+    cid = ensureCurrent(load(projectId)).id
+    runConversation.set(runId, cid)
+  }
+  return cid
+}
+
+/** La conversación en segundo plano de una petición, o null si es la abierta (o ya no existe: entonces va a la abierta). */
+function backgroundOf(projectId: string, runId: string | undefined): Background | null {
+  if (!runId || !isValidProjectId(projectId)) return null
+  const st = load(projectId)
+  const cid = conversationOfRun(projectId, runId)
+  if (st.conversation?.id === cid) return null
+  const key = bgKey(projectId, cid)
+  let b = background.get(key)
+  if (!b) {
+    try {
+      b = { st, conv: readConversation(st, cid) }
+    } catch {
+      return null
+    }
+    background.set(key, b)
+  }
+  return b
+}
+
+function writeBackground(b: Background): void {
+  if (b.timer) clearTimeout(b.timer)
+  b.timer = undefined
+  const { st, conv } = b
+  conv.updatedAt = lastAt(conv.messages, conv.updatedAt)
+  try {
+    writeConversation(st, conv)
+  } catch (e) {
+    console.error('[cowork] no se pudo guardar la conversación en segundo plano', conv.id, e)
+  }
+  const summary = summaryOf(st, conv)
+  st.conversations = [summary, ...(st.conversations ?? []).filter((c) => c.id !== conv.id)]
+  scheduleSave(st.project.id)
+}
+
+function touch(b: Background): void {
+  if (b.timer) return
+  b.timer = setTimeout(() => writeBackground(b), BG_SAVE_MS)
+}
+
+/** Deja de tenerla en segundo plano (se abre, se borra o se mueve): lo pendiente se guarda antes en su archivo. */
+function releaseBackground(projectId: string, cid: string, save = true): void {
+  const key = bgKey(projectId, cid)
+  const b = background.get(key)
+  if (!b) return
+  if (save) writeBackground(b)
+  else if (b.timer) clearTimeout(b.timer)
+  background.delete(key)
+}
+
+/** Guarda ya lo pendiente de las conversaciones en segundo plano (al cerrar la app). */
+export function flushBackground(): void {
+  for (const b of background.values()) if (b.timer) writeBackground(b)
+}
+
+setChatRouter({
+  message(m) {
+    const b = backgroundOf(m.projectId, m.runId)
+    if (!b) return false
+    placeMessage(b.conv.messages, m)
+    touch(b)
+    return true
+  },
+  task(t) {
+    const b = backgroundOf(t.projectId, t.runId)
+    if (!b) return false
+    const copy = JSON.parse(JSON.stringify(t)) as Task
+    const i = b.conv.tasks.findIndex((x) => x.id === copy.id)
+    if (i >= 0) b.conv.tasks[i] = copy
+    else b.conv.tasks.push(copy)
+    touch(b)
+    return true
+  }
+})
+
+/** Mensajes y tareas de la conversación de una petición (la abierta o la que sigue en segundo plano). */
+export function runChat(projectId: string, runId: string): { messages: ChatMessage[]; tasks: Task[] } {
+  const b = backgroundOf(projectId, runId)
+  return b ? b.conv : getProject(projectId)
+}
+
+/** Un mensaje del proyecto por su id: en la conversación abierta o en una que trabaja en segundo plano. */
+export function findMessage(projectId: string, messageId: string): ChatMessage | undefined {
+  const st = getProject(projectId)
+  const open = st.messages.find((x) => x.id === messageId)
+  if (open) return open
+  for (const [key, b] of background) {
+    if (!key.startsWith(`${projectId}/`)) continue
+    const m = b.conv.messages.find((x) => x.id === messageId)
+    if (m) return m
+  }
+  return undefined
+}
+
+/** Guarda la sesión de CLI con la que un agente acaba de trabajar, en la conversación de su petición. */
+export function rememberRunSession(projectId: string, runId: string, agentId: string, s: AgentSession): void {
+  const b = backgroundOf(projectId, runId)
+  if (!b) return rememberSession(projectId, agentId, s)
+  if (!s.sessionId) return
+  b.conv.sessions = { ...(b.conv.sessions ?? {}), [agentId]: s }
+  touch(b)
+}
+
+/** La sesión que un agente puede retomar en la conversación de su petición. */
+export function lastRunSession(projectId: string, runId: string, agentId: string, want: { provider: ProviderKind; cwd: string }): AgentSession | undefined {
+  const b = backgroundOf(projectId, runId)
+  if (!b) return lastSession(projectId, agentId, want)
+  return usableSession(b.conv.sessions?.[agentId], want)
 }
 
 /** Conversaciones del proyecto: la abierta primero si tiene algo, y luego las guardadas de la más reciente a la más antigua. */
@@ -230,6 +382,8 @@ export function openConversation(projectId: string, conversationId: string): voi
   const st = load(projectId)
   if (st.conversation?.id === conversationId) return
   const conv = readConversation(st, conversationId)
+  // Si trabajaba en segundo plano, vuelve a ser la abierta: lo que llegue irá otra vez al chat.
+  releaseBackground(projectId, conversationId)
   stashCurrent(st)
   st.messages = conv.messages
   st.tasks = [...st.tasks, ...conv.tasks.filter((t) => !st.tasks.some((x) => x.id === t.id))]
@@ -264,6 +418,7 @@ export function deleteConversation(projectId: string, conversationId: string): v
   const st = load(projectId)
   if (st.conversation?.id === conversationId) throw new Error('Es la conversación abierta: abre otra o empieza una nueva antes de borrarla')
   if (!isValidConversationId(conversationId)) throw new Error('Conversación no válida')
+  releaseBackground(projectId, conversationId)
   const trash = join(folder(st), 'borradas')
   mkdirSync(trash, { recursive: true })
   try {
@@ -351,6 +506,7 @@ export function moveConversation(projectId: string, conversationId: string, toPr
   if (projectId === toProjectId) return conversationId
   const st = load(projectId)
   const dest = load(toProjectId)
+  releaseBackground(projectId, conversationId)
   if (st.conversation?.id === conversationId) {
     if (!st.messages.length) throw new Error('La conversación está vacía: no hay nada que mover')
     stashCurrent(st)
@@ -614,6 +770,7 @@ export function dropImportedConversation(projectId: string, conversationId: stri
   const st = load(projectId)
   if (!isValidConversationId(conversationId)) throw new Error('Conversación no válida')
   const wasOpen = st.conversation?.id === conversationId
+  releaseBackground(projectId, conversationId)
   if (wasOpen) {
     st.messages = []
     st.tasks = st.tasks.filter((t) => !FINISHED.has(t.status))

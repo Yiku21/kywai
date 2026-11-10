@@ -83,7 +83,11 @@ export function rememberSession(projectId: string, agentId: string, s: AgentSess
  * carpeta y no demasiado antigua. Si no, nada (empieza de cero).
  */
 export function lastSession(projectId: string, agentId: string, want: { provider: ProviderKind; cwd: string }, now = Date.now()): AgentSession | undefined {
-  const s = load(projectId)[agentId]
+  return usableSession(load(projectId)[agentId], want, now)
+}
+
+/** Una sesión guardada vale si es del mismo CLI, de la misma carpeta y no demasiado antigua. */
+export function usableSession(s: AgentSession | undefined, want: { provider: ProviderKind; cwd: string }, now = Date.now()): AgentSession | undefined {
   if (!s || s.provider !== want.provider || s.cwd !== want.cwd) return undefined
   if (!s.imported && now - s.at > SESSION_MAX_AGE_MS) return undefined
   return s

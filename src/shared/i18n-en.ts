@@ -1551,7 +1551,6 @@ export const en: Record<string, string> = {
   '\n\n…(archivo truncado)': '\n\n…(file truncated)',
   'Proyecto no válido': 'Invalid project',
   'Este proyecto tiene trabajo en marcha: detenlo antes de eliminarlo': 'This project has work in progress: stop it before deleting it',
-  'El equipo está trabajando en este proyecto: detenlo antes de limpiar el chat': 'The team is working on this project: stop it before clearing the chat',
   'Mensaje no válido': 'Invalid message',
   'Petición no válida': 'Invalid request',
   'Todos los archivos': 'All files',
@@ -2213,8 +2212,6 @@ export const en: Record<string, string> = {
   'Conversación nueva': 'New conversation',
   'ayer': 'yesterday',
   'Conversación no válida': 'Invalid conversation',
-  'El equipo está trabajando en este proyecto: espera a que termine o detenlo para empezar otra conversación': 'The team is working on this project: wait for it to finish or stop it to start another conversation',
-  'El equipo está trabajando en este proyecto: espera a que termine o detenlo para cambiar de conversación': 'The team is working on this project: wait for it to finish or stop it to switch conversations',
 
   // Extensiones (servidores MCP)
   "ahora mismo": "just now",

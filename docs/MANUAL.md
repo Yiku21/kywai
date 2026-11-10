@@ -2414,8 +2414,16 @@ A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
 
 **Retomar una conversación**: pulsa cualquiera de la lista y vuelve con sus mensajes, sus tareas terminadas y la
 sesión de cada agente (Claude y Codex siguen donde lo dejaron, si no han pasado más de 14 días). La que estaba
-abierta se guarda antes. **No se puede cambiar de conversación ni
-empezar otra mientras el equipo trabaja en ese proyecto**: espera a que termine o detenlo. En otro proyecto sí.
+abierta se guarda antes.
+
+**Conversaciones en paralelo.** Puedes cambiar de conversación o empezar otra **aunque el equipo esté trabajando**,
+también dentro del mismo proyecto. La conversación que dejas sigue en segundo plano: lo que llegue de sus peticiones
+(mensajes, tareas, la sesión de cada agente) se guarda en ella y no en la que tienes abierta, y en la barra lleva un
+**punto azul que late** mientras trabaja. En la nueva puedes lanzar otra petición; las dos van a la vez, con el mismo
+equipo (si un agente está ocupado, lo nuevo espera en su cola como siempre). Al volver a la primera está todo lo que
+hizo mientras tanto. El botón «Detener» del chat es solo para las peticiones de la conversación abierta; para parar
+la otra, ábrela y detenla allí. Si cierras kywai con una conversación trabajando en segundo plano, sus tareas a medias
+salen como interrumpidas al volver, igual que en la abierta.
 
 **Clic derecho** (o el botón **⋯** que sale al pasar el ratón) abre el menú de lo que tocas, como en Claude. Con el
 menú abierto, la letra de la derecha hace esa acción sin el ratón.
@@ -2428,7 +2436,8 @@ misma tarjeta y con el color del tema que tengas.
   original; se abre sola y los agentes empiezan sesión nueva en ella), **Mover a otro proyecto** (M; los agentes
   empiezan sesión nueva allí; si era la abierta, su proyecto queda con una conversación nueva) y **Eliminar** (D,
   pulsa dos veces; va a `conversaciones/borradas/` dentro del proyecto, no se pierde del todo; si es la abierta,
-  antes se empieza una nueva). Mover y eliminar la abierta no se puede mientras el equipo trabaja en ella.
+  antes se empieza una nueva). Mover y eliminar no se puede mientras el equipo trabaja en esa conversación (la del
+  punto azul), esté abierta o en segundo plano.
 - En un **proyecto**: **Nuevo chat en este proyecto** (N), **Fijar** (P), **Cambiar nombre** (R), **Abrir carpeta
   del proyecto** (O) y **Eliminar proyecto** (D, pulsa dos veces; ver [Eliminar un proyecto](#eliminar-un-proyecto)).
 
@@ -2455,6 +2464,15 @@ API son `listConversations`, `recentConversations`, `newConversation`, `openConv
 `deleteConversation`, `setConversationPinned`, `pinnedConversations`, `forkConversation`, `moveConversation`,
 `setProjectPinned` y `search`. Al cambiar de conversación se emite `chat.cleared` (con
 `conversationId`) y `conversations.updated`: los otros dispositivos y Órbita vuelven a cargar el chat solos.
+
+Cómo funciona el segundo plano: cada petición recuerda la conversación donde empezó (`conversationOfRun`). Si ya no
+es la abierta, `projects.upsertMessage`/`upsertTask` pasan por el router de `conversations.ts`, que la carga de su
+archivo, la guarda al rato de cada cambio (y al cerrar la app, `flushBackground`) y no emite `message.upsert` (el chat
+abierto no la enseña). Las tareas en marcha siguen en el proyecto mientras trabajan (el equipo y el 3D las ven) y al
+terminar se quedan solo en su conversación. Las sesiones de los CLI van con `rememberRunSession`/`lastRunSession`.
+`listConversations` y compañía marcan `busy` en las conversaciones con trabajo; `run.started` y `run.finished`
+llevan `conversationId`, y `loadProject`/`openConversation` devuelven en `activeRunIds` solo las peticiones de la
+conversación abierta. En Órbita el chat con trabajo lleva el punto y «Nuevo chat en este proyecto» ya no se bloquea.
 
 ### La rueda ⚙ y los Ajustes
 

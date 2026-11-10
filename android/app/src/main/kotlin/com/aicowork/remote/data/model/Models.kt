@@ -133,6 +133,8 @@ data class ChatSummary(
     val messageCount: Int = 0,
     val current: Boolean = false,
     val pinned: Boolean = false,
+    /** El equipo trabaja en este chat (aunque no sea el abierto: sigue en segundo plano). */
+    val busy: Boolean = false,
 )
 
 @Serializable

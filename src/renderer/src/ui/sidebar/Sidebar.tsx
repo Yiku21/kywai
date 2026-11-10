@@ -264,7 +264,6 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   /** Lo que se puede hacer con un proyecto o una conversación desde el clic derecho (o el botón ⋯). */
   const actions: RowActions = {
     projects,
-    projectOpen: project?.id,
     run,
     refresh: () => useCowork.setState((st) => ({ conversationsTick: st.conversationsTick + 1 })),
     go,
@@ -496,8 +495,6 @@ function Section({ title, open, onToggle, action, children }: { title: string; o
 
 interface RowActions {
   projects: ProjectSummary[]
-  /** Proyecto abierto ahora. */
-  projectOpen?: string
   run: (fn: () => Promise<void>) => Promise<void>
   refresh: () => void
   go: (tab: LeftTab) => void
@@ -590,8 +587,7 @@ function ProjectRow({
       label: t('Nuevo chat en este proyecto'),
       icon: <SquarePen size={15} />,
       shortcut: 'N',
-      disabled: p.busy && actions.projectOpen === p.id,
-      title: p.busy ? t('El equipo está trabajando aquí: espera a que termine o detenlo') : undefined,
+      // Se puede aunque el equipo trabaje: la conversación que deja sigue en segundo plano.
       onSelect: () =>
         void run(async () => {
           if (!api) return
@@ -678,8 +674,8 @@ function ConversationRow({
   const [menu, setMenu] = useState<MenuAt | null>(null)
   const [editing, setEditing] = useState(false)
   const { run, refresh, go } = actions
-  const project = actions.projects.find((p) => p.id === c.projectId)
-  const busyHere = !!project?.busy && c.current
+  // El equipo trabaja en esta conversación (abierta o en segundo plano): no se borra ni se mueve hasta que acabe.
+  const busyHere = !!c.busy
 
   if (editing) {
     return (
@@ -729,11 +725,9 @@ function ConversationRow({
           if (!api) return
           const id = await api.forkConversation(c.projectId, c.id)
           refresh()
-          // Se abre la copia si se puede (no mientras el equipo trabaja en ese proyecto: queda en la lista).
-          if (!project?.busy) {
-            useCowork.getState().loadProjectState(await api.openConversation(c.projectId, id))
-            go('chat')
-          }
+          // Se abre la copia (si el equipo trabajaba en la que estaba abierta, sigue en segundo plano).
+          useCowork.getState().loadProjectState(await api.openConversation(c.projectId, id))
+          go('chat')
         })
     },
     {
@@ -793,6 +787,7 @@ function ConversationRow({
       >
         <MessageSquare size={flat ? 15 : 14} aria-hidden="true" className={s.icon} />
         <span className={s.label}>{title}</span>
+        {c.busy && <span className={s.busy} title={t('El equipo está trabajando aquí')} />}
         <span className={s.meta}>{meta ?? shortDate(c.updatedAt)}</span>
       </button>
       {!empty && (

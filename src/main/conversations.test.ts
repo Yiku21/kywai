@@ -7,6 +7,12 @@ import type { ChatMessage, Task } from '@shared/types'
 import * as store from './projects'
 import { exportSessions, initAgentSessions, rememberSession } from './agentSessions'
 import {
+  conversationOfRun,
+  findMessage,
+  flushBackground,
+  lastRunSession,
+  rememberRunSession,
+  runChat,
   deleteConversation,
   forkConversation,
   listConversations,
@@ -315,5 +321,66 @@ describe('buscador', () => {
     }
     expect(allConversations()).toHaveLength(55)
     expect(recentConversations(100)).toHaveLength(50)
+  })
+})
+
+describe('en paralelo: el equipo sigue en una conversación mientras miras otra', () => {
+  const run = (projectId: string, runId: string, text: string, user = false): ChatMessage => ({ ...msg(projectId, text, user), runId })
+  const runTask = (projectId: string, runId: string, title: string, status: Task['status']): Task => ({ ...task(projectId, title, status), runId })
+
+  it('lo que llega de su petición va a su conversación, no a la abierta', () => {
+    const p = store.createProject('Paralelo')
+    const st = store.getProject(p.id)
+    expect(store.upsertMessage(run(p.id, 'run-a', 'Haz el vídeo', true))).toBe(true)
+    const idA = conversationOfRun(p.id, 'run-a')
+    expect(st.conversation?.id).toBe(idA)
+    store.upsertTask(runTask(p.id, 'run-a', 'Montar el vídeo', 'running'))
+    rememberSession(p.id, 'claude', { sessionId: 'sesion-a', provider: 'claude', cwd: '/x', taskTitle: 't', at: Date.now() })
+
+    const idB = newConversation(p.id)
+    expect(idB).not.toBe(idA)
+    // Sigue llegando trabajo de la petición de A mientras miras B.
+    expect(store.upsertMessage(run(p.id, 'run-a', 'Vídeo listo'))).toBe(false)
+    store.upsertTask(runTask(p.id, 'run-a', 'Otra cosa', 'done'))
+    expect(st.messages).toEqual([])
+    expect(st.tasks.map((t) => t.title)).toEqual(['Montar el vídeo'])
+    expect(runChat(p.id, 'run-a').messages.map((m) => m.text)).toEqual(['Haz el vídeo', 'Vídeo listo'])
+    expect(findMessage(p.id, runChat(p.id, 'run-a').messages[1].id)?.text).toBe('Vídeo listo')
+
+    // Y en B puedes lanzar otra petición, que va a B.
+    expect(store.upsertMessage(run(p.id, 'run-b', 'Ahora otra cosa', true))).toBe(true)
+    expect(conversationOfRun(p.id, 'run-b')).toBe(idB)
+    expect(st.messages.map((m) => m.text)).toEqual(['Ahora otra cosa'])
+
+    // Las sesiones de los CLI van con su conversación.
+    expect(exportSessions(p.id)).toEqual({})
+    rememberRunSession(p.id, 'run-a', 'claude', { sessionId: 'sesion-a2', provider: 'claude', cwd: '/x', taskTitle: 't', at: Date.now() })
+    expect(lastRunSession(p.id, 'run-a', 'claude', { provider: 'claude', cwd: '/x' })?.sessionId).toBe('sesion-a2')
+    expect(lastRunSession(p.id, 'run-b', 'claude', { provider: 'claude', cwd: '/x' })).toBeUndefined()
+
+    // Al volver a A está todo, y lo de B sigue en B.
+    openConversation(p.id, idA)
+    expect(st.messages.map((m) => m.text)).toEqual(['Haz el vídeo', 'Vídeo listo'])
+    expect(st.tasks.map((t) => t.title).sort()).toEqual(['Montar el vídeo', 'Otra cosa'])
+    expect(exportSessions(p.id).claude?.sessionId).toBe('sesion-a2')
+    expect(store.upsertMessage(run(p.id, 'run-a', 'Ya en el chat'))).toBe(true)
+    expect(store.upsertMessage(run(p.id, 'run-b', 'Respuesta de B'))).toBe(false)
+    openConversation(p.id, idB)
+    expect(st.messages.map((m) => m.text)).toEqual(['Ahora otra cosa', 'Respuesta de B'])
+  })
+
+  it('se guarda en su archivo y la lista lo cuenta; al reabrir tras cerrar la app, lo que quedó a medias sale interrumpido', () => {
+    const p = store.createProject('Archivo')
+    const st = store.getProject(p.id)
+    store.upsertMessage(run(p.id, 'run-c', 'Empieza', true))
+    const idA = conversationOfRun(p.id, 'run-c')
+    newConversation(p.id)
+    store.upsertMessage(run(p.id, 'run-c', 'Avance'))
+    store.upsertTask(runTask(p.id, 'run-c', 'A medias', 'running'))
+    flushBackground()
+    const raw = JSON.parse(readFileSync(join(st.project.dir, 'conversaciones', `${idA}.json`), 'utf8')) as { messages: ChatMessage[]; tasks: Task[] }
+    expect(raw.messages.map((m) => m.text)).toEqual(['Empieza', 'Avance'])
+    expect(raw.tasks[0].status).toBe('running')
+    expect(listConversations(p.id).find((c) => c.id === idA)?.messageCount).toBe(2)
   })
 })

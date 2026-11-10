@@ -483,6 +483,9 @@ export const useCowork = create<CoworkState>((set, get) => ({
     const open = get().live.project?.id
     const pid = eventProject(e)
     if (!e.demo && open && pid && pid !== open) return
+    // Una petición de otra conversación de este proyecto (sigue en segundo plano): su «Detener» no va en esta.
+    const conv = get().live.conversation?.id
+    if (e.kind === 'run.started' && !e.demo && e.conversationId && conv && e.conversationId !== conv) return
     const target = e.demo ? 'demo' : 'live'
     const previous = get()[target]
     set((s) => ({ [target]: reduce(s[target], e) }) as Partial<CoworkState>)

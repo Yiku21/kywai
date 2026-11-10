@@ -130,7 +130,8 @@ fun ProjectRow(model: OrbitaModel, project: ProjectSummary, open: Boolean, curre
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
             val busy = t("El equipo está trabajando aquí: espera a que termine o detenlo")
-            MenuItem(Icons.Outlined.EditNote, t("Nuevo chat en este proyecto"), enabled = !project.running, hint = if (project.running) busy else null, tag = "menu-new-chat") {
+            // Se puede aunque el equipo trabaje: el chat que dejas sigue en segundo plano.
+            MenuItem(Icons.Outlined.EditNote, t("Nuevo chat en este proyecto"), tag = "menu-new-chat") {
                 menu = false
                 model.newChatIn(project.id)
             }
@@ -177,7 +178,8 @@ fun ChatRow(model: OrbitaModel, projectId: String, chat: ChatSummary, on: Boolea
     val title = if (empty) t("Chat nuevo") else chat.title.ifBlank { t("Chat nuevo") }
     val actions = model.chatActionsSupported()
     val projects = model.controller.state.value.snapshot?.projects.orEmpty()
-    val busyHere = chat.current && projects.firstOrNull { it.id == projectId }?.running == true
+    // El equipo trabaja en este chat (abierto o en segundo plano): no se borra ni se mueve hasta que acabe.
+    val busyHere = chat.busy
     Box {
         Row(
             Modifier
@@ -198,6 +200,10 @@ fun ChatRow(model: OrbitaModel, projectId: String, chat: ChatSummary, on: Boolea
             Icon(if (meta != null) Icons.Outlined.PushPin else Icons.Outlined.ChatBubbleOutline, contentDescription = null, tint = if (on) Orbita.Text else Orbita.TextFaint, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(10.dp))
             Text(title, color = if (on) Orbita.Text else Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            if (busyHere) {
+                Spacer(Modifier.width(6.dp))
+                Dot(Orbita.Live, 7.dp, pulse = true)
+            }
             val side = meta ?: chat.updatedAt?.let(Format::relative)
             if (side != null) {
                 Spacer(Modifier.width(6.dp))

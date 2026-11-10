@@ -38,6 +38,7 @@ import { memoryOf, setInstructions } from '../memory'
 import { setGuideEnv } from '../coordinatorGuide'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import * as store from '../projects'
+import { conversationOfRun, newConversation, openConversation } from '../conversations'
 import { initQuota, setQuotaProbing } from '../quota'
 import { finishRunUsage, initUsageLog, recordCall, startRunUsage, usageRuns } from '../usageLog'
 import { __setUiCapturerForChecks } from '../uiShots'
@@ -1710,6 +1711,58 @@ async function main(): Promise<void> {
       assert.equal(readFileSync(join(userDir, 'codigo.js'), 'utf8'), 'mío')
       assert.ok(store.listProjects().some((x) => x.id === project.id), 'los demás proyectos siguen')
       assert.throws(() => store.getProject(p.id), /no encontrado/)
+    })
+
+    await check('X: conversaciones en paralelo — cambias de chat mientras trabaja, lanzas otra y cada una recibe lo suyo', async () => {
+      const xp = store.createProject('Paralelo')
+      const st = store.getProject(xp.id)
+      __clearBlocksForChecks()
+      let release: () => void = () => undefined
+      const gate = new Promise<void>((r) => (release = r))
+      let started = false
+      workBehaviour = (o) =>
+        o.mode === 'work' && o.prompt.includes('Escribe el guion largo')
+          ? (async () => {
+              started = true
+              await gate
+              return defaultWork(o)
+            })()
+          : null
+      const pa = plan('Vale, empiezo', [{ key: 'a', title: 'Guion largo', description: 'Escribe el guion largo', agent: 'gemini', difficulty: 'medium', dependsOn: [], deliverable: 'file' }])
+      planResponses = { claude: pa, gemini: pa }
+      const r1 = await sendMessage({ projectId: xp.id, text: 'Haz el guion largo', filePaths: [] })
+      await waitFor(() => started, 10000, 'tarea A trabajando')
+      const idA = conversationOfRun(xp.id, r1.runId)
+      // Antes esto fallaba con «El equipo está trabajando en este proyecto…».
+      const idB = newConversation(xp.id)
+      assert.notEqual(idB, idA)
+      assert.equal(st.messages.length, 0)
+      const pb = plan('Hecho enseguida', [{ key: 'b', title: 'Nota corta', description: 'Escribe una nota corta', agent: 'codex', difficulty: 'easy', dependsOn: [], deliverable: 'file' }])
+      planResponses = { claude: pb, gemini: pb }
+      const r2 = await sendMessage({ projectId: xp.id, text: 'Y una nota corta', filePaths: [] })
+      await waitFor(() => !!finished(r2.runId), 10000, 'petición B')
+      assert.equal(conversationOfRun(xp.id, r2.runId), idB)
+      assert.ok(st.messages.length > 1)
+      assert.ok(st.messages.every((m) => m.runId === r2.runId), 'en B solo hay mensajes de B')
+      const shownBefore = events.length
+      release()
+      await waitFor(() => !!finished(r1.runId), 10000, 'petición A')
+      assert.ok(st.messages.every((m) => m.runId === r2.runId), 'lo de A no entra en B')
+      assert.equal(events.slice(shownBefore).filter((e) => e.kind === 'message.upsert' && e.message.runId === r1.runId).length, 0, 'el chat abierto no enseña lo de A')
+      const startedA = events.find((e) => e.kind === 'run.started' && e.runId === r1.runId)
+      assert.equal(startedA?.kind === 'run.started' ? startedA.conversationId : undefined, idA)
+      // Al volver a A está todo lo que hizo mientras tanto, con su tarea terminada.
+      openConversation(xp.id, idA)
+      assert.ok(st.messages.length > 2)
+      assert.ok(st.messages.every((m) => !m.runId || m.runId === r1.runId))
+      assert.ok(st.messages.some((m) => m.author.type === 'user' && m.text === 'Haz el guion largo'))
+      const ta = st.tasks.find((t) => t.runId === r1.runId)
+      assert.equal(ta?.status, 'done')
+      assert.ok(st.messages.some((m) => m.work && m.text.includes('Hecho por gemini')), 'el resultado de la tarea llegó a A')
+      openConversation(xp.id, idB)
+      assert.ok(st.messages.every((m) => m.runId === r2.runId))
+      assert.equal(st.tasks.some((t) => t.runId === r1.runId), false, 'la tarea de A no se guarda con B')
+      workBehaviour = () => null
     })
 
     await check('project.json persisted (debounced) with messages/tasks/artifacts/attachments', async () => {
