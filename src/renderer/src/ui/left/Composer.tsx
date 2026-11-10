@@ -207,8 +207,8 @@ export function Composer() {
         : !canRecord
           ? t('Este navegador no permite grabar audio')
           : rec
-          ? t('Terminar la nota de voz')
-          : t('Dictar una nota de voz')
+          ? t('Terminar y enviar la nota de voz')
+          : t('Grabar una nota de voz (se envía al terminar)')
   const showStop = !isDemo && !!api && activeRunIds.length > 0
 
   // Altura automática (máx. ~6 líneas).
@@ -425,17 +425,31 @@ export function Composer() {
     setRec(null)
   }
 
-  /** Termina la grabación, la convierte en texto en el equipo y la añade al cuadro para revisarla. */
+  /**
+   * Termina la grabación y la envía ya, con lo escrito y los adjuntos: sale en el chat al momento y el equipo la pasa a
+   * texto por detrás. Sin proyecto abierto (o con un motor antiguo que no sabe), se transcribe y se deja en el cuadro.
+   */
   async function finishRecording(): Promise<void> {
     const a = api
     const cur = rec
     if (!a || !cur) return
     setRec(null)
-    setTranscribing(true)
+    // Las órdenes que hace la propia interfaz («/nuevo», «/model», «/uso») no se envían: lo dicho se queda en el cuadro.
+    const typed = text.trim()
+    const direct = !!project && !blockedReason && !CLEAR_COMMAND.test(typed) && !MODEL_COMMAND.test(typed) && !QUOTA_COMMAND.test(typed)
+    if (direct) setSending(true)
+    else setTranscribing(true)
     try {
       const wav = await cur.r.stop()
       const stamp = new Date().toTimeString().slice(0, 8).replace(/:/g, '')
       const path = await a.savePastedFile(`nota-de-voz-${stamp}.wav`, wav)
+      if (direct && project) {
+        if (isDemo) useCowork.getState().setMode('live')
+        setQuotaNotice(null)
+        await a.sendVoiceNote({ projectId: project.id, audioPath: path, language: lang(), text: typed, filePaths: files, ...(replyTo ? { replyTo: replyTo.messageId } : {}) })
+        useComposer.getState().clear()
+        return
+      }
       const said = await a.transcribeAudio(path, lang())
       if (said) {
         const prev = useComposer.getState().text.trimEnd()
@@ -445,6 +459,7 @@ export function Composer() {
     } catch (e) {
       setError(errorText(e))
     } finally {
+      setSending(false)
       setTranscribing(false)
     }
   }

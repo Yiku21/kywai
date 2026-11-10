@@ -25,6 +25,7 @@ import type {
   TikTokPost,
   TikTokStatus,
   SendMessageInput,
+  VoiceNoteInput,
   Task,
   TaskChanges,
   TaskChangeSet,
@@ -91,6 +92,7 @@ import { filmFixRequest, filmReviewPrompt, MAX_FILM_FIXES } from './filmCheck'
 import { KYWAI_FILM_GUIDES } from './kywaiFilmGuides'
 import { filmStyle } from '@shared/filmStyles'
 import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
+import { transcribeAudio } from './voice'
 import { createRoutine } from './routines'
 import { installCatalogSkill, searchSkillCatalog } from './catalog'
 import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSuggest'
@@ -794,6 +796,12 @@ function taskDirty(t: Task): void {
 }
 
 function pushMessage(m: ChatMessage): void {
+  // El mensaje de una nota de voz que se estaba pasando a texto: ocupa su sitio en el chat (mismo id y hora).
+  const draft = m.author.type === 'user' && m.clientMessageId ? voiceDrafts.get(m.clientMessageId) : undefined
+  if (draft) {
+    voiceDrafts.delete(m.clientMessageId!)
+    m = { ...m, id: draft.id, createdAt: draft.createdAt, voiceNote: 'sent' }
+  }
   // Si su conversación sigue en segundo plano (miras otra), se guarda allí y no sale en el chat abierto.
   if (store.upsertMessage(m)) emit({ kind: 'message.upsert', message: { ...m } })
   if (m.proposal) planInbox(m)
@@ -1338,6 +1346,70 @@ function routineCommandReply(projectId: string, text: string): { text: string; r
   } catch (e) {
     return { text: (e as Error).message }
   }
+}
+
+/** Notas de voz enviadas que aún se pasan a texto: clientMessageId del envío → su mensaje provisional del chat. */
+const voiceDrafts = new Map<string, ChatMessage>()
+
+/**
+ * Nota de voz enviada al momento: sale ya en el chat («pasando a texto…») y el equipo la transcribe por detrás con
+ * Whisper; en cuanto tiene el texto, la manda como un mensaje normal (Hermes, «@Agente», órdenes…), que ocupa el sitio
+ * del provisional. Si no se entiende o falla, el mensaje se queda marcado y un aviso dice por qué.
+ */
+export function sendVoiceNote(input: VoiceNoteInput): { messageId: string } {
+  const projectId = input?.projectId
+  const st = store.getProject(projectId)
+  if (typeof input.audioPath !== 'string' || !input.audioPath) throw new Error(tr('Audio no válido'))
+  const typed = typeof input.text === 'string' ? input.text.trim().slice(0, 50_000) : ''
+  const paths = Array.isArray(input.filePaths) ? input.filePaths.filter((p): p is string => typeof p === 'string') : []
+  // Los adjuntos se copian ya: los archivos pegados son temporales y no esperan a que acabe la transcripción.
+  const atts = store.copyAttachments(st.project.id, paths)
+  const replyTo = typeof input.replyTo === 'string' ? input.replyTo : undefined
+  const clientMessageId = `voz-${randomUUID()}`
+  const draft: ChatMessage = {
+    id: randomUUID(),
+    projectId,
+    author: { type: 'user' },
+    text: typed,
+    createdAt: Date.now(),
+    ...(atts.length ? { attachments: atts } : {}),
+    voiceNote: 'transcribing'
+  }
+  pushMessage(draft)
+  const fail = (why: string): void => {
+    voiceDrafts.delete(clientMessageId)
+    pushMessage({ ...draft, voiceNote: 'failed' })
+    pushMessage({ id: randomUUID(), projectId, author: { type: 'system' }, text: why, tone: 'error', createdAt: Date.now() })
+  }
+  void (async () => {
+    let said: string
+    try {
+      said = await transcribeAudio(input.audioPath, input.language)
+    } catch (e) {
+      fail(tr('No se pudo pasar a texto la nota de voz: {e}', { e: (e as Error)?.message || String(e) }))
+      return
+    }
+    if (!said) {
+      fail(tr('No se entendió nada en la nota de voz. Vuelve a grabarla.'))
+      return
+    }
+    voiceDrafts.set(clientMessageId, draft)
+    try {
+      await sendMessage({
+        projectId,
+        text: typed ? `${typed} ${said}` : said,
+        filePaths: [],
+        attachmentIds: atts.map((a) => a.id),
+        clientMessageId,
+        ...(replyTo ? { replyTo } : {})
+      })
+    } catch (e) {
+      fail((e as Error)?.message || String(e))
+    } finally {
+      voiceDrafts.delete(clientMessageId)
+    }
+  })()
+  return { messageId: draft.id }
 }
 
 /**

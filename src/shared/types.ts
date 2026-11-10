@@ -590,6 +590,11 @@ export interface ChatMessage {
   template?: { id: string; name: string }
   /** Mensaje traído de otra app (⚙ → «Importar de otras apps…»): el chat enseña ese nombre como autor de la respuesta. */
   importedFrom?: string
+  /**
+   * Nota de voz enviada al momento: se ve en el chat mientras el equipo la pasa a texto (transcribing); al tenerla, el
+   * mensaje lleva lo dicho y va al equipo (sent). failed: no se pudo pasar a texto (el motivo va en un aviso aparte).
+   */
+  voiceNote?: 'transcribing' | 'sent' | 'failed'
 }
 
 /** La respuesta de un agente a la que contestas con «Responder»: el chat enseña la cita encima de tu mensaje. */
@@ -1667,6 +1672,19 @@ export interface SendMessageInput {
   replyTo?: string
 }
 
+/** Nota de voz que se envía sin esperar: el equipo la pasa a texto por detrás y la manda como un mensaje normal. */
+export interface VoiceNoteInput {
+  projectId: string
+  /** El audio guardado con savePastedFile. */
+  audioPath: string
+  language?: string
+  /** Lo que ya estaba escrito en el cuadro: va delante de lo dicho. */
+  text?: string
+  filePaths?: string[]
+  /** «Responder» bajo la respuesta de un agente (su id). */
+  replyTo?: string
+}
+
 export interface CoworkApi {
   getConfig(): Promise<AppConfig>
   listProjects(): Promise<ProjectSummary[]>
@@ -1949,6 +1967,11 @@ export interface CoworkApi {
   restartApp(): Promise<void>
   /** Nota de voz (guardada con savePastedFile) → texto, con Whisper en el propio equipo. */
   transcribeAudio(path: string, language?: string): Promise<string>
+  /**
+   * Envía la nota de voz al momento: sale en el chat ya y el equipo la pasa a texto por detrás; en cuanto la tiene,
+   * va a los agentes como un mensaje normal. Devuelve el id del mensaje del chat.
+   */
+  sendVoiceNote(input: VoiceNoteInput): Promise<{ messageId: string }>
   /** Pide permiso para el micrófono (macOS); true si se puede grabar. */
   requestMicrophone(): Promise<boolean>
   /**

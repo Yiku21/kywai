@@ -180,6 +180,15 @@ const api: CoworkApi = {
   updatePending: () => ipcRenderer.invoke('cowork:updatePending'),
   restartApp: () => ipcRenderer.invoke('cowork:restartApp'),
   transcribeAudio: (path, language) => ipcRenderer.invoke('cowork:transcribeAudio', path, language),
+  sendVoiceNote: (input) =>
+    ipcRenderer.invoke('cowork:sendVoiceNote', {
+      projectId: input.projectId,
+      audioPath: input.audioPath,
+      language: input.language,
+      text: input.text,
+      filePaths: [...(input.filePaths ?? [])],
+      ...(input.replyTo ? { replyTo: input.replyTo } : {})
+    }),
   requestMicrophone: () => ipcRenderer.invoke('cowork:requestMicrophone'),
   applyUpdate: (setAside) => ipcRenderer.invoke('cowork:applyUpdate', setAside),
   getWhatsNew: () => ipcRenderer.invoke('cowork:getWhatsNew'),

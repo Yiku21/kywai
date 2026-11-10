@@ -324,3 +324,23 @@ describe('chat del escritorio', () => {
     expect(p.items[1].artifactId).toBe('a2')
   })
 })
+
+describe('nota de voz enviada al momento', () => {
+  const voice = (over: Partial<ChatMessage>): ChatMessage => ({ id: 'v1', projectId: 'p1', author: { type: 'user' }, text: '', createdAt: Date.now(), voiceNote: 'transcribing', ...over })
+
+  it('mientras se pasa a texto lo dice, y luego queda la marca con lo dicho', async () => {
+    await show(voice({}))
+    expect(host.querySelector('[role="status"]')?.textContent).toBe('Nota de voz · pasándola a texto…')
+    await show(voice({ text: 'revisa el informe', voiceNote: 'sent' }))
+    expect(host.textContent).toContain('revisa el informe')
+    expect(host.textContent).toContain('Nota de voz')
+    expect(host.querySelector('[role="status"]')).toBeNull()
+  })
+
+  it('si falló, o kywai se cerró a medias, dice que no se pudo', async () => {
+    await show(voice({ voiceNote: 'failed' }))
+    expect(host.textContent).toContain('no se pudo pasar a texto')
+    await show(voice({ createdAt: Date.now() - 60 * 60_000 }))
+    expect(host.textContent).toContain('no se pudo pasar a texto')
+  })
+})

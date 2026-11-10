@@ -630,10 +630,23 @@ instalado antes de este sistema hay que cambiarlo una vez a mano.
 
 ### Dictado por voz
 
-El botón del micrófono, junto a los de adjuntar, graba una nota de voz y la convierte en texto **en el propio
-equipo** con Whisper (faster-whisper, modelo «small», en español): sin APIs ni servicios externos, y el audio se
-borra al terminar. El texto se añade al cuadro para revisarlo antes de enviarlo. La primera vez se prepara solo
-(instala `uv` si falta y descarga el modelo, ~480 MB) y tarda unos minutos; después, unos segundos por nota.
+El botón del micrófono, junto a los de adjuntar, graba una nota de voz. Al pulsarlo otra vez (o a los 5 minutos)
+la nota **se envía al momento**, sin esperar: sale ya en el chat con «Nota de voz · pasándola a texto…» y puedes
+seguir escribiendo o grabar otra. Por detrás, el equipo la convierte en texto **en el propio equipo** con Whisper
+(faster-whisper, modelo «small», en el idioma de la app): sin APIs ni servicios externos, y el audio se borra al
+terminar. En cuanto tiene el texto, ese mismo mensaje del chat pasa a enseñar lo dicho (con la marca «Nota de voz»)
+y va al equipo como un mensaje normal: a Hermes, o directo al agente si empieza por «@Agente», con las órdenes
+(«/video …», «/recuerda …») y con «Responder». Lo que hubiera escrito en el cuadro va delante de lo dicho, y los
+archivos adjuntos van con la nota. Si no se entiende nada o el dictado falla, el mensaje queda como «no se pudo
+pasar a texto» y un aviso dice por qué: vuelve a grabarla. Con «/nuevo», «/model» o «/uso» en el cuadro, lo dicho
+se queda en el cuadro sin enviar. La primera vez se prepara solo (instala `uv` si falta y descarga el modelo,
+~480 MB) y tarda unos minutos; después, unos segundos por nota.
+
+Por dentro: `sendVoiceNote` (src/main/orchestrator.ts) pone el mensaje provisional (`voiceNote: 'transcribing'`),
+transcribe con `transcribeAudio` (src/main/voice.ts) y llama a `sendMessage` con un `clientMessageId` propio; al
+guardar el mensaje del usuario con ese `clientMessageId`, `pushMessage` le da el id y la hora del provisional, así que
+lo sustituye en su sitio (`voiceNote: 'sent'`). Si kywai se cierra a medias, pasados 30 minutos el chat lo da por
+perdido.
 En macOS pide permiso para el micrófono. Desde otro dispositivo, el navegador solo deja usar el micrófono en
 páginas **HTTPS**. Si entras por el enlace `http://`, al tocar el micrófono aparece **«Abrir la versión segura»**:
 

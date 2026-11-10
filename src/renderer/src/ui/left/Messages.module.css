@@ -102,6 +102,23 @@
 }
 
 /* Datos que trajo una rutina (cuerpo del webhook, archivos cambiados): plegados bajo la petición. */
+/* Nota de voz enviada al momento: mientras se pasa a texto, y luego una marca pequeña. */
+.voiceNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.userText + .voiceNote {
+  margin-top: 4px;
+}
+
+.voiceNoteFailed {
+  color: var(--alert);
+}
+
 .routineData {
   margin-top: 6px;
   font-size: 12.5px;

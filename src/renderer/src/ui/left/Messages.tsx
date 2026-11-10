@@ -23,6 +23,7 @@ import {
   Send,
   Sparkles,
   LoaderCircle,
+  Mic,
   PenLine,
   Play,
   Search,
@@ -129,6 +130,7 @@ function UserMessage({ m }: { m: ChatMessage }) {
         )}
         <div className={cx(s.bubble, s.userBubble)}>
           {parts.request && <p className={s.userText}>{parts.request}</p>}
+          {m.voiceNote && <VoiceNoteMark m={m} />}
           {parts.data && (
             <details className={s.routineData}>
               <summary>{t('Datos que trajo la rutina')}</summary>
@@ -139,6 +141,34 @@ function UserMessage({ m }: { m: ChatMessage }) {
         </div>
       </div>
     </article>
+  )
+}
+
+/** Si kywai se cerró mientras transcribía, esa nota ya no llegará: pasado este rato se da por perdida. */
+const VOICE_LOST_MS = 30 * 60_000
+
+/** La marca de una nota de voz: se está pasando a texto, ya se envió dicha, o no se pudo. */
+function VoiceNoteMark({ m }: { m: ChatMessage }) {
+  const lost = m.voiceNote === 'transcribing' && Date.now() - m.createdAt > VOICE_LOST_MS
+  if (m.voiceNote === 'transcribing' && !lost)
+    return (
+      <span className={s.voiceNote} role="status">
+        <LoaderCircle size={13} aria-hidden="true" className={u.spin} />
+        {t('Nota de voz · pasándola a texto…')}
+      </span>
+    )
+  if (m.voiceNote === 'failed' || lost)
+    return (
+      <span className={cx(s.voiceNote, s.voiceNoteFailed)}>
+        <Mic size={13} aria-hidden="true" />
+        {t('Nota de voz · no se pudo pasar a texto')}
+      </span>
+    )
+  return (
+    <span className={s.voiceNote}>
+      <Mic size={13} aria-hidden="true" />
+      {t('Nota de voz')}
+    </span>
   )
 }
 

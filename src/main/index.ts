@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { finished } from 'node:stream/promises'
-import type { AddAgentInput, AgentId, ConversationSummary, ImportResult, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { AddAgentInput, AgentId, ConversationSummary, ImportResult, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, VoiceNoteInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
@@ -92,7 +92,8 @@ import {
   resumeRun,
   runtimeSnapshot,
   runState,
-  sendMessage
+  sendMessage,
+  sendVoiceNote
 } from './orchestrator'
 import { createTemplate, deleteTemplate, forgetProjectTemplates, initTemplates, listTemplates, restoreBuiltinTemplates, updateTemplate } from './templates'
 import { createRoutine, deleteRoutine, initRoutines, publicRoutines, routineWebhook, runRoutineNow, stopRoutines, updateRoutine } from './routines'
@@ -1103,6 +1104,10 @@ function registerIpc(): void {
   })
   // ---- Dictado (también desde el móvil: el audio se sube al equipo y se transcribe aquí) ----
   handle('transcribeAudio', (path: unknown, language?: unknown) => transcribeAudio(path, language))
+  handle('sendVoiceNote', (input: VoiceNoteInput) => {
+    if (!input || typeof input !== 'object') throw new Error(tr('Mensaje no válido'))
+    return sendVoiceNote(input)
+  })
   ipcMain.handle('cowork:requestMicrophone', async () => {
     if (process.platform !== 'darwin') return true
     if (systemPreferences.getMediaAccessStatus('microphone') === 'granted') return true
