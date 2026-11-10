@@ -6,7 +6,7 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { FILM_STYLES, KYWAI_FILM, type FilmStyle } from '../shared/filmStyles'
-import { MAC_VOICES, parseVoiceId, SPANISH_DEFAULT_VOICE, type VideoKind } from '../shared/videoChoice'
+import { defaultVoiceFor, MAC_VOICES, parseVoiceId, type VideoKind } from '../shared/videoChoice'
 import { voiceboxUrl } from './voicebox'
 import type { CharacterForVideo } from './videoCharacters'
 import { HOOK_RULE } from './videoScript'
@@ -199,7 +199,7 @@ export function filmPrompt(input: FilmPromptInput): string {
         ]
   const extra = [
     ...(input.kind ? [KIND_RULES[input.kind]] : []),
-    ...voiceRule(input.voice ?? (input.lang === 'es' ? SPANISH_DEFAULT_VOICE : undefined), lib),
+    ...voiceRule(input.voice ?? defaultVoiceFor(input.lang) ?? undefined, lib),
     ...(input.character ? characterRules(input.character, style.slug === KYWAI_FILM && kitRobots) : []),
     ...(FILM_3D.has(style.slug) ? ALIVE_3D : []),
     ...(input.source ? ['', 'El texto del que trata la película:', '"""', input.source, '"""'] : []),

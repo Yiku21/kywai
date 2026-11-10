@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseVoiceId, ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, withVideoChoice } from './videoChoice'
+import { defaultVoiceFor, LANG_VOICES, parseVoiceId, ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, withVideoChoice } from './videoChoice'
 
 describe('lo elegido al escribir /video', () => {
   it('lee el tipo, el personaje y el estilo marcados', () => {
@@ -52,6 +52,12 @@ describe('lo elegido al escribir /video', () => {
     expect(parseVoiceId('edge-es-MX-JorgeNeural')).toEqual({ engine: 'edge', id: 'es-MX-JorgeNeural' })
     expect(parseVoiceId('edge-en-US-Nadie')).toBeNull()
     expect(parseVoiceId('mac-carmen')).toEqual({ engine: 'mac', id: 'carmen' })
+    expect(parseVoiceId('edge-en-GB-RyanNeural')).toEqual({ engine: 'edge', id: 'en-GB-RyanNeural' })
+    // Todas las voces elegidas por idioma se entienden, y la primera va por defecto.
+    for (const ids of Object.values(LANG_VOICES)) for (const id of ids) expect(parseVoiceId(id)).not.toBeNull()
+    expect(defaultVoiceFor('es')).toBe('edge-es-ES-AlvaroNeural')
+    expect(defaultVoiceFor('en')).toBe('kokoro-af_bella')
+    expect(defaultVoiceFor('fr')).toBeNull()
     expect(videoChoiceOf('/video voz:edge-es-MX-JorgeNeural la luna').voice).toBe('edge-es-MX-JorgeNeural')
   })
 })

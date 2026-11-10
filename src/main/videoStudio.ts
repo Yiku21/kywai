@@ -28,7 +28,7 @@ import { comfyImage, comfyStatus } from './comfyui'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
 import { animateStill, findFreeVideo, freeVideoStatus, motionPrompt } from './freevideo'
 import type { VideoStudioStatus, VideoVoiceInfo } from '@shared/types'
-import { EDGE_VOICES, GEMINI_VOICES, KOKORO_VOICE_LIST, MAC_VOICES, parseVoiceId, SPANISH_DEFAULT_VOICE, SPANISH_VOICES, type VoiceEngine } from '@shared/videoChoice'
+import { EDGE_VOICES, GEMINI_VOICES, KOKORO_VOICE_LIST, MAC_VOICES, LANG_VOICES, parseVoiceId, defaultVoiceFor, type VoiceEngine } from '@shared/videoChoice'
 import { tr } from '@shared/i18n'
 import {
   ANIMATION_BASE_COMMIT,
@@ -909,17 +909,23 @@ async function voiceboxById(id: string): Promise<VoiceboxVoice | null> {
  * Kokoro (si está instalado; primero las del idioma) y la del sistema. `missing` dice qué motores faltan.
  */
 export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] }> {
-  // En español, solo las tres elegidas (Álvaro va por defecto).
-  if (lang === 'es')
+  // En español y en inglés, solo las elegidas (la primera va por defecto).
+  const picked = LANG_VOICES[lang]
+  if (picked)
     return {
-      voices: SPANISH_VOICES.map((id) => {
+      voices: picked.map((id): VideoVoiceInfo => {
         const v = parseVoiceId(id)!
         if (v.engine === 'edge') {
           const e = EDGE_VOICES.find((x) => x.id === v.id)!
-          return { id, engine: 'edge' as const, name: e.name, line: e.region, lang: 'es', gender: e.gender }
+          return { id, engine: 'edge', name: e.name, line: e.region, lang: e.lang, gender: e.gender }
+        }
+        if (v.engine === 'kokoro') {
+          const k = KOKORO_VOICE_LIST.find((x) => x.id === v.id)!
+          const region = k.lang !== 'en' ? 'Kokoro' : k.id.startsWith('b') ? 'Reino Unido' : 'Estados Unidos'
+          return { id, engine: 'kokoro', name: k.name, line: region, lang: k.lang, gender: k.gender }
         }
         const m = MAC_VOICES.find((x) => x.key === v.id)!
-        return { id, engine: 'mac' as const, name: m.name, line: m.region, lang: 'es', gender: m.gender }
+        return { id, engine: 'mac', name: m.name, line: m.region, lang: 'es', gender: m.gender }
       }),
       missing: []
     }
@@ -1071,8 +1077,10 @@ export async function renderVideo(input: {
   const voices = script.scenes.map((_, i) => join(dir, 'assets', `voz-${i + 1}.wav`))
   let voiceUsed: RenderedVideo['voice'] = 'kokoro'
   // La voz elegida en el selector va primero; si no sale, el orden de siempre (para que el vídeo salga igual).
-  // En español, sin elegir, va Álvaro (Edge): es la voz que eligió el usuario de kywai para sus vídeos en español.
-  let chosen = parseVoiceId(input.voice) ?? (script.lang === 'es' ? parseVoiceId(SPANISH_DEFAULT_VOICE) : null)
+  // En español e inglés, sin elegir, va la primera de las voces elegidas (Álvaro de Edge, Bella de Kokoro).
+  let chosen = parseVoiceId(input.voice) ?? parseVoiceId(defaultVoiceFor(script.lang))
+  // La de Kokoro por defecto sin Kokoro instalado: mejor el orden de siempre (Voicebox, Gemini…) que la del sistema.
+  if (!input.voice && chosen?.engine === 'kokoro' && !status.kokoro) chosen = null
   const doVoices = async (): Promise<void> => {
     // Edge o una voz de macOS (Siri): tres escenas a la vez. Si una no sale (sin internet, sin la voz), el orden de
     // siempre para todo el vídeo.

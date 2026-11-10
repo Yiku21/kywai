@@ -2892,4 +2892,6 @@ export const zh: Record<string, string> = {
   "Descarga la voz Carmen en Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema": "在 系统设置 → 辅助功能 → 朗读内容 → 系统语音 中下载 Carmen 语音",
   "España": "西班牙",
   "México": "墨西哥",
+  "Estados Unidos": "美国",
+  "Reino Unido": "英国",
 }

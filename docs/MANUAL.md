@@ -1720,7 +1720,7 @@ pasos en orden con sus avisos de seguridad, 2 o 3 bromas cortas y un resumen. Si
 cada paso muestra su instrucción en grande.
 
 **Voz.** En los vídeos **en español**, la voz por defecto es **Álvaro** (Microsoft Edge, es-ES-AlvaroNeural, con
-edge-tts: gratis, necesita internet); si no sale, el orden de siempre. En otros idiomas, el orden es Voicebox, Gemini, Kokoro:
+edge-tts: gratis, necesita internet), y **en inglés**, **Bella** (Kokoro, af_bella); si no sale, el orden de siempre. En otros idiomas, el orden es Voicebox, Gemini, Kokoro:
 - **Voicebox** (voicebox.sh, MIT) va primero si su app está abierta en el equipo donde corren los agentes y tiene
   un perfil de voz en el idioma del vídeo: gratis, sin salir del equipo y con **tu propia voz** si la clonas en
   Voicebox (las clonadas van antes que las predefinidas; una concreta con `KYWAI_VOICEBOX_VOICE`, nombre o id). kywai
@@ -1770,6 +1770,10 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    Carmen no sale con `say`: kywai compila una vez un programa pequeño en Swift (`<studio>/voz-mac/`, con `swiftc`)
    que usa AVSpeechSynthesizer con `com.apple.siri.natural.Carmen`; hay que tenerla descargada en Ajustes del Sistema →
    Accesibilidad → Contenido leído. Si una de estas falla en un vídeo, el vídeo sale con el orden de siempre.
+   **En inglés salen solo 11**, elegidas por Yil de 60 muestras: de Kokoro **Bella** (la de por defecto), Heart,
+   Nicole, Sarah, Adam (Estados Unidos), Isabella y George (Reino Unido), y de Edge **Aria**, **Guy** (Estados Unidos),
+   **Sonia** y **Ryan** (Reino Unido). Sin Kokoro instalado, la de por defecto se salta y va el orden de siempre. La
+   lista de cada idioma está en `LANG_VOICES` (`src/shared/videoChoice.ts`).
    En otros idiomas: *Automática*: la mejor que haya (el orden de «Voz» de arriba). O una concreta, agrupadas por motor, solo
    las que hay en el equipo: **tus voces de Voicebox** (si está abierto; también la tuya clonada), **12 voces de
    Gemini** (con clave; hablan cualquier idioma: Puck, Fenrir, Charon, Orus, Enceladus, Achird, Kore, Aoede, Leda,

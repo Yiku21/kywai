@@ -52,7 +52,11 @@ export function parseVoiceId(v: string | null | undefined): { engine: VoiceEngin
 /** Voces neuronales de Microsoft Edge (edge-tts: gratis, con internet). */
 export const EDGE_VOICES: { id: string; name: string; lang: string; region: string; gender: 'f' | 'm' }[] = [
   { id: 'es-ES-AlvaroNeural', name: 'Álvaro', lang: 'es', region: 'España', gender: 'm' },
-  { id: 'es-MX-JorgeNeural', name: 'Jorge', lang: 'es', region: 'México', gender: 'm' }
+  { id: 'es-MX-JorgeNeural', name: 'Jorge', lang: 'es', region: 'México', gender: 'm' },
+  { id: 'en-US-AriaNeural', name: 'Aria', lang: 'en', region: 'Estados Unidos', gender: 'f' },
+  { id: 'en-US-GuyNeural', name: 'Guy', lang: 'en', region: 'Estados Unidos', gender: 'm' },
+  { id: 'en-GB-SoniaNeural', name: 'Sonia', lang: 'en', region: 'Reino Unido', gender: 'f' },
+  { id: 'en-GB-RyanNeural', name: 'Ryan', lang: 'en', region: 'Reino Unido', gender: 'm' }
 ]
 
 /** Voces de macOS (AVSpeechSynthesizer): la de Siri hay que tenerla descargada en Ajustes del sistema. */
@@ -61,11 +65,29 @@ export const MAC_VOICES: { key: string; identifier: string; name: string; lang: 
 ]
 
 /**
- * En los vídeos en español solo se ofrecen estas tres (las eligió el usuario de kywai escuchando 28 muestras). La
- * primera va por defecto: sin marca «voz:», un vídeo en español sale con Álvaro.
+ * Las voces que se ofrecen en los vídeos de estos idiomas (las eligió el usuario de kywai escuchando muestras: 28 en
+ * español, 60 en inglés). La primera va por defecto: sin marca «voz:», un vídeo en español sale con Álvaro y uno en
+ * inglés con Bella. En los demás idiomas, todas las que haya y la automática.
  */
-export const SPANISH_VOICES = ['edge-es-ES-AlvaroNeural', 'edge-es-MX-JorgeNeural', 'mac-carmen'] as const
-export const SPANISH_DEFAULT_VOICE = SPANISH_VOICES[0]
+export const LANG_VOICES: Record<string, readonly string[]> = {
+  es: ['edge-es-ES-AlvaroNeural', 'edge-es-MX-JorgeNeural', 'mac-carmen'],
+  en: [
+    'kokoro-af_bella',
+    'kokoro-af_heart',
+    'kokoro-af_nicole',
+    'kokoro-af_sarah',
+    'kokoro-am_adam',
+    'kokoro-bf_isabella',
+    'kokoro-bm_george',
+    'edge-en-US-AriaNeural',
+    'edge-en-US-GuyNeural',
+    'edge-en-GB-SoniaNeural',
+    'edge-en-GB-RyanNeural'
+  ]
+}
+
+/** La voz por defecto de un idioma con voces elegidas (null: la automática). */
+export const defaultVoiceFor = (lang: string): string | null => LANG_VOICES[lang]?.[0] ?? null
 
 /** Voces de Gemini que ofrece el selector (de las 30 que tiene, las más claras para narrar), con su carácter. */
 export const GEMINI_VOICES: { id: string; line: string; gender: 'f' | 'm' }[] = [
@@ -90,8 +112,12 @@ export const KOKORO_VOICE_LIST: { id: string; name: string; lang: string; gender
   { id: 'em_santa', name: 'Santa', lang: 'es', gender: 'm' },
   { id: 'af_heart', name: 'Heart', lang: 'en', gender: 'f' },
   { id: 'af_bella', name: 'Bella', lang: 'en', gender: 'f' },
+  { id: 'af_nicole', name: 'Nicole', lang: 'en', gender: 'f' },
+  { id: 'af_sarah', name: 'Sarah', lang: 'en', gender: 'f' },
+  { id: 'am_adam', name: 'Adam', lang: 'en', gender: 'm' },
   { id: 'am_michael', name: 'Michael', lang: 'en', gender: 'm' },
   { id: 'bf_emma', name: 'Emma', lang: 'en', gender: 'f' },
+  { id: 'bf_isabella', name: 'Isabella', lang: 'en', gender: 'f' },
   { id: 'bm_george', name: 'George', lang: 'en', gender: 'm' },
   { id: 'ff_siwis', name: 'Siwis', lang: 'fr', gender: 'f' },
   { id: 'if_sara', name: 'Sara', lang: 'it', gender: 'f' },

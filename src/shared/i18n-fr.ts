@@ -2892,4 +2892,6 @@ export const fr: Record<string, string> = {
   "Descarga la voz Carmen en Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema": "Téléchargez la voix Carmen dans Réglages Système → Accessibilité → Contenu énoncé → Voix du système",
   "España": "Espagne",
   "México": "Mexique",
+  "Estados Unidos": "États-Unis",
+  "Reino Unido": "Royaume-Uni",
 }

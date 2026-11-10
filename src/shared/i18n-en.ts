@@ -3011,4 +3011,6 @@ export const en: Record<string, string> = {
   "Descarga la voz Carmen en Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema": "Download the Carmen voice in System Settings → Accessibility → Spoken Content → System voice",
   "España": "Spain",
   "México": "Mexico",
+  "Estados Unidos": "United States",
+  "Reino Unido": "United Kingdom",
 }

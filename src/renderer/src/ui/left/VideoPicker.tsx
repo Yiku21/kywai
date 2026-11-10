@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AudioLines, Check, ChevronDown, Clapperboard, ImagePlus, Layers, Loader2, Play, Plus, Search, Smile, Sparkles, Square, Trash2, UserRound, X } from 'lucide-react'
 import { FILM_CATEGORIES, FILM_STYLES, filmStyle, type FilmStyle } from '@shared/filmStyles'
-import { ROBOTS_CHARACTER, SPANISH_DEFAULT_VOICE, type VideoChoice, type VideoKind } from '@shared/videoChoice'
+import { defaultVoiceFor, ROBOTS_CHARACTER, type VideoChoice, type VideoKind } from '@shared/videoChoice'
 import type { CoworkApi, VideoCharacterInfo, VideoVoiceInfo } from '@shared/types'
 import { cx } from '../common/util'
 import { lang, t } from '@/lib/i18n'
@@ -75,9 +75,9 @@ const langName = (code: string | undefined): string => {
 const voiceName = (v: VideoVoiceInfo): string => (v.engine === 'sistema' ? t('Voz del sistema') : v.name)
 const voiceLine = (v: VideoVoiceInfo): string =>
   [
-    v.engine === 'kokoro' ? '' : v.engine === 'voicebox' ? t(v.line) : v.engine === 'sistema' ? t('La del sistema operativo') : t(v.line),
-    v.engine === 'edge' ? 'Microsoft Edge' : v.engine === 'mac' ? t('Siri (Mac)') : '',
-    v.engine === 'gemini' || v.engine === 'edge' || v.engine === 'mac' ? '' : langName(v.lang),
+    v.engine === 'kokoro' && v.line === 'Kokoro' ? '' : v.engine === 'sistema' ? t('La del sistema operativo') : t(v.line),
+    v.engine === 'edge' ? 'Microsoft Edge' : v.engine === 'mac' ? t('Siri (Mac)') : v.engine === 'kokoro' && v.line !== 'Kokoro' ? 'Kokoro' : '',
+    v.engine === 'gemini' || v.engine === 'edge' || v.engine === 'mac' || (v.engine === 'kokoro' && v.line !== 'Kokoro') ? '' : langName(v.lang),
     v.gender === 'f' ? t('voz de mujer') : v.gender === 'm' ? t('voz de hombre') : ''
   ]
     .filter(Boolean)
@@ -283,8 +283,8 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
 
   const style = value.style ? filmStyle(value.style) : undefined
   const chosenChar = value.character ? chars.find((c) => c.id === value.character) : undefined
-  // En español solo hay tres voces y Álvaro va por defecto (sin marca): no hay «Automática».
-  const defaultVoice = lang() === 'es' ? SPANISH_DEFAULT_VOICE : null
+  // En español y en inglés solo salen las voces elegidas y la primera va por defecto (sin marca): no hay «Automática».
+  const defaultVoice = defaultVoiceFor(lang())
   const voiceOn = (id: string): boolean => (value.voice ?? defaultVoice) === id
   const chosenVoice = voices?.voices.find((v) => v.id === (value.voice ?? defaultVoice))
   const summary = [
