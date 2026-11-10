@@ -947,6 +947,8 @@ private fun part7(m: HashMap<String, String>) {
     m["Cambia el modelo de Hermes"] = "Changes Hermes's model"
     m["Mira cuánta cuota le queda a cada agente"] = "Shows how much quota each agent has left"
     m["Empieza un chat nuevo en este proyecto"] = "Starts a new chat in this project"
+    m["idea [en 5 episodios]"] = "idea [in 5 episodes]"
+    m["Una historia en episodios con los mismos personajes, cada uno acaba en suspense"] = "A story in episodes with the same characters, each one ending on a cliffhanger"
     m["enlace o vídeo"] = "link or video"
     m["Convierte lo que enseña un vídeo en una habilidad"] = "Turns what a video teaches into a skill"
     m["tema"] = "topic"

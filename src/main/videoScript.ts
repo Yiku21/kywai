@@ -4,6 +4,7 @@
 // que el agente improvise.
 import { KYWAI_FILM, takeFilmStyle } from '../shared/filmStyles'
 import { ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, type VideoKind } from '../shared/videoChoice'
+import { episodeRules, type EpisodeBrief } from './series'
 
 export type VideoFormat = 'horizontal' | 'vertical'
 
@@ -68,6 +69,8 @@ export interface VideoScript {
   look?: string
   /** Los personajes fijos de la serie (en inglés, «Nombre: cómo es»): van en cada imagen para que salgan iguales. */
   cast?: string
+  /** Episodio de una serie («/serie»): qué pasó, cómo quedó y la pregunta para votar. */
+  episode?: { summary: string; cliffhanger?: string; question?: string }
 }
 
 export const MIN_SCENES = 3
@@ -128,7 +131,10 @@ export function parseVideoScript(text: string): VideoScript {
   const style = VIDEO_STYLES.includes(raw.style as VideoStyle) ? (raw.style as VideoStyle) : 'dinamico'
   const look = clean(raw.look, 700)
   const cast = clean(raw.cast, 900)
-  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}), ...(cast ? { cast } : {}) }
+  const ep = raw.episode && typeof raw.episode === 'object' ? (raw.episode as Record<string, unknown>) : null
+  const summary = ep ? clean(ep.summary, 500) : ''
+  const episode = summary ? { summary, ...(clean(ep!.cliffhanger, 300) ? { cliffhanger: clean(ep!.cliffhanger, 300) } : {}), ...(clean(ep!.question, 300) ? { question: clean(ep!.question, 300) } : {}) } : undefined
+  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}), ...(cast ? { cast } : {}), ...(episode ? { episode } : {}) }
 }
 
 /**
@@ -156,6 +162,8 @@ type PromptInput = {
    * aspecto si ya se escribió y, en el elegido, su nombre y lo que contó el usuario de él.
    */
   cast?: { images: string[]; notes?: string; name?: string; about?: string }
+  /** Episodio de una serie («/serie»). */
+  episode?: EpisodeBrief
 }
 
 /** El vídeo lleva presentador (dibujos con presentador o mixto). */
@@ -227,13 +235,14 @@ export function videoScriptPrompt(input: PromptInput): string {
     '- "outro": frase final corta para la última pantalla.',
     ...lookRules(input),
     ...castRules(input),
+    ...(input.episode ? episodeRules(input.episode) : []),
     ...(input.manim ? manimRules(input.format, input.manim) : []),
     '- Si el tema necesita datos actuales, compruébalos antes; no inventes cifras.',
     '- No crees ni cambies archivos: responde solo con el JSON.',
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", ' + (input.cast ? '"cast": "…", ' : '') + '"scenes": [{"heading": "…", "narration": "…", "image": "…"' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", ' + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + '"scenes": [{"heading": "…", "narration": "…", "image": "…"' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -269,13 +278,14 @@ function cartoonScriptPrompt(input: PromptInput): string {
     '- "outro": frase final corta y con gracia.',
     ...lookRules(input),
     ...castRules(input),
+    ...(input.episode ? episodeRules(input.episode) : []),
     ...(input.manim ? manimRules(input.format, input.manim, true) : []),
     '- Si el tema necesita datos actuales o técnicos, compruébalos antes; no inventes.',
     '- No crees ni cambies archivos: responde solo con el JSON.',
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "style": "' + (mixed ? 'mixto' : 'cartoon') + '", "theme": "papel", ' + (input.refs?.length || input.cast ? '"look": "…", ' : '') + (input.cast ? '"cast": "…", ' : '') + '"scenes": [{' + (mixed ? '"mode": "presentador", ' : '') + '"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "style": "' + (mixed ? 'mixto' : 'cartoon') + '", "theme": "papel", ' + (input.refs?.length || input.cast ? '"look": "…", ' : '') + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + '"scenes": [{' + (mixed ? '"mode": "presentador", ' : '') + '"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 

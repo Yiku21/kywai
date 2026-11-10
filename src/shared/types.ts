@@ -279,6 +279,8 @@ export interface Task {
     saveCast?: boolean
     /** Referencias de estilo ya preparadas (imágenes adjuntas y fotogramas de los vídeos adjuntos), rutas absolutas. */
     refs?: string[]
+    /** Episodio de la serie del proyecto («/serie»; lo demás está en .ai-cowork/serie.json). */
+    episode?: { n: number; total: number; vote?: string }
   }
   /** «/aprende»: un vídeo o pódcast que se transcribe y se convierte en una habilidad (src/main/learn.ts). */
   learn?: {

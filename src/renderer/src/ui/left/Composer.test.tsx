@@ -154,7 +154,7 @@ describe('plantillas de tareas encima del cuadro', () => {
     await type('/')
     const rows = [...host.querySelectorAll('#composer-commands [role="option"]')]
     const names = rows.map((o) => o.querySelector('span:nth-child(2)')?.textContent ?? '')
-    expect(names.slice(0, 8)).toEqual(['/video tema', '/aprende enlace o vídeo', '/rutina cuándo: qué', '/directo Agente mensaje', '/recuerda texto', '/model', '/uso', '/nuevo'])
+    expect(names.slice(0, 9)).toEqual(['/video tema', '/serie idea [en 5 episodios]', '/aprende enlace o vídeo', '/rutina cuándo: qué', '/directo Agente mensaje', '/recuerda texto', '/model', '/uso', '/nuevo'])
     expect(names).toContain('/revisar-pr')
     expect(rows.every((o) => (o.querySelector('span:nth-child(3)')?.textContent ?? '').length > 0)).toBe(true)
     expect(rows[0].textContent).toContain('MP4')

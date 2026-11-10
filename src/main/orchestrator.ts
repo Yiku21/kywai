@@ -84,6 +84,7 @@ import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
 import { installCatalogSkill, searchSkillCatalog } from './catalog'
 import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSuggest'
+import { episodeBrief, episodeFromFilmReply, loadSeries, nextEpisode, parseSeriesRequest, recordEpisode, startSeries, type SeriesRequest } from './series'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
 
 /** ¿Es un aviso de «lleva 3 minutos sin dar señales»? (el general o el de Gemini con la sesión de Google) */
@@ -1405,6 +1406,10 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     return sendLearn(st, learnReq, atts, input.clientMessageId, routine, text.trim())
   }
 
+  // «/serie <idea>»: una historia por episodios con los mismos personajes; «/serie siguiente» hace el que toca.
+  const seriesReq = fromMsg || tpl ? null : parseSeriesRequest(text)
+  if (seriesReq) return sendSeries(st, seriesReq, atts, input.clientMessageId, routine, text.trim())
+
   const videoReq = fromMsg ? { ...(parseVideoRequest(text) ?? { topic: '', format: 'horizontal' as const, style: 'dinamico' as const }), fromPrevious: true } : parseVideoRequest(tpl ? tpl.text : text)
   if (videoReq) {
     let source: string | undefined
@@ -1602,7 +1607,7 @@ function filmDirector(): AgentConfig | null {
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; episode?: { n: number; total: number; vote?: string } },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -1652,7 +1657,9 @@ async function sendVideo(
     projectId,
     runId,
     seq: nextTaskSeq(projectId),
-    title: film ? tr('Vídeo «{style}»: {label}', { style: lang() === 'es' ? film.name : film.en, label: oneLine(label, 50) }) : tr('Vídeo: {label}', { label: oneLine(label, 60) }),
+    title: req.episode
+      ? tr('Episodio {n} de {total}: {label}', { n: req.episode.n, total: req.episode.total, label: oneLine(label, 50) })
+      : film ? tr('Vídeo «{style}»: {label}', { style: lang() === 'es' ? film.name : film.en, label: oneLine(label, 50) }) : tr('Vídeo: {label}', { label: oneLine(label, 60) }),
     description: req.topic || tr('Vídeo del mensaje elegido'),
     agentId: agent.id,
     dependsOn: [],
@@ -1670,7 +1677,8 @@ async function sendVideo(
       ...(req.saveCast ? { saveCast: true } : {}),
       ...(req.character && videoCharacter(req.character) ? { character: req.character } : {}),
       ...(req.kind ? { kind: req.kind } : {}),
-      ...(req.voice ? { voice: req.voice } : {})
+      ...(req.voice ? { voice: req.voice } : {}),
+      ...(req.episode ? { episode: req.episode } : {})
     }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
@@ -1688,6 +1696,96 @@ async function sendVideo(
   }
   schedule()
   return { runId }
+}
+
+/**
+ * «/serie»: empieza una serie (guarda la idea, el formato y el estilo, y hace el episodio 1), hace el siguiente
+ * episodio con lo que votó la gente o cuenta cómo va. Cada episodio es un vídeo normal (sendVideo).
+ */
+async function sendSeries(
+  st: ReturnType<typeof store.getProject>,
+  req: SeriesRequest,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  const root = store.workRoot(projectId)
+  const current = loadSeries(root)
+  const say = (text: string): { runId: string } => {
+    const runId = randomUUID()
+    const base = { projectId, runId, createdAt: Date.now() }
+    pushMessage({ ...base, id: randomUUID(), ...(clientMessageId ? { clientMessageId } : {}), author: { type: 'user' }, text: shown, attachments: atts.length ? atts : undefined })
+    pushMessage({ ...base, id: randomUUID(), author: { type: 'system' }, text })
+    return { runId }
+  }
+  if (req.kind === 'status') {
+    if (!current) return say(tr('No hay ninguna serie en este proyecto. Empieza una con «/serie <idea> en 5 episodios» (con «personajes fijos» y unas imágenes, salen esos personajes).'))
+    const n = nextEpisode(current)
+    const last = current.episodes[current.episodes.length - 1]
+    return say(
+      [
+        tr('Serie: {idea} ({done} de {total} episodios).', { idea: oneLine(current.idea, 120), done: current.episodes.length, total: current.total }),
+        last?.question ? tr('Pregunta del último episodio: «{q}»', { q: last.question }) : '',
+        n ? tr('Para el episodio {n}, escribe «/serie siguiente» (y lo que votó la gente: «/serie siguiente ganó B»).', { n }) : tr('La serie está completa. «/serie <idea>» empieza otra.')
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+    )
+  }
+  if (req.kind === 'next') {
+    if (!current) return say(tr('No hay ninguna serie en este proyecto. Empieza una con «/serie <idea> en 5 episodios».'))
+    const n = nextEpisode(current)
+    if (!n) return say(tr('La serie ya tiene sus {total} episodios. «/serie <idea>» empieza otra.', { total: current.total }))
+    const topic = tr('{idea} (episodio {n} de {total})', { idea: current.idea, n, total: current.total })
+    const chosen = { ...(current.film ? { film: current.film } : {}), ...(current.character ? { character: current.character } : {}), ...(current.kind ? { kind: current.kind } : {}), ...(current.voice ? { voice: current.voice } : {}) }
+    return sendVideo(st, { topic, format: current.format, style: current.style, ...chosen, episode: { n, total: current.total, ...(req.vote ? { vote: req.vote } : {}) } }, atts, clientMessageId, routine, shown, {})
+  }
+  const v = parseVideoRequest(req.video) ?? { topic: req.idea, format: 'vertical' as const, fromPrevious: false, style: 'dinamico' as const }
+  // Una serie para redes es vertical, salvo que pida horizontal.
+  const format = /\b(horizontal|youtube|16:9|apaisado)\b/i.test(req.video) ? 'horizontal' : 'vertical'
+  const idea = v.topic || req.idea
+  const chosen = { ...(v.film ? { film: v.film } : {}), ...(v.character ? { character: v.character } : {}), ...(v.kind ? { kind: v.kind } : {}), ...(v.voice ? { voice: v.voice } : {}) }
+  startSeries(root, { idea, total: req.episodes, format, style: v.style, ...chosen })
+  const topic = tr('{idea} (episodio {n} de {total})', { idea, n: 1, total: req.episodes })
+  return sendVideo(st, { topic, format, style: v.style, ...chosen, ...(v.saveCast ? { saveCast: true } : {}), episode: { n: 1, total: req.episodes } }, atts, clientMessageId, routine, shown, {})
+}
+
+/** El encargo del episodio: la serie guardada, lo que pasó antes y lo votado. */
+function seriesBriefFor(run: Run, t: Task): ReturnType<typeof episodeBrief> | undefined {
+  const ep = t.video?.episode
+  if (!ep) return undefined
+  const root = store.workRoot(run.projectId)
+  const s = loadSeries(root)
+  if (!s) return undefined
+  return episodeBrief(s, ep.n, ep.vote, !!videoCast(run, t.video!)?.images.length || !!s.characters)
+}
+
+/** Personajes del episodio: los fijos del proyecto o, si no hay, los que inventó el primer episodio de la serie. */
+function seriesCast(run: Run, t: Task): { images: string[]; notes?: string } | undefined {
+  const root = store.workRoot(run.projectId)
+  const own = t.video ? videoCast(run, t.video) : undefined
+  if (own || !t.video?.episode) return own
+  const chars = loadSeries(root)?.characters
+  return chars ? { images: [], notes: chars } : undefined
+}
+
+/** Guarda lo que pasó en el episodio y devuelve la nota para el chat. */
+function recordSeriesEpisode(run: Run, t: Task, title: string, info: { summary: string; cliffhanger?: string; question?: string } | undefined, video: string | null, characters?: string): string {
+  const ep = t.video?.episode
+  if (!ep) return ''
+  const root = store.workRoot(run.projectId)
+  const saved = recordEpisode(root, { n: ep.n, title, summary: info?.summary || title, ...(info?.cliffhanger ? { cliffhanger: info.cliffhanger } : {}), ...(info?.question ? { question: info.question } : {}), ...(ep.vote ? { vote: ep.vote } : {}), ...(video ? { video } : {}) }, characters)
+  if (!saved) return ''
+  if (ep.n >= ep.total) return tr('Es el último episodio de la serie ({total}). «/serie <idea>» empieza otra.', { total: ep.total })
+  return [
+    tr('Episodio {n} de {total}.', { n: ep.n, total: ep.total }),
+    info?.question ? tr('Pregunta para los comentarios: «{q}».', { q: info.question }) : '',
+    tr('Cuando sepas qué votó la gente, escribe «/serie siguiente ganó …» y hago el episodio {next}.', { next: ep.n + 1 })
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 /** Quién convierte un vídeo en habilidad: el que mejor resume y enseña (sin hacer falta terminal). */
@@ -1830,7 +1928,7 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
       outDir,
       signal,
       refs: v.refs ?? imageAttachments(run, true),
-      cast: videoCast(run, v),
+      cast: seriesCast(run, t),
       ...(v.voice ? { voice: v.voice } : {}),
       onStep: (text, p, vars) => {
         t.lastActivity = tr(text, vars)
@@ -1853,7 +1951,9 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
   else if (script.cast && projectCast(root)?.images.length && saveCastNotes(root, script.cast)) meta.touched.add(join(CAST_DIR, CAST_NOTES))
   const rel = store.toRelPath(root, video.file)
   if (rel) meta.touched.add(rel)
+  const episodeNote = recordSeriesEpisode(run, t, script.title, script.episode, rel, script.cast)
   const notes = [
+    episodeNote,
     video.voice === 'system' ? tr('Va con la voz del sistema: instala la voz Kokoro en Ajustes → Extensiones → Estudio de vídeo para una más natural.') : '',
     v.saveCast && projectCast(root)?.images.length ? tr('Tus personajes fijos están en la carpeta «personajes» del proyecto: saldrán iguales en los próximos vídeos (para cambiarlos, cambia esas imágenes o su descripción en personajes.md).') : '',
     video.moving ? tr('{n} escenas llevan movimiento hecho con FreeVideo en este equipo.', { n: video.moving }) : '',
@@ -1889,11 +1989,13 @@ async function completeFilm(run: Run, t: Task, exec: AgentConfig, parent: AgentC
   const about = res.text
     .split('\n')
     .map((l) => l.trim())
-    .filter((l) => l && !/^(?:t[ií]tulo|title)\s*:/i.test(l))
+    .filter((l) => l && !/^(?:t[ií]tulo|title|resumen|summary|suspense|cliffhanger|gancho final|pregunta|question)\s*:/i.test(l))
     .join(' ')
+  const episodeNote = recordSeriesEpisode(run, t, title, v.episode ? episodeFromFilmReply(res.text) : undefined, rel)
   const text = [
     tr('Aquí tienes tu vídeo «{title}» en estilo {style}{secs}.', { title, style: style ? (lang() === 'es' ? style.name : style.en) : v.film!, secs: secs ? ` (${secs} s)` : '' }),
     about ? clip(about, 400) : '',
+    episodeNote,
     tr('El proyecto completo (guion, código y créditos de lo que usa) queda en {dir}.', { dir: v.work! })
   ].filter(Boolean).join('\n\n')
   await completeTask(run, t, exec, parent, { ...res, text })
@@ -3201,6 +3303,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         ...(t.video.kind ? { kind: t.video.kind } : {}),
         ...(t.video.voice ? { voice: t.video.voice } : {}),
         ...(t.video.character ? { character: videoCharacter(t.video.character) ?? undefined } : {}),
+        episode: seriesBriefFor(run, t),
         files: [
           ...run.attachments.map((a) => `- ${attPath(run, a.relPath, false)} (adjunto del usuario: ${a.name})`),
           ...(t.video.character ? [] : projectCast(store.workRoot(run.projectId))?.images ?? []).map((f) => `- ${f} (personaje fijo de la serie: que salga igual, con la misma ropa)`)
@@ -3211,7 +3314,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: videoCast(run, t.video) })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t) })].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)

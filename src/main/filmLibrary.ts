@@ -10,6 +10,7 @@ import { defaultVoiceFor, MAC_VOICES, parseVoiceId, type VideoKind } from '../sh
 import { voiceboxUrl } from './voicebox'
 import type { CharacterForVideo } from './videoCharacters'
 import { HOOK_RULE } from './videoScript'
+import { episodeRules, type EpisodeBrief } from './series'
 
 export const LEMO_OPUSCAR_REPO = 'https://github.com/lemomo-ai/lemo-opuscar.git'
 /** Versión fija: lo que se probó con kywai (10 nov 2026). Se sube a mano tras probar una nueva. */
@@ -50,6 +51,8 @@ export interface FilmPromptInput {
   work: string
   /** Adjuntos del usuario («- ruta (adjunto del usuario: nombre)»). */
   files?: string[]
+  /** Episodio de una serie («/serie»). */
+  episode?: EpisodeBrief
   /** Tipo elegido en el selector: cómo se cuenta (sin él, lo decide el agente). */
   kind?: VideoKind
   /** Personaje elegido en el selector: se dibuja en el estilo de la película. */
@@ -204,7 +207,8 @@ export function filmPrompt(input: FilmPromptInput): string {
     ...(input.character ? characterRules(input.character, style.slug === KYWAI_FILM && kitRobots) : []),
     ...(FILM_3D.has(style.slug) ? ALIVE_3D : []),
     ...(input.source ? ['', 'El texto del que trata la película:', '"""', input.source, '"""'] : []),
-    ...(input.files?.length ? ['', 'Archivos del usuario que puedes usar (lo que haya de material propio va en la película):', ...input.files] : [])
+    ...(input.files?.length ? ['', 'Archivos del usuario que puedes usar (lo que haya de material propio va en la película):', ...input.files] : []),
+    ...(input.episode ? episodeRules(input.episode, true) : [])
   ]
   return [...head, ...common, ...extra].join('\n')
 }

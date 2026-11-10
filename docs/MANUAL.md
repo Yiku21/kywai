@@ -1670,6 +1670,26 @@ tarea.
 Si YouTube u otra web pide iniciar sesión («no eres un robot»), kywai lo dice: se descarga el vídeo y se adjunta. El
 audio no sale del equipo. Código: `src/main/learn.ts` (y `sendLearn`/`prepareLearn`/`completeLearn` en el orquestador).
 
+### Series por episodios (`/serie`)
+
+**«/serie <idea> [en 5 episodios]»** cuenta una historia en vídeos cortos con **los mismos personajes**, para subirlos
+uno a uno (por defecto 5, de 2 a 10; vertical salvo que digas «horizontal»). Vale todo lo de `/video`: un estilo de
+película («/serie estilo acuarela una bruja novata»), «personajes fijos» con imágenes adjuntas, etc.
+
+- Hace el **episodio 1** al momento. Cada episodio **acaba en suspense** y la última frase de la voz es una **pregunta
+  para votar en los comentarios** con dos opciones («¿Abre la puerta o huye? Comenta A o B»). El último episodio cierra
+  la historia, sin pregunta.
+- **«/serie siguiente ganó B»** (o «/serie siguiente ganó: abre la puerta», o solo «/serie siguiente») hace el que toca:
+  el agente lee lo que pasó en los anteriores y sigue la historia por lo que votó la gente. Empieza con un «previamente»
+  de una frase.
+- **Personajes**: los de la carpeta `personajes/` del proyecto si los hay; si no, el primer episodio se inventa de 1 a 3
+  protagonistas y su descripción se repite igual en todos los demás.
+- **«/serie»** solo dice cómo va (cuántos episodios lleva y la última pregunta).
+- Lo que pasa en cada episodio (título, resumen, cómo quedó, pregunta, lo votado y el vídeo) se guarda en
+  `.ai-cowork/serie.json`. Una serie a la vez por proyecto: empezar otra guarda la anterior como `serie-<fecha>.json`.
+
+Código: `src/main/series.ts` y `sendSeries` en el orquestador.
+
 ### Hermes te propone habilidades
 
 Cuando una petición es de un campo especializado (un framework, un formato de archivo, un tipo de diseño, marketing,
