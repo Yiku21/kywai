@@ -947,6 +947,8 @@ private fun part7(m: HashMap<String, String>) {
     m["Cambia el modelo de Hermes"] = "更换 Hermes 的模型"
     m["Mira cuánta cuota le queda a cada agente"] = "查看每个智能体还剩多少额度"
     m["Empieza un chat nuevo en este proyecto"] = "在这个项目里开始新的对话"
+    m["enlace o vídeo"] = "链接或视频"
+    m["Convierte lo que enseña un vídeo en una habilidad"] = "把视频教的内容变成一项技能"
     m["tema"] = "主题"
     m["cuándo: qué"] = "何时：做什么"
     m["Agente mensaje"] = "智能体 消息"

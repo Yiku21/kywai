@@ -16,7 +16,7 @@ async function hasUv(): Promise<boolean> {
 }
 
 /** Instala uv (sin permisos de administrador) si no está; lo usa también Hermes. */
-async function ensureUv(): Promise<void> {
+export async function ensureUv(): Promise<void> {
   if (await hasUv()) return
   await refreshPath()
   if (await hasUv()) return

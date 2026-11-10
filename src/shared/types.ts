@@ -280,6 +280,19 @@ export interface Task {
     /** Referencias de estilo ya preparadas (imágenes adjuntas y fotogramas de los vídeos adjuntos), rutas absolutas. */
     refs?: string[]
   }
+  /** «/aprende»: un vídeo o pódcast que se transcribe y se convierte en una habilidad (src/main/learn.ts). */
+  learn?: {
+    url?: string
+    note: string
+    /** Carpeta de trabajo (relativa al proyecto): el audio, la transcripción y los fotogramas. */
+    work: string
+    /** Ya está transcrito (transcripcion.txt en la carpeta). */
+    ready?: boolean
+    title?: string
+    frames?: string[]
+    /** La habilidad que se guardó. */
+    skill?: string
+  }
 }
 
 /** Cambios de una tarea en la carpeta del proyecto, guardados como dos instantáneas (ver checkpoints.ts). */

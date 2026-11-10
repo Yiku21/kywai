@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, ImagePlus, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, ImagePlus, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
 import type { CoworkApi, HttpsLink, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
@@ -41,6 +41,7 @@ const ROUTINE_COMMAND = /^\/(rutina|rutinas|routine)\b/i
 /** Los iconos de la lista del «/»: de línea, como el resto de la app (sin emojis ni animaciones). */
 const COMMAND_ICONS: Record<CommandIcon, LucideIcon> = {
   video: Clapperboard,
+  learn: GraduationCap,
   routine: CalendarClock,
   direct: AtSign,
   memory: Brain,

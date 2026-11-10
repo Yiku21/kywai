@@ -1652,6 +1652,24 @@ descarga como los plugins) o la ruta de una carpeta del equipo donde corre kywai
 haciendo; vuelve a instalarlo tras cambiarlo). Se guarda en `mods/<nombre>` de la carpeta de datos. «Apagar» lo deja
 instalado sin órdenes, hooks ni paneles; la papelera lo borra.
 
+### Aprender de un vídeo (`/aprende`)
+
+**«/aprende <enlace> [para qué]»** (YouTube, un pódcast u otra web que entienda yt-dlp) o **«/aprende [para qué]» con un
+vídeo o audio adjunto** convierte lo que enseña ese vídeo en una **habilidad** del equipo. Sin plan de Hermes: una sola
+tarea.
+1. Antes de que empiece el agente, kywai baja el audio del enlace con **yt-dlp** (con `uvx`, como el dictado) o lo saca
+   del adjunto con ffmpeg, y lo **transcribe con Whisper en el propio equipo** (whisper-ctranslate2, modelo small,
+   idioma automático). De un vídeo adjunto saca también 6 fotogramas. Todo queda en `.ai-cowork/aprende/<id>/`
+   (`transcripcion.txt`, `fotogramas/`).
+2. El agente que mejor resume y enseña lee la transcripción (hasta 60.000 caracteres en el encargo; el resto, en el
+   archivo) y responde con el `SKILL.md` entero: el **método** que enseña el vídeo (pasos, reglas, plantillas, qué
+   evitar), no un resumen. Si no enseña nada aprovechable, responde «BLOQUEADA:».
+3. kywai la guarda en `habilidades/<nombre>/SKILL.md` (si el nombre ya existe, con un número) con la fuente al final, y
+   contesta con su nombre y para qué sirve. Desde ese momento todo el equipo la ve en su encargo.
+
+Si YouTube u otra web pide iniciar sesión («no eres un robot»), kywai lo dice: se descarga el vídeo y se adjunta. El
+audio no sale del equipo. Código: `src/main/learn.ts` (y `sendLearn`/`prepareLearn`/`completeLearn` en el orquestador).
+
 ### Crear vídeos con solo pedirlo (`/video`)
 
 Pides un vídeo y te llega **solo el vídeo**: un MP4 que se ve en el propio chat (con Abrir y Descargar debajo). Sin

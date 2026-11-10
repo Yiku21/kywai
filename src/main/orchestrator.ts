@@ -67,7 +67,7 @@ import { testEvidence } from '@shared/testEvidence'
 import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './coworkMcp'
 import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
 import { repoInstructionLines } from './repoInstructions'
-import { skillPromptLines, videoSkillPromptLines } from './skills'
+import { listSkills, skillPromptLines, skillsDir, videoSkillPromptLines } from './skills'
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
@@ -75,6 +75,7 @@ import { saveCharacterLook, videoCharacter } from './videoCharacters'
 import type { VideoKind } from '../shared/videoChoice'
 import { CAST_DIR, CAST_NOTES, ensureVideoStudio, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
+import { isMediaFile, learnPrompt, parseLearnedSkill, parseLearnRequest, prepareLearnSource, saveLearnedSkill, type LearnRequest } from './learn'
 import { filmPrompt, filmReady, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
 import { KYWAI_FILM_GUIDES } from './kywaiFilmGuides'
 import { filmStyle } from '@shared/filmStyles'
@@ -1393,6 +1394,14 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   // guion y kywai monta el vídeo entero; solo se entrega el MP4.
   const fromMsg = typeof input.videoFrom === 'string' ? st.messages.find((m) => m.id === input.videoFrom) : undefined
   if (input.videoFrom && !fromMsg) throw new Error(tr('No encuentro ese mensaje para hacer el vídeo'))
+  // «/aprende <enlace>» (o con un vídeo adjunto): kywai lo transcribe y un agente lo convierte en una habilidad.
+  const learnReq = fromMsg || tpl ? null : parseLearnRequest(text)
+  if (learnReq) {
+    if (!learnReq.url && !atts.some((a) => isMediaFile(a.relPath)))
+      throw new Error(tr('¿De qué aprendo? Pon un enlace («/aprende https://…») o adjunta un vídeo o un audio.'))
+    return sendLearn(st, learnReq, atts, input.clientMessageId, routine, text.trim())
+  }
+
   const videoReq = fromMsg ? { ...(parseVideoRequest(text) ?? { topic: '', format: 'horizontal' as const, style: 'dinamico' as const }), fromPrevious: true } : parseVideoRequest(tpl ? tpl.text : text)
   if (videoReq) {
     let source: string | undefined
@@ -1676,6 +1685,118 @@ async function sendVideo(
   }
   schedule()
   return { runId }
+}
+
+/** Quién convierte un vídeo en habilidad: el que mejor resume y enseña (sin hacer falta terminal). */
+function learner(): AgentConfig | null {
+  return bestAgentFor('investigación síntesis redacción enseñanza documentación método')
+}
+
+/** «/aprende»: una sola tarea. Antes de empezar se baja y transcribe el vídeo (prepareLearn); la respuesta es la habilidad. */
+async function sendLearn(
+  st: ReturnType<typeof store.getProject>,
+  req: LearnRequest,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  const agent = learner()
+  if (!agent) throw new Error(tr('No hay ningún agente disponible para aprender de ese vídeo.'))
+  const runId = randomUUID()
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: shown,
+    createdAt: Date.now(),
+    attachments: atts.length ? atts : undefined,
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+  })
+  const what = req.url ? oneLine(req.url.replace(/^https?:\/\/(www\.)?/, ''), 50) : (atts.find((a) => isMediaFile(a.relPath))?.name ?? tr('el vídeo'))
+  const run: Run = {
+    id: runId,
+    projectId,
+    userText: shown,
+    ...(routine ? { routine: routine.name } : {}),
+    attachments: atts,
+    attPaths: store.stageAttachments(projectId, atts),
+    planning: false,
+    taskIds: [],
+    meta: new Map(),
+    controllers: new Map(),
+    cancelled: false,
+    finished: false
+  }
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId,
+    seq: nextTaskSeq(projectId),
+    title: tr('Aprender de {what}', { what }),
+    description: req.note || tr('Convertir lo que enseña en una habilidad'),
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'text',
+    learn: { ...(req.url ? { url: req.url } : {}), note: req.note, work: `.ai-cowork/aprende/${Date.now().toString(36)}` }
+  }
+  run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
+  runs.set(runId, run)
+  emit({ kind: 'run.started', runId, projectId })
+  startRunUsage({ runId, projectId, projectName: st.project.name, request: shown })
+  await baseline(run)
+  tasks.set(t.id, t)
+  run.taskIds.push(t.id)
+  pushTask(t)
+  schedule()
+  return { runId }
+}
+
+/** Baja y transcribe el vídeo de «/aprende» (una vez; si se reintenta con otro agente, ya está). */
+async function prepareLearn(run: Run, t: Task): Promise<void> {
+  const l = t.learn!
+  if (l.ready) return
+  const dir = join(store.workRoot(run.projectId), l.work)
+  const signal = run.controllers.get(t.id)?.signal
+  const media = run.attachments.find((a) => isMediaFile(a.relPath))
+  const file = !l.url && media ? attPath(run, media.relPath, true) : undefined
+  const src = await prepareLearnSource({
+    url: l.url,
+    file,
+    dir,
+    signal,
+    onStep: (text) => {
+      t.lastActivity = tr(text)
+      taskDirty(t)
+    }
+  })
+  l.title = src.title
+  l.frames = file && isVideoFile(file) ? await videoFrames(file, join(dir, 'fotogramas'), 6, signal) : []
+  l.ready = true
+  pushTask(t)
+}
+
+/** La respuesta es la habilidad: kywai la guarda en la carpeta de habilidades y lo dice en una frase. */
+async function completeLearn(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  const l = t.learn!
+  let skill
+  try {
+    skill = parseLearnedSkill(res.text)
+  } catch (e) {
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('La habilidad no valía: {message}', { message: (e as Error).message }) })
+    return
+  }
+  const saved = saveLearnedSkill(skillsDir(), skill, l.url ?? (l.title || tr('un vídeo adjunto')))
+  l.skill = saved.name
+  const text = tr('Aprendí «{name}»: {description}\n\nEstá en Habilidades y todo el equipo la usará cuando le sirva.', { name: saved.name, description: skill.description })
+  await completeTask(run, t, exec, parent, { ...res, text })
 }
 
 /** El guion ya está: kywai monta el vídeo y la tarea entrega solo el MP4 con una frase. */
@@ -2981,6 +3102,25 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   const meta = run.meta.get(t.id)!
   if (t.direct) return directPrompt(run, t, !!meta.copy)
   if (t.quick) return quickPrompt(run, t, exec, parent)
+  if (t.learn?.ready) {
+    const work = join(store.workRoot(run.projectId), t.learn.work)
+    const file = join(work, 'transcripcion.txt')
+    let transcript = ''
+    try {
+      transcript = readFileSync(file, 'utf8')
+    } catch {
+      /* se vuelve a preparar si falta */
+    }
+    return learnPrompt({
+      source: t.learn.url ?? tr('un vídeo adjunto'),
+      title: t.learn.title,
+      note: t.learn.note,
+      transcript,
+      transcriptFile: file,
+      frames: t.learn.frames ?? [],
+      existing: listSkills(skillsDir()).map((x) => x.name)
+    })
+  }
   if (t.video?.film && t.video.work) {
     const style = filmStyle(t.video.film)
     if (style)
@@ -3247,6 +3387,21 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // Una consulta rápida solo lee: va a la carpeta tal cual, sin instantánea, sin ocuparla y sin copia aparte.
   const dir = t.video?.film && t.video.work ? await prepareFilm(run, t) : t.quick ? mainDir : await prepareWorkplace(run, t, meta, exec)
   if (t.video && !t.video.film && !t.video.refs) await prepareVideoRefs(run, t)
+  if (t.learn && !t.learn.ready) {
+    try {
+      await prepareLearn(run, t)
+    } catch (e) {
+      if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+      t.status = 'failed'
+      t.error = tr('No pude preparar el vídeo para aprender: {message}', { message: tr((e as Error).message) })
+      t.finishedAt = Date.now()
+      pushTask(t)
+      setRuntime(exec.id, { activity: 'idle', taskId: undefined })
+      closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
+      schedule()
+      return
+    }
+  }
 
   let working = false
   // Si el agente no cuenta sus pasos (registro de la tarea), al menos queda lo que dice que hace.
@@ -3434,6 +3589,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     if (permNeed) await handlePermissionNeed(run, t, exec, parent, permNeed)
     else if (blocked) await handleBlocked(run, t, exec, parent, res, blocked)
     else if (res.ok && t.video) await completeVideo(run, t, exec, parent, res)
+    else if (res.ok && t.learn) await completeLearn(run, t, exec, parent, res)
     else if (res.ok) {
       const verdict = await verifyTask(run, t, exec, parent, res, dir)
       if (!(verdict?.status === 'failed' && reviewFailed(run, t, exec, parent, res, verdict)) && (await settleChanges(run, t, exec, parent)))

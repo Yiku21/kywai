@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +56,7 @@ object ChatCommands {
     /** Las órdenes de kywai, en el orden en que salen, en el idioma de Órbita. */
     fun builtin(): List<Command> = listOf(
         Command("video", emptyList(), t("tema"), t("Crea un vídeo completo y te da solo el MP4"), Icons.Outlined.Movie),
+        Command("aprende", listOf("aprender", "learn"), t("enlace o vídeo"), t("Convierte lo que enseña un vídeo en una habilidad"), Icons.Outlined.School),
         Command("rutina", listOf("rutinas", "routine"), t("cuándo: qué"), t("Programa una tarea a una hora o que se repita"), Icons.Outlined.Schedule),
         Command("directo", listOf("direct", "dm"), t("Agente mensaje"), t("Habla con un agente sin pasar por Hermes"), Icons.Outlined.AlternateEmail),
         Command("recuerda", listOf("recordar", "memoria", "remember"), t("texto"), t("Guarda un dato en la memoria del proyecto"), Icons.Outlined.Psychology),
