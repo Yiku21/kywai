@@ -31,6 +31,11 @@ export interface FilmStyle {
   lineEn: string
   /** Pide clave de Gemini o material real (mapas, escaneos, archivos de época) además del tema. */
   needs?: 'material'
+  /**
+   * Estilo propio de kywai (su guía está en src/main/kywaiFilmGuides.ts): el estilo de la biblioteca cuyo motor usa.
+   * Su muestra es un fotograma hecho por kywai, no de una película de la biblioteca.
+   */
+  base?: string
 }
 
 export const FILM_CATEGORIES: { id: FilmCategory; name: string; en: string }[] = [
@@ -62,11 +67,14 @@ export const FILM_STYLES: FilmStyle[] = [
   { slug: 'whiteboard', name: 'Pizarra blanca', en: 'Whiteboard Explainer', category: 'dibujo', line: 'Rotulador que dibuja la explicación mientras habla; para enseñar cómo funciona algo.', lineEn: 'A marker draws the explanation as it talks; for showing how something works.' },
   { slug: 'urban-sketch', name: 'Apunte urbano', en: 'Urban Sketch · Pen & Wash', category: 'dibujo', line: 'Bocetos de plumilla con manchas de color; lugares, viajes y ciudades.', lineEn: 'Pen sketches with splashes of colour; places, travel and cities.' },
   { slug: 'chalkboard', name: 'Pizarra de tiza', en: 'Chalkboard', category: 'dibujo', line: 'Tiza que escribe, borra y vuelve a escribir; una clase con encanto.', lineEn: 'Chalk that writes, erases and writes again; a charming lesson.' },
+  { slug: 'kywai-ink-doodle', name: 'Garabatos de tinta', en: 'Ink Doodle', category: 'dibujo', base: 'whiteboard', line: 'Garabatos de boli negro en una libreta que se dibujan mientras habla; flechas, cajas y monigotes.', lineEn: 'Black pen doodles in a notebook, drawn as it talks; arrows, boxes and stick figures.' },
+  { slug: 'kywai-pov-doodle', name: 'Garabatos en primera persona', en: 'POV Doodle', category: 'dibujo', base: 'midcentury-toon', line: 'Lo ves todo con tus ojos y tus manos dibujadas; la historia te pasa a ti.', lineEn: 'Everything seen through your eyes with your drawn hands; the story happens to you.' },
   // Dibujos animados y anime
   { slug: 'rubber-hose', name: 'Dibujos de los años 30', en: '1930s Rubber Hose Cartoon', category: 'animacion', line: 'Blanco y negro, brazos de goma, guantes blancos y jazz; todo baila.', lineEn: 'Black and white, rubber arms, white gloves and jazz; everything dances.' },
   { slug: 'cel-anime-80s', name: 'Anime de los 80', en: '80s Cel Anime', category: 'animacion', line: 'Anime de celuloide con neones y lluvia; aventura y acción.', lineEn: 'Cel anime with neon and rain; adventure and action.' },
   { slug: 'scifi-toon', name: 'Comedia de ciencia ficción', en: 'Sci-Fi Sitcom Toon', category: 'animacion', line: 'Dibujos de comedia con portales y universos raros.', lineEn: 'A comedy cartoon with portals and strange universes.' },
   { slug: 'midcentury-toon', name: 'Dibujos de los años 50', en: 'Mid-century Cartoon', category: 'animacion', line: 'Película educativa de los 50 con formas planas; perfecta para tutoriales.', lineEn: 'A 1950s educational film with flat shapes; perfect for tutorials.' },
+  { slug: 'kywai-office-flat', name: 'Oficina en plano', en: 'Flat Office Cartoon', category: 'animacion', base: 'midcentury-toon', line: 'Gente trabajando en ilustración plana sin contornos, con carteles de «Semana 2»; para equipos y procesos.', lineEn: 'People at work in flat outline-free illustration, with “Week 2” cards; for teams and processes.' },
   // Videojuegos
   { slug: 'pixel-rpg', name: 'Pixel RPG de 16 bits', en: '16-bit Pixel RPG', category: 'juegos', line: 'Videojuego de rol de los 90: cuadros de diálogo, menús, combates y subidas de nivel.', lineEn: 'A 90s role-playing game: dialogue boxes, menus, battles and level-ups.' },
   { slug: 'hd-2d', name: 'HD-2D', en: 'HD-2D', category: 'juegos', line: 'Píxeles con luces y profundidad modernas; aventura épica.', lineEn: 'Pixels with modern lighting and depth; an epic adventure.' },
@@ -80,6 +88,7 @@ export const FILM_STYLES: FilmStyle[] = [
   { slug: 'stained-glass', name: 'Vidriera', en: 'Stained Glass', category: 'grafico', line: 'Una vidriera que se ilumina panel a panel.', lineEn: 'A stained-glass window that lights up panel by panel.' },
   { slug: 'pictogram-motion', name: 'Pictogramas', en: 'Pictogram Motion', category: 'grafico', line: 'Iconos de señalética que cuentan la historia; claro y universal.', lineEn: 'Signage icons tell the story; clear and universal.' },
   { slug: 'ascii-crt', name: 'Terminal ASCII', en: 'ASCII / CRT Terminal', category: 'grafico', line: 'Pantalla de ordenador antiguo con caracteres; ciencia ficción retro.', lineEn: 'An old computer screen made of characters; retro sci-fi.' },
+  { slug: 'kywai-neon-silhouette', name: 'Siluetas de neón', en: 'Neon Silhouette', category: 'grafico', base: 'spy-titles', line: 'Siluetas negras contra cielos de neón magenta y cian, con música synthwave.', lineEn: 'Black silhouettes against magenta and cyan neon skies, with synthwave music.' },
   // Explicar y presentar
   { slug: 'dataviz', name: 'Historias con gráficas', en: 'Data Storytelling', category: 'info', line: 'La gráfica cuenta la historia; para datos y cifras.', lineEn: 'The chart tells the story; for data and figures.' },
   { slug: 'iso-infographic', name: 'Infografía isométrica', en: 'Isometric Infographic', category: 'info', line: 'Un mundo isométrico que muestra un proceso paso a paso.', lineEn: 'An isometric world showing a process step by step.' },
@@ -109,9 +118,11 @@ export const FILM_STYLES: FilmStyle[] = [
   { slug: 'glass-product', name: 'Producto de cristal', en: 'Glass Product Render', category: 'materiales', line: 'Anuncio de producto con cristal, reflejos y luces de estudio.', lineEn: 'A product ad with glass, reflections and studio lights.' },
   { slug: 'memphis-diorama', name: 'Diorama Memphis', en: 'Memphis Diorama', category: 'materiales', line: 'Un diorama de colores de los 80 que gira por las estaciones.', lineEn: 'A colourful 80s diorama that turns through the seasons.' },
   { slug: 'desktop-flythrough', name: 'Vuelo por el escritorio', en: 'Desktop Flythrough', category: 'materiales', line: 'Tarjetas de apps sobre un escritorio en 3D; para enseñar un flujo entre apps.', lineEn: 'App cards over a 3D desktop; for showing a flow between apps.' },
+  { slug: 'kywai-crystal-3d', name: 'Cristales 3D adorables', en: 'Cute 3D Crystals', category: 'materiales', base: 'glass-product', line: 'Cristales brillantes con carita en un estudio pastel; hacen amable la tecnología.', lineEn: 'Glossy crystals with little faces in a pastel studio; they make tech feel friendly.' },
   // Cine de época
   { slug: 'silent-film', name: 'Cine mudo de los años 20', en: '1920s Silent Film', category: 'cine', line: 'Blanco y negro, rótulos y piano; comedia física.', lineEn: 'Black and white, title cards and piano; physical comedy.' },
   { slug: 'backrooms', name: 'Grabación encontrada', en: 'Liminal Found Footage', category: 'cine', line: 'Cámara en mano en un lugar vacío e inquietante; misterio.', lineEn: 'Handheld camera in an empty, unsettling place; mystery.' },
+  { slug: 'kywai-deep-time', name: 'Tiempo profundo', en: 'Deep Time', category: 'cine', base: 'lowpoly-island', line: 'Millones de años en segundos: un planeta que cambia y un contador de años; lento y épico.', lineEn: 'Millions of years in seconds: a changing planet and a year counter; slow and epic.' },
   // Documentales con datos reales
   { slug: 'satellite-briefing', name: 'Informe por satélite', en: 'Satellite Briefing', category: 'datos', line: 'Imágenes de satélite reales con datos con su fuente.', lineEn: 'Real satellite imagery with sourced data.', needs: 'material' },
   { slug: 'briefing-board', name: 'Tablero de ingeniería', en: 'Engineering Briefing Board', category: 'datos', line: 'Comparar opciones técnicas en un tablero con pruebas y medidas.', lineEn: 'Comparing technical options on a board with evidence and measurements.', needs: 'material' },
@@ -163,7 +174,13 @@ const ALIASES: Record<string, string[]> = {
   'dark-keynote': ['keynote', 'presentacion'],
   'paper-popup': ['pop up', 'desplegable'],
   'shadow-puppet': ['sombras'],
-  'swiss-motion': ['suizo', 'minimalista']
+  'swiss-motion': ['suizo', 'minimalista'],
+  'kywai-ink-doodle': ['garabatos', 'doodle', 'ink doodle', 'boli', 'libreta'],
+  'kywai-pov-doodle': ['pov', 'primera persona', 'pov doodle'],
+  'kywai-office-flat': ['oficina', 'corporativo', 'ilustracion plana'],
+  'kywai-neon-silhouette': ['neon', 'siluetas', 'synthwave'],
+  'kywai-crystal-3d': ['cristales', 'cristal', 'gemas'],
+  'kywai-deep-time': ['tiempo profundo', 'deep time', 'millones de anos']
 }
 
 /** Busca un estilo por su carpeta, su nombre en español o en inglés, o un nombre corto. */

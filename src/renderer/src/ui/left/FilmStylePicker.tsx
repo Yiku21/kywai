@@ -136,6 +136,7 @@ export function FilmStylePicker({ value, open, onOpen, onChoose }: Props) {
                       <span className={s.name}>{fname(f)}</span>
                       <span className={s.line}>{fline(f)}</span>
                       {f.needs === 'material' && <span className={s.badge}>{t('Con material real')}</span>}
+                      {f.base && <span className={s.badge}>{t('Estilo de kywai')}</span>}
                       {value === f.slug && <Check size={14} className={s.check} aria-hidden="true" />}
                     </button>
                   ))}
@@ -144,7 +145,7 @@ export function FilmStylePicker({ value, open, onOpen, onChoose }: Props) {
             ))}
             {!groups.length && !quickHit(choiceName('dinamico')) && !quickHit(choiceName('cartoon')) && <p className={s.empty}>{t('Ningún estilo se llama así.')}</p>}
           </div>
-          <p className={s.foot}>{t('Los estilos de película los dirige un agente con terminal y tardan más (de 20 minutos a una hora). Muestras: películas de ejemplo de Lemo-Opuscar (CC BY 4.0).')}</p>
+          <p className={s.foot}>{t('Los estilos de película los dirige un agente con terminal y tardan más (de 20 minutos a una hora). Muestras: películas de ejemplo de Lemo-Opuscar (CC BY 4.0); en los estilos de kywai, fotogramas hechos por kywai.')}</p>
         </div>
       )}
     </div>

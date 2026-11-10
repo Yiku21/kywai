@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { filmStyle, KYWAI_FILM } from '@shared/filmStyles'
-import { filmPrompt, filmTitle, findFilm } from './filmLibrary'
+import { FILM_STYLES } from '@shared/filmStyles'
+import { filmPrompt, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
+import { KYWAI_FILM_GUIDES } from './kywaiFilmGuides'
 
 describe('películas con estilo', () => {
   const base = { topic: 'el ciclo del agua', format: 'horizontal' as const, lang: 'es', studioDir: '/estudio', work: '/proyecto/.ai-cowork/videos/x' }
@@ -25,6 +27,21 @@ describe('películas con estilo', () => {
     expect(p).toContain('kywaiRobot()')
     expect(p).toContain('Clawd) no sale')
     expect(p).toContain('vertical 1080×1920')
+  })
+
+  it('los estilos propios de kywai traen su guía y usan el motor de un estilo de la biblioteca', () => {
+    const own = FILM_STYLES.filter((s) => s.base)
+    expect(own).toHaveLength(6)
+    for (const s of own) {
+      const guide = KYWAI_FILM_GUIDES[s.slug]
+      for (const h of ['## 1.', '## 2.', '## 3.', '## 6.', '## 7.', '## 8.', '## 10.', '## 11.']) expect(guide).toContain(h)
+      expect(guide).toContain(`setup.sh demo ${s.base}`)
+      expect(filmStyle(s.base!)).toBeDefined()
+    }
+    const p = filmPrompt({ ...base, style: filmStyle('kywai-ink-doodle')! })
+    expect(p).toContain(join(base.work, KYWAI_GUIDE_FILE))
+    expect(p).toContain('demo whiteboard')
+    expect(p).not.toContain(join('styles', 'kywai-ink-doodle'))
   })
 
   it('encuentra el vídeo final y el título', () => {

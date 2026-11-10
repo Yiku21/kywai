@@ -48,6 +48,9 @@ export interface FilmPromptInput {
   files?: string[]
 }
 
+/** La guía de un estilo propio de kywai, que kywai deja en la carpeta de la película (kywaiFilmGuides.ts). */
+export const KYWAI_GUIDE_FILE = 'ESTILO-kywai.md'
+
 /** El nombre del archivo final que se pide al agente (y el primero que se busca al terminar). */
 export const FILM_FILE = 'pelicula.mp4'
 
@@ -85,7 +88,18 @@ export function filmPrompt(input: FilmPromptInput): string {
           '- La guía pide «sin texto»: la historia se cuenta actuando. Pon voz solo si el tema necesita explicarse; música y efectos, siempre.',
           `- Para la voz y la música puedes usar las herramientas de ${lib} si están (core/tts, core/audio y core/render/mux.sh; mira su core/README.md).`
         ]
-      : [
+      : style.base
+        ? [
+            `Dirige y produce una película corta hecha solo con código, en el estilo «${style.en}» (${style.name}), un estilo propio de kywai, sobre: ${topic}`,
+            '',
+            `Se hace con las herramientas de la biblioteca Lemo-Opuscar, que está en ${lib} (en sus guías, LIB), como un estilo propio del usuario (${join(lib, 'MY-STYLES.md')}), ya aprobado:`,
+            `- La guía del estilo es ${join(work, KYWAI_GUIDE_FILE)} (la dejó kywai en la carpeta de la película). Léela entera: el estilo es fijo, la historia es tuya.`,
+            `- Lee también ${join(lib, 'AGENTS.md')}, ${join(lib, 'DIRECTOR.md')}, ${join(lib, 'TECHNIQUE.md')} y ${join(lib, 'core', 'README.md')}, y síguelos como con cualquier estilo.`,
+            `- El motor sale del estilo de la biblioteca «${style.base}»: «sh ${join(lib, 'plugin', 'skills', 'lemo-opuscar', 'scripts', 'setup.sh')} demo ${style.base}» (con LEMO_OPUSCAR_HOME=${lib}) baja su código, y ${join(lib, 'styles', style.base, 'STYLE.md')} lo explica. Copia a la carpeta de la película lo que uses; donde las dos guías no coincidan, manda la de kywai. Su historia no se repite.`,
+            `- Donde las guías digan films/<nombre>/, es la carpeta de la película. Las herramientas se lanzan desde la biblioteca con la ruta absoluta de la película (cd "${lib}" && node core/render/still.mjs "${work}" 1.5 3).`,
+            '- Ni styles/ ni core/ se tocan, ni se guarda nada en ~/lemo-my-styles.'
+          ]
+        : [
           `Dirige y produce una película corta hecha solo con código, en el estilo «${style.en}» (${style.name}) de la biblioteca Lemo-Opuscar, sobre: ${topic}`,
           '',
           `La biblioteca está en ${lib} (en sus guías, LIB). Trabajas como en su modo «skill» (${join(lib, 'plugin', 'skills', 'lemo-opuscar', 'SKILL.md')}):`,

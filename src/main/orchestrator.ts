@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync, writeFileSync } from 'node:fs'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
 import type {
   AgentConfig,
@@ -73,7 +73,8 @@ import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
 import { ensureVideoStudio, manimSupport, mediaSeconds, renderVideo, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
-import { filmPrompt, filmReady, filmTitle, findFilm } from './filmLibrary'
+import { filmPrompt, filmReady, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
+import { KYWAI_FILM_GUIDES } from './kywaiFilmGuides'
 import { filmStyle } from '@shared/filmStyles'
 import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
@@ -277,6 +278,9 @@ async function prepareFilm(run: Run, t: Task): Promise<string> {
   }
   const dir = join(store.workRoot(run.projectId), v.work!)
   mkdirSync(dir, { recursive: true })
+  // Los estilos propios de kywai traen su guía: se deja en la carpeta de la película, donde la lee el agente.
+  const guide = KYWAI_FILM_GUIDES[v.film!]
+  if (guide) writeFileSync(join(dir, KYWAI_GUIDE_FILE), guide)
   return dir
 }
 

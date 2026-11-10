@@ -941,7 +941,7 @@ function VideoSection() {
           detail: status.manim ? t('Instalado') : t('Falta (opcional): «Instalar lo que falta» lo instala')
         },
         {
-          label: t('Estilos de película (67, con muestras al escribir «/video»)'),
+          label: t('Estilos de película (73, con muestras al escribir «/video»)'),
           ok: !!status.films?.library && !!status.films?.painted,
           detail:
             status.films?.library && status.films?.painted

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { FILM_CATEGORIES, FILM_STYLES, findFilmStyle, isVideoCommand, KYWAI_FILM, takeFilmStyle, videoStyleOf, withVideoStyle } from './filmStyles'
 
 describe('catálogo de estilos de película', () => {
-  it('tiene los 66 de la biblioteca y el de los robots, sin repetir', () => {
-    expect(FILM_STYLES).toHaveLength(67)
-    expect(new Set(FILM_STYLES.map((s) => s.slug)).size).toBe(67)
+  it('tiene los 66 de la biblioteca, el de los robots y los 6 propios de kywai, sin repetir', () => {
+    expect(FILM_STYLES).toHaveLength(73)
+    expect(new Set(FILM_STYLES.map((s) => s.slug)).size).toBe(73)
     expect(FILM_STYLES[0].slug).toBe(KYWAI_FILM)
     for (const s of FILM_STYLES) {
       expect(FILM_CATEGORIES.some((c) => c.id === s.category)).toBe(true)
@@ -19,6 +19,8 @@ describe('catálogo de estilos de película', () => {
     expect(findFilmStyle('años 30')?.slug).toBe('rubber-hose')
     expect(findFilmStyle('Watercolor Brush')?.slug).toBe('watercolor')
     expect(findFilmStyle('cartoon')).toBeUndefined()
+    expect(findFilmStyle('neón')?.slug).toBe('kywai-neon-silhouette')
+    expect(takeFilmStyle('estilo garabatos de tinta cómo ahorrar')).toMatchObject({ style: { slug: 'kywai-ink-doodle' }, rest: 'cómo ahorrar' })
   })
 
   it('separa el estilo del tema', () => {

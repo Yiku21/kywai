@@ -1632,7 +1632,7 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
 - **Dibujos con personaje** (tutoriales): «créame un vídeo estilo cartoon de…», «…de dibujos animados…», «hazme un
   vídeo tutorial de…», «…con un personaje…». Ver más abajo.
-- **Con un estilo de película** (acuarela, Pixel RPG, años 30, ukiyo-e… 67 en total): eligiéndolo en el selector con
+- **Con un estilo de película** (acuarela, Pixel RPG, años 30, ukiyo-e… 73 en total): eligiéndolo en el selector con
   muestras que sale al escribir `/video`, o «/video estilo acuarela sobre…». Ver «Estilos de película» más abajo.
 
 **Qué pasa por dentro.** Un agente (el mejor para redactar que esté libre; mejor uno en la nube que un modelo local)
@@ -1689,11 +1689,11 @@ cada paso muestra su instrucción en grande.
 
 La voz, las imágenes y las animaciones de Manim se generan **a la vez**.
 
-**Estilos de película (67, con muestra).** Al escribir `/video` aparece encima del cuadro la barra **«Estilo del
+**Estilos de película (73, con muestra).** Al escribir `/video` aparece encima del cuadro la barra **«Estilo del
 vídeo»** y, al empezar la orden, se abre el selector: una tarjeta con **una muestra de cada estilo** (un fotograma de
 su película de ejemplo), por categorías y con buscador. Arriba, los dos rápidos de siempre (texto animado y dibujos con
-presentador, en unos minutos); debajo, **Robots de kywai pintados a mano** y los **66 estilos de la biblioteca
-Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
+presentador, en unos minutos); debajo, **Robots de kywai pintados a mano**, los **6 estilos propios de kywai** (ver
+más abajo) y los **66 estilos de la biblioteca Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
 80, Pixel RPG, HD-2D, diseño suizo, plano técnico, infografía isométrica, risografía, xilografía, ukiyo-e, teatro de
 sombras, piezas de construcción, maqueta en miniatura, cine mudo, noticiario de época… Elegir uno pone
 `estilo:<carpeta>` detrás de `/video` (p. ej. `/video estilo:watercolor el ciclo del agua`); también vale escribirlo
@@ -1716,6 +1716,17 @@ p5.js + p5.brush, acuarela, tinta y línea que tiembla, sin texto) con los robot
 kit (es la mascota de Anthropic y no sale nunca): kywai escribe en el kit `src/kywai-robots.js` (`kywaiRobot()` para
 Hermes, Claude, Codex u otro con sus colores, y `kywaiSpark()`, la chispa de una tarea) y `KYWAI.md`, la guía para
 usarlos. El agente copia el kit a la carpeta de la película y trabaja en la copia. Sin tarjeta gráfica renderiza lento.
+
+**Estilos propios de kywai (6).** Garabatos de tinta, Garabatos en primera persona, Oficina en plano, Siluetas de
+neón, Cristales 3D adorables y Tiempo profundo (inspirados en lo que se ve en vídeos de estilos de animación con IA,
+escritos por kywai sin prompts ni código de nadie; en el selector llevan la etiqueta «Estilo de kywai»). Cada uno
+tiene su guía en `src/main/kywaiFilmGuides.ts`, con los mismos apartados que una guía de la biblioteca (esencia,
+materiales, color, letra, movimiento, cámara, sonido, jugadas propias, errores, motor y variaciones), y en el catálogo
+(`base` en `src/shared/filmStyles.ts`) el estilo de la biblioteca cuyo motor usa (pizarra blanca, años 50, créditos de
+espías, producto de cristal o isla low-poly). Al empezar la película, kywai deja la guía en su carpeta
+(`ESTILO-kywai.md`) y el agente trabaja como con un estilo propio del usuario de Lemo-Opuscar (`MY-STYLES.md`): baja
+el código del estilo base con `setup.sh demo <base>` y manda la guía de kywai. Sus muestras son fotogramas hechos por
+kywai. Para añadir otro: su entrada con `base` en el catálogo, su guía, su alias y su muestra de 320×180.
 
 **Instalación.** «Instalar lo que falta» (Ajustes → Extensiones → Estudio de vídeo, fila «Estilos de película») o, si
 no, el primer vídeo con estilo, descarga con git a `estudio-video/lemo-opuscar` una **versión fija** de la biblioteca
