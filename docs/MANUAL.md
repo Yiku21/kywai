@@ -1690,6 +1690,36 @@ película («/serie estilo acuarela una bruja novata»), «personajes fijos» co
 
 Código: `src/main/series.ts` y `sendSeries` en el orquestador.
 
+### El Instagram de kywai (`/instagram`)
+
+kywai puede llevar **su propia cuenta de Instagram** (la de kywai, no la tuya) y publicar ahí los reels que hace.
+Se conecta con la **API oficial de Instagram**: nunca se pide ni se guarda la contraseña.
+
+**Conectar la cuenta** (una vez, en ⚙ → Ajustes → Extensiones → Estudio de vídeo → «El Instagram de kywai»):
+1. La cuenta de Instagram tiene que ser **profesional** (de empresa o de creador; se cambia gratis en la app de
+   Instagram → Configuración → Tipo de cuenta).
+2. En [developers.facebook.com](https://developers.facebook.com) crea una app de tipo «Empresa» y añade el producto
+   **Instagram** («API de Instagram con inicio de sesión de Instagram»). Añade la cuenta como probadora, acepta la
+   invitación en Instagram y **genera un token** con los permisos `instagram_business_basic` e
+   `instagram_business_content_publish` (empieza por `IG…`). También vale un token de Facebook (`EAA…`) de una página
+   unida a la cuenta, con `instagram_content_publish`.
+3. Pega el token y pulsa **Conectar**: kywai lo comprueba, dice de qué cuenta es (@nombre) y lo guarda **cifrado** con
+   el llavero del sistema (como las claves de los agentes). Los tokens duran unos 60 días: cuando caduque, kywai lo dice
+   al publicar y pegas uno nuevo.
+
+**Publicar.** **«/instagram [qué quieres en el texto]»** coge el último vídeo del chat (o el MP4 que adjuntes) y un
+agente escribe el texto: gancho en la primera línea, una llamada a la acción y de 3 a 6 hashtags (si es un episodio de
+`/serie`, repite la pregunta para votar). Sale una tarjeta con el vídeo y el texto, que puedes **cambiar** antes de
+pulsar **Publicar** (también desde «Te necesita», en el escritorio, la web y Órbita). kywai sube el MP4 desde el equipo
+(subida reanudable de Meta: no hace falta una URL pública), espera a que Instagram lo procese y deja el **enlace** en el
+chat. Si falla, la tarjeta dice por qué y tiene **Reintentar**.
+
+**Publicar sin preguntar.** Con ese botón activado, lo que prepara «/instagram» se publica solo al terminar el texto,
+también desde una **rutina** («/rutina cada día a las 18:00: /serie siguiente» y otra «… /instagram»). «Volver a pedir
+mi visto bueno» lo desactiva. Por defecto está apagado.
+
+Código: `src/main/instagram.ts` (la API) y `sendInstagram`/`publishPost` en el orquestador.
+
 ### Hermes te propone habilidades
 
 Cuando una petición es de un campo especializado (un framework, un formato de archivo, un tipo de diseño, marketing,
@@ -2030,6 +2060,9 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | Orden | Lo que hace |
 |---|---|
 | `/video tema` | Crea un vídeo completo y te da solo el MP4 (ver «Crear vídeos con solo pedirlo») |
+| `/serie idea [en 5 episodios]` | Una historia en episodios con los mismos personajes, cada uno acaba en suspense (ver «Series por episodios») |
+| `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
+| `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
 | `/rutina cuándo: qué` | Programa una tarea a una hora o que se repita |
 | `/directo Agente mensaje` | Habla con un agente sin pasar por Hermes (lo mismo que `@Agente mensaje`) |
 | `/recuerda texto` | Guarda un dato en la memoria del proyecto (admite `decisión:`, `pendiente:`, `preferencia:`, `hecho:`) |

@@ -282,6 +282,8 @@ export interface Task {
     /** Episodio de la serie del proyecto («/serie»; lo demás está en .ai-cowork/serie.json). */
     episode?: { n: number; total: number; vote?: string }
   }
+  /** «/instagram»: el agente escribe el texto del reel (video, relativo al proyecto) y kywai lo prepara para publicar. */
+  instagram?: { video: string; artifactId?: string; about: string; note: string; question?: string }
   /** «/aprende»: un vídeo o pódcast que se transcribe y se convierte en una habilidad (src/main/learn.ts). */
   learn?: {
     url?: string
@@ -573,6 +575,8 @@ export interface ChatMessage {
   routineProposal?: RoutineProposal
   /** Habilidades de skills.sh que Hermes sugiere instalar para esta petición (nunca se instalan sin tu «Instalar»). */
   skillProposal?: SkillProposal
+  /** Reel preparado para el Instagram de kywai («/instagram»): se publica con «Publicar» (o solo, si lo activaste). */
+  instagramPost?: InstagramPost
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
   direct?: { agentId: AgentId; name: string }
   /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
@@ -719,6 +723,29 @@ export interface SkillProposal {
   query: string
   items: SkillSuggestion[]
   decidedAt?: number
+}
+
+/**
+ * Un reel para el Instagram de kywai. pending: espera tu «Publicar» · publishing: subiéndose · published: publicado
+ * (permalink) · failed: falló (error; se puede reintentar) · dismissed: descartado. `video`, relativo al proyecto.
+ */
+export interface InstagramPost {
+  status: 'pending' | 'publishing' | 'published' | 'failed' | 'dismissed'
+  video: string
+  caption: string
+  username?: string
+  permalink?: string
+  error?: string
+  /** Se publicó solo («Publicar sin preguntar» activado). */
+  auto?: boolean
+  decidedAt?: number
+}
+
+/** La cuenta de Instagram de kywai conectada en Ajustes (el token nunca sale del servidor). */
+export interface InstagramStatus {
+  connected: boolean
+  username?: string
+  autoPublish: boolean
 }
 
 export interface SkillSuggestion {
@@ -1406,7 +1433,7 @@ export type CoworkEventKind = CoworkEvent['kind']
  *
  * «done» no espera nada de ti: no sale en «Te necesita» sino en Resultados, como «nuevo» (y el móvil avisa igual).
  */
-export type InboxKind = 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget' | 'blocked' | 'permission'
+export type InboxKind = 'instagram' | 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget' | 'blocked' | 'permission'
 
 /** El aviso escrito en un idioma de la app (título, detalle y el nombre de cada botón). */
 export interface InboxTexts {
@@ -1644,6 +1671,13 @@ export interface CoworkApi {
   resumeRun(projectId: string, runId: string): Promise<void>
   /** Rutina que propuso Hermes (mensaje con routineProposal): «create» la crea (activa), «dismiss» la descarta. */
   decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): Promise<ChatMessage>
+  /** El Instagram de kywai: la cuenta conectada (con el token de la API oficial de Meta, nunca la contraseña). */
+  instagramStatus(): Promise<InstagramStatus>
+  connectInstagram(token: string, userId?: string): Promise<InstagramStatus>
+  disconnectInstagram(): Promise<InstagramStatus>
+  setInstagramAutoPublish(on: boolean): Promise<InstagramStatus>
+  /** «Publicar» (con el texto cambiado, si lo cambiaste) o «Descartar» el reel preparado con «/instagram». */
+  decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string): Promise<ChatMessage>
   /** Habilidades que sugirió Hermes: «install» instala la número `index`, «dismiss» descarta la tarjeta. */
   decideSkillProposal(projectId: string, messageId: string, action: 'install' | 'dismiss', index?: number): Promise<ChatMessage>
   /** Da el visto bueno al plan que propone el coordinador (mensaje con proposal): sus tareas empiezan. */

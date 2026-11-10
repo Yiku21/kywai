@@ -21,13 +21,14 @@ export interface ChatCommand {
 }
 
 /** Los iconos de la lista del «/». */
-export type CommandIcon = 'video' | 'series' | 'learn' | 'routine' | 'direct' | 'memory' | 'model' | 'usage' | 'new' | 'template' | 'mod'
+export type CommandIcon = 'video' | 'series' | 'learn' | 'publish' | 'routine' | 'direct' | 'memory' | 'model' | 'usage' | 'new' | 'template' | 'mod'
 
 /** Las órdenes de kywai, en el orden en que salen. */
 export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
   { name: 'video', aliases: [], args: 'tema', description: 'Crea un vídeo completo en el estilo que elijas y te da solo el MP4', icon: 'video' },
   { name: 'serie', aliases: ['series', 'episodios'], args: 'idea [en 5 episodios]', description: 'Una historia en episodios con los mismos personajes, cada uno acaba en suspense', icon: 'series' },
   { name: 'aprende', aliases: ['aprender', 'learn'], args: 'enlace o vídeo', description: 'Convierte lo que enseña un vídeo en una habilidad', icon: 'learn' },
+  { name: 'instagram', aliases: ['insta', 'ig'], args: 'qué quieres en el texto', description: 'Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno', icon: 'publish' },
   { name: 'rutina', aliases: ['rutinas', 'routine'], args: 'cuándo: qué', description: 'Programa una tarea a una hora o que se repita', icon: 'routine' },
   { name: 'directo', aliases: ['direct', 'dm'], args: 'Agente mensaje', description: 'Habla con un agente sin pasar por Hermes', icon: 'direct' },
   { name: 'recuerda', aliases: ['recordar', 'memoria', 'remember'], args: 'texto', description: 'Guarda un dato en la memoria del proyecto', icon: 'memory' },

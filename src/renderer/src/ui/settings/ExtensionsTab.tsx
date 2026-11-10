@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { BadgeCheck, BookOpen, Clapperboard, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
-import type { ProviderKind, VideoStudioStatus } from '@shared/types'
+import { BadgeCheck, BookOpen, Clapperboard, Send, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
+import type { InstagramStatus, ProviderKind, VideoStudioStatus } from '@shared/types'
 import { isVideoExtension } from '@shared/videoExtensions'
 import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpRuntime, type McpServerInfo, type McpServerInput, type ModInfo, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
 import { useCowork } from '@/store/cowork'
@@ -1030,6 +1030,8 @@ function VideoSection() {
       )}
       {log.length > 0 && <pre className={s.mono}>{log.join('\n')}</pre>}
 
+      <InstagramPanel live={live} />
+
       <span className={s.section}>{t('Extensiones de vídeo')}</span>
       <p className={s.muted}>
         {t('Las habilidades, plugins y servidores MCP de vídeo que instales en las otras pestañas vienen aquí solos: sus habilidades se guardan en la carpeta del estudio (habilidades/video) y el agente que escribe el guion de cada vídeo las lee.')}
@@ -1050,6 +1052,87 @@ function VideoSection() {
             </li>
           ))}
         </ul>
+      )}
+    </>
+  )
+}
+
+/**
+ * El Instagram de kywai: la cuenta PROPIA de kywai (profesional), con el token de la API oficial de Meta. Nunca se pide
+ * la contraseña. «/instagram» prepara el último vídeo con su texto; sin «Publicar sin preguntar», espera tu «Publicar».
+ */
+function InstagramPanel({ live }: { live: boolean }) {
+  const [st, setSt] = useState<InstagramStatus | null>(null)
+  const [token, setToken] = useState('')
+  const [userId, setUserId] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!live) return
+    api!.instagramStatus().then(setSt, (e) => setError(errorText(e)))
+  }, [live])
+
+  const run = (fn: () => Promise<InstagramStatus>): void => {
+    setBusy(true)
+    setError(null)
+    fn()
+      .then((r) => {
+        setSt(r)
+        setToken('')
+      }, (e) => setError(errorText(e)))
+      .finally(() => setBusy(false))
+  }
+
+  return (
+    <>
+      <span className={s.section}>{t('El Instagram de kywai')}</span>
+      <p className={s.muted}>
+        {t('Escribe «/instagram» (y, si quieres, qué debe decir el texto) y kywai prepara el último vídeo del chat con su texto para publicarlo en la cuenta de Instagram de kywai. Se conecta con la API oficial de Instagram: hace falta una cuenta profesional (de empresa o de creador) y un token de acceso de tu app de Meta. Nunca se pide la contraseña.')}
+      </p>
+      {st?.connected ? (
+        <ul className={s.list}>
+          <li className={s.item}>
+            <span className={s.icon} aria-hidden="true">
+              <BadgeCheck size={18} />
+            </span>
+            <span className={s.text}>
+              <span className={s.name}>{st.username ? t('Conectada: @{name}', { name: st.username }) : t('Conectada')}</span>
+              <span className={s.desc}>{st.autoPublish ? t('Publica sola: lo que prepara «/instagram» (también desde una rutina) sale sin preguntarte') : t('Te pide el visto bueno: cada reel espera tu «Publicar» en el chat y en «Te necesita»')}</span>
+            </span>
+          </li>
+        </ul>
+      ) : (
+        st && (
+          <div className={s.searchRow}>
+            <input className={s.input} type="password" autoComplete="off" spellCheck={false} placeholder={t('Token de acceso (IG… o EAA…)')} aria-label={t('Token de acceso de Instagram')} value={token} onChange={(e) => setToken(e.target.value)} />
+            <input className={s.input} inputMode="numeric" spellCheck={false} placeholder={t('ID de la cuenta (opcional)')} aria-label={t('ID de la cuenta de Instagram')} value={userId} onChange={(e) => setUserId(e.target.value)} />
+          </div>
+        )
+      )}
+      {live && st && (
+        <div className={s.searchRow}>
+          {st.connected ? (
+            <>
+              <button type="button" className={cx(u.btn, u.btnSm, !st.autoPublish && u.btnPrimary)} disabled={busy} onClick={() => run(() => api!.setInstagramAutoPublish(!st.autoPublish))}>
+                <Send size={14} aria-hidden="true" />
+                {st.autoPublish ? t('Volver a pedir mi visto bueno') : t('Publicar sin preguntar')}
+              </button>
+              <button type="button" className={cx(u.btn, u.btnSm)} disabled={busy} onClick={() => run(() => api!.disconnectInstagram())}>
+                {t('Desconectar')}
+              </button>
+            </>
+          ) : (
+            <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !token.trim()} onClick={() => run(() => api!.connectInstagram(token.trim(), userId.trim() || undefined))}>
+              {busy ? t('Comprobando…') : t('Conectar')}
+            </button>
+          )}
+        </div>
+      )}
+      {error && (
+        <p className={s.error} role="alert">
+          {error}
+        </p>
       )}
     </>
   )

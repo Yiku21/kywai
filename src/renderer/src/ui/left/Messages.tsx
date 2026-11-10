@@ -19,6 +19,8 @@ import {
   Download,
   Globe,
   ListChecks,
+  ExternalLink,
+  Send,
   Sparkles,
   LoaderCircle,
   PenLine,
@@ -34,7 +36,7 @@ import {
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { describeTrigger } from '@shared/routines'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
-import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
+import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
 import { useCowork, useData } from '@/store/cowork'
 import { revealKey, useRevealed } from '@/lib/reveal'
@@ -247,6 +249,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
             {proposal && <ProposalBlock m={m} proposal={proposal} />}
             {m.routineProposal && <RoutineProposalBlock m={m} proposal={m.routineProposal} />}
             {m.skillProposal && <SkillProposalBlock m={m} proposal={m.skillProposal} />}
+            {m.instagramPost && <InstagramPostBlock m={m} post={m.instagramPost} />}
             {m.permission && <PermissionBlock permission={m.permission} />}
             {hasTasks && <PlanBlock taskIds={m.taskIds!} runId={m.runId} contract={m.contract} />}
           </div>
@@ -914,6 +917,91 @@ function PermissionBlock({ permission }: { permission: ChatPermission }) {
         {t('Permitir siempre en esta sesión')}
       </button>
       {error && <span className={s.permissionError}>{error}</span>}
+    </div>
+  )
+}
+
+/** Reel listo para el Instagram de kywai: el texto se puede cambiar antes de «Publicar»; nada sale sin pulsarlo. */
+function InstagramPostBlock({ m, post }: { m: ChatMessage; post: InstagramPost }) {
+  const live = useCowork((st) => st.mode === 'live')
+  const [caption, setCaption] = useState(post.caption)
+  const [busy, setBusy] = useState<'publish' | 'dismiss' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => setCaption(post.caption), [post.caption])
+  const open = post.status === 'pending' || post.status === 'failed'
+  const canAct = !!api && live && open
+
+  function act(kind: 'publish' | 'dismiss'): void {
+    const a = api
+    if (!a || busy) return
+    setBusy(kind)
+    setError(null)
+    a.decideInstagramPost(m.projectId, m.id, kind, kind === 'publish' ? caption : undefined).then(
+      () => setBusy(null),
+      (e) => {
+        setBusy(null)
+        setError(errorText(e))
+      }
+    )
+  }
+
+  const who = post.username ? `@${post.username}` : t('la cuenta de kywai')
+  const title =
+    post.status === 'published'
+      ? t('Publicado en Instagram ({who})', { who })
+      : post.status === 'publishing'
+        ? t('Publicando en Instagram ({who})…', { who })
+        : post.status === 'dismissed'
+          ? t('Reel descartado')
+          : post.status === 'failed'
+            ? t('No se pudo publicar en Instagram')
+            : t('Reel para Instagram ({who})', { who })
+  return (
+    <div className={cx(s.proposal, s.instagramPost, post.status === 'dismissed' && s.proposalClosed)}>
+      <div className={s.planHead}>
+        <span className={s.planIcon} aria-hidden="true">
+          {post.status === 'published' ? <CircleCheck size={18} /> : post.status === 'dismissed' ? <X size={18} /> : post.status === 'failed' ? <AlertCircle size={18} /> : post.status === 'publishing' ? <LoaderCircle size={18} className={u.spin} /> : <Send size={18} />}
+        </span>
+        <div className={s.planInfo}>
+          <span className={s.planTitle}>{title}</span>
+          <span className={s.planSub}>{post.video}</span>
+        </div>
+      </div>
+      {open ? (
+        <textarea className={s.igCaption} value={caption} maxLength={2200} rows={6} aria-label={t('Texto de la publicación')} disabled={!canAct || !!busy} onChange={(e) => setCaption(e.currentTarget.value)} />
+      ) : (
+        post.status !== 'dismissed' && <p className={s.routineRequest}>{post.caption}</p>
+      )}
+      {post.status === 'failed' && post.error && (
+        <p className={s.resumeError} role="alert">
+          {post.error}
+        </p>
+      )}
+      {open && (
+        <div className={s.proposalActions}>
+          <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!canAct || !!busy || !caption.trim()} onClick={() => act('publish')}>
+            {busy === 'publish' ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <Send size={14} aria-hidden="true" />}
+            {post.status === 'failed' ? t('Reintentar') : t('Publicar')}
+          </button>
+          <button type="button" className={u.btn} disabled={!canAct || !!busy} onClick={() => act('dismiss')}>
+            {busy === 'dismiss' && <LoaderCircle size={14} aria-hidden="true" className={u.spin} />}
+            {t('Descartar')}
+          </button>
+        </div>
+      )}
+      {post.status === 'published' && post.permalink && (
+        <div className={s.proposalActions}>
+          <a className={cx(u.btn, u.btnSm)} href={post.permalink} target="_blank" rel="noreferrer">
+            <ExternalLink size={14} aria-hidden="true" />
+            {t('Ver en Instagram')}
+          </a>
+        </div>
+      )}
+      {error && (
+        <p className={s.resumeError} role="alert">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

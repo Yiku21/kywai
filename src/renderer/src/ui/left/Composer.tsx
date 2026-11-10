@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, ImagePlus, ListVideo, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, ImagePlus, ListVideo, Send, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
 import type { CoworkApi, HttpsLink, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
@@ -43,6 +43,7 @@ const COMMAND_ICONS: Record<CommandIcon, LucideIcon> = {
   video: Clapperboard,
   series: ListVideo,
   learn: GraduationCap,
+  publish: Send,
   routine: CalendarClock,
   direct: AtSign,
   memory: Brain,

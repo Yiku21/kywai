@@ -17,6 +17,8 @@ import type {
   ProposedTask,
   RoutineProposal,
   SkillProposal,
+  InstagramPost,
+  InstagramStatus,
   SendMessageInput,
   Task,
   TaskChanges,
@@ -84,6 +86,7 @@ import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
 import { installCatalogSkill, searchSkillCatalog } from './catalog'
 import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSuggest'
+import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, type InstagramSettings } from './instagram'
 import { episodeBrief, episodeFromFilmReply, loadSeries, nextEpisode, parseSeriesRequest, recordEpisode, startSeries, type SeriesRequest } from './series'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
 
@@ -829,6 +832,16 @@ function registerInboxActions(): void {
     rejectPlan(i.projectId, i.messageId)
     return tr('Plan descartado')
   })
+  onInboxAction('ig-publish', (i) => {
+    if (!i.projectId || !i.messageId) return tr('No se encontró ese reel')
+    decideInstagramPost(i.projectId, i.messageId, 'publish')
+    return tr('Publicando en Instagram')
+  })
+  onInboxAction('ig-dismiss', (i) => {
+    if (!i.projectId || !i.messageId) return tr('No se encontró ese reel')
+    decideInstagramPost(i.projectId, i.messageId, 'dismiss')
+    return tr('Descartado')
+  })
   onInboxAction('undo', (i) => (i.projectId && i.taskId ? undoTask(i.projectId, i.taskId) : tr('No sé qué tarea deshacer')))
   onInboxAction('resume', async (i) => {
     if (!i.projectId || !i.runId) return tr('No sé qué petición reanudar')
@@ -1406,6 +1419,10 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     return sendLearn(st, learnReq, atts, input.clientMessageId, routine, text.trim())
   }
 
+  // «/instagram [qué quieres en el texto]»: el último vídeo (o el adjunto) con su texto, listo para publicar.
+  const igReq = fromMsg || tpl ? null : parseInstagramRequest(text)
+  if (igReq) return sendInstagram(st, igReq.note, atts, input.clientMessageId, routine, text.trim())
+
   // «/serie <idea>»: una historia por episodios con los mismos personajes; «/serie siguiente» hace el que toca.
   const seriesReq = fromMsg || tpl ? null : parseSeriesRequest(text)
   if (seriesReq) return sendSeries(st, seriesReq, atts, input.clientMessageId, routine, text.trim())
@@ -1786,6 +1803,219 @@ function recordSeriesEpisode(run: Run, t: Task, title: string, info: { summary: 
   ]
     .filter(Boolean)
     .join(' ')
+}
+
+// ---------- El Instagram de kywai ----------
+
+/** Dónde está el token (cifrado) y los ajustes de la cuenta: lo pone index.ts (el llavero y la carpeta de datos). */
+export interface InstagramBackend {
+  token(): string | null
+  settings(): InstagramSettings
+}
+let instagram: InstagramBackend | null = null
+export function setInstagramBackend(b: InstagramBackend | null): void {
+  instagram = b
+}
+
+export function instagramStatusNow(): InstagramStatus {
+  const s = instagram?.settings() ?? {}
+  return { connected: !!instagram?.token() && !!s.userId, ...(s.username ? { username: s.username } : {}), autoPublish: s.autoPublish === true }
+}
+
+/** El vídeo más reciente del chat (el MP4 que entregó una tarea), con el mensaje que lo trae. */
+function latestVideo(st: ReturnType<typeof store.getProject>): { artifact: Artifact; message: ChatMessage } | null {
+  for (let i = st.messages.length - 1; i >= 0; i--) {
+    const m = st.messages[i]
+    for (const id of [...(m.artifactIds ?? [])].reverse()) {
+      const a = st.artifacts.find((x) => x.id === id)
+      if (a && isVideoFile(a.relPath)) return { artifact: a, message: m }
+    }
+  }
+  return null
+}
+
+/**
+ * «/instagram»: un agente escribe el texto del último vídeo del chat (o del que adjuntes) y kywai lo deja listo para
+ * publicar en la cuenta de Instagram de kywai: una tarjeta con «Publicar» en el chat y en «Te necesita». Si activaste
+ * «Publicar sin preguntar», se publica solo al terminar el texto.
+ */
+async function sendInstagram(
+  st: ReturnType<typeof store.getProject>,
+  note: string,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  if (!instagramStatusNow().connected) throw new Error(tr('Conecta primero la cuenta de Instagram de kywai en Ajustes → Extensiones → Estudio de vídeo.'))
+  const attached = atts.find((a) => isVideoFile(a.relPath))
+  const found = attached ? null : latestVideo(st)
+  if (!attached && !found) throw new Error(tr('No hay ningún vídeo para publicar: haz uno con «/video …» o adjunta el MP4 a «/instagram».'))
+  const agent = bestAgentFor('redacción marketing redes sociales copywriting comunicación contenido')
+  if (!agent) throw new Error(tr('No hay ningún agente disponible para escribir el texto.'))
+  const runId = randomUUID()
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: shown,
+    createdAt: Date.now(),
+    attachments: atts.length ? atts : undefined,
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+  })
+  const run: Run = {
+    id: runId,
+    projectId,
+    userText: shown,
+    ...(routine ? { routine: routine.name } : {}),
+    attachments: atts,
+    attPaths: store.stageAttachments(projectId, atts),
+    planning: false,
+    taskIds: [],
+    meta: new Map(),
+    controllers: new Map(),
+    cancelled: false,
+    finished: false
+  }
+  const video = attached ? attached.relPath : found!.artifact.relPath
+  const root = store.workRoot(projectId)
+  const question = loadSeries(root)?.episodes.find((e) => e.video === video)?.question
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId,
+    seq: nextTaskSeq(projectId),
+    title: tr('Instagram: {name}', { name: oneLine(attached ? attached.name : found!.artifact.name, 60) }),
+    description: note || tr('Escribir el texto del reel'),
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'text',
+    instagram: {
+      video,
+      ...(found ? { artifactId: found.artifact.id } : {}),
+      about: clip(found?.message.text || attached?.name || video, 1500),
+      note,
+      ...(question ? { question } : {})
+    }
+  }
+  run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
+  runs.set(runId, run)
+  emit({ kind: 'run.started', runId, projectId })
+  startRunUsage({ runId, projectId, projectName: st.project.name, request: shown })
+  await baseline(run)
+  tasks.set(t.id, t)
+  run.taskIds.push(t.id)
+  pushTask(t)
+  schedule()
+  return { runId }
+}
+
+/** El texto ya está: la tarjeta para publicar (o se publica sola, si lo activaste). */
+async function completeInstagram(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  const ig = t.instagram!
+  const caption = parseCaptionReply(res.text)
+  if (!caption) {
+    const why = res.text.replace(/^BLOQUEADA\s*:\s*/i, '').trim()
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('No escribió el texto: {why}', { why: oneLine(why || tr('respuesta vacía'), 200) }) })
+    return
+  }
+  await completeTask(run, t, exec, parent, { ...res, text: tr('Texto del reel listo.') })
+  const status = instagramStatusNow()
+  const post: InstagramPost = { status: 'pending', video: ig.video, caption, ...(status.username ? { username: status.username } : {}) }
+  const m = agentMessage(
+    run,
+    exec.id,
+    status.autoPublish ? tr('Publicando el reel en Instagram (tienes activado «Publicar sin preguntar»).') : tr('Reel listo para Instagram: revisa el texto y pulsa «Publicar».'),
+    { instagramPost: post, ...(ig.artifactId ? { artifactIds: [ig.artifactId] } : {}) }
+  )
+  if (status.autoPublish) void publishPost(run.projectId, m.id, caption, true)
+  else
+    addInbox({
+      kind: 'instagram',
+      key: `ig:${m.id}`,
+      title: tl('Reel listo para publicar en Instagram{who}', { who: status.username ? ` (@${status.username})` : '' }),
+      detail: oneLine(caption, 300),
+      projectId: run.projectId,
+      runId: run.id,
+      messageId: m.id,
+      actions: [
+        { id: 'ig-publish', label: tl('Publicar') },
+        { id: 'ig-dismiss', label: tl('Descartar') }
+      ]
+    })
+}
+
+/** Sube y publica el reel de la tarjeta; el chat va contando cómo va y acaba con el enlace (o el error). */
+async function publishPost(projectId: string, messageId: string, caption: string, auto = false): Promise<void> {
+  const get = (): ChatMessage | undefined => store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const m = get()
+  const p = m?.instagramPost
+  if (!m || !p) return
+  const token = instagram?.token()
+  const userId = instagram?.settings().userId
+  const set = (patch: Partial<InstagramPost>, text?: string): void => {
+    const cur = get() ?? m
+    pushMessage({ ...cur, ...(text ? { text } : {}), instagramPost: { ...(cur.instagramPost ?? p), ...patch } })
+  }
+  resolveInboxWhere((i) => i.kind === 'instagram' && i.messageId === messageId, tr('Publicando'))
+  if (!token || !userId) {
+    set({ status: 'failed', error: tr('La cuenta de Instagram no está conectada (Ajustes → Extensiones → Estudio de vídeo).') })
+    return
+  }
+  set({ status: 'publishing', caption, error: undefined, ...(auto ? { auto: true } : {}) }, tr('Publicando el reel en Instagram…'))
+  try {
+    const r = await publishReel({ token, userId, file: join(store.workRoot(projectId), p.video), caption, onStep: (step) => set({}, tr(step)) })
+    set({ status: 'published', ...(r.permalink ? { permalink: r.permalink } : {}), decidedAt: Date.now() }, r.permalink ? tr('Publicado en Instagram: {url}', { url: r.permalink }) : tr('Publicado en Instagram.'))
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e)
+    set({ status: 'failed', error }, tr('No se pudo publicar en Instagram.'))
+    addInbox({
+      kind: 'failed',
+      key: `ig-failed:${messageId}`,
+      title: tl('No se pudo publicar el reel en Instagram'),
+      detail: error,
+      projectId,
+      messageId,
+      actions: [
+        { id: 'ig-publish', label: tl('Reintentar') },
+        { id: 'dismiss', label: tl('Entendido') }
+      ]
+    })
+  }
+}
+
+/** «Publicar» (con el texto que dejes en la tarjeta) o «Descartar» el reel preparado. Publicar no espera a que acabe. */
+export function decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string): ChatMessage {
+  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const p = m?.instagramPost
+  if (!m || !p) throw new Error(tr('No se encontró ese reel'))
+  if (p.status === 'published') throw new Error(tr('Ese reel ya está publicado'))
+  if (p.status === 'publishing') throw new Error(tr('Ese reel se está publicando'))
+  if (p.status === 'dismissed') throw new Error(tr('Ese reel ya se descartó'))
+  if (action === 'dismiss') {
+    resolveInboxWhere((i) => (i.kind === 'instagram' || i.kind === 'failed') && i.messageId === messageId, tr('Descartado'))
+    const updated = { ...m, instagramPost: { ...p, status: 'dismissed' as const, decidedAt: Date.now() } }
+    pushMessage(updated)
+    return updated
+  }
+  if (action !== 'publish') throw new Error(tr('Acción no válida'))
+  const text = cleanCaptionInput(caption) ?? p.caption
+  resolveInboxWhere((i) => i.kind === 'failed' && i.messageId === messageId, tr('Reintentando'))
+  void publishPost(projectId, messageId, text)
+  return { ...m, instagramPost: { ...p, status: 'publishing', caption: text } }
+}
+
+function cleanCaptionInput(caption: unknown): string | null {
+  if (typeof caption !== 'string') return null
+  const t = caption.trim()
+  return t ? t.slice(0, 2200) : null
 }
 
 /** Quién convierte un vídeo en habilidad: el que mejor resume y enseña (sin hacer falta terminal). */
@@ -3270,6 +3500,17 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   const meta = run.meta.get(t.id)!
   if (t.direct) return directPrompt(run, t, !!meta.copy)
   if (t.quick) return quickPrompt(run, t, exec, parent)
+  if (t.instagram) {
+    const s = instagram?.settings()
+    return captionPrompt({
+      video: join(store.workRoot(run.projectId), t.instagram.video),
+      about: t.instagram.about,
+      note: t.instagram.note,
+      ...(s?.username ? { username: s.username } : {}),
+      ...(t.instagram.question ? { question: t.instagram.question } : {}),
+      lang: userLanguageName()
+    })
+  }
   if (t.learn?.ready) {
     const work = join(store.workRoot(run.projectId), t.learn.work)
     const file = join(work, 'transcripcion.txt')
@@ -3759,6 +4000,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     else if (blocked) await handleBlocked(run, t, exec, parent, res, blocked)
     else if (res.ok && t.video) await completeVideo(run, t, exec, parent, res)
     else if (res.ok && t.learn) await completeLearn(run, t, exec, parent, res)
+    else if (res.ok && t.instagram) await completeInstagram(run, t, exec, parent, res)
     else if (res.ok) {
       const verdict = await verifyTask(run, t, exec, parent, res, dir)
       if (!(verdict?.status === 'failed' && reviewFailed(run, t, exec, parent, res, verdict)) && (await settleChanges(run, t, exec, parent)))

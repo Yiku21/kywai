@@ -1470,6 +1470,26 @@ button.itemHead:hover {
   overflow-wrap: anywhere;
 }
 
+/* Reel para el Instagram de kywai: el texto se puede cambiar antes de publicar. */
+.instagramPost .planIcon {
+  color: var(--accent);
+}
+
+.igCaption {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 96px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* Habilidades de skills.sh que sugiere Hermes: una fila por habilidad con su «Instalar». */
 .skillProposal .planIcon {
   color: var(--accent);

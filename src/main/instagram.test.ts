@@ -1,0 +1,104 @@
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it } from 'vitest'
+import { __setInstagramFetchForTests, captionPrompt, cleanCaption, graphHost, instagramAccount, parseCaptionReply, parseInstagramRequest, publishReel, readInstagramSettings, writeInstagramSettings } from './instagram'
+
+type Call = { url: string; method: string; headers: Record<string, string>; body?: string | Uint8Array }
+
+function fakeGraph(routes: Array<[RegExp, (c: Call) => unknown]>): Call[] {
+  const calls: Call[] = []
+  __setInstagramFetchForTests(
+    async (url, init) => {
+      const c: Call = { url, method: init?.method ?? 'GET', headers: init?.headers ?? {}, body: init?.body }
+      calls.push(c)
+      const r = routes.find(([re]) => re.test(`${c.method} ${url}`))
+      const out = r ? r[1](c) : { error: { message: 'ruta no prevista' } }
+      const ok = !(out && typeof out === 'object' && 'error' in out)
+      return { ok, status: ok ? 200 : 400, text: async () => JSON.stringify(out) }
+    },
+    async () => undefined
+  )
+  return calls
+}
+
+afterEach(() => __setInstagramFetchForTests(null))
+
+describe('el Instagram de kywai', () => {
+  it('elige la API según el token', () => {
+    expect(graphHost('IGQVJ123')).toBe('https://graph.instagram.com')
+    expect(graphHost('EAAB123')).toBe('https://graph.facebook.com')
+  })
+
+  it('comprueba la cuenta sin poner el token en la dirección', async () => {
+    const calls = fakeGraph([[/GET https:\/\/graph\.instagram\.com\/v21\.0\/me\?/, () => ({ user_id: '1784', username: 'kywai.app', id: '99' })]])
+    expect(await instagramAccount('IGtoken123')).toEqual({ userId: '1784', username: 'kywai.app' })
+    expect(calls[0].url).not.toContain('IGtoken123')
+    expect(calls[0].headers.Authorization).toBe('Bearer IGtoken123')
+  })
+
+  it('con un token de Facebook busca la cuenta de Instagram de su página', async () => {
+    fakeGraph([[/me\/accounts/, () => ({ data: [{}, { instagram_business_account: { id: '555', username: 'kywai' } }] })]])
+    expect(await instagramAccount('EAAtoken')).toEqual({ userId: '555', username: 'kywai' })
+    fakeGraph([[/me\/accounts/, () => ({ data: [] })]])
+    await expect(instagramAccount('EAAtoken')).rejects.toThrow(/ninguna cuenta de Instagram profesional/)
+  })
+
+  it('publica un reel: contenedor reanudable, subida del archivo, espera y publicación', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-'))
+    const file = join(dir, 'reel.mp4')
+    writeFileSync(file, Buffer.alloc(2048, 1))
+    let polls = 0
+    const calls = fakeGraph([
+      [/POST https:\/\/graph\.instagram\.com\/v21\.0\/1784\/media$/, () => ({ id: 'C1', uri: 'https://rupload.facebook.com/ig-api-upload/v21.0/C1' })],
+      [/POST https:\/\/rupload\.facebook\.com/, () => ({ success: true })],
+      [/GET .*\/C1\?/, () => (++polls < 2 ? { status_code: 'IN_PROGRESS' } : { status_code: 'FINISHED' })],
+      [/POST .*\/1784\/media_publish$/, () => ({ id: 'M1' })],
+      [/GET .*\/M1\?/, () => ({ permalink: 'https://www.instagram.com/reel/abc/' })]
+    ])
+    const steps: string[] = []
+    const r = await publishReel({ token: 'IGtok12345', userId: '1784', file, caption: 'Hola #a #b', onStep: (s) => steps.push(s) })
+    expect(r).toEqual({ id: 'M1', permalink: 'https://www.instagram.com/reel/abc/' })
+    const create = new URLSearchParams(calls[0].body as string)
+    expect(Object.fromEntries(create)).toEqual({ media_type: 'REELS', upload_type: 'resumable', caption: 'Hola #a #b' })
+    expect(calls[1].headers).toMatchObject({ Authorization: 'OAuth IGtok12345', offset: '0', file_size: '2048' })
+    expect((calls[1].body as Uint8Array).byteLength).toBe(2048)
+    expect(new URLSearchParams(calls.find((c) => c.url.endsWith('media_publish'))!.body as string).get('creation_id')).toBe('C1')
+    expect(steps).toContain('Subiendo el vídeo a Instagram')
+    expect(calls.every((c) => !c.url.includes('IGtok12345'))).toBe(true)
+  })
+
+  it('si Instagram no procesa el vídeo, lo dice', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-'))
+    const file = join(dir, 'reel.mp4')
+    writeFileSync(file, Buffer.alloc(10, 1))
+    fakeGraph([
+      [/\/media$/, () => ({ id: 'C2' })],
+      [/rupload/, () => ({ success: true })],
+      [/GET .*\/C2\?/, () => ({ status_code: 'ERROR', status: 'Error: formato no válido' })]
+    ])
+    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow(/no pudo procesar el vídeo: Error: formato no válido/)
+    fakeGraph([[/\/media$/, () => ({ error: { code: 190, message: 'Session expired' } })]])
+    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow(/no acepta el token.*Session expired/)
+  })
+
+  it('el texto cabe en Instagram y se limpia lo que añade el agente', () => {
+    const tags = Array.from({ length: 35 }, (_, i) => `#t${i}`).join(' ')
+    expect(cleanCaption(tags).match(/#/g)).toHaveLength(30)
+    expect(cleanCaption('a'.repeat(3000))).toHaveLength(2200)
+    expect(parseCaptionReply('Texto: «Mira esto\n\n#ia»')).toBe('Mira esto\n\n#ia')
+    expect(parseCaptionReply('```\nGancho\n#a\n```')).toBe('Gancho\n#a')
+    expect(parseCaptionReply('BLOQUEADA: es de otro')).toBeNull()
+    expect(captionPrompt({ video: '/p/v.mp4', about: 'Un gato', lang: 'español', username: 'kywai', question: '¿A o B?' })).toMatch(/@kywai[\s\S]*¿A o B\?[\s\S]*A o B/)
+  })
+
+  it('«/instagram» y los ajustes', () => {
+    expect(parseInstagramRequest('/instagram que suene divertido')).toEqual({ note: 'que suene divertido' })
+    expect(parseInstagramRequest('/ig')).toEqual({ note: '' })
+    expect(parseInstagramRequest('sube esto a instagram')).toBeNull()
+    const f = join(mkdtempSync(join(tmpdir(), 'ig-')), 'sub', 'instagram.json')
+    expect(readInstagramSettings(f)).toEqual({})
+    writeInstagramSettings(f, { userId: '1', username: 'k', autoPublish: true })
+    expect(readInstagramSettings(f)).toEqual({ userId: '1', username: 'k', autoPublish: true })
+  })
+})

@@ -53,7 +53,8 @@ import { mobileSigningKey } from './mobileAuth'
 import { disableHttps, enableHttps, httpsInfo } from './tailscale'
 import { setAgentKeyResolver } from './agents/generic'
 import { setColibriUrlSource } from './agents/colibri'
-import { agentKey, systemCipher } from './keys'
+import { agentKey, keys, systemCipher } from './keys'
+import { instagramAccount, readInstagramSettings, writeInstagramSettings } from './instagram'
 import { checkAuth, detectTools, installTool, openLogin, refreshPath, saveAgentKey, saveGeminiKey } from './setup'
 import { modelOptions } from './models'
 import { contextMenuItems } from './contextMenu'
@@ -66,6 +67,9 @@ import {
   approvePlan,
   decideRoutineProposal,
   decideSkillProposal,
+  decideInstagramPost,
+  instagramStatusNow,
+  setInstagramBackend,
   rateMessage,
   getTaskChanges,
   undoTask,
@@ -723,6 +727,32 @@ function registerIpc(): void {
   handle('decideRoutineProposal', (projectId: unknown, messageId: unknown, action: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('No se encontró esa propuesta de rutina'))
     return decideRoutineProposal(projectArg(projectId), messageId, action === 'create' ? 'create' : 'dismiss')
+  })
+  // El Instagram de kywai: el token (de la API oficial de Meta) se guarda cifrado en el llavero; nunca la contraseña.
+  const igFile = join(app.getPath('userData'), 'instagram.json')
+  setInstagramBackend({ token: () => agentKey('instagram'), settings: () => readInstagramSettings(igFile) })
+  handle('instagramStatus', () => instagramStatusNow())
+  handle('connectInstagram', async (token: unknown, userId: unknown) => {
+    if (typeof token !== 'string' || !token.trim()) throw new Error(tr('Pega el token de acceso de la cuenta de Instagram'))
+    const id = typeof userId === 'string' && /^\d{5,30}$/.test(userId.trim()) ? userId.trim() : undefined
+    const acc = await instagramAccount(token.trim(), id)
+    keys().set('instagram', token.trim())
+    writeInstagramSettings(igFile, { ...readInstagramSettings(igFile), userId: acc.userId, username: acc.username })
+    return instagramStatusNow()
+  })
+  handle('disconnectInstagram', () => {
+    keys().clear('instagram')
+    writeInstagramSettings(igFile, { autoPublish: false })
+    return instagramStatusNow()
+  })
+  handle('setInstagramAutoPublish', (on: unknown) => {
+    if (typeof on !== 'boolean') throw new Error(tr('Valor no válido'))
+    writeInstagramSettings(igFile, { ...readInstagramSettings(igFile), autoPublish: on })
+    return instagramStatusNow()
+  })
+  handle('decideInstagramPost', (projectId: unknown, messageId: unknown, action: unknown, caption: unknown) => {
+    if (typeof messageId !== 'string') throw new Error(tr('No se encontró ese reel'))
+    return decideInstagramPost(projectArg(projectId), messageId, action === 'publish' ? 'publish' : 'dismiss', typeof caption === 'string' ? caption : undefined)
   })
   // Habilidades que sugirió Hermes: «Instalar» una (por su posición) o «Descartar» la tarjeta.
   handle('decideSkillProposal', (projectId: unknown, messageId: unknown, action: unknown, index: unknown) => {
