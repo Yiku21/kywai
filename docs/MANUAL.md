@@ -2251,7 +2251,9 @@ esto, el guionista solo vería el nombre del archivo y se inventaría el conteni
 («créame un vídeo por cada guion, con los personajes de kywai, en inglés»), Hermes escribe él mismo la orden
 `/video …` con las marcas que saca de lo que pides (tipo, `personaje:robots-kywai`, estilo, voz —la voz decide el
 idioma— y una línea por vídeo) y kywai la lanza en el acto, igual que si la hubieras escrito tú. Si quieres estilos
-distintos, lanza una orden por estilo. Tu mensaje no se repite en el chat: solo ves la respuesta de Hermes y las
+distintos, lanza una orden por estilo. «Créame un vídeo…» suelto sigue yendo directo al estudio, salvo que pida
+varios sin decir cuáles («con cada uno de esos guiones», «un vídeo por idea»): eso lo lee Hermes, que mira la
+conversación y pone una línea por vídeo; antes salía un solo vídeo sobre «cada uno de esos guiones». Tu mensaje no se repite en el chat: solo ves la respuesta de Hermes y las
 tareas de vídeo. Código: el campo `"video"` del plan (`parsePlan` en `src/main/plan.ts`) y `launchPlannedVideo` en
 `src/main/orchestrator.ts`; la regla para Hermes, en `src/main/coordinatorGuide.ts`.
 

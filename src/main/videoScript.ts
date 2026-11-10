@@ -315,6 +315,9 @@ const CAST_RE = /(?:^|[\s,])(?:con\s+)?(?:(?:estos|mis|los)\s+)?(?:personajes?\s
 /** Piden dibujos con personaje: «estilo cartoon», «dibujos animados», «un personaje que lo explique», «tutorial»… */
 const CARTOON_RE = /\b(cartoons?|caricaturas?|dibujos?(?:\s+animados?)?|animaci[oó]n\s+2d|personajes?|mu[ñn]ecos?|presentador(?:a)?|tutorial(?:es)?|una persona explicando|alguien explicando|animated character|explainer)\b/i
 
+/** Piden varios vídeos sin decir cuáles en el mismo mensaje: «cada uno de esos guiones», «uno por idea»… */
+const SEVERAL_RE = /(?:^|[\s,])(?:cada\s+un[oa]|por\s+cada|(?:(?:un[oa]?|v[ií]deo)\s+)?por\s+(?:cada\s+)?(?:gui[oó]n|idea|tema|archivo|punto|cap[ií]tulo|episodio)|(?:de|con|usando)\s+(?:esos|esas|estos|estas|todos\s+(?:esos|estos)|todas\s+(?:esas|estas))\s+(?!personajes?\b)\p{L}+)/iu
+
 const VERTICAL_RE = /\b(vertical|tiktok|reels?|shorts?|9:16|historia de instagram)\b/i
 const HORIZONTAL_RE = /\b(horizontal|youtube|16:9|apaisado)\b/i
 const PREVIOUS_RE = /^(de |sobre )?(esto|eso|este mensaje|ese mensaje|el mensaje anterior|lo anterior|lo de arriba|this|that|this message)[\s.!]*$/i
@@ -340,6 +343,9 @@ export function parseVideoRequest(text: string): VideoRequest | null {
       /^(?:please\s+)?(?:make|create|generate)(?:\s+me)?\s+an?\s+(?:short\s+)?video\s*(?:(?:about|of|on|for)\s+)?([\s\S]*)$/i.exec(t)
     if (!m) return null
     topic = m[1].trim()
+    // «créame un vídeo con cada uno de esos guiones», «un vídeo por idea»: son varios y hay que saber cuáles. Lo
+    // entiende Hermes, que mira la conversación y lanza la orden «/video …» con una línea por vídeo.
+    if (SEVERAL_RE.test(topic)) return null
   }
   const format = formatOf(t)
   // Lo elegido en el selector: «tipo:…» y «personaje:…» (y «estilo:cartoon|dinamico», las marcas de antes). «estilo:…»

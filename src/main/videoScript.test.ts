@@ -65,6 +65,12 @@ describe('parseVideoRequest', () => {
     expect(parseVideoRequest('créame un vídeo de esto')).toMatchObject({ topic: '', fromPrevious: true })
     expect(parseVideoRequest('/video')).toMatchObject({ topic: '', fromPrevious: true })
     expect(parseVideoRequest('hazme un vídeo de este mensaje')).toMatchObject({ fromPrevious: true })
+    // Varios sin decir cuáles: lo entiende Hermes (mira la conversación y lanza la orden con una línea por vídeo).
+    expect(parseVideoRequest('créame un vídeo con cada uno de esos guiones')).toBeNull()
+    expect(parseVideoRequest('hazme un vídeo por guion, en inglés')).toBeNull()
+    expect(parseVideoRequest('créame un vídeo usando esos textos')).toBeNull()
+    expect(parseVideoRequest('hazme un vídeo de los robots con estos personajes fijos')).not.toBeNull()
+    expect(parseVideoRequest('/video con cada uno de los temas')).not.toBeNull()
   })
 
   it('no confunde otras peticiones con un vídeo', () => {
