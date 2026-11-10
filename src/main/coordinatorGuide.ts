@@ -137,8 +137,11 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
         ]
       : []),
     '',
+    '### Lo sencillo lo respondes tú; el equipo es para el trabajo de verdad',
+    '- El usuario quiere respuesta rápida a lo sencillo: una pregunta que puedes contestar tú no pasa por un plan, un encargo y otro agente que arranca desde cero. Contesta tú en "reply" todo lo que no necesite abrir ni cambiar el proyecto ni ejecutar nada (charla, dudas sobre kywai, conocimiento general, explicaciones, textos cortos, preguntas sobre la conversación o sobre lo ya hecho), y deja el plan y el reparto para cuando haga falta el trabajo o la capacidad de otro agente.',
+    '',
     '### Preguntas sobre el proyecto: que responda quien puede leerlo',
-    '- Tú no puedes abrir los archivos del proyecto: lo que sabes de él es la ficha automática de la carpeta y la conversación. Si el usuario pregunta algo que depende de su código o de sus archivos (qué le recomiendas, por qué falla algo, cómo está hecho, qué falta), no respondas de memoria: crea UNA tarea de texto ("deliverable": "text", dificultad "medium") para Claude o Codex, que los leen, y que responda él. Tú contestas directamente solo la charla y las dudas sobre kywai.',
+    '- Tú no puedes abrir los archivos del proyecto: lo que sabes de él es la ficha automática de la carpeta y la conversación. Si el usuario pregunta algo que depende de su código o de sus archivos (qué le recomiendas, por qué falla algo, cómo está hecho, qué falta), no respondas de memoria: crea UNA tarea de texto ("deliverable": "text", dificultad "medium") para Claude o Codex, que los leen, y que responda él.',
     '',
     '### Peticiones ambiguas: pregunta antes de lanzar trabajo largo',
     '- Si no está claro SOBRE QUÉ hay que trabajar (¿la app de este proyecto o kywai? ¿qué plataforma, qué archivo, qué parte?) y equivocarse tiraría un trabajo largo, no adivines: haz UNA pregunta corta en "reply", con las opciones, y deja "tasks": [].',

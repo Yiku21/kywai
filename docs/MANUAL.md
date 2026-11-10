@@ -38,6 +38,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Dictado por voz](#dictado-por-voz)
 - **[Cómo trabaja el equipo](#cómo-trabaja-el-equipo)**
   - [Reparto, modelos y permisos](#reparto-modelos-y-permisos)
+  - [Respuestas rápidas: lo sencillo lo contesta el coordinador](#respuestas-rápidas-lo-sencillo-lo-contesta-el-coordinador)
   - [Lo que sabe el coordinador de kywai](#lo-que-sabe-el-coordinador-de-kywai)
   - [Tu visto bueno a cada plan](#tu-visto-bueno-a-cada-plan)
   - [«Te necesita»: lo que espera una decisión tuya](#te-necesita-lo-que-espera-una-decisión-tuya)
@@ -702,7 +703,7 @@ documentación no confirma y pueden necesitar ajustes.
 - **La calidad manda**: el coordinador busca el mejor resultado posible y que cumpla exactamente lo pedido; el
   tiempo y el gasto son secundarios (así está escrito en sus reglas, y es el comportamiento por defecto, sin
   interruptor). Elige para cada parte al agente y la dificultad que den el mejor resultado, y en la duda sube la
-  dificultad. Un trabajo pequeño o muy enlazado va entero a un agente, que lo hace y lo prueba. Uno grande con partes separables
+  dificultad (en las tareas que crean o cambian archivos). Un trabajo pequeño o muy enlazado va entero a un agente, que lo hace y lo prueba. Uno grande con partes separables
   (motor, interfaz, servidor…) se reparte **en paralelo** entre los agentes más adecuados, con un **contrato común**
   que escribe el coordinador (qué archivos son de cada uno y cómo se comunican las partes), y al final una tarea
   «Integrar y probar» que ejecuta las pruebas y comprueba el conjunto contra lo pedido. Solo reparte si se cumplen
@@ -874,6 +875,24 @@ en escribirse. Como Hermes no enseña nada hasta terminar, kywai le espera hasta
 siguiente coordinador. Se le piden planes escuetos (cada tarea en 2 a 6 frases, sin repetir la petición, que los
 agentes ya reciben completa), así que se escriben antes.
 
+### Respuestas rápidas: lo sencillo lo contesta el coordinador
+
+Una pregunta sencilla no pasa por un plan, un encargo y otro agente que arranca desde cero: la contesta el
+coordinador en la misma llamada en la que lee tu mensaje, que es cuestión de segundos.
+
+- **Qué contesta él**: todo lo que se resuelve sin abrir ni cambiar archivos del proyecto y sin ejecutar nada.
+  Charla, dudas sobre kywai, conocimiento general y explicaciones («¿qué diferencia hay entre…?»), comparaciones y
+  consejos que no dependen de tu código, textos cortos (redactar, traducir, resumir o corregir algo que va en el
+  mensaje), cuentas y preguntas sobre la conversación o sobre lo que el equipo ya hizo. Si basta una búsqueda
+  sencilla en internet, la hace él (Hermes tiene herramienta web al planificar).
+- **Cuándo reparte**: cuando hace falta leer o cambiar el proyecto, ejecutar algo, producir un archivo, investigar a
+  fondo o una capacidad que él no tiene (ver o generar imágenes). Ahí todo sigue igual: plan, agente adecuado,
+  esfuerzo alto y verificación por otro agente.
+- **Lo que no hace**: contestar de memoria algo que depende de tus archivos. Eso sigue yendo a un agente que los lee.
+
+Las reglas están en `buildPlanPrompt` ([src/main/orchestrator.ts](../src/main/orchestrator.ts)) y en la guía del
+coordinador ([src/main/coordinatorGuide.ts](../src/main/coordinatorGuide.ts)).
+
 ### Lo que sabe el coordinador de kywai
 
 En cada petición, el coordinador recibe una guía de cómo funciona kywai
@@ -898,7 +917,8 @@ En cada petición, el coordinador recibe una guía de cómo funciona kywai
   suposiciones aunque el coordinador no pueda abrir archivos.
 - **Preguntas sobre el proyecto**: Hermes no puede leer los archivos, así que las preguntas que dependen del código
   («¿qué me recomiendas para…?», «¿por qué falla…?») no las contesta de memoria: crea una tarea de texto para Claude
-  o Codex, que sí los leen, y responde él. Hermes contesta directamente solo la charla y las dudas sobre kywai.
+  o Codex, que sí los leen, y responde él. Lo que no depende de los archivos lo contesta él mismo (ver
+  [Respuestas rápidas](#respuestas-rápidas-lo-sencillo-lo-contesta-el-coordinador)).
 - **Peticiones ambiguas**: si no está claro sobre qué trabajar y equivocarse tiraría un trabajo largo (¿la app del
   proyecto o kywai?), pregunta antes.
 - **Funciones de kywai**: para responder dudas (acceso desde el móvil y sus direcciones, micrófono, órdenes

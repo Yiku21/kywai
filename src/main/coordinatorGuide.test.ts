@@ -61,7 +61,13 @@ describe('lo que sabe el coordinador de kywai', () => {
   it('las preguntas sobre el proyecto las responde quien puede leer sus archivos, no el coordinador de memoria', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env()))
     expect(g).toMatch(/Tú no puedes abrir los archivos del proyecto[\s\S]*crea UNA tarea de texto \("deliverable": "text", dificultad "medium"\)/)
-    expect(g).toContain('Tú contestas directamente solo la charla y las dudas sobre kywai.')
+  })
+
+  it('lo sencillo lo responde el coordinador sin plan: el reparto es para el trabajo de verdad', () => {
+    const g = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env()))
+    expect(g).toContain('### Lo sencillo lo respondes tú; el equipo es para el trabajo de verdad')
+    expect(g).toMatch(/Contesta tú en "reply" todo lo que no necesite abrir ni cambiar el proyecto ni ejecutar nada/)
+    expect(g).not.toContain('Tú contestas directamente solo la charla y las dudas sobre kywai.')
   })
 
   it('ambigüedad, límites del equipo y funciones de la app', () => {
