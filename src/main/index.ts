@@ -39,7 +39,7 @@ import {
   validBudget
 } from './config'
 import { applyUpdate, checkForUpdates, sourceDir, startUpdateWatch, updatePending } from './selfUpdate'
-import { getWhatsNew, markWhatsNewSeen } from './whatsNew'
+import { getWhatsNew, markWhatsNewSeen, noteConfiguredAtBoot } from './whatsNew'
 import { setGuideEnv } from './coordinatorGuide'
 import { transcribeAudio } from './voice'
 import { isLocalEngine } from '@shared/localEngines'
@@ -1207,6 +1207,8 @@ async function boot(): Promise<void> {
   // Antes de buscar los CLIs: el PATH actual del sistema (en macOS, el de la terminal del usuario).
   await refreshPath()
   const cfg = loadConfig()
+  // Antes del asistente inicial: así «Novedades» sabe si es una instalación nueva o una que ya se usaba.
+  noteConfiguredAtBoot(cfg.setupDone)
   store.initProjects(cfg.workspaceRoot)
   store.ensureFirstProject()
   initQuota(cfg.workspaceRoot, getConfig, allAgents)

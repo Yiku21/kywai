@@ -3082,4 +3082,5 @@ export const fr: Record<string, string> = {
   "Actualizar kywai…": "Mettre à jour kywai…",
   "Hay una versión nueva esperando": "Une nouvelle version attend",
   "Hay la versión {latest}: pulsa Comprobar y luego Instalar": "La version {latest} est sortie : appuyez sur Vérifier puis Installer",
+  "Se actualizó a la versión {to}. Estos son los últimos cambios:": "Mis à jour vers la version {to}. Voici les derniers changements :",
 }

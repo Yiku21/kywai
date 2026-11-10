@@ -3082,4 +3082,5 @@ export const zh: Record<string, string> = {
   "Actualizar kywai…": "更新 kywai…",
   "Hay una versión nueva esperando": "有新版本等待安装",
   "Hay la versión {latest}: pulsa Comprobar y luego Instalar": "已有 {latest} 版本：先点“检查”，再点“安装”",
+  "Se actualizó a la versión {to}. Estos son los últimos cambios:": "已更新到 {to} 版。以下是最新更改：",
 }

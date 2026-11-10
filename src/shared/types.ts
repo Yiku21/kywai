@@ -1337,7 +1337,7 @@ export interface UpdateCommit {
 /** Lo que se sabe de la última versión en GitHub Releases para una app descargada de ahí. */
 /** «Novedades»: los cambios de la versión nueva, la primera vez que kywai se abre después de actualizarse. */
 export interface WhatsNew {
-  /** Versión que había antes (o commit corto en las compiladas en el equipo). */
+  /** Versión que había antes (o commit corto en las compiladas en el equipo); '' si no se sabe (salen los últimos cambios). */
   from: string
   /** Versión instalada ahora. */
   to: string

@@ -6,6 +6,8 @@
 //   con el que se compiló la anterior y el actual.
 // Solo se usa el título de cada commit y se quitan los que no le dicen nada a quien usa la app (publicaciones
 // automáticas de Órbita, fusiones, versiones de prueba). En una instalación nueva no sale nada.
+// Si no se sabe qué versión había (la primera vez que se abre una versión con esta ventana) pero kywai ya estaba
+// configurado al abrir, no es una instalación nueva: se enseñan los últimos cambios hasta la versión instalada.
 import { app } from 'electron'
 import { execFile } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -16,6 +18,14 @@ import { sourceDir } from './selfUpdate'
 
 const REPO = 'Yiku21/kywai'
 const MAX_ITEMS = 30
+/** Cambios que se enseñan cuando no se sabe qué versión había antes. */
+const RECENT_ITEMS = 12
+
+/** kywai ya estaba configurado al abrirse esta vez (no es una instalación nueva). Lo apunta boot() en index.ts. */
+let configuredAtBoot = false
+export function noteConfiguredAtBoot(done: boolean): void {
+  configuredAtBoot = done
+}
 
 declare const __BUILD_COMMIT__: string | undefined
 
@@ -71,9 +81,22 @@ async function releaseSubjects(from: string, to: string): Promise<string[]> {
   return (data.commits ?? []).map((c) => c.commit?.message ?? '').reverse()
 }
 
-function gitSubjects(dir: string, from: string, to: string): Promise<string[]> {
+/** Los últimos commits hasta esta versión (cuando no se sabe cuál había antes). */
+async function recentReleaseSubjects(to: string): Promise<string[]> {
+  const res = await fetch(`https://api.github.com/repos/${REPO}/commits?sha=v${encodeURIComponent(to)}&per_page=40`, {
+    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'kywai' },
+    signal: AbortSignal.timeout(15_000)
+  })
+  if (!res.ok) throw new Error(`GitHub respondió ${res.status}`)
+  const data = (await res.json()) as { commit?: { message?: string } }[]
+  // Estos ya vienen del más nuevo al más viejo.
+  return data.map((c) => c.commit?.message ?? '')
+}
+
+function gitSubjects(dir: string, from: string | null, to: string): Promise<string[]> {
+  const range = from ? [`${from}..${to}`] : ['-n', '40', to]
   return new Promise((resolve, reject) => {
-    execFile('git', ['-C', dir, 'log', '--no-merges', '--format=%s', `${from}..${to}`], { timeout: 15_000 }, (error, stdout) => {
+    execFile('git', ['-C', dir, 'log', '--no-merges', '--format=%s', ...range], { timeout: 15_000 }, (error, stdout) => {
       if (error) reject(error)
       else resolve(stdout.split('\n'))
     })
@@ -89,8 +112,8 @@ export async function getWhatsNew(): Promise<WhatsNew | null> {
   const to = currentKey()
   if (!to) return null
   const from = readSeen()
-  // Instalación nueva (o de antes de esto): se apunta la versión y no se enseña nada.
-  if (!from) {
+  // Instalación nueva: se apunta la versión y no se enseña nada.
+  if (!from && !configuredAtBoot) {
     writeSeen(to)
     return null
   }
@@ -99,7 +122,7 @@ export async function getWhatsNew(): Promise<WhatsNew | null> {
   let items: string[] = []
   let failed = false
   try {
-    if (release) items = cleanSubjects(await releaseSubjects(from, to))
+    if (release) items = cleanSubjects(from ? await releaseSubjects(from, to) : await recentReleaseSubjects(to))
     else {
       const dir = sourceDir()
       if (dir && existsSync(join(dir, '.git'))) items = cleanSubjects(await gitSubjects(dir, from, to))
@@ -109,8 +132,9 @@ export async function getWhatsNew(): Promise<WhatsNew | null> {
     console.error('[novedades] No se pudieron leer los cambios:', e)
     failed = true
   }
+  if (!from) items = items.slice(0, RECENT_ITEMS)
   return {
-    from: release ? from : from.slice(0, 7),
+    from: !from ? '' : release ? from : from.slice(0, 7),
     to: release ? to : to.slice(0, 7),
     items: items.slice(0, MAX_ITEMS),
     more: Math.max(0, items.length - MAX_ITEMS),

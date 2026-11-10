@@ -57,7 +57,9 @@ export function WhatsNewDialog() {
             <h2 id="whats-new-title" className={s.title}>
               {t('Novedades de kywai')}
             </h2>
-            <p className={s.subtitle}>{t('Se actualizó a la versión {to} (tenías la {from}).', { to: news.to, from: news.from })}</p>
+            <p className={s.subtitle}>
+              {news.from ? t('Se actualizó a la versión {to} (tenías la {from}).', { to: news.to, from: news.from }) : t('Se actualizó a la versión {to}. Estos son los últimos cambios:', { to: news.to })}
+            </p>
           </div>
           <button type="button" className={cx(u.iconBtn, s.close)} aria-label={t('Cerrar')} onClick={close}>
             <X size={18} />

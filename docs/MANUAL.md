@@ -169,7 +169,9 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   saca de GitHub (comparando las etiquetas `v0.1.<n>` del repositorio público) y trae «Ver en GitHub»; en las
   compiladas en el equipo, del clon de git. Se quitan las publicaciones automáticas de Órbita, las fusiones y las
   «versiones de prueba». Sale una sola vez por versión (al cerrarla queda apuntada en `novedades-vistas.json`, en la
-  carpeta de datos); en una instalación nueva, en el navegador y en el asistente inicial no sale. Sin internet dice que
+  carpeta de datos); en una instalación nueva, en el navegador y en el asistente inicial no sale. Si no se sabe qué
+  versión había (la primera vez que se abre una versión con esta ventana) pero kywai ya estaba configurado, sale igual
+  con los últimos 12 cambios hasta la versión instalada («Estos son los últimos cambios»). Sin internet dice que
   no pudo cargar la lista. Los títulos de los commits se enseñan tal cual (en español): escríbelos pensando en quien
   usa la app. Para probarla en desarrollo: `AICW_WHATS_NEW=1`.
 - **«Buscar actualizaciones…»** en esas versiones no usa git: pregunta a GitHub y espera la respuesta. Dice la versión
