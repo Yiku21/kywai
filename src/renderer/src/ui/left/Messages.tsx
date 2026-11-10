@@ -29,12 +29,14 @@ import {
   SquareTerminal,
   ThumbsDown,
   ThumbsUp,
+  Reply,
   User,
   Wrench,
   X
 } from 'lucide-react'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { describeTrigger } from '@shared/routines'
+import { replyExcerpt } from '@shared/replyTo'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
 import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, TikTokPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
@@ -114,6 +116,17 @@ function UserMessage({ m }: { m: ChatMessage }) {
       </span>
       <div className={s.main}>
         <Meta name={userLabel(m)} ts={m.createdAt} />
+        {m.replyTo && (
+          <button
+            type="button"
+            className={s.replyQuote}
+            title={t('Ir a la respuesta de {name}', { name: m.replyTo.name })}
+            onClick={() => useCowork.setState({ focusMessage: { id: m.replyTo!.messageId, terms: [], nonce: Date.now() } })}
+          >
+            <Reply size={13} aria-hidden="true" />
+            <span>{t('Sobre la respuesta de {name}: «{text}»', { name: m.replyTo.name, text: m.replyTo.excerpt })}</span>
+          </button>
+        )}
         <div className={cx(s.bubble, s.userBubble)}>
           {parts.request && <p className={s.userText}>{parts.request}</p>}
           {parts.data && (
@@ -222,6 +235,8 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
   // «Crear vídeo de esto»: en cualquier respuesta con algo que contar (en vivo, no en el modo demo).
   const live = useCowork((st) => st.mode === 'live')
   const videoable = live && !m.streaming && !isError && !proposal && (m.text?.trim().length ?? 0) >= 40
+  // «Responder»: lo siguiente que escribas va a este mismo agente sobre esta respuesta (para que la revise o siga).
+  const replyable = live && !m.streaming && !isError && !proposal && !m.importedFrom && !!m.text?.trim()
 
   return (
     <article className={s.msg} style={agentVars(look.color)}>
@@ -257,7 +272,16 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
         )}
         {hasArtifacts && <ArtifactCards ids={m.artifactIds!} projectId={m.projectId} />}
         {m.work && m.work.status !== 'running' && <ChangesRow projectId={m.projectId} taskId={m.work.taskId} />}
-        {ratable ? <RatingRow m={m} video={videoable} /> : videoable && <div className={s.rating}><VideoFromButton m={m} /></div>}
+        {ratable ? (
+          <RatingRow m={m} video={videoable} reply={replyable ? { agentId, name: look.name } : undefined} />
+        ) : (
+          (videoable || replyable) && (
+            <div className={s.rating}>
+              {replyable && <ReplyButton m={m} agentId={agentId} name={look.name} />}
+              {videoable && <VideoFromButton m={m} />}
+            </div>
+          )
+        )}
       </div>
     </article>
   )
@@ -348,7 +372,27 @@ function ChangesRow({ projectId, taskId }: { projectId: string; taskId: string }
   )
 }
 
-/** 👍/👎 bajo un resultado: lo que mide si el trabajo te sirvió (va al registro de consumo y a la ficha del agente). */
+/** «Responder»: prepara el cuadro de texto para contestar a esta respuesta; lo que envíes va a este mismo agente. */
+function ReplyButton({ m, agentId, name }: { m: ChatMessage; agentId: string; name: string }) {
+  const current = useComposer((c) => c.replyTo?.messageId === m.id)
+  const go = (): void => {
+    const c = useComposer.getState()
+    c.setReplyTo(current ? null : { messageId: m.id, agentId, name, excerpt: replyExcerpt(m.text) })
+  }
+  return (
+    <button
+      type="button"
+      className={cx(s.ratingBtn, s.videoBtn, current && s.ratingOn)}
+      title={t('Responder a {name}: lo que escribas le llega a él para que revise o continúe esta respuesta', { name })}
+      aria-pressed={current}
+      onClick={go}
+    >
+      <Reply size={14} aria-hidden="true" />
+      <span>{t('Responder')}</span>
+    </button>
+  )
+}
+
 /** «Crear vídeo de esto»: el equipo hace un vídeo que cuenta este mensaje y solo entrega el MP4. */
 function VideoFromButton({ m }: { m: ChatMessage }) {
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
@@ -378,7 +422,8 @@ function VideoFromButton({ m }: { m: ChatMessage }) {
   )
 }
 
-function RatingRow({ m, video = false }: { m: ChatMessage; video?: boolean }) {
+/** 👍/👎 bajo un resultado: lo que mide si el trabajo te sirvió (va al registro de consumo y a la ficha del agente). */
+function RatingRow({ m, video = false, reply }: { m: ChatMessage; video?: boolean; reply?: { agentId: string; name: string } }) {
   const [pending, setPending] = useState<MessageRating | null>(null)
   const rate = (r: MessageRating): void => {
     const a = api
@@ -404,6 +449,7 @@ function RatingRow({ m, video = false }: { m: ChatMessage; video?: boolean }) {
     <div className={s.rating} aria-label={t('¿Te sirvió este resultado?')}>
       {btn('up', ThumbsUp, t('Me sirvió'))}
       {btn('down', ThumbsDown, t('No me sirvió'))}
+      {reply && <ReplyButton m={m} agentId={reply.agentId} name={reply.name} />}
       {video && <VideoFromButton m={m} />}
       {m.rating && <span className={s.ratingNote}>{m.rating === 'up' ? t('Te sirvió: lo tendrá en cuenta el coordinador.') : t('No te sirvió: lo tendrá en cuenta el coordinador.')}</span>}
     </div>

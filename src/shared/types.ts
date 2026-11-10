@@ -583,10 +583,21 @@ export interface ChatMessage {
   tiktokPost?: TikTokPost
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
   direct?: { agentId: AgentId; name: string }
+  /** «Responder» bajo la respuesta de un agente: este mensaje va a ese mismo agente sobre esa respuesta (cita corta). */
+  replyTo?: ChatReplyRef
   /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
   template?: { id: string; name: string }
   /** Mensaje traído de otra app (⚙ → «Importar de otras apps…»): el chat enseña ese nombre como autor de la respuesta. */
   importedFrom?: string
+}
+
+/** La respuesta de un agente a la que contestas con «Responder»: el chat enseña la cita encima de tu mensaje. */
+export interface ChatReplyRef {
+  messageId: string
+  agentId: AgentId
+  name: string
+  /** El principio de esa respuesta, en una línea. */
+  excerpt: string
 }
 
 /** Te sirvió (up) o no (down). */
@@ -1648,6 +1659,11 @@ export interface SendMessageInput {
   templateId?: string
   /** «Crear vídeo de esto» en un mensaje del chat: el vídeo cuenta ese mensaje (su id). */
   videoFrom?: string
+  /**
+   * «Responder» bajo la respuesta de un agente (su id): el mensaje va directo a ese mismo agente, con su respuesta
+   * citada, para que la revise o la continúe. Sin texto, le pide que la revise.
+   */
+  replyTo?: string
 }
 
 export interface CoworkApi {

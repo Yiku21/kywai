@@ -142,6 +142,8 @@ export interface MobileSnapshot {
      * voz y crear o borrar personajes.
      */
     videoPicker?: boolean
+    /** «Responder» bajo la respuesta de un agente: replyTo (id de esa respuesta) en POST /chat/messages. */
+    replyTo?: boolean
   }
 }
 

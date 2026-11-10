@@ -168,6 +168,8 @@ class OrbitaModel(
     var filesTab by mutableStateOf(FilesTab.Attachments)
     var filesQuery by mutableStateOf("")
     var chatDraft by mutableStateOf(TextFieldValue(""))
+    /** «Responder» tocado bajo la respuesta de un agente: lo siguiente que envíes va a ese agente sobre esa respuesta. */
+    var replyTarget by mutableStateOf<com.aicowork.remote.data.model.ReplyRef?>(null)
     var newTaskDraft by mutableStateOf(TextFieldValue(""))
     var newTaskOpen by mutableStateOf(false)
     var viewer by mutableStateOf<ViewerTarget?>(null)

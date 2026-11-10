@@ -287,13 +287,14 @@ export class MobileApi {
           throw new MobileError(426, 'WEBSOCKET_REQUIRED', 'Abre este endpoint con WebSocket y Authorization: Bearer')
         case 'chat': {
           const input = await body(req)
-          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds', 'templateId'])
+          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds', 'templateId', 'replyTo'])
           const clientMessageId = string(input.clientMessageId, 'clientMessageId', 128)
           if (!ID.test(clientMessageId)) throw new MobileError(400, 'INVALID_INPUT', 'clientMessageId no válido')
           const attachmentIds = input.attachmentIds ?? []
           if (!Array.isArray(attachmentIds) || attachmentIds.length > 20 || attachmentIds.some((a) => typeof a !== 'string' || !ID.test(a))) throw new MobileError(400, 'INVALID_INPUT', 'attachmentIds debe ser una lista de hasta 20 identificadores de adjunto')
           const templateId = input.templateId === undefined || input.templateId === null ? undefined : id(String(input.templateId), 'templateId')
-          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[], templateId))
+          const replyTo = input.replyTo === undefined || input.replyTo === null ? undefined : id(String(input.replyTo), 'replyTo')
+          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[], templateId, replyTo))
           break
         }
         case 'conversations': {

@@ -1034,4 +1034,10 @@ private fun part7(m: HashMap<String, String>) {
     m["voz de mujer"] = "女声"
     m["{n} imágenes"] = "{n} 张图片"
     m["¿Cómo quieres el vídeo?"] = "你想要什么样的视频？"
+    m["Revisa tu respuesta: comprueba que es correcta y completa, corrige lo que haga falta y dame la versión buena."] = "检查你的回答：确认它正确且完整，修正需要修改的地方，然后给我正确的版本。"
+    m["Respondes a {name}"] = "回复 {name}"
+    m["No responder a esta respuesta"] = "不回复这条回答"
+    m["Qué revise o continúe {name} (vacío: que la revise)"] = "让 {name} 检查或继续什么（留空：让它检查）"
+    m["Sobre la respuesta de {name}: «{text}»"] = "关于 {name} 的回答：“{text}”"
+    m["Responder"] = "回复"
 }

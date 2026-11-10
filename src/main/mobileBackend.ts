@@ -146,6 +146,7 @@ export class MobileBackend {
         modPanels: this.methods.has('modPanel') && this.methods.has('listMods'),
         chatCommands: true,
         usageCost: true,
+        replyTo: true,
         videoPicker: ['listVideoCharacters', 'addVideoCharacter', 'removeVideoCharacter', 'listVideoVoices', 'previewVideoVoice'].every((m) => this.methods.has(m))
       }
     }
@@ -314,7 +315,7 @@ export class MobileBackend {
     return { results }
   }
 
-  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = [], templateId?: string): Promise<MobileChatReceipt> {
+  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = [], templateId?: string, replyTo?: string): Promise<MobileChatReceipt> {
     // Con id=null, un reintento sigue encontrando el mensaje aunque otro proyecto haya pasado a ser el más reciente.
     if (conversationId === null) {
       const projects = await this.call<ProjectSummary[]>('listProjects')
@@ -341,8 +342,10 @@ export class MobileBackend {
       const tpl = (await this.call<TaskTemplate[]>('listTemplates')).find((x) => x.id === templateId)
       if (!tpl || (tpl.projectId && tpl.projectId !== state.project.id)) throw new MobileError(400, 'INVALID_INPUT', 'templateId: esa plantilla ya no existe')
     }
+    // «Responder»: tiene que ser la respuesta de un agente de esta conversación.
+    if (replyTo && !state.messages.some((m) => m.id === replyTo && m.author.type === 'agent')) throw new MobileError(400, 'INVALID_INPUT', 'replyTo: esa respuesta no es de un agente de esta conversación')
     try {
-      const { runId } = await this.call<{ runId: string }>('sendMessage', { projectId: state.project.id, text, filePaths: [], clientMessageId, attachmentIds, ...(templateId ? { templateId } : {}) })
+      const { runId } = await this.call<{ runId: string }>('sendMessage', { projectId: state.project.id, text, filePaths: [], clientMessageId, attachmentIds, ...(templateId ? { templateId } : {}), ...(replyTo ? { replyTo } : {}) })
       return this.receipt(await this.call<LoadedProject>('loadProject', state.project.id), runId, clientMessageId)
     } catch (e) {
       if (e instanceof Error && e.message === 'clientMessageId ya se usó con otro texto') throw new MobileError(409, 'CLIENT_MESSAGE_CONFLICT', 'Ese clientMessageId ya se usó con otro texto')

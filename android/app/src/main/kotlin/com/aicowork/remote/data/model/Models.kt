@@ -96,6 +96,10 @@ data class TemplateResponse(val template: TaskTemplate)
 @Serializable
 data class TemplatesResponse(val templates: List<TaskTemplate> = emptyList())
 
+/** La respuesta de un agente a la que contestaste con «Responder». */
+@Serializable
+data class ReplyRef(val messageId: String, val agentId: String = "", val name: String = "", val excerpt: String = "")
+
 /** Con qué plantilla se lanzó un mensaje. */
 @Serializable
 data class TemplateRef(val id: String, val name: String = "")
@@ -472,6 +476,8 @@ data class ChatMessage(
     val direct: DirectTarget? = null,
     /** Lanzado con una plantilla de tareas (su nombre sale en el chat). */
     val template: TemplateRef? = null,
+    /** Hecho con «Responder» bajo la respuesta de un agente: la cita sale encima de tu mensaje. */
+    val replyTo: ReplyRef? = null,
     /** Rutina que propone Hermes (tarjeta «Crear rutina»). */
     val routineProposal: RoutineProposal? = null,
 ) {
@@ -724,6 +730,8 @@ data class Capabilities(
     val modPanels: Boolean = false,
     /** El selector de «/video» (tipo, personaje, estilo y voz): GET /video/picker y lo demás de /video. */
     val videoPicker: Boolean = false,
+    /** «Responder» bajo la respuesta de un agente: replyTo en POST /chat/messages. */
+    val replyTo: Boolean = false,
     /** «/recuerda …» enviado como mensaje va a la memoria; la instantánea trae modCommands. */
     val chatCommands: Boolean = false,
     /** Varios chats por proyecto (GET/POST /chats, /chats/{id}/open|rename|delete). */

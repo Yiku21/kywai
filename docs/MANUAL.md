@@ -55,6 +55,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Reanudar lo interrumpido](#reanudar-lo-interrumpido)
   - [Reiniciar un agente que falla](#reiniciar-un-agente-que-falla)
   - [Hablar directamente con un agente (@Agente)](#hablar-directamente-con-un-agente-agente)
+  - [Responder a un agente (que revise o continúe su respuesta)](#responder-a-un-agente-que-revise-o-continúe-su-respuesta)
   - [Razonamiento (think) del modelo local](#razonamiento-think-del-modelo-local)
   - [El modelo de Hermes (/model)](#el-modelo-de-hermes-model)
   - [Muse (Meta)](#muse-meta)
@@ -1449,6 +1450,28 @@ trabaja en la carpeta del proyecto con el mismo permiso de siempre (⚙ → Ajus
 Para desarrolladores: las reglas están en `src/shared/directMessage.ts` (y su copia en Órbita,
 `android/.../ui/orbita/DirectMention.kt`); el motor las aplica en `sendDirect` de `src/main/orchestrator.ts`
 (la tarea lleva `direct: true`). La API móvil lo anuncia con `capabilities.directMessages`.
+
+### Responder a un agente (que revise o continúe su respuesta)
+
+Bajo cada respuesta de un agente, junto a 👍/👎 y «Crear vídeo de esto», está **↩ «Responder»** (en el escritorio, la
+web y Órbita). Al pulsarlo, encima del cuadro de texto sale «Respondes a Claude «…»» con el principio de esa respuesta
+y una ✕ para quitarlo. Lo que escribas va **directo a ese mismo agente** (sin Hermes), con su respuesta citada, para
+que la revise o la continúe: «la suma está mal, revísala», «sigue con el punto 3», «hazlo más corto».
+
+- **Sin escribir nada**: envía y le pide «Revisa tu respuesta: comprueba que es correcta y completa, corrige lo que
+  haga falta y dame la versión buena.»
+- **Retoma su sesión**: Claude y Codex siguen la conversación donde la dejaron (recuerdan lo que leyeron e hicieron).
+  Los demás reciben la respuesta citada en el mensaje, así que también saben de qué hablas.
+- **Se cita entera** hasta unos 6000 caracteres; si es más larga, se cita el final (donde suele estar la conclusión).
+- En el chat, tu mensaje sale como «Tú → Claude (directo, sin Hermes)» con la cita ↩ encima; al pulsar la cita, el
+  chat baja hasta esa respuesta.
+- Es como un mensaje directo (ver arriba): una sola tarea para ese agente, sin plan ni verificador; si el agente está
+  apagado o sin cuota, falla con el motivo y no pasa a otro. El trabajo de un becario se responde a su jefe.
+- Las órdenes «/…» escritas con una respuesta elegida se hacen como siempre, sin la cita.
+
+Para desarrolladores: `replyTo` (id de la respuesta) en `SendMessageInput` y en POST `/chat/messages` de la API móvil
+(`capabilities.replyTo`); el mensaje tuyo lleva `replyTo: { messageId, agentId, name, excerpt }`. El texto que recibe el
+agente lo arma `replyRequest` de `src/shared/replyTo.ts`; la ruta está en `sendMessage` de `src/main/orchestrator.ts`.
 
 ### Razonamiento (think) del modelo local
 

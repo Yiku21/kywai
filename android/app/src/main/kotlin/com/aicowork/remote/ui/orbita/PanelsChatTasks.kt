@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AttachFile
@@ -82,6 +83,7 @@ import com.aicowork.remote.data.OutgoingStatus
 import com.aicowork.remote.data.QueuedFile
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.ChatMessage
+import com.aicowork.remote.data.model.ReplyRef
 import com.aicowork.remote.data.model.Snapshot
 import com.aicowork.remote.data.model.numberedTitle
 import com.aicowork.remote.data.model.TaskItem
@@ -278,6 +280,23 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             }
             Spacer(Modifier.height(6.dp))
         }
+        // «Responder»: la respuesta a la que contestas, encima del cuadro (solo si es de esta conversación).
+        val reply = model.replyTarget?.takeIf { r -> snapshot?.capabilities?.replyTo == true && messages.any { it.id == r.messageId } }
+        if (reply != null) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(12.dp)).background(Orbita.AccentSoft)
+                    .padding(start = 12.dp, end = 4.dp, top = 2.dp, bottom = 2.dp).testTag("reply-bar"),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.AutoMirrored.Outlined.Reply, contentDescription = null, tint = Orbita.Accent, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(t("Respondes a {name}", "name" to reply.name), color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Spacer(Modifier.width(6.dp))
+                Text("«${reply.excerpt}»", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                IconAction(Icons.Outlined.Close, t("No responder a esta respuesta"), onClick = { model.replyTarget = null }, size = 32.dp)
+            }
+            Spacer(Modifier.height(6.dp))
+        }
         val voice = model.voice
         val voiceHere = when (voice) {
             is VoiceState.Recording -> voice.target == VoiceTarget.Chat
@@ -351,8 +370,8 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             value = model.chatDraft,
             onValue = { model.editDraft(VoiceTarget.Chat, it) },
             // Con un plan esperando tu visto bueno, lo que escribas son cambios a ese plan (o «sí» para aprobarlo).
-            placeholder = if (model.dictation?.target == VoiceTarget.Chat) t("Habla, te escucho…") else if (messages.any { it.proposal?.isPending == true }) t("Qué cambiar del plan, o «sí»…") else t("Escribe una tarea o una pregunta…"),
-            canSend = model.chatDraft.text.isNotBlank() || pending.isNotEmpty(),
+            placeholder = if (model.dictation?.target == VoiceTarget.Chat) t("Habla, te escucho…") else if (reply != null) t("Qué revise o continúe {name} (vacío: que la revise)", "name" to reply.name) else if (messages.any { it.proposal?.isPending == true }) t("Qué cambiar del plan, o «sí»…") else t("Escribe una tarea o una pregunta…"),
+            canSend = model.chatDraft.text.isNotBlank() || pending.isNotEmpty() || reply != null,
             onAttach = if (snapshot?.capabilities?.upload == true) ({ model.open(Section.Files); model.filesTab = FilesTab.Attachments }) else null,
             photo = if (snapshot?.capabilities?.upload == true) ({ PhotoButton(model, Modifier.padding(bottom = 4.dp)) }) else null,
             mic = model.canRecordNote(snapshot?.capabilities?.voice == true).let { note ->
@@ -363,11 +382,15 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             if (pending.isEmpty() && runLocal(text)) return@Composer
             model.cancelDictation()
             model.feedback.confirm()
-            model.controller.sendMessage(text, pending.map { it.first })
+            // «Responder»: va a ese mismo agente con su respuesta citada (las órdenes «/…» van como siempre).
+            val replyId = reply?.messageId?.takeIf { !text.trimStart().startsWith("/") }
+            if (replyId != null) model.controller.sendReply(text, replyId, pending.map { it.first })
+            else model.controller.sendMessage(text, pending.map { it.first })
+            if (replyId != null) model.replyTarget = null
             model.pendingAttachments = emptySet()
             model.chatDraft = TextFieldValue("")
             // Un mensaje directo no pasa por Hermes: no hay plan que esperar.
-            if (DirectMention.target(text, directTargets) == null) model.awaitingPlanSince = System.currentTimeMillis()
+            if (replyId == null && DirectMention.target(text, directTargets) == null) model.awaitingPlanSince = System.currentTimeMillis()
             model.chatSends++
         }
     }
@@ -398,6 +421,13 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
     val author = message.author
     when {
         author.isUser -> Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+            message.replyTo?.let { r ->
+                Row(Modifier.widthIn(max = 520.dp).padding(bottom = 4.dp, end = 6.dp).testTag("reply-quote"), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.AutoMirrored.Outlined.Reply, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(t("Sobre la respuesta de {name}: «{text}»", "name" to r.name, "text" to r.excerpt), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
             Column(Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).background(Orbita.UserBubble).border(1.dp, Orbita.AccentEdge.copy(alpha = 0.25f), RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp)).padding(horizontal = 14.dp, vertical = 10.dp)) {
                 if (message.text.isNotBlank()) Text(message.text, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge)
                 // Las imágenes en miniatura; al tocar un adjunto se abre en el lector.
@@ -452,6 +482,24 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                     if (message.taskIds.isNotEmpty()) PlanTasksCard(message.taskIds, snapshot, model)
                     // Lo que entrega una tarea, junto en una carpeta que se despliega.
                     if (message.artifactIds.isNotEmpty()) DeliverablesCard(message.id, message.artifactIds, snapshot, model)
+                    // «Responder»: lo siguiente que escribas va a este mismo agente para que revise o continúe esta respuesta.
+                    if (snapshot.capabilities.replyTo && !message.streaming && !error && message.proposal?.isPending != true && message.text.isNotBlank()) {
+                        val name = agent?.name ?: author.name ?: t("Agente")
+                        val on = model.replyTarget?.messageId == message.id
+                        Row(
+                            Modifier.padding(top = 4.dp).clip(Orbita.PillShape).background(if (on) Orbita.AccentSoft else Color.Transparent)
+                                .tappable {
+                                    model.feedback.select()
+                                    model.replyTarget = if (on) null else ReplyRef(message.id, author.agentId ?: "", name, replyExcerpt(message.text))
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp).testTag("reply-${message.id}"),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.AutoMirrored.Outlined.Reply, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(t("Responder"), color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
                 }
             }
         }
@@ -821,3 +869,12 @@ private fun SelectedTask(task: TaskItem, snapshot: Snapshot, model: OrbitaModel)
     }
 }
 
+/** El principio de una respuesta en una línea, para la cita de «Responder» (como replyExcerpt del escritorio). */
+internal fun replyExcerpt(text: String, max: Int = 90): String {
+    val flat = text
+        .replace(Regex("```[\\s\\S]*?(```|$)"), " ")
+        .replace(Regex("[#>*_`|]+"), " ")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+    return if (flat.length > max) flat.take(max - 1).trimEnd() + "…" else flat
+}

@@ -110,6 +110,8 @@ data class OutgoingMessage(
     val files: List<QueuedFile> = emptyList(),
     /** Plantilla de tareas con la que se lanza (el texto ya va relleno). */
     val templateId: String? = null,
+    /** «Responder»: id de la respuesta del agente a la que contesta (le llega a ese mismo agente). */
+    val replyTo: String? = null,
 )
 
 /** Copia en el móvil de un archivo elegido sin conexión, que espera a subirse al proyecto. */
@@ -211,6 +213,8 @@ interface CoworkController {
     fun sendMessage(text: String, attachmentIds: List<String>) = sendMessage(text)
     /** Lanza una plantilla de tareas con su texto ya relleno (y los adjuntos preparados). */
     fun sendTemplate(text: String, templateId: String, attachmentIds: List<String>) = sendMessage(text, attachmentIds)
+    /** «Responder» bajo la respuesta de un agente: el mensaje va a ese mismo agente para que la revise o la continúe. */
+    fun sendReply(text: String, replyTo: String, attachmentIds: List<String>) = sendMessage(text, attachmentIds)
     suspend fun createTemplate(input: TaskTemplateInput): ActionResult = unsupported
     suspend fun updateTemplate(templateId: String, input: TaskTemplateInput, success: String? = null): ActionResult = unsupported
     suspend fun deleteTemplate(templateId: String): ActionResult = unsupported
@@ -661,8 +665,11 @@ class CoworkRepository(
 
     override fun sendTemplate(text: String, templateId: String, attachmentIds: List<String>) = send(text, attachmentIds, templateId)
 
-    private fun send(text: String, attachmentIds: List<String>, templateId: String?) {
-        val trimmed = text.trim()
+    override fun sendReply(text: String, replyTo: String, attachmentIds: List<String>) = send(text, attachmentIds, null, replyTo)
+
+    private fun send(text: String, attachmentIds: List<String>, templateId: String?, replyTo: String? = null) {
+        // Sin escribir nada, «Responder» le pide al agente que revise su respuesta.
+        val trimmed = text.trim().ifEmpty { if (replyTo != null) t("Revisa tu respuesta: comprueba que es correcta y completa, corrige lo que haga falta y dame la versión buena.") else "" }
         if (trimmed.isEmpty() && attachmentIds.isEmpty()) return
         val (local, remote) = attachmentIds.partition { it.startsWith(QueuedFile.LOCAL_ATTACHMENT) }
         val files = _state.value.queuedFiles.filter { it.localId in local }
@@ -675,6 +682,7 @@ class CoworkRepository(
             conversationId = currentConversation(),
             files = files,
             templateId = templateId,
+            replyTo = replyTo,
         )
         _state.update { s -> s.copy(outgoing = s.outgoing + message, queuedFiles = s.queuedFiles - files.toSet()) }
         if (_state.value.connection == Connection.Online) pump() else retryNow()
@@ -741,7 +749,7 @@ class CoworkRepository(
         try {
             val target = message.conversationId ?: currentConversation()
             val uploaded = uploadQueuedFiles(c, message, target) ?: return Delivery.Rejected
-            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded, message.templateId)
+            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded, message.templateId, message.replyTo)
             // Ya está en el ordenador: las copias del móvil sobran.
             message.files.forEach { java.io.File(it.path).delete() }
             syncMutex.withLock {

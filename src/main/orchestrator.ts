@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync, writeFileSync } from 'node:fs'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
 import type {
+  ChatReplyRef,
   AgentConfig,
   AgentId,
   AgentRuntime,
@@ -78,6 +79,7 @@ import { repoInstructionLines } from './repoInstructions'
 import { listSkills, skillPromptLines, skillsDir, videoSkillPromptLines, videoSkillsDir } from './skills'
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
+import { replyExcerpt, replyRequest } from '@shared/replyTo'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
 import { videoLang, type VideoKind } from '../shared/videoChoice'
@@ -1365,7 +1367,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   }
   const paths = Array.isArray(input.filePaths) ? input.filePaths.filter((p): p is string => typeof p === 'string') : []
   const atts = [...reused, ...store.copyAttachments(projectId, paths)]
-  if (!text.trim() && !atts.length && typeof input.videoFrom !== 'string') throw new Error(tr('El mensaje está vacío'))
+  if (!text.trim() && !atts.length && typeof input.videoFrom !== 'string' && typeof input.replyTo !== 'string') throw new Error(tr('El mensaje está vacío'))
 
   // «/model» es de la app (abre la lista de modelos de Hermes), no un encargo: si llega como mensaje (desde una
   // versión de Órbita que aún no lo abre), se contesta aquí sin gastar una llamada a Hermes.
@@ -1415,6 +1417,22 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   const tplAgent = tpl?.template.agentId ? baseAgents().find((a) => a.id === tpl.template.agentId) : undefined
   if (tpl?.template.agentId && !tplAgent) {
     throw new Error(tr('El agente de la plantilla «{name}» ya no está en el equipo: edítala y elige otro.', { name: tpl.template.name }))
+  }
+
+  // «Responder» bajo la respuesta de un agente: va directo a ese mismo agente, con su respuesta citada, para que la
+  // revise o la continúe (retoma su sesión del CLI si puede). Gana a cualquier «@» del texto.
+  if (typeof input.replyTo === 'string' && !tpl) {
+    const answer = st.messages.find((m) => m.id === input.replyTo)
+    if (!answer || answer.author.type !== 'agent') throw new Error(tr('No encuentro esa respuesta para contestarla'))
+    let agent = findAgent(answer.author.agentId)
+    if (agent?.isSubagent) agent = findAgent(agent.parentId)
+    if (!agent) throw new Error(tr('El agente de esa respuesta ya no está en el equipo'))
+    const ask = text.trim() || tr('Revisa tu respuesta: comprueba que es correcta y completa, corrige lo que haga falta y dame la versión buena.')
+    return sendDirect(st, agent.id, replyRequest(answer.text, ask), atts, input.clientMessageId, routine, {
+      shown: ask,
+      continues: true,
+      replyTo: { messageId: answer.id, agentId: agent.id, name: agent.name, excerpt: replyExcerpt(answer.text) }
+    })
   }
 
   // «@Agente …», «… @Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes.
@@ -1553,13 +1571,13 @@ async function sendDirect(
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
   /** Lanzado con una plantilla: lo que se ve en el chat (lo que escribiste) y su nombre. */
-  extra: { shown?: string; template?: { id: string; name: string } } = {}
+  extra: { shown?: string; template?: { id: string; name: string }; replyTo?: ChatReplyRef; continues?: boolean } = {}
 ): Promise<{ runId: string }> {
   const agent = findAgent(agentId)!
   const projectId = st.project.id
   if (!text && !atts.length) throw new Error(tr('Escribe el mensaje para {name} después de su nombre.', { name: agent.name }))
   const lastMine = [...st.messages].reverse().find((m) => m.author.type === 'user')
-  const continues = lastMine?.direct?.agentId === agent.id
+  const continues = extra.continues === true || lastMine?.direct?.agentId === agent.id
   const runId = randomUUID()
   pushMessage({
     id: randomUUID(),
@@ -1571,6 +1589,7 @@ async function sendDirect(
     createdAt: Date.now(),
     attachments: atts.length ? atts : undefined,
     direct: { agentId: agent.id, name: agent.name },
+    ...(extra.replyTo ? { replyTo: extra.replyTo } : {}),
     ...(routine ? { routine: { id: routine.id, name: routine.name } } : {}),
     ...(extra.template ? { template: extra.template } : {})
   })
@@ -1593,7 +1612,9 @@ async function sendDirect(
     projectId,
     runId,
     seq: nextTaskSeq(projectId),
-    title: tr('Mensaje directo: {text}', { text: oneLine(text, 60) || tr('archivos adjuntos') }),
+    title: extra.replyTo
+      ? tr('Responde a su respuesta: {text}', { text: oneLine(extra.shown, 60) })
+      : tr('Mensaje directo: {text}', { text: oneLine(text, 60) || tr('archivos adjuntos') }),
     description: text,
     agentId: agent.id,
     dependsOn: [],

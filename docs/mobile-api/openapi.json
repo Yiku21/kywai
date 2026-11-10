@@ -5002,6 +5002,12 @@
             "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
             "maxLength": 128,
             "description": "Opcional. Se lanza con esa plantilla (text ya va con los huecos rellenos): el mensaje lleva template y se aplican sus opciones (agentId, askPlan). Una plantilla que no existe → 400 INVALID_INPUT. Sin templateId, un text que empieza por «/command …» de una plantilla también la lanza (lo de detrás rellena el hueco; con varios, separados por «|»)."
+          },
+          "replyTo": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128,
+            "description": "Opcional (capabilities.replyTo). «Responder» bajo la respuesta de un agente: id de ese mensaje. El mensaje va directo a ese mismo agente con su respuesta citada para que la revise o la continúe (retoma su sesión si puede); el mensaje del usuario lleva replyTo y direct. Un id que no es de un agente de la conversación → 400 INVALID_INPUT."
           }
         },
         "required": [
@@ -5193,6 +5199,31 @@
           },
           "routineProposal": {
             "$ref": "#/components/schemas/RoutineProposal"
+          },
+          "replyTo": {
+            "type": "object",
+            "description": "Mensaje del usuario hecho con «Responder» bajo la respuesta de un agente: la interfaz enseña la cita encima («Sobre la respuesta de <name>: «excerpt»»).",
+            "properties": {
+              "messageId": {
+                "type": "string"
+              },
+              "agentId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "excerpt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "messageId",
+              "agentId",
+              "name",
+              "excerpt"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -6373,6 +6404,10 @@
           "videoPicker": {
             "type": "boolean",
             "description": "El selector de «/video» (tipo, personaje, estilo y voz): GET /video/picker, GET /video/styles/{slug}/thumb, POST /video/voices/{voiceId}/preview, POST /video/characters y POST /video/characters/{characterId}/delete."
+          },
+          "replyTo": {
+            "type": "boolean",
+            "description": "«Responder» bajo la respuesta de un agente: replyTo en POST /chat/messages."
           }
         },
         "required": [

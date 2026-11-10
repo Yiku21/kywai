@@ -212,15 +212,16 @@ class CoworkApiClient(
      * [attachmentIds]: adjuntos del proyecto (subidos antes) que se entregan al equipo con esta petición.
      * [templateId]: se lanza con esa plantilla de tareas ([text] ya va con sus huecos rellenos).
      */
-    suspend fun sendMessage(conversationId: String?, text: String, clientMessageId: String, attachmentIds: List<String> = emptyList(), templateId: String? = null): SendMessageResponse = post(
+    suspend fun sendMessage(conversationId: String?, text: String, clientMessageId: String, attachmentIds: List<String> = emptyList(), templateId: String? = null, replyTo: String? = null): SendMessageResponse = post(
         "/chat/messages",
-        if (attachmentIds.isEmpty() && templateId == null) CoworkJson.encodeToString(SendMessageRequest.serializer(), SendMessageRequest(conversationId, text, clientMessageId))
+        if (attachmentIds.isEmpty() && templateId == null && replyTo == null) CoworkJson.encodeToString(SendMessageRequest.serializer(), SendMessageRequest(conversationId, text, clientMessageId))
         else buildJsonObject {
             put("conversationId", conversationId)
             put("text", text)
             put("clientMessageId", clientMessageId)
             if (attachmentIds.isNotEmpty()) putJsonArray("attachmentIds") { attachmentIds.forEach { add(it) } }
             if (templateId != null) put("templateId", templateId)
+            if (replyTo != null) put("replyTo", replyTo)
         }.toString(),
         SendMessageResponse.serializer(),
     )

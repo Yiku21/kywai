@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, ImagePlus, ListVideo, Send, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, ImagePlus, ListVideo, Send, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Reply, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
 import type { CoworkApi, HttpsLink, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
@@ -93,11 +93,18 @@ export function Composer() {
   const text = useComposer((c) => c.text)
   const files = useComposer((c) => c.files)
   const focusNonce = useComposer((c) => c.focusNonce)
+  const replyTo = useComposer((c) => c.replyTo)
+  const setReplyTo = useComposer((c) => c.setReplyTo)
   const setText = useComposer((c) => c.setText)
   const addFiles = useComposer((c) => c.addFiles)
   const removeFile = useComposer((c) => c.removeFile)
   const mode = useCowork((st) => st.mode)
   const project = useCowork((st) => st.live.project)
+  // La respuesta citada es de este proyecto: al cambiar de proyecto o de conversación, se quita.
+  const projectId = project?.id
+  useEffect(() => {
+    useComposer.getState().setReplyTo(null)
+  }, [projectId])
   const activeRunIds = useCowork((st) => st.live.activeRunIds)
   // Con un plan esperando tu visto bueno, lo que escribas son cambios a ese plan (o «sí» para aprobarlo).
   const planPending = useCowork((st) => st.mode === 'live' && st.live.messages.some((m) => m.proposal?.status === 'pending'))
@@ -188,7 +195,8 @@ export function Composer() {
     : !api
       ? t('Sin motor de agentes: abre la app de escritorio')
       : undefined
-  const canSend = text.trim().length > 0 && !sending && !blockedReason && !rec && !transcribing
+  // Con «Responder» se puede enviar sin escribir nada: el agente revisa su respuesta.
+  const canSend = (text.trim().length > 0 || (!!replyTo && !simulate)) && !sending && !blockedReason && !rec && !transcribing
   const needsHttps = isWeb && !canRecord && !window.isSecureContext
   const canDictate = !!api && !simulate && (canRecord || needsHttps)
   const micTitle =
@@ -231,7 +239,8 @@ export function Composer() {
   /** Envía lo escrito (o `typed`, una orden elegida de la lista del «/» que no lleva nada detrás). */
   async function send(typed?: string): Promise<void> {
     const trimmed = (typed ?? text).trim()
-    if (!trimmed || sending || blockedReason) return
+    const reply = typed || simulate || trimmed.startsWith('/') ? null : replyTo
+    if ((!trimmed && !reply) || sending || blockedReason) return
     setError(null)
     if (simulate) {
       try {
@@ -250,7 +259,9 @@ export function Composer() {
     try {
       // «/new», «/limpiar»…: conversación nueva (lo mismo que ⚙ → Limpiar el chat), no un mensaje para los agentes.
       const remember = REMEMBER_COMMAND.exec(trimmed)
-      if (CLEAR_COMMAND.test(trimmed)) useCowork.getState().loadProjectState(await a.newConversation(project.id))
+      // «Responder» bajo la respuesta de un agente: va a ese mismo agente con su respuesta citada.
+      if (reply) await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files, replyTo: reply.messageId })
+      else if (CLEAR_COMMAND.test(trimmed)) useCowork.getState().loadProjectState(await a.newConversation(project.id))
       else if (MODEL_COMMAND.test(trimmed)) useCowork.setState({ hermesModelOpen: true })
       else if (QUOTA_COMMAND.test(trimmed)) setQuotaNotice(await quotaSummary(a))
       else if (ROUTINE_COMMAND.test(trimmed)) {
@@ -492,6 +503,19 @@ export function Composer() {
         </ul>
       )}
 
+      {replyTo && !simulate && (
+        <div className={s.replyBar} role="status">
+          <Reply size={14} aria-hidden="true" className={s.replyIcon} />
+          <span className={s.replyText}>
+            <strong>{t('Respondes a {name}', { name: replyTo.name })}</strong>
+            <span className={s.replyQuote}>«{replyTo.excerpt}»</span>
+          </span>
+          <button type="button" className={s.chipRemove} onClick={() => setReplyTo(null)} aria-label={t('No responder a esta respuesta')} title={t('Quitar')}>
+            <X size={13} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
       {videoCmd && !cmdOpen && (
         <VideoPicker
           api={api!}
@@ -563,7 +587,13 @@ export function Composer() {
             className={s.input}
             rows={1}
             value={text}
-            placeholder={planPending ? t('Escribe qué cambiar del plan, o «sí» para aprobarlo…') : t('Escribe una tarea…')}
+            placeholder={
+              replyTo && !simulate
+                ? t('Qué quieres que revise o continúe {name} (o envía sin escribir para que la revise)', { name: replyTo.name })
+                : planPending
+                  ? t('Escribe qué cambiar del plan, o «sí» para aprobarlo…')
+                  : t('Escribe una tarea…')
+            }
             aria-label={t('Escribe una tarea para el equipo')}
             data-composer=""
             title={blockedReason ?? t('Intro para enviar · Mayús+Intro para nueva línea')}

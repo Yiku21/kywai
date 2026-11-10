@@ -1034,4 +1034,10 @@ private fun part7(m: HashMap<String, String>) {
     m["voz de mujer"] = "voix de femme"
     m["{n} imágenes"] = "{n} images"
     m["¿Cómo quieres el vídeo?"] = "Comment voulez-vous la vidéo ?"
+    m["Revisa tu respuesta: comprueba que es correcta y completa, corrige lo que haga falta y dame la versión buena."] = "Relis ta réponse : vérifie qu'elle est juste et complète, corrige ce qu'il faut et donne-moi la bonne version."
+    m["Respondes a {name}"] = "Tu réponds à {name}"
+    m["No responder a esta respuesta"] = "Ne pas répondre à cette réponse"
+    m["Qué revise o continúe {name} (vacío: que la revise)"] = "Ce que {name} doit revoir ou poursuivre (vide : qu'il la relise)"
+    m["Sobre la respuesta de {name}: «{text}»"] = "À propos de la réponse de {name} : « {text} »"
+    m["Responder"] = "Répondre"
 }
