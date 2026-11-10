@@ -2885,4 +2885,11 @@ export const zh: Record<string, string> = {
   "Brillante": "明亮",
   "Cálida": "温暖",
   "Madura y serena": "成熟沉稳",
+  "Siri (Mac)": "Siri（Mac）",
+  "No se pudieron instalar las voces de Edge": "无法安装 Edge 语音",
+  "La voz de Edge necesita internet: no se pudo conectar": "Edge 语音需要联网：无法连接",
+  "Carmen es una voz de Siri: solo está en macOS": "Carmen 是 Siri 语音：仅在 macOS 上可用",
+  "Descarga la voz Carmen en Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema": "在 系统设置 → 辅助功能 → 朗读内容 → 系统语音 中下载 Carmen 语音",
+  "España": "西班牙",
+  "México": "墨西哥",
 }

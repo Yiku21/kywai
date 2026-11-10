@@ -2885,4 +2885,11 @@ export const pt: Record<string, string> = {
   "Brillante": "Brilhante",
   "Cálida": "Calorosa",
   "Madura y serena": "Madura e serena",
+  "Siri (Mac)": "Siri (Mac)",
+  "No se pudieron instalar las voces de Edge": "Não foi possível instalar as vozes do Edge",
+  "La voz de Edge necesita internet: no se pudo conectar": "A voz do Edge precisa de internet: não foi possível conectar",
+  "Carmen es una voz de Siri: solo está en macOS": "Carmen é uma voz da Siri: só existe no macOS",
+  "Descarga la voz Carmen en Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema": "Baixe a voz Carmen em Ajustes do Sistema → Acessibilidade → Conteúdo Falado → Voz do sistema",
+  "España": "Espanha",
+  "México": "México",
 }

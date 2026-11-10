@@ -6,7 +6,7 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { FILM_STYLES, KYWAI_FILM, type FilmStyle } from '../shared/filmStyles'
-import { parseVoiceId, type VideoKind } from '../shared/videoChoice'
+import { MAC_VOICES, parseVoiceId, SPANISH_DEFAULT_VOICE, type VideoKind } from '../shared/videoChoice'
 import { voiceboxUrl } from './voicebox'
 import type { CharacterForVideo } from './videoCharacters'
 import { HOOK_RULE } from './videoScript'
@@ -62,6 +62,12 @@ export interface FilmPromptInput {
 function voiceRule(voice: string | undefined, lib: string): string[] {
   const v = parseVoiceId(voice)
   if (!v) return []
+  if (v.engine === 'edge')
+    return [`- Voz elegida por el usuario: la voz neuronal de Microsoft Edge «${v.id}» con edge-tts (la de ${join(lib, 'core', 'tts')} con --voice ${v.id}, o «pip install edge-tts» y «edge-tts --voice ${v.id} --text "texto" --write-media voz.mp3»; necesita internet). No la cambies; si no hay internet, usa Kokoro y dilo al terminar.`]
+  if (v.engine === 'mac') {
+    const m = MAC_VOICES.find((x) => x.key === v.id)!
+    return [`- Voz elegida por el usuario: ${m.name}, la voz de Siri de macOS (identificador ${m.identifier}, ${m.lang}). «say» no la usa: genera el audio con AVSpeechSynthesizer (un script de Swift con AVSpeechSynthesizer.write que guarde los búferes en un archivo). Si no está descargada en el equipo, usa la de Edge es-MX-JorgeNeural y dilo al terminar.`]
+  }
   if (v.engine === 'kokoro') return [`- Voz elegida por el usuario: Kokoro, voz «${v.id}» (la de ${join(lib, 'core', 'tts')} con esa voz, o «npx hyperframes tts "texto" -v ${v.id}»). No la cambies.`]
   if (v.engine === 'gemini')
     return [`- Voz elegida por el usuario: la voz «${v.id}» de Gemini TTS (modelo gemini-2.5-flash-preview-tts, prebuiltVoiceConfig.voiceName "${v.id}", con la clave de la variable GEMINI_API_KEY o de ~/.gemini/.env). Si no hay clave o falla, usa Kokoro y dilo al terminar.`]
@@ -193,7 +199,7 @@ export function filmPrompt(input: FilmPromptInput): string {
         ]
   const extra = [
     ...(input.kind ? [KIND_RULES[input.kind]] : []),
-    ...voiceRule(input.voice, lib),
+    ...voiceRule(input.voice ?? (input.lang === 'es' ? SPANISH_DEFAULT_VOICE : undefined), lib),
     ...(input.character ? characterRules(input.character, style.slug === KYWAI_FILM && kitRobots) : []),
     ...(FILM_3D.has(style.slug) ? ALIVE_3D : []),
     ...(input.source ? ['', 'El texto del que trata la película:', '"""', input.source, '"""'] : []),

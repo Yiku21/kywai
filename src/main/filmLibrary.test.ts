@@ -50,7 +50,10 @@ describe('películas con estilo', () => {
     expect(filmPrompt({ ...base, style: filmStyle('watercolor')!, voice: 'kokoro-em_alex' })).toContain('-v em_alex')
     expect(filmPrompt({ ...base, style: filmStyle('watercolor')!, voice: 'gemini-kore' })).toContain('voiceName "Kore"')
     expect(filmPrompt({ ...base, style: filmStyle('watercolor')!, voice: 'voicebox-mia' })).toContain('"voice": "mia"')
-    expect(filmPrompt({ ...base, style: filmStyle('watercolor')! })).not.toContain('Voz elegida')
+    expect(filmPrompt({ ...base, style: filmStyle('watercolor')!, voice: 'mac-carmen' })).toContain('com.apple.siri.natural.Carmen')
+    // En español, sin elegir, Álvaro (Edge); en otro idioma, sin regla de voz.
+    expect(filmPrompt({ ...base, style: filmStyle('watercolor')! })).toContain('--voice es-ES-AlvaroNeural')
+    expect(filmPrompt({ ...base, lang: 'en', style: filmStyle('watercolor')! })).not.toContain('Voz elegida')
   })
 
   it('los estilos propios de kywai traen su guía y usan el motor de un estilo de la biblioteca', () => {

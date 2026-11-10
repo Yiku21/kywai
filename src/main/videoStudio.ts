@@ -28,7 +28,7 @@ import { comfyImage, comfyStatus } from './comfyui'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
 import { animateStill, findFreeVideo, freeVideoStatus, motionPrompt } from './freevideo'
 import type { VideoStudioStatus, VideoVoiceInfo } from '@shared/types'
-import { GEMINI_VOICES, KOKORO_VOICE_LIST, parseVoiceId, type VoiceEngine } from '@shared/videoChoice'
+import { EDGE_VOICES, GEMINI_VOICES, KOKORO_VOICE_LIST, MAC_VOICES, parseVoiceId, SPANISH_DEFAULT_VOICE, SPANISH_VOICES, type VoiceEngine } from '@shared/videoChoice'
 import { tr } from '@shared/i18n'
 import {
   ANIMATION_BASE_COMMIT,
@@ -242,6 +242,115 @@ export async function kokoroReady(): Promise<boolean> {
   return (await run(venvPython(), ['-c', 'import kokoro_onnx, soundfile'], { timeoutMs: 30_000 })).code === 0
 }
 
+/** edge-tts (las voces neuronales de Microsoft Edge: gratis, con internet) en el entorno de Python del estudio. */
+export async function edgeReady(): Promise<boolean> {
+  if (!existsSync(venvPython())) return false
+  return (await run(venvPython(), ['-c', 'import edge_tts'], { timeoutMs: 30_000 })).code === 0
+}
+
+/** Instala edge-tts si falta (pesa poco: se hace la primera vez que se usa). */
+async function ensureEdge(onLine: (l: string) => void = () => undefined): Promise<boolean> {
+  if (await edgeReady()) return true
+  if (!(await ensureVenv(onLine))) return false
+  await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'edge-tts'], { timeoutMs: 10 * 60_000, onLine })
+  return edgeReady()
+}
+
+/** Pasa un audio a WAV mono (lo que espera el montaje) y borra el de origen. */
+async function toWav(src: string, out: string, signal?: AbortSignal): Promise<boolean> {
+  const c = await run('ffmpeg', ['-y', '-v', 'error', '-i', src, '-ac', '1', '-ar', '24000', out], { timeoutMs: 120_000, signal })
+  rmSync(src, { force: true })
+  return c.code === 0 && existsSync(out) && statSync(out).size > 1000
+}
+
+/** Una frase con una voz de Edge. edge-tts deja un archivo vacío si falla (sin internet), así que se mira el tamaño. */
+async function edgeSpeak(voice: string, text: string, out: string, signal?: AbortSignal): Promise<boolean> {
+  const mp3 = `${out}.edge.mp3`
+  const r = await run(venvPython(), ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', mp3], { timeoutMs: 3 * 60_000, signal })
+  if (r.code !== 0 || !existsSync(mp3) || statSync(mp3).size < 1000) {
+    rmSync(mp3, { force: true })
+    return false
+  }
+  return toWav(mp3, out, signal)
+}
+
+// Las voces de Siri no salen con «say»: hace falta AVSpeechSynthesizer. Un programa pequeño en Swift (se compila una
+// vez con swiftc, que viene con las herramientas de línea de órdenes de Xcode) escribe el audio en un archivo.
+const MAC_SPEAK_SWIFT = `import AVFoundation
+import Foundation
+let a = CommandLine.arguments
+// voz-mac <identificador> <nombre> <idioma> <archivo con el texto> <salida .caf>
+guard a.count >= 6 else { exit(1) }
+let ident = a[1], name = a[2], lang = a[3], out = a[5]
+let text = (try? String(contentsOfFile: a[4], encoding: .utf8)) ?? ""
+var voice = AVSpeechSynthesisVoice(identifier: ident)
+if voice == nil { voice = AVSpeechSynthesisVoice.speechVoices().first { $0.name.contains(name) && $0.language == lang } }
+guard let v = voice else { FileHandle.standardError.write("No está la voz \(ident)\n".data(using: .utf8)!); exit(2) }
+let u = AVSpeechUtterance(string: text)
+u.voice = v
+let synth = AVSpeechSynthesizer()
+var file: AVAudioFile?
+var done = false
+var failed = false
+synth.write(u) { buffer in
+  guard let pcm = buffer as? AVAudioPCMBuffer else { return }
+  if pcm.frameLength == 0 { done = true; return }
+  do {
+    if file == nil { file = try AVAudioFile(forWriting: URL(fileURLWithPath: out), settings: pcm.format.settings, commonFormat: pcm.format.commonFormat, interleaved: pcm.format.isInterleaved) }
+    try file?.write(from: pcm)
+  } catch { failed = true; done = true }
+}
+let limit = Date().addingTimeInterval(300)
+while !done && Date() < limit { RunLoop.main.run(until: Date().addingTimeInterval(0.1)) }
+file = nil
+exit(done && !failed ? 0 : 3)
+`
+
+/** El programa de Swift ya compilado (o null si en este equipo no se puede). */
+async function macSpeaker(): Promise<string[] | null> {
+  if (!IS_MAC || !root) return null
+  const dir = join(root, 'voz-mac')
+  const src = join(dir, 'voz.swift')
+  const exe = join(dir, 'voz-mac')
+  let same = false
+  try {
+    same = readFileSync(src, 'utf8') === MAC_SPEAK_SWIFT
+  } catch {
+    /* primera vez */
+  }
+  if (same && existsSync(exe)) return [exe]
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(src, MAC_SPEAK_SWIFT)
+  rmSync(exe, { force: true })
+  const c = await run('swiftc', ['-O', src, '-o', exe], { timeoutMs: 5 * 60_000 })
+  if (c.code === 0 && existsSync(exe)) return [exe]
+  return (await has('swift', ['--version'])) ? ['swift', src] : null
+}
+
+/** Una frase con una voz de macOS (p. ej. Carmen, de Siri). */
+async function macSpeak(key: string, text: string, out: string, signal?: AbortSignal): Promise<boolean> {
+  const v = MAC_VOICES.find((x) => x.key === key)
+  const cmd = v ? await macSpeaker() : null
+  if (!v || !cmd) return false
+  const caf = `${out}.mac.caf`
+  // El texto va en un archivo (los argumentos no llevan bien las comillas y los saltos de línea).
+  writeFileSync(`${caf}.txt`, text)
+  const r = await run(cmd[0], [...cmd.slice(1), v.identifier, v.name, v.lang, `${caf}.txt`, caf], { timeoutMs: 5 * 60_000, signal })
+  rmSync(`${caf}.txt`, { force: true })
+  if (r.code !== 0 || !existsSync(caf)) {
+    rmSync(caf, { force: true })
+    return false
+  }
+  return toWav(caf, out, signal)
+}
+
+/** Las voces elegidas a mano de Edge o de macOS: una frase. */
+async function pickedSpeak(v: { engine: VoiceEngine; id: string }, text: string, out: string, signal?: AbortSignal): Promise<boolean> {
+  if (v.engine === 'edge') return edgeSpeak(v.id, text, out, signal)
+  if (v.engine === 'mac') return macSpeak(v.id, text, out, signal)
+  return false
+}
+
 export async function videoStudioStatus(): Promise<VideoStudioStatus> {
   const [node, ffmpeg, ffprobe, python, kokoro, sys, comfy, vbox, fv] = await Promise.all([
     has('npm', ['--version']),
@@ -338,6 +447,10 @@ export async function installVideoStudio(onLine: (l: string) => void = () => und
       const pip = await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'kokoro-onnx', 'soundfile'], { timeoutMs: 30 * 60_000, onLine })
       if (pip.code !== 0) onLine('No se pudo instalar Kokoro: se usará la voz del sistema.')
     } else onLine('Sin un Python 3.10 o más nuevo: se usará la voz del sistema (instala Python en el asistente para tener la voz Kokoro).')
+  }
+  if (venvOk && !(await edgeReady())) {
+    onLine('Instalando las voces de Edge (Álvaro y Jorge)…')
+    await ensureEdge(onLine)
   }
   if (!manimInstalled() && existsSync(venvPython())) {
     onLine('Instalando Manim (animaciones de fórmulas y diagramas)…')
@@ -796,6 +909,20 @@ async function voiceboxById(id: string): Promise<VoiceboxVoice | null> {
  * Kokoro (si está instalado; primero las del idioma) y la del sistema. `missing` dice qué motores faltan.
  */
 export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] }> {
+  // En español, solo las tres elegidas (Álvaro va por defecto).
+  if (lang === 'es')
+    return {
+      voices: SPANISH_VOICES.map((id) => {
+        const v = parseVoiceId(id)!
+        if (v.engine === 'edge') {
+          const e = EDGE_VOICES.find((x) => x.id === v.id)!
+          return { id, engine: 'edge' as const, name: e.name, line: e.region, lang: 'es', gender: e.gender }
+        }
+        const m = MAC_VOICES.find((x) => x.key === v.id)!
+        return { id, engine: 'mac' as const, name: m.name, line: m.region, lang: 'es', gender: m.gender }
+      }),
+      missing: []
+    }
   const [vbox, kokoro, sys] = await Promise.all([voiceboxProfiles(), kokoroReady(), systemVoice()])
   const key = !!geminiApiKey()
   const base = (l: string): string => l.toLowerCase().split(/[-_]/)[0]
@@ -847,6 +974,14 @@ export async function previewVideoVoice(id: unknown, lang: string, sentence: str
       const key = geminiApiKey()
       if (!key) throw new Error(tr('Falta la clave de API de Gemini'))
       ok = await geminiSpeak(sentence, 'Say this in a friendly, natural way', v.id, wav, key)
+    } else if (v.engine === 'edge') {
+      if (!(await ensureEdge())) throw new Error(tr('No se pudieron instalar las voces de Edge'))
+      ok = await edgeSpeak(v.id, sentence, wav)
+      if (!ok) throw new Error(tr('La voz de Edge necesita internet: no se pudo conectar'))
+    } else if (v.engine === 'mac') {
+      if (!IS_MAC) throw new Error(tr('Carmen es una voz de Siri: solo está en macOS'))
+      ok = await macSpeak(v.id, sentence, wav)
+      if (!ok) throw new Error(tr('Descarga la voz Carmen en Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema'))
     } else if (v.engine === 'kokoro') {
       if (!(await kokoroReady())) throw new Error(tr('Kokoro no está instalado: pulsa «Instalar lo que falta» en Ajustes → Extensiones → Estudio de vídeo'))
       // Sin caer en la voz del sistema: la muestra tiene que ser de esa voz. Una voz de otro idioma lee una frase suya.
@@ -877,7 +1012,7 @@ export interface RenderedVideo {
   height: number
   /** Escenas con imagen generada. */
   images: number
-  voice: 'voicebox' | 'gemini' | 'kokoro' | 'system'
+  voice: 'voicebox' | 'gemini' | 'kokoro' | 'system' | 'edge' | 'mac'
   /** Escenas que FreeVideo convirtió en clips con movimiento. */
   moving?: number
 }
@@ -936,8 +1071,35 @@ export async function renderVideo(input: {
   const voices = script.scenes.map((_, i) => join(dir, 'assets', `voz-${i + 1}.wav`))
   let voiceUsed: RenderedVideo['voice'] = 'kokoro'
   // La voz elegida en el selector va primero; si no sale, el orden de siempre (para que el vídeo salga igual).
-  const chosen = parseVoiceId(input.voice)
+  // En español, sin elegir, va Álvaro (Edge): es la voz que eligió el usuario de kywai para sus vídeos en español.
+  let chosen = parseVoiceId(input.voice) ?? (script.lang === 'es' ? parseVoiceId(SPANISH_DEFAULT_VOICE) : null)
   const doVoices = async (): Promise<void> => {
+    // Edge o una voz de macOS (Siri): tres escenas a la vez. Si una no sale (sin internet, sin la voz), el orden de
+    // siempre para todo el vídeo.
+    if (chosen && (chosen.engine === 'edge' || chosen.engine === 'mac')) {
+      const pick = chosen
+      if (pick.engine === 'mac' || (await ensureEdge())) {
+        let next = 0
+        let failed = false
+        const worker = async (): Promise<void> => {
+          while (next < n && !failed && !signal?.aborted) {
+            const i = next++
+            if (await pickedSpeak(pick, spokenText(script.scenes[i].narration), voices[i], signal)) {
+              spoken++
+              voiceStep()
+            } else failed = true
+          }
+        }
+        voiceStep()
+        await Promise.all(pick.engine === 'mac' ? [worker()] : [worker(), worker(), worker()])
+        if (!failed && !signal?.aborted) {
+          voiceUsed = pick.engine === 'mac' ? 'mac' : 'edge'
+          return
+        }
+        spoken = 0
+      }
+      chosen = null
+    }
     // Voicebox abierto en el equipo, con una voz en el idioma del vídeo: va primero (local y gratis). De una en una
     // (usa la gráfica). Si una escena no sale, se pasa a Gemini o Kokoro para todo el vídeo.
     const vb = chosen?.engine === 'voicebox' ? await voiceboxById(chosen.id) : chosen ? null : await voiceboxVoice(script.lang)

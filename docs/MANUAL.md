@@ -1719,7 +1719,8 @@ arriba, piensa, saluda); en las bromas, «¡JA, JA!» y un «boing». El agente 
 pasos en orden con sus avisos de seguridad, 2 o 3 bromas cortas y un resumen. Sin ComfyUI ni clave de Gemini no hay ilustraciones:
 cada paso muestra su instrucción en grande.
 
-**Voz.** El orden es Voicebox, Gemini, Kokoro:
+**Voz.** En los vídeos **en español**, la voz por defecto es **Álvaro** (Microsoft Edge, es-ES-AlvaroNeural, con
+edge-tts: gratis, necesita internet); si no sale, el orden de siempre. En otros idiomas, el orden es Voicebox, Gemini, Kokoro:
 - **Voicebox** (voicebox.sh, MIT) va primero si su app está abierta en el equipo donde corren los agentes y tiene
   un perfil de voz en el idioma del vídeo: gratis, sin salir del equipo y con **tu propia voz** si la clonas en
   Voicebox (las clonadas van antes que las predefinidas; una concreta con `KYWAI_VOICEBOX_VOICE`, nombre o id). kywai
@@ -1762,7 +1763,14 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    imágenes y su aspecto. El personaje elegido manda sobre los personajes fijos del proyecto.
 3. **Estilo de animación.** *El de kywai (rápido)*: lo de siempre, en unos minutos. O uno de los estilos de película,
    con buscador (ver abajo), que tardan más.
-4. **Voz.** *Automática*: la mejor que haya (el orden de «Voz» de arriba). O una concreta, agrupadas por motor, solo
+4. **Voz.** **En español solo salen tres voces**, elegidas por Yil escuchando 28 muestras: **Álvaro** (Edge,
+   España, `voz:edge-es-ES-AlvaroNeural`, la de por defecto, sin marca), **Jorge** (Edge, México,
+   `voz:edge-es-MX-JorgeNeural`) y **Carmen** (Siri de macOS, México, `voz:mac-carmen`). Edge va con **edge-tts** en el
+   entorno de Python del estudio (lo instala «Instalar lo que falta» o la primera vez que se usa; necesita internet).
+   Carmen no sale con `say`: kywai compila una vez un programa pequeño en Swift (`<studio>/voz-mac/`, con `swiftc`)
+   que usa AVSpeechSynthesizer con `com.apple.siri.natural.Carmen`; hay que tenerla descargada en Ajustes del Sistema →
+   Accesibilidad → Contenido leído. Si una de estas falla en un vídeo, el vídeo sale con el orden de siempre.
+   En otros idiomas: *Automática*: la mejor que haya (el orden de «Voz» de arriba). O una concreta, agrupadas por motor, solo
    las que hay en el equipo: **tus voces de Voicebox** (si está abierto; también la tuya clonada), **12 voces de
    Gemini** (con clave; hablan cualquier idioma: Puck, Fenrir, Charon, Orus, Enceladus, Achird, Kore, Aoede, Leda,
    Zephyr, Sulafat y Gacrux, con una línea de cómo suena), **16 voces de Kokoro** (gratis y sin internet; primero las

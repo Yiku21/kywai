@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AudioLines, Check, ChevronDown, Clapperboard, ImagePlus, Layers, Loader2, Play, Plus, Search, Smile, Sparkles, Square, Trash2, UserRound, X } from 'lucide-react'
 import { FILM_CATEGORIES, FILM_STYLES, filmStyle, type FilmStyle } from '@shared/filmStyles'
-import { ROBOTS_CHARACTER, type VideoChoice, type VideoKind } from '@shared/videoChoice'
+import { ROBOTS_CHARACTER, SPANISH_DEFAULT_VOICE, type VideoChoice, type VideoKind } from '@shared/videoChoice'
 import type { CoworkApi, VideoCharacterInfo, VideoVoiceInfo } from '@shared/types'
 import { cx } from '../common/util'
 import { lang, t } from '@/lib/i18n'
@@ -58,7 +58,9 @@ const MISSING: Record<VoiceEngine, string> = {
   voicebox: 'Abre Voicebox para usar tus propias voces (o la tuya, clonada).',
   gemini: 'Con una clave de API de Gemini tendrás 12 voces más.',
   kokoro: 'Instala Kokoro (gratis) en Ajustes → Extensiones → Estudio de vídeo para tener voces sin internet.',
-  sistema: ''
+  sistema: '',
+  edge: '',
+  mac: ''
 }
 
 const langName = (code: string | undefined): string => {
@@ -74,7 +76,8 @@ const voiceName = (v: VideoVoiceInfo): string => (v.engine === 'sistema' ? t('Vo
 const voiceLine = (v: VideoVoiceInfo): string =>
   [
     v.engine === 'kokoro' ? '' : v.engine === 'voicebox' ? t(v.line) : v.engine === 'sistema' ? t('La del sistema operativo') : t(v.line),
-    v.engine === 'gemini' ? '' : langName(v.lang),
+    v.engine === 'edge' ? 'Microsoft Edge' : v.engine === 'mac' ? t('Siri (Mac)') : '',
+    v.engine === 'gemini' || v.engine === 'edge' || v.engine === 'mac' ? '' : langName(v.lang),
     v.gender === 'f' ? t('voz de mujer') : v.gender === 'm' ? t('voz de hombre') : ''
   ]
     .filter(Boolean)
@@ -280,12 +283,15 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
 
   const style = value.style ? filmStyle(value.style) : undefined
   const chosenChar = value.character ? chars.find((c) => c.id === value.character) : undefined
-  const chosenVoice = value.voice ? voices?.voices.find((v) => v.id === value.voice) : undefined
+  // En español solo hay tres voces y Álvaro va por defecto (sin marca): no hay «Automática».
+  const defaultVoice = lang() === 'es' ? SPANISH_DEFAULT_VOICE : null
+  const voiceOn = (id: string): boolean => (value.voice ?? defaultVoice) === id
+  const chosenVoice = voices?.voices.find((v) => v.id === (value.voice ?? defaultVoice))
   const summary = [
     kindName(value.kind),
     value.character ? (chosenChar ? charName(chosenChar) : value.character === ROBOTS_CHARACTER ? t('Robots de kywai') : t('Personaje')) : '',
     style ? fname(style) : t('Estilo de kywai'),
-    value.voice ? (chosenVoice ? voiceName(chosenVoice) : t('Voz elegida')) : ''
+    chosenVoice ? voiceName(chosenVoice) : value.voice ? t('Voz elegida') : ''
   ].filter(Boolean)
   const thumb = value.style ? THUMBS[value.style] : undefined
   const KindIcon = KINDS.find((k) => k.id === value.kind)!.icon
@@ -446,32 +452,36 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                   <b>4</b> {t('Voz')}
                 </h4>
                 <div role="radiogroup" aria-label={t('Voz')}>
-                  <div className={s.voiceGrid}>
-                    <button type="button" role="radio" aria-checked={!value.voice} className={cx(s.card, s.voiceCard, !value.voice && s.cardOn)} onClick={() => set({ voice: null })}>
-                      <span className={cx(s.play, s.playAuto)} aria-hidden="true">
-                        <AudioLines size={14} />
-                      </span>
-                      <span className={s.name}>{t('Automática')}</span>
-                      <span className={s.line}>{t('La mejor que haya: tu voz de Voicebox, Gemini o Kokoro.')}</span>
-                      {!value.voice && <Check size={14} className={s.check} aria-hidden="true" />}
-                    </button>
-                  </div>
+                  {!defaultVoice && (
+                    <div className={s.voiceGrid}>
+                      <button type="button" role="radio" aria-checked={!value.voice} className={cx(s.card, s.voiceCard, !value.voice && s.cardOn)} onClick={() => set({ voice: null })}>
+                        <span className={cx(s.play, s.playAuto)} aria-hidden="true">
+                          <AudioLines size={14} />
+                        </span>
+                        <span className={s.name}>{t('Automática')}</span>
+                        <span className={s.line}>{t('La mejor que haya: tu voz de Voicebox, Gemini o Kokoro.')}</span>
+                        {!value.voice && <Check size={14} className={s.check} aria-hidden="true" />}
+                      </button>
+                    </div>
+                  )}
                   {!voices && <p className={s.empty}>{t('Buscando las voces de tu equipo…')}</p>}
-                  {ENGINES.map((e) => {
-                    const list = voices?.voices.filter((v) => v.engine === e.id) ?? []
+                  {(defaultVoice ? [null] : ENGINES).map((e) => {
+                    const list = voices?.voices.filter((v) => !e || v.engine === e.id) ?? []
                     if (!list.length) return null
                     return (
-                      <div key={e.id}>
-                        <h5 className={s.cat}>
-                          {t(e.name)} <span className={s.catLine}>{t(e.line)}</span>
-                        </h5>
+                      <div key={e?.id ?? 'todas'}>
+                        {e && (
+                          <h5 className={s.cat}>
+                            {t(e.name)} <span className={s.catLine}>{t(e.line)}</span>
+                          </h5>
+                        )}
                         <div className={s.voiceGrid}>
                           {list.map((v) => {
-                            const on = value.voice === v.id
+                            const on = voiceOn(v.id)
                             const p = playing?.id === v.id ? playing : null
                             return (
                               <div key={v.id} className={s.cardWrap}>
-                                <button type="button" role="radio" aria-checked={on} className={cx(s.card, s.voiceCard, on && s.cardOn)} onClick={() => set({ voice: v.id })}>
+                                <button type="button" role="radio" aria-checked={on} className={cx(s.card, s.voiceCard, on && s.cardOn)} onClick={() => set({ voice: v.id === defaultVoice ? null : v.id })}>
                                   <span className={s.name}>{voiceName(v)}</span>
                                   <span className={s.line}>{voiceError?.id === v.id ? <span className={s.voiceErr}>{voiceError.text}</span> : voiceLine(v)}</span>
                                   {on && <Check size={14} className={s.check} aria-hidden="true" />}

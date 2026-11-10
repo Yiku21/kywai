@@ -24,14 +24,23 @@ export interface VideoChoice {
 }
 
 /** Una voz elegida: el motor y la voz de ese motor. */
-export type VoiceEngine = 'gemini' | 'kokoro' | 'voicebox' | 'sistema'
+export type VoiceEngine = 'gemini' | 'kokoro' | 'voicebox' | 'sistema' | 'edge' | 'mac'
 
 /** «gemini-puck» → { engine: 'gemini', id: 'Puck' }. null si no se entiende. */
 export function parseVoiceId(v: string | null | undefined): { engine: VoiceEngine; id: string } | null {
   if (!v) return null
   if (v === 'sistema') return { engine: 'sistema', id: '' }
-  const m = /^(gemini|kokoro|voicebox)-(.+)$/.exec(v)
+  const m = /^(gemini|kokoro|voicebox|edge|mac)-(.+)$/i.exec(v)
   if (!m) return null
+  m[1] = m[1].toLowerCase()
+  if (m[1] === 'edge') {
+    const e = EDGE_VOICES.find((x) => x.id.toLowerCase() === m[2].toLowerCase())
+    return e ? { engine: 'edge', id: e.id } : null
+  }
+  if (m[1] === 'mac') {
+    const c = MAC_VOICES.find((x) => x.key === m[2].toLowerCase())
+    return c ? { engine: 'mac', id: c.key } : null
+  }
   if (m[1] === 'gemini') {
     const g = GEMINI_VOICES.find((x) => x.id.toLowerCase() === m[2].toLowerCase())
     return g ? { engine: 'gemini', id: g.id } : null
@@ -39,6 +48,24 @@ export function parseVoiceId(v: string | null | undefined): { engine: VoiceEngin
   if (m[1] === 'kokoro') return KOKORO_VOICE_LIST.some((x) => x.id === m[2]) ? { engine: 'kokoro', id: m[2] } : null
   return { engine: 'voicebox', id: m[2] }
 }
+
+/** Voces neuronales de Microsoft Edge (edge-tts: gratis, con internet). */
+export const EDGE_VOICES: { id: string; name: string; lang: string; region: string; gender: 'f' | 'm' }[] = [
+  { id: 'es-ES-AlvaroNeural', name: 'Álvaro', lang: 'es', region: 'España', gender: 'm' },
+  { id: 'es-MX-JorgeNeural', name: 'Jorge', lang: 'es', region: 'México', gender: 'm' }
+]
+
+/** Voces de macOS (AVSpeechSynthesizer): la de Siri hay que tenerla descargada en Ajustes del sistema. */
+export const MAC_VOICES: { key: string; identifier: string; name: string; lang: string; region: string; gender: 'f' | 'm' }[] = [
+  { key: 'carmen', identifier: 'com.apple.siri.natural.Carmen', name: 'Carmen', lang: 'es-MX', region: 'México', gender: 'f' }
+]
+
+/**
+ * En los vídeos en español solo se ofrecen estas tres (las eligió el usuario de kywai escuchando 28 muestras). La
+ * primera va por defecto: sin marca «voz:», un vídeo en español sale con Álvaro.
+ */
+export const SPANISH_VOICES = ['edge-es-ES-AlvaroNeural', 'edge-es-MX-JorgeNeural', 'mac-carmen'] as const
+export const SPANISH_DEFAULT_VOICE = SPANISH_VOICES[0]
 
 /** Voces de Gemini que ofrece el selector (de las 30 que tiene, las más claras para narrar), con su carácter. */
 export const GEMINI_VOICES: { id: string; line: string; gender: 'f' | 'm' }[] = [
