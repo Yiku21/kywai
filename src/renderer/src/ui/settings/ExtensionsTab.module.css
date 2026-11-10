@@ -513,3 +513,50 @@
   align-self: flex-start;
   margin-top: 6px;
 }
+
+/*
+ * Estudio de vídeo: cada bloque (lo instalado, Instagram, TikTok, extensiones de vídeo) va en su propia tarjeta, con
+ * aire entre el título, el texto, los cuadros y los botones, para que no quede todo apretado.
+ */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface);
+}
+
+.block .muted,
+.block .error,
+.block .howTo {
+  margin: 0;
+}
+
+.block .searchRow {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.block .searchRow .input {
+  flex: 1 1 220px;
+}
+
+.block .list .item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.block .list .item:first-child {
+  padding-top: 0;
+}
+
+.block:empty {
+  display: none;
+}
+
+.block .section {
+  color: var(--text-2);
+}

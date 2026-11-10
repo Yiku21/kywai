@@ -2257,6 +2257,11 @@ se monte igual dentro de meses), ffmpeg (Homebrew en macOS, winget en Windows; e
 la voz Kokoro en un entorno de Python propio (`estudio-video/.venv`) y el navegador del render. La primera voz
 descarga el modelo de Kokoro (unos cientos de MB). Si falta el motor o ffmpeg, pedir un vídeo dice qué instalar.
 
+**Cómo se ve la pestaña.** Cada bloque va en su propia tarjeta, separada de las demás: lo que tiene el equipo con
+«Instalar lo que falta», «El Instagram de kywai», «El TikTok de kywai» y «Extensiones de vídeo». Dentro de cada
+tarjeta hay aire entre el título, el texto, los cuadros y los botones, y los cuadros bajan de línea si la ventana es
+estrecha (estilo `.block` de `ExtensionsTab.module.css`).
+
 **Extensiones de vídeo.** Las habilidades y los plugins que tratan de vídeo (vídeo, HyperFrames, Remotion, ffmpeg,
 voz/TTS, subtítulos, motion graphics…) se instalan en la carpeta del estudio, `habilidades/video`, y no en la
 general: no llenan el encargo de las tareas normales y las lee el agente que escribe el guion de cada vídeo. Salen

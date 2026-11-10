@@ -1000,60 +1000,64 @@ function VideoSection() {
       <p className={s.muted}>
         {t('Escribe «/video» y el tema, o «créame un vídeo de…», o pulsa «Crear vídeo de esto» bajo un mensaje. Un agente escribe el guion y kywai pone la voz, las imágenes, la música, las animaciones y el montaje. Solo te llega el vídeo; el material de trabajo queda guardado en la carpeta oculta .ai-cowork/videos del proyecto. Para TikTok, Reels o Shorts, di «vertical».')}
       </p>
-      {status && (
-        <ul className={s.list}>
-          {rows.map((r) => (
-            <li key={r.label} className={cx(s.item, !r.ok && s.off)}>
-              <span className={s.icon} aria-hidden="true">
-                {r.ok ? <BadgeCheck size={18} /> : <Clapperboard size={18} />}
-              </span>
-              <span className={s.text}>
-                <span className={s.name}>{r.label}</span>
-                <span className={s.desc}>{r.detail}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {live && (
-        <div className={s.searchRow}>
-          <button type="button" className={cx(u.btn, u.btnSm, !complete && u.btnPrimary)} disabled={busy || autoInstalling || !status} onClick={install}>
-            {busy || autoInstalling ? t('Instalando… (puede tardar varios minutos)') : complete ? t('Comprobar e instalar otra vez') : t('Instalar lo que falta')}
-          </button>
-        </div>
-      )}
-      {live && autoInstalling && <p className={s.muted}>{t('kywai lo está instalando solo, en segundo plano: puedes seguir usando la app.')}</p>}
-      {error && (
-        <p className={s.error} role="alert">
-          {error}
-        </p>
-      )}
-      {log.length > 0 && <pre className={s.mono}>{log.join('\n')}</pre>}
+      <section className={s.block}>
+        {status && (
+          <ul className={s.list}>
+            {rows.map((r) => (
+              <li key={r.label} className={cx(s.item, !r.ok && s.off)}>
+                <span className={s.icon} aria-hidden="true">
+                  {r.ok ? <BadgeCheck size={18} /> : <Clapperboard size={18} />}
+                </span>
+                <span className={s.text}>
+                  <span className={s.name}>{r.label}</span>
+                  <span className={s.desc}>{r.detail}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {live && (
+          <div className={s.searchRow}>
+            <button type="button" className={cx(u.btn, u.btnSm, !complete && u.btnPrimary)} disabled={busy || autoInstalling || !status} onClick={install}>
+              {busy || autoInstalling ? t('Instalando… (puede tardar varios minutos)') : complete ? t('Comprobar e instalar otra vez') : t('Instalar lo que falta')}
+            </button>
+          </div>
+        )}
+        {live && autoInstalling && <p className={s.muted}>{t('kywai lo está instalando solo, en segundo plano: puedes seguir usando la app.')}</p>}
+        {error && (
+          <p className={s.error} role="alert">
+            {error}
+          </p>
+        )}
+        {log.length > 0 && <pre className={s.mono}>{log.join('\n')}</pre>}
+      </section>
 
       <InstagramPanel live={live} />
       <TikTokPanel live={live} />
 
-      <span className={s.section}>{t('Extensiones de vídeo')}</span>
-      <p className={s.muted}>
-        {t('Las habilidades, plugins y servidores MCP de vídeo que instales en las otras pestañas vienen aquí solos: sus habilidades se guardan en la carpeta del estudio (habilidades/video) y el agente que escribe el guion de cada vídeo las lee.')}
-      </p>
-      {ext.length === 0 ? (
-        <p className={s.muted}>{t('Aún no has instalado ninguna.')}</p>
-      ) : (
-        <ul className={s.list}>
-          {ext.map((x) => (
-            <li key={`${x.kind}:${x.name}`} className={s.item}>
-              <span className={s.icon} aria-hidden="true">
-                {x.kind === 'skill' ? <BookOpen size={18} /> : x.kind === 'plugin' ? <Package size={18} /> : <Server size={18} />}
-              </span>
-              <span className={s.text}>
-                <span className={s.name}>{x.name}</span>
-                {x.desc && <span className={s.desc}>{x.desc}</span>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <section className={s.block}>
+        <span className={s.section}>{t('Extensiones de vídeo')}</span>
+        <p className={s.muted}>
+          {t('Las habilidades, plugins y servidores MCP de vídeo que instales en las otras pestañas vienen aquí solos: sus habilidades se guardan en la carpeta del estudio (habilidades/video) y el agente que escribe el guion de cada vídeo las lee.')}
+        </p>
+        {ext.length === 0 ? (
+          <p className={s.muted}>{t('Aún no has instalado ninguna.')}</p>
+        ) : (
+          <ul className={s.list}>
+            {ext.map((x) => (
+              <li key={`${x.kind}:${x.name}`} className={s.item}>
+                <span className={s.icon} aria-hidden="true">
+                  {x.kind === 'skill' ? <BookOpen size={18} /> : x.kind === 'plugin' ? <Package size={18} /> : <Server size={18} />}
+                </span>
+                <span className={s.text}>
+                  <span className={s.name}>{x.name}</span>
+                  {x.desc && <span className={s.desc}>{x.desc}</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </>
   )
 }
@@ -1129,7 +1133,7 @@ function InstagramPanel({ live }: { live: boolean }) {
   }
 
   return (
-    <>
+    <section className={s.block}>
       <SectionWithGuide
         title={t('El Instagram de kywai')}
         steps={[
@@ -1191,7 +1195,7 @@ function InstagramPanel({ live }: { live: boolean }) {
           {error}
         </p>
       )}
-    </>
+    </section>
   )
 }
 
@@ -1239,7 +1243,7 @@ function TikTokPanel({ live }: { live: boolean }) {
   }
 
   return (
-    <>
+    <section className={s.block}>
       <SectionWithGuide
         title={t('El TikTok de kywai')}
         steps={[
@@ -1329,7 +1333,7 @@ function TikTokPanel({ live }: { live: boolean }) {
           {error}
         </p>
       )}
-    </>
+    </section>
   )
 }
 
