@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { MIN_TEMPO_SCORE, parseVideoTitle, plausibleBpm, type TempoConfidence, type TempoLookupResult, type TempoMatch, type TempoQuery } from '@shared/music'
 import { isLive, musicSourceOf } from '@shared/musicSources'
 import type { MusicResult } from '@shared/types'
-import { api, isWeb } from './api'
+import { api, isClient, isWeb } from './api'
 import { ambientMusicBeat, getVolume, isMuted, setAmbientMusicSuppressed, subscribeAudio } from './audio'
 import { audioLightLevel } from './audioSync'
 import { addTap, MusicClock, pulseEnvelope, tempoFromTaps, wrapOffset } from './musicClock'
@@ -669,7 +669,7 @@ export async function recoverFromError(code: number, message: string): Promise<v
     const tooMany = failedInARow >= MAX_FAILED_IN_A_ROW
     const skipping = UNPLAYABLE.has(code) && hasNext() && !tooMany
     const why = tooMany
-      ? isWeb && musicSourceOf(failedId) === 'youtube'
+      ? isWeb && !isClient && musicSourceOf(failedId) === 'youtube'
         ? t(' Desde el navegador, YouTube no deja oír estas canciones fuera de su web; en la app de escritorio del Mac sí suenan.')
         : t(' Varias seguidas no se pueden oír aquí: elige otra canción.')
       : ''

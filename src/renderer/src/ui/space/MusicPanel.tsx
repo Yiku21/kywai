@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { musicSourceOf, webPageOf, type MusicSource } from '@shared/musicSources'
 import type { MusicResult, MusicSearchKind } from '@shared/types'
-import { api, isWeb } from '@/lib/api'
+import { api, isClient, isWeb } from '@/lib/api'
 import { getVolume, isMuted, setMuted, setVolume, subscribeAudio } from '@/lib/audio'
 import {
   bindPlayer,
@@ -240,7 +240,7 @@ export function MusicPanel() {
 
       {!mini && <SearchBox source={tab} onSource={setTab} />}
 
-      {isWeb && !mini && source === 'youtube' && (
+      {isWeb && !isClient && !mini && source === 'youtube' && (
         <p className={s.note}>
           {t('Desde el navegador, YouTube no deja reproducir muchas canciones de discográficas (error 150): se busca otra subida de la misma canción. En la app de escritorio del Mac sí suenan todas.')}
         </p>

@@ -24,7 +24,7 @@ import {
   type ClientServer
 } from './clientConfig'
 import { lang, langFromLocale, setCurrentLang, tr } from '@shared/i18n'
-import { youtubeSignIn, youtubeSignOut, youtubeSignedIn } from './youtubeAccount'
+import { identifyToYouTube, youtubeSignIn, youtubeSignOut, youtubeSignedIn } from './youtubeAccount'
 
 const COOKIE = 'cowork_token'
 const APP_ICON = join(app.getAppPath(), 'build', 'icon.ico')
@@ -773,6 +773,8 @@ export async function bootClient(): Promise<void> {
   useSystemLang()
   setup()
   buildMenu()
+  // El reproductor de YouTube de la música se presenta como la app kywai (ver youtubeAccount).
+  identifyToYouTube()
   startedWith = readClientFile(clientFilePath())?.server?.origin ?? null
   showView({ name: 'opening', message: tr('Conectando con el servidor…') })
   // La app de GitHub Releases en Linux o en el Mac busca su versión nueva en GitHub, igual que un servidor.

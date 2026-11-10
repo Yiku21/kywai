@@ -3226,8 +3226,12 @@ Con YouTube se activa solo al poner música y se puede apagar en «Luces al ritm
 «Sincronizar con el sonido de esta pestaña» hace lo mismo, compartiendo la pestaña con su audio. En el móvil, o si
 se apaga, las luces van con el tempo estimado: BPM publicado en Deezer, desfase y «Marcar pulso».
 
-En la **app de escritorio** suena todo. **Desde el navegador** (o el móvil por la web), YouTube no deja oír fuera
-de su web muchas canciones de discográficas (error 150). Entonces:
+En la **app de escritorio** y en el **cliente de escritorio** (la app instalada en otro equipo que se conecta al
+servidor) suena todo: el reproductor se presenta ante YouTube como la app kywai (`https://com.aicowork.app/`, la
+cabecera Referer que pone su motor), no como una web. En el cliente la interfaz llega del servidor por https, pero el
+reproductor no manda esa dirección (va sin referrer y su motor pone la de la app). **Desde el navegador** (o el móvil
+por la web), YouTube no deja oír fuera de su web muchas canciones de discográficas (error 150): un navegador no puede
+presentarse como app. Por eso, para oírlo todo en otro equipo, mejor el cliente de escritorio. En el navegador:
 - **Otra versión:** se busca otra subida de la misma canción y la app la recuerda para la próxima vez.
 - **Si tampoco hay:** pasa a la siguiente. Tras tres seguidas que no suenan, se para y ofrece abrirla en YouTube
   Music.

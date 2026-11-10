@@ -19,6 +19,23 @@ export async function youtubeSignedIn(): Promise<boolean> {
   return cookies.some((c) => c.name === 'LOGIN_INFO' || c.name === 'SAPISID' || c.name === '__Secure-3PSID')
 }
 
+/**
+ * El reproductor de YouTube exige que la app se identifique con la cabecera Referer; una página file:// no la
+ * envía (error 152/153). Se usa el identificador de la app, como piden las normas de YouTube para apps de escritorio.
+ * También en el cliente de escritorio: su ventana enseña la interfaz del servidor, pero el reproductor se presenta
+ * como la app kywai (no como una web cualquiera), y así las discográficas no lo bloquean (error 150).
+ */
+export const YOUTUBE_REFERER = 'https://com.aicowork.app/'
+
+export function identifyToYouTube(): void {
+  const urls = ['https://www.youtube.com/*', 'https://www.youtube-nocookie.com/*']
+  session.defaultSession.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
+    const headers = details.requestHeaders
+    if (!headers['Referer'] && !headers['referer']) headers['Referer'] = YOUTUBE_REFERER
+    callback({ requestHeaders: headers })
+  })
+}
+
 let open: Promise<boolean> | null = null
 
 /** Abre la ventana de inicio de sesión de Google y espera a que vuelva a YouTube con la sesión iniciada (o se cierre). */

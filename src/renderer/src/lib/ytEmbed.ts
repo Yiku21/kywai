@@ -51,14 +51,17 @@ export function embedUrl(id: number, opts: Pick<EmbedOptions, 'videoId' | 'start
 /** Crea el reproductor dentro de `container` y devuelve su control (la misma interfaz que la API oficial). */
 export function createEmbedPlayer(container: HTMLElement, opts: EmbedOptions): YtPlayer {
   const id = nextId++
-  const web = location.protocol === 'http:' || location.protocol === 'https:'
+  // El cliente de escritorio enseña la interfaz del servidor por https, pero es la app kywai: se identifica como app
+  // (su motor pone la cabecera Referer) y no como una web, que muchas discográficas bloquean (error 150).
+  const client = !!(window as unknown as { coworkClient?: unknown }).coworkClient
+  const web = !client && (location.protocol === 'http:' || location.protocol === 'https:')
   const iframe = document.createElement('iframe')
   // Con tu cuenta de YouTube carga desde youtube.com (ver youtubeAccount); si no, desde youtube-nocookie.
   const host = youtubeHost()
   iframe.src = embedUrl(id, opts, web ? location.origin : null, host)
   iframe.title = t('Reproductor de YouTube')
   iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'
-  iframe.referrerPolicy = 'strict-origin-when-cross-origin'
+  iframe.referrerPolicy = client ? 'no-referrer' : 'strict-origin-when-cross-origin'
   iframe.style.cssText = 'width:100%;height:100%;border:0;display:block'
   container.replaceChildren(iframe)
 

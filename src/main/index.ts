@@ -46,7 +46,7 @@ import { isLocalEngine } from '@shared/localEngines'
 import { lookupTempo, tempoResponse } from './musicTempo'
 import { searchMusic } from './musicSearch'
 import { spotifast } from './spotifast'
-import { youtubeSignIn, youtubeSignOut, youtubeSignedIn } from './youtubeAccount'
+import { identifyToYouTube, youtubeSignIn, youtubeSignOut, youtubeSignedIn } from './youtubeAccount'
 import { mobilePairingPin, newWebToken, revokeMobileDevice, setClientReleaseDir, setFsAccess, startWebServer, stopWebServer, tailscaleIPv4, webAccessInfo, webHttpsPort, webMethods, type WebMethod } from './webServer'
 import { DeviceRegistry } from './devices'
 import { AccessLog, isInside, normalizePath, withinAny } from './serverFiles'
@@ -242,11 +242,6 @@ function registerProtocol(): void {
 }
 
 /**
- * El reproductor de YouTube exige que la app se identifique con la cabecera Referer; una página file:// no la
- * envía (error 152/153). Se usa el identificador de la app, como piden las normas de YouTube para apps de escritorio.
- */
-const YOUTUBE_REFERER = 'https://com.aicowork.app/'
-/**
  * Luces al ritmo con el sonido real, sin micrófono: la ventana de kywai puede escuchar SU PROPIO sonido (lo que
  * suena en ella, como el reproductor de música) y seguir oyéndose por los altavoces. Nadie más: ni otras webs ni el
  * reproductor de YouTube (que no tiene permiso para pedirlo), y nunca la pantalla ni el sonido del resto del equipo.
@@ -260,15 +255,6 @@ function allowOwnAudioForLights(): void {
       return
     }
     callback({ video: own, audio: own, enableLocalEcho: true })
-  })
-}
-
-function identifyToYouTube(): void {
-  const urls = ['https://www.youtube.com/*', 'https://www.youtube-nocookie.com/*']
-  session.defaultSession.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
-    const headers = details.requestHeaders
-    if (!headers['Referer'] && !headers['referer']) headers['Referer'] = YOUTUBE_REFERER
-    callback({ requestHeaders: headers })
   })
 }
 
