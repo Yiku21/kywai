@@ -3006,6 +3006,15 @@ Con menor calidad gráfica se dibujan menos piezas. «Reducir efectos» limita o
 Se aplica al momento (el espacio se vuelve a montar con los colores nuevos) y se recuerda en cada dispositivo (la
 app del Mac, el navegador…).
 
+#### Luz y vida del espacio
+
+Los temas usan las mismas reglas que las escenas 3D de los vídeos para que el espacio se vea con volumen y vivo:
+
+- **Luz de cine.** La luz principal llega de lado y algo baja, así cada robot, puesto o columna tiene una cara
+  iluminada y otra en sombra. Al otro lado hay un relleno frío y suave, y por detrás un borde de luz rasante con el
+  color del tema que recorta los contornos. La luz de cielo y la de ambiente son más bajas que antes para que se note
+  la diferencia. El Refugio Kywai conserva su propia luz de día y de noche (`scene/CinemaLights.tsx`).
+
 ### Voces de los agentes
 
 Cuando un agente escribe en el chat, **suena su voz**: un balbuceo corto, una sílaba por letra (como los aldeanos

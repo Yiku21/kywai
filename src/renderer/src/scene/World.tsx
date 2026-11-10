@@ -27,6 +27,7 @@ import { SocialLife } from './SocialLife'
 import { Sparks } from './Sparks'
 import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
+import { CinemaLights } from './CinemaLights'
 import { LabelProjector } from './LabelProjector'
 import { t } from '@/lib/i18n'
 import { withTempStations } from '@shared/tempStations'
@@ -218,14 +219,8 @@ export function World({ view }: { view?: ViewInsets } = {}) {
       {focused && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />}
 
       <group key={theme}>
-        <hemisphereLight args={[L.sky, L.ground, L.hemi * worldLight]} />
-        <ambientLight intensity={L.ambientI * worldLight} color={L.ambient} />
-        <directionalLight position={theme === 'kywai' ? night ? [13,17,-16] : [-12,12,-16] : [-7,14,9]} intensity={L.keyI * worldLight} color={L.key}
-          castShadow={!!p.world && q.shadows} shadow-mapSize={[2048, 2048]} shadow-bias={-0.00015} shadow-normalBias={0.035}
-          shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20}
-          shadow-camera-near={0.5} shadow-camera-far={65} />
-        <directionalLight position={[8, 6, -6]} intensity={L.fillI * worldLight} color={L.fill} />
-        {p.world && <directionalLight position={[1, 8, -12]} intensity={p.light ? 0.4 : p.world === 'bosque' ? 0.75 : 0.3} color={p.world === 'bosque' ? '#d5db9b' : p.world === 'eva' ? '#a4bbde' : '#c3d8ef'} />}
+        <CinemaLights palette={p} lights={L} worldLight={worldLight} shadows={!!p.world && q.shadows} shadowSize={2048}
+          home={theme === 'kywai' ? { night } : undefined} />
 
         {/* Entorno para reflejos de los visores (generado localmente, sin descargas) */}
         <Environment key={`reflections-${theme}-${night}`} resolution={p.world ? 256 : 128} frames={1}>
