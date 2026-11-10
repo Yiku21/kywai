@@ -8,6 +8,7 @@
 // en cada versión.
 // Si la app no está en un sitio donde se pueda escribir (abierta desde el .dmg, «translocada» por macOS o en una
 // carpeta de otro usuario), no se toca nada y se sigue abriendo la página de descarga como antes.
+// Probado: primera actualización hecha así en un Mac real (10 nov 2026).
 import { app, net } from 'electron'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
