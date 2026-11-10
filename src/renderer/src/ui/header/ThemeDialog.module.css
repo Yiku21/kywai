@@ -10,6 +10,7 @@
   max-height: min(70vh, 720px);
   overflow-y: auto;
   padding: 4px 22px 18px;
+  container-type: inline-size;
 }
 
 .group {
@@ -31,10 +32,23 @@
   color: var(--text-3);
 }
 
+/* Cuatro tarjetas por fila; tres o dos si el hueco es estrecho (ventana pequeña, navegador del móvil). */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@container (max-width: 460px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 320px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Los colores de la Ciudad digital: se despliegan a lo ancho, debajo de las tarjetas, al elegir la ciudad. */
@@ -114,8 +128,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 10px 10px 14px;
+  gap: 7px;
+  padding: 6px 6px 9px;
   border-radius: var(--radius-card);
   border: 1px solid var(--border);
   background: var(--bg-surface);
@@ -137,15 +151,16 @@
 .cardText {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 0 4px;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 3px;
 }
 
 .cardName {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-1);
 }
@@ -156,20 +171,25 @@
   color: var(--text-3);
 }
 
+/* La descripción completa sale al pasar el ratón; en la tarjeta, como mucho dos líneas. */
 .cardHint {
-  font-size: 12.5px;
-  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 1.35;
   color: var(--text-2);
 }
 
 .check {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 10px;
+  right: 10px;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--cyan);
   color: var(--on-accent, #04121c);
@@ -188,11 +208,9 @@
   --pv-stage: #050913;
   --pv-glow: rgba(92, 200, 255, 0.5);
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  height: 124px;
-  padding: 7px;
-  border-radius: 10px;
+  aspect-ratio: 16 / 10;
+  padding: 4px;
+  border-radius: 8px;
   background: var(--pv-app);
   overflow: hidden;
 }
@@ -209,79 +227,6 @@
     radial-gradient(220px 130px at 75% -10%, rgba(70, 120, 255, 0.35), transparent 65%),
     radial-gradient(180px 120px at 0% 110%, rgba(96, 70, 220, 0.3), transparent 65%),
     var(--pv-app);
-}
-
-.pvHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 14px;
-}
-
-.pvLogo {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  background: var(--pv-accent);
-  opacity: 0.85;
-}
-
-.pvChips {
-  display: flex;
-  gap: 4px;
-}
-
-.pvChips > span {
-  width: 26px;
-  height: 10px;
-  border-radius: 3px;
-  border: 1px solid var(--pv-border);
-}
-
-.pvBody {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 34% 1fr;
-  gap: 6px;
-  min-height: 0;
-}
-
-.pvLeft,
-.pvSpace {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 6px;
-  border-radius: var(--pv-radius);
-  border: 1px solid var(--pv-border);
-  background: var(--pv-panel);
-}
-
-.preview[data-preview='orbita'] .pvLeft,
-.preview[data-preview='orbita'] .pvSpace {
-  box-shadow: 0 0 12px rgba(64, 132, 255, 0.25);
-}
-
-.pvLine {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--pv-line);
-}
-
-.pvShort {
-  width: 60%;
-}
-
-.pvBubble {
-  height: 16px;
-  border-radius: 4px;
-  background: var(--pv-bubble);
-  border: 1px solid var(--pv-border);
-}
-
-.pvBubbleSmall {
-  height: 10px;
-  width: 75%;
 }
 
 .pvStage {

@@ -2699,7 +2699,9 @@ En **Fondo marino**, cada estación conserva una plataforma separada también al
 El interruptor **Modo noche**, junto a Música en la cabecera del espacio, cambia este refugio a luna, estrellas e iluminación cálida, con colores oscuros en la interfaz. Se recuerda por dispositivo y no cambia otros mapas. **Reducir efectos** detiene las animaciones del cielo, agua y vegetación. El tema se elige y sincroniza por los mecanismos habituales del servidor; está disponible en escritorio, cliente conectado y navegador. Órbita todavía no dibuja este escenario 3D.
 
 ⚙ → Ajustes → General → **Tema** (justo debajo del idioma; se despliega con la flecha) cambia el aspecto de la app.
-Los temas van en dos grupos: los mapas (con la Ciudad digital) y los decorados.
+Los temas van en dos grupos: los mapas (con la Ciudad digital) y los decorados. Cada tema es una tarjeta pequeña,
+cuatro por fila (tres o dos si la ventana es estrecha), con un dibujo de su escenario, el nombre y una descripción
+corta de dos líneas; la descripción completa sale al pasar el ratón por encima.
 
 **El mismo tema en todos tus dispositivos.** El tema lo guarda el servidor: al cambiarlo en la app del Mac, en un
 cliente de escritorio, en el navegador o en Órbita, cambia al momento en todos los que están conectados a ese servidor

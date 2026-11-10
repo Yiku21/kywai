@@ -109,7 +109,7 @@ function Card({ info, on, isDefault, onPick }: { info: ThemeInfo; on: boolean; i
           {info.name}
           {isDefault && <span className={s.default}>{t('predeterminado')}</span>}
         </span>
-        <span className={s.cardHint}>{info.hint}</span>
+        <span className={s.cardHint} title={info.hint}>{info.hint}</span>
       </span>
       {on && (
         <span className={s.check} aria-hidden="true">
@@ -120,31 +120,12 @@ function Card({ info, on, isDefault, onPick }: { info: ThemeInfo; on: boolean; i
   )
 }
 
-/** Miniatura de la app con cada tema (sus colores propios, sea cual sea el actual). */
+/** Miniatura de cada tema: solo su escenario, con sus colores propios (sea cual sea el actual). */
 function Preview({ id }: { id: ThemeId }) {
   return (
     <span className={s.preview} data-preview={uiThemeOf(id)} aria-hidden="true">
-      <span className={s.pvHeader}>
-        <span className={s.pvLogo} />
-        <span className={s.pvChips}>
-          <span />
-          <span />
-          <span />
-        </span>
-      </span>
-      <span className={s.pvBody}>
-        <span className={s.pvLeft}>
-          <span className={s.pvLine} />
-          <span className={cx(s.pvLine, s.pvShort)} />
-          <span className={s.pvBubble} />
-          <span className={s.pvLine} />
-          <span className={cx(s.pvBubble, s.pvBubbleSmall)} />
-        </span>
-        <span className={s.pvSpace}>
-          <span className={s.pvStage}>
-            {id === 'kywai' || id === 'submarino' || DECORS.some(d => d.id === id) ? <WorldPreview id={id} /> : worldOf(id) ? <WorldPreview id={worldOf(id)!} /> : <span className={s.pvCore} />}
-          </span>
-        </span>
+      <span className={s.pvStage}>
+        {id === 'kywai' || id === 'submarino' || DECORS.some(d => d.id === id) ? <WorldPreview id={id} /> : worldOf(id) ? <WorldPreview id={worldOf(id)!} /> : <span className={s.pvCore} />}
       </span>
     </span>
   )
