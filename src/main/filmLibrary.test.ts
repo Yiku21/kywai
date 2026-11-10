@@ -8,6 +8,7 @@ import { filmPrompt, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary
 import { KYWAI_FILM_GUIDES } from './kywaiFilmGuides'
 
 describe('películas con estilo', () => {
+  const robots = { id: 'robots-kywai', name: 'Hermes, Claude y Codex (los robots de kywai)', images: ['/kywai/robots/hermes.png'], look: 'Hermes: …', builtin: true }
   const base = { topic: 'el ciclo del agua', format: 'horizontal' as const, lang: 'es', studioDir: '/estudio', work: '/proyecto/.ai-cowork/videos/x' }
 
   it('el encargo apunta a la guía del estilo, a la carpeta y al archivo final', () => {
@@ -22,11 +23,27 @@ describe('películas con estilo', () => {
   })
 
   it('el de los robots usa el kit de animación pintada y no su mascota', () => {
-    const p = filmPrompt({ ...base, style: filmStyle(KYWAI_FILM)!, format: 'vertical' })
+    const p = filmPrompt({ ...base, style: filmStyle(KYWAI_FILM)!, format: 'vertical', character: robots })
     expect(p).toContain(join('/estudio', 'animacion-pintada', 'KYWAI.md'))
     expect(p).toContain('kywaiRobot()')
     expect(p).toContain('Clawd) no sale')
     expect(p).toContain('vertical 1080×1920')
+    // Sin personaje, el kit dibuja otros; los robots no se piden.
+    expect(filmPrompt({ ...base, style: filmStyle(KYWAI_FILM)! })).not.toContain('kywaiRobot()')
+  })
+
+  it('el personaje elegido sale en el estilo de la película, con sus imágenes y su aspecto', () => {
+    const rosa = { id: 'dona-rosa-3f9a', name: 'Doña Rosa', about: 'una abuela panadera con delantal azul', images: ['/p/personajes/dona-rosa-3f9a/imagen-1.png'], look: 'Rosa: elderly woman, grey bun, blue apron' }
+    const p = filmPrompt({ ...base, style: filmStyle('watercolor')!, character: rosa, kind: 'mixto' })
+    expect(p).toContain('Protagonista elegido por el usuario: Doña Rosa')
+    expect(p).toContain(rosa.images[0])
+    expect(p).toContain(rosa.look)
+    expect(p).toContain('una abuela panadera')
+    expect(p).toContain('Tipo «mixto»')
+    // Los robots en otro estilo: con sus imágenes de referencia (no con el kit pintado).
+    const r = filmPrompt({ ...base, style: filmStyle('pixel-rpg')!, character: robots })
+    expect(r).toContain('/kywai/robots/hermes.png')
+    expect(r).not.toContain('kywaiRobot()')
   })
 
   it('los estilos propios de kywai traen su guía y usan el motor de un estilo de la biblioteca', () => {

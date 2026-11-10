@@ -6,6 +6,8 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { FILM_STYLES, KYWAI_FILM, type FilmStyle } from '../shared/filmStyles'
+import type { VideoKind } from '../shared/videoChoice'
+import type { CharacterForVideo } from './videoCharacters'
 import { HOOK_RULE } from './videoScript'
 
 export const LEMO_OPUSCAR_REPO = 'https://github.com/lemomo-ai/lemo-opuscar.git'
@@ -47,6 +49,29 @@ export interface FilmPromptInput {
   work: string
   /** Adjuntos del usuario («- ruta (adjunto del usuario: nombre)»). */
   files?: string[]
+  /** Tipo elegido en el selector: cómo se cuenta (sin él, lo decide el agente). */
+  kind?: VideoKind
+  /** Personaje elegido en el selector: se dibuja en el estilo de la película. */
+  character?: CharacterForVideo
+}
+
+/** Cómo se cuenta la película según el tipo elegido. */
+const KIND_RULES: Record<VideoKind, string> = {
+  rapido: '- Tipo «rápido: texto animado»: la película se cuenta con frases cortas en pantalla, grandes y animadas al ritmo de la voz, sobre fondos y escenas del estilo; nada de presentador a cámara. Que el texto respire: pocas palabras a la vez y movimientos suaves.',
+  presentador: '- Tipo «dibujo con presentador»: un presentador dibujado en el estilo (el personaje elegido, si lo hay) lo explica hablando a cámara, con ilustraciones o escenas de lo que cuenta alrededor o a pantalla completa. Si la guía del estilo pide «sin texto», el presentador lo cuenta con la voz y actuando.',
+  mixto: '- Tipo «mixto»: alterna escenas con el presentador dibujado (el personaje elegido, si lo hay) explicándolo a cámara y golpes de texto grande en pantalla, más o menos uno de cada tres, sin dos golpes de texto seguidos.'
+}
+
+/** El personaje elegido, para el encargo: quién es, cómo es y dónde están sus imágenes. */
+function characterRules(c: CharacterForVideo, kitRobots: boolean): string[] {
+  if (c.builtin && kitRobots) return []
+  return [
+    `- Protagonista elegido por el usuario: ${c.name}. Sale en la mayoría de los planos y siempre igual (misma cara, cuerpo, ropa y colores), dibujado en el estilo de esta película: se adapta al estilo, pero se le reconoce.`,
+    ...(c.look ? [`- Cómo es (en inglés, sin el estilo de dibujo): ${c.look}`] : []),
+    ...(c.about ? [`- Lo que cuenta el usuario de él: «${c.about}»`] : []),
+    ...(c.images.length ? [`- Sus imágenes de referencia (ábrelas y míralas antes de diseñarlo): ${c.images.join(', ')}`] : []),
+    '- Antes de animar, haz una hoja de personaje en el estilo (de frente, de lado y dos expresiones) y compárala con las referencias.'
+  ]
 }
 
 /** La guía de un estilo propio de kywai, que kywai deja en la carpeta de la película (kywaiFilmGuides.ts). */
@@ -111,15 +136,20 @@ export function filmPrompt(input: FilmPromptInput): string {
     '- No dejes procesos en segundo plano al terminar ni cierres procesos que no hayas lanzado tú.',
     '- Al terminar, responde solo con dos líneas: «Título: …» y una frase sobre de qué va la película. Si no puedes hacerla, empieza tu respuesta con «BLOQUEADA:» y el motivo en una frase.'
   ]
+  // En el estilo pintado a mano, los robots salen con su propio dibujo del kit; con otro personaje (o ninguno), se
+  // dibuja con el kit desde cero.
+  const kitRobots = !input.character || !!input.character.builtin
   const head =
     style.slug === KYWAI_FILM
       ? [
           `Dirige y produce una película corta de animación pintada a mano sobre: ${topic}`,
           '',
-          `Los protagonistas son los robots de kywai (Hermes, Claude y Codex). Se hace con el kit de animación de ${kit}:`,
+          `${input.character ? (kitRobots ? 'Los protagonistas son los robots de kywai (Hermes, Claude y Codex)' : `El protagonista es ${input.character.name} (más abajo, cómo es)`) : 'Sin protagonista fijo: inventa los personajes que pida la historia'}. Se hace con el kit de animación de ${kit}:`,
           `- Lee primero ${join(kit, 'ANIMATION_GUIDE.md')} y ${join(kit, 'KYWAI.md')}, y síguelos (storyboard, construir plano a plano, revisar con hojas de contacto, renderizar).`,
           `- Copia el kit a la carpeta de la película sin node_modules ni out (en su lugar, un enlace a ${join(kit, 'node_modules')}) y trabaja en esa copia. No cambies ${kit}.`,
-          '- El personaje de ejemplo del kit (Clawd) no sale nunca: usa kywaiRobot() de src/kywai-robots.js.',
+          input.character && kitRobots
+            ? '- El personaje de ejemplo del kit (Clawd) no sale nunca: usa kywaiRobot() de src/kywai-robots.js.'
+            : '- El personaje de ejemplo del kit (Clawd) no sale nunca: dibuja los personajes con las mismas técnicas del kit (formas, pincel, emotes).',
           '- La guía pide «sin texto»: la historia se cuenta actuando. Pon voz solo si el tema necesita explicarse; música y efectos, siempre.',
           `- Para la voz y la música puedes usar las herramientas de ${lib} si están (core/tts, core/audio y core/render/mux.sh; mira su core/README.md).`
         ]
@@ -147,6 +177,8 @@ export function filmPrompt(input: FilmPromptInput): string {
             : [])
         ]
   const extra = [
+    ...(input.kind ? [KIND_RULES[input.kind]] : []),
+    ...(input.character ? characterRules(input.character, style.slug === KYWAI_FILM && kitRobots) : []),
     ...(FILM_3D.has(style.slug) ? ALIVE_3D : []),
     ...(input.source ? ['', 'El texto del que trata la película:', '"""', input.source, '"""'] : []),
     ...(input.files?.length ? ['', 'Archivos del usuario que puedes usar (lo que haya de material propio va en la película):', ...input.files] : [])

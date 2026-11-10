@@ -71,6 +71,8 @@ import { skillPromptLines, videoSkillPromptLines } from './skills'
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
+import { saveCharacterLook, videoCharacter } from './videoCharacters'
+import type { VideoKind } from '../shared/videoChoice'
 import { CAST_DIR, CAST_NOTES, ensureVideoStudio, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { filmPrompt, filmReady, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
@@ -280,6 +282,16 @@ async function prepareVideoRefs(run: Run, t: Task): Promise<void> {
     }
   }
   v.refs = refs.slice(0, 8)
+}
+
+/**
+ * Los personajes de un vídeo: el elegido en el selector (de la biblioteca de kywai) o, si no hay, los fijos del
+ * proyecto (carpeta «personajes»).
+ */
+function videoCast(run: Run, v: NonNullable<Task['video']>): { images: string[]; notes?: string; name?: string; about?: string } | undefined {
+  const c = v.character ? videoCharacter(v.character) : null
+  if (c) return { images: c.images, name: c.name, ...(c.look ? { notes: c.look } : {}), ...(c.about ? { about: c.about } : {}) }
+  return projectCast(store.workRoot(run.projectId)) ?? undefined
 }
 
 /** La carpeta de una película con estilo; si la biblioteca no está, la instala primero (la primera vez tarda). */
@@ -1576,7 +1588,7 @@ function filmDirector(): AgentConfig | null {
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -1641,7 +1653,9 @@ async function sendVideo(
       style: req.style,
       ...(req.source ? { source: clip(req.source, 6000) } : {}),
       ...(film ? { film: film.slug, work: `.ai-cowork/videos/${Date.now().toString(36)}-pelicula` } : {}),
-      ...(req.saveCast ? { saveCast: true } : {})
+      ...(req.saveCast ? { saveCast: true } : {}),
+      ...(req.character && videoCharacter(req.character) ? { character: req.character } : {}),
+      ...(req.kind ? { kind: req.kind } : {})
     }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
@@ -1689,7 +1703,7 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
       outDir,
       signal,
       refs: v.refs ?? imageAttachments(run, true),
-      cast: projectCast(root) ?? undefined,
+      cast: videoCast(run, v),
       onStep: (text, p, vars) => {
         t.lastActivity = tr(text, vars)
         t.progress = p
@@ -1706,7 +1720,9 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
     return
   }
   // La primera vez que hay personajes fijos, su descripción se guarda: así salen iguales en los siguientes vídeos.
-  if (script.cast && projectCast(root)?.images.length && saveCastNotes(root, script.cast)) meta.touched.add(join(CAST_DIR, CAST_NOTES))
+  // Con un personaje elegido, su aspecto se guarda en la biblioteca de personajes (para todos los proyectos).
+  if (script.cast && v.character) saveCharacterLook(v.character, script.cast)
+  else if (script.cast && projectCast(root)?.images.length && saveCastNotes(root, script.cast)) meta.touched.add(join(CAST_DIR, CAST_NOTES))
   const rel = store.toRelPath(root, video.file)
   if (rel) meta.touched.add(rel)
   const notes = [
@@ -2906,9 +2922,11 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         lang: lang(),
         studioDir: videoStudioDir(),
         work: join(store.workRoot(run.projectId), t.video.work),
+        ...(t.video.kind ? { kind: t.video.kind } : {}),
+        ...(t.video.character ? { character: videoCharacter(t.video.character) ?? undefined } : {}),
         files: [
           ...run.attachments.map((a) => `- ${attPath(run, a.relPath, false)} (adjunto del usuario: ${a.name})`),
-          ...(projectCast(store.workRoot(run.projectId))?.images ?? []).map((f) => `- ${f} (personaje fijo de la serie: que salga igual, con la misma ropa)`)
+          ...(t.video.character ? [] : projectCast(store.workRoot(run.projectId))?.images ?? []).map((f) => `- ${f} (personaje fijo de la serie: que salga igual, con la misma ropa)`)
         ]
       })
   }
@@ -2916,7 +2934,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: projectCast(store.workRoot(run.projectId)) ?? undefined })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: videoCast(run, t.video) })].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)

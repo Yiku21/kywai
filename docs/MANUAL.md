@@ -1623,6 +1623,12 @@ plan que aprobar, sin informes ni archivos sueltos.
 
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
+- **Con el selector de tres pasos** (escritorio y web): al escribir `/video` se abre encima del cuadro un panel con
+  **1. Tipo de vídeo** (rápido con texto animado, dibujos con presentador o mixto), **2. Personaje** (ninguno, los
+  robots de kywai, los que hayas creado o «Agregar personaje») y **3. Estilo de animación** (el de kywai, rápido, o
+  uno de los 73 estilos de película con su muestra). Después solo escribes de qué va. Ver «Elegir tipo, personaje y
+  estilo» más abajo.
+
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
   video about…».
 - **Vertical** para TikTok, Reels o Shorts: `/video vertical …`, «…para TikTok», «…para reels». Si no se dice nada,
@@ -1691,11 +1697,37 @@ cada paso muestra su instrucción en grande.
 
 La voz, las imágenes y las animaciones de Manim se generan **a la vez**.
 
-**Estilos de película (73, con muestra).** Al escribir `/video` aparece encima del cuadro la barra **«Estilo del
-vídeo»** y, al empezar la orden, se abre el selector: una tarjeta con **una muestra de cada estilo** (un fotograma de
-su película de ejemplo), por categorías y con buscador. Arriba, los dos rápidos de siempre (texto animado y dibujos con
-presentador, en unos minutos); debajo, **Robots de kywai pintados a mano**, los **6 estilos propios de kywai** (ver
-más abajo) y los **66 estilos de la biblioteca Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
+**Elegir tipo, personaje y estilo (selector de tres pasos).** Al escribir `/video` aparece encima del cuadro una
+barra con lo elegido («Mixto · Robots de kywai · Acuarela») y, al empezar la orden, se abre el panel con los tres
+pasos (`src/renderer/src/ui/left/VideoPicker.tsx`). Lo elegido se escribe en el texto como marcas detrás de `/video`
+(`tipo:mixto personaje:robots-kywai estilo:watercolor`), así vale igual escribiéndolo a mano, en la web, en Órbita y
+en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). Las marcas de antes
+(`estilo:cartoon`, `estilo:dinamico`) siguen valiendo como tipo.
+
+1. **Tipo de vídeo.** *Rápido: texto animado* (frases grandes con ritmo al compás de la voz), *Dibujos con
+   presentador* (el tutorial con presentador de más abajo) o **Mixto**: el presentador y golpes de texto grande
+   alternados (más o menos una escena de cada tres es de texto, nunca dos seguidas; en ellas el presentador se aparta
+   y las palabras del rótulo entran en grande mientras sigue la voz). Con un estilo de película, el tipo le dice al
+   agente cómo contarla.
+2. **Personaje.** *Ninguno (genérico)*: sin personaje fijo. *Robots de kywai*: Hermes, Claude y Codex. Los que hayas
+   creado. Y **«Agregar personaje»**: nombre y una descripción, imágenes (hasta 6) o las dos cosas; la interfaz reduce
+   las imágenes (1024 px, WebP) y hace una miniatura. Se guardan en kywai **para todos los proyectos**, en
+   `<workspace>/personajes/<id>/` (`personaje.json`, `imagen-N.*`, `miniatura.jpg`; `src/main/videoCharacters.ts`), y
+   se borran con la papelera de su tarjeta. **El personaje se dibuja en el estilo elegido**: la primera vez que sale
+   en un vídeo, el agente del guion escribe su aspecto en inglés sin el estilo de dibujo (`cast`) y kywai lo guarda
+   (`aspecto.txt`); desde entonces va igual en el texto de cada imagen, y Gemini ve además sus imágenes. Los robots
+   traen su aspecto escrito y sus imágenes (las de la app, copiadas a `personajes/robots-kywai/` para que el agente de
+   una película pueda abrirlas). Con presentador o mixto, **el presentador es ese personaje**: kywai genera su imagen
+   en el estilo del vídeo (ComfyUI o Gemini; si no puede, usa su primera imagen) y la pone en una tarjeta en la
+   esquina que respira, rebota al hablar, se inclina al señalar y se ríe en las bromas; sin personaje, el presentador
+   dibujado de siempre. En una película con estilo, el encargo pide una hoja de personaje en ese estilo y le da sus
+   imágenes y su aspecto. El personaje elegido manda sobre los personajes fijos del proyecto.
+3. **Estilo de animación.** *El de kywai (rápido)*: lo de siempre, en unos minutos. O uno de los estilos de película,
+   con buscador (ver abajo), que tardan más.
+
+**Estilos de película (73, con muestra).** En el paso 3 del selector, una tarjeta con **una muestra de cada estilo**
+(un fotograma de su película de ejemplo), por categorías y con buscador: **Pintado a mano (acuarela y tinta)** y los
+**6 estilos propios de kywai** (ver más abajo) y los **66 estilos de la biblioteca Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
 80, Pixel RPG, HD-2D, diseño suizo, plano técnico, infografía isométrica, risografía, xilografía, ukiyo-e, teatro de
 sombras, piezas de construcción, maqueta en miniatura, cine mudo, noticiario de época… Elegir uno pone
 `estilo:<carpeta>` detrás de `/video` (p. ej. `/video estilo:watercolor el ciclo del agua`); también vale escribirlo
@@ -1713,11 +1745,13 @@ rápido (de 20 minutos a una hora, según el estilo y el equipo). El proyecto co
 y `CREDITS` con la licencia de cada cosa que usa) queda en esa carpeta. El encargo está en `src/main/filmLibrary.ts`
 (`filmPrompt`) y el catálogo en `src/shared/filmStyles.ts`.
 
-**Robots de kywai pintados a mano** usa **Claude Animation Base** (MIT, github.com/JohnHeibel/ClaudeAnimationBase:
+**Pintado a mano (acuarela y tinta)** (antes «Robots de kywai pintados a mano»; sin otro personaje elegido, salen
+los robots) usa **Claude Animation Base** (MIT, github.com/JohnHeibel/ClaudeAnimationBase:
 p5.js + p5.brush, acuarela, tinta y línea que tiembla, sin texto) con los robots del equipo en lugar del personaje del
 kit (es la mascota de Anthropic y no sale nunca): kywai escribe en el kit `src/kywai-robots.js` (`kywaiRobot()` para
 Hermes, Claude, Codex u otro con sus colores, y `kywaiSpark()`, la chispa de una tarea) y `KYWAI.md`, la guía para
-usarlos. El agente copia el kit a la carpeta de la película y trabaja en la copia. Sin tarjeta gráfica renderiza lento.
+usarlos. El agente copia el kit a la carpeta de la película y trabaja en la copia. Con otro personaje, el agente lo
+dibuja con las técnicas del kit; con «Ninguno», inventa los que pida la historia. Sin tarjeta gráfica renderiza lento.
 
 **Estilos propios de kywai (6).** Garabatos de tinta, Garabatos en primera persona, Oficina en plano, Siluetas de
 neón, Cristales 3D adorables y Tiempo profundo (inspirados en lo que se ve en vídeos de estilos de animación con IA,

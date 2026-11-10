@@ -183,11 +183,21 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
 
   // Lo que se ve manda: la ilustración del paso ocupa toda la pantalla; el personaje, en una esquina, señala y reacciona;
   // subtítulos en una franja abajo.
-  const ch = vertical ? { left: 700, top: 1290, w: 350, h: 665 } : { left: 14, top: 560, w: 290, h: 551 }
+  // Con un personaje elegido, el presentador es su imagen (en el estilo del vídeo) en una tarjeta en la esquina.
+  const host = input.presenter
+  const svg = !host
+  const ch = host
+    ? vertical
+      ? { left: 700, top: 1380, w: 340, h: 430 }
+      : { left: 24, top: 610, w: 290, h: 370 }
+    : vertical
+      ? { left: 700, top: 1290, w: 350, h: 665 }
+      : { left: 14, top: 560, w: 290, h: 551 }
   const cap = vertical ? { left: 40, top: 1090, w: 1000, h: 180 } : { left: 330, top: 905, w: 1560, h: 150 }
 
   // ---------- personaje ----------
-  a.push(
+  if (svg)
+    a.push(
     `gsap.set('#armL', {svgOrigin: '${SHOULDER_L}'})`,
     `gsap.set('#armR', {svgOrigin: '${SHOULDER_R}'})`,
     `gsap.set('#foreL', {svgOrigin: '${ELBOW_L}'})`,
@@ -198,6 +208,7 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
   )
   let prev: Pose = POSES.idle
   const poseTo = (p: Pose, at: number, dur = 0.38): void => {
+    if (!svg) return
     const q = prev
     const e = 'back.out(1.8)'
     const f = `immediateRender: false`
@@ -225,16 +236,18 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
       : { ...p, aR: -128, fR: -10, head: 6, lookX: 7, lookY: -6 }
   }
 
-  // Respira todo el vídeo y parpadea cada pocos segundos.
-  a.push(`tl.fromTo('#torso', {scaleY: 1}, {scaleY: 1.018, transformOrigin: '50% 100%', duration: 1.4, ease: 'sine.inOut', yoyo: true, repeat: ${Math.max(1, Math.floor(tl.total / 1.4))}}, 0)`)
-  for (let t = 1.6; t < tl.total - 0.5; t += 2.4 + r() * 2.2) {
+  // Respira todo el vídeo y parpadea cada pocos segundos (la imagen de un personaje elegido solo respira).
+  if (!svg) a.push(`tl.fromTo('#hostimg', {scaleY: 1}, {scaleY: 1.02, transformOrigin: '50% 100%', duration: 1.4, ease: 'sine.inOut', yoyo: true, repeat: ${Math.max(1, Math.floor(tl.total / 1.4))}}, 0)`)
+  else a.push(`tl.fromTo('#torso', {scaleY: 1}, {scaleY: 1.018, transformOrigin: '50% 100%', duration: 1.4, ease: 'sine.inOut', yoyo: true, repeat: ${Math.max(1, Math.floor(tl.total / 1.4))}}, 0)`)
+  for (let t = 1.6; svg && t < tl.total - 0.5; t += 2.4 + r() * 2.2) {
     a.push(`tl.fromTo('#eyes', {scaleY: 1}, {scaleY: 0.08, duration: 0.07, ease: 'power1.in', yoyo: true, repeat: 1, immediateRender: false}, ${R(t)})`)
   }
 
   // Entrada: sale de abajo de un salto y saluda.
   a.push(`tl.fromTo('#char', {y: ${ch.h}}, {y: 0, duration: 0.5, ease: 'back.out(1.6)'}, 0.1)`)
   poseTo(pose('wave'), 0.5)
-  a.push(`tl.fromTo('#foreR', {rotation: -20}, {rotation: 25, duration: 0.22, ease: 'sine.inOut', yoyo: true, repeat: 5, immediateRender: false}, 0.9)`)
+  if (svg) a.push(`tl.fromTo('#foreR', {rotation: -20}, {rotation: 25, duration: 0.22, ease: 'sine.inOut', yoyo: true, repeat: 5, immediateRender: false}, 0.9)`)
+  else a.push(`tl.fromTo('#hostimg', {rotation: -6}, {rotation: 6, transformOrigin: '50% 100%', duration: 0.25, ease: 'sine.inOut', yoyo: true, repeat: 3, immediateRender: false}, 0.9)`)
   sfx.push({ at: 0.5, kind: 'pop' })
 
   // Boca al ritmo de la voz, palabra a palabra y sílaba a sílaba.
@@ -250,6 +263,12 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
       for (let k = 0; k < n; k++) {
         const s = w.start + k * d
         const open = R(0.55 + r() * 0.45)
+        if (!svg) {
+          // La imagen no tiene boca: un pequeño rebote por sílaba, para que se vea que habla.
+          a.push(`tl.fromTo('#hostimg', {y: 0}, {y: ${R(-4 - open * 6)}, duration: ${R(Math.max(0.04, d * 0.45))}, ease: 'power1.out', immediateRender: false}, ${R(s)})`)
+          a.push(`tl.fromTo('#hostimg', {y: ${R(-4 - open * 6)}}, {y: 0, duration: ${R(Math.max(0.04, d * 0.45))}, ease: 'power1.in', immediateRender: false}, ${R(s + d * 0.5)})`)
+          continue
+        }
         a.push(`tl.fromTo('#mouth', {scaleY: 0.22}, {scaleY: ${open}, duration: ${R(Math.max(0.04, d * 0.45))}, ease: 'power1.out', immediateRender: false}, ${R(s)})`)
         a.push(`tl.fromTo('#mouth', {scaleY: ${open}}, {scaleY: 0.22, duration: ${R(Math.max(0.04, d * 0.45))}, ease: 'power1.in', immediateRender: false}, ${R(s + d * 0.5)})`)
       }
@@ -271,8 +290,10 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
   script.scenes.forEach((sc, i) => {
     const t = tl.scenes[i]
     const id = `s${i + 1}`
-    const clip = input.clips?.[i] ?? null
-    const shots = clip ? [] : (shotsOf[i] ?? []).filter((x): x is string => !!x)
+    // Mixto: en una escena de texto, las palabras en grande y el presentador se aparta.
+    const textScene = !!sc.text
+    const clip = textScene ? null : input.clips?.[i] ?? null
+    const shots = clip || textScene ? [] : (shotsOf[i] ?? []).filter((x): x is string => !!x)
     // La animación de Manim va debajo de la escena (un <video> no puede ir dentro de algo con tiempo).
     if (clip) clipHtml.push(`<video id="${id}m" class="clip manimv" src="${esc(clip)}" muted playsinline data-start="${t.start}" data-duration="${t.duration}"></video>`)
     const voiceAt = t.start + VOICE_LEAD_S
@@ -290,7 +311,7 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
           })
           .join('\n  ')
       : `<div class="board"><div class="btext">${sc.heading.split(/\s+/).map((w, k) => `<span class="bw" id="${id}bw${k}">${esc(w)}</span>`).join(' ')}</div></div>`
-    const top = shots.length || clip || sc.step
+    const top = !textScene && (shots.length || clip || sc.step)
       ? `<div class="top" id="${id}top">${sc.step ? `<div class="badge"><small>${stepWord(script.lang)}</small><b>${sc.step}</b></div>` : ''}${shots.length || clip ? `<div class="instr"><span>${esc(sc.heading)}</span></div>` : ''}</div>`
       : ''
     const joke = sc.joke ? `<div class="ja" id="${id}ja"><span>${esc(laughWord(script.lang))}</span></div>` : ''
@@ -340,11 +361,17 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
       if (sc.step) sfx.push({ at: R(t.start + 0.2), kind: 'pop' })
     }
 
+    if (textScene) {
+      const off = vertical ? ch.w + 80 : -(ch.left + ch.w + 80)
+      a.push(`tl.fromTo('#char', {x: 0}, {x: ${off}, duration: 0.3, ease: 'power2.in', immediateRender: false}, ${R(t.start)})`)
+      a.push(`tl.fromTo('#char', {x: ${off}}, {x: 0, duration: 0.35, ease: 'back.out(1.6)', immediateRender: false}, ${R(t.start + t.duration - 0.05)})`)
+    }
     // El personaje: brinco al cambiar, su gesto y gestos pequeños mientras habla.
     a.push(`tl.fromTo('#char', {y: 0}, {y: -30, duration: 0.16, ease: 'power2.out', yoyo: true, repeat: 1, immediateRender: false}, ${R(t.start)})`)
     const p = pose(sc.joke ? 'laugh' : sc.pose ?? 'explain')
     poseTo(p, t.start + 0.05)
-    if (sc.pose === 'point' && !sc.joke) {
+    if (!svg && sc.pose === 'point' && !sc.joke) a.push(`tl.fromTo('#hostimg', {rotation: 0}, {rotation: ${vertical ? -7 : 7}, transformOrigin: '50% 100%', duration: 0.3, ease: 'power2.out', immediateRender: false}, ${R(t.start + 0.1)})`, `tl.to('#hostimg', {rotation: 0, duration: 0.3, ease: 'power2.inOut'}, ${R(t.start + t.duration - 0.3)})`)
+    if (svg && sc.pose === 'point' && !sc.joke) {
       const fore = vertical ? 'foreL' : 'foreR'
       const base = vertical ? p.fL : p.fR
       a.push(`tl.fromTo('#${fore}', {rotation: ${base}}, {rotation: ${base + (vertical ? 10 : -10)}, duration: 0.3, ease: 'sine.inOut', yoyo: true, repeat: ${Math.max(1, Math.floor((t.duration - 0.8) / 0.3))}, immediateRender: false}, ${R(t.start + 0.5)})`)
@@ -354,16 +381,16 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
       sfx.push({ at: R(t.start + 0.4), kind: 'boing' })
     }
     if (sc.joke) {
-      a.push(`tl.fromTo('#ch', {rotation: -2}, {rotation: 2, svgOrigin: '200 720', duration: 0.09, ease: 'sine.inOut', yoyo: true, repeat: 15, immediateRender: false}, ${R(t.start + 0.4)})`)
+      a.push(`tl.fromTo('#ch', {rotation: -2}, {rotation: 2, ${svg ? "svgOrigin: '200 720'" : "transformOrigin: '50% 100%'"}, duration: 0.09, ease: 'sine.inOut', yoyo: true, repeat: 15, immediateRender: false}, ${R(t.start + 0.4)})`)
       a.push(`tl.fromTo('#${id}ja', {scale: 0, rotation: -20}, {scale: 1, rotation: 8, duration: 0.4, ease: 'back.out(3)'}, ${R(t.start + 0.45)})`)
       a.push(`tl.to('#${id}ja', {scale: 1.12, duration: 0.25, ease: 'sine.inOut', yoyo: true, repeat: 3}, ${R(t.start + 0.85)})`)
       sfx.push({ at: R(t.start + 0.45), kind: 'boing' })
     }
-    if ((sc.pose ?? 'explain') === 'explain' && !sc.joke) {
+    if (svg && (sc.pose ?? 'explain') === 'explain' && !sc.joke) {
       a.push(`tl.fromTo('#foreR', {rotation: ${p.fR}}, {rotation: ${p.fR - 22}, duration: 0.45, ease: 'sine.inOut', yoyo: true, repeat: ${Math.max(1, Math.floor((t.duration - 0.8) / 0.45))}, immediateRender: false}, ${R(t.start + 0.5)})`)
     }
     beats.forEach((b, k) => {
-      a.push(`tl.fromTo('#head', {rotation: ${p.head + (k % 2 ? 3 : -3)}}, {rotation: ${p.head}, duration: 0.3, ease: 'power2.out', immediateRender: false}, ${R(b[0].start)})`)
+      if (svg) a.push(`tl.fromTo('#head', {rotation: ${p.head + (k % 2 ? 3 : -3)}}, {rotation: ${p.head}, duration: 0.3, ease: 'power2.out', immediateRender: false}, ${R(b[0].start)})`)
     })
     lip(sc.narration, voiceAt, t.voice)
 
@@ -437,6 +464,8 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #fff4d
 .ct { text-align: center; font-size: ${vertical ? 68 : 66}px; line-height: 1.12; font-weight: 900; letter-spacing: -0.015em; }
 .w { display: inline-block; padding: 0 0.1em; border-radius: 0.18em; color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,0.45); }
 .w.key { color: var(--accent); }
+#ch.host { width: 100%; height: 100%; border-radius: 36px; overflow: hidden; background: #fff4dc; border: 8px solid var(--line); box-shadow: 0 12px 0 rgba(0,0,0,0.3); }
+#ch.host img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; }
 #char { position: absolute; left: ${ch.left}px; top: ${ch.top}px; width: ${ch.w}px; height: ${ch.h}px; z-index: 6; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.35)); }
 .title { text-align: center; padding: 0 70px; font-size: ${vertical ? 120 : 140}px; line-height: 1.04; font-weight: 900; letter-spacing: -0.03em; color: var(--line); }
 .title .tw { display: inline-block; }
@@ -451,7 +480,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #fff4d
 ${clipHtml.join('\n')}
 ${scenes.join('\n')}
 <div id="capband"></div>
-<div id="char">${characterSvg(th.accent2)}</div>
+<div id="char">${host ? `<div id="ch" class="host"><img id="hostimg" src="${esc(host)}" alt=""></div>` : characterSvg(th.accent2)}</div>
 <div id="barwrap"><div id="bar"></div></div>
 <audio id="mix" src="${esc(input.audio)}" data-start="0" data-duration="${tl.total}" data-volume="1"></audio>
 </div>

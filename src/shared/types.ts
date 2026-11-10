@@ -261,8 +261,12 @@ export interface Task {
     format: 'horizontal' | 'vertical'
     topic: string
     source?: string
-    style?: 'dinamico' | 'cartoon'
+    style?: 'dinamico' | 'cartoon' | 'mixto'
     film?: string
+    /** Personaje elegido en el selector (id de src/main/videoCharacters.ts). */
+    character?: string
+    /** Tipo elegido en el selector (en una película: cómo se cuenta). */
+    kind?: 'rapido' | 'presentador' | 'mixto'
     work?: string
     /** «personajes fijos»: las imágenes adjuntas se guardaron como personajes del proyecto (carpeta «personajes»). */
     saveCast?: boolean
@@ -1405,6 +1409,28 @@ export type MobileOnlyEvent = EventBase & { kind: 'attachments.updated'; project
 
 // ---------- API expuesta por el preload (window.cowork) ----------
 
+/** Un personaje de los vídeos (src/main/videoCharacters.ts): los robots de kywai o uno creado por el usuario. */
+export interface VideoCharacterInfo {
+  id: string
+  name: string
+  /** Lo que escribió el usuario al crearlo (puede estar vacío si solo dio imágenes). */
+  description: string
+  /** Miniatura (data: URL) o vacío. */
+  thumb: string
+  images: number
+  /** De fábrica (los robots): no se puede borrar. */
+  builtin?: boolean
+}
+
+/** Un personaje nuevo: nombre y descripción, imágenes (base64, ya reducidas por la interfaz) o las dos cosas. */
+export interface VideoCharacterInput {
+  name: string
+  description?: string
+  images?: { name: string; data: string }[]
+  /** Miniatura en JPEG, en base64. */
+  thumb?: string
+}
+
 /** Lo que tiene el equipo del servidor para montar vídeos (src/main/videoStudio.ts). */
 export interface VideoStudioStatus {
   /** HyperFrames y GSAP instalados en la carpeta del estudio. */
@@ -1602,6 +1628,12 @@ export interface CoworkApi {
   videoStudioStatus(): Promise<VideoStudioStatus>
   /** Instala lo que falte del estudio de vídeo (puede tardar varios minutos) y dice cómo fue cada paso. */
   installVideoStudio(): Promise<{ status: VideoStudioStatus; log: string[] }>
+  /** Personajes de los vídeos (para todos los proyectos): los robots de kywai y los creados por el usuario. */
+  listVideoCharacters(): Promise<VideoCharacterInfo[]>
+  /** Crea un personaje (nombre con descripción, imágenes o ambas) y devuelve la lista con él. */
+  addVideoCharacter(input: VideoCharacterInput): Promise<{ id: string; characters: VideoCharacterInfo[] }>
+  /** Borra un personaje creado por el usuario. */
+  removeVideoCharacter(id: string): Promise<VideoCharacterInfo[]>
   /** Mods instalados: sus órdenes «/…», hooks y paneles. */
   listMods(): Promise<ModInfo[]>
   /** Instala un mod desde un enlace de GitHub a su carpeta (con kywai-mod.json). */

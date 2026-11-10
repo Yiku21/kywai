@@ -14,6 +14,7 @@ import {
   buildComposition,
   THEMES,
   buildTimeline,
+  hasPresenter,
   spokenText,
   synthMusic,
   synthSfx,
@@ -446,7 +447,7 @@ async function geminiSpeak(text: string, tone: string, voiceName: string, out: s
 /** Cómo debe sonar cada escena (instrucción para la voz de Gemini, en inglés: la entiende mejor). */
 function voiceTone(style: VideoScript['style'], joke: boolean): string {
   if (joke) return 'Say this as a joke, playful and funny, with a little laugh, like a friendly YouTuber'
-  if (style === 'cartoon') return 'Say this warmly and with energy, like a friendly, upbeat YouTuber explaining a tutorial to a friend, natural and smiling'
+  if (style === 'cartoon' || style === 'mixto') return 'Say this warmly and with energy, like a friendly, upbeat YouTuber explaining a tutorial to a friend, natural and smiling'
   return 'Say this clearly and with a lively, upbeat tone, at a relaxed natural pace, like a friendly short-video creator talking to the viewer'
 }
 
@@ -696,8 +697,11 @@ export async function renderVideo(input: {
   signal?: AbortSignal
   /** Imágenes de referencia del usuario (rutas absolutas): Gemini las ve para copiar el estilo. */
   refs?: string[]
-  /** Personajes fijos del proyecto: sus imágenes (Gemini las ve) y su descripción si ya existe (si no, la del guion). */
-  cast?: { images: string[]; notes?: string }
+  /**
+   * Personajes del vídeo (los fijos del proyecto o el elegido): sus imágenes (Gemini las ve) y su descripción si ya
+   * existe (si no, la del guion). Con presentador, el elegido (con `name`) hace de presentador.
+   */
+  cast?: { images: string[]; notes?: string; name?: string }
   /** Paso en marcha (texto en español con {huecos}, para traducirlo con tr) y avance de 0 a 1. */
   onStep?: (text: string, progress: number, vars?: Record<string, string | number>) => void
 }): Promise<RenderedVideo> {
@@ -719,7 +723,7 @@ export async function renderVideo(input: {
   copyFileSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js'), join(dir, 'assets', 'gsap.min.js'))
   writeFileSync(join(dir, 'guion.json'), JSON.stringify({ format, ...script }, null, 2))
 
-  const cartoon = script.style === 'cartoon'
+  const cartoon = hasPresenter(script.style)
   const refs = (input.refs ?? []).filter((f) => existsSync(f))
   const castImages = (input.cast?.images ?? []).filter((f) => existsSync(f))
   const castText = script.cast || input.cast?.notes
@@ -786,7 +790,7 @@ export async function renderVideo(input: {
   // Con Manim, las escenas que traen su animación no necesitan imagen.
   const useManim = manimInstalled() && script.scenes.some((sc) => !!sc.manim)
   const shotPrompts = script.scenes.map((sc) =>
-    useManim && sc.manim ? [] : cartoon ? (sc.shots?.length ? sc.shots : sc.image ? [sc.image] : []) : sc.image ? [sc.image] : []
+    useManim && sc.manim ? [] : sc.text ? [] : cartoon ? (sc.shots?.length ? sc.shots : sc.image ? [sc.image] : []) : sc.image ? [sc.image] : []
   )
   const shots: (string | null)[][] = shotPrompts.map((list) => list.map(() => null))
   // ComfyUI en este equipo va primero (gratis y local); si una imagen falla, la pide Gemini (con clave).
@@ -826,7 +830,22 @@ export async function renderVideo(input: {
       if (code) rawClips[i] = await renderManim(code, i + 1, format, THEMES[script.theme].bg, dir, signal)
     }
   }
-  await Promise.all([doVoices(), doImages(), doManim()])
+  // El presentador, si es un personaje elegido: su imagen en el estilo del vídeo (o, si no se puede generar, su
+  // primera imagen de referencia). Sin ninguna de las dos, el presentador dibujado de siempre.
+  let presenter: string | undefined
+  const doPresenter = async (): Promise<void> => {
+    if (!cartoon || !input.cast?.name || !cast) return
+    const prompt = `${input.cast.name}, as the friendly host of a video, waist-up, facing the camera, smiling, one hand raised mid-gesture, centered, simple soft plain background`
+    const out = join(dir, 'assets', 'presentador.png')
+    if (comfy && (await comfyImage(comfy, imagePromptText(prompt, false, script.look, refs.length > 0, castText), true, out, { signal }))) presenter = 'assets/presentador.png'
+    else if (key && (await geminiImage(prompt, 'vertical', out, key, false, signal, script.look, refs, cast))) presenter = 'assets/presentador.png'
+    else if (castImages.length) {
+      const ext = castImages[0].split('.').pop()!.toLowerCase()
+      copyFileSync(castImages[0], join(dir, 'assets', `presentador.${ext}`))
+      presenter = `assets/presentador.${ext}`
+    }
+  }
+  await Promise.all([doVoices(), doImages(), doManim(), doPresenter()])
   if (signal?.aborted) throw new Error('Cancelada')
   const durations: number[] = []
   for (const v of voices) durations.push(await duration(v))
@@ -844,7 +863,7 @@ export async function renderVideo(input: {
   // 3. Música y mezcla.
   if (signal?.aborted) throw new Error('Cancelada')
   step('Componiendo la música y mezclando', 0.55)
-  const compInput = { script, format, timeline: tl, images, shots, clips, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js' }
+  const compInput = { script, format, timeline: tl, images, shots, clips, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js', ...(presenter ? { presenter } : {}) }
   const comp = cartoon ? buildCartoonComposition(compInput) : buildComposition(compInput)
   writeFileSync(join(dir, 'musica.wav'), synthMusic(tl.total, script.title))
   writeFileSync(join(dir, 'efectos.wav'), synthSfx(comp.sfx, tl.total))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FILM_CATEGORIES, FILM_STYLES, findFilmStyle, isVideoCommand, KYWAI_FILM, takeFilmStyle, videoStyleOf, withVideoStyle } from './filmStyles'
+import { FILM_CATEGORIES, FILM_STYLES, findFilmStyle, isVideoCommand, KYWAI_FILM, takeFilmStyle } from './filmStyles'
 
 describe('catálogo de estilos de película', () => {
   it('tiene los 66 de la biblioteca, el de los robots y los 6 propios de kywai, sin repetir', () => {
@@ -33,22 +33,10 @@ describe('catálogo de estilos de película', () => {
   })
 })
 
-describe('selector de estilos del cuadro de texto', () => {
-  it('reconoce la orden y el estilo marcado', () => {
+describe('orden del cuadro de texto', () => {
+  it('reconoce «/video»', () => {
     expect(isVideoCommand('/video la luna')).toBe(true)
     expect(isVideoCommand('/vídeo')).toBe(true)
     expect(isVideoCommand('/videos')).toBe(false)
-    expect(videoStyleOf('/video estilo:watercolor la luna')).toBe('watercolor')
-    expect(videoStyleOf('/video estilo:cartoon la luna')).toBe('cartoon')
-    expect(videoStyleOf('/video la luna')).toBe('dinamico')
-    expect(videoStyleOf('/video estilo:nada la luna')).toBe('dinamico')
-  })
-
-  it('pone, cambia y quita la marca detrás de /video', () => {
-    expect(withVideoStyle('/video ', 'pixel-rpg')).toBe('/video estilo:pixel-rpg ')
-    expect(withVideoStyle('/video la luna', 'watercolor')).toBe('/video estilo:watercolor la luna')
-    expect(withVideoStyle('/video estilo:watercolor la luna', 'ukiyoe')).toBe('/video estilo:ukiyoe la luna')
-    expect(withVideoStyle('/video estilo:watercolor la luna', 'dinamico')).toBe('/video la luna')
-    expect(withVideoStyle('/video la luna estilo:watercolor', 'cartoon')).toBe('/video estilo:cartoon la luna')
   })
 })

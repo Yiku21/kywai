@@ -2,15 +2,19 @@
 // HTML de HyperFrames que sale de él (escenas, rótulos, subtítulos, transiciones). El agente solo escribe el guion;
 // voz, imágenes, música y montaje los hace kywai siempre igual (videoStudio.ts), para que el resultado no dependa de
 // que el agente improvise.
-import { takeFilmStyle } from '../shared/filmStyles'
+import { KYWAI_FILM, takeFilmStyle } from '../shared/filmStyles'
+import { ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, type VideoKind } from '../shared/videoChoice'
 
 export type VideoFormat = 'horizontal' | 'vertical'
 
 export const VIDEO_THEMES = ['noche', 'amanecer', 'oceano', 'bosque', 'neon', 'papel'] as const
 export type VideoTheme = (typeof VIDEO_THEMES)[number]
 
-/** «dinamico»: texto grande al estilo TikTok. «cartoon»: un personaje dibujado que lo explica (tutoriales con humor). */
-export const VIDEO_STYLES = ['dinamico', 'cartoon'] as const
+/**
+ * «dinamico»: texto grande al estilo TikTok. «cartoon»: un personaje dibujado que lo explica (tutoriales con humor).
+ * «mixto»: el presentador y golpes de texto grande alternados.
+ */
+export const VIDEO_STYLES = ['dinamico', 'cartoon', 'mixto'] as const
 export type VideoStyle = (typeof VIDEO_STYLES)[number]
 
 /** Lo que hace el personaje del estilo cartoon en cada escena. */
@@ -36,6 +40,8 @@ export interface VideoScene {
   manim?: string
   /** Con FreeVideo: qué se mueve en la imagen (en inglés). La escena pasa a ser un clip con movimiento. */
   motion?: string
+  /** Estilo mixto: escena de golpe de texto grande (sin planos; el presentador se aparta). */
+  text?: boolean
 }
 
 /** Escenas a las que FreeVideo da movimiento como mucho (cada clip tarda minutos). */
@@ -113,6 +119,7 @@ export function parseVideoScript(text: string): VideoScript {
     if (manim && manim.length <= 8000 && /class\s+Escena\s*\(/.test(manim) && scenes.filter((x) => x.manim).length < MAX_MANIM) scene.manim = manim
     const motion = clean(o.motion, 300)
     if (motion && !scene.manim && scenes.filter((x) => x.motion).length < MAX_MOTION) scene.motion = motion
+    if (o.mode === 'texto' || o.mode === 'text') scene.text = true
     scenes.push(scene)
   }
   if (scenes.length < MIN_SCENES) throw new Error(`El guion necesita al menos ${MIN_SCENES} escenas con «narration» (tiene ${scenes.length}).`)
@@ -144,14 +151,20 @@ type PromptInput = {
   refs?: string[]
   /** FreeVideo está en el equipo: el guion puede pedir movimiento en las escenas clave. */
   motion?: boolean
-  /** Personajes fijos del proyecto (carpeta «personajes»): sus imágenes y, si ya se escribió, su descripción. */
-  cast?: { images: string[]; notes?: string }
+  /**
+   * Personajes del vídeo: los fijos del proyecto (carpeta «personajes») o el elegido en el selector. Sus imágenes, su
+   * aspecto si ya se escribió y, en el elegido, su nombre y lo que contó el usuario de él.
+   */
+  cast?: { images: string[]; notes?: string; name?: string; about?: string }
 }
+
+/** El vídeo lleva presentador (dibujos con presentador o mixto). */
+export const hasPresenter = (style: VideoStyle | undefined): boolean => style === 'cartoon' || style === 'mixto'
 
 /** Reglas del bloque de estilo y del movimiento (comunes a los dos estilos rápidos). */
 function lookRules(input: PromptInput): string[] {
   // En el estilo con presentador el dibujo es siempre el mismo, salvo que el usuario dé referencias.
-  const look = input.style !== 'cartoon' || !!input.refs?.length
+  const look = !hasPresenter(input.style) || !!input.refs?.length || !!input.cast
   return [
     !look
       ? ''
@@ -170,12 +183,17 @@ function lookRules(input: PromptInput): string[] {
 /** Reglas de los personajes fijos (los de la carpeta «personajes» del proyecto): salen iguales en todos los vídeos. */
 function castRules(input: PromptInput): string[] {
   const c = input.cast
-  if (!c || (!c.images.length && !c.notes)) return []
+  if (!c || (!c.images.length && !c.notes && !c.about)) return []
+  const who = c.name ? `el personaje elegido para este vídeo, ${c.name}` : 'los personajes fijos de esta serie'
+  const from = [
+    c.images.length ? `sus imágenes (${c.images.join(', ')}): ábrelas y míralas` : '',
+    c.about ? `lo que cuenta el usuario de él: «${c.about}»` : ''
+  ].filter(Boolean).join(', y ')
   return [
     c.notes
-      ? `- "cast": los personajes fijos de esta serie. Copia EXACTAMENTE esta descripción (no la cambies; sale igual en todos los vídeos): ${c.notes}`
-      : `- "cast": los personajes fijos de esta serie, sacados de sus imágenes (${c.images.join(', ')}): ábrelas y míralas. Para cada uno, en inglés: «Nombre: edad aparente, cara, pelo, ropa exacta y colores, rasgos que lo distinguen» (de 15 a 40 palabras cada uno, sin el estilo de dibujo). Esa descripción se guarda y se repite igual en todos los vídeos, así que sé concreto.`,
-    '- Los personajes fijos son los protagonistas: salen en la mayoría de las escenas. En "image" (y "shots") nómbralos por su nombre y di qué hacen y dónde; no vuelvas a describir cómo son (ya va en "cast"). Siempre con la misma ropa.'
+      ? `- "cast": ${who}. Copia EXACTAMENTE esta descripción (no la cambies; sale igual en todos los vídeos): ${c.notes}`
+      : `- "cast": ${who}, sacado de ${from}. Para cada personaje, en inglés: «Nombre: edad aparente o tipo (persona, animal, robot…), cara, pelo, cuerpo, ropa exacta y colores, rasgos que lo distinguen» (de 15 a 40 palabras cada uno, SIN el estilo de dibujo: el estilo lo pone el vídeo). Esa descripción se guarda y se repite igual en todos los vídeos, así que sé concreto.`,
+    '- Son los protagonistas: salen en la mayoría de las escenas. En "image" (y "shots") nómbralos por su nombre y di qué hacen y dónde; no vuelvas a describir cómo son (ya va en "cast"). Siempre con la misma ropa.'
   ]
 }
 
@@ -188,7 +206,7 @@ function manimRules(format: VideoFormat, manim: { latex: boolean }, cartoon = fa
 }
 
 export function videoScriptPrompt(input: PromptInput): string {
-  if (input.style === 'cartoon') return cartoonScriptPrompt(input)
+  if (hasPresenter(input.style)) return cartoonScriptPrompt(input)
   const seconds = input.format === 'vertical' ? '30 a 45' : '40 a 70'
   return [
     'Escribe el guion de un vídeo corto. kywai pondrá la voz, las imágenes, la música, las animaciones y el montaje: tú solo escribes el guion.',
@@ -222,8 +240,10 @@ export function videoScriptPrompt(input: PromptInput): string {
 /** Encargo del estilo cartoon: un tutorial que explica un personaje, con pasos claros y alguna broma. */
 function cartoonScriptPrompt(input: PromptInput): string {
   const seconds = input.format === 'vertical' ? '40 a 70' : '50 a 100'
+  const mixed = input.style === 'mixto'
+  const host = input.cast?.name ? `${input.cast.name} (el personaje elegido)` : input.cast ? 'el personaje fijo de la serie' : 'un personaje cartoon (un presentador simpático con gafas)'
   return [
-    'Escribe el guion de un vídeo de dibujos animados en el que un personaje cartoon (un presentador simpático con gafas) lo explica todo hablando a cámara. kywai dibuja y anima al personaje, pone la voz, las ilustraciones, la música y el montaje: tú solo escribes el guion.',
+    `Escribe el guion de un vídeo de dibujos animados en el que ${host} lo explica todo hablando a cámara${mixed ? ', alternando con golpes de texto grande con ritmo, como en TikTok' : ''}. kywai dibuja y anima al personaje, pone la voz, las ilustraciones, la música y el montaje: tú solo escribes el guion.`,
     '',
     `Tema: ${input.topic}`,
     ...(input.source ? ['', 'El vídeo trata de este mensaje (explícalo bien, sin copiarlo entero):', ', input.source.slice(0, 6000), '] : []),
@@ -240,6 +260,11 @@ function cartoonScriptPrompt(input: PromptInput): string {
     '- "heading": lo que se ve escrito en la ilustración: la instrucción en 2 a 5 palabras («Desenchufa el PC», «Abre las pestañas»).',
     `- "pose": el gesto del personaje, uno de ${CHARACTER_POSES.map((p) => `"${p}"`).join(', ')} (explain: explica; point: señala la ilustración; surprised: se sorprende; laugh: se ríe; shrug: se encoge de hombros; thumbs: pulgar arriba; think: piensa; wave: saluda). Varíalos y que encajen con lo que dice; "point" cuando hay que mirar algo concreto.`,
     '- Es un tutorial VISUAL: lo importante es lo que se ve. "shots": de 1 a 3 ilustraciones de la escena, descritas en inglés, cada una en una frase concreta: en un paso, primero el plano general (dónde estamos) y después el primer plano de la acción exacta (manos, piezas, la pestaña, la muesca…) y, si ayuda, el detalle o el resultado. Lo importante de cada plano, en el CENTRO de la imagen (ahí se pone el círculo de «mira aquí»). Sin personas de cuerpo entero ni caras, sin texto, letras ni logotipos. En el gancho, las bromas y el resumen basta con 1.',
+    ...(mixed
+      ? [
+          '- Es un vídeo MIXTO: alterna escenas del presentador con escenas de golpe de texto ("mode": "texto"), más o menos una de cada tres, nunca dos de texto seguidas. El gancho puede ser de texto. En una escena de texto el presentador se aparta y en pantalla salen, una a una, las palabras de "heading" en grande (de 2 a 5 palabras con fuerza, sin "shots"); la voz sigue hablando ("narration", una frase corta y rotunda). Las demás escenas llevan "mode": "presentador".'
+        ]
+      : []),
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}; para dibujos van mejor "papel", "amanecer" u "oceano".`,
     '- "outro": frase final corta y con gracia.',
     ...lookRules(input),
@@ -250,7 +275,7 @@ function cartoonScriptPrompt(input: PromptInput): string {
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", ' + (input.refs?.length ? '"look": "…", ' : '') + (input.cast ? '"cast": "…", ' : '') + '"scenes": [{"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "style": "' + (mixed ? 'mixto' : 'cartoon') + '", "theme": "papel", ' + (input.refs?.length || input.cast ? '"look": "…", ' : '') + (input.cast ? '"cast": "…", ' : '') + '"scenes": [{' + (mixed ? '"mode": "presentador", ' : '') + '"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -266,6 +291,10 @@ export interface VideoRequest {
   film?: string
   /** «personajes fijos», «guarda estos personajes»: las imágenes adjuntas pasan a ser los personajes del proyecto. */
   saveCast?: boolean
+  /** Personaje elegido en el selector («personaje:…»): los robots o uno creado por el usuario. */
+  character?: string
+  /** Tipo elegido en el selector («tipo:…»); sin él, en una película el agente decide cómo contarla. */
+  kind?: VideoKind
 }
 
 /** «con estos personajes fijos», «guarda los personajes», «estos son mis personajes», «same characters». */
@@ -301,14 +330,23 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     topic = m[1].trim()
   }
   const format = formatOf(t)
+  // Lo elegido en el selector: «tipo:…» y «personaje:…» (y «estilo:cartoon|dinamico», las marcas de antes). «estilo:…»
+  // de la biblioteca se queda en el texto: lo lee takeFilmStyle.
+  const choice = videoChoiceOf(topic)
+  const kindTag = /(^|\s)(?:tipo:[a-z0-9-]+|estilo:(?:cartoon|dinamico))(?=\s|$)/i.test(topic)
+  const charTag = /(^|\s)personaje:[a-z0-9-]+(?=\s|$)/i.test(topic)
+  if (kindTag || charTag) {
+    const film = /(^|\s)estilo:([a-z0-9-]+)(?=\s|$)/i.exec(topic)
+    topic = stripVideoTags(topic).replace(/\s{2,}/g, ' ').trim()
+    if (film && choice.style) topic = `estilo:${choice.style} ${topic}`.trim()
+  }
+  const kind = kindTag ? choice.kind : undefined
+  const kindStyle: VideoStyle | undefined = kind ? (kind === 'presentador' ? 'cartoon' : kind === 'mixto' ? 'mixto' : 'dinamico') : undefined
   // «personajes fijos»: no es parte del tema ni pide el estilo de dibujos (que también se activa con «personajes»).
   const castM = CAST_RE.exec(topic)
   const saveCast = !!castM
   if (castM) topic = (topic.slice(0, castM.index) + ' ' + topic.slice(castM.index + castM[0].length)).replace(/\s{2,}/g, ' ').replace(/^[\s,:;]+|[\s,:;]+$/g, '').trim()
   const tNoCast = castM ? t.replace(castM[0], ' ') : t
-  // «estilo:cartoon» / «estilo:dinamico»: lo pone el selector de estilos para los dos rápidos.
-  const quick = /(^|\s)estilo:(cartoon|dinamico)(?=\s|$)/i.exec(topic)
-  if (quick) topic = (topic.slice(0, quick.index) + quick[1] + topic.slice(quick.index + quick[0].length)).replace(/\s{2,}/g, ' ').trim()
   // «estilo acuarela sobre…», «estilo:pixel-rpg …»: un estilo de la biblioteca de películas.
   const film = takeFilmStyle(topic)
   if (film) topic = film.rest
@@ -321,15 +359,18 @@ export function parseVideoRequest(text: string): VideoRequest | null {
   if (film) {
     const rest = stripped.replace(/^(?:(?:de|sobre|con|para|acerca de)\s+)/i, '').trim()
     const prev = !rest || PREVIOUS_RE.test(rest)
-    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: 'dinamico', film: film.style.slug, ...(saveCast ? { saveCast } : {}) }
+    // El estilo pintado a mano, sin otro personaje, lleva los robots.
+    const fc = charTag ? choice.character : film.style.slug === KYWAI_FILM ? ROBOTS_CHARACTER : null
+    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: kindStyle ?? 'dinamico', film: film.style.slug, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(fc ? { character: fc } : {}) }
   }
   // «estilo cartoon de…», «de dibujos animados sobre…»: el estilo no es parte del tema.
-  const style: VideoStyle = quick ? (quick[2].toLowerCase() as VideoStyle) : CARTOON_RE.test(tNoCast) ? 'cartoon' : 'dinamico'
+  const style: VideoStyle = kindStyle ?? (CARTOON_RE.test(tNoCast) ? 'cartoon' : 'dinamico')
   const bare = stripped
     .replace(/^(?:(?:al?|en|con|de)\s+)?(?:estilo|tipo|formato)?\s*(?:cartoon|caricatura|dibujos?(?:\s+animados?)?|animado|tutorial)\s*(?:(?:de|sobre|con|para)\s+)?/i, '')
     .trim()
   const fromPrevious = !bare || PREVIOUS_RE.test(bare)
-  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(saveCast ? { saveCast } : {}) }
+  const character = charTag ? choice.character : null
+  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}) }
 }
 
 // ---------- composición ----------
@@ -470,6 +511,8 @@ export interface CompositionInput {
   audio: string
   /** Ruta relativa de gsap.min.js. */
   gsap: string
+  /** Con presentador: la imagen del personaje elegido (relativa). Sin ella, el presentador dibujado de siempre. */
+  presenter?: string
 }
 
 export type SfxKind = 'whoosh' | 'pop' | 'impact' | 'riser' | 'boing'
@@ -522,7 +565,7 @@ export function buildComposition(input: CompositionInput): Composition {
   const titleWords = script.title.split(/\s+/).filter(Boolean)
   const slam = Math.min(0.28, 1.3 / Math.max(1, titleWords.length))
   html.push(`<section id="intro" class="clip scene" data-start="0" data-duration="${R(tl.intro + 0.3)}">
-  <div class="burst"></div><div class="burst bb"></div>
+  <div class="burst"></div>
   <h1 class="title">${titleWords.map((w, i) => `<span class="tw" id="tw${i}">${esc(w)}</span>`).join(' ')}</h1>
 </section>`)
   titleWords.forEach((_, i) => {

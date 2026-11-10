@@ -20,8 +20,18 @@ describe('parseVideoRequest', () => {
     expect(parseVideoRequest('/video estilo:pixel-rpg vertical cómo se hace el pan')).toMatchObject({ topic: 'cómo se hace el pan', format: 'vertical', film: 'pixel-rpg' })
     expect(parseVideoRequest('hazme un vídeo de los robots de kywai, estilo kywai')).toMatchObject({ topic: 'los robots de kywai', film: 'kywai-pintado' })
     expect(parseVideoRequest('/video estilo:ukiyoe de esto')).toMatchObject({ fromPrevious: true, film: 'ukiyoe' })
-    expect(parseVideoRequest('/video estilo:cartoon la luna')).toEqual({ topic: 'la luna', format: 'horizontal', fromPrevious: false, style: 'cartoon' })
-    expect(parseVideoRequest('/video estilo:dinamico la luna')).toEqual({ topic: 'la luna', format: 'horizontal', fromPrevious: false, style: 'dinamico' })
+    expect(parseVideoRequest('/video estilo:cartoon la luna')).toEqual({ topic: 'la luna', format: 'horizontal', fromPrevious: false, style: 'cartoon', kind: 'presentador' })
+    expect(parseVideoRequest('/video estilo:dinamico la luna')).toEqual({ topic: 'la luna', format: 'horizontal', fromPrevious: false, style: 'dinamico', kind: 'rapido' })
+  })
+
+  it('lee el tipo, el personaje y el estilo del selector', () => {
+    expect(parseVideoRequest('/video tipo:mixto personaje:robots-kywai la luna')).toEqual({ topic: 'la luna', format: 'horizontal', fromPrevious: false, style: 'mixto', kind: 'mixto', character: 'robots-kywai' })
+    expect(parseVideoRequest('/video tipo:presentador personaje:dona-rosa-3f9a estilo:watercolor vertical el pan')).toMatchObject({ topic: 'el pan', format: 'vertical', film: 'watercolor', kind: 'presentador', character: 'dona-rosa-3f9a' })
+    // Un tema que habla de personajes no pide por eso el presentador si se eligió el tipo rápido.
+    expect(parseVideoRequest('/video tipo:rapido los personajes de Cervantes')).toMatchObject({ topic: 'los personajes de Cervantes', style: 'dinamico' })
+    // El estilo pintado a mano lleva los robots salvo que se elija «ninguno».
+    expect(parseVideoRequest('/video estilo:kywai-pintado la luna')).toMatchObject({ film: 'kywai-pintado', character: 'robots-kywai' })
+    expect(parseVideoRequest('/video personaje:ninguno estilo:kywai-pintado la luna')).not.toHaveProperty('character')
   })
 
   it('reconoce la orden y las frases habituales', () => {
@@ -188,6 +198,31 @@ describe('estilo cartoon', () => {
     for (const k of [0, 1, 2]) expect(html).toContain(`id="s2k${k}"`)
     expect(html).toContain('id="s2k2ring"')
     expect(html).not.toContain('id="s2k0ring"')
+  })
+
+  it('con un personaje elegido, el presentador es su imagen; en mixto, las escenas de texto lo apartan', () => {
+    const script = parseVideoScript(JSON.stringify({ title: 't', style: 'mixto', scenes: [
+      { mode: 'presentador', narration: 'Hola, soy Rosa', heading: 'Hola', shots: ['a'] },
+      { mode: 'texto', narration: 'Esto lo cambia todo', heading: 'Lo cambia todo', shots: ['no'] },
+      { mode: 'presentador', narration: 'Y ahora, el paso uno', heading: 'Paso uno', shots: ['b'] }
+    ] }))
+    expect(script.style).toBe('mixto')
+    expect(script.scenes.map((x) => !!x.text)).toEqual([false, true, false])
+    const { html } = buildCartoonComposition({ script, format: 'horizontal', timeline: buildTimeline([3, 3, 3]), images: ['x.png', 'y.png', 'z.png'], audio: 'a.wav', gsap: 'g.js', presenter: 'assets/presentador.png' })
+    expect(html).toContain('id="hostimg" src="assets/presentador.png"')
+    expect(html).not.toContain('id="mouth"')
+    expect(html).not.toContain("'#armL'")
+    // La escena de texto lleva las palabras en grande y no su imagen.
+    expect(html).toContain('id="s2bw0"')
+    expect(html).not.toContain('src="y.png"')
+  })
+
+  it('el encargo mixto pide alternar presentador y golpes de texto, y nombra al personaje', () => {
+    const p = videoScriptPrompt({ topic: 'el pan', format: 'vertical', lang: 'es', style: 'mixto', cast: { images: ['/r/rosa.png'], name: 'Doña Rosa', about: 'abuela panadera' } })
+    expect(p).toContain('"mode": "texto"')
+    expect(p).toContain('Doña Rosa (el personaje elegido)')
+    expect(p).toContain('abuela panadera')
+    expect(p).toContain('/r/rosa.png')
   })
 
   it('lee hasta 3 planos y el primero hace de imagen', () => {

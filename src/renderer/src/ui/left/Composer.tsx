@@ -17,8 +17,9 @@ import { commandQuery, templatesFor } from '@shared/templates'
 import { commandSuggestions, REMEMBER_COMMAND, rememberInput, type CommandIcon } from '@shared/chatCommands'
 import { useMods } from './ModsView'
 import { TemplateBar } from './TemplateBar'
-import { FilmStylePicker } from './FilmStylePicker'
-import { isVideoCommand, videoStyleOf, withVideoStyle } from '@shared/filmStyles'
+import { VideoPicker } from './VideoPicker'
+import { isVideoCommand } from '@shared/filmStyles'
+import { videoChoiceOf, withVideoChoice } from '@shared/videoChoice'
 import u from '../common/ui.module.css'
 import s from './Composer.module.css'
 import { lang, t } from '@/lib/i18n'
@@ -134,7 +135,7 @@ export function Composer() {
     if (!suggestOpen) return
     document.getElementById(mentionList.length > 0 ? `composer-mention-${mentionSel}` : `composer-command-${mentionSel}`)?.scrollIntoView?.({ block: 'nearest' })
   }, [mentionSel, suggestOpen, mentionList.length])
-  // «/video …»: encima del cuadro, el selector de estilo con una muestra de cada uno. Se abre solo al empezar la orden.
+  // «/video …»: encima del cuadro, el selector en tres pasos (tipo, personaje y estilo). Se abre solo al empezar la orden.
   const videoCmd = isVideoCommand(text) && !!api
   const [stylesOpen, setStylesOpen] = useState(false)
   const videoStarted = /^\s*\/v[ií]deo\s$/i.test(text)
@@ -481,14 +482,15 @@ export function Composer() {
       )}
 
       {videoCmd && !cmdOpen && (
-        <FilmStylePicker
-          value={videoStyleOf(text)}
+        <VideoPicker
+          api={api!}
+          value={videoChoiceOf(text)}
           open={stylesOpen}
           onOpen={(o) => {
             setStylesOpen(o)
             if (!o) taRef.current?.focus()
           }}
-          onChoose={(v) => setText(withVideoStyle(text, v))}
+          onChoose={(v) => setText(withVideoChoice(text, v))}
         />
       )}
 

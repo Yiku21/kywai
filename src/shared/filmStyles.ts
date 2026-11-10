@@ -39,7 +39,7 @@ export interface FilmStyle {
 }
 
 export const FILM_CATEGORIES: { id: FilmCategory; name: string; en: string }[] = [
-  { id: 'kywai', name: 'Robots de kywai', en: 'kywai robots' },
+  { id: 'kywai', name: 'Hecho por kywai', en: 'Made by kywai' },
   { id: 'dibujo', name: 'Dibujo y pintura', en: 'Hand-drawn & painting' },
   { id: 'animacion', name: 'Dibujos animados y anime', en: 'Cartoon & anime' },
   { id: 'juegos', name: 'Videojuegos', en: 'Games' },
@@ -53,11 +53,11 @@ export const FILM_CATEGORIES: { id: FilmCategory; name: string; en: string }[] =
   { id: 'documental', name: 'Montaje y documental', en: 'Edit & documentary' }
 ]
 
-/** El estilo propio: dibujos pintados a mano con Hermes, Claude, Codex y el resto del equipo como protagonistas. */
+/** El estilo propio: dibujos pintados a mano (sin otro personaje elegido, con Hermes, Claude y Codex de protagonistas). */
 export const KYWAI_FILM = 'kywai-pintado'
 
 export const FILM_STYLES: FilmStyle[] = [
-  { slug: KYWAI_FILM, name: 'Robots de kywai pintados a mano', en: 'kywai hand-painted robots', category: 'kywai', line: 'Dibujos de acuarela y tinta con los robots del equipo como protagonistas; sin texto, todo se cuenta actuando.', lineEn: 'Watercolour-and-ink drawings starring the team robots; no text, everything is told by acting.' },
+  { slug: KYWAI_FILM, name: 'Pintado a mano (acuarela y tinta)', en: 'Hand-painted (watercolour and ink)', category: 'kywai', line: 'Acuarela y tinta que se mueven como dibujos animados; sin texto, todo se cuenta actuando. Sin personaje elegido, salen los robots de kywai.', lineEn: 'Watercolour and ink that move like a cartoon; no text, everything is told by acting. With no character chosen, the kywai robots star.' },
   // Dibujo y pintura
   { slug: 'crayon-book', name: 'Cuento de ceras', en: 'Crayon Picture Book', category: 'dibujo', line: 'Álbum infantil pintado con ceras; ideal para cuentos y explicar a niños.', lineEn: 'A children\'s picture book painted in crayon; great for stories and explaining to kids.' },
   { slug: 'watercolor', name: 'Acuarela', en: 'Watercolor Brush', category: 'dibujo', line: 'Pinceladas de acuarela que se van pintando en un paseo continuo.', lineEn: 'Watercolour strokes painted in one continuous journey.' },
@@ -222,34 +222,11 @@ export function takeFilmStyle(text: string): { style: FilmStyle; rest: string } 
   return null
 }
 
-// ---------- el selector de estilos del cuadro de texto ----------
-
-/** Lo que se elige en el selector: los dos estilos rápidos de siempre o uno de la biblioteca. */
-export type VideoStyleChoice = 'dinamico' | 'cartoon' | string
+// ---------- el selector del cuadro de texto ----------
 
 const VIDEO_CMD = /^\/v[ií]deo(?=\s|$)/i
-const STYLE_TAG = /(^|\s)estilo:([a-z0-9-]+)(?=\s|$)/i
 
 /** ¿Está escribiendo una petición «/video …»? */
 export function isVideoCommand(text: string): boolean {
   return VIDEO_CMD.test(text.trimStart())
-}
-
-/** El estilo marcado en el texto con «estilo:…» (lo pone el selector); sin marca, el rápido. */
-export function videoStyleOf(text: string): VideoStyleChoice {
-  const m = STYLE_TAG.exec(text)
-  if (!m) return 'dinamico'
-  const v = m[2].toLowerCase()
-  return v === 'cartoon' || filmStyle(v) ? v : 'dinamico'
-}
-
-/** Pone (o cambia) «estilo:…» justo detrás de «/video»; el rápido no lleva marca. */
-export function withVideoStyle(text: string, choice: VideoStyleChoice): string {
-  // La marca se quita con su espacio de delante si va al final (si no, quedaría un espacio colgando).
-  const base = text.replace(STYLE_TAG, (all: string, pre: string, _slug: string, at: number, whole: string) => (at + all.length >= whole.length ? '' : pre))
-  const m = /^(\s*\/v[ií]deo)(\s*)([\s\S]*)$/i.exec(base)
-  if (!m) return text
-  const rest = m[3].replace(/^\s+/, '')
-  const tag = choice === 'dinamico' ? '' : `estilo:${choice} `
-  return `${m[1]} ${tag}${rest}`
 }

@@ -99,6 +99,11 @@ import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScr
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
 import { initVideoStudio, ensureVideoStudio, videoStudioStatus } from './videoStudio'
+import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
+// Las imágenes de los robots van empaquetadas con la app: son la referencia del personaje «Robots de kywai».
+import hermesRobot from '../renderer/src/assets/robots/hermes.png?asset'
+import claudeRobot from '../renderer/src/assets/robots/claude.png?asset'
+import codexRobot from '../renderer/src/assets/robots/codex.png?asset'
 import { installCatalogSkill, installSkillLink, installedSkills, mcpCatalog, removeSkill, skillCatalog } from './catalog'
 import { allowModHooks, modPanelResponse, initMods, installModFolder, installModLink, listMods, modPanelHtml, removeMod, setModEnabled } from './mods'
 import { addPluginLink, initPlugins, installCatalogPlugin, listPlugins, pluginCatalog, removeMarketplace, removePlugin } from './plugins'
@@ -842,6 +847,10 @@ function registerIpc(): void {
     })
     return { status, log: log.slice(-60) }
   })
+  // Personajes de los vídeos (para todos los proyectos): los robots y los que crea el usuario en el selector de «/video».
+  handle('listVideoCharacters', () => listVideoCharacters())
+  handle('addVideoCharacter', (input: unknown) => addVideoCharacter(input))
+  handle('removeVideoCharacter', (id: unknown) => removeVideoCharacter(id))
   // Mods: órdenes «/…», hooks (con permiso) y paneles aislados junto al chat.
   handle('listMods', () => listMods())
   handle('installModLink', (url: unknown) => installModLink(url))
@@ -1079,6 +1088,7 @@ async function boot(): Promise<void> {
   initSkills(cfg.workspaceRoot)
   initPonytail(cfg.workspaceRoot)
   initVideoStudio(cfg.workspaceRoot)
+  initVideoCharacters(cfg.workspaceRoot, [hermesRobot, claudeRobot, codexRobot])
   initExtensions(new McpRegistry(join(app.getPath('userData'), 'mcp-servers.json'), systemCipher))
   initPlugins(app.getPath('userData'))
   initTemplates(app.getPath('userData'), { isProject: (id) => store.isValidProjectId(id) && store.listProjects().some((p) => p.id === id) })
