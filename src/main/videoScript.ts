@@ -480,7 +480,8 @@ export interface Composition {
   sfx: { at: number; kind: SfxKind }[]
 }
 
-const TRANSITIONS = ['zoom', 'stripes', 'iris', 'glitch'] as const
+// Sin la de «glitch» (sacudida y cortes): el modo rápido se hacía demasiado intenso.
+const TRANSITIONS = ['zoom', 'stripes', 'iris'] as const
 const BEAT_IN = ['pop', 'up', 'tilt', 'side', 'drop'] as const
 
 /**
@@ -514,10 +515,10 @@ export function buildComposition(input: CompositionInput): Composition {
   a.push(
     `tl.fromTo('#bglife .b1', {x: -200, y: -100, scale: 1}, {x: 260, y: 160, scale: 1.3, duration: ${tl.total}, ease: 'sine.inOut'}, 0)`,
     `tl.fromTo('#bglife .b2', {x: 200, y: 120, scale: 1.2}, {x: -240, y: -140, scale: 0.9, duration: ${tl.total}, ease: 'sine.inOut'}, 0)`,
-    `tl.fromTo('#bglife .ring', {rotation: 0}, {rotation: ${Math.round(tl.total * 18)}, duration: ${tl.total}, ease: 'none'}, 0)`
+    `tl.fromTo('#bglife .ring', {rotation: 0}, {rotation: ${Math.round(tl.total * 6)}, duration: ${tl.total}, ease: 'none'}, 0)`
   )
 
-  // Portada: el título golpea palabra a palabra con sacudida.
+  // Portada: el título entra palabra a palabra, firme pero sin sacudidas.
   const titleWords = script.title.split(/\s+/).filter(Boolean)
   const slam = Math.min(0.28, 1.3 / Math.max(1, titleWords.length))
   html.push(`<section id="intro" class="clip scene" data-start="0" data-duration="${R(tl.intro + 0.3)}">
@@ -526,14 +527,12 @@ export function buildComposition(input: CompositionInput): Composition {
 </section>`)
   titleWords.forEach((_, i) => {
     const at = R(0.15 + i * slam)
-    a.push(`tl.fromTo('#tw${i}', {scale: 3.2, opacity: 0, rotation: ${i % 2 ? 8 : -8}}, {scale: 1, opacity: 1, rotation: 0, duration: 0.22, ease: 'power4.in'}, ${at})`)
-    a.push(`tl.fromTo('#shake', {x: ${i % 2 ? 14 : -14}, y: ${i % 2 ? -8 : 8}}, {x: 0, y: 0, duration: 0.25, ease: 'elastic.out(1.2, 0.3)', immediateRender: false}, ${R(at + 0.22)})`)
-    sfx.push({ at: R(at + 0.2), kind: 'impact' })
+    a.push(`tl.fromTo('#tw${i}', {scale: 1.5, opacity: 0, y: 30}, {scale: 1, opacity: 1, y: 0, duration: 0.35, ease: 'power3.out'}, ${at})`)
+    sfx.push({ at: R(at + 0.05), kind: i === titleWords.length - 1 ? 'impact' : 'pop' })
   })
   a.push(
-    `tl.fromTo('#intro .burst', {scale: 0.2, opacity: 0.9}, {scale: 3, opacity: 0, duration: 1.1, ease: 'power2.out'}, 0.35)`,
-    `tl.fromTo('#intro .bb', {scale: 0.2, opacity: 0.8}, {scale: 3.6, opacity: 0, duration: 1.3, ease: 'power2.out'}, ${R(0.15 + titleWords.length * slam)})`,
-    `tl.to('#intro .title', {scale: 1.08, duration: ${R(tl.intro)}, ease: 'none'}, ${R(0.15 + titleWords.length * slam)})`
+    `tl.fromTo('#intro .burst', {scale: 0.4, opacity: 0.5}, {scale: 2.4, opacity: 0, duration: 1.4, ease: 'power2.out'}, 0.35)`,
+    `tl.to('#intro .title', {scale: 1.04, duration: ${R(tl.intro)}, ease: 'none'}, ${R(0.15 + titleWords.length * slam)})`
   )
 
   script.scenes.forEach((sc, i) => {
@@ -572,7 +571,7 @@ export function buildComposition(input: CompositionInput): Composition {
       // La animación ya se mueve sola.
     } else if (img) {
       const dir = i % 2 ? 1 : -1
-      a.push(`tl.fromTo('#${id} .photo img', {scale: 1.32, x: ${dir * 60}, rotation: ${dir * 1.5}}, {scale: 1.05, x: ${-dir * 40}, rotation: 0, duration: ${t.duration}, ease: 'power1.out'}, ${t.start})`)
+      a.push(`tl.fromTo('#${id} .photo img', {scale: 1.16, x: ${dir * 40}}, {scale: 1.04, x: ${-dir * 30}, duration: ${t.duration}, ease: 'power1.out'}, ${t.start})`)
     } else {
       a.push(
         `tl.fromTo('#${id} .bignum', {x: ${vertical ? 300 : 700}, opacity: 0}, {x: ${vertical ? -200 : -500}, opacity: 1, duration: ${t.duration}, ease: 'power1.inOut'}, ${t.start})`,
@@ -581,8 +580,8 @@ export function buildComposition(input: CompositionInput): Composition {
     }
     // Etiqueta que rebota y se balancea.
     a.push(
-      `tl.fromTo('#${id}tag', {scale: 0, rotation: -14}, {scale: 1, rotation: -3, duration: 0.5, ease: 'back.out(3)'}, ${R(t.start + 0.12)})`,
-      `tl.to('#${id}tag', {rotation: 2, duration: ${R(Math.max(0.5, t.duration - 0.8))}, ease: 'sine.inOut'}, ${R(t.start + 0.62)})`
+      `tl.fromTo('#${id}tag', {scale: 0.6, opacity: 0, rotation: -6}, {scale: 1, opacity: 1, rotation: -3, duration: 0.45, ease: 'back.out(1.5)'}, ${R(t.start + 0.12)})`,
+      `tl.to('#${id}tag', {rotation: -1, duration: ${R(Math.max(0.5, t.duration - 0.8))}, ease: 'sine.inOut'}, ${R(t.start + 0.62)})`
     )
     sfx.push({ at: R(t.start + 0.14), kind: 'pop' })
 
@@ -592,26 +591,25 @@ export function buildComposition(input: CompositionInput): Composition {
       const s = b[0].start
       const style = BEAT_IN[(i * 3 + k) % BEAT_IN.length]
       const from =
-        style === 'pop' ? '{scale: 1.6, opacity: 0}' :
-        style === 'up' ? '{y: 140, skewY: 8, opacity: 0}' :
-        style === 'tilt' ? '{rotation: -10, scale: 0.7, opacity: 0}' :
-        style === 'side' ? `{x: ${k % 2 ? 260 : -260}, opacity: 0}` :
-        '{y: -160, scale: 1.2, opacity: 0}'
-      a.push(`tl.fromTo('${bid} .bt', ${from}, {x: 0, y: 0, scale: 1, rotation: 0, skewY: 0, opacity: 1, duration: 0.28, ease: 'back.out(2.2)'}, ${R(s - 0.05)})`)
-      // Golpe de cámara en cada cambio.
-      a.push(`tl.fromTo('#punch', {scale: ${k % 2 ? 1.05 : 1.08}}, {scale: 1, duration: 0.35, ease: 'power3.out', immediateRender: false}, ${R(s - 0.05)})`)
+        style === 'pop' ? '{scale: 1.18, opacity: 0}' :
+        style === 'up' ? '{y: 60, opacity: 0}' :
+        style === 'tilt' ? '{rotation: -4, scale: 0.9, opacity: 0}' :
+        style === 'side' ? `{x: ${k % 2 ? 110 : -110}, opacity: 0}` :
+        '{y: -60, scale: 1.06, opacity: 0}'
+      a.push(`tl.fromTo('${bid} .bt', ${from}, {x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, duration: 0.35, ease: 'power3.out'}, ${R(s - 0.05)})`)
+      // Un acercamiento suave al empezar la escena (antes era un golpe de cámara en cada frase: demasiado intenso).
+      if (k === 0) a.push(`tl.fromTo('#punch', {scale: 1.02}, {scale: 1, duration: 0.6, ease: 'power2.out', immediateRender: false}, ${R(s - 0.05)})`)
       b.forEach((w, j) => {
         const wid = `#${id}b${k}w${j}`
         const next = j + 1 < b.length ? b[j + 1].start : k + 1 < beats.length ? beats[k + 1][0].start : t.start + t.duration
-        a.push(`tl.fromTo('${wid}', {scale: 0.3, y: 50, opacity: 0}, {scale: 1, y: 0, opacity: 1, duration: 0.2, ease: 'back.out(3)'}, ${R(w.start - 0.04)})`)
+        a.push(`tl.fromTo('${wid}', {scale: 0.85, y: 16, opacity: 0}, {scale: 1, y: 0, opacity: 1, duration: 0.22, ease: 'power2.out'}, ${R(w.start - 0.04)})`)
         // La palabra que suena: resaltada mientras se dice (GSAP 3 no anima clases: colores directos).
         const rest = w.key ? th.accent : img ? '#ffffff' : th.ink
         const on = w.key ? `{backgroundColor: '${th.accent2}', color: '#ffffff', textShadow: 'none'}` : `{backgroundColor: '${th.accent}', color: '${th.onAccent}', textShadow: 'none'}`
         a.push(`tl.set('${wid}', ${on}, ${R(w.start)})`)
         a.push(`tl.set('${wid}', {backgroundColor: 'rgba(0,0,0,0)', color: '${rest}', textShadow: '0 8px 0 rgba(0,0,0,0.28)'}, ${R(Math.max(w.start + 0.12, next - 0.02))})`)
         if (w.key) {
-          a.push(`tl.fromTo('${wid}', {rotation: -6}, {rotation: 0, duration: 0.35, ease: 'elastic.out(1.4, 0.35)', immediateRender: false}, ${R(w.start + 0.1)})`)
-          a.push(`tl.fromTo('#shake', {x: 10, y: -6}, {x: 0, y: 0, duration: 0.3, ease: 'elastic.out(1.2, 0.3)', immediateRender: false}, ${R(w.start)})`)
+          a.push(`tl.fromTo('${wid}', {scale: 1.1}, {scale: 1, duration: 0.3, ease: 'power2.out', immediateRender: false}, ${R(w.start + 0.05)})`)
         }
       })
     })
@@ -640,7 +638,7 @@ export function buildComposition(input: CompositionInput): Composition {
   })
   sfx.push({ at: R(tl.outroStart + 0.1 + outWords.length * 0.12), kind: 'impact' })
   a.push(
-    `tl.fromTo('#outro .burst', {scale: 0.2, opacity: 0.9}, {scale: 3.2, opacity: 0, duration: 1.2, ease: 'power2.out'}, ${R(tl.outroStart + 0.1 + outWords.length * 0.12)})`,
+    `tl.fromTo('#outro .burst', {scale: 0.4, opacity: 0.5}, {scale: 2.4, opacity: 0, duration: 1.4, ease: 'power2.out'}, ${R(tl.outroStart + 0.1 + outWords.length * 0.12)})`,
     `tl.fromTo('#outro .underline', {scaleX: 0}, {scaleX: 1, duration: 0.5, ease: 'power3.out'}, ${R(tl.outroStart + 0.3 + outWords.length * 0.12)})`,
     `tl.to('#outro .title, #outro .underline', {opacity: 0, scale: 0.94, duration: 0.45, ease: 'power2.in'}, ${R(tl.total - 0.5)})`,
     `tl.fromTo('#bar', {scaleX: 0}, {scaleX: 1, duration: ${tl.total}, ease: 'none'}, 0)`
@@ -697,13 +695,11 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: var(--
 .outro { font-size: ${vertical ? 112 : 120}px; text-transform: none; }
 .underline { width: 340px; height: 18px; margin-top: 40px; border-radius: 10px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transform-origin: 50% 50%; z-index: 3; }
 .burst { position: absolute; left: 50%; top: 50%; width: 600px; height: 600px; margin: -300px 0 0 -300px; border-radius: 50%; border: 24px solid var(--accent); z-index: 2; }
-.bb { border-color: var(--accent2); }
 .tr { z-index: 8; overflow: hidden; pointer-events: none; }
 .tr .flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
 .tr .sb { position: absolute; top: -20%; bottom: -20%; width: 24%; background: var(--accent); transform: skewX(-18deg); }
 .tr .sb:nth-child(2n) { background: var(--accent2); }
 .tr .iris { position: absolute; left: 50%; top: 50%; width: ${vertical ? 2400 : 2400}px; height: ${vertical ? 2400 : 2400}px; margin: -1200px 0 0 -1200px; border-radius: 50%; background: var(--accent); }
-.tr .slab { position: absolute; left: -10%; right: -10%; height: 34%; background: var(--accent2); mix-blend-mode: normal; }
 #barwrap { position: absolute; left: 0; right: 0; ${vertical ? 'top: 0;' : 'bottom: 0;'} height: 12px; z-index: 9; background: rgba(255,255,255,0.15); }
 #bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transform-origin: left center; }
 </style>
@@ -735,8 +731,7 @@ function transitionHtml(id: string, kind: (typeof TRANSITIONS)[number], at: numb
   const inner =
     kind === 'zoom' ? '<div class="flash"></div>' :
     kind === 'stripes' ? '<div class="sb"></div><div class="sb"></div><div class="sb"></div><div class="sb"></div><div class="sb"></div>' :
-    kind === 'iris' ? '<div class="iris"></div>' :
-    `<div class="slab" style="top:0"></div><div class="slab" style="top:33%"></div><div class="slab" style="top:66%"></div>`
+    '<div class="iris"></div>'
   void vertical
   return `<div id="${id}" class="clip tr" data-start="${at}" data-duration="0.5">${inner}</div>`
 }
@@ -745,24 +740,17 @@ function transitionAnims(id: string, kind: (typeof TRANSITIONS)[number], at: num
   const s = `#${id}`
   if (kind === 'zoom') {
     return [
-      `tl.fromTo('${s} .flash', {opacity: 0}, {opacity: 0.85, duration: 0.12, ease: 'power2.in', yoyo: true, repeat: 1}, ${at})`,
-      `tl.fromTo('#punch', {scale: 1.35, rotation: -2}, {scale: 1, rotation: 0, duration: 0.45, ease: 'expo.out', immediateRender: false}, ${round(at + 0.2)})`
+      `tl.fromTo('${s} .flash', {opacity: 0}, {opacity: 0.35, duration: 0.15, ease: 'power2.in', yoyo: true, repeat: 1}, ${at})`,
+      `tl.fromTo('#punch', {scale: 1.08}, {scale: 1, duration: 0.5, ease: 'power2.out', immediateRender: false}, ${round(at + 0.2)})`
     ]
   }
   if (kind === 'stripes') {
     const W = vertical ? 1080 : 1920
     return [`tl.fromTo('${s} .sb', {x: ${-W * 0.5}}, {x: ${W * 1.4}, duration: 0.5, ease: 'power3.inOut', stagger: 0.03}, ${at})`]
   }
-  if (kind === 'iris') {
-    return [
-      `tl.fromTo('${s} .iris', {scale: 0}, {scale: 1, duration: 0.22, ease: 'power3.in'}, ${at})`,
-      `tl.to('${s} .iris', {scale: 0, duration: 0.26, ease: 'power3.out'}, ${round(at + 0.22)})`
-    ]
-  }
   return [
-    `tl.fromTo('${s} .slab', {x: -2200}, {x: 0, duration: 0.12, ease: 'steps(3)', stagger: 0.04}, ${at})`,
-    `tl.to('${s} .slab', {x: 2200, duration: 0.14, ease: 'steps(3)', stagger: 0.04}, ${round(at + 0.24)})`,
-    `tl.fromTo('#shake', {x: -24, y: 6}, {x: 0, y: 0, duration: 0.3, ease: 'steps(6)', immediateRender: false}, ${round(at + 0.2)})`
+    `tl.fromTo('${s} .iris', {scale: 0}, {scale: 1, duration: 0.22, ease: 'power3.in'}, ${at})`,
+    `tl.to('${s} .iris', {scale: 0, duration: 0.26, ease: 'power3.out'}, ${round(at + 0.22)})`
   ]
 }
 

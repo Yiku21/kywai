@@ -1656,12 +1656,14 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
 3. **Música** propia generada para cada vídeo (acordes con pulso; sin derechos de nadie) que **baja sola cuando habla
    la voz**, y **efectos de sonido** sintetizados: «whoosh» en cada transición, golpes en la portada y el cierre, un
    «pop» al entrar cada etiqueta. Todo normalizado a -16 LUFS.
-4. **Animación y montaje** con **HyperFrames** (Apache 2.0) y GSAP, al estilo de TikTok: el título golpea palabra a
-   palabra con sacudida; la voz sale **a pantalla grande en golpes de hasta 4 palabras** que entran cada uno de una
-   forma (salto, subida, giro, lateral, caída), con la palabra que suena resaltada y las clave en otro color; golpe de
-   cámara en cada cambio y sacudida en las palabras clave; fondo siempre en movimiento (la imagen con zoom rápido, o
-   manchas de color, anillo que gira, partículas, número de escena gigante y franjas); etiqueta de escena que rebota;
-   cuatro transiciones que se turnan (zoom con destello, franjas, círculo y glitch); barra de progreso y cierre.
+4. **Animación y montaje** con **HyperFrames** (Apache 2.0) y GSAP, con ritmo pero **sin agobiar** (desde el 10 de
+   noviembre de 2026 es más tranquilo: antes resultaba demasiado intenso): el título entra palabra a palabra, sin
+   sacudidas; la voz sale **a pantalla grande en golpes de hasta 4 palabras** que entran con movimientos cortos y
+   suaves (aparecer, subir, girar un poco, deslizarse), con la palabra que suena resaltada y las clave en otro color
+   (que crecen un poco); un acercamiento suave al empezar cada escena; fondo siempre en movimiento lento (la imagen con
+   un zoom lento, o manchas de color, anillo que gira despacio, número de escena gigante y franjas); etiqueta de
+   escena; tres transiciones que se turnan (zoom con un destello suave, franjas y círculo); barra de progreso y
+   cierre. La voz de Gemini se pide animada pero a ritmo natural.
 5. **Comprobación** con ffprobe (imagen, sonido y duración) antes de entregarlo.
 
 **Estilo cartoon (tutoriales con personaje).** Si la petición dice cartoon, dibujos, personaje, presentador o
@@ -1684,7 +1686,7 @@ cada paso muestra su instrucción en grande.
   `KYWAI_VOICEBOX_URL`), una escena detrás de otra, con el tono como instrucción (lo usan los motores que lo
   entienden, como Qwen). kywai no instala Voicebox: se descarga de voicebox.sh.
 - Si no, con clave de Gemini, la de **Gemini** (se le pide el tono: cercano y con energía en los tutoriales, de broma
-  en los chistes, rápido en los vídeos dinámicos).
+  en los chistes, animado pero sin prisa en los de texto animado).
 - Si una escena no sale, todo el vídeo se rehace con la siguiente (al final Kokoro) para no mezclar voces.
 
 La voz, las imágenes y las animaciones de Manim se generan **a la vez**.

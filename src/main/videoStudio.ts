@@ -447,7 +447,7 @@ async function geminiSpeak(text: string, tone: string, voiceName: string, out: s
 function voiceTone(style: VideoScript['style'], joke: boolean): string {
   if (joke) return 'Say this as a joke, playful and funny, with a little laugh, like a friendly YouTuber'
   if (style === 'cartoon') return 'Say this warmly and with energy, like a friendly, upbeat YouTuber explaining a tutorial to a friend, natural and smiling'
-  return 'Say this fast and punchy, full of energy, like a viral short-video creator hooking the viewer'
+  return 'Say this clearly and with a lively, upbeat tone, at a relaxed natural pace, like a friendly short-video creator talking to the viewer'
 }
 
 /** Imagen de una escena con Gemini (o null si no hay clave o falla: la escena va con fondo de diseño). */
