@@ -1774,6 +1774,8 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    Nicole, Sarah, Adam (Estados Unidos), Isabella y George (Reino Unido), y de Edge **Aria**, **Guy** (Estados Unidos),
    **Sonia** y **Ryan** (Reino Unido). Sin Kokoro instalado, la de por defecto se salta y va el orden de siempre. La
    lista de cada idioma está en `LANG_VOICES` (`src/shared/videoChoice.ts`).
+   Con la app en español o en inglés, el paso Voz muestra **las dos listas** (primero la del idioma de la app, cada una
+   con su título), porque el vídeo puede ser en el otro idioma; sin elegir, el vídeo va con la primera voz de su idioma.
    En otros idiomas: *Automática*: la mejor que haya (el orden de «Voz» de arriba). O una concreta, agrupadas por motor, solo
    las que hay en el equipo: **tus voces de Voicebox** (si está abierto; también la tuya clonada), **12 voces de
    Gemini** (con clave; hablan cualquier idioma: Puck, Fenrir, Charon, Orus, Enceladus, Achird, Kore, Aoede, Leda,

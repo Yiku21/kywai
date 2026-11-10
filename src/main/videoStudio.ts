@@ -909,9 +909,10 @@ async function voiceboxById(id: string): Promise<VoiceboxVoice | null> {
  * Kokoro (si está instalado; primero las del idioma) y la del sistema. `missing` dice qué motores faltan.
  */
 export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] }> {
-  // En español y en inglés, solo las elegidas (la primera va por defecto).
-  const picked = LANG_VOICES[lang]
-  if (picked)
+  // Con la app en español o en inglés, solo las elegidas de los dos idiomas (primero las del de la app): el vídeo
+  // puede ser en el otro. Sin elegir, el vídeo va con la primera de su idioma.
+  if (LANG_VOICES[lang]) {
+    const picked = [...LANG_VOICES[lang], ...Object.entries(LANG_VOICES).flatMap(([l, ids]) => (l === lang ? [] : ids))]
     return {
       voices: picked.map((id): VideoVoiceInfo => {
         const v = parseVoiceId(id)!
@@ -925,10 +926,11 @@ export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoic
           return { id, engine: 'kokoro', name: k.name, line: region, lang: k.lang, gender: k.gender }
         }
         const m = MAC_VOICES.find((x) => x.key === v.id)!
-        return { id, engine: 'mac', name: m.name, line: m.region, lang: 'es', gender: m.gender }
+        return { id, engine: 'mac', name: m.name, line: m.region, lang: m.lang.split('-')[0], gender: m.gender }
       }),
       missing: []
     }
+  }
   const [vbox, kokoro, sys] = await Promise.all([voiceboxProfiles(), kokoroReady(), systemVoice()])
   const key = !!geminiApiKey()
   const base = (l: string): string => l.toLowerCase().split(/[-_]/)[0]
@@ -982,7 +984,8 @@ export async function previewVideoVoice(id: unknown, lang: string, sentence: str
       ok = await geminiSpeak(sentence, 'Say this in a friendly, natural way', v.id, wav, key)
     } else if (v.engine === 'edge') {
       if (!(await ensureEdge())) throw new Error(tr('No se pudieron instalar las voces de Edge'))
-      ok = await edgeSpeak(v.id, sentence, wav)
+      const e = EDGE_VOICES.find((x) => x.id === v.id)!
+      ok = await edgeSpeak(v.id, e.lang === lang ? sentence : (VOICE_SAMPLES[e.lang] ?? VOICE_SAMPLES.en), wav)
       if (!ok) throw new Error(tr('La voz de Edge necesita internet: no se pudo conectar'))
     } else if (v.engine === 'mac') {
       if (!IS_MAC) throw new Error(tr('Carmen es una voz de Siri: solo está en macOS'))

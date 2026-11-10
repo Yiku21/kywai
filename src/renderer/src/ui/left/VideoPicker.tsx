@@ -285,6 +285,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
   const chosenChar = value.character ? chars.find((c) => c.id === value.character) : undefined
   // En español y en inglés solo salen las voces elegidas y la primera va por defecto (sin marca): no hay «Automática».
   const defaultVoice = defaultVoiceFor(lang())
+  const voiceLangs = [...new Set((voices?.voices ?? []).map((v) => v.lang ?? ''))].filter(Boolean)
   const voiceOn = (id: string): boolean => (value.voice ?? defaultVoice) === id
   const chosenVoice = voices?.voices.find((v) => v.id === (value.voice ?? defaultVoice))
   const summary = [
@@ -465,12 +466,15 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                     </div>
                   )}
                   {!voices && <p className={s.empty}>{t('Buscando las voces de tu equipo…')}</p>}
-                  {(defaultVoice ? [null] : ENGINES).map((e) => {
-                    const list = voices?.voices.filter((v) => !e || v.engine === e.id) ?? []
+                  {(defaultVoice ? voiceLangs : ENGINES).map((e) => {
+                    // Con voces elegidas por idioma, un grupo por idioma (primero el de la app); si no, uno por motor.
+                    const list = voices?.voices.filter((v) => (typeof e === 'string' ? v.lang === e : v.engine === e.id)) ?? []
                     if (!list.length) return null
                     return (
-                      <div key={e?.id ?? 'todas'}>
-                        {e && (
+                      <div key={typeof e === 'string' ? e : e.id}>
+                        {typeof e === 'string' ? (
+                          <h5 className={s.cat}>{langName(e)}</h5>
+                        ) : (
                           <h5 className={s.cat}>
                             {t(e.name)} <span className={s.catLine}>{t(e.line)}</span>
                           </h5>
