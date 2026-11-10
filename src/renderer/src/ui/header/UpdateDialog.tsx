@@ -7,6 +7,7 @@ import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './RemoteAccess.module.css'
 import { t } from '@/lib/i18n'
+import { pendingFromStatus } from '@/lib/updateWatch'
 
 /** Buscar e instalar actualizaciones desde GitHub (⚙ → Buscar actualizaciones). */
 export function UpdateDialog({ onClose }: { onClose: () => void }) {
@@ -23,7 +24,11 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
     setChecking(true)
     setError(null)
     try {
-      setStatus(await a.checkForUpdates())
+      const st = await a.checkForUpdates()
+      setStatus(st)
+      // Lo que se acaba de ver enciende o apaga el aviso amarillo del botón ⚙.
+      const p = pendingFromStatus(st)
+      if (p) useCowork.setState({ updatePending: p })
     } catch (e) {
       setError(errorText(e))
     } finally {

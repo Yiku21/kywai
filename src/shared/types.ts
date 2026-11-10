@@ -1384,6 +1384,15 @@ export interface UpdateStatus {
   release?: ReleaseUpdate
 }
 
+/** Hay una actualización de kywai esperando (el botón ⚙ brilla en amarillo). */
+export interface PendingUpdate {
+  pending: boolean
+  /** Versión nueva (apps de GitHub Releases). */
+  version?: string
+  /** Cambios nuevos en GitHub sin instalar (apps compiladas desde su clon de git, como el Mac mini). */
+  commits?: number
+}
+
 /** Un acceso de un cliente o navegador a los archivos de este servidor. */
 export interface AccessLogEntry {
   t: number
@@ -1482,6 +1491,7 @@ export type CoworkEvent = EventBase &
     | { kind: 'local.pull'; pull: LocalPullState }
     | { kind: 'setup.log'; toolId: SetupToolId; line: string }
     | { kind: 'update.log'; line: string }
+    | { kind: 'update.pending'; update: PendingUpdate }
     | { kind: 'config.updated'; config: AppConfig }
     | { kind: 'inbox.updated'; items: InboxItem[] }
   )
@@ -1906,6 +1916,8 @@ export interface CoworkApi {
   /** Enlace de acceso por HTTPS (con el código), si está activo: desde el navegador, para pasar a la versión con micrófono. */
   getHttpsLink(host?: string): Promise<HttpsLink | null>
   checkForUpdates(): Promise<UpdateStatus>
+  /** Si hay una actualización esperando, sin consultar GitHub en ese momento (se mira al abrir y cada pocas horas). */
+  updatePending(): Promise<PendingUpdate>
   /** Cierra y vuelve a abrir kywai (también desde el navegador del móvil). */
   restartApp(): Promise<void>
   /** Nota de voz (guardada con savePastedFile) → texto, con Whisper en el propio equipo. */

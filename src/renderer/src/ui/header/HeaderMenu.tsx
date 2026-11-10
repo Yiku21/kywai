@@ -1,10 +1,11 @@
 import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Award, BarChart3, Coffee, Download, FolderOpen, Globe, HardDrive, Import, Monitor, RotateCcw, Server, Settings } from 'lucide-react'
+import { Award, BarChart3, Coffee, Download, DownloadCloud, FolderOpen, Globe, HardDrive, Import, Monitor, RotateCcw, Server, Settings } from 'lucide-react'
 import { useCowork } from '@/store/cowork'
 import { api, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
 import { UpdateDialog } from './UpdateDialog'
+import { hasPendingUpdate } from '@/lib/updateWatch'
 import { ROLE_TITLE, explainWhere, useWhere } from './useWhere'
 import { openDonate, openSettings, useRestart } from '../settings/SettingsDialog'
 import { menuKeyNav, Popover } from '../common/Popover'
@@ -25,6 +26,18 @@ export function HeaderMenu({ sidebar }: { sidebar: { button: string } }) {
   const project = useCowork((st) => st.live.project)
   const [open, setOpen] = useState(false)
   const [updateOpen, setUpdateOpen] = useState(false)
+  // Versión nueva esperando: la rueda y la opción de actualizar brillan en amarillo.
+  const pending = useCowork((st) => st.updatePending)
+  const deviceUpdate = useCowork((st) => st.deviceUpdate)
+  const glow = hasPendingUpdate({ updatePending: pending, deviceUpdate })
+  const serverPending = !!pending?.pending
+  const pendingHint = pending?.version
+    ? t('Versión {version} lista', { version: pending.version })
+    : pending?.commits
+      ? pending.commits === 1
+        ? t('1 cambio nuevo en GitHub')
+        : t('{n} cambios nuevos en GitHub', { n: pending.commits })
+      : ''
   const where = useWhere()
   const restart = useRestart(() => setOpen(false))
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -42,9 +55,10 @@ export function HeaderMenu({ sidebar }: { sidebar: { button: string } }) {
       <button
         ref={btnRef}
         type="button"
-        className={sidebar.button}
-        aria-label={t('Ajustes y más opciones')}
-        title={t('Ajustes y más opciones')}
+        className={cx(sidebar.button, glow && s.glowBtn)}
+        aria-label={glow ? t('Ajustes y más opciones · hay una actualización pendiente') : t('Ajustes y más opciones')}
+        title={glow ? t('Hay una actualización pendiente') : t('Ajustes y más opciones')}
+        data-update-pending={glow || undefined}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -145,10 +159,26 @@ export function HeaderMenu({ sidebar }: { sidebar: { button: string } }) {
         {hasBackend && (
           <>
             <div className={s.sep} role="separator" />
-            <button type="button" role="menuitem" className={s.item} onClick={go(() => setUpdateOpen(true))}>
+            <button type="button" role="menuitem" className={cx(s.item, serverPending && s.glowItem)} onClick={go(() => setUpdateOpen(true))}>
               <Download size={16} aria-hidden="true" className={s.itemIcon} />
-              <span className={s.itemLabel}>{t('Buscar actualizaciones…')}</span>
+              {serverPending ? (
+                <span className={s.itemText}>
+                  <span className={s.itemLabel}>{t('Actualizar kywai…')}</span>
+                  {pendingHint && <span className={s.itemHint}>{pendingHint}</span>}
+                </span>
+              ) : (
+                <span className={s.itemLabel}>{t('Buscar actualizaciones…')}</span>
+              )}
             </button>
+            {deviceUpdate && (
+              <button type="button" role="menuitem" className={cx(s.item, s.glowItem)} onClick={go(() => openSettings('about'))}>
+                <DownloadCloud size={16} aria-hidden="true" className={s.itemIcon} />
+                <span className={s.itemText}>
+                  <span className={s.itemLabel}>{t('Actualizar este equipo…')}</span>
+                  <span className={s.itemHint}>{t('Versión {version} lista', { version: deviceUpdate })}</span>
+                </span>
+              </button>
+            )}
             <button type="button" role="menuitem" className={cx(s.item, restart.confirming && s.danger)} onClick={restart.run}>
               <RotateCcw size={16} aria-hidden="true" className={s.itemIcon} />
               <span className={s.itemText}>

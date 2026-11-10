@@ -36,6 +36,30 @@ const IS_MAC = process.platform === 'darwin'
 let macNewApp = ''
 /** Mac: ya se lanzó el cambio de la app (para no lanzarlo dos veces). */
 let macSwapStarted = false
+/** Versión nueva que hay que bajar a mano (app del Mac abierta desde el .dmg, por ejemplo). */
+let availableVersion = ''
+const pendingListeners = new Set<() => void>()
+
+/** Versión nueva esperando (descargándose, descargada o para bajar a mano); '' si no hay ninguna. */
+export function releasePending(): string {
+  return downloadedVersion || downloading || availableVersion
+}
+
+/** Avisa cuando cambia releasePending() (para que el botón ⚙ brille). */
+export function onReleasePending(fn: () => void): () => void {
+  pendingListeners.add(fn)
+  return () => pendingListeners.delete(fn)
+}
+
+function pendingChanged(): void {
+  for (const fn of pendingListeners) {
+    try {
+      fn()
+    } catch {
+      /* un oyente roto no para la actualización */
+    }
+  }
+}
 
 
 /** true si esta app es una versión de GitHub Releases, que se actualiza sola. */
@@ -73,8 +97,11 @@ function downloadOnMac(info: UpdateInfo): void {
     })
     .catch((error: unknown) => {
       console.error('[updater] No se pudo bajar la versión del Mac:', error)
+      // Sigue habiendo una versión nueva (el botón ⚙ sigue avisando); se reintenta en la próxima búsqueda.
+      availableVersion = info.version
       downloading = ''
       installWhenReady = false
+      pendingChanged()
     })
 }
 
@@ -82,6 +109,7 @@ function onDownloaded(info: UpdateInfo): void {
   console.info('[updater] Actualización descargada:', info.version)
   downloading = ''
   downloadedVersion = info.version
+  pendingChanged()
   if (installWhenReady || Date.now() - startedAt < INSTALL_NOW_MS) {
     notify(tr('Instalando la versión {version}. kywai se reabre solo.', { version: info.version }))
     // Sin preguntas y reabriendo la app al terminar.
@@ -138,6 +166,10 @@ export async function checkRelease(): Promise<ReleaseUpdate> {
     const latest = r?.updateInfo?.version
     if (!r?.isUpdateAvailable || !latest) return { state: 'current', current, latest: latest ?? current, selfInstall }
     if (downloadedVersion === latest) return { state: 'downloaded', current, latest, selfInstall }
+    if (!selfInstall && availableVersion !== latest) {
+      availableVersion = latest
+      pendingChanged()
+    }
     return { state: selfInstall ? 'downloading' : 'available', current, latest, selfInstall }
   } catch (error) {
     const text = (error instanceof Error ? error.message : String(error)).split('\n')[0].slice(0, 200)
@@ -185,11 +217,14 @@ export function initUpdater(opts: { client?: boolean } = {}): void {
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     console.info('[updater] Actualización disponible:', info.version)
     if (!canSelfInstall()) {
+      availableVersion = info.version
+      pendingChanged()
       if (IS_MAC) void offerMacDownload(info)
       return
     }
     if (downloadedVersion === info.version || downloading === info.version) return
     downloading = info.version
+    pendingChanged()
     notify(tr('Descargando la versión {version}…', { version: info.version }))
     if (IS_MAC) downloadOnMac(info)
   })
@@ -205,8 +240,10 @@ export function initUpdater(opts: { client?: boolean } = {}): void {
   }
   autoUpdater.on('error', (error: Error) => {
     console.error('[updater] Error de actualización:', error)
+    if (downloading) availableVersion = downloading
     downloading = ''
     installWhenReady = false
+    pendingChanged()
   })
 
   checkReleaseNow()

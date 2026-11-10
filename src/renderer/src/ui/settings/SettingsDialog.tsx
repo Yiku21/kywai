@@ -49,6 +49,7 @@ import { useEscape } from '../common/hooks'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SettingsDialog.module.css'
+import { hasPendingUpdate } from '@/lib/updateWatch'
 
 /** Página de Ko-fi del autor: «Apoyar kywai» la abre en el navegador para quien quiera invitar a un café. */
 export const DONATE_URL = 'https://ko-fi.com/yilsander'
@@ -91,6 +92,8 @@ export function SettingsDialog() {
     { id: 'about', label: t('Acerca de'), icon: <Info size={17} /> }
   ]
   const current = tabs.find((x) => x.id === tab) ?? tabs[0]
+  // Versión nueva esperando: «Acerca de» (donde se actualiza) brilla en amarillo, como la rueda ⚙.
+  const updateGlow = useCowork((st) => hasPendingUpdate(st))
 
   return (
     <div className={s.backdrop} onMouseDown={(e) => e.target === e.currentTarget && close()}>
@@ -106,7 +109,7 @@ export function SettingsDialog() {
                 type="button"
                 role="tab"
                 aria-selected={x.id === current.id}
-                className={cx(s.tab, x.id === current.id && s.tabOn)}
+                className={cx(s.tab, x.id === current.id && s.tabOn, x.id === 'about' && updateGlow && s.tabGlow)}
                 onClick={() => openSettings(x.id)}
               >
                 <span className={s.tabIcon} aria-hidden="true">
@@ -142,9 +145,9 @@ function Head({ title, hint }: { title: string; hint: string }) {
 }
 
 /** Una fila: icono, nombre y explicación, y a la derecha su control (interruptor, botón, desplegable…). */
-function Row({ icon, label, hint, children, disabled }: { icon: ReactNode; label: string; hint?: ReactNode; children?: ReactNode; disabled?: boolean }) {
+function Row({ icon, label, hint, children, disabled, glow }: { icon: ReactNode; label: string; hint?: ReactNode; children?: ReactNode; disabled?: boolean; glow?: boolean }) {
   return (
-    <div className={cx(s.row, disabled && s.rowDisabled)}>
+    <div className={cx(s.row, disabled && s.rowDisabled, glow && s.rowGlow)}>
       <span className={s.rowIcon} aria-hidden="true">
         {icon}
       </span>
@@ -398,6 +401,8 @@ function AboutTab({ openSub }: { openSub: (s: Sub) => void }) {
   const [clientUpdate, setClientUpdate] = useState<ClientUpdateState | null>(null)
   const [busy, setBusy] = useState(false)
   const [clientVersion, setClientVersion] = useState<string | null>(null)
+  const serverPending = useCowork((st) => !!st.updatePending?.pending)
+  const deviceUpdate = useCowork((st) => st.deviceUpdate)
 
   useEffect(() => {
     if (client) void clientInfo().then((i) => setClientVersion(i?.version ?? null))
@@ -413,7 +418,9 @@ function AboutTab({ openSub }: { openSub: (s: Sub) => void }) {
         await client.installUpdate()
         return
       }
-      setClientUpdate(await client.checkUpdate())
+      const r = await client.checkUpdate()
+      setClientUpdate(r)
+      if (r && r.state !== 'error') useCowork.setState({ deviceUpdate: r.state === 'available' ? (r.latest ?? '?') : null })
     } catch (e) {
       setClientUpdate({ state: 'error', current: clientVersion ?? '', message: errorText(e) })
     } finally {
@@ -437,7 +444,12 @@ function AboutTab({ openSub }: { openSub: (s: Sub) => void }) {
     <>
       <Head title={t('Acerca de')} hint={t('Versión, actualizaciones y reinicio.')} />
       {hasBackend && (
-        <Row icon={<Download size={18} />} label={t('Buscar actualizaciones…')} hint={t('Descargar la última versión desde GitHub')}>
+        <Row
+          icon={<Download size={18} />}
+          label={serverPending ? t('Actualizar kywai…') : t('Buscar actualizaciones…')}
+          hint={serverPending ? t('Hay una versión nueva esperando') : t('Descargar la última versión desde GitHub')}
+          glow={serverPending}
+        >
           <ActionButton onClick={() => openSub('update')}>{t('Buscar')}</ActionButton>
         </Row>
       )}
@@ -445,7 +457,8 @@ function AboutTab({ openSub }: { openSub: (s: Sub) => void }) {
         <Row
           icon={<DownloadCloud size={18} />}
           label={clientUpdate?.state === 'available' ? t('Instalar la versión nueva de este equipo') : t('Actualizar este equipo…')}
-          hint={clientUpdateHint}
+          hint={!clientUpdate && deviceUpdate ? t('Hay la versión {latest}: pulsa Comprobar y luego Instalar', { latest: deviceUpdate }) : clientUpdateHint}
+          glow={!!deviceUpdate || clientUpdate?.state === 'available'}
         >
           <ActionButton disabled={busy || !client.checkUpdate} onClick={() => void updateThisDevice()}>
             {clientUpdate?.state === 'available' ? t('Instalar') : t('Comprobar')}

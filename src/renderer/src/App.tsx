@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { FlaskConical } from 'lucide-react'
 import { api, isWeb } from '@/lib/api'
 import { initAudio } from '@/lib/audio'
+import { startUpdateWatch } from '@/lib/updateWatch'
 import { lastProjectId, useCowork } from '@/store/cowork'
 import { localizeInbox } from '@shared/inbox'
 import { demoEngine } from '@/demo/engine'
@@ -48,6 +49,8 @@ function useBoot(): void {
       if (e.kind === 'config.updated') followServerTheme(e.config.uiTheme)
     })
     let alive = true
+    // Aviso de actualización pendiente (el botón ⚙ brilla en amarillo).
+    const stopUpdateWatch = startUpdateWatch()
     ;(async () => {
       const [config, runtime, projects] = await Promise.all([api.getConfig(), api.getRuntime(), api.listProjects()])
       if (!alive) return
@@ -94,6 +97,7 @@ function useBoot(): void {
     return () => {
       alive = false
       off()
+      stopUpdateWatch()
     }
   }, [])
 

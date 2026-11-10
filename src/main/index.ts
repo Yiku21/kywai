@@ -38,7 +38,7 @@ import {
   setWebAccessConfig,
   validBudget
 } from './config'
-import { applyUpdate, checkForUpdates, sourceDir } from './selfUpdate'
+import { applyUpdate, checkForUpdates, sourceDir, startUpdateWatch, updatePending } from './selfUpdate'
 import { getWhatsNew, markWhatsNewSeen } from './whatsNew'
 import { setGuideEnv } from './coordinatorGuide'
 import { transcribeAudio } from './voice'
@@ -1073,6 +1073,7 @@ function registerIpc(): void {
   })
   // ---- Actualizaciones desde GitHub (también desde el móvil, por el acceso web) ----
   handle('checkForUpdates', () => checkForUpdates())
+  handle('updatePending', () => updatePending())
   // ---- Reiniciar (por si se queda pillada; también desde el navegador) ----
   handle('restartApp', () => {
     setTimeout(() => {
@@ -1302,6 +1303,7 @@ async function boot(): Promise<void> {
   setEventWindow(mainWindow)
   closeClientWindow()
   initUpdater()
+  startUpdateWatch()
   if (getConfig().webAccess.enabled) applyWebAccess().catch((e) => console.error('[cowork] acceso web', e))
   // Quotas: initial (Codex's rollout files, then asking Claude and Codex directly) + timers.
   void refreshQuotas({ codex: true }).then(() => refreshQuotas({ probe: true }))

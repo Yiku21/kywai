@@ -6,12 +6,12 @@ import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { app } from 'electron'
-import type { ReleaseUpdate, UpdateCommit, UpdateStatus } from '@shared/types'
+import type { PendingUpdate, ReleaseUpdate, UpdateCommit, UpdateStatus } from '@shared/types'
 import { emit } from './events'
 import { sh } from './setup'
 import { launchCommand } from './linuxDesktop'
 import { tr } from '@shared/i18n'
-import { checkRelease, installRelease, isReleaseBuild } from './updater'
+import { checkRelease, installRelease, isReleaseBuild, onReleasePending, releasePending } from './updater'
 
 const IS_MAC = process.platform === 'darwin'
 const IS_LINUX = process.platform === 'linux'
@@ -69,6 +69,61 @@ function releaseReason(r: ReleaseUpdate): string {
 }
 
 export async function checkForUpdates(): Promise<UpdateStatus> {
+  const status = await readUpdateStatus()
+  // Lo que se vio al buscar enciende o apaga el aviso amarillo del botón ⚙ (salvo si no se pudo consultar GitHub).
+  if (status.release ? status.release.state !== 'error' : status.canUpdate || status.localChanges !== undefined) setPending(pendingFrom(status))
+  return status
+}
+
+// ---------- Aviso de actualización pendiente (el botón ⚙ brilla en amarillo) ----------
+// Apps de GitHub Releases: lo sabe updater.ts (busca al abrir y cada 6 h). Apps compiladas desde su clon de git
+// (el Mac mini): se mira aquí con git fetch al poco de abrir y cada 3 h. Los dispositivos conectados lo reciben
+// con el evento update.pending o lo piden con updatePending().
+
+const WATCH_FIRST_MS = 90_000
+const WATCH_EVERY_MS = 3 * 60 * 60_000
+let pending: PendingUpdate = { pending: false }
+let watching = false
+
+function pendingFrom(s: UpdateStatus): PendingUpdate {
+  const r = s.release
+  if (r) return r.state === 'available' || r.state === 'downloading' || r.state === 'downloaded' ? { pending: true, version: r.latest } : { pending: false }
+  return s.commits.length ? { pending: true, commits: s.commits.length } : { pending: false }
+}
+
+function setPending(next: PendingUpdate): void {
+  if (next.pending === pending.pending && next.version === pending.version && next.commits === pending.commits) return
+  pending = next
+  emit({ kind: 'update.pending', update: next })
+}
+
+/** Si hay una actualización esperando (no consulta GitHub: devuelve lo último que se vio). */
+export function updatePending(): PendingUpdate {
+  if (isReleaseBuild()) {
+    const version = releasePending()
+    return version ? { pending: true, version } : { pending: false }
+  }
+  return pending
+}
+
+/** Empieza a vigilar si hay versión nueva (solo en el equipo donde corre el motor, no en un cliente). */
+export function startUpdateWatch(): void {
+  if (watching) return
+  watching = true
+  if (isReleaseBuild()) {
+    onReleasePending(() => setPending(updatePending()))
+    return
+  }
+  if (!sourceDir()) return
+  const run = (): void => {
+    if (running) return
+    void checkForUpdates().catch((error: unknown) => console.error('[update] No se pudo mirar si hay versión nueva:', error))
+  }
+  setTimeout(run, WATCH_FIRST_MS).unref?.()
+  setInterval(run, WATCH_EVERY_MS).unref?.()
+}
+
+async function readUpdateStatus(): Promise<UpdateStatus> {
   // La app descargada de GitHub Releases se actualiza desde ahí, aunque quede un clon de git anotado de una
   // instalación anterior hecha con scripts/instalar-linux.sh o instalar-mac.sh (se compilaría otra app aparte).
   if (isReleaseBuild()) {

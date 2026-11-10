@@ -172,6 +172,7 @@ const api: CoworkApi = {
   forgetDevice: (id) => ipcRenderer.invoke('cowork:forgetDevice', id),
   getHttpsLink: (host) => ipcRenderer.invoke('cowork:getHttpsLink', host),
   checkForUpdates: () => ipcRenderer.invoke('cowork:checkForUpdates'),
+  updatePending: () => ipcRenderer.invoke('cowork:updatePending'),
   restartApp: () => ipcRenderer.invoke('cowork:restartApp'),
   transcribeAudio: (path, language) => ipcRenderer.invoke('cowork:transcribeAudio', path, language),
   requestMicrophone: () => ipcRenderer.invoke('cowork:requestMicrophone'),

@@ -23,6 +23,9 @@
   --demo: #f5b13d;
   --demo-soft: rgba(245, 177, 61, 0.12);
   --warn: #ffb547;
+  /* Aviso de actualización pendiente (el botón ⚙ brilla): amarillo; más oscuro en los temas claros. */
+  --update: #ffd23f;
+  --update-rgb: 255, 210, 63;
   --warn-soft: rgba(255, 181, 71, 0.14);
   --alert: #ff5468;
   --alert-soft: rgba(255, 84, 104, 0.14);

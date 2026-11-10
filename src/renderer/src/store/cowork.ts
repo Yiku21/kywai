@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type {
+  PendingUpdate,
   InboxItem,
   AgentConfig,
   AgentId,
@@ -103,6 +104,10 @@ interface CoworkState {
   setupLog: { toolId: SetupToolId; line: string }[]
   /** Salida de la actualización en curso (últimas líneas). */
   updateLog: string[]
+  /** Actualización esperando en el equipo del motor (el botón ⚙ brilla en amarillo). */
+  updatePending: PendingUpdate | null
+  /** Cliente de escritorio: versión nueva de la app de este equipo, si la hay (también hace brillar ⚙). */
+  deviceUpdate: string | null
   /** Se pidió reiniciar la app: se muestra «Reiniciando…» hasta que vuelva. */
   restarting: boolean
   /** Registro de consumo por petición (runId → uso), para el panel de consumo y el resumen de cada plan. */
@@ -298,6 +303,7 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
     case 'local.pull':
     case 'setup.log':
     case 'update.log':
+    case 'update.pending':
     case 'config.updated':
     case 'usage.run':
     case 'task.trace':
@@ -365,6 +371,8 @@ export const useCowork = create<CoworkState>((set, get) => ({
   setupOpen: false,
   setupLog: [],
   updateLog: [],
+  updatePending: null,
+  deviceUpdate: null,
   restarting: false,
   usageRuns: {},
   usageOpen: false,
@@ -438,6 +446,10 @@ export const useCowork = create<CoworkState>((set, get) => ({
     }
     if (e.kind === 'update.log') {
       set((s) => ({ updateLog: [...s.updateLog, e.line].slice(-300) }))
+      return
+    }
+    if (e.kind === 'update.pending') {
+      set({ updatePending: e.update })
       return
     }
     if (e.kind === 'setup.log') {

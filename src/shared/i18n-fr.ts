@@ -3074,4 +3074,12 @@ export const fr: Record<string, string> = {
   "No se pudo cargar la lista de cambios.": "Impossible de charger la liste des changements.",
   "Esta versión trae arreglos internos.": "Cette version apporte des correctifs internes.",
   "Ver en GitHub": "Voir sur GitHub",
+  "Versión {version} lista": "Version {version} prête",
+  "1 cambio nuevo en GitHub": "1 nouveau changement sur GitHub",
+  "{n} cambios nuevos en GitHub": "{n} nouveaux changements sur GitHub",
+  "Ajustes y más opciones · hay una actualización pendiente": "Paramètres et plus · une mise à jour attend",
+  "Hay una actualización pendiente": "Une mise à jour attend",
+  "Actualizar kywai…": "Mettre à jour kywai…",
+  "Hay una versión nueva esperando": "Une nouvelle version attend",
+  "Hay la versión {latest}: pulsa Comprobar y luego Instalar": "La version {latest} est sortie : appuyez sur Vérifier puis Installer",
 }

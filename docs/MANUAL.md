@@ -314,6 +314,21 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
   apartan, en una rama `apartado/<fecha>`, y el código vuelve a ser el de GitHub. Y si el código descargado es
   más nuevo que la app instalada (por ejemplo, porque se subió desde ese mismo equipo sin recompilar), ofrece
   instalarlo: la app sabe con qué commit se compiló.
+- **Aviso amarillo de actualización pendiente.** Cuando hay una versión nueva esperando, la rueda **⚙** del pie de la
+  barra lateral brilla en amarillo (con un punto) y, al abrirla, la opción pasa a ser **«Actualizar kywai…»**, también
+  en amarillo, con la versión o los cambios que hay. En Ajustes, la pestaña «Acerca de» y su fila de actualizar brillan
+  igual. Cómo se entera cada instalación (`src/main/selfUpdate.ts` → `startUpdateWatch`/`updatePending`):
+  - **Descargada de GitHub Releases (Mac, Windows, AppImage de Linux):** lo sabe el actualizador (`updater.ts`), que
+    busca al abrir y cada 6 h; brilla mientras la nueva se descarga, cuando ya está descargada y cuando hay que bajarla
+    a mano (Mac abierto desde el .dmg). No hace ninguna consulta extra a GitHub.
+  - **Compilada desde su clon de git (el Mac mini):** hace `git fetch` al minuto y medio de abrir y cada 3 h; brilla si
+    hay commits nuevos en GitHub o código descargado sin instalar.
+  - **Cliente conectado al Mac mini y navegador:** la rueda brilla si el **servidor** tiene una actualización (lo
+    reciben con el evento `update.pending` y lo preguntan cada 30 min). En el cliente de escritorio, además, se
+    mira al minuto de abrir y cada 6 h si hay una versión nueva de **la app de este equipo**; si la hay, el menú ⚙
+    muestra **«Actualizar este equipo…»** en amarillo (lleva a Ajustes → Acerca de).
+  - Al pulsar «Comprobar de nuevo» el aviso se enciende o se apaga según lo que se vea; si no se pudo consultar
+    GitHub, se queda como estaba. El color es `--update` (más oscuro en los temas claros).
 - **Desde Órbita**: ☰ → Ajustes → Conexión → **Servidor** hace lo mismo en el servidor al que está emparejada. Al abrir
   Ajustes ya dice si hay cambios nuevos en GitHub (con los últimos títulos); «Actualizar el servidor» (pide
   confirmación) lo descarga, compila, instala y reinicia. Mientras tanto Órbita se queda sin conexión unos minutos y

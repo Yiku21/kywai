@@ -3074,4 +3074,12 @@ export const zh: Record<string, string> = {
   "No se pudo cargar la lista de cambios.": "无法加载更改列表。",
   "Esta versión trae arreglos internos.": "此版本包含内部修复。",
   "Ver en GitHub": "在 GitHub 上查看",
+  "Versión {version} lista": "版本 {version} 已就绪",
+  "1 cambio nuevo en GitHub": "GitHub 上有 1 项新更改",
+  "{n} cambios nuevos en GitHub": "GitHub 上有 {n} 项新更改",
+  "Ajustes y más opciones · hay una actualización pendiente": "设置和更多 · 有待安装的更新",
+  "Hay una actualización pendiente": "有待安装的更新",
+  "Actualizar kywai…": "更新 kywai…",
+  "Hay una versión nueva esperando": "有新版本等待安装",
+  "Hay la versión {latest}: pulsa Comprobar y luego Instalar": "已有 {latest} 版本：先点“检查”，再点“安装”",
 }
