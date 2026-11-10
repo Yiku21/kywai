@@ -21,6 +21,11 @@ import com.aicowork.remote.data.model.ModPanelPage
 import com.aicowork.remote.data.model.InboxItem
 import com.aicowork.remote.data.model.ServerUpdate
 import com.aicowork.remote.data.model.WhatsNewInfo
+import com.aicowork.remote.data.model.VideoCharacter
+import com.aicowork.remote.data.model.VideoCharacterAdded
+import com.aicowork.remote.data.model.VideoCharacterInput
+import com.aicowork.remote.data.model.VideoPickerInfo
+import com.aicowork.remote.data.model.VideoVoicePreview
 import com.aicowork.remote.data.model.MemoryUpdateRequest
 import com.aicowork.remote.data.model.Snapshot
 import com.aicowork.remote.data.model.TaskTemplateInput
@@ -298,6 +303,15 @@ interface CoworkController {
     suspend fun setHermesModel(choice: HermesChoice?): Result<HermesModelsInfo> = Result.failure(IllegalStateException(unsupported.message))
     /** Ajustes → «Servidor»: si tiene versión nueva en GitHub. */
     suspend fun serverUpdate(): Result<ServerUpdate> = Result.failure(IllegalStateException(unsupported.message))
+    /** El selector de «/video»: estilos, personajes y voces del ordenador. */
+    suspend fun videoPicker(): Result<VideoPickerInfo> = Result.failure(IllegalStateException(unsupported.message))
+    /** La muestra de un estilo de película (WebP). */
+    suspend fun videoStyleThumb(slug: String): Result<RawContent> = Result.failure(IllegalStateException(unsupported.message))
+    /** Oír una voz del vídeo: el audio de la muestra. */
+    suspend fun videoVoicePreview(voiceId: String): Result<VideoVoicePreview> = Result.failure(IllegalStateException(unsupported.message))
+    /** «Agregar personaje»: se guarda para todos los proyectos. */
+    suspend fun addVideoCharacter(input: VideoCharacterInput): Result<VideoCharacterAdded> = Result.failure(IllegalStateException(unsupported.message))
+    suspend fun deleteVideoCharacter(characterId: String): Result<List<VideoCharacter>> = Result.failure(IllegalStateException(unsupported.message))
     /** «Novedades» de la versión del servidor (se enseñan una vez en este móvil). */
     suspend fun serverNews(): Result<WhatsNewInfo?> = Result.failure(IllegalStateException(unsupported.message))
     /** Pide al servidor que se actualice y se reinicie ([setAside]: apartar antes lo hecho en él que no está en GitHub). */
@@ -1214,6 +1228,16 @@ class CoworkRepository(
     override suspend fun serverUpdate(): Result<ServerUpdate> = fetch { it.serverUpdate() }
 
     override suspend fun serverNews(): Result<WhatsNewInfo?> = fetch { it.serverNews() }
+
+    override suspend fun videoPicker(): Result<VideoPickerInfo> = fetch { it.videoPicker() }
+
+    override suspend fun videoStyleThumb(slug: String): Result<RawContent> = fetch { it.videoStyleThumb(slug) }
+
+    override suspend fun videoVoicePreview(voiceId: String): Result<VideoVoicePreview> = fetch { it.videoVoicePreview(voiceId) }
+
+    override suspend fun addVideoCharacter(input: VideoCharacterInput): Result<VideoCharacterAdded> = fetch { it.addVideoCharacter(input) }
+
+    override suspend fun deleteVideoCharacter(characterId: String): Result<List<VideoCharacter>> = fetch { it.deleteVideoCharacter(characterId).characters }
 
     override suspend fun startServerUpdate(setAside: Boolean): ActionResult =
         action(t("El servidor se está actualizando: se reiniciará al terminar")) { it.startServerUpdate(setAside) }

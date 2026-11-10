@@ -77,7 +77,7 @@ async function api(path: string, data?: unknown, access = token): Promise<{ stat
   const response = { status: res.status, body: await res.json() }
   if (res.status >= 400) schemaFormat('Error', response.body)
   else {
-    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/templates\/(?!restore$)[^/]+/, '/templates/{templateId}').replace(/^\/routines\/[^/]+$/, '/routines/{routineId}').replace(/^\/messages\/[^/]+\//, '/messages/{messageId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/')
+    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/templates\/(?!restore$)[^/]+/, '/templates/{templateId}').replace(/^\/routines\/[^/]+$/, '/routines/{routineId}').replace(/^\/messages\/[^/]+\//, '/messages/{messageId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/').replace(/^\/video\/voices\/[^/]+\//, '/video/voices/{voiceId}/').replace(/^\/video\/characters\/[^/]+\//, '/video/characters/{characterId}/')
     const operation = openapi.paths[route][data === undefined ? 'get' : 'post']
     const schemaName = operation.responses[String(res.status)].content['application/json'].schema.$ref.split('/').at(-1)
     schemaFormat(schemaName, response.body)
@@ -1733,6 +1733,70 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       webMethods.delete('latestWhatsNew')
     }
     expect((await api('/snapshot')).body.capabilities.whatsNew).toBe(false)
+  })
+
+  it('selector de «/video» en el móvil: estilos con muestra, personajes, voces, oír una y crear o borrar personajes', async () => {
+    expect((await api('/snapshot')).body.capabilities.videoPicker).toBe(false)
+    const robots = { id: 'robots-kywai', name: 'Robots de kywai', description: '', thumb: '', images: 3, builtin: true }
+    let chars: Record<string, unknown>[] = [robots]
+    const voices = [
+      { id: 'edge-es-ES-AlvaroNeural', engine: 'edge', name: 'Álvaro', line: 'España', lang: 'es', gender: 'm' },
+      { id: 'kokoro-af_bella', engine: 'kokoro', name: 'Bella', line: 'Estados Unidos', lang: 'en', gender: 'f' }
+    ]
+    const added: unknown[] = []
+    webMethods.set('listVideoCharacters', () => chars)
+    webMethods.set('addVideoCharacter', (input) => {
+      const i = input as { name: string; description?: string; images?: unknown[] }
+      if (!i.description && !i.images?.length) throw new Error('Describe el personaje o añade imágenes')
+      added.push(input)
+      chars = [...chars, { id: 'dona-rosa-1', name: i.name, description: i.description ?? '', thumb: '', images: i.images?.length ?? 0 }]
+      return { id: 'dona-rosa-1', characters: chars }
+    })
+    webMethods.set('removeVideoCharacter', (id) => {
+      if (id === 'robots-kywai') throw new Error('Los robots de kywai no se pueden borrar')
+      chars = chars.filter((c) => c.id !== id)
+      return chars
+    })
+    webMethods.set('listVideoVoices', () => ({ voices, missing: [] }))
+    webMethods.set('previewVideoVoice', (id) => {
+      if (id === 'mac-carmen') throw new Error('Carmen es una voz de Siri: solo está en macOS')
+      return 'data:audio/mpeg;base64,' + Buffer.from('mp3').toString('base64')
+    })
+    webMethods.set('videoStyleThumbs', () => ['watercolor'])
+    webMethods.set('videoStyleThumb', (slug) => (slug === 'watercolor' ? Buffer.from('RIFFwebp') : null))
+    try {
+      expect((await api('/snapshot')).body.capabilities.videoPicker).toBe(true)
+      const picker = (await api('/video/picker')).body
+      expect(picker.characters).toEqual([robots])
+      expect(picker.voices).toEqual(voices)
+      expect(picker.defaultVoice).toBe('edge-es-ES-AlvaroNeural')
+      expect(picker.categories.length).toBeGreaterThan(5)
+      expect(picker.styles.find((f: { slug: string }) => f.slug === 'watercolor').thumb).toBe(true)
+      expect(picker.styles.find((f: { slug: string }) => f.slug === 'kywai-pintado').thumb).toBe(false)
+
+      const thumb = await raw('/video/styles/watercolor/thumb')
+      expect(thumb.status).toBe(200)
+      expect(thumb.headers.get('content-type')).toBe('image/webp')
+      expect(thumb.body.toString()).toBe('RIFFwebp')
+      expect((await raw('/video/styles/no-existe/thumb')).status).toBe(404)
+
+      expect((await api('/video/voices/kokoro-af_bella/preview', {})).body).toEqual({ type: 'audio/mpeg', data: Buffer.from('mp3').toString('base64') })
+      const carmen = await api('/video/voices/mac-carmen/preview', {})
+      expect(carmen.status).toBe(422)
+      expect(carmen.body.message).toContain('macOS')
+
+      const add = await api('/video/characters', { name: 'Doña Rosa', description: 'Abuela panadera', images: [{ name: 'rosa.jpg', data: 'AAAA' }], thumb: 'BBBB' })
+      expect(add.body.id).toBe('dona-rosa-1')
+      expect(add.body.characters).toHaveLength(2)
+      expect(added[0]).toEqual({ name: 'Doña Rosa', description: 'Abuela panadera', images: [{ name: 'rosa.jpg', data: 'AAAA' }], thumb: 'BBBB' })
+      expect((await api('/video/characters', { name: 'Nadie' })).status).toBe(400)
+      expect((await api('/video/characters', { name: 'Mal', images: 'x' })).status).toBe(400)
+      expect((await api('/video/characters/dona-rosa-1/delete', {})).body).toEqual({ characters: [robots] })
+      expect((await api('/video/characters/robots-kywai/delete', {})).status).toBe(400)
+    } finally {
+      for (const m of ['listVideoCharacters', 'addVideoCharacter', 'removeVideoCharacter', 'listVideoVoices', 'previewVideoVoice', 'videoStyleThumbs', 'videoStyleThumb']) webMethods.delete(m)
+    }
+    expect((await api('/snapshot')).body.capabilities.videoPicker).toBe(false)
   })
 
   it('«Reiniciar agente» desde el móvil: lo deja disponible; uno que no existe da 404', async () => {

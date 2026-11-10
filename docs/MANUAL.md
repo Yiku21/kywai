@@ -1855,7 +1855,7 @@ plan que aprobar, sin informes ni archivos sueltos.
 
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
-- **Con el selector de cuatro pasos** (escritorio y web): al escribir `/video` se abre encima del cuadro un panel con
+- **Con el selector de cuatro pasos** (escritorio, web y Órbita): al escribir `/video` se abre encima del cuadro un panel con
   **1. Tipo de vídeo** (rápido con texto animado, dibujos con presentador o mixto), **2. Personaje** (ninguno, los
   robots de kywai, los que hayas creado o «Agregar personaje»), **3. Estilo de animación** (el de kywai, rápido, o
   uno de los 74 estilos de película con su muestra) y **4. Voz** (automática o una concreta, con ▶ para oírla).
@@ -1989,6 +1989,17 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    `voz:gemini-kore`, `voz:kokoro-ef_dora`, `voz:voicebox-<perfil>` o `voz:sistema` (`parseVoiceId` en
    `src/shared/videoChoice.ts`); en una película con estilo, el encargo le dice al agente con qué herramienta poner
    esa voz.
+
+**En Órbita (Android).** Lo mismo en el móvil: al escribir `/video ` (o elegirlo en la lista del «/») se abre a
+pantalla casi completa el selector con los cuatro pasos (`android/.../ui/orbita/VideoPicker.kt`), y encima del cuadro
+queda la barra «Vídeo · lo elegido», que al tocarla lo vuelve a abrir. Las muestras de los estilos, los personajes y
+las voces los da el ordenador (así un estilo nuevo sale en Órbita sin actualizarla): `GET /api/mobile/v1/video/picker`,
+`GET …/video/styles/{slug}/thumb` (la misma muestra WebP del escritorio, `src/main/filmThumbs.ts`), `POST
+…/video/voices/{voiceId}/preview` (el ▶, en MP3; se guarda en la caché del móvil), `POST …/video/characters` y `POST
+…/video/characters/{id}/delete` (capacidad `videoPicker`). «Agregar personaje» deja elegir hasta 4 fotos de la galería,
+que Órbita reduce antes de enviarlas. Las marcas se leen y se escriben como en el escritorio (`VideoTags`, copia de
+`src/shared/videoChoice.ts`: si cambian allí, cambian también aquí). Con un ordenador sin esta versión, `/video` sigue
+funcionando escribiendo las marcas a mano.
 
 **Estilos de película (74, con muestra).** En el paso 3 del selector, una tarjeta con **una muestra de cada estilo**
 (un fotograma de su película de ejemplo), por categorías y con buscador: **Pintado a mano (acuarela y tinta)** y los

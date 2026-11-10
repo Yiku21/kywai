@@ -4579,6 +4579,278 @@
         },
         "description": "No crea nada: el mensaje queda con status dismissed. 404 ROUTINE_PROPOSAL_NOT_FOUND o 409 ROUTINE_PROPOSAL_NOT_PENDING como en create."
       }
+    },
+    "/api/mobile/v1/video/picker": {
+      "get": {
+        "operationId": "getMobileVideoPicker",
+        "summary": "Lo que se elige al escribir «/video»",
+        "tags": [
+          "Mobile"
+        ],
+        "description": "Los estilos de película (por categorías), los personajes guardados y las voces del servidor, como el selector del escritorio. Lo elegido se pone en el mensaje como marcas («tipo:… personaje:… estilo:… voz:…»).",
+        "responses": {
+          "200": {
+            "description": "Catálogo del selector.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoPicker"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/video/styles/{slug}/thumb": {
+      "get": {
+        "operationId": "getMobileVideoStyleThumb",
+        "summary": "Muestra de un estilo de película (WebP)",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Un fotograma del estilo (image/webp, 320×180).",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/video/voices/{voiceId}/preview": {
+      "post": {
+        "operationId": "previewMobileVideoVoice",
+        "summary": "Oír una voz del vídeo",
+        "tags": [
+          "Mobile"
+        ],
+        "description": "Una frase corta con esa voz, hecha en el servidor (se guarda para no repetirla). 422 VOICE_UNAVAILABLE si esa voz no está en el servidor, con el motivo en message.",
+        "parameters": [
+          {
+            "name": "voiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La muestra.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoVoicePreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "422": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "502": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/video/characters": {
+      "post": {
+        "operationId": "addMobileVideoCharacter",
+        "summary": "Agregar un personaje para los vídeos",
+        "tags": [
+          "Mobile"
+        ],
+        "description": "Se guarda para todos los proyectos, como «Agregar personaje» del escritorio.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoCharacterInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "El personaje nuevo y la lista.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoCharacterAdded"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/video/characters/{characterId}/delete": {
+      "post": {
+        "operationId": "deleteMobileVideoCharacter",
+        "summary": "Borrar un personaje",
+        "tags": [
+          "Mobile"
+        ],
+        "description": "Borra un personaje creado por el usuario con sus imágenes (los robots de kywai no se pueden borrar: 400).",
+        "parameters": [
+          {
+            "name": "characterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La lista que queda.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoCharacters"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6097,6 +6369,10 @@
           "whatsNew": {
             "type": "boolean",
             "description": "«Novedades» de la versión del servidor: GET /server/news. Cada móvil apunta cuál vio y la enseña una vez."
+          },
+          "videoPicker": {
+            "type": "boolean",
+            "description": "El selector de «/video» (tipo, personaje, estilo y voz): GET /video/picker, GET /video/styles/{slug}/thumb, POST /video/voices/{voiceId}/preview, POST /video/characters y POST /video/characters/{characterId}/delete."
           }
         },
         "required": [
@@ -9451,6 +9727,292 @@
                 "type": "null"
               }
             ]
+          }
+        }
+      },
+      "VideoCharacter": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "description",
+          "thumb",
+          "images"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "thumb": {
+            "type": "string",
+            "description": "Miniatura como data: URL (JPEG) o vacío."
+          },
+          "images": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "builtin": {
+            "type": "boolean",
+            "description": "De fábrica (los robots de kywai): no se puede borrar."
+          }
+        }
+      },
+      "VideoVoice": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "engine",
+          "name",
+          "line"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Lo que va en la marca «voz:…»."
+          },
+          "engine": {
+            "type": "string",
+            "enum": [
+              "gemini",
+              "kokoro",
+              "voicebox",
+              "sistema",
+              "edge",
+              "mac"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "line": {
+            "type": "string",
+            "description": "Cómo suena o de dónde es (en español)."
+          },
+          "lang": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "f",
+              "m"
+            ]
+          }
+        }
+      },
+      "VideoPicker": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "categories",
+          "styles",
+          "characters",
+          "voices",
+          "missing",
+          "defaultVoice"
+        ],
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "name",
+                "en"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "en": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "styles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "slug",
+                "name",
+                "en",
+                "category",
+                "line",
+                "lineEn",
+                "thumb"
+              ],
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "en": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "string"
+                },
+                "lineEn": {
+                  "type": "string"
+                },
+                "needs": {
+                  "type": "string",
+                  "enum": [
+                    "material"
+                  ]
+                },
+                "base": {
+                  "type": "string"
+                },
+                "thumb": {
+                  "type": "boolean",
+                  "description": "Tiene muestra en GET /video/styles/{slug}/thumb."
+                }
+              }
+            }
+          },
+          "characters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VideoCharacter"
+            }
+          },
+          "voices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VideoVoice"
+            }
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Motores de voz que faltan en el servidor."
+          },
+          "defaultVoice": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "La voz que lleva el vídeo sin marca «voz:» (null: la automática)."
+          }
+        }
+      },
+      "VideoVoicePreview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "data"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Tipo del audio (audio/mpeg)."
+          },
+          "data": {
+            "type": "string",
+            "description": "El audio en base64."
+          }
+        }
+      },
+      "VideoCharacterInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1500
+          },
+          "images": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "data"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "data": {
+                  "type": "string",
+                  "description": "PNG, JPEG o WebP en base64."
+                }
+              }
+            }
+          },
+          "thumb": {
+            "type": "string",
+            "description": "Miniatura JPEG en base64."
+          }
+        },
+        "description": "Hace falta la descripción, imágenes o las dos cosas. El cuerpo entero no puede pasar de 256 KiB: reduce las imágenes antes."
+      },
+      "VideoCharacterAdded": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "characters"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "characters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VideoCharacter"
+            }
+          }
+        }
+      },
+      "VideoCharacters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "characters"
+        ],
+        "properties": {
+          "characters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VideoCharacter"
+            }
           }
         }
       }

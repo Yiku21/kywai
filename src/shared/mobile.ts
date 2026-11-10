@@ -1,4 +1,4 @@
-import type { AgentAccess, AgentConfig, AgentRuntime, Artifact, ArtifactKind, Attachment, ChatMessage, MemoryEntry, BillingMode, CostCurrency, QuotaInfo, StationConfig, Task, TaskTemplate, TraceEntry, UsageRun } from './types'
+import type { AgentAccess, AgentConfig, AgentRuntime, Artifact, ArtifactKind, Attachment, ChatMessage, MemoryEntry, BillingMode, CostCurrency, QuotaInfo, StationConfig, Task, TaskTemplate, TraceEntry, UsageRun, VideoCharacterInfo, VideoVoiceInfo } from './types'
 import type { AgentQuality } from './agentQuality'
 
 /** Carpeta de trabajo del proyecto (la del usuario a la que tienen acceso los agentes). */
@@ -137,7 +137,25 @@ export interface MobileSnapshot {
     chatCommands?: boolean
     /** GET /usage/cost y usage.cost en la instantánea: dinero por agente, suscripciones y presupuesto. */
     usageCost: boolean
+    /**
+     * El selector de «/video» (tipo, personaje, estilo y voz): GET /video/picker, la muestra de cada estilo, oír una
+     * voz y crear o borrar personajes.
+     */
+    videoPicker?: boolean
   }
+}
+
+/** Lo que ofrece el selector de «/video» del móvil: lo mismo que el del escritorio (src/renderer/src/ui/left/VideoPicker.tsx). */
+export interface MobileVideoPicker {
+  categories: { id: string; name: string; en: string }[]
+  /** Los estilos de película; `thumb`: tiene muestra (GET /video/styles/{slug}/thumb). */
+  styles: { slug: string; name: string; en: string; category: string; line: string; lineEn: string; needs?: 'material'; base?: string; thumb: boolean }[]
+  characters: VideoCharacterInfo[]
+  voices: VideoVoiceInfo[]
+  /** Motores de voz que faltan en el servidor (para decir cómo tener más voces). */
+  missing: string[]
+  /** La voz que lleva el vídeo sin marca «voz:» (null: la automática). */
+  defaultVoice: string | null
 }
 
 /** Si el servidor tiene versión nueva en GitHub y si se puede instalar desde el móvil. */

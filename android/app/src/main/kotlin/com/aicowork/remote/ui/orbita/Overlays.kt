@@ -109,7 +109,7 @@ import java.io.File
 /** Capas que se abren encima de todo: lector, actividad de una tarea y nueva tarea. */
 @Composable
 fun Overlays(model: OrbitaModel, state: CoworkUiState) {
-    val covering = model.viewer != null || model.traceTaskId != null || model.newTaskOpen || model.hermesModelOpen || model.inboxOpen || model.searchOpen || model.historyOpen || model.musicOpen
+    val covering = model.viewer != null || model.traceTaskId != null || model.newTaskOpen || model.hermesModelOpen || model.videoPickerOpen || model.inboxOpen || model.searchOpen || model.historyOpen || model.musicOpen
     // Velo oscuro detrás de lo que se abre (tocarlo cierra).
     AnimatedVisibility(covering, enter = fadeIn(), exit = fadeOut()) {
         Box(
@@ -122,6 +122,7 @@ fun Overlays(model: OrbitaModel, state: CoworkUiState) {
                         model.traceTaskId = null
                         model.newTaskOpen = false
                         model.hermesModelOpen = false
+                        model.videoPickerOpen = false
                         model.closeInbox()
                         model.searchOpen = false
                         model.historyOpen = false
@@ -143,6 +144,9 @@ fun Overlays(model: OrbitaModel, state: CoworkUiState) {
         }
         AnimatedVisibility(model.hermesModelOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
             HermesModelSheet(model)
+        }
+        AnimatedVisibility(model.videoPickerOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+            VideoPickerSheet(model)
         }
         AnimatedVisibility(model.inboxOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
             InboxSheet(model, state)

@@ -77,7 +77,12 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/agents\/([^/]+)\/reset$/, 'agentReset', ['POST']],
   [/^\/agents\/([^/]+)\/thinking$/, 'agentThinking', ['POST']],
   [/^\/server\/update$/, 'serverUpdate', ['GET', 'POST']],
-  [/^\/server\/news$/, 'serverNews', ['GET']]
+  [/^\/server\/news$/, 'serverNews', ['GET']],
+  [/^\/video\/picker$/, 'videoPicker', ['GET']],
+  [/^\/video\/styles\/([^/]+)\/thumb$/, 'videoStyleThumb', ['GET']],
+  [/^\/video\/voices\/([^/]+)\/preview$/, 'videoVoicePreview', ['POST']],
+  [/^\/video\/characters$/, 'videoCharacterAdd', ['POST']],
+  [/^\/video\/characters\/([^/]+)\/delete$/, 'videoCharacterDelete', ['POST']]
 ]
 
 /** Lo que se le pasa a Hermes con --provider y -m (como valida el escritorio). */
@@ -598,6 +603,38 @@ export class MobileApi {
           mobileJson(res, 200, await this.backend.setAgentThinking(id(param, 'agentId'), input.enabled))
           break
         }
+        case 'videoPicker':
+          query(url, [])
+          mobileJson(res, 200, await this.backend.videoPicker())
+          break
+        case 'videoStyleThumb': {
+          query(url, [])
+          const img = await this.backend.videoStyleThumb(id(param, 'slug'))
+          res.writeHead(200, { 'Content-Type': 'image/webp', 'Content-Length': img.length, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=86400' })
+          res.end(img)
+          break
+        }
+        case 'videoVoicePreview':
+          fields(await body(req), [])
+          mobileJson(res, 200, await this.backend.videoVoicePreview(id(param, 'voiceId')))
+          break
+        case 'videoCharacterAdd': {
+          const input = await body(req)
+          fields(input, ['name'], ['description', 'images', 'thumb'])
+          const name = string(input.name, 'name', 60).trim()
+          const description = input.description === undefined ? '' : string(input.description, 'description', 1500).trim()
+          const images = input.images ?? []
+          if (!Array.isArray(images) || images.length > 6 || images.some((i) => !i || typeof i !== 'object' || typeof (i as { name?: unknown }).name !== 'string' || typeof (i as { data?: unknown }).data !== 'string' || (i as { name: string }).name.length > 120)) {
+            throw new MobileError(400, 'INVALID_INPUT', 'images debe ser una lista de hasta 6 imágenes { name, data }')
+          }
+          const thumb = input.thumb === undefined ? undefined : string(input.thumb, 'thumb', MAX_BODY)
+          mobileJson(res, 200, await this.backend.addVideoCharacter({ name, description, images: (images as { name: string; data: string }[]).map((i) => ({ name: i.name, data: i.data })), ...(thumb ? { thumb } : {}) }))
+          break
+        }
+        case 'videoCharacterDelete':
+          fields(await body(req), [])
+          mobileJson(res, 200, await this.backend.removeVideoCharacter(id(param, 'characterId')))
+          break
         case 'serverNews':
           query(url, [])
           mobileJson(res, 200, { news: await this.backend.serverNews() })

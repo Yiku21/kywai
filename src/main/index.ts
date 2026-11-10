@@ -110,6 +110,7 @@ import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
 import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
 import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
+import { filmThumb, filmThumbSlugs } from './filmThumbs'
 // Las imágenes de los robots van empaquetadas con la app: son la referencia del personaje «Robots de kywai».
 import hermesRobot from '../renderer/src/assets/robots/hermes.png?asset'
 import claudeRobot from '../renderer/src/assets/robots/claude.png?asset'
@@ -977,6 +978,9 @@ function registerIpc(): void {
   // Voces para los vídeos (paso 4 del selector) y una muestra corta de cada una, en el idioma de la app.
   handle('listVideoVoices', () => listVideoVoices(lang()))
   handle('previewVideoVoice', (id: unknown) => previewVideoVoice(id, lang(), tr('Hola, así sonará la voz de tu vídeo. ¿Te gusta cómo suena?')))
+  // Las muestras de los estilos para el selector de «/video» de Órbita (el escritorio y la web las llevan dentro).
+  webMethods.set('videoStyleThumbs', () => filmThumbSlugs())
+  webMethods.set('videoStyleThumb', (slug: unknown) => (typeof slug === 'string' ? filmThumb(slug) : null))
   // Mods: órdenes «/…», hooks (con permiso) y paneles aislados junto al chat.
   handle('listMods', () => listMods())
   handle('installModLink', (url: unknown) => installModLink(url))

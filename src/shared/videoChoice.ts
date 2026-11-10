@@ -2,6 +2,7 @@
 // pone en el texto como marcas («tipo:mixto personaje:robots-kywai estilo:watercolor voz:gemini-puck»), así vale igual
 // escribiéndolo a mano, desde la web, desde Órbita o en una rutina. Sin marca: rápido, sin personaje, con el estilo de
 // kywai y la mejor voz que haya.
+// Órbita las lee y escribe con su propia copia (VideoTags en android/.../ui/orbita/VideoPicker.kt): si cambian aquí, allí también.
 import { filmStyle, KYWAI_FILM } from './filmStyles'
 
 /** rapido: texto animado con ritmo. presentador: un personaje dibujado lo explica. mixto: las dos cosas alternadas. */

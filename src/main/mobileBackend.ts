@@ -1,10 +1,12 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import type { AgentAccess, AgentConfig, ConversationSummary, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun, WhatsNew, RoutineInput, ChatMessage } from '@shared/types'
-import type { MobileChatReceipt, MobileConversation, MobileCost, MobileFiles, MobileMusicResult, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
+import type { AgentAccess, AgentConfig, ConversationSummary, VideoCharacterInfo, VideoVoiceInfo, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun, WhatsNew, RoutineInput, ChatMessage } from '@shared/types'
+import type { MobileChatReceipt, MobileConversation, MobileCost, MobileFiles, MobileMusicResult, MobileVideoPicker, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
 import { mobileCost } from '@shared/costs'
 import { isLive, streamUrlOf } from '@shared/musicSources'
+import { FILM_CATEGORIES, FILM_STYLES } from '@shared/filmStyles'
+import { LANG_VOICES } from '@shared/videoChoice'
 import { MobileError } from './mobileErrors'
 import { savePastedFile } from './local'
 import { listFolder, relPath, resolveInside } from './mobileFiles'
@@ -143,7 +145,8 @@ export class MobileBackend {
         agentThinking: this.methods.has('setAgentThinking'),
         modPanels: this.methods.has('modPanel') && this.methods.has('listMods'),
         chatCommands: true,
-        usageCost: true
+        usageCost: true,
+        videoPicker: ['listVideoCharacters', 'addVideoCharacter', 'removeVideoCharacter', 'listVideoVoices', 'previewVideoVoice'].every((m) => this.methods.has(m))
       }
     }
   }
@@ -742,6 +745,66 @@ export class MobileBackend {
   /** Actualización del servidor pedida desde el móvil: si sigue en marcha y, si falló, por qué. */
   private serverUpdating = false
   private serverUpdateError: string | null = null
+
+  /** El selector de «/video» del móvil: estilos (con o sin muestra), personajes y voces, como en el escritorio. */
+  async videoPicker(): Promise<MobileVideoPicker> {
+    const [characters, found] = await Promise.all([
+      this.call<VideoCharacterInfo[]>('listVideoCharacters'),
+      this.call<{ voices: VideoVoiceInfo[]; missing: string[] }>('listVideoVoices').catch(() => ({ voices: [] as VideoVoiceInfo[], missing: [] as string[] }))
+    ])
+    const thumbs = new Set(this.methods.has('videoStyleThumbs') ? await this.call<string[]>('videoStyleThumbs') : [])
+    // Con el servidor en español o en inglés, la primera voz de la lista es la de por defecto (la que va sin marca).
+    const first = found.voices[0]?.id
+    const defaultVoice = first && Object.values(LANG_VOICES).some((ids) => ids[0] === first) ? first : null
+    return {
+      categories: FILM_CATEGORIES.map((c) => ({ ...c })),
+      styles: FILM_STYLES.map((f) => ({ ...f, thumb: thumbs.has(f.slug) })),
+      characters,
+      voices: found.voices,
+      missing: found.missing,
+      defaultVoice
+    }
+  }
+
+  /** La muestra (WebP) de un estilo de película. */
+  async videoStyleThumb(slug: string): Promise<Buffer> {
+    const img = this.methods.has('videoStyleThumb') ? await this.call<Buffer | null>('videoStyleThumb', slug) : null
+    if (!img) throw new MobileError(404, 'NOT_FOUND', 'Ese estilo no tiene muestra')
+    return img
+  }
+
+  /** Una muestra corta de una voz para el vídeo (MP3). Si esa voz no está en el servidor, dice por qué. */
+  async videoVoicePreview(voiceId: string): Promise<{ type: string; data: string }> {
+    let url: string
+    try {
+      url = await this.call<string>('previewVideoVoice', voiceId)
+    } catch (e) {
+      if (e instanceof MobileError) throw e
+      throw new MobileError(422, 'VOICE_UNAVAILABLE', (e as Error).message || 'No se pudo preparar la muestra')
+    }
+    const m = /^data:([^;,]+);base64,(.*)$/s.exec(url)
+    if (!m) throw new MobileError(502, 'VOICE_UNAVAILABLE', 'La muestra no llegó bien')
+    return { type: m[1], data: m[2] }
+  }
+
+  /** Crear un personaje (para todos los proyectos), como «Agregar personaje» del escritorio. */
+  async addVideoCharacter(input: { name: string; description?: string; images?: { name: string; data: string }[]; thumb?: string }): Promise<{ id: string; characters: VideoCharacterInfo[] }> {
+    try {
+      return await this.call<{ id: string; characters: VideoCharacterInfo[] }>('addVideoCharacter', input)
+    } catch (e) {
+      if (e instanceof MobileError) throw e
+      throw new MobileError(400, 'INVALID_INPUT', (e as Error).message || 'No se pudo guardar el personaje')
+    }
+  }
+
+  async removeVideoCharacter(id: string): Promise<{ characters: VideoCharacterInfo[] }> {
+    try {
+      return { characters: await this.call<VideoCharacterInfo[]>('removeVideoCharacter', id) }
+    } catch (e) {
+      if (e instanceof MobileError) throw e
+      throw new MobileError(400, 'INVALID_INPUT', (e as Error).message || 'No se pudo borrar el personaje')
+    }
+  }
 
   /** «Novedades» de la versión del servidor (null si no hay o este servidor no lo sabe). */
   async serverNews(): Promise<WhatsNew | null> {

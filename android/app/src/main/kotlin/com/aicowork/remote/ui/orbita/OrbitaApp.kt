@@ -178,7 +178,7 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
     val blur = model.worldAvailable && scene != null && model.preferences.effects != EffectsPreference.Soft && glassActive
     val glass = remember(blur) { GlassContext(model.world.glass, blur) }
 
-    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.historyOpen || model.musicOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
+    BackHandler(enabled = model.drawerOpen || model.searchOpen || model.historyOpen || model.musicOpen || model.viewer != null || model.traceTaskId != null || model.hermesModelOpen || model.videoPickerOpen || model.inboxOpen || model.newTaskOpen || model.section != Section.World || model.selectedAgentId != null) {
         when {
             model.searchOpen -> model.searchOpen = false
             model.historyOpen -> model.historyOpen = false
@@ -187,6 +187,7 @@ private fun OrbitaShell(model: OrbitaModel, state: CoworkUiState) {
             model.viewer != null -> model.viewer = null
             model.traceTaskId != null -> model.traceTaskId = null
             model.hermesModelOpen -> model.hermesModelOpen = false
+            model.videoPickerOpen -> model.videoPickerOpen = false
             model.inboxOpen -> model.closeInbox()
             model.newTaskOpen -> model.newTaskOpen = false
             // Plegado, la pantalla completa se recuerda: atrás cierra el panel (como cualquier pantalla).

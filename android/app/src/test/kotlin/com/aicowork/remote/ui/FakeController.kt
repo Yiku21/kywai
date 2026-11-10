@@ -110,6 +110,45 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
         calls += "search:$query"
         return Result.success(listOf(com.aicowork.remote.data.model.SearchHit("conversation", "c1", "Proyecto demo", "ch0", "Informe semanal", "…el informe semanal…", 1)))
     }
+    var videoPickerInfo = com.aicowork.remote.data.model.VideoPickerInfo(
+        categories = listOf(com.aicowork.remote.data.model.VideoCategory("dibujo", "Dibujo y pintura", "Hand-drawn & painting")),
+        styles = listOf(com.aicowork.remote.data.model.VideoStyle("watercolor", "Acuarela", "Watercolor", "dibujo", "Pinceladas suaves", "Soft brushstrokes", thumb = true)),
+        characters = listOf(com.aicowork.remote.data.model.VideoCharacter("robots-kywai", "Robots de kywai", images = 3, builtin = true)),
+        voices = listOf(
+            com.aicowork.remote.data.model.VideoVoice("edge-es-ES-AlvaroNeural", "edge", "Álvaro", "España", "es", "m"),
+            com.aicowork.remote.data.model.VideoVoice("edge-es-MX-JorgeNeural", "edge", "Jorge", "México", "es", "m"),
+        ),
+        defaultVoice = "edge-es-ES-AlvaroNeural",
+    )
+
+    override suspend fun videoPicker(): Result<com.aicowork.remote.data.model.VideoPickerInfo> {
+        calls += "videoPicker"
+        return Result.success(videoPickerInfo)
+    }
+
+    override suspend fun videoStyleThumb(slug: String): Result<RawContent> {
+        calls += "videoStyleThumb:$slug"
+        return Result.failure(IllegalStateException("sin muestra en las pruebas"))
+    }
+
+    override suspend fun videoVoicePreview(voiceId: String): Result<com.aicowork.remote.data.model.VideoVoicePreview> {
+        calls += "videoVoicePreview:$voiceId"
+        return Result.success(com.aicowork.remote.data.model.VideoVoicePreview("audio/mpeg", "AAAA"))
+    }
+
+    override suspend fun addVideoCharacter(input: com.aicowork.remote.data.model.VideoCharacterInput): Result<com.aicowork.remote.data.model.VideoCharacterAdded> {
+        calls += "addVideoCharacter:${input.name}:${input.description}"
+        val c = com.aicowork.remote.data.model.VideoCharacter("dona-rosa-1", input.name, input.description)
+        videoPickerInfo = videoPickerInfo.copy(characters = videoPickerInfo.characters + c)
+        return Result.success(com.aicowork.remote.data.model.VideoCharacterAdded(c.id, videoPickerInfo.characters))
+    }
+
+    override suspend fun deleteVideoCharacter(characterId: String): Result<List<com.aicowork.remote.data.model.VideoCharacter>> {
+        calls += "deleteVideoCharacter:$characterId"
+        videoPickerInfo = videoPickerInfo.copy(characters = videoPickerInfo.characters.filter { it.id != characterId })
+        return Result.success(videoPickerInfo.characters)
+    }
+
     var modPanelsList: List<com.aicowork.remote.data.model.ModPanelInfo> = emptyList()
 
     override suspend fun modPanels(): Result<List<com.aicowork.remote.data.model.ModPanelInfo>> {

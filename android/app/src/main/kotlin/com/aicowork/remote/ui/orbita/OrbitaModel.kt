@@ -191,6 +191,12 @@ class OrbitaModel(
     }
     /** «/model»: la lista de modelos de Hermes abierta. */
     var hermesModelOpen by mutableStateOf(false)
+    /** «/video»: el selector de tipo, personaje, estilo y voz abierto. */
+    var videoPickerOpen by mutableStateOf(false)
+    /** Lo que ofrece el ordenador en el selector de «/video» (se pide al abrirlo). */
+    var videoPicker by mutableStateOf<com.aicowork.remote.data.model.VideoPickerInfo?>(null)
+    /** Muestras de los estilos ya pedidas (null: no se pudo). */
+    val videoThumbs = mutableStateMapOf<String, androidx.compose.ui.graphics.ImageBitmap?>()
     /** La bandeja «Te necesita» abierta. */
     var inboxOpen by mutableStateOf(false)
         private set

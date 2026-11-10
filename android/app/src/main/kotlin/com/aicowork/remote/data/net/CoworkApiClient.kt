@@ -33,6 +33,11 @@ import com.aicowork.remote.data.model.HermesChoice
 import com.aicowork.remote.data.model.HermesModelsInfo
 import com.aicowork.remote.data.model.ServerUpdate
 import com.aicowork.remote.data.model.WhatsNewInfo
+import com.aicowork.remote.data.model.VideoCharacterAdded
+import com.aicowork.remote.data.model.VideoCharacterInput
+import com.aicowork.remote.data.model.VideoCharacters
+import com.aicowork.remote.data.model.VideoPickerInfo
+import com.aicowork.remote.data.model.VideoVoicePreview
 import com.aicowork.remote.data.model.WhatsNewResponse
 import com.aicowork.remote.data.model.ServerUpdateRequest
 import com.aicowork.remote.data.model.HermesResetRequest
@@ -555,6 +560,22 @@ class CoworkApiClient(
     /** Pulsa el botón [actionId] del aviso [itemId] (404 si ya no existe el aviso o la acción). */
     suspend fun inboxAction(itemId: String, actionId: String): InboxActionResponse =
         post("/inbox/${itemId.encodeSegment()}/${actionId.encodeSegment()}", "{}", InboxActionResponse.serializer())
+
+    /** El selector de «/video»: estilos, personajes y voces del servidor. */
+    suspend fun videoPicker(): VideoPickerInfo = get("/video/picker", VideoPickerInfo.serializer())
+
+    /** La muestra (WebP) de un estilo de película. */
+    suspend fun videoStyleThumb(slug: String): RawContent = raw("/video/styles/${slug.encodeSegment()}/thumb", 2L * 1024 * 1024)
+
+    /** Una frase corta con esa voz (la hace el ordenador: la primera vez tarda unos segundos). */
+    suspend fun videoVoicePreview(voiceId: String): VideoVoicePreview =
+        decode(execute(Request.Builder().url(url("/video/voices/${voiceId.encodeSegment()}/preview")).post("{}".toRequestBody(jsonType)).authorized().build(), slow = true), VideoVoicePreview.serializer())
+
+    suspend fun addVideoCharacter(input: VideoCharacterInput): VideoCharacterAdded =
+        post("/video/characters", CoworkJson.encodeToString(VideoCharacterInput.serializer(), input), VideoCharacterAdded.serializer())
+
+    suspend fun deleteVideoCharacter(characterId: String): VideoCharacters =
+        post("/video/characters/${characterId.encodeSegment()}/delete", "{}", VideoCharacters.serializer())
 
     /** «Novedades» de la versión del servidor (null si no hay). */
     suspend fun serverNews(): WhatsNewInfo? = get("/server/news", WhatsNewResponse.serializer()).news

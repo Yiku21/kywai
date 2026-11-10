@@ -720,6 +720,8 @@ data class Capabilities(
     val agentThinking: Boolean = false,
     /** Paneles de los mods (GET /mods/panels y /mods/panel). */
     val modPanels: Boolean = false,
+    /** El selector de «/video» (tipo, personaje, estilo y voz): GET /video/picker y lo demás de /video. */
+    val videoPicker: Boolean = false,
     /** «/recuerda …» enviado como mensaje va a la memoria; la instantánea trae modCommands. */
     val chatCommands: Boolean = false,
     /** Varios chats por proyecto (GET/POST /chats, /chats/{id}/open|rename|delete). */
@@ -834,6 +836,81 @@ data class ServerUpdate(
 
 @Serializable
 data class ServerUpdateRequest(val setAside: Boolean)
+
+/** El selector de «/video» (GET /video/picker): estilos, personajes y voces del servidor, como en el escritorio. */
+@Serializable
+data class VideoPickerInfo(
+    val categories: List<VideoCategory> = emptyList(),
+    val styles: List<VideoStyle> = emptyList(),
+    val characters: List<VideoCharacter> = emptyList(),
+    val voices: List<VideoVoice> = emptyList(),
+    /** Motores de voz que faltan en el servidor («voicebox», «gemini», «kokoro»). */
+    val missing: List<String> = emptyList(),
+    /** La voz que lleva el vídeo sin marca «voz:» (null: la automática). */
+    val defaultVoice: String? = null,
+)
+
+@Serializable
+data class VideoCategory(val id: String, val name: String, val en: String = "")
+
+/** Un estilo de película; [thumb]: tiene muestra (GET /video/styles/{slug}/thumb). */
+@Serializable
+data class VideoStyle(
+    val slug: String,
+    val name: String,
+    val en: String = "",
+    val category: String = "",
+    val line: String = "",
+    val lineEn: String = "",
+    val needs: String? = null,
+    val base: String? = null,
+    val thumb: Boolean = false,
+)
+
+/** Un personaje de los vídeos: los robots de kywai ([builtin]) o uno creado por el usuario. */
+@Serializable
+data class VideoCharacter(
+    val id: String,
+    val name: String,
+    val description: String = "",
+    /** Miniatura como data: URL (JPEG) o vacío. */
+    val thumb: String = "",
+    val images: Int = 0,
+    val builtin: Boolean = false,
+)
+
+/** Una voz para el vídeo: [id] es lo que va en la marca «voz:…». */
+@Serializable
+data class VideoVoice(
+    val id: String,
+    val engine: String,
+    val name: String,
+    val line: String = "",
+    val lang: String? = null,
+    val gender: String? = null,
+)
+
+/** La muestra de una voz: el audio en base64. */
+@Serializable
+data class VideoVoicePreview(val type: String = "audio/mpeg", val data: String)
+
+@Serializable
+data class VideoImage(val name: String, val data: String)
+
+/** Un personaje nuevo: nombre y descripción, imágenes (JPEG en base64, ya reducidas) o las dos cosas. */
+@Serializable
+data class VideoCharacterInput(
+    val name: String,
+    val description: String = "",
+    val images: List<VideoImage> = emptyList(),
+    val thumb: String? = null,
+)
+
+@Serializable
+data class VideoCharacterAdded(val id: String, val characters: List<VideoCharacter> = emptyList())
+
+@Serializable
+data class VideoCharacters(val characters: List<VideoCharacter> = emptyList())
 
 /** «Novedades»: los cambios de la última actualización del servidor (GET /server/news). */
 @Serializable

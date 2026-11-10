@@ -342,6 +342,8 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
         if (!voiceHere) {
             ChatCommandList(model, snapshot) { cmd -> if (!runLocal(cmd)) model.chatDraft = TextFieldValue("$cmd ", selection = androidx.compose.ui.text.TextRange(cmd.length + 1)) }
             TemplateRow(model, snapshot, pending.map { it.first })
+            // «/video …»: lo elegido (tipo, personaje, estilo y voz) y, al tocarlo, el selector.
+            VideoPickerBar(model, snapshot)
         }
         if (voiceHere) {
             VoiceBar(model, voice, allowSend = true, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp))
