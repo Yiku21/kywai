@@ -6,6 +6,7 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { FILM_STYLES, KYWAI_FILM, type FilmStyle } from '../shared/filmStyles'
+import { HOOK_RULE } from './videoScript'
 
 export const LEMO_OPUSCAR_REPO = 'https://github.com/lemomo-ai/lemo-opuscar.git'
 /** Versión fija: lo que se probó con kywai (10 nov 2026). Se sube a mano tras probar una nueva. */
@@ -51,6 +52,39 @@ export interface FilmPromptInput {
 /** La guía de un estilo propio de kywai, que kywai deja en la carpeta de la película (kywaiFilmGuides.ts). */
 export const KYWAI_GUIDE_FILE = 'ESTILO-kywai.md'
 
+/** Estilos que se hacen en 3D (three.js u otro motor 3D): llevan la lista de «escena viva» (ALIVE_3D). */
+export const FILM_3D = new Set([
+  'lowpoly-island',
+  'glass-product',
+  'tilt-shift',
+  'brick-toy',
+  'memphis-diorama',
+  'desktop-flythrough',
+  'white-model',
+  'lidar-survey',
+  'teardown',
+  'data-physical',
+  'hd-2d',
+  'iso-infographic',
+  'kywai-crystal-3d',
+  'kywai-deep-time'
+])
+
+/**
+ * Lo que separa una escena 3D viva de una muerta (movimiento y luz), como lista de control. Se revisa en las tiras de
+ * fotogramas antes de entregar; la guía del estilo manda si dice otra cosa.
+ */
+export const ALIVE_3D = [
+  '- Escena 3D viva (repásalo en cada plano antes de renderizar; si la guía del estilo dice otra cosa, manda la guía):',
+  '  · Bucles que nunca paran: humo, nieve, polvo, agua, nubes o partículas siempre en marcha, también cuando la historia se para.',
+  '  · Desfase: nada se mueve a la vez; cada árbol, luz o personaje con su propio reloj (fase y velocidad distintas).',
+  '  · Arcos: lo que salta o cae va en arco, se estira al subir y se aplasta un poco al caer; nada en línea recta ni a velocidad fija.',
+  '  · Luz viva: el fuego parpadea, los farolillos se balancean, las pantallas laten; la luz cambia un poco aunque nada más lo haga.',
+  '  · Cámara que respira: una deriva lenta y continua (un poco de giro o de avance); nunca del todo quieta.',
+  '  · Luz principal fuerte y de lado, con sombras de verdad (no luz plana igual en todas las caras); relleno frío que suaviza las sombras y un borde de luz que recorta los contornos.',
+  '  · Atmósfera: brillo en las luces cálidas, niebla o bruma detrás para dar profundidad.'
+]
+
 /** El nombre del archivo final que se pide al agente (y el primero que se busca al terminar). */
 export const FILM_FILE = 'pelicula.mp4'
 
@@ -70,6 +104,7 @@ export function filmPrompt(input: FilmPromptInput): string {
     `- La carpeta de la película es ${work} (ya existe y es tu carpeta de trabajo): todo lo que hagas va ahí.`,
     '- No preguntes nada: este mensaje es el brief completo. Lo que no diga, decídelo tú con criterio y sigue; nada de guion gráfico para aprobar.',
     `- Idioma de la voz y los subtítulos: ${lang}. Formato ${size}, salvo que la guía del estilo fije otro. Duración: de 30 a 60 segundos, salvo que el tema pida otra cosa.`,
+    `- ${HOOK_RULE}`,
     `- El vídeo final se llama exactamente ${join(work, FILM_FILE)} (con sonido). Deja también poster.jpg y, si hay voz, el .srt.`,
     '- Revisa tu trabajo antes de entregar (capturas, tiras de fotogramas, una pasada completa) y arregla lo que veas en una ronda.',
     '- Nada de personajes, marcas, logotipos ni obras de terceros; solo lo que el usuario haya dado. Ningún crédito ni firma de la biblioteca en la película.',
@@ -112,6 +147,7 @@ export function filmPrompt(input: FilmPromptInput): string {
             : [])
         ]
   const extra = [
+    ...(FILM_3D.has(style.slug) ? ALIVE_3D : []),
     ...(input.source ? ['', 'El texto del que trata la película:', '"""', input.source, '"""'] : []),
     ...(input.files?.length ? ['', 'Archivos del usuario que puedes usar (lo que haya de material propio va en la película):', ...input.files] : [])
   ]

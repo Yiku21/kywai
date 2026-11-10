@@ -44,6 +44,13 @@ describe('películas con estilo', () => {
     expect(p).not.toContain(join('styles', 'kywai-ink-doodle'))
   })
 
+  it('los estilos 3D llevan la lista de escena viva; todos, el gancho', () => {
+    expect(filmPrompt({ ...base, style: filmStyle('lowpoly-island')! })).toContain('Escena 3D viva')
+    expect(filmPrompt({ ...base, style: filmStyle('kywai-crystal-3d')! })).toContain('Bucles que nunca paran')
+    expect(filmPrompt({ ...base, style: filmStyle('watercolor')! })).not.toContain('Escena 3D viva')
+    expect(filmPrompt({ ...base, style: filmStyle('watercolor')! })).toContain('Gancho en los 2 primeros segundos')
+  })
+
   it('encuentra el vídeo final y el título', () => {
     const dir = mkdtempSync(join(tmpdir(), 'film-'))
     expect(findFilm(dir)).toBeNull()

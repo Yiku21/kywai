@@ -1750,6 +1750,17 @@ que sale en ellas. Sin imágenes, el guion trae igualmente un `look` único para
 presentador, el dibujo de siempre se cambia por el tuyo solo si diste referencias. Lo hace `imagePromptText` y
 `geminiImage` en `src/main/videoStudio.ts`.
 
+**Gancho.** Los guiones (y las películas con estilo) piden un gancho en los 2 primeros segundos, sin saludos, con una
+de estas formas: una pregunta, un dato que sorprende, lo contrario de lo que se cree, el resultado primero, un error
+común o una promesa con número; y que cada escena abra una pregunta pequeña que cierre la siguiente (`HOOK_RULE` en
+`videoScript.ts`).
+
+**Escenas 3D vivas.** En los estilos de película hechos en 3D (`FILM_3D` en `filmLibrary.ts`: isla low-poly,
+producto de cristal, maqueta, piezas, diorama, cristales, tiempo profundo…) el encargo lleva una lista de control
+(`ALIVE_3D`): bucles que nunca paran (humo, nieve, partículas), nada se mueve a la vez, arcos con estirar y aplastar,
+luz viva (fuego, farolillos), cámara que deriva, luz principal de lado con sombras, relleno frío y borde de luz, brillo
+y niebla.
+
 **Escenas con movimiento (FreeVideo).** Si en el equipo está instalado y abierto
 [FreeVideo](https://github.com/FlashML-org/FreeVideo) (vídeo local con el modelo MiniMax H3), el guion puede marcar con
 `motion` hasta 3 escenas (el gancho y los momentos fuertes) con una frase de qué se mueve. Después de hacer la imagen de

@@ -302,3 +302,11 @@ describe('estilo de las imágenes y escenas con movimiento', () => {
     expect(videoScriptPrompt({ ...base, style: 'cartoon', refs: ['/p/r.jpg'], motion: true })).toContain('"motion"')
   })
 })
+
+describe('gancho', () => {
+  it('el encargo lleva el gancho', () => {
+    const base = { topic: 'el café', format: 'vertical' as const, lang: 'es' }
+    expect(videoScriptPrompt(base)).toContain('Gancho en los 2 primeros segundos')
+    expect(videoScriptPrompt({ ...base, style: 'cartoon' })).toContain('Gancho en los 2 primeros segundos')
+  })
+})

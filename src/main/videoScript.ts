@@ -121,6 +121,13 @@ export function parseVideoScript(text: string): VideoScript {
   return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}) }
 }
 
+/**
+ * El gancho: lo que decide si alguien sigue mirando. Va en los encargos de guion y de película (en español, como el
+ * resto del encargo).
+ */
+export const HOOK_RULE =
+  'Gancho en los 2 primeros segundos (voz y lo que se ve a la vez, sin saludos ni presentaciones ni «hoy vamos a ver»), con una de estas formas: una pregunta que el espectador se hace («¿por qué…?»); un dato o una cifra que sorprende; lo contrario de lo que todo el mundo cree («deja de…», «no es…»); el resultado final primero y luego cómo se llega; un error común («si haces esto, lo estás haciendo mal»); una promesa concreta con número («3 pasos», «en 30 segundos»). Después, cada escena abre una pregunta pequeña que la siguiente cierra, para que se vea hasta el final.'
+
 /** Encargo para el agente: solo el guion, en JSON. */
 type PromptInput = {
   topic: string
@@ -176,7 +183,8 @@ export function videoScriptPrompt(input: PromptInput): string {
     `Idioma de la voz y los textos: ${input.lang}.`,
     '',
     'Reglas:',
-    `- Entre ${MIN_SCENES + 2} y ${MAX_SCENES - 1} escenas cortas y con ritmo, para gente con poca paciencia. La primera es un gancho que obliga a seguir mirando (una pregunta, un dato sorprendente o una promesa) en menos de 3 segundos; cada escena aporta algo nuevo; la última cierra con una idea clara.`,
+    `- Entre ${MIN_SCENES + 2} y ${MAX_SCENES - 1} escenas cortas y con ritmo, para gente con poca paciencia. Cada escena aporta algo nuevo; la última cierra con una idea clara.`,
+    `- ${HOOK_RULE}`,
     '- "narration": lo que dice la voz, UNA frase corta y directa por escena (de 8 a 20 palabras), como habla un buen creador de TikTok. Sin emojis, sin listas, sin siglas raras: se lee en voz alta. Marca con *asteriscos* la palabra o las dos palabras clave de cada frase (salen resaltadas en pantalla).',
     '- "heading": la etiqueta de la escena, de 1 a 3 palabras.',
     '- "image": la imagen de fondo de la escena, descrita en inglés en una frase concreta (sujeto, ambiente, luz). Sin texto, letras ni logotipos en la imagen.',
@@ -206,9 +214,10 @@ function cartoonScriptPrompt(input: PromptInput): string {
     `Idioma de la voz y los textos: ${input.lang}.`,
     '',
     'Reglas:',
-    `- Entre ${MIN_SCENES + 3} y ${MAX_SCENES} escenas. La primera es un gancho con gracia (el personaje saluda y promete algo en menos de 4 segundos). Si es un tutorial, después van los pasos EN ORDEN, completos y correctos (con los avisos de seguridad que hagan falta), y al final un resumen corto.`,
+    `- Entre ${MIN_SCENES + 3} y ${MAX_SCENES} escenas. La primera es el gancho, con gracia (el personaje lo dice). Si es un tutorial, después van los pasos EN ORDEN, completos y correctos (con los avisos de seguridad que hagan falta), y al final un resumen corto.`,
     '- "narration": lo que dice el personaje en primera persona, como un youtuber cercano: una o dos frases cortas (como mucho 30 palabras). Sin emojis ni listas: se lee en voz alta. Marca con *asteriscos* la palabra clave de cada frase.',
     '- Humor: en 2 o 3 escenas mete una broma corta y blanca (una exageración, una comparación absurda, un despiste del personaje) y marca esas escenas con "joke": true. Las bromas nunca sustituyen a la instrucción: el paso tiene que quedar claro igual.',
+    `- ${HOOK_RULE}`,
     '- "step": el número del paso (1, 2, 3…) en las escenas que son un paso; 0 en el gancho, las bromas sueltas y el resumen.',
     '- "heading": lo que se ve escrito en la ilustración: la instrucción en 2 a 5 palabras («Desenchufa el PC», «Abre las pestañas»).',
     `- "pose": el gesto del personaje, uno de ${CHARACTER_POSES.map((p) => `"${p}"`).join(', ')} (explain: explica; point: señala la ilustración; surprised: se sorprende; laugh: se ríe; shrug: se encoge de hombros; thumbs: pulgar arriba; think: piensa; wave: saluda). Varíalos y que encajen con lo que dice; "point" cuando hay que mirar algo concreto.`,
