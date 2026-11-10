@@ -77,6 +77,11 @@ describe('películas con estilo', () => {
     expect(filmPrompt({ ...base, style: filmStyle('kywai-crystal-3d')! })).toContain('Bucles que nunca paran')
     expect(filmPrompt({ ...base, style: filmStyle('watercolor')! })).not.toContain('Escena 3D viva')
     expect(filmPrompt({ ...base, style: filmStyle('watercolor')! })).toContain('Gancho en los 2 primeros segundos')
+    // Todas las películas: hoja de beats antes de animar y la lista de acción viva con sus «evita → haz».
+    const w = filmPrompt({ ...base, style: filmStyle('watercolor')! })
+    expect(w).toContain('beats.md')
+    expect(w).toContain('Anticipación')
+    expect(w).toContain('Fundido al golpear → fotogramas de impacto')
   })
 
   it('encuentra el vídeo final y el título', () => {

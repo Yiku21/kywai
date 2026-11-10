@@ -134,6 +134,29 @@ export const ALIVE_3D = [
   '  · Atmósfera: brillo en las luces cálidas, niebla o bruma detrás para dar profundidad.'
 ]
 
+/**
+ * Lo que separa una acción viva de una plana (los principios de animación), con lo que se suele hacer mal y cómo se
+ * arregla. Va en todas las películas; la guía del estilo manda si pide otra cosa (animación limitada, sin movimiento…).
+ */
+export const ALIVE_ACTION = [
+  '- Acción viva (cuando algo o alguien se mueve; repásalo en las capturas de cada beat; si la guía del estilo dice otra cosa, manda la guía):',
+  '  · Anticipación: antes de cada acción, un gesto contrario y corto (se agacha antes de saltar, echa el brazo atrás antes de lanzar).',
+  '  · Pausa en el impacto: al golpear o chocar, 3–5 fotogramas quietos y luego la reacción, con un leve temblor de cámara.',
+  '  · Solapamiento: pelo, ropa, colas y llamas siguen moviéndose un poco después de que el cuerpo para.',
+  '  · Aplastar y estirar al saltar, caer o chocar, conservando el volumen.',
+  '  · Puesta en escena clara: una sola acción importante a la vez y la mirada del espectador llevada hacia ella.',
+  '  Evita → haz:',
+  '  · Trayectorias rectas → arcos con gravedad (sube despacio, cae más rápido).',
+  '  · Velocidad constante (tween lineal) → curvas de suavizado (sale y llega despacio, pasa rápido).',
+  '  · Estela o cola que aparece antes que el objeto → la estela nace de la trayectoria ya recorrida.',
+  '  · Fundido al golpear → fotogramas de impacto (destello, forma de estrella o líneas de choque de 1–3 fotogramas).',
+  '  · Movimientos rápidos que saltan de una pose a otra → un fotograma de barrido (smear) o desenfoque de movimiento entre las dos.',
+  '  · Personajes quietos como estatuas mientras otro habla → respiración, parpadeos y miradas.'
+]
+
+/** La hoja de beats que el agente escribe antes de animar y que luego lee quien revisa la película. */
+export const BEATS_FILE = 'beats.md'
+
 /** El nombre del archivo final que se pide al agente (y el primero que se busca al terminar). */
 export const FILM_FILE = 'pelicula.mp4'
 
@@ -155,7 +178,8 @@ export function filmPrompt(input: FilmPromptInput): string {
     `- Idioma de la voz y los subtítulos: ${lang}. Formato ${size}, salvo que la guía del estilo fije otro. Duración: de 30 a 60 segundos, salvo que el tema pida otra cosa.`,
     `- ${HOOK_RULE}`,
     `- El vídeo final se llama exactamente ${join(work, FILM_FILE)} (con sonido). Deja también poster.jpg y, si hay voz, el .srt.`,
-    '- Revisa tu trabajo antes de entregar (capturas, tiras de fotogramas, una pasada completa) y arregla lo que veas en una ronda.',
+    `- Antes de animar, escribe ${join(work, BEATS_FILE)}: el concepto en una frase, los fotogramas por segundo y una lista de beats con su tramo de fotogramas y lo que pasa en él (p. ej. «0–22 flota y mira · 22–44 carga, la bola crece · 44–48 latigazo con barrido · 64 impacto, 5 fotogramas quietos»), más las reglas que aplicas y lo que evitas. Anima siguiéndola; si la historia cambia, actualízala. Otro agente revisará la película contra ella.`,
+    '- Revisa tu trabajo antes de entregar: una captura por beat comparada con beats.md y con las reglas de abajo, tiras de fotogramas de las acciones rápidas y una pasada completa; arregla lo que veas. Después kywai comprueba el MP4 (pantallas negras, imagen congelada, silencios) y otro agente lo revisa.',
     `- Efectos de sonido reales: en ${join(input.studioDir, 'efectos')} hay WAV listos (${join(input.studioDir, 'efectos', 'fuentes.json')} dice qué es cada uno) y, si existe, «${join(input.studioDir, '.venv', process.platform === 'win32' ? 'Scripts\\earshot.exe' : 'bin/earshot')} sfx list» y «… sfx render <id> -o x.wav [--dur s] [--apex s]» dan 252 más (MIT, sin red). Úsalos antes que sintetizar los tuyos y ponlos en el fotograma exacto de la acción.`,
     '- Nada de personajes, marcas, logotipos ni obras de terceros; solo lo que el usuario haya dado. Ningún crédito ni firma de la biblioteca en la película.',
     '- No dejes procesos en segundo plano al terminar ni cierres procesos que no hayas lanzado tú.',
@@ -205,6 +229,7 @@ export function filmPrompt(input: FilmPromptInput): string {
     ...(input.kind ? [KIND_RULES[input.kind]] : []),
     ...voiceRule(input.voice ?? defaultVoiceFor(input.lang) ?? undefined, lib),
     ...(input.character ? characterRules(input.character, style.slug === KYWAI_FILM && kitRobots) : []),
+    ...ALIVE_ACTION,
     ...(FILM_3D.has(style.slug) ? ALIVE_3D : []),
     ...(input.source ? ['', 'El texto del que trata la película:', '"""', input.source, '"""'] : []),
     ...(input.files?.length ? ['', 'Archivos del usuario que puedes usar (lo que haya de material propio va en la película):', ...input.files] : []),
