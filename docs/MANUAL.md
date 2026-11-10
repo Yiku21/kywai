@@ -87,7 +87,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Idioma](#idioma)
   - [Temas](#temas)
   - [Voces de los agentes](#voces-de-los-agentes)
-  - [Música (YouTube, Audius y radios)](#música-youtube-audius-y-radios)
+  - [Música (YouTube, Audius, radios y Spotifast)](#música-youtube-audius-radios-y-spotifast)
   - [Expresiones de los robots](#expresiones-de-los-robots)
   - [Modo Demo](#modo-demo)
   - [Rendimiento](#rendimiento)
@@ -3132,15 +3132,40 @@ de la música y los efectos está el de las voces, con el botón de la burbuja p
 En **Órbita** suenan igual (mismos timbres, sintetizados en el móvil): Ajustes → Respuesta al tacto → **«Voces de
 los agentes»**, con su propio volumen; «Sonidos» apagado las silencia también.
 
-### Música (YouTube, Audius y radios)
+### Música (YouTube, Audius, radios y Spotifast)
 
-El botón **Música** del espacio digital abre un reproductor con tres fuentes, en pestañas encima del buscador (se
-recuerda la última elegida):
+El botón **Música** del espacio digital abre un reproductor con cuatro pestañas encima del buscador (se recuerda la
+última elegida):
 - **YouTube:** canciones y artistas de YouTube Music, en su reproductor oficial. Tiene sus anuncios.
 - **Audius:** música que suben los propios artistas para que se escuche gratis. Sin anuncios y sin cuenta. Solo
   salen las canciones que se pueden escuchar enteras sin pagar.
 - **Radios:** las emisoras de SomaFM (lofi, ambient, jazz, electrónica…), sin anuncios: las mantienen sus oyentes.
   Al elegir la pestaña salen todas; lo que escribas las filtra. En la carátula hay un enlace para apoyarlas.
+- **Spotifast:** Spotify con tu cuenta Premium, a través de la app [Spotifast](https://spotifast.rocks) (ver más abajo).
+
+**Spotifast** es una app de escritorio gratis y de código abierto (licencia MIT, de Carmine Paolino) para escuchar
+Spotify. kywai no la lleva dentro ni reproduce nada de Spotify: la maneja desde fuera con las órdenes de mando a
+distancia que trae la propia Spotifast (`spotifast play-pause`, `spotifast now-playing --raw`…). Por eso:
+- **Hay que instalarla** en el equipo donde corre kywai (el servidor, si entras desde la web o el móvil). Si no está,
+  la pestaña ofrece «Instalar Spotifast» (su página de descarga) y «Ya la he instalado». kywai la encuentra en
+  `/Applications/Spotifast.app` (o `~/Applications`) en el Mac, en `%LOCALAPPDATA%\Programs\Spotifast` en Windows y
+  en el PATH o como Flatpak (`rocks.spotifast.Spotifast`) en Linux.
+- **La primera vez se configura en ella:** pide crear tu propia app gratis de Spotify (Client ID) e iniciar sesión.
+  Para que suene hace falta **Spotify Premium**.
+- **Cerrada:** sale «Abrir Spotifast». Buscar o pegar un enlace también la abren solos.
+- **Buscar:** eliges qué buscar (canción, artista, álbum o lista) y «Poner» hace sonar lo que mejor encaje. Un enlace
+  de Spotify (`open.spotify.com/…` o `spotify:…`) suena tal cual.
+- **Mientras suena:** carátula, canción, artista, dónde suena (este equipo o un altavoz de Spotify Connect), posición,
+  atrás / pausa / adelante y el volumen de Spotifast. Se actualiza cada 2 segundos mientras la pestaña está abierta.
+  «Ver Spotifast» trae su ventana delante.
+- **No se mezcla con lo demás:** al poner algo en Spotifast se pausa lo que sonara en kywai. Las luces del espacio
+  no oyen el sonido de Spotifast (sale de otra app).
+
+Spotifast usa por dentro librespot y partes no públicas de Spotify, y no está afiliada a Spotify: es cosa de cada
+persona instalarla y usarla con su cuenta. kywai solo le manda órdenes, siempre con argumentos sueltos (sin shell) y
+comprobados: enlaces solo de Spotify y búsquedas de hasta 200 letras. Código: `src/main/spotifast.ts` (buscar la app,
+abrirla y mandarle órdenes), `@shared/spotifast` (acciones, enlaces y lectura de lo que suena) y
+`ui/space/SpotifastBox.tsx` (la pestaña). Órbita todavía no tiene esta pestaña.
 
 Audius y las radios suenan en el reproductor de audio de kywai, directamente desde sus servidores públicos
 (api.audius.co y somafm.com). En el sitio del vídeo se ve la carátula y quién la hizo. Una radio no tiene duración

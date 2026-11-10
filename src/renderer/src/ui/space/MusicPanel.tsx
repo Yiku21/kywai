@@ -59,6 +59,7 @@ import { canSyncWithAudio, ensureAudioSync, startAudioSync, stopAudioSync, useAu
 import { parseStartSeconds, parseVideoId, type YtPlayer } from '@/lib/youtube'
 import { createMusicPlayer } from '@/lib/musicPlayer'
 import { useCowork } from '@/store/cowork'
+import { SpotifastBox } from './SpotifastBox'
 import { useEscape } from '../common/hooks'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
@@ -119,6 +120,8 @@ export function MusicPanel() {
   const permalink = useMusic((st) => st.queue[st.index]?.permalink)
   const source = musicSourceOf(videoId)
   const host = useRef<HTMLDivElement>(null)
+  const [tab, setTab] = useState<MusicTab>(readSource)
+  const spotifastTab = tab === 'spotifast'
   const playerRef = useRef<YtPlayer | null>(null)
 
   // Esc: con una canción se minimiza (sigue sonando); sin ella, se cierra.
@@ -180,7 +183,7 @@ export function MusicPanel() {
         <header className={s.head}>
           <Music size={17} aria-hidden="true" className={s.headIcon} />
           <h3 className={s.title}>{t('Música')}</h3>
-          <span className={s.headHint}>{t('YouTube, Audius y radios · luces al ritmo')}</span>
+          <span className={s.headHint}>{t('YouTube, Audius, radios y Spotifast · luces al ritmo')}</span>
           {videoId && (
             <button
               type="button"
@@ -204,7 +207,7 @@ export function MusicPanel() {
         </header>
       )}
 
-      {!mini && <SearchBox />}
+      {!mini && <SearchBox source={tab} onSource={setTab} />}
 
       {isWeb && !mini && source === 'youtube' && (
         <p className={s.note}>
@@ -217,7 +220,7 @@ export function MusicPanel() {
           <div ref={host} className={s.player} />
           {source !== 'youtube' && <Artwork />}
         </div>
-      ) : mini ? null : (
+      ) : mini || spotifastTab ? null : (
         <p className={s.empty}>
           {t('Busca una canción o un artista, o pega un enlace de YouTube. Sin anuncios: Audius (música que suben los propios artistas) y las radios de SomaFM. Las luces del espacio siguen su ritmo, sin usar el micrófono.')}
         </p>
@@ -306,35 +309,37 @@ function Artwork() {
 }
 
 const SOURCE_KEY = 'aicowork.music.source.v1'
-const SEARCH_SOURCES: MusicSource[] = ['youtube', 'audius', 'radio']
+/** Pestañas de la música: las fuentes que suenan en kywai y Spotifast (una app aparte que kywai solo maneja). */
+type MusicTab = MusicSource | 'spotifast'
+const SEARCH_SOURCES: MusicTab[] = ['youtube', 'audius', 'radio', 'spotifast']
 const KIND: Record<MusicSource, MusicSearchKind> = { youtube: 'songs', audius: 'audius', radio: 'radio' }
 const PLACEHOLDER: Record<MusicSource, string> = {
   youtube: t('Busca canciones o artistas, o pega un enlace'),
   audius: t('Busca en Audius, sin anuncios'),
   radio: t('Filtra las radios (lofi, jazz, ambient…)')
 }
-const SOURCE_HELP: Record<MusicSource, string> = {
+const SOURCE_HELP: Record<MusicTab, string> = {
   youtube: t('YouTube Music en su reproductor oficial (con sus anuncios)'),
   audius: t('Música que suben los propios artistas para escucharla gratis, sin anuncios'),
-  radio: t('Radios de SomaFM sin anuncios, que mantienen sus oyentes')
+  radio: t('Radios de SomaFM sin anuncios, que mantienen sus oyentes'),
+  spotifast: t('Spotify con tu cuenta Premium, en la app Spotifast: kywai la maneja desde aquí')
 }
 
-function readSource(): MusicSource {
+function readSource(): MusicTab {
   try {
     const v = localStorage.getItem(SOURCE_KEY)
-    return v === 'audius' || v === 'radio' ? v : 'youtube'
+    return v === 'audius' || v === 'radio' || v === 'spotifast' ? v : 'youtube'
   } catch {
     return 'youtube'
   }
 }
 
-/** Buscar canciones (YouTube Music o Audius), elegir una radio o pegar un enlace de YouTube. */
-function SearchBox() {
+/** Buscar canciones (YouTube Music o Audius), elegir una radio, pegar un enlace de YouTube o manejar Spotifast. */
+function SearchBox({ source, onSource }: { source: MusicTab; onSource: (tab: MusicTab) => void }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<MusicResult[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
-  const [source, setSource] = useState<MusicSource>(readSource)
   const current = useMusic((st) => st.videoId)
 
   async function search(text: string, from: MusicSource): Promise<void> {
@@ -355,8 +360,8 @@ function SearchBox() {
     }
   }
 
-  function pick(next: MusicSource): void {
-    setSource(next)
+  function pick(next: MusicTab): void {
+    onSource(next)
     setResults(null)
     setProblem(null)
     try {
@@ -371,7 +376,7 @@ function SearchBox() {
   async function submit(e: FormEvent): Promise<void> {
     e.preventDefault()
     const text = query.trim()
-    if ((!text && source !== 'radio') || busy) return
+    if ((!text && source !== 'radio') || busy || source === 'spotifast') return
     setProblem(null)
     // Un enlace (o el id de un vídeo) suena directamente.
     const id = parseVideoId(text)
@@ -397,72 +402,78 @@ function SearchBox() {
             onClick={() => pick(src)}
             title={SOURCE_HELP[src]}
           >
-            {src === 'radio' ? t('Radios') : SOURCE_LABEL[src]}
+            {src === 'radio' ? t('Radios') : src === 'spotifast' ? 'Spotifast' : SOURCE_LABEL[src]}
           </button>
         ))}
       </div>
-      <form className={s.form} onSubmit={(e) => void submit(e)} role="search">
-        <div className={s.searchField}>
-          <Search size={15} aria-hidden="true" className={s.searchIcon} />
-          <input
-            className={cx(s.input, s.searchInput)}
-            type="search"
-            placeholder={PLACEHOLDER[source]}
-            aria-label={t('Buscar canciones o pegar un enlace de YouTube')}
-            value={query}
-            onChange={(e) => {
-              setQuery(e.currentTarget.value)
-              setProblem(null)
-            }}
-          />
-        </div>
-        <button type="submit" className={cx(u.btn, u.btnPrimary, u.btnSm)} disabled={(!query.trim() && source !== 'radio') || busy}>
-          {busy ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : t('Buscar')}
-        </button>
-      </form>
-      {problem && (
-        <p className={s.formError} role="alert">
-          {problem}
-        </p>
-      )}
-      {results && results.length > 0 && (
-        <div className={s.results}>
-          <div className={s.resultsHead}>
-            <span>
-              {t('Resultados')} <span className={u.count}>{results.length}</span>
-            </span>
-            <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} onClick={() => setResults(null)} aria-label={t('Cerrar los resultados')} title={t('Cerrar los resultados')}>
-              <X size={14} aria-hidden="true" />
+      {source === 'spotifast' ? (
+        <SpotifastBox />
+      ) : (
+        <>
+          <form className={s.form} onSubmit={(e) => void submit(e)} role="search">
+            <div className={s.searchField}>
+              <Search size={15} aria-hidden="true" className={s.searchIcon} />
+              <input
+                className={cx(s.input, s.searchInput)}
+                type="search"
+                placeholder={PLACEHOLDER[source]}
+                aria-label={t('Buscar canciones o pegar un enlace de YouTube')}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.currentTarget.value)
+                  setProblem(null)
+                }}
+              />
+            </div>
+            <button type="submit" className={cx(u.btn, u.btnPrimary, u.btnSm)} disabled={(!query.trim() && source !== 'radio') || busy}>
+              {busy ? <LoaderCircle size={14} className={u.spin} aria-hidden="true" /> : t('Buscar')}
             </button>
-          </div>
-          <ul className={s.resultList}>
-            {results.map((r, i) => (
-              <li key={`${r.videoId}-${i}`} className={cx(s.resultRow, r.videoId === current && s.resultCurrent)}>
-                <button
-                  type="button"
-                  className={s.result}
-                  onClick={() => {
-                    // El resto de resultados pasa a la cola: se cierra la lista para ver el reproductor y sus botones.
-                    ensureAudioSync()
-                    playFrom(results, i)
-                    setResults(null)
-                  }}
-                  title={t('Reproducir «{title}»', { title: r.title })}
-                >
-                  {r.thumbnail ? <img className={s.thumb} src={r.thumbnail} alt="" loading="lazy" /> : <span className={s.thumb} />}
-                  <span className={s.resultMain}>
-                    <span className={s.resultTitle}>{r.title}</span>
-                    <span className={s.resultSub}>{[r.artist, r.album].filter(Boolean).join(' · ')}</span>
-                  </span>
-                  {r.durationSec ? <span className={s.resultTime}>{clock(r.durationSec)}</span> : null}
+          </form>
+          {problem && (
+            <p className={s.formError} role="alert">
+              {problem}
+            </p>
+          )}
+          {results && results.length > 0 && (
+            <div className={s.results}>
+              <div className={s.resultsHead}>
+                <span>
+                  {t('Resultados')} <span className={u.count}>{results.length}</span>
+                </span>
+                <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} onClick={() => setResults(null)} aria-label={t('Cerrar los resultados')} title={t('Cerrar los resultados')}>
+                  <X size={14} aria-hidden="true" />
                 </button>
-                <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} onClick={() => enqueue(r)} aria-label={t('Añadir «{title}» a la cola', { title: r.title })} title={t('Añadir a la cola')}>
-                  <Plus size={15} aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+              </div>
+              <ul className={s.resultList}>
+                {results.map((r, i) => (
+                  <li key={`${r.videoId}-${i}`} className={cx(s.resultRow, r.videoId === current && s.resultCurrent)}>
+                    <button
+                      type="button"
+                      className={s.result}
+                      onClick={() => {
+                        // El resto de resultados pasa a la cola: se cierra la lista para ver el reproductor y sus botones.
+                        ensureAudioSync()
+                        playFrom(results, i)
+                        setResults(null)
+                      }}
+                      title={t('Reproducir «{title}»', { title: r.title })}
+                    >
+                      {r.thumbnail ? <img className={s.thumb} src={r.thumbnail} alt="" loading="lazy" /> : <span className={s.thumb} />}
+                      <span className={s.resultMain}>
+                        <span className={s.resultTitle}>{r.title}</span>
+                        <span className={s.resultSub}>{[r.artist, r.album].filter(Boolean).join(' · ')}</span>
+                      </span>
+                      {r.durationSec ? <span className={s.resultTime}>{clock(r.durationSec)}</span> : null}
+                    </button>
+                    <button type="button" className={cx(u.iconBtn, u.iconBtnSm)} onClick={() => enqueue(r)} aria-label={t('Añadir «{title}» a la cola', { title: r.title })} title={t('Añadir a la cola')}>
+                      <Plus size={15} aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

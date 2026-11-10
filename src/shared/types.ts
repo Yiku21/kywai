@@ -2,6 +2,7 @@ import type { Lang } from './i18n'
 import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
 import type { TaskTemplate, TaskTemplateInput } from './templates'
 import type { ArchivePreview, ImportResult, ImportScan } from './imports'
+import type { SpotifastAction, SpotifastStatus } from './spotifast'
 export type { ArchivePreview, ImportResult, ImportScan } from './imports'
 export type { TaskTemplate, TaskTemplateInput } from './templates'
 // Contrato compartido entre el motor de agentes (proceso main) y la interfaz (renderer).
@@ -1868,6 +1869,8 @@ export interface CoworkApi {
   setHermesModel(choice: { provider: string; model: string } | null): Promise<HermesModelsInfo>
   /** Busca canciones para el reproductor de música (YouTube Music y, si no, YouTube). */
   searchMusic(query: string, kind?: MusicSearchKind): Promise<MusicResult[]>
+  /** Música: maneja Spotifast (si está instalada en el equipo donde corre kywai) y dice qué suena. */
+  spotifast?(action: SpotifastAction): Promise<SpotifastStatus>
   /** Lo que ha hecho el agente en una tarea, paso a paso (lo nuevo llega por eventos task.trace). */
   getTaskTrace(taskId: string): Promise<TraceEntry[]>
   /** Qué cambió una tarea en la carpeta del proyecto (archivos con +/− y el parche). */

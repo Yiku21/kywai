@@ -413,7 +413,7 @@
 
 .sources {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   padding: 3px;
   border-radius: var(--radius-ctl);
@@ -894,4 +894,30 @@
   border-color: rgba(130, 185, 255, 0.3);
   background: rgba(10, 18, 40, 0.52);
   backdrop-filter: blur(24px) saturate(160%);
+}
+
+/* ---------- Spotifast (la app aparte que kywai maneja) ---------- */
+
+.spotifastKind {
+  flex: none;
+  width: auto;
+}
+
+.spotifastVolume {
+  flex: 0 1 110px;
+  min-width: 70px;
+  margin-left: 6px;
+}
+
+button.source {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+a.linkBtn {
+  gap: 5px;
+  text-decoration: none;
 }

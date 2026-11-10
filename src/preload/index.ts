@@ -61,6 +61,7 @@ const api: CoworkApi = {
   resetAgent: (agentId) => ipcRenderer.invoke('cowork:resetAgent', agentId),
   setAgentThinking: (agentId, enabled) => ipcRenderer.invoke('cowork:setAgentThinking', agentId, enabled),
   searchMusic: (query, kind) => ipcRenderer.invoke('cowork:searchMusic', query, kind),
+  spotifast: (action) => ipcRenderer.invoke('cowork:spotifast', action),
   addMemory: (projectId, input) => ipcRenderer.invoke('cowork:addMemory', projectId, { kind: input.kind, text: input.text }),
   updateMemory: (projectId, id, patch) =>
     ipcRenderer.invoke('cowork:updateMemory', projectId, id, { kind: patch.kind, text: patch.text, status: patch.status }),

@@ -45,6 +45,7 @@ import { transcribeAudio } from './voice'
 import { isLocalEngine } from '@shared/localEngines'
 import { lookupTempo, tempoResponse } from './musicTempo'
 import { searchMusic } from './musicSearch'
+import { spotifast } from './spotifast'
 import { mobilePairingPin, newWebToken, revokeMobileDevice, setClientReleaseDir, setFsAccess, startWebServer, stopWebServer, tailscaleIPv4, webAccessInfo, webHttpsPort, webMethods, type WebMethod } from './webServer'
 import { DeviceRegistry } from './devices'
 import { AccessLog, isInside, normalizePath, withinAny } from './serverFiles'
@@ -413,6 +414,8 @@ function registerIpc(): void {
   handle('searchMusic', (query: unknown, kind?: unknown) =>
     searchMusic(query, kind === 'videos' || kind === 'audius' || kind === 'radio' ? kind : 'songs')
   )
+  // Spotifast instalada en este equipo: kywai solo le manda sus órdenes de mando a distancia.
+  handle('spotifast', (action: unknown) => spotifast(action))
   handle('listProjects', () => store.listProjects().map((p) => (activeRunsFor(p.id).length ? { ...p, busy: true } : p)))
   handle('createProject', (name: unknown) => store.createProject(typeof name === 'string' ? name : ''))
   /** Conversaciones donde el equipo trabaja ahora en un proyecto (la abierta o alguna en segundo plano). */
