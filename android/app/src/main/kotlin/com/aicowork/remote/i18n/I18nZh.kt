@@ -955,6 +955,7 @@ private fun part7(m: HashMap<String, String>) {
     m["Una historia en episodios con los mismos personajes, cada uno acaba en suspense"] = "用同样的角色分集讲一个故事，每集都在悬念处结束"
     m["qué quieres en el texto"] = "你想在文案里写什么"
     m["Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno"] = "为 kywai 的 Instagram 准备最新的视频，经你同意后发布"
+    m["Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno"] = "为 kywai 的 TikTok 准备最新的视频，作为草稿发送或经你同意后发布"
     m["enlace o vídeo"] = "链接或视频"
     m["Convierte lo que enseña un vídeo en una habilidad"] = "把视频教的内容变成一项技能"
     m["tema"] = "主题"

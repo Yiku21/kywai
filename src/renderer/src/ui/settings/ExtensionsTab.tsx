@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BadgeCheck, BookOpen, Clapperboard, Send, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
-import type { InstagramStatus, ProviderKind, VideoStudioStatus } from '@shared/types'
+import type { InstagramStatus, TikTokStatus, ProviderKind, VideoStudioStatus } from '@shared/types'
 import { isVideoExtension } from '@shared/videoExtensions'
 import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpRuntime, type McpServerInfo, type McpServerInput, type ModInfo, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
 import { useCowork } from '@/store/cowork'
@@ -1031,6 +1031,7 @@ function VideoSection() {
       {log.length > 0 && <pre className={s.mono}>{log.join('\n')}</pre>}
 
       <InstagramPanel live={live} />
+      <TikTokPanel live={live} />
 
       <span className={s.section}>{t('Extensiones de vídeo')}</span>
       <p className={s.muted}>
@@ -1127,6 +1128,124 @@ function InstagramPanel({ live }: { live: boolean }) {
               {busy ? t('Comprobando…') : t('Conectar')}
             </button>
           )}
+        </div>
+      )}
+      {error && (
+        <p className={s.error} role="alert">
+          {error}
+        </p>
+      )}
+    </>
+  )
+}
+
+/**
+ * El TikTok de kywai: la app propia en developers.tiktok.com (clave y secreto), el inicio de sesión de la cuenta (se
+ * pega la dirección a la que vuelve TikTok) y los modos: borrador en la bandeja (desde el primer día) y publicar
+ * directo cuando TikTok aprueba la app.
+ */
+function TikTokPanel({ live }: { live: boolean }) {
+  const [st, setSt] = useState<TikTokStatus | null>(null)
+  const [key, setKey] = useState('')
+  const [secret, setSecret] = useState('')
+  const [pasted, setPasted] = useState('')
+  const [waiting, setWaiting] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!live) return
+    api!.tiktokStatus().then(setSt, (e) => setError(errorText(e)))
+  }, [live])
+
+  const run = (fn: () => Promise<TikTokStatus>, after?: () => void): void => {
+    setBusy(true)
+    setError(null)
+    fn()
+      .then((r) => {
+        setSt(r)
+        after?.()
+      }, (e) => setError(errorText(e)))
+      .finally(() => setBusy(false))
+  }
+
+  const login = (): void => {
+    setError(null)
+    api!.tiktokLoginUrl().then(
+      (url) => {
+        window.open(url, '_blank', 'noopener')
+        setWaiting(true)
+      },
+      (e) => setError(errorText(e))
+    )
+  }
+
+  return (
+    <>
+      <span className={s.section}>{t('El TikTok de kywai')}</span>
+      <p className={s.muted}>
+        {t('Escribe «/tiktok» y kywai prepara el último vídeo del chat con su texto para la cuenta de TikTok de kywai, con la API oficial de TikTok (nunca con la contraseña). Hace falta una app en developers.tiktok.com con «Login Kit» y «Content Posting API», y en Login Kit → Desktop esta dirección de vuelta: {uri}', { uri: st?.redirectUri ?? '' })}
+      </p>
+      {st && !st.configured && (
+        <div className={s.searchRow}>
+          <input className={s.input} spellCheck={false} placeholder="Client key" aria-label={t('Client key de la app de TikTok')} value={key} onChange={(e) => setKey(e.target.value)} />
+          <input className={s.input} type="password" autoComplete="off" spellCheck={false} placeholder="Client secret" aria-label={t('Client secret de la app de TikTok')} value={secret} onChange={(e) => setSecret(e.target.value)} />
+          <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !live || !key.trim() || !secret.trim()} onClick={() => run(() => api!.setTikTokApp(key.trim(), secret.trim()), () => setSecret(''))}>
+            {t('Guardar')}
+          </button>
+        </div>
+      )}
+      {st?.configured && !st.connected && (
+        <>
+          <div className={s.searchRow}>
+            <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !live} onClick={login}>
+              {t('Iniciar sesión en TikTok')}
+            </button>
+          </div>
+          {waiting && (
+            <>
+              <p className={s.muted}>{t('Autoriza la cuenta de kywai en TikTok. Al terminar, el navegador va a una página de localhost que no carga: copia esa dirección entera y pégala aquí.')}</p>
+              <div className={s.searchRow}>
+                <input className={s.input} spellCheck={false} placeholder="http://localhost:3455/tiktok/callback?code=…" aria-label={t('Dirección a la que volvió TikTok')} value={pasted} onChange={(e) => setPasted(e.target.value)} />
+                <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !pasted.trim()} onClick={() => run(() => api!.connectTikTok(pasted.trim()), () => { setPasted(''); setWaiting(false) })}>
+                  {busy ? t('Comprobando…') : t('Conectar')}
+                </button>
+              </div>
+            </>
+          )}
+        </>
+      )}
+      {st?.connected && (
+        <ul className={s.list}>
+          <li className={s.item}>
+            <span className={s.icon} aria-hidden="true">
+              <BadgeCheck size={18} />
+            </span>
+            <span className={s.text}>
+              <span className={s.name}>{st.name ? t('Conectada: {name}', { name: st.name }) : t('Conectada')}</span>
+              <span className={s.desc}>
+                {st.canDirect
+                  ? st.approved
+                    ? t('Borrador o publicar directo en público (la app está aprobada por TikTok)')
+                    : t('Borrador, o publicar directo solo en privado hasta que TikTok apruebe la app')
+                  : t('Solo borrador: la cuenta no dio permiso para publicar directo')}
+                {st.autoDraft ? ` · ${t('Los borradores se envían sin preguntar')}` : ''}
+              </span>
+            </span>
+          </li>
+        </ul>
+      )}
+      {live && st?.connected && (
+        <div className={s.searchRow}>
+          <button type="button" className={cx(u.btn, u.btnSm)} disabled={busy} onClick={() => run(() => api!.setTikTokOptions({ approved: !st.approved }))}>
+            {st.approved ? t('La app aún no está aprobada') : t('TikTok ya aprobó la app')}
+          </button>
+          <button type="button" className={cx(u.btn, u.btnSm)} disabled={busy} onClick={() => run(() => api!.setTikTokOptions({ autoDraft: !st.autoDraft }))}>
+            {st.autoDraft ? t('Pedirme antes de enviar borradores') : t('Enviar borradores sin preguntar')}
+          </button>
+          <button type="button" className={cx(u.btn, u.btnSm)} disabled={busy} onClick={() => run(() => api!.disconnectTikTok())}>
+            {t('Desconectar')}
+          </button>
         </div>
       )}
       {error && (

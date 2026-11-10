@@ -61,6 +61,7 @@ object ChatCommands {
         Command("serie", listOf("series", "episodios"), t("idea [en 5 episodios]"), t("Una historia en episodios con los mismos personajes, cada uno acaba en suspense"), Icons.Outlined.VideoLibrary),
         Command("aprende", listOf("aprender", "learn"), t("enlace o vídeo"), t("Convierte lo que enseña un vídeo en una habilidad"), Icons.Outlined.School),
         Command("instagram", listOf("insta", "ig"), t("qué quieres en el texto"), t("Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno"), Icons.Outlined.Send),
+        Command("tiktok", listOf("tt"), t("qué quieres en el texto"), t("Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno"), Icons.Outlined.Send),
         Command("rutina", listOf("rutinas", "routine"), t("cuándo: qué"), t("Programa una tarea a una hora o que se repita"), Icons.Outlined.Schedule),
         Command("directo", listOf("direct", "dm"), t("Agente mensaje"), t("Habla con un agente sin pasar por Hermes"), Icons.Outlined.AlternateEmail),
         Command("recuerda", listOf("recordar", "memoria", "remember"), t("texto"), t("Guarda un dato en la memoria del proyecto"), Icons.Outlined.Psychology),

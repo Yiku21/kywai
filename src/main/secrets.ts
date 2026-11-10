@@ -40,7 +40,7 @@ export class AgentKeys {
   /** Guarda la clave de un agente (sin espacios ni saltos de línea, de longitud razonable). */
   set(agentId: string, key: string): void {
     const clean = key.trim()
-    if (!/^[\w.\-:/+=]{8,400}$/.test(clean)) throw new Error('Esa clave no parece válida')
+    if (!/^[\w.\-:/+=!~*]{8,400}$/.test(clean)) throw new Error('Esa clave no parece válida')
     const data = this.read()
     const encrypted = this.cipher.available()
     data[agentId] = { value: encrypted ? this.cipher.encrypt(clean) : clean, encrypted }

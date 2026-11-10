@@ -283,7 +283,7 @@ export interface Task {
     episode?: { n: number; total: number; vote?: string }
   }
   /** «/instagram»: el agente escribe el texto del reel (video, relativo al proyecto) y kywai lo prepara para publicar. */
-  instagram?: { video: string; artifactId?: string; about: string; note: string; question?: string }
+  instagram?: { video: string; artifactId?: string; about: string; note: string; question?: string; /** Por defecto Instagram. */ platform?: 'tiktok' }
   /** «/aprende»: un vídeo o pódcast que se transcribe y se convierte en una habilidad (src/main/learn.ts). */
   learn?: {
     url?: string
@@ -577,6 +577,8 @@ export interface ChatMessage {
   skillProposal?: SkillProposal
   /** Reel preparado para el Instagram de kywai («/instagram»): se publica con «Publicar» (o solo, si lo activaste). */
   instagramPost?: InstagramPost
+  /** Vídeo preparado para el TikTok de kywai («/tiktok»): como borrador en la app o publicado directo. */
+  tiktokPost?: TikTokPost
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
   direct?: { agentId: AgentId; name: string }
   /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
@@ -739,6 +741,54 @@ export interface InstagramPost {
   /** Se publicó solo («Publicar sin preguntar» activado). */
   auto?: boolean
   decidedAt?: number
+}
+
+/**
+ * Un vídeo para el TikTok de kywai. pending: espera · sending: subiéndose · drafted: está en la bandeja de TikTok
+ * (se publica desde la app) · published: publicado directo · failed · dismissed. `direct`: se puede publicar directo
+ * (cuenta con permiso); `privacyOptions`: a quién se puede enseñar (sin revisión de TikTok, solo SELF_ONLY).
+ */
+export interface TikTokPost {
+  status: 'pending' | 'sending' | 'drafted' | 'published' | 'failed' | 'dismissed'
+  video: string
+  caption: string
+  name?: string
+  direct: boolean
+  privacyOptions?: string[]
+  commentDisabled?: boolean
+  duetDisabled?: boolean
+  stitchDisabled?: boolean
+  maxSeconds?: number
+  mode?: 'draft' | 'direct'
+  privacy?: string
+  postId?: string
+  error?: string
+  auto?: boolean
+  decidedAt?: number
+}
+
+/** Lo que se elige en la tarjeta al publicar directo en TikTok (lo pide TikTok: nada va marcado por defecto). */
+export interface TikTokDirectChoice {
+  caption?: string
+  privacy?: string
+  allowComments?: boolean
+  allowDuet?: boolean
+  allowStitch?: boolean
+  promotional?: boolean
+}
+
+/** La cuenta de TikTok de kywai (los tokens nunca salen del servidor). */
+export interface TikTokStatus {
+  /** La clave de la app está puesta (falta o no iniciar sesión). */
+  configured: boolean
+  connected: boolean
+  name?: string
+  /** La app pasó la revisión de TikTok: publicar directo en público. */
+  approved: boolean
+  /** Tiene permiso para publicar directo (scope video.publish). */
+  canDirect: boolean
+  autoDraft: boolean
+  redirectUri: string
 }
 
 /** La cuenta de Instagram de kywai conectada en Ajustes (el token nunca sale del servidor). */
@@ -1434,7 +1484,7 @@ export type CoworkEventKind = CoworkEvent['kind']
  *
  * «done» no espera nada de ti: no sale en «Te necesita» sino en Resultados, como «nuevo» (y el móvil avisa igual).
  */
-export type InboxKind = 'instagram' | 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget' | 'blocked' | 'permission'
+export type InboxKind = 'tiktok' | 'instagram' | 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget' | 'blocked' | 'permission'
 
 /** El aviso escrito en un idioma de la app (título, detalle y el nombre de cada botón). */
 export interface InboxTexts {
@@ -1679,6 +1729,15 @@ export interface CoworkApi {
   setInstagramAutoPublish(on: boolean): Promise<InstagramStatus>
   /** «Publicar» (con el texto cambiado, si lo cambiaste) o «Descartar» el reel preparado con «/instagram». */
   decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string): Promise<ChatMessage>
+  /** El TikTok de kywai: clave y secreto de la app de TikTok, iniciar sesión (pegando la dirección de vuelta) y modos. */
+  tiktokStatus(): Promise<TikTokStatus>
+  setTikTokApp(clientKey: string, clientSecret: string): Promise<TikTokStatus>
+  tiktokLoginUrl(): Promise<string>
+  connectTikTok(pastedUrl: string): Promise<TikTokStatus>
+  disconnectTikTok(): Promise<TikTokStatus>
+  setTikTokOptions(opts: { approved?: boolean; autoDraft?: boolean }): Promise<TikTokStatus>
+  /** «Enviar como borrador», «Publicar» (directo, con lo elegido) o «Descartar» el vídeo preparado con «/tiktok». */
+  decideTikTokPost(projectId: string, messageId: string, action: 'draft' | 'publish' | 'dismiss', choice?: TikTokDirectChoice): Promise<ChatMessage>
   /** Habilidades que sugirió Hermes: «install» instala la número `index`, «dismiss» descarta la tarjeta. */
   decideSkillProposal(projectId: string, messageId: string, action: 'install' | 'dismiss', index?: number): Promise<ChatMessage>
   /** Da el visto bueno al plan que propone el coordinador (mensaje con proposal): sus tareas empiezan. */

@@ -19,6 +19,9 @@ import type {
   SkillProposal,
   InstagramPost,
   InstagramStatus,
+  TikTokDirectChoice,
+  TikTokPost,
+  TikTokStatus,
   SendMessageInput,
   Task,
   TaskChanges,
@@ -86,6 +89,7 @@ import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
 import { installCatalogSkill, searchSkillCatalog } from './catalog'
 import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSuggest'
+import { cleanTikTokCaption, creatorInfo, parseTikTokRequest, uploadTikTok, type TikTokSettings } from './tiktok'
 import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, type InstagramSettings } from './instagram'
 import { episodeBrief, episodeFromFilmReply, loadSeries, nextEpisode, parseSeriesRequest, recordEpisode, startSeries, type SeriesRequest } from './series'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
@@ -842,6 +846,16 @@ function registerInboxActions(): void {
     decideInstagramPost(i.projectId, i.messageId, 'dismiss')
     return tr('Descartado')
   })
+  onInboxAction('tt-draft', (i) => {
+    if (!i.projectId || !i.messageId) return tr('No se encontró ese vídeo')
+    decideTikTokPost(i.projectId, i.messageId, 'draft')
+    return tr('Enviando a TikTok')
+  })
+  onInboxAction('tt-dismiss', (i) => {
+    if (!i.projectId || !i.messageId) return tr('No se encontró ese vídeo')
+    decideTikTokPost(i.projectId, i.messageId, 'dismiss')
+    return tr('Descartado')
+  })
   onInboxAction('undo', (i) => (i.projectId && i.taskId ? undoTask(i.projectId, i.taskId) : tr('No sé qué tarea deshacer')))
   onInboxAction('resume', async (i) => {
     if (!i.projectId || !i.runId) return tr('No sé qué petición reanudar')
@@ -1422,6 +1436,9 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   // «/instagram [qué quieres en el texto]»: el último vídeo (o el adjunto) con su texto, listo para publicar.
   const igReq = fromMsg || tpl ? null : parseInstagramRequest(text)
   if (igReq) return sendInstagram(st, igReq.note, atts, input.clientMessageId, routine, text.trim())
+  // «/tiktok [qué quieres en el texto]»: igual, para el TikTok de kywai (borrador en la app o publicado directo).
+  const ttReq = fromMsg || tpl ? null : parseTikTokRequest(text)
+  if (ttReq) return sendInstagram(st, ttReq.note, atts, input.clientMessageId, routine, text.trim(), 'tiktok')
 
   // «/serie <idea>»: una historia por episodios con los mismos personajes; «/serie siguiente» hace el que toca.
   const seriesReq = fromMsg || tpl ? null : parseSeriesRequest(text)
@@ -1845,13 +1862,17 @@ async function sendInstagram(
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
-  shown: string
+  shown: string,
+  platform?: 'tiktok'
 ): Promise<{ runId: string }> {
   const projectId = st.project.id
-  if (!instagramStatusNow().connected) throw new Error(tr('Conecta primero la cuenta de Instagram de kywai en Ajustes → Extensiones → Estudio de vídeo.'))
+  if (platform === 'tiktok') {
+    if (!tiktokStatusNow().connected) throw new Error(tr('Conecta primero la cuenta de TikTok de kywai en Ajustes → Extensiones → Estudio de vídeo.'))
+  } else if (!instagramStatusNow().connected) throw new Error(tr('Conecta primero la cuenta de Instagram de kywai en Ajustes → Extensiones → Estudio de vídeo.'))
   const attached = atts.find((a) => isVideoFile(a.relPath))
   const found = attached ? null : latestVideo(st)
-  if (!attached && !found) throw new Error(tr('No hay ningún vídeo para publicar: haz uno con «/video …» o adjunta el MP4 a «/instagram».'))
+  if (!attached && !found)
+    throw new Error(platform === 'tiktok' ? tr('No hay ningún vídeo para subir: haz uno con «/video …» o adjunta el MP4 a «/tiktok».') : tr('No hay ningún vídeo para publicar: haz uno con «/video …» o adjunta el MP4 a «/instagram».'))
   const agent = bestAgentFor('redacción marketing redes sociales copywriting comunicación contenido')
   if (!agent) throw new Error(tr('No hay ningún agente disponible para escribir el texto.'))
   const runId = randomUUID()
@@ -1888,8 +1909,8 @@ async function sendInstagram(
     projectId,
     runId,
     seq: nextTaskSeq(projectId),
-    title: tr('Instagram: {name}', { name: oneLine(attached ? attached.name : found!.artifact.name, 60) }),
-    description: note || tr('Escribir el texto del reel'),
+    title: (platform === 'tiktok' ? tr('TikTok: {name}', { name: oneLine(attached ? attached.name : found!.artifact.name, 60) }) : tr('Instagram: {name}', { name: oneLine(attached ? attached.name : found!.artifact.name, 60) })),
+    description: note || (platform === 'tiktok' ? tr('Escribir el texto del vídeo') : tr('Escribir el texto del reel')),
     agentId: agent.id,
     dependsOn: [],
     status: 'pending',
@@ -1902,7 +1923,8 @@ async function sendInstagram(
       ...(found ? { artifactId: found.artifact.id } : {}),
       about: clip(found?.message.text || attached?.name || video, 1500),
       note,
-      ...(question ? { question } : {})
+      ...(question ? { question } : {}),
+      ...(platform ? { platform } : {})
     }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
@@ -1926,6 +1948,7 @@ async function completeInstagram(run: Run, t: Task, exec: AgentConfig, parent: A
     handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('No escribió el texto: {why}', { why: oneLine(why || tr('respuesta vacía'), 200) }) })
     return
   }
+  if (ig.platform === 'tiktok') return completeTikTok(run, t, exec, parent, res, cleanTikTokCaption(caption))
   await completeTask(run, t, exec, parent, { ...res, text: tr('Texto del reel listo.') })
   const status = instagramStatusNow()
   const post: InstagramPost = { status: 'pending', video: ig.video, caption, ...(status.username ? { username: status.username } : {}) }
@@ -2016,6 +2039,159 @@ function cleanCaptionInput(caption: unknown): string | null {
   if (typeof caption !== 'string') return null
   const t = caption.trim()
   return t ? t.slice(0, 2200) : null
+}
+
+// ---------- El TikTok de kywai ----------
+
+/** Los tokens (cifrados, renovados cuando caducan) y los ajustes: los pone index.ts. */
+export interface TikTokBackend {
+  /** Token de acceso válido (lo renueva si hace falta), o null si no hay cuenta. */
+  token(): Promise<string | null>
+  connected(): boolean
+  settings(): TikTokSettings
+}
+let tiktok: TikTokBackend | null = null
+export function setTikTokBackend(b: TikTokBackend | null): void {
+  tiktok = b
+}
+
+export function tiktokStatusNow(redirectUri = ''): TikTokStatus {
+  const s = tiktok?.settings() ?? {}
+  return {
+    configured: !!s.clientKey,
+    connected: !!tiktok?.connected(),
+    ...(s.name ? { name: s.name } : {}),
+    approved: s.approved === true,
+    canDirect: (s.scopes ?? []).includes('video.publish'),
+    autoDraft: s.autoDraft === true,
+    redirectUri
+  }
+}
+
+/** El texto ya está: la tarjeta de TikTok (borrador o directo) y su aviso en «Te necesita» (o el borrador sale solo). */
+async function completeTikTok(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult, caption: string): Promise<void> {
+  const ig = t.instagram!
+  await completeTask(run, t, exec, parent, { ...res, text: tr('Texto del vídeo listo.') })
+  const status = tiktokStatusNow()
+  let post: TikTokPost = { status: 'pending', video: ig.video, caption, direct: status.canDirect, ...(status.name ? { name: status.name } : {}) }
+  // Para publicar directo, TikTok pide enseñar lo que permite la cuenta ahora (a quién, comentarios, dúos…).
+  if (status.canDirect) {
+    try {
+      const token = await tiktok?.token()
+      if (token) {
+        const c = await creatorInfo(token)
+        post = {
+          ...post,
+          ...(c.nickname ? { name: c.nickname } : {}),
+          // Sin la revisión de TikTok, solo se puede publicar en privado.
+          privacyOptions: status.approved ? c.privacyOptions : c.privacyOptions.filter((p) => p === 'SELF_ONLY').concat(c.privacyOptions.includes('SELF_ONLY') ? [] : ['SELF_ONLY']),
+          commentDisabled: c.commentDisabled,
+          duetDisabled: c.duetDisabled,
+          stitchDisabled: c.stitchDisabled,
+          maxSeconds: c.maxSeconds
+        }
+      }
+    } catch (e) {
+      post = { ...post, direct: false, error: tr('No se pudo consultar la cuenta para publicar directo: {message}', { message: e instanceof Error ? e.message : String(e) }) }
+    }
+  }
+  const m = agentMessage(
+    run,
+    exec.id,
+    status.autoDraft ? tr('Enviando el vídeo a TikTok como borrador (tienes activado «Enviar borradores sin preguntar»).') : tr('Vídeo listo para TikTok: revisa el texto y envíalo como borrador o publícalo.'),
+    { tiktokPost: post, ...(ig.artifactId ? { artifactIds: [ig.artifactId] } : {}) }
+  )
+  if (status.autoDraft) void sendTikTok(run.projectId, m.id, 'draft', { caption }, true)
+  else
+    addInbox({
+      kind: 'tiktok',
+      key: `tt:${m.id}`,
+      title: tl('Vídeo listo para TikTok{who}', { who: post.name ? ` (${post.name})` : '' }),
+      detail: oneLine(caption, 300),
+      projectId: run.projectId,
+      runId: run.id,
+      messageId: m.id,
+      actions: [
+        { id: 'tt-draft', label: tl('Enviar como borrador') },
+        { id: 'tt-dismiss', label: tl('Descartar') }
+      ]
+    })
+}
+
+/** Sube el vídeo de la tarjeta a TikTok (borrador o directo); el chat va contando y acaba con el resultado o el error. */
+async function sendTikTok(projectId: string, messageId: string, mode: 'draft' | 'direct', choice: TikTokDirectChoice, auto = false): Promise<void> {
+  const get = (): ChatMessage | undefined => store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const m = get()
+  const p = m?.tiktokPost
+  if (!m || !p) return
+  const caption = cleanTikTokCaption(choice.caption?.trim() || p.caption)
+  const set = (patch: Partial<TikTokPost>, text?: string): void => {
+    const cur = get() ?? m
+    pushMessage({ ...cur, ...(text ? { text } : {}), tiktokPost: { ...(cur.tiktokPost ?? p), ...patch } })
+  }
+  resolveInboxWhere((i) => (i.kind === 'tiktok' || i.kind === 'failed') && i.messageId === messageId, tr('Enviando a TikTok'))
+  set({ status: 'sending', caption, mode, error: undefined, ...(auto ? { auto: true } : {}), ...(choice.privacy ? { privacy: choice.privacy } : {}) }, mode === 'direct' ? tr('Publicando el vídeo en TikTok…') : tr('Enviando el vídeo a TikTok como borrador…'))
+  try {
+    const token = await tiktok?.token()
+    if (!token) throw new Error(tr('La cuenta de TikTok no está conectada (Ajustes → Extensiones → Estudio de vídeo).'))
+    const r = await uploadTikTok({
+      token,
+      file: join(store.workRoot(projectId), p.video),
+      ...(mode === 'direct'
+        ? { direct: { caption, privacy: choice.privacy!, allowComments: !!choice.allowComments, allowDuet: !!choice.allowDuet, allowStitch: !!choice.allowStitch, promotional: !!choice.promotional } }
+        : {}),
+      onStep: (step) => set({}, tr(step))
+    })
+    if (r.status === 'drafted')
+      set({ status: 'drafted', decidedAt: Date.now() }, tr('Está en la bandeja de TikTok de la cuenta: ábrela en la app del móvil, pega el texto y publícalo.'))
+    else set({ status: 'published', ...(r.postId ? { postId: r.postId } : {}), decidedAt: Date.now() }, choice.privacy === 'SELF_ONLY' ? tr('Publicado en TikTok en privado (solo lo ve la cuenta).') : tr('Publicado en TikTok.'))
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e)
+    set({ status: 'failed', error }, tr('No se pudo subir a TikTok.'))
+    addInbox({
+      kind: 'failed',
+      key: `tt-failed:${messageId}`,
+      title: tl('No se pudo subir el vídeo a TikTok'),
+      detail: error,
+      projectId,
+      messageId,
+      actions: [{ id: 'dismiss', label: tl('Entendido') }]
+    })
+  }
+}
+
+/** «Enviar como borrador», «Publicar» (directo, con lo elegido en la tarjeta) o «Descartar». No espera a que acabe. */
+export function decideTikTokPost(projectId: string, messageId: string, action: 'draft' | 'publish' | 'dismiss', choice: TikTokDirectChoice = {}): ChatMessage {
+  const m = store.getProject(projectId).messages.find((x) => x.id === messageId)
+  const p = m?.tiktokPost
+  if (!m || !p) throw new Error(tr('No se encontró ese vídeo'))
+  if (p.status === 'published' || p.status === 'drafted') throw new Error(tr('Ese vídeo ya está en TikTok'))
+  if (p.status === 'sending') throw new Error(tr('Ese vídeo se está subiendo'))
+  if (p.status === 'dismissed') throw new Error(tr('Ese vídeo ya se descartó'))
+  if (action === 'dismiss') {
+    resolveInboxWhere((i) => (i.kind === 'tiktok' || i.kind === 'failed') && i.messageId === messageId, tr('Descartado'))
+    const updated = { ...m, tiktokPost: { ...p, status: 'dismissed' as const, decidedAt: Date.now() } }
+    pushMessage(updated)
+    return updated
+  }
+  const caption = typeof choice.caption === 'string' && choice.caption.trim() ? choice.caption.trim().slice(0, 2200) : p.caption
+  if (action === 'publish') {
+    if (!p.direct) throw new Error(tr('Esta cuenta aún no puede publicar directo: envíalo como borrador'))
+    if (!choice.privacy || !(p.privacyOptions ?? []).includes(choice.privacy)) throw new Error(tr('Elige quién puede ver el vídeo'))
+    const clean: TikTokDirectChoice = {
+      caption,
+      privacy: choice.privacy,
+      allowComments: !p.commentDisabled && choice.allowComments === true,
+      allowDuet: !p.duetDisabled && choice.allowDuet === true,
+      allowStitch: !p.stitchDisabled && choice.allowStitch === true,
+      promotional: choice.promotional === true
+    }
+    void sendTikTok(projectId, messageId, 'direct', clean)
+    return { ...m, tiktokPost: { ...p, status: 'sending', mode: 'direct', caption } }
+  }
+  if (action !== 'draft') throw new Error(tr('Acción no válida'))
+  void sendTikTok(projectId, messageId, 'draft', { caption })
+  return { ...m, tiktokPost: { ...p, status: 'sending', mode: 'draft', caption } }
 }
 
 /** Quién convierte un vídeo en habilidad: el que mejor resume y enseña (sin hacer falta terminal). */
@@ -3501,8 +3677,9 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   if (t.direct) return directPrompt(run, t, !!meta.copy)
   if (t.quick) return quickPrompt(run, t, exec, parent)
   if (t.instagram) {
-    const s = instagram?.settings()
+    const s = t.instagram.platform === 'tiktok' ? { username: tiktok?.settings().name } : instagram?.settings()
     return captionPrompt({
+      ...(t.instagram.platform ? { platform: t.instagram.platform } : {}),
       video: join(store.workRoot(run.projectId), t.instagram.video),
       about: t.instagram.about,
       note: t.instagram.note,

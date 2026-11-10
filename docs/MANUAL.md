@@ -1746,6 +1746,38 @@ mi visto bueno» lo desactiva. Por defecto está apagado.
 
 Código: `src/main/instagram.ts` (la API) y `sendInstagram`/`publishPost` en el orquestador.
 
+### El TikTok de kywai (`/tiktok`)
+
+Igual que con Instagram, kywai puede llevar **su propia cuenta de TikTok** (la de kywai, no la tuya). Usa la **API
+oficial de TikTok** (Content Posting API): nunca se pide ni se guarda la contraseña.
+
+**Crear la app** (una vez, en [developers.tiktok.com](https://developers.tiktok.com) con la cuenta de kywai):
+1. Crea una app y añade los productos **Login Kit** y **Content Posting API** (con «Direct Post» activado).
+2. Pide los permisos `user.info.basic`, `video.upload` y `video.publish`.
+3. En Login Kit → **Desktop**, registra la dirección de vuelta que enseña kywai en Ajustes
+   (`http://localhost:3455/tiktok/callback`).
+4. Copia el **Client key** y el **Client secret**.
+
+**Conectar la cuenta** (⚙ → Ajustes → Extensiones → Estudio de vídeo → «El TikTok de kywai»): pega la clave y el
+secreto y pulsa **Guardar**; luego **Iniciar sesión en TikTok**, autoriza la cuenta de kywai y, cuando el navegador
+llegue a la página de localhost (que no carga, es normal), **copia esa dirección entera** y pégala en kywai →
+**Conectar**. Funciona aunque kywai corra en el servidor y tú estés en otro equipo. El acceso dura 24 horas y kywai lo
+renueva solo durante un año; todo se guarda **cifrado** con el llavero del sistema.
+
+**Dos modos.**
+- **Borrador (desde el primer día):** «/tiktok [qué quieres en el texto]» coge el último vídeo del chat (o el MP4
+  adjunto), un agente escribe el texto y sale una tarjeta. **Enviar como borrador** lo deja en la bandeja de la app de
+  TikTok (notificación «tienes un vídeo»): ahí lo abres, **pegas el texto** (TikTok no lo deja enviar con el borrador;
+  la tarjeta lo tiene listo para copiar) y lo publicas. Con **«Enviar borradores sin preguntar»**, se envía solo, también
+  desde una rutina.
+- **Publicar directo:** la tarjeta pide elegir **quién puede verlo** (sin opción por defecto, como exige TikTok),
+  si se permiten comentarios, dúos y «stitch», y si es contenido promocional. Hasta que TikTok **apruebe la app**
+  (la auditoría se pide en developers.tiktok.com), solo deja publicar en **privado** («Solo yo»). Cuando la aprueben,
+  pulsa **«TikTok ya aprobó la app»** en Ajustes y aparecen las opciones públicas. Publicar directo siempre necesita tu
+  clic en la tarjeta (regla de TikTok). Los vídeos van marcados como **hechos con IA**.
+
+Código: `src/main/tiktok.ts` (la API) y `completeTikTok`/`decideTikTokPost` en el orquestador.
+
 ### Hermes te propone habilidades
 
 Cuando una petición es de un campo especializado (un framework, un formato de archivo, un tipo de diseño, marketing,
@@ -2089,6 +2121,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/serie idea [en 5 episodios]` | Una historia en episodios con los mismos personajes, cada uno acaba en suspense (ver «Series por episodios») |
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
+| `/tiktok qué quieres en el texto` | Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno (ver «El TikTok de kywai») |
 | `/rutina cuándo: qué` | Programa una tarea a una hora o que se repita |
 | `/directo Agente mensaje` | Habla con un agente sin pasar por Hermes (lo mismo que `@Agente mensaje`) |
 | `/recuerda texto` | Guarda un dato en la memoria del proyecto (admite `decisión:`, `pendiente:`, `preferencia:`, `hecho:`) |

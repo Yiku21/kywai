@@ -36,7 +36,7 @@ import {
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { describeTrigger } from '@shared/routines'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
-import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
+import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, TikTokPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
 import { useCowork, useData } from '@/store/cowork'
 import { revealKey, useRevealed } from '@/lib/reveal'
@@ -250,6 +250,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
             {m.routineProposal && <RoutineProposalBlock m={m} proposal={m.routineProposal} />}
             {m.skillProposal && <SkillProposalBlock m={m} proposal={m.skillProposal} />}
             {m.instagramPost && <InstagramPostBlock m={m} post={m.instagramPost} />}
+            {m.tiktokPost && <TikTokPostBlock m={m} post={m.tiktokPost} />}
             {m.permission && <PermissionBlock permission={m.permission} />}
             {hasTasks && <PlanBlock taskIds={m.taskIds!} runId={m.runId} contract={m.contract} />}
           </div>
@@ -917,6 +918,143 @@ function PermissionBlock({ permission }: { permission: ChatPermission }) {
         {t('Permitir siempre en esta sesión')}
       </button>
       {error && <span className={s.permissionError}>{error}</span>}
+    </div>
+  )
+}
+
+const TIKTOK_PRIVACY: Record<string, string> = {
+  PUBLIC_TO_EVERYONE: 'Todo el mundo',
+  MUTUAL_FOLLOW_FRIENDS: 'Amigos (os seguís)',
+  FOLLOWER_OF_CREATOR: 'Seguidores',
+  SELF_ONLY: 'Solo yo (privado)'
+}
+
+/**
+ * Vídeo listo para el TikTok de kywai: «Enviar como borrador» lo deja en la bandeja de la app; con permiso para
+ * publicar directo, se elige a quién se enseña (sin nada marcado, como pide TikTok), comentarios, dúos y stitch, y
+ * se acepta su declaración de uso de música al pulsar «Publicar».
+ */
+function TikTokPostBlock({ m, post }: { m: ChatMessage; post: TikTokPost }) {
+  const live = useCowork((st) => st.mode === 'live')
+  const [caption, setCaption] = useState(post.caption)
+  const [privacy, setPrivacy] = useState('')
+  const [comments, setComments] = useState(false)
+  const [duet, setDuet] = useState(false)
+  const [stitch, setStitch] = useState(false)
+  const [promo, setPromo] = useState(false)
+  const [busy, setBusy] = useState<'draft' | 'publish' | 'dismiss' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => setCaption(post.caption), [post.caption])
+  const open = post.status === 'pending' || post.status === 'failed'
+  const canAct = !!api && live && open
+
+  function act(kind: 'draft' | 'publish' | 'dismiss'): void {
+    const a = api
+    if (!a || busy) return
+    setBusy(kind)
+    setError(null)
+    const choice = kind === 'publish' ? { caption, privacy, allowComments: comments, allowDuet: duet, allowStitch: stitch, promotional: promo } : kind === 'draft' ? { caption } : undefined
+    a.decideTikTokPost(m.projectId, m.id, kind, choice).then(
+      () => setBusy(null),
+      (e) => {
+        setBusy(null)
+        setError(errorText(e))
+      }
+    )
+  }
+
+  const who = post.name || t('la cuenta de kywai')
+  const title =
+    post.status === 'published'
+      ? t('Publicado en TikTok ({who})', { who })
+      : post.status === 'drafted'
+        ? t('En la bandeja de TikTok ({who})', { who })
+        : post.status === 'sending'
+          ? t('Subiendo a TikTok ({who})…', { who })
+          : post.status === 'dismissed'
+            ? t('Vídeo descartado')
+            : post.status === 'failed'
+              ? t('No se pudo subir a TikTok')
+              : t('Vídeo para TikTok ({who})', { who })
+  const toggle = (label: string, on: boolean, set: (v: boolean) => void, disabled?: boolean) => (
+    <label className={s.ttToggle}>
+      <input type="checkbox" checked={on && !disabled} disabled={!canAct || !!busy || disabled} onChange={(e) => set(e.currentTarget.checked)} />
+      {label}
+      {disabled && <span className={s.ttOff}>{t('(la cuenta lo tiene desactivado)')}</span>}
+    </label>
+  )
+  return (
+    <div className={cx(s.proposal, s.instagramPost, post.status === 'dismissed' && s.proposalClosed)}>
+      <div className={s.planHead}>
+        <span className={s.planIcon} aria-hidden="true">
+          {post.status === 'published' || post.status === 'drafted' ? <CircleCheck size={18} /> : post.status === 'dismissed' ? <X size={18} /> : post.status === 'failed' ? <AlertCircle size={18} /> : post.status === 'sending' ? <LoaderCircle size={18} className={u.spin} /> : <Send size={18} />}
+        </span>
+        <div className={s.planInfo}>
+          <span className={s.planTitle}>{title}</span>
+          <span className={s.planSub}>{post.video}</span>
+        </div>
+      </div>
+      {open || post.status === 'drafted' ? (
+        <textarea className={s.igCaption} value={caption} maxLength={2200} rows={5} aria-label={t('Texto de la publicación')} readOnly={!open} disabled={open && (!canAct || !!busy)} onChange={(e) => setCaption(e.currentTarget.value)} />
+      ) : (
+        post.status !== 'dismissed' && <p className={s.routineRequest}>{post.caption}</p>
+      )}
+      {post.status === 'drafted' && <p className={s.planSub}>{t('Un borrador de TikTok no lleva texto: cópialo de aquí al publicarlo desde la app.')}</p>}
+      {open && post.direct && (
+        <div className={s.ttDirect}>
+          <label className={s.ttRow}>
+            {t('Quién puede verlo')}
+            <select value={privacy} disabled={!canAct || !!busy} onChange={(e) => setPrivacy(e.currentTarget.value)} aria-label={t('Quién puede verlo')}>
+              <option value="">{t('Elige…')}</option>
+              {(post.privacyOptions ?? []).map((p) => (
+                <option key={p} value={p}>
+                  {t(TIKTOK_PRIVACY[p] ?? p)}
+                </option>
+              ))}
+            </select>
+          </label>
+          {toggle(t('Permitir comentarios'), comments, setComments, post.commentDisabled)}
+          {toggle(t('Permitir dúos'), duet, setDuet, post.duetDisabled)}
+          {toggle(t('Permitir stitch'), stitch, setStitch, post.stitchDisabled)}
+          {toggle(t('Es contenido promocional de kywai'), promo, setPromo)}
+          <p className={s.planSub}>
+            {t('Al publicar, aceptas la')}{' '}
+            <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">
+              {t('Declaración de uso de música de TikTok')}
+            </a>
+            {'. '}
+            {t('Se marca como contenido hecho con IA.')}
+          </p>
+        </div>
+      )}
+      {post.error && (
+        <p className={s.resumeError} role="alert">
+          {post.error}
+        </p>
+      )}
+      {open && (
+        <div className={s.proposalActions}>
+          {post.direct && (
+            <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!canAct || !!busy || !caption.trim() || !privacy} onClick={() => act('publish')}>
+              {busy === 'publish' ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <Send size={14} aria-hidden="true" />}
+              {t('Publicar')}
+            </button>
+          )}
+          <button type="button" className={cx(u.btn, !post.direct && u.btnPrimary)} disabled={!canAct || !!busy} onClick={() => act('draft')}>
+            {busy === 'draft' && <LoaderCircle size={14} aria-hidden="true" className={u.spin} />}
+            {post.status === 'failed' ? t('Reintentar como borrador') : t('Enviar como borrador')}
+          </button>
+          <button type="button" className={u.btn} disabled={!canAct || !!busy} onClick={() => act('dismiss')}>
+            {busy === 'dismiss' && <LoaderCircle size={14} aria-hidden="true" className={u.spin} />}
+            {t('Descartar')}
+          </button>
+        </div>
+      )}
+      {error && (
+        <p className={s.resumeError} role="alert">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

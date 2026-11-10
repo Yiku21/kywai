@@ -1490,6 +1490,32 @@ button.itemHead:hover {
   line-height: 1.5;
 }
 
+.ttDirect {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.ttRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ttToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ttOff {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
 /* Habilidades de skills.sh que sugiere Hermes: una fila por habilidad con su «Instalar». */
 .skillProposal .planIcon {
   color: var(--accent);

@@ -955,6 +955,7 @@ private fun part7(m: HashMap<String, String>) {
     m["Una historia en episodios con los mismos personajes, cada uno acaba en suspense"] = "Une histoire en épisodes avec les mêmes personnages, chacun finit sur un suspense"
     m["qué quieres en el texto"] = "ce que vous voulez dans le texte"
     m["Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno"] = "Prépare la dernière vidéo pour l’Instagram de kywai et la publie avec votre accord"
+    m["Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno"] = "Prépare la dernière vidéo pour le TikTok de kywai et l’envoie en brouillon ou la publie avec votre accord"
     m["enlace o vídeo"] = "lien ou vidéo"
     m["Convierte lo que enseña un vídeo en una habilidad"] = "Transforme ce qu’enseigne une vidéo en compétence"
     m["tema"] = "sujet"

@@ -55,6 +55,7 @@ import { setAgentKeyResolver } from './agents/generic'
 import { setColibriUrlSource } from './agents/colibri'
 import { agentKey, keys, systemCipher } from './keys'
 import { instagramAccount, readInstagramSettings, writeInstagramSettings } from './instagram'
+import { TIKTOK_REDIRECT, authorizeUrl, codeFromRedirect, exchangeCode, pkcePair, readTikTokSettings, refreshTokens, tiktokUser, writeTikTokSettings, type TikTokTokens } from './tiktok'
 import { checkAuth, detectTools, installTool, openLogin, refreshPath, saveAgentKey, saveGeminiKey } from './setup'
 import { modelOptions } from './models'
 import { contextMenuItems } from './contextMenu'
@@ -68,6 +69,9 @@ import {
   decideRoutineProposal,
   decideSkillProposal,
   decideInstagramPost,
+  decideTikTokPost,
+  setTikTokBackend,
+  tiktokStatusNow,
   instagramStatusNow,
   setInstagramBackend,
   rateMessage,
@@ -753,6 +757,87 @@ function registerIpc(): void {
   handle('decideInstagramPost', (projectId: unknown, messageId: unknown, action: unknown, caption: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('No se encontró ese reel'))
     return decideInstagramPost(projectArg(projectId), messageId, action === 'publish' ? 'publish' : 'dismiss', typeof caption === 'string' ? caption : undefined)
+  })
+  // El TikTok de kywai: la clave y el secreto de su app, y los tokens (cifrados en el llavero; se renuevan solos).
+  const ttFile = join(app.getPath('userData'), 'tiktok.json')
+  const ttRead = (): ReturnType<typeof readTikTokSettings> => readTikTokSettings(ttFile)
+  const ttSave = (patch: Partial<ReturnType<typeof readTikTokSettings>>): void => writeTikTokSettings(ttFile, { ...ttRead(), ...patch })
+  const ttStore = (tk: TikTokTokens): void => {
+    keys().set('tiktok', tk.accessToken)
+    if (tk.refreshToken) keys().set('tiktok-refresh', tk.refreshToken)
+    ttSave({ openId: tk.openId || ttRead().openId, scopes: tk.scopes, accessExpires: tk.accessExpires, refreshExpires: tk.refreshExpires })
+  }
+  let ttRefreshing: Promise<string | null> | null = null
+  setTikTokBackend({
+    settings: ttRead,
+    connected: () => !!agentKey('tiktok-refresh') && (ttRead().refreshExpires ?? 0) > Date.now(),
+    token: async () => {
+      const s = ttRead()
+      const access = agentKey('tiktok')
+      if (access && (s.accessExpires ?? 0) > Date.now() + 5 * 60_000) return access
+      const refresh = agentKey('tiktok-refresh')
+      const secret = agentKey('tiktok-secret')
+      if (!refresh || !secret || !s.clientKey) return null
+      ttRefreshing ??= refreshTokens(s.clientKey, secret, refresh)
+        .then((tk) => {
+          ttStore(tk)
+          return tk.accessToken
+        })
+        .finally(() => {
+          ttRefreshing = null
+        })
+      return ttRefreshing
+    }
+  })
+  handle('tiktokStatus', () => tiktokStatusNow(TIKTOK_REDIRECT))
+  handle('setTikTokApp', (clientKey: unknown, clientSecret: unknown) => {
+    if (typeof clientKey !== 'string' || !/^[\w-]{6,80}$/.test(clientKey.trim())) throw new Error(tr('Pega la «Client key» de tu app de TikTok'))
+    if (typeof clientSecret !== 'string' || !clientSecret.trim()) throw new Error(tr('Pega el «Client secret» de tu app de TikTok'))
+    keys().set('tiktok-secret', clientSecret.trim())
+    ttSave({ clientKey: clientKey.trim() })
+    return tiktokStatusNow(TIKTOK_REDIRECT)
+  })
+  handle('tiktokLoginUrl', () => {
+    const s = ttRead()
+    if (!s.clientKey) throw new Error(tr('Pon primero la clave de tu app de TikTok'))
+    const { verifier, challenge } = pkcePair()
+    const state = randomUUID()
+    ttSave({ pending: { state, verifier, at: Date.now() } })
+    return authorizeUrl(s.clientKey, state, challenge)
+  })
+  handle('connectTikTok', async (pasted: unknown) => {
+    const s = ttRead()
+    const secret = agentKey('tiktok-secret')
+    if (!s.clientKey || !secret) throw new Error(tr('Pon primero la clave de tu app de TikTok'))
+    if (!s.pending || Date.now() - s.pending.at > 30 * 60_000) throw new Error(tr('Pulsa otra vez «Iniciar sesión en TikTok»: el anterior caducó'))
+    const code = codeFromRedirect(typeof pasted === 'string' ? pasted : '', s.pending.state)
+    const tk = await exchangeCode(s.clientKey, secret, code, s.pending.verifier)
+    ttStore(tk)
+    let name = ''
+    try {
+      name = (await tiktokUser(tk.accessToken)).name
+    } catch {
+      /* el nombre es opcional */
+    }
+    ttSave({ pending: undefined, ...(name ? { name } : {}) })
+    return tiktokStatusNow(TIKTOK_REDIRECT)
+  })
+  handle('disconnectTikTok', () => {
+    keys().clear('tiktok')
+    keys().clear('tiktok-refresh')
+    const s = ttRead()
+    writeTikTokSettings(ttFile, { ...(s.clientKey ? { clientKey: s.clientKey } : {}) })
+    return tiktokStatusNow(TIKTOK_REDIRECT)
+  })
+  handle('setTikTokOptions', (opts: unknown) => {
+    const o = (opts && typeof opts === 'object' ? opts : {}) as { approved?: unknown; autoDraft?: unknown }
+    ttSave({ ...(typeof o.approved === 'boolean' ? { approved: o.approved } : {}), ...(typeof o.autoDraft === 'boolean' ? { autoDraft: o.autoDraft } : {}) })
+    return tiktokStatusNow(TIKTOK_REDIRECT)
+  })
+  handle('decideTikTokPost', (projectId: unknown, messageId: unknown, action: unknown, choice: unknown) => {
+    if (typeof messageId !== 'string') throw new Error(tr('No se encontró ese vídeo'))
+    const a = action === 'publish' ? 'publish' : action === 'draft' ? 'draft' : 'dismiss'
+    return decideTikTokPost(projectArg(projectId), messageId, a, choice && typeof choice === 'object' ? (choice as Record<string, unknown>) : {})
   })
   // Habilidades que sugirió Hermes: «Instalar» una (por su posición) o «Descartar» la tarjeta.
   handle('decideSkillProposal', (projectId: unknown, messageId: unknown, action: unknown, index: unknown) => {
