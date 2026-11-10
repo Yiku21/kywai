@@ -1750,6 +1750,23 @@ que sale en ellas. Sin imágenes, el guion trae igualmente un `look` único para
 presentador, el dibujo de siempre se cambia por el tuyo solo si diste referencias. Lo hace `imagePromptText` y
 `geminiImage` en `src/main/videoStudio.ts`.
 
+**Estilo de un reel que te gusta.** Si adjuntas un vídeo a «/video …» (hasta 2), kywai saca 4 fotogramas de cada
+uno (del 15 % al 85 % del vídeo, lejos de títulos y créditos) a `.ai-cowork/videos/referencias/` y los usa como
+imágenes de referencia de estilo, igual que las imágenes adjuntas (`videoFrames` en `videoStudio.ts`, con ffmpeg).
+
+**Personajes fijos (series).** Cada proyecto puede tener sus personajes en la carpeta **`personajes/`**: hasta 6
+imágenes (PNG, JPG o WebP) y `personajes.md` con su descripción en inglés. Para crearlos, adjunta sus imágenes a
+«/video … con estos personajes fijos» (o «guarda estos personajes», «estos son mis personajes»): kywai las copia a
+`personajes/` (sin duplicar la misma imagen) y no las usa como referencia de estilo. Desde entonces, en todos los vídeos
+del proyecto:
+- el agente del guion las abre y escribe `cast` («Nombre: cara, pelo, ropa exacta…»); la primera vez kywai lo guarda en
+  `personajes.md` y luego se copia tal cual, así salen iguales (puedes editarlo);
+- esa descripción va en el texto de cada imagen (ComfyUI y Gemini), y Gemini además ve hasta 3 imágenes de los
+  personajes (y, si hay, referencias de estilo hasta 4 en total);
+- en el estilo con presentador los planos pueden llevar sus caras;
+- en las películas con estilo, sus imágenes van en la lista de archivos del agente como «personaje fijo».
+`projectCast`, `saveCastImages` y `saveCastNotes` en `videoStudio.ts`.
+
 **Gancho.** Los guiones (y las películas con estilo) piden un gancho en los 2 primeros segundos, sin saludos, con una
 de estas formas: una pregunta, un dato que sorprende, lo contrario de lo que se cree, el resultado primero, un error
 común o una promesa con número; y que cada escena abra una pregunta pequeña que cierre la siguiente (`HOOK_RULE` en

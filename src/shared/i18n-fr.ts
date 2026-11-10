@@ -2801,6 +2801,8 @@ export const fr: Record<string, string> = {
   "El proyecto completo (guion, código y créditos de lo que usa) queda en {dir}.": "Le projet complet (scénario, code et crédits de ce qu'il utilise) se trouve dans {dir}.",
   "Estilos de película (73, con muestras al escribir «/video»)": "Styles de film (73, avec aperçus en tapant « /video »)",
   "Estilo de kywai": "Style kywai",
+  "Sacando fotogramas del vídeo de referencia": "Extraction d’images de la vidéo de référence",
+  "Tus personajes fijos están en la carpeta «personajes» del proyecto: saldrán iguales en los próximos vídeos (para cambiarlos, cambia esas imágenes o su descripción en personajes.md).": "Vos personnages récurrents sont dans le dossier « personajes » du projet : ils seront identiques dans vos prochaines vidéos (pour les changer, modifiez ces images ou leur description dans personajes.md).",
   "Escenas con movimiento (FreeVideo)": "Scènes animées (FreeVideo)",
   "FreeVideo abierto: da movimiento a hasta 3 escenas por vídeo (cada una tarda varios minutos)": "FreeVideo est ouvert : il anime jusqu’à 3 scènes par vidéo (chacune prend plusieurs minutes)",
   "FreeVideo instalado pero cerrado o sin el modelo: ábrelo para que kywai lo use": "FreeVideo est installé mais fermé ou sans son modèle : ouvrez-le pour que kywai l’utilise",

@@ -71,7 +71,7 @@ import { skillPromptLines, videoSkillPromptLines } from './skills'
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
-import { ensureVideoStudio, manimSupport, mediaSeconds, renderVideo, videoStudioDir } from './videoStudio'
+import { CAST_DIR, CAST_NOTES, ensureVideoStudio, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { filmPrompt, filmReady, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
 import { KYWAI_FILM_GUIDES } from './kywaiFilmGuides'
@@ -263,6 +263,25 @@ function occupies(projectId: string, exceptTaskId: string): Task | null {
  * así dos agentes nunca se pisan, y al terminar sus cambios se integran (fusión a tres bandas). Sin git, o si la
  * carpeta es enorme, como antes: todos en la carpeta, sin deshacer.
  */
+/**
+ * Las referencias de estilo de un vídeo: las imágenes adjuntas (salvo si se guardaron como personajes fijos) y unos
+ * fotogramas de cada vídeo adjunto («hazlo como este reel»). Se preparan una vez, antes de escribir el guion.
+ */
+async function prepareVideoRefs(run: Run, t: Task): Promise<void> {
+  const v = t.video!
+  const refs = v.saveCast ? [] : imageAttachments(run, true)
+  const videos = run.attachments.filter((a) => isVideoFile(a.relPath)).slice(0, 2)
+  if (videos.length) {
+    t.lastActivity = tr('Sacando fotogramas del vídeo de referencia')
+    taskDirty(t)
+    for (const [i, a] of videos.entries()) {
+      const out = join(store.workRoot(run.projectId), '.ai-cowork', 'videos', 'referencias', `${t.id}-${i + 1}`)
+      refs.push(...(await videoFrames(attPath(run, a.relPath, true), out, 4, run.controllers.get(t.id)?.signal)))
+    }
+  }
+  v.refs = refs.slice(0, 8)
+}
+
 /** La carpeta de una película con estilo; si la biblioteca no está, la instala primero (la primera vez tarda). */
 async function prepareFilm(run: Run, t: Task): Promise<string> {
   const v = t.video!
@@ -1557,7 +1576,7 @@ function filmDirector(): AgentConfig | null {
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -1621,7 +1640,8 @@ async function sendVideo(
       topic: req.topic,
       style: req.style,
       ...(req.source ? { source: clip(req.source, 6000) } : {}),
-      ...(film ? { film: film.slug, work: `.ai-cowork/videos/${Date.now().toString(36)}-pelicula` } : {})
+      ...(film ? { film: film.slug, work: `.ai-cowork/videos/${Date.now().toString(36)}-pelicula` } : {}),
+      ...(req.saveCast ? { saveCast: true } : {})
     }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
@@ -1632,6 +1652,11 @@ async function sendVideo(
   tasks.set(t.id, t)
   run.taskIds.push(t.id)
   pushTask(t)
+  // «Con estos personajes fijos»: las imágenes adjuntas pasan a la carpeta «personajes» del proyecto y salen en este
+  // vídeo y en los siguientes.
+  if (req.saveCast) {
+    saveCastImages(store.workRoot(projectId), imageAttachments(run, true))
+  }
   schedule()
   return { runId }
 }
@@ -1663,7 +1688,8 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
       workDir,
       outDir,
       signal,
-      refs: imageAttachments(run, true),
+      refs: v.refs ?? imageAttachments(run, true),
+      cast: projectCast(root) ?? undefined,
       onStep: (text, p, vars) => {
         t.lastActivity = tr(text, vars)
         t.progress = p
@@ -1679,10 +1705,13 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
     closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
     return
   }
+  // La primera vez que hay personajes fijos, su descripción se guarda: así salen iguales en los siguientes vídeos.
+  if (script.cast && projectCast(root)?.images.length && saveCastNotes(root, script.cast)) meta.touched.add(join(CAST_DIR, CAST_NOTES))
   const rel = store.toRelPath(root, video.file)
   if (rel) meta.touched.add(rel)
   const notes = [
     video.voice === 'system' ? tr('Va con la voz del sistema: instala la voz Kokoro en Ajustes → Extensiones → Estudio de vídeo para una más natural.') : '',
+    v.saveCast && projectCast(root)?.images.length ? tr('Tus personajes fijos están en la carpeta «personajes» del proyecto: saldrán iguales en los próximos vídeos (para cambiarlos, cambia esas imágenes o su descripción en personajes.md).') : '',
     video.moving ? tr('{n} escenas llevan movimiento hecho con FreeVideo en este equipo.', { n: video.moving }) : '',
     script.scenes.some((s) => s.image) && video.images === 0 ? tr('Sin clave de API de Gemini las escenas llevan fondos de diseño en lugar de imágenes.') : ''
   ].filter(Boolean)
@@ -2877,14 +2906,17 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         lang: lang(),
         studioDir: videoStudioDir(),
         work: join(store.workRoot(run.projectId), t.video.work),
-        files: run.attachments.map((a) => `- ${attPath(run, a.relPath, false)} (adjunto del usuario: ${a.name})`)
+        files: [
+          ...run.attachments.map((a) => `- ${attPath(run, a.relPath, false)} (adjunto del usuario: ${a.name})`),
+          ...(projectCast(store.workRoot(run.projectId))?.images ?? []).map((f) => `- ${f} (personaje fijo de la serie: que salga igual, con la misma ropa)`)
+        ]
       })
   }
   if (t.video) {
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: imageAttachments(run), motion: !!findFreeVideo() })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: projectCast(store.workRoot(run.projectId)) ?? undefined })].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)
@@ -3124,6 +3156,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // En la carpeta del proyecto o, si otra tarea la está usando, en una copia aparte que se integra al terminar.
   // Una película con estilo trabaja en su propia carpeta oculta (y antes se instala la biblioteca si falta).
   const dir = t.video?.film && t.video.work ? await prepareFilm(run, t) : await prepareWorkplace(run, t, meta, exec)
+  if (t.video && !t.video.film && !t.video.refs) await prepareVideoRefs(run, t)
 
   let working = false
   // Si el agente no cuenta sus pasos (registro de la tarea), al menos queda lo que dice que hace.

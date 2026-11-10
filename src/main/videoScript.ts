@@ -60,6 +60,8 @@ export interface VideoScript {
    * final de cada imagen para que todas salgan iguales; con imágenes de referencia, sale de ellas.
    */
   look?: string
+  /** Los personajes fijos de la serie (en inglés, «Nombre: cómo es»): van en cada imagen para que salgan iguales. */
+  cast?: string
 }
 
 export const MIN_SCENES = 3
@@ -118,7 +120,8 @@ export function parseVideoScript(text: string): VideoScript {
   const lang = (clean(raw.lang, 8).toLowerCase().match(/^[a-z]{2}/)?.[0] ?? 'es')
   const style = VIDEO_STYLES.includes(raw.style as VideoStyle) ? (raw.style as VideoStyle) : 'dinamico'
   const look = clean(raw.look, 700)
-  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}) }
+  const cast = clean(raw.cast, 900)
+  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}), ...(cast ? { cast } : {}) }
 }
 
 /**
@@ -141,6 +144,8 @@ type PromptInput = {
   refs?: string[]
   /** FreeVideo está en el equipo: el guion puede pedir movimiento en las escenas clave. */
   motion?: boolean
+  /** Personajes fijos del proyecto (carpeta «personajes»): sus imágenes y, si ya se escribió, su descripción. */
+  cast?: { images: string[]; notes?: string }
 }
 
 /** Reglas del bloque de estilo y del movimiento (comunes a los dos estilos rápidos). */
@@ -160,6 +165,18 @@ function lookRules(input: PromptInput): string[] {
         ]
       : [])
   ].filter(Boolean)
+}
+
+/** Reglas de los personajes fijos (los de la carpeta «personajes» del proyecto): salen iguales en todos los vídeos. */
+function castRules(input: PromptInput): string[] {
+  const c = input.cast
+  if (!c || (!c.images.length && !c.notes)) return []
+  return [
+    c.notes
+      ? `- "cast": los personajes fijos de esta serie. Copia EXACTAMENTE esta descripción (no la cambies; sale igual en todos los vídeos): ${c.notes}`
+      : `- "cast": los personajes fijos de esta serie, sacados de sus imágenes (${c.images.join(', ')}): ábrelas y míralas. Para cada uno, en inglés: «Nombre: edad aparente, cara, pelo, ropa exacta y colores, rasgos que lo distinguen» (de 15 a 40 palabras cada uno, sin el estilo de dibujo). Esa descripción se guarda y se repite igual en todos los vídeos, así que sé concreto.`,
+    '- Los personajes fijos son los protagonistas: salen en la mayoría de las escenas. En "image" (y "shots") nómbralos por su nombre y di qué hacen y dónde; no vuelvas a describir cómo son (ya va en "cast"). Siempre con la misma ropa.'
+  ]
 }
 
 /** Reglas de Manim para el guion (solo si está instalado en el estudio). */
@@ -191,13 +208,14 @@ export function videoScriptPrompt(input: PromptInput): string {
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}, el que mejor le vaya al tema.`,
     '- "outro": frase final corta para la última pantalla.',
     ...lookRules(input),
+    ...castRules(input),
     ...(input.manim ? manimRules(input.format, input.manim) : []),
     '- Si el tema necesita datos actuales, compruébalos antes; no inventes cifras.',
     '- No crees ni cambies archivos: responde solo con el JSON.',
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", "scenes": [{"heading": "…", "narration": "…", "image": "…"' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", ' + (input.cast ? '"cast": "…", ' : '') + '"scenes": [{"heading": "…", "narration": "…", "image": "…"' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -225,13 +243,14 @@ function cartoonScriptPrompt(input: PromptInput): string {
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}; para dibujos van mejor "papel", "amanecer" u "oceano".`,
     '- "outro": frase final corta y con gracia.',
     ...lookRules(input),
+    ...castRules(input),
     ...(input.manim ? manimRules(input.format, input.manim, true) : []),
     '- Si el tema necesita datos actuales o técnicos, compruébalos antes; no inventes.',
     '- No crees ni cambies archivos: responde solo con el JSON.',
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", ' + (input.refs?.length ? '"look": "…", ' : '') + '"scenes": [{"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", ' + (input.refs?.length ? '"look": "…", ' : '') + (input.cast ? '"cast": "…", ' : '') + '"scenes": [{"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -245,7 +264,12 @@ export interface VideoRequest {
   style: VideoStyle
   /** Estilo de película de la biblioteca (src/shared/filmStyles.ts): lo dirige y renderiza un agente con herramientas. */
   film?: string
+  /** «personajes fijos», «guarda estos personajes»: las imágenes adjuntas pasan a ser los personajes del proyecto. */
+  saveCast?: boolean
 }
+
+/** «con estos personajes fijos», «guarda los personajes», «estos son mis personajes», «same characters». */
+const CAST_RE = /(?:^|[\s,])(?:con\s+)?(?:(?:estos|mis|los)\s+)?(?:personajes?\s+fijos?|guarda(?:r|me)?\s+(?:(?:a\s+)?(?:los|estos|mis)\s+)?personajes?|estos\s+son\s+(?:los|mis)\s+personajes?|recurring\s+characters?|same\s+characters?)(?=[\s,.:;]|$)/i
 
 /** Piden dibujos con personaje: «estilo cartoon», «dibujos animados», «un personaje que lo explique», «tutorial»… */
 const CARTOON_RE = /\b(cartoons?|caricaturas?|dibujos?(?:\s+animados?)?|animaci[oó]n\s+2d|personajes?|mu[ñn]ecos?|presentador(?:a)?|tutorial(?:es)?|una persona explicando|alguien explicando|animated character|explainer)\b/i
@@ -277,6 +301,11 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     topic = m[1].trim()
   }
   const format = formatOf(t)
+  // «personajes fijos»: no es parte del tema ni pide el estilo de dibujos (que también se activa con «personajes»).
+  const castM = CAST_RE.exec(topic)
+  const saveCast = !!castM
+  if (castM) topic = (topic.slice(0, castM.index) + ' ' + topic.slice(castM.index + castM[0].length)).replace(/\s{2,}/g, ' ').replace(/^[\s,:;]+|[\s,:;]+$/g, '').trim()
+  const tNoCast = castM ? t.replace(castM[0], ' ') : t
   // «estilo:cartoon» / «estilo:dinamico»: lo pone el selector de estilos para los dos rápidos.
   const quick = /(^|\s)estilo:(cartoon|dinamico)(?=\s|$)/i.exec(topic)
   if (quick) topic = (topic.slice(0, quick.index) + quick[1] + topic.slice(quick.index + quick[0].length)).replace(/\s{2,}/g, ' ').trim()
@@ -292,15 +321,15 @@ export function parseVideoRequest(text: string): VideoRequest | null {
   if (film) {
     const rest = stripped.replace(/^(?:(?:de|sobre|con|para|acerca de)\s+)/i, '').trim()
     const prev = !rest || PREVIOUS_RE.test(rest)
-    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: 'dinamico', film: film.style.slug }
+    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: 'dinamico', film: film.style.slug, ...(saveCast ? { saveCast } : {}) }
   }
   // «estilo cartoon de…», «de dibujos animados sobre…»: el estilo no es parte del tema.
-  const style: VideoStyle = quick ? (quick[2].toLowerCase() as VideoStyle) : CARTOON_RE.test(t) ? 'cartoon' : 'dinamico'
+  const style: VideoStyle = quick ? (quick[2].toLowerCase() as VideoStyle) : CARTOON_RE.test(tNoCast) ? 'cartoon' : 'dinamico'
   const bare = stripped
     .replace(/^(?:(?:al?|en|con|de)\s+)?(?:estilo|tipo|formato)?\s*(?:cartoon|caricatura|dibujos?(?:\s+animados?)?|animado|tutorial)\s*(?:(?:de|sobre|con|para)\s+)?/i, '')
     .trim()
   const fromPrevious = !bare || PREVIOUS_RE.test(bare)
-  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style }
+  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(saveCast ? { saveCast } : {}) }
 }
 
 // ---------- composición ----------

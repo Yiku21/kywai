@@ -2801,6 +2801,8 @@ export const zh: Record<string, string> = {
   "El proyecto completo (guion, código y créditos de lo que usa) queda en {dir}.": "完整项目（剧本、代码和所用素材的署名）在 {dir}。",
   "Estilos de película (73, con muestras al escribir «/video»)": "电影风格（73 种，输入「/video」时显示示例）",
   "Estilo de kywai": "kywai 风格",
+  "Sacando fotogramas del vídeo de referencia": "正在从参考视频中提取画面",
+  "Tus personajes fijos están en la carpeta «personajes» del proyecto: saldrán iguales en los próximos vídeos (para cambiarlos, cambia esas imágenes o su descripción en personajes.md).": "你的固定角色在项目的「personajes」文件夹中：之后的视频里他们会保持一致（要更改，请替换这些图片或修改 personajes.md 中的描述）。",
   "Escenas con movimiento (FreeVideo)": "动态场景（FreeVideo）",
   "FreeVideo abierto: da movimiento a hasta 3 escenas por vídeo (cada una tarda varios minutos)": "FreeVideo 已打开：每个视频最多让 3 个场景动起来（每个需要几分钟）",
   "FreeVideo instalado pero cerrado o sin el modelo: ábrelo para que kywai lo use": "已安装 FreeVideo，但未打开或缺少模型：打开它，kywai 才能使用",

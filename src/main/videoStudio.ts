@@ -7,7 +7,7 @@
 // (say en macOS, la de Windows o espeak-ng en Linux). Las imágenes las genera Gemini si hay clave de API; sin clave, cada
 // escena lleva un fondo de diseño animado.
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import {
@@ -455,22 +455,96 @@ function voiceTone(style: VideoScript['style'], joke: boolean): string {
  * El texto de cada imagen. `look` es el bloque de estilo del guion: va al final de todas para que salgan iguales. En
  * cartoon manda el estilo de dibujo de siempre (el del presentador), salvo que el usuario diera imágenes de referencia.
  */
-export function imagePromptText(prompt: string, cartoon: boolean, look?: string, fromRefs = false): string {
-  const tail = cartoon ? 'No text, no letters, no numbers, no logos, no watermark, no faces.' : 'No text, no letters, no logos, no watermark.'
-  if (look && (!cartoon || fromRefs)) return `${prompt}. Visual style: ${look}. ${cartoon ? 'Clear close-up of the action. ' : ''}${tail}`
+export function imagePromptText(prompt: string, cartoon: boolean, look?: string, fromRefs = false, cast?: string): string {
+  // Con personajes fijos sí hay caras (las suyas); sin ellos, el estilo con presentador no pone caras en los planos.
+  const tail = cartoon && !cast ? 'No text, no letters, no numbers, no logos, no watermark, no faces.' : 'No text, no letters, no logos, no watermark.'
+  const who = cast ? ` Recurring characters, drawn exactly like this (same face, hair and clothes) whenever they appear: ${cast}.` : ''
+  if (look && (!cartoon || fromRefs || cast)) return `${prompt}.${who} Visual style: ${look}. ${cartoon ? 'Clear close-up of the action. ' : ''}${tail}`
   return cartoon
-    ? `Flat 2D cartoon illustration in a friendly explainer-video style: bold dark outlines, bright cheerful colors, simple soft shading, clean uncluttered background, clear close-up of the action. ${prompt}. ${tail}`
-    : `${prompt}. Cinematic, high detail, ${tail.charAt(0).toLowerCase()}${tail.slice(1)}`
+    ? `Flat 2D cartoon illustration in a friendly explainer-video style: bold dark outlines, bright cheerful colors, simple soft shading, clean uncluttered background, clear close-up of the action. ${prompt}.${who} ${tail}`
+    : `${prompt}.${who} Cinematic, high detail, ${tail.charAt(0).toLowerCase()}${tail.slice(1)}`
+}
+
+const VIDEO_EXT = /\.(mp4|mov|m4v|webm|mkv|avi)$/i
+export const isVideoFile = (name: string): boolean => VIDEO_EXT.test(name)
+
+/**
+ * Fotogramas de un vídeo del usuario para usarlos como referencia de estilo («hazlo como este reel»): `n` repartidos
+ * por el vídeo (lejos del principio y del final, donde suele haber títulos), en JPG de 768 px de ancho.
+ */
+export async function videoFrames(video: string, outDir: string, n = 4, signal?: AbortSignal): Promise<string[]> {
+  const secs = await duration(video).catch(() => 0)
+  if (!secs) return []
+  mkdirSync(outDir, { recursive: true })
+  const out: string[] = []
+  for (let i = 0; i < n && !signal?.aborted; i++) {
+    const at = secs * (0.15 + (0.7 * i) / Math.max(1, n - 1))
+    const file = join(outDir, `fotograma-${i + 1}.jpg`)
+    const r = await run('ffmpeg', ['-y', '-v', 'error', '-ss', at.toFixed(2), '-i', video, '-frames:v', '1', '-vf', 'scale=768:-2', '-q:v', '3', file], { timeoutMs: 60_000, signal }).catch(() => null)
+    if (r && r.code === 0 && existsSync(file)) out.push(file)
+  }
+  return out
+}
+
+/** Carpeta de los personajes fijos de un proyecto: sus imágenes y su descripción (personajes.md). */
+export const CAST_DIR = 'personajes'
+export const CAST_NOTES = 'personajes.md'
+const CAST_IMG = /\.(png|jpe?g|webp)$/i
+
+/** Los personajes fijos de un proyecto (hasta 6 imágenes y su descripción), o null si no hay. */
+export function projectCast(root: string): { images: string[]; notes?: string } | null {
+  const dir = join(root, CAST_DIR)
+  let names: string[] = []
+  try {
+    names = readdirSync(dir)
+  } catch {
+    return null
+  }
+  const images = names.filter((n) => CAST_IMG.test(n) && !n.startsWith('.')).sort().slice(0, 6).map((n) => join(dir, n))
+  let notes: string | undefined
+  try {
+    // La descripción va en inglés, sin el encabezado ni las líneas de explicación (las que empiezan por «#» o «>»).
+    notes = readFileSync(join(dir, CAST_NOTES), 'utf8').split('\n').filter((l) => l.trim() && !/^\s*[#>]/.test(l)).join(' ').replace(/\s+/g, ' ').trim().slice(0, 900) || undefined
+  } catch {
+    /* sin descripción todavía */
+  }
+  return images.length || notes ? { images, ...(notes ? { notes } : {}) } : null
+}
+
+/** Guarda la descripción de los personajes que escribió el guion (solo la primera vez: luego manda la guardada). */
+export function saveCastNotes(root: string, cast: string): boolean {
+  const file = join(root, CAST_DIR, CAST_NOTES)
+  if (existsSync(file)) return false
+  mkdirSync(join(root, CAST_DIR), { recursive: true })
+  writeFileSync(file, `# Personajes fijos\n\n> kywai pone esta descripción en cada imagen de los vídeos de este proyecto. Puedes cambiarla; va en inglés.\n\n${cast}\n`)
+  return true
+}
+
+/** Copia las imágenes adjuntas a la carpeta de personajes del proyecto. Devuelve cuántas copió. */
+export function saveCastImages(root: string, files: string[]): number {
+  const dir = join(root, CAST_DIR)
+  mkdirSync(dir, { recursive: true })
+  let n = 0
+  for (const f of files) {
+    if (!CAST_IMG.test(f) || !existsSync(f)) continue
+    const name = f.replace(/^.*[\\/]/, '')
+    const same = join(dir, name)
+    // La misma imagen otra vez (mismo nombre y tamaño) no se duplica.
+    if (existsSync(same) && statSync(same).size === statSync(f).size) continue
+    copyFileSync(f, existsSync(same) ? join(dir, `${Date.now().toString(36)}-${name}`) : same)
+    n++
+  }
+  return n
 }
 
 const MIME: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }
 
-/** Las imágenes de referencia del usuario para Gemini (como mucho 3 y de 7 MB cada una). */
-function refParts(refs: string[]): { inlineData: { mimeType: string; data: string } }[] {
+/** Imágenes para Gemini (como mucho `max` y de 7 MB cada una). */
+function refParts(refs: string[], max = 3): { inlineData: { mimeType: string; data: string } }[] {
   const parts: { inlineData: { mimeType: string; data: string } }[] = []
   for (const f of refs) {
     const mimeType = MIME[f.split('.').pop()?.toLowerCase() ?? '']
-    if (!mimeType || parts.length >= 3) continue
+    if (!mimeType || parts.length >= max) continue
     try {
       const buf = readFileSync(f)
       if (buf.length <= 7 * 1024 * 1024) parts.push({ inlineData: { mimeType, data: buf.toString('base64') } })
@@ -489,18 +563,22 @@ async function geminiImage(
   cartoon: boolean,
   signal?: AbortSignal,
   look?: string,
-  refs: string[] = []
+  refs: string[] = [],
+  cast?: { images: string[]; text?: string }
 ): Promise<boolean> {
-  const text = imagePromptText(prompt, cartoon, look, refs.length > 0)
-  // Con referencias, Gemini las ve: solo para copiar el estilo, no lo que sale en ellas.
-  const ref = refs.length ? refParts(refs) : []
+  const text = imagePromptText(prompt, cartoon, look, refs.length > 0, cast?.text)
+  // Gemini ve primero a los personajes fijos (para que salgan iguales) y después las referencias de estilo (solo el
+  // estilo, no lo que sale en ellas). Cuatro imágenes como mucho entre las dos.
+  const who = cast?.images.length ? refParts(cast.images, 3) : []
+  const ref = refs.length ? refParts(refs, Math.max(1, 4 - who.length)) : []
+  const notes = [
+    who.length ? `The first ${who.length === 1 ? 'image shows' : `${who.length} images show`} the recurring characters: when they appear, keep their faces, hair, body and clothes identical to these.` : '',
+    ref.length ? `${who.length ? `The next ${ref.length === 1 ? 'image is a style reference' : `${ref.length} images are style references`}` : 'Use the attached images ONLY as style references'} (medium, line, palette, light, texture); do not copy their subjects or composition.` : ''
+  ].filter(Boolean)
   const body = {
     contents: [
       {
-        parts: [
-          ...ref,
-          { text: ref.length ? `Use the attached images ONLY as style references (medium, line, palette, light, texture); do not copy their subjects or composition. ${text}` : text }
-        ]
+        parts: [...who, ...ref, { text: notes.length ? `${notes.join(' ')} ${text}` : text }]
       }
     ],
     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: format === 'vertical' ? '9:16' : '16:9' } }
@@ -618,6 +696,8 @@ export async function renderVideo(input: {
   signal?: AbortSignal
   /** Imágenes de referencia del usuario (rutas absolutas): Gemini las ve para copiar el estilo. */
   refs?: string[]
+  /** Personajes fijos del proyecto: sus imágenes (Gemini las ve) y su descripción si ya existe (si no, la del guion). */
+  cast?: { images: string[]; notes?: string }
   /** Paso en marcha (texto en español con {huecos}, para traducirlo con tr) y avance de 0 a 1. */
   onStep?: (text: string, progress: number, vars?: Record<string, string | number>) => void
 }): Promise<RenderedVideo> {
@@ -641,6 +721,9 @@ export async function renderVideo(input: {
 
   const cartoon = script.style === 'cartoon'
   const refs = (input.refs ?? []).filter((f) => existsSync(f))
+  const castImages = (input.cast?.images ?? []).filter((f) => existsSync(f))
+  const castText = script.cast || input.cast?.notes
+  const cast = castImages.length || castText ? { images: castImages, text: castText } : undefined
   const key = geminiApiKey()
   const n = script.scenes.length
   let spoken = 0
@@ -720,14 +803,14 @@ export async function renderVideo(input: {
         const out = join(dir, rel)
         // Tras dos fallos seguidos de ComfyUI, el resto va directo a Gemini.
         if (comfy && comfyFails < 2) {
-          if (await comfyImage(comfy, imagePromptText(prompt, cartoon, script.look, refs.length > 0), format === 'vertical', out, { signal })) {
+          if (await comfyImage(comfy, imagePromptText(prompt, cartoon, script.look, refs.length > 0, castText), format === 'vertical', out, { signal })) {
             shots[i][k] = rel
             comfyFails = 0
             continue
           }
           comfyFails++
         }
-        if (key && (await geminiImage(prompt, format, out, key, cartoon, signal, script.look, refs))) shots[i][k] = rel
+        if (key && (await geminiImage(prompt, format, out, key, cartoon, signal, script.look, refs, cast))) shots[i][k] = rel
       }
     }
     // ComfyUI hace una imagen detrás de otra (una sola gráfica); Gemini, tres a la vez.

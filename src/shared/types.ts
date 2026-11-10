@@ -257,7 +257,18 @@ export interface Task {
    * Con `film` (un estilo de src/shared/filmStyles.ts), el agente dirige y renderiza él mismo la película con la
    * biblioteca de estilos y kywai solo entrega el MP4 que deja; `work` es su carpeta (relativa a la del proyecto).
    */
-  video?: { format: 'horizontal' | 'vertical'; topic: string; source?: string; style?: 'dinamico' | 'cartoon'; film?: string; work?: string }
+  video?: {
+    format: 'horizontal' | 'vertical'
+    topic: string
+    source?: string
+    style?: 'dinamico' | 'cartoon'
+    film?: string
+    work?: string
+    /** «personajes fijos»: las imágenes adjuntas se guardaron como personajes del proyecto (carpeta «personajes»). */
+    saveCast?: boolean
+    /** Referencias de estilo ya preparadas (imágenes adjuntas y fotogramas de los vídeos adjuntos), rutas absolutas. */
+    refs?: string[]
+  }
 }
 
 /** Cambios de una tarea en la carpeta del proyecto, guardados como dos instantáneas (ver checkpoints.ts). */

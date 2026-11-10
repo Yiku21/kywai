@@ -303,10 +303,23 @@ describe('estilo de las imágenes y escenas con movimiento', () => {
   })
 })
 
-describe('gancho', () => {
-  it('el encargo lleva el gancho', () => {
+describe('gancho y personajes fijos', () => {
+  it('«personajes fijos» los guarda y no pide el estilo de dibujos', () => {
+    expect(parseVideoRequest('/video con estos personajes fijos: la vuelta al cole')).toMatchObject({ topic: 'la vuelta al cole', saveCast: true, style: 'dinamico' })
+    expect(parseVideoRequest('/video estilo acuarela con mis personajes fijos sobre el mar')).toMatchObject({ film: 'watercolor', topic: 'el mar', saveCast: true })
+    expect(parseVideoRequest('/video un tutorial con personaje de cómo atarse')).toMatchObject({ style: 'cartoon' })
+    expect(parseVideoRequest('/video un tutorial con personaje de cómo atarse')?.saveCast).toBeUndefined()
+  })
+
+  it('el encargo lleva el gancho y, con personajes, su descripción fija', () => {
     const base = { topic: 'el café', format: 'vertical' as const, lang: 'es' }
     expect(videoScriptPrompt(base)).toContain('Gancho en los 2 primeros segundos')
     expect(videoScriptPrompt({ ...base, style: 'cartoon' })).toContain('Gancho en los 2 primeros segundos')
+    const p = videoScriptPrompt({ ...base, cast: { images: ['/p/personajes/ana.png'] } })
+    expect(p).toContain('/p/personajes/ana.png')
+    expect(p).toContain('"cast"')
+    expect(videoScriptPrompt({ ...base, cast: { images: [], notes: 'Ana: red jacket' } })).toContain('Ana: red jacket')
+    expect(videoScriptPrompt(base)).not.toContain('"cast"')
+    expect(parseVideoScript(JSON.stringify({ title: 't', cast: 'Ana: red jacket', scenes: [1, 2, 3].map((i) => ({ narration: `frase ${i} con palabras` })) })).cast).toBe('Ana: red jacket')
   })
 })
