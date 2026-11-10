@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react'
-import { CheckCircle2, Package } from 'lucide-react'
-import type { InboxItem } from '@shared/types'
+import { useId, useMemo, useState } from 'react'
+import { CheckCircle2, ChevronDown, Folder, FolderOpen, Package } from 'lucide-react'
+import type { Artifact, InboxItem } from '@shared/types'
+import { groupResults, type ResultGroup } from '@shared/resultGroups'
+import { fromArtifact } from '@/lib/preview'
+import m from './Messages.module.css'
 import { needsYou } from '@shared/inbox'
 import { api } from '@/lib/api'
 import { ago } from '../header/InboxButton'
@@ -9,7 +12,7 @@ import { cx } from '../common/util'
 import { useCowork, useData } from '@/store/cowork'
 import { useAgentLookup } from '../common/agents'
 import { ARTIFACT_KIND_LABEL, KindTile } from '../common/icons'
-import { agentVars, shortTime } from '../common/util'
+import { agentVars, plural, shortTime } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './Views.module.css'
 import { t } from '@/lib/i18n'
@@ -96,17 +99,43 @@ function Finished() {
   )
 }
 
-/** Pestaña Resultados: lo recién terminado y la cuadrícula de lo que ha generado el equipo. */
+/** Carpetas abiertas o cerradas (de este equipo). Sin anotar, solo está abierta la más reciente. */
+const OPEN_KEY = 'kywai.resultados.carpetas'
+function readOpen(): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}') as Record<string, boolean>
+  } catch {
+    return {}
+  }
+}
+function saveOpen(map: Record<string, boolean>): void {
+  try {
+    // Solo las últimas 200, para que no crezca sin fin.
+    localStorage.setItem(OPEN_KEY, JSON.stringify(Object.fromEntries(Object.entries(map).slice(-200))))
+  } catch {
+    /* sin almacenamiento: se olvida al cerrar */
+  }
+}
+
+/** Pestaña Resultados: lo recién terminado y, debajo, una carpeta por tarea con el resultado principal delante. */
 export function ResultsView() {
   const artifactsMap = useData((d) => d.artifacts)
-  const openViewer = useCowork((st) => st.openViewer)
-  const lookup = useAgentLookup()
-  const artifacts = useMemo(
-    () => Object.values(artifactsMap).sort((a, b) => b.createdAt - a.createdAt),
-    [artifactsMap]
+  const tasks = useData((d) => d.tasks)
+  const groups = useMemo(
+    () => groupResults(Object.values(artifactsMap), (id) => tasks[id]?.title),
+    [artifactsMap, tasks]
   )
+  const [open, setOpen] = useState<Record<string, boolean>>(readOpen)
+  const isOpen = (key: string, i: number): boolean => open[key] ?? i === 0
+  const toggle = (key: string, i: number): void => {
+    setOpen((prev) => {
+      const next = { ...prev, [key]: !(prev[key] ?? i === 0) }
+      saveOpen(next)
+      return next
+    })
+  }
 
-  if (artifacts.length === 0) {
+  if (groups.length === 0) {
     return (
       <div className={s.scroll}>
         <Finished />
@@ -126,35 +155,103 @@ export function ResultsView() {
   return (
     <div className={s.scroll}>
       <Finished />
-      <ul className={s.grid} aria-label={t('Resultados')}>
-        {artifacts.map((a) => {
-          const look = lookup(a.agentId)
-          return (
-            <li key={a.id}>
-              <button
-                type="button"
-                className={s.card}
-                onClick={() => openViewer(a.id)}
-                aria-label={t('Abrir {name}, {kind} creado por {agent}', { name: a.name, kind: ARTIFACT_KIND_LABEL[a.kind], agent: look.name })}
-              >
-                <span className={s.cardTop}>
-                  <KindTile kind={a.kind} size={40} />
-                  <span className={s.cardKind}>{ARTIFACT_KIND_LABEL[a.kind]}</span>
-                </span>
-                <span className={s.cardName} title={a.name}>
-                  {a.name}
-                </span>
+      <ul className={s.resultFolders} aria-label={t('Resultados')}>
+        {groups.map((g, i) => (
+          <li key={g.key}>
+            <ResultFolder group={g} open={isOpen(g.key, i)} onToggle={() => toggle(g.key, i)} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** Una carpeta de Resultados: cabecera plegable, el resultado principal y los archivos de trabajo aparte. */
+function ResultFolder({ group, open, onToggle }: { group: ResultGroup; open: boolean; onToggle: () => void }) {
+  const lookup = useAgentLookup()
+  const [showWork, setShowWork] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const listId = useId()
+  const all = [...group.main, ...group.work]
+  const title = group.title === 'Otros archivos' ? t('Otros archivos') : group.title
+  const authors = [...new Set(all.map((a) => lookup(a.agentId).name))]
+  return (
+    <section className={cx(m.folder, open && m.folderOpen)} style={agentVars(lookup(all[0].agentId).color)} aria-label={title}>
+      <div className={m.folderHead}>
+        <button type="button" className={m.folderToggle} aria-expanded={open} aria-controls={listId} onClick={onToggle}>
+          <span className={m.folderIcon} aria-hidden="true">
+            {open ? <FolderOpen size={20} /> : <Folder size={20} />}
+          </span>
+          <span className={s.folderInfo}>
+            <span className={s.folderTitle} title={title}>
+              {title}
+            </span>
+            <span className={s.folderMeta}>
+              {[plural(all.length, t('archivo'), t('archivos')), authors.join(', '), shortTime(group.newest)].filter(Boolean).join(' · ')}
+            </span>
+          </span>
+          <ChevronDown size={16} aria-hidden="true" className={m.folderChevron} />
+        </button>
+        <ArtifactDownloadButton projectId={all[0].projectId} ids={all.map((a) => a.id)} name={title} onError={setError} />
+      </div>
+      {error && (
+        <p className={m.resumeError} role="alert">
+          {error}
+        </p>
+      )}
+      {open && (
+        <div id={listId} className={s.folderBody}>
+          <ResultCards list={group.main} folder={all} />
+          {group.work.length > 0 && (
+            <>
+              <button type="button" className={s.workToggle} aria-expanded={showWork} onClick={() => setShowWork((v) => !v)}>
+                <ChevronDown size={14} aria-hidden="true" className={cx(s.workChevron, showWork && s.workChevronOpen)} />
+                {t('Archivos de trabajo')} · {group.work.length}
+              </button>
+              {showWork && <ResultCards list={group.work} folder={all} small />}
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+/** Tarjetas de archivos; al abrir una, el visor deja pasar con ‹ › por toda la carpeta. */
+function ResultCards({ list, folder, small }: { list: Artifact[]; folder: Artifact[]; small?: boolean }) {
+  const openPreview = useCowork((st) => st.openPreview)
+  const lookup = useAgentLookup()
+  return (
+    <ul className={cx(s.grid, small && s.gridSmall)}>
+      {list.map((a) => {
+        const look = lookup(a.agentId)
+        return (
+          <li key={a.id}>
+            <button
+              type="button"
+              className={s.card}
+              onClick={() => openPreview(folder.map(fromArtifact), folder.indexOf(a))}
+              aria-label={t('Abrir {name}, {kind} creado por {agent}', { name: a.name, kind: ARTIFACT_KIND_LABEL[a.kind], agent: look.name })}
+            >
+              <span className={s.cardTop}>
+                <KindTile kind={a.kind} size={small ? 30 : 40} />
+                <span className={s.cardKind}>{ARTIFACT_KIND_LABEL[a.kind]}</span>
+              </span>
+              <span className={s.cardName} title={a.name}>
+                {a.name}
+              </span>
+              {!small && (
                 <span className={s.cardMeta}>
                   <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
                   <span className={s.cardAgent}>{look.name}</span>
                   <span className={s.cardTime}>{shortTime(a.createdAt)}</span>
                 </span>
-              </button>
-              <ArtifactDownloadButton projectId={a.projectId} ids={[a.id]} name={a.name} />
-            </li>
-          )
-        })}
-      </ul>
-    </div>
+              )}
+            </button>
+            {!small && <ArtifactDownloadButton projectId={a.projectId} ids={[a.id]} name={a.name} />}
+          </li>
+        )
+      })}
+    </ul>
   )
 }

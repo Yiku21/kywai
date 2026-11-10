@@ -695,6 +695,8 @@ export const fr: Record<string, string> = {
   "Abrir carpeta": "Ouvrir le dossier",
   "Archivos de {name}": "Fichiers de {name}",
   "Sin resultados por ahora": "Pas encore de résultats",
+  "Otros archivos": "Autres fichiers",
+  "Archivos de trabajo": "Fichiers de travail",
   "Páginas, documentos, código e imágenes que creen los agentes aparecerán aquí para abrirlos al momento.": "Les pages, documents, code et images créés par les agents apparaîtront ici pour que vous les ouvriez tout de suite.",
   "Abrir {name}, {kind} creado por {agent}": "Ouvrir {name}, {kind} créé par {agent}",
   "Cada día a una hora": "Chaque jour à heure fixe",

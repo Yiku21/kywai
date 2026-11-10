@@ -1321,6 +1321,24 @@ en el escritorio del servidor se elige dónde guardar una copia. Órbita ofrece 
 Resultados, con el selector de destino de Android. Cancelar el selector no guarda ninguna copia. Los archivos originales
 se conservan en el servidor. Para obtenerlo en Órbita hay que actualizar la app del móvil.
 
+### Resultados en carpetas por tarea
+
+La pestaña **Resultados** ya no pone cada archivo suelto: junta en **una carpeta por tarea** todo lo que hizo (con el
+título de la tarea, cuántos archivos son, quién los hizo y la hora del más nuevo). Lo que no viene de una tarea se
+agrupa por la carpeta del proyecto donde está; lo que está suelto en `artifacts/`, en «Otros archivos». Las carpetas
+van de la más reciente a la más antigua y **solo la más reciente sale abierta**; si abres o cierras otra, la app lo
+recuerda (en el escritorio y la web, entre sesiones; en Órbita, mientras la app esté abierta).
+
+Dentro de cada carpeta va delante **el resultado principal** y el resto queda plegado en **«Archivos de trabajo · N»**.
+Principal es lo de más peso que haya: un vídeo (`.mp4`, `.mov`, `.webm`…) gana a una página o documento final (HTML,
+PDF, Word, PowerPoint, Excel), y esto a imágenes, audio y Markdown. Así, en un vídeo de `/video` se ve el MP4 y las
+escenas, voces, `guion.json` y el código de Remotion quedan en «Archivos de trabajo», ordenados por nombre
+(escena-1, escena-2… escena-10). Si una tarea solo dejó código o textos, se ve todo sin plegar nada.
+
+Al abrir un archivo, el visor deja pasar con ‹ › por toda la carpeta. Cada carpeta tiene **Descargar como zip** con
+todos sus archivos. «Recién terminado» sigue arriba como antes. La regla es la misma en el escritorio, la web y
+Órbita (`src/shared/resultGroups.ts` y `android/…/orbita/ResultGroups.kt`: si cambias una, cambia la otra).
+
 ### Reanudar lo interrumpido
 
 Si la app se cierra con trabajo a medias (al actualizar, reiniciar o por un fallo), el plan de esa petición

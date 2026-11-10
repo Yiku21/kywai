@@ -776,6 +776,8 @@ export const en: Record<string, string> = {
 
   // ui/left/ResultsView.tsx
   'Sin resultados por ahora': 'No results yet',
+  'Otros archivos': 'Other files',
+  'Archivos de trabajo': 'Working files',
   'Páginas, documentos, código e imágenes que creen los agentes aparecerán aquí para abrirlos al momento.': 'Pages, documents, code and images the agents create will show up here so you can open them right away.',
   'Abrir {name}, {kind} creado por {agent}': 'Open {name}, {kind} created by {agent}',
 

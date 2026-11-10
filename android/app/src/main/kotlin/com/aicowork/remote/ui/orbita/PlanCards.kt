@@ -313,7 +313,7 @@ fun DeliverablesCard(messageId: String, artifactIds: List<String>, snapshot: Sna
 }
 
 @Composable
-private fun DeliverableRow(a: Artifact, list: List<Artifact>, snapshot: Snapshot, model: OrbitaModel) {
+internal fun DeliverableRow(a: Artifact, list: List<Artifact>, snapshot: Snapshot, model: OrbitaModel) {
     val (icon, color) = kindIcon(a.kind, a.name)
     val canOpen = snapshot.capabilities.artifacts
     Row(

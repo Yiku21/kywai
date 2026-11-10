@@ -695,6 +695,8 @@ export const zh: Record<string, string> = {
   "Abrir carpeta": "打开文件夹",
   "Archivos de {name}": "{name} 的文件",
   "Sin resultados por ahora": "还没有结果",
+  "Otros archivos": "其他文件",
+  "Archivos de trabajo": "工作文件",
   "Páginas, documentos, código e imágenes que creen los agentes aparecerán aquí para abrirlos al momento.": "代理创建的网页、文档、代码和图片会显示在这里，你可以立即打开。",
   "Abrir {name}, {kind} creado por {agent}": "打开 {name}，由 {agent} 创建的{kind}",
   "Cada día a una hora": "每天定时",

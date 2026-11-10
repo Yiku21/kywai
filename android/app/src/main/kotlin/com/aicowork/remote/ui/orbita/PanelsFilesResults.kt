@@ -63,6 +63,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
+import com.aicowork.remote.ui.components.parseColor
 import com.aicowork.remote.data.CoworkUiState
 import com.aicowork.remote.data.model.Artifact
 import com.aicowork.remote.data.model.Attachment
@@ -325,9 +334,60 @@ fun ResultsPanel(model: OrbitaModel, state: CoworkUiState) {
             if (shown.isEmpty()) item {
                 Note(Icons.Outlined.Inventory2, if (artifacts.isEmpty()) t("Todavía no hay resultados") else t("Nada en este filtro"), if (artifacts.isEmpty()) t("Cuando un agente cree un documento, una página o código, aparecerá aquí.") else null)
             }
-            items(shown, key = { it.id }) { a -> ResultCard(a, model, snapshot!!) }
+            // Una carpeta por tarea (como en el escritorio): la más reciente abierta, el resultado principal delante
+            // y los archivos de trabajo (escenas, voces, json…) plegados aparte.
+            val titles = snapshot?.tasks.orEmpty().associate { it.id to it.title }
+            val groups = ResultGroups.group(shown) { titles[it] }
+            groups.forEachIndexed { i, g ->
+                val open = model.resultFolders[g.key] ?: (i == 0)
+                item(key = "folder-${g.key}") { ResultFolderHead(g, open, model, snapshot!!) { model.resultFolders[g.key] = !open } }
+                if (open) {
+                    items(g.main, key = { "main-${it.id}" }) { a -> ResultCard(a, model, snapshot!!) }
+                    if (g.work.isNotEmpty()) {
+                        val workOpen = model.resultWork[g.key] == true
+                        item(key = "work-${g.key}") {
+                            TextButton(onClick = { model.resultWork[g.key] = !workOpen }, modifier = Modifier.testTag("work-${g.key}")) {
+                                Icon(Icons.Outlined.ExpandMore, contentDescription = null, modifier = Modifier.size(18.dp).rotate(if (workOpen) 0f else -90f))
+                                Spacer(Modifier.width(4.dp))
+                                Text(t("Archivos de trabajo") + " · ${g.work.size}")
+                            }
+                        }
+                        if (workOpen) items(g.work, key = { "work-${it.id}" }) { a -> DeliverableRow(a, g.all, snapshot!!, model) }
+                    }
+                }
+            }
         }
         Segmented(ResultFilter.entries.map { it to it.label }, model.resultFilter, { model.resultFilter = it }, Modifier.padding(16.dp))
+    }
+}
+
+/** Cabecera de una carpeta de Resultados: título de la tarea, cuántos archivos, quién y cuándo; se pliega al tocarla. */
+@Composable
+private fun ResultFolderHead(g: ResultGroup, open: Boolean, model: OrbitaModel, snapshot: com.aicowork.remote.data.model.Snapshot, onToggle: () -> Unit) {
+    val all = g.all
+    val authors = all.mapNotNull { a -> snapshot.agents.firstOrNull { it.id == a.agentId }?.name }.distinct()
+    val tint = snapshot.agents.firstOrNull { it.id == all.first().agentId }?.let { parseColor(it.color) } ?: Orbita.Accent
+    val count = if (all.size == 1) t("1 archivo") else t("{n} archivos", "n" to all.size)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .card(radius = 18.dp, selected = open)
+            .tappable(role = Role.Button, haptic = Haptic.Tap, onClick = onToggle)
+            .semantics { stateDescription = if (open) t("Desplegada") else t("Plegada") }
+            .padding(10.dp)
+            .testTag("result-folder-${g.key}"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(tint.copy(alpha = 0.16f)).border(1.dp, tint.copy(alpha = 0.35f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+            Icon(if (open) Icons.Outlined.FolderOpen else Icons.Outlined.Folder, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(g.title, color = Orbita.Text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(listOf(count, authors.joinToString(", ")).filter { it.isNotEmpty() }.joinToString(" · "), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        ArtifactDownloadButton(all, model, enabled = snapshot.capabilities.artifacts)
+        Icon(Icons.Outlined.ExpandMore, contentDescription = if (open) t("Plegar la carpeta") else t("Desplegar la carpeta"), tint = Orbita.TextSoft, modifier = Modifier.rotate(if (open) 180f else 0f))
     }
 }
 

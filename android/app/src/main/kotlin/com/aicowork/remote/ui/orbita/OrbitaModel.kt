@@ -228,6 +228,10 @@ class OrbitaModel(
     /** Vistas previas de los resultados ya descargadas. */
     val previews = mutableStateMapOf<String, Preview>()
 
+    /** Carpetas de Resultados abiertas o cerradas (sin anotar, solo la más reciente) y sus archivos de trabajo desplegados. */
+    val resultFolders = mutableStateMapOf<String, Boolean>()
+    val resultWork = mutableStateMapOf<String, Boolean>()
+
     val toasts = mutableStateListOf<Toast>()
     private var toastSeq = 0L
 
