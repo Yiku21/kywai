@@ -179,6 +179,8 @@ interface PlannedTask {
   files: string[]
   /** Continúa o corrige lo que ese mismo agente hizo en la petición anterior: retoma su sesión del CLI. */
   continues: boolean
+  /** Consulta rápida: solo mirar el proyecto y responder (ver quickPrompt). */
+  quick: boolean
 }
 
 const BLOCKING_KINDS: AgentErrorKind[] = ['auth', 'quota', 'missing', 'offline']
@@ -1839,7 +1841,8 @@ export async function approvePlan(projectId: string, messageId: string): Promise
       deliverable: t.deliverable,
       acceptance: t.acceptance ?? '',
       files: t.files ?? [],
-      continues: t.continues === true
+      continues: t.continues === true,
+      quick: t.quick === true
     }
   })
   runs.set(run.id, run)
@@ -2098,7 +2101,8 @@ async function executeRun(run: Run): Promise<void> {
   const { planner, reply, planned, contract, memory } = plan
   proposeRoutine(run, planner, plan.routine)
   // Con tareas, primero tu visto bueno: el plan se enseña y nada empieza hasta que lo apruebes.
-  if (planned.length && needsApproval(run)) {
+  // Un plan que solo consulta (no cambia nada) no espera: pedir permiso para mirar sería más lento que mirar.
+  if (planned.some((p) => !p.quick) && needsApproval(run)) {
     proposePlan(run, planner, reply, planned, contract, memory)
     return
   }
@@ -2152,7 +2156,8 @@ function createTasks(run: Run, planned: PlannedTask[]): Task[] {
       acceptance: p.acceptance || undefined,
       files: p.files.length ? p.files : undefined,
       deliverable: p.deliverable,
-      ...(p.continues ? { continues: true } : {})
+      ...(p.continues ? { continues: true } : {}),
+      ...(p.quick ? { quick: true } : {})
     }
     run.meta.set(id, { key: p.key, deliverable: p.deliverable, touched: new Set(), retried: false, forceMainModel: false })
     return t
@@ -2188,7 +2193,8 @@ function proposePlan(run: Run, planner: AgentConfig, reply: string, planned: Pla
       deliverable: p.deliverable,
       ...(p.acceptance ? { acceptance: p.acceptance } : {}),
       ...(p.files.length ? { files: p.files } : {}),
-      ...(p.continues ? { continues: true } : {})
+      ...(p.continues ? { continues: true } : {}),
+      ...(p.quick ? { quick: true } : {})
     })),
     request: run.userText,
     ...(run.attachments.length ? { attachmentIds: run.attachments.map((a) => a.id) } : {}),
@@ -2570,7 +2576,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '',
     '## Qué debes responder',
     'Responde ÚNICAMENTE con un objeto JSON (puede ir dentro de un bloque ```json), sin ningún otro texto, con esta forma:',
-    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\""}',
+    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false, "quick": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\""}',
     '',
     'Reglas:',
     `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
@@ -2579,7 +2585,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '- Reparte solo cuando de verdad haga falta: leer o cambiar el proyecto, ejecutar algo, producir un archivo, investigar a fondo (muchas fuentes, un informe) o una capacidad que tú no tienes (ver o generar imágenes, por ejemplo).',
     reads
       ? '- Si la pregunta va del proyecto o de su código, NO la contestes de memoria: tú puedes leer sus archivos. Si sale de mirar unos pocos («¿dónde está…?», «¿cómo está hecho…?»), míralos y responde tú en "reply"; si exige investigar a fondo, ejecutar algo o cambiar archivos («¿por qué falla…?» con pruebas de por medio), crea UNA tarea de texto ("deliverable": "text", "medium").'
-      : '- Si la pregunta va del proyecto o de su código («¿qué me recomiendas para…?», «¿por qué falla…?», «¿cómo está hecho…?»), NO la contestes de memoria: tú no puedes abrir sus archivos; crea UNA tarea de texto ("deliverable": "text", "medium") para un agente que sí los lee y que responda él.',
+      : '- Si la pregunta va del proyecto o de su código, NO la contestes de memoria: tú no puedes abrir sus archivos; que responda un agente que sí los lee. Dos casos. (a) CONSULTA de solo mirar («¿dónde está…?», «¿qué versión usa…?», «¿qué hace este archivo?», «¿cuántas pruebas hay?», «¿está hecho X?»): UNA tarea con "quick": true y "deliverable": "text", para un agente que lea bien código y, mejor, con becario; kywai la lanza al momento con su modelo rápido y un encargo corto, aunque ese agente esté ocupado, y su respuesta sale tal cual. En "reply", una frase («Lo miro.»); en "description", qué mirar si lo sabes. (b) DIAGNÓSTICO o CRITERIO («¿por qué falla…?», «¿qué me recomiendas para…?», «¿cómo mejorarías…?», una revisión): UNA tarea de texto normal ("deliverable": "text", "medium"), con el modelo principal. En la duda entre (a) y (b), o si pide que se mire «a fondo», (b).',
     '- Lo que importa es que el resultado sea el mejor posible y cumpla exactamente lo pedido: el tiempo y el gasto son secundarios. Elige para cada parte al agente y la dificultad que den el mejor resultado, no los más rápidos ni los más baratos. Eso sí, cada tarea arranca un agente desde cero y cada traspaso pierde contexto: una cadena de tareas suele salir peor que un solo agente que lo hace entero.',
     '- Trabajo pequeño o muy enlazado (un script, un documento, un arreglo, algo de menos de unos 20 minutos): UNA sola tarea para el agente más adecuado, que lo hace y lo prueba. Nunca crees tareas aparte de «diseñar», «arquitectura» o «contratos».',
     '- Trabajo grande con partes REALMENTE independientes que se pueden construir A LA VEZ (por ejemplo, en una app: el motor o la lógica, la interfaz y el servidor): reparte esas partes en paralelo, cada una al agente que mejor la hace según su ficha (por ejemplo, la interfaz a quien es mejor en diseño y la lógica a quien es mejor programando). Escribe tú en "contract" el contrato común: carpetas, qué archivos son de cada tarea y las funciones, rutas HTTP y formatos de datos que se usan entre partes, con nombres exactos, parámetros y lo que devuelven. Las tareas en paralelo NO dependen entre sí y no comparten archivos: los comunes (package.json, README, configuración) son solo de la integración. Añade al final UNA tarea «Integrar y probar» (para el agente de la parte principal, dificultad "medium") que dependa de ellas: junta las partes, ejecuta las pruebas, comprueba el conjunto contra la petición del usuario y arregla lo que no encaje.',
@@ -2603,6 +2609,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '- "acceptance": cómo se sabe que la tarea está hecha, en una frase que el propio agente pueda comprobar (por ejemplo «npm test pasa y la página carga sin errores en la consola»). Obligatorio en las tareas que crean o cambian archivos.',
     '- "files": archivos o carpetas que la tarea puede crear o modificar (por ejemplo ["artifacts/app/motor/"]). Obligatorio si varias tareas trabajan a la vez: cada archivo, de una sola tarea. «Integrar y probar» puede tocarlo todo: [].',
     '- "continues": true cuando la tarea continúa, amplía o corrige lo que ESE MISMO agente hizo en la petición anterior de este proyecto (mira «Lo que se hizo en la petición anterior»): dásela al mismo agente y márcala así, y retomará su sesión del CLI con todo lo que leyó, hizo y decidió. Si lo anterior lo hizo otro agente o es trabajo nuevo, false.',
+    '- "quick": true SOLO en una consulta de solo mirar el proyecto (no cambia nada, no ejecuta nada, se responde leyendo unos pocos archivos) que no puedas contestar tú; en todo lo demás, false. Nunca en una tarea que crea o cambia archivos.',
     '- "memory": SOLO lo que el usuario ha decidido, preferido o pedido EN ESTE MENSAJE y convenga recordar en futuras peticiones (por ejemplo «todo en TypeScript», «el servidor en Python»). Nada de suposiciones tuyas ni de detalles de esta tarea. Si contradice una entrada de la memoria, pon su id en "replaces". Si no hay nada, [].',
     '- Respeta las instrucciones y la memoria del proyecto. Si la petición contradice algo confirmado, lo que pide ahora manda (y anótalo en "memory" con "replaces").',
     ...(run.routine
@@ -2637,7 +2644,21 @@ function validatePlan(raw: unknown[], context: string, projectId: string): { tas
     const deliverable: Deliverable = t.deliverable === 'file' ? 'file' : 'text'
     const deps = Array.isArray(t.dependsOn) ? t.dependsOn.map((d) => String(d)) : []
     const acceptance = typeof t.acceptance === 'string' ? oneLine(t.acceptance, 500) : ''
-    out.push({ key, title, description: description || title, agentId: agent.id, difficulty, dependsOn: deps, deliverable, acceptance, files: normalizeScope(t.files), continues: t.continues === true })
+    // Consulta rápida: solo texto, sin dependencias y para quien puede leer la carpeta. Va como fácil (modelo rápido).
+    const quick = t.quick === true && deliverable === 'text' && !deps.length && !isTextOnly(agent.provider)
+    out.push({
+      key,
+      title,
+      description: description || title,
+      agentId: agent.id,
+      difficulty: quick ? 'easy' : difficulty,
+      dependsOn: deps,
+      deliverable,
+      acceptance: quick ? '' : acceptance,
+      files: quick ? [] : normalizeScope(t.files),
+      continues: t.continues === true,
+      quick
+    })
   }
   const known = new Set(out.map((p) => p.key))
   for (const p of out) p.dependsOn = [...new Set(p.dependsOn.filter((d) => known.has(d) && d !== p.key))]
@@ -2769,7 +2790,8 @@ export function schedule(): void {
         t.status = 'pending'
         pushTask(t)
       }
-      if (running >= cfg.maxParallel) continue
+      // Una consulta rápida no cuenta para el tope de tareas a la vez: solo lee y acaba enseguida.
+      if (running >= cfg.maxParallel && !t.quick) continue
 
       let agent = findAgent(t.agentId)
       if (agent?.isSubagent) agent = findAgent(agent.parentId)
@@ -2920,10 +2942,43 @@ const TODO_TOOL: Partial<Record<AgentConfig['provider'], string>> = {
 /** Lo que cuenta un agente mientras trabaja sale en el chat como avisos cortos (como hace Claude en su app). */
 const NARRATE_RULE = '- Mientras trabajas, cuenta lo que haces en frases cortas (una o dos líneas) antes de cada paso importante: qué vas a hacer, qué problema encontraste y cómo lo vas a resolver. Se ven en el chat como avisos de progreso: nada de párrafos largos, listas ni repetir la tarea, y sin símbolos como «§» (di «apartado 3.1»). Si haces capturas o generas imágenes para comprobar tu trabajo, guárdalas dentro de la carpeta del proyecto (por ejemplo en artifacts/) para que se vean en el chat.'
 
+/**
+ * Encargo de una consulta rápida: la pregunta, la conversación y pocas reglas. Sin lista de pasos, sin narrar el
+ * avance, sin resumen final ni sección de memoria: eso es para el trabajo de verdad y aquí solo alarga la espera.
+ */
+function quickPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null): string {
+  const st = store.getProject(run.projectId)
+  const atts = run.attachments.map((a) => `- ${attPath(run, a.relPath)} (adjunto del usuario: ${a.name})`)
+  const conversation = recentConversation(run.projectId, run.id)
+  const extra = t.description.trim() && t.description.trim() !== run.userText.trim() && t.description.trim() !== t.title.trim()
+  return [
+    `Eres ${exec.name}${parent ? ` (becario de ${parent.name})` : ''}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". ${replyLanguage()}`,
+    'El usuario ha hecho una consulta rápida y espera la respuesta ya: mira solo lo necesario y contesta.',
+    '',
+    '## Pregunta del usuario',
+    run.userText,
+    ...(extra ? ['', '## Qué mirar (indicación del coordinador)', t.description] : []),
+    ...(atts.length ? ['', '## Archivos adjuntos (rutas relativas a la carpeta donde trabajas)', ...atts] : []),
+    ...(conversation.length ? ['', '## Conversación reciente (lo que se habló antes de esta pregunta)', ...conversation] : []),
+    ...memoryPromptSections(run.projectId),
+    '',
+    '## Reglas',
+    st.project.workDir
+      ? `- Estás en la carpeta del proyecto del usuario (la carpeta actual: ${st.project.workDir}). Es una consulta: solo lee. No crees, modifiques ni borres archivos y no instales nada.`
+      : '- Estás en la carpeta del proyecto (la carpeta actual). Es una consulta: solo lee. No crees, modifiques ni borres archivos y no instales nada.',
+    '- Abre solo los archivos que hagan falta para responder con seguridad; no explores todo el proyecto ni ejecutes pruebas.',
+    '- No respondas de memoria ni supongas: di lo que has visto y en qué archivo.',
+    `- Tu respuesta sale tal cual en el chat, lo más corta que responda bien: ${CHAT_STYLE}`,
+    '- Si al mirarlo ves que responder bien exige un análisis a fondo, ejecutar algo o cambiar archivos, contesta lo que sepas con seguridad y di en una frase qué habría que encargar al equipo.',
+    '- Si no puedes responder (falta acceso o información), empieza tu respuesta con «BLOQUEADA:» seguido del motivo en una frase.'
+  ].join('\n')
+}
+
 function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, deps: Task[], tools = false): string {
   const st = store.getProject(run.projectId)
   const meta = run.meta.get(t.id)!
   if (t.direct) return directPrompt(run, t, !!meta.copy)
+  if (t.quick) return quickPrompt(run, t, exec, parent)
   if (t.video?.film && t.video.work) {
     const style = filmStyle(t.video.film)
     if (style)
@@ -3186,7 +3241,8 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
 
   // En la carpeta del proyecto o, si otra tarea la está usando, en una copia aparte que se integra al terminar.
   // Una película con estilo trabaja en su propia carpeta oculta (y antes se instala la biblioteca si falta).
-  const dir = t.video?.film && t.video.work ? await prepareFilm(run, t) : await prepareWorkplace(run, t, meta, exec)
+  // Una consulta rápida solo lee: va a la carpeta tal cual, sin instantánea, sin ocuparla y sin copia aparte.
+  const dir = t.video?.film && t.video.work ? await prepareFilm(run, t) : t.quick ? mainDir : await prepareWorkplace(run, t, meta, exec)
   if (t.video && !t.video.film && !t.video.refs) await prepareVideoRefs(run, t)
 
   let working = false
@@ -3238,8 +3294,9 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // Herramientas de kywai (memoria, equipo, preguntas, habilidades). Solo Claude: lee la configuración de un
   // archivo; Codex solo la admite con valores TOML entre comillas, que no pueden ir por la consola.
   // Con ellas, los servidores MCP que el usuario encendió para este agente en Ajustes › Extensiones.
-  const userMcp = t.direct ? [] : serversFor(exec.provider)
-  const mcp: McpLaunch | null = exec.provider === 'claude' && !t.direct
+  // Una consulta rápida va sin herramientas extra: arrancarlas tarda más que la propia consulta.
+  const userMcp = t.direct || t.quick ? [] : serversFor(exec.provider)
+  const mcp: McpLaunch | null = exec.provider === 'claude' && !t.direct && !t.quick
     ? mcpForTask(
         { projectId: run.projectId, runId: run.id, taskId: t.id, taskTitle: t.title, agentId: (parent ?? exec).id, agentName: (parent ?? exec).name, askPermission: accessFor(run, t, exec, parent, true) === 'ask' },
         claudeServers(userMcp)

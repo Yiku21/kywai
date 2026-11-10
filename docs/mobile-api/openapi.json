@@ -5441,6 +5441,10 @@
             "type": "boolean",
             "description": "Continúa o corrige lo que ese mismo agente hizo en la petición anterior (retoma su sesión del CLI)."
           },
+          "quick": {
+            "type": "boolean",
+            "description": "Consulta rápida de solo mirar el proyecto: modelo rápido, encargo corto, sin esperar cola y sin tocar archivos."
+          },
           "acceptance": {
             "type": "string"
           },
@@ -6789,6 +6793,10 @@
           "continues": {
             "type": "boolean",
             "description": "Continúa o corrige lo que ese mismo agente hizo en la petición anterior (retoma su sesión del CLI)."
+          },
+          "quick": {
+            "type": "boolean",
+            "description": "Consulta rápida de solo mirar el proyecto: modelo rápido, encargo corto, sin esperar cola y sin tocar archivos."
           },
           "acceptance": {
             "type": "string"

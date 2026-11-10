@@ -889,6 +889,16 @@ coordinador en la misma llamada en la que lee tu mensaje, que es cuestión de se
   fondo o una capacidad que él no tiene (ver o generar imágenes). Ahí todo sigue igual: plan, agente adecuado,
   esfuerzo alto y verificación por otro agente.
 - **Lo que no hace**: contestar de memoria algo que depende de tus archivos. Eso sigue yendo a un agente que los lee.
+- **Consulta rápida**: si la pregunta solo necesita mirar el proyecto («¿dónde está…?», «¿qué versión usa…?»,
+  «¿qué hace este archivo?», «¿está hecho X?»), el coordinador la marca como consulta rápida (`"quick": true` en su
+  plan). kywai la lanza al momento a un becario del agente elegido, con su modelo rápido y un encargo corto (la
+  pregunta, la conversación, la memoria y pocas reglas; sin lista de pasos, sin narrar el avance y sin resumen
+  final). No espera a que ese agente termine lo que esté haciendo, no cuenta para el tope de tareas a la vez, no pide
+  tu visto bueno aunque lo tengas encendido (no cambia nada) y va sin instantánea ni copia de la carpeta porque solo
+  lee. Su respuesta sale tal cual en el chat. Si al mirarlo ve que hace falta un análisis a fondo, lo dice.
+- **Lo que sigue siendo una tarea normal**: el diagnóstico y las recomendaciones («¿por qué falla…?», «¿qué me
+  recomiendas…?», una revisión). Van con el modelo principal y esfuerzo alto: ahí manda la calidad. Si una consulta
+  rápida se te queda corta, pide que lo miren «a fondo».
 - **Si planifica otro**: cuando Hermes no está y planifica Claude, Codex o Gemini, ellos sí pueden leer la carpeta
   (planifican en modo de solo lectura), así que la guía ya no les dice que no pueden: las consultas que salen de
   mirar unos pocos archivos las miran y las responden ellos, sin crear una tarea.

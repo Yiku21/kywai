@@ -236,6 +236,11 @@ export interface Task {
   verification?: TaskVerification
   /** Continúa o corrige lo que ese mismo agente hizo en la petición anterior: retoma su sesión del CLI si puede. */
   continues?: boolean
+  /**
+   * Consulta rápida: una pregunta de solo mirar el proyecto («¿dónde está…?», «¿qué versión usa…?»). Va con el modelo
+   * rápido y un encargo corto, empieza aunque el agente esté ocupado y no toca archivos.
+   */
+  quick?: boolean
   /** Lo que cambió en la carpeta del proyecto (instantáneas de antes y después): se puede ver y deshacer. */
   changes?: TaskChanges
   /**
@@ -643,6 +648,8 @@ export interface ProposedTask {
   files?: string[]
   /** Continúa lo que ese mismo agente hizo en la petición anterior (retoma su sesión del CLI). */
   continues?: boolean
+  /** Consulta rápida de solo mirar el proyecto (modelo rápido, encargo corto, sin cola). */
+  quick?: boolean
 }
 
 /** Un proveedor de modelos de Hermes y sus modelos (los que lista `hermes model`). */

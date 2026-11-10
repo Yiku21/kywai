@@ -152,7 +152,8 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
         ]
       : [
           '### Preguntas sobre el proyecto: que responda quien puede leerlo',
-          '- Tú no puedes abrir los archivos del proyecto: lo que sabes de él es la ficha automática de la carpeta y la conversación. Si el usuario pregunta algo que depende de su código o de sus archivos (qué le recomiendas, por qué falla algo, cómo está hecho, qué falta), no respondas de memoria: crea UNA tarea de texto ("deliverable": "text", dificultad "medium") para Claude o Codex, que los leen, y que responda él.'
+          '- Tú no puedes abrir los archivos del proyecto: lo que sabes de él es la ficha automática de la carpeta y la conversación. Si el usuario pregunta algo que depende de su código o de sus archivos (qué le recomiendas, por qué falla algo, cómo está hecho, qué falta), no respondas de memoria: crea UNA tarea de texto ("deliverable": "text", dificultad "medium") para Claude o Codex, que los leen, y que responda él.',
+          '- Si es una consulta de solo mirar («¿dónde está…?», «¿qué versión usa…?», «¿qué hace este archivo?», «¿está hecho X?»), marca esa tarea con "quick": true: kywai la lanza al momento con el modelo rápido de ese agente y un encargo corto, sin esperar a que termine lo que esté haciendo, y la respuesta le llega al usuario mucho antes. El diagnóstico y las recomendaciones («¿por qué falla…?», «¿qué me recomiendas…?») siguen siendo tareas normales con el modelo principal: ahí manda la calidad.'
         ]),
     '',
     '### Peticiones ambiguas: pregunta antes de lanzar trabajo largo',

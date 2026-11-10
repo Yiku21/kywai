@@ -61,6 +61,8 @@ describe('lo que sabe el coordinador de kywai', () => {
   it('las preguntas sobre el proyecto las responde quien puede leer sus archivos, no el coordinador de memoria', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env()))
     expect(g).toMatch(/Tú no puedes abrir los archivos del proyecto[\s\S]*crea UNA tarea de texto \("deliverable": "text", dificultad "medium"\)/)
+    // Las consultas de solo mirar van por la vía rápida; el diagnóstico sigue con el modelo principal.
+    expect(g).toMatch(/consulta de solo mirar[\s\S]*"quick": true[\s\S]*siguen siendo tareas normales con el modelo principal/)
   })
 
   it('si quien planifica puede leer el proyecto (Claude, Codex o Gemini de respaldo), mira y responde él', () => {

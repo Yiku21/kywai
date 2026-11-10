@@ -1502,6 +1502,78 @@ async function main(): Promise<void> {
       }
     })
 
+    await check('Q: consulta rápida → becario con modelo rápido y encargo corto, sin cola, sin visto bueno y sin tocar archivos', async () => {
+      hermesOnline = false
+      await refreshPresence()
+      __clearBlocksForChecks()
+      // Otra comprobación pudo dejar marcado como roto el modelo rápido de Codex.
+      await resetAgent('codex')
+      const up = store.createProject('Consulta rápida')
+      const cfg = getConfig()
+      const prevParallel = cfg.maxParallel
+      cfg.maxParallel = 1
+      cfg.planApproval = true
+      let release = (): void => {}
+      const gate = new Promise<void>((r) => (release = r))
+      let quickDoneWhileBusy = false
+      workBehaviour = (o) =>
+        o.mode !== 'work'
+          ? null
+          : o.prompt.includes('consulta rápida')
+            ? (async () => {
+                await sleep(20)
+                return { ok: true, text: 'Usa Vite 5 (package.json).', usage: { input: 10, output: 5 } }
+              })()
+            : (async () => {
+                await gate
+                return defaultWork(o)
+              })()
+      try {
+        // Una tarea larga de Codex ocupa el único hueco (maxParallel 1).
+        planResponses = {
+          claude: plan('Codex la hace.', [{ key: 't1', title: 'Página larga', description: 'Crea artifacts/larga.html.', agent: 'codex', difficulty: 'medium', deliverable: 'file', acceptance: 'existe' }])
+        }
+        const long = await sendMessage({ projectId: up.id, text: 'Haz la página larga', filePaths: [] })
+        const proposal = (): string | undefined => store.snapshotProject(up.id).messages.find((m) => m.runId === long.runId && m.proposal)?.id
+        await waitFor(() => !!proposal(), 5000, 'plan propuesto')
+        await approvePlan(up.id, proposal()!)
+        await waitFor(() => runtimeSnapshot().some((r) => r.agentId === 'codex' && r.taskId), 5000, 'Codex trabajando')
+        // La consulta: mismo agente ocupado, tope de tareas lleno y visto bueno encendido. Aun así sale ya.
+        planResponses = {
+          claude: plan('Lo miro.', [
+            { key: 'q', title: 'Versión de Vite', description: 'Mira package.json.', agent: 'codex', difficulty: 'hard', deliverable: 'text', quick: true, acceptance: 'x', files: ['src/'] }
+          ])
+        }
+        const from = calls.length
+        const { runId } = await sendMessage({ projectId: up.id, text: '¿Qué versión de Vite usa?', filePaths: [] })
+        await waitFor(() => !!finished(runId), 8000, 'consulta terminada')
+        quickDoneWhileBusy = runtimeSnapshot().some((r) => r.agentId === 'codex' && r.taskId)
+        assert.ok(quickDoneWhileBusy, 'la consulta acaba mientras Codex sigue con la tarea larga')
+        const st = store.snapshotProject(up.id)
+        assert.ok(!st.messages.some((m) => m.runId === runId && m.proposal), 'un plan de solo consultas no pide visto bueno')
+        const t = st.tasks.find((x) => x.runId === runId)!
+        assert.equal(t.quick, true)
+        assert.equal(t.difficulty, 'easy', 'va como fácil aunque el plan dijera difícil')
+        assert.equal(t.status, 'done')
+        assert.equal(t.result, 'Usa Vite 5 (package.json).')
+        assert.ok(!t.verification, 'sin verificador')
+        assert.ok(!t.files && !t.acceptance, 'sin archivos ni criterio de aceptación')
+        const c = calls.slice(from).find((x) => x.mode === 'work')!
+        assert.ok(c.agentId.startsWith('codex-becario-'), `la hace un becario: ${c.agentId}`)
+        assert.equal(c.model, getConfig().agents.find((a) => a.id === 'codex')!.lightModel, 'con el modelo rápido')
+        assert.match(c.prompt, /consulta rápida[\s\S]*## Pregunta del usuario\n¿Qué versión de Vite usa\?[\s\S]*## Qué mirar[\s\S]*Mira package\.json\.[\s\S]*solo lee/)
+        assert.ok(!c.prompt.includes('lista de 3 a 6 pasos') && !c.prompt.includes('## Para la memoria') && !c.prompt.includes('## Tu tarea'), 'encargo corto')
+        assert.ok(c.prompt.length < 4000, `encargo corto: ${c.prompt.length}`)
+      } finally {
+        release()
+        await waitFor(() => !runtimeSnapshot().some((r) => r.agentId === 'codex' && r.taskId), 10000, 'Codex libre')
+        await waitFor(() => !runtimeSnapshot().some((r) => r.agentId.startsWith('codex-becario-')), 10000, 'el becario se va')
+        workBehaviour = () => null
+        cfg.maxParallel = prevParallel
+        cfg.planApproval = false
+      }
+    })
+
     await check('W: dos becarios a la vez → el segundo en un puesto temporal que se va con él', async () => {
       hermesOnline = false
       await refreshPresence()
