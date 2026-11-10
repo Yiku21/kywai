@@ -26,6 +26,10 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
     strengths: ['cambios concretos en archivos de un repositorio, con el mapa del repositorio como contexto'],
     avoid: [...GENERIC_AVOID, 'no tiene permisos ni sandbox: siempre edita archivos salvo en su modo de solo preguntas'],
     note: 'Deja sus archivos .aider* en la carpeta del proyecto. No hace commits solo (kywai se lo desactiva).',
+    // Empieza con el mejor modelo gratis de OpenRouter para programar (nov. de 2026): basta con la clave de
+    // OpenRouter. Quien tenga otra clave lo cambia en el selector de modelo del agente.
+    model: 'openrouter/nvidia/nemotron-3-ultra-550b-a55b:free',
+    modelLabel: 'Nemotron 3 Ultra Free',
     cli: {
       command: 'aider',
       versionArgs: ['--version'],

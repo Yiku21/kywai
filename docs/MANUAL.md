@@ -663,6 +663,8 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
   - **Cline**: con los modelos marcados FREE de una cuenta de Cline.
   - **Aider** y **Hermes**: con una clave de OpenRouter y sus modelos `:free`: 50 peticiones al día, o 1000 si
     alguna vez compraste 10 $ de saldo.
+    Aider ya empieza con el mejor gratis para programar, **Nemotron 3 Ultra**
+    (`openrouter/nvidia/nemotron-3-ultra-550b-a55b:free`); con otra clave, cambia el modelo en el selector del agente.
   - **Mistral Vibe**: con una clave del plan gratuito Experiment de Mistral.
   - **Antigravity CLI**: con una cuenta personal de Google y un límite semanal (ojo con sus condiciones, más abajo).
   - El **agente local** (LM Studio u Ollama) siempre es gratis.

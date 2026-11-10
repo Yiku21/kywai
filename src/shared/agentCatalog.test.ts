@@ -18,9 +18,10 @@ describe('construir un agente', () => {
     }
   })
 
-  it('uno del catálogo con modelo propio empieza con él (Kilo: el gratuito); los demás, en automático', () => {
+  it('uno del catálogo con modelo propio empieza con él (Kilo y Aider: uno gratuito); los demás, en automático', () => {
     expect(buildAgent({ presetId: 'kilo' }, DEFAULT_AGENTS, DEFAULT_STATIONS).agent).toMatchObject({ model: 'kilo/kilo-auto/free', modelLabel: 'Kilo Auto Free' })
-    expect(buildAgent({ presetId: 'aider' }, DEFAULT_AGENTS, DEFAULT_STATIONS).agent).toMatchObject({ model: '', modelLabel: 'Auto' })
+    expect(buildAgent({ presetId: 'aider' }, DEFAULT_AGENTS, DEFAULT_STATIONS).agent).toMatchObject({ model: 'openrouter/nvidia/nemotron-3-ultra-550b-a55b:free', modelLabel: 'Nemotron 3 Ultra Free' })
+    expect(buildAgent({ presetId: 'goose' }, DEFAULT_AGENTS, DEFAULT_STATIONS).agent).toMatchObject({ model: '', modelLabel: 'Auto' })
   })
 
   it('si el identificador ya existe, añade un número', () => {
