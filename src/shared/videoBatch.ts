@@ -43,12 +43,29 @@ export interface VideoBatch {
   ideas: string[];
 }
 
+/** Una lista en la misma línea: «1) … 2) … 3) …», con los números seguidos desde 1. */
+function inlineIdeas(text: string): string[] {
+  const marks: RegExpMatchArray[] = [];
+  for (const m of text.matchAll(/(?:^|\s)(\d{1,2})\)\s+/g))
+    if (Number(m[1]) === marks.length + 1) marks.push(m);
+  if (marks.length < 2) return [];
+  return marks
+    .map((m, i) =>
+      text
+        .slice(m.index! + m[0].length, marks[i + 1]?.index ?? text.length)
+        .trim()
+        .replace(/[\s,;]+$/, ""),
+    )
+    .filter((x) => x.length >= 3);
+}
+
 /** Cuántos vídeos pide el texto (null si es uno solo). */
 export function videoBatchOf(text: string): VideoBatch | null {
-  const ideas = text
+  const lines = text
     .split("\n")
     .map((l) => ITEM_RE.exec(l)?.[1].trim())
     .filter((x): x is string => !!x);
+  const ideas = lines.length >= 2 ? lines : inlineIdeas(text);
   const asked = (re: RegExp): RegExpExecArray | null => {
     const m = re.exec(text);
     if (!m) return null;

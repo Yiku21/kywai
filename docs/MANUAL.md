@@ -2230,7 +2230,7 @@ Mientras, la tarea dice por qué paso va («Poniendo la voz (2 de 6)», «Animan
 medio minuto tarda unos minutos.
 
 **Varios vídeos de una vez.** Si el `/video` pide varios («genérame 3 vídeos…», «tres reels…», «varios vídeos…»,
-o una lista «1) … 2) … 3) …»), kywai crea **una tarea por vídeo** (de 2 a 12; «varios» son 3) con el mismo tipo,
+o una lista «1) … 2) … 3) …», cada idea en su línea o todas seguidas en la misma), kywai crea **una tarea por vídeo** (de 2 a 12; «varios» son 3) con el mismo tipo,
 personaje, estilo y voz. Cada encargo dice cuál es («vídeo 2 de 3») y qué le toca contar para que no salgan iguales:
 la idea de tu lista o, si no hay lista, un ángulo distinto (presentarlo, cómo funciona, un caso real, antes y después,
 trucos, la gran idea). Con un estilo de película, las tareas se reparten entre los agentes con terminal (Claude, Codex…)
@@ -2239,6 +2239,13 @@ final, un resumen con todos. Con más de 6, kywai hace **6 a la vez** y los dem�
 esos (por tandas, sin volver a pedirlo); el chat lo avisa. El número solo cuenta si va con una orden de crear («hazme 3 vídeos») o al principio:
 «/video los 5 vídeos más vistos» es un solo vídeo. Código: `src/shared/videoBatch.ts` y `sendVideo` en
 `src/main/orchestrator.ts`.
+
+**Vídeos desde tus guiones.** Si un vídeo (o una idea de la lista) nombra un archivo de texto del proyecto
+(`.md`, `.markdown` o `.txt`, p. ej. «1) artifacts/guiones/redes/01-intro.md»), kywai lo lee y se lo da al que
+escribe o dirige el vídeo como **el guion a seguir**: su gancho, su orden y sus frases, adaptados solo al formato. Sin
+esto, el guionista solo vería el nombre del archivo y se inventaría el contenido. Solo se leen archivos de hasta
+200 KB dentro de la carpeta del proyecto (los de `artifacts/` también en `.ai-cowork/entregables/`). Código:
+`src/main/videoScriptFile.ts` y `sendVideo` en `src/main/orchestrator.ts`.
 
 **Pedirlo con tus palabras.** No hace falta escribir `/video`: si le pides a Hermes vídeos como hablarías
 («créame un vídeo por cada guion, con los personajes de kywai, en inglés»), Hermes escribe él mismo la orden

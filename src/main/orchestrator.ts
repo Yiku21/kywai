@@ -81,6 +81,7 @@ import { listSkills, skillPromptLines, skillsDir, videoSkillPromptLines, videoSk
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { replyExcerpt, replyRequest } from '@shared/replyTo'
+import { scriptFileOf, scriptSource } from './videoScriptFile'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
 import { videoLang, type VideoKind } from '../shared/videoChoice'
@@ -1807,7 +1808,15 @@ async function sendVideo(
   }
   const total = batch?.count ?? 1
   const stamp = Date.now().toString(36)
+  // «usa el guion de artifacts/guiones/01-….md»: el texto de ese archivo es el guion del vídeo (el guionista no abre
+  // archivos y solo vería el nombre).
+  const roots = [store.workRoot(projectId), store.projectDir(projectId)]
+  const fileSource = (idea: string): string | undefined => {
+    const f = scriptFileOf(idea, roots)
+    return f ? scriptSource(f) : undefined
+  }
   for (let n = 1; n <= total; n++) {
+    const source = fileSource(batch ? (batch.ideas[n - 1] ?? '') : req.topic) ?? req.source
     const one = batch ? tr('Vídeo {n} de {total}', { n, total }) : ''
     const t: Task = {
       id: randomUUID(),
@@ -1835,7 +1844,7 @@ async function sendVideo(
         format: req.format,
         topic: req.topic,
         style: req.style,
-        ...(req.source ? { source: clip(req.source, 6000) } : {}),
+        ...(source ? { source: clip(source, 6000) } : {}),
         ...(film ? { film: film.slug, work: `.ai-cowork/videos/${stamp}${batch ? `-${n}` : ''}-pelicula` } : {}),
         ...(req.saveCast ? { saveCast: true } : {}),
         ...(req.character && videoCharacter(req.character) ? { character: req.character } : {}),

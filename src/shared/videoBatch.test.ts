@@ -21,6 +21,20 @@ describe("varios vídeos con un solo /video", () => {
     expect(videoBatchOf("un vídeo sobre la luna")).toBeNull();
   });
 
+  it("una lista en una sola línea también cuenta", () => {
+    const hermes =
+      "haz un vídeo por guion: 1) artifacts/guiones/redes/01-stop-picking-one-ai.md 2) artifacts/guiones/redes/02-draft-your-ai-dream-team.md 3) artifacts/guiones/redes/03-an-ai-team-for-zero-dollars.md";
+    expect(videoBatchOf(hermes)).toEqual({
+      count: 3,
+      ideas: [
+        "artifacts/guiones/redes/01-stop-picking-one-ai.md",
+        "artifacts/guiones/redes/02-draft-your-ai-dream-team.md",
+        "artifacts/guiones/redes/03-an-ai-team-for-zero-dollars.md",
+      ],
+    });
+    expect(videoBatchOf("cómo pasar de 1) a 3) en una receta")).toBeNull();
+  });
+
   it("una lista de ideas es un vídeo por idea", () => {
     expect(
       videoBatchOf(

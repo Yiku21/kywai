@@ -1,6 +1,6 @@
 // @vitest-environment node
 // «créame un vídeo por guion…» (con otras palabras, sin «/video»): Hermes pone la orden en "video" y kywai la lanza.
-import { mkdtempSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -61,6 +61,24 @@ describe('vídeos pedidos con otras palabras', () => {
     expect(msgs.filter((m) => m.author.type === 'user')).toHaveLength(1)
     expect(msgs.some((m) => m.text.includes('Ya están en marcha'))).toBe(true)
   })
+
+  it('si el vídeo nombra un guion del proyecto, kywai lo lee y se lo da al guionista', async () => {
+    const dir = join(store.workRoot(projectId), 'artifacts', 'guiones', 'redes')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, '01-stop-picking-one-ai.md'), 'HOOK: Stop picking one AI. Use them all.')
+    writeFileSync(join(dir, '02-draft-your-ai-dream-team.md'), 'HOOK: Draft your AI dream team.')
+    const before = store.snapshotProject(projectId).tasks.length
+    plan = JSON.stringify({
+      reply: 'En marcha.',
+      tasks: [],
+      video: ['/video personaje:robots-kywai voz:kokoro-am_adam un vídeo por guion: 1) artifacts/guiones/redes/01-stop-picking-one-ai.md 2) artifacts/guiones/redes/02-draft-your-ai-dream-team.md']
+    })
+    await sendMessage({ projectId, text: 'oke ycrame ahora usando cada uno de esos guiones un video por gion', filePaths: [] })
+    await vi.waitFor(() => expect(store.snapshotProject(projectId).tasks.length).toBe(before + 2), { timeout: 10_000 })
+    const vids = store.snapshotProject(projectId).tasks.slice(before)
+    expect(vids[0].video?.source).toContain('Stop picking one AI')
+    expect(vids[1].video?.source).toContain('Draft your AI dream team')
+  }, 15_000)
 
   it('una orden que no es de vídeo no lanza nada', async () => {
     const before = store.snapshotProject(projectId).tasks.length
