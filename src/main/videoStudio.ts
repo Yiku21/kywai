@@ -448,17 +448,58 @@ function voiceTone(style: VideoScript['style'], joke: boolean): string {
 }
 
 /** Imagen de una escena con Gemini (o null si no hay clave o falla: la escena va con fondo de diseño). */
-function imagePromptText(prompt: string, cartoon: boolean): string {
-  // En cartoon todas las ilustraciones piden el mismo estilo, para que el vídeo se vea de una pieza.
+/**
+ * El texto de cada imagen. `look` es el bloque de estilo del guion: va al final de todas para que salgan iguales. En
+ * cartoon manda el estilo de dibujo de siempre (el del presentador), salvo que el usuario diera imágenes de referencia.
+ */
+export function imagePromptText(prompt: string, cartoon: boolean, look?: string, fromRefs = false): string {
+  const tail = cartoon ? 'No text, no letters, no numbers, no logos, no watermark, no faces.' : 'No text, no letters, no logos, no watermark.'
+  if (look && (!cartoon || fromRefs)) return `${prompt}. Visual style: ${look}. ${cartoon ? 'Clear close-up of the action. ' : ''}${tail}`
   return cartoon
-    ? `Flat 2D cartoon illustration in a friendly explainer-video style: bold dark outlines, bright cheerful colors, simple soft shading, clean uncluttered background, clear close-up of the action. ${prompt}. No text, no letters, no numbers, no logos, no watermark, no faces.`
-    : `${prompt}. Cinematic, high detail, no text, no letters, no logos, no watermark.`
+    ? `Flat 2D cartoon illustration in a friendly explainer-video style: bold dark outlines, bright cheerful colors, simple soft shading, clean uncluttered background, clear close-up of the action. ${prompt}. ${tail}`
+    : `${prompt}. Cinematic, high detail, ${tail.charAt(0).toLowerCase()}${tail.slice(1)}`
 }
 
-async function geminiImage(prompt: string, format: VideoFormat, out: string, key: string, cartoon: boolean, signal?: AbortSignal): Promise<boolean> {
-  const text = imagePromptText(prompt, cartoon)
+const MIME: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }
+
+/** Las imágenes de referencia del usuario para Gemini (como mucho 3 y de 7 MB cada una). */
+function refParts(refs: string[]): { inlineData: { mimeType: string; data: string } }[] {
+  const parts: { inlineData: { mimeType: string; data: string } }[] = []
+  for (const f of refs) {
+    const mimeType = MIME[f.split('.').pop()?.toLowerCase() ?? '']
+    if (!mimeType || parts.length >= 3) continue
+    try {
+      const buf = readFileSync(f)
+      if (buf.length <= 7 * 1024 * 1024) parts.push({ inlineData: { mimeType, data: buf.toString('base64') } })
+    } catch {
+      /* la siguiente */
+    }
+  }
+  return parts
+}
+
+async function geminiImage(
+  prompt: string,
+  format: VideoFormat,
+  out: string,
+  key: string,
+  cartoon: boolean,
+  signal?: AbortSignal,
+  look?: string,
+  refs: string[] = []
+): Promise<boolean> {
+  const text = imagePromptText(prompt, cartoon, look, refs.length > 0)
+  // Con referencias, Gemini las ve: solo para copiar el estilo, no lo que sale en ellas.
+  const ref = refs.length ? refParts(refs) : []
   const body = {
-    contents: [{ parts: [{ text }] }],
+    contents: [
+      {
+        parts: [
+          ...ref,
+          { text: ref.length ? `Use the attached images ONLY as style references (medium, line, palette, light, texture); do not copy their subjects or composition. ${text}` : text }
+        ]
+      }
+    ],
     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: format === 'vertical' ? '9:16' : '16:9' } }
   }
   try {
@@ -570,6 +611,8 @@ export async function renderVideo(input: {
   workDir: string
   outDir: string
   signal?: AbortSignal
+  /** Imágenes de referencia del usuario (rutas absolutas): Gemini las ve para copiar el estilo. */
+  refs?: string[]
   /** Paso en marcha (texto en español con {huecos}, para traducirlo con tr) y avance de 0 a 1. */
   onStep?: (text: string, progress: number, vars?: Record<string, string | number>) => void
 }): Promise<RenderedVideo> {
@@ -592,6 +635,7 @@ export async function renderVideo(input: {
   writeFileSync(join(dir, 'guion.json'), JSON.stringify({ format, ...script }, null, 2))
 
   const cartoon = script.style === 'cartoon'
+  const refs = (input.refs ?? []).filter((f) => existsSync(f))
   const key = geminiApiKey()
   const n = script.scenes.length
   let spoken = 0
@@ -671,14 +715,14 @@ export async function renderVideo(input: {
         const out = join(dir, rel)
         // Tras dos fallos seguidos de ComfyUI, el resto va directo a Gemini.
         if (comfy && comfyFails < 2) {
-          if (await comfyImage(comfy, imagePromptText(prompt, cartoon), format === 'vertical', out, { signal })) {
+          if (await comfyImage(comfy, imagePromptText(prompt, cartoon, script.look, refs.length > 0), format === 'vertical', out, { signal })) {
             shots[i][k] = rel
             comfyFails = 0
             continue
           }
           comfyFails++
         }
-        if (key && (await geminiImage(prompt, format, out, key, cartoon, signal))) shots[i][k] = rel
+        if (key && (await geminiImage(prompt, format, out, key, cartoon, signal, script.look, refs))) shots[i][k] = rel
       }
     }
     // ComfyUI hace una imagen detrás de otra (una sola gráfica); Gemini, tres a la vez.
@@ -754,3 +798,4 @@ export async function renderVideo(input: {
   copyFileSync(rendered, file)
   return { file, seconds, width: vs.width ?? 0, height: vs.height ?? 0, images: shots.flat().filter(Boolean).length, voice: voiceUsed }
 }
+

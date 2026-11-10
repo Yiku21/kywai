@@ -280,3 +280,23 @@ describe('animaciones de Manim', () => {
     expect(buildComposition(input).html).toContain('class="clip scene has-manim"')
   })
 })
+
+describe('estilo de las imágenes', () => {
+  const scenes = (n: number, extra: Record<string, unknown> = {}) =>
+    Array.from({ length: n }, (_, i) => ({ narration: `frase número ${i} con varias palabras`, image: `escena ${i}`, ...extra }))
+
+  it('lee el «look»', () => {
+    const s = parseVideoScript(JSON.stringify({ title: 't', look: 'Ink doodle: black pen lines on cream paper', scenes: scenes(5) }))
+    expect(s.look).toBe('Ink doodle: black pen lines on cream paper')
+    expect(parseVideoScript(JSON.stringify({ title: 't', scenes: scenes(3) })).look).toBeUndefined()
+  })
+
+  it('con referencias pide sacar el estilo de ellas', () => {
+    const base = { topic: 'el café', format: 'vertical' as const, lang: 'es' }
+    const p = videoScriptPrompt({ ...base, refs: ['/p/ref-1.png'] })
+    expect(p).toContain('/p/ref-1.png')
+    expect(p).toContain('"look"')
+    expect(videoScriptPrompt({ ...base, style: 'cartoon' })).not.toContain('"look"')
+    expect(videoScriptPrompt({ ...base, style: 'cartoon', refs: ['/p/r.jpg'] })).toContain('"look"')
+  })
+})

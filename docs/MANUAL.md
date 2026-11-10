@@ -1730,6 +1730,15 @@ las películas de ejemplo de Lemo-Opuscar (CC BY 4.0, © lemomo-ai, se nombra la
 los robots es de una prueba de kywai. Las películas que hace cada usuario son suyas: sin firma ni marca de agua de la
 biblioteca.
 
+**Estilo desde tus imágenes.** Si adjuntas imágenes a «/video …» (hasta 8; por ejemplo capturas de un estilo que te
+gusta), el agente que escribe el guion las abre y saca de ellas un **bloque de estilo** (`look` en el guion: 40-90
+palabras en inglés sobre cómo están hechas, técnica, línea, paleta, luz y textura, nunca lo que sale en ellas). Ese
+bloque se añade al final del texto de **todas** las imágenes del vídeo, en ComfyUI y en Gemini, así salen iguales.
+Gemini además ve hasta 3 de tus imágenes (de 7 MB como mucho) como referencia de estilo, con la orden de no copiar lo
+que sale en ellas. Sin imágenes, el guion trae igualmente un `look` único para todo el vídeo. En el estilo con
+presentador, el dibujo de siempre se cambia por el tuyo solo si diste referencias. Lo hace `imagePromptText` y
+`geminiImage` en `src/main/videoStudio.ts`.
+
 **Animaciones de fórmulas y diagramas (Manim).** Si Manim Community (MIT) está instalado en el estudio, el guion
 puede traer en hasta 3 escenas un campo `manim` con código Python (`class Escena(Scene)`) para lo que se entiende
 mejor animado: una fórmula, una gráfica, un diagrama, una geometría, un proceso. kywai lo renderiza a pantalla

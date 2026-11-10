@@ -50,6 +50,11 @@ export interface VideoScript {
   scenes: VideoScene[]
   /** Frase del cierre. */
   outro: string
+  /**
+   * El «bloque de estilo» de las imágenes (en inglés): técnica, línea, paleta, luz y textura, sin el tema. Va al
+   * final de cada imagen para que todas salgan iguales; con imágenes de referencia, sale de ellas.
+   */
+  look?: string
 }
 
 export const MIN_SCENES = 3
@@ -105,11 +110,36 @@ export function parseVideoScript(text: string): VideoScript {
   const theme = VIDEO_THEMES.includes(raw.theme as VideoTheme) ? (raw.theme as VideoTheme) : 'noche'
   const lang = (clean(raw.lang, 8).toLowerCase().match(/^[a-z]{2}/)?.[0] ?? 'es')
   const style = VIDEO_STYLES.includes(raw.style as VideoStyle) ? (raw.style as VideoStyle) : 'dinamico'
-  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title }
+  const look = clean(raw.look, 700)
+  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}) }
 }
 
 /** Encargo para el agente: solo el guion, en JSON. */
-type PromptInput = { topic: string; source?: string; format: VideoFormat; lang: string; style?: VideoStyle; retry?: string; manim?: { latex: boolean } | null }
+type PromptInput = {
+  topic: string
+  source?: string
+  format: VideoFormat
+  lang: string
+  style?: VideoStyle
+  retry?: string
+  manim?: { latex: boolean } | null
+  /** El usuario adjuntó imágenes: son referencias del estilo (rutas para leerlas). */
+  refs?: string[]
+}
+
+/** Reglas del bloque de estilo (comunes a los dos estilos rápidos). */
+function lookRules(input: PromptInput): string[] {
+  // En el estilo con presentador el dibujo es siempre el mismo, salvo que el usuario dé referencias.
+  const look = input.style !== 'cartoon' || !!input.refs?.length
+  return [
+    !look
+      ? ''
+      : input.refs?.length
+      ? `- "look": el bloque de estilo de las imágenes, sacado de las imágenes de referencia del usuario (${input.refs.join(', ')}): ábrelas y míralas antes de escribir. En inglés, de 40 a 90 palabras, SOLO cómo está hecho (técnica o medio, tipo de línea, paleta de colores concreta, luz, textura, encuadre habitual), nunca lo que sale en ellas (ni personas, ni objetos, ni lugares). Ponle al principio un nombre corto del estilo. Ese texto se añade al final de cada imagen, así todas salen iguales y en ese estilo.`
+        : '- "look": el bloque de estilo de las imágenes, uno solo para todo el vídeo, en inglés y de 30 a 70 palabras: técnica o medio, tipo de línea, paleta de colores concreta, luz y textura (nunca el tema). Se añade al final de cada imagen para que todas salgan iguales.',
+    look ? '- En "image" (y "shots") describe solo lo que se ve; el estilo ya va en "look".' : '',
+  ].filter(Boolean)
+}
 
 /** Reglas de Manim para el guion (solo si está instalado en el estudio). */
 function manimRules(format: VideoFormat, manim: { latex: boolean }, cartoon = false): string[] {
@@ -138,13 +168,14 @@ export function videoScriptPrompt(input: PromptInput): string {
     '- "image": la imagen de fondo de la escena, descrita en inglés en una frase concreta (sujeto, ambiente, luz). Sin texto, letras ni logotipos en la imagen.',
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}, el que mejor le vaya al tema.`,
     '- "outro": frase final corta para la última pantalla.',
+    ...lookRules(input),
     ...(input.manim ? manimRules(input.format, input.manim) : []),
     '- Si el tema necesita datos actuales, compruébalos antes; no inventes cifras.',
     '- No crees ni cambies archivos: responde solo con el JSON.',
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "scenes": [{"heading": "…", "narration": "…", "image": "…"}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", "scenes": [{"heading": "…", "narration": "…", "image": "…"}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -170,13 +201,14 @@ function cartoonScriptPrompt(input: PromptInput): string {
     '- Es un tutorial VISUAL: lo importante es lo que se ve. "shots": de 1 a 3 ilustraciones de la escena, descritas en inglés, cada una en una frase concreta: en un paso, primero el plano general (dónde estamos) y después el primer plano de la acción exacta (manos, piezas, la pestaña, la muesca…) y, si ayuda, el detalle o el resultado. Lo importante de cada plano, en el CENTRO de la imagen (ahí se pone el círculo de «mira aquí»). Sin personas de cuerpo entero ni caras, sin texto, letras ni logotipos. En el gancho, las bromas y el resumen basta con 1.',
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}; para dibujos van mejor "papel", "amanecer" u "oceano".`,
     '- "outro": frase final corta y con gracia.',
+    ...lookRules(input),
     ...(input.manim ? manimRules(input.format, input.manim, true) : []),
     '- Si el tema necesita datos actuales o técnicos, compruébalos antes; no inventes.',
     '- No crees ni cambies archivos: responde solo con el JSON.',
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", "scenes": [{"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "style": "cartoon", "theme": "papel", ' + (input.refs?.length ? '"look": "…", ' : '') + '"scenes": [{"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false}], "outro": "…"}'
   ].join('\n')
 }
 

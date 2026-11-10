@@ -1658,6 +1658,7 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
       workDir,
       outDir,
       signal,
+      refs: imageAttachments(run, true),
       onStep: (text, p, vars) => {
         t.lastActivity = tr(text, vars)
         t.progress = p
@@ -2877,7 +2878,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport() })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: imageAttachments(run) })].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)
