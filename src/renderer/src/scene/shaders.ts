@@ -418,7 +418,9 @@ export const circuitFrag = /* glsl */ `
     }
     float motion = (pulse * 1.6 + chev * 0.8) * uAmbient;
     float fade = smoothstep(30.0, 12.0, length(vWorld.xz * vec2(0.8, 1.0)));
-    float a = (0.42 + 0.3 * (1.0 - filler)) * core + motion * core;
+    // Cada trazo respira a su ritmo (desfase): nunca laten todos a la vez.
+    float breath = mix(1.0, 0.86 + 0.14 * sin(uTime * (0.35 + phase * 0.5) + phase * 40.0), uAmbient);
+    float a = (0.42 + 0.3 * (1.0 - filler)) * core * breath + motion * core;
     vec3 col = base * (0.95 + (1.0 - filler) * 0.35 + motion * 1.4);
     gl_FragColor = vec4(col, a * fade);
   }

@@ -3025,6 +3025,9 @@ Los temas usan las mismas reglas que las escenas 3D de los vídeos para que el e
   2,5° en casi un minuto) y sube y baja un poco con otro ritmo, como en un plano de cine. Entra poco a poco, sin
   saltos. En cuanto arrastras, haces zoom o eliges un puesto se queda donde está, y vuelve a respirar al pulsar
   «Vista general». Con **Reducir efectos** está quieta (`cameraBreath` en `scene/CameraRig.tsx`).
+- **Circuitos con su propio pulso.** En la Ciudad digital (Índigo, Frost Glass, Perla…) la luz de cine cambia poco,
+  porque casi todo brilla por sí mismo. Ahí lo que da vida son los circuitos del suelo: cada trazo sube y baja de brillo
+  a su ritmo, así nunca laten todos a la vez (`circuitFrag` en `scene/shaders.ts`). Con **Reducir efectos** se quedan fijos.
 
 ### Voces de los agentes
 
