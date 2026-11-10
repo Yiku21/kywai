@@ -80,17 +80,43 @@ export interface TikTokTokens {
   refreshExpires: number
 }
 
-function apiError(body: string, status: number): Error {
+/** Los códigos de error de TikTok que tienen explicación clara, dicha en palabras de la persona. */
+const KNOWN_ERRORS: Record<string, string> = {
+  unaudited_client_can_only_post_to_private_accounts:
+    'mientras no apruebe la app, TikTok solo deja publicar directo si la cuenta de TikTok es privada (en la app: Ajustes y privacidad → Privacidad → Cuenta privada). Envíalo como borrador o pon la cuenta en privado mientras tanto',
+  privacy_level_option_mismatch: 'esa opción de «Quién puede verlo» no está disponible para la cuenta ahora mismo',
+  spam_risk_too_many_posts: 'la cuenta ya ha publicado mucho hoy y TikTok frena las publicaciones; prueba más tarde',
+  spam_risk_too_many_pending_share: 'hay demasiados borradores esperando en la bandeja de TikTok; publica o borra alguno desde la app',
+  spam_risk_user_banned_from_posting: 'TikTok no deja publicar a esta cuenta ahora mismo',
+  access_token_invalid: 'el acceso a TikTok ya no vale; vuelve a iniciar sesión en Ajustes',
+  scope_not_authorized: 'la cuenta no dio permiso para esto; vuelve a iniciar sesión en TikTok y acepta todos los permisos',
+  rate_limit_exceeded: 'demasiadas peticiones seguidas; espera un minuto y reinténtalo'
+}
+
+/**
+ * El error de TikTok en palabras: su mensaje si lo trae y, si no, el código HTTP, en qué paso fue (`step`) y el
+ * principio de lo que contestó (con su log_id, que es lo que pide el soporte de TikTok).
+ */
+function apiError(body: string, status: number, step?: string): Error {
+  const where = step ? ` al ${step}` : ''
+  let logId = ''
   try {
-    const o = JSON.parse(body) as { error?: { code?: string; message?: string } | string; error_description?: string; message?: string }
+    const o = JSON.parse(body) as { error?: { code?: string; message?: string; log_id?: string } | string; error_description?: string; message?: string }
     const e = typeof o.error === 'object' ? o.error : undefined
-    if (e && e.code && e.code !== 'ok') return new Error(`TikTok respondió: ${e.message || e.code}`)
-    if (typeof o.error === 'string') return new Error(`TikTok respondió: ${o.error_description || o.error}`)
+    logId = e?.log_id ? ` (log_id ${e.log_id})` : ''
+    if (e && e.code && KNOWN_ERRORS[e.code]) return new Error(`TikTok no lo aceptó${where}: ${KNOWN_ERRORS[e.code]}`)
+    if (e && e.code && e.code !== 'ok') return new Error(`TikTok respondió${where}: ${e.message || e.code} [${e.code}]${logId}`)
+    if (typeof o.error === 'string') return new Error(`TikTok respondió${where}: ${o.error_description || o.error}`)
   } catch {
     /* no es JSON */
   }
-  return new Error(`TikTok respondió con un error ${status}`)
+  const said = logId ? '' : body.replace(/\s+/g, ' ').trim().slice(0, 160)
+  return new Error(`TikTok respondió con un error ${status}${where}${logId}${said ? `: ${said}` : ''}`)
 }
+
+/** Los fallos 5xx de TikTok suelen ser pasajeros: se reintenta un par de veces antes de rendirse. */
+const RETRIES = 2
+const isTransient = (status: number): boolean => status >= 500 && status < 600
 
 async function tokenCall(params: Record<string, string>, now: number): Promise<TikTokTokens> {
   const res = await doFetch(`${TIKTOK_API}/oauth/token/`, {
@@ -126,22 +152,29 @@ export function refreshTokens(clientKey: string, clientSecret: string, refreshTo
 
 // ---------- API de publicación ----------
 
-async function api<T>(token: string, path: string, body?: unknown, method: 'GET' | 'POST' = 'POST', signal?: AbortSignal): Promise<T> {
-  const res = await doFetch(`${TIKTOK_API}/${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    signal
-  })
-  const text = await res.text()
-  let o: { data?: T; error?: { code?: string } } = {}
-  try {
-    o = JSON.parse(text) as typeof o
-  } catch {
-    throw new Error('TikTok respondió algo que no se entiende')
+async function api<T>(token: string, path: string, body?: unknown, method: 'GET' | 'POST' = 'POST', signal?: AbortSignal, step?: string, retries = 0): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await doFetch(`${TIKTOK_API}/${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      signal
+    })
+    const text = await res.text()
+    if (isTransient(res.status) && attempt < retries && !signal?.aborted) {
+      await sleepImpl(2000 * (attempt + 1))
+      continue
+    }
+    let o: { data?: T; error?: { code?: string } } = {}
+    try {
+      o = JSON.parse(text) as typeof o
+    } catch {
+      if (!res.ok) throw apiError(text, res.status, step)
+      throw new Error(`TikTok respondió algo que no se entiende${step ? ` al ${step}` : ''}`)
+    }
+    if (!res.ok || (o.error?.code && o.error.code !== 'ok')) throw apiError(text, res.status, step)
+    return (o.data ?? {}) as T
   }
-  if (!res.ok || (o.error?.code && o.error.code !== 'ok')) throw apiError(text, res.status)
-  return (o.data ?? {}) as T
 }
 
 /** Nombre que enseña la cuenta (lo pide TikTok en la pantalla de publicar). */
@@ -166,7 +199,9 @@ export async function creatorInfo(token: string, signal?: AbortSignal): Promise<
     'post/publish/creator_info/query/',
     {},
     'POST',
-    signal
+    signal,
+    'consultar la cuenta',
+    RETRIES
   )
   return {
     nickname: d.creator_nickname ?? '',
@@ -235,9 +270,11 @@ export async function uploadTikTok(input: TikTokUploadInput): Promise<{ publishI
           source_info
         },
         'POST',
-        signal
+        signal,
+        'preparar la publicación',
+        RETRIES
       )
-    : await api<{ publish_id?: string; upload_url?: string }>(token, 'post/publish/inbox/video/init/', { source_info }, 'POST', signal)
+    : await api<{ publish_id?: string; upload_url?: string }>(token, 'post/publish/inbox/video/init/', { source_info }, 'POST', signal, 'preparar el borrador', RETRIES)
   if (!init.publish_id || !init.upload_url) throw new Error('TikTok no preparó la subida')
   input.onStep?.('Subiendo el vídeo a TikTok')
   const fd = openSync(file, 'r')
@@ -248,13 +285,23 @@ export async function uploadTikTok(input: TikTokUploadInput): Promise<{ publishI
       const end = i === count - 1 ? size : start + chunkSize
       const buf = Buffer.alloc(end - start)
       readSync(fd, buf, 0, buf.length, start)
-      const res = await doFetch(init.upload_url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'video/mp4', 'Content-Range': `bytes ${start}-${end - 1}/${size}`, 'Content-Length': String(buf.length) },
-        body: new Uint8Array(buf),
-        signal
-      })
-      if (!res.ok) throw apiError(await res.text(), res.status)
+      const step = count > 1 ? `enviar el vídeo (trozo ${i + 1} de ${count})` : 'enviar el vídeo'
+      // La longitud la pone fetch con el cuerpo; ponerla a mano puede duplicar la cabecera.
+      for (let attempt = 0; ; attempt++) {
+        const res = await doFetch(init.upload_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'video/mp4', 'Content-Range': `bytes ${start}-${end - 1}/${size}` },
+          body: new Uint8Array(buf),
+          signal
+        })
+        if (res.ok) break
+        const text = await res.text()
+        if (isTransient(res.status) && attempt < RETRIES && !signal?.aborted) {
+          await sleepImpl(2000 * (attempt + 1))
+          continue
+        }
+        throw apiError(text, res.status, step)
+      }
     }
   } finally {
     closeSync(fd)
@@ -262,7 +309,7 @@ export async function uploadTikTok(input: TikTokUploadInput): Promise<{ publishI
   input.onStep?.('TikTok está procesando el vídeo')
   const deadline = Date.now() + (input.timeoutMs ?? 10 * 60_000)
   for (;;) {
-    const st = await api<{ status?: string; fail_reason?: string; publicaly_available_post_id?: Array<string | number> }>(token, 'post/publish/status/fetch/', { publish_id: init.publish_id }, 'POST', signal)
+    const st = await api<{ status?: string; fail_reason?: string; publicaly_available_post_id?: Array<string | number> }>(token, 'post/publish/status/fetch/', { publish_id: init.publish_id }, 'POST', signal, 'comprobar el vídeo', RETRIES)
     if (st.status === 'SEND_TO_USER_INBOX') return { publishId: init.publish_id, status: 'drafted' }
     if (st.status === 'PUBLISH_COMPLETE') {
       const id = st.publicaly_available_post_id?.[0]

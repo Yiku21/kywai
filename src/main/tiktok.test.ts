@@ -151,6 +151,33 @@ describe('subida', () => {
     await expect(uploadTikTok({ token: 't', file: video(10) })).rejects.toThrow(/duration_check/)
   })
 
+  it('explica en palabras el error de app sin aprobar y dice en qué paso fue', async () => {
+    fake(() => ({ status: 403, json: { error: { code: 'unaudited_client_can_only_post_to_private_accounts', message: 'Please review our integration guidelines', log_id: 'L1' } } }))
+    await expect(uploadTikTok({ token: 't', file: video(10), direct: { caption: 'x', privacy: 'SELF_ONLY', allowComments: true, allowDuet: false, allowStitch: false } })).rejects.toThrow(
+      /al preparar la publicación: .*cuenta de TikTok es privada/
+    )
+  })
+
+  it('un error desconocido lleva su código y su log_id', async () => {
+    fake(() => ({ status: 400, json: { error: { code: 'invalid_params', message: 'Bad title', log_id: 'L2' } } }))
+    await expect(uploadTikTok({ token: 't', file: video(10) })).rejects.toThrow('TikTok respondió al preparar el borrador: Bad title [invalid_params] (log_id L2)')
+  })
+
+  it('reintenta los 500 pasajeros y dice en qué paso falló si siguen', async () => {
+    let puts = 0
+    const calls = fake((c) => {
+      if (c.url.endsWith('init/')) return { json: { data: { publish_id: 'p4', upload_url: 'https://up.tiktok/w' }, error: { code: 'ok' } } }
+      if (c.url.startsWith('https://up.tiktok/')) return ++puts < 2 ? { status: 500 } : { status: 201 }
+      return { json: { data: { status: 'SEND_TO_USER_INBOX' }, error: { code: 'ok' } } }
+    })
+    expect(await uploadTikTok({ token: 't', file: video(10) })).toEqual({ publishId: 'p4', status: 'drafted' })
+    expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(2)
+    expect(calls[1].headers?.['Content-Length']).toBeUndefined()
+
+    fake((c) => (c.url.endsWith('init/') ? { json: { data: { publish_id: 'p5', upload_url: 'https://up.tiktok/v' }, error: { code: 'ok' } } } : { status: 500 }))
+    await expect(uploadTikTok({ token: 't', file: video(10) })).rejects.toThrow(/error 500 al enviar el vídeo/)
+  })
+
   it('consulta lo que permite la cuenta', async () => {
     fake(() => ({ json: { data: { creator_nickname: 'kywai', privacy_level_options: ['SELF_ONLY', 'PUBLIC_TO_EVERYONE'], duet_disabled: true, max_video_post_duration_sec: 300 }, error: { code: 'ok' } } }))
     expect(await creatorInfo('t')).toEqual({ nickname: 'kywai', privacyOptions: ['SELF_ONLY', 'PUBLIC_TO_EVERYONE'], commentDisabled: false, duetDisabled: true, stitchDisabled: false, maxSeconds: 300 })

@@ -1881,9 +1881,14 @@ renueva solo durante un año; todo se guarda **cifrado** con el llavero del sist
   desde una rutina.
 - **Publicar directo:** la tarjeta pide elegir **quién puede verlo** (sin opción por defecto, como exige TikTok),
   si se permiten comentarios, dúos y «stitch», y si es contenido promocional. Hasta que TikTok **apruebe la app**
-  (la auditoría se pide en developers.tiktok.com), solo deja publicar en **privado** («Solo yo»). Cuando la aprueben,
+  (la auditoría se pide en developers.tiktok.com), solo deja publicar en **privado** («Solo yo») y además **la cuenta de
+  TikTok tiene que ser privada** (en la app: Ajustes y privacidad → Privacidad → Cuenta privada); si no, TikTok lo
+  rechaza y kywai lo explica en la tarjeta. Los borradores no tienen esa limitación. Cuando la aprueben,
   pulsa **«TikTok ya aprobó la app»** en Ajustes y aparecen las opciones públicas. Publicar directo siempre necesita tu
   clic en la tarjeta (regla de TikTok). Los vídeos van marcados como **hechos con IA**.
+
+Si TikTok falla, la tarjeta dice **en qué paso** (preparar, enviar el vídeo, comprobarlo) y qué contestó, con su
+`log_id` si lo trae. Los errores 500 pasajeros se reintentan solos dos veces.
 
 Código: `src/main/tiktok.ts` (la API) y `completeTikTok`/`decideTikTokPost` en el orquestador.
 
