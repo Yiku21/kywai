@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { promises as fsp, readFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync } from 'node:fs'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
 import type {
   AgentConfig,
@@ -70,8 +70,10 @@ import { repoInstructionLines } from './repoInstructions'
 import { skillPromptLines, videoSkillPromptLines } from './skills'
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
-import { parseVideoRequest, parseVideoScript, videoScriptPrompt, type VideoFormat, type VideoStyle } from './videoScript'
-import { manimSupport, renderVideo } from './videoStudio'
+import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
+import { ensureVideoStudio, manimSupport, mediaSeconds, renderVideo, videoStudioDir } from './videoStudio'
+import { filmPrompt, filmReady, filmTitle, findFilm } from './filmLibrary'
+import { filmStyle } from '@shared/filmStyles'
 import { REMEMBER_COMMAND, rememberInput } from '@shared/chatCommands'
 import { createRoutine } from './routines'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
@@ -259,6 +261,24 @@ function occupies(projectId: string, exceptTaskId: string): Task | null {
  * así dos agentes nunca se pisan, y al terminar sus cambios se integran (fusión a tres bandas). Sin git, o si la
  * carpeta es enorme, como antes: todos en la carpeta, sin deshacer.
  */
+/** La carpeta de una película con estilo; si la biblioteca no está, la instala primero (la primera vez tarda). */
+async function prepareFilm(run: Run, t: Task): Promise<string> {
+  const v = t.video!
+  if (!filmReady(videoStudioDir(), v.film!)) {
+    t.lastActivity = tr('Instalando los estilos de película (solo la primera vez, puede tardar)…')
+    taskDirty(t)
+    await ensureVideoStudio((l) => {
+      t.lastActivity = tr(l)
+      taskDirty(t)
+    })
+    if (!filmReady(videoStudioDir(), v.film!))
+      traceNote(t.id, tr('Los estilos de película no se instalaron del todo: pulsa «Instalar lo que falta» en Ajustes → Extensiones → Estudio de vídeo para ver qué falla.'), true)
+  }
+  const dir = join(store.workRoot(run.projectId), v.work!)
+  mkdirSync(dir, { recursive: true })
+  return dir
+}
+
 async function prepareWorkplace(run: Run, t: Task, meta: TaskMeta, exec: AgentConfig): Promise<string> {
   const main = store.workRoot(run.projectId)
   if (isTextOnly(exec.provider) || !(await checkpointsReady())) return main
@@ -1512,12 +1532,27 @@ function videoWriter(): AgentConfig | null {
 }
 
 /**
+ * Quién dirige una película con estilo: necesita terminal (renderiza, pone la voz, mezcla) y mucho criterio. Primero
+ * Claude (las guías de la biblioteca están pensadas para él), luego cualquier otro con herramientas que no sea local.
+ */
+function filmDirector(): AgentConfig | null {
+  const able = workers().filter((a) => usable(a) && !isTextOnly(a.provider) && !isLocalProvider(a.provider) && a.provider !== 'lmstudio' && a.provider !== 'colibri')
+  const hint = 'dirección de arte animación vídeo diseño código creativo'
+  const ex = (keep: (a: AgentConfig) => boolean): Set<AgentId> => new Set(workers().filter((a) => !keep(a)).map((a) => a.id))
+  return (
+    bestAgentFor(hint, ex((a) => able.includes(a) && a.provider === 'claude')) ??
+    bestAgentFor(hint, ex((a) => able.includes(a) && a.provider === 'codex')) ??
+    bestAgentFor(hint, ex((a) => able.includes(a)))
+  )
+}
+
+/**
  * Petición de vídeo: una sola tarea en la que el agente escribe el guion (JSON) y, al terminar, kywai monta el vídeo
  * (completeVideo). Sin plan de Hermes ni resumen final: la respuesta es el vídeo. Si el agente falla, pasa a otro.
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -1525,8 +1560,14 @@ async function sendVideo(
   tplMark: { template?: { id: string; name: string } }
 ): Promise<{ runId: string }> {
   const projectId = st.project.id
-  const agent = videoWriter()
-  if (!agent) throw new Error(tr('No hay ningún agente disponible para escribir el guion del vídeo.'))
+  const film = req.film ? filmStyle(req.film) : undefined
+  const agent = film ? filmDirector() : videoWriter()
+  if (!agent)
+    throw new Error(
+      film
+        ? tr('Para un vídeo con estilo hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.')
+        : tr('No hay ningún agente disponible para escribir el guion del vídeo.')
+    )
   const runId = randomUUID()
   const label = req.topic || oneLine(req.source ?? '', 60) || tr('vídeo')
   pushMessage({
@@ -1561,7 +1602,7 @@ async function sendVideo(
     projectId,
     runId,
     seq: nextTaskSeq(projectId),
-    title: tr('Vídeo: {label}', { label: oneLine(label, 60) }),
+    title: film ? tr('Vídeo «{style}»: {label}', { style: lang() === 'es' ? film.name : film.en, label: oneLine(label, 50) }) : tr('Vídeo: {label}', { label: oneLine(label, 60) }),
     description: req.topic || tr('Vídeo del mensaje elegido'),
     agentId: agent.id,
     dependsOn: [],
@@ -1570,7 +1611,13 @@ async function sendVideo(
     createdAt: Date.now(),
     artifactIds: [],
     deliverable: 'file',
-    video: { format: req.format, topic: req.topic, style: req.style, ...(req.source ? { source: clip(req.source, 6000) } : {}) }
+    video: {
+      format: req.format,
+      topic: req.topic,
+      style: req.style,
+      ...(req.source ? { source: clip(req.source, 6000) } : {}),
+      ...(film ? { film: film.slug, work: `.ai-cowork/videos/${Date.now().toString(36)}-pelicula` } : {})
+    }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
   runs.set(runId, run)
@@ -1587,6 +1634,7 @@ async function sendVideo(
 /** El guion ya está: kywai monta el vídeo y la tarea entrega solo el MP4 con una frase. */
 async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
   const v = t.video!
+  if (v.film && v.work) return completeFilm(run, t, exec, parent, res)
   let script
   try {
     script = parseVideoScript(res.text)
@@ -1633,6 +1681,41 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
   ].filter(Boolean)
   const secs = Math.round(video.seconds)
   const text = [tr('Aquí tienes tu vídeo «{title}» ({secs} s, {format}).', { title: script.title, secs, format: v.format === 'vertical' ? tr('vertical') : tr('horizontal') }), ...notes].join('\n\n')
+  await completeTask(run, t, exec, parent, { ...res, text })
+}
+
+/** Película con estilo: el agente la dejó en su carpeta; kywai la copia a videos/ del proyecto y la entrega. */
+async function completeFilm(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  const v = t.video!
+  const style = filmStyle(v.film!)
+  const root = store.workRoot(run.projectId)
+  const found = findFilm(join(root, v.work!))
+  if (!found) {
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('Terminó sin dejar el vídeo ({file}).', { file: 'pelicula.mp4' }) })
+    return
+  }
+  const title = filmTitle(res.text) ?? (v.topic ? oneLine(v.topic, 60) : tr('vídeo'))
+  const outDir = join(root, twoHandsBase(run.projectId), 'videos')
+  mkdirSync(outDir, { recursive: true })
+  let out = join(outDir, `${videoSlug(title)}.mp4`)
+  for (let n = 2; existsSync(out); n++) out = join(outDir, `${videoSlug(title)}-${n}.mp4`)
+  copyFileSync(found, out)
+  const meta = run.meta.get(t.id)!
+  // Lo que tocó en su carpeta de trabajo (oculta) no son resultados: solo el vídeo.
+  meta.touched.clear()
+  const rel = store.toRelPath(root, out)
+  if (rel) meta.touched.add(rel)
+  const secs = Math.round(await mediaSeconds(out))
+  const about = res.text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !/^(?:t[ií]tulo|title)\s*:/i.test(l))
+    .join(' ')
+  const text = [
+    tr('Aquí tienes tu vídeo «{title}» en estilo {style}{secs}.', { title, style: style ? (lang() === 'es' ? style.name : style.en) : v.film!, secs: secs ? ` (${secs} s)` : '' }),
+    about ? clip(about, 400) : '',
+    tr('El proyecto completo (guion, código y créditos de lo que usa) queda en {dir}.', { dir: v.work! })
+  ].filter(Boolean).join('\n\n')
   await completeTask(run, t, exec, parent, { ...res, text })
 }
 
@@ -2776,6 +2859,20 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   const st = store.getProject(run.projectId)
   const meta = run.meta.get(t.id)!
   if (t.direct) return directPrompt(run, t, !!meta.copy)
+  if (t.video?.film && t.video.work) {
+    const style = filmStyle(t.video.film)
+    if (style)
+      return filmPrompt({
+        style,
+        topic: t.video.topic,
+        source: t.video.source,
+        format: t.video.format,
+        lang: lang(),
+        studioDir: videoStudioDir(),
+        work: join(store.workRoot(run.projectId), t.video.work),
+        files: run.attachments.map((a) => `- ${attPath(run, a.relPath, false)} (adjunto del usuario: ${a.name})`)
+      })
+  }
   if (t.video) {
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
@@ -3018,7 +3115,8 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   }
 
   // En la carpeta del proyecto o, si otra tarea la está usando, en una copia aparte que se integra al terminar.
-  const dir = await prepareWorkplace(run, t, meta, exec)
+  // Una película con estilo trabaja en su propia carpeta oculta (y antes se instala la biblioteca si falta).
+  const dir = t.video?.film && t.video.work ? await prepareFilm(run, t) : await prepareWorkplace(run, t, meta, exec)
 
   let working = false
   // Si el agente no cuenta sus pasos (registro de la tarea), al menos queda lo que dice que hace.

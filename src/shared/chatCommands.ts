@@ -25,7 +25,7 @@ export type CommandIcon = 'video' | 'routine' | 'direct' | 'memory' | 'model' | 
 
 /** Las órdenes de kywai, en el orden en que salen. */
 export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
-  { name: 'video', aliases: [], args: 'tema', description: 'Crea un vídeo completo y te da solo el MP4', icon: 'video' },
+  { name: 'video', aliases: [], args: 'tema', description: 'Crea un vídeo completo en el estilo que elijas y te da solo el MP4', icon: 'video' },
   { name: 'rutina', aliases: ['rutinas', 'routine'], args: 'cuándo: qué', description: 'Programa una tarea a una hora o que se repita', icon: 'routine' },
   { name: 'directo', aliases: ['direct', 'dm'], args: 'Agente mensaje', description: 'Habla con un agente sin pasar por Hermes', icon: 'direct' },
   { name: 'recuerda', aliases: ['recordar', 'memoria', 'remember'], args: 'texto', description: 'Guarda un dato en la memoria del proyecto', icon: 'memory' },

@@ -1,0 +1,224 @@
+// Estilos de película (src/shared/filmStyles.ts): dónde vive cada biblioteca, el encargo para el agente que dirige
+// la película y cómo se encuentra el MP4 que deja. La instalación está en videoStudio.ts (installVideoStudio).
+//  - Lemo-Opuscar (MIT): 66 estilos, cada uno con su guía (styles/<slug>/STYLE.md) y herramientas de render.
+//  - Claude Animation Base (MIT): animación pintada con p5.js + p5.brush. Su personaje es la mascota de Anthropic,
+//    así que kywai le añade sus propios robots (KYWAI_ROBOTS_JS) y una guía (KYWAI_KIT_GUIDE) para usarlos.
+import { existsSync, readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+import { FILM_STYLES, KYWAI_FILM, type FilmStyle } from '../shared/filmStyles'
+
+export const LEMO_OPUSCAR_REPO = 'https://github.com/lemomo-ai/lemo-opuscar.git'
+/** Versión fija: lo que se probó con kywai (10 nov 2026). Se sube a mano tras probar una nueva. */
+export const LEMO_OPUSCAR_COMMIT = '143f387ad774525dc9abc0ff05fb5f4bfbaa5f02'
+export const ANIMATION_BASE_REPO = 'https://github.com/JohnHeibel/ClaudeAnimationBase.git'
+export const ANIMATION_BASE_COMMIT = '0ac8bf2b31942376cb6b8c4074715595d512acd2'
+
+/** Lo que se deja fuera al descargar Lemo-Opuscar: las películas de ejemplo y las imágenes grandes (como su propia skill). */
+export const LEMO_SPARSE = ['/*', '!/styles/*/demo/', '!/styleboard/', '!/docs/frames/', '!/docs/cover.jpg', '!/docs/opuscar98.jpg', '!/styles/*/poster.jpg']
+
+export function filmPaths(studioDir: string): { lib: string; kit: string } {
+  return { lib: join(studioDir, 'lemo-opuscar'), kit: join(studioDir, 'animacion-pintada') }
+}
+
+/** La biblioteca descargada y con sus paquetes (su instalador deja node_modules/.lemo-ok al terminar). */
+export function lemoReady(lib: string): boolean {
+  return existsSync(join(lib, 'AGENTS.md')) && existsSync(join(lib, 'core', 'render')) && existsSync(join(lib, 'node_modules', '.lemo-ok'))
+}
+
+export function kitReady(kit: string): boolean {
+  return existsSync(join(kit, 'ANIMATION_GUIDE.md')) && existsSync(join(kit, 'src', 'kywai-robots.js')) && existsSync(join(kit, 'node_modules'))
+}
+
+/** ¿Está lo que necesita este estilo? */
+export function filmReady(studioDir: string, slug: string): boolean {
+  const p = filmPaths(studioDir)
+  return slug === KYWAI_FILM ? kitReady(p.kit) : lemoReady(p.lib)
+}
+
+export interface FilmPromptInput {
+  style: FilmStyle
+  topic: string
+  source?: string
+  format: 'horizontal' | 'vertical'
+  lang: string
+  studioDir: string
+  /** Carpeta de la película (absoluta): es donde trabaja el agente. */
+  work: string
+  /** Adjuntos del usuario («- ruta (adjunto del usuario: nombre)»). */
+  files?: string[]
+}
+
+/** El nombre del archivo final que se pide al agente (y el primero que se busca al terminar). */
+export const FILM_FILE = 'pelicula.mp4'
+
+const LANG_NAMES: Record<string, string> = { es: 'español', en: 'inglés', fr: 'francés', it: 'italiano', pt: 'portugués', de: 'alemán', ja: 'japonés', zh: 'chino' }
+
+/**
+ * El encargo de una película con estilo: el agente lee la guía del estilo, decide la historia, pone voz y música,
+ * renderiza y deja el MP4. Sin preguntas a mitad: la petición es todo el brief (kywai trabaja mientras no estás).
+ */
+export function filmPrompt(input: FilmPromptInput): string {
+  const { style, work } = input
+  const { lib, kit } = filmPaths(input.studioDir)
+  const size = input.format === 'vertical' ? 'vertical 1080×1920' : 'horizontal 1920×1080'
+  const lang = LANG_NAMES[input.lang] ?? input.lang
+  const topic = input.topic || 'el texto de abajo'
+  const common = [
+    `- La carpeta de la película es ${work} (ya existe y es tu carpeta de trabajo): todo lo que hagas va ahí.`,
+    '- No preguntes nada: este mensaje es el brief completo. Lo que no diga, decídelo tú con criterio y sigue; nada de guion gráfico para aprobar.',
+    `- Idioma de la voz y los subtítulos: ${lang}. Formato ${size}, salvo que la guía del estilo fije otro. Duración: de 30 a 60 segundos, salvo que el tema pida otra cosa.`,
+    `- El vídeo final se llama exactamente ${join(work, FILM_FILE)} (con sonido). Deja también poster.jpg y, si hay voz, el .srt.`,
+    '- Revisa tu trabajo antes de entregar (capturas, tiras de fotogramas, una pasada completa) y arregla lo que veas en una ronda.',
+    '- Nada de personajes, marcas, logotipos ni obras de terceros; solo lo que el usuario haya dado. Ningún crédito ni firma de la biblioteca en la película.',
+    '- No dejes procesos en segundo plano al terminar ni cierres procesos que no hayas lanzado tú.',
+    '- Al terminar, responde solo con dos líneas: «Título: …» y una frase sobre de qué va la película. Si no puedes hacerla, empieza tu respuesta con «BLOQUEADA:» y el motivo en una frase.'
+  ]
+  const head =
+    style.slug === KYWAI_FILM
+      ? [
+          `Dirige y produce una película corta de animación pintada a mano sobre: ${topic}`,
+          '',
+          `Los protagonistas son los robots de kywai (Hermes, Claude y Codex). Se hace con el kit de animación de ${kit}:`,
+          `- Lee primero ${join(kit, 'ANIMATION_GUIDE.md')} y ${join(kit, 'KYWAI.md')}, y síguelos (storyboard, construir plano a plano, revisar con hojas de contacto, renderizar).`,
+          `- Copia el kit a la carpeta de la película sin node_modules ni out (en su lugar, un enlace a ${join(kit, 'node_modules')}) y trabaja en esa copia. No cambies ${kit}.`,
+          '- El personaje de ejemplo del kit (Clawd) no sale nunca: usa kywaiRobot() de src/kywai-robots.js.',
+          '- La guía pide «sin texto»: la historia se cuenta actuando. Pon voz solo si el tema necesita explicarse; música y efectos, siempre.',
+          `- Para la voz y la música puedes usar las herramientas de ${lib} si están (core/tts, core/audio y core/render/mux.sh; mira su core/README.md).`
+        ]
+      : [
+          `Dirige y produce una película corta hecha solo con código, en el estilo «${style.en}» (${style.name}) de la biblioteca Lemo-Opuscar, sobre: ${topic}`,
+          '',
+          `La biblioteca está en ${lib} (en sus guías, LIB). Trabajas como en su modo «skill» (${join(lib, 'plugin', 'skills', 'lemo-opuscar', 'SKILL.md')}):`,
+          `- Lee antes de empezar ${join(lib, 'AGENTS.md')}, ${join(lib, 'DIRECTOR.md')}, ${join(lib, 'TECHNIQUE.md')}, ${join(lib, 'core', 'README.md')} y la guía del estilo, ${join(lib, 'styles', style.slug, 'STYLE.md')}. Síguelos: el estilo es fijo, la historia es tuya.`,
+          `- Donde las guías digan films/<nombre>/, es la carpeta de la película. Las herramientas se lanzan desde la biblioteca con la ruta absoluta de la película (cd "${lib}" && node core/render/still.mjs "${work}" 1.5 3).`,
+          `- Los paquetes ya están instalados. Si falta alguno, «sh ${join(lib, 'plugin', 'skills', 'lemo-opuscar', 'scripts', 'setup.sh')} deps voice» lo pone (con LEMO_OPUSCAR_HOME=${lib}). Los que pida solo este estilo, instálalos en la carpeta de la película.`,
+          '- Ni styles/ ni core/ se tocan: copia a la carpeta de la película lo que necesites.',
+          ...(style.needs === 'material'
+            ? ['- Este estilo se monta con material real (imágenes, datos, archivo o escaneos). Usa el que dé el usuario; si no hay, busca material libre (dominio público o licencia abierta) con las herramientas que nombra la guía del estilo, y apunta cada fuente y su licencia en CREDITS.']
+            : [])
+        ]
+  const extra = [
+    ...(input.source ? ['', 'El texto del que trata la película:', '"""', input.source, '"""'] : []),
+    ...(input.files?.length ? ['', 'Archivos del usuario que puedes usar (lo que haya de material propio va en la película):', ...input.files] : [])
+  ]
+  return [...head, ...common, ...extra].join('\n')
+}
+
+/** El MP4 que dejó el agente: pelicula.mp4, y si no, el más reciente de la carpeta (sin entrar en node_modules ni fotogramas). */
+export function findFilm(work: string): string | null {
+  const direct = join(work, FILM_FILE)
+  if (existsSync(direct)) return direct
+  let best: { file: string; at: number; size: number } | null = null
+  const walk = (dir: string, depth: number): void => {
+    let entries: import('node:fs').Dirent[]
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const e of entries) {
+      const p = join(dir, e.name)
+      if (e.isDirectory()) {
+        if (depth < 3 && !e.name.startsWith('.') && !['node_modules', 'frames', 'cache', 'tmp'].includes(e.name)) walk(p, depth + 1)
+      } else if (/\.mp4$/i.test(e.name)) {
+        const s = statSync(p)
+        // Lo más nuevo gana; a la par, el más grande (el montaje final pesa más que una prueba).
+        if (s.size > 10_000 && (!best || s.mtimeMs > best.at + 1000 || (Math.abs(s.mtimeMs - best.at) <= 1000 && s.size > best.size))) best = { file: p, at: s.mtimeMs, size: s.size }
+      }
+    }
+  }
+  walk(work, 0)
+  return best ? (best as { file: string }).file : null
+}
+
+/** «Título: …» de la respuesta del agente (si no lo puso, null). */
+export function filmTitle(text: string): string | null {
+  const m = /^\s*(?:t[ií]tulo|title)\s*:\s*[«"“]?(.+?)[»"”]?\s*$/im.exec(text)
+  return m ? m[1].trim().slice(0, 90) : null
+}
+
+/** Para comprobar que no queda ninguno sin su ficha. */
+export const FILM_SLUGS = FILM_STYLES.map((s) => s.slug)
+
+// ---------- el kit de los robots de kywai (se escribe en src/ del kit al instalarlo) ----------
+
+export const KYWAI_ROBOTS_JS = `// kywai-robots.js: los robots de kywai para Claude Animation Base (los escribe kywai al instalar el kit).
+// Cárgalo en studio.html después de src/clawd.js. Úsalo dentro de un plano, entre camBegin() y camEnd().
+//   kywaiRobot(kind, x, y, u, o)
+//     kind: 'hermes' (el jefe: crema, pelo negro con dos moños y diadema dorada), 'claude' (naranja, mechón de llama),
+//           'codex' (verde, cuerpo de cubo). Otro nombre con o.colors = ['#cuerpo', '#sombra'] para un robot nuevo.
+//     (x, y): el suelo bajo el robot. u: la unidad (el robot mide unas 9u de alto; 30–40 a pantalla completa).
+//     o: { eyes: 'normal'|'happy'|'think'|'wide'|'heart', look: -1…1, sq: aplastar(+)/estirar(-), dy: salto en u,
+//          rot: giro, emote: un emote de clawd.js ('!', '?', 'dots', 'bulb', 'hearts'…), emoteK, emoteAge, colors }
+//   kywaiSpark(x, y, r, k): la chispa de una tarea (bolita de luz), para pasarla de un robot a otro.
+(() => {
+  const VIS = '#1C1A24', EYE = '#FFE7A8';
+  const BODY = { hermes: ['#F1E6CF', '#CDBB98'], claude: ['#EE8A3C', '#C9652A'], codex: ['#46B983', '#2E8C60'] };
+  window.kywaiRobot = function (kind, x, y, u, o = {}) {
+    const [col, dk] = o.colors || BODY[kind] || BODY.claude, sq = o.sq || 0;
+    const float = (o.dy || 0) * u + wob(T, .5, kind.length * .3) * u * .25;
+    const cube = kind === 'codex' || o.shape === 'cube';
+    boilSeed('shadow' + kind);
+    paint(ellPts(x, y, u * 3.4 * (1 + sq * .4), u * .7, 16), { wash: '#7A5236', washOp: 70, ink: null });
+    push(); translate(x, y - u * 1.2 + float); rotate(o.rot || 0); scale(1 + sq * .35, 1 - sq * .35);
+    const sw = clamp(u / 12, .6, 1.6);
+    boilSeed('body' + kind);
+    if (cube) paint(rrPts(-4.2 * u, -8.2 * u, 8.4 * u, 7.6 * u, 1.6 * u), { wash: col, ink: PAL.ink, sw });
+    else paint(ellPts(0, -4.4 * u, 4 * u, 4.6 * u, 34), { wash: col, ink: PAL.ink, sw });
+    if (cube) paint(rrPts(1.8 * u, -7.6 * u, 2 * u, 6.6 * u, 1 * u), { wash: dk, washOp: 150, ink: null });
+    else paint(ellPts(1.9 * u, -4 * u, 1.6 * u, 3.6 * u, 20), { wash: dk, washOp: 140, ink: null });
+    if (kind === 'claude') {
+      const sway = wob(T, 1, .2) * .6 * u;
+      paint(ribbon([[-.6 * u, -8.6 * u], [.4 * u + sway * .3, -10 * u], [1.8 * u + sway, -10.6 * u], [2.6 * u + sway, -9.6 * u]], 1.4 * u, .25 * u), { wash: col, ink: PAL.ink, sw });
+    }
+    if (kind === 'hermes') {
+      boilSeed('hair');
+      for (const s of [-1, 1]) paint(ellPts(s * 4.1 * u, -6.4 * u, 1.5 * u, 1.8 * u, 16), { wash: '#24222B', ink: PAL.ink, sw });
+      paint([...ellPts(0, -7 * u, 4.3 * u, 2.6 * u, 24).filter(p => p[1] < -6.2 * u)], { wash: '#24222B', ink: PAL.ink, sw, curv: .4 });
+      inkLine([[-3.6 * u, -7.4 * u], [0, -8.5 * u], [3.6 * u, -7.4 * u]], sw * 2.2, '#E8B53A', 'ink', .8);
+    }
+    boilSeed('visor' + kind);
+    const vy = cube ? -5.4 * u : -4.6 * u;
+    paint(rrPts(-3 * u, vy - 1.5 * u, 6 * u, 3 * u, 1.3 * u), { wash: VIS, ink: PAL.ink, sw: sw * .8 });
+    const lx = (o.look || 0) * .6 * u, e = o.eyes || 'normal';
+    for (const s of [-1, 1]) {
+      const ex = s * 1.35 * u + lx, ey = vy;
+      if (e === 'happy') inkLine([[ex - .7 * u, ey + .3 * u], [ex, ey - .5 * u], [ex + .7 * u, ey + .3 * u]], sw * 2.4, EYE, 'ink', .7);
+      else if (e === 'think') inkLine([[ex - .7 * u, ey], [ex + .7 * u, ey - s * .15 * u]], sw * 2.2, EYE, 'ink', .2);
+      else if (e === 'heart') paint(heartPts(ex, ey - .1 * u, .75 * u), { wash: '#FF7E9A', ink: null });
+      else { const r = e === 'wide' ? .8 : .55; paint(ellPts(ex, ey, r * u, (r + .15) * u, 14), { wash: EYE, ink: null }); }
+    }
+    pop();
+    if (e === 'normal' || e === 'wide') glow(x + lx, y - u * 1.2 + vy + float, u * 3.2, '#FFD27A', .25);
+    if (o.emote) emote(o.emote, x + 3.6 * u, y - 11.5 * u + float, u * .9, o.emoteK ?? 1, o.emoteAge ?? T);
+  };
+  window.kywaiSpark = function (x, y, r, k = 1) {
+    r *= 1.7;
+    glow(x, y, r * 5, '#FFC766', .7 * k);
+    boilSeed('spark');
+    paint(starPts(x, y, r * (1 + .15 * wob(T, 3)), .45, 4, T * 2), { wash: '#FFF2C4', ink: '#D99A2B', sw: .8 });
+  };
+})();
+`
+
+export const KYWAI_KIT_GUIDE = `# Los robots de kywai en este kit
+
+kywai usa este kit (Claude Animation Base) para sus películas pintadas a mano, pero con sus propios personajes:
+los robots del equipo. El personaje del kit (Clawd) no sale nunca en una película de kywai.
+
+- **Quiénes son.** Hermes es el jefe que reparte el trabajo (cuerpo de huevo crema, pelo negro con dos moños y
+  diadema dorada). Claude es naranja, con un mechón de llama. Codex es verde y tiene el cuerpo de cubo. Los tres
+  tienen una visera oscura con dos ojos de luz. Otros robots: otro nombre y \`o.colors\`.
+- **Cómo se usan.** Carga \`src/kywai-robots.js\` en \`studio.html\` justo después de \`src/clawd.js\` y llama a
+  \`kywaiRobot(kind, x, y, u, o)\` dentro de cada plano (ver la cabecera del archivo). \`kywaiSpark()\` dibuja la
+  chispa de una tarea, el objeto que se pasan entre ellos.
+- **Cómo actúan.** Todo lo de ANIMATION_GUIDE.md vale igual: anticipación, aplastar y estirar (\`sq\`), saltos
+  (\`jump\`), sorpresa (\`take\`), emotes de \`clawd.js\` y miradas (\`look\`). No tienen boca: hablan con los ojos,
+  el cuerpo y los emotes.
+- **Formato.** El lienzo es 1920×1080. Para vertical, cambia el lienzo de \`studio.html\` a 1080×1920 y compón
+  para ese encuadre.
+- **Navegador.** Si no hay Google Chrome, \`render.mjs --chrome=<ruta>\` acepta el Chromium de Playwright.
+  Sin tarjeta gráfica, \`--soft-gl\` y menos rellenos de acuarela (renderizan lento).
+- **Sonido.** El kit no hace sonido: música y efectos con las herramientas que haya (las de Lemo-Opuscar en la
+  carpeta hermana \`lemo-opuscar/core/audio\`, o sintetizados) y se juntan con ffmpeg.
+`

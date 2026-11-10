@@ -2,6 +2,7 @@
 // HTML de HyperFrames que sale de él (escenas, rótulos, subtítulos, transiciones). El agente solo escribe el guion;
 // voz, imágenes, música y montaje los hace kywai siempre igual (videoStudio.ts), para que el resultado no dependa de
 // que el agente improvise.
+import { takeFilmStyle } from '../shared/filmStyles'
 
 export type VideoFormat = 'horizontal' | 'vertical'
 
@@ -187,6 +188,8 @@ export interface VideoRequest {
   /** «de esto», «de este mensaje»: el vídeo es del mensaje anterior del chat. */
   fromPrevious: boolean
   style: VideoStyle
+  /** Estilo de película de la biblioteca (src/shared/filmStyles.ts): lo dirige y renderiza un agente con herramientas. */
+  film?: string
 }
 
 /** Piden dibujos con personaje: «estilo cartoon», «dibujos animados», «un personaje que lo explique», «tutorial»… */
@@ -219,14 +222,25 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     topic = m[1].trim()
   }
   const format = formatOf(t)
+  // «estilo:cartoon» / «estilo:dinamico»: lo pone el selector de estilos para los dos rápidos.
+  const quick = /(^|\s)estilo:(cartoon|dinamico)(?=\s|$)/i.exec(topic)
+  if (quick) topic = (topic.slice(0, quick.index) + quick[1] + topic.slice(quick.index + quick[0].length)).replace(/\s{2,}/g, ' ').trim()
+  // «estilo acuarela sobre…», «estilo:pixel-rpg …»: un estilo de la biblioteca de películas.
+  const film = takeFilmStyle(topic)
+  if (film) topic = film.rest
   // Quita del tema lo que solo dice el formato («vertical para TikTok de…»).
   const stripped = topic
     .replace(/^(?:(?:en\s+)?(?:formato\s+)?(?:vertical|horizontal)|para\s+(?:tiktok|reels?|shorts?|youtube))[\s,:]*(?:(?:de|sobre)\s+)?/i, '')
     .replace(/[\s,]+(?:en\s+)?(?:formato\s+)?(?:vertical|horizontal)\s*$/i, '')
     .replace(/[\s,]+para\s+(?:tiktok|reels?|shorts?|youtube)\s*$/i, '')
     .trim()
+  if (film) {
+    const rest = stripped.replace(/^(?:(?:de|sobre|con|para|acerca de)\s+)/i, '').trim()
+    const prev = !rest || PREVIOUS_RE.test(rest)
+    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: 'dinamico', film: film.style.slug }
+  }
   // «estilo cartoon de…», «de dibujos animados sobre…»: el estilo no es parte del tema.
-  const style: VideoStyle = CARTOON_RE.test(t) ? 'cartoon' : 'dinamico'
+  const style: VideoStyle = quick ? (quick[2].toLowerCase() as VideoStyle) : CARTOON_RE.test(t) ? 'cartoon' : 'dinamico'
   const bare = stripped
     .replace(/^(?:(?:al?|en|con|de)\s+)?(?:estilo|tipo|formato)?\s*(?:cartoon|caricatura|dibujos?(?:\s+animados?)?|animado|tutorial)\s*(?:(?:de|sobre|con|para)\s+)?/i, '')
     .trim()

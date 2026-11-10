@@ -254,8 +254,10 @@ export interface Task {
   /**
    * Petición de vídeo («/video …», «créame un vídeo de …»): el agente solo escribe el guion en JSON y kywai monta el
    * vídeo (voz, imágenes, música, animación). Se entrega solo el MP4; el material de trabajo queda oculto.
+   * Con `film` (un estilo de src/shared/filmStyles.ts), el agente dirige y renderiza él mismo la película con la
+   * biblioteca de estilos y kywai solo entrega el MP4 que deja; `work` es su carpeta (relativa a la del proyecto).
    */
-  video?: { format: 'horizontal' | 'vertical'; topic: string; source?: string; style?: 'dinamico' | 'cartoon' }
+  video?: { format: 'horizontal' | 'vertical'; topic: string; source?: string; style?: 'dinamico' | 'cartoon'; film?: string; work?: string }
 }
 
 /** Cambios de una tarea en la carpeta del proyecto, guardados como dos instantáneas (ver checkpoints.ts). */
@@ -1406,6 +1408,8 @@ export interface VideoStudioStatus {
   gemini?: boolean
   /** Manim instalado (animaciones de fórmulas, gráficas y diagramas). */
   manim?: boolean
+  /** Estilos de película (src/shared/filmStyles.ts): la biblioteca Lemo-Opuscar y el kit de animación pintada con los robots. */
+  films?: { library: boolean; painted: boolean }
   /** Kokoro instalado (la voz de reserva si Gemini falla). */
   kokoro: boolean
   /** «comfyui» si hay un ComfyUI encendido con modelo (el de por defecto), «gemini» si hay clave; null: fondos de diseño. */

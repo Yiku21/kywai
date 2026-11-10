@@ -26,6 +26,18 @@ import { buildCartoonComposition } from './videoCartoon'
 import { comfyImage, comfyStatus } from './comfyui'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxVoice } from './voicebox'
 import type { VideoStudioStatus } from '@shared/types'
+import {
+  ANIMATION_BASE_COMMIT,
+  ANIMATION_BASE_REPO,
+  filmPaths,
+  kitReady,
+  KYWAI_KIT_GUIDE,
+  KYWAI_ROBOTS_JS,
+  LEMO_OPUSCAR_COMMIT,
+  LEMO_OPUSCAR_REPO,
+  LEMO_SPARSE,
+  lemoReady
+} from './filmLibrary'
 
 const IS_WIN = process.platform === 'win32'
 const IS_MAC = process.platform === 'darwin'
@@ -175,6 +187,7 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
     comfyui: { running: comfy.running, checkpoint: comfy.info?.checkpoint ?? null, models: comfy.models },
     voicebox: { running: !!vbox, voices: (vbox ?? []).map((p) => `${p.name} (${p.language})`) },
     manim: manimInstalled(),
+    films: { library: lemoReady(filmPaths(root).lib), painted: kitReady(filmPaths(root).kit) },
     gemini: key,
     node, python, ready: engine && ffmpeg && ffprobe }
 }
@@ -230,12 +243,94 @@ export async function installVideoStudio(onLine: (l: string) => void = () => und
           : 'No se pudo instalar Manim: los vídeos salen igual, con imágenes.'
       )
   }
+  await installFilms(onLine)
   // El navegador del render se descarga la primera vez: mejor aquí que en mitad del primer vídeo.
   if (existsSync(bin('hyperframes'))) {
     onLine('Preparando el navegador del render…')
     await run(bin('hyperframes'), ['browser', 'ensure'], { cwd: root, timeoutMs: 15 * 60_000, onLine })
   }
   return videoStudioStatus()
+}
+
+// ---------- estilos de película (src/shared/filmStyles.ts) ----------
+
+/** `sh` para el instalador de Lemo-Opuscar: en Windows, el de Git (Git Bash). */
+function shCmd(): string | null {
+  if (!IS_WIN) return 'sh'
+  const dirs = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, 'Programs')]
+  for (const d of dirs) if (d && existsSync(join(d, 'Git', 'bin', 'sh.exe'))) return join(d, 'Git', 'bin', 'sh.exe')
+  return null
+}
+
+/**
+ * Deja `dir` en una versión fija de un repositorio (sin historia y sin bajar más que lo que se usa). Si ya está en
+ * esa versión no hace nada; lo que kywai añadió encima (los robots) se queda.
+ */
+async function gitAt(dir: string, repo: string, commit: string, sparse: string[] | null, onLine: (l: string) => void): Promise<boolean> {
+  if (existsSync(join(dir, '.git'))) {
+    if ((await run('git', ['-C', dir, 'rev-parse', 'HEAD'], { timeoutMs: 30_000 })).out.trim() === commit) return true
+  } else {
+    mkdirSync(dir, { recursive: true })
+    if ((await run('git', ['init', '-q', dir], { timeoutMs: 30_000 })).code !== 0) return false
+    await run('git', ['-C', dir, 'remote', 'add', 'origin', repo], { timeoutMs: 30_000 })
+  }
+  if (sparse) {
+    // A mano y antes de sacar los archivos: «sparse-checkout set» no va bien en un repositorio aún vacío.
+    mkdirSync(join(dir, '.git', 'info'), { recursive: true })
+    writeFileSync(join(dir, '.git', 'info', 'sparse-checkout'), sparse.join('\n') + '\n')
+    await run('git', ['-C', dir, 'config', 'core.sparseCheckout', 'true'], { timeoutMs: 30_000 })
+  }
+  const f = await run('git', ['-C', dir, 'fetch', '-q', '--depth', '1', '--filter=blob:none', 'origin', commit], { timeoutMs: 20 * 60_000, onLine })
+  if (f.code !== 0) {
+    onLine(`git: ${f.out.trim().split('\n').slice(-2).join(' ')}`)
+    return false
+  }
+  return (await run('git', ['-C', dir, 'checkout', '-q', '--force', 'FETCH_HEAD'], { timeoutMs: 20 * 60_000, onLine })).code === 0
+}
+
+/**
+ * Los estilos de película: la biblioteca Lemo-Opuscar con sus paquetes (Node, el navegador del render, Python y la
+ * voz, con su propio instalador) y el kit de animación pintada con los robots de kywai. Cada parte que falla se
+ * cuenta y no frena el resto: los vídeos normales salen igual.
+ */
+async function installFilms(onLine: (l: string) => void): Promise<void> {
+  if (!(await has('git', ['--version']))) {
+    onLine('Sin git: no se pueden descargar los estilos de película (instala git y vuelve a pulsar «Instalar lo que falta»).')
+    return
+  }
+  const { lib, kit } = filmPaths(root)
+  if (!lemoReady(lib)) {
+    onLine('Descargando la biblioteca de estilos de película (Lemo-Opuscar)…')
+    if (!(await gitAt(lib, LEMO_OPUSCAR_REPO, LEMO_OPUSCAR_COMMIT, LEMO_SPARSE, onLine))) onLine('No se pudo descargar la biblioteca de estilos.')
+    else {
+      const sh = shCmd()
+      if (!sh) onLine('Para los estilos de película en Windows hace falta Git para Windows (trae «sh»).')
+      else {
+        onLine('Instalando lo que usan los estilos (Node, navegador del render, Python y voz)…')
+        const env = { ...process.env, LEMO_OPUSCAR_HOME: lib }
+        const r = await run(sh, [join(lib, 'plugin', 'skills', 'lemo-opuscar', 'scripts', 'setup.sh'), 'deps', 'voice'], { cwd: lib, env, timeoutMs: 45 * 60_000, onLine })
+        if (r.code !== 0) onLine(`No se pudo terminar de instalar los estilos: ${r.out.trim().split('\n').slice(-2).join(' ')}`)
+      }
+    }
+  }
+  if (!kitReady(kit)) {
+    onLine('Descargando el kit de animación pintada a mano…')
+    if (!(await gitAt(kit, ANIMATION_BASE_REPO, ANIMATION_BASE_COMMIT, null, onLine))) onLine('No se pudo descargar el kit de animación pintada.')
+    else {
+      writeFileSync(join(kit, 'src', 'kywai-robots.js'), KYWAI_ROBOTS_JS)
+      writeFileSync(join(kit, 'KYWAI.md'), KYWAI_KIT_GUIDE)
+      const studio = join(kit, 'studio.html')
+      const html = existsSync(studio) ? readFileSync(studio, 'utf8') : ''
+      if (html && !html.includes('kywai-robots.js')) writeFileSync(studio, html.replace('<script src="src/clawd.js"></script>', '<script src="src/clawd.js"></script>\n<script src="src/kywai-robots.js"></script>'))
+      const npm = await run('npm', ['install', '--no-audit', '--no-fund', '--loglevel=error'], { cwd: kit, timeoutMs: 15 * 60_000, onLine })
+      if (npm.code !== 0) onLine('No se pudieron instalar los paquetes del kit de animación pintada.')
+    }
+  }
+}
+
+/** Duración de un vídeo o audio en segundos (0 si no se puede leer). */
+export async function mediaSeconds(file: string): Promise<number> {
+  return duration(file).catch(() => 0)
 }
 
 // ---------- pasos del montaje ----------

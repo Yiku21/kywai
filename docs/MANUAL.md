@@ -1632,6 +1632,8 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **Periódico**: con una rutina, por ejemplo `/rutina cada lunes a las 9: /video las novedades de la semana`.
 - **Dibujos con personaje** (tutoriales): «créame un vídeo estilo cartoon de…», «…de dibujos animados…», «hazme un
   vídeo tutorial de…», «…con un personaje…». Ver más abajo.
+- **Con un estilo de película** (acuarela, Pixel RPG, años 30, ukiyo-e… 67 en total): eligiéndolo en el selector con
+  muestras que sale al escribir `/video`, o «/video estilo acuarela sobre…». Ver «Estilos de película» más abajo.
 
 **Qué pasa por dentro.** Un agente (el mejor para redactar que esté libre; mejor uno en la nube que un modelo local)
 escribe solo el **guion** en JSON, pensado para enganchar a quien tiene poca paciencia: título, de 5 a 9 escenas cortas
@@ -1686,6 +1688,47 @@ cada paso muestra su instrucción en grande.
 - Si una escena no sale, todo el vídeo se rehace con la siguiente (al final Kokoro) para no mezclar voces.
 
 La voz, las imágenes y las animaciones de Manim se generan **a la vez**.
+
+**Estilos de película (67, con muestra).** Al escribir `/video` aparece encima del cuadro la barra **«Estilo del
+vídeo»** y, al empezar la orden, se abre el selector: una tarjeta con **una muestra de cada estilo** (un fotograma de
+su película de ejemplo), por categorías y con buscador. Arriba, los dos rápidos de siempre (texto animado y dibujos con
+presentador, en unos minutos); debajo, **Robots de kywai pintados a mano** y los **66 estilos de la biblioteca
+Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
+80, Pixel RPG, HD-2D, diseño suizo, plano técnico, infografía isométrica, risografía, xilografía, ukiyo-e, teatro de
+sombras, piezas de construcción, maqueta en miniatura, cine mudo, noticiario de época… Elegir uno pone
+`estilo:<carpeta>` detrás de `/video` (p. ej. `/video estilo:watercolor el ciclo del agua`); también vale escribirlo
+con palabras: «/video estilo acuarela sobre…», «hazme un vídeo de… estilo pixel», en el escritorio, la web, Órbita y
+las rutinas. Los marcados **«Con material real»** (los documentales con datos y los de montaje) se hacen con imágenes,
+datos o archivo de verdad: usa lo que adjuntes y, si no hay, busca material libre y lo apunta en sus créditos.
+
+Con un estilo de película no hay guion en JSON: **un agente con terminal dirige y renderiza la película entera**
+(primero Claude, porque las guías de la biblioteca están pensadas para él; si no, Codex u otro con terminal que no sea
+local). Trabaja en una carpeta oculta del proyecto (`.ai-cowork/videos/<id>-pelicula/`), lee las guías de la
+biblioteca (`AGENTS.md`, `DIRECTOR.md`, `TECHNIQUE.md`) y la del estilo (`styles/<carpeta>/STYLE.md`), decide la
+historia, pone voz (Kokoro), música y efectos, se revisa con capturas y deja `pelicula.mp4`, que kywai copia a
+`videos/` y entrega en el chat. **Sin preguntas a mitad**: la petición es todo el encargo. Tarda más que el modo
+rápido (de 20 minutos a una hora, según el estilo y el equipo). El proyecto completo (tratamiento, código, `build.sh`
+y `CREDITS` con la licencia de cada cosa que usa) queda en esa carpeta. El encargo está en `src/main/filmLibrary.ts`
+(`filmPrompt`) y el catálogo en `src/shared/filmStyles.ts`.
+
+**Robots de kywai pintados a mano** usa **Claude Animation Base** (MIT, github.com/JohnHeibel/ClaudeAnimationBase:
+p5.js + p5.brush, acuarela, tinta y línea que tiembla, sin texto) con los robots del equipo en lugar del personaje del
+kit (es la mascota de Anthropic y no sale nunca): kywai escribe en el kit `src/kywai-robots.js` (`kywaiRobot()` para
+Hermes, Claude, Codex u otro con sus colores, y `kywaiSpark()`, la chispa de una tarea) y `KYWAI.md`, la guía para
+usarlos. El agente copia el kit a la carpeta de la película y trabaja en la copia. Sin tarjeta gráfica renderiza lento.
+
+**Instalación.** «Instalar lo que falta» (Ajustes → Extensiones → Estudio de vídeo, fila «Estilos de película») o, si
+no, el primer vídeo con estilo, descarga con git a `estudio-video/lemo-opuscar` una **versión fija** de la biblioteca
+(sin las películas de ejemplo ni las imágenes grandes, ~30 MB) y lanza su instalador (`setup.sh deps voice`: paquetes
+de Node, el navegador del render, un Python propio y la voz Kokoro); y descarga a `estudio-video/animacion-pintada`
+el kit de animación pintada, con sus paquetes y los robots. Hace falta git; en Windows, Git para Windows (trae `sh`).
+La biblioteca pide ffmpeg 7 o más nuevo. Para subir de versión, cambia `LEMO_OPUSCAR_COMMIT` o
+`ANIMATION_BASE_COMMIT` en `src/main/filmLibrary.ts` después de probarla.
+
+**Muestras y licencias.** Las miniaturas del selector (`src/renderer/src/assets/estilos/`, 320×180) son fotogramas de
+las películas de ejemplo de Lemo-Opuscar (CC BY 4.0, © lemomo-ai, se nombra la fuente en el pie del selector); la de
+los robots es de una prueba de kywai. Las películas que hace cada usuario son suyas: sin firma ni marca de agua de la
+biblioteca.
 
 **Animaciones de fórmulas y diagramas (Manim).** Si Manim Community (MIT) está instalado en el estudio, el guion
 puede traer en hasta 3 escenas un campo `manim` con código Python (`class Escena(Scene)`) para lo que se entiende

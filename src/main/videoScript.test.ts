@@ -15,6 +15,15 @@ const SCRIPT = JSON.stringify({
 })
 
 describe('parseVideoRequest', () => {
+  it('con un estilo de la biblioteca, lo separa del tema', () => {
+    expect(parseVideoRequest('/video estilo acuarela sobre el ciclo del agua')).toEqual({ topic: 'el ciclo del agua', format: 'horizontal', fromPrevious: false, style: 'dinamico', film: 'watercolor' })
+    expect(parseVideoRequest('/video estilo:pixel-rpg vertical cómo se hace el pan')).toMatchObject({ topic: 'cómo se hace el pan', format: 'vertical', film: 'pixel-rpg' })
+    expect(parseVideoRequest('hazme un vídeo de los robots de kywai, estilo kywai')).toMatchObject({ topic: 'los robots de kywai', film: 'kywai-pintado' })
+    expect(parseVideoRequest('/video estilo:ukiyoe de esto')).toMatchObject({ fromPrevious: true, film: 'ukiyoe' })
+    expect(parseVideoRequest('/video estilo:cartoon la luna')).toEqual({ topic: 'la luna', format: 'horizontal', fromPrevious: false, style: 'cartoon' })
+    expect(parseVideoRequest('/video estilo:dinamico la luna')).toEqual({ topic: 'la luna', format: 'horizontal', fromPrevious: false, style: 'dinamico' })
+  })
+
   it('reconoce la orden y las frases habituales', () => {
     expect(parseVideoRequest('/video la fotosíntesis')).toEqual({ topic: 'la fotosíntesis', format: 'horizontal', fromPrevious: false, style: 'dinamico' })
     expect(parseVideoRequest('créame un vídeo de los agujeros negros')).toMatchObject({ topic: 'los agujeros negros', format: 'horizontal' })

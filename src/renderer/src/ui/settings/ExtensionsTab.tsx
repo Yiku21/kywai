@@ -941,6 +941,16 @@ function VideoSection() {
           detail: status.manim ? t('Instalado') : t('Falta (opcional): «Instalar lo que falta» lo instala')
         },
         {
+          label: t('Estilos de película (67, con muestras al escribir «/video»)'),
+          ok: !!status.films?.library && !!status.films?.painted,
+          detail:
+            status.films?.library && status.films?.painted
+              ? t('Instalados: la biblioteca Lemo-Opuscar y el kit de animación pintada con los robots')
+              : status.films?.library || status.films?.painted
+                ? t('Instalados a medias: «Instalar lo que falta» completa el resto')
+                : t('Falta (opcional): «Instalar lo que falta» los instala, o se instalan solos con el primer vídeo con estilo')
+        },
+        {
           label: t('Imágenes'),
           ok: status.images !== null,
           detail:
@@ -954,7 +964,7 @@ function VideoSection() {
         }
       ]
     : []
-  const complete = !!status && status.ready && status.kokoro && !!status.manim
+  const complete = !!status && status.ready && status.kokoro && !!status.manim && !!status.films?.library && !!status.films?.painted
 
   return (
     <>
