@@ -285,9 +285,10 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             is VoiceState.Failed -> voice.target == VoiceTarget.Chat
             VoiceState.Idle -> false
         }
-        // «@» al principio: los agentes, para escribirle a uno directamente sin pasar por Hermes.
+        // «@» en cualquier parte del mensaje (donde esté el cursor): los agentes, para escribirle a uno directamente sin
+        // pasar por Hermes.
         val directTargets = snapshot?.takeIf { it.capabilities.directMessages }?.let { DirectMention.targets(it.agents) }.orEmpty()
-        val mention = if (!voiceHere && directTargets.isNotEmpty()) DirectMention.query(model.chatDraft.text) else null
+        val mention = if (!voiceHere && directTargets.isNotEmpty()) DirectMention.query(model.chatDraft.text, model.chatDraft.selection.end) else null
         val mentionList = mention?.let { DirectMention.matches(it.query, directTargets) }.orEmpty()
         if (mention != null && mentionList.isNotEmpty()) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).testTag("mentions")) {
@@ -301,8 +302,8 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
                     mentionList.forEach { a ->
                         Row(
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).tappable {
-                                val next = DirectMention.text(mention.prefix, a)
-                                model.chatDraft = TextFieldValue(next, selection = androidx.compose.ui.text.TextRange(next.length))
+                                val (next, caret) = DirectMention.insert(model.chatDraft.text, mention, a)
+                                model.chatDraft = TextFieldValue(next, selection = androidx.compose.ui.text.TextRange(caret))
                             }.padding(horizontal = 12.dp, vertical = 9.dp).testTag("mention-${a.id}"),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
