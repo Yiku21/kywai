@@ -7,7 +7,7 @@
 // (say en macOS, la de Windows o espeak-ng en Linux). Las imágenes las genera Gemini si hay clave de API; sin clave, cada
 // escena lleva un fondo de diseño animado.
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import {
@@ -166,6 +166,75 @@ async function systemVoice(): Promise<boolean> {
 
 const pythonCmd = (): string => (IS_WIN ? 'python' : 'python3')
 
+/** Kokoro y Manim piden Python 3.10 o más nuevo (el python3 que trae macOS es el 3.9). */
+const MIN_PY: [number, number] = [3, 10]
+
+async function pyVersion(cmd: string): Promise<[number, number] | null> {
+  const r = await run(cmd, ['-c', 'import sys; print(sys.version_info[0], sys.version_info[1])'], { timeoutMs: 20_000 })
+  const m = r.code === 0 ? r.out.trim().match(/^(\d+) (\d+)/) : null
+  return m ? [Number(m[1]), Number(m[2])] : null
+}
+
+const newEnough = (v: [number, number] | null): boolean => !!v && (v[0] > MIN_PY[0] || (v[0] === MIN_PY[0] && v[1] >= MIN_PY[1]))
+
+/** El Python más nuevo del equipo que sirva (3.10+): primero los de versión concreta y los de Homebrew. */
+async function findPython(): Promise<string | null> {
+  const minors = [13, 12, 11, 10]
+  const cands = IS_WIN
+    ? ['python', 'python3']
+    : [
+        ...minors.flatMap((m) => [`/opt/homebrew/bin/python3.${m}`, `/usr/local/bin/python3.${m}`]),
+        ...minors.map((m) => `python3.${m}`),
+        '/opt/homebrew/bin/python3',
+        '/usr/local/bin/python3',
+        'python3'
+      ]
+  for (const c of cands) {
+    if (c.startsWith('/') && !existsSync(c)) continue
+    if (newEnough(await pyVersion(c))) return c
+  }
+  return null
+}
+
+/** uv (de Astral): crea el entorno con un Python nuevo descargado aparte, sin administrador. */
+async function findUv(): Promise<string | null> {
+  const home = homedir()
+  for (const c of ['uv', join(home, '.local', 'bin', IS_WIN ? 'uv.exe' : 'uv'), join(home, '.cargo', 'bin', IS_WIN ? 'uv.exe' : 'uv')]) {
+    if ((c === 'uv' || existsSync(c)) && (await has(c, ['--version']))) return c
+  }
+  return null
+}
+
+/**
+ * El entorno de Python del estudio con un Python 3.10 o más nuevo. Si había uno viejo (p. ej. con el 3.9 de macOS),
+ * se rehace. Sin un Python que sirva, lo trae uv (se instala con el instalador oficial si no está).
+ */
+export async function ensureVenv(onLine: (l: string) => void = () => undefined): Promise<boolean> {
+  const venv = join(root, '.venv')
+  if (existsSync(venvPython())) {
+    if (newEnough(await pyVersion(venvPython()))) return true
+    onLine('El entorno de Python del estudio es de una versión vieja: se rehace con una nueva…')
+    rmSync(venv, { recursive: true, force: true })
+  }
+  const py = await findPython()
+  if (py) {
+    await run(py, ['-m', 'venv', venv], { timeoutMs: 5 * 60_000, onLine })
+    if (existsSync(venvPython())) return true
+  }
+  let uv = await findUv()
+  if (!uv) {
+    onLine('Instalando uv para tener un Python nuevo (sin tocar el del sistema)…')
+    await (IS_WIN
+      ? run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', 'irm https://astral.sh/uv/install.ps1 | iex'], { timeoutMs: 10 * 60_000, onLine })
+      : run('sh', ['-c', 'curl -LsSf https://astral.sh/uv/install.sh | sh'], { timeoutMs: 10 * 60_000, onLine }))
+    uv = await findUv()
+  }
+  if (!uv) return false
+  onLine('Creando el entorno de Python del estudio con Python 3.12…')
+  await run(uv, ['venv', '--seed', '--python', '3.12', venv], { timeoutMs: 15 * 60_000, onLine })
+  return existsSync(venvPython())
+}
+
 async function kokoroReady(): Promise<boolean> {
   if (!existsSync(venvPython())) return false
   return (await run(venvPython(), ['-c', 'import kokoro_onnx, soundfile'], { timeoutMs: 30_000 })).code === 0
@@ -260,17 +329,23 @@ export async function installVideoStudio(onLine: (l: string) => void = () => und
         : { code: 1, out: 'Instálalo con el gestor de paquetes (por ejemplo «sudo apt install ffmpeg»).' }
     if (r.code !== 0) onLine(`No se pudo instalar ffmpeg: ${r.out.trim().split('\n').slice(-2).join(' ')}`)
   }
+  const venvOk = await ensureVenv(onLine)
   if (!(await kokoroReady())) {
-    if (await has(pythonCmd(), ['--version'])) {
+    if (venvOk) {
       onLine('Instalando la voz Kokoro…')
-      if (!existsSync(venvPython())) await run(pythonCmd(), ['-m', 'venv', join(root, '.venv')], { timeoutMs: 5 * 60_000, onLine })
       const pip = await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'kokoro-onnx', 'soundfile'], { timeoutMs: 30 * 60_000, onLine })
       if (pip.code !== 0) onLine('No se pudo instalar Kokoro: se usará la voz del sistema.')
-    } else onLine('Sin Python: se usará la voz del sistema (instala Python en el asistente para tener la voz Kokoro).')
+    } else onLine('Sin un Python 3.10 o más nuevo: se usará la voz del sistema (instala Python en el asistente para tener la voz Kokoro).')
   }
   if (!manimInstalled() && existsSync(venvPython())) {
     onLine('Instalando Manim (animaciones de fórmulas y diagramas)…')
-    const pip = await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'manim'], { timeoutMs: 30 * 60_000, onLine })
+    let pip = await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'manim'], { timeoutMs: 30 * 60_000, onLine })
+    if (pip.code !== 0 && IS_MAC && (await has('brew', ['--version']))) {
+      // En macOS, pycairo o manimpango a veces se compilan y piden las librerías de dibujo.
+      onLine('Manim necesita las librerías de dibujo: instalándolas con Homebrew y probando otra vez…')
+      await run('brew', ['install', 'cairo', 'pango', 'pkg-config'], { timeoutMs: 30 * 60_000, onLine })
+      pip = await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'manim'], { timeoutMs: 30 * 60_000, onLine })
+    }
     if (pip.code !== 0)
       onLine(
         IS_LINUX

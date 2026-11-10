@@ -1887,6 +1887,12 @@ termina (sin red, sin Python…), lo vuelve a intentar al día siguiente, no en 
 `estudio-video/instalacion.log`. Con la variable `KYWAI_NO_VIDEO_AUTOINSTALL=1` no se instala solo. FreeVideo, ComfyUI
 y Voicebox no entran: son opcionales y se instalan aparte.
 
+**Python.** Kokoro y Manim piden Python 3.10 o más nuevo, y el `python3` que trae macOS es el 3.9. El estudio usa
+el Python más nuevo que encuentre (3.13 a 3.10, también los de Homebrew); si solo hay uno viejo, crea su entorno
+con **uv** y Python 3.12 (si uv no está, lo instala con el instalador oficial de Astral, sin administrador). Un
+entorno que ya estaba hecho con un Python viejo se rehace solo. Si Manim no se instala en macOS, kywai instala
+`cairo`, `pango` y `pkg-config` con Homebrew y lo prueba otra vez.
+
 **Instalar a mano.** ⚙ → Ajustes → Extensiones → **Estudio de vídeo** dice qué tiene el equipo (motor, ffmpeg, voz,
 imágenes) y **«Instalar lo que falta»** lo instala en el equipo donde corren los agentes (también si lo pulsas desde
 la web): HyperFrames y GSAP en la carpeta `estudio-video` de la carpeta de trabajo (versiones fijas, para que un guion
