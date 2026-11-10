@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultVoiceFor, LANG_VOICES, parseVoiceId, ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, withVideoChoice } from './videoChoice'
+import { defaultVoiceFor, videoLang, LANG_VOICES, parseVoiceId, ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, withVideoChoice } from './videoChoice'
 
 describe('lo elegido al escribir /video', () => {
   it('lee el tipo, el personaje y el estilo marcados', () => {
@@ -59,5 +59,18 @@ describe('lo elegido al escribir /video', () => {
     expect(defaultVoiceFor('en')).toBe('kokoro-af_bella')
     expect(defaultVoiceFor('fr')).toBeNull()
     expect(videoChoiceOf('/video voz:edge-es-MX-JorgeNeural la luna').voice).toBe('edge-es-MX-JorgeNeural')
+  })
+
+  it('el idioma del vídeo sale de la voz elegida, o del texto, o de la app', () => {
+    expect(videoLang('kokoro-am_adam', 'crea 3 vídeos para promocionar kywai', 'es')).toBe('en')
+    expect(videoLang('edge-en-GB-RyanNeural', 'lo que sea', 'es')).toBe('en')
+    expect(videoLang('edge-es-MX-JorgeNeural', 'make a video', 'en')).toBe('es')
+    expect(videoLang('mac-carmen', 'x', 'en')).toBe('es')
+    // La voz manda sobre lo que diga el texto.
+    expect(videoLang('kokoro-am_adam', 'hazlo en español', 'es')).toBe('en')
+    expect(videoLang(null, 'tres vídeos para tiktok, en ingles y perfectos', 'es')).toBe('en')
+    expect(videoLang(null, 'a video in Spanish about bread', 'en')).toBe('es')
+    expect(videoLang(null, 'el ciclo del agua', 'es')).toBe('es')
+    expect(videoLang('gemini-puck', 'el ciclo del agua', 'fr')).toBe('fr')
   })
 })

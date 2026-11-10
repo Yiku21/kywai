@@ -1945,6 +1945,11 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    lista de cada idioma está en `LANG_VOICES` (`src/shared/videoChoice.ts`).
    Con la app en español o en inglés, el paso Voz muestra **las dos listas** (primero la del idioma de la app, cada una
    con su título), porque el vídeo puede ser en el otro idioma; sin elegir, el vídeo va con la primera voz de su idioma.
+   **La voz decide el idioma del vídeo**: con una voz de la lista inglesa (o cualquier voz inglesa de Kokoro o Edge),
+   el guion, los textos y la voz salen en inglés; con una de la lista española, en español. Sin voz elegida, vale lo
+   que diga el texto («en inglés», «in English», «en español») y, si no dice nada, el idioma de la app
+   (`videoLang` en `src/shared/videoChoice.ts`; vale igual para el vídeo rápido, las películas y cada vídeo de un
+   lote).
    En otros idiomas: *Automática*: la mejor que haya (el orden de «Voz» de arriba). O una concreta, agrupadas por motor, solo
    las que hay en el equipo: **tus voces de Voicebox** (si está abierto; también la tuya clonada), **12 voces de
    Gemini** (con clave; hablan cualquier idioma: Puck, Fenrir, Charon, Orus, Enceladus, Achird, Kore, Aoede, Leda,

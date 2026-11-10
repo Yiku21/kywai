@@ -79,7 +79,7 @@ import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
-import type { VideoKind } from '../shared/videoChoice'
+import { videoLang, type VideoKind } from '../shared/videoChoice'
 import { CAST_DIR, CAST_NOTES, ensureVideoStudio, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { isMediaFile, learnPrompt, parseLearnedSkill, parseLearnRequest, prepareLearnSource, saveLearnedSkill, type LearnRequest } from './learn'
@@ -3751,7 +3751,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         topic: withBatch(t.video.topic, t.video.batch),
         source: t.video.source,
         format: t.video.format,
-        lang: lang(),
+        lang: videoLang(t.video.voice, t.video.topic, lang()),
         studioDir: videoStudioDir(),
         work: join(store.workRoot(run.projectId), t.video.work),
         ...(t.video.kind ? { kind: t.video.kind } : {}),
@@ -3768,7 +3768,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t) })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t) })].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)

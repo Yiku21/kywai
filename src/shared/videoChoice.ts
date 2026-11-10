@@ -86,6 +86,30 @@ export const LANG_VOICES: Record<string, readonly string[]> = {
   ]
 }
 
+/** El idioma de una voz: el de su lista en LANG_VOICES o el de la propia voz (Kokoro, Edge, Siri). null si no se sabe. */
+export function voiceLang(voice: string | null | undefined): string | null {
+  if (!voice) return null
+  for (const [l, ids] of Object.entries(LANG_VOICES)) if (ids.some((id) => id.toLowerCase() === voice.toLowerCase())) return l
+  const v = parseVoiceId(voice)
+  if (v?.engine === 'kokoro') return KOKORO_VOICE_LIST.find((x) => x.id === v.id)?.lang ?? null
+  if (v?.engine === 'edge') return EDGE_VOICES.find((x) => x.id === v.id)?.lang ?? null
+  if (v?.engine === 'mac') return MAC_VOICES.find((x) => x.key === v.id)?.lang.split('-')[0] ?? null
+  return null
+}
+
+/**
+ * En qué idioma sale un vídeo: el de la voz elegida (una voz inglesa → en inglés, una española → en español); sin ella,
+ * el que diga el texto («en inglés», «in English»…); si no, el de la app.
+ */
+export function videoLang(voice: string | null | undefined, text: string, appLang: string): string {
+  const fromVoice = voiceLang(voice)
+  if (fromVoice) return fromVoice
+  const t = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  if (/\b(en|in)\s+ingles\b|\bin english\b|\benglish (version|video)\b/.test(t)) return 'en'
+  if (/\b(en|in)\s+espanol\b|\bin spanish\b|\bspanish (version|video)\b/.test(t)) return 'es'
+  return appLang
+}
+
 /** La voz por defecto de un idioma con voces elegidas (null: la automática). */
 export const defaultVoiceFor = (lang: string): string | null => LANG_VOICES[lang]?.[0] ?? null
 
