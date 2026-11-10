@@ -2965,6 +2965,7 @@ export const en: Record<string, string> = {
   "Los estilos de película no se instalaron del todo: pulsa «Instalar lo que falta» en Ajustes → Extensiones → Estudio de vídeo para ver qué falla.": "The film styles didn't fully install: press “Install what's missing” in Settings → Extensions → Video studio to see what fails.",
   "Para un vídeo con estilo hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.": "A styled video needs an agent with a terminal (Claude, Codex, Gemini…) that works right now.",
   "Vídeo {n} de {total}": "Video {n} of {total}",
+  "No pude lanzar el vídeo: {msg}": "I couldn't launch the video: {msg}",
   "{one} «{style}»: {label}": "{one} “{style}”: {label}",
   "{one}: {label}": "{one}: {label}",
   "Vídeo «{style}»: {label}": "“{style}” video: {label}",

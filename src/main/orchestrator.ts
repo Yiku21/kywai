@@ -1759,7 +1759,8 @@ async function sendVideo(
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
   shown: string,
-  tplMark: { template?: { id: string; name: string } }
+  tplMark: { template?: { id: string; name: string } },
+  opts: { echo?: boolean } = {}
 ): Promise<{ runId: string }> {
   const projectId = st.project.id
   const film = req.film ? filmStyle(req.film) : undefined
@@ -1775,7 +1776,8 @@ async function sendVideo(
     )
   const runId = randomUUID()
   const label = req.topic || oneLine(req.source ?? '', 60) || tr('vídeo')
-  pushMessage({
+  // Lo lanza Hermes desde una petición con otras palabras: el mensaje del usuario ya está en el chat.
+  if (opts.echo !== false) pushMessage({
     id: randomUUID(),
     projectId,
     runId,
@@ -2786,6 +2788,26 @@ export function routineProposalFrom(command: string, now = Date.now()): RoutineP
   return { status: 'pending', name: cmd.name, request: cmd.request, trigger: cmd.trigger, command: full }
 }
 
+/**
+ * El usuario pidió vídeos con sus palabras («créame un vídeo por guion…»): Hermes escribe la orden «/video …» en
+ * "video" y kywai la lanza en el acto, como si la hubiera escrito él (sin repetir su mensaje en el chat). Así no hay
+ * que volver a pedirlo con «/video».
+ */
+async function launchPlannedVideo(run: Run, planner: AgentConfig, command: string): Promise<void> {
+  if (!command) return
+  const order = /^\/(?:video|vídeo)\b/i.test(command) ? command : `/video ${command}`
+  const req = parseVideoRequest(order)
+  if (!req || (req.fromPrevious && !req.topic)) {
+    console.warn(`[cowork] ${planner.id} propuso un vídeo que no se entiende: ${command.slice(0, 200)}`)
+    return
+  }
+  try {
+    await sendVideo(store.getProject(run.projectId), req, run.attachments, undefined, run.routine ? { id: '', name: run.routine } : undefined, order, {}, { echo: false })
+  } catch (e) {
+    agentMessage(run, planner.id, tr('No pude lanzar el vídeo: {msg}', { msg: e instanceof Error ? e.message : String(e) }), { tone: 'error' })
+  }
+}
+
 function proposeRoutine(run: Run, planner: AgentConfig, command: string): void {
   if (run.routine || !command) return
   const proposal = routineProposalFrom(command)
@@ -3039,6 +3061,7 @@ async function executeRun(run: Run): Promise<void> {
   const { planner, reply, planned, contract, memory } = plan
   proposeRoutine(run, planner, plan.routine)
   void proposeSkills(run, planner, plan.skills)
+  for (const order of plan.video) await launchPlannedVideo(run, planner, order)
   // Con tareas, primero tu visto bueno: el plan se enseña y nada empieza hasta que lo apruebes.
   // Un plan que solo consulta (no cambia nada) no espera: pedir permiso para mirar sería más lento que mirar.
   if (planned.some((p) => !p.quick) && needsApproval(run)) {
@@ -3177,7 +3200,7 @@ function pickPlanner(tried: Set<AgentId>, images = false): AgentConfig | null {
 
 async function planRun(
   run: Run
-): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string; skills: string } | null> {
+): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string; skills: string; video: string[] } | null> {
   const tried = new Set<AgentId>()
   const failures: string[] = []
   const st = store.getProject(run.projectId)
@@ -3268,7 +3291,7 @@ async function planRun(
     }
     // Lo que se ve en el plan es lo que se hará: si kywai lo ajustó, se dice.
     if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de kywai al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
-    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine, skills: parsed.skills }
+    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine, skills: parsed.skills, video: parsed.video }
   }
 }
 
@@ -3516,7 +3539,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '',
     '## Qué debes responder',
     'Responde ÚNICAMENTE con un objeto JSON (puede ir dentro de un bloque ```json), sin ningún otro texto, con esta forma:',
-    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false, "quick": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\"", "skills": "búsqueda en skills.sh, o \"\""}',
+    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false, "quick": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\"", "skills": "búsqueda en skills.sh, o \"\"", "video": ["órdenes «/video …» que kywai lanza ya"]}',
     '',
     'Reglas:',
     `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
@@ -3557,6 +3580,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
       : [
           '- "routine": si el usuario pide algo que se repite o para más tarde («cada mañana revisa…», «todos los lunes prepara…», «mañana a las 7 recuérdame…», «dentro de 2 horas comprueba…», «cuando llegue un PR, revísalo»), escribe aquí la orden de la rutina, con el horario y luego la petición que se enviará sola, completa y en la voz del usuario: «/rutina de lunes a viernes a las 8:30: revisa las dependencias y avísame de las que tengan fallos de seguridad». Horarios que se entienden: «cada día a las 9:00», «de lunes a viernes a las 8:30», «lunes y jueves a las 7:00», «cada 6 horas», «mañana a las 7:00», «el viernes a las 18:00», «el 15/11 a las 9:00», «dentro de 2 horas», «webhook», «al cambiar archivos de <carpeta>». kywai le enseña una tarjeta «Crear rutina»: no la des por creada en "reply" ni crees tareas para montar un cron o un script. Si además conviene hacerlo ya, añade las tareas de esta vez. Si no pide nada periódico ni para más tarde, "".'
         ]),
+    '- "video": si el usuario pide crear uno o varios vídeos (reels, clips, películas…) con sus palabras, escribe aquí la orden u órdenes «/video …» completas y kywai la lanza en el acto con su estudio de vídeo (no crees "tasks" para hacerlos ni le digas que use «/video»; en "reply", di en una frase que ya están en marcha). Pon primero las marcas que saques de lo que pide: «tipo:rapido|presentador|mixto», «personaje:robots-kywai» si quiere los personajes o robots de kywai, «estilo:<slug>» si pide un estilo de la biblioteca o te deja elegir (el estilo vale para todos los vídeos de esa orden: para estilos distintos, una orden por estilo), «voz:<id>» (la voz decide el idioma: en inglés, p. ej. «voz:kokoro-af_bella» o «voz:kokoro-am_adam»; en español, «voz:edge-es-ES-AlvaroNeural») y «vertical» si es para redes. Después, el tema. Si son varios, una línea por vídeo («1) …», «2) …», hasta 12: kywai hace como mucho 6 a la vez y el resto cuando acaban esos). Si un vídeo sale de un archivo del proyecto (un guion), pon su ruta tal cual: kywai lo lee y lo usa de guion. Si no pide vídeos, [].',
     ...(run.routine
       ? []
       : [

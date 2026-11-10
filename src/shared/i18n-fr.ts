@@ -2846,6 +2846,7 @@ export const fr: Record<string, string> = {
   "Los estilos de película no se instalaron del todo: pulsa «Instalar lo que falta» en Ajustes → Extensiones → Estudio de vídeo para ver qué falla.": "Les styles de film ne se sont pas installés entièrement : clique sur « Installer ce qui manque » dans Réglages → Extensions → Studio vidéo pour voir ce qui échoue.",
   "Para un vídeo con estilo hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.": "Une vidéo avec style a besoin d'un agent avec terminal (Claude, Codex, Gemini…) qui fonctionne maintenant.",
   "Vídeo {n} de {total}": "Vidéo {n} sur {total}",
+  "No pude lanzar el vídeo: {msg}": "Je n'ai pas pu lancer la vidéo : {msg}",
   "{one} «{style}»: {label}": "{one} « {style} » : {label}",
   "{one}: {label}": "{one} : {label}",
   "Vídeo «{style}»: {label}": "Vidéo « {style} » : {label}",

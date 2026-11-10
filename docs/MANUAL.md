@@ -2239,6 +2239,14 @@ final, un resumen con todos. El número solo cuenta si va con una orden de crear
 «/video los 5 vídeos más vistos» es un solo vídeo. Código: `src/shared/videoBatch.ts` y `sendVideo` en
 `src/main/orchestrator.ts`.
 
+**Pedirlo con tus palabras.** No hace falta escribir `/video`: si le pides a Hermes vídeos como hablarías
+(«créame un vídeo por cada guion, con los personajes de kywai, en inglés»), Hermes escribe él mismo la orden
+`/video …` con las marcas que saca de lo que pides (tipo, `personaje:robots-kywai`, estilo, voz —la voz decide el
+idioma— y una línea por vídeo) y kywai la lanza en el acto, igual que si la hubieras escrito tú. Si quieres estilos
+distintos, lanza una orden por estilo. Tu mensaje no se repite en el chat: solo ves la respuesta de Hermes y las
+tareas de vídeo. Código: el campo `"video"` del plan (`parsePlan` en `src/main/plan.ts`) y `launchPlannedVideo` en
+`src/main/orchestrator.ts`; la regla para Hermes, en `src/main/coordinatorGuide.ts`.
+
 **Dónde queda.** El MP4 en `artifacts/videos/<título>.mp4` (en una carpeta tuya, `.ai-cowork/entregables/videos/`).
 El material de trabajo (guion, voces, imágenes, música, composición) se guarda en la carpeta oculta
 `.ai-cowork/videos/` del proyecto: no sale en el chat ni en Entregables.

@@ -2846,6 +2846,7 @@ export const zh: Record<string, string> = {
   "Los estilos de película no se instalaron del todo: pulsa «Instalar lo que falta» en Ajustes → Extensiones → Estudio de vídeo para ver qué falla.": "电影风格未完全安装：在 设置 → 扩展 → 视频工作室 中点击「安装缺少的部分」查看原因。",
   "Para un vídeo con estilo hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.": "风格视频需要一个现在可用的带终端的智能体（Claude、Codex、Gemini…）。",
   "Vídeo {n} de {total}": "第 {n} 个视频（共 {total} 个）",
+  "No pude lanzar el vídeo: {msg}": "无法启动视频：{msg}",
   "{one} «{style}»: {label}": "{one}「{style}」：{label}",
   "{one}: {label}": "{one}：{label}",
   "Vídeo «{style}»: {label}": "「{style}」视频：{label}",

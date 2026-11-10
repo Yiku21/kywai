@@ -212,9 +212,9 @@ export function twoHandsPlan<T extends HandTask>(tasks: T[], userText: string, a
  * 'contract': acuerdo común para las tareas que se hacen a la vez (archivos de cada una, funciones, rutas…).
  * 'memory': lo que el usuario decidió o pidió en este mensaje y hay que recordar (sin validar: ver memory.ts).
  */
-export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[]; routine: string; skills: string } {
+export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[]; routine: string; skills: string; video: string[] } {
   const o = extractJsonObject(text)
-  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [], routine: '', skills: '' }
+  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [], routine: '', skills: '', video: [] }
   const c = o.contract
   const contract = typeof c === 'string' ? c.trim() : c && typeof c === 'object' ? JSON.stringify(c, null, 2) : ''
   return {
@@ -226,7 +226,10 @@ export function parsePlan(text: string): { reply: string; tasks: unknown[]; vali
     // La rutina que propone crear, como la orden «/rutina …» (se valida con parseRoutineCommand).
     routine: typeof o.routine === 'string' ? o.routine.trim().slice(0, 9000) : '',
     // Palabras para buscar en skills.sh una habilidad que ayudaría (kywai la propone; nunca la instala sola).
-    skills: typeof o.skills === 'string' ? o.skills.replace(/\s+/g, ' ').trim().slice(0, 80) : ''
+    skills: typeof o.skills === 'string' ? o.skills.replace(/\s+/g, ' ').trim().slice(0, 80) : '',
+    // Las órdenes «/video …» que kywai lanza en el acto cuando el usuario pide vídeos con sus palabras (se valida con
+    // parseVideoRequest).
+    video: (Array.isArray(o.video) ? o.video : [o.video]).filter((v): v is string => typeof v === 'string' && !!v.trim()).slice(0, 12).map((v) => v.trim().slice(0, 20_000))
   }
 }
 
