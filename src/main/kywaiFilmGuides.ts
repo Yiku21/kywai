@@ -398,5 +398,78 @@ Light corporate-friendly music (claps, plucks, upbeat ukulele or soft electro), 
 
 You decide the workplace (office, studio, remote homes, a school), the team, the palette, the structure, opening and ending. Structures: week by week; one task passing through people; a problem and its fix. Openings: an empty office lights up; a laptop opens; a chapter card "Day 1". Endings: the team high-fives; a chart goes up; the last card "Done".
 `
+  ].join('\n'),
+
+  'kywai-paper-diorama': [
+    HEAD(
+      'Paper Craft Diorama',
+      'A handmade stage of cut construction paper: layered paper sets with torn edges and soft drop shadows, a blocky little paper mascot that changes costume every scene, a big counter that ticks up and words stuck on as paper labels, one at a time.',
+      'construction-paper school crafts and felt boards; stop-motion papercraft and puppet theatre; "top 5" listicle explainers built as a row of little stages.'
+    ),
+    `## 1. Essence, and what it is not
+
+- **Everything is paper on a tabletop stage**: backgrounds, props and characters are flat cut shapes in matte construction paper, stacked in 3–6 layers with soft shadows between them, so the frame reads like a shoebox diorama shot from the front.
+- **One recurring mascot**: a blocky paper character (rectangular body, two dot eyes, stubby paper arms and feet) that gets a new paper costume or prop for each idea (a hat, glasses, a tool, an apron). If the user chose a character, build that character from paper the same way.
+- **A counter in every scene**: a paper card with a big number that ticks (0 → 3, #6 → #1, 0 m → deep, "9 h") and makes the idea measurable.
+- **Labels, not typed overlays**: the headline sits on a paper banner or bunting at the top, and the spoken words appear one or two at a time as paper labels stuck at the bottom, the key word on a coloured label.
+- **Numbered rounds**: content is often a list ("1/5 … 5/5"), each item a new little stage behind a curtain, a door or a page.
+
+Not Red Paper-cut (no festive red silhouettes, no symmetry), not Paper Pop-up Book (no book, no 3D folds), not Paper-cut Lightbox (no backlight), not Flat Office Cartoon (texture, torn edges and shadows instead of clean flats).
+
+## 2. Materials & rendering
+
+- Canvas or SVG at 1920×1080 (or 1080×1920), all shapes flat paths filled with a **paper texture**: a tiled fibre/grain noise multiplied at 6–10 %, slight colour variation per sheet, never a gradient on a single sheet.
+- **Cut edges**: shapes have slightly irregular outlines (low-amplitude noise on the path, 1–2 px) and a thin lighter rim on the top-left edge; torn paper (labels, banners, the stage floor line) gets a ragged white fibre edge.
+- **Layering and shadow**: each layer casts a soft drop shadow (offset 6–14 px down-right, blur 10–18 px, 25–35 % opacity) on the one behind; the farther apart two layers are, the bigger the offset. Masking tape strips (translucent beige, 40 % opacity, torn ends) hold banners and cards.
+- **Sets** = a wall (striped wallpaper, a painted sky with paper clouds, a night sky) + a floor band (wood-grain paper, a grass strip, a checkerboard) with a ragged edge where they meet.
+- **The mascot**: a rounded rectangle body, two black dot eyes (blinks by swapping to two short lines, happy eyes as ^ ^), no mouth or a tiny one; arms and feet are separate paper pieces hinged at one corner. Costume pieces are their own layers.
+- \`render(t)\` is a pure function of \`t\` (same frame for the same time).
+
+## 3. Colour logic
+
+Warm, saturated craft-paper colours on each set: one dominant wall colour per round (teal, magenta, mustard, brick red, purple, sky blue) and a brown wooden floor that repeats in every scene to tie the film together. The mascot keeps one colour (example: salmon). Labels are off-white with dark text; the key word of each line goes on a label in the mascot's colour. Counters and scoreboards are off-white cards or dark chalk-like boards with white numbers. Never pure black or pure white: paper is never that clean.
+
+## 4. Type & subtitles
+
+- Headline banner: bold rounded sans or a chunky slab (licence-free, e.g. Rubik, Archivo Black or Roboto Slab), uppercase, 56–80 px, on a torn paper strip taped at the top; the item number ("2/5") on its own coloured tab.
+- Spoken words: 1–2 words per paper label (≤ 18 characters), 54–72 px, pressed on with a tiny bounce and a slight random rotation (±3°), at the bottom third; the previous label is pulled away as the next lands. Hold each label for the time the word is spoken plus 0.15 s.
+- Counter digits: big monospace or slab numbers (90–140 px) on their card, with a small caption above ("BUGS", "CONECTORES", "PROFUNDIDAD").
+
+## 5. Motion quality
+
+Stop-motion feel: animate on twos (12 fps steps) for the mascot and props, on ones for camera and labels. Pieces arrive like paper being placed by hand: a short drop with overshoot and settle, a 2–4° rotation wobble, the shadow shrinking as the piece touches down. Paper never stretches; it bends by rotating hinged pieces. Idle life: the mascot bobs, blinks every 2–4 s, and a background element (clouds, a fan, stars, a pendulum) always moves.
+
+## 6. Camera grammar
+
+| Move | What it expresses | Can serve |
+|---|---|---|
+| Locked front view of the stage | look at this set | a definition; a list item; the counter changing |
+| Curtain or door opens on a new stage | the next item | a ranking; "1/5 … 5/5"; a new chapter |
+| Slow push towards the counter | this number matters | a statistic; a before/after; a punchline |
+| Vertical slide (down a ladder, up to the sky) | depth or scale | digging deep; levels; growth |
+| Pull back to show all the little stages together | everything at once | a summary; "all of them together" |
+
+Keep the bottom 18 % for the word labels and the top 14 % for the headline banner. Transitions: a curtain sweep, a paper page slide, or a cut on a hand-placed prop.
+
+## 7. Sound palette
+
+Paper foley on every placement (a soft paper tap or slide), a crinkle when a label is pulled away, a click-clack when the counter ticks, a whoosh for curtain and page moves, cartoon accents for reactions (pop, boing, a tiny ding for a correct tick). Use the real effects bank (efectos/) before synthesizing. Music: playful pizzicato, marimba, ukulele or a light toy-piano beat, under the voice. Close, friendly, slightly fast voice. −14 LUFS.
+
+## 8. Native moves
+
+- **Costume change.** Between items the mascot ducks behind a prop and pops back in a new paper costume. *Fits content like:* a new tool; a new role; a list item.
+- **Counter climb.** The number on the card rolls up (0 → 19, #6 → #1) while the set reacts (bees arrive, rivals appear). *Fits content like:* a result; a ranking; a quantity.
+- **Behind the curtain.** A closed curtain or door with a "?" opens on the item. *Fits content like:* a reveal; "my favourite"; the answer.
+- **Key ring.** Tags of every item hang together on one ring at the end. *Fits content like:* a recap; a bundle; "all together".
+
+## 9. Pitfalls of the medium
+
+- Shadows too dark or too sharp read as stickers on glass: keep them soft and warm. - Too many words at once: never more than two labels on screen. - Clean vector look: add the texture and the ragged edges to every sheet. - A still frame: something must always move. - Third-party logos or app icons: make paper symbols instead.
+`,
+    ENGINE('game-show', "its scene()/update(t) contract, telop timing, scoreboards, banners, burst and sound-event helpers, and the bean character rig (turned into the blocky paper mascot); replace the 8 px outlines and hard offset shadows with paper texture, ragged edges and soft layered drop shadows."),
+    `## 11. Variation space
+
+You decide the sets for each round, the mascot's costumes, the counters, the wall colours, the structure, opening and ending. Structures: a numbered top list (one stage per item); one problem dug deeper and deeper; a before/after on two stages side by side. Openings: a switchboard with every item plugged in; a curtain with the title on bunting; the counter at 0. Endings: all items on one key ring; the mascot waving from the full row of stages; a paper comment box with one word to type.
+`
   ].join('\n')
 }

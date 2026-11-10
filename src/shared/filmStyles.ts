@@ -74,6 +74,7 @@ export const FILM_STYLES: FilmStyle[] = [
   { slug: 'cel-anime-80s', name: 'Anime de los 80', en: '80s Cel Anime', category: 'animacion', line: 'Anime de celuloide con neones y lluvia; aventura y acción.', lineEn: 'Cel anime with neon and rain; adventure and action.' },
   { slug: 'scifi-toon', name: 'Comedia de ciencia ficción', en: 'Sci-Fi Sitcom Toon', category: 'animacion', line: 'Dibujos de comedia con portales y universos raros.', lineEn: 'A comedy cartoon with portals and strange universes.' },
   { slug: 'midcentury-toon', name: 'Dibujos de los años 50', en: 'Mid-century Cartoon', category: 'animacion', line: 'Película educativa de los 50 con formas planas; perfecta para tutoriales.', lineEn: 'A 1950s educational film with flat shapes; perfect for tutorials.' },
+  { slug: 'kywai-paper-diorama', name: 'Papel recortado', en: 'Paper Craft Diorama', category: 'animacion', base: 'game-show', line: 'Un teatrillo de cartulina con una mascota de papel, un contador grande y las palabras en etiquetas; para listas y «top 5».', lineEn: 'A cardboard stage with a paper mascot, a big counter and words on paper labels; for lists and “top 5” videos.' },
   { slug: 'kywai-office-flat', name: 'Oficina en plano', en: 'Flat Office Cartoon', category: 'animacion', base: 'midcentury-toon', line: 'Gente trabajando en ilustración plana sin contornos, con carteles de «Semana 2»; para equipos y procesos.', lineEn: 'People at work in flat outline-free illustration, with “Week 2” cards; for teams and processes.' },
   // Videojuegos
   { slug: 'pixel-rpg', name: 'Pixel RPG de 16 bits', en: '16-bit Pixel RPG', category: 'juegos', line: 'Videojuego de rol de los 90: cuadros de diálogo, menús, combates y subidas de nivel.', lineEn: 'A 90s role-playing game: dialogue boxes, menus, battles and level-ups.' },
@@ -178,6 +179,7 @@ const ALIASES: Record<string, string[]> = {
   'kywai-ink-doodle': ['garabatos', 'doodle', 'ink doodle', 'boli', 'libreta'],
   'kywai-pov-doodle': ['pov', 'primera persona', 'pov doodle'],
   'kywai-office-flat': ['oficina', 'corporativo', 'ilustracion plana'],
+  'kywai-paper-diorama': ['diorama de papel', 'cartulina', 'papercraft', 'paper craft', 'manualidad', 'teatrillo de papel'],
   'kywai-neon-silhouette': ['neon', 'siluetas', 'synthwave'],
   'kywai-crystal-3d': ['cristales', 'cristal', 'gemas'],
   'kywai-deep-time': ['tiempo profundo', 'deep time', 'millones de anos']
