@@ -776,6 +776,16 @@ documentación no confirma y pueden necesitar ajustes.
   Así varios becarios trabajan a la vez en lugar de esperar (hasta 6 en puestos temporales). Se ve igual en el
   escritorio, el navegador y Órbita. Para desarrolladores: `src/shared/tempStations.ts` (ids `st-sub-tmp-N`, sitios y
   `withTempStations` para el 3D) y `freeSubStation` en `orchestrator.ts`.
+- **Agentes en forma geométrica**: en el espacio 3D los puestos forman un polígono regular alrededor del Proyecto,
+  todos a la misma distancia entre sí: 3 agentes son un triángulo, 4 un cuadrado, 5 un pentágono, etc. El puesto
+  fijo del becario cuenta siempre como uno más (aunque esté vacío) y los puestos sin agente ya no se dibujan. Hermes va
+  delante y el becario al fondo a la derecha; con un número par de puestos el polígono se gira medio paso para que
+  ninguno quede escondido detrás del Proyecto. Los becarios de más no ocupan un vértice: salen pegados al becario
+  original, como una extensión de su puesto hacia fuera (filas de 1, 2 y 3). Con 10 o más puestos el polígono rodea
+  también las zonas de los lados. Es solo cómo se dibuja: la configuración guardada no cambia. No se aplica a los
+  temas Casa (kywai) ni Submarino, que tienen sus propios sitios, ni todavía a la vista 3D de Órbita. Para
+  desarrolladores: `src/renderer/src/scene/polygonLayout.ts` (con pruebas) y el anillo de `Circuits.tsx`, que sigue
+  los lados del polígono.
 - **Gemini CLI** está configurado con una clave de API: si esa clave tiene facturación activa, su uso puede tener coste.
 - **Agente local**: se configura desde el indicador **Local** de la cabecera → «Agente local». Puedes elegir
   **LM Studio** u **Ollama**, el modelo, el nombre del agente y si su uso es sin límite. Con Ollama se pueden

@@ -30,6 +30,7 @@ import { CameraRig } from './CameraRig'
 import { LabelProjector } from './LabelProjector'
 import { t } from '@/lib/i18n'
 import { withTempStations } from '@shared/tempStations'
+import { polygonLayout } from './polygonLayout'
 
 /**
  * Reloj de la escena y pulso de la música: se actualizan antes que cualquier otra animación.
@@ -180,9 +181,10 @@ export function World({ view }: { view?: ViewInsets } = {}) {
   const theme = useTheme()
   const nightPreference = useHomeNight(), night = theme === 'kywai' && nightPreference
   // Más los puestos temporales de los becarios cuando el de apoyo ya está ocupado (src/shared/tempStations.ts).
+  // Fuera de la casa y del arrecife (que tienen sus propios sitios), en polígono regular alrededor del núcleo.
   const stations = useMemo(() => {
     const all = withTempStations(configuredStations, agents)
-    return theme === 'kywai' ? homeLayout(all, agents) : theme === 'submarino' ? underseaLayout(all) : all
+    return theme === 'kywai' ? homeLayout(all, agents) : theme === 'submarino' ? underseaLayout(all) : polygonLayout(all, agents)
   }, [theme, configuredStations, agents])
   const p = palette
   const L = night ? HOME_NIGHT_LIGHTS : p.lights
@@ -234,7 +236,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
         </Environment>
 
         {!p.world && <Backdrop reduced={reduced} />}
-        {theme === 'submarino' ? <UnderseaWorld stations={stations} reduced={reduced} detailed={q.structures > 120} /> : theme === 'kywai' ? <KywaiHome stations={stations} detailed={q.structures > 120} reduced={reduced} /> : <Ambient q={q} reduced={reduced} />}
+        {theme === 'submarino' ? <UnderseaWorld stations={stations} reduced={reduced} detailed={q.structures > 120} /> : theme === 'kywai' ? <KywaiHome stations={stations} detailed={q.structures > 120} reduced={reduced} /> : <Ambient q={q} reduced={reduced} placed={stations} />}
         {!['bosque', 'marfil', 'orbita', 'kywai', 'submarino', 'relicario', 'telar'].includes(p.world ?? '') && <Circuits stations={stations} reduced={reduced} />}
         {theme !== 'kywai' && theme !== 'submarino' && <><Zones /><Core /></>}
         <Stations stations={stations} showLights={q.stationLights} />

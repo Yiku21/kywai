@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { StationConfig } from '@shared/types'
+import { isTempStation } from '@shared/tempStations'
 import { circuitFrag, circuitVert } from './shaders'
 import { registry } from './registry'
 import { glowBlending, palette, tone } from './palette'
@@ -141,17 +142,26 @@ export function Circuits({ stations, reduced }: { stations: StationConfig[]; red
         out.push({ pts: d ? offset(core, d) : core, width: 0.075, filler: false, phase: rnd() })
       }
     }
-    // Anillo entre estaciones vecinas.
-    const ring = ['st-gemini', 'st-sub-1', 'st-hermes', 'st-codex', 'st-claude', 'st-muse', 'st-qwen']
-    ring.forEach((id, i) => bus(at(id), at(ring[(i + 1) % ring.length]), STATION_R, STATION_R, 2, i % 2 === 0))
-    // Zonas → estación más cercana.
+    // Anillo entre puestos vecinos: siguen los lados del polígono (polygonLayout), por orden alrededor del núcleo.
+    const angle = (s: StationConfig): number => Math.atan2(s.position[0], s.position[1])
+    const ring = stations.filter((s) => !isTempStation(s.id)).sort((a, b) => angle(a) - angle(b))
+    if (ring.length > 1) ring.forEach((s, i) => (ring.length > 2 || i === 0) && bus(at(s.id), at(ring[(i + 1) % ring.length].id), STATION_R, STATION_R, 2, i % 2 === 0))
+    // Becarios de más: enganchados al puesto más cercano hacia el núcleo (su becario original o la fila anterior).
+    for (const t of stations.filter((s) => isTempStation(s.id))) {
+      const r = Math.hypot(t.position[0], t.position[1])
+      const inner = stations.filter((s) => s !== t && Math.hypot(s.position[0], s.position[1]) < r - 0.5)
+      const near = inner.sort((a, b) => Math.hypot(a.position[0] - t.position[0], a.position[1] - t.position[1]) - Math.hypot(b.position[0] - t.position[0], b.position[1] - t.position[1]))[0]
+      if (near) bus(at(t.id), at(near.id), STATION_R, STATION_R, 2, true)
+    }
+    // Zonas → los dos puestos más cercanos.
     const z = ZONE_SPOTS
-    bus(z.tasks, at('st-gemini'), ZONE_R, STATION_R, 3, false)
-    bus(z.files, at('st-sub-1'), ZONE_R, STATION_R, 2, true)
-    bus(z.tools, at('st-claude'), ZONE_R, STATION_R, 2, false)
-    bus(z.tools, at('st-codex'), ZONE_R, STATION_R, 2, true)
-    bus(z.memory, at('st-codex'), ZONE_R, STATION_R, 2, false)
-    bus(z.memory, at('st-hermes'), ZONE_R, STATION_R, 2, true)
+    const nearest = (p: P, k: number): StationConfig[] =>
+      ring
+        .slice()
+        .sort((a, b) => Math.hypot(a.position[0] - p[0], a.position[1] - p[1]) - Math.hypot(b.position[0] - p[0], b.position[1] - p[1]))
+        .slice(0, k)
+    for (const [spot, lanes] of [[z.tasks, 3], [z.files, 2], [z.tools, 2], [z.memory, 2]] as [P, number][])
+      nearest(spot, 2).forEach((s, i) => bus(spot, at(s.id), ZONE_R, STATION_R, i ? 2 : lanes, i % 2 === 1))
 
     // Relleno: grupos de pistas paralelas que salen hacia la periferia y acaban en un pad.
     const avoid: P[] = [...stations.map((s) => [s.position[0], s.position[1]] as P), z.tasks, z.files, z.tools, z.memory, [0, 0]]

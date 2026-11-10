@@ -6,6 +6,7 @@ import { cityFrag, cityVert, floorFrag, floorVert, holoVert, panelFrag, particle
 import { FOG_FAR, FOG_NEAR, cityUniforms, floorUniforms, glowBlending, palette, panelInk, tone } from './palette'
 import { registry } from './registry'
 import type { QualitySettings } from './quality'
+import type { StationConfig } from '@shared/types'
 import { t } from '@/lib/i18n'
 import { useCowork } from '@/store/cowork'
 import { WorldScenery } from './worlds/WorldScenery'
@@ -306,8 +307,10 @@ function HoloWalls({ reduced }: { reduced: boolean }) {
   )
 }
 
-export function Ambient({ q, reduced }: { q: QualitySettings; reduced: boolean }) {
-  const stations = useCowork(s => s.config.stations)
+/** [placed]: los puestos ya colocados en la escena (polygonLayout); el decorado deja sitio a esos, no a los guardados. */
+export function Ambient({ q, reduced, placed }: { q: QualitySettings; reduced: boolean; placed?: StationConfig[] }) {
+  const configured = useCowork(s => s.config.stations)
+  const stations = placed ?? configured
   if (palette.world) return <WorldScenery style={palette.world} stations={stations} q={q} reduced={reduced} />
   return (
     <>
