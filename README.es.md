@@ -71,6 +71,7 @@ Algunos ejemplos reales de lo que hace el equipo mientras tú sigues con lo tuyo
 | «Resume estos 300 PDF y compáralos» | Gemini lee muchísimo material de una vez y te devuelve un informe con lo importante y una tabla. Arrastra los archivos al chat, también desde el móvil. |
 | «Hazme la imagen de portada del post» | La imagen se genera con la herramienta de imágenes de Codex (no se dibuja con código) y aparece en el chat como miniatura para abrirla, descargarla o pedir cambios. |
 | «Cada mañana a las 9, revisa los PR nuevos» | Una rutina lo lanza cada día en tu ordenador siempre encendido. Lees el resultado en el móvil, y «Te necesita» solo suena si algo necesita tu decisión. |
+| «Hazme un vídeo vertical para TikTok de cómo nace una estrella» | Un agente escribe el guion y kywai hace el resto: voz, imágenes, música, efectos de sonido y montaje. Solo te llega el MP4, que se ve en el chat, y `/tiktok` o `/instagram` lo publican. |
 | «@Qwen escríbeme cinco titulares» | Lo rápido va directo al agente que nombras, sin plan ni revisión. Con un modelo local es gratis y no sale nada de tu ordenador. |
 
 ## 🔌 Cualquier agente, de cualquier proveedor
@@ -78,11 +79,11 @@ Algunos ejemplos reales de lo que hace el equipo mientras tú sigues con lo tuyo
 kywai no está atado a un conjunto fijo de modelos. Es una plataforma en la que **tú montas tu propio equipo**:
 
 - **Añade todos los agentes que quieras** desde ⚙ → «Configurar agentes…» → «Añadir un agente». El catálogo ya sabe lanzar más de 30, cada uno con la cuenta o suscripción que usa: Claude Code, Codex CLI, Gemini CLI, Antigravity CLI, Muse Code, Aider, DeepSeek, Qwen Code, Kimi Code, MiniMax Code, Mistral Vibe, Grok Build, GitHub Copilot CLI, Cursor, Amp, Goose, OpenCode, Cline, Continue, OpenHands, Factory Droid, Auggie, Junie, Kiro, Rovo Dev, Qoder CLI, Crush, Open Interpreter, gptme, Letta Code, ForgeCode, OpenClaw, Kilo CLI y más.
-- **Encuentra opciones gratuitas.** El filtro «Solo gratis» del catálogo destaca los agentes con opciones gratuitas, incluido Kilo CLI con Kilo Auto Free. Cada ficha explica los requisitos y los límites del proveedor.
+- **Encuentra opciones gratuitas.** El filtro «Solo gratis» del catálogo destaca los agentes con opciones gratuitas, incluido Kilo CLI con Kilo Auto Free. Cada ficha explica los requisitos y los límites del proveedor. Aider viene con el modelo gratis Nemotron 3 Ultra de OpenRouter.
 - **O conecta cualquier otro programa** con «Otro programa…»: indica su comando, cómo recibe la tarea (por stdin, en un archivo o como argumento) y sus argumentos, y pasa a formar parte del equipo.
 - **Suscripciones o claves de API.** Los agentes funcionan con la sesión que ya tienes iniciada en su propio programa. Los que usan una clave de API (DeepSeek, Kiro, Junie, Factory Droid, Amp…) te la piden una sola vez; se cifra con el llavero del sistema y solo se le pasa a ese agente.
 - **También modelos locales.** Cualquier modelo que ejecutes en LM Studio u Ollama, gratis y sin salir de tu ordenador.
-- **El agente local se las apaña solo.** Enciende LM Studio por sí mismo cuando lo necesita, y el interruptor «Razonamiento (think)» de su tarjeta deja que el modelo piense antes de responder solo cuando tú quieras (apagado por defecto, así responde mucho más rápido).
+- **El agente local se las apaña solo.** Enciende LM Studio por sí mismo cuando lo necesita, y el interruptor «Razonamiento (think)» de su tarjeta deja que el modelo piense antes de responder solo cuando tú quieras (apagado por defecto, así responde mucho más rápido). Además de LM Studio y Ollama admite **Colibri** para modelos grandes de mezcla de expertos, y el indicador Local tiene un botón **Instalar** para cada uno.
 - **Tú eliges quién coordina.** Hermes es el coordinador por defecto, pero cualquier agente puede planificar y repartir («Hacer coordinador»). Si no está disponible, toma el relevo el siguiente.
 - **Cada agente es un miembro de pleno derecho del equipo,** con su propio robot y su puesto en el mundo 3D, sus estadísticas de rendimiento y el mismo plan, la misma revisión y el mismo Deshacer que los demás.
 
@@ -176,14 +177,16 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 - **Varias peticiones a la vez.** El trabajo nuevo va a los agentes libres sin tocar los archivos que otro agente está editando.
 - **Más rápido, sin bajar el listón.** Un agente empieza su siguiente tarea mientras se revisa la anterior, Hermes lanza a la vez las tareas que no dependen entre sí, las pruebas y las capturas van en paralelo y, entre revisores igual de fiables, se elige el claramente más rápido. Los agentes en mala racha dejan de recibir lo que no sea fácil.
 - **Sin trabajo repetido.** Hermes no repite una tarea que ya está en marcha, y el chat te avisa si una petición nueva se parece a una en curso.
-- **Habla directo con un agente.** Escribe `@Claude …` (o `/directo Claude …`) y tu texto le llega tal cual a ese agente, sin plan, revisión ni resumen de Hermes. Al teclear `@` sale la lista de agentes, en el escritorio, en el navegador y en Órbita.
+- **Habla directo con un agente.** Pon `@Claude` en cualquier parte del mensaje (al principio, en medio o al final) y el texto le llega tal cual a ese agente, sin plan, revisión ni resumen de Hermes. Al teclear `@` salen todos los agentes con su modelo, y `/` lista todas las órdenes con lo que hace cada una, en el escritorio, en el navegador y en Órbita.
 - **Criterios de aceptación por tarea**, y un aviso si un agente toca archivos que no eran suyos.
 - **Repartido como un equipo de verdad.** Los trabajos grandes con partes separables (motor, interfaz, servidor…) se reparten en paralelo entre los mejores agentes, con un contrato común que escribe el coordinador (qué archivos son de cada uno y cómo se hablan las partes), y una tarea final «Integrar y probar» que ejecuta las pruebas y comprueba el conjunto contra lo pedido.
 - **Imágenes generadas, no dibujadas.** Pide una ilustración, un póster, un logo o un icono y va al agente con herramienta de imágenes, que la genera en vez de dibujarla despacio con SVG o scripts. Si quieres algo exacto o editable, dilo y se hace con código.
 - **Dos manos para los trabajos de gusto, si lo pides.** Dos agentes de familias distintas hacen lo mismo por separado (opción A y opción B), y un tercero prueba las dos, las compara con tu petición y te dice cuál gana y por qué.
 - **Revisión estricta y con pruebas de verdad.** Cuando una tarea cambia archivos, un agente de otra familia la revisa en modo solo lectura, ejecuta él mismo las pruebas y responde *aprobado* o *hay problemas*; solo un *aprobado* explícito la da por buena. Si no da veredicto, se pide a otro revisor fiable. Cada tarea tiene hasta dos correcciones y un relevo a otro agente potente; si aun así falla, aparece en «Te necesita» como que requiere tu intervención.
 - **Reanudar y tomar el relevo.** Las tareas interrumpidas se reanudan donde se quedaron. Si un agente falla, otro agente potente se encarga de la tarea, nunca uno más flojo. Los agentes también retoman su propia sesión en los encargos de seguimiento.
-- **Interruptor «Acceso completo».** Deja que los agentes instalen cosas y usen internet sin pedir permiso, o limítalos a editar la carpeta del proyecto.
+- **Permisos de los agentes, a tu manera.** Acceso completo (instalar cosas y usar internet sin preguntar), solo la carpeta del proyecto o **«Preguntarme antes»**: los agentes te preguntan en el chat con **Denegar / Permitir una vez / Permitir en esta sesión**, como Claude Code, en vez de quedarse atascados.
+- **Bloqueada no es un error.** Si un agente se para porque le falta algo (una clave, una decisión, un archivo), te llega lo que ya hizo y lo decides en «Te necesita»: aceptarlo, contestarle o pasárselo a otro agente.
+- **Respuestas rápidas a preguntas rápidas.** Hermes contesta él mismo lo sencillo, sin plan ni reparto, y las preguntas que solo necesitan mirar el proyecto salen al momento. Lo que cambia archivos sigue con su plan y su revisión completos.
 
 ### 📡 Seguir el trabajo
 
@@ -194,7 +197,7 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 - **Cada tarea en su bloque.** En el chat cada tarea lleva su número, sus etapas reales (trabajando, corrigiendo, pruebas, revisión) y la revisión firmada por el agente que la hizo. Nada más enviar, una fila te dice que Hermes prepara el plan, y si un agente se queda callado ves «sin novedades desde hace N min» en vez de una barra de progreso inventada.
 - **Vista previa de archivos al lado del chat.** Pulsa un adjunto, un entregable o el nombre de un archivo y se abre en un panel lateral, como en Claude: documentos, código, imágenes y PDF, con miniaturas de las imágenes adjuntas. Órbita tiene el mismo lector con ‹ ›, vista de código, copiar y «Abrir con otra app».
 - **Campana «Te necesita»** solo con lo que de verdad espera por ti (un plan, una pregunta, un permiso, un agente que no da señales o una tarea en pausa con Reanudar / Quitar), con sus botones y notificaciones en el móvil. Lo terminado va a Resultados como «Recién terminado».
-- **Espacio digital 3D** con todos los estados: trabajando, en revisión, esperando la revisión de otro agente, delegando en un becario, sin cuota o con errores, con los archivos viajando de un robot a otro y una chispa por cada paso real del agente.
+- **Espacio digital 3D** con todos los estados: trabajando, en revisión, esperando la revisión de otro agente, delegando en un becario, sin cuota o con errores, con los archivos viajando de un robot a otro y una chispa por cada paso real del agente. Los agentes forman un polígono regular alrededor del Proyecto (triángulo con tres, cuadrado con cuatro…), con los becarios de más en fila detrás del original.
 - **Un equipo que se siente vivo.** Los robots libres juegan con un documento de juguete o una pelota de colores, se visitan y despiertan a un compañero dormido con un susto amistoso. Reaccionan, sonríen y vuelven al puesto en cuanto los necesita el trabajo real; reducir efectos desactiva estas animaciones locales. También comparten bailes, juegan a imitarse, chocan las antenas y visitan al compañero cansado para darle ánimos. Con música sonando, los libres permanecen despiertos y bailan siguiendo el pulso del reproductor o de la música ambiental; su etiqueta muestra «Bailando».
 - **Robots con carácter.** Sus ojos muestran lo que hace de verdad cada uno (concentrado, pensando, cansado, dormido, con un error, terminado), cada uno tiene su personalidad y sus bocadillos en tu idioma, y cuando escribes en el chat se despiertan y se giran a mirarte.
 
@@ -216,20 +219,32 @@ Cualquier agente que añadas desde el catálogo o con «Otro programa…» funci
 - **Un solo AGENTS.md para todo el equipo.** Cada CLI lee solo su propio archivo; kywai les pasa los demás, así que con un único `AGENTS.md` todos los agentes siguen las mismas reglas.
 - **Rutinas.** Programa una petición para una sola vez, a una hora fija, ciertos días, cada N horas, por webhook firmado de GitHub o cuando cambien archivos de una carpeta. Puedes crearlas con /rutina, revisar su historial y decidir si requieren visto bueno. Las propuestas del coordinador solo se guardan cuando las confirmas.
 - **Plantillas de tareas.** Tarjetas encima del cuadro de chat para revisar PR, resumir carpetas, buscar fallos o crear tus propias peticiones. Rellena campos, usa su orden /…, envíalas al equipo o directamente a un agente y convierte las compatibles en rutinas.
-- **Entregables descargables.** Abre o descarga cada archivo desde el chat y Resultados, o guarda un conjunto en ZIP. Disponible en escritorio, cliente, navegador y Órbita: también puedes llevarte el resultado desde el móvil.
+- **Entregables descargables.** Abre o descarga cada archivo desde el chat y Resultados, o guarda un conjunto en ZIP. Disponible en escritorio, cliente, navegador y Órbita: también puedes llevarte el resultado desde el móvil. La pestaña Resultados los agrupa en **una carpeta por tarea**, con el archivo principal (vídeo, página, documento) delante y los archivos de trabajo plegados.
 
 ### 🧰 Extensiones: MCP, skills, plugins y mods
 
 En **⚙ → Ajustes → Extensiones** puedes ampliar las herramientas de los agentes y personalizar kywai:
 
-- **Servidores MCP.** Busca en el catálogo o añade una orden, un JSON o una dirección. Elige qué agentes pueden usar cada servidor: kywai comprueba que responde y muestra sus herramientas antes de activarlo. Si falta uv o Node.js, puedes instalarlo desde su tarjeta.
-- **Skills compartidas.** Busca habilidades en skills.sh o instálalas desde un repositorio o una carpeta de GitHub. Se conserva el `SKILL.md` con sus scripts y referencias, y todo el equipo puede consultar esas habilidades cuando las necesita.
+- **Servidores MCP.** Busca en el catálogo o añade una orden, un JSON o una dirección. Elige qué agentes pueden usar cada servidor: kywai comprueba que responde y muestra sus herramientas antes de activarlo. Si falta uv o Node.js, puedes instalarlo desde su tarjeta. Firecrawl, Perplexity y PostHog están entre los destacados.
+- **Skills compartidas.** Busca habilidades en skills.sh o instálalas desde un repositorio o una carpeta de GitHub. Se conserva el `SKILL.md` con sus scripts y referencias, y todo el equipo puede consultar esas habilidades cuando las necesita. Antes de una tarea, Hermes puede proponer habilidades de skills.sh que ayudarían, con un botón **Instalar** (nunca las instala solo), y **`/aprende`** convierte un vídeo o un enlace en una habilidad nueva para todo el equipo. Un interruptor por proyecto, **«Código escueto (Ponytail)»**, pide a los agentes menos código.
 - **Plugins.** Explora los catálogos de plugins de Anthropic o añade otro catálogo o plugin de GitHub. kywai convierte sus skills, órdenes y perfiles de subagentes en habilidades compartidas, e importa sus MCP apagados para que tú elijas a quién activárselos.
 - **Mods.** Instala desde GitHub o una carpeta local extensiones de kywai con órdenes /… del chat, hooks al empezar o terminar trabajos y paneles propios. Los hooks requieren tu permiso; los paneles se abren aislados en escritorio, web y Órbita.
 
 **Compatibilidad:** los MCP del usuario se conectan a Claude, Codex, Gemini y Hermes; los agentes no compatibles aparecen desactivados. Los remotos requieren un token si piden autorización: OAuth y SSE todavía no están admitidos. Los plugins importan los componentes compatibles; sus hooks y LSP no se ejecutan como en Claude Code. El MCP interno de kywai se ofrece actualmente a Claude en tareas coordinadas.
 
 Detalles y ejemplo de mod en el [manual](docs/MANUAL.md#extensiones-tus-servidores-mcp-para-los-agentes) y en [Notas rápidas](docs/mods/notas-rapidas).
+
+### 🎥 Estudio de vídeo
+
+Escribe **`/video`** y de qué va (o pulsa **«Crear vídeo de esto»** bajo cualquier respuesta) y te llega **solo el MP4 terminado**, que se ve en el chat. Sin plan que aprobar ni archivos sueltos. Todo se hace en tu ordenador.
+
+- **Elígelo en cuatro pasos:** tipo (texto animado, dibujos con presentador o mixto), personaje (ninguno, los robots de kywai o uno tuyo, que se reutiliza), estilo y voz, cada uno con su muestra. Luego escribes el tema. En vertical para TikTok, Reels o Shorts con «vertical» o «para TikTok».
+- **74 estilos de película** con su muestra: acuarela, Pixel RPG, dibujos de los años 30, ukiyo-e, diorama de papel recortado, seis estilos propios de kywai y más. Adjunta un reel o tus imágenes y copia su aspecto.
+- **Voz, música y sonido de verdad.** Voces naturales que puedes escuchar antes (Kokoro, Edge, Gemini o Voicebox), y la voz que eliges decide el idioma del vídeo. Música propia que baja cuando habla la voz y efectos de sonido reales (whoosh, pop, golpes) con licencias libres.
+- **Imágenes que se mueven.** Imágenes con **ComfyUI** en tu propio ordenador, con Gemini de reserva, escenas 3D vivas, animaciones de fórmulas y diagramas con **Manim** y un gancho en los dos primeros segundos.
+- **Series y tandas.** **`/serie`** hace episodios con los mismos personajes, cada uno acabado en una pregunta A/B para tu público; «`/serie` siguiente, ganó B» continúa. «Hazme 3 vídeos de…» crea varios a la vez desde ángulos distintos.
+- **Publica cuando tú digas.** **`/instagram`** y **`/tiktok`** escriben el texto y publican en la cuenta que conectes, como borrador o directo, siempre tras tu clic. Con una rutina, cada lunes puede haber un vídeo nuevo listo.
+- **Se instala solo.** El estudio (HyperFrames, voces, banco de sonidos) se instala en segundo plano la primera vez que arranca kywai.
 
 ### 📊 Cuota y coste
 
@@ -246,7 +261,7 @@ Detalles y ejemplo de mod en el [manual](docs/MANUAL.md#extensiones-tus-servidor
 - **El chat, lo primero.** En ventanas pequeñas ocupa más sitio, puedes arrastrar su borde al ancho que quieras (doble clic para volver al automático) y en ventanas estrechas el chat y el mundo 3D pasan a ser dos pestañas.
 - **Un chat fácil de leer,** con respuestas sin caja, más aire entre párrafos y un botón de copiar en la esquina de cada bloque de código o de comandos. Hermes y los agentes escriben breve y con el resultado primero.
 - **Dictado por voz en local** con Whisper en tu propio ordenador. Sin servicios externos, y el audio se borra después.
-- **Mapas, colores y decorados.** Siete mapas 3D, la Ciudad digital en siete colores y cuatro decorados. El tema puede seguir al servidor o ser propio de cada dispositivo; Órbita adapta su paleta, sin reproducir los mapas del escritorio.
+- **Mapas, colores y decorados.** Siete mapas 3D, la Ciudad digital en siete colores y cuatro decorados. El tema puede seguir al servidor o ser propio de cada dispositivo; Órbita adapta su paleta, sin reproducir los mapas del escritorio. El selector de temas enseña una foto real de cada mundo, cuatro por fila.
 - **Voces de los agentes,** cada una con su timbre, y texto que se escribe al ritmo de la voz, como en Animal Crossing.
 - **Reproductor de música** con búsqueda en YouTube Music, Audius y radios de SomaFM sin anuncios, y cola de reproducción, y luces que siguen el BPM de la canción sin micrófono.
 - **Asistente de configuración** que instala los programas que falten con sus instaladores oficiales y abre el inicio de sesión oficial de cada uno.
@@ -263,6 +278,12 @@ Detalles y ejemplo de mod en el [manual](docs/MANUAL.md#extensiones-tus-servidor
 | `/rutina …` | Crear o gestionar una rutina |
 | `/new` | Empezar una conversación nueva, guardando una copia de la anterior |
 | `@Agente …` | Mandar el texto tal cual a un agente, sin pasar por Hermes (también `/directo Agente …`) |
+| `/video …` | Crear un vídeo (abre el selector de cuatro pasos) |
+| `/serie …` | Una serie de vídeos por episodios con los mismos personajes |
+| `/aprende …` | Convertir un vídeo o un enlace en una habilidad |
+| `/instagram` · `/tiktok` | Preparar y publicar el último vídeo |
+
+Escribe `/` en el cuadro del chat para ver todas las órdenes (también tus plantillas y mods) con lo que hace cada una.
 
 ## 🌍 Úsalo desde donde estés
 
@@ -354,7 +375,7 @@ curl -fsSL https://kywai.app/install.sh | bash
 
 ### Descargar (lo más fácil)
 
-Baja el instalador de tu sistema desde la **[última versión](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` para Windows, `.dmg` para macOS (Apple silicon o Intel) y `.AppImage` para Linux. Android: baja `kywai-orbita.apk` de la misma versión. Una vez instalada, la app busca una versión nueva cada vez que se abre y se actualiza sola (en macOS te avisa y abre la descarga).
+Baja el instalador de tu sistema desde la **[última versión](https://github.com/Yiku21/kywai/releases/latest)**: `.exe` para Windows, `.dmg` para macOS (Apple silicon o Intel) y `.AppImage` para Linux. Android: baja `kywai-orbita.apk` de la misma versión. Una vez instalada, la app busca una versión nueva cada vez que se abre y se actualiza sola (también en macOS: descarga, comprueba y cambia la app ella sola). La rueda ⚙ brilla en amarillo cuando hay una actualización pendiente y, tras actualizar, una ventana de **Novedades** cuenta qué ha cambiado.
 
 Aún no van firmadas: en Windows pulsa «Más información» → «Ejecutar de todas formas»; en macOS, la primera vez, clic derecho en la app → Abrir (si dice que está dañada, ejecuta `xattr -cr "/Applications/kywai.app"`); en Linux dale permiso de ejecución al AppImage con `chmod +x`.
 
