@@ -506,9 +506,9 @@ export function HalloweenScene({ stations, density, reduced, cityCount, free }: 
       m.position.set(MOON[0] + Math.cos(a) * b.r * 1.7, MOON[1] + b.y + Math.sin(t * 0.9 + b.ph) * 1.2, MOON[2] + 12 + Math.sin(a) * b.r * 0.4)
       m.scale.set(b.s * (0.45 + 0.55 * Math.abs(Math.sin(t * b.flap + b.ph))), b.s * 0.5, 1)
     })
-    mistRefs.current.forEach((m, i) => {
+    data.mist.forEach((s, i) => {
+      const m = mistRefs.current[i]
       if (!m) return
-      const s = data.mist[i]
       m.position.set(s.x + Math.sin(t * 0.07 + s.ph) * 1.5, 0.35, s.z + Math.cos(t * 0.05 + s.ph) * 1)
     })
   })
@@ -595,9 +595,10 @@ export function Ghosts({ count, reduced }: { count: number; reduced: boolean }) 
   const specs = useMemo(() => Array.from({ length: count }, (_, i) => ({ r: 5 + (i % 3) * 2.5, y: 1.6 + (i % 2) * 0.9, sp: 0.08 + (i % 4) * 0.03, ph: i * 2.1 })), [count])
   useFrame(() => {
     const t = registry.time * (reduced ? 0.3 : 1)
-    refs.current.forEach((g, i) => {
+    // Se recorre la lista actual: al bajar la calidad hay menos fantasmas, pero refs aún guarda los que se fueron.
+    specs.forEach((s, i) => {
+      const g = refs.current[i]
       if (!g) return
-      const s = specs[i]
       const a = t * s.sp + s.ph
       g.position.set(Math.cos(a) * s.r * 1.3, s.y + Math.sin(t * 1.3 + s.ph) * 0.25, Math.sin(a) * s.r - 1)
       g.rotation.set(Math.sin(t * 1.1 + s.ph) * 0.12, -a + Math.PI, Math.cos(t * 0.9 + s.ph) * 0.1)
