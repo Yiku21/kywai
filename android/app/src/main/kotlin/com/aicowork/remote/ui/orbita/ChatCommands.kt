@@ -57,7 +57,7 @@ object ChatCommands {
 
     /** Las órdenes de kywai, en el orden en que salen, en el idioma de Órbita. */
     fun builtin(): List<Command> = listOf(
-        Command("video", emptyList(), t("tema"), t("Crea un vídeo completo y te da solo el MP4"), Icons.Outlined.Movie),
+        Command("video", emptyList(), t("tema"), t("Crea un vídeo completo en el estilo que elijas y te da solo el MP4"), Icons.Outlined.Movie),
         Command("serie", listOf("series", "episodios"), t("idea [en 5 episodios]"), t("Una historia en episodios con los mismos personajes, cada uno acaba en suspense"), Icons.Outlined.VideoLibrary),
         Command("aprende", listOf("aprender", "learn"), t("enlace o vídeo"), t("Convierte lo que enseña un vídeo en una habilidad"), Icons.Outlined.School),
         Command("instagram", listOf("insta", "ig"), t("qué quieres en el texto"), t("Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno"), Icons.Outlined.Send),

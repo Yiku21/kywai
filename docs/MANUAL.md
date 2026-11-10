@@ -2067,7 +2067,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 
 | Orden | Lo que hace |
 |---|---|
-| `/video tema` | Crea un vídeo completo y te da solo el MP4 (ver «Crear vídeos con solo pedirlo») |
+| `/video tema` | Crea un vídeo completo en el estilo que elijas y te da solo el MP4 (ver «Crear vídeos con solo pedirlo») |
 | `/serie idea [en 5 episodios]` | Una historia en episodios con los mismos personajes, cada uno acaba en suspense (ver «Series por episodios») |
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |

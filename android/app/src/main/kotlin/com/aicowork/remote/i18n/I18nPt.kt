@@ -940,7 +940,7 @@ private fun part7(m: HashMap<String, String>) {
     m["Archivo siguiente"] = "Próximo arquivo"
     m["En revisión"] = "Em revisão"
     // Lista de órdenes del «/» (ChatCommands.kt)
-    m["Crea un vídeo completo y te da solo el MP4"] = "Cria um vídeo completo e te entrega só o MP4"
+    m["Crea un vídeo completo en el estilo que elijas y te da solo el MP4"] = "Cria um vídeo completo no estilo que você escolher e te entrega só o MP4"
     m["Programa una tarea a una hora o que se repita"] = "Agenda uma tarefa para um horário ou para se repetir"
     m["Habla con un agente sin pasar por Hermes"] = "Fala com um agente sem passar pelo Hermes"
     m["Guarda un dato en la memoria del proyecto"] = "Guarda um dado na memória do projeto"
