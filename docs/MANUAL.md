@@ -2971,8 +2971,8 @@ Perla, Grafito → Ónix, Bosque → Esmeralda, Matrix → Neón, EVA-01 → Ult
 Los mapas **reaccionan al trabajo del equipo**: cuando hay agentes pensando o trabajando, Grafito y EVA cargan su
 reactor y su cápsula, la lluvia de código de Matrix y el tráfico del Clásico van más deprisa, las fuentes de Marfil
 corren más, las luciérnagas del Bosque se avivan y en Órbita se encienden más las luces de las ciudades de la
-Tierra. Con dos agentes ocupados ya van a tope, y se calman poco a poco al terminar. Las sombras y el sombreado de
-contacto solo se ven en equipos que aguantan la calidad gráfica alta. Las texturas de Órbita son de Solar System
+Tierra. Con dos agentes ocupados ya van a tope, y se calman poco a poco al terminar. Las sombras se ven con calidad
+gráfica alta y media (en media, más ligeras); el sombreado de contacto, solo con la alta. Las texturas de Órbita son de Solar System
 Scope (CC BY 4.0) y del NASA SVS; los créditos están al pie del selector de temas y en `assets/orbit/CREDITS.md`.
 
 **Ciudad digital.** El espacio de siempre, como una tarjeta más al final de los mapas. Al elegirla se despliega
@@ -3014,6 +3014,10 @@ Los temas usan las mismas reglas que las escenas 3D de los vídeos para que el e
   iluminada y otra en sombra. Al otro lado hay un relleno frío y suave, y por detrás un borde de luz rasante con el
   color del tema que recorta los contornos. La luz de cielo y la de ambiente son más bajas que antes para que se note
   la diferencia. El Refugio Kywai conserva su propia luz de día y de noche (`scene/CinemaLights.tsx`).
+- **Sombras también en calidad media.** Antes solo había sombras en equipos con calidad alta (8 núcleos y 8 GB), y
+  en los demás los mapas se veían planos. Ahora la calidad media también las tiene, con un mapa de sombras más
+  pequeño (1024 en vez de 2048) para que pese menos; el sombreado de contacto (N8AO) sigue siendo solo de la alta
+  (`shadowMap` y `ao` en `scene/quality.ts`).
 
 ### Voces de los agentes
 

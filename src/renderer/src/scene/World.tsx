@@ -219,7 +219,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
       {focused && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />}
 
       <group key={theme}>
-        <CinemaLights palette={p} lights={L} worldLight={worldLight} shadows={!!p.world && q.shadows} shadowSize={2048}
+        <CinemaLights palette={p} lights={L} worldLight={worldLight} shadows={!!p.world && q.shadows} shadowSize={q.shadowMap}
           home={theme === 'kywai' ? { night } : undefined} />
 
         {/* Entorno para reflejos de los visores (generado localmente, sin descargas) */}
@@ -247,7 +247,7 @@ export function World({ view }: { view?: ViewInsets } = {}) {
 
       {q.bloom && (
         <EffectComposer multisampling={q.msaa} enableNormalPass={false}>
-          <N8AO enabled={!!p.world && q.shadows} aoRadius={0.55} intensity={1.1} distanceFalloff={0.8} quality="medium" halfRes />
+          <N8AO enabled={!!p.world && q.ao} aoRadius={0.55} intensity={1.1} distanceFalloff={0.8} quality="medium" halfRes />
           <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 : 1) * (night ? .8 : p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
           <Vignette offset={0.28} darkness={night ? .25 : p.vignette} />
         </EffectComposer>

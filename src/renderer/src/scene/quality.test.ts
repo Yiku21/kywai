@@ -21,4 +21,12 @@ describe('sceneQuality', () => {
     expect(sceneQuality('high', 'high')).toEqual(QUALITY.high)
     expect(sceneQuality('medium', 'medium')).toEqual(QUALITY.medium)
   })
+
+  it('la calidad media también tiene sombras (más ligeras) pero no sombreado de contacto', () => {
+    const q = sceneQuality('medium', 'medium')
+    expect(q.shadows).toBe(true)
+    expect(q.shadowMap).toBe(1024)
+    expect(q.ao).toBe(false)
+    expect(sceneQuality('low', 'high').shadowMap).toBe(2048)
+  })
 })
