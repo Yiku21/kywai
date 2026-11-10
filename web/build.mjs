@@ -35,6 +35,16 @@ cpSync(join(AQUI, 'assets'), join(SALIDA, 'assets'), { recursive: true })
 // «irm https://kywai.app/install.ps1 | iex» sirven los scripts del repositorio tal cual.
 cpSync(join(AQUI, '..', 'scripts', 'instalar-kywai.sh'), join(SALIDA, 'install.sh'))
 cpSync(join(AQUI, '..', 'scripts', 'instalar-kywai.ps1'), join(SALIDA, 'install.ps1'))
+// Archivos que tienen que estar en la raíz de kywai.app tal cual, como el de verificación de TikTok for Developers
+// («Verify URL properties» → URL prefix https://kywai.app/).
+cpSync(join(AQUI, 'raiz'), SALIDA, { recursive: true })
+// Términos del servicio y política de privacidad (en español e inglés): las piden TikTok y Meta para las apps de
+// desarrollador con las que kywai publica en sus cuentas. Quedan en kywai.app/terminos/ y kywai.app/privacidad/.
+for (const pagina of ['terminos', 'privacidad']) {
+  const html = readFileSync(join(AQUI, 'legal', `${pagina}.html`), 'utf8')
+  mkdirSync(join(SALIDA, pagina), { recursive: true })
+  writeFileSync(join(SALIDA, pagina, 'index.html'), PREVIEW ? html.replace(/href="\.\.\/((?:terminos|privacidad)\/)?"/g, (m, d) => `href="../${d ?? ''}index.html"`) : html)
+}
 
 const ruta = (desde, hacia) => {
   // Enlace relativo de la página de «desde» a la de «hacia».
