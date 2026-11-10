@@ -1383,6 +1383,22 @@ Al abrir un archivo, el visor deja pasar con ‹ › por toda la carpeta. Cada c
 todos sus archivos. «Recién terminado» sigue arriba como antes. La regla es la misma en el escritorio, la web y
 Órbita (`src/shared/resultGroups.ts` y `android/…/orbita/ResultGroups.kt`: si cambias una, cambia la otra).
 
+### Archivos por petición
+
+La pestaña **Archivos** ya no es una lista larga de «Adjuntos» y «Generados»: va en **una carpeta plegable por
+petición**, es decir, por cada mensaje tuyo que puso al equipo a trabajar. El título es la primera línea de tu
+mensaje y, dentro, salen primero **tus adjuntos** de ese mensaje («Tu adjunto») y luego **todo lo que generó el
+equipo** para él, con el resultado principal delante (vídeo, luego página o documento, luego imágenes) y lo más nuevo
+primero. A diferencia de Resultados (una carpeta por tarea), aquí una petición que se repartió en varias tareas, como
+un `/video`, queda junta en una sola carpeta.
+
+Un archivo llega a su petición por su tarea (tarea → ejecución → tu mensaje). Si tu mensaje ya no está cargado, la
+carpeta toma el título de la tarea; si el archivo no viene de ninguna tarea, se agrupa por la carpeta del disco, como
+en Resultados. Los adjuntos que no van en ningún mensaje (aún sin enviar o de otra conversación) quedan al final en
+«Otros adjuntos». Solo la petición más reciente sale abierta; arriba, **«Plegar todas» / «Desplegar todas»**, y la app
+recuerda qué carpetas abriste (`kywai.archivos.carpetas`). Cada carpeta con archivos generados tiene **Descargar como
+zip** y el visor deja pasar con ‹ › por toda la petición. La regla está en `src/shared/requestGroups.ts` (con su test).
+
 ### Reanudar lo interrumpido
 
 Si la app se cierra con trabajo a medias (al actualizar, reiniciar o por un fallo), el plan de esa petición

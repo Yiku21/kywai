@@ -1,39 +1,64 @@
-import { useId, useMemo } from 'react'
-import { ChevronRight, Paperclip, Sparkles } from 'lucide-react'
+import { useId, useMemo, useState } from 'react'
+import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Folder, FolderOpen, Paperclip } from 'lucide-react'
+import type { Artifact, Attachment } from '@shared/types'
+import { groupByRequest, LOOSE_ATTACHMENTS, ONLY_ATTACHMENTS, OTHER_FILES, type RequestGroup } from '@shared/requestGroups'
 import { useCowork, useData } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { fileSize } from '@/lib/format'
 import { fromAttachment, fromArtifact } from '@/lib/preview'
 import { useAgentLookup } from '../common/agents'
 import { FileTypeIcon, KindTile, ARTIFACT_KIND_LABEL } from '../common/icons'
-import { agentVars, cx, shortTime } from '../common/util'
+import { agentVars, cx, plural, shortTime } from '../common/util'
 import u from '../common/ui.module.css'
+import m from './Messages.module.css'
 import s from './Views.module.css'
 import { t } from '@/lib/i18n'
+import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 
-/** Pestaña Archivos: adjuntos del usuario y resultados generados. */
+/** Carpetas abiertas o cerradas (de este equipo). Sin anotar, solo está abierta la petición más reciente. */
+const OPEN_KEY = 'kywai.archivos.carpetas'
+function readOpen(): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}') as Record<string, boolean>
+  } catch {
+    return {}
+  }
+}
+function saveOpen(map: Record<string, boolean>): void {
+  try {
+    // Solo las últimas 200, para que no crezca sin fin.
+    localStorage.setItem(OPEN_KEY, JSON.stringify(Object.fromEntries(Object.entries(map).slice(-200))))
+  } catch {
+    /* sin almacenamiento: se olvida al cerrar */
+  }
+}
+
+function groupTitle(title: string): string {
+  if (title === LOOSE_ATTACHMENTS) return t('Otros adjuntos')
+  if (title === OTHER_FILES) return t('Otros archivos')
+  if (title === ONLY_ATTACHMENTS) return t('Solo archivos adjuntos')
+  return title
+}
+
+/** Pestaña Archivos: una carpeta plegable por petición, con lo que adjuntaste y lo que generó el equipo para ella. */
 export function FilesView() {
   const attachments = useData((d) => d.attachments)
   const artifactsMap = useData((d) => d.artifacts)
-  const mode = useCowork((st) => st.mode)
-  const project = useCowork((st) => st.live.project)
-  const openPreview = useCowork((st) => st.openPreview)
-  const lookup = useAgentLookup()
-  const idA = useId()
-  const idG = useId()
-
-  const artifacts = useMemo(
-    () => Object.values(artifactsMap).sort((a, b) => b.createdAt - a.createdAt),
-    [artifactsMap]
+  const messages = useData((d) => d.messages)
+  const tasks = useData((d) => d.tasks)
+  const groups = useMemo(
+    () => groupByRequest({ messages, tasks, artifacts: Object.values(artifactsMap), attachments }),
+    [messages, tasks, artifactsMap, attachments]
   )
-  const canOpen = !!api && mode === 'live' && !!project
-  const openTitle = canOpen
-    ? undefined
-    : mode === 'demo'
-      ? t('Abrir archivos está disponible en modo real')
-      : t('Sin motor de agentes: abre la app de escritorio')
+  const [open, setOpen] = useState<Record<string, boolean>>(readOpen)
+  const isOpen = (key: string, i: number): boolean => open[key] ?? i === 0
+  const update = (next: Record<string, boolean>): void => {
+    saveOpen(next)
+    setOpen(next)
+  }
+  const anyOpen = groups.some((g, i) => isOpen(g.key, i))
 
-  if (attachments.length === 0 && artifacts.length === 0) {
+  if (groups.length === 0) {
     return (
       <div className={s.scroll}>
         <div className={u.empty}>
@@ -51,71 +76,135 @@ export function FilesView() {
 
   return (
     <div className={s.scroll}>
-      <section className={s.section} aria-labelledby={idA}>
-        <h3 className={u.sectionLabel} id={idA}>
-          {t('Adjuntos')} <span className={u.count}>{attachments.length}</span>
+      <div className={s.filesBar}>
+        <h3 className={u.sectionLabel}>
+          {t('Por petición')} <span className={u.count}>{groups.length}</span>
         </h3>
-        {attachments.length === 0 ? (
-          <p className={s.sectionEmpty}>{t('Todavía no has adjuntado archivos.')}</p>
-        ) : (
-          <ul className={s.rows}>
-            {attachments.map((a) => (
-              <li key={a.id}>
-                <button
-                  type="button"
-                  className={cx(s.fileRow, !canOpen && s.rowStatic)}
-                  disabled={!canOpen}
-                  title={openTitle ?? t('Ver {name}', { name: a.name })}
-                  onClick={() => {
-                    if (project) openPreview(attachments.map((x) => fromAttachment(x, project.id)), attachments.indexOf(a))
-                  }}
-                >
-                  <span className={s.fileIcon}>
-                    <FileTypeIcon name={a.name} mime={a.mime} size={17} />
+        {groups.length > 1 && (
+          <button
+            type="button"
+            className={s.workToggle}
+            onClick={() => update({ ...open, ...Object.fromEntries(groups.map((g) => [g.key, !anyOpen])) })}
+          >
+            {anyOpen ? <ChevronsDownUp size={14} aria-hidden="true" /> : <ChevronsUpDown size={14} aria-hidden="true" />}
+            {anyOpen ? t('Plegar todas') : t('Desplegar todas')}
+          </button>
+        )}
+      </div>
+      <ul className={s.resultFolders} aria-label={t('Archivos por petición')}>
+        {groups.map((g, i) => (
+          <li key={g.key}>
+            <RequestFolder group={g} open={isOpen(g.key, i)} onToggle={() => update({ ...open, [g.key]: !isOpen(g.key, i) })} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** Una petición: cabecera plegable con tu mensaje y, dentro, tus adjuntos y lo que generó el equipo. */
+function RequestFolder({ group, open, onToggle }: { group: RequestGroup; open: boolean; onToggle: () => void }) {
+  const lookup = useAgentLookup()
+  const mode = useCowork((st) => st.mode)
+  const project = useCowork((st) => st.live.project)
+  const openPreview = useCowork((st) => st.openPreview)
+  const [error, setError] = useState<string | null>(null)
+  const listId = useId()
+  const title = groupTitle(group.title)
+  const total = group.attachments.length + group.generated.length
+  const authors = [...new Set(group.generated.map((a) => lookup(a.agentId).name))]
+  const color = group.generated[0] ? lookup(group.generated[0].agentId).color : undefined
+
+  const canOpen = !!api && mode === 'live' && !!project
+  const openTitle = canOpen
+    ? undefined
+    : mode === 'demo'
+      ? t('Abrir archivos está disponible en modo real')
+      : t('Sin motor de agentes: abre la app de escritorio')
+  // El visor deja pasar con ‹ › por toda la petición (los adjuntos solo si se pueden abrir aquí).
+  const shownAtts = canOpen ? group.attachments : []
+  const items = () => [...(project ? shownAtts.map((a) => fromAttachment(a, project.id)) : []), ...group.generated.map(fromArtifact)]
+  const openAttachment = (a: Attachment): void => openPreview(items(), shownAtts.indexOf(a))
+  const openArtifact = (a: Artifact): void => openPreview(items(), shownAtts.length + group.generated.indexOf(a))
+
+  return (
+    <section className={cx(m.folder, open && m.folderOpen)} style={color ? agentVars(color) : undefined} aria-label={title}>
+      <div className={m.folderHead}>
+        <button type="button" className={m.folderToggle} aria-expanded={open} aria-controls={listId} onClick={onToggle}>
+          <span className={m.folderIcon} aria-hidden="true">
+            {open ? <FolderOpen size={20} /> : <Folder size={20} />}
+          </span>
+          <span className={s.folderInfo}>
+            <span className={s.folderTitle} title={title}>
+              {title}
+            </span>
+            <span className={s.folderMeta}>
+              {[
+                plural(total, t('archivo'), t('archivos')),
+                group.attachments.length ? plural(group.attachments.length, t('adjunto'), t('adjuntos')) : '',
+                authors.join(', '),
+                group.newest ? shortTime(group.newest) : ''
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          </span>
+          <ChevronDown size={16} aria-hidden="true" className={m.folderChevron} />
+        </button>
+        {group.generated.length > 0 && (
+          <ArtifactDownloadButton projectId={group.generated[0].projectId} ids={group.generated.map((a) => a.id)} name={title} onError={setError} />
+        )}
+      </div>
+      {error && (
+        <p className={m.resumeError} role="alert">
+          {error}
+        </p>
+      )}
+      {open && (
+        <ul id={listId} className={cx(s.rows, s.folderBody)}>
+          {group.attachments.map((a) => (
+            <li key={`att-${a.id}`}>
+              <button
+                type="button"
+                className={cx(s.fileRow, !canOpen && s.rowStatic)}
+                disabled={!canOpen}
+                title={openTitle ?? t('Ver {name}', { name: a.name })}
+                onClick={() => openAttachment(a)}
+              >
+                <span className={s.fileIcon}>
+                  <FileTypeIcon name={a.name} mime={a.mime} size={17} />
+                </span>
+                <span className={s.fileMain}>
+                  <span className={s.fileName}>{a.name}</span>
+                  <span className={s.fileMeta}>
+                    <Paperclip size={11} aria-hidden="true" />
+                    {t('Tu adjunto')} · {fileSize(a.size)}
                   </span>
+                </span>
+                {canOpen && <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />}
+              </button>
+            </li>
+          ))}
+          {group.generated.map((a) => {
+            const look = lookup(a.agentId)
+            return (
+              <li key={a.id}>
+                <button type="button" className={s.fileRow} onClick={() => openArtifact(a)} title={t('Ver {name}', { name: a.name })}>
+                  <KindTile kind={a.kind} size={34} />
                   <span className={s.fileMain}>
                     <span className={s.fileName}>{a.name}</span>
-                    <span className={s.fileMeta}>{fileSize(a.size)}</span>
+                    <span className={s.fileMeta}>
+                      <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
+                      {look.name} · {ARTIFACT_KIND_LABEL[a.kind]} · {fileSize(a.size)} · {shortTime(a.createdAt)}
+                    </span>
                   </span>
-                  {canOpen && <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />}
+                  <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />
                 </button>
               </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className={s.section} aria-labelledby={idG}>
-        <h3 className={u.sectionLabel} id={idG}>
-          {t('Generados')} <span className={u.count}>{artifacts.length}</span>
-        </h3>
-        {artifacts.length === 0 ? (
-          <p className={s.sectionEmpty}>
-            <Sparkles size={13} aria-hidden="true" /> {t('Los resultados del equipo aparecerán aquí.')}
-          </p>
-        ) : (
-          <ul className={s.rows}>
-            {artifacts.map((a) => {
-              const look = lookup(a.agentId)
-              return (
-                <li key={a.id}>
-                  <button type="button" className={s.fileRow} onClick={() => openPreview(artifacts.map(fromArtifact), artifacts.indexOf(a))} title={t('Ver {name}', { name: a.name })}>
-                    <KindTile kind={a.kind} size={34} />
-                    <span className={s.fileMain}>
-                      <span className={s.fileName}>{a.name}</span>
-                      <span className={s.fileMeta}>
-                        <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
-                        {look.name} · {ARTIFACT_KIND_LABEL[a.kind]} · {fileSize(a.size)} · {shortTime(a.createdAt)}
-                      </span>
-                    </span>
-                    <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
-    </div>
+            )
+          })}
+        </ul>
+      )}
+    </section>
   )
 }
