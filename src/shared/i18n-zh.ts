@@ -767,6 +767,8 @@ export const zh: Record<string, string> = {
   "Pensando o escribiendo algo largo · sin novedades desde hace {time}": "正在思考或编写较长内容 · 已 {time} 没有新动态",
   "Este agente no informa de sus pasos: se ve cuánto lleva, sin inventar un porcentaje": "该智能体不报告步骤：显示已用时间，不编造百分比",
   "Lleva {elapsed}; las tareas parecidas suelen tardar unos {expected}. {hint}": "已用 {elapsed}；类似任务通常需要约 {expected}。{hint}",
+  "{name} empieza la tarea": "{name} 开始执行任务",
+  "Recibido. Va directo a este agente, sin plan: está leyendo el encargo.": "已收到。无需计划，直接交给该智能体：它正在阅读任务说明。",
   "{name} prepara el plan": "{name} 正在制定计划",
   "Recibido. Decide qué agentes lo hacen y cómo; cuando lo tenga, empiezan.": "已收到。正在决定由哪些智能体以及如何完成；计划一出，它们就开始。",
   "Corrigiendo": "修正中",

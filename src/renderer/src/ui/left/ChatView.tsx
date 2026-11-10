@@ -8,17 +8,21 @@ import { useNow } from '../common/hooks'
 import { agentVars, cx, formatDuration } from '../common/util'
 import { useComposer } from './composerStore'
 import { markInElement } from '@/lib/searchText'
+import { planningRowAgent } from '@shared/planningRow'
 import s from './ChatView.module.css'
 import { t } from '@/lib/i18n'
 
 /**
  * Respuesta inmediata al enviar: mientras el coordinador prepara el plan (no escribe nada hasta tenerlo, de 10 s a
  * un minuto), se ve que la petición llegó, quién la está planificando y cuánto lleva. Desaparece con su respuesta.
+ * Si la petición no pasa por un plan («/video …», «@Agente …») ya tiene su tarea: se nombra a quien la empieza, que
+ * es lo mismo que enseña el espacio 3D, y no al coordinador, que ahí no hace nada.
  */
 function PlanningRow() {
   const messages = useData((d) => d.messages)
   const active = useData((d) => d.activeRunIds)
   const runtimes = useData((d) => d.runtimes)
+  const tasks = useData((d) => d.tasks)
   const plannerOrder = useCowork((st) => st.config.plannerOrder)
   const reduced = useCowork((st) => st.reducedEffects)
   const lookup = useAgentLookup()
@@ -28,13 +32,14 @@ function PlanningRow() {
   if (!waiting) return null
   // Quien planifica está «pensando» sin tarea; si no se ve, el primero del orden de coordinadores.
   const planner = Object.values(runtimes).find((r) => r.activity === 'thinking' && !r.taskId)?.agentId ?? plannerOrder[0]
-  const look = lookup(planner)
+  const who = planningRowAgent(last, Object.values(tasks), planner)
+  const look = lookup(who.agentId)
   return (
     <div className={s.planning} role="status" style={agentVars(look.color)}>
       <AgentAvatar look={look} size={28} />
       <div className={s.planningBody}>
         <span className={s.planningTitle}>
-          {t('{name} prepara el plan', { name: look.name })}
+          {who.planning ? t('{name} prepara el plan', { name: look.name }) : t('{name} empieza la tarea', { name: look.name })}
           <span className={cx(s.planningDots, !reduced && s.planningDotsAnim)} aria-hidden="true">
             <span />
             <span />
@@ -42,7 +47,9 @@ function PlanningRow() {
           </span>
           <span className={s.planningClock}>{formatDuration(now - last.createdAt)}</span>
         </span>
-        <span className={s.planningSub}>{t('Recibido. Decide qué agentes lo hacen y cómo; cuando lo tenga, empiezan.')}</span>
+        <span className={s.planningSub}>
+          {who.planning ? t('Recibido. Decide qué agentes lo hacen y cómo; cuando lo tenga, empiezan.') : t('Recibido. Va directo a este agente, sin plan: está leyendo el encargo.')}
+        </span>
       </div>
     </div>
   )

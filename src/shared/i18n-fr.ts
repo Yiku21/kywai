@@ -767,6 +767,8 @@ export const fr: Record<string, string> = {
   "Pensando o escribiendo algo largo · sin novedades desde hace {time}": "Réflexion ou rédaction de quelque chose de long · rien de nouveau depuis {time}",
   "Este agente no informa de sus pasos: se ve cuánto lleva, sin inventar un porcentaje": "Cet agent n'indique pas ses étapes : on voit depuis combien de temps il travaille, sans pourcentage inventé",
   "Lleva {elapsed}; las tareas parecidas suelen tardar unos {expected}. {hint}": "En cours depuis {elapsed} ; les tâches similaires prennent environ {expected}. {hint}",
+  "{name} empieza la tarea": "{name} commence la tâche",
+  "Recibido. Va directo a este agente, sin plan: está leyendo el encargo.": "Reçu. Cela va directement à cet agent, sans plan : il lit la consigne.",
   "{name} prepara el plan": "{name} prépare le plan",
   "Recibido. Decide qué agentes lo hacen y cómo; cuando lo tenga, empiezan.": "Reçu. Il décide quels agents s'en chargent et comment ; dès que le plan est prêt, ils commencent.",
   "Corrigiendo": "Correction",

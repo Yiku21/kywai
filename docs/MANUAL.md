@@ -1274,7 +1274,9 @@ dentro de la carpeta de datos. Funciona con Claude, Codex, Gemini, Qwen Code y l
 ### Cómo se ve que una tarea avanza
 
 kywai no se inventa el avance. Nada más enviar tu petición aparece una fila con el coordinador **preparando el
-plan**, con puntos animados y un reloj, para que veas que se ha recibido aunque el plan tarde unos segundos. Cada
+plan**, con puntos animados y un reloj, para que veas que se ha recibido aunque el plan tarde unos segundos. Si la
+petición no pasa por un plan («/video …» o «@Agente …»), esa fila nombra al agente que **empieza la tarea**, el
+mismo que se ve trabajando en el espacio 3D, y no al coordinador. Cada
 tarea en marcha enseña sus **etapas reales**: Trabajando (o Corrigiendo) → Pruebas → Verificación → Lista; el punto
 de la etapa actual late y cambia solo cuando el motor pasa de verdad a la siguiente. Debajo, el reloj de lo que
 lleva y lo último que hizo el agente. El porcentaje solo sale si el agente informa de sus pasos; si no, la barra

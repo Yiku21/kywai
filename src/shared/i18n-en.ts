@@ -852,6 +852,8 @@ export const en: Record<string, string> = {
   'Pensando o escribiendo algo largo · sin novedades desde hace {time}': 'Thinking or writing something long · nothing new for {time}',
   'Este agente no informa de sus pasos: se ve cuánto lleva, sin inventar un porcentaje': 'This agent doesn\'t report its steps: you see how long it has been working, without a made-up percentage',
   'Lleva {elapsed}; las tareas parecidas suelen tardar unos {expected}. {hint}': 'Running for {elapsed}; similar tasks usually take about {expected}. {hint}',
+  '{name} empieza la tarea': '{name} is starting the task',
+  'Recibido. Va directo a este agente, sin plan: está leyendo el encargo.': 'Received. It goes straight to this agent, with no plan: it is reading the brief.',
   '{name} prepara el plan': '{name} is preparing the plan',
   'Recibido. Decide qué agentes lo hacen y cómo; cuando lo tenga, empiezan.': 'Received. It is deciding which agents do it and how; once the plan is ready, they start.',
   'Corrigiendo': 'Fixing',
