@@ -1880,7 +1880,14 @@ medio minuto tarda unos minutos.
 El material de trabajo (guion, voces, imágenes, música, composición) se guarda en la carpeta oculta
 `.ai-cowork/videos/` del proyecto: no sale en el chat ni en Entregables.
 
-**Instalar.** ⚙ → Ajustes → Extensiones → **Estudio de vídeo** dice qué tiene el equipo (motor, ffmpeg, voz,
+**Viene de serie.** No hace falta pulsar nada: unos 45 s después de arrancar, el servidor de kywai mira si el estudio
+está completo (HyperFrames, ffmpeg, la voz Kokoro, Manim y los estilos de película) y, si falta algo, lo instala solo
+en segundo plano mientras usas la app (Ajustes lo enseña como «Instalando…» y se pone al día solo). Si una vez no
+termina (sin red, sin Python…), lo vuelve a intentar al día siguiente, no en cada arranque; el registro queda en
+`estudio-video/instalacion.log`. Con la variable `KYWAI_NO_VIDEO_AUTOINSTALL=1` no se instala solo. FreeVideo, ComfyUI
+y Voicebox no entran: son opcionales y se instalan aparte.
+
+**Instalar a mano.** ⚙ → Ajustes → Extensiones → **Estudio de vídeo** dice qué tiene el equipo (motor, ffmpeg, voz,
 imágenes) y **«Instalar lo que falta»** lo instala en el equipo donde corren los agentes (también si lo pulsas desde
 la web): HyperFrames y GSAP en la carpeta `estudio-video` de la carpeta de trabajo (versiones fijas, para que un guion
 se monte igual dentro de meses), ffmpeg (Homebrew en macOS, winget en Windows; en Linux, con tu gestor de paquetes),

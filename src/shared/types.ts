@@ -1456,6 +1456,8 @@ export interface VideoStudioStatus {
   films?: { library: boolean; painted: boolean }
   /** FreeVideo (MiniMax H3) en este equipo: instalado y abierto; da movimiento a las escenas clave. */
   freevideo?: { installed: boolean; ready: boolean; problem?: string }
+  /** kywai está instalando el estudio ahora (al arrancar lo hace solo, en segundo plano). */
+  installing?: boolean
   /** Kokoro instalado (la voz de reserva si Gemini falla). */
   kokoro: boolean
   /** «comfyui» si hay un ComfyUI encendido con modelo (el de por defecto), «gemini» si hay clave; null: fondos de diseño. */

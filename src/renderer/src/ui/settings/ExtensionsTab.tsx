@@ -878,6 +878,13 @@ function VideoSection() {
 
   const [ext, setExt] = useState<{ kind: 'skill' | 'plugin' | 'mcp'; name: string; desc: string }[]>([])
 
+  // Mientras kywai lo instala solo, la lista se pone al día cada 15 s.
+  useEffect(() => {
+    if (!live || busy || !status?.installing) return
+    const id = setInterval(() => api!.videoStudioStatus().then(setStatus, () => undefined), 15_000)
+    return () => clearInterval(id)
+  }, [live, busy, status?.installing])
+
   useEffect(() => {
     if (!live) return
     api!.videoStudioStatus().then(setStatus, (e) => setError(errorText(e)))
@@ -974,6 +981,7 @@ function VideoSection() {
       ]
     : []
   const complete = !!status && status.ready && status.kokoro && !!status.manim && !!status.films?.library && !!status.films?.painted
+  const autoInstalling = !busy && !!status?.installing
 
   return (
     <>
@@ -997,11 +1005,12 @@ function VideoSection() {
       )}
       {live && (
         <div className={s.searchRow}>
-          <button type="button" className={cx(u.btn, u.btnSm, !complete && u.btnPrimary)} disabled={busy || !status} onClick={install}>
-            {busy ? t('Instalando… (puede tardar varios minutos)') : complete ? t('Comprobar e instalar otra vez') : t('Instalar lo que falta')}
+          <button type="button" className={cx(u.btn, u.btnSm, !complete && u.btnPrimary)} disabled={busy || autoInstalling || !status} onClick={install}>
+            {busy || autoInstalling ? t('Instalando… (puede tardar varios minutos)') : complete ? t('Comprobar e instalar otra vez') : t('Instalar lo que falta')}
           </button>
         </div>
       )}
+      {live && autoInstalling && <p className={s.muted}>{t('kywai lo está instalando solo, en segundo plano: puedes seguir usando la app.')}</p>}
       {error && (
         <p className={s.error} role="alert">
           {error}

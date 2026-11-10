@@ -193,7 +193,38 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
     films: { library: lemoReady(filmPaths(root).lib), painted: kitReady(filmPaths(root).kit) },
     freevideo: fv,
     gemini: key,
+    installing: !!installing,
     node, python, ready: engine && ffmpeg && ffprobe }
+}
+
+/** Lo que trae kywai por defecto ya está (FreeVideo, ComfyUI y Voicebox son aparte y opcionales). */
+export function studioComplete(s: VideoStudioStatus): boolean {
+  return s.ready && s.kokoro && !!s.manim && !!s.films?.library && !!s.films?.painted
+}
+
+/**
+ * El estudio de vídeo viene de serie: al arrancar el servidor, si falta algo, kywai lo instala solo en segundo plano
+ * (sin pulsar «Instalar lo que falta»). Si una vez no termina, lo vuelve a intentar al día siguiente, no en cada
+ * arranque. KYWAI_NO_VIDEO_AUTOINSTALL=1 lo desactiva. El registro queda en estudio-video/instalacion.log.
+ */
+export async function autoInstallVideoStudio(now = Date.now()): Promise<'complete' | 'waiting' | 'installed' | 'incomplete' | 'off'> {
+  if (!root || process.env.KYWAI_NO_VIDEO_AUTOINSTALL === '1') return 'off'
+  if (studioComplete(await videoStudioStatus())) return 'complete'
+  const marker = join(root, '.instalacion-automatica.json')
+  try {
+    const last = JSON.parse(readFileSync(marker, 'utf8')) as { at?: number }
+    if (typeof last.at === 'number' && now - last.at < 24 * 3600_000) return 'waiting'
+  } catch {
+    // Primera vez.
+  }
+  mkdirSync(root, { recursive: true })
+  writeFileSync(marker, JSON.stringify({ at: now }))
+  const log: string[] = []
+  const st = await ensureVideoStudio((l) => {
+    if (log.length < 2000) log.push(l.slice(0, 400))
+  })
+  writeFileSync(join(root, 'instalacion.log'), log.join('\n'))
+  return studioComplete(st) ? 'installed' : 'incomplete'
 }
 
 /**

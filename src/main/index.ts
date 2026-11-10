@@ -98,7 +98,7 @@ import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
-import { initVideoStudio, ensureVideoStudio, videoStudioStatus } from './videoStudio'
+import { initVideoStudio, ensureVideoStudio, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
 import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
 // Las imágenes de los robots van empaquetadas con la app: son la referencia del personaje «Robots de kywai».
 import hermesRobot from '../renderer/src/assets/robots/hermes.png?asset'
@@ -1088,6 +1088,8 @@ async function boot(): Promise<void> {
   initSkills(cfg.workspaceRoot)
   initPonytail(cfg.workspaceRoot)
   initVideoStudio(cfg.workspaceRoot)
+  // El estudio de vídeo viene de serie: lo que falte se instala solo, en segundo plano y sin frenar el arranque.
+  setTimeout(() => void autoInstallVideoStudio().catch(() => undefined), 45_000)
   initVideoCharacters(cfg.workspaceRoot, [hermesRobot, claudeRobot, codexRobot])
   initExtensions(new McpRegistry(join(app.getPath('userData'), 'mcp-servers.json'), systemCipher))
   initPlugins(app.getPath('userData'))

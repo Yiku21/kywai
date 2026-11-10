@@ -2845,4 +2845,5 @@ export const zh: Record<string, string> = {
   "Instalados: la biblioteca Lemo-Opuscar y el kit de animación pintada con los robots": "已安装：Lemo-Opuscar 风格库和机器人手绘动画套件",
   "Instalados a medias: «Instalar lo que falta» completa el resto": "部分已安装：点击「安装缺少的内容」补全其余部分",
   "Falta (opcional): «Instalar lo que falta» los instala, o se instalan solos con el primer vídeo con estilo": "缺少（可选）：点击「安装缺少的内容」安装，或在第一个风格视频时自动安装",
+  "kywai lo está instalando solo, en segundo plano: puedes seguir usando la app.": "kywai 正在后台自动安装：你可以继续使用应用。",
 }

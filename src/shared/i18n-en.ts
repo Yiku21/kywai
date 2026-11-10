@@ -2964,4 +2964,5 @@ export const en: Record<string, string> = {
   "Instalados: la biblioteca Lemo-Opuscar y el kit de animación pintada con los robots": "Installed: the Lemo-Opuscar library and the hand-painted animation kit with the robots",
   "Instalados a medias: «Instalar lo que falta» completa el resto": "Partly installed: “Install what's missing” completes the rest",
   "Falta (opcional): «Instalar lo que falta» los instala, o se instalan solos con el primer vídeo con estilo": "Missing (optional): “Install what's missing” installs them, or they install themselves with the first styled video",
+  "kywai lo está instalando solo, en segundo plano: puedes seguir usando la app.": "kywai is installing it on its own in the background: you can keep using the app.",
 }
