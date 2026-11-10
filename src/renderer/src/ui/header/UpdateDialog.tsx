@@ -57,7 +57,7 @@ export function UpdateDialog({ onClose }: { onClose: () => void }) {
         setUpdating(false)
         void check()
       } else if (status?.release && !status.release.selfInstall) {
-        // Mac: solo se abre la página de descarga de GitHub; la app sigue abierta.
+        // Esta app no se cambia sola (un Mac con la app en el .dmg): solo se abre la página de descarga; sigue abierta.
         setUpdating(false)
       }
     } catch (e) {

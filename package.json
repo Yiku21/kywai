@@ -106,6 +106,12 @@
       ],
       "icon": "build/icon.png",
       "category": "public.app-category.developer-tools",
+      "extraResources": [
+        {
+          "from": "scripts/firmar-mac.sh",
+          "to": "firmar-mac.sh"
+        }
+      ],
       "artifactName": "kywai-${version}-${arch}.${ext}",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "kywai usa el micrófono para dictar tareas (la voz se convierte en texto en este equipo).",

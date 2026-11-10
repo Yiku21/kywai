@@ -153,19 +153,27 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
 
 - **Se actualiza sola.** Esas versiones traen `app-update.yml` y, al abrirse (y cada 6 horas), buscan la última
   Release (`src/main/updater.ts`). En Windows y en el AppImage la descargan y, si llega en los primeros 5 minutos
-  desde que se abrió, la instalan y la app se reabre sola; si llega más tarde, se instala al cerrar. En el Mac, como
-  no va firmada por Apple, no puede reemplazarse sola: avisa con «Descargar» y abre la página de la Release.
+  desde que se abrió, la instalan y la app se reabre sola; si llega más tarde, se instala al cerrar. **En el Mac igual**
+  (desde el 10 nov 2026): como no va firmada por Apple, electron-updater no sabe reemplazarla, así que lo hace
+  `src/main/macUpdate.ts`. Baja de la Release el `.zip` de su arquitectura (arm64 o x64), comprueba la huella sha512
+  de `latest-mac.yml`, lo descomprime con `ditto` en una carpeta oculta junto a la app (`.kywai-actualizacion`) y un
+  script aparte, cuando kywai se cierra, cambia la `.app` vieja por la nueva (si algo falla, deja la vieja), le quita la
+  cuarentena y la reabre. Si la app trae `firmar-mac.sh` (va dentro desde esta versión), la nueva se firma con el
+  certificado propio de ese Mac, para que macOS no vuelva a pedir los permisos en cada versión. Solo si la app está
+  donde no se puede escribir (abierta desde el `.dmg`, «translocada» por macOS o en una carpeta sin permiso) avisa con
+  «Descargar» y abre la página de la Release como antes. Las apps del Mac anteriores a este cambio aún abren la página:
+  hay que descargar la nueva una última vez a mano.
 - **«Buscar actualizaciones…»** en esas versiones no usa git: pregunta a GitHub y espera la respuesta. Dice la versión
   instalada y si es la última («Tienes la última versión (0.1.N), comprobado en GitHub») o si hay una nueva: en
-  Windows y en el AppImage se está descargando y el botón «Instalar y reiniciar» la instala ya (o en cuanto termine de
-  bajar); en el Mac, «Descargar» abre la Release. Aunque quede anotado un clon de git de una instalación anterior con
+  Windows, en el AppImage y en el Mac se está descargando y el botón «Instalar y reiniciar» la instala ya (o en cuanto
+  termine de bajar); solo un Mac que no puede cambiarse solo muestra «Descargar», que abre la Release. Aunque quede anotado un clon de git de una instalación anterior con
   `instalar-linux.sh` o `instalar-mac.sh` (`source-dir.txt` en la carpeta de datos), la app de la Release lo ignora y
   se actualiza desde GitHub.
 - **También en modo cliente.** Un Linux o un Mac con la app de la Release conectado a otro kywai busca igual su versión
   nueva en GitHub al abrirse y cada 6 horas (antes no lo hacía: «Buscar actualizaciones» mira el servidor, que estaba
   al día, y contestaba «Tienes la última versión» aunque este equipo fuera viejo). ⚙ → Ajustes → «Actualizar este
-  equipo…» también pregunta a GitHub: dice la versión, y un segundo toque la instala y reabre (AppImage) o abre la
-  descarga (Mac). Los clientes de Windows siguen actualizándose desde su servidor.
+  equipo…» también pregunta a GitHub: dice la versión, y un segundo toque la instala y reabre (AppImage y Mac; abre la
+  descarga solo si el Mac no puede cambiarse solo). Los clientes de Windows siguen actualizándose desde su servidor.
 - **Sin firma de código:** Windows avisa con SmartScreen («Más información» → «Ejecutar de todas formas»). En el Mac
   va firmada «ad hoc»: la primera vez, clic derecho → Abrir; si dice que está dañada,
   `xattr -cr "/Applications/kywai.app"`.

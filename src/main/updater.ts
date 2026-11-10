@@ -3,8 +3,10 @@
 // no lo traen y se actualizan con «Buscar actualizaciones» desde su clon de git (selfUpdate.ts).
 //
 // Al abrirse, la app busca la última versión. En Windows y en el AppImage de Linux la descarga y, si llega en los
-// primeros minutos, se reinicia ya con ella; si llega más tarde, se instala al cerrar. En el Mac la versión
-// descargada no va firmada por Apple y no se puede reemplazar sola: avisa y abre la página de descarga.
+// primeros minutos, se reinicia ya con ella; si llega más tarde, se instala al cerrar. En el Mac pasa lo mismo, pero
+// la descarga y el cambio de la .app los hace macUpdate.ts: la app no va firmada por Apple y electron-updater no sabe
+// reemplazarla. Solo si la app del Mac está donde no se puede escribir (abierta desde el .dmg, por ejemplo) avisa y
+// abre la página de descarga.
 // También en modo cliente (un Linux o un Mac conectado a otro kywai): esa app es la de este equipo y se actualiza
 // desde GitHub igual. Los clientes de Windows se actualizan desde su servidor (client.ts), no desde aquí.
 import { app, BrowserWindow, dialog, Notification, shell } from 'electron'
@@ -13,6 +15,7 @@ import { join } from 'node:path'
 import { autoUpdater, type UpdateInfo } from 'electron-updater'
 import { tr } from '@shared/i18n'
 import type { ReleaseUpdate } from '@shared/types'
+import { downloadMacUpdate, macCanSelfInstall, swapMacApp } from './macUpdate'
 
 const RELEASES_URL = 'https://github.com/Yiku21/kywai/releases/latest'
 /** Si la versión nueva se descarga antes de esto desde el arranque, se instala ya y la app se reabre. */
@@ -28,6 +31,11 @@ let downloading = ''
 let downloadedVersion = ''
 /** Se pidió instalar mientras bajaba: se instala en cuanto termine. */
 let installWhenReady = false
+const IS_MAC = process.platform === 'darwin'
+/** Mac: la .app nueva ya descomprimida, lista para cambiarla por la instalada. */
+let macNewApp = ''
+/** Mac: ya se lanzó el cambio de la app (para no lanzarlo dos veces). */
+let macSwapStarted = false
 
 
 /** true si esta app es una versión de GitHub Releases, que se actualiza sola. */
@@ -35,11 +43,52 @@ export function isReleaseBuild(): boolean {
   return app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml'))
 }
 
-/** En Windows y en el AppImage de Linux se puede instalar sola; en el Mac no (sin firma de Apple). */
+/** En Windows, en el AppImage de Linux y en el Mac (si la app está en una carpeta donde se puede escribir) se instala sola. */
 function canSelfInstall(): boolean {
   if (process.platform === 'win32') return true
   if (process.platform === 'linux') return Boolean(process.env.APPIMAGE)
+  if (IS_MAC) return macCanSelfInstall()
   return false
+}
+
+/** Cierra kywai y lo reabre con la versión descargada. */
+function installDownloaded(delay: number): void {
+  if (IS_MAC) {
+    if (macSwapStarted) return
+    macSwapStarted = true
+    setTimeout(() => {
+      if (!swapMacApp(macNewApp, true)) macSwapStarted = false
+    }, delay)
+    return
+  }
+  setTimeout(() => autoUpdater.quitAndInstall(true, true), delay)
+}
+
+/** Mac: baja la versión nueva nosotros (electron-updater no puede) y avisa como si la hubiera bajado él. */
+function downloadOnMac(info: UpdateInfo): void {
+  downloadMacUpdate(info)
+    .then((path) => {
+      macNewApp = path
+      onDownloaded(info)
+    })
+    .catch((error: unknown) => {
+      console.error('[updater] No se pudo bajar la versión del Mac:', error)
+      downloading = ''
+      installWhenReady = false
+    })
+}
+
+function onDownloaded(info: UpdateInfo): void {
+  console.info('[updater] Actualización descargada:', info.version)
+  downloading = ''
+  downloadedVersion = info.version
+  if (installWhenReady || Date.now() - startedAt < INSTALL_NOW_MS) {
+    notify(tr('Instalando la versión {version}. kywai se reabre solo.', { version: info.version }))
+    // Sin preguntas y reabriendo la app al terminar.
+    installDownloaded(1500)
+  } else {
+    notify(tr('La versión {version} se instalará al cerrar kywai.', { version: info.version }))
+  }
 }
 
 function notify(body: string): void {
@@ -98,7 +147,7 @@ export async function checkRelease(): Promise<ReleaseUpdate> {
 
 /**
  * Instala la versión nueva ya: si está descargada, cierra y reabre kywai con ella; si aún baja, lo hace al terminar.
- * En el Mac abre la página de descarga. Devuelve un mensaje si no hay nada que instalar.
+ * Si esta app no puede cambiarse sola (un Mac con la app en el .dmg, por ejemplo), abre la página de descarga. Devuelve un mensaje si no hay nada que instalar.
  */
 export async function installRelease(): Promise<string> {
   if (!initialized) return tr('Esta versión no se actualiza desde GitHub.')
@@ -107,14 +156,14 @@ export async function installRelease(): Promise<string> {
     return ''
   }
   if (downloadedVersion) {
-    setTimeout(() => autoUpdater.quitAndInstall(true, true), 300)
+    installDownloaded(300)
     return ''
   }
   const r = downloading ? null : await checkRelease()
   if (r && r.state === 'current') return tr('Ya tienes la última versión')
   if (r && r.state === 'error') return r.message ?? tr('No se pudo consultar GitHub')
   if (downloadedVersion) {
-    setTimeout(() => autoUpdater.quitAndInstall(true, true), 300)
+    installDownloaded(300)
     return ''
   }
   installWhenReady = true
@@ -129,27 +178,31 @@ export function initUpdater(opts: { client?: boolean } = {}): void {
   initialized = true
   startedAt = Date.now()
   autoUpdater.logger = console
-  autoUpdater.autoDownload = canSelfInstall()
-  autoUpdater.autoInstallOnAppQuit = canSelfInstall()
+  // En el Mac la descarga y la instalación las hace macUpdate.ts, no electron-updater.
+  autoUpdater.autoDownload = canSelfInstall() && !IS_MAC
+  autoUpdater.autoInstallOnAppQuit = canSelfInstall() && !IS_MAC
 
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     console.info('[updater] Actualización disponible:', info.version)
-    if (canSelfInstall() && downloadedVersion !== info.version) downloading = info.version
-    if (canSelfInstall()) notify(tr('Descargando la versión {version}…', { version: info.version }))
-    else if (process.platform === 'darwin') void offerMacDownload(info)
-  })
-  autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
-    console.info('[updater] Actualización descargada:', info.version)
-    downloading = ''
-    downloadedVersion = info.version
-    if (installWhenReady || Date.now() - startedAt < INSTALL_NOW_MS) {
-      notify(tr('Instalando la versión {version}. kywai se reabre solo.', { version: info.version }))
-      // Sin preguntas y reabriendo la app al terminar.
-      setTimeout(() => autoUpdater.quitAndInstall(true, true), 1500)
-    } else {
-      notify(tr('La versión {version} se instalará al cerrar kywai.', { version: info.version }))
+    if (!canSelfInstall()) {
+      if (IS_MAC) void offerMacDownload(info)
+      return
     }
+    if (downloadedVersion === info.version || downloading === info.version) return
+    downloading = info.version
+    notify(tr('Descargando la versión {version}…', { version: info.version }))
+    if (IS_MAC) downloadOnMac(info)
   })
+  autoUpdater.on('update-downloaded', onDownloaded)
+  // Mac: si la nueva quedó descargada y no se instaló aún, se cambia al cerrar kywai (sin reabrirla).
+  if (IS_MAC) {
+    app.on('will-quit', () => {
+      if (macNewApp && !macSwapStarted) {
+        macSwapStarted = true
+        swapMacApp(macNewApp, false)
+      }
+    })
+  }
   autoUpdater.on('error', (error: Error) => {
     console.error('[updater] Error de actualización:', error)
     downloading = ''

@@ -1284,7 +1284,7 @@ export interface UpdateCommit {
 
 /** Lo que se sabe de la última versión en GitHub Releases para una app descargada de ahí. */
 export interface ReleaseUpdate {
-  /** current: al día · available: hay una nueva (en el Mac, para descargar a mano) · downloading: bajando ·
+  /** current: al día · available: hay una nueva (para descargar a mano) · downloading: bajando ·
    * downloaded: lista para instalar · error: no se pudo consultar. */
   state: 'current' | 'available' | 'downloading' | 'downloaded' | 'error'
   /** Versión instalada. */
@@ -1292,7 +1292,8 @@ export interface ReleaseUpdate {
   /** Última versión publicada (si se sabe). */
   latest?: string
   message?: string
-  /** true si esta app puede instalar la nueva sola (Windows y AppImage); en el Mac se descarga a mano. */
+  /** true si esta app puede instalar la nueva sola (Windows, AppImage y el Mac si la app está en una carpeta donde se
+   * puede escribir); si no, se descarga a mano. */
   selfInstall: boolean
 }
 
