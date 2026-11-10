@@ -1,8 +1,10 @@
 // Varios vídeos con un solo «/video»: «hazme 3 vídeos de…», «tres reels…», «varios vídeos…» o una lista «1) … 2) …».
-// kywai crea una tarea por vídeo (de 2 a 6) y a cada una le dice cuál le toca y qué ángulo cuenta, para que no salgan
+// kywai crea una tarea por vídeo (de 2 a 12, como mucho 6 a la vez) y a cada una le dice cuál le toca y qué ángulo cuenta, para que no salgan
 // iguales; se reparten entre los agentes libres y el usuario se encuentra todos al volver.
 
-export const MAX_BATCH = 6;
+export const MAX_BATCH = 12;
+/** Cuántos vídeos de una misma petición se hacen a la vez: con más, el resto espera a que acaben (por tandas). */
+export const BATCH_AT_ONCE = 6;
 /** «varios vídeos» sin número. */
 const SEVERAL = 3;
 

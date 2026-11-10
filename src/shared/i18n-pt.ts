@@ -2847,6 +2847,7 @@ export const pt: Record<string, string> = {
   "Para un vídeo con estilo hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.": "Um vídeo com estilo precisa de um agente com terminal (Claude, Codex, Gemini…) que funcione agora.",
   "Vídeo {n} de {total}": "Vídeo {n} de {total}",
   "No pude lanzar el vídeo: {msg}": "Não consegui iniciar o vídeo: {msg}",
+  "Son {total} vídeos: hago {n} a la vez y los demás empiezan solos cuando acaben esos.": "São {total} vídeos: faço {n} de cada vez e os outros começam sozinhos quando esses terminarem.",
   "{one} «{style}»: {label}": "{one} «{style}»: {label}",
   "{one}: {label}": "{one}: {label}",
   "Vídeo «{style}»: {label}": "Vídeo «{style}»: {label}",

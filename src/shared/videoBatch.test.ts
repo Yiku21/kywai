@@ -10,7 +10,8 @@ describe("varios vídeos con un solo /video", () => {
     expect(videoBatchOf("5 vídeos cortos de recetas")?.count).toBe(5);
     expect(videoBatchOf("genera varios vídeos de kywai")?.count).toBe(3);
     expect(videoBatchOf("make two videos about our app")?.count).toBe(2);
-    expect(videoBatchOf("crea 12 vídeos de gatos")?.count).toBe(6);
+    expect(videoBatchOf("crea 12 vídeos de gatos")?.count).toBe(12);
+    expect(videoBatchOf("crea 20 vídeos de gatos")?.count).toBe(12);
   });
 
   it("un número que es parte del tema no cuenta", () => {

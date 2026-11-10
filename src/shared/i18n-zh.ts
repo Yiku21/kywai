@@ -2847,6 +2847,7 @@ export const zh: Record<string, string> = {
   "Para un vídeo con estilo hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.": "风格视频需要一个现在可用的带终端的智能体（Claude、Codex、Gemini…）。",
   "Vídeo {n} de {total}": "第 {n} 个视频（共 {total} 个）",
   "No pude lanzar el vídeo: {msg}": "无法启动视频：{msg}",
+  "Son {total} vídeos: hago {n} a la vez y los demás empiezan solos cuando acaben esos.": "共 {total} 个视频：我一次做 {n} 个，其余的会在这些完成后自动开始。",
   "{one} «{style}»: {label}": "{one}「{style}」：{label}",
   "{one}: {label}": "{one}：{label}",
   "Vídeo «{style}»: {label}": "「{style}」视频：{label}",

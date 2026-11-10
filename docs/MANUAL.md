@@ -2230,12 +2230,13 @@ Mientras, la tarea dice por qué paso va («Poniendo la voz (2 de 6)», «Animan
 medio minuto tarda unos minutos.
 
 **Varios vídeos de una vez.** Si el `/video` pide varios («genérame 3 vídeos…», «tres reels…», «varios vídeos…»,
-o una lista «1) … 2) … 3) …»), kywai crea **una tarea por vídeo** (de 2 a 6; «varios» son 3) con el mismo tipo,
+o una lista «1) … 2) … 3) …»), kywai crea **una tarea por vídeo** (de 2 a 12; «varios» son 3) con el mismo tipo,
 personaje, estilo y voz. Cada encargo dice cuál es («vídeo 2 de 3») y qué le toca contar para que no salgan iguales:
 la idea de tu lista o, si no hay lista, un ángulo distinto (presentarlo, cómo funciona, un caso real, antes y después,
 trucos, la gran idea). Con un estilo de película, las tareas se reparten entre los agentes con terminal (Claude, Codex…)
 y se hacen a la vez; las que tocan al mismo agente esperan su turno solas. Cada MP4 llega al chat cuando termina y, al
-final, un resumen con todos. El número solo cuenta si va con una orden de crear («hazme 3 vídeos») o al principio:
+final, un resumen con todos. Con más de 6, kywai hace **6 a la vez** y los demás empiezan solos en cuanto acaban
+esos (por tandas, sin volver a pedirlo); el chat lo avisa. El número solo cuenta si va con una orden de crear («hazme 3 vídeos») o al principio:
 «/video los 5 vídeos más vistos» es un solo vídeo. Código: `src/shared/videoBatch.ts` y `sendVideo` en
 `src/main/orchestrator.ts`.
 

@@ -57,6 +57,14 @@ describe('varios vídeos con un solo /video', () => {
     }
   })
 
+  it('más de 6: todos en una petición, por tandas', async () => {
+    const before = store.snapshotProject(projectId).tasks.length
+    await sendMessage({ projectId, text: '/video hazme 8 vídeos de gatos', filePaths: [] })
+    await vi.waitFor(() => expect(store.snapshotProject(projectId).tasks.length).toBe(before + 8), { timeout: 10_000 })
+    expect(store.snapshotProject(projectId).tasks.at(-1)?.title.startsWith('Vídeo 8 de 8')).toBe(true)
+    expect(store.snapshotProject(projectId).messages.some((m) => m.text.includes('hago 6 a la vez'))).toBe(true)
+  })
+
   it('un vídeo normal sigue siendo una sola tarea', async () => {
     const before = store.snapshotProject(projectId).tasks.length
     await sendMessage({ projectId, text: '/video los 5 vídeos más vistos de la historia', filePaths: [] })

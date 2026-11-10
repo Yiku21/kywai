@@ -1,4 +1,4 @@
-import { batchBrief, videoBatchOf } from '@shared/videoBatch'
+import { BATCH_AT_ONCE, batchBrief, videoBatchOf } from '@shared/videoBatch'
 import { randomUUID } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync, writeFileSync } from 'node:fs'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
@@ -1862,6 +1862,8 @@ async function sendVideo(
   if (req.saveCast) {
     saveCastImages(store.workRoot(projectId), imageAttachments(run, true))
   }
+  if (total > BATCH_AT_ONCE)
+    systemMessage(run, tr('Son {total} vídeos: hago {n} a la vez y los demás empiezan solos cuando acaben esos.', { total, n: BATCH_AT_ONCE }))
   schedule()
   return { runId }
 }
@@ -3736,6 +3738,14 @@ function reassign(t: Task, from: AgentId, to: AgentConfig, assignedBy: AgentId =
   pushTask(t)
 }
 
+/** Vídeos de una misma petición en marcha ahora. */
+function runningVideos(run: Run): number {
+  return run.taskIds.filter((id) => {
+    const x = tasks.get(id)
+    return x?.video && x.status === 'running'
+  }).length
+}
+
 export function schedule(): void {
   const cfg = getConfig()
   let running = runningCount()
@@ -3766,6 +3776,8 @@ export function schedule(): void {
       }
       // Una consulta rápida no cuenta para el tope de tareas a la vez: solo lee y acaba enseguida.
       if (running >= cfg.maxParallel && !t.quick) continue
+      // Muchos vídeos de una vez («12 vídeos»): como mucho BATCH_AT_ONCE a la vez; el resto, cuando acaben esos.
+      if (t.video?.batch && runningVideos(run) >= BATCH_AT_ONCE) continue
 
       let agent = findAgent(t.agentId)
       if (agent?.isSubagent) agent = findAgent(agent.parentId)
