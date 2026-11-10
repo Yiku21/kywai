@@ -1,3 +1,4 @@
+import { batchBrief, videoBatchOf } from '@shared/videoBatch'
 import { randomUUID } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync, writeFileSync } from 'node:fs'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
@@ -1625,14 +1626,30 @@ function videoWriter(): AgentConfig | null {
  * Claude (las guías de la biblioteca están pensadas para él), luego cualquier otro con herramientas que no sea local.
  */
 function filmDirector(): AgentConfig | null {
+  return filmDirectors()[0] ?? null
+}
+
+/**
+ * Todos los que pueden dirigir una película, en orden de preferencia (Claude, Codex y el resto, uno de cada): con varios
+ * vídeos a la vez, cada uno va a uno distinto para que se hagan en paralelo.
+ */
+function filmDirectors(): AgentConfig[] {
   const able = workers().filter((a) => usable(a) && !isTextOnly(a.provider) && !isLocalProvider(a.provider) && a.provider !== 'lmstudio' && a.provider !== 'colibri')
   const hint = 'dirección de arte animación vídeo diseño código creativo'
-  const ex = (keep: (a: AgentConfig) => boolean): Set<AgentId> => new Set(workers().filter((a) => !keep(a)).map((a) => a.id))
-  return (
-    bestAgentFor(hint, ex((a) => able.includes(a) && a.provider === 'claude')) ??
-    bestAgentFor(hint, ex((a) => able.includes(a) && a.provider === 'codex')) ??
-    bestAgentFor(hint, ex((a) => able.includes(a)))
-  )
+  const out: AgentConfig[] = []
+  for (const keep of [(a: AgentConfig) => a.provider === 'claude', (a: AgentConfig) => a.provider === 'codex', () => true]) {
+    for (;;) {
+      const a = bestAgentFor(hint, new Set(workers().filter((w) => !able.includes(w) || !keep(w) || out.includes(w)).map((w) => w.id)))
+      if (!a) break
+      out.push(a)
+    }
+  }
+  return out
+}
+
+/** El tema de un vídeo de una tanda («hazme 3 vídeos…»): con cuál es y qué le toca contar. */
+function withBatch(topic: string, batch: { brief: string } | undefined): string {
+  return batch ? `${topic}\n\n${batch.brief}` : topic
 }
 
 /**
@@ -1650,7 +1667,10 @@ async function sendVideo(
 ): Promise<{ runId: string }> {
   const projectId = st.project.id
   const film = req.film ? filmStyle(req.film) : undefined
-  const agent = film ? filmDirector() : videoWriter()
+  // «Hazme 3 vídeos…»: una tarea por vídeo, cada una con su ángulo; las películas se reparten entre los directores.
+  const batch = req.episode ? null : videoBatchOf(req.topic)
+  const directors = film ? filmDirectors() : []
+  const agent = film ? (directors[0] ?? null) : videoWriter()
   if (!agent)
     throw new Error(
       film
@@ -1672,6 +1692,7 @@ async function sendVideo(
     ...tplMark
   })
   const userText = req.topic || tr('Un vídeo del mensaje elegido')
+  const newTasks: Task[] = []
   const run: Run = {
     id: runId,
     projectId,
@@ -1686,43 +1707,58 @@ async function sendVideo(
     cancelled: false,
     finished: false
   }
-  const t: Task = {
-    id: randomUUID(),
-    projectId,
-    runId,
-    seq: nextTaskSeq(projectId),
-    title: req.episode
-      ? tr('Episodio {n} de {total}: {label}', { n: req.episode.n, total: req.episode.total, label: oneLine(label, 50) })
-      : film ? tr('Vídeo «{style}»: {label}', { style: lang() === 'es' ? film.name : film.en, label: oneLine(label, 50) }) : tr('Vídeo: {label}', { label: oneLine(label, 60) }),
-    description: req.topic || tr('Vídeo del mensaje elegido'),
-    agentId: agent.id,
-    dependsOn: [],
-    status: 'pending',
-    difficulty: 'medium',
-    createdAt: Date.now(),
-    artifactIds: [],
-    deliverable: 'file',
-    video: {
-      format: req.format,
-      topic: req.topic,
-      style: req.style,
-      ...(req.source ? { source: clip(req.source, 6000) } : {}),
-      ...(film ? { film: film.slug, work: `.ai-cowork/videos/${Date.now().toString(36)}-pelicula` } : {}),
-      ...(req.saveCast ? { saveCast: true } : {}),
-      ...(req.character && videoCharacter(req.character) ? { character: req.character } : {}),
-      ...(req.kind ? { kind: req.kind } : {}),
-      ...(req.voice ? { voice: req.voice } : {}),
-      ...(req.episode ? { episode: req.episode } : {})
+  const total = batch?.count ?? 1
+  const stamp = Date.now().toString(36)
+  for (let n = 1; n <= total; n++) {
+    const one = batch ? tr('Vídeo {n} de {total}', { n, total }) : ''
+    const t: Task = {
+      id: randomUUID(),
+      projectId,
+      runId,
+      seq: nextTaskSeq(projectId),
+      title: req.episode
+        ? tr('Episodio {n} de {total}: {label}', { n: req.episode.n, total: req.episode.total, label: oneLine(label, 50) })
+        : film
+          ? batch
+            ? tr('{one} «{style}»: {label}', { one, style: lang() === 'es' ? film.name : film.en, label: oneLine(batch.ideas[n - 1] ?? label, 50) })
+            : tr('Vídeo «{style}»: {label}', { style: lang() === 'es' ? film.name : film.en, label: oneLine(label, 50) })
+          : batch
+            ? tr('{one}: {label}', { one, label: oneLine(batch.ideas[n - 1] ?? label, 60) })
+            : tr('Vídeo: {label}', { label: oneLine(label, 60) }),
+      description: req.topic || tr('Vídeo del mensaje elegido'),
+      agentId: (film && batch ? directors[(n - 1) % directors.length] : agent).id,
+      dependsOn: [],
+      status: 'pending',
+      difficulty: 'medium',
+      createdAt: Date.now(),
+      artifactIds: [],
+      deliverable: 'file',
+      video: {
+        format: req.format,
+        topic: req.topic,
+        style: req.style,
+        ...(req.source ? { source: clip(req.source, 6000) } : {}),
+        ...(film ? { film: film.slug, work: `.ai-cowork/videos/${stamp}${batch ? `-${n}` : ''}-pelicula` } : {}),
+        ...(req.saveCast ? { saveCast: true } : {}),
+        ...(req.character && videoCharacter(req.character) ? { character: req.character } : {}),
+        ...(req.kind ? { kind: req.kind } : {}),
+        ...(req.voice ? { voice: req.voice } : {}),
+        ...(req.episode ? { episode: req.episode } : {}),
+        ...(batch ? { batch: { n, total, brief: batchBrief(n, total, batch.ideas) } } : {})
+      }
     }
+    run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
+    newTasks.push(t)
   }
-  run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
   runs.set(runId, run)
   emit({ kind: 'run.started', runId, projectId })
   startRunUsage({ runId, projectId, projectName: st.project.name, request: userText })
   await baseline(run)
-  tasks.set(t.id, t)
-  run.taskIds.push(t.id)
-  pushTask(t)
+  for (const t of newTasks) {
+    tasks.set(t.id, t)
+    run.taskIds.push(t.id)
+    pushTask(t)
+  }
   // «Con estos personajes fijos»: las imágenes adjuntas pasan a la carpeta «personajes» del proyecto y salen en este
   // vídeo y en los siguientes.
   if (req.saveCast) {
@@ -3712,7 +3748,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     if (style)
       return filmPrompt({
         style,
-        topic: t.video.topic,
+        topic: withBatch(t.video.topic, t.video.batch),
         source: t.video.source,
         format: t.video.format,
         lang: lang(),
@@ -3732,7 +3768,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: t.video.topic || tr('el mensaje de abajo'), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t) })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: lang(), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t) })].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)

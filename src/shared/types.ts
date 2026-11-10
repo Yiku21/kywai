@@ -281,6 +281,8 @@ export interface Task {
     refs?: string[]
     /** Episodio de la serie del proyecto («/serie»; lo demás está en .ai-cowork/serie.json). */
     episode?: { n: number; total: number; vote?: string }
+    /** Uno de varios vídeos pedidos a la vez («hazme 3 vídeos…», src/shared/videoBatch.ts): cuál es y qué le toca contar. */
+    batch?: { n: number; total: number; brief: string }
   }
   /** «/instagram»: el agente escribe el texto del reel (video, relativo al proyecto) y kywai lo prepara para publicar. */
   instagram?: { video: string; artifactId?: string; about: string; note: string; question?: string; /** Por defecto Instagram. */ platform?: 'tiktok' }
