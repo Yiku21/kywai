@@ -3148,6 +3148,20 @@ El botón **Música** del espacio digital abre un reproductor con cuatro pestañ
   Al elegir la pestaña salen todas; lo que escribas las filtra. En la carátula hay un enlace para apoyarlas.
 - **Spotifast:** Spotify con tu cuenta Premium, a través de la app [Spotifast](https://spotifast.rocks) (ver más abajo).
 
+**Tu cuenta de YouTube (Premium sin anuncios):** en la pestaña YouTube, debajo de las pestañas, sale «¿Tienes YouTube
+Premium?». Con tu cuenta, el reproductor oficial carga desde youtube.com (en vez de youtube-nocookie, que no usa la
+sesión) y YouTube te reconoce: con Premium no hay anuncios. Sin Premium, iniciar sesión no quita nada.
+- **App de escritorio y cliente:** «Iniciar sesión en YouTube» abre una ventana de Google de verdad dentro de kywai;
+  al volver a YouTube con la sesión puesta se cierra sola. kywai no ve la contraseña: la sesión son las cookies de
+  Google de esta app, y «Cerrar sesión» las borra. Si al iniciar sesión Google dice que el navegador no es seguro, no
+  se puede desde esta app (Google decide qué ventanas acepta).
+- **Navegador:** «Usar mi cuenta» usa la sesión de YouTube que ya tenga ese navegador («Entrar en YouTube» abre
+  la página para iniciarla). «Dejar de usarla» vuelve a youtube-nocookie.
+- Al cambiar, la canción que sonaba se vuelve a cargar donde iba. Se recuerda en cada dispositivo. Iniciar sesión
+  **no quita el bloqueo de discográficas** (error 150) del navegador: eso lo decide cada discográfica para cualquier
+  cuenta.
+  Código: `src/main/youtubeAccount.ts`, `lib/youtubeAccount.ts` y `ui/space/YoutubeAccountRow.tsx`.
+
 **Spotifast** es una app de escritorio gratis y de código abierto (licencia MIT, de Carmine Paolino) para escuchar
 Spotify. kywai no la lleva dentro ni reproduce nada de Spotify: la maneja desde fuera con las órdenes de mando a
 distancia que trae la propia Spotifast (`spotifast play-pause`, `spotifast now-playing --raw`…). Por eso:

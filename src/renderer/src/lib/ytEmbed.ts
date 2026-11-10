@@ -6,6 +6,7 @@
  */
 import { YT_STATE, type YtPlayer, type YtVideoData } from './youtube'
 import { t } from '@/lib/i18n'
+import { youtubeHost } from './youtubeAccount'
 
 export interface EmbedEvents {
   onReady?: () => void
@@ -22,7 +23,6 @@ export interface EmbedOptions {
   events: EmbedEvents
 }
 
-const HOST = 'https://www.youtube-nocookie.com'
 const ORIGINS = /^https:\/\/www\.youtube(-nocookie)?\.com$/
 /** Las apps de escritorio se identifican ante YouTube con su id (la ventana es un archivo local, sin origen web). */
 const APP_REFERRER = 'https://com.aicowork.app/'
@@ -39,13 +39,13 @@ interface Info {
 }
 
 /** Dirección del reproductor embebido para un vídeo. */
-export function embedUrl(id: number, opts: Pick<EmbedOptions, 'videoId' | 'start' | 'autoplay'>, origin: string | null): string {
+export function embedUrl(id: number, opts: Pick<EmbedOptions, 'videoId' | 'start' | 'autoplay'>, origin: string | null, host = youtubeHost()): string {
   const params = new URLSearchParams({ enablejsapi: '1', playsinline: '1', rel: '0', widgetid: String(id) })
   if (opts.start) params.set('start', String(Math.max(0, Math.floor(opts.start))))
   if (opts.autoplay) params.set('autoplay', '1')
   if (origin) params.set('origin', origin)
   else params.set('widget_referrer', APP_REFERRER)
-  return `${HOST}/embed/${encodeURIComponent(opts.videoId)}?${params}`
+  return `${host}/embed/${encodeURIComponent(opts.videoId)}?${params}`
 }
 
 /** Crea el reproductor dentro de `container` y devuelve su control (la misma interfaz que la API oficial). */
@@ -53,7 +53,9 @@ export function createEmbedPlayer(container: HTMLElement, opts: EmbedOptions): Y
   const id = nextId++
   const web = location.protocol === 'http:' || location.protocol === 'https:'
   const iframe = document.createElement('iframe')
-  iframe.src = embedUrl(id, opts, web ? location.origin : null)
+  // Con tu cuenta de YouTube carga desde youtube.com (ver youtubeAccount); si no, desde youtube-nocookie.
+  const host = youtubeHost()
+  iframe.src = embedUrl(id, opts, web ? location.origin : null, host)
   iframe.title = t('Reproductor de YouTube')
   iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'
   iframe.referrerPolicy = 'strict-origin-when-cross-origin'
@@ -70,7 +72,7 @@ export function createEmbedPlayer(container: HTMLElement, opts: EmbedOptions): Y
   const post = (msg: Record<string, unknown>): void => {
     if (destroyed) return
     try {
-      iframe.contentWindow?.postMessage(JSON.stringify({ ...msg, id, channel: 'widget' }), HOST)
+      iframe.contentWindow?.postMessage(JSON.stringify({ ...msg, id, channel: 'widget' }), host)
     } catch {
       /* el iframe aún no tiene ventana */
     }

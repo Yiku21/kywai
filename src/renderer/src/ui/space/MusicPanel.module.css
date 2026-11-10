@@ -921,3 +921,27 @@ a.linkBtn {
   gap: 5px;
   text-decoration: none;
 }
+
+/* ---------- Tu cuenta de YouTube (Premium sin anuncios) ---------- */
+
+.ytAccount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.ytAccountText {
+  flex: 1 1 180px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ytAccountOk {
+  flex: none;
+  color: var(--ok, #3ccf8e);
+}

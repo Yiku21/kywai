@@ -24,6 +24,7 @@ import {
   type ClientServer
 } from './clientConfig'
 import { lang, langFromLocale, setCurrentLang, tr } from '@shared/i18n'
+import { youtubeSignIn, youtubeSignOut, youtubeSignedIn } from './youtubeAccount'
 
 const COOKIE = 'cowork_token'
 const APP_ICON = join(app.getAppPath(), 'build', 'icon.ico')
@@ -662,6 +663,10 @@ function buildMenu(): void {
 
 function registerClientIpc(): void {
   ipcMain.handle('client:view', (e) => (fromLocalPage(e) ? view : null))
+  // Tu cuenta de YouTube para la música: en la sesión de este equipo, donde suena el reproductor.
+  ipcMain.handle('client:youtubeAccount', () => youtubeSignedIn())
+  ipcMain.handle('client:youtubeSignIn', () => youtubeSignIn(win))
+  ipcMain.handle('client:youtubeSignOut', () => youtubeSignOut())
   ipcMain.handle('client:chooseMode', (e, mode: unknown) => {
     if (!fromLocalPage(e) || (mode !== 'server' && mode !== 'client')) return
     chooserDone?.(mode)

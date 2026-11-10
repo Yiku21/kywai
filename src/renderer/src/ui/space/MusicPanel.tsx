@@ -26,6 +26,7 @@ import { api, isWeb } from '@/lib/api'
 import { getVolume, isMuted, setMuted, setVolume, subscribeAudio } from '@/lib/audio'
 import {
   bindPlayer,
+  chooseVideo,
   clearQueue,
   enqueue,
   getPlayer,
@@ -60,6 +61,8 @@ import { parseStartSeconds, parseVideoId, type YtPlayer } from '@/lib/youtube'
 import { createMusicPlayer } from '@/lib/musicPlayer'
 import { useCowork } from '@/store/cowork'
 import { SpotifastBox } from './SpotifastBox'
+import { YoutubeAccountRow } from './YoutubeAccountRow'
+import { useYoutubeAccount } from '@/lib/youtubeAccount'
 import { useEscape } from '../common/hooks'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
@@ -123,6 +126,34 @@ export function MusicPanel() {
   const [tab, setTab] = useState<MusicTab>(readSource)
   const spotifastTab = tab === 'spotifast'
   const playerRef = useRef<YtPlayer | null>(null)
+  // Al iniciar o cerrar sesión en YouTube, el reproductor se vuelve a crear (cambia de youtube-nocookie a youtube.com)
+  // y sigue la misma canción donde iba.
+  const ytAccount = useYoutubeAccount()
+  const accountRef = useRef(ytAccount)
+  const [playerGen, setPlayerGen] = useState(0)
+  useEffect(() => {
+    if (accountRef.current === ytAccount) return
+    accountRef.current = ytAccount
+    const p = playerRef.current
+    const st = useMusic.getState()
+    if (!p || !st.videoId || musicSourceOf(st.videoId) !== 'youtube') return
+    let time = 0
+    try {
+      time = p.getCurrentTime()
+    } catch {
+      /* reproductor destruido */
+    }
+    const wasPlaying = st.status === 'playing'
+    unbindPlayer()
+    try {
+      p.destroy()
+    } catch {
+      /* ya destruido */
+    }
+    playerRef.current = null
+    chooseVideo(st.videoId, time, wasPlaying)
+    setPlayerGen((g) => g + 1)
+  }, [ytAccount])
 
   // Esc: con una canción se minimiza (sigue sonando); sin ella, se cierra.
   useEscape(open && !mini, () => (useMusic.getState().videoId ? setMusicMini(true) : setMusicOpen(false)))
@@ -156,7 +187,7 @@ export function MusicPanel() {
       }
     })
     playerRef.current = player
-  }, [open, videoId])
+  }, [open, videoId, playerGen])
 
   useEffect(
     () => () => {
@@ -406,6 +437,7 @@ function SearchBox({ source, onSource }: { source: MusicTab; onSource: (tab: Mus
           </button>
         ))}
       </div>
+      {source === 'youtube' && <YoutubeAccountRow />}
       {source === 'spotifast' ? (
         <SpotifastBox />
       ) : (

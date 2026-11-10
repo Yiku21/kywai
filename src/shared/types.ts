@@ -1871,6 +1871,12 @@ export interface CoworkApi {
   searchMusic(query: string, kind?: MusicSearchKind): Promise<MusicResult[]>
   /** Música: maneja Spotifast (si está instalada en el equipo donde corre kywai) y dice qué suena. */
   spotifast?(action: SpotifastAction): Promise<SpotifastStatus>
+  /** Música: hay sesión de YouTube en esta app (solo escritorio; en la web, cada navegador usa la suya). */
+  youtubeAccount?(): Promise<boolean>
+  /** Abre la ventana de Google para iniciar sesión en YouTube; true si quedó iniciada. */
+  youtubeSignIn?(): Promise<boolean>
+  /** Cierra la sesión de YouTube (y Google) en esta app. */
+  youtubeSignOut?(): Promise<void>
   /** Lo que ha hecho el agente en una tarea, paso a paso (lo nuevo llega por eventos task.trace). */
   getTaskTrace(taskId: string): Promise<TraceEntry[]>
   /** Qué cambió una tarea en la carpeta del proyecto (archivos con +/− y el parche). */

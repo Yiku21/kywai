@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('coworkClient', {
   forget: (): Promise<void> => ipcRenderer.invoke('client:forget'),
   openFile: (projectId: string, relPath: string): Promise<void> => ipcRenderer.invoke('client:openFile', projectId, relPath),
   info: (): Promise<{ client: true; server: string; device: string; version: string } | null> => ipcRenderer.invoke('client:info'),
+  /** Tu cuenta de YouTube para la música, en este equipo. */
+  youtubeAccount: (): Promise<boolean> => ipcRenderer.invoke('client:youtubeAccount'),
+  youtubeSignIn: (): Promise<boolean> => ipcRenderer.invoke('client:youtubeSignIn'),
+  youtubeSignOut: (): Promise<void> => ipcRenderer.invoke('client:youtubeSignOut'),
   /** Sincronización de carpetas con el servidor. */
   syncList: (): Promise<unknown[]> => ipcRenderer.invoke('client:syncList'),
   syncAdd: (remoteDir: string): Promise<unknown> => ipcRenderer.invoke('client:syncAdd', remoteDir),

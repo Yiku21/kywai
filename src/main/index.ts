@@ -46,6 +46,7 @@ import { isLocalEngine } from '@shared/localEngines'
 import { lookupTempo, tempoResponse } from './musicTempo'
 import { searchMusic } from './musicSearch'
 import { spotifast } from './spotifast'
+import { youtubeSignIn, youtubeSignOut, youtubeSignedIn } from './youtubeAccount'
 import { mobilePairingPin, newWebToken, revokeMobileDevice, setClientReleaseDir, setFsAccess, startWebServer, stopWebServer, tailscaleIPv4, webAccessInfo, webHttpsPort, webMethods, type WebMethod } from './webServer'
 import { DeviceRegistry } from './devices'
 import { AccessLog, isInside, normalizePath, withinAny } from './serverFiles'
@@ -1094,6 +1095,10 @@ function registerIpc(): void {
     finishSetup()
     emit({ kind: 'config.updated', config: getConfig() })
   })
+  // Tu cuenta de YouTube para la música (solo en esta app: desde la web cada navegador usa su propia sesión).
+  ipcMain.handle('cowork:youtubeAccount', () => youtubeSignedIn())
+  ipcMain.handle('cowork:youtubeSignIn', () => youtubeSignIn(mainWindow))
+  ipcMain.handle('cowork:youtubeSignOut', () => youtubeSignOut())
   ipcMain.handle('cowork:openExternal', async (_e, url: unknown) => {
     if (typeof url !== 'string' || !/^https:\/\/[\w.-]+(\/\S*)?$/.test(url)) throw new Error(tr('Enlace no válido'))
     await shell.openExternal(url)
