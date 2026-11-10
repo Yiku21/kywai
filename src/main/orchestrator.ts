@@ -2212,6 +2212,13 @@ const SEES_IMAGES = new Set<AgentConfig['provider']>(['claude', 'codex', 'gemini
 /** ¿Puede abrir las capturas adjuntas? Los de fábrica que ven imágenes y los de catálogo que lo declaran. */
 const seesImages = (a: AgentConfig): boolean => SEES_IMAGES.has(a.provider) || a.cli?.seesImages === true
 
+/**
+ * ¿Puede leer los archivos del proyecto mientras planifica? Claude, Codex y Gemini planifican en modo de solo lectura
+ * de su CLI; Hermes planifica sin herramientas de archivos y los modelos de solo texto no las tienen.
+ */
+const READS_WHEN_PLANNING = new Set<AgentConfig['provider']>(['claude', 'codex', 'gemini'])
+export const plannerReads = (a: Pick<AgentConfig, 'provider'>): boolean => READS_WHEN_PLANNING.has(a.provider)
+
 /** Quién planifica: el primero libre de la lista; con capturas adjuntas, antes uno que pueda verlas. */
 function pickPlanner(tried: Set<AgentId>, images = false): AgentConfig | null {
   const cfg = getConfig()
@@ -2498,6 +2505,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
   const existing = recentFiles(run.projectId)
   const atts = run.attachments.map((a) => `- ${attPath(run, a.relPath)} (${a.name}, ${a.mime})`)
   const busyHere = otherWork(run.projectId, run.id)
+  const reads = plannerReads(planner)
   return [
     `Eres ${planner.name}, el coordinador de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}".`,
     'Ahora SOLO tienes que planificar: no ejecutes el trabajo y no crees ni modifiques archivos.',
@@ -2534,6 +2542,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
       planApproval: needsApproval(run),
       routine: run.routine,
       extraTools: extraToolLines(),
+      plannerReads: reads,
       // La lista de funciones de la app solo si la conversación va de kywai: si no, son 5 000 caracteres de ruido.
       aboutApp: mentionsApp([run.userText, ...st.messages.filter((m) => m.author.type === 'user').slice(-3).map((m) => m.text)].join('\n'))
     }),
@@ -2568,7 +2577,9 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     ...(lang() === 'es' ? [] : [`- El usuario usa kywai en ${userLanguageName()}: escribe en ${userLanguageName()} todo lo que verá ("reply", "title", "acceptance" y lo que pidas a los agentes que le cuenten), aunque estas instrucciones estén en español.`]),
     '- Lo sencillo lo respondes TÚ, ya, en "reply" y con "tasks": []: todo lo que se resuelve sin abrir ni cambiar archivos del proyecto y sin ejecutar nada. Es decir: charla, dudas sobre kywai, conocimiento general y explicaciones («¿qué diferencia hay entre…?», «explícame…»), comparaciones y consejos que no dependen de su código, textos cortos (redactar, traducir, resumir o corregir algo que viene en el mensaje), cuentas, y preguntas sobre esta conversación o sobre lo que el equipo ya hizo (lo tienes en «Conversación reciente»). Si basta una búsqueda sencilla en internet y tienes herramienta para buscar, búscalo y responde tú. Tu respuesta directa le llega en segundos y una tarea tarda minutos: no montes un plan para una pregunta. Aquí "reply" puede ser tan largo como la respuesta necesite.',
     '- Reparte solo cuando de verdad haga falta: leer o cambiar el proyecto, ejecutar algo, producir un archivo, investigar a fondo (muchas fuentes, un informe) o una capacidad que tú no tienes (ver o generar imágenes, por ejemplo).',
-    '- Si la pregunta va del proyecto o de su código («¿qué me recomiendas para…?», «¿por qué falla…?», «¿cómo está hecho…?»), NO la contestes de memoria: tú no puedes abrir sus archivos; crea UNA tarea de texto ("deliverable": "text", "medium") para un agente que sí los lee y que responda él.',
+    reads
+      ? '- Si la pregunta va del proyecto o de su código, NO la contestes de memoria: tú puedes leer sus archivos. Si sale de mirar unos pocos («¿dónde está…?», «¿cómo está hecho…?»), míralos y responde tú en "reply"; si exige investigar a fondo, ejecutar algo o cambiar archivos («¿por qué falla…?» con pruebas de por medio), crea UNA tarea de texto ("deliverable": "text", "medium").'
+      : '- Si la pregunta va del proyecto o de su código («¿qué me recomiendas para…?», «¿por qué falla…?», «¿cómo está hecho…?»), NO la contestes de memoria: tú no puedes abrir sus archivos; crea UNA tarea de texto ("deliverable": "text", "medium") para un agente que sí los lee y que responda él.',
     '- Lo que importa es que el resultado sea el mejor posible y cumpla exactamente lo pedido: el tiempo y el gasto son secundarios. Elige para cada parte al agente y la dificultad que den el mejor resultado, no los más rápidos ni los más baratos. Eso sí, cada tarea arranca un agente desde cero y cada traspaso pierde contexto: una cadena de tareas suele salir peor que un solo agente que lo hace entero.',
     '- Trabajo pequeño o muy enlazado (un script, un documento, un arreglo, algo de menos de unos 20 minutos): UNA sola tarea para el agente más adecuado, que lo hace y lo prueba. Nunca crees tareas aparte de «diseñar», «arquitectura» o «contratos».',
     '- Trabajo grande con partes REALMENTE independientes que se pueden construir A LA VEZ (por ejemplo, en una app: el motor o la lógica, la interfaz y el servidor): reparte esas partes en paralelo, cada una al agente que mejor la hace según su ficha (por ejemplo, la interfaz a quien es mejor en diseño y la lógica a quien es mejor programando). Escribe tú en "contract" el contrato común: carpetas, qué archivos son de cada tarea y las funciones, rutas HTTP y formatos de datos que se usan entre partes, con nombres exactos, parámetros y lo que devuelven. Las tareas en paralelo NO dependen entre sí y no comparten archivos: los comunes (package.json, README, configuración) son solo de la integración. Añade al final UNA tarea «Integrar y probar» (para el agente de la parte principal, dificultad "medium") que dependa de ellas: junta las partes, ejecuta las pruebas, comprueba el conjunto contra la petición del usuario y arregla lo que no encaje.',

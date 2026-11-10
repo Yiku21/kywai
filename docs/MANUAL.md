@@ -889,6 +889,9 @@ coordinador en la misma llamada en la que lee tu mensaje, que es cuestión de se
   fondo o una capacidad que él no tiene (ver o generar imágenes). Ahí todo sigue igual: plan, agente adecuado,
   esfuerzo alto y verificación por otro agente.
 - **Lo que no hace**: contestar de memoria algo que depende de tus archivos. Eso sigue yendo a un agente que los lee.
+- **Si planifica otro**: cuando Hermes no está y planifica Claude, Codex o Gemini, ellos sí pueden leer la carpeta
+  (planifican en modo de solo lectura), así que la guía ya no les dice que no pueden: las consultas que salen de
+  mirar unos pocos archivos las miran y las responden ellos, sin crear una tarea.
 
 Las reglas están en `buildPlanPrompt` ([src/main/orchestrator.ts](../src/main/orchestrator.ts)) y en la guía del
 coordinador ([src/main/coordinatorGuide.ts](../src/main/coordinatorGuide.ts)).

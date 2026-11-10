@@ -63,6 +63,13 @@ describe('lo que sabe el coordinador de kywai', () => {
     expect(g).toMatch(/Tú no puedes abrir los archivos del proyecto[\s\S]*crea UNA tarea de texto \("deliverable": "text", dificultad "medium"\)/)
   })
 
+  it('si quien planifica puede leer el proyecto (Claude, Codex o Gemini de respaldo), mira y responde él', () => {
+    const g = text(coordinatorGuide({ projectDir: proj, fullAccess: true, plannerReads: true }, env()))
+    expect(g).toContain('Tú sí puedes leer los archivos del proyecto (solo leer)')
+    expect(g).toMatch(/míralos y contesta tú en "reply", sin tareas/)
+    expect(g).not.toContain('Tú no puedes abrir los archivos del proyecto')
+  })
+
   it('lo sencillo lo responde el coordinador sin plan: el reparto es para el trabajo de verdad', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env()))
     expect(g).toContain('### Lo sencillo lo respondes tú; el equipo es para el trabajo de verdad')
