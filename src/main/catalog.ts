@@ -434,6 +434,42 @@ export const FEATURED_MCP: McpCatalogItem[] = [
     install: { id: 'sequential-thinking', title: 'Sequential Thinking', transport: 'stdio', command: 'npx', args: ['-y', '@modelcontextprotocol/server-sequential-thinking'] },
     keys: [],
     needsEdit: false
+  },
+  {
+    name: 'firecrawl/firecrawl-mcp-server',
+    title: 'Firecrawl',
+    description: 'Leer y rastrear webs enteras, buscar en internet y sacar datos ordenados de cualquier página (pide clave de firecrawl.dev, con capa gratis).',
+    version: '',
+    verified: true,
+    repo: 'https://github.com/firecrawl/firecrawl-mcp-server',
+    kind: 'stdio',
+    install: { id: 'firecrawl', title: 'Firecrawl', transport: 'stdio', command: 'npx', args: ['-y', 'firecrawl-mcp'], env: { FIRECRAWL_API_KEY: '' } },
+    keys: [{ name: 'FIRECRAWL_API_KEY', description: 'Clave de API de Firecrawl (firecrawl.dev/app/api-keys)', required: true, secret: true }],
+    needsEdit: false
+  },
+  {
+    name: 'perplexityai/modelcontextprotocol',
+    title: 'Perplexity',
+    description: 'Búsquedas e investigación a fondo en internet con fuentes y datos al día (de pago: pide clave de la API de Perplexity).',
+    version: '',
+    verified: true,
+    repo: 'https://github.com/perplexityai/modelcontextprotocol',
+    kind: 'stdio',
+    install: { id: 'perplexity', title: 'Perplexity', transport: 'stdio', command: 'npx', args: ['-y', '@perplexity-ai/mcp-server'], env: { PERPLEXITY_API_KEY: '' } },
+    keys: [{ name: 'PERPLEXITY_API_KEY', description: 'Clave de la API de Perplexity (perplexity.ai/account/api)', required: true, secret: true }],
+    needsEdit: false
+  },
+  {
+    name: 'PostHog/posthog-mcp',
+    title: 'PostHog',
+    description: 'La analítica de tu web o app: visitas, embudos, errores y dónde se van los usuarios (servidor remoto oficial de PostHog).',
+    version: '',
+    verified: true,
+    website: 'https://posthog.com/docs/model-context-protocol',
+    kind: 'http',
+    install: { id: 'posthog', title: 'PostHog', transport: 'http', url: 'https://mcp.posthog.com/mcp', headers: { Authorization: '' } },
+    keys: [{ name: 'Authorization', description: 'Bearer y una clave personal de PostHog (Ajustes → Claves de API personales)', required: true, secret: true }],
+    needsEdit: false
   }
 ]
 

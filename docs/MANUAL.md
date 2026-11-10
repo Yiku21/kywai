@@ -1532,7 +1532,8 @@ Las direcciones `http://` solo se admiten si son de este equipo (`localhost`).
 La pestaña **Extensiones** tiene dos partes: **Servidores MCP** y **Habilidades**.
 
 **Catálogo de servidores.** «Explorar catálogo» enseña primero unos destacados con su orden comprobada (Playwright,
-GitHub, Context7, DeepWiki, Fetch, Sequential Thinking). Al buscar (notion, postgres, slack…) se consulta el
+GitHub, Context7, DeepWiki, Fetch, Sequential Thinking, Firecrawl, Perplexity y PostHog; los tres últimos piden una
+clave de su web y Perplexity es de pago). Al buscar (notion, postgres, slack…) se consulta el
 **registro oficial de MCP** (registry.modelcontextprotocol.io, el directorio abierto del estándar, con miles de
 servidores) y «Más resultados» trae la página siguiente. Cada ficha dice si es **remoto** o **en este equipo**, qué
 claves pide y lleva el enlace a su página. «Instalar» no instala nada aún: rellena el formulario de «Añadir a mano»
