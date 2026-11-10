@@ -39,6 +39,7 @@ import {
   validBudget
 } from './config'
 import { applyUpdate, checkForUpdates, sourceDir } from './selfUpdate'
+import { getWhatsNew, markWhatsNewSeen } from './whatsNew'
 import { setGuideEnv } from './coordinatorGuide'
 import { transcribeAudio } from './voice'
 import { isLocalEngine } from '@shared/localEngines'
@@ -1089,6 +1090,8 @@ function registerIpc(): void {
     return systemPreferences.askForMediaAccess('microphone')
   })
   handle('applyUpdate', (setAside?: unknown) => applyUpdate(setAside === true))
+  handle('getWhatsNew', () => getWhatsNew())
+  handle('markWhatsNewSeen', () => markWhatsNewSeen())
   // Qué equipo es este (el cliente de escritorio lo muestra: su interfaz es la de este servidor).
   handle('getHostInfo', () => ({ name: getConfig().serverName || hostname().replace(/\.local$/i, ''), platform: process.platform }))
   ipcMain.handle('cowork:getWebAccess', () => currentWebAccess())

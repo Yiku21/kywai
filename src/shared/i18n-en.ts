@@ -3187,4 +3187,10 @@ export const en: Record<string, string> = {
   "México": "Mexico",
   "Estados Unidos": "United States",
   "Reino Unido": "United Kingdom",
+  "Novedades de kywai": "What's new in kywai",
+  "Se actualizó a la versión {to} (tenías la {from}).": "Updated to version {to} (you had {from}).",
+  "y {n} cambios más": "and {n} more changes",
+  "No se pudo cargar la lista de cambios.": "Couldn't load the list of changes.",
+  "Esta versión trae arreglos internos.": "This version brings internal fixes.",
+  "Ver en GitHub": "View on GitHub",
 }

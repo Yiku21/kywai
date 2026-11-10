@@ -17,6 +17,7 @@ import { RestartOverlay } from './ui/RestartOverlay'
 import { UsageDialog } from './ui/usage/UsageDialog'
 import { QualityDialog } from './ui/usage/QualityDialog'
 import { SettingsDialog } from './ui/settings/SettingsDialog'
+import { WhatsNewDialog } from './ui/header/WhatsNewDialog'
 import { ServerFiles } from './ui/files/ServerFiles'
 import { TaskTraceDialog } from './ui/trace/TaskTraceDialog'
 import { SpaceHeader } from '@/ui/space/SpaceHeader'
@@ -216,6 +217,7 @@ export function App() {
       <ServerFiles />
       {hermesModelOpen && <HermesModelDialog onClose={() => useCowork.setState({ hermesModelOpen: false })} />}
       <TaskTraceDialog />
+      <WhatsNewDialog />
       {restarting && <RestartOverlay />}
     </div>
   )

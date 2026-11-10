@@ -1335,6 +1335,22 @@ export interface UpdateCommit {
 }
 
 /** Lo que se sabe de la última versión en GitHub Releases para una app descargada de ahí. */
+/** «Novedades»: los cambios de la versión nueva, la primera vez que kywai se abre después de actualizarse. */
+export interface WhatsNew {
+  /** Versión que había antes (o commit corto en las compiladas en el equipo). */
+  from: string
+  /** Versión instalada ahora. */
+  to: string
+  /** Títulos de los cambios, del más nuevo al más viejo. */
+  items: string[]
+  /** Cambios que no caben en la lista. */
+  more: number
+  /** true si no se pudo leer la lista de cambios (sin internet, por ejemplo). */
+  failed: boolean
+  /** Página de la Release en GitHub (null en las compiladas en el equipo). */
+  url: string | null
+}
+
 export interface ReleaseUpdate {
   /** current: al día · available: hay una nueva (para descargar a mano) · downloading: bajando ·
    * downloaded: lista para instalar · error: no se pudo consultar. */
@@ -1901,6 +1917,10 @@ export interface CoworkApi {
    * Con setAside, los cambios locales del código se apartan antes (git stash: se guardan, no se borran).
    */
   applyUpdate(setAside?: boolean): Promise<string>
+  /** Las novedades que hay que enseñar si kywai se actualizó desde la última vez que se abrió (null si no). */
+  getWhatsNew(): Promise<WhatsNew | null>
+  /** Se cerró la ventana de novedades: no vuelve a salir hasta la próxima actualización. */
+  markWhatsNewSeen(): Promise<void>
   setWebAccess(input: SetWebAccessInput): Promise<WebAccessInfo>
   /** Modelos disponibles para un agente (según su CLI y tu cuenta). */
   listModelOptions(agentId: AgentId): Promise<ModelOption[]>

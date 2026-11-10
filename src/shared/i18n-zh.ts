@@ -3068,4 +3068,10 @@ export const zh: Record<string, string> = {
   "México": "墨西哥",
   "Estados Unidos": "美国",
   "Reino Unido": "英国",
+  "Novedades de kywai": "kywai 新功能",
+  "Se actualizó a la versión {to} (tenías la {from}).": "已更新到 {to} 版（之前是 {from}）。",
+  "y {n} cambios más": "还有 {n} 项更改",
+  "No se pudo cargar la lista de cambios.": "无法加载更改列表。",
+  "Esta versión trae arreglos internos.": "此版本包含内部修复。",
+  "Ver en GitHub": "在 GitHub 上查看",
 }

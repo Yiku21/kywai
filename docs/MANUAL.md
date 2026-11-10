@@ -163,6 +163,15 @@ sube a una Release nueva, `v0.1.<número de commits>`, en https://github.com/Yik
   donde no se puede escribir (abierta desde el `.dmg`, «translocada» por macOS o en una carpeta sin permiso) avisa con
   «Descargar» y abre la página de la Release como antes. Las apps del Mac anteriores a este cambio aún abren la página:
   hay que descargar la nueva una última vez a mano.
+- **Ventana de «Novedades»** (desde el 10 nov 2026, `src/main/whatsNew.ts` y `WhatsNewDialog.tsx`). La primera vez
+  que kywai se abre después de actualizarse sale una ventana con las mejoras: el título de cada commit entre la versión
+  que había y la nueva, del más nuevo al más viejo (como mucho 30, «y N cambios más»). En las apps de la Release los
+  saca de GitHub (comparando las etiquetas `v0.1.<n>` del repositorio público) y trae «Ver en GitHub»; en las
+  compiladas en el equipo, del clon de git. Se quitan las publicaciones automáticas de Órbita, las fusiones y las
+  «versiones de prueba». Sale una sola vez por versión (al cerrarla queda apuntada en `novedades-vistas.json`, en la
+  carpeta de datos); en una instalación nueva, en el navegador y en el asistente inicial no sale. Sin internet dice que
+  no pudo cargar la lista. Los títulos de los commits se enseñan tal cual (en español): escríbelos pensando en quien
+  usa la app. Para probarla en desarrollo: `AICW_WHATS_NEW=1`.
 - **«Buscar actualizaciones…»** en esas versiones no usa git: pregunta a GitHub y espera la respuesta. Dice la versión
   instalada y si es la última («Tienes la última versión (0.1.N), comprobado en GitHub») o si hay una nueva: en
   Windows, en el AppImage y en el Mac se está descargando y el botón «Instalar y reiniciar» la instala ya (o en cuanto
