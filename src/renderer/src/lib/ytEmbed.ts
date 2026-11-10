@@ -48,12 +48,17 @@ export function embedUrl(id: number, opts: Pick<EmbedOptions, 'videoId' | 'start
   return `${host}/embed/${encodeURIComponent(opts.videoId)}?${params}`
 }
 
+/** El cliente de escritorio, ya actualizado, se presenta ante YouTube como la app (ver createEmbedPlayer). */
+export const appClient = (): boolean => !!(window as unknown as { coworkClient?: { youtubeSignIn?: unknown } }).coworkClient?.youtubeSignIn
+
 /** Crea el reproductor dentro de `container` y devuelve su control (la misma interfaz que la API oficial). */
 export function createEmbedPlayer(container: HTMLElement, opts: EmbedOptions): YtPlayer {
   const id = nextId++
   // El cliente de escritorio enseña la interfaz del servidor por https, pero es la app kywai: se identifica como app
   // (su motor pone la cabecera Referer) y no como una web, que muchas discográficas bloquean (error 150).
-  const client = !!(window as unknown as { coworkClient?: unknown }).coworkClient
+  // Solo si el cliente ya está actualizado (su puente trae la cuenta de YouTube y su motor pone la cabecera): con un
+  // cliente viejo, sin referrer YouTube daría el error 153 en todas.
+  const client = appClient()
   const web = !client && (location.protocol === 'http:' || location.protocol === 'https:')
   const iframe = document.createElement('iframe')
   // Con tu cuenta de YouTube carga desde youtube.com (ver youtubeAccount); si no, desde youtube-nocookie.
