@@ -17,13 +17,14 @@ import {
   hasPresenter,
   spokenText,
   synthMusic,
-  synthSfx,
+  mixSfx,
   videoSlug,
   VOICE_LEAD_S,
   type VideoFormat,
   type VideoScript
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
+import { EARSHOT_DEPS, EARSHOT_PIP, earshotInstalledIn, ensureSfxBank, loadSfxBank, sfxBankSummary } from './sfxBank'
 import { comfyImage, comfyStatus } from './comfyui'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
 import { animateStill, findFreeVideo, freeVideoStatus, motionPrompt } from './freevideo'
@@ -70,6 +71,35 @@ export function videoStudioDir(): string {
 
 const bin = (name: string): string => join(root, 'node_modules', '.bin', IS_WIN ? `${name}.cmd` : name)
 const venvPython = (): string => join(root, '.venv', IS_WIN ? 'Scripts\\python.exe' : 'bin/python')
+
+// ---------- efectos de sonido (src/main/sfxBank.ts) ----------
+
+const earshotBin = (): string => join(root, '.venv', IS_WIN ? 'Scripts\\earshot.exe' : 'bin/earshot')
+const sfxDir = (): string => join(root, 'efectos')
+
+/** earshot en el entorno del estudio, solo con lo que usa «earshot sfx» (sin torch ni sus modelos de análisis). */
+async function installEarshot(onLine: (l: string) => void): Promise<boolean> {
+  if (earshotInstalledIn(join(root, '.venv'))) return true
+  onLine('Instalando los efectos de sonido (earshot)…')
+  const pip = (args: string[]): Promise<RunOut> => run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', ...args], { timeoutMs: 15 * 60_000, onLine })
+  const deps = await pip(EARSHOT_DEPS)
+  const pkg = deps.code === 0 ? await pip(['--no-deps', EARSHOT_PIP]) : deps
+  if (pkg.code !== 0) onLine('No se pudo instalar earshot: los efectos saldrán de Openverse (CC0) o sintetizados.')
+  return earshotInstalledIn(join(root, '.venv'))
+}
+
+let sfxPreparing: Promise<unknown> | null = null
+
+/** Prepara el banco de efectos una sola vez aunque lleguen varios vídeos a la vez. */
+function prepareSfx(onLine: (l: string) => void = () => undefined): Promise<unknown> {
+  if (!root) return Promise.resolve()
+  sfxPreparing ??= ensureSfxBank(sfxDir(), { run, earshot: existsSync(earshotBin()) ? earshotBin() : null, onLine })
+    .catch(() => [])
+    .finally(() => {
+      sfxPreparing = null
+    })
+  return sfxPreparing
+}
 
 // ---------- Manim (animaciones de fórmulas, gráficas y diagramas) ----------
 
@@ -370,6 +400,7 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
     comfyui: { running: comfy.running, checkpoint: comfy.info?.checkpoint ?? null, models: comfy.models },
     voicebox: { running: !!vbox, voices: (vbox ?? []).map((p) => `${p.name} (${p.language})`) },
     manim: manimInstalled(),
+    sfx: { installed: !!root && earshotInstalledIn(join(root, '.venv')), ...(root ? sfxBankSummary(sfxDir()) : { earshot: 0, openverse: 0 }) },
     films: { library: lemoReady(filmPaths(root).lib), painted: kitReady(filmPaths(root).kit) },
     freevideo: fv,
     gemini: key,
@@ -379,7 +410,7 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
 
 /** Lo que trae kywai por defecto ya está (FreeVideo, ComfyUI y Voicebox son aparte y opcionales). */
 export function studioComplete(s: VideoStudioStatus): boolean {
-  return s.ready && s.kokoro && !!s.manim && !!s.films?.library && !!s.films?.painted
+  return s.ready && s.kokoro && !!s.manim && !!s.films?.library && !!s.films?.painted && !!s.sfx?.installed && !!s.sfx.earshot
 }
 
 /**
@@ -452,6 +483,9 @@ export async function installVideoStudio(onLine: (l: string) => void = () => und
     onLine('Instalando las voces de Edge (Álvaro y Jorge)…')
     await ensureEdge(onLine)
   }
+  if (venvOk) await installEarshot(onLine)
+  onLine('Preparando el banco de efectos de sonido…')
+  await prepareSfx(onLine)
   if (!manimInstalled() && existsSync(venvPython())) {
     onLine('Instalando Manim (animaciones de fórmulas y diagramas)…')
     let pip = await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'manim'], { timeoutMs: 30 * 60_000, onLine })
@@ -1051,6 +1085,8 @@ export async function renderVideo(input: {
   const { script, format, workDir: dir, signal } = input
   const step = input.onStep ?? (() => undefined)
   let status = await videoStudioStatus()
+  // Los efectos de sonido se preparan mientras se hacen la voz y las imágenes (la primera vez tardan un poco).
+  const sfxReady = prepareSfx()
   if (!status.ready || !status.voice) {
     // La primera vez que se pide un vídeo, kywai instala solo lo que falta (sin pasar por Ajustes).
     step('Instalando el estudio de vídeo (solo la primera vez; tarda unos minutos)', 0.01)
@@ -1241,7 +1277,9 @@ export async function renderVideo(input: {
   const compInput = { script, format, timeline: tl, images, shots, clips, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js', ...(presenter ? { presenter } : {}) }
   const comp = cartoon ? buildCartoonComposition(compInput) : buildComposition(compInput)
   writeFileSync(join(dir, 'musica.wav'), synthMusic(tl.total, script.title))
-  writeFileSync(join(dir, 'efectos.wav'), synthSfx(comp.sfx, tl.total))
+  // Como mucho 90 s de espera: lo que no esté listo sale sintetizado.
+  await Promise.race([sfxReady, new Promise((ok) => setTimeout(ok, 90_000))])
+  writeFileSync(join(dir, 'efectos.wav'), mixSfx(comp.sfx, tl.total, loadSfxBank(sfxDir())))
   const mix = await mixAudio(dir, voices, tl.scenes.map((s) => s.start + VOICE_LEAD_S), tl.total, signal)
   renameSync(mix, join(dir, 'assets', 'mezcla.wav'))
 

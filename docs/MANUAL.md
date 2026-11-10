@@ -1695,8 +1695,9 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
    la app de escritorio de comfy.org, descarga un modelo SDXL y déjala abierta. ComfyUI es GPL-3.0: kywai solo le
    habla por HTTP (`src/main/comfyui.ts`).
 3. **Música** propia generada para cada vídeo (acordes con pulso; sin derechos de nadie) que **baja sola cuando habla
-   la voz**, y **efectos de sonido** sintetizados: «whoosh» en cada transición, golpes en la portada y el cierre, un
-   «pop» al entrar cada etiqueta. Todo normalizado a -16 LUFS.
+   la voz**, y **efectos de sonido** de verdad: «whoosh» en cada transición, golpes en la portada y el cierre, un
+   «pop» al entrar cada etiqueta, una subida antes de la primera escena y un «boing» en las bromas, turnando varios
+   sonidos de cada tipo para que no suene siempre igual (ver «Efectos de sonido» más abajo). Todo normalizado a -16 LUFS.
 4. **Animación y montaje** con **HyperFrames** (Apache 2.0) y GSAP, con ritmo pero **sin agobiar** (desde el 10 de
    noviembre de 2026 es más tranquilo: antes resultaba demasiado intenso): el título entra palabra a palabra, sin
    sacudidas; la voz sale **a pantalla grande en golpes de hasta 4 palabras** que entran con movimientos cortos y
@@ -1900,6 +1901,23 @@ agente escribe las fórmulas con `Text`. **«Instalar lo que falta»** instala M
 `libpango1.0-dev`, `libcairo2-dev` y `pkg-config`). El código y el registro de cada animación quedan en la carpeta
 de trabajo del vídeo (`manim/`).
 
+**Efectos de sonido.** Desde el 10 de noviembre de 2026 los efectos ya no son solo sintetizados. kywai prepara una
+vez un banco en `estudio-video/efectos/` (un WAV por sonido; `fuentes.json` dice de dónde sale cada uno) y lo
+reutiliza en todos los vídeos:
+1. **earshot** (github.com/Leonxlnx/earshot, MIT, versión fija): 252 efectos hechos con código, sin red, sin clave y
+   sin modelos. kywai usa 15 (4 whoosh, 4 pop, 3 golpes y 2 subidas). Se instala en `estudio-video/.venv` solo con lo
+   que usa `earshot sfx` (numpy, scipy, soundfile y soxr; sin torch ni su GB de modelos de análisis).
+2. **Openverse** (api.openverse.org, sin clave): sonidos reales de Freesound con licencia **CC0** (dominio público,
+   no hace falta citar a nadie), cortos y recortados. Pone el «boing», que earshot no tiene, y sustituye a earshot si
+   no se pudo instalar. Cuando earshot llega después, sus sonidos sustituyen a los de Openverse.
+3. Los **sintetizados** de siempre, para lo que no haya en el banco (sin red ni Python, el vídeo sale igual).
+
+El banco se prepara con «Instalar lo que falta» (y solo, al arrancar) o con el primer vídeo, mientras se hacen la voz y
+las imágenes (como mucho espera 90 s; lo que no esté listo sale sintetizado). Un tipo que no consigue nada no se
+vuelve a intentar hasta el día siguiente. Las películas con estilo también lo usan: el encargo le dice al agente
+dónde están los WAV y cómo pedirle más a earshot. Ajustes → Extensiones → Estudio de vídeo → **Efectos de sonido**
+dice cuántos hay de cada fuente. Código: `src/main/sfxBank.ts` y `mixSfx` en `src/main/videoScript.ts`.
+
 Mientras, la tarea dice por qué paso va («Poniendo la voz (2 de 6)», «Animando y montando el vídeo»…). Un vídeo de
 medio minuto tarda unos minutos.
 
@@ -1908,7 +1926,7 @@ El material de trabajo (guion, voces, imágenes, música, composición) se guard
 `.ai-cowork/videos/` del proyecto: no sale en el chat ni en Entregables.
 
 **Viene de serie.** No hace falta pulsar nada: unos 45 s después de arrancar, el servidor de kywai mira si el estudio
-está completo (HyperFrames, ffmpeg, la voz Kokoro, Manim y los estilos de película) y, si falta algo, lo instala solo
+está completo (HyperFrames, ffmpeg, la voz Kokoro, Manim, los estilos de película y los efectos de sonido de earshot) y, si falta algo, lo instala solo
 en segundo plano mientras usas la app (Ajustes lo enseña como «Instalando…» y se pone al día solo). Si una vez no
 termina (sin red, sin Python…), lo vuelve a intentar al día siguiente, no en cada arranque; el registro queda en
 `estudio-video/instalacion.log`. Con la variable `KYWAI_NO_VIDEO_AUTOINSTALL=1` no se instala solo. FreeVideo, ComfyUI

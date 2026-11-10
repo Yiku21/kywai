@@ -948,6 +948,17 @@ function VideoSection() {
           detail: status.manim ? t('Instalado') : t('Falta (opcional): «Instalar lo que falta» lo instala')
         },
         {
+          label: t('Efectos de sonido'),
+          ok: !!status.sfx?.earshot,
+          detail: status.sfx?.earshot
+            ? status.sfx.openverse
+              ? t('Efectos reales: {earshot} de earshot y {openverse} de Openverse (CC0)', { earshot: status.sfx.earshot, openverse: status.sfx.openverse })
+              : t('Efectos reales de earshot ({n}), hechos en este equipo', { n: status.sfx.earshot })
+            : status.sfx?.openverse
+              ? t('{n} sonidos libres (CC0) de Openverse; «Instalar lo que falta» instala earshot para tener más', { n: status.sfx.openverse })
+              : t('Sintetizados por kywai: «Instalar lo que falta» instala earshot para tener efectos reales')
+        },
+        {
           label: t('Estilos de película (73, con muestras al escribir «/video»)'),
           ok: !!status.films?.library && !!status.films?.painted,
           detail:
@@ -980,7 +991,8 @@ function VideoSection() {
         }
       ]
     : []
-  const complete = !!status && status.ready && status.kokoro && !!status.manim && !!status.films?.library && !!status.films?.painted
+  const complete =
+    !!status && status.ready && status.kokoro && !!status.manim && !!status.films?.library && !!status.films?.painted && !!status.sfx?.installed && !!status.sfx.earshot
   const autoInstalling = !busy && !!status?.installing
 
   return (

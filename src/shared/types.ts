@@ -1467,6 +1467,8 @@ export interface VideoStudioStatus {
   gemini?: boolean
   /** Manim instalado (animaciones de fórmulas, gráficas y diagramas). */
   manim?: boolean
+  /** Efectos de sonido: earshot instalado y cuántos sonidos hay en el banco de cada fuente (el resto, sintetizados). */
+  sfx?: { installed: boolean; earshot: number; openverse: number }
   /** Estilos de película (src/shared/filmStyles.ts): la biblioteca Lemo-Opuscar y el kit de animación pintada con los robots. */
   films?: { library: boolean; painted: boolean }
   /** FreeVideo (MiniMax H3) en este equipo: instalado y abierto; da movimiento a las escenas clave. */

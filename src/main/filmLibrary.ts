@@ -153,6 +153,7 @@ export function filmPrompt(input: FilmPromptInput): string {
     `- ${HOOK_RULE}`,
     `- El vídeo final se llama exactamente ${join(work, FILM_FILE)} (con sonido). Deja también poster.jpg y, si hay voz, el .srt.`,
     '- Revisa tu trabajo antes de entregar (capturas, tiras de fotogramas, una pasada completa) y arregla lo que veas en una ronda.',
+    `- Efectos de sonido reales: en ${join(input.studioDir, 'efectos')} hay WAV listos (${join(input.studioDir, 'efectos', 'fuentes.json')} dice qué es cada uno) y, si existe, «${join(input.studioDir, '.venv', process.platform === 'win32' ? 'Scripts\\earshot.exe' : 'bin/earshot')} sfx list» y «… sfx render <id> -o x.wav [--dur s] [--apex s]» dan 252 más (MIT, sin red). Úsalos antes que sintetizar los tuyos y ponlos en el fotograma exacto de la acción.`,
     '- Nada de personajes, marcas, logotipos ni obras de terceros; solo lo que el usuario haya dado. Ningún crédito ni firma de la biblioteca en la película.',
     '- No dejes procesos en segundo plano al terminar ni cierres procesos que no hayas lanzado tú.',
     '- Al terminar, responde solo con dos líneas: «Título: …» y una frase sobre de qué va la película. Si no puedes hacerla, empieza tu respuesta con «BLOQUEADA:» y el motivo en una frase.'

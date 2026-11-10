@@ -865,11 +865,21 @@ export function synthMusic(seconds: number, seed: string, sampleRate = 44100): B
   return wav16(out, sampleRate, 0.8)
 }
 
+/** Lo fuerte que entra cada tipo cuando es un sonido del banco (los del banco llegan normalizados a pico 1). */
+const SFX_GAIN: Record<SfxKind, number> = { whoosh: 0.75, pop: 0.5, impact: 1, riser: 0.7, boing: 0.6 }
+
 /**
- * Efectos de sonido sintetizados (sin derechos de nadie) en su momento: «whoosh» en cada transición, «pop» al entrar la
- * etiqueta, «impact» en los golpes de la portada y el cierre, «riser» antes de la primera escena. WAV mono de 16 bits.
+ * Efectos de sonido en su momento: «whoosh» en cada transición, «pop» al entrar la etiqueta, «impact» en los golpes de
+ * la portada y el cierre, «riser» antes de la primera escena. Con `bank` (src/main/sfxBank.ts: earshot u Openverse CC0)
+ * cada efecto es un sonido de verdad, turnando los del mismo tipo; lo que no esté en el banco sale sintetizado (sin
+ * derechos de nadie). WAV mono de 16 bits.
  */
-export function synthSfx(events: { at: number; kind: SfxKind }[], seconds: number, sampleRate = 44100): Buffer {
+export function mixSfx(
+  events: { at: number; kind: SfxKind }[],
+  seconds: number,
+  bank: Partial<Record<SfxKind, Float32Array[]>> = {},
+  sampleRate = 44100
+): Buffer {
   const n = Math.max(1, Math.floor(seconds * sampleRate))
   const out = new Float32Array(n)
   let seed = 12345
@@ -877,41 +887,61 @@ export function synthSfx(events: { at: number; kind: SfxKind }[], seconds: numbe
     seed = (seed * 1664525 + 1013904223) >>> 0
     return seed / 2147483648 - 1
   }
+  const turn: Partial<Record<SfxKind, number>> = {}
   for (const ev of events) {
     const i0 = Math.floor(ev.at * sampleRate)
-    const len = Math.floor(sampleRate * (ev.kind === 'whoosh' ? 0.45 : ev.kind === 'pop' ? 0.09 : ev.kind === 'riser' ? 0.9 : ev.kind === 'boing' ? 0.55 : 0.5))
-    let lp = 0
-    let ph = 0
-    for (let k = 0; k < len && i0 + k < n; k++) {
-      if (i0 + k < 0) continue
-      const t = k / sampleRate
-      const x = k / len
-      let v = 0
-      if (ev.kind === 'whoosh') {
-        // Ruido filtrado que sube y baja (filtro paso bajo con corte que barre).
-        const cut = 0.02 + 0.5 * Math.sin(Math.PI * x)
-        lp += cut * (noise() - lp)
-        v = lp * Math.sin(Math.PI * x) * 1.4
-      } else if (ev.kind === 'pop') {
-        v = Math.sin(2 * Math.PI * (900 - 500 * x) * t) * Math.exp(-x * 6) * 0.6
-      } else if (ev.kind === 'boing') {
-        // Muelle de dibujos animados: tono que oscila y cae.
-        const f = 180 + 140 * Math.sin(2 * Math.PI * 9 * t) * Math.exp(-t * 4) + 120 * (1 - x)
-        ph += f / sampleRate
-        v = Math.sin(2 * Math.PI * ph) * Math.exp(-x * 3.5) * 0.7
-      } else if (ev.kind === 'impact') {
-        const f = 40 + 120 * Math.exp(-t * 25)
-        lp += 0.08 * (noise() - lp)
-        v = (Math.sin(2 * Math.PI * f * t) * 0.9 + lp * 1.5) * Math.exp(-t * 7)
-      } else {
-        const f = 200 + 900 * x * x
-        lp += (0.01 + 0.2 * x) * (noise() - lp)
-        v = (Math.sin(2 * Math.PI * f * t) * 0.15 + lp) * x * x
-      }
-      out[i0 + k] += v
+    const takes = bank[ev.kind]
+    if (takes?.length) {
+      const k = turn[ev.kind] ?? 0
+      turn[ev.kind] = k + 1
+      const take = takes[k % takes.length]
+      const g = SFX_GAIN[ev.kind]
+      for (let j = 0; j < take.length && i0 + j < n; j++) if (i0 + j >= 0) out[i0 + j] += take[j] * g
+      continue
     }
+    synthOne(ev.kind, out, i0, sampleRate, noise)
   }
   return wav16(out, sampleRate, 0.9)
+}
+
+/** Solo los efectos sintetizados (sin banco). */
+export function synthSfx(events: { at: number; kind: SfxKind }[], seconds: number, sampleRate = 44100): Buffer {
+  return mixSfx(events, seconds, {}, sampleRate)
+}
+
+function synthOne(kind: SfxKind, out: Float32Array, i0: number, sampleRate: number, noise: () => number): void {
+  const n = out.length
+  const len = Math.floor(sampleRate * (kind === 'whoosh' ? 0.45 : kind === 'pop' ? 0.09 : kind === 'riser' ? 0.9 : kind === 'boing' ? 0.55 : 0.5))
+  let lp = 0
+  let ph = 0
+  for (let k = 0; k < len && i0 + k < n; k++) {
+    if (i0 + k < 0) continue
+    const t = k / sampleRate
+    const x = k / len
+    let v = 0
+    if (kind === 'whoosh') {
+      // Ruido filtrado que sube y baja (filtro paso bajo con corte que barre).
+      const cut = 0.02 + 0.5 * Math.sin(Math.PI * x)
+      lp += cut * (noise() - lp)
+      v = lp * Math.sin(Math.PI * x) * 1.4
+    } else if (kind === 'pop') {
+      v = Math.sin(2 * Math.PI * (900 - 500 * x) * t) * Math.exp(-x * 6) * 0.6
+    } else if (kind === 'boing') {
+      // Muelle de dibujos animados: tono que oscila y cae.
+      const f = 180 + 140 * Math.sin(2 * Math.PI * 9 * t) * Math.exp(-t * 4) + 120 * (1 - x)
+      ph += f / sampleRate
+      v = Math.sin(2 * Math.PI * ph) * Math.exp(-x * 3.5) * 0.7
+    } else if (kind === 'impact') {
+      const f = 40 + 120 * Math.exp(-t * 25)
+      lp += 0.08 * (noise() - lp)
+      v = (Math.sin(2 * Math.PI * f * t) * 0.9 + lp * 1.5) * Math.exp(-t * 7)
+    } else {
+      const f = 200 + 900 * x * x
+      lp += (0.01 + 0.2 * x) * (noise() - lp)
+      v = (Math.sin(2 * Math.PI * f * t) * 0.15 + lp) * x * x
+    }
+    out[i0 + k] += v
+  }
 }
 
 function wav16(samples: Float32Array, sampleRate: number, peakTarget: number): Buffer {
