@@ -131,7 +131,8 @@ export const ALIVE_3D = [
   '  · Luz viva: el fuego parpadea, los farolillos se balancean, las pantallas laten; la luz cambia un poco aunque nada más lo haga.',
   '  · Cámara que respira: una deriva lenta y continua (un poco de giro o de avance); nunca del todo quieta.',
   '  · Luz principal fuerte y de lado, con sombras de verdad (no luz plana igual en todas las caras); relleno frío que suaviza las sombras y un borde de luz que recorta los contornos.',
-  '  · Atmósfera: brillo en las luces cálidas, niebla o bruma detrás para dar profundidad.'
+  '  · Atmósfera: brillo en las luces cálidas, niebla o bruma detrás para dar profundidad.',
+  '  · Nada de dibujo plano: cada cosa es un modelo con volumen y material (brillo, rugosidad, textura), nunca un cuadrado o un círculo de color liso que hace de marcador de posición. kywai lo comprueba en el MP4 y, si parece plano, te la devuelve.'
 ]
 
 /**

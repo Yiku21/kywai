@@ -2522,7 +2522,7 @@ async function completeFilm(run: Run, t: Task, exec: AgentConfig, parent: AgentC
   t.phase = 'verify'
   t.lastActivity = tr('kywai comprueba la película')
   taskDirty(t)
-  const check = await checkFilmFile(found)
+  const check = await checkFilmFile(found, FILM_3D.has(v.film!))
   if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
   if (check.issues.length) {
     traceNote(t.id, tr('kywai vio fallos en la película: {v1}', { v1: oneLine(check.issues.join(' '), 300) }), true)

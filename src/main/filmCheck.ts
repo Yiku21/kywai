@@ -1,5 +1,6 @@
 // Comprobación de una película con estilo antes de entregarla (ver completeFilm en orchestrator.ts):
-//  1. kywai mira el MP4 con ffmpeg (pantallas negras, imagen congelada, silencios, sin sonido, demasiado corta);
+//  1. kywai mira el MP4 con ffmpeg (pantallas negras, imagen congelada, silencios, sin sonido, demasiado corta y, en
+//     los estilos 3D, si parece un dibujo plano de formas de colores lisos en vez de una escena 3D);
 //  2. si está limpio, otro agente (de otra familia) mira una hoja de contacto contra beats.md y las reglas de animación.
 // Con fallos, la película vuelve a quien la hizo con la lista (hasta MAX_FILM_FIXES veces).
 import { ALIVE_3D, ALIVE_ACTION, BEATS_FILE, FILM_FILE } from './filmLibrary'
@@ -71,6 +72,73 @@ export function parseFilmCheck(log: string, seconds: number, hasAudio: boolean):
   return issues.slice(0, 8)
 }
 
+/** Fotogramas que se miran para saber si una película 3D parece un dibujo plano. */
+export const FLAT_FRAMES = 6
+/** Ancho (px) al que se reducen esos fotogramas: basta para ver si la imagen son unos pocos colores lisos. */
+export const FLAT_WIDTH = 96
+/** A partir de esta parte de la imagen en sus 12 colores más usados, el fotograma se ve plano (colores lisos). */
+export const FLAT_SHARE = 0.65
+
+/** Los fotogramas repartidos por la película, pequeños y en PPM (fácil de leer sin librerías). */
+export function flatFramesArgs(file: string, outPattern: string, seconds: number): string[] {
+  const fps = (FLAT_FRAMES / Math.max(seconds, 1)).toFixed(4)
+  return ['-y', '-v', 'error', '-i', file, '-vf', `fps=${fps},scale=${FLAT_WIDTH}:-2`, '-frames:v', String(FLAT_FRAMES), outPattern]
+}
+
+/** Lee un PPM binario (P6, 8 bits): ancho, alto y los píxeles RGB. null si no lo es. */
+export function parsePpm(buf: Uint8Array): { w: number; h: number; px: Uint8Array } | null {
+  const fields: string[] = []
+  let i = 0
+  while (fields.length < 4 && i < buf.length) {
+    while (i < buf.length && /\s/.test(String.fromCharCode(buf[i]))) i++
+    if (buf[i] === 35) {
+      while (i < buf.length && buf[i] !== 10) i++
+      continue
+    }
+    let tok = ''
+    while (i < buf.length && !/\s/.test(String.fromCharCode(buf[i]))) tok += String.fromCharCode(buf[i++])
+    fields.push(tok)
+  }
+  i++
+  const [magic, w, h, max] = [fields[0], Number(fields[1]), Number(fields[2]), Number(fields[3])]
+  if (magic !== 'P6' || !(w > 0) || !(h > 0) || max !== 255 || buf.length < i + w * h * 3) return null
+  return { w, h, px: buf.subarray(i, i + w * h * 3) }
+}
+
+/**
+ * Qué parte de la imagen ocupan sus 12 colores más usados (de 0 a 1), con los colores agrupados de 4 en 4 niveles.
+ * Un dibujo de formas lisas (cielo de un color, suelo de otro, casa roja…) pasa de 0,7; un render 3D con luz,
+ * sombras y materiales se queda por debajo de 0,55. null en un fotograma casi negro (no dice nada).
+ */
+export function flatShare(px: Uint8Array): number | null {
+  const n = Math.floor(px.length / 3)
+  if (!n) return null
+  const counts = new Map<number, number>()
+  let luma = 0
+  for (let k = 0; k < n * 3; k += 3) {
+    const r = px[k]
+    const g = px[k + 1]
+    const b = px[k + 2]
+    luma += 0.299 * r + 0.587 * g + 0.114 * b
+    const key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2)
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  if (luma / n < 40) return null
+  const top = [...counts.values()].sort((a, b) => b - a).slice(0, 12)
+  return top.reduce((a, b) => a + b, 0) / n
+}
+
+/**
+ * El fallo «parece un dibujo plano» de una película 3D: la mitad o más de los fotogramas que se pueden juzgar son
+ * colores lisos. Hacen falta al menos 3 fotogramas juzgables (los casi negros no cuentan).
+ */
+export function flatLookIssue(shares: (number | null)[]): string | null {
+  const judged = shares.filter((x): x is number => x !== null)
+  const flat = judged.filter((x) => x >= FLAT_SHARE).length
+  if (judged.length < 3 || flat * 2 < judged.length) return null
+  return `Parece un dibujo plano, no una escena 3D: en ${flat} de ${judged.length} fotogramas casi toda la imagen son unos pocos colores lisos (formas sueltas sin luz, sombras ni materiales). Rehazla en 3D de verdad: modelos con volumen, luz principal de lado con sombras, materiales con brillo y rugosidad, y profundidad (niebla o desenfoque al fondo).`
+}
+
 /** Lo que se le pide a quien hizo la película cuando hay que corregirla. */
 export function filmFixRequest(by: string, issues: string, work: string, round: number): string {
   return [
@@ -119,6 +187,9 @@ export function filmReviewPrompt(i: FilmReviewInput): string {
     '## Qué debes comprobar',
     '- Que se cuenta lo planeado: cada beat se reconoce en algún fotograma y en orden.',
     '- Fallos que se ven: fotogramas vacíos o rotos, personajes que cambian de aspecto entre planos o salen cortados sin querer, texto cortado o ilegible, cosas fuera de cuadro, la misma imagen repetida en muchos fotogramas seguidos (plano muerto), acciones sin anticipación o impactos que se resuelven con un fundido.',
+    ...(i.is3d
+      ? ['- Que se vea 3D de verdad: volumen, luz con sombras y materiales. Si parece un dibujo plano de cuadrados y círculos de colores lisos (como un marcador de posición), es un fallo.']
+      : ['- Que se vea acabada: formas geométricas sueltas de colores lisos que hacen de marcador de posición, en lugar de lo que pide el estilo, son un fallo.']),
     '- Solo fallos reales que se ven: nada de gustos ni ideas nuevas. Si cuenta lo planeado y no tiene esos fallos, CUMPLE.',
     '',
     '## Qué debes responder',

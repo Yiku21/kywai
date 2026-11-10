@@ -7,8 +7,8 @@
 // (say en macOS, la de Windows o espeak-ng en Linux). Las imágenes las genera Gemini si hay clave de API; sin clave, cada
 // escena lleva un fondo de diseño animado.
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import {
   buildComposition,
@@ -24,7 +24,7 @@ import {
   type VideoScript
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
-import { contactSheetArgs, filmCheckArgs, parseFilmCheck } from './filmCheck'
+import { contactSheetArgs, filmCheckArgs, flatFramesArgs, flatLookIssue, flatShare, parseFilmCheck, parsePpm } from './filmCheck'
 import { EARSHOT_DEPS, EARSHOT_PIP, earshotInstalledIn, ensureSfxBank, loadSfxBank, sfxBankSummary } from './sfxBank'
 import { comfyImage, comfyStatus } from './comfyui'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
@@ -597,17 +597,40 @@ export async function mediaSeconds(file: string): Promise<number> {
 }
 
 /**
- * Comprueba una película antes de entregarla (filmCheck.ts): devuelve los fallos que se ven con ffmpeg. Si ffmpeg no
- * responde, no se inventa nada: sin fallos.
+ * Comprueba una película antes de entregarla (filmCheck.ts): devuelve los fallos que se ven con ffmpeg. En un estilo
+ * 3D (`is3d`) mira además si parece un dibujo plano. Si ffmpeg no responde, no se inventa nada: sin fallos.
  */
-export async function checkFilmFile(file: string): Promise<{ seconds: number; issues: string[] }> {
+export async function checkFilmFile(file: string, is3d = false): Promise<{ seconds: number; issues: string[] }> {
   const seconds = await mediaSeconds(file)
   const a = await run('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', file], { timeoutMs: 30_000 })
   if (a.code !== 0) return { seconds, issues: [] }
   const hasAudio = /audio/.test(a.out)
   const r = await run('ffmpeg', filmCheckArgs(file, hasAudio), { timeoutMs: 10 * 60_000 })
   if (r.code !== 0) return { seconds, issues: [] }
-  return { seconds, issues: parseFilmCheck(r.out, seconds, hasAudio) }
+  const issues = parseFilmCheck(r.out, seconds, hasAudio)
+  const flat = is3d && seconds > 0 ? await flatLook(file, seconds) : null
+  return { seconds, issues: flat ? [flat, ...issues].slice(0, 8) : issues }
+}
+
+/** ¿La película 3D parece un dibujo plano? Saca unos fotogramas pequeños y mira sus colores (ver flatShare). */
+async function flatLook(file: string, seconds: number): Promise<string | null> {
+  const dir = mkdtempSync(join(tmpdir(), 'kywai-plano-'))
+  try {
+    const r = await run('ffmpeg', flatFramesArgs(file, join(dir, 'f%02d.ppm'), seconds), { timeoutMs: 5 * 60_000 })
+    if (r.code !== 0) return null
+    const shares = readdirSync(dir)
+      .filter((f) => f.endsWith('.ppm'))
+      .sort()
+      .map((f) => {
+        const img = parsePpm(readFileSync(join(dir, f)))
+        return img ? flatShare(img.px) : null
+      })
+    return flatLookIssue(shares)
+  } catch {
+    return null
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 }
 
 /** Hoja de contacto de la película (12 fotogramas repartidos en una imagen); null si no se pudo hacer. */

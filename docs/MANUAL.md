@@ -2095,7 +2095,13 @@ película: el concepto en una frase, los fotogramas por segundo y cada beat con 
 impacto, salto entre poses → fotograma de barrido); las de 3D, además, la de «escena 3D viva». Cuando el agente
 termina, **kywai comprueba el MP4 con ffmpeg** (`checkFilmFile` en `videoStudio.ts`, reglas en `src/main/filmCheck.ts`):
 pantallas negras de más de 0,8 s, imagen congelada 4 s o más, silencio total 4 s o más, sin pista de sonido o menos de
-5 s (se perdonan los fundidos del principio y del final y el cierre quieto de hasta 5 s). Si está limpio, **otro agente
+5 s (se perdonan los fundidos del principio y del final y el cierre quieto de hasta 5 s). En los estilos 3D
+(`FILM_3D`) mira además si **parece un dibujo plano**: saca 6 fotogramas de 96 px de ancho y, si en la mitad o más
+de los que no son casi negros los 12 colores más usados cubren el 65 % de la imagen o más (`FLAT_SHARE`, colores
+agrupados de 4 en 4 niveles), la devuelve pidiendo modelos con volumen, luz con sombras y materiales. El umbral se
+probó con un reel de comparación (sabodominik, «Normal Claude / Claude + Brism»): los dibujos de formas lisas dan
+0,73–0,85 y los renders 3D 0,13–0,55; acertó los 10 casos. El revisor también lo mira, y la lista de escena 3D viva
+pide «nada de dibujo plano». Si está limpio, **otro agente
 de otra familia que vea imágenes** revisa una hoja de contacto (`hoja-de-contacto.jpg`, 12 fotogramas repartidos)
 contra `beats.md` y las reglas, en solo lectura, y responde «VEREDICTO: CUMPLE» o «FALLOS». Con fallos, la película
 vuelve a quien la hizo, en su misma sesión, con la lista (hasta 2 correcciones, `MAX_FILM_FIXES`); si se agotan, se

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { contactSheetArgs, filmCheckArgs, filmFixRequest, filmReviewPrompt, parseFilmCheck } from './filmCheck'
+import { contactSheetArgs, filmCheckArgs, filmFixRequest, filmReviewPrompt, flatFramesArgs, flatLookIssue, flatShare, parseFilmCheck, parsePpm } from './filmCheck'
 
 describe('comprobación de la película', () => {
   it('una película limpia no tiene fallos', () => {
@@ -62,5 +62,53 @@ describe('comprobación de la película', () => {
     expect(f).toContain('corrección 1 de 2')
     expect(f).toContain('Pantalla negra')
     expect(f).toContain('pelicula.mp4')
+  })
+
+  it('la revisión pide que una película 3D se vea 3D de verdad', () => {
+    const base = { styleName: 'x', topic: 'y', work: '/w', sheet: 's', seconds: 10, beats: '', author: 'A', reply: '', vertical: true }
+    expect(filmReviewPrompt({ ...base, is3d: true })).toContain('3D de verdad')
+    expect(filmReviewPrompt({ ...base, is3d: false })).toContain('marcador de posición')
+  })
+})
+
+/** Imagen de prueba w×h con el color que dé `color(x, y)`, como píxeles RGB. */
+function image(w: number, h: number, color: (x: number, y: number) => [number, number, number]): Uint8Array {
+  const px = new Uint8Array(w * h * 3)
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) px.set(color(x, y), (y * w + x) * 3)
+  return px
+}
+
+describe('¿parece un dibujo plano?', () => {
+  // Cielo, casa roja, ventana y suelo verde de colores lisos: lo que sale cuando no se hace 3D de verdad.
+  const drawing = image(96, 170, (x, y) => (y < 90 ? (x > 30 && x < 66 && y > 50 ? (x > 40 && x < 50 && y > 60 && y < 70 ? [255, 255, 255] : [220, 20, 20]) : [135, 206, 235]) : [40, 170, 40]))
+  // Luz que cambia por toda la imagen y grano: lo que deja un render con luz, sombras y materiales.
+  const render = image(96, 170, (x, y) => [Math.min(255, 60 + x * 1.5 + ((x * 7 + y * 13) % 11)), Math.min(255, 40 + y + ((x * 5 + y * 3) % 9)), 90 + ((x + y) % 60)])
+
+  it('un dibujo de colores lisos se ve plano y un render no', () => {
+    expect(flatShare(drawing)).toBeGreaterThan(0.95)
+    expect(flatShare(render)).toBeLessThan(0.3)
+  })
+
+  it('un fotograma casi negro no cuenta', () => {
+    expect(flatShare(image(10, 10, () => [5, 5, 5]))).toBeNull()
+    expect(flatShare(new Uint8Array(0))).toBeNull()
+  })
+
+  it('avisa si la mitad o más de los fotogramas son planos', () => {
+    expect(flatLookIssue([0.9, 0.85, 0.3, 0.8, null, 0.2])).toContain('Parece un dibujo plano')
+    expect(flatLookIssue([0.9, 0.85, 0.3, 0.8, null, 0.2])).toContain('en 3 de 5 fotogramas')
+    expect(flatLookIssue([0.9, 0.3, 0.2, 0.4])).toBeNull()
+    expect(flatLookIssue([0.9, 0.9, null, null, null, null])).toBeNull()
+  })
+
+  it('lee un PPM y saca 6 fotogramas pequeños', () => {
+    const header = new TextEncoder().encode('P6\n# kywai\n2 1\n255\n')
+    const ppm = new Uint8Array([...header, 1, 2, 3, 4, 5, 6])
+    expect(parsePpm(ppm)).toEqual({ w: 2, h: 1, px: new Uint8Array([1, 2, 3, 4, 5, 6]) })
+    expect(parsePpm(new TextEncoder().encode('P3\n2 1\n255\n'))).toBeNull()
+    const args = flatFramesArgs('a.mp4', '/t/f%02d.ppm', 30).join(' ')
+    expect(args).toContain('fps=0.2000,scale=96:-2')
+    expect(args).toContain('-frames:v 6')
   })
 })
