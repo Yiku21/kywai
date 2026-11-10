@@ -98,7 +98,7 @@ import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { initSkills } from './skills'
-import { initVideoStudio, ensureVideoStudio, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
+import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
 import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
 // Las imágenes de los robots van empaquetadas con la app: son la referencia del personaje «Robots de kywai».
 import hermesRobot from '../renderer/src/assets/robots/hermes.png?asset'
@@ -111,7 +111,7 @@ import { McpRegistry, initExtensions, listMcp, removeMcp, saveMcp, setMcpAgents,
 import { deleteTraces, flushTaskTraces, getTaskTrace, initTaskTraces } from './taskTrace'
 import { onMacPermissionPrompt, startMacPermissionWatch, stopMacPermissionWatch } from './macPermissions'
 import { launchCommand, linuxAutostartEnabled, setLinuxAutostart } from './linuxDesktop'
-import { isLang, tr } from '@shared/i18n'
+import { isLang, lang, tr } from '@shared/i18n'
 
 // Must happen before 'ready'.
 protocol.registerSchemesAsPrivileged([
@@ -851,6 +851,9 @@ function registerIpc(): void {
   handle('listVideoCharacters', () => listVideoCharacters())
   handle('addVideoCharacter', (input: unknown) => addVideoCharacter(input))
   handle('removeVideoCharacter', (id: unknown) => removeVideoCharacter(id))
+  // Voces para los vídeos (paso 4 del selector) y una muestra corta de cada una, en el idioma de la app.
+  handle('listVideoVoices', () => listVideoVoices(lang()))
+  handle('previewVideoVoice', (id: unknown) => previewVideoVoice(id, lang(), tr('Hola, así sonará la voz de tu vídeo. ¿Te gusta cómo suena?')))
   // Mods: órdenes «/…», hooks (con permiso) y paneles aislados junto al chat.
   handle('listMods', () => listMods())
   handle('installModLink', (url: unknown) => installModLink(url))

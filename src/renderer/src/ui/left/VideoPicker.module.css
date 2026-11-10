@@ -513,3 +513,81 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Paso 4: las voces, con ▶ a la izquierda para oír una muestra. */
+.voiceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+  gap: 8px;
+}
+
+.voiceCard {
+  min-height: 50px;
+  justify-content: center;
+  padding: 7px 26px 7px 44px;
+}
+
+.catLine {
+  margin-left: 4px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.play {
+  position: absolute;
+  top: 50%;
+  left: 9px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  cursor: pointer;
+}
+
+.play:hover,
+.play:focus-visible {
+  background: var(--cyan);
+  color: #fff;
+  outline: 0;
+}
+
+.playOn {
+  background: var(--cyan);
+  color: #fff;
+}
+
+.playAuto {
+  cursor: inherit;
+}
+
+.playAuto:hover {
+  background: var(--cyan-soft);
+  color: var(--cyan);
+}
+
+.voiceErr {
+  color: var(--red, #e5484d);
+}
+
+.voiceNote {
+  margin: 10px 2px 2px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+.spin {
+  animation: voiceSpin 0.9s linear infinite;
+}
+
+@keyframes voiceSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

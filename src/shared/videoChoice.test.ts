@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, withVideoChoice } from './videoChoice'
+import { parseVoiceId, ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, withVideoChoice } from './videoChoice'
 
 describe('lo elegido al escribir /video', () => {
   it('lee el tipo, el personaje y el estilo marcados', () => {
-    expect(videoChoiceOf('/video la luna')).toEqual({ kind: 'rapido', character: null, style: null })
-    expect(videoChoiceOf('/video tipo:mixto personaje:robots-kywai estilo:watercolor la luna')).toEqual({ kind: 'mixto', character: ROBOTS_CHARACTER, style: 'watercolor' })
-    expect(videoChoiceOf('/video tipo:nada estilo:nada la luna')).toEqual({ kind: 'rapido', character: null, style: null })
+    expect(videoChoiceOf('/video la luna')).toEqual({ kind: 'rapido', character: null, style: null, voice: null })
+    expect(videoChoiceOf('/video tipo:mixto personaje:robots-kywai estilo:watercolor la luna')).toEqual({ kind: 'mixto', character: ROBOTS_CHARACTER, style: 'watercolor', voice: null })
+    expect(videoChoiceOf('/video tipo:nada estilo:nada la luna')).toEqual({ kind: 'rapido', character: null, style: null, voice: null })
   })
 
   it('entiende las marcas de antes', () => {
@@ -29,5 +29,24 @@ describe('lo elegido al escribir /video', () => {
 
   it('quita las marcas', () => {
     expect(stripVideoTags('/video tipo:mixto personaje:x estilo:watercolor la luna')).toBe('/video la luna')
+  })
+
+  it('lee, pone y quita la voz', () => {
+    expect(videoChoiceOf('/video voz:kokoro-ef_dora la luna').voice).toBe('kokoro-ef_dora')
+    expect(videoChoiceOf('/video voz:gemini-puck la luna').voice).toBe('gemini-puck')
+    expect(videoChoiceOf('/video voz:inventada la luna').voice).toBeNull()
+    expect(withVideoChoice('/video la luna', { kind: 'mixto', character: null, style: null, voice: 'kokoro-em_alex' })).toBe('/video tipo:mixto voz:kokoro-em_alex la luna')
+    expect(withVideoChoice('/video voz:gemini-kore la luna', { kind: 'rapido', character: null, style: null, voice: null })).toBe('/video la luna')
+    expect(stripVideoTags('/video voz:kokoro-ef_dora la luna')).toBe('/video la luna')
+  })
+
+  it('entiende los ids de voz', () => {
+    expect(parseVoiceId('gemini-puck')).toEqual({ engine: 'gemini', id: 'Puck' })
+    expect(parseVoiceId('kokoro-af_heart')).toEqual({ engine: 'kokoro', id: 'af_heart' })
+    expect(parseVoiceId('kokoro-zz_nadie')).toBeNull()
+    expect(parseVoiceId('voicebox-mi-voz-1')).toEqual({ engine: 'voicebox', id: 'mi-voz-1' })
+    expect(parseVoiceId('sistema')).toEqual({ engine: 'sistema', id: '' })
+    expect(parseVoiceId('gemini-nadie')).toBeNull()
+    expect(parseVoiceId(null)).toBeNull()
   })
 })

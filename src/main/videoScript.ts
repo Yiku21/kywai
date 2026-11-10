@@ -295,6 +295,8 @@ export interface VideoRequest {
   character?: string
   /** Tipo elegido en el selector («tipo:…»); sin él, en una película el agente decide cómo contarla. */
   kind?: VideoKind
+  /** Voz elegida en el selector («voz:…»); sin ella, la mejor que haya. */
+  voice?: string
 }
 
 /** «con estos personajes fijos», «guarda los personajes», «estos son mis personajes», «same characters». */
@@ -335,7 +337,8 @@ export function parseVideoRequest(text: string): VideoRequest | null {
   const choice = videoChoiceOf(topic)
   const kindTag = /(^|\s)(?:tipo:[a-z0-9-]+|estilo:(?:cartoon|dinamico))(?=\s|$)/i.test(topic)
   const charTag = /(^|\s)personaje:[a-z0-9-]+(?=\s|$)/i.test(topic)
-  if (kindTag || charTag) {
+  const voice = choice.voice ?? undefined
+  if (kindTag || charTag || /(^|\s)voz:[a-z0-9_-]+(?=\s|$)/i.test(topic)) {
     const film = /(^|\s)estilo:([a-z0-9-]+)(?=\s|$)/i.exec(topic)
     topic = stripVideoTags(topic).replace(/\s{2,}/g, ' ').trim()
     if (film && choice.style) topic = `estilo:${choice.style} ${topic}`.trim()
@@ -361,7 +364,7 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     const prev = !rest || PREVIOUS_RE.test(rest)
     // El estilo pintado a mano, sin otro personaje, lleva los robots.
     const fc = charTag ? choice.character : film.style.slug === KYWAI_FILM ? ROBOTS_CHARACTER : null
-    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: kindStyle ?? 'dinamico', film: film.style.slug, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(fc ? { character: fc } : {}) }
+    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: kindStyle ?? 'dinamico', film: film.style.slug, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(fc ? { character: fc } : {}), ...(voice ? { voice } : {}) }
   }
   // «estilo cartoon de…», «de dibujos animados sobre…»: el estilo no es parte del tema.
   const style: VideoStyle = kindStyle ?? (CARTOON_RE.test(tNoCast) ? 'cartoon' : 'dinamico')
@@ -370,7 +373,7 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     .trim()
   const fromPrevious = !bare || PREVIOUS_RE.test(bare)
   const character = charTag ? choice.character : null
-  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}) }
+  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}) }
 }
 
 // ---------- composición ----------

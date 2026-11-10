@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ChevronDown, Clapperboard, ImagePlus, Layers, Plus, Search, Smile, Sparkles, Trash2, UserRound, X } from 'lucide-react'
+import { AudioLines, Check, ChevronDown, Clapperboard, ImagePlus, Layers, Loader2, Play, Plus, Search, Smile, Sparkles, Square, Trash2, UserRound, X } from 'lucide-react'
 import { FILM_CATEGORIES, FILM_STYLES, filmStyle, type FilmStyle } from '@shared/filmStyles'
 import { ROBOTS_CHARACTER, type VideoChoice, type VideoKind } from '@shared/videoChoice'
-import type { CoworkApi, VideoCharacterInfo } from '@shared/types'
+import type { CoworkApi, VideoCharacterInfo, VideoVoiceInfo } from '@shared/types'
 import { cx } from '../common/util'
 import { lang, t } from '@/lib/i18n'
 import hermesPng from '@/assets/robots/hermes.png'
@@ -46,6 +46,39 @@ const KINDS: { id: VideoKind; icon: typeof Clapperboard; name: string; line: str
 
 const kindName = (k: VideoKind): string => t(KINDS.find((x) => x.id === k)!.name)
 const charName = (c: VideoCharacterInfo): string => (c.builtin ? t('Robots de kywai') : c.name)
+
+type VoiceEngine = VideoVoiceInfo['engine']
+const ENGINES: { id: VoiceEngine; name: string; line: string }[] = [
+  { id: 'voicebox', name: 'Tus voces (Voicebox)', line: 'Las de Voicebox, abierto en tu equipo: también tu voz clonada.' },
+  { id: 'gemini', name: 'Gemini', line: 'En la nube, con tu clave: hablan en cualquier idioma.' },
+  { id: 'kokoro', name: 'Kokoro', line: 'Gratis y en tu equipo, sin internet.' },
+  { id: 'sistema', name: 'Sistema', line: 'La voz que trae tu ordenador.' }
+]
+const MISSING: Record<VoiceEngine, string> = {
+  voicebox: 'Abre Voicebox para usar tus propias voces (o la tuya, clonada).',
+  gemini: 'Con una clave de API de Gemini tendrás 12 voces más.',
+  kokoro: 'Instala Kokoro (gratis) en Ajustes → Extensiones → Estudio de vídeo para tener voces sin internet.',
+  sistema: ''
+}
+
+const langName = (code: string | undefined): string => {
+  if (!code) return ''
+  try {
+    const n = new Intl.DisplayNames([lang()], { type: 'language' }).of(code) ?? code
+    return n.charAt(0).toUpperCase() + n.slice(1)
+  } catch {
+    return code
+  }
+}
+const voiceName = (v: VideoVoiceInfo): string => (v.engine === 'sistema' ? t('Voz del sistema') : v.name)
+const voiceLine = (v: VideoVoiceInfo): string =>
+  [
+    v.engine === 'kokoro' ? '' : v.engine === 'voicebox' ? t(v.line) : v.engine === 'sistema' ? t('La del sistema operativo') : t(v.line),
+    v.engine === 'gemini' ? '' : langName(v.lang),
+    v.gender === 'f' ? t('voz de mujer') : v.gender === 'm' ? t('voz de hombre') : ''
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
 /** Reduce una imagen a 1024 px como mucho (WebP, conserva la transparencia) y saca una miniatura JPEG de 256 px. */
 async function shrink(file: File, max: number, type: 'image/webp' | 'image/jpeg', square = false): Promise<string> {
@@ -158,9 +191,10 @@ function AddCharacter({ api, onDone, onCancel }: { api: CoworkApi; onDone: (id: 
 }
 
 /**
- * «/video …»: una barra encima del cuadro con lo elegido y, al abrirla, los tres pasos: el tipo de vídeo, el
+ * «/video …»: una barra encima del cuadro con lo elegido y, al abrirla, los cuatro pasos: el tipo de vídeo, el
  * personaje (ninguno, los robots de kywai, los creados por el usuario o uno nuevo) y el estilo de animación, con una
- * muestra de cada uno. Lo elegido se pone en el texto como marcas («tipo:…», «personaje:…», «estilo:…»).
+ * muestra de cada uno, y la voz (con ▶ para oír una muestra). Lo elegido se pone en el texto como marcas («tipo:…»,
+ * «personaje:…», «estilo:…», «voz:…»).
  */
 export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
   const [q, setQ] = useState('')
@@ -169,11 +203,30 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   const charRef = useRef<HTMLElement>(null)
   const styleRef = useRef<HTMLElement>(null)
+  const voiceRef = useRef<HTMLElement>(null)
+  const [voices, setVoices] = useState<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] } | null>(null)
+  // La muestra que suena (o se está preparando) y las ya hechas, para no pedirlas otra vez.
+  const [playing, setPlaying] = useState<{ id: string; loading: boolean } | null>(null)
+  const [voiceError, setVoiceError] = useState<{ id: string; text: string } | null>(null)
+  const samples = useRef(new Map<string, string>())
+  const audio = useRef<HTMLAudioElement | null>(null)
+  const stopVoice = (): void => {
+    audio.current?.pause()
+    audio.current = null
+    setPlaying(null)
+  }
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      audio.current?.pause()
+      audio.current = null
+      setPlaying(null)
+      return
+    }
     setQ('')
     setAdding(false)
+    setVoiceError(null)
     void api.listVideoCharacters?.().then(setChars, () => undefined)
+    void api.listVideoVoices?.().then(setVoices, () => setVoices({ voices: [], missing: [] }))
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') onOpen(false)
     }
@@ -202,12 +255,37 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
     }
   }
 
+  const preview = async (v: VideoVoiceInfo): Promise<void> => {
+    if (playing?.id === v.id) return stopVoice()
+    audio.current?.pause()
+    setVoiceError(null)
+    setPlaying({ id: v.id, loading: !samples.current.has(v.id) })
+    try {
+      let url = samples.current.get(v.id)
+      if (!url) {
+        url = await api.previewVideoVoice(v.id)
+        samples.current.set(v.id, url)
+      }
+      const a = new Audio(url)
+      audio.current = a
+      a.onended = () => audio.current === a && setPlaying(null)
+      setPlaying((cur) => (cur?.id === v.id ? { id: v.id, loading: false } : cur))
+      await a.play()
+    } catch (e) {
+      setPlaying((cur) => (cur?.id === v.id ? null : cur))
+      setVoiceError({ id: v.id, text: e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(e) })
+    }
+  }
+  useEffect(() => () => audio.current?.pause(), [])
+
   const style = value.style ? filmStyle(value.style) : undefined
   const chosenChar = value.character ? chars.find((c) => c.id === value.character) : undefined
+  const chosenVoice = value.voice ? voices?.voices.find((v) => v.id === value.voice) : undefined
   const summary = [
     kindName(value.kind),
     value.character ? (chosenChar ? charName(chosenChar) : value.character === ROBOTS_CHARACTER ? t('Robots de kywai') : t('Personaje')) : '',
-    style ? fname(style) : t('Estilo de kywai')
+    style ? fname(style) : t('Estilo de kywai'),
+    value.voice ? (chosenVoice ? voiceName(chosenVoice) : t('Voz elegida')) : ''
   ].filter(Boolean)
   const thumb = value.style ? THUMBS[value.style] : undefined
   const KindIcon = KINDS.find((k) => k.id === value.kind)!.icon
@@ -324,7 +402,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                 <div role="radiogroup" aria-label={t('Estilos')}>
                   {quickHit && (
                     <div className={s.grid}>
-                      <button type="button" role="radio" aria-checked={!value.style} className={cx(s.card, !value.style && s.cardOn)} onClick={() => set({ style: null })}>
+                      <button type="button" role="radio" aria-checked={!value.style} className={cx(s.card, !value.style && s.cardOn)} onClick={() => set({ style: null }, voiceRef)}>
                         <span className={cx(s.thumb, s.quick)}>
                           <Sparkles size={26} />
                         </span>
@@ -345,7 +423,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                             role="radio"
                             aria-checked={value.style === f.slug}
                             className={cx(s.card, value.style === f.slug && s.cardOn)}
-                            onClick={() => set({ style: f.slug })}
+                            onClick={() => set({ style: f.slug }, voiceRef)}
                             title={`${fname(f)}${es() ? ` · ${f.en}` : ''}\n${fline(f)}`}
                           >
                             <span className={s.thumb}>{THUMBS[f.slug] && <img src={THUMBS[f.slug]} alt="" loading="lazy" />}</span>
@@ -360,6 +438,69 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                     </div>
                   ))}
                   {!groups.length && !quickHit && <p className={s.empty}>{t('Ningún estilo se llama así.')}</p>}
+                </div>
+              </section>
+
+              <section ref={voiceRef}>
+                <h4 className={s.step}>
+                  <b>4</b> {t('Voz')}
+                </h4>
+                <div role="radiogroup" aria-label={t('Voz')}>
+                  <div className={s.voiceGrid}>
+                    <button type="button" role="radio" aria-checked={!value.voice} className={cx(s.card, s.voiceCard, !value.voice && s.cardOn)} onClick={() => set({ voice: null })}>
+                      <span className={cx(s.play, s.playAuto)} aria-hidden="true">
+                        <AudioLines size={14} />
+                      </span>
+                      <span className={s.name}>{t('Automática')}</span>
+                      <span className={s.line}>{t('La mejor que haya: tu voz de Voicebox, Gemini o Kokoro.')}</span>
+                      {!value.voice && <Check size={14} className={s.check} aria-hidden="true" />}
+                    </button>
+                  </div>
+                  {!voices && <p className={s.empty}>{t('Buscando las voces de tu equipo…')}</p>}
+                  {ENGINES.map((e) => {
+                    const list = voices?.voices.filter((v) => v.engine === e.id) ?? []
+                    if (!list.length) return null
+                    return (
+                      <div key={e.id}>
+                        <h5 className={s.cat}>
+                          {t(e.name)} <span className={s.catLine}>{t(e.line)}</span>
+                        </h5>
+                        <div className={s.voiceGrid}>
+                          {list.map((v) => {
+                            const on = value.voice === v.id
+                            const p = playing?.id === v.id ? playing : null
+                            return (
+                              <div key={v.id} className={s.cardWrap}>
+                                <button type="button" role="radio" aria-checked={on} className={cx(s.card, s.voiceCard, on && s.cardOn)} onClick={() => set({ voice: v.id })}>
+                                  <span className={s.name}>{voiceName(v)}</span>
+                                  <span className={s.line}>{voiceError?.id === v.id ? <span className={s.voiceErr}>{voiceError.text}</span> : voiceLine(v)}</span>
+                                  {on && <Check size={14} className={s.check} aria-hidden="true" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={cx(s.play, p && s.playOn)}
+                                  onClick={() => void preview(v)}
+                                  aria-label={p ? t('Parar') : t('Escuchar la voz «{name}»', { name: voiceName(v) })}
+                                  title={p ? t('Parar') : t('Escuchar')}
+                                >
+                                  {p?.loading ? <Loader2 size={13} className={s.spin} /> : p ? <Square size={11} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {!!voices?.missing.length && (
+                    <p className={s.voiceNote}>
+                      {voices.missing
+                        .map((m) => MISSING[m])
+                        .filter(Boolean)
+                        .map((m) => t(m))
+                        .join(' ')}
+                    </p>
+                  )}
                 </div>
               </section>
             </div>

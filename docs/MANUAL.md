@@ -1658,11 +1658,11 @@ plan que aprobar, sin informes ni archivos sueltos.
 
 **Cómo se pide** (en el escritorio, la web, Órbita y las rutinas):
 
-- **Con el selector de tres pasos** (escritorio y web): al escribir `/video` se abre encima del cuadro un panel con
+- **Con el selector de cuatro pasos** (escritorio y web): al escribir `/video` se abre encima del cuadro un panel con
   **1. Tipo de vídeo** (rápido con texto animado, dibujos con presentador o mixto), **2. Personaje** (ninguno, los
-  robots de kywai, los que hayas creado o «Agregar personaje») y **3. Estilo de animación** (el de kywai, rápido, o
-  uno de los 73 estilos de película con su muestra). Después solo escribes de qué va. Ver «Elegir tipo, personaje y
-  estilo» más abajo.
+  robots de kywai, los que hayas creado o «Agregar personaje»), **3. Estilo de animación** (el de kywai, rápido, o
+  uno de los 73 estilos de película con su muestra) y **4. Voz** (automática o una concreta, con ▶ para oírla).
+  Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
   video about…».
@@ -1729,13 +1729,16 @@ cada paso muestra su instrucción en grande.
 - Si no, con clave de Gemini, la de **Gemini** (se le pide el tono: cercano y con energía en los tutoriales, de broma
   en los chistes, animado pero sin prisa en los de texto animado).
 - Si una escena no sale, todo el vídeo se rehace con la siguiente (al final Kokoro) para no mezclar voces.
+- Si se eligió una voz en el paso 4 del selector (`voz:…`), se usa esa y se salta el orden: con una de Gemini, Gemini
+  con esa voz (si falla, Kokoro); con una de Kokoro, Kokoro con esa voz; con una de Voicebox, ese perfil; con «Voz del
+  sistema», la del sistema operativo.
 
 La voz, las imágenes y las animaciones de Manim se generan **a la vez**.
 
-**Elegir tipo, personaje y estilo (selector de tres pasos).** Al escribir `/video` aparece encima del cuadro una
-barra con lo elegido («Mixto · Robots de kywai · Acuarela») y, al empezar la orden, se abre el panel con los tres
-pasos (`src/renderer/src/ui/left/VideoPicker.tsx`). Lo elegido se escribe en el texto como marcas detrás de `/video`
-(`tipo:mixto personaje:robots-kywai estilo:watercolor`), así vale igual escribiéndolo a mano, en la web, en Órbita y
+**Elegir tipo, personaje, estilo y voz (selector de cuatro pasos).** Al escribir `/video` aparece encima del cuadro una
+barra con lo elegido («Mixto · Robots de kywai · Acuarela · Kore») y, al empezar la orden, se abre el panel con los
+cuatro pasos (`src/renderer/src/ui/left/VideoPicker.tsx`). Lo elegido se escribe en el texto como marcas detrás de `/video`
+(`tipo:mixto personaje:robots-kywai estilo:watercolor voz:gemini-kore`), así vale igual escribiéndolo a mano, en la web, en Órbita y
 en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). Las marcas de antes
 (`estilo:cartoon`, `estilo:dinamico`) siguen valiendo como tipo.
 
@@ -1759,6 +1762,16 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    imágenes y su aspecto. El personaje elegido manda sobre los personajes fijos del proyecto.
 3. **Estilo de animación.** *El de kywai (rápido)*: lo de siempre, en unos minutos. O uno de los estilos de película,
    con buscador (ver abajo), que tardan más.
+4. **Voz.** *Automática*: la mejor que haya (el orden de «Voz» de arriba). O una concreta, agrupadas por motor, solo
+   las que hay en el equipo: **tus voces de Voicebox** (si está abierto; también la tuya clonada), **12 voces de
+   Gemini** (con clave; hablan cualquier idioma: Puck, Fenrir, Charon, Orus, Enceladus, Achird, Kore, Aoede, Leda,
+   Zephyr, Sulafat y Gacrux, con una línea de cómo suena), **16 voces de Kokoro** (gratis y sin internet; primero las
+   del idioma de la app) y la **voz del sistema**. Cada tarjeta tiene un **▶**: pide una muestra corta («Hola, así
+   sonará la voz de tu vídeo…», en el idioma de la app) y la reproduce; otra vez ▶ (■) la para. La muestra se hace
+   una vez y se guarda en `<studio>/muestras-voz/` (MP3). Si falta un motor, una nota dice cómo tenerlo. La marca es
+   `voz:gemini-kore`, `voz:kokoro-ef_dora`, `voz:voicebox-<perfil>` o `voz:sistema` (`parseVoiceId` en
+   `src/shared/videoChoice.ts`); en una película con estilo, el encargo le dice al agente con qué herramienta poner
+   esa voz.
 
 **Estilos de película (73, con muestra).** En el paso 3 del selector, una tarjeta con **una muestra de cada estilo**
 (un fotograma de su película de ejemplo), por categorías y con buscador: **Pintado a mano (acuarela y tinta)** y los

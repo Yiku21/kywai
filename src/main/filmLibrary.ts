@@ -6,7 +6,8 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { FILM_STYLES, KYWAI_FILM, type FilmStyle } from '../shared/filmStyles'
-import type { VideoKind } from '../shared/videoChoice'
+import { parseVoiceId, type VideoKind } from '../shared/videoChoice'
+import { voiceboxUrl } from './voicebox'
 import type { CharacterForVideo } from './videoCharacters'
 import { HOOK_RULE } from './videoScript'
 
@@ -53,6 +54,20 @@ export interface FilmPromptInput {
   kind?: VideoKind
   /** Personaje elegido en el selector: se dibuja en el estilo de la película. */
   character?: CharacterForVideo
+  /** Voz elegida en el selector («gemini-puck», «kokoro-ef_dora», «voicebox-<perfil>», «sistema»). */
+  voice?: string
+}
+
+/** La voz elegida, para el encargo de una película: con qué herramienta se hace. */
+function voiceRule(voice: string | undefined, lib: string): string[] {
+  const v = parseVoiceId(voice)
+  if (!v) return []
+  if (v.engine === 'kokoro') return [`- Voz elegida por el usuario: Kokoro, voz «${v.id}» (la de ${join(lib, 'core', 'tts')} con esa voz, o «npx hyperframes tts "texto" -v ${v.id}»). No la cambies.`]
+  if (v.engine === 'gemini')
+    return [`- Voz elegida por el usuario: la voz «${v.id}» de Gemini TTS (modelo gemini-2.5-flash-preview-tts, prebuiltVoiceConfig.voiceName "${v.id}", con la clave de la variable GEMINI_API_KEY o de ~/.gemini/.env). Si no hay clave o falla, usa Kokoro y dilo al terminar.`]
+  if (v.engine === 'voicebox')
+    return [`- Voz elegida por el usuario: Voicebox (abierto en este equipo), perfil «${v.id}»: POST ${voiceboxUrl()}/v1/audio/speech con {"model": "tts-1", "input": texto, "voice": "${v.id}", "response_format": "wav"}. Si no responde, usa Kokoro y dilo al terminar.`]
+  return ['- Voz elegida por el usuario: la del sistema operativo (say en macOS, espeak-ng en Linux, la de Windows).']
 }
 
 /** Cómo se cuenta la película según el tipo elegido. */
@@ -178,6 +193,7 @@ export function filmPrompt(input: FilmPromptInput): string {
         ]
   const extra = [
     ...(input.kind ? [KIND_RULES[input.kind]] : []),
+    ...voiceRule(input.voice, lib),
     ...(input.character ? characterRules(input.character, style.slug === KYWAI_FILM && kitRobots) : []),
     ...(FILM_3D.has(style.slug) ? ALIVE_3D : []),
     ...(input.source ? ['', 'El texto del que trata la película:', '"""', input.source, '"""'] : []),

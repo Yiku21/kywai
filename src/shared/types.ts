@@ -272,6 +272,8 @@ export interface Task {
     character?: string
     /** Tipo elegido en el selector (en una película: cómo se cuenta). */
     kind?: 'rapido' | 'presentador' | 'mixto'
+    /** Voz elegida en el selector («gemini-puck», «kokoro-ef_dora»…). */
+    voice?: string
     work?: string
     /** «personajes fijos»: las imágenes adjuntas se guardaron como personajes del proyecto (carpeta «personajes»). */
     saveCast?: boolean
@@ -1429,6 +1431,19 @@ export interface VideoCharacterInfo {
   builtin?: boolean
 }
 
+/** Una voz que se puede elegir para los vídeos en el equipo donde se montan (src/main/videoStudio.ts). */
+export interface VideoVoiceInfo {
+  /** Lo que va en la marca «voz:…» («gemini-puck», «kokoro-ef_dora», «voicebox-<perfil>», «sistema»). */
+  id: string
+  engine: 'gemini' | 'kokoro' | 'voicebox' | 'sistema'
+  name: string
+  /** Cómo suena (en español; la interfaz lo traduce). */
+  line: string
+  /** Idioma de la voz (Kokoro y Voicebox); las de Gemini hablan todos. */
+  lang?: string
+  gender?: 'f' | 'm'
+}
+
 /** Un personaje nuevo: nombre y descripción, imágenes (base64, ya reducidas por la interfaz) o las dos cosas. */
 export interface VideoCharacterInput {
   name: string
@@ -1643,6 +1658,10 @@ export interface CoworkApi {
   addVideoCharacter(input: VideoCharacterInput): Promise<{ id: string; characters: VideoCharacterInfo[] }>
   /** Borra un personaje creado por el usuario. */
   removeVideoCharacter(id: string): Promise<VideoCharacterInfo[]>
+  /** Voces para los vídeos en el equipo donde se montan, y qué motores de voz le faltan. */
+  listVideoVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: ('gemini' | 'kokoro' | 'voicebox' | 'sistema')[] }>
+  /** Una muestra corta de una voz (data: URL de audio). */
+  previewVideoVoice(id: string): Promise<string>
   /** Mods instalados: sus órdenes «/…», hooks y paneles. */
   listMods(): Promise<ModInfo[]>
   /** Instala un mod desde un enlace de GitHub a su carpeta (con kywai-mod.json). */

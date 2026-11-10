@@ -46,6 +46,13 @@ describe('películas con estilo', () => {
     expect(r).not.toContain('kywaiRobot()')
   })
 
+  it('la voz elegida va en el encargo', () => {
+    expect(filmPrompt({ ...base, style: filmStyle('watercolor')!, voice: 'kokoro-em_alex' })).toContain('-v em_alex')
+    expect(filmPrompt({ ...base, style: filmStyle('watercolor')!, voice: 'gemini-kore' })).toContain('voiceName "Kore"')
+    expect(filmPrompt({ ...base, style: filmStyle('watercolor')!, voice: 'voicebox-mia' })).toContain('"voice": "mia"')
+    expect(filmPrompt({ ...base, style: filmStyle('watercolor')! })).not.toContain('Voz elegida')
+  })
+
   it('los estilos propios de kywai traen su guía y usan el motor de un estilo de la biblioteca', () => {
     const own = FILM_STYLES.filter((s) => s.base)
     expect(own).toHaveLength(6)

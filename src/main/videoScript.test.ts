@@ -32,6 +32,10 @@ describe('parseVideoRequest', () => {
     // El estilo pintado a mano lleva los robots salvo que se elija «ninguno».
     expect(parseVideoRequest('/video estilo:kywai-pintado la luna')).toMatchObject({ film: 'kywai-pintado', character: 'robots-kywai' })
     expect(parseVideoRequest('/video personaje:ninguno estilo:kywai-pintado la luna')).not.toHaveProperty('character')
+    // La voz: sola o con lo demás, y nunca en el tema.
+    expect(parseVideoRequest('/video voz:kokoro-ef_dora la luna')).toMatchObject({ topic: 'la luna', voice: 'kokoro-ef_dora' })
+    expect(parseVideoRequest('/video tipo:mixto estilo:watercolor voz:gemini-puck el pan')).toMatchObject({ topic: 'el pan', film: 'watercolor', voice: 'gemini-puck' })
+    expect(parseVideoRequest('/video la luna')).not.toHaveProperty('voice')
   })
 
   it('reconoce la orden y las frases habituales', () => {

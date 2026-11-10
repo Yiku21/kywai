@@ -1590,7 +1590,7 @@ function filmDirector(): AgentConfig | null {
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -1657,7 +1657,8 @@ async function sendVideo(
       ...(film ? { film: film.slug, work: `.ai-cowork/videos/${Date.now().toString(36)}-pelicula` } : {}),
       ...(req.saveCast ? { saveCast: true } : {}),
       ...(req.character && videoCharacter(req.character) ? { character: req.character } : {}),
-      ...(req.kind ? { kind: req.kind } : {})
+      ...(req.kind ? { kind: req.kind } : {}),
+      ...(req.voice ? { voice: req.voice } : {})
     }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
@@ -1706,6 +1707,7 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
       signal,
       refs: v.refs ?? imageAttachments(run, true),
       cast: videoCast(run, v),
+      ...(v.voice ? { voice: v.voice } : {}),
       onStep: (text, p, vars) => {
         t.lastActivity = tr(text, vars)
         t.progress = p
@@ -2991,6 +2993,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         studioDir: videoStudioDir(),
         work: join(store.workRoot(run.projectId), t.video.work),
         ...(t.video.kind ? { kind: t.video.kind } : {}),
+        ...(t.video.voice ? { voice: t.video.voice } : {}),
         ...(t.video.character ? { character: videoCharacter(t.video.character) ?? undefined } : {}),
         files: [
           ...run.attachments.map((a) => `- ${attPath(run, a.relPath, false)} (adjunto del usuario: ${a.name})`),

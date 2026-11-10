@@ -25,9 +25,11 @@ import {
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
 import { comfyImage, comfyStatus } from './comfyui'
-import { voiceboxProfiles, voiceboxSpeak, voiceboxVoice } from './voicebox'
+import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
 import { animateStill, findFreeVideo, freeVideoStatus, motionPrompt } from './freevideo'
-import type { VideoStudioStatus } from '@shared/types'
+import type { VideoStudioStatus, VideoVoiceInfo } from '@shared/types'
+import { GEMINI_VOICES, KOKORO_VOICE_LIST, parseVoiceId, type VoiceEngine } from '@shared/videoChoice'
+import { tr } from '@shared/i18n'
 import {
   ANIMATION_BASE_COMMIT,
   ANIMATION_BASE_REPO,
@@ -235,7 +237,7 @@ export async function ensureVenv(onLine: (l: string) => void = () => undefined):
   return existsSync(venvPython())
 }
 
-async function kokoroReady(): Promise<boolean> {
+export async function kokoroReady(): Promise<boolean> {
   if (!existsSync(venvPython())) return false
   return (await run(venvPython(), ['-c', 'import kokoro_onnx, soundfile'], { timeoutMs: 30_000 })).code === 0
 }
@@ -468,9 +470,13 @@ async function macVoice(lang: string): Promise<string | null> {
   return first?.trim() || null
 }
 
-async function speak(text: string, lang: string, out: string, useKokoro: boolean, signal?: AbortSignal): Promise<void> {
-  if (useKokoro && KOKORO_VOICES[lang]) {
-    const r = await run(bin('hyperframes'), ['tts', text, '-v', KOKORO_VOICES[lang], '-l', KOKORO_LANGS[lang], '-o', out, '--json'], {
+/** Voz con Kokoro (la del idioma, o `kokoroVoice` si se eligió una) o, si no, la del sistema. */
+async function speak(text: string, lang: string, out: string, useKokoro: boolean, signal?: AbortSignal, kokoroVoice?: string): Promise<void> {
+  const kv = kokoroVoice ? KOKORO_VOICE_LIST.find((v) => v.id === kokoroVoice) : undefined
+  const kVoice = kv?.id ?? KOKORO_VOICES[lang]
+  const kLang = KOKORO_LANGS[kv?.lang ?? lang]
+  if (useKokoro && kVoice && kLang) {
+    const r = await run(bin('hyperframes'), ['tts', text, '-v', kVoice, '-l', kLang, '-o', out, '--json'], {
       cwd: root,
       env: { ...process.env, HYPERFRAMES_PYTHON: venvPython(), HYPERFRAMES_NO_TELEMETRY: '1' },
       timeoutMs: 10 * 60_000,
@@ -778,6 +784,91 @@ async function mixAudio(dir: string, voices: string[], starts: number[], total: 
   return out
 }
 
+/** Un perfil concreto de Voicebox (el elegido en el selector), si Voicebox está abierto y lo tiene. */
+async function voiceboxById(id: string): Promise<VoiceboxVoice | null> {
+  const url = voiceboxUrl()
+  const p = (await voiceboxProfiles(url))?.find((x) => x.id === id)
+  return p ? { url, profileId: p.id, profileName: p.name } : null
+}
+
+/**
+ * Las voces que se pueden elegir en este equipo: las de Voicebox (si está abierto), las de Gemini (con clave), las de
+ * Kokoro (si está instalado; primero las del idioma) y la del sistema. `missing` dice qué motores faltan.
+ */
+export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] }> {
+  const [vbox, kokoro, sys] = await Promise.all([voiceboxProfiles(), kokoroReady(), systemVoice()])
+  const key = !!geminiApiKey()
+  const base = (l: string): string => l.toLowerCase().split(/[-_]/)[0]
+  const voices: VideoVoiceInfo[] = [
+    ...(vbox ?? []).map((p) => ({ id: `voicebox-${p.id}`, engine: 'voicebox' as const, name: p.name, line: p.voice_type === 'cloned' ? 'Tu voz clonada' : 'Voicebox', lang: base(p.language) })),
+    ...(key ? GEMINI_VOICES.map((g) => ({ id: `gemini-${g.id.toLowerCase()}`, engine: 'gemini' as const, name: g.id, line: g.line, gender: g.gender })) : []),
+    ...(kokoro
+      ? [...KOKORO_VOICE_LIST]
+          .sort((a, b) => Number(b.lang === lang) - Number(a.lang === lang))
+          .map((k) => ({ id: `kokoro-${k.id}`, engine: 'kokoro' as const, name: k.name, line: 'Kokoro', lang: k.lang, gender: k.gender }))
+      : []),
+    ...(sys ? [{ id: 'sistema', engine: 'sistema' as const, name: 'Voz del sistema', line: 'La del sistema operativo' }] : [])
+  ]
+  const missing: VoiceEngine[] = [...(vbox ? [] : ['voicebox' as const]), ...(key ? [] : ['gemini' as const]), ...(kokoro ? [] : ['kokoro' as const])]
+  return { voices, missing }
+}
+
+/** La frase de muestra de una voz de Kokoro de otro idioma que el de la app (en el suyo). */
+const VOICE_SAMPLES: Record<string, string> = {
+  es: 'Hola, así sonará la voz de tu vídeo. ¿Te gusta cómo suena?',
+  en: 'Hi, this is how your video will sound. Do you like it?',
+  fr: 'Bonjour, voici comment sonnera votre vidéo. Elle vous plaît ?',
+  pt: 'Olá, é assim que o seu vídeo vai soar. Gostou?',
+  it: 'Ciao, ecco come suonerà il tuo video. Ti piace?',
+  ja: 'こんにちは。動画の声はこんな感じです。いかがですか？',
+  zh: '你好，这就是你视频的声音。喜欢吗？',
+  hi: 'नमस्ते, आपके वीडियो की आवाज़ ऐसी होगी। आपको पसंद आई?'
+}
+
+/**
+ * Una muestra corta de una voz (`sentence`, en el idioma de la app), en MP3 como data: URL. Se guarda en el estudio
+ * (muestras-voz/) para no repetirla. Lanza un error si esa voz no está en este equipo.
+ */
+export async function previewVideoVoice(id: unknown, lang: string, sentence: string): Promise<string> {
+  const v = typeof id === 'string' ? parseVoiceId(id) : null
+  if (!v || !root) throw new Error(tr('Esa voz no existe'))
+  const dir = join(root, 'muestras-voz')
+  mkdirSync(dir, { recursive: true })
+  const safe = `${id as string}-${lang}`.replace(/[^a-zA-Z0-9_-]/g, '_')
+  const mp3 = join(dir, `${safe}.mp3`)
+  const wav = join(dir, `${safe}.wav`)
+  if (!existsSync(mp3)) {
+    let ok = false
+    if (v.engine === 'voicebox') {
+      const vb = await voiceboxById(v.id)
+      if (!vb) throw new Error(tr('Voicebox no está abierto o ya no tiene esa voz'))
+      ok = await voiceboxSpeak(vb, sentence, wav, { timeoutMs: 120_000 })
+    } else if (v.engine === 'gemini') {
+      const key = geminiApiKey()
+      if (!key) throw new Error(tr('Falta la clave de API de Gemini'))
+      ok = await geminiSpeak(sentence, 'Say this in a friendly, natural way', v.id, wav, key)
+    } else if (v.engine === 'kokoro') {
+      if (!(await kokoroReady())) throw new Error(tr('Kokoro no está instalado: pulsa «Instalar lo que falta» en Ajustes → Extensiones → Estudio de vídeo'))
+      // Sin caer en la voz del sistema: la muestra tiene que ser de esa voz. Una voz de otro idioma lee una frase suya.
+      const kv = KOKORO_VOICE_LIST.find((x) => x.id === v.id)!
+      const text = kv.lang === lang ? sentence : (VOICE_SAMPLES[kv.lang] ?? VOICE_SAMPLES.en)
+      const r = await run(bin('hyperframes'), ['tts', text, '-v', kv.id, '-l', KOKORO_LANGS[kv.lang] ?? 'en-us', '-o', wav, '--json'], {
+        cwd: root,
+        env: { ...process.env, HYPERFRAMES_PYTHON: venvPython(), HYPERFRAMES_NO_TELEMETRY: '1' },
+        timeoutMs: 5 * 60_000
+      })
+      ok = r.code === 0 && existsSync(wav)
+    } else {
+      await speak(sentence, lang, wav, false)
+      ok = existsSync(wav)
+    }
+    if (!ok || !existsSync(wav)) throw new Error(tr('No se pudo generar la muestra de esa voz'))
+    const c = await run('ffmpeg', ['-y', '-v', 'error', '-i', wav, '-ac', '1', '-b:a', '64k', mp3], { timeoutMs: 60_000 })
+    if (c.code !== 0 || !existsSync(mp3)) return `data:audio/wav;base64,${readFileSync(wav).toString('base64')}`
+  }
+  return `data:audio/mpeg;base64,${readFileSync(mp3).toString('base64')}`
+}
+
 export interface RenderedVideo {
   /** Ruta absoluta del MP4 entregado. */
   file: string
@@ -803,6 +894,8 @@ export async function renderVideo(input: {
   signal?: AbortSignal
   /** Imágenes de referencia del usuario (rutas absolutas): Gemini las ve para copiar el estilo. */
   refs?: string[]
+  /** Voz elegida en el selector («gemini-puck», «kokoro-em_alex», «voicebox-<perfil>», «sistema»); sin ella, automática. */
+  voice?: string
   /**
    * Personajes del vídeo (los fijos del proyecto o el elegido): sus imágenes (Gemini las ve) y su descripción si ya
    * existe (si no, la del guion). Con presentador, el elegido (con `name`) hace de presentador.
@@ -842,10 +935,12 @@ export async function renderVideo(input: {
   // 1. Voz e imágenes a la vez (lo que más tarda).
   const voices = script.scenes.map((_, i) => join(dir, 'assets', `voz-${i + 1}.wav`))
   let voiceUsed: RenderedVideo['voice'] = 'kokoro'
+  // La voz elegida en el selector va primero; si no sale, el orden de siempre (para que el vídeo salga igual).
+  const chosen = parseVoiceId(input.voice)
   const doVoices = async (): Promise<void> => {
     // Voicebox abierto en el equipo, con una voz en el idioma del vídeo: va primero (local y gratis). De una en una
     // (usa la gráfica). Si una escena no sale, se pasa a Gemini o Kokoro para todo el vídeo.
-    const vb = await voiceboxVoice(script.lang)
+    const vb = chosen?.engine === 'voicebox' ? await voiceboxById(chosen.id) : chosen ? null : await voiceboxVoice(script.lang)
     if (vb) {
       let ok = true
       for (let i = 0; i < n && ok && !signal?.aborted; i++) {
@@ -860,14 +955,14 @@ export async function renderVideo(input: {
       spoken = 0
     }
     // Gemini (dos a la vez); si una escena no sale, todo el vídeo con Kokoro o la del sistema, para no mezclar voces.
-    if (key) {
+    if (key && chosen?.engine !== 'kokoro' && chosen?.engine !== 'sistema') {
       let next = 0
       let failed = false
       const worker = async (): Promise<void> => {
         while (next < n && !failed && !signal?.aborted) {
           const i = next++
           const sc = script.scenes[i]
-          const voiceName = cartoon ? 'Puck' : 'Fenrir'
+          const voiceName = chosen?.engine === 'gemini' ? chosen.id : cartoon ? 'Puck' : 'Fenrir'
           if (await geminiSpeak(spokenText(sc.narration), voiceTone(script.style, !!sc.joke), voiceName, voices[i], key, signal)) {
             spoken++
             voiceStep()
@@ -882,12 +977,13 @@ export async function renderVideo(input: {
       }
       spoken = 0
     }
-    voiceUsed = status.kokoro ? 'kokoro' : 'system'
+    const kokoro = status.kokoro && chosen?.engine !== 'sistema'
+    voiceUsed = kokoro ? 'kokoro' : 'system'
     // De una en una: Kokoro ya usa todos los núcleos.
     for (let i = 0; i < n; i++) {
       if (signal?.aborted) throw new Error('Cancelada')
       voiceStep()
-      await speak(spokenText(script.scenes[i].narration), script.lang, voices[i], status.kokoro, signal)
+      await speak(spokenText(script.scenes[i].narration), script.lang, voices[i], kokoro, signal, chosen?.engine === 'kokoro' ? chosen.id : undefined)
       spoken++
     }
   }
