@@ -1861,7 +1861,9 @@ oficial de TikTok** (Content Posting API): nunca se pide ni se guarda la contras
 2. Pide los permisos `user.info.basic`, `video.upload` y `video.publish`.
 3. En Login Kit → **Desktop**, registra la dirección de vuelta que enseña kywai en Ajustes
    (`http://localhost:3455/tiktok/callback`).
-4. Copia el **Client key** y el **Client secret**.
+4. Copia el **Client key** y el **Client secret**. Si te equivocaste al pegarlos, o pasas a otra app (por ejemplo, de
+   la del Sandbox a la aprobada), pulsa **Cambiar la app** junto a «Iniciar sesión en TikTok» (si ya estaba conectada,
+   antes **Desconectar**) y pega los nuevos.
 
 **Conectar la cuenta** (⚙ → Ajustes → Extensiones → Estudio de vídeo → «El TikTok de kywai»): pega la clave y el
 secreto y pulsa **Guardar**; luego **Iniciar sesión en TikTok**, autoriza la cuenta de kywai y, cuando el navegador

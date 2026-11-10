@@ -3160,4 +3160,5 @@ export const zh: Record<string, string> = {
   "Iniciar sesión en YouTube": "登录 YouTube",
   "Usar mi cuenta": "使用我的账户",
   "Entrar en YouTube": "去 YouTube 登录",
+  "Cambiar la app": "更换应用",
 }

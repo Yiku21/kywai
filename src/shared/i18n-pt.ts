@@ -3160,4 +3160,5 @@ export const pt: Record<string, string> = {
   "Iniciar sesión en YouTube": "Iniciar sessão no YouTube",
   "Usar mi cuenta": "Usar a minha conta",
   "Entrar en YouTube": "Entrar no YouTube",
+  "Cambiar la app": "Trocar o app",
 }

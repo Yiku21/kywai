@@ -1150,6 +1150,8 @@ function TikTokPanel({ live }: { live: boolean }) {
   const [secret, setSecret] = useState('')
   const [pasted, setPasted] = useState('')
   const [waiting, setWaiting] = useState(false)
+  /** Volver a pegar la clave y el secreto (otra app, o las de producción tras usar el Sandbox). */
+  const [changing, setChanging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -1186,11 +1188,11 @@ function TikTokPanel({ live }: { live: boolean }) {
       <p className={s.muted}>
         {t('Escribe «/tiktok» y kywai prepara el último vídeo del chat con su texto para la cuenta de TikTok de kywai, con la API oficial de TikTok (nunca con la contraseña). Hace falta una app en developers.tiktok.com con «Login Kit» y «Content Posting API», y en Login Kit → Desktop esta dirección de vuelta: {uri}', { uri: st?.redirectUri ?? '' })}
       </p>
-      {st && !st.configured && (
+      {st && (!st.configured || changing) && (
         <div className={s.searchRow}>
           <input className={s.input} spellCheck={false} placeholder="Client key" aria-label={t('Client key de la app de TikTok')} value={key} onChange={(e) => setKey(e.target.value)} />
           <input className={s.input} type="password" autoComplete="off" spellCheck={false} placeholder="Client secret" aria-label={t('Client secret de la app de TikTok')} value={secret} onChange={(e) => setSecret(e.target.value)} />
-          <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !live || !key.trim() || !secret.trim()} onClick={() => run(() => api!.setTikTokApp(key.trim(), secret.trim()), () => setSecret(''))}>
+          <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !live || !key.trim() || !secret.trim()} onClick={() => run(() => api!.setTikTokApp(key.trim(), secret.trim()), () => { setSecret(''); setChanging(false); setWaiting(false) })}>
             {t('Guardar')}
           </button>
         </div>
@@ -1200,6 +1202,9 @@ function TikTokPanel({ live }: { live: boolean }) {
           <div className={s.searchRow}>
             <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !live} onClick={login}>
               {t('Iniciar sesión en TikTok')}
+            </button>
+            <button type="button" className={cx(u.btn, u.btnSm)} disabled={busy || !live} aria-expanded={changing} onClick={() => setChanging((v) => !v)}>
+              {changing ? t('Cancelar') : t('Cambiar la app')}
             </button>
           </div>
           {waiting && (
