@@ -56,18 +56,28 @@ export function RobotLabel({ agent }: Props) {
   // Reposo: se evalúa cada pocos segundos (no en cada fotograma).
   const [, tick] = useState(0);
   const [mountedAt] = useState(() => Date.now());
+  const lastAt = rt?.lastActivityAt ?? 0;
+  const restMs = restAfterMs(agent);
   useEffect(() => {
-    // Más a menudo mientras trabaja (el progreso estimado avanza con el tiempo).
-    const busyNow = rt?.activity === "thinking" || rt?.activity === "working";
-    const id = window.setInterval(
-      () => tick((n) => n + 1),
-      busyNow ? 1500 : 1000,
-    );
-    return () => window.clearInterval(id);
-  }, [rt?.activity]);
+    const activityNow = rt?.activity ?? "idle";
+    // Trabajando: cada segundo y medio (el tiempo de la tarea avanza). Desconectado o con error no cambia nada solo.
+    if (activityNow === "thinking" || activityNow === "working") {
+      const id = window.setInterval(() => tick((n) => n + 1), 1500);
+      return () => window.clearInterval(id);
+    }
+    if (activityNow !== "idle") return;
+    // Libre: se mira cada 3 s si se ha puesto a bailar con la música, y se despierta justo cuando le toca descansar
+    // (antes se repintaba cada segundo cada etiqueta aunque no cambiara nada).
+    const id = window.setInterval(() => tick((n) => n + 1), 3000);
+    const restIn = Math.max(lastAt, mountedAt) + restMs - Date.now();
+    const rest = restIn > 0 ? window.setTimeout(() => tick((n) => n + 1), restIn + 50) : undefined;
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(rest);
+    };
+  }, [rt?.activity, lastAt, mountedAt, restMs]);
 
   const activity = rt?.activity ?? "idle";
-  const lastAt = rt?.lastActivityAt ?? 0;
   const dancing = activity === "idle" && !override && !reduced && registry.brains.get(agent.id)?.social?.music === true;
   const resting =
     activity === "idle" &&

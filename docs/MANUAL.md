@@ -3566,6 +3566,10 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   cuando cambia su contenido, y solo se tocan si su posición cambia. Antes se medían en cada fotograma justo
   después de moverlas, y eso obligaba al navegador a recalcular la página entera en cada fotograma
   (`scene/LabelProjector.tsx`).
+- **Etiquetas que solo se repintan cuando hace falta.** La etiqueta de un agente libre se repinta cada 3 segundos
+  (para ver si se ha puesto a bailar) y justo cuando le toca descansar; la de uno desconectado o con error, nunca
+  sola. Antes cada etiqueta se repintaba cada segundo aunque no cambiara nada. Mientras trabaja sigue cada segundo
+  y medio, porque el tiempo de la tarea avanza (`scene/RobotLabel.tsx`).
 - **El 3D descansa cuando no lo miras.** Con la ventana o la pestaña oculta (minimizada, o tapada del todo si el sistema lo avisa) se para.
   Con la ventana a la vista pero sin foco (estás en otra app) se dibuja a 20 fotogramas por segundo: se sigue viendo
   a los robots trabajar y gasta mucho menos. Al volver a la ventana recupera la fluidez normal.
