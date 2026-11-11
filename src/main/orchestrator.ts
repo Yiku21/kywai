@@ -1,7 +1,7 @@
 import { BATCH_AT_ONCE, batchBrief, videoBatchOf } from '@shared/videoBatch'
 import { randomUUID } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync, writeFileSync } from 'node:fs'
-import { basename, isAbsolute, join, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import type {
   ChatReplyRef,
   AgentConfig,
@@ -99,6 +99,7 @@ import { installCatalogSkill, searchSkillCatalog } from './catalog'
 import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSuggest'
 import { cleanTikTokCaption, creatorInfo, parseTikTokRequest, uploadTikTok, type TikTokSettings } from './tiktok'
 import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, type InstagramSettings } from './instagram'
+import { ensureIgSkills, igAccountSnapshot, igPaths, igSkillFile, igSkillPrompt, parseIgSkillRequest, type IgSkillRequest } from './igSkills'
 import { episodeBrief, episodeFromFilmReply, loadSeries, nextEpisode, parseSeriesRequest, recordEpisode, startSeries, type SeriesRequest } from './series'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
 
@@ -1520,6 +1521,9 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
   // guion y kywai monta el vídeo entero; solo se entrega el MP4.
   const fromMsg = typeof input.videoFrom === 'string' ? st.messages.find((m) => m.id === input.videoFrom) : undefined
   if (input.videoFrom && !fromMsg) throw new Error(tr('No encuentro ese mensaje para hacer el vídeo'))
+  // «/ig-plan», «/ig-viral», «/ig-reel»…: una habilidad de Instagram con los datos reales de la cuenta de kywai.
+  const igSkillReq = fromMsg || tpl ? null : parseIgSkillRequest(text)
+  if (igSkillReq) return sendIgSkill(st, igSkillReq, atts, input.clientMessageId, routine, text.trim())
   // «/aprende <enlace>» (o con un vídeo adjunto): kywai lo transcribe y un agente lo convierte en una habilidad.
   const learnReq = fromMsg || tpl ? null : parseLearnRequest(text)
   if (learnReq) {
@@ -2398,6 +2402,96 @@ async function sendLearn(
     artifactIds: [],
     deliverable: 'text',
     learn: { ...(req.url ? { url: req.url } : {}), note: req.note, work: `.ai-cowork/aprende/${Date.now().toString(36)}` }
+  }
+  run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
+  runs.set(runId, run)
+  emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
+  startRunUsage({ runId, projectId, projectName: st.project.name, request: shown })
+  await baseline(run)
+  tasks.set(t.id, t)
+  run.taskIds.push(t.id)
+  pushTask(t)
+  schedule()
+  return { runId }
+}
+
+/**
+ * «/ig-…»: un agente con terminal sigue esa habilidad de Instagram Agent Skill. kywai descarga el paquete la primera
+ * vez y deja los datos de la cuenta (perfil y últimas publicaciones con sus números) en un archivo para el agente.
+ */
+async function sendIgSkill(
+  st: ReturnType<typeof store.getProject>,
+  req: IgSkillRequest,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  const agent = filmDirectors()[0] ?? bestAgentFor('instagram redes sociales marketing contenido')
+  if (!agent) throw new Error(tr('No hay ningún agente disponible para esto.'))
+  const { pack, voice } = igPaths(getConfig().workspaceRoot)
+  try {
+    await ensureIgSkills(pack)
+  } catch (e) {
+    throw new Error(tr('No pude descargar las habilidades de Instagram: {msg}', { msg: e instanceof Error ? e.message : String(e) }))
+  }
+  const stamp = Date.now().toString(36)
+  let accountFile: string | undefined
+  let accountError: string | undefined
+  const token = instagram?.token()
+  const userId = instagram?.settings().userId
+  if (token && userId) {
+    try {
+      const md = await igAccountSnapshot(token, userId)
+      accountFile = join(store.workRoot(projectId), '.ai-cowork', 'instagram', `cuenta-${stamp}.md`)
+      mkdirSync(dirname(accountFile), { recursive: true })
+      writeFileSync(accountFile, md, 'utf8')
+    } catch (e) {
+      accountError = e instanceof Error ? e.message : String(e)
+    }
+  }
+  const prompt = igSkillPrompt({ skill: req.skill, skillFile: igSkillFile(pack, req.skill), pack, note: req.note, voiceFile: voice, hasVoice: existsSync(voice), accountFile, accountError, lang: userLanguageName() })
+  const runId = randomUUID()
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: shown,
+    createdAt: Date.now(),
+    attachments: atts.length ? atts : undefined,
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+  })
+  const run: Run = {
+    id: runId,
+    projectId,
+    userText: shown,
+    ...(routine ? { routine: routine.name } : {}),
+    attachments: atts,
+    attPaths: store.stageAttachments(projectId, atts),
+    planning: false,
+    taskIds: [],
+    meta: new Map(),
+    controllers: new Map(),
+    cancelled: false,
+    finished: false
+  }
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId,
+    seq: nextTaskSeq(projectId),
+    title: `/${req.skill}${req.note ? `: ${oneLine(req.note, 50)}` : ''}`,
+    description: prompt,
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'text'
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
   runs.set(runId, run)

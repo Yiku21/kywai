@@ -67,6 +67,11 @@ async function graph<T>(token: string, method: 'GET' | 'POST', path: string, par
   }
 }
 
+/** Una lectura de la Graph API (perfil, publicaciones, comentarios, estadísticas). */
+export function graphGet<T>(token: string, path: string, params: Record<string, string> = {}, signal?: AbortSignal): Promise<T> {
+  return graph<T>(token, 'GET', path, params, signal)
+}
+
 /** Comprueba el token y dice de qué cuenta es. Con un token de Facebook, la cuenta de Instagram de su página. */
 export async function instagramAccount(token: string, userId?: string, signal?: AbortSignal): Promise<InstagramAccount> {
   if (graphHost(token).includes('instagram')) {

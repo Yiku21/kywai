@@ -1852,6 +1852,30 @@ mi visto bueno» lo desactiva. Por defecto está apagado.
 
 Código: `src/main/instagram.ts` (la API) y `sendInstagram`/`publishPost` en el orquestador.
 
+**Llevar la cuenta: las órdenes `/ig-…`.** kywai trae las habilidades de
+[Instagram Agent Skill](https://github.com/postzen-dev/instagram-agent-skill) (licencia MIT, versión fija): la
+primera vez que usas una, kywai descarga el paquete en `<carpeta de trabajo>/instagram/instagram-agent-skill/`, y un
+agente con terminal (primero Claude) la sigue entera, sin pasar por el plan de Hermes:
+
+| Orden | Qué hace |
+| --- | --- |
+| `/ig-plan [qué quieres esta semana]` | Plan de la semana: qué publicar, en qué formato, cuándo y con qué 10 cuentas interactuar. |
+| `/ig-viral [nicho o cuentas]` | Los reels que funcionan en tu nicho, ordenados por cuánto superan lo normal de su cuenta, con la fórmula de cada gancho. |
+| `/ig-reel idea` | Tres ganchos puntuados, guion, texto en pantalla y tiempos; acaba con la orden `/video …` para hacerlo. |
+| `/ig-profile` | Nota del perfil sobre 100 y cómo reescribirlo, por prioridad. |
+| `/ig-audit` | Qué publicaciones funcionaron de verdad (envíos y guardados por alcance, no solo vistas). |
+| `/ig-reply` | Las respuestas a los comentarios de tus publicaciones, por orden de importancia. |
+| `/ig-comment post` | Dos comentarios buenos para un post de **otra** cuenta. Los pegas tú: la API de Instagram no deja comentar ahí y hacerlo con un navegador automático incumple sus normas. |
+
+También valen `/ig-caption`, `/ig-carousel`, `/ig-story`, `/ig-dm`, `/ig-repurpose` e `/ig-human` (no salen en la
+lista del «/» para no llenarla). Con la cuenta conectada, kywai saca antes con la API oficial el perfil y las últimas
+25 publicaciones (con vistas, alcance, guardados y envíos de las 12 más recientes) y se las da al agente en
+`.ai-cowork/instagram/cuenta-<fecha>.md`: así no te pregunta tus números. La **voz de la cuenta** (cómo habla kywai, a
+quién, qué evita) va en `<carpeta de trabajo>/instagram/voice.md`; si no existe, el agente la crea con la plantilla
+del paquete la primera vez que la necesita. Nada de esto publica, comenta ni manda mensajes: lo que sale se publica con
+`/instagram`, con tu visto bueno. Del paquete se quita PostZen (un servicio que pide tu contraseña de Instagram).
+Código: `src/main/igSkills.ts` y `sendIgSkill` en el orquestador.
+
 ### El TikTok de kywai (`/tiktok`)
 
 Igual que con Instagram, kywai puede llevar **su propia cuenta de TikTok** (la de kywai, no la tuya). Usa la **API
