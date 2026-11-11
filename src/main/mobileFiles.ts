@@ -50,7 +50,15 @@ const TYPES: Record<string, string> = {
   '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav',
   '.ogg': 'audio/ogg',
-  '.mp4': 'video/mp4'
+  '.opus': 'audio/ogg',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
+  '.mp4': 'video/mp4',
+  '.m4v': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.mkv': 'video/x-matroska'
 }
 
 /** Por extensión; el resto del código (ts, py…) como texto plano y lo desconocido como binario. */
@@ -92,8 +100,16 @@ export async function resolveInside(base: string, rel: string): Promise<string |
   }
 }
 
-/** Envía el archivo tal cual, aislado como en /api/file (sandbox) y sin caché. */
-export async function sendFile(res: ServerResponse, abs: string, missing: MobileError): Promise<void> {
+/** Vídeo y audio: se reproducen por partes (Range), así que no tienen el tope de 25 MB. */
+export function isMedia(type: string): boolean {
+  return type.startsWith('video/') || type.startsWith('audio/')
+}
+
+/**
+ * Envía el archivo tal cual, aislado como en /api/file (sandbox) y sin caché. Con `Range: bytes=a-b` responde 206
+ * con ese trozo (el reproductor de Órbita va pidiendo partes del vídeo y puede saltar a cualquier punto).
+ */
+export async function sendFile(res: ServerResponse, abs: string, missing: MobileError, req?: IncomingMessage): Promise<void> {
   let handle: import('node:fs/promises').FileHandle
   try {
     handle = await fsp.open(abs, 'r')
@@ -103,17 +119,34 @@ export async function sendFile(res: ServerResponse, abs: string, missing: Mobile
   try {
     const st = await handle.stat()
     if (!st.isFile()) throw missing
-    if (st.size > MAX_FILE_BYTES) throw new MobileError(413, 'FILE_TOO_LARGE', 'El archivo supera 25 MB')
-    res.writeHead(200, {
-      'Content-Type': contentType(abs),
-      'Content-Length': st.size,
+    const type = contentType(abs)
+    if (st.size > MAX_FILE_BYTES && !isMedia(type)) throw new MobileError(413, 'FILE_TOO_LARGE', 'El archivo supera 25 MB')
+    const range = /^bytes=(\d*)-(\d*)$/.exec(String(req?.headers.range ?? ''))
+    let start = 0
+    let end = st.size - 1
+    let status = 200
+    if (range && st.size > 0 && (range[1] || range[2])) {
+      start = range[1] ? Number(range[1]) : Math.max(0, st.size - Number(range[2]))
+      end = range[1] && range[2] ? Math.min(Number(range[2]), st.size - 1) : st.size - 1
+      if (start > end || start >= st.size) {
+        res.writeHead(416, { 'Content-Range': `bytes */${st.size}` })
+        return void res.end()
+      }
+      status = 206
+    }
+    res.writeHead(status, {
+      'Content-Type': type,
+      'Content-Length': st.size === 0 ? 0 : end - start + 1,
+      'Accept-Ranges': 'bytes',
+      ...(status === 206 ? { 'Content-Range': `bytes ${start}-${end}/${st.size}` } : {}),
       'Content-Disposition': disposition(basename(abs)),
       'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'no-store',
       // Un HTML creado por un agente no puede usar nada de kywai aunque se abra directamente.
       'Content-Security-Policy': 'sandbox allow-scripts'
     })
-    await pipeline(handle.createReadStream({ autoClose: false }), res)
+    if (st.size === 0) return void res.end()
+    await pipeline(handle.createReadStream({ start, end, autoClose: false }), res)
   } finally {
     await handle.close().catch(() => {})
   }

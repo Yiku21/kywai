@@ -1359,6 +1359,22 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       writeFileSync(join(folder, 'grande.bin'), Buffer.alloc(MAX_FILE_BYTES + 1))
       const big = await raw(`/files/raw?conversationId=${id}&source=folder&path=grande.bin`)
       expect([big.status, JSON.parse(big.body.toString()).code]).toEqual([413, 'FILE_TOO_LARGE'])
+      // Vídeo y audio: sin tope y por partes (Range), para que Órbita los reproduzca sin bajarlos enteros.
+      const video = Buffer.alloc(MAX_FILE_BYTES + 10, 7)
+      video.write('fin', video.length - 3)
+      writeFileSync(join(folder, 'peli.mp4'), video)
+      const videoPath = `/files/raw?conversationId=${id}&source=folder&path=peli.mp4`
+      const whole = await raw(videoPath)
+      expect([whole.status, whole.headers.get('content-type'), whole.headers.get('accept-ranges'), whole.body.length]).toEqual([200, 'video/mp4', 'bytes', video.length])
+      const part = await raw(videoPath, { headers: { Range: 'bytes=10-19' } })
+      expect([part.status, part.headers.get('content-range'), part.body.length]).toEqual([206, `bytes 10-19/${video.length}`, 10])
+      const tail = await raw(videoPath, { headers: { Range: 'bytes=-3' } })
+      expect([tail.status, tail.body.toString()]).toEqual([206, 'fin'])
+      const open = await raw(videoPath, { headers: { Range: `bytes=${video.length - 3}-` } })
+      expect([open.status, open.body.toString()]).toEqual([206, 'fin'])
+      // 416 sin cuerpo JSON (como /api/file): se pide a mano para no pasar por la comprobación de errores de raw().
+      const outOfRange = await fetch(base + PREFIX + videoPath, { headers: { Authorization: `Bearer ${token}`, Range: `bytes=${video.length}-` } })
+      expect([outOfRange.status, outOfRange.headers.get('content-range')]).toEqual([416, `bytes */${video.length}`])
     } finally {
       store.getProject(id).project.workDir = undefined
       rmSync(folder, { recursive: true, force: true })

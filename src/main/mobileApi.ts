@@ -545,7 +545,7 @@ export class MobileApi {
         case 'artifactRaw': {
           const artifactId = id(param, 'artifactId')
           const project = projectId(query(url, ['conversationId'], ['conversationId']).conversationId)
-          await sendFile(res, await this.backend.artifactPath(project, artifactId), new MobileError(404, 'ARTIFACT_NOT_FOUND', 'No se encontró el resultado'))
+          await sendFile(res, await this.backend.artifactPath(project, artifactId), new MobileError(404, 'ARTIFACT_NOT_FOUND', 'No se encontró el resultado'), req)
           break
         }
         case 'files':
@@ -562,7 +562,7 @@ export class MobileApi {
           const params = query(url, ['conversationId', 'source', 'path'], ['conversationId', 'source', 'path'])
           const project = projectId(params.conversationId)
           if (params.source !== 'attachment' && params.source !== 'folder' && params.source !== 'project') throw new MobileError(400, 'INVALID_INPUT', 'source debe ser attachment, folder o project')
-          await sendFile(res, await this.backend.filePath(project, params.source, params.path!), new MobileError(404, 'FILE_NOT_FOUND', 'No se encontró el archivo'))
+          await sendFile(res, await this.backend.filePath(project, params.source, params.path!), new MobileError(404, 'FILE_NOT_FOUND', 'No se encontró el archivo'), req)
           break
         }
         case 'agentAccess': {
