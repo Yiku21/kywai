@@ -18,7 +18,8 @@ vi.mock('./plugins', () => ({
 }))
 
 import { loadConfig } from './config'
-import { __setBackendsForChecks, sendMessage } from './orchestrator'
+import { __setBackendsForChecks, decideInstagramReply, sendMessage, setInstagramBackend } from './orchestrator'
+import { __setInstagramFetchForTests } from './instagram'
 import * as store from './projects'
 import { initUsageLog } from './usageLog'
 import { initTaskTraces } from './taskTrace'
@@ -45,6 +46,8 @@ beforeAll(() => {
     presence: async () => null,
     run: async (o) => {
       prompts.push(o.prompt)
+      if (o.prompt.includes('comentarios sin responder'))
+        return { ok: true, text: '{"replies": [{"id": "c1", "kind": "question", "reply": "En kywai.app, gratis."}, {"id": "c2", "kind": "noise", "reply": ""}]}', usage: { input: 1, output: 1 } }
       return { ok: true, text: 'Lunes: reel del modo diálogo.', usage: { input: 1, output: 1 } }
     }
   })
@@ -62,4 +65,37 @@ describe('/ig-…', () => {
     expect(prompts[0]).toContain('aún no está conectada')
     expect(store.snapshotProject(projectId).tasks.at(-1)?.title).toBe('/ig-plan: semana del modo diálogo')
   })
+
+  it('/ig-reply: trae los comentarios, enseña las respuestas y solo envía las que apruebas', async () => {
+    const posted: string[] = []
+    __setInstagramFetchForTests(async (url, init) => {
+      const u = new URL(String(url))
+      if (init?.method === 'POST') {
+        posted.push(`${u.pathname} ${String(init.body)}`)
+        return new Response(JSON.stringify({ id: 'r1' }), { status: 200 })
+      }
+      const body = u.pathname.endsWith('/comments')
+        ? { data: [{ id: 'c1', text: '¿Dónde se descarga?', username: 'ana' }, { id: 'c2', text: '🔥', username: 'bot' }] }
+        : u.pathname.endsWith('/media')
+          ? { data: [{ id: 'm1', caption: 'Reel', comments_count: 2, permalink: 'https://instagram.com/p/x' }] }
+          : u.pathname.endsWith('/insights')
+            ? { data: [] }
+            : { username: 'kywai.app', followers_count: 10 }
+      return new Response(JSON.stringify(body), { status: 200 })
+    })
+    setInstagramBackend({ token: () => 'IGx', settings: () => ({ userId: '1789', username: 'kywai.app' }) })
+    await sendMessage({ projectId, text: '/ig-reply', filePaths: [] })
+    await vi.waitFor(() => expect(store.snapshotProject(projectId).messages.some((m) => m.instagramReplies)).toBe(true), { timeout: 10_000 })
+    const card = store.snapshotProject(projectId).messages.find((m) => m.instagramReplies)!
+    expect(card.instagramReplies!.items.map((i) => [i.commentId, i.status])).toEqual([
+      ['c1', 'pending'],
+      ['c2', 'skipped']
+    ])
+    expect(posted).toEqual([])
+    decideInstagramReply(projectId, card.id, 'send', 'c1', 'En kywai.app 🙂')
+    await vi.waitFor(() => expect(store.snapshotProject(projectId).messages.find((m) => m.id === card.id)?.instagramReplies?.status).toBe('done'), { timeout: 5000 })
+    expect(posted).toEqual(['/v21.0/c1/replies message=En+kywai.app+%F0%9F%99%82'])
+    setInstagramBackend(null)
+    __setInstagramFetchForTests(null)
+  }, 20_000)
 })

@@ -1864,7 +1864,7 @@ agente con terminal (primero Claude) la sigue entera, sin pasar por el plan de H
 | `/ig-reel idea` | Tres ganchos puntuados, guion, texto en pantalla y tiempos; acaba con la orden `/video …` para hacerlo. |
 | `/ig-profile` | Nota del perfil sobre 100 y cómo reescribirlo, por prioridad. |
 | `/ig-audit` | Qué publicaciones funcionaron de verdad (envíos y guardados por alcance, no solo vistas). |
-| `/ig-reply` | Las respuestas a los comentarios de tus publicaciones, por orden de importancia. |
+| `/ig-reply` | Las respuestas a los comentarios sin contestar de las últimas 10 publicaciones, por orden de importancia, en una tarjeta (ver abajo). |
 | `/ig-comment post` | Dos comentarios buenos para un post de **otra** cuenta. Los pegas tú: la API de Instagram no deja comentar ahí y hacerlo con un navegador automático incumple sus normas. |
 
 También valen `/ig-caption`, `/ig-carousel`, `/ig-story`, `/ig-dm`, `/ig-repurpose` e `/ig-human` (no salen en la
@@ -1875,6 +1875,17 @@ quién, qué evita) va en `<carpeta de trabajo>/instagram/voice.md`; si no exist
 del paquete la primera vez que la necesita. Nada de esto publica, comenta ni manda mensajes: lo que sale se publica con
 `/instagram`, con tu visto bueno. Del paquete se quita PostZen (un servicio que pide tu contraseña de Instagram).
 Código: `src/main/igSkills.ts` y `sendIgSkill` en el orquestador.
+
+**Responder a los comentarios (`/ig-reply`).** Con la cuenta conectada, kywai trae con la API oficial los comentarios
+sin responder de las últimas 10 publicaciones (sin los de la propia cuenta ni los que ya tienen respuesta suya, como
+mucho 40) y un agente los clasifica (palabra clave, posible cliente, con fondo, pregunta, apoyo, ruido) y escribe cada
+respuesta. Salen en una **tarjeta**: cada comentario con su respuesta editable y **«Responder»** o **«Saltar»**, y
+**«Responder todas»** si hay varias; el ruido sale ya como «Sin responder». También aparece en «Te necesita». **Nada se
+envía sin pulsarlo**, y la tarjeta dice cuáles salieron y cuáles fallaron (con «Reintentar»). Hace falta el permiso de
+comentarios del token (`instagram_business_manage_comments` o `instagram_manage_comments`). Los comentarios en posts de
+**otras** cuentas no se pueden enviar desde kywai (la API no lo permite): `/ig-comment` te los escribe para pegarlos.
+Código: `unansweredComments`/`replyToComment` en `src/main/instagram.ts` y `completeIgReply`/`decideInstagramReply` en
+el orquestador; la tarjeta, `InstagramRepliesBlock` en `Messages.tsx`.
 
 ### El TikTok de kywai (`/tiktok`)
 

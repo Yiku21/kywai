@@ -71,6 +71,7 @@ import {
   decideRoutineProposal,
   decideSkillProposal,
   decideInstagramPost,
+  decideInstagramReply,
   decideTikTokPost,
   setTikTokBackend,
   tiktokStatusNow,
@@ -770,6 +771,11 @@ function registerIpc(): void {
   handle('decideInstagramPost', (projectId: unknown, messageId: unknown, action: unknown, caption: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('No se encontró ese reel'))
     return decideInstagramPost(projectArg(projectId), messageId, action === 'publish' ? 'publish' : 'dismiss', typeof caption === 'string' ? caption : undefined)
+  })
+  handle('decideInstagramReply', (projectId: unknown, messageId: unknown, action: unknown, commentId: unknown, text: unknown) => {
+    if (typeof messageId !== 'string') throw new Error(tr('No se encontraron esas respuestas'))
+    const a = action === 'send' ? 'send' : action === 'skip' ? 'skip' : 'dismiss'
+    return decideInstagramReply(projectArg(projectId), messageId, a, typeof commentId === 'string' ? commentId : undefined, typeof text === 'string' ? text : undefined)
   })
   // El TikTok de kywai: la clave y el secreto de su app, y los tokens (cifrados en el llavero; se renuevan solos).
   const ttFile = join(app.getPath('userData'), 'tiktok.json')

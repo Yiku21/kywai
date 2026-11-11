@@ -20,6 +20,8 @@ import type {
   RoutineProposal,
   SkillProposal,
   InstagramPost,
+  InstagramReplies,
+  InstagramReplyItem,
   InstagramStatus,
   TikTokDirectChoice,
   TikTokPost,
@@ -98,8 +100,8 @@ import { createRoutine } from './routines'
 import { installCatalogSkill, searchSkillCatalog } from './catalog'
 import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSuggest'
 import { cleanTikTokCaption, creatorInfo, parseTikTokRequest, uploadTikTok, type TikTokSettings } from './tiktok'
-import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, type InstagramSettings } from './instagram'
-import { ensureIgSkills, igAccountSnapshot, igPaths, igSkillFile, igSkillPrompt, parseIgSkillRequest, type IgSkillRequest } from './igSkills'
+import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, replyToComment, unansweredComments, type IgComment, type InstagramSettings } from './instagram'
+import { ensureIgSkills, igAccountSnapshot, igPaths, igReplyPrompt, igSkillFile, igSkillPrompt, parseIgReplies, parseIgSkillRequest, type IgSkillRequest } from './igSkills'
 import { episodeBrief, episodeFromFilmReply, loadSeries, nextEpisode, parseSeriesRequest, recordEpisode, startSeries, type SeriesRequest } from './series'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
 
@@ -859,6 +861,16 @@ function registerInboxActions(): void {
   onInboxAction('ig-dismiss', (i) => {
     if (!i.projectId || !i.messageId) return tr('No se encontró ese reel')
     decideInstagramPost(i.projectId, i.messageId, 'dismiss')
+    return tr('Descartado')
+  })
+  onInboxAction('igr-send-all', (i) => {
+    if (!i.projectId || !i.messageId) return tr('No se encontraron esas respuestas')
+    decideInstagramReply(i.projectId, i.messageId, 'send')
+    return tr('Respondiendo en Instagram')
+  })
+  onInboxAction('igr-dismiss', (i) => {
+    if (!i.projectId || !i.messageId) return tr('No se encontraron esas respuestas')
+    decideInstagramReply(i.projectId, i.messageId, 'dismiss')
     return tr('Descartado')
   })
   onInboxAction('tt-draft', (i) => {
@@ -2190,6 +2202,108 @@ function cleanCaptionInput(caption: unknown): string | null {
   return t ? t.slice(0, 2200) : null
 }
 
+/** Las respuestas de «/ig-reply»: una tarjeta con cada comentario y su respuesta, que se envían con tu visto bueno. */
+async function completeIgReply(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  let comments: IgComment[] = []
+  try {
+    comments = JSON.parse(readFileSync(t.igReply!.file, 'utf8')) as IgComment[]
+  } catch {
+    /* sin archivo no hay nada que enseñar */
+  }
+  const byId = new Map(comments.map((c) => [c.id, c]))
+  let replies
+  try {
+    replies = parseIgReplies(res.text, new Set(byId.keys()))
+  } catch (e) {
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('Las respuestas no valían: {message}', { message: (e as Error).message }) })
+    return
+  }
+  const items: InstagramReplyItem[] = replies.map((r) => {
+    const c = byId.get(r.id)!
+    return { commentId: r.id, author: c.username, comment: c.text, kind: r.kind, reply: r.reply, ...(c.permalink ? { permalink: c.permalink } : {}), status: r.reply ? 'pending' : 'skipped' }
+  })
+  const todo = items.filter((i) => i.status === 'pending').length
+  await completeTask(run, t, exec, parent, { ...res, text: tr('Respuestas listas: {n} de {total} comentarios.', { n: todo, total: items.length }) })
+  const username = instagram?.settings().username
+  const m = agentMessage(run, exec.id, todo ? tr('Revisa las respuestas y pulsa «Responder» en las que quieras enviar.') : tr('Ningún comentario pide respuesta.'), {
+    instagramReplies: { status: todo ? 'pending' : 'done', ...(username ? { username } : {}), items }
+  })
+  if (todo)
+    addInbox({
+      kind: 'instagram',
+      key: `igr:${m.id}`,
+      title: tl('{n} respuestas a comentarios de Instagram esperan tu visto bueno', { n: todo }),
+      detail: items.filter((i) => i.status === 'pending').slice(0, 3).map((i) => `@${i.author}: ${oneLine(i.reply, 80)}`).join('\n'),
+      projectId: run.projectId,
+      runId: run.id,
+      messageId: m.id,
+      actions: [
+        { id: 'igr-send-all', label: tl('Responder todas') },
+        { id: 'igr-dismiss', label: tl('Descartar') }
+      ]
+    })
+}
+
+/**
+ * «Responder» (con el texto que dejes), «Saltar» o «Descartar» en la tarjeta de «/ig-reply». Sin `commentId`, a todas
+ * las que quedan. Enviar no espera a que acabe: la tarjeta va diciendo cuáles salieron.
+ */
+export function decideInstagramReply(projectId: string, messageId: string, action: 'send' | 'skip' | 'dismiss', commentId?: string, text?: string): ChatMessage {
+  const m = findMessage(projectId, messageId)
+  const r = m?.instagramReplies
+  if (!m || !r) throw new Error(tr('No se encontraron esas respuestas'))
+  if (r.status === 'dismissed') throw new Error(tr('Esas respuestas ya se descartaron'))
+  const close = (items: InstagramReplyItem[]): InstagramReplies['status'] => (items.some((i) => i.status === 'pending' || i.status === 'failed' || i.status === 'sending') ? 'pending' : 'done')
+  if (action === 'dismiss') {
+    resolveInboxWhere((i) => i.kind === 'instagram' && i.messageId === messageId, tr('Descartado'))
+    const updated = { ...m, instagramReplies: { ...r, status: 'dismissed' as const } }
+    pushMessage(updated)
+    return updated
+  }
+  const open = (i: InstagramReplyItem): boolean => i.status === 'pending' || i.status === 'failed'
+  const targets = r.items.filter((i) => open(i) && (!commentId || i.commentId === commentId))
+  if (!targets.length) throw new Error(tr('No queda ninguna respuesta por enviar'))
+  if (action === 'skip') {
+    const items = r.items.map((i) => (targets.includes(i) ? { ...i, status: 'skipped' as const } : i))
+    const updated = { ...m, instagramReplies: { ...r, items, status: close(items) } }
+    pushMessage(updated)
+    if (updated.instagramReplies.status === 'done') resolveInboxWhere((i) => i.kind === 'instagram' && i.messageId === messageId, tr('Hecho'))
+    return updated
+  }
+  if (action !== 'send') throw new Error(tr('Acción no válida'))
+  const token = instagram?.token()
+  if (!token) throw new Error(tr('La cuenta de Instagram no está conectada (Ajustes → Extensiones → Estudio de vídeo).'))
+  const edited = commentId && typeof text === 'string' && text.trim() ? text.trim().slice(0, 2200) : null
+  const ids = new Set(targets.map((i) => i.commentId))
+  const items = r.items.map((i) => (ids.has(i.commentId) ? { ...i, ...(edited ? { reply: edited } : {}), status: 'sending' as const, error: undefined } : i))
+  const updated = { ...m, instagramReplies: { ...r, items, status: 'pending' as const } }
+  pushMessage(updated)
+  void sendIgReplies(projectId, messageId, token, [...ids])
+  return updated
+}
+
+/** Envía las respuestas, de una en una, y apunta en la tarjeta cuál salió y cuál falló. */
+async function sendIgReplies(projectId: string, messageId: string, token: string, ids: string[]): Promise<void> {
+  for (const id of ids) {
+    const cur = findMessage(projectId, messageId)
+    const item = cur?.instagramReplies?.items.find((i) => i.commentId === id)
+    if (!cur?.instagramReplies || !item) continue
+    let patch: Partial<InstagramReplyItem>
+    try {
+      await replyToComment(token, id, item.reply)
+      patch = { status: 'sent' }
+    } catch (e) {
+      patch = { status: 'failed', error: e instanceof Error ? e.message : String(e) }
+    }
+    const now = findMessage(projectId, messageId)
+    if (!now?.instagramReplies) return
+    const items = now.instagramReplies.items.map((i) => (i.commentId === id ? { ...i, ...patch } : i))
+    const status = items.some((i) => i.status === 'pending' || i.status === 'failed' || i.status === 'sending') ? 'pending' : 'done'
+    pushMessage({ ...now, instagramReplies: { ...now.instagramReplies, items, status } })
+    if (status === 'done') resolveInboxWhere((i) => i.kind === 'instagram' && i.messageId === messageId, tr('Respondido'))
+  }
+}
+
 // ---------- El TikTok de kywai ----------
 
 /** Los tokens (cifrados, renovados cuando caducan) y los ajustes: los pone index.ts. */
@@ -2451,7 +2565,26 @@ async function sendIgSkill(
       accountError = e instanceof Error ? e.message : String(e)
     }
   }
-  const prompt = igSkillPrompt({ skill: req.skill, skillFile: igSkillFile(pack, req.skill), pack, note: req.note, voiceFile: voice, hasVoice: existsSync(voice), accountFile, accountError, lang: userLanguageName() })
+  let prompt = igSkillPrompt({ skill: req.skill, skillFile: igSkillFile(pack, req.skill), pack, note: req.note, voiceFile: voice, hasVoice: existsSync(voice), accountFile, accountError, lang: userLanguageName() })
+  // «/ig-reply» con la cuenta conectada: kywai trae los comentarios sin responder y las respuestas salen en una tarjeta.
+  let igReply: { file: string } | undefined
+  let noComments = false
+  if (req.skill === 'ig-reply' && token && userId && !accountError) {
+    let comments: IgComment[] = []
+    try {
+      comments = await unansweredComments(token, userId, instagram?.settings().username ?? '')
+    } catch (e) {
+      throw new Error(tr('No pude leer los comentarios de Instagram: {msg}', { msg: e instanceof Error ? e.message : String(e) }))
+    }
+    if (!comments.length) noComments = true
+    else {
+      const file = join(store.workRoot(projectId), '.ai-cowork', 'instagram', `comentarios-${stamp}.json`)
+      mkdirSync(dirname(file), { recursive: true })
+      writeFileSync(file, JSON.stringify(comments, null, 2), 'utf8')
+      igReply = { file }
+      prompt = igReplyPrompt(prompt, file, comments.length)
+    }
+  }
   const runId = randomUUID()
   pushMessage({
     id: randomUUID(),
@@ -2464,6 +2597,10 @@ async function sendIgSkill(
     attachments: atts.length ? atts : undefined,
     ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
   })
+  if (noComments) {
+    pushMessage({ id: randomUUID(), projectId, runId, author: { type: 'system' }, text: tr('No hay comentarios sin responder en las últimas publicaciones de Instagram.'), createdAt: Date.now() })
+    return { runId }
+  }
   const run: Run = {
     id: runId,
     projectId,
@@ -2491,7 +2628,8 @@ async function sendIgSkill(
     difficulty: 'medium',
     createdAt: Date.now(),
     artifactIds: [],
-    deliverable: 'text'
+    deliverable: 'text',
+    ...(igReply ? { igReply } : {})
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
   runs.set(runId, run)
@@ -4068,6 +4206,8 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   const meta = run.meta.get(t.id)!
   if (t.direct) return directPrompt(run, t, !!meta.copy)
   if (t.quick) return quickPrompt(run, t, exec, parent)
+  // «/ig-reply»: el encargo ya está completo y pide un JSON (sin las reglas de una tarea normal).
+  if (t.igReply) return t.description
   if (t.instagram) {
     const s = t.instagram.platform === 'tiktok' ? { username: tiktok?.settings().name } : instagram?.settings()
     return captionPrompt({
@@ -4570,6 +4710,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     else if (res.ok && t.video) await completeVideo(run, t, exec, parent, res)
     else if (res.ok && t.learn) await completeLearn(run, t, exec, parent, res)
     else if (res.ok && t.instagram) await completeInstagram(run, t, exec, parent, res)
+    else if (res.ok && t.igReply) await completeIgReply(run, t, exec, parent, res)
     else if (res.ok) {
       const verdict = await verifyTask(run, t, exec, parent, res, dir)
       if (!(verdict?.status === 'failed' && reviewFailed(run, t, exec, parent, res, verdict)) && (await settleChanges(run, t, exec, parent)))

@@ -3,8 +3,8 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { IG_SKILLS, igAccountSnapshot, igPaths, igSkillFile, igSkillPrompt, parseIgSkillRequest } from './igSkills'
-import { __setInstagramFetchForTests } from './instagram'
+import { IG_SKILLS, igAccountSnapshot, igPaths, igReplyPrompt, igSkillFile, igSkillPrompt, parseIgReplies, parseIgSkillRequest } from './igSkills'
+import { __setInstagramFetchForTests, replyToComment, unansweredComments } from './instagram'
 
 afterEach(() => __setInstagramFetchForTests(null))
 
@@ -53,5 +53,45 @@ describe('habilidades de Instagram', () => {
     const src = readFileSync(join(__dirname, 'igSkills.ts'), 'utf8')
     expect(src).toMatch(/IG_SKILLS_COMMIT = '[0-9a-f]{40}'/)
     expect(mkdtempSync(join(tmpdir(), 'x'))).toBeTruthy()
+  })
+
+  it('trae solo los comentarios sin responder, sin los de la cuenta', async () => {
+    __setInstagramFetchForTests(async (url) => {
+      const u = new URL(String(url))
+      const body = u.pathname.endsWith('/media')
+        ? { data: [{ id: 'm1', caption: 'Reel del modo diálogo', permalink: 'https://instagram.com/p/x', comments_count: 3 }, { id: 'm2', comments_count: 0 }] }
+        : {
+            data: [
+              { id: 'c1', text: '¿Dónde se descarga?', username: 'ana', timestamp: '2026-11-10T10:00:00+0000' },
+              { id: 'c2', text: 'Gracias', username: 'luis', timestamp: '2026-11-10T11:00:00+0000', replies: { data: [{ username: 'kywai.app' }] } },
+              { id: 'c3', text: 'Nuestro reel', username: 'kywai.app' }
+            ]
+          }
+      return new Response(JSON.stringify(body), { status: 200 })
+    })
+    const c = await unansweredComments('IGx', '1789', 'kywai.app')
+    expect(c.map((x) => x.id)).toEqual(['c1'])
+    expect(c[0]).toMatchObject({ username: 'ana', mediaId: 'm1', post: 'Reel del modo diálogo' })
+  })
+
+  it('responde a un comentario con un POST a sus respuestas', async () => {
+    let seen = ''
+    __setInstagramFetchForTests(async (url, init) => {
+      seen = `${init?.method} ${new URL(String(url)).pathname} ${String(init?.body)}`
+      return new Response(JSON.stringify({ id: 'r9' }), { status: 200 })
+    })
+    expect(await replyToComment('IGx', 'c1', ' En kywai.app ')).toBe('r9')
+    expect(seen).toBe('POST /v21.0/c1/replies message=En+kywai.app')
+    await expect(replyToComment('IGx', 'c1', '  ')).rejects.toThrow('vacía')
+  })
+
+  it('lee las respuestas del agente y descarta ids inventados', () => {
+    expect(igReplyPrompt('BASE', '/w/c.json', 2)).toContain('"replies"')
+    const r = parseIgReplies('Aquí van: {"replies": [{"id": "c1", "kind": "question", "reply": "En kywai.app"}, {"id": "zz", "reply": "x"}, {"id": "c2", "kind": "noise", "reply": ""}]}', new Set(['c1', 'c2']))
+    expect(r).toEqual([
+      { id: 'c1', kind: 'question', reply: 'En kywai.app' },
+      { id: 'c2', kind: 'noise', reply: '' }
+    ])
+    expect(() => parseIgReplies('sin json', new Set())).toThrow()
   })
 })

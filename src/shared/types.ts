@@ -287,6 +287,8 @@ export interface Task {
   }
   /** «/instagram»: el agente escribe el texto del reel (video, relativo al proyecto) y kywai lo prepara para publicar. */
   instagram?: { video: string; artifactId?: string; about: string; note: string; question?: string; /** Por defecto Instagram. */ platform?: 'tiktok' }
+  /** «/ig-reply» con la cuenta conectada: los comentarios sin responder (JSON en el proyecto) para escribir las respuestas. */
+  igReply?: { file: string }
   /** «/aprende»: un vídeo o pódcast que se transcribe y se convierte en una habilidad (src/main/learn.ts). */
   learn?: {
     url?: string
@@ -580,6 +582,8 @@ export interface ChatMessage {
   skillProposal?: SkillProposal
   /** Reel preparado para el Instagram de kywai («/instagram»): se publica con «Publicar» (o solo, si lo activaste). */
   instagramPost?: InstagramPost
+  /** Respuestas a los comentarios de la cuenta de Instagram de kywai («/ig-reply»), con tu visto bueno una a una. */
+  instagramReplies?: InstagramReplies
   /** Vídeo preparado para el TikTok de kywai («/tiktok»): como borrador en la app o publicado directo. */
   tiktokPost?: TikTokPost
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
@@ -760,6 +764,28 @@ export interface InstagramPost {
   /** Se publicó solo («Publicar sin preguntar» activado). */
   auto?: boolean
   decidedAt?: number
+}
+
+/**
+ * Respuestas a los comentarios del Instagram de kywai («/ig-reply»): cada una se envía con «Responder» (o todas a la vez)
+ * y nada sale sin pulsarlo. pending: espera · sending: enviándose · sent: enviada · skipped: no se responde · failed.
+ */
+export interface InstagramReplies {
+  status: 'pending' | 'done' | 'dismissed'
+  username?: string
+  items: InstagramReplyItem[]
+}
+
+export interface InstagramReplyItem {
+  commentId: string
+  author: string
+  comment: string
+  /** Tipo según la habilidad: keyword, lead, substance, question, support o noise. */
+  kind: string
+  reply: string
+  permalink?: string
+  status: 'pending' | 'sending' | 'sent' | 'skipped' | 'failed'
+  error?: string
 }
 
 /**
@@ -1794,6 +1820,8 @@ export interface CoworkApi {
   setInstagramAutoPublish(on: boolean): Promise<InstagramStatus>
   /** «Publicar» (con el texto cambiado, si lo cambiaste) o «Descartar» el reel preparado con «/instagram». */
   decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string): Promise<ChatMessage>
+  /** Envía (`send`, con el texto que dejes) o salta (`skip`) una respuesta de «/ig-reply»; sin `commentId`, todas las pendientes. `dismiss` cierra la tarjeta. */
+  decideInstagramReply(projectId: string, messageId: string, action: 'send' | 'skip' | 'dismiss', commentId?: string, text?: string): Promise<ChatMessage>
   /** El TikTok de kywai: clave y secreto de la app de TikTok, iniciar sesión (pegando la dirección de vuelta) y modos. */
   tiktokStatus(): Promise<TikTokStatus>
   setTikTokApp(clientKey: string, clientSecret: string): Promise<TikTokStatus>

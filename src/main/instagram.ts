@@ -72,6 +72,59 @@ export function graphGet<T>(token: string, path: string, params: Record<string, 
   return graph<T>(token, 'GET', path, params, signal)
 }
 
+/** Un comentario de una publicación de la cuenta que aún no tiene respuesta de la cuenta. */
+export interface IgComment {
+  id: string
+  text: string
+  username: string
+  timestamp?: string
+  mediaId: string
+  permalink?: string
+  /** Principio del texto de la publicación, para saber de qué habla. */
+  post: string
+}
+
+/**
+ * Los comentarios sin responder de las últimas `posts` publicaciones (como mucho `max`): ni los de la propia cuenta ni
+ * los que ya tienen una respuesta suya. Del más nuevo al más antiguo.
+ */
+export async function unansweredComments(token: string, userId: string, username: string, opts: { posts?: number; max?: number; signal?: AbortSignal } = {}): Promise<IgComment[]> {
+  const own = username.toLowerCase()
+  const media = await graphGet<{ data?: { id: string; caption?: string; permalink?: string; comments_count?: number }[] }>(
+    token,
+    `${userId}/media`,
+    { fields: 'id,caption,permalink,comments_count', limit: String(opts.posts ?? 10) },
+    opts.signal
+  )
+  const out: IgComment[] = []
+  for (const m of media.data ?? []) {
+    if (!m.comments_count) continue
+    const c = await graphGet<{ data?: { id: string; text?: string; username?: string; timestamp?: string; replies?: { data?: { username?: string }[] } }[] }>(
+      token,
+      `${m.id}/comments`,
+      { fields: 'id,text,username,timestamp,replies{username}', limit: '50' },
+      opts.signal
+    )
+    for (const x of c.data ?? []) {
+      const who = (x.username ?? '').toLowerCase()
+      if (!x.text?.trim() || (own && who === own)) continue
+      if (own && (x.replies?.data ?? []).some((r) => (r.username ?? '').toLowerCase() === own)) continue
+      out.push({ id: x.id, text: x.text.trim().slice(0, 1000), username: x.username ?? '', ...(x.timestamp ? { timestamp: x.timestamp } : {}), mediaId: m.id, ...(m.permalink ? { permalink: m.permalink } : {}), post: (m.caption ?? '').replace(/\s+/g, ' ').slice(0, 140) })
+    }
+  }
+  out.sort((a, b) => (b.timestamp ?? '').localeCompare(a.timestamp ?? ''))
+  return out.slice(0, opts.max ?? 40)
+}
+
+/** Responde a un comentario desde la cuenta. Devuelve el id de la respuesta. */
+export async function replyToComment(token: string, commentId: string, message: string, signal?: AbortSignal): Promise<string> {
+  const text = message.trim().slice(0, 2200)
+  if (!text) throw new Error('La respuesta está vacía')
+  const r = await graph<{ id?: string }>(token, 'POST', `${commentId}/replies`, { message: text }, signal)
+  if (!r.id) throw new Error('Instagram no confirmó la respuesta')
+  return r.id
+}
+
 /** Comprueba el token y dice de qué cuenta es. Con un token de Facebook, la cuenta de Instagram de su página. */
 export async function instagramAccount(token: string, userId?: string, signal?: AbortSignal): Promise<InstagramAccount> {
   if (graphHost(token).includes('instagram')) {

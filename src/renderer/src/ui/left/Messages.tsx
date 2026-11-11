@@ -39,7 +39,7 @@ import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { describeTrigger } from '@shared/routines'
 import { replyExcerpt } from '@shared/replyTo'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
-import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, TikTokPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
+import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, InstagramReplies, TikTokPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
 import { useCowork, useData } from '@/store/cowork'
 import { revealKey, useRevealed } from '@/lib/reveal'
@@ -295,6 +295,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
             {m.routineProposal && <RoutineProposalBlock m={m} proposal={m.routineProposal} />}
             {m.skillProposal && <SkillProposalBlock m={m} proposal={m.skillProposal} />}
             {m.instagramPost && <InstagramPostBlock m={m} post={m.instagramPost} />}
+            {m.instagramReplies && <InstagramRepliesBlock m={m} replies={m.instagramReplies} />}
             {m.tiktokPost && <TikTokPostBlock m={m} post={m.tiktokPost} />}
             {m.permission && <PermissionBlock permission={m.permission} />}
             {hasTasks && <PlanBlock taskIds={m.taskIds!} runId={m.runId} contract={m.contract} />}
@@ -1209,6 +1210,129 @@ function InstagramPostBlock({ m, post }: { m: ChatMessage; post: InstagramPost }
             <ExternalLink size={14} aria-hidden="true" />
             {t('Ver en Instagram')}
           </a>
+        </div>
+      )}
+      {error && (
+        <p className={s.resumeError} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** «/ig-reply»: cada comentario con su respuesta editable; nada se envía sin «Responder» (o «Responder todas»). */
+function InstagramRepliesBlock({ m, replies }: { m: ChatMessage; replies: InstagramReplies }) {
+  const live = useCowork((st) => st.mode === 'live')
+  const [texts, setTexts] = useState<Record<string, string>>({})
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const open = replies.status === 'pending'
+  const canAct = !!api && live && open
+  const pending = replies.items.filter((i) => i.status === 'pending' || i.status === 'failed')
+
+  function act(kind: 'send' | 'skip' | 'dismiss', commentId?: string): void {
+    const a = api
+    if (!a || busy) return
+    setBusy(`${kind}:${commentId ?? 'all'}`)
+    setError(null)
+    a.decideInstagramReply(m.projectId, m.id, kind, commentId, commentId ? texts[commentId] : undefined).then(
+      () => setBusy(null),
+      (e) => {
+        setBusy(null)
+        setError(errorText(e))
+      }
+    )
+  }
+
+  const who = replies.username ? `@${replies.username}` : t('la cuenta de kywai')
+  const sent = replies.items.filter((i) => i.status === 'sent').length
+  const title =
+    replies.status === 'dismissed'
+      ? t('Respuestas descartadas')
+      : replies.status === 'done'
+        ? t('Respuestas a comentarios ({who}): {n} enviadas', { who, n: sent })
+        : t('Respuestas a comentarios de Instagram ({who})', { who })
+  return (
+    <div className={cx(s.proposal, s.instagramPost, replies.status === 'dismissed' && s.proposalClosed)}>
+      <div className={s.planHead}>
+        <span className={s.planIcon} aria-hidden="true">
+          {replies.status === 'done' ? <CircleCheck size={18} /> : replies.status === 'dismissed' ? <X size={18} /> : <Send size={18} />}
+        </span>
+        <div className={s.planInfo}>
+          <span className={s.planTitle}>{title}</span>
+          <span className={s.planSub}>{t('Nada se envía sin tu «Responder».')}</span>
+        </div>
+      </div>
+      {replies.status !== 'dismissed' && (
+        <ul className={s.igReplies}>
+          {replies.items.map((i) => {
+            const editable = canAct && (i.status === 'pending' || i.status === 'failed')
+            const key = (k: string): string => `${k}:${i.commentId}`
+            return (
+              <li key={i.commentId} className={cx(s.igReply, i.status === 'skipped' && s.proposalClosed)}>
+                <p className={s.igReplyComment}>
+                  <strong>@{i.author}</strong> {i.comment}
+                  {i.kind && <span className={s.igReplyKind}>{i.kind}</span>}
+                </p>
+                {editable ? (
+                  <textarea
+                    className={s.igCaption}
+                    rows={2}
+                    maxLength={2200}
+                    aria-label={t('Respuesta a @{who}', { who: i.author })}
+                    value={texts[i.commentId] ?? i.reply}
+                    disabled={!!busy}
+                    onChange={(e) => {
+                      const v = e.currentTarget.value
+                      setTexts((x) => ({ ...x, [i.commentId]: v }))
+                    }}
+                  />
+                ) : (
+                  i.reply && <p className={s.routineRequest}>{i.reply}</p>
+                )}
+                {i.status === 'failed' && i.error && (
+                  <p className={s.resumeError} role="alert">
+                    {i.error}
+                  </p>
+                )}
+                <div className={s.proposalActions}>
+                  {editable ? (
+                    <>
+                      <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={!!busy || !(texts[i.commentId] ?? i.reply).trim()} onClick={() => act('send', i.commentId)}>
+                        {busy === key('send') ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <Send size={14} aria-hidden="true" />}
+                        {i.status === 'failed' ? t('Reintentar') : t('Responder')}
+                      </button>
+                      <button type="button" className={cx(u.btn, u.btnSm)} disabled={!!busy} onClick={() => act('skip', i.commentId)}>
+                        {t('Saltar')}
+                      </button>
+                    </>
+                  ) : (
+                    <span className={s.planSub}>
+                      {i.status === 'sent' ? t('Enviada') : i.status === 'sending' ? t('Enviando…') : i.status === 'skipped' ? t('Sin responder') : ''}
+                    </span>
+                  )}
+                  {i.permalink && (
+                    <a className={cx(u.btn, u.btnSm)} href={i.permalink} target="_blank" rel="noreferrer">
+                      <ExternalLink size={14} aria-hidden="true" />
+                      {t('Ver en Instagram')}
+                    </a>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      {open && pending.length > 1 && (
+        <div className={s.proposalActions}>
+          <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!canAct || !!busy} onClick={() => act('send')}>
+            {busy === 'send:all' ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <Send size={14} aria-hidden="true" />}
+            {t('Responder todas ({n})', { n: pending.length })}
+          </button>
+          <button type="button" className={u.btn} disabled={!canAct || !!busy} onClick={() => act('dismiss')}>
+            {t('Descartar')}
+          </button>
         </div>
       )}
       {error && (

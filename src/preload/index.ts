@@ -89,6 +89,7 @@ const api: CoworkApi = {
   disconnectInstagram: () => ipcRenderer.invoke('cowork:disconnectInstagram'),
   setInstagramAutoPublish: (on) => ipcRenderer.invoke('cowork:setInstagramAutoPublish', on),
   decideInstagramPost: (projectId, messageId, action, caption) => ipcRenderer.invoke('cowork:decideInstagramPost', projectId, messageId, action, caption),
+  decideInstagramReply: (projectId, messageId, action, commentId, text) => ipcRenderer.invoke('cowork:decideInstagramReply', projectId, messageId, action, commentId, text),
   tiktokStatus: () => ipcRenderer.invoke('cowork:tiktokStatus'),
   setTikTokApp: (clientKey, clientSecret) => ipcRenderer.invoke('cowork:setTikTokApp', clientKey, clientSecret),
   tiktokLoginUrl: () => ipcRenderer.invoke('cowork:tiktokLoginUrl'),

@@ -153,3 +153,39 @@ export function igSkillPrompt(input: { skill: string; skillFile: string; pack: s
     `- Responde en ${input.lang}, con el resultado listo para usar (sin contar el proceso). Si guardas archivos (plan, swipe file), di dónde.`
   ].join('\n')
 }
+
+/**
+ * «/ig-reply» con la cuenta conectada: los comentarios sin responder van en `commentsFile` y el agente devuelve las
+ * respuestas en JSON; kywai las enseña en una tarjeta y nada se envía sin tu «Responder».
+ */
+export function igReplyPrompt(base: string, commentsFile: string, count: number): string {
+  return [
+    base,
+    '',
+    `Los ${count} comentarios sin responder de las últimas publicaciones de la cuenta están en ${commentsFile} (id, autor, texto, publicación). Clasifícalos y escribe la respuesta de cada uno como dice la habilidad. No los envías tú: kywai los enseña al usuario para que los apruebe uno a uno.`,
+    'Responde SOLO con este JSON, sin nada antes ni después, en el orden en que conviene responder:',
+    '{"replies": [{"id": "<id del comentario>", "kind": "keyword|lead|substance|question|support|noise", "reply": "la respuesta, o \\"\\" si no hay que responder (noise)"}]}'
+  ].join('\n')
+}
+
+/** Las respuestas del agente, solo las de comentarios que existen. Lanza si no hay JSON. */
+export function parseIgReplies(text: string, ids: Set<string>): { id: string; kind: string; reply: string }[] {
+  const m = /\{[\s\S]*\}/.exec(text)
+  if (!m) throw new Error('no devolvió el JSON de respuestas')
+  let o: { replies?: unknown }
+  try {
+    o = JSON.parse(m[0]) as { replies?: unknown }
+  } catch {
+    throw new Error('el JSON de respuestas no se entiende')
+  }
+  if (!Array.isArray(o.replies)) throw new Error('falta la lista "replies"')
+  const seen = new Set<string>()
+  const out: { id: string; kind: string; reply: string }[] = []
+  for (const r of o.replies as { id?: unknown; kind?: unknown; reply?: unknown }[]) {
+    const id = typeof r?.id === 'string' ? r.id : typeof r?.id === 'number' ? String(r.id) : ''
+    if (!ids.has(id) || seen.has(id)) continue
+    seen.add(id)
+    out.push({ id, kind: typeof r.kind === 'string' ? r.kind.slice(0, 20) : '', reply: typeof r.reply === 'string' ? r.reply.trim().slice(0, 2200) : '' })
+  }
+  return out
+}
