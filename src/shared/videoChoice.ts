@@ -22,6 +22,8 @@ export interface VideoChoice {
   style: string | null
   /** Voz («gemini-puck», «kokoro-ef_dora», «voicebox-<perfil>», «sistema»); null: la mejor que haya (automática). */
   voice?: string | null
+  /** Diálogo: dos personajes que se contestan, cada uno con su voz («dialogo:si»). */
+  dialogue?: boolean
 }
 
 /** Una voz elegida: el motor y la voz de ese motor. */
@@ -160,6 +162,7 @@ const CHAR_TAG = TAG('personaje')
 const STYLE_TAG = TAG('estilo')
 // Las voces de Kokoro llevan guion bajo («kokoro-ef_dora»).
 const VOICE_TAG = /(^|\s)voz:([a-z0-9_-]+)(?=\s|$)/i
+const DIALOGUE_TAG = /(^|\s)di[aá]logo:(si|sí|yes)(?=\s|$)/i
 
 /** Id válido de personaje: minúsculas, números y guiones (lo genera kywai al guardarlo). */
 export const CHARACTER_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
@@ -175,13 +178,13 @@ export function videoChoiceOf(text: string): VideoChoice {
   const character = c && c !== NO_CHARACTER && CHARACTER_ID.test(c) ? c : !c && style === KYWAI_FILM ? ROBOTS_CHARACTER : null
   const v = VOICE_TAG.exec(text)?.[2]
   const voice = v && parseVoiceId(v) ? v : null
-  return { kind, character, style, voice }
+  return { kind, character, style, voice, ...(DIALOGUE_TAG.test(text) ? { dialogue: true } : {}) }
 }
 
 /** Quita las marcas del texto, cada una con su espacio de delante (así no quedan espacios de más). */
 export function stripVideoTags(text: string): string {
   let out = text
-  for (const re of [KIND_TAG, CHAR_TAG, STYLE_TAG, VOICE_TAG]) {
+  for (const re of [KIND_TAG, CHAR_TAG, STYLE_TAG, VOICE_TAG, DIALOGUE_TAG]) {
     for (let i = 0; i < 3 && re.test(out); i++) out = out.replace(re, '')
   }
   return out
@@ -196,7 +199,43 @@ export function withVideoChoice(text: string, choice: VideoChoice): string {
     choice.kind !== 'rapido' ? `tipo:${choice.kind}` : '',
     choice.character ? `personaje:${choice.character}` : choice.style === KYWAI_FILM ? `personaje:${NO_CHARACTER}` : '',
     choice.style ? `estilo:${choice.style}` : '',
-    choice.voice ? `voz:${choice.voice}` : ''
+    choice.voice ? `voz:${choice.voice}` : '',
+    choice.dialogue ? 'dialogo:si' : ''
   ].filter(Boolean)
   return `${m[1]} ${tags.map((t) => `${t} `).join('')}${rest}`
+}
+
+/** Género de una voz (para darle a cada personaje de un diálogo una que le pegue). null si no se sabe. */
+export function voiceGender(voice: string | null | undefined): 'f' | 'm' | null {
+  const v = parseVoiceId(voice)
+  if (!v) return null
+  if (v.engine === 'edge') return EDGE_VOICES.find((x) => x.id === v.id)?.gender ?? null
+  if (v.engine === 'mac') return MAC_VOICES.find((x) => x.key === v.id)?.gender ?? null
+  if (v.engine === 'kokoro') return KOKORO_VOICE_LIST.find((x) => x.id === v.id)?.gender ?? null
+  if (v.engine === 'gemini') return GEMINI_VOICES.find((x) => x.id === v.id)?.gender ?? null
+  return null
+}
+
+/**
+ * Las voces de los personajes de un diálogo. La elegida (o la de por defecto del idioma) es para el primer personaje de
+ * su mismo género; el otro lleva otra voz del idioma, de su género si la hay (de las elegidas del idioma; si no, de
+ * Kokoro). Las de macOS solo cuentan en un Mac. null: la voz que salga (la misma para los dos).
+ */
+export function speakerVoices(lang: string, chosen: string | null, speakers: { name: string; gender?: 'f' | 'm' }[], opts: { mac: boolean }): Record<string, string | null> {
+  const first = chosen ?? defaultVoiceFor(lang)
+  const out: Record<string, string | null> = {}
+  if (!speakers.length) return out
+  const g = voiceGender(first)
+  const lead = speakers.find((s) => !g || !s.gender || s.gender === g) ?? speakers[0]
+  out[lead.name] = first
+  const usable = (id: string): boolean => parseVoiceId(id)?.engine !== 'mac' || opts.mac
+  const pool = (LANG_VOICES[lang] ?? KOKORO_VOICE_LIST.filter((k) => k.lang === lang).map((k) => `kokoro-${k.id}`)).filter(usable)
+  const taken = new Set([first])
+  for (const s of speakers) {
+    if (s.name === lead.name) continue
+    const pick = pool.find((id) => !taken.has(id) && (!s.gender || voiceGender(id) === s.gender)) ?? pool.find((id) => !taken.has(id)) ?? first
+    out[s.name] = pick
+    if (pick) taken.add(pick)
+  }
+  return out
 }

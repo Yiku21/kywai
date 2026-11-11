@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildCartoonComposition } from './videoCartoon'
-import { beatsOf, buildComposition, buildTimeline, captionChunks, parseVideoRequest, parseVideoScript, spokenText, synthMusic, synthSfx, timedWords, videoScriptPrompt, videoSlug } from './videoScript'
+import { beatsOf, buildComposition, buildTimeline, captionChunks, parseVideoRequest, parseVideoScript, sceneWords, spokenText, synthMusic, synthSfx, timedWords, videoScriptPrompt, videoSlug } from './videoScript'
 
 const SCRIPT = JSON.stringify({
   title: 'Cómo nace una estrella',
@@ -366,5 +366,90 @@ describe('gancho y personajes fijos', () => {
     expect(videoScriptPrompt({ ...base, cast: { images: [], notes: 'Ana: red jacket' } })).toContain('Ana: red jacket')
     expect(videoScriptPrompt(base)).not.toContain('"cast"')
     expect(parseVideoScript(JSON.stringify({ title: 't', cast: 'Ana: red jacket', scenes: [1, 2, 3].map((i) => ({ narration: `frase ${i} con palabras` })) })).cast).toBe('Ana: red jacket')
+  })
+})
+
+describe('voz con emoción por frase', () => {
+  const script = (narration: string, extra: Record<string, unknown> = {}): string =>
+    JSON.stringify({
+      title: 'Prueba',
+      lang: 'es',
+      scenes: [
+        { heading: 'Uno', narration, image: '', ...extra },
+        { heading: 'Dos', narration: 'Segunda escena sin marcas.', image: '' },
+        { heading: 'Tres', narration: '[firme] Tercera.', image: '' }
+      ]
+    })
+
+  it('el guion guarda las frases con su emoción y deja la narración sin marcas', () => {
+    const s = parseVideoScript(script('[triste] Tres horas después… nada. [emocionado] ¡Y en *diez* minutos, hecho!'))
+    expect(s.scenes[0].narration).toBe('Tres horas después… nada. ¡Y en *diez* minutos, hecho!')
+    expect(s.scenes[0].lines?.map((l) => l.emotion)).toEqual(['triste', 'emocionado'])
+    expect(s.scenes[1].lines).toEqual([{ text: 'Segunda escena sin marcas.', emotion: 'neutral' }])
+    expect(s.scenes[2].narration).toBe('Tercera.')
+  })
+
+  it('una escena de broma, sin marca, va con voz graciosa', () => {
+    const s = parseVideoScript(script('Me equivoqué de cable.', { joke: true }))
+    expect(s.scenes[0].lines?.[0].emotion).toBe('gracioso')
+  })
+
+  it('el encargo del guion pide la emoción delante de cada frase', () => {
+    expect(videoScriptPrompt({ topic: 'x', format: 'vertical', lang: 'es' })).toContain('[emocionado]')
+    expect(videoScriptPrompt({ topic: 'x', format: 'vertical', lang: 'es', style: 'cartoon' })).toContain('[susurro]')
+  })
+
+  it('los subtítulos siguen a cada frase con su pausa', () => {
+    const sc = parseVideoScript(script('[triste] Uno dos. [alegre] Tres cuatro.')).scenes[0]
+    sc.lineTimes = [{ at: 0, dur: 1 }, { at: 2, dur: 1 }]
+    const words = sceneWords(sc, 10, 3)
+    expect(words.map((w) => w.text)).toEqual(['Uno', 'dos.', 'Tres', 'cuatro.'])
+    expect(words[0].start).toBe(10)
+    expect(words[2].start).toBe(12)
+    // Sin tiempos por frase, el reparto de siempre.
+    delete sc.lineTimes
+    expect(sceneWords(sc, 10, 3)).toEqual(timedWords(sc.narration, 10, 3))
+  })
+})
+
+describe('diálogo entre dos personajes', () => {
+  const duo = JSON.stringify({
+    title: 'Charla',
+    lang: 'es',
+    speakers: [{ name: 'Hermes', gender: 'female' }, { name: 'Claude', gender: 'm' }, { name: 'Codex', gender: 'm' }],
+    scenes: [
+      { heading: 'Uno', narration: '[Claude, sorprendido] ¿Quién hace estos vídeos? [Hermes, alegre] Yo. [Claude] ¿Tú?', image: '' },
+      { heading: 'Dos', narration: '[Hermes, firme] Cuatro pasos.', image: '' },
+      { heading: 'Tres', narration: '[Claude, emocionado] ¡Vamos!', image: '' }
+    ]
+  })
+
+  it('lee los dos personajes y quién dice cada frase', () => {
+    const s = parseVideoScript(duo)
+    expect(s.speakers).toEqual([{ name: 'Hermes', gender: 'f' }, { name: 'Claude', gender: 'm' }])
+    expect(s.scenes[0].narration).toBe('¿Quién hace estos vídeos? Yo. ¿Tú?')
+    expect(s.scenes[0].lines?.map((l) => [l.who, l.emotion])).toEqual([['Claude', 'sorprendido'], ['Hermes', 'alegre'], ['Claude', 'alegre']])
+  })
+
+  it('cada personaje tiene sus golpes de subtítulo y su etiqueta con el nombre', () => {
+    const s = parseVideoScript(duo)
+    const words = sceneWords(s.scenes[0], 0, 3)
+    expect(beatsOf(words).map((b) => b.map((w) => w.who)[0])).toEqual(['Claude', 'Hermes', 'Claude'])
+    const comp = buildComposition({ script: s, format: 'vertical', timeline: buildTimeline([3, 1, 1]), images: [null, null, null], audio: 'a.wav', gsap: 'g.js' })
+    expect(comp.html).toContain('class="who"')
+    expect(comp.html).toContain('>Hermes</span>')
+  })
+
+  it('el encargo pide el diálogo y los personajes', () => {
+    const p = videoScriptPrompt({ topic: 'x', format: 'vertical', lang: 'es', dialogue: true, cast: { images: [], name: 'Robots de kywai' } })
+    expect(p).toContain('DIÁLOGO entre Hermes y Claude')
+    expect(p).toContain('"speakers"')
+    expect(videoScriptPrompt({ topic: 'x', format: 'vertical', lang: 'es' })).not.toContain('"speakers"')
+  })
+
+  it('se pide con la marca o con palabras', () => {
+    expect(parseVideoRequest('/video dialogo:si cómo hacer pan')).toMatchObject({ topic: 'cómo hacer pan', dialogue: true })
+    expect(parseVideoRequest('/video un diálogo entre un gato y un perro sobre el pan')?.dialogue).toBe(true)
+    expect(parseVideoRequest('/video cómo hacer pan')?.dialogue).toBeUndefined()
   })
 })

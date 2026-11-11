@@ -4,6 +4,7 @@
 // que el agente improvise.
 import { KYWAI_FILM, takeFilmStyle } from '../shared/filmStyles'
 import { ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, type VideoKind } from '../shared/videoChoice'
+import { narrationLines, voiceEmotion, VOICE_EMOTIONS, type VoiceLine } from '../shared/voiceEmotion'
 import { episodeRules, type EpisodeBrief } from './series'
 
 export type VideoFormat = 'horizontal' | 'vertical'
@@ -25,8 +26,12 @@ export type CharacterPose = (typeof CHARACTER_POSES)[number]
 export interface VideoScene {
   /** Rótulo grande en pantalla (pocas palabras). */
   heading: string
-  /** Lo que dice la voz en esta escena. */
+  /** Lo que dice la voz en esta escena (sin las marcas de emoción: es lo que sale en los subtítulos). */
   narration: string
+  /** La narración frase a frase, cada una con su emoción (de las marcas «[triste] …» del guion). */
+  lines?: VoiceLine[]
+  /** Dónde empieza y cuánto dura cada frase en la voz ya generada (en segundos): así los subtítulos van a su ritmo. */
+  lineTimes?: { at: number; dur: number }[]
   /** Descripción de la imagen de fondo (para generarla). Vacía: fondo de diseño sin imagen. */
   image: string
   /** Estilo cartoon: gesto del personaje. */
@@ -71,6 +76,28 @@ export interface VideoScript {
   cast?: string
   /** Episodio de una serie («/serie»): qué pasó, cómo quedó y la pregunta para votar. */
   episode?: { summary: string; cliffhanger?: string; question?: string }
+  /** Diálogo: los dos personajes que hablan (el nombre, como en las marcas «[Hermes, alegre]», y su género para la voz). */
+  speakers?: VideoSpeaker[]
+}
+
+export interface VideoSpeaker {
+  name: string
+  gender?: 'f' | 'm'
+}
+
+/** Los personajes de un diálogo del guion: como mucho 2, con nombre. */
+function speakersOf(v: unknown): VideoSpeaker[] {
+  const list = Array.isArray(v) ? v : []
+  const out: VideoSpeaker[] = []
+  for (const x of list) {
+    const o = typeof x === 'string' ? { name: x } : x && typeof x === 'object' ? (x as Record<string, unknown>) : null
+    const name = o ? clean(o.name, 30).replace(/[[\],|/;:]/g, '') : ''
+    if (!name || out.some((s) => s.name.toLowerCase() === name.toLowerCase())) continue
+    const g = o && typeof o.gender === 'string' ? o.gender.toLowerCase()[0] : ''
+    out.push({ name, ...(g === 'f' || g === 'm' ? { gender: g } : {}) })
+    if (out.length === 2) break
+  }
+  return out
 }
 
 export const MIN_SCENES = 3
@@ -104,15 +131,21 @@ export function parseVideoScript(text: string): VideoScript {
   const title = clean(raw.title, 90)
   if (!title) throw new Error('Al guion le falta «title».')
   const list = Array.isArray(raw.scenes) ? raw.scenes : []
+  const speakers = speakersOf(raw.speakers)
+  const names = speakers.map((x) => x.name)
   const scenes: VideoScene[] = []
   for (const s of list) {
     if (!s || typeof s !== 'object') continue
     const o = s as Record<string, unknown>
-    const narration = clean(o.narration, 400)
+    // Las marcas «[emocionado] …» se quitan de la narración y se guardan frase a frase.
+    // En un diálogo, la marca dice también quién habla («[Claude, alegre] …»).
+    const parts = narrationLines(clean(o.narration, 600), o.joke === true ? 'gracioso' : voiceEmotion(clean(o.emotion, 30)) ?? 'neutral', names)
+    const narration = parts.narration.slice(0, 400)
     const heading = clean(o.heading, 60) || narration.split(' ').slice(0, 5).join(' ')
     if (!narration) continue
     const shots = (Array.isArray(o.shots) ? o.shots : []).map((x) => clean(x, 400)).filter(Boolean).slice(0, MAX_SHOTS)
     const scene: VideoScene = { heading, narration, image: shots[0] ?? clean(o.image, 400) }
+    if (parts.lines.length) scene.lines = parts.lines
     if (shots.length) scene.shots = shots
     if (CHARACTER_POSES.includes(o.pose as CharacterPose)) scene.pose = o.pose as CharacterPose
     const step = Number(o.step)
@@ -134,7 +167,7 @@ export function parseVideoScript(text: string): VideoScript {
   const ep = raw.episode && typeof raw.episode === 'object' ? (raw.episode as Record<string, unknown>) : null
   const summary = ep ? clean(ep.summary, 500) : ''
   const episode = summary ? { summary, ...(clean(ep!.cliffhanger, 300) ? { cliffhanger: clean(ep!.cliffhanger, 300) } : {}), ...(clean(ep!.question, 300) ? { question: clean(ep!.question, 300) } : {}) } : undefined
-  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}), ...(cast ? { cast } : {}), ...(episode ? { episode } : {}) }
+  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}), ...(cast ? { cast } : {}), ...(episode ? { episode } : {}), ...(speakers.length === 2 ? { speakers } : {}) }
 }
 
 /**
@@ -143,6 +176,28 @@ export function parseVideoScript(text: string): VideoScript {
  */
 export const HOOK_RULE =
   'Gancho en los 2 primeros segundos (voz y lo que se ve a la vez, sin saludos ni presentaciones ni «hoy vamos a ver»), con una de estas formas: una pregunta que el espectador se hace («¿por qué…?»); un dato o una cifra que sorprende; lo contrario de lo que todo el mundo cree («deja de…», «no es…»); el resultado final primero y luego cómo se llega; un error común («si haces esto, lo estás haciendo mal»); una promesa concreta con número («3 pasos», «en 30 segundos»). Después, cada escena abre una pregunta pequeña que la siguiente cierra, para que se vea hasta el final.'
+
+/**
+ * La voz con vida: cada frase con su emoción. Va en los encargos de guion (y la parte de cómo aplicarla, en el de
+ * película).
+ */
+export const EMOTION_RULE =
+  `- Voz con vida: delante de CADA frase de "narration" pon su emoción entre corchetes, una de ${VOICE_EMOTIONS.map((e) => `[${e}]`).join(', ')} («[sorprendido] ¿Diez minutos? [emocionado] ¡Y con música!»). La voz cambia de tono con ella, así que varíala como lo haría una persona contándolo: que no vayan más de dos frases seguidas con la misma, el gancho con fuerza, los problemas [triste] o [firme], las soluciones [alegre] o [emocionado], un secreto [susurro]. Los «…» hacen una pausa dramática. Las marcas no salen en pantalla ni se leen.`
+
+/** El diálogo: dos personajes que se contestan (como en los reels que más enganchan). */
+export function dialogueRules(cast?: { name?: string }): string[] {
+  const who =
+    cast?.name === ROBOTS_CHARACTER || /robots? de kywai/i.test(cast?.name ?? '')
+      ? 'Hermes y Claude, los robots de kywai'
+      : cast?.name
+        ? `${cast.name} y otro personaje que le dé la réplica (inventa uno que encaje)`
+        : 'dos personajes que inventes y que encajen con el tema (con un nombre corto cada uno)'
+  return [
+    `- Es un DIÁLOGO entre ${who}: se contestan el uno al otro, como dos amigos charlando delante de la cámara. Nada de narrador.`,
+    '- "speakers": los dos personajes, [{"name": "…", "gender": "f" o "m"}]. Cada uno habla con su voz.',
+    '- En "narration", cada frase lleva delante quién la dice y cómo: [Nombre, emoción] («[Claude, sorprendido] ¿Diez minutos? [Hermes, alegre] Ni uno más.»). Frases cortas que van y vienen: una pregunta, una reacción («¿Yo?», «Vale.», «¿En serio?»), un chiste pequeño, una pulla. En cada escena hablan los dos, y las réplicas cortas son las que dan vida.'
+  ]
+}
 
 /** Encargo para el agente: solo el guion, en JSON. */
 type PromptInput = {
@@ -164,6 +219,8 @@ type PromptInput = {
   cast?: { images: string[]; notes?: string; name?: string; about?: string }
   /** Episodio de una serie («/serie»). */
   episode?: EpisodeBrief
+  /** Diálogo entre dos personajes, cada uno con su voz. */
+  dialogue?: boolean
 }
 
 /** El vídeo lleva presentador (dibujos con presentador o mixto). */
@@ -229,6 +286,8 @@ export function videoScriptPrompt(input: PromptInput): string {
     `- Entre ${MIN_SCENES + 2} y ${MAX_SCENES - 1} escenas cortas y con ritmo, para gente con poca paciencia. Cada escena aporta algo nuevo; la última cierra con una idea clara.`,
     `- ${HOOK_RULE}`,
     '- "narration": lo que dice la voz, UNA frase corta y directa por escena (de 8 a 20 palabras), como habla un buen creador de TikTok. Sin emojis, sin listas, sin siglas raras: se lee en voz alta. Marca con *asteriscos* la palabra o las dos palabras clave de cada frase (salen resaltadas en pantalla).',
+    EMOTION_RULE,
+    ...(input.dialogue ? dialogueRules(input.cast) : []),
     '- "heading": la etiqueta de la escena, de 1 a 3 palabras.',
     '- "image": la imagen de fondo de la escena, descrita en inglés en una frase concreta (sujeto, ambiente, luz). Sin texto, letras ni logotipos en la imagen.',
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}, el que mejor le vaya al tema.`,
@@ -242,7 +301,7 @@ export function videoScriptPrompt(input: PromptInput): string {
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", ' + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + '"scenes": [{"heading": "…", "narration": "…", "image": "…"' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "theme": "noche", "look": "…", ' + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + (input.dialogue ? '"speakers": [{"name": "…", "gender": "f"}, {"name": "…", "gender": "m"}], ' : '') + '"scenes": [{"heading": "…", "narration": "' + (input.dialogue ? '[Nombre1, sorprendido] … [Nombre2, alegre] …' : '[sorprendido] …') + '", "image": "…"' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -263,6 +322,8 @@ function cartoonScriptPrompt(input: PromptInput): string {
     'Reglas:',
     `- Entre ${MIN_SCENES + 3} y ${MAX_SCENES} escenas. La primera es el gancho, con gracia (el personaje lo dice). Si es un tutorial, después van los pasos EN ORDEN, completos y correctos (con los avisos de seguridad que hagan falta), y al final un resumen corto.`,
     '- "narration": lo que dice el personaje en primera persona, como un youtuber cercano: una o dos frases cortas (como mucho 30 palabras). Sin emojis ni listas: se lee en voz alta. Marca con *asteriscos* la palabra clave de cada frase.',
+    EMOTION_RULE,
+    ...(input.dialogue ? dialogueRules(input.cast) : []),
     '- Humor: en 2 o 3 escenas mete una broma corta y blanca (una exageración, una comparación absurda, un despiste del personaje) y marca esas escenas con "joke": true. Las bromas nunca sustituyen a la instrucción: el paso tiene que quedar claro igual.',
     `- ${HOOK_RULE}`,
     '- "step": el número del paso (1, 2, 3…) en las escenas que son un paso; 0 en el gancho, las bromas sueltas y el resumen.',
@@ -285,7 +346,7 @@ function cartoonScriptPrompt(input: PromptInput): string {
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "style": "' + (mixed ? 'mixto' : 'cartoon') + '", "theme": "papel", ' + (input.refs?.length || input.cast ? '"look": "…", ' : '') + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + '"scenes": [{' + (mixed ? '"mode": "presentador", ' : '') + '"heading": "…", "narration": "…", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "style": "' + (mixed ? 'mixto' : 'cartoon') + '", "theme": "papel", ' + (input.refs?.length || input.cast ? '"look": "…", ' : '') + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + (input.dialogue ? '"speakers": [{"name": "…", "gender": "f"}, {"name": "…", "gender": "m"}], ' : '') + '"scenes": [{' + (mixed ? '"mode": "presentador", ' : '') + '"heading": "…", "narration": "' + (input.dialogue ? '[Nombre1, alegre] … [Nombre2, emocionado] …' : '[alegre] … [emocionado] …') + '", "shots": ["…", "…"], "pose": "point", "step": 1, "joke": false' + (input.motion ? ', "motion": "…"' : '') + '}], "outro": "…"}'
   ].join('\n')
 }
 
@@ -307,7 +368,12 @@ export interface VideoRequest {
   kind?: VideoKind
   /** Voz elegida en el selector («voz:…»); sin ella, la mejor que haya. */
   voice?: string
+  /** Diálogo entre dos personajes («dialogo:si», «un diálogo entre…», «charlando»). */
+  dialogue?: boolean
 }
+
+/** Piden dos personajes hablando: «un diálogo», «una conversación entre…», «charlando», «a dialogue between…». */
+const DIALOGUE_RE = /\b(di[aá]logos?|conversaci[oó]n entre|charla(?:ndo)? entre|dos personajes (?:que )?(?:hablan|hablando|charlan|charlando|conversan)|charlando|conversando|a dialogue|a conversation between|two characters talking)\b/i
 
 /** «con estos personajes fijos», «guarda los personajes», «estos son mis personajes», «same characters». */
 const CAST_RE = /(?:^|[\s,])(?:con\s+)?(?:(?:estos|mis|los)\s+)?(?:personajes?\s+fijos?|guarda(?:r|me)?\s+(?:(?:a\s+)?(?:los|estos|mis)\s+)?personajes?|estos\s+son\s+(?:los|mis)\s+personajes?|recurring\s+characters?|same\s+characters?)(?=[\s,.:;]|$)/i
@@ -354,7 +420,8 @@ export function parseVideoRequest(text: string): VideoRequest | null {
   const kindTag = /(^|\s)(?:tipo:[a-z0-9-]+|estilo:(?:cartoon|dinamico))(?=\s|$)/i.test(topic)
   const charTag = /(^|\s)personaje:[a-z0-9-]+(?=\s|$)/i.test(topic)
   const voice = choice.voice ?? undefined
-  if (kindTag || charTag || /(^|\s)voz:[a-z0-9_-]+(?=\s|$)/i.test(topic)) {
+  const dialogue = !!choice.dialogue || DIALOGUE_RE.test(topic)
+  if (kindTag || charTag || choice.dialogue || /(^|\s)voz:[a-z0-9_-]+(?=\s|$)/i.test(topic)) {
     const film = /(^|\s)estilo:([a-z0-9-]+)(?=\s|$)/i.exec(topic)
     topic = stripVideoTags(topic).replace(/\s{2,}/g, ' ').trim()
     if (film && choice.style) topic = `estilo:${choice.style} ${topic}`.trim()
@@ -380,7 +447,7 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     const prev = !rest || PREVIOUS_RE.test(rest)
     // El estilo pintado a mano, sin otro personaje, lleva los robots.
     const fc = charTag ? choice.character : film.style.slug === KYWAI_FILM ? ROBOTS_CHARACTER : null
-    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: kindStyle ?? 'dinamico', film: film.style.slug, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(fc ? { character: fc } : {}), ...(voice ? { voice } : {}) }
+    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: kindStyle ?? 'dinamico', film: film.style.slug, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(fc ? { character: fc } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}) }
   }
   // «estilo cartoon de…», «de dibujos animados sobre…»: el estilo no es parte del tema.
   const style: VideoStyle = kindStyle ?? (CARTOON_RE.test(tNoCast) ? 'cartoon' : 'dinamico')
@@ -389,7 +456,7 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     .trim()
   const fromPrevious = !bare || PREVIOUS_RE.test(bare)
   const character = charTag ? choice.character : null
-  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}) }
+  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}) }
 }
 
 // ---------- composición ----------
@@ -428,6 +495,13 @@ export function buildTimeline(voiceDurations: number[]): VideoTimeline {
 
 export const round = (n: number): number => Math.round(n * 100) / 100
 
+/** En un diálogo, la etiqueta con el nombre de quien habla (cada uno con su color) encima de su subtítulo. */
+export function speakerChip(script: Pick<VideoScript, 'speakers'>, who: string | undefined, th: { accent: string; accent2: string; onAccent: string }): string {
+  const i = who ? (script.speakers ?? []).findIndex((x) => x.name === who) : -1
+  if (i < 0) return ''
+  return `<span class="who" style="background:${i ? th.accent2 : th.accent};color:${i ? '#ffffff' : th.onAccent}">${esc(who!)}</span>`
+}
+
 /** Lo que lee la voz: sin los asteriscos que marcan las palabras clave. */
 export function spokenText(narration: string): string {
   return narration.replace(/\*+([^*]+)\*+/g, '$1').replace(/\*/g, '').replace(/\s+/g, ' ').trim()
@@ -438,6 +512,8 @@ export interface TimedWord {
   start: number
   /** Palabra clave (*así* en el guion): sale resaltada. */
   key: boolean
+  /** En un diálogo, quién la dice. */
+  who?: string
 }
 
 /**
@@ -465,11 +541,40 @@ export function timedWords(narration: string, start: number, voice: number): Tim
   })
 }
 
+/**
+ * Las palabras de una escena con su momento. Si la voz se hizo frase a frase, cada frase reparte sus palabras en el
+ * rato que suena (las pausas entre frases no se comen el ritmo de los subtítulos).
+ */
+export function sceneWords(sc: Pick<VideoScene, 'narration' | 'lines' | 'lineTimes'>, start: number, voice: number): TimedWord[] {
+  const L = sc.lines
+  const T = sc.lineTimes
+  if (!L || !T || L.length < 2 || L.length !== T.length) {
+    // Sin tiempos por frase (Gemini dice la escena entera): cada frase se lleva su parte de las palabras.
+    const words = timedWords(sc.narration, start, voice)
+    if (!L?.some((l) => l.who)) return words
+    let i = 0
+    return L.flatMap((l) => {
+      const n = timedWords(l.text, 0, 1).length
+      const part = words.slice(i, i + n)
+      i += n
+      return part.map((w) => (l.who ? { ...w, who: l.who } : w))
+    })
+  }
+  const end = T[T.length - 1].at + T[T.length - 1].dur
+  const k = end > 0 ? Math.min(1.05, voice / end) : 1
+  return L.flatMap((l, i) => timedWords(l.text, start + T[i].at * k, T[i].dur * k).map((w) => (l.who ? { ...w, who: l.who } : w)))
+}
+
 /** Golpes de pantalla: grupos de hasta 4 palabras que cortan en cada pausa (una sola palabra también golpea). */
 export function beatsOf(words: TimedWord[]): TimedWord[][] {
   const beats: TimedWord[][] = []
   let cur: TimedWord[] = []
   for (const w of words) {
+    // En un diálogo, cada personaje con sus propios golpes.
+    if (cur.length && cur[cur.length - 1].who !== w.who) {
+      beats.push(cur)
+      cur = []
+    }
     cur.push(w)
     const pause = /[.,;:!?…]$/.test(w.text)
     const long = cur.map((x) => x.text).join(' ').length
@@ -479,7 +584,8 @@ export function beatsOf(words: TimedWord[]): TimedWord[][] {
     }
   }
   if (cur.length) {
-    if (cur.length === 1 && beats.length && beats[beats.length - 1].length < 4) beats[beats.length - 1].push(...cur)
+    const last = beats[beats.length - 1]
+    if (cur.length === 1 && last && last.length < 4 && last[0].who === cur[0].who) last.push(...cur)
     else beats.push(cur)
   }
   return beats
@@ -602,7 +708,7 @@ export function buildComposition(input: CompositionInput): Composition {
     const id = `s${i + 1}`
     const clip = input.clips?.[i] ?? null
     const img = clip ? null : images[i]
-    const words = timedWords(sc.narration, t.start + VOICE_LEAD_S, t.voice)
+    const words = sceneWords(sc, t.start + VOICE_LEAD_S, t.voice)
     const beats = beatsOf(words)
     // La animación de Manim va debajo de la escena (un <video> no puede ir dentro de algo con tiempo), que se queda
     // transparente y con los subtítulos abajo.
@@ -619,7 +725,7 @@ export function buildComposition(input: CompositionInput): Composition {
         const wordsHtml = b
           .map((w, j) => `<span class="w${w.key ? ' key' : ''}" id="${id}b${k}w${j}">${esc(w.text)}</span>`)
           .join(' ')
-        return `<div class="clip beat" id="${id}b${k}" data-start="${R(s - 0.05)}" data-duration="${R(e - s + 0.05)}"><div class="bt">${wordsHtml}</div></div>`
+        return `<div class="clip beat" id="${id}b${k}" data-start="${R(s - 0.05)}" data-duration="${R(e - s + 0.05)}"><div class="bt">${speakerChip(script, b[0].who, th)}${wordsHtml}</div></div>`
       })
       .join('\n  ')
     html.push(`<section id="${id}" class="clip scene${img ? ' has-img' : ''}${clip ? ' has-manim' : ''}" data-start="${t.start}" data-duration="${t.duration}">
@@ -742,6 +848,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: var(--
 .tag span { display: inline-block; padding: 14px 30px; border-radius: 16px; background: var(--accent); color: var(--on); font-size: ${vertical ? 52 : 46}px;
   font-weight: 900; letter-spacing: -0.01em; text-transform: uppercase; box-shadow: 0 14px 0 rgba(0,0,0,0.25); }
 .beat { display: flex; align-items: center; justify-content: center; z-index: 5; padding: 0 ${vertical ? 70 : 160}px; }
+.who { display: block; width: fit-content; margin: 0 auto 0.35em; padding: 0.12em 0.6em; border-radius: 999px; font-size: 0.4em; letter-spacing: 0.04em; text-transform: uppercase; }
 .bt { text-align: center; font-size: ${big}px; line-height: 1.08; font-weight: 900; letter-spacing: -0.035em; max-width: ${vertical ? 940 : 1600}px; }
 .w { display: inline-block; padding: 0 0.08em; border-radius: 0.14em; text-shadow: 0 8px 0 rgba(0,0,0,0.28); }
 .w.key { color: var(--accent); }

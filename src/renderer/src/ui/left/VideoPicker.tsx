@@ -305,7 +305,8 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
     kindName(value.kind),
     value.character ? (chosenChar ? charName(chosenChar) : value.character === ROBOTS_CHARACTER ? t('Robots de kywai') : t('Personaje')) : '',
     style ? fname(style) : t('Estilo de kywai'),
-    chosenVoice ? voiceName(chosenVoice) : value.voice ? t('Voz elegida') : ''
+    chosenVoice ? voiceName(chosenVoice) : value.voice ? t('Voz elegida') : '',
+    value.dialogue ? t('Diálogo') : ''
   ].filter(Boolean)
   const thumb = value.style ? THUMBS[value.style] : undefined
   const KindIcon = KINDS.find((k) => k.id === value.kind)!.icon
@@ -465,6 +466,18 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                 <h4 className={s.step}>
                   <b>4</b> {t('Voz')}
                 </h4>
+                <div className={s.voiceGrid} role="radiogroup" aria-label={t('Quién habla')}>
+                  {[
+                    { on: !value.dialogue, name: t('Una voz'), line: t('Un narrador o el presentador'), dialogue: false },
+                    { on: !!value.dialogue, name: t('Diálogo'), line: t('Dos personajes que se contestan, cada uno con su voz'), dialogue: true }
+                  ].map((o) => (
+                    <button key={o.name} type="button" role="radio" aria-checked={o.on} className={cx(s.card, s.voiceCard, o.on && s.cardOn)} onClick={() => set({ dialogue: o.dialogue })}>
+                      <span className={s.name}>{o.name}</span>
+                      <span className={s.line}>{o.line}</span>
+                      {o.on && <Check size={14} className={s.check} aria-hidden="true" />}
+                    </button>
+                  ))}
+                </div>
                 <div role="radiogroup" aria-label={t('Voz')}>
                   {!defaultVoice && (
                     <div className={s.voiceGrid}>

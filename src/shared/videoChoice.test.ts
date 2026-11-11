@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultVoiceFor, videoLang, LANG_VOICES, parseVoiceId, ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, withVideoChoice } from './videoChoice'
+import { defaultVoiceFor, videoLang, LANG_VOICES, parseVoiceId, ROBOTS_CHARACTER, speakerVoices, stripVideoTags, videoChoiceOf, withVideoChoice } from './videoChoice'
 
 describe('lo elegido al escribir /video', () => {
   it('lee el tipo, el personaje y el estilo marcados', () => {
@@ -72,5 +72,23 @@ describe('lo elegido al escribir /video', () => {
     expect(videoLang(null, 'a video in Spanish about bread', 'en')).toBe('es')
     expect(videoLang(null, 'el ciclo del agua', 'es')).toBe('es')
     expect(videoLang('gemini-puck', 'el ciclo del agua', 'fr')).toBe('fr')
+  })
+})
+
+describe('diálogo', () => {
+  it('«dialogo:si» se lee, se quita del texto y se vuelve a poner', () => {
+    expect(videoChoiceOf('/video dialogo:si cómo hacer pan').dialogue).toBe(true)
+    expect(videoChoiceOf('/video cómo hacer pan').dialogue).toBeUndefined()
+    expect(stripVideoTags('/video diálogo:sí cómo hacer pan')).toBe('/video cómo hacer pan')
+    expect(withVideoChoice('/video pan', { kind: 'rapido', character: null, style: null, dialogue: true })).toBe('/video dialogo:si pan')
+  })
+
+  it('cada personaje con una voz de su género; la elegida, para el primero que le pega', () => {
+    const sp = [{ name: 'Hermes', gender: 'f' as const }, { name: 'Claude', gender: 'm' as const }]
+    expect(speakerVoices('es', null, sp, { mac: true })).toEqual({ Claude: 'edge-es-ES-AlvaroNeural', Hermes: 'mac-carmen' })
+    // Sin Mac no hay Carmen: el otro, otra voz del idioma.
+    expect(speakerVoices('es', null, sp, { mac: false })).toEqual({ Claude: 'edge-es-ES-AlvaroNeural', Hermes: 'edge-es-MX-JorgeNeural' })
+    expect(speakerVoices('en', 'kokoro-am_adam', sp, { mac: false })).toEqual({ Claude: 'kokoro-am_adam', Hermes: 'kokoro-af_bella' })
+    expect(speakerVoices('fr', null, [{ name: 'A' }, { name: 'B' }], { mac: false })).toEqual({ A: null, B: 'kokoro-ff_siwis' })
   })
 })

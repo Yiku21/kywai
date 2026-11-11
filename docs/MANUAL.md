@@ -2028,6 +2028,47 @@ edge-tts: gratis, necesita internet), y **en inglés**, **Bella** (Kokoro, af_be
   con esa voz (si falla, Kokoro); con una de Kokoro, Kokoro con esa voz; con una de Voicebox, ese perfil; con «Voz del
   sistema», la del sistema operativo.
 
+**Voz con emoción (Chatterbox).** Para que la voz no suene igual de principio a fin, **cada frase del guion lleva su
+emoción** entre corchetes: `[neutral]`, `[alegre]`, `[emocionado]`, `[sorprendido]`, `[triste]`, `[susurro]`,
+`[firme]`, `[calma]` o `[gracioso]` («[triste] Tres horas después… [emocionado] ¡Y en diez minutos!»). El agente del
+guion las pone (regla `EMOTION_RULE` de `src/main/videoScript.ts`); kywai las quita de los subtítulos y guarda la
+narración frase a frase (`scene.lines`, lo lee `narrationLines` de `src/shared/voiceEmotion.ts`, que también entiende
+las emociones en inglés y otras palabras como «feliz» o «excited»).
+- Quien la interpreta es **Chatterbox Multilingual** (Resemble AI, licencia MIT, `src/main/chatterbox.ts`): en el propio
+  equipo, gratis, 23 idiomas. No cambia la velocidad ni el tono del audio (eso suena robótico: Yil lo probó con Edge y
+  lo descartó); el modelo actúa la frase con más o menos emoción (`exaggeration` y `cfg_weight`, tabla
+  `CHATTERBOX_EMOTION`). **Copia el timbre de la voz elegida**: kywai hace una vez una muestra de 15 s con esa voz
+  (Álvaro, Jorge, Carmen, Bella…) en `<studio>/chatterbox/muestras/` y Chatterbox habla con ese timbre, así que la voz
+  sigue siendo la elegida pero actuando. Dice todas las frases del vídeo de un tirón (el modelo tarda en cargarse), en
+  la gráfica de Apple o NVIDIA si la hay; aquí, en un procesador de 4 núcleos sin gráfica, unos 2 minutos por cada 20
+  segundos de voz. Entre frase y frase deja la pausa de su emoción (más larga tras una triste) y los subtítulos siguen
+  a cada frase (`scene.lineTimes`, `sceneWords`).
+- Va en su propio entorno de Python 3.11 (`<studio>/chatterbox/.venv`, con uv y torch 2.6) y el modelo (unos 3,5 GB)
+  en `<studio>/chatterbox/modelos` (no en la caché general). Lo instala «Instalar lo que falta» o la instalación
+  automática del estudio al arrancar (cuenta para que el estudio esté completo); ocupa unos 5 GB. Se fija
+  `setuptools<81`: su marca de agua (resemble-perth) usa `pkg_resources`, que setuptools quitó en la 81.
+- Se usa con las voces de Edge, macOS y Kokoro (y sin voz elegida). Con una voz de **Gemini** o de **Voicebox**
+  elegida, se queda esa: a Gemini se le manda la escena entera con la emoción marcada delante de cada frase
+  («[sad] …»), y a Voicebox, una instrucción por frase. Si Chatterbox falla, el vídeo sale con el orden de siempre, sin
+  emoción (Edge y las demás solo hacen la pausa de cada emoción).
+- Pega conocida: «kywai» lo pronuncia «chiwai».
+- En las **películas con estilo** (las dirige un agente), el encargo pide lo mismo: emoción por frase, nunca retocar
+  velocidad ni tono, y si Chatterbox está instalado, cómo usarlo (`<studio>/chatterbox/voz.py` con un JSON de frases).
+
+**Diálogo (dos personajes, dos voces).** En el paso 4 del selector, «Diálogo» (marca `dialogo:si`), o con palabras («un
+diálogo entre…», «una conversación entre…», «charlando»): el vídeo lo cuentan **dos personajes que se contestan**, como
+en los reels que más enganchan, con réplicas cortas («¿Yo?», «¿En serio?»). Con los robots de kywai elegidos, hablan
+Hermes y Claude; con otro personaje, ese y uno que le dé la réplica; sin personaje, dos que invente el agente. El
+guion trae `"speakers": [{"name", "gender"}]` y cada frase dice quién habla: «[Claude, sorprendido] ¿Diez minutos?
+[Hermes, alegre] Ni uno más.».
+- **Cada uno con su voz** (`speakerVoices` en `src/shared/videoChoice.ts`): la elegida es para el primer personaje de su
+  género, y el otro lleva otra voz del idioma, de su género si la hay (en español en el Mac: Álvaro y Carmen; sin Mac,
+  Álvaro y Jorge). Con Chatterbox, cada uno con la muestra de su voz; con Gemini, la voz de varios hablantes de Gemini
+  (`multiSpeakerVoiceConfig`); con Kokoro, una voz de Kokoro de su género.
+- En los subtítulos sale **el nombre de quien habla** en una etiqueta de su color (`speakerChip`), y cada personaje
+  tiene sus propios golpes de texto.
+- En las películas con estilo, el encargo pide el diálogo y que la cámara corte al que habla y a la reacción del otro.
+
 La voz, las imágenes y las animaciones de Manim se generan **a la vez**.
 
 **Elegir tipo, personaje, estilo y voz (selector de cuatro pasos).** Al escribir `/video` aparece encima del cuadro una

@@ -8,11 +8,13 @@ import {
   rng,
   round,
   THEMES,
-  timedWords,
+  sceneWords,
+  speakerChip,
   VOICE_LEAD_S,
   type CharacterPose,
   type Composition,
-  type CompositionInput
+  type CompositionInput,
+  type TimedWord
 } from './videoScript'
 
 interface Pose {
@@ -251,8 +253,7 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
   sfx.push({ at: 0.5, kind: 'pop' })
 
   // Boca al ritmo de la voz, palabra a palabra y sílaba a sílaba.
-  const lip = (narration: string, start: number, voice: number): void => {
-    const words = timedWords(narration, start, voice)
+  const lip = (words: TimedWord[], start: number, voice: number): void => {
     words.forEach((w, j) => {
       const end = j + 1 < words.length ? words[j + 1].start : start + voice
       const pause = /[.!?…]$/.test(w.text) ? 6 : /[,;:]$/.test(w.text) ? 3 : 0
@@ -297,7 +298,7 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
     // La animación de Manim va debajo de la escena (un <video> no puede ir dentro de algo con tiempo).
     if (clip) clipHtml.push(`<video id="${id}m" class="clip manimv" src="${esc(clip)}" muted playsinline data-start="${t.start}" data-duration="${t.duration}"></video>`)
     const voiceAt = t.start + VOICE_LEAD_S
-    const words = timedWords(sc.narration, voiceAt, t.voice)
+    const words = sceneWords(sc, voiceAt, t.voice)
     const beats = beatsOf(words)
     const shotLen = shots.length ? t.duration / shots.length : t.duration
     const shotHtml = clip
@@ -319,7 +320,7 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
       .map((b, k) => {
         const s = b[0].start
         const e = k + 1 < beats.length ? beats[k + 1][0].start : t.start + t.duration
-        return `<div class="clip cap" id="${id}c${k}" data-start="${R(s - 0.05)}" data-duration="${R(e - s + 0.05)}"><div class="ct">${b
+        return `<div class="clip cap" id="${id}c${k}" data-start="${R(s - 0.05)}" data-duration="${R(e - s + 0.05)}"><div class="ct">${speakerChip(script, b[0].who, th)}${b
           .map((w, j) => `<span class="w${w.key ? ' key' : ''}" id="${id}c${k}w${j}">${esc(w.text)}</span>`)
           .join(' ')}</div></div>`
       })
@@ -392,7 +393,7 @@ export function buildCartoonComposition(input: CompositionInput): Composition {
     beats.forEach((b, k) => {
       if (svg) a.push(`tl.fromTo('#head', {rotation: ${p.head + (k % 2 ? 3 : -3)}}, {rotation: ${p.head}, duration: 0.3, ease: 'power2.out', immediateRender: false}, ${R(b[0].start)})`)
     })
-    lip(sc.narration, voiceAt, t.voice)
+    lip(words, voiceAt, t.voice)
 
     // Subtítulos: la palabra que suena, resaltada.
     beats.forEach((b, k) => {
@@ -461,6 +462,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #fff4d
 #capband { position: absolute; left: 0; right: 0; bottom: 0; height: ${vertical ? 900 : 300}px; z-index: 5; pointer-events: none;
   background: linear-gradient(180deg, rgba(10,8,20,0) 0%, rgba(10,8,20,0.55) 45%, rgba(10,8,20,0.82) 100%); }
 .cap { display: flex; align-items: center; justify-content: center; z-index: 7; left: ${cap.left}px; top: ${cap.top}px; width: ${cap.w}px; height: ${cap.h}px; right: auto; bottom: auto; }
+.who { display: block; width: fit-content; margin: 0 auto 0.3em; padding: 0.1em 0.6em; border-radius: 999px; font-size: 0.5em; letter-spacing: 0.04em; text-transform: uppercase; }
 .ct { text-align: center; font-size: ${vertical ? 68 : 66}px; line-height: 1.12; font-weight: 900; letter-spacing: -0.015em; }
 .w { display: inline-block; padding: 0 0.1em; border-radius: 0.18em; color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,0.45); }
 .w.key { color: var(--accent); }

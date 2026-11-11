@@ -943,6 +943,13 @@ function VideoSection() {
                   : t('Sin voz')
         },
         {
+          label: t('Voz con emoción (Chatterbox)'),
+          ok: !!status.chatterbox,
+          detail: status.chatterbox
+            ? t('Instalada: cada frase suena alegre, triste o emocionada, con el timbre de la voz elegida')
+            : t('Falta: «Instalar lo que falta» la instala (unos 5 GB con el modelo); mientras, la voz va sin emoción')
+        },
+        {
           label: t('Animaciones de fórmulas y diagramas (Manim)'),
           ok: !!status.manim,
           detail: status.manim ? t('Instalado') : t('Falta (opcional): «Instalar lo que falta» lo instala')
@@ -992,7 +999,7 @@ function VideoSection() {
       ]
     : []
   const complete =
-    !!status && status.ready && status.kokoro && !!status.manim && !!status.films?.library && !!status.films?.painted && !!status.sfx?.installed && !!status.sfx.earshot
+    !!status && status.ready && status.kokoro && !!status.chatterbox && !!status.manim && !!status.films?.library && !!status.films?.painted && !!status.sfx?.installed && !!status.sfx.earshot
   const autoInstalling = !busy && !!status?.installing
 
   return (

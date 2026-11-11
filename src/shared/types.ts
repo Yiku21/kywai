@@ -275,6 +275,8 @@ export interface Task {
     kind?: 'rapido' | 'presentador' | 'mixto'
     /** Voz elegida en el selector («gemini-puck», «kokoro-ef_dora»…). */
     voice?: string
+    /** Diálogo entre dos personajes, cada uno con su voz. */
+    dialogue?: boolean
     work?: string
     /** «personajes fijos»: las imágenes adjuntas se guardaron como personajes del proyecto (carpeta «personajes»). */
     saveCast?: boolean
@@ -1666,6 +1668,8 @@ export interface VideoStudioStatus {
   installing?: boolean
   /** Kokoro instalado (la voz de reserva si Gemini falla). */
   kokoro: boolean
+  /** Chatterbox instalado: la voz con emoción (interpreta cada frase con el timbre de la voz elegida). */
+  chatterbox?: boolean
   /** «comfyui» si hay un ComfyUI encendido con modelo (el de por defecto), «gemini» si hay clave; null: fondos de diseño. */
   images: 'comfyui' | 'gemini' | null
   /** ComfyUI en este equipo: si responde, el modelo que se usa y cuántos tiene. */

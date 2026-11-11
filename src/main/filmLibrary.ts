@@ -9,7 +9,9 @@ import { FILM_STYLES, KYWAI_FILM, type FilmStyle } from '../shared/filmStyles'
 import { defaultVoiceFor, MAC_VOICES, parseVoiceId, type VideoKind } from '../shared/videoChoice'
 import { voiceboxUrl } from './voicebox'
 import type { CharacterForVideo } from './videoCharacters'
-import { HOOK_RULE } from './videoScript'
+import { dialogueRules, HOOK_RULE } from './videoScript'
+import { chatterboxDir, chatterboxPython, chatterboxReady, CHATTERBOX_EMOTION } from './chatterbox'
+import { VOICE_EMOTIONS } from '../shared/voiceEmotion'
 import { episodeRules, type EpisodeBrief } from './series'
 
 export const LEMO_OPUSCAR_REPO = 'https://github.com/lemomo-ai/lemo-opuscar.git'
@@ -59,6 +61,23 @@ export interface FilmPromptInput {
   character?: CharacterForVideo
   /** Voz elegida en el selector («gemini-puck», «kokoro-ef_dora», «voicebox-<perfil>», «sistema»). */
   voice?: string
+  /** Diálogo entre dos personajes, cada uno con su voz. */
+  dialogue?: boolean
+}
+
+/**
+ * La voz con vida en una película: cada frase con su emoción. Con Chatterbox instalado, el agente lo usa (con una
+ * muestra de la voz elegida, para que copie su timbre); nunca se retoca la velocidad ni el tono (suena robótico).
+ */
+function emotionVoiceRules(studio: string): string[] {
+  const rules = [
+    `- Voz con vida: escribe cada frase con su emoción (${VOICE_EMOTIONS.join(', ')}) y genera la voz frase a frase, con pausas cortas entre frases según la emoción (más largas tras una triste). Varíala como lo haría una persona: el gancho con fuerza, los problemas tristes o firmes, las soluciones alegres o emocionadas. NUNCA cambies la velocidad ni el tono del audio (atempo, rate, pitch): suena robótico.`
+  ]
+  if (chatterboxReady(studio))
+    rules.push(
+      `- Para que la voz actúe, usa Chatterbox (ya instalado): genera primero una muestra de 12 a 20 s de la voz elegida leyendo un texto tranquilo (WAV), y después escribe un JSON {"lang": "<código del idioma>", "lines": [{"text": "…", "out": "<ruta .wav>", "ref": "<la muestra>", "exaggeration": …, "cfg": …}]} y lánzalo con HF_HOME=${join(chatterboxDir(studio), 'modelos')} "${chatterboxPython(studio)}" "${join(chatterboxDir(studio), 'voz.py')}" encargo.json (escribe «ok N» por frase; todas en un solo encargo, que el modelo tarda en cargar). Valores por emoción: ${Object.entries(CHATTERBOX_EMOTION).map(([e, v]) => `${e} ${v.exaggeration}/${v.cfg}`).join(', ')}. Si falla, la voz elegida como siempre.`
+    )
+  return rules
 }
 
 /** La voz elegida, para el encargo de una película: con qué herramienta se hace. */
@@ -229,6 +248,8 @@ export function filmPrompt(input: FilmPromptInput): string {
   const extra = [
     ...(input.kind ? [KIND_RULES[input.kind]] : []),
     ...voiceRule(input.voice ?? defaultVoiceFor(input.lang) ?? undefined, lib),
+    ...emotionVoiceRules(input.studioDir),
+    ...(input.dialogue ? [...dialogueRules(input.character ? { name: input.character.name } : undefined).filter((r) => !r.includes('"speakers"') && !r.includes('"narration"')), '- Cada personaje con su voz (otra del mismo idioma, de su género) y su emoción en cada frase; la cámara corta al que habla y a la reacción del otro.'] : []),
     ...(input.character ? characterRules(input.character, style.slug === KYWAI_FILM && kitRobots) : []),
     ...ALIVE_ACTION,
     ...(FILM_3D.has(style.slug) ? ALIVE_3D : []),

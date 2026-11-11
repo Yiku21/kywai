@@ -20,7 +20,9 @@ import {
   mixSfx,
   videoSlug,
   VOICE_LEAD_S,
+  round,
   type VideoFormat,
+  type VideoScene,
   type VideoScript
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
@@ -30,8 +32,10 @@ import { comfyImage, comfyStatus } from './comfyui'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
 import { animateStill, findFreeVideo, freeVideoStatus, motionPrompt } from './freevideo'
 import type { VideoStudioStatus, VideoVoiceInfo } from '@shared/types'
-import { EDGE_VOICES, GEMINI_VOICES, KOKORO_VOICE_LIST, MAC_VOICES, LANG_VOICES, parseVoiceId, defaultVoiceFor, type VoiceEngine } from '@shared/videoChoice'
+import { EDGE_VOICES, GEMINI_VOICES, KOKORO_VOICE_LIST, MAC_VOICES, LANG_VOICES, parseVoiceId, defaultVoiceFor, speakerVoices, type VoiceEngine } from '@shared/videoChoice'
 import { tr } from '@shared/i18n'
+import { emotionInstruction, emotionPause, EMOTION_EN, type VoiceEmotion } from '@shared/voiceEmotion'
+import { chatterboxReady, chatterboxSpeak, CHATTERBOX_LANGS, installChatterbox } from './chatterbox'
 import {
   ANIMATION_BASE_COMMIT,
   ANIMATION_BASE_REPO,
@@ -238,6 +242,17 @@ async function findUv(): Promise<string | null> {
   return null
 }
 
+/** uv, instalándolo con el instalador oficial si no está (para el usuario, sin administrador). */
+async function ensureUv(onLine: (l: string) => void): Promise<string | null> {
+  const uv = await findUv()
+  if (uv) return uv
+  onLine('Instalando uv para tener un Python nuevo (sin tocar el del sistema)…')
+  await (IS_WIN
+    ? run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', 'irm https://astral.sh/uv/install.ps1 | iex'], { timeoutMs: 10 * 60_000, onLine })
+    : run('sh', ['-c', 'curl -LsSf https://astral.sh/uv/install.sh | sh'], { timeoutMs: 10 * 60_000, onLine }))
+  return findUv()
+}
+
 /**
  * El entorno de Python del estudio con un Python 3.10 o más nuevo. Si había uno viejo (p. ej. con el 3.9 de macOS),
  * se rehace. Sin un Python que sirva, lo trae uv (se instala con el instalador oficial si no está).
@@ -254,14 +269,7 @@ export async function ensureVenv(onLine: (l: string) => void = () => undefined):
     await run(py, ['-m', 'venv', venv], { timeoutMs: 5 * 60_000, onLine })
     if (existsSync(venvPython())) return true
   }
-  let uv = await findUv()
-  if (!uv) {
-    onLine('Instalando uv para tener un Python nuevo (sin tocar el del sistema)…')
-    await (IS_WIN
-      ? run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', 'irm https://astral.sh/uv/install.ps1 | iex'], { timeoutMs: 10 * 60_000, onLine })
-      : run('sh', ['-c', 'curl -LsSf https://astral.sh/uv/install.sh | sh'], { timeoutMs: 10 * 60_000, onLine }))
-    uv = await findUv()
-  }
+  const uv = await ensureUv(onLine)
   if (!uv) return false
   onLine('Creando el entorno de Python del estudio con Python 3.12…')
   await run(uv, ['venv', '--seed', '--python', '3.12', venv], { timeoutMs: 15 * 60_000, onLine })
@@ -385,6 +393,79 @@ async function pickedSpeak(v: { engine: VoiceEngine; id: string }, text: string,
   return false
 }
 
+/** Lo que lee la voz elegida para que Chatterbox copie su timbre (tranquilo y largo: de 12 a 20 segundos). */
+const CHATTERBOX_REF_TEXT: Record<string, string> = {
+  es: 'Hola, ¿qué tal? Hoy te cuento algo que me pasó la semana pasada. Estaba en casa, tranquilo, con un café, y de repente se me ocurrió una idea. La apunté en un papel, la miré un rato y pensé: ¿y por qué no?',
+  en: "Hi, how are you? Today I want to tell you something that happened to me last week. I was at home, relaxing with a coffee, and suddenly I had an idea. I wrote it down, looked at it for a while and thought: why not?"
+}
+
+/**
+ * La muestra de la voz elegida (Álvaro, Jorge, Carmen, una de Kokoro…) que copia Chatterbox. Se hace una vez y se
+ * guarda. null si esa voz no sale ahora (sin internet, sin la voz): entonces no se usa Chatterbox.
+ */
+async function chatterboxRef(v: { engine: VoiceEngine; id: string }, lang: string, fallbackText: string, signal?: AbortSignal): Promise<string | null> {
+  const dir = join(root, 'chatterbox', 'muestras')
+  mkdirSync(dir, { recursive: true })
+  const text = CHATTERBOX_REF_TEXT[lang] ?? fallbackText
+  const out = join(dir, `${v.engine}-${v.id}-${CHATTERBOX_REF_TEXT[lang] ? lang : 'guion'}`.replace(/[^a-zA-Z0-9_-]/g, '_') + '.wav')
+  if (existsSync(out) && CHATTERBOX_REF_TEXT[lang]) return out
+  const tmp = `${out}.tmp.wav`
+  let ok = false
+  if (v.engine === 'edge') ok = (await ensureEdge()) && (await edgeSpeak(v.id, text, tmp, signal))
+  else if (v.engine === 'mac') ok = await macSpeak(v.id, text, tmp, signal)
+  else if (v.engine === 'kokoro' && (await kokoroReady())) {
+    await speak(text, lang, tmp, true, signal, v.id).catch(() => undefined)
+    ok = existsSync(tmp)
+  }
+  if (!ok) {
+    rmSync(tmp, { force: true })
+    return null
+  }
+  renameSync(tmp, out)
+  return out
+}
+
+/** La frase número `k` de la escena: la dice con su emoción en `out` (false si no sale). */
+type LineSpeaker = (text: string, emotion: VoiceEmotion, out: string, k: number) => Promise<boolean>
+
+/**
+ * La voz de una escena frase a frase: cada frase con su emoción y, tras ella, la pausa que le toca; todo unido en un
+ * solo audio. Guarda en la escena dónde suena cada frase (para que los subtítulos vayan a su ritmo). Con una sola
+ * frase, como siempre.
+ */
+async function speakScene(sc: VideoScene, out: string, say: LineSpeaker, signal?: AbortSignal): Promise<boolean> {
+  const lines = sc.lines?.length ? sc.lines : [{ text: sc.narration, emotion: 'neutral' as VoiceEmotion }]
+  delete sc.lineTimes
+  if (lines.length === 1) return say(spokenText(lines[0].text), lines[0].emotion, out, 0)
+  const parts = lines.map((_, k) => `${out}.f${k + 1}.wav`)
+  const clear = (): void => parts.forEach((f) => rmSync(f, { force: true }))
+  const times: { at: number; dur: number }[] = []
+  const pads: number[] = []
+  let at = 0
+  for (let k = 0; k < lines.length; k++) {
+    if (signal?.aborted || !(await say(spokenText(lines[k].text), lines[k].emotion, parts[k], k))) {
+      clear()
+      return false
+    }
+    const d = await duration(parts[k]).catch(() => 0)
+    if (!d) {
+      clear()
+      return false
+    }
+    const pad = k + 1 < lines.length ? emotionPause(lines[k].emotion) : 0
+    times.push({ at: round(at), dur: round(d) })
+    pads.push(pad)
+    at += d + pad
+  }
+  const filter = parts.map((_, k) => `[${k}:a]aresample=48000,aformat=sample_fmts=s16:channel_layouts=mono${pads[k] ? `,apad=pad_dur=${pads[k]}` : ''}[p${k}]`).join(';') +
+    `;${parts.map((_, k) => `[p${k}]`).join('')}concat=n=${parts.length}:v=0:a=1[out]`
+  const c = await run('ffmpeg', ['-y', '-v', 'error', ...parts.flatMap((f) => ['-i', f]), '-filter_complex', filter, '-map', '[out]', '-ar', '48000', '-ac', '1', out], { timeoutMs: 120_000, signal })
+  clear()
+  if (c.code !== 0 || !existsSync(out)) return false
+  sc.lineTimes = times
+  return true
+}
+
 export async function videoStudioStatus(): Promise<VideoStudioStatus> {
   const [node, ffmpeg, ffprobe, python, kokoro, sys, comfy, vbox, fv] = await Promise.all([
     has('npm', ['--version']),
@@ -406,6 +487,7 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
     manim: manimInstalled(),
     sfx: { installed: !!root && earshotInstalledIn(join(root, '.venv')), ...(root ? sfxBankSummary(sfxDir()) : { earshot: 0, openverse: 0 }) },
     films: { library: lemoReady(filmPaths(root).lib), painted: kitReady(filmPaths(root).kit) },
+    chatterbox: chatterboxReady(root),
     freevideo: fv,
     gemini: key,
     installing: !!installing,
@@ -414,7 +496,7 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
 
 /** Lo que trae kywai por defecto ya está (FreeVideo, ComfyUI y Voicebox son aparte y opcionales). */
 export function studioComplete(s: VideoStudioStatus): boolean {
-  return s.ready && s.kokoro && !!s.manim && !!s.films?.library && !!s.films?.painted && !!s.sfx?.installed && !!s.sfx.earshot
+  return s.ready && s.kokoro && !!s.chatterbox && !!s.manim && !!s.films?.library && !!s.films?.painted && !!s.sfx?.installed && !!s.sfx.earshot
 }
 
 /**
@@ -487,6 +569,8 @@ export async function installVideoStudio(onLine: (l: string) => void = () => und
     onLine('Instalando las voces de Edge (Álvaro y Jorge)…')
     await ensureEdge(onLine)
   }
+  // La voz con emoción: la que usan los vídeos (con el timbre de la voz elegida) si está.
+  if (!chatterboxReady(root)) await installChatterbox(root, { run, uv: await ensureUv(onLine), onLine })
   if (venvOk) await installEarshot(onLine)
   onLine('Preparando el banco de efectos de sonido…')
   await prepareSfx(onLine)
@@ -714,7 +798,11 @@ async function speak(text: string, lang: string, out: string, useKokoro: boolean
  * Voz de Gemini: mucho más humana que Kokoro y con el tono que se le pide (con humor, con energía). Devuelve false si no
  * sale (sin red, cuota, modelo retirado): entonces todo el vídeo va con Kokoro, para que no mezcle voces.
  */
-async function geminiSpeak(text: string, tone: string, voiceName: string, out: string, key: string, signal?: AbortSignal): Promise<boolean> {
+async function geminiSpeak(text: string, tone: string, voiceName: string, out: string, key: string, signal?: AbortSignal, speakers?: { speaker: string; voiceName: string }[]): Promise<boolean> {
+  // En un diálogo, cada personaje con su voz (el texto va como «Nombre: frase», una por línea).
+  const speechConfig = speakers?.length === 2
+    ? { multiSpeakerVoiceConfig: { speakerVoiceConfigs: speakers.map((x) => ({ speaker: x.speaker, voiceConfig: { prebuiltVoiceConfig: { voiceName: x.voiceName } } })) } }
+    : { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
   for (const model of GEMINI_TTS_MODELS) {
     for (let attempt = 0; attempt < 2; attempt++) {
       if (signal?.aborted) return false
@@ -724,7 +812,7 @@ async function geminiSpeak(text: string, tone: string, voiceName: string, out: s
           headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
           body: JSON.stringify({
             contents: [{ parts: [{ text: `${tone}: ${text}` }] }],
-            generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } }
+            generationConfig: { responseModalities: ['AUDIO'], speechConfig }
           }),
           signal: signal ?? AbortSignal.timeout(120_000)
         })
@@ -1102,7 +1190,7 @@ export interface RenderedVideo {
   height: number
   /** Escenas con imagen generada. */
   images: number
-  voice: 'voicebox' | 'gemini' | 'kokoro' | 'system' | 'edge' | 'mac'
+  voice: 'voicebox' | 'gemini' | 'kokoro' | 'system' | 'edge' | 'mac' | 'chatterbox'
   /** Escenas que FreeVideo convirtió en clips con movimiento. */
   moving?: number
 }
@@ -1167,7 +1255,70 @@ export async function renderVideo(input: {
   let chosen = parseVoiceId(input.voice) ?? parseVoiceId(defaultVoiceFor(script.lang))
   // La de Kokoro por defecto sin Kokoro instalado: mejor el orden de siempre (Voicebox, Gemini…) que la del sistema.
   if (!input.voice && chosen?.engine === 'kokoro' && !status.kokoro) chosen = null
+  // Diálogo: cada personaje con su voz (la elegida para uno y otra del idioma, de su género, para el otro).
+  const speakers = script.speakers?.length === 2 ? script.speakers : []
+  const bySpeaker = speakerVoices(script.lang, input.voice ?? null, speakers, { mac: IS_MAC })
+  const whoOf = (i: number, k: number): string | undefined => script.scenes[i].lines?.[k]?.who
+  /** La voz de quien dice esa frase (sin diálogo, la elegida). */
+  const voiceOf = (who: string | undefined): { engine: VoiceEngine; id: string } | null => (who && parseVoiceId(bySpeaker[who])) || chosen
+  /** Una frase con una voz de Edge, de macOS o de Kokoro. */
+  const sayAs = async (v: { engine: VoiceEngine; id: string } | null, text: string, out: string): Promise<boolean> => {
+    if (v?.engine === 'kokoro') {
+      await speak(text, script.lang, out, true, signal, v.id).catch(() => undefined)
+      return existsSync(out)
+    }
+    return !!v && pickedSpeak(v, text, out, signal)
+  }
   const doVoices = async (): Promise<void> => {
+    // Chatterbox (la voz con emoción): interpreta cada frase con el timbre de la voz elegida. Con Gemini o Voicebox
+    // elegidos, esos (también actúan). Si algo falla, el orden de siempre.
+    const cbVoice = chosen && (chosen.engine === 'edge' || chosen.engine === 'mac' || chosen.engine === 'kokoro') ? chosen : null
+    if (chatterboxReady(root) && (CHATTERBOX_LANGS as readonly string[]).includes(script.lang) && (cbVoice || !chosen) && !signal?.aborted) {
+      voiceStep()
+      const sample = script.scenes.map((sc) => spokenText(sc.narration)).join(' ').slice(0, 300)
+      const ref = cbVoice ? await chatterboxRef(cbVoice, script.lang, sample, signal) : undefined
+      // La muestra de la voz de cada personaje del diálogo (si la suya no sale, la de la voz elegida).
+      const refs: Record<string, string | undefined> = {}
+      for (const sp of speakers) {
+        const v = parseVoiceId(bySpeaker[sp.name])
+        refs[sp.name] = (v && (v.engine === 'edge' || v.engine === 'mac' || v.engine === 'kokoro') ? await chatterboxRef(v, script.lang, sample, signal) : null) ?? ref ?? undefined
+      }
+      if (ref !== null) {
+        const files: string[][] = []
+        const jobs = script.scenes.flatMap((sc, i) => {
+          const lines = sc.lines?.length ? sc.lines : [{ text: sc.narration, emotion: 'neutral' as VoiceEmotion }]
+          files[i] = lines.map((_, k) => join(dir, 'assets', `cbx-${i + 1}-${k + 1}.wav`))
+          return lines.map((l, k) => {
+            const r = (l.who && refs[l.who]) || ref
+            return { text: spokenText(l.text), emotion: l.emotion, out: files[i][k], ...(r ? { ref: r } : {}) }
+          })
+        })
+        // Escenas terminadas según van saliendo las frases.
+        const ends = files.reduce<number[]>((acc, f) => [...acc, (acc[acc.length - 1] ?? 0) + f.length], [])
+        const ok = await chatterboxSpeak(root, script.lang, jobs, {
+          run,
+          signal,
+          onDone: (done) => {
+            spoken = ends.filter((e) => e <= done).length
+            voiceStep()
+          }
+        })
+        let joined = ok
+        for (let i = 0; i < n && joined; i++) {
+          joined = await speakScene(script.scenes[i], voices[i], async (_t, _e, out, k) => {
+            renameSync(files[i][k], out)
+            return true
+          }, signal)
+        }
+        files.flat().forEach((f) => rmSync(f, { force: true }))
+        if (joined && !signal?.aborted) {
+          spoken = n
+          voiceUsed = 'chatterbox'
+          return
+        }
+        spoken = 0
+      }
+    }
     // Edge o una voz de macOS (Siri): tres escenas a la vez. Si una no sale (sin internet, sin la voz), el orden de
     // siempre para todo el vídeo.
     if (chosen && (chosen.engine === 'edge' || chosen.engine === 'mac')) {
@@ -1178,7 +1329,7 @@ export async function renderVideo(input: {
         const worker = async (): Promise<void> => {
           while (next < n && !failed && !signal?.aborted) {
             const i = next++
-            if (await pickedSpeak(pick, spokenText(script.scenes[i].narration), voices[i], signal)) {
+            if (await speakScene(script.scenes[i], voices[i], (text, _e, out, k) => sayAs(speakers.length ? voiceOf(whoOf(i, k)) : pick, text, out), signal)) {
               spoken++
               voiceStep()
             } else failed = true
@@ -1201,7 +1352,8 @@ export async function renderVideo(input: {
       let ok = true
       for (let i = 0; i < n && ok && !signal?.aborted; i++) {
         voiceStep()
-        ok = await voiceboxSpeak(vb, spokenText(script.scenes[i].narration), voices[i], { instructions: voiceTone(script.style, !!script.scenes[i].joke), signal })
+        const tone = voiceTone(script.style, !!script.scenes[i].joke)
+        ok = await speakScene(script.scenes[i], voices[i], (text, emotion, out) => voiceboxSpeak(vb, text, out, { instructions: `${tone}. Say it ${emotionInstruction(emotion)}`, signal }), signal)
         if (ok) spoken++
       }
       if (ok && !signal?.aborted) {
@@ -1219,7 +1371,28 @@ export async function renderVideo(input: {
           const i = next++
           const sc = script.scenes[i]
           const voiceName = chosen?.engine === 'gemini' ? chosen.id : cartoon ? 'Puck' : 'Fenrir'
-          if (await geminiSpeak(spokenText(sc.narration), voiceTone(script.style, !!sc.joke), voiceName, voices[i], key, signal)) {
+          // Las voces de Gemini de los dos personajes: la elegida (o la de siempre) y otra de su género.
+          const leadGender = GEMINI_VOICES.find((g) => g.id === voiceName)?.gender
+          const leadAt = Math.max(0, speakers.findIndex((sp) => !sp.gender || sp.gender === leadGender))
+          const geminiDuo = speakers.length
+            ? speakers.map((sp, k) => ({
+                speaker: sp.name,
+                voiceName: k === leadAt ? voiceName : GEMINI_VOICES.find((g) => g.id !== voiceName && (!sp.gender || g.gender === sp.gender))?.id ?? 'Kore'
+              }))
+            : null
+          // Toda la escena de una vez (la cuota de Gemini es por petición), con la emoción marcada delante de cada frase.
+          const lines = sc.lines?.length ? sc.lines : [{ text: sc.narration, emotion: 'neutral' as VoiceEmotion }]
+          const marked = lines.length > 1 || lines[0].emotion !== 'neutral'
+          // Un diálogo, con las dos voces: «Nombre: [emoción] frase», una por línea.
+          const duo = geminiDuo && lines.some((l) => l.who)
+          const text = duo
+            ? lines.map((l) => `${l.who ?? speakers[0].name}: [${EMOTION_EN[l.emotion]}] ${spokenText(l.text)}`).join('\n')
+            : marked ? lines.map((l) => `[${EMOTION_EN[l.emotion]}] ${spokenText(l.text)}`).join(' ') : spokenText(sc.narration)
+          const tone = duo
+            ? `TTS the following conversation between ${speakers[0].name} and ${speakers[1].name}, like two friends chatting on a short video. Change the emotion as marked in brackets before each line (never read the brackets aloud)`
+            : marked ? `${voiceTone(script.style, !!sc.joke)}. Change your emotion as marked in brackets before each sentence (never read the brackets aloud)` : voiceTone(script.style, !!sc.joke)
+          delete sc.lineTimes
+          if (await geminiSpeak(text, tone, voiceName, voices[i], key, signal, duo ? geminiDuo : undefined)) {
             spoken++
             voiceStep()
           } else failed = true
@@ -1239,7 +1412,16 @@ export async function renderVideo(input: {
     for (let i = 0; i < n; i++) {
       if (signal?.aborted) throw new Error('Cancelada')
       voiceStep()
-      await speak(spokenText(script.scenes[i].narration), script.lang, voices[i], kokoro, signal, chosen?.engine === 'kokoro' ? chosen.id : undefined)
+      const kv = chosen?.engine === 'kokoro' ? chosen.id : undefined
+      const ok = await speakScene(script.scenes[i], voices[i], async (text, _e, out, k) => {
+        // En un diálogo, cada personaje con una voz de Kokoro de su género.
+        const sp = speakers.find((x) => x.name === whoOf(i, k))
+        const own = parseVoiceId(sp ? bySpeaker[sp.name] : null)
+        const kvo = own?.engine === 'kokoro' ? own.id : sp && sp !== speakers[0] ? KOKORO_VOICE_LIST.find((x) => x.lang === script.lang && x.gender === sp.gender && x.id !== kv)?.id ?? kv : kv
+        await speak(text, script.lang, out, kokoro, signal, kvo)
+        return true
+      }, signal)
+      if (!ok) throw new Error('No se pudo generar la voz')
       spoken++
     }
   }

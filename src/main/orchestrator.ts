@@ -1771,7 +1771,7 @@ function withBatch(topic: string, batch: { brief: string } | undefined): string 
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; episode?: { n: number; total: number; vote?: string } },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; episode?: { n: number; total: number; vote?: string } },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -1866,6 +1866,7 @@ async function sendVideo(
         ...(req.character && videoCharacter(req.character) ? { character: req.character } : {}),
         ...(req.kind ? { kind: req.kind } : {}),
         ...(req.voice ? { voice: req.voice } : {}),
+        ...(req.dialogue ? { dialogue: true } : {}),
         ...(req.episode ? { episode: req.episode } : {}),
         ...(batch ? { batch: { n, total, brief: batchBrief(n, total, batch.ideas) } } : {})
       }
@@ -4252,6 +4253,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         work: join(store.workRoot(run.projectId), t.video.work),
         ...(t.video.kind ? { kind: t.video.kind } : {}),
         ...(t.video.voice ? { voice: t.video.voice } : {}),
+        ...(t.video.dialogue ? { dialogue: true } : {}),
         ...(t.video.character ? { character: videoCharacter(t.video.character) ?? undefined } : {}),
         episode: seriesBriefFor(run, t),
         files: [
@@ -4264,7 +4266,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t) })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue })].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)
