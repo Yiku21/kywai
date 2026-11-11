@@ -180,7 +180,18 @@ private sealed interface Loaded {
 private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
     var loaded by remember(target) { mutableStateOf<Loaded>(Loaded.Loading) }
     var attempt by remember(target) { mutableIntStateOf(0) }
+    // Vídeo y audio no se descargan enteros: se reproducen por partes (si el ordenador está a mano).
+    val media = mediaKind(when (target) { is ViewerTarget.Result -> target.title; is ViewerTarget.File -> target.path })
+    val stream = remember(target) {
+        if (media == null) null else when (target) {
+            is ViewerTarget.Result -> model.controller.artifactStream(target.artifactId)
+            is ViewerTarget.File -> model.controller.fileStream(target.source, target.path)
+        }
+    }
+    var fullscreen by remember(target) { mutableStateOf(false) }
+    FullscreenVideo(fullscreen && media == "video") { fullscreen = false }
     LaunchedEffect(target, attempt) {
+        if (stream != null) return@LaunchedEffect
         loaded = Loaded.Loading
         val result = when (target) {
             is ViewerTarget.Result -> model.controller.fetchArtifact(target.artifactId)
@@ -192,10 +203,15 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val saver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { uri ->
-        val raw = (loaded as? Loaded.Ready)?.raw ?: return@rememberLauncherForActivityResult
-        if (uri == null) return@rememberLauncherForActivityResult
+        val raw = (loaded as? Loaded.Ready)?.raw
+        if (uri == null || (raw == null && stream == null)) return@rememberLauncherForActivityResult
+        if (stream != null) model.toast(t("Guardando en el móvil…"))
         scope.launch {
-            val ok = withContext(Dispatchers.IO) { runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(raw.bytes) } != null }.getOrDefault(false) }
+            val ok = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { out -> if (raw != null) out.write(raw.bytes) else stream!!.copyTo(out) } != null
+                }.getOrDefault(false)
+            }
             if (ok) { model.feedback.confirm(); model.toast(t("Guardado en el móvil"), Toast.Tone.Success) } else { model.feedback.reject(); model.toast(t("No se pudo guardar"), Toast.Tone.Error) }
         }
     }
@@ -211,13 +227,13 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
     val position = items.indexOf(target)
     val paged = items.size > 1 && position >= 0
     Column(Modifier.fillMaxSize().widthIn(max = 1100.dp).glass(radius = 30.dp, tint = Orbita.GlassSolid).testTag("viewer")) {
-        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (!fullscreen) Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             val (icon, tint) = kindIcon(kind, target.title)
             Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(target.title, color = Orbita.Text, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val raw = (loaded as? Loaded.Ready)?.raw
+                val raw = (loaded as? Loaded.Ready)?.raw.takeIf { stream == null }
                 Text(listOfNotNull(kindLabel(kind, target.title), raw?.let { sizeLabel(it.bytes.size.toLong()) }).joinToString(" · "), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
             }
             if (textual) IconAction(Icons.Outlined.ContentCopy, t("Copiar el contenido"), onClick = {
@@ -225,11 +241,22 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
                 model.feedback.confirm()
                 model.toast(t("Copiado"), Toast.Tone.Success)
             }, modifier = Modifier.testTag("viewer-copy"))
-            IconAction(Icons.Outlined.Download, t("Guardar en el móvil"), onClick = { saver.launch(target.title) }, enabled = loaded is Loaded.Ready)
-            IconAction(Icons.AutoMirrored.Outlined.OpenInNew, t("Abrir con otra app"), onClick = { ready?.let { openWithOtherApp(context, it, target.title, model) } }, enabled = ready != null)
+            IconAction(Icons.Outlined.Download, t("Guardar en el móvil"), onClick = { saver.launch(target.title) }, enabled = stream != null || loaded is Loaded.Ready)
+            IconAction(Icons.AutoMirrored.Outlined.OpenInNew, t("Abrir con otra app"), onClick = {
+                when {
+                    stream != null -> {
+                        model.toast(t("Descargando del ordenador…"))
+                        scope.launch {
+                            val file = withContext(Dispatchers.IO) { runCatching { cacheCopy(context, target.title) { out -> stream.copyTo(out) } }.getOrNull() }
+                            if (file == null) { model.feedback.reject(); model.toast(t("No se pudo descargar del ordenador."), Toast.Tone.Error) } else openFileWithOtherApp(context, file, mimeOf(target.title), model)
+                        }
+                    }
+                    ready != null -> openWithOtherApp(context, ready, target.title, model)
+                }
+            }, enabled = stream != null || ready != null)
             IconAction(Icons.Outlined.Close, t("Cerrar"), onClick = { model.viewer = null }, modifier = Modifier.testTag("viewer-close"))
         }
-        if (paged || hasSource) {
+        if (!fullscreen && (paged || hasSource)) {
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 // Las flechas se miden primero: en un móvil estrecho, lo que se encoge es el selector de vista.
                 Box(Modifier.weight(1f)) {
@@ -242,8 +269,14 @@ private fun Viewer(target: ViewerTarget, model: OrbitaModel) {
                 }
             }
         }
-        Box(Modifier.weight(1f).fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp).clip(RoundedCornerShape(22.dp)).background(Color(0x33060B16)), contentAlignment = Alignment.Center) {
-            when (val l = loaded) {
+        Box(
+            Modifier.weight(1f).fillMaxWidth()
+                .then(if (fullscreen) Modifier.clip(RoundedCornerShape(30.dp)) else Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp).clip(RoundedCornerShape(22.dp)))
+                .background(Color(0x33060B16)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (stream != null) StreamPlayer(stream, audio = media == "audio", onFullscreen = { fullscreen = it })
+            else when (val l = loaded) {
                 Loaded.Loading -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = Orbita.Accent)
                     Spacer(Modifier.height(10.dp))
@@ -296,12 +329,30 @@ private fun CodeText(text: String, code: Boolean) {
 
 /** Lo abre con otra app del móvil (visor de PDF, galería, editor…): se copia a la caché y se comparte solo para leerlo. */
 private fun openWithOtherApp(context: android.content.Context, raw: RawContent, title: String, model: OrbitaModel) {
+    val file = runCatching { cacheCopy(context, title) { it.write(raw.bytes) } }.getOrNull()
+    if (file == null) {
+        model.feedback.reject()
+        model.toast(t("Ninguna app del móvil puede abrirlo"), Toast.Tone.Error)
+        return
+    }
+    openFileWithOtherApp(context, file, raw.contentType, model)
+}
+
+/** Copia en la caché que se comparte con otras apps (FileProvider `.fotos`). */
+private fun cacheCopy(context: android.content.Context, title: String, write: (java.io.OutputStream) -> Unit): File {
+    val dir = File(context.cacheDir, "fotos/abrir").apply { mkdirs() }
+    val safe = title.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "archivo" }
+    return File(dir, safe).apply { outputStream().use(write) }
+}
+
+/** Tipo para otras apps cuando no viene del ordenador (vídeo y audio reproducidos por partes). */
+private fun mimeOf(name: String): String =
+    android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase()) ?: "*/*"
+
+private fun openFileWithOtherApp(context: android.content.Context, file: File, contentType: String, model: OrbitaModel) {
     runCatching {
-        val dir = File(context.cacheDir, "fotos/abrir").apply { mkdirs() }
-        val safe = title.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "archivo" }
-        val file = File(dir, safe).apply { writeBytes(raw.bytes) }
         val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fotos", file)
-        val type = raw.contentType.substringBefore(';').trim().ifBlank { "*/*" }
+        val type = contentType.substringBefore(';').trim().ifBlank { "*/*" }
         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(uri, type).addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
         context.startActivity(android.content.Intent.createChooser(intent, t("Abrir con otra app")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
     }.onFailure {

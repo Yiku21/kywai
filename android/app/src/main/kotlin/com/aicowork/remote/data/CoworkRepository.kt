@@ -35,6 +35,7 @@ import com.aicowork.remote.data.model.TransferInfo
 import com.aicowork.remote.data.model.parseTimestamp
 import com.aicowork.remote.data.net.ApiException
 import com.aicowork.remote.data.net.CoworkApiClient
+import com.aicowork.remote.data.net.MediaStream
 import com.aicowork.remote.data.net.ProbeResult
 import com.aicowork.remote.data.net.RawContent
 import kotlinx.coroutines.channels.BufferOverflow
@@ -270,6 +271,9 @@ interface CoworkController {
     suspend fun listFiles(query: String?): Result<FilesResponse> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun fetchArtifact(artifactId: String): Result<RawContent> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun fetchFile(source: String, path: String): Result<RawContent> = Result.failure(IllegalStateException(unsupported.message))
+    /** Vídeo o audio para reproducir por partes; null si no hay ordenador o proyecto (entonces se descarga entero). */
+    fun artifactStream(artifactId: String): MediaStream? = null
+    fun fileStream(source: String, path: String): MediaStream? = null
     /** Empieza a subir un archivo; el progreso aparece en [CoworkUiState.uploads]. */
     fun upload(name: String, size: Long, mime: String?, open: () -> java.io.InputStream) {}
     fun dismissUpload(id: String) {}
@@ -1032,6 +1036,12 @@ class CoworkRepository(
     override suspend fun fetchArtifact(artifactId: String): Result<RawContent> = fetch { it.artifactRaw(needConversation(), artifactId) }
 
     override suspend fun fetchFile(source: String, path: String): Result<RawContent> = fetch { it.fileRaw(needConversation(), source, path) }
+
+    override fun artifactStream(artifactId: String): MediaStream? =
+        client?.let { c -> currentConversation()?.let { c.artifactStream(it, artifactId) } }
+
+    override fun fileStream(source: String, path: String): MediaStream? =
+        client?.let { c -> currentConversation()?.let { c.fileStream(it, source, path) } }
 
     override fun upload(name: String, size: Long, mime: String?, open: () -> java.io.InputStream) {
         val id = UUID.randomUUID().toString()

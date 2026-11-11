@@ -37,6 +37,8 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
@@ -94,6 +96,8 @@ fun sizeLabel(bytes: Long): String = when {
 /** Tipo legible a partir del tipo del motor (html, markdown, code, image, text, other) o del nombre. */
 fun kindLabel(kind: String, name: String = ""): String = when {
     name.endsWith(".pdf", true) -> "PDF"
+    mediaKind(name) == "video" -> t("Vídeo")
+    mediaKind(name) == "audio" -> t("Audio")
     kind == "html" -> t("Página web")
     kind == "markdown" -> t("Documento")
     kind == "code" -> t("Código")
@@ -104,6 +108,8 @@ fun kindLabel(kind: String, name: String = ""): String = when {
 
 fun kindIcon(kind: String, name: String = ""): Pair<ImageVector, Color> = when {
     name.endsWith(".pdf", true) -> Icons.Outlined.PictureAsPdf to Orbita.TextSoft
+    mediaKind(name) == "video" -> Icons.Outlined.Movie to Orbita.TextSoft
+    mediaKind(name) == "audio" -> Icons.Outlined.MusicNote to Orbita.TextSoft
     kind == "image" -> Icons.Outlined.Image to Orbita.TextSoft
     kind == "code" -> Icons.Outlined.Code to Orbita.TextSoft
     kind == "html" -> Icons.Outlined.Language to Orbita.TextSoft

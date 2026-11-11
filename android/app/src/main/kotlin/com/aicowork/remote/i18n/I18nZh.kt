@@ -1052,4 +1052,8 @@ private fun part7(m: HashMap<String, String>) {
     m["Qué revise o continúe {name} (vacío: que la revise)"] = "让 {name} 检查或继续什么（留空：让它检查）"
     m["Sobre la respuesta de {name}: «{text}»"] = "关于 {name} 的回答：“{text}”"
     m["Responder"] = "回复"
+    m["Audio"] = "音频"
+    m["Guardando en el móvil…"] = "正在保存到手机…"
+    m["No se pudo descargar del ordenador."] = "无法从电脑下载。"
+    m["Este archivo no se puede reproducir en el móvil."] = "此文件无法在手机上播放。"
 }

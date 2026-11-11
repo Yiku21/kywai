@@ -1052,4 +1052,8 @@ private fun part7(m: HashMap<String, String>) {
     m["Qué revise o continúe {name} (vacío: que la revise)"] = "O que {name} deve rever ou continuar (vazio: que a reveja)"
     m["Sobre la respuesta de {name}: «{text}»"] = "Sobre a resposta de {name}: «{text}»"
     m["Responder"] = "Responder"
+    m["Audio"] = "Áudio"
+    m["Guardando en el móvil…"] = "Salvando no celular…"
+    m["No se pudo descargar del ordenador."] = "Não foi possível baixar do computador."
+    m["Este archivo no se puede reproducir en el móvil."] = "Este arquivo não pode ser reproduzido no celular."
 }

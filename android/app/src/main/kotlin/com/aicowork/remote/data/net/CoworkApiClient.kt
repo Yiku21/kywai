@@ -168,6 +168,11 @@ class CoworkApiClient(
         .writeTimeout(2, TimeUnit.MINUTES)
         .build()
 
+    /** Vídeo y audio por partes: el reproductor no sabe del token, así que se lo añade el propio cliente. */
+    private val streaming: OkHttpClient = transfers.newBuilder()
+        .addInterceptor { chain -> chain.proceed(chain.request().newBuilder().authorized().build()) }
+        .build()
+
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
     /** [path] puede llevar consulta («/files?conversationId=…», ya codificada): va aparte de la ruta. */
@@ -392,6 +397,13 @@ class CoworkApiClient(
     /** Contenido de un archivo: `source` = "attachment" (adjunto del proyecto) o "folder" (carpeta del proyecto). */
     suspend fun fileRaw(conversationId: String, source: String, path: String, maxBytes: Long = MAX_DOWNLOAD): RawContent =
         raw("/files/raw?conversationId=${conversationId.encodeQuery()}&source=${source.encodeQuery()}&path=${path.encodeQuery()}", maxBytes)
+
+    /** Igual que [artifactRaw] y [fileRaw], pero para reproducir por partes (sin bajarlo entero ni tope de tamaño). */
+    fun artifactStream(conversationId: String, artifactId: String): MediaStream =
+        MediaStream(url("/artifacts/${artifactId.encodeSegment()}/raw?conversationId=${conversationId.encodeQuery()}").toString(), streaming)
+
+    fun fileStream(conversationId: String, source: String, path: String): MediaStream =
+        MediaStream(url("/files/raw?conversationId=${conversationId.encodeQuery()}&source=${source.encodeQuery()}&path=${path.encodeQuery()}").toString(), streaming)
 
     /** Sube un archivo al proyecto como adjunto. [onProgress] recibe 0..1 mientras se envía. */
     suspend fun upload(
@@ -723,6 +735,18 @@ class CoworkApiClient(
         const val API_PREFIX = "/api/mobile/v1"
         /** Lo más grande que se descarga para verlo en el móvil (el servidor admite hasta 25 MB). */
         const val MAX_DOWNLOAD = 25L * 1024 * 1024
+    }
+}
+
+/** Vídeo o audio del ordenador: su dirección y un cliente con el TLS fijado que ya añade el token. */
+class MediaStream(val url: String, val client: OkHttpClient) {
+    /** Lo baja entero en [out] (para guardarlo en el móvil o abrirlo con otra app). */
+    fun copyTo(out: java.io.OutputStream) {
+        client.newCall(Request.Builder().url(url).get().build()).execute().use { response ->
+            if (!response.isSuccessful) throw java.io.IOException("HTTP ${response.code}")
+            val body = response.body ?: throw java.io.IOException(t("El ordenador no envió el contenido."))
+            body.byteStream().use { it.copyTo(out) }
+        }
     }
 }
 

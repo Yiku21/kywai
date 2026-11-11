@@ -1314,6 +1314,19 @@ enseñarlas. Para no llenar el chat solo salen imágenes de 4 KB a 25 MB, hasta 
 tarea (8 documentos), esperando a que el archivo termine de escribirse; no cuentan las carpetas ocultas, los
 adjuntos ni los datos de la app. Se les pide que guarden dentro del proyecto las capturas que hagan.
 
+**Vídeos y audios en Órbita.** Al abrir un vídeo (`.mp4`, `.webm`, `.mov`, `.mkv`…) o un audio (`.mp3`, `.wav`,
+`.m4a`, `.ogg`…) desde el chat, Archivos o Resultados, el visor lo **reproduce dentro de la app**, con play, pausa,
+barra para avanzar y botón de **pantalla completa** (gira a horizontal; «Atrás» sale de ella sin cerrar el visor). No
+espera a bajarlo entero: el móvil va pidiendo al ordenador los trozos que necesita, así que empieza enseguida, se
+puede saltar a cualquier punto y no tiene el tope de 25 MB del resto de archivos. Se pausa al salir de la app.
+**Guardar en el móvil** y **Abrir con otra app** siguen disponibles (esos sí lo descargan entero). Hay que actualizar
+Órbita y el ordenador; con un ordenador sin actualizar, los vídeos de más de 25 MB no se abren.
+
+Para desarrolladores: `sendFile` (`src/main/mobileFiles.ts`) responde a `Range` con 206 y no aplica el tope a
+`video/*` ni `audio/*`; en Órbita, `StreamPlayer` y `FullscreenVideo` (`ui/orbita/MediaPlayer.kt`) usan Media3
+(ExoPlayer + `OkHttpDataSource`) con el cliente `streaming` de `CoworkApiClient` (TLS fijado y token), a través de
+`fileStream`/`artifactStream`.
+
 **Copiar y pegar en Órbita.** Mantén el dedo sobre una palabra de cualquier mensaje del chat (tuyo o de un agente)
 para seleccionarla; arrastra los tiradores para coger más palabras y pulsa **Copiar**. En la caja de escribir,
 mantén el dedo y pulsa **Pegar**. Los botones de los mensajes se siguen pulsando igual.

@@ -119,6 +119,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
+    // Reproductor de vídeo y audio del visor: va pidiendo partes al ordenador con el mismo OkHttp (TLS fijado y token).
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
+    implementation(libs.media3.okhttp)
     // Envía la cola de mensajes escritos sin conexión cuando vuelve la red, aunque la app esté cerrada.
     implementation(libs.androidx.work.runtime)
 

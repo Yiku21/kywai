@@ -4,6 +4,7 @@ import com.aicowork.remote.data.model.MemoryUpdateRequest
 import com.aicowork.remote.data.net.ApiException
 import com.aicowork.remote.data.net.CoworkApiClient
 import kotlinx.coroutines.runBlocking
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okio.Buffer
@@ -42,6 +43,27 @@ class ApiClientRequestsTest {
         val files = server.takeRequest().requestUrl!!
         assertEquals("/api/mobile/v1/files", files.encodedPath)
         assertEquals("informe final", files.queryParameter("q"))
+    }
+
+    @Test
+    fun mediaStreamsCarryTheTokenAndAskForParts() {
+        val stream = client.fileStream("p 1", "folder", "videos/peli 1.mp4")
+        val url = stream.url.toHttpUrl()
+        assertEquals("/api/mobile/v1/files/raw", url.encodedPath)
+        assertEquals("videos/peli 1.mp4", url.queryParameter("path"))
+        // El reproductor pide trozos con Range; el token lo pone el cliente aunque el reproductor no lo sepa.
+        server.enqueue(MockResponse().setResponseCode(206).setHeader("Content-Type", "video/mp4").setBody("abc"))
+        val response = stream.client.newCall(okhttp3.Request.Builder().url(stream.url).header("Range", "bytes=0-2").build()).execute()
+        response.close()
+        val request = server.takeRequest()
+        assertEquals("Bearer tok", request.getHeader("Authorization"))
+        assertEquals("bytes=0-2", request.getHeader("Range"))
+
+        server.enqueue(MockResponse().setHeader("Content-Type", "video/mp4").setBody("vídeo entero"))
+        val out = java.io.ByteArrayOutputStream()
+        client.artifactStream("p1", "a/1").copyTo(out)
+        assertEquals("vídeo entero", out.toString(Charsets.UTF_8.name()))
+        assertEquals("/api/mobile/v1/artifacts/a%2F1/raw", server.takeRequest().requestUrl!!.encodedPath)
     }
 
     @Test
