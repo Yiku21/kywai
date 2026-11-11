@@ -4,7 +4,7 @@
 // plano cuando cambia quién habla (general, primer plano, por encima del hombro, la pantalla) y nunca está quieta
 // (acercamientos, arcos, grúa y cámara en mano). Detrás, una pantalla gigante muestra la imagen de cada paso.
 // Todo es una función del tiempo de la línea de GSAP: HyperFrames salta de fotograma en fotograma y sale igual.
-import { round, sceneWords, timedWords, VOICE_LEAD_S, type TimedWord, type VideoScript, type VideoTimeline } from './videoScript'
+import { esc, round, sceneWords, timedWords, VOICE_LEAD_S, type CharacterPose, type TimedWord, type VideoScript, type VideoTimeline } from './videoScript'
 
 export type RobotLook = 'hermes' | 'claude' | 'codex'
 
@@ -38,8 +38,24 @@ export interface StageLine {
   emotion: string
 }
 
+/** Dónde está el presentador en una escena (modo de un solo robot). «close»: se acerca a la cámara. */
+export type PresenterSpot = 'left' | 'right' | 'center' | 'close'
+
+/** Lo que hace el presentador en una escena: su gesto y su sitio (llega andando al empezar la escena). */
+export interface StageAct {
+  start: number
+  end: number
+  pose: CharacterPose
+  spot: PresenterSpot
+}
+
 export interface StageData {
-  looks: [RobotLook, RobotLook]
+  /** «duo»: dos robots charlando en el plató. «solo»: un presentador sobre fondo transparente (para el cartoon). */
+  mode?: 'duo' | 'solo'
+  /** Los robots: dos en «duo», uno en «solo». */
+  looks: RobotLook[]
+  /** Solo: el gesto y el sitio de cada escena. */
+  acts?: StageAct[]
   total: number
   /** Sílabas de cada robot: [quién, inicio, duración, apertura de la boca]. */
   syl: [number, number, number, number][]
@@ -107,6 +123,71 @@ export function planShots(lines: StageLine[], start: number, end: number, step: 
   return shots
 }
 
+/** Con qué emoción reacciona el cuerpo a cada gesto del presentador. */
+const POSE_EMOTION: Record<CharacterPose, string> = {
+  explain: 'neutral',
+  point: 'firme',
+  surprised: 'sorprendido',
+  laugh: 'gracioso',
+  shrug: 'neutral',
+  thumbs: 'alegre',
+  think: 'calma',
+  wave: 'alegre'
+}
+
+function wordSyllables(words: TimedWord[], voiceEnd: number, who: number, out: StageData['syl'], rnd: () => number): void {
+  words.forEach((w, j) => {
+    const end = j + 1 < words.length ? words[j + 1].start : voiceEnd
+    const pause = /[.!?…]$/.test(w.text) ? 6 : /[,;:]$/.test(w.text) ? 3 : 0
+    const letters = w.text.replace(/[^\p{L}\p{N}]/gu, '').length + 2
+    const speak = (end - w.start) * (letters / (letters + pause))
+    const n = syllables(w.text)
+    const d = speak / n
+    for (let k = 0; k < n; k++) out.push([who, round(w.start + k * d), round(Math.max(0.06, d)), round(0.55 + rnd() * 0.45)])
+  })
+}
+
+/**
+ * Un solo robot de presentador (modo «solo», para el estilo cartoon): habla con las palabras que se le dan, hace el
+ * gesto de cada escena y llega andando a su sitio. El lienzo es transparente: va encima de las ilustraciones.
+ * `voiceEnd` de cada escena: cuándo acaba la voz (para la última palabra); sin él, el final de la escena.
+ */
+export function buildPresenterData(input: {
+  scenes: { start: number; duration: number; words: TimedWord[]; voiceEnd?: number; pose?: CharacterPose; spot?: PresenterSpot; joke?: boolean }[]
+  tl: VideoTimeline
+  robot?: RobotLook
+  accent: string
+  accent2: string
+}): StageData {
+  const { tl } = input
+  const syl: StageData['syl'] = []
+  const lines: StageLine[] = []
+  const acts: StageAct[] = []
+  let r = tl.scenes.length * 7919 + 31
+  const rnd = (): number => (r = (r * 1664525 + 1013904223) >>> 0) / 4294967296
+  input.scenes.forEach((sc) => {
+    const end = sc.start + sc.duration
+    const pose: CharacterPose = sc.joke ? 'laugh' : sc.pose ?? 'explain'
+    wordSyllables(sc.words, sc.voiceEnd ?? end, 0, syl, rnd)
+    if (sc.words.length) lines.push({ who: 0, start: sc.words[0].start, end, emotion: POSE_EMOTION[pose] })
+    acts.push({ start: round(sc.start), end: round(end), pose, spot: sc.spot ?? 'right' })
+  })
+  return { mode: 'solo', looks: [input.robot ?? 'hermes'], acts, total: tl.total, syl, lines, shots: [], screens: [], ticks: [], outroStart: tl.outroStart, accent: input.accent, accent2: input.accent2 }
+}
+
+/**
+ * Lo que hay que poner en el HTML de la composición para el plató: el lienzo (a pantalla completa; en «solo», con el
+ * fondo transparente), las imágenes de la pantalla gigante y los dos scripts. `scripts` va después del script de la
+ * línea de GSAP (window.__timelines.main), y hace falta assets/three.module.js y three.core.js junto al vídeo.
+ */
+export function stageHtml(data: StageData, W: number, H: number, images: (string | null)[] = []): { canvas: string; scripts: string } {
+  const imgs = images.map((src) => (src ? `<img class="stageimg" src="${esc(src)}" alt="">` : '<img class="stageimg" alt="">')).join('')
+  return {
+    canvas: `<canvas id="stage" width="${W}" height="${H}"></canvas>${imgs ? `\n${imgs}` : ''}`,
+    scripts: `<script>window.__stage = ${JSON.stringify(data).replace(/</g, '\\u003c')};</script>\n<script type="module">${STAGE_RUNTIME}</script>`
+  }
+}
+
 /** Los datos del plató para un guion ya con voz: sílabas, frases, planos, pantallas y gestos. */
 export function buildStageData(script: VideoScript, tl: VideoTimeline, looks: [RobotLook, RobotLook], images: (string | null)[], th: { accent: string; accent2: string }): StageData {
   const names = (script.speakers ?? []).map((s) => s.name)
@@ -121,16 +202,14 @@ export function buildStageData(script: VideoScript, tl: VideoTimeline, looks: [R
     const t = tl.scenes[i]
     const voiceAt = t.start + VOICE_LEAD_S
     const words = sceneWords(sc, voiceAt, t.voice)
-    words.forEach((w, j) => {
-      const who = Math.max(0, names.indexOf(w.who ?? ''))
-      const end = j + 1 < words.length ? words[j + 1].start : voiceAt + t.voice
-      const pause = /[.!?…]$/.test(w.text) ? 6 : /[,;:]$/.test(w.text) ? 3 : 0
-      const letters = w.text.replace(/[^\p{L}\p{N}]/gu, '').length + 2
-      const speak = (end - w.start) * (letters / (letters + pause))
-      const n = syllables(w.text)
-      const d = speak / n
-      for (let k = 0; k < n; k++) syl.push([who, round(w.start + k * d), round(Math.max(0.06, d)), round(0.55 + rnd() * 0.45)])
-    })
+    // Cada palabra mueve la boca de quien la dice.
+    for (let j = 0; j < words.length; ) {
+      const who = Math.max(0, names.indexOf(words[j].who ?? ''))
+      let k = j
+      while (k < words.length && Math.max(0, names.indexOf(words[k].who ?? '')) === who) k++
+      wordSyllables(words.slice(j, k), k < words.length ? words[k].start : voiceAt + t.voice, who, syl, rnd)
+      j = k
+    }
     const ls = sceneLines(sc, words, t.start + t.duration, names)
     lines.push(...ls)
     shots.push(...planShots(ls, t.start, t.start + t.duration, !!sc.step, i * 3 + 1))
@@ -139,7 +218,7 @@ export function buildStageData(script: VideoScript, tl: VideoTimeline, looks: [R
     items.forEach((_, k) => ticks.push(round(voiceAt + (t.voice * (k + 0.6)) / (items.length + 0.4))))
   })
   shots.push({ start: tl.outroStart, end: tl.total, kind: 'wide', move: 'pull' })
-  return { looks, total: tl.total, syl, lines, shots, screens, ticks, outroStart: tl.outroStart, accent: th.accent, accent2: th.accent2 }
+  return { mode: 'duo', looks, total: tl.total, syl, lines, shots, screens, ticks, outroStart: tl.outroStart, accent: th.accent, accent2: th.accent2 }
 }
 
 /**
@@ -150,9 +229,12 @@ export function buildStageData(script: VideoScript, tl: VideoTimeline, looks: [R
 export const STAGE_RUNTIME = String.raw`
 import * as THREE from './assets/three.module.js'
 const D = window.__stage
+// «solo»: un presentador sobre fondo transparente (sin plató, solo su sombra en el suelo).
+const SOLO = D.mode === 'solo'
 const cv = document.getElementById('stage')
 const W = cv.width, H = cv.height
-const R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true })
+const R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true, alpha: SOLO, premultipliedAlpha: false })
+if (SOLO) R.setClearColor(0x000000, 0)
 R.setPixelRatio(1)
 R.shadowMap.enabled = true
 R.shadowMap.type = THREE.PCFShadowMap
@@ -160,8 +242,14 @@ R.toneMapping = THREE.ACESFilmicToneMapping
 R.toneMappingExposure = 1.08
 R.outputColorSpace = THREE.SRGBColorSpace
 const S = new THREE.Scene()
-S.background = new THREE.Color('#2b2030')
-S.fog = new THREE.Fog('#3b2b38', 9, 20)
+if (!SOLO) {
+  S.background = new THREE.Color('#2b2030')
+  S.fog = new THREE.Fog('#3b2b38', 9, 20)
+}
+// El plató va en su grupo: en «solo» no se ve.
+const SET = new THREE.Group()
+SET.visible = !SOLO
+S.add(SET)
 const mat = (c, o) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.85, flatShading: true }, o || {}))
 const gloss = (c, o) => new THREE.MeshPhysicalMaterial(Object.assign({ color: c, roughness: 0.32, clearcoat: 0.8, clearcoatRoughness: 0.25 }, o || {}))
 const glow = (c, k) => new THREE.MeshStandardMaterial({ color: '#000000', emissive: c, emissiveIntensity: k || 1.6, roughness: 0.4 })
@@ -177,36 +265,43 @@ function put(parent, geo, m, x, y, z, rx, ry, rz, sx, sy, sz) {
 }
 
 // ---------- la maqueta: una salita de juguete ----------
-put(S, new THREE.BoxGeometry(16, 0.3, 12), mat('#c98b5a'), 0, -0.15, 0)
-for (let i = -7.5; i < 8; i += 1.1) put(S, new THREE.BoxGeometry(0.035, 0.31, 12), mat('#a86c42'), i, -0.14, 0)
-put(S, new THREE.BoxGeometry(16, 9, 0.3), mat('#e7c9a0'), 0, 4.4, -4.2)
-put(S, new THREE.BoxGeometry(0.3, 9, 12), mat('#d9b48a'), -6.5, 4.4, 0)
-put(S, new THREE.BoxGeometry(0.3, 9, 12), mat('#d9b48a'), 6.5, 4.4, 0)
-put(S, new THREE.BoxGeometry(16, 0.25, 0.32), mat('#b98a5e'), 0, 0.12, -4.0)
-put(S, new THREE.CylinderGeometry(2.3, 2.3, 0.05, 12), mat(D.accent2, { roughness: 1 }), 0, 0.03, 0.3)
-put(S, new THREE.CylinderGeometry(1.9, 1.9, 0.055, 12), mat('#f6e7cf', { roughness: 1 }), 0, 0.04, 0.3)
+put(SET, new THREE.BoxGeometry(16, 0.3, 12), mat('#c98b5a'), 0, -0.15, 0)
+for (let i = -7.5; i < 8; i += 1.1) put(SET, new THREE.BoxGeometry(0.035, 0.31, 12), mat('#a86c42'), i, -0.14, 0)
+put(SET, new THREE.BoxGeometry(16, 9, 0.3), mat('#e7c9a0'), 0, 4.4, -4.2)
+put(SET, new THREE.BoxGeometry(0.3, 9, 12), mat('#d9b48a'), -6.5, 4.4, 0)
+put(SET, new THREE.BoxGeometry(0.3, 9, 12), mat('#d9b48a'), 6.5, 4.4, 0)
+put(SET, new THREE.BoxGeometry(16, 0.25, 0.32), mat('#b98a5e'), 0, 0.12, -4.0)
+put(SET, new THREE.CylinderGeometry(2.3, 2.3, 0.05, 12), mat(D.accent2, { roughness: 1 }), 0, 0.03, 0.3)
+put(SET, new THREE.CylinderGeometry(1.9, 1.9, 0.055, 12), mat('#f6e7cf', { roughness: 1 }), 0, 0.04, 0.3)
 // la pantalla gigante (muestra la imagen de cada paso)
-put(S, new THREE.BoxGeometry(4.7, 2.85, 0.24), mat('#2b2638'), 0, 2.75, -3.9)
+put(SET, new THREE.BoxGeometry(4.7, 2.85, 0.24), mat('#2b2638'), 0, 2.75, -3.9)
 const scrMat = new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false })
-const scr = put(S, new THREE.PlaneGeometry(4.4, 2.55), scrMat, 0, 2.75, -3.77)
+const scr = put(SET, new THREE.PlaneGeometry(4.4, 2.55), scrMat, 0, 2.75, -3.77)
 scr.castShadow = false
 const scrGlow = new THREE.PointLight('#ffd9a8', 7, 7, 1.6)
 scrGlow.position.set(0, 2.6, -3.0)
-S.add(scrGlow)
+SET.add(scrGlow)
 // estantería, libros, planta, lámpara, cubos de juguete
-put(S, new THREE.BoxGeometry(1.8, 0.12, 0.6), mat('#8d5a3b'), -4.6, 2.2, -3.8)
-put(S, new THREE.BoxGeometry(1.8, 0.12, 0.6), mat('#8d5a3b'), -4.6, 3.3, -3.8)
-;['#ff7a3d', '#3f8f8a', '#f2c14e', '#7c5cbf', '#e8e0d0'].forEach((c, i) => put(S, new THREE.BoxGeometry(0.22, 0.72 - (i % 2) * 0.12, 0.5), mat(c), -5.2 + i * 0.28, 2.62 - (i % 2) * 0.06, -3.8, 0, 0, i === 4 ? 0.28 : 0))
-put(S, new THREE.CylinderGeometry(0.42, 0.32, 0.65, 7), mat('#c4553a'), 4.3, 0.33, -2.6)
-for (let i = 0; i < 7; i++) put(S, new THREE.ConeGeometry(0.26, 1.3, 5), mat(i % 2 ? '#4c9a52' : '#5fb05f'), 4.3 + Math.cos(i * 0.9) * 0.22, 1.2, -2.6 + Math.sin(i * 0.9) * 0.22, Math.sin(i * 2) * 0.35, 0, Math.cos(i * 2) * 0.35)
-put(S, new THREE.CylinderGeometry(0.05, 0.05, 2.4, 8), mat('#3a3040'), -3.7, 1.2, -1.6)
-put(S, new THREE.ConeGeometry(0.42, 0.45, 12, 1, true), mat('#f2c14e', { side: THREE.DoubleSide }), -3.7, 2.45, -1.6)
+put(SET, new THREE.BoxGeometry(1.8, 0.12, 0.6), mat('#8d5a3b'), -4.6, 2.2, -3.8)
+put(SET, new THREE.BoxGeometry(1.8, 0.12, 0.6), mat('#8d5a3b'), -4.6, 3.3, -3.8)
+;['#ff7a3d', '#3f8f8a', '#f2c14e', '#7c5cbf', '#e8e0d0'].forEach((c, i) => put(SET, new THREE.BoxGeometry(0.22, 0.72 - (i % 2) * 0.12, 0.5), mat(c), -5.2 + i * 0.28, 2.62 - (i % 2) * 0.06, -3.8, 0, 0, i === 4 ? 0.28 : 0))
+put(SET, new THREE.CylinderGeometry(0.42, 0.32, 0.65, 7), mat('#c4553a'), 4.3, 0.33, -2.6)
+for (let i = 0; i < 7; i++) put(SET, new THREE.ConeGeometry(0.26, 1.3, 5), mat(i % 2 ? '#4c9a52' : '#5fb05f'), 4.3 + Math.cos(i * 0.9) * 0.22, 1.2, -2.6 + Math.sin(i * 0.9) * 0.22, Math.sin(i * 2) * 0.35, 0, Math.cos(i * 2) * 0.35)
+put(SET, new THREE.CylinderGeometry(0.05, 0.05, 2.4, 8), mat('#3a3040'), -3.7, 1.2, -1.6)
+put(SET, new THREE.ConeGeometry(0.42, 0.45, 12, 1, true), mat('#f2c14e', { side: THREE.DoubleSide }), -3.7, 2.45, -1.6)
 const lamp = new THREE.PointLight('#ffcf8a', 5, 5, 1.6)
 lamp.position.set(-3.7, 2.2, -1.6)
-S.add(lamp)
-;[['#ff7a3d', 2.9, 0.25, 1.3], ['#3f8f8a', 3.4, 0.25, 1.75], ['#f2c14e', 3.15, 0.75, 1.5]].forEach((b) => put(S, new THREE.BoxGeometry(0.5, 0.5, 0.5), mat(b[0]), b[1], b[2], b[3], 0, 0.4, 0))
-put(S, new THREE.BoxGeometry(1.0, 0.22, 0.7), mat('#7c5cbf'), -2.8, 0.11, 1.6, 0, 0.3, 0)
-put(S, new THREE.BoxGeometry(0.92, 0.2, 0.64), mat('#f2c14e'), -2.8, 0.32, 1.6, 0, 0.12, 0)
+SET.add(lamp)
+;[['#ff7a3d', 2.9, 0.25, 1.3], ['#3f8f8a', 3.4, 0.25, 1.75], ['#f2c14e', 3.15, 0.75, 1.5]].forEach((b) => put(SET, new THREE.BoxGeometry(0.5, 0.5, 0.5), mat(b[0]), b[1], b[2], b[3], 0, 0.4, 0))
+put(SET, new THREE.BoxGeometry(1.0, 0.22, 0.7), mat('#7c5cbf'), -2.8, 0.11, 1.6, 0, 0.3, 0)
+put(SET, new THREE.BoxGeometry(0.92, 0.2, 0.64), mat('#f2c14e'), -2.8, 0.32, 1.6, 0, 0.12, 0)
+
+if (SOLO) {
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity: 0.3 }))
+  floor.rotation.x = -Math.PI / 2
+  floor.receiveShadow = true
+  S.add(floor)
+}
 
 // ---------- luces de cine ----------
 S.add(new THREE.HemisphereLight('#ffe2c0', '#3a2a4a', 0.6))
@@ -302,10 +397,13 @@ function makeCodex() {
   return { g, body, eyes, mouth }
 }
 const MAKE = { hermes: makeHermes, claude: makeClaude, codex: makeCodex }
+const HAND = { hermes: '#f4ecdd', claude: '#f26a1b', codex: '#1f9d6a' }
 const X = [-0.62, 0.62]
 const bots = D.looks.map((l, i) => {
   const b = MAKE[l]()
   b.g.position.set(X[i], 0, i ? 0.15 : 0)
+  // manitas flotantes (como un muñeco de juguete): dan los gestos
+  b.hands = [-1, 1].map((sx) => put(b.g, new THREE.SphereGeometry(0.085, 20, 14), gloss(HAND[l]), sx * 0.62, 0.42, 0.12))
   S.add(b.g)
   return b
 })
@@ -361,6 +459,52 @@ function lineAt(t) {
   for (const l of D.lines) if (t >= l.start && t < l.end) cur = l
   return cur
 }
+// ---------- presentador («solo»): su sitio y su gesto en cada escena ----------
+const VERT = W < H
+const SPOTS = VERT
+  ? { left: [-0.28, 0], right: [0.28, 0], center: [0, 0], close: [0, 1.0] }
+  : { left: [-1.7, 0], right: [1.7, 0], center: [0, 0], close: [0, 1.5] }
+const WALK = 0.7
+function actAt(t) {
+  const A = D.acts || []
+  let k = -1
+  for (let j = 0; j < A.length; j++) if (t >= A[j].start) k = j
+  return { act: k >= 0 ? A[k] : null, prev: k > 0 ? A[k - 1] : null }
+}
+/** Dónde está el presentador: llega andando (a saltitos) a su sitio al empezar cada escena. */
+function soloPlace(b, t) {
+  const { act, prev } = actAt(t)
+  const to = SPOTS[act ? act.spot : 'right'] || SPOTS.right
+  const from = SPOTS[prev ? prev.spot : act ? act.spot : 'right'] || to
+  const p = act ? clamp((t - act.start) / WALK, 0, 1) : 1
+  const e = ease(p)
+  const x = from[0] + (to[0] - from[0]) * e
+  const z = from[1] + (to[1] - from[1]) * e
+  const moving = p < 1 && (from[0] !== to[0] || from[1] !== to[1])
+  b.g.position.x = x
+  b.g.position.z = z
+  return { hop: moving ? Math.abs(Math.sin(p * Math.PI * 4)) * 0.14 : 0, face: moving ? Math.atan2(to[0] - from[0], to[1] - from[1]) * 0.6 : -x * 0.12, pose: act ? act.pose : 'explain', since: act ? t - act.start : 9 }
+}
+/** Las manitas: dónde van según el gesto (o la emoción en el diálogo), con el habla moviéndolas. */
+function handsFor(b, g, t, talk, toward) {
+  const L = b.hands[0].position, Rh = b.hands[1].position
+  let l = [-0.62, 0.42, 0.12], r = [0.62, 0.42, 0.12]
+  const s1 = Math.sin(t * 9), s2 = Math.sin(t * 5.3)
+  switch (g) {
+    case 'point': r = [toward * 0.75, 0.95, 0.35]; break
+    case 'surprised': l = [-0.6, 1.15, 0.2]; r = [0.6, 1.15, 0.2]; break
+    case 'laugh': l = [-0.35, 0.3 + s1 * 0.04, 0.5]; r = [0.35, 0.3 - s1 * 0.04, 0.5]; break
+    case 'shrug': l = [-0.75, 0.75 + s2 * 0.03, 0.25]; r = [0.75, 0.75 - s2 * 0.03, 0.25]; break
+    case 'thumbs': r = [0.45, 1.05 + Math.abs(s2) * 0.06, 0.45]; break
+    case 'think': r = [0.22, 0.55, 0.5]; break
+    case 'wave': r = [0.7 + Math.sin(t * 12) * 0.12, 1.15, 0.15]; break
+    case 'down': l = [-0.58, 0.28, 0.1]; r = [0.58, 0.28, 0.1]; break
+    default: r = [0.62 - talk * 0.12, 0.5 + talk * 0.25 + s2 * 0.04, 0.25 + talk * 0.15]; l = [-0.62, 0.42 + Math.sin(t * 2.1) * 0.03, 0.12]
+  }
+  L.set(l[0], l[1], l[2])
+  Rh.set(r[0], r[1], r[2])
+}
+
 function poseBot(i, t) {
   const b = bots[i]
   const other = 1 - i
@@ -404,6 +548,24 @@ function poseBot(i, t) {
     rz = Math.sin((t - D.outroStart) * 6 + i) * 0.12
     ry = toward * 0.1
   }
+  // las manitas: en el diálogo, según la emoción de la frase
+  let gesture = mine ? ({ sorprendido: 'surprised', gracioso: 'laugh', alegre: 'explain', emocionado: 'thumbs', triste: 'down', firme: 'point', calma: 'think' })[em] || 'explain' : line && line.who === other && em === 'gracioso' ? 'laugh' : 'idle'
+  if (t >= D.outroStart) gesture = i ? 'wave' : 'thumbs'
+  if (SOLO) {
+    const sp = soloPlace(b, t)
+    gesture = t >= D.outroStart ? 'thumbs' : sp.pose
+    y += sp.hop
+    ry = sp.face + Math.sin(t * 0.9) * 0.05
+    const kk = ease(clamp(sp.since / 0.35, 0, 1))
+    if (gesture === 'surprised') { y += bell(t, t - sp.since, 0.45) * 0.25; eye = 1.3 }
+    else if (gesture === 'laugh') { rz = Math.sin(t * 16) * 0.1 * kk; eye = 0.9; eyeY = 0.5 }
+    else if (gesture === 'shrug') { rz = Math.sin(t * 3) * 0.08 * kk; sq -= 0.03 * kk }
+    else if (gesture === 'think') { rz = 0.1 * kk; rx = -0.08 * kk; eyeY = 0.8 }
+    else if (gesture === 'point') { ry += (b.g.position.x > 0 ? -0.35 : 0.35) * kk }
+    else if (gesture === 'thumbs') { y += Math.abs(Math.sin(t * 6)) * 0.05 }
+    else if (gesture === 'wave') { rz = Math.sin(t * 6) * 0.06 }
+  }
+  handsFor(b, gesture, t, talk, SOLO ? (b.g.position.x > 0 ? -1 : 1) : toward)
   // parpadeo
   const bt = (t + i * 1.3) % 3.7
   const blink = bt < 0.12 ? Math.max(0.1, Math.abs(bt - 0.06) / 0.06) : 1
@@ -437,6 +599,15 @@ function framing(kind) {
   }
 }
 function placeCam(t) {
+  if (SOLO) {
+    // cámara fija con un respiro lento (el movimiento lo pone la composición de encima)
+    if (VERT) { V.set(0, 1.7, 4.2); T.set(0, 1.6, 0) } else { V.set(0, 1.3, 5); T.set(0, 1.1, 0) }
+    V.x += Math.sin(t * 0.7) * 0.05
+    V.y += Math.sin(t * 0.9 + 1) * 0.03
+    cam.position.copy(V)
+    cam.lookAt(T)
+    return
+  }
   let sh = D.shots[0]
   for (const s of D.shots) if (t >= s.start) sh = s
   const f = framing(sh.kind)
@@ -466,8 +637,7 @@ const tl = window.__timelines.main
 function draw() {
   const t = tl.time()
   screenAt(t)
-  poseBot(0, t)
-  poseBot(1, t)
+  bots.forEach((_, i) => poseBot(i, t))
   placeCam(t)
   R.render(S, cam)
 }

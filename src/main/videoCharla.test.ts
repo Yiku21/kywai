@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildStageData, planShots, stageLooks } from './charlaStage'
+import { buildPresenterData, buildStageData, planShots, stageHtml, stageLooks } from './charlaStage'
 import { buildCharlaComposition, shotCuts } from './videoCharla'
 import { buildTimeline, CHARLA_LOOK, parseVideoRequest, parseVideoScript, sceneWords, VOICE_LEAD_S, videoScriptPrompt } from './videoScript'
 
@@ -161,5 +161,33 @@ describe('Charla y tutorial: plató 3D con los robots', () => {
     expect(p).not.toContain('"shots"')
     const q = videoScriptPrompt({ topic: 'x', format: 'vertical', lang: 'es', style: 'charla', dialogue: true, cast: { images: [], name: 'Luna' } })
     expect(q).toContain('"shots"')
+  })
+})
+
+describe('Presentador: un solo robot', () => {
+  it('habla por sílaba con sus palabras, un gesto y un sitio por escena, Hermes por defecto', () => {
+    const tl = buildTimeline([3, 3])
+    const words = (s: number) => [{ text: 'hola', start: s, key: false }, { text: 'amigos', start: s + 0.4, key: false }]
+    const d = buildPresenterData({
+      scenes: [
+        { start: tl.scenes[0].start, duration: 3, words: words(tl.scenes[0].start + 0.2), pose: 'wave', spot: 'left' },
+        { start: tl.scenes[1].start, duration: 3, words: words(tl.scenes[1].start + 0.2), joke: true }
+      ],
+      tl,
+      accent: '#f00',
+      accent2: '#00f'
+    })
+    expect(d.mode).toBe('solo')
+    expect(d.looks).toEqual(['hermes'])
+    expect(d.acts).toMatchObject([{ pose: 'wave', spot: 'left' }, { pose: 'laugh', spot: 'right' }])
+    expect(d.syl.length).toBeGreaterThan(3)
+    expect(d.syl.every((s) => s[0] === 0)).toBe(true)
+    expect(d.lines[1].emotion).toBe('gracioso')
+    expect(buildPresenterData({ scenes: [], tl, robot: 'claude', accent: '#f00', accent2: '#00f' }).looks).toEqual(['claude'])
+    const { canvas, scripts } = stageHtml(d, 1080, 1920)
+    expect(canvas).toBe('<canvas id="stage" width="1080" height="1920"></canvas>')
+    expect(scripts).toContain('"mode":"solo"')
+    expect(scripts).toContain("import * as THREE from './assets/three.module.js'")
+    expect(scripts).not.toMatch(/Math\.random|Date\.now/)
   })
 })
