@@ -102,7 +102,8 @@ function voiceRule(voice: string | undefined, lib: string): string[] {
 const KIND_RULES: Record<VideoKind, string> = {
   rapido: '- Tipo «rápido: texto animado»: la película se cuenta con frases cortas en pantalla, grandes y animadas al ritmo de la voz, sobre fondos y escenas del estilo; nada de presentador a cámara. Que el texto respire: pocas palabras a la vez y movimientos suaves.',
   presentador: '- Tipo «dibujo con presentador»: un presentador dibujado en el estilo (el personaje elegido, si lo hay) lo explica hablando a cámara, con ilustraciones o escenas de lo que cuenta alrededor o a pantalla completa. Si la guía del estilo pide «sin texto», el presentador lo cuenta con la voz y actuando.',
-  mixto: '- Tipo «mixto»: alterna escenas con el presentador dibujado (el personaje elegido, si lo hay) explicándolo a cámara y golpes de texto grande en pantalla, más o menos uno de cada tres, sin dos golpes de texto seguidos.'
+  mixto: '- Tipo «mixto»: alterna escenas con el presentador dibujado (el personaje elegido, si lo hay) explicándolo a cámara y golpes de texto grande en pantalla, más o menos uno de cada tres, sin dos golpes de texto seguidos.',
+  charla: '- Tipo «charla y tutorial»: dos personajes (el elegido y otro que le dé la réplica) charlan a cámara mientras arriba de la pantalla salen los pasos («PASO 2/4», qué hay que hacer y sus puntos); empieza con las preguntas típicas del público en burbujas de comentario y acaba pidiendo comentar una palabra.'
 }
 
 /** El personaje elegido, para el encargo: quién es, cómo es y dónde están sus imágenes. */

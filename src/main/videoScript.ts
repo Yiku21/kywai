@@ -16,7 +16,7 @@ export type VideoTheme = (typeof VIDEO_THEMES)[number]
  * «dinamico»: texto grande al estilo TikTok. «cartoon»: un personaje dibujado que lo explica (tutoriales con humor).
  * «mixto»: el presentador y golpes de texto grande alternados.
  */
-export const VIDEO_STYLES = ['dinamico', 'cartoon', 'mixto'] as const
+export const VIDEO_STYLES = ['dinamico', 'cartoon', 'mixto', 'charla'] as const
 export type VideoStyle = (typeof VIDEO_STYLES)[number]
 
 /** Lo que hace el personaje del estilo cartoon en cada escena. */
@@ -48,7 +48,22 @@ export interface VideoScene {
   motion?: string
   /** Estilo mixto: escena de golpe de texto grande (sin planos; el presentador se aparta). */
   text?: boolean
+  /** Charla y tutorial: lo que hay que hacer en este paso, en la tarjeta de arriba (de 1 a 4 puntos cortos). */
+  items?: string[]
+  /** Charla y tutorial, primera escena: preguntas típicas del público que salen como burbujas de comentario. */
+  comments?: string[]
 }
+
+/** Charla y tutorial: como mucho, puntos por tarjeta y burbujas de comentario del gancho. */
+export const MAX_ITEMS = 4
+export const MAX_COMMENTS = 3
+
+/**
+ * El aspecto por defecto de «Charla y tutorial»: una maqueta 3D de juguete, cálida y con luz de cine (en inglés: va al
+ * final de cada imagen). Las maquetas, los platós y los personajes de los reels que lo inspiraron no se copian.
+ */
+export const CHARLA_LOOK =
+  'Cozy low-poly 3D toy diorama, miniature tabletop set with tilt-shift depth of field, soft rounded shapes, matte clay and painted-wood materials, warm cinematic key light with soft shadows and a cool rim light, gentle haze, rich but soft palette of warm oranges, teal and cream, vertical framing with the characters in the lower half and open space above them'
 
 /** Escenas a las que FreeVideo da movimiento como mucho (cada clip tarda minutos). */
 export const MAX_MOTION = 3
@@ -78,6 +93,8 @@ export interface VideoScript {
   episode?: { summary: string; cliffhanger?: string; question?: string }
   /** Diálogo: los dos personajes que hablan (el nombre, como en las marcas «[Hermes, alegre]», y su género para la voz). */
   speakers?: VideoSpeaker[]
+  /** Charla y tutorial: el cierre pide comentar una palabra («Comenta GUÍA»), con una frase corta de por qué. */
+  cta?: { word: string; line?: string }
 }
 
 export interface VideoSpeaker {
@@ -156,6 +173,11 @@ export function parseVideoScript(text: string): VideoScript {
     const motion = clean(o.motion, 300)
     if (motion && !scene.manim && scenes.filter((x) => x.motion).length < MAX_MOTION) scene.motion = motion
     if (o.mode === 'texto' || o.mode === 'text') scene.text = true
+    const items = (Array.isArray(o.items) ? o.items : []).map((x) => clean(x, 48)).filter(Boolean).slice(0, MAX_ITEMS)
+    if (items.length) scene.items = items
+    // Las burbujas de comentario solo van en el gancho.
+    const comments = scenes.length ? [] : (Array.isArray(o.comments) ? o.comments : []).map((x) => clean(x, 80)).filter(Boolean).slice(0, MAX_COMMENTS)
+    if (comments.length) scene.comments = comments
     scenes.push(scene)
   }
   if (scenes.length < MIN_SCENES) throw new Error(`El guion necesita al menos ${MIN_SCENES} escenas con «narration» (tiene ${scenes.length}).`)
@@ -166,8 +188,11 @@ export function parseVideoScript(text: string): VideoScript {
   const cast = clean(raw.cast, 900)
   const ep = raw.episode && typeof raw.episode === 'object' ? (raw.episode as Record<string, unknown>) : null
   const summary = ep ? clean(ep.summary, 500) : ''
+  const c = raw.cta && typeof raw.cta === 'object' ? (raw.cta as Record<string, unknown>) : null
+  const word = c ? clean(c.word, 20).replace(/[«»"'*]/g, '').trim() : ''
+  const cta = word ? { word: word.toUpperCase(), ...(clean(c!.line, 80) ? { line: clean(c!.line, 80) } : {}) } : undefined
   const episode = summary ? { summary, ...(clean(ep!.cliffhanger, 300) ? { cliffhanger: clean(ep!.cliffhanger, 300) } : {}), ...(clean(ep!.question, 300) ? { question: clean(ep!.question, 300) } : {}) } : undefined
-  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}), ...(cast ? { cast } : {}), ...(episode ? { episode } : {}), ...(speakers.length === 2 ? { speakers } : {}) }
+  return { title, lang, theme, style, scenes: scenes.slice(0, MAX_SCENES), outro: clean(raw.outro, 90) || title, ...(look ? { look } : {}), ...(cast ? { cast } : {}), ...(episode ? { episode } : {}), ...(speakers.length === 2 ? { speakers } : {}), ...(cta ? { cta } : {}) }
 }
 
 /**
@@ -271,6 +296,7 @@ function manimRules(format: VideoFormat, manim: { latex: boolean }, cartoon = fa
 }
 
 export function videoScriptPrompt(input: PromptInput): string {
+  if (input.style === 'charla') return charlaScriptPrompt(input)
   if (hasPresenter(input.style)) return cartoonScriptPrompt(input)
   const seconds = input.format === 'vertical' ? '30 a 45' : '40 a 70'
   return [
@@ -350,6 +376,49 @@ function cartoonScriptPrompt(input: PromptInput): string {
   ].join('\n')
 }
 
+/**
+ * Encargo de «Charla y tutorial»: dos personajes charlan en una maqueta 3D de juguete mientras arriba salen los pasos
+ * («PASO 2/4» y lo que hay que hacer). Empieza con las preguntas del público en burbujas y acaba pidiendo comentar una
+ * palabra. Siempre es un diálogo.
+ */
+function charlaScriptPrompt(input: PromptInput): string {
+  const seconds = input.format === 'vertical' ? '35 a 60' : '45 a 80'
+  return [
+    'Escribe el guion de un reel «charla y tutorial»: dos personajes charlan delante de la cámara en una maqueta 3D de juguete y, mientras hablan, arriba de la pantalla salen los pasos que hay que seguir, uno a uno. Uno pregunta o se queja como lo haría el espectador; el otro le explica cómo se hace, con gracia. kywai pone las voces, las imágenes, las tarjetas de los pasos, la música y el montaje: tú solo escribes el guion.',
+    '',
+    `Tema: ${input.topic}`,
+    ...(input.source ? ['', 'El vídeo trata de este mensaje (explícalo bien, sin copiarlo entero):', '"""', input.source.slice(0, 6000), '"""'] : []),
+    '',
+    `Formato: ${input.format === 'vertical' ? 'vertical 9:16 (Reels, TikTok, Shorts)' : 'horizontal 16:9 (YouTube)'}; duración total de ${seconds} segundos.`,
+    `Idioma de la voz y los textos: ${input.lang}.`,
+    '',
+    'Reglas:',
+    `- Entre ${MIN_SCENES + 2} y ${MAX_SCENES - 2} escenas: la primera es el gancho, después un paso por escena EN ORDEN (completos y correctos, de 3 a 5 pasos) y la última, el resumen y la llamada a comentar.`,
+    `- ${HOOK_RULE}`,
+    ...dialogueRules(input.cast),
+    '- "narration": de 2 a 4 frases por escena, cortas (como mucho 35 palabras en total). Marca con *asteriscos* la palabra clave de cada frase.',
+    EMOTION_RULE,
+    '- "comments" (SOLO en la primera escena): de 2 a 3 preguntas o quejas típicas que la gente escribe en los comentarios sobre este tema («¿Y eso cómo se hace?», «A mí no me funciona»), de 3 a 9 palabras, sin nombres de usuario. Salen como burbujas de comentario mientras habla el gancho, y el diálogo les responde.',
+    '- "step": el número del paso (1, 2, 3…) en las escenas que son un paso; 0 en el gancho y en el cierre.',
+    '- "heading": el título del paso en la tarjeta de arriba, de 2 a 5 palabras («Abre los ajustes», «Elige la voz»). En el gancho y el cierre, una idea de 2 a 4 palabras.',
+    `- "items" (en los pasos): de 1 a ${MAX_ITEMS} puntos cortos de lo que hay que hacer exactamente (de 2 a 6 palabras cada uno, sin punto final: «Pulsa Ajustes», «Activa Modo calidad»). Se marcan uno a uno mientras hablan.`,
+    '- "shots": de 1 a 3 planos de la escena, en inglés, uno por cada cambio de quién habla y en ese orden: un plano general con los dos («wide two-shot of A and B…») y primeros planos de quien habla en cada momento («close-up of A reacting…»). Di qué hacen, qué gesto ponen y qué objeto de la maqueta tiene que ver con el paso (una pantalla gigante, una herramienta de juguete…). Los personajes, en la mitad de abajo de la imagen: arriba va la tarjeta del paso. Sin texto, letras ni logotipos en la imagen.',
+    '- "look": el bloque de estilo de las imágenes, en inglés y de 30 a 70 palabras. Si no hay otro motivo, usa este (o uno muy parecido): ' + CHARLA_LOOK + '.',
+    '- Inventa tu propia maqueta para el tema (un taller, una cocina, un escritorio gigante…), nunca la de otro vídeo que hayas visto.',
+    '- "cta": la llamada a comentar del final: {"word": una palabra corta en mayúsculas que la gente escribirá en los comentarios, "line": por qué comentarla, en 3 a 8 palabras (sin prometer nada que no se pueda cumplir)}. En la última escena, uno de los dos lo dice en voz alta.',
+    `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')} (el color de las tarjetas); para una maqueta cálida van bien "amanecer" o "papel".`,
+    '- "outro": frase final corta para la última pantalla.',
+    ...castRules(input),
+    ...(input.episode ? episodeRules(input.episode) : []),
+    '- Si el tema necesita datos actuales o técnicos, compruébalos antes; no inventes.',
+    '- No crees ni cambies archivos: responde solo con el JSON.',
+    ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
+    '',
+    'Responde SOLO con este JSON, sin nada antes ni después:',
+    '{"title": "…", "lang": "' + input.lang + '", "style": "charla", "theme": "amanecer", "look": "…", ' + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + '"speakers": [{"name": "…", "gender": "f"}, {"name": "…", "gender": "m"}], "scenes": [{"heading": "…", "narration": "[Nombre1, sorprendido] … [Nombre2, alegre] …", "comments": ["…", "…"], "shots": ["…", "…"], "step": 0}, {"heading": "…", "narration": "…", "items": ["…", "…"], "shots": ["…"], "step": 1}], "cta": {"word": "…", "line": "…"}, "outro": "…"}'
+  ].join('\n')
+}
+
 // ---------- petición del usuario ----------
 
 export interface VideoRequest {
@@ -380,6 +449,9 @@ const CAST_RE = /(?:^|[\s,])(?:con\s+)?(?:(?:estos|mis|los)\s+)?(?:personajes?\s
 
 /** Piden dibujos con personaje: «estilo cartoon», «dibujos animados», «un personaje que lo explique», «tutorial»… */
 const CARTOON_RE = /\b(cartoons?|caricaturas?|dibujos?(?:\s+animados?)?|animaci[oó]n\s+2d|personajes?|mu[ñn]ecos?|presentador(?:a)?|tutorial(?:es)?|una persona explicando|alguien explicando|animated character|explainer)\b/i
+
+/** Piden el estilo «Charla y tutorial» con palabras: «estilo charla», «charla y tutorial», «talk and tutorial». */
+const CHARLA_RE = /(?:^|[\s,])(?:(?:al?|en|con|de)\s+)?(?:(?:estilo|tipo|formato)\s+)?(?:charla\s+y\s+tutorial|estilo\s+charla|talk\s+(?:and|&)\s+tutorial)(?=[\s,.:;]|$)/i
 
 /** Piden varios vídeos sin decir cuáles en el mismo mensaje: «cada uno de esos guiones», «uno por idea»… */
 const SEVERAL_RE = /(?:^|[\s,])(?:cada\s+un[oa]|por\s+cada|(?:(?:un[oa]?|v[ií]deo)\s+)?por\s+(?:cada\s+)?(?:gui[oó]n|idea|tema|archivo|punto|cap[ií]tulo|episodio)|(?:de|con|usando)\s+(?:esos|esas|estos|estas|todos\s+(?:esos|estos)|todas\s+(?:esas|estas))\s+(?!personajes?\b)\p{L}+)/iu
@@ -426,16 +498,24 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     topic = stripVideoTags(topic).replace(/\s{2,}/g, ' ').trim()
     if (film && choice.style) topic = `estilo:${choice.style} ${topic}`.trim()
   }
-  const kind = kindTag ? choice.kind : undefined
-  const kindStyle: VideoStyle | undefined = kind ? (kind === 'presentador' ? 'cartoon' : kind === 'mixto' ? 'mixto' : 'dinamico') : undefined
+  // «charla y tutorial» escrito con palabras vale como «tipo:charla» (y no es parte del tema).
+  const charlaM = kindTag ? null : CHARLA_RE.exec(topic)
+  if (charlaM) topic = (topic.slice(0, charlaM.index) + ' ' + topic.slice(charlaM.index + charlaM[0].length)).replace(/\s{2,}/g, ' ').replace(/^[\s,:;]+|[\s,:;]+$/g, '').trim()
+  if (charlaM && charlaM.index < 2) topic = topic.replace(/^(?:de|sobre|con|para|acerca de|about|on)\s+/i, '')
+  const kind: VideoKind | undefined = kindTag ? choice.kind : charlaM ? 'charla' : undefined
+  const kindStyle: VideoStyle | undefined = kind ? (kind === 'presentador' ? 'cartoon' : kind === 'mixto' ? 'mixto' : kind === 'charla' ? 'charla' : 'dinamico') : undefined
+  // Charla y tutorial: siempre un diálogo, con los robots si no se eligió otro personaje y en vertical (es para Reels)
+  // salvo que se pida horizontal. La biblioteca de películas no se usa: tiene su propio aspecto de maqueta 3D.
+  const charla = kind === 'charla'
   // «personajes fijos»: no es parte del tema ni pide el estilo de dibujos (que también se activa con «personajes»).
   const castM = CAST_RE.exec(topic)
   const saveCast = !!castM
   if (castM) topic = (topic.slice(0, castM.index) + ' ' + topic.slice(castM.index + castM[0].length)).replace(/\s{2,}/g, ' ').replace(/^[\s,:;]+|[\s,:;]+$/g, '').trim()
   const tNoCast = castM ? t.replace(castM[0], ' ') : t
   // «estilo acuarela sobre…», «estilo:pixel-rpg …»: un estilo de la biblioteca de películas.
-  const film = takeFilmStyle(topic)
-  if (film) topic = film.rest
+  const takenFilm = takeFilmStyle(topic)
+  if (takenFilm) topic = takenFilm.rest
+  const film = charla ? null : takenFilm
   // Quita del tema lo que solo dice el formato («vertical para TikTok de…»).
   const stripped = topic
     .replace(/^(?:(?:en\s+)?(?:formato\s+)?(?:vertical|horizontal)|para\s+(?:tiktok|reels?|shorts?|youtube))[\s,:]*(?:(?:de|sobre)\s+)?/i, '')
@@ -455,7 +535,8 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     .replace(/^(?:(?:al?|en|con|de)\s+)?(?:estilo|tipo|formato)?\s*(?:cartoon|caricatura|dibujos?(?:\s+animados?)?|animado|tutorial)\s*(?:(?:de|sobre|con|para)\s+)?/i, '')
     .trim()
   const fromPrevious = !bare || PREVIOUS_RE.test(bare)
-  const character = charTag ? choice.character : null
+  const character = charTag ? choice.character : charla ? ROBOTS_CHARACTER : null
+  if (charla) return { topic: fromPrevious ? '' : bare, format: HORIZONTAL_RE.test(t) ? 'horizontal' : 'vertical', fromPrevious, style, kind: 'charla', ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), dialogue: true }
   return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}) }
 }
 

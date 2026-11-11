@@ -14,6 +14,7 @@ import {
   buildComposition,
   THEMES,
   buildTimeline,
+  CHARLA_LOOK,
   hasPresenter,
   spokenText,
   synthMusic,
@@ -26,6 +27,7 @@ import {
   type VideoScript
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
+import { buildCharlaComposition } from './videoCharla'
 import { contactSheetArgs, filmCheckArgs, flatFramesArgs, flatLookIssue, flatShare, parseFilmCheck, parsePpm } from './filmCheck'
 import { EARSHOT_DEPS, EARSHOT_PIP, earshotInstalledIn, ensureSfxBank, loadSfxBank, sfxBankSummary } from './sfxBank'
 import { comfyImage, comfyStatus } from './comfyui'
@@ -843,7 +845,7 @@ async function geminiSpeak(text: string, tone: string, voiceName: string, out: s
 /** Cómo debe sonar cada escena (instrucción para la voz de Gemini, en inglés: la entiende mejor). */
 function voiceTone(style: VideoScript['style'], joke: boolean): string {
   if (joke) return 'Say this as a joke, playful and funny, with a little laugh, like a friendly YouTuber'
-  if (style === 'cartoon' || style === 'mixto') return 'Say this warmly and with energy, like a friendly, upbeat YouTuber explaining a tutorial to a friend, natural and smiling'
+  if (style === 'cartoon' || style === 'mixto' || style === 'charla') return 'Say this warmly and with energy, like a friendly, upbeat YouTuber explaining a tutorial to a friend, natural and smiling'
   return 'Say this clearly and with a lively, upbeat tone, at a relaxed natural pace, like a friendly short-video creator talking to the viewer'
 }
 
@@ -1263,6 +1265,9 @@ export async function renderVideo(input: {
   writeFileSync(join(dir, 'guion.json'), JSON.stringify({ format, ...script }, null, 2))
 
   const cartoon = hasPresenter(script.style)
+  // Charla y tutorial: varios planos por escena (como el cartoon), pero sin presentador y con el aspecto de maqueta 3D.
+  const charla = script.style === 'charla'
+  if (charla && !script.look) script.look = CHARLA_LOOK
   const refs = (input.refs ?? []).filter((f) => existsSync(f))
   const castImages = (input.cast?.images ?? []).filter((f) => existsSync(f))
   const castText = script.cast || input.cast?.notes
@@ -1498,7 +1503,7 @@ export async function renderVideo(input: {
   // Con Manim, las escenas que traen su animación no necesitan imagen.
   const useManim = manimInstalled() && script.scenes.some((sc) => !!sc.manim)
   const shotPrompts = script.scenes.map((sc) =>
-    useManim && sc.manim ? [] : sc.text ? [] : cartoon ? (sc.shots?.length ? sc.shots : sc.image ? [sc.image] : []) : sc.image ? [sc.image] : []
+    useManim && sc.manim ? [] : sc.text ? [] : cartoon || charla ? (sc.shots?.length ? sc.shots : sc.image ? [sc.image] : []) : sc.image ? [sc.image] : []
   )
   const shots: (string | null)[][] = shotPrompts.map((list) => list.map(() => null))
   // ComfyUI en este equipo va primero (gratis y local); si una imagen falla, la pide Gemini (con clave).
@@ -1572,7 +1577,7 @@ export async function renderVideo(input: {
   if (signal?.aborted) throw new Error('Cancelada')
   step('Componiendo la música y mezclando', 0.55)
   const compInput = { script, format, timeline: tl, images, shots, clips, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js', ...(presenter ? { presenter } : {}) }
-  const comp = cartoon ? buildCartoonComposition(compInput) : buildComposition(compInput)
+  const comp = charla ? buildCharlaComposition(compInput) : cartoon ? buildCartoonComposition(compInput) : buildComposition(compInput)
   writeFileSync(join(dir, 'musica.wav'), synthMusic(tl.total, script.title))
   // Como mucho 90 s de espera: lo que no esté listo sale sintetizado.
   await Promise.race([sfxReady, new Promise((ok) => setTimeout(ok, 90_000))])

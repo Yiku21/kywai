@@ -36,6 +36,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -109,7 +110,7 @@ data class VideoChoice(val kind: String = "rapido", val character: String? = nul
 
 /** Las marcas de «/video» en el texto, como src/shared/videoChoice.ts (si cambian allí, cambian aquí). */
 object VideoTags {
-    val KINDS = listOf("rapido", "presentador", "mixto")
+    val KINDS = listOf("rapido", "presentador", "mixto", "charla")
     const val ROBOTS = "robots-kywai"
     const val NO_CHARACTER = "ninguno"
     /** El estilo pintado a mano: sin marca de personaje lleva los robots. */
@@ -173,6 +174,7 @@ private val KINDS = listOf(
     Kind("rapido", Icons.Outlined.Movie, { t("Rápido: texto animado") }, { t("Frases grandes con ritmo, al compás de la voz.") }),
     Kind("presentador", Icons.Outlined.SentimentSatisfied, { t("Dibujos con presentador") }, { t("Un personaje dibujado lo explica, con humor.") }),
     Kind("mixto", Icons.Outlined.Layers, { t("Mixto") }, { t("El presentador y golpes de texto grande, alternados.") }),
+    Kind("charla", Icons.AutoMirrored.Outlined.Chat, { t("Charla y tutorial") }, { t("Dos personajes charlan en 3D y arriba salen los pasos. Para Reels.") }),
 )
 
 // Los nombres y las líneas de los estilos llegan en español y en inglés (en otros idiomas, el inglés).

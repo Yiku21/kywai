@@ -998,6 +998,8 @@ private fun part7(m: HashMap<String, String>) {
     m["Dibujos con presentador"] = "带主持人的动画"
     m["El de kywai (rápido)"] = "kywai 默认（快速）"
     m["El presentador y golpes de texto grande, alternados."] = "主持人与大字快闪交替出现。"
+    m["Charla y tutorial"] = "对话教程"
+    m["Dos personajes charlan en 3D y arriba salen los pasos. Para Reels."] = "两个角色在 3D 场景中聊天，上方依次出现步骤。适合 Reels。"
     m["Elegir tipo, personaje, estilo y voz"] = "选择类型、角色、风格和声音"
     m["Elige y luego escribe de qué va"] = "先选择，再写主题"
     m["Escuchar la voz «{name}»"] = "试听声音「{name}」"

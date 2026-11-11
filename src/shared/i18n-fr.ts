@@ -2829,6 +2829,8 @@ export const fr: Record<string, string> = {
   "Mixto": "Mixte",
   "Frases grandes con ritmo, al compás de la voz.": "De grandes phrases rythmées, au rythme de la voix.",
   "El presentador y golpes de texto grande, alternados.": "Le présentateur et des blocs de gros texte, en alternance.",
+  "Charla y tutorial": "Discussion et tutoriel",
+  "Dos personajes charlan en 3D y arriba salen los pasos. Para Reels.": "Deux personnages discutent en 3D et les étapes s’affichent en haut. Pour les Reels.",
   "Robots de kywai": "Robots de kywai",
   "«{name}» no es una imagen PNG, JPG o WebP": "« {name} » n'est pas une image PNG, JPG ou WebP",
   "Nuevo personaje": "Nouveau personnage",

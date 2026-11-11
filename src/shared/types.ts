@@ -267,12 +267,12 @@ export interface Task {
     format: 'horizontal' | 'vertical'
     topic: string
     source?: string
-    style?: 'dinamico' | 'cartoon' | 'mixto'
+    style?: 'dinamico' | 'cartoon' | 'mixto' | 'charla'
     film?: string
     /** Personaje elegido en el selector (id de src/main/videoCharacters.ts). */
     character?: string
     /** Tipo elegido en el selector (en una película: cómo se cuenta). */
-    kind?: 'rapido' | 'presentador' | 'mixto'
+    kind?: 'rapido' | 'presentador' | 'mixto' | 'charla'
     /** Voz elegida en el selector («gemini-puck», «kokoro-ef_dora»…). */
     voice?: string
     /** Diálogo entre dos personajes, cada uno con su voz. */

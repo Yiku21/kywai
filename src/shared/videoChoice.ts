@@ -5,8 +5,11 @@
 // Órbita las lee y escribe con su propia copia (VideoTags en android/.../ui/orbita/VideoPicker.kt): si cambian aquí, allí también.
 import { filmStyle, KYWAI_FILM } from './filmStyles'
 
-/** rapido: texto animado con ritmo. presentador: un personaje dibujado lo explica. mixto: las dos cosas alternadas. */
-export const VIDEO_KINDS = ['rapido', 'presentador', 'mixto'] as const
+/**
+ * rapido: texto animado con ritmo. presentador: un personaje dibujado lo explica. mixto: las dos cosas alternadas.
+ * charla: «Charla y tutorial», dos personajes charlando en una maqueta 3D con los pasos arriba (para Reels).
+ */
+export const VIDEO_KINDS = ['rapido', 'presentador', 'mixto', 'charla'] as const
 export type VideoKind = (typeof VIDEO_KINDS)[number]
 
 /** El personaje de fábrica: Hermes, Claude y Codex. */

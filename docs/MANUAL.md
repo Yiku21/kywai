@@ -2168,6 +2168,16 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    alternados (más o menos una escena de cada tres es de texto, nunca dos seguidas; en ellas el presentador se aparta
    y las palabras del rótulo entran en grande mientras sigue la voz). Con un estilo de película, el tipo le dice al
    agente cómo contarla.
+   **Charla y tutorial** (`tipo:charla`, o escribir «charla y tutorial» / «estilo charla»): el reel de Instagram en
+   el que **dos personajes charlan** (siempre diálogo; con los robots de kywai, Hermes y Claude, si no se elige otro;
+   vertical salvo que se pida horizontal) en una **maqueta 3D de juguete** con luz de cine (`CHARLA_LOOK`, el aspecto
+   por defecto si el guion no trae otro) mientras **arriba sale la tarjeta del paso**: «PASO 2/4», el título y de 1 a 4
+   puntos que se marcan uno a uno mientras hablan. El gancho saca las **preguntas típicas del público en burbujas de
+   comentario** (`comments`, sin nombres de usuario) y el cierre pide **«Comenta PALABRA»** con una frase corta
+   (`cta`). Cada escena trae de 1 a 3 planos (general de los dos y primeros planos) y **el plano cambia cuando cambia
+   quién habla** (`shotCuts`). La composición es `src/main/videoCharla.ts`; el encargo del guion,
+   `charlaScriptPrompt` en `src/main/videoScript.ts`. Este tipo no usa la biblioteca de películas (si se elige un
+   estilo, se ignora) y el agente inventa su propia maqueta: nunca copia la de otro vídeo.
 2. **Personaje.** *Ninguno (genérico)*: sin personaje fijo. *Robots de kywai*: Hermes, Claude y Codex. Los que hayas
    creado. Y **«Agregar personaje»**: nombre y una descripción, imágenes (hasta 6) o las dos cosas; la interfaz reduce
    las imágenes (1024 px, WebP) y hace una miniatura. Se guardan en kywai **para todos los proyectos**, en

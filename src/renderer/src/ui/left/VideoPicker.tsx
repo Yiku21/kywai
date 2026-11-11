@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AudioLines, Check, ChevronDown, Clapperboard, ImagePlus, Layers, Loader2, Play, Plus, Search, Smile, Sparkles, Square, Trash2, UserRound, X } from 'lucide-react'
+import { AudioLines, Check, ChevronDown, Clapperboard, ImagePlus, Layers, Loader2, MessagesSquare, Play, Plus, Search, Smile, Sparkles, Square, Trash2, UserRound, X } from 'lucide-react'
 import { FILM_CATEGORIES, FILM_STYLES, filmStyle, type FilmStyle } from '@shared/filmStyles'
 import { defaultVoiceFor, ROBOTS_CHARACTER, type VideoChoice, type VideoKind } from '@shared/videoChoice'
 import type { CoworkApi, VideoCharacterInfo, VideoVoiceInfo } from '@shared/types'
@@ -41,7 +41,8 @@ const fline = (f: FilmStyle): string => (es() ? f.line : f.lineEn)
 const KINDS: { id: VideoKind; icon: typeof Clapperboard; name: string; line: string }[] = [
   { id: 'rapido', icon: Clapperboard, name: 'Rápido: texto animado', line: 'Frases grandes con ritmo, al compás de la voz.' },
   { id: 'presentador', icon: Smile, name: 'Dibujos con presentador', line: 'Un personaje dibujado lo explica, con humor.' },
-  { id: 'mixto', icon: Layers, name: 'Mixto', line: 'El presentador y golpes de texto grande, alternados.' }
+  { id: 'mixto', icon: Layers, name: 'Mixto', line: 'El presentador y golpes de texto grande, alternados.' },
+  { id: 'charla', icon: MessagesSquare, name: 'Charla y tutorial', line: 'Dos personajes charlan en 3D y arriba salen los pasos. Para Reels.' }
 ]
 
 const kindName = (k: VideoKind): string => t(KINDS.find((x) => x.id === k)!.name)
@@ -349,7 +350,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                 </h4>
                 <div className={s.grid} role="radiogroup" aria-label={t('Tipo de vídeo')}>
                   {KINDS.map((k) => (
-                    <button key={k.id} type="button" role="radio" aria-checked={value.kind === k.id} className={cx(s.card, value.kind === k.id && s.cardOn)} onClick={() => set({ kind: k.id }, charRef)}>
+                    <button key={k.id} type="button" role="radio" aria-checked={value.kind === k.id} className={cx(s.card, value.kind === k.id && s.cardOn)} onClick={() => set(k.id === 'charla' ? { kind: k.id, dialogue: true, style: null, character: value.character ?? ROBOTS_CHARACTER } : { kind: k.id }, charRef)}>
                       <span className={cx(s.thumb, s.quick, s.kindThumb)}>
                         <k.icon size={24} />
                       </span>
