@@ -174,7 +174,7 @@ export function ChatView() {
       >
         <div ref={contentRef} className={s.list}>
           {messages.map((m) => (
-            <div key={m.id} data-message-id={m.id} className={m.id === flashId ? s.flash : undefined}>
+            <div key={m.id} data-message-id={m.id} className={m.id === flashId ? cx(s.item, s.flash) : s.item}>
               <MessageItem message={m} />
             </div>
           ))}

@@ -3575,6 +3575,10 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   del chat de cristal, así que ahí solo se para al cerrarlo (`World paused` en `scene/World.tsx`).
   Al volver, las animaciones siguen justo donde se quedaron: el reloj de la escena no se reinicia al pausar (antes
   un archivo que ya había llegado aparecía gigante y se iba encogiendo poco a poco).
+- **Conversaciones largas sin peso.** Los mensajes del chat que quedan fuera de la pantalla no se pintan ni se
+  recolocan: en una conversación de cientos de mensajes el navegador solo trabaja con los que ves. Cada mensaje
+  recuerda su altura real una vez visto, para que la barra de desplazamiento no salte (`.item` en
+  `ui/left/ChatView.module.css`).
 - **El chat aparece antes.** El espacio 3D (Three.js y compañía) se carga aparte, después de la interfaz, y todo
   el código de la interfaz va reducido: lo que hay que cargar al abrir pasó de 4,6 MB a 1,3 MB.
 - **Menos descarga por la red.** El servidor entrega la interfaz comprimida (gzip) al navegador y a los clientes de

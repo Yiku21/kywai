@@ -20,6 +20,17 @@
   padding: 20px 20px 26px;
 }
 
+/*
+ * Los mensajes que no se ven no se pintan ni se recolocan: en una conversación larga el navegador solo trabaja con
+ * los que hay en pantalla. «auto» recuerda la altura real de cada uno una vez visto, para que la barra de desplazamiento
+ * no salte. El margen deja ver las sombras y los brillos que sobresalen del mensaje.
+ */
+.item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
+  overflow-clip-margin: 24px;
+}
+
 /* El mensaje al que llevó el buscador: un halo que se apaga solo. */
 .flash {
   border-radius: var(--radius-panel);
