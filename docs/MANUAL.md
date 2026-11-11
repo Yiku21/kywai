@@ -3542,11 +3542,17 @@ con Pillow. Las dos de Órbita (`docs/img/movil-*.jpg`) se hacen a mano en un m�
 
 Lo que hace kywai para ir fluido sin que tengas que tocar nada:
 
-- **Calidad del 3D automática, sin tirones.** Al abrir elige alta, media o baja según el equipo, y mientras lo usas
-  la ajusta si los fotogramas no llegan. Ese ajuste solo cambia lo que sale barato de cambiar (resolución,
-  partículas, estructuras y suavizado). El brillo (bloom) y las luces de los puestos dependen del equipo y no se
-  quitan ni se ponen sobre la marcha: hacerlo obligaba a recompilar todos los materiales de golpe y daba un tirón
-  justo cuando el equipo ya iba justo (`sceneQuality` en `scene/quality.ts`).
+- **Calidad del 3D a tu elección.** En ⚙ → General → **Calidad del 3D** eliges, solo para ese dispositivo:
+  **Automática** (la de siempre), **Ahorro** (sin brillo, sin sombras y a resolución normal: lo más ligero, bueno
+  para un portátil o el cliente), **Normal** o **Máxima** (resolución ×1,75, suavizado ×4, sombras grandes y
+  sombreado de contacto). Automática elige según el equipo, pero **como mucho Normal**: antes casi cualquier
+  equipo entraba en la calidad máxima, porque el navegador nunca dice que hay más de 8 GB de memoria, y la
+  tarjeta gráfica iba a tope. Mientras lo usas, Automática baja si los fotogramas no llegan y vuelve a subir.
+  Las otras tres no se mueven solas. Ese ajuste solo cambia lo que sale barato de cambiar (resolución,
+  partículas, estructuras y suavizado). El brillo (bloom) y las luces de los puestos no se quitan ni se ponen sobre
+  la marcha: hacerlo obligaba a recompilar todos los materiales de golpe y daba un tirón justo cuando el equipo ya
+  iba justo (`sceneQuality` y `qualityRange` en `scene/quality.ts`; la elección se guarda en
+  `ai-cowork.sceneQuality`).
 - **Como mucho 30 fotogramas por segundo.** El espacio 3D se dibuja a 30 fotogramas por segundo aunque la pantalla
   vaya a 60, 120 o 144 Hz. Antes se dibujaba en cada refresco de pantalla, también sin ningún agente trabajando
   (la luz viva y la cámara que respira nunca dejan la escena quieta), y la tarjeta gráfica iba a tope todo el rato.

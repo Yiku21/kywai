@@ -29,8 +29,10 @@ import {
   Volume2,
   VolumeX,
   Wand2,
-  X
+  X,
+  Gauge
 } from 'lucide-react'
+import { useQuality, type QualityChoice } from '../../scene/quality'
 import type { AgentAccess, ClientUpdateState } from '@shared/types'
 import { useCowork, type SettingsTab } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
@@ -188,6 +190,7 @@ function GeneralTab() {
   const mode = useCowork((st) => st.mode)
   const hasBackend = useCowork((st) => st.hasBackend)
   const reduced = useCowork((st) => st.reducedEffects)
+  const quality = useQuality((st) => st.choice)
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
   const theme = useTheme()
   const own = useOwnTheme()
@@ -246,6 +249,14 @@ function GeneralTab() {
           <SoundRows />
         </div>
       )}
+      <Row icon={<Gauge size={18} />} label={t('Calidad del 3D')} hint={t('Más calidad gasta más tarjeta gráfica y batería. Solo en este dispositivo.')}>
+        <select className={s.select} value={quality} aria-label={t('Calidad del 3D')} onChange={(e) => useQuality.getState().setChoice(e.currentTarget.value as QualityChoice)}>
+          <option value="auto">{t('Automática')}</option>
+          <option value="low">{t('Ahorro')}</option>
+          <option value="medium">{t('Normal')}</option>
+          <option value="high">{t('Máxima')}</option>
+        </select>
+      </Row>
       <Row icon={<Sparkles size={18} />} label={t('Reducir efectos ambientales')} hint={t('Menos animaciones y brillos en el espacio')}>
         <Switch on={reduced} label={t('Reducir efectos ambientales')} onChange={() => useCowork.getState().setReducedEffects(!reduced)} />
       </Row>

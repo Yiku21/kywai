@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { QUALITY, sceneQuality } from './quality'
+import { QUALITY, qualityRange, sceneQuality } from './quality'
 
 describe('sceneQuality', () => {
   it('el ajuste automático no quita el bloom ni las luces de los puestos de un equipo capaz', () => {
@@ -28,5 +28,17 @@ describe('sceneQuality', () => {
     expect(q.shadowMap).toBe(1024)
     expect(q.ao).toBe(false)
     expect(sceneQuality('low', 'high').shadowMap).toBe(2048)
+  })
+})
+
+describe('qualityRange', () => {
+  it('automática va como mucho a media aunque el equipo dé para alta', () => {
+    expect(qualityRange('auto', 'high')).toEqual({ level: 'medium', max: 'medium' })
+    expect(qualityRange('auto', 'low')).toEqual({ level: 'low', max: 'low' })
+  })
+
+  it('las elecciones fijas no se mueven', () => {
+    expect(qualityRange('high', 'low')).toEqual({ level: 'high', max: 'high' })
+    expect(qualityRange('low', 'high')).toEqual({ level: 'low', max: 'low' })
   })
 })

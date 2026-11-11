@@ -25,12 +25,39 @@ export const QUALITY: Record<QualityLevel, QualitySettings> = {
   low: { dpr: [1, 1], particles: 200, fragments: 8, structures: 100, bloom: false, msaa: 0, stationLights: false, shadows: false, shadowMap: 1024, ao: false }
 }
 
-function initialLevel(): QualityLevel {
+/** Lo que da de sí el equipo (núcleos y memoria; el navegador nunca dice más de 8 GB). */
+function deviceLevel(): QualityLevel {
   const cores = navigator.hardwareConcurrency ?? 4
   const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8
   if (cores >= 8 && mem >= 8) return 'high'
   if (cores >= 4) return 'medium'
   return 'low'
+}
+
+/**
+ * Calidad del 3D elegida en Ajustes → General, por dispositivo. «auto» va como mucho a media: antes casi cualquier
+ * equipo arrancaba en alta (resolución ×1,75, suavizado ×4, sombreado de contacto) y la tarjeta gráfica iba a tope.
+ * La alta queda para quien la elige («Máxima»). Las fijas no se ajustan solas.
+ */
+export type QualityChoice = 'auto' | QualityLevel
+
+const CHOICE_KEY = 'ai-cowork.sceneQuality'
+
+function readChoice(): QualityChoice {
+  try {
+    const v = localStorage.getItem(CHOICE_KEY)
+    if (v === 'low' || v === 'medium' || v === 'high') return v
+  } catch {
+    /* sin almacenamiento: automática */
+  }
+  return 'auto'
+}
+
+/** Nivel de partida y techo para una elección. */
+export function qualityRange(choice: QualityChoice, device: QualityLevel): { level: QualityLevel; max: QualityLevel } {
+  if (choice !== 'auto') return { level: choice, max: choice }
+  const max = device === 'high' ? 'medium' : device
+  return { level: max, max }
 }
 
 const ORDER: QualityLevel[] = ['low', 'medium', 'high']
@@ -48,25 +75,39 @@ export function sceneQuality(level: QualityLevel, max: QualityLevel): QualitySet
 }
 
 interface QualityState {
+  choice: QualityChoice
   level: QualityLevel
   max: QualityLevel
+  /** ¿Se ajusta solo según los fotogramas? (solo en «auto») */
+  adaptive: boolean
+  setChoice(choice: QualityChoice): void
   lower(): void
   raise(): void
 }
 
 export const useQuality = create<QualityState>((set, get) => {
-  const start = initialLevel()
+  const choice = readChoice()
   return {
-    level: start,
-    max: start,
+    choice,
+    ...qualityRange(choice, deviceLevel()),
+    adaptive: choice === 'auto',
+    setChoice(next) {
+      try {
+        if (next === 'auto') localStorage.removeItem(CHOICE_KEY)
+        else localStorage.setItem(CHOICE_KEY, next)
+      } catch {
+        /* sin almacenamiento: vale para esta sesión */
+      }
+      set({ choice: next, adaptive: next === 'auto', ...qualityRange(next, deviceLevel()) })
+    },
     lower() {
       const i = ORDER.indexOf(get().level)
-      if (i > 0) set({ level: ORDER[i - 1] })
+      if (get().adaptive && i > 0) set({ level: ORDER[i - 1] })
     },
     raise() {
-      const { level, max } = get()
+      const { level, max, adaptive } = get()
       const i = ORDER.indexOf(level)
-      if (i < ORDER.indexOf(max)) set({ level: ORDER[i + 1] })
+      if (adaptive && i < ORDER.indexOf(max)) set({ level: ORDER[i + 1] })
     }
   }
 })

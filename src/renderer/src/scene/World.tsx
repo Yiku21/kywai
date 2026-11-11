@@ -188,6 +188,7 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
   const lower = useQuality((s) => s.lower)
   const raise = useQuality((s) => s.raise)
   const max = useQuality((s) => s.max)
+  const adaptive = useQuality((s) => s.adaptive)
   const q = useMemo(() => sceneQuality(level, max), [level, max])
   const reduced = useCowork((s) => s.reducedEffects)
   const configuredStations = useCowork((s) => s.config.stations)
@@ -233,7 +234,7 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
       <SceneClock />
       <FrameLimiter active={visible} fps={focused ? MAX_FPS : IDLE_FPS} />
       {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. Con el tope de [MAX_FPS], baja si no llega a 24. */}
-      {focused && visible && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [24, 29]} />}
+      {adaptive && focused && visible && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [24, 29]} />}
 
       <group key={theme}>
         <CinemaLights palette={p} lights={L} worldLight={worldLight} shadows={!!p.world && q.shadows} shadowSize={q.shadowMap}
