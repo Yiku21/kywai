@@ -3547,6 +3547,11 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   partículas, estructuras y suavizado). El brillo (bloom) y las luces de los puestos dependen del equipo y no se
   quitan ni se ponen sobre la marcha: hacerlo obligaba a recompilar todos los materiales de golpe y daba un tirón
   justo cuando el equipo ya iba justo (`sceneQuality` en `scene/quality.ts`).
+- **Como mucho 30 fotogramas por segundo.** El espacio 3D se dibuja a 30 fotogramas por segundo aunque la pantalla
+  vaya a 60, 120 o 144 Hz. Antes se dibujaba en cada refresco de pantalla, también sin ningún agente trabajando
+  (la luz viva y la cámara que respira nunca dejan la escena quieta), y la tarjeta gráfica iba a tope todo el rato.
+  Cada fotograma cae justo en un refresco, así que no hay tirones. El ajuste automático de calidad solo baja si el
+  equipo no llega a 24 (`MAX_FPS` en `scene/frameRate.ts`).
 - **El 3D descansa cuando no lo miras.** Con la ventana o la pestaña oculta (minimizada, o tapada del todo si el sistema lo avisa) se para.
   Con la ventana a la vista pero sin foco (estás en otra app) se dibuja a 20 fotogramas por segundo: se sigue viendo
   a los robots trabajar y gasta mucho menos. Al volver a la ventana recupera la fluidez normal.

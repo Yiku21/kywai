@@ -29,6 +29,7 @@ import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
 import { CinemaLights } from './CinemaLights'
 import { LabelProjector } from './LabelProjector'
+import { frameDue, IDLE_FPS, MAX_FPS } from './frameRate'
 import { t } from '@/lib/i18n'
 import { withTempStations } from '@shared/tempStations'
 import { polygonLayout } from './polygonLayout'
@@ -138,17 +139,28 @@ function ViewShift({ view }: { view?: ViewInsets }) {
   return null
 }
 
-/** Fotogramas por segundo con la ventana sin foco (sigue viéndose moverse, pero gasta mucho menos). */
-const IDLE_FPS = 20
-
-/** Sin foco, la escena se dibuja a [IDLE_FPS] en vez de a la frecuencia de la pantalla. */
-function IdleFrames({ active }: { active: boolean }) {
+/**
+ * Dibuja la escena con tope de fotogramas: [MAX_FPS] con foco y [IDLE_FPS] sin foco (se sigue viendo a los robots
+ * trabajar, pero gasta mucho menos). Mira cada refresco de pantalla y solo pide fotograma cuando toca, así que no hay
+ * tirones aunque la pantalla vaya a 120 o 144 Hz.
+ */
+function FrameLimiter({ active, fps }: { active: boolean; fps: number }) {
   const invalidate = useThree((st) => st.invalidate)
   useEffect(() => {
     if (!active) return
-    const id = window.setInterval(() => invalidate(), 1000 / IDLE_FPS)
-    return () => window.clearInterval(id)
-  }, [active, invalidate])
+    let last = -Infinity
+    let id = 0
+    const tick = (now: number) => {
+      const next = frameDue(now, last, fps)
+      if (next !== null) {
+        last = next
+        invalidate()
+      }
+      id = requestAnimationFrame(tick)
+    }
+    id = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(id)
+  }, [active, fps, invalidate])
   return null
 }
 
@@ -210,7 +222,7 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
     <Canvas
       dpr={q.dpr}
       shadows={!!p.world && q.shadows}
-      frameloop={!visible ? 'never' : focused ? 'always' : 'demand'}
+      frameloop={visible ? 'demand' : 'never'}
       camera={{ fov: 36, position: [0, 14, 38], near: 0.5, far: 420 }}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: false, stencil: false }}
       onPointerMissed={() => useCowork.getState().select(null)}
@@ -219,9 +231,9 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
       <color key={`bg-${theme}`} attach="background" args={[night ? '#050d1a' : p.bg]} />
       <fog key={`fog-${theme}`} attach="fog" args={[night ? '#0a1727' : p.fog, fogNear, fogFar]} />
       <SceneClock />
-      <IdleFrames active={visible && !focused} />
-      {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. */}
-      {focused && visible && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [42, 58]} />}
+      <FrameLimiter active={visible} fps={focused ? MAX_FPS : IDLE_FPS} />
+      {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. Con el tope de [MAX_FPS], baja si no llega a 24. */}
+      {focused && visible && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [24, 29]} />}
 
       <group key={theme}>
         <CinemaLights palette={p} lights={L} worldLight={worldLight} shadows={!!p.world && q.shadows} shadowSize={q.shadowMap}
