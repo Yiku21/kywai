@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { buildStageData, planShots, stageLooks } from './charlaStage'
 import { buildCharlaComposition, shotCuts } from './videoCharla'
 import { buildTimeline, CHARLA_LOOK, parseVideoRequest, parseVideoScript, sceneWords, VOICE_LEAD_S, videoScriptPrompt } from './videoScript'
 
@@ -103,5 +104,62 @@ describe('Charla y tutorial: guion y montaje', () => {
     expect(sfx.some((x) => x.kind === 'impact')).toBe(true)
     expect(html).not.toMatch(/Math\.random|Date\.now|https?:\/\/(?!www\.w3\.org)/)
     expect(buildCharlaComposition(input).html).toBe(html)
+  })
+})
+
+describe('Charla y tutorial: plató 3D con los robots', () => {
+  const ROBOTS = JSON.stringify({ ...JSON.parse(CHARLA), scenes: JSON.parse(CHARLA).scenes.map((s: Record<string, unknown>) => ({ ...s, shots: undefined, image: 'the app screen' })) })
+
+  it('solo con dos robots de kywai distintos', () => {
+    expect(stageLooks({ speakers: [{ name: 'Hermes' }, { name: 'Claude' }] })).toEqual(['hermes', 'claude'])
+    expect(stageLooks({ speakers: [{ name: 'codex' }, { name: 'Hermes' }] })).toEqual(['codex', 'hermes'])
+    expect(stageLooks({ speakers: [{ name: 'Luna' }, { name: 'Claude' }] })).toBeNull()
+    expect(stageLooks({ speakers: [{ name: 'Claude' }] })).toBeNull()
+  })
+
+  it('un plano por turno de palabra; el paso empieza mirando a la pantalla y los turnos largos se parten', () => {
+    const lines = [
+      { who: 0, start: 1, end: 2, emotion: 'alegre' },
+      { who: 0, start: 2, end: 3, emotion: 'firme' },
+      { who: 1, start: 3, end: 4, emotion: 'sorprendido' },
+      { who: 0, start: 4, end: 9.5, emotion: 'alegre' }
+    ]
+    const shots = planShots(lines, 0.5, 10, true, 0)
+    expect(shots[0]).toMatchObject({ start: 0.5, end: 3, kind: 'screen' })
+    expect(shots[1]).toMatchObject({ start: 3, end: 4, kind: 'close1' })
+    expect(shots[2].kind).toBe('ots0')
+    expect(shots).toHaveLength(4)
+    expect(shots[3].end).toBe(10)
+    expect(planShots([], 0, 3, false, 0)).toEqual([{ start: 0, end: 3, kind: 'wide', move: 'crane' }])
+  })
+
+  it('cada robot mueve la boca con sus sílabas y la pantalla cambia de imagen en cada escena', () => {
+    const script = parseVideoScript(ROBOTS)
+    const tl = buildTimeline([4, 3, 3])
+    const d = buildStageData(script, tl, ['hermes', 'claude'], ['assets/a.png', null, 'assets/c.png'], { accent: '#f00', accent2: '#00f' })
+    expect(d.syl.some((s) => s[0] === 0)).toBe(true)
+    expect(d.syl.some((s) => s[0] === 1)).toBe(true)
+    expect(d.lines[0]).toMatchObject({ who: 1, emotion: 'sorprendido' })
+    expect(d.screens).toEqual([[0, 0], [tl.scenes[0].start, 0], [tl.scenes[1].start, -1], [tl.scenes[2].start, 2]])
+    expect(d.ticks.length).toBe(5)
+    expect(d.shots[d.shots.length - 1]).toMatchObject({ start: tl.outroStart, kind: 'wide' })
+    const input = { script, format: 'vertical' as const, timeline: tl, images: ['assets/a.png', null, 'assets/c.png'], audio: 'a.wav', gsap: 'g.js' }
+    const { html } = buildCharlaComposition(input, d)
+    expect(html).toContain('<canvas id="stage" width="1080" height="1920">')
+    expect(html).toContain('<script type="module">')
+    expect(html).toContain("import * as THREE from './assets/three.module.js'")
+    expect(html).toContain('<img class="stageimg" src="assets/c.png"')
+    expect(html).not.toContain('class="clip shot"')
+    expect(html).toContain('PASO 1/2')
+    expect(html).not.toMatch(/Math\.random|Date\.now/)
+    expect(buildCharlaComposition(input, d).html).toBe(html)
+  })
+
+  it('con los robots, el encargo pide lo que sale en la pantalla y no planos de los personajes', () => {
+    const p = videoScriptPrompt({ topic: 'x', format: 'vertical', lang: 'es', style: 'charla', dialogue: true, cast: { images: [], name: 'Robots de kywai' } })
+    expect(p).toContain('PANTALLA GIGANTE')
+    expect(p).not.toContain('"shots"')
+    const q = videoScriptPrompt({ topic: 'x', format: 'vertical', lang: 'es', style: 'charla', dialogue: true, cast: { images: [], name: 'Luna' } })
+    expect(q).toContain('"shots"')
   })
 })

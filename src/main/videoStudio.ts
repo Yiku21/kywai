@@ -27,6 +27,7 @@ import {
   type VideoScript
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
+import { buildStageData, stageLooks } from './charlaStage'
 import { buildCharlaComposition } from './videoCharla'
 import { contactSheetArgs, filmCheckArgs, flatFramesArgs, flatLookIssue, flatShare, parseFilmCheck, parsePpm } from './filmCheck'
 import { EARSHOT_DEPS, EARSHOT_PIP, earshotInstalledIn, ensureSfxBank, loadSfxBank, sfxBankSummary } from './sfxBank'
@@ -59,6 +60,16 @@ const IS_LINUX = process.platform === 'linux'
 /** Versiones fijas: el mismo guion se monta igual dentro de meses. */
 export const HYPERFRAMES_VERSION = '0.9.26'
 export const GSAP_VERSION = '3.13.0'
+/** three.js para el plató 3D de «Charla y tutorial» (la misma versión que la escena de la app). */
+export const THREE_VERSION = '0.186.1'
+
+/** El módulo de three.js del estudio (lo instala «Instalar lo que falta» junto a HyperFrames y GSAP). */
+const threeModule = (): string => join(root, 'node_modules', 'three', 'build', 'three.module.js')
+
+/** Copia three.js junto al vídeo (el módulo importa three.core.js de su misma carpeta). */
+function copyThree(assets: string): void {
+  for (const f of ['three.module.js', 'three.core.js']) copyFileSync(join(root, 'node_modules', 'three', 'build', f), join(assets, f))
+}
 const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image'
 /** Voz de Gemini (la misma clave que las imágenes): se prueba en orden por si alguno deja de existir. */
 // Primero Pro (actúa mejor: emoción y diálogos más naturales); si no está o se agota la cuota, Flash.
@@ -482,7 +493,7 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
     voiceboxProfiles(),
     freeVideoStatus()
   ])
-  const engine = !!root && existsSync(bin('hyperframes')) && existsSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js'))
+  const engine = !!root && existsSync(bin('hyperframes')) && existsSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js')) && existsSync(threeModule())
   const key = !!geminiApiKey()
   const voice = vbox?.length ? 'voicebox' : key ? 'gemini' : kokoro ? 'kokoro' : sys ? 'system' : null
   return { engine, ffmpeg: ffmpeg && ffprobe, voice, kokoro, images: comfy.info ? 'comfyui' : key ? 'gemini' : null,
@@ -547,9 +558,9 @@ export async function installVideoStudio(onLine: (l: string) => void = () => und
   mkdirSync(root, { recursive: true })
   writeFileSync(
     join(root, 'package.json'),
-    JSON.stringify({ name: 'kywai-estudio-video', private: true, type: 'module', dependencies: { hyperframes: HYPERFRAMES_VERSION, gsap: GSAP_VERSION } }, null, 2)
+    JSON.stringify({ name: 'kywai-estudio-video', private: true, type: 'module', dependencies: { hyperframes: HYPERFRAMES_VERSION, gsap: GSAP_VERSION, three: THREE_VERSION } }, null, 2)
   )
-  onLine('Instalando HyperFrames y GSAP…')
+  onLine('Instalando HyperFrames, GSAP y three.js…')
   const npm = await run('npm', ['install', '--no-audit', '--no-fund', '--loglevel=error'], { cwd: root, timeoutMs: 15 * 60_000, onLine })
   if (npm.code !== 0) onLine(`No se pudo instalar HyperFrames: ${npm.out.trim().split('\n').slice(-3).join(' ')}`)
   if (!(await has('ffmpeg')) || !(await has('ffprobe'))) {
@@ -1267,10 +1278,14 @@ export async function renderVideo(input: {
   const cartoon = hasPresenter(script.style)
   // Charla y tutorial: varios planos por escena (como el cartoon), pero sin presentador y con el aspecto de maqueta 3D.
   const charla = script.style === 'charla'
-  if (charla && !script.look) script.look = CHARLA_LOOK
+  // Con los robots de kywai, «Charla y tutorial» va en el plató 3D (charlaStage.ts): los robots se animan ahí y las
+  // imágenes son solo lo que sale en la pantalla de detrás, así que no llevan a los personajes.
+  const stageBots = charla && existsSync(threeModule()) ? stageLooks(script) : null
+  if (stageBots) copyThree(join(dir, 'assets'))
+  if (charla && !stageBots && !script.look) script.look = CHARLA_LOOK
   const refs = (input.refs ?? []).filter((f) => existsSync(f))
-  const castImages = (input.cast?.images ?? []).filter((f) => existsSync(f))
-  const castText = script.cast || input.cast?.notes
+  const castImages = stageBots ? [] : (input.cast?.images ?? []).filter((f) => existsSync(f))
+  const castText = stageBots ? undefined : script.cast || input.cast?.notes
   const cast = castImages.length || castText ? { images: castImages, text: castText } : undefined
   const key = geminiApiKey()
   const n = script.scenes.length
@@ -1577,7 +1592,7 @@ export async function renderVideo(input: {
   if (signal?.aborted) throw new Error('Cancelada')
   step('Componiendo la música y mezclando', 0.55)
   const compInput = { script, format, timeline: tl, images, shots, clips, audio: 'assets/mezcla.wav', gsap: 'assets/gsap.min.js', ...(presenter ? { presenter } : {}) }
-  const comp = charla ? buildCharlaComposition(compInput) : cartoon ? buildCartoonComposition(compInput) : buildComposition(compInput)
+  const comp = charla ? buildCharlaComposition(compInput, stageBots ? buildStageData(script, tl, stageBots, images, THEMES[script.theme]) : undefined) : cartoon ? buildCartoonComposition(compInput) : buildComposition(compInput)
   writeFileSync(join(dir, 'musica.wav'), synthMusic(tl.total, script.title))
   // Como mucho 90 s de espera: lo que no esté listo sale sintetizado.
   await Promise.race([sfxReady, new Promise((ok) => setTimeout(ok, 90_000))])

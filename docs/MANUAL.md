@@ -2178,6 +2178,18 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    quién habla** (`shotCuts`). La composición es `src/main/videoCharla.ts`; el encargo del guion,
    `charlaScriptPrompt` en `src/main/videoScript.ts`. Este tipo no usa la biblioteca de películas (si se elige un
    estilo, se ignora) y el agente inventa su propia maqueta: nunca copia la de otro vídeo.
+   **Con los robots de kywai, los personajes se mueven de verdad** (`src/main/charlaStage.ts`): Hermes, Claude y
+   Codex están hechos en three.js dentro de un plató de juguete (salita con alfombra, estantería, planta, lámpara y una
+   **pantalla gigante** que muestra la imagen de cada escena) y se animan con la voz: la boca (una luz en el visor) y
+   el cuerpo rebotan con cada sílaba, parpadean, miran a quien habla, asienten al acabar una frase y reaccionan con la
+   emoción de cada frase (saltan al sorprenderse, se ríen, se agachan tristes, se inclinan para el susurro); en el
+   cierre saltan los dos. La **cámara** cambia de plano cuando cambia quién habla (`planShots`: general, primer plano,
+   por encima del hombro del otro y, al empezar un paso, la pantalla) y nunca está quieta (acercamiento, alejamiento,
+   arco, grúa y un temblor suave de cámara en mano). Todo depende solo del tiempo de la línea de GSAP, así que
+   HyperFrames graba cada fotograma igual (graba WebGL). En este modo las imágenes son solo lo de la pantalla (el
+   encargo pide «image» con lo que explica el paso, sin personajes) y no se usan los clips de FreeVideo. Necesita
+   three.js en el estudio (`THREE_VERSION`, se instala con HyperFrames y GSAP; un estudio sin él se completa solo la
+   próxima vez). Con otro personaje, el vídeo va con las imágenes a pantalla completa de antes.
 2. **Personaje.** *Ninguno (genérico)*: sin personaje fijo. *Robots de kywai*: Hermes, Claude y Codex. Los que hayas
    creado. Y **«Agregar personaje»**: nombre y una descripción, imágenes (hasta 6) o las dos cosas; la interfaz reduce
    las imágenes (1024 px, WebP) y hace una miniatura. Se guardan en kywai **para todos los proyectos**, en

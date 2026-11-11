@@ -209,10 +209,13 @@ export const HOOK_RULE =
 export const EMOTION_RULE =
   `- Voz con vida: delante de CADA frase de "narration" pon su emoción entre corchetes, una de ${VOICE_EMOTIONS.map((e) => `[${e}]`).join(', ')} («[sorprendido] ¿Diez minutos? [emocionado] ¡Y con música!»). La voz cambia de tono con ella, así que varíala como lo haría una persona contándolo: que no vayan más de dos frases seguidas con la misma, el gancho con fuerza, los problemas [triste] o [firme], las soluciones [alegre] o [emocionado], un secreto [susurro]. Los «…» hacen una pausa dramática. Las marcas no salen en pantalla ni se leen.`
 
+/** El personaje elegido son los robots de kywai (por su id o por su nombre en la biblioteca). */
+const isRobots = (name: string | undefined): boolean => name === ROBOTS_CHARACTER || /robots? de kywai/i.test(name ?? '')
+
 /** El diálogo: dos personajes que se contestan (como en los reels que más enganchan). */
 export function dialogueRules(cast?: { name?: string }): string[] {
   const who =
-    cast?.name === ROBOTS_CHARACTER || /robots? de kywai/i.test(cast?.name ?? '')
+    isRobots(cast?.name)
       ? 'Hermes y Claude, los robots de kywai'
       : cast?.name
         ? `${cast.name} y otro personaje que le dé la réplica (inventa uno que encaje)`
@@ -383,6 +386,20 @@ function cartoonScriptPrompt(input: PromptInput): string {
  */
 function charlaScriptPrompt(input: PromptInput): string {
   const seconds = input.format === 'vertical' ? '35 a 60' : '45 a 80'
+  // Con los robots de kywai, kywai los anima en 3D en un plató (se mueven, hablan y la cámara cambia de plano): las
+  // imágenes son solo lo que sale en la pantalla gigante de detrás.
+  const robots = isRobots(input.cast?.name)
+  const shotRules = robots
+    ? [
+        '- Los robots de kywai salen animados en 3D en un plató de juguete (kywai los mueve, les pone voz y mueve la cámara): NO los describas en ninguna imagen.',
+        '- "image": lo que se ve en la PANTALLA GIGANTE de detrás en esa escena, en inglés y en una frase: lo que explica el paso (la pantalla o el botón de la app, el resultado, un objeto, un esquema sencillo). Sin personas ni robots, sin texto, letras ni logotipos.',
+        '- "look": el estilo de esas imágenes de la pantalla, en inglés y de 20 a 50 palabras (por ejemplo, una ilustración limpia y luminosa de colores cálidos).'
+      ]
+    : [
+        '- "shots": de 1 a 3 planos de la escena, en inglés, uno por cada cambio de quién habla y en ese orden: un plano general con los dos («wide two-shot of A and B…») y primeros planos de quien habla en cada momento («close-up of A reacting…»). Di qué hacen, qué gesto ponen y qué objeto de la maqueta tiene que ver con el paso (una pantalla gigante, una herramienta de juguete…). Los personajes, en la mitad de abajo de la imagen: arriba va la tarjeta del paso. Sin texto, letras ni logotipos en la imagen.',
+        '- "look": el bloque de estilo de las imágenes, en inglés y de 30 a 70 palabras. Si no hay otro motivo, usa este (o uno muy parecido): ' + CHARLA_LOOK + '.',
+        '- Inventa tu propia maqueta para el tema (un taller, una cocina, un escritorio gigante…), nunca la de otro vídeo que hayas visto.'
+      ]
   return [
     'Escribe el guion de un reel «charla y tutorial»: dos personajes charlan delante de la cámara en una maqueta 3D de juguete y, mientras hablan, arriba de la pantalla salen los pasos que hay que seguir, uno a uno. Uno pregunta o se queja como lo haría el espectador; el otro le explica cómo se hace, con gracia. kywai pone las voces, las imágenes, las tarjetas de los pasos, la música y el montaje: tú solo escribes el guion.',
     '',
@@ -402,20 +419,18 @@ function charlaScriptPrompt(input: PromptInput): string {
     '- "step": el número del paso (1, 2, 3…) en las escenas que son un paso; 0 en el gancho y en el cierre.',
     '- "heading": el título del paso en la tarjeta de arriba, de 2 a 5 palabras («Abre los ajustes», «Elige la voz»). En el gancho y el cierre, una idea de 2 a 4 palabras.',
     `- "items" (en los pasos): de 1 a ${MAX_ITEMS} puntos cortos de lo que hay que hacer exactamente (de 2 a 6 palabras cada uno, sin punto final: «Pulsa Ajustes», «Activa Modo calidad»). Se marcan uno a uno mientras hablan.`,
-    '- "shots": de 1 a 3 planos de la escena, en inglés, uno por cada cambio de quién habla y en ese orden: un plano general con los dos («wide two-shot of A and B…») y primeros planos de quien habla en cada momento («close-up of A reacting…»). Di qué hacen, qué gesto ponen y qué objeto de la maqueta tiene que ver con el paso (una pantalla gigante, una herramienta de juguete…). Los personajes, en la mitad de abajo de la imagen: arriba va la tarjeta del paso. Sin texto, letras ni logotipos en la imagen.',
-    '- "look": el bloque de estilo de las imágenes, en inglés y de 30 a 70 palabras. Si no hay otro motivo, usa este (o uno muy parecido): ' + CHARLA_LOOK + '.',
-    '- Inventa tu propia maqueta para el tema (un taller, una cocina, un escritorio gigante…), nunca la de otro vídeo que hayas visto.',
+    ...shotRules,
     '- "cta": la llamada a comentar del final: {"word": una palabra corta en mayúsculas que la gente escribirá en los comentarios, "line": por qué comentarla, en 3 a 8 palabras (sin prometer nada que no se pueda cumplir)}. En la última escena, uno de los dos lo dice en voz alta.',
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')} (el color de las tarjetas); para una maqueta cálida van bien "amanecer" o "papel".`,
     '- "outro": frase final corta para la última pantalla.',
-    ...castRules(input),
+    ...(robots ? [] : castRules(input)),
     ...(input.episode ? episodeRules(input.episode) : []),
     '- Si el tema necesita datos actuales o técnicos, compruébalos antes; no inventes.',
     '- No crees ni cambies archivos: responde solo con el JSON.',
     ...(input.retry ? ['', `Tu respuesta anterior no valía: ${input.retry}`] : []),
     '',
     'Responde SOLO con este JSON, sin nada antes ni después:',
-    '{"title": "…", "lang": "' + input.lang + '", "style": "charla", "theme": "amanecer", "look": "…", ' + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + '"speakers": [{"name": "…", "gender": "f"}, {"name": "…", "gender": "m"}], "scenes": [{"heading": "…", "narration": "[Nombre1, sorprendido] … [Nombre2, alegre] …", "comments": ["…", "…"], "shots": ["…", "…"], "step": 0}, {"heading": "…", "narration": "…", "items": ["…", "…"], "shots": ["…"], "step": 1}], "cta": {"word": "…", "line": "…"}, "outro": "…"}'
+    '{"title": "…", "lang": "' + input.lang + '", "style": "charla", "theme": "amanecer", "look": "…", ' + (input.cast || input.episode ? '"cast": "…", ' : '') + (input.episode ? '"episode": {"summary": "…", "cliffhanger": "…", "question": "…"}, ' : '') + '"speakers": [{"name": "…", "gender": "f"}, {"name": "…", "gender": "m"}], "scenes": [{"heading": "…", "narration": "[Nombre1, sorprendido] … [Nombre2, alegre] …", "comments": ["…", "…"], ' + (robots ? '"image": "…"' : '"shots": ["…", "…"]') + ', "step": 0}, {"heading": "…", "narration": "…", "items": ["…", "…"], ' + (robots ? '"image": "…"' : '"shots": ["…"]') + ', "step": 1}], "cta": {"word": "…", "line": "…"}, "outro": "…"}'
   ].join('\n')
 }
 

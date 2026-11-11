@@ -3,6 +3,7 @@
 // hacer y los puntos que se marcan uno a uno); en el gancho, las preguntas del público en burbujas de comentario; al
 // final, la llamada a comentar una palabra. Subtítulos con el nombre de quien habla. Todo determinista (HyperFrames
 // salta de fotograma en fotograma).
+import { STAGE_RUNTIME, type StageData } from './charlaStage'
 import { beatsOf, esc, round, sceneWords, speakerChip, THEMES, VOICE_LEAD_S, type Composition, type CompositionInput, type TimedWord } from './videoScript'
 
 function stepWord(lang: string): string {
@@ -39,9 +40,15 @@ export function shotCuts(words: TimedWord[], shots: number, start: number, durat
 const BUBBLE_ICON = (fill: string): string =>
   `<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="${fill}"/></svg>`
 
-export function buildCharlaComposition(input: CompositionInput): Composition {
+/**
+ * Con `stage` (los dos personajes son robots de kywai), el fondo es el plató 3D de charlaStage.ts: los robots se mueven
+ * y hablan, la cámara cambia de plano y la imagen de cada escena sale en la pantalla gigante de detrás. Sin él, cada
+ * escena son sus imágenes a pantalla completa.
+ */
+export function buildCharlaComposition(input: CompositionInput, stage?: StageData): Composition {
   const { script, format, timeline: tl } = input
-  const shotsOf = input.shots ?? input.images.map((x) => [x])
+  const shotsOf = stage ? script.scenes.map(() => []) : input.shots ?? input.images.map((x) => [x])
+  const backdrop = stage ? '' : '<div class="plain"></div>'
   const vertical = format === 'vertical'
   const W = vertical ? 1080 : 1920
   const H = vertical ? 1920 : 1080
@@ -61,7 +68,7 @@ export function buildCharlaComposition(input: CompositionInput): Composition {
   const first = (shotsOf[0] ?? []).find((x): x is string => !!x) ?? null
   const titleWords = script.title.split(/\s+/).filter(Boolean)
   html.push(`<section id="intro" class="clip" data-start="0" data-duration="${R(tl.intro + 0.3)}">
-  ${first ? `<div class="shot"><img id="introimg" src="${esc(first)}" alt=""></div>` : '<div class="plain"></div>'}
+  ${first ? `<div class="shot"><img id="introimg" src="${esc(first)}" alt=""></div>` : backdrop}
   <div class="shade"></div>
   <div class="tbox"><h1 class="title">${titleWords.map((w, i) => `<span class="tw" id="tw${i}">${esc(w)}</span>`).join(' ')}</h1></div>
 </section>`)
@@ -76,7 +83,7 @@ export function buildCharlaComposition(input: CompositionInput): Composition {
   script.scenes.forEach((sc, i) => {
     const t = tl.scenes[i]
     const id = `s${i + 1}`
-    const clip = input.clips?.[i] ?? null
+    const clip = stage ? null : input.clips?.[i] ?? null
     const shots = clip ? [] : (shotsOf[i] ?? []).filter((x): x is string => !!x)
     if (clip) clipHtml.push(`<video id="${id}m" class="clip manimv" src="${esc(clip)}" muted playsinline data-start="${t.start}" data-duration="${t.duration}"></video>`)
     const voiceAt = t.start + VOICE_LEAD_S
@@ -91,7 +98,7 @@ export function buildCharlaComposition(input: CompositionInput): Composition {
           .join('\n  ')
       : clip
         ? ''
-        : '<div class="plain"></div>'
+        : backdrop
 
     // La tarjeta de arriba: el paso con sus puntos, o (en el gancho y el cierre) la idea de la escena.
     const items = sc.step ? sc.items ?? [] : []
@@ -110,7 +117,7 @@ export function buildCharlaComposition(input: CompositionInput): Composition {
       .map((b, k) => {
         const s = b[0].start
         const e = k + 1 < beats.length ? beats[k + 1][0].start : t.start + t.duration
-        return `<div class="clip cap" id="${id}c${k}" data-start="${R(s - 0.05)}" data-duration="${R(e - s + 0.05)}"><div class="ct">${speakerChip(script, b[0].who, th)}${b
+        return `<div class="clip cap" id="${id}c${k}" data-start="${R(s - 0.05)}" data-duration="${R(e - s)}"><div class="ct">${speakerChip(script, b[0].who, th)}${b
           .map((w, j) => `<span class="w${w.key ? ' key' : ''}" id="${id}c${k}w${j}">${esc(w.text)}</span>`)
           .join(' ')}</div></div>`
       })
@@ -172,8 +179,8 @@ export function buildCharlaComposition(input: CompositionInput): Composition {
   const outWords = script.outro.split(/\s+/).filter(Boolean)
   const cta = script.cta
   html.push(`<section id="outro" class="clip" data-start="${tl.outroStart}" data-duration="${tl.outro}">
-  ${last ? `<div class="shot blur"><img id="outimg" src="${esc(last)}" alt=""></div>` : '<div class="plain"></div>'}
-  <div class="shade dark"></div>
+  ${last ? `<div class="shot blur"><img id="outimg" src="${esc(last)}" alt=""></div>` : backdrop}
+  <div class="shade dark${stage ? ' soft' : ''}"></div>
   <div class="tbox">
     ${cta ? `<div class="cta" id="cta"><div class="cword"><span class="cicon">${BUBBLE_ICON(th.onAccent)}</span>${esc(commentWord(script.lang))} <b id="ctaw">${esc(cta.word)}</b></div>${cta.line ? `<div class="cline">${esc(cta.line)}</div>` : ''}</div>` : ''}
     <h2 class="title outro">${outWords.map((w, i) => `<span class="tw" id="ow${i}">${esc(w)}</span>`).join(' ')}</h2>
@@ -214,6 +221,9 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #1b162
 .shade { position: absolute; inset: 0; pointer-events: none; z-index: 2;
   background: linear-gradient(180deg, rgba(10,8,20,0.42) 0%, rgba(10,8,20,0) 26%, rgba(10,8,20,0) 52%, rgba(10,8,20,0.5) 72%, rgba(10,8,20,0.7) 100%); }
 .shade.dark { background: rgba(10,8,20,0.55); }
+.shade.dark.soft { background: rgba(10,8,20,0.32); }
+#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stageimg { display: none; }
 .flash { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 4; pointer-events: none; }
 .card { position: absolute; z-index: 5; left: ${vertical ? 50 : 60}px; right: ${vertical ? '50px' : 'auto'}; ${vertical ? '' : 'width: 820px;'} top: ${vertical ? 130 : 50}px;
   background: rgba(255,251,243,0.96); border-radius: 40px; padding: 30px 38px 32px; box-shadow: 0 18px 50px rgba(0,0,0,0.35), 0 0 0 6px rgba(255,255,255,0.35); }
@@ -254,6 +264,7 @@ html, body { width: ${W}px; height: ${H}px; overflow: hidden; background: #1b162
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="${tl.total}" data-width="${W}" data-height="${H}">
+${stage ? `<canvas id="stage" width="${W}" height="${H}"></canvas>\n${script.scenes.map((_, i) => (input.images[i] ? `<img class="stageimg" src="${esc(input.images[i]!)}" alt="">` : '<img class="stageimg" alt="">')).join('')}` : ''}
 ${clipHtml.join('\n')}
 ${html.join('\n')}
 <div id="barwrap"><div id="bar"></div></div>
@@ -266,6 +277,7 @@ ${a.join(';\n')};
 window.__timelines["main"] = tl;
 tl.seek(0);
 </script>
+${stage ? `<script>window.__stage = ${JSON.stringify(stage).replace(/</g, '\\u003c')};</script>\n<script type="module">${STAGE_RUNTIME}</script>` : ''}
 </body>
 </html>
 `
