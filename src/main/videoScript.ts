@@ -314,7 +314,7 @@ function cartoonScriptPrompt(input: PromptInput): string {
     `Escribe el guion de un vídeo de dibujos animados en el que ${host} lo explica todo hablando a cámara${mixed ? ', alternando con golpes de texto grande con ritmo, como en TikTok' : ''}. kywai dibuja y anima al personaje, pone la voz, las ilustraciones, la música y el montaje: tú solo escribes el guion.`,
     '',
     `Tema: ${input.topic}`,
-    ...(input.source ? ['', 'El vídeo trata de este mensaje (explícalo bien, sin copiarlo entero):', ', input.source.slice(0, 6000), '] : []),
+    ...(input.source ? ['', 'El vídeo trata de este mensaje (explícalo bien, sin copiarlo entero):', '"""', input.source.slice(0, 6000), '"""'] : []),
     '',
     `Formato: ${input.format === 'vertical' ? 'vertical 9:16 (TikTok, Reels, Shorts)' : 'horizontal 16:9 (YouTube)'}; duración total de ${seconds} segundos.`,
     `Idioma de la voz y los textos: ${input.lang}.`,
