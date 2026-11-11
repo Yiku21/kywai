@@ -1056,4 +1056,8 @@ private fun part7(m: HashMap<String, String>) {
     m["Guardando en el móvil…"] = "Salvando no celular…"
     m["No se pudo descargar del ordenador."] = "Não foi possível baixar do computador."
     m["Este archivo no se puede reproducir en el móvil."] = "Este arquivo não pode ser reproduzido no celular."
+    m["vídeo adjunto"] = "vídeo anexado"
+    m["[n] vídeo adjunto"] = "[n] vídeo anexado"
+    m["Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos"] = "Edita sua gravação: tira muletas, silêncios e tomadas repetidas, limpa a voz e põe legendas"
+    m["Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos"] = "Tira os melhores momentos de um vídeo longo como clipes verticais com legendas"
 }

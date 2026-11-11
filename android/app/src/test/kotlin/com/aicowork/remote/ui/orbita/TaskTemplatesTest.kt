@@ -152,7 +152,7 @@ class TaskTemplatesTest {
     fun rulesOfTheCommandList() {
         assertEquals(listOf("usage"), ChatCommands.suggestions("usa").map { it.command })
         val mods = listOf(ChatCommands.ModCommand("resumir", "Resume", "Notas"), ChatCommands.ModCommand("rutina", "Tapada", "Notas"))
-        assertEquals(listOf("recuerda", "revisar-pr", "resumir"), ChatCommands.suggestions("re", templates, mods).map { it.command })
+        assertEquals(listOf("recortes", "recuerda", "revisar-pr", "resumir"), ChatCommands.suggestions("re", templates, mods).map { it.command })
         assertTrue(ChatCommands.isUsageCommand(" /cuotas "))
         assertTrue(ChatCommands.isClearCommand("/nuevo chat"))
     }

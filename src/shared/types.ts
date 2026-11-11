@@ -304,6 +304,28 @@ export interface Task {
     /** La habilidad que se guardó. */
     skill?: string
   }
+  /**
+   * «/editar» y «/recortes»: una grabación del usuario que kywai edita (src/main/footage.ts). Whisper la transcribe
+   * palabra a palabra, el agente dice en JSON qué sobra (o qué momentos valen como clips) y kywai corta y monta.
+   */
+  footage?: {
+    mode: 'editar' | 'recortes'
+    note: string
+    frame: 'original' | 'vertical' | 'cuadrado' | 'horizontal'
+    look: 'natural' | 'calido' | 'frio' | 'contraste' | 'ninguno'
+    subtitles: boolean
+    /** «/recortes»: cuántos clips. */
+    count?: number
+    /** El vídeo adjunto (su ruta de adjunto en el proyecto) y su nombre. */
+    source: string
+    name: string
+    /** Carpeta de trabajo (relativa al proyecto): palabras.json y los fotogramas. */
+    work: string
+    /** Ya está transcrita. */
+    ready?: boolean
+    seconds?: number
+    frames?: string[]
+  }
 }
 
 /** Cambios de una tarea en la carpeta del proyecto, guardados como dos instantáneas (ver checkpoints.ts). */

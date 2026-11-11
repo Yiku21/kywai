@@ -27,6 +27,8 @@ export type CommandIcon = 'video' | 'series' | 'learn' | 'publish' | 'routine' |
 export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
   { name: 'video', aliases: [], args: 'tema', description: 'Crea un vídeo completo en el estilo que elijas y te da solo el MP4', icon: 'video' },
   { name: 'serie', aliases: ['series', 'episodios'], args: 'idea [en 5 episodios]', description: 'Una historia en episodios con los mismos personajes, cada uno acaba en suspense', icon: 'series' },
+  { name: 'editar', aliases: ['edita', 'edit'], args: 'vídeo adjunto', description: 'Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos', icon: 'video' },
+  { name: 'recortes', aliases: ['recorta', 'recortar', 'clips', 'clipify'], args: '[n] vídeo adjunto', description: 'Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos', icon: 'video' },
   { name: 'aprende', aliases: ['aprender', 'learn'], args: 'enlace o vídeo', description: 'Convierte lo que enseña un vídeo en una habilidad', icon: 'learn' },
   { name: 'instagram', aliases: ['insta', 'ig'], args: 'qué quieres en el texto', description: 'Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno', icon: 'publish' },
   { name: 'tiktok', aliases: ['tt'], args: 'qué quieres en el texto', description: 'Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno', icon: 'publish' },

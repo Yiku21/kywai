@@ -1056,4 +1056,8 @@ private fun part7(m: HashMap<String, String>) {
     m["Guardando en el móvil…"] = "正在保存到手机…"
     m["No se pudo descargar del ordenador."] = "无法从电脑下载。"
     m["Este archivo no se puede reproducir en el móvil."] = "此文件无法在手机上播放。"
+    m["vídeo adjunto"] = "附加的视频"
+    m["[n] vídeo adjunto"] = "[n] 附加的视频"
+    m["Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos"] = "剪辑你的录像：去掉口头禅、停顿和重复镜头，清理人声并加字幕"
+    m["Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos"] = "把长视频中最精彩的时刻剪成带字幕的竖屏片段"
 }

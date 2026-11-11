@@ -10,14 +10,14 @@ describe('lista del «/»', () => {
 
   it('con «/» sola salen todas: primero las de kywai, luego plantillas y mods', () => {
     const all = commandSuggestions('', { templates, mods })
-    expect(all.map((c) => c.command)).toEqual(['video', 'serie', 'aprende', 'instagram', 'tiktok', 'ig-plan', 'ig-viral', 'ig-reel', 'ig-profile', 'ig-audit', 'ig-reply', 'ig-comment', 'rutina', 'directo', 'recuerda', 'model', 'uso', 'nuevo', 'revisar-pr', 'traducir'])
+    expect(all.map((c) => c.command)).toEqual(['video', 'serie', 'editar', 'recortes', 'aprende', 'instagram', 'tiktok', 'ig-plan', 'ig-viral', 'ig-reel', 'ig-profile', 'ig-audit', 'ig-reply', 'ig-comment', 'rutina', 'directo', 'recuerda', 'model', 'uso', 'nuevo', 'revisar-pr', 'traducir'])
     expect(all.every((c) => c.description.length > 0)).toBe(true)
   })
 
   it('filtra por lo escrito y entiende los otros nombres', () => {
     expect(commandSuggestions('vi').map((c) => c.command)).toEqual(['video'])
     expect(commandSuggestions('usa').map((c) => c.command)).toEqual(['usage'])
-    expect(commandSuggestions('re', { templates }).map((c) => c.command)).toEqual(['recuerda', 'revisar-pr'])
+    expect(commandSuggestions('re', { templates }).map((c) => c.command)).toEqual(['recortes', 'recuerda', 'revisar-pr'])
   })
 
   it('las que no llevan nada detrás se hacen al elegirlas', () => {

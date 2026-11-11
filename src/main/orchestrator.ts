@@ -89,6 +89,7 @@ import { saveCharacterLook, videoCharacter } from './videoCharacters'
 import { videoLang, type VideoKind } from '../shared/videoChoice'
 import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
+import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
 import { isMediaFile, learnPrompt, parseLearnedSkill, parseLearnRequest, prepareLearnSource, saveLearnedSkill, type LearnRequest } from './learn'
 import { BEATS_FILE, FILM_3D, filmPrompt, filmReady, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
 import { filmFixRequest, filmReviewPrompt, MAX_FILM_FIXES } from './filmCheck'
@@ -1543,6 +1544,14 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
       throw new Error(tr('¿De qué aprendo? Pon un enlace («/aprende https://…») o adjunta un vídeo o un audio.'))
     return sendLearn(st, learnReq, atts, input.clientMessageId, routine, text.trim())
   }
+  // «/editar» (quita muletillas, silencios y tomas repetidas) y «/recortes» (los mejores momentos como clips) de un
+  // vídeo adjunto.
+  const footageReq = fromMsg || tpl ? null : parseFootageRequest(text)
+  if (footageReq) {
+    if (!atts.some((a) => isVideoFile(a.relPath)))
+      throw new Error(footageReq.mode === 'editar' ? tr('Adjunta la grabación que quieres editar a «/editar».') : tr('Adjunta el vídeo largo del que saco los clips a «/recortes».'))
+    return sendFootage(st, footageReq, atts, input.clientMessageId, routine, text.trim())
+  }
 
   // «/instagram [qué quieres en el texto]»: el último vídeo (o el adjunto) con su texto, listo para publicar.
   const igReq = fromMsg || tpl ? null : parseInstagramRequest(text)
@@ -2530,6 +2539,83 @@ async function sendLearn(
   return { runId }
 }
 
+/** «/editar» y «/recortes»: una sola tarea. Antes se transcribe la grabación (prepareFootage); kywai monta con su JSON. */
+async function sendFootage(
+  st: ReturnType<typeof store.getProject>,
+  req: FootageRequest,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  const agent = bestAgentFor('edición de vídeo montaje guion redes sociales redacción')
+  if (!agent) throw new Error(tr('No hay ningún agente disponible para editar ese vídeo.'))
+  const video = atts.find((a) => isVideoFile(a.relPath))!
+  const runId = randomUUID()
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: shown,
+    createdAt: Date.now(),
+    attachments: atts.length ? atts : undefined,
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+  })
+  const run: Run = {
+    id: runId,
+    projectId,
+    userText: shown,
+    ...(routine ? { routine: routine.name } : {}),
+    attachments: atts,
+    attPaths: store.stageAttachments(projectId, atts),
+    planning: false,
+    taskIds: [],
+    meta: new Map(),
+    controllers: new Map(),
+    cancelled: false,
+    finished: false
+  }
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId,
+    seq: nextTaskSeq(projectId),
+    title: req.mode === 'editar' ? tr('Editar {name}', { name: video.name }) : tr('Sacar clips de {name}', { name: video.name }),
+    description: req.note || (req.mode === 'editar' ? tr('Quitar lo que sobra de la grabación') : tr('Los mejores momentos como clips cortos')),
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'file',
+    footage: {
+      mode: req.mode,
+      note: req.note,
+      frame: req.frame,
+      look: req.look,
+      subtitles: req.subtitles,
+      ...(req.count ? { count: req.count } : {}),
+      source: video.relPath,
+      name: video.name,
+      work: `.ai-cowork/edicion/${Date.now().toString(36)}`
+    }
+  }
+  run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
+  runs.set(runId, run)
+  emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
+  startRunUsage({ runId, projectId, projectName: st.project.name, request: shown })
+  await baseline(run)
+  tasks.set(t.id, t)
+  run.taskIds.push(t.id)
+  pushTask(t)
+  schedule()
+  return { runId }
+}
+
 /**
  * «/ig-…»: un agente con terminal sigue esa habilidad de Instagram Agent Skill. kywai descarga el paquete la primera
  * vez y deja los datos de la cuenta (perfil y últimas publicaciones con sus números) en un archivo para el agente.
@@ -2682,6 +2768,123 @@ async function completeLearn(run: Run, t: Task, exec: AgentConfig, parent: Agent
   l.skill = saved.name
   const text = tr('Aprendí «{name}»: {description}\n\nEstá en Habilidades y todo el equipo la usará cuando le sirva.', { name: saved.name, description: skill.description })
   await completeTask(run, t, exec, parent, { ...res, text })
+}
+
+/** Transcribe palabra a palabra la grabación de «/editar» o «/recortes» y saca unos fotogramas (una vez). */
+async function prepareFootage(run: Run, t: Task): Promise<void> {
+  const f = t.footage!
+  if (f.ready) return
+  const dir = join(store.workRoot(run.projectId), f.work)
+  const signal = run.controllers.get(t.id)?.signal
+  const file = attPath(run, f.source, true)
+  const info = await probeMedia(file)
+  if (!info.audio) throw new Error(tr('El vídeo no tiene sonido: no hay voz con la que editar'))
+  f.seconds = info.seconds
+  await transcribeWords(file, dir, signal, (text) => {
+    t.lastActivity = tr(text)
+    taskDirty(t)
+  })
+  f.frames = await videoFrames(file, join(dir, 'fotogramas'), f.mode === 'recortes' ? 8 : 4, signal)
+  f.ready = true
+  pushTask(t)
+}
+
+function footageWords(run: Run, t: Task): Word[] {
+  return JSON.parse(readFileSync(join(store.workRoot(run.projectId), t.footage!.work, 'palabras.json'), 'utf8')) as Word[]
+}
+
+/** «/editar» o «/recortes»: con el JSON del agente, kywai corta, limpia la voz, encuadra y subtitula. */
+async function completeFootage(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  const f = t.footage!
+  const meta = run.meta.get(t.id)!
+  const root = store.workRoot(run.projectId)
+  const src = attPath(run, f.source, true)
+  const signal = run.controllers.get(t.id)?.signal
+  let words: Word[]
+  try {
+    words = footageWords(run, t)
+  } catch {
+    f.ready = false
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('Faltaba la transcripción: se vuelve a preparar.') })
+    return
+  }
+  const fail = (e: unknown): void => {
+    if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+    t.status = 'failed'
+    t.error = tr('No se pudo montar el vídeo: {message}', { message: (e as Error).message })
+    t.finishedAt = Date.now()
+    pushTask(t)
+    closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
+  }
+  settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Montando el vídeo'), context: undefined })
+  const step = (text: string, p: number): void => {
+    t.lastActivity = tr(text)
+    t.progress = p
+    taskDirty(t)
+  }
+  const outDir = join(root, twoHandsBase(run.projectId), 'videos')
+  const work = join(root, f.work, 'montaje')
+  const base = videoSlug(f.name.replace(/\.[^.]+$/, '')) || 'video'
+  try {
+    const info = await probeMedia(src)
+    if (f.mode === 'editar') {
+      let plan
+      try {
+        plan = parseEditPlan(res.text, words.length)
+      } catch (e) {
+        handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('La edición no valía: {message}', { message: (e as Error).message }) })
+        return
+      }
+      const segs = keptSegments(words, plan.cut)
+      const out = join(outDir, `${videoSlug(plan.title) || base}-editado.mp4`)
+      const r = await renderFootage({ src, info, segs, frame: f.frame, look: f.look, subtitles: f.subtitles, ...(plan.x !== undefined ? { x: plan.x } : {}), out, dir: work, signal, onStep: step })
+      const rel = store.toRelPath(root, out)
+      if (rel) meta.touched.add(rel)
+      const check = await checkFilmFile(out)
+      const issues = check.issues.filter((i) => !/congelada/i.test(i))
+      const fillers = words.filter((w) => isFiller(w.w) && !plan.cut.has(w.i)).length
+      const text = [
+        tr('Aquí tienes «{title}» editado: de {before} s a {after} s.', { title: plan.title, before: Math.round(info.seconds), after: Math.round(r.seconds) }),
+        tr('Quité {takes} palabras de tomas repetidas o arranques en falso, {fillers} muletillas y los silencios largos; cada corte lleva un fundido corto, la voz va limpia y nivelada y el color, retocado.', { takes: plan.cut.size, fillers }),
+        f.subtitles && !r.subtitles ? tr('Los subtítulos no se pudieron quemar: el ffmpeg de este equipo no trae libass.') : '',
+        issues.length ? tr('Al repasarlo vi esto: {issues}', { issues: issues.join(' ') }) : ''
+      ].filter(Boolean).join('\n\n')
+      await completeTask(run, t, exec, parent, { ...res, text })
+      return
+    }
+    let clips
+    try {
+      clips = parseClipsPlan(res.text, words, f.count ?? 3)
+    } catch (e) {
+      handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('Los clips no valían: {message}', { message: (e as Error).message }) })
+      return
+    }
+    const lines: string[] = []
+    let noSubs = false
+    for (let k = 0; k < clips.length; k++) {
+      const c = clips[k]
+      const segs = keptSegments(words.slice(c.from, c.to + 1), new Set(), words)
+      const out = join(outDir, `recortes-${base}`, `${k + 1}-${videoSlug(c.title) || 'clip'}.mp4`)
+      const r = await renderFootage({
+        src, info, segs, frame: f.frame, look: f.look, subtitles: f.subtitles, title: c.title, ...(c.x !== undefined ? { x: c.x } : {}), out,
+        dir: work, signal,
+        onStep: (text, p) => step(text, (k + p) / clips.length)
+      })
+      if (f.subtitles && !r.subtitles) noSubs = true
+      const rel = store.toRelPath(root, out)
+      if (rel) meta.touched.add(rel)
+      lines.push(`${k + 1}. «${c.title}» (${Math.round(r.seconds)} s)${c.why ? `: ${c.why}` : ''}`)
+    }
+    const text = [
+      clips.length === 1 ? tr('Aquí tienes un clip de «{name}», listo para Reels y TikTok:', { name: f.name }) : tr('Aquí tienes {n} clips de «{name}», listos para Reels y TikTok:', { n: clips.length, name: f.name }),
+      lines.join('\n'),
+      noSubs ? tr('Los subtítulos no se pudieron quemar: el ffmpeg de este equipo no trae libass.') : '',
+      tr('Para publicar uno, adjúntalo a «/instagram» o «/tiktok».')
+    ].filter(Boolean).join('\n\n')
+    await completeTask(run, t, exec, parent, { ...res, text })
+  } catch (e) {
+    fail(e)
+  }
 }
 
 /** El guion ya está: kywai monta el vídeo y la tarea entrega solo el MP4 con una frase. */
@@ -4221,6 +4424,19 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       lang: userLanguageName()
     })
   }
+  if (t.footage?.ready) {
+    const f = t.footage
+    let words: Word[] = []
+    try {
+      words = footageWords(run, t)
+    } catch {
+      /* se vuelve a preparar si falta */
+    }
+    const common = { note: f.note, name: f.name, seconds: f.seconds ?? 0, frames: f.frames ?? [], reframe: f.frame !== 'original' }
+    return f.mode === 'editar'
+      ? editPrompt({ ...common, transcript: numberedTranscript(words) })
+      : clipsPrompt({ ...common, count: f.count ?? 3, transcript: rangedTranscript(words) })
+  }
   if (t.learn?.ready) {
     const work = join(store.workRoot(run.projectId), t.learn.work)
     const file = join(work, 'transcripcion.txt')
@@ -4508,6 +4724,21 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // Una consulta rápida solo lee: va a la carpeta tal cual, sin instantánea, sin ocuparla y sin copia aparte.
   const dir = t.video?.film && t.video.work ? await prepareFilm(run, t) : t.quick ? mainDir : await prepareWorkplace(run, t, meta, exec)
   if (t.video && !t.video.film && !t.video.refs) await prepareVideoRefs(run, t)
+  if (t.footage && !t.footage.ready) {
+    try {
+      await prepareFootage(run, t)
+    } catch (e) {
+      if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+      t.status = 'failed'
+      t.error = tr('No pude preparar la grabación: {message}', { message: tr((e as Error).message) })
+      t.finishedAt = Date.now()
+      pushTask(t)
+      setRuntime(exec.id, { activity: 'idle', taskId: undefined })
+      closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
+      schedule()
+      return
+    }
+  }
   if (t.learn && !t.learn.ready) {
     try {
       await prepareLearn(run, t)
@@ -4711,6 +4942,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     else if (blocked) await handleBlocked(run, t, exec, parent, res, blocked)
     else if (res.ok && t.video) await completeVideo(run, t, exec, parent, res)
     else if (res.ok && t.learn) await completeLearn(run, t, exec, parent, res)
+    else if (res.ok && t.footage) await completeFootage(run, t, exec, parent, res)
     else if (res.ok && t.instagram) await completeInstagram(run, t, exec, parent, res)
     else if (res.ok && t.igReply) await completeIgReply(run, t, exec, parent, res)
     else if (res.ok) {

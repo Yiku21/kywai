@@ -1821,6 +1821,51 @@ tarea.
 Si YouTube u otra web pide iniciar sesión («no eres un robot»), kywai lo dice: se descarga el vídeo y se adjunta. El
 audio no sale del equipo. Código: `src/main/learn.ts` (y `sendLearn`/`prepareLearn`/`completeLearn` en el orquestador).
 
+### Editar tus grabaciones (`/editar`) y sacar clips (`/recortes`)
+
+`/video` crea vídeos desde cero; estas dos órdenes editan **lo que grabaste tú**. Adjunta el vídeo al mensaje.
+
+**«/editar [lo que quieres]»** deja la grabación lista para publicar:
+
+- Quita las **muletillas** («eh», «em», «mmm», «um»; palabras de verdad como «este» o «pues», no), los **silencios
+  largos** (más de 0,45 s se quedan en un respiro), las **tomas repetidas** (deja la última buena), los **arranques en
+  falso** («hoy os enseño, perdón, hoy os enseño…») y lo que no es para el público («¿se oye?»). Lo que pidas quitar
+  («/editar quita la parte del café»), también.
+- Cada corte lleva un **fundido de 30 ms**: no se oyen chasquidos.
+- **Voz limpia y nivelada**: sin zumbidos graves, sin ruido de fondo y al volumen de las redes (−14 LUFS).
+- **Color** retocado suave; con `color:cálido`, `color:frío`, `color:contraste` o `color:ninguno` cambia.
+- **Subtítulos** quemados en grupos de hasta 3 palabras, la que suena en amarillo (`sin subtítulos` los quita).
+- Sale con el formato de la grabación; con `vertical` o `cuadrado`, recortada siguiendo a quien habla.
+
+**«/recortes [n] [lo que buscas]»** con un vídeo largo (una charla, un pódcast, un directo) saca los **n mejores
+momentos** (3 por defecto, hasta 8) como clips de 15 a 60 s para Reels, TikTok y Shorts: cada uno empieza con un gancho y
+acaba con la idea cerrada, sin muletillas ni pausas largas, en **vertical** (o `cuadrado` / `horizontal`), con
+subtítulos y **su título arriba** los primeros 3 segundos. Al entregarlos dice por qué engancha cada uno; para publicar
+uno, adjúntalo a `/instagram` o `/tiktok`.
+
+**El encuadre que sigue a quien habla** (como Clipify, sin reconocer caras): kywai compara cada fotograma con el
+anterior y busca la franja de la imagen con más movimiento (quien habla mueve la boca y la cabeza). Si en una
+entrevista habla el otro durante 2 s seguidos, el encuadre salta a él con un corte seco. Si casi nada se mueve (una
+pantalla, un plano fijo), usa dónde dijo el agente que está la persona al mirar los fotogramas. Una grabación más
+estrecha que el formato (un vídeo vertical que pides horizontal) va encajada sobre su propia imagen desenfocada.
+
+Cómo funciona (una sola tarea, sin plan de Hermes):
+1. kywai saca el audio con ffmpeg y lo **transcribe palabra a palabra con Whisper en el propio equipo**
+   (whisper-ctranslate2, modelo small, `--word_timestamps`), y saca 4 fotogramas (8 en `/recortes`). Queda en
+   `.ai-cowork/edicion/<id>/` (`palabras.json`, `fotogramas/`).
+2. Un agente lee la transcripción (en `/editar`, cada palabra con su número: `{12}hola`; en `/recortes`, cada frase
+   con su primera y última palabra: `#120-#135`) y responde solo un JSON: los tramos que sobran (`"cut": [[40, 52]]`)
+   o los clips (`"clips": [{"title", "from", "to", "why"}]`). Si no vale (o quitaría más del 70 % del vídeo), se
+   reintenta con otro agente.
+3. kywai corta cada tramo con su fundido, los une limpiando la voz, encuadra, retoca el color y quema los subtítulos
+   (ffmpeg con libass; si no lo trae, entrega sin subtítulos y lo dice). Después lo repasa (pantallas negras,
+   silencios) y lo cuenta en la respuesta. Se entrega en `videos/<título>-editado.mp4` o
+   `videos/recortes-<grabación>/<n>-<título>.mp4`.
+
+Nada sale del equipo: sin claves de pago. Ideas de [video-use](https://github.com/browser-use/video-use) y
+[Clipify](https://github.com/louisedesadeleer/clipify) (las dos MIT), reimplementadas. Código: `src/main/footage.ts`
+(y `sendFootage`/`prepareFootage`/`completeFootage` en el orquestador).
+
 ### Series por episodios (`/serie`)
 
 **«/serie <idea> [en 5 episodios]»** cuenta una historia en vídeos cortos con **los mismos personajes**, para subirlos
@@ -2415,13 +2460,15 @@ del mensaje.
 ### Todas las órdenes al escribir / o @
 
 Al escribir **«/»** al principio del cuadro del chat sale la lista de **todas** las órdenes que tienes, cada una con
-lo que hace a la derecha; si sigues escribiendo se filtra («/re» deja `/recuerda` y `/revisar-pr`). Con las flechas
+lo que hace a la derecha; si sigues escribiendo se filtra («/re» deja `/recortes`, `/recuerda` y `/revisar-pr`). Con las flechas
 eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web y Órbita.
 
 | Orden | Lo que hace |
 |---|---|
 | `/video tema` | Crea un vídeo completo en el estilo que elijas y te da solo el MP4 (ver «Crear vídeos con solo pedirlo») |
 | `/serie idea [en 5 episodios]` | Una historia en episodios con los mismos personajes, cada uno acaba en suspense (ver «Series por episodios») |
+| `/editar` (con un vídeo adjunto) | Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos (ver «Editar tus grabaciones») |
+| `/recortes [n]` (con un vídeo adjunto) | Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos |
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
 | `/tiktok qué quieres en el texto` | Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno (ver «El TikTok de kywai») |
