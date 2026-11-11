@@ -3558,6 +3558,10 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   (la luz viva y la cámara que respira nunca dejan la escena quieta), y la tarjeta gráfica iba a tope todo el rato.
   Cada fotograma cae justo en un refresco, así que no hay tirones. El ajuste automático de calidad solo baja si el
   equipo no llega a 24 (`MAX_FPS` en `scene/frameRate.ts`).
+- **Sombras a 15 por segundo.** Las sombras de los mapas se recalculan 15 veces por segundo y no en cada
+  fotograma. Recalcularlas obliga a dibujar otra vez todo lo que hace sombra, así que antes la escena se dibujaba
+  casi dos veces en cada fotograma. Con los robots moviéndose despacio no se nota (`ShadowThrottle` en
+  `scene/World.tsx`).
 - **El 3D descansa cuando no lo miras.** Con la ventana o la pestaña oculta (minimizada, o tapada del todo si el sistema lo avisa) se para.
   Con la ventana a la vista pero sin foco (estás en otra app) se dibuja a 20 fotogramas por segundo: se sigue viendo
   a los robots trabajar y gasta mucho menos. Al volver a la ventana recupera la fluidez normal.

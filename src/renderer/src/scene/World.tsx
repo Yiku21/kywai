@@ -164,6 +164,35 @@ function FrameLimiter({ active, fps }: { active: boolean; fps: number }) {
   return null
 }
 
+/** Veces por segundo que se recalculan las sombras (la escena se dibuja a [MAX_FPS]). */
+const SHADOW_FPS = 15
+
+/**
+ * Las sombras se recalculan [SHADOW_FPS] veces por segundo y no en cada fotograma: recalcularlas obliga a dibujar
+ * otra vez todo lo que hace sombra, así que en cada fotograma la escena se dibujaba casi dos veces.
+ */
+function ShadowThrottle({ active }: { active: boolean }) {
+  const gl = useThree((st) => st.gl)
+  const since = useRef(Infinity)
+  useEffect(() => {
+    if (!active) return
+    gl.shadowMap.autoUpdate = false
+    gl.shadowMap.needsUpdate = true
+    return () => {
+      gl.shadowMap.autoUpdate = true
+    }
+  }, [active, gl])
+  useFrame((_, delta) => {
+    if (!active) return
+    since.current += delta
+    if (since.current >= 1 / SHADOW_FPS - 0.004) {
+      since.current = 0
+      gl.shadowMap.needsUpdate = true
+    }
+  })
+  return null
+}
+
 /** ¿Tiene foco la ventana? (un iframe propio, como el reproductor de música, cuenta como foco). */
 function useWindowFocus(): boolean {
   const [focused, setFocused] = useState(() => document.hasFocus())
@@ -233,6 +262,7 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
       <fog key={`fog-${theme}`} attach="fog" args={[night ? '#0a1727' : p.fog, fogNear, fogFar]} />
       <SceneClock />
       <FrameLimiter active={visible} fps={focused ? MAX_FPS : IDLE_FPS} />
+      <ShadowThrottle active={!!p.world && q.shadows} />
       {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. Con el tope de [MAX_FPS], baja si no llega a 24. */}
       {adaptive && focused && visible && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [24, 29]} />}
 
