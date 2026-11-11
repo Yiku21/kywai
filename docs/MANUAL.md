@@ -397,6 +397,13 @@ preguntar. Órbita se cierra al instalarse: vuelve a abrirla. La versión sale d
 basta con actualizar kywai en el ordenador (⚙ → «Buscar actualizaciones…») para que el móvil la vea. Solo
 hay que instalar la APK a mano una vez: la primera versión que trae este botón.
 
+Si el ordenador tiene kywai **descargado de Releases** (sin la carpeta del código), no hay `android/release/` que
+leer: cuando el móvil pregunta, kywai baja `orbita.json` y `orbita.apk` de `master` del repositorio público
+(`raw.githubusercontent.com/Yiku21/kywai/master/android/release/`), comprueba que la APK es exactamente la anotada
+(huella SHA-256) y la guarda en su carpeta de datos (`orbita-release/`). Consulta como mucho cada 15 minutos y solo
+vuelve a bajar la APK si se ha publicado otra; sin internet sigue ofreciendo la que ya tenía. Así a cualquier
+usuario le llega sola la misma Órbita que a la Release, sin bajarla a mano (`src/main/orbitaRelease.ts`).
+
 **La APK se publica sola desde GitHub.** Cada vez que cambia el código de Órbita en `master`, GitHub Actions
 («Publicar Órbita», `.github/workflows/publicar-orbita.yml`) pasa las pruebas de Android, compila la app firmada con
 la clave de siempre, comprueba que el certificado es el mismo de la versión anterior (si no, se para: el móvil no la
