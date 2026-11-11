@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BadgeCheck, BookOpen, CircleHelp, Clapperboard, Send, ExternalLink, Globe, Package, Pencil, Plus, Puzzle, RefreshCw, Search, Server, Trash2 } from 'lucide-react'
-import type { InstagramStatus, TikTokStatus, ProviderKind, VideoStudioStatus } from '@shared/types'
+import type { ElevenStatus, InstagramStatus, TikTokStatus, ProviderKind, VideoStudioStatus } from '@shared/types'
 import { isVideoExtension } from '@shared/videoExtensions'
 import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, type McpCatalogItem, type McpRuntime, type McpServerInfo, type McpServerInput, type ModInfo, type PluginCatalogItem, type PluginInfo, type SkillCatalogItem, type SkillInfo } from '@shared/extensions'
 import { useCowork } from '@/store/cowork'
@@ -1039,6 +1039,7 @@ function VideoSection() {
         {log.length > 0 && <pre className={s.mono}>{log.join('\n')}</pre>}
       </section>
 
+      <ElevenPanel live={live} />
       <InstagramPanel live={live} />
       <TikTokPanel live={live} />
 
@@ -1109,6 +1110,87 @@ function SectionWithGuide({ title, steps, note }: { title: string; steps: GuideS
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * ElevenLabs v3: la voz de pago que más actúa (emociones, susurros, risas y diálogos). Con la clave, sus voces salen en
+ * el paso «Voz» de /video para compararlas de oído con las gratis. La clave se guarda cifrada en este equipo.
+ */
+function ElevenPanel({ live }: { live: boolean }) {
+  const [st, setSt] = useState<ElevenStatus | null>(null)
+  const [key, setKey] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!live) return
+    api!.elevenStatus().then(setSt, (e) => setError(errorText(e)))
+  }, [live])
+
+  const run = (fn: () => Promise<ElevenStatus>): void => {
+    setBusy(true)
+    setError(null)
+    fn()
+      .then((r) => {
+        setSt(r)
+        setKey('')
+      }, (e) => setError(errorText(e)))
+      .finally(() => setBusy(false))
+  }
+
+  return (
+    <section className={s.block}>
+      <SectionWithGuide
+        title={t('Voz de ElevenLabs (de pago)')}
+        steps={[
+          { text: t('Crea una cuenta en elevenlabs.io (el plan gratis trae 10.000 caracteres al mes; un reel de un minuto gasta unos 1.000).'), link: { label: t('Abrir ElevenLabs'), url: 'https://elevenlabs.io/app/settings/api-keys' } },
+          { text: t('En tu perfil → API Keys, pulsa «Create API Key», dale permiso de «Text to Speech» y de leer «Voices», y copia la clave (empieza por sk_).') },
+          { text: t('Pégala aquí abajo y pulsa «Conectar». Si quieres más voces, añádelas a tu cuenta desde la biblioteca de voces de ElevenLabs: salen solas en /video.') }
+        ]}
+        note={t('No compartas la clave con nadie (tampoco en un chat): kywai la guarda cifrada en este equipo.')}
+      />
+      <p className={s.muted}>
+        {t('Las voces de ElevenLabs (modelo v3) actúan cada frase: alegres, tristes, susurrando o riéndose, y hacen diálogos de dos personajes. Con la clave, salen en el paso «Voz» de /video junto a las gratis para que compares con el mismo guion.')}
+      </p>
+      {st?.connected ? (
+        <ul className={s.list}>
+          <li className={s.item}>
+            <span className={s.icon} aria-hidden="true">
+              <BadgeCheck size={18} />
+            </span>
+            <span className={s.text}>
+              <span className={s.name}>{t('Conectada')}</span>
+              <span className={s.desc}>{st.error ? st.error : typeof st.left === 'number' ? t('Te quedan {n} caracteres este mes', { n: st.left.toLocaleString() }) : t('Sus voces ya salen en /video')}</span>
+            </span>
+          </li>
+        </ul>
+      ) : (
+        st && (
+          <div className={s.searchRow}>
+            <input className={s.input} type="password" autoComplete="off" spellCheck={false} placeholder={t('Clave de API (sk_…)')} aria-label={t('Clave de API de ElevenLabs')} value={key} onChange={(e) => setKey(e.target.value)} />
+          </div>
+        )
+      )}
+      {live && st && (
+        <div className={s.searchRow}>
+          {st.connected ? (
+            <button type="button" className={cx(u.btn, u.btnSm)} disabled={busy} onClick={() => run(() => api!.disconnectEleven())}>
+              {t('Desconectar')}
+            </button>
+          ) : (
+            <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !key.trim()} onClick={() => run(() => api!.connectEleven(key.trim()))}>
+              {busy ? t('Comprobando…') : t('Conectar')}
+            </button>
+          )}
+        </div>
+      )}
+      {error && (
+        <p className={s.error} role="alert">
+          {error}
+        </p>
+      )}
+    </section>
   )
 }
 

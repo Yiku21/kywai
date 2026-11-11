@@ -27,12 +27,15 @@ export interface VideoChoice {
 }
 
 /** Una voz elegida: el motor y la voz de ese motor. */
-export type VoiceEngine = 'gemini' | 'kokoro' | 'voicebox' | 'sistema' | 'edge' | 'mac'
+export type VoiceEngine = 'gemini' | 'kokoro' | 'voicebox' | 'sistema' | 'edge' | 'mac' | 'eleven'
 
 /** «gemini-puck» → { engine: 'gemini', id: 'Puck' }. null si no se entiende. */
 export function parseVoiceId(v: string | null | undefined): { engine: VoiceEngine; id: string } | null {
   if (!v) return null
   if (v === 'sistema') return { engine: 'sistema', id: '' }
+  // ElevenLabs: el id de la voz de la cuenta, tal cual (distingue mayúsculas).
+  const el = /^eleven-([A-Za-z0-9]{8,64})$/i.exec(v)
+  if (el) return { engine: 'eleven', id: el[1] }
   const m = /^(gemini|kokoro|voicebox|edge|mac)-(.+)$/i.exec(v)
   if (!m) return null
   m[1] = m[1].toLowerCase()

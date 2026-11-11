@@ -2069,6 +2069,23 @@ guion trae `"speakers": [{"name", "gender"}]` y cada frase dice quién habla: «
   tiene sus propios golpes de texto.
 - En las películas con estilo, el encargo pide el diálogo y que la cámara corte al que habla y a la reacción del otro.
 
+**Voces de pago para comparar de oído: ElevenLabs v3 y Gemini Pro.** Si las voces gratis no convencen, en el paso
+«Voz» del selector salen también, debajo de las de cada idioma, **las voces de ElevenLabs** (las de tu cuenta) y **las
+de Gemini**, cada grupo solo si hay su clave. Así se puede pedir el mismo guion con una y con otra y quedarse con la
+que suene mejor.
+- **ElevenLabs** (`src/main/elevenlabs.ts`, modelo `eleven_v3`, el que más actúa): la clave se pega en Ajustes →
+  Extensiones → «Voz de ElevenLabs (de pago)» (con «¿Cómo lo hago?»), se comprueba y se guarda cifrada en el llavero
+  (`keys().set('elevenlabs')`); el panel dice cuántos caracteres quedan este mes. El plan gratis trae 10.000 al mes y
+  un reel de un minuto gasta unos 1.000. La marca es `voz:eleven-<id de la voz>`. Cada escena va de una vez con la
+  etiqueta de emoción de v3 delante de cada frase (`[excited]`, `[sad]`, `[whispers]`…, tabla `ELEVEN_TAG`), y un
+  **diálogo** va por su API de diálogos (`/v1/text-to-dialogue`): el personaje del mismo género que la voz elegida
+  habla con ella y el otro con otra voz de la cuenta de su género (`elevenPartner`). Para tener más voces, se añaden a
+  la cuenta desde la biblioteca de ElevenLabs y salen solas (la lista se guarda 10 minutos). Si ElevenLabs falla (sin
+  clave, sin caracteres), el vídeo sale con la voz por defecto del idioma y el orden de siempre.
+- **Gemini** usa primero el modelo **Pro** de voz (`gemini-2.5-pro-preview-tts`, actúa mejor) y, si no está o se acaba
+  la cuota, Flash (`GEMINI_TTS_MODELS`).
+- Con estas dos, los subtítulos se reparten por la duración de la escena (no frase a frase como con Chatterbox).
+
 La voz, las imágenes y las animaciones de Manim se generan **a la vez**.
 
 **Elegir tipo, personaje, estilo y voz (selector de cuatro pasos).** Al escribir `/video` aparece encima del cuadro una

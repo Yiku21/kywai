@@ -49,6 +49,7 @@ const charName = (c: VideoCharacterInfo): string => (c.builtin ? t('Robots de ky
 
 type VoiceEngine = VideoVoiceInfo['engine']
 const ENGINES: { id: VoiceEngine; name: string; line: string }[] = [
+  { id: 'eleven', name: 'ElevenLabs v3', line: 'La que más actúa: de pago, con tu clave.' },
   { id: 'voicebox', name: 'Tus voces (Voicebox)', line: 'Las de Voicebox, abierto en tu equipo: también tu voz clonada.' },
   { id: 'gemini', name: 'Gemini', line: 'En la nube, con tu clave: hablan en cualquier idioma.' },
   { id: 'kokoro', name: 'Kokoro', line: 'Gratis y en tu equipo, sin internet.' },
@@ -59,6 +60,7 @@ const MISSING: Record<VoiceEngine, string> = {
   gemini: 'Con una clave de API de Gemini tendrás 12 voces más.',
   kokoro: 'Instala Kokoro (gratis) en Ajustes → Extensiones → Estudio de vídeo para tener voces sin internet.',
   sistema: '',
+  eleven: 'Con una clave de ElevenLabs (Ajustes → Extensiones → Estudio de vídeo) tendrás sus voces, las que más actúan.',
   edge: '',
   mac: ''
 }
@@ -492,9 +494,10 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                     </div>
                   )}
                   {!voices && <p className={s.empty}>{t('Buscando las voces de tu equipo…')}</p>}
-                  {(defaultVoice ? voiceLangs : ENGINES).map((e) => {
-                    // Con voces elegidas por idioma, un grupo por idioma (primero el de la app); si no, uno por motor.
-                    const list = voices?.voices.filter((v) => (typeof e === 'string' ? v.lang === e : v.engine === e.id)) ?? []
+                  {[...(defaultVoice ? voiceLangs : []), ...ENGINES].map((e) => {
+                    // Con voces elegidas por idioma, un grupo por idioma (primero el de la app) y luego las de pago sin
+                    // idioma (ElevenLabs, Gemini), para compararlas; si no, uno por motor.
+                    const list = voices?.voices.filter((v) => (typeof e === 'string' ? v.lang === e : v.engine === e.id && (!defaultVoice || !v.lang))) ?? []
                     if (!list.length) return null
                     return (
                       <div key={typeof e === 'string' ? e : e.id}>

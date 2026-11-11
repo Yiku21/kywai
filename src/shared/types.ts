@@ -839,6 +839,14 @@ export interface TikTokStatus {
 }
 
 /** La cuenta de Instagram de kywai conectada en Ajustes (el token nunca sale del servidor). */
+/** La clave de ElevenLabs de este equipo (nunca la clave en sí). */
+export interface ElevenStatus {
+  connected: boolean
+  /** Caracteres que quedan este mes (null si no se sabe). */
+  left?: number | null
+  error?: string
+}
+
 export interface InstagramStatus {
   connected: boolean
   username?: string
@@ -1626,7 +1634,7 @@ export interface VideoCharacterInfo {
 export interface VideoVoiceInfo {
   /** Lo que va en la marca «voz:…» («gemini-puck», «kokoro-ef_dora», «voicebox-<perfil>», «sistema»). */
   id: string
-  engine: 'gemini' | 'kokoro' | 'voicebox' | 'sistema' | 'edge' | 'mac'
+  engine: 'gemini' | 'kokoro' | 'voicebox' | 'sistema' | 'edge' | 'mac' | 'eleven'
   name: string
   /** Cómo suena (en español; la interfaz lo traduce). */
   line: string
@@ -1819,6 +1827,11 @@ export interface CoworkApi {
   decideRoutineProposal(projectId: string, messageId: string, action: 'create' | 'dismiss'): Promise<ChatMessage>
   /** El Instagram de kywai: la cuenta conectada (con el token de la API oficial de Meta, nunca la contraseña). */
   instagramStatus(): Promise<InstagramStatus>
+  /** ElevenLabs (voz v3 de pago para los vídeos): si hay clave y cuántos caracteres quedan este mes. */
+  elevenStatus(): Promise<ElevenStatus>
+  /** Guarda la clave de API de ElevenLabs (cifrada) tras comprobarla. */
+  connectEleven(key: string): Promise<ElevenStatus>
+  disconnectEleven(): Promise<ElevenStatus>
   connectInstagram(token: string, userId?: string): Promise<InstagramStatus>
   disconnectInstagram(): Promise<InstagramStatus>
   setInstagramAutoPublish(on: boolean): Promise<InstagramStatus>
@@ -1892,7 +1905,7 @@ export interface CoworkApi {
   /** Borra un personaje creado por el usuario. */
   removeVideoCharacter(id: string): Promise<VideoCharacterInfo[]>
   /** Voces para los vídeos en el equipo donde se montan, y qué motores de voz le faltan. */
-  listVideoVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: ('gemini' | 'kokoro' | 'voicebox' | 'sistema' | 'edge' | 'mac')[] }>
+  listVideoVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: ('gemini' | 'kokoro' | 'voicebox' | 'sistema' | 'edge' | 'mac' | 'eleven')[] }>
   /** Una muestra corta de una voz (data: URL de audio). */
   previewVideoVoice(id: string): Promise<string>
   /** Mods instalados: sus órdenes «/…», hooks y paneles. */

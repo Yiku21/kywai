@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { finished } from 'node:stream/promises'
-import type { AddAgentInput, AgentId, ConversationSummary, ImportResult, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, VoiceNoteInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { AddAgentInput, AgentId, ConversationSummary, ElevenStatus, ImportResult, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, VoiceNoteInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
@@ -58,6 +58,7 @@ import { setAgentKeyResolver } from './agents/generic'
 import { setColibriUrlSource } from './agents/colibri'
 import { agentKey, keys, systemCipher } from './keys'
 import { instagramAccount, readInstagramSettings, writeInstagramSettings } from './instagram'
+import { elevenAccount, setElevenKeyResolver } from './elevenlabs'
 import { TIKTOK_REDIRECT, authorizeUrl, codeFromRedirect, exchangeCode, pkcePair, readTikTokSettings, refreshTokens, tiktokUser, writeTikTokSettings, type TikTokTokens } from './tiktok'
 import { checkAuth, detectTools, installTool, openLogin, refreshPath, saveAgentKey, saveGeminiKey } from './setup'
 import { modelOptions } from './models'
@@ -745,6 +746,28 @@ function registerIpc(): void {
   handle('decideRoutineProposal', (projectId: unknown, messageId: unknown, action: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('No se encontró esa propuesta de rutina'))
     return decideRoutineProposal(projectArg(projectId), messageId, action === 'create' ? 'create' : 'dismiss')
+  })
+  // ElevenLabs (la voz que más actúa, de pago): la clave se guarda cifrada en el llavero, como la de Instagram.
+  setElevenKeyResolver(() => agentKey('elevenlabs'))
+  const elevenNow = async (): Promise<ElevenStatus> => {
+    const key = agentKey('elevenlabs')
+    if (!key) return { connected: false }
+    try {
+      return { connected: true, ...(await elevenAccount(key)) }
+    } catch (e) {
+      return { connected: true, error: (e as Error).message }
+    }
+  }
+  handle('elevenStatus', () => elevenNow())
+  handle('connectEleven', async (key: unknown) => {
+    if (typeof key !== 'string' || !key.trim()) throw new Error(tr('Pega la clave de API de ElevenLabs'))
+    await elevenAccount(key.trim())
+    keys().set('elevenlabs', key.trim())
+    return elevenNow()
+  })
+  handle('disconnectEleven', () => {
+    keys().clear('elevenlabs')
+    return { connected: false }
   })
   // El Instagram de kywai: el token (de la API oficial de Meta) se guarda cifrado en el llavero; nunca la contraseña.
   const igFile = join(app.getPath('userData'), 'instagram.json')

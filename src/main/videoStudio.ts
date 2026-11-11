@@ -35,6 +35,7 @@ import type { VideoStudioStatus, VideoVoiceInfo } from '@shared/types'
 import { EDGE_VOICES, GEMINI_VOICES, KOKORO_VOICE_LIST, MAC_VOICES, LANG_VOICES, parseVoiceId, defaultVoiceFor, speakerVoices, type VoiceEngine } from '@shared/videoChoice'
 import { tr } from '@shared/i18n'
 import { emotionInstruction, emotionPause, EMOTION_EN, type VoiceEmotion } from '@shared/voiceEmotion'
+import { elevenDialogue, elevenKey, elevenLine, elevenPartner, elevenSpeak, elevenVoices } from './elevenlabs'
 import { chatterboxReady, chatterboxSpeak, CHATTERBOX_LANGS, installChatterbox } from './chatterbox'
 import {
   ANIMATION_BASE_COMMIT,
@@ -58,7 +59,8 @@ export const HYPERFRAMES_VERSION = '0.9.26'
 export const GSAP_VERSION = '3.13.0'
 const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image'
 /** Voz de Gemini (la misma clave que las imágenes): se prueba en orden por si alguno deja de existir. */
-const GEMINI_TTS_MODELS = ['gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-tts']
+// Primero Pro (actúa mejor: emoción y diálogos más naturales); si no está o se agota la cuota, Flash.
+const GEMINI_TTS_MODELS = ['gemini-2.5-pro-preview-tts', 'gemini-2.5-flash-preview-tts']
 
 let root = ''
 let autoInstall = true
@@ -1082,7 +1084,7 @@ export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoic
   // puede ser en el otro. Sin elegir, el vídeo va con la primera de su idioma.
   if (LANG_VOICES[lang]) {
     const picked = [...LANG_VOICES[lang], ...Object.entries(LANG_VOICES).flatMap(([l, ids]) => (l === lang ? [] : ids))]
-    return {
+    const base = {
       voices: picked.map((id): VideoVoiceInfo => {
         const v = parseVoiceId(id)!
         if (v.engine === 'edge') {
@@ -1099,6 +1101,9 @@ export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoic
       }),
       missing: []
     }
+    // Y las de pago, para compararlas de oído con el mismo guion: ElevenLabs v3 y Gemini (cada una con su clave).
+    const cloud = await cloudVoices()
+    return { voices: [...base.voices, ...cloud.voices], missing: cloud.missing }
   }
   const [vbox, kokoro, sys] = await Promise.all([voiceboxProfiles(), kokoroReady(), systemVoice()])
   const key = !!geminiApiKey()
@@ -1113,8 +1118,23 @@ export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoic
       : []),
     ...(sys ? [{ id: 'sistema', engine: 'sistema' as const, name: 'Voz del sistema', line: 'La del sistema operativo' }] : [])
   ]
-  const missing: VoiceEngine[] = [...(vbox ? [] : ['voicebox' as const]), ...(key ? [] : ['gemini' as const]), ...(kokoro ? [] : ['kokoro' as const])]
+  const eleven = await elevenVoices(elevenKey(), lang)
+  voices.unshift(...eleven.map((v): VideoVoiceInfo => ({ id: `eleven-${v.id}`, engine: 'eleven', name: v.name, line: v.accent ? `ElevenLabs · ${v.accent}` : 'ElevenLabs', ...(v.gender ? { gender: v.gender } : {}) })))
+  const missing: VoiceEngine[] = [...(vbox ? [] : ['voicebox' as const]), ...(key ? [] : ['gemini' as const]), ...(kokoro ? [] : ['kokoro' as const]), ...(elevenKey() ? [] : ['eleven' as const])]
   return { voices, missing }
+}
+
+/** Las voces de ElevenLabs (las de la cuenta) y de Gemini, si hay clave; `missing`, las que no. */
+async function cloudVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] }> {
+  const eleven = elevenKey() ? await elevenVoices(elevenKey(), 'es') : []
+  const gemini = !!geminiApiKey()
+  return {
+    voices: [
+      ...eleven.map((v): VideoVoiceInfo => ({ id: `eleven-${v.id}`, engine: 'eleven', name: v.name, line: v.accent ? `ElevenLabs · ${v.accent}` : 'ElevenLabs', ...(v.gender ? { gender: v.gender } : {}) })),
+      ...(gemini ? GEMINI_VOICES.map((g): VideoVoiceInfo => ({ id: `gemini-${g.id.toLowerCase()}`, engine: 'gemini', name: g.id, line: g.line, gender: g.gender })) : [])
+    ],
+    missing: [...(elevenKey() ? [] : ['eleven' as const]), ...(gemini ? [] : ['gemini' as const])]
+  }
 }
 
 /** La frase de muestra de una voz de Kokoro de otro idioma que el de la app (en el suyo). */
@@ -1147,6 +1167,11 @@ export async function previewVideoVoice(id: unknown, lang: string, sentence: str
       const vb = await voiceboxById(v.id)
       if (!vb) throw new Error(tr('Voicebox no está abierto o ya no tiene esa voz'))
       ok = await voiceboxSpeak(vb, sentence, wav, { timeoutMs: 120_000 })
+    } else if (v.engine === 'eleven') {
+      if (!elevenKey()) throw new Error(tr('Falta la clave de ElevenLabs: pégala en Ajustes → Extensiones → Estudio de vídeo'))
+      const tmp = `${wav}.mp3`
+      ok = (await elevenSpeak(v.id, elevenLine(sentence, 'alegre'), tmp)) && (await toWav(tmp, wav))
+      if (!ok) throw new Error(tr('ElevenLabs no devolvió la muestra: mira la clave y los caracteres que te quedan'))
     } else if (v.engine === 'gemini') {
       const key = geminiApiKey()
       if (!key) throw new Error(tr('Falta la clave de API de Gemini'))
@@ -1190,7 +1215,7 @@ export interface RenderedVideo {
   height: number
   /** Escenas con imagen generada. */
   images: number
-  voice: 'voicebox' | 'gemini' | 'kokoro' | 'system' | 'edge' | 'mac' | 'chatterbox'
+  voice: 'voicebox' | 'gemini' | 'kokoro' | 'system' | 'edge' | 'mac' | 'chatterbox' | 'eleven'
   /** Escenas que FreeVideo convirtió en clips con movimiento. */
   moving?: number
 }
@@ -1257,7 +1282,7 @@ export async function renderVideo(input: {
   if (!input.voice && chosen?.engine === 'kokoro' && !status.kokoro) chosen = null
   // Diálogo: cada personaje con su voz (la elegida para uno y otra del idioma, de su género, para el otro).
   const speakers = script.speakers?.length === 2 ? script.speakers : []
-  const bySpeaker = speakerVoices(script.lang, input.voice ?? null, speakers, { mac: IS_MAC })
+  let bySpeaker = speakerVoices(script.lang, input.voice ?? null, speakers, { mac: IS_MAC })
   const whoOf = (i: number, k: number): string | undefined => script.scenes[i].lines?.[k]?.who
   /** La voz de quien dice esa frase (sin diálogo, la elegida). */
   const voiceOf = (who: string | undefined): { engine: VoiceEngine; id: string } | null => (who && parseVoiceId(bySpeaker[who])) || chosen
@@ -1270,6 +1295,49 @@ export async function renderVideo(input: {
     return !!v && pickedSpeak(v, text, out, signal)
   }
   const doVoices = async (): Promise<void> => {
+    // ElevenLabs v3 elegida: cada escena de una vez, con la etiqueta de emoción delante de cada frase; en un diálogo,
+    // con su API de diálogos (cada personaje con una voz de la cuenta, de su género). Si falla, la voz por defecto del
+    // idioma con el orden de siempre (para que el vídeo salga igual).
+    if (chosen?.engine === 'eleven') {
+      const lead = chosen.id
+      const duoVoices: Record<string, string> = {}
+      if (speakers.length && elevenKey()) {
+        const g = (await elevenVoices(elevenKey(), script.lang)).find((v) => v.id === lead)?.gender
+        const first = speakers.find((sp) => !g || !sp.gender || sp.gender === g) ?? speakers[0]
+        for (const sp of speakers) duoVoices[sp.name] = sp === first ? lead : await elevenPartner(lead, sp.gender, script.lang)
+      }
+      let next = 0
+      let failed = !elevenKey()
+      const worker = async (): Promise<void> => {
+        while (next < n && !failed && !signal?.aborted) {
+          const i = next++
+          const sc = script.scenes[i]
+          const lines = sc.lines?.length ? sc.lines : [{ text: sc.narration, emotion: 'neutral' as VoiceEmotion }]
+          const mp3 = `${voices[i]}.mp3`
+          const duo = speakers.length > 0 && lines.some((l) => l.who)
+          const ok = duo
+            ? await elevenDialogue(lines.map((l) => ({ text: elevenLine(spokenText(l.text), l.emotion), voiceId: duoVoices[l.who ?? speakers[0].name] ?? lead })), mp3, signal)
+            : await elevenSpeak(lead, lines.map((l) => elevenLine(spokenText(l.text), l.emotion)).join(' '), mp3, signal)
+          // Los subtítulos, repartidos por la duración (como con Gemini).
+          delete sc.lineTimes
+          const wav = ok ? await run('ffmpeg', ['-y', '-v', 'error', '-i', mp3, '-ar', '48000', '-ac', '1', voices[i]], { timeoutMs: 60_000, signal }) : null
+          rmSync(mp3, { force: true })
+          if (wav?.code === 0 && existsSync(voices[i])) {
+            spoken++
+            voiceStep()
+          } else failed = true
+        }
+      }
+      voiceStep()
+      await Promise.all([worker(), worker()])
+      if (!failed && !signal?.aborted) {
+        voiceUsed = 'eleven'
+        return
+      }
+      spoken = 0
+      chosen = parseVoiceId(defaultVoiceFor(script.lang))
+      bySpeaker = speakerVoices(script.lang, null, speakers, { mac: IS_MAC })
+    }
     // Chatterbox (la voz con emoción): interpreta cada frase con el timbre de la voz elegida. Con Gemini o Voicebox
     // elegidos, esos (también actúan). Si algo falla, el orden de siempre.
     const cbVoice = chosen && (chosen.engine === 'edge' || chosen.engine === 'mac' || chosen.engine === 'kokoro') ? chosen : null
