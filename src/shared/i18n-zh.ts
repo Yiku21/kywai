@@ -3402,4 +3402,14 @@ export const zh: Record<string, string> = {
   "Tu voz de VoiceStudio": "你的 VoiceStudio 声音",
   "Abierto en tu equipo: tus voces creadas o clonadas, en cualquier idioma.": "在你的电脑上打开：你创建或克隆的声音，支持任何语言。",
   "Abre VoiceStudio (app gratis aparte) para usar sus voces y las que clones en ella.": "打开 VoiceStudio（一个独立的免费应用），即可使用它的声音和你在其中克隆的声音。",
+
+  // Filtro por tipo de archivo (Archivos y Resultados)
+  "Fotos": "照片",
+  "Vídeos": "视频",
+  "Audio": "音频",
+  "Documentos": "文档",
+  "Otros": "其他",
+  "Filtrar por tipo de archivo": "按文件类型筛选",
+  "{n} de {total} archivos": "{n} / {total} 个文件",
+  "PDF": "PDF",
 }

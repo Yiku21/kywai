@@ -7,7 +7,9 @@ import { api } from '@/lib/api'
 import { fileSize } from '@/lib/format'
 import { fromAttachment, fromArtifact } from '@/lib/preview'
 import { useAgentLookup } from '../common/agents'
-import { FileTypeIcon, KindTile, ARTIFACT_KIND_LABEL } from '../common/icons'
+import { FileTypeIcon, KindTile, artifactLabel } from '../common/icons'
+import { countTypes, fileTypeOf } from '@shared/fileTypes'
+import { effectiveChoice, TypeFilter, useTypeChoice } from './TypeFilter'
 import { agentVars, cx, plural, shortTime } from '../common/util'
 import u from '../common/ui.module.css'
 import m from './Messages.module.css'
@@ -17,6 +19,8 @@ import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 
 /** Carpetas abiertas o cerradas (de este equipo). Sin anotar, solo está abierta la petición más reciente. */
 const OPEN_KEY = 'kywai.archivos.carpetas'
+/** Tipo de archivo elegido en el filtro (de este equipo). */
+const TYPE_KEY = 'kywai.archivos.tipo'
 function readOpen(): Record<string, boolean> {
   try {
     return JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}') as Record<string, boolean>
@@ -50,13 +54,39 @@ export function FilesView() {
     () => groupByRequest({ messages, tasks, artifacts: Object.values(artifactsMap), attachments }),
     [messages, tasks, artifactsMap, attachments]
   )
+  const [stored, setChoice] = useTypeChoice(TYPE_KEY)
+  const counts = useMemo(
+    () =>
+      countTypes(
+        groups.flatMap((g) => [
+          ...g.attachments.map((a) => fileTypeOf(a.name, a.mime)),
+          ...g.generated.map((a) => fileTypeOf(a.name || a.relPath, undefined, a.kind))
+        ])
+      ),
+    [groups]
+  )
+  const choice = effectiveChoice(stored, counts)
+  const total = groups.reduce((n, g) => n + g.attachments.length + g.generated.length, 0)
+  // Con un tipo elegido, cada carpeta enseña solo esos archivos y las que no tienen ninguno se ocultan.
+  const shown = useMemo(() => {
+    if (choice === 'all') return groups
+    return groups
+      .map((g) => ({
+        ...g,
+        attachments: g.attachments.filter((a) => fileTypeOf(a.name, a.mime) === choice),
+        generated: g.generated.filter((a) => fileTypeOf(a.name || a.relPath, undefined, a.kind) === choice)
+      }))
+      .filter((g) => g.attachments.length + g.generated.length > 0)
+  }, [groups, choice])
+  const fullCount = useMemo(() => new Map(groups.map((g) => [g.key, g.attachments.length + g.generated.length])), [groups])
+
   const [open, setOpen] = useState<Record<string, boolean>>(readOpen)
   const isOpen = (key: string, i: number): boolean => open[key] ?? i === 0
   const update = (next: Record<string, boolean>): void => {
     saveOpen(next)
     setOpen(next)
   }
-  const anyOpen = groups.some((g, i) => isOpen(g.key, i))
+  const anyOpen = shown.some((g, i) => isOpen(g.key, i))
 
   if (groups.length === 0) {
     return (
@@ -78,23 +108,29 @@ export function FilesView() {
     <div className={s.scroll}>
       <div className={s.filesBar}>
         <h3 className={u.sectionLabel}>
-          {t('Por petición')} <span className={u.count}>{groups.length}</span>
+          {t('Por petición')} <span className={u.count}>{shown.length}</span>
         </h3>
-        {groups.length > 1 && (
+        {shown.length > 1 && (
           <button
             type="button"
             className={s.workToggle}
-            onClick={() => update({ ...open, ...Object.fromEntries(groups.map((g) => [g.key, !anyOpen])) })}
+            onClick={() => update({ ...open, ...Object.fromEntries(shown.map((g) => [g.key, !anyOpen])) })}
           >
             {anyOpen ? <ChevronsDownUp size={14} aria-hidden="true" /> : <ChevronsUpDown size={14} aria-hidden="true" />}
             {anyOpen ? t('Plegar todas') : t('Desplegar todas')}
           </button>
         )}
       </div>
+      <TypeFilter counts={counts} total={total} value={choice} onChange={setChoice} />
       <ul className={s.resultFolders} aria-label={t('Archivos por petición')}>
-        {groups.map((g, i) => (
+        {shown.map((g, i) => (
           <li key={g.key}>
-            <RequestFolder group={g} open={isOpen(g.key, i)} onToggle={() => update({ ...open, [g.key]: !isOpen(g.key, i) })} />
+            <RequestFolder
+              group={g}
+              of={choice === 'all' ? undefined : fullCount.get(g.key)}
+              open={isOpen(g.key, i)}
+              onToggle={() => update({ ...open, [g.key]: !isOpen(g.key, i) })}
+            />
           </li>
         ))}
       </ul>
@@ -103,7 +139,7 @@ export function FilesView() {
 }
 
 /** Una petición: cabecera plegable con tu mensaje y, dentro, tus adjuntos y lo que generó el equipo. */
-function RequestFolder({ group, open, onToggle }: { group: RequestGroup; open: boolean; onToggle: () => void }) {
+function RequestFolder({ group, of, open, onToggle }: { group: RequestGroup; of?: number; open: boolean; onToggle: () => void }) {
   const lookup = useAgentLookup()
   const mode = useCowork((st) => st.mode)
   const project = useCowork((st) => st.live.project)
@@ -140,7 +176,9 @@ function RequestFolder({ group, open, onToggle }: { group: RequestGroup; open: b
             </span>
             <span className={s.folderMeta}>
               {[
-                plural(total, t('archivo'), t('archivos')),
+                of !== undefined && of !== total
+                  ? t('{n} de {total} archivos', { n: total, total: of })
+                  : plural(total, t('archivo'), t('archivos')),
                 group.attachments.length ? plural(group.attachments.length, t('adjunto'), t('adjuntos')) : '',
                 authors.join(', '),
                 group.newest ? shortTime(group.newest) : ''
@@ -190,12 +228,12 @@ function RequestFolder({ group, open, onToggle }: { group: RequestGroup; open: b
             return (
               <li key={a.id}>
                 <button type="button" className={s.fileRow} onClick={() => openArtifact(a)} title={t('Ver {name}', { name: a.name })}>
-                  <KindTile kind={a.kind} size={34} />
+                  <KindTile kind={a.kind} name={a.name || a.relPath} size={34} />
                   <span className={s.fileMain}>
                     <span className={s.fileName}>{a.name}</span>
                     <span className={s.fileMeta}>
                       <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
-                      {look.name} · {ARTIFACT_KIND_LABEL[a.kind]} · {fileSize(a.size)} · {shortTime(a.createdAt)}
+                      {look.name} · {artifactLabel(a)} · {fileSize(a.size)} · {shortTime(a.createdAt)}
                     </span>
                   </span>
                   <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />

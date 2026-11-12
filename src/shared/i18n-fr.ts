@@ -3402,4 +3402,14 @@ export const fr: Record<string, string> = {
   "Tu voz de VoiceStudio": "Votre voix VoiceStudio",
   "Abierto en tu equipo: tus voces creadas o clonadas, en cualquier idioma.": "Ouvert sur votre ordinateur : vos voix créées ou clonées, dans toutes les langues.",
   "Abre VoiceStudio (app gratis aparte) para usar sus voces y las que clones en ella.": "Ouvrez VoiceStudio (une app gratuite à part) pour utiliser ses voix et celles que vous y clonez.",
+
+  // Filtro por tipo de archivo (Archivos y Resultados)
+  "Fotos": "Photos",
+  "Vídeos": "Vidéos",
+  "Audio": "Audio",
+  "Documentos": "Documents",
+  "Otros": "Autres",
+  "Filtrar por tipo de archivo": "Filtrer par type de fichier",
+  "{n} de {total} archivos": "{n} sur {total} fichiers",
+  "PDF": "PDF",
 }

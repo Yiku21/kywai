@@ -1435,6 +1435,24 @@ en Resultados. Los adjuntos que no van en ningún mensaje (aún sin enviar o de 
 recuerda qué carpetas abriste (`kywai.archivos.carpetas`). Cada carpeta con archivos generados tiene **Descargar como
 zip** y el visor deja pasar con ‹ › por toda la petición. La regla está en `src/shared/requestGroups.ts` (con su test).
 
+### Filtrar archivos por tipo
+
+En **Archivos** y en **Resultados**, encima de las carpetas, hay una fila de botones para ver solo un tipo de
+archivo: **Todo, Fotos, Vídeos, Audio, Documentos, Código y Otros**, cada uno con cuántos hay. Solo salen los tipos
+que hay en el proyecto (con uno solo no sale la fila). Al elegir uno, cada carpeta enseña solo esos archivos y dice
+«3 de 9 archivos»; las carpetas sin ninguno se ocultan, y **Descargar como zip** baja solo lo que se ve. El filtro se
+recuerda en este equipo (`kywai.archivos.tipo` y `kywai.resultados.tipo`); si el tipo elegido ya no tiene archivos, se
+ve todo.
+
+Qué cuenta como cada tipo: Fotos (png, jpg, webp, svg, heic…), Vídeos (mp4, mov, webm…), Audio (mp3, wav, m4a…),
+Documentos (pdf, Word, Excel, PowerPoint, Markdown, txt, páginas html, subtítulos), Código (js, ts, py, json, yaml…)
+y Otros (zip y lo demás). Un MIME de imagen, vídeo o audio manda, así que una nota de voz .webm es Audio. Los vídeos,
+audios y PDF que antes salían como «Archivo» con icono genérico ahora dicen «Vídeo», «Audio» o «PDF» con su icono.
+
+**En Órbita** el mismo filtro está abajo en **Resultados** (sustituye a «Todos · Documentos · Código») y se desliza de
+lado si no cabe. La regla es la misma en todos: `src/shared/fileTypes.ts` y `android/…/orbita/FileTypes.kt` (si
+cambias una, cambia la otra), con sus pruebas.
+
 ### Reanudar lo interrumpido
 
 Si la app se cierra con trabajo a medias (al actualizar, reiniciar o por un fallo), el plan de esa petición

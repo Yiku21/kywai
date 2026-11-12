@@ -45,6 +45,14 @@
   color: var(--live);
   flex: none;
 }
+.video {
+  color: var(--warn);
+  flex: none;
+}
+.audio {
+  color: var(--c-gemini);
+  flex: none;
+}
 .other {
   color: var(--text-2);
   flex: none;

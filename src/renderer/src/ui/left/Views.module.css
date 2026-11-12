@@ -453,3 +453,60 @@
 .progressEstimate .progressPct {
   color: var(--text-3);
 }
+
+/* Filtro por tipo de archivo (Archivos y Resultados). */
+.typeFilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px;
+  margin-bottom: -6px;
+}
+
+.typeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.typeChip:hover {
+  background: var(--bg-elevated);
+  color: var(--text-1);
+}
+
+.typeChip:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.typeChipOn,
+.typeChipOn:hover {
+  color: var(--accent-text, #dff7ff);
+  background: color-mix(in srgb, var(--cyan) 22%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--cyan) 50%, transparent);
+}
+
+.typeChipCount {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.typeChipOn .typeChipCount {
+  color: inherit;
+  opacity: 0.8;
+}

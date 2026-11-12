@@ -6,13 +6,16 @@ import {
   File,
   FileCode,
   FileText,
+  Film,
   Globe,
   Image,
   LoaderCircle,
+  Music,
   TriangleAlert,
   type LucideIcon
 } from 'lucide-react'
-import type { ArtifactKind, TaskStatus } from '@shared/types'
+import type { Artifact, ArtifactKind, TaskStatus } from '@shared/types'
+import { fileTypeOf } from '@shared/fileTypes'
 import { cx, fileKind } from './util'
 import u from './ui.module.css'
 import s from './icons.module.css'
@@ -100,13 +103,36 @@ const KIND_COLOR: Record<ArtifactKind, string> = {
   other: 'var(--text-3)'
 }
 
-/** Baldosa con el icono del tipo de resultado. */
-export function KindTile({ kind, size = 36, className }: { kind: ArtifactKind; size?: number; className?: string }) {
-  const Icon = KIND_ICON[kind] ?? File
+/**
+ * Vídeo, audio y PDF llegan como «other» (el motor no tiene clase para ellos): por el nombre les damos su etiqueta,
+ * icono y color en vez de «Archivo» genérico.
+ */
+const OTHER_BY_NAME = {
+  video: { label: t('Vídeo'), icon: Film, color: 'var(--warn)' },
+  audio: { label: t('Audio'), icon: Music, color: 'var(--c-gemini)' },
+  pdf: { label: t('PDF'), icon: FileText, color: 'var(--alert)' }
+} as const
+
+function otherByName(kind: ArtifactKind, name?: string): (typeof OTHER_BY_NAME)[keyof typeof OTHER_BY_NAME] | undefined {
+  if (kind !== 'other' || !name) return undefined
+  if (/\.pdf$/i.test(name)) return OTHER_BY_NAME.pdf
+  const type = fileTypeOf(name)
+  return type === 'video' || type === 'audio' ? OTHER_BY_NAME[type] : undefined
+}
+
+/** Etiqueta del tipo de un resultado («Vídeo», «Página web», «Código»…). */
+export function artifactLabel(a: Pick<Artifact, 'kind' | 'name' | 'relPath'>): string {
+  return otherByName(a.kind, a.name || a.relPath)?.label ?? ARTIFACT_KIND_LABEL[a.kind]
+}
+
+/** Baldosa con el icono del tipo de resultado (con `name`, los vídeos, audios y PDF llevan su propio icono). */
+export function KindTile({ kind, name, size = 36, className }: { kind: ArtifactKind; name?: string; size?: number; className?: string }) {
+  const byName = otherByName(kind, name)
+  const Icon = byName?.icon ?? KIND_ICON[kind] ?? File
   return (
     <span
       className={cx(s.tile, className)}
-      style={{ '--k': KIND_COLOR[kind] ?? 'var(--text-3)', width: size, height: size } as CSSProperties}
+      style={{ '--k': byName?.color ?? KIND_COLOR[kind] ?? 'var(--text-3)', width: size, height: size } as CSSProperties}
       aria-hidden="true"
     >
       <Icon size={Math.round(size * 0.48)} />
@@ -114,10 +140,13 @@ export function KindTile({ kind, size = 36, className }: { kind: ArtifactKind; s
   )
 }
 
-/** Icono de archivo por tipo: PDF rojo, imagen verde, otros neutro. */
+/** Icono de archivo por tipo: PDF rojo, imagen verde, vídeo y audio con el suyo, otros neutro. */
 export function FileTypeIcon({ name, mime, size = 15 }: { name: string; mime?: string; size?: number }) {
   const k = fileKind(name, mime)
   if (k === 'pdf') return <FileText size={size} aria-hidden="true" className={s.pdf} />
   if (k === 'image') return <Image size={size} aria-hidden="true" className={s.image} />
+  const type = fileTypeOf(name, mime)
+  if (type === 'video') return <Film size={size} aria-hidden="true" className={s.video} />
+  if (type === 'audio') return <Music size={size} aria-hidden="true" className={s.audio} />
   return <File size={size} aria-hidden="true" className={s.other} />
 }

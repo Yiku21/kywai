@@ -11,7 +11,9 @@ import b from '../header/InboxButton.module.css'
 import { cx } from '../common/util'
 import { useCowork, useData } from '@/store/cowork'
 import { useAgentLookup } from '../common/agents'
-import { ARTIFACT_KIND_LABEL, KindTile } from '../common/icons'
+import { artifactLabel, KindTile } from '../common/icons'
+import { countTypes, fileTypeOf } from '@shared/fileTypes'
+import { effectiveChoice, TypeFilter, useTypeChoice } from './TypeFilter'
 import { agentVars, plural, shortTime } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './Views.module.css'
@@ -101,6 +103,9 @@ function Finished() {
 
 /** Carpetas abiertas o cerradas (de este equipo). Sin anotar, solo está abierta la más reciente. */
 const OPEN_KEY = 'kywai.resultados.carpetas'
+/** Tipo de archivo elegido en el filtro (de este equipo). */
+const TYPE_KEY = 'kywai.resultados.tipo'
+const typeOf = (a: Artifact) => fileTypeOf(a.name || a.relPath, undefined, a.kind)
 function readOpen(): Record<string, boolean> {
   try {
     return JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}') as Record<string, boolean>
@@ -125,6 +130,21 @@ export function ResultsView() {
     () => groupResults(Object.values(artifactsMap), (id) => tasks[id]?.title),
     [artifactsMap, tasks]
   )
+  const [stored, setChoice] = useTypeChoice(TYPE_KEY)
+  const all = useMemo(() => groups.flatMap((g) => [...g.main, ...g.work]), [groups])
+  const counts = useMemo(() => countTypes(all.map(typeOf)), [all])
+  const choice = effectiveChoice(stored, counts)
+  // Con un tipo elegido, cada carpeta enseña solo esos archivos (todos delante) y las que no tienen ninguno se ocultan.
+  const shown = useMemo((): (ResultGroup & { of?: number })[] => {
+    if (choice === 'all') return groups
+    return groups
+      .map((g) => {
+        const main = g.main.filter((a) => typeOf(a) === choice)
+        const work = g.work.filter((a) => typeOf(a) === choice)
+        return { ...g, main: main.length ? main : work, work: main.length ? work : [], of: g.main.length + g.work.length }
+      })
+      .filter((g) => g.main.length > 0)
+  }, [groups, choice])
   const [open, setOpen] = useState<Record<string, boolean>>(readOpen)
   const isOpen = (key: string, i: number): boolean => open[key] ?? i === 0
   const toggle = (key: string, i: number): void => {
@@ -155,10 +175,11 @@ export function ResultsView() {
   return (
     <div className={s.scroll}>
       <Finished />
+      <TypeFilter counts={counts} total={all.length} value={choice} onChange={setChoice} />
       <ul className={s.resultFolders} aria-label={t('Resultados')}>
-        {groups.map((g, i) => (
+        {shown.map((g, i) => (
           <li key={g.key}>
-            <ResultFolder group={g} open={isOpen(g.key, i)} onToggle={() => toggle(g.key, i)} />
+            <ResultFolder group={g} of={g.of} open={isOpen(g.key, i)} onToggle={() => toggle(g.key, i)} />
           </li>
         ))}
       </ul>
@@ -167,7 +188,7 @@ export function ResultsView() {
 }
 
 /** Una carpeta de Resultados: cabecera plegable, el resultado principal y los archivos de trabajo aparte. */
-function ResultFolder({ group, open, onToggle }: { group: ResultGroup; open: boolean; onToggle: () => void }) {
+function ResultFolder({ group, of, open, onToggle }: { group: ResultGroup; of?: number; open: boolean; onToggle: () => void }) {
   const lookup = useAgentLookup()
   const [showWork, setShowWork] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -187,7 +208,11 @@ function ResultFolder({ group, open, onToggle }: { group: ResultGroup; open: boo
               {title}
             </span>
             <span className={s.folderMeta}>
-              {[plural(all.length, t('archivo'), t('archivos')), authors.join(', '), shortTime(group.newest)].filter(Boolean).join(' · ')}
+              {[
+                of !== undefined && of !== all.length
+                  ? t('{n} de {total} archivos', { n: all.length, total: of })
+                  : plural(all.length, t('archivo'), t('archivos')),
+                authors.join(', '), shortTime(group.newest)].filter(Boolean).join(' · ')}
             </span>
           </span>
           <ChevronDown size={16} aria-hidden="true" className={m.folderChevron} />
@@ -231,11 +256,11 @@ function ResultCards({ list, folder, small }: { list: Artifact[]; folder: Artifa
               type="button"
               className={s.card}
               onClick={() => openPreview(folder.map(fromArtifact), folder.indexOf(a))}
-              aria-label={t('Abrir {name}, {kind} creado por {agent}', { name: a.name, kind: ARTIFACT_KIND_LABEL[a.kind], agent: look.name })}
+              aria-label={t('Abrir {name}, {kind} creado por {agent}', { name: a.name, kind: artifactLabel(a), agent: look.name })}
             >
               <span className={s.cardTop}>
-                <KindTile kind={a.kind} size={small ? 30 : 40} />
-                <span className={s.cardKind}>{ARTIFACT_KIND_LABEL[a.kind]}</span>
+                <KindTile kind={a.kind} name={a.name || a.relPath} size={small ? 30 : 40} />
+                <span className={s.cardKind}>{artifactLabel(a)}</span>
               </span>
               <span className={s.cardName} title={a.name}>
                 {a.name}
