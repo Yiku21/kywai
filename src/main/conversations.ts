@@ -205,6 +205,37 @@ export function conversationOfRun(projectId: string, runId: string): string {
   return cid
 }
 
+/**
+ * La conversación de una petición antigua. Cuál era se guarda solo en memoria: tras reiniciar kywai se busca en la
+ * abierta y en las guardadas del proyecto y se apunta, para que Reanudar y Quitar trabajen en la buena y no en la
+ * que tengas abierta ahora. Sin rastro de la petición (p. ej. borraste su conversación), no apunta nada.
+ */
+export function locateRun(projectId: string, runId: string): void {
+  if (runConversation.has(runId)) return
+  const st = load(projectId)
+  const has = (c: { messages: ChatMessage[]; tasks: Task[] }): boolean => c.tasks.some((t) => t.runId === runId) || c.messages.some((m) => m.runId === runId)
+  if (has(st)) {
+    runConversation.set(runId, ensureCurrent(st).id)
+    return
+  }
+  for (const c of st.conversations ?? []) {
+    if (c.id === st.conversation?.id) continue
+    try {
+      if (has(readConversation(st, c.id))) {
+        runConversation.set(runId, c.id)
+        return
+      }
+    } catch {
+      /* conversación ilegible: se sigue buscando */
+    }
+  }
+}
+
+/** Solo para pruebas: olvida en qué conversación empezó cada petición, como al reiniciar kywai. */
+export function __forgetRunConversationsForChecks(): void {
+  runConversation.clear()
+}
+
 /** La conversación en segundo plano de una petición, o null si es la abierta (o ya no existe: entonces va a la abierta). */
 function backgroundOf(projectId: string, runId: string | undefined): Background | null {
   if (!runId || !isValidProjectId(projectId)) return null

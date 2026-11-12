@@ -69,7 +69,7 @@ import { normalizeScope, outsideScope } from './scope'
 import { CHAT_STYLE, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
 import { projectBrief, testCommand } from './projectBrief'
 import { supportsResume } from './agentSessions'
-import { conversationOfRun, findMessage, lastRunSession, rememberRunSession, runChat } from './conversations'
+import { conversationOfRun, findMessage, lastRunSession, locateRun, rememberRunSession, runChat } from './conversations'
 import { hasGit, Shadow } from './checkpoints'
 import { addInbox, onInboxAction, resolveInboxWhere } from './inbox'
 import { askPermission, dropPermissions, onPermissionChange, sessionAllows, waitingPermission, type PermissionRequest } from './permissions'
@@ -888,7 +888,13 @@ function registerInboxActions(): void {
   onInboxAction('resume', async (i) => {
     if (!i.projectId || !i.runId) return tr('No sé qué petición reanudar')
     if (runs.has(i.runId)) return tr('Esa petición ya está en marcha')
-    await resumeRun(i.projectId, i.runId)
+    try {
+      await resumeRun(i.projectId, i.runId)
+    } catch (e) {
+      // Ya no queda nada a medias (se quitó o se borró su conversación): el aviso se cierra en vez de quedarse atascado.
+      if (e instanceof Error && e.message === tr('No hay tareas interrumpidas que reanudar en esa petición')) return tr('Ya no quedaba nada en pausa')
+      throw e
+    }
     return tr('Reanudada: el equipo sigue donde lo dejó')
   })
   onInboxAction('accept-blocked', (i) => (i.projectId && i.taskId ? settleBlocked(i.projectId, i.taskId, 'accept') : tr('No sé qué tarea')))
@@ -899,7 +905,12 @@ function registerInboxActions(): void {
   })
   onInboxAction('discard', (i) => {
     if (!i.projectId || !i.runId) return tr('No sé qué petición quitar')
-    discardRun(i.projectId, i.runId)
+    try {
+      discardRun(i.projectId, i.runId)
+    } catch (e) {
+      if (e instanceof Error && e.message === tr('No hay tareas interrumpidas que reanudar en esa petición')) return tr('Ya no quedaba nada en pausa')
+      throw e
+    }
     return tr('Quitado: no se reanudará')
   })
 }
@@ -3346,7 +3357,8 @@ export function rejectPlan(projectId: string, messageId: string): void {
  */
 export async function resumeRun(projectId: string, runId: string): Promise<void> {
   if (runs.has(runId)) throw new Error(tr('Esa petición ya está en marcha'))
-  const st = store.getProject(projectId)
+  locateRun(projectId, runId)
+  const st = runChat(projectId, runId)
   const all = st.tasks.filter((t) => t.runId === runId)
   const todo = all.filter((t) => t.status === 'cancelled' && t.error === INTERRUPTED_ERROR)
   if (!todo.length) throw new Error(tr('No hay tareas interrumpidas que reanudar en esa petición'))
@@ -3414,7 +3426,8 @@ export async function resumeRun(projectId: string, runId: string): Promise<void>
  */
 export function discardRun(projectId: string, runId: string): void {
   if (runs.has(runId)) throw new Error(tr('Esa petición ya está en marcha'))
-  const todo = store.getProject(projectId).tasks.filter((t) => t.runId === runId && t.status === 'cancelled' && t.error === INTERRUPTED_ERROR)
+  locateRun(projectId, runId)
+  const todo = runChat(projectId, runId).tasks.filter((t) => t.runId === runId && t.status === 'cancelled' && t.error === INTERRUPTED_ERROR)
   if (!todo.length) throw new Error(tr('No hay tareas interrumpidas que reanudar en esa petición'))
   for (const t of todo) {
     t.error = tr('Cancelada por el usuario')

@@ -2621,6 +2621,7 @@ export const pt: Record<string, string> = {
   "Reanudada: el equipo sigue donde lo dejó": "Retomado: a equipe continua de onde parou",
   "No sé qué petición quitar": "Não sei qual pedido remover",
   "Quitado: no se reanudará": "Removido: não será retomado",
+  "Ya no quedaba nada en pausa": "Já não restava nada em pausa",
   "Quedó en pausa al cerrarse kywai ({name}): {request}": "Ficou em pausa ao fechar o kywai ({name}): {request}",
   "Detuviste la petición ({name}): {request}": "Você parou o pedido ({name}): {request}",
   "Tareas a medias: {list}. ¿Las reanudo donde se quedaron?": "Tarefas pela metade: {list}. Retomo de onde pararam?",

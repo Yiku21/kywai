@@ -1048,7 +1048,10 @@ conectada) junta en un solo sitio lo que está esperando por ti, con sus botones
   correcciones y un relevo; sus archivos se quedan y «Deshacer la tarea» los quita), **choques** al integrar una copia
   aparte o una tarea que **no se pudo hacer** («Deshacer» deja sus archivos como estaban).
 - **Tareas en pausa**: lo que quedó a medias al cerrarse o reiniciar el servidor (o al detenerlo desde el móvil),
-  con «Reanudar» (sigue donde se quedó) y «Quitar» (no se reanudará).
+  con «Reanudar» (sigue donde se quedó) y «Quitar» (no se reanudará). Funcionan aunque la petición sea de otra
+  conversación del proyecto y kywai se haya reiniciado desde entonces: la buscan en las conversaciones guardadas
+  (`locateRun` en `src/main/conversations.ts`). Si ya no queda nada en pausa (por ejemplo, borraste esa conversación),
+  la tarjeta se cierra con «Ya no quedaba nada en pausa» en vez de dar error (prueba X2 de `orchestrator.check.ts`).
 - **Un permiso que pide un agente** (modo [«Preguntarme antes»](#preguntarme-antes-los-agentes-te-piden-permiso)):
   «Denegar», «Permitir una vez» o «Permitir siempre en esta sesión». Sale también en el chat con los mismos botones.
 - **Una tarea bloqueada** (ver [abajo](#tareas-bloqueadas-le-falta-algo-no-es-un-error)): el agente dijo que le falta

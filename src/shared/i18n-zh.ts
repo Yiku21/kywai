@@ -2621,6 +2621,7 @@ export const zh: Record<string, string> = {
   "Reanudada: el equipo sigue donde lo dejó": "已恢复：团队从中断处继续",
   "No sé qué petición quitar": "不知道要移除哪个请求",
   "Quitado: no se reanudará": "已移除：不会再恢复",
+  "Ya no quedaba nada en pausa": "已经没有暂停的内容了",
   "Quedó en pausa al cerrarse kywai ({name}): {request}": "kywai 关闭时已暂停（{name}）：{request}",
   "Detuviste la petición ({name}): {request}": "你停止了该请求（{name}）：{request}",
   "Tareas a medias: {list}. ¿Las reanudo donde se quedaron?": "未完成的任务：{list}。要从中断处继续吗？",

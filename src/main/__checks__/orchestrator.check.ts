@@ -38,7 +38,7 @@ import { memoryOf, setInstructions } from '../memory'
 import { setGuideEnv } from '../coordinatorGuide'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import * as store from '../projects'
-import { conversationOfRun, newConversation, openConversation } from '../conversations'
+import { __forgetRunConversationsForChecks, conversationOfRun, newConversation, openConversation } from '../conversations'
 import { initQuota, setQuotaProbing } from '../quota'
 import { finishRunUsage, initUsageLog, recordCall, startRunUsage, usageRuns } from '../usageLog'
 import { __setUiCapturerForChecks } from '../uiShots'
@@ -1762,6 +1762,55 @@ async function main(): Promise<void> {
       openConversation(xp.id, idB)
       assert.ok(st.messages.every((m) => m.runId === r2.runId))
       assert.equal(st.tasks.some((t) => t.runId === r1.runId), false, 'la tarea de A no se guarda con B')
+      workBehaviour = () => null
+    })
+
+    await check('X2: tras reiniciar, Quitar y Reanudar de «Te necesita» encuentran la petición en pausa de otra conversación', async () => {
+      const xp = store.createProject('Pausa en otra')
+      const st = store.getProject(xp.id)
+      __clearBlocksForChecks()
+      let started = false
+      workBehaviour = (o) =>
+        o.mode === 'work' && o.prompt.includes('Haz el vídeo largo')
+          ? (async () => {
+              started = true
+              await new Promise((r) => o.signal.addEventListener('abort', r))
+              return { ok: false, text: '', usage: { input: 5, output: 1 }, errorKind: 'cancelled', errorMessage: 'Cancelada' }
+            })()
+          : null
+      const pv = plan('Empiezo', [
+        { key: 'a', title: 'Vídeo 1 de 2', description: 'Haz el vídeo largo', agent: 'gemini', difficulty: 'medium', dependsOn: [], deliverable: 'file' },
+        { key: 'b', title: 'Vídeo 2 de 2', description: 'Haz el vídeo largo también', agent: 'gemini', difficulty: 'medium', dependsOn: ['a'], deliverable: 'file' }
+      ])
+      planResponses = { claude: pv, gemini: pv }
+      const ra = await sendMessage({ projectId: xp.id, text: 'Dos vídeos', filePaths: [] })
+      await waitFor(() => started, 10000, 'vídeo en marcha')
+      cancelRun(ra.runId, 'pause')
+      await waitFor(() => !!finished(ra.runId), 5000, 'detenida')
+      const pausedFor = (runId: string): ReturnType<typeof listInbox>[number] | undefined => listInbox().find((i) => i.kind === 'paused' && i.runId === runId && !i.resolvedAt)
+      assert.ok(pausedFor(ra.runId), 'sale en «Te necesita»')
+      // Abres otra conversación y kywai se reinicia: ya no recuerda dónde empezó la petición.
+      newConversation(xp.id)
+      __forgetRunConversationsForChecks()
+      assert.equal(st.tasks.some((t) => t.runId === ra.runId), false)
+      const res = await actInbox(pausedFor(ra.runId)!.id, 'discard')
+      assert.equal(res.message, 'Quitado: no se reanudará')
+      assert.equal(pausedFor(ra.runId), undefined, 'la tarjeta se cierra')
+      // Las tareas que quedaban en su conversación ya no se ofrecen para reanudar.
+      __forgetRunConversationsForChecks()
+      await assert.rejects(resumeRun(xp.id, ra.runId), /No hay tareas interrumpidas/)
+
+      // Otra petición en pausa en una conversación que luego no queda: Quitar cierra la tarjeta sin error.
+      started = false
+      const rb = await sendMessage({ projectId: xp.id, text: 'Otros dos vídeos', filePaths: [] })
+      await waitFor(() => started, 10000, 'vídeo B en marcha')
+      cancelRun(rb.runId, 'pause')
+      await waitFor(() => !!finished(rb.runId), 5000, 'B detenida')
+      for (const t of st.tasks.filter((x) => x.runId === rb.runId)) store.upsertTask({ ...t, error: 'Cancelada por el usuario' })
+      __forgetRunConversationsForChecks()
+      const res2 = await actInbox(pausedFor(rb.runId)!.id, 'discard')
+      assert.equal(res2.message, 'Ya no quedaba nada en pausa')
+      assert.equal(pausedFor(rb.runId), undefined)
       workBehaviour = () => null
     })
 
