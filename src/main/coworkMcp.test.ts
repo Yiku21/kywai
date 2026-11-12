@@ -201,6 +201,12 @@ describe('habilidades e instrucciones del repositorio', () => {
     expect(repoInstructionLines(dir, 'gemini').join('\n')).toContain('Usa pnpm.')
     writeFileSync(join(dir, 'CLAUDE.md'), 'Usa pnpm.')
     expect(repoInstructionLines(dir, 'gemini').filter((l) => l === 'Usa pnpm.')).toHaveLength(1)
+    // Hasta 20 000 caracteres; si es más largo, dice dónde está el archivo entero.
+    writeFileSync(join(dir, 'CLAUDE.md'), '@AGENTS.md\n')
+    writeFileSync(join(dir, 'AGENTS.md'), 'x'.repeat(15_000))
+    expect(repoInstructionLines(dir, 'claude')[2]).toHaveLength(15_000)
+    writeFileSync(join(dir, 'AGENTS.md'), 'y'.repeat(25_000))
+    expect(repoInstructionLines(dir, 'claude')[2]).toContain(`está en ${join(dir, 'AGENTS.md')}`)
   })
 })
 

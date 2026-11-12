@@ -6,7 +6,8 @@ import { join } from 'node:path'
 import type { AgentConfig } from '@shared/types'
 
 const FILES = ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md'] as const
-const MAX_CHARS = 6000
+/** Un AGENTS.md con el conocimiento del proyecto puede ser largo: se pasa casi entero a quien no lo lee solo. */
+const MAX_CHARS = 20_000
 
 /** Qué archivo lee ya cada CLI por su cuenta (no se repite en el encargo). */
 const NATIVE: Partial<Record<AgentConfig['provider'], (typeof FILES)[number]>> = {
@@ -46,7 +47,7 @@ export function repoInstructionLines(root: string, provider: AgentConfig['provid
     // «@AGENTS.md» (lo que suele llevar un CLAUDE.md que solo apunta al otro) no aporta nada.
     if (!text || seen.has(text) || /^(@\S+\s*)+$/.test(text)) continue
     seen.add(text)
-    out.push('', `## Instrucciones del repositorio (${f})`, text.length > MAX_CHARS ? `${text.slice(0, MAX_CHARS)}\n…(recortado: el archivo completo está en ${f})` : text)
+    out.push('', `## Instrucciones del repositorio (${f})`, text.length > MAX_CHARS ? `${text.slice(0, MAX_CHARS)}\n…(recortado: el archivo completo está en ${join(root, f)}; léelo entero antes de empezar)` : text)
   }
   return out
 }
