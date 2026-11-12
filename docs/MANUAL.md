@@ -2103,7 +2103,9 @@ pulsar **Publicar** (también desde «Te necesita», en el escritorio, la web y 
 (subida reanudable de Meta: no hace falta una URL pública), espera a que Instagram lo procese y deja el **enlace** en el
 chat. Si falla, la tarjeta dice por qué y tiene **Reintentar**: el error nombra el paso (preparar la publicación,
 subir el vídeo, comprobarlo o publicar el reel), lo que contestó Meta y su código o `fbtrace_id`. Los errores 500
-pasajeros de la subida se reintentan solos dos veces.
+pasajeros de la subida se reintentan solos dos veces. Ninguna petición se queda colgada: cada paso tiene un tope de
+tiempo (1 minuto; la subida, 2 minutos más 1 por cada 5 MB). Si cierras kywai a mitad de una publicación (de Instagram
+o de TikTok), al volver a abrirlo la tarjeta queda como fallida, con **Reintentar**, en vez de seguir dando vueltas.
 
 **Publicar sin preguntar.** Con ese botón activado, lo que prepara «/instagram» se publica solo al terminar el texto,
 también desde una **rutina** («/rutina cada día a las 18:00: /serie siguiente» y otra «… /instagram»). «Volver a pedir

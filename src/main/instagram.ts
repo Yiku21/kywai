@@ -23,6 +23,23 @@ export function __setInstagramFetchForTests(f: Fetch | null, sleep?: (ms: number
 
 const doFetch: Fetch = (url, init) => (fetchImpl ?? (globalThis.fetch as unknown as Fetch))(url, init)
 
+/** Lo que se espera una respuesta normal de la Graph API antes de dar el paso por perdido. */
+export const REQUEST_TIMEOUT_MS = 60_000
+
+/** La señal del usuario (cancelar) junto con un tope de tiempo: así una petición que no contesta nunca no se queda colgada. */
+function timed(signal: AbortSignal | undefined, ms: number): AbortSignal {
+  const t = AbortSignal.timeout(ms)
+  return signal ? AbortSignal.any([signal, t]) : t
+}
+
+/** Si la petición se cortó por el tope de tiempo (y no porque el usuario cancelase), un error que lo dice. */
+function timeoutError(e: unknown, signal: AbortSignal | undefined, ms: number, step?: string): unknown {
+  if (signal?.aborted) return e
+  const name = (e as { name?: unknown } | null)?.name
+  if (name === 'TimeoutError' || name === 'AbortError') return new Error(`Instagram no contestó en ${Math.round(ms / 1000)} s${step ? ` al ${step}` : ''}; prueba otra vez en un rato`)
+  return e
+}
+
 /** Token de «Instagram con inicio de sesión de Instagram» (empieza por IG…) o de Facebook (EAA…, con una página). */
 export function graphHost(token: string): string {
   return /^IG/.test(token.trim()) ? 'https://graph.instagram.com' : 'https://graph.facebook.com'
@@ -70,8 +87,14 @@ async function graph<T>(token: string, method: 'GET' | 'POST', path: string, par
     body = new URLSearchParams(params).toString()
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
   }
-  const res = await doFetch(url.toString(), { method, headers, body, signal })
-  const text = await res.text()
+  let res: Awaited<ReturnType<Fetch>>
+  let text: string
+  try {
+    res = await doFetch(url.toString(), { method, headers, body, signal: timed(signal, REQUEST_TIMEOUT_MS) })
+    text = await res.text()
+  } catch (e) {
+    throw timeoutError(e, signal, REQUEST_TIMEOUT_MS, step)
+  }
   if (!res.ok) throw graphError(res.status, text, step)
   try {
     return JSON.parse(text) as T
@@ -194,13 +217,21 @@ export async function publishReel(input: PublishInput): Promise<{ id: string; pe
   const uploadUrl = box.uri || `https://rupload.facebook.com/ig-api-upload/${GRAPH_VERSION}/${box.id}`
   const bytes = new Uint8Array(readFileSync(file))
   for (let attempt = 0; ; attempt++) {
-    const up = await doFetch(uploadUrl, {
-      method: 'POST',
-      headers: { Authorization: `OAuth ${token.trim()}`, offset: '0', file_size: String(size), 'Content-Type': 'application/octet-stream' },
-      body: bytes,
-      signal
-    })
-    const upText = await up.text()
+    // Tope de la subida: 2 minutos más 1 por cada 5 MB (una conexión muy lenta sigue subiendo; una colgada, no).
+    const upMs = 120_000 + Math.ceil(size / (5 * 1024 * 1024)) * 60_000
+    let up: Awaited<ReturnType<Fetch>>
+    let upText: string
+    try {
+      up = await doFetch(uploadUrl, {
+        method: 'POST',
+        headers: { Authorization: `OAuth ${token.trim()}`, offset: '0', file_size: String(size), 'Content-Type': 'application/octet-stream' },
+        body: bytes,
+        signal: timed(signal, upMs)
+      })
+      upText = await up.text()
+    } catch (e) {
+      throw timeoutError(e, signal, upMs, 'subir el vídeo')
+    }
     if (up.ok) break
     // Un fallo pasajero de Meta (5xx) se reintenta un par de veces antes de rendirse.
     if (up.status >= 500 && attempt < 2 && !signal?.aborted) {

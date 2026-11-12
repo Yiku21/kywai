@@ -130,6 +130,20 @@ describe('el Instagram de kywai', () => {
     expect(uploads).toBe(2)
   })
 
+  it('si Instagram no contesta, no se queda colgado: dice en qué paso', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-'))
+    const file = join(dir, 'reel.mp4')
+    writeFileSync(file, Buffer.alloc(10, 1))
+    __setInstagramFetchForTests(
+      async (_url, init) => {
+        expect(init?.signal).toBeInstanceOf(AbortSignal)
+        throw new DOMException('The operation was aborted due to timeout', 'TimeoutError')
+      },
+      async () => undefined
+    )
+    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram no contestó en 60 s al preparar la publicación')
+  })
+
   it('el texto cabe en Instagram y se limpia lo que añade el agente', () => {
     const tags = Array.from({ length: 35 }, (_, i) => `#t${i}`).join(' ')
     expect(cleanCaption(tags).match(/#/g)).toHaveLength(30)

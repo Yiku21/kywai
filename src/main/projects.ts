@@ -8,6 +8,8 @@ import { reopensWork } from '@shared/chatOrder'
 import { emit, emitMobileOnly } from './events'
 
 const SAVE_DEBOUNCE_MS = 400
+/** Error de una publicación que se cortó al cerrar kywai. */
+export const POST_INTERRUPTED = 'Se cortó al cerrar kywai: pulsa Reintentar'
 const ID_RE = /^[a-z0-9][a-z0-9\-]{0,80}$/
 
 let root = ''
@@ -82,6 +84,16 @@ function sanitizeState(state: ProjectState): ProjectState {
     if (m.streaming) m.streaming = false
     // El agente de una tarea a medias ya no sigue contando.
     if (m.work?.status === 'running') m.work = { ...m.work, status: 'stopped' }
+    // Una publicación en Instagram o TikTok que se cortó al cerrar la app: se queda en «fallida» para poder
+    // reintentarla (si no, la tarjeta seguiría dando vueltas para siempre y no dejaría reintentar).
+    if (m.instagramPost?.status === 'publishing') {
+      m.instagramPost = { ...m.instagramPost, status: 'failed', error: POST_INTERRUPTED }
+      touched = true
+    }
+    if (m.tiktokPost?.status === 'sending') {
+      m.tiktokPost = { ...m.tiktokPost, status: 'failed', error: POST_INTERRUPTED }
+      touched = true
+    }
   }
   if (touched) scheduleSave(state.project.id)
   return state
