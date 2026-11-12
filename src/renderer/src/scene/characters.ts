@@ -127,10 +127,13 @@ export function pickClip(s: {
   questionAmt: number
   eyeError: number
   ackAmt: number
+  /** 0..1: llamándote por algo nuevo en «Te necesita» (opcional: solo el coordinador). */
+  callAmt?: number
   /** Segundos desde que empezó a trabajar (alterna entre explicar y hablar). */
   t: number
 }): CharacterClip {
   if (s.speed > 0.6) return 'camina'
+  if ((s.callAmt ?? 0) > 0.3) return 'saluda'
   if (s.checkAmt > 0.3) return 'celebra'
   if (s.visual === 'error' || s.eyeError > 0.4 || s.questionAmt > 0.4) return 'duda'
   if (s.ackAmt > 0.35) return 'saluda'
@@ -187,7 +190,7 @@ export async function buildCharacter(role: HomeRole): Promise<Character> {
     height,
     update(dt, brain, t) {
       if (brain.visual !== 'working') workStart = t
-      const want = pickClip({ visual: brain.visual, speed: brain.speed, checkAmt: brain.checkAmt, questionAmt: brain.questionAmt, eyeError: brain.eyeError, ackAmt: brain.ackAmt, t: t - workStart })
+      const want = pickClip({ visual: brain.visual, speed: brain.speed, checkAmt: brain.checkAmt, questionAmt: brain.questionAmt, eyeError: brain.eyeError, ackAmt: brain.ackAmt, callAmt: brain.callAmt, t: t - workStart })
       // Un movimiento dura al menos un rato para que no tiemble entre dos estados.
       if (want !== current && (t - since > 0.8 || want === 'camina' || current === 'camina')) {
         current = want

@@ -107,6 +107,30 @@ export const warnTexture = canvasTexture(128, 128, (ctx) => {
   ctx.fill()
 })
 
+/** Campanita de «Te necesita» (sobre la cabeza del coordinador cuando algo espera tu decisión). */
+export const bellTexture = canvasTexture(128, 128, (ctx) => {
+  ctx.fillStyle = 'white'
+  ctx.strokeStyle = 'white'
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  // Cuerpo: cúpula que se abre en falda.
+  ctx.beginPath()
+  ctx.moveTo(22, 92)
+  ctx.quadraticCurveTo(34, 84, 34, 62)
+  ctx.bezierCurveTo(34, 30, 94, 30, 94, 62)
+  ctx.quadraticCurveTo(94, 84, 106, 92)
+  ctx.closePath()
+  ctx.fill()
+  // Asa arriba y badajo abajo.
+  ctx.lineWidth = 8
+  ctx.beginPath()
+  ctx.arc(64, 26, 7, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.arc(64, 95, 12, 0, Math.PI)
+  ctx.fill()
+})
+
 /** «?» de duda (pensando). */
 export const questionTexture = canvasTexture(128, 128, (ctx) => {
   ctx.fillStyle = 'white'

@@ -19,8 +19,12 @@ describe('personajes 3D', () => {
     expect(pickClip({ ...base, visual: 'error' })).toBe('duda')
     expect(pickClip({ ...base, checkAmt: 0.9, visual: 'working' })).toBe('celebra')
     expect(pickClip({ ...base, ackAmt: 0.5 })).toBe('saluda')
+    // El coordinador que te llama por «Te necesita» saluda aunque esté trabajando o dudando.
+    expect(pickClip({ ...base, callAmt: 0.8, visual: 'working', t: 1 })).toBe('saluda')
+    expect(pickClip({ ...base, callAmt: 0.8, visual: 'error' })).toBe('saluda')
     // Caminar manda sobre todo lo demás.
     expect(pickClip({ ...base, speed: 2, visual: 'error' })).toBe('camina')
+    expect(pickClip({ ...base, speed: 2, callAmt: 1 })).toBe('camina')
   })
 
   it('recuerda el aspecto elegido', () => {

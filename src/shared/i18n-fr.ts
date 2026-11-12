@@ -3484,4 +3484,5 @@ export const fr: Record<string, string> = {
   "Añadir a Favoritos": "Ajouter aux favoris",
   "Quitar de Favoritos": "Retirer des favoris",
   "Arrastra aquí un chat o un proyecto (o clic derecho → Añadir a Favoritos)": "Glissez ici une conversation ou un projet (ou clic droit → Ajouter aux favoris)",
+  "¡Te necesito! Hay algo nuevo en «Te necesita».": "J’ai besoin de vous ! Il y a du nouveau dans « A besoin de vous ».",
 }

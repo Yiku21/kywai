@@ -1,7 +1,7 @@
 import { Howl, type HowlOptions } from 'howler'
 
 /** Audio local sintetizado. No crea un AudioContext hasta recibir un gesto del usuario. */
-export type SfxName = 'taskStart' | 'taskComplete' | 'error' | 'message' | 'transfer' | 'fileCreated' | 'projectCreated' | 'click'
+export type SfxName = 'taskStart' | 'taskComplete' | 'error' | 'message' | 'transfer' | 'fileCreated' | 'projectCreated' | 'click' | 'needsYou'
 
 const MUTE_KEY = 'aicowork.muted'
 const VOLUME_KEY = 'aicowork.volume'
@@ -377,7 +377,7 @@ export function stopMusic(): void {
   music = undefined
 }
 
-const PRIORITY: Record<SfxName, number> = { error: 5, taskComplete: 4, projectCreated: 3, taskStart: 3, transfer: 2, fileCreated: 2, message: 1, click: 0 }
+const PRIORITY: Record<SfxName, number> = { needsYou: 6, error: 5, taskComplete: 4, projectCreated: 3, taskStart: 3, transfer: 2, fileCreated: 2, message: 1, click: 0 }
 const queue: { name: SfxName; at: number }[] = []
 const lastPlayed = new Map<SfxName, number>()
 let effectTimer: ReturnType<typeof setTimeout> | undefined
@@ -419,6 +419,19 @@ function synthesize(ctx: AudioContext, name: SfxName): number {
     case 'click':
       tone(440, 0, 0.035, 0.07, 'sine', 320)
       return 0.08
+    case 'needsYou': {
+      // «Te necesita»: campanita de mostrador (dos toques metálicos y un eco más grave), con parciales de campana
+      // (no armónicos) para que no se confunda con ningún otro aviso.
+      const bell = (f: number, delay: number, length: number, volume: number): void => {
+        tone(f, delay, length, volume)
+        tone(f * 2.76, delay, length * 0.45, volume * 0.32)
+        tone(f * 5.4, delay, length * 0.2, volume * 0.12)
+      }
+      bell(1318.51, 0, 0.9, 0.11)
+      bell(1318.51, 0.16, 1.1, 0.1)
+      bell(987.77, 0.42, 1.5, 0.09)
+      return 1.95
+    }
   }
 }
 
@@ -439,7 +452,7 @@ function drainEffects(): void {
 export function playSfx(name: SfxName): void {
   if (muted || context?.state !== 'running') return
   const now = performance.now()
-  const cooldown = name === 'click' ? 120 : name === 'error' ? 1400 : 650
+  const cooldown = name === 'click' ? 120 : name === 'error' || name === 'needsYou' ? 1400 : 650
   if (now - (lastPlayed.get(name) ?? -Infinity) < cooldown || queue.some((item) => item.name === name)) return
   if (name === 'click' && (effectTimer !== undefined || queue.length)) return
   queue.push({ name, at: now })

@@ -130,3 +130,53 @@
 .k_done {
   border-left-color: var(--live, #3fb950);
 }
+
+/* Algo nuevo en «Te necesita»: la campanita palpita con un brillo suave y se mece un poco (hasta abrir la bandeja). */
+.bell {
+  transform-origin: 50% 8%;
+}
+
+.ringing .bell {
+  color: var(--warn, #f5b13d) !important;
+  animation:
+    inboxGlow 1.6s ease-in-out infinite,
+    inboxSwing 3.2s ease-in-out infinite;
+}
+
+@keyframes inboxGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+    opacity: 0.85;
+  }
+  50% {
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--warn, #f5b13d) 75%, transparent));
+    opacity: 1;
+  }
+}
+
+@keyframes inboxSwing {
+  0%,
+  30%,
+  100% {
+    transform: rotate(0);
+  }
+  5% {
+    transform: rotate(14deg);
+  }
+  10% {
+    transform: rotate(-11deg);
+  }
+  15% {
+    transform: rotate(7deg);
+  }
+  20% {
+    transform: rotate(-4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringing .bell {
+    animation: inboxGlow 2.4s ease-in-out infinite;
+  }
+}

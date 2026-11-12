@@ -3484,4 +3484,5 @@ export const zh: Record<string, string> = {
   "Añadir a Favoritos": "加入收藏",
   "Quitar de Favoritos": "取消收藏",
   "Arrastra aquí un chat o un proyecto (o clic derecho → Añadir a Favoritos)": "把对话或项目拖到这里（或右键 → 加入收藏）",
+  "¡Te necesito! Hay algo nuevo en «Te necesita».": "需要你！「需要你」里有新内容。",
 }

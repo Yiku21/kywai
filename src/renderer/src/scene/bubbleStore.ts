@@ -4,12 +4,12 @@ import { lineFor, type PersonaId, type SayEvent } from './personality'
 /** Bocadillo de texto junto a la cabeza de un robot. */
 export interface Bubble {
   text: string
-  event: SayEvent | 'social'
+  event: SayEvent | 'social' | 'call'
   until: number
 }
 
 /** Lo importante (tarea, terminado, error) se dice siempre; lo demás, si no hay mucho jaleo. */
-const IMPORTANT: ReadonlySet<Bubble['event']> = new Set(['task', 'done', 'error'])
+const IMPORTANT: ReadonlySet<Bubble['event']> = new Set(['task', 'done', 'error', 'call'])
 /** Bocadillos a la vez como mucho (los importantes no cuentan para este límite). */
 const MAX_CASUAL = 2
 /** Segundos mínimos entre dos frases del mismo robot (las importantes, menos). */
@@ -21,6 +21,8 @@ interface BubbleState {
   /** Intenta que un robot diga algo. Devuelve si lo dijo. */
   say(agentId: string, persona: PersonaId, event: SayEvent): boolean
   social(agentId: string, text: string): boolean
+  /** El coordinador te llama (algo nuevo en «Te necesita»): se dice siempre, encima de lo que estuviera diciendo. */
+  call(agentId: string, text: string): void
   clearSocial(agentId: string): void
   clearAll(): void
 }
@@ -78,6 +80,26 @@ export const useBubbles = create<BubbleState>((set, get) => ({
       get().clearSocial(agentId)
     }, ms))
     return true
+  },
+  call(agentId, text) {
+    const now = Date.now()
+    const ms = 6000
+    lastSaid.set(agentId, now)
+    set((s) => ({ map: { ...s.map, [agentId]: { text, event: 'call', until: now + ms } } }))
+    const previous = timers.get(agentId)
+    if (previous) window.clearTimeout(previous)
+    timers.set(
+      agentId,
+      window.setTimeout(() => {
+        timers.delete(agentId)
+        set((s) => {
+          if (s.map[agentId]?.event !== 'call') return s
+          const map = { ...s.map }
+          delete map[agentId]
+          return { map }
+        })
+      }, ms)
+    )
   },
   clearSocial(agentId) {
     if (get().map[agentId]?.event !== 'social') return

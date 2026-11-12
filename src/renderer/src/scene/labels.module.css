@@ -45,6 +45,15 @@
   color: #5a1220;
 }
 
+/* El coordinador te llama por algo nuevo en «Te necesita»: bocadillo dorado, como la campanita. */
+.bubbleCall {
+  background: #fff1c7;
+  color: #4a3200;
+  font-weight: 600;
+  /* Deja sitio a la campanita que asoma sobre la etiqueta. */
+  bottom: calc(100% + 22px);
+}
+
 .bubble.static {
   animation: none;
 }
@@ -321,4 +330,64 @@
 
 .anchor > .core {
   pointer-events: none;
+}
+
+/* El coordinador te llama por algo nuevo en «Te necesita»: borde dorado que late y campanita sobre la etiqueta. */
+.robot.calling {
+  position: relative;
+  border-color: rgba(255, 201, 77, 0.75);
+  animation: call-glow 1.6s ease-in-out infinite;
+}
+
+.callBell {
+  position: absolute;
+  left: 50%;
+  top: -19px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffc94d;
+  color: #3a2700;
+  box-shadow: 0 0 0 2px rgba(var(--label-rgb, 9, 14, 25), 0.9);
+  transform: translateX(-50%);
+  transform-origin: 50% 20%;
+  animation: call-bell 1.6s ease-in-out infinite;
+}
+
+.robot.calling.static,
+.robot.static .callBell {
+  animation: none;
+}
+
+@keyframes call-glow {
+  0%,
+  100% {
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45), 0 0 0 0 rgba(255, 201, 77, 0);
+  }
+  50% {
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45), 0 0 16px 2px rgba(255, 201, 77, 0.45);
+  }
+}
+
+@keyframes call-bell {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1) rotate(0);
+    box-shadow: 0 0 0 2px rgba(var(--label-rgb, 9, 14, 25), 0.9), 0 0 0 0 rgba(255, 201, 77, 0.6);
+  }
+  10% {
+    transform: translateX(-50%) scale(1.08) rotate(14deg);
+  }
+  20% {
+    transform: translateX(-50%) scale(1.08) rotate(-12deg);
+  }
+  30% {
+    transform: translateX(-50%) scale(1.04) rotate(6deg);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.06) rotate(0);
+    box-shadow: 0 0 0 2px rgba(var(--label-rgb, 9, 14, 25), 0.9), 0 0 12px 3px rgba(255, 201, 77, 0.55);
+  }
 }

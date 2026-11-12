@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bell, BellDot } from 'lucide-react'
 import type { InboxItem } from '@shared/types'
 import { needsYou } from '@shared/inbox'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
+import { useInboxAlert } from '@/lib/inboxAlert'
 import { Popover } from '../common/Popover'
 import { cx } from '../common/util'
 import u from '../common/ui.module.css'
@@ -48,6 +49,20 @@ export function InboxButton({ sidebar }: { sidebar?: { button: string; label: st
   const [busy, setBusy] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const anchor = useRef<HTMLButtonElement>(null)
+  // Algo nuevo sin mirar: la campanita palpita con un brillo suave hasta que abres la bandeja.
+  const ringing = useInboxAlert((st) => st.ringing)
+  const openSeq = useInboxAlert((st) => st.openSeq)
+  const firstSeq = useRef(openSeq)
+  useEffect(() => {
+    // Lo pide otra parte de la interfaz (el coordinador que te llama en el 3D). Solo lo atiende el botón de la barra,
+    // o el de la cabecera si no hay barra.
+    if (openSeq === firstSeq.current) return
+    firstSeq.current = openSeq
+    if (sidebar || !document.querySelector('[data-inbox-sidebar]')) setOpen(true)
+  }, [openSeq, sidebar])
+  useEffect(() => {
+    if (open) useInboxAlert.getState().markSeen()
+  }, [open])
   if (!api) return null
   const count = items.length
   const Icon = count ? BellDot : Bell
@@ -82,14 +97,15 @@ export function InboxButton({ sidebar }: { sidebar?: { button: string; label: st
       <button
         ref={anchor}
         type="button"
-        className={sidebar ? sidebar.button : cx(u.iconBtn, s.headerBtn, b.btn)}
+        className={cx(sidebar ? sidebar.button : cx(u.iconBtn, s.headerBtn, b.btn), ringing && count > 0 && b.ringing)}
+        data-inbox-sidebar={sidebar ? '' : undefined}
         aria-label={label}
         title={label}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((v) => !v)}
       >
-        <Icon size={sidebar ? 17 : 18} aria-hidden="true" />
+        <Icon size={sidebar ? 17 : 18} aria-hidden="true" className={b.bell} />
         {sidebar && <span className={sidebar.label}>{t('Te necesita')}</span>}
         {count > 0 && (
           <span className={sidebar ? sidebar.badge : b.badge} aria-hidden="true">

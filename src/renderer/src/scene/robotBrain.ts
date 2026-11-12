@@ -51,6 +51,9 @@ type Gesture =
   | 'wink' // guiño juguetón: un ojo «<» y el otro redondo
   | 'drowsy' // se le cierran los ojos (rayitas y «zzz») y vuelve
 
+/** Segundos que el coordinador pasa llamándote cuando llega algo nuevo a «Te necesita». */
+const CALL_LEN = 4.5
+
 const GESTURE_LEN: Record<Gesture, number> = {
   none: 0,
   smile: 2.2,
@@ -179,6 +182,7 @@ export class RobotBrain {
   private readonly expectFrom = new THREE.Vector3()
   private ackStart = -10
   private celebrateStart = -10
+  private callStart = -10
   private spawnStart = -10
   leaving = false
   private leaveStart = 0
@@ -233,6 +237,8 @@ export class RobotBrain {
   restAmt = 0
   offlineAmt = 0
   ackAmt = 0
+  /** 0..1: llamando al usuario (algo nuevo en «Te necesita»): mira a la cámara y saluda. */
+  callAmt = 0
   emitAmt = 0
   /** Velocidad horizontal actual (para inclinar accesorios). */
   speed = 0
@@ -320,6 +326,17 @@ export class RobotBrain {
   onCelebrate(t: number): void {
     this.celebrateStart = t
     this.lastBusy = t
+  }
+
+  /**
+   * Hay algo nuevo en «Te necesita»: se despierta, se vuelve hacia ti y saluda con la mano unos segundos para
+   * llamarte (con el personaje 3D, su movimiento «saluda»; con el robot clásico, se balancea de lado a lado).
+   */
+  callUser(t: number): void {
+    if (this.leaving) return
+    this.callStart = t
+    this.lastBusy = Math.max(this.lastBusy, t)
+    if (this.visual === 'resting') this.startGesture('startle', t)
   }
 
   /** Para escenas sin desplazamiento previo (cambio de modo, reinicio). */
@@ -433,7 +450,8 @@ export class RobotBrain {
     // ---- Estado visual base ----
     let visual: BaseVisual =
       this.activity === 'idle' ? (t - this.lastBusy > this.persona.restAfter + this.phase * 10 ? 'resting' : 'idle') : this.activity
-    if (social?.awake || this.moving || t - this.celebrateStart < 1.4 || t < this.expectUntil + 0.6 || t < this.attentionUntil) {
+    const calling = t - this.callStart >= 0 && t - this.callStart < CALL_LEN
+    if (social?.awake || this.moving || calling || t - this.celebrateStart < 1.4 || t < this.expectUntil + 0.6 || t < this.attentionUntil) {
       if (visual === 'resting') visual = 'idle'
     }
     if (visual !== this.prevVisual) {
@@ -538,6 +556,7 @@ export class RobotBrain {
     let targetYaw = camYaw
     if (social) targetYaw = yawTo(this.pos, social.lookAt) + (social.turn ?? 0)
     else if (this.moving) targetYaw = heading
+    else if (calling) targetYaw = camYaw
     else if (this.anchor === 'core') targetYaw = yawTo(this.pos, CORE_POS)
     else if (t - this.sendStart < 1.5) targetYaw = yawTo(this.pos, this.sendTarget)
     else if (t < this.expectUntil + 0.4) targetYaw = yawTo(this.pos, this.expectFrom)
@@ -563,7 +582,7 @@ export class RobotBrain {
           targetYaw = camYaw
       }
     }
-    const yawLambda = this.moving ? 3.2 : visual === 'resting' ? 1.2 : t < this.attentionUntil ? 4.5 : 2.6
+    const yawLambda = this.moving ? 3.2 : calling ? 5 : visual === 'resting' ? 1.2 : t < this.attentionUntil ? 4.5 : 2.6
     this.yaw = dampAngle(this.yaw, targetYaw, yawLambda, dt)
 
     // ---- Inclinaciones ----
@@ -580,6 +599,11 @@ export class RobotBrain {
       rollT = THREE.MathUtils.clamp(-Math.atan2(Math.sin(heading - this.yaw), Math.cos(heading - this.yaw)) * 0.35, -0.2, 0.2)
     }
     pitchT -= ack * 0.2
+    // Llamándote: se balancea de lado a lado, como quien agita la mano (el personaje 3D además saluda).
+    if (calling && !this.moving) {
+      rollT += Math.sin(t * 6.5) * 0.11 * this.callAmt * (r ? 0.3 : 1)
+      pitchT -= 0.06 * this.callAmt
+    }
     pitchT += emit * 0.12
     if (!this.moving) pitchT += this.gesturePitch
     if (social) { rollT += social.tilt; pitchT += social.pitch ?? 0 }
@@ -879,6 +903,7 @@ export class RobotBrain {
     this.restAmt = damp(this.restAmt, visual === 'resting' ? 1 : 0, 1.8, dt)
     this.offlineAmt = damp(this.offlineAmt, visual === 'offline' ? 1 : 0, 2.5, dt)
     this.ackAmt = ack
+    this.callAmt = damp(this.callAmt, calling ? 1 : 0, 6, dt)
     this.emitAmt = emit
     this.speed = speed
 

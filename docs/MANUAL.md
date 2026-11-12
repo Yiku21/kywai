@@ -1107,6 +1107,27 @@ Tocar el título lleva a su proyecto. Los avisos se cierran solos cuando ya no h
 la tarea termina o el agente vuelve a hablar). La lista se guarda en `inbox.json` de la carpeta de trabajo;
 la API del móvil la da en `GET /inbox` y `POST /inbox/{id}/{acción}`, y avisa con el evento `inbox.updated`.
 
+#### El aviso cuando llega algo nuevo
+
+Cuando entra algo nuevo en «Te necesita» (en cualquier proyecto), kywai te avisa de tres maneras a la vez:
+
+- **La campanita de la barra lateral palpita** en dorado con un brillo suave y se mece un poco. Sigue así hasta que
+  abres «Te necesita»; luego se queda quieta con su número. Con «Reducir movimiento» del sistema solo brilla.
+- **Suena su propio timbre**: una campanita de mostrador (dos toques metálicos y un eco más grave), distinta de
+  cualquier otro sonido de kywai. Va con el interruptor **«Música y efectos»**: si lo silencias, no suena.
+- **En el espacio 3D el coordinador te llama**: una campanita dorada palpita sobre su cabeza y sobre su etiqueta
+  (con el borde de la etiqueta latiendo) y, al llegar el aviso, se vuelve hacia ti, saluda con la mano unos segundos
+  (con «Personajes» hace su movimiento de saludo; con los robots «Clásico» o «Refugio Kywai» se balancea de lado a
+  lado) y dice «¡Te necesito! Hay algo nuevo en «Te necesita».» con su voz. La voz va con el interruptor
+  **«Voces de los agentes»**. Hacer clic en el coordinador (o en su etiqueta) mientras llama abre «Te necesita».
+
+El coordinador es el primero de la lista de quién planifica (⚙ → Agentes), así que si cambias de coordinador, la
+campanita pasa al nuevo. Lo que ya estaba en la bandeja al abrir la app (o lo que tiene más de 5 minutos al
+reconectar) solo hace palpitar la campanita, sin sonar ni llamar. Lo informativo («Terminado») no avisa.
+El código está en `src/renderer/src/lib/inboxAlert.ts` (qué es nuevo, prueba en `inboxAlert.test.ts`), el timbre
+`needsYou` en `lib/audio.ts`, la campanita de la barra en `ui/header/InboxButton`, y la del 3D en `scene/Robot.tsx`
+(sprite), `scene/RobotLabel.tsx` (etiqueta y bocadillo dorado) y `scene/robotBrain.ts` (`callUser`).
+
 ### Tareas bloqueadas: le falta algo, no es un error
 
 Cuando un agente empieza su respuesta con «BLOQUEADA: …» es que le falta algo que no puede conseguir solo (una

@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { FlaskConical } from 'lucide-react'
 import { api, isWeb } from '@/lib/api'
 import { initAudio } from '@/lib/audio'
+import { startInboxAlert } from '@/lib/inboxAlert'
 import { startUpdateWatch } from '@/lib/updateWatch'
 import { lastProjectId, useCowork } from '@/store/cowork'
 import { localizeInbox } from '@shared/inbox'
@@ -112,6 +113,8 @@ function useBoot(): void {
 
 export function App() {
   useEffect(initAudio, [])
+  // Aviso de lo nuevo en «Te necesita»: campanita que palpita, su timbre y el coordinador que te llama en el 3D.
+  useEffect(startInboxAlert, [])
   useBoot()
   const mode = useCowork((st) => st.mode)
   const expanded = useCowork((st) => st.spaceExpanded)

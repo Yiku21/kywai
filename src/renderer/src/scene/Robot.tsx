@@ -14,7 +14,10 @@ import { buildCostume } from './costumes'
 import { palette } from './palette'
 import { RobotBrain, chatPoint } from './robotBrain'
 import { registry } from './registry'
-import { GEO, checkTexture, questionTexture, warnTexture, zzzTexture } from './assets'
+import { GEO, bellTexture, checkTexture, questionTexture, warnTexture, zzzTexture } from './assets'
+import { useInboxAlert } from '@/lib/inboxAlert'
+import { playVoice, voiceProfile } from '@/lib/audio'
+import { t as tr } from '@/lib/i18n'
 import { ROBOT_Y, consoleOffset, consoleSide, coreBay, stationVec } from './layout'
 import { setAnchorObject, setAnchorOpacity, useSceneHover } from './anchors'
 import { buildCharacter, characterRole, useAgentSkin, type Character } from './characters'
@@ -63,6 +66,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   const zzz = useRef<THREE.Sprite>(null!)
   const warn = useRef<THREE.Sprite>(null!)
   const question = useRef<THREE.Sprite>(null!)
+  const bell = useRef<THREE.Sprite>(null!)
   const anchor = useRef<THREE.Group>(null!)
   const [hovered, setHovered] = useState(false)
   const hoverAmt = useRef(0)
@@ -147,6 +151,26 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   const reduced = useCowork((s) => s.reducedEffects)
   brain.reduced = reduced
 
+  // El coordinador (el primero en planificar) avisa de lo nuevo en «Te necesita»: campanita sobre la cabeza mientras
+  // no lo mires y, al llegar, se vuelve hacia ti, saluda y te llama (bocadillo y su voz, si las voces están activadas).
+  const isCoordinator = useCowork((s) => s.config.plannerOrder?.[0] === agent.id) && !agent.isSubagent
+  const ringingNow = useInboxAlert((s) => s.ringing)
+  const ringing = ringingNow && isCoordinator
+  const ringAmt = useRef(0)
+  useEffect(() => {
+    if (!isCoordinator || leaving) return
+    let last = useInboxAlert.getState().calledAt
+    return useInboxAlert.subscribe((st) => {
+      if (st.calledAt === last) return
+      last = st.calledAt
+      if (!st.calledAt) return
+      brain.callUser(registry.time)
+      const text = tr('¡Te necesito! Hay algo nuevo en «Te necesita».')
+      useBubbles.getState().call(agent.id, text)
+      playVoice(agent.id, voiceProfile(agent.provider), text)
+    })
+  }, [isCoordinator, leaving, brain, agent.id, agent.provider])
+
   const indicatorMat = useMemo(
     () => new THREE.MeshBasicMaterial({ color: new THREE.Color(avatar.eyeColor).multiplyScalar(1.3), toneMapped: false }),
     [avatarKey] // eslint-disable-line react-hooks/exhaustive-deps
@@ -156,6 +180,11 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     () => new THREE.SpriteMaterial({ map: checkTexture, color: new THREE.Color('#5ff0a6').multiplyScalar(1.4), transparent: true, toneMapped: false, depthWrite: false }),
     []
   )
+  const bellMat = useMemo(
+    () => new THREE.SpriteMaterial({ map: bellTexture, color: new THREE.Color('#ffc94d').multiplyScalar(1.5), transparent: true, toneMapped: false, depthWrite: false }),
+    []
+  )
+  useEffect(() => () => bellMat.dispose(), [bellMat])
   // Símbolos de ánimo junto a la cabeza: dormido, error y duda.
   const moodMats = useMemo(() => {
     const mk = (map: THREE.Texture, color: THREE.ColorRepresentation, k: number) =>
@@ -381,6 +410,19 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     const q = brain.questionAmt
     mood(question.current, moodMats.question, q, 0.26)
     if (q > 0.02) question.current.material.rotation = Math.sin(t * 2.2) * 0.2 * (reduced ? 0.3 : 1)
+    // Campanita de «Te necesita»: palpita (y se mece al llamarte) hasta que abres la bandeja.
+    ringAmt.current += ((ringing ? 1 : 0) - ringAmt.current) * Math.min(1, dt * 5)
+    const ra = ringAmt.current
+    const bs = bell.current
+    bs.visible = ra > 0.02
+    if (bs.visible) {
+      const pulse = reduced ? 0 : 0.5 + 0.5 * Math.sin(t * 4.2)
+      bs.scale.setScalar(Math.max(0.001, ra * 0.4 * (1 + pulse * 0.14)))
+      bs.position.y = 0.34 + (thinkGroup.current.visible ? 0.12 : 0)
+      bellMat.opacity = ra * (0.75 + pulse * 0.25)
+      bellMat.color.setRGB(1, 0.79, 0.3).multiplyScalar(1.2 + pulse * 0.6)
+      bellMat.rotation = Math.sin(t * (brain.callAmt > 0.05 ? 9 : 2.4)) * (brain.callAmt > 0.05 ? 0.35 : 0.12) * (reduced ? 0.3 : 1)
+    }
   })
 
   const labelY = model.top + 0.78
@@ -403,6 +445,8 @@ export function Robot({ agent, station, stations, leaving }: Props) {
         onClick={(e: { stopPropagation(): void }) => {
           e.stopPropagation()
           useCowork.getState().select({ type: 'agent', id: agent.id })
+          // Si te está llamando, el clic abre también «Te necesita».
+          if (ringing) useInboxAlert.getState().requestOpen()
         }}
       />
       <group ref={indicators} position={[0, model.top + 0.2, 0]}>
@@ -416,6 +460,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
         <sprite ref={zzz} material={moodMats.zzz} position={[0.32, 0.02, 0]} />
         <sprite ref={warn} material={moodMats.warn} position={[0.32, 0.02, 0]} />
         <sprite ref={question} material={moodMats.question} position={[0.3, 0.04, 0]} />
+        <sprite ref={bell} material={bellMat} position={[0, 0.34, 0]} visible={false} />
       </group>
       <group ref={anchor} position={[0, labelY, 0]} />
     </group>

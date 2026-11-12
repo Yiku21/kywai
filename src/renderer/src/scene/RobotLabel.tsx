@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ArrowDownToLine,
   ArrowUpRight,
+  Bell,
   Brain,
   Check,
   Hourglass,
@@ -28,6 +29,7 @@ import {
 } from "@/lib/progress";
 import s from "./labels.module.css";
 import { t } from "@/lib/i18n";
+import { useInboxAlert } from "@/lib/inboxAlert";
 
 /** Mismo umbral que el cerebro de animación (según su carácter + desfase por agente). */
 const restAfterMs = (agent: AgentConfig) => restAfterFor(agent) * 1000;
@@ -52,6 +54,10 @@ export function RobotLabel({ agent }: Props) {
   const reduced = useCowork((st) => st.reducedEffects);
   const select = useCowork((st) => st.select);
   const bubble = useBubbles((st) => st.map[agent.id]);
+  // El coordinador te llama: campanita dorada que palpita sobre su etiqueta mientras no abras «Te necesita».
+  const ringing = useInboxAlert((st) => st.ringing);
+  const isCoordinator = useCowork((st) => st.config.plannerOrder?.[0] === agent.id);
+  const calling = ringing && isCoordinator && !agent.isSubagent;
 
   // Reposo: se evalúa cada pocos segundos (no en cada fotograma).
   const [, tick] = useState(0);
@@ -152,6 +158,7 @@ export function RobotLabel({ agent }: Props) {
     activity === "error" && s.error,
     reduced && s.static,
     override && s[`tone-${override.tone}`],
+    calling && s.calling,
   ]
     .filter(Boolean)
     .join(" ");
@@ -165,6 +172,7 @@ export function RobotLabel({ agent }: Props) {
             s.bubble,
             reduced && s.static,
             bubble.event === "error" && s.bubbleError,
+            bubble.event === "call" && s.bubbleCall,
           ]
             .filter(Boolean)
             .join(" ")}
@@ -182,12 +190,19 @@ export function RobotLabel({ agent }: Props) {
         onClick={(e) => {
           e.stopPropagation();
           select({ type: "agent", id: agent.id });
+          // Si te está llamando, el clic abre también «Te necesita».
+          if (calling) useInboxAlert.getState().requestOpen();
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ")
             select({ type: "agent", id: agent.id });
         }}
       >
+        {calling && (
+          <span className={s.callBell} title={t("Te necesita")} aria-hidden="true">
+            <Bell size={13} />
+          </span>
+        )}
         <div className={s.head}>
           <span className={s.dot} />
           <span className={s.name}>{agent.name}</span>
