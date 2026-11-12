@@ -90,6 +90,7 @@ object InboxKinds {
         "permission" -> t("Permiso")
         "done" -> t("Terminado")
         "budget" -> t("Presupuesto")
+        "script" -> t("Guion")
         else -> t("Aviso")
     }
 
@@ -106,6 +107,7 @@ object InboxKinds {
         "permission" -> Icons.Outlined.Security
         "done" -> Icons.Outlined.CheckCircle
         "budget" -> Icons.Outlined.Savings
+        "script" -> Icons.Outlined.Checklist
         else -> Icons.Outlined.Notifications
     }
 

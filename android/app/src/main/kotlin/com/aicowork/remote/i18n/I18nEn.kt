@@ -829,6 +829,7 @@ private fun part5(m: HashMap<String, String>) {
     m["Coste en {days} días"] = "Cost over {days} days"
     m["Lo pagado es lo de los agentes que van por API; a precios de API es lo que valdría todo lo usado."] = "Paid is what pay-as-you-go (API) agents cost; at API prices is what everything used would cost."
     m["Presupuesto"] = "Budget"
+    m["Guion"] = "Script"
 }
 
 // Plantillas de tareas (TaskTemplates.kt).

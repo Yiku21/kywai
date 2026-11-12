@@ -277,6 +277,8 @@ export interface Task {
     voice?: string
     /** Diálogo entre dos personajes, cada uno con su voz. */
     dialogue?: boolean
+    /** «Repasar el guion antes de grabar»: el guion sale en el chat y se graba con tu «Grabar». */
+    review?: boolean
     work?: string
     /** «personajes fijos»: las imágenes adjuntas se guardaron como personajes del proyecto (carpeta «personajes»). */
     saveCast?: boolean
@@ -646,6 +648,8 @@ export interface ChatMessage {
   instagramReplies?: InstagramReplies
   /** Vídeo preparado para el TikTok de kywai («/tiktok»): como borrador en la app o publicado directo. */
   tiktokPost?: TikTokPost
+  /** Guion de un «/video» con «Repasar el guion antes de grabar»: se graba con «Grabar» (con tus cambios) o se descarta. */
+  scriptReview?: ScriptReview
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
   direct?: { agentId: AgentId; name: string }
   /** «Responder» bajo la respuesta de un agente: este mensaje va a ese mismo agente sobre esa respuesta (cita corta). */
@@ -814,6 +818,18 @@ export interface SkillProposal {
  * Un reel para el Instagram de kywai. pending: espera tu «Publicar» · publishing: subiéndose · published: publicado
  * (permalink) · failed: falló (error; se puede reintentar) · dismissed: descartado. `video`, relativo al proyecto.
  */
+/**
+ * Guion para repasar antes de grabar («guion:repasar»): cada escena con su rótulo y lo que dice la voz (con las marcas
+ * de emoción, «[alegre] …»). pending: espera · recording: grabándose · recorded: grabado · dismissed: descartado ·
+ * expired: ya no espera (se canceló la tarea o se reinició la app).
+ */
+export interface ScriptReview {
+  status: 'pending' | 'recording' | 'recorded' | 'dismissed' | 'expired'
+  title: string
+  scenes: { heading: string; narration: string }[]
+  decidedAt?: number
+}
+
 export interface InstagramPost {
   status: 'pending' | 'publishing' | 'published' | 'failed' | 'dismissed'
   video: string
@@ -1627,7 +1643,7 @@ export type CoworkEventKind = CoworkEvent['kind']
  *
  * «done» no espera nada de ti: no sale en «Te necesita» sino en Resultados, como «nuevo» (y el móvil avisa igual).
  */
-export type InboxKind = 'tiktok' | 'instagram' | 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget' | 'blocked' | 'permission'
+export type InboxKind = 'tiktok' | 'instagram' | 'script' | 'plan' | 'stalled' | 'mac-permission' | 'question' | 'verify-failed' | 'conflict' | 'failed' | 'paused' | 'done' | 'budget' | 'blocked' | 'permission'
 
 /** El aviso escrito en un idioma de la app (título, detalle y el nombre de cada botón). */
 export interface InboxTexts {
@@ -1899,6 +1915,8 @@ export interface CoworkApi {
   decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string): Promise<ChatMessage>
   /** Envía (`send`, con el texto que dejes) o salta (`skip`) una respuesta de «/ig-reply»; sin `commentId`, todas las pendientes. `dismiss` cierra la tarjeta. */
   decideInstagramReply(projectId: string, messageId: string, action: 'send' | 'skip' | 'dismiss', commentId?: string, text?: string): Promise<ChatMessage>
+  /** «Grabar» (con las escenas cambiadas, si las cambiaste) o «Descartar» el guion para repasar. */
+  decideScriptReview(projectId: string, messageId: string, action: 'record' | 'dismiss', scenes?: { heading: string; narration: string }[]): Promise<ChatMessage>
   /** El TikTok de kywai: clave y secreto de la app de TikTok, iniciar sesión (pegando la dirección de vuelta) y modos. */
   tiktokStatus(): Promise<TikTokStatus>
   setTikTokApp(clientKey: string, clientSecret: string): Promise<TikTokStatus>

@@ -37,7 +37,8 @@ import type {
   TaskWork,
   Transfer,
   UsageCall,
-  WorkFile
+  WorkFile,
+  ScriptReview
 } from '@shared/types'
 import { INTERRUPTED_ERROR, SUBAGENT_COLOR } from '@shared/defaults'
 import { checkAgentPresence, isLocalProvider, isTextOnly, reportsNoTokens, runAgent } from './agents'
@@ -84,13 +85,13 @@ import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { replyExcerpt, replyRequest } from '@shared/replyTo'
 import { scriptFileOf, scriptSource } from './videoScriptFile'
-import { parseVideoRequest, parseVideoScript, synthMusic, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
+import { parseVideoRequest, parseVideoScript, synthMusic, videoScriptPrompt, videoSlug, type VideoFormat, type VideoScript, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
 import { videoLang, type VideoKind } from '../shared/videoChoice'
 import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
-import { applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, parseDubRequest, type DubRequest } from './dub'
+import { applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, markedNarration, parseDubRequest, rawScript, type DubRequest } from './dub'
 import { THUMB_FRAMES, parseThumbnailPlan, parseThumbnailRequest, renderThumbnails, thumbFrames, thumbnailPrompt, type ThumbRequest } from './thumbnail'
 import { demoPrompt, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoRequest } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
@@ -858,6 +859,16 @@ function registerInboxActions(): void {
     if (!i.projectId || !i.messageId) return tr('Ese plan ya no existe')
     rejectPlan(i.projectId, i.messageId)
     return tr('Plan descartado')
+  })
+  onInboxAction('script-record', (i) => {
+    if (!i.projectId || !i.messageId) return tr('No se encontró ese guion')
+    decideScriptReview(i.projectId, i.messageId, 'record')
+    return tr('Grabando el vídeo')
+  })
+  onInboxAction('script-dismiss', (i) => {
+    if (!i.projectId || !i.messageId) return tr('No se encontró ese guion')
+    decideScriptReview(i.projectId, i.messageId, 'dismiss')
+    return tr('Descartado')
   })
   onInboxAction('ig-publish', (i) => {
     if (!i.projectId || !i.messageId) return tr('No se encontró ese reel')
@@ -1813,7 +1824,7 @@ function withBatch(topic: string, batch: { brief: string } | undefined): string 
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; episode?: { n: number; total: number; vote?: string } },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; review?: boolean; episode?: { n: number; total: number; vote?: string } },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -1909,6 +1920,7 @@ async function sendVideo(
         ...(req.kind ? { kind: req.kind } : {}),
         ...(req.voice ? { voice: req.voice } : {}),
         ...(req.dialogue ? { dialogue: true } : {}),
+        ...(req.review && !film ? { review: true } : {}),
         ...(req.episode ? { episode: req.episode } : {}),
         ...(batch ? { batch: { n, total, brief: batchBrief(n, total, batch.ideas) } } : {})
       }
@@ -3308,6 +3320,16 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
   }
   // El estilo lo decide lo que pidió el usuario, no el agente.
   script.style = v.style ?? script.style
+  // «Repasar el guion antes de grabar»: espera tu «Grabar» (con tus cambios) o «Descartar».
+  if (v.review) {
+    const reviewed = await reviewScript(run, t, exec, script)
+    if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+    if (!reviewed) {
+      await completeTask(run, t, exec, parent, { ...res, text: tr('Descartaste el guion «{title}»: no se grabó.', { title: script.title }) })
+      return
+    }
+    script = reviewed
+  }
   const meta = run.meta.get(t.id)!
   const root = store.workRoot(run.projectId)
   const outDir = join(root, twoHandsBase(run.projectId), 'videos')
@@ -3350,6 +3372,10 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
     // Para «/doblar»: qué carpeta de trabajo (guion e imágenes) es la de este vídeo.
     markDelivered(workDir, rel)
   }
+  if (v.review) {
+    const card = [...store.snapshotProject(run.projectId).messages].reverse().find((x) => x.runId === run.id && x.scriptReview?.status === 'recording')
+    if (card?.scriptReview) pushMessage({ ...card, scriptReview: { ...card.scriptReview, status: 'recorded' } })
+  }
   const episodeNote = recordSeriesEpisode(run, t, script.title, script.episode, rel, script.cast)
   const notes = [
     episodeNote,
@@ -3361,6 +3387,83 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
   const secs = Math.round(video.seconds)
   const text = [tr('Aquí tienes tu vídeo «{title}» ({secs} s, {format}).', { title: script.title, secs, format: v.format === 'vertical' ? tr('vertical') : tr('horizontal') }), ...notes].join('\n\n')
   await completeTask(run, t, exec, parent, { ...res, text })
+}
+
+/** Guiones esperando tu «Grabar» o «Descartar», por el id de su mensaje en el chat. */
+const scriptReviews = new Map<string, { projectId: string; script: VideoScript; resolve: (s: VideoScript | null) => void }>()
+
+/**
+ * Enseña el guion en el chat (y en «Te necesita») y espera: «Grabar» devuelve el guion (con las escenas que cambiaste)
+ * y «Descartar», null. Si se cancela la tarea, null.
+ */
+async function reviewScript(run: Run, t: Task, exec: AgentConfig, script: VideoScript): Promise<VideoScript | null> {
+  settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Esperando que repases el guion'), context: undefined })
+  t.lastActivity = tr('Esperando que repases el guion')
+  taskDirty(t)
+  const review: ScriptReview = { status: 'pending', title: script.title, scenes: script.scenes.map((sc) => ({ heading: sc.heading, narration: markedNarration(sc) })) }
+  const m = agentMessage(run, exec.id, tr('Guion de «{title}» listo: repásalo, cambia lo que quieras y pulsa «Grabar».', { title: script.title }), { scriptReview: review })
+  addInbox({
+    kind: 'script',
+    key: `script:${m.id}`,
+    title: tl('Guion listo para repasar: {title}', { title: script.title }),
+    detail: script.scenes.map((sc, i) => `${i + 1}. ${sc.narration}`).join('\n').slice(0, 1200),
+    projectId: run.projectId,
+    runId: run.id,
+    taskId: t.id,
+    messageId: m.id,
+    actions: [
+      { id: 'script-record', label: tl('Grabar') },
+      { id: 'script-dismiss', label: tl('Descartar') }
+    ]
+  })
+  const signal = run.controllers.get(t.id)?.signal
+  const out = await new Promise<VideoScript | null>((resolve) => {
+    scriptReviews.set(m.id, { projectId: run.projectId, script, resolve })
+    signal?.addEventListener('abort', () => resolve(null), { once: true })
+  })
+  if (scriptReviews.delete(m.id)) {
+    // Se canceló esperando: el guion ya no espera.
+    const cur = findMessage(run.projectId, m.id)
+    if (cur?.scriptReview) pushMessage({ ...cur, scriptReview: { ...cur.scriptReview, status: 'expired' } })
+    resolveInboxWhere((i) => i.kind === 'script' && i.messageId === m.id, tr('Se detuvo la tarea'))
+  }
+  if (out) {
+    t.lastActivity = tr('Grabando el vídeo')
+    taskDirty(t)
+  }
+  return out
+}
+
+/** «Grabar» (con las escenas cambiadas en la tarjeta) o «Descartar» el guion para repasar. */
+export function decideScriptReview(projectId: string, messageId: string, action: 'record' | 'dismiss', scenes?: { heading: string; narration: string }[]): ChatMessage {
+  const m = findMessage(projectId, messageId)
+  const r = m?.scriptReview
+  if (!m || !r) throw new Error(tr('No se encontró ese guion'))
+  const wait = scriptReviews.get(messageId)
+  if (!wait || r.status !== 'pending') throw new Error(tr('Ese guion ya no espera respuesta'))
+  let script: VideoScript | null = null
+  if (action === 'record') {
+    script = wait.script
+    if (scenes?.some((sc) => !sc.narration.trim())) throw new Error(tr('Alguna escena quedó vacía: escribe algo en cada una'))
+    if (scenes?.length === wait.script.scenes.length) {
+      // Tus cambios: el texto de cada escena (con sus marcas) pasa otra vez por el lector del guion.
+      const raw = rawScript(wait.script)
+      raw.scenes = (raw.scenes as Record<string, unknown>[]).map((sc, i) => ({ ...sc, heading: scenes[i].heading.trim().slice(0, 60) || sc.heading, narration: scenes[i].narration.trim().slice(0, 600) || sc.narration }))
+      try {
+        script = parseVideoScript(JSON.stringify(raw))
+        if (script.scenes.length !== wait.script.scenes.length) throw new Error('escena vacía')
+      } catch {
+        throw new Error(tr('Alguna escena quedó vacía: escribe algo en cada una'))
+      }
+    }
+  }
+  scriptReviews.delete(messageId)
+  const shown = script ? { ...r, status: 'recording' as const, scenes: script.scenes.map((sc) => ({ heading: sc.heading, narration: markedNarration(sc) })), decidedAt: Date.now() } : { ...r, status: 'dismissed' as const, decidedAt: Date.now() }
+  const next: ChatMessage = { ...m, scriptReview: shown }
+  pushMessage(next)
+  resolveInboxWhere((i) => i.kind === 'script' && i.messageId === messageId, script ? tr('Grabando') : tr('Descartado'))
+  wait.resolve(script)
+  return next
 }
 
 /** Película con estilo: el agente la dejó en su carpeta; kywai la copia a videos/ del proyecto y la entrega. */

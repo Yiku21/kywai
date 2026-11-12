@@ -39,7 +39,7 @@ import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { describeTrigger } from '@shared/routines'
 import { replyExcerpt } from '@shared/replyTo'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
-import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, InstagramReplies, TikTokPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
+import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, InstagramReplies, ScriptReview, TikTokPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
 import { useCowork, useData } from '@/store/cowork'
 import { revealKey, useRevealed } from '@/lib/reveal'
@@ -295,6 +295,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
             {m.routineProposal && <RoutineProposalBlock m={m} proposal={m.routineProposal} />}
             {m.skillProposal && <SkillProposalBlock m={m} proposal={m.skillProposal} />}
             {m.instagramPost && <InstagramPostBlock m={m} post={m.instagramPost} />}
+            {m.scriptReview && <ScriptReviewBlock m={m} review={m.scriptReview} />}
             {m.instagramReplies && <InstagramRepliesBlock m={m} replies={m.instagramReplies} />}
             {m.tiktokPost && <TikTokPostBlock m={m} post={m.tiktokPost} />}
             {m.permission && <PermissionBlock permission={m.permission} />}
@@ -1214,6 +1215,91 @@ function InstagramPostBlock({ m, post }: { m: ChatMessage; post: InstagramPost }
             <ExternalLink size={14} aria-hidden="true" />
             {t('Ver en Instagram')}
           </a>
+        </div>
+      )}
+      {error && (
+        <p className={s.resumeError} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** «Repasar el guion antes de grabar»: cada escena editable; el vídeo se graba con «Grabar» (con tus cambios). */
+function ScriptReviewBlock({ m, review }: { m: ChatMessage; review: ScriptReview }) {
+  const live = useCowork((st) => st.mode === 'live')
+  const [scenes, setScenes] = useState(review.scenes)
+  const [busy, setBusy] = useState<'record' | 'dismiss' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => setScenes(review.scenes), [review.scenes])
+  const open = review.status === 'pending'
+  const canAct = !!api && live && open
+
+  function act(kind: 'record' | 'dismiss'): void {
+    const a = api
+    if (!a || busy) return
+    setBusy(kind)
+    setError(null)
+    a.decideScriptReview(m.projectId, m.id, kind, kind === 'record' ? scenes : undefined).then(
+      () => setBusy(null),
+      (e) => {
+        setBusy(null)
+        setError(errorText(e))
+      }
+    )
+  }
+
+  const edit = (i: number, patch: Partial<ScriptReview['scenes'][number]>): void => setScenes((list) => list.map((sc, j) => (j === i ? { ...sc, ...patch } : sc)))
+  const title =
+    review.status === 'recorded'
+      ? t('Guion grabado: {title}', { title: review.title })
+      : review.status === 'recording'
+        ? t('Grabando «{title}»…', { title: review.title })
+        : review.status === 'dismissed'
+          ? t('Guion descartado')
+          : review.status === 'expired'
+            ? t('El guion ya no espera respuesta')
+            : t('Guion para repasar: {title}', { title: review.title })
+  return (
+    <div className={cx(s.proposal, s.instagramPost, (review.status === 'dismissed' || review.status === 'expired') && s.proposalClosed)}>
+      <div className={s.planHead}>
+        <span className={s.planIcon} aria-hidden="true">
+          {review.status === 'recorded' ? <CircleCheck size={18} /> : review.status === 'dismissed' || review.status === 'expired' ? <X size={18} /> : review.status === 'recording' ? <LoaderCircle size={18} className={u.spin} /> : <Send size={18} />}
+        </span>
+        <div className={s.planInfo}>
+          <span className={s.planTitle}>{title}</span>
+          <span className={s.planSub}>{t('{n} escenas', { n: review.scenes.length })}</span>
+        </div>
+      </div>
+      {review.status !== 'dismissed' && (
+        <ol className={s.scriptScenes}>
+          {scenes.map((sc, i) => (
+            <li key={i}>
+              {open ? (
+                <>
+                  <input className={s.igCaption} value={sc.heading} maxLength={60} aria-label={t('Rótulo de la escena {n}', { n: i + 1 })} disabled={!canAct || !!busy} onChange={(e) => edit(i, { heading: e.currentTarget.value })} />
+                  <textarea className={s.igCaption} value={sc.narration} maxLength={600} rows={3} aria-label={t('Lo que se dice en la escena {n}', { n: i + 1 })} disabled={!canAct || !!busy} onChange={(e) => edit(i, { narration: e.currentTarget.value })} />
+                </>
+              ) : (
+                <p className={s.routineRequest}>
+                  <b>{sc.heading}</b> {sc.narration}
+                </p>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+      {open && (
+        <div className={s.proposalActions}>
+          <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!canAct || !!busy || scenes.some((sc) => !sc.narration.trim())} onClick={() => act('record')}>
+            {busy === 'record' ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <Send size={14} aria-hidden="true" />}
+            {t('Grabar')}
+          </button>
+          <button type="button" className={u.btn} disabled={!canAct || !!busy} onClick={() => act('dismiss')}>
+            {busy === 'dismiss' && <LoaderCircle size={14} aria-hidden="true" className={u.spin} />}
+            {t('Descartar')}
+          </button>
         </div>
       )}
       {error && (

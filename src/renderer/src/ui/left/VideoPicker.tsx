@@ -309,7 +309,8 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
     value.character ? (chosenChar ? charName(chosenChar) : value.character === ROBOTS_CHARACTER ? t('Robots de kywai') : t('Personaje')) : '',
     style ? fname(style) : t('Estilo de kywai'),
     chosenVoice ? voiceName(chosenVoice) : value.voice ? t('Voz elegida') : '',
-    value.dialogue ? t('Diálogo') : ''
+    value.dialogue ? t('Diálogo') : '',
+    value.review && !value.style ? t('Repasar guion') : ''
   ].filter(Boolean)
   const thumb = value.style ? THUMBS[value.style] : undefined
   const KindIcon = KINDS.find((k) => k.id === value.kind)!.icon
@@ -547,6 +548,18 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                   )}
                 </div>
               </section>
+
+              {!value.style && (
+                <section>
+                  <div className={s.voiceGrid}>
+                    <button type="button" role="checkbox" aria-checked={!!value.review} className={cx(s.card, s.voiceCard, value.review && s.cardOn)} onClick={() => set({ review: !value.review })}>
+                      <span className={s.name}>{t('Repasar el guion antes de grabar')}</span>
+                      <span className={s.line}>{t('El guion sale en el chat: cambias lo que quieras y se graba al pulsar «Grabar».')}</span>
+                      {value.review && <Check size={14} className={s.check} aria-hidden="true" />}
+                    </button>
+                  </div>
+                </section>
+              )}
             </div>
           )}
           {!adding && (

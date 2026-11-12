@@ -72,6 +72,7 @@ import {
   decideRoutineProposal,
   decideSkillProposal,
   decideInstagramPost,
+  decideScriptReview,
   decideInstagramReply,
   decideTikTokPost,
   setTikTokBackend,
@@ -790,6 +791,13 @@ function registerIpc(): void {
     if (typeof on !== 'boolean') throw new Error(tr('Valor no válido'))
     writeInstagramSettings(igFile, { ...readInstagramSettings(igFile), autoPublish: on })
     return instagramStatusNow()
+  })
+  handle('decideScriptReview', (projectId: unknown, messageId: unknown, action: unknown, scenes: unknown) => {
+    if (typeof messageId !== 'string') throw new Error(tr('No se encontró ese guion'))
+    const list = Array.isArray(scenes)
+      ? scenes.filter((x): x is { heading: string; narration: string } => !!x && typeof x.heading === 'string' && typeof x.narration === 'string').slice(0, 20)
+      : undefined
+    return decideScriptReview(projectArg(projectId), messageId, action === 'record' ? 'record' : 'dismiss', list)
   })
   handle('decideInstagramPost', (projectId: unknown, messageId: unknown, action: unknown, caption: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('No se encontró ese reel'))

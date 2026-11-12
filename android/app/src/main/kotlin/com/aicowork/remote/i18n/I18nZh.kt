@@ -829,6 +829,7 @@ private fun part5(m: HashMap<String, String>) {
     m["Coste en {days} días"] = "{days} 天内的费用"
     m["Lo pagado es lo de los agentes que van por API; a precios de API es lo que valdría todo lo usado."] = "已付是按 API 计费的智能体的花费；按 API 价格是全部用量的价值。"
     m["Presupuesto"] = "预算"
+    m["Guion"] = "脚本"
 }
 
 // Plantillas de tareas (TaskTemplates.kt).

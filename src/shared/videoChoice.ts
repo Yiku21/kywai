@@ -27,6 +27,8 @@ export interface VideoChoice {
   voice?: string | null
   /** Diálogo: dos personajes que se contestan, cada uno con su voz («dialogo:si»). */
   dialogue?: boolean
+  /** Repasar el guion antes de grabar («guion:repasar»): sale en el chat y se graba con tu «Grabar». */
+  review?: boolean
 }
 
 /** Una voz elegida: el motor y la voz de ese motor. */
@@ -169,6 +171,7 @@ const STYLE_TAG = TAG('estilo')
 // Las voces de Kokoro llevan guion bajo («kokoro-ef_dora»).
 const VOICE_TAG = /(^|\s)voz:([a-z0-9_-]+)(?=\s|$)/i
 const DIALOGUE_TAG = /(^|\s)di[aá]logo:(si|sí|yes)(?=\s|$)/i
+const REVIEW_TAG = /(^|\s)gui[oó]n:(repasar|revisar|review)(?=\s|$)/i
 
 /** Id válido de personaje: minúsculas, números y guiones (lo genera kywai al guardarlo). */
 export const CHARACTER_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
@@ -184,13 +187,13 @@ export function videoChoiceOf(text: string): VideoChoice {
   const character = c && c !== NO_CHARACTER && CHARACTER_ID.test(c) ? c : !c && style === KYWAI_FILM ? ROBOTS_CHARACTER : null
   const v = VOICE_TAG.exec(text)?.[2]
   const voice = v && parseVoiceId(v) ? v : null
-  return { kind, character, style, voice, ...(DIALOGUE_TAG.test(text) ? { dialogue: true } : {}) }
+  return { kind, character, style, voice, ...(DIALOGUE_TAG.test(text) ? { dialogue: true } : {}), ...(REVIEW_TAG.test(text) ? { review: true } : {}) }
 }
 
 /** Quita las marcas del texto, cada una con su espacio de delante (así no quedan espacios de más). */
 export function stripVideoTags(text: string): string {
   let out = text
-  for (const re of [KIND_TAG, CHAR_TAG, STYLE_TAG, VOICE_TAG, DIALOGUE_TAG]) {
+  for (const re of [KIND_TAG, CHAR_TAG, STYLE_TAG, VOICE_TAG, DIALOGUE_TAG, REVIEW_TAG]) {
     for (let i = 0; i < 3 && re.test(out); i++) out = out.replace(re, '')
   }
   return out
@@ -206,7 +209,8 @@ export function withVideoChoice(text: string, choice: VideoChoice): string {
     choice.character ? `personaje:${choice.character}` : choice.style === KYWAI_FILM ? `personaje:${NO_CHARACTER}` : '',
     choice.style ? `estilo:${choice.style}` : '',
     choice.voice ? `voz:${choice.voice}` : '',
-    choice.dialogue ? 'dialogo:si' : ''
+    choice.dialogue ? 'dialogo:si' : '',
+    choice.review ? 'guion:repasar' : ''
   ].filter(Boolean)
   return `${m[1]} ${tags.map((t) => `${t} `).join('')}${rest}`
 }

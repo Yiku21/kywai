@@ -454,6 +454,8 @@ export interface VideoRequest {
   voice?: string
   /** Diálogo entre dos personajes («dialogo:si», «un diálogo entre…», «charlando»). */
   dialogue?: boolean
+  /** «guion:repasar»: el guion sale en el chat para repasarlo y se graba con «Grabar». */
+  review?: boolean
 }
 
 /** Piden dos personajes hablando: «un diálogo», «una conversación entre…», «charlando», «a dialogue between…». */
@@ -508,7 +510,8 @@ export function parseVideoRequest(text: string): VideoRequest | null {
   const charTag = /(^|\s)personaje:[a-z0-9-]+(?=\s|$)/i.test(topic)
   const voice = choice.voice ?? undefined
   const dialogue = !!choice.dialogue || DIALOGUE_RE.test(topic)
-  if (kindTag || charTag || choice.dialogue || /(^|\s)voz:[a-z0-9_-]+(?=\s|$)/i.test(topic)) {
+  const review = !!choice.review
+  if (kindTag || charTag || choice.dialogue || review || /(^|\s)voz:[a-z0-9_-]+(?=\s|$)/i.test(topic)) {
     const film = /(^|\s)estilo:([a-z0-9-]+)(?=\s|$)/i.exec(topic)
     topic = stripVideoTags(topic).replace(/\s{2,}/g, ' ').trim()
     if (film && choice.style) topic = `estilo:${choice.style} ${topic}`.trim()
@@ -551,8 +554,8 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     .trim()
   const fromPrevious = !bare || PREVIOUS_RE.test(bare)
   const character = charTag ? choice.character : charla ? ROBOTS_CHARACTER : null
-  if (charla) return { topic: fromPrevious ? '' : bare, format: HORIZONTAL_RE.test(t) ? 'horizontal' : 'vertical', fromPrevious, style, kind: 'charla', ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), dialogue: true }
-  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}) }
+  if (charla) return { topic: fromPrevious ? '' : bare, format: HORIZONTAL_RE.test(t) ? 'horizontal' : 'vertical', fromPrevious, style, kind: 'charla', ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), dialogue: true, ...(review ? { review } : {}) }
+  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}), ...(review ? { review } : {}) }
 }
 
 // ---------- composición ----------

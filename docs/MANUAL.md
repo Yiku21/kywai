@@ -2192,6 +2192,14 @@ las emociones en inglés y otras palabras como «feliz» o «excited»).
 - En las **películas con estilo** (las dirige un agente), el encargo pide lo mismo: emoción por frase, nunca retocar
   velocidad ni tono, y si Chatterbox está instalado, cómo usarlo (`<studio>/chatterbox/voz.py` con un JSON de frases).
 
+**Repasar el guion antes de grabar.** Al final del selector (con el estilo de kywai, no en las películas con estilo),
+la casilla «Repasar el guion antes de grabar» (marca `guion:repasar`). El agente escribe el guion como siempre pero
+kywai **no graba todavía**: el guion sale en el chat como una tarjeta con cada escena (su rótulo y lo que se dice, con
+las marcas de emoción como «[alegre]») y también en «Te necesita». Cambias lo que quieras y pulsas **Grabar**: kywai
+pone la voz, las imágenes y el montaje con tu texto. **Descartar** termina la tarea sin grabar nada. Si se cancela la
+tarea mientras espera, la tarjeta dice que ya no espera respuesta. Desde Órbita se puede grabar o descartar en
+«Te necesita» (sin cambiar el texto).
+
 **Diálogo (dos personajes, dos voces).** En el paso 4 del selector, «Diálogo» (marca `dialogo:si`), o con palabras («un
 diálogo entre…», «una conversación entre…», «charlando»): el vídeo lo cuentan **dos personajes que se contestan**, como
 en los reels que más enganchan, con réplicas cortas («¿Yo?», «¿En serio?»). Con los robots de kywai elegidos, hablan

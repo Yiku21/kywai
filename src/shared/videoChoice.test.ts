@@ -83,6 +83,13 @@ describe('diálogo', () => {
     expect(withVideoChoice('/video pan', { kind: 'rapido', character: null, style: null, dialogue: true })).toBe('/video dialogo:si pan')
   })
 
+  it('«guion:repasar» se lee, se quita del texto y se vuelve a poner', () => {
+    expect(videoChoiceOf('/video guion:repasar cómo hacer pan').review).toBe(true)
+    expect(videoChoiceOf('/video cómo hacer pan').review).toBeUndefined()
+    expect(stripVideoTags('/video guión:revisar cómo hacer pan')).toBe('/video cómo hacer pan')
+    expect(withVideoChoice('/video pan', { kind: 'rapido', character: null, style: null, review: true })).toContain('guion:repasar')
+  })
+
   it('cada personaje con una voz de su género; la elegida, para el primero que le pega', () => {
     const sp = [{ name: 'Hermes', gender: 'f' as const }, { name: 'Claude', gender: 'm' as const }]
     expect(speakerVoices('es', null, sp, { mac: true })).toEqual({ Claude: 'edge-es-ES-AlvaroNeural', Hermes: 'mac-carmen' })

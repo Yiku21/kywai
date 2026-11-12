@@ -23,7 +23,8 @@ const KIND_LABEL: Record<string, string> = {
   blocked: t('Bloqueada'),
   permission: t('Permiso'),
   done: t('Terminado'),
-  budget: t('Presupuesto')
+  budget: t('Presupuesto'),
+  script: t('Guion')
 }
 
 export function ago(ts: number): string {

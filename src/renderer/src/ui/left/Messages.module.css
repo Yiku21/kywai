@@ -1537,6 +1537,33 @@ button.itemHead:hover {
   line-height: 1.5;
 }
 
+/* Guion para repasar: cada escena con su rótulo y lo que se dice. */
+.scriptScenes {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.scriptScenes li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scriptScenes input.igCaption {
+  min-height: 0;
+  resize: none;
+  font-weight: 600;
+}
+
+.scriptScenes textarea.igCaption {
+  min-height: 64px;
+}
+
 .ttDirect {
   display: flex;
   flex-direction: column;
