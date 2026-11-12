@@ -23,6 +23,8 @@ import { videoChoiceOf, withVideoChoice } from '@shared/videoChoice'
 import u from '../common/ui.module.css'
 import s from './Composer.module.css'
 import { lang, t } from '@/lib/i18n'
+import { paneTarget } from '../pane/paneTarget'
+import { boundChat } from '@/lib/chatPane'
 
 const LINE = 20
 const PAD_Y = 20
@@ -269,8 +271,12 @@ export function Composer() {
       // «/new», «/limpiar»…: conversación nueva (lo mismo que ⚙ → Limpiar el chat), no un mensaje para los agentes.
       const remember = REMEMBER_COMMAND.exec(trimmed)
       // «Responder» bajo la respuesta de un agente: va a ese mismo agente con su respuesta citada.
-      if (reply) await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files, ...fromProject, replyTo: reply.messageId })
-      else if (CLEAR_COMMAND.test(trimmed)) useCowork.getState().loadProjectState(await a.newConversation(project.id))
+      if (reply) await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files, ...fromProject, ...paneTarget(), replyTo: reply.messageId })
+      else if (CLEAR_COMMAND.test(trimmed)) {
+        // En el chat de al lado o en una ventana suelta, abrir una nueva cambiaría también el chat principal.
+        if (boundChat) throw new Error(t('Para empezar otro chat usa «Nuevo chat» en la ventana principal; luego puedes arrastrarlo aquí.'))
+        useCowork.getState().loadProjectState(await a.newConversation(project.id))
+      }
       else if (MODEL_COMMAND.test(trimmed)) useCowork.setState({ hermesModelOpen: true })
       else if (QUOTA_COMMAND.test(trimmed)) setQuotaNotice(await quotaSummary(a))
       else if (ROUTINE_COMMAND.test(trimmed)) {
@@ -299,7 +305,7 @@ export function Composer() {
           memory: true
         })
       }
-      else await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files, ...fromProject })
+      else await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files, ...fromProject, ...paneTarget() })
       useComposer.getState().clear()
     } catch (e) {
       setError(errorText(e))
@@ -319,7 +325,7 @@ export function Composer() {
     setError(null)
     setQuotaNotice(null)
     try {
-      await a.sendMessage({ projectId: project.id, text: filled, filePaths: files, ...fromProject, templateId: tpl.id })
+      await a.sendMessage({ projectId: project.id, text: filled, filePaths: files, ...fromProject, ...paneTarget(), templateId: tpl.id })
       if (files.length || deliverables.length) useComposer.setState({ files: [], deliverables: [] })
       return true
     } catch (e) {
@@ -455,7 +461,7 @@ export function Composer() {
       if (direct && project) {
         if (isDemo) useCowork.getState().setMode('live')
         setQuotaNotice(null)
-        await a.sendVoiceNote({ projectId: project.id, audioPath: path, language: lang(), text: typed, filePaths: files, ...fromProject, ...(replyTo ? { replyTo: replyTo.messageId } : {}) })
+        await a.sendVoiceNote({ projectId: project.id, audioPath: path, language: lang(), text: typed, filePaths: files, ...fromProject, ...paneTarget(), ...(replyTo ? { replyTo: replyTo.messageId } : {}) })
         useComposer.getState().clear()
         return
       }

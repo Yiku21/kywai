@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
+  AppWindow,
   CalendarClock,
+  Columns2,
   ChevronDown,
   ChevronRight,
   Ellipsis,
@@ -40,6 +42,7 @@ import { DragProvider, DragSlot, useDragged } from './DragSlot'
 import { applyOrder, chatKey, placeKey, projectKey, type Dragged, type DropPlace } from './dragOrder'
 import s from './Sidebar.module.css'
 import { t } from '@/lib/i18n'
+import { openChatWindow, type ChatRef } from '@/lib/chatPane'
 
 const RECENT_LIMIT = 8
 
@@ -800,6 +803,7 @@ function ConversationRow({
 }) {
   const [menu, setMenu] = useState<MenuAt | null>(null)
   const [editing, setEditing] = useState(false)
+  const narrow = useMediaQuery(TABS_QUERY)
   const { run, refresh, go } = actions
   // El equipo trabaja en esta conversación (abierta o en segundo plano): no se borra ni se mueve hasta que acabe.
   const busyHere = !!c.busy
@@ -825,6 +829,9 @@ function ConversationRow({
   const empty = c.messageCount === 0
   const title = empty ? t('Conversación nueva') : c.title
   const busyTitle = t('El equipo está trabajando en esta conversación: espera a que termine o detenlo')
+  // Al lado o en otra ventana: una conversación guardada (con mensajes) o la abierta de su proyecto.
+  const openable = !empty || !!c.current
+  const chatRef: ChatRef = { projectId: c.projectId, conversationId: c.id, title }
   const items: MenuEntry[] = [
     {
       id: 'pin',
@@ -840,6 +847,24 @@ function ConversationRow({
         })
     },
     { id: 'rename', label: t('Cambiar nombre'), icon: <Pencil size={15} />, shortcut: 'R', disabled: empty, onSelect: () => setEditing(true) },
+    {
+      id: 'side',
+      label: t('Abrir al lado'),
+      icon: <Columns2 size={15} />,
+      shortcut: 'L',
+      disabled: !openable || narrow,
+      title: narrow ? t('Haz la ventana más ancha para tener dos chats a la vez') : t('También arrastrándolo a la derecha de la ventana'),
+      onSelect: () => useCowork.getState().setSplitChat(chatRef)
+    },
+    {
+      id: 'window',
+      label: t('Abrir en ventana aparte'),
+      icon: <AppWindow size={15} />,
+      shortcut: 'V',
+      disabled: !openable,
+      title: t('También con clic con la rueda del ratón'),
+      onSelect: () => openChatWindow(chatRef)
+    },
     {
       id: 'fork',
       label: t('Bifurcar'),
@@ -909,6 +934,15 @@ function ConversationRow({
         type="button"
         className={cx(s.item, !flat && s.convItem, active && s.active)}
         onClick={onOpen}
+        // Clic con la rueda: el chat en una ventana aparte (sin el cursor de desplazamiento de la rueda).
+        onMouseDown={(e) => {
+          if (e.button === 1) e.preventDefault()
+        }}
+        onAuxClick={(e) => {
+          if (e.button !== 1 || !openable) return
+          e.preventDefault()
+          openChatWindow(chatRef)
+        }}
         title={[title, meta, c.importedFrom ? t('Importada de {app}', { app: c.importedFrom }) : ''].filter(Boolean).join(' · ')}
         aria-current={active ? 'true' : undefined}
       >

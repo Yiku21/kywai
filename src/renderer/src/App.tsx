@@ -33,6 +33,7 @@ import { followServerTheme, onThemeChosen, ownTheme, storedTheme, useUiTheme } f
 import { HistoryDialog } from '@/ui/sidebar/HistoryDialog'
 import { ImportDialog } from '@/ui/sidebar/ImportDialog'
 import { useMediaQuery } from '@/ui/common/hooks'
+import { SplitChat, SplitDropZone } from '@/ui/pane/SplitChat'
 import s from './App.module.css'
 import { lang, t } from '@/lib/i18n'
 
@@ -140,13 +141,26 @@ export function App() {
   const left = useRef<HTMLElement>(null)
   // Espacio 3D cerrado del todo (arrastrando el borde del chat a la derecha o con su botón): en ventana ancha, el chat
   // ocupa todo. En ventana estrecha manda la pestaña Chat / Espacio.
-  const hidden = spaceHidden && !narrow
+  // Chat de al lado (arrastrado desde la barra lateral): ocupa el sitio del 3D, que se para. En ventana estrecha no
+  // hay sitio para dos chats: se queda guardado para cuando vuelva a ser ancha.
+  const splitChat = useCowork((st) => st.splitChat)
+  const split = splitChat && !narrow ? splitChat : null
+  const hidden = spaceHidden && !narrow && !split
   // Mientras el 3D no se ve, la escena se para del todo: ni se dibuja ni se mueve nada (ahorra CPU y GPU). En Órbita el
   // 3D se ve detrás del chat de cristal, así que solo se para si está cerrado.
-  const sceneOff = hidden || (narrow && mobileView === 'chat' && !glass)
+  const sceneOff = hidden || !!split || (narrow && mobileView === 'chat' && !glass)
   const onClose = (side: 'space' | 'chat'): void => {
-    if (side === 'space') useCowork.getState().setSpaceHidden(true)
-    else useCowork.getState().setSpaceExpanded(true)
+    const st = useCowork.getState()
+    // Con un chat al lado, llevar el borde a la derecha lo cierra y el chat principal ocupa todo; a la izquierda, nada.
+    if (split) {
+      if (side === 'space') {
+        st.setSplitChat(null)
+        st.setSpaceHidden(true)
+      }
+      return
+    }
+    if (side === 'space') st.setSpaceHidden(true)
+    else st.setSpaceExpanded(true)
   }
   // Ancho del chat elegido arrastrando su borde (null = automático). Mientras se arrastra no hay animación.
   const [chatWidth, setChatWidth] = useState<number | null>(readChatWidth)
@@ -193,6 +207,7 @@ export function App() {
         className={s.body}
         data-expanded={expanded}
         data-space-hidden={hidden || undefined}
+        data-split={split ? true : undefined}
         data-preview={(hidden && previewOpen) || undefined}
         data-mobile={mobileView}
         data-custom-width={chatWidth != null || undefined}
@@ -206,7 +221,13 @@ export function App() {
           {!narrow && !expanded && !hidden && <ChatResizer panel={left} width={chatWidth} onResize={onResize} onClose={onClose} />}
           {hidden && !previewOpen && <SpaceReopen onOpen={() => useCowork.getState().setSpaceHidden(false)} />}
         </div>
-        <section className={s.space} data-demo={mode === 'demo'} aria-label={t('Espacio digital')} aria-hidden={hidden || undefined} inert={hidden || undefined}>
+        <section
+          className={s.space}
+          data-demo={mode === 'demo'}
+          aria-label={t('Espacio digital')}
+          aria-hidden={hidden || !!split || undefined}
+          inert={hidden || !!split || undefined}
+        >
           <SpaceHeader />
           <div className={s.stage}>
             {!glass && (
@@ -226,6 +247,8 @@ export function App() {
             )}
           </div>
         </section>
+        {split && <SplitChat chat={split} />}
+        {!narrow && !expanded && <SplitDropZone wide={hidden} />}
         {/* Vista previa de archivos: encima del espacio 3D, a la derecha del chat. */}
         <FilePreview />
       </div>

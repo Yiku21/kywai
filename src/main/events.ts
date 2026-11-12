@@ -6,6 +6,8 @@ import type { AgentId, AgentRuntime, CoworkEvent, MobileOnlyEvent } from '@share
 export type EventInput = CoworkEvent extends infer E ? (E extends CoworkEvent ? Omit<E, 'id' | 'ts' | 'demo'> : never) : never
 
 let win: BrowserWindow | null = null
+/** Ventanas de chat sueltas (clic con la rueda en un chat): reciben los mismos eventos que la principal. */
+const extraWindows = new Set<BrowserWindow>()
 const taps = new Set<(e: CoworkEvent) => void>()
 
 /** Observe every emitted event (logging / offline checks). Returns an unsubscribe. */
@@ -18,6 +20,21 @@ export function setEventWindow(w: BrowserWindow | null): void {
   win = w
 }
 
+/** Una ventana más que recibe los eventos (se quita sola al cerrarse). */
+export function addEventWindow(w: BrowserWindow): void {
+  extraWindows.add(w)
+  w.once('closed', () => extraWindows.delete(w))
+}
+
+function sendTo(w: BrowserWindow, full: CoworkEvent): void {
+  if (w.isDestroyed() || w.webContents.isDestroyed()) return
+  try {
+    w.webContents.send('cowork:event', full)
+  } catch (e) {
+    console.error('[cowork] send failed', e)
+  }
+}
+
 export function emit(ev: EventInput): CoworkEvent {
   const full = { ...ev, id: randomUUID(), ts: Date.now() } as CoworkEvent
   for (const fn of taps) {
@@ -27,13 +44,8 @@ export function emit(ev: EventInput): CoworkEvent {
       /* ignore */
     }
   }
-  if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) {
-    try {
-      win.webContents.send('cowork:event', full)
-    } catch (e) {
-      console.error('[cowork] send failed', e)
-    }
-  }
+  if (win) sendTo(win, full)
+  for (const w of extraWindows) sendTo(w, full)
   return full
 }
 

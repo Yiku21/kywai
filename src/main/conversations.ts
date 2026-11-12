@@ -1,10 +1,11 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import type { ChatMessage, ConversationSummary, ProjectState, ProviderKind, SearchHit, SearchOptions, SearchResult, Task } from '@shared/types'
 import { exportSessions, lastSession, rememberSession, replaceSessions, usableSession, type AgentSession } from './agentSessions'
-import { getProject, isValidProjectId, listProjects, placeMessage, scheduleSave, setChatRouter } from './projects'
+import { getProject, isValidProjectId, listProjects, placeMessage, scheduleSave, setChatRouter, setEditableChat } from './projects'
 
 /**
  * Varias conversaciones por proyecto, como en Claude: la abierta vive en el proyecto (messages y tasks, como
@@ -195,14 +196,68 @@ const background = new Map<string, Background>()
 const BG_SAVE_MS = 400
 const bgKey = (projectId: string, cid: string): string => `${projectId}/${cid}`
 
+/**
+ * Chat al lado o en otra ventana: escribes en una conversación que no es la abierta del proyecto. Mientras se
+ * registra ese mensaje (sendMessage hasta que devuelve), las peticiones nuevas que nazcan van a esa conversación y
+ * no a la abierta. Va por contexto asíncrono, así que lo que escribas a la vez en el chat principal no se mezcla.
+ */
+interface SendScope {
+  projectId: string
+  cid: string
+  done: boolean
+}
+const sendScope = new AsyncLocalStorage<SendScope>()
+
+function scopedConversation(projectId: string): string | undefined {
+  const s = sendScope.getStore()
+  return s && !s.done && s.projectId === projectId ? s.cid : undefined
+}
+
+/** Ejecuta `fn` (un envío) escribiendo en la conversación `cid` del proyecto, esté abierta o no. */
+export async function inConversation<T>(projectId: string, cid: string | undefined, fn: () => Promise<T>): Promise<T> {
+  if (!cid) return fn()
+  if (!isValidConversationId(cid)) throw new Error('Conversación no válida')
+  const st = load(projectId)
+  if (st.conversation?.id === cid) return fn()
+  // Que exista antes de escribir nada en ella (la pudieron borrar o mover desde otra ventana).
+  backgroundFor(st, cid)
+  const scope: SendScope = { projectId, cid, done: false }
+  return sendScope.run(scope, async () => {
+    try {
+      return await fn()
+    } finally {
+      // Lo que siga en marcha después (el equipo trabajando) ya tiene su petición atada a esta conversación.
+      scope.done = true
+    }
+  })
+}
+
 /** La conversación de una petición; si aún no tiene, la abierta ahora (donde la escribiste). */
 export function conversationOfRun(projectId: string, runId: string): string {
   let cid = runConversation.get(runId)
   if (!cid) {
-    cid = ensureCurrent(load(projectId)).id
+    cid = scopedConversation(projectId) ?? ensureCurrent(load(projectId)).id
     runConversation.set(runId, cid)
   }
   return cid
+}
+
+/** La conversación de un mensaje: la de su petición, o la abierta si no tiene. */
+export function conversationOfMessage(m: ChatMessage): string | undefined {
+  if (!isValidProjectId(m.projectId)) return undefined
+  if (m.runId) return conversationOfRun(m.projectId, m.runId)
+  return scopedConversation(m.projectId) ?? ensureCurrent(load(m.projectId)).id
+}
+
+/**
+ * Mensajes y tareas donde se está escribiendo ahora: la conversación del envío en curso (chat al lado u otra
+ * ventana) o la abierta. Para buscar el mensaje al que respondes, el plan pendiente, tu último mensaje…
+ */
+export function currentChat(projectId: string): { messages: ChatMessage[]; tasks: Task[] } {
+  const st = load(projectId)
+  const cid = scopedConversation(projectId)
+  if (!cid || st.conversation?.id === cid) return st
+  return backgroundFor(st, cid).conv
 }
 
 /**
@@ -236,23 +291,30 @@ export function __forgetRunConversationsForChecks(): void {
   runConversation.clear()
 }
 
-/** La conversación en segundo plano de una petición, o null si es la abierta (o ya no existe: entonces va a la abierta). */
-function backgroundOf(projectId: string, runId: string | undefined): Background | null {
-  if (!runId || !isValidProjectId(projectId)) return null
-  const st = load(projectId)
-  const cid = conversationOfRun(projectId, runId)
-  if (st.conversation?.id === cid) return null
-  const key = bgKey(projectId, cid)
+/** Una conversación guardada (no la abierta), en memoria para recibir trabajo. Falla si ya no existe. */
+function backgroundFor(st: ProjectState, cid: string): Background {
+  const key = bgKey(st.project.id, cid)
   let b = background.get(key)
   if (!b) {
-    try {
-      b = { st, conv: readConversation(st, cid) }
-    } catch {
-      return null
-    }
+    b = { st, conv: readConversation(st, cid) }
     background.set(key, b)
   }
   return b
+}
+
+/** La conversación en segundo plano de una petición, o null si es la abierta (o ya no existe: entonces va a la abierta). */
+function backgroundOf(projectId: string, runId: string | undefined): Background | null {
+  if (!isValidProjectId(projectId)) return null
+  // Sin petición (la nota de voz mientras se pasa a texto, un aviso): la del envío en curso, si escribes en otra.
+  const cid = runId ? conversationOfRun(projectId, runId) : scopedConversation(projectId)
+  if (!cid) return null
+  const st = load(projectId)
+  if (st.conversation?.id === cid) return null
+  try {
+    return backgroundFor(st, cid)
+  } catch {
+    return null
+  }
 }
 
 function writeBackground(b: Background): void {
@@ -310,10 +372,55 @@ setChatRouter({
   }
 })
 
+// Editar un mensaje tuyo (o cambiar de versión con ‹ ›) en el chat de al lado: se hace en su conversación.
+setEditableChat((projectId) => {
+  const cid = scopedConversation(projectId)
+  if (!cid) return null
+  const st = load(projectId)
+  if (st.conversation?.id === cid) return null
+  const b = backgroundFor(st, cid)
+  return {
+    projectId,
+    conversationId: cid,
+    get messages() {
+      return b.conv.messages
+    },
+    set messages(v) {
+      b.conv.messages = v
+    },
+    get tasks() {
+      return b.conv.tasks
+    },
+    set tasks(v) {
+      b.conv.tasks = v
+    },
+    save: () => touch(b)
+  }
+})
+
 /** Mensajes y tareas de la conversación de una petición (la abierta o la que sigue en segundo plano). */
 export function runChat(projectId: string, runId: string): { messages: ChatMessage[]; tasks: Task[] } {
   const b = backgroundOf(projectId, runId)
   return b ? b.conv : getProject(projectId)
+}
+
+/**
+ * Una conversación para verla sin abrirla (chat al lado o en otra ventana): sus mensajes y tareas, estén en la
+ * abierta, en memoria (trabajando en segundo plano) o en su archivo. Las tareas a medias siguen en el proyecto.
+ */
+export function conversationView(projectId: string, cid: string): { conversation: { id: string; title: string; createdAt: number }; open: boolean; messages: ChatMessage[]; tasks: Task[] } {
+  if (!isValidConversationId(cid)) throw new Error('Conversación no válida')
+  const st = load(projectId)
+  if (st.conversation?.id === cid) return { conversation: { id: cid, title: st.conversation.title, createdAt: st.conversation.createdAt }, open: true, messages: st.messages, tasks: st.tasks }
+  const conv = backgroundFor(st, cid).conv
+  const mine = new Set(conv.tasks.map((t) => t.id))
+  const running = st.tasks.filter((t) => !mine.has(t.id) && t.runId && runConversation.get(t.runId) === cid)
+  return {
+    conversation: { id: cid, title: conv.title || titleFrom(conv.messages, conv.createdAt), createdAt: conv.createdAt },
+    open: false,
+    messages: conv.messages,
+    tasks: [...conv.tasks, ...running]
+  }
 }
 
 /** Un mensaje del proyecto por su id: en la conversación abierta o en una que trabaja en segundo plano. */

@@ -65,7 +65,7 @@ import { checkAuth, detectTools, installTool, openLogin, refreshPath, saveAgentK
 import { modelOptions } from './models'
 import { contextMenuItems } from './contextMenu'
 import { hermesModelLabel, hermesModelsInfo } from './hermesModels'
-import { emit, setEventWindow } from './events'
+import { addEventWindow, emit, setEventWindow } from './events'
 import { cancelLocalPull, listLocalEngines, pullOllamaModel, savePastedFile, startLocalServer } from './local'
 import {
   activeRunsFor,
@@ -165,27 +165,34 @@ if (!app.requestSingleInstanceLock()) {
   })
 }
 
-function createWindow(): BrowserWindow {
-  const win = new BrowserWindow({
-    width: 1600,
-    height: 960,
-    minWidth: 980,
-    minHeight: 640,
-    show: false,
-    backgroundColor: '#060a12',
-    title: 'kywai',
-    autoHideMenuBar: true,
-    icon: existsSync(APP_ICON) ? APP_ICON : undefined,
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      contextIsolation: true,
-      sandbox: true,
-      nodeIntegration: false,
-      // Visor de PDF de Chromium (panel de vista previa de archivos).
-      plugins: true
-    }
-  })
-  win.once('ready-to-show', () => win.show())
+/** Preferencias de las ventanas de la interfaz (la principal y las de chat sueltas). */
+function appWebPreferences(): Electron.WebPreferences {
+  return {
+    preload: join(__dirname, '../preload/index.js'),
+    contextIsolation: true,
+    sandbox: true,
+    nodeIntegration: false,
+    // Visor de PDF de Chromium (panel de vista previa de archivos).
+    plugins: true
+  }
+}
+
+/** Una dirección de la propia interfaz que pide un chat suelto (?chatProject=…&chatConversation=…). */
+function isChatWindowUrl(url: string): boolean {
+  let u: URL
+  try {
+    u = new URL(url)
+  } catch {
+    return false
+  }
+  if (!u.searchParams.get('chatProject') || !u.searchParams.get('chatConversation')) return false
+  const devUrl = process.env['ELECTRON_RENDERER_URL']
+  if (devUrl && url.startsWith(devUrl)) return true
+  return u.protocol === 'file:' && /\/renderer\/index\.html$/.test(u.pathname)
+}
+
+/** Clic derecho, enlaces y navegación: igual en la ventana principal y en las de chat sueltas. */
+function wireAppWindow(win: BrowserWindow): void {
   // Clic derecho: copiar, pegar, corrector… (Electron no trae menú propio).
   win.webContents.on('context-menu', (_e, params) => {
     const items = contextMenuItems(params, {
@@ -198,8 +205,37 @@ function createWindow(): BrowserWindow {
     if (items.length) Menu.buildFromTemplate(items).popup({ window: win })
   })
   win.webContents.setWindowOpenHandler(({ url }) => {
+    // Clic con la rueda en un chat: ese chat en una ventana suelta (se puede llevar a otro monitor).
+    if (isChatWindowUrl(url)) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 760,
+          height: 900,
+          minWidth: 420,
+          minHeight: 480,
+          backgroundColor: '#060a12',
+          title: 'kywai',
+          autoHideMenuBar: true,
+          icon: existsSync(APP_ICON) ? APP_ICON : undefined,
+          webPreferences: appWebPreferences()
+        }
+      }
+    }
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
     return { action: 'deny' }
+  })
+  win.webContents.on('did-create-window', (child) => {
+    wireAppWindow(child)
+    addEventWindow(child)
+    // Sin la ventana principal no queda motor a la vista: sus chats sueltos se cierran con ella.
+    const closeChild = (): void => {
+      if (!child.isDestroyed()) child.close()
+    }
+    win.once('closed', closeChild)
+    child.once('closed', () => {
+      if (!win.isDestroyed()) win.removeListener('closed', closeChild)
+    })
   })
   win.webContents.on('will-navigate', (e, url) => {
     const devUrl = process.env['ELECTRON_RENDERER_URL']
@@ -209,6 +245,23 @@ function createWindow(): BrowserWindow {
     e.preventDefault()
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
   })
+}
+
+function createWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 1600,
+    height: 960,
+    minWidth: 980,
+    minHeight: 640,
+    show: false,
+    backgroundColor: '#060a12',
+    title: 'kywai',
+    autoHideMenuBar: true,
+    icon: existsSync(APP_ICON) ? APP_ICON : undefined,
+    webPreferences: appWebPreferences()
+  })
+  win.once('ready-to-show', () => win.show())
+  wireAppWindow(win)
   if (process.env['ELECTRON_RENDERER_URL']) void win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   else void win.loadFile(join(__dirname, '../renderer/index.html'))
   win.on('closed', () => {
@@ -419,6 +472,12 @@ function registerIpc(): void {
   const busyConversations = (projectId: string): Set<string> =>
     new Set(activeRunsFor(projectId).map((runId) => conversations.conversationOfRun(projectId, runId)))
   /** Las peticiones en marcha de la conversación abierta («Detener» es para ellas, no para las de otra en segundo plano). */
+  /** La conversación a la que va un envío desde el chat de al lado u otra ventana (sin ella, la abierta). */
+  const chatTarget = (conversationId: unknown): string | undefined => {
+    if (conversationId === undefined || conversationId === null || conversationId === '') return undefined
+    if (!conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
+    return conversationId
+  }
   const openRuns = (projectId: string): string[] => {
     const cid = store.getProject(projectId).conversation?.id
     return activeRunsFor(projectId).filter((runId) => conversations.conversationOfRun(projectId, runId) === cid)
@@ -479,6 +538,30 @@ function registerIpc(): void {
     if (!conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
     return switchConversation(projectId, (id) => conversations.openConversation(id, conversationId))
   })
+  /**
+   * Una conversación para el chat de al lado o el de otra ventana, sin abrirla: así el chat principal sigue en la
+   * suya. Lo de sus peticiones llega luego por message.upsert o conversation.message con su conversationId.
+   */
+  handle('getConversation', (projectId: unknown, conversationId: unknown) => {
+    if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
+    let view: ReturnType<typeof conversations.conversationView>
+    try {
+      view = conversations.conversationView(projectId, conversationId)
+    } catch {
+      throw new Error(tr('Esa conversación ya no existe: la borraron o la movieron a otro proyecto'))
+    }
+    const snap = store.snapshotProject(projectId)
+    const active = activeRunsFor(projectId).filter((r) => conversations.conversationOfRun(projectId, r) === conversationId)
+    return {
+      ...snap,
+      routines: publicRoutines(snap.routines),
+      messages: structuredClone(view.messages),
+      tasks: structuredClone(view.tasks),
+      conversation: { ...view.conversation },
+      activeRunId: active[active.length - 1],
+      activeRunIds: active
+    }
+  })
   handle('listConversations', (projectId: unknown) => {
     if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
     return withBusy(conversations.listConversations(projectId))
@@ -510,9 +593,10 @@ function registerIpc(): void {
   })
   handle('pinnedConversations', () => withBusy(conversations.pinnedConversations()))
   // Flechas ‹ › de un mensaje tuyo editado: enseña otra de sus versiones en el mismo chat.
-  handle('switchMessageVersion', (projectId: unknown, messageId: unknown, to: unknown) => {
+  handle('switchMessageVersion', (projectId: unknown, messageId: unknown, to: unknown, conversationId?: unknown) => {
     if (!store.isValidProjectId(projectId) || typeof messageId !== 'string' || !Number.isInteger(to)) throw new Error(tr('Versión no válida'))
-    switchMessageVersion(projectId, messageId, to as number)
+    // En el chat de al lado, en su conversación.
+    return conversations.inConversation(projectId, chatTarget(conversationId), async () => switchMessageVersion(projectId, messageId, to as number))
   })
   handle('forkConversation', (projectId: unknown, conversationId: unknown, from?: unknown) => {
     if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
@@ -577,7 +661,10 @@ function registerIpc(): void {
   })
   handle('sendMessage', (input: SendMessageInput) => {
     if (!input || typeof input !== 'object') throw new Error(tr('Mensaje no válido'))
-    return sendMessage(input)
+    // Chat al lado o en otra ventana: va a su conversación aunque no sea la abierta del proyecto.
+    const { conversationId, ...rest } = input
+    if (!store.isValidProjectId(rest.projectId)) throw new Error(tr('Proyecto no válido'))
+    return conversations.inConversation(rest.projectId, chatTarget(conversationId), () => sendMessage(rest))
   })
   handle('cancelRun', (runId: unknown) => {
     if (typeof runId === 'string') cancelRun(runId)
@@ -1179,7 +1266,13 @@ function registerIpc(): void {
   handle('transcribeAudio', (path: unknown, language?: unknown) => transcribeAudio(path, language))
   handle('sendVoiceNote', (input: VoiceNoteInput) => {
     if (!input || typeof input !== 'object') throw new Error(tr('Mensaje no válido'))
-    return sendVoiceNote(input)
+    const { conversationId, ...rest } = input
+    if (!store.isValidProjectId(rest.projectId)) throw new Error(tr('Proyecto no válido'))
+    // En otra conversación, se queda en ella mientras se pasa a texto y se manda (hasta que acaba todo).
+    let reply: { messageId: string } | undefined
+    return conversations
+      .inConversation(rest.projectId, chatTarget(conversationId), () => new Promise<void>((done) => (reply = sendVoiceNote(rest, (work) => void work.finally(done)))))
+      .then(() => reply!)
   })
   ipcMain.handle('cowork:requestMicrophone', async () => {
     if (process.platform !== 'darwin') return true

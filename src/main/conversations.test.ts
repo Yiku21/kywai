@@ -7,6 +7,9 @@ import type { ChatMessage, Task } from '@shared/types'
 import * as store from './projects'
 import { exportSessions, initAgentSessions, rememberSession } from './agentSessions'
 import {
+  conversationView,
+  currentChat,
+  inConversation,
   conversationOfRun,
   findMessage,
   flushBackground,
@@ -445,5 +448,92 @@ describe('en paralelo: el equipo sigue en una conversación mientras miras otra'
     expect(raw.messages.map((m) => m.text)).toEqual(['Empieza', 'Avance'])
     expect(raw.tasks[0].status).toBe('running')
     expect(listConversations(p.id).find((c) => c.id === idA)?.messageCount).toBe(2)
+  })
+})
+
+describe('chat de al lado o en otra ventana: escribir en una conversación sin abrirla', () => {
+  const run = (projectId: string, runId: string, text: string, user = false): ChatMessage => ({ ...msg(projectId, text, user), runId })
+
+  it('lo que nace mientras escribes en ella va a esa conversación; la abierta no cambia', async () => {
+    const p = store.createProject('Al lado')
+    const st = store.getProject(p.id)
+    store.upsertMessage(run(p.id, 'lado-a', 'Vídeo del cristal', true))
+    const idA = conversationOfRun(p.id, 'lado-a')
+    const idB = newConversation(p.id)
+    store.upsertMessage(run(p.id, 'lado-b', 'Imagen de los robots', true))
+
+    // Verla sin abrirla.
+    const view = conversationView(p.id, idA)
+    expect(view.open).toBe(false)
+    expect(view.messages.map((m) => m.text)).toEqual(['Vídeo del cristal'])
+    expect(conversationView(p.id, idB).open).toBe(true)
+
+    // Escribir en A desde el chat de al lado: la petición nueva (y su aviso sin petición) van a A.
+    await inConversation(p.id, idA, async () => {
+      expect(currentChat(p.id).messages.map((m) => m.text)).toEqual(['Vídeo del cristal'])
+      expect(store.upsertMessage(run(p.id, 'lado-a2', 'Hazme la portada', true))).toBe(false)
+      expect(store.upsertMessage(msg(p.id, 'Aviso sin petición', false))).toBe(false)
+    })
+    expect(conversationOfRun(p.id, 'lado-a2')).toBe(idA)
+    expect(st.conversation?.id).toBe(idB)
+    expect(st.messages.map((m) => m.text)).toEqual(['Imagen de los robots'])
+    expect(conversationView(p.id, idA).messages.map((m) => m.text)).toEqual(['Vídeo del cristal', 'Hazme la portada', 'Aviso sin petición'])
+
+    // Terminado ese envío, lo que llegue de la petición sigue en A; lo nuevo sin conversación va a la abierta.
+    expect(store.upsertMessage(run(p.id, 'lado-a2', 'Portada lista'))).toBe(false)
+    expect(store.upsertMessage(run(p.id, 'lado-b2', 'Otra en B', true))).toBe(true)
+    expect(conversationOfRun(p.id, 'lado-b2')).toBe(idB)
+
+    // Si escribes en la abierta, como siempre.
+    await inConversation(p.id, idB, async () => {
+      expect(store.upsertMessage(run(p.id, 'lado-b3', 'Sigo en B', true))).toBe(true)
+    })
+    expect(st.messages.map((m) => m.text)).toEqual(['Imagen de los robots', 'Otra en B', 'Sigo en B'])
+
+    // Al abrir A en el chat principal está todo.
+    openConversation(p.id, idA)
+    expect(st.messages.map((m) => m.text)).toEqual(['Vídeo del cristal', 'Hazme la portada', 'Aviso sin petición', 'Portada lista'])
+  })
+
+  it('dos envíos a la vez (al lado y en el principal) no se mezclan', async () => {
+    const p = store.createProject('A la vez')
+    const st = store.getProject(p.id)
+    store.upsertMessage(run(p.id, 'lado-1', 'Primera', true))
+    const idA = conversationOfRun(p.id, 'lado-1')
+    const idB = newConversation(p.id)
+    let release!: () => void
+    const gate = new Promise<void>((r) => (release = r))
+    const side = inConversation(p.id, idA, async () => {
+      await gate
+      store.upsertMessage(run(p.id, 'lado-side', 'Desde el lado', true))
+    })
+    // Mientras el de al lado espera, el principal escribe en la abierta.
+    expect(store.upsertMessage(run(p.id, 'lado-main', 'Desde el principal', true))).toBe(true)
+    release()
+    await side
+    expect(conversationOfRun(p.id, 'lado-main')).toBe(idB)
+    expect(conversationOfRun(p.id, 'lado-side')).toBe(idA)
+    expect(st.messages.map((m) => m.text)).toEqual(['Desde el principal'])
+  })
+
+  it('una conversación que ya no existe no se puede ver ni escribir en ella', async () => {
+    const p = store.createProject('Borrada')
+    expect(() => conversationView(p.id, 'c-no-existe')).toThrow()
+    await expect(inConversation(p.id, 'c-no-existe', async () => undefined)).rejects.toThrow()
+  })
+
+  it('editar un mensaje tuyo en el chat de al lado lo hace en su conversación', async () => {
+    const p = store.createProject('Editar al lado')
+    const st = store.getProject(p.id)
+    store.upsertMessage(run(p.id, 'lado-e', 'Texto viejo', true))
+    const idA = conversationOfRun(p.id, 'lado-e')
+    newConversation(p.id)
+    store.upsertMessage(run(p.id, 'lado-f', 'En la abierta', true))
+    const first = conversationView(p.id, idA).messages[0]
+    await inConversation(p.id, idA, async () => {
+      store.rewindChat(p.id, first.id, [])
+    })
+    expect(conversationView(p.id, idA).messages).toEqual([])
+    expect(st.messages.map((m) => m.text)).toEqual(['En la abierta'])
   })
 })

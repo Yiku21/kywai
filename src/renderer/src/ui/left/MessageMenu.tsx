@@ -9,6 +9,8 @@ import { t } from '@/lib/i18n'
 import { ContextMenu, menuPoint, type MenuAt, type MenuEntry } from '../sidebar/ContextMenu'
 import { errorText } from '../common/util'
 import { useComposer } from './composerStore'
+import { paneTarget, showInPane } from '../pane/paneTarget'
+import { boundChat } from '@/lib/chatPane'
 
 /** Qué se puede hacer con un mensaje del agente (lo que ya ofrecen los botones de debajo). */
 export type AgentMenuOptions = {
@@ -31,7 +33,9 @@ function selectionIn(el: HTMLElement): string {
 async function openFork(projectId: string, conversationId: string, from: { messageId: string; before?: boolean }): Promise<void> {
   const a = api!
   const id = await a.forkConversation(projectId, conversationId, from)
-  useCowork.getState().loadProjectState(await a.openConversation(projectId, id))
+  // En el chat de al lado o en una ventana suelta, la copia se queda ahí (el chat principal sigue en la suya).
+  if (boundChat) await showInPane(projectId, id)
+  else useCowork.getState().loadProjectState(await a.openConversation(projectId, id))
   useCowork.setState((st) => ({ conversationsTick: st.conversationsTick + 1 }))
   useCowork.getState().setLeftTab('chat')
 }
@@ -112,7 +116,7 @@ export function useMessageMenu(
         icon: <Clapperboard size={15} />,
         shortcut: 'v',
         disabled: !agent.videoable || !api,
-        onSelect: () => run(() => api!.sendMessage({ projectId: m.projectId, text: '', filePaths: [], videoFrom: m.id }), t('Vídeo pedido'))
+        onSelect: () => run(() => api!.sendMessage({ projectId: m.projectId, text: '', filePaths: [], videoFrom: m.id, ...paneTarget() }), t('Vídeo pedido'))
       }
     ]
     if (agent.ratable) {

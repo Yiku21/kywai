@@ -5,6 +5,8 @@ import './styles/tokens.css'
 import './styles/theme-orbita.css'
 import './styles/themes.css'
 import { App } from './App'
+import { ChatPaneApp } from './ui/pane/ChatPaneApp'
+import { boundChat } from './lib/chatPane'
 import { applyTheme, storedTheme } from './lib/theme'
 import { applyLang } from './lib/i18n'
 import { useCowork } from './store/cowork'
@@ -31,6 +33,7 @@ window.addEventListener('drop', (e) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {/* ?chatProject=…&chatConversation=…: solo ese chat (el de al lado o una ventana suelta). */}
+    {boundChat ? <ChatPaneApp /> : <App />}
   </StrictMode>
 )

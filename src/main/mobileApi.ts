@@ -819,9 +819,15 @@ export class MobileApi {
   }
 
   broadcast(event: CoworkEvent | MobileOnlyEvent): void {
+    // Mensajes de conversaciones en segundo plano (los ve el chat de al lado del escritorio): Órbita no los enseña.
+    if (event.kind === 'conversation.message') return
     const { kind, ...data } = event
     const payload: Record<string, unknown> = { ...data }
-    if (event.kind === 'message.upsert') payload.message = { ...event.message, conversationId: event.message.projectId }
+    if (event.kind === 'message.upsert') {
+      // En Órbita cada proyecto es un chat: su conversationId es el del proyecto, no el de la conversación del escritorio.
+      delete payload.conversationId
+      payload.message = { ...event.message, conversationId: event.message.projectId }
+    }
     if (event.kind === 'attachments.updated') payload.conversationId = event.projectId
     if (event.kind === 'usage.run') payload.usage = this.backend.currentUsage()
     if (event.kind === 'config.updated') {

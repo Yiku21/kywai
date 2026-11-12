@@ -1,0 +1,104 @@
+/* Chat de al lado: en la columna del espacio 3D, con su misma forma de panel. */
+.split {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 10px 6px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.icon {
+  flex: none;
+  color: var(--text-2);
+}
+
+.title {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.project {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-2);
+  background: color-mix(in srgb, var(--text-2) 12%, transparent);
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.frame {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: var(--bg-panel);
+}
+
+/* Zona para soltar un chat arrastrado: encima del espacio 3D (o de la mitad derecha si el 3D está cerrado). */
+.drop {
+  grid-column: 2;
+  grid-row: 1;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  border: 2px dashed color-mix(in srgb, var(--cyan, #4fc3ff) 55%, transparent);
+  border-radius: var(--radius-panel);
+  background: color-mix(in srgb, var(--bg-panel) 72%, transparent);
+  backdrop-filter: blur(4px);
+  transition: background var(--dur-fast, 0.15s) ease, border-color var(--dur-fast, 0.15s) ease;
+}
+
+/* Con el 3D cerrado, el chat ocupa todo: la zona va en su mitad derecha. */
+.drop[data-wide='true'] {
+  grid-column: 1;
+  justify-self: end;
+  width: 50%;
+}
+
+.drop[data-over='true'] {
+  border-color: var(--cyan, #4fc3ff);
+  background: color-mix(in srgb, var(--cyan, #4fc3ff) 14%, var(--bg-panel));
+}
+
+.dropCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 26px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-1);
+  pointer-events: none;
+}

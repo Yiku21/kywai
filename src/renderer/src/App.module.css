@@ -88,6 +88,11 @@
   border-width: 0;
 }
 
+/* Chat de al lado: ocupa la columna del 3D, que sigue montado debajo (la música sigue) pero no se ve y está parado. */
+.body[data-split='true'] .space {
+  visibility: hidden;
+}
+
 /* Con el 3D cerrado, la vista previa de un archivo necesita su columna: la ventana vuelve a partirse en dos (chat y
    archivo) mientras está abierta. El 3D sigue oculto y parado debajo; al cerrar la vista previa, solo chat otra vez. */
 .body[data-space-hidden='true'][data-preview='true'] {

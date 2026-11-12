@@ -1694,7 +1694,9 @@ export type CoworkEvent = EventBase &
     | { kind: 'task.upsert'; task: Task }
     | { kind: 'task.completed'; taskId: string; agentId: AgentId }
     | { kind: 'transfer.started'; transfer: Transfer }
-    | { kind: 'message.upsert'; message: ChatMessage }
+    | { kind: 'message.upsert'; message: ChatMessage; /** Conversación del mensaje (la abierta del proyecto). */ conversationId?: string }
+    /** Mensaje de una conversación que no es la abierta (trabaja en segundo plano): lo ven el chat de al lado y otras ventanas. */
+    | { kind: 'conversation.message'; projectId: string; conversationId: string; message: ChatMessage }
     | { kind: 'message.delta'; messageId: string; text: string }
     | { kind: 'artifact.created'; artifact: Artifact }
     | { kind: 'quota.update'; quotas: QuotaInfo[] }
@@ -1890,6 +1892,8 @@ export interface SendMessageInput {
    * Falla si esa petición sigue en marcha.
    */
   editOf?: string
+  /** Chat de al lado o en otra ventana: la conversación donde se escribe (sin ella, la abierta del proyecto). */
+  conversationId?: string
   /**
    * Tus respuestas a la tarjeta de preguntas de un mensaje (su id): el texto lo arma el motor con cada pregunta y lo
    * que contestaste, y va al agente que preguntó (o al coordinador). El `text` que llegue se ignora.
@@ -1912,6 +1916,8 @@ export interface VoiceNoteInput {
   attachmentIds?: string[]
   /** «Responder» bajo la respuesta de un agente (su id). */
   replyTo?: string
+  /** Chat de al lado o en otra ventana: la conversación donde se escribe (sin ella, la abierta del proyecto). */
+  conversationId?: string
 }
 
 export interface CoworkApi {
@@ -1937,6 +1943,8 @@ export interface CoworkApi {
   newConversation(projectId: string): Promise<ProjectState>
   /** Vuelve a una conversación guardada para seguir en ella (guarda antes la abierta). Devuelve el estado del proyecto. */
   openConversation(projectId: string, conversationId: string): Promise<ProjectState>
+  /** Una conversación para verla y escribir en ella sin abrirla (chat de al lado o en otra ventana). */
+  getConversation(projectId: string, conversationId: string): Promise<ProjectState>
   renameConversation(projectId: string, conversationId: string, title: string): Promise<ConversationSummary[]>
   /** Borra una conversación guardada (va a conversaciones/borradas/ dentro del proyecto). */
   deleteConversation(projectId: string, conversationId: string): Promise<ConversationSummary[]>
@@ -1948,7 +1956,8 @@ export interface CoworkApi {
   /** Con `from`, la copia llega hasta ese mensaje (o justo antes, con `before`: «Editar y reenviar»). */
   forkConversation(projectId: string, conversationId: string, from?: { messageId: string; before?: boolean }): Promise<string>
   /** Flechas ‹ › de un mensaje tuyo editado: enseña su versión [to] (desde 0) en el mismo chat. */
-  switchMessageVersion(projectId: string, messageId: string, to: number): Promise<void>
+  /** `conversationId`: en el chat de al lado o en otra ventana, la conversación donde está ese mensaje. */
+  switchMessageVersion(projectId: string, messageId: string, to: number, conversationId?: string): Promise<void>
   /** Pasa la conversación a otro proyecto (los agentes empiezan sesión nueva allí). Devuelve el id que tiene en el destino. */
   moveConversation(projectId: string, conversationId: string, toProjectId: string): Promise<string>
   /** Fija o suelta un proyecto en la barra lateral. */

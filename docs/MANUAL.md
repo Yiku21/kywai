@@ -3044,6 +3044,40 @@ cuando cae «dentro» de un proyecto.
 - Un chat arrastrado fuera de la barra lleva también el tipo `application/x-kywai-chat`
   (`{ projectId, conversationId, title }`) para que otras zonas de la ventana puedan recibirlo.
 
+**Dos chats a la vez (chat de al lado).** Arrastra un chat de la barra hacia la **derecha de la ventana**: mientras
+lo arrastras, la zona del Espacio 3D se marca con «Suelta aquí para abrirlo al lado». Al soltarlo, ese chat ocupa el
+sitio del 3D y tienes **dos chats abiertos**, cada uno con su cuadro de escribir, su botón «Detener» y sus pestañas
+(Archivos, Tareas, Resultados…). También con clic derecho en el chat → **Abrir al lado** (L).
+
+- Pueden ser **dos chats del mismo proyecto**: lo que escribes en el de al lado va a su conversación y el chat
+  principal no salta a ella (el motor la deja ver y escribir sin abrirla). También funcionan ahí «Responder», «Crear
+  vídeo de esto», editar tu mensaje con el lápiz (con sus versiones ‹1/2›), las notas de voz y bifurcar (la copia se
+  queda en el de al lado).
+- Mientras hay un chat al lado, el **3D se para** (no gasta) y la música sigue. La **✕** de su cabecera lo cierra y
+  vuelve el 3D; el botón de la ventana lo saca a una **ventana aparte**. Arrastrar otro chat encima lo sustituye.
+- El borde del medio se sigue arrastrando para repartir el ancho; llevarlo del todo a la derecha cierra el chat de al
+  lado y deja el principal a toda la ventana. Si el 3D estaba cerrado, la zona para soltar es la mitad derecha del chat.
+- Se recuerda en cada dispositivo (`kywai.splitChat`). En ventanas estrechas (menos de 950 px) no cabe: se guarda y
+  vuelve al ensanchar la ventana.
+- El sonido del equipo (tareas, agentes) suena solo en la ventana principal; el chat de al lado solo pone voz a sus
+  mensajes.
+- `/nuevo` (y `/limpiar`…) no se puede en el chat de al lado ni en una ventana suelta: cambiaría también el chat
+  principal. Empieza el chat nuevo en la ventana principal y arrástralo.
+
+**Chat en ventana aparte.** **Clic con la rueda del ratón** en un chat de la barra (o clic derecho → **Abrir en
+ventana aparte**, V) lo abre en una ventana suelta de kywai, que puedes llevar a **otro monitor**. Es el chat entero
+(con sus pestañas) y, como el de al lado, no cambia el chat principal. Volver a abrir el mismo chat reutiliza su
+ventana. Las ventanas sueltas se cierran al cerrar la principal. Funciona en la app del servidor, en el cliente de
+escritorio y en el navegador (allí abre una ventana nueva del navegador).
+
+Cómo va por dentro: el chat de al lado y la ventana suelta son la misma interfaz con
+`?chatProject=<id>&chatConversation=<id>` (`embedded=1` dentro de la ventana; ui/pane/ y lib/chatPane.ts). Cargan
+la conversación con `getConversation` (sin abrirla) y envían con `conversationId` (`sendMessage`, `sendVoiceNote`,
+`switchMessageVersion`); el motor lo hace con `inConversation` (conversations.ts), que ata a esa conversación las
+peticiones que nacen durante ese envío. Los mensajes de una conversación en segundo plano llegan por el evento
+`conversation.message`, y `message.upsert` lleva el `conversationId` de la abierta. En la app de escritorio el marco
+usa el puente de la ventana principal y las ventanas sueltas reciben los mismos eventos (`addEventWindow`).
+
 **Clic derecho** (o el botón **⋯** que sale al pasar el ratón) abre el menú de lo que tocas, como en Claude. Con el
 menú abierto, la letra de la derecha hace esa acción sin el ratón.
 Los botones **⋯** y la flecha de desplegar no llevan bloque de fondo propio: el nombre se desvanece antes de

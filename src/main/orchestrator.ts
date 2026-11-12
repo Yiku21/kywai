@@ -72,7 +72,7 @@ import { normalizeScope, outsideScope } from './scope'
 import { CHAT_STYLE, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
 import { projectBrief, testCommand } from './projectBrief'
 import { supportsResume } from './agentSessions'
-import { conversationOfRun, findMessage, lastRunSession, locateRun, rememberRunSession, runChat } from './conversations'
+import { conversationOfMessage, conversationOfRun, currentChat, findMessage, lastRunSession, locateRun, rememberRunSession, runChat } from './conversations'
 import { hasGit, Shadow } from './checkpoints'
 import { addInbox, onInboxAction, resolveInboxWhere } from './inbox'
 import { askPermission, dropPermissions, onPermissionChange, sessionAllows, waitingPermission, type PermissionRequest } from './permissions'
@@ -824,8 +824,11 @@ function pushMessage(m: ChatMessage): void {
       m.questions = { items: q.questions }
     }
   }
-  // Si su conversación sigue en segundo plano (miras otra), se guarda allí y no sale en el chat abierto.
-  if (store.upsertMessage(m)) emit({ kind: 'message.upsert', message: { ...m } })
+  // Si su conversación sigue en segundo plano (miras otra), se guarda allí y no sale en el chat abierto; sí en el
+  // chat de al lado o en otra ventana que la tengan a la vista (conversation.message).
+  const conversationId = conversationOfMessage(m)
+  if (store.upsertMessage(m)) emit({ kind: 'message.upsert', message: { ...m }, ...(conversationId ? { conversationId } : {}) })
+  else if (conversationId) emit({ kind: 'conversation.message', projectId: m.projectId, conversationId, message: { ...m } })
   if (m.proposal) planInbox(m)
 }
 
@@ -1047,7 +1050,9 @@ onPermissionChange((req: PermissionRequest, inboxId: string, state: 'pending' | 
  * van, con cada pregunta, a quien preguntó. Si fue el agente de una tarea o de un mensaje directo, le vuelven a él (como
  * «Responder»: retoma su sesión); si fue el coordinador, la petición se planifica de nuevo con tu respuesta.
  */
-async function answerQuestions(st: ReturnType<typeof store.getProject>, input: SendMessageInput): Promise<{ runId: string }> {
+async function answerQuestions(input: SendMessageInput): Promise<{ runId: string }> {
+  // En la conversación donde contestas (también desde el chat de al lado o en otra ventana).
+  const st = currentChat(input.projectId)
   if (input.clientMessageId) {
     const existing = st.messages.find((m) => m.author.type === 'user' && m.clientMessageId === input.clientMessageId)
     if (existing?.runId) return { runId: existing.runId }
@@ -1495,7 +1500,7 @@ function attachArtifacts(projectId: string, ids: unknown): Attachment[] {
  * Whisper; en cuanto tiene el texto, la manda como un mensaje normal (Hermes, «@Agente», órdenes…), que ocupa el sitio
  * del provisional. Si no se entiende o falla, el mensaje se queda marcado y un aviso dice por qué.
  */
-export function sendVoiceNote(input: VoiceNoteInput): { messageId: string } {
+export function sendVoiceNote(input: VoiceNoteInput, track?: (work: Promise<void>) => void): { messageId: string } {
   const projectId = input?.projectId
   const st = store.getProject(projectId)
   if (typeof input.audioPath !== 'string' || !input.audioPath) throw new Error(tr('Audio no válido'))
@@ -1521,7 +1526,7 @@ export function sendVoiceNote(input: VoiceNoteInput): { messageId: string } {
     pushMessage({ ...draft, voiceNote: 'failed' })
     pushMessage({ id: randomUUID(), projectId, author: { type: 'system' }, text: why, tone: 'error', createdAt: Date.now() })
   }
-  void (async () => {
+  const work = (async () => {
     let said: string
     try {
       said = await transcribeAudio(input.audioPath, input.language)
@@ -1549,6 +1554,7 @@ export function sendVoiceNote(input: VoiceNoteInput): { messageId: string } {
       voiceDrafts.delete(clientMessageId)
     }
   })()
+  track?.(work)
   return { messageId: draft.id }
 }
 
@@ -1564,7 +1570,7 @@ export function sendVoiceNote(input: VoiceNoteInput): { messageId: string } {
  */
 export async function sendMessage(input: SendMessageInput, opts: { routine?: { id: string; name: string; askApproval?: boolean } } = {}): Promise<{ runId: string }> {
   const projectId = input?.projectId
-  const retry = !!input?.clientMessageId && store.getProject(projectId).messages.some((m) => m.author.type === 'user' && m.clientMessageId === input.clientMessageId)
+  const retry = !!input?.clientMessageId && currentChat(projectId).messages.some((m) => m.author.type === 'user' && m.clientMessageId === input.clientMessageId)
   if (typeof input?.editOf !== 'string' || retry) return sendNow(input, opts)
   const edit = store.rewindChat(projectId, input.editOf, activeRunsFor(projectId))
   let r: { runId: string }
@@ -1575,7 +1581,8 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     throw e
   }
   const m = store.attachVersions(projectId, r.runId, edit.versions)
-  if (m) emit({ kind: 'message.upsert', message: { ...m } })
+  // Por pushMessage: si escribes en el chat de al lado, va a su conversación.
+  if (m) pushMessage({ ...m })
   return r
 }
 
@@ -1583,12 +1590,14 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
   const routine = opts.routine
   const projectId = input?.projectId
   const st = store.getProject(projectId)
+  // Donde escribiste: la conversación abierta o la del chat de al lado / otra ventana (ver inConversation).
+  const chat = currentChat(projectId)
   // Respuestas a la tarjeta de preguntas de un agente: el texto se arma aquí y vuelve a quien preguntó.
-  if (input.answers && typeof input.answers === 'object' && !routine) return answerQuestions(st, input)
+  if (input.answers && typeof input.answers === 'object' && !routine) return answerQuestions(input)
   const text = typeof input.text === 'string' ? input.text.slice(0, 50_000) : ''
   // Se comprueba antes del primer await: dos reintentos concurrentes reutilizan la misma ejecución.
   if (input.clientMessageId) {
-    const existing = st.messages.find((m) => m.author.type === 'user' && m.clientMessageId === input.clientMessageId)
+    const existing = chat.messages.find((m) => m.author.type === 'user' && m.clientMessageId === input.clientMessageId)
     if (existing?.runId) {
       if (existing.text !== text) throw new Error('clientMessageId ya se usó con otro texto')
       return { runId: existing.runId }
@@ -1658,7 +1667,7 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
   // «Responder» bajo la respuesta de un agente: va directo a ese mismo agente, con su respuesta citada, para que la
   // revise o la continúe (retoma su sesión del CLI si puede). Gana a cualquier «@» del texto.
   if (typeof input.replyTo === 'string' && !tpl) {
-    const answer = st.messages.find((m) => m.id === input.replyTo)
+    const answer = chat.messages.find((m) => m.id === input.replyTo)
     if (!answer || answer.author.type !== 'agent') throw new Error(tr('No encuentro esa respuesta para contestarla'))
     let agent = findAgent(answer.author.agentId)
     if (agent?.isSubagent) agent = findAgent(agent.parentId)
@@ -1681,7 +1690,7 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
 
   // Vídeo: «/video …», «créame un vídeo de …» o «Crear vídeo de esto» en un mensaje. Sin plan: el agente escribe el
   // guion y kywai monta el vídeo entero; solo se entrega el MP4.
-  const fromMsg = typeof input.videoFrom === 'string' ? st.messages.find((m) => m.id === input.videoFrom) : undefined
+  const fromMsg = typeof input.videoFrom === 'string' ? chat.messages.find((m) => m.id === input.videoFrom) : undefined
   if (input.videoFrom && !fromMsg) throw new Error(tr('No encuentro ese mensaje para hacer el vídeo'))
   // «/ig-plan», «/ig-viral», «/ig-reel»…: una habilidad de Instagram con los datos reales de la cuenta de kywai.
   const igSkillReq = fromMsg || tpl ? null : parseIgSkillRequest(text)
@@ -1734,7 +1743,7 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
   if (videoReq) {
     let source: string | undefined
     if (videoReq.fromPrevious) {
-      const prev = fromMsg ?? [...st.messages].reverse().find((m) => m.author.type !== 'user' && m.author.type !== 'system' && m.text.trim().length >= 40)
+      const prev = fromMsg ?? [...chat.messages].reverse().find((m) => m.author.type !== 'user' && m.author.type !== 'system' && m.text.trim().length >= 40)
       if (!prev) throw new Error(tr('¿De qué hago el vídeo? Escribe el tema («/video cómo funciona la fotosíntesis») o pulsa «Crear vídeo de esto» en un mensaje.'))
       source = prev.text
     }
@@ -1840,7 +1849,7 @@ async function sendDirect(
   const agent = findAgent(agentId)!
   const projectId = st.project.id
   if (!text && !atts.length) throw new Error(tr('Escribe el mensaje para {name} después de su nombre.', { name: agent.name }))
-  const lastMine = [...st.messages].reverse().find((m) => m.author.type === 'user')
+  const lastMine = [...currentChat(projectId).messages].reverse().find((m) => m.author.type === 'user')
   const continues = extra.continues === true || lastMine?.direct?.agentId === agent.id
   const runId = randomUUID()
   pushMessage({
@@ -2179,8 +2188,9 @@ export function instagramStatusNow(): InstagramStatus {
 
 /** El vídeo más reciente del chat (el MP4 que entregó una tarea), con el mensaje que lo trae. */
 function latestVideo(st: ReturnType<typeof store.getProject>): { artifact: Artifact; message: ChatMessage } | null {
-  for (let i = st.messages.length - 1; i >= 0; i--) {
-    const m = st.messages[i]
+  const messages = currentChat(st.project.id).messages
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]
     for (const id of [...(m.artifactIds ?? [])].reverse()) {
       const a = st.artifacts.find((x) => x.id === id)
       if (a && isVideoFile(a.relPath)) return { artifact: a, message: m }
@@ -3495,7 +3505,7 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
     markDelivered(workDir, rel)
   }
   if (v.review) {
-    const card = [...store.snapshotProject(run.projectId).messages].reverse().find((x) => x.runId === run.id && x.scriptReview?.status === 'recording')
+    const card = [...runChat(run.projectId, run.id).messages].reverse().find((x) => x.runId === run.id && x.scriptReview?.status === 'recording')
     if (card?.scriptReview) pushMessage({ ...card, scriptReview: { ...card.scriptReview, status: 'recorded' } })
   }
   const episodeNote = recordSeriesEpisode(run, t, script.title, script.episode, rel, script.cast)
@@ -3759,7 +3769,8 @@ async function baseline(run: Run): Promise<void> {
 
 /** El plan más reciente del proyecto que espera tu visto bueno. */
 function pendingProposal(projectId: string): ChatMessage | undefined {
-  const msgs = store.getProject(projectId).messages
+  // El plan pendiente de la conversación donde escribes (no el de otra que tengas al lado).
+  const msgs = currentChat(projectId).messages
   for (let i = msgs.length - 1; i >= 0; i--) {
     const m = msgs[i]
     if (m.proposal?.status === 'pending' && m.runId && !runs.has(m.runId)) return m

@@ -33,6 +33,7 @@ import { playSfx, playVoice, voiceProfile } from '@/lib/audio'
 import { createEventAudio } from '@/lib/audioEvents'
 import { lang, t } from '@/lib/i18n'
 import { readSpaceHidden, saveSpaceHidden } from '@/ui/left/chatWidth'
+import { boundChat, readSplitChat, saveSplitChat, type ChatRef } from '@/lib/chatPane'
 
 export type Mode = 'live' | 'demo'
 
@@ -152,6 +153,8 @@ interface CoworkState {
   /** En pantallas pequeñas: qué vista ocupa la pantalla. */
   mobileView: 'chat' | 'space'
   camera: CameraCommand | null
+  /** Chat de al lado: otro chat abierto a la derecha, en lugar del espacio 3D (se recuerda en este equipo). */
+  splitChat: ChatRef | null
 
   applyEvent(e: CoworkEvent): void
   setMode(mode: Mode): void
@@ -170,6 +173,8 @@ interface CoworkState {
   setSpaceExpanded(v: boolean): void
   setSpaceHidden(v: boolean): void
   setMobileView(v: 'chat' | 'space'): void
+  /** Abre otro chat al lado (null lo cierra y vuelve el espacio 3D). */
+  setSplitChat(ref: ChatRef | null): void
   cameraCommand(c: CameraInput): void
   openSetup(open: boolean): void
   /** Abre (o cierra con null) la ventana de lo que hace el agente en una tarea. */
@@ -274,7 +279,8 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
       if (transfers.length > MAX_TRANSFERS) transfers.splice(0, transfers.length - MAX_TRANSFERS)
       return { ...d, transfers }
     }
-    case 'message.upsert': {
+    case 'message.upsert':
+    case 'conversation.message': {
       return { ...d, messages: upsertChatMessage(d.messages, e.message) }
     }
     case 'message.delta': {
@@ -347,6 +353,7 @@ function eventProject(e: CoworkEvent): string | undefined {
       return e.task.projectId
     case 'artifact.created':
       return e.artifact.projectId
+    case 'conversation.message':
     case 'run.started':
     case 'run.finished':
     case 'files.deleted':
@@ -422,6 +429,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
   spaceHidden: readSpaceHidden(),
   mobileView: 'chat',
   camera: null,
+  splitChat: boundChat ? null : readSplitChat(),
 
   applyEvent(e) {
     if (!markSeen(e.id)) return
@@ -448,6 +456,16 @@ export const useCowork = create<CoworkState>((set, get) => ({
       return
     }
     if (e.kind === 'conversations.updated') {
+      set((s) => ({ conversationsTick: s.conversationsTick + 1 }))
+      return
+    }
+    // Chat de al lado o ventana suelta: enseña siempre su conversación, aunque el chat principal cambie de una a otra.
+    if (boundChat && e.kind === 'chat.cleared') {
+      const a = api
+      const cur = get().live
+      if (a && !e.demo && cur.project?.id === e.projectId && cur.conversation) {
+        void a.getConversation(e.projectId, cur.conversation.id).then((st) => get().loadProjectState(st), () => undefined)
+      }
       set((s) => ({ conversationsTick: s.conversationsTick + 1 }))
       return
     }
@@ -512,11 +530,17 @@ export const useCowork = create<CoworkState>((set, get) => ({
     // Una petición de otra conversación de este proyecto (sigue en segundo plano): su «Detener» no va en esta.
     const conv = get().live.conversation?.id
     if (e.kind === 'run.started' && !e.demo && e.conversationId && conv && e.conversationId !== conv) return
+    // Mensajes de otra conversación del proyecto: los ve el chat (de al lado o en otra ventana) que la tiene abierta.
+    if ((e.kind === 'message.upsert' || e.kind === 'conversation.message') && !e.demo && e.conversationId && conv && e.conversationId !== conv) return
+    if (e.kind === 'conversation.message' && (e.demo || !conv)) return
     const target = e.demo ? 'demo' : 'live'
     const previous = get()[target]
     set((s) => ({ [target]: reduce(s[target], e) }) as Partial<CoworkState>)
     if ((get().mode === 'demo') === !!e.demo) {
-      eventAudio.handle(e, previous)
+      // El chat de al lado y las ventanas sueltas solo ponen voz a los mensajes de su conversación: los sonidos del
+      // equipo (tareas, agentes) ya suenan en la ventana principal y no se oyen dos veces.
+      if (!boundChat) eventAudio.handle(e, previous)
+      else if (e.kind === 'message.upsert' || e.kind === 'conversation.message') eventAudio.handle({ ...e, kind: 'message.upsert' }, previous)
       sceneBus.emit(e)
     }
   },
@@ -570,7 +594,8 @@ export const useCowork = create<CoworkState>((set, get) => ({
       // Otro proyecto: el archivo que se estaba viendo ya no es de este.
       ...(s.preview && s.preview.items[s.preview.index]?.projectId !== state.project.id ? { preview: null, previewMaximized: false } : {})
     }))
-    rememberProject(state.project.id)
+    // Un chat suelto o el de al lado no cambia el proyecto con el que arranca la ventana principal.
+    if (!boundChat) rememberProject(state.project.id)
     if (get().mode === 'live' && previousProjectId && previousProjectId !== state.project.id) playSfx('click')
   },
 
@@ -612,6 +637,11 @@ export const useCowork = create<CoworkState>((set, get) => ({
   },
   setMobileView(mobileView) {
     set({ mobileView })
+  },
+  setSplitChat(splitChat) {
+    saveSplitChat(splitChat)
+    // Al abrir uno al lado, el 3D cerrado o ampliado deja sitio: el chat de al lado ocupa su lugar.
+    set(splitChat ? { splitChat, spaceExpanded: false } : { splitChat })
   },
   cameraCommand(c) {
     set({ camera: { ...c, nonce: performance.now() } as CameraCommand })

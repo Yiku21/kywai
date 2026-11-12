@@ -246,5 +246,19 @@ function createWebApi(): CoworkApi {
   })
 }
 
+/**
+ * El chat de al lado es la misma interfaz dentro de un marco de la ventana principal: en la app de escritorio usa el
+ * puente de la ventana (los marcos no lo tienen propio). Solo un marco de la propia interfaz (misma página) lo alcanza.
+ */
+function parentBridge(): CoworkApi | undefined {
+  if (typeof window === 'undefined' || window.parent === window) return undefined
+  if (!new URLSearchParams(location.search).get('chatProject')) return undefined
+  try {
+    return (window.parent as unknown as typeof w).cowork
+  } catch {
+    return undefined
+  }
+}
+
 /** API del motor: la de Electron, la del acceso web o null (navegador sin motor: solo demo). */
-export const api: CoworkApi | null = w.cowork ?? (isWeb ? createWebApi() : null)
+export const api: CoworkApi | null = w.cowork ?? parentBridge() ?? (isWeb ? createWebApi() : null)

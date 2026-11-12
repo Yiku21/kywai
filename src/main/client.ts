@@ -210,6 +210,69 @@ function showView(next: View): void {
   if (next.name === 'offline') retryTimer = setInterval(() => void openServer(), 5000)
 }
 
+/** Una dirección de la interfaz del servidor que pide un chat suelto (?chatProject=…&chatConversation=…). */
+function isChatWindowUrl(url: string): boolean {
+  if (!current) return false
+  try {
+    const u = new URL(url)
+    return u.origin === new URL(current.server.origin).origin && !!u.searchParams.get('chatProject') && !!u.searchParams.get('chatConversation')
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Clic con la rueda en un chat: ese chat en una ventana suelta (se puede llevar a otro monitor). Usa la misma
+ * sesión (la cookie del servidor) y se cierra con la ventana principal. Los demás enlaces van al navegador.
+ */
+function wireChatWindows(w: BrowserWindow): void {
+  w.webContents.setWindowOpenHandler(({ url }) => {
+    if (isChatWindowUrl(url)) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 760,
+          height: 900,
+          minWidth: 420,
+          minHeight: 480,
+          backgroundColor: '#060a12',
+          title: 'kywai',
+          autoHideMenuBar: true,
+          icon: existsSync(APP_ICON) ? APP_ICON : undefined,
+          webPreferences: { preload: join(__dirname, '../preload/client.js'), contextIsolation: true, sandbox: true, nodeIntegration: false }
+        }
+      }
+    }
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  w.webContents.on('did-create-window', (child) => {
+    wireChatWindows(child)
+    child.webContents.on('context-menu', (_e, params) => {
+      const items = contextMenuItems(params, {
+        replaceMisspelling: (word) => child.webContents.replaceMisspelling(word),
+        addToDictionary: (word) => child.webContents.session.addWordToSpellCheckerDictionary(word),
+        openLink: (url) => void shell.openExternal(url),
+        copyText: (t) => clipboard.writeText(t),
+        copyImage: (x, y) => child.webContents.copyImageAt(x, y)
+      })
+      if (items.length) Menu.buildFromTemplate(items).popup({ window: child })
+    })
+    child.webContents.on('will-navigate', (e, url) => {
+      if (current && new URL(url).origin === new URL(current.server.origin).origin) return
+      e.preventDefault()
+      if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
+    })
+    const closeChild = (): void => {
+      if (!child.isDestroyed()) child.close()
+    }
+    w.once('closed', closeChild)
+    child.once('closed', () => {
+      if (!w.isDestroyed()) w.removeListener('closed', closeChild)
+    })
+  })
+}
+
 function ensureWindow(): BrowserWindow {
   if (win && !win.isDestroyed()) return win
   const w = new BrowserWindow({
@@ -249,10 +312,7 @@ function ensureWindow(): BrowserWindow {
     })
     if (items.length) Menu.buildFromTemplate(items).popup({ window: w })
   })
-  w.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
-    return { action: 'deny' }
-  })
+  wireChatWindows(w)
   w.webContents.on('will-navigate', (e, url) => {
     if (url.startsWith('data:')) return
     if (current && new URL(url).origin === new URL(current.server.origin).origin) return

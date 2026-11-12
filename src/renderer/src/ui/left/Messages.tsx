@@ -65,6 +65,7 @@ import { useNow } from '../common/hooks'
 import { TaskStages } from './TaskStages'
 import s from './Messages.module.css'
 import { t } from '@/lib/i18n'
+import { paneTarget } from '../pane/paneTarget'
 
 export const MessageItem = memo(function MessageItem({ message }: { message: ChatMessage }) {
   switch (message.author.type) {
@@ -190,7 +191,7 @@ function VersionNav({ m }: { m: ChatMessage }) {
     if (!a?.switchMessageVersion || busy || to < 0 || to >= total) return
     setBusy(true)
     setError(null)
-    a.switchMessageVersion(m.projectId, m.id, to).then(
+    a.switchMessageVersion(m.projectId, m.id, to, paneTarget().conversationId).then(
       () => setBusy(false),
       (e) => {
         setBusy(false)
@@ -253,6 +254,7 @@ function EditBox({ m, initial }: { m: ChatMessage; initial: string }) {
       text: text.trim(),
       filePaths: [],
       editOf: m.id,
+      ...paneTarget(),
       ...(m.attachments?.length ? { attachmentIds: m.attachments.map((x) => x.id) } : {}),
       ...(m.replyTo ? { replyTo: m.replyTo.messageId } : {})
     }).then(
@@ -609,7 +611,7 @@ function VideoFromButton({ m }: { m: ChatMessage }) {
     if (!a || state !== 'idle') return
     setState('sending')
     setError(null)
-    a.sendMessage({ projectId: m.projectId, text: '', filePaths: [], videoFrom: m.id }).then(
+    a.sendMessage({ projectId: m.projectId, text: '', filePaths: [], videoFrom: m.id, ...paneTarget() }).then(
       () => setState('sent'),
       (e) => {
         setState('idle')
@@ -1238,7 +1240,7 @@ function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: Cha
     if (!a) return
     setBusy(true)
     setError(null)
-    a.sendMessage({ projectId: m.projectId, text: '', filePaths: [], answers: { messageId: m.id, answers: all.map((x) => x ?? { skipped: true }) } }).then(
+    a.sendMessage({ projectId: m.projectId, text: '', filePaths: [], ...paneTarget(), answers: { messageId: m.id, answers: all.map((x) => x ?? { skipped: true }) } }).then(
       () => setBusy(false),
       (e) => {
         setBusy(false)

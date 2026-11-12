@@ -538,8 +538,47 @@ function withoutVersions(m: ChatMessage): ChatMessage {
   return copy
 }
 
+/**
+ * El chat donde se edita un mensaje: la conversación abierta del proyecto o, si escribes en el chat de al lado o en
+ * otra ventana, la suya (conversations.ts la da con setEditableChat mientras dura ese envío).
+ */
+export interface EditableChat {
+  projectId: string
+  conversationId?: string
+  messages: ChatMessage[]
+  tasks: Task[]
+  save(): void
+}
+let editableScope: ((projectId: string) => EditableChat | null) | null = null
+export function setEditableChat(fn: ((projectId: string) => EditableChat | null) | null): void {
+  editableScope = fn
+}
+
+function editableChat(projectId: string): EditableChat {
+  const scoped = editableScope?.(projectId)
+  if (scoped) return scoped
+  const st = getProject(projectId)
+  return {
+    projectId,
+    conversationId: st.conversation?.id,
+    get messages() {
+      return st.messages
+    },
+    set messages(v) {
+      st.messages = v
+    },
+    get tasks() {
+      return st.tasks
+    },
+    set tasks(v) {
+      st.tasks = v
+    },
+    save: () => scheduleSave(projectId)
+  }
+}
+
 /** La parte del chat desde el mensaje [i] (incluido) y las tareas de las peticiones que solo están ahí. */
-function chatTail(st: ProjectState, i: number, busyRunIds: string[]): { messages: ChatMessage[]; tasks: Task[] } {
+function chatTail(st: EditableChat, i: number, busyRunIds: string[]): { messages: ChatMessage[]; tasks: Task[] } {
   const kept = new Set(st.messages.slice(0, i).map((m) => m.runId).filter(Boolean))
   const messages = st.messages.slice(i)
   const runs = new Set(messages.map((m) => m.runId).filter((r): r is string => !!r && !kept.has(r)))
@@ -548,15 +587,15 @@ function chatTail(st: ProjectState, i: number, busyRunIds: string[]): { messages
 }
 
 /** Quita del chat abierto esa parte (mensajes desde [i] y sus tareas) y, si se dan, pone otros al final. */
-function replaceTail(st: ProjectState, i: number, tail: { messages: ChatMessage[]; tasks: Task[] }, next?: { messages: ChatMessage[]; tasks: Task[] }): void {
+function replaceTail(st: EditableChat, i: number, tail: { messages: ChatMessage[]; tasks: Task[] }, next?: { messages: ChatMessage[]; tasks: Task[] }): void {
   const gone = new Set(tail.tasks.map((t) => t.id))
   st.messages.splice(i, st.messages.length - i, ...(next?.messages ?? []))
   st.tasks = [...st.tasks.filter((t) => !gone.has(t.id)), ...(next?.tasks ?? [])]
-  scheduleSave(st.project.id)
+  st.save()
   emit({
     kind: 'messages.replaced',
-    projectId: st.project.id,
-    ...(st.conversation?.id ? { conversationId: st.conversation.id } : {}),
+    projectId: st.projectId,
+    ...(st.conversationId ? { conversationId: st.conversationId } : {}),
     messageIds: tail.messages.map((m) => m.id),
     taskIds: tail.tasks.map((t) => t.id),
     ...(next ? { messages: next.messages.map((m) => ({ ...m })), tasks: next.tasks.map((t) => ({ ...t })) } : {})
@@ -570,7 +609,7 @@ function replaceTail(st: ProjectState, i: number, tail: { messages: ChatMessage[
  * envío falla. No se puede si alguna de esas peticiones sigue en marcha ([busyRunIds]).
  */
 export function rewindChat(projectId: string, messageId: string, busyRunIds: string[]): { versions: ChatVersions; undo: () => void } {
-  const st = getProject(projectId)
+  const st = editableChat(projectId)
   const i = st.messages.findIndex((m) => m.id === messageId)
   if (i < 0) throw new Error('Ese mensaje ya no está en la conversación')
   const head = st.messages[i]
@@ -589,11 +628,11 @@ export function rewindChat(projectId: string, messageId: string, busyRunIds: str
 
 /** Pone las versiones en tu mensaje nuevo (el de esa petición) una vez enviado. */
 export function attachVersions(projectId: string, runId: string, versions: ChatVersions): ChatMessage | null {
-  const st = getProject(projectId)
+  const st = editableChat(projectId)
   const m = [...st.messages].reverse().find((x) => x.runId === runId && x.author.type === 'user')
   if (!m) return null
   m.versions = versions
-  scheduleSave(projectId)
+  st.save()
   return m
 }
 
@@ -602,7 +641,7 @@ export function attachVersions(projectId: string, runId: string, versions: ChatV
  * con sus tareas) y guarda la que se veía. No se puede mientras esa parte del chat sigue trabajando.
  */
 export function switchMessageVersion(projectId: string, messageId: string, to: number, busyRunIds: string[]): void {
-  const st = getProject(projectId)
+  const st = editableChat(projectId)
   const i = st.messages.findIndex((m) => m.id === messageId)
   if (i < 0) throw new Error('Ese mensaje ya no está en la conversación')
   const v = st.messages[i].versions

@@ -12,6 +12,7 @@ import type { CoworkEvent, Routine, RoutineInput, RoutineTrigger, RoutineRun, Ro
 import { cleanTrigger, describeWhen, isScheduled, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, nextRoutineRun, onceAt, slotsBetween } from '@shared/routines'
 import { emit, tapEvents } from './events'
 import * as store from './projects'
+import { conversationOfMessage } from './conversations'
 import { tr } from '@shared/i18n'
 
 /** Cada cuánto se mira si toca lanzar alguna rutina. */
@@ -305,7 +306,9 @@ function notice(projectId: string, r: Routine, text: string): void {
     routine: { id: r.id, name: r.name }
   }
   store.upsertMessage(m)
-  emit({ kind: 'message.upsert', message: { ...m } })
+  // Va a la conversación abierta del proyecto: los chats de al lado con otra no lo enseñan.
+  const conversationId = conversationOfMessage(m)
+  emit({ kind: 'message.upsert', message: { ...m }, ...(conversationId ? { conversationId } : {}) })
 }
 
 async function checkSchedule(projectId: string, r: Routine, now: number): Promise<void> {

@@ -23,12 +23,13 @@ const api: CoworkApi = {
   recentConversations: (limit) => ipcRenderer.invoke('cowork:recentConversations', limit),
   newConversation: (projectId) => ipcRenderer.invoke('cowork:newConversation', projectId),
   openConversation: (projectId, conversationId) => ipcRenderer.invoke('cowork:openConversation', projectId, conversationId),
+  getConversation: (projectId, conversationId) => ipcRenderer.invoke('cowork:getConversation', projectId, conversationId),
   renameConversation: (projectId, conversationId, title) => ipcRenderer.invoke('cowork:renameConversation', projectId, conversationId, title),
   deleteConversation: (projectId, conversationId) => ipcRenderer.invoke('cowork:deleteConversation', projectId, conversationId),
   setConversationPinned: (projectId, conversationId, pinned) => ipcRenderer.invoke('cowork:setConversationPinned', projectId, conversationId, pinned),
   pinnedConversations: () => ipcRenderer.invoke('cowork:pinnedConversations'),
   forkConversation: (projectId, conversationId, from) => ipcRenderer.invoke('cowork:forkConversation', projectId, conversationId, from),
-  switchMessageVersion: (projectId, messageId, to) => ipcRenderer.invoke('cowork:switchMessageVersion', projectId, messageId, to),
+  switchMessageVersion: (projectId, messageId, to, conversationId) => ipcRenderer.invoke('cowork:switchMessageVersion', projectId, messageId, to, conversationId),
   scanImports: () => ipcRenderer.invoke('cowork:scanImports'),
   importLocal: (sessionIds) => ipcRenderer.invoke('cowork:importLocal', sessionIds),
   importArchive: (paths, choices) => ipcRenderer.invoke('cowork:importArchive', paths, choices),
@@ -53,7 +54,8 @@ const api: CoworkApi = {
       ...(input.answers ? { answers: { messageId: input.answers.messageId, answers: input.answers.answers.map((x) => ({ ...x })) } } : {}),
       ...(typeof input.editOf === 'string' ? { editOf: input.editOf } : {}),
       ...ids('artifactIds', input.artifactIds),
-      ...ids('attachmentIds', input.attachmentIds)
+      ...ids('attachmentIds', input.attachmentIds),
+      ...(typeof input.conversationId === 'string' ? { conversationId: input.conversationId } : {})
     }),
   cancelRun: (runId) => ipcRenderer.invoke('cowork:cancelRun', runId),
   pickFiles: (kind) => ipcRenderer.invoke('cowork:pickFiles', kind),
@@ -213,7 +215,8 @@ const api: CoworkApi = {
       filePaths: [...(input.filePaths ?? [])],
       ...(input.replyTo ? { replyTo: input.replyTo } : {}),
       ...ids('artifactIds', input.artifactIds),
-      ...ids('attachmentIds', input.attachmentIds)
+      ...ids('attachmentIds', input.attachmentIds),
+      ...(typeof input.conversationId === 'string' ? { conversationId: input.conversationId } : {})
     }),
   requestMicrophone: () => ipcRenderer.invoke('cowork:requestMicrophone'),
   applyUpdate: (setAside) => ipcRenderer.invoke('cowork:applyUpdate', setAside),
@@ -233,7 +236,14 @@ const api: CoworkApi = {
     }),
   clearProjectFolder: (projectId) => ipcRenderer.invoke('cowork:clearProjectFolder', projectId),
   onEvent: (cb) => {
-    const listener = (_e: IpcRendererEvent, ev: CoworkEvent): void => cb(ev)
+    const listener = (_e: IpcRendererEvent, ev: CoworkEvent): void => {
+      // El chat de al lado (un marco) escucha por este mismo puente: si su marco ya no está, que no corte a los demás.
+      try {
+        cb(ev)
+      } catch (e) {
+        console.error('[cowork] evento', e)
+      }
+    }
     ipcRenderer.on('cowork:event', listener)
     return () => {
       ipcRenderer.removeListener('cowork:event', listener)
