@@ -1119,4 +1119,6 @@ private fun part7(m: HashMap<String, String>) {
     m["Elegida"] = "已选"
     m["[64px] [8 direcciones] personaje"] = "[64px] [8 个方向] 角色"
     m["Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)"] = "为你的游戏做一个像素风角色：4 或 8 个方向的动画精灵表（根据描述、图片或 3D 模型）"
+    m["[7 días] nicho"] = "[7 天] 领域"
+    m["Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo"] = "YouTube 和网络上正在升温的话题，带评分、5 个标题、3 个角度和现成的 /video"
 }

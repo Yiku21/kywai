@@ -21,7 +21,7 @@ export interface ChatCommand {
 }
 
 /** Los iconos de la lista del «/». */
-export type CommandIcon = 'video' | 'series' | 'learn' | 'publish' | 'routine' | 'direct' | 'memory' | 'model' | 'usage' | 'new' | 'template' | 'mod' | 'sprite'
+export type CommandIcon = 'video' | 'series' | 'learn' | 'publish' | 'routine' | 'direct' | 'memory' | 'model' | 'usage' | 'new' | 'template' | 'mod' | 'sprite' | 'radar'
 
 /** Las órdenes de kywai, en el orden en que salen. */
 export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
@@ -33,6 +33,7 @@ export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
   { name: 'miniatura', aliases: ['miniaturas', 'portada', 'portadas', 'thumbnail'], args: '[vertical|horizontal] qué quieres', description: 'Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha', icon: 'video' },
   { name: 'doblar', aliases: ['dobla', 'doblaje', 'dub'], args: 'idioma', description: 'El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos', icon: 'video' },
   { name: 'sprite', aliases: ['sprites', 'pixelart'], args: '[64px] [8 direcciones] personaje', description: 'Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)', icon: 'sprite' },
+  { name: 'radar', aliases: ['tendencias', 'trends'], args: '[7 días] nicho', description: 'Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo', icon: 'radar' },
   { name: 'aprende', aliases: ['aprender', 'learn'], args: 'enlace o vídeo', description: 'Convierte lo que enseña un vídeo en una habilidad', icon: 'learn' },
   { name: 'instagram', aliases: ['insta', 'ig'], args: 'qué quieres en el texto', description: 'Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno', icon: 'publish' },
   { name: 'tiktok', aliases: ['tt'], args: 'qué quieres en el texto', description: 'Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno', icon: 'publish' },
@@ -50,6 +51,17 @@ export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
   { name: 'uso', aliases: ['usage', 'cuotas', 'cuota', 'quota', 'quotas', 'limits', 'limit'], description: 'Mira cuánta cuota le queda a cada agente', icon: 'usage' },
   { name: 'nuevo', aliases: ['new', 'clear', 'limpiar'], description: 'Empieza un chat nuevo en este proyecto', icon: 'new' }
 ]
+
+/**
+ * «/video …», «/radar …»: el texto empieza con una orden de kywai (para que el chat la pueda dejar en el cuadro de
+ * texto con un toque cuando un agente la sugiere entre comillas). «/rutina» y «/directo» también valen.
+ */
+export function isKywaiCommand(text: string): boolean {
+  const m = /^\/([a-z][a-z-]*)(?=\s|$)/i.exec(text)
+  if (!m || text.length > 2000) return false
+  const name = m[1].toLowerCase()
+  return BUILTIN_COMMANDS.some((c) => c.name === name || c.aliases.includes(name))
+}
 
 /** Una fila de la lista del «/». */
 export interface CommandSuggestion {

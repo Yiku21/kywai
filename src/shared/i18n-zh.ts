@@ -3646,4 +3646,8 @@ export const zh: Record<string, string> = {
   "No se pudo enviar: {message}": "无法发送：{message}",
   "No salió bien: mira la petición en el chat y pulsa «Reintentar» si quieres otra vuelta.": "没有成功：请在聊天中查看该请求，想再试一次就点“重试”。",
   "Se cerró kywai mientras el equipo trabajaba en ella.": "团队处理期间 kywai 被关闭了。",
+  "Pulsa para dejarla en el cuadro del chat": "点击即可放入聊天输入框",
+  "No hay ningún agente disponible para hacer el radar.": "没有可用的智能体来做趋势雷达。",
+  "[7 días] nicho": "[7 天] 领域",
+  "Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo": "YouTube 和网络上正在升温的话题，带评分、5 个标题、3 个角度和现成的 /video",
 }

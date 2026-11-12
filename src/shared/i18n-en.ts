@@ -3769,4 +3769,8 @@ export const en: Record<string, string> = {
   "No se pudo enviar: {message}": "Couldn't send: {message}",
   "No salió bien: mira la petición en el chat y pulsa «Reintentar» si quieres otra vuelta.": "It didn't work out: check the request in the chat and press “Retry” if you want another go.",
   "Se cerró kywai mientras el equipo trabajaba en ella.": "kywai closed while the team was working on it.",
+  "Pulsa para dejarla en el cuadro del chat": "Click to put it in the chat box",
+  "No hay ningún agente disponible para hacer el radar.": "No agent is available to run the radar.",
+  "[7 días] nicho": "[7 days] niche",
+  "Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo": "The topics rising right now on YouTube and the web, scored, with 5 titles, 3 angles and a ready /video",
 }

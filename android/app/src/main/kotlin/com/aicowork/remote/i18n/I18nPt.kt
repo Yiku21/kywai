@@ -1119,4 +1119,6 @@ private fun part7(m: HashMap<String, String>) {
     m["Elegida"] = "Selecionada"
     m["[64px] [8 direcciones] personaje"] = "[64px] [8 direções] personagem"
     m["Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)"] = "Um personagem em pixel art para o seu jogo: folha de sprites animada em 4 ou 8 direções (a partir de uma descrição, uma imagem ou um modelo 3D)"
+    m["[7 días] nicho"] = "[7 dias] nicho"
+    m["Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo"] = "Os temas que estão subindo agora no YouTube e na web, com nota, 5 títulos, 3 ângulos e o /video pronto"
 }

@@ -1,6 +1,6 @@
 import { BATCH_AT_ONCE, batchBrief, videoBatchOf } from '@shared/videoBatch'
 import { createHash, randomUUID } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, promises as fsp, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import type {
   AgentQuestion,
@@ -98,6 +98,7 @@ import { findFreeVideo } from './freevideo'
 import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
 import { DUB_LANGUAGES, applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, markedNarration, parseDubRequest, rawScript, type DubRequest } from './dub'
 import { parseSpriteRequest, spritePrompt } from './sprite'
+import { parseRadarRequest, RADAR_DIR, radarPrompt, radarStamp } from './radar'
 import { THUMB_FRAMES, parseThumbnailPlan, parseThumbnailRequest, renderThumbnails, thumbFrames, thumbnailPrompt, type ThumbRequest } from './thumbnail'
 import { PRESENTER_ROBOTS, demoPrompt, fetchRepoFacts, fitToVoice, githubRepo, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoPresenter, type DemoRequest, type RepoFacts } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
@@ -1703,6 +1704,26 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
     const agent = bestAgentFor('pixel art sprites videojuegos diseño gráfico python blender animación')
     if (!agent) throw new Error(tr('No hay ningún agente disponible para hacer el sprite.'))
     const prompt = spritePrompt(spriteReq, { attachments: atts.map((a) => a.relPath), lang: userLanguageName(), stamp: Date.now().toString(36) })
+    return sendDirect(st, agent.id, prompt, atts, input.clientMessageId, routine, { shown: text.trim() })
+  }
+
+  // «/radar [nicho]»: los temas que suben ahora en YouTube y la web, puntuados, con su ficha y su «/video …» listo.
+  // Va directo al agente que mejor investiga, con el encargo entero (radar.ts).
+  const radarReq = tpl ? null : parseRadarRequest(text)
+  if (radarReq) {
+    const agent = bestAgentFor('investigar tendencias youtube web búsqueda python terminal análisis datos')
+    if (!agent) throw new Error(tr('No hay ningún agente disponible para hacer el radar.'))
+    let previous: string[] = []
+    try {
+      previous = readdirSync(join(store.workRoot(st.project.id), RADAR_DIR))
+        .filter((f) => /^\d{4}-\d{2}-\d{2}-\d{4}\.md$/.test(f))
+        .sort()
+        .slice(-3)
+        .map((f) => `${RADAR_DIR}/${f}`)
+    } catch {
+      // Primera vez: no hay radares anteriores.
+    }
+    const prompt = radarPrompt(radarReq, { lang: userLanguageName(), stamp: radarStamp(), previous })
     return sendDirect(st, agent.id, prompt, atts, input.clientMessageId, routine, { shown: text.trim() })
   }
 

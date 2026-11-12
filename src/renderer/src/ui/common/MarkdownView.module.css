@@ -201,6 +201,27 @@
   outline: none;
 }
 
+.md code.commandCode {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--cyan) 45%, transparent);
+  white-space: normal;
+}
+
+.md code.commandCode:hover,
+.md code.commandCode:focus-visible {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  outline: none;
+}
+
+.commandIcon {
+  flex: none;
+  color: var(--cyan);
+}
+
 .md img.previewable {
   cursor: zoom-in;
 }

@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, Play } from 'lucide-react'
 import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useCowork, useData } from '@/store/cowork'
@@ -9,6 +9,8 @@ import { fromArtifact, fromAttachment, nameOf, type PreviewItem } from '@/lib/pr
 import { t } from '@/lib/i18n'
 import { copyText } from '@/lib/clipboard'
 import { cx } from './util'
+import { isKywaiCommand } from '@shared/chatCommands'
+import { useComposer } from '../left/composerStore'
 import s from './MarkdownView.module.css'
 
 const plugins = [remarkGfm]
@@ -95,8 +97,40 @@ function FileCode({ text, children }: { text: string; children: ReactNode }) {
   )
 }
 
+/**
+ * Una orden de kywai escrita entre `comillas` por un agente («`/video …`», como las que deja «/radar»): al pulsarla queda
+ * escrita en el cuadro del chat, lista para enviar (o cambiarla antes). No se envía sola.
+ */
+function CommandCode({ text, children }: { text: string; children: ReactNode }) {
+  const use = (): void => {
+    const c = useComposer.getState()
+    c.setText(text)
+    c.requestFocus()
+    useCowork.getState().setLeftTab('chat')
+  }
+  return (
+    <code
+      className={s.commandCode}
+      role="button"
+      tabIndex={0}
+      title={t('Pulsa para dejarla en el cuadro del chat')}
+      onClick={use}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          use()
+        }
+      }}
+    >
+      <Play size={11} aria-hidden="true" className={s.commandIcon} />
+      {children}
+    </code>
+  )
+}
+
 const code: Components['code'] = ({ node: _node, children, className, ...props }) => {
   const text = typeof children === 'string' ? children : Array.isArray(children) && children.every((c) => typeof c === 'string') ? children.join('') : null
+  if (!className && text && !text.includes('\n') && isKywaiCommand(text.trim())) return <CommandCode text={text.trim()}>{children}</CommandCode>
   if (!className && text && !text.includes('\n') && FILE_NAME.test(text.trim())) return <FileCode text={text.trim()}>{children}</FileCode>
   return (
     <code className={className} {...props}>

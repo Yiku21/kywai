@@ -2221,6 +2221,33 @@ En los caminos locales, pixel art de verdad: reducir con promedio y ampliar con 
 en `sprites/<personaje>-<id>/`: `frames/<animación>_<dirección>_<n>.png`, `hoja.png` + `hoja.json` (una fila por
 animación y dirección), un GIF por animación ampliado 4× y un ZIP con todo. Órbita tiene la orden en su lista del «/».
 
+### Radar de temas (`/radar`)
+
+**«/radar [N días] [N temas] [nicho]»** busca qué temas están subiendo ahora para tu nicho y te deja una ficha de
+cada uno: «/radar agentes de IA», «/radar últimos 3 días 10 temas Claude Code». También vale `/tendencias`. Sin nicho,
+el agente lo saca de las instrucciones y archivos del proyecto. Por defecto, 7 días y 8 temas. La idea sale de un reel
+en el que un agente vigila YouTube cada 4 horas y pinta cada tema como una estrella con su nota.
+
+No pasa por el plan: va directa al agente que mejor investiga (`bestAgentFor`) con el encargo de `src/main/radar.ts`:
+
+1. Busca en YouTube con **yt-dlp** (sin claves ni cuentas; lo instala con uv o pipx si falta), lo más reciente y lo
+   más relevante, y contrasta en la web (GitHub trending, Hacker News, Reddit, noticias del nicho).
+2. Agrupa por tema y puntúa de 0 a 100: **impulso** (hasta 50: vídeos que rinden por encima de su canal),
+   **amplitud** (hasta 30: cuántas fuentes distintas) y **hueco** (hasta 20: pocos vídeos buenos en tu idioma).
+   Copia las cifras de las herramientas y nunca las inventa.
+3. Compara con los 3 últimos radares del proyecto y marca cada tema como nuevo, sigue subiendo o se enfría.
+
+Deja `radar/AAAA-MM-DD-HHMM.md` con el ranking. De cada tema pone la puntuación, la señal más fuerte (vídeo, canal,
+vistas, cuándo y enlace), por qué sube, **5 títulos**, **3 ángulos** y la orden `` `/video …` `` lista. Al final
+añade los temas que se enfrían. En el chat contesta con el top 5.
+
+**Órdenes que se pulsan**: cuando un agente escribe una orden de kywai entre comillas invertidas
+(`` `/video …` ``, `` `/radar …` ``, `` `/rutina …` ``…), el chat la enseña con ▶ y un borde. Al pulsarla queda escrita
+en el cuadro del chat, lista para enviarla o cambiarla, pero no se envía sola. Vale para cualquier orden de la lista
+del «/» (`isKywaiCommand` en `src/shared/chatCommands.ts`).
+
+Para que vigile solo: «/rutina cada 4 horas: /radar agentes de IA». Órbita tiene la orden en su lista del «/».
+
 ### Doblar un vídeo a otro idioma (`/doblar`)
 
 **«/doblar <idioma> [lo que quieres]»** pasa el último vídeo hecho con `/video` (o el que adjuntes, si salió de este

@@ -3646,4 +3646,8 @@ export const pt: Record<string, string> = {
   "No se pudo enviar: {message}": "Não foi possível enviar: {message}",
   "No salió bien: mira la petición en el chat y pulsa «Reintentar» si quieres otra vuelta.": "Não deu certo: veja o pedido no chat e clique em «Tentar de novo» se quiser outra tentativa.",
   "Se cerró kywai mientras el equipo trabajaba en ella.": "O kywai foi fechado enquanto a equipe trabalhava nele.",
+  "Pulsa para dejarla en el cuadro del chat": "Clique para colocá-lo na caixa do chat",
+  "No hay ningún agente disponible para hacer el radar.": "Nenhum agente está disponível para fazer o radar.",
+  "[7 días] nicho": "[7 dias] nicho",
+  "Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo": "Os temas que estão subindo agora no YouTube e na web, com nota, 5 títulos, 3 ângulos e o /video pronto",
 }
