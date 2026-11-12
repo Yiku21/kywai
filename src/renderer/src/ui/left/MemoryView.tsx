@@ -1,6 +1,6 @@
-import { useId, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
-import { Archive, Brain, Check, Pencil, RotateCcw, Trash2, X } from 'lucide-react'
-import type { MemoryEntry, MemoryKind } from '@shared/types'
+import { useEffect, useId, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
+import { Archive, BookOpen, Brain, Check, ChevronDown, Pencil, RotateCcw, Trash2, X } from 'lucide-react'
+import type { LearnedSkill, MemoryEntry, MemoryKind } from '@shared/types'
 import { useCowork, useData } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { MarkdownView } from '../common/MarkdownView'
@@ -55,7 +55,9 @@ export function MemoryView() {
     [memory]
   )
   const old = useMemo(() => memory.filter((e) => e.status === 'superseded').sort((a, b) => b.updatedAt - a.updatedAt), [memory])
-  const toReview = active.filter((e) => e.status === 'provisional').length
+  const [skills, setSkills] = useState<LearnedSkill[]>([])
+  const toReview = active.filter((e) => e.status === 'provisional').length + skills.filter((x) => x.provisional).length
+  const idS = useId()
 
   async function call(fn: () => Promise<unknown>): Promise<boolean> {
     setError(null)
@@ -69,6 +71,26 @@ export function MemoryView() {
   }
 
   const pid = project?.id ?? ''
+
+  // Las habilidades aprendidas viven en archivos: se leen al abrir y cada vez que cambia la memoria (una tarea que
+  // termina deja a la vez su resumen y, si la hay, su habilidad nueva).
+  useEffect(() => {
+    if (!api || mode !== 'live' || !pid || !api.learnedSkills) return setSkills([])
+    let alive = true
+    api.learnedSkills(pid).then(
+      (list) => alive && setSkills(list),
+      () => alive && setSkills([])
+    )
+    return () => {
+      alive = false
+    }
+  }, [pid, mode, memory])
+
+  async function skillCall(fn: () => Promise<unknown>): Promise<boolean> {
+    const ok = await call(fn)
+    if (ok && api?.learnedSkills) setSkills(await api.learnedSkills(pid).catch(() => skills))
+    return ok
+  }
 
   return (
     <div className={v.scroll}>
@@ -163,7 +185,76 @@ export function MemoryView() {
           </ul>
         )}
       </section>
+
+      {skills.length > 0 && (
+        <section className={v.section} aria-labelledby={idS}>
+          <h3 className={u.sectionLabel} id={idS}>
+            {t('Habilidades aprendidas')} <span className={u.count}>{skills.length}</span>
+          </h3>
+          <p className={s.intro}>
+            {t('Procedimientos que escribieron los agentes al terminar una tarea. Mientras son provisionales solo los ven los agentes de este proyecto; al confirmarlos, los de todos tus proyectos.')}
+          </p>
+          <ul className={s.list}>
+            {skills.map((sk) => (
+              <SkillEntry
+                key={sk.name}
+                sk={sk}
+                editable={editable}
+                onConfirm={() => skillCall(() => api!.confirmLearnedSkill(sk.name))}
+                onDelete={() => skillCall(() => api!.removeLearnedSkill(sk.name))}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
+  )
+}
+
+function SkillEntry({ sk, editable, onConfirm, onDelete }: { sk: LearnedSkill; editable: boolean; onConfirm: () => Promise<boolean>; onDelete: () => Promise<boolean> }) {
+  const [open, setOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  return (
+    <li className={cx(s.entry, s.skillEntry)} style={{ '--tone': 'var(--live)' } as CSSProperties}>
+      <div className={s.entryMain}>
+        <span className={s.kind}>
+          <BookOpen size={11} aria-hidden="true" /> {sk.name}
+        </span>
+        <span className={s.text}>{sk.description}</span>
+        <span className={s.meta}>
+          <span className={cx(s.status, sk.provisional ? s.statusProv : s.statusOk)}>{sk.provisional ? t('Provisional') : t('Confirmada')}</span>
+          <span>{sk.origin}</span>
+          {sk.updatedAt > 0 && <span>{day(sk.updatedAt)}</span>}
+        </span>
+        <button type="button" className={s.skillToggle} aria-expanded={open} onClick={() => setOpen((x) => !x)}>
+          <ChevronDown size={13} aria-hidden="true" className={cx(s.chev, open && s.chevOpen)} />
+          {open ? t('Ocultar los pasos') : t('Ver los pasos')}
+        </button>
+        {open && <MarkdownView text={sk.text || t('(sin texto)')} className={s.skillText} />}
+      </div>
+      {editable && (
+        <div className={s.actions}>
+          {sk.provisional && (
+            <button type="button" className={cx(s.act, s.actOk)} title={t('Confirmar (la verán todos tus proyectos)')} aria-label={t('Confirmar')} onClick={() => void onConfirm()}>
+              <Check size={15} />
+            </button>
+          )}
+          <button
+            type="button"
+            className={cx(s.act, confirmDelete && s.actDanger)}
+            title={confirmDelete ? t('Pulsa otra vez para borrarla') : t('Borrar')}
+            aria-label={confirmDelete ? t('Confirmar borrado') : t('Borrar')}
+            onBlur={() => setConfirmDelete(false)}
+            onClick={() => {
+              if (!confirmDelete) setConfirmDelete(true)
+              else void onDelete()
+            }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
+    </li>
   )
 }
 
