@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useState, type CSSProperties } from 'react'
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Folder, FolderOpen, Paperclip } from 'lucide-react'
 import type { Artifact, Attachment } from '@shared/types'
 import { groupByRequest, LOOSE_ATTACHMENTS, ONLY_ATTACHMENTS, OTHER_FILES, type RequestGroup } from '@shared/requestGroups'
@@ -17,11 +17,17 @@ import s from './Views.module.css'
 import { t } from '@/lib/i18n'
 import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 import { useFileMenu } from './FileMenu'
+import { FileThumb } from './FileThumb'
+import { useFileView, ViewMenu, type FileView } from './ViewMenu'
 
 /** Carpetas abiertas o cerradas (de este equipo). Sin anotar, solo está abierta la petición más reciente. */
 const OPEN_KEY = 'kywai.archivos.carpetas'
 /** Tipo de archivo elegido en el filtro (de este equipo). */
 const TYPE_KEY = 'kywai.archivos.tipo'
+/** Tamaño de la vista («Vista» ▾, como en el Explorador) (de este equipo). */
+const VIEW_KEY = 'kywai.archivos.vista'
+/** Ancho de cada icono en las vistas de iconos. */
+const TILE: Record<Exclude<FileView, 'details'>, number> = { xl: 320, lg: 160, md: 104, sm: 72 }
 function readOpen(): Record<string, boolean> {
   try {
     return JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}') as Record<string, boolean>
@@ -56,6 +62,7 @@ export function FilesView() {
     [messages, tasks, artifactsMap, attachments]
   )
   const [stored, setChoice] = useTypeChoice(TYPE_KEY)
+  const [view, setView] = useFileView(VIEW_KEY)
   const counts = useMemo(
     () =>
       countTypes(
@@ -111,6 +118,8 @@ export function FilesView() {
         <h3 className={u.sectionLabel}>
           {t('Por petición')} <span className={u.count}>{shown.length}</span>
         </h3>
+        <span className={s.filesTools}>
+        <ViewMenu value={view} onChange={setView} />
         {shown.length > 1 && (
           <button
             type="button"
@@ -121,6 +130,7 @@ export function FilesView() {
             {anyOpen ? t('Plegar todas') : t('Desplegar todas')}
           </button>
         )}
+        </span>
       </div>
       <TypeFilter counts={counts} total={total} value={choice} onChange={setChoice} />
       <ul className={s.resultFolders} aria-label={t('Archivos por petición')}>
@@ -128,6 +138,7 @@ export function FilesView() {
           <li key={g.key}>
             <RequestFolder
               group={g}
+              view={view}
               of={choice === 'all' ? undefined : fullCount.get(g.key)}
               open={isOpen(g.key, i)}
               onToggle={() => update({ ...open, [g.key]: !isOpen(g.key, i) })}
@@ -140,7 +151,7 @@ export function FilesView() {
 }
 
 /** Una petición: cabecera plegable con tu mensaje y, dentro, tus adjuntos y lo que generó el equipo. */
-function RequestFolder({ group, of, open, onToggle }: { group: RequestGroup; of?: number; open: boolean; onToggle: () => void }) {
+function RequestFolder({ group, view, of, open, onToggle }: { group: RequestGroup; view: FileView; of?: number; open: boolean; onToggle: () => void }) {
   const lookup = useAgentLookup()
   const mode = useCowork((st) => st.mode)
   const project = useCowork((st) => st.live.project)
@@ -200,12 +211,17 @@ function RequestFolder({ group, of, open, onToggle }: { group: RequestGroup; of?
         </p>
       )}
       {open && (
-        <ul id={listId} className={cx(s.rows, s.folderBody)}>
+        <ul
+          id={listId}
+          className={view === 'details' ? cx(s.rows, s.folderBody) : cx(s.tiles, s.folderBody)}
+          data-view={view}
+          style={view === 'details' ? undefined : ({ '--tile': `${TILE[view]}px` } as CSSProperties)}
+        >
           {group.attachments.map((a) => (
-            <AttachmentRow key={`att-${a.id}`} a={a} projectId={project?.id ?? ''} canOpen={canOpen} openTitle={openTitle} onOpen={() => openAttachment(a)} />
+            <AttachmentRow key={`att-${a.id}`} a={a} view={view} projectId={project?.id ?? ''} canOpen={canOpen} openTitle={openTitle} onOpen={() => openAttachment(a)} />
           ))}
           {group.generated.map((a) => (
-            <ArtifactRow key={a.id} a={a} onOpen={() => openArtifact(a)} />
+            <ArtifactRow key={a.id} a={a} view={view} canOpen={canOpen} onOpen={() => openArtifact(a)} />
           ))}
         </ul>
       )}
@@ -214,28 +230,48 @@ function RequestFolder({ group, of, open, onToggle }: { group: RequestGroup; of?
 }
 
 /** Un adjunto tuyo: clic para verlo, clic derecho para adjuntarlo otra vez, descargarlo o eliminarlo. */
-function AttachmentRow({ a, projectId, canOpen, openTitle, onOpen }: { a: Attachment; projectId: string; canOpen: boolean; openTitle?: string; onOpen: () => void }) {
+function AttachmentRow({
+  a,
+  view,
+  projectId,
+  canOpen,
+  openTitle,
+  onOpen
+}: {
+  a: Attachment
+  view: FileView
+  projectId: string
+  canOpen: boolean
+  openTitle?: string
+  onOpen: () => void
+}) {
   const menu = useFileMenu({ attachment: a, projectId }, onOpen)
+  const tile = view !== 'details'
+  const icon = (
+    <span className={cx(s.fileIcon, tile && s.tileIcon)}>
+      <FileTypeIcon name={a.name} mime={a.mime} size={tile ? 28 : 17} />
+    </span>
+  )
   return (
     <li onContextMenu={canOpen ? menu.onContextMenu : undefined}>
       <button
         type="button"
-        className={cx(s.fileRow, !canOpen && s.rowStatic)}
+        className={cx(tile ? s.fileTile : s.fileRow, !canOpen && s.rowStatic)}
         disabled={!canOpen}
         title={openTitle ?? t('Ver {name}', { name: a.name })}
         onClick={onOpen}
       >
-        <span className={s.fileIcon}>
-          <FileTypeIcon name={a.name} mime={a.mime} size={17} />
-        </span>
+        <FileThumb projectId={projectId} relPath={a.relPath} name={a.name} mime={a.mime} enabled={canOpen} fallback={icon} className={tile ? s.thumbTile : undefined} />
         <span className={s.fileMain}>
           <span className={s.fileName}>{a.name}</span>
-          <span className={s.fileMeta}>
-            <Paperclip size={11} aria-hidden="true" />
-            {t('Tu adjunto')} · {fileSize(a.size)}
-          </span>
+          {view !== 'sm' && (
+            <span className={s.fileMeta}>
+              <Paperclip size={11} aria-hidden="true" />
+              {tile ? fileSize(a.size) : `${t('Tu adjunto')} · ${fileSize(a.size)}`}
+            </span>
+          )}
         </span>
-        {canOpen && <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />}
+        {canOpen && !tile && <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />}
       </button>
       {menu.error && (
         <p className={m.resumeError} role="alert">
@@ -248,22 +284,35 @@ function AttachmentRow({ a, projectId, canOpen, openTitle, onOpen }: { a: Attach
 }
 
 /** Lo que generó el equipo: clic para verlo, clic derecho para adjuntarlo al mensaje, descargarlo o eliminarlo. */
-function ArtifactRow({ a, onOpen }: { a: Artifact; onOpen: () => void }) {
+function ArtifactRow({ a, view, canOpen, onOpen }: { a: Artifact; view: FileView; canOpen: boolean; onOpen: () => void }) {
   const lookup = useAgentLookup()
   const look = lookup(a.agentId)
   const menu = useFileMenu({ artifact: a }, onOpen)
+  const tile = view !== 'details'
+  const name = a.name || a.relPath
+  const icon = tile ? (
+    <span className={cx(s.fileIcon, s.tileIcon)}>
+      <KindTile kind={a.kind} name={name} size={view === 'sm' ? 34 : 44} />
+    </span>
+  ) : (
+    <KindTile kind={a.kind} name={name} size={34} />
+  )
   return (
     <li onContextMenu={menu.onContextMenu}>
-      <button type="button" className={s.fileRow} onClick={onOpen} title={t('Ver {name}', { name: a.name })}>
-        <KindTile kind={a.kind} name={a.name || a.relPath} size={34} />
+      <button type="button" className={tile ? s.fileTile : s.fileRow} onClick={onOpen} title={t('Ver {name}', { name: a.name })}>
+        <FileThumb projectId={a.projectId} relPath={a.relPath} name={name} enabled={canOpen} fallback={icon} className={tile ? s.thumbTile : undefined} />
         <span className={s.fileMain}>
           <span className={s.fileName}>{a.name}</span>
-          <span className={s.fileMeta}>
-            <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
-            {look.name} · {artifactLabel(a)} · {fileSize(a.size)} · {shortTime(a.createdAt)}
-          </span>
+          {view !== 'sm' && (
+            <span className={s.fileMeta}>
+              <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
+              {tile
+                ? [look.name, view === 'xl' ? artifactLabel(a) : '', fileSize(a.size)].filter(Boolean).join(' · ')
+                : `${look.name} · ${artifactLabel(a)} · ${fileSize(a.size)} · ${shortTime(a.createdAt)}`}
+            </span>
+          )}
         </span>
-        <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />
+        {!tile && <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />}
       </button>
       {menu.error && (
         <p className={m.resumeError} role="alert">

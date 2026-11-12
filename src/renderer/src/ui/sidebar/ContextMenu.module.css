@@ -115,3 +115,16 @@
   color: var(--text-3);
   font-size: 12.5px;
 }
+
+/* Opción de un grupo (como «Vista» del Explorador): un punto en la elegida. */
+.radio {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-right: -2px;
+  border-radius: 50%;
+}
+
+.radioOn {
+  background: var(--text-1);
+}

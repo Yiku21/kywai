@@ -1489,6 +1489,19 @@ audios y PDF que antes salían como «Archivo» con icono genérico ahora dicen 
 lado si no cabe. La regla es la misma en todos: `src/shared/fileTypes.ts` y `android/…/orbita/FileTypes.kt` (si
 cambias una, cambia la otra), con sus pruebas.
 
+### Miniaturas y «Vista» en Archivos
+
+En **Archivos**, las fotos y los vídeos ya no salen con un icono genérico: se ve su **miniatura real**, para saber de un
+vistazo qué es cada uno. Los vídeos enseñan un fotograma (al 20 % del vídeo, como mucho a los 4 s, porque al principio
+suelen estar en negro) con un **▶** en la esquina, y al pasar el ratón por encima se reproducen sin sonido. Lo demás
+(documentos, código…) sigue con su icono. Las miniaturas solo se piden cuando la fila entra en pantalla, así una carpeta
+con 40 vídeos no carga todo de golpe; si una no carga (archivo borrado, modo demo), vuelve el icono.
+
+Arriba, junto a «Plegar todas», está el botón **Vista ▾**, como en el Explorador de Windows: **Iconos muy grandes,
+grandes, medianos, pequeños** (una rejilla de miniaturas, cuanto más pequeños más caben por fila) o **Detalles** (la lista
+de siempre, con nombre, agente, tipo, tamaño y hora). La app recuerda la vista elegida en este equipo
+(`kywai.archivos.vista`). Código: `src/renderer/src/ui/left/FileThumb.tsx` y `ViewMenu.tsx`.
+
 ### Clic derecho en un archivo: adjuntar, descargar o eliminar
 
 En **Archivos** y en **Resultados**, el **clic derecho** sobre un archivo (lo que generó el equipo o un adjunto

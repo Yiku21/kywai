@@ -12,6 +12,8 @@ export interface MenuAction {
   shortcut?: string
   danger?: boolean
   disabled?: boolean
+  /** Opción elegida de un grupo (p. ej. el tamaño de la vista): sale con un punto a la izquierda. */
+  checked?: boolean
   /** Por qué está desactivado, o una ayuda corta. */
   title?: string
   /** Pide pulsarlo otra vez antes de hacerlo (borrar). Es el texto que se muestra entonces. */
@@ -63,7 +65,7 @@ function Surface({ at, items, label, onClose }: { at: MenuAt; items: MenuEntry[]
     const top = at.y + h + 8 > window.innerHeight ? Math.max(8, window.innerHeight - h - 8) : at.y
     setStyle({ left, top })
     // Con el foco dentro, las flechas y las letras funcionan sin tocar el ratón (opacity 0 no impide enfocar).
-    el.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])')?.focus({ preventScroll: true })
+    el.querySelector<HTMLElement>('[role^="menuitem"]:not([disabled])')?.focus({ preventScroll: true })
   }, [at.x, at.y])
 
   useEffect(() => {
@@ -112,7 +114,7 @@ function Surface({ at, items, label, onClose }: { at: MenuAt; items: MenuEntry[]
   function onKey(e: KeyboardEvent<HTMLDivElement>): void {
     const el = ref.current
     if (!el) return
-    const list = Array.from(el.querySelectorAll<HTMLElement>(':scope > [role="menuitem"]:not([disabled])'))
+    const list = Array.from(el.querySelectorAll<HTMLElement>(':scope > [role^="menuitem"]:not([disabled])'))
     const i = list.indexOf(document.activeElement as HTMLElement)
     if (e.key === 'Escape') {
       e.preventDefault()
@@ -180,7 +182,8 @@ function MenuButton({ it, confirming, subOpen, onChoose, onHover }: { it: MenuAc
   return (
     <button
       type="button"
-      role="menuitem"
+      role={it.checked === undefined ? 'menuitem' : 'menuitemradio'}
+      aria-checked={it.checked}
       data-id={it.id}
       className={cx(s.item, (it.danger || confirming) && s.danger, confirming && s.confirming)}
       disabled={it.disabled}
@@ -190,6 +193,7 @@ function MenuButton({ it, confirming, subOpen, onChoose, onHover }: { it: MenuAc
       onClick={onChoose}
       onPointerEnter={onHover}
     >
+      {it.checked !== undefined && <span className={cx(s.radio, it.checked && s.radioOn)} aria-hidden="true" />}
       <span className={s.icon} aria-hidden="true">
         {it.icon}
       </span>
