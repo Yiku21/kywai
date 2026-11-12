@@ -139,7 +139,8 @@ export const FILM_3D = new Set([
   'hd-2d',
   'iso-infographic',
   'kywai-crystal-3d',
-  'kywai-deep-time'
+  'kywai-deep-time',
+  'kywai-voxel-bots'
 ])
 
 /**

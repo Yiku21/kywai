@@ -544,5 +544,78 @@ Paper foley on every placement (a soft paper tap or slide), a crinkle when a lab
 
 You decide the sets for each round, the mascot's costumes, the counters, the wall colours, the structure, opening and ending. Structures: a numbered top list (one stage per item); one problem dug deeper and deeper; a before/after on two stages side by side. Openings: a switchboard with every item plugged in; a curtain with the title on bunting; the counter at 0. Endings: all items on one key ring; the mascot waving from the full row of stages; a paper comment box with one word to type.
 `
+  ].join('\n'),
+  'kywai-voxel-bots': [
+    HEAD(
+      'Voxel Bots Explainer',
+      'One dark night-blue stage that never cuts away: chunky voxel robots and simple props pop in and out on every spoken noun, a two-line headline with one coloured key word changes every few seconds, progress pips count the steps and a karaoke caption marks the word being said.',
+      'voxel and block-figure games; vertical "stop doing X, do Y" explainer reels that build the whole story on one set; on-screen step counters and karaoke captions.'
+    ),
+    `## 1. Essence, and what it is not
+
+- **One continuous set, no hard cuts**: a dark navy floor and wall with a faint grid and a few drifting stars. Things enter, transform and leave on that same stage; the "cut" is a headline swap, not a change of place.
+- **Something new every 1–1.5 s**: each important noun gets its own object at the moment it is said (a robot with a tag, a crossed-out sign, a folder, a toolbox, a clipboard). The headline changes every 3–4 s; the caption changes every 1–3 words.
+- **Voxel characters with roles**: grey cube robots are "the old way" (many of them, repeated, half-broken); one orange robot is "the solution"; one blocky figure with glasses (and a mug) is "you", the viewer. If the user chose a character, build it from voxels with the same roles.
+- **A fixed frame of information**: a thin top bar ("SERIES · TOPIC" left, a tag right, a hairline under it), a two-line uppercase headline, progress pips (■■□) under it during the steps, and the karaoke caption at the bottom.
+- **Numbered steps**: the core is usually three numbered steps ("1 · …", "2 · …", "3 · …") with the pips filling one by one.
+
+Not Brick Toy (no studs, no toy-brick world: matte voxels on a dark stage, graphic overlays on top), not Paper Craft Diorama (no paper, no curtains, no cuts between stages), not Dark Keynote (characters and props act; it is not a product slide), not Checklist (the list is only one prop among many).
+
+## 2. Materials & rendering
+
+- three.js (or the base engine) at 1080×1920 by default (1920×1080 if asked). Orthographic or a long-lens perspective camera (≈ 25–35° FOV) looking slightly down, so the floor reads as a band across the lower half.
+- **Voxels**: characters and props are built from boxes with 1–2 px bevels, matte (roughness 0.8–0.9), flat colour per face with a soft key light from the top-left and a cool fill; contact shadows on the floor. Eyes are flat dark squares that blink (scale Y) and turn into ^ ^ or × × for emotions.
+- **Background**: #0b1220-ish navy, a faint 64 px grid (4–6 % opacity) and 20–40 small stars with slow twinkle; a subtle vignette.
+- **Graphic overlays** (2D, crisp, on top of the 3D): tags as white rounded pills with black uppercase text; signs as off-white cards with a red strike line; counters as outlined cards with a big number; a comment box as a dark rounded panel with an avatar dot, a word in «quotes» and a heart.
+- \`render(t)\` is a pure function of \`t\` (same frame for the same time).
+
+## 3. Colour logic
+
+Dark navy stage, white text, and **one meaning per colour** in the headline key word: red = the problem or the old way, yellow = a question, green = the fix or "done", cyan = a new concept. Cyan is also the caption pill and the progress pips. Robots: grey for the old way, orange for the solution; props in 3–5 saturated block colours (blue, orange, pink, yellow, green). Never more than one accent colour in the headline at a time.
+
+## 4. Type & subtitles
+
+- Top bar: small monospace caps (licence-free, e.g. JetBrains Mono or Space Mono), 22–26 px, 60 % white.
+- Headline: heavy rounded or geometric sans in caps (e.g. Archivo Black, Rubik Black, Montserrat ExtraBold), 64–84 px, two lines max, first line white, the key word line in its colour; it swaps with a quick 120 ms slide-up and a tiny glitch flicker on strong statements.
+- Caption: 1–3 words at a time, 56–72 px, bold, white with a dark outline, in the lower third above the safe area; the word being spoken sits on a cyan pill with dark text. Never more than one caption line on screen.
+- Keep the top 16 % for the bar and headline and the bottom 22 % for the caption and safe area.
+
+## 5. Motion quality
+
+On ones, snappy and toy-like. Objects pop in with a scale overshoot (0 → 1.12 → 1 in 180–240 ms) or drop from above and settle; leaving is a fast shrink or a slide off. Robots bob, blink every 2–4 s and turn their heads to whoever speaks. Rows of identical robots appear in a ripple (staggered 30–50 ms). A "glitch" (RGB split, 2–4 frames) marks a contradiction or a reveal. Idle life always: stars twinkle, antennas wiggle, a prop rotates slowly.
+
+## 6. Camera grammar
+
+| Move | What it expresses | Can serve |
+|---|---|---|
+| Locked wide on the stage | here is the situation | the hook; the problem; a crowd of robots |
+| Slow push onto one robot or prop | this matters | the new idea; a step's key object |
+| Small lateral drift | time passing, building up | the "does this sound familiar?" stack-up |
+| Quick snap zoom (8–12 frames) | surprise, contradiction | "the other way round"; a number; a punchline |
+| Pull back to show everything | the summary | the ending; "while others fix 15, you fix 1" |
+
+There are no hard cuts: transitions happen by swapping the headline and moving props on the same set.
+
+## 7. Sound palette
+
+A continuous, close, brisk voice with no pauses longer than 0.3 s, a light electronic beat under it, and small UI sounds on every pop-in (blip, pop, click), a whoosh for slides, a glitch buzz for contradictions, a tick for each progress pip and a soft chime for "done". Use the real effects bank (efectos/) before synthesizing. −14 LUFS.
+
+## 8. Native moves
+
+- **One robot per word.** Each thing the viewer does wrong is named and a grey robot with that tag pops in, until the row is overloaded. *Fits content like:* "does this sound familiar?"; too many tools; a bad habit.
+- **Many into one.** A grid of grey robots collapses into a single orange robot. *Fits content like:* the turn; "the other way round"; simplifying.
+- **Crossed sign.** A card with a phrase gets a red strike and a word underneath is revealed. *Fits content like:* a myth; what the experts actually said; a reframe.
+- **Prop per step.** Each numbered step has one object that opens or fills (a folder with a page, a toolbox, a clipboard whose boxes get ticked). *Fits content like:* a method in 3 steps.
+- **Comment box.** A comment panel with «WORD» slides down from the top at the end. *Fits content like:* a call to comment; a resource offer.
+
+## 9. Pitfalls of the medium
+
+- A still frame for more than 1.5 s: add, change or move something on every phrase. - A wall of text: never more than the headline plus one caption. - Several accent colours at once: one key word, one colour. - Hard cuts to other places: keep the single stage. - Third-party logos, app icons, real people or someone else's handle: make simple block symbols and keep the top bar generic.
+`,
+    ENGINE('brick-toy', "its 3D scene setup, lighting, materials and render loop; replace the studded bricks with plain bevelled voxels, darken the world to the night-blue stage, and build the 2D overlay layer (top bar, headline, pips, caption pill, tags and cards) on top of the render."),
+    `## 11. Variation space
+
+You decide the props, the robots' tags, the colours of the key words, the number of steps (2 to 4) and the opening and ending. Structures: "stop doing X → why it fails → the turn → 3 steps → comment WORD"; a myth crossed out and corrected; a before/after with grey robots against the orange one. Openings: a full grid of tagged robots; a crossed-out sign; one robot overloaded with tags. Endings: the comment box; a shelf of resources; a pull-back comparing "they fix 15, you fix 1".
+`
   ].join('\n')
 }

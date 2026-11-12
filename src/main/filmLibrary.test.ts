@@ -59,7 +59,7 @@ describe('películas con estilo', () => {
 
   it('los estilos propios de kywai traen su guía y usan el motor de un estilo de la biblioteca', () => {
     const own = FILM_STYLES.filter((s) => s.base)
-    expect(own).toHaveLength(8)
+    expect(own).toHaveLength(9)
     for (const s of own) {
       const guide = KYWAI_FILM_GUIDES[s.slug]
       for (const h of ['## 1.', '## 2.', '## 3.', '## 6.', '## 7.', '## 8.', '## 10.', '## 11.']) expect(guide).toContain(h)

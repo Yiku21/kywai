@@ -100,6 +100,7 @@ export const FILM_STYLES: FilmStyle[] = [
   { slug: 'isometric-picture-book', name: 'Álbum isométrico', en: 'Isometric Picture Book', category: 'info', line: 'Escenas isométricas con muñequitos que explican por qué algo funciona así.', lineEn: 'Isometric scenes with little figures explaining why something works the way it does.' },
   { slug: 'circuit-board', name: 'Placa de circuito', en: 'Circuit Board', category: 'info', line: 'La energía corre por pistas de cobre; para explicar cómo llega algo de A a B.', lineEn: 'Energy runs along copper tracks; for explaining how something gets from A to B.' },
   { slug: 'kywai-checklist', name: 'Lista de comprobación', en: 'Checklist', category: 'info', base: 'swiss-motion', line: 'Una lista que se va marcando mientras habla, con su barra de progreso; para «5 cosas que revisar» y pasos.', lineEn: 'A checklist that gets ticked while the narrator talks, with a progress bar; for “5 things to check” and steps.' },
+  { slug: 'kywai-voxel-bots', name: 'Robots de bloques', en: 'Voxel Bots Explainer', category: 'info', base: 'brick-toy', line: 'Un solo escenario de noche donde robots de bloques y objetos aparecen con cada palabra, un titular con la palabra clave en color y subtítulos que marcan lo que suena; para reels de «deja de hacer X» en 3 pasos.', lineEn: 'One night-blue stage where block robots and props pop in on every word, a headline with a coloured key word and karaoke captions; for “stop doing X” reels in 3 steps.' },
   // Grabado e impresión
   { slug: 'risograph', name: 'Risografía', en: 'Risograph Print', category: 'grabado', line: 'Tintas que se suman capa a capa con su trama; fresco y artesanal.', lineEn: 'Inks adding up layer by layer with their grain; fresh and handmade.' },
   { slug: 'halftone-dossier', name: 'Expediente de trama', en: 'Halftone Dossier', category: 'grabado', line: 'Recortes de prensa en trama de puntos; para casos y juicios con humor.', lineEn: 'Halftone press clippings; for cases and trials with humour.' },
@@ -182,6 +183,7 @@ const ALIASES: Record<string, string[]> = {
   'kywai-office-flat': ['oficina', 'corporativo', 'ilustracion plana'],
   'kywai-checklist': ['checklist', 'lista', 'lista de tareas', 'to do', 'todo list', 'lista de control'],
   'kywai-paper-diorama': ['diorama de papel', 'cartulina', 'papercraft', 'paper craft', 'manualidad', 'teatrillo de papel'],
+  'kywai-voxel-bots': ['robots de bloques', 'voxel', 'robots voxel', 'robots cubicos', 'bloques'],
   'kywai-neon-silhouette': ['neon', 'siluetas', 'synthwave'],
   'kywai-crystal-3d': ['cristales', 'cristal', 'gemas'],
   'kywai-deep-time': ['tiempo profundo', 'deep time', 'millones de anos']
