@@ -259,7 +259,6 @@ private fun part2(m: HashMap<String, String>) {
     m["Herramientas"] = "Ferramentas"
     m["Por revisar"] = "Para revisar"
     m["Hechas"] = "Concluída"
-    m["Todos"] = "Tudo"
     m["Documentos"] = "Documentos"
     m["Código"] = "Código"
     m["Adjuntos"] = "Anexos"
@@ -1073,4 +1072,11 @@ private fun part7(m: HashMap<String, String>) {
     m["Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha"] = "Três capas para o seu vídeo (anexado ou o último), com quadros dele e texto que prende"
     m["idioma"] = "idioma"
     m["El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos"] = "O último vídeo do /video em outro idioma, com as mesmas imagens: voz, legendas e letreiros novos"
+    // Filtro de Resultados por tipo de archivo
+    m["Todo"] = "Tudo"
+    m["Fotos"] = "Fotos"
+    m["Vídeos"] = "Vídeos"
+    m["Otros"] = "Outros"
+    m["{n} de {total} archivos"] = "{n} de {total} arquivos"
+    m["Filtrar por tipo de archivo"] = "Filtrar por tipo de arquivo"
 }

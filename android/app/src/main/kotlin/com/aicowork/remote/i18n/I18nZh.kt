@@ -259,7 +259,6 @@ private fun part2(m: HashMap<String, String>) {
     m["Herramientas"] = "工具"
     m["Por revisar"] = "待审阅"
     m["Hechas"] = "完成"
-    m["Todos"] = "全部"
     m["Documentos"] = "文档"
     m["Código"] = "代码"
     m["Adjuntos"] = "附件"
@@ -1073,4 +1072,11 @@ private fun part7(m: HashMap<String, String>) {
     m["Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha"] = "为你的视频（附加的或最新的）做三个封面，用它自己的画面和吸引人的文字"
     m["idioma"] = "语言"
     m["El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos"] = "把最新的 /video 视频换成另一种语言，画面不变：新的配音、字幕和标题"
+    // Filtro de Resultados por tipo de archivo
+    m["Todo"] = "全部"
+    m["Fotos"] = "照片"
+    m["Vídeos"] = "视频"
+    m["Otros"] = "其他"
+    m["{n} de {total} archivos"] = "{n} / {total} 个文件"
+    m["Filtrar por tipo de archivo"] = "按文件类型筛选"
 }

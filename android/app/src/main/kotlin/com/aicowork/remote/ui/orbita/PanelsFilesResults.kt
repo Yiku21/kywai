@@ -72,6 +72,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.text.font.FontWeight
 import com.aicowork.remote.ui.components.parseColor
 import com.aicowork.remote.data.CoworkUiState
@@ -303,17 +307,16 @@ sealed interface Preview {
     data class None(val reason: String?) : Preview
 }
 
-private fun matches(filter: ResultFilter, a: Artifact) = when (filter) {
-    ResultFilter.All -> true
-    ResultFilter.Documents -> a.kind != "code"
-    ResultFilter.Code -> a.kind == "code"
-}
+private fun matches(filter: ResultFilter, a: Artifact) = filter.type == null || FileTypes.of(a) == filter.type
 
 @Composable
 fun ResultsPanel(model: OrbitaModel, state: CoworkUiState) {
     val snapshot = state.snapshot
     val artifacts = snapshot?.conversation?.artifacts.orEmpty().sortedByDescending { it.createdAt ?: 0 }
-    val shown = artifacts.filter { matches(model.resultFilter, it) }
+    // Cuántos hay de cada tipo; si el filtro elegido ya no tiene ninguno, se ve todo.
+    val counts = artifacts.groupingBy { FileTypes.of(it) }.eachCount()
+    val filter = model.resultFilter.takeIf { it.type == null || (counts[it.type] ?: 0) > 0 } ?: ResultFilter.All
+    val shown = artifacts.filter { matches(filter, it) }
     PanelColumn {
         PanelHeader(model, t("Resultados"), t("Lo que ha creado el equipo"), icon = Icons.Outlined.Inventory2)
         LazyColumn(
@@ -344,9 +347,12 @@ fun ResultsPanel(model: OrbitaModel, state: CoworkUiState) {
             // y los archivos de trabajo (escenas, voces, json…) plegados aparte.
             val titles = snapshot?.tasks.orEmpty().associate { it.id to it.title }
             val groups = ResultGroups.group(shown) { titles[it] }
+            // Con un tipo elegido, la cabecera dice «3 de 9 archivos».
+            val fullSize = if (filter == ResultFilter.All) emptyMap() else ResultGroups.group(artifacts) { titles[it] }.associate { it.key to it.all.size }
             groups.forEachIndexed { i, g ->
                 val open = model.resultFolders[g.key] ?: (i == 0)
-                item(key = "folder-${g.key}") { ResultFolderHead(g, open, model, snapshot!!) { model.resultFolders[g.key] = !open } }
+                val of = fullSize[g.key]?.takeIf { it != g.all.size }
+                item(key = "folder-${g.key}") { ResultFolderHead(g, open, model, snapshot!!, of) { model.resultFolders[g.key] = !open } }
                 if (open) {
                     items(g.main, key = { "main-${it.id}" }) { a -> ResultCard(a, model, snapshot!!) }
                     if (g.work.isNotEmpty()) {
@@ -363,17 +369,21 @@ fun ResultsPanel(model: OrbitaModel, state: CoworkUiState) {
                 }
             }
         }
-        Segmented(ResultFilter.entries.map { it to it.label }, model.resultFilter, { model.resultFilter = it }, Modifier.padding(16.dp))
+        TypeChips(counts, artifacts.size, filter) { model.resultFilter = it }
     }
 }
 
 /** Cabecera de una carpeta de Resultados: título de la tarea, cuántos archivos, quién y cuándo; se pliega al tocarla. */
 @Composable
-private fun ResultFolderHead(g: ResultGroup, open: Boolean, model: OrbitaModel, snapshot: com.aicowork.remote.data.model.Snapshot, onToggle: () -> Unit) {
+private fun ResultFolderHead(g: ResultGroup, open: Boolean, model: OrbitaModel, snapshot: com.aicowork.remote.data.model.Snapshot, of: Int? = null, onToggle: () -> Unit) {
     val all = g.all
     val authors = all.mapNotNull { a -> snapshot.agents.firstOrNull { it.id == a.agentId }?.name }.distinct()
     val tint = snapshot.agents.firstOrNull { it.id == all.first().agentId }?.let { parseColor(it.color) } ?: Orbita.Accent
-    val count = if (all.size == 1) t("1 archivo") else t("{n} archivos", "n" to all.size)
+    val count = when {
+        of != null -> t("{n} de {total} archivos", "n" to all.size, "total" to of)
+        all.size == 1 -> t("1 archivo")
+        else -> t("{n} archivos", "n" to all.size)
+    }
     Row(
         Modifier
             .fillMaxWidth()
@@ -465,6 +475,46 @@ private fun ResultCard(a: Artifact, model: OrbitaModel, snapshot: com.aicowork.r
         OrbitaButton(t("Abrir resultado"), onClick = { model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, icon = Icons.AutoMirrored.Outlined.OpenInNew, haptic = Haptic.Tap, height = 46.dp, enabled = snapshot.capabilities.artifacts, modifier = Modifier.fillMaxWidth())
         if (!snapshot.capabilities.artifacts) {
             Text(t("Para abrirlo desde el móvil, actualiza kywai en el ordenador."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
+        }
+    }
+}
+
+/**
+ * Botones «Todo · Fotos · Vídeos · …» con su número, como en el escritorio. Solo salen los tipos que hay y se deslizan
+ * de lado si no caben; con un solo tipo no hace falta filtrar y no se enseña nada.
+ */
+@Composable
+private fun TypeChips(counts: Map<FileType, Int>, total: Int, selected: ResultFilter, onSelect: (ResultFilter) -> Unit) {
+    val present = ResultFilter.entries.filter { it.type != null && (counts[it.type] ?: 0) > 0 }
+    if (present.size < 2) return
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(16.dp)
+            .semantics { contentDescription = t("Filtrar por tipo de archivo") }
+            .testTag("result-types"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        (listOf(ResultFilter.All) + present).forEach { f ->
+            val on = f == selected
+            Row(
+                Modifier
+                    .heightIn(min = 40.dp)
+                    .clip(Orbita.PillShape)
+                    .background(if (on) Orbita.AccentSoft else Orbita.Card)
+                    .border(1.dp, if (on) Orbita.AccentEdge else Orbita.Divider, Orbita.PillShape)
+                    .tappable(role = Role.Tab, haptic = Haptic.Select) { onSelect(f) }
+                    .semantics { this.selected = on }
+                    .padding(horizontal = 14.dp)
+                    .testTag("result-type-${f.name}"),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(f.label, color = if (on) Orbita.Text else Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                Spacer(Modifier.width(6.dp))
+                Text(((if (f.type == null) total else counts[f.type]) ?: 0).toString(), color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+            }
         }
     }
 }

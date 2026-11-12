@@ -68,7 +68,16 @@ enum class Section(val label: String, val icon: ImageVector) {
 enum class SettingsTab(val label: String) { General(t("General")), Agents(t("Agentes")), Connection(t("Conexión")), About(t("Acerca de")) }
 
 enum class TaskFilter(val label: String) { Active(t("En curso")), Review(t("Por revisar")), Done(t("Hechas")) }
-enum class ResultFilter(val label: String) { All(t("Todos")), Documents(t("Documentos")), Code(t("Código")) }
+/** Filtro de Resultados por tipo de archivo (como en el escritorio). */
+enum class ResultFilter(val label: String, val type: FileType?) {
+    All(t("Todo"), null),
+    Photos(t("Fotos"), FileType.Image),
+    Videos(t("Vídeos"), FileType.Video),
+    Audio(t("Audio"), FileType.Audio),
+    Documents(t("Documentos"), FileType.Document),
+    Code(t("Código"), FileType.Code),
+    Other(t("Otros"), FileType.Other),
+}
 enum class FilesTab(val label: String) { Attachments(t("Adjuntos")), Project(t("Proyecto")) }
 
 /** Lo que se abre a pantalla completa para leerlo. */
