@@ -6,6 +6,7 @@ import { avatarFor } from '@shared/defaults'
 import { currentData, useCowork } from '@/store/cowork'
 import { buildHomeRobot } from './homeRobot'
 import { buildRobot } from './robotModel'
+import { lowestPoint } from './groundContact'
 import { applyEyes } from './robotEyes'
 import { personaFor } from './personality'
 import { useBubbles } from './bubbleStore'
@@ -79,12 +80,14 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   const ceramic = skin === 'refugio'
   const model = useMemo(() => ceramic ? buildHomeRobot(avatar, agent.color, `${agent.name} ${agent.id}`) : buildRobot(avatar, agent.color), [avatarKey, agent.color, agent.name, agent.id, ceramic]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => model.dispose(), [model])
+  /** Punto más bajo del robot (pies, cuerpo o patas), en unidades del modelo, para apoyarlo en su plataforma. */
+  const lowest = useMemo(() => lowestPoint(model.root), [model])
 
   // Personaje 3D (Meshy) del agente, si tiene uno y el aspecto es «Personajes». Mientras carga se ve el robot de siempre.
   const role = agent.isSubagent ? undefined : characterRole(`${agent.name} ${agent.id}`)
   const [character, setCharacter] = useState<Character | null>(null)
   /** Altura del suelo bajo el personaje (plataforma, mesa…) y dónde se midió. */
-  const ground = useRef<{ y: number; x: number; z: number } | null>(null)
+  const ground = useRef<{ y: number; x: number; z: number; at: number } | null>(null)
   const groundRay = useMemo(() => new THREE.Raycaster(), [])
   const hiddenParts = useRef<{ prev: Map<THREE.Object3D, boolean>; keep: Set<THREE.Object3D> } | null>(null)
   useEffect(() => {
@@ -319,51 +322,89 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   }, [model]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
-   * Pone los pies del personaje sobre lo que tenga debajo (el robot flota, el personaje no) y lo mantiene derecho:
-   * del cabeceo y el balanceo del robot solo se queda una parte, y nada del aplastado al botar.
+   * Altura de lo que hay bajo el agente (plataforma, mesa, suelo…), sin contar el propio agente, luces, partículas
+   * ni cosas transparentes. Se mide de nuevo al moverse más de un palmo y cada 1,5 s (al abrir, el tema
+   * puede cargar después que el agente); si no, sirve la última medida.
    */
   const _down = useMemo(() => new THREE.Vector3(0, -1, 0), [])
   const _from = useMemo(() => new THREE.Vector3(), [])
+  const measureGround = (scene: THREE.Scene, camera: THREE.Camera): number | null => {
+    const g = outer.current
+    const gr = ground.current
+    // También cada poco aunque no se mueva: al abrir, el tema (y su plataforma) puede cargar después que el agente.
+    const now = performance.now()
+    if (gr && now - gr.at < 1500 && Math.hypot(gr.x - g.position.x, gr.z - g.position.z) <= 0.25) return gr.y
+    // El rayo sale por encima de la cabeza: si el robot ya está medio metido en la plataforma, desde su centro el rayo
+    // saldría por dentro de ella y no la vería. Vale la superficie más alta que quede por debajo de su cintura.
+    const sy = g.scale.y * model.root.scale.y
+    const waist = g.position.y + ((lowest + model.top) / 2) * sy
+    _from.set(g.position.x, g.position.y + model.top * sy + 0.3, g.position.z)
+    groundRay.set(_from, _down)
+    groundRay.far = (model.top - lowest) * sy + 4
+    groundRay.camera = camera
+    let hits: THREE.Intersection[] = []
+    try {
+      hits = groundRay.intersectObjects(scene.children, true)
+    } catch {
+      /* algún objeto a medio montar: se mide en el siguiente fotograma */
+      return gr?.y ?? null
+    }
+    let y: number | null = null
+    for (const hit of hits) {
+      let o: THREE.Object3D | null = hit.object
+      let ok = !(hit.object instanceof THREE.Sprite) && !(hit.object instanceof THREE.Points) && !(hit.object instanceof THREE.Line)
+      const mat = (hit.object as THREE.Mesh).material as THREE.Material | undefined
+      if (mat && (!mat.visible || (mat.transparent && mat.opacity < 0.3))) ok = false
+      while (ok && o) {
+        if (o === g || !o.visible) ok = false
+        o = o.parent
+      }
+      if (ok && hit.point.y > waist) ok = false
+      if (ok) {
+        y = hit.point.y
+        break
+      }
+    }
+    ground.current = y == null ? null : { y, x: g.position.x, z: g.position.z, at: now }
+    return y
+  }
+
+  /**
+   * Cualquier aspecto se apoya en su plataforma: si la parte más baja del robot (pies, cuerpo o patas) quedaría
+   * dentro de lo que tiene debajo, se sube lo justo. Si flota por encima, como los robots de siempre, se deja.
+   */
+  const lift = useRef(0)
+  const keepAboveGround = (scene: THREE.Scene, camera: THREE.Camera, dt: number) => {
+    const g = outer.current
+    const gy = measureGround(scene, camera)
+    let need = 0
+    if (gy != null) {
+      const feet = g.position.y + lowest * g.scale.y * model.root.scale.y
+      need = Math.max(0, gy + 0.005 - feet)
+    }
+    // Sube rápido (que no se vea hundido) y baja suave.
+    lift.current += (need - lift.current) * Math.min(1, dt * (need > lift.current ? 20 : 6))
+    g.position.y += lift.current
+  }
+
+  /**
+   * Pone los pies del personaje sobre lo que tenga debajo (el robot flota, el personaje no) y lo mantiene derecho:
+   * del cabeceo y el balanceo del robot solo se queda una parte, y nada del aplastado al botar.
+   */
+  const _feet = useMemo(() => new THREE.Vector3(), [])
   const placeCharacter = (scene: THREE.Scene, camera: THREE.Camera, c: THREE.Object3D) => {
     const g = outer.current
     const r = model.root
     const k = (c.userData.k as number) ?? 1
-    const still = brain.speed < 0.05
-    const gr = ground.current
-    // El suelo se mide al pararse en un sitio nuevo; mientras camina se queda con la última medida.
-    if (still && (!gr || Math.hypot(gr.x - g.position.x, gr.z - g.position.z) > 0.25)) {
-      _from.set(g.position.x, g.position.y + 0.2, g.position.z)
-      groundRay.set(_from, _down)
-      groundRay.far = 4
-      groundRay.camera = camera
-      let y: number | null = null
-      let hits: THREE.Intersection[] = []
-      try {
-        hits = groundRay.intersectObjects(scene.children, true)
-      } catch {
-        /* algún objeto a medio montar: se mide en el siguiente fotograma */
-        return
-      }
-      for (const hit of hits) {
-        let o: THREE.Object3D | null = hit.object
-        let ok = !(hit.object instanceof THREE.Sprite) && !(hit.object instanceof THREE.Points) && !(hit.object instanceof THREE.Line)
-        const mat = (hit.object as THREE.Mesh).material as THREE.Material | undefined
-        if (mat && (!mat.visible || (mat.transparent && mat.opacity < 0.3))) ok = false
-        while (ok && o) {
-          if (o === g || !o.visible) ok = false
-          o = o.parent
-        }
-        if (ok) {
-          y = hit.point.y
-          break
-        }
-      }
-      ground.current = { y: y ?? g.position.y + (model.bottom - 0.3) * g.scale.y, x: g.position.x, z: g.position.z }
-    }
+    // Se mide siempre (también al caminar): la medida se guarda y solo se repite al moverse un palmo o cada 1,5 s.
+    const gy = measureGround(scene, camera)
     const sy = Math.max(1e-4, g.scale.y * r.scale.y)
-    const targetY = ground.current ? (ground.current.y + 0.01 - g.position.y) / sy : c.position.y
-    // Parado pisa el suelo; al caminar entre estaciones sigue al robot (que da un saltito) con la última altura.
-    if (still) c.position.y += (targetY - c.position.y) * 0.35
+    const floor = gy ?? g.position.y + (model.bottom - 0.3) * g.scale.y
+    // Los pies se ponen en el suelo mirando su altura real en el mundo: el robot de debajo bota, cabecea y se aplasta,
+    // y si solo se corrigiera al estar parado el personaje se hundiría con cada bote.
+    c.updateWorldMatrix(true, false)
+    const feet = _feet.setFromMatrixPosition(c.matrixWorld).y
+    c.position.y += (floor + 0.01 - feet) / sy
     c.rotation.set(-brain.pitch * 0.8, 0, -brain.roll * 0.8, 'ZXY')
     c.scale.set(k / r.scale.x, k / r.scale.y, k / r.scale.z)
   }
@@ -389,6 +430,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     r.scale.set(hs / Math.sqrt(sq), hs * sq, hs / Math.sqrt(sq))
 
     applyEyes(model, brain, h)
+    if (!character) keepAboveGround(state.scene, state.camera, dt)
 
     if (character && hiddenParts.current) {
       // Con personaje, el robot de siempre (y su disfraz) se esconde; se recuerda cómo estaba para devolverlo igual.

@@ -3938,9 +3938,13 @@ dibujaba rayas) y las texturas van a 2048 px. Las animaciones de Meshy balanceab
 (en reposo, hasta 55°): al cargarlas se acercan a su postura media (`CALM` y `calmClip` en `characters.ts`), mucho en
 reposo y algo menos en el resto.
 
+Lo mismo vale para cualquier otra skin: `lowestPoint` (`scene/groundContact.ts`) mide la parte más baja que se ve
+del robot y, si quedaría dentro de su plataforma, `Robot.tsx` (`keepAboveGround`) lo sube lo justo; si flota por
+encima, como los robots clásicos, se deja.
+
 Para añadir otra skin: su id en `SKINS` y `AgentSkin` (`scene/characters.ts`), su nombre y descripción en `skinText`
 (`ui/settings/SkinGrid.tsx`), su foto en `assets/skins/<id>.webp` (360×225, tres agentes), sus iconos en
-`assets/robots/<id>/` (`RobotAvatar.tsx`) y cómo se construye en `Robot.tsx`. Las fotos e iconos se sacaron
+`assets/robots/<id>/` (`RobotAvatar.tsx`) y cómo se construye en `Robot.tsx`. Al añadirla, comprobar en varios temas (sobre todo Oficina) que no se hunde en la plataforma. Las fotos e iconos se sacaron
 renderizando la escena con Playwright en el modo web (`npm run web`) sobre fondo transparente.
 
 Archivos: `src/renderer/src/assets/personajes/` (un .glb por personaje y las animaciones en `anim/`),
