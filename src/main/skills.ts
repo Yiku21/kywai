@@ -3,8 +3,9 @@
 // name y description, y el procedimiento debajo) dentro de la carpeta «habilidades» de la carpeta de trabajo. Las ven
 // todos los agentes, sea cual sea su CLI: el encargo de cada tarea lista su nombre y para qué sirven, y la leen con
 // la herramienta «leer_habilidad» de kywai (o abriendo el archivo).
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
+import type { LearnedSkill } from '@shared/types'
 import { VIDEO_SKILLS_FOLDER } from '@shared/videoExtensions'
 
 export interface Skill {
@@ -250,4 +251,121 @@ export function skillPromptLines(withTool: boolean, dir = root, projectId?: stri
       return `- ${s.name}${s.provisional ? ' (provisional)' : ''}: ${d || '(sin descripción)'}${withTool ? '' : ` — ${s.file}`}`
     })
   ]
+}
+
+// ---------- Habilidades que aprenden los agentes al terminar una tarea ----------
+
+const NEW_SKILL_HEAD = /^\s{0,3}(?:#{1,4}\s*|\*\*)habilidad nueva\b[^\n]*\n/im
+
+export interface TaskSkill {
+  name: string
+  description: string
+  body: string
+}
+
+/** El nombre de una habilidad como carpeta: minúsculas, sin tildes, con guiones. */
+export function skillSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+}
+
+/**
+ * La sección «## Habilidad nueva» que un agente deja al final de su respuesta (un SKILL.md entero, a veces en un
+ * bloque ```markdown). Devuelve la habilidad (o null si no la hay o no vale) y el texto sin esa sección.
+ */
+export function parseTaskSkill(text: string): { skill: TaskSkill | null; rest: string } {
+  const m = NEW_SKILL_HEAD.exec(text ?? '')
+  if (!m) return { skill: null, rest: text }
+  let rest = text.slice(0, m.index).trimEnd()
+  let t = text.slice(m.index + m[0].length).trim()
+  // Si dejó «Para la memoria» detrás, eso no es de la habilidad (y sigue en el texto para la memoria).
+  const memo = /^\s{0,3}(?:#{1,4}\s*|\*\*)para la memoria\b[\s\S]*$/im.exec(t)
+  const after = memo ? memo[0].trim() : ''
+  if (memo) t = t.slice(0, memo.index).trim()
+  const fence = /^```(?:markdown|md)?\s*\n([\s\S]*?)\n```/.exec(t)
+  if (fence) t = fence[1].trim()
+  if (after) rest = `${rest}\n\n${after}`
+  const fm = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(t)
+  if (!fm) return { skill: null, rest }
+  const field = (k: string): string => (new RegExp(`^${k}\\s*:\\s*(.+)$`, 'mi').exec(fm[1])?.[1] ?? '').trim().replace(/^["']|["']$/g, '')
+  const name = skillSlug(field('name'))
+  const description = field('description').replace(/\s+/g, ' ').slice(0, 300)
+  const body = fm[2].trim().slice(0, MAX_SKILL_CHARS)
+  if (!name || !description || body.length < 80) return { skill: null, rest }
+  return { skill: { name, description, body }, rest }
+}
+
+/**
+ * Guarda la habilidad que aprendió un agente, provisional y solo para su proyecto hasta que el usuario la confirme.
+ * Nunca pisa otra: si el nombre ya existe, queda como «<nombre>-mejora» (propuesta de mejora de la que había).
+ */
+export function saveTaskSkill(skill: TaskSkill, opts: { projectId: string; origin: string }, dir = root): { name: string; file: string; improves?: string } | null {
+  if (!dir) return null
+  const taken = new Set(listSkills(dir).map((s) => s.name.toLowerCase()))
+  const exists = (n: string): boolean => taken.has(n) || existsSync(join(dir, n))
+  let name = skill.name
+  let improves: string | undefined
+  if (exists(name)) {
+    improves = skill.name
+    name = `${skill.name}-mejora`
+    for (let n = 2; exists(name); n++) name = `${skill.name}-mejora-${n}`
+  }
+  const file = join(dir, name, 'SKILL.md')
+  const description = improves ? `Propuesta de mejora de «${improves}»: ${skill.description}` : skill.description
+  try {
+    mkdirSync(join(dir, name), { recursive: true })
+    writeFileSync(
+      file,
+      `---\nname: ${name}\ndescription: ${description.replace(/\n/g, ' ')}\nestado: provisional\nproyecto: ${opts.projectId}\norigen: ${opts.origin.replace(/\n/g, ' ').slice(0, 200)}\n---\n\n${skill.body}\n`,
+      'utf8'
+    )
+  } catch {
+    return null
+  }
+  return { name, file, ...(improves ? { improves } : {}) }
+}
+
+/** Las habilidades que aprendieron los agentes de este proyecto (provisionales y confirmadas), para la pestaña Memoria. */
+export function learnedSkills(projectId: string, dir = root): LearnedSkill[] {
+  return listSkills(dir)
+    .filter((s) => !!s.origin && s.projectId === projectId)
+    .map((s) => {
+      let text = ''
+      let updatedAt = 0
+      try {
+        text = readFileSync(s.file, 'utf8').replace(/^﻿?---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim().slice(0, MAX_SKILL_CHARS)
+        updatedAt = statSync(s.file).mtimeMs
+      } catch {
+        /* sin texto */
+      }
+      return { name: s.name, description: s.description, origin: s.origin!, provisional: !!s.provisional, text, updatedAt }
+    })
+    .sort((a, b) => (a.provisional === b.provisional ? b.updatedAt - a.updatedAt : a.provisional ? -1 : 1))
+}
+
+function learned(name: unknown, dir: string): Skill {
+  const s = typeof name === 'string' ? listSkills(dir).find((x) => x.name === name && !!x.origin) : undefined
+  if (!s) throw new Error('Esa habilidad ya no está')
+  return s
+}
+
+/** Confirmar una habilidad aprendida: deja de ser provisional y la ven los agentes de todos los proyectos. */
+export function confirmLearnedSkill(name: unknown, dir = root): void {
+  const s = learned(name, dir)
+  const text = readFileSync(s.file, 'utf8')
+  writeFileSync(s.file, text.replace(/^(﻿?---\r?\n[\s\S]*?)^estado\s*:\s*provisional\s*\r?\n/im, '$1'), 'utf8')
+}
+
+/** Borrar una habilidad aprendida (su carpeta entera). Solo las que escribió un agente. */
+export function removeLearnedSkill(name: unknown, dir = root): void {
+  const s = learned(name, dir)
+  const folder = dirname(s.file)
+  if (basename(s.file) === 'SKILL.md' && dirname(folder) === dir) rmSync(folder, { recursive: true, force: true })
+  else if (dirname(s.file) === dir) rmSync(s.file, { force: true })
+  else throw new Error('Datos no válidos')
 }

@@ -49,6 +49,7 @@ import { codexArgs } from '../agents/codex'
 import { initAgentSessions } from '../agentSessions'
 import { getTaskTrace } from '../taskTrace'
 import { initVideoStudio } from '../videoStudio'
+import { initSkills, skillsDir } from '../skills'
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
@@ -818,6 +819,7 @@ async function main(): Promise<void> {
 
     await check('L: memoria del proyecto — el coordinador anota lo que decides, los agentes lo que descubren, y todos la leen', async () => {
       __clearBlocksForChecks()
+      initSkills(join(root, 'workspace'))
       // Las tareas de las pruebas anteriores dejaron su resumen («Hecho en …»): se empieza con la memoria vacía.
       assert.ok(memoryOf(project.id).some((e) => e.kind === 'fact' && e.status === 'provisional' && e.text.startsWith('Hecho en «')), 'cada tarea deja su resumen')
       store.getProject(project.id).memory = []
@@ -828,7 +830,8 @@ async function main(): Promise<void> {
         o.prompt.includes('## Tu tarea: Base de datos')
           ? Promise.resolve({
               ok: true,
-              text: 'Hecho.\n\n## Para la memoria\n- decisión: Las reservas se guardan en SQLite.\n- pendiente: Falta validar el solape.',
+              text:
+                'Hecho.\n\n## Para la memoria\n- decisión: Las reservas se guardan en SQLite.\n- pendiente: Falta validar el solape.\n\n## Habilidad nueva\n---\nname: Migrar la base\ndescription: Cómo migrar la base de reservas de SQLite sin perder datos\n---\n\n1. Copia reservas.db.\n2. Ejecuta las migraciones en orden y comprueba que las cuentas cuadran.\n',
               usage: { input: 10, output: 5 }
             })
           : null
@@ -852,6 +855,16 @@ async function main(): Promise<void> {
         ]
       )
       assert.ok(events.slice(fromEv).some((e) => e.kind === 'memory.updated' && e.projectId === project.id && e.memory.length === 3))
+      // El procedimiento queda como habilidad provisional de este proyecto y el chat lo dice (sin pegar la sección).
+      const learnedFile = join(skillsDir(), 'migrar-la-base', 'SKILL.md')
+      assert.match(readFileSync(learnedFile, 'utf8'), new RegExp(`estado: provisional\\nproyecto: ${project.id}\\norigen: Claude, «Base de datos»`))
+      const doneMsg = events
+        .slice(fromEv)
+        .filter((e): e is Extract<CoworkEvent, { kind: 'message.upsert' }> => e.kind === 'message.upsert' && e.message.runId === r1.runId)
+        .map((e) => e.message.text)
+        .find((m) => m.includes('Habilidad nueva por revisar'))
+      assert.ok(doneMsg && doneMsg.includes('«migrar-la-base»') && !doneMsg.includes('## Habilidad nueva'), 'el chat avisa de la habilidad nueva')
+      rmSync(join(skillsDir(), 'migrar-la-base'), { recursive: true, force: true })
       const planMsg = events
         .slice(fromEv)
         .find((e): e is Extract<CoworkEvent, { kind: 'message.upsert' }> => e.kind === 'message.upsert' && e.message.runId === r1.runId && !!e.message.taskIds?.length)!

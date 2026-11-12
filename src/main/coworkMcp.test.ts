@@ -12,7 +12,7 @@ import { loadConfig } from './config'
 import { actInbox, initInbox, listInbox } from './inbox'
 import { memoryOf } from './memory'
 import * as store from './projects'
-import { fullSkillSections, initSkills, readSkill, relevantSkills, skillPromptLines } from './skills'
+import { confirmLearnedSkill, fullSkillSections, initSkills, learnedSkills, parseTaskSkill, readSkill, relevantSkills, removeLearnedSkill, saveTaskSkill, skillPromptLines } from './skills'
 import { repoInstructionLines } from './repoInstructions'
 import { mcpForTask, releaseMcp, startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { claudeArgs } from './agents/claude'
@@ -190,6 +190,37 @@ describe('habilidades e instrucciones del repositorio', () => {
     const mine = fullSkillSections('despliega en staging con deploy', 'p1', root)
     expect(mine.names).toEqual(['despliegue-staging'])
     expect(mine.lines.join('\n')).toMatch(/provisional/)
+  })
+
+  it('la «Habilidad nueva» de una tarea se guarda provisional, sin pisar otra, y se confirma o se borra', () => {
+    const root = join(env.root, 'hab-aprendidas')
+    mkdirSync(join(root, 'desplegar'), { recursive: true })
+    writeFileSync(join(root, 'desplegar', 'SKILL.md'), '---\nname: desplegar\ndescription: La que ya había\n---\n\nPasos viejos.\n')
+    const pasos = '1. Ejecuta npm run build.\n2. Sube dist/ con el script deploy.sh y comprueba que la página responde 200.'
+    const text = `Desplegué.\n\n## Habilidad nueva\n\`\`\`markdown\n---\nname: Desplegar\ndescription: Cómo desplegar la web\n---\n\n${pasos}\n\`\`\`\n\n## Para la memoria\n- hecho: Hecho en «Web»: desplegada.`
+    const { skill, rest } = parseTaskSkill(text)
+    expect(skill).toEqual({ name: 'desplegar', description: 'Cómo desplegar la web', body: pasos })
+    expect(rest).toBe('Desplegué.\n\n## Para la memoria\n- hecho: Hecho en «Web»: desplegada.')
+    expect(parseTaskSkill('Sin habilidad.').skill).toBeNull()
+    expect(parseTaskSkill('## Habilidad nueva\n---\nname: x\ndescription: y\n---\n\ncorta').skill).toBeNull()
+
+    const saved = saveTaskSkill(skill!, { projectId: 'p1', origin: 'Codex, «Web»' }, root)!
+    expect(saved).toMatchObject({ name: 'desplegar-mejora', improves: 'desplegar' })
+    expect(readFileSync(join(root, 'desplegar', 'SKILL.md'), 'utf8')).toContain('Pasos viejos.')
+    const list = learnedSkills('p1', root)
+    expect(list).toHaveLength(1)
+    expect(list[0]).toMatchObject({ name: 'desplegar-mejora', provisional: true, origin: 'Codex, «Web»', text: pasos })
+    expect(list[0].description).toBe('Propuesta de mejora de «desplegar»: Cómo desplegar la web')
+    expect(learnedSkills('p2', root)).toEqual([])
+    // Confirmada, la ven todos los proyectos.
+    confirmLearnedSkill('desplegar-mejora', root)
+    expect(learnedSkills('p1', root)[0].provisional).toBe(false)
+    expect(skillPromptLines(true, root, 'p2').join('\n')).toContain('desplegar-mejora')
+    // Solo se borran las aprendidas.
+    expect(() => removeLearnedSkill('desplegar', root)).toThrow()
+    removeLearnedSkill('desplegar-mejora', root)
+    expect(existsSync(join(root, 'desplegar-mejora'))).toBe(false)
+    expect(existsSync(join(root, 'desplegar', 'SKILL.md'))).toBe(true)
   })
 
   it('cada CLI recibe los archivos de instrucciones que no lee por su cuenta, sin repetir', () => {

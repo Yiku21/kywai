@@ -114,7 +114,7 @@ import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
 import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
-import { initSkills } from './skills'
+import { confirmLearnedSkill, initSkills, learnedSkills, removeLearnedSkill } from './skills'
 import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
 import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
 import { filmThumb, filmThumbSlugs } from './filmThumbs'
@@ -1008,6 +1008,10 @@ function registerIpc(): void {
   handle('mcpCatalog', (query: unknown, cursor?: unknown) => mcpCatalog(query, cursor))
   handle('skillCatalog', (query: unknown) => skillCatalog(query))
   handle('listSkills', () => installedSkills())
+  // Las que aprendieron los agentes al terminar una tarea: se revisan en la pestaña Memoria.
+  handle('learnedSkills', (projectId: unknown) => learnedSkills(projectArg(projectId)))
+  handle('confirmLearnedSkill', (name: unknown) => confirmLearnedSkill(name))
+  handle('removeLearnedSkill', (name: unknown) => removeLearnedSkill(name))
   handle('installSkill', (source: unknown, skillId: unknown) => installCatalogSkill(source, skillId))
   handle('installSkillLink', (url: unknown) => installSkillLink(url))
   handle('removeSkill', (name: unknown) => removeSkill(name))

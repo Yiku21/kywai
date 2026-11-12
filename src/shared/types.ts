@@ -467,6 +467,19 @@ export interface MemoryEntry {
   supersededBy?: string
 }
 
+/** Una habilidad que escribió un agente al terminar una tarea (pestaña Memoria). */
+export interface LearnedSkill {
+  name: string
+  description: string
+  /** Quién la escribió y en qué tarea («Codex, «Desplegar»»). */
+  origin: string
+  /** Aún sin confirmar: solo la ven los agentes de su proyecto. */
+  provisional: boolean
+  /** El procedimiento (sin el encabezado). */
+  text: string
+  updatedAt: number
+}
+
 export interface MemoryInput {
   kind: MemoryKind
   text: string
@@ -1978,6 +1991,11 @@ export interface CoworkApi {
   skillCatalog(query: string): Promise<SkillCatalogItem[]>
   /** Habilidades instaladas (carpeta «habilidades»). */
   listSkills(): Promise<SkillInfo[]>
+  /** Las habilidades que aprendieron los agentes de un proyecto (pestaña Memoria). */
+  learnedSkills(projectId: string): Promise<LearnedSkill[]>
+  /** Confirma una habilidad aprendida: la ven todos los proyectos. */
+  confirmLearnedSkill(name: string): Promise<void>
+  removeLearnedSkill(name: string): Promise<void>
   /** Instala una del catálogo (skillId vacío: todas las de su repositorio). */
   installSkill(source: string, skillId: string): Promise<{ installed: string[]; skills: SkillInfo[] }>
   /** Instala las de un enlace de GitHub (una carpeta con SKILL.md o todo un repositorio). */

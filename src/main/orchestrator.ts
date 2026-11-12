@@ -81,7 +81,7 @@ import { testEvidence } from '@shared/testEvidence'
 import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './coworkMcp'
 import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
 import { repoInstructionLines } from './repoInstructions'
-import { fullSkillSections, listSkills, skillPromptLines, skillsDir, videoSkillPromptLines, videoSkillsDir, visibleIn } from './skills'
+import { fullSkillSections, listSkills, parseTaskSkill, saveTaskSkill, skillPromptLines, skillsDir, videoSkillPromptLines, videoSkillsDir, visibleIn } from './skills'
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { replyExcerpt, replyRequest } from '@shared/replyTo'
@@ -5277,7 +5277,8 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         ]
       : []),
     ...taskGuideRules(store.workRoot(run.projectId)),
-    `- Termina SIEMPRE con una sección «## Para la memoria», para que el siguiente agente (sea quien sea) parta de lo que tú sabes ahora. Primero una línea «- hecho: Hecho en «${t.title}»: …» con qué hiciste y dónde, en una frase. Después, de 0 a 3 líneas con lo que aprendiste y no está en la memoria: «- hecho: …» (cómo funciona algo del proyecto, un error y cómo se arregla, un dato del entorno), «- decisión: …» o «- pendiente: …» (si sustituye a una entrada, «- decisión (sustituye m3): …»). Nada de obviedades ni de repetir la memoria.`
+    `- Termina SIEMPRE con una sección «## Para la memoria», para que el siguiente agente (sea quien sea) parta de lo que tú sabes ahora. Primero una línea «- hecho: Hecho en «${t.title}»: …» con qué hiciste y dónde, en una frase. Después, de 0 a 3 líneas con lo que aprendiste y no está en la memoria: «- hecho: …» (cómo funciona algo del proyecto, un error y cómo se arregla, un dato del entorno), «- decisión: …» o «- pendiente: …» (si sustituye a una entrada, «- decisión (sustituye m3): …»). Nada de obviedades ni de repetir la memoria.`,
+    '- Si en esta tarea seguiste un procedimiento que el equipo repetirá (cómo desplegar, cómo se calcula algo del negocio, cómo se prueba una parte, los pasos de una integración) y no está ya en las habilidades del equipo, añade al final del todo, después de «Para la memoria», una sección «## Habilidad nueva» con el SKILL.md entero: «---», «name: nombre-corto-con-guiones», «description: cuándo usarla, en una línea», «---» y debajo los pasos, reglas y comprobaciones para hacerlo sin haber visto esta tarea (sin claves ni contraseñas). Como mucho una por tarea; si no hay un procedimiento claro, no la pongas.'
   )
   return lines.join('\n')
 }
@@ -6125,6 +6126,19 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     savedTo = store.writeTextArtifact(run.projectId, t.title, text)
     meta.touched.add(savedTo)
   }
+  // Un procedimiento que se repetirá: kywai lo guarda como habilidad provisional (la sección no sale en el chat).
+  let learned = ''
+  if (isPlainTask(t)) {
+    const { skill, rest } = parseTaskSkill(text)
+    if (rest !== text) text = rest
+    const saved = skill ? saveTaskSkill(skill, { projectId: run.projectId, origin: `${owner.name}, «${t.title}»` }) : null
+    if (saved) {
+      traceNote(t.id, tr('Escribió la habilidad «{name}» (provisional: revísala en la pestaña Memoria)', { name: saved.name }))
+      learned = saved.improves
+        ? tr('*Habilidad nueva por revisar en Memoria:* «{name}» (propone mejorar «{improves}»).', { name: saved.name, improves: saved.improves })
+        : tr('*Habilidad nueva por revisar en Memoria:* «{name}».', { name: saved.name })
+    }
+  }
   const arts = await collectArtifacts(run, t, owner)
   if (!text) text = arts.length ? tr('Tarea completada.') : t.direct ? tr('{name} no escribió ninguna respuesta.', { name: owner.name }) : tr('Tarea completada (sin texto de respuesta).')
 
@@ -6147,7 +6161,7 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
   })
   const v = meta.verification
   const verified = v ? `\n\n${verificationLine(v)}` : ''
-  const msgText = (savedTo ? tr('Guardé el resultado de «{title}» en `{savedTo}`.\n\n{clip}', { title: t.title, savedTo, clip: clip(text, 600) }) : clip(text, 8000)) + verified
+  const msgText = (savedTo ? tr('Guardé el resultado de «{title}» en `{savedTo}`.\n\n{clip}', { title: t.title, savedTo, clip: clip(text, 600) }) : clip(text, 8000)) + verified + (learned ? `\n\n${learned}` : '')
   const delivered = arts.length ? { artifactIds: arts.map((a) => a.id) } : {}
   if (!closeWork(run, t, 'done', { text: msgText, ...delivered }, !!res.text.trim())) agentMessage(run, owner.id, msgText, delivered)
 
@@ -6155,7 +6169,7 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
   // de lo hecho, kywai lo saca del final de su respuesta: el siguiente agente debe saber qué se hizo.
   const notes = parseMemoryNotes(res.text)
   if (isPlainTask(t)) {
-    const summary = taskSummaryNote(t.title, res.text, notes)
+    const summary = taskSummaryNote(t.title, parseTaskSkill(res.text).rest, notes)
     if (summary) notes.unshift(summary)
   }
   for (const n of notes) {
