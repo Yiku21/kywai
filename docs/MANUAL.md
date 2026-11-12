@@ -3698,6 +3698,11 @@ el chat:
   entregable…) vuelve a partir la ventana: chat a la izquierda y el archivo a la derecha. El 3D sigue cerrado y parado;
   al cerrar el archivo, vuelves a tener solo chat. Llevar el borde **casi hasta la izquierda** hace lo contrario: deja solo el
   3D (como el botón de pantalla completa; Escape vuelve).
+- **Pestañas de arriba del chat** (Chat, Archivos, Tareas, Resultados, Memoria, Rutinas): si al estrechar el panel
+  ya no caben con su nombre, quedan **solo los iconos** (la pestaña abierta conserva su nombre; el nombre de cada una
+  sale al pasar el ratón). Si aun así no caben, la fila **se desplaza de izquierda a derecha** con la rueda del ratón
+  (también la normal, sin Mayús), con el trackpad o con las flechas **‹ ›** que salen en los bordes; la pestaña
+  abierta siempre queda a la vista. Al ensanchar, vuelven los nombres.
 - **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
   el ancho, en vez de dejar libre la columna del avatar.
 

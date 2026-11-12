@@ -1,5 +1,5 @@
-import { useId, useRef, useState, type DragEvent, type KeyboardEvent } from 'react'
-import { Ban, Brain, CalendarClock, ClipboardList, MessageSquare, Package, Paperclip, Puzzle, type LucideIcon } from 'lucide-react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type DragEvent, type KeyboardEvent } from 'react'
+import { Ban, Brain, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, MessageSquare, Package, Paperclip, Puzzle, type LucideIcon } from 'lucide-react'
 import { useCowork, useData, type DataSlice, type LeftTab } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { cx } from '../common/util'
@@ -42,6 +42,79 @@ function countArtifacts(d: DataSlice): number {
   return Object.keys(d.artifacts).length
 }
 
+/**
+ * Fila de pestañas que se ajusta al ancho del panel: si los nombres no caben, solo iconos (la pestaña abierta
+ * conserva su nombre); si aun así no caben, se desplaza con la rueda (también la vertical) o con las flechas ‹ ›
+ * que salen en los bordes, y la pestaña abierta siempre queda a la vista.
+ */
+function useTabStrip(tab: string, count: number) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [compact, setCompact] = useState(false)
+  const [edges, setEdges] = useState({ left: false, right: false })
+  // Ancho que necesitan las pestañas con nombre, medido la última vez que se vieron enteras.
+  const fullWidth = useRef(0)
+  const compactRef = useRef(compact)
+  compactRef.current = compact
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const update = (): void => {
+      const avail = el.clientWidth
+      if (!compactRef.current) {
+        fullWidth.current = el.scrollWidth
+        if (el.scrollWidth > avail + 1) setCompact(true)
+      } else if (fullWidth.current && fullWidth.current <= avail) {
+        setCompact(false)
+      }
+      const max = el.scrollWidth - el.clientWidth
+      setEdges({ left: el.scrollLeft > 1, right: el.scrollLeft < max - 1 })
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    el.addEventListener('scroll', update, { passive: true })
+    return () => {
+      ro.disconnect()
+      el.removeEventListener('scroll', update)
+    }
+  }, [compact, count])
+
+  // Con los nombres cambiados (idioma, mods…) se vuelve a medir con ellos.
+  useEffect(() => setCompact(false), [count])
+
+  // La pestaña abierta, siempre a la vista.
+  useEffect(() => {
+    const el = ref.current
+    const active = el?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!el || !active) return
+    const a = active.offsetLeft - el.offsetLeft
+    if (a < el.scrollLeft) el.scrollTo({ left: a - 8, behavior: 'smooth' })
+    else if (a + active.offsetWidth > el.scrollLeft + el.clientWidth)
+      el.scrollTo({ left: a + active.offsetWidth - el.clientWidth + 8, behavior: 'smooth' })
+  }, [tab, compact])
+
+  // La rueda vertical del ratón también la mueve de izquierda a derecha (si hay algo que mover).
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onWheel = (e: WheelEvent): void => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      e.preventDefault()
+      el.scrollLeft += e.deltaY
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  const nudge = (dir: -1 | 1): void => {
+    const el = ref.current
+    if (el) el.scrollBy({ left: dir * Math.max(80, el.clientWidth * 0.6), behavior: 'smooth' })
+  }
+
+  return { ref, compact, edges, nudge }
+}
+
 function hasFiles(e: DragEvent): boolean {
   return Array.from(e.dataTransfer?.types ?? []).includes('Files')
 }
@@ -59,6 +132,7 @@ export function LeftPanel() {
   const baseId = useId()
   const mods = useMods()
   const TABS = modPanels(mods).length ? [...BASE_TABS, MODS_TAB] : BASE_TABS
+  const strip = useTabStrip(tab, TABS.length)
 
   const canAttach = !!api && mode === 'live'
 
@@ -119,7 +193,13 @@ export function LeftPanel() {
         })
       }}
     >
-      <div className={s.tabs} role="tablist" aria-label={t('Secciones del panel')} onKeyDown={onTabKey}>
+      <div className={s.tabBar}>
+      {strip.edges.left && (
+        <button type="button" className={cx(s.tabScroll, s.tabScrollLeft)} tabIndex={-1} aria-hidden="true" onClick={() => strip.nudge(-1)}>
+          <ChevronLeft size={16} />
+        </button>
+      )}
+      <div ref={strip.ref} className={cx(s.tabs, strip.compact && s.tabsCompact)} role="tablist" aria-label={t('Secciones del panel')} onKeyDown={onTabKey}>
         {TABS.map(({ id, label, Icon }) => {
           const active = id === tab
           const badge = badges[id]
@@ -148,6 +228,12 @@ export function LeftPanel() {
             </button>
           )
         })}
+      </div>
+      {strip.edges.right && (
+        <button type="button" className={cx(s.tabScroll, s.tabScrollRight)} tabIndex={-1} aria-hidden="true" onClick={() => strip.nudge(1)}>
+          <ChevronRight size={16} />
+        </button>
+      )}
       </div>
 
       <div

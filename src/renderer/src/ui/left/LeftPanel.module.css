@@ -14,14 +14,63 @@
 
 /* ---------- Pestañas ---------- */
 
-.tabs {
+/* La fila de pestañas y, encima de sus bordes, las flechas ‹ › cuando no caben todas. */
+.tabBar {
+  position: relative;
   flex: none;
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs {
   display: flex;
   gap: 2px;
   padding: 10px 12px 0;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: -1px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
+}
+
+/* No caben los nombres: solo iconos; la pestaña abierta conserva el suyo. */
+.tabsCompact .tab:not(.tabActive) .tabLabel {
+  display: none;
+}
+
+.tabsCompact .tab:not(.tabActive) {
+  padding: 0 10px;
+}
+
+.tabScroll {
+  position: absolute;
+  top: 10px;
+  bottom: 1px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  padding: 0;
+  border: 0;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.tabScroll:hover {
+  color: var(--text-1);
+}
+
+.tabScrollLeft {
+  left: 0;
+  background: linear-gradient(to right, var(--bg-panel) 55%, transparent);
+  justify-content: start;
+  padding-left: 4px;
+}
+
+.tabScrollRight {
+  right: 0;
+  background: linear-gradient(to left, var(--bg-panel) 55%, transparent);
+  justify-content: end;
+  padding-right: 4px;
 }
 
 .tabs::-webkit-scrollbar {
@@ -115,11 +164,6 @@
   }
 }
 
-@container leftpanel (max-width: 370px) {
-  .tab:not(.tabActive) .tabLabel {
-    display: none;
-  }
-}
 
 /* ---------- Cuerpo ---------- */
 
