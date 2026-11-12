@@ -1684,25 +1684,50 @@ reinicios:
     `/recuerda decisión: …`, `pendiente: …`, `preferencia: …`).
   - **Provisional**: lo anotó un agente al terminar su tarea (sección «Para la memoria» de su respuesta). Los
     agentes lo tienen en cuenta pero lo comprueban. Confírmalo, edítalo o bórralo; la pestaña avisa de cuántos
-    hay por revisar.
+    hay por revisar. Cada tarea normal (no las consultas rápidas, los mensajes directos ni las piezas del estudio
+    de vídeo) deja **siempre** una línea «Hecho en «tarea»: …» con lo que hizo y dónde, más de 0 a 3 líneas con
+    lo que aprendió (cómo funciona algo del proyecto, un error y su arreglo, un pendiente). Si el agente se olvida
+    del resumen, kywai lo saca del último párrafo de su respuesta (`taskSummaryNote` en `memory.ts`). Así el
+    siguiente agente, sea del CLI que sea, parte de lo que se hizo.
   - **Sustituido**: una entrada más nueva la reemplaza («sustituye m3») o la marcaste como que ya no vale. Los
     agentes dejan de verla; sigue en «Ver lo sustituido». Un agente no puede sustituir lo que confirmaste tú:
     su nota queda como propuesta.
 
 Se guarda en el `project.json` del proyecto (también el interruptor de Código escueto).
 
+- **Habilidades aprendidas** (debajo de la memoria, solo si hay alguna): si en una tarea el agente siguió un
+  procedimiento que el equipo repetirá, añade al final de su respuesta una sección «## Habilidad nueva» con el
+  SKILL.md entero. kywai la guarda en la carpeta `habilidades` con tres líneas más en el encabezado
+  (`estado: provisional`, `proyecto: <id>` y `origen: <agente>, «<tarea>»`), la quita del mensaje del chat y
+  avisa con «*Habilidad nueva por revisar en Memoria:* «nombre»». Como mucho una por tarea, y nunca pisa otra:
+  si el nombre ya existe, queda como `<nombre>-mejora` («Propuesta de mejora de «…»»). Mientras es
+  provisional solo la ven los agentes de **su** proyecto (con la marca «provisional, compruébala»); al pulsar
+  **Confirmar** se quita `estado: provisional` y pasa a verse en **todos** los proyectos. **Ver los pasos**
+  enseña el procedimiento y **Borrar** quita su carpeta (solo las aprendidas; las demás se quitan en
+  Extensiones → Habilidades). Código: `parseTaskSkill`, `saveTaskSkill`, `learnedSkills`,
+  `confirmLearnedSkill` y `removeLearnedSkill` en `src/main/skills.ts`; la pestaña, en `MemoryView.tsx`.
+
 ### AGENTS.md, habilidades y herramientas de kywai
 
 **Instrucciones del repositorio.** Cada CLI lee por su cuenta solo su archivo (Claude, `CLAUDE.md`; Codex,
 `AGENTS.md`; Gemini, `GEMINI.md`). kywai añade al encargo de cada tarea los que ese CLI no lee, así que basta
 con un `AGENTS.md` en la carpeta del proyecto para que todo el equipo siga las mismas reglas. Si dos archivos
-dicen lo mismo (o `CLAUDE.md` solo contiene `@AGENTS.md`), se pone una vez. Se recortan a 6 000 caracteres.
+dicen lo mismo (o `CLAUDE.md` solo contiene `@AGENTS.md`), se pone una vez. Se recortan a 20 000 caracteres;
+si el archivo es más largo, el encargo dice su ruta completa para leerlo entero.
 
 **Habilidades compartidas.** Procedimientos que el equipo reutiliza («cómo publicamos una versión», «informes en
 tres niveles»…). Van en la carpeta `habilidades` de la carpeta de trabajo de kywai: una carpeta por habilidad
 con su `SKILL.md` (el mismo formato que las skills de Claude: `name` y `description` en el encabezado y los pasos
-debajo) o un `.md` suelto. Puedes copiar ahí las de `~/.claude/skills`. El encargo de cada tarea lista su nombre y
-para qué sirven, y el agente lee la que encaje.
+debajo) o un `.md` suelto. Puedes copiar ahí las de `~/.claude/skills`. **Las que encajan con la tarea van
+enteras en el encargo** (hasta 3 y unos 15 000 caracteres, cada una como mucho 10 000): así todos los agentes
+reciben exactamente el mismo texto, sea Claude, Codex, Gemini, Copilot, Qwen o Aider, y aunque trabajen en una
+copia aparte de la carpeta (la carpeta `habilidades` queda fuera de la del proyecto y no todos los CLI pueden o
+quieren abrirla). Encaja la que se nombra tal cual en la tarea o en la petición («membresia-metabolica» o
+«membresía metabólica»), o la que comparte palabras de su nombre y su descripción con la tarea (por su raíz:
+«publica» y «publicar» cuentan igual). Hermes ve la lista de habilidades en su encargo y escribe el nombre exacto
+en la tarea a la que sirve. Las demás siguen en la lista con su nombre y para qué sirven. El detalle de cada tarea
+dice **«Recibió las habilidades: …»** y la tarea lo guarda (`Task.skills`), así que el coordinador puede contestar
+quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las consultas rápidas también las reciben).
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),
