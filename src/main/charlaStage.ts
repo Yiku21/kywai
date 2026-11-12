@@ -20,8 +20,8 @@ export function stageLooks(script: Pick<VideoScript, 'speakers'>): [RobotLook, R
   return a && b && a !== b ? [a, b] : null
 }
 
-export type ShotKind = 'wide' | 'close0' | 'close1' | 'ots0' | 'ots1' | 'screen'
-export type ShotMove = 'push' | 'pull' | 'arcL' | 'arcR' | 'crane'
+export type ShotKind = 'wide' | 'close0' | 'close1' | 'ots0' | 'ots1' | 'xcu0' | 'xcu1' | 'low' | 'high' | 'side' | 'screen'
+export type ShotMove = 'push' | 'pull' | 'arcL' | 'arcR' | 'crane' | 'orbit' | 'dutch' | 'snap' | 'whip'
 
 export interface StageShot {
   start: number
@@ -97,7 +97,13 @@ function sceneLines(sc: VideoScript['scenes'][number], words: TimedWord[], end: 
  * parten en dos para que la cámara no se quede en lo mismo.
  */
 export function planShots(lines: StageLine[], start: number, end: number, step: boolean, seed: number): StageShot[] {
-  const moves: ShotMove[] = ['push', 'arcL', 'pull', 'arcR', 'push', 'crane']
+  const moves: ShotMove[] = ['push', 'whip', 'arcL', 'snap', 'pull', 'orbit', 'arcR', 'dutch', 'push', 'crane']
+  // Cada turno, un plano distinto: primer plano, por encima del hombro, muy de cerca, contrapicado, de lado, picado…
+  const turn = (k: number, who: number): ShotKind => {
+    const c = (['close', 'ots', 'xcu', 'low', 'close', 'side', 'ots', 'high'] as const)[(k - 1 + seed) % 8]
+    return (c === 'close' || c === 'ots' || c === 'xcu' ? `${c}${who}` : c) as ShotKind
+  }
+  const second: ShotKind[] = ['wide', 'low', 'side', 'high']
   const runs: { who: number; start: number; end: number }[] = []
   for (const l of lines) {
     const last = runs[runs.length - 1]
@@ -111,13 +117,13 @@ export function planShots(lines: StageLine[], start: number, end: number, step: 
   let m = seed
   runs.forEach((r, k) => {
     const who = r.who < 0 ? 0 : r.who
-    const kind: ShotKind = k === 0 ? (step ? 'screen' : 'wide') : ((k % 2 ? `close${who}` : `ots${who}`) as ShotKind)
+    const kind: ShotKind = k === 0 ? (step ? 'screen' : 'wide') : turn(k, who)
     const move: ShotMove = k === 0 ? (step ? 'push' : 'crane') : moves[m++ % moves.length]
     const len = r.end - r.start
     if (len > 4.2) {
       const mid = round(r.start + len * 0.55)
       shots.push({ start: round(r.start), end: mid, kind, move })
-      shots.push({ start: mid, end: round(r.end), kind: kind === 'wide' ? `close${who}` as ShotKind : 'wide', move: moves[m++ % moves.length] })
+      shots.push({ start: mid, end: round(r.end), kind: kind === 'wide' ? (`close${who}` as ShotKind) : second[(k + seed) % 4] === kind ? 'wide' : second[(k + seed) % 4], move: moves[m++ % moves.length] })
     } else shots.push({ start: round(r.start), end: round(r.end), kind, move })
   })
   return shots
@@ -320,80 +326,125 @@ fill.position.set(-3, 2, 6)
 S.add(fill)
 
 // ---------- los robots ----------
+// Muñecos de juguete: pies, cuerpo, cuello y una cabeza grande con la cara en una pantalla. Cada uno con lo suyo:
+// Hermes con alas en el casco y antena, Claude con su sol de rayos y Codex de bloque con el «>_» en el pecho.
 const CREAM = '#fff1d6'
+const DARK = '#2a2530'
+/** Caja de esquinas redondas de w×h×d (centrada). */
+function rbox(w, h, d, b) {
+  const x = w / 2 - b, y = h / 2 - b, r = Math.min(x, y) * 0.55
+  const sh = new THREE.Shape()
+  sh.moveTo(-x + r, -y); sh.lineTo(x - r, -y); sh.quadraticCurveTo(x, -y, x, -y + r); sh.lineTo(x, y - r); sh.quadraticCurveTo(x, y, x - r, y)
+  sh.lineTo(-x + r, y); sh.quadraticCurveTo(-x, y, -x, y - r); sh.lineTo(-x, -y + r); sh.quadraticCurveTo(-x, -y, -x + r, -y)
+  const geo = new THREE.ExtrudeGeometry(sh, { depth: Math.max(0.001, d - 2 * b), bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 6, curveSegments: 14 })
+  geo.translate(0, 0, -(d - 2 * b) / 2)
+  return geo
+}
 function eyeArc(parent, x, y, z, color) {
-  const e = put(parent, new THREE.TorusGeometry(0.075, 0.02, 8, 24, Math.PI), glow(color, 2.2), x, y, z)
+  const e = put(parent, new THREE.TorusGeometry(0.07, 0.02, 8, 24, Math.PI), glow(color, 2.2), x, y, z)
   e.castShadow = false
   return e
 }
-function visor(parent, r, y, w, h) {
-  return put(parent, new THREE.SphereGeometry(r, 48, 24, Math.PI * 0.5 - w, w * 2, Math.PI * 0.5 - h, h * 2), gloss('#121018', { roughness: 0.18, clearcoat: 1 }), 0, y, 0)
-}
 function mouthOf(parent, y, z, color) {
-  const m = put(parent, new THREE.CapsuleGeometry(0.035, 0.1, 6, 12), glow(color, 2), 0, y, z, 0, 0, Math.PI / 2)
+  const m = put(parent, new THREE.CapsuleGeometry(0.03, 0.09, 6, 12), glow(color, 2), 0, y, z, 0, 0, Math.PI / 2)
   m.castShadow = false
   return m
+}
+/** Pies y cuello comunes: los pies le dan peso al muñeco y dejan ver que anda. */
+function legs(body, color) {
+  const m = gloss(color, { roughness: 0.45 })
+  put(body, new THREE.SphereGeometry(0.1, 20, 14), m, -0.13, 0.06, 0.04, 0, 0, 0, 1, 0.6, 1.35)
+  put(body, new THREE.SphereGeometry(0.1, 20, 14), m, 0.13, 0.06, 0.04, 0, 0, 0, 1, 0.6, 1.35)
+}
+/** La pantalla de la cara: un cristal oscuro con brillo. */
+function screen(face, w, h, z) {
+  const s = put(face, rbox(w, h, 0.06, 0.025), gloss('#0f0d14', { roughness: 0.12, clearcoat: 1 }), 0, 0, z)
+  s.castShadow = false
+  return s
+}
+function makeHermes() {
+  const g = new THREE.Group(), body = new THREE.Group(), face = new THREE.Group()
+  g.add(body)
+  const shell = gloss('#f4ecdd', { roughness: 0.38 })
+  const gold = gloss('#d4a440', { metalness: 0.85, roughness: 0.28 })
+  legs(body, DARK)
+  put(body, rbox(0.5, 0.4, 0.36, 0.13), shell, 0, 0.34, 0)
+  put(body, rbox(0.52, 0.06, 0.38, 0.025), gold, 0, 0.2, 0)
+  put(body, new THREE.CylinderGeometry(0.07, 0.08, 0.1, 16), gloss(DARK), 0, 0.58, 0)
+  // el caduceo del pecho
+  put(body, new THREE.CylinderGeometry(0.01, 0.01, 0.16, 8), gold, 0, 0.38, 0.19)
+  put(body, new THREE.TorusGeometry(0.04, 0.009, 6, 16, Math.PI), gold, -0.04, 0.43, 0.185, 0, 0, 0.3)
+  put(body, new THREE.TorusGeometry(0.04, 0.009, 6, 16, Math.PI), gold, 0.04, 0.43, 0.185, 0, 0, -0.3)
+  // la cabeza: casco crema con alas doradas y antena
+  face.position.set(0, 0.9, 0)
+  body.add(face)
+  put(face, rbox(0.78, 0.6, 0.58, 0.2), shell, 0, 0, 0)
+  screen(face, 0.62, 0.4, 0.28)
+  ;[-1, 1].forEach((sx) => {
+    put(face, new THREE.CylinderGeometry(0.1, 0.1, 0.06, 24), gold, sx * 0.4, 0, 0, 0, 0, Math.PI / 2)
+    for (let k = 0; k < 3; k++) put(face, new THREE.SphereGeometry(1, 16, 10), gloss('#fff8ec', { roughness: 0.3 }), sx * (0.45 + k * 0.015), 0.07 + k * 0.06, -0.06 - k * 0.07, -0.5 - k * 0.22, 0, sx * 0.25, 0.028, 0.07 + k * 0.012, 0.24 - k * 0.04)
+  })
+  put(face, new THREE.CylinderGeometry(0.012, 0.012, 0.16, 8), gold, 0, 0.37, 0)
+  put(face, new THREE.SphereGeometry(0.045, 16, 12), glow('#ffb21f', 1.6), 0, 0.47, 0).castShadow = false
+  const eyes = [-1, 1].map((k) => {
+    const e = put(face, new THREE.CapsuleGeometry(0.045, 0.06, 6, 16), glow('#ffb21f', 1.3), k * 0.14, 0.04, 0.32)
+    e.castShadow = false
+    return e
+  })
+  const mouth = mouthOf(face, -0.1, 0.32, '#ffb21f')
+  return { g, body, eyes, mouth }
 }
 function makeClaude() {
   const g = new THREE.Group(), body = new THREE.Group(), face = new THREE.Group()
   g.add(body)
   const skin = gloss('#f26a1b')
-  put(body, new THREE.SphereGeometry(0.55, 48, 32), skin, 0, 0.55, 0, 0, 0, 0, 1, 0.94, 0.96)
-  const tip = put(body, new THREE.ConeGeometry(0.2, 0.55, 24), skin, 0.2, 1.05, -0.05, 0, 0, -0.75)
-  tip.scale.set(1, 1, 0.8)
+  legs(body, '#5a2a14')
+  put(body, new THREE.SphereGeometry(0.27, 32, 24), skin, 0, 0.34, 0, 0, 0, 0, 1, 0.92, 0.85)
+  for (let i = 0; i < 8; i++) put(body, new THREE.BoxGeometry(0.014, 0.09, 0.01), glow(CREAM, 1.3), 0, 0.36, 0.235, -0.2, 0, (i * Math.PI) / 8).castShadow = false
+  put(body, new THREE.CylinderGeometry(0.07, 0.08, 0.1, 16), gloss('#5a2a14'), 0, 0.6, 0)
+  face.position.set(0, 0.92, 0)
   body.add(face)
-  visor(face, 0.535, 0.62, 0.9, 0.2)
-  const eyes = [eyeArc(face, -0.17, 0.6, 0.5, CREAM), eyeArc(face, 0.17, 0.6, 0.5, CREAM)]
-  const mouth = mouthOf(face, 0.5, 0.52, CREAM)
-  for (let i = 0; i < 8; i++) put(body, new THREE.BoxGeometry(0.018, 0.12, 0.01), glow(CREAM, 1.4), 0, 0.27, 0.5, -0.45, 0, (i * Math.PI) / 8).castShadow = false
-  return { g, body, eyes, mouth }
-}
-function makeHermes() {
-  const g = new THREE.Group(), body = new THREE.Group(), face = new THREE.Group()
-  g.add(body)
-  put(body, new THREE.CapsuleGeometry(0.42, 0.38, 12, 32), gloss('#f4ecdd', { roughness: 0.4 }), 0, 0.62, 0)
-  put(body, new THREE.TorusGeometry(0.4, 0.035, 10, 40), gloss('#d4a440', { metalness: 0.8, roughness: 0.3 }), 0, 0.14, 0, Math.PI / 2)
-  const hair = gloss('#141218', { roughness: 0.22, clearcoat: 1 })
-  put(body, new THREE.SphereGeometry(0.47, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.52), hair, 0, 0.82, -0.02, 0, 0, 0, 1.04, 0.95, 1.04)
-  put(body, new THREE.SphereGeometry(0.2, 20, 14), hair, -0.43, 0.7, 0, 0, 0, 0.2, 0.75, 1.5, 1.05)
-  put(body, new THREE.SphereGeometry(0.2, 20, 14), hair, 0.43, 0.7, 0, 0, 0, -0.2, 0.75, 1.5, 1.05)
-  put(body, new THREE.CylinderGeometry(0.06, 0.06, 0.06, 16), gloss('#d4a440', { metalness: 0.8 }), 0.47, 0.82, 0.05, 0, 0, Math.PI / 2)
-  body.add(face)
-  visor(face, 0.445, 0.72, 0.62, 0.22)
-  const eyes = [0, 1].map((k) => {
-    const e = put(face, new THREE.CircleGeometry(0.075, 24), glow('#ffb21f', 1.25), k ? 0.15 : -0.15, 0.73, 0.43)
-    e.castShadow = false
-    return e
-  })
-  const mouth = mouthOf(face, 0.6, 0.43, '#ffb21f')
-  const gold = gloss('#d4a440', { metalness: 0.85, roughness: 0.3 })
-  put(body, new THREE.CylinderGeometry(0.012, 0.012, 0.22, 8), gold, 0, 0.36, 0.43, -0.25)
-  put(body, new THREE.TorusGeometry(0.05, 0.01, 6, 16, Math.PI), gold, -0.05, 0.43, 0.42, -0.25, 0, 0.3)
-  put(body, new THREE.TorusGeometry(0.05, 0.01, 6, 16, Math.PI), gold, 0.05, 0.43, 0.42, -0.25, 0, -0.3)
+  put(face, new THREE.SphereGeometry(0.4, 48, 32), skin, 0, 0, 0, 0, 0, 0, 1.05, 0.9, 0.92)
+  // el sol de rayos detrás de la cabeza (como su logo)
+  const ray = gloss('#ff9a52', { roughness: 0.35 })
+  for (let i = 0; i < 11; i++) {
+    const a = -Math.PI * 0.1 + (i / 10) * Math.PI * 1.2
+    put(face, new THREE.CapsuleGeometry(0.045, 0.14, 6, 12), ray, Math.cos(a) * 0.43, Math.sin(a) * 0.4 + 0.02, -0.16, 0, 0, a - Math.PI / 2)
+  }
+  const v = put(face, new THREE.SphereGeometry(0.405, 48, 24, Math.PI * 0.5 - 0.85, 1.7, Math.PI * 0.5 - 0.32, 0.64), gloss('#141018', { roughness: 0.15, clearcoat: 1 }), 0, 0, 0, 0, 0, 0, 1.05, 0.9, 0.92)
+  v.castShadow = false
+  const eyes = [eyeArc(face, -0.14, 0.03, 0.37, CREAM), eyeArc(face, 0.14, 0.03, 0.37, CREAM)]
+  const mouth = mouthOf(face, -0.1, 0.37, CREAM)
   return { g, body, eyes, mouth }
 }
 function makeCodex() {
   const g = new THREE.Group(), body = new THREE.Group(), face = new THREE.Group()
   g.add(body)
-  const sh = new THREE.Shape()
-  const w = 0.42, h = 0.4, rr = 0.2
-  sh.moveTo(-w + rr, -h); sh.lineTo(w - rr, -h); sh.quadraticCurveTo(w, -h, w, -h + rr); sh.lineTo(w, h - rr); sh.quadraticCurveTo(w, h, w - rr, h)
-  sh.lineTo(-w + rr, h); sh.quadraticCurveTo(-w, h, -w, h - rr); sh.lineTo(-w, -h + rr); sh.quadraticCurveTo(-w, -h, -w + rr, -h)
-  const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.5, bevelEnabled: true, bevelThickness: 0.14, bevelSize: 0.1, bevelSegments: 6, curveSegments: 16 })
-  geo.translate(0, 0, -0.25)
-  put(body, geo, gloss('#1f9d6a'), 0, 0.58, 0)
+  const shell = gloss('#1f9d6a')
+  legs(body, '#0d3a28')
+  put(body, rbox(0.5, 0.42, 0.38, 0.1), shell, 0, 0.34, 0)
+  const pr = glow('#5cffb0', 1.8)
+  put(body, new THREE.BoxGeometry(0.05, 0.012, 0.01), pr, -0.06, 0.38, 0.195, 0, 0, 0.6).castShadow = false
+  put(body, new THREE.BoxGeometry(0.05, 0.012, 0.01), pr, -0.06, 0.355, 0.195, 0, 0, -0.6).castShadow = false
+  put(body, new THREE.BoxGeometry(0.08, 0.014, 0.01), pr, 0.04, 0.33, 0.195).castShadow = false
+  put(body, new THREE.CylinderGeometry(0.07, 0.08, 0.1, 16), gloss('#0d3a28'), 0, 0.59, 0)
+  face.position.set(0, 0.9, 0)
   body.add(face)
-  put(face, new THREE.BoxGeometry(0.62, 0.3, 0.05), gloss('#0d1512', { roughness: 0.15 }), 0, 0.68, 0.4)
+  put(face, rbox(0.8, 0.58, 0.6, 0.13), shell, 0, 0, 0)
+  screen(face, 0.64, 0.38, 0.29)
+  ;[-1, 1].forEach((sx) => put(face, rbox(0.08, 0.2, 0.2, 0.03), gloss('#0d3a28'), sx * 0.42, 0, 0))
+  put(face, new THREE.CylinderGeometry(0.012, 0.012, 0.14, 8), gloss('#0d3a28'), 0.2, 0.36, 0)
+  put(face, new THREE.BoxGeometry(0.07, 0.07, 0.07), glow('#5cffb0', 1.6), 0.2, 0.45, 0).castShadow = false
   const eyes = [-1, 1].map((k) => {
     const e = new THREE.Group()
-    e.position.set(k * 0.14, 0.68, 0.43)
+    e.position.set(k * 0.14, 0.04, 0.33)
     const m = glow('#5cffb0', 2.4)
     put(e, new THREE.BoxGeometry(0.1, 0.022, 0.01), m, 0, 0.025, 0, 0, 0, k * 0.55).castShadow = false
     put(e, new THREE.BoxGeometry(0.1, 0.022, 0.01), m, 0, -0.025, 0, 0, 0, -k * 0.55).castShadow = false
     face.add(e)
     return e
   })
-  const mouth = mouthOf(face, 0.58, 0.43, '#5cffb0')
+  const mouth = mouthOf(face, -0.1, 0.33, '#5cffb0')
   return { g, body, eyes, mouth }
 }
 const MAKE = { hermes: makeHermes, claude: makeClaude, codex: makeCodex }
@@ -403,7 +454,7 @@ const bots = D.looks.map((l, i) => {
   const b = MAKE[l]()
   b.g.position.set(X[i], 0, i ? 0.15 : 0)
   // manitas flotantes (como un muñeco de juguete): dan los gestos
-  b.hands = [-1, 1].map((sx) => put(b.g, new THREE.SphereGeometry(0.085, 20, 14), gloss(HAND[l]), sx * 0.62, 0.42, 0.12))
+  b.hands = [-1, 1].map((sx) => put(b.g, new THREE.SphereGeometry(0.085, 20, 14), gloss(HAND[l]), sx * 0.36, 0.34, 0.08))
   S.add(b.g)
   return b
 })
@@ -488,18 +539,19 @@ function soloPlace(b, t) {
 /** Las manitas: dónde van según el gesto (o la emoción en el diálogo), con el habla moviéndolas. */
 function handsFor(b, g, t, talk, toward) {
   const L = b.hands[0].position, Rh = b.hands[1].position
-  let l = [-0.62, 0.42, 0.12], r = [0.62, 0.42, 0.12]
+  let l = [-0.36, 0.34 + Math.sin(t * 2.1) * 0.02, 0.08], r = [0.36, 0.34 + Math.sin(t * 2.3 + 1) * 0.02, 0.08]
   const s1 = Math.sin(t * 9), s2 = Math.sin(t * 5.3)
   switch (g) {
-    case 'point': r = [toward * 0.75, 0.95, 0.35]; break
-    case 'surprised': l = [-0.6, 1.15, 0.2]; r = [0.6, 1.15, 0.2]; break
-    case 'laugh': l = [-0.35, 0.3 + s1 * 0.04, 0.5]; r = [0.35, 0.3 - s1 * 0.04, 0.5]; break
-    case 'shrug': l = [-0.75, 0.75 + s2 * 0.03, 0.25]; r = [0.75, 0.75 - s2 * 0.03, 0.25]; break
-    case 'thumbs': r = [0.45, 1.05 + Math.abs(s2) * 0.06, 0.45]; break
-    case 'think': r = [0.22, 0.55, 0.5]; break
-    case 'wave': r = [0.7 + Math.sin(t * 12) * 0.12, 1.15, 0.15]; break
-    case 'down': l = [-0.58, 0.28, 0.1]; r = [0.58, 0.28, 0.1]; break
-    default: r = [0.62 - talk * 0.12, 0.5 + talk * 0.25 + s2 * 0.04, 0.25 + talk * 0.15]; l = [-0.62, 0.42 + Math.sin(t * 2.1) * 0.03, 0.12]
+    case 'point': r = [toward * 0.62, 0.8, 0.3]; break
+    case 'surprised': l = [-0.52, 1.12, 0.2]; r = [0.52, 1.12, 0.2]; break
+    case 'laugh': l = [-0.26, 0.3 + s1 * 0.04, 0.3]; r = [0.26, 0.3 - s1 * 0.04, 0.3]; break
+    case 'shrug': l = [-0.58, 0.62 + s2 * 0.03, 0.2]; r = [0.58, 0.62 - s2 * 0.03, 0.2]; break
+    case 'thumbs': r = [0.42, 0.95 + Math.abs(s2) * 0.06, 0.4]; break
+    case 'think': r = [0.16, 0.66, 0.4]; break
+    case 'wave': r = [0.55 + Math.sin(t * 12) * 0.12, 1.15, 0.12]; break
+    case 'down': l = [-0.34, 0.22, 0.06]; r = [0.34, 0.22, 0.06]; break
+    case 'idle': break
+    default: r = [0.42 - talk * 0.1, 0.42 + talk * 0.25 + s2 * 0.04, 0.22 + talk * 0.15]; l = [-0.4, 0.38 + Math.sin(t * 3.1) * 0.04 + talk * 0.08, 0.15]
   }
   L.set(l[0], l[1], l[2])
   Rh.set(r[0], r[1], r[2])
@@ -590,10 +642,19 @@ function framing(kind) {
   const v = W < H
   switch (kind) {
     // En vertical los personajes van en la mitad de abajo: arriba están la tarjeta del paso y los subtítulos.
-    case 'close0': return v ? [[X[0] + 0.3, 1.3, 3.7], [X[0], 1.2, 0]] : [[X[0] + 0.35, 1.0, 2.4], [X[0], 0.8, 0]]
-    case 'close1': return v ? [[X[1] - 0.3, 1.3, 3.8], [X[1], 1.2, 0.15]] : [[X[1] - 0.35, 1.0, 2.5], [X[1], 0.8, 0.15]]
-    case 'ots0': return v ? [[X[1] + 0.35, 1.35, 3.4], [X[0], 1.15, 0]] : [[X[1] + 0.45, 1.1, 2.4], [X[0], 0.8, 0]]
-    case 'ots1': return v ? [[X[0] - 0.35, 1.35, 3.5], [X[1], 1.15, 0.15]] : [[X[0] - 0.45, 1.1, 2.5], [X[1], 0.8, 0.15]]
+    case 'close0': return v ? [[X[0] + 0.3, 1.45, 3.7], [X[0], 1.4, 0]] : [[X[0] + 0.35, 1.15, 2.4], [X[0], 0.95, 0]]
+    case 'close1': return v ? [[X[1] - 0.3, 1.45, 3.8], [X[1], 1.4, 0.15]] : [[X[1] - 0.35, 1.15, 2.5], [X[1], 0.95, 0.15]]
+    case 'ots0': return v ? [[X[1] + 0.35, 1.5, 3.4], [X[0], 1.35, 0]] : [[X[1] + 0.45, 1.25, 2.4], [X[0], 0.95, 0]]
+    case 'ots1': return v ? [[X[0] - 0.35, 1.5, 3.5], [X[1], 1.35, 0.15]] : [[X[0] - 0.45, 1.25, 2.5], [X[1], 0.95, 0.15]]
+    // muy de cerca: solo la cara (para remarcar una frase)
+    case 'xcu0': return v ? [[X[0] + 0.12, 1.0, 2.2], [X[0], 1.3, 0]] : [[X[0] + 0.12, 0.95, 1.5], [X[0], 0.92, 0]]
+    case 'xcu1': return v ? [[X[1] - 0.12, 1.0, 2.25], [X[1], 1.3, 0.15]] : [[X[1] - 0.12, 0.95, 1.55], [X[1], 0.92, 0.15]]
+    // contrapicado desde el suelo: los dos parecen grandes
+    case 'low': return v ? [[0.2, 0.28, 4.2], [0, 1.6, 0]] : [[0.2, 0.28, 3.4], [0, 1.1, 0]]
+    // picado desde arriba: se ve la maqueta entera
+    case 'high': return v ? [[1.2, 4.6, 4.4], [0, 1.3, 0]] : [[1.0, 3.8, 3.8], [0, 0.6, 0]]
+    // de lado: los dos de perfil, uno delante del otro
+    case 'side': return v ? [[3.4, 1.3, 1.6], [-0.2, 1.5, 0]] : [[3.0, 1.1, 1.4], [-0.1, 0.85, 0]]
     case 'screen': return v ? [[0, 1.05, 6.6], [0, 2.0, -3.9]] : [[0.3, 1.3, 4.6], [0, 1.9, -3.9]]
     default: return v ? [[0, 1.95, 6.3], [0, 1.85, 0]] : [[0, 1.5, 4.6], [0, 1.0, 0]]
   }
@@ -613,13 +674,22 @@ function placeCam(t) {
   const f = framing(sh.kind)
   const p = clamp((t - sh.start) / Math.max(0.5, sh.end - sh.start), 0, 1)
   const e = 1 - Math.pow(1 - p, 2)
+  const since = t - sh.start
   V.set(f[0][0], f[0][1], f[0][2])
   T.set(f[1][0], f[1][1], f[1][2])
+  // barrido rápido: la cámara llega de lado al plano (0,35 s)
+  if (sh.move === 'whip') T.x += (1 - ease(clamp(since / 0.35, 0, 1))) * (sh.kind.endsWith('1') ? -1.4 : 1.4)
   Q.copy(T).sub(V)
   if (sh.move === 'push') V.addScaledVector(Q, 0.16 * e)
   else if (sh.move === 'pull') V.addScaledVector(Q, 0.12 - 0.2 * e)
   else if (sh.move === 'crane') { V.y += 0.9 * (1 - e); V.addScaledVector(Q, -0.1 * (1 - e)) }
-  else {
+  else if (sh.move === 'orbit') {
+    // gira alrededor de los dos (unos 35°)
+    const a = 0.3 - 0.6 * e
+    const dx = V.x - T.x, dz = V.z - T.z
+    V.x = T.x + dx * Math.cos(a) - dz * Math.sin(a)
+    V.z = T.z + dx * Math.sin(a) + dz * Math.cos(a)
+  } else if (sh.move === 'arcL' || sh.move === 'arcR') {
     const a = (sh.move === 'arcL' ? -1 : 1) * (0.2 * e - 0.1)
     const dx = V.x - T.x, dz = V.z - T.z
     V.x = T.x + dx * Math.cos(a) - dz * Math.sin(a)
@@ -631,6 +701,10 @@ function placeCam(t) {
   T.x += Math.sin(t * 0.8 + 2) * 0.01
   cam.position.copy(V)
   cam.lookAt(T)
+  // golpe de zoom al empezar el plano; plano holandés (inclinado)
+  const fov = (W > H ? 34 : 40) * (sh.move === 'snap' ? 1 - 0.2 * ease(clamp(since / 0.22, 0, 1)) : 1)
+  if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix() }
+  if (sh.move === 'dutch') cam.rotateZ(0.13 * (sh.kind.endsWith('1') ? -1 : 1))
 }
 
 const tl = window.__timelines.main
