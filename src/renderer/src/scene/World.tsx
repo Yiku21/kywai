@@ -20,7 +20,7 @@ import { Backdrop } from './Backdrop'
 import { Circuits } from './Circuits'
 import { Zones } from './Zones'
 import { Decor } from './Decor'
-import { FOG_FAR, FOG_NEAR, mixColor, mixLights, nightOf, palette } from './palette'
+import { FOG_FAR, FOG_NEAR, dayOf, mixColor, mixLights, nightFog, nightOf, palette } from './palette'
 import { Core } from './Core'
 import { Station } from './Station'
 import { Robot } from './Robot'
@@ -29,7 +29,8 @@ import { Sparks } from './Sparks'
 import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
 import { CinemaLights } from './CinemaLights'
-import { DuskGrade, DuskVeil } from './DuskGrade'
+import { NightGlow } from './NightGlow'
+import { hasSpaceNight, nightBoost, spaceNight } from './nightLight'
 import { LabelProjector } from './LabelProjector'
 import { frameDue, sceneFps } from './frameRate'
 import { useSceneRest } from './sceneRest'
@@ -263,16 +264,22 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
   }, [theme, configuredStations, agents])
   const p = palette
   // Noche del espacio (0 de día, 1 de noche): con «Auto» sigue el reloj; si no, «Modo noche». La Oficina a mano cambia
-  // de tema ('sede') y el Refugio Kywai tiene su propia noche; las ventanas de la Oficina lo leen en officeClock.
+  // de tema ('sede'), el Refugio Kywai tiene su propia noche y Órbita no tiene (está en el espacio). Las ventanas de la
+  // Oficina lo leen en officeClock; lo que cambia con la noche en los demás temas (fuego, naves, luciérnagas), en spaceNight.
   const autoOn = useOfficeAuto(), clockNight = useOfficeNight(), manualNight = useSpaceNight()
-  const dusk = theme === 'kywai' || theme === 'sede' ? 0 : autoOn ? clockNight : theme === 'oficina' ? 0 : manualNight ? 1 : 0
+  const dusk = theme !== 'oficina' && !hasSpaceNight(theme) ? 0 : autoOn ? clockNight : theme === 'oficina' ? 0 : manualNight ? 1 : 0
   officeClock.night = theme === 'oficina' ? dusk : 0
+  spaceNight.value = theme === 'oficina' ? 0 : dusk
   const N = useMemo(() => nightOf(p), [p])
-  const L = night ? HOME_NIGHT_LIGHTS : dusk ? mixLights(p.lights, N.lights, dusk) : p.lights
+  const D = useMemo(() => dayOf(p), [p])
+  const L = night ? HOME_NIGHT_LIGHTS : dusk ? mixLights(D, N.lights, dusk) : D
   // Los entornos nuevos usan materiales físicos también en el suelo y la arquitectura.
   const worldLight = p.world ? (p.light ? 0.85 : 2.4) : 1
-  const fogNear = p.world === 'oficina' || p.world === 'sede' ? 70 : p.world === 'submarino' ? 30 : p.world === 'kywai' ? 160 : p.world === 'relicario' || p.world === 'telar' ? 68 : p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
-  const fogFar = p.world === 'oficina' ? 190 : p.world === 'sede' ? 170 : p.world === 'submarino' ? 78 : p.world === 'kywai' ? 300 : p.world === 'relicario' || p.world === 'telar' ? 185 : p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
+  const dayFogNear = p.world === 'oficina' || p.world === 'sede' ? 70 : p.world === 'submarino' ? 30 : p.world === 'kywai' ? 160 : p.world === 'relicario' || p.world === 'telar' ? 68 : p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
+  const dayFogFar = p.world ? 190 : p.world === 'sede' ? 170 : p.world === 'submarino' ? 78 : p.world === 'kywai' ? 300 : p.world === 'relicario' || p.world === 'telar' ? 185 : p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
+
+  // Matrix y EVA: de día la niebla se aparta y al anochecer se cierra (con las naves al fondo).
+  const [fogNear, fogFar] = nightFog(p.world, dayFogNear, dayFogFar, dusk)
 
   // Pausa total cuando la ventana o pestaña está oculta (y cuando el espacio 3D está cerrado: [paused]).
   useEffect(() => {
@@ -327,7 +334,7 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
         <SocialLife />
         <Decor stations={stations} q={q} reduced={reduced} />
       </group>
-      {!q.bloom && <DuskVeil dusk={theme === 'oficina' ? 0 : dusk} />}
+      <NightGlow key={`night-${theme}`} night={theme === 'oficina' ? 0 : dusk} boost={nightBoost(p.world)} />
       <CameraRig view={view} stations={stations} />
       <ViewShift view={view} />
       <LabelProjector />
@@ -335,10 +342,8 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
       {q.bloom && (
         <EffectComposer multisampling={q.msaa} enableNormalPass={false}>
           <N8AO enabled={!!p.world && q.ao} aoRadius={0.55} intensity={1.1} distanceFalloff={0.8} quality="medium" halfRes />
-          <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 + dusk * 1.1 : 1 + dusk * 0.3) * (night ? .8 : p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
-          <Vignette offset={0.28} darkness={night ? .25 : p.vignette + dusk * 0.25} />
-          {/* La Oficina ya tiene su noche hecha a mano (cielo, ciudad y ventanas). */}
-          <DuskGrade dusk={theme === 'oficina' ? 0 : dusk} />
+          <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 + dusk * 1.1 : 1 + dusk * 0.6) * (night ? .8 : p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
+          <Vignette offset={0.28} darkness={night ? .25 : p.vignette + dusk * 0.15} />
         </EffectComposer>
       )}
     </Canvas>

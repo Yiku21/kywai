@@ -765,16 +765,33 @@ export function mixColor(a: string, b: string, t: number): string {
 
 /**
  * La noche de cualquier tema (Modo noche o Auto): su mismo cielo, niebla y luces, pero oscuros y con luz de luna fría.
- * Los brillos (ventanas, circuitos, núcleo) no cambian, así que de noche destacan. La Oficina tiene la suya (OFFICE_NIGHT).
+ * Ya no hay ningún filtro encima de la imagen: lo oscuro sale de bajar las luces, y lo que tiene luz propia (neón,
+ * ventanas, fuego, que sube con NightGlow) destaca por contraste. La Oficina tiene la suya (OFFICE_NIGHT).
  */
 export function nightOf(p: ScenePalette): { bg: string; fog: string; lights: ScenePalette['lights'] } {
   if (p.world === 'oficina') return OFFICE_NIGHT
-  const L = p.lights, dark = p.light ? 0.86 : 0.72
+  const L = p.lights, dark = p.light ? 0.9 : 0.78
   return {
     bg: mixHex(p.bg, '#02040a', dark), fog: mixHex(p.fog, '#03060c', dark),
-    lights: { sky: mixHex(L.sky, '#1b2540', 0.7), ground: mixHex(L.ground, '#000000', 0.6), hemi: L.hemi * 0.4,
-      ambient: mixHex(L.ambient, '#8ea2d8', 0.5), ambientI: L.ambientI * 0.45, key: mixHex(L.key, '#a9bcff', 0.6), keyI: L.keyI * 0.42,
-      fill: mixHex(L.fill, '#4f6bb0', 0.4), fillI: L.fillI * 0.6, env: L.env.map((c) => mixHex(c, '#0a0f1c', 0.6)) as [string, string, string, string] }
+    lights: { sky: mixHex(L.sky, '#1b2540', 0.75), ground: mixHex(L.ground, '#000000', 0.7), hemi: L.hemi * 0.22,
+      ambient: mixHex(L.ambient, '#8ea2d8', 0.55), ambientI: L.ambientI * 0.3, key: mixHex(L.key, '#a9bcff', 0.7), keyI: L.keyI * 0.24,
+      fill: mixHex(L.fill, '#4f6bb0', 0.45), fillI: L.fillI * 0.35, env: L.env.map((c) => mixHex(c, '#0a0f1c', 0.7)) as [string, string, string, string] }
   }
 }
 
+/** La luz de día de cada tema: la de siempre, salvo el Clásico, algo más iluminado (el neón se queda igual). */
+export function dayOf(p: ScenePalette): ScenePalette['lights'] {
+  if (p.world !== 'clasico') return p.lights
+  const L = p.lights
+  return { ...L, hemi: L.hemi * 1.35, ambientI: L.ambientI * 1.4, keyI: L.keyI * 1.3, fillI: L.fillI * 1.25 }
+}
+
+/**
+ * Niebla del tema con la noche [night]: en Matrix y EVA, de día casi no hay y al anochecer se cierra poco a poco
+ * (con las naves al fondo); en el resto, la de siempre.
+ */
+export function nightFog(world: string | undefined, near: number, far: number, night: number): [number, number] {
+  if (world !== 'matrix' && world !== 'eva') return [near, far]
+  const dayNear = near + 40, dayFar = far + 110, nightNear = near * 0.55, nightFar = far * 0.82
+  return [dayNear + (nightNear - dayNear) * night, dayFar + (nightFar - dayFar) * night]
+}

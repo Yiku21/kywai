@@ -8,6 +8,8 @@ import { setAnchorObject } from '../anchors'
 import { useCowork } from '@/store/cowork'
 import { Model, type Vec } from './models'
 import { WorldModel } from './WorldScenery'
+import { GlowPoints } from '../GlowPoints'
+import { nightRamp, spaceNight } from '../nightLight'
 import { homeSkyGeometry } from './homeSkyGeometry'
 import { AtlantisCity } from './AtlantisCity'
 import { OceanGiants, LivingJellyfish, FishShoals } from './UnderseaLife'
@@ -199,18 +201,18 @@ function Bubbles({reduced,count}:{reduced:boolean;count:number}) {
  return <instancedMesh ref={mesh} args={[undefined,undefined,count]} frustumCulled={false}><sphereGeometry args={[1,12,10]}/><shaderMaterial transparent depthWrite={false} uniforms={{}} vertexShader={"varying vec3 bubbleNormal;varying vec3 bubbleView;void main(){vec4 p=modelViewMatrix*instanceMatrix*vec4(position,1.);bubbleNormal=normalize(normalMatrix*mat3(instanceMatrix)*normal);bubbleView=normalize(-p.xyz);gl_Position=projectionMatrix*p;}"} fragmentShader={"varying vec3 bubbleNormal;varying vec3 bubbleView;void main(){float rim=pow(1.-abs(dot(normalize(bubbleNormal),normalize(bubbleView))),2.4);float shine=pow(max(0.,dot(normalize(bubbleNormal),normalize(vec3(-.4,.8,1.)))),32.);gl_FragColor=vec4(vec3(.45,.85,1.)+shine*.7,rim*.58+shine*.65+.015);}"}/></instancedMesh>
 }
 function SunRays({reduced}:{reduced:boolean}) {
- const mat=useMemo(()=>new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,uniforms:{time:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform float time;varying vec2 vUv;void main(){float x=sin(vUv.x*3.14159);float a=pow(x,3.)*.045*(.7+.3*sin(time*.4+vUv.x*18.))*pow(vUv.y,.7);gl_FragColor=vec4(.3,.88,1.,a);}'}),[])
+ const mat=useMemo(()=>new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,uniforms:{time:{value:0},uNight:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform float time;uniform float uNight;varying vec2 vUv;void main(){float x=sin(vUv.x*3.14159);float a=pow(x,3.)*.045*(.7+.3*sin(time*.4+vUv.x*18.))*pow(vUv.y,.7)*(1.-.85*uNight);gl_FragColor=vec4(.3,.88,1.,a);}'}),[])
  useEffect(()=>()=>mat.dispose(),[mat]);useFrame(()=>{mat.uniforms.time.value=reduced?0:registry.time})
  return <group>{Array.from({length:15},(_,i)=><mesh key={i} material={mat} position={[-9+i*1.25,7,-9-(i%4)*3]} rotation={[0,0,-.12+(i-7)*.028]}><planeGeometry args={[.55+rand(i)*1.2,18]}/></mesh>)}</group>
 }
 function WaterCeiling({reduced}:{reduced:boolean}) {
  const surface=useRef<THREE.Mesh>(null!)
- const material=useMemo(()=>new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:{time:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`uniform float time;varying vec2 vUv;void main(){vec2 p=vUv*130.;float w=sin(p.x*2.+sin(p.y*1.5+time*.3)*1.5+time*.45)*sin(p.y*2.4+sin(p.x+time*.2));float line=pow(abs(w),10.);vec3 col=mix(vec3(.015,.34,.45),vec3(.05,.7,.79),.5+w*.3);col+=vec3(.45,.9,1.)*line*1.1;gl_FragColor=vec4(col,1.);}`}),[])
+ const material=useMemo(()=>new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:{time:{value:0},uNight:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`uniform float time;uniform float uNight;varying vec2 vUv;void main(){vec2 p=vUv*130.;float w=sin(p.x*2.+sin(p.y*1.5+time*.3)*1.5+time*.45)*sin(p.y*2.4+sin(p.x+time*.2));float line=pow(abs(w),10.);vec3 col=mix(vec3(.015,.34,.45),vec3(.05,.7,.79),.5+w*.3);col+=vec3(.45,.9,1.)*line*1.1;col*=1.-.86*uNight;gl_FragColor=vec4(col,1.);}`}),[])
  useEffect(()=>()=>material.dispose(),[material]);useFrame((state)=>{material.uniforms.time.value=reduced?0:registry.time;surface.current.position.y=Math.max(11.6,state.camera.position.y+2.5)})
  return <mesh ref={surface} rotation={[Math.PI/2,0,0]} position={[0,11.6,-45]} material={material}><planeGeometry args={[200,220]}/></mesh>
 }
 export function UnderseaWorld({stations,reduced,detailed}:{stations:StationConfig[];reduced:boolean;detailed:boolean}) {
- return <group><Suspense fallback={null}><Seabed reduced={reduced}/><PearlShell reduced={reduced}/></Suspense><ReefGarden stations={stations} detailed={detailed} reduced={reduced}/><SeaTreasures/><Suspense fallback={null}><ReefAccents detailed={detailed} reduced={reduced}/></Suspense><Suspense fallback={null}><AtlantisCity detailed={detailed}/><OceanGiants reduced={reduced}/></Suspense><WaterDepth/><MantaRay reduced={reduced}/><WaterCeiling reduced={reduced}/><SunRays reduced={reduced}/><Bubbles reduced={reduced} count={detailed?180:80}/><Suspense fallback={null}><FishShoals detailed={detailed} reduced={reduced}/></Suspense><LivingJellyfish at={[-12,8,-9]} seed={1} scale={1.25} reduced={reduced}/><LivingJellyfish at={[11,8,-13]} seed={4} scale={1.65} reduced={reduced}/><LivingJellyfish at={[3.4,6,-18]} seed={9} scale={.7} reduced={reduced}/><LivingJellyfish at={[-2,7,-21]} seed={12} scale={.6} reduced={reduced}/><LivingJellyfish at={[-7,9,-34]} seed={15} scale={.5} reduced={reduced}/><LivingJellyfish at={[17,9,-36]} seed={18} scale={.65} reduced={reduced}/></group>
+ return <group><Suspense fallback={null}><Seabed reduced={reduced}/><PearlShell reduced={reduced}/></Suspense><ReefGarden stations={stations} detailed={detailed} reduced={reduced}/><SeaTreasures/><Suspense fallback={null}><ReefAccents detailed={detailed} reduced={reduced}/></Suspense><Suspense fallback={null}><AtlantisCity detailed={detailed}/><OceanGiants reduced={reduced}/></Suspense><WaterDepth/><MantaRay reduced={reduced}/><WaterCeiling reduced={reduced}/><SunRays reduced={reduced}/><Bioluminescence detailed={detailed} reduced={reduced}/><Bubbles reduced={reduced} count={detailed?180:80}/><Suspense fallback={null}><FishShoals detailed={detailed} reduced={reduced}/></Suspense><LivingJellyfish at={[-12,8,-9]} seed={1} scale={1.25} reduced={reduced}/><LivingJellyfish at={[11,8,-13]} seed={4} scale={1.65} reduced={reduced}/><LivingJellyfish at={[3.4,6,-18]} seed={9} scale={.7} reduced={reduced}/><LivingJellyfish at={[-2,7,-21]} seed={12} scale={.6} reduced={reduced}/><LivingJellyfish at={[-7,9,-34]} seed={15} scale={.5} reduced={reduced}/><LivingJellyfish at={[17,9,-36]} seed={18} scale={.65} reduced={reduced}/></group>
 }
 function MantaRay({reduced}:{reduced:boolean}) {
  const root=useRef<THREE.Group>(null!),left=useRef<THREE.Mesh>(null!),right=useRef<THREE.Mesh>(null!)
@@ -241,12 +243,14 @@ function WaterDepth() {
  const dome=useRef<THREE.Mesh>(null!)
  const resources=useMemo(()=>({geometry:homeSkyGeometry(),material:new THREE.ShaderMaterial({
   side:THREE.BackSide,depthWrite:false,depthTest:false,
-  uniforms:{deep:{value:new THREE.Color('#075570')},light:{value:new THREE.Color('#047a98')}},
+  uniforms:{deep:{value:new THREE.Color('#075570')},light:{value:new THREE.Color('#047a98')},uNight:{value:0}},
   vertexShader:'varying vec3 waterDirection;void main(){waterDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:`uniform vec3 deep;uniform vec3 light;varying vec3 waterDirection;
+  fragmentShader:`uniform vec3 deep;uniform vec3 light;uniform float uNight;varying vec3 waterDirection;
    void main(){vec3 d=normalize(waterDirection);float height=smoothstep(-.25,.65,d.y);
-   float sun=pow(max(0.,dot(d,normalize(vec3(-.3,.8,-.5)))),8.);
-   gl_FragColor=vec4(mix(deep,light,height*.6+sun*.35),1.);
+   float sun=pow(max(0.,dot(d,normalize(vec3(-.3,.8,-.5)))),8.)*(1.-uNight);
+   vec3 water=mix(deep,light,height*.6+sun*.35);
+   // De noche el agua se vuelve casi negra, azul muy profundo (lo que brilla es la vida del arrecife).
+   gl_FragColor=vec4(mix(water,mix(vec3(.004,.03,.05),vec3(.006,.05,.075),height),uNight),1.);
    #include <colorspace_fragment>
   }`
  })}),[])
@@ -270,6 +274,27 @@ function ReefAccents({detailed,reduced}:{detailed:boolean;reduced:boolean}) {
  useFrame(()=>{root.current.children.forEach((g,i)=>{g.rotation.z=reduced?0:Math.sin(registry.time*.45+i)*.012})})
  return <group ref={root}>{Array.from({length:detailed?52:26},(_,i)=>{
   const x=(i%2?1:-1)*(10+rand(i+631)*7),z=-19+rand(i+441)*32,r=.45+rand(i+77)*.8
-  return <group key={i} position={[x,-.35,z]}>{[0,1,2].map(j=><mesh key={j} geometry={resources.plate} material={resources.material} position={[Math.sin(j*2.4)*.32,j*.24,Math.cos(j*2.4)*.3]} scale={[r*(1-j*.18),1,r*(1-j*.18)]} rotation={[.12*Math.sin(i),i*.8+j,.12*Math.cos(i)]} castShadow receiveShadow/>)}{i%2===0&&[0,1,2,3].map(j=><group key={'s'+j} position={[.7+Math.sin(j*2.4)*.3,.2+rand(i+j)*.25,Math.cos(j*2.4)*.3]} rotation={[.1*Math.sin(j),0,.12*Math.cos(j)]}><mesh geometry={resources.sponge} material={resources.spongeMaterial} scale={[1,.7+rand(i+j)*.7,1]} castShadow/><mesh position={[0,(.7+rand(i+j)*.7)*.5,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.19,.025,6,20]}/><meshStandardMaterial color="#69d8ec" roughness={.6}/></mesh></group>)}</group>
+  return <group key={i} position={[x,-.35,z]}>{[0,1,2].map(j=><mesh key={j} geometry={resources.plate} material={resources.material} position={[Math.sin(j*2.4)*.32,j*.24,Math.cos(j*2.4)*.3]} scale={[r*(1-j*.18),1,r*(1-j*.18)]} rotation={[.12*Math.sin(i),i*.8+j,.12*Math.cos(i)]} castShadow receiveShadow/>)}{i%2===0&&[0,1,2,3].map(j=><group key={'s'+j} position={[.7+Math.sin(j*2.4)*.3,.2+rand(i+j)*.25,Math.cos(j*2.4)*.3]} rotation={[.1*Math.sin(j),0,.12*Math.cos(j)]}><mesh geometry={resources.sponge} material={resources.spongeMaterial} scale={[1,.7+rand(i+j)*.7,1]} castShadow/><mesh position={[0,(.7+rand(i+j)*.7)*.5,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.19,.025,6,20]}/><meshStandardMaterial color="#69d8ec" roughness={.6} emissive="#2ff0ff" emissiveIntensity={0} userData={{nightEmissive:1.6}}/></mesh></group>)}</group>
  })}</group>
+}
+
+/**
+ * Bioluminiscencia: de noche el agua se llena de plancton que brilla en turquesa, azul y algo de violeta, a la
+ * deriva entre el arrecife; de día no se ve. (Los corales y medusas también se encienden, con NightGlow.)
+ */
+function Bioluminescence({detailed,reduced}:{detailed:boolean;reduced:boolean}) {
+ const group=useRef<THREE.Group>(null!)
+ const data=useMemo(()=>{
+  const n=detailed?420:200,positions:number[]=[],colors:number[]=[]
+  const palette=[new THREE.Color('#38f6ff'),new THREE.Color('#2a8bff'),new THREE.Color('#5dffc8'),new THREE.Color('#9b7bff')]
+  for(let i=0;i<n;i++){
+   const x=(rand(i+901)*2-1)*22,z=-32+rand(i+1301)*44,y=-.2+Math.pow(rand(i+1701),1.6)*9.5
+   if(Math.hypot(x,z)<1.6&&y<3)continue
+   positions.push(x,y,z)
+   const c=palette[i%4].clone().multiplyScalar(1.6+rand(i+2101)*1.4);colors.push(c.r,c.g,c.b)
+  }
+  return {positions,colors}
+ },[detailed])
+ useFrame(()=>{group.current.visible=nightRamp(spaceNight.value,.15,.5)>.02})
+ return <group ref={group} visible={false}><GlowPoints positions={data.positions} colors={data.colors} size={.13} flicker={reduced?0:.45} fall={reduced?0:-.05} fallBase={-.3} fallHeight={10} sway={.5} opacity={.9} nightGain={1.2} reduced={reduced}/></group>
 }

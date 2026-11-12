@@ -10,7 +10,7 @@ import { OrbitalPlanet } from './OrbitalPlanet'
 import { useCowork } from '@/store/cowork'
 import { ForestFloor } from './ForestFloor'
 import { ForestGrove } from './ForestGrove'
-import { ForestAmbience } from './ForestAmbience'
+import { ForestAmbience, ForestCampfires } from './ForestAmbience'
 import { forestStands, type ForestTree } from './forestLayout'
 import { environmentDetails, platformDetails } from './details'
 import { WorldMarkings } from './WorldMarkings'
@@ -25,6 +25,13 @@ import { UnderseaPlatform } from './UnderseaWorld'
 import { MarfilGarden } from './MarfilGarden'
 import { CORPORATE_GLASS, OFFICE_AFTER_DARK, isCorporate } from './corporateWorlds'
 import { officeClock } from '@/lib/officeClock'
+import { NightRadiance } from '../NightRadiance'
+
+/** Luces que irradian de noche desde lo que brilla en cada mapa (cuántas, cuánta luz y hasta dónde llegan). */
+const RADIANCE: Partial<Record<WorldStyle, { max: number; power: number; distance: number }>> = {
+  grafito: { max: 6, power: 14, distance: 11 }, clasico: { max: 5, power: 10, distance: 10 },
+  matrix: { max: 4, power: 9, distance: 10 }, eva: { max: 4, power: 10, distance: 10 }
+}
 
 /** Shared geometry and material per batch; cleaned up when changing theme. No per-frame rebuilds. */
 export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
@@ -162,6 +169,7 @@ const rainVertex = /* glsl */ `
 const rainFragment = /* glsl */ `
   uniform float time;
   uniform sampler2D glyphs;
+  uniform float uNight;
   varying vec2 vUv;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   void main() {
@@ -173,7 +181,8 @@ const rainFragment = /* glsl */ `
     vec2 atlas = (vec2(mod(index, 8.0), floor(index / 8.0)) + local) / 8.0;
     float digit = texture2D(glyphs, atlas).a;
     float alpha = digit * tail * smoothstep(0.0, 0.08, vUv.y) * (1.0 - smoothstep(0.9, 1.0, vUv.y));
-    gl_FragColor = vec4(mix(vec3(0.04, 0.8, 0.25), vec3(0.65, 1.0, 0.8), pow(head, 35.0)) * 1.3, alpha * 0.7);
+    // De noche las letras verdes brillan más (y con el bloom iluminan la niebla).
+    gl_FragColor = vec4(mix(vec3(0.04, 0.8, 0.25), vec3(0.65, 1.0, 0.8), pow(head, 35.0)) * (1.3 + 1.4 * uNight), alpha * (0.7 + 0.25 * uNight));
   }
 `
 
@@ -187,7 +196,7 @@ function CodeRain({ reduced }: { reduced: boolean }) {
     return new THREE.CanvasTexture(canvas)
   }, [])
   const material = useMemo(() => new THREE.ShaderMaterial({ vertexShader: rainVertex, fragmentShader: rainFragment,
-    transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { time: { value: 8 }, glyphs: { value: glyphs } } }), [glyphs])
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { time: { value: 8 }, glyphs: { value: glyphs }, uNight: { value: 0 } } }), [glyphs])
   useEffect(() => () => { material.dispose(); glyphs.dispose() }, [material, glyphs])
   useFrame(() => { material.uniforms.time.value = reduced ? 8 : registry.time })
   return <group>
@@ -216,6 +225,7 @@ export function WorldScenery({ style, stations, q, reduced }: { style: WorldStyl
   const trees = useMemo(() => style === 'bosque' ? forestStands(stations, detail) : [], [style, stations, detail])
   return <group name={`environment-${style}`}>
     <WorldModel pieces={pieces} style={style} />
+    {RADIANCE[style] && <NightRadiance pieces={pieces} {...RADIANCE[style]} />}
     {(HERITAGE_WORLDS as readonly string[]).includes(style) && <HeritageAtmosphere style={style} stations={stations} reduced={reduced} detailed={detail} />}
     <WorldMarkings style={style} stations={stations} />
     {style === 'grafito' && <IndustrialFactory stations={stations} reduced={reduced} detailed={detail} />}
@@ -226,7 +236,9 @@ export function WorldScenery({ style, stations, q, reduced }: { style: WorldStyl
       <ForestFloor stations={stations} detail={detail} />
       <ForestGrove trees={trees} detailed={detail} reduced={reduced} />
       <ForestAmbience trees={trees} detailed={detail} reduced={reduced} />
+      <ForestCampfires stations={stations} reduced={reduced} />
     </>}
+    {style === 'eva' && <MatrixAtmosphere reduced={reduced} detailed={detail} variant="eva" />}
     {style === 'matrix' && <><CodeRain reduced={reduced} /><FloatingVoxels reduced={reduced} /><MatrixAtmosphere reduced={reduced} detailed={detail} /></>}
   </group>
 }

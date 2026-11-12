@@ -13,7 +13,7 @@ import { useSyncExternalStore } from 'react'
 import { setScenePalette } from '@/scene/palette'
 import type { WorldStyle } from '@/scene/worlds/models'
 import { t } from '@/lib/i18n'
-import { officeAuto, officeNight, onOfficeClock } from '@/lib/officeClock'
+import { officeAuto, officeNight, onOfficeClock, spaceNightOn } from '@/lib/officeClock'
 
 /**
  * Los colores de la Ciudad digital, con nombres propios para no repetir los de los mapas. Los ids son los de cuando
@@ -129,6 +129,7 @@ export function applyTheme(id: ThemeId): void {
   const root = document.documentElement
   // La Oficina en automático: la interfaz pasa a los colores de noche cuando ya casi ha anochecido.
   root.dataset.theme = id === 'oficina' && officeAuto() && officeNight() > 0.6 ? 'sede' : uiThemeOf(id)
+  markSpaceNight()
   const world = worldOf(id)
   if (world) root.dataset.world = world
   else delete root.dataset.world
@@ -259,4 +260,18 @@ if (typeof window !== 'undefined') {
 }
 
 // El reloj de la Oficina automática cambia los colores de la interfaz al anochecer y al amanecer.
-onOfficeClock(() => { if (current === 'oficina' && typeof document !== 'undefined') document.documentElement.dataset.theme = officeAuto() && officeNight() > 0.6 ? 'sede' : 'oficina' })
+/**
+ * data-space-night en <html>: el espacio está de noche (Modo noche, o Auto ya casi de noche). Los temas de interfaz
+ * clara que lo necesitan (Marfil) pasan a sus colores de noche con él; Órbita no tiene noche.
+ */
+function markSpaceNight(): void {
+  if (typeof document === 'undefined') return
+  const nightNow = officeAuto() ? officeNight() > 0.6 : spaceNightOn()
+  document.documentElement.dataset.spaceNight = String(nightNow && current !== 'mundo-orbita')
+}
+
+onOfficeClock(() => {
+  if (typeof document === 'undefined') return
+  if (current === 'oficina') document.documentElement.dataset.theme = officeAuto() && officeNight() > 0.6 ? 'sede' : 'oficina'
+  markSpaceNight()
+})

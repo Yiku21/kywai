@@ -3,6 +3,10 @@ import * as THREE from 'three'
 import { forestRandom } from './forestLayout'
 import { palaceCourt } from './marfilPalace'
 import { MarfilWater } from './MarfilWater'
+import { Bonfire, Torch } from './NightFire'
+
+/** Antorchas a los lados del patio y un brasero delante: se encienden al anochecer (lejos de los puestos). */
+const TORCHES: [number, number, number][] = [-1, 1].flatMap((side) => [-12, -3.5, 5].map((z) => [side * 9.2, 0, z] as [number, number, number]))
 
 function mosaicTexture() {
   const canvas = document.createElement('canvas')
@@ -90,6 +94,7 @@ varying vec3 direction;
 void main(){ direction=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`
 const skyFragment = /* glsl */ `
 varying vec3 direction;
+uniform float uNight;
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.0),f.x),f.y); }
 float clouds(vec2 p){ return .57*noise(p)+.27*noise(p*2.04+7.1)+.12*noise(p*4.15-9.4)+.04*noise(p*8.41); }
@@ -102,19 +107,27 @@ void main(){
   float billow=clouds(p);
   float cover=smoothstep(.35,.66,billow) * (1.0-.59*smoothstep(-.10,.51,ray.y));
   vec3 white=mix(vec3(.68,.76,.80),vec3(.99,.96,.89),smoothstep(.36,.67,billow)+sun*.14);
-  gl_FragColor=vec4(mix(blue,white,cover),1.0);
+  vec3 day=mix(blue,white,cover);
+  // De noche: azul muy oscuro, nubes grises apenas iluminadas por la luna y estrellas entre ellas.
+  vec3 deep=mix(vec3(.012,.018,.035),vec3(.003,.006,.016),height);
+  float moon=pow(max(0.0,dot(ray,normalize(vec3(.55,.42,-1.0)))),900.0)*3.0+pow(max(0.0,dot(ray,normalize(vec3(.55,.42,-1.0)))),28.0)*.12;
+  vec2 grid=floor(ray.xz/(ray.y+1.2)*260.0);
+  float star=step(.9975,hash(grid))*smoothstep(.05,.35,ray.y)*(1.0-cover);
+  vec3 night=mix(deep,vec3(.022,.026,.038),cover*.8)+vec3(.85,.88,1.0)*(moon+star*.9);
+  gl_FragColor=vec4(mix(day,night,uNight),1.0);
   #include <colorspace_fragment>
 }`
 
 const mistVertex = /* glsl */ `varying vec2 cloudUv; void main(){cloudUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`
 const mistFragment = /* glsl */ `
 varying vec2 cloudUv;
+uniform float uNight;
 void main(){
   vec2 p=cloudUv-.5;
   float swell=sin(p.x*39.0+.5)*.092+sin(p.x*73.0)*.043+sin(p.x*19.0)*.1;
   float veil=exp(-pow((p.y+swell)*3.0,2.0))*(1.0-smoothstep(.07,.5,abs(p.x)));
   float taper=smoothstep(0.0,.22,cloudUv.y)*(1.0-smoothstep(.71,1.0,cloudUv.y));
-  gl_FragColor=vec4(.88,.92,.92,veil*taper*.47);
+  gl_FragColor=vec4(mix(vec3(.88,.92,.92),vec3(.09,.11,.16),uNight),veil*taper*mix(.47,.3,uNight));
   #include <colorspace_fragment>
 }`
 
@@ -126,10 +139,13 @@ export function MarfilGarden({ reduced, detailed }: { reduced: boolean; detailed
     return new THREE.ExtrudeGeometry(triangle, { depth: .27, bevelEnabled: true, bevelThickness: .036, bevelSize: .033, bevelSegments: 2 })
   }, [])
   useEffect(() => () => { mosaic.dispose(); pediment.dispose() }, [mosaic, pediment])
+  // Cielo y bruma de noche (NightGlow pone uNight en todos los materiales que lo tienen).
+  const sky = useMemo(() => ({ uNight: { value: 0 } }), [])
+  const mist = useMemo(() => [0, 1, 2].map(() => ({ uNight: { value: 0 } })), [])
   return <>
     <mesh raycast={() => {}} renderOrder={-10}>
       <sphereGeometry args={[149, 48, 24]} />
-      <shaderMaterial vertexShader={skyVertex} fragmentShader={skyFragment} side={THREE.BackSide} depthWrite={false} toneMapped={false} />
+      <shaderMaterial vertexShader={skyVertex} fragmentShader={skyFragment} uniforms={sky} side={THREE.BackSide} depthWrite={false} toneMapped={false} />
     </mesh>
     <mesh position={[0, -.0405, palaceCourt.z]} rotation-x={-Math.PI / 2} receiveShadow raycast={() => {}}>
       <planeGeometry args={[palaceCourt.width, palaceCourt.depth]} />
@@ -140,8 +156,10 @@ export function MarfilGarden({ reduced, detailed }: { reduced: boolean; detailed
     </mesh>
     {[-15, -33, -54].map((z, i) => <mesh key={z} position={[i % 2 ? 7 : -5, -4.1 + i * 1.15, z]} raycast={() => {}}>
       <planeGeometry args={[62 + i * 16, 9 + i * 2]} />
-      <shaderMaterial vertexShader={mistVertex} fragmentShader={mistFragment} side={THREE.DoubleSide} transparent depthWrite={false} toneMapped={false} />
+      <shaderMaterial vertexShader={mistVertex} fragmentShader={mistFragment} uniforms={mist[i]} side={THREE.DoubleSide} transparent depthWrite={false} toneMapped={false} />
     </mesh>)}
     <MarfilWater detailed={detailed} reduced={reduced} />
+    {TORCHES.map((at, i) => <Torch key={i} position={at} seed={i * 1.7} reduced={reduced} />)}
+    <Bonfire position={[0, 0, 9.7]} scale={0.8} seed={4.2} reduced={reduced} />
   </>
 }

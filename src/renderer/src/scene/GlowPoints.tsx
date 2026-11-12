@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { registry } from './registry'
 import { glowBlending } from './palette'
+import { spaceNight } from './nightLight'
 
 const vert = /* glsl */ `
   uniform float uTime;
@@ -35,13 +36,14 @@ const vert = /* glsl */ `
 
 const frag = /* glsl */ `
   uniform float uOpacity;
+  uniform float uGain;
   varying vec3 vColor;
   varying float vAlpha;
   void main() {
     float d = length(gl_PointCoord - 0.5);
     float a = smoothstep(0.5, 0.0, d);
     a *= a;
-    gl_FragColor = vec4(vColor * (0.8 + 0.4 * vAlpha), a * uOpacity * min(vAlpha, 1.0));
+    gl_FragColor = vec4(vColor * (0.8 + 0.4 * vAlpha) * uGain, a * uOpacity * min(vAlpha, 1.0));
   }
 `
 
@@ -66,10 +68,12 @@ export interface GlowPointsProps {
   reduced?: boolean
   /** Se avivan cuando el equipo trabaja (registry.work): las luciérnagas del Bosque. */
   lively?: boolean
+  /** Cuánto más brillan de noche (spaceNight): 1 = el doble. Velas, luces de árbol y luciérnagas lucen más a oscuras. */
+  nightGain?: number
 }
 
 /** Puntos de luz blandos: llamas de vela, luces de árbol, destellos o copos de nieve que caen. */
-export function GlowPoints({ positions, colors, color = '#ffffff', intensity = 1, size, flicker = 0, fall = 0, fallHeight = 10, fallBase = 0, sway = 0, opacity = 1, reduced = false, lively = false }: GlowPointsProps) {
+export function GlowPoints({ positions, colors, color = '#ffffff', intensity = 1, size, flicker = 0, fall = 0, fallHeight = 10, fallBase = 0, sway = 0, opacity = 1, reduced = false, lively = false, nightGain = 0.7 }: GlowPointsProps) {
   const height = useThree((s) => s.size.height)
   const dpr = useThree((s) => s.viewport.dpr)
   const geo = useMemo(() => {
@@ -104,7 +108,8 @@ export function GlowPoints({ positions, colors, color = '#ffffff', intensity = 1
           uFallH: { value: fallHeight },
           uFallBase: { value: fallBase },
           uSway: { value: sway },
-          uOpacity: { value: opacity }
+          uOpacity: { value: opacity },
+          uGain: { value: 1 }
         }
       }),
     [size, flicker, fall, fallHeight, fallBase, sway, opacity]
@@ -113,7 +118,10 @@ export function GlowPoints({ positions, colors, color = '#ffffff', intensity = 1
   useEffect(() => () => mat.dispose(), [mat])
   useFrame(() => {
     mat.uniforms.uTime.value = registry.time * (reduced ? 0.25 : 1)
-    if (lively) mat.uniforms.uOpacity.value = opacity * (0.6 + 0.45 * registry.work)
+    const n = spaceNight.value
+    if (lively) mat.uniforms.uOpacity.value = Math.min(1, opacity * (0.6 + 0.45 * registry.work) * (1 + 0.5 * n))
+    mat.uniforms.uGain.value = 1 + nightGain * n
+    mat.uniforms.uSize.value = size * (1 + 0.08 * Math.min(nightGain, 1) * n)
     // Píxeles por metro a un metro de distancia con el campo de visión de la cámara (30°).
     mat.uniforms.uScale.value = (height * dpr) / (2 * Math.tan((15 * Math.PI) / 180))
   })

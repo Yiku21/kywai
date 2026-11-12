@@ -6,6 +6,7 @@ import { earthVertex } from './earthShaders'
 import { reactorPipes, reactorVents } from './grafitoFactory'
 import { IndustrialPipes, SteamPlumes } from './IndustrialEffects'
 import { stencil } from './WorldMarkings'
+import { spaceNight } from '../nightLight'
 
 const furnace = /* glsl */ `
 uniform float time;
@@ -71,7 +72,10 @@ export function GrafitoReactor({ reduced, charge }: { reduced: boolean; charge: 
     crown.current.rotation.y = t * .65
     rotor.current.rotation.y = -t * .91
     needle.current.rotation.z = -.41 - load * .62
-    light.current.intensity = 3.7 + load * 2.3
+    // De noche el reactor irradia mucho más y más lejos: ilumina los puestos de alrededor.
+    const n = spaceNight.value
+    light.current.intensity = (3.7 + load * 2.3) * (1 + 3 * n)
+    light.current.distance = 6.5 + 7 * n
   })
 
   return <>

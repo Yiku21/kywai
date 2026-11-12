@@ -12,6 +12,7 @@ import s from './HomeNightToggle.module.css'
  * - Modo noche a mano: en la Oficina pasa a su versión de noche ('sede', se sincroniza como un cambio de tema); en el
  *   Refugio Kywai, su propia noche; en los demás, el mismo escenario con la luz de noche (preferencia del dispositivo).
  * Tocar «Modo noche» con Auto encendido lo apaga y deja fijado lo contrario de lo que se ve.
+ * Órbita no los tiene: la estación está en el espacio y allí no hay día ni noche.
  */
 export function HomeNightToggle(){
   const theme=useTheme(),homeNight=useHomeNight(),auto=useOfficeAuto(),dusk=useOfficeNight(),spaceNight=useSpaceNight()
@@ -29,6 +30,7 @@ export function HomeNightToggle(){
     setOfficeAuto(next)
     if(next&&theme==='sede')setTheme('oficina')
   }
+  if(theme==='mundo-orbita')return null
   return <span className={s.group}>
     <button type="button" role="switch" aria-checked={night} aria-label={t('Modo noche')} title={t('Modo noche')} className={s.toggle} onClick={toggle}>
       <Icon size={15} aria-hidden="true" /><span className={s.label}>{t('Modo noche')}</span>

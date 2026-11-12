@@ -364,8 +364,10 @@
 /* Refugio Kywai: limestone, oak and a quiet turquoise accent. */
 :root[data-theme='kywai'] { --bg-app:#e9dfcf; --bg-panel:#f4eddf; --bg-surface:#faf5ea; --bg-input:#fffbf2; --cyan:#358c82; --accent-text:#28695f; --stage:#d7bb9a; --label-text:#443a2d; --label-dim:#766956; }
 
-/* Refugio Kywai at night; the preference only changes this home. */
-:root[data-theme='kywai'][data-kywai-night='true']{
+/* Refugio Kywai at night; the preference only changes this home.
+   Marfil (y Perla) con el espacio de noche usan los mismos colores: piedra a la luz de las antorchas. */
+:root[data-theme='kywai'][data-kywai-night='true'],
+:root[data-theme='marfil'][data-space-night='true']{
   --update:#ffd23f;--update-rgb:255,210,63;
   --bg-app:#08121d;--bg-panel:#101e2b;--bg-surface:#182b39;--bg-elevated:#203444;--bg-input:#0b1926;
   --bg-hover:rgba(210,225,239,.06);--bg-active:rgba(228,187,115,.12);--line-rgb:167,194,213;--wash-rgb:167,194,213;

@@ -3680,14 +3680,34 @@ Son dos ids de tema, así que el cambio de día a noche se guarda en el servidor
 cualquier cambio de tema. Los muebles se quitan solos si un puesto cae encima, y el vidrio es transparente de verdad
 (no da sombra). Órbita no tiene el interruptor: muestra «Oficina» y «Oficina · noche» en su lista, con sus colores.
 
-**Modo noche y Auto en todos los temas.** En la cabecera del espacio, junto a Música, todos los temas tienen el
-interruptor **Modo noche** y el botón **Auto** (el del reloj). Modo noche pone el escenario de noche: el mismo cielo,
-niebla y luces de su tema, pero oscuros y con luz de luna fría, así que las ventanas, los circuitos y el núcleo
-destacan (`nightOf` en `scene/palette.ts`). Con **Auto**, el escenario anochece y amanece poco a poco con la hora del
-reloj de ese dispositivo (de 17:00 a 20:30 y de 6:00 a 8:00). La Oficina usa su versión de noche y el Refugio Kywai su
-propia noche (con Auto, de noche desde que ha anochecido a medias). Las dos cosas se recuerdan en cada dispositivo
-(`aicowork.space.night` y `aicowork.oficina.auto`), y tocar «Modo noche» con Auto encendido vuelve al modo manual. Los
-colores de la interfaz no cambian, salvo en la Oficina y el Refugio Kywai.
+**Modo noche y Auto en todos los temas.** En la cabecera del espacio, junto a Música, los temas tienen el
+interruptor **Modo noche** y el botón **Auto** (el del reloj). Con **Auto**, el escenario anochece y amanece poco a poco
+con la hora del reloj de ese dispositivo (de 17:00 a 20:30 y de 6:00 a 8:00). Las dos cosas se recuerdan en cada
+dispositivo (`aicowork.space.night` y `aicowork.oficina.auto`), y tocar «Modo noche» con Auto encendido vuelve al modo
+manual. La Oficina usa su versión de noche y el Refugio Kywai su propia noche. **Órbita no tiene día ni noche** (está en
+el espacio): allí no salen los botones.
+
+La noche es luz de verdad, no un filtro encima de la imagen:
+- Las luces del tema bajan a luz de luna (`nightOf` en `scene/palette.ts`) y el cielo y la niebla se oscurecen.
+- Lo que tiene luz propia (neón, pantallas, ventanas, fuego, ojos de los robots) brilla más (`scene/NightGlow.tsx`,
+  cuánto en `nightBoost` de `scene/nightLight.ts`), y en el Clásico, Grafito, Matrix y EVA unas luces puntuales
+  colocadas en lo que más brilla irradian alrededor (`scene/NightRadiance.tsx`).
+- Lo que cambia en cada tema lee la noche en `spaceNight` (0 de día, 1 de noche):
+  - **Clásico**: de día más iluminado (el neón igual, `dayOf`); de noche el neón y las líneas brillan mucho más.
+  - **Marfil**: cielo de noche con luna y estrellas, seis antorchas a los lados del patio y un brasero delante que
+    se encienden al atardecer (`worlds/NightFire.tsx`). La interfaz pasa a colores oscuros (`data-space-night` en
+    `<html>`, también en Perla).
+  - **Grafito**: el horno y el reactor irradian mucho más lejos, y los conductos y tiras incandescentes dan luz.
+  - **Bosque**: dos hogueras en el claro (lejos de los puestos) y luciérnagas mucho más brillantes; los rayos de
+    sol se apagan y salen estrellas.
+  - **Matrix y EVA**: de día casi no hay niebla ni máquinas; al atardecer la niebla se espesa y las máquinas van
+    llegando una a una al fondo (en EVA, moradas con ojos verde lima, por encima del muro). Las letras verdes de
+    Matrix brillan más.
+  - **Fondo marino**: el agua se vuelve azul casi negro y aparece plancton bioluminiscente; medusas y corales se
+    encienden.
+  - **Ciudad digital y los decorados** (Relicario, Telar, Halloween y Navidad): luz de noche, más brillo en lo que
+    tiene luz propia, y velas, luces de árbol y destellos más vivos.
+- Fuego y luces puntuales están siempre (a 0 de día) para que anochecer no obligue a recompilar los materiales.
 
 **Refugio Kywai** aparece en **⚙ → Ajustes → General → Mapas**. Es un observatorio-invernadero frente al mar: cúpula de madera y cristal, cielo panorámico con nubes y agua animadas, jardines, talleres individuales, mesa circular con árbol central y asiento turquesa para el usuario. Los robots tienen acabados de cerámica y ropa propia, conservando sus estados, gestos y bocadillos. La distribución se adapta a los agentes visibles sin cambiar las posiciones guardadas de los proyectos.
 

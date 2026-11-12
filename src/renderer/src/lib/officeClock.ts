@@ -98,6 +98,8 @@ export function setSpaceNight(value: boolean): void {
   try { localStorage.setItem(NIGHT_KEY, String(value)) } catch { /* sigue en memoria */ }
   emit()
 }
+/** Si el «Modo noche» a mano está puesto (para quien no es un componente). */
+export function spaceNightOn(): boolean { return manualNight }
 export function useSpaceNight(): boolean {
   return useSyncExternalStore(subscribe, () => manualNight, () => false)
 }

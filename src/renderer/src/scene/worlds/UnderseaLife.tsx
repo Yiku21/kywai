@@ -143,7 +143,7 @@ export function LivingJellyfish({at,scale=1,seed,reduced}:{at:Vec;scale?:number;
  useEffect(()=>()=>{res.geom.dispose();res.filaments.forEach(g=>g.dispose());res.canals.forEach(g=>g.dispose());res.oral.forEach(g=>g.dispose());res.tendrilMat.dispose()},[res])
  useFrame(()=>{const t=reduced?0:registry.time;time.value=t+seed;root.current.position.set(at[0]+Math.sin(t*.30+seed)*1.25,at[1]+Math.sin(t*.73+seed)*.72,at[2]+Math.cos(t*.30+seed)*.8);root.current.rotation.z=Math.sin(t*.3+seed)*.07;const pulse=Math.sin(t*2.15+seed);bell.current.scale.set(1+pulse*.11,1-pulse*.16,1+pulse*.11)})
  return <group ref={root} position={at} scale={scale}><group ref={bell}>
-  <mesh geometry={res.geom}><meshPhysicalMaterial color="#acd8ed" transparent opacity={.23} roughness={.12} metalness={.04} clearcoat={1} side={THREE.DoubleSide} emissive="#3b88b6" emissiveIntensity={.20} depthWrite={false}/></mesh>
+  <mesh geometry={res.geom}><meshPhysicalMaterial color="#acd8ed" transparent opacity={.23} roughness={.12} metalness={.04} clearcoat={1} side={THREE.DoubleSide} emissive="#3b88b6" emissiveIntensity={.20} userData={{nightEmissive:1.8}} depthWrite={false}/></mesh>
   <mesh rotation={[Math.PI/2,0,0]} position={[0,-.035,0]}><torusGeometry args={[.71,.009,5,96]}/><meshBasicMaterial color="#c9edff" transparent opacity={.48} depthWrite={false}/></mesh>
   {res.canals.map((g,i)=><mesh key={i} geometry={g}><meshBasicMaterial color="#c9eafa" transparent opacity={.24} depthWrite={false}/></mesh>)}
   {[0,1,2,3].map(i=><mesh key={i} position={[Math.cos(i/4*TAU)*.14,.32,Math.sin(i/4*TAU)*.14]} rotation={[Math.PI/2,0,i/4*TAU]} scale={[1,.75,1]}><torusGeometry args={[.105,.014,5,28]}/><meshBasicMaterial color="#eedcff" transparent opacity={.75} depthWrite={false}/></mesh>)}

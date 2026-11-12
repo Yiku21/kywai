@@ -16,6 +16,20 @@ beforeEach(()=>{
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();setHomeNight(false);setOfficeAuto(false);setOfficeClockTime(null);setTheme('clasico')})
 
 describe('Kywai night switch',()=>{
+  it('Órbita (en el espacio) no tiene Modo noche ni Auto',async()=>{
+    await act(async()=>setTheme('mundo-orbita'))
+    await act(async()=>root.render(<HomeNightToggle/>))
+    expect(host.querySelector('[role="switch"]')).toBeNull()
+  })
+  it('Marfil de noche marca data-space-night para pasar la interfaz a colores oscuros',async()=>{
+    await act(async()=>setTheme('mundo-marfil'))
+    await act(async()=>root.render(<HomeNightToggle/>))
+    await act(async()=>host.querySelector<HTMLButtonElement>('[role="switch"]')!.click())
+    expect(document.documentElement.dataset.spaceNight).toBe('true')
+    await act(async()=>host.querySelector<HTMLButtonElement>('[role="switch"]')!.click())
+    expect(document.documentElement.dataset.spaceNight).toBe('false')
+    setSpaceNight(false)
+  })
   it('applies and remembers night mode without changing the selected theme',async()=>{
     await act(async()=>root.render(<HomeNightToggle/>))
     const toggle=host.querySelector<HTMLButtonElement>('[role="switch"]')!

@@ -380,7 +380,7 @@ export function ChristmasScene({ stations, density, reduced, cityCount, free }: 
       <Lanterns spots={data.lanterns} reduced={reduced} />
       <ChristmasExtras stations={stations} trees={data.trees} free={free} />
       <CityDressing count={cityCount} reduced={reduced} />
-      <GlowPoints positions={data.snow} color="#ffffff" size={0.075} fall={0.55} fallHeight={14} fallBase={0} sway={0.35} opacity={0.9} reduced={reduced} />
+      <GlowPoints positions={data.snow} color="#ffffff" size={0.075} fall={0.55} fallHeight={14} fallBase={0} sway={0.35} opacity={0.9} nightGain={0.15} reduced={reduced} />
       <GlowPoints positions={data.frost} color="#dfefff" intensity={1.5} size={0.04} flicker={1} opacity={0.9} reduced={reduced} />
     </>
   )
@@ -499,7 +499,7 @@ export function GlobeInside({ R, reduced }: { R: number; reduced: boolean }) {
           scale={[s.s, s.s, 1]}
         />
       ))}
-      <GlowPoints positions={snow} color="#ffffff" size={0.05} fall={0.3} fallHeight={2.4} fallBase={-1.0} sway={0.08} opacity={0.9} reduced={reduced} />
+      <GlowPoints positions={snow} color="#ffffff" size={0.05} fall={0.3} fallHeight={2.4} fallBase={-1.0} sway={0.08} opacity={0.9} nightGain={0.15} reduced={reduced} />
     </>
   )
 }

@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import type { StationConfig } from '@shared/types'
 import { conveyor, conveyorClear, factoryPipes, factoryVents, pumpCells, type PipeRun } from './grafitoFactory'
 import type { Vec } from './models'
+import { spaceNight } from '../nightLight'
 
 const vertical = new THREE.Vector3(0, 1, 0)
 const noRaycast = () => {}
@@ -163,6 +164,7 @@ function Crane({ reduced }: { reduced: boolean }) {
 
 function FoundryConveyor({ reduced }: { reduced: boolean }) {
   const pieces = useRef<THREE.InstancedMesh>(null!)
+  const glow = useRef<THREE.PointLight>(null!)
   const data = useMemo(() => ({ time: 1.1, dummy: new THREE.Object3D(), color: new THREE.Color(), steel: new THREE.Color('#817c72'), hot: new THREE.Color('#f39d56') }), [])
   useFrame((_, dt) => {
     if (!reduced) data.time += Math.min(dt, .1)
@@ -178,12 +180,16 @@ function FoundryConveyor({ reduced }: { reduced: boolean }) {
     }
     pieces.current.instanceMatrix.needsUpdate = true
     if (pieces.current.instanceColor) pieces.current.instanceColor.needsUpdate = true
+    // El horno de noche: más fuerte y más lejos, con el temblor del fuego.
+    const n = spaceNight.value
+    glow.current.intensity = 18 * (1 + 2.2 * n * (1 + .08 * Math.sin(data.time * 11) + .05 * Math.sin(data.time * 23)))
+    glow.current.distance = 9.6 + 8 * n
   })
   return <>
     <instancedMesh ref={pieces} args={[undefined,undefined,8]} frustumCulled={false} raycast={noRaycast}>
       <boxGeometry args={[1.31,.30,.67]} /><meshStandardMaterial color="#ffffff" metalness={.62} roughness={.49} />
     </instancedMesh>
-    <pointLight position={[0,1.9,conveyor.back - .6]} color="#ff8d40" intensity={18} distance={9.6} decay={2} />
+    <pointLight ref={glow} position={[0,1.9,conveyor.back - .6]} color="#ff8d40" intensity={18} distance={9.6} decay={2} />
   </>
 }
 
