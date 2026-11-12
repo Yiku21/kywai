@@ -14,7 +14,8 @@
   transition:
     background-color var(--dur) var(--ease),
     color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease);
+    border-color var(--dur) var(--ease),
+    transform var(--dur-fast) var(--ease);
 }
 
 .iconBtn:hover:not(:disabled) {
@@ -24,6 +25,8 @@
 
 .iconBtn:active:not(:disabled) {
   background: var(--bg-active);
+  /* Lo que se pulsa cede un poco y vuelve (habilidad principios-ux-animacion, n.º 1). */
+  transform: scale(0.94);
 }
 
 .iconBtn[aria-expanded='true'],
@@ -61,7 +64,8 @@
   transition:
     background-color var(--dur) var(--ease),
     border-color var(--dur) var(--ease),
-    color var(--dur) var(--ease);
+    color var(--dur) var(--ease),
+    transform var(--dur-fast) var(--ease);
 }
 
 .btn:hover:not(:disabled) {
@@ -71,6 +75,7 @@
 
 .btn:active:not(:disabled) {
   background: var(--bg-surface);
+  transform: scale(0.97);
 }
 
 .btn:disabled {

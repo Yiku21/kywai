@@ -1899,6 +1899,9 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   clic de 44×44 px, Hick, Miller, Doherty —respuesta en menos de 400 ms—, Postel, Jakob y «cuanto más se usa, menos
   se anima»), más movimiento reducido y cómo comprobarlo. Sale del formato de un reel de «20 principios de UX y
   animación»; el texto es de kywai. Llega entera al encargo cuando la tarea habla de interfaz, pantallas o animación.
+  kywai la aplica también a su propia interfaz: los botones (`.btn` y `.iconBtn` de `ui.module.css`) ceden un poco
+  al pulsarlos y los menús emergentes (`Popover`) aparecen en 120 ms en vez de 200 ms (se usan a cada rato); la lista
+  del «/» y del «@» ya salía al instante. Con «reducir movimiento» del sistema no se mueve nada.
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),
