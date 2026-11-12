@@ -30,9 +30,11 @@ import {
   VolumeX,
   Wand2,
   X,
-  Gauge
+  Gauge,
+  Activity
 } from 'lucide-react'
 import { useQuality, type QualityChoice } from '../../scene/quality'
+import { useMeter } from '../../scene/perfStats'
 import type { AgentAccess, ClientUpdateState } from '@shared/types'
 import { useCowork, type SettingsTab } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
@@ -191,6 +193,7 @@ function GeneralTab() {
   const hasBackend = useCowork((st) => st.hasBackend)
   const reduced = useCowork((st) => st.reducedEffects)
   const quality = useQuality((st) => st.choice)
+  const meter = useMeter((st) => st.on)
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
   const theme = useTheme()
   const own = useOwnTheme()
@@ -256,6 +259,9 @@ function GeneralTab() {
           <option value="medium">{t('Normal')}</option>
           <option value="high">{t('Máxima')}</option>
         </select>
+      </Row>
+      <Row icon={<Activity size={18} />} label={t('Medidor de rendimiento')} hint={t('Enseña sobre el 3D los fotogramas, lo que tarda cada uno y lo que se dibuja, en este dispositivo')}>
+        <Switch on={meter} label={t('Medidor de rendimiento')} onChange={() => useMeter.getState().setOn(!meter)} />
       </Row>
       <Row icon={<Sparkles size={18} />} label={t('Reducir efectos ambientales')} hint={t('Menos animaciones y brillos en el espacio')}>
         <Switch on={reduced} label={t('Reducir efectos ambientales')} onChange={() => useCowork.getState().setReducedEffects(!reduced)} />

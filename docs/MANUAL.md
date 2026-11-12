@@ -3588,6 +3588,15 @@ Lo que hace kywai para ir fluido sin que tengas que tocar nada:
   recolocan: en una conversación de cientos de mensajes el navegador solo trabaja con los que ves. Cada mensaje
   recuerda su altura real una vez visto, para que la barra de desplazamiento no salte (`.item` en
   `ui/left/ChatView.module.css`).
+- **Medidor de rendimiento.** En ⚙ → General → **Medidor de rendimiento** aparece sobre el 3D un recuadro que se
+  actualiza cada segundo: fotogramas por segundo y el tope que toca ahora (30, 20 sin foco, 10 en reposo), lo que
+  tarda cada fotograma en el procesador (media y máximo), cuántas órdenes de dibujo y triángulos manda a la tarjeta
+  gráfica, la calidad y la resolución reales, el porcentaje del último segundo en que la app estuvo bloqueada por
+  tareas largas (de toda la interfaz, no solo del 3D), la memoria de JavaScript y el nombre de la tarjeta gráfica.
+  Cómo leerlo: si los fps no llegan al tope pero cada fotograma tarda poco en el procesador, el límite es la
+  tarjeta gráfica (baja la Calidad del 3D); si el fotograma tarda mucho o el hilo principal sale bloqueado, el
+  límite es el procesador. Se guarda por dispositivo y apagado no mide nada (`scene/PerfMeter.tsx`,
+  `scene/perfStats.ts`).
 - **El chat aparece antes.** El espacio 3D (Three.js y compañía) se carga aparte, después de la interfaz, y todo
   el código de la interfaz va reducido: lo que hay que cargar al abrir pasó de 4,6 MB a 1,3 MB.
 - **Menos descarga por la red.** El servidor entrega la interfaz comprimida (gzip) al navegador y a los clientes de

@@ -31,6 +31,8 @@ import { CinemaLights } from './CinemaLights'
 import { LabelProjector } from './LabelProjector'
 import { frameDue, sceneFps } from './frameRate'
 import { useSceneRest } from './sceneRest'
+import { useMeter } from './perfStats'
+import { PerfOverlay, PerfProbe } from './PerfMeter'
 import { t } from '@/lib/i18n'
 import { withTempStations } from '@shared/tempStations'
 import { polygonLayout } from './polygonLayout'
@@ -176,9 +178,14 @@ function Pacing({ visible, focused, adaptive }: { visible: boolean; focused: boo
   const raise = useQuality((s) => s.raise)
   // El panel del espacio entero (también las etiquetas, que van por encima del lienzo).
   const resting = useSceneRest(dom.parentElement?.parentElement ?? dom, visible)
+  const fps = sceneFps(focused, resting)
+  // Para el medidor de rendimiento (si está encendido lo enseña).
+  useEffect(() => {
+    useMeter.setState({ target: fps, resting })
+  }, [fps, resting])
   return (
     <>
-      <FrameLimiter active={visible} fps={sceneFps(focused, resting)} />
+      <FrameLimiter active={visible} fps={fps} />
       {adaptive && focused && visible && !resting && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [24, 29]} />}
     </>
   )
@@ -236,6 +243,7 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
   const level = useQuality((s) => s.level)
   const max = useQuality((s) => s.max)
   const adaptive = useQuality((s) => s.adaptive)
+  const meterOn = useMeter((m) => m.on)
   const q = useMemo(() => sceneQuality(level, max), [level, max])
   const reduced = useCowork((s) => s.reducedEffects)
   const configuredStations = useCowork((s) => s.config.stations)
@@ -266,7 +274,13 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
     return () => document.removeEventListener('visibilitychange', onVis)
   }, [])
 
+  useEffect(() => {
+    useMeter.setState({ paused: !visible })
+  }, [visible])
+
   return (
+    <>
+    <PerfOverlay />
     <Canvas
       dpr={q.dpr}
       shadows={!!p.world && q.shadows}
@@ -280,6 +294,7 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
       <fog key={`fog-${theme}`} attach="fog" args={[night ? '#0a1727' : p.fog, fogNear, fogFar]} />
       <SceneClock />
       <Pacing visible={visible} focused={focused} adaptive={adaptive} />
+      {meterOn && <PerfProbe />}
       <ShadowThrottle active={!!p.world && q.shadows} />
 
       <group key={theme}>
@@ -318,5 +333,6 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
         </EffectComposer>
       )}
     </Canvas>
+    </>
   )
 }

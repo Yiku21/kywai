@@ -1,0 +1,31 @@
+.meter {
+  position: fixed;
+  top: 136px;
+  right: 28px;
+  z-index: 900;
+  pointer-events: none;
+  min-width: 220px;
+  max-width: 300px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: rgba(8, 12, 20, 0.78);
+  color: #e6edf7;
+  font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  margin-bottom: 4px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #9fd7ff;
+}
+
+.gpu {
+  margin-top: 4px;
+  color: #9aa8bf;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
