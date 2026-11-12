@@ -3549,4 +3549,11 @@ export const zh: Record<string, string> = {
   "Encontrados en este equipo": "在这台电脑上找到",
   "{n} modelos": "{n} 个模型",
   "Usar": "使用",
+  "Píxel": "像素",
+  "Los mismos personajes animados, dibujados como sprites de pixel art de videojuego": "同样的动画角色，画成电子游戏里的像素风精灵",
+  "Tamaño del píxel": "像素大小",
+  "Cuánto ocupa en pantalla cada píxel de los agentes: más grueso, más retro": "代理每个像素在屏幕上的大小：越粗越复古",
+  "Fino": "细",
+  "Medio": "中",
+  "Grueso": "粗",
 }

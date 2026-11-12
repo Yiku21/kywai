@@ -29,10 +29,13 @@ import caminaGlb from '@/assets/personajes/anim/camina.glb?url'
  * Aspecto (skin) de los agentes en el espacio 3D, por dispositivo y sin depender del tema.
  * Para añadir uno: su id aquí y en SKINS, su nombre en SettingsDialog (skinText) y cómo se construye en Robot.tsx.
  */
-export type AgentSkin = 'personajes' | 'clasico' | 'refugio'
+export type AgentSkin = 'personajes' | 'pixel' | 'clasico' | 'refugio'
 
-/** Skins en el orden del selector de Ajustes → Agentes (sus textos están en SettingsDialog). */
-export const SKINS: AgentSkin[] = ['personajes', 'clasico', 'refugio']
+/** Skins en el orden del selector de Ajustes → Agentes (sus textos están en SkinGrid). */
+export const SKINS: AgentSkin[] = ['personajes', 'pixel', 'clasico', 'refugio']
+
+/** Skins que usan los personajes 3D animados (en «Píxel» se pintan como sprites de pixel art, ver pixelSprite.ts). */
+export const usesCharacters = (skin: AgentSkin): boolean => skin === 'personajes' || skin === 'pixel'
 
 const KEY = 'aicowork.agentes.skin'
 
@@ -57,6 +60,34 @@ export const useAgentSkin = create<{ skin: AgentSkin; setSkin(s: AgentSkin): voi
       /* sin almacenamiento: vale para esta sesión */
     }
     set({ skin })
+  }
+}))
+
+/** «Tamaño del píxel» en «Píxel»: cuántos píxeles de pantalla ocupa cada píxel del sprite (fino, medio, grueso). */
+export const PIXEL_SIZES = [2, 3, 4] as const
+export type PixelSize = (typeof PIXEL_SIZES)[number]
+const PIXEL_KEY = 'aicowork.agentes.pixeles'
+
+export function parsePixelSize(v: string | null): PixelSize {
+  const n = Number(v)
+  return (PIXEL_SIZES as readonly number[]).includes(n) ? (n as PixelSize) : 3
+}
+
+export const usePixelSize = create<{ size: PixelSize; setSize(s: PixelSize): void }>((set) => ({
+  size: (() => {
+    try {
+      return parsePixelSize(localStorage.getItem(PIXEL_KEY))
+    } catch {
+      return 3
+    }
+  })(),
+  setSize(size) {
+    try {
+      localStorage.setItem(PIXEL_KEY, String(size))
+    } catch {
+      /* sin almacenamiento: vale para esta sesión */
+    }
+    set({ size })
   }
 }))
 

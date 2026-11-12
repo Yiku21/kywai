@@ -5,12 +5,13 @@ import { LOGOS } from './logos'
 import { t } from '@/lib/i18n'
 import { characterRole, useAgentSkin, type AgentSkin } from '@/scene/characters'
 
-/** Ilustraciones por skin: `assets/robots/<id>.png` (Personajes), `robots/clasico/` y `robots/refugio/`. */
+/** Ilustraciones por skin: `assets/robots/<id>.png` (Personajes), `robots/pixel/`, `robots/clasico/` y `robots/refugio/`. */
 function folder(files: Record<string, string>): Record<string, string> {
   return Object.fromEntries(Object.entries(files).map(([path, url]) => [path.slice(path.lastIndexOf('/') + 1, -'.png'.length), url]))
 }
 const IMAGES: Record<AgentSkin, Record<string, string>> = {
   personajes: folder(import.meta.glob('@/assets/robots/*.png', { eager: true, import: 'default' }) as Record<string, string>),
+  pixel: folder(import.meta.glob('@/assets/robots/pixel/*.png', { eager: true, import: 'default' }) as Record<string, string>),
   clasico: folder(import.meta.glob('@/assets/robots/clasico/*.png', { eager: true, import: 'default' }) as Record<string, string>),
   refugio: folder(import.meta.glob('@/assets/robots/refugio/*.png', { eager: true, import: 'default' }) as Record<string, string>)
 }
@@ -28,6 +29,7 @@ export function robotImageFor(agent: Pick<AgentConfig, 'avatar' | 'provider' | '
   // Personaje: por el logo o por el nombre (Aider, Copilot y Kilo no tienen logo propio).
   const role = agent.isSubagent ? undefined : characterRole(agent.name)
   const key = skin === 'clasico' ? byLogo : skin === 'refugio' ? role : (byLogo ?? role)
+  // «Píxel» tiene los mismos dibujos que «Personajes» pero en pixel art (se pintan con image-rendering: pixelated).
   return (key && IMAGES[skin][key]) || (byLogo && IMAGES.clasico[byLogo]) || null
 }
 
@@ -64,7 +66,7 @@ export function RobotAvatar({ agent, size = 32, dim, className }: Props) {
         height={size}
         alt={t('Robot {name}', { name: agent.name })}
         draggable={false}
-        style={{ objectFit: 'contain', flex: 'none', opacity: dim ? 0.45 : 1, filter: dim ? 'grayscale(0.7)' : undefined }}
+        style={{ objectFit: 'contain', flex: 'none', opacity: dim ? 0.45 : 1, filter: dim ? 'grayscale(0.7)' : undefined, imageRendering: skin === 'pixel' ? 'pixelated' : undefined }}
       />
     )
   }

@@ -4019,8 +4019,8 @@ saluda (cuando le hablas) y camina (cuando se mueve a otra estación). Se recono
 los demás agentes y los becarios siguen siendo robots.
 
 Ajustes → Agentes → «Aspecto de los agentes» elige la skin de todos los agentes: el botón de la derecha (con el nombre de la skin actual) despliega tarjetas como las del selector de
-tema (foto de tres agentes y nombre): **Personajes** (por defecto), **Clásico** (los robots de siempre, que gastan
-menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema). Se guarda en el dispositivo
+tema (foto de tres agentes y nombre): **Personajes** (por defecto), **Píxel** (los personajes como sprites de pixel
+art), **Clásico** (los robots de siempre, que gastan menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema). Se guarda en el dispositivo
 (`aicowork.agentes.skin`) y no cambia con el tema: antes el Refugio Kywai ponía sus robots y los demás temas los
 clásicos. El icono del agente en el chat y en los paneles cambia con la skin (`lib/RobotAvatar.tsx`: dibujos en
 `assets/robots/` para Personajes, `assets/robots/clasico/` y `assets/robots/refugio/`). Mientras carga el modelo se ve
@@ -4032,6 +4032,18 @@ plataforma, porque cada tema tiene estaciones a distinta altura. No reciben somb
 dibujaba rayas) y las texturas van a 2048 px. Las animaciones de Meshy balanceaban mucho la cabeza y la cadera
 (en reposo, hasta 55°): al cargarlas se acercan a su postura media (`CALM` y `calmClip` en `characters.ts`), mucho en
 reposo y algo menos en el resto.
+
+**Píxel** usa los mismos personajes animados pero los pinta como sprites de pixel art de videojuego (idea sacada de
+un reel de una herramienta que convierte modelos 3D en sprites). Cada fotograma, `scene/pixelSprite.ts` dibuja el
+personaje desde la cámara en una textura pequeña (4×4 muestras por píxel del sprite, que se promedian para que no haya
+ruido), le pone un contorno oscuro de un píxel y menos tonos de color, y la enseña en un cartel que mira a la cámara
+justo donde está el personaje: desde la cámara se ve en el mismo sitio y del mismo tamaño, sigue animado, camina y se
+tapa con lo que tenga delante. El personaje queda en la capa 5 (`PIXEL_LAYER`), que la cámara principal no dibuja, con
+una luz propia en esa capa. Al elegir Píxel aparece «Tamaño del píxel»: **Fino**, **Medio** (por defecto) o **Grueso**,
+lo que ocupa en pantalla cada píxel del sprite (2, 3 o 4 px); el lado de la textura se calcula con lo que mide el
+personaje en pantalla, en múltiplos de 4 y entre 16 y 128, así que con el zoom no se pierde el aspecto. Se guarda en
+`aicowork.agentes.pixeles`. Los iconos del chat están en `assets/robots/pixel/` (48 px, se pintan con
+`image-rendering: pixelated`), sacados de los dibujos de Personajes reduciéndolos a 48 px con 20 colores y contorno.
 
 Lo mismo vale para cualquier otra skin: `lowestPoint` (`scene/groundContact.ts`) mide la parte más baja que se ve
 del robot y, si quedaría dentro de su plataforma, `Robot.tsx` (`keepAboveGround`) lo sube lo justo; si flota por

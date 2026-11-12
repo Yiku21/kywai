@@ -37,11 +37,12 @@ import {
   Activity,
   Layers,
   MessageSquare,
-  MessageSquareOff
+  MessageSquareOff,
+  Grid3x3
 } from 'lucide-react'
 import { useQuality, type QualityChoice } from '../../scene/quality'
 import { useMeter } from '../../scene/perfStats'
-import { useAgentSkin } from '../../scene/characters'
+import { PIXEL_SIZES, parsePixelSize, useAgentSkin, usePixelSize } from '../../scene/characters'
 import { SkinGrid, skinText } from './SkinGrid'
 import { useInboxAlert } from '@/lib/inboxAlert'
 import type { AgentAccess, AgentConfig, ClientUpdateState } from '@shared/types'
@@ -310,6 +311,7 @@ function AgentsTab() {
   const mode = useCowork((st) => st.mode)
   const access = useCowork((st) => st.config.agentAccess)
   const skin = useAgentSkin((st) => st.skin)
+  const pixelSize = usePixelSize((st) => st.size)
   const callIn3d = useInboxAlert((st) => st.callIn3d)
   const [skinsOpen, setSkinsOpen] = useState(false)
   const approval = useCowork((st) => st.config.planApproval !== false)
@@ -355,6 +357,22 @@ function AgentsTab() {
         </div>
         {skinsOpen && <SkinGrid />}
       </div>
+      {skin === 'pixel' && (
+        <Row icon={<Grid3x3 size={18} />} label={t('Tamaño del píxel')} hint={t('Cuánto ocupa en pantalla cada píxel de los agentes: más grueso, más retro')}>
+          <select
+            className={s.select}
+            value={pixelSize}
+            aria-label={t('Tamaño del píxel')}
+            onChange={(e) => usePixelSize.getState().setSize(parsePixelSize(e.currentTarget.value))}
+          >
+            {PIXEL_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {n === 2 ? t('Fino') : n === 3 ? t('Medio') : t('Grueso')}
+              </option>
+            ))}
+          </select>
+        </Row>
+      )}
       <Row
         icon={<BellRing size={18} />}
         label={t('El coordinador te avisa en el 3D')}

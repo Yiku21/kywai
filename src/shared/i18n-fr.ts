@@ -3549,4 +3549,11 @@ export const fr: Record<string, string> = {
   "Encontrados en este equipo": "Trouvés sur cet ordinateur",
   "{n} modelos": "{n} modèles",
   "Usar": "Utiliser",
+  "Píxel": "Pixel",
+  "Los mismos personajes animados, dibujados como sprites de pixel art de videojuego": "Les mêmes personnages animés, dessinés comme des sprites de pixel art de jeu vidéo",
+  "Tamaño del píxel": "Taille du pixel",
+  "Cuánto ocupa en pantalla cada píxel de los agentes: más grueso, más retro": "La taille à l'écran de chaque pixel des agents : plus gros, plus rétro",
+  "Fino": "Fin",
+  "Medio": "Moyen",
+  "Grueso": "Gros",
 }

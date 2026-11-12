@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { AgentConfig, AgentRuntime, QuotaInfo, StationConfig } from '@shared/types'
 import { avatarFor } from '@shared/defaults'
@@ -21,7 +21,8 @@ import { playVoice, voiceProfile } from '@/lib/audio'
 import { t as tr } from '@/lib/i18n'
 import { ROBOT_Y, consoleOffset, consoleSide, coreBay, stationVec } from './layout'
 import { setAnchorObject, setAnchorOpacity, useSceneHover } from './anchors'
-import { buildCharacter, characterRole, useAgentSkin, type Character } from './characters'
+import { buildCharacter, characterRole, useAgentSkin, usePixelSize, usesCharacters, type Character } from './characters'
+import { createPixelSprite, type PixelSprite } from './pixelSprite'
 
 /** Tamaño de los robots respecto a su modelo. */
 const ROBOT_SCALE = 1.3
@@ -91,7 +92,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   const groundRay = useMemo(() => new THREE.Raycaster(), [])
   const hiddenParts = useRef<{ prev: Map<THREE.Object3D, boolean>; keep: Set<THREE.Object3D> } | null>(null)
   useEffect(() => {
-    if (skin !== 'personajes' || !role) return
+    if (!usesCharacters(skin) || !role) return
     let alive = true
     let built: Character | null = null
     buildCharacter(role)
@@ -109,6 +110,23 @@ export function Robot({ agent, station, stations, leaving }: Props) {
       setCharacter(null)
     }
   }, [skin, role])
+  // Con «Píxel», el personaje se dibuja como sprite de pixel art en un cartel que va en la escena (ver pixelSprite.ts).
+  const scene = useThree((s) => s.scene)
+  const pixelSize = usePixelSize((s) => s.size)
+  const sprite = useRef<PixelSprite | null>(null)
+  useEffect(() => {
+    if (!character || skin !== 'pixel') return
+    const sp = createPixelSprite()
+    sp.attach(character.root, character.height)
+    sp.card.visible = false
+    scene.add(sp.card)
+    sprite.current = sp
+    return () => {
+      sprite.current = null
+      scene.remove(sp.card)
+      sp.dispose()
+    }
+  }, [character, skin, scene])
   useEffect(() => {
     if (!character) return
     const c = character.root
@@ -442,6 +460,11 @@ export function Robot({ agent, station, stations, leaving }: Props) {
       }
       character.update(dt, brain, t)
       placeCharacter(state.scene, state.camera, character.root)
+      const sp = sprite.current
+      if (sp) {
+        sp.card.visible = g.visible
+        if (g.visible) sp.render(state.gl, state.camera as THREE.PerspectiveCamera, pixelSize)
+      }
     }
 
     model.bodyMat.emissiveIntensity = ceramic ? .015 + brain.glow * .08 : 0.06 + brain.glow * 0.55 + h * 0.08

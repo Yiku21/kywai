@@ -18,6 +18,8 @@ export function skinText(id: AgentSkin): { label: string; hint: string } {
   switch (id) {
     case 'clasico':
       return { label: t('Clásico'), hint: t('Los robots de siempre, que gastan menos') }
+    case 'pixel':
+      return { label: t('Píxel'), hint: t('Los mismos personajes animados, dibujados como sprites de pixel art de videojuego') }
     case 'refugio':
       return { label: t('Refugio Kywai'), hint: t('Robots de cerámica con ropa de tela, como en el tema Refugio Kywai') }
     default:
