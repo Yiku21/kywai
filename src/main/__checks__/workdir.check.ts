@@ -96,6 +96,28 @@ void (async () => {
   passed++
   console.log('  ok  snapshot: avances/ e historial/ internos no son entregables')
 
+  check('limpieza única: borra avances/ y los quita de Entregables, sin tocar lo demás', () => {
+    const st = {
+      project: { ...p, workDir: undefined },
+      messages: [{ id: 'm', artifactIds: ['a1', 'a2', 'a3'] }],
+      tasks: [{ id: 't', artifactIds: ['a1', 'a2', 'a3'] }],
+      artifacts: [
+        { id: 'a1', relPath: 'artifacts/video.mp4' },
+        { id: 'a2', relPath: 'avances/abcd1234/01-hermes.png' },
+        { id: 'a3', relPath: 'historial/chat-1.json' }
+      ],
+      attachments: []
+    } as unknown as Parameters<typeof store.cleanOldProgress>[0]
+    assert.equal(store.cleanOldProgress(st), true)
+    assert.deepEqual(st.artifacts.map((a) => a.id), ['a1'])
+    assert.deepEqual(st.messages[0].artifactIds, ['a1'])
+    assert.deepEqual(st.tasks[0].artifactIds, ['a1'])
+    assert.ok(!existsSync(join(p.dir, 'avances')), 'avances borrada')
+    assert.ok(existsSync(join(p.dir, 'artifacts', 'video.mp4')), 'el vídeo sigue')
+    assert.ok(existsSync(join(p.dir, 'historial', 'chat-1.json')), 'historial no se borra')
+    assert.equal(store.cleanOldProgress(st), false, 'solo una vez')
+  })
+
   check('quitar el acceso vuelve a la carpeta interna', () => {
     const s = store.setWorkDir(p.id, null)
     assert.equal(s.workDir, undefined)

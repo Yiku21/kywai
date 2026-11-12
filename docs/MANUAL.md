@@ -1383,7 +1383,10 @@ completa). También cuentan las imágenes que el agente **abre** aunque estén f
 ejemplo): se copian a `avances/` dentro de la carpeta interna del proyecto para que el servidor pueda
 enseñarlas, **una sola copia por imagen** (nombrada por su contenido), aunque se mire en muchas tareas. Esas
 copias (y `historial/`) son de la app: **nunca salen en Entregables ni en Resultados**, que solo
-enseñan lo que pediste (por ejemplo, el vídeo y no los dibujos de los agentes que miró para hacerlo). Para no llenar el chat solo salen imágenes de 4 KB a 25 MB, hasta 6 cada 12 segundos y 24 por
+enseñan lo que pediste (por ejemplo, el vídeo y no los dibujos de los agentes que miró para hacerlo). Al abrir esta
+versión por primera vez, cada proyecto borra una vez su `avances/` antigua (una copia por tarea, muchas repetidas)
+y quita de Entregables y Resultados lo que se había colado de ahí; las miniaturas de esos avances en mensajes
+antiguos del chat se quedan sin imagen (`cleanOldProgress` en `projects.ts`). Para no llenar el chat solo salen imágenes de 4 KB a 25 MB, hasta 6 cada 12 segundos y 24 por
 tarea (8 documentos), esperando a que el archivo termine de escribirse; no cuentan las carpetas ocultas, los
 adjuntos ni los datos de la app. Se les pide que guarden dentro del proyecto las capturas que hagan.
 

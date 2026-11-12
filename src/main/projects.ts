@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto'
-import { existsSync, promises as fsp, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, copyFileSync } from 'node:fs'
+import { existsSync, promises as fsp, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync, copyFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { Artifact, ArtifactKind, Attachment, ChatMessage, ChatVersion, ChatVersions, ProjectFileRef, ProjectState, ProjectSummary, Task } from '@shared/types'
@@ -69,9 +69,33 @@ export function toRelPath(projectDir: string, absOrRel: string): string | null {
   return rel.split(sep).join('/')
 }
 
+/**
+ * Una vez por proyecto: borra las copias antiguas de avances/ (una por tarea, muchas repetidas) y quita de Entregables y
+ * Resultados lo que se registró de avances/ e historial/ (antes contaban como archivos nuevos). Las miniaturas de esos
+ * avances en mensajes antiguos del chat se quedan sin imagen.
+ */
+export function cleanOldProgress(state: ProjectState): boolean {
+  if (state.avancesCleaned) return false
+  state.avancesCleaned = true
+  if (!state.project.workDir) {
+    const gone = new Set(state.artifacts.filter((a) => /^(avances|historial)\//.test(a.relPath)).map((a) => a.id))
+    if (gone.size) {
+      state.artifacts = state.artifacts.filter((a) => !gone.has(a.id))
+      for (const t of state.tasks) if (t.artifactIds?.some((id) => gone.has(id))) t.artifactIds = t.artifactIds.filter((id) => !gone.has(id))
+      for (const m of state.messages) if (m.artifactIds?.some((id) => gone.has(id))) m.artifactIds = m.artifactIds.filter((id) => !gone.has(id))
+    }
+  }
+  try {
+    rmSync(join(state.project.dir, 'avances'), { recursive: true, force: true })
+  } catch (e) {
+    console.error('[cowork] no se pudo borrar avances/', e)
+  }
+  return true
+}
+
 function sanitizeState(state: ProjectState): ProjectState {
   // Tasks left running by a previous session can't continue.
-  let touched = false
+  let touched = cleanOldProgress(state)
   for (const t of state.tasks) {
     if (t.status === 'running' || t.status === 'pending' || t.status === 'blocked') {
       t.status = 'cancelled'
@@ -115,7 +139,8 @@ function readState(dir: string): ProjectState | null {
       routines: Array.isArray(raw.routines) ? raw.routines.filter((r) => r && typeof r.id === 'string' && r.trigger && typeof r.request === 'string') : [],
       conversation: raw.conversation && typeof raw.conversation.id === 'string' ? raw.conversation : undefined,
       conversations: Array.isArray(raw.conversations) ? raw.conversations.filter((c) => c && typeof c.id === 'string') : [],
-      historyImported: raw.historyImported === true
+      historyImported: raw.historyImported === true,
+      avancesCleaned: raw.avancesCleaned === true
     }
   } catch {
     return null
@@ -182,7 +207,7 @@ export function createProject(name: string): ProjectSummary {
   mkdirSync(join(dir, 'artifacts'), { recursive: true })
   const now = Date.now()
   const project: ProjectSummary = { id, name: clean, dir, createdAt: now, updatedAt: now }
-  const state: ProjectState = { project, messages: [], tasks: [], artifacts: [], attachments: [] }
+  const state: ProjectState = { project, messages: [], tasks: [], artifacts: [], attachments: [], avancesCleaned: true }
   cache.set(id, state)
   writeState(state)
   return { ...project }

@@ -1273,6 +1273,8 @@ export interface ProjectState {
   conversations?: ConversationSummary[]
   /** Ya se pasaron a conversaciones las copias antiguas de historial/ (las de «Limpiar el chat»). */
   historyImported?: boolean
+  /** Ya se borraron las copias antiguas de avances/ y se quitaron de Entregables (una vez por proyecto). */
+  avancesCleaned?: boolean
   messages: ChatMessage[]
   tasks: Task[]
   artifacts: Artifact[]
