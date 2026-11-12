@@ -12,6 +12,7 @@ import { MemoryView } from './MemoryView'
 import { RoutinesView } from './RoutinesView'
 import { ModsView, modPanels, useMods } from './ModsView'
 import { useComposer } from './composerStore'
+import { droppedPaths } from './dropFiles'
 import s from './LeftPanel.module.css'
 import { t } from '@/lib/i18n'
 
@@ -107,21 +108,15 @@ export function LeftPanel() {
         setDragging(false)
         const a = api
         if (!canAttach || !a) return
-        const paths: string[] = []
-        for (const f of Array.from(e.dataTransfer.files)) {
-          try {
-            const p = a.pathForFile(f)
-            if (p) paths.push(p)
-          } catch {
-            /* archivo sin ruta (p. ej. arrastrado desde el navegador) */
-          }
-        }
-        if (paths.length) {
+        const dropped = Array.from(e.dataTransfer.files)
+        if (!dropped.length) return
+        void droppedPaths(a, dropped).then(({ paths, error }) => {
           const c = useComposer.getState()
-          c.addFiles(paths)
+          if (paths.length) c.addFiles(paths)
+          c.setError(error)
           c.requestFocus()
           setLeftTab('chat')
-        }
+        })
       }}
     >
       <div className={s.tabs} role="tablist" aria-label={t('Secciones del panel')} onKeyDown={onTabKey}>

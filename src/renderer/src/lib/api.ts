@@ -201,6 +201,8 @@ function createWebApi(): CoworkApi {
       for (const f of files) paths.push(await uploadImport(f))
       return paths
     },
+    // En el navegador un archivo soltado no tiene ruta en el Mac: se sube con savePastedFile.
+    pathForFile: () => '',
     savePastedFile: (name: string, data: Uint8Array) => upload(name, new Blob([data as BlobPart])),
     readArtifact: async (projectId: string, relPath: string, opts?: { text?: boolean }) => {
       const r = (await call('readArtifact', opts ? [projectId, relPath, opts] : [projectId, relPath])) as { text?: string; url?: string }

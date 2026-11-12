@@ -10,6 +10,9 @@ interface ComposerState {
   /** Archivos del proyecto elegidos con «Adjuntar al mensaje» (clic derecho en Archivos o Resultados). */
   deliverables: ComposerDeliverable[]
   focusNonce: number
+  /** Aviso en rojo bajo el cuadro de escribir (también lo usa soltar archivos en el chat). */
+  error: string | null
+  setError(error: string | null): void
   /** «Responder» pulsado bajo la respuesta de un agente: lo siguiente que envíes va a ese agente sobre esa respuesta. */
   replyTo: ChatReplyRef | null
   setReplyTo(replyTo: ChatReplyRef | null): void
@@ -37,13 +40,15 @@ export const useComposer = create<ComposerState>((set) => ({
   files: [],
   deliverables: [],
   focusNonce: 0,
+  error: null,
+  setError: (error) => set({ error }),
   replyTo: null,
   setReplyTo: (replyTo) => set((s) => ({ replyTo, focusNonce: replyTo ? s.focusNonce + 1 : s.focusNonce })),
   setText: (text) => set({ text }),
   addFiles: (paths) =>
     set((s) => {
       const next = [...s.files]
-      for (const p of paths) if (p && !next.includes(p)) next.push(p)
+      for (const p of paths) if (typeof p === 'string' && p && !next.includes(p)) next.push(p)
       return next.length === s.files.length ? s : { files: next }
     }),
   removeFile: (path) => set((s) => ({ files: s.files.filter((f) => f !== path) })),

@@ -970,6 +970,12 @@ lleva `permission` con su estado.
 - **Codex** en modo protegido usa el entorno estándar de Windows (`windows.sandbox=unelevated`): el «elevated» que
   configura la app de escritorio de Codex no funciona fuera de ella y le impedía ejecutar comandos.
 - **Pegar imágenes**: Ctrl+V en el cuadro de texto adjunta las capturas del portapapeles.
+- **Arrastrar archivos al chat**: soltarlos sobre el panel del chat los deja encima del cuadro de escribir. En el
+  escritorio se adjunta el archivo de tu equipo; en el navegador y en el cliente de escritorio no hay ruta en el
+  servidor, así que se sube primero (como al pegar con Ctrl+V) y, si falla, sale el aviso en rojo bajo el cuadro.
+  Antes, en el navegador y en el cliente, soltar un archivo dejaba la ventana en negro (`pathForFile` iba por la red
+  y devolvía una promesa en vez de una ruta). Un archivo soltado fuera del chat (espacio 3D, barra lateral) no hace
+  nada: ya no puede sustituir la interfaz por el archivo.
 
 **Cuánto se espera a Hermes.** Un plan normal le lleva entre 20 y 60 segundos, y uno grande, más de 2 minutos solo
 en escribirse. Como Hermes no enseña nada hasta terminar, kywai le espera hasta 6 minutos y después planifica el

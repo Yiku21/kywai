@@ -168,7 +168,8 @@ export function Composer() {
   // Varias peticiones en marcha: menú para elegir cuál detener.
   const [stopOpen, setStopOpen] = useState(false)
   const stopRef = useRef<HTMLButtonElement>(null)
-  const [error, setError] = useState<string | null>(null)
+  const error = useComposer((c) => c.error)
+  const setError = useComposer((c) => c.setError)
   const taRef = useRef<HTMLTextAreaElement>(null)
   // «Nuevo chat» (barra lateral o atajo) deja el cursor listo para escribir.
   useEffect(() => {

@@ -17,6 +17,18 @@ applyTheme(storedTheme())
 // El idioma de este dispositivo (atributo lang de la página).
 applyLang()
 
+// Un archivo soltado fuera del chat no hace nada: si no, la ventana se iría a ese archivo
+// (en el escritorio se quedaba en negro y en el navegador salía de kywai).
+const isFileDrag = (e: DragEvent): boolean => Array.from(e.dataTransfer?.types ?? []).includes('Files')
+window.addEventListener('dragover', (e) => {
+  if (!isFileDrag(e) || e.defaultPrevented) return
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'
+})
+window.addEventListener('drop', (e) => {
+  if (isFileDrag(e)) e.preventDefault()
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

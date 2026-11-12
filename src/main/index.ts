@@ -201,7 +201,8 @@ function createWindow(): BrowserWindow {
   win.webContents.on('will-navigate', (e, url) => {
     const devUrl = process.env['ELECTRON_RENDERER_URL']
     if (devUrl && url.startsWith(devUrl)) return
-    if (url.startsWith('file:')) return
+    // Solo la propia interfaz: un archivo soltado en la ventana no debe sustituirla (pantalla en negro).
+    if (url.startsWith('file:') && /\/renderer\/index\.html(?:[?#].*)?$/.test(url)) return
     e.preventDefault()
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
   })
