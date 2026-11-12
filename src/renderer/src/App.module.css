@@ -88,6 +88,17 @@
   border-width: 0;
 }
 
+/* Con el 3D cerrado, la vista previa de un archivo necesita su columna: la ventana vuelve a partirse en dos (chat y
+   archivo) mientras está abierta. El 3D sigue oculto y parado debajo; al cerrar la vista previa, solo chat otra vez. */
+.body[data-space-hidden='true'][data-preview='true'] {
+  grid-template-columns: clamp(380px, 42%, 640px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.body[data-space-hidden='true'][data-preview='true'][data-custom-width='true'] {
+  grid-template-columns: clamp(300px, var(--chat-w), calc(100% - 320px)) minmax(0, 1fr);
+}
+
 .world[data-hidden='true'] {
   visibility: hidden;
 }

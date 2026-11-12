@@ -117,6 +117,8 @@ export function App() {
   const expanded = useCowork((st) => st.spaceExpanded)
   const mobileView = useCowork((st) => st.mobileView)
   const spaceHidden = useCowork((st) => st.spaceHidden)
+  // Con el 3D cerrado, abrir un archivo vuelve a partir la ventana: chat a la izquierda y vista previa a la derecha.
+  const previewOpen = useCowork((st) => st.preview != null && !st.previewMaximized)
   // Primer arranque en este equipo (o abierto desde el menú ⚙): asistente de configuración.
   // Solo en el propio equipo: instala programas y abre ventanas de inicio de sesión allí.
   const restarting = useCowork((st) => st.restarting)
@@ -188,6 +190,7 @@ export function App() {
         className={s.body}
         data-expanded={expanded}
         data-space-hidden={hidden || undefined}
+        data-preview={(hidden && previewOpen) || undefined}
         data-mobile={mobileView}
         data-custom-width={chatWidth != null || undefined}
         data-resizing={resizing || undefined}
@@ -198,7 +201,7 @@ export function App() {
             <LeftPanel />
           </aside>
           {!narrow && !expanded && !hidden && <ChatResizer panel={left} width={chatWidth} onResize={onResize} onClose={onClose} />}
-          {hidden && <SpaceReopen onOpen={() => useCowork.getState().setSpaceHidden(false)} />}
+          {hidden && !previewOpen && <SpaceReopen onOpen={() => useCowork.getState().setSpaceHidden(false)} />}
         </div>
         <section className={s.space} data-demo={mode === 'demo'} aria-label={t('Espacio digital')} aria-hidden={hidden || undefined} inert={hidden || undefined}>
           <SpaceHeader />

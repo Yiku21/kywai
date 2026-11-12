@@ -3360,7 +3360,9 @@ el chat:
   oculta y el chat ocupa toda la ventana (mientras arrastras, un aviso dice «Suelta para ocultar el espacio 3D»).
   También con el botón del final de la fila del **Espacio digital** (icono de panel) o, con el foco en el borde, la
   tecla Fin. Para volver a verlo, pulsa la pestaña **Espacio digital** pegada al borde derecho del chat. Se recuerda
-  en ese equipo al volver a abrir la app. Llevar el borde **casi hasta la izquierda** hace lo contrario: deja solo el
+  en ese equipo al volver a abrir la app. Con el 3D cerrado, **abrir un archivo** del chat (Abrir, un adjunto, un
+  entregable…) vuelve a partir la ventana: chat a la izquierda y el archivo a la derecha. El 3D sigue cerrado y parado;
+  al cerrar el archivo, vuelves a tener solo chat. Llevar el borde **casi hasta la izquierda** hace lo contrario: deja solo el
   3D (como el botón de pantalla completa; Escape vuelve).
 - **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
   el ancho, en vez de dejar libre la columna del avatar.
