@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, ImagePlus, ListVideo, Send, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Reply, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, Grid3x3, ImagePlus, ListVideo, Send, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Puzzle, Reply, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
 import type { CoworkApi, HttpsLink, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
@@ -53,7 +53,8 @@ const COMMAND_ICONS: Record<CommandIcon, LucideIcon> = {
   usage: Gauge,
   new: SquarePen,
   template: LayoutTemplate,
-  mod: Puzzle
+  mod: Puzzle,
+  sprite: Grid3x3
 }
 
 function CommandGlyph({ icon }: { icon: CommandIcon }) {

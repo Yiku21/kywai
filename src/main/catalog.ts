@@ -460,6 +460,19 @@ export const FEATURED_MCP: McpCatalogItem[] = [
     needsEdit: false
   },
   {
+    name: 'pixellab-code/pixellab-mcp',
+    title: 'PixelLab',
+    description: 'Pixel art para juegos: personajes en 4 u 8 direcciones, animaciones, tilesets y objetos (servidor remoto oficial de PixelLab; lo usa «/sprite»).',
+    version: '',
+    verified: true,
+    website: 'https://www.pixellab.ai/vibe-coding',
+    repo: 'https://github.com/pixellab-code/pixellab-mcp',
+    kind: 'http',
+    install: { id: 'pixellab', title: 'PixelLab', transport: 'http', url: 'https://api.pixellab.ai/mcp', headers: { Authorization: '' } },
+    keys: [{ name: 'Authorization', description: 'Bearer y tu token de PixelLab (pixellab.ai/account)', required: true, secret: true }],
+    needsEdit: false
+  },
+  {
     name: 'PostHog/posthog-mcp',
     title: 'PostHog',
     description: 'La analítica de tu web o app: visitas, embudos, errores y dónde se van los usuarios (servidor remoto oficial de PostHog).',

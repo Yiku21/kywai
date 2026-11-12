@@ -3556,4 +3556,8 @@ export const zh: Record<string, string> = {
   "Fino": "细",
   "Medio": "中",
   "Grueso": "粗",
+  "¿Qué personaje hago? Descríbelo («/sprite caballero con capa roja») o adjunta una imagen o un modelo 3D.": "要做哪个角色？描述一下（“/sprite 披红斗篷的骑士”），或附上一张图片或一个 3D 模型。",
+  "No hay ningún agente disponible para hacer el sprite.": "没有可用的代理来制作精灵。",
+  "[64px] [8 direcciones] personaje": "[64px] [8 个方向] 角色",
+  "Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)": "为你的游戏做一个像素风角色：4 或 8 个方向的动画精灵表（根据描述、图片或 3D 模型）",
 }

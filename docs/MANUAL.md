@@ -1920,8 +1920,8 @@ Las direcciones `http://` solo se admiten si son de este equipo (`localhost`).
 La pestaña **Extensiones** tiene dos partes: **Servidores MCP** y **Habilidades**.
 
 **Catálogo de servidores.** «Explorar catálogo» enseña primero unos destacados con su orden comprobada (Playwright,
-GitHub, Context7, DeepWiki, Fetch, Sequential Thinking, Firecrawl, Perplexity y PostHog; los tres últimos piden una
-clave de su web y Perplexity es de pago). Al buscar (notion, postgres, slack…) se consulta el
+GitHub, Context7, DeepWiki, Fetch, Sequential Thinking, Firecrawl, Perplexity, PostHog y PixelLab; los cuatro últimos piden una
+clave de su web y Perplexity es de pago; PixelLab da unas generaciones de prueba y la usa «/sprite»). Al buscar (notion, postgres, slack…) se consulta el
 **registro oficial de MCP** (registry.modelcontextprotocol.io, el directorio abierto del estándar, con miles de
 servidores) y «Más resultados» trae la página siguiente. Cada ficha dice si es **remoto** o **en este equipo**, qué
 claves pide y lleva el enlace a su página. «Instalar» no instala nada aún: rellena el formulario de «Añadir a mano»
@@ -2166,6 +2166,30 @@ TikTok; horizontal 1280×720 para YouTube) salvo que digas otro. También vale �
 
 Hace falta la app de escritorio. Código: `src/main/thumbnail.ts` (y `sendThumbnail`/`prepareThumbnail`/
 `completeThumbnail` en el orquestador).
+
+### Sprites de pixel art para juegos (`/sprite`)
+
+**«/sprite [tamaño] [4|8 direcciones] [animaciones] [qué personaje]»** hace un personaje en pixel art listo para un
+videojuego (Godot, Unity, GameMaker, Phaser…): «/sprite caballero con capa roja», «/sprite 32px 8 direcciones maga que
+corre y lanza hechizos», o adjuntando una imagen o un modelo 3D (.glb, .gltf, .vrm, .fbx, .obj). La idea sale de un
+reel de una herramienta que convierte modelos 3D en sprites. Por defecto: 64 px de alto, 4 direcciones e idle + walk;
+las animaciones se entienden en español o inglés (reposo, caminar, correr, saltar, atacar/espada, magia/hechizo,
+saludar, celebrar, morir, disparar).
+
+No pasa por el plan: va directa al agente que mejor encaja (`bestAgentFor`) con el encargo que arma
+`src/main/sprite.ts`, y en el chat se ve lo que escribiste. El agente elige el primer camino que tenga:
+
+1. **PixelLab** (si añadiste su extensión en Ajustes → Extensiones → «Explorar catálogo», con «Bearer» y tu token de
+   pixellab.ai): crea el personaje en las direcciones pedidas, lo anima y descarga lo que devuelva.
+2. **Modelo 3D adjunto**, en el equipo con Blender en segundo plano: cámara ortográfica elevada, una vista por
+   dirección, las animaciones que traiga el modelo, render a 4× y reducción a píxeles. Sin Blender, lo dice.
+3. **Imagen o descripción**, con Python y Pillow: de una sola imagen solo salen su dirección y su espejo, con
+   animaciones sencillas (lo avisa).
+
+En los caminos locales, pixel art de verdad: reducir con promedio y ampliar con vecino más cercano, paleta común de
+24 colores como mucho, alfa de todo o nada y contorno oscuro de 1 px, con los pies siempre en el mismo sitio. Entrega
+en `sprites/<personaje>-<id>/`: `frames/<animación>_<dirección>_<n>.png`, `hoja.png` + `hoja.json` (una fila por
+animación y dirección), un GIF por animación ampliado 4× y un ZIP con todo. Órbita tiene la orden en su lista del «/».
 
 ### Doblar un vídeo a otro idioma (`/doblar`)
 
@@ -2903,6 +2927,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/recortes [n]` (con un vídeo adjunto) | Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos |
 | `/demo <web> [vertical]` | Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos (ver «Vídeo de presentación de una web») |
 | `/miniatura [vertical\|horizontal]` | Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha (ver «Portadas para tu vídeo») |
+| `/sprite [64px] [8 direcciones] personaje` | Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (ver «Sprites de pixel art para juegos») |
 | `/doblar <idioma>` | El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos (ver «Doblar un vídeo a otro idioma») |
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |

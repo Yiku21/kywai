@@ -21,7 +21,7 @@ export interface ChatCommand {
 }
 
 /** Los iconos de la lista del «/». */
-export type CommandIcon = 'video' | 'series' | 'learn' | 'publish' | 'routine' | 'direct' | 'memory' | 'model' | 'usage' | 'new' | 'template' | 'mod'
+export type CommandIcon = 'video' | 'series' | 'learn' | 'publish' | 'routine' | 'direct' | 'memory' | 'model' | 'usage' | 'new' | 'template' | 'mod' | 'sprite'
 
 /** Las órdenes de kywai, en el orden en que salen. */
 export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
@@ -32,6 +32,7 @@ export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
   { name: 'demo', aliases: [], args: 'web [vertical]', description: 'Un anuncio en vídeo de una web o un repositorio de GitHub con fotos reales: acercamientos, el móvil y rótulos; con «presentador», un robot lo cuenta', icon: 'video' },
   { name: 'miniatura', aliases: ['miniaturas', 'portada', 'portadas', 'thumbnail'], args: '[vertical|horizontal] qué quieres', description: 'Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha', icon: 'video' },
   { name: 'doblar', aliases: ['dobla', 'doblaje', 'dub'], args: 'idioma', description: 'El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos', icon: 'video' },
+  { name: 'sprite', aliases: ['sprites', 'pixelart'], args: '[64px] [8 direcciones] personaje', description: 'Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)', icon: 'sprite' },
   { name: 'aprende', aliases: ['aprender', 'learn'], args: 'enlace o vídeo', description: 'Convierte lo que enseña un vídeo en una habilidad', icon: 'learn' },
   { name: 'instagram', aliases: ['insta', 'ig'], args: 'qué quieres en el texto', description: 'Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno', icon: 'publish' },
   { name: 'tiktok', aliases: ['tt'], args: 'qué quieres en el texto', description: 'Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno', icon: 'publish' },

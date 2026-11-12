@@ -1117,4 +1117,6 @@ private fun part7(m: HashMap<String, String>) {
     m["Puedes elegir varias"] = "Você pode escolher várias"
     m["Algo más: escríbelo aquí"] = "Algo mais: escreva aqui"
     m["Elegida"] = "Selecionada"
+    m["[64px] [8 direcciones] personaje"] = "[64px] [8 direções] personagem"
+    m["Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)"] = "Um personagem em pixel art para o seu jogo: folha de sprites animada em 4 ou 8 direções (a partir de uma descrição, uma imagem ou um modelo 3D)"
 }

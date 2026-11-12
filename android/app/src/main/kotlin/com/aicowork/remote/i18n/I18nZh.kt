@@ -1117,4 +1117,6 @@ private fun part7(m: HashMap<String, String>) {
     m["Puedes elegir varias"] = "可以多选"
     m["Algo más: escríbelo aquí"] = "其他：写在这里"
     m["Elegida"] = "已选"
+    m["[64px] [8 direcciones] personaje"] = "[64px] [8 个方向] 角色"
+    m["Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)"] = "为你的游戏做一个像素风角色：4 或 8 个方向的动画精灵表（根据描述、图片或 3D 模型）"
 }

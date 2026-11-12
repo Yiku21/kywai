@@ -3679,4 +3679,8 @@ export const en: Record<string, string> = {
   "Fino": "Fine",
   "Medio": "Medium",
   "Grueso": "Chunky",
+  "¿Qué personaje hago? Descríbelo («/sprite caballero con capa roja») o adjunta una imagen o un modelo 3D.": "Which character should I make? Describe it (“/sprite knight with a red cape”) or attach an image or a 3D model.",
+  "No hay ningún agente disponible para hacer el sprite.": "There is no agent available to make the sprite.",
+  "[64px] [8 direcciones] personaje": "[64px] [8 directions] character",
+  "Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)": "A pixel art character for your game: an animated sprite sheet in 4 or 8 directions (from a description, an image or a 3D model)",
 }

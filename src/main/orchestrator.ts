@@ -95,6 +95,7 @@ import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactShee
 import { findFreeVideo } from './freevideo'
 import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
 import { DUB_LANGUAGES, applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, markedNarration, parseDubRequest, rawScript, type DubRequest } from './dub'
+import { parseSpriteRequest, spritePrompt } from './sprite'
 import { THUMB_FRAMES, parseThumbnailPlan, parseThumbnailRequest, renderThumbnails, thumbFrames, thumbnailPrompt, type ThumbRequest } from './thumbnail'
 import { PRESENTER_ROBOTS, demoPrompt, fetchRepoFacts, fitToVoice, githubRepo, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoPresenter, type DemoRequest, type RepoFacts } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
@@ -1692,6 +1693,17 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
   }
 
   // «@Agente …», «… @Agente …» o «/directo Agente …»: el texto va tal cual a ese agente, sin pasar por Hermes.
+  // «/sprite»: un personaje en pixel art para un videojuego. Va directo al agente que mejor encaja, con el encargo
+  // entero (sprite.ts); en el chat se ve lo que escribiste.
+  const spriteReq = tpl ? null : parseSpriteRequest(text)
+  if (spriteReq) {
+    if (!spriteReq.what && !atts.length) throw new Error(tr('¿Qué personaje hago? Descríbelo («/sprite caballero con capa roja») o adjunta una imagen o un modelo 3D.'))
+    const agent = bestAgentFor('pixel art sprites videojuegos diseño gráfico python blender animación')
+    if (!agent) throw new Error(tr('No hay ningún agente disponible para hacer el sprite.'))
+    const prompt = spritePrompt(spriteReq, { attachments: atts.map((a) => a.relPath), lang: userLanguageName(), stamp: Date.now().toString(36) })
+    return sendDirect(st, agent.id, prompt, atts, input.clientMessageId, routine, { shown: text.trim() })
+  }
+
   const direct: ReturnType<typeof parseDirect> = tplAgent ? { agentId: tplAgent.id, text: tpl!.text } : parseDirect(tpl ? tpl.text : text, baseAgents())
   if (direct && 'error' in direct) {
     throw new Error(tr('No hay ningún agente «{name}». Escribe @ y elige uno de la lista, o usa el nombre que sale en su ficha.', { name: direct.error }))

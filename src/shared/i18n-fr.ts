@@ -3556,4 +3556,8 @@ export const fr: Record<string, string> = {
   "Fino": "Fin",
   "Medio": "Moyen",
   "Grueso": "Gros",
+  "¿Qué personaje hago? Descríbelo («/sprite caballero con capa roja») o adjunta una imagen o un modelo 3D.": "Quel personnage dois-je faire ? Décris-le (« /sprite chevalier à cape rouge ») ou joins une image ou un modèle 3D.",
+  "No hay ningún agente disponible para hacer el sprite.": "Aucun agent n'est disponible pour faire le sprite.",
+  "[64px] [8 direcciones] personaje": "[64px] [8 directions] personnage",
+  "Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)": "Un personnage en pixel art pour ton jeu : une planche de sprites animée en 4 ou 8 directions (à partir d'une description, d'une image ou d'un modèle 3D)",
 }
