@@ -25,7 +25,7 @@ import { UnderseaPlatform } from './UnderseaWorld'
 import { MarfilGarden } from './MarfilGarden'
 
 /** Shared geometry and material per batch; cleaned up when changing theme. No per-frame rebuilds. */
-export function WorldModel({ pieces, style, distant = false }: { pieces: Piece[]; style: WorldStyle; distant?: boolean }) {
+export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
   const resources = useMemo(() => {
     const textures = new Map<string, ReturnType<typeof surfaceMaps>>()
     const geometry = new Map<string, THREE.BufferGeometry>()
@@ -43,7 +43,7 @@ export function WorldModel({ pieces, style, distant = false }: { pieces: Piece[]
       const glazing = style === 'matrix' && first.shape === 'box' && parts.every(p => Math.min(...p.size) < 0.06)
       const moving = style === 'kywai' && parts.some(p => p.wind)
       const geometryKey = `${first.shape}:${small}:${glazing}${moving ? `:wind-${key}` : ''}`
-      if (!geometry.has(geometryKey)) geometry.set(geometryKey, glazing ? new THREE.BoxGeometry(1, 1, 1) : detailedGeometry(first.shape, small || distant))
+      if (!geometry.has(geometryKey)) geometry.set(geometryKey, glazing ? new THREE.BoxGeometry(1, 1, 1) : detailedGeometry(first.shape, small))
       const geo = geometry.get(geometryKey)!
       if(moving) {
         const roots=new Float32Array(parts.length*4),flex=new Float32Array(parts.length)
@@ -91,7 +91,7 @@ export function WorldModel({ pieces, style, distant = false }: { pieces: Piece[]
         depth.onBeforeCompile=animate;depth.customProgramCacheKey=()=> 'kywai-coastal-breeze-depth'
         mesh.customDepthMaterial=depth
       }
-      mesh.castShadow = !distant && !small && !(first.glow && first.glow > 0.4)
+      mesh.castShadow = !small && !(first.glow && first.glow > 0.4)
       mesh.receiveShadow = true
       const matrix = new THREE.Matrix4(), pos = new THREE.Vector3(), size = new THREE.Vector3(), quat = new THREE.Quaternion()
       for (let i = 0; i < parts.length; i++) {
@@ -106,7 +106,7 @@ export function WorldModel({ pieces, style, distant = false }: { pieces: Piece[]
       return mesh
     })
     return { batches, textures, geometry, wind, breezeEnabled }
-  }, [pieces, style, distant])
+  }, [pieces, style])
   useFrame(() => {
     resources.wind.value = style === 'kywai' || !useCowork.getState().reducedEffects ? registry.time * 0.7 : 0
     resources.breezeEnabled.value = useCowork.getState().reducedEffects ? 0 : 1

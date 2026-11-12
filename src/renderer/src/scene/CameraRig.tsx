@@ -126,9 +126,9 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
       minDistance={6}
       maxDistance={Math.max(200, 64 * marineScale)}
       minPolarAngle={0.32}
-      maxPolarAngle={1.47}
-      minAzimuthAngle={-Infinity}
-      maxAzimuthAngle={Infinity}
+      maxPolarAngle={1.32}
+      minAzimuthAngle={-0.95}
+      maxAzimuthAngle={0.95}
       smoothTime={reduced ? 0.12 : 0.55}
       draggingSmoothTime={reduced ? 0.06 : 0.18}
       dollyToCursor

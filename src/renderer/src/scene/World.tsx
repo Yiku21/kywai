@@ -36,7 +36,6 @@ import { PerfOverlay, PerfProbe } from './PerfMeter'
 import { t } from '@/lib/i18n'
 import { withTempStations } from '@shared/tempStations'
 import { polygonLayout } from './polygonLayout'
-import { WorldSurround } from './worlds/WorldSurround'
 
 /**
  * Reloj de la escena y pulso de la música: se actualizan antes que cualquier otra animación.
@@ -264,8 +263,8 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
   const L = night ? HOME_NIGHT_LIGHTS : p.lights
   // Los entornos nuevos usan materiales físicos también en el suelo y la arquitectura.
   const worldLight = p.world ? (p.light ? 0.85 : 2.4) : 1
-  const fogNear = p.world === 'eva' ? 100 : p.world === 'submarino' ? 30 : p.world === 'kywai' ? 160 : p.world === 'relicario' || p.world === 'telar' ? 68 : p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
-  const fogFar = p.world === 'eva' ? 220 : p.world === 'submarino' ? 78 : p.world === 'kywai' ? 300 : p.world === 'relicario' || p.world === 'telar' ? 185 : p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
+  const fogNear = p.world === 'submarino' ? 30 : p.world === 'kywai' ? 160 : p.world === 'relicario' || p.world === 'telar' ? 68 : p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
+  const fogFar = p.world === 'submarino' ? 78 : p.world === 'kywai' ? 300 : p.world === 'relicario' || p.world === 'telar' ? 185 : p.world === 'matrix' || p.world === 'clasico' ? 180 : p.world === 'grafito' ? 167 : p.world === 'marfil' ? 185 : p.world === 'bosque' ? 134 : p.world ? 90 : FOG_FAR
 
   // Pausa total cuando la ventana o pestaña está oculta (y cuando el espacio 3D está cerrado: [paused]).
   useEffect(() => {
@@ -310,7 +309,6 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
         </Environment>
 
         {!p.world && <Backdrop reduced={reduced} />}
-        <WorldSurround stations={stations} detailed={q.structures > 120} />
         {theme === 'submarino' ? <UnderseaWorld stations={stations} reduced={reduced} detailed={q.structures > 120} /> : theme === 'kywai' ? <KywaiHome stations={stations} detailed={q.structures > 120} reduced={reduced} /> : <Ambient q={q} reduced={reduced} placed={stations} />}
         {!['bosque', 'marfil', 'orbita', 'kywai', 'submarino', 'relicario', 'telar'].includes(p.world ?? '') && <Circuits stations={stations} reduced={reduced} />}
         {theme !== 'kywai' && theme !== 'submarino' && <><Zones /><Core /></>}
