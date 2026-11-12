@@ -115,6 +115,7 @@ import { claudeAuthMethod, removeClaudeOverrides } from './quotaProbe'
 import { flushUsageLog, initUsageLog, usageRuns } from './usageLog'
 import { initAgentSessions } from './agentSessions'
 import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScreenShareUrl } from './inbox'
+import { getSidebarOrder, initSidebarOrder, setSidebarOrder } from './sidebarOrder'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { confirmLearnedSkill, initSkills, learnedSkills, removeLearnedSkill } from './skills'
 import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
@@ -538,6 +539,9 @@ function registerIpc(): void {
     conversations.setPinned(projectId, pinned === true)
     return { ...store.getProject(projectId).project }
   })
+  // Orden de la barra lateral al arrastrar (proyectos, Favoritos y chats de cada proyecto): ver sidebarOrder.ts.
+  handle('getSidebarOrder', () => getSidebarOrder())
+  handle('setSidebarOrder', (patch: unknown) => setSidebarOrder(patch))
   handle('search', (query: unknown, projectId?: unknown) => conversations.search(query, typeof projectId === 'string' ? projectId : undefined))
   handle('searchHistory', (query: unknown, options?: unknown) => conversations.searchHistory(query, options && typeof options === 'object' ? (options as SearchOptions) : {}))
   handle('allConversations', () => withBusy(conversations.allConversations()))
@@ -1310,6 +1314,7 @@ async function boot(): Promise<void> {
   initAgentSessions(cfg.workspaceRoot)
   initImports(cfg.workspaceRoot)
   initInbox(cfg.workspaceRoot)
+  initSidebarOrder(cfg.workspaceRoot)
   initSkills(cfg.workspaceRoot)
   initPonytail(cfg.workspaceRoot)
   initVideoStudio(cfg.workspaceRoot)

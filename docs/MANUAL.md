@@ -442,7 +442,7 @@ desde el PC (`./gradlew :app:publishOrbita` y subir `android/release/`) sigue fu
 lo corten:
 
 - **Barra lateral**, como en el escritorio: «Nuevo chat», el buscador (busca en los títulos y en los mensajes de todos
-  los chats, con filtros y salto al mensaje), «Historial» (todos los chats por fechas, ver [Historial](#historial)), «Fijados», los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
+  los chats, con filtros y salto al mensaje), «Historial» (todos los chats por fechas, ver [Historial](#historial)), «Fijados» (en el escritorio se llama «Favoritos»), los proyectos con sus chats retomables (toca uno para seguirlo), «Música» y «Ajustes». **Plegada no desaparece:** queda una columna de cristal a lo largo de la izquierda
   con el logo de kywai arriba y los accesos usables sin desplegarla (Nuevo, Buscar, Historial, Te necesita con su número, Chat,
   Tareas, Resultados, Música, Más y Ajustes abajo). En la tableta cada icono lleva su nombre debajo; en el móvil en
   vertical es una columna fina solo de iconos. El logo o el botón de debajo la despliegan entera (en el móvil, como
@@ -2934,8 +2934,10 @@ A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:
 - **Historial**: todas las conversaciones de todos los proyectos, por fechas: ver [Historial](#historial).
 - **Te necesita**: la bandeja de avisos (antes era la campana de arriba a la derecha).
 - **Tareas**, **Resultados** y **Rutinas** abren esa pestaña del panel del chat (con el número de tareas en curso).
-- **Fijados**: los proyectos y las conversaciones que fijas (clic derecho → «Fijar»). Se guarda en el proyecto,
-  así que se ve igual en el navegador y en los clientes.
+- **Favoritos** (antes «Fijados»): los proyectos y las conversaciones que quieres tener siempre a mano. Está siempre
+  a la vista entre Rutinas y Proyectos; vacío, muestra dónde soltar. Se añaden **arrastrándolos** aquí o con clic
+  derecho → «Añadir a Favoritos» (y se quitan con «Quitar de Favoritos»). Se guarda en el servidor, así que se ve
+  igual en el navegador y en los clientes (en Órbita sigue llamándose «Fijados»).
 - **Proyectos**: todos, con **+** para crear uno. La flecha de cada proyecto despliega sus conversaciones (el abierto
   se despliega solo); un punto azul que late indica que el equipo está trabajando en él. Clic en un proyecto: lo abre
   y lo despliega; **otro clic en el que ya está abierto lo pliega** (y otro más lo vuelve a desplegar), como en Órbita.
@@ -2956,20 +2958,36 @@ hizo mientras tanto. El botón «Detener» del chat es solo para las peticiones 
 la otra, ábrela y detenla allí. Si cierras kywai con una conversación trabajando en segundo plano, sus tareas a medias
 salen como interrumpidas al volver, igual que en la abierta.
 
+**Arrastrar** (mantén el clic sobre un chat o un proyecto y muévelo): una raya marca dónde caerá y un recuadro
+cuando cae «dentro» de un proyecto.
+
+- Un **chat** soltado sobre **otro proyecto** (en el centro de su fila, o entre sus chats) se **mueve** allí, igual
+  que con «Mover a otro proyecto». Si era el chat abierto, sigues en él ya en su proyecto nuevo. No se puede mientras
+  el equipo trabaja en ese chat.
+- Dentro de un proyecto, los **chats se reordenan** soltándolos encima o debajo de otro; los **proyectos** también
+  se reordenan entre ellos.
+- Lo que sueltas en **Favoritos** se añade allí, en el sitio donde lo dejas; dentro de Favoritos se reordena igual.
+- **Recientes** va siempre por fecha: desde ahí se puede arrastrar, pero no se cambia su orden.
+- El orden se guarda en el servidor (`orden-barra.json` en la carpeta de trabajo). Lo nuevo (un proyecto o chat
+  recién creado) sale arriba hasta que lo muevas. Un cliente conectado a un servidor sin esta versión sigue
+  ordenando por fecha.
+- Un chat arrastrado fuera de la barra lleva también el tipo `application/x-kywai-chat`
+  (`{ projectId, conversationId, title }`) para que otras zonas de la ventana puedan recibirlo.
+
 **Clic derecho** (o el botón **⋯** que sale al pasar el ratón) abre el menú de lo que tocas, como en Claude. Con el
 menú abierto, la letra de la derecha hace esa acción sin el ratón.
 Los botones **⋯** y la flecha de desplegar no llevan bloque de fondo propio: el nombre se desvanece antes de
 llegar a ellos y la hora o el punto de «trabajando» se apartan mientras están a la vista, así quedan sobre la
 misma tarjeta y con el color del tema que tengas.
 
-- En una **conversación**: **Fijar** (P), **Cambiar nombre** (R; por defecto es el principio de tu primer mensaje),
+- En una **conversación**: **Añadir a Favoritos** (P), **Cambiar nombre** (R; por defecto es el principio de tu primer mensaje),
   **Bifurcar** (F: una copia aparte, con los mensajes y las tareas, para seguir por otro camino sin tocar la
   original; se abre sola y los agentes empiezan sesión nueva en ella), **Mover a otro proyecto** (M; los agentes
   empiezan sesión nueva allí; si era la abierta, su proyecto queda con una conversación nueva) y **Eliminar** (D,
   pulsa dos veces; va a `conversaciones/borradas/` dentro del proyecto, no se pierde del todo; si es la abierta,
   antes se empieza una nueva). Mover y eliminar no se puede mientras el equipo trabaja en esa conversación (la del
   punto azul), esté abierta o en segundo plano.
-- En un **proyecto**: **Nuevo chat en este proyecto** (N), **Fijar** (P), **Cambiar nombre** (R), **Abrir carpeta
+- En un **proyecto**: **Nuevo chat en este proyecto** (N), **Añadir a Favoritos** (P), **Cambiar nombre** (R), **Abrir carpeta
   del proyecto** (O) y **Eliminar proyecto** (D, pulsa dos veces; ver [Eliminar un proyecto](#eliminar-un-proyecto)).
 
 No hay «Marcar como no leído» ni «Archivar» como en Claude: aquí todas las conversaciones se guardan solas y no hay

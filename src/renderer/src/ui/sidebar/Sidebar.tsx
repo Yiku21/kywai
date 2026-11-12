@@ -14,15 +14,15 @@ import {
   Package,
   PanelLeft,
   Pencil,
-  Pin,
-  PinOff,
   Plus,
   Search,
   SquarePen,
+  Star,
+  StarOff,
   Trash2,
   X
 } from 'lucide-react'
-import type { ConversationSummary, ProjectSummary } from '@shared/types'
+import type { ConversationSummary, ProjectSummary, SidebarOrder } from '@shared/types'
 import { useCowork, type LeftTab } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { playSfx } from '@/lib/audio'
@@ -36,6 +36,8 @@ import { TABS_QUERY } from '../left/chatWidth'
 import { isSettingsKey, openSettings } from '../settings/SettingsDialog'
 import { ContextMenu, menuPoint, type MenuAt, type MenuEntry } from './ContextMenu'
 import { NEW_CHAT_KEYS, SEARCH_KEYS, isNewChatKey, isSearchKey, readCollapsed, saveCollapsed, shortDate } from './sidebarState'
+import { DragProvider, DragSlot, useDragged } from './DragSlot'
+import { applyOrder, chatKey, placeKey, projectKey, type Dragged, type DropPlace } from './dragOrder'
 import s from './Sidebar.module.css'
 import { t } from '@/lib/i18n'
 
@@ -97,7 +99,9 @@ export function Sidebar() {
           <PanelLeft size={18} aria-hidden="true" />
         </button>
       </div>
-      <SidebarBody rail={rail} />
+      <DragProvider>
+        <SidebarBody rail={rail} />
+      </DragProvider>
       <Footer rail={rail} />
     </nav>
   )
@@ -114,7 +118,9 @@ export function Sidebar() {
               <X size={18} aria-hidden="true" />
             </button>
           </div>
-          <SidebarBody rail={false} onNavigate={closeDrawer} />
+          <DragProvider>
+            <SidebarBody rail={false} onNavigate={closeDrawer} />
+          </DragProvider>
           <Footer rail={false} />
         </nav>
       </div>
@@ -159,6 +165,8 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   const [convs, setConvs] = useState<Record<string, ConversationSummary[]>>({})
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [sections, setSections] = useState({ pinned: true, projects: true, recent: true })
+  const [order, setOrder] = useState<SidebarOrder>({ projects: [], favorites: [], chats: {} })
+  const dragged = useDragged()
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [busy, setBusy] = useState(false)
@@ -178,6 +186,8 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
     void a.listProjects().then((list) => alive && useCowork.getState().setProjects(list), () => undefined)
     void a.recentConversations(RECENT_LIMIT).then((list) => alive && setRecent(list), () => undefined)
     void a.pinnedConversations().then((list) => alive && setPinnedConvs(list), () => undefined)
+    // Servidor antiguo (cliente conectado a un kywai sin esto): sin orden guardado, todo por fecha.
+    void a.getSidebarOrder?.().then((o) => alive && o && setOrder(o), () => undefined)
     for (const id of openKey ? openKey.split(',') : []) {
       void a.listConversations(id).then(
         (list) => alive && setConvs((c) => ({ ...c, [id]: list })),
@@ -211,7 +221,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   }
 
   // Clic en un proyecto: si es otro, lo abre y lo despliega. Si ya es el abierto, en la lista de Proyectos el clic
-  // pliega o despliega sus conversaciones (como en Claude y en Órbita); en Fijados solo lleva al chat.
+  // pliega o despliega sus conversaciones (como en Claude y en Órbita); en Favoritos solo lleva al chat.
   const openProject = (p: ProjectSummary, toggle = false): Promise<void> =>
     run(async () => {
       if (!api) return
@@ -273,6 +283,100 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   const pinned = projects.filter((p) => p.pinned)
   const canNew = live && !!project
 
+  // ---------- arrastrar (mantener el clic y mover) ----------
+  // Proyectos y chats de cada proyecto en el orden que dejó el usuario (lo nuevo arriba, por fecha).
+  const orderedProjects = applyOrder(projects, (p) => p.id, order.projects)
+  const chatsOf = (pid: string): ConversationSummary[] =>
+    applyOrder(
+      // El chat vacío solo se enseña si es el que está abierto (si no, sale «Conversación nueva» de relleno).
+      (convs[pid] ?? []).filter((c) => c.messageCount > 0 || (c.current && project?.id === pid && conversation?.id === c.id)),
+      (c) => c.id,
+      order.chats[pid]
+    )
+  // Favoritos: proyectos y chats mezclados, en el orden que se dejaron al soltarlos.
+  type Fav = { key: string; project?: ProjectSummary; conv?: ConversationSummary }
+  const favs = applyOrder<Fav>(
+    [...pinned.map((p) => ({ key: projectKey(p.id), project: p })), ...pinnedConvs.map((c) => ({ key: chatKey(c.projectId, c.id), conv: c }))],
+    (f) => f.key,
+    order.favorites
+  )
+  const keyOf = (d: Dragged): string => (d.kind === 'project' ? projectKey(d.id) : chatKey(d.projectId, d.id))
+
+  function saveOrder(patch: Partial<SidebarOrder>): void {
+    setOrder((o) => ({ ...o, ...patch, chats: { ...o.chats, ...(patch.chats ?? {}) } }))
+    const a = api
+    if (!a?.setSidebarOrder) return
+    a.setSidebarOrder(patch).catch((e) => setError(errorText(e)))
+  }
+
+  /** Suelta en Favoritos (antes o después de `target`, o al final): si no estaba, se marca como favorito. */
+  const dropOnFavorites = (d: Dragged, target: string | null, after: boolean): Promise<void> =>
+    run(async () => {
+      if (!api) return
+      const key = keyOf(d)
+      if (!favs.some((f) => f.key === key)) {
+        if (d.kind === 'project') {
+          await api.setProjectPinned(d.id, true)
+          useCowork.getState().setProjects(await api.listProjects())
+        } else {
+          await api.setConversationPinned(d.projectId, d.id, true)
+          actions.refresh()
+        }
+      }
+      saveOrder({ favorites: placeKey(favs.map((f) => f.key), key, target, after) })
+    })
+
+  /** Pasa un chat a otro proyecto (y lo deja en el sitio donde se soltó, si fue entre sus chats). */
+  const moveChat = (d: Extract<Dragged, { kind: 'chat' }>, toId: string, at?: { target: string; after: boolean }): Promise<void> =>
+    run(async () => {
+      if (!api) return
+      const wasOpen = project?.id === d.projectId && conversation?.id === d.id
+      const newId = await api.moveConversation(d.projectId, d.id, toId)
+      const patch: Partial<SidebarOrder> = {}
+      const oldKey = chatKey(d.projectId, d.id)
+      if (order.favorites.includes(oldKey)) patch.favorites = order.favorites.map((k) => (k === oldKey ? chatKey(toId, newId) : k))
+      if (at) patch.chats = { [toId]: placeKey(chatsOf(toId).map((c) => c.id), newId, at.target, at.after) }
+      if (patch.favorites || patch.chats) saveOrder(patch)
+      setExpanded((e) => ({ ...e, [toId]: true }))
+      // Si era el chat abierto, se sigue en él, ya en su proyecto nuevo.
+      if (wasOpen) {
+        useCowork.getState().loadProjectState(await api.openConversation(toId, newId))
+        go('chat')
+      }
+      actions.refresh()
+    })
+
+  const asChat = (c: ConversationSummary): Dragged | undefined =>
+    c.messageCount > 0 ? { kind: 'chat', projectId: c.projectId, id: c.id, title: c.title, busy: c.busy } : undefined
+
+  /** Fila de un proyecto en Proyectos: otro proyecto se pone antes o después; un chat de otro proyecto entra en él. */
+  const projectAccepts =
+    (p: ProjectSummary) =>
+    (d: Dragged): DropPlace[] => {
+      if (d.kind === 'project') return d.id === p.id ? [] : ['before', 'after']
+      return d.projectId === p.id || d.busy ? [] : ['into']
+    }
+  const dropOnProject = (p: ProjectSummary, d: Dragged, place: DropPlace): void => {
+    if (d.kind === 'project') saveOrder({ projects: placeKey(orderedProjects.map((x) => x.id), d.id, p.id, place === 'after') })
+    else void moveChat(d, p.id)
+  }
+
+  /** Fila de un chat dentro de su proyecto: los chats se reordenan; uno de otro proyecto se mueve aquí. */
+  const chatAccepts =
+    (c: ConversationSummary) =>
+    (d: Dragged): DropPlace[] => {
+      if (d.kind !== 'chat' || (d.projectId === c.projectId && d.id === c.id)) return []
+      return d.projectId !== c.projectId && d.busy ? [] : ['before', 'after']
+    }
+  const dropOnChat = (c: ConversationSummary, d: Dragged, place: DropPlace): void => {
+    if (d.kind !== 'chat') return
+    const after = place === 'after'
+    if (d.projectId === c.projectId) saveOrder({ chats: { [c.projectId]: placeKey(chatsOf(c.projectId).map((x) => x.id), d.id, c.id, after) } })
+    else void moveChat(d, c.projectId, { target: c.id, after })
+  }
+
+  const favAccepts = (key: string) => (d: Dragged): DropPlace[] => (keyOf(d) === key ? [] : ['before', 'after'])
+
   return (
     <div className={s.scroll}>
       <NavItem icon={<SquarePen size={17} />} label={t('Nuevo chat')} keys={NEW_CHAT_KEYS} rail={rail} disabled={!canNew} onClick={() => void newChat()} />
@@ -326,27 +430,47 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
 
       {live && !rail && (
         <>
-          {(pinned.length > 0 || pinnedConvs.length > 0) && (
-            <Section title={t('Fijados')} open={sections.pinned} onToggle={() => setSections((x) => ({ ...x, pinned: !x.pinned }))}>
-              {pinned.map((p) => (
-                <ProjectRow key={p.id} p={p} current={project?.id === p.id} icon={<Pin size={15} />} onOpen={() => void openProject(p)} actions={actions} />
-              ))}
-              {pinnedConvs.map((c) => (
-                <ConversationRow
-                  key={`${c.projectId}:${c.id}`}
-                  c={c}
-                  flat
-                  meta={projects.find((p) => p.id === c.projectId)?.name ?? ''}
-                  active={project?.id === c.projectId && conversation?.id === c.id}
-                  onOpen={() => void openConversation(c)}
-                  actions={actions}
-                />
-              ))}
-              <button type="button" className={s.seeAll} onClick={() => useCowork.setState({ historyOpen: true })}>
-                {t('Ver todo el historial')}
-              </button>
+          {/* Favoritos: siempre a la vista (entre Rutinas y Proyectos); se llena arrastrando o con el clic derecho. */}
+          <DragSlot slot="fav" accepts={(d) => (favs.some((f) => f.key === keyOf(d)) ? [] : ['into'])} onDrop={(d) => void dropOnFavorites(d, null, false)}>
+            <Section title={t('Favoritos')} open={sections.pinned} onToggle={() => setSections((x) => ({ ...x, pinned: !x.pinned }))}>
+              {favs.map((f) =>
+                f.project ? (
+                  <DragSlot
+                    key={f.key}
+                    slot={`fav:${f.key}`}
+                    item={{ kind: 'project', id: f.project.id }}
+                    accepts={favAccepts(f.key)}
+                    onDrop={(d, place) => void dropOnFavorites(d, f.key, place === 'after')}
+                  >
+                    <ProjectRow p={f.project} current={project?.id === f.project.id} icon={<Folder size={15} />} onOpen={() => void openProject(f.project!)} actions={actions} />
+                  </DragSlot>
+                ) : f.conv ? (
+                  <DragSlot
+                    key={f.key}
+                    slot={`fav:${f.key}`}
+                    item={asChat(f.conv)}
+                    accepts={favAccepts(f.key)}
+                    onDrop={(d, place) => void dropOnFavorites(d, f.key, place === 'after')}
+                  >
+                    <ConversationRow
+                      c={f.conv}
+                      flat
+                      meta={projects.find((p) => p.id === f.conv!.projectId)?.name ?? ''}
+                      active={project?.id === f.conv.projectId && conversation?.id === f.conv.id}
+                      onOpen={() => void openConversation(f.conv!)}
+                      actions={actions}
+                    />
+                  </DragSlot>
+                ) : null
+              )}
+              {favs.length === 0 && (
+                <p className={cx(s.favEmpty, dragged && s.favEmptyActive)}>
+                  <Star size={14} aria-hidden="true" />
+                  {t('Arrastra aquí un chat o un proyecto (o clic derecho → Añadir a Favoritos)')}
+                </p>
+              )}
             </Section>
-          )}
+          </DragSlot>
 
           <Section
             title={t('Proyectos')}
@@ -372,33 +496,28 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
                 />
               </form>
             )}
-            {projects.map((p) => {
+            {orderedProjects.map((p) => {
               const isOpen = !!expanded[p.id]
               return (
                 <div key={p.id}>
-                  <ProjectRow
-                    p={p}
-                    current={project?.id === p.id}
-                    icon={isOpen ? <FolderOpen size={15} /> : <Folder size={15} />}
-                    expanded={isOpen}
-                    onExpand={() => setExpanded((e) => ({ ...e, [p.id]: !isOpen }))}
-                    onOpen={() => void openProject(p, true)}
-                    actions={actions}
-                  />
+                  <DragSlot slot={`p:${p.id}`} item={{ kind: 'project', id: p.id }} accepts={projectAccepts(p)} onDrop={(d, place) => dropOnProject(p, d, place)}>
+                    <ProjectRow
+                      p={p}
+                      current={project?.id === p.id}
+                      icon={isOpen ? <FolderOpen size={15} /> : <Folder size={15} />}
+                      expanded={isOpen}
+                      onExpand={() => setExpanded((e) => ({ ...e, [p.id]: !isOpen }))}
+                      onOpen={() => void openProject(p, true)}
+                      actions={actions}
+                    />
+                  </DragSlot>
                   {isOpen && (
                     <div className={s.sub}>
-                      {(convs[p.id] ?? [])
-                        // El chat vacío solo se enseña si es el que está abierto (si no, sale «Conversación nueva» de relleno).
-                        .filter((c) => c.messageCount > 0 || (c.current && project?.id === p.id && conversation?.id === c.id))
-                        .map((c) => (
-                          <ConversationRow
-                            key={c.id}
-                            c={c}
-                            active={project?.id === p.id && conversation?.id === c.id}
-                            onOpen={() => void openConversation(c)}
-                            actions={actions}
-                          />
-                        ))}
+                      {chatsOf(p.id).map((c) => (
+                        <DragSlot key={c.id} slot={`c:${p.id}:${c.id}`} item={asChat(c)} accepts={chatAccepts(c)} onDrop={(d, place) => dropOnChat(c, d, place)}>
+                          <ConversationRow c={c} active={project?.id === p.id && conversation?.id === c.id} onOpen={() => void openConversation(c)} actions={actions} />
+                        </DragSlot>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -408,16 +527,18 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
 
           {recent.length > 0 && (
             <Section title={t('Recientes')} open={sections.recent} onToggle={() => setSections((x) => ({ ...x, recent: !x.recent }))}>
+              {/* Recientes va siempre por fecha: desde aquí se arrastra, pero no se suelta. */}
               {recent.map((c) => (
-                <ConversationRow
-                  key={`${c.projectId}:${c.id}`}
-                  c={c}
-                  flat
-                  meta={projects.find((p) => p.id === c.projectId)?.name ?? ''}
-                  active={project?.id === c.projectId && conversation?.id === c.id}
-                  onOpen={() => void openConversation(c)}
-                  actions={actions}
-                />
+                <DragSlot key={`${c.projectId}:${c.id}`} slot={`r:${c.projectId}:${c.id}`} item={asChat(c)}>
+                  <ConversationRow
+                    c={c}
+                    flat
+                    meta={projects.find((p) => p.id === c.projectId)?.name ?? ''}
+                    active={project?.id === c.projectId && conversation?.id === c.id}
+                    onOpen={() => void openConversation(c)}
+                    actions={actions}
+                  />
+                </DragSlot>
               ))}
             </Section>
           )}
@@ -596,7 +717,13 @@ function ProjectRow({
           window.dispatchEvent(new Event('cowork:focus-composer'))
         })
     },
-    { id: 'pin', label: p.pinned ? t('Soltar de Fijados') : t('Fijar'), icon: p.pinned ? <PinOff size={15} /> : <Pin size={15} />, shortcut: 'P', onSelect: () => actions.togglePin(p) },
+    {
+      id: 'pin',
+      label: p.pinned ? t('Quitar de Favoritos') : t('Añadir a Favoritos'),
+      icon: p.pinned ? <StarOff size={15} /> : <Star size={15} />,
+      shortcut: 'P',
+      onSelect: () => actions.togglePin(p)
+    },
     { id: 'rename', label: t('Cambiar nombre'), icon: <Pencil size={15} />, shortcut: 'R', onSelect: () => setEditing(true) },
     {
       id: 'folder',
@@ -665,7 +792,7 @@ function ConversationRow({
 }: {
   c: ConversationSummary
   active: boolean
-  /** En Fijados y Recientes: fila normal con el nombre del proyecto a la derecha (no sangrada bajo su proyecto). */
+  /** En Favoritos y Recientes: fila normal con el nombre del proyecto a la derecha (no sangrada bajo su proyecto). */
   flat?: boolean
   meta?: string
   onOpen: () => void
@@ -701,8 +828,8 @@ function ConversationRow({
   const items: MenuEntry[] = [
     {
       id: 'pin',
-      label: c.pinned ? t('Soltar de Fijados') : t('Fijar'),
-      icon: c.pinned ? <PinOff size={15} /> : <Pin size={15} />,
+      label: c.pinned ? t('Quitar de Favoritos') : t('Añadir a Favoritos'),
+      icon: c.pinned ? <StarOff size={15} /> : <Star size={15} />,
       shortcut: 'P',
       disabled: empty,
       onSelect: () =>

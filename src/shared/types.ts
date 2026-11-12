@@ -1140,10 +1140,20 @@ export interface ProjectSummary {
   workDir?: string
   createdAt: number
   updatedAt: number
-  /** Fijado en la barra lateral (arriba del todo, en «Fijados»). */
+  /** En «Favoritos» de la barra lateral. */
   pinned?: boolean
   /** El equipo está trabajando en él ahora (solo en la lista de proyectos; no se guarda). */
   busy?: boolean
+}
+
+/**
+ * Orden manual de la barra lateral (al arrastrar). `favorites` mezcla proyectos (`p:<id>`) y chats
+ * (`c:<proyecto>:<chat>`); `chats` guarda el orden de los chats de cada proyecto. Lo que no sale va arriba, por fecha.
+ */
+export interface SidebarOrder {
+  projects: string[]
+  favorites: string[]
+  chats: Record<string, string[]>
 }
 
 /** Una conversación de un proyecto. La abierta vive en el proyecto; las demás, guardadas en conversaciones/. */
@@ -1158,7 +1168,7 @@ export interface ConversationSummary {
   messageCount: number
   /** Es la abierta ahora en el proyecto. */
   current?: boolean
-  /** Fijada arriba en la barra lateral. */
+  /** En «Favoritos» de la barra lateral. */
   pinned?: boolean
   /** Traída de otra app («Claude Code», «Codex», «ChatGPT», «Claude.ai»). */
   importedFrom?: string
@@ -1902,6 +1912,10 @@ export interface CoworkApi {
   moveConversation(projectId: string, conversationId: string, toProjectId: string): Promise<string>
   /** Fija o suelta un proyecto en la barra lateral. */
   setProjectPinned(projectId: string, pinned: boolean): Promise<ProjectSummary>
+  /** Orden que dejó el usuario al arrastrar en la barra lateral (proyectos, Favoritos y chats de cada proyecto). */
+  getSidebarOrder?(): Promise<SidebarOrder>
+  /** Guarda parte de ese orden (solo lo que llega). Devuelve el orden entero. */
+  setSidebarOrder?(patch: Partial<SidebarOrder>): Promise<SidebarOrder>
   /** Busca en conversaciones, tareas, resultados y memoria (de un proyecto o de todos). */
   search(query: string, projectId?: string): Promise<SearchHit[]>
   /** Buscador del historial: varias palabras, «frase exacta», fecha y autor, con el total para «Ver más». */
