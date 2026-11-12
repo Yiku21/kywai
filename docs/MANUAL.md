@@ -1986,7 +1986,9 @@ agente escribe el texto: gancho en la primera línea, una llamada a la acción y
 `/serie`, repite la pregunta para votar). Sale una tarjeta con el vídeo y el texto, que puedes **cambiar** antes de
 pulsar **Publicar** (también desde «Te necesita», en el escritorio, la web y Órbita). kywai sube el MP4 desde el equipo
 (subida reanudable de Meta: no hace falta una URL pública), espera a que Instagram lo procese y deja el **enlace** en el
-chat. Si falla, la tarjeta dice por qué y tiene **Reintentar**.
+chat. Si falla, la tarjeta dice por qué y tiene **Reintentar**: el error nombra el paso (preparar la publicación,
+subir el vídeo, comprobarlo o publicar el reel), lo que contestó Meta y su código o `fbtrace_id`. Los errores 500
+pasajeros de la subida se reintentan solos dos veces.
 
 **Publicar sin preguntar.** Con ese botón activado, lo que prepara «/instagram» se publica solo al terminar el texto,
 también desde una **rutina** («/rutina cada día a las 18:00: /serie siguiente» y otra «… /instagram»). «Volver a pedir

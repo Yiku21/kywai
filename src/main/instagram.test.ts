@@ -98,6 +98,38 @@ describe('el Instagram de kywai', () => {
     await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow(/no acepta el token.*Session expired/)
   })
 
+  it('si falla la subida del vídeo, dice el paso y lo que contestó Meta', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-'))
+    const file = join(dir, 'reel.mp4')
+    writeFileSync(file, Buffer.alloc(10, 1))
+    __setInstagramFetchForTests(
+      async (url) =>
+        url.includes('rupload')
+          ? { ok: false, status: 400, text: async () => JSON.stringify({ debug_info: { retriable: false, type: 'ProcessingFailedError', message: 'Request processing failed' } }) }
+          : { ok: true, status: 200, text: async () => JSON.stringify({ id: 'C3' }) },
+      async () => undefined
+    )
+    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram respondió con un error 400 al subir el vídeo: Request processing failed [ProcessingFailedError]')
+  })
+
+  it('un 500 al subir se reintenta y un error de la API lleva su código y el paso', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-'))
+    const file = join(dir, 'reel.mp4')
+    writeFileSync(file, Buffer.alloc(10, 1))
+    let uploads = 0
+    __setInstagramFetchForTests(
+      async (url) => {
+        if (url.includes('rupload')) return ++uploads < 2 ? { ok: false, status: 503, text: async () => '<html>Service Unavailable</html>' } : { ok: true, status: 200, text: async () => '{"success":true}' }
+        if (url.endsWith('/media')) return { ok: true, status: 200, text: async () => JSON.stringify({ id: 'C4' }) }
+        if (url.includes('/C4?')) return { ok: true, status: 200, text: async () => JSON.stringify({ status_code: 'FINISHED' }) }
+        return { ok: false, status: 400, text: async () => JSON.stringify({ error: { message: 'Media ID is not available', code: 9007, error_subcode: 2207027, fbtrace_id: 'T1' } }) }
+      },
+      async () => undefined
+    )
+    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram respondió con un error 400 al publicar el reel: Media ID is not available [9007/2207027] (fbtrace_id T1)')
+    expect(uploads).toBe(2)
+  })
+
   it('el texto cabe en Instagram y se limpia lo que añade el agente', () => {
     const tags = Array.from({ length: 35 }, (_, i) => `#t${i}`).join(' ')
     expect(cleanCaption(tags).match(/#/g)).toHaveLength(30)

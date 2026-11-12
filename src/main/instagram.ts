@@ -33,22 +33,35 @@ export interface InstagramAccount {
   username: string
 }
 
-/** El error de la Graph API en una frase (sin el token, que nunca va en la respuesta). */
-function graphError(status: number, body: string): Error {
+/** El error de la Graph API (o de la subida a rupload) en una frase, con el paso en el que falló. Nunca lleva el token. */
+export function graphError(status: number, body: string, step?: string): Error {
+  const where = step ? ` al ${step}` : ''
   try {
-    const e = (JSON.parse(body) as { error?: { message?: string; code?: number; error_user_msg?: string } }).error
+    const j = JSON.parse(body) as {
+      error?: { message?: string; code?: number; error_subcode?: number; error_user_title?: string; error_user_msg?: string; fbtrace_id?: string }
+      debug_info?: { type?: string; message?: string; retriable?: boolean }
+    }
+    const e = j.error
     if (e) {
-      const msg = e.error_user_msg || e.message || ''
-      if (e.code === 190) return new Error(`Instagram no acepta el token (caducado o sin permiso): ${msg}`)
-      return new Error(`Instagram respondió: ${msg || `error ${status}`}`)
+      const msg = [e.error_user_title, e.error_user_msg || e.message].filter(Boolean).join(': ')
+      if (e.code === 190) return new Error(`Instagram no acepta el token (caducado o sin permiso)${where}: ${msg}`)
+      const code = e.code ? ` [${e.code}${e.error_subcode ? `/${e.error_subcode}` : ''}]` : ''
+      const trace = e.fbtrace_id ? ` (fbtrace_id ${e.fbtrace_id})` : ''
+      return new Error(`Instagram respondió con un error ${status}${where}: ${msg || 'sin detalles'}${code}${trace}`)
+    }
+    // La subida del vídeo (rupload.facebook.com) responde con «debug_info» en vez de «error».
+    if (j.debug_info) {
+      const d = j.debug_info
+      return new Error(`Instagram respondió con un error ${status}${where}: ${d.message || 'sin detalles'}${d.type ? ` [${d.type}]` : ''}`)
     }
   } catch {
     /* no es JSON */
   }
-  return new Error(`Instagram respondió con un error ${status}`)
+  const snippet = body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200)
+  return new Error(`Instagram respondió con un error ${status}${where}${snippet ? `: ${snippet}` : ''}`)
 }
 
-async function graph<T>(token: string, method: 'GET' | 'POST', path: string, params: Record<string, string> = {}, signal?: AbortSignal): Promise<T> {
+async function graph<T>(token: string, method: 'GET' | 'POST', path: string, params: Record<string, string> = {}, signal?: AbortSignal, step?: string): Promise<T> {
   const url = new URL(`${graphHost(token)}/${GRAPH_VERSION}/${path}`)
   const headers: Record<string, string> = { Authorization: `Bearer ${token.trim()}` }
   let body: string | undefined
@@ -59,7 +72,7 @@ async function graph<T>(token: string, method: 'GET' | 'POST', path: string, par
   }
   const res = await doFetch(url.toString(), { method, headers, body, signal })
   const text = await res.text()
-  if (!res.ok) throw graphError(res.status, text)
+  if (!res.ok) throw graphError(res.status, text, step)
   try {
     return JSON.parse(text) as T
   } catch {
@@ -175,30 +188,39 @@ export async function publishReel(input: PublishInput): Promise<{ id: string; pe
     upload_type: 'resumable',
     caption,
     ...(input.trial ? { trial_params: JSON.stringify({ graduation_strategy: 'SS_PERFORMANCE' }) } : {})
-  }, signal)
+  }, signal, 'preparar la publicación')
   if (!box.id) throw new Error('Instagram no creó la publicación')
   input.onStep?.('Subiendo el vídeo a Instagram')
   const uploadUrl = box.uri || `https://rupload.facebook.com/ig-api-upload/${GRAPH_VERSION}/${box.id}`
-  const up = await doFetch(uploadUrl, {
-    method: 'POST',
-    headers: { Authorization: `OAuth ${token.trim()}`, offset: '0', file_size: String(size), 'Content-Type': 'application/octet-stream' },
-    body: new Uint8Array(readFileSync(file)),
-    signal
-  })
-  const upText = await up.text()
-  if (!up.ok) throw graphError(up.status, upText)
+  const bytes = new Uint8Array(readFileSync(file))
+  for (let attempt = 0; ; attempt++) {
+    const up = await doFetch(uploadUrl, {
+      method: 'POST',
+      headers: { Authorization: `OAuth ${token.trim()}`, offset: '0', file_size: String(size), 'Content-Type': 'application/octet-stream' },
+      body: bytes,
+      signal
+    })
+    const upText = await up.text()
+    if (up.ok) break
+    // Un fallo pasajero de Meta (5xx) se reintenta un par de veces antes de rendirse.
+    if (up.status >= 500 && attempt < 2 && !signal?.aborted) {
+      await sleepImpl(3000 * (attempt + 1))
+      continue
+    }
+    throw graphError(up.status, upText, 'subir el vídeo')
+  }
   input.onStep?.('Instagram está procesando el vídeo')
   const deadline = Date.now() + (input.timeoutMs ?? 10 * 60_000)
   for (;;) {
     if (signal?.aborted) throw new Error('Cancelado')
-    const st = await graph<{ status_code?: string; status?: string }>(token, 'GET', box.id, { fields: 'status_code,status' }, signal)
+    const st = await graph<{ status_code?: string; status?: string }>(token, 'GET', box.id, { fields: 'status_code,status' }, signal, 'comprobar el vídeo')
     if (st.status_code === 'FINISHED') break
     if (st.status_code === 'ERROR' || st.status_code === 'EXPIRED') throw new Error(`Instagram no pudo procesar el vídeo: ${st.status || st.status_code}`)
     if (Date.now() > deadline) throw new Error('Instagram tarda demasiado en procesar el vídeo; prueba otra vez más tarde')
     await sleepImpl(5000)
   }
   input.onStep?.('Publicando en Instagram')
-  const pub = await graph<{ id?: string }>(token, 'POST', `${userId}/media_publish`, { creation_id: box.id }, signal)
+  const pub = await graph<{ id?: string }>(token, 'POST', `${userId}/media_publish`, { creation_id: box.id }, signal, 'publicar el reel')
   if (!pub.id) throw new Error('Instagram no confirmó la publicación')
   let permalink: string | undefined
   try {
