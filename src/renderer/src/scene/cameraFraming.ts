@@ -8,7 +8,10 @@ export const OVERVIEW_FOV = 36
 export function frontalOverview(world: WorldStyle | undefined, stations: StationConfig[], aspect: number, room = 1) {
   const large = world === 'kywai' || world === 'relicario' || world === 'telar'
   const target: [number, number, number] = [0, large ? 3.4 : 2.2, world === 'submarino' ? -4 : -2.4]
-  const halfWidth = Math.max(large ? 18 : 14, ...stations.map(s => Math.abs(s.position[0]) + 3))
+  // En paneles estrechos se recortan los lados del escenario (sin pasar de lo que se ve a 3:2) y basta con que quepan
+  // los agentes; si no, la cámara se aleja tanto que el escenario queda pequeño entre franjas vacías arriba y abajo.
+  const fit = Math.min(1, aspect / 1.5)
+  const halfWidth = Math.max((large ? 18 : 14) * fit, ...stations.map(s => Math.abs(s.position[0]) + 1.8 + 1.2 * fit))
   const front = Math.max(8, ...stations.map(s => s.position[1] - target[2] + 2))
   // El ancho se resuelve alejando la cámara, nunca convirtiendo la vista en cenital.
   const distance = Math.max(large ? 43 : 35, front + halfWidth / (Math.tan(OVERVIEW_FOV * Math.PI / 360) * Math.max(.25, aspect))) * Math.max(1, room)

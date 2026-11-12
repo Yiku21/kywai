@@ -33,7 +33,7 @@ describe('cámara de frente ligeramente elevada', () => {
   })
 
   it('resuelve un panel más estrecho alejándose, manteniendo la misma inclinación', () => {
-    const wide = frontalOverview('eva', [], 1.8), narrow = frontalOverview('eva', [], .65)
+    const wide = frontalOverview('eva', DEFAULT_STATIONS, 1.8), narrow = frontalOverview('eva', DEFAULT_STATIONS, .65)
     expect(narrow.eye[2]).toBeGreaterThan(wide.eye[2])
     expect((narrow.eye[1] - narrow.target[1]) / (narrow.eye[2] - narrow.target[2])).toBeCloseTo((wide.eye[1] - wide.target[1]) / (wide.eye[2] - wide.target[2]))
   })
