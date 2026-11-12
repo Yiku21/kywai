@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { characterRole, parseSkin, pickClip } from './characters'
+import * as THREE from 'three'
+import { calmClip, characterRole, parseSkin, pickClip } from './characters'
 
 const base = { visual: 'idle' as const, speed: 0, checkAmt: 0, questionAmt: 0, eyeError: 0, ackAmt: 0, t: 0 }
 
@@ -32,5 +33,18 @@ describe('personajes 3D', () => {
     expect(parseSkin('clasico')).toBe('clasico')
     expect(parseSkin(null)).toBe('personajes')
     expect(parseSkin('otro')).toBe('personajes')
+  })
+
+  it('calmClip acerca la cabeza a su postura media y deja igual lo que no toca', () => {
+    const a = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -0.5)
+    const b = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), 0.5)
+    const vals = [...a.toArray(), ...b.toArray()]
+    const head = new THREE.QuaternionKeyframeTrack('Head.quaternion', [0, 1], vals)
+    const arm = new THREE.QuaternionKeyframeTrack('LeftArm.quaternion', [0, 1], vals)
+    const clip = new THREE.AnimationClip('reposo', 1, [head, arm])
+    calmClip(clip, { head: 0.2, body: 1 })
+    const first = new THREE.Quaternion().fromArray(Array.from(head.values), 0)
+    expect(2 * Math.acos(Math.min(1, Math.abs(first.w)))).toBeCloseTo(0.1, 3)
+    expect(Array.from(arm.values)).toEqual(vals.map((x) => Math.fround(x)))
   })
 })

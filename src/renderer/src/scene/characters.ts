@@ -111,6 +111,55 @@ async function loadGlb(url: string): Promise<GLTF> {
   })
   return loader.parseAsync(buf, '')
 }
+/**
+ * Cuánto se deja de cada movimiento (1 = como lo hizo Meshy). Sus animaciones balancean mucho la cabeza y la
+ * cadera de lado a lado, y con la cabeza grande de los personajes no parecía natural: se acercan a su postura media.
+ * `head` vale para la cabeza y el cuello; `body`, para el resto del cuerpo.
+ */
+const CALM: Record<CharacterClip, { head: number; body: number }> = {
+  reposo: { head: 0.22, body: 0.3 },
+  piensa: { head: 0.45, body: 0.7 },
+  duda: { head: 0.5, body: 0.7 },
+  saluda: { head: 0.5, body: 0.8 },
+  celebra: { head: 0.55, body: 0.85 },
+  explica: { head: 0.6, body: 1 },
+  habla: { head: 0.6, body: 1 },
+  camina: { head: 0.6, body: 1 }
+}
+
+/** Acerca cada giro del movimiento a su postura media (factor 0 = quieto en la media, 1 = sin cambios). */
+export function calmClip(clip: THREE.AnimationClip, k: { head: number; body: number }): void {
+  const mean = new THREE.Quaternion()
+  const q = new THREE.Quaternion()
+  const out = new THREE.Quaternion()
+  for (const track of clip.tracks) {
+    if (!track.name.endsWith('.quaternion')) continue
+    const f = /head|neck/i.test(track.name) ? k.head : k.body
+    if (f >= 1) continue
+    const v = track.values
+    const n = v.length / 4
+    if (n < 2) continue
+    // Media de los cuaterniones (todos del mismo lado que el primero) y normalizada.
+    let x = 0, y = 0, z = 0, w = 0
+    for (let i = 0; i < v.length; i += 4) {
+      const sgn = v[i] * v[0] + v[i + 1] * v[1] + v[i + 2] * v[2] + v[i + 3] * v[3] < 0 ? -1 : 1
+      x += v[i] * sgn
+      y += v[i + 1] * sgn
+      z += v[i + 2] * sgn
+      w += v[i + 3] * sgn
+    }
+    mean.set(x, y, z, w).normalize()
+    for (let i = 0; i < v.length; i += 4) {
+      q.set(v[i], v[i + 1], v[i + 2], v[i + 3])
+      out.slerpQuaternions(mean, q, f)
+      v[i] = out.x
+      v[i + 1] = out.y
+      v[i + 2] = out.z
+      v[i + 3] = out.w
+    }
+  }
+}
+
 const models = new Map<HomeRole, Promise<GLTF>>()
 let clips: Promise<Record<CharacterClip, THREE.AnimationClip>> | null = null
 
@@ -120,6 +169,7 @@ function loadClips(): Promise<Record<CharacterClip, THREE.AnimationClip>> {
       const g = await loadGlb(CLIPS[k])
       const clip = g.animations[0]
       clip.name = k
+      calmClip(clip, CALM[k])
       return [k, clip] as const
     })
   ).then((list) => Object.fromEntries(list) as Record<CharacterClip, THREE.AnimationClip>)

@@ -3934,7 +3934,9 @@ el robot clásico, y los agentes sin personaje también. Con personaje, los disf
 Los personajes se apoyan en el suelo de verdad: cuando el agente está quieto se mira hacia abajo qué hay bajo sus pies
 (rayo contra la escena, sin contar luces, partículas ni cosas transparentes) y se le sube o baja hasta pisar la
 plataforma, porque cada tema tiene estaciones a distinta altura. No reciben sombra propia (en sus caras pequeñas
-dibujaba rayas) y las texturas van a 2048 px.
+dibujaba rayas) y las texturas van a 2048 px. Las animaciones de Meshy balanceaban mucho la cabeza y la cadera
+(en reposo, hasta 55°): al cargarlas se acercan a su postura media (`CALM` y `calmClip` en `characters.ts`), mucho en
+reposo y algo menos en el resto.
 
 Para añadir otra skin: su id en `SKINS` y `AgentSkin` (`scene/characters.ts`), su nombre y descripción en `skinText`
 (`ui/settings/SkinGrid.tsx`), su foto en `assets/skins/<id>.webp` (360×225, tres agentes), sus iconos en
