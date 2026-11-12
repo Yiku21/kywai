@@ -1532,6 +1532,11 @@ escribir (con sus adjuntos y, si respondía a un agente, la misma respuesta), pa
 conversación original no se toca. Como al bifurcar una conversación entera, la copia no lleva las sesiones de los
 agentes (en ella empiezan sesión nueva). Bifurcar y editar solo van en modo real.
 
+**En Órbita** es **mantener pulsado** el mensaje: Copiar (el mensaje entero), **Seleccionar texto** (a partir de
+ahí, en ese mensaje el dedo selecciona palabras con sus tiradores, como antes), Responder a … (en una respuesta),
+Editar y reenviar (en uno tuyo) y Bifurcar desde aquí. Bifurcar y editar piden que el ordenador tenga esta versión
+(capacidad `messageActions`).
+
 Por dentro: `forkConversation(projectId, conversationId, { messageId, before })` en `src/main/conversations.ts`
 (sin `from`, copia la conversación entera como siempre), el menú en `src/renderer/src/ui/left/MessageMenu.tsx` y,
 en la API móvil, `messageId` y `before` en `POST /chats/{chatId}/fork` (capacidad `messageActions`; 404

@@ -300,9 +300,16 @@ class CoworkApiClient(
         ChatsResponse.serializer(),
     ).chats
 
-    suspend fun forkChat(projectId: String, chatId: String): ChatCopyResponse = post(
+    /** Copia del chat entera o, con [messageId], hasta ese mensaje (o justo antes, con [before]). */
+    suspend fun forkChat(projectId: String, chatId: String, messageId: String? = null, before: Boolean = false): ChatCopyResponse = post(
         "/chats/${chatId.encodeSegment()}/fork",
-        CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(projectId)),
+        buildJsonObject {
+            put("conversationId", projectId)
+            if (messageId != null) {
+                put("messageId", messageId)
+                if (before) put("before", true)
+            }
+        }.toString(),
         ChatCopyResponse.serializer(),
     )
 

@@ -1084,4 +1084,13 @@ private fun part7(m: HashMap<String, String>) {
     m["Eliminar…"] = "Eliminar…"
     m["Descargar"] = "Transferir"
     m["Se borra del ordenador y desaparece de Archivos y Resultados."] = "É apagado do computador e desaparece de Ficheiros e Resultados."
+    m["Copiar"] = "Copiar"
+    m["Seleccionar texto"] = "Selecionar texto"
+    m["Dejar de responder a {name}"] = "Parar de responder a {name}"
+    m["Responder a {name}"] = "Responder a {name}"
+    m["Editar y reenviar"] = "Editar e reenviar"
+    m["Bifurcar desde aquí"] = "Ramificar a partir daqui"
+    m["Actualiza kywai en el ordenador para usar esto"] = "Atualize o kywai no computador para usar isto"
+    m["Rama nueva: cambia el mensaje y envíalo"] = "Novo ramo: mude a mensagem e envie"
+    m["Chat bifurcado desde ese mensaje"] = "Chat ramificado a partir dessa mensagem"
 }

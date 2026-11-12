@@ -34,7 +34,10 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 
-/** En el chat, manteniendo el dedo sobre un mensaje se selecciona su texto para copiarlo, y en la caja de escribir se pega. */
+/**
+ * En el chat, mantener pulsado un mensaje abre su menú: Copiar lo copia entero, «Seleccionar texto» deja elegir
+ * palabras con los tiradores, y en un mensaje tuyo «Editar y reenviar» lo pone en una rama nueva. En la caja se pega.
+ */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [34], qualifiers = "w704dp-h933dp", shadows = [ChatSelectionTest.NoMagnifier::class])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -82,7 +85,7 @@ class ChatSelectionTest {
     }
 
     @Test
-    fun aLongPressOnAMessageSelectsItsTextToCopyAndTheComposerPastesIt() {
+    fun aLongPressOnAMessageOpensItsMenuToCopyOrSelectAndTheComposerPastes() {
         val controller = FakeController(SampleData.state())
         val model = orbitaModelForTests(controller)
         val toolbar = Toolbar()
@@ -95,7 +98,17 @@ class ChatSelectionTest {
         compose.onNodeWithTag("nav-Chat").performClick()
         compose.onNodeWithTag("chat-list").performScrollToNode(hasText("Haz la app Android"))
 
-        // Mantener el dedo sobre una palabra la selecciona y ofrece Copiar.
+        // Mantener el dedo abre el menú; Copiar copia el mensaje entero.
+        compose.onNodeWithText("Haz la app Android").performTouchInput { longClick(center) }
+        compose.onNodeWithText("Copiar").performClick()
+        compose.waitForIdle()
+        assertEquals("Haz la app Android", clipboard.copied?.text)
+        clipboard.copied = null
+
+        // «Seleccionar texto»: ahí el dedo ya selecciona una palabra y ofrece el Copiar del sistema.
+        compose.onNodeWithText("Haz la app Android").performTouchInput { longClick(center) }
+        compose.onNodeWithText("Seleccionar texto").performClick()
+        compose.waitForIdle()
         compose.onNodeWithText("Haz la app Android").performTouchInput { longClick(center) }
         compose.waitForIdle()
         assertNotNull("el menú no ofrece Copiar", toolbar.copy)
@@ -112,5 +125,31 @@ class ChatSelectionTest {
         toolbar.paste!!.invoke()
         compose.waitForIdle()
         assertEquals(copied, model.chatDraft.text)
+    }
+
+    @Test
+    fun editAndResendOpensABranchBeforeTheMessageWithItsTextInTheComposer() {
+        val base = SampleData.state()
+        val snap = base.snapshot!!
+        val state = base.copy(snapshot = snap.copy(
+            capabilities = snap.capabilities.copy(messageActions = true),
+            conversation = snap.conversation.copy(chat = com.aicowork.remote.data.model.OpenChat("ch1", "Demo")),
+        ))
+        val controller = FakeController(state)
+        val model = orbitaModelForTests(controller)
+        compose.setContent { Box(Modifier.fillMaxSize()) { OrbitaApp(model, "Pixel", null) } }
+        compose.onNodeWithTag("nav-Chat").performClick()
+        compose.onNodeWithTag("chat-list").performScrollToNode(hasText("Haz la app Android"))
+
+        compose.onNodeWithText("Haz la app Android").performTouchInput { longClick(center) }
+        compose.onNodeWithText("Editar y reenviar").performClick()
+        compose.waitForIdle()
+        assertTrue(controller.calls.toString(), "forkChatAt:ch1:m1:true" in controller.calls)
+        assertEquals("Haz la app Android", model.chatDraft.text)
+
+        compose.onNodeWithText("Lo reparto en dos tareas").performTouchInput { longClick(center) }
+        compose.onNodeWithText("Bifurcar desde aquí").performClick()
+        compose.waitForIdle()
+        assertTrue(controller.calls.toString(), "forkChatAt:ch1:m2:false" in controller.calls)
     }
 }

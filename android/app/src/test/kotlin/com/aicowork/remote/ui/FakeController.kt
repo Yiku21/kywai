@@ -92,6 +92,7 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     override suspend fun deleteChat(projectId: String, chatId: String): ActionResult { calls += "deleteChat:$chatId"; return nextResult }
     override suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): ActionResult { calls += "pinChat:$chatId:$pinned"; return nextResult }
     override suspend fun forkChat(projectId: String, chatId: String, open: Boolean): ActionResult { calls += "forkChat:$chatId:$open"; return nextResult }
+    override suspend fun forkChatAt(projectId: String, chatId: String, messageId: String, before: Boolean): ActionResult { calls += "forkChatAt:$chatId:$messageId:$before"; return nextResult }
     override suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ActionResult { calls += "moveChat:$chatId:$toProjectId"; return nextResult }
     var pinnedList = emptyList<com.aicowork.remote.data.model.ChatSummary>()
     override suspend fun pinnedChats(): Result<List<com.aicowork.remote.data.model.ChatSummary>> { calls += "pinnedChats"; return Result.success(pinnedList) }

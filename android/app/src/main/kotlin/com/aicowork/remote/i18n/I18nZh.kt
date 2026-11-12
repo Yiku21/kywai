@@ -1084,4 +1084,13 @@ private fun part7(m: HashMap<String, String>) {
     m["Eliminar…"] = "删除…"
     m["Descargar"] = "下载"
     m["Se borra del ordenador y desaparece de Archivos y Resultados."] = "它会从电脑中删除，并从文件和结果中消失。"
+    m["Copiar"] = "复制"
+    m["Seleccionar texto"] = "选择文字"
+    m["Dejar de responder a {name}"] = "不再回复 {name}"
+    m["Responder a {name}"] = "回复 {name}"
+    m["Editar y reenviar"] = "编辑并重新发送"
+    m["Bifurcar desde aquí"] = "从这里分支"
+    m["Actualiza kywai en el ordenador para usar esto"] = "请在电脑上更新 kywai 以使用此功能"
+    m["Rama nueva: cambia el mensaje y envíalo"] = "新分支：修改消息后发送"
+    m["Chat bifurcado desde ese mensaje"] = "已从该消息分支出新聊天"
 }

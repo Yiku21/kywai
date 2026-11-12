@@ -32,6 +32,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.material.icons.automirrored.outlined.CallSplit
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.automirrored.outlined.Send
@@ -236,13 +245,17 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             }
             items(rows, key = { it.key }) { row ->
                 when (row) {
-                    // Manteniendo el dedo sobre una palabra se selecciona (y se amplía con los tiradores) para copiarla.
+                    // Mantener pulsado un mensaje abre su menú (Copiar, Seleccionar texto, Responder, Bifurcar, Editar);
+                    // tras «Seleccionar texto», en ese mensaje el dedo selecciona palabras con sus tiradores.
                     is ChatRow.Server -> Box(
                         Modifier
                             .clip(RoundedCornerShape(18.dp))
                             .background(if (model.flashMessageId == row.message.id) Orbita.AccentSoft else androidx.compose.ui.graphics.Color.Transparent)
                             .testTag("msg-${row.message.id}"),
-                    ) { SelectionContainer { ServerMessage(row.message, snapshot!!, state, model) } }
+                    ) {
+                        if (model.selectingMessageId == row.message.id) SelectionContainer { ServerMessage(row.message, snapshot!!, state, model) }
+                        else MessageMenu(row.message, snapshot!!, model) { ServerMessage(row.message, snapshot, state, model) }
+                    }
                     is ChatRow.Local -> SelectionContainer { LocalMessage(row.message, model) }
                     ChatRow.Planning -> PlanningBubble(hermes)
                 }
@@ -511,6 +524,61 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
+    }
+}
+
+/**
+ * Mantener pulsado un mensaje del chat (como el clic derecho del escritorio): Copiar, Seleccionar texto, Responder
+ * (en una respuesta), Bifurcar desde aquí y, en uno tuyo, Editar y reenviar (chat nuevo hasta justo antes de él con
+ * su texto en el cuadro; el original no cambia). Bifurcar y editar piden un ordenador con `messageActions`.
+ */
+@Composable
+private fun MessageMenu(message: ChatMessage, snapshot: Snapshot, model: OrbitaModel, content: @Composable () -> Unit) {
+    val author = message.author
+    if (!author.isUser && !author.isAgent) return content()
+    var open by remember { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
+    val agentName = snapshot.agents.firstOrNull { it.id == author.agentId }?.name ?: author.name ?: t("Agente")
+    val error = message.tone == "error"
+    val replyable = author.isAgent && snapshot.capabilities.replyTo && !message.streaming && !error && message.proposal?.isPending != true && message.text.isNotBlank()
+    val forkable = snapshot.capabilities.messageActions && !message.streaming && snapshot.conversation.chat != null
+    val hold = { model.feedback.select(); open = true }
+    val label = t("Más opciones")
+    // Sin clickable (que juntaría todo el mensaje en un solo nodo): los botones y enlaces de dentro siguen a lo suyo.
+    Box(
+        Modifier
+            .pointerInput(message.id) { detectTapGestures(onLongPress = { hold() }) }
+            .semantics { onLongClick(label) { hold(); true } }
+            .testTag("msg-hold-${message.id}"),
+    ) {
+        content()
+        DropdownMenu(open, onDismissRequest = { open = false }, containerColor = Orbita.GlassPopover) {
+            if (message.text.isNotBlank()) {
+                DropdownMenuItem(text = { Text(t("Copiar")) }, onClick = {
+                    open = false
+                    clipboard.setText(AnnotatedString(message.text))
+                    model.toast(t("Copiado"))
+                }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) })
+                DropdownMenuItem(text = { Text(t("Seleccionar texto")) }, onClick = { open = false; model.selectingMessageId = message.id }, leadingIcon = { Icon(Icons.Outlined.TextFields, null) })
+            }
+            if (replyable) {
+                val on = model.replyTarget?.messageId == message.id
+                DropdownMenuItem(
+                    text = { Text(if (on) t("Dejar de responder a {name}", "name" to agentName) else t("Responder a {name}", "name" to agentName)) },
+                    onClick = {
+                        open = false
+                        model.replyTarget = if (on) null else ReplyRef(message.id, author.agentId ?: "", agentName, replyExcerpt(message.text))
+                    },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Reply, null) },
+                )
+            }
+            if (author.isUser && forkable) {
+                DropdownMenuItem(text = { Text(t("Editar y reenviar")) }, onClick = { open = false; model.forkFromMessage(message, edit = true) }, leadingIcon = { Icon(Icons.Outlined.Edit, null) })
+            }
+            if (forkable) {
+                DropdownMenuItem(text = { Text(t("Bifurcar desde aquí")) }, onClick = { open = false; model.forkFromMessage(message, edit = false) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.CallSplit, null) })
+            }
+        }
     }
 }
 

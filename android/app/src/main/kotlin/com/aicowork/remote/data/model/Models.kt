@@ -750,6 +750,8 @@ data class Capabilities(
     val chatActions: Boolean = false,
     /** Mantener pulsado un archivo: borrar resultados y adjuntos y adjuntar resultados al mensaje (artifactIds). */
     val fileActions: Boolean = false,
+    /** Mantener pulsado un mensaje: bifurcar desde él o editar el tuyo en una rama nueva (messageId/before en /chats/{id}/fork). */
+    val messageActions: Boolean = false,
     /** Menú de un proyecto al mantenerlo pulsado: renombrar, fijar y eliminar (POST /projects/{id}/rename|pin|delete). */
     val projectActions: Boolean = false,
     /** Rutinas: verlas y «Ejecutar ahora» (GET /routines, POST /routines/{id}/run). */

@@ -248,6 +248,8 @@ interface CoworkController {
     suspend fun pinChat(projectId: String, chatId: String, pinned: Boolean): ActionResult = unsupported
     /** Copia aparte del chat; si [open], se abre la copia. */
     suspend fun forkChat(projectId: String, chatId: String, open: Boolean): ActionResult = unsupported
+    /** Copia del chat hasta un mensaje (o justo antes, para editarlo y reenviarlo) y la abre. */
+    suspend fun forkChatAt(projectId: String, chatId: String, messageId: String, before: Boolean): ActionResult = unsupported
     suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ActionResult = unsupported
     /** Chats fijados de todos los proyectos (sección «Fijados»). */
     suspend fun pinnedChats(): Result<List<ChatSummary>> = Result.failure(IllegalStateException(unsupported.message))
@@ -945,6 +947,17 @@ class CoworkRepository(
             resync(c)
         }
     }
+
+    override suspend fun forkChatAt(projectId: String, chatId: String, messageId: String, before: Boolean): ActionResult =
+        action(if (before) t("Rama nueva: cambia el mensaje y envíalo") else t("Chat bifurcado desde ese mensaje")) { c ->
+            val copy = c.forkChat(projectId, chatId, messageId, before)
+            c.openChat(projectId, copy.chatId)
+            if (projectId != currentConversation()) {
+                rememberConversation(projectId)
+                cache.clear()
+            }
+            resync(c)
+        }
 
     override suspend fun moveChat(projectId: String, chatId: String, toProjectId: String): ActionResult = action(t("Chat movido")) { c ->
         c.moveChat(projectId, chatId, toProjectId)

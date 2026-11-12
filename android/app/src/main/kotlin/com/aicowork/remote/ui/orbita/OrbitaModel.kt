@@ -180,6 +180,9 @@ class OrbitaModel(
     var chatDraft by mutableStateOf(TextFieldValue(""))
     /** «Responder» tocado bajo la respuesta de un agente: lo siguiente que envíes va a ese agente sobre esa respuesta. */
     var replyTarget by mutableStateOf<com.aicowork.remote.data.model.ReplyRef?>(null)
+
+    /** El mensaje en el que se eligió «Seleccionar texto» al mantenerlo pulsado (en los demás, mantener pulsado abre el menú). */
+    var selectingMessageId by mutableStateOf<String?>(null)
     var newTaskDraft by mutableStateOf(TextFieldValue(""))
     var newTaskOpen by mutableStateOf(false)
     var viewer by mutableStateOf<ViewerTarget?>(null)
@@ -344,6 +347,34 @@ class OrbitaModel(
                 open(Section.Chat)
                 loadChats(projectId)
             }
+        }
+    }
+
+    /** El ordenador sabe bifurcar desde un mensaje y editar el tuyo en una rama nueva (servidores anteriores, no). */
+    fun messageActionsSupported(): Boolean = snapshot()?.capabilities?.messageActions == true
+
+    /**
+     * Mantener pulsado un mensaje → «Bifurcar desde aquí» (chat nuevo con todo hasta él) o, en uno tuyo, «Editar y
+     * reenviar»: chat nuevo hasta justo antes, con su texto, adjuntos y respuesta en el cuadro. El original no cambia.
+     */
+    fun forkFromMessage(message: com.aicowork.remote.data.model.ChatMessage, edit: Boolean) {
+        val conv = snapshot()?.conversation
+        val projectId = conv?.id
+        val chatId = conv?.chat?.id
+        if (projectId == null || chatId == null || !messageActionsSupported()) {
+            toast(t("Actualiza kywai en el ordenador para usar esto"), Toast.Tone.Error)
+            return
+        }
+        run({ controller.forkChatAt(projectId, chatId, message.id, before = edit) }) { r ->
+            if (!r.ok) return@run
+            loadChats(projectId)
+            if (edit) {
+                chatDraft = TextFieldValue(message.text, selection = androidx.compose.ui.text.TextRange(message.text.length))
+                pendingAttachments = message.attachments.map { it.id }.toSet()
+                replyTarget = message.replyTo
+            }
+            drawerOpen = false
+            open(Section.Chat)
         }
     }
 
