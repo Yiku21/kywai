@@ -1128,6 +1128,18 @@ export interface LocalEngineStatus {
   canStart: boolean
   /** Se pueden descargar modelos desde la app. */
   canPull: boolean
+  /** Solo en «colibri»: otros servidores compatibles con OpenAI que responden en este equipo (llama.cpp, Jan…). */
+  found?: LocalServerFound[]
+}
+
+/** Un servidor de modelos local encontrado en este equipo (localServers.ts). */
+export interface LocalServerFound {
+  /** Qué es: «llama.cpp», «KoboldCpp», «Jan»… */
+  name: string
+  /** Su dirección, «http://127.0.0.1:<puerto>». */
+  url: string
+  /** Los modelos que sirve (sus ids). */
+  models: string[]
 }
 
 export type LocalPullStatus = 'starting' | 'downloading' | 'verifying' | 'done' | 'error' | 'cancelled'

@@ -4,7 +4,8 @@ import { extname, join } from 'node:path'
 import type { AgentId, LocalEngine, LocalEngineStatus, LocalModel, LocalPullState } from '@shared/types'
 import { OLLAMA_URL } from './agents/ollama'
 import { lmsListModels, lmsPath, lmsServerRunning, lmsStartServer } from './agents/lmstudio'
-import { colibriStatus, ensureColibriServer } from './agents/colibri'
+import { colibriOwnUrl, colibriStatus, ensureColibriServer } from './agents/colibri'
+import { detectLocalServers } from './localServers'
 import { commandExists, num, obj, str } from './agents/spawn'
 import { emit } from './events'
 import { tr } from '@shared/i18n'
@@ -45,8 +46,10 @@ async function lmStudioStatus(): Promise<LocalEngineStatus> {
 }
 
 async function colibriEngineStatus(): Promise<LocalEngineStatus> {
-  const st = await colibriStatus()
-  return { engine: 'colibri', ...st, canPull: false }
+  // A la vez: el estado de Colibri y los otros servidores que respondan en este equipo (para «Usar» uno de ellos).
+  const own = colibriOwnUrl()
+  const [st, found] = await Promise.all([colibriStatus(), detectLocalServers({ skip: own ? [own] : [] }).catch(() => [])])
+  return { engine: 'colibri', ...st, canPull: false, found }
 }
 
 export async function listLocalEngines(): Promise<LocalEngineStatus[]> {

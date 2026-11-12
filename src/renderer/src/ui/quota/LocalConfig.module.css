@@ -273,3 +273,37 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* Otros servidores locales encontrados (llama.cpp, Jan…): una fila por servidor con «Usar». */
+.found {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: var(--radius-ctl);
+  border: 1px solid var(--border);
+  background: rgba(var(--line-rgb, 150, 180, 230), 0.04);
+}
+
+.foundTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  padding: 0 2px 2px;
+}
+
+.foundRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 8px;
+}
+
+.foundRow:hover {
+  background: var(--bg-hover);
+}

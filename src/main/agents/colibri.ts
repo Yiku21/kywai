@@ -89,6 +89,13 @@ function usesCustomUrl(): boolean {
   return !!cleanLocalUrl(configuredUrl() ?? '')
 }
 
+/** La dirección del propio Colibri instalado (sin otra en Ajustes), o null: ese puerto no es «otro servidor». */
+export function colibriOwnUrl(): string | null {
+  if (usesCustomUrl()) return null
+  const setup = readColibriSetup()
+  return setup ? colibriUrl(setup) : null
+}
+
 let lastContext = DEFAULT_CONTEXT
 
 /** Modelos que sirve ahora mismo (null si no responde). */

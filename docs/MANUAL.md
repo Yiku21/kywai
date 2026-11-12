@@ -928,6 +928,16 @@ lleva `permission` con su estado.
   - **Otra dirección** («Dirección del servidor», vacía por defecto): sirve para un Colibri en otro puerto o en otro
     equipo de Tailscale, y para cualquier otro servidor compatible con OpenAI (llama.cpp, MLX…). Con otra dirección
     kywai no lo enciende: solo lo usa. Se guarda en `config.json` como `colibriUrl`.
+  - **Otros servidores encontrados**: cada vez que se abre la tarjeta (o con ⟳), kywai mira en este equipo
+    (127.0.0.1) los puertos de fábrica de **llama.cpp** (8080, también llamafile, LocalAI y MLX), **KoboldCpp** (5001),
+    **Jan** (1337), **text-generation-webui** (5000), **GPT4All** (4891), **vLLM** (8000), **SGLang** (30000) y
+    **LiteLLM** (4000). Solo pregunta `GET /v1/models`, todos a la vez y con 1,5 s de espera como mucho, así que no
+    cambia nada ni frena. Los que responden salen en **«Encontrados en este equipo»** con su nombre (por el
+    `owned_by` de sus modelos o, si no lo dice, por el puerto), su dirección y sus modelos, y un botón **Usar** que
+    guarda esa dirección: después se elige el modelo como siempre. La pestaña pasa a llamarse como el servidor
+    («llama.cpp») y, si Colibri no está instalado pero hay servidores, dice «N encontrado(s)». El puerto del propio
+    Colibri instalado no cuenta como otro servidor. Ollama y LM Studio tienen su propia pestaña. Código:
+    `src/main/localServers.ts` (+ prueba) y `colibriEngineStatus` en `src/main/local.ts`.
   - **Velocidad**: con un modelo mediano que cabe en RAM (Qwen3.6-35B-A3B, unos 6 tokens/s solo con CPU) va bien
     para tareas sin prisa. Con los gigantes (GLM-5.2, DeepSeek V4) baja de 1 token/s y no sirve para tareas de
     agente. Hermes sabe que es lento y le da solo tareas acotadas.

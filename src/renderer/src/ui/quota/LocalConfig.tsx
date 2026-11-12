@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { Check, Cpu, Download, ExternalLink, Loader2, Play, RefreshCw, X } from 'lucide-react'
-import type { AgentConfig, LocalEngine, LocalEngineStatus, LocalModel } from '@shared/types'
+import { Check, Cpu, Download, ExternalLink, Loader2, Play, RefreshCw, Server, X } from 'lucide-react'
+import type { AgentConfig, LocalEngine, LocalEngineStatus, LocalModel, LocalServerFound } from '@shared/types'
 import { LOCAL_ENGINES, LOCAL_ENGINE_LABEL, isLocalEngine } from '@shared/localEngines'
 import { api } from '@/lib/api'
 import { fileSize } from '@/lib/format'
@@ -59,7 +59,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
   const [choice, setChoice] = useState<string>(agent?.model ?? '')
   const [name, setName] = useState(agent?.name ?? '')
   const [download, setDownload] = useState('')
-  const [busy, setBusy] = useState<null | 'save' | 'start' | 'unlimited' | 'pull' | 'url' | 'install'>(null)
+  const [busy, setBusy] = useState<null | 'save' | 'start' | 'unlimited' | 'pull' | 'url' | 'install' | 'use'>(null)
   const [confirmInstall, setConfirmInstall] = useState(false)
   const setupLog = useCowork((st) => st.setupLog)
   const [msg, setMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
@@ -91,6 +91,11 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
 
   const status = engines?.find((e) => e.engine === engine)
   const models = status?.models ?? []
+  // Otros servidores compatibles con OpenAI que responden en este equipo (llama.cpp, Jan…): van por la dirección de Colibri.
+  const found = engines?.find((e) => e.engine === 'colibri')?.found ?? []
+  const foundInUse = found.find((f) => f.url === colibriUrl)
+  /** El nombre de la pestaña: con la dirección de un servidor encontrado, el suyo («llama.cpp»). */
+  const engineLabel = (en: LocalEngine): string => (en === 'colibri' && foundInUse ? foundInUse.name : ENGINE_LABEL[en])
   const current = agent.provider === engine ? agent.model : ''
   const selected = models.find((m) => m.id === choice)
   const dirty = !!selected && (selected.id !== agent.model || engine !== agent.provider || (name.trim() && name.trim() !== agent.name))
@@ -126,6 +131,24 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
       await api.startLocalServer(engine)
       await refresh()
       setMsg({ tone: 'ok', text: t('Servidor de {engine} encendido.', { engine: ENGINE_LABEL[engine] }) })
+    } catch (e) {
+      setMsg({ tone: 'error', text: errorText(e) })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  /** Usa un servidor encontrado: guarda su dirección y enseña sus modelos para elegir uno. */
+  async function useFound(f: LocalServerFound): Promise<void> {
+    if (!api?.setColibriUrl || busy) return
+    setBusy('use')
+    setMsg(null)
+    try {
+      await api.setColibriUrl(f.url)
+      setUrl(f.url)
+      setChoice('')
+      await refresh()
+      setMsg({ tone: 'ok', text: t('Listo: el agente local puede usar {name}. Elige el modelo abajo.', { name: f.name }) })
     } catch (e) {
       setMsg({ tone: 'error', text: errorText(e) })
     } finally {
@@ -212,7 +235,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
       <div className={s.engines} role="tablist" aria-label={t('Motor local')}>
         {LOCAL_ENGINES.map((en) => {
           const st = engines?.find((e) => e.engine === en)
-          const state = !st ? 'unknown' : !st.installed ? 'missing' : st.running ? 'on' : 'off'
+          const state = !st ? 'unknown' : !st.installed ? (st.found?.length ? 'found' : 'missing') : st.running ? 'on' : 'off'
           return (
             <button
               key={en}
@@ -227,10 +250,18 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
                 setMsg(null)
               }}
             >
-              <span className={cx(s.dot, s[`dot_${state}`])} aria-hidden="true" />
-              {ENGINE_LABEL[en]}
+              <span className={cx(s.dot, s[`dot_${state === 'found' ? 'off' : state}`])} aria-hidden="true" />
+              {engineLabel(en)}
               <span className={s.engineState}>
-                {state === 'on' ? t('activo') : state === 'off' ? t('apagado') : state === 'missing' ? t('no instalado') : '…'}
+                {state === 'on'
+                  ? t('activo')
+                  : state === 'off'
+                    ? t('apagado')
+                    : state === 'missing'
+                      ? t('no instalado')
+                      : state === 'found'
+                        ? t('{n} encontrado(s)', { n: st?.found?.length ?? 0 })
+                        : '…'}
               </span>
             </button>
           )
@@ -358,6 +389,34 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
         </div>
       )}
 
+      {engine === 'colibri' && found.length > 0 && (
+        <div className={s.found} role="group" aria-label={t('Servidores encontrados en este equipo')}>
+          <span className={s.foundTitle}>
+            <Server size={12} aria-hidden="true" /> {t('Encontrados en este equipo')}
+          </span>
+          {found.map((f) => {
+            const inUse = f.url === colibriUrl
+            return (
+              <div key={f.url} className={s.foundRow}>
+                <span className={s.modelText}>
+                  <span className={s.modelName}>{f.name}</span>
+                  <span className={s.modelMeta}>
+                    {f.url.replace(/^https?:\/\//, '')} · {f.models.length === 1 ? f.models[0] : t('{n} modelos', { n: f.models.length })}
+                  </span>
+                </span>
+                {inUse ? (
+                  <span className={s.badge}>{t('En uso')}</span>
+                ) : (
+                  <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => void useFound(f)} disabled={!!busy}>
+                    {busy === 'use' ? <Loader2 size={13} className={s.spin} aria-hidden="true" /> : <Check size={13} aria-hidden="true" />} {t('Usar')}
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {engine === 'colibri' && (
         <div className={s.pull}>
           <label className={q.field}>
@@ -377,7 +436,7 @@ export function LocalConfig({ groupId, unlimited }: { groupId: string; unlimited
             </div>
           </label>
           <p className={q.muted}>
-            {t('Vacía: la de la instalación de Colibri. Sirve también para otro servidor compatible con OpenAI (llama.cpp, MLX…). Colibri es lento con los modelos gigantes: en un equipo normal, mejor uno mediano como Qwen3.6-35B-A3B.')}
+            {t('Vacía: la de la instalación de Colibri. Sirve también para otro servidor compatible con OpenAI (llama.cpp, KoboldCpp, Jan, LocalAI, vLLM, MLX…): kywai busca solo los que están encendidos en este equipo. Colibri es lento con los modelos gigantes: en un equipo normal, mejor uno mediano como Qwen3.6-35B-A3B.')}
           </p>
         </div>
       )}
