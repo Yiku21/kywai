@@ -6,6 +6,12 @@ function routineInput(input: Partial<RoutineInput>): Partial<RoutineInput> {
   return JSON.parse(JSON.stringify(input ?? {})) as Partial<RoutineInput>
 }
 
+/** Lista de ids (entregables o adjuntos elegidos con «Adjuntar al mensaje»), copiada sin nada más. */
+function ids<K extends string>(key: K, list: unknown): Partial<Record<K, string[]>> {
+  if (!Array.isArray(list) || !list.length) return {}
+  return { [key]: list.filter((x): x is string => typeof x === 'string') } as Partial<Record<K, string[]>>
+}
+
 const api: CoworkApi = {
   getConfig: () => ipcRenderer.invoke('cowork:getConfig'),
   listProjects: () => ipcRenderer.invoke('cowork:listProjects'),
@@ -44,7 +50,10 @@ const api: CoworkApi = {
       ...(typeof input.templateId === 'string' ? { templateId: input.templateId } : {}),
       ...(typeof input.videoFrom === 'string' ? { videoFrom: input.videoFrom } : {}),
       ...(typeof input.replyTo === 'string' ? { replyTo: input.replyTo } : {}),
-      ...(input.answers ? { answers: { messageId: input.answers.messageId, answers: input.answers.answers.map((x) => ({ ...x })) } } : {})
+      ...(input.answers ? { answers: { messageId: input.answers.messageId, answers: input.answers.answers.map((x) => ({ ...x })) } } : {}),
+      ...(typeof input.editOf === 'string' ? { editOf: input.editOf } : {}),
+      ...ids('artifactIds', input.artifactIds),
+      ...ids('attachmentIds', input.attachmentIds)
     }),
   cancelRun: (runId) => ipcRenderer.invoke('cowork:cancelRun', runId),
   pickFiles: (kind) => ipcRenderer.invoke('cowork:pickFiles', kind),
@@ -202,7 +211,9 @@ const api: CoworkApi = {
       language: input.language,
       text: input.text,
       filePaths: [...(input.filePaths ?? [])],
-      ...(input.replyTo ? { replyTo: input.replyTo } : {})
+      ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+      ...ids('artifactIds', input.artifactIds),
+      ...ids('attachmentIds', input.attachmentIds)
     }),
   requestMicrophone: () => ipcRenderer.invoke('cowork:requestMicrophone'),
   applyUpdate: (setAside) => ipcRenderer.invoke('cowork:applyUpdate', setAside),
