@@ -371,6 +371,21 @@
   list-style: none;
 }
 
+/* Cada casilla apila la tarjeta y su botón «Descargar»: así la fila mide lo que ocupan los dos
+   y la tarjeta de abajo no se monta sobre el botón de la de arriba. */
+.grid > li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.grid > li > .card {
+  flex: 1;
+  height: auto;
+}
+
 .card {
   display: flex;
   flex-direction: column;

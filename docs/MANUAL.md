@@ -1451,7 +1451,8 @@ escenas, voces, `guion.json` y el código de Remotion quedan en «Archivos de tr
 (escena-1, escena-2… escena-10). Si una tarea solo dejó código o textos, se ve todo sin plegar nada.
 
 Al abrir un archivo, el visor deja pasar con ‹ › por toda la carpeta. Cada carpeta tiene **Descargar como zip** con
-todos sus archivos. «Recién terminado» sigue arriba como antes. La regla es la misma en el escritorio, la web y
+todos sus archivos, y cada tarjeta lleva su **Descargar** justo debajo, dentro de su casilla de la rejilla: la fila
+siguiente empieza después del botón, nunca encima. «Recién terminado» sigue arriba como antes. La regla es la misma en el escritorio, la web y
 Órbita (`src/shared/resultGroups.ts` y `android/…/orbita/ResultGroups.kt`: si cambias una, cambia la otra).
 
 ### Archivos por petición
