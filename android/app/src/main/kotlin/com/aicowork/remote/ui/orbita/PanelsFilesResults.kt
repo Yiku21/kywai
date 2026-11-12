@@ -7,6 +7,10 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -143,6 +147,8 @@ private fun FileRow(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
     trailing: @Composable () -> Unit = {},
+    /** Mantener pulsado: el menú del archivo (como el clic derecho del escritorio). */
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val (icon, tint) = kindIcon(kind, name)
@@ -151,7 +157,7 @@ private fun FileRow(
             .fillMaxWidth()
             .heightIn(min = 68.dp)
             .card(selected = selected)
-            .tappable(haptic = Haptic.Tap, onClick = onClick)
+            .then(if (onLongClick != null) Modifier.holdable(onClick, onLongClick) else Modifier.tappable(haptic = Haptic.Tap, onClick = onClick))
             .padding(start = 14.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -240,7 +246,9 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                         val kind = attachmentKind(a)
                         val pending = a.id in model.pendingAttachments
                         var menu by remember { mutableStateOf(false) }
-                        FileRow(a.name, "${kindLabel(kind, a.name)} · ${sizeLabel(a.size)}${if (pending) " · irá con tu próximo mensaje" else ""}", kind, selected = pending, trailing = {
+                        var deleting by remember { mutableStateOf(false) }
+                        if (deleting) DeleteFileDialog(a.name, onConfirm = { deleting = false; model.deleteFile(a.id, artifact = false) }, onDismiss = { deleting = false })
+                        FileRow(a.name, "${kindLabel(kind, a.name)} · ${sizeLabel(a.size)}${if (pending) " · irá con tu próximo mensaje" else ""}", kind, selected = pending, onLongClick = { model.feedback.select(); menu = true }, trailing = {
                             Box {
                                 IconAction(Icons.Outlined.MoreHoriz, t("Opciones de {name}", "name" to a.name), onClick = { menu = true }, size = 40.dp)
                                 DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
@@ -250,6 +258,9 @@ fun FilesPanel(model: OrbitaModel, state: CoworkUiState) {
                                         onClick = { menu = false; model.pendingAttachments = if (pending) model.pendingAttachments - a.id else model.pendingAttachments + a.id; model.feedback.select() },
                                         leadingIcon = { Icon(Icons.Outlined.AttachFile, null) },
                                     )
+                                    if (model.fileActionsSupported()) {
+                                        DropdownMenuItem(text = { Text(t("Eliminar…"), color = Orbita.Danger) }, onClick = { menu = false; deleting = true }, leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = Orbita.Danger) })
+                                    }
                                 }
                             }
                         }) { model.viewer = ViewerTarget.File("attachment", a.relPath, a.name, kind) }
@@ -433,7 +444,18 @@ private fun ResultCard(a: Artifact, model: OrbitaModel, snapshot: com.aicowork.r
         )
     }
     var menu by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().card().padding(14.dp).testTag("result-${a.id}")) {
+    var deleting by remember { mutableStateOf(false) }
+    val download = rememberArtifactDownload(listOf(a), model)
+    val actions = model.fileActionsSupported()
+    if (deleting) DeleteFileDialog(a.name, onConfirm = { deleting = false; model.deleteFile(a.id, artifact = true) }, onDismiss = { deleting = false })
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .card()
+            .holdable(onClick = { model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, onLongClick = { model.feedback.select(); menu = true })
+            .padding(14.dp)
+            .testTag("result-${a.id}"),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             RobotFace(agent, 42.dp)
             Spacer(Modifier.width(12.dp))
@@ -446,7 +468,10 @@ private fun ResultCard(a: Artifact, model: OrbitaModel, snapshot: com.aicowork.r
                 IconAction(Icons.Outlined.MoreHoriz, t("Opciones de {name}", "name" to a.name), onClick = { menu = true }, size = 40.dp)
                 DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Orbita.GlassPopover) {
                     DropdownMenuItem(text = { Text(t("Abrir")) }, onClick = { menu = false; model.viewer = ViewerTarget.Result(a.id, a.name, a.kind) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, null) })
+                    if (actions) DropdownMenuItem(text = { Text(t("Adjuntar al mensaje")) }, onClick = { menu = false; model.attachArtifact(a.id) }, leadingIcon = { Icon(Icons.Outlined.AttachFile, null) })
+                    DropdownMenuItem(text = { Text(t("Descargar")) }, enabled = canFetch && !download.busy, onClick = { menu = false; download.start() }, leadingIcon = { Icon(Icons.Outlined.Download, null) })
                     a.taskId?.let { id -> DropdownMenuItem(text = { Text(t("Ver la tarea")) }, onClick = { menu = false; model.openTask(id) }, leadingIcon = { Icon(Icons.Outlined.Description, null) }) }
+                    if (actions) DropdownMenuItem(text = { Text(t("Eliminar…"), color = Orbita.Danger) }, onClick = { menu = false; deleting = true }, leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = Orbita.Danger) })
                 }
             }
         }
@@ -517,4 +542,29 @@ private fun TypeChips(counts: Map<FileType, Int>, total: Int, selected: ResultFi
             }
         }
     }
+}
+
+/** Tocar abre; mantener pulsado abre el menú del archivo (con vibración y onda, como [tappable]). */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun Modifier.holdable(onClick: () -> Unit, onLongClick: () -> Unit): Modifier {
+    val feedback = LocalFeedback.current
+    return this.combinedClickable(
+        onClick = { feedback.tap(); onClick() },
+        onLongClick = onLongClick,
+        onLongClickLabel = t("Más opciones"),
+    )
+}
+
+/** «¿Eliminar…?» antes de borrar un resultado o un adjunto del ordenador. */
+@Composable
+private fun DeleteFileDialog(name: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    ConfirmDialog(
+        title = t("¿Eliminar «{title}»?", "title" to name),
+        text = t("Se borra del ordenador y desaparece de Archivos y Resultados."),
+        confirm = t("Eliminar"),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        danger = true,
+    )
 }

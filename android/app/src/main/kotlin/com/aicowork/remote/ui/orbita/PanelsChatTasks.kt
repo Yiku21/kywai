@@ -220,7 +220,8 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
     }
     // Lo que va con el próximo mensaje: adjuntos ya en el proyecto y copias guardadas sin conexión (id y nombre).
     val pending = snapshot?.conversation?.attachments.orEmpty().filter { it.id in model.pendingAttachments }.map { it.id to it.name } +
-        state.queuedFiles.filter { it.localId in model.pendingAttachments }.map { it.localId to it.name }
+        state.queuedFiles.filter { it.localId in model.pendingAttachments }.map { it.localId to it.name } +
+        snapshot?.conversation?.artifacts.orEmpty().filter { QueuedFile.ARTIFACT_ATTACHMENT + it.id in model.pendingAttachments }.map { QueuedFile.ARTIFACT_ATTACHMENT + it.id to it.name }
     PanelColumn {
         PanelHeader(model, t("Chat"), snapshot?.conversation?.let { c -> listOfNotNull(c.title, c.chat?.title).joinToString(" › ") } ?: t("Hermes y el equipo"))
         ActiveRequestStrip(model, snapshot)

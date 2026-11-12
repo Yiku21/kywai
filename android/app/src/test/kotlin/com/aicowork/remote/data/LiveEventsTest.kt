@@ -105,4 +105,23 @@ class LiveEventsTest {
         val (withInstructions, _) = apply("""{"type":"memory.updated","sequence":8,"payload":{"projectId":"p1","memory":[],"instructions":"Sin neón"}}""")
         assertEquals("Sin neón", withInstructions.conversation.instructions)
     }
+
+    @Test
+    fun deletedFilesLeaveResultsFilesAndTheirMessage() {
+        val att = com.aicowork.remote.data.model.Attachment("f1", "brief.pdf", "attachments/brief.pdf")
+        val withFiles = before.copy(conversation = before.conversation.copy(
+            artifacts = listOf(com.aicowork.remote.data.model.Artifact("a1"), com.aicowork.remote.data.model.Artifact("a2")),
+            attachments = listOf(att),
+            messages = before.conversation.messages + ChatMessage("m2", author = Author("user"), text = "Mira", attachments = listOf(att)),
+        ))
+        fun reduce(json: String) = (EventReducer.reduce(withFiles, null, event(json)) as ReduceResult.Applied).snapshot
+        val noResult = reduce("""{"type":"files.deleted","sequence":9,"payload":{"projectId":"p1","artifactIds":["a1"],"attachmentIds":[]}}""")
+        assertEquals(listOf("a2"), noResult.conversation.artifacts.map { it.id })
+        assertEquals(1, noResult.conversation.attachments.size)
+        val noFile = reduce("""{"type":"files.deleted","sequence":9,"payload":{"projectId":"p1","artifactIds":[],"attachmentIds":["f1"]}}""")
+        assertTrue(noFile.conversation.attachments.isEmpty())
+        assertTrue(noFile.conversation.messages.single { it.id == "m2" }.attachments.isEmpty())
+        // De otro proyecto: no toca nada.
+        assertTrue(EventReducer.reduce(withFiles, null, event("""{"type":"files.deleted","sequence":9,"payload":{"projectId":"p2","artifactIds":["a1"],"attachmentIds":[]}}""")) is ReduceResult.Ignored)
+    }
 }

@@ -1079,4 +1079,10 @@ private fun part7(m: HashMap<String, String>) {
     m["Otros"] = "其他"
     m["{n} de {total} archivos"] = "{n} / {total} 个文件"
     m["Filtrar por tipo de archivo"] = "按文件类型筛选"
+    m["Archivo eliminado"] = "文件已删除"
+    m["Irá con tu próximo mensaje"] = "将随你的下一条消息发送"
+    m["Adjuntar al mensaje"] = "附加到消息"
+    m["Eliminar…"] = "删除…"
+    m["Descargar"] = "下载"
+    m["Se borra del ordenador y desaparece de Archivos y Resultados."] = "它会从电脑中删除，并从文件和结果中消失。"
 }

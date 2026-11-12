@@ -18,6 +18,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -213,5 +215,21 @@ class OrbitaLayoutTest {
         compose.onNodeWithText("brief.pdf").assertIsDisplayed()
         compose.onNodeWithText("Proyecto").performClick()
         compose.waitUntil(5_000) { compose.onAllNodes(hasText("Main.kt")).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test
+    fun holdingAResultAttachesItToTheNextMessageOrDeletesIt() {
+        val controller = FakeController(SampleData.state())
+        val model = show(controller)
+        compose.onNodeWithTag("nav-Results").performClick()
+        compose.onNodeWithTag("result-a1").performTouchInput { longClick() }
+        compose.onNodeWithText("Adjuntar al mensaje").performClick()
+        assertTrue("resultado:a1" in model.pendingAttachments)
+
+        compose.onNodeWithTag("result-a1").performTouchInput { longClick() }
+        compose.onNodeWithText("Eliminar…").performClick()
+        compose.onNodeWithText("Eliminar").performClick()
+        compose.waitUntil(5_000) { "deleteFile:a1:true" in controller.calls }
+        compose.waitUntil(5_000) { "resultado:a1" !in model.pendingAttachments }
     }
 }

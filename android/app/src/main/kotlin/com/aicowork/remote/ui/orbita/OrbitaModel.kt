@@ -29,6 +29,7 @@ import androidx.lifecycle.viewModelScope
 import com.aicowork.remote.data.ActionResult
 import com.aicowork.remote.data.CoworkController
 import com.aicowork.remote.data.LiveEvent
+import com.aicowork.remote.data.QueuedFile
 import com.aicowork.remote.data.model.ChatSummary
 import com.aicowork.remote.data.model.Agent
 import com.aicowork.remote.data.model.InboxAction
@@ -428,6 +429,23 @@ class OrbitaModel(
 
     fun pinProject(projectId: String, pinned: Boolean) {
         run({ controller.pinProject(projectId, pinned) })
+    }
+
+    /** El servidor sabe borrar archivos y adjuntar resultados al mensaje (mantener pulsado en Resultados o Archivos). */
+    fun fileActionsSupported(): Boolean = snapshot()?.capabilities?.fileActions == true
+
+    /** «Adjuntar al mensaje» en un resultado: va con tu próximo mensaje para que el equipo sepa de qué archivo hablas. */
+    fun attachArtifact(artifactId: String) {
+        pendingAttachments = pendingAttachments + (QueuedFile.ARTIFACT_ATTACHMENT + artifactId)
+        feedback.select()
+        toast(t("Irá con tu próximo mensaje"), Toast.Tone.Success)
+    }
+
+    /** Mantener pulsado → Eliminar (tras confirmarlo): borra el archivo del ordenador. */
+    fun deleteFile(id: String, artifact: Boolean) {
+        run({ controller.deleteFile(id, artifact) }) {
+            if (it.ok) pendingAttachments = pendingAttachments - id - (QueuedFile.ARTIFACT_ATTACHMENT + id)
+        }
     }
 
     fun deleteProject(projectId: String) {

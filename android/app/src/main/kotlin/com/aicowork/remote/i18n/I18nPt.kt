@@ -1079,4 +1079,10 @@ private fun part7(m: HashMap<String, String>) {
     m["Otros"] = "Outros"
     m["{n} de {total} archivos"] = "{n} de {total} arquivos"
     m["Filtrar por tipo de archivo"] = "Filtrar por tipo de arquivo"
+    m["Archivo eliminado"] = "Ficheiro eliminado"
+    m["Irá con tu próximo mensaje"] = "Vai com a tua próxima mensagem"
+    m["Adjuntar al mensaje"] = "Anexar à mensagem"
+    m["Eliminar…"] = "Eliminar…"
+    m["Descargar"] = "Transferir"
+    m["Se borra del ordenador y desaparece de Archivos y Resultados."] = "É apagado do computador e desaparece de Ficheiros e Resultados."
 }

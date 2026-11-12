@@ -133,6 +133,18 @@ object EventReducer {
                 applied(snapshot.copy(conversation = conversation.copy(artifacts = conversation.artifacts.upsertBy(artifact) { it.id })))
             }
 
+            // Mantener pulsado → Eliminar (aquí o en el ordenador): fuera de Resultados, de Archivos y de su mensaje.
+            "files.deleted" -> {
+                val artifacts = (p["artifactIds"] as? kotlinx.serialization.json.JsonArray)?.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }.orEmpty().toSet()
+                val attachments = (p["attachmentIds"] as? kotlinx.serialization.json.JsonArray)?.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }.orEmpty().toSet()
+                val conversation = snapshot.conversation
+                applied(snapshot.copy(conversation = conversation.copy(
+                    artifacts = conversation.artifacts.filterNot { it.id in artifacts },
+                    attachments = conversation.attachments.filterNot { it.id in attachments },
+                    messages = if (attachments.isEmpty()) conversation.messages else conversation.messages.map { m -> if (m.attachments.any { it.id in attachments }) m.copy(attachments = m.attachments.filterNot { it.id in attachments }) else m },
+                )))
+            }
+
             "attachments.updated" -> {
                 val attachments = decode(p["attachments"] ?: return ReduceResult.Ignored, ListSerializer(Attachment.serializer()))
                     ?: return resync("adjuntos ilegibles")

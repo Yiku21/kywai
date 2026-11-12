@@ -113,6 +113,8 @@ data class OutgoingMessage(
     val templateId: String? = null,
     /** «Responder»: id de la respuesta del agente a la que contesta (le llega a ese mismo agente). */
     val replyTo: String? = null,
+    /** Resultados del proyecto elegidos con «Adjuntar al mensaje»: el servidor los manda como adjuntos. */
+    val artifactIds: List<String> = emptyList(),
 )
 
 /** Copia en el móvil de un archivo elegido sin conexión, que espera a subirse al proyecto. */
@@ -132,6 +134,8 @@ data class QueuedFile(
 
     companion object {
         const val LOCAL_ATTACHMENT = "local:"
+        /** Prefijo de un resultado puesto con «Adjuntar al mensaje» entre los adjuntos preparados. */
+        const val ARTIFACT_ATTACHMENT = "resultado:"
     }
 }
 
@@ -288,6 +292,8 @@ interface CoworkController {
     suspend fun saveRoutine(routineId: String?, input: RoutineInput): ActionResult = unsupported
     suspend fun setRoutineEnabled(routineId: String, enabled: Boolean): ActionResult = unsupported
     suspend fun deleteRoutine(routineId: String): ActionResult = unsupported
+    /** Mantener pulsado → Eliminar: borra un resultado ([artifact] true) o un adjunto del proyecto, disco incluido. */
+    suspend fun deleteFile(id: String, artifact: Boolean): ActionResult = unsupported
     /** «Crear rutina» ([create]) o «Descartar» en la tarjeta que propone Hermes. */
     suspend fun decideRoutineProposal(messageId: String, create: Boolean): ActionResult = unsupported
     suspend fun setPlanApproval(enabled: Boolean): ActionResult = unsupported
@@ -675,7 +681,8 @@ class CoworkRepository(
         // Sin escribir nada, «Responder» le pide al agente que revise su respuesta.
         val trimmed = text.trim().ifEmpty { if (replyTo != null) t("Revisa tu respuesta: comprueba que es correcta y completa, corrige lo que haga falta y dame la versión buena.") else "" }
         if (trimmed.isEmpty() && attachmentIds.isEmpty()) return
-        val (local, remote) = attachmentIds.partition { it.startsWith(QueuedFile.LOCAL_ATTACHMENT) }
+        val (artifacts, attachments) = attachmentIds.partition { it.startsWith(QueuedFile.ARTIFACT_ATTACHMENT) }
+        val (local, remote) = attachments.partition { it.startsWith(QueuedFile.LOCAL_ATTACHMENT) }
         val files = _state.value.queuedFiles.filter { it.localId in local }
         val message = OutgoingMessage(
             clientMessageId = UUID.randomUUID().toString(),
@@ -687,6 +694,7 @@ class CoworkRepository(
             files = files,
             templateId = templateId,
             replyTo = replyTo,
+            artifactIds = artifacts.map { it.removePrefix(QueuedFile.ARTIFACT_ATTACHMENT) },
         )
         _state.update { s -> s.copy(outgoing = s.outgoing + message, queuedFiles = s.queuedFiles - files.toSet()) }
         if (_state.value.connection == Connection.Online) pump() else retryNow()
@@ -753,7 +761,7 @@ class CoworkRepository(
         try {
             val target = message.conversationId ?: currentConversation()
             val uploaded = uploadQueuedFiles(c, message, target) ?: return Delivery.Rejected
-            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded, message.templateId, message.replyTo)
+            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded, message.templateId, message.replyTo, message.artifactIds)
             // Ya está en el ordenador: las copias del móvil sobran.
             message.files.forEach { java.io.File(it.path).delete() }
             syncMutex.withLock {
@@ -1143,6 +1151,10 @@ class CoworkRepository(
             c.setRoutineEnabled(needConversation(), routineId, enabled)
             reloadRoutines(c)
         }
+
+    override suspend fun deleteFile(id: String, artifact: Boolean): ActionResult = action(t("Archivo eliminado")) { c ->
+        c.deleteFile(needConversation(), id, artifact)
+    }
 
     override suspend fun deleteRoutine(routineId: String): ActionResult = action(t("Rutina borrada")) { c ->
         c.deleteRoutine(needConversation(), routineId)

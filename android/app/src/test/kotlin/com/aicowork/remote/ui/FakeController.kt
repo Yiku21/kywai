@@ -183,6 +183,7 @@ class FakeController(initial: CoworkUiState = CoworkUiState()) : CoworkControlle
     override suspend fun setMemoryStatus(id: String, status: String): ActionResult { calls += "memoryStatus:$id:$status"; return nextResult }
     override suspend fun editMemory(id: String, text: String): ActionResult { calls += "editMemory:$id:$text"; return nextResult }
     override suspend fun deleteMemory(id: String): ActionResult { calls += "deleteMemory:$id"; return nextResult }
+    override suspend fun deleteFile(id: String, artifact: Boolean): ActionResult { calls += "deleteFile:$id:$artifact"; return nextResult }
     override suspend fun setInstructions(text: String): ActionResult { calls += "instructions:$text"; return nextResult }
     override suspend fun listFiles(query: String?): Result<FilesResponse> {
         calls += "files:${query.orEmpty()}"
@@ -264,7 +265,7 @@ object SampleData {
             MemoryEntry("m2", "pending", "Publicar en la wiki", "provisional", byName = "Constructor"),
             MemoryEntry("m0", "fact", "Antiguo dato", "superseded", supersededBy = "m1"),
         ),
-        capabilities = com.aicowork.remote.data.model.Capabilities(attachments = true, projects = true, memoryEdit = true, files = true, upload = true, artifacts = true, traceEndpoint = true, agentAccess = true, usageRefresh = true),
+        capabilities = com.aicowork.remote.data.model.Capabilities(attachments = true, projects = true, memoryEdit = true, files = true, upload = true, artifacts = true, traceEndpoint = true, agentAccess = true, usageRefresh = true, fileActions = true),
         projects = listOf(com.aicowork.remote.data.model.ProjectSummary("c1", "Proyecto demo", running = true), com.aicowork.remote.data.model.ProjectSummary("c2", "Otro proyecto")),
         usage = Usage(
             totals = TokenUsage(120_000, 30_000),

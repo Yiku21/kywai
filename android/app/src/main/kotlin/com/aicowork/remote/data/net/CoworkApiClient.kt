@@ -217,14 +217,15 @@ class CoworkApiClient(
      * [attachmentIds]: adjuntos del proyecto (subidos antes) que se entregan al equipo con esta petición.
      * [templateId]: se lanza con esa plantilla de tareas ([text] ya va con sus huecos rellenos).
      */
-    suspend fun sendMessage(conversationId: String?, text: String, clientMessageId: String, attachmentIds: List<String> = emptyList(), templateId: String? = null, replyTo: String? = null): SendMessageResponse = post(
+    suspend fun sendMessage(conversationId: String?, text: String, clientMessageId: String, attachmentIds: List<String> = emptyList(), templateId: String? = null, replyTo: String? = null, artifactIds: List<String> = emptyList()): SendMessageResponse = post(
         "/chat/messages",
-        if (attachmentIds.isEmpty() && templateId == null && replyTo == null) CoworkJson.encodeToString(SendMessageRequest.serializer(), SendMessageRequest(conversationId, text, clientMessageId))
+        if (attachmentIds.isEmpty() && artifactIds.isEmpty() && templateId == null && replyTo == null) CoworkJson.encodeToString(SendMessageRequest.serializer(), SendMessageRequest(conversationId, text, clientMessageId))
         else buildJsonObject {
             put("conversationId", conversationId)
             put("text", text)
             put("clientMessageId", clientMessageId)
             if (attachmentIds.isNotEmpty()) putJsonArray("attachmentIds") { attachmentIds.forEach { add(it) } }
+            if (artifactIds.isNotEmpty()) putJsonArray("artifactIds") { artifactIds.forEach { add(it) } }
             if (templateId != null) put("templateId", templateId)
             if (replyTo != null) put("replyTo", replyTo)
         }.toString(),
@@ -472,6 +473,13 @@ class CoworkApiClient(
         }.toString(),
         RoutineResponse.serializer(),
     ).routine
+
+    /** Borra un resultado ([artifact]) o un adjunto del proyecto; el servidor avisa con files.deleted. */
+    suspend fun deleteFile(conversationId: String, id: String, artifact: Boolean) {
+        withContext(Dispatchers.IO) {
+            postRaw("/${if (artifact) "artifacts" else "attachments"}/${id.encodeSegment()}/delete", CoworkJson.encodeToString(ConversationOnlyRequest.serializer(), ConversationOnlyRequest(conversationId))).close()
+        }
+    }
 
     suspend fun deleteRoutine(conversationId: String, routineId: String) {
         withContext(Dispatchers.IO) {

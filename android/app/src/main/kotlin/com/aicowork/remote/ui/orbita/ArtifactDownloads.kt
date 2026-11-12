@@ -53,9 +53,12 @@ internal suspend fun writeArtifactSelection(artifacts: List<Artifact>, fetch: su
     }
 }
 
-/** Guardar desde la tarjeta del chat o de Resultados, con el selector de destino de Android. */
+/** Una descarga preparada: [start] abre el selector de destino de Android; [busy] mientras se guarda. */
+internal class ArtifactDownload(val name: String, val busy: Boolean, val start: () -> Unit)
+
+/** Guardar uno o varios resultados (varios, como zip) con el selector de destino de Android. */
 @Composable
-internal fun ArtifactDownloadButton(artifacts: List<Artifact>, model: OrbitaModel, enabled: Boolean) {
+internal fun rememberArtifactDownload(artifacts: List<Artifact>, model: OrbitaModel): ArtifactDownload {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
@@ -82,9 +85,16 @@ internal fun ArtifactDownloadButton(artifacts: List<Artifact>, model: OrbitaMode
             finally { busy = false }
         }
     }
-    IconAction(Icons.Outlined.Download, t("Descargar {name}", "name" to name), enabled = enabled && !busy, onClick = {
+    return ArtifactDownload(name, busy) {
         pending = artifacts.toList()
         busy = true
         saver.launch(name)
-    })
+    }
+}
+
+/** Guardar desde la tarjeta del chat o de Resultados, con el selector de destino de Android. */
+@Composable
+internal fun ArtifactDownloadButton(artifacts: List<Artifact>, model: OrbitaModel, enabled: Boolean) {
+    val download = rememberArtifactDownload(artifacts, model)
+    IconAction(Icons.Outlined.Download, t("Descargar {name}", "name" to download.name), enabled = enabled && !download.busy, onClick = download.start)
 }

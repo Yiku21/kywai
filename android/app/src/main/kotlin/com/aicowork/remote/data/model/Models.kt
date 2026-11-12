@@ -748,6 +748,8 @@ data class Capabilities(
     val theme: Boolean = false,
     /** Menú de un chat al mantenerlo pulsado: fijar, bifurcar, mover y borrar también el abierto (GET /chats/pinned). */
     val chatActions: Boolean = false,
+    /** Mantener pulsado un archivo: borrar resultados y adjuntos y adjuntar resultados al mensaje (artifactIds). */
+    val fileActions: Boolean = false,
     /** Menú de un proyecto al mantenerlo pulsado: renombrar, fijar y eliminar (POST /projects/{id}/rename|pin|delete). */
     val projectActions: Boolean = false,
     /** Rutinas: verlas y «Ejecutar ahora» (GET /routines, POST /routines/{id}/run). */
