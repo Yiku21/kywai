@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, wri
 import { basename, dirname, join } from 'node:path'
 import type { LearnedSkill } from '@shared/types'
 import { VIDEO_SKILLS_FOLDER } from '@shared/videoExtensions'
+import { seedBuiltinSkills } from './builtinSkills'
 
 export interface Skill {
   name: string
@@ -56,6 +57,8 @@ export function initSkills(workspaceRoot: string): void {
     mkdirSync(root, { recursive: true })
     const readme = join(root, 'LEEME.md')
     if (!existsSync(readme)) writeFileSync(readme, README, 'utf8')
+    // Las que trae kywai de serie (una vez; si borras una, no vuelve).
+    seedBuiltinSkills(root)
   } catch {
     /* sin carpeta: no hay habilidades */
   }

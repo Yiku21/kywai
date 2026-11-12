@@ -1889,6 +1889,17 @@ en la tarea a la que sirve. Las demás siguen en la lista con su nombre y para q
 dice **«Recibió las habilidades: …»** y la tarea lo guarda (`Task.skills`), así que el coordinador puede contestar
 quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las consultas rápidas también las reciben).
 
+**Habilidades de serie.** kywai trae algunas escritas por él y las copia una vez a `habilidades` al arrancar
+(`src/main/builtinSkills.ts`). Si cambias una, se respeta; si la borras, no vuelve (quedan anotadas en
+`habilidades/.incluidas`). Por ahora:
+- **`principios-ux-animacion`** (desde el 12 de noviembre de 2026): 20 principios de movimiento y usabilidad con
+  números concretos para cualquier interfaz que hagan o repasen los agentes. Los 12 de la animación aplicados a la
+  interfaz (aplastar y estirar al pulsar, anticipación, un foco a la vez, inercia, entrar rápido y frenar al llegar,
+  arcos, ritmo de 100–500 ms, error que tiembla y dice cómo arreglarlo…) y las leyes de usabilidad (Fitts, zonas de
+  clic de 44×44 px, Hick, Miller, Doherty —respuesta en menos de 400 ms—, Postel, Jakob y «cuanto más se usa, menos
+  se anima»), más movimiento reducido y cómo comprobarlo. Sale del formato de un reel de «20 principios de UX y
+  animación»; el texto es de kywai. Llega entera al encargo cuando la tarea habla de interfaz, pantallas o animación.
+
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),
 `anotar_memoria` (queda provisional, como «Para la memoria»), `estado_equipo` (qué hacen ahora los compañeros,
