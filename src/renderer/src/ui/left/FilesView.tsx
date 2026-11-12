@@ -16,6 +16,7 @@ import m from './Messages.module.css'
 import s from './Views.module.css'
 import { t } from '@/lib/i18n'
 import { ArtifactDownloadButton } from './ArtifactDownloadButton'
+import { useFileMenu } from './FileMenu'
 
 /** Carpetas abiertas o cerradas (de este equipo). Sin anotar, solo está abierta la petición más reciente. */
 const OPEN_KEY = 'kywai.archivos.carpetas'
@@ -201,48 +202,75 @@ function RequestFolder({ group, of, open, onToggle }: { group: RequestGroup; of?
       {open && (
         <ul id={listId} className={cx(s.rows, s.folderBody)}>
           {group.attachments.map((a) => (
-            <li key={`att-${a.id}`}>
-              <button
-                type="button"
-                className={cx(s.fileRow, !canOpen && s.rowStatic)}
-                disabled={!canOpen}
-                title={openTitle ?? t('Ver {name}', { name: a.name })}
-                onClick={() => openAttachment(a)}
-              >
-                <span className={s.fileIcon}>
-                  <FileTypeIcon name={a.name} mime={a.mime} size={17} />
-                </span>
-                <span className={s.fileMain}>
-                  <span className={s.fileName}>{a.name}</span>
-                  <span className={s.fileMeta}>
-                    <Paperclip size={11} aria-hidden="true" />
-                    {t('Tu adjunto')} · {fileSize(a.size)}
-                  </span>
-                </span>
-                {canOpen && <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />}
-              </button>
-            </li>
+            <AttachmentRow key={`att-${a.id}`} a={a} projectId={project?.id ?? ''} canOpen={canOpen} openTitle={openTitle} onOpen={() => openAttachment(a)} />
           ))}
-          {group.generated.map((a) => {
-            const look = lookup(a.agentId)
-            return (
-              <li key={a.id}>
-                <button type="button" className={s.fileRow} onClick={() => openArtifact(a)} title={t('Ver {name}', { name: a.name })}>
-                  <KindTile kind={a.kind} name={a.name || a.relPath} size={34} />
-                  <span className={s.fileMain}>
-                    <span className={s.fileName}>{a.name}</span>
-                    <span className={s.fileMeta}>
-                      <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
-                      {look.name} · {artifactLabel(a)} · {fileSize(a.size)} · {shortTime(a.createdAt)}
-                    </span>
-                  </span>
-                  <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />
-                </button>
-              </li>
-            )
-          })}
+          {group.generated.map((a) => (
+            <ArtifactRow key={a.id} a={a} onOpen={() => openArtifact(a)} />
+          ))}
         </ul>
       )}
     </section>
+  )
+}
+
+/** Un adjunto tuyo: clic para verlo, clic derecho para adjuntarlo otra vez, descargarlo o eliminarlo. */
+function AttachmentRow({ a, projectId, canOpen, openTitle, onOpen }: { a: Attachment; projectId: string; canOpen: boolean; openTitle?: string; onOpen: () => void }) {
+  const menu = useFileMenu({ attachment: a, projectId }, onOpen)
+  return (
+    <li onContextMenu={canOpen ? menu.onContextMenu : undefined}>
+      <button
+        type="button"
+        className={cx(s.fileRow, !canOpen && s.rowStatic)}
+        disabled={!canOpen}
+        title={openTitle ?? t('Ver {name}', { name: a.name })}
+        onClick={onOpen}
+      >
+        <span className={s.fileIcon}>
+          <FileTypeIcon name={a.name} mime={a.mime} size={17} />
+        </span>
+        <span className={s.fileMain}>
+          <span className={s.fileName}>{a.name}</span>
+          <span className={s.fileMeta}>
+            <Paperclip size={11} aria-hidden="true" />
+            {t('Tu adjunto')} · {fileSize(a.size)}
+          </span>
+        </span>
+        {canOpen && <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />}
+      </button>
+      {menu.error && (
+        <p className={m.resumeError} role="alert">
+          {menu.error}
+        </p>
+      )}
+      {menu.menu}
+    </li>
+  )
+}
+
+/** Lo que generó el equipo: clic para verlo, clic derecho para adjuntarlo al mensaje, descargarlo o eliminarlo. */
+function ArtifactRow({ a, onOpen }: { a: Artifact; onOpen: () => void }) {
+  const lookup = useAgentLookup()
+  const look = lookup(a.agentId)
+  const menu = useFileMenu({ artifact: a }, onOpen)
+  return (
+    <li onContextMenu={menu.onContextMenu}>
+      <button type="button" className={s.fileRow} onClick={onOpen} title={t('Ver {name}', { name: a.name })}>
+        <KindTile kind={a.kind} name={a.name || a.relPath} size={34} />
+        <span className={s.fileMain}>
+          <span className={s.fileName}>{a.name}</span>
+          <span className={s.fileMeta}>
+            <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
+            {look.name} · {artifactLabel(a)} · {fileSize(a.size)} · {shortTime(a.createdAt)}
+          </span>
+        </span>
+        <ChevronRight size={15} aria-hidden="true" className={s.rowAction} />
+      </button>
+      {menu.error && (
+        <p className={m.resumeError} role="alert">
+          {menu.error}
+        </p>
+      )}
+      {menu.menu}
+    </li>
   )
 }

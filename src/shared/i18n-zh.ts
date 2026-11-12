@@ -3418,4 +3418,15 @@ export const zh: Record<string, string> = {
   "Si está ocupado, una copia suya con el mismo modelo empieza la siguiente a la vez. Sin copias si le queda poca cuota.": "如果它正忙，会由一个使用相同模型的副本同时开始下一个任务。配额不足时不创建副本。",
   "Hace sus tareas de una en una": "一次做一个任务",
   "Copia de {name}: lleva otra tarea a la vez": "{name} 的副本：同时处理另一个任务",
+  // Menú de clic derecho en Archivos y Resultados
+  "Del proyecto: {name}": "来自项目：{name}",
+  "Disponible en modo real": "在真实模式下可用",
+  "Ver": "查看",
+  "Adjuntar al mensaje": "附加到消息",
+  "Va como adjunto en tu próximo mensaje, para que el equipo sepa de qué archivo hablas": "会作为附件随你的下一条消息发送，让团队知道你说的是哪个文件",
+  "Eliminar…": "删除…",
+  "Lo borra del disco del proyecto": "从项目磁盘中删除",
+  "Pulsa otra vez para borrarlo del todo": "再点一次即可彻底删除",
+  "Ese archivo ya no está en el proyecto": "该文件已不在项目中",
+  "No se encontró {name} en el disco": "磁盘上找不到 {name}",
 }

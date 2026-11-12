@@ -1,6 +1,6 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import type { AgentAccess, AgentConfig, ConversationSummary, VideoCharacterInfo, VideoVoiceInfo, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun, WhatsNew, RoutineInput, ChatMessage } from '@shared/types'
+import type { AgentAccess, AgentConfig, ConversationSummary, VideoCharacterInfo, VideoVoiceInfo, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectFileRef, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun, WhatsNew, RoutineInput, ChatMessage } from '@shared/types'
 import type { MobileChatReceipt, MobileConversation, MobileCost, MobileFiles, MobileMusicResult, MobileVideoPicker, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
 import { mobileCost } from '@shared/costs'
@@ -126,6 +126,7 @@ export class MobileBackend {
         events: 'websocket', bootId, eventSequence: watermark, maxMessageLength: 50_000, attachments: true,
         stopRequests: true, resumeRequests: true, discardRequests: true, newConversation: true, taskTrace: true,
         projects: true, memoryEdit: true, files: true, upload: true, artifacts: true, traceEndpoint: true,
+        fileActions: this.methods.has('deleteProjectFile'),
         agentAccess: true, usageRefresh: true, voice: this.methods.has('transcribeAudio'),
         planApproval: this.methods.has('approvePlan'), appUpdate: true, hermesModel: this.methods.has('getHermesModels'),
         agentReset: this.methods.has('resetAgent'), serverUpdate: this.methods.has('applyUpdate'), whatsNew: this.methods.has('latestWhatsNew'), agentQuality: true, inbox: this.methods.has('listInbox'), taskChanges: this.methods.has('undoTask'),
@@ -315,7 +316,7 @@ export class MobileBackend {
     return { results }
   }
 
-  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = [], templateId?: string, replyTo?: string): Promise<MobileChatReceipt> {
+  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = [], templateId?: string, replyTo?: string, artifactIds: string[] = []): Promise<MobileChatReceipt> {
     // Con id=null, un reintento sigue encontrando el mensaje aunque otro proyecto haya pasado a ser el más reciente.
     if (conversationId === null) {
       const projects = await this.call<ProjectSummary[]>('listProjects')
@@ -338,6 +339,9 @@ export class MobileBackend {
     // Adjuntos ya subidos (POST /files): van con el mensaje y a los agentes igual que los elegidos en el escritorio.
     const unknown = attachmentIds.find((attachmentId) => !state.attachments.some((a) => a.id === attachmentId))
     if (unknown) throw new MobileError(400, 'INVALID_INPUT', `attachmentIds: la conversación no tiene el adjunto ${unknown}`)
+    // «Adjuntar al mensaje» en Resultados: el servidor copia el entregable como adjunto.
+    const unknownArtifact = artifactIds.find((artifactId) => !state.artifacts.some((a) => a.id === artifactId))
+    if (unknownArtifact) throw new MobileError(400, 'INVALID_INPUT', `artifactIds: la conversación no tiene el resultado ${unknownArtifact}`)
     if (templateId) {
       const tpl = (await this.call<TaskTemplate[]>('listTemplates')).find((x) => x.id === templateId)
       if (!tpl || (tpl.projectId && tpl.projectId !== state.project.id)) throw new MobileError(400, 'INVALID_INPUT', 'templateId: esa plantilla ya no existe')
@@ -345,7 +349,7 @@ export class MobileBackend {
     // «Responder»: tiene que ser la respuesta de un agente de esta conversación.
     if (replyTo && !state.messages.some((m) => m.id === replyTo && m.author.type === 'agent')) throw new MobileError(400, 'INVALID_INPUT', 'replyTo: esa respuesta no es de un agente de esta conversación')
     try {
-      const { runId } = await this.call<{ runId: string }>('sendMessage', { projectId: state.project.id, text, filePaths: [], clientMessageId, attachmentIds, ...(templateId ? { templateId } : {}), ...(replyTo ? { replyTo } : {}) })
+      const { runId } = await this.call<{ runId: string }>('sendMessage', { projectId: state.project.id, text, filePaths: [], clientMessageId, attachmentIds, ...(artifactIds.length ? { artifactIds } : {}), ...(templateId ? { templateId } : {}), ...(replyTo ? { replyTo } : {}) })
       return this.receipt(await this.call<LoadedProject>('loadProject', state.project.id), runId, clientMessageId)
     } catch (e) {
       if (e instanceof Error && e.message === 'clientMessageId ya se usó con otro texto') throw new MobileError(409, 'CLIENT_MESSAGE_CONFLICT', 'Ese clientMessageId ya se usó con otro texto')
@@ -663,6 +667,15 @@ export class MobileBackend {
     const workDir = state.project.workDir
     if (!workDir) return { attachments, folder: null }
     return { attachments, folder: { name: basename(workDir), path: workDir, ...await listFolder(workDir, q) } }
+  }
+
+  /** Borra un resultado o un adjunto del proyecto (disco incluido); emite files.deleted. */
+  async deleteFile(conversationId: string, ref: ProjectFileRef): Promise<{ deleted: true }> {
+    const state = await this.existing(conversationId)
+    const found = 'artifactId' in ref ? state.artifacts.some((a) => a.id === ref.artifactId) : state.attachments.some((a) => a.id === ref.attachmentId)
+    if (!found) throw new MobileError(404, 'FILE_NOT_FOUND', 'No se encontró el archivo')
+    await this.call('deleteProjectFile', conversationId, ref)
+    return { deleted: true }
   }
 
   /** Lo añade a los adjuntos del proyecto sin enviar ningún mensaje (emite attachments.updated). */

@@ -2,10 +2,10 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { existsSync, promises as fsp, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, copyFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import type { Artifact, ArtifactKind, Attachment, ChatMessage, ProjectState, ProjectSummary, Task } from '@shared/types'
+import type { Artifact, ArtifactKind, Attachment, ChatMessage, ProjectFileRef, ProjectState, ProjectSummary, Task } from '@shared/types'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { reopensWork } from '@shared/chatOrder'
-import { emitMobileOnly } from './events'
+import { emit, emitMobileOnly } from './events'
 
 const SAVE_DEBOUNCE_MS = 400
 const ID_RE = /^[a-z0-9][a-z0-9\-]{0,80}$/
@@ -518,6 +518,37 @@ export function copyAttachments(projectId: string, filePaths: string[]): Attachm
     emitMobileOnly({ kind: 'attachments.updated', projectId, attachments: JSON.parse(JSON.stringify(st.attachments)) as Attachment[] })
   }
   return out
+}
+
+/**
+ * Clic derecho → Eliminar en Archivos o Resultados: borra el archivo del disco y lo quita de la lista del proyecto.
+ * Un entregable puede estar en la carpeta del proyecto o en la de trabajo; un adjunto, solo en attachments/ (y sale
+ * también del mensaje que lo llevaba).
+ */
+export async function deleteProjectFile(projectId: string, ref: ProjectFileRef): Promise<void> {
+  const st = getProject(projectId)
+  const artifactId = ref && 'artifactId' in ref && typeof ref.artifactId === 'string' ? ref.artifactId : null
+  const attachmentId = ref && 'attachmentId' in ref && typeof ref.attachmentId === 'string' ? ref.attachmentId : null
+  if (artifactId) {
+    const a = st.artifacts.find((x) => x.id === artifactId)
+    if (!a) throw new Error('No existe ese archivo')
+    const abs = resolveProjectFile(projectId, a.relPath)
+    if (abs) await fsp.rm(abs, { force: true })
+    st.artifacts.splice(st.artifacts.indexOf(a), 1)
+  } else if (attachmentId) {
+    const a = st.attachments.find((x) => x.id === attachmentId)
+    if (!a) throw new Error('No existe ese adjunto')
+    const abs = a.relPath.startsWith('attachments/') ? resolveInProject(st.project.dir, a.relPath) : null
+    if (abs) await fsp.rm(abs, { force: true })
+    st.attachments.splice(st.attachments.indexOf(a), 1)
+    // Fuera también de los mensajes, para que no vuelva a salir en Archivos.
+    for (const m of st.messages) if (m.attachments?.some((x) => x.id === attachmentId)) m.attachments = m.attachments.filter((x) => x.id !== attachmentId)
+    emitMobileOnly({ kind: 'attachments.updated', projectId, attachments: JSON.parse(JSON.stringify(st.attachments)) as Attachment[] })
+  } else {
+    throw new Error('Archivo no válido')
+  }
+  scheduleSave(projectId)
+  emit({ kind: 'files.deleted', projectId, artifactIds: artifactId ? [artifactId] : [], attachmentIds: attachmentId ? [attachmentId] : [] })
 }
 
 // ---------- artifacts ----------

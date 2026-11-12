@@ -1108,6 +1108,162 @@
         "description": "artifactId es conversation.artifacts[].id. Se busca su relPath en la carpeta del proyecto y luego en la de trabajo (como /api/file), sin salir de ellas (tampoco por enlaces simbólicos). 404 ARTIFACT_NOT_FOUND si no está en el proyecto o el archivo ya no existe. Los errores son JSON."
       }
     },
+    "/api/mobile/v1/artifacts/{artifactId}/delete": {
+      "post": {
+        "operationId": "deleteArtifact",
+        "summary": "Borrar un resultado",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Mantener pulsado → Eliminar en Resultados: borra el archivo del disco del servidor (carpeta del proyecto o de trabajo) y lo quita de conversation.artifacts. Emite files.deleted ({projectId, artifactIds, attachmentIds}). 404 FILE_NOT_FOUND si no existe. Requiere capabilities.fileActions."
+      }
+    },
+    "/api/mobile/v1/attachments/{attachmentId}/delete": {
+      "post": {
+        "operationId": "deleteAttachment",
+        "summary": "Borrar un adjunto",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "attachmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  }
+                },
+                "required": [
+                  "conversationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Borra un adjunto de attachments/ y lo quita de la conversación y de los mensajes que lo llevaban. Emite files.deleted y attachments.updated. 404 FILE_NOT_FOUND si no existe. Requiere capabilities.fileActions."
+      }
+    },
     "/api/mobile/v1/files": {
       "get": {
         "operationId": "listMobileFiles",
@@ -4997,6 +5153,16 @@
             "maxItems": 20,
             "description": "Opcional. ids de conversation.attachments (p. ej. los subidos con POST /files) que van con el mensaje: quedan en message.attachments y los agentes los reciben como los adjuntos del escritorio, sin copiarlos ni duplicarlos. Los repetidos se ignoran. Un id que no es de la conversación → 400 INVALID_INPUT (el mensaje lo nombra)."
           },
+          "artifactIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            },
+            "maxItems": 20,
+            "description": "Opcional (capabilities.fileActions). ids de conversation.artifacts elegidos con «Adjuntar al mensaje»: el servidor copia cada resultado a attachments/ y va con el mensaje como un adjunto más, para que el equipo sepa de qué archivo hablas. Un id que no es de la conversación → 400 INVALID_INPUT."
+          },
           "templateId": {
             "type": "string",
             "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
@@ -6408,6 +6574,10 @@
           "replyTo": {
             "type": "boolean",
             "description": "«Responder» bajo la respuesta de un agente: replyTo en POST /chat/messages."
+          },
+          "fileActions": {
+            "type": "boolean",
+            "description": "Mantener pulsado un archivo: POST /artifacts/{artifactId}/delete y /attachments/{attachmentId}/delete (evento files.deleted) y artifactIds en POST /chat/messages para adjuntar resultados al mensaje."
           }
         },
         "required": [

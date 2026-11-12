@@ -77,7 +77,7 @@ async function api(path: string, data?: unknown, access = token): Promise<{ stat
   const response = { status: res.status, body: await res.json() }
   if (res.status >= 400) schemaFormat('Error', response.body)
   else {
-    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/templates\/(?!restore$)[^/]+/, '/templates/{templateId}').replace(/^\/routines\/[^/]+$/, '/routines/{routineId}').replace(/^\/messages\/[^/]+\//, '/messages/{messageId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/').replace(/^\/video\/voices\/[^/]+\//, '/video/voices/{voiceId}/').replace(/^\/video\/characters\/[^/]+\//, '/video/characters/{characterId}/')
+    const route = PREFIX + path.split('?')[0].replace(/\/requests\/[^/]+\//, '/requests/{requestId}/').replace(/^\/tasks\/[^/]+\//, '/tasks/{taskId}/').replace(/^\/memory\/[^/]+/, '/memory/{memoryId}').replace(/^\/plans\/[^/]+\//, '/plans/{messageId}/').replace(/^\/agents\/[^/]+\//, '/agents/{agentId}/').replace(/^\/inbox\/[^/]+\/[^/]+$/, '/inbox/{id}/{actionId}').replace(/^\/routines\/[^/]+\//, '/routines/{routineId}/').replace(/^\/templates\/(?!restore$)[^/]+/, '/templates/{templateId}').replace(/^\/routines\/[^/]+$/, '/routines/{routineId}').replace(/^\/messages\/[^/]+\//, '/messages/{messageId}/').replace(/^\/chats\/[^/]+\//, '/chats/{chatId}/').replace(/^\/projects\/[^/]+\//, '/projects/{projectId}/').replace(/^\/video\/voices\/[^/]+\//, '/video/voices/{voiceId}/').replace(/^\/video\/characters\/[^/]+\//, '/video/characters/{characterId}/').replace(/^\/artifacts\/[^/]+\//, '/artifacts/{artifactId}/').replace(/^\/attachments\/[^/]+\//, '/attachments/{attachmentId}/')
     const operation = openapi.paths[route][data === undefined ? 'get' : 'post']
     const schemaName = operation.responses[String(res.status)].content['application/json'].schema.$ref.split('/').at(-1)
     schemaFormat(schemaName, response.body)
@@ -234,6 +234,7 @@ beforeAll(() => {
     ]
   })
   webMethods.set('getUsageRuns', usageRuns)
+  webMethods.set('deleteProjectFile', (id, ref) => store.deleteProjectFile(id as string, ref as never))
   webMethods.set('sendMessage', (input) => sendMessage(input as Parameters<typeof sendMessage>[0]))
   webMethods.set('mobileStopRun', (id) => cancelRun(id as string, 'pause'))
   webMethods.set('resumeRun', (id, runId) => resumeRun(id as string, runId as string))
@@ -1490,6 +1491,49 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
       cancelAll()
       store.getProject(id).project.workDir = undefined
       rmSync(folder, { recursive: true, force: true, maxRetries: 3 })
+    }
+  })
+
+  it('mantener pulsado un archivo: adjuntar un resultado al mensaje y borrar resultados y adjuntos', async () => {
+    const id = (await api('/conversations', {})).body.conversation.id as string
+    const client = await websocket(token)
+    try {
+      expect((await api('/snapshot')).body.capabilities.fileActions).toBe(true)
+      const dir = store.projectDir(id)
+      mkdirSync(join(dir, 'artifacts'), { recursive: true })
+      writeFileSync(join(dir, 'artifacts', 'guion.md'), '# Guion')
+      writeFileSync(join(dir, 'artifacts', 'borrar.md'), 'fuera')
+      store.upsertArtifact({ id: 'art-guion', projectId: id, name: 'guion.md', relPath: 'artifacts/guion.md', kind: 'markdown', size: 7, createdAt: 1 })
+      store.upsertArtifact({ id: 'art-borrar', projectId: id, name: 'borrar.md', relPath: 'artifacts/borrar.md', kind: 'markdown', size: 5, createdAt: 2 })
+
+      // «Adjuntar al mensaje»: el resultado va como adjunto (una copia en attachments/).
+      const bad = await api('/chat/messages', { conversationId: id, text: 'Mejora esto', clientMessageId: 'client-art-x', artifactIds: ['no-existe'] })
+      expect([bad.status, bad.body.code]).toEqual([400, 'INVALID_INPUT'])
+      const receipt = await api('/chat/messages', { conversationId: id, text: 'Mejora el gancho de este guion', clientMessageId: 'client-art', artifactIds: ['art-guion'] })
+      expect(receipt.status).toBe(202)
+      const [att] = receipt.body.message.attachments as Attachment[]
+      expect(att).toMatchObject({ name: 'guion.md', relPath: 'attachments/guion.md' })
+      expect(readFileSync(join(dir, att.relPath), 'utf8')).toBe('# Guion')
+      cancelAll()
+
+      // Eliminar un resultado: fuera del disco y de la lista, con aviso.
+      const gone = await api('/artifacts/art-borrar/delete', { conversationId: id })
+      expect(gone).toEqual({ status: 200, body: { deleted: true } })
+      expect(existsSync(join(dir, 'artifacts', 'borrar.md'))).toBe(false)
+      expect(store.snapshotProject(id).artifacts.map((a) => a.id)).toEqual(['art-guion'])
+      expect((await event(client.frames, 'files.deleted')).payload).toMatchObject({ projectId: id, artifactIds: ['art-borrar'], attachmentIds: [] })
+      expect((await api('/artifacts/art-borrar/delete', { conversationId: id })).body.code).toBe('FILE_NOT_FOUND')
+
+      // Eliminar un adjunto: también sale del mensaje que lo llevaba.
+      expect((await api(`/attachments/${att.id}/delete`, { conversationId: id })).status).toBe(200)
+      expect(existsSync(join(dir, att.relPath))).toBe(false)
+      expect(store.snapshotProject(id).attachments).toEqual([])
+      expect(store.snapshotProject(id).messages.find((m) => m.text.startsWith('Mejora el gancho'))?.attachments).toEqual([])
+      // El original sigue en su sitio.
+      expect(readFileSync(join(dir, 'artifacts', 'guion.md'), 'utf8')).toBe('# Guion')
+    } finally {
+      cancelAll()
+      client.socket?.destroy()
     }
   })
 

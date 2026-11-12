@@ -177,3 +177,25 @@ describe('plantillas de tareas encima del cuadro', () => {
     expect(fake.sent).toEqual([])
   })
 })
+
+describe('«Adjuntar al mensaje» desde Archivos o Resultados', () => {
+  it('el archivo sale como adjunto, va con el siguiente mensaje y luego se quita', async () => {
+    await act(async () => {
+      useComposer.getState().addDeliverable({ kind: 'artifact', id: 'a1', name: 'guion.md', projectId: 'p1' })
+      useComposer.getState().addDeliverable({ kind: 'attachment', id: 'f1', name: 'foto.png', projectId: 'p1' })
+      // Uno de otro proyecto sustituye a los de este y no sale aquí.
+      useComposer.getState().addDeliverable({ kind: 'artifact', id: 'otro', name: 'otro.md', projectId: 'p2' })
+    })
+    expect(host.querySelector('[aria-label="Archivos para adjuntar"]')).toBeNull()
+    await act(async () => {
+      useComposer.getState().addDeliverable({ kind: 'artifact', id: 'a1', name: 'guion.md', projectId: 'p1' })
+      useComposer.getState().addDeliverable({ kind: 'artifact', id: 'a1', name: 'guion.md', projectId: 'p1' })
+      useComposer.getState().addDeliverable({ kind: 'attachment', id: 'f1', name: 'foto.png', projectId: 'p1' })
+    })
+    expect(host.querySelector('[aria-label="Archivos para adjuntar"]')?.textContent).toBe('guion.mdfoto.png')
+    await type('mejora el gancho de este documento')
+    await key('Enter')
+    expect(fake.sent).toEqual([{ projectId: 'p1', text: 'mejora el gancho de este documento', filePaths: [], artifactIds: ['a1'], attachmentIds: ['f1'] }])
+    expect(useComposer.getState().deliverables).toEqual([])
+  })
+})

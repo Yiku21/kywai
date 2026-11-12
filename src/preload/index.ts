@@ -49,6 +49,7 @@ const api: CoworkApi = {
   readArtifact: (projectId, relPath, opts) => ipcRenderer.invoke('cowork:readArtifact', projectId, relPath, opts),
   downloadFile: (projectId, relPath) => ipcRenderer.invoke('cowork:downloadFile', projectId, relPath),
   downloadArtifacts: (projectId, artifactIds) => ipcRenderer.invoke('cowork:downloadArtifacts', projectId, artifactIds),
+  deleteProjectFile: (projectId, ref) => ipcRenderer.invoke('cowork:deleteProjectFile', projectId, ref),
   openPath: (projectId, relPath) => ipcRenderer.invoke('cowork:openPath', projectId, relPath),
   setQuotaBudget: (groupId, budget) => ipcRenderer.invoke('cowork:setQuotaBudget', groupId, budget),
   refreshQuotas: () => ipcRenderer.invoke('cowork:refreshQuotas'),

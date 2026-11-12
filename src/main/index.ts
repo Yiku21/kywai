@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { finished } from 'node:stream/promises'
-import type { AddAgentInput, AgentId, ConversationSummary, ElevenStatus, ImportResult, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, VoiceNoteInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { AddAgentInput, AgentId, ConversationSummary, ElevenStatus, ImportResult, ProjectFileRef, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, VoiceNoteInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
@@ -498,6 +498,11 @@ function registerIpc(): void {
     conversations.setConversationPinned(projectId, conversationId, pinned === true)
     emit({ kind: 'conversations.updated', projectId })
     return conversations.listConversations(projectId)
+  })
+  // Clic derecho → Eliminar en Archivos o Resultados (escritorio, web, cliente y Órbita).
+  handle('deleteProjectFile', (projectId: unknown, ref: unknown) => {
+    if (!store.isValidProjectId(projectId)) throw new Error(tr('Proyecto no válido'))
+    return store.deleteProjectFile(projectId, ref as ProjectFileRef)
   })
   handle('pinnedConversations', () => withBusy(conversations.pinnedConversations()))
   handle('forkConversation', (projectId: unknown, conversationId: unknown) => {

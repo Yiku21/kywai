@@ -3541,4 +3541,15 @@ export const en: Record<string, string> = {
   "Si está ocupado, una copia suya con el mismo modelo empieza la siguiente a la vez. Sin copias si le queda poca cuota.": "If it is busy, a copy of it with the same model starts the next one at the same time. No copies when its quota is low.",
   "Hace sus tareas de una en una": "Does its tasks one at a time",
   "Copia de {name}: lleva otra tarea a la vez": "Copy of {name}: handles another task at the same time",
+  // Menú de clic derecho en Archivos y Resultados
+  "Del proyecto: {name}": "From the project: {name}",
+  "Disponible en modo real": "Available in live mode",
+  "Ver": "View",
+  "Adjuntar al mensaje": "Attach to message",
+  "Va como adjunto en tu próximo mensaje, para que el equipo sepa de qué archivo hablas": "Goes as an attachment in your next message, so the team knows which file you mean",
+  "Eliminar…": "Delete…",
+  "Lo borra del disco del proyecto": "Deletes it from the project's disk",
+  "Pulsa otra vez para borrarlo del todo": "Click again to delete it for good",
+  "Ese archivo ya no está en el proyecto": "That file is no longer in the project",
+  "No se encontró {name} en el disco": "{name} was not found on disk",
 }

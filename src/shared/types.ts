@@ -1619,6 +1619,7 @@ export type CoworkEvent = EventBase &
     | { kind: 'run.started'; runId: string; projectId: string; conversationId?: string }
     | { kind: 'run.finished'; runId: string; projectId: string; conversationId?: string; ok: boolean }
     | { kind: 'chat.cleared'; projectId: string; conversationId?: string }
+    | { kind: 'files.deleted'; projectId: string; artifactIds: string[]; attachmentIds: string[] }
     | { kind: 'conversations.updated'; projectId: string }
     | { kind: 'usage.run'; run: UsageRun }
     | { kind: 'task.trace'; taskId: string; projectId: string; entry: TraceEntry }
@@ -1771,6 +1772,9 @@ export interface VideoStudioStatus {
   ready: boolean
 }
 
+/** Un archivo del proyecto por su id: un entregable (artifactId) o un adjunto tuyo (attachmentId). */
+export type ProjectFileRef = { artifactId: string } | { attachmentId: string }
+
 export interface SendMessageInput {
   projectId: string
   text: string
@@ -1779,6 +1783,8 @@ export interface SendMessageInput {
   filePaths: string[]
   /** Adjuntos que ya están en el proyecto (subidos antes desde el móvil): van con el mensaje sin copiarlos otra vez. */
   attachmentIds?: string[]
+  /** Entregables del proyecto que eliges con «Adjuntar al mensaje» (clic derecho en Archivos o Resultados): van como adjuntos. */
+  artifactIds?: string[]
   /**
    * Se lanza con esta plantilla de tareas (el texto ya llega con sus huecos rellenos): el chat la nombra y se aplican
    * sus opciones (agente directo, pedir visto bueno al plan).
@@ -1802,6 +1808,10 @@ export interface VoiceNoteInput {
   /** Lo que ya estaba escrito en el cuadro: va delante de lo dicho. */
   text?: string
   filePaths?: string[]
+  /** Entregables elegidos con «Adjuntar al mensaje». */
+  artifactIds?: string[]
+  /** Adjuntos que ya están en el proyecto, elegidos con «Adjuntar al mensaje». */
+  attachmentIds?: string[]
   /** «Responder» bajo la respuesta de un agente (su id). */
   replyTo?: string
 }
@@ -1874,6 +1884,8 @@ export interface CoworkApi {
   downloadFile?(projectId: string, relPath: string): Promise<void>
   /** Guarda un entregable, o varios como zip, en el dispositivo desde el que se usa la app. */
   downloadArtifacts(projectId: string, artifactIds: string[]): Promise<void>
+  /** Borra del disco un entregable o un adjunto del proyecto (clic derecho → Eliminar) y lo quita de Archivos y Resultados. */
+  deleteProjectFile?(projectId: string, ref: ProjectFileRef): Promise<void>
   openPath(projectId: string, relPath?: string): Promise<void>
   setQuotaBudget(groupId: string, budget: QuotaBudget | null): Promise<void>
   refreshQuotas(): Promise<void>

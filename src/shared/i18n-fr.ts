@@ -3418,4 +3418,15 @@ export const fr: Record<string, string> = {
   "Si está ocupado, una copia suya con el mismo modelo empieza la siguiente a la vez. Sin copias si le queda poca cuota.": "S’il est occupé, une copie de lui avec le même modèle commence la suivante en même temps. Pas de copies si son quota est bas.",
   "Hace sus tareas de una en una": "Fait ses tâches une par une",
   "Copia de {name}: lleva otra tarea a la vez": "Copie de {name} : mène une autre tâche en même temps",
+  // Menú de clic derecho en Archivos y Resultados
+  "Del proyecto: {name}": "Du projet : {name}",
+  "Disponible en modo real": "Disponible en mode réel",
+  "Ver": "Voir",
+  "Adjuntar al mensaje": "Joindre au message",
+  "Va como adjunto en tu próximo mensaje, para que el equipo sepa de qué archivo hablas": "Il part en pièce jointe dans ton prochain message, pour que l'équipe sache de quel fichier tu parles",
+  "Eliminar…": "Supprimer…",
+  "Lo borra del disco del proyecto": "Le supprime du disque du projet",
+  "Pulsa otra vez para borrarlo del todo": "Clique encore pour le supprimer définitivement",
+  "Ese archivo ya no está en el proyecto": "Ce fichier n'est plus dans le projet",
+  "No se encontró {name} en el disco": "{name} est introuvable sur le disque",
 }

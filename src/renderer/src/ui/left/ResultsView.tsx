@@ -18,6 +18,7 @@ import { agentVars, plural, shortTime } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './Views.module.css'
 import { t } from '@/lib/i18n'
+import { useFileMenu } from './FileMenu'
 import { ArtifactDownloadButton } from './ArtifactDownloadButton'
 
 /** Los avisos de «Terminado» que aún no has visto (de cualquier proyecto): no esperan nada de ti. */
@@ -244,39 +245,52 @@ function ResultFolder({ group, of, open, onToggle }: { group: ResultGroup; of?: 
 
 /** Tarjetas de archivos; al abrir una, el visor deja pasar con ‹ › por toda la carpeta. */
 function ResultCards({ list, folder, small }: { list: Artifact[]; folder: Artifact[]; small?: boolean }) {
-  const openPreview = useCowork((st) => st.openPreview)
-  const lookup = useAgentLookup()
   return (
     <ul className={cx(s.grid, small && s.gridSmall)}>
-      {list.map((a) => {
-        const look = lookup(a.agentId)
-        return (
-          <li key={a.id}>
-            <button
-              type="button"
-              className={s.card}
-              onClick={() => openPreview(folder.map(fromArtifact), folder.indexOf(a))}
-              aria-label={t('Abrir {name}, {kind} creado por {agent}', { name: a.name, kind: artifactLabel(a), agent: look.name })}
-            >
-              <span className={s.cardTop}>
-                <KindTile kind={a.kind} name={a.name || a.relPath} size={small ? 30 : 40} />
-                <span className={s.cardKind}>{artifactLabel(a)}</span>
-              </span>
-              <span className={s.cardName} title={a.name}>
-                {a.name}
-              </span>
-              {!small && (
-                <span className={s.cardMeta}>
-                  <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
-                  <span className={s.cardAgent}>{look.name}</span>
-                  <span className={s.cardTime}>{shortTime(a.createdAt)}</span>
-                </span>
-              )}
-            </button>
-            {!small && <ArtifactDownloadButton projectId={a.projectId} ids={[a.id]} name={a.name} />}
-          </li>
-        )
-      })}
+      {list.map((a) => (
+        <ResultCard key={a.id} a={a} folder={folder} small={small} />
+      ))}
     </ul>
+  )
+}
+
+/** Una tarjeta: clic para verla, clic derecho para adjuntarla al mensaje, descargarla o eliminarla. */
+function ResultCard({ a, folder, small }: { a: Artifact; folder: Artifact[]; small?: boolean }) {
+  const openPreview = useCowork((st) => st.openPreview)
+  const lookup = useAgentLookup()
+  const look = lookup(a.agentId)
+  const view = (): void => openPreview(folder.map(fromArtifact), folder.indexOf(a))
+  const menu = useFileMenu({ artifact: a }, view)
+  return (
+    <li onContextMenu={menu.onContextMenu}>
+      <button
+        type="button"
+        className={s.card}
+        onClick={view}
+        aria-label={t('Abrir {name}, {kind} creado por {agent}', { name: a.name, kind: artifactLabel(a), agent: look.name })}
+      >
+        <span className={s.cardTop}>
+          <KindTile kind={a.kind} name={a.name || a.relPath} size={small ? 30 : 40} />
+          <span className={s.cardKind}>{artifactLabel(a)}</span>
+        </span>
+        <span className={s.cardName} title={a.name}>
+          {a.name}
+        </span>
+        {!small && (
+          <span className={s.cardMeta}>
+            <span className={s.agentDot} style={agentVars(look.color)} aria-hidden="true" />
+            <span className={s.cardAgent}>{look.name}</span>
+            <span className={s.cardTime}>{shortTime(a.createdAt)}</span>
+          </span>
+        )}
+      </button>
+      {!small && <ArtifactDownloadButton projectId={a.projectId} ids={[a.id]} name={a.name} />}
+      {menu.error && (
+        <p className={m.resumeError} role="alert">
+          {menu.error}
+        </p>
+      )}
+      {menu.menu}
+    </li>
   )
 }

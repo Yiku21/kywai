@@ -283,6 +283,16 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
     }
     case 'artifact.created':
       return { ...d, artifacts: { ...d.artifacts, [e.artifact.id]: e.artifact } }
+    case 'files.deleted': {
+      // Clic derecho → Eliminar: fuera de Archivos y Resultados (un adjunto, también de su mensaje).
+      const artifacts = { ...d.artifacts }
+      for (const id of e.artifactIds) delete artifacts[id]
+      if (!e.attachmentIds.length) return { ...d, artifacts }
+      const gone = (a: { id: string }): boolean => e.attachmentIds.includes(a.id)
+      const attachments = d.attachments.filter((a) => !gone(a))
+      const messages = d.messages.map((m) => (m.attachments?.some(gone) ? { ...m, attachments: m.attachments.filter((a) => !gone(a)) } : m))
+      return { ...d, artifacts, attachments, messages }
+    }
     case 'quota.update':
       return { ...d, quotas: e.quotas }
     case 'run.started': {
@@ -330,6 +340,7 @@ function eventProject(e: CoworkEvent): string | undefined {
       return e.artifact.projectId
     case 'run.started':
     case 'run.finished':
+    case 'files.deleted':
     case 'chat.cleared':
     case 'memory.updated':
     case 'routines.updated':

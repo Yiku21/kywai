@@ -1482,6 +1482,32 @@ audios y PDF que antes salían como «Archivo» con icono genérico ahora dicen 
 lado si no cabe. La regla es la misma en todos: `src/shared/fileTypes.ts` y `android/…/orbita/FileTypes.kt` (si
 cambias una, cambia la otra), con sus pruebas.
 
+### Clic derecho en un archivo: adjuntar, descargar o eliminar
+
+En **Archivos** y en **Resultados**, el **clic derecho** sobre un archivo (lo que generó el equipo o un adjunto
+tuyo) abre un menú con **Ver**, **Adjuntar al mensaje**, **Descargar** y **Eliminar…** (también con las letras V, A,
+D y E con el menú abierto).
+
+- **Adjuntar al mensaje** te lleva al Chat con el archivo ya puesto encima del cuadro de escribir, como si lo
+  hubieras arrastrado (se quita con ✕). Al enviar, el servidor hace una copia en `attachments/` y va con el mensaje
+  como un adjunto más, así Hermes y los agentes saben de qué archivo hablas («mejora el gancho de este documento»).
+  Un adjunto tuyo vuelve a ir tal cual, sin copiarlo otra vez. Funciona igual desde el navegador y el cliente,
+  porque el archivo se busca en el servidor. Solo valen los del proyecto abierto.
+- **Descargar** baja solo ese archivo (lo mismo que su botón).
+- **Eliminar…** pide pulsarlo otra vez («Pulsa otra vez para borrarlo del todo») y entonces borra el archivo del
+  disco (carpeta del proyecto o, si un agente lo dejó allí, la carpeta de trabajo) y lo quita de Archivos y
+  Resultados en todos los dispositivos. Un adjunto borrado sale también del mensaje que lo llevaba. **No va a la
+  Papelera.**
+
+**En Órbita** es **mantener pulsado**: en Resultados, la tarjeta abre el menú con Abrir, Adjuntar al mensaje,
+Descargar, Ver la tarea y Eliminar… (este último con un aviso para confirmar); en Archivos → Adjuntos, el menú de
+siempre gana Eliminar…. Hace falta que el ordenador tenga esta versión (capacidad `fileActions`).
+
+Por dentro: `deleteProjectFile` en `src/main/projects.ts` (evento `files.deleted`), `artifactIds` en el envío del
+chat (`attachArtifacts` en `src/main/orchestrator.ts`), el menú en `src/renderer/src/ui/left/FileMenu.tsx`
+(reutiliza el de la barra lateral) y, en la API móvil, `POST /artifacts/{id}/delete`, `POST /attachments/{id}/delete`
+y `artifactIds` en `POST /chat/messages`.
+
 ### Reanudar lo interrumpido
 
 Si la app se cierra con trabajo a medias (al actualizar, reiniciar o por un fallo), el plan de esa petición

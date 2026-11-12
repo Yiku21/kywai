@@ -1429,6 +1429,25 @@ function routineCommandReply(projectId: string, text: string): { text: string; r
 const voiceDrafts = new Map<string, ChatMessage>()
 
 /**
+ * «Adjuntar al mensaje» (clic derecho en un entregable de Archivos o Resultados): una copia del entregable va como
+ * adjunto del mensaje, así Hermes y los agentes saben de qué archivo hablas. Se busca en el servidor, por eso vale
+ * también desde el navegador, el cliente y Órbita.
+ */
+function attachArtifacts(projectId: string, ids: unknown): Attachment[] {
+  if (!Array.isArray(ids) || !ids.length) return []
+  const st = store.getProject(projectId)
+  const paths: string[] = []
+  for (const id of ids.slice(0, 20)) {
+    const a = typeof id === 'string' ? st.artifacts.find((x) => x.id === id) : undefined
+    if (!a) throw new Error(tr('Ese archivo ya no está en el proyecto'))
+    const abs = store.resolveProjectFile(projectId, a.relPath)
+    if (!abs) throw new Error(tr('No se encontró {name} en el disco', { name: a.name }))
+    paths.push(abs)
+  }
+  return store.copyAttachments(projectId, paths)
+}
+
+/**
  * Nota de voz enviada al momento: sale ya en el chat («pasando a texto…») y el equipo la transcribe por detrás con
  * Whisper; en cuanto tiene el texto, la manda como un mensaje normal (Hermes, «@Agente», órdenes…), que ocupa el sitio
  * del provisional. Si no se entiende o falla, el mensaje se queda marcado y un aviso dice por qué.
@@ -1440,7 +1459,8 @@ export function sendVoiceNote(input: VoiceNoteInput): { messageId: string } {
   const typed = typeof input.text === 'string' ? input.text.trim().slice(0, 50_000) : ''
   const paths = Array.isArray(input.filePaths) ? input.filePaths.filter((p): p is string => typeof p === 'string') : []
   // Los adjuntos se copian ya: los archivos pegados son temporales y no esperan a que acabe la transcripción.
-  const atts = store.copyAttachments(st.project.id, paths)
+  const kept = (Array.isArray(input.attachmentIds) ? input.attachmentIds : []).map((id) => st.attachments.find((a) => a.id === id)).filter((a): a is Attachment => !!a)
+  const atts = [...kept, ...store.copyAttachments(st.project.id, paths), ...attachArtifacts(st.project.id, input.artifactIds)]
   const replyTo = typeof input.replyTo === 'string' ? input.replyTo : undefined
   const clientMessageId = `voz-${randomUUID()}`
   const draft: ChatMessage = {
@@ -1515,7 +1535,7 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     if (!reused.includes(a)) reused.push(a)
   }
   const paths = Array.isArray(input.filePaths) ? input.filePaths.filter((p): p is string => typeof p === 'string') : []
-  const atts = [...reused, ...store.copyAttachments(projectId, paths)]
+  const atts = [...reused, ...store.copyAttachments(projectId, paths), ...attachArtifacts(projectId, input.artifactIds)]
   if (!text.trim() && !atts.length && typeof input.videoFrom !== 'string' && typeof input.replyTo !== 'string') throw new Error(tr('El mensaje está vacío'))
 
   // «/model» es de la app (abre la lista de modelos de Hermes), no un encargo: si llega como mensaje (desde una

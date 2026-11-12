@@ -78,6 +78,11 @@ export interface MobileSnapshot {
     upload: boolean
     artifacts: boolean
     traceEndpoint: boolean
+    /**
+     * Mantener pulsado un archivo: POST /artifacts/{id}/delete y /attachments/{id}/delete ({ conversationId }) para
+     * borrarlo (evento files.deleted), y artifactIds en POST /chat/messages para adjuntar resultados al mensaje.
+     */
+    fileActions?: boolean
     agentAccess: boolean
     usageRefresh: boolean
     /** Notas de voz convertidas en texto en el propio equipo (POST /voice/transcribe). */

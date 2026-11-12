@@ -54,6 +54,8 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/routines\/([^/]+)$/, 'routineUpdate', ['POST']],
   [/^\/messages\/([^/]+)\/routine-proposal\/(create|dismiss)$/, 'routineProposal', ['POST']],
   [/^\/artifacts\/([^/]+)\/raw$/, 'artifactRaw', ['GET']],
+  [/^\/artifacts\/([^/]+)\/delete$/, 'artifactDelete', ['POST']],
+  [/^\/attachments\/([^/]+)\/delete$/, 'attachmentDelete', ['POST']],
   [/^\/files$/, 'files', ['GET', 'POST']],
   [/^\/files\/raw$/, 'fileRaw', ['GET']],
   [/^\/settings\/agent-access$/, 'agentAccess', ['POST']],
@@ -287,14 +289,16 @@ export class MobileApi {
           throw new MobileError(426, 'WEBSOCKET_REQUIRED', 'Abre este endpoint con WebSocket y Authorization: Bearer')
         case 'chat': {
           const input = await body(req)
-          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds', 'templateId', 'replyTo'])
+          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds', 'artifactIds', 'templateId', 'replyTo'])
           const clientMessageId = string(input.clientMessageId, 'clientMessageId', 128)
           if (!ID.test(clientMessageId)) throw new MobileError(400, 'INVALID_INPUT', 'clientMessageId no válido')
           const attachmentIds = input.attachmentIds ?? []
           if (!Array.isArray(attachmentIds) || attachmentIds.length > 20 || attachmentIds.some((a) => typeof a !== 'string' || !ID.test(a))) throw new MobileError(400, 'INVALID_INPUT', 'attachmentIds debe ser una lista de hasta 20 identificadores de adjunto')
+          const artifactIds = input.artifactIds ?? []
+          if (!Array.isArray(artifactIds) || artifactIds.length > 20 || artifactIds.some((a) => typeof a !== 'string' || !ID.test(a))) throw new MobileError(400, 'INVALID_INPUT', 'artifactIds debe ser una lista de hasta 20 identificadores de resultado')
           const templateId = input.templateId === undefined || input.templateId === null ? undefined : id(String(input.templateId), 'templateId')
           const replyTo = input.replyTo === undefined || input.replyTo === null ? undefined : id(String(input.replyTo), 'replyTo')
-          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[], templateId, replyTo))
+          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[], templateId, replyTo, artifactIds as string[]))
           break
         }
         case 'conversations': {
@@ -546,6 +550,16 @@ export class MobileApi {
           const artifactId = id(param, 'artifactId')
           const project = projectId(query(url, ['conversationId'], ['conversationId']).conversationId)
           await sendFile(res, await this.backend.artifactPath(project, artifactId), new MobileError(404, 'ARTIFACT_NOT_FOUND', 'No se encontró el resultado'), req)
+          break
+        }
+        // Mantener pulsado → Eliminar en Resultados o Archivos de Órbita: borra el archivo del disco del servidor.
+        case 'artifactDelete':
+        case 'attachmentDelete': {
+          const fileId = id(param, target.name === 'artifactDelete' ? 'artifactId' : 'attachmentId')
+          const input = await body(req)
+          fields(input, ['conversationId'])
+          const ref = target.name === 'artifactDelete' ? { artifactId: fileId } : { attachmentId: fileId }
+          mobileJson(res, 200, await this.backend.deleteFile(projectId(input.conversationId), ref))
           break
         }
         case 'files':

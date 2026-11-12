@@ -98,6 +98,8 @@ export function Composer() {
   const setText = useComposer((c) => c.setText)
   const addFiles = useComposer((c) => c.addFiles)
   const removeFile = useComposer((c) => c.removeFile)
+  const allDeliverables = useComposer((c) => c.deliverables)
+  const removeDeliverable = useComposer((c) => c.removeDeliverable)
   const mode = useCowork((st) => st.mode)
   const project = useCowork((st) => st.live.project)
   // La respuesta citada es de este proyecto: al cambiar de proyecto o de conversación, se quita.
@@ -105,6 +107,12 @@ export function Composer() {
   useEffect(() => {
     useComposer.getState().setReplyTo(null)
   }, [projectId])
+  // Entregables puestos con «Adjuntar al mensaje»: solo los de este proyecto van con el mensaje.
+  const deliverables = allDeliverables.filter((d) => d.projectId === projectId)
+  const artifactIds = deliverables.filter((d) => d.kind === 'artifact').map((d) => d.id)
+  const attachmentIds = deliverables.filter((d) => d.kind === 'attachment').map((d) => d.id)
+  /** Solo si hay alguno, para que el mensaje no cambie cuando no se adjuntó nada del proyecto. */
+  const fromProject = { ...(artifactIds.length ? { artifactIds } : {}), ...(attachmentIds.length ? { attachmentIds } : {}) }
   const activeRunIds = useCowork((st) => st.live.activeRunIds)
   // Con un plan esperando tu visto bueno, lo que escribas son cambios a ese plan (o «sí» para aprobarlo).
   const planPending = useCowork((st) => st.mode === 'live' && st.live.messages.some((m) => m.proposal?.status === 'pending'))
@@ -260,7 +268,7 @@ export function Composer() {
       // «/new», «/limpiar»…: conversación nueva (lo mismo que ⚙ → Limpiar el chat), no un mensaje para los agentes.
       const remember = REMEMBER_COMMAND.exec(trimmed)
       // «Responder» bajo la respuesta de un agente: va a ese mismo agente con su respuesta citada.
-      if (reply) await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files, replyTo: reply.messageId })
+      if (reply) await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files, ...fromProject, replyTo: reply.messageId })
       else if (CLEAR_COMMAND.test(trimmed)) useCowork.getState().loadProjectState(await a.newConversation(project.id))
       else if (MODEL_COMMAND.test(trimmed)) useCowork.setState({ hermesModelOpen: true })
       else if (QUOTA_COMMAND.test(trimmed)) setQuotaNotice(await quotaSummary(a))
@@ -290,7 +298,7 @@ export function Composer() {
           memory: true
         })
       }
-      else await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files })
+      else await a.sendMessage({ projectId: project.id, text: trimmed, filePaths: files, ...fromProject })
       useComposer.getState().clear()
     } catch (e) {
       setError(errorText(e))
@@ -310,8 +318,8 @@ export function Composer() {
     setError(null)
     setQuotaNotice(null)
     try {
-      await a.sendMessage({ projectId: project.id, text: filled, filePaths: files, templateId: tpl.id })
-      if (files.length) useComposer.setState({ files: [] })
+      await a.sendMessage({ projectId: project.id, text: filled, filePaths: files, ...fromProject, templateId: tpl.id })
+      if (files.length || deliverables.length) useComposer.setState({ files: [], deliverables: [] })
       return true
     } catch (e) {
       setError(errorText(e))
@@ -446,7 +454,7 @@ export function Composer() {
       if (direct && project) {
         if (isDemo) useCowork.getState().setMode('live')
         setQuotaNotice(null)
-        await a.sendVoiceNote({ projectId: project.id, audioPath: path, language: lang(), text: typed, filePaths: files, ...(replyTo ? { replyTo: replyTo.messageId } : {}) })
+        await a.sendVoiceNote({ projectId: project.id, audioPath: path, language: lang(), text: typed, filePaths: files, ...fromProject, ...(replyTo ? { replyTo: replyTo.messageId } : {}) })
         useComposer.getState().clear()
         return
       }
@@ -495,8 +503,23 @@ export function Composer() {
   return (
     <div className={s.composer}>
       <TemplateBar disabled={!!blockedReason || simulate || !!rec || transcribing} onLaunch={launchTemplate} />
-      {files.length > 0 && (
+      {files.length + deliverables.length > 0 && (
         <ul className={s.pending} aria-label={t('Archivos para adjuntar')}>
+          {deliverables.map((d) => (
+            <li key={d.id} className={s.chip} title={t('Del proyecto: {name}', { name: d.name })}>
+              <FileTypeIcon name={d.name} size={14} />
+              <span className={s.chipName}>{d.name}</span>
+              <button
+                type="button"
+                className={s.chipRemove}
+                onClick={() => removeDeliverable(d.id)}
+                aria-label={t('Quitar {name}', { name: d.name })}
+                title={t('Quitar')}
+              >
+                <X size={13} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
           {files.map((p) => {
             const name = basename(p)
             return (
