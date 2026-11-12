@@ -17,7 +17,7 @@ import { registry } from './registry'
 import { GEO, checkTexture, questionTexture, warnTexture, zzzTexture } from './assets'
 import { ROBOT_Y, consoleOffset, consoleSide, coreBay, stationVec } from './layout'
 import { setAnchorObject, setAnchorOpacity, useSceneHover } from './anchors'
-import { buildCharacter, characterRole, useRobotStyle, type Character } from './characters'
+import { buildCharacter, characterRole, useAgentSkin, type Character } from './characters'
 
 /** Tamaño de los robots respecto a su modelo. */
 const ROBOT_SCALE = 1.3
@@ -69,16 +69,19 @@ export function Robot({ agent, station, stations, leaving }: Props) {
 
   const avatar = avatarFor(agent)
   const avatarKey = JSON.stringify(avatar)
-  const model = useMemo(() => palette.world === 'kywai' ? buildHomeRobot(avatar, agent.color, `${agent.name} ${agent.id}`) : buildRobot(avatar, agent.color), [avatarKey, agent.color, agent.name, agent.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Aspecto elegido en Ajustes → Agentes; no depende del tema. Con «Personajes», el robot clásico queda debajo (escondido)
+  // como base de los indicadores y del puntero, y se ve mientras carga el modelo o si el agente no tiene personaje.
+  const skin = useAgentSkin((s) => s.skin)
+  const ceramic = skin === 'refugio'
+  const model = useMemo(() => ceramic ? buildHomeRobot(avatar, agent.color, `${agent.name} ${agent.id}`) : buildRobot(avatar, agent.color), [avatarKey, agent.color, agent.name, agent.id, ceramic]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => model.dispose(), [model])
 
-  // Personaje 3D (Meshy) del agente, si tiene uno y no se eligieron los robots clásicos. Mientras carga se ve el robot de siempre.
-  const style = useRobotStyle((s) => s.style)
+  // Personaje 3D (Meshy) del agente, si tiene uno y el aspecto es «Personajes». Mientras carga se ve el robot de siempre.
   const role = agent.isSubagent ? undefined : characterRole(`${agent.name} ${agent.id}`)
   const [character, setCharacter] = useState<Character | null>(null)
   const hiddenParts = useRef<{ prev: Map<THREE.Object3D, boolean>; keep: Set<THREE.Object3D> } | null>(null)
   useEffect(() => {
-    if (style !== 'personajes' || !role) return
+    if (skin !== 'personajes' || !role) return
     let alive = true
     let built: Character | null = null
     buildCharacter(role)
@@ -95,7 +98,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
       built?.dispose()
       setCharacter(null)
     }
-  }, [style, role])
+  }, [skin, role])
   useEffect(() => {
     if (!character) return
     const c = character.root
@@ -312,9 +315,9 @@ export function Robot({ agent, station, stations, leaving }: Props) {
       character.update(dt, brain, t)
     }
 
-    model.bodyMat.emissiveIntensity = palette.world === 'kywai' ? .015 + brain.glow * .08 : 0.06 + brain.glow * 0.55 + h * 0.08
+    model.bodyMat.emissiveIntensity = ceramic ? .015 + brain.glow * .08 : 0.06 + brain.glow * 0.55 + h * 0.08
     if (model.logoMat) model.logoMat.opacity = 0.5 + brain.glow * 1.4 - brain.offlineAmt * 0.3
-    model.thrusterMat.opacity = palette.world === 'kywai' ? 0 : 0.18 + brain.glow * 1.1 - brain.restAmt * 0.12
+    model.thrusterMat.opacity = palette.world === 'kywai' || ceramic ? 0 : 0.18 + brain.glow * 1.1 - brain.restAmt * 0.12
 
     // Accesorios: movimiento secundario
     const w = Math.sin(t * 1.6 + brain.phase * 9)

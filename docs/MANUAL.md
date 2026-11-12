@@ -3812,8 +3812,12 @@ alrededor), explica y habla (al trabajar, se van alternando), celebra (tarea ter
 saluda (cuando le hablas) y camina (cuando se mueve a otra estación). Se reconocen por el nombre o el id del agente;
 los demás agentes y los becarios siguen siendo robots.
 
-Ajustes → General → «Personajes 3D» (por dispositivo) vuelve a los robots clásicos, que gastan menos. Mientras carga
-el modelo se ve el robot de siempre. Con personaje, los disfraces de Navidad y Halloween no se ponen.
+Ajustes → Agentes → «Aspecto de los agentes» elige la skin de todos los agentes: **Personajes** (por defecto),
+**Clásico** (los robots de siempre, que gastan menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de
+ese tema). Se guarda en el dispositivo (`aicowork.agentes.skin`) y no cambia con el tema: antes el Refugio Kywai ponía
+sus robots y los demás temas los clásicos. Mientras carga el modelo se ve el robot clásico, y los agentes sin personaje
+también. Con personaje, los disfraces de Navidad y Halloween no se ponen. Para añadir otra skin: su id en `SKINS` y
+`AgentSkin` (`scene/characters.ts`), su nombre en `skinText` (`SettingsDialog.tsx`) y cómo se construye en `Robot.tsx`.
 
 Archivos: `src/renderer/src/assets/personajes/` (un .glb por personaje y las animaciones en `anim/`),
 `scene/characters.ts` (carga, elección del movimiento y mezcla) y `Robot.tsx` (esconde el robot y pone el personaje;

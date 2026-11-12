@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { characterRole, pickClip } from './characters'
+import { characterRole, parseSkin, pickClip } from './characters'
 
 const base = { visual: 'idle' as const, speed: 0, checkAmt: 0, questionAmt: 0, eyeError: 0, ackAmt: 0, t: 0 }
 
@@ -21,5 +21,12 @@ describe('personajes 3D', () => {
     expect(pickClip({ ...base, ackAmt: 0.5 })).toBe('saluda')
     // Caminar manda sobre todo lo demás.
     expect(pickClip({ ...base, speed: 2, visual: 'error' })).toBe('camina')
+  })
+
+  it('recuerda el aspecto elegido', () => {
+    expect(parseSkin('refugio')).toBe('refugio')
+    expect(parseSkin('clasico')).toBe('clasico')
+    expect(parseSkin(null)).toBe('personajes')
+    expect(parseSkin('otro')).toBe('personajes')
   })
 })

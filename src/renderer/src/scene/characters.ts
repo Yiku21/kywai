@@ -25,28 +25,38 @@ import caminaGlb from '@/assets/personajes/anim/camina.glb?url'
 // Personajes 3D de los agentes (modelos hechos con Meshy a partir de los dibujos del equipo de kywai).
 // Todos comparten el mismo esqueleto, así que las animaciones se cargan una vez y sirven para los nueve.
 
-/** Cómo se ven los agentes en el espacio 3D (por dispositivo). */
-export type RobotStyle = 'personajes' | 'clasicos'
+/**
+ * Aspecto (skin) de los agentes en el espacio 3D, por dispositivo y sin depender del tema.
+ * Para añadir uno: su id aquí y en SKINS, su nombre en SettingsDialog (skinText) y cómo se construye en Robot.tsx.
+ */
+export type AgentSkin = 'personajes' | 'clasico' | 'refugio'
 
-const KEY = 'aicowork.robots.estilo'
+/** Skins en el orden del selector de Ajustes → Agentes (sus textos están en SettingsDialog). */
+export const SKINS: AgentSkin[] = ['personajes', 'clasico', 'refugio']
 
-function readStyle(): RobotStyle {
+const KEY = 'aicowork.agentes.skin'
+
+export function parseSkin(v: string | null): AgentSkin {
+  return v && (SKINS as string[]).includes(v) ? (v as AgentSkin) : 'personajes'
+}
+
+function readSkin(): AgentSkin {
   try {
-    return localStorage.getItem(KEY) === 'clasicos' ? 'clasicos' : 'personajes'
+    return parseSkin(localStorage.getItem(KEY))
   } catch {
     return 'personajes'
   }
 }
 
-export const useRobotStyle = create<{ style: RobotStyle; setStyle(s: RobotStyle): void }>((set) => ({
-  style: readStyle(),
-  setStyle(style) {
+export const useAgentSkin = create<{ skin: AgentSkin; setSkin(s: AgentSkin): void }>((set) => ({
+  skin: readSkin(),
+  setSkin(skin) {
     try {
-      localStorage.setItem(KEY, style)
+      localStorage.setItem(KEY, skin)
     } catch {
       /* sin almacenamiento: vale para esta sesión */
     }
-    set({ style })
+    set({ skin })
   }
 }))
 
