@@ -966,7 +966,7 @@ function VideoSection() {
               : t('Sintetizados por kywai: «Instalar lo que falta» instala earshot para tener efectos reales')
         },
         {
-          label: t('Estilos de película (74, con muestras al escribir «/video»)'),
+          label: t('Estilos de película (75, con muestras al escribir «/video»)'),
           ok: !!status.films?.library && !!status.films?.painted,
           detail:
             status.films?.library && status.films?.painted

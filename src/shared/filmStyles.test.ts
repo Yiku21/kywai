@@ -3,8 +3,8 @@ import { FILM_CATEGORIES, FILM_STYLES, findFilmStyle, isVideoCommand, KYWAI_FILM
 
 describe('catálogo de estilos de película', () => {
   it('tiene los 66 de la biblioteca, el de los robots y los 6 propios de kywai, sin repetir', () => {
-    expect(FILM_STYLES).toHaveLength(74)
-    expect(new Set(FILM_STYLES.map((s) => s.slug)).size).toBe(74)
+    expect(FILM_STYLES).toHaveLength(75)
+    expect(new Set(FILM_STYLES.map((s) => s.slug)).size).toBe(75)
     expect(FILM_STYLES[0].slug).toBe(KYWAI_FILM)
     for (const s of FILM_STYLES) {
       expect(FILM_CATEGORIES.some((c) => c.id === s.category)).toBe(true)
@@ -24,6 +24,8 @@ describe('catálogo de estilos de película', () => {
     expect(takeFilmStyle('estilo papel recortado los 5 mejores conectores')).toMatchObject({ style: { slug: 'kywai-paper-diorama' }, rest: 'los 5 mejores conectores' })
     expect(takeFilmStyle('estilo papel recortado rojo el año nuevo')).toMatchObject({ style: { slug: 'papercut-red' }, rest: 'el año nuevo' })
     expect(findFilmStyle('cartulina')?.slug).toBe('kywai-paper-diorama')
+    expect(takeFilmStyle('estilo lista de comprobación 5 cosas antes de publicar')).toMatchObject({ style: { slug: 'kywai-checklist' }, rest: '5 cosas antes de publicar' })
+    expect(findFilmStyle('checklist')?.slug).toBe('kywai-checklist')
   })
 
   it('separa el estilo del tema', () => {

@@ -2912,7 +2912,7 @@ export const zh: Record<string, string> = {
   "Efectos reales de earshot ({n}), hechos en este equipo": "来自 earshot 的真实音效（{n} 个），在本机生成",
   "{n} sonidos libres (CC0) de Openverse; «Instalar lo que falta» instala earshot para tener más": "{n} 个来自 Openverse 的免费（CC0）音效；「安装缺少的部分」会安装 earshot 以获得更多",
   "Sintetizados por kywai: «Instalar lo que falta» instala earshot para tener efectos reales": "由 kywai 合成：「安装缺少的部分」会安装 earshot 以获得真实音效",
-  "Estilos de película (74, con muestras al escribir «/video»)": "电影风格（74 种，输入「/video」时显示示例）",
+  "Estilos de película (75, con muestras al escribir «/video»)": "电影风格（75 种，输入「/video」时显示示例）",
   "Estilo de kywai": "kywai 风格",
   "Sacando fotogramas del vídeo de referencia": "正在从参考视频中提取画面",
   "Tus personajes fijos están en la carpeta «personajes» del proyecto: saldrán iguales en los próximos vídeos (para cambiarlos, cambia esas imágenes o su descripción en personajes.md).": "你的固定角色在项目的「personajes」文件夹中：之后的视频里他们会保持一致（要更改，请替换这些图片或修改 personajes.md 中的描述）。",

@@ -2078,7 +2078,7 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **Con el selector de cuatro pasos** (escritorio, web y Órbita): al escribir `/video` se abre encima del cuadro un panel con
   **1. Tipo de vídeo** (rápido con texto animado, dibujos con presentador o mixto), **2. Personaje** (ninguno, los
   robots de kywai, los que hayas creado o «Agregar personaje»), **3. Estilo de animación** (el de kywai, rápido, o
-  uno de los 74 estilos de película con su muestra) y **4. Voz** (automática o una concreta, con ▶ para oírla).
+  uno de los 75 estilos de película con su muestra) y **4. Voz** (automática o una concreta, con ▶ para oírla).
   Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
@@ -2306,9 +2306,9 @@ que Órbita reduce antes de enviarlas. Las marcas se leen y se escriben como en 
 `src/shared/videoChoice.ts`: si cambian allí, cambian también aquí). Con un ordenador sin esta versión, `/video` sigue
 funcionando escribiendo las marcas a mano.
 
-**Estilos de película (74, con muestra).** En el paso 3 del selector, una tarjeta con **una muestra de cada estilo**
+**Estilos de película (75, con muestra).** En el paso 3 del selector, una tarjeta con **una muestra de cada estilo**
 (un fotograma de su película de ejemplo), por categorías y con buscador: **Pintado a mano (acuarela y tinta)** y los
-**7 estilos propios de kywai** (ver más abajo) y los **66 estilos de la biblioteca Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
+**8 estilos propios de kywai** (ver más abajo) y los **66 estilos de la biblioteca Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
 80, Pixel RPG, HD-2D, diseño suizo, plano técnico, infografía isométrica, risografía, xilografía, ukiyo-e, teatro de
 sombras, piezas de construcción, maqueta en miniatura, cine mudo, noticiario de época… Elegir uno pone
 `estilo:<carpeta>` detrás de `/video` (p. ej. `/video estilo:watercolor el ciclo del agua`); también vale escribirlo
@@ -2356,13 +2356,13 @@ Hermes, Claude, Codex u otro con sus colores, y `kywaiSpark()`, la chispa de una
 usarlos. El agente copia el kit a la carpeta de la película y trabaja en la copia. Con otro personaje, el agente lo
 dibuja con las técnicas del kit; con «Ninguno», inventa los que pida la historia. Sin tarjeta gráfica renderiza lento.
 
-**Estilos propios de kywai (7).** Garabatos de tinta, Garabatos en primera persona, Oficina en plano, Siluetas de
-neón, Cristales 3D adorables, Tiempo profundo y **Papel recortado** (inspirados en lo que se ve en vídeos de estilos de animación con IA,
+**Estilos propios de kywai (8).** Garabatos de tinta, Garabatos en primera persona, Oficina en plano, Siluetas de
+neón, Cristales 3D adorables, Tiempo profundo, **Papel recortado** y **Lista de comprobación** (inspirados en lo que se ve en vídeos de estilos de animación con IA,
 escritos por kywai sin prompts ni código de nadie; en el selector llevan la etiqueta «Estilo de kywai»). Cada uno
 tiene su guía en `src/main/kywaiFilmGuides.ts`, con los mismos apartados que una guía de la biblioteca (esencia,
 materiales, color, letra, movimiento, cámara, sonido, jugadas propias, errores, motor y variaciones), y en el catálogo
 (`base` en `src/shared/filmStyles.ts`) el estilo de la biblioteca cuyo motor usa (pizarra blanca, años 50, créditos de
-espías, producto de cristal, isla low-poly o concurso de la tele). Al empezar la película, kywai deja la guía en su carpeta
+espías, producto de cristal, isla low-poly, concurso de la tele o diseño suizo). Al empezar la película, kywai deja la guía en su carpeta
 (`ESTILO-kywai.md`) y el agente trabaja como con un estilo propio del usuario de Lemo-Opuscar (`MY-STYLES.md`): baja
 el código del estilo base con `setup.sh demo <base>` y manda la guía de kywai. Sus muestras son fotogramas hechos por
 kywai. Para añadir otro: su entrada con `base` en el catálogo, su guía, su alias y su muestra de 320×180.
@@ -2373,6 +2373,12 @@ escena, un contador grande en una tarjeta, el titular en un banderín de papel y
 etiquetas de papel, de una en una. Va muy bien para listas y «top 5» («1/5 … 5/5», cada uno en su escenario). Usa el
 motor del «Concurso de la tele» (`game-show`). También se pide con «estilo papel recortado», «cartulina» o
 «papercraft»; «papel recortado rojo» sigue siendo el de la biblioteca.
+
+**Lista de comprobación** (`kywai-checklist`, desde el 12 de noviembre de 2026) es una tarjeta con una lista que se
+llena mientras habla: cada punto entra con su casilla vacía, un trazo de rotulador la marca con un «pop» y un «ding»,
+una barra de progreso sube («3/5») y al lado hay un dibujo o una captura de cada punto. Lo que no hay que hacer se
+tacha con una X roja. Va muy bien para «5 cosas que revisar antes de…», pasos y «haz / no hagas». Usa el motor del
+«Diseño suizo animado» (`swiss-motion`). También se pide con «estilo lista», «checklist» o «lista de tareas».
 
 **Instalación.** «Instalar lo que falta» (Ajustes → Extensiones → Estudio de vídeo, fila «Estilos de película») o, si
 no, el primer vídeo con estilo, descarga con git a `estudio-video/lemo-opuscar` una **versión fija** de la biblioteca

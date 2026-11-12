@@ -239,7 +239,7 @@ Detalhes e exemplo de mod no [manual](docs/MANUAL.md#extensiones-tus-servidores-
 Digite **`/video`** e o assunto (ou toque em **“Criar vídeo disto”** abaixo de qualquer resposta) e você recebe **só o MP4 pronto**, tocando no chat. Sem plano para aprovar nem arquivos soltos. Tudo roda no seu computador.
 
 - **Escolha em quatro passos:** tipo (texto animado, desenho com apresentador ou misto), personagem (nenhum, os robôs do kywai ou um seu, reutilizável), estilo e voz, cada um com amostra. Depois escreva o tema. Vertical para TikTok, Reels ou Shorts com “vertical” ou “para TikTok”.
-- **74 estilos de filme** com amostra: aquarela, Pixel RPG, desenho dos anos 30, ukiyo-e, diorama de papel recortado, seis estilos próprios do kywai e mais. Anexe um reel ou suas imagens e ele copia o visual.
+- **75 estilos de filme** com amostra: aquarela, Pixel RPG, desenho dos anos 30, ukiyo-e, diorama de papel recortado, oito estilos próprios do kywai, uma checklist que se marca sozinha e mais. Anexe um reel ou suas imagens e ele copia o visual.
 - **Voz, música e som de verdade.** Vozes naturais para ouvir antes (Kokoro, Edge, Gemini ou Voicebox), e a voz escolhida define o idioma do vídeo. Música própria que abaixa quando a voz fala e efeitos sonoros reais (whoosh, pop, impactos) com licenças livres.
 - **Imagens que se mexem.** Imagens com o **ComfyUI** no seu próprio computador, com Gemini de reserva, cenas 3D vivas, animações de fórmulas e diagramas com **Manim** e um gancho nos dois primeiros segundos.
 - **Séries e lotes.** **`/serie`** faz episódios com os mesmos personagens, cada um terminando numa pergunta A/B para o público; “`/serie` próximo, B venceu” continua. “Faça 3 vídeos sobre…” cria vários de uma vez, de ângulos diferentes.

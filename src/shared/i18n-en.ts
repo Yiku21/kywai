@@ -3048,7 +3048,7 @@ export const en: Record<string, string> = {
   "Efectos reales de earshot ({n}), hechos en este equipo": "Real effects from earshot ({n}), made on this computer",
   "{n} sonidos libres (CC0) de Openverse; «Instalar lo que falta» instala earshot para tener más": "{n} free (CC0) sounds from Openverse; “Install what's missing” installs earshot for more",
   "Sintetizados por kywai: «Instalar lo que falta» instala earshot para tener efectos reales": "Synthesized by kywai: “Install what's missing” installs earshot for real effects",
-  "Estilos de película (74, con muestras al escribir «/video»)": "Film styles (74, with samples when you type “/video”)",
+  "Estilos de película (75, con muestras al escribir «/video»)": "Film styles (75, with samples when you type “/video”)",
   "Estilo de kywai": "kywai style",
   "Sacando fotogramas del vídeo de referencia": "Taking frames from the reference video",
   "Tus personajes fijos están en la carpeta «personajes» del proyecto: saldrán iguales en los próximos vídeos (para cambiarlos, cambia esas imágenes o su descripción en personajes.md).": "Your recurring characters are in the project’s “personajes” folder: they will look the same in your next videos (to change them, change those images or their description in personajes.md).",

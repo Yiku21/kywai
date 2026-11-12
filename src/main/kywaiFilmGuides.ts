@@ -400,6 +400,79 @@ You decide the workplace (office, studio, remote homes, a school), the team, the
 `
   ].join('\n'),
 
+  'kywai-checklist': [
+    HEAD(
+      'Checklist',
+      'A clean checklist card that fills up while the narrator talks: each item slides in with an empty box, a marker stroke ticks it with a satisfying pop, a progress bar climbs "3/5", and a small illustration for the item lives beside the list.',
+      'pre-flight and packing checklists; to-do apps and onboarding progress bars; "before you post, check these 5 things" listicle reels that keep a running list on screen.'
+    ),
+    `## 1. Essence, and what it is not
+
+- **The list is the hero**: one card (paper, a clipboard sheet or a phone-like panel) that stays on screen for the whole film and gains one item per beat, so the viewer always sees how far along they are.
+- **Ticking is the reward**: every item ends with its box being ticked by a hand-drawn marker stroke that draws itself in 0.25–0.35 s, with a tiny pop and a ding. The ticked line dims slightly (or gets a highlighter swipe) and the next empty box waits below.
+- **A progress counter**: "2/5" or a bar under the title that fills with each tick, and completes with a small celebration at the end.
+- **One picture per item**: next to (horizontal) or above (vertical) the list, a simple flat illustration, icon scene or real screenshot that shows the current item, swapped on each item.
+- **Mistakes can be crossed**: a "don't" item is crossed out with a red X stroke instead of a tick.
+
+Not Swiss Motion Design (warmer, hand-drawn ticks, a physical card), not Ink Doodle (the list is typeset and tidy; only the ticks and crosses are hand-drawn), not Paper Craft Diorama (no stages, no mascot by default), not Dark Keynote (light and friendly, not a product launch).
+
+## 2. Materials & rendering
+
+- Canvas or SVG at 1920×1080 (or 1080×1920). Background: a soft desk colour or a gentle two-tone gradient with faint grain (3–5 %); the card sits on it with a soft shadow (offset 0 18 px, blur 40 px, 18 % opacity).
+- **The card**: rounded corners (24–32 px), off-white (#fbfaf7 example), an optional clipboard clip or a binder edge at the top; a title row with the counter, then the rows.
+- **Rows**: an empty rounded-square checkbox (stroke 4–5 px, 44–56 px) and the item text; 1.5× line spacing, a hairline divider between rows.
+- **Ticks and crosses** are marker strokes: a polyline with a slight wobble, round caps, 9–12 px, drawn with stroke-dashoffset from start to end; a small ink blot at the start. Ticks in the accent colour, crosses in red.
+- **Highlighter**: a translucent band (accent at 30 %, multiply) swiped behind the key words of the current item.
+- The illustration panel: rounded rectangle, flat shapes or a real screenshot with a 2 px border; it crossfades or flips per item.
+- \`render(t)\` is a pure function of \`t\` (same frame for the same time).
+
+## 3. Colour logic
+
+Calm neutrals (warm white card, a soft desk colour) plus **one accent** for ticks, the progress bar and the highlighter (green, teal or the brand colour), red only for crossed "don't" items. Text in near-black (#1c1c22), done items at 55 % opacity. The illustration panel may use 2–3 muted colours that match the accent.
+
+## 4. Type & subtitles
+
+- Title: bold geometric or rounded sans (licence-free, e.g. Inter, Manrope, Nunito), 56–80 px; counter in tabular numbers on a pill.
+- Items: the same family, semibold, 40–56 px, max 6 words per item; the item being spoken is fully opaque, the upcoming boxes are empty and their text appears only when they are reached.
+- Subtitles: a small rounded caption pill at the bottom (dark at 85 %, white text, ≤ 38 characters per line), word-synchronised highlight in the accent colour; keep it off the card.
+
+## 5. Motion quality
+
+On ones, crisp and quick. Items slide in from the right (or rise from below in vertical) 30–40 px with a short ease-out and a 120 ms fade. The tick lands on the word that completes the item, with a 1.12× pop of the box and a ripple. The progress bar eases to its new length in 300 ms. Idle life: the current box breathes very slightly, the illustration has a slow parallax, a cursor or pen hovers near the next box.
+
+## 6. Camera grammar
+
+| Move | What it expresses | Can serve |
+|---|---|---|
+| Locked on the whole card | here is the list | the intro; a recap |
+| Gentle push onto the current row | this item now | each item; a key detail |
+| Slide to the illustration panel | see what it means | an example; a before/after |
+| Pull back to show the full, ticked list | done | the ending; "save this" |
+| Card flip to a second card | the next list | part 2; "and the bonus" |
+
+Keep the bottom 14 % for subtitles. Transitions: card flip, a page tear-off from the pad, or a quick slide.
+
+## 7. Sound palette
+
+A soft marker squeak on every tick, a pop and a bright ding when the box fills, a lower "nope" thud on a red cross, a paper slide when an item enters, a small chime and confetti whoosh when the list completes. Use the real effects bank (efectos/) before synthesizing. Music: light upbeat lo-fi or a clean pop beat under the voice. Clear, friendly, slightly brisk voice. −14 LUFS.
+
+## 8. Native moves
+
+- **Tick and dim.** The box ticks, the line dims and the next empty box waits. *Fits content like:* each step; a rule; a requirement.
+- **Red cross.** A "don't" item gets crossed out and shakes. *Fits content like:* a common mistake; a myth; what to avoid.
+- **The missing box.** At the end one box is still empty: the viewer's turn. *Fits content like:* a call to action; a question; "comment the one you skip".
+- **Full bar.** The progress bar completes, the card gets a stamp ("LISTO" / "DONE"). *Fits content like:* the ending; the result.
+
+## 9. Pitfalls of the medium
+
+- Too much text in a row: one short line per item; details go in the voice or the illustration. - All items visible from the start: reveal one at a time. - A tick that just appears: it must draw itself. - A static card for seconds: push, highlight or swap the illustration on every beat. - Third-party logos or app icons in the illustrations: draw simple symbols instead.
+`,
+    ENGINE('swiss-motion', "its grid, its typographic timing, its single-accent colour rules and its sound-event helpers; build the card, the rows, the marker ticks (stroke-dashoffset), the progress bar and the illustration panel on top, warmer and softer than the Swiss look."),
+    `## 11. Variation space
+
+You decide the card (notepad, clipboard, phone panel), the accent colour, the illustrations, the number of items (3 to 7), the opening and the ending. Structures: a do/don't list (ticks and crosses); a step-by-step routine; "5 things to check before …"; a packing list where items fly into a bag. Openings: an empty card with the title being written; a messy desk tidied into the card; the counter at 0/5. Endings: the full card stamped; one empty box left for the viewer; the card folded into a paper plane.
+`
+  ].join('\n'),
   'kywai-paper-diorama': [
     HEAD(
       'Paper Craft Diorama',

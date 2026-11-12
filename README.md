@@ -239,7 +239,7 @@ Details and a sample mod in the [manual](docs/MANUAL.md#extensiones-tus-servidor
 Type **`/video`** and what it is about (or press **“Make a video of this”** under any answer) and you get **only the finished MP4**, playing in the chat. No plan to approve, no loose files. Everything runs on your computer.
 
 - **Pick it in four steps:** type (animated text, cartoon with a presenter or mixed), character (none, kywai’s robots or your own, reused across videos), style and voice, each with a preview. Then write the topic. Vertical for TikTok, Reels or Shorts with “vertical” or “for TikTok”.
-- **74 film styles** with a sample of each: watercolor, Pixel RPG, 1930s cartoon, ukiyo-e, cut-paper diorama, six styles made by kywai and more. Attach a reel or your own images and it copies their look.
+- **75 film styles** with a sample of each: watercolor, Pixel RPG, 1930s cartoon, ukiyo-e, cut-paper diorama, eight styles made by kywai, a checklist that ticks itself and more. Attach a reel or your own images and it copies their look.
 - **Voice, music and real sound.** Natural voices you can preview (Kokoro, Edge, Gemini or Voicebox), and the voice you choose sets the video’s language. Original music that ducks under the voice, and real sound effects (whooshes, pops, impacts) with free licenses.
 - **Images that move.** Images from **ComfyUI** on your own computer, with Gemini as a backup, live 3D scenes, formula and diagram animations with **Manim**, and a hook in the first two seconds.
 - **Series and batches.** **`/serie`** makes episodes with the same characters, each ending on an A/B question for your audience; “`/serie` next, B won” continues. “Make me 3 videos about…” creates several at once from different angles.
