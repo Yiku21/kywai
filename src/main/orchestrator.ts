@@ -90,13 +90,13 @@ import { cleanAnswers, extractQuestions, formatAnswers, QUESTIONS_RULE } from '@
 import { scriptFileOf, scriptSource } from './videoScriptFile'
 import { parseVideoRequest, parseVideoScript, synthMusic, videoScriptPrompt, videoSlug, type VideoFormat, type VideoScript, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
-import { videoLang, type VideoKind, type VideoStructure } from '../shared/videoChoice'
-import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
+import { ROBOTS_CHARACTER, videoLang, type VideoKind, type VideoStructure } from '../shared/videoChoice'
+import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, speakLine, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
-import { applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, markedNarration, parseDubRequest, rawScript, type DubRequest } from './dub'
+import { DUB_LANGUAGES, applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, markedNarration, parseDubRequest, rawScript, type DubRequest } from './dub'
 import { THUMB_FRAMES, parseThumbnailPlan, parseThumbnailRequest, renderThumbnails, thumbFrames, thumbnailPrompt, type ThumbRequest } from './thumbnail'
-import { demoPrompt, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoRequest } from './webDemo'
+import { PRESENTER_ROBOTS, demoPrompt, fetchRepoFacts, fitToVoice, githubRepo, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoPresenter, type DemoRequest, type RepoFacts } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
 import { isMediaFile, learnPrompt, parseLearnedSkill, parseLearnRequest, prepareLearnSource, saveLearnedSkill, type LearnRequest } from './learn'
 import { BEATS_FILE, FILM_3D, filmPrompt, filmReady, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
@@ -3034,12 +3034,13 @@ async function sendDemo(
   if (!agent) throw new Error(tr('No hay ningún agente disponible para hacer ese vídeo.'))
   const run = openSingleRun(st, shown, atts, clientMessageId, routine)
   const host = new URL(req.url).host.replace(/^www\./, '')
+  const repo = githubRepo(req.url)
   const t: Task = {
     id: randomUUID(),
     projectId,
     runId: run.id,
     seq: nextTaskSeq(projectId),
-    title: tr('Vídeo de presentación de {host}', { host }),
+    title: repo ? tr('Vídeo del repositorio {name}', { name: `${repo.owner}/${repo.repo}` }) : tr('Vídeo de presentación de {host}', { host }),
     description: req.note || tr('Un anuncio corto de la web con fotos reales de la página'),
     agentId: agent.id,
     dependsOn: [],
@@ -3048,12 +3049,19 @@ async function sendDemo(
     createdAt: Date.now(),
     artifactIds: [],
     deliverable: 'file',
-    demo: { url: req.url, format: req.format, note: req.note, work: `.ai-cowork/demo/${Date.now().toString(36)}` }
+    demo: {
+      url: req.url,
+      format: req.format,
+      note: req.note,
+      work: `.ai-cowork/demo/${Date.now().toString(36)}`,
+      ...(req.presenter ? { presenter: req.presenter } : {}),
+      ...(req.voice ? { voice: req.voice } : {})
+    }
   }
   return startSingleRun(st, run, t, shown)
 }
 
-type DemoPage = { desktop: PageCapture; mobile: PageCapture | null }
+type DemoPage = { desktop: PageCapture; mobile: PageCapture | null; repo?: RepoFacts | null }
 
 /** Fotografía la web de «/demo» entera, en ordenador y en móvil (una vez). */
 async function prepareDemo(run: Run, t: Task): Promise<void> {
@@ -3068,7 +3076,10 @@ async function prepareDemo(run: Run, t: Task): Promise<void> {
   t.lastActivity = tr('Fotografiando la web en el móvil')
   taskDirty(t)
   const mobile = await capturePage(d.url, join(dir, 'movil.png'), { mobile: true })
-  writeFileSync(join(dir, 'pagina.json'), JSON.stringify({ desktop, mobile } satisfies DemoPage, null, 2), 'utf8')
+  // Un repositorio de GitHub: sus datos reales (estrellas, licencia…) para el guion y la ficha «repo».
+  const gh = githubRepo(d.url)
+  const repo = gh ? await fetchRepoFacts(gh) : null
+  writeFileSync(join(dir, 'pagina.json'), JSON.stringify({ desktop, mobile, repo } satisfies DemoPage, null, 2), 'utf8')
   d.mobile = !!mobile
   d.ready = true
   pushTask(t)
@@ -3093,7 +3104,7 @@ async function completeDemo(run: Run, t: Task, exec: AgentConfig, parent: AgentC
   }
   let plan
   try {
-    plan = parseDemoPlan(res.text, page.desktop.sections.length, !!page.mobile)
+    plan = parseDemoPlan(res.text, page.desktop.sections.length, !!page.mobile, { presenter: !!d.presenter, repo: !!page.repo })
   } catch (e) {
     handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('El guion de planos no valía: {message}', { message: (e as Error).message }) })
     return
@@ -3101,8 +3112,9 @@ async function completeDemo(run: Run, t: Task, exec: AgentConfig, parent: AgentC
   settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Montando el vídeo'), context: undefined })
   const out = join(root, twoHandsBase(run.projectId), 'videos', `${videoSlug(plan.title) || 'demo'}-demo${d.format === 'vertical' ? '-vertical' : ''}.mp4`)
   try {
+    const presenter = d.presenter ? await demoVoices(run, t, plan) : null
     const secs = await renderDemo({
-      plan, desktop: page.desktop, mobile: page.mobile, format: d.format, url: d.url, music: synthMusic(planSeconds(plan), plan.title), out,
+      plan, presenter, repo: page.repo ?? null, desktop: page.desktop, mobile: page.mobile, format: d.format, url: d.url, music: synthMusic(planSeconds(plan), plan.title), out,
       dir: join(root, d.work, 'montaje'), htmlToPng, signal: run.controllers.get(t.id)?.signal,
       onStep: (text, p) => {
         t.lastActivity = tr(text)
@@ -3114,7 +3126,8 @@ async function completeDemo(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     if (rel) meta.touched.add(rel)
     const text = [
       tr('Aquí tienes «{title}»: {n} planos, {secs} s, hecho con fotos reales de {url}.', { title: plan.title, n: plan.shots.length, secs: Math.round(secs), url: d.url }),
-      plan.shots.map((s, k) => `${k + 1}. ${s.ficha}${s.text ? `: «${s.text}»` : ''}`).join('\n'),
+      ...(presenter ? [tr('Lo presenta {name}, con su voz y subtítulos palabra a palabra.', { name: demoPresenterInfo(d.presenter).name })] : []),
+      plan.shots.map((s, k) => `${k + 1}. ${s.ficha}${s.text ? `: «${s.text}»` : ''}${s.say ? ` — ${s.say}` : ''}`).join('\n'),
       tr('Para publicarlo, adjúntalo a «/instagram» o «/tiktok».')
     ].join('\n\n')
     await completeTask(run, t, exec, parent, { ...res, text })
@@ -3126,6 +3139,57 @@ async function completeDemo(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     pushTask(t)
     closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
   }
+}
+
+/**
+ * Quién presenta un «/demo»: un robot de kywai (su dibujo, recortado) o un personaje tuyo de la biblioteca de
+ * «/video» (su primera imagen, en un círculo). Si no existe, Hermes.
+ */
+function demoPresenterInfo(id: string | undefined): { name: string; image: string | null; cutout: boolean } {
+  const key = (id ?? '').toLowerCase()
+  const robot = (PRESENTER_ROBOTS as readonly string[]).includes(key) ? key : null
+  if (!robot) {
+    const own = videoCharacter(id)
+    if (own && !own.builtin && own.images[0]) return { name: own.name, image: own.images[0], cutout: false }
+  }
+  const name = robot ?? PRESENTER_ROBOTS[0]
+  const image = videoCharacter(ROBOTS_CHARACTER)?.images.find((f) => basename(f).toLowerCase().startsWith(name)) ?? null
+  return { name: name[0].toUpperCase() + name.slice(1), image, cutout: true }
+}
+
+/**
+ * «/demo» con presentador: la voz de cada frase del guion (una a una, para que cada plano dure lo que su frase) y la
+ * imagen de quien presenta. Si no hay imagen o no sale ninguna voz, el vídeo se hace sin presentador.
+ */
+async function demoVoices(run: Run, t: Task, plan: { shots: { say?: string; secs?: number; ficha: Parameters<typeof fitToVoice>[0]['ficha'] }[] }): Promise<DemoPresenter | null> {
+  const d = t.demo!
+  const who = demoPresenterInfo(d.presenter)
+  if (!who.image) return null
+  const dir = join(store.workRoot(run.projectId), d.work, 'voz')
+  mkdirSync(dir, { recursive: true })
+  const language = videoLang(d.voice, d.note, lang())
+  const signal = run.controllers.get(t.id)?.signal
+  const voices: DemoPresenter['voices'] = []
+  for (const [k, shot] of plan.shots.entries()) {
+    if (signal?.aborted) throw new Error(tr('Cancelada'))
+    t.lastActivity = tr('Grabando la voz de {name} ({n} de {total})', { name: who.name, n: k + 1, total: plan.shots.length })
+    t.progress = 0.05 * (k / plan.shots.length)
+    taskDirty(t)
+    if (!shot.say) {
+      voices.push(null)
+      continue
+    }
+    const file = join(dir, `frase-${k}.wav`)
+    try {
+      const secs = await speakLine(shot.say, language, file, d.voice, signal)
+      shot.secs = fitToVoice(shot as Parameters<typeof fitToVoice>[0], secs)
+      voices.push({ file, secs })
+    } catch (e) {
+      console.warn('[cowork] no salió la voz de una frase del presentador', (e as Error).message)
+      voices.push(null)
+    }
+  }
+  return voices.some(Boolean) ? { image: who.image, cutout: who.cutout, voices } : null
 }
 
 /** El mensaje del usuario y la ejecución de una orden que es una sola tarea («/editar», «/demo»…). */
@@ -5169,7 +5233,17 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       /* se vuelve a preparar si falta */
     }
     if (page)
-      return demoPrompt({ url: t.demo.url, note: t.demo.note, format: t.demo.format, page: page.desktop, desktop: page.desktop.file, ...(page.mobile ? { mobile: page.mobile.file } : {}), lang: userLanguageName() })
+      return demoPrompt({
+        url: t.demo.url,
+        note: t.demo.note,
+        format: t.demo.format,
+        page: page.desktop,
+        desktop: page.desktop.file,
+        ...(page.mobile ? { mobile: page.mobile.file } : {}),
+        lang: DUB_LANGUAGES.find((l) => l.code === videoLang(t.demo!.voice, t.demo!.note, lang()))?.name ?? userLanguageName(),
+        ...(t.demo.presenter ? { presenter: demoPresenterInfo(t.demo.presenter).name } : {}),
+        repo: page.repo ?? null
+      })
   }
   if (t.footage?.ready) {
     const f = t.footage

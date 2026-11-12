@@ -6,7 +6,13 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
-const env = vi.hoisted(() => ({ root: '', reply: '', shots: [] as string[], renders: [] as { out: string; format: string; shots: string[]; mobile: boolean }[] }))
+const env = vi.hoisted(() => ({
+  root: '',
+  reply: '',
+  shots: [] as string[],
+  said: [] as { text: string; lang: string; voice?: string | null }[],
+  renders: [] as { out: string; format: string; shots: string[]; mobile: boolean; secs: (number | undefined)[]; presenter: { image: string; cutout: boolean; voices: number } | null; repo: string | null; label?: string }[]
+}))
 vi.mock('electron', () => ({ app: { isPackaged: false, getAppPath: () => env.root, getPath: () => env.root } }))
 vi.mock('./quota', () => ({ freshQuotaSnapshot: async () => ({}), latestQuotas: () => [], refreshQuotas: async () => [], recordUsage: () => {}, setClaudeRateLimit: () => {} }))
 vi.mock('./htmlShot', () => ({
@@ -22,12 +28,47 @@ vi.mock('./webDemo', async (orig) => {
   const real = await orig<typeof import('./webDemo')>()
   return {
     ...real,
-    renderDemo: async (input: { out: string; format: string; plan: { shots: { ficha: string }[] }; mobile: unknown }) => {
+    fetchRepoFacts: async (r: { owner: string; repo: string }) => real.parseRepoFacts({ full_name: `${r.owner}/${r.repo}`, stargazers_count: 3812, license: { spdx_id: 'MIT' } }),
+    renderDemo: async (input: {
+      out: string
+      format: string
+      plan: { label?: string; shots: { ficha: string; secs?: number }[] }
+      mobile: unknown
+      presenter?: { image: string; cutout: boolean; voices: unknown[] } | null
+      repo?: { name: string } | null
+    }) => {
       mkdirSync(dirname(input.out), { recursive: true })
       writeFileSync(input.out, 'mp4')
-      env.renders.push({ out: input.out, format: input.format, shots: input.plan.shots.map((s) => s.ficha), mobile: !!input.mobile })
+      env.renders.push({
+        out: input.out,
+        format: input.format,
+        shots: input.plan.shots.map((s) => s.ficha),
+        mobile: !!input.mobile,
+        secs: input.plan.shots.map((s) => s.secs),
+        presenter: input.presenter ? { image: input.presenter.image, cutout: input.presenter.cutout, voices: input.presenter.voices.filter(Boolean).length } : null,
+        repo: input.repo?.name ?? null,
+        label: input.plan.label
+      })
       return 21
     }
+  }
+})
+vi.mock('./videoStudio', async (orig) => {
+  const real = await orig<typeof import('./videoStudio')>()
+  return {
+    ...real,
+    speakLine: async (text: string, lang: string, wav: string, voice?: string | null) => {
+      env.said.push({ text, lang, voice })
+      writeFileSync(wav, 'wav')
+      return text.split(' ').length * 0.4
+    }
+  }
+})
+vi.mock('./videoCharacters', async (orig) => {
+  const real = await orig<typeof import('./videoCharacters')>()
+  return {
+    ...real,
+    videoCharacter: (id: string) => (id === 'robots-kywai' ? { id, name: 'robots', images: ['/r/hermes.png', '/r/claude.png', '/r/codex.png'], builtin: true } : null)
   }
 })
 
@@ -87,6 +128,33 @@ describe('/demo', () => {
     expect(r.out).toMatch(/videos[\\/]kywai-en-20-segundos-demo-vertical\.mp4$/)
     expect(existsSync(r.out)).toBe(true)
     expect(lastText()).toContain('«kywai en 20 segundos»: 4 planos, 21 s')
+  })
+
+  it('un repositorio de GitHub: sus datos al guion, Claude presenta con su voz y cada plano dura lo que su frase', async () => {
+    env.reply = JSON.stringify({
+      title: 'Repo del día',
+      label: 'Repo de GitHub',
+      shots: [
+        { ficha: 'portada', text: 'IA en tu PC', say: 'Este repositorio te monta un estudio de IA en tu ordenador.' },
+        { ficha: 'repo', say: 'Ya va por casi cuatro mil estrellas.' },
+        { ficha: 'recorrido', from: 0, to: 1, say: 'Chat, imágenes y vídeo, todo junto.' },
+        { ficha: 'cierre', text: 'Pruébalo', say: 'Guárdalo.' }
+      ]
+    })
+    env.said = []
+    await sendMessage({ projectId, text: '/demo https://github.com/a/estudio vertical presentador:claude', filePaths: [] })
+    await until(() => activeRunsFor(projectId).length === 0 && env.renders.at(-1)?.repo === 'a/estudio')
+    expect(prompts.at(-1)).toContain('3812 estrellas')
+    expect(prompts.at(-1)).toContain('licencia MIT')
+    expect(prompts.at(-1)).toContain('Presentador: Claude')
+    const r = env.renders.at(-1)!
+    expect(r).toMatchObject({ shots: ['portada', 'repo', 'recorrido', 'cierre'], presenter: { image: '/r/claude.png', cutout: true, voices: 4 }, label: 'REPO DE GITHUB' })
+    expect(env.said.map((x) => x.text)).toEqual(['Este repositorio te monta un estudio de IA en tu ordenador.', 'Ya va por casi cuatro mil estrellas.', 'Chat, imágenes y vídeo, todo junto.', 'Guárdalo.'])
+    // 11 palabras × 0,4 s de voz + el respiro: más que los 2,6 s de la ficha. «Guárdalo.» cabe en la ficha.
+    expect(r.secs[0]).toBeCloseTo(4.4 + 0.25 + 0.45)
+    expect(r.secs[3]).toBe(3)
+    expect(snapshot().tasks.at(-1)!.title).toBe('Vídeo del repositorio a/estudio')
+    expect(lastText()).toContain('Lo presenta Claude')
   })
 
   it('si la web no abre, la tarea falla y lo dice', async () => {

@@ -3320,7 +3320,7 @@ export const zh: Record<string, string> = {
   "Montando los planos": "正在剪辑镜头",
   "Uniendo los planos y poniendo la música": "正在连接镜头并加入音乐",
   "web [vertical]": "网址 [vertical]",
-  "Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos": "用网页真实截图制作的网站视频广告：推近镜头、手机画面和字幕",
+  "Un anuncio en vídeo de una web o un repositorio de GitHub con fotos reales: acercamientos, el móvil y rótulos; con «presentador», un robot lo cuenta": "用真实截图制作的网站或 GitHub 仓库视频广告：推近镜头、手机画面和字幕；加上「presentador」，由机器人讲解",
   "No hay ningún vídeo: haz uno con «/video …» o adjunta el vídeo a «/miniatura».": "没有视频：用「/video …」做一个，或把视频附加到「/miniatura」。",
   "No hay ningún agente disponible para hacer las portadas.": "没有可用的智能体来制作封面。",
   "Portadas de {name}": "{name} 的封面",
@@ -3538,4 +3538,9 @@ export const zh: Record<string, string> = {
   "Sonidos de la interfaz y de las tareas, y el timbre de «Te necesita»": "界面和任务的声音，以及「需要你」的提示音",
   "Volumen de la música de fondo": "背景音乐音量",
   "Volumen de los efectos y avisos": "音效和提醒音量",
+  "Vídeo del repositorio {name}": "{name} 仓库的视频",
+  "Lo presenta {name}, con su voz y subtítulos palabra a palabra.": "由 {name} 主持，带配音和逐词字幕。",
+  "Grabando la voz de {name} ({n} de {total})": "正在录制 {name} 的配音（{n}/{total}）",
+  "Uniendo los planos": "正在拼接镜头",
+  "Poniendo al presentador, su voz y los subtítulos": "正在加入主持人、配音和字幕",
 }

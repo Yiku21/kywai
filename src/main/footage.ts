@@ -371,13 +371,14 @@ const assText = (s: string): string => s.replace(/\\/g, '').replace(/[{}]/g, '')
 
 /**
  * Subtítulos ASS: el grupo de palabras en blanco con borde negro, la que suena en amarillo. Con `title`, el título
- * del clip arriba los primeros 3 s (como en los Reels).
+ * del clip arriba los primeros 3 s (como en los Reels). `opts` cambia cuánto dura el título, el color de su caja
+ * (&HAABBGGRR), su margen de arriba y el de abajo de los subtítulos (lo usa «/demo» con presentador).
  */
-export function buildAss(words: Word[], size: { w: number; h: number }, title?: string): string {
+export function buildAss(words: Word[], size: { w: number; h: number }, title?: string, opts: { titleUntil?: number; titleBox?: string; titleTop?: number; subBottom?: number } = {}): string {
   const vertical = size.h > size.w
   const fs = Math.round(Math.min(size.w, size.h) * (vertical ? 0.075 : 0.07))
   const outline = Math.max(2, Math.round(fs * 0.09))
-  const marginV = Math.round(size.h * (vertical ? 0.22 : 0.08))
+  const marginV = opts.subBottom ?? Math.round(size.h * (vertical ? 0.22 : 0.08))
   const lines = [
     '[Script Info]',
     'ScriptType: v4.00+',
@@ -389,15 +390,18 @@ export function buildAss(words: Word[], size: { w: number; h: number }, title?: 
     '[V4+ Styles]',
     'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
     `Style: Sub,Arial,${fs},&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,${outline},${Math.round(outline / 2)},2,40,40,${marginV},1`,
-    `Style: Title,Arial,${Math.round(fs * 0.9)},&H00FFFFFF,&H00FFFFFF,&H00000000,&HB4000000,-1,0,0,0,100,100,0,0,3,${Math.round(fs * 0.3)},0,8,60,60,${Math.round(size.h * 0.1)},1`,
+    `Style: Title,Arial,${Math.round(fs * 0.9)},&H00FFFFFF,&H00FFFFFF,${opts.titleBox ?? '&H00000000'},&HB4000000,-1,0,0,0,100,100,0,0,3,${Math.round(fs * 0.3)},0,8,60,60,${opts.titleTop ?? Math.round(size.h * 0.1)},1`,
     '',
     '[Events]',
     'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'
   ]
-  if (title) lines.push(`Dialogue: 1,${assTime(0)},${assTime(3)},Title,,0,0,0,,{\\fad(150,250)}${assText(title)}`)
-  for (const chunk of captionChunks(words)) {
+  if (title) lines.push(`Dialogue: 1,${assTime(0)},${assTime(opts.titleUntil ?? 3)},Title,,0,0,0,,{\\fad(150,250)}${assText(title)}`)
+  const chunks = captionChunks(words)
+  for (const [c, chunk] of chunks.entries()) {
+    // La última palabra de un grupo dura al menos 0,25 s, pero nunca se solapa con el grupo siguiente (saldrían dos líneas).
+    const next = chunks[c + 1]?.[0].s ?? Infinity
     chunk.forEach((w, k) => {
-      const end = k < chunk.length - 1 ? chunk[k + 1].s : Math.max(w.e, w.s + 0.25)
+      const end = k < chunk.length - 1 ? chunk[k + 1].s : Math.min(next, Math.max(w.e, w.s + 0.25))
       if (end <= w.s) return
       const text = chunk.map((x, j) => (j === k ? `{\\c&H0000D7FF&}${assText(x.w)}{\\c&H00FFFFFF&}` : assText(x.w))).join(' ')
       lines.push(`Dialogue: 0,${assTime(w.s)},${assTime(end)},Sub,,0,0,0,,${text}`)

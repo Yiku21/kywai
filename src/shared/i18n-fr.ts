@@ -3320,7 +3320,7 @@ export const fr: Record<string, string> = {
   "Montando los planos": "Montage des plans",
   "Uniendo los planos y poniendo la música": "Assemblage des plans et ajout de la musique",
   "web [vertical]": "site [vertical]",
-  "Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos": "Une pub vidéo d’un site faite avec de vraies captures de la page : zooms, la vue mobile et des titres",
+  "Un anuncio en vídeo de una web o un repositorio de GitHub con fotos reales: acercamientos, el móvil y rótulos; con «presentador», un robot lo cuenta": "Une pub vidéo d’un site ou d’un dépôt GitHub faite avec de vraies captures : zooms, la vue mobile et des titres ; avec « presentador », un robot la raconte",
   "No hay ningún vídeo: haz uno con «/video …» o adjunta el vídeo a «/miniatura».": "Il n’y a aucune vidéo : fais-en une avec « /video … » ou joins la vidéo à « /miniatura ».",
   "No hay ningún agente disponible para hacer las portadas.": "Aucun agent n’est disponible pour faire les miniatures.",
   "Portadas de {name}": "Miniatures de {name}",
@@ -3538,4 +3538,9 @@ export const fr: Record<string, string> = {
   "Sonidos de la interfaz y de las tareas, y el timbre de «Te necesita»": "Sons de l’interface et des tâches, et la sonnerie de « A besoin de vous »",
   "Volumen de la música de fondo": "Volume de la musique de fond",
   "Volumen de los efectos y avisos": "Volume des effets et alertes",
+  "Vídeo del repositorio {name}": "Vidéo du dépôt {name}",
+  "Lo presenta {name}, con su voz y subtítulos palabra a palabra.": "Présenté par {name}, avec sa voix et des sous-titres mot à mot.",
+  "Grabando la voz de {name} ({n} de {total})": "Enregistrement de la voix de {name} ({n} sur {total})",
+  "Uniendo los planos": "Assemblage des plans",
+  "Poniendo al presentador, su voz y los subtítulos": "Ajout du présentateur, de sa voix et des sous-titres",
 }

@@ -7,10 +7,16 @@
 //  3. kywai monta cada plano con ffmpeg (movimientos de cámara suaves sobre las fotos, el móvil dentro de un teléfono,
 //     rótulos que aparecen), los une con fundidos y les pone música.
 // Idea de las fichas de planos de Vincentwei1021/video-shotcraft (Apache-2.0), reimplementada sin Remotion.
+//
+// Con presentador («/demo <web> presentador», y siempre con un enlace de GitHub salvo «sin presentador»), el vídeo es
+// como los reels de «mira esta herramienta»: un robot de kywai (o tu personaje) en la esquina habla sobre la web real,
+// con un rótulo fijo arriba y subtítulos palabra a palabra. Con un enlace de GitHub, kywai lee además los datos del
+// repositorio (estrellas, licencia, lenguaje…) y el guion los usa en una ficha «repo».
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { PageCapture } from './htmlShot'
+import { buildAss, type Word } from './footage'
 
 export type DemoFormat = 'horizontal' | 'vertical'
 
@@ -18,9 +24,34 @@ export interface DemoRequest {
   url: string
   format: DemoFormat
   note: string
+  /** Quién presenta: «hermes», «claude», «codex» o el id de un personaje tuyo. Sin él, no hay presentador. */
+  presenter?: string
+  /** Voz del presentador («voz:<id>», la del selector de «/video»); sin ella, la del idioma. */
+  voice?: string
 }
 
-/** «/demo <web> [vertical] [lo que quieres destacar]». null si no es la orden; url vacía si falta la dirección. */
+/** Los robots que pueden presentar (el primero, por defecto). */
+export const PRESENTER_ROBOTS = ['hermes', 'claude', 'codex'] as const
+
+/** «owner/repo» de un enlace de GitHub (la portada del repositorio o cualquier página suya), o null. */
+export function githubRepo(url: string): { owner: string; repo: string } | null {
+  let u: URL
+  try {
+    u = new URL(url)
+  } catch {
+    return null
+  }
+  if (!/^(www\.)?github\.com$/i.test(u.hostname)) return null
+  const [owner, repo] = u.pathname.split('/').filter(Boolean)
+  const skip = /^(features|topics|trending|orgs|settings|marketplace|explore|login|signup|about|pricing|sponsors|collections|search)$/i
+  if (!owner || !repo || skip.test(owner) || !/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(repo)) return null
+  return { owner, repo: repo.replace(/\.git$/i, '') }
+}
+
+/**
+ * «/demo <web> [vertical] [presentador[:quién]] [voz:<id>] [lo que quieres destacar]». null si no es la orden; url
+ * vacía si falta la dirección. Un enlace de GitHub lleva presentador salvo «sin presentador».
+ */
 export function parseDemoRequest(text: string): DemoRequest | null {
   const m = /^\/(?:demo)(?=\s|$)([\s\S]*)$/i.exec(text.trim())
   if (!m) return null
@@ -31,6 +62,24 @@ export function parseDemoRequest(text: string): DemoRequest | null {
     format = 'vertical'
     rest = rest.replace(v[0], ' ')
   }
+  let presenter: string | undefined
+  let noPresenter = false
+  const off = /\s(?:sin|without|no)\s+presentador(?=\s)/i.exec(rest)
+  if (off) {
+    noPresenter = true
+    rest = rest.replace(off[0], ' ')
+  }
+  const on = /\s(?:con\s+)?(?:presentador|presenter)(?::([\w-]{1,40}))?(?=\s)/i.exec(rest)
+  if (on && !noPresenter) {
+    presenter = (on[1] ?? PRESENTER_ROBOTS[0]).toLowerCase()
+    rest = rest.replace(on[0], ' ')
+  }
+  let voice: string | undefined
+  const vz = /\svoz:([\w.-]{2,80})(?=\s)/i.exec(rest)
+  if (vz) {
+    voice = vz[1]
+    rest = rest.replace(vz[0], ' ')
+  }
   const u = /(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:\/[^\s<>"'`]*)?/i.exec(rest)
   let url = ''
   if (u) {
@@ -38,14 +87,74 @@ export function parseDemoRequest(text: string): DemoRequest | null {
     if (!/^https?:\/\//i.test(url)) url = `https://${url}`
     rest = rest.replace(u[0], ' ')
   }
-  return { url, format, note: rest.replace(/\s{2,}/g, ' ').trim().replace(/^[,;:.\-–—]+\s*/, '') }
+  if (!presenter && !noPresenter && url && githubRepo(url)) presenter = PRESENTER_ROBOTS[0]
+  return { url, format, note: rest.replace(/\s{2,}/g, ' ').trim().replace(/^[,;:.\-–—]+\s*/, ''), ...(presenter ? { presenter } : {}), ...(voice ? { voice } : {}) }
+}
+
+// ---------- los datos de un repositorio de GitHub ----------
+
+export interface RepoFacts {
+  /** «owner/repo». */
+  name: string
+  description: string
+  stars: number
+  forks: number
+  license: string
+  language: string
+  topics: string[]
+  /** Último cambio (ISO). */
+  pushedAt: string
+  homepage: string
+}
+
+/** Los datos de la API pública de GitHub (repos/:owner/:repo), limpios. null si la respuesta no vale. */
+export function parseRepoFacts(json: unknown): RepoFacts | null {
+  const j = json && typeof json === 'object' ? (json as Record<string, unknown>) : null
+  const name = typeof j?.full_name === 'string' ? j.full_name : ''
+  if (!j || !/^[\w.-]+\/[\w.-]+$/.test(name)) return null
+  const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.round(v) : 0)
+  const t = (v: unknown, max = 300): string => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '')
+  const lic = j.license && typeof j.license === 'object' ? (j.license as Record<string, unknown>) : null
+  const spdx = t(lic?.spdx_id, 40)
+  return {
+    name,
+    description: t(j.description),
+    stars: n(j.stargazers_count),
+    forks: n(j.forks_count),
+    license: spdx && spdx !== 'NOASSERTION' ? spdx : t(lic?.name, 60),
+    language: t(j.language, 40),
+    topics: Array.isArray(j.topics) ? j.topics.filter((x): x is string => typeof x === 'string').slice(0, 8).map((x) => x.slice(0, 30)) : [],
+    pushedAt: t(j.pushed_at, 40),
+    homepage: /^https?:\/\//i.test(t(j.homepage)) ? t(j.homepage, 200) : ''
+  }
+}
+
+/** Pide los datos del repositorio a la API pública de GitHub (sin cuenta). null si no responde. */
+export async function fetchRepoFacts(repo: { owner: string; repo: string }, fetcher: typeof fetch = fetch): Promise<RepoFacts | null> {
+  try {
+    const res = await fetcher(`https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}`, {
+      headers: { accept: 'application/vnd.github+json', 'user-agent': 'kywai' },
+      signal: AbortSignal.timeout(10_000)
+    })
+    if (!res.ok) return null
+    return parseRepoFacts(await res.json())
+  } catch {
+    return null
+  }
+}
+
+/** 3800 → «3,8 k»; 950 → «950». */
+export function shortCount(n: number): string {
+  if (n < 1000) return String(n)
+  const k = n / 1000
+  return `${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, '').replace('.', ',')} k`
 }
 
 export const OUT: Record<DemoFormat, { w: number; h: number }> = { horizontal: { w: 1920, h: 1080 }, vertical: { w: 1080, h: 1920 } }
 
 // ---------- las fichas de planos ----------
 
-export type ShotKind = 'portada' | 'recorrido' | 'acercamiento' | 'detalle' | 'movil' | 'pareja' | 'rotulo' | 'cierre'
+export type ShotKind = 'portada' | 'recorrido' | 'acercamiento' | 'detalle' | 'movil' | 'pareja' | 'rotulo' | 'repo' | 'cierre'
 
 export interface ShotCard {
   id: ShotKind
@@ -64,6 +173,7 @@ export const DEMO_SHOTS: readonly ShotCard[] = [
   { id: 'movil', secs: 4, use: 'La web en un teléfono, bajando, sobre la web de fondo desenfocada: se ve que va bien en el móvil.', params: '"text" opcional' },
   { id: 'pareja', secs: 3.5, use: 'Ordenador y móvil a la vez con la misma sección.', params: '"section", "text" opcional' },
   { id: 'rotulo', secs: 2.2, use: 'Una frase sola a pantalla completa entre planos: un beneficio o una cifra. Como mucho dos en el vídeo.', params: '"text"' },
+  { id: 'repo', secs: 3.2, use: 'Solo con un repositorio de GitHub: la ficha del repositorio (nombre, descripción, estrellas, licencia y lenguaje) en grande. Una vez, después del gancho.', params: '"text" opcional (una línea encima, p. ej. «Gratis y de código abierto»)' },
   { id: 'cierre', secs: 3, use: 'Cierra el vídeo: la llamada a la acción y la dirección de la web.', params: '"text" (p. ej. «Pruébalo gratis»)' }
 ]
 
@@ -72,9 +182,22 @@ const SHOT_IDS = DEMO_SHOTS.map((s) => s.id)
 /** Lo que dura un plano según su ficha. */
 export const shotSeconds = (kind: ShotKind): number => DEMO_SHOTS.find((c) => c.id === kind)?.secs ?? 3
 
+/** Lo que dura un plano en el vídeo: el de la voz si kywai ya lo midió, si no el de su ficha. */
+export const shotLength = (shot: DemoShot): number => shot.secs ?? shotSeconds(shot.ficha)
+
+/** Lo que debe durar un plano para que quepa la frase del presentador (con un respiro antes y después). */
+export const fitToVoice = (shot: DemoShot, voiceSecs: number): number => Math.max(shotSeconds(shot.ficha), Math.round((voiceSecs + VOICE_LEAD + 0.45) * 100) / 100)
+
+/** La voz de cada plano empieza un poco después del corte. */
+export const VOICE_LEAD = 0.25
+
 export interface DemoShot {
   ficha: ShotKind
   text?: string
+  /** Con presentador: lo que dice durante el plano. */
+  say?: string
+  /** Lo que dura de verdad (lo pone kywai con la voz ya hecha; sin él, el de la ficha). */
+  secs?: number
   sub?: string
   from?: number
   to?: number
@@ -86,16 +209,41 @@ export interface DemoShot {
 
 export interface DemoPlan {
   title: string
+  /** Con presentador: el rótulo fijo de arriba (2 a 4 palabras, p. ej. «REPO DE GITHUB»). */
+  label?: string
   shots: DemoShot[]
 }
 
-export function demoPrompt(input: { url: string; note: string; format: DemoFormat; page: Pick<PageCapture, 'title' | 'description' | 'sections'>; desktop: string; mobile?: string; lang: string }): string {
+export function demoPrompt(input: {
+  url: string
+  note: string
+  format: DemoFormat
+  page: Pick<PageCapture, 'title' | 'description' | 'sections'>
+  desktop: string
+  mobile?: string
+  lang: string
+  /** Nombre de quien presenta (con presentador). */
+  presenter?: string
+  repo?: RepoFacts | null
+}): string {
+  const shots = DEMO_SHOTS.filter((s) => s.id !== 'repo' || input.repo)
+  const repo = input.repo
   return [
     `Eres el director de anuncios de producto de kywai. Haz el guion de planos de un vídeo de presentación de esta web: ${input.url} (${input.format === 'vertical' ? 'vertical, para Reels y TikTok' : 'horizontal'}).`,
     ...(input.note ? [`Lo que quiere destacar el usuario: ${input.note}`] : []),
     '',
     `Título de la página: ${input.page.title || '(sin título)'}`,
     ...(input.page.description ? [`Descripción: ${input.page.description}`] : []),
+    ...(repo
+      ? [
+          '',
+          `Es un repositorio de GitHub. Datos reales (de la API de GitHub; no inventes otros): ${repo.name} · ${repo.stars} estrellas · ${repo.forks} forks` +
+            `${repo.license ? ` · licencia ${repo.license}` : ''}${repo.language ? ` · ${repo.language}` : ''}${repo.pushedAt ? ` · último cambio ${repo.pushedAt.slice(0, 10)}` : ''}` +
+            `${repo.topics.length ? ` · temas: ${repo.topics.join(', ')}` : ''}${repo.homepage ? ` · web: ${repo.homepage}` : ''}`,
+          ...(repo.description ? [`Descripción del repositorio: ${repo.description}`] : []),
+          'La foto es la portada del repositorio: arriba los datos y debajo el README (lo que hace, cómo se instala).'
+        ]
+      : []),
     '',
     'Fotos de la web (ábrelas para ver qué hay y dónde):',
     `- Ordenador, entera: ${input.desktop}`,
@@ -105,16 +253,30 @@ export function demoPrompt(input: { url: string; note: string; format: DemoForma
     ...input.page.sections.map((s, i) => `${i}: ${s.label || '(sin título)'}`),
     '',
     'Fichas de planos (cada plano usa una):',
-    ...DEMO_SHOTS.map((s) => `- "${s.id}" (${s.secs} s): ${s.use} Necesita: ${s.params}.`),
+    ...shots.map((s) => `- "${s.id}" (${s.secs} s): ${s.use} Necesita: ${s.params}.`),
     '',
     'Reglas:',
-    '- De 6 a 9 planos, entre 18 y 35 segundos en total. Empieza con "portada" y acaba con "cierre".',
+    input.presenter
+      ? '- De 6 a 9 planos. Empieza con "portada" y acaba con "cierre".'
+      : '- De 6 a 9 planos, entre 18 y 35 segundos en total. Empieza con "portada" y acaba con "cierre".',
     '- Cuenta una historia: el problema o la promesa, lo que hace la web (enseñándolo de verdad con acercamientos a lo importante), por qué fiarse y la llamada a la acción.',
     '- Varía los planos: no pongas dos iguales seguidos.' + (input.mobile ? '' : ' No uses "movil" ni "pareja": no hay foto del móvil.'),
     `- Los textos, cortos (de 2 a 8 palabras), concretos y en ${input.lang}. Nada de «la mejor solución» ni frases vacías: lo que gana quien la usa.`,
+    ...(repo ? ['- Usa "repo" una vez, justo después de la portada. Las cifras, solo las de arriba.'] : []),
+    ...(input.presenter
+      ? [
+          '',
+          `Presentador: ${input.presenter} sale en una esquina y habla sobre las imágenes, como en los reels de «mira esta herramienta». Cada plano lleva "say": lo que dice mientras se ve (de 6 a 18 palabras, en ${input.lang}, hablado y natural, en primera persona, como quien se lo cuenta a un amigo; sin emojis ni enlaces).`,
+          '- Lo que dice va con lo que se ve en ese plano. La primera frase engancha (qué es y por qué te importa); la última, la llamada a la acción (probarlo, guardarlo o seguir la cuenta).',
+          '- El vídeo entero, de 20 a 40 segundos hablados. Los "text" de los planos no repiten la frase: la resumen en 2 a 5 palabras.',
+          '- "label": el rótulo fijo de arriba, de 2 a 4 palabras en mayúsculas (p. ej. «REPO DE GITHUB», «HERRAMIENTA GRATIS»).'
+        ]
+      : []),
     '',
     'Responde SOLO con este JSON, sin nada más:',
-    '{"title": "título corto del vídeo", "shots": [{"ficha": "portada", "text": "…", "sub": "…"}, {"ficha": "acercamiento", "section": 1, "x": 0.3, "y": 0.4, "zoom": 2, "text": "…"}, …]}',
+    input.presenter
+      ? '{"title": "título corto del vídeo", "label": "…", "shots": [{"ficha": "portada", "text": "…", "say": "…"}, {"ficha": "acercamiento", "section": 1, "x": 0.3, "y": 0.4, "zoom": 2, "text": "…", "say": "…"}, …]}'
+      : '{"title": "título corto del vídeo", "shots": [{"ficha": "portada", "text": "…", "sub": "…"}, {"ficha": "acercamiento", "section": 1, "x": 0.3, "y": 0.4, "zoom": 2, "text": "…"}, …]}',
     'No crees ni cambies archivos: kywai monta el vídeo con tu JSON.'
   ].join('\n')
 }
@@ -129,8 +291,11 @@ function jsonOf(text: string): Record<string, unknown> {
 const num = (v: unknown, lo: number, hi: number, def: number): number => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : def)
 const str = (v: unknown, max = 80): string | undefined => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined)
 
-/** El guion del agente, válido: fichas conocidas, secciones que existen, sin móvil si no hay foto. Como mucho 10. */
-export function parseDemoPlan(text: string, sections: number, hasMobile: boolean): DemoPlan {
+/**
+ * El guion del agente, válido: fichas conocidas, secciones que existen, sin móvil si no hay foto y sin ficha del
+ * repositorio si no lo es. Como mucho 10. Con presentador, cada plano con su frase (si faltan casi todas, no vale).
+ */
+export function parseDemoPlan(text: string, sections: number, hasMobile: boolean, opts: { presenter?: boolean; repo?: boolean } = {}): DemoPlan {
   const j = jsonOf(text)
   const shots: DemoShot[] = []
   const last = Math.max(0, sections - 1)
@@ -138,6 +303,7 @@ export function parseDemoPlan(text: string, sections: number, hasMobile: boolean
     const ficha = String(s?.ficha ?? '') as ShotKind
     if (!SHOT_IDS.includes(ficha)) continue
     if ((ficha === 'movil' || ficha === 'pareja') && !hasMobile) continue
+    if (ficha === 'repo' && (!opts.repo || shots.some((x) => x.ficha === 'repo'))) continue
     const shot: DemoShot = { ficha }
     const t = str(s.text)
     if (t) shot.text = t
@@ -155,11 +321,17 @@ export function parseDemoPlan(text: string, sections: number, hasMobile: boolean
       shot.y = num(s.y, 0, 1, 0.4)
       shot.zoom = num(s.zoom, 1.2, 3.5, ficha === 'detalle' ? 2.4 : 2)
     }
+    if (opts.presenter) {
+      const say = str(s.say, 220)?.replace(/https?:\/\/\S+/g, '').replace(/\s{2,}/g, ' ').trim()
+      if (say) shot.say = say
+    }
     shots.push(shot)
     if (shots.length >= 10) break
   }
   if (shots.length < 3) throw new Error('el guion tiene menos de 3 planos válidos')
-  return { title: str(j.title) ?? 'Presentación', shots }
+  if (opts.presenter && shots.filter((x) => x.say).length < Math.ceil(shots.length / 2)) throw new Error('faltan las frases del presentador ("say")')
+  const label = opts.presenter ? str(j.label, 32)?.toUpperCase() : undefined
+  return { title: str(j.title) ?? 'Presentación', ...(label ? { label } : {}), shots }
 }
 
 // ---------- el montaje ----------
@@ -287,6 +459,98 @@ html,body{margin:0;width:${out.w}px;height:${out.h}px;overflow:hidden;background
 </style></head><body><div class="g"></div><div class="t">${esc(text)}</div></body></html>`
 }
 
+/** Con presentador, el texto del plano va arriba (debajo del rótulo fijo) en una caja del color de la marca. */
+export function headlineHtml(text: string, color: string, out: { w: number; h: number }): string {
+  const vertical = out.h > out.w
+  const fs = Math.round(Math.min(out.w, out.h) * (vertical ? 0.062 : 0.052))
+  const ink = lightColor(color) ? '#111111' : '#ffffff'
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:${out.w}px;height:${out.h}px;overflow:hidden;background:transparent}
+.w{position:absolute;left:0;right:0;top:${Math.round(out.h * (vertical ? 0.135 : 0.16))}px;display:flex;justify-content:center}
+.t{max-width:${Math.round(out.w * 0.84)}px;padding:${Math.round(fs * 0.22)}px ${Math.round(fs * 0.42)}px;border-radius:${Math.round(fs * 0.22)}px;background:${color};color:${ink};font-family:${FONT};font-size:${fs}px;line-height:1.08;font-weight:850;letter-spacing:-0.01em;text-transform:uppercase;text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.35)}
+</style></head><body><div class="w"><div class="t">${esc(text)}</div></div></body></html>`
+}
+
+/** La ficha de un repositorio de GitHub: nombre, descripción y sus datos en pastillas. */
+export function repoCardHtml(repo: RepoFacts, text: string, color: string, out: { w: number; h: number }): string {
+  const vertical = out.h > out.w
+  const u = Math.min(out.w, out.h)
+  const [owner, name] = repo.name.split('/')
+  const pills = [
+    `★ ${shortCount(repo.stars)}`,
+    repo.forks ? `⑂ ${shortCount(repo.forks)}` : '',
+    repo.license,
+    repo.language
+  ].filter(Boolean)
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:${out.w}px;height:${out.h}px;overflow:hidden}
+body{background:radial-gradient(110% 80% at 25% 10%, color-mix(in srgb, ${color} 32%, #0d1117) 0%, #0d1117 62%);color:#e6edf3;font-family:${FONT};display:flex;align-items:center;justify-content:center}
+.c{width:${Math.round(out.w * (vertical ? 0.84 : 0.62))}px;padding:${Math.round(u * 0.055)}px;border-radius:${Math.round(u * 0.03)}px;background:#161b22;border:2px solid #30363d;box-shadow:0 30px 90px rgba(0,0,0,.5);box-sizing:border-box}
+.k{font-size:${Math.round(u * 0.034)}px;font-weight:700;color:${lightColor(color) ? color : 'color-mix(in srgb, ' + color + ' 55%, white)'};margin:0 0 ${Math.round(u * 0.025)}px;text-transform:uppercase;letter-spacing:.04em}
+.n{font-size:${Math.round(u * (vertical ? 0.06 : 0.055))}px;line-height:1.1;margin:0;word-break:break-word}
+.n span{color:#8b949e;font-weight:500}.n b{font-weight:800}
+.d{font-size:${Math.round(u * 0.034)}px;line-height:1.35;color:#c9d1d9;margin:${Math.round(u * 0.03)}px 0 0}
+.p{display:flex;flex-wrap:wrap;gap:${Math.round(u * 0.016)}px;margin-top:${Math.round(u * 0.04)}px}
+.p i{font-style:normal;font-size:${Math.round(u * 0.032)}px;font-weight:700;padding:${Math.round(u * 0.01)}px ${Math.round(u * 0.022)}px;border-radius:999px;background:#21262d;border:1px solid #30363d}
+.p i:first-child{background:#e3b341;color:#0d1117;border-color:#e3b341}
+</style></head><body><div class="c">${text ? `<p class="k">${esc(text)}</p>` : ''}<h1 class="n"><span>${esc(owner)} /</span> <b>${esc(name)}</b></h1>${repo.description ? `<p class="d">${esc(repo.description)}</p>` : ''}<div class="p">${pills.map((x) => `<i>${esc(x)}</i>`).join('')}</div></div></body></html>`
+}
+
+/** Dónde va quien presenta: abajo a la derecha (x, y de la esquina y lado del recuadro). */
+export function presenterBox(out: { w: number; h: number }): { x: number; y: number; size: number } {
+  const vertical = out.h > out.w
+  const size = Math.round((vertical ? out.w * 0.36 : out.h * 0.36) / 2) * 2
+  return { x: Math.round(out.w - size - out.w * (vertical ? 0.035 : 0.03)), y: Math.round(out.h - size - out.h * (vertical ? 0.045 : 0.05)), size }
+}
+
+/**
+ * Quien presenta, en su recuadro con fondo transparente: un robot de kywai (recortado, con sombra) o tu personaje en
+ * un círculo con el borde del color de la marca (como la cámara de quien habla en un directo).
+ */
+export function presenterHtml(image: string, cutout: boolean, color: string, size: number): string {
+  const ring = Math.max(4, Math.round(size * 0.025))
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:${size}px;height:${size}px;overflow:hidden;background:transparent}
+img{position:absolute;display:block}
+${cutout
+    ? `img{left:4%;top:2%;width:92%;height:94%;object-fit:contain;object-position:50% 100%;filter:drop-shadow(0 ${Math.round(size * 0.04)}px ${Math.round(size * 0.05)}px rgba(0,0,0,.5))}`
+    : `img{left:${ring * 2}px;top:${ring * 2}px;width:${size - ring * 4}px;height:${size - ring * 4}px;object-fit:cover;border-radius:50%;box-shadow:0 0 0 ${ring}px ${color}, 0 ${Math.round(size * 0.03)}px ${Math.round(size * 0.05)}px ${ring}px rgba(0,0,0,.45)}`}
+</style></head><body><img src="${fileUrl(image)}" alt=""></body></html>`
+}
+
+/**
+ * Las palabras de una frase con su momento (para los subtítulos palabra a palabra): la frase suena de `start` a
+ * `start + secs` y cada palabra dura según sus letras, con una pausa tras la puntuación.
+ */
+export function spokenWords(text: string, start: number, secs: number, first = 0): Word[] {
+  const parts = text.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w))
+  if (!parts.length || secs <= 0) return []
+  const weight = (w: string): number => w.length + 2 + (/[.,;:?!…]$/.test(w) ? 3 : 0)
+  const total = parts.reduce((n, w) => n + weight(w), 0)
+  const out: Word[] = []
+  let t = start
+  for (const [k, w] of parts.entries()) {
+    const d = (secs * weight(w)) / total
+    out.push({ i: first + k, s: Math.round(t * 1000) / 1000, e: Math.round((t + d * 0.92) * 1000) / 1000, w })
+    t += d
+  }
+  return out
+}
+
+/** Dónde empieza cada plano en el vídeo montado (los fundidos solapan). */
+export function shotStarts(plan: DemoPlan): number[] {
+  const out: number[] = []
+  let t = 0
+  for (const s of plan.shots) {
+    out.push(Math.round(t * 1000) / 1000)
+    t += shotLength(s) - XFADE
+  }
+  return out
+}
+
+/** El rótulo de arriba en rojo, como en los reels (color de ASS: &HAABBGGRR). */
+const LABEL_BOX = '&H002A20E5'
+
 /** El teléfono (marco con la pantalla transparente) para el plano «movil». */
 export function phoneHtml(out: { w: number; h: number }): string {
   const s = phoneScreen(out)
@@ -326,12 +590,12 @@ interface Out {
   out: string
 }
 
-function exec(cmd: string, args: string[], timeoutMs: number, signal?: AbortSignal): Promise<Out> {
+function exec(cmd: string, args: string[], timeoutMs: number, signal?: AbortSignal, cwd?: string): Promise<Out> {
   return new Promise((resolve) => {
     let out = ''
     let child: ReturnType<typeof spawn>
     try {
-      child = spawn(cmd, args, { windowsHide: true })
+      child = spawn(cmd, args, { windowsHide: true, ...(cwd ? { cwd } : {}) })
     } catch (e) {
       resolve({ code: -1, out: (e as Error).message })
       return
@@ -367,8 +631,18 @@ const lastLine = (out: string): string => out.split('\n').filter((l) => l.trim()
 /** Lo que el montaje necesita de fuera: hacer una imagen de una página HTML (htmlShot.htmlToPng). */
 export type HtmlToPng = (html: string, size: { w: number; h: number }, out: string, opts?: { transparent?: boolean }) => Promise<boolean>
 
+export interface DemoPresenter {
+  /** La imagen de quien presenta (un PNG con fondo transparente si `cutout`). */
+  image: string
+  cutout: boolean
+  /** La voz de cada plano, en el orden de los planos (null si ese plano no habla). Su duración ya está en el plano. */
+  voices: ({ file: string; secs: number } | null)[]
+}
+
 export interface RenderDemoInput {
   plan: DemoPlan
+  presenter?: DemoPresenter | null
+  repo?: RepoFacts | null
   desktop: PageCapture
   mobile?: { file: string; w: number; h: number } | null
   format: DemoFormat
@@ -387,7 +661,21 @@ const XFADE = 0.4
 
 /** Lo que dura el vídeo montado (los fundidos solapan los planos). */
 export function planSeconds(plan: DemoPlan): number {
-  return plan.shots.reduce((n, s) => n + shotSeconds(s.ficha), 0) - XFADE * Math.max(0, plan.shots.length - 1)
+  return plan.shots.reduce((n, s) => n + shotLength(s), 0) - XFADE * Math.max(0, plan.shots.length - 1)
+}
+
+/**
+ * La altura de quien presenta en cada momento (expresión de ffmpeg): entra desde abajo, flota despacio y da saltitos
+ * mientras habla (los robots no tienen boca: hablan con el cuerpo).
+ */
+export function presenterY(y: number, size: number, talking: { s: number; e: number }[]): string {
+  const talk = talking.map((r) => `between(t,${r.s.toFixed(2)},${r.e.toFixed(2)})`).join('+')
+  return [
+    `${y}`,
+    `${Math.round(size * 1.15)}*pow(max(0,1-t/0.5),2)`,
+    `${Math.max(3, Math.round(size * 0.018))}*sin(2*PI*t*0.6)`,
+    ...(talk ? [`-${Math.max(6, Math.round(size * 0.04))}*abs(sin(2*PI*t*2.4))*min(1,${talk})`] : [])
+  ].join('+').replace(/\+-/g, '-')
 }
 
 /** Monta el vídeo plano a plano y lo une con fundidos y música. Devuelve la duración en segundos. */
@@ -417,17 +705,21 @@ export async function renderDemo(input: RenderDemoInput): Promise<number> {
   for (const [k, shot] of plan.shots.entries()) {
     if (signal?.aborted) throw new Error('Cancelada')
     input.onStep?.('Montando los planos', 0.1 + (0.75 * k) / plan.shots.length)
-    const secs = shotSeconds(shot.ficha)
+    const secs = shotLength(shot)
     const file = join(dir, `plano-${k}.mp4`)
-    const caption = shot.text && !['portada', 'rotulo', 'cierre'].includes(shot.ficha) ? await png(captionHtml(shot.text, color, out), join(dir, `rotulo-${k}.png`), true) : null
+    const caption =
+      shot.text && !['portada', 'rotulo', 'repo', 'cierre'].includes(shot.ficha)
+        ? await png(input.presenter ? headlineHtml(shot.text, color, out) : captionHtml(shot.text, color, out), join(dir, `rotulo-${k}.png`), true)
+        : null
     // El rótulo aparece a los 0,4 s.
     const withCaption = (base: string): string[] =>
       caption
         ? ['-loop', '1', '-framerate', String(FPS), '-t', secs.toFixed(2), '-i', caption, '-filter_complex', `[0:v]${base}[b];[1:v]format=rgba,fade=t=in:st=0.4:d=0.45:alpha=1[o];[b][o]overlay=0:0,format=yuv420p[v]`, '-map', '[v]']
         : ['-vf', base]
-    if (shot.ficha === 'portada' || shot.ficha === 'rotulo' || shot.ficha === 'cierre') {
+    if (shot.ficha === 'portada' || shot.ficha === 'rotulo' || shot.ficha === 'cierre' || (shot.ficha === 'repo' && input.repo)) {
       const sub = shot.ficha === 'cierre' ? host : (shot.sub ?? '')
-      const img = await png(cardHtml(shot.ficha, shot.text ?? plan.title, sub, color, out), join(dir, `tarjeta-${k}.png`))
+      const html = shot.ficha === 'repo' && input.repo ? repoCardHtml(input.repo, shot.text ?? '', color, out) : cardHtml(shot.ficha as 'portada' | 'rotulo' | 'cierre', shot.text ?? plan.title, sub, color, out)
+      const img = await png(html, join(dir, `tarjeta-${k}.png`))
       const m = pushIn(out)
       await ff(['-loop', '1', '-framerate', String(FPS), '-t', secs.toFixed(2), '-i', img, '-vf', moveFilter(out, m.from, m.to, secs, out), ...encode, file], `el plano ${k + 1}`)
     } else if (shot.ficha === 'movil' && input.mobile) {
@@ -461,7 +753,7 @@ export async function renderDemo(input: RenderDemoInput): Promise<number> {
     }
     parts.push({ file, secs })
   }
-  input.onStep?.('Uniendo los planos y poniendo la música', 0.9)
+  input.onStep?.(input.presenter ? 'Uniendo los planos' : 'Uniendo los planos y poniendo la música', input.presenter ? 0.86 : 0.9)
   const total = parts.reduce((n, p) => n + p.secs, 0) - XFADE * (parts.length - 1)
   const graph: string[] = []
   let prev = '0:v'
@@ -477,14 +769,69 @@ export async function renderDemo(input: RenderDemoInput): Promise<number> {
   graph.push(`[vx]fade=t=out:st=${Math.max(0, total - 0.5).toFixed(2)}:d=0.5[v]`)
   const music = input.music ? join(dir, 'musica.wav') : null
   if (music) writeFileSync(music, input.music!)
-  if (music) graph.push(`[${parts.length}:a]volume=0.55,afade=t=in:d=0.6,afade=t=out:st=${Math.max(0, total - 1.2).toFixed(2)}:d=1.2,atrim=0:${total.toFixed(2)}[a]`)
+  // Con presentador, la música va por debajo de la voz (se mezcla en el último paso).
+  const musicNow = music && !input.presenter
+  if (musicNow) graph.push(`[${parts.length}:a]volume=0.55,afade=t=in:d=0.6,afade=t=out:st=${Math.max(0, total - 1.2).toFixed(2)}:d=1.2,atrim=0:${total.toFixed(2)}[a]`)
   mkdirSync(join(input.out, '..'), { recursive: true })
+  const joined = input.presenter ? join(dir, 'planos.mp4') : input.out
   await ff(
-    [...parts.flatMap((p) => ['-i', p.file]), ...(music ? ['-i', music] : []), '-filter_complex', graph.join(';'), '-map', '[v]', ...(music ? ['-map', '[a]', '-c:a', 'aac', '-b:a', '160k'] : []),
-      '-r', String(FPS), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-t', total.toFixed(2), input.out],
+    [...parts.flatMap((p) => ['-i', p.file]), ...(musicNow ? ['-i', music] : []), '-filter_complex', graph.join(';'), '-map', '[v]', ...(musicNow ? ['-map', '[a]', '-c:a', 'aac', '-b:a', '160k'] : []),
+      '-r', String(FPS), '-c:v', 'libx264', '-preset', 'medium', '-crf', input.presenter ? '16' : '19', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-t', total.toFixed(2), joined],
     'el vídeo'
   )
+  if (input.presenter) await finishWithPresenter({ ...input, presenter: input.presenter, joined, total, musicFile: music, color, ff })
   if (!existsSync(input.out)) throw new Error('No se pudo montar el vídeo')
   rmSync(dir, { recursive: true, force: true })
   return total
+}
+
+/**
+ * El último paso con presentador: quien presenta en la esquina (entra, flota y da saltitos al hablar), el rótulo fijo
+ * de arriba y los subtítulos palabra a palabra (ASS), y el sonido: su voz en cada plano y la música baja por debajo.
+ * Si ffmpeg no tiene libass, sale sin subtítulos ni rótulo (mejor eso que nada).
+ */
+async function finishWithPresenter(a: RenderDemoInput & { presenter: DemoPresenter; joined: string; total: number; musicFile: string | null; color: string; ff: (args: string[], what: string) => Promise<void> }): Promise<void> {
+  const { plan, presenter, dir, total } = a
+  const out = OUT[a.format]
+  a.onStep?.('Poniendo al presentador, su voz y los subtítulos', 0.93)
+  const box = presenterBox(out)
+  const face = join(dir, 'presentador.png')
+  if (!(await a.htmlToPng(presenterHtml(presenter.image, presenter.cutout, a.color, box.size), { w: box.size, h: box.size }, face, { transparent: true })))
+    throw new Error('No se pudo preparar al presentador (hace falta la app de escritorio)')
+  const starts = shotStarts(plan)
+  const lines = plan.shots
+    .map((s, k) => ({ say: s.say ?? '', voice: presenter.voices[k] ?? null, at: starts[k] + VOICE_LEAD }))
+    .filter((l): l is { say: string; voice: { file: string; secs: number }; at: number } => !!l.voice && !!l.say && existsSync(l.voice.file))
+  let n = 0
+  const words: Word[] = []
+  for (const l of lines) {
+    const w = spokenWords(l.say, l.at, l.voice.secs, n)
+    n += w.length
+    words.push(...w)
+  }
+  const vertical = out.h > out.w
+  writeFileSync(
+    join(dir, 'subtitulos.ass'),
+    buildAss(words, out, plan.label, { titleUntil: total, titleBox: LABEL_BOX, titleTop: Math.round(out.h * (vertical ? 0.055 : 0.05)), subBottom: Math.round(out.h * (vertical ? 0.285 : 0.08)) })
+  )
+  const inputs = ['-i', a.joined, '-loop', '1', '-framerate', String(FPS), '-t', total.toFixed(2), '-i', face, ...lines.flatMap((l) => ['-i', l.voice.file]), ...(a.musicFile ? ['-i', a.musicFile] : [])]
+  const talking = lines.map((l) => ({ s: l.at, e: l.at + l.voice.secs }))
+  const audio: string[] = []
+  lines.forEach((l, k) => audio.push(`[${k + 2}:a]aresample=48000,aformat=channel_layouts=stereo,adelay=${Math.round(l.at * 1000)}:all=1[v${k}]`))
+  const mixIn = lines.map((_, k) => `[v${k}]`)
+  if (a.musicFile) {
+    audio.push(`[${lines.length + 2}:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.16,afade=t=in:d=0.6,afade=t=out:st=${Math.max(0, total - 1.2).toFixed(2)}:d=1.2[mu]`)
+    mixIn.push('[mu]')
+  }
+  if (mixIn.length) audio.push(`${mixIn.join('')}amix=inputs=${mixIn.length}:normalize=0:dropout_transition=0:duration=longest,apad,atrim=0:${total.toFixed(2)}[a]`)
+  const video = (subs: boolean): string =>
+    `[1:v]format=rgba,fade=t=in:st=0.05:d=0.3:alpha=1[p];[0:v][p]overlay=x=${box.x}:y='${presenterY(box.y, box.size, talking)}':eval=frame${subs ? '[o];[o]ass=subtitulos.ass' : ''},format=yuv420p[v]`
+  const args = (subs: boolean): string[] => [
+    ...inputs, '-filter_complex', [video(subs), ...audio].join(';'), '-map', '[v]', ...(mixIn.length ? ['-map', '[a]', '-c:a', 'aac', '-b:a', '192k'] : []),
+    '-r', String(FPS), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-t', total.toFixed(2), a.out
+  ]
+  // El archivo de subtítulos se nombra sin ruta (desde su carpeta): las rutas de Windows rompen el filtro.
+  const r = await exec('ffmpeg', ['-y', '-v', 'error', ...args(true)], 10 * 60_000, a.signal, dir)
+  if (r.code === 0 && existsSync(a.out)) return
+  await a.ff(args(false), 'el vídeo con el presentador')
 }

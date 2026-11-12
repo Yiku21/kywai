@@ -3440,7 +3440,7 @@ export const en: Record<string, string> = {
   "Montando los planos": "Putting the shots together",
   "Uniendo los planos y poniendo la música": "Joining the shots and adding the music",
   "web [vertical]": "website [vertical]",
-  "Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos": "A video ad for a website made from real screenshots of the page: zoom-ins, the phone view and captions",
+  "Un anuncio en vídeo de una web o un repositorio de GitHub con fotos reales: acercamientos, el móvil y rótulos; con «presentador», un robot lo cuenta": "A video ad for a website or GitHub repository made from real screenshots: zoom-ins, the phone view and captions; with “presentador”, a robot tells it",
   // «/miniatura» (src/main/thumbnail.ts)
   "No hay ningún vídeo: haz uno con «/video …» o adjunta el vídeo a «/miniatura».": "There’s no video: make one with “/video …” or attach the video to “/miniatura”.",
   "No hay ningún agente disponible para hacer las portadas.": "No agent is available to make the covers.",
@@ -3661,4 +3661,9 @@ export const en: Record<string, string> = {
   "Sonidos de la interfaz y de las tareas, y el timbre de «Te necesita»": "Interface and task sounds, and the “Needs you” chime",
   "Volumen de la música de fondo": "Background music volume",
   "Volumen de los efectos y avisos": "Effects and alerts volume",
+  "Vídeo del repositorio {name}": "Video of the {name} repository",
+  "Lo presenta {name}, con su voz y subtítulos palabra a palabra.": "Presented by {name}, with voice and word-by-word subtitles.",
+  "Grabando la voz de {name} ({n} de {total})": "Recording {name}’s voice ({n} of {total})",
+  "Uniendo los planos": "Joining the shots",
+  "Poniendo al presentador, su voz y los subtítulos": "Adding the presenter, voice and subtitles",
 }

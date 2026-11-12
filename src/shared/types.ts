@@ -356,6 +356,10 @@ export interface Task {
     ready?: boolean
     /** Hay foto del móvil. */
     mobile?: boolean
+    /** Quién presenta («hermes», «claude», «codex» o el id de un personaje tuyo); sin él, sin presentador. */
+    presenter?: string
+    /** Voz del presentador (id del selector de «/video»); sin ella, la del idioma. */
+    voice?: string
   }
   footage?: {
     mode: 'editar' | 'recortes'

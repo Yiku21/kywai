@@ -1194,53 +1194,82 @@ export async function previewVideoVoice(id: unknown, lang: string, sentence: str
   const mp3 = join(dir, `${safe}.mp3`)
   const wav = join(dir, `${safe}.wav`)
   if (!existsSync(mp3)) {
-    let ok = false
-    if (v.engine === 'voicebox') {
-      const vb = await voiceboxById(v.id)
-      if (!vb) throw new Error(tr('Voicebox no está abierto o ya no tiene esa voz'))
-      ok = await voiceboxSpeak(vb, sentence, wav, { timeoutMs: 120_000 })
-    } else if (v.engine === 'voicestudio') {
-      if (!(await voicestudioVoices())?.some((x) => x.id === v.id)) throw new Error(tr('VoiceStudio no está abierto o ya no tiene esa voz'))
-      ok = await voicestudioSpeak(v.id, sentence, wav, { language: lang, instructions: 'Friendly and natural', timeoutMs: 120_000 })
-      if (!ok) throw new Error(tr('VoiceStudio no devolvió la muestra: mira que tenga un motor de voz cargado'))
-    } else if (v.engine === 'eleven') {
-      if (!elevenKey()) throw new Error(tr('Falta la clave de ElevenLabs: pégala en Ajustes → Extensiones → Estudio de vídeo'))
-      const tmp = `${wav}.mp3`
-      ok = (await elevenSpeak(v.id, elevenLine(sentence, 'alegre'), tmp)) && (await toWav(tmp, wav))
-      if (!ok) throw new Error(tr('ElevenLabs no devolvió la muestra: mira la clave y los caracteres que te quedan'))
-    } else if (v.engine === 'gemini') {
-      const key = geminiApiKey()
-      if (!key) throw new Error(tr('Falta la clave de API de Gemini'))
-      ok = await geminiSpeak(sentence, 'Say this in a friendly, natural way', v.id, wav, key)
-    } else if (v.engine === 'edge') {
-      if (!(await ensureEdge())) throw new Error(tr('No se pudieron instalar las voces de Edge'))
-      const e = EDGE_VOICES.find((x) => x.id === v.id)!
-      ok = await edgeSpeak(v.id, e.lang === lang ? sentence : (VOICE_SAMPLES[e.lang] ?? VOICE_SAMPLES.en), wav)
-      if (!ok) throw new Error(tr('La voz de Edge necesita internet: no se pudo conectar'))
-    } else if (v.engine === 'mac') {
-      if (!IS_MAC) throw new Error(tr('Carmen es una voz de Siri: solo está en macOS'))
-      ok = await macSpeak(v.id, sentence, wav)
-      if (!ok) throw new Error(tr('Descarga la voz Carmen en Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema'))
-    } else if (v.engine === 'kokoro') {
-      if (!(await kokoroReady())) throw new Error(tr('Kokoro no está instalado: pulsa «Instalar lo que falta» en Ajustes → Extensiones → Estudio de vídeo'))
-      // Sin caer en la voz del sistema: la muestra tiene que ser de esa voz. Una voz de otro idioma lee una frase suya.
-      const kv = KOKORO_VOICE_LIST.find((x) => x.id === v.id)!
-      const text = kv.lang === lang ? sentence : (VOICE_SAMPLES[kv.lang] ?? VOICE_SAMPLES.en)
-      const r = await run(bin('hyperframes'), ['tts', text, '-v', kv.id, '-l', KOKORO_LANGS[kv.lang] ?? 'en-us', '-o', wav, '--json'], {
-        cwd: root,
-        env: { ...process.env, HYPERFRAMES_PYTHON: venvPython(), HYPERFRAMES_NO_TELEMETRY: '1' },
-        timeoutMs: 5 * 60_000
-      })
-      ok = r.code === 0 && existsSync(wav)
-    } else {
-      await speak(sentence, lang, wav, false)
-      ok = existsSync(wav)
-    }
-    if (!ok || !existsSync(wav)) throw new Error(tr('No se pudo generar la muestra de esa voz'))
+    await voiceLine(v, sentence, lang, wav, { sample: true })
     const c = await run('ffmpeg', ['-y', '-v', 'error', '-i', wav, '-ac', '1', '-b:a', '64k', mp3], { timeoutMs: 60_000 })
     if (c.code !== 0 || !existsSync(mp3)) return `data:audio/wav;base64,${readFileSync(wav).toString('base64')}`
   }
   return `data:audio/mpeg;base64,${readFileSync(mp3).toString('base64')}`
+}
+
+/**
+ * Una frase con una voz concreta, en un WAV. Lanza un error que se puede enseñar si esa voz no sale. Con `sample`
+ * (la muestra del selector), una voz de otro idioma lee una frase de su idioma.
+ */
+async function voiceLine(v: { engine: VoiceEngine; id: string }, sentence: string, lang: string, wav: string, opts: { sample?: boolean; signal?: AbortSignal } = {}): Promise<void> {
+  const { signal, sample } = opts
+  let ok = false
+  if (v.engine === 'voicebox') {
+    const vb = await voiceboxById(v.id)
+    if (!vb) throw new Error(tr('Voicebox no está abierto o ya no tiene esa voz'))
+    ok = await voiceboxSpeak(vb, sentence, wav, { timeoutMs: 120_000 })
+  } else if (v.engine === 'voicestudio') {
+    if (!(await voicestudioVoices())?.some((x) => x.id === v.id)) throw new Error(tr('VoiceStudio no está abierto o ya no tiene esa voz'))
+    ok = await voicestudioSpeak(v.id, sentence, wav, { language: lang, instructions: 'Friendly and natural', timeoutMs: 120_000 })
+    if (!ok) throw new Error(tr('VoiceStudio no devolvió la muestra: mira que tenga un motor de voz cargado'))
+  } else if (v.engine === 'eleven') {
+    if (!elevenKey()) throw new Error(tr('Falta la clave de ElevenLabs: pégala en Ajustes → Extensiones → Estudio de vídeo'))
+    const tmp = `${wav}.mp3`
+    ok = (await elevenSpeak(v.id, elevenLine(sentence, 'alegre'), tmp)) && (await toWav(tmp, wav))
+    if (!ok) throw new Error(tr('ElevenLabs no devolvió la muestra: mira la clave y los caracteres que te quedan'))
+  } else if (v.engine === 'gemini') {
+    const key = geminiApiKey()
+    if (!key) throw new Error(tr('Falta la clave de API de Gemini'))
+    ok = await geminiSpeak(sentence, 'Say this in a friendly, natural way', v.id, wav, key, signal)
+  } else if (v.engine === 'edge') {
+    if (!(await ensureEdge())) throw new Error(tr('No se pudieron instalar las voces de Edge'))
+    const e = EDGE_VOICES.find((x) => x.id === v.id)!
+    ok = await edgeSpeak(v.id, !sample || e.lang === lang ? sentence : (VOICE_SAMPLES[e.lang] ?? VOICE_SAMPLES.en), wav, signal)
+    if (!ok) throw new Error(tr('La voz de Edge necesita internet: no se pudo conectar'))
+  } else if (v.engine === 'mac') {
+    if (!IS_MAC) throw new Error(tr('Carmen es una voz de Siri: solo está en macOS'))
+    ok = await macSpeak(v.id, sentence, wav, signal)
+    if (!ok) throw new Error(tr('Descarga la voz Carmen en Ajustes del Sistema → Accesibilidad → Contenido leído → Voz del sistema'))
+  } else if (v.engine === 'kokoro') {
+    if (!(await kokoroReady())) throw new Error(tr('Kokoro no está instalado: pulsa «Instalar lo que falta» en Ajustes → Extensiones → Estudio de vídeo'))
+    // Sin caer en la voz del sistema: la muestra tiene que ser de esa voz. Una voz de otro idioma lee una frase suya.
+    const kv = KOKORO_VOICE_LIST.find((x) => x.id === v.id)!
+    const text = !sample || kv.lang === lang ? sentence : (VOICE_SAMPLES[kv.lang] ?? VOICE_SAMPLES.en)
+    const r = await run(bin('hyperframes'), ['tts', text, '-v', kv.id, '-l', KOKORO_LANGS[kv.lang] ?? 'en-us', '-o', wav, '--json'], {
+      cwd: root,
+      env: { ...process.env, HYPERFRAMES_PYTHON: venvPython(), HYPERFRAMES_NO_TELEMETRY: '1' },
+      timeoutMs: 5 * 60_000,
+      signal
+    })
+    ok = r.code === 0 && existsSync(wav)
+  } else {
+    await speak(sentence, lang, wav, false, signal)
+    ok = existsSync(wav)
+  }
+  if (!ok || !existsSync(wav)) throw new Error(tr('No se pudo generar la muestra de esa voz'))
+}
+
+/**
+ * La voz de un presentador («/demo» con presentador): la frase con la voz elegida («voz:<id>») o, sin elegir, con la
+ * del idioma (Álvaro en español, Bella en inglés). Si esa no sale (sin internet, sin la voz), con la del sistema.
+ * Devuelve lo que dura en segundos.
+ */
+export async function speakLine(text: string, lang: string, wav: string, voice?: string | null, signal?: AbortSignal): Promise<number> {
+  const chosen = parseVoiceId(voice) ?? parseVoiceId(defaultVoiceFor(lang))
+  rmSync(wav, { force: true })
+  if (chosen) {
+    try {
+      await voiceLine(chosen, text, lang, wav, { signal })
+    } catch (e) {
+      console.warn('[cowork] la voz elegida no salió; va la del sistema', (e as Error).message)
+    }
+  }
+  if (!existsSync(wav)) await speak(text, lang, wav, await kokoroReady(), signal)
+  return duration(wav)
 }
 
 export interface RenderedVideo {

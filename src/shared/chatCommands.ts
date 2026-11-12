@@ -29,7 +29,7 @@ export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
   { name: 'serie', aliases: ['series', 'episodios'], args: 'idea [en 5 episodios]', description: 'Una historia en episodios con los mismos personajes, cada uno acaba en suspense', icon: 'series' },
   { name: 'editar', aliases: ['edita', 'edit'], args: 'vídeo adjunto', description: 'Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos', icon: 'video' },
   { name: 'recortes', aliases: ['recorta', 'recortar', 'clips', 'clipify'], args: '[n] vídeo adjunto', description: 'Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos', icon: 'video' },
-  { name: 'demo', aliases: [], args: 'web [vertical]', description: 'Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos', icon: 'video' },
+  { name: 'demo', aliases: [], args: 'web [vertical]', description: 'Un anuncio en vídeo de una web o un repositorio de GitHub con fotos reales: acercamientos, el móvil y rótulos; con «presentador», un robot lo cuenta', icon: 'video' },
   { name: 'miniatura', aliases: ['miniaturas', 'portada', 'portadas', 'thumbnail'], args: '[vertical|horizontal] qué quieres', description: 'Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha', icon: 'video' },
   { name: 'doblar', aliases: ['dobla', 'doblaje', 'dub'], args: 'idioma', description: 'El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos', icon: 'video' },
   { name: 'aprende', aliases: ['aprender', 'learn'], args: 'enlace o vídeo', description: 'Convierte lo que enseña un vídeo en una habilidad', icon: 'learn' },

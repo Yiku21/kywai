@@ -2095,7 +2095,7 @@ Nada sale del equipo: sin claves de pago. Ideas de [video-use](https://github.co
 
 ### Vídeo de presentación de una web (`/demo`)
 
-**«/demo <web> [vertical] [lo que quieres destacar]»** hace un anuncio corto (de 18 a 35 s) de una web **con fotos
+**«/demo <web> [vertical] [presentador] [lo que quieres destacar]»** hace un anuncio corto (de 18 a 35 s) de una web **con fotos
 reales de la página**, no con imágenes inventadas: se ve la web de verdad, nítida y con su marca. Por defecto sale
 horizontal (1920×1080); con «vertical» (o «reel», «tiktok», «9:16») sale para Reels y TikTok (1080×1920). Ejemplo:
 «/demo kywai.app vertical que se vea el espacio 3D».
@@ -2115,6 +2115,30 @@ horizontal (1920×1080); con «vertical» (o «reel», «tiktok», «9:16») sal
 Hace falta la app de escritorio (las fotos las hace Electron). Idea de las fichas de planos de
 [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) (Apache-2.0), reimplementada sin Remotion.
 Código: `src/main/webDemo.ts` y `src/main/htmlShot.ts` (y `sendDemo`/`prepareDemo`/`completeDemo` en el orquestador).
+
+**Con presentador.** Añade «presentador» y un robot de kywai cuenta la web desde la esquina de abajo a la derecha, como
+en los reels de «mira esta herramienta»: entra desde abajo, flota y da saltitos mientras habla. Encima van un **rótulo
+rojo fijo arriba** (p. ej. «REPO DE GITHUB», lo elige el agente) y **subtítulos palabra a palabra** (la que suena en
+amarillo). Ejemplos: «/demo kywai.app vertical presentador», «/demo kywai.app presentador:claude voz:kokoro-af_bella».
+
+- Quién presenta: `presentador` (Hermes), `presentador:claude`, `presentador:codex` o el id de **un personaje tuyo**
+  de la biblioteca de «/video» (sale su primera imagen en un círculo con el borde del color de la marca).
+- Qué dice: el agente escribe una frase por plano (`"say"`, de 6 a 18 palabras, la primera engancha y la última es la
+  llamada a la acción). kywai graba cada frase con la voz elegida (`voz:<id>`, las mismas del selector de «/video») o,
+  sin elegir, con la del idioma (Álvaro en español, Bella en inglés); si esa voz no sale, con la del sistema.
+- Cada plano dura lo que su frase (como mínimo lo de su ficha) y la música va baja por debajo de la voz.
+- Si no sale ninguna voz, el vídeo se hace igual pero sin presentador. Si ffmpeg no tiene libass, sale sin subtítulos ni
+  rótulo.
+
+**Repositorios de GitHub.** Con un enlace a un repositorio («/demo github.com/dueño/repo vertical») kywai fotografía su
+portada (los datos y el README) y pide a la **API pública de GitHub** sus datos reales: estrellas, forks, licencia,
+lenguaje, temas y último cambio. El guion solo puede usar esas cifras y tiene una ficha más, **`repo`**: la tarjeta del
+repositorio (dueño / nombre, descripción y pastillas con ★ estrellas, forks, licencia y lenguaje). Con GitHub el
+presentador va **por defecto**; «sin presentador» lo quita.
+
+Código: `githubRepo`, `fetchRepoFacts`, `repoCardHtml`, `presenterHtml`, `spokenWords` y `finishWithPresenter` en
+`src/main/webDemo.ts`; la voz de cada frase con `speakLine` (`src/main/videoStudio.ts`) y el presentador con
+`demoVoices`/`demoPresenterInfo` en el orquestador. Idea del formato de los reels de «alerta de repo»; nada copiado.
 
 ### Portadas para tu vídeo (`/miniatura`)
 
