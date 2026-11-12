@@ -360,6 +360,33 @@
   overflow-wrap: anywhere;
 }
 
+.loginGuide {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--cyan) 8%, var(--bg-surface));
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.loginGuideLead {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.loginGuideSteps {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.loginGuideNote {
+  margin: 6px 0 0;
+  color: var(--text-3);
+}
+
 .keyForm {
   display: flex;
   align-items: center;

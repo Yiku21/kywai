@@ -15,6 +15,8 @@ import { readColibriSetup } from './agents/colibri'
 import { isGeminiKey } from './agents/gemini'
 import { asAdmin, detectPackageManager, findTerminal, LINUX_PACKAGES, nodeInstall, packageInstall, terminalArgs, which, withUserNpmPrefix, type LinuxPackageManager } from './linuxDesktop'
 import { tr } from '@shared/i18n'
+import { platformOf } from '@shared/loginGuide'
+import { writeLoginScript } from './loginScript'
 import { macLmStudioInstall, macNodeBin, macNodeInstall, macOllamaInstall, macPythonInstall, macUserBin, macUserPython } from './macTools'
 
 const IS_WIN = process.platform === 'win32'
@@ -431,28 +433,35 @@ export async function installTool(id: SetupToolId): Promise<SetupInstallResult> 
 
 // ---------- Inicio de sesión ----------
 
-/** Abre una terminal visible con la orden de inicio de sesión del CLI (el usuario la completa allí). */
+/**
+ * Abre una terminal visible con la orden de inicio de sesión del CLI (el usuario la completa allí). La ventana empieza
+ * explicando los pasos de ese agente y termina diciendo si salió bien (loginScript.ts).
+ */
 export async function openLogin(id: SetupToolId): Promise<void> {
   const def = toolDef(id)
   const cmd = def?.login
   if (!def || !cmd) throw new Error(tr('Este agente no necesita iniciar sesión'))
   const title = `kywai - ${def.label}`
+  const platform = platformOf(process.platform)
+  const file = writeLoginScript(id, def.label, platform, cmd)
   if (IS_WIN) {
-    const child = spawn('cmd.exe', ['/d', '/c', `start "${title}" cmd /k ${cmd}`], {
+    // «start» abre una ventana nueva; «cmd /k» la deja abierta al terminar para que se lea el final.
+    const child = spawn('cmd.exe', ['/d', '/c', `start "${title}" cmd /k ""${file}""`], {
       detached: true,
       stdio: 'ignore',
       windowsVerbatimArguments: true
     })
     child.unref()
   } else if (IS_MAC) {
-    const script = `tell application "Terminal" to do script "${cmd}"\ntell application "Terminal" to activate`
+    const run = `bash '${file.replace(/'/g, `'\\''`)}'`.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+    const script = `tell application "Terminal" to do script "${run}"\ntell application "Terminal" to activate`
     const child = spawn('osascript', ['-e', script], { detached: true, stdio: 'ignore' })
     child.unref()
   } else {
     // Linux: la terminal del escritorio ($TERMINAL, x-terminal-emulator, GNOME, KDE, Xfce…).
     const terminal = findTerminal()
     if (!terminal) throw new Error(tr('No se encontró ninguna terminal. Abre una y ejecuta: {cmd}', { cmd }))
-    const child = spawn(terminal, terminalArgs(terminal, cmd), { detached: true, stdio: 'ignore' })
+    const child = spawn(terminal, terminalArgs(terminal, `bash '${file.replace(/'/g, `'\\''`)}'`), { detached: true, stdio: 'ignore' })
     child.on('error', () => undefined)
     child.unref()
   }

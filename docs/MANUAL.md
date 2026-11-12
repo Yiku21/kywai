@@ -244,8 +244,15 @@ Al abrir la app instalada por primera vez aparece el **asistente de configuraci�
    `ollama` en `~/.local/bin`. LM Studio, su `.dmg` a Aplicaciones (solo existe para Apple silicon; en un Mac Intel
    sale «Descargar»). Copilot, Crush, gptme y Rovo Dev, con sus instaladores oficiales, npm o uv. Si Homebrew está,
    se usa como antes, y el asistente solo lo enseña si ya está instalado (está en `src/main/macTools.ts`).
-3. **Sesiones**: abre el inicio de sesión oficial de cada CLI en una ventana aparte (normalmente en el
-   navegador) y comprueba que quedó hecho. kywai no ve ni guarda contraseñas; para Gemini también puedes
+3. **Sesiones**: abre el inicio de sesión oficial de cada CLI en una ventana de terminal aparte (normalmente acaba
+   en el navegador) y comprueba que quedó hecho. **La ventana va guiada** (`src/main/loginScript.ts`): empieza con
+   «kywai · Conectar <agente>», los pasos de ese agente numerados, cómo se pega en esa terminal (clic derecho o Ctrl + V
+   en Windows, ⌘ + V en Mac, Ctrl + Mayús + V en Linux) y que no se ve nada al escribir una contraseña; luego ejecuta la
+   orden y al final dice «✓ Listo. Vuelve a kywai… Ya puedes cerrar esta ventana» o, si la orden falló, que se cierre y se
+   vuelva a pulsar «Iniciar sesión». Se escribe como archivo en la carpeta temporal (`kywai-login/<agente>.sh` o `.cmd`; en
+   Windows con `chcp 65001` y el texto escapado para cmd). Los pasos están en `src/shared/loginGuide.ts`: propios para
+   Claude, Codex, Gemini (primero la clave de AI Studio), Hermes (OpenRouter si no pagas) y Muse, y unos generales para los
+   del catálogo. El asistente enseña esos mismos pasos debajo del agente en cuanto se pulsa «Iniciar sesión». kywai no ve ni guarda contraseñas; para Gemini también puedes
    pegar una clave de API de Google AI Studio (gratis y sin tarjeta). Desde el 18 de junio de 2026, Google ya no deja
    usar Gemini CLI con una cuenta personal de Google sin pagar (la pasó a Antigravity CLI): con cuenta personal, usa
    la clave de AI Studio. Valen las claves de antes («AIza…») y las nuevas que crea AI Studio desde junio de 2026

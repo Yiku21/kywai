@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { RobotAvatar } from '@/lib/RobotAvatar'
 import { catalogEntry } from '@shared/agentCatalog'
 import { installOrder } from '@shared/setupTool'
+import { browserPlatform, loginSteps } from '@shared/loginGuide'
 import { LocalConfig } from '../quota/LocalConfig'
 import { AddAgent } from './AddAgent'
 import { cx, errorText } from '../common/util'
@@ -76,6 +77,8 @@ export function SetupWizard() {
   const [error, setError] = useState<string | null>(null)
   // Sesiones que el usuario ha pedido cambiar (lápiz): se enseñan como si faltaran hasta la siguiente comprobación.
   const [changing, setChanging] = useState<ReadonlySet<SetupToolId>>(new Set())
+  // Agentes cuyo «Iniciar sesión» ya se pulsó: debajo se enseñan los mismos pasos que salen en la ventana que se abrió.
+  const [guided, setGuided] = useState<ReadonlySet<SetupToolId>>(new Set())
   const [busy, setBusy] = useState(false)
   // Catálogo abierto: con todos o solo con los gratis.
   const [adding, setAdding] = useState<false | 'all' | 'free'>(false)
@@ -260,6 +263,7 @@ export function SetupWizard() {
     setError(null)
     try {
       await a.setupLogin(id)
+      setGuided((prev) => new Set(prev).add(id))
     } catch (e) {
       setError(errorText(e))
     }
@@ -529,7 +533,7 @@ export function SetupWizard() {
           {step === 2 && (
             <div className={s.section}>
               <p className={s.lead}>
-                {t('Cada agente inicia sesión con su propia cuenta en una ventana aparte (normalmente se abre el navegador). kywai no ve ni guarda tus contraseñas. Al volver aquí se comprueba solo.')}
+                {t('Pulsa «Iniciar sesión» en cada agente: se abre una ventana aparte que te explica paso a paso qué hacer (casi siempre, aceptar en el navegador). kywai no ve ni guarda tus contraseñas. Al volver aquí se comprueba solo.')}
               </p>
               <ul className={s.rows}>
                 {loginTools.map((id) => {
@@ -589,6 +593,17 @@ export function SetupWizard() {
                               {t('Guardar')}
                             </button>
                           </form>
+                        )}
+                        {guided.has(id) && showFix && (
+                          <div className={s.loginGuide}>
+                            <p className={s.loginGuideLead}>{t('Se ha abierto una ventana aparte. Sigue allí estos pasos:')}</p>
+                            <ol className={s.loginGuideSteps}>
+                              {loginSteps(id, agent?.name ?? id, browserPlatform()).map((step, i) => (
+                                <li key={i}>{step}</li>
+                              ))}
+                            </ol>
+                            <p className={s.loginGuideNote}>{t('¿No ves la ventana? Búscala en la barra de tareas o en el Dock. Al volver aquí se comprueba solo.')}</p>
+                          </div>
                         )}
                       </span>
                       {checking ? (
