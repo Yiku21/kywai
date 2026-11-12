@@ -39,7 +39,8 @@ import {
 } from 'lucide-react'
 import { useQuality, type QualityChoice } from '../../scene/quality'
 import { useMeter } from '../../scene/perfStats'
-import { SKINS, useAgentSkin, type AgentSkin } from '../../scene/characters'
+import { useAgentSkin } from '../../scene/characters'
+import { SkinGrid, skinText } from './SkinGrid'
 import { useInboxAlert } from '@/lib/inboxAlert'
 import type { AgentAccess, AgentConfig, ClientUpdateState } from '@shared/types'
 import { MAX_INSTANCES, MAX_TEAM_PARALLEL, instancesFor } from '@shared/instances'
@@ -294,23 +295,12 @@ function GeneralTab() {
   )
 }
 
-/** Nombre y explicación de cada aspecto de los agentes (skins). */
-function skinText(id: AgentSkin): { label: string; hint: string } {
-  switch (id) {
-    case 'clasico':
-      return { label: t('Clásico'), hint: t('Los robots de siempre, que gastan menos') }
-    case 'refugio':
-      return { label: t('Refugio Kywai'), hint: t('Robots de cerámica con ropa de tela, como en el tema Refugio Kywai') }
-    default:
-      return { label: t('Personajes'), hint: t('Personajes 3D animados; los agentes sin personaje se ven como robots clásicos') }
-  }
-}
-
 function AgentsTab() {
   const mode = useCowork((st) => st.mode)
   const access = useCowork((st) => st.config.agentAccess)
   const skin = useAgentSkin((st) => st.skin)
   const callIn3d = useInboxAlert((st) => st.callIn3d)
+  const [skinsOpen, setSkinsOpen] = useState(false)
   const approval = useCowork((st) => st.config.planApproval !== false)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -340,15 +330,20 @@ function AgentsTab() {
           </ActionButton>
         </Row>
       )}
-      <Row icon={<Bot size={18} />} label={t('Aspecto de los agentes')} hint={`${skinText(skin).hint}. ${t('Se queda aunque cambies de tema (en este dispositivo)')}`}>
-        <select className={s.select} value={skin} aria-label={t('Aspecto de los agentes')} onChange={(e) => useAgentSkin.getState().setSkin(e.currentTarget.value as AgentSkin)}>
-          {SKINS.map((id) => (
-            <option key={id} value={id}>
-              {skinText(id).label}
-            </option>
-          ))}
-        </select>
-      </Row>
+      <div className={s.block}>
+        <div className={s.blockHead}>
+          <Bot size={18} aria-hidden="true" className={s.rowIcon} />
+          <span className={s.rowText}>
+            <span className={s.rowLabel}>{t('Aspecto de los agentes')}</span>
+            <span className={s.rowHint}>{`${skinText(skin).hint}. ${t('Se queda aunque cambies de tema (en este dispositivo)')}`}</span>
+          </span>
+          <button type="button" className={cx(u.btn, u.btnSm, s.expand)} aria-expanded={skinsOpen} onClick={() => setSkinsOpen((v) => !v)}>
+            {skinText(skin).label}
+            <ChevronDown size={15} aria-hidden="true" className={cx(s.chev, skinsOpen && s.chevOpen)} />
+          </button>
+        </div>
+        {skinsOpen && <SkinGrid />}
+      </div>
       <Row
         icon={<BellRing size={18} />}
         label={t('El coordinador te avisa en el 3D')}

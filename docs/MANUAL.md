@@ -3850,17 +3850,28 @@ alrededor), explica y habla (al trabajar, se van alternando), celebra (tarea ter
 saluda (cuando le hablas) y camina (cuando se mueve a otra estación). Se reconocen por el nombre o el id del agente;
 los demás agentes y los becarios siguen siendo robots.
 
-Ajustes → Agentes → «Aspecto de los agentes» elige la skin de todos los agentes: **Personajes** (por defecto),
-**Clásico** (los robots de siempre, que gastan menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de
-ese tema). Se guarda en el dispositivo (`aicowork.agentes.skin`) y no cambia con el tema: antes el Refugio Kywai ponía
-sus robots y los demás temas los clásicos. Mientras carga el modelo se ve el robot clásico, y los agentes sin personaje
-también. Con personaje, los disfraces de Navidad y Halloween no se ponen. Para añadir otra skin: su id en `SKINS` y
-`AgentSkin` (`scene/characters.ts`), su nombre en `skinText` (`SettingsDialog.tsx`) y cómo se construye en `Robot.tsx`.
+Ajustes → Agentes → «Aspecto de los agentes» elige la skin de todos los agentes: el botón de la derecha (con el nombre de la skin actual) despliega tarjetas como las del selector de
+tema (foto de tres agentes y nombre): **Personajes** (por defecto), **Clásico** (los robots de siempre, que gastan
+menos) o **Refugio Kywai** (los robots de cerámica con ropa de tela de ese tema). Se guarda en el dispositivo
+(`aicowork.agentes.skin`) y no cambia con el tema: antes el Refugio Kywai ponía sus robots y los demás temas los
+clásicos. El icono del agente en el chat y en los paneles cambia con la skin (`lib/RobotAvatar.tsx`: dibujos en
+`assets/robots/` para Personajes, `assets/robots/clasico/` y `assets/robots/refugio/`). Mientras carga el modelo se ve
+el robot clásico, y los agentes sin personaje también. Con personaje, los disfraces de Navidad y Halloween no se ponen.
+
+Los personajes se apoyan en el suelo de verdad: cuando el agente está quieto se mira hacia abajo qué hay bajo sus pies
+(rayo contra la escena, sin contar luces, partículas ni cosas transparentes) y se le sube o baja hasta pisar la
+plataforma, porque cada tema tiene estaciones a distinta altura. No reciben sombra propia (en sus caras pequeñas
+dibujaba rayas) y las texturas van a 2048 px.
+
+Para añadir otra skin: su id en `SKINS` y `AgentSkin` (`scene/characters.ts`), su nombre y descripción en `skinText`
+(`ui/settings/SkinGrid.tsx`), su foto en `assets/skins/<id>.webp` (360×225, tres agentes), sus iconos en
+`assets/robots/<id>/` (`RobotAvatar.tsx`) y cómo se construye en `Robot.tsx`. Las fotos e iconos se sacaron
+renderizando la escena con Playwright en el modo web (`npm run web`) sobre fondo transparente.
 
 Archivos: `src/renderer/src/assets/personajes/` (un .glb por personaje y las animaciones en `anim/`),
 `scene/characters.ts` (carga, elección del movimiento y mezcla) y `Robot.tsx` (esconde el robot y pone el personaje;
 el puntero toca una cápsula invisible). Para rehacer uno: imagen de frente → Meshy image-to-3d (remallado a 30.000
-triángulos) → rigging con `height_meters: 1` → .glb sin tangentes, textura a 1024 y cuantizado.
+triángulos) → rigging con `height_meters: 1` → .glb sin tangentes, textura JPEG a 2048 y cuantizado (coordenadas de textura a 16 bits).
 
 ### Expresiones de los robots
 
