@@ -3429,4 +3429,5 @@ export const zh: Record<string, string> = {
   "Pulsa otra vez para borrarlo del todo": "再点一次即可彻底删除",
   "Ese archivo ya no está en el proyecto": "该文件已不在项目中",
   "No se encontró {name} en el disco": "磁盘上找不到 {name}",
+  "Automático: la oficina se oscurece poco a poco con la hora de tu reloj": "自动：办公室随你的时钟逐渐变暗",
 }

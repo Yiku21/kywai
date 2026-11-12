@@ -3552,4 +3552,5 @@ export const en: Record<string, string> = {
   "Pulsa otra vez para borrarlo del todo": "Click again to delete it for good",
   "Ese archivo ya no está en el proyecto": "That file is no longer in the project",
   "No se encontró {name} en el disco": "{name} was not found on disk",
+  "Automático: la oficina se oscurece poco a poco con la hora de tu reloj": "Automatic: the office darkens little by little with your clock",
 }

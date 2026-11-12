@@ -742,3 +742,24 @@ export function cityUniforms(p: ScenePalette = palette): Record<string, { value:
     uCorner: { value: p.corners ?? 0 }
   }
 }
+
+/** La Oficina de noche en automático: luces de la Sede con algo menos de cielo, para que quede casi negra. */
+export const OFFICE_NIGHT = { bg: '#05080e', fog: '#070b13', lights: { sky: '#3a4a66', ground: '#05070b', hemi: 0.3, ambient: '#aab8d4', ambientI: 0.1,
+  key: '#ffd9a8', keyI: 0.75, fill: '#5f7fbd', fillI: 0.35, env: ['#ffe9c8', '#9a8256', '#4c5d78', '#0b0f17'] as [string, string, string, string] } }
+
+/** Mezcla de dos juegos de luces ([t] = 0 el primero, 1 el segundo), para el atardecer de la Oficina automática. */
+export function mixLights(a: ScenePalette['lights'], b: ScenePalette['lights'], t: number): ScenePalette['lights'] {
+  if (t <= 0) return a
+  if (t >= 1) return b
+  const n = (x: number, y: number) => x + (y - x) * t
+  const c = (x: string, y: string) => mixHex(x, y, t)
+  return { sky: c(a.sky, b.sky), ground: c(a.ground, b.ground), hemi: n(a.hemi, b.hemi), ambient: c(a.ambient, b.ambient),
+    ambientI: n(a.ambientI, b.ambientI), key: c(a.key, b.key), keyI: n(a.keyI, b.keyI), fill: c(a.fill, b.fill), fillI: n(a.fillI, b.fillI),
+    env: a.env.map((x, i) => c(x, b.env[i])) as [string, string, string, string] }
+}
+
+/** Un color mezclado con otro (para el cielo y la niebla de la Oficina automática). */
+export function mixColor(a: string, b: string, t: number): string {
+  return t <= 0 ? a : t >= 1 ? b : mixHex(a, b, t)
+}
+

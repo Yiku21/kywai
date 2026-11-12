@@ -23,7 +23,8 @@ import { HERITAGE_WORLDS } from './heritageWorlds'
 import { HOME_PLANT_DECLARATIONS, HOME_PLANT_TRANSFORM } from './homeBreeze'
 import { UnderseaPlatform } from './UnderseaWorld'
 import { MarfilGarden } from './MarfilGarden'
-import { CORPORATE_GLASS, isCorporate } from './corporateWorlds'
+import { CORPORATE_GLASS, OFFICE_AFTER_DARK, isCorporate } from './corporateWorlds'
+import { officeClock } from '@/lib/officeClock'
 
 /** Shared geometry and material per batch; cleaned up when changing theme. No per-frame rebuilds. */
 export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
@@ -108,9 +109,16 @@ export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldSty
       mesh.name = `world-${key}`
       return mesh
     })
-    return { batches, textures, geometry, wind, breezeEnabled }
+    // Luces de la Oficina que se encienden al anochecer (modo automático).
+    const afterDark = style === 'oficina' ? batches.filter(m => OFFICE_AFTER_DARK.includes(groups.get(m.name.slice(6))?.[0]?.color ?? '')) : []
+    return { batches, textures, geometry, wind, breezeEnabled, afterDark }
   }, [pieces, style])
   useFrame(() => {
+    for (const m of resources.afterDark) {
+      const lit = officeClock.night
+      m.visible = lit > 0.04
+      ;(m.material as THREE.MeshPhysicalMaterial).emissiveIntensity = 1.3 * lit
+    }
     resources.wind.value = style === 'kywai' || !useCowork.getState().reducedEffects ? registry.time * 0.7 : 0
     resources.breezeEnabled.value = useCowork.getState().reducedEffects ? 0 : 1
     const water = resources.textures.get('water')

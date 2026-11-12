@@ -13,6 +13,7 @@ import { useSyncExternalStore } from 'react'
 import { setScenePalette } from '@/scene/palette'
 import type { WorldStyle } from '@/scene/worlds/models'
 import { t } from '@/lib/i18n'
+import { officeAuto, officeNight, onOfficeClock } from '@/lib/officeClock'
 
 /**
  * Los colores de la Ciudad digital, con nombres propios para no repetir los de los mapas. Los ids son los de cuando
@@ -126,7 +127,8 @@ let current: ThemeId = DEFAULT_THEME
 export function applyTheme(id: ThemeId): void {
   current = id
   const root = document.documentElement
-  root.dataset.theme = uiThemeOf(id)
+  // La Oficina en automático: la interfaz pasa a los colores de noche cuando ya casi ha anochecido.
+  root.dataset.theme = id === 'oficina' && officeAuto() && officeNight() > 0.6 ? 'sede' : uiThemeOf(id)
   const world = worldOf(id)
   if (world) root.dataset.world = world
   else delete root.dataset.world
@@ -255,3 +257,6 @@ if (typeof window !== 'undefined') {
     listeners.forEach((l) => l())
   })
 }
+
+// El reloj de la Oficina automática cambia los colores de la interfaz al anochecer y al amanecer.
+onOfficeClock(() => { if (current === 'oficina' && typeof document !== 'undefined') document.documentElement.dataset.theme = officeAuto() && officeNight() > 0.6 ? 'sede' : 'oficina' })

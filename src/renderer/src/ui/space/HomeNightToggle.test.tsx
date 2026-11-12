@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { applyTheme, setTheme, storedTheme } from '@/lib/theme'
 import { PALETTES, palette } from '@/scene/palette'
+import { setOfficeAuto, setOfficeClockTime } from '@/lib/officeClock'
 import { setHomeNight, storedHomeNight } from '@/lib/homeLighting'
 import { HomeNightToggle } from './HomeNightToggle'
 
@@ -12,7 +13,7 @@ beforeEach(()=>{
   setHomeNight(false);localStorage.removeItem('aicowork.kywai.night');applyTheme('kywai')
   host=document.createElement('div');document.body.appendChild(host);root=createRoot(host)
 })
-afterEach(async()=>{await act(async()=>root.unmount());host.remove();setHomeNight(false);setTheme('clasico')})
+afterEach(async()=>{await act(async()=>root.unmount());host.remove();setHomeNight(false);setOfficeAuto(false);setOfficeClockTime(null);setTheme('clasico')})
 
 describe('Kywai night switch',()=>{
   it('applies and remembers night mode without changing the selected theme',async()=>{
@@ -57,5 +58,30 @@ describe('Kywai night switch',()=>{
     expect(storedHomeNight()).toBe(false)
     await act(async()=>toggle.click())
     expect(storedTheme()).toBe('oficina')
+  })
+  it('in the Office, Auto follows the clock and the interface turns dark at night',async()=>{
+    await act(async()=>setTheme('sede'))
+    await act(async()=>root.render(<HomeNightToggle/>))
+    const auto=host.querySelector<HTMLButtonElement>('[aria-pressed]')!
+    await act(async()=>setOfficeClockTime('12:00'))
+    await act(async()=>auto.click())
+    expect(auto.getAttribute('aria-pressed')).toBe('true')
+    expect(storedTheme()).toBe('oficina')
+    const toggle=host.querySelector<HTMLButtonElement>('[role="switch"]')!
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect(document.documentElement.dataset.theme).toBe('oficina')
+    await act(async()=>setOfficeClockTime('22:00'))
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    expect(document.documentElement.dataset.theme).toBe('sede')
+    expect(storedTheme()).toBe('oficina')
+    // Tocar el interruptor deja el automático y fija la hora a mano.
+    await act(async()=>toggle.click())
+    expect(auto.getAttribute('aria-pressed')).toBe('false')
+    expect(storedTheme()).toBe('oficina')
+    expect(document.documentElement.dataset.theme).toBe('oficina')
+  })
+  it('shows Auto only in the Office',async()=>{
+    await act(async()=>root.render(<HomeNightToggle/>))
+    expect(host.querySelector('[aria-pressed]')).toBeNull()
   })
 })

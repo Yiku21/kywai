@@ -3429,4 +3429,5 @@ export const pt: Record<string, string> = {
   "Pulsa otra vez para borrarlo del todo": "Carrega outra vez para o apagar de vez",
   "Ese archivo ya no está en el proyecto": "Esse ficheiro já não está no projeto",
   "No se encontró {name} en el disco": "Não se encontrou {name} no disco",
+  "Automático: la oficina se oscurece poco a poco con la hora de tu reloj": "Automático: o escritório escurece aos poucos com a hora do seu relógio",
 }

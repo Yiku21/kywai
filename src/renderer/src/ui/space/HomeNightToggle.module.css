@@ -7,3 +7,6 @@
 .toggle[aria-checked='true'] .thumb{transform:translateX(12px)}
 @container spaceheader (width < 560px){.label{display:none}}
 @media(prefers-reduced-motion:reduce){.track,.thumb{transition:none}}
+.group{display:inline-flex;align-items:center;gap:6px;flex:none}
+.auto{gap:5px;padding:0 9px}
+.autoOn{color:var(--accent-text,var(--cyan));border-color:var(--cyan);background:rgba(var(--float-rgb,250,247,240),.95)}

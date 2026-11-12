@@ -3458,6 +3458,13 @@ plataformas, su peana para el núcleo y sus colores de interfaz (`scene/worlds/c
   ventanal de suelo a techo con la ciudad iluminada detrás, pared de nogal con estantes iluminados, sala del consejo
   de cristal con mesa larga y sillas de piel, recepción y butacas. Interfaz azul marino con latón suave.
 
+**Auto** (el botón del reloj, junto a «Modo noche», solo en la Oficina): la oficina de día se va oscureciendo con la
+hora del reloj de este dispositivo. Atardece de 17:00 a 20:30: baja la luz, el cielo y la niebla pasan a casi negro y
+se van encendiendo las ventanas de los edificios de enfrente; de 20:30 a 6:00 es de noche y amanece de 6:00 a 8:00. La
+interfaz pasa a los colores oscuros cuando ya casi ha anochecido. Se recuerda en cada dispositivo (cada uno tiene su
+reloj). Tocar «Modo noche» deja el automático y fija el día o la noche a mano. Para probarlo sin esperar, en el
+navegador se puede abrir kywai con `?hora=19:30` (`lib/officeClock.ts`).
+
 Son dos ids de tema, así que el cambio de día a noche se guarda en el servidor y lo siguen los demás dispositivos como
 cualquier cambio de tema. Los muebles se quitan solos si un puesto cae encima, y el vidrio es transparente de verdad
 (no da sombra). Órbita no tiene el interruptor: muestra «Oficina» y «Oficina · noche» en su lista, con sus colores.

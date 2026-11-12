@@ -29,6 +29,12 @@ const HQ = {
   leather: '#2b2521', warm: '#ffcf8a', pot: '#2d333b', soil: '#2a2119', leaves: ['#355f45', '#4b7a55', '#284c37']
 }
 
+/**
+ * Luces de la Oficina que solo se ven al anochecer en modo automático (ventanas de la ciudad, lámparas): WorldModel
+ * les sube el brillo con officeClock.night y las esconde de día.
+ */
+export const OFFICE_AFTER_DARK = ['#ffd6a1', '#c5d9ff', '#ffe4bd']
+
 /** Vidrio de verdad (transparente) en los muros cortina y las salas de reuniones. */
 export const CORPORATE_GLASS = [OFFICE.glass, HQ.glass]
 
@@ -120,6 +126,12 @@ function skyline(m: Model, near: string, far: string, night: boolean, detail: bo
       // De día, fachadas de vidrio en bandas y montantes.
       for (let y = -20; y < h - 23; y += 1.1) m.box([x, y, z + d / 2 + 0.02], [w * 0.94, 0.55, 0.02], '#a3b9cd')
       for (let k = 1; k < Math.floor(w / 1.2); k++) m.box([x - w / 2 + k * 1.2, h / 2 - 22, z + d / 2 + 0.04], [0.08, h - 1.5, 0.02], color)
+      // Las oficinas de enfrente que se encienden al anochecer (modo automático), sobre las bandas de vidrio.
+      for (let y = -20, r = 0; y < h - 23; y += 1.1, r++) for (let c = 0; c < Math.floor(w / 0.9); c++) {
+        const k = i * 991 + r * 37 + c
+        if (rnd(k) > 0.36 || (!detail && r % 2)) continue
+        m.box([x - w / 2 + (c + 0.5) * (w / Math.floor(w / 0.9)), y, z + d / 2 + 0.035], [w / Math.floor(w / 0.9) * 0.6, 0.4, 0.02], OFFICE_AFTER_DARK[rnd(k * 3) > 0.25 ? 0 : 1], 1.3)
+      }
       continue
     }
     const cols = Math.max(2, Math.floor(w / 0.62)), rows = Math.floor((h - 2) / 0.78)
