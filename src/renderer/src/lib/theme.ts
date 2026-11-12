@@ -2,7 +2,8 @@
 // - los siete mapas, cada uno con su entorno, plataformas y núcleo (ids «mundo-…», en scene/worlds/);
 // - la Ciudad digital, un mismo espacio con siete colores a elegir (Clásico, Frost Glass, Marfil, Grafito, Bosque,
 //   Matrix y EVA-01; antes eran siete temas sueltos y sus ids siguen igual, así nadie pierde el que tenía);
-// - cuatro con decoración propia (Relicario, Telar, Halloween y Navidad).
+// - cuatro con decoración propia (Relicario, Telar, Halloween y Navidad);
+// - dos de empresa, sobrios, para usar kywai en el trabajo (Oficina y Sede central).
 // Se aplican al momento con data-theme en <html> (las variables de tokens.css cambian; un mapa usa los colores de la
 // interfaz del color con su nombre) y data-world (solo en los mapas), y con la paleta del espacio digital
 // (scene/palette.ts). El tema lo guarda el servidor y lo siguen todos los dispositivos conectados a él (escritorio,
@@ -22,7 +23,8 @@ export type DecorTheme = 'relicario' | 'telar' | 'halloween' | 'navidad'
 export type WorldTheme = `mundo-${WorldStyle}`
 export type HomeTheme = 'kywai'
 export type SeaTheme = 'submarino'
-export type ThemeId = CityColor | DecorTheme | WorldTheme | HomeTheme | SeaTheme
+export type CorporateTheme = 'oficina' | 'sede'
+export type ThemeId = CityColor | DecorTheme | WorldTheme | HomeTheme | SeaTheme | CorporateTheme
 
 export interface ThemeInfo<Id extends ThemeId = ThemeId> {
   id: Id
@@ -64,8 +66,14 @@ export const HOME: ThemeInfo<HomeTheme> = { id: 'kywai', name: t('Refugio Kywai'
 
 export const SEA: ThemeInfo<SeaTheme> = { id: 'submarino', name: t('Fondo marino'), hint: t('Un arrecife vivo con peces, medusas y una perla de luz') }
 
+/** Los temas de empresa: sobrios, para trabajar o enseñar kywai a un cliente. */
+export const CORPORATE: ReadonlyArray<ThemeInfo<CorporateTheme>> = [
+  { id: 'oficina', name: t('Oficina'), hint: t('Planta diáfana y luminosa, con puestos, cristal y plantas') },
+  { id: 'sede', name: t('Sede central'), hint: t('Planta alta de un rascacielos de noche, con nogal, latón y la ciudad detrás') }
+]
+
 /** Todos los temas que se pueden elegir. */
-export const THEMES: ReadonlyArray<ThemeInfo> = [HOME, SEA, ...WORLDS, ...CITY_COLORS, ...DECORS]
+export const THEMES: ReadonlyArray<ThemeInfo> = [HOME, SEA, ...WORLDS, ...CITY_COLORS, ...DECORS, ...CORPORATE]
 
 export const DEFAULT_THEME: ThemeId = 'clasico'
 
@@ -79,8 +87,8 @@ export function worldOf(id: ThemeId): WorldStyle | undefined {
 }
 
 /** Los colores de la interfaz (data-theme): un mapa usa los del color con su nombre; el resto, los suyos. */
-export function uiThemeOf(id: ThemeId): CityColor | DecorTheme | HomeTheme | SeaTheme {
-  return worldOf(id) ?? (id as CityColor | DecorTheme | HomeTheme | SeaTheme)
+export function uiThemeOf(id: ThemeId): CityColor | DecorTheme | HomeTheme | SeaTheme | CorporateTheme {
+  return worldOf(id) ?? (id as CityColor | DecorTheme | HomeTheme | SeaTheme | CorporateTheme)
 }
 
 /** El nombre para mostrar: «Ciudad digital · Grafito» en la ciudad, el nombre a secas en los demás. */
@@ -230,7 +238,7 @@ export function useTheme(): ThemeId {
 }
 
 /** Los colores de la interfaz del tema actual (lo que hay en data-theme). */
-export function useUiTheme(): CityColor | DecorTheme | HomeTheme | SeaTheme {
+export function useUiTheme(): CityColor | DecorTheme | HomeTheme | SeaTheme | CorporateTheme {
   return uiThemeOf(useTheme())
 }
 

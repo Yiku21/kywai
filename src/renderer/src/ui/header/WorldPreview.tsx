@@ -2,7 +2,7 @@ import type { ThemeId } from '@/lib/theme'
 
 /** Small, static silhouettes: no extra WebGL canvases in the theme picker. */
 export function WorldPreview({ id }: { id: ThemeId }) {
-  const colors: Partial<Record<ThemeId, string>> = { clasico: '#6bd5ff', orbita: '#a3dfff', marfil: '#467c68', grafito: '#e4ac53', bosque: '#88c379', matrix: '#4cff94', eva: '#b2eb58', relicario: '#dbbc7c', telar: '#bdc9e7', halloween: '#ffa34f', navidad: '#d4deb9', kywai: '#76c7b8', submarino: '#64eaff' }
+  const colors: Partial<Record<ThemeId, string>> = { clasico: '#6bd5ff', orbita: '#a3dfff', marfil: '#467c68', grafito: '#e4ac53', bosque: '#88c379', matrix: '#4cff94', eva: '#b2eb58', relicario: '#dbbc7c', telar: '#bdc9e7', halloween: '#ffa34f', navidad: '#d4deb9', kywai: '#76c7b8', submarino: '#64eaff', oficina: '#2f6fe4', sede: '#c8a86a' }
   const color = colors[id]
   if (!color) return null
   return <svg viewBox="0 0 120 84" width="100%" height="100%" aria-hidden="true" fill="none" stroke={color} strokeWidth="1.4">
@@ -41,6 +41,7 @@ export function WorldPreview({ id }: { id: ThemeId }) {
     {id === 'telar' && <><path d="M60 5v74 M7 42h106 M23 10l74 64 M97 10 23 74 M13 22l94 40 M13 62l94-40" />{[13,25,37].map(r=><ellipse key={r} cx="60" cy="42" rx={r*1.3} ry={r} />)}<circle cx="60" cy="42" r="5" /></>}
     {id === 'halloween' && <><path d="M14 69V29h17V13l8 16v40 M89 69V29h17V13l8 16v40 M31 36 60 17 89 36 M48 70V48q12-20 24 0v22" /><circle cx="60" cy="33" r="8" /><ellipse cx="21" cy="73" rx="12" ry="8" /><ellipse cx="99" cy="73" rx="12" ry="8" /></>}
     {id === 'navidad' && <><path d="M5 44 24 26 43 44v25H5Z M77 44l19-18 19 18v25H77Z M17 49h12v14H17Z M90 49h12v14H90Z M60 23 47 43h7L43 57h34L66 43h7Z" /><circle cx="60" cy="42" r="26" /><ellipse cx="60" cy="72" rx="30" ry="6" /><path d="m60 9 2 5 5 1-4 3 1 5-4-3-4 3 1-5-4-3 5-1Z" /></>}
+    {(id === 'oficina' || id === 'sede') && <><path d="M6 60V8h108v52 M6 60h108 M24 8v52 M42 8v52 M60 8v52 M78 8v52 M96 8v52 M6 26h108 M6 43h108" /><ellipse cx="60" cy="68" rx="30" ry="7" /><circle cx="60" cy="50" r="9" /><path d="M14 74h20 M86 74h20" /></>}
     {id === 'eva' && <>
       <path d="M10 69V15h23v8H20v46 M110 69V15H87v8h13v46 M26 12h68 M29 7l7 5 M44 7l7 5 M59 7l7 5 M74 7l7 5 M89 7l7 5" />
       <rect x="48" y="22" width="24" height="43" rx="12" /><path d="M43 29v30 M77 29v30 M46 29h28 M46 57h28 M30 73h60" />

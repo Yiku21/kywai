@@ -783,6 +783,7 @@ private fun part5(m: HashMap<String, String>) {
     m["Ya se está enviando"] = "Já está sendo enviada"
     m["Tema cambiado en todos tus dispositivos"] = "Tema alterado em todos os seus dispositivos"
     m["Mapas"] = "Mapas"
+    m["Empresa"] = "Empresa"
     m["Decorados"] = "Decorados"
     m["Tema propio en este móvil"] = "Tema próprio neste celular"
     m["Órbita tiene su tema y no cambia cuando lo cambias en el ordenador."] = "O Órbita tem o seu tema e não muda quando você o muda no computador."

@@ -87,6 +87,8 @@ object OrbitaThemes {
         "telar" to ThemeTokens(0xFF0A0B0F, 0xFF111319, 0xFF171A21, 0xFFEEF0F6, 0xFFACB2C2, 0xFF737A8C, 0xFFB8C4E0, 0xFFC8D0E4),
         "halloween" to ThemeTokens(0xFF0B0610, 0xFF130C19, 0xFF1A1122, 0xFFF6EEF4, 0xFFC2B0BF, 0xFF87768A, 0xFFFF8A1F, 0xFFDCBEE6, warn = 0xFFFFC15A),
         "navidad" to ThemeTokens(0xFF07110F, 0xFF0D1A18, 0xFF12231F, 0xFFEEF6F2, 0xFFAAC2B8, 0xFF6F8A80, 0xFFF0C050, 0xFFBEE1D2, danger = 0xFFFF5A5A),
+        "oficina" to ThemeTokens(0xFFE9EDF1, 0xFFF5F7F9, 0xFFFBFCFD, 0xFF172033, 0xFF4A5568, 0xFF7B8696, 0xFF2F6FE4, 0xFF334155, light = true, live = 0xFF16A34A, warn = 0xFFB4761A, danger = 0xFFD03A3A),
+        "sede" to ThemeTokens(0xFF080D16, 0xFF0E1521, 0xFF141C2A, 0xFFEEF1F6, 0xFFAAB4C4, 0xFF727D8F, 0xFFC8A86A, 0xFFC4CEDE),
     )
 
     /** Los colores de la interfaz de un tema: un mapa («mundo-bosque») usa los del color con su nombre, como el escritorio. */
@@ -97,14 +99,16 @@ object OrbitaThemes {
     private val cityNames = mapOf("clasico" to "Índigo", "orbita" to "Frost Glass", "marfil" to "Perla", "grafito" to "Ónix", "bosque" to "Esmeralda", "matrix" to "Neón", "eva" to "Ultravioleta")
     private val otherNames = mapOf(
         "relicario" to "Relicario", "telar" to "Telar", "halloween" to "Halloween", "navidad" to "Navidad",
+        "oficina" to "Oficina", "sede" to "Sede central",
         "mundo-clasico" to "Clásico", "mundo-orbita" to "Órbita", "mundo-marfil" to "Marfil", "mundo-grafito" to "Grafito",
         "mundo-bosque" to "Bosque", "mundo-matrix" to "Matrix", "mundo-eva" to "EVA-01",
     )
 
-    /** Los temas que se pueden elegir desde el móvil, en los grupos del escritorio (Mapas, Ciudad digital y Decorados). */
+    /** Los temas que se pueden elegir desde el móvil, en los grupos del escritorio (Mapas, Ciudad digital, Empresa y Decorados). */
     fun groups(): List<Pair<String, List<String>>> = listOf(
         t("Mapas") to listOf("mundo-clasico", "mundo-orbita", "mundo-marfil", "mundo-grafito", "mundo-bosque", "mundo-matrix", "mundo-eva"),
         t("Ciudad digital") to cityNames.keys.toList(),
+        t("Empresa") to listOf("oficina", "sede"),
         t("Decorados") to listOf("relicario", "telar", "halloween", "navidad"),
     )
 

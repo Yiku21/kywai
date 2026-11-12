@@ -4,7 +4,7 @@ import { DEFAULT_STATIONS } from '@shared/defaults'
 import { frontalOverview, framedFog, OVERVIEW_FOV } from './cameraFraming'
 import type { WorldStyle } from './worlds/models'
 
-const worlds: (WorldStyle | undefined)[] = [undefined, 'eva', 'clasico', 'grafito', 'bosque', 'matrix', 'marfil', 'orbita', 'kywai', 'submarino', 'relicario', 'telar', 'halloween', 'navidad']
+const worlds: (WorldStyle | undefined)[] = [undefined, 'eva', 'clasico', 'grafito', 'bosque', 'matrix', 'marfil', 'orbita', 'kywai', 'submarino', 'relicario', 'telar', 'halloween', 'navidad', 'oficina', 'sede']
 
 describe('cámara de frente ligeramente elevada', () => {
   it.each(worlds)('%s mantiene 18 grados también en paneles estrechos y al descontar el chat', world => {

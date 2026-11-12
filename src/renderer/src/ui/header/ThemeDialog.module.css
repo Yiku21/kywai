@@ -381,3 +381,15 @@
  --pv-line:rgba(173,225,230,.35);--pv-bubble:#174e5b;--pv-accent:#64eaff;
  --pv-stage:linear-gradient(180deg,#14b4ca,#086a90 48%,#87b9bf);--pv-glow:rgba(110,231,255,.55);
 }
+
+.preview[data-preview='oficina'] {
+  --pv-app: #e9edf1; --pv-panel: #f5f7f9; --pv-border: rgba(51, 65, 85, 0.22);
+  --pv-line: rgba(51, 65, 85, 0.3); --pv-bubble: #dfe5ec; --pv-accent: #2f6fe4;
+  --pv-stage: linear-gradient(180deg, #cfe0ee, #e3e9ef 55%, #c9cfd6); --pv-glow: rgba(47, 111, 228, 0.3);
+}
+
+.preview[data-preview='sede'] {
+  --pv-app: #080d16; --pv-panel: #0e1521; --pv-border: rgba(200, 168, 106, 0.28);
+  --pv-line: rgba(196, 206, 222, 0.3); --pv-bubble: #1a2333; --pv-accent: #c8a86a;
+  --pv-stage: linear-gradient(180deg, #0a111d, #141c2a 55%, #1e242c); --pv-glow: rgba(200, 168, 106, 0.45);
+}

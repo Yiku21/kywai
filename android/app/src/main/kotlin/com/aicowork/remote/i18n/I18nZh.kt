@@ -783,6 +783,7 @@ private fun part5(m: HashMap<String, String>) {
     m["Ya se está enviando"] = "正在发送中"
     m["Tema cambiado en todos tus dispositivos"] = "已在你的所有设备上更改主题"
     m["Mapas"] = "地图"
+    m["Empresa"] = "企业"
     m["Decorados"] = "装饰"
     m["Tema propio en este móvil"] = "此手机使用单独主题"
     m["Órbita tiene su tema y no cambia cuando lo cambias en el ordenador."] = "Órbita 保留自己的主题，在电脑上更改时不会跟着变。"

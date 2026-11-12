@@ -2,7 +2,8 @@
 // - la Ciudad digital con siete colores (PALETTES: el clásico índigo y los que recolorean suelo, ciudad, estaciones,
 //   circuitos, núcleo y luces);
 // - los siete mapas con entorno, plataformas y núcleo propios (WORLD_PALETTES, montados desde worlds/);
-// - los cuatro decorados (Relicario, Telar, Halloween y Navidad, también en PALETTES).
+// - los cuatro decorados (Relicario, Telar, Halloween y Navidad, también en PALETTES);
+// - los dos de empresa (Oficina y Sede central, también en PALETTES), sobrios y con entorno propio (worlds/corporateWorlds.ts).
 // Al cambiar de tema el mundo se vuelve a montar (los materiales leen la paleta al crearse) y los compartidos se repintan con onPalette.
 import * as THREE from 'three'
 import type { WorldStyle } from './worlds/models'
@@ -157,7 +158,7 @@ function theme(p: Omit<ScenePalette, 'rimLow' | 'idle'>): ScenePalette {
   return { ...p, rimLow: p.rim, idle: mixHex(p.primary, p.body, 0.45) }
 }
 
-export type SceneThemeId = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'relicario' | 'telar' | 'halloween' | 'navidad' | 'kywai' | 'submarino'
+export type SceneThemeId = 'clasico' | 'orbita' | 'marfil' | 'grafito' | 'bosque' | 'matrix' | 'eva' | 'relicario' | 'telar' | 'halloween' | 'navidad' | 'kywai' | 'submarino' | 'oficina' | 'sede'
 
 export const PALETTES: Record<SceneThemeId, ScenePalette> = {
   kywai: { ...CLASSIC, world: 'kywai', core: 'tree', light: true, bloom: .28,
@@ -167,6 +168,20 @@ export const PALETTES: Record<SceneThemeId, ScenePalette> = {
     lights: { sky: '#ede5f5', ground: '#9a795c', hemi: 1.3, ambient: '#fff3df', ambientI: .65,
       key: '#ffd2a1', keyI: 2.05, fill: '#c3cdeb', fillI: .85, env: ['#fff3d8','#e5c4a0','#b8c8eb','#91765e'] } },
   submarino: { ...CLASSIC, world: 'submarino', light: false, bg: '#03435f', fog: '#075570', body:'#cecbb9', bodyTop:'#eee5ce', rim:'#d5b572', rimLow:'#32cbd8', idle:'#53e6ff', primary:'#39d4ed', secondary:'#b28bea', accent:'#74efff', bloom:.55, vignette:.12, lights:{ sky:'#9ae9ff',ground:'#18384c',hemi:.65,ambient:'#56a7bc',ambientI:.24,key:'#e0f5ff',keyI:1.65,fill:'#238cd4',fillI:.65,env:['#b7ffff','#42bddd','#eddcb9','#0c718f'] } },
+  // Oficina: planta diáfana de día, blanco, gris acero y un azul de empresa.
+  oficina: { ...CLASSIC, world: 'oficina', light: true, bloom: 0.25, vignette: 0.14,
+    bg: '#e3e9ef', fog: '#e3e9ef', primary: '#2f6fe4', secondary: '#64748b', accent: '#0ea5e9',
+    body: '#e6eaee', bodyTop: '#ffffff', rim: '#2f6fe4', rimLow: '#9ba5af', idle: '#8ea3bd',
+    ink: [0.1, 0.13, 0.18], frost: { opacity: 0.9, color: [0.95, 0.96, 0.98] },
+    lights: { sky: '#f4f8ff', ground: '#aab1b9', hemi: 1.25, ambient: '#ffffff', ambientI: 0.6,
+      key: '#fff6ea', keyI: 2.0, fill: '#d2e1ff', fillI: 0.75, env: ['#ffffff', '#dbe6f5', '#b9c9de', '#8a96a6'] } },
+  // Sede central: planta alta de un rascacielos de noche, azul marino, nogal y latón.
+  sede: { ...CLASSIC, world: 'sede', light: false, bloom: 0.8, vignette: 0.4,
+    bg: '#0a111d', fog: '#0c1422', primary: '#c8a86a', secondary: '#7f93ad', accent: '#e9d3a4',
+    body: '#1b2230', bodyTop: '#273142', rim: '#c8a86a', rimLow: '#8a7448', idle: '#8f8a7c',
+    frost: { opacity: 0.82, color: [0.07, 0.09, 0.13] },
+    lights: { sky: '#53627e', ground: '#0b0f16', hemi: 0.75, ambient: '#c9d4ea', ambientI: 0.25,
+      key: '#ffe2b8', keyI: 1.45, fill: '#6f8fc8', fillI: 0.55, env: ['#fff1d8', '#c8a86a', '#7f93ad', '#1b2230'] } },
   clasico: CLASSIC,
   orbita: CLASSIC,
   // Claro y cálido: suelo de piedra, ciudad blanca con ventanas doradas, circuitos verdes y aros dorados.
@@ -613,6 +628,8 @@ export const WORLD_PALETTES: Record<WorldStyle, ScenePalette> = {
   halloween: PALETTES.halloween,
   navidad: PALETTES.navidad,
   kywai: PALETTES.kywai,
+  oficina: PALETTES.oficina,
+  sede: PALETTES.sede,
   clasico: { ...CLASSIC, world: 'clasico', core: 'hologram' },
   orbita: {
     ...CLASSIC,

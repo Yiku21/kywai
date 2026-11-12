@@ -66,6 +66,8 @@ class SpaceGrade private constructor(val key: String, private val accent: FloatA
             "telar" to Scene(0xFF0A0B0F.toInt(), 0xFFC9D0DE.toInt(), 0xFFF0C27A.toInt(), 0xFFFFFFFF.toInt()),
             "halloween" to Scene(0xFF0D0714.toInt(), 0xFFFF8A1F.toInt(), 0xFF8A4DFF.toInt(), 0xFFFFC15A.toInt()),
             "navidad" to Scene(0xFF0B1424.toInt(), 0xFFE8B84A.toInt(), 0xFFD83A3A.toInt(), 0xFF3FBF6A.toInt()),
+            "oficina" to Scene(0xFFE3E9EF.toInt(), 0xFF2F6FE4.toInt(), 0xFF64748B.toInt(), 0xFF0EA5E9.toInt(), light = true),
+            "sede" to Scene(0xFF0A111D.toInt(), 0xFFC8A86A.toInt(), 0xFF7F93AD.toInt(), 0xFFE9D3A4.toInt()),
             // Mapas con colores propios (WORLD_PALETTES); los demás usan los del color con su nombre.
             "mundo-orbita" to Scene(0xFF020611.toInt(), 0xFF649FFF.toInt(), 0xFF8B5CFF.toInt(), 0xFFA0E7FF.toInt()),
         )

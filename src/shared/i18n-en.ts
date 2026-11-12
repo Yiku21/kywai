@@ -3416,4 +3416,10 @@ export const en: Record<string, string> = {
   "Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos": "Edits your recording: removes filler words, silences and repeated takes, cleans the voice and adds subtitles",
   "Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos": "Takes the best moments of a long video as vertical clips with subtitles",
   "Aquí tienes un clip de «{name}», listo para Reels y TikTok:": "Here’s a clip from “{name}”, ready for Reels and TikTok:",
+  "Oficina": "Office",
+  "Sede central": "Headquarters",
+  "Planta diáfana y luminosa, con puestos, cristal y plantas": "Bright open-plan floor with desks, glass and plants",
+  "Planta alta de un rascacielos de noche, con nogal, latón y la ciudad detrás": "Top floor of a skyscraper at night, with walnut, brass and the city behind",
+  "Empresa": "Business",
+  "Sobrios, para usar kywai en el trabajo": "Understated, for using kywai at work",
 }

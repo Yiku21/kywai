@@ -23,6 +23,7 @@ import { HERITAGE_WORLDS } from './heritageWorlds'
 import { HOME_PLANT_DECLARATIONS, HOME_PLANT_TRANSFORM } from './homeBreeze'
 import { UnderseaPlatform } from './UnderseaWorld'
 import { MarfilGarden } from './MarfilGarden'
+import { CORPORATE_GLASS, isCorporate } from './corporateWorlds'
 
 /** Shared geometry and material per batch; cleaned up when changing theme. No per-frame rebuilds. */
 export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldStyle }) {
@@ -68,6 +69,8 @@ export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldSty
         mat.transmission = ['#85bac9','#bfdce3'].includes(first.color) ? .58 : .94; mat.thickness = .6; mat.ior = 1.46; mat.attenuationColor = new THREE.Color('#b1d1de'); mat.attenuationDistance = 5;
         mat.clearcoat = 1; mat.envMapIntensity = 1.7; mat.emissiveIntensity = 0; mat.flatShading = true;
       }
+      // Vidrio de los muros cortina y las salas de reuniones de los temas de empresa: se ve la ciudad a través.
+      if (isCorporate(style) && CORPORATE_GLASS.includes(first.color)) { mat.map=null;mat.normalMap=null;mat.roughnessMap=null;mat.roughness=.06;mat.metalness=.1;mat.clearcoat=1;mat.transparent=true;mat.opacity=style === 'oficina' ? .16 : .2;mat.depthWrite=false;mat.envMapIntensity=1.4 }
       if(style === 'relicario' && first.color === '#4c7d89') { mat.map=null;mat.normalMap=null;mat.roughnessMap=null;mat.roughness=.10;mat.metalness=.12;mat.clearcoat=1;mat.transparent=true;mat.opacity=.31;mat.depthWrite=false;mat.envMapIntensity=1.8 }
       if (!moving && first.shape === 'leaf') {
         mat.onBeforeCompile = shader => {
@@ -91,7 +94,7 @@ export function WorldModel({ pieces, style }: { pieces: Piece[]; style: WorldSty
         depth.onBeforeCompile=animate;depth.customProgramCacheKey=()=> 'kywai-coastal-breeze-depth'
         mesh.customDepthMaterial=depth
       }
-      mesh.castShadow = !small && !(first.glow && first.glow > 0.4)
+      mesh.castShadow = !small && !(first.glow && first.glow > 0.4) && !(isCorporate(style) && CORPORATE_GLASS.includes(first.color))
       mesh.receiveShadow = true
       const matrix = new THREE.Matrix4(), pos = new THREE.Vector3(), size = new THREE.Vector3(), quat = new THREE.Quaternion()
       for (let i = 0; i < parts.length; i++) {

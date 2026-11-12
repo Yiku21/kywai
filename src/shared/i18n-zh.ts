@@ -3297,4 +3297,10 @@ export const zh: Record<string, string> = {
   "Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos": "剪辑你的录像：去掉口头禅、停顿和重复镜头，清理人声并加字幕",
   "Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos": "把长视频中最精彩的时刻剪成带字幕的竖屏片段",
   "Aquí tienes un clip de «{name}», listo para Reels y TikTok:": "这是「{name}」的一个片段，可直接用于 Reels 和 TikTok：",
+  "Oficina": "办公室",
+  "Sede central": "总部",
+  "Planta diáfana y luminosa, con puestos, cristal y plantas": "明亮的开放式办公区，有工位、玻璃和绿植",
+  "Planta alta de un rascacielos de noche, con nogal, latón y la ciudad detrás": "夜晚摩天大楼的顶层，胡桃木、黄铜，背后是城市",
+  "Empresa": "企业",
+  "Sobrios, para usar kywai en el trabajo": "简洁稳重，适合在工作中使用 kywai",
 }

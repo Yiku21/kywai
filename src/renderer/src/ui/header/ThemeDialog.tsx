@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import {
   CITY_COLORS,
+  CORPORATE,
   DECORS,
   DEFAULT_THEME,
   WORLDS,
@@ -22,8 +23,8 @@ import { HOME, SEA } from '@/lib/theme'
 import { WorldPreview } from './WorldPreview'
 
 /**
- * Los temas (Ajustes → General), en dos grupos: los mapas (con la Ciudad digital como una tarjeta más, que al elegirla
- * despliega debajo la fila de sus colores) y los decorados. Cada tarjeta es un botón de opción; los colores, otro grupo.
+ * Los temas (Ajustes → General), en tres grupos: los mapas (con la Ciudad digital como una tarjeta más, que al elegirla
+ * despliega debajo la fila de sus colores), los de empresa y los decorados. Cada tarjeta es un botón de opción; los colores, otro grupo.
  */
 export function ThemeGrid() {
   const theme = useTheme()
@@ -63,6 +64,11 @@ export function ThemeGrid() {
             ))}
           </div>
         )}
+      </Group>
+      <Group title={t('Empresa')} hint={t('Sobrios, para usar kywai en el trabajo')}>
+        {CORPORATE.map((th) => (
+          <Card key={th.id} info={th} on={theme === th.id} onPick={() => setTheme(th.id)} />
+        ))}
       </Group>
       <Group title={t('Decorados')} hint={t('Escenarios propios de fantasía o de temporada')}>
         {DECORS.map((th) => (
@@ -137,7 +143,7 @@ function Preview({ id }: { id: ThemeId }) {
         <img className={s.pvShot} src={shot} alt="" loading="lazy" draggable={false} />
       ) : (
         <span className={s.pvStage}>
-          {id === 'kywai' || id === 'submarino' || DECORS.some(d => d.id === id) ? <WorldPreview id={id} /> : worldOf(id) ? <WorldPreview id={worldOf(id)!} /> : <span className={s.pvCore} />}
+          {id === 'kywai' || id === 'submarino' || DECORS.some(d => d.id === id) || CORPORATE.some(c => c.id === id) ? <WorldPreview id={id} /> : worldOf(id) ? <WorldPreview id={worldOf(id)!} /> : <span className={s.pvCore} />}
         </span>
       )}
     </span>

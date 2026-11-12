@@ -4,6 +4,7 @@ import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Solid, WorldStyle } from './models'
 import { curvedHomeTimber } from './homeJoinery'
 import { homeSurfaceMaps, type HomeSurface } from './homeMaterials'
+import { corporateSurface, isCorporate } from './corporateWorlds'
 
 type Surface = HomeSurface | 'alloy' | 'paint' | 'rubber' | 'brass' | 'stone' | 'water' | 'wood' | 'endgrain' | 'leaf' | 'earth' | 'masonry'
 
@@ -61,6 +62,7 @@ export function surfaceMaps(surface: Surface) {
 }
 
 export function surfaceFor(world: WorldStyle, shape: Solid, color: string): Surface {
+  if (isCorporate(world)) return corporateSurface(shape, color)
   if (world === 'submarino') {
     if (['#a47a39','#ac8544','#8e672f','#c59a52','#a87c3c','#b78e4b','#9d7c43'].includes(color)) return 'brass'
     return shape === 'rock' ? 'masonry' : 'stone'

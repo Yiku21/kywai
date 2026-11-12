@@ -1,7 +1,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { CITY_COLORS, DECORS, WORLDS, applyTheme, setTheme, storedTheme, themeLabel } from '@/lib/theme'
+import { CITY_COLORS, CORPORATE, DECORS, WORLDS, applyTheme, setTheme, storedTheme, themeLabel } from '@/lib/theme'
 import { PALETTES, WORLD_PALETTES, palette, tone } from '@/scene/palette'
 import { ThemeGrid } from './ThemeDialog'
 
@@ -40,6 +40,23 @@ describe('temas', () => {
     applyTheme(storedTheme())
     expect(palette.world).toBe('submarino')
     expect(sea.getAttribute('aria-checked')).toBe('true')
+  })
+  it('Empresa trae Oficina (clara) y Sede central (oscura), con su escenario y sus colores de interfaz', async () => {
+    await act(async () => root.render(<ThemeGrid />))
+    const business = group('Empresa')
+    expect(business.map(b => CORPORATE.find(c => b.textContent?.startsWith(c.name))?.id)).toEqual(['oficina', 'sede'])
+    for (const b of business) expect(b.querySelector('img, svg[viewBox="0 0 120 84"]')).not.toBeNull()
+    await act(async () => business[0].click())
+    expect(storedTheme()).toBe('oficina')
+    expect(document.documentElement.dataset.theme).toBe('oficina')
+    expect(document.documentElement.dataset.world).toBeUndefined()
+    expect(palette).toBe(PALETTES.oficina)
+    expect(palette.world).toBe('oficina')
+    expect(palette.light).toBe(true)
+    await act(async () => business[1].click())
+    expect(palette).toBe(PALETTES.sede)
+    expect(palette.light).toBe(false)
+    expect(themeLabel('sede')).toBe('Sede central')
   })
   it('Refugio Kywai se elige, se recuerda y conserva los otros mapas', async () => {
     await act(async () => root.render(<ThemeGrid />))

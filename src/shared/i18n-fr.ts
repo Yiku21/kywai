@@ -3297,4 +3297,10 @@ export const fr: Record<string, string> = {
   "Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos": "Monte ton enregistrement : enlève tics, silences et prises répétées, nettoie la voix et ajoute des sous-titres",
   "Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos": "Tire les meilleurs moments d’une longue vidéo en clips verticaux sous-titrés",
   "Aquí tienes un clip de «{name}», listo para Reels y TikTok:": "Voici un clip de « {name} », prêt pour Reels et TikTok :",
+  "Oficina": "Bureau",
+  "Sede central": "Siège",
+  "Planta diáfana y luminosa, con puestos, cristal y plantas": "Plateau ouvert et lumineux, avec postes, verre et plantes",
+  "Planta alta de un rascacielos de noche, con nogal, latón y la ciudad detrás": "Dernier étage d’un gratte-ciel la nuit, avec noyer, laiton et la ville derrière",
+  "Empresa": "Entreprise",
+  "Sobrios, para usar kywai en el trabajo": "Sobres, pour utiliser kywai au travail",
 }
