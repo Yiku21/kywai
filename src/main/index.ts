@@ -99,6 +99,7 @@ import {
   schedule,
   sendMessage,
   answerPending,
+  switchMessageVersion,
   sendVoiceNote
 } from './orchestrator'
 import { createTemplate, deleteTemplate, forgetProjectTemplates, initTemplates, listTemplates, restoreBuiltinTemplates, updateTemplate } from './templates'
@@ -507,6 +508,11 @@ function registerIpc(): void {
     return store.deleteProjectFile(projectId, ref as ProjectFileRef)
   })
   handle('pinnedConversations', () => withBusy(conversations.pinnedConversations()))
+  // Flechas ‹ › de un mensaje tuyo editado: enseña otra de sus versiones en el mismo chat.
+  handle('switchMessageVersion', (projectId: unknown, messageId: unknown, to: unknown) => {
+    if (!store.isValidProjectId(projectId) || typeof messageId !== 'string' || !Number.isInteger(to)) throw new Error(tr('Versión no válida'))
+    switchMessageVersion(projectId, messageId, to as number)
+  })
   handle('forkConversation', (projectId: unknown, conversationId: unknown, from?: unknown) => {
     if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
     const f = from as { messageId?: unknown; before?: unknown } | undefined

@@ -3453,8 +3453,6 @@ export const fr: Record<string, string> = {
   "Lo que escribas le llega a él para que revise o continúe esta respuesta": "Ce que vous écrivez lui parvient pour qu’il revoie ou poursuive cette réponse",
   "Quitar «Me sirvió»": "Retirer « Ça m’a servi »",
   "Quitar «No me sirvió»": "Retirer « Ça ne m’a pas servi »",
-  "Editar y reenviar": "Modifier et renvoyer",
-  "Conversación nueva hasta justo antes de este mensaje, con su texto listo para cambiarlo; esta no se toca": "Une nouvelle conversation jusqu’au message précédent, avec son texte prêt à modifier ; celle-ci reste intacte",
   "Mensaje de {name}": "Message de {name}",
   "Tu mensaje": "Votre message",
 
@@ -3467,4 +3465,10 @@ export const fr: Record<string, string> = {
   'Escribe tu respuesta': 'Écrivez votre réponse',
   'Respuesta no válida': 'Réponse non valide',
   'Respuesta al pendiente {id} («{quote}»): {text}': 'Réponse à l’élément en attente {id} (« {quote} ») : {text}',
+  "Lo cambias aquí mismo y se vuelve a enviar; lo de ahora queda guardado como otra versión (‹ ›)": "Modifiez-le ici même et il est renvoyé ; l’actuel est gardé comme autre version (‹ ›)",
+  "La versión {n} se guarda (‹ ›)": "La version {n} est gardée (‹ ›)",
+  "Versión anterior": "Version précédente",
+  "Versión siguiente": "Version suivante",
+  "Versión {n} de {total}": "Version {n} sur {total}",
+  "Versión no válida": "Version non valide",
 }

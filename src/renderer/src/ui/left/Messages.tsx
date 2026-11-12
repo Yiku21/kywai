@@ -5,6 +5,7 @@ import {
   Bot,
   CalendarClock,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   CircleCheck,
@@ -52,7 +53,7 @@ import { AgentAvatar, AgentPill } from '../common/AgentBits'
 import { TaskSeq } from '../common/TaskSeq'
 import { useAgentLookup } from '../common/agents'
 import { useComposer } from './composerStore'
-import { editAndResend, useMessageMenu } from './MessageMenu'
+import { useMessageMenu } from './MessageMenu'
 import { FileTypeIcon, KindTile, TaskStatusIcon } from '../common/icons'
 import { MarkdownView } from '../common/MarkdownView'
 import { agentVars, cx, errorText, formatDuration, isoTime, plural } from '../common/util'
@@ -112,6 +113,7 @@ function userLabel(m: ChatMessage): string {
 function UserMessage({ m }: { m: ChatMessage }) {
   const parts = m.routine ? routineParts(m.text) : { request: m.text, data: null }
   const menu = useMessageMenu(m, { user: { text: parts.request } })
+  const editing = useComposer((c) => c.editing === m.id)
   return (
     <article className={s.msg} onContextMenu={menu.onContextMenu}>
       <span className={cx(s.avatar, s.userAvatar)} aria-hidden="true">
@@ -130,6 +132,9 @@ function UserMessage({ m }: { m: ChatMessage }) {
             <span>{t('Sobre la respuesta de {name}: «{text}»', { name: m.replyTo.name, text: m.replyTo.excerpt })}</span>
           </button>
         )}
+        {editing ? (
+          <EditBox m={m} initial={parts.request} />
+        ) : (
         <div className={cx(s.bubble, s.userBubble)}>
           {parts.request && <p className={s.userText}>{parts.request}</p>}
           {m.voiceNote && <VoiceNoteMark m={m} />}
@@ -140,8 +145,10 @@ function UserMessage({ m }: { m: ChatMessage }) {
             </details>
           )}
           {m.attachments && m.attachments.length > 0 && <Attachments list={m.attachments} projectId={m.projectId} />}
-          <EditButton m={m} text={parts.request} />
+          <EditButton m={m} />
         </div>
+        )}
+        {m.versions && !editing && <VersionNav m={m} />}
         <MenuNote note={menu.note} />
       </div>
       {menu.menu}
@@ -149,18 +156,39 @@ function UserMessage({ m }: { m: ChatMessage }) {
   )
 }
 
-/** El lápiz abajo a la derecha de tu mensaje: «Editar y reenviar» sin abrir el menú del clic derecho. */
-function EditButton({ m, text }: { m: ChatMessage; text: string }) {
+/** El lápiz abajo a la derecha de tu mensaje: lo edita en su sitio, sin abrir el menú del clic derecho. */
+function EditButton({ m }: { m: ChatMessage }) {
   const live = useCowork((st) => st.mode === 'live')
-  const conversationId = useCowork((st) => st.live.conversation?.id ?? null)
+  if (!live || !api || m.routine || m.voiceNote === 'transcribing') return null
+  return (
+    <button
+      type="button"
+      className={s.editBtn}
+      onClick={() => useComposer.getState().setEditing(m.id)}
+      aria-label={t('Editar')}
+      title={t('Lo cambias aquí mismo y se vuelve a enviar; lo de ahora queda guardado como otra versión (‹ ›)')}
+    >
+      <PenLine size={14} aria-hidden="true" />
+    </button>
+  )
+}
+
+/**
+ * ‹ 2/3 › bajo un mensaje tuyo editado: cambia a otra versión de ese punto del chat (el mensaje y lo que vino
+ * después). Mientras esa parte sigue trabajando, el motor no deja cambiar y lo dice.
+ */
+function VersionNav({ m }: { m: ChatMessage }) {
+  const v = m.versions!
+  const live = useCowork((st) => st.mode === 'live')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  if (!live || !api || !conversationId || m.voiceNote === 'transcribing') return null
-  const go = (): void => {
-    if (busy) return
+  const total = v.others.length + 1
+  const go = (to: number): void => {
+    const a = api
+    if (!a?.switchMessageVersion || busy || to < 0 || to >= total) return
     setBusy(true)
     setError(null)
-    editAndResend(m, text, conversationId).then(
+    a.switchMessageVersion(m.projectId, m.id, to).then(
       () => setBusy(false),
       (e) => {
         setBusy(false)
@@ -168,20 +196,109 @@ function EditButton({ m, text }: { m: ChatMessage; text: string }) {
       }
     )
   }
+  const off = !live || busy
   return (
-    <>
-      <button
-        type="button"
-        className={s.editBtn}
-        onClick={go}
-        disabled={busy}
-        aria-label={t('Editar y reenviar')}
-        title={t('Conversación nueva hasta justo antes de este mensaje, con su texto listo para cambiarlo; esta no se toca')}
-      >
-        <PenLine size={14} aria-hidden="true" />
+    <div className={s.versions}>
+      <button type="button" className={s.versionBtn} onClick={() => go(v.current - 1)} disabled={off || v.current === 0} aria-label={t('Versión anterior')} title={t('Versión anterior')}>
+        <ChevronLeft size={14} aria-hidden="true" />
       </button>
-      {error && <span className={s.ratingNote} role="alert">{error}</span>}
-    </>
+      <span className={s.versionCount} aria-label={t('Versión {n} de {total}', { n: String(v.current + 1), total: String(total) })}>
+        {v.current + 1}/{total}
+      </span>
+      <button type="button" className={s.versionBtn} onClick={() => go(v.current + 1)} disabled={off || v.current === total - 1} aria-label={t('Versión siguiente')} title={t('Versión siguiente')}>
+        <ChevronRight size={14} aria-hidden="true" />
+      </button>
+      {error && (
+        <span className={s.ratingNote} role="alert">
+          {error}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Tu mensaje en edición, en su sitio y en el mismo chat (como en Claude): Enviar lo manda otra vez con el texto
+ * nuevo (y sus adjuntos); el mensaje de antes y lo que vino después quedan guardados como otra versión (‹ ›).
+ * Cancelar (o Escape) lo deja como estaba. Enter envía y Mayús+Enter salta de línea.
+ */
+function EditBox({ m, initial }: { m: ChatMessage; initial: string }) {
+  const [text, setText] = useState(initial)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.focus()
+    el.setSelectionRange(el.value.length, el.value.length)
+  }, [])
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 360)}px`
+  }, [text])
+  const cancel = (): void => useComposer.getState().setEditing(null)
+  const send = (): void => {
+    const a = api
+    if (!a || busy || (!text.trim() && !m.attachments?.length)) return
+    setBusy(true)
+    setError(null)
+    a.sendMessage({
+      projectId: m.projectId,
+      text: text.trim(),
+      filePaths: [],
+      editOf: m.id,
+      ...(m.attachments?.length ? { attachmentIds: m.attachments.map((x) => x.id) } : {}),
+      ...(m.replyTo ? { replyTo: m.replyTo.messageId } : {})
+    }).then(
+      () => useComposer.getState().setEditing(null),
+      (e) => {
+        setBusy(false)
+        setError(errorText(e))
+      }
+    )
+  }
+  return (
+    <div className={cx(s.bubble, s.userBubble, s.editBox)}>
+      <textarea
+        ref={ref}
+        className={s.editInput}
+        value={text}
+        rows={1}
+        aria-label={t('Editar')}
+        disabled={busy}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            cancel()
+          } else if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+            e.preventDefault()
+            send()
+          }
+        }}
+      />
+      {m.attachments && m.attachments.length > 0 && <Attachments list={m.attachments} projectId={m.projectId} />}
+      <div className={s.editBar}>
+        <span className={s.editHint}>
+          {t('La versión {n} se guarda (‹ ›)', { n: String((m.versions?.current ?? 0) + 1) })}
+        </span>
+        <button type="button" className={s.changesBtn} onClick={cancel} disabled={busy}>
+          {t('Cancelar')}
+        </button>
+        <button type="button" className={cx(s.changesBtn, s.editSend)} onClick={send} disabled={busy || (!text.trim() && !m.attachments?.length)}>
+          {busy ? t('Enviando…') : t('Enviar')}
+        </button>
+      </div>
+      {error && (
+        <p className={s.ratingNote} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   )
 }
 

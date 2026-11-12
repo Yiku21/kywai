@@ -5088,6 +5088,93 @@
           }
         }
       }
+    },
+    "/api/mobile/v1/messages/{messageId}/version": {
+      "post": {
+        "operationId": "messageVersion",
+        "summary": "Cambiar de versión un mensaje tuyo editado (‹ ›)",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+                    "maxLength": 81
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "La versión que se quiere ver, desde 0 (messages[].versions: current y others[].at)."
+                  }
+                },
+                "required": [
+                  "conversationId",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho: el chat cambia por el evento messages.replaced.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionSwitchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "Requiere capabilities.editInPlace. Enseña otra versión de ese punto del chat (el mensaje y lo que vino después, con sus tareas) y guarda la que se veía. 404 MESSAGE_NOT_FOUND o VERSION_NOT_FOUND; 409 PROJECT_BUSY si esa parte del chat sigue trabajando."
+      }
     }
   },
   "components": {
@@ -5255,6 +5342,12 @@
             "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
             "maxLength": 128,
             "description": "Opcional (capabilities.replyTo). «Responder» bajo la respuesta de un agente: id de ese mensaje. El mensaje va directo a ese mismo agente con su respuesta citada para que la revise o la continúe (retoma su sesión si puede); el mensaje del usuario lleva replyTo y direct. Un id que no es de un agente de la conversación → 400 INVALID_INPUT."
+          },
+          "editOf": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+            "maxLength": 128,
+            "description": "Opcional (capabilities.editInPlace). Editar un mensaje tuyo en el mismo chat: antes de enviar se quitan ese mensaje y todo lo que vino después, con sus tareas (lo entregado se queda en Resultados); se guardan como la versión anterior (‹1/2›, messages[].versions) y llega el evento messages.replaced ({projectId, conversationId, messageIds, taskIds}). 404 MESSAGE_NOT_FOUND si ya no está, 400 INVALID_INPUT si no es tuyo, 409 PROJECT_BUSY si esa petición sigue en marcha."
           }
         },
         "required": [
@@ -5471,6 +5564,47 @@
               "excerpt"
             ],
             "additionalProperties": false
+          },
+          "versions": {
+            "type": "object",
+            "description": "Mensaje tuyo editado (capabilities.editInPlace): current es la versión que se ve (desde 0) y others las demás, cada una con su número (at) y su parte del chat (messages, tasks). Total = others.length + 1. Se cambia con POST /messages/{messageId}/version.",
+            "properties": {
+              "current": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "others": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "at": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "at"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "current",
+              "others"
+            ]
           }
         },
         "required": [
@@ -6676,6 +6810,10 @@
           "memoryAnswer": {
             "type": "boolean",
             "description": "«Responder» en un pendiente de la memoria: POST /memory/{memoryId}/answer."
+          },
+          "editInPlace": {
+            "type": "boolean",
+            "description": "editOf en POST /chat/messages: editar un mensaje tuyo en el mismo chat (evento messages.replaced; versiones con POST /messages/{messageId}/version)."
           }
         },
         "required": [
@@ -10356,6 +10494,19 @@
             }
           }
         }
+      },
+      "VersionSwitchResponse": {
+        "type": "object",
+        "properties": {
+          "switched": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "switched"
+        ],
+        "additionalProperties": false
       }
     }
   }

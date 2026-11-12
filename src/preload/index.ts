@@ -22,6 +22,7 @@ const api: CoworkApi = {
   setConversationPinned: (projectId, conversationId, pinned) => ipcRenderer.invoke('cowork:setConversationPinned', projectId, conversationId, pinned),
   pinnedConversations: () => ipcRenderer.invoke('cowork:pinnedConversations'),
   forkConversation: (projectId, conversationId, from) => ipcRenderer.invoke('cowork:forkConversation', projectId, conversationId, from),
+  switchMessageVersion: (projectId, messageId, to) => ipcRenderer.invoke('cowork:switchMessageVersion', projectId, messageId, to),
   scanImports: () => ipcRenderer.invoke('cowork:scanImports'),
   importLocal: (sessionIds) => ipcRenderer.invoke('cowork:importLocal', sessionIds),
   importArchive: (paths, choices) => ipcRenderer.invoke('cowork:importArchive', paths, choices),

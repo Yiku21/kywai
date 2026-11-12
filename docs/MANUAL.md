@@ -1522,26 +1522,35 @@ El **clic derecho** sobre un mensaje del chat abre un menú (con letra de atajo 
 - **En una respuesta de un agente:** **Copiar** (C), **Responder a …** (R, lo mismo que el botón «Responder»),
   **Bifurcar desde aquí** (B), **Crear vídeo de esto** (V) y, si es un resultado, **Me sirvió** / **No me sirvió**
   (S / N; volver a elegirlo lo quita).
-- **En un mensaje tuyo:** **Copiar** (C), **Editar y reenviar** (E) y **Bifurcar desde aquí** (B).
+- **En un mensaje tuyo:** **Copiar** (C), **Editar** (E) y **Bifurcar desde aquí** (B).
 
 **Copiar** copia solo lo que tengas seleccionado dentro de ese mensaje, si seleccionaste algo («Copiar lo
 seleccionado»); si no, el mensaje entero. **Bifurcar desde aquí** crea una conversación nueva con todo hasta ese
-mensaje (incluido) y la abre; la original sigue igual en la barra lateral. **Editar y reenviar** funciona como en
-Claude: crea una conversación nueva con todo hasta **justo antes** de tu mensaje y pone su texto en el cuadro de
-escribir (con sus adjuntos y, si respondía a un agente, la misma respuesta), para que lo cambies y lo envíes; la
-conversación original no se toca. También está a mano sin el menú: el **lápiz** abajo a la derecha de cada
-mensaje tuyo hace lo mismo. Como al bifurcar una conversación entera, la copia no lleva las sesiones de los
-agentes (en ella empiezan sesión nueva). Bifurcar y editar solo van en modo real.
+mensaje (incluido) y la abre; la original sigue igual en la barra lateral (la copia no lleva las sesiones de los
+agentes: en ella empiezan sesión nueva).
+
+**Editar** funciona como en Claude y **sigue en el mismo chat** (no crea copias): el mensaje se vuelve un cuadro de
+texto en su sitio, con **Cancelar** (o Esc) y **Enviar** (o Enter; Mayús+Enter salta de línea). Al enviarlo, ese
+mensaje y todo lo que vino después se guardan como la **versión anterior** y el chat sigue con el texto nuevo (con
+sus mismos adjuntos y, si respondía a un agente, la misma respuesta). Debajo del mensaje salen unas flechas
+**‹ 2/2 ›** para pasar de una versión a otra: cada una trae su parte del chat (las respuestas y las tareas de
+entonces); lo entregado sigue siempre en Resultados. Se puede editar otra vez (versión 3, etc.) y también un mensaje
+de dentro de una versión. No se puede editar ni cambiar de versión mientras esa parte del chat sigue trabajando
+(detenla antes). También está a mano sin el menú: el **lápiz** abajo a la derecha de cada mensaje tuyo. Los agentes
+siguen con su sesión: pueden recordar lo que hicieron en la versión anterior. Editar solo va en modo real.
 
 **En Órbita** es **mantener pulsado** el mensaje: Copiar (el mensaje entero), **Seleccionar texto** (a partir de
 ahí, en ese mensaje el dedo selecciona palabras con sus tiradores, como antes), Responder a … (en una respuesta),
-Editar y reenviar (en uno tuyo) y Bifurcar desde aquí. Bifurcar y editar piden que el ordenador tenga esta versión
-(capacidad `messageActions`).
+**Editar** (en uno tuyo: su texto vuelve al cuadro con la barra «Editando tu mensaje»; ✕ lo cancela) y Bifurcar
+desde aquí. Las flechas ‹ › salen también bajo tu mensaje editado. Piden que el ordenador tenga esta versión
+(capacidades `messageActions` y `editInPlace`).
 
-Por dentro: `forkConversation(projectId, conversationId, { messageId, before })` en `src/main/conversations.ts`
-(sin `from`, copia la conversación entera como siempre), el menú en `src/renderer/src/ui/left/MessageMenu.tsx` y,
-en la API móvil, `messageId` y `before` en `POST /chats/{chatId}/fork` (capacidad `messageActions`; 404
-`MESSAGE_NOT_FOUND` si el mensaje ya no está).
+Por dentro: `editOf` en el envío (`sendMessage` en `src/main/orchestrator.ts`) llama a `rewindChat` y, al cambiar de
+versión, `switchMessageVersion` (los dos en `src/main/projects.ts`); las versiones viajan dentro del propio mensaje
+(`ChatMessage.versions`), así que se guardan con su conversación. El chat se entera con el evento
+`messages.replaced`. Bifurcar es `forkConversation(projectId, conversationId, { messageId })` en
+`src/main/conversations.ts`. El menú está en `src/renderer/src/ui/left/MessageMenu.tsx`. En la API móvil: `editOf`
+en `POST /chat/messages`, `POST /messages/{messageId}/version` y `messageId` en `POST /chats/{chatId}/fork`.
 
 ### Reanudar lo interrumpido
 

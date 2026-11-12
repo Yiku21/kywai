@@ -54,6 +54,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/routines\/([^/]+)\/delete$/, 'routineDelete', ['POST']],
   [/^\/routines\/([^/]+)$/, 'routineUpdate', ['POST']],
   [/^\/messages\/([^/]+)\/routine-proposal\/(create|dismiss)$/, 'routineProposal', ['POST']],
+  [/^\/messages\/([^/]+)\/version$/, 'messageVersion', ['POST']],
   [/^\/artifacts\/([^/]+)\/raw$/, 'artifactRaw', ['GET']],
   [/^\/artifacts\/([^/]+)\/delete$/, 'artifactDelete', ['POST']],
   [/^\/attachments\/([^/]+)\/delete$/, 'attachmentDelete', ['POST']],
@@ -290,7 +291,7 @@ export class MobileApi {
           throw new MobileError(426, 'WEBSOCKET_REQUIRED', 'Abre este endpoint con WebSocket y Authorization: Bearer')
         case 'chat': {
           const input = await body(req)
-          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds', 'artifactIds', 'templateId', 'replyTo'])
+          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds', 'artifactIds', 'templateId', 'replyTo', 'editOf'])
           const clientMessageId = string(input.clientMessageId, 'clientMessageId', 128)
           if (!ID.test(clientMessageId)) throw new MobileError(400, 'INVALID_INPUT', 'clientMessageId no válido')
           const attachmentIds = input.attachmentIds ?? []
@@ -299,7 +300,8 @@ export class MobileApi {
           if (!Array.isArray(artifactIds) || artifactIds.length > 20 || artifactIds.some((a) => typeof a !== 'string' || !ID.test(a))) throw new MobileError(400, 'INVALID_INPUT', 'artifactIds debe ser una lista de hasta 20 identificadores de resultado')
           const templateId = input.templateId === undefined || input.templateId === null ? undefined : id(String(input.templateId), 'templateId')
           const replyTo = input.replyTo === undefined || input.replyTo === null ? undefined : id(String(input.replyTo), 'replyTo')
-          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[], templateId, replyTo, artifactIds as string[]))
+          const editOf = input.editOf === undefined || input.editOf === null ? undefined : id(String(input.editOf), 'editOf')
+          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[], templateId, replyTo, artifactIds as string[], editOf))
           break
         }
         case 'conversations': {
@@ -523,6 +525,15 @@ export class MobileApi {
           const input = await body(req)
           fields(input, ['conversationId'])
           mobileJson(res, 200, await this.backend.routineProposal(projectId(input.conversationId), messageId, action as 'create' | 'dismiss'))
+          break
+        }
+        // Flechas ‹ › de un mensaje tuyo editado (capabilities.editInPlace).
+        case 'messageVersion': {
+          const messageId = id(param, 'messageId')
+          const input = await body(req)
+          fields(input, ['conversationId', 'version'])
+          if (!Number.isInteger(input.version) || (input.version as number) < 0) throw new MobileError(400, 'INVALID_INPUT', 'version debe ser un número entero desde 0')
+          mobileJson(res, 200, await this.backend.switchVersion(projectId(input.conversationId), messageId, input.version as number))
           break
         }
         case 'routineRun': {

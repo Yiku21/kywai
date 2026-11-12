@@ -24,6 +24,9 @@ interface ComposerState {
   removeDeliverable(id: string): void
   clear(): void
   requestFocus(): void
+  /** El mensaje tuyo que se está editando en su sitio (lápiz o clic derecho → Editar), o null. */
+  editing: string | null
+  setEditing(id: string | null): void
 }
 
 export interface ComposerDeliverable {
@@ -59,5 +62,7 @@ export const useComposer = create<ComposerState>((set) => ({
     })),
   removeDeliverable: (id) => set((s) => ({ deliverables: s.deliverables.filter((d) => d.id !== id) })),
   clear: () => set({ text: '', files: [], deliverables: [], replyTo: null }),
-  requestFocus: () => set((s) => ({ focusNonce: s.focusNonce + 1 }))
+  requestFocus: () => set((s) => ({ focusNonce: s.focusNonce + 1 })),
+  editing: null,
+  setEditing: (editing) => set({ editing })
 }))

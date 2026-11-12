@@ -1514,7 +1514,29 @@ export function sendVoiceNote(input: VoiceNoteInput): { messageId: string } {
  * agentes, verificación), pero el mensaje lleva la marca de la rutina y no cuenta como respuesta a un plan pendiente.
  * La marca solo la pone el motor: no llega desde la interfaz ni desde la API.
  */
+/**
+ * Envía un mensaje al equipo. Con `editOf` (editar un mensaje tuyo, como en Claude) sigue en el mismo chat: ese
+ * mensaje y lo que vino después pasan a ser la versión anterior (‹1/2›) y el nuevo lleva las versiones; si el envío
+ * falla, se deja todo como estaba.
+ */
 export async function sendMessage(input: SendMessageInput, opts: { routine?: { id: string; name: string; askApproval?: boolean } } = {}): Promise<{ runId: string }> {
+  const projectId = input?.projectId
+  const retry = !!input?.clientMessageId && store.getProject(projectId).messages.some((m) => m.author.type === 'user' && m.clientMessageId === input.clientMessageId)
+  if (typeof input?.editOf !== 'string' || retry) return sendNow(input, opts)
+  const edit = store.rewindChat(projectId, input.editOf, activeRunsFor(projectId))
+  let r: { runId: string }
+  try {
+    r = await sendNow(input, opts)
+  } catch (e) {
+    edit.undo()
+    throw e
+  }
+  const m = store.attachVersions(projectId, r.runId, edit.versions)
+  if (m) emit({ kind: 'message.upsert', message: { ...m } })
+  return r
+}
+
+async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; name: string; askApproval?: boolean } } = {}): Promise<{ runId: string }> {
   const routine = opts.routine
   const projectId = input?.projectId
   const st = store.getProject(projectId)
@@ -6777,3 +6799,7 @@ export function activeRunIds(): string[] {
   return [...runs.keys()]
 }
 
+/** Flechas ‹ › de un mensaje tuyo editado: enseña otra de sus versiones (no mientras esa parte sigue trabajando). */
+export function switchMessageVersion(projectId: string, messageId: string, to: number): void {
+  store.switchMessageVersion(projectId, messageId, to, activeRunsFor(projectId))
+}

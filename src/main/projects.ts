@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { existsSync, promises as fsp, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, copyFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import type { Artifact, ArtifactKind, Attachment, ChatMessage, ProjectFileRef, ProjectState, ProjectSummary, Task } from '@shared/types'
+import type { Artifact, ArtifactKind, Attachment, ChatMessage, ChatVersion, ChatVersions, ProjectFileRef, ProjectState, ProjectSummary, Task } from '@shared/types'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { reopensWork } from '@shared/chatOrder'
 import { emit, emitMobileOnly } from './events'
@@ -530,6 +530,91 @@ export function copyAttachments(projectId: string, filePaths: string[]): Attachm
     emitMobileOnly({ kind: 'attachments.updated', projectId, attachments: JSON.parse(JSON.stringify(st.attachments)) as Attachment[] })
   }
   return out
+}
+
+function withoutVersions(m: ChatMessage): ChatMessage {
+  const copy = { ...m }
+  delete copy.versions
+  return copy
+}
+
+/** La parte del chat desde el mensaje [i] (incluido) y las tareas de las peticiones que solo están ahí. */
+function chatTail(st: ProjectState, i: number, busyRunIds: string[]): { messages: ChatMessage[]; tasks: Task[] } {
+  const kept = new Set(st.messages.slice(0, i).map((m) => m.runId).filter(Boolean))
+  const messages = st.messages.slice(i)
+  const runs = new Set(messages.map((m) => m.runId).filter((r): r is string => !!r && !kept.has(r)))
+  if (busyRunIds.some((r) => runs.has(r))) throw new Error('Esa petición sigue en marcha: detenla antes de editar el mensaje')
+  return { messages, tasks: st.tasks.filter((t) => t.runId && runs.has(t.runId)) }
+}
+
+/** Quita del chat abierto esa parte (mensajes desde [i] y sus tareas) y, si se dan, pone otros al final. */
+function replaceTail(st: ProjectState, i: number, tail: { messages: ChatMessage[]; tasks: Task[] }, next?: { messages: ChatMessage[]; tasks: Task[] }): void {
+  const gone = new Set(tail.tasks.map((t) => t.id))
+  st.messages.splice(i, st.messages.length - i, ...(next?.messages ?? []))
+  st.tasks = [...st.tasks.filter((t) => !gone.has(t.id)), ...(next?.tasks ?? [])]
+  scheduleSave(st.project.id)
+  emit({
+    kind: 'messages.replaced',
+    projectId: st.project.id,
+    ...(st.conversation?.id ? { conversationId: st.conversation.id } : {}),
+    messageIds: tail.messages.map((m) => m.id),
+    taskIds: tail.tasks.map((t) => t.id),
+    ...(next ? { messages: next.messages.map((m) => ({ ...m })), tasks: next.tasks.map((t) => ({ ...t })) } : {})
+  })
+}
+
+/**
+ * Editar un mensaje tuyo en el mismo chat (como en Claude): quita del chat abierto ese mensaje y todo lo que vino
+ * después (con las tareas de esas peticiones; lo que entregaron se queda en Resultados) y lo guarda como una versión
+ * más de ese punto. Devuelve las versiones que llevará el mensaje nuevo (que será la última) y cómo deshacerlo si el
+ * envío falla. No se puede si alguna de esas peticiones sigue en marcha ([busyRunIds]).
+ */
+export function rewindChat(projectId: string, messageId: string, busyRunIds: string[]): { versions: ChatVersions; undo: () => void } {
+  const st = getProject(projectId)
+  const i = st.messages.findIndex((m) => m.id === messageId)
+  if (i < 0) throw new Error('Ese mensaje ya no está en la conversación')
+  const head = st.messages[i]
+  if (head.author.type !== 'user') throw new Error('Solo se pueden editar tus mensajes')
+  const tail = chatTail(st, i, busyRunIds)
+  const prior = head.versions ?? { current: 0, others: [] }
+  const bare = withoutVersions(head)
+  const saved: ChatVersion = { at: prior.current, messages: [bare, ...tail.messages.slice(1)], tasks: tail.tasks }
+  const others = [...prior.others, saved].sort((a, b) => a.at - b.at)
+  replaceTail(st, i, tail)
+  return {
+    versions: { current: others.length, others },
+    undo: () => replaceTail(st, st.messages.length, { messages: [], tasks: [] }, tail)
+  }
+}
+
+/** Pone las versiones en tu mensaje nuevo (el de esa petición) una vez enviado. */
+export function attachVersions(projectId: string, runId: string, versions: ChatVersions): ChatMessage | null {
+  const st = getProject(projectId)
+  const m = [...st.messages].reverse().find((x) => x.runId === runId && x.author.type === 'user')
+  if (!m) return null
+  m.versions = versions
+  scheduleSave(projectId)
+  return m
+}
+
+/**
+ * Flechas ‹ › de un mensaje tuyo editado: enseña otra versión de ese punto del chat (el mensaje y lo que vino después,
+ * con sus tareas) y guarda la que se veía. No se puede mientras esa parte del chat sigue trabajando.
+ */
+export function switchMessageVersion(projectId: string, messageId: string, to: number, busyRunIds: string[]): void {
+  const st = getProject(projectId)
+  const i = st.messages.findIndex((m) => m.id === messageId)
+  if (i < 0) throw new Error('Ese mensaje ya no está en la conversación')
+  const v = st.messages[i].versions
+  if (!v) throw new Error('Ese mensaje no tiene otras versiones')
+  if (to === v.current) return
+  const target = v.others.find((o) => o.at === to)
+  if (!target || !target.messages.length) throw new Error('Esa versión ya no existe')
+  const tail = chatTail(st, i, busyRunIds)
+  const bare = withoutVersions(st.messages[i])
+  const others = [...v.others.filter((o) => o !== target), { at: v.current, messages: [bare, ...tail.messages.slice(1)], tasks: tail.tasks }].sort((a, b) => a.at - b.at)
+  const head: ChatMessage = { ...target.messages[0], versions: { current: to, others } }
+  replaceTail(st, i, tail, { messages: [head, ...target.messages.slice(1)], tasks: target.tasks })
 }
 
 /**

@@ -3453,8 +3453,6 @@ export const zh: Record<string, string> = {
   "Lo que escribas le llega a él para que revise o continúe esta respuesta": "你写的内容会发给它，让它检查或继续这个回答",
   "Quitar «Me sirvió»": "取消“有用”",
   "Quitar «No me sirvió»": "取消“没用”",
-  "Editar y reenviar": "编辑并重新发送",
-  "Conversación nueva hasta justo antes de este mensaje, con su texto listo para cambiarlo; esta no se toca": "新建一个到此消息之前为止的对话，消息文字已放好可修改；当前对话保持不变",
   "Mensaje de {name}": "{name} 的消息",
   "Tu mensaje": "你的消息",
 
@@ -3467,4 +3465,10 @@ export const zh: Record<string, string> = {
   'Escribe tu respuesta': '请输入你的回复',
   'Respuesta no válida': '回复无效',
   'Respuesta al pendiente {id} («{quote}»): {text}': '回复待办 {id}（“{quote}”）：{text}',
+  "Lo cambias aquí mismo y se vuelve a enviar; lo de ahora queda guardado como otra versión (‹ ›)": "在这里直接修改并重新发送；当前内容会保存为另一个版本（‹ ›）",
+  "La versión {n} se guarda (‹ ›)": "第 {n} 个版本会保留（‹ ›）",
+  "Versión anterior": "上一个版本",
+  "Versión siguiente": "下一个版本",
+  "Versión {n} de {total}": "第 {n} 个版本，共 {total} 个",
+  "Versión no válida": "版本无效",
 }

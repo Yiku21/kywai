@@ -18,7 +18,7 @@ import { emit, setRuntime } from './events'
 import { addMemory, deleteMemory, setInstructions, updateMemory } from './memory'
 import { MAX_FILE_BYTES, __setFileLimitsForChecks } from './mobileFiles'
 import { __setOrbitaReleaseDirForChecks } from './orbitaRelease'
-import { __setBackendsForChecks, activeRunsFor, allAgents, answerPending, approvePlan, cancelAll, decideRoutineProposal, getTaskChanges, undoTask, cancelRun, discardRun, rejectPlan, resetAgent, resumeRun, runtimeSnapshot, sendMessage } from './orchestrator'
+import { __setBackendsForChecks, activeRunsFor, allAgents, answerPending, approvePlan, cancelAll, decideRoutineProposal, getTaskChanges, undoTask, cancelRun, discardRun, rejectPlan, resetAgent, resumeRun, runtimeSnapshot, sendMessage, switchMessageVersion } from './orchestrator'
 import { actInbox, listInbox } from './inbox'
 import * as store from './projects'
 import * as conversations from './conversations'
@@ -236,6 +236,7 @@ beforeAll(() => {
   webMethods.set('getUsageRuns', usageRuns)
   webMethods.set('deleteProjectFile', (id, ref) => store.deleteProjectFile(id as string, ref as never))
   webMethods.set('sendMessage', (input) => sendMessage(input as Parameters<typeof sendMessage>[0]))
+  webMethods.set('switchMessageVersion', (id, mid, to) => switchMessageVersion(id as string, mid as string, to as number))
   webMethods.set('mobileStopRun', (id) => cancelRun(id as string, 'pause'))
   webMethods.set('resumeRun', (id, runId) => resumeRun(id as string, runId as string))
   webMethods.set('mobileDiscardRun', (id, runId) => discardRun(id as string, runId as string))
@@ -480,6 +481,38 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     errorFormat(conflict.body)
     await api('/conversations', {})
     expect((await api('/chat/messages', { ...data, conversationId: null })).body).toEqual(results[0].body)
+  })
+
+  it('editar un mensaje tuyo en el mismo chat (editOf) guarda la versión anterior y POST /messages/{id}/version cambia entre ellas', async () => {
+    const conversation = (await api('/conversations', {})).body.conversation.id as string
+    expect((await api(`/snapshot?conversationId=${conversation}`)).body.capabilities.editInPlace).toBe(true)
+    const st = store.getProject(conversation)
+    st.messages.push(
+      { id: 'm-edit-1', projectId: conversation, runId: 'r-old', author: { type: 'user' }, text: 'Hazlo en azul', createdAt: 1 } as ChatMessage,
+      { id: 'm-edit-2', projectId: conversation, runId: 'r-old', author: { type: 'agent', agentId: 'claude' }, text: 'Hecho en azul', createdAt: 2 } as ChatMessage
+    )
+    const edited = await api('/chat/messages', { conversationId: conversation, text: 'Hazlo en verde', clientMessageId: 'client-edit', editOf: 'm-edit-1' })
+    expect(edited.status).toBe(202)
+    const ids = store.snapshotProject(conversation).messages.map((m) => m.id)
+    expect(ids).not.toContain('m-edit-1')
+    expect(ids).not.toContain('m-edit-2')
+    expect(store.snapshotProject(conversation).messages.some((m) => m.text === 'Hazlo en verde')).toBe(true)
+    const gone = await api('/chat/messages', { conversationId: conversation, text: 'Otra', clientMessageId: 'client-edit-2', editOf: 'm-edit-1' })
+    expect(gone.status).toBe(404)
+    expect(gone.body.code).toBe('MESSAGE_NOT_FOUND')
+    const busy = await api('/chat/messages', { conversationId: conversation, text: 'Mientras trabaja', clientMessageId: 'client-edit-3', editOf: edited.body.message.id })
+    expect(busy.status).toBe(409)
+    expect((await api('/chat/messages', { conversationId: conversation, text: 'x', clientMessageId: 'client-edit-4', editOf: '../x' })).status).toBe(400)
+    const head = store.snapshotProject(conversation).messages.find((m) => m.id === edited.body.message.id)!
+    expect(head.versions).toMatchObject({ current: 1, others: [{ at: 0 }] })
+    expect((await api(`/messages/${head.id}/version`, { conversationId: conversation, version: 0 })).status).toBe(409)
+    cancelRun(edited.body.requestId)
+    await vi.waitFor(() => expect(activeRunsFor(conversation)).toEqual([]))
+    const back = await api(`/messages/${head.id}/version`, { conversationId: conversation, version: 0 })
+    expect(back).toEqual({ status: 200, body: { switched: true } })
+    expect(store.snapshotProject(conversation).messages.map((m) => m.text)).toEqual(['Hazlo en azul', 'Hecho en azul'])
+    expect((await api('/messages/m-edit-1/version', { conversationId: conversation, version: 7 })).status).toBe(404)
+    expect((await api('/messages/m-edit-1/version', { conversationId: conversation, version: -1 })).status).toBe(400)
   })
 
   it('detiene y reanuda las mismas tareas y petición; cancelar desde escritorio sigue siendo definitivo', async () => {

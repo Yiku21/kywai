@@ -88,6 +88,8 @@ export interface MobileSnapshot {
      * before (hasta justo antes: «Editar y reenviar» un mensaje tuyo).
      */
     messageActions?: boolean
+  /** editOf en POST /chat/messages: editar un mensaje tuyo en el mismo chat (salen él y lo que vino después, guardados como versión anterior; evento messages.replaced; POST /messages/{id}/version para cambiar). */
+  editInPlace?: boolean
     agentAccess: boolean
     usageRefresh: boolean
     /** Notas de voz convertidas en texto en el propio equipo (POST /voice/transcribe). */

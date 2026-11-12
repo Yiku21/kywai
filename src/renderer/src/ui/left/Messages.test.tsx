@@ -18,6 +18,11 @@ const fake = vi.hoisted(() => {
     rateMessage: async (p, m, r) => void calls.push(`rate:${p}:${m}:${String(r)}`),
     openPath: async (p, rel) => void calls.push(`open:${p}:${rel}`),
     downloadArtifacts: async (p, ids) => void calls.push(`download:${p}:${(ids as string[]).join(',')}`),
+    sendMessage: async (input) => {
+      calls.push(`send:${JSON.stringify(input)}`)
+      return { runId: 'r-edit' }
+    },
+    switchMessageVersion: async (p, m, to) => void calls.push(`version:${p}:${m}:${String(to)}`),
     forkConversation: async (p, c, from) => {
       calls.push(`fork:${p}:${c}:${JSON.stringify(from)}`)
       return 'c-copia'
@@ -286,40 +291,54 @@ describe('chat del escritorio', () => {
     expect(button('Me sirvió')).toBeUndefined()
   })
 
-  it('clic derecho en un mensaje tuyo: «Editar y reenviar» abre una rama hasta antes de él con su texto en el cuadro', async () => {
-    const loaded: unknown[] = []
-    const prev = useCowork.getState().loadProjectState
-    useCowork.setState({ loadProjectState: ((st: unknown) => void loaded.push(st)) as never })
+  it('clic derecho en un mensaje tuyo → Editar: se cambia en su sitio y se reenvía en el mismo chat (editOf)', async () => {
     const mine: ChatMessage = { id: 'u7', projectId: 'p1', author: { type: 'user' }, text: 'Haz la web en azul', createdAt: 7 }
-    const s0 = useCowork.getState()
-    useCowork.setState({ live: { ...s0.live, conversation: { id: 'c-orig', title: 'Web', createdAt: 1 } } })
     await show(mine)
     const item = (text: string) => [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((b) => b.textContent?.includes(text))
     await act(async () => host.querySelector('article')!.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 })))
     expect(item('Copiar')).toBeTruthy()
     expect(item('Bifurcar desde aquí')).toBeTruthy()
-    await act(async () => item('Editar y reenviar')!.click())
+    await act(async () => item('Editar')!.click())
+    const box = host.querySelector('textarea')!
+    expect(box.value).toBe('Haz la web en azul')
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!
+    await act(async () => {
+      setter.call(box, 'Haz la web en verde')
+      box.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => button('Enviar').click())
     await act(async () => new Promise((r) => setTimeout(r, 0)))
-    expect(fake.calls).toEqual(['fork:p1:c-orig:{"messageId":"u7","before":true}', 'openConv:p1:c-copia'])
-    expect(loaded).toEqual([{ opened: 'c-copia' }])
-    expect(useComposer.getState().text).toBe('Haz la web en azul')
-    useCowork.setState({ loadProjectState: prev })
-    useComposer.getState().clear()
+    expect(fake.calls).toEqual(['send:{"projectId":"p1","text":"Haz la web en verde","filePaths":[],"editOf":"u7"}'])
+    expect(useComposer.getState().editing).toBeNull()
+    expect(fake.calls.some((c) => c.startsWith('fork'))).toBe(false)
   })
 
-  it('el lápiz de tu mensaje hace lo mismo que «Editar y reenviar» del menú', async () => {
-    const prev = useCowork.getState().loadProjectState
-    useCowork.setState({ loadProjectState: (() => undefined) as never })
+  it('el lápiz de tu mensaje abre la edición en su sitio, y Escape la cancela sin enviar nada', async () => {
     const mine: ChatMessage = { id: 'u8', projectId: 'p1', author: { type: 'user' }, text: 'Pon el logo arriba', createdAt: 8 }
-    const s0 = useCowork.getState()
-    useCowork.setState({ live: { ...s0.live, conversation: { id: 'c-orig', title: 'Web', createdAt: 1 } } })
     await show(mine)
-    await act(async () => button('Editar y reenviar').click())
-    await act(async () => new Promise((r) => setTimeout(r, 0)))
-    expect(fake.calls).toEqual(['fork:p1:c-orig:{"messageId":"u8","before":true}', 'openConv:p1:c-copia'])
-    expect(useComposer.getState().text).toBe('Pon el logo arriba')
-    useCowork.setState({ loadProjectState: prev })
-    useComposer.getState().clear()
+    await act(async () => button('Editar').click())
+    const box = host.querySelector('textarea')!
+    expect(box.value).toBe('Pon el logo arriba')
+    await act(async () => box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    expect(host.querySelector('textarea')).toBeNull()
+    expect(host.textContent).toContain('Pon el logo arriba')
+    expect(fake.calls).toEqual([])
+  })
+
+  it('un mensaje tuyo editado enseña ‹ 2/2 › y las flechas piden la otra versión', async () => {
+    const mine: ChatMessage = {
+      id: 'u9',
+      projectId: 'p1',
+      author: { type: 'user' },
+      text: 'Hazlo en verde',
+      createdAt: 9,
+      versions: { current: 1, others: [{ at: 0, messages: [{ id: 'u0', projectId: 'p1', author: { type: 'user' }, text: 'Hazlo en azul', createdAt: 1 }], tasks: [] }] }
+    }
+    await show(mine)
+    expect(host.textContent).toContain('2/2')
+    expect(button('Versión siguiente').disabled).toBe(true)
+    await act(async () => button('Versión anterior').click())
+    expect(fake.calls).toEqual(['version:p1:u9:0'])
   })
 
   it('clic derecho en una respuesta: Responder, Bifurcar desde aquí y 👍 desde el menú', async () => {

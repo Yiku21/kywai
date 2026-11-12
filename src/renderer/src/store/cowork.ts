@@ -308,6 +308,15 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
       return { ...d, memory: e.memory, instructions: e.instructions, leanCode: e.leanCode === true }
     case 'routines.updated':
       return { ...d, routines: e.routines }
+    case 'messages.replaced': {
+      // Editaste un mensaje tuyo o cambiaste de versión (‹ ›): fuera esa parte del chat y, si la hay, entra la otra.
+      if (e.conversationId && d.conversation && e.conversationId !== d.conversation.id) return d
+      const gone = new Set(e.messageIds)
+      const tasks = { ...d.tasks }
+      for (const id of e.taskIds) delete tasks[id]
+      for (const t of e.tasks ?? []) tasks[t.id] = t
+      return { ...d, messages: [...d.messages.filter((m) => !gone.has(m.id)), ...(e.messages ?? [])], tasks }
+    }
     case 'chat.cleared': {
       // Conversación nueva: fuera los mensajes y las tareas terminadas (las pendientes se quedan).
       const tasks: Record<string, Task> = {}
@@ -341,6 +350,7 @@ function eventProject(e: CoworkEvent): string | undefined {
     case 'run.started':
     case 'run.finished':
     case 'files.deleted':
+    case 'messages.replaced':
     case 'chat.cleared':
     case 'memory.updated':
     case 'routines.updated':

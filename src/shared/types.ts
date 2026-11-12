@@ -677,6 +677,11 @@ export interface ChatMessage {
   scriptReview?: ScriptReview
   /** Mensaje tuyo enviado directo a un agente («@Qwen …» o «/directo Qwen …»): no pasó por Hermes. */
   direct?: { agentId: AgentId; name: string }
+  /**
+   * Mensaje tuyo editado (como en Claude): las otras versiones de este punto del chat, cada una con lo que vino
+   * después. `current` es la que se ve (desde 0); con las flechas ‹ › se cambia (switchMessageVersion).
+   */
+  versions?: ChatVersions
   /** «Responder» bajo la respuesta de un agente: este mensaje va a ese mismo agente sobre esa respuesta (cita corta). */
   replyTo?: ChatReplyRef
   /** Mensaje lanzado con una plantilla de tareas (botón de encima del chat o «/orden …»): el chat la nombra. */
@@ -691,6 +696,19 @@ export interface ChatMessage {
 }
 
 /** La respuesta de un agente a la que contestas con «Responder»: el chat enseña la cita encima de tu mensaje. */
+export interface ChatVersions {
+  /** La versión que se ve, desde 0 (de la más antigua a la más nueva). */
+  current: number
+  /** Las demás versiones: su número y su parte del chat (el mensaje tuyo y lo que vino después, con sus tareas). */
+  others: ChatVersion[]
+}
+
+export interface ChatVersion {
+  at: number
+  messages: ChatMessage[]
+  tasks: Task[]
+}
+
 export interface ChatReplyRef {
   messageId: string
   agentId: AgentId
@@ -1638,6 +1656,11 @@ export type CoworkEvent = EventBase &
     | { kind: 'run.finished'; runId: string; projectId: string; conversationId?: string; ok: boolean }
     | { kind: 'chat.cleared'; projectId: string; conversationId?: string }
     | { kind: 'files.deleted'; projectId: string; artifactIds: string[]; attachmentIds: string[] }
+    /**
+     * Editar un mensaje tuyo o cambiar de versión (‹ ›): salen esos mensajes y tareas del chat abierto y, al cambiar de
+     * versión, entran los de la otra al final, en su orden.
+     */
+    | { kind: 'messages.replaced'; projectId: string; conversationId?: string; messageIds: string[]; taskIds: string[]; messages?: ChatMessage[]; tasks?: Task[] }
     | { kind: 'conversations.updated'; projectId: string }
     | { kind: 'usage.run'; run: UsageRun }
     | { kind: 'task.trace'; taskId: string; projectId: string; entry: TraceEntry }
@@ -1815,6 +1838,12 @@ export interface SendMessageInput {
    * citada, para que la revise o la continúe. Sin texto, le pide que la revise.
    */
   replyTo?: string
+  /**
+   * Editar un mensaje tuyo (su id) en el mismo chat: antes de enviar se quitan ese mensaje y todo lo que vino después
+   * (sus tareas también; lo que entregaron se queda en Resultados) y se guardan como la versión anterior (‹1/2›).
+   * Falla si esa petición sigue en marcha.
+   */
+  editOf?: string
 }
 
 /** Nota de voz que se envía sin esperar: el equipo la pasa a texto por detrás y la manda como un mensaje normal. */
@@ -1867,6 +1896,8 @@ export interface CoworkApi {
   /** Bifurca: copia aparte de la conversación (mensajes y tareas, sin las sesiones de los agentes). Devuelve el id de la copia. */
   /** Con `from`, la copia llega hasta ese mensaje (o justo antes, con `before`: «Editar y reenviar»). */
   forkConversation(projectId: string, conversationId: string, from?: { messageId: string; before?: boolean }): Promise<string>
+  /** Flechas ‹ › de un mensaje tuyo editado: enseña su versión [to] (desde 0) en el mismo chat. */
+  switchMessageVersion(projectId: string, messageId: string, to: number): Promise<void>
   /** Pasa la conversación a otro proyecto (los agentes empiezan sesión nueva allí). Devuelve el id que tiene en el destino. */
   moveConversation(projectId: string, conversationId: string, toProjectId: string): Promise<string>
   /** Fija o suelta un proyecto en la barra lateral. */

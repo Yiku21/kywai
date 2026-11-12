@@ -3576,8 +3576,6 @@ export const en: Record<string, string> = {
   "Lo que escribas le llega a él para que revise o continúe esta respuesta": "What you write goes to this agent so it can review or continue this answer",
   "Quitar «Me sirvió»": "Remove “It was useful”",
   "Quitar «No me sirvió»": "Remove “It wasn’t useful”",
-  "Editar y reenviar": "Edit and resend",
-  "Conversación nueva hasta justo antes de este mensaje, con su texto listo para cambiarlo; esta no se toca": "A new conversation up to just before this message, with its text ready to change; this one is left as is",
   "Mensaje de {name}": "Message from {name}",
   "Tu mensaje": "Your message",
 
@@ -3590,4 +3588,10 @@ export const en: Record<string, string> = {
   'Escribe tu respuesta': 'Write your reply',
   'Respuesta no válida': 'Invalid reply',
   'Respuesta al pendiente {id} («{quote}»): {text}': 'Reply to pending item {id} (“{quote}”): {text}',
+  "Lo cambias aquí mismo y se vuelve a enviar; lo de ahora queda guardado como otra versión (‹ ›)": "Change it right here and it's sent again; the current one is kept as another version (‹ ›)",
+  "La versión {n} se guarda (‹ ›)": "Version {n} is kept (‹ ›)",
+  "Versión anterior": "Previous version",
+  "Versión siguiente": "Next version",
+  "Versión {n} de {total}": "Version {n} of {total}",
+  "Versión no válida": "Invalid version",
 }

@@ -189,6 +189,51 @@ describe('conversaciones de un proyecto', () => {
     expect(() => forkConversation(p.id, orig, { messageId: 'no-esta' })).toThrow(/ya no está/)
   })
 
+  it('editar un mensaje tuyo en el mismo chat guarda lo de antes como versión, y las flechas cambian entre ellas', () => {
+    const p = store.createProject('Editar en el sitio')
+    const st = store.getProject(p.id)
+    const a = { ...msg(p.id, 'Primera'), runId: 'r1' }
+    const b = { ...msg(p.id, 'Hecho', false), runId: 'r1' }
+    const c = { ...msg(p.id, 'Azul'), runId: 'r2' }
+    const d = { ...msg(p.id, 'Hecho en azul', false), runId: 'r2' }
+    st.messages.push(a, b, c, d)
+    st.tasks.push({ ...task(p.id, 'T1'), runId: 'r1' }, { ...task(p.id, 'T2'), runId: 'r2' })
+    expect(() => store.rewindChat(p.id, c.id, ['r2'])).toThrow(/sigue en marcha/)
+    expect(() => store.rewindChat(p.id, b.id, [])).toThrow(/tus mensajes/)
+    expect(() => store.rewindChat(p.id, 'no-esta', [])).toThrow(/ya no está/)
+
+    const edit = store.rewindChat(p.id, c.id, [])
+    expect(st.messages.map((m) => m.text)).toEqual(['Primera', 'Hecho'])
+    expect(st.tasks.map((t) => t.title)).toEqual(['T1'])
+    expect(edit.versions.current).toBe(1)
+    expect(edit.versions.others.map((o) => [o.at, o.messages.map((m) => m.text), o.tasks.map((t) => t.title)])).toEqual([[0, ['Azul', 'Hecho en azul'], ['T2']]])
+
+    // El mensaje nuevo (versión 2 de 2) y su respuesta.
+    const e = { ...msg(p.id, 'Verde'), runId: 'r3' }
+    st.messages.push(e, { ...msg(p.id, 'Hecho en verde', false), runId: 'r3' })
+    st.tasks.push({ ...task(p.id, 'T3'), runId: 'r3' })
+    expect(store.attachVersions(p.id, 'r3', edit.versions)?.id).toBe(e.id)
+
+    // ‹ : vuelve la versión 1 con sus tareas; la 2 queda guardada.
+    store.switchMessageVersion(p.id, e.id, 0, [])
+    expect(st.messages.map((m) => m.text)).toEqual(['Primera', 'Hecho', 'Azul', 'Hecho en azul'])
+    expect(st.tasks.map((t) => t.title).sort()).toEqual(['T1', 'T2'])
+    expect(st.messages[2].versions).toMatchObject({ current: 0, others: [{ at: 1 }] })
+    expect(() => store.switchMessageVersion(p.id, c.id, 1, ['r2'])).toThrow(/sigue en marcha/)
+    store.switchMessageVersion(p.id, c.id, 1, [])
+    expect(st.messages.map((m) => m.text)).toEqual(['Primera', 'Hecho', 'Verde', 'Hecho en verde'])
+
+    // Editar otra vez: tercera versión, las anteriores siguen.
+    const again = store.rewindChat(p.id, e.id, [])
+    expect(again.versions.current).toBe(2)
+    expect(again.versions.others.map((o) => o.at)).toEqual([0, 1])
+    // Si el envío falla, todo vuelve a estar como antes.
+    again.undo()
+    expect(st.messages.map((m) => m.text)).toEqual(['Primera', 'Hecho', 'Verde', 'Hecho en verde'])
+    expect(st.messages[2].versions?.current).toBe(1)
+    expect(listConversations(p.id)).toHaveLength(1)
+  })
+
   it('mover a otro proyecto: sale del origen (que queda con una nueva si era la abierta) y llega al destino sin sesiones', () => {
     const a = store.createProject('Origen')
     const b = store.createProject('Destino')

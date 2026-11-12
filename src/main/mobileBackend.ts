@@ -149,6 +149,7 @@ export class MobileBackend {
         usageCost: true,
         replyTo: true,
         memoryAnswer: this.methods.has('answerMemory'),
+        editInPlace: this.methods.has('switchMessageVersion'),
         messageActions: this.methods.has('forkConversation'),
         videoPicker: ['listVideoCharacters', 'addVideoCharacter', 'removeVideoCharacter', 'listVideoVoices', 'previewVideoVoice'].every((m) => this.methods.has(m))
       }
@@ -319,7 +320,7 @@ export class MobileBackend {
     return { results }
   }
 
-  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = [], templateId?: string, replyTo?: string, artifactIds: string[] = []): Promise<MobileChatReceipt> {
+  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = [], templateId?: string, replyTo?: string, artifactIds: string[] = [], editOf?: string): Promise<MobileChatReceipt> {
     // Con id=null, un reintento sigue encontrando el mensaje aunque otro proyecto haya pasado a ser el más reciente.
     if (conversationId === null) {
       const projects = await this.call<ProjectSummary[]>('listProjects')
@@ -352,11 +353,15 @@ export class MobileBackend {
     // «Responder»: tiene que ser la respuesta de un agente de esta conversación.
     if (replyTo && !state.messages.some((m) => m.id === replyTo && m.author.type === 'agent')) throw new MobileError(400, 'INVALID_INPUT', 'replyTo: esa respuesta no es de un agente de esta conversación')
     try {
-      const { runId } = await this.call<{ runId: string }>('sendMessage', { projectId: state.project.id, text, filePaths: [], clientMessageId, attachmentIds, ...(artifactIds.length ? { artifactIds } : {}), ...(templateId ? { templateId } : {}), ...(replyTo ? { replyTo } : {}) })
+      const { runId } = await this.call<{ runId: string }>('sendMessage', { projectId: state.project.id, text, filePaths: [], clientMessageId, attachmentIds, ...(artifactIds.length ? { artifactIds } : {}), ...(templateId ? { templateId } : {}), ...(replyTo ? { replyTo } : {}), ...(editOf ? { editOf } : {}) })
       return this.receipt(await this.call<LoadedProject>('loadProject', state.project.id), runId, clientMessageId)
     } catch (e) {
       if (e instanceof Error && e.message === 'clientMessageId ya se usó con otro texto') throw new MobileError(409, 'CLIENT_MESSAGE_CONFLICT', 'Ese clientMessageId ya se usó con otro texto')
       if (e instanceof Error && e.message.startsWith('No existe el adjunto ')) throw new MobileError(400, 'INVALID_INPUT', `attachmentIds: ${e.message}`)
+      // Editar un mensaje tuyo en el mismo chat (editOf).
+      if (e instanceof Error && /Ese mensaje ya no está/.test(e.message)) throw new MobileError(404, 'MESSAGE_NOT_FOUND', e.message)
+      if (e instanceof Error && /Solo se pueden editar tus mensajes/.test(e.message)) throw new MobileError(400, 'INVALID_INPUT', `editOf: ${e.message}`)
+      if (e instanceof Error && /sigue en marcha: detenla antes de editar/.test(e.message)) throw new MobileError(409, 'PROJECT_BUSY', e.message)
       throw e
     }
   }
@@ -565,6 +570,20 @@ export class MobileBackend {
     if (!message?.routineProposal) throw new MobileError(404, 'ROUTINE_PROPOSAL_NOT_FOUND', 'No se encontró esa propuesta de rutina')
     if (message.routineProposal.status !== 'pending') throw new MobileError(409, 'ROUTINE_PROPOSAL_NOT_PENDING', 'Esa propuesta ya no está pendiente')
     return { message: await this.routineCall<ChatMessage>('decideRoutineProposal', conversationId, messageId, action) }
+  }
+
+  /** Flechas ‹ › de un mensaje tuyo editado: enseña su versión [to]; el chat llega por messages.replaced. */
+  async switchVersion(conversationId: string, messageId: string, to: number): Promise<{ switched: true }> {
+    const message = (await this.existing(conversationId)).messages.find((m) => m.id === messageId)
+    if (!message) throw new MobileError(404, 'MESSAGE_NOT_FOUND', 'Ese mensaje ya no está en la conversación')
+    if (!message.versions || (to !== message.versions.current && !message.versions.others.some((o) => o.at === to))) throw new MobileError(404, 'VERSION_NOT_FOUND', 'Ese mensaje no tiene esa versión')
+    try {
+      await this.call('switchMessageVersion', conversationId, messageId, to)
+    } catch (e) {
+      if (e instanceof Error && /sigue en marcha/.test(e.message)) throw new MobileError(409, 'PROJECT_BUSY', e.message)
+      throw e
+    }
+    return { switched: true }
   }
 
   /** «Ejecutar ahora»: si la anterior sigue en marcha, la ejecución vuelve como saltada (skipped). */
