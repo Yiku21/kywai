@@ -694,5 +694,152 @@ A continuous, close, brisk voice with no pauses longer than 0.3 s, a light elect
 
 You decide the props, the robots' tags, the colours of the key words, the number of steps (2 to 4) and the opening and ending. Structures: "stop doing X → why it fails → the turn → 3 steps → comment WORD"; a myth crossed out and corrected; a before/after with grey robots against the orange one. Openings: a full grid of tagged robots; a crossed-out sign; one robot overloaded with tags. Endings: the comment box; a shelf of resources; a pull-back comparing "they fix 15, you fix 1".
 `
+  ].join('\n'),
+
+  'kywai-machine-room': [
+    HEAD(
+      'Behind the Machine',
+      'A dark 3D bedroom-office at night where one small pixel-voxel character (the agent) works alone at a desk; app windows float up from the monitor one after another and show each step of the job happening for real, while big two-to-three-word captions with one orange word tell the story.',
+      'late-night desk setups lit by a monitor; "my AI works while I sleep" reels; screen-recording walkthroughs of a tool doing a job step by step; pixel and voxel avatars.'
+    ),
+    `## 1. Essence, and what it is not
+
+- **One room, one worker**: a dark desk under a window with the moon, a monitor, a phone on a stand and a keyboard. The only character is a small chunky pixel-voxel figure (the agent, or the user's chosen character built from voxels) who sits, types, leans in and reacts. It is night: the monitor is the key light.
+- **The process is the story**: every beat is one app window that rises out of the monitor towards the camera and shows a step **working**: a search with a counter racing up, a grid of results, a ranked table with the winners outlined, a download bar, a transcript typing itself, a timeline cut into labelled blocks, a script being written, a voice waveform, scenes filling a storyboard, a weekly calendar filling with posts. Windows stack and slide away; the room stays.
+- **Numbers that move**: counters tick up (3 → 2,411 → 3,754), multipliers pop ("×2", "×8"), progress bars fill, timestamps advance. The viewer must feel the machine running.
+- **Captions carry the voice**: two to three words at a time, bold caps, in the lower third over the desk, with **one** word in orange per caption (the verb or the payoff).
+- **Stickers for the punchlines**: a tilted orange label with a white outline ("VIRALES", "+120 RULES", "LO MÁS LOCO") slaps onto the window at the key moment.
+
+Not Dark Keynote (there is a room and a character, not a stage of slides), not Voxel Bots Explainer (one worker at a real desk, the UI windows are the heroes, no headline bar), not Desktop Flythrough (we never fly through folders; windows come to us), not a real screen recording (every window is drawn: generic, clean and readable).
+
+## 2. Materials & rendering
+
+- three.js (or the base engine) at 1080×1920 by default (1920×1080 if asked). A long-lens perspective camera (≈ 30° FOV) behind and slightly above the character, so the monitor is at the upper centre and the desk fills the bottom third.
+- **Room**: near-black walls (#0a0a0c to #141418), a window with a deep blue night sky, a crescent moon and a few stars; a desk of dark wood or matte black; a mechanical keyboard whose keys catch the monitor light; an optional plant and a lamp that stays off.
+- **Character**: built from voxels (boxes with 1 px bevels), 30–40 voxels tall, matte, flat colour per face, a clear silhouette (hair, beard or cap), eyes as dark squares that blink. Contact shadow on the chair and desk.
+- **Windows** (2D panels in 3D space, always facing the camera): dark UI (#1a1715 body, #24201d title bar with three dots and a small app name like "content-os · Discoverer"), 10–14 px corner radius, a 1 px warm border, a soft orange glow behind the active one, crisp text. Inside: monospace numbers, tables with hairlines, thumbnails as flat pixel-art faces or abstract blocks (never real people or real logos), waveforms as bars.
+- **Light**: the monitor and the active window are the key light (warm white), the window gives a cold blue rim, everything else falls into darkness; a soft bloom on the glowing UI and a faint vignette.
+- \`render(t)\` is a pure function of \`t\` (same frame for the same time).
+
+## 3. Colour logic
+
+Near-black room, warm white UI text, **one accent: orange** (#ff7a1a example) for the active outline, the caption key word, the cursor, the stickers and the progress bars; night blue only in the window and the rim light. Green only for a tick "done". Never a second accent.
+
+## 4. Type & subtitles
+
+- Captions: heavy condensed or geometric sans in caps (licence-free, e.g. Archivo Black, Anton, Montserrat ExtraBold), 70–90 px, white with a 4–6 px dark outline and a soft shadow; 2–3 words per caption, one in orange; centred in the lower third, swapped on the word with a 100 ms pop (scale 1.06 → 1).
+- UI text: a clean sans (Inter, Manrope) 22–30 px and a monospace (JetBrains Mono, Space Mono) for numbers, counters and file names; tabular numbers.
+- Stickers: the caption font on an orange rounded rectangle with a 4 px white outline, rotated −6° to −10°.
+- An optional small top title ("TURNO DE MADRUGADA" / "NIGHT SHIFT") in white caps in the first 3 s only.
+
+## 5. Motion quality
+
+Smooth and confident, like a real app. Windows rise from the monitor with a short ease-out (300–400 ms), a slight scale-up and a glow that fades in; the previous window shrinks back and dims. Inside a window something always progresses: rows fill in a stagger (40–60 ms), counters tick with an ease-out, bars fill, text types at reading speed with a blinking orange caret. An orange mouse cursor moves in arcs (never straight lines) and clicks with a small ripple. The character types in bursts, leans in when a number jumps, sits back when a step is done. Idle life: the moon glows, dust drifts in the monitor light, the phone screen lights up now and then.
+
+## 6. Camera grammar
+
+| Move | What it expresses | Can serve |
+|---|---|---|
+| Wide on the dark room, the phone lights up with an alarm | it starts on its own | the opening; "every night at 3:55" |
+| Slow push over the shoulder to the monitor | it gets to work | the first step |
+| Locked on the floating window, tiny drift | look at this step | each step; a number jumping |
+| Quick rack focus from window to character | it reacts | a surprising result |
+| Pull back to the room with all windows stacked | the whole machine | the ending; "and it did it alone" |
+
+Keep the bottom 20 % for captions. Transitions are windows replacing windows; never cut to another place.
+
+## 7. Sound palette
+
+Night room tone, soft mechanical keyboard bursts, a UI blip when a window opens, fast ticks while a counter climbs, a whoosh when a window slides away, a pop and a short "ding" when a sticker lands, a low riser before the payoff. Use the real effects bank (efectos/) before synthesizing. Music: a dark, steady lo-fi or minimal electronic beat under the voice. Close, confident, slightly hushed voice (it is night). −14 LUFS.
+
+## 8. Native moves
+
+- **The alarm.** The phone lights up at night with a notification ("Night shift · Instagram connected") and the character wakes up. *Fits content like:* the hook; a routine; "while I sleep".
+- **The racing counter.** A big number climbs in a corner of the window while results pile up. *Fits content like:* how much it searched; scale; effort saved.
+- **The winners table.** A ranked table where the outliers get an orange outline and a "×N" pill. *Fits content like:* choosing the best; data that proves it.
+- **The teardown.** A transcript and a timeline cut into labelled blocks (hook, steps, proof, call). *Fits content like:* analysing a video, a document or a process.
+- **The calendar.** A week grid filling with thumbnails and ticks. *Fits content like:* the ending; scheduling; consistency.
+
+## 9. Pitfalls of the medium
+
+- Unreadable windows: one idea per window, big numbers, nothing under 22 px. - A static window: something inside must progress every second. - Too many windows at once: the active one plus at most one dimmed behind. - Real people, real handles or real app logos in the windows: draw pixel faces and generic names. - A lit room: keep it dark, the monitor is the light. - Long captions: 2–3 words, one orange.
+`,
+    ENGINE('brick-toy', "its 3D scene setup, lighting and render loop; replace the studs with plain bevelled voxels, build the dark night room around the desk, light it from the monitor, and render the floating UI windows as camera-facing panels drawn on 2D canvases with a glow, plus the caption and sticker layer on top."),
+    `## 11. Variation space
+
+You decide the room details, the character, the app name in the windows, the steps and the numbers. Structures: "it wakes up → searches → picks → takes apart → writes → records → publishes"; one job from request to result; before (the human doing it at 3 AM) and after (the agent doing it alone). Openings: the alarm at night; a counter already racing; the character yawning and cracking its knuckles. Endings: the calendar filling up; a "published" tick and the character going back to sleep; the pull-back to the whole room with the windows stacked.
+`
+  ].join('\n'),
+
+  'kywai-countdown-list': [
+    HEAD(
+      'Countdown List',
+      'A rapid-fire numbered list against the clock: a big title with "in under 30 seconds", a two-column list from 1 to N that fills in one item per second or two with the current one in orange, a red seven-segment LED stopwatch racing, and for every item a small before/after panel that shows the idea working.',
+      'speed-run listicles; "20 principles in 30 seconds" reels; digital stopwatches and LED timers; side-by-side before/after UI demos.'
+    ),
+    `## 1. Essence, and what it is not
+
+- **The list is the timeline**: the title ("20 principles of X") and a numbered list in two columns (1–10, 11–20) stay at the top the whole film. Items appear one by one, exactly when said; the current item is orange, the previous ones turn white, the coming numbers wait empty.
+- **Against the clock**: a red seven-segment LED stopwatch (00.00, with a dark unlit-segment ghost) runs on the left side and never stops until the last item, where it freezes and blinks. The subtitle under the title promises the limit ("in under 30 seconds").
+- **One proof per item**: in the lower half, a white card with a one-line rule on a black strip ("Things squish on impact to show weight") and two panels side by side labelled **Before** and **After**, each with a tiny looping demo of the same UI element done badly and well (a button that squashes, a card that follows through, a hit area that grows, a list that chunks a number). The card changes with every item.
+- **Fast but readable**: 1–2.5 s per item; the voice says only the name of each item; the panel and the strip carry the explanation.
+- If a presenter is wanted, a robot of kywai (or the chosen character) talks in the middle band; otherwise the middle is a soft gradient.
+
+Not Checklist (no ticking boxes and no slow progress; it is a race with a stopwatch), not Swiss Motion Design (warm, product-like cards, a physical timer), not App Promo (it teaches a list, it does not sell a product).
+
+## 2. Materials & rendering
+
+- Canvas or SVG at 1080×1920 by default (1920×1080 if asked, list on the left, card on the right). Background: a soft blurred room-like gradient (warm grey to beige) with gentle grain, or the middle band with the presenter.
+- **Title block**: top 22 %, centred; title 56–64 px white with a soft shadow, subtitle 26–30 px at 70 % white; the list below in two columns, 26–32 px, with numbers right-aligned.
+- **Stopwatch**: a dark rounded rectangle with a red seven-segment display (lit #ff2a2a with a glow, unlit segments at 8 %), "SS.CC" format, on the left at about 40 % height, 18–22 % of the width.
+- **Proof card**: white (#ffffff) with 18–24 px radius and a soft shadow, lower 40 % of the frame; the rule strip is black with white bold text (24–28 px) across the top; two panels on a faint dot grid with "Before / After" labels (bold) and a grey sublabel ("Rigid" / "Squash & stretch").
+- Demos inside panels are simple flat UI pieces (buttons, cards, inputs, toasts, menus) in 2–3 muted colours plus the accent; each loops every 1–1.5 s so both sides are seen at least once.
+- \`render(t)\` is a pure function of \`t\` (same frame for the same time).
+
+## 3. Colour logic
+
+White text over the soft background, **orange** (#ff8a3d example) only for the current list item and the key part of each "After" demo, **red** only for the LED stopwatch, black and white for the proof card. The "Before" panel is greyer and flatter; the "After" panel gets the accent.
+
+## 4. Type & subtitles
+
+- Title and list: a clean geometric or grotesque sans (licence-free, e.g. Inter, Manrope, Space Grotesk), title bold, list medium, numbers tabular.
+- Rule strip: bold, sentence case, ≤ 50 characters.
+- Subtitles: usually none (the list is the subtitle); if the voice says more than the item name, a small caption pill above the card with ≤ 30 characters.
+
+## 5. Motion quality
+
+On ones, brisk. A new item types or fades in from the left in 120 ms and turns orange; the previous one fades to white. The proof card swaps with a quick vertical slide (180 ms) or a flip; its demos start immediately. The stopwatch counts in real time (hundredths) and pulses slightly on every new item. At the end the stopwatch freezes, blinks twice, and the whole list glows once. The "After" demos must apply what they teach (squash and stretch, anticipation, follow-through, arcs, easing).
+
+## 6. Camera grammar
+
+| Move | What it expresses | Can serve |
+|---|---|---|
+| Locked frame, everything visible | the race | the whole film |
+| Tiny push on the card at item changes | this one now | each item |
+| Quick zoom on the stopwatch | time is running | the hook; the last item |
+| Pull back with the full list lit | done | the ending; "save this" |
+
+Keep it simple: the frame barely moves; the content changes.
+
+## 7. Sound palette
+
+A fast ticking under everything, a soft click or blip on every new item, a short whoosh on card swaps, a buzzer or bell when the stopwatch stops. Use the real effects bank (efectos/) before synthesizing. Music: none or a quiet driving beat. A fast, clear voice that reads only the item names, one breath per item. −14 LUFS.
+
+## 8. Native moves
+
+- **The race starts.** The stopwatch at 00.00 starts on the first word of the title. *Fits content like:* the hook; "in under 30 seconds".
+- **Before / After.** Two panels with the same element done badly and well. *Fits content like:* each rule, principle, tip or law.
+- **Column jump.** At item 11 the list jumps to the second column with a small flash. *Fits content like:* the halfway point; "and the other 10".
+- **Time!** The stopwatch freezes and blinks, the list glows. *Fits content like:* the ending; the call to action ("comment X and I send you the full list").
+
+## 9. Pitfalls of the medium
+
+- Too slow: more than 3 s per item breaks the promise. - Explaining in the voice: the voice names, the card explains. - Panels too small or busy: one element per panel, big. - A demo that does not loop in time: each one must be understood in about one second. - Real app logos in the demos: generic UI only.
+`,
+    ENGINE('swiss-motion', "its grid, typographic timing and sound-event helpers; build the two-column numbered list, the seven-segment LED stopwatch (draw each segment as a bevelled polygon), the white proof card with the black rule strip and the two looping Before/After demo panels on top, warmer and softer than the Swiss look."),
+    `## 11. Variation space
+
+You decide the number of items (5 to 20), the time limit, the background or presenter, and the demos. Structures: "N principles of X in under T seconds"; "N mistakes and their fix" (Before = the mistake); "N tools in N seconds" (Before = without it, After = with it). Openings: the stopwatch already running; the empty list with only numbers; the presenter saying the promise. Endings: "Time!" with the full list; the stopwatch beating the limit by a hair; a comment box offering the full guide.
+`
   ].join('\n')
 }

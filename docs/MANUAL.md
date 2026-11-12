@@ -2513,7 +2513,7 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **Con el selector de cuatro pasos** (escritorio, web y Órbita): al escribir `/video` se abre encima del cuadro un panel con
   **1. Tipo de vídeo** (rápido con texto animado, dibujos con presentador o mixto), **2. Personaje** (ninguno, los
   robots de kywai, los que hayas creado o «Agregar personaje»), **3. Estilo de animación** (el de kywai, rápido, o
-  uno de los 77 estilos de película con su muestra) y **4. Voz** (automática o una concreta, con ▶ para oírla).
+  uno de los 79 estilos de película con su muestra) y **4. Voz** (automática o una concreta, con ▶ para oírla).
   Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
@@ -2775,9 +2775,9 @@ que Órbita reduce antes de enviarlas. Las marcas se leen y se escriben como en 
 `src/shared/videoChoice.ts`: si cambian allí, cambian también aquí). Con un ordenador sin esta versión, `/video` sigue
 funcionando escribiendo las marcas a mano.
 
-**Estilos de película (77, con muestra).** En el paso 3 del selector, una tarjeta con **una muestra de cada estilo**
+**Estilos de película (79, con muestra).** En el paso 3 del selector, una tarjeta con **una muestra de cada estilo**
 (un fotograma de su película de ejemplo), por categorías y con buscador: **Pintado a mano (acuarela y tinta)** y los
-**8 estilos propios de kywai** (ver más abajo) y los **66 estilos de la biblioteca Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
+**los estilos propios de kywai** (ver más abajo) y los **66 estilos de la biblioteca Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
 80, Pixel RPG, HD-2D, diseño suizo, plano técnico, infografía isométrica, risografía, xilografía, ukiyo-e, teatro de
 sombras, piezas de construcción, maqueta en miniatura, cine mudo, noticiario de época… Elegir uno pone
 `estilo:<carpeta>` detrás de `/video` (p. ej. `/video estilo:watercolor el ciclo del agua`); también vale escribirlo
@@ -2870,6 +2870,25 @@ descarga y la pantalla real con 2–3 líneas que se marcan. Acaba siempre en un
 dirección y un solo botón. Sin voz por defecto (los titulares cuentan la historia), 25–35 s. Usa el motor de la
 «Presentación tecnológica» (`dark-keynote`) y pide usar capturas y grabaciones reales del producto del usuario. Va muy
 bien para los reels de kywai. También se pide con «estilo anuncio», «promo» o «antes y después».
+
+**Detrás de la máquina** (`kywai-machine-room`, desde el 12 de noviembre de 2026) sale de la estética de un reel
+vertical que enseñaba a un agente trabajando de madrugada en una cuenta de Instagram (solo su aspecto y su ritmo, nada
+de su marca ni de su texto). Es un cuarto oscuro de noche, con la luna en la ventana, donde un solo personaje de
+píxeles en 3D (o el que elijas, hecho de bloques) trabaja en su mesa. Cada paso del trabajo es una ventana de la app
+que sale del monitor y lo enseña ocurriendo: un buscador con un contador que se dispara, una tabla con los ganadores
+recuadrados en naranja y su «×N», una barra de descarga, una transcripción que se escribe sola, una línea de tiempo
+partida en bloques, un guion, una onda de voz, un calendario que se llena. Abajo, subtítulos de 2–3 palabras en
+mayúsculas con una en naranja, y pegatinas naranjas inclinadas en los momentos clave («VIRALES»). Va muy bien para
+enseñar cómo trabaja kywai (es el estilo natural del «/turno-noche»). Usa el motor de «Piezas de construcción»
+(`brick-toy`) y lleva la lista de escena 3D viva. También se pide con «estilo detrás de la máquina» o «cuarto oscuro».
+
+**Lista contrarreloj** (`kywai-countdown-list`, desde el 12 de noviembre de 2026) sale del formato de un reel de «20
+principios de UX y animación en menos de 30 segundos» (solo el formato). Arriba, el título y una lista numerada en dos
+columnas que se llena a toda prisa, con el punto actual en naranja; a la izquierda, un cronómetro LED rojo de siete
+segmentos que corre hasta el último punto y entonces se para y parpadea; abajo, una tarjeta blanca con la regla en una
+franja negra y dos paneles **Antes** / **Después** con una demostración pequeña que se repite (el mismo botón, tarjeta o
+campo hecho mal y bien). 1–2,5 s por punto; la voz solo dice el nombre de cada uno. Usa el motor del «Diseño suizo
+animado» (`swiss-motion`). También se pide con «estilo lista contrarreloj», «contrarreloj» o «cronómetro».
 
 **Instalación.** «Instalar lo que falta» (Ajustes → Extensiones → Estudio de vídeo, fila «Estilos de película») o, si
 no, el primer vídeo con estilo, descarga con git a `estudio-video/lemo-opuscar` una **versión fija** de la biblioteca

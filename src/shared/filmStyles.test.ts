@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { FILM_CATEGORIES, FILM_STYLES, findFilmStyle, isVideoCommand, KYWAI_FILM, takeFilmStyle } from './filmStyles'
 
 describe('catálogo de estilos de película', () => {
-  it('tiene los 66 de la biblioteca, el de los robots y los 6 propios de kywai, sin repetir', () => {
-    expect(FILM_STYLES).toHaveLength(77)
-    expect(new Set(FILM_STYLES.map((s) => s.slug)).size).toBe(77)
+  it('tiene los 66 de la biblioteca, el de los robots y los propios de kywai, sin repetir', () => {
+    expect(FILM_STYLES).toHaveLength(79)
+    expect(new Set(FILM_STYLES.map((s) => s.slug)).size).toBe(79)
     expect(FILM_STYLES[0].slug).toBe(KYWAI_FILM)
     for (const s of FILM_STYLES) {
       expect(FILM_CATEGORIES.some((c) => c.id === s.category)).toBe(true)
@@ -30,6 +30,10 @@ describe('catálogo de estilos de película', () => {
     expect(findFilmStyle('voxel')?.slug).toBe('kywai-voxel-bots')
     expect(takeFilmStyle('estilo anuncio de app kywai en 30 segundos')).toMatchObject({ style: { slug: 'kywai-app-promo' }, rest: 'kywai en 30 segundos' })
     expect(findFilmStyle('promo')?.slug).toBe('kywai-app-promo')
+    expect(takeFilmStyle('estilo detrás de la máquina mi agente trabaja de noche')).toMatchObject({ style: { slug: 'kywai-machine-room' }, rest: 'mi agente trabaja de noche' })
+    expect(findFilmStyle('cuarto oscuro')?.slug).toBe('kywai-machine-room')
+    expect(takeFilmStyle('estilo lista contrarreloj 20 principios de UX')).toMatchObject({ style: { slug: 'kywai-countdown-list' }, rest: '20 principios de UX' })
+    expect(findFilmStyle('cronómetro')?.slug).toBe('kywai-countdown-list')
   })
 
   it('separa el estilo del tema', () => {
