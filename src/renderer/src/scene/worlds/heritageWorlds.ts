@@ -105,6 +105,40 @@ function haunted(m: Model) {
     }
   }
   for (const s of [-1, 1]) for (const y of [.5, 1.25]) m.beam([s * 15.8, y, -15], [s * 15.8, y, 9], .035, '#45424c')
+  // Con la cámara frontal se ve el borde de delante: la verja sigue por los lados y lo cierra, con una puerta abierta.
+  for (const s of [-1, 1]) {
+    for (let zz = 9.6; zz <= 14; zz += .6) {
+      m.beam([s * 15.8, -.1, zz], [s * 15.8, 1.5, zz], .028, '#45424c')
+      m.add('crystal', [s * 15.8, 1.59, zz], [.08, .23, .08], '#68606b')
+    }
+    for (let xx = 3.4; xx < 15.8; xx += .6) {
+      m.beam([s * xx, -.1, 14.2], [s * xx, 1.5, 14.2], .028, '#45424c')
+      m.add('crystal', [s * xx, 1.59, 14.2], [.08, .23, .08], '#68606b')
+    }
+    for (const y of [.5, 1.25]) {
+      m.beam([s * 15.8, y, 9], [s * 15.8, y, 14.2], .035, '#45424c')
+      m.beam([s * 3, y, 14.2], [s * 15.8, y, 14.2], .035, '#45424c')
+    }
+    // Pilares de la puerta y faroles en las esquinas, como los de los lados.
+    m.box([s * 2.8, 1.1, 14.2], [.5, 2.2, .5], '#4b4550')
+    m.box([s * 2.8, 2.27, 14.2], [.62, .14, .62], '#343341')
+    m.add('sphere', [s * 2.8, 2.5, 14.2], [.2, .2, .2], '#343341')
+    for (const [x, z] of [[s * 2.8, 14.2], [s * 15.8, 14.2], [s * 9.3, 14.2]] as const) {
+      m.beam([x, 0, z + .01], [x, 3.6, z + .01], .075, '#45424c')
+      m.box([x, 3.35, z + .01], [.38, .6, .38], '#ffb363', .8)
+      m.add('cone', [x, 3.84, z + .01], [.35, .35, .35], '#343341')
+    }
+    for (let k = 0; k < 7; k++) {
+      // Lápidas torcidas entre la verja y la plaza.
+      const x = s * (5.2 + k * 1.45), z = 15.3 + rnd(k * 3 + (s > 0 ? 7 : 0)) * 1.1
+      const h = .55 + rnd(k + 9) * .4, yaw = (rnd(k) - .5) * .5, lean = (rnd(k + 4) - .5) * .22, stone = k % 2 ? '#5d5764' : '#4b4550'
+      // Lápida de remate redondo, un poco hundida y torcida, con su losa delante.
+      m.box([x, h / 2 - .05, z], [.62, h, .16], stone, 0, [0, yaw, lean])
+      m.add('cylinder', [x - Math.sin(lean) * h, h - .05, z], [.31, .16, .31], stone, 0, [Math.PI / 2, 0, yaw])
+      m.box([x - Math.sin(lean) * h * .5, h * .55, z + .085], [.36, .035, .02], '#7d7686', 0, [0, yaw, lean])
+      m.box([x, .02, z + .45], [.6, .07, .75], '#2f2a34', 0, [0, yaw, 0])
+    }
+  }
 
 }
 
@@ -154,6 +188,13 @@ function winterVillage(m: Model) {
     for (let i = 0; i < 35; i++) {
       const x = side * (14 + rnd(i + 14) * 3), z = -16 + rnd(i + 33) * 29
       m.add('sphere', [x, -.18, z], [.6 + rnd(i), .2, .5 + rnd(i + 2)], '#d4e2e7')
+    }
+    // El frente del pueblo: farolas como las de los lados, también en las esquinas de delante.
+    for (const x of [side * 8, side * 14]) {
+      m.add('cylinder', [x, 1.5, 13.5], [.07, 3.2, .07], '#34464c')
+      m.box([x, 3.1, 13.5], [.37, .54, .37], '#ffce86', .8)
+      m.add('cone', [x, 3.52, 13.5], [.34, .3, .34], '#dbe6e8')
+      m.ring([x, 2.6, 13.6], .34, '#3d694a', [0, 0, 0], 0)
     }
   }
 }
