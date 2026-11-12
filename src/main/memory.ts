@@ -77,6 +77,28 @@ export function parseMemoryNotes(text: string): MemoryNote[] {
   return out
 }
 
+/**
+ * El resumen de lo hecho en una tarea, si el agente no lo dejó en «Para la memoria»: el último párrafo de su
+ * respuesta (donde se le pide el resumen), en una línea. Null si ya lo dejó o no hay nada aprovechable.
+ */
+export function taskSummaryNote(title: string, text: string, notes: MemoryNote[]): MemoryNote | null {
+  if (notes.some((n) => /^hecho en\b/i.test(fold(n.text)))) return null
+  const body = (text ?? '').replace(/^\s{0,3}(?:#{1,4}\s*|\*\*)para la memoria\b[\s\S]*$/im, '').trim()
+  if (!body || /^bloqueada\s*:/i.test(body)) return null
+  const paragraphs = body.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => p && !p.startsWith('```') && !/^#{1,4}\s/.test(p))
+  const last = paragraphs[paragraphs.length - 1]
+  if (!last) return null
+  const line = last
+    .replace(/^\s*[-*•]\s+/gm, '')
+    .replace(/\*\*|__|`/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (line.length < 12) return null
+  const head = `Hecho en «${title}»: `
+  const room = MAX_TEXT - head.length
+  return { kind: 'fact', text: head + (line.length > room ? `${line.slice(0, room - 1)}…` : line) }
+}
+
 /** Notas del plan del coordinador ("memory": [{kind, text, replaces}]). */
 export function planMemoryNotes(raw: unknown): MemoryNote[] {
   if (!Array.isArray(raw)) return []

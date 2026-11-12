@@ -66,7 +66,7 @@ import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpda
 import { withoutClosingNotes, workSteps } from '@shared/work'
 import { lang, locale, renderMsg, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
-import { addMemory, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNotes, planMemoryNotes, type MemoryNote } from './memory'
+import { addMemory, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNotes, planMemoryNotes, taskSummaryNote, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
 import { CHAT_STYLE, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
 import { projectBrief, testCommand } from './projectBrief'
@@ -4976,6 +4976,11 @@ const NARRATE_RULE = '- Mientras trabajas, cuenta lo que haces en frases cortas 
  * Encargo de una consulta rápida: la pregunta, la conversación y pocas reglas. Sin lista de pasos, sin narrar el
  * avance, sin resumen final ni sección de memoria: eso es para el trabajo de verdad y aquí solo alarga la espera.
  */
+/** Una tarea normal (el encargo general), no una consulta rápida, un mensaje directo ni una pieza del estudio de vídeo. */
+function isPlainTask(t: Task): boolean {
+  return !t.quick && !t.direct && !t.igReply && !t.instagram && !t.dub && !t.thumbnail && !t.demo && !t.footage && !t.learn && !t.video
+}
+
 /**
  * Las habilidades del equipo en el encargo: las que encajan con la tarea van enteras (todos los agentes reciben el
  * mismo texto) y las demás, en la lista con su descripción. Apunta en la tarea cuáles recibió, y lo dice en su detalle.
@@ -5272,7 +5277,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         ]
       : []),
     ...taskGuideRules(store.workRoot(run.projectId)),
-    '- Si tomas una decisión que afecte a trabajos futuros o descubres algo importante que no está en la memoria (un problema pendiente, un dato del entorno), añade al final una sección «## Para la memoria» con 1 a 3 líneas: «- decisión: …», «- hecho: …» o «- pendiente: …» (si sustituye a una entrada, «- decisión (sustituye m3): …»). Si no hay nada nuevo, no la pongas.'
+    `- Termina SIEMPRE con una sección «## Para la memoria», para que el siguiente agente (sea quien sea) parta de lo que tú sabes ahora. Primero una línea «- hecho: Hecho en «${t.title}»: …» con qué hiciste y dónde, en una frase. Después, de 0 a 3 líneas con lo que aprendiste y no está en la memoria: «- hecho: …» (cómo funciona algo del proyecto, un error y cómo se arregla, un dato del entorno), «- decisión: …» o «- pendiente: …» (si sustituye a una entrada, «- decisión (sustituye m3): …»). Nada de obviedades ni de repetir la memoria.`
   )
   return lines.join('\n')
 }
@@ -6146,8 +6151,14 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
   const delivered = arts.length ? { artifactIds: arts.map((a) => a.id) } : {}
   if (!closeWork(run, t, 'done', { text: msgText, ...delivered }, !!res.text.trim())) agentMessage(run, owner.id, msgText, delivered)
 
-  // Lo que el agente dejó «Para la memoria»: provisional hasta que el usuario lo confirme.
-  for (const n of parseMemoryNotes(res.text)) {
+  // Lo que el agente dejó «Para la memoria»: provisional hasta que el usuario lo confirme. Si no dejó el resumen
+  // de lo hecho, kywai lo saca del final de su respuesta: el siguiente agente debe saber qué se hizo.
+  const notes = parseMemoryNotes(res.text)
+  if (isPlainTask(t)) {
+    const summary = taskSummaryNote(t.title, res.text, notes)
+    if (summary) notes.unshift(summary)
+  }
+  for (const n of notes) {
     addMemory(
       run.projectId,
       { kind: n.kind, text: n.text },

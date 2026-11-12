@@ -818,6 +818,9 @@ async function main(): Promise<void> {
 
     await check('L: memoria del proyecto — el coordinador anota lo que decides, los agentes lo que descubren, y todos la leen', async () => {
       __clearBlocksForChecks()
+      // Las tareas de las pruebas anteriores dejaron su resumen («Hecho en …»): se empieza con la memoria vacía.
+      assert.ok(memoryOf(project.id).some((e) => e.kind === 'fact' && e.status === 'provisional' && e.text.startsWith('Hecho en «')), 'cada tarea deja su resumen')
+      store.getProject(project.id).memory = []
       setInstructions(project.id, 'Antes de terminar, ejecuta npm test.')
       const codeDir = join(root, 'codigo-ai-cowork')
       setGuideEnv({ codeDir, webUrls: () => ['http://100.64.0.9:8787'] })
@@ -857,7 +860,7 @@ async function main(): Promise<void> {
       const task1 = calls.slice(fromCalls).find((c) => c.prompt.includes('## Tu tarea: Base de datos'))!
       assert.match(task1.prompt, /## Instrucciones del proyecto[^\n]*\nAntes de terminar, ejecuta npm test\./)
       assert.match(task1.prompt, /## Memoria del proyecto[\s\S]*- m1 · preferencia · confirmado · el usuario, [^:]+: Todo en TypeScript/)
-      assert.match(task1.prompt, /«## Para la memoria»/)
+      assert.match(task1.prompt, /Termina SIEMPRE con una sección «## Para la memoria»[^\n]*Hecho en «Base de datos»/)
       // Lo que sabe de kywai: el coordinador, la guía entera; cada tarea, que no toque su código.
       assert.ok(task1.prompt.includes(`No modifiques nada en ${codeDir}: es el código de kywai`))
       const planner1 = calls.slice(fromCalls).find((c) => c.mode === 'plan')!
@@ -1834,7 +1837,9 @@ async function main(): Promise<void> {
       assert.deepEqual(saved.attachments.map((a) => a.relPath), ['attachments/Mi-foto.png'])
       assert.equal((saved.project as { dir?: string }).dir, undefined)
       // La memoria y las instrucciones van con el proyecto (y «Limpiar el chat» no las toca).
-      assert.deepEqual(saved.memory?.map((e) => e.id), ['m1', 'm2', 'm3'])
+      // (las de después de la prueba L son los resúmenes «Hecho en …» de las tareas siguientes)
+      assert.deepEqual(saved.memory?.slice(0, 3).map((e) => e.id), ['m1', 'm2', 'm3'])
+      assert.ok(saved.memory!.slice(3).every((e) => e.text.startsWith('Hecho en «')))
       assert.equal(saved.instructions, 'Antes de terminar, ejecuta npm test.')
       const usage = JSON.parse(readFileSync(join(root, 'workspace', 'usage.json'), 'utf8')) as { records: { g: string }[] }
       assert.ok(usage.records.some((r) => r.g === 'openai'))

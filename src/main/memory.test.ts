@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MemoryEntry } from '@shared/types'
-import { memoryLines, parseMemoryNotes, planMemoryNotes, withEntry } from './memory'
+import { memoryLines, parseMemoryNotes, planMemoryNotes, taskSummaryNote, withEntry } from './memory'
 
 const agent = { status: 'provisional' as const, by: 'codex', byName: 'Codex', taskTitle: 'API' }
 const user = { status: 'confirmed' as const, by: 'user' as const, byName: 'Tú' }
@@ -41,6 +41,23 @@ describe('notas para la memoria al final de una respuesta', () => {
       { kind: 'preference', text: 'Siempre en TypeScript', replaces: undefined },
       { kind: 'decision', text: 'Usar Vite', replaces: 'm2' }
     ])
+  })
+})
+
+describe('resumen de lo hecho al cerrar una tarea', () => {
+  it('lee la línea «Hecho en …» que deja el agente', () => {
+    const notes = parseMemoryNotes('Listo.\n\n## Para la memoria\n- hecho: Hecho en «API»: creé api.js con las rutas de reservas.\n- hecho: Las pruebas se lanzan con pnpm test.')
+    expect(notes.map((n) => n.text)).toEqual(['Hecho en «API»: creé api.js con las rutas de reservas.', 'Las pruebas se lanzan con pnpm test.'])
+    expect(taskSummaryNote('API', '', notes)).toBeNull()
+  })
+
+  it('si el agente no lo dejó, kywai lo saca del último párrafo de su respuesta', () => {
+    const text = 'Miré el código.\n\n```js\nconsole.log(1)\n```\n\n- Creé **api.js** con las rutas.\n- Añadí `store.js`.\n\n## Para la memoria\n- pendiente: Falta validar el solape.'
+    const notes = parseMemoryNotes(text)
+    expect(taskSummaryNote('API', text, notes)).toEqual({ kind: 'fact', text: 'Hecho en «API»: Creé api.js con las rutas. Añadí store.js.' })
+    expect(taskSummaryNote('API', 'BLOQUEADA: no tengo acceso', [])).toBeNull()
+    expect(taskSummaryNote('API', 'Ok.', [])).toBeNull()
+    expect(taskSummaryNote('API', 'x '.repeat(400), [])!.text.length).toBeLessThanOrEqual(400)
   })
 })
 
