@@ -3803,6 +3803,23 @@ Si una canción de Audius o una radio no llega (sin conexión, o el servidor no 
 cola y ofrece abrirla en su web. Desde el navegador, SomaFM puede rechazar sus radios según la dirección desde la
 que se abre kywai (en una prueba desde «localhost» las rechazó); en la app de escritorio suenan.
 
+### Personajes de los agentes
+
+Hermes, Claude, Codex, Gemini, Qwen, Muse, Aider, Copilot y Kilo tienen su personaje: un dibujo (el avatar del chat,
+los paneles, Órbita y el selector de /video) y un modelo 3D animado en el espacio. Los modelos se hicieron con Meshy a
+partir de los dibujos y comparten el mismo esqueleto, así que las animaciones sirven para todos: reposo, piensa (mira
+alrededor), explica y habla (al trabajar, se van alternando), celebra (tarea terminada), duda (error o pregunta),
+saluda (cuando le hablas) y camina (cuando se mueve a otra estación). Se reconocen por el nombre o el id del agente;
+los demás agentes y los becarios siguen siendo robots.
+
+Ajustes → General → «Personajes 3D» (por dispositivo) vuelve a los robots clásicos, que gastan menos. Mientras carga
+el modelo se ve el robot de siempre. Con personaje, los disfraces de Navidad y Halloween no se ponen.
+
+Archivos: `src/renderer/src/assets/personajes/` (un .glb por personaje y las animaciones en `anim/`),
+`scene/characters.ts` (carga, elección del movimiento y mezcla) y `Robot.tsx` (esconde el robot y pone el personaje;
+el puntero toca una cápsula invisible). Para rehacer uno: imagen de frente → Meshy image-to-3d (remallado a 30.000
+triángulos) → rigging con `height_meters: 1` → .glb sin tangentes, textura a 1024 y cuantizado.
+
 ### Expresiones de los robots
 
 Todos los robots tienen el mismo juego de ojos, cada uno con su color, y la forma cuenta lo que está haciendo de

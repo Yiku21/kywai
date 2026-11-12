@@ -17,6 +17,7 @@ import { registry } from './registry'
 import { GEO, checkTexture, questionTexture, warnTexture, zzzTexture } from './assets'
 import { ROBOT_Y, consoleOffset, consoleSide, coreBay, stationVec } from './layout'
 import { setAnchorObject, setAnchorOpacity, useSceneHover } from './anchors'
+import { buildCharacter, characterRole, useRobotStyle, type Character } from './characters'
 
 /** Tamaño de los robots respecto a su modelo. */
 const ROBOT_SCALE = 1.3
@@ -70,6 +71,55 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   const avatarKey = JSON.stringify(avatar)
   const model = useMemo(() => palette.world === 'kywai' ? buildHomeRobot(avatar, agent.color, `${agent.name} ${agent.id}`) : buildRobot(avatar, agent.color), [avatarKey, agent.color, agent.name, agent.id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => model.dispose(), [model])
+
+  // Personaje 3D (Meshy) del agente, si tiene uno y no se eligieron los robots clásicos. Mientras carga se ve el robot de siempre.
+  const style = useRobotStyle((s) => s.style)
+  const role = agent.isSubagent ? undefined : characterRole(`${agent.name} ${agent.id}`)
+  const [character, setCharacter] = useState<Character | null>(null)
+  const hiddenParts = useRef<{ prev: Map<THREE.Object3D, boolean>; keep: Set<THREE.Object3D> } | null>(null)
+  useEffect(() => {
+    if (style !== 'personajes' || !role) return
+    let alive = true
+    let built: Character | null = null
+    buildCharacter(role)
+      .then((c) => {
+        if (!alive) return c.dispose()
+        built = c
+        setCharacter(c)
+      })
+      .catch(() => {
+        /* sin el modelo se queda el robot de siempre */
+      })
+    return () => {
+      alive = false
+      built?.dispose()
+      setCharacter(null)
+    }
+  }, [style, role])
+  useEffect(() => {
+    if (!character) return
+    const c = character.root
+    // Pies un poco por debajo del cuerpo del robot y la cabeza a su altura, para que los indicadores y el nombre sigan en su sitio.
+    const span = model.top - model.bottom
+    const k = ((span + 0.35) * 1.15) / character.height
+    c.scale.setScalar(k)
+    c.position.set(0, model.bottom - 0.3, 0)
+    // Zona invisible para el puntero (los robots escondidos y la malla con esqueleto no la reciben).
+    const hitGeo = new THREE.CapsuleGeometry(0.42, Math.max(0.1, span - 0.5), 4, 10)
+    const hitMat = new THREE.MeshBasicMaterial({ visible: false })
+    const hit = new THREE.Mesh(hitGeo, hitMat)
+    hit.position.y = (model.top + model.bottom) / 2 - 0.1
+    model.root.add(c, hit)
+    const prev = new Map<THREE.Object3D, boolean>()
+    hiddenParts.current = { prev, keep: new Set([c, hit]) }
+    return () => {
+      model.root.remove(c, hit)
+      for (const [o, v] of prev) o.visible = v
+      hiddenParts.current = null
+      hitGeo.dispose()
+      hitMat.dispose()
+    }
+  }, [character, model])
 
   const brain = useMemo(() => new RobotBrain(agent.id), [agent.id])
   // Carácter y bocadillos.
@@ -250,6 +300,17 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     r.scale.set(hs / Math.sqrt(sq), hs * sq, hs / Math.sqrt(sq))
 
     applyEyes(model, brain, h)
+
+    if (character && hiddenParts.current) {
+      // Con personaje, el robot de siempre (y su disfraz) se esconde; se recuerda cómo estaba para devolverlo igual.
+      const hd = hiddenParts.current
+      for (const o of r.children) {
+        if (hd.keep.has(o)) continue
+        if (!hd.prev.has(o)) hd.prev.set(o, o.visible)
+        o.visible = false
+      }
+      character.update(dt, brain, t)
+    }
 
     model.bodyMat.emissiveIntensity = palette.world === 'kywai' ? .015 + brain.glow * .08 : 0.06 + brain.glow * 0.55 + h * 0.08
     if (model.logoMat) model.logoMat.opacity = 0.5 + brain.glow * 1.4 - brain.offlineAmt * 0.3

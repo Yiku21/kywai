@@ -3108,6 +3108,8 @@ export const pt: Record<string, string> = {
   "voz de mujer": "voz feminina",
   "voz de hombre": "voz masculina",
   "Voz elegida": "Voz escolhida",
+  "Personajes 3D": "Personagens 3D",
+  "Los agentes se ven como sus personajes animados. Apágalo para los robots clásicos, que gastan menos": "Os agentes aparecem como as suas personagens animadas. Desliga para os robôs clássicos, que gastam menos",
   "Medidor de rendimiento": "Medidor de desempenho",
   "Enseña sobre el 3D los fotogramas, lo que tarda cada uno y lo que se dibuja, en este dispositivo": "Mostra sobre o 3D os quadros, quanto demora cada um e o que se desenha, neste dispositivo",
   "Rendimiento": "Desempenho",

@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { useQuality, type QualityChoice } from '../../scene/quality'
 import { useMeter } from '../../scene/perfStats'
+import { useRobotStyle } from '../../scene/characters'
 import type { AgentAccess, AgentConfig, ClientUpdateState } from '@shared/types'
 import { MAX_INSTANCES, MAX_TEAM_PARALLEL, instancesFor } from '@shared/instances'
 import { isLocalEngine } from '@shared/localEngines'
@@ -199,6 +200,7 @@ function GeneralTab() {
   const reduced = useCowork((st) => st.reducedEffects)
   const quality = useQuality((st) => st.choice)
   const meter = useMeter((st) => st.on)
+  const robotStyle = useRobotStyle((st) => st.style)
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
   const voiceMuted = useSyncExternalStore(subscribeAudio, isVoiceMuted, isVoiceMuted)
   const theme = useTheme()
@@ -273,6 +275,9 @@ function GeneralTab() {
           <option value="medium">{t('Normal')}</option>
           <option value="high">{t('Máxima')}</option>
         </select>
+      </Row>
+      <Row icon={<Bot size={18} />} label={t('Personajes 3D')} hint={t('Los agentes se ven como sus personajes animados. Apágalo para los robots clásicos, que gastan menos')}>
+        <Switch on={robotStyle === 'personajes'} label={t('Personajes 3D')} onChange={() => useRobotStyle.getState().setStyle(robotStyle === 'personajes' ? 'clasicos' : 'personajes')} />
       </Row>
       <Row icon={<Activity size={18} />} label={t('Medidor de rendimiento')} hint={t('Enseña sobre el 3D los fotogramas, lo que tarda cada uno y lo que se dibuja, en este dispositivo')}>
         <Switch on={meter} label={t('Medidor de rendimiento')} onChange={() => useMeter.getState().setOn(!meter)} />

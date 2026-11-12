@@ -3108,6 +3108,8 @@ export const zh: Record<string, string> = {
   "voz de mujer": "女声",
   "voz de hombre": "男声",
   "Voz elegida": "已选语音",
+  "Personajes 3D": "3D 角色",
+  "Los agentes se ven como sus personajes animados. Apágalo para los robots clásicos, que gastan menos": "智能体显示为动画角色。关闭后使用经典机器人，更省资源",
   "Medidor de rendimiento": "性能监测",
   "Enseña sobre el 3D los fotogramas, lo que tarda cada uno y lo que se dibuja, en este dispositivo": "在 3D 上方显示帧数、每帧耗时和绘制内容（仅限此设备）",
   "Rendimiento": "性能",

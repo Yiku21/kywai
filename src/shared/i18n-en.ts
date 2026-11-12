@@ -374,6 +374,8 @@ export const en: Record<string, string> = {
   'Sin motor de agentes: abre la app de escritorio': 'No agent engine: open the desktop app',
   'Solo demo (sin motor)': 'Demo only (no engine)',
   'Abre la app de escritorio para usar agentes reales': 'Open the desktop app to use real agents',
+  "Personajes 3D": "3D characters",
+  "Los agentes se ven como sus personajes animados. Apágalo para los robots clásicos, que gastan menos": "Agents appear as their animated characters. Turn it off for the classic robots, which use less",
   "Medidor de rendimiento": "Performance meter",
   "Enseña sobre el 3D los fotogramas, lo que tarda cada uno y lo que se dibuja, en este dispositivo": "Shows frames, how long each one takes and what is drawn over the 3D, on this device",
   "Rendimiento": "Performance",
