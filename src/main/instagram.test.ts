@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { __setInstagramFetchForTests, captionPrompt, cleanCaption, graphHost, instagramAccount, parseCaptionReply, parseInstagramRequest, publishReel, readInstagramSettings, writeInstagramSettings } from './instagram'
+import { __setInstagramFetchForTests, captionPrompt, cleanCaption, graphHost, instagramAccount, parseCaptionReply, parseInstagramRequest, publishReel, readInstagramSettings, temporaryLink, writeInstagramSettings } from './instagram'
 
 type Call = { url: string; method: string; headers: Record<string, string>; body?: string | Uint8Array | FormData }
 
@@ -194,6 +194,30 @@ describe('el Instagram de kywai', () => {
     const r = await publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })
     expect(r.id).toBe('M2')
     expect(boxes).toBe(2)
+  })
+
+  it('el enlace temporal reintenta un 500 y pasa al siguiente alojamiento, con el motivo de los cortes de red', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-'))
+    const file = join(dir, 'reel.mp4')
+    writeFileSync(file, Buffer.alloc(16, 1))
+    let litter = 0
+    __setInstagramFetchForTests(
+      async (url) => {
+        if (url.includes('litterbox')) return litter++, { ok: false, status: 500, text: async () => 'oops' }
+        if (url.includes('uguu')) return { ok: true, status: 200, text: async () => JSON.stringify({ success: true, files: [{ url: 'https://n.uguu.se/abc.mp4' }] }) }
+        throw new Error('no debería llegar')
+      },
+      async () => undefined
+    )
+    expect(await temporaryLink(file, 16)).toBe('https://n.uguu.se/abc.mp4')
+    expect(litter).toBe(2)
+    __setInstagramFetchForTests(
+      async () => {
+        throw Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } })
+      },
+      async () => undefined
+    )
+    await expect(temporaryLink(file, 16)).rejects.toThrow('Litterbox: fetch failed (ECONNRESET); Uguu: fetch failed (ECONNRESET); tmpfiles.org: fetch failed (ECONNRESET)')
   })
 
   it('el texto cabe en Instagram y se limpia lo que añade el agente', () => {

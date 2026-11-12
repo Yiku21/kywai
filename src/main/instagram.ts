@@ -3,7 +3,7 @@
 // de Meta y pega en Ajustes. El token se guarda cifrado con el llavero del sistema (como las claves de los agentes).
 // Con un token de Facebook (EAA…) el vídeo se sube desde el equipo con la subida reanudable de Meta
 // (rupload.facebook.com). Con uno de Instagram (IG…) Meta no la admite: el vídeo se deja 1 hora en un alojamiento
-// temporal (Litterbox, o tmpfiles.org si falla) y se le da ese enlace a Instagram.
+// temporal (Litterbox, Uguu o tmpfiles.org, el primero que responda) y se le da ese enlace a Instagram.
 import { existsSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 
@@ -229,18 +229,49 @@ async function resumableUpload(uploadUrl: string, token: string, file: string, s
   }
 }
 
-/** Alojamientos temporales para darle a Instagram un enlace público al vídeo (en orden; si uno falla, el siguiente). */
-const TEMP_HOSTS: Array<{ name: string; upload: (form: FormData) => FormData; url: string; parse: (text: string) => string | null }> = [
+/**
+ * Alojamientos temporales para darle a Instagram un enlace público al vídeo (en orden; si uno falla, el siguiente).
+ * Todos borran el archivo solos: Litterbox en 1 hora, tmpfiles.org en 1 hora y Uguu en 3 horas.
+ */
+interface TempHost {
+  name: string
+  url: string
+  field: string
+  /** Campos extra del formulario. */
+  extra?: Record<string, string>
+  /** Tamaño máximo que admite (bytes). */
+  max: number
+  parse: (text: string) => string | null
+}
+
+const TEMP_HOSTS: TempHost[] = [
   {
     name: 'Litterbox',
     url: 'https://litterbox.catbox.moe/resources/internals/api.php',
-    upload: (f) => (f.set('reqtype', 'fileupload'), f.set('time', '1h'), f),
+    field: 'fileToUpload',
+    extra: { reqtype: 'fileupload', time: '1h' },
+    max: 1000 * 1024 * 1024,
     parse: (t) => (/^https:\/\/\S+\.mp4$/i.test(t.trim()) ? t.trim() : null)
+  },
+  {
+    name: 'Uguu',
+    url: 'https://uguu.se/upload',
+    field: 'files[]',
+    max: 128 * 1024 * 1024,
+    parse: (t) => {
+      try {
+        const u = (JSON.parse(t) as { files?: { url?: string }[] }).files?.[0]?.url
+        return u && /^https:\/\//.test(u) ? u : null
+      } catch {
+        return null
+      }
+    }
   },
   {
     name: 'tmpfiles.org',
     url: 'https://tmpfiles.org/api/v1/upload',
-    upload: (f) => f,
+    field: 'file',
+    max: 100 * 1024 * 1024,
     parse: (t) => {
       try {
         const u = (JSON.parse(t) as { data?: { url?: string } }).data?.url
@@ -253,6 +284,13 @@ const TEMP_HOSTS: Array<{ name: string; upload: (form: FormData) => FormData; ur
   }
 ]
 
+/** El motivo de un fallo de red («fetch failed» no dice nada: el detalle está en `cause`). */
+function netReason(e: unknown): string {
+  const err = e as { message?: string; cause?: { code?: string; message?: string } } | null
+  const cause = err?.cause?.code || err?.cause?.message
+  return `${err?.message ?? String(e)}${cause ? ` (${cause})` : ''}`
+}
+
 /** Sube el vídeo a un alojamiento temporal (caduca solo) y devuelve su enlace público de descarga. */
 export async function temporaryLink(file: string, size: number, signal?: AbortSignal): Promise<string> {
   const bytes = readFileSync(file)
@@ -260,19 +298,33 @@ export async function temporaryLink(file: string, size: number, signal?: AbortSi
   const ms = uploadTimeout(size)
   const fails: string[] = []
   for (const host of TEMP_HOSTS) {
-    if (signal?.aborted) throw new Error('Cancelado')
-    const form = new FormData()
-    host.upload(form)
-    form.set(host.name === 'Litterbox' ? 'fileToUpload' : 'file', new Blob([new Uint8Array(bytes)], { type: 'video/mp4' }), name)
-    try {
-      const res = await doFetch(host.url, { method: 'POST', body: form, signal: timed(signal, ms) })
-      const text = await res.text()
-      const url = res.ok ? host.parse(text) : null
-      if (url) return url
-      fails.push(`${host.name}: error ${res.status}`)
-    } catch (e) {
-      if (signal?.aborted) throw e
-      fails.push(`${host.name}: ${e instanceof Error ? e.message : String(e)}`)
+    if (size > host.max) {
+      fails.push(`${host.name}: el vídeo pasa de ${Math.round(host.max / 1024 / 1024)} MB`)
+      continue
+    }
+    // Cada alojamiento se prueba dos veces: un 500 o un corte de red suelen ser pasajeros.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (signal?.aborted) throw new Error('Cancelado')
+      const form = new FormData()
+      for (const [k, v] of Object.entries(host.extra ?? {})) form.set(k, v)
+      form.set(host.field, new Blob([new Uint8Array(bytes)], { type: 'video/mp4' }), name)
+      let why: string
+      try {
+        const res = await doFetch(host.url, { method: 'POST', body: form, signal: timed(signal, ms) })
+        const text = await res.text()
+        const url = res.ok ? host.parse(text) : null
+        if (url) return url
+        why = `error ${res.status}`
+        if (res.status < 500 && res.ok === false) {
+          fails.push(`${host.name}: ${why}`)
+          break
+        }
+      } catch (e) {
+        if (signal?.aborted) throw e
+        why = netReason(e)
+      }
+      if (attempt === 1) fails.push(`${host.name}: ${why}`)
+      else await sleepImpl(3000)
     }
   }
   throw new Error(`No se pudo dejar el vídeo en un enlace temporal para Instagram (${fails.join('; ')})`)
