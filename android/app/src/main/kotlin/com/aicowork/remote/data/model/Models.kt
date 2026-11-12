@@ -486,10 +486,22 @@ data class ChatMessage(
     val replyTo: ReplyRef? = null,
     /** Rutina que propone Hermes (tarjeta «Crear rutina»). */
     val routineProposal: RoutineProposal? = null,
+    /** Mensaje tuyo editado: la versión que se ve y las demás (flechas ‹ 2/3 ›). */
+    val versions: MessageVersions? = null,
 ) {
     /** Conversación (proyecto) a la que pertenece, si el servidor lo indica. */
     val ownerId: String? get() = conversationId ?: projectId
 }
+
+/** Versiones de un mensaje tuyo editado: [current] es la que se ve (desde 0); total = others.size + 1. */
+@Serializable
+data class MessageVersions(val current: Int = 0, val others: List<VersionRef> = emptyList()) {
+    val total: Int get() = others.size + 1
+}
+
+/** Otra versión: solo su número (el servidor guarda su parte del chat). */
+@Serializable
+data class VersionRef(val at: Int = 0)
 
 @Serializable
 data class DirectTarget(val agentId: String, val name: String = agentId)
@@ -762,6 +774,8 @@ data class Capabilities(
     val fileActions: Boolean = false,
     /** Mantener pulsado un mensaje: bifurcar desde él o editar el tuyo en una rama nueva (messageId/before en /chats/{id}/fork). */
     val messageActions: Boolean = false,
+    /** «Editar» un mensaje tuyo en el mismo chat (editOf en POST /chat/messages; evento messages.replaced). */
+    val editInPlace: Boolean = false,
     /** Menú de un proyecto al mantenerlo pulsado: renombrar, fijar y eliminar (POST /projects/{id}/rename|pin|delete). */
     val projectActions: Boolean = false,
     /** Rutinas: verlas y «Ejecutar ahora» (GET /routines, POST /routines/{id}/run). */

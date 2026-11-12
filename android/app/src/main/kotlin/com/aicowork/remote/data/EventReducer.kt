@@ -201,6 +201,8 @@ object EventReducer {
 
             // Se vació el chat de esta conversación desde el ordenador: hay que volver a leerla.
             "chat.cleared" -> resync("chat vaciado")
+            // Editaste un mensaje tuyo en el mismo chat: salen él y lo que vino después.
+            "messages.replaced" -> resync("mensaje editado o versión cambiada")
 
             // La conversación abierta puede eliminarse desde el escritorio; el servidor elige la siguiente.
             "project.deleted" -> resync("conversación eliminada")

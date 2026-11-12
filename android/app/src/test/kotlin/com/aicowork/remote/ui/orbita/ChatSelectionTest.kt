@@ -11,7 +11,9 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
@@ -128,12 +130,16 @@ class ChatSelectionTest {
     }
 
     @Test
-    fun editAndResendOpensABranchBeforeTheMessageWithItsTextInTheComposer() {
+    fun editKeepsTheSameChatAndTheArrowsSwitchVersions() {
         val base = SampleData.state()
         val snap = base.snapshot!!
+        val conv = snap.conversation
         val state = base.copy(snapshot = snap.copy(
-            capabilities = snap.capabilities.copy(messageActions = true),
-            conversation = snap.conversation.copy(chat = com.aicowork.remote.data.model.OpenChat("ch1", "Demo")),
+            capabilities = snap.capabilities.copy(messageActions = true, editInPlace = true),
+            conversation = conv.copy(
+                chat = com.aicowork.remote.data.model.OpenChat("ch1", "Demo"),
+                messages = conv.messages.map { if (it.id == "m3") it.copy(versions = com.aicowork.remote.data.model.MessageVersions(1, listOf(com.aicowork.remote.data.model.VersionRef(0)))) else it },
+            ),
         ))
         val controller = FakeController(state)
         val model = orbitaModelForTests(controller)
@@ -141,15 +147,23 @@ class ChatSelectionTest {
         compose.onNodeWithTag("nav-Chat").performClick()
         compose.onNodeWithTag("chat-list").performScrollToNode(hasText("Haz la app Android"))
 
+        // Editar: el texto vuelve al cuadro y, al enviarlo, va con editOf (mismo chat, sin copias).
         compose.onNodeWithText("Haz la app Android").performTouchInput { longClick(center) }
-        compose.onNodeWithText("Editar y reenviar").performClick()
+        compose.onNodeWithText("Editar").performClick()
         compose.waitForIdle()
-        assertTrue(controller.calls.toString(), "forkChatAt:ch1:m1:true" in controller.calls)
         assertEquals("Haz la app Android", model.chatDraft.text)
-
-        compose.onNodeWithText("Lo reparto en dos tareas").performTouchInput { longClick(center) }
-        compose.onNodeWithText("Bifurcar desde aquí").performClick()
+        compose.onNodeWithTag("edit-bar").assertExists()
+        model.chatDraft = androidx.compose.ui.text.input.TextFieldValue("Haz la app Android en Kotlin")
+        compose.onNodeWithTag("send").performClick()
         compose.waitForIdle()
-        assertTrue(controller.calls.toString(), "forkChatAt:ch1:m2:false" in controller.calls)
+        assertTrue(controller.calls.toString(), "edit:m1:Haz la app Android en Kotlin" in controller.calls)
+        assertTrue(controller.calls.none { it.startsWith("forkChatAt") })
+
+        // ‹ 2/2 ›: la flecha de la izquierda pide la versión 1.
+        compose.onNodeWithTag("chat-list").performScrollToNode(hasTestTag("versions-m3"))
+        compose.onNodeWithText("2/2").assertExists()
+        compose.onNodeWithContentDescription("Versión anterior").performClick()
+        compose.waitForIdle()
+        assertTrue(controller.calls.toString(), "version:m3:0" in controller.calls)
     }
 }

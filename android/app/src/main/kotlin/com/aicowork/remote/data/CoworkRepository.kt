@@ -115,6 +115,8 @@ data class OutgoingMessage(
     val replyTo: String? = null,
     /** Resultados del proyecto elegidos con «Adjuntar al mensaje»: el servidor los manda como adjuntos. */
     val artifactIds: List<String> = emptyList(),
+    /** «Editar» un mensaje tuyo en el mismo chat: su id (el servidor quita ese mensaje y lo que vino después). */
+    val editOf: String? = null,
 )
 
 /** Copia en el móvil de un archivo elegido sin conexión, que espera a subirse al proyecto. */
@@ -220,6 +222,8 @@ interface CoworkController {
     fun sendTemplate(text: String, templateId: String, attachmentIds: List<String>) = sendMessage(text, attachmentIds)
     /** «Responder» bajo la respuesta de un agente: el mensaje va a ese mismo agente para que la revise o la continúe. */
     fun sendReply(text: String, replyTo: String, attachmentIds: List<String>) = sendMessage(text, attachmentIds)
+    /** «Editar» un mensaje tuyo en el mismo chat ([editOf]): sale ese mensaje y lo de después, y va el texto nuevo. */
+    fun sendEdit(text: String, editOf: String, attachmentIds: List<String>, replyTo: String? = null) = sendMessage(text, attachmentIds)
     suspend fun createTemplate(input: TaskTemplateInput): ActionResult = unsupported
     suspend fun updateTemplate(templateId: String, input: TaskTemplateInput, success: String? = null): ActionResult = unsupported
     suspend fun deleteTemplate(templateId: String): ActionResult = unsupported
@@ -297,6 +301,8 @@ interface CoworkController {
     suspend fun deleteRoutine(routineId: String): ActionResult = unsupported
     /** Mantener pulsado → Eliminar: borra un resultado ([artifact] true) o un adjunto del proyecto, disco incluido. */
     suspend fun deleteFile(id: String, artifact: Boolean): ActionResult = unsupported
+    /** Flechas ‹ › de un mensaje tuyo editado: enseña su versión [to] (desde 0). */
+    suspend fun switchVersion(messageId: String, to: Int): ActionResult = unsupported
     /** «Crear rutina» ([create]) o «Descartar» en la tarjeta que propone Hermes. */
     suspend fun decideRoutineProposal(messageId: String, create: Boolean): ActionResult = unsupported
     suspend fun setPlanApproval(enabled: Boolean): ActionResult = unsupported
@@ -680,7 +686,9 @@ class CoworkRepository(
 
     override fun sendReply(text: String, replyTo: String, attachmentIds: List<String>) = send(text, attachmentIds, null, replyTo)
 
-    private fun send(text: String, attachmentIds: List<String>, templateId: String?, replyTo: String? = null) {
+    override fun sendEdit(text: String, editOf: String, attachmentIds: List<String>, replyTo: String?) = send(text, attachmentIds, null, replyTo, editOf)
+
+    private fun send(text: String, attachmentIds: List<String>, templateId: String?, replyTo: String? = null, editOf: String? = null) {
         // Sin escribir nada, «Responder» le pide al agente que revise su respuesta.
         val trimmed = text.trim().ifEmpty { if (replyTo != null) t("Revisa tu respuesta: comprueba que es correcta y completa, corrige lo que haga falta y dame la versión buena.") else "" }
         if (trimmed.isEmpty() && attachmentIds.isEmpty()) return
@@ -698,6 +706,7 @@ class CoworkRepository(
             templateId = templateId,
             replyTo = replyTo,
             artifactIds = artifacts.map { it.removePrefix(QueuedFile.ARTIFACT_ATTACHMENT) },
+            editOf = editOf,
         )
         _state.update { s -> s.copy(outgoing = s.outgoing + message, queuedFiles = s.queuedFiles - files.toSet()) }
         if (_state.value.connection == Connection.Online) pump() else retryNow()
@@ -764,7 +773,7 @@ class CoworkRepository(
         try {
             val target = message.conversationId ?: currentConversation()
             val uploaded = uploadQueuedFiles(c, message, target) ?: return Delivery.Rejected
-            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded, message.templateId, message.replyTo, message.artifactIds)
+            val response = c.sendMessage(target, message.text, clientMessageId, message.attachmentIds + uploaded, message.templateId, message.replyTo, message.artifactIds, message.editOf)
             // Ya está en el ordenador: las copias del móvil sobran.
             message.files.forEach { java.io.File(it.path).delete() }
             syncMutex.withLock {
@@ -1170,6 +1179,12 @@ class CoworkRepository(
             c.setRoutineEnabled(needConversation(), routineId, enabled)
             reloadRoutines(c)
         }
+
+    override suspend fun switchVersion(messageId: String, to: Int): ActionResult = action(t("Versión {n}", "n" to (to + 1).toString())) { c ->
+        val conversation = needConversation()
+        c.switchVersion(conversation, messageId, to)
+        resync(c)
+    }
 
     override suspend fun deleteFile(id: String, artifact: Boolean): ActionResult = action(t("Archivo eliminado")) { c ->
         c.deleteFile(needConversation(), id, artifact)

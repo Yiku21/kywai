@@ -32,6 +32,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -294,6 +296,21 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             }
             Spacer(Modifier.height(6.dp))
         }
+        // «Editar» un mensaje tuyo: al enviar, sigue en este chat y lo de antes queda como otra versión (‹ ›).
+        val editing = model.editTarget?.takeIf { e -> messages.any { it.id == e.id } }
+        if (editing != null) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(12.dp)).background(Orbita.AccentSoft)
+                    .padding(start = 12.dp, end = 4.dp, top = 2.dp, bottom = 2.dp).testTag("edit-bar"),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.Edit, contentDescription = null, tint = Orbita.Accent, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(t("Editando tu mensaje: lo de antes se guarda como otra versión"), color = Orbita.Text, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                IconAction(Icons.Outlined.Close, t("Cancelar la edición"), onClick = { model.cancelEdit() }, size = 32.dp)
+            }
+            Spacer(Modifier.height(6.dp))
+        }
         // «Responder»: la respuesta a la que contestas, encima del cuadro (solo si es de esta conversación).
         val reply = model.replyTarget?.takeIf { r -> snapshot?.capabilities?.replyTo == true && messages.any { it.id == r.messageId } }
         if (reply != null) {
@@ -398,8 +415,10 @@ fun ChatPanel(model: OrbitaModel, state: CoworkUiState) {
             model.feedback.confirm()
             // «Responder»: va a ese mismo agente con su respuesta citada (las órdenes «/…» van como siempre).
             val replyId = reply?.messageId?.takeIf { !text.trimStart().startsWith("/") }
-            if (replyId != null) model.controller.sendReply(text, replyId, pending.map { it.first })
+            if (editing != null) model.controller.sendEdit(text, editing.id, pending.map { it.first }, replyId)
+            else if (replyId != null) model.controller.sendReply(text, replyId, pending.map { it.first })
             else model.controller.sendMessage(text, pending.map { it.first })
+            model.editTarget = null
             if (replyId != null) model.replyTarget = null
             model.pendingAttachments = emptySet()
             model.chatDraft = TextFieldValue("")
@@ -446,6 +465,15 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                 if (message.text.isNotBlank()) Text(message.text, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge)
                 // Las imágenes en miniatura; al tocar un adjunto se abre en el lector.
                 ChatAttachments(message.attachments, model, canOpen = snapshot.capabilities.files)
+            }
+            // ‹ 2/3 ›: tu mensaje editado; las flechas enseñan otra versión de este punto del chat.
+            val versions = message.versions?.takeIf { snapshot.capabilities.editInPlace }
+            if (versions != null) {
+                Row(Modifier.padding(top = 2.dp).testTag("versions-${message.id}"), verticalAlignment = Alignment.CenterVertically) {
+                    IconAction(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, t("Versión anterior"), onClick = { model.switchVersion(message, versions.current - 1) }, size = 36.dp, enabled = versions.current > 0)
+                    Text("${versions.current + 1}/${versions.total}", color = Orbita.TextSoft, style = MaterialTheme.typography.labelMedium)
+                    IconAction(Icons.AutoMirrored.Outlined.KeyboardArrowRight, t("Versión siguiente"), onClick = { model.switchVersion(message, versions.current + 1) }, size = 36.dp, enabled = versions.current < versions.total - 1)
+                }
             }
             Row(Modifier.padding(top = 3.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 message.direct?.let { d ->
@@ -529,8 +557,8 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
 
 /**
  * Mantener pulsado un mensaje del chat (como el clic derecho del escritorio): Copiar, Seleccionar texto, Responder
- * (en una respuesta), Bifurcar desde aquí y, en uno tuyo, Editar y reenviar (chat nuevo hasta justo antes de él con
- * su texto en el cuadro; el original no cambia). Bifurcar y editar piden un ordenador con `messageActions`.
+ * (en una respuesta), Bifurcar desde aquí y, en uno tuyo, Editar (vuelve al cuadro; al enviarlo sigue en el mismo
+ * chat y lo de antes queda como otra versión ‹ ›). Bifurcar pide `messageActions` y Editar `editInPlace`.
  */
 @Composable
 private fun MessageMenu(message: ChatMessage, snapshot: Snapshot, model: OrbitaModel, content: @Composable () -> Unit) {
@@ -572,11 +600,11 @@ private fun MessageMenu(message: ChatMessage, snapshot: Snapshot, model: OrbitaM
                     leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Reply, null) },
                 )
             }
-            if (author.isUser && forkable) {
-                DropdownMenuItem(text = { Text(t("Editar y reenviar")) }, onClick = { open = false; model.forkFromMessage(message, edit = true) }, leadingIcon = { Icon(Icons.Outlined.Edit, null) })
+            if (author.isUser && snapshot.capabilities.editInPlace) {
+                DropdownMenuItem(text = { Text(t("Editar")) }, onClick = { open = false; model.startEdit(message) }, leadingIcon = { Icon(Icons.Outlined.Edit, null) })
             }
             if (forkable) {
-                DropdownMenuItem(text = { Text(t("Bifurcar desde aquí")) }, onClick = { open = false; model.forkFromMessage(message, edit = false) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.CallSplit, null) })
+                DropdownMenuItem(text = { Text(t("Bifurcar desde aquí")) }, onClick = { open = false; model.forkFromMessage(message) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.CallSplit, null) })
             }
         }
     }

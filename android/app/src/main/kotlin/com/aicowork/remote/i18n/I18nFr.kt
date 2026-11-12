@@ -1088,7 +1088,6 @@ private fun part7(m: HashMap<String, String>) {
     m["Seleccionar texto"] = "Sélectionner le texte"
     m["Dejar de responder a {name}"] = "Ne plus répondre à {name}"
     m["Responder a {name}"] = "Répondre à {name}"
-    m["Editar y reenviar"] = "Modifier et renvoyer"
     m["Bifurcar desde aquí"] = "Bifurquer à partir d’ici"
     m["Actualiza kywai en el ordenador para usar esto"] = "Mettez à jour kywai sur l’ordinateur pour utiliser ceci"
     m["Rama nueva: cambia el mensaje y envíalo"] = "Nouvelle branche : modifiez le message et envoyez-le"
@@ -1097,4 +1096,9 @@ private fun part7(m: HashMap<String, String>) {
     m["Tu respuesta: {text}"] = "Votre réponse : {text}"
     m["Tu respuesta"] = "Votre réponse"
     m["Respuesta enviada al coordinador"] = "Réponse envoyée au coordinateur"
+    m["Versión anterior"] = "Version précédente"
+    m["Versión siguiente"] = "Version suivante"
+    m["Versión {n}"] = "Version {n}"
+    m["Cancelar la edición"] = "Annuler la modification"
+    m["Editando tu mensaje: lo de antes se guarda como otra versión"] = "Modification de votre message : l’ancien est gardé comme autre version"
 }

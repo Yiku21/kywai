@@ -181,6 +181,9 @@ class OrbitaModel(
     /** «Responder» tocado bajo la respuesta de un agente: lo siguiente que envíes va a ese agente sobre esa respuesta. */
     var replyTarget by mutableStateOf<com.aicowork.remote.data.model.ReplyRef?>(null)
 
+    /** El mensaje tuyo que estás editando (mantener pulsado → Editar): al enviar, sustituye a ese y a lo de después. */
+    var editTarget by mutableStateOf<com.aicowork.remote.data.model.ChatMessage?>(null)
+
     /** El mensaje en el que se eligió «Seleccionar texto» al mantenerlo pulsado (en los demás, mantener pulsado abre el menú). */
     var selectingMessageId by mutableStateOf<String?>(null)
     var newTaskDraft by mutableStateOf(TextFieldValue(""))
@@ -353,11 +356,11 @@ class OrbitaModel(
     /** El ordenador sabe bifurcar desde un mensaje y editar el tuyo en una rama nueva (servidores anteriores, no). */
     fun messageActionsSupported(): Boolean = snapshot()?.capabilities?.messageActions == true
 
-    /**
-     * Mantener pulsado un mensaje → «Bifurcar desde aquí» (chat nuevo con todo hasta él) o, en uno tuyo, «Editar y
-     * reenviar»: chat nuevo hasta justo antes, con su texto, adjuntos y respuesta en el cuadro. El original no cambia.
-     */
-    fun forkFromMessage(message: com.aicowork.remote.data.model.ChatMessage, edit: Boolean) {
+    /** El ordenador sabe editar un mensaje tuyo en el mismo chat (servidores anteriores, no). */
+    fun editInPlaceSupported(): Boolean = snapshot()?.capabilities?.editInPlace == true
+
+    /** Mantener pulsado un mensaje → «Bifurcar desde aquí»: chat nuevo con todo hasta él; el original no cambia. */
+    fun forkFromMessage(message: com.aicowork.remote.data.model.ChatMessage) {
         val conv = snapshot()?.conversation
         val projectId = conv?.id
         val chatId = conv?.chat?.id
@@ -365,17 +368,36 @@ class OrbitaModel(
             toast(t("Actualiza kywai en el ordenador para usar esto"), Toast.Tone.Error)
             return
         }
-        run({ controller.forkChatAt(projectId, chatId, message.id, before = edit) }) { r ->
+        run({ controller.forkChatAt(projectId, chatId, message.id, before = false) }) { r ->
             if (!r.ok) return@run
             loadChats(projectId)
-            if (edit) {
-                chatDraft = TextFieldValue(message.text, selection = androidx.compose.ui.text.TextRange(message.text.length))
-                pendingAttachments = message.attachments.map { it.id }.toSet()
-                replyTarget = message.replyTo
-            }
             drawerOpen = false
             open(Section.Chat)
         }
+    }
+
+    /**
+     * Mantener pulsado un mensaje tuyo → «Editar»: su texto, adjuntos y respuesta vuelven al cuadro; al enviarlo, en
+     * este mismo chat salen ese mensaje y lo que vino después (como en Claude). ✕ en la barra lo deja como estaba.
+     */
+    fun startEdit(message: com.aicowork.remote.data.model.ChatMessage) {
+        editTarget = message
+        chatDraft = TextFieldValue(message.text, selection = androidx.compose.ui.text.TextRange(message.text.length))
+        pendingAttachments = message.attachments.map { it.id }.toSet()
+        replyTarget = message.replyTo
+        feedback.select()
+    }
+
+    /** Flechas ‹ › bajo un mensaje tuyo editado. */
+    fun switchVersion(message: com.aicowork.remote.data.model.ChatMessage, to: Int) {
+        run({ controller.switchVersion(message.id, to) })
+    }
+
+    fun cancelEdit() {
+        editTarget = null
+        chatDraft = TextFieldValue("")
+        pendingAttachments = emptySet()
+        replyTarget = null
     }
 
     fun renameChat(projectId: String, chatId: String, title: String) {
