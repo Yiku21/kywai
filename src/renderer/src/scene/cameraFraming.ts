@@ -46,27 +46,29 @@ export function cameraLimits(world: WorldStyle | undefined, overview: ReturnType
   const large = world === 'kywai' || world === 'relicario' || world === 'telar' || world === 'submarino'
   // Cuánto puede alejarse más allá de la vista general y cuánto girar a cada lado, según lo que haya alrededor.
   const tune: Partial<Record<WorldStyle | 'ciudad', { out?: number; azimuth?: number; min?: number }>> = {
-    ciudad: { out: 1.2, azimuth: .6 },
-    kywai: { out: 1.15, azimuth: .5, min: 12 },
-    relicario: { out: 1.15, azimuth: .55, min: 12 },
-    telar: { out: 1.15, azimuth: .55, min: 12 },
-    submarino: { out: 1.12, azimuth: .5, min: 12 },
-    orbita: { out: 1.18, azimuth: .55 },
-    oficina: { out: 1.12, azimuth: .5 },
-    sede: { out: 1.12, azimuth: .5 },
-    halloween: { out: 1.15, azimuth: .5 },
-    navidad: { out: 1.15, azimuth: .5 }
+    ciudad: { out: 1.1, azimuth: .5 },
+    kywai: { out: 1.06, azimuth: .4, min: 20 },
+    relicario: { out: 1.06, azimuth: .45, min: 20 },
+    telar: { out: 1.06, azimuth: .45, min: 20 },
+    submarino: { out: 1.05, azimuth: .4, min: 20 },
+    orbita: { out: 1.08, azimuth: .45 },
+    eva: { out: 1.05, azimuth: .4, min: 17 },
+    oficina: { out: 1.05, azimuth: .4 },
+    sede: { out: 1.05, azimuth: .4 },
+    halloween: { out: 1.06, azimuth: .4 },
+    navidad: { out: 1.06, azimuth: .4 }
   }
-  const t = { out: 1.15, azimuth: .55, min: 9, ...tune[world ?? 'ciudad'] }
+  // Lo más cerca: un plano medio del equipo (se ven varios puestos), nunca dentro del núcleo ni entre las plataformas.
+  const t = { out: 1.08, azimuth: .45, min: 15, ...tune[world ?? 'ciudad'] }
   // El paseo del punto de mira: lo que ocupan los puestos más un margen, nunca más allá del escenario.
-  const reachX = Math.max(large ? 16 : 10, ...stations.map(s => Math.abs(s.position[0]) + 2))
-  const back = Math.min(target[2] - (large ? 14 : 8), ...stations.map(s => s.position[1] - 2))
-  const front = Math.max(target[2] + (large ? 8 : 6), ...stations.map(s => s.position[1] + 2))
+  const reachX = Math.max(large ? 12 : 8, ...stations.map(s => Math.abs(s.position[0]) + 1))
+  const back = Math.min(target[2] - (large ? 10 : 6), ...stations.map(s => s.position[1] - 1))
+  const front = Math.max(target[2] + (large ? 6 : 4), ...stations.map(s => s.position[1] + 1))
   return {
     minDistance: t.min,
     maxDistance: distance * t.out,
-    minPolar: Math.PI / 2 - 40 * Math.PI / 180,
-    maxPolar: Math.PI / 2 - 8 * Math.PI / 180,
+    minPolar: Math.PI / 2 - 34 * Math.PI / 180,
+    maxPolar: Math.PI / 2 - 10 * Math.PI / 180,
     azimuth: t.azimuth,
     boundary: [[-reachX, .4, back], [reachX, target[1] + (large ? 4 : 2.5), front]]
   }

@@ -45,15 +45,15 @@ describe('límites de la cámara', () => {
       const frame = frontalOverview(world, DEFAULT_STATIONS, aspect, room)
       const limits = cameraLimits(world, frame, DEFAULT_STATIONS)
       const distance = Math.hypot(...frame.eye.map((v, i) => v - frame.target[i]))
-      // La vista general cabe (si no, la cámara daría un salto al soltarla) y alejarse da como mucho un 20 % más.
+      // La vista general cabe (si no, la cámara daría un salto al soltarla) y alejarse da como mucho un 10 % más.
       expect(limits.maxDistance).toBeGreaterThanOrEqual(distance)
-      expect(limits.maxDistance).toBeLessThanOrEqual(distance * 1.2 + 1e-9)
-      expect(limits.minDistance).toBeGreaterThanOrEqual(9)
+      expect(limits.maxDistance).toBeLessThanOrEqual(distance * 1.1 + 1e-9)
+      expect(limits.minDistance).toBeGreaterThanOrEqual(15)
       // La inclinación de la vista general (18°) queda dentro y el giro se queda por delante del escenario.
       const polar = Math.PI / 2 - 18 * Math.PI / 180
       expect(polar).toBeGreaterThan(limits.minPolar)
       expect(polar).toBeLessThan(limits.maxPolar)
-      expect(limits.azimuth).toBeLessThanOrEqual(.6)
+      expect(limits.azimuth).toBeLessThanOrEqual(.5)
       // El punto de mira de la vista general y todos los puestos (para «Ir al agente») están dentro de la caja.
       const [min, max] = limits.boundary
       for (const p of [frame.target, ...DEFAULT_STATIONS.map(s => [s.position[0], .9, s.position[1]] as const)])

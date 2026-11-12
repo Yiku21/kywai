@@ -133,7 +133,6 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
       maxAzimuthAngle={limits.azimuth}
       smoothTime={reduced ? 0.12 : 0.55}
       draggingSmoothTime={reduced ? 0.06 : 0.18}
-      dollyToCursor
       onStart={() => {
         atOverview.current = false
       }}
