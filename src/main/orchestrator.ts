@@ -1,7 +1,7 @@
 import { BATCH_AT_ONCE, batchBrief, videoBatchOf } from '@shared/videoBatch'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync, writeFileSync } from 'node:fs'
-import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import type {
   AgentQuestion,
   ChatReplyRef,
@@ -1153,7 +1153,6 @@ function watchProgress(run: Run, t: Task, dir: string, since: number): { stop: (
   const counts = { images: 0, docs: 0 }
   /** Imágenes que el agente ha abierto o creado, donde estén (ruta absoluta → cuándo las vio). */
   const looked = new Map<string, number>()
-  let copied = 0
   const publish = (files: WorkFile[]): void => {
     if (stopped || !files.length) return
     traceFiles(t.id, files)
@@ -1176,13 +1175,8 @@ function watchProgress(run: Run, t: Task, dir: string, since: number): { stop: (
         reported.add(key)
         let relPath = store.toRelPath(dir, abs)
         if (!relPath) {
-          // Fuera del proyecto: una copia en su carpeta interna (nunca en la del usuario).
-          const folder = join(store.projectDir(run.projectId), 'avances', t.id.slice(0, 8))
-          await fsp.mkdir(folder, { recursive: true })
-          copied++
-          const name = `${String(copied).padStart(2, '0')}-${basename(abs)}`
-          await fsp.copyFile(abs, join(folder, name))
-          relPath = `avances/${t.id.slice(0, 8)}/${name}`
+          // Fuera del proyecto: una copia en su carpeta interna (nunca en la del usuario), una sola por imagen.
+          relPath = await progressCopy(run.projectId, abs)
         }
         reported.add(relPath)
         counts.images++
@@ -1217,6 +1211,23 @@ function watchProgress(run: Run, t: Task, dir: string, since: number): { stop: (
       if (path) looked.set(path, Date.now())
     }
   }
+}
+
+/**
+ * Copia en avances/ de una imagen de fuera del proyecto, nombrada por su contenido: la misma imagen (p. ej. los dibujos
+ * de los agentes que se miran en cada vídeo) se guarda una vez por proyecto y se reutiliza, en vez de una copia por tarea.
+ */
+async function progressCopy(projectId: string, abs: string): Promise<string> {
+  const hash = createHash('sha1').update(await fsp.readFile(abs)).digest('hex').slice(0, 16)
+  const ext = extname(abs).toLowerCase().replace(/[^.a-z0-9]/g, '')
+  const name = `${hash}${ext}`
+  const folder = join(store.projectDir(projectId), 'avances')
+  const target = join(folder, name)
+  if (!existsSync(target)) {
+    await fsp.mkdir(folder, { recursive: true })
+    await fsp.copyFile(abs, target)
+  }
+  return `avances/${name}`
 }
 
 /** Lo nuevo que cuenta el agente sale en su mensaje (como mucho una vez por segundo). */
