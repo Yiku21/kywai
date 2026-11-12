@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { __setInstagramFetchForTests, captionPrompt, cleanCaption, graphHost, instagramAccount, parseCaptionReply, parseInstagramRequest, publishReel, readInstagramSettings, writeInstagramSettings } from './instagram'
 
-type Call = { url: string; method: string; headers: Record<string, string>; body?: string | Uint8Array }
+type Call = { url: string; method: string; headers: Record<string, string>; body?: string | Uint8Array | FormData }
 
 function fakeGraph(routes: Array<[RegExp, (c: Call) => unknown]>): Call[] {
   const calls: Call[] = []
@@ -50,22 +50,22 @@ describe('el Instagram de kywai', () => {
     writeFileSync(file, Buffer.alloc(2048, 1))
     let polls = 0
     const calls = fakeGraph([
-      [/POST https:\/\/graph\.instagram\.com\/v21\.0\/1784\/media$/, () => ({ id: 'C1', uri: 'https://rupload.facebook.com/ig-api-upload/v21.0/C1' })],
+      [/POST https:\/\/graph\.facebook\.com\/v21\.0\/1784\/media$/, () => ({ id: 'C1', uri: 'https://rupload.facebook.com/ig-api-upload/v21.0/C1' })],
       [/POST https:\/\/rupload\.facebook\.com/, () => ({ success: true })],
       [/GET .*\/C1\?/, () => (++polls < 2 ? { status_code: 'IN_PROGRESS' } : { status_code: 'FINISHED' })],
       [/POST .*\/1784\/media_publish$/, () => ({ id: 'M1' })],
       [/GET .*\/M1\?/, () => ({ permalink: 'https://www.instagram.com/reel/abc/' })]
     ])
     const steps: string[] = []
-    const r = await publishReel({ token: 'IGtok12345', userId: '1784', file, caption: 'Hola #a #b', onStep: (s) => steps.push(s) })
+    const r = await publishReel({ token: 'EAAtok12345', userId: '1784', file, caption: 'Hola #a #b', onStep: (s) => steps.push(s) })
     expect(r).toEqual({ id: 'M1', permalink: 'https://www.instagram.com/reel/abc/' })
     const create = new URLSearchParams(calls[0].body as string)
     expect(Object.fromEntries(create)).toEqual({ media_type: 'REELS', upload_type: 'resumable', caption: 'Hola #a #b' })
-    expect(calls[1].headers).toMatchObject({ Authorization: 'OAuth IGtok12345', offset: '0', file_size: '2048' })
+    expect(calls[1].headers).toMatchObject({ Authorization: 'OAuth EAAtok12345', offset: '0', file_size: '2048' })
     expect((calls[1].body as Uint8Array).byteLength).toBe(2048)
     expect(new URLSearchParams(calls.find((c) => c.url.endsWith('media_publish'))!.body as string).get('creation_id')).toBe('C1')
     expect(steps).toContain('Subiendo el vídeo a Instagram')
-    expect(calls.every((c) => !c.url.includes('IGtok12345'))).toBe(true)
+    expect(calls.every((c) => !c.url.includes('EAAtok12345'))).toBe(true)
   })
 
   it('un reel de prueba lleva trial_params (primero solo para quien no sigue la cuenta)', async () => {
@@ -79,7 +79,7 @@ describe('el Instagram de kywai', () => {
       [/media_publish/, () => ({ id: 'M9' })],
       [/GET .*\/M9\?/, () => ({ permalink: 'https://www.instagram.com/reel/t/' })]
     ])
-    await publishReel({ token: 'IGx', userId: '17', file, caption: 'hola', trial: true })
+    await publishReel({ token: 'EAAx', userId: '17', file, caption: 'hola', trial: true })
     const box = new URLSearchParams(String(calls[0].body))
     expect(JSON.parse(box.get('trial_params')!)).toEqual({ graduation_strategy: 'SS_PERFORMANCE' })
   })
@@ -93,9 +93,9 @@ describe('el Instagram de kywai', () => {
       [/rupload/, () => ({ success: true })],
       [/GET .*\/C2\?/, () => ({ status_code: 'ERROR', status: 'Error: formato no válido' })]
     ])
-    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow(/no pudo procesar el vídeo: Error: formato no válido/)
+    await expect(publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })).rejects.toThrow(/no pudo procesar el vídeo: Error: formato no válido/)
     fakeGraph([[/\/media$/, () => ({ error: { code: 190, message: 'Session expired' } })]])
-    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow(/no acepta el token.*Session expired/)
+    await expect(publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })).rejects.toThrow(/no acepta el token.*Session expired/)
   })
 
   it('si falla la subida del vídeo, dice el paso y lo que contestó Meta', async () => {
@@ -109,7 +109,7 @@ describe('el Instagram de kywai', () => {
           : { ok: true, status: 200, text: async () => JSON.stringify({ id: 'C3' }) },
       async () => undefined
     )
-    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram respondió con un error 400 al subir el vídeo: Request processing failed [ProcessingFailedError]')
+    await expect(publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram respondió con un error 400 al subir el vídeo: Request processing failed [ProcessingFailedError]')
   })
 
   it('un 500 al subir se reintenta y un error de la API lleva su código y el paso', async () => {
@@ -126,7 +126,7 @@ describe('el Instagram de kywai', () => {
       },
       async () => undefined
     )
-    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram respondió con un error 400 al publicar el reel: Media ID is not available [9007/2207027] (fbtrace_id T1)')
+    await expect(publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram respondió con un error 400 al publicar el reel: Media ID is not available [9007/2207027] (fbtrace_id T1)')
     expect(uploads).toBe(2)
   })
 
@@ -141,7 +141,31 @@ describe('el Instagram de kywai', () => {
       },
       async () => undefined
     )
-    await expect(publishReel({ token: 'IGx1234567', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram no contestó en 60 s al preparar la publicación')
+    await expect(publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram no contestó en 60 s al preparar la publicación')
+  })
+
+  it('con un token de Instagram da un enlace temporal en vez de la subida directa (que Meta no admite)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-'))
+    const file = join(dir, 'reel.mp4')
+    writeFileSync(file, Buffer.alloc(64, 1))
+    const calls = fakeGraph([
+      [/POST https:\/\/litterbox\.catbox\.moe/, () => ({ error: 'caído' })],
+      [/POST https:\/\/tmpfiles\.org\/api\/v1\/upload$/, () => ({ status: 'success', data: { url: 'http://tmpfiles.org/123/kywai.mp4' } })],
+      [/POST https:\/\/graph\.instagram\.com\/v21\.0\/1784\/media$/, () => ({ id: 'C9' })],
+      [/GET .*\/C9\?/, () => ({ status_code: 'FINISHED' })],
+      [/POST .*\/media_publish$/, () => ({ id: 'M9' })],
+      [/GET .*\/M9\?/, () => ({ permalink: 'https://www.instagram.com/reel/z/' })]
+    ])
+    const steps: string[] = []
+    const r = await publishReel({ token: 'IGAAtok123', userId: '1784', file, caption: 'Hola', onStep: (s) => steps.push(s) })
+    expect(r.id).toBe('M9')
+    expect(calls.some((c) => c.url.includes('rupload'))).toBe(false)
+    const form = calls[0].body as FormData
+    expect(form.get('time')).toBe('1h')
+    expect((form.get('fileToUpload') as Blob).size).toBe(64)
+    const create = Object.fromEntries(new URLSearchParams(calls.find((c) => c.url.endsWith('/1784/media'))!.body as string))
+    expect(create).toEqual({ media_type: 'REELS', video_url: 'https://tmpfiles.org/dl/123/kywai.mp4', caption: 'Hola' })
+    expect(steps[0]).toBe('Subiendo el vídeo a un enlace temporal')
   })
 
   it('el texto cabe en Instagram y se limpia lo que añade el agente', () => {

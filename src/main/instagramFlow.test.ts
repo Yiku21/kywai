@@ -43,7 +43,7 @@ beforeAll(() => {
       return { ok: true, text: 'Texto: «Un gato resuelve el robo del queso 🧀\n\n¿Linterna o huye? Comenta A o B\n\n#gatos #misterio»', usage: { input: 1, output: 1 } }
     }
   })
-  setInstagramBackend({ token: () => 'IGtoken-de-prueba', settings: () => settings })
+  setInstagramBackend({ token: () => 'EAAtoken-de-prueba', settings: () => settings })
   __setInstagramFetchForTests(
     async (url, init) => {
       graph.push(`${init?.method ?? 'GET'} ${url}`)

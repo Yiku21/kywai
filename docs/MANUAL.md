@@ -2153,8 +2153,10 @@ Se conecta con la **API oficial de Instagram**: nunca se pide ni se guarda la co
 **Publicar.** **«/instagram [qué quieres en el texto]»** coge el último vídeo del chat (o el MP4 que adjuntes) y un
 agente escribe el texto: gancho en la primera línea, una llamada a la acción y de 3 a 6 hashtags (si es un episodio de
 `/serie`, repite la pregunta para votar). Sale una tarjeta con el vídeo y el texto, que puedes **cambiar** antes de
-pulsar **Publicar** (también desde «Te necesita», en el escritorio, la web y Órbita). kywai sube el MP4 desde el equipo
-(subida reanudable de Meta: no hace falta una URL pública), espera a que Instagram lo procese y deja el **enlace** en el
+pulsar **Publicar** (también desde «Te necesita», en el escritorio, la web y Órbita). kywai le da el MP4 a Instagram:
+con un token de Facebook (EAA…) lo sube desde el equipo (subida reanudable de Meta); con uno de Instagram (IG…, el
+habitual), Meta no admite esa subida y solo acepta un enlace público, así que kywai deja el vídeo **1 hora** en un
+alojamiento temporal (Litterbox, o tmpfiles.org si falla) y le pasa ese enlace. Después espera a que Instagram lo procese y deja el **enlace** en el
 chat. Si falla, la tarjeta dice por qué y tiene **Reintentar**: el error nombra el paso (preparar la publicación,
 subir el vídeo, comprobarlo o publicar el reel), lo que contestó Meta y su código o `fbtrace_id`. Los errores 500
 pasajeros de la subida se reintentan solos dos veces. Ninguna petición se queda colgada: cada paso tiene un tope de

@@ -1,8 +1,9 @@
 // El Instagram de kywai: publicar reels en SU PROPIA cuenta (una cuenta profesional, de empresa o de creador) con la
 // API oficial de Instagram (Graph API). Nunca con la contraseña: con un token de acceso que el usuario saca de su app
 // de Meta y pega en Ajustes. El token se guarda cifrado con el llavero del sistema (como las claves de los agentes).
-// El vídeo se sube desde el equipo con la subida reanudable de Meta (rupload.facebook.com): no hace falta una URL
-// pública.
+// Con un token de Facebook (EAA…) el vídeo se sube desde el equipo con la subida reanudable de Meta
+// (rupload.facebook.com). Con uno de Instagram (IG…) Meta no la admite: el vídeo se deja 1 hora en un alojamiento
+// temporal (Litterbox, o tmpfiles.org si falla) y se le da ese enlace a Instagram.
 import { existsSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 
@@ -12,7 +13,7 @@ export const CAPTION_MAX = 2200
 /** Hashtags como mucho (Instagram no publica con más de 30). */
 export const HASHTAGS_MAX = 30
 
-type Fetch = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string | Uint8Array; signal?: AbortSignal }) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>
+type Fetch = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string | Uint8Array | FormData; signal?: AbortSignal }) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>
 let fetchImpl: Fetch | null = null
 let sleepImpl: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -195,30 +196,16 @@ export interface PublishInput {
   trial?: boolean
 }
 
-/**
- * Publica un reel: crea el contenedor (subida reanudable), sube el MP4, espera a que Instagram lo procese y lo
- * publica. Devuelve el id y el enlace de la publicación.
- */
-export async function publishReel(input: PublishInput): Promise<{ id: string; permalink?: string }> {
-  const { token, userId, file, signal } = input
-  if (!existsSync(file)) throw new Error('No encuentro el vídeo para publicarlo')
-  const size = statSync(file).size
-  if (!size) throw new Error('El vídeo está vacío')
-  const caption = cleanCaption(input.caption)
-  input.onStep?.('Preparando la publicación en Instagram')
-  const box = await graph<{ id?: string; uri?: string }>(token, 'POST', `${userId}/media`, {
-    media_type: 'REELS',
-    upload_type: 'resumable',
-    caption,
-    ...(input.trial ? { trial_params: JSON.stringify({ graduation_strategy: 'SS_PERFORMANCE' }) } : {})
-  }, signal, 'preparar la publicación')
-  if (!box.id) throw new Error('Instagram no creó la publicación')
-  input.onStep?.('Subiendo el vídeo a Instagram')
-  const uploadUrl = box.uri || `https://rupload.facebook.com/ig-api-upload/${GRAPH_VERSION}/${box.id}`
+/** Tope de una subida: 2 minutos más 1 por cada 5 MB (una conexión muy lenta sigue subiendo; una colgada, no). */
+function uploadTimeout(size: number): number {
+  return 120_000 + Math.ceil(size / (5 * 1024 * 1024)) * 60_000
+}
+
+/** Subida reanudable de Meta (solo con tokens de Facebook Login): el MP4 va directo desde el equipo. */
+async function resumableUpload(uploadUrl: string, token: string, file: string, size: number, signal?: AbortSignal): Promise<void> {
   const bytes = new Uint8Array(readFileSync(file))
+  const upMs = uploadTimeout(size)
   for (let attempt = 0; ; attempt++) {
-    // Tope de la subida: 2 minutos más 1 por cada 5 MB (una conexión muy lenta sigue subiendo; una colgada, no).
-    const upMs = 120_000 + Math.ceil(size / (5 * 1024 * 1024)) * 60_000
     let up: Awaited<ReturnType<Fetch>>
     let upText: string
     try {
@@ -232,7 +219,7 @@ export async function publishReel(input: PublishInput): Promise<{ id: string; pe
     } catch (e) {
       throw timeoutError(e, signal, upMs, 'subir el vídeo')
     }
-    if (up.ok) break
+    if (up.ok) return
     // Un fallo pasajero de Meta (5xx) se reintenta un par de veces antes de rendirse.
     if (up.status >= 500 && attempt < 2 && !signal?.aborted) {
       await sleepImpl(3000 * (attempt + 1))
@@ -240,18 +227,97 @@ export async function publishReel(input: PublishInput): Promise<{ id: string; pe
     }
     throw graphError(up.status, upText, 'subir el vídeo')
   }
+}
+
+/** Alojamientos temporales para darle a Instagram un enlace público al vídeo (en orden; si uno falla, el siguiente). */
+const TEMP_HOSTS: Array<{ name: string; upload: (form: FormData) => FormData; url: string; parse: (text: string) => string | null }> = [
+  {
+    name: 'Litterbox',
+    url: 'https://litterbox.catbox.moe/resources/internals/api.php',
+    upload: (f) => (f.set('reqtype', 'fileupload'), f.set('time', '1h'), f),
+    parse: (t) => (/^https:\/\/\S+\.mp4$/i.test(t.trim()) ? t.trim() : null)
+  },
+  {
+    name: 'tmpfiles.org',
+    url: 'https://tmpfiles.org/api/v1/upload',
+    upload: (f) => f,
+    parse: (t) => {
+      try {
+        const u = (JSON.parse(t) as { data?: { url?: string } }).data?.url
+        // La dirección que devuelve es una página; la descarga directa lleva «/dl/».
+        return u ? u.replace(/^https?:\/\/tmpfiles\.org\//, 'https://tmpfiles.org/dl/') : null
+      } catch {
+        return null
+      }
+    }
+  }
+]
+
+/** Sube el vídeo a un alojamiento temporal (caduca solo) y devuelve su enlace público de descarga. */
+export async function temporaryLink(file: string, size: number, signal?: AbortSignal): Promise<string> {
+  const bytes = readFileSync(file)
+  const name = `kywai-${Date.now().toString(36)}.mp4`
+  const ms = uploadTimeout(size)
+  const fails: string[] = []
+  for (const host of TEMP_HOSTS) {
+    if (signal?.aborted) throw new Error('Cancelado')
+    const form = new FormData()
+    host.upload(form)
+    form.set(host.name === 'Litterbox' ? 'fileToUpload' : 'file', new Blob([new Uint8Array(bytes)], { type: 'video/mp4' }), name)
+    try {
+      const res = await doFetch(host.url, { method: 'POST', body: form, signal: timed(signal, ms) })
+      const text = await res.text()
+      const url = res.ok ? host.parse(text) : null
+      if (url) return url
+      fails.push(`${host.name}: error ${res.status}`)
+    } catch (e) {
+      if (signal?.aborted) throw e
+      fails.push(`${host.name}: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+  throw new Error(`No se pudo dejar el vídeo en un enlace temporal para Instagram (${fails.join('; ')})`)
+}
+
+/**
+ * Publica un reel: crea el contenedor y le da el vídeo (con un token de Facebook, subida reanudable desde el equipo; con
+ * uno de Instagram, un enlace temporal), espera a que Instagram lo procese y lo publica. Devuelve el id y el enlace de la publicación.
+ */
+export async function publishReel(input: PublishInput): Promise<{ id: string; permalink?: string }> {
+  const { token, userId, file, signal } = input
+  if (!existsSync(file)) throw new Error('No encuentro el vídeo para publicarlo')
+  const size = statSync(file).size
+  if (!size) throw new Error('El vídeo está vacío')
+  const caption = cleanCaption(input.caption)
+  const extra: Record<string, string> = input.trial ? { trial_params: JSON.stringify({ graduation_strategy: 'SS_PERFORMANCE' }) } : {}
+  let box: { id?: string; uri?: string }
+  if (graphHost(token).includes('instagram')) {
+    // Con un token de «Instagram Login» Meta no admite la subida directa (rupload responde ProcessingFailedError):
+    // solo acepta un enlace público al vídeo, que descarga él. kywai lo deja en un alojamiento temporal (1 hora).
+    input.onStep?.('Subiendo el vídeo a un enlace temporal')
+    const videoUrl = await temporaryLink(file, size, signal)
+    input.onStep?.('Preparando la publicación en Instagram')
+    box = await graph<{ id?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', video_url: videoUrl, caption, ...extra }, signal, 'preparar la publicación')
+    if (!box.id) throw new Error('Instagram no creó la publicación')
+  } else {
+    input.onStep?.('Preparando la publicación en Instagram')
+    box = await graph<{ id?: string; uri?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', upload_type: 'resumable', caption, ...extra }, signal, 'preparar la publicación')
+    if (!box.id) throw new Error('Instagram no creó la publicación')
+    input.onStep?.('Subiendo el vídeo a Instagram')
+    await resumableUpload(box.uri || `https://rupload.facebook.com/ig-api-upload/${GRAPH_VERSION}/${box.id}`, token, file, size, signal)
+  }
+  const boxId = box.id
   input.onStep?.('Instagram está procesando el vídeo')
   const deadline = Date.now() + (input.timeoutMs ?? 10 * 60_000)
   for (;;) {
     if (signal?.aborted) throw new Error('Cancelado')
-    const st = await graph<{ status_code?: string; status?: string }>(token, 'GET', box.id, { fields: 'status_code,status' }, signal, 'comprobar el vídeo')
+    const st = await graph<{ status_code?: string; status?: string }>(token, 'GET', boxId, { fields: 'status_code,status' }, signal, 'comprobar el vídeo')
     if (st.status_code === 'FINISHED') break
     if (st.status_code === 'ERROR' || st.status_code === 'EXPIRED') throw new Error(`Instagram no pudo procesar el vídeo: ${st.status || st.status_code}`)
     if (Date.now() > deadline) throw new Error('Instagram tarda demasiado en procesar el vídeo; prueba otra vez más tarde')
     await sleepImpl(5000)
   }
   input.onStep?.('Publicando en Instagram')
-  const pub = await graph<{ id?: string }>(token, 'POST', `${userId}/media_publish`, { creation_id: box.id }, signal, 'publicar el reel')
+  const pub = await graph<{ id?: string }>(token, 'POST', `${userId}/media_publish`, { creation_id: boxId }, signal, 'publicar el reel')
   if (!pub.id) throw new Error('Instagram no confirmó la publicación')
   let permalink: string | undefined
   try {
