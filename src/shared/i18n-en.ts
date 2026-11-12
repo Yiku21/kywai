@@ -3776,4 +3776,12 @@ export const en: Record<string, string> = {
   "¿Qué le pregunto al consejo? Escríbelo detrás: «/consejo ¿qué base de datos uso para…?»": "What should I ask the council? Write it after the command: “/consejo which database should I use for…?”",
   "[3] pregunta": "[3] question",
   "La misma pregunta a varios agentes a la vez; uno junta lo mejor y te dice en qué coinciden y en qué no": "The same question to several agents at once; one combines the best and tells you where they agree and where they don't",
+  "Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba": "Night shift: finds the reels blowing up in your niche, breaks down the best one, makes a new one and leaves it as a trial reel",
+  "Para el turno de noche hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.": "The night shift needs an agent with a terminal (Claude, Codex, Gemini…) that works right now.",
+  "Turno de noche: {note}": "Night shift: {note}",
+  "Turno de noche del Instagram": "Instagram night shift",
+  "No terminó con la orden «/video …» del reel.": "It didn't end with the reel's “/video …” command.",
+  "Ahora hago el vídeo.": "Now I'll make the video.",
+  "Ahora hago el vídeo y, cuando esté, lo preparo como reel de prueba para Instagram.": "Now I'll make the video and, once it's ready, prepare it as an Instagram trial reel.",
+  "El vídeo está listo, pero no lo preparé para Instagram: {msg}": "The video is ready, but I didn't prepare it for Instagram: {msg}",
 }

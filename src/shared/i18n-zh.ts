@@ -3653,4 +3653,12 @@ export const zh: Record<string, string> = {
   "¿Qué le pregunto al consejo? Escríbelo detrás: «/consejo ¿qué base de datos uso para…?»": "要问委员会什么？写在命令后面：“/consejo 我该用哪个数据库来……？”",
   "[3] pregunta": "[3] 问题",
   "La misma pregunta a varios agentes a la vez; uno junta lo mejor y te dice en qué coinciden y en qué no": "同一个问题同时问几个智能体；由一个汇总最好的答案，并告诉你它们哪里一致、哪里不同",
+  "Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba": "夜班：找出你所在领域里爆火的 Reels，拆解最好的那条，做一条新的并留作试播 Reel",
+  "Para el turno de noche hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.": "夜班需要一个现在可用、带终端的智能体（Claude、Codex、Gemini…）。",
+  "Turno de noche: {note}": "夜班：{note}",
+  "Turno de noche del Instagram": "Instagram 夜班",
+  "No terminó con la orden «/video …» del reel.": "没有以该 Reel 的“/video …”命令结尾。",
+  "Ahora hago el vídeo.": "现在开始做视频。",
+  "Ahora hago el vídeo y, cuando esté, lo preparo como reel de prueba para Instagram.": "现在开始做视频，做好后会把它准备成 Instagram 试播 Reel。",
+  "El vídeo está listo, pero no lo preparé para Instagram: {msg}": "视频已做好，但没有为 Instagram 准备：{msg}",
 }

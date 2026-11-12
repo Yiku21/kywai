@@ -41,6 +41,7 @@ export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
   { name: 'ig-plan', aliases: [], args: 'qué quieres esta semana', description: 'Plan de la semana para el Instagram de kywai: qué publicar, cuándo y con quién interactuar', icon: 'publish' },
   { name: 'ig-viral', aliases: [], args: 'nicho o cuentas', description: 'Busca los reels que funcionan en tu nicho y por qué, para copiar la fórmula', icon: 'learn' },
   { name: 'ig-reel', aliases: [], args: 'idea', description: 'Convierte una idea en guion de reel con tres ganchos puntuados', icon: 'video' },
+  { name: 'turno-noche', aliases: ['turno', 'noche', 'maquina', 'máquina'], args: 'nicho o cuentas', description: 'Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba', icon: 'routine' },
   { name: 'ig-profile', aliases: [], description: 'Puntúa el perfil de Instagram de kywai sobre 100 y dice cómo mejorarlo', icon: 'publish' },
   { name: 'ig-audit', aliases: [], description: 'Repasa lo publicado en Instagram y dice qué funcionó de verdad', icon: 'usage' },
   { name: 'ig-reply', aliases: [], args: 'qué comentarios', description: 'Escribe las respuestas a los comentarios del Instagram de kywai', icon: 'publish' },

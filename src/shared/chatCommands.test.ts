@@ -10,7 +10,7 @@ describe('lista del «/»', () => {
 
   it('con «/» sola salen todas: primero las de kywai, luego plantillas y mods', () => {
     const all = commandSuggestions('', { templates, mods })
-    expect(all.map((c) => c.command)).toEqual(['video', 'serie', 'editar', 'recortes', 'demo', 'miniatura', 'doblar', 'sprite', 'radar', 'consejo', 'aprende', 'instagram', 'tiktok', 'ig-plan', 'ig-viral', 'ig-reel', 'ig-profile', 'ig-audit', 'ig-reply', 'ig-comment', 'rutina', 'directo', 'recuerda', 'model', 'uso', 'nuevo', 'revisar-pr', 'traducir'])
+    expect(all.map((c) => c.command)).toEqual(['video', 'serie', 'editar', 'recortes', 'demo', 'miniatura', 'doblar', 'sprite', 'radar', 'consejo', 'aprende', 'instagram', 'tiktok', 'ig-plan', 'ig-viral', 'ig-reel', 'turno-noche', 'ig-profile', 'ig-audit', 'ig-reply', 'ig-comment', 'rutina', 'directo', 'recuerda', 'model', 'uso', 'nuevo', 'revisar-pr', 'traducir'])
     expect(all.every((c) => c.description.length > 0)).toBe(true)
   })
 

@@ -2396,6 +2396,36 @@ comentarios del token (`instagram_business_manage_comments` o `instagram_manage_
 Código: `unansweredComments`/`replyToComment` en `src/main/instagram.ts` y `completeIgReply`/`decideInstagramReply` en
 el orquestador; la tarjeta, `InstagramRepliesBlock` en `Messages.tsx`.
 
+**Turno de noche (`/turno-noche`).** La cadena entera del Instagram de kywai en una sola orden, pensada para dejarla
+en una rutina de madrugada («/rutina cada día a las 3:00: /turno-noche IA y productividad»). También vale `/maquina`,
+`/turno` o `/noche`. Detrás va el nicho, unas cuentas o enlaces que quieras que mire (si no pones nada, lo saca de la
+voz de la cuenta). Lo que pasa:
+1. Un agente con terminal sigue la habilidad `ig-viral` y busca los vídeos cortos del nicho que han superado **3 veces
+   o más** lo normal de su creador (la mediana de sus últimos vídeos). Mira YouTube Shorts y TikTok públicos (con
+   yt-dlp lee las vistas sin bajar nada) y la web; de Instagram solo los enlaces que pongas tú. Nunca inicia sesión.
+2. Del mejor: lo baja, lo transcribe con Whisper en el equipo y saca un fotograma cada 2 s, y escribe `desmontaje.md`
+   (gancho literal y su tipo, estructura con tiempos —gancho, contexto, pasos, prueba, llamada—, cada cuánto cambia el
+   plano, texto en pantalla, subtítulos y por qué funcionó).
+3. Escribe un reel **nuevo** para la cuenta de kywai con la estructura y la fórmula del gancho, **nunca** su texto,
+   sus imágenes ni su voz, siguiendo `ig-reel` (tres ganchos puntuados) y **el método viral de la cuenta**
+   (`<carpeta de trabajo>/instagram/metodo-viral.md`): la primera noche lo crea con reglas cortas y numeradas, y cada
+   noche le añade lo que aprenda. Puedes editarlo tú: manda sobre todo lo demás.
+   Si el proyecto tiene un **radar de temas** («/radar», carpeta `radar/`), empieza por los temas del último.
+4. **Aprende de lo tuyo**: si `instagram/resultados.md` tiene 3 reels o más («/instagram resultados») y uno superó el
+   doble de la mediana de la cuenta, el reel de esa noche va del mismo tema con otro gancho.
+5. Su respuesta (de qué reel salió, cuántas veces su normal y el gancho elegido) sale en el chat, y kywai lanza él
+   mismo el vídeo vertical con la orden que dejó (`/video vertical estilo:… guion`): tu voz si la clonaste, subtítulos
+   palabra a palabra, música y efectos. El estilo lo elige el agente entre los que mejor quedan en reels
+   (Detrás de la máquina, Lista contrarreloj, Robots de bloques, Lista de comprobación, Anuncio de app, Garabatos) o
+   ninguno.
+6. Con el vídeo hecho, kywai lo prepara como **reel de prueba** («/instagram prueba»: primero lo ven solo quienes no
+   siguen la cuenta). Se publica con tu visto bueno en la tarjeta, o solo si tienes activado «Publicar sin preguntar».
+   Con «sin publicar» detrás («/turno-noche IA sin publicar») se queda en el vídeo.
+
+Todo queda en `<carpeta de trabajo>/instagram/turno-noche/<fecha>/` (`elegidos.md`, `fuente/`, `desmontaje.md`,
+`guion.md` y los datos de la cuenta). Código: `src/main/nightShift.ts` (el encargo y la orden del vídeo) y
+`sendNightShift`/`completeNightShift`/`postNightShiftReel` en el orquestador; el vídeo lleva `afterwards: 'ig-trial'`.
+
 ### El TikTok de kywai (`/tiktok`)
 
 Igual que con Instagram, kywai puede llevar **su propia cuenta de TikTok** (la de kywai, no la tuya). Usa la **API
@@ -3025,6 +3055,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
 | `/tiktok qué quieres en el texto` | Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno (ver «El TikTok de kywai») |
+| `/turno-noche nicho o cuentas` | Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba (ver «El Instagram de kywai»; también `/maquina`) |
 | `/rutina cuándo: qué` | Programa una tarea a una hora o que se repita |
 | `/directo Agente mensaje` | Habla con un agente sin pasar por Hermes (lo mismo que `@Agente mensaje`) |
 | `/recuerda texto` | Guarda un dato en la memoria del proyecto (admite `decisión:`, `pendiente:`, `preferencia:`, `hecho:`) |

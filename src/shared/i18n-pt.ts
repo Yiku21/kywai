@@ -3653,4 +3653,12 @@ export const pt: Record<string, string> = {
   "¿Qué le pregunto al consejo? Escríbelo detrás: «/consejo ¿qué base de datos uso para…?»": "O que pergunto ao conselho? Escreva depois do comando: «/consejo qual banco de dados uso para…?»",
   "[3] pregunta": "[3] pergunta",
   "La misma pregunta a varios agentes a la vez; uno junta lo mejor y te dice en qué coinciden y en qué no": "A mesma pergunta para vários agentes ao mesmo tempo; um junta o melhor e diz onde concordam e onde não",
+  "Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba": "Turno da noite: encontra os reels que estão bombando no seu nicho, desmonta o melhor, faz um novo e o deixa como reel de teste",
+  "Para el turno de noche hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.": "O turno da noite precisa de um agente com terminal (Claude, Codex, Gemini…) que funcione agora mesmo.",
+  "Turno de noche: {note}": "Turno da noite: {note}",
+  "Turno de noche del Instagram": "Turno da noite do Instagram",
+  "No terminó con la orden «/video …» del reel.": "Não terminou com o comando «/video …» do reel.",
+  "Ahora hago el vídeo.": "Agora faço o vídeo.",
+  "Ahora hago el vídeo y, cuando esté, lo preparo como reel de prueba para Instagram.": "Agora faço o vídeo e, quando estiver pronto, preparo-o como reel de teste para o Instagram.",
+  "El vídeo está listo, pero no lo preparé para Instagram: {msg}": "O vídeo está pronto, mas não o preparei para o Instagram: {msg}",
 }

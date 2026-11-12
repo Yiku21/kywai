@@ -300,11 +300,15 @@ export interface Task {
     episode?: { n: number; total: number; vote?: string }
     /** Uno de varios vídeos pedidos a la vez («hazme 3 vídeos…», src/shared/videoBatch.ts): cuál es y qué le toca contar. */
     batch?: { n: number; total: number; brief: string }
+    /** Lo lanzó el «/turno-noche»: al acabar, kywai lo prepara como reel de prueba de Instagram. */
+    afterwards?: 'ig-trial'
   }
   /** «/instagram»: el agente escribe el texto del reel (video, relativo al proyecto) y kywai lo prepara para publicar. */
   instagram?: { video: string; artifactId?: string; about: string; note: string; question?: string; /** Por defecto Instagram. */ platform?: 'tiktok'; /** «/instagram prueba»: reel de prueba. */ trial?: boolean }
   /** «/ig-reply» con la cuenta conectada: los comentarios sin responder (JSON en el proyecto) para escribir las respuestas. */
   igReply?: { file: string }
+  /** «/turno-noche»: busca, desmonta y escribe; su respuesta acaba con la orden «/video …» que kywai lanza (src/main/nightShift.ts). */
+  nightShift?: { dir: string; noPost: boolean }
   /** «/aprende»: un vídeo o pódcast que se transcribe y se convierte en una habilidad (src/main/learn.ts). */
   learn?: {
     url?: string

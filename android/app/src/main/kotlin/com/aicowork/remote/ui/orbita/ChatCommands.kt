@@ -77,6 +77,7 @@ object ChatCommands {
         Command("ig-plan", emptyList(), t("qué quieres esta semana"), t("Plan de la semana para el Instagram de kywai: qué publicar, cuándo y con quién interactuar"), Icons.Outlined.Send),
         Command("ig-viral", emptyList(), t("nicho o cuentas"), t("Busca los reels que funcionan en tu nicho y por qué, para copiar la fórmula"), Icons.Outlined.School),
         Command("ig-reel", emptyList(), t("idea"), t("Convierte una idea en guion de reel con tres ganchos puntuados"), Icons.Outlined.Movie),
+        Command("turno-noche", listOf("turno", "noche", "maquina", "máquina"), t("nicho o cuentas"), t("Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba"), Icons.Outlined.Schedule),
         Command("ig-profile", emptyList(), null, t("Puntúa el perfil de Instagram de kywai sobre 100 y dice cómo mejorarlo"), Icons.Outlined.Send),
         Command("ig-audit", emptyList(), null, t("Repasa lo publicado en Instagram y dice qué funcionó de verdad"), Icons.Outlined.Speed),
         Command("ig-reply", emptyList(), t("qué comentarios"), t("Escribe las respuestas a los comentarios del Instagram de kywai"), Icons.Outlined.Send),

@@ -1123,4 +1123,12 @@ private fun part7(m: HashMap<String, String>) {
     m["Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo"] = "Os temas que estão subindo agora no YouTube e na web, com nota, 5 títulos, 3 ângulos e o /video pronto"
     m["[3] pregunta"] = "[3] pergunta"
     m["La misma pregunta a varios agentes a la vez; uno junta lo mejor y te dice en qué coinciden y en qué no"] = "A mesma pergunta para vários agentes ao mesmo tempo; um junta o melhor e diz onde concordam e onde não"
+    m["Turno de noche: busca los reels que revientan en tu nicho, desmonta el mejor, hace uno nuevo y lo deja como reel de prueba"] = "Turno da noite: encontra os reels que estão bombando no seu nicho, desmonta o melhor, faz um novo e o deixa como reel de teste"
+    m["Para el turno de noche hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo."] = "O turno da noite precisa de um agente com terminal (Claude, Codex, Gemini…) que funcione agora mesmo."
+    m["Turno de noche: {note}"] = "Turno da noite: {note}"
+    m["Turno de noche del Instagram"] = "Turno da noite do Instagram"
+    m["No terminó con la orden «/video …» del reel."] = "Não terminou com o comando «/video …» do reel."
+    m["Ahora hago el vídeo."] = "Agora faço o vídeo."
+    m["Ahora hago el vídeo y, cuando esté, lo preparo como reel de prueba para Instagram."] = "Agora faço o vídeo e, quando estiver pronto, preparo-o como reel de teste para o Instagram."
+    m["El vídeo está listo, pero no lo preparé para Instagram: {msg}"] = "O vídeo está pronto, mas não o preparei para o Instagram: {msg}"
 }

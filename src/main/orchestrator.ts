@@ -114,7 +114,8 @@ import { createRoutine } from './routines'
 import { installCatalogSkill, searchSkillCatalog } from './catalog'
 import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSuggest'
 import { cleanTikTokCaption, creatorInfo, parseTikTokRequest, uploadTikTok, type TikTokSettings } from './tiktok'
-import { learningLines, reelResults, resultsFile, saveResults } from './instagramLearn'
+import { learningLines, MIN_REELS_TO_LEARN, reelResults, resultsFile, savedReels, saveResults } from './instagramLearn'
+import { NIGHT_SHIFT_STYLES, nightShiftPaths, nightShiftPrompt, nightShiftSummary, parseNightShiftOrder, parseNightShiftRequest, type NightShiftRequest } from './nightShift'
 import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, replyToComment, unansweredComments, type IgComment, type InstagramSettings } from './instagram'
 import { ensureIgSkills, igAccountSnapshot, igPaths, igReplyPrompt, igSkillFile, igSkillPrompt, parseIgReplies, parseIgSkillRequest, type IgSkillRequest } from './igSkills'
 import { episodeBrief, episodeFromFilmReply, loadSeries, nextEpisode, parseSeriesRequest, recordEpisode, startSeries, type SeriesRequest } from './series'
@@ -1742,6 +1743,10 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
   // «/ig-plan», «/ig-viral», «/ig-reel»…: una habilidad de Instagram con los datos reales de la cuenta de kywai.
   const igSkillReq = fromMsg || tpl ? null : parseIgSkillRequest(text)
   if (igSkillReq) return sendIgSkill(st, igSkillReq, atts, input.clientMessageId, routine, text.trim())
+  // «/turno-noche [nicho]»: busca reels que revientan, desmonta el mejor, escribe uno nuevo, lo hace y lo deja como
+  // reel de prueba.
+  const nightReq = fromMsg || tpl ? null : parseNightShiftRequest(text)
+  if (nightReq) return sendNightShift(st, nightReq, atts, input.clientMessageId, routine, text.trim())
   // «/aprende <enlace>» (o con un vídeo adjunto): kywai lo transcribe y un agente lo convierte en una habilidad.
   const learnReq = fromMsg || tpl ? null : parseLearnRequest(text)
   if (learnReq) {
@@ -2008,7 +2013,7 @@ function withBatch(topic: string, batch: { brief: string } | undefined): string 
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; review?: boolean; structure?: VideoStructure; episode?: { n: number; total: number; vote?: string } },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; review?: boolean; structure?: VideoStructure; episode?: { n: number; total: number; vote?: string }; afterwards?: 'ig-trial' },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -2107,7 +2112,8 @@ async function sendVideo(
         ...(req.review && !film ? { review: true } : {}),
         ...(req.structure ? { structure: req.structure } : {}),
         ...(req.episode ? { episode: req.episode } : {}),
-        ...(batch ? { batch: { n, total, brief: batchBrief(n, total, batch.ideas) } } : {})
+        ...(batch ? { batch: { n, total, brief: batchBrief(n, total, batch.ideas) } } : {}),
+        ...(req.afterwards ? { afterwards: req.afterwards } : {})
       }
     }
     run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
@@ -3398,6 +3404,169 @@ async function sendIgSkill(
   pushTask(t)
   schedule()
   return { runId }
+}
+
+/**
+ * «/turno-noche»: un agente con terminal busca los reels del nicho que superan de largo lo normal de su cuenta,
+ * desmonta el mejor y escribe uno nuevo para la cuenta de kywai (src/main/nightShift.ts). Su respuesta acaba con la
+ * orden «/video …»: kywai la lanza (completeNightShift) y, con el vídeo hecho, lo prepara como reel de prueba.
+ */
+async function sendNightShift(
+  st: ReturnType<typeof store.getProject>,
+  req: NightShiftRequest,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  const agent = filmDirectors()[0]
+  if (!agent) throw new Error(tr('Para el turno de noche hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.'))
+  const root = getConfig().workspaceRoot
+  const { pack, voice } = igPaths(root)
+  try {
+    await ensureIgSkills(pack)
+  } catch (e) {
+    throw new Error(tr('No pude descargar las habilidades de Instagram: {msg}', { msg: e instanceof Error ? e.message : String(e) }))
+  }
+  const date = new Date().toISOString().slice(0, 10)
+  const stamp = Date.now().toString(36)
+  const { dir: day, method } = nightShiftPaths(root, date)
+  let dir = day
+  for (let n = 2; existsSync(dir); n++) dir = `${day}-${n}`
+  mkdirSync(dir, { recursive: true })
+  let accountFile: string | undefined
+  let accountError: string | undefined
+  const token = instagram?.token()
+  const userId = instagram?.settings().userId
+  if (token && userId) {
+    try {
+      accountFile = join(dir, `cuenta-${stamp}.md`)
+      writeFileSync(accountFile, await igAccountSnapshot(token, userId), 'utf8')
+    } catch (e) {
+      accountFile = undefined
+      accountError = e instanceof Error ? e.message : String(e)
+    }
+  }
+  const results = resultsFile(root)
+  const styles = NIGHT_SHIFT_STYLES.map((slug) => filmStyle(slug))
+    .filter((s): s is NonNullable<typeof s> => !!s)
+    .map((s) => ({ slug: s.slug, name: lang() === 'es' ? s.name : s.en, line: lang() === 'es' ? s.line : s.lineEn }))
+  const prompt = nightShiftPrompt({
+    note: req.note,
+    dir,
+    pack,
+    viralSkill: igSkillFile(pack, 'ig-viral'),
+    reelSkill: igSkillFile(pack, 'ig-reel'),
+    method,
+    hasMethod: existsSync(method),
+    voiceFile: voice,
+    hasVoice: existsSync(voice),
+    accountFile,
+    accountError,
+    ...(savedReels(results) >= MIN_REELS_TO_LEARN ? { resultsFile: results } : {}),
+    ...(latestRadar(store.workRoot(projectId)) ? { radarFile: latestRadar(store.workRoot(projectId)) } : {}),
+    styles,
+    lang: userLanguageName()
+  })
+  const runId = randomUUID()
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: shown,
+    createdAt: Date.now(),
+    attachments: atts.length ? atts : undefined,
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+  })
+  const run: Run = {
+    id: runId,
+    projectId,
+    userText: shown,
+    ...(routine ? { routine: routine.name } : {}),
+    attachments: atts,
+    attPaths: store.stageAttachments(projectId, atts),
+    planning: false,
+    taskIds: [],
+    meta: new Map(),
+    controllers: new Map(),
+    cancelled: false,
+    finished: false
+  }
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId,
+    seq: nextTaskSeq(projectId),
+    title: req.note ? tr('Turno de noche: {note}', { note: oneLine(req.note, 50) }) : tr('Turno de noche del Instagram'),
+    description: prompt,
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'hard',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'text',
+    nightShift: { dir, noPost: req.noPost }
+  }
+  run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
+  runs.set(runId, run)
+  emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
+  startRunUsage({ runId, projectId, projectName: st.project.name, request: shown })
+  await baseline(run)
+  tasks.set(t.id, t)
+  run.taskIds.push(t.id)
+  pushTask(t)
+  schedule()
+  return { runId }
+}
+
+/** El «/radar» más reciente del proyecto (radar/AAAA-MM-DD-HHMM.md), o undefined. */
+function latestRadar(root: string): string | undefined {
+  try {
+    const last = readdirSync(join(root, RADAR_DIR)).filter((f) => /^\d{4}-\d{2}-\d{2}.*\.md$/.test(f)).sort().pop()
+    return last ? join(root, RADAR_DIR, last) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** El guion del turno de noche está: se enseña lo que encontró y kywai lanza el vídeo con la orden que dejó. */
+async function completeNightShift(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  const ns = t.nightShift!
+  const order = parseNightShiftOrder(res.text)
+  const req = order ? parseVideoRequest(order) : null
+  if (!order || !req || !req.topic) {
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('No terminó con la orden «/video …» del reel.') })
+    return
+  }
+  const next = ns.noPost ? tr('Ahora hago el vídeo.') : tr('Ahora hago el vídeo y, cuando esté, lo preparo como reel de prueba para Instagram.')
+  await completeTask(run, t, exec, parent, { ...res, text: [nightShiftSummary(res.text), next].filter(Boolean).join('\n\n') })
+  try {
+    await sendVideo(
+      store.getProject(run.projectId),
+      { ...req, format: 'vertical', ...(ns.noPost ? {} : { afterwards: 'ig-trial' as const }) },
+      [],
+      undefined,
+      run.routine ? { id: '', name: run.routine } : undefined,
+      order,
+      {},
+      { echo: false }
+    )
+  } catch (e) {
+    agentMessage(run, exec.id, tr('No pude lanzar el vídeo: {msg}', { msg: e instanceof Error ? e.message : String(e) }), { tone: 'error' })
+  }
+}
+
+/** El vídeo del turno de noche ya está: «/instagram prueba» con él (o se dice qué falta para publicarlo). */
+async function postNightShiftReel(run: Run, exec: AgentConfig): Promise<void> {
+  try {
+    await sendInstagram(store.getProject(run.projectId), '', [], undefined, run.routine ? { id: '', name: run.routine } : undefined, '/instagram prueba', undefined, true)
+  } catch (e) {
+    agentMessage(run, exec.id, tr('El vídeo está listo, pero no lo preparé para Instagram: {msg}', { msg: e instanceof Error ? e.message : String(e) }))
+  }
 }
 
 /** Baja y transcribe el vídeo de «/aprende» (una vez; si se reintenta con otro agente, ya está). */
@@ -5844,7 +6013,10 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   try {
     if (permNeed) await handlePermissionNeed(run, t, exec, parent, permNeed)
     else if (blocked) await handleBlocked(run, t, exec, parent, res, blocked)
-    else if (res.ok && t.video) await completeVideo(run, t, exec, parent, res)
+    else if (res.ok && t.video) {
+      await completeVideo(run, t, exec, parent, res)
+      if (t.video.afterwards === 'ig-trial' && (t.status as Task['status']) === 'done') await postNightShiftReel(run, exec)
+    } else if (res.ok && t.nightShift) await completeNightShift(run, t, exec, parent, res)
     else if (res.ok && t.learn) await completeLearn(run, t, exec, parent, res)
     else if (res.ok && t.footage) await completeFootage(run, t, exec, parent, res)
     else if (res.ok && t.demo) await completeDemo(run, t, exec, parent, res)
