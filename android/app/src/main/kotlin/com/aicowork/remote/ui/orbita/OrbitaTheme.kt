@@ -99,7 +99,7 @@ object OrbitaThemes {
     private val cityNames = mapOf("clasico" to "Índigo", "orbita" to "Frost Glass", "marfil" to "Perla", "grafito" to "Ónix", "bosque" to "Esmeralda", "matrix" to "Neón", "eva" to "Ultravioleta")
     private val otherNames = mapOf(
         "relicario" to "Relicario", "telar" to "Telar", "halloween" to "Halloween", "navidad" to "Navidad",
-        "oficina" to "Oficina", "sede" to "Sede central",
+        "oficina" to "Oficina", "sede" to "Oficina · noche",
         "mundo-clasico" to "Clásico", "mundo-orbita" to "Órbita", "mundo-marfil" to "Marfil", "mundo-grafito" to "Grafito",
         "mundo-bosque" to "Bosque", "mundo-matrix" to "Matrix", "mundo-eva" to "EVA-01",
     )

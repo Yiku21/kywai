@@ -1,7 +1,8 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { applyTheme, setTheme } from '@/lib/theme'
+import { applyTheme, setTheme, storedTheme } from '@/lib/theme'
+import { PALETTES, palette } from '@/scene/palette'
 import { setHomeNight, storedHomeNight } from '@/lib/homeLighting'
 import { HomeNightToggle } from './HomeNightToggle'
 
@@ -43,5 +44,18 @@ describe('Kywai night switch',()=>{
     })
     expect(host.querySelector('button')?.getAttribute('aria-checked')).toBe('true')
     expect(document.documentElement.dataset.kywaiNight).toBe('true')
+  })
+  it('in the Office switches between the day and night versions of the same theme',async()=>{
+    await act(async()=>setTheme('oficina'))
+    await act(async()=>root.render(<HomeNightToggle/>))
+    const toggle=host.querySelector<HTMLButtonElement>('[role="switch"]')!
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    await act(async()=>toggle.click())
+    expect(storedTheme()).toBe('sede')
+    expect(palette).toBe(PALETTES.sede)
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    expect(storedHomeNight()).toBe(false)
+    await act(async()=>toggle.click())
+    expect(storedTheme()).toBe('oficina')
   })
 })

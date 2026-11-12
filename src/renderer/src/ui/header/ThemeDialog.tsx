@@ -3,6 +3,8 @@ import { Check } from 'lucide-react'
 import {
   CITY_COLORS,
   CORPORATE,
+  OFFICE,
+  isOffice,
   DECORS,
   DEFAULT_THEME,
   WORLDS,
@@ -66,9 +68,8 @@ export function ThemeGrid() {
         )}
       </Group>
       <Group title={t('Empresa')} hint={t('Sobrios, para usar kywai en el trabajo')}>
-        {CORPORATE.map((th) => (
-          <Card key={th.id} info={th} on={theme === th.id} onPick={() => setTheme(th.id)} />
-        ))}
+        {/* Una sola tarjeta: el día o la noche se cambian con «Modo noche» en la cabecera del espacio. */}
+        <Card info={OFFICE} on={isOffice(theme)} onPick={() => { if (!isOffice(theme)) setTheme(OFFICE.id) }} />
       </Group>
       <Group title={t('Decorados')} hint={t('Escenarios propios de fantasía o de temporada')}>
         {DECORS.map((th) => (

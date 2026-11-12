@@ -1,7 +1,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { CITY_COLORS, CORPORATE, DECORS, WORLDS, applyTheme, setTheme, storedTheme, themeLabel } from '@/lib/theme'
+import { CITY_COLORS, DECORS, WORLDS, applyTheme, setTheme, storedTheme, themeLabel } from '@/lib/theme'
 import { PALETTES, WORLD_PALETTES, palette, tone } from '@/scene/palette'
 import { ThemeGrid } from './ThemeDialog'
 
@@ -41,22 +41,25 @@ describe('temas', () => {
     expect(palette.world).toBe('submarino')
     expect(sea.getAttribute('aria-checked')).toBe('true')
   })
-  it('Empresa trae Oficina (clara) y Sede central (oscura), con su escenario y sus colores de interfaz', async () => {
+  it('Empresa trae una sola Oficina; la noche es la misma tarjeta con otro escenario y colores', async () => {
     await act(async () => root.render(<ThemeGrid />))
     const business = group('Empresa')
-    expect(business.map(b => CORPORATE.find(c => b.textContent?.startsWith(c.name))?.id)).toEqual(['oficina', 'sede'])
-    for (const b of business) expect(b.querySelector('img, svg[viewBox="0 0 120 84"]')).not.toBeNull()
+    expect(business).toHaveLength(1)
+    expect(business[0].textContent).toContain('Oficina')
+    expect(business[0].querySelector('img, svg[viewBox="0 0 120 84"]')).not.toBeNull()
     await act(async () => business[0].click())
     expect(storedTheme()).toBe('oficina')
     expect(document.documentElement.dataset.theme).toBe('oficina')
-    expect(document.documentElement.dataset.world).toBeUndefined()
     expect(palette).toBe(PALETTES.oficina)
-    expect(palette.world).toBe('oficina')
     expect(palette.light).toBe(true)
-    await act(async () => business[1].click())
+    // «Modo noche» cambia a la versión de noche; la tarjeta sigue marcada y volver a pulsarla no la apaga.
+    await act(async () => setTheme('sede'))
     expect(palette).toBe(PALETTES.sede)
     expect(palette.light).toBe(false)
-    expect(themeLabel('sede')).toBe('Sede central')
+    expect(group('Empresa')[0].getAttribute('aria-checked')).toBe('true')
+    await act(async () => group('Empresa')[0].click())
+    expect(storedTheme()).toBe('sede')
+    expect(themeLabel('sede')).toBe('Oficina · noche')
   })
   it('Refugio Kywai se elige, se recuerda y conserva los otros mapas', async () => {
     await act(async () => root.render(<ThemeGrid />))

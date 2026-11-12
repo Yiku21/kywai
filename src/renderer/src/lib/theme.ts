@@ -3,7 +3,8 @@
 // - la Ciudad digital, un mismo espacio con siete colores a elegir (Clásico, Frost Glass, Marfil, Grafito, Bosque,
 //   Matrix y EVA-01; antes eran siete temas sueltos y sus ids siguen igual, así nadie pierde el que tenía);
 // - cuatro con decoración propia (Relicario, Telar, Halloween y Navidad);
-// - dos de empresa, sobrios, para usar kywai en el trabajo (Oficina y Sede central).
+// - uno de empresa, sobrio, para usar kywai en el trabajo: la Oficina, de día ('oficina') o de noche ('sede'), que se
+//   cambia con el interruptor «Modo noche» del espacio (son dos ids para que el servidor y Órbita sigan el que toca).
 // Se aplican al momento con data-theme en <html> (las variables de tokens.css cambian; un mapa usa los colores de la
 // interfaz del color con su nombre) y data-world (solo en los mapas), y con la paleta del espacio digital
 // (scene/palette.ts). El tema lo guarda el servidor y lo siguen todos los dispositivos conectados a él (escritorio,
@@ -66,11 +67,15 @@ export const HOME: ThemeInfo<HomeTheme> = { id: 'kywai', name: t('Refugio Kywai'
 
 export const SEA: ThemeInfo<SeaTheme> = { id: 'submarino', name: t('Fondo marino'), hint: t('Un arrecife vivo con peces, medusas y una perla de luz') }
 
-/** Los temas de empresa: sobrios, para trabajar o enseñar kywai a un cliente. */
-export const CORPORATE: ReadonlyArray<ThemeInfo<CorporateTheme>> = [
-  { id: 'oficina', name: t('Oficina'), hint: t('Planta diáfana y luminosa, con puestos, cristal y plantas') },
-  { id: 'sede', name: t('Sede central'), hint: t('Planta alta de un rascacielos de noche, con nogal, latón y la ciudad detrás') }
-]
+/** La Oficina, el tema de empresa (sobrio, para trabajar o enseñar kywai a un cliente): la tarjeta del selector. */
+export const OFFICE: ThemeInfo<CorporateTheme> = { id: 'oficina', name: t('Oficina'), hint: t('Oficina de empresa, de día o de noche con «Modo noche» en el espacio') }
+
+/** Sus dos versiones: de día ('oficina') y de noche ('sede', planta alta de un rascacielos). */
+export const CORPORATE: ReadonlyArray<ThemeInfo<CorporateTheme>> = [OFFICE, { id: 'sede', name: t('Oficina · noche'), hint: OFFICE.hint }]
+
+export function isOffice(id: ThemeId): id is CorporateTheme {
+  return id === 'oficina' || id === 'sede'
+}
 
 /** Todos los temas que se pueden elegir. */
 export const THEMES: ReadonlyArray<ThemeInfo> = [HOME, SEA, ...WORLDS, ...CITY_COLORS, ...DECORS, ...CORPORATE]

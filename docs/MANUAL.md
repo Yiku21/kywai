@@ -3388,27 +3388,29 @@ En **Fondo marino**, cada estación conserva una plataforma separada también al
 
 **Relicario, Telar, Halloween y Navidad** conservan sus nombres e identificadores anteriores, pero ahora tienen escenarios completos: santuario con galerías, torres, canales y suelo reflectante; islas de cristal y redes de hilos; patio de una abadía gótica con luna y niebla; y villa nevada con abetos, humo y aurora. Se mantienen las formas del núcleo, los disfraces de fiesta y las acciones habituales del espacio. Las tarjetas del selector muestran sus siluetas y se eligen en **Decorados**.
 
-**Empresa: Oficina y Sede central.** Dos temas sobrios para usar kywai en el trabajo o enseñárselo a un cliente, en
-**⚙ → Ajustes → General → Tema → Empresa**. Cada uno tiene su escenario 3D, sus plataformas, su peana para el núcleo y
-sus colores de interfaz (`scene/worlds/corporateWorlds.ts`, `data-theme` `oficina` y `sede`):
+**Empresa: Oficina.** Un tema sobrio para usar kywai en el trabajo o enseñárselo a un cliente, en
+**⚙ → Ajustes → General → Tema → Empresa**. Es una sola tarjeta; el día y la noche se cambian con el interruptor
+**Modo noche** de la cabecera del espacio (el mismo del Refugio Kywai). Cada versión tiene su escenario 3D, sus
+plataformas, su peana para el núcleo y sus colores de interfaz (`scene/worlds/corporateWorlds.ts`):
 
-- **Oficina** (clara, de día): planta diáfana con suelo claro pulido y moqueta gris bajo el equipo, muro cortina de
-  vidrio al fondo y a la derecha con la ciudad detrás, bancadas de puestos con pantallas encendidas a la izquierda,
-  una pared de listones de roble con la pantalla de la empresa, una sala de reuniones de cristal, un rincón con sofá y
-  plantas, y jardineras bajas delante. Interfaz blanca y gris acero con un azul de empresa.
-- **Sede central** (oscura, de noche): planta alta de un rascacielos con piedra oscura pulida, alfombra con cenefa de
-  latón, ventanal de suelo a techo con la ciudad iluminada detrás, pared de nogal con estantes iluminados, sala del
-  consejo de cristal con mesa larga y sillas de piel, recepción y butacas. Interfaz azul marino con latón suave.
+- **De día** (`oficina`): planta diáfana con suelo claro pulido y moqueta gris bajo el equipo, muro cortina de vidrio
+  al fondo y a la derecha con la ciudad detrás, bancadas de puestos con pantallas encendidas, una pared de listones
+  de roble con la pantalla de la empresa, una sala de reuniones de cristal, un rincón con sofá y plantas, y jardineras
+  bajas delante. Interfaz blanca y gris acero con un azul de empresa.
+- **De noche** (`sede`): planta alta de un rascacielos con piedra oscura pulida, alfombra con cenefa de latón,
+  ventanal de suelo a techo con la ciudad iluminada detrás, pared de nogal con estantes iluminados, sala del consejo
+  de cristal con mesa larga y sillas de piel, recepción y butacas. Interfaz azul marino con latón suave.
 
-Los muebles se quitan solos si un puesto cae encima, y el vidrio es transparente de verdad (no da sombra). Órbita
-muestra estos dos temas con sus colores, como los demás mapas.
+Son dos ids de tema, así que el cambio de día a noche se guarda en el servidor y lo siguen los demás dispositivos como
+cualquier cambio de tema. Los muebles se quitan solos si un puesto cae encima, y el vidrio es transparente de verdad
+(no da sombra). Órbita no tiene el interruptor: muestra «Oficina» y «Oficina · noche» en su lista, con sus colores.
 
 **Refugio Kywai** aparece en **⚙ → Ajustes → General → Mapas**. Es un observatorio-invernadero frente al mar: cúpula de madera y cristal, cielo panorámico con nubes y agua animadas, jardines, talleres individuales, mesa circular con árbol central y asiento turquesa para el usuario. Los robots tienen acabados de cerámica y ropa propia, conservando sus estados, gestos y bocadillos. La distribución se adapta a los agentes visibles sin cambiar las posiciones guardadas de los proyectos.
 
 El interruptor **Modo noche**, junto a Música en la cabecera del espacio, cambia este refugio a luna, estrellas e iluminación cálida, con colores oscuros en la interfaz. Se recuerda por dispositivo y no cambia otros mapas. **Reducir efectos** detiene las animaciones del cielo, agua y vegetación. El tema se elige y sincroniza por los mecanismos habituales del servidor; está disponible en escritorio, cliente conectado y navegador. Órbita todavía no dibuja este escenario 3D.
 
 ⚙ → Ajustes → General → **Tema** (justo debajo del idioma; se despliega con la flecha) cambia el aspecto de la app.
-Los temas van en tres grupos: los mapas (con la Ciudad digital), los de empresa y los decorados. Cada tema es una tarjeta pequeña,
+Los temas van en tres grupos: los mapas (con la Ciudad digital), Empresa (la Oficina) y los decorados. Cada tema es una tarjeta pequeña,
 cuatro por fila (tres o dos si la ventana es estrecha), con una foto de su escenario 3D (en `assets/temas/`), el nombre y una descripción
 corta de dos líneas; la descripción completa sale al pasar el ratón por encima.
 
