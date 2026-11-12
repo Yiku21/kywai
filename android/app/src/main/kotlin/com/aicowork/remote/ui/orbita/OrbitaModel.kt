@@ -540,7 +540,7 @@ class OrbitaModel(
 
     /** Muestra de las voces (al activarlas o cambiar su volumen): Hermes saluda. */
     fun previewVoice() {
-        if (preferences.sound && preferences.voices) voices?.speak("hermes", Voices.profile("hermes"), t("¡Hola! Así suena Hermes."))
+        if (preferences.voices) voices?.speak("hermes", Voices.profile("hermes"), t("¡Hola! Así suena Hermes."))
     }
 
     private fun applyPreferences(p: Preferences) {
@@ -548,7 +548,8 @@ class OrbitaModel(
         feedback.haptics = p.haptics
         feedback.sound = p.sound
         voices?.volume = p.voiceVolume
-        if (!p.sound || !p.voices) voices?.stop()
+        // Las voces no dependen de «Sonidos»: cada una tiene su propio interruptor.
+        if (!p.voices) voices?.stop()
         world.settings = WorldSettings(
             ambient = p.ambient,
             effects = when (p.effects) {
@@ -637,9 +638,9 @@ class OrbitaModel(
                 toast(t("Nuevo resultado: {name}", "name" to a.name), Toast.Tone.Info, t("Abrir")) { viewer = ViewerTarget.Result(a.id, a.name, a.kind) }
             }
             is LiveEvent.AgentSpoke -> {
-                // Cada agente con su voz, y lo que dice se escribe a su ritmo; «Sonidos» apaga también las voces.
+                // Cada agente con su voz, y lo que dice se escribe a su ritmo; las voces tienen su propio interruptor.
                 val p = preferences
-                if (p.sound && p.voices && voices != null) {
+                if (p.voices && voices != null) {
                     val provider = snapshot()?.agents?.firstOrNull { it.id == event.agentId }?.provider ?: event.agentId.substringBefore("-becario-")
                     val profile = Voices.profile(provider, becario = "-becario-" in event.agentId)
                     for (s in event.said) {

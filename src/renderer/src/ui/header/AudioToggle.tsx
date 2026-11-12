@@ -96,17 +96,23 @@ export function AudioToggle() {
   )
 }
 
-/** Volumen de música y efectos y de las voces de los agentes (bajo el botón de sonido o en el menú de Ajustes). */
+/** Volumen de música y efectos y de las voces de los agentes, cada uno por su lado (bajo el botón de sonido). */
 export function SoundRows() {
-  const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
-  const volume = useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const voiceMuted = useSyncExternalStore(subscribeAudio, isVoiceMuted, isVoiceMuted)
-  const voiceVolume = useSyncExternalStore(subscribeAudio, getVoiceVolume, getVoiceVolume)
-  const percentage = Math.round(volume * 100)
-  const voicePercentage = voiceMuted ? 0 : Math.round(voiceVolume * 100)
-  const Icon = muted ? VolumeX : Volume2
   return (
     <>
+      <MusicVolumeRow />
+      <VoiceVolumeRow />
+    </>
+  )
+}
+
+/** Barra de volumen de la música de fondo y los efectos. */
+export function MusicVolumeRow() {
+  const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
+  const volume = useSyncExternalStore(subscribeAudio, getVolume, getVolume)
+  const percentage = Math.round(volume * 100)
+  const Icon = muted ? VolumeX : Volume2
+  return (
     <div className={cx(a.row, muted && a.muted)}>
       <span className={a.rowIcon} aria-hidden="true">
         <Icon size={15} />
@@ -127,7 +133,16 @@ export function SoundRows() {
         {percentage}%
       </span>
     </div>
-    <div className={cx(a.row, (muted || voiceMuted) && a.muted)}>
+  )
+}
+
+/** Barra de volumen de las voces de los agentes en el chat; no depende del silencio de la música. */
+export function VoiceVolumeRow() {
+  const voiceMuted = useSyncExternalStore(subscribeAudio, isVoiceMuted, isVoiceMuted)
+  const voiceVolume = useSyncExternalStore(subscribeAudio, getVoiceVolume, getVoiceVolume)
+  const voicePercentage = voiceMuted ? 0 : Math.round(voiceVolume * 100)
+  return (
+    <div className={cx(a.row, voiceMuted && a.muted)}>
       <button
         type="button"
         className={a.rowBtn}
@@ -155,6 +170,5 @@ export function SoundRows() {
         {voicePercentage}%
       </span>
     </div>
-    </>
   )
 }

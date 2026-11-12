@@ -32,7 +32,9 @@ import {
   X,
   Gauge,
   Activity,
-  Layers
+  Layers,
+  MessageSquare,
+  MessageSquareOff
 } from 'lucide-react'
 import { useQuality, type QualityChoice } from '../../scene/quality'
 import { useMeter } from '../../scene/perfStats'
@@ -42,13 +44,13 @@ import { isLocalEngine } from '@shared/localEngines'
 import { useCowork, type SettingsTab } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
-import { isMuted, setMuted, subscribeAudio } from '@/lib/audio'
+import { isMuted, isVoiceMuted, setMuted, setVoiceMuted, subscribeAudio } from '@/lib/audio'
 import { LANGS, lang, setLang, t } from '@/lib/i18n'
 import { RemoteAccess } from '../header/RemoteAccess'
 import { UpdateDialog } from '../header/UpdateDialog'
 import { SyncDialog } from '../files/SyncDialog'
 import { ExtensionsTab } from './ExtensionsTab'
-import { SoundRows } from '../header/AudioToggle'
+import { MusicVolumeRow, VoiceVolumeRow } from '../header/AudioToggle'
 import { ThemeGrid } from '../header/ThemeDialog'
 import { setOwnTheme, themeLabel, useOwnTheme, useTheme } from '@/lib/theme'
 import { ROLE_TITLE, explainWhere, useWhere } from '../header/useWhere'
@@ -198,6 +200,7 @@ function GeneralTab() {
   const quality = useQuality((st) => st.choice)
   const meter = useMeter((st) => st.on)
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
+  const voiceMuted = useSyncExternalStore(subscribeAudio, isVoiceMuted, isVoiceMuted)
   const theme = useTheme()
   const own = useOwnTheme()
   /** Los temas van plegados: se despliegan con la flecha (casi nunca se cambian). */
@@ -247,12 +250,20 @@ function GeneralTab() {
           <Switch on={own} label={t('Usar un tema propio en este dispositivo')} onChange={() => setOwnTheme(!own)} />
         </Row>
       )}
-      <Row icon={muted ? <VolumeX size={18} /> : <Volume2 size={18} />} label={t('Sonido')} hint={muted ? t('Silenciado') : t('Música, efectos y voces de los agentes')}>
-        <Switch on={!muted} label={t('Sonido')} onChange={() => setMuted(!isMuted())} />
+      <Row icon={muted ? <VolumeX size={18} /> : <Volume2 size={18} />} label={t('Música y efectos')} hint={muted ? t('Silenciados. Las voces de los agentes siguen sonando si están activadas.') : t('Música de fondo y sonidos de la interfaz')}>
+        <Switch on={!muted} label={t('Música y efectos')} onChange={() => setMuted(!isMuted())} />
       </Row>
       {!muted && (
         <div className={s.indent}>
-          <SoundRows />
+          <MusicVolumeRow />
+        </div>
+      )}
+      <Row icon={voiceMuted ? <MessageSquareOff size={18} /> : <MessageSquare size={18} />} label={t('Voces de los agentes')} hint={voiceMuted ? t('Silenciadas. La música y los efectos siguen como estén.') : t('Lo que dicen los agentes en el chat')}>
+        <Switch on={!voiceMuted} label={t('Voces de los agentes')} onChange={() => setVoiceMuted(!isVoiceMuted())} />
+      </Row>
+      {!voiceMuted && (
+        <div className={s.indent}>
+          <VoiceVolumeRow />
         </div>
       )}
       <Row icon={<Gauge size={18} />} label={t('Calidad del 3D')} hint={t('Más calidad gasta más tarjeta gráfica y batería. Solo en este dispositivo.')}>

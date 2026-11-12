@@ -585,11 +585,11 @@ fun SettingsPanel(model: OrbitaModel, state: CoworkUiState) {
                     ToggleRow(t("Vibración"), t("Una vibración breve al elegir y confirmar"), p.haptics, "toggle-haptics") { v -> model.updatePreferences { it.copy(haptics = v) } }
                     ToggleRow(
                         t("Voces de los agentes"),
-                        if (p.sound) t("Cada agente balbucea con su propia voz cuando escribe en el chat") else t("Activa los sonidos para oírlas"),
+                        t("Cada agente balbucea con su propia voz cuando escribe en el chat"),
                         p.voices,
                         "toggle-voices",
                     ) { v -> model.updatePreferences { it.copy(voices = v) }; if (v) model.previewVoice() }
-                    if (p.voices && p.sound) {
+                    if (p.voices) {
                         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(t("Volumen"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodySmall)
                             Spacer(Modifier.width(12.dp))

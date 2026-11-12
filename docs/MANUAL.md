@@ -3590,12 +3590,15 @@ resultado (sin repetir la última frase); lo que ya había contado antes de abri
 Lo que llega de golpe **se escribe letra a letra al ritmo de su voz** (como en Animal Crossing): una letra por
 sílaba mientras balbucea y, cuando calla, lo que queda sale deprisa. Con las voces silenciadas, el texto sale entero.
 
-Tienen **su propio volumen y su propio silencio**: en ⚙ → Ajustes → General → **Sonido**, bajo el volumen
-de la música y los efectos está el de las voces, con el botón de la burbuja para silenciarlas sin tocar la música.
-«Sonido» silencia todo, voces incluidas. Se recuerda en cada dispositivo.
+Tienen **su propio volumen y su propio silencio**, del todo aparte de la música: en ⚙ → Ajustes → General hay dos
+interruptores, **«Música y efectos»** (la música de fondo y los sonidos de la interfaz, con su volumen) y **«Voces de
+los agentes»** (lo que dicen en el chat, con el suyo). Silenciar uno no toca el otro: se puede trabajar sin música
+oyendo a los agentes, o con música y sin voces. El volumen de la música tampoco afecta al de las voces. Bajo el botón
+del altavoz de la barra de arriba están las mismas dos barras, con el botón de la burbuja para silenciar las voces.
+Se recuerda en cada dispositivo.
 
 En **Órbita** suenan igual (mismos timbres, sintetizados en el móvil): Ajustes → Respuesta al tacto → **«Voces de
-los agentes»**, con su propio volumen; «Sonidos» apagado las silencia también.
+los agentes»**, con su propio volumen; no dependen de «Sonidos», cada uno se apaga por su lado.
 
 ### Música (YouTube, Audius, radios y Spotifast)
 

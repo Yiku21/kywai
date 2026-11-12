@@ -468,7 +468,6 @@ private fun part3(m: HashMap<String, String>) {
     m["Una vibración breve al elegir y confirmar"] = "选择和确认时短暂振动"
     m["Voces de los agentes"] = "代理的语音"
     m["Cada agente balbucea con su propia voz cuando escribe en el chat"] = "每个代理在聊天中写字时会用自己的声音咿呀说话"
-    m["Activa los sonidos para oírlas"] = "开启声音才能听到"
     m["Volumen"] = "音量"
     m["Animación ambiental"] = "环境动画"
     m["Luces, globo y cúpula en movimiento. La actividad real de los agentes se ve siempre."] = "灯光、地球和穹顶的动态效果。代理的真实活动始终可见。"

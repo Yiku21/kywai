@@ -37,4 +37,16 @@ describe('voces de los agentes', () => {
     audio.setVoiceMuted(false)
     expect(audio.isVoiceMuted()).toBe(false)
   })
+
+  it('silenciar la música y los efectos no silencia las voces, y al revés', () => {
+    audio.setVoiceMuted(false)
+    audio.setMuted(true)
+    expect(audio.isMuted()).toBe(true)
+    expect(audio.isVoiceMuted()).toBe(false)
+    audio.setVoiceMuted(true)
+    audio.setMuted(false)
+    expect(audio.isMuted()).toBe(false)
+    expect(audio.isVoiceMuted()).toBe(true)
+    audio.setVoiceMuted(false)
+  })
 })

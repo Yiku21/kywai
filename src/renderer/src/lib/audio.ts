@@ -19,7 +19,7 @@ const audioClips = new Set<Howl>()
 let volume = readVolume(VOLUME_KEY, DEFAULT_VOLUME)
 let lastVolume = volume > 0 ? volume : readVolume(LAST_VOLUME_KEY, DEFAULT_VOLUME) || DEFAULT_VOLUME
 let muted = readMuted() || volume === 0
-/** Voces de los agentes: su propio volumen y silencio, además del general. */
+/** Voces de los agentes: su propio volumen y silencio, sin depender del de la música y los efectos. */
 let voiceVolume = readVolume(VOICE_VOLUME_KEY, DEFAULT_VOICE_VOLUME)
 let voiceMuted = readFlag(VOICE_MUTE_KEY)
 let unlocked = false
@@ -100,7 +100,8 @@ function applyMasterVolume(): void {
 
 /** También tolera un dispositivo de audio ausente o un resume rechazado por Chromium. */
 function ready(): Promise<void> {
-  if (!unlocked || muted) return Promise.resolve()
+  // Con la música y los efectos silenciados, las voces siguen necesitando el AudioContext.
+  if (!unlocked || (muted && isVoiceMuted())) return Promise.resolve()
   try {
     if (!context || context.state === 'closed') {
       context = new AudioContext()
@@ -120,7 +121,8 @@ function ready(): Promise<void> {
       limiter.release.value = 0.12
       musicBus.connect(master)
       sfxBus.connect(master)
-      voiceBus.connect(master)
+      // Las voces no pasan por el volumen general: tienen su propio volumen y silencio.
+      voiceBus.connect(limiter)
       master.connect(limiter)
       limiter.connect(context.destination)
       applyMasterVolume()
@@ -522,7 +524,7 @@ function spokenText(text: string): string {
  * Devuelve cuándo empieza a hablar (ms) y a qué ritmo, para escribir el texto a la vez; null si no suena.
  */
 export function playVoice(voiceId: string, profile: VoiceProfile, text: string, options: { error?: boolean; max?: number } = {}): { delayMs: number; rate: number } | null {
-  if (muted || isVoiceMuted() || context?.state !== 'running' || !voiceBus) return null
+  if (isVoiceMuted() || context?.state !== 'running' || !voiceBus) return null
   const letters = spokenText(text).slice(0, 600)
   const max = Math.max(1, Math.min(options.max ?? VOICE_MAX_SYLLABLES, VOICE_MAX_SYLLABLES))
   const ctx = context
@@ -576,10 +578,11 @@ function applyVoicePreferences(nextVolume: number, nextMuted: boolean): void {
   voiceMuted = nextMuted
   applyMasterVolume()
   if (isVoiceMuted()) stopVoices()
+  else void ready()
   listeners.forEach((listener) => listener())
 }
 
-/** Volumen de las voces de los agentes (0 las silencia). No cambia el de la música y los efectos. */
+/** Volumen de las voces de los agentes (0 las silencia). Ni lo cambia ni depende del de la música y los efectos. */
 export function setVoiceVolume(value: number): void {
   if (!Number.isFinite(value)) return
   const next = Math.min(1, Math.max(0, value))
@@ -587,7 +590,7 @@ export function setVoiceVolume(value: number): void {
   persistVoice()
 }
 
-/** Activa o silencia solo las voces de los agentes. */
+/** Activa o silencia solo las voces de los agentes; la música y los efectos siguen como estén. */
 export function setVoiceMuted(value: boolean): void {
   applyVoicePreferences(!value && voiceVolume === 0 ? DEFAULT_VOICE_VOLUME : voiceVolume, value)
   persistVoice()
@@ -598,10 +601,10 @@ function applyPreferences(nextVolume: number, nextMuted: boolean, previousVolume
   lastVolume = volume > 0 ? volume : previousVolume
   muted = nextMuted || volume === 0
   applyMasterVolume()
+  // Silenciar la música y los efectos no calla las voces de los agentes.
   if (muted) {
     stopMusic()
     stopEffects()
-    stopVoices()
   } else startMusic()
   listeners.forEach((listener) => listener())
 }
@@ -632,6 +635,7 @@ export function initAudio(): () => void {
     if (!event.isTrusted || (event instanceof KeyboardEvent && event.repeat)) return
     unlocked = true
     if (musicWanted && !muted) startMusic()
+    else if (!isVoiceMuted()) void ready()
   }
   const click = (event: MouseEvent): void => {
     const target = event.target instanceof Element ? event.target.closest('button, a[href], [role="button"]') : null

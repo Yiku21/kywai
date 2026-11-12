@@ -468,7 +468,6 @@ private fun part3(m: HashMap<String, String>) {
     m["Una vibración breve al elegir y confirmar"] = "Une brève vibration pour choisir et confirmer"
     m["Voces de los agentes"] = "Voix des agents"
     m["Cada agente balbucea con su propia voz cuando escribe en el chat"] = "Chaque agent babille avec sa propre voix quand il écrit dans le chat"
-    m["Activa los sonidos para oírlas"] = "Activez les sons pour les entendre"
     m["Volumen"] = "Volume"
     m["Animación ambiental"] = "Animation d'ambiance"
     m["Luces, globo y cúpula en movimiento. La actividad real de los agentes se ve siempre."] = "Lumières, globe et dôme en mouvement. L'activité réelle des agents est toujours visible."
