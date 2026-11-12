@@ -1115,7 +1115,9 @@ Cuando entra algo nuevo en «Te necesita» (en cualquier proyecto), kywai te avi
 - **La campanita de la barra lateral palpita** en dorado con un brillo suave y se mece un poco. Sigue así hasta que
   abres «Te necesita»; luego se queda quieta con su número. Con «Reducir movimiento» del sistema solo brilla.
 - **Suena su propio timbre**: una campanita de mostrador (dos toques metálicos y un eco más grave), distinta de
-  cualquier otro sonido de kywai. Va con el interruptor **«Música y efectos»**: si lo silencias, no suena.
+  cualquier otro sonido de kywai. Va con el interruptor **«Música y efectos»**: si lo silencias, no suena. En la app
+  de escritorio suena aunque no hayas tocado la ventana desde que se abrió o actualizó (`playAlert` en `lib/audio.ts`
+  arranca el audio); en un navegador solo suena si ya hiciste algún clic en la página.
 - **En el espacio 3D el coordinador te llama**: una campanita dorada palpita sobre su cabeza y sobre su etiqueta
   (con el borde de la etiqueta latiendo) y, al llegar el aviso, se vuelve hacia ti, saluda con la mano unos segundos
   (con «Personajes» hace su movimiento de saludo; con los robots «Clásico» o «Refugio Kywai» se balancea de lado a

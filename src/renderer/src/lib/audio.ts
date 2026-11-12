@@ -461,6 +461,22 @@ export function playSfx(name: SfxName): void {
   if (effectTimer === undefined) effectTimer = setTimeout(drainEffects, 35)
 }
 
+/**
+ * Un aviso que no espera a que toques la ventana (lo nuevo en «Te necesita»). playSfx calla si el audio aún no
+ * arrancó, y eso pasa justo cuando kywai se acaba de abrir o actualizar y no has hecho clic: aquí se arranca. La app
+ * de escritorio deja sonar sin gesto; un navegador solo lo consigue si ya hubo un clic en la página.
+ */
+export function playAlert(name: SfxName): void {
+  if (muted) return
+  if (context?.state === 'running') return playSfx(name)
+  const wasUnlocked = unlocked
+  unlocked = true
+  void ready().then(() => {
+    if (context?.state === 'running') playSfx(name)
+    else unlocked = wasUnlocked
+  })
+}
+
 function stopEffects(): void {
   clearTimeout(effectTimer)
   effectTimer = undefined

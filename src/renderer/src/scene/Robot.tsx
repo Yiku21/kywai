@@ -173,7 +173,8 @@ export function Robot({ agent, station, stations, leaving }: Props) {
       brain.callUser(registry.time)
       const text = tr('¡Te necesito! Hay algo nuevo en «Te necesita».')
       useBubbles.getState().call(agent.id, text)
-      playVoice(agent.id, voiceProfile(agent.provider), text)
+      // Habla cuando termina el timbre (que también arranca el audio si kywai se acaba de abrir).
+      window.setTimeout(() => playVoice(agent.id, voiceProfile(agent.provider), text), 1700)
     })
   }, [isCoordinator, leaving, brain, agent.id, agent.provider])
 

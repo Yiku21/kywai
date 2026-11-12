@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { InboxItem } from '@shared/types'
 import { needsYou } from '@shared/inbox'
 import { useCowork } from '@/store/cowork'
-import { playSfx } from './audio'
+import { playAlert } from './audio'
 
 /**
  * Aviso de «Te necesita»: cuando llega algo nuevo que espera tu decisión, la campanita de la barra palpita con un
@@ -86,7 +86,7 @@ export function startInboxAlert(): () => void {
     const { pending, ring } = inboxArrivals(known, items, Date.now())
     const left = items.some((i) => needsYou(i) && !i.resolvedAt)
     if (ring) {
-      playSfx('needsYou')
+      playAlert('needsYou')
       useInboxAlert.setState({ ringing: true, calledAt: Date.now() })
     } else if (pending) useInboxAlert.setState({ ringing: true })
     else if (!left && useInboxAlert.getState().ringing) useInboxAlert.setState({ ringing: false })
