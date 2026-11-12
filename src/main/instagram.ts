@@ -303,7 +303,23 @@ export async function publishReel(input: PublishInput): Promise<{ id: string; pe
     box = await graph<{ id?: string; uri?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', upload_type: 'resumable', caption, ...extra }, signal, 'preparar la publicación')
     if (!box.id) throw new Error('Instagram no creó la publicación')
     input.onStep?.('Subiendo el vídeo a Instagram')
-    await resumableUpload(box.uri || `https://rupload.facebook.com/ig-api-upload/${GRAPH_VERSION}/${box.id}`, token, file, size, signal)
+    try {
+      await resumableUpload(box.uri || `https://rupload.facebook.com/ig-api-upload/${GRAPH_VERSION}/${box.id}`, token, file, size, signal)
+    } catch (e) {
+      // Algunos tokens EAA (los de usuario del sistema del inicio de sesión unificado) tampoco admiten la subida directa:
+      // Meta la rechaza con ProcessingFailedError. Entonces se prueba con un enlace temporal y un contenedor nuevo.
+      if (signal?.aborted || !(e instanceof Error) || !/ProcessingFailedError|error 4\d\d al subir/.test(e.message)) throw e
+      input.onStep?.('Subiendo el vídeo a un enlace temporal')
+      try {
+        const videoUrl = await temporaryLink(file, size, signal)
+        input.onStep?.('Preparando la publicación en Instagram')
+        box = await graph<{ id?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', video_url: videoUrl, caption, ...extra }, signal, 'preparar la publicación')
+      } catch (e2) {
+        if (signal?.aborted) throw e2
+        throw new Error(`${e.message}. Con un enlace temporal tampoco: ${e2 instanceof Error ? e2.message : String(e2)}`)
+      }
+      if (!box.id) throw new Error('Instagram no creó la publicación')
+    }
   }
   const boxId = box.id
   input.onStep?.('Instagram está procesando el vídeo')

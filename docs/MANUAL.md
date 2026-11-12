@@ -2188,7 +2188,8 @@ agente escribe el texto: gancho en la primera línea, una llamada a la acción y
 pulsar **Publicar** (también desde «Te necesita», en el escritorio, la web y Órbita). kywai le da el MP4 a Instagram:
 con un token de Facebook (EAA…) lo sube desde el equipo (subida reanudable de Meta); con uno de Instagram (IG…, el
 habitual), Meta no admite esa subida y solo acepta un enlace público, así que kywai deja el vídeo **1 hora** en un
-alojamiento temporal (Litterbox, o tmpfiles.org si falla) y le pasa ese enlace. Después espera a que Instagram lo procese y deja el **enlace** en el
+alojamiento temporal (Litterbox, o tmpfiles.org si falla) y le pasa ese enlace. Si Meta rechaza la subida directa
+con un token EAA (pasa con los de usuario del sistema), kywai también pasa al enlace temporal. Después espera a que Instagram lo procese y deja el **enlace** en el
 chat. Si falla, la tarjeta dice por qué y tiene **Reintentar**: el error nombra el paso (preparar la publicación,
 subir el vídeo, comprobarlo o publicar el reel), lo que contestó Meta y su código o `fbtrace_id`. Los errores 500
 pasajeros de la subida se reintentan solos dos veces. Ninguna petición se queda colgada: cada paso tiene un tope de

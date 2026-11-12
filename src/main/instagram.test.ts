@@ -109,7 +109,7 @@ describe('el Instagram de kywai', () => {
           : { ok: true, status: 200, text: async () => JSON.stringify({ id: 'C3' }) },
       async () => undefined
     )
-    await expect(publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })).rejects.toThrow('Instagram respondió con un error 400 al subir el vídeo: Request processing failed [ProcessingFailedError]')
+    await expect(publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })).rejects.toThrow(/^Instagram respondió con un error 400 al subir el vídeo: Request processing failed \[ProcessingFailedError\]\. Con un enlace temporal tampoco: /)
   })
 
   it('un 500 al subir se reintenta y un error de la API lleva su código y el paso', async () => {
@@ -166,6 +166,34 @@ describe('el Instagram de kywai', () => {
     const create = Object.fromEntries(new URLSearchParams(calls.find((c) => c.url.endsWith('/1784/media'))!.body as string))
     expect(create).toEqual({ media_type: 'REELS', video_url: 'https://tmpfiles.org/dl/123/kywai.mp4', caption: 'Hola' })
     expect(steps[0]).toBe('Subiendo el vídeo a un enlace temporal')
+  })
+
+  it('si Meta rechaza la subida directa con un token EAA, prueba con un enlace temporal', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-'))
+    const file = join(dir, 'reel.mp4')
+    writeFileSync(file, Buffer.alloc(32, 1))
+    let boxes = 0
+    const calls: string[] = []
+    __setInstagramFetchForTests(
+      async (url, init) => {
+        calls.push(`${init?.method} ${url}`)
+        const ok = (b: unknown) => ({ ok: true, status: 200, text: async () => JSON.stringify(b) })
+        if (url.includes('rupload')) return { ok: false, status: 400, text: async () => JSON.stringify({ debug_info: { retriable: false, type: 'ProcessingFailedError', message: 'Request processing failed' } }) }
+        if (url.includes('litterbox')) return { ok: true, status: 200, text: async () => 'https://litter.catbox.moe/abc.mp4' }
+        if (url.endsWith('/1/media')) {
+          boxes++
+          const params = new URLSearchParams(init?.body as string)
+          return ok(params.get('video_url') === 'https://litter.catbox.moe/abc.mp4' ? { id: 'C2' } : { id: 'C1', uri: 'https://rupload.facebook.com/ig-api-upload/v21.0/C1' })
+        }
+        if (url.includes('/C2?')) return ok({ status_code: 'FINISHED' })
+        if (url.endsWith('media_publish')) return ok({ id: new URLSearchParams(init?.body as string).get('creation_id') === 'C2' ? 'M2' : 'MAL' })
+        return ok({})
+      },
+      async () => undefined
+    )
+    const r = await publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })
+    expect(r.id).toBe('M2')
+    expect(boxes).toBe(2)
   })
 
   it('el texto cabe en Instagram y se limpia lo que añade el agente', () => {
