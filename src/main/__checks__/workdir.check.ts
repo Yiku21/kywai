@@ -81,6 +81,21 @@ void (async () => {
   passed++
   console.log('  ok  snapshot: código y entregables sí; adjuntos y compilación no')
 
+  // En la carpeta interna, avances/ e historial/ son de la app; en la del usuario, una carpeta «avances» es suya.
+  mkdirSync(join(p.dir, 'avances', 'abcd1234'), { recursive: true })
+  writeFileSync(join(p.dir, 'avances', 'abcd1234', '01-hermes.png'), 'png')
+  mkdirSync(join(p.dir, 'historial'), { recursive: true })
+  writeFileSync(join(p.dir, 'historial', 'chat-1.json'), '{}')
+  writeFileSync(join(p.dir, 'artifacts', 'video.mp4'), 'mp4')
+  const internal = await store.snapshotFiles(p.dir)
+  assert.ok(internal.has('artifacts/video.mp4'), 'resultados visibles')
+  assert.ok(![...internal.keys()].some((k) => k.startsWith('avances/') || k.startsWith('historial/')), 'avances e historial fuera')
+  mkdirSync(join(work, 'avances'), { recursive: true })
+  writeFileSync(join(work, 'avances', 'notas.md'), '# Mis avances')
+  assert.ok((await store.snapshotFiles(work)).has('avances/notas.md'), 'la carpeta avances del usuario sí cuenta')
+  passed++
+  console.log('  ok  snapshot: avances/ e historial/ internos no son entregables')
+
   check('quitar el acceso vuelve a la carpeta interna', () => {
     const s = store.setWorkDir(p.id, null)
     assert.equal(s.workDir, undefined)

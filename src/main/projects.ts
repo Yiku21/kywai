@@ -713,12 +713,17 @@ export interface FileStamp {
 
 const SKIP_DIRS = new Set(['node_modules', '.git', '.venv', 'venv', '__pycache__', 'dist', 'build', 'out', 'target', 'bin', 'obj', 'coverage'])
 const MAX_SCAN = 3000
+/** Carpetas de la app dentro de la carpeta interna de un proyecto: nunca son entregables. */
+export const APP_DIRS = new Set(['avances', 'historial'])
 
 /** Recursive snapshot of the project's output files (relPath → mtime/size). Skips attachments, hidden dirs and project.json. */
 export async function snapshotFiles(dir: string): Promise<Map<string, FileStamp>> {
   const out = new Map<string, FileStamp>()
   // Si la carpeta de trabajo contiene los datos de kywai (p. ej. la propia app), se ignoran.
   const internal = root ? resolve(root, '..').toLowerCase() : ''
+  // En la carpeta interna del proyecto (la que tiene project.json), avances/ (copias de las imágenes que el agente
+  // miró mientras trabajaba) e historial/ son de la app, no resultados: si no, salían en Entregables en cada tarea.
+  const isProjectDir = existsSync(join(dir, 'project.json'))
   const walk = async (rel: string, depth: number): Promise<void> => {
     if (out.size >= MAX_SCAN || depth > 8) return
     let entries: import('node:fs').Dirent[]
@@ -735,6 +740,7 @@ export async function snapshotFiles(dir: string): Promise<Map<string, FileStamp>
       const childRel = rel ? `${rel}/${e.name}` : e.name
       if (e.isDirectory()) {
         if (e.name === 'attachments' ? !rel : SKIP_DIRS.has(e.name)) continue
+        if (!rel && isProjectDir && APP_DIRS.has(e.name)) continue
         if (internal && resolve(dir, childRel).toLowerCase() === internal) continue
         await walk(childRel, depth + 1)
       } else if (e.isFile()) {

@@ -1380,8 +1380,9 @@ el agente va creando mientras trabaja: las **imágenes** nuevas (capturas del ju
 miniaturas en el sitio del mensaje donde ocurrieron y, al pulsarlas, se abren; los **documentos** (`.md`, `.html`,
 `.pdf`) salen como fichas. Es igual en escritorio, navegador, cliente y Órbita (que además las abre a pantalla
 completa). También cuentan las imágenes que el agente **abre** aunque estén fuera del proyecto (en `/tmp`, por
-ejemplo): se copian a `avances/<tarea>/` dentro de la carpeta del proyecto para que el servidor pueda
-enseñarlas. Para no llenar el chat solo salen imágenes de 4 KB a 25 MB, hasta 6 cada 12 segundos y 24 por
+ejemplo): se copian a `avances/` dentro de la carpeta interna del proyecto para que el servidor pueda
+enseñarlas. Esas copias (y `historial/`) son de la app: **nunca salen en Entregables ni en Resultados**, que solo
+enseñan lo que pediste (por ejemplo, el vídeo y no los dibujos de los agentes que miró para hacerlo). Para no llenar el chat solo salen imágenes de 4 KB a 25 MB, hasta 6 cada 12 segundos y 24 por
 tarea (8 documentos), esperando a que el archivo termine de escribirse; no cuentan las carpetas ocultas, los
 adjuntos ni los datos de la app. Se les pide que guarden dentro del proyecto las capturas que hagan.
 
