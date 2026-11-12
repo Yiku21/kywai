@@ -1163,14 +1163,18 @@ function InstagramPostBlock({ m, post }: { m: ChatMessage; post: InstagramPost }
   const who = post.username ? `@${post.username}` : t('la cuenta de kywai')
   const title =
     post.status === 'published'
-      ? t('Publicado en Instagram ({who})', { who })
+      ? post.trial
+        ? t('Publicado como reel de prueba ({who})', { who })
+        : t('Publicado en Instagram ({who})', { who })
       : post.status === 'publishing'
         ? t('Publicando en Instagram ({who})…', { who })
         : post.status === 'dismissed'
           ? t('Reel descartado')
           : post.status === 'failed'
             ? t('No se pudo publicar en Instagram')
-            : t('Reel para Instagram ({who})', { who })
+            : post.trial
+              ? t('Reel de prueba para Instagram ({who})', { who })
+              : t('Reel para Instagram ({who})', { who })
   return (
     <div className={cx(s.proposal, s.instagramPost, post.status === 'dismissed' && s.proposalClosed)}>
       <div className={s.planHead}>

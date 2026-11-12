@@ -3448,6 +3448,17 @@ export const en: Record<string, string> = {
   "No pude preparar el vídeo: {message}": "I couldn’t prepare the video: {message}",
   "[vertical|horizontal] qué quieres": "[vertical|horizontal] what you want",
   "Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha": "Three covers for your video (attached or the latest), from its own frames with text that hooks",
+  // «/instagram prueba» y «/instagram resultados» (src/main/instagramLearn.ts)
+  "Publicando el reel de prueba en Instagram (tienes activado «Publicar sin preguntar»).": "Publishing the trial reel on Instagram (you have “Publish without asking” on).",
+  "Reel de prueba listo: Instagram lo enseñará primero solo a quien no te sigue y, si funciona, a tus seguidores. Revisa el texto y pulsa «Publicar».": "Trial reel ready: Instagram will show it first only to people who don’t follow you and, if it works, to your followers. Check the text and press “Publish”.",
+  "Reel de prueba listo para Instagram{who}": "Trial reel ready for Instagram{who}",
+  "No pude leer los números de Instagram: {msg}": "I couldn’t read the Instagram numbers: {msg}",
+  "Todavía no hay reels en la cuenta de Instagram de kywai.": "There are no reels on kywai’s Instagram account yet.",
+  "Los números de los últimos {n} reels de @{user}:": "The numbers for @{user}’s last {n} reels:",
+  "Lo he guardado en {file}: desde ahora los guiones de «/video» y los textos de «/instagram» aprenden de lo que funcionó.": "I saved it in {file}: from now on “/video” scripts and “/instagram” captions learn from what worked.",
+  "Lo he guardado en {file}. Con 3 reels o más, los guiones y los textos empezarán a aprender de lo que funcionó.": "I saved it in {file}. With 3 or more reels, scripts and captions will start learning from what worked.",
+  "Publicado como reel de prueba ({who})": "Published as a trial reel ({who})",
+  "Reel de prueba para Instagram ({who})": "Trial reel for Instagram ({who})",
   // «/doblar» (src/main/dub.ts)
   "¿A qué idioma lo doblo? Por ejemplo: «/doblar inglés».": "Which language should I dub it into? For example: “/doblar english”.",
   "No hay ningún vídeo que doblar: haz uno con «/video …» y luego «/doblar {lang}».": "There’s no video to dub: make one with “/video …” and then “/doblar {lang}”.",

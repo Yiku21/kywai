@@ -68,6 +68,22 @@ describe('el Instagram de kywai', () => {
     expect(calls.every((c) => !c.url.includes('IGtok12345'))).toBe(true)
   })
 
+  it('un reel de prueba lleva trial_params (primero solo para quien no sigue la cuenta)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-trial-'))
+    const file = join(dir, 'v.mp4')
+    writeFileSync(file, Buffer.alloc(64, 1))
+    const calls = fakeGraph([
+      [/POST .*\/media$/, () => ({ id: 'C9' })],
+      [/rupload/, () => ({ success: true })],
+      [/GET .*\/C9\?/, () => ({ status_code: 'FINISHED' })],
+      [/media_publish/, () => ({ id: 'M9' })],
+      [/GET .*\/M9\?/, () => ({ permalink: 'https://www.instagram.com/reel/t/' })]
+    ])
+    await publishReel({ token: 'IGx', userId: '17', file, caption: 'hola', trial: true })
+    const box = new URLSearchParams(String(calls[0].body))
+    expect(JSON.parse(box.get('trial_params')!)).toEqual({ graduation_strategy: 'SS_PERFORMANCE' })
+  })
+
   it('si Instagram no procesa el vídeo, lo dice', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'ig-'))
     const file = join(dir, 'reel.mp4')
@@ -95,6 +111,9 @@ describe('el Instagram de kywai', () => {
   it('«/instagram» y los ajustes', () => {
     expect(parseInstagramRequest('/instagram que suene divertido')).toEqual({ note: 'que suene divertido' })
     expect(parseInstagramRequest('/ig')).toEqual({ note: '' })
+    expect(parseInstagramRequest('/instagram prueba que enganche')).toEqual({ note: 'que enganche', trial: true })
+    expect(parseInstagramRequest('/instagram resultados')).toEqual({ note: '', results: true })
+    expect(parseInstagramRequest('/instagram pruebas de concepto')).toEqual({ note: 'pruebas de concepto' })
     expect(parseInstagramRequest('sube esto a instagram')).toBeNull()
     const f = join(mkdtempSync(join(tmpdir(), 'ig-')), 'sub', 'instagram.json')
     expect(readInstagramSettings(f)).toEqual({})

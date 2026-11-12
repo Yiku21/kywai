@@ -288,7 +288,7 @@ export interface Task {
     batch?: { n: number; total: number; brief: string }
   }
   /** «/instagram»: el agente escribe el texto del reel (video, relativo al proyecto) y kywai lo prepara para publicar. */
-  instagram?: { video: string; artifactId?: string; about: string; note: string; question?: string; /** Por defecto Instagram. */ platform?: 'tiktok' }
+  instagram?: { video: string; artifactId?: string; about: string; note: string; question?: string; /** Por defecto Instagram. */ platform?: 'tiktok'; /** «/instagram prueba»: reel de prueba. */ trial?: boolean }
   /** «/ig-reply» con la cuenta conectada: los comentarios sin responder (JSON en el proyecto) para escribir las respuestas. */
   igReply?: { file: string }
   /** «/aprende»: un vídeo o pódcast que se transcribe y se convierte en una habilidad (src/main/learn.ts). */
@@ -823,6 +823,8 @@ export interface InstagramPost {
   error?: string
   /** Se publicó solo («Publicar sin preguntar» activado). */
   auto?: boolean
+  /** Reel de prueba («/instagram prueba»): primero solo para quien no sigue la cuenta. */
+  trial?: boolean
   decidedAt?: number
 }
 

@@ -1974,7 +1974,20 @@ chat. Si falla, la tarjeta dice por qué y tiene **Reintentar**.
 también desde una **rutina** («/rutina cada día a las 18:00: /serie siguiente» y otra «… /instagram»). «Volver a pedir
 mi visto bueno» lo desactiva. Por defecto está apagado.
 
-Código: `src/main/instagram.ts` (la API) y `sendInstagram`/`publishPost` en el orquestador.
+**Reel de prueba.** **«/instagram prueba [qué quieres en el texto]»** hace lo mismo, pero lo publica como **reel de
+prueba** (trial reel): Instagram lo enseña primero solo a quien **no** sigue la cuenta y, si funciona bien, lo pasa
+solo a los seguidores (`trial_params` con `SS_PERFORMANCE` en la API). Sirve para probar un gancho o un formato sin
+gastar a los seguidores. La tarjeta dice «Reel de prueba».
+
+**Resultados.** **«/instagram resultados»** lee con la API los números de los últimos 12 reels (vistas, alcance, me
+gusta, comentarios, guardados, envíos y tiempo medio de visionado), los guarda en
+`<carpeta de trabajo>/instagram/resultados.md` (los mejores, los peores y una tabla con todos) y te dice en el chat
+cuáles funcionaron mejor. Con **3 reels o más**, los guiones de `/video` y los textos de `/instagram` leen ese archivo:
+copian la forma de los ganchos que funcionaron y evitan lo que tienen en común los que no. Vuelve a pedirlo de vez en
+cuando (o en una rutina: «/rutina cada lunes a las 9: /instagram resultados») para que aprendan de lo último.
+
+Código: `src/main/instagram.ts` (la API), `src/main/instagramLearn.ts` (resultados) y
+`sendInstagram`/`sendInstagramResults`/`publishPost` en el orquestador.
 
 **Llevar la cuenta: las órdenes `/ig-…`.** kywai trae las habilidades de
 [Instagram Agent Skill](https://github.com/postzen-dev/instagram-agent-skill) (licencia MIT, versión fija): la

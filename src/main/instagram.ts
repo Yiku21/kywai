@@ -152,6 +152,11 @@ export interface PublishInput {
   onStep?: (text: string) => void
   /** Cuánto esperar a que Instagram procese el vídeo (por defecto 10 minutos). */
   timeoutMs?: number
+  /**
+   * Reel de prueba: Instagram lo enseña primero solo a quien no sigue la cuenta y, si funciona bien, lo pasa solo a
+   * los seguidores (graduation_strategy SS_PERFORMANCE).
+   */
+  trial?: boolean
 }
 
 /**
@@ -165,7 +170,12 @@ export async function publishReel(input: PublishInput): Promise<{ id: string; pe
   if (!size) throw new Error('El vídeo está vacío')
   const caption = cleanCaption(input.caption)
   input.onStep?.('Preparando la publicación en Instagram')
-  const box = await graph<{ id?: string; uri?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', upload_type: 'resumable', caption }, signal)
+  const box = await graph<{ id?: string; uri?: string }>(token, 'POST', `${userId}/media`, {
+    media_type: 'REELS',
+    upload_type: 'resumable',
+    caption,
+    ...(input.trial ? { trial_params: JSON.stringify({ graduation_strategy: 'SS_PERFORMANCE' }) } : {})
+  }, signal)
   if (!box.id) throw new Error('Instagram no creó la publicación')
   input.onStep?.('Subiendo el vídeo a Instagram')
   const uploadUrl = box.uri || `https://rupload.facebook.com/ig-api-upload/${GRAPH_VERSION}/${box.id}`
@@ -272,7 +282,16 @@ export function writeInstagramSettings(file: string, s: InstagramSettings): void
 }
 
 /** «/instagram [lo que quieres en el texto]»: prepara el último vídeo del chat (o el adjunto) para publicarlo. */
-export function parseInstagramRequest(text: string): { note: string } | null {
+/**
+ * «/instagram [qué quieres en el texto]», «/instagram prueba [qué quieres]» (reel de prueba: Instagram lo enseña
+ * primero solo a quien no te sigue) o «/instagram resultados» (los números de los últimos reels).
+ */
+export function parseInstagramRequest(text: string): { note: string; trial?: true; results?: true } | null {
   const m = /^\/(?:instagram|insta|ig)(?:\s+([\s\S]*))?$/i.exec(text.trim())
-  return m ? { note: (m[1] ?? '').trim().slice(0, 1000) } : null
+  if (!m) return null
+  const rest = (m[1] ?? '').trim()
+  if (/^(resultados|results|estad[ií]sticas|stats|n[uú]meros)$/i.test(rest)) return { note: '', results: true }
+  const trial = /^(prueba|trial|de prueba)(?=\s|$)\s*/i.exec(rest)
+  if (trial) return { note: rest.slice(trial[0].length).slice(0, 1000), trial: true }
+  return { note: rest.slice(0, 1000) }
 }

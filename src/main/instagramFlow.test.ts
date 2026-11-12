@@ -99,4 +99,35 @@ describe('/instagram', () => {
     settings = {}
     await expect(sendMessage({ projectId, text: '/instagram', filePaths: [] })).rejects.toThrow(/Conecta primero la cuenta de Instagram/)
   })
+
+  it('«/instagram prueba» publica un reel de prueba', async () => {
+    graph.length = 0
+    settings = { userId: '1784', username: 'kywai.app' }
+    await sendMessage({ projectId, text: '/instagram prueba', filePaths: [] })
+    await vi.waitFor(() => expect(card()?.instagramPost?.trial).toBe(true))
+    expect(card()!.text).toContain('solo a quien no te sigue')
+    decideInstagramPost(projectId, card()!.id, 'publish')
+    await vi.waitFor(() => expect(card()!.instagramPost!.status).toBe('published'))
+    expect(graph.some((g) => g.startsWith('POST') && g.endsWith('/1784/media'))).toBe(true)
+    await vi.waitFor(() => expect(activeRunsFor(projectId)).toEqual([]))
+  })
+
+  it('«/instagram resultados» guarda los números y el siguiente texto aprende de ellos', async () => {
+    __setInstagramFetchForTests(async (url) => {
+      const out = /\/media\?/.test(url)
+        ? { data: ['A', 'B', 'C'].map((id, i) => ({ id, media_product_type: 'REELS', caption: `Gancho ${id}`, timestamp: `2026-11-0${i + 1}T10:00:00+0000`, permalink: `https://www.instagram.com/reel/${id}/` })) }
+        : { data: [{ name: 'views', total_value: { value: url.includes('/B/') ? 9000 : 300 } }] }
+      return { ok: true, status: 200, text: async () => JSON.stringify(out) }
+    })
+    await sendMessage({ projectId, text: '/instagram resultados', filePaths: [] })
+    const last = [...store.snapshotProject(projectId).messages].reverse().find((m) => m.author.type === 'system')!
+    expect(last.text).toContain('últimos 3 reels de @kywai.app')
+    expect(last.text).toContain('«Gancho B» · 9.000 vistas')
+    expect(last.text).toContain('aprenden de lo que funcionó')
+    const file = join(env.root, 'instagram', 'resultados.md')
+    await sendMessage({ projectId, text: '/instagram', filePaths: [] })
+    await vi.waitFor(() => expect(prompts.at(-1)).toContain('resultados.md'))
+    await vi.waitFor(() => expect(activeRunsFor(projectId)).toEqual([]))
+    expect(prompts.at(-1)).toContain(file.split('/').slice(-2).join('/'))
+  })
 })

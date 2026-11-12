@@ -105,6 +105,7 @@ import { createRoutine } from './routines'
 import { installCatalogSkill, searchSkillCatalog } from './catalog'
 import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSuggest'
 import { cleanTikTokCaption, creatorInfo, parseTikTokRequest, uploadTikTok, type TikTokSettings } from './tiktok'
+import { learningLines, reelResults, resultsFile, saveResults } from './instagramLearn'
 import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, replyToComment, unansweredComments, type IgComment, type InstagramSettings } from './instagram'
 import { ensureIgSkills, igAccountSnapshot, igPaths, igReplyPrompt, igSkillFile, igSkillPrompt, parseIgReplies, parseIgSkillRequest, type IgSkillRequest } from './igSkills'
 import { episodeBrief, episodeFromFilmReply, loadSeries, nextEpisode, parseSeriesRequest, recordEpisode, startSeries, type SeriesRequest } from './series'
@@ -1586,7 +1587,8 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
 
   // «/instagram [qué quieres en el texto]»: el último vídeo (o el adjunto) con su texto, listo para publicar.
   const igReq = fromMsg || tpl ? null : parseInstagramRequest(text)
-  if (igReq) return sendInstagram(st, igReq.note, atts, input.clientMessageId, routine, text.trim())
+  if (igReq?.results) return sendInstagramResults(st, input.clientMessageId, routine, text.trim())
+  if (igReq) return sendInstagram(st, igReq.note, atts, input.clientMessageId, routine, text.trim(), undefined, igReq.trial)
   // «/tiktok [qué quieres en el texto]»: igual, para el TikTok de kywai (borrador en la app o publicado directo).
   const ttReq = fromMsg || tpl ? null : parseTikTokRequest(text)
   if (ttReq) return sendInstagram(st, ttReq.note, atts, input.clientMessageId, routine, text.trim(), 'tiktok')
@@ -2054,6 +2056,51 @@ function latestVideo(st: ReturnType<typeof store.getProject>): { artifact: Artif
 }
 
 /**
+ * «/instagram resultados»: los números de los últimos reels de la cuenta de kywai, guardados en
+ * instagram/resultados.md (de ahí aprenden los guiones y los textos) y resumidos en el chat. Sin agente.
+ */
+async function sendInstagramResults(
+  st: ReturnType<typeof store.getProject>,
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const token = instagram?.token()
+  const s = instagram?.settings()
+  if (!token || !s?.userId) throw new Error(tr('Conecta primero la cuenta de Instagram de kywai en Ajustes → Extensiones → Estudio de vídeo.'))
+  let rows
+  try {
+    rows = await reelResults(token, s.userId)
+  } catch (e) {
+    throw new Error(tr('No pude leer los números de Instagram: {msg}', { msg: e instanceof Error ? e.message : String(e) }))
+  }
+  const projectId = st.project.id
+  const runId = randomUUID()
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: shown,
+    createdAt: Date.now(),
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+  })
+  const file = resultsFile(getConfig().workspaceRoot)
+  const text = !rows.length
+    ? tr('Todavía no hay reels en la cuenta de Instagram de kywai.')
+    : [
+        tr('Los números de los últimos {n} reels de @{user}:', { n: rows.length, user: s.username ?? '' }),
+        saveResults(file, rows, s.username ?? ''),
+        rows.length >= 3
+          ? tr('Lo he guardado en {file}: desde ahora los guiones de «/video» y los textos de «/instagram» aprenden de lo que funcionó.', { file })
+          : tr('Lo he guardado en {file}. Con 3 reels o más, los guiones y los textos empezarán a aprender de lo que funcionó.', { file })
+      ].join('\n\n')
+  pushMessage({ id: randomUUID(), projectId, runId, author: { type: 'system' }, text, createdAt: Date.now() })
+  return { runId }
+}
+
+/**
  * «/instagram»: un agente escribe el texto del último vídeo del chat (o del que adjuntes) y kywai lo deja listo para
  * publicar en la cuenta de Instagram de kywai: una tarjeta con «Publicar» en el chat y en «Te necesita». Si activaste
  * «Publicar sin preguntar», se publica solo al terminar el texto.
@@ -2065,7 +2112,8 @@ async function sendInstagram(
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
   shown: string,
-  platform?: 'tiktok'
+  platform?: 'tiktok',
+  trial?: boolean
 ): Promise<{ runId: string }> {
   const projectId = st.project.id
   if (platform === 'tiktok') {
@@ -2126,7 +2174,8 @@ async function sendInstagram(
       about: clip(found?.message.text || attached?.name || video, 1500),
       note,
       ...(question ? { question } : {}),
-      ...(platform ? { platform } : {})
+      ...(platform ? { platform } : {}),
+      ...(trial ? { trial: true } : {})
     }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
@@ -2153,11 +2202,17 @@ async function completeInstagram(run: Run, t: Task, exec: AgentConfig, parent: A
   if (ig.platform === 'tiktok') return completeTikTok(run, t, exec, parent, res, cleanTikTokCaption(caption))
   await completeTask(run, t, exec, parent, { ...res, text: tr('Texto del reel listo.') })
   const status = instagramStatusNow()
-  const post: InstagramPost = { status: 'pending', video: ig.video, caption, ...(status.username ? { username: status.username } : {}) }
+  const post: InstagramPost = { status: 'pending', video: ig.video, caption, ...(status.username ? { username: status.username } : {}), ...(ig.trial ? { trial: true } : {}) }
   const m = agentMessage(
     run,
     exec.id,
-    status.autoPublish ? tr('Publicando el reel en Instagram (tienes activado «Publicar sin preguntar»).') : tr('Reel listo para Instagram: revisa el texto y pulsa «Publicar».'),
+    status.autoPublish
+      ? ig.trial
+        ? tr('Publicando el reel de prueba en Instagram (tienes activado «Publicar sin preguntar»).')
+        : tr('Publicando el reel en Instagram (tienes activado «Publicar sin preguntar»).')
+      : ig.trial
+        ? tr('Reel de prueba listo: Instagram lo enseñará primero solo a quien no te sigue y, si funciona, a tus seguidores. Revisa el texto y pulsa «Publicar».')
+        : tr('Reel listo para Instagram: revisa el texto y pulsa «Publicar».'),
     { instagramPost: post, ...(ig.artifactId ? { artifactIds: [ig.artifactId] } : {}) }
   )
   if (status.autoPublish) void publishPost(run.projectId, m.id, caption, true)
@@ -2165,7 +2220,9 @@ async function completeInstagram(run: Run, t: Task, exec: AgentConfig, parent: A
     addInbox({
       kind: 'instagram',
       key: `ig:${m.id}`,
-      title: tl('Reel listo para publicar en Instagram{who}', { who: status.username ? ` (@${status.username})` : '' }),
+      title: ig.trial
+        ? tl('Reel de prueba listo para Instagram{who}', { who: status.username ? ` (@${status.username})` : '' })
+        : tl('Reel listo para publicar en Instagram{who}', { who: status.username ? ` (@${status.username})` : '' }),
       detail: oneLine(caption, 300),
       projectId: run.projectId,
       runId: run.id,
@@ -2196,7 +2253,7 @@ async function publishPost(projectId: string, messageId: string, caption: string
   }
   set({ status: 'publishing', caption, error: undefined, ...(auto ? { auto: true } : {}) }, tr('Publicando el reel en Instagram…'))
   try {
-    const r = await publishReel({ token, userId, file: join(store.workRoot(projectId), p.video), caption, onStep: (step) => set({}, tr(step)) })
+    const r = await publishReel({ token, userId, file: join(store.workRoot(projectId), p.video), caption, ...(p.trial ? { trial: true } : {}), onStep: (step) => set({}, tr(step)) })
     set({ status: 'published', ...(r.permalink ? { permalink: r.permalink } : {}), decidedAt: Date.now() }, r.permalink ? tr('Publicado en Instagram: {url}', { url: r.permalink }) : tr('Publicado en Instagram.'))
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e)
@@ -4779,7 +4836,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       ...(s?.username ? { username: s.username } : {}),
       ...(t.instagram.question ? { question: t.instagram.question } : {}),
       lang: userLanguageName()
-    })
+    }) + (t.instagram.platform ? '' : learningLines(resultsFile(getConfig().workspaceRoot)).join('\n'))
   }
   if (t.dub) {
     const src = loadDubSource(join(store.workRoot(run.projectId), t.dub.source))
@@ -4857,7 +4914,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue })].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue }), ...learningLines(resultsFile(getConfig().workspaceRoot))].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)
