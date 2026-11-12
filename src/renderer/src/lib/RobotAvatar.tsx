@@ -2,43 +2,33 @@ import { useId } from 'react'
 import type { AgentConfig } from '@shared/types'
 import { avatarFor } from '@shared/defaults'
 import { LOGOS } from './logos'
-import geminiPng from '@/assets/robots/gemini.png'
-import qwenPng from '@/assets/robots/qwen.png'
-import claudePng from '@/assets/robots/claude.png'
-import codexPng from '@/assets/robots/codex.png'
-import becarioPng from '@/assets/robots/becario.png'
-import hermesPng from '@/assets/robots/hermes.png'
-import musePng from '@/assets/robots/muse.png'
-import aiderPng from '@/assets/robots/aider.png'
-import copilotPng from '@/assets/robots/copilot.png'
-import kiloPng from '@/assets/robots/kilo.png'
 import { t } from '@/lib/i18n'
+import { characterRole, useAgentSkin, type AgentSkin } from '@/scene/characters'
 
-/** Ilustraciones de los robots (según el logo de su avatar). */
-const ROBOT_IMAGES: Record<string, string> = {
-  gemini: geminiPng,
-  qwen: qwenPng,
-  claude: claudePng,
-  openai: codexPng,
-  becario: becarioPng,
-  hermes: hermesPng,
-  muse: musePng
+/** Ilustraciones por skin: `assets/robots/<id>.png` (Personajes), `robots/clasico/` y `robots/refugio/`. */
+function folder(files: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(files).map(([path, url]) => [path.slice(path.lastIndexOf('/') + 1, -'.png'.length), url]))
+}
+const IMAGES: Record<AgentSkin, Record<string, string>> = {
+  personajes: folder(import.meta.glob('@/assets/robots/*.png', { eager: true, import: 'default' }) as Record<string, string>),
+  clasico: folder(import.meta.glob('@/assets/robots/clasico/*.png', { eager: true, import: 'default' }) as Record<string, string>),
+  refugio: folder(import.meta.glob('@/assets/robots/refugio/*.png', { eager: true, import: 'default' }) as Record<string, string>)
 }
 
-/** Agentes de catálogo sin logo propio: su ilustración sale del nombre (Aider, Copilot, Kilo). */
-const NAMED_IMAGES: [string, string][] = [
-  ['aider', aiderPng],
-  ['copilot', copilotPng],
-  ['kilo', kiloPng]
-]
+/** Nombre del archivo según el logo del avatar (Codex usa el de OpenAI). */
+const LOGO_FILE: Record<string, string> = { gemini: 'gemini', qwen: 'qwen', claude: 'claude', openai: 'codex', becario: 'becario', hermes: 'hermes', muse: 'muse' }
 
-/** Ilustración del personaje de un agente, o null si no tiene (se dibuja el robot vectorial). */
-export function robotImageFor(agent: Pick<AgentConfig, 'avatar' | 'provider' | 'isSubagent' | 'name'>): string | null {
+/**
+ * Ilustración del agente con la skin elegida (la misma que se ve en el 3D), o null si no tiene
+ * (se dibuja el robot vectorial). Lo que falta en una skin sale de la clásica.
+ */
+export function robotImageFor(agent: Pick<AgentConfig, 'avatar' | 'provider' | 'isSubagent' | 'name'>, skin: AgentSkin = 'personajes'): string | null {
   const av = avatarFor(agent)
-  if (ROBOT_IMAGES[av.logo]) return ROBOT_IMAGES[av.logo]
-  if (agent.isSubagent) return null
-  const n = agent.name.toLowerCase()
-  return NAMED_IMAGES.find(([k]) => n.includes(k))?.[1] ?? null
+  const byLogo = LOGO_FILE[av.logo]
+  // Personaje: por el logo o por el nombre (Aider, Copilot y Kilo no tienen logo propio).
+  const role = agent.isSubagent ? undefined : characterRole(agent.name)
+  const key = skin === 'clasico' ? byLogo : skin === 'refugio' ? role : (byLogo ?? role)
+  return (key && IMAGES[skin][key]) || (byLogo && IMAGES.clasico[byLogo]) || null
 }
 
 interface Props {
@@ -63,7 +53,8 @@ const VISOR_Y: Record<string, number> = { capsule: 22, egg: 24, blob: 24, cube: 
 export function RobotAvatar({ agent, size = 32, dim, className }: Props) {
   const av = avatarFor(agent)
   const id = useId().replace(/:/g, '')
-  const img = robotImageFor(agent)
+  const skin = useAgentSkin((st) => st.skin)
+  const img = robotImageFor(agent, skin)
   if (img) {
     return (
       <img
