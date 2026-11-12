@@ -243,7 +243,14 @@ fun robotDrawable(agent: Agent?): Int = when {
         "gemini" -> R.drawable.robot_gemini
         "muse" -> R.drawable.robot_muse
         "qwen", "ollama", "lmstudio", "colibri" -> R.drawable.robot_qwen
-        else -> R.drawable.robot_becario
+        else -> "${agent.name} ${agent.id}".lowercase().let { n ->
+            when {
+                "aider" in n -> R.drawable.robot_aider
+                "copilot" in n -> R.drawable.robot_copilot
+                "kilo" in n -> R.drawable.robot_kilo
+                else -> R.drawable.robot_becario
+            }
+        }
     }
 }
 

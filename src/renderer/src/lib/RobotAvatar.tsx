@@ -9,6 +9,9 @@ import codexPng from '@/assets/robots/codex.png'
 import becarioPng from '@/assets/robots/becario.png'
 import hermesPng from '@/assets/robots/hermes.png'
 import musePng from '@/assets/robots/muse.png'
+import aiderPng from '@/assets/robots/aider.png'
+import copilotPng from '@/assets/robots/copilot.png'
+import kiloPng from '@/assets/robots/kilo.png'
 import { t } from '@/lib/i18n'
 
 /** Ilustraciones de los robots (según el logo de su avatar). */
@@ -20,6 +23,22 @@ const ROBOT_IMAGES: Record<string, string> = {
   becario: becarioPng,
   hermes: hermesPng,
   muse: musePng
+}
+
+/** Agentes de catálogo sin logo propio: su ilustración sale del nombre (Aider, Copilot, Kilo). */
+const NAMED_IMAGES: [string, string][] = [
+  ['aider', aiderPng],
+  ['copilot', copilotPng],
+  ['kilo', kiloPng]
+]
+
+/** Ilustración del personaje de un agente, o null si no tiene (se dibuja el robot vectorial). */
+export function robotImageFor(agent: Pick<AgentConfig, 'avatar' | 'provider' | 'isSubagent' | 'name'>): string | null {
+  const av = avatarFor(agent)
+  if (ROBOT_IMAGES[av.logo]) return ROBOT_IMAGES[av.logo]
+  if (agent.isSubagent) return null
+  const n = agent.name.toLowerCase()
+  return NAMED_IMAGES.find(([k]) => n.includes(k))?.[1] ?? null
 }
 
 interface Props {
@@ -44,7 +63,7 @@ const VISOR_Y: Record<string, number> = { capsule: 22, egg: 24, blob: 24, cube: 
 export function RobotAvatar({ agent, size = 32, dim, className }: Props) {
   const av = avatarFor(agent)
   const id = useId().replace(/:/g, '')
-  const img = ROBOT_IMAGES[av.logo]
+  const img = robotImageFor(agent)
   if (img) {
     return (
       <img
