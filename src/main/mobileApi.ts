@@ -332,6 +332,12 @@ export class MobileApi {
           } else if (action === 'move') {
             fields(input, ['conversationId', 'toConversationId'])
             mobileJson(res, 200, await this.backend.moveChat(projectId(input.conversationId), chat, projectId(input.toConversationId)))
+          } else if (action === 'fork') {
+            // Con messageId, la copia llega hasta ese mensaje; con before, hasta justo antes («Editar y reenviar»).
+            fields(input, ['conversationId'], ['messageId', 'before'])
+            if (input.before !== undefined && typeof input.before !== 'boolean') throw new MobileError(400, 'INVALID_INPUT', 'before debe ser true o false')
+            const from = input.messageId === undefined ? undefined : { messageId: id(String(input.messageId), 'messageId'), before: input.before === true }
+            mobileJson(res, 200, await this.backend.forkChat(projectId(input.conversationId), chat, from))
           } else {
             fields(input, ['conversationId'])
             const project = projectId(input.conversationId)

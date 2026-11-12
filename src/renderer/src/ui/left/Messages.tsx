@@ -52,6 +52,7 @@ import { AgentAvatar, AgentPill } from '../common/AgentBits'
 import { TaskSeq } from '../common/TaskSeq'
 import { useAgentLookup } from '../common/agents'
 import { useComposer } from './composerStore'
+import { useMessageMenu } from './MessageMenu'
 import { FileTypeIcon, KindTile, TaskStatusIcon } from '../common/icons'
 import { MarkdownView } from '../common/MarkdownView'
 import { agentVars, cx, errorText, formatDuration, isoTime, plural } from '../common/util'
@@ -110,8 +111,9 @@ function userLabel(m: ChatMessage): string {
 
 function UserMessage({ m }: { m: ChatMessage }) {
   const parts = m.routine ? routineParts(m.text) : { request: m.text, data: null }
+  const menu = useMessageMenu(m, { user: { text: parts.request } })
   return (
-    <article className={s.msg}>
+    <article className={s.msg} onContextMenu={menu.onContextMenu}>
       <span className={cx(s.avatar, s.userAvatar)} aria-hidden="true">
         {m.routine ? <CalendarClock size={18} /> : <User size={18} />}
       </span>
@@ -139,7 +141,9 @@ function UserMessage({ m }: { m: ChatMessage }) {
           )}
           {m.attachments && m.attachments.length > 0 && <Attachments list={m.attachments} projectId={m.projectId} />}
         </div>
+        <MenuNote note={menu.note} />
       </div>
+      {menu.menu}
     </article>
   )
 }
@@ -267,9 +271,10 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
   const videoable = live && !m.streaming && !isError && !proposal && (m.text?.trim().length ?? 0) >= 40
   // «Responder»: lo siguiente que escribas va a este mismo agente sobre esta respuesta (para que la revise o siga).
   const replyable = live && !m.streaming && !isError && !proposal && !m.importedFrom && !!m.text?.trim()
+  const menu = useMessageMenu(m, { agent: { agentId, name: look.name, replyable, videoable, ratable } })
 
   return (
-    <article className={s.msg} style={agentVars(look.color)}>
+    <article className={s.msg} style={agentVars(look.color)} onContextMenu={menu.onContextMenu}>
       <AgentAvatar look={look} size={40} className={s.robot} />
       <div className={s.main}>
         <Meta
@@ -314,7 +319,9 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
             </div>
           )
         )}
+        <MenuNote note={menu.note} />
       </div>
+      {menu.menu}
     </article>
   )
 }
@@ -401,6 +408,16 @@ function ChangesRow({ projectId, taskId }: { projectId: string; taskId: string }
         </div>
       )}
     </div>
+  )
+}
+
+/** Lo que dice la última acción del menú de clic derecho del mensaje («Copiado», o el error). */
+function MenuNote({ note }: { note: { text: string; error: boolean } | null }) {
+  if (!note) return null
+  return (
+    <p className={s.ratingNote} role={note.error ? 'alert' : 'status'}>
+      {note.text}
+    </p>
   )
 }
 

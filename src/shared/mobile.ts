@@ -83,6 +83,11 @@ export interface MobileSnapshot {
      * borrarlo (evento files.deleted), y artifactIds en POST /chat/messages para adjuntar resultados al mensaje.
      */
     fileActions?: boolean
+    /**
+     * Mantener pulsado un mensaje: POST /chats/{chatId}/fork admite messageId (la copia llega hasta ese mensaje) y
+     * before (hasta justo antes: «Editar y reenviar» un mensaje tuyo).
+     */
+    messageActions?: boolean
     agentAccess: boolean
     usageRefresh: boolean
     /** Notas de voz convertidas en texto en el propio equipo (POST /voice/transcribe). */

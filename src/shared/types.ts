@@ -1862,7 +1862,8 @@ export interface CoworkApi {
   /** Las conversaciones fijadas de todos los proyectos. */
   pinnedConversations(): Promise<ConversationSummary[]>
   /** Bifurca: copia aparte de la conversación (mensajes y tareas, sin las sesiones de los agentes). Devuelve el id de la copia. */
-  forkConversation(projectId: string, conversationId: string): Promise<string>
+  /** Con `from`, la copia llega hasta ese mensaje (o justo antes, con `before`: «Editar y reenviar»). */
+  forkConversation(projectId: string, conversationId: string, from?: { messageId: string; before?: boolean }): Promise<string>
   /** Pasa la conversación a otro proyecto (los agentes empiezan sesión nueva allí). Devuelve el id que tiene en el destino. */
   moveConversation(projectId: string, conversationId: string, toProjectId: string): Promise<string>
   /** Fija o suelta un proyecto en la barra lateral. */

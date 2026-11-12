@@ -508,19 +508,30 @@ function fullConversation(st: ProjectState, conversationId: string): StoredConve
 /**
  * Bifurca una conversación: una copia aparte con sus mensajes y tareas terminadas, para seguir por otro camino
  * sin tocar la original. Los agentes empiezan sesión nueva en la copia (compartir la de la original mezclaría las dos).
+ * Con `from`, la copia llega solo hasta ese mensaje (clic derecho → «Bifurcar desde aquí»); con `before`, hasta
+ * justo antes de él («Editar y reenviar» un mensaje tuyo: la copia sigue desde ahí con el texto cambiado).
  */
-export function forkConversation(projectId: string, conversationId: string): string {
+export function forkConversation(projectId: string, conversationId: string, from?: { messageId: string; before?: boolean }): string {
   const st = load(projectId)
   const src = fullConversation(st, conversationId)
   if (!src.messages.length) throw new Error('La conversación está vacía: no hay nada que bifurcar')
+  let messages = src.messages
+  if (from) {
+    const i = messages.findIndex((m) => m.id === from.messageId)
+    if (i < 0) throw new Error('Ese mensaje ya no está en la conversación')
+    messages = messages.slice(0, from.before ? i : i + 1)
+  }
+  // Solo las tareas de las peticiones que siguen en la copia.
+  const runs = new Set(messages.map((m) => m.runId).filter(Boolean))
+  const tasks = from ? src.tasks.filter((t) => !t.runId || runs.has(t.runId)) : src.tasks
   const now = Date.now()
   const copy: StoredConversation = {
     id: newId(now),
     title: cleanTitle(`${src.title} (bifurcada)`),
     createdAt: now,
     updatedAt: now,
-    messages: src.messages.map((m) => ({ ...m })),
-    tasks: src.tasks.map((t) => ({ ...t }))
+    messages: messages.map((m) => ({ ...m })),
+    tasks: tasks.map((t) => ({ ...t }))
   }
   writeConversation(st, copy)
   st.conversations = [summaryOf(st, copy), ...(st.conversations ?? [])]

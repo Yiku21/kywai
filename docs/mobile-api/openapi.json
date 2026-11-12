@@ -3543,6 +3543,16 @@
                     "type": "string",
                     "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
                     "maxLength": 81
+                  },
+                  "messageId": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+                    "maxLength": 128,
+                    "description": "Opcional (capabilities.messageActions): la copia llega solo hasta este mensaje. 404 MESSAGE_NOT_FOUND si no está."
+                  },
+                  "before": {
+                    "type": "boolean",
+                    "description": "Con messageId: hasta justo antes de ese mensaje («Editar y reenviar» un mensaje tuyo)."
                   }
                 },
                 "required": [
@@ -6578,6 +6588,10 @@
           "fileActions": {
             "type": "boolean",
             "description": "Mantener pulsado un archivo: POST /artifacts/{artifactId}/delete y /attachments/{attachmentId}/delete (evento files.deleted) y artifactIds en POST /chat/messages para adjuntar resultados al mensaje."
+          },
+          "messageActions": {
+            "type": "boolean",
+            "description": "Mantener pulsado un mensaje: POST /chats/{chatId}/fork admite messageId (la copia llega hasta ese mensaje) y before (hasta justo antes: «Editar y reenviar»)."
           }
         },
         "required": [

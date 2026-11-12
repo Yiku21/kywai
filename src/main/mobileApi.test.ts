@@ -212,7 +212,7 @@ beforeAll(() => {
   webMethods.set('pinnedConversations', () => conversations.pinnedConversations())
   webMethods.set('searchHistory', (q, opts) => conversations.searchHistory(q, opts as never))
   webMethods.set('allConversations', () => conversations.allConversations())
-  webMethods.set('forkConversation', (id, cid) => conversations.forkConversation(id as string, cid as string))
+  webMethods.set('forkConversation', (id, cid, from) => conversations.forkConversation(id as string, cid as string, from as { messageId: string; before?: boolean } | undefined))
   webMethods.set('moveConversation', (id, cid, to) => conversations.moveConversation(id as string, cid as string, to as string))
   // Proyectos: como index.ts, pero borrando la carpeta en vez de mandarla a la Papelera.
   webMethods.set('renameProject', (id, name) => store.renameProject(id as string, name))
@@ -428,6 +428,13 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     const fork = await api(`/chats/${open.id}/fork`, { conversationId: project.id })
     expect(fork.status).toBe(200)
     expect(fork.body.chats.map((c: { id: string }) => c.id)).toContain(fork.body.chatId)
+
+    expect(caps.messageActions).toBe(true)
+    const desde = await api(`/chats/${open.id}/fork`, { conversationId: project.id, messageId: 'm-menu-1', before: true })
+    expect(desde.status).toBe(200)
+    expect(desde.body.chatId).not.toBe(fork.body.chatId)
+    expect((await api(`/chats/${open.id}/fork`, { conversationId: project.id, messageId: 'm-no-esta' })).status).toBe(404)
+    expect((await api(`/chats/${open.id}/fork`, { conversationId: project.id, messageId: 'm-menu-1', before: 'sí' })).status).toBe(400)
 
     const moved = await api(`/chats/${fork.body.chatId}/move`, { conversationId: project.id, toConversationId: other.id })
     expect(moved.status).toBe(200)

@@ -506,9 +506,11 @@ function registerIpc(): void {
     return store.deleteProjectFile(projectId, ref as ProjectFileRef)
   })
   handle('pinnedConversations', () => withBusy(conversations.pinnedConversations()))
-  handle('forkConversation', (projectId: unknown, conversationId: unknown) => {
+  handle('forkConversation', (projectId: unknown, conversationId: unknown, from?: unknown) => {
     if (!store.isValidProjectId(projectId) || !conversations.isValidConversationId(conversationId)) throw new Error(tr('Conversación no válida'))
-    const id = conversations.forkConversation(projectId, conversationId)
+    const f = from as { messageId?: unknown; before?: unknown } | undefined
+    const at = f && typeof f.messageId === 'string' ? { messageId: f.messageId, before: f.before === true } : undefined
+    const id = conversations.forkConversation(projectId, conversationId, at)
     emit({ kind: 'conversations.updated', projectId })
     return id
   })

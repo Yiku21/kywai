@@ -17,7 +17,15 @@ const fake = vi.hoisted(() => {
     decideRoutineProposal: async (p, m, a) => void calls.push(`routine:${p}:${m}:${String(a)}`),
     rateMessage: async (p, m, r) => void calls.push(`rate:${p}:${m}:${String(r)}`),
     openPath: async (p, rel) => void calls.push(`open:${p}:${rel}`),
-    downloadArtifacts: async (p, ids) => void calls.push(`download:${p}:${(ids as string[]).join(',')}`)
+    downloadArtifacts: async (p, ids) => void calls.push(`download:${p}:${(ids as string[]).join(',')}`),
+    forkConversation: async (p, c, from) => {
+      calls.push(`fork:${p}:${c}:${JSON.stringify(from)}`)
+      return 'c-copia'
+    },
+    openConversation: async (p, c) => {
+      calls.push(`openConv:${p}:${c}`)
+      return { opened: c }
+    }
   }
   ;(window as unknown as { cowork: unknown }).cowork = new Proxy(methods, {
     get: (t, k: string) => t[k] ?? (async () => undefined)
@@ -276,6 +284,49 @@ describe('chat del escritorio', () => {
     expect(fake.calls.at(-1)).toBe('rate:p1:w2:down')
     await show({ ...done, text: '', work: { ...done.work!, status: 'running' } })
     expect(button('Me sirvió')).toBeUndefined()
+  })
+
+  it('clic derecho en un mensaje tuyo: «Editar y reenviar» abre una rama hasta antes de él con su texto en el cuadro', async () => {
+    const loaded: unknown[] = []
+    const prev = useCowork.getState().loadProjectState
+    useCowork.setState({ loadProjectState: ((st: unknown) => void loaded.push(st)) as never })
+    const mine: ChatMessage = { id: 'u7', projectId: 'p1', author: { type: 'user' }, text: 'Haz la web en azul', createdAt: 7 }
+    const s0 = useCowork.getState()
+    useCowork.setState({ live: { ...s0.live, conversation: { id: 'c-orig', title: 'Web', createdAt: 1 } } })
+    await show(mine)
+    const item = (text: string) => [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((b) => b.textContent?.includes(text))
+    await act(async () => host.querySelector('article')!.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 })))
+    expect(item('Copiar')).toBeTruthy()
+    expect(item('Bifurcar desde aquí')).toBeTruthy()
+    await act(async () => item('Editar y reenviar')!.click())
+    await act(async () => new Promise((r) => setTimeout(r, 0)))
+    expect(fake.calls).toEqual(['fork:p1:c-orig:{"messageId":"u7","before":true}', 'openConv:p1:c-copia'])
+    expect(loaded).toEqual([{ opened: 'c-copia' }])
+    expect(useComposer.getState().text).toBe('Haz la web en azul')
+    useCowork.setState({ loadProjectState: prev })
+    useComposer.getState().clear()
+  })
+
+  it('clic derecho en una respuesta: Responder, Bifurcar desde aquí y 👍 desde el menú', async () => {
+    const done: ChatMessage = {
+      id: 'w9',
+      projectId: 'p1',
+      runId: 'r1',
+      author: { type: 'agent', agentId: 'codex' },
+      text: 'Listo: ya valida el correo.',
+      createdAt: 9,
+      work: { taskId: 't9', title: 'Formulario', status: 'done', steps: [] }
+    }
+    await show(done)
+    const open = () => act(async () => host.querySelector('article')!.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 })))
+    const item = (text: string) => [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((b) => b.textContent?.includes(text))
+    await open()
+    await act(async () => item('Responder a')!.click())
+    expect(useComposer.getState().replyTo?.messageId).toBe('w9')
+    await open()
+    await act(async () => item('Me sirvió')!.click())
+    expect(fake.calls).toContain('rate:p1:w9:up')
+    useComposer.getState().clear()
   })
 
   it('un solo entregable se enseña tal cual', async () => {

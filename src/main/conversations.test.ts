@@ -171,6 +171,24 @@ describe('conversaciones de un proyecto', () => {
     expect(() => forkConversation(p.id, newConversation(p.id))).toThrow(/vacía/)
   })
 
+  it('bifurcar desde un mensaje: hasta ese mensaje, o hasta justo antes para editarlo', () => {
+    const p = store.createProject('Bifurcar desde aquí')
+    const st = store.getProject(p.id)
+    const a = msg(p.id, 'Uno')
+    const b = msg(p.id, 'Dos')
+    const c = msg(p.id, 'Tres')
+    st.messages.push(a, b, c)
+    const orig = st.conversation?.id ?? listConversations(p.id)[0].id
+    const hasta = forkConversation(p.id, orig, { messageId: b.id })
+    const antes = forkConversation(p.id, orig, { messageId: b.id, before: true })
+    expect(st.messages.map((m) => m.text)).toEqual(['Uno', 'Dos', 'Tres'])
+    openConversation(p.id, hasta)
+    expect(st.messages.map((m) => m.text)).toEqual(['Uno', 'Dos'])
+    openConversation(p.id, antes)
+    expect(st.messages.map((m) => m.text)).toEqual(['Uno'])
+    expect(() => forkConversation(p.id, orig, { messageId: 'no-esta' })).toThrow(/ya no está/)
+  })
+
   it('mover a otro proyecto: sale del origen (que queda con una nueva si era la abierta) y llega al destino sin sesiones', () => {
     const a = store.createProject('Origen')
     const b = store.createProject('Destino')

@@ -148,6 +148,7 @@ export class MobileBackend {
         chatCommands: true,
         usageCost: true,
         replyTo: true,
+        messageActions: this.methods.has('forkConversation'),
         videoPicker: ['listVideoCharacters', 'addVideoCharacter', 'removeVideoCharacter', 'listVideoVoices', 'previewVideoVoice'].every((m) => this.methods.has(m))
       }
     }
@@ -180,6 +181,7 @@ export class MobileBackend {
     if (/equipo está trabajando/.test(message)) throw new MobileError(409, 'PROJECT_BUSY', message)
     if (/conversación abierta/.test(message)) throw new MobileError(409, 'CHAT_OPEN', message)
     if (/no válid|No se encuentra/.test(message)) throw new MobileError(404, 'CHAT_NOT_FOUND', 'No se encontró ese chat')
+    if (/Ese mensaje ya no está/.test(message)) throw new MobileError(404, 'MESSAGE_NOT_FOUND', message)
     if (/Escribe un nombre/.test(message)) throw new MobileError(400, 'INVALID_INPUT', message)
     throw e
   }
@@ -224,10 +226,10 @@ export class MobileBackend {
   }
 
   /** Copia aparte del chat (con sus mensajes y tareas terminadas); devuelve su id y la lista del proyecto. */
-  async forkChat(projectId: string, chatId: string): Promise<{ chatId: string; chats: ConversationSummary[] }> {
+  async forkChat(projectId: string, chatId: string, from?: { messageId: string; before?: boolean }): Promise<{ chatId: string; chats: ConversationSummary[] }> {
     await this.existing(projectId)
     try {
-      const id = await this.call<string>('forkConversation', projectId, chatId)
+      const id = await this.call<string>('forkConversation', projectId, chatId, ...(from ? [from] : []))
       return { chatId: id, chats: await this.call<ConversationSummary[]>('listConversations', projectId) }
     } catch (e) { this.chatError(e) }
   }

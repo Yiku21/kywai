@@ -1515,6 +1515,28 @@ chat (`attachArtifacts` en `src/main/orchestrator.ts`), el menú en `src/rendere
 (reutiliza el de la barra lateral) y, en la API móvil, `POST /artifacts/{id}/delete`, `POST /attachments/{id}/delete`
 y `artifactIds` en `POST /chat/messages`.
 
+### Clic derecho en un mensaje del chat: copiar, responder, bifurcar o editar
+
+El **clic derecho** sobre un mensaje del chat abre un menú (con letra de atajo en cada opción):
+
+- **En una respuesta de un agente:** **Copiar** (C), **Responder a …** (R, lo mismo que el botón «Responder»),
+  **Bifurcar desde aquí** (B), **Crear vídeo de esto** (V) y, si es un resultado, **Me sirvió** / **No me sirvió**
+  (S / N; volver a elegirlo lo quita).
+- **En un mensaje tuyo:** **Copiar** (C), **Editar y reenviar** (E) y **Bifurcar desde aquí** (B).
+
+**Copiar** copia solo lo que tengas seleccionado dentro de ese mensaje, si seleccionaste algo («Copiar lo
+seleccionado»); si no, el mensaje entero. **Bifurcar desde aquí** crea una conversación nueva con todo hasta ese
+mensaje (incluido) y la abre; la original sigue igual en la barra lateral. **Editar y reenviar** funciona como en
+Claude: crea una conversación nueva con todo hasta **justo antes** de tu mensaje y pone su texto en el cuadro de
+escribir (con sus adjuntos y, si respondía a un agente, la misma respuesta), para que lo cambies y lo envíes; la
+conversación original no se toca. Como al bifurcar una conversación entera, la copia no lleva las sesiones de los
+agentes (en ella empiezan sesión nueva). Bifurcar y editar solo van en modo real.
+
+Por dentro: `forkConversation(projectId, conversationId, { messageId, before })` en `src/main/conversations.ts`
+(sin `from`, copia la conversación entera como siempre), el menú en `src/renderer/src/ui/left/MessageMenu.tsx` y,
+en la API móvil, `messageId` y `before` en `POST /chats/{chatId}/fork` (capacidad `messageActions`; 404
+`MESSAGE_NOT_FOUND` si el mensaje ya no está).
+
 ### Reanudar lo interrumpido
 
 Si la app se cierra con trabajo a medias (al actualizar, reiniciar o por un fallo), el plan de esa petición
