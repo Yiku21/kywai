@@ -39,8 +39,10 @@ import type {
   Transfer,
   UsageCall,
   WorkFile,
-  ScriptReview
+  ScriptReview,
+  ConnectGuideItem
 } from '@shared/types'
+import { loginToolOf } from '@shared/setupTool'
 import { INTERRUPTED_ERROR, SUBAGENT_COLOR, avatarFor } from '@shared/defaults'
 import { instancesFor } from '@shared/instances'
 import { checkAgentPresence, isLocalProvider, isTextOnly, reportsNoTokens, runAgent } from './agents'
@@ -4030,6 +4032,34 @@ async function proposeSkills(run: Run, planner: AgentConfig, query: string): Pro
   )
 }
 
+/**
+ * Agentes que el coordinador te ayuda a conectar desde el chat («¿cómo conecto Codex?», «ayúdame a configurar los
+ * agentes»): una tarjeta con una fila por agente. Su botón «Conectar» instala el programa si falta, abre la ventana
+ * guiada de inicio de sesión y comprueba solo cuándo quedó conectado (ConnectAgentsBlock.tsx). Acepta el id o el
+ * nombre del agente; los locales no tienen sesión y no salen.
+ */
+function proposeConnect(run: Run, planner: AgentConfig, wanted: string[]): void {
+  if (run.routine || !wanted.length) return
+  const agents = getConfig().agents.filter((a) => !a.isSubagent)
+  const norm = (v: string) => v.trim().toLowerCase()
+  const items: ConnectGuideItem[] = []
+  for (const w of wanted) {
+    const a = agents.find((x) => norm(x.id) === norm(w)) ?? agents.find((x) => norm(x.name) === norm(w))
+    const tool = a && loginToolOf(a)
+    if (!a || !tool || items.some((it) => it.agentId === a.id)) continue
+    items.push({ agentId: a.id, tool, name: a.name })
+  }
+  if (!items.length || run.cancelled) return
+  agentMessage(
+    run,
+    planner.id,
+    items.length === 1
+      ? tr('Pulsa «Conectar»: instalo {name} si falta y abro su inicio de sesión. Tú solo tienes que entrar con tu cuenta y aceptar; yo compruebo cuándo queda listo.', { name: items[0].name })
+      : tr('Pulsa «Conectar» en cada uno: instalo lo que falte y abro su inicio de sesión. Tú solo tienes que entrar con tu cuenta y aceptar; yo compruebo cuándo queda listo.'),
+    { connectGuide: { items } }
+  )
+}
+
 /** «Instalar» (una de la tarjeta) o «Descartar» en las habilidades que sugirió Hermes. */
 export async function decideSkillProposal(projectId: string, messageId: string, action: 'install' | 'dismiss', index = 0): Promise<ChatMessage> {
   const m = findMessage(projectId, messageId)
@@ -4261,6 +4291,7 @@ async function executeRun(run: Run): Promise<void> {
   const { planner, reply, planned, contract, memory } = plan
   proposeRoutine(run, planner, plan.routine)
   void proposeSkills(run, planner, plan.skills)
+  proposeConnect(run, planner, plan.connect)
   for (const order of plan.video) await launchPlannedVideo(run, planner, order)
   // Con tareas, primero tu visto bueno: el plan se enseña y nada empieza hasta que lo apruebes.
   // Un plan que solo consulta (no cambia nada) no espera: pedir permiso para mirar sería más lento que mirar.
@@ -4402,7 +4433,7 @@ function pickPlanner(tried: Set<AgentId>, images = false): AgentConfig | null {
 
 async function planRun(
   run: Run
-): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string; skills: string; video: string[]; questions: AgentQuestion[] } | null> {
+): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string; skills: string; video: string[]; questions: AgentQuestion[]; connect: string[] } | null> {
   const tried = new Set<AgentId>()
   const failures: string[] = []
   const st = store.getProject(run.projectId)
@@ -4493,7 +4524,7 @@ async function planRun(
     }
     // Lo que se ve en el plan es lo que se hará: si kywai lo ajustó, se dice.
     if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de kywai al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
-    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine, skills: parsed.skills, video: parsed.video, questions: parsed.questions }
+    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine, skills: parsed.skills, video: parsed.video, questions: parsed.questions, connect: parsed.connect }
   }
 }
 
@@ -4749,7 +4780,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '',
     '## Qué debes responder',
     'Responde ÚNICAMENTE con un objeto JSON (puede ir dentro de un bloque ```json), sin ningún otro texto, con esta forma:',
-    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false, "quick": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\"", "skills": "búsqueda en skills.sh, o \"\"", "video": ["órdenes «/video …» que kywai lanza ya"], "questions": [{"question": "¿…?", "multiple": false, "options": [{"label": "…", "detail": "…", "recommended": true}]}]}',
+    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false, "quick": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\"", "skills": "búsqueda en skills.sh, o \"\"", "video": ["órdenes «/video …» que kywai lanza ya"], "questions": [{"question": "¿…?", "multiple": false, "options": [{"label": "…", "detail": "…", "recommended": true}]}], "connect": ["<id del agente que conectar>"]}',
     '',
     'Reglas:',
     `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
@@ -4798,6 +4829,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     ...(run.routine
       ? []
       : [
+          '- "connect": si el usuario quiere conectar, iniciar sesión o configurar uno o varios agentes («¿cómo conecto Codex?», «ayúdame a configurar los agentes», «Claude dice que no tengo sesión»), o algo falla porque a un agente le falta la sesión o la clave, pon aquí sus ids (si no dice cuáles, todos los del equipo menos el local). kywai enseña en el chat una tarjeta con «Conectar» para cada uno: instala su programa si falta, abre una ventana que le explica paso a paso el inicio de sesión y comprueba sola cuándo quedó conectado (los ya conectados salen con ✓). No crees tareas para eso. En "reply", en 2 o 3 frases y sin tecnicismos: que pulse «Conectar», que lo único que tendrá que hacer es entrar con su cuenta en el navegador y aceptar (en Gemini, mejor pegar en la tarjeta una clave gratis de aistudio.google.com/apikey; en Hermes, elegir proveedor, OpenRouter si no paga nada) y que tú lo compruebas. Nadie puede entrar en sus cuentas por él: no lo prometas. Si no, [].',
           `- "skills": si la petición es de un campo especializado (un framework, un formato de archivo, un tipo de diseño, marketing, seguridad, datos…) y una habilidad ya escrita por otros ayudaría claramente a hacerlo mejor, escribe 1 a 4 palabras en inglés para buscarla en skills.sh (por ejemplo «nextjs», «pdf forms», «landing page copy», «security audit»). kywai la buscará y enseñará al usuario una tarjeta para instalarla si quiere: no la menciones en "reply" ni esperes a que se instale. Ya instaladas: ${installedSkillList().join(', ').slice(0, 1500) || 'ninguna'}. Si ya hay una que sirve, o es charla o algo sencillo, "".`
         ])
   ].join('\n')

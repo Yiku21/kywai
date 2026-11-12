@@ -63,6 +63,7 @@ import u from '../common/ui.module.css'
 import { planProgress, progressHint, quietFor, quietText, shortClock } from '@/lib/progress'
 import { useNow } from '../common/hooks'
 import { TaskStages } from './TaskStages'
+import { ConnectAgentsBlock } from './ConnectAgentsBlock'
 import s from './Messages.module.css'
 import { t } from '@/lib/i18n'
 import { paneTarget } from '../pane/paneTarget'
@@ -458,6 +459,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
             {proposal && <ProposalBlock m={m} proposal={proposal} />}
             {m.routineProposal && <RoutineProposalBlock m={m} proposal={m.routineProposal} />}
             {m.skillProposal && <SkillProposalBlock m={m} proposal={m.skillProposal} />}
+            {m.connectGuide && <ConnectAgentsBlock m={m} guide={m.connectGuide} />}
             {m.instagramPost && <InstagramPostBlock m={m} post={m.instagramPost} />}
             {m.scriptReview && <ScriptReviewBlock m={m} review={m.scriptReview} />}
             {m.instagramReplies && <InstagramRepliesBlock m={m} replies={m.instagramReplies} />}

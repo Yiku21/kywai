@@ -673,6 +673,8 @@ export interface ChatMessage {
   routineProposal?: RoutineProposal
   /** Habilidades de skills.sh que Hermes sugiere instalar para esta petición (nunca se instalan sin tu «Instalar»). */
   skillProposal?: SkillProposal
+  /** Agentes que el coordinador te ayuda a conectar desde el chat: una fila por agente con «Conectar» y sus pasos. */
+  connectGuide?: ConnectGuide
   /** Reel preparado para el Instagram de kywai («/instagram»): se publica con «Publicar» (o solo, si lo activaste). */
   instagramPost?: InstagramPost
   /** Respuestas a los comentarios de la cuenta de Instagram de kywai («/ig-reply»), con tu visto bueno una a una. */
@@ -892,6 +894,17 @@ export interface RoutineProposal {
  * Habilidades que propone Hermes antes de una tarea. pending: esperan a que instales alguna o las descartes ·
  * done: instalaste alguna · dismissed: descartadas. `query` es lo que buscó en skills.sh.
  */
+/** Un agente que conectar desde el chat: su id, el programa que se instala y abre su inicio de sesión, y su nombre. */
+export interface ConnectGuideItem {
+  agentId: AgentId
+  tool: SetupToolId
+  name: string
+}
+
+export interface ConnectGuide {
+  items: ConnectGuideItem[]
+}
+
 export interface SkillProposal {
   status: 'pending' | 'done' | 'dismissed'
   query: string

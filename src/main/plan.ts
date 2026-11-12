@@ -214,9 +214,9 @@ export function twoHandsPlan<T extends HandTask>(tasks: T[], userText: string, a
  * 'contract': acuerdo común para las tareas que se hacen a la vez (archivos de cada una, funciones, rutas…).
  * 'memory': lo que el usuario decidió o pidió en este mensaje y hay que recordar (sin validar: ver memory.ts).
  */
-export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[]; routine: string; skills: string; video: string[]; questions: AgentQuestion[] } {
+export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[]; routine: string; skills: string; video: string[]; questions: AgentQuestion[]; connect: string[] } {
   const o = extractJsonObject(text)
-  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [], routine: '', skills: '', video: [], questions: [] }
+  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [], routine: '', skills: '', video: [], questions: [], connect: [] }
   const c = o.contract
   const contract = typeof c === 'string' ? c.trim() : c && typeof c === 'object' ? JSON.stringify(c, null, 2) : ''
   return {
@@ -233,7 +233,9 @@ export function parsePlan(text: string): { reply: string; tasks: unknown[]; vali
     // parseVideoRequest).
     video: (Array.isArray(o.video) ? o.video : [o.video]).filter((v): v is string => typeof v === 'string' && !!v.trim()).slice(0, 12).map((v) => v.trim().slice(0, 20_000)),
     // Preguntas con opciones para el usuario (salen como tarjeta en el chat; ver src/shared/agentQuestions.ts).
-    questions: normalizeQuestions(o.questions ?? o.preguntas)
+    questions: normalizeQuestions(o.questions ?? o.preguntas),
+    // Agentes (sus ids) que el usuario quiere conectar: kywai enseña en el chat una tarjeta con «Conectar» para cada uno.
+    connect: [...new Set((Array.isArray(o.connect) ? o.connect : [o.connect]).filter((v): v is string => typeof v === 'string' && !!v.trim()).map((v) => v.trim()))].slice(0, 12)
   }
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { installOrder, parseSetupToolId } from './setupTool'
+import { installOrder, loginToolOf, parseSetupToolId } from './setupTool'
 
 describe('parseSetupToolId', () => {
   it('acepta los programas de fábrica, Muse incluido', () => {
@@ -22,5 +22,15 @@ describe('installOrder', () => {
   it('instala antes Homebrew, Node.js y Python que los programas que los necesitan', () => {
     const ids = installOrder([{ id: 'cli:vibe' }, { id: 'claude' }, { id: 'python' }, { id: 'node' }, { id: 'brew' }] as { id: never }[]).map((t) => t.id)
     expect(ids).toEqual(['brew', 'python', 'node', 'cli:vibe', 'claude'])
+  })
+})
+
+describe('loginToolOf', () => {
+  it('da el programa en el que inicia sesión cada agente; los locales no tienen', () => {
+    expect(loginToolOf({ id: 'claude', provider: 'claude' })).toBe('claude')
+    expect(loginToolOf({ id: 'gemini', provider: 'gemini' })).toBe('gemini')
+    expect(loginToolOf({ id: 'aider', provider: 'cli' })).toBe('cli:aider')
+    expect(loginToolOf({ id: 'local', provider: 'lmstudio' })).toBeNull()
+    expect(loginToolOf({ id: 'local', provider: 'ollama' })).toBeNull()
   })
 })

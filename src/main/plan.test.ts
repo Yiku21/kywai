@@ -78,6 +78,13 @@ describe('plan más ágil', () => {
     expect(wantsSolo(PETICION)).toBe(false)
   })
 
+  it('lee los agentes que el usuario quiere conectar ("connect"), sin repetir', () => {
+    expect(parsePlan('{"reply":"ok","tasks":[],"connect":["codex"," claude ","codex"]}').connect).toEqual(['codex', 'claude'])
+    expect(parsePlan('{"reply":"ok","tasks":[],"connect":"gemini"}').connect).toEqual(['gemini'])
+    expect(parsePlan('{"reply":"ok","tasks":[]}').connect).toEqual([])
+    expect(parsePlan('texto libre').connect).toEqual([])
+  })
+
   it('lee el contrato común del plan (texto u objeto) y la integración final no se quita', () => {
     expect(parsePlan('{"reply":"ok","contract":"motor/ exporta evaluar()","tasks":[]}').contract).toBe('motor/ exporta evaluar()')
     expect(parsePlan('{"reply":"ok","contract":{"motor":"evaluar()"},"tasks":[]}').contract).toContain('"motor": "evaluar()"')

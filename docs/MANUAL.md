@@ -2394,6 +2394,26 @@ Si TikTok falla, la tarjeta dice **en qué paso** (preparar, enviar el vídeo, c
 
 Código: `src/main/tiktok.ts` (la API) y `completeTikTok`/`decideTikTokPost` en el orquestador.
 
+### Hermes te ayuda a conectar los agentes desde el chat
+
+Si escribes en el chat algo como «¿cómo conecto Codex?», «ayúdame a configurar los agentes» o «Claude dice que no
+tengo sesión», el coordinador pone en su plan los ids de esos agentes (`"connect"`; si no dices cuáles, todos menos el
+local) y kywai enseña una tarjeta **«Conectar agentes»** con una fila por agente:
+
+- Cada fila comprueba su estado al aparecer (los ya conectados salen con ✓ y su cuenta) y el contador dice «N de M listos».
+- **Conectar** hace todo lo que kywai puede hacer por ti: si falta el programa, lo instala (y antes Node.js o Python, si
+  los necesita), abre la ventana guiada de inicio de sesión (la misma de «Iniciar sesión» del asistente) y enseña sus
+  pasos debajo. Mientras tanto mira cada 5 segundos, y al volver a kywai, si ya quedó conectado (hasta 15 minutos).
+- Lo único que te toca es entrar con tu cuenta en el navegador y aceptar: ningún agente puede entrar en tus cuentas por
+  ti. En Gemini y en los agentes de catálogo con clave de API, la fila trae también un campo para pegar la clave y
+  «Conseguir una».
+- Desde Órbita o el navegador la tarjeta solo enseña el estado: la ventana de inicio de sesión se abre en el ordenador
+  donde está kywai. Las rutinas no la ponen.
+- En el último paso del asistente, lo que queda pendiente recuerda que se puede terminar pidiéndolo en el chat.
+
+Código: `proposeConnect` en el orquestador, `src/renderer/src/ui/left/ConnectAgentsBlock.tsx` y `loginToolOf` en
+`src/shared/setupTool.ts`.
+
 ### Hermes te propone habilidades
 
 Cuando una petición es de un campo especializado (un framework, un formato de archivo, un tipo de diseño, marketing,

@@ -982,7 +982,6 @@ export const pt: Record<string, string> = {
   "Elige el programa y el modelo (en LM Studio, descárgalo desde su app; en Ollama, desde aquí).": "Escolha o programa e o modelo (no LM Studio, baixe-o pelo app; no Ollama, daqui).",
   "Ningún agente elegido necesita iniciar sesión.": "Nenhum dos agentes escolhidos precisa fazer login.",
   "Así queda tu equipo en este ordenador:": "Assim fica a sua equipe neste computador:",
-  "Pendiente: vuelve a los pasos anteriores o termínalo más tarde desde ⚙ → Ajustes → Configurar agentes": "Pendente: volte aos passos anteriores ou termine depois em ⚙ → Ajustes → Configurar agentes",
   "Omitir por ahora": "Pular por enquanto",
   "Atrás": "Voltar",
   "Empezar a usar kywai": "Começar a usar o kywai",
@@ -3591,4 +3590,15 @@ export const pt: Record<string, string> = {
   "clic derecho (o Ctrl + V)": "botão direito (ou Ctrl + V)",
   "{label} te dirá qué hacer. Casi siempre se abre el navegador para que entres con tu cuenta y aceptes.": "{label} vai dizer o que fazer. Quase sempre o navegador abre para você entrar com sua conta e aceitar.",
   "⌘ Comando + V": "⌘ Command + V",
+  // Conectar agentes desde el chat (ConnectAgentsBlock.tsx)
+  "Agentes conectados": "Agentes conectados",
+  "Conectar agentes": "Conectar agentes",
+  "Esperando a que inicies sesión en la ventana que se abrió…": "Esperando você iniciar sessão na janela que abriu…",
+  "Esperando…": "Esperando…",
+  "Para conectarlos, abre este chat en el ordenador donde está kywai: la ventana de inicio de sesión se abre allí.": "Para conectá-los, abra este chat no computador onde está o kywai: a janela de login abre lá.",
+  "Pendiente: termínalo cuando quieras escribiendo en el chat «ayúdame a conectar {name}», o desde ⚙ → Ajustes → Configurar agentes": "Pendente: termine quando quiser escrevendo no chat “me ajuda a conectar {name}”, ou em ⚙ → Ajustes → Configurar agentes",
+  "Pulsa «Conectar» en cada uno: instalo lo que falte y abro su inicio de sesión. Tú solo tienes que entrar con tu cuenta y aceptar; yo compruebo cuándo queda listo.": "Clique em “Conectar” em cada um: eu instalo o que faltar e abro o login. Você só precisa entrar com sua conta e aceitar; eu verifico quando ficar pronto.",
+  "Pulsa «Conectar»: instalo {name} si falta y abro su inicio de sesión. Tú solo tienes que entrar con tu cuenta y aceptar; yo compruebo cuándo queda listo.": "Clique em “Conectar”: eu instalo o {name} se faltar e abro o login. Você só precisa entrar com sua conta e aceitar; eu verifico quando ficar pronto.",
+  "{name} se instala desde su web: {url}": "{name} se instala pelo site dele: {url}",
+  "{n} de {total} listos": "{n} de {total} prontos",
 }

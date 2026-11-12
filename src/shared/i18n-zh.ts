@@ -982,7 +982,6 @@ export const zh: Record<string, string> = {
   "Elige el programa y el modelo (en LM Studio, descárgalo desde su app; en Ollama, desde aquí).": "选择程序和模型（LM Studio 在其应用中下载；Ollama 在这里下载）。",
   "Ningún agente elegido necesita iniciar sesión.": "所选代理都不需要登录。",
   "Así queda tu equipo en este ordenador:": "这是你的团队在这台电脑上的情况：",
-  "Pendiente: vuelve a los pasos anteriores o termínalo más tarde desde ⚙ → Ajustes → Configurar agentes": "待完成：返回前面的步骤，或稍后在 ⚙ → 设置 → 设置代理 中完成",
   "Omitir por ahora": "暂时跳过",
   "Atrás": "返回",
   "Empezar a usar kywai": "开始使用 kywai",
@@ -3591,4 +3590,15 @@ export const zh: Record<string, string> = {
   "clic derecho (o Ctrl + V)": "右键（或 Ctrl + V）",
   "{label} te dirá qué hacer. Casi siempre se abre el navegador para que entres con tu cuenta y aceptes.": "{label} 会告诉你该做什么。几乎总是会打开浏览器，让你用账号登录并同意。",
   "⌘ Comando + V": "⌘ Command + V",
+  // Conectar agentes desde el chat (ConnectAgentsBlock.tsx)
+  "Agentes conectados": "智能体已连接",
+  "Conectar agentes": "连接智能体",
+  "Esperando a que inicies sesión en la ventana que se abrió…": "正在等待你在打开的窗口中登录…",
+  "Esperando…": "等待中…",
+  "Para conectarlos, abre este chat en el ordenador donde está kywai: la ventana de inicio de sesión se abre allí.": "要连接它们，请在安装 kywai 的电脑上打开此聊天：登录窗口会在那里打开。",
+  "Pendiente: termínalo cuando quieras escribiendo en el chat «ayúdame a conectar {name}», o desde ⚙ → Ajustes → Configurar agentes": "待完成：随时可在聊天中输入“帮我连接 {name}”完成，或在 ⚙ → 设置 → 配置智能体 中完成",
+  "Pulsa «Conectar» en cada uno: instalo lo que falte y abro su inicio de sesión. Tú solo tienes que entrar con tu cuenta y aceptar; yo compruebo cuándo queda listo.": "在每一个上点击“连接”：我会安装缺少的程序并打开登录。你只需用账号登录并同意；我会检查何时完成。",
+  "Pulsa «Conectar»: instalo {name} si falta y abro su inicio de sesión. Tú solo tienes que entrar con tu cuenta y aceptar; yo compruebo cuándo queda listo.": "点击“连接”：如果缺少 {name}，我会安装它并打开登录。你只需用账号登录并同意；我会检查何时完成。",
+  "{name} se instala desde su web: {url}": "{name} 需从其官网安装：{url}",
+  "{n} de {total} listos": "已就绪 {n}/{total}",
 }
