@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import {
   AppWindow,
   CalendarClock,
@@ -37,7 +37,8 @@ import { cx, errorText } from '../common/util'
 import { TABS_QUERY } from '../left/chatWidth'
 import { isSettingsKey, openSettings } from '../settings/SettingsDialog'
 import { ContextMenu, menuPoint, type MenuAt, type MenuEntry } from './ContextMenu'
-import { NEW_CHAT_KEYS, SEARCH_KEYS, isNewChatKey, isSearchKey, readCollapsed, saveCollapsed, shortDate } from './sidebarState'
+import { NEW_CHAT_KEYS, SEARCH_KEYS, SIDEBAR_DEFAULT, isNewChatKey, isSearchKey, readCollapsed, readSidebarWidth, saveCollapsed, saveSidebarWidth, shortDate } from './sidebarState'
+import { SidebarResizer } from './SidebarResizer'
 import { DragProvider, DragSlot, useDragged } from './DragSlot'
 import { applyOrder, chatKey, placeKey, projectKey, type Dragged, type DropPlace } from './dragOrder'
 import s from './Sidebar.module.css'
@@ -59,6 +60,17 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState<boolean>(readCollapsed)
   // En ventana estrecha la barra siempre queda plegada en su columna de iconos; la entera sale como cajón.
   const rail = collapsed || narrow
+  const [width, setWidth] = useState<number>(readSidebarWidth)
+  const [resizing, setResizing] = useState(false)
+
+  const onResize = useCallback((next: { width: number; rail: boolean }, done: boolean): void => {
+    setResizing(!done)
+    setWidth(next.width)
+    setCollapsed(next.rail)
+    if (!done) return
+    saveCollapsed(next.rail)
+    saveSidebarWidth(next.width === SIDEBAR_DEFAULT ? null : next.width)
+  }, [])
 
   const closeDrawer = useCallback(() => useCowork.setState({ drawerOpen: false }), [])
   useEscape(narrow && drawerOpen, closeDrawer)
@@ -90,7 +102,12 @@ export function Sidebar() {
   }
 
   const panel = (
-    <nav className={cx(s.bar, rail && s.rail)} aria-label={t('Barra lateral: conversaciones y proyectos')}>
+    <nav
+      className={cx(s.bar, rail && s.rail)}
+      data-resizing={resizing || undefined}
+      style={rail ? undefined : ({ '--side-w': `${width}px` } as CSSProperties)}
+      aria-label={t('Barra lateral: conversaciones y proyectos')}
+    >
       <div className={s.top}>
         <button
           type="button"
@@ -109,7 +126,14 @@ export function Sidebar() {
     </nav>
   )
 
-  if (!narrow || !drawerOpen) return panel
+  if (!narrow)
+    return (
+      <>
+        {panel}
+        <SidebarResizer width={width} rail={rail} onChange={onResize} />
+      </>
+    )
+  if (!drawerOpen) return panel
   // Con la barra entera abierta encima, la columna de iconos se oculta (sin mover el chat) para no verse a través.
   return (
     <>

@@ -15,6 +15,7 @@
 }
 
 .side {
+  position: relative;
   display: flex;
   flex: none;
   min-height: 0;

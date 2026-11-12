@@ -2,7 +2,7 @@
 .bar {
   display: flex;
   flex-direction: column;
-  width: 252px;
+  width: var(--side-w, 252px);
   min-height: 0;
   height: 100%;
   background: var(--bg-panel);
@@ -16,6 +16,44 @@
 
 .rail {
   width: 58px;
+}
+
+/* Mientras se arrastra el borde, el ancho sigue al ratón sin animación. */
+.bar[data-resizing] {
+  transition: none;
+}
+
+/* Borde derecho de la barra, en el hueco entre la barra y el chat: se arrastra para cambiar su ancho. */
+.resizer {
+  position: absolute;
+  top: 0;
+  bottom: 14px;
+  right: -11px;
+  z-index: 4;
+  width: 12px;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.resizer::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 50%;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 3px;
+  background: var(--cyan);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.resizer:hover::after,
+.resizer:active::after,
+.resizer:focus-visible::after {
+  opacity: 0.7;
 }
 
 .top {

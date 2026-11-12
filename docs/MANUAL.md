@@ -3702,6 +3702,11 @@ el chat:
   el ancho, en vez de dejar libre la columna del avatar.
 
 - **Barra lateral:** ocupa unos 250 px abierta y 58 px plegada; los porcentajes de arriba se reparten en lo que deja.
+  **Su ancho se puede cambiar:** arrastra su **borde derecho** (al pasar el ratón sale una raya azul), entre 200 y
+  440 px. Llevada casi del todo a la izquierda se **pliega** en su columna de iconos, y desde la columna, arrastrar a
+  la derecha la vuelve a abrir (con el ancho que tenía). **Doble clic** en el borde vuelve a los 250 px de siempre.
+  Con el teclado: Tab hasta el borde, flechas izquierda/derecha e Inicio. El ancho se recuerda en ese equipo
+  (`localStorage` `ai-cowork.sidebarWidth`; el asa es `ui/sidebar/SidebarResizer.tsx`).
 - **Controles de la cámara:** vista general, acercar, alejar y pantalla completa flotan en la esquina de abajo a la
   derecha del espacio 3D (ya no hay barra debajo; «Reducir efectos ambientales» está en ⚙ → Ajustes).
 

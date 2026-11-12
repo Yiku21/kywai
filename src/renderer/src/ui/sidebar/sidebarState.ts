@@ -23,6 +23,38 @@ export function saveCollapsed(collapsed: boolean): void {
   }
 }
 
+/** Ancho de la barra abierta: se cambia arrastrando su borde derecho. */
+export const SIDEBAR_DEFAULT = 252
+export const SIDEBAR_MIN = 200
+export const SIDEBAR_MAX = 440
+/** Arrastrada por debajo de esto, la barra se pliega en su columna de iconos. */
+export const SIDEBAR_FOLD_BELOW = 150
+const WIDTH_KEY = 'ai-cowork.sidebarWidth'
+
+export function clampSidebarWidth(w: number): number {
+  return Math.round(Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w)))
+}
+
+export function readSidebarWidth(): number {
+  try {
+    const v = Number(localStorage.getItem(WIDTH_KEY))
+    if (Number.isFinite(v) && v > 0) return clampSidebarWidth(v)
+  } catch {
+    // Sin almacenamiento: el ancho de siempre.
+  }
+  return SIDEBAR_DEFAULT
+}
+
+/** null vuelve al ancho de siempre. */
+export function saveSidebarWidth(w: number | null): void {
+  try {
+    if (w == null) localStorage.removeItem(WIDTH_KEY)
+    else localStorage.setItem(WIDTH_KEY, String(clampSidebarWidth(w)))
+  } catch {
+    // Sin almacenamiento: dura hasta cerrar.
+  }
+}
+
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
 const MOD = isMac ? '⌘' : 'Ctrl'
 
