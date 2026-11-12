@@ -140,17 +140,25 @@ Se pega una línea en una terminal y kywai queda instalada y abierta con la últ
   redirección de `releases/latest`. Con `KYWAI_VERSION=0.1.252` (o `$env:KYWAI_VERSION` en Windows) instalan una versión concreta.
 - **Windows:** baja `kywai-Setup-<versión>.exe` a la carpeta temporal y lo ejecuta en silencio (`/S`): se instala para el usuario,
   sin permisos de administrador, con acceso directo en el Escritorio y en Inicio; si ya estaba instalada, se actualiza en la
-  misma carpeta (la que guarda el registro). Luego abre kywai. Si kywai está abierta, avisa y no hace nada. El archivo es solo
+  misma carpeta (la que guarda el registro). Luego abre kywai. Si kywai está abierta, pregunta «¿La cierro yo? [S/n]»
+  (Intro = sí): la cierra (también de la bandeja) y sigue; si no se cierra, dice cómo hacerlo. El archivo es solo
   ASCII y los acentos van como `\u00e1` (Windows PowerShell 5.1 puede leer la descarga con otra codificación).
 - **macOS:** elige Apple silicon o Intel (también desde un Terminal con Rosetta), baja el `.zip` de la Release, deja `kywai.app` en
   `/Applications` (o en `~/Applications` si no se puede escribir allí), le quita la cuarentena (`xattr -cr`) para que no salga «está
-  dañada» y la abre. Si sigue la antigua `AI Cowork.app`, lo dice (se puede borrar; los datos se conservan).
+  dañada» y la abre. Si kywai está abierta, pregunta si la cierra (`quit app`, lee la respuesta de `/dev/tty`). Si sigue la antigua `AI Cowork.app`, lo dice (se puede borrar; los datos se conservan).
 - **Linux** (x64 o ARM): deja el AppImage en `~/.local/share/kywai/kywai.AppImage` (nombre fijo, para que la actualización
   automática lo reemplace), el icono, la entrada del menú de aplicaciones y la orden `~/.local/bin/kywai`. Si falta libfuse2,
   intenta instalarla con sudo (apt, dnf, pacman o zypper); si no puede, la orden abre el AppImage con `APPIMAGE_EXTRACT_AND_RUN=1`
   (arranca algo más lento). Si el sistema restringe los espacios de nombres de usuario (Ubuntu 24.04…), añade `--no-sandbox`,
   porque dentro de un AppImage el ayudante chrome-sandbox no puede ser de root.
 - Ninguno toca la carpeta de datos: se puede repetir la orden para reinstalar o actualizar.
+- **Hablan claro, paso a paso** (lo mismo que dice la web): al empezar, «Esto tarda unos 2 minutos. No cierres esta ventana
+  hasta que ponga «Listo»»; luego «Paso 1 de 3: buscando la última versión y descargándola», «Paso 2 de 3: instalando…»,
+  «Paso 3 de 3: abriendo kywai» y al final «✓ Listo: kywai está instalada. Ya puedes cerrar esta ventana», con colores si es
+  una terminal (sin colores con `NO_COLOR` o en un registro). Cada fallo dice en sencillo qué pasó y qué hacer (revisar la
+  conexión, cerrar kywai…), recuerda que repetir la orden no rompe nada y enlaza al instalador de kywai.app. En Linux, antes
+  de pedir la contraseña para libfuse2 explica que no se ve al escribirla. Solo español e inglés (según el idioma del sistema);
+  la web en portugués, francés y chino cita los mensajes en inglés.
 - Probado: Linux x64 en un contenedor (descarga la 0.1.255, instala, crea menú y orden, y la app abre con Xvfb), y la
   deducción de versión sin la API. Sin probar todavía en un Windows, un Mac ni un escritorio Linux reales.
 
