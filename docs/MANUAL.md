@@ -3703,6 +3703,9 @@ el chat:
   sale al pasar el ratón). Si aun así no caben, la fila **se desplaza de izquierda a derecha** con la rueda del ratón
   (también la normal, sin Mayús), con el trackpad o con las flechas **‹ ›** que salen en los bordes; la pestaña
   abierta siempre queda a la vista. Al ensanchar, vuelven los nombres.
+- **Cabecera del Espacio digital:** cuando el 3D se queda estrecho, sus botones se compactan (primero el texto de la
+  demo y de «Música», luego los nombres de «Modo noche» y «Auto»); el título se recorta con «…» y, si aun así falta
+  sitio, queda solo su icono. Nada se monta encima del título.
 - **Chat estrecho:** si el panel mide menos de 520 px, el texto de cada mensaje empieza debajo del avatar y usa todo
   el ancho, en vez de dejar libre la columna del avatar.
 

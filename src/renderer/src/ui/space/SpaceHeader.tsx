@@ -19,7 +19,7 @@ export function SpaceHeader() {
 
   return (
     <div className={s.bar}>
-      <div className={s.titleWrap}>
+      <div className={s.titleWrap} title={t('Espacio digital')}>
         <Building2 size={20} aria-hidden="true" className={s.titleIcon} />
         <h2 className={s.title}>{t('Espacio digital')}</h2>
       </div>

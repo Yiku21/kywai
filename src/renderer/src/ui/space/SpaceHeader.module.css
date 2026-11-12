@@ -14,6 +14,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -29,15 +30,17 @@
   letter-spacing: -0.005em;
   color: var(--text-1);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-shadow: var(--title-shadow, 0 1px 8px rgba(0, 0, 0, 0.6));
 }
 
 .right {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   margin-left: auto;
-  min-width: 0;
 }
 
 /* ---------- Píldoras de estado ---------- */
@@ -164,7 +167,8 @@
   height: 26px;
 }
 
-@container spaceheader (max-width: 620px) {
+/* Sin sitio para todo: fuera lo menos importante primero, para que nada se monte encima del título. */
+@container spaceheader (max-width: 860px) {
   .scene {
     display: none;
   }
@@ -191,14 +195,20 @@
   }
 }
 
+/* Muy estrecho: del título queda solo el icono (el nombre sale al pasar el ratón). */
+@container spaceheader (max-width: 540px) {
+  .title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
 @container spaceheader (max-width: 400px) {
-  .titleIcon,
   .pill {
     display: none;
-  }
-  .title {
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 }
 
