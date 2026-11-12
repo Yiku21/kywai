@@ -213,9 +213,23 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .cmd > p { color: var(--muted); font-size: 15px; }
 .cmd-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .cmd-row.mine { background: color-mix(in srgb, var(--blue) 9%, var(--surface)); }
-.cmd-row .os { font: 600 15px/1.3 var(--display); }
+.os-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.os-tabs button { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: 600 15px/1 var(--display); cursor: pointer; }
+.os-tabs button[aria-selected="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+.guide { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.guide[hidden] { display: none; }
+.guide > li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.guide .n { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--blue) 16%, var(--surface)); color: var(--blue); font: 700 16px/1 var(--display); }
+.guide h4 { margin: 4px 0 6px; font: 600 17px/1.3 var(--display); }
+.guide p { margin: 0; color: var(--muted); font-size: 15px; }
+.guide .cmd-row { margin-top: 12px; background: var(--bg-2); }
+.guide .cmd-row button { background: var(--blue); border-color: var(--blue); color: #fff; }
+.guide-help { display: grid; gap: 8px; }
+.guide-help details { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 12px 16px; }
+.guide-help summary { cursor: pointer; font-weight: 600; }
+.guide-help p { margin: 8px 0 0; color: var(--muted); font-size: 15px; }
 .cmd-row code { grid-column: 1; display: block; font-size: 14px; overflow-wrap: anywhere; padding: 2px 0; }
-.cmd-row button { grid-column: 2; grid-row: 1 / span 2; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: 600 14px/1 var(--body, inherit); cursor: pointer; }
+.cmd-row button { grid-column: 2; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: 600 14px/1 var(--body, inherit); cursor: pointer; }
 .cmd-row button:hover { border-color: var(--blue); }
 .notes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin-top: 40px; }
 .notes section { display: grid; gap: 10px; align-content: start; }
@@ -507,8 +521,31 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       <div class="cmd" id="install">
         <h3>{{download.cmdT}}</h3>
         <p>{{download.cmd}}</p>
-        <div class="cmd-row" data-os="win"><span class="os">{{download.cmdWin}}</span><code>irm https://kywai.app/install.ps1 | iex</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div>
-        <div class="cmd-row" data-os="unix"><span class="os">{{download.cmdUnix}}</span><code>curl -fsSL https://kywai.app/install.sh | bash</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div>
+        <div class="os-tabs" role="tablist" aria-label="{{download.cmdT}}">
+          <button type="button" role="tab" id="tab-win" data-guide="win" aria-selected="true">{{download.tabWin}}</button>
+          <button type="button" role="tab" id="tab-mac" data-guide="mac" aria-selected="false">{{download.tabMac}}</button>
+          <button type="button" role="tab" id="tab-lin" data-guide="lin" aria-selected="false">{{download.tabLinux}}</button>
+        </div>
+        <ol class="guide" id="guide-win" role="tabpanel" aria-labelledby="tab-win">
+          <li><span class="n" aria-hidden="true">1</span><div><h4>{{download.win1T}}</h4><p>{{download.win1}}</p></div></li>
+          <li><span class="n" aria-hidden="true">2</span><div><h4>{{download.win2T}}</h4><p>{{download.win2}}</p><div class="cmd-row" data-os="win"><code>irm https://kywai.app/install.ps1 | iex</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div></div></li>
+          <li><span class="n" aria-hidden="true">3</span><div><h4>{{download.win3T}}</h4><p>{{download.win3}}</p></div></li>
+        </ol>
+        <ol class="guide" id="guide-mac" role="tabpanel" aria-labelledby="tab-mac" hidden>
+          <li><span class="n" aria-hidden="true">1</span><div><h4>{{download.mac1T}}</h4><p>{{download.mac1}}</p></div></li>
+          <li><span class="n" aria-hidden="true">2</span><div><h4>{{download.mac2T}}</h4><p>{{download.mac2}}</p><div class="cmd-row" data-os="unix"><code>curl -fsSL https://kywai.app/install.sh | bash</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div></div></li>
+          <li><span class="n" aria-hidden="true">3</span><div><h4>{{download.mac3T}}</h4><p>{{download.mac3}}</p></div></li>
+        </ol>
+        <ol class="guide" id="guide-lin" role="tabpanel" aria-labelledby="tab-lin" hidden>
+          <li><span class="n" aria-hidden="true">1</span><div><h4>{{download.lin1T}}</h4><p>{{download.lin1}}</p></div></li>
+          <li><span class="n" aria-hidden="true">2</span><div><h4>{{download.lin2T}}</h4><p>{{download.lin2}}</p><div class="cmd-row" data-os="unix"><code>curl -fsSL https://kywai.app/install.sh | bash</code><button type="button" data-copy="{{download.copied}}">{{download.copy}}</button></div></div></li>
+          <li><span class="n" aria-hidden="true">3</span><div><h4>{{download.lin3T}}</h4><p>{{download.lin3}}</p></div></li>
+        </ol>
+        <div class="guide-help">
+          <details><summary>{{download.safeT}}</summary><p>{{download.safe}}</p></details>
+          <details><summary>{{download.helpT}}</summary><p>{{download.help}}</p></details>
+          <details><summary>{{download.nextT}}</summary><p>{{download.next}}</p></details>
+        </div>
         <p>{{download.cmdOr}}</p>
       </div>
       <ul class="dl">
@@ -605,9 +642,18 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     if (os === 'android' && row) hero.href = row.querySelector('a').href;
     hero.querySelector('span').textContent = hero.getAttribute('data-for') + ' ' + names[os];
   }
-  // La orden de una línea del sistema de quien mira, resaltada; el botón la copia.
-  var cmdRow = os && os !== 'android' && document.querySelector('.cmd-row[data-os="' + (os === 'win' ? 'win' : 'unix') + '"]');
-  if (cmdRow) cmdRow.classList.add('mine');
+  // Instalación guiada: se abre la pestaña del sistema de quien mira (Windows si no se sabe).
+  var tabs = document.querySelectorAll('.os-tabs [data-guide]');
+  function showGuide(key) {
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('data-guide') === key;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      document.getElementById('guide-' + t.getAttribute('data-guide')).hidden = !on;
+    });
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function () { showGuide(t.getAttribute('data-guide')); }); });
+  if (os === 'mac-arm') showGuide('mac');
+  else if (os === 'linux-x64' || os === 'linux-arm') showGuide('lin');
   document.querySelectorAll('.cmd-row button').forEach(function (b) {
     var label = b.textContent;
     b.addEventListener('click', function () {

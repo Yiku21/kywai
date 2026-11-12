@@ -126,6 +126,13 @@ Se pega una línea en una terminal y kywai queda instalada y abierta con la últ
 | Windows 10/11 | PowerShell | `irm https://kywai.app/install.ps1 \| iex` |
 | macOS y Linux | Terminal | `curl -fsSL https://kywai.app/install.sh \| bash` |
 
+- **En kywai.app, paso a paso** (`web/plantilla.html`, sección «Instálala en 3 pasos»): pestañas Windows, Mac y Linux (se abre
+  sola la del sistema de quien mira; Windows si no se sabe). Cada una dice 1) cómo abrir la terminal (tecla Windows y
+  «PowerShell»; ⌘ + Espacio y «Terminal»; Ctrl + Alt + T), 2) copiar con el botón y cómo pegar (clic derecho o Ctrl + V;
+  ⌘ + V; Ctrl + Mayús + V) y pulsar Intro, y 3) qué se va a ver («Paso 1 de 3»… «Listo») y cuánto tarda. Debajo, tres
+  desplegables: «¿Es seguro?», «¿Ha salido un error?» y «¿Y después?». Los textos están en `web/textos.mjs` (5 idiomas);
+  si cambian los mensajes de los scripts, hay que cambiar también estos.
+
 - Los scripts son `scripts/instalar-kywai.ps1` y `scripts/instalar-kywai.sh`. `web/build.mjs` los copia tal cual a la web como
   `install.ps1` e `install.sh`, y `publicar-web.yml` vuelve a publicar la web cuando cambian. Si se cambia un script, se cambia en
   `scripts/` (nunca en `web/dist/`).
