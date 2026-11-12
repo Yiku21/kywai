@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   Blocks,
   Bot,
+  BellRing,
   ChevronDown,
   Coffee,
   Download,
@@ -39,6 +40,7 @@ import {
 import { useQuality, type QualityChoice } from '../../scene/quality'
 import { useMeter } from '../../scene/perfStats'
 import { SKINS, useAgentSkin, type AgentSkin } from '../../scene/characters'
+import { useInboxAlert } from '@/lib/inboxAlert'
 import type { AgentAccess, AgentConfig, ClientUpdateState } from '@shared/types'
 import { MAX_INSTANCES, MAX_TEAM_PARALLEL, instancesFor } from '@shared/instances'
 import { isLocalEngine } from '@shared/localEngines'
@@ -308,6 +310,7 @@ function AgentsTab() {
   const mode = useCowork((st) => st.mode)
   const access = useCowork((st) => st.config.agentAccess)
   const skin = useAgentSkin((st) => st.skin)
+  const callIn3d = useInboxAlert((st) => st.callIn3d)
   const approval = useCowork((st) => st.config.planApproval !== false)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -345,6 +348,17 @@ function AgentsTab() {
             </option>
           ))}
         </select>
+      </Row>
+      <Row
+        icon={<BellRing size={18} />}
+        label={t('El coordinador te avisa en el 3D')}
+        hint={
+          callIn3d
+            ? t('Con algo nuevo en «Te necesita», saluda, te llama con su voz y lleva una campanita sobre la cabeza')
+            : t('Apagado: el coordinador no se mueve ni te llama. La campanita de la barra y su timbre siguen avisando')
+        }
+      >
+        <Switch on={callIn3d} label={t('El coordinador te avisa en el 3D')} onChange={() => useInboxAlert.getState().setCallIn3d(!callIn3d)} />
       </Row>
       <Row
         icon={<ShieldCheck size={18} />}

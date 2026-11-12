@@ -3608,4 +3608,7 @@ export const en: Record<string, string> = {
   "Quitar de Favoritos": "Remove from Favorites",
   "Arrastra aquí un chat o un proyecto (o clic derecho → Añadir a Favoritos)": "Drag a chat or a project here (or right-click → Add to Favorites)",
   "¡Te necesito! Hay algo nuevo en «Te necesita».": "I need you! There's something new in “Needs you”.",
+  "El coordinador te avisa en el 3D": "The coordinator alerts you in 3D",
+  "Con algo nuevo en «Te necesita», saluda, te llama con su voz y lleva una campanita sobre la cabeza": "When something new arrives in “Needs you”, it waves, calls you with its voice and wears a bell over its head",
+  "Apagado: el coordinador no se mueve ni te llama. La campanita de la barra y su timbre siguen avisando": "Off: the coordinator doesn’t move or call you. The sidebar bell and its chime still alert you",
 }

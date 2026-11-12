@@ -3485,4 +3485,7 @@ export const zh: Record<string, string> = {
   "Quitar de Favoritos": "取消收藏",
   "Arrastra aquí un chat o un proyecto (o clic derecho → Añadir a Favoritos)": "把对话或项目拖到这里（或右键 → 加入收藏）",
   "¡Te necesito! Hay algo nuevo en «Te necesita».": "需要你！「需要你」里有新内容。",
+  "El coordinador te avisa en el 3D": "协调者在 3D 中提醒你",
+  "Con algo nuevo en «Te necesita», saluda, te llama con su voz y lleva una campanita sobre la cabeza": "「需要你」有新内容时，它会挥手、用声音叫你，并在头顶显示铃铛",
+  "Apagado: el coordinador no se mueve ni te llama. La campanita de la barra y su timbre siguen avisando": "已关闭：协调者不会动也不会叫你。侧栏的铃铛和提示音仍会提醒",
 }

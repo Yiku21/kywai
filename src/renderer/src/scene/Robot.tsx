@@ -153,7 +153,8 @@ export function Robot({ agent, station, stations, leaving }: Props) {
 
   // El coordinador (el primero en planificar) avisa de lo nuevo en «Te necesita»: campanita sobre la cabeza mientras
   // no lo mires y, al llegar, se vuelve hacia ti, saluda y te llama (bocadillo y su voz, si las voces están activadas).
-  const isCoordinator = useCowork((s) => s.config.plannerOrder?.[0] === agent.id) && !agent.isSubagent
+  const callIn3d = useInboxAlert((s) => s.callIn3d)
+  const isCoordinator = useCowork((s) => s.config.plannerOrder?.[0] === agent.id) && !agent.isSubagent && callIn3d
   const ringingNow = useInboxAlert((s) => s.ringing)
   const ringing = ringingNow && isCoordinator
   const ringAmt = useRef(0)

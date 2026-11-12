@@ -57,7 +57,8 @@ export function RobotLabel({ agent }: Props) {
   // El coordinador te llama: campanita dorada que palpita sobre su etiqueta mientras no abras «Te necesita».
   const ringing = useInboxAlert((st) => st.ringing);
   const isCoordinator = useCowork((st) => st.config.plannerOrder?.[0] === agent.id);
-  const calling = ringing && isCoordinator && !agent.isSubagent;
+  const callIn3d = useInboxAlert((st) => st.callIn3d);
+  const calling = ringing && isCoordinator && callIn3d && !agent.isSubagent;
 
   // Reposo: se evalúa cada pocos segundos (no en cada fotograma).
   const [, tick] = useState(0);

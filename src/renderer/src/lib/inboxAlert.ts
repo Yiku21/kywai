@@ -9,7 +9,23 @@ import { playSfx } from './audio'
  * brillo suave, suena su propio timbre (con «Música y efectos») y el coordinador te llama en el espacio 3D con una
  * campanita sobre la cabeza. Todo se calma al abrir «Te necesita».
  */
+const CALL_KEY = 'aicowork.agentes.avisoEn3d'
+
+function readCallIn3d(): boolean {
+  try {
+    return localStorage.getItem(CALL_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
 interface InboxAlertState {
+  /**
+   * El coordinador avisa en el espacio 3D (campanita sobre la cabeza, saludo, bocadillo y voz). Se apaga en
+   * Ajustes → Agentes; la campanita de la barra y su timbre siguen igual. Por dispositivo.
+   */
+  callIn3d: boolean
+  setCallIn3d(on: boolean): void
   /** Hay avisos que aún no has mirado: la campanita palpita (en la barra y sobre el coordinador). */
   ringing: boolean
   /** Cuándo llegó el último aviso nuevo (ms): el coordinador saluda y te llama. 0 si nunca. */
@@ -23,6 +39,15 @@ interface InboxAlertState {
 }
 
 export const useInboxAlert = create<InboxAlertState>((set) => ({
+  callIn3d: readCallIn3d(),
+  setCallIn3d(on) {
+    try {
+      localStorage.setItem(CALL_KEY, on ? '1' : '0')
+    } catch {
+      /* sin almacenamiento: vale para esta sesión */
+    }
+    set({ callIn3d: on })
+  },
   ringing: false,
   calledAt: 0,
   openSeq: 0,
