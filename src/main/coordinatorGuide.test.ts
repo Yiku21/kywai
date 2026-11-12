@@ -81,7 +81,7 @@ describe('lo que sabe el coordinador de kywai', () => {
 
   it('ambigüedad, límites del equipo y funciones de la app', () => {
     const g = text(coordinatorGuide({ projectDir: proj, fullAccess: true }, env(['http://100.1.2.3:8787', 'https://100.1.2.3:8788 (con micrófono)'])))
-    expect(g).toMatch(/haz UNA pregunta corta en "reply"[\s\S]*«una APK para el acceso remoto»/)
+    expect(g).toMatch(/haz UNA pregunta corta en "questions"[\s\S]*«una APK para el acceso remoto»/)
     expect(g).toMatch(/Ningún agente produce audio, música/)
     expect(g).toContain('/model (ver y cambiar tu modelo, el de Hermes')
     expect(g).toContain('Ajustes → Órbita → «Buscar actualizaciones»')

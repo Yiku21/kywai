@@ -488,6 +488,8 @@ data class ChatMessage(
     val routineProposal: RoutineProposal? = null,
     /** Mensaje tuyo editado: la versión que se ve y las demás (flechas ‹ 2/3 ›). */
     val versions: MessageVersions? = null,
+    /** Preguntas con opciones del agente o de Hermes: se contestan en la tarjeta de preguntas. */
+    val questions: ChatQuestions? = null,
 ) {
     /** Conversación (proyecto) a la que pertenece, si el servidor lo indica. */
     val ownerId: String? get() = conversationId ?: projectId
@@ -505,6 +507,24 @@ data class VersionRef(val at: Int = 0)
 
 @Serializable
 data class DirectTarget(val agentId: String, val name: String = agentId)
+
+/** Una opción de una pregunta del agente; [recommended]: la que él elegiría. */
+@Serializable
+data class QuestionOption(val label: String, val detail: String? = null, val recommended: Boolean = false)
+
+@Serializable
+data class AgentQuestion(val question: String, val options: List<QuestionOption> = emptyList())
+
+/** Tu respuesta a una pregunta: una opción ([choice]), lo que escribiste ([text]) o nada (Omitir). */
+@Serializable
+data class QuestionAnswer(val choice: Int? = null, val text: String? = null, val skipped: Boolean = false)
+
+@Serializable
+data class AnsweredQuestions(@Serializable(with = FlexibleTimeSerializer::class) val at: Long? = null, val answers: List<QuestionAnswer> = emptyList())
+
+/** Tarjeta de preguntas de un mensaje (una cada vez, la recomendada marcada y un campo para escribir la tuya). */
+@Serializable
+data class ChatQuestions(val items: List<AgentQuestion> = emptyList(), val answered: AnsweredQuestions? = null)
 
 @Serializable
 data class ContextUsage(val used: Long = 0, val capacity: Long? = null)
@@ -754,6 +774,8 @@ data class Capabilities(
     val replyTo: Boolean = false,
     /** «Responder» en un pendiente de la memoria: POST /memory/{id}/answer. */
     val memoryAnswer: Boolean = false,
+    /** Tarjeta de preguntas con opciones: answers en POST /chat/messages. */
+    val questions: Boolean = false,
     /** «/recuerda …» enviado como mensaje va a la memoria; la instantánea trae modCommands. */
     val chatCommands: Boolean = false,
     /** Varios chats por proyecto (GET/POST /chats, /chats/{id}/open|rename|delete). */

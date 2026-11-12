@@ -24,6 +24,7 @@ import com.aicowork.remote.data.model.AgentThinkingResponse
 import com.aicowork.remote.data.model.ApiErrorBody
 import com.aicowork.remote.data.model.AppRelease
 import com.aicowork.remote.data.model.Attachment
+import com.aicowork.remote.data.model.QuestionAnswer
 import com.aicowork.remote.data.model.Conversation
 import com.aicowork.remote.data.model.ConversationOnlyRequest
 import com.aicowork.remote.data.model.ConversationResponse
@@ -87,9 +88,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl
@@ -231,6 +234,28 @@ class CoworkApiClient(
             if (templateId != null) put("templateId", templateId)
             if (replyTo != null) put("replyTo", replyTo)
             if (editOf != null) put("editOf", editOf)
+        }.toString(),
+        SendMessageResponse.serializer(),
+    )
+
+    /** Respuestas a la tarjeta de preguntas del mensaje [messageId]: el ordenador arma el texto y se lo manda a quien preguntó. */
+    suspend fun answerQuestions(conversationId: String, messageId: String, answers: List<QuestionAnswer>, clientMessageId: String): SendMessageResponse = post(
+        "/chat/messages",
+        buildJsonObject {
+            put("conversationId", conversationId)
+            put("clientMessageId", clientMessageId)
+            putJsonObject("answers") {
+                put("messageId", messageId)
+                putJsonArray("answers") {
+                    answers.forEach { a ->
+                        addJsonObject {
+                            a.choice?.let { put("choice", it) }
+                            a.text?.let { put("text", it) }
+                            if (a.choice == null && a.text == null) put("skipped", true)
+                        }
+                    }
+                }
+            }
         }.toString(),
         SendMessageResponse.serializer(),
     )

@@ -158,6 +158,8 @@ export interface MobileSnapshot {
     replyTo?: boolean
     /** «Responder» en un pendiente de la memoria: POST /memory/{memoryId}/answer ({ conversationId, text }). */
     memoryAnswer?: boolean
+    /** Tarjeta de preguntas con opciones (message.questions): se contesta con answers en POST /chat/messages. */
+    questions?: boolean
   }
 }
 

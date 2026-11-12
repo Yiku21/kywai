@@ -56,6 +56,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Reiniciar un agente que falla](#reiniciar-un-agente-que-falla)
   - [Hablar directamente con un agente (@Agente)](#hablar-directamente-con-un-agente-agente)
   - [Responder a un agente (que revise o continúe su respuesta)](#responder-a-un-agente-que-revise-o-continúe-su-respuesta)
+  - [Preguntas de los agentes con opciones](#preguntas-de-los-agentes-con-opciones)
   - [Razonamiento (think) del modelo local](#razonamiento-think-del-modelo-local)
   - [El modelo de Hermes (/model)](#el-modelo-de-hermes-model)
   - [Muse (Meta)](#muse-meta)
@@ -1677,6 +1678,31 @@ que la revise o la continúe: «la suma está mal, revísala», «sigue con el p
 Para desarrolladores: `replyTo` (id de la respuesta) en `SendMessageInput` y en POST `/chat/messages` de la API móvil
 (`capabilities.replyTo`); el mensaje tuyo lleva `replyTo: { messageId, agentId, name, excerpt }`. El texto que recibe el
 agente lo arma `replyRequest` de `src/shared/replyTo.ts`; la ruta está en `sendMessage` de `src/main/orchestrator.ts`.
+
+### Preguntas de los agentes con opciones
+
+Cuando un agente (o Hermes) necesita que decidas algo, ya no te deja una lista de «Dudas abiertas» en el texto: debajo
+de su respuesta sale una **tarjeta de preguntas**, como la de Claude, en el escritorio, la web y Órbita.
+
+- **Una pregunta cada vez**, con «1 de 3» y ‹ › arriba para ir y volver, y una ✕ para plegarla sin contestar (queda un
+  botón «Contestar las 3 preguntas» para abrirla otra vez).
+- **Opciones numeradas** con una frase de qué pasa si la eliges. La que el agente cree mejor lleva la etiqueta
+  **«Recomendada»**. Pulsa una (o su número en el teclado) y pasa a la siguiente pregunta.
+- **Siempre al final, un campo para escribir tu propia respuesta** («Otra cosa: escribe tu respuesta», con Intro o
+  «Enviar») u **«Omitir»** si no quieres decidir esa (el agente hará lo más razonable).
+- Al contestar la última, tus respuestas **vuelven a quien preguntó**: al agente de esa tarea o de ese mensaje directo
+  (retoma su sesión, como con «Responder») o a Hermes, que planifica otra vez con lo que elegiste. En el chat sale tu
+  mensaje «Mis respuestas a tus preguntas:» con cada pregunta y lo que contestaste, y la tarjeta se queda plegada con
+  el resumen («Contestado»).
+- Mientras esperan respuesta, «Te necesita» avisa («Claude te pregunta…») y se cierra al contestar.
+
+Para desarrolladores: los agentes dejan sus preguntas al final de la respuesta en un bloque ` ```preguntas ` con JSON
+(`[{"pregunta", "opciones": [{"titulo", "detalle", "recomendada"}]}]`, regla `QUESTIONS_RULE` en las tareas, consultas
+y mensajes directos); Hermes, en el campo `"questions"` de su plan. `pushMessage` quita el bloque del texto y lo guarda en
+`ChatMessage.questions` (`src/shared/agentQuestions.ts`). Se contesta con `answers: { messageId, answers }` en
+`SendMessageInput` (`answerQuestions` en `src/main/orchestrator.ts`) y en POST `/chat/messages` de la API móvil
+(`capabilities.questions`; el texto lo arma el servidor). La tarjeta: `QuestionsBlock` en `Messages.tsx` y
+`QuestionsCard` en Órbita (`PanelsQuestions.kt`).
 
 ### Razonamiento (think) del modelo local
 

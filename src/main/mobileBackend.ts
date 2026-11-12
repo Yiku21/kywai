@@ -1,6 +1,6 @@
 import { rmSync } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
-import type { AgentAccess, AgentConfig, ConversationSummary, VideoCharacterInfo, VideoVoiceInfo, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectFileRef, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun, WhatsNew, RoutineInput, ChatMessage } from '@shared/types'
+import type { AgentAccess, AgentConfig, ConversationSummary, VideoCharacterInfo, VideoVoiceInfo, SearchHit, SearchResult, MusicResult, AgentRuntime, AppConfig, Attachment, HermesModelsInfo, InboxItem, TaskChangeSet, MemoryEntry, MemoryKind, MemoryStatus, ProjectFileRef, ProjectState, ProjectSummary, QuotaInfo, Routine, RoutineRun, TaskTemplate, TraceEntry, UpdateStatus, UsageRun, WhatsNew, RoutineInput, ChatMessage, SendMessageInput } from '@shared/types'
 import type { MobileChatReceipt, MobileConversation, MobileCost, MobileFiles, MobileMusicResult, MobileVideoPicker, MobileProject, MobileQuality, MobileServerUpdate, MobileSnapshot, MobileUsage } from '@shared/mobile'
 import { agentQuality, QUALITY_MIN_TASKS } from '@shared/agentQuality'
 import { mobileCost } from '@shared/costs'
@@ -150,6 +150,7 @@ export class MobileBackend {
         replyTo: true,
         memoryAnswer: this.methods.has('answerMemory'),
         editInPlace: this.methods.has('switchMessageVersion'),
+        questions: true,
         messageActions: this.methods.has('forkConversation'),
         videoPicker: ['listVideoCharacters', 'addVideoCharacter', 'removeVideoCharacter', 'listVideoVoices', 'previewVideoVoice'].every((m) => this.methods.has(m))
       }
@@ -320,7 +321,7 @@ export class MobileBackend {
     return { results }
   }
 
-  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = [], templateId?: string, replyTo?: string, artifactIds: string[] = [], editOf?: string): Promise<MobileChatReceipt> {
+  async send(conversationId: string | null, text: string, clientMessageId: string, attachmentIds: string[] = [], templateId?: string, replyTo?: string, artifactIds: string[] = [], editOf?: string, answers?: SendMessageInput['answers']): Promise<MobileChatReceipt> {
     // Con id=null, un reintento sigue encontrando el mensaje aunque otro proyecto haya pasado a ser el más reciente.
     if (conversationId === null) {
       const projects = await this.call<ProjectSummary[]>('listProjects')
@@ -328,7 +329,7 @@ export class MobileBackend {
         const state = await this.call<LoadedProject>('loadProject', project.id)
         const existing = state.messages.find((m) => m.author.type === 'user' && m.clientMessageId === clientMessageId)
         if (existing?.runId) {
-          if (existing.text !== text) throw new MobileError(409, 'CLIENT_MESSAGE_CONFLICT', 'Ese clientMessageId ya se usó con otro texto')
+          if (existing.text !== text && !answers) throw new MobileError(409, 'CLIENT_MESSAGE_CONFLICT', 'Ese clientMessageId ya se usó con otro texto')
           return this.receipt(state, existing.runId, clientMessageId)
         }
       }
@@ -337,8 +338,16 @@ export class MobileBackend {
     if (!state) throw new MobileError(409, 'NO_CONVERSATION', 'Crea una conversación antes de enviar mensajes')
     const existing = state.messages.find((m) => m.author.type === 'user' && m.clientMessageId === clientMessageId)
     if (existing?.runId) {
-      if (existing.text !== text) throw new MobileError(409, 'CLIENT_MESSAGE_CONFLICT', 'Ese clientMessageId ya se usó con otro texto')
+      // Con answers el texto lo arma el servidor: el reintento no tiene por qué traer el mismo.
+      if (existing.text !== text && !answers) throw new MobileError(409, 'CLIENT_MESSAGE_CONFLICT', 'Ese clientMessageId ya se usó con otro texto')
       return this.receipt(state, existing.runId, clientMessageId)
+    }
+    if (answers) {
+      const asked = state.messages.find((m) => m.id === answers.messageId && m.author.type === 'agent')
+      if (!asked?.questions) throw new MobileError(400, 'INVALID_INPUT', 'answers.messageId: ese mensaje no tiene preguntas en esta conversación')
+      if (asked.questions.answered) throw new MobileError(409, 'QUESTIONS_ANSWERED', 'Esas preguntas ya están contestadas')
+      const { runId } = await this.call<{ runId: string }>('sendMessage', { projectId: state.project.id, text: '', filePaths: [], clientMessageId, answers })
+      return this.receipt(await this.call<LoadedProject>('loadProject', state.project.id), runId, clientMessageId)
     }
     // Adjuntos ya subidos (POST /files): van con el mensaje y a los agentes igual que los elegidos en el escritorio.
     const unknown = attachmentIds.find((attachmentId) => !state.attachments.some((a) => a.id === attachmentId))

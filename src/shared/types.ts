@@ -693,6 +693,38 @@ export interface ChatMessage {
    * mensaje lleva lo dicho y va al equipo (sent). failed: no se pudo pasar a texto (el motivo va en un aviso aparte).
    */
   voiceNote?: 'transcribing' | 'sent' | 'failed'
+  /**
+   * Preguntas con opciones que te hace el agente (o el coordinador) al final de su respuesta: el chat las enseña como
+   * una tarjeta (una cada vez, la recomendada marcada y un campo para escribir la tuya). Ver src/shared/agentQuestions.ts.
+   */
+  questions?: ChatQuestions
+}
+
+/** Una opción de una pregunta del agente. */
+export interface AgentQuestionOption {
+  label: string
+  /** Qué pasa si la eliges, en una frase. */
+  detail?: string
+  /** La que el agente elegiría (como mucho una por pregunta). */
+  recommended?: boolean
+}
+
+export interface AgentQuestion {
+  question: string
+  options: AgentQuestionOption[]
+}
+
+/** Tu respuesta a una pregunta: una opción (su índice), lo que escribiste o nada (Omitir). */
+export interface AgentQuestionAnswer {
+  choice?: number
+  text?: string
+  skipped?: boolean
+}
+
+export interface ChatQuestions {
+  items: AgentQuestion[]
+  /** Ya contestadas: cuándo y qué (la tarjeta se queda plegada con el resumen). */
+  answered?: { at: number; answers: AgentQuestionAnswer[] }
 }
 
 /** La respuesta de un agente a la que contestas con «Responder»: el chat enseña la cita encima de tu mensaje. */
@@ -1854,6 +1886,11 @@ export interface SendMessageInput {
    * Falla si esa petición sigue en marcha.
    */
   editOf?: string
+  /**
+   * Tus respuestas a la tarjeta de preguntas de un mensaje (su id): el texto lo arma el motor con cada pregunta y lo
+   * que contestaste, y va al agente que preguntó (o al coordinador). El `text` que llegue se ignora.
+   */
+  answers?: { messageId: string; answers: AgentQuestionAnswer[] }
 }
 
 /** Nota de voz que se envía sin esperar: el equipo la pasa a texto por detrás y la manda como un mensaje normal. */

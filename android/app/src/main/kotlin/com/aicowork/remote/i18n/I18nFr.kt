@@ -1101,4 +1101,17 @@ private fun part7(m: HashMap<String, String>) {
     m["Versión {n}"] = "Version {n}"
     m["Cancelar la edición"] = "Annuler la modification"
     m["Editando tu mensaje: lo de antes se guarda como otra versión"] = "Modification de votre message : l’ancien est gardé comme autre version"
+    // Preguntas del agente con opciones (PanelsQuestions.kt)
+    m["Contestado"] = "Répondu"
+    m["Omitida"] = "Ignorée"
+    m["Contestar la pregunta"] = "Répondre à la question"
+    m["Contestar las {n} preguntas"] = "Répondre aux {n} questions"
+    m["Pregunta anterior"] = "Question précédente"
+    m["{i} de {n}"] = "{i} sur {n}"
+    m["Pregunta siguiente"] = "Question suivante"
+    m["Cerrar sin contestar"] = "Fermer sans répondre"
+    m["Recomendada"] = "Recommandée"
+    m["Otra cosa: escribe tu respuesta"] = "Autre chose : écrivez votre réponse"
+    m["Omitir"] = "Passer"
+    m["Respuestas enviadas"] = "Réponses envoyées"
 }

@@ -179,6 +179,9 @@ beforeAll(() => {
     presence: async () => null,
     run: async (o) => {
       prompts.push(o.prompt)
+      // «PRUEBA-PREGUNTAS»: el coordinador pregunta con opciones (la tarjeta de preguntas); con la respuesta, termina.
+      if (o.mode === 'plan' && o.prompt.includes('PRUEBA-PREGUNTAS'))
+        return { ok: true, text: JSON.stringify(o.prompt.includes('Mis respuestas a tus preguntas') ? { reply: 'Hecho con tu respuesta.', tasks: [] } : { reply: 'Una duda.', tasks: [], questions: [{ question: '¿Web o Android?', options: [{ label: 'Web', recommended: true }, { label: 'Android', detail: 'Una APK' }] }] }), usage: { input: 1, output: 1 } }
       // «PRUEBA-RUTINA …»: el coordinador propone además dejarlo programado (la tarjeta «Crear rutina»).
       if (o.mode === 'plan' && o.prompt.includes('PRUEBA-RUTINA')) return { ok: true, text: JSON.stringify({ reply: 'Lo reviso ahora y te propongo la rutina.', tasks: [], routine: o.prompt.includes('PRUEBA-RUTINA-MAL') ? 'cuando quieras: algo' : '/rutina de lunes a viernes a las 8:30: revisa los PR abiertos' }), usage: { input: 1, output: 1 } }
       if (o.mode === 'plan') return { ok: true, text: JSON.stringify({ reply: 'Plan', tasks: [{ key: 't1', title: 'Prueba móvil', description: 'Trabajo de prueba', agent: 'codex', difficulty: 'medium', dependsOn: [], deliverable: 'text' }] }), usage: { input: 1, output: 1 } }
@@ -513,6 +516,25 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     expect(store.snapshotProject(conversation).messages.map((m) => m.text)).toEqual(['Hazlo en azul', 'Hecho en azul'])
     expect((await api('/messages/m-edit-1/version', { conversationId: conversation, version: 7 })).status).toBe(404)
     expect((await api('/messages/m-edit-1/version', { conversationId: conversation, version: -1 })).status).toBe(400)
+  })
+
+  it('la tarjeta de preguntas llega en el mensaje y se contesta con answers (el texto lo arma el servidor)', async () => {
+    const conversation = (await api('/conversations', {})).body.conversation.id as string
+    const first = (await api('/chat/messages', { conversationId: conversation, text: 'PRUEBA-PREGUNTAS una app', clientMessageId: 'client-q1' })).body as MobileChatReceipt
+    await vi.waitFor(() => expect(store.snapshotProject(conversation).messages.some((m) => m.runId === first.requestId && !!m.questions)).toBe(true))
+    const asked = store.snapshotProject(conversation).messages.find((m) => m.runId === first.requestId && !!m.questions)!
+    expect(asked.questions!.items[0]).toEqual({ question: '¿Web o Android?', options: [{ label: 'Web', recommended: true }, { label: 'Android', detail: 'Una APK' }] })
+    expect((await api('/chat/messages', { conversationId: conversation, clientMessageId: 'client-q-mal', answers: { messageId: 'no-existe', answers: [] } })).status).toBe(400)
+    const data = { conversationId: conversation, clientMessageId: 'client-q2', answers: { messageId: asked.id, answers: [{ text: 'Las dos, primero web' }] } }
+    const r = await api('/chat/messages', data)
+    expect(r.status).toBe(202)
+    expect((r.body as MobileChatReceipt).message.text).toContain('¿Web o Android?\n   → Las dos, primero web')
+    // El reintento devuelve lo mismo; contestar otra vez con otro id ya no se puede.
+    expect((await api('/chat/messages', data)).body).toEqual(r.body)
+    const again = await api('/chat/messages', { ...data, clientMessageId: 'client-q3' })
+    expect(again.status).toBe(409)
+    expect(again.body.code).toBe('QUESTIONS_ANSWERED')
+    expect(store.snapshotProject(conversation).messages.find((m) => m.id === asked.id)!.questions!.answered!.answers).toEqual([{ text: 'Las dos, primero web' }])
   })
 
   it('detiene y reanuda las mismas tareas y petición; cancelar desde escritorio sigue siendo definitivo', async () => {

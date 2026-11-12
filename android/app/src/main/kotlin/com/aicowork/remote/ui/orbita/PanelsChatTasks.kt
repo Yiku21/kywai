@@ -521,6 +521,8 @@ private fun ServerMessage(message: ChatMessage, snapshot: Snapshot, state: Cowor
                     if (proposal != null && proposal.status != "approved") ProposalCard(message, proposal, snapshot, model)
                     // Rutina que propone Hermes («Crear rutina»).
                     message.routineProposal?.let { RoutineProposalCard(message, it, snapshot, model) }
+                    // Preguntas con opciones del agente o de Hermes (una cada vez, la recomendada marcada y un campo para la tuya).
+                    if (!message.streaming) message.questions?.let { QuestionsCard(message, it, snapshot, model) }
                     if (message.taskIds.isNotEmpty()) PlanTasksCard(message.taskIds, snapshot, model)
                     // Lo que entrega una tarea, junto en una carpeta que se despliega.
                     if (message.artifactIds.isNotEmpty()) DeliverablesCard(message.id, message.artifactIds, snapshot, model)

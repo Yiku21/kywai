@@ -1,5 +1,7 @@
 import { balancedObject } from './agents/codex'
 import { tr } from '@shared/i18n'
+import { normalizeQuestions } from '@shared/agentQuestions'
+import type { AgentQuestion } from '@shared/types'
 
 /** First balanced {...} that parses as JSON and looks like a plan (fenced ```json blocks first). */
 export function extractJsonObject(text: string): Record<string, unknown> | null {
@@ -212,9 +214,9 @@ export function twoHandsPlan<T extends HandTask>(tasks: T[], userText: string, a
  * 'contract': acuerdo común para las tareas que se hacen a la vez (archivos de cada una, funciones, rutas…).
  * 'memory': lo que el usuario decidió o pidió en este mensaje y hay que recordar (sin validar: ver memory.ts).
  */
-export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[]; routine: string; skills: string; video: string[] } {
+export function parsePlan(text: string): { reply: string; tasks: unknown[]; valid: boolean; contract: string; memory: unknown[]; routine: string; skills: string; video: string[]; questions: AgentQuestion[] } {
   const o = extractJsonObject(text)
-  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [], routine: '', skills: '', video: [] }
+  if (!o) return { reply: text.trim(), tasks: [], valid: false, contract: '', memory: [], routine: '', skills: '', video: [], questions: [] }
   const c = o.contract
   const contract = typeof c === 'string' ? c.trim() : c && typeof c === 'object' ? JSON.stringify(c, null, 2) : ''
   return {
@@ -229,7 +231,9 @@ export function parsePlan(text: string): { reply: string; tasks: unknown[]; vali
     skills: typeof o.skills === 'string' ? o.skills.replace(/\s+/g, ' ').trim().slice(0, 80) : '',
     // Las órdenes «/video …» que kywai lanza en el acto cuando el usuario pide vídeos con sus palabras (se valida con
     // parseVideoRequest).
-    video: (Array.isArray(o.video) ? o.video : [o.video]).filter((v): v is string => typeof v === 'string' && !!v.trim()).slice(0, 12).map((v) => v.trim().slice(0, 20_000))
+    video: (Array.isArray(o.video) ? o.video : [o.video]).filter((v): v is string => typeof v === 'string' && !!v.trim()).slice(0, 12).map((v) => v.trim().slice(0, 20_000)),
+    // Preguntas con opciones para el usuario (salen como tarjeta en el chat; ver src/shared/agentQuestions.ts).
+    questions: normalizeQuestions(o.questions ?? o.preguntas)
   }
 }
 

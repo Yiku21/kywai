@@ -1,4 +1,4 @@
-import { memo, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { memo, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
   AlertCircle,
   ArrowRight,
@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  MessageCircleQuestion,
   ClipboardList,
   CircleCheck,
   CircleX,
@@ -39,8 +40,9 @@ import {
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { describeTrigger } from '@shared/routines'
 import { replyExcerpt } from '@shared/replyTo'
+import { answerLine, hideQuestionsBlock } from '@shared/agentQuestions'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
-import type { Artifact, Attachment, ChatMessage, ChatPermission, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, InstagramReplies, ScriptReview, TikTokPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
+import type { AgentQuestionAnswer, Artifact, Attachment, ChatMessage, ChatPermission, ChatQuestions, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, InstagramReplies, ScriptReview, TikTokPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
 import { useCowork, useData } from '@/store/cowork'
 import { revealKey, useRevealed } from '@/lib/reveal'
@@ -416,6 +418,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
   const hasTasks = !!m.taskIds && m.taskIds.length > 0
   const hasArtifacts = !!m.artifactIds && m.artifactIds.length > 0
   const showText = !!m.text || !!m.streaming
+  const questions = m.questions && !m.streaming ? m.questions : undefined
   // Aprobado, el plan se sigue con el bloque de tareas de siempre.
   const proposal = m.proposal && m.proposal.status !== 'approved' ? m.proposal : undefined
   // Un resultado se puede valorar: el de una tarea terminada o la respuesta final de un plan.
@@ -437,7 +440,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
           onName={look.present ? () => select({ type: 'agent', id: agentId }) : undefined}
           nameTitle={t('Ver a {name} en el espacio', { name: look.name })}
         />
-        {(showText || hasTasks || proposal || m.work || m.routineProposal) && (
+        {(showText || hasTasks || proposal || m.work || m.routineProposal || questions) && (
           <div className={cx(s.bubble, s.agentBubble, isError && s.errorBubble)}>
             {m.work && <WorkBlock messageId={m.id} projectId={m.projectId} work={m.work} reduced={reduced} />}
             {showText && (
@@ -458,6 +461,7 @@ function AgentMessage({ m, agentId }: { m: ChatMessage; agentId: string }) {
             {m.instagramReplies && <InstagramRepliesBlock m={m} replies={m.instagramReplies} />}
             {m.tiktokPost && <TikTokPostBlock m={m} post={m.tiktokPost} />}
             {m.permission && <PermissionBlock permission={m.permission} />}
+            {questions && <QuestionsBlock m={m} questions={questions} name={look.name} />}
             {hasTasks && <PlanBlock taskIds={m.taskIds!} runId={m.runId} contract={m.contract} />}
           </div>
         )}
@@ -803,7 +807,9 @@ function DiffStat({ add, del }: { add?: number; del?: number }) {
 
 /** El texto de un agente: si acaba de llegar y suena su voz, se escribe letra a letra a su ritmo. */
 function RevealedText({ m, reduced }: { m: ChatMessage; reduced: boolean }) {
-  const { shown, revealing } = useRevealed(revealKey(m.id), m.text)
+  // Mientras llega, el bloque de preguntas no se ve (al terminar sale como tarjeta).
+  const text = m.streaming && m.text.includes('```') ? hideQuestionsBlock(m.text) : m.text
+  const { shown, revealing } = useRevealed(revealKey(m.id), text)
   const typing = !!m.streaming || revealing
   return <MarkdownView text={shown} className={cx(typing && s.streaming, typing && !reduced && s.caretBlink)} />
 }
@@ -1167,6 +1173,183 @@ function PermissionBlock({ permission }: { permission: ChatPermission }) {
         {t('Permitir siempre en esta sesión')}
       </button>
       {error && <span className={s.permissionError}>{error}</span>}
+    </div>
+  )
+}
+
+/**
+ * Preguntas del agente con opciones, como la tarjeta de preguntas de Claude: una cada vez («1 de 3», con ‹ ›), las
+ * opciones numeradas con su explicación, la que el agente cree mejor marcada «Recomendada» y, siempre al final, un
+ * campo para escribir tu propia respuesta u «Omitir». Al contestar la última, todo vuelve al agente que preguntó (o al
+ * coordinador). Con la ✕ se pliega sin contestar; contestadas, queda el resumen.
+ */
+function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: ChatQuestions; name: string }) {
+  const live = useCowork((st) => st.mode === 'live')
+  const items = questions.items
+  const [index, setIndex] = useState(0)
+  const [answers, setAnswers] = useState<(AgentQuestionAnswer | undefined)[]>(() => items.map(() => undefined))
+  const [draft, setDraft] = useState('')
+  const [closed, setClosed] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const done = questions.answered
+
+  if (done) {
+    return (
+      <div className={s.questionsDone} role="group" aria-label={t('Tus respuestas')}>
+        <p className={s.permissionDone}>
+          <CircleCheck size={14} aria-hidden="true" />
+          {t('Contestado')}
+        </p>
+        <ol className={s.questionsSummary}>
+          {items.map((q, i) => (
+            <li key={i}>
+              <span className={s.questionsSummaryQ}>{q.question}</span>
+              <span className={s.questionsSummaryA}>{answerLine(q, done.answers[i]) || t('Omitida')}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    )
+  }
+
+  if (closed) {
+    return (
+      <div className={s.proposalActions}>
+        <button type="button" className={u.btn} onClick={() => setClosed(false)}>
+          <MessageCircleQuestion size={14} aria-hidden="true" />
+          {items.length === 1 ? t('Contestar la pregunta') : t('Contestar las {n} preguntas', { n: items.length })}
+        </button>
+      </div>
+    )
+  }
+
+  const q = items[Math.min(index, items.length - 1)]
+  const current = answers[index]
+  const canAct = !!api && live && !busy
+
+  function submit(all: (AgentQuestionAnswer | undefined)[]): void {
+    const a = api
+    if (!a) return
+    setBusy(true)
+    setError(null)
+    a.sendMessage({ projectId: m.projectId, text: '', filePaths: [], answers: { messageId: m.id, answers: all.map((x) => x ?? { skipped: true }) } }).then(
+      () => setBusy(false),
+      (e) => {
+        setBusy(false)
+        setError(errorText(e))
+      }
+    )
+  }
+
+  function answer(value: AgentQuestionAnswer): void {
+    if (!canAct) return
+    const next = answers.slice()
+    next[index] = value
+    setAnswers(next)
+    // La siguiente sin contestar; si no queda ninguna, se envía todo.
+    const after = next.findIndex((x, i) => i > index && !x)
+    const before = next.findIndex((x) => !x)
+    const go = after >= 0 ? after : before
+    if (go >= 0) {
+      setIndex(go)
+      const typed = next[go]?.text ?? ''
+      setDraft(typed)
+      cardRef.current?.focus()
+    } else submit(next)
+  }
+
+  function typed(): void {
+    const text = draft.trim()
+    if (text) answer({ text })
+  }
+
+  function move(to: number): void {
+    const i = Math.max(0, Math.min(items.length - 1, to))
+    setIndex(i)
+    setDraft(answers[i]?.text ?? '')
+  }
+
+  function onKey(e: KeyboardEvent<HTMLDivElement>): void {
+    if (e.target instanceof HTMLInputElement) return
+    const n = Number(e.key)
+    if (Number.isInteger(n) && n >= 1 && n <= q.options.length) {
+      e.preventDefault()
+      answer({ choice: n - 1 })
+    } else if (e.key === 'ArrowLeft' && index > 0) move(index - 1)
+    else if (e.key === 'ArrowRight' && index < items.length - 1) move(index + 1)
+  }
+
+  return (
+    <div ref={cardRef} className={s.questions} role="group" aria-label={t('{name} te pregunta', { name })} tabIndex={-1} onKeyDown={onKey}>
+      <div className={s.questionsHead}>
+        <p className={s.questionsTitle}>{q.question}</p>
+        {items.length > 1 && (
+          <div className={s.questionsPager}>
+            <button type="button" className={s.questionsNav} disabled={index === 0} onClick={() => move(index - 1)} aria-label={t('Pregunta anterior')}>
+              <ChevronLeft size={16} aria-hidden="true" />
+            </button>
+            <span>{t('{i} de {n}', { i: index + 1, n: items.length })}</span>
+            <button type="button" className={s.questionsNav} disabled={index === items.length - 1} onClick={() => move(index + 1)} aria-label={t('Pregunta siguiente')}>
+              <ChevronRight size={16} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+        <button type="button" className={s.questionsNav} onClick={() => setClosed(true)} aria-label={t('Cerrar sin contestar')} title={t('Cerrar sin contestar')}>
+          <X size={16} aria-hidden="true" />
+        </button>
+      </div>
+      <ol className={s.questionsList}>
+        {q.options.map((op, i) => (
+          <li key={i}>
+            <button type="button" className={cx(s.questionsOption, current?.choice === i && s.questionsChosen)} disabled={!canAct} onClick={() => answer({ choice: i })}>
+              <span className={s.questionsNum}>{i + 1}</span>
+              <span className={s.questionsText}>
+                <span className={s.questionsLabel}>
+                  {op.label}
+                  {op.recommended && <span className={s.questionsRec}>{t('Recomendada')}</span>}
+                </span>
+                {op.detail && <span className={s.questionsDetail}>{op.detail}</span>}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+      <div className={s.questionsOther}>
+        <span className={s.questionsNum} aria-hidden="true">
+          <PenLine size={14} />
+        </span>
+        <input
+          ref={inputRef}
+          className={s.questionsInput}
+          value={draft}
+          placeholder={t('Otra cosa: escribe tu respuesta')}
+          aria-label={t('Tu propia respuesta')}
+          maxLength={2000}
+          disabled={!canAct}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+              e.preventDefault()
+              typed()
+            }
+          }}
+        />
+        {draft.trim() ? (
+          <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!canAct} onClick={typed}>
+            {busy ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <Send size={14} aria-hidden="true" />}
+            {t('Enviar')}
+          </button>
+        ) : (
+          <button type="button" className={u.btn} disabled={!canAct} onClick={() => answer({ skipped: true })}>
+            {busy && <LoaderCircle size={14} aria-hidden="true" className={u.spin} />}
+            {t('Omitir')}
+          </button>
+        )}
+      </div>
+      {error && <p className={s.permissionError}>{error}</p>}
     </div>
   )
 }

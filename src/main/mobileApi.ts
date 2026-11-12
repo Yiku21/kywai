@@ -156,6 +156,19 @@ function string(input: unknown, name: string, max: number): string {
   return input
 }
 
+/** answers de POST /chat/messages: el mensaje con la tarjeta y una respuesta por pregunta (elegida, escrita u omitida). */
+function questionAnswers(input: unknown): { messageId: string; answers: { choice?: number; text?: string; skipped?: boolean }[] } {
+  const o = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : null
+  if (!o || !Array.isArray(o.answers) || o.answers.length > 8) throw new MobileError(400, 'INVALID_INPUT', 'answers debe ser { messageId, answers: [hasta 8 respuestas] }')
+  const answers = o.answers.map((a) => {
+    const r = a && typeof a === 'object' && !Array.isArray(a) ? (a as Record<string, unknown>) : {}
+    if (typeof r.text === 'string' && r.text.trim()) return { text: r.text.slice(0, 2000) }
+    if (typeof r.choice === 'number' && Number.isInteger(r.choice) && r.choice >= 0 && r.choice < 8) return { choice: r.choice }
+    return { skipped: true }
+  })
+  return { messageId: id(String(o.messageId ?? ''), 'answers.messageId'), answers }
+}
+
 function conversationId(input: unknown): string | null {
   if (input === null) return null
   if (typeof input !== 'string' || !PROJECT_ID.test(input)) throw new MobileError(400, 'INVALID_INPUT', 'conversationId no válido')
@@ -291,7 +304,7 @@ export class MobileApi {
           throw new MobileError(426, 'WEBSOCKET_REQUIRED', 'Abre este endpoint con WebSocket y Authorization: Bearer')
         case 'chat': {
           const input = await body(req)
-          fields(input, ['conversationId', 'text', 'clientMessageId'], ['attachmentIds', 'artifactIds', 'templateId', 'replyTo', 'editOf'])
+          fields(input, ['conversationId', 'clientMessageId'], ['text', 'attachmentIds', 'artifactIds', 'templateId', 'replyTo', 'editOf', 'answers'])
           const clientMessageId = string(input.clientMessageId, 'clientMessageId', 128)
           if (!ID.test(clientMessageId)) throw new MobileError(400, 'INVALID_INPUT', 'clientMessageId no válido')
           const attachmentIds = input.attachmentIds ?? []
@@ -301,7 +314,10 @@ export class MobileApi {
           const templateId = input.templateId === undefined || input.templateId === null ? undefined : id(String(input.templateId), 'templateId')
           const replyTo = input.replyTo === undefined || input.replyTo === null ? undefined : id(String(input.replyTo), 'replyTo')
           const editOf = input.editOf === undefined || input.editOf === null ? undefined : id(String(input.editOf), 'editOf')
-          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), string(input.text, 'text', 50_000), clientMessageId, attachmentIds as string[], templateId, replyTo, artifactIds as string[], editOf))
+          // Respuestas a la tarjeta de preguntas de un agente: el servidor arma el texto (el que llegue se ignora).
+          const answers = input.answers === undefined || input.answers === null ? undefined : questionAnswers(input.answers)
+          const text = answers ? (typeof input.text === 'string' ? input.text.slice(0, 50_000) : '') : string(input.text, 'text', 50_000)
+          mobileJson(res, 202, await this.backend.send(conversationId(input.conversationId), text, clientMessageId, attachmentIds as string[], templateId, replyTo, artifactIds as string[], editOf, answers))
           break
         }
         case 'conversations': {

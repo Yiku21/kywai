@@ -1101,4 +1101,17 @@ private fun part7(m: HashMap<String, String>) {
     m["Versión {n}"] = "第 {n} 个版本"
     m["Cancelar la edición"] = "取消编辑"
     m["Editando tu mensaje: lo de antes se guarda como otra versión"] = "正在编辑你的消息：之前的内容会保存为另一个版本"
+    // Preguntas del agente con opciones (PanelsQuestions.kt)
+    m["Contestado"] = "已回答"
+    m["Omitida"] = "已跳过"
+    m["Contestar la pregunta"] = "回答问题"
+    m["Contestar las {n} preguntas"] = "回答这 {n} 个问题"
+    m["Pregunta anterior"] = "上一个问题"
+    m["{i} de {n}"] = "{i} / {n}"
+    m["Pregunta siguiente"] = "下一个问题"
+    m["Cerrar sin contestar"] = "关闭但不回答"
+    m["Recomendada"] = "推荐"
+    m["Otra cosa: escribe tu respuesta"] = "其他：写下你的回答"
+    m["Omitir"] = "跳过"
+    m["Respuestas enviadas"] = "回答已发送"
 }

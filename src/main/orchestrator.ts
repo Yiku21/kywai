@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, promises as fsp, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import type {
+  AgentQuestion,
   ChatReplyRef,
   AgentConfig,
   AgentId,
@@ -85,6 +86,7 @@ import { fullSkillSections, listSkills, parseTaskSkill, saveTaskSkill, skillProm
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { replyExcerpt, replyRequest } from '@shared/replyTo'
+import { cleanAnswers, extractQuestions, formatAnswers, QUESTIONS_RULE } from '@shared/agentQuestions'
 import { scriptFileOf, scriptSource } from './videoScriptFile'
 import { parseVideoRequest, parseVideoScript, synthMusic, videoScriptPrompt, videoSlug, type VideoFormat, type VideoScript, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
@@ -814,6 +816,14 @@ function pushMessage(m: ChatMessage): void {
     voiceDrafts.delete(m.clientMessageId!)
     m = { ...m, id: draft.id, createdAt: draft.createdAt, voiceNote: 'sent' }
   }
+  // Las dudas que el agente dejó al final en un bloque «```preguntas» salen como tarjeta, no como texto.
+  if (m.author.type === 'agent' && !m.streaming && !m.questions && m.text.includes('```')) {
+    const q = extractQuestions(m.text)
+    if (q) {
+      m.text = q.text
+      m.questions = { items: q.questions }
+    }
+  }
   // Si su conversación sigue en segundo plano (miras otra), se guarda allí y no sale en el chat abierto.
   if (store.upsertMessage(m)) emit({ kind: 'message.upsert', message: { ...m } })
   if (m.proposal) planInbox(m)
@@ -971,13 +981,16 @@ function pausedInboxDone(runId: string, resolution: string): void {
 function runInbox(run: Run, ok: boolean): void {
   try {
     const st = store.getProject(run.projectId)
-    const msgs = runChat(run.projectId, run.id).messages.filter((m) => m.runId === run.id && m.author.type === 'agent' && !!m.text.trim() && !m.proposal)
+    const msgs = runChat(run.projectId, run.id).messages.filter((m) => m.runId === run.id && m.author.type === 'agent' && (!!m.text.trim() || !!m.questions) && !m.proposal)
     const last = msgs[msgs.length - 1]
     resolveInboxWhere((i) => i.projectId === run.projectId && (i.kind === 'done' || i.kind === 'question'), tr('Hay una petición más reciente'))
-    const q = last ? asksUser(last.text) : null
-    const who = last?.author.type === 'agent' ? agentName(last.author.agentId) : tl('El equipo')
+    // Una tarjeta de preguntas sin contestar (de cualquier mensaje de la petición) gana a la pregunta suelta del final.
+    const asking = [...msgs].reverse().find((m) => m.questions && !m.questions.answered)
+    const from = asking ?? last
+    const q = asking ? questionsDetail(asking.questions!.items) : last ? asksUser(last.text) : null
+    const who = from?.author.type === 'agent' ? agentName(from.author.agentId) : tl('El equipo')
     if (q) {
-      addInbox({ kind: 'question', title: tl('{who} te pregunta ({name})', { who, name: st.project.name }), detail: q, projectId: run.projectId, runId: run.id, messageId: last!.id, actions: [{ id: 'dismiss', label: tl('Lo contesto en el chat') }] })
+      addInbox({ kind: 'question', title: tl('{who} te pregunta ({name})', { who, name: st.project.name }), detail: q, projectId: run.projectId, runId: run.id, messageId: from!.id, actions: [{ id: 'dismiss', label: tl('Lo contesto en el chat') }] })
       return
     }
     const request = oneLine(run.userText, 100)
@@ -1028,6 +1041,36 @@ onPermissionChange((req: PermissionRequest, inboxId: string, state: 'pending' | 
     console.warn('[cowork] permisos: no se pudo anotar en el chat', e)
   }
 })
+
+/**
+ * Contestas la tarjeta de preguntas de un mensaje: queda marcada como contestada (con lo que elegiste) y tus respuestas
+ * van, con cada pregunta, a quien preguntó. Si fue el agente de una tarea o de un mensaje directo, le vuelven a él (como
+ * «Responder»: retoma su sesión); si fue el coordinador, la petición se planifica de nuevo con tu respuesta.
+ */
+async function answerQuestions(st: ReturnType<typeof store.getProject>, input: SendMessageInput): Promise<{ runId: string }> {
+  if (input.clientMessageId) {
+    const existing = st.messages.find((m) => m.author.type === 'user' && m.clientMessageId === input.clientMessageId)
+    if (existing?.runId) return { runId: existing.runId }
+  }
+  const ref = input.answers!
+  const m = st.messages.find((x) => x.id === ref.messageId)
+  if (!m || m.author.type !== 'agent' || !m.questions?.items.length) throw new Error(tr('No encuentro esas preguntas'))
+  if (m.questions.answered) throw new Error(tr('Esas preguntas ya están contestadas'))
+  const answers = cleanAnswers(m.questions.items, ref.answers)
+  const text = formatAnswers(m.questions.items, answers, tr('Sin respuesta: decide tú lo más razonable.'), tr('Mis respuestas a tus preguntas:'))
+  m.questions = { ...m.questions, answered: { at: Date.now(), answers } }
+  pushMessage(m)
+  resolveInboxWhere((i) => i.kind === 'question' && i.messageId === m.id, tr('Contestada'))
+  const own = !!m.work || st.messages.some((x) => x.runId === m.runId && x.author.type === 'user' && (!!x.direct || !!x.replyTo))
+  const { answers: _answers, ...rest } = input
+  return sendMessage({ ...rest, text, filePaths: [], ...(own ? { replyTo: m.id } : {}) })
+}
+
+/** Lo que sale en «Te necesita» de una tarjeta de preguntas: la primera y cuántas más hay. */
+function questionsDetail(items: AgentQuestion[]): string {
+  const first = items[0].question
+  return items.length === 1 ? first : tr('{first} (y {n} pregunta{s} más)', { first, n: items.length - 1, s: items.length === 2 ? '' : 's' })
+}
 
 /** La respuesta del equipo termina preguntándote algo (¿sigo con…?, ¿cuál prefieres?): sale en la bandeja. */
 export function asksUser(text: string): string | null {
@@ -1540,6 +1583,8 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
   const routine = opts.routine
   const projectId = input?.projectId
   const st = store.getProject(projectId)
+  // Respuestas a la tarjeta de preguntas de un agente: el texto se arma aquí y vuelve a quien preguntó.
+  if (input.answers && typeof input.answers === 'object' && !routine) return answerQuestions(st, input)
   const text = typeof input.text === 'string' ? input.text.slice(0, 50_000) : ''
   // Se comprueba antes del primer await: dos reintentos concurrentes reutilizan la misma ejecución.
   if (input.clientMessageId) {
@@ -4133,7 +4178,9 @@ async function executeRun(run: Run): Promise<void> {
     noteMemory(run, planner.name, memory)
   agentMessage(run, planner.id, replyText, {
     ...(created.length ? { taskIds: created.map((t) => t.id) } : {}),
-    ...(run.contract ? { contract: run.contract } : {})
+    ...(run.contract ? { contract: run.contract } : {}),
+    // Sus preguntas salen como tarjeta (una cada vez, con la recomendada y un campo para escribir la tuya).
+    ...(plan.questions.length ? { questions: { items: plan.questions } } : {})
   })
 
   for (const t of created) {
@@ -4256,7 +4303,7 @@ function pickPlanner(tried: Set<AgentId>, images = false): AgentConfig | null {
 
 async function planRun(
   run: Run
-): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string; skills: string; video: string[] } | null> {
+): Promise<{ planner: AgentConfig; reply: string; planned: PlannedTask[]; contract: string; memory: MemoryNote[]; routine: string; skills: string; video: string[]; questions: AgentQuestion[] } | null> {
   const tried = new Set<AgentId>()
   const failures: string[] = []
   const st = store.getProject(run.projectId)
@@ -4347,7 +4394,7 @@ async function planRun(
     }
     // Lo que se ve en el plan es lo que se hará: si kywai lo ajustó, se dice.
     if (planned.length && changes.length) reply = tr('{v1}\n\n*Ajustes de kywai al plan:* {v2}.', { v1: reply.trim(), v2: changes.join('; ') }).trim()
-    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine, skills: parsed.skills, video: parsed.video }
+    return { planner, reply, planned, contract: parsed.contract, memory: planMemoryNotes(parsed.memory), routine: parsed.routine, skills: parsed.skills, video: parsed.video, questions: parsed.questions }
   }
 }
 
@@ -4603,7 +4650,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '',
     '## Qué debes responder',
     'Responde ÚNICAMENTE con un objeto JSON (puede ir dentro de un bloque ```json), sin ningún otro texto, con esta forma:',
-    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false, "quick": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\"", "skills": "búsqueda en skills.sh, o \"\"", "video": ["órdenes «/video …» que kywai lanza ya"]}',
+    '{"reply": "texto para el usuario", "contract": "contrato común (solo si repartes en paralelo; si no, \\"\\")", "memory": [{"kind": "decision" | "preference" | "fact" | "pending", "text": "…", "replaces": "<id, opcional>"}], "tasks": [{"key": "t1", "title": "título corto", "description": "instrucciones completas", "agent": "<id del agente>", "difficulty": "easy" | "medium" | "hard", "dependsOn": ["<key>"], "deliverable": "file" | "text", "acceptance": "cuándo está hecha", "files": ["archivos o carpetas que puede tocar"], "continues": true | false, "quick": true | false}], "routine": "orden «/rutina …» que propones crear, o \"\"", "skills": "búsqueda en skills.sh, o \"\"", "video": ["órdenes «/video …» que kywai lanza ya"], "questions": [{"question": "¿…?", "options": [{"label": "…", "detail": "…", "recommended": true}]}]}',
     '',
     'Reglas:',
     `- "reply": mensaje breve en ${userLanguageName()} para el usuario (qué va a hacer el equipo, o la respuesta directa); como mucho unas 6 líneas al planificar: el detalle va en las tareas.`,
@@ -4645,6 +4692,9 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
           '- "routine": si el usuario pide algo que se repite o para más tarde («cada mañana revisa…», «todos los lunes prepara…», «mañana a las 7 recuérdame…», «dentro de 2 horas comprueba…», «cuando llegue un PR, revísalo»), escribe aquí la orden de la rutina, con el horario y luego la petición que se enviará sola, completa y en la voz del usuario: «/rutina de lunes a viernes a las 8:30: revisa las dependencias y avísame de las que tengan fallos de seguridad». Horarios que se entienden: «cada día a las 9:00», «de lunes a viernes a las 8:30», «lunes y jueves a las 7:00», «cada 6 horas», «mañana a las 7:00», «el viernes a las 18:00», «el 15/11 a las 9:00», «dentro de 2 horas», «webhook», «al cambiar archivos de <carpeta>». kywai le enseña una tarjeta «Crear rutina»: no la des por creada en "reply" ni crees tareas para montar un cron o un script. Si además conviene hacerlo ya, añade las tareas de esta vez. Si no pide nada periódico ni para más tarde, "".'
         ]),
     ...teamSkillsForPlanner(run.projectId),
+    run.routine
+      ? '- "questions": [] (nadie está delante para contestar).'
+      : '- "questions": cuando necesites que el usuario decida algo antes de seguir (una petición ambigua, varias formas razonables de hacerlo), pon aquí de 1 a 4 preguntas, cada una con 2 a 4 opciones ("label" corto y "detail" en una frase: qué pasa si la elige) y "recommended": true en la que tú elegirías. kywai las enseña como una tarjeta (una pregunta cada vez, la recomendada marcada y un campo para que escriba su propia respuesta, así que no añadas «Otra») y lo que conteste te llega como su siguiente mensaje. En "reply" basta una frase: no repitas las preguntas ni las opciones en el texto. Si no hay nada que preguntar, [].',
     '- "video": si el usuario pide crear uno o varios vídeos (reels, clips, películas…) con sus palabras, escribe aquí la orden u órdenes «/video …» completas y kywai la lanza en el acto con su estudio de vídeo (no crees "tasks" para hacerlos ni le digas que use «/video»; en "reply", di en una frase que ya están en marcha). Pon primero las marcas que saques de lo que pide: «tipo:rapido|presentador|mixto», «personaje:robots-kywai» si quiere los personajes o robots de kywai, «estilo:<slug>» si pide un estilo de la biblioteca o te deja elegir (el estilo vale para todos los vídeos de esa orden: para estilos distintos, una orden por estilo), «voz:<id>» (la voz decide el idioma: en inglés, p. ej. «voz:kokoro-af_bella» o «voz:kokoro-am_adam»; en español, «voz:edge-es-ES-AlvaroNeural») y «vertical» si es para redes. Después, el tema. Si son varios, una línea por vídeo («1) …», «2) …», hasta 12: kywai hace como mucho 6 a la vez y el resto cuando acaban esos). Si un vídeo sale de un archivo del proyecto (un guion), pon su ruta tal cual: kywai lo lee y lo usa de guion. Si no pide vídeos, [].',
     ...(run.routine
       ? []
@@ -5056,7 +5106,8 @@ function quickPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig |
     '- No respondas de memoria ni supongas: di lo que has visto y en qué archivo.',
     `- Tu respuesta sale tal cual en el chat, lo más corta que responda bien: ${CHAT_STYLE}`,
     '- Si al mirarlo ves que responder bien exige un análisis a fondo, ejecutar algo o cambiar archivos, contesta lo que sepas con seguridad y di en una frase qué habría que encargar al equipo.',
-    '- Si no puedes responder (falta acceso o información), empieza tu respuesta con «BLOQUEADA:» seguido del motivo en una frase.'
+    '- Si no puedes responder (falta acceso o información), empieza tu respuesta con «BLOQUEADA:» seguido del motivo en una frase.',
+    QUESTIONS_RULE
   ].join('\n')
 }
 
@@ -5168,6 +5219,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     ? [
         '- No puedes leer ni crear archivos: trabaja con la información de este mensaje.',
         '- Si no puedes hacer la tarea (por falta de acceso, de información o de herramientas), NO la des por hecha: empieza tu respuesta con «BLOQUEADA:» seguido del motivo en una frase.',
+        QUESTIONS_RULE,
         meta.deliverable === 'file'
           ? '- Responde directamente con el contenido COMPLETO del entregable en Markdown; la app lo guardará como archivo en artifacts/.'
           : '- Responde directamente con el resultado, de forma clara y concisa.'
@@ -5187,6 +5239,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
           `- Si la tarea tiene varios pasos, al empezar crea una lista de 3 a 6 pasos con tu herramienta de lista de tareas${TODO_TOOL[exec.provider] ? ` (${TODO_TOOL[exec.provider]})` : ''} y márcalos como completados a medida que avances: la app la usa para mostrar tu porcentaje de progreso.`,
           NARRATE_RULE,
           '- Si no puedes hacer la tarea (por falta de acceso, de información o de herramientas), NO la des por hecha: empieza tu respuesta con «BLOQUEADA:» seguido del motivo en una frase.',
+          QUESTIONS_RULE,
           '- Termina con un resumen breve (máximo 5 líneas) de lo que hiciste y qué archivos cambiaste.'
         ]
       : [
@@ -5203,6 +5256,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         `- Si la tarea tiene varios pasos, al empezar crea una lista de 3 a 6 pasos con tu herramienta de lista de tareas${TODO_TOOL[exec.provider] ? ` (${TODO_TOOL[exec.provider]})` : ''} y márcalos como completados a medida que avances: la app la usa para mostrar tu porcentaje de progreso.`,
         NARRATE_RULE,
         '- Si no puedes hacer la tarea (por falta de acceso, de información o de herramientas), NO la des por hecha: empieza tu respuesta con «BLOQUEADA:» seguido del motivo en una frase.',
+        QUESTIONS_RULE,
         '- Termina con un resumen breve (máximo 5 líneas) de lo que hiciste y qué archivos creaste.'
       ]
 
@@ -5649,13 +5703,12 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
 }
 
 /**
- * Lo que recibe el agente en un mensaje directo: el texto del usuario tal cual. Solo si hay adjuntos se añade
- * dónde están (el agente no tendría otra forma de encontrarlos).
+ * Lo que recibe el agente en un mensaje directo: el texto del usuario tal cual. Si hay adjuntos se añade dónde están
+ * (el agente no tendría otra forma de encontrarlos) y, al final, cómo dejar sus dudas para que salgan como tarjeta.
  */
 export function directPrompt(run: Pick<Run, 'attachments' | 'attPaths' | 'projectId'>, t: Pick<Task, 'description'>, inCopy = false): string {
-  if (!run.attachments.length) return t.description
   const files = run.attachments.map((a) => `- ${attPath(run as Run, a.relPath, inCopy)}`)
-  return [t.description, '', ...files].join('\n').trim()
+  return [t.description, ...(files.length ? ['', ...files] : []), '', '(Nota de kywai, no la menciones:', `${QUESTIONS_RULE.slice(2)})`].join('\n').trim()
 }
 
 /** Nombre legible del modelo con el que trabaja un agente. */

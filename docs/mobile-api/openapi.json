@@ -5304,7 +5304,7 @@
             "minLength": 1,
             "maxLength": 50000,
             "pattern": "\\S",
-            "description": "Texto no vacío; no admite NUL. Longitud en unidades UTF-16."
+            "description": "Texto no vacío; no admite NUL. Longitud en unidades UTF-16. Con answers se puede omitir o dejar vacío: el servidor arma el texto."
           },
           "clientMessageId": {
             "type": "string",
@@ -5348,11 +5348,48 @@
             "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
             "maxLength": 128,
             "description": "Opcional (capabilities.editInPlace). Editar un mensaje tuyo en el mismo chat: antes de enviar se quitan ese mensaje y todo lo que vino después, con sus tareas (lo entregado se queda en Resultados); se guardan como la versión anterior (‹1/2›, messages[].versions) y llega el evento messages.replaced ({projectId, conversationId, messageIds, taskIds}). 404 MESSAGE_NOT_FOUND si ya no está, 400 INVALID_INPUT si no es tuyo, 409 PROJECT_BUSY si esa petición sigue en marcha."
+          },
+          "answers": {
+            "type": "object",
+            "description": "Opcional (capabilities.questions). Respuestas a la tarjeta de preguntas de un mensaje de agente (message.questions): una por pregunta, en orden. El servidor arma el texto con cada pregunta y lo contestado, marca la tarjeta como contestada (questions.answered) y lo manda a quien preguntó: el agente de esa tarea o mensaje directo (el mensaje del usuario lleva replyTo) o el coordinador, que vuelve a planificar. Un mensaje sin preguntas → 400 INVALID_INPUT; ya contestadas → 409 QUESTIONS_ANSWERED.",
+            "properties": {
+              "messageId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+                "maxLength": 128
+              },
+              "answers": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "description": "choice: índice de la opción elegida; text: lo que escribiste (gana a choice); ni una ni otra = Omitir.",
+                  "properties": {
+                    "choice": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 2000
+                    },
+                    "skipped": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "messageId",
+              "answers"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
           "conversationId",
-          "text",
           "clientMessageId"
         ],
         "additionalProperties": false
@@ -5604,6 +5641,80 @@
             "required": [
               "current",
               "others"
+            ]
+          },
+          "questions": {
+            "type": "object",
+            "description": "Preguntas con opciones del agente o del coordinador: se enseñan como tarjeta (una cada vez, «1 de N»), con la opción recomendada marcada y, al final, un campo para escribir otra respuesta u «Omitir». Se contestan con answers en POST /chat/messages.",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "question": {
+                      "type": "string"
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "recommended": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "label"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "question",
+                    "options"
+                  ]
+                }
+              },
+              "answered": {
+                "type": "object",
+                "description": "Ya contestadas: cuándo y qué (mismo formato que answers.answers).",
+                "properties": {
+                  "at": {
+                    "type": "integer"
+                  },
+                  "answers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "choice": {
+                          "type": "integer"
+                        },
+                        "text": {
+                          "type": "string"
+                        },
+                        "skipped": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "at",
+                  "answers"
+                ]
+              }
+            },
+            "required": [
+              "items"
             ]
           }
         },
@@ -6814,6 +6925,10 @@
           "editInPlace": {
             "type": "boolean",
             "description": "editOf en POST /chat/messages: editar un mensaje tuyo en el mismo chat (evento messages.replaced; versiones con POST /messages/{messageId}/version)."
+          },
+          "questions": {
+            "type": "boolean",
+            "description": "Tarjeta de preguntas con opciones (message.questions): se contesta con answers en POST /chat/messages."
           }
         },
         "required": [

@@ -5,6 +5,8 @@ import com.aicowork.remote.i18n.t
 
 import com.aicowork.remote.data.model.AppRelease
 import com.aicowork.remote.data.model.Artifact
+import com.aicowork.remote.data.model.AnsweredQuestions
+import com.aicowork.remote.data.model.QuestionAnswer
 import com.aicowork.remote.data.model.ChatSummary
 import com.aicowork.remote.data.model.Routine
 import com.aicowork.remote.data.model.RoutineInput
@@ -305,6 +307,8 @@ interface CoworkController {
     suspend fun switchVersion(messageId: String, to: Int): ActionResult = unsupported
     /** «Crear rutina» ([create]) o «Descartar» en la tarjeta que propone Hermes. */
     suspend fun decideRoutineProposal(messageId: String, create: Boolean): ActionResult = unsupported
+    /** Contesta la tarjeta de preguntas del mensaje [messageId] (una respuesta por pregunta, en orden). */
+    suspend fun answerQuestions(messageId: String, answers: List<QuestionAnswer>): ActionResult = unsupported
     suspend fun setPlanApproval(enabled: Boolean): ActionResult = unsupported
     /** Nombre del ordenador que se ve abajo en la barra lateral (también en el escritorio y la web). */
     suspend fun setServerName(name: String): ActionResult = unsupported
@@ -1208,6 +1212,19 @@ class CoworkRepository(
                 })
             }
             if (create && _state.value.routinesFor != null) reloadRoutines(c)
+        }
+
+    override suspend fun answerQuestions(messageId: String, answers: List<QuestionAnswer>): ActionResult =
+        action(t("Respuestas enviadas")) { c ->
+            c.answerQuestions(needConversation(), messageId, answers, "q-${UUID.randomUUID()}")
+            // La tarjeta se pliega al momento; tu mensaje y la respuesta del agente llegan por el WebSocket.
+            _state.update { s ->
+                s.copy(snapshot = s.snapshot?.let { snap ->
+                    snap.copy(conversation = snap.conversation.copy(messages = snap.conversation.messages.map { m ->
+                        if (m.id == messageId && m.questions != null) m.copy(questions = m.questions.copy(answered = AnsweredQuestions(System.currentTimeMillis(), answers))) else m
+                    }))
+                })
+            }
         }
 
     /** La lista al día tras un cambio (el evento routines.updated también la trae, pero puede tardar o no llegar). */

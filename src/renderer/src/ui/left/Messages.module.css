@@ -1879,3 +1879,203 @@ button.itemHead:hover {
   outline: none;
   box-shadow: none;
 }
+
+/* ---------- Preguntas del agente con opciones (como la tarjeta de preguntas de Claude) ---------- */
+
+.questions {
+  margin-top: 10px;
+  padding: 12px 12px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--bg-elevated);
+  outline: none;
+}
+
+.questions:focus-visible {
+  border-color: var(--border-focus);
+}
+
+.questionsHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.questionsTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 2px 0 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-1);
+}
+
+.questionsPager {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  font-size: 12.5px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.questionsNav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-ctl);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.questionsNav:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+.questionsNav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.questionsList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.questionsList > li + li {
+  border-top: 1px solid var(--border);
+}
+
+.questionsOption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 6px;
+  border: 0;
+  border-radius: var(--radius-ctl);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.questionsOption:hover:not(:disabled),
+.questionsOption:focus-visible {
+  background: var(--bg-hover);
+  outline: none;
+}
+
+.questionsOption:disabled {
+  cursor: default;
+}
+
+.questionsChosen {
+  background: var(--bg-active);
+}
+
+.questionsNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.questionsText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.questionsLabel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-1);
+}
+
+.questionsRec {
+  padding: 1px 7px;
+  border-radius: var(--radius-chip);
+  background: var(--live-soft);
+  color: var(--live);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.questionsDetail {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+.questionsOther {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 8px 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.questionsInput {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.questionsInput::placeholder {
+  color: var(--text-3);
+}
+
+.questionsDone {
+  margin-top: 8px;
+}
+
+.questionsSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding-left: 20px;
+  font-size: 12.5px;
+}
+
+.questionsSummaryQ {
+  color: var(--text-3);
+}
+
+.questionsSummaryQ::after {
+  content: ' — ';
+}
+
+.questionsSummaryA {
+  color: var(--text-1);
+}

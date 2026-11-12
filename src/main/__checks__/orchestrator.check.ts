@@ -1990,7 +1990,8 @@ async function main(): Promise<void> {
       await waitFor(() => !!finished(r.runId), 10000, 'directo a Codex')
       const mine = calls.slice(fromCalls)
       assert.deepEqual(mine.map((c) => `${c.agentId}:${c.mode}`), ['codex:work'], 'solo trabaja Codex: ni plan ni verificación')
-      assert.equal(mine[0].prompt, 'hola, ¿qué tal?', 'el texto llega sin la mención y sin instrucciones')
+      assert.ok(mine[0].prompt.startsWith('hola, ¿qué tal?\n\n(Nota de kywai'), 'el texto llega sin la mención; solo con la nota de cómo preguntar')
+      assert.ok(mine[0].prompt.includes('```preguntas'), 'sabe dejar sus dudas como tarjeta')
       const t = [...lastTasks(fromEv).values()].find((x) => x.runId === r.runId)!
       assert.ok(t.direct && t.status === 'done' && t.agentId === 'codex')
       assert.equal(t.result, 'BLOQUEADA: respuesta tal cual')
@@ -2022,6 +2023,65 @@ async function main(): Promise<void> {
       await assert.rejects(sendMessage({ projectId: project.id, text: '/directo Nadie hola', filePaths: [] }), /No hay ningún agente «Nadie»/)
       await assert.rejects(sendMessage({ projectId: project.id, text: '@Codex', filePaths: [] }), /Escribe el mensaje para Codex/)
       workBehaviour = () => null
+    })
+
+    await check('preguntas con opciones: salen como tarjeta y la respuesta vuelve al agente (o al coordinador)', async () => {
+      __clearBlocksForChecks()
+      const block = '```preguntas\n[{"pregunta": "¿Qué sedes?", "opciones": [{"titulo": "Todas", "detalle": "Cualquier sede"}, {"titulo": "Solo la suya", "detalle": "La sede del agente", "recomendada": true}]}, {"pregunta": "¿Puede cancelar?", "opciones": ["Sí", "No"]}]\n```'
+      let round = 0
+      workBehaviour = (o) =>
+        o.mode === 'work' && o.agent.id === 'codex'
+          ? Promise.resolve({ ok: true, text: ++round === 1 ? `Lo miré. Te dejo 2 preguntas.\n\n${block}` : 'Hecho con tus respuestas.', usage: { input: 5, output: 5 } })
+          : null
+      planResponses = {}
+      const r = await sendMessage({ projectId: project.id, text: '@Codex revisa los permisos', filePaths: [] })
+      await waitFor(() => !!finished(r.runId), 10000, 'Codex pregunta')
+      const asked = store.getProject(project.id).messages.find((m) => m.runId === r.runId && m.author.type === 'agent' && !!m.questions)
+      assert.ok(asked, 'el mensaje lleva la tarjeta')
+      assert.equal(asked!.text, 'Lo miré. Te dejo 2 preguntas.', 'el bloque no se ve en el texto')
+      assert.equal(asked!.questions!.items[0].options[1].recommended, true)
+      assert.ok(listInbox().some((i) => i.kind === 'question' && i.messageId === asked!.id && !i.resolvedAt), '«Te necesita» avisa de las preguntas')
+
+      const fromCalls = calls.length
+      const r2 = await sendMessage({ projectId: project.id, text: '', filePaths: [], answers: { messageId: asked!.id, answers: [{ choice: 1 }, { text: 'Solo si avisa' }] } })
+      await waitFor(() => !!finished(r2.runId), 10000, 'respuestas a Codex')
+      const mine = calls.slice(fromCalls)
+      assert.deepEqual(mine.map((c) => `${c.agentId}:${c.mode}`), ['codex:work'], 'las respuestas van al mismo agente, sin Hermes')
+      assert.match(mine[0].prompt, /¿Qué sedes\?\n {3}→ Solo la suya \(La sede del agente\)/)
+      assert.match(mine[0].prompt, /¿Puede cancelar\?\n {3}→ Solo si avisa/)
+      const st = store.getProject(project.id)
+      assert.deepEqual(st.messages.find((m) => m.id === asked!.id)!.questions!.answered!.answers, [{ choice: 1 }, { text: 'Solo si avisa' }])
+      const userMsg = st.messages.find((m) => m.runId === r2.runId && m.author.type === 'user')!
+      assert.equal(userMsg.replyTo?.messageId, asked!.id)
+      assert.match(userMsg.text, /^Mis respuestas a tus preguntas:/)
+      assert.ok(!listInbox().some((i) => i.kind === 'question' && i.messageId === asked!.id && !i.resolvedAt), 'el aviso se cierra')
+      await assert.rejects(
+        sendMessage({ projectId: project.id, text: '', filePaths: [], answers: { messageId: asked!.id, answers: [] } }),
+        /ya están contestadas/
+      )
+
+      // El coordinador pregunta en "questions": la respuesta vuelve a planificarse con él.
+      workBehaviour = () => null
+      hermesOnline = true
+      refreshPresence()
+      planResponses = {
+        hermes: { ok: true, text: '```json\n' + JSON.stringify({ reply: '¿Para qué plataforma?', tasks: [], questions: [{ question: '¿Para qué plataforma?', options: [{ label: 'Web', recommended: true }, { label: 'Android' }] }] }) + '\n```', usage: { input: 5, output: 5 } },
+        claude: { ok: true, text: '```json\n' + JSON.stringify({ reply: '¿Para qué plataforma?', tasks: [], questions: [{ question: '¿Para qué plataforma?', options: [{ label: 'Web', recommended: true }, { label: 'Android' }] }] }) + '\n```', usage: { input: 5, output: 5 } }
+      }
+      const r3 = await sendMessage({ projectId: project.id, text: 'hazme una app', filePaths: [] })
+      await waitFor(() => !!finished(r3.runId), 10000, 'el coordinador pregunta')
+      const hq = store.getProject(project.id).messages.find((m) => m.runId === r3.runId && !!m.questions)
+      assert.ok(hq, 'la pregunta del coordinador sale como tarjeta')
+      const fromCalls4 = calls.length
+      planResponses = {
+        hermes: { ok: true, text: '```json\n' + JSON.stringify({ reply: 'Vale, web.', tasks: [] }) + '\n```', usage: { input: 5, output: 5 } },
+        claude: { ok: true, text: '```json\n' + JSON.stringify({ reply: 'Vale, web.', tasks: [] }) + '\n```', usage: { input: 5, output: 5 } }
+      }
+      const r4 = await sendMessage({ projectId: project.id, text: '', filePaths: [], answers: { messageId: hq!.id, answers: [{ choice: 0 }] } })
+      await waitFor(() => !!finished(r4.runId), 10000, 'respuesta al coordinador')
+      const planned = calls.slice(fromCalls4).find((c) => c.mode === 'plan')
+      assert.ok(planned && planned.prompt.includes('¿Para qué plataforma?\n   → Web'), 'el coordinador planifica con la respuesta')
+      assert.ok(!store.getProject(project.id).messages.find((m) => m.runId === r4.runId && m.author.type === 'user')!.replyTo, 'no va directo a un agente')
     })
 
     await check('registro de consumo: cada petición con sus llamadas (planificar y tareas), tiempo y resultado', async () => {

@@ -43,7 +43,8 @@ const api: CoworkApi = {
       filePaths: [...(input.filePaths ?? [])],
       ...(typeof input.templateId === 'string' ? { templateId: input.templateId } : {}),
       ...(typeof input.videoFrom === 'string' ? { videoFrom: input.videoFrom } : {}),
-      ...(typeof input.replyTo === 'string' ? { replyTo: input.replyTo } : {})
+      ...(typeof input.replyTo === 'string' ? { replyTo: input.replyTo } : {}),
+      ...(input.answers ? { answers: { messageId: input.answers.messageId, answers: input.answers.answers.map((x) => ({ ...x })) } } : {})
     }),
   cancelRun: (runId) => ipcRenderer.invoke('cowork:cancelRun', runId),
   pickFiles: (kind) => ipcRenderer.invoke('cowork:pickFiles', kind),
