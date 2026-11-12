@@ -1529,7 +1529,8 @@ seleccionado»); si no, el mensaje entero. **Bifurcar desde aquí** crea una con
 mensaje (incluido) y la abre; la original sigue igual en la barra lateral. **Editar y reenviar** funciona como en
 Claude: crea una conversación nueva con todo hasta **justo antes** de tu mensaje y pone su texto en el cuadro de
 escribir (con sus adjuntos y, si respondía a un agente, la misma respuesta), para que lo cambies y lo envíes; la
-conversación original no se toca. Como al bifurcar una conversación entera, la copia no lleva las sesiones de los
+conversación original no se toca. También está a mano sin el menú: el **lápiz** abajo a la derecha de cada
+mensaje tuyo hace lo mismo. Como al bifurcar una conversación entera, la copia no lleva las sesiones de los
 agentes (en ella empiezan sesión nueva). Bifurcar y editar solo van en modo real.
 
 **En Órbita** es **mantener pulsado** el mensaje: Copiar (el mensaje entero), **Seleccionar texto** (a partir de

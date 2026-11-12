@@ -89,10 +89,49 @@
 }
 
 .userBubble {
+  position: relative;
   background: var(--bg-surface);
   border-top-left-radius: 4px;
   font-size: 15px;
   line-height: 1.6;
+}
+
+/* Lápiz de «Editar y reenviar», abajo a la derecha de tu mensaje: discreto hasta pasar por encima. */
+.userBubble:has(.editBtn) {
+  padding-right: 40px;
+}
+
+.editBtn {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-3);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.msg:hover .editBtn,
+.editBtn:focus-visible {
+  opacity: 1;
+}
+
+.editBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+.editBtn:disabled {
+  cursor: progress;
+  opacity: 0.4;
 }
 
 .userText {

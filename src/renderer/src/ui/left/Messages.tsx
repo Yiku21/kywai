@@ -52,7 +52,7 @@ import { AgentAvatar, AgentPill } from '../common/AgentBits'
 import { TaskSeq } from '../common/TaskSeq'
 import { useAgentLookup } from '../common/agents'
 import { useComposer } from './composerStore'
-import { useMessageMenu } from './MessageMenu'
+import { editAndResend, useMessageMenu } from './MessageMenu'
 import { FileTypeIcon, KindTile, TaskStatusIcon } from '../common/icons'
 import { MarkdownView } from '../common/MarkdownView'
 import { agentVars, cx, errorText, formatDuration, isoTime, plural } from '../common/util'
@@ -140,11 +140,48 @@ function UserMessage({ m }: { m: ChatMessage }) {
             </details>
           )}
           {m.attachments && m.attachments.length > 0 && <Attachments list={m.attachments} projectId={m.projectId} />}
+          <EditButton m={m} text={parts.request} />
         </div>
         <MenuNote note={menu.note} />
       </div>
       {menu.menu}
     </article>
+  )
+}
+
+/** El lápiz abajo a la derecha de tu mensaje: «Editar y reenviar» sin abrir el menú del clic derecho. */
+function EditButton({ m, text }: { m: ChatMessage; text: string }) {
+  const live = useCowork((st) => st.mode === 'live')
+  const conversationId = useCowork((st) => st.live.conversation?.id ?? null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  if (!live || !api || !conversationId || m.voiceNote === 'transcribing') return null
+  const go = (): void => {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    editAndResend(m, text, conversationId).then(
+      () => setBusy(false),
+      (e) => {
+        setBusy(false)
+        setError(errorText(e))
+      }
+    )
+  }
+  return (
+    <>
+      <button
+        type="button"
+        className={s.editBtn}
+        onClick={go}
+        disabled={busy}
+        aria-label={t('Editar y reenviar')}
+        title={t('Conversación nueva hasta justo antes de este mensaje, con su texto listo para cambiarlo; esta no se toca')}
+      >
+        <PenLine size={14} aria-hidden="true" />
+      </button>
+      {error && <span className={s.ratingNote} role="alert">{error}</span>}
+    </>
   )
 }
 

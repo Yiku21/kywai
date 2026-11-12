@@ -307,6 +307,21 @@ describe('chat del escritorio', () => {
     useComposer.getState().clear()
   })
 
+  it('el lápiz de tu mensaje hace lo mismo que «Editar y reenviar» del menú', async () => {
+    const prev = useCowork.getState().loadProjectState
+    useCowork.setState({ loadProjectState: (() => undefined) as never })
+    const mine: ChatMessage = { id: 'u8', projectId: 'p1', author: { type: 'user' }, text: 'Pon el logo arriba', createdAt: 8 }
+    const s0 = useCowork.getState()
+    useCowork.setState({ live: { ...s0.live, conversation: { id: 'c-orig', title: 'Web', createdAt: 1 } } })
+    await show(mine)
+    await act(async () => button('Editar y reenviar').click())
+    await act(async () => new Promise((r) => setTimeout(r, 0)))
+    expect(fake.calls).toEqual(['fork:p1:c-orig:{"messageId":"u8","before":true}', 'openConv:p1:c-copia'])
+    expect(useComposer.getState().text).toBe('Pon el logo arriba')
+    useCowork.setState({ loadProjectState: prev })
+    useComposer.getState().clear()
+  })
+
   it('clic derecho en una respuesta: Responder, Bifurcar desde aquí y 👍 desde el menú', async () => {
     const done: ChatMessage = {
       id: 'w9',

@@ -37,6 +37,20 @@ async function openFork(projectId: string, conversationId: string, from: { messa
 }
 
 /**
+ * «Editar y reenviar» un mensaje tuyo: conversación nueva hasta justo antes de él, con su texto, adjuntos y respuesta
+ * en el cuadro para cambiarlo y enviarlo. La original no se toca. Lo usan el menú del clic derecho y el lápiz.
+ */
+export async function editAndResend(m: ChatMessage, text: string, conversationId: string): Promise<void> {
+  await openFork(m.projectId, conversationId, { messageId: m.id, before: true })
+  const c = useComposer.getState()
+  c.clear()
+  c.setText(text)
+  for (const a of m.attachments ?? []) c.addDeliverable({ kind: 'attachment', id: a.id, name: a.name, projectId: m.projectId })
+  if (m.replyTo) c.setReplyTo(m.replyTo)
+  c.requestFocus()
+}
+
+/**
  * Clic derecho en un mensaje del chat. Del agente: Copiar, Responder, Bifurcar desde aquí, Crear vídeo de esto y
  * 👍/👎. Tuyo: Copiar, Editar y reenviar (una conversación nueva hasta justo antes de ese mensaje, con su texto en
  * el cuadro para cambiarlo; la original no se toca) y Bifurcar desde aquí. Copiar copia solo lo seleccionado si hay
@@ -136,15 +150,7 @@ export function useMessageMenu(
         disabled: !canFork,
         title: forkTitle ?? t('Conversación nueva hasta justo antes de este mensaje, con su texto listo para cambiarlo; esta no se toca'),
         onSelect: () =>
-          run(async () => {
-            await openFork(m.projectId, conversationId!, { messageId: m.id, before: true })
-            const c = useComposer.getState()
-            c.clear()
-            c.setText(text)
-            for (const a of m.attachments ?? []) c.addDeliverable({ kind: 'attachment', id: a.id, name: a.name, projectId: m.projectId })
-            if (m.replyTo) c.setReplyTo(m.replyTo)
-            c.requestFocus()
-          })
+          run(() => editAndResend(m, text, conversationId!))
       },
       fork
     ]
