@@ -47,6 +47,74 @@ function foliage(m: Model, center: Vec, radius: number, seed: number, count = 10
   }
 }
 
+/**
+ * Sala de EVA cerrada: con la cámara frontal se veía la plataforma flotando en el vacío. Los laterales repiten los
+ * mismos bancos de servidores del fondo (paneles, remaches, franjas verdes y galones), girados hacia el centro.
+ */
+function evaBay(m: Model, x0: number, z0: number, yaw: number) {
+  const c = Math.cos(yaw), s = Math.sin(yaw)
+  const at = (x: number, y: number, z: number): Vec => [x0 + x * c + z * s, y, z0 - x * s + z * c]
+  const box = (p: Vec, size: Vec, color: string, glow = 0, tilt = 0) => m.box(at(...p), size, color, glow, [0, yaw, tilt])
+  box([0, 3.4, 0], [5.2, 6.8, 0.7], '#38254d')
+  box([0, 3.1, 0.4], [4.3, 5.5, 0.08], '#141620')
+  for (let row = 0; row < 6; row++) {
+    const y = 0.75 + row * 0.86
+    for (const side of [-1, 1]) {
+      box([side * 1.05, y, 0.51], [1.94, 0.78, 0.09], row % 2 ? '#33313e' : '#292936')
+      box([side * 1.05, y - 0.28, 0.58], [1.6, 0.025, 0.025], '#63636d')
+      for (const edge of [-0.78, 0.78]) m.add('sphere', at(side * 1.05 + edge, y + 0.25, 0.59), [0.025, 0.025, 0.016], '#a3a3ad')
+    }
+  }
+  for (const side of [-1, 1]) {
+    box([side * 2.1, 3.1, 0.5], [0.14, 5.3, 0.12], '#93d83d', 0.8)
+    box([side * 2.55, 3.5, 1.2], [0.4, 7, 1.5], '#573982')
+  }
+  box([0, 6.2, 1.4], [4.7, 0.8, 1.5], '#6b4694')
+  for (let j = 0; j < 6; j++) box([-1.8 + j * 0.7, 6.2, 2.18], [0.3, 0.5, 0.06], '#cf9e38', 0, -0.45)
+}
+
+function evaHangar(m: Model, stations: StationConfig[]) {
+  // El hangar crece con los puestos que se salen de la plataforma.
+  const half = Math.max(20.5, ...stations.map(st => Math.abs(st.position[0]) + 6))
+  const front = Math.max(24, ...stations.map(st => st.position[1] + 10))
+  m.box([0, -0.8, (front - 17) / 2], [half * 2 + 1, 0.3, front + 17], '#1a1526')
+  for (let x = -Math.floor(half / 4) * 4; x <= half; x += 4) {
+    if (Math.abs(x) <= 12) { m.box([x, -0.64, 12.5 + (front - 12.5) / 2], [0.5, 0.02, front - 12.5], '#3a3546'); continue }
+    m.box([x, -0.64, (front - 17) / 2], [0.5, 0.02, front + 17], '#3a3546')
+    m.box([x + 0.2, -0.625, (front - 17) / 2], [0.06, 0.02, front + 16], '#a7d94c', 0.12)
+  }
+  // Borde de la plataforma con galones de peligro y una guía de luz al pie.
+  for (let x = -14.6; x <= 14.6; x += 0.7) m.box([x, -0.35, 12.53], [0.3, 0.42, 0.04], '#cf9e38', 0, [0, 0, -0.45])
+  for (const side of [-1, 1]) for (let z = -15.9; z <= 12.1; z += 0.7) m.box([side * 15.03, -0.35, z], [0.04, 0.42, 0.3], '#cf9e38', 0, [-0.45, 0, 0])
+  m.box([0, -0.62, 12.9], [30, 0.03, 0.08], '#a7d94c', 0.6)
+  for (const side of [-1, 1]) {
+    m.box([side * 15.4, -0.62, -2], [0.08, 0.03, 29], '#a7d94c', 0.6)
+    // Muros laterales y esquinas del fondo con los mismos bancos de servidores.
+    for (let z = -10.5; z <= 6.5; z += 5.5) evaBay(m, side * half, z, -side * Math.PI / 2)
+    evaBay(m, side * 16.6, -14, 0)
+    m.box([side * (half - 0.4), 3.5, -14.6], [1.6, 7, 1.6], '#573982')
+    m.box([side * (half - 0.4), 7.1, -14.6], [1.7, 0.2, 1.7], '#90949a')
+    // Muro alto: la sala sigue hacia arriba con paneles oscuros, pilares y una pasarela de mantenimiento.
+    m.box([side * (half + 0.6), 10, -4], [0.6, 6.4, 22], '#241a33')
+    for (const z of [-13.25, -7.75, -2.25, 3.25, 8.75]) m.box([side * (half + 0.15), 10, z], [0.5, 6.4, 0.45], '#573982')
+  }
+  m.box([0, 10, -15.2], [half * 2 + 1.2, 6.4, 0.6], '#241a33')
+  for (let x = -half + 1.6; x < half; x += 5.5) m.box([x, 10, -14.8], [0.45, 6.4, 0.5], '#573982')
+  for (const y of [8.6, 11.4]) m.box([0, y, -14.85], [half * 2, 0.08, 0.1], '#4c4758')
+  m.box([0, 7.35, -13.7], [half * 2, 0.12, 1.3], '#303139')
+  for (let x = -half + 0.5; x < half; x += 0.9) m.box([x, 7.34, -13.08], [0.06, 0.1, 0.05], '#151820')
+  m.box([0, 7.95, -13.07], [half * 2, 0.04, 0.04], '#90949a')
+  m.box([0, 7.42, -13.04], [half * 2, 0.03, 0.05], '#a7d94c', 0.6)
+  for (let x = -half + 2.75; x < half; x += 5.5) m.beam([x, 7.3, -13.07], [x, 7.95, -13.07], 0.04, '#90949a')
+  for (let x = -half + 4; x < half - 2; x += 8) for (let j = 0; j < 5; j++) m.box([x - 0.9 + j * 0.45, 12.6, -14.85], [0.2, 0.5, 0.05], '#cf9e38', 0, [0, 0, -0.45])
+  for (const side of [-1, 1]) {
+    // Rejillas de ventilación bajas delante, para que el suelo no termine vacío.
+    m.box([side * (half - 3), -0.3, front - 6], [3.4, 0.7, 4.2], '#2c2338')
+    for (let j = 0; j < 8; j++) m.box([side * (half - 3), 0.07, front - 7.8 + j * 0.5], [2.9, 0.04, 0.12], '#151820')
+    m.box([side * (half - 3), 0.08, front - 3.85], [3, 0.05, 0.06], '#a7d94c', 0.5)
+  }
+}
+
 /** Architecture stays outside the work area so custom station layouts remain usable. */
 export function environmentModel(style: WorldStyle, stations: StationConfig[], detail: boolean): Piece[] {
   const m = new Model()
@@ -129,6 +197,7 @@ export function environmentModel(style: WorldStyle, stations: StationConfig[], d
     addMatrixCity(m, stations, detail)
   }
   if (style === 'eva') {
+    evaHangar(m, stations)
     m.box([0, -0.35, -2], [30, 0.6, 29], '#211a32')
     for (let x = -12; x <= 12; x += 4) {
       m.box([x, -0.025, -2], [0.5, 0.035, 27], '#4c4758')
