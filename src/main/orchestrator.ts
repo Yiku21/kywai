@@ -90,6 +90,7 @@ import { videoLang, type VideoKind } from '../shared/videoChoice'
 import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
+import { applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, parseDubRequest, type DubRequest } from './dub'
 import { THUMB_FRAMES, parseThumbnailPlan, parseThumbnailRequest, renderThumbnails, thumbFrames, thumbnailPrompt, type ThumbRequest } from './thumbnail'
 import { demoPrompt, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoRequest } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
@@ -1567,6 +1568,12 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     return sendFootage(st, footageReq, atts, input.clientMessageId, routine, text.trim())
   }
 
+  // «/doblar <idioma>»: el último vídeo de «/video» (o el adjunto, si salió de aquí) en otro idioma.
+  const dubReq = fromMsg || tpl ? null : parseDubRequest(text)
+  if (dubReq) {
+    if (!dubReq.lang) throw new Error(tr('¿A qué idioma lo doblo? Por ejemplo: «/doblar inglés».'))
+    return sendDub(st, { ...dubReq, lang: dubReq.lang }, atts, input.clientMessageId, routine, text.trim())
+  }
   // «/miniatura»: tres portadas para el vídeo adjunto o el último del chat.
   const thumbReq = fromMsg || tpl ? null : parseThumbnailRequest(text)
   if (thumbReq) return sendThumbnail(st, thumbReq, atts, input.clientMessageId, routine, text.trim())
@@ -2607,6 +2614,103 @@ async function sendFootage(
   return startSingleRun(st, run, t, shown)
 }
 
+/** «/doblar»: una tarea. El agente traduce el guion del vídeo y kywai lo vuelve a montar con las mismas imágenes. */
+async function sendDub(
+  st: ReturnType<typeof store.getProject>,
+  req: DubRequest & { lang: NonNullable<DubRequest['lang']> },
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  const root = store.workRoot(projectId)
+  const attached = atts.find((a) => isVideoFile(a.relPath))
+  const found = attached ? null : latestVideo(st)
+  if (!attached && !found) throw new Error(tr('No hay ningún vídeo que doblar: haz uno con «/video …» y luego «/doblar {lang}».', { lang: tr(req.lang.name) }))
+  const video = attached ? attached.relPath : found!.artifact.relPath
+  const name = attached ? attached.name : found!.artifact.name
+  const source = findDubSource(root, attached ? attached.name : video)
+  if (!source) throw new Error(tr('Solo puedo doblar vídeos hechos con «/video» en este proyecto (las películas con estilo tampoco se pueden).'))
+  if (source.script.lang === req.lang.code) throw new Error(tr('Ese vídeo ya está en {lang}.', { lang: tr(req.lang.name) }))
+  const agent = bestAgentFor('traducción idiomas redacción guion vídeo')
+  if (!agent) throw new Error(tr('No hay ningún agente disponible para traducir el guion.'))
+  const run = openSingleRun(st, shown, atts, clientMessageId, routine)
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId: run.id,
+    seq: nextTaskSeq(projectId),
+    title: tr('Doblar {name} al {lang}', { name: oneLine(name, 50), lang: tr(req.lang.name) }),
+    description: req.note || tr('Traducir el guion y volver a montarlo con las mismas imágenes'),
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'file',
+    dub: { video, name, lang: req.lang, note: req.note, source: store.toRelPath(root, source.dir) ?? source.dir }
+  }
+  return startSingleRun(st, run, t, shown)
+}
+
+/** «/doblar»: con el guion traducido, kywai monta el vídeo otra vez (voz, subtítulos y rótulos nuevos). */
+async function completeDub(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  const d = t.dub!
+  const root = store.workRoot(run.projectId)
+  const src = loadDubSource(join(root, d.source))
+  if (!src) {
+    t.status = 'failed'
+    t.error = tr('Ya no está la carpeta del vídeo original: no se puede doblar.')
+    t.finishedAt = Date.now()
+    pushTask(t)
+    closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
+    return
+  }
+  let script
+  try {
+    script = applyDub(src.script, res.text, d.lang)
+  } catch (e) {
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('La traducción no valía: {message}', { message: (e as Error).message }) })
+    return
+  }
+  settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Guion traducido: {title}', { title: script.title }), context: undefined })
+  const workDir = join(root, '.ai-cowork', 'videos', `${Date.now().toString(36)}-${t.seq}`)
+  try {
+    const video = await renderVideo({
+      script,
+      format: src.format,
+      workDir,
+      outDir: join(root, twoHandsBase(run.projectId), 'videos'),
+      signal: run.controllers.get(t.id)?.signal,
+      reuseFrom: src.dir,
+      onStep: (text, p, vars) => {
+        t.lastActivity = tr(text, vars)
+        t.progress = p
+        taskDirty(t)
+      }
+    })
+    const rel = store.toRelPath(root, video.file)
+    if (rel) {
+      run.meta.get(t.id)!.touched.add(rel)
+      markDelivered(workDir, rel)
+    }
+    const text = [
+      tr('Aquí tienes «{title}» en {lang} ({secs} s).', { title: script.title, lang: tr(d.lang.name), secs: Math.round(video.seconds) }),
+      tr('Son las mismas imágenes que «{name}»; cambian la voz, los subtítulos y los rótulos.', { name: d.name })
+    ].join('\n\n')
+    await completeTask(run, t, exec, parent, { ...res, text })
+  } catch (e) {
+    if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+    t.status = 'failed'
+    t.error = tr('No se pudo montar el vídeo: {message}', { message: (e as Error).message })
+    t.finishedAt = Date.now()
+    pushTask(t)
+    closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
+  }
+}
+
 /** «/miniatura»: una tarea. Antes se sacan fotogramas del vídeo (prepareThumbnail); el agente elige y escribe. */
 async function sendThumbnail(
   st: ReturnType<typeof store.getProject>,
@@ -3184,7 +3288,11 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
   if (script.cast && v.character) saveCharacterLook(v.character, script.cast)
   else if (script.cast && projectCast(root)?.images.length && saveCastNotes(root, script.cast)) meta.touched.add(join(CAST_DIR, CAST_NOTES))
   const rel = store.toRelPath(root, video.file)
-  if (rel) meta.touched.add(rel)
+  if (rel) {
+    meta.touched.add(rel)
+    // Para «/doblar»: qué carpeta de trabajo (guion e imágenes) es la de este vídeo.
+    markDelivered(workDir, rel)
+  }
   const episodeNote = recordSeriesEpisode(run, t, script.title, script.episode, rel, script.cast)
   const notes = [
     episodeNote,
@@ -4673,6 +4781,10 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       lang: userLanguageName()
     })
   }
+  if (t.dub) {
+    const src = loadDubSource(join(store.workRoot(run.projectId), t.dub.source))
+    if (src) return dubPrompt({ script: src.script, lang: t.dub.lang, note: t.dub.note })
+  }
   if (t.thumbnail?.ready) {
     const th = t.thumbnail
     return thumbnailPrompt({ about: th.about, note: th.note, format: th.format ?? 'vertical', frames: th.frames ?? [], lang: userLanguageName() })
@@ -5214,6 +5326,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     else if (res.ok && t.footage) await completeFootage(run, t, exec, parent, res)
     else if (res.ok && t.demo) await completeDemo(run, t, exec, parent, res)
     else if (res.ok && t.thumbnail) await completeThumbnail(run, t, exec, parent, res)
+    else if (res.ok && t.dub) await completeDub(run, t, exec, parent, res)
     else if (res.ok && t.instagram) await completeInstagram(run, t, exec, parent, res)
     else if (res.ok && t.igReply) await completeIgReply(run, t, exec, parent, res)
     else if (res.ok) {

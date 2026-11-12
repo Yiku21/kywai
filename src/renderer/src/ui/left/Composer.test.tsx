@@ -163,7 +163,7 @@ describe('plantillas de tareas encima del cuadro', () => {
     await type('/')
     const rows = [...host.querySelectorAll('#composer-commands [role="option"]')]
     const names = rows.map((o) => o.querySelector('span:nth-child(2)')?.textContent ?? '')
-    expect(names.slice(0, 22)).toEqual(['/video tema', '/serie idea [en 5 episodios]', '/editar vídeo adjunto', '/recortes [n] vídeo adjunto', '/demo web [vertical]', '/miniatura [vertical|horizontal] qué quieres', '/aprende enlace o vídeo', '/instagram qué quieres en el texto', '/tiktok qué quieres en el texto', '/ig-plan qué quieres esta semana', '/ig-viral nicho o cuentas', '/ig-reel idea', '/ig-profile', '/ig-audit', '/ig-reply qué comentarios', '/ig-comment post de otra cuenta', '/rutina cuándo: qué', '/directo Agente mensaje', '/recuerda texto', '/model', '/uso', '/nuevo'])
+    expect(names.slice(0, 23)).toEqual(['/video tema', '/serie idea [en 5 episodios]', '/editar vídeo adjunto', '/recortes [n] vídeo adjunto', '/demo web [vertical]', '/miniatura [vertical|horizontal] qué quieres', '/doblar idioma', '/aprende enlace o vídeo', '/instagram qué quieres en el texto', '/tiktok qué quieres en el texto', '/ig-plan qué quieres esta semana', '/ig-viral nicho o cuentas', '/ig-reel idea', '/ig-profile', '/ig-audit', '/ig-reply qué comentarios', '/ig-comment post de otra cuenta', '/rutina cuándo: qué', '/directo Agente mensaje', '/recuerda texto', '/model', '/uso', '/nuevo'])
     expect(names).toContain('/revisar-pr')
     expect(rows.every((o) => (o.querySelector('span:nth-child(3)')?.textContent ?? '').length > 0)).toBe(true)
     expect(rows[0].textContent).toContain('MP4')

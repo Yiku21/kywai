@@ -1254,6 +1254,11 @@ export async function renderVideo(input: {
   cast?: { images: string[]; notes?: string; name?: string }
   /** Paso en marcha (texto en español con {huecos}, para traducirlo con tr) y avance de 0 a 1. */
   onStep?: (text: string, progress: number, vars?: Record<string, string | number>) => void
+  /**
+   * Carpeta de trabajo de un vídeo anterior con las mismas escenas («/doblar»): sus imágenes, su presentador y sus
+   * clips de FreeVideo se usan tal cual en vez de hacerlos otra vez.
+   */
+  reuseFrom?: string
 }): Promise<RenderedVideo> {
   const { script, format, workDir: dir, signal } = input
   const step = input.onStep ?? (() => undefined)
@@ -1274,6 +1279,7 @@ export async function renderVideo(input: {
   mkdirSync(join(dir, 'assets'), { recursive: true })
   copyFileSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js'), join(dir, 'assets', 'gsap.min.js'))
   writeFileSync(join(dir, 'guion.json'), JSON.stringify({ format, ...script }, null, 2))
+  if (input.reuseFrom) reuseAssets(join(input.reuseFrom, 'assets'), join(dir, 'assets'))
 
   const cartoon = hasPresenter(script.style)
   // Charla y tutorial: varios planos por escena (como el cartoon), pero sin presentador y con el aspecto de maqueta 3D.
@@ -1533,6 +1539,11 @@ export async function renderVideo(input: {
         const { i, k, prompt } = jobs[next++]
         const rel = `assets/escena-${i + 1}${k ? `-${k + 1}` : ''}.png`
         const out = join(dir, rel)
+        // Ya está (la del vídeo que se dobla).
+        if (existsSync(out)) {
+          shots[i][k] = rel
+          continue
+        }
         // Tras dos fallos seguidos de ComfyUI, el resto va directo a Gemini.
         if (comfy && comfyFails < 2) {
           if (await comfyImage(comfy, imagePromptText(prompt, cartoon, script.look, refs.length > 0, castText), format === 'vertical', out, { signal })) {
@@ -1562,7 +1573,13 @@ export async function renderVideo(input: {
   // primera imagen de referencia). Sin ninguna de las dos, el presentador dibujado de siempre.
   let presenter: string | undefined
   const doPresenter = async (): Promise<void> => {
-    if (!cartoon || !input.cast?.name || !cast) return
+    if (!cartoon) return
+    const kept = ['png', 'jpg', 'jpeg', 'webp'].map((e) => `assets/presentador.${e}`).find((f) => existsSync(join(dir, f)))
+    if (kept) {
+      presenter = kept
+      return
+    }
+    if (!input.cast?.name || !cast) return
     const prompt = `${input.cast.name}, as the friendly host of a video, waist-up, facing the camera, smiling, one hand raised mid-gesture, centered, simple soft plain background`
     const out = join(dir, 'assets', 'presentador.png')
     if (comfy && (await comfyImage(comfy, imagePromptText(prompt, false, script.look, refs.length > 0, castText), true, out, { signal }))) presenter = 'assets/presentador.png'
@@ -1637,6 +1654,19 @@ export async function renderVideo(input: {
   return { file, seconds, width: vs.width ?? 0, height: vs.height ?? 0, images: shots.flat().filter(Boolean).length, voice: voiceUsed, moving }
 }
 
+/** Lo que se puede volver a usar de otro vídeo con las mismas escenas: imágenes, presentador y clips de FreeVideo. */
+const REUSABLE = /^(escena-\d+(-\d+)?\.png|presentador\.(png|jpe?g|webp)|freevideo-\d+-original\.mp4)$/
+
+function reuseAssets(from: string, to: string): void {
+  let names: string[] = []
+  try {
+    names = readdirSync(from)
+  } catch {
+    return
+  }
+  for (const n of names) if (REUSABLE.test(n)) copyFileSync(join(from, n), join(to, n))
+}
+
 /**
  * Con FreeVideo abierto en el equipo, las escenas que el guion marcó con «motion» (como mucho 3) pasan de imagen fija
  * a clip con movimiento, empezando en su imagen. De una en una (una sola gráfica); la que falla se queda con su imagen.
@@ -1653,15 +1683,20 @@ async function animateScenes(a: {
 }): Promise<number> {
   const todo = a.script.scenes.map((sc, i) => ({ sc, i })).filter(({ sc, i }) => sc.motion && a.images[i] && !a.clips[i])
   if (!todo.length) return 0
-  const srv = findFreeVideo()
-  if (!srv || !(await freeVideoStatus(srv)).ready) return 0
+  const rawOf = (i: number): string => join(a.dir, 'assets', `freevideo-${i + 1}-original.mp4`)
+  // Los clips que ya están (los del vídeo que se dobla) no necesitan FreeVideo.
+  const srv = todo.every(({ i }) => existsSync(rawOf(i))) ? null : findFreeVideo()
+  const live = !!srv && (await freeVideoStatus(srv)).ready
+  if (!live && !todo.some(({ i }) => existsSync(rawOf(i)))) return 0
   let done = 0
   for (let k = 0; k < todo.length && !a.signal?.aborted; k++) {
     const { sc, i } = todo[k]
+    const raw = rawOf(i)
+    const kept = existsSync(raw)
+    if (!kept && !live) continue
     const base = 0.5 + (0.05 * k) / todo.length
-    a.step('Dando movimiento a las escenas con FreeVideo ({n} de {total}; cada una tarda varios minutos)', base, { n: k + 1, total: todo.length })
-    const raw = join(a.dir, 'assets', `freevideo-${i + 1}-original.mp4`)
-    const ok = await animateStill(srv, {
+    if (!kept) a.step('Dando movimiento a las escenas con FreeVideo ({n} de {total}; cada una tarda varios minutos)', base, { n: k + 1, total: todo.length })
+    const ok = kept || await animateStill(srv!, {
       image: join(a.dir, a.images[i]!),
       prompt: motionPrompt(sc.motion!, sc.image, a.script.look),
       seconds: a.durations[i],

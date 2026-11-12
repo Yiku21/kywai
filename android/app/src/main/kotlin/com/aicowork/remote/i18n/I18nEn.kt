@@ -1067,4 +1067,6 @@ private fun part7(m: HashMap<String, String>) {
     m["Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos"] = "A video ad for a website made from real screenshots of the page: zoom-ins, the phone view and captions"
     m["[vertical|horizontal] qué quieres"] = "[vertical|horizontal] what you want"
     m["Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha"] = "Three covers for your video (attached or the latest), from its own frames with text that hooks"
+    m["idioma"] = "language"
+    m["El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos"] = "The latest /video video in another language, with the same images: new voice, subtitles and titles"
 }

@@ -31,6 +31,7 @@ export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
   { name: 'recortes', aliases: ['recorta', 'recortar', 'clips', 'clipify'], args: '[n] vídeo adjunto', description: 'Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos', icon: 'video' },
   { name: 'demo', aliases: [], args: 'web [vertical]', description: 'Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos', icon: 'video' },
   { name: 'miniatura', aliases: ['miniaturas', 'portada', 'portadas', 'thumbnail'], args: '[vertical|horizontal] qué quieres', description: 'Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha', icon: 'video' },
+  { name: 'doblar', aliases: ['dobla', 'doblaje', 'dub'], args: 'idioma', description: 'El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos', icon: 'video' },
   { name: 'aprende', aliases: ['aprender', 'learn'], args: 'enlace o vídeo', description: 'Convierte lo que enseña un vídeo en una habilidad', icon: 'learn' },
   { name: 'instagram', aliases: ['insta', 'ig'], args: 'qué quieres en el texto', description: 'Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno', icon: 'publish' },
   { name: 'tiktok', aliases: ['tt'], args: 'qué quieres en el texto', description: 'Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno', icon: 'publish' },

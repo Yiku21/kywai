@@ -1909,6 +1909,22 @@ TikTok; horizontal 1280×720 para YouTube) salvo que digas otro. También vale �
 Hace falta la app de escritorio. Código: `src/main/thumbnail.ts` (y `sendThumbnail`/`prepareThumbnail`/
 `completeThumbnail` en el orquestador).
 
+### Doblar un vídeo a otro idioma (`/doblar`)
+
+**«/doblar <idioma> [lo que quieres]»** pasa el último vídeo hecho con `/video` (o el que adjuntes, si salió de este
+proyecto) a otro idioma: «/doblar inglés», «/doblar al portugués más informal». Idiomas: español, inglés, portugués,
+francés, italiano, alemán, catalán, neerlandés, polaco, ruso, turco, árabe, hindi, chino, japonés y coreano.
+
+1. kywai busca la carpeta de trabajo del vídeo (`.ai-cowork/videos/<id>/`, con su `guion.json` y sus imágenes). Cada
+   vídeo de `/video` deja ahí un `entregado.json` con el archivo que entregó; en los de antes, se busca por el nombre.
+2. Un agente traduce el guion (la voz, los rótulos, el cierre y los textos de las animaciones de Manim) como lo diría
+   alguien nativo, con las mismas marcas de emoción y de quién habla y el mismo número de escenas.
+3. kywai lo vuelve a montar con **las mismas imágenes** (y el mismo presentador y clips de FreeVideo, sin hacerlos otra
+   vez): cambian la voz (la del idioma), los subtítulos y los rótulos. El doblado también se puede doblar.
+
+Las películas con estilo y los vídeos de fuera no se pueden doblar (no hay guion de kywai). Código: `src/main/dub.ts` y
+`reuseFrom` en `renderVideo` (`src/main/videoStudio.ts`).
+
 ### Series por episodios (`/serie`)
 
 **«/serie <idea> [en 5 episodios]»** cuenta una historia en vídeos cortos con **los mismos personajes**, para subirlos
@@ -2536,6 +2552,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/recortes [n]` (con un vídeo adjunto) | Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos |
 | `/demo <web> [vertical]` | Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos (ver «Vídeo de presentación de una web») |
 | `/miniatura [vertical\|horizontal]` | Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha (ver «Portadas para tu vídeo») |
+| `/doblar <idioma>` | El último vídeo de /video en otro idioma, con las mismas imágenes: voz, subtítulos y rótulos nuevos (ver «Doblar un vídeo a otro idioma») |
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
 | `/tiktok qué quieres en el texto` | Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno (ver «El TikTok de kywai») |
