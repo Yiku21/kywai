@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   Blocks,
   Bot,
+  BellOff,
   BellRing,
   ChevronDown,
   Coffee,
@@ -17,6 +18,7 @@ import {
   LogOut,
   Monitor,
   MonitorSmartphone,
+  Music,
   Palette,
   RefreshCw,
   RotateCcw,
@@ -48,13 +50,13 @@ import { isLocalEngine } from '@shared/localEngines'
 import { useCowork, type SettingsTab } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
-import { isMuted, isVoiceMuted, setMuted, setVoiceMuted, subscribeAudio } from '@/lib/audio'
+import { isMuted, isSfxMuted, isVoiceMuted, setMuted, setSfxMuted, setVoiceMuted, subscribeAudio } from '@/lib/audio'
 import { LANGS, lang, setLang, t } from '@/lib/i18n'
 import { RemoteAccess } from '../header/RemoteAccess'
 import { UpdateDialog } from '../header/UpdateDialog'
 import { SyncDialog } from '../files/SyncDialog'
 import { ExtensionsTab } from './ExtensionsTab'
-import { MusicVolumeRow, VoiceVolumeRow } from '../header/AudioToggle'
+import { MusicVolumeRow, SfxVolumeRow, VoiceVolumeRow } from '../header/AudioToggle'
 import { ThemeGrid } from '../header/ThemeDialog'
 import { setOwnTheme, themeLabel, useOwnTheme, useTheme } from '@/lib/theme'
 import { ROLE_TITLE, explainWhere, useWhere } from '../header/useWhere'
@@ -205,6 +207,7 @@ function GeneralTab() {
   const meter = useMeter((st) => st.on)
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
   const voiceMuted = useSyncExternalStore(subscribeAudio, isVoiceMuted, isVoiceMuted)
+  const sfxMuted = useSyncExternalStore(subscribeAudio, isSfxMuted, isSfxMuted)
   const theme = useTheme()
   const own = useOwnTheme()
   /** Los temas van plegados: se despliegan con la flecha (casi nunca se cambian). */
@@ -254,12 +257,20 @@ function GeneralTab() {
           <Switch on={own} label={t('Usar un tema propio en este dispositivo')} onChange={() => setOwnTheme(!own)} />
         </Row>
       )}
-      <Row icon={muted ? <VolumeX size={18} /> : <Volume2 size={18} />} label={t('Música y efectos')} hint={muted ? t('Silenciados. Las voces de los agentes siguen sonando si están activadas.') : t('Música de fondo y sonidos de la interfaz')}>
-        <Switch on={!muted} label={t('Música y efectos')} onChange={() => setMuted(!isMuted())} />
+      <Row icon={muted ? <VolumeX size={18} /> : <Music size={18} />} label={t('Música de fondo')} hint={muted ? t('Silenciada. Los efectos y las voces siguen como estén.') : t('La música ambiental de kywai y la del panel de Música')}>
+        <Switch on={!muted} label={t('Música de fondo')} onChange={() => setMuted(!isMuted())} />
       </Row>
       {!muted && (
         <div className={s.indent}>
           <MusicVolumeRow />
+        </div>
+      )}
+      <Row icon={sfxMuted ? <BellOff size={18} /> : <Volume2 size={18} />} label={t('Efectos y avisos')} hint={sfxMuted ? t('Silenciados. La música y las voces siguen como estén.') : t('Sonidos de la interfaz y de las tareas, y el timbre de «Te necesita»')}>
+        <Switch on={!sfxMuted} label={t('Efectos y avisos')} onChange={() => setSfxMuted(!isSfxMuted())} />
+      </Row>
+      {!sfxMuted && (
+        <div className={s.indent}>
+          <SfxVolumeRow />
         </div>
       )}
       <Row icon={voiceMuted ? <MessageSquareOff size={18} /> : <MessageSquare size={18} />} label={t('Voces de los agentes')} hint={voiceMuted ? t('Silenciadas. La música y los efectos siguen como estén.') : t('Lo que dicen los agentes en el chat')}>

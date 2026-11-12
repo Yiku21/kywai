@@ -8,6 +8,8 @@ const VOLUME_KEY = 'aicowork.volume'
 const LAST_VOLUME_KEY = 'aicowork.lastVolume'
 const VOICE_VOLUME_KEY = 'aicowork.voiceVolume'
 const VOICE_MUTE_KEY = 'aicowork.voiceMuted'
+const SFX_VOLUME_KEY = 'aicowork.sfxVolume'
+const SFX_MUTE_KEY = 'aicowork.sfxMuted'
 const DEFAULT_VOLUME = 0.8
 const DEFAULT_VOICE_VOLUME = 0.7
 // Las notas musicales tienen envolventes suaves; los avisos conservan prioridad en la mezcla.
@@ -22,6 +24,12 @@ let muted = readMuted() || volume === 0
 /** Voces de los agentes: su propio volumen y silencio, sin depender del de la música y los efectos. */
 let voiceVolume = readVolume(VOICE_VOLUME_KEY, DEFAULT_VOICE_VOLUME)
 let voiceMuted = readFlag(VOICE_MUTE_KEY)
+/**
+ * Efectos y avisos (clics, tareas, el timbre de «Te necesita»): su propio volumen y silencio, aparte de la música de
+ * fondo. Quien venía de «Música y efectos» juntos empieza con lo que tenía (si lo había silenciado, sigue en silencio).
+ */
+let sfxVolume = readVolume(SFX_VOLUME_KEY, volume > 0 ? volume : DEFAULT_VOLUME)
+let sfxMuted = hasKey(SFX_MUTE_KEY) ? readFlag(SFX_MUTE_KEY) : muted
 let unlocked = false
 let musicWanted = false
 /** Mientras suena una canción de YouTube, la música ambiental sintetizada calla. */
@@ -40,6 +48,10 @@ function readFlag(key: string): boolean {
 
 function readMuted(): boolean { return readFlag(MUTE_KEY) }
 
+function hasKey(key: string): boolean {
+  try { return localStorage.getItem(key) !== null } catch { return false }
+}
+
 function readVolume(key: string, fallback: number): number {
   try {
     const stored = localStorage.getItem(key)
@@ -53,6 +65,9 @@ export function isMuted(): boolean { return muted }
 export function getVolume(): number { return volume }
 export function isVoiceMuted(): boolean { return voiceMuted || voiceVolume === 0 }
 export function getVoiceVolume(): number { return voiceVolume }
+/** «Efectos y avisos» silenciados (o con el volumen a cero). */
+export function isSfxMuted(): boolean { return sfxMuted || sfxVolume === 0 }
+export function getSfxVolume(): number { return sfxVolume }
 
 /** Wrapper para archivos de audio; crear tras un gesto y llamar a play() para cargar/reproducir. */
 export function createAudioClip(src: string | string[], options: Pick<HowlOptions, 'loop' | 'html5' | 'format'> = {}): Howl {
@@ -82,6 +97,7 @@ export function subscribeAudio(listener: () => void): () => void {
 export const subscribeMuted = subscribeAudio
 
 function voiceGain(): number { return isVoiceMuted() ? 0 : VOICE_BUS_VOLUME * voiceVolume }
+function sfxGain(): number { return isSfxMuted() ? 0 : SFX_VOLUME * sfxVolume }
 
 function applyMasterVolume(): void {
   audioClips.forEach((clip) => {
@@ -96,19 +112,21 @@ function applyMasterVolume(): void {
     voiceBus.gain.cancelAndHoldAtTime(now)
     voiceBus.gain.linearRampToValueAtTime(voiceGain(), now + 0.04)
   }
+  sfxBus.gain.cancelAndHoldAtTime(now)
+  sfxBus.gain.linearRampToValueAtTime(sfxGain(), now + 0.04)
 }
 
 /** También tolera un dispositivo de audio ausente o un resume rechazado por Chromium. */
 function ready(): Promise<void> {
   // Con la música y los efectos silenciados, las voces siguen necesitando el AudioContext.
-  if (!unlocked || (muted && isVoiceMuted())) return Promise.resolve()
+  if (!unlocked || (muted && isSfxMuted() && isVoiceMuted())) return Promise.resolve()
   try {
     if (!context || context.state === 'closed') {
       context = new AudioContext()
       musicBus = context.createGain()
       musicBus.gain.value = MUSIC_VOLUME
       sfxBus = context.createGain()
-      sfxBus.gain.value = SFX_VOLUME
+      sfxBus.gain.value = sfxGain()
       voiceBus = context.createGain()
       voiceBus.gain.value = voiceGain()
       master = context.createGain()
@@ -120,8 +138,8 @@ function ready(): Promise<void> {
       limiter.attack.value = 0.003
       limiter.release.value = 0.12
       musicBus.connect(master)
-      sfxBus.connect(master)
-      // Las voces no pasan por el volumen general: tienen su propio volumen y silencio.
+      // Los efectos y las voces no pasan por el volumen de la música: cada uno tiene su volumen y su silencio.
+      sfxBus.connect(limiter)
       voiceBus.connect(limiter)
       master.connect(limiter)
       limiter.connect(context.destination)
@@ -438,7 +456,7 @@ function synthesize(ctx: AudioContext, name: SfxName): number {
 function drainEffects(): void {
   effectTimer = undefined
   effect = undefined
-  if (muted || context?.state !== 'running') { queue.length = 0; return }
+  if (isSfxMuted() || context?.state !== 'running') { queue.length = 0; return }
   const now = performance.now()
   const next = queue.shift()
   if (!next) return
@@ -450,7 +468,7 @@ function drainEffects(): void {
 
 /** Una voz de efecto a la vez, ráfagas agrupadas y cola corta con prioridad a fallos/finales. */
 export function playSfx(name: SfxName): void {
-  if (muted || context?.state !== 'running') return
+  if (isSfxMuted() || context?.state !== 'running') return
   const now = performance.now()
   const cooldown = name === 'click' ? 120 : name === 'error' || name === 'needsYou' ? 1400 : 650
   if (now - (lastPlayed.get(name) ?? -Infinity) < cooldown || queue.some((item) => item.name === name)) return
@@ -467,7 +485,7 @@ export function playSfx(name: SfxName): void {
  * de escritorio deja sonar sin gesto; un navegador solo lo consigue si ya hubo un clic en la página.
  */
 export function playAlert(name: SfxName): void {
-  if (muted) return
+  if (isSfxMuted()) return
   if (context?.state === 'running') return playSfx(name)
   const wasUnlocked = unlocked
   unlocked = true
@@ -630,12 +648,40 @@ function applyPreferences(nextVolume: number, nextMuted: boolean, previousVolume
   lastVolume = volume > 0 ? volume : previousVolume
   muted = nextMuted || volume === 0
   applyMasterVolume()
-  // Silenciar la música y los efectos no calla las voces de los agentes.
-  if (muted) {
-    stopMusic()
-    stopEffects()
-  } else startMusic()
+  // Silenciar la música no calla los efectos ni las voces de los agentes.
+  if (muted) stopMusic()
+  else startMusic()
   listeners.forEach((listener) => listener())
+}
+
+function persistSfx(): void {
+  try {
+    localStorage.setItem(SFX_VOLUME_KEY, String(sfxVolume))
+    localStorage.setItem(SFX_MUTE_KEY, String(sfxMuted))
+  } catch { /* almacenamiento no disponible */ }
+}
+
+function applySfxPreferences(nextVolume: number, nextMuted: boolean): void {
+  sfxVolume = nextVolume
+  sfxMuted = nextMuted
+  applyMasterVolume()
+  if (isSfxMuted()) stopEffects()
+  else void ready()
+  listeners.forEach((listener) => listener())
+}
+
+/** Volumen de los efectos y avisos (0 los silencia). Ni lo cambia ni depende del de la música o las voces. */
+export function setSfxVolume(value: number): void {
+  if (!Number.isFinite(value)) return
+  const next = Math.min(1, Math.max(0, value))
+  applySfxPreferences(next, next === 0 ? sfxMuted : false)
+  persistSfx()
+}
+
+/** Activa o silencia solo los efectos y avisos; la música y las voces siguen como estén. */
+export function setSfxMuted(value: boolean): void {
+  applySfxPreferences(!value && sfxVolume === 0 ? DEFAULT_VOLUME : sfxVolume, value)
+  persistSfx()
 }
 
 function persistPreferences(): void {
@@ -664,7 +710,7 @@ export function initAudio(): () => void {
     if (!event.isTrusted || (event instanceof KeyboardEvent && event.repeat)) return
     unlocked = true
     if (musicWanted && !muted) startMusic()
-    else if (!isVoiceMuted()) void ready()
+    else if (!isVoiceMuted() || !isSfxMuted()) void ready()
   }
   const click = (event: MouseEvent): void => {
     const target = event.target instanceof Element ? event.target.closest('button, a[href], [role="button"]') : null
@@ -674,6 +720,9 @@ export function initAudio(): () => void {
     if (event.key === MUTE_KEY || event.key === VOLUME_KEY || event.key === LAST_VOLUME_KEY || event.key === null) {
       applyPreferences(readVolume(VOLUME_KEY, DEFAULT_VOLUME), readMuted(),
         readVolume(LAST_VOLUME_KEY, DEFAULT_VOLUME) || DEFAULT_VOLUME)
+    }
+    if (event.key === SFX_VOLUME_KEY || event.key === SFX_MUTE_KEY || event.key === null) {
+      applySfxPreferences(readVolume(SFX_VOLUME_KEY, DEFAULT_VOLUME), readFlag(SFX_MUTE_KEY))
     }
     if (event.key === VOICE_VOLUME_KEY || event.key === VOICE_MUTE_KEY || event.key === null) {
       applyVoicePreferences(readVolume(VOICE_VOLUME_KEY, DEFAULT_VOICE_VOLUME), readFlag(VOICE_MUTE_KEY))

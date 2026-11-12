@@ -1115,7 +1115,7 @@ Cuando entra algo nuevo en «Te necesita» (en cualquier proyecto), kywai te avi
 - **La campanita de la barra lateral palpita** en dorado con un brillo suave y se mece un poco. Sigue así hasta que
   abres «Te necesita»; luego se queda quieta con su número. Con «Reducir movimiento» del sistema solo brilla.
 - **Suena su propio timbre**: una campanita de mostrador (dos toques metálicos y un eco más grave), distinta de
-  cualquier otro sonido de kywai. Va con el interruptor **«Música y efectos»**: si lo silencias, no suena. En la app
+  cualquier otro sonido de kywai. Va con el interruptor **«Efectos y avisos»**: si lo silencias, no suena (la música de fondo da igual). En la app
   de escritorio suena aunque no hayas tocado la ventana desde que se abrió o actualizó (`playAlert` en `lib/audio.ts`
   arranca el audio); en un navegador solo suena si ya hiciste algún clic en la página.
 - **En el espacio 3D el coordinador te llama**: una campanita dorada palpita sobre su cabeza y sobre su etiqueta
@@ -3795,11 +3795,17 @@ resultado (sin repetir la última frase); lo que ya había contado antes de abri
 Lo que llega de golpe **se escribe letra a letra al ritmo de su voz** (como en Animal Crossing): una letra por
 sílaba mientras balbucea y, cuando calla, lo que queda sale deprisa. Con las voces silenciadas, el texto sale entero.
 
-Tienen **su propio volumen y su propio silencio**, del todo aparte de la música: en ⚙ → Ajustes → General hay dos
-interruptores, **«Música y efectos»** (la música de fondo y los sonidos de la interfaz, con su volumen) y **«Voces de
-los agentes»** (lo que dicen en el chat, con el suyo). Silenciar uno no toca el otro: se puede trabajar sin música
-oyendo a los agentes, o con música y sin voces. El volumen de la música tampoco afecta al de las voces. Bajo el botón
-del altavoz de la barra de arriba están las mismas dos barras, con el botón de la burbuja para silenciar las voces.
+Tienen **su propio volumen y su propio silencio**, del todo aparte de la música: en ⚙ → Ajustes → General hay tres
+interruptores, cada uno con su volumen y sin tocar a los otros:
+
+- **«Música de fondo»**: la música ambiental de kywai y la que pongas en el panel de Música (YouTube, Audius, radios).
+- **«Efectos y avisos»**: los sonidos de la interfaz y de las tareas (empieza, termina, falla, clics) y el timbre de
+  «Te necesita». Se puede quitar la música y seguir oyendo los avisos.
+- **«Voces de los agentes»**: lo que dicen en el chat.
+
+Bajo el botón del altavoz de la barra de arriba están las mismas tres barras, cada una con su botón para silenciarla
+(nota, campana y burbuja); el altavoz grande calla o activa a la vez la música y los efectos (las voces van aparte).
+Quien venía de «Música y efectos» juntos empieza con los efectos como tenía la música (si estaba silenciada, también).
 Se recuerda en cada dispositivo.
 
 En **Órbita** suenan igual (mismos timbres, sintetizados en el móvil): Ajustes → Respuesta al tacto → **«Voces de

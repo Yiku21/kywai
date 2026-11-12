@@ -50,3 +50,30 @@ describe('voces de los agentes', () => {
     audio.setVoiceMuted(false)
   })
 })
+
+describe('música de fondo y efectos por separado', () => {
+  it('silenciar la música no calla los efectos, y al revés', () => {
+    audio.setMuted(false)
+    audio.setSfxMuted(false)
+    audio.setMuted(true)
+    expect(audio.isMuted()).toBe(true)
+    expect(audio.isSfxMuted()).toBe(false)
+    audio.setMuted(false)
+    audio.setSfxMuted(true)
+    expect(audio.isSfxMuted()).toBe(true)
+    expect(audio.isMuted()).toBe(false)
+    expect(audio.isVoiceMuted()).toBe(false)
+    audio.setSfxMuted(false)
+  })
+
+  it('el volumen de los efectos no cambia el de la música', () => {
+    const music = audio.getVolume()
+    audio.setSfxVolume(0.25)
+    expect(audio.getSfxVolume()).toBe(0.25)
+    expect(audio.getVolume()).toBe(music)
+    audio.setSfxVolume(0)
+    expect(audio.isSfxMuted()).toBe(true)
+    audio.setSfxMuted(false)
+    expect(audio.isSfxMuted()).toBe(false)
+  })
+})

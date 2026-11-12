@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from 'react'
-import { MessageSquare, Volume2, VolumeX } from 'lucide-react'
-import { getVoiceVolume, getVolume, isMuted, isVoiceMuted, setMuted, setVoiceMuted, setVoiceVolume, setVolume, subscribeAudio } from '@/lib/audio'
+import { Bell, MessageSquare, Music, Volume2, VolumeX } from 'lucide-react'
+import {
+  getSfxVolume,
+  getVoiceVolume,
+  getVolume,
+  isMuted,
+  isSfxMuted,
+  isVoiceMuted,
+  setMuted,
+  setSfxMuted,
+  setSfxVolume,
+  setVoiceMuted,
+  setVoiceVolume,
+  setVolume,
+  subscribeAudio
+} from '@/lib/audio'
 import { useEscape } from '../common/hooks'
 import { cx } from '../common/util'
 import u from '../common/ui.module.css'
@@ -15,8 +29,13 @@ const LEAVE_MS = 250
  * Sonido: el botón silencia o activa. El volumen sale debajo al pasar el ratón por encima o al pulsar el botón (en el
  * móvil, el primer toque lo muestra y el segundo silencia); se cierra al salir, con Esc o pulsando fuera.
  */
+/** El botón de la cabecera calla o activa a la vez la música y los efectos (las voces van aparte). */
+function allMuted(): boolean {
+  return isMuted() && isSfxMuted()
+}
+
 export function AudioToggle() {
-  const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
+  const muted = useSyncExternalStore(subscribeAudio, allMuted, allMuted)
   const volume = useSyncExternalStore(subscribeAudio, getVolume, getVolume)
   const [hover, setHover] = useState(false)
   const [pinned, setPinned] = useState(false)
@@ -64,7 +83,9 @@ export function AudioToggle() {
       setPinned(true)
       return
     }
-    setMuted(!isMuted())
+    const off = !allMuted()
+    setMuted(off)
+    setSfxMuted(off)
     setPinned(true)
   }
 
@@ -96,27 +117,35 @@ export function AudioToggle() {
   )
 }
 
-/** Volumen de música y efectos y de las voces de los agentes, cada uno por su lado (bajo el botón de sonido). */
+/** Volumen de la música, de los efectos y de las voces de los agentes, cada uno por su lado (bajo el botón de sonido). */
 export function SoundRows() {
   return (
     <>
       <MusicVolumeRow />
+      <SfxVolumeRow />
       <VoiceVolumeRow />
     </>
   )
 }
 
-/** Barra de volumen de la música de fondo y los efectos. */
+/** Barra de volumen de la música de fondo (la ambiental y la del panel de Música); no toca los efectos. */
 export function MusicVolumeRow() {
   const muted = useSyncExternalStore(subscribeAudio, isMuted, isMuted)
   const volume = useSyncExternalStore(subscribeAudio, getVolume, getVolume)
-  const percentage = Math.round(volume * 100)
-  const Icon = muted ? VolumeX : Volume2
+  const percentage = muted ? 0 : Math.round(volume * 100)
   return (
     <div className={cx(a.row, muted && a.muted)}>
-      <span className={a.rowIcon} aria-hidden="true">
-        <Icon size={15} />
-      </span>
+      <button
+        type="button"
+        className={a.rowBtn}
+        data-audio-toggle
+        aria-pressed={muted}
+        aria-label={muted ? t('Activar la música de fondo') : t('Silenciar la música de fondo')}
+        title={muted ? t('Activar la música de fondo') : t('Silenciar la música de fondo (los efectos y las voces siguen)')}
+        onClick={() => setMuted(!isMuted())}
+      >
+        <Music size={15} aria-hidden="true" />
+      </button>
       <input
         className={a.slider}
         type="range"
@@ -124,10 +153,47 @@ export function MusicVolumeRow() {
         max={100}
         step={1}
         value={percentage}
-        aria-label={t('Volumen de música y efectos')}
+        aria-label={t('Volumen de la música de fondo')}
         aria-valuetext={`${percentage} %${muted ? t(', silenciado') : ''}`}
         title={t('Volumen: {percentage} %{muted}', { percentage, muted: muted ? t(' (silenciado)') : '' })}
         onChange={(event) => setVolume(Number(event.currentTarget.value) / 100)}
+      />
+      <span className={a.value} aria-hidden="true">
+        {percentage}%
+      </span>
+    </div>
+  )
+}
+
+/** Barra de volumen de los efectos y avisos (clics, tareas, el timbre de «Te necesita»); no depende de la música. */
+export function SfxVolumeRow() {
+  const sfxMuted = useSyncExternalStore(subscribeAudio, isSfxMuted, isSfxMuted)
+  const sfxVolume = useSyncExternalStore(subscribeAudio, getSfxVolume, getSfxVolume)
+  const percentage = sfxMuted ? 0 : Math.round(sfxVolume * 100)
+  return (
+    <div className={cx(a.row, sfxMuted && a.muted)}>
+      <button
+        type="button"
+        className={a.rowBtn}
+        data-audio-toggle
+        aria-pressed={sfxMuted}
+        aria-label={sfxMuted ? t('Activar los efectos y avisos') : t('Silenciar los efectos y avisos')}
+        title={sfxMuted ? t('Activar los efectos y avisos') : t('Silenciar los efectos y avisos (la música y las voces siguen)')}
+        onClick={() => setSfxMuted(!isSfxMuted())}
+      >
+        <Bell size={15} aria-hidden="true" />
+      </button>
+      <input
+        className={a.slider}
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={percentage}
+        aria-label={t('Volumen de los efectos y avisos')}
+        aria-valuetext={`${percentage} %${sfxMuted ? t(', silenciados') : ''}`}
+        title={t('Efectos y avisos: {percentage} %{muted}', { percentage, muted: sfxMuted ? t(' (silenciados)') : '' })}
+        onChange={(event) => setSfxVolume(Number(event.currentTarget.value) / 100)}
       />
       <span className={a.value} aria-hidden="true">
         {percentage}%
