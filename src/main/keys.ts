@@ -1,12 +1,14 @@
-// Las claves de API de los agentes de catálogo en este equipo (cifradas con el llavero del sistema si se puede).
+// Las claves de API de los agentes de catálogo en este equipo (cifradas: en Mac con una clave propia de kywai, en
+// Windows y Linux con el cifrado del sistema si se puede).
 import { app, safeStorage } from 'electron'
 import { join } from 'node:path'
+import { fileKeyCipher, migratingCipher } from './localCipher'
 import { AgentKeys, type KeyCipher } from './secrets'
 
 let instance: AgentKeys | null = null
 
 /** Cifrado con el llavero del sistema (si no hay, se guardan sin cifrar en la carpeta de datos de este equipo). */
-export const systemCipher: KeyCipher = {
+const keychainCipher: KeyCipher = {
   available: () => {
     try {
       return safeStorage.isEncryptionAvailable()
@@ -22,6 +24,26 @@ export const systemCipher: KeyCipher = {
       return null
     }
   }
+}
+
+let macCipher: KeyCipher | null = null
+
+/**
+ * En Mac, clave propia en la carpeta de datos en vez del llavero: kywai se compila de nuevo en cada actualización y,
+ * sin firma de una cuenta de desarrollador de Apple, macOS volvía a pedir la contraseña del llavero tras cada una
+ * aunque se pulsara «Permitir siempre». Lo cifrado antes con el llavero se lee una última vez y se pasa a la clave
+ * propia. En Windows y Linux sigue el cifrado del sistema.
+ */
+function cipher(): KeyCipher {
+  if (process.platform !== 'darwin') return keychainCipher
+  return (macCipher ??= migratingCipher(fileKeyCipher(join(app.getPath('userData'), 'clave-local.key')), keychainCipher))
+}
+
+export const systemCipher: KeyCipher = {
+  available: () => cipher().available(),
+  encrypt: (plain) => cipher().encrypt(plain),
+  decrypt: (sealed) => cipher().decrypt(sealed),
+  outdated: (sealed) => cipher().outdated?.(sealed) ?? false
 }
 
 export function keys(): AgentKeys {

@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { isPackaged: false, getAppPath: () => tmpdir(), getPath: () => tmpdir() } }))
 
 import { mcpRuntimeFor, parseMcpPaste } from '@shared/extensions'
+import { fileKeyCipher, migratingCipher } from './localCipher'
 import {
   McpRegistry,
   claudeServers,
@@ -92,6 +93,19 @@ describe('registro de servidores', () => {
     expect(JSON.stringify(info)).not.toContain('secreto-123')
     expect(readFileSync(file, 'utf8')).not.toContain('secreto-123')
     expect(r.get('github')?.env.GITHUB_TOKEN).toBe('secreto-123')
+  })
+
+  it('lo cifrado con el llavero se pasa a la clave propia de kywai la primera vez que se lee', () => {
+    const file = join(dir, 'r-llavero.json')
+    new McpRegistry(file, rot).save({ id: 'github', transport: 'stdio', command: 'npx', args: ['x'], env: { GITHUB_TOKEN: 'secreto-123' } })
+    let keychainReads = 0
+    const keychain = { ...rot, decrypt: (s: string) => (keychainReads++, rot.decrypt(s)) }
+    const cipher = migratingCipher(fileKeyCipher(join(dir, 'clave-local.key')), keychain)
+    const r = new McpRegistry(file, cipher)
+    expect(r.get('github')?.env.GITHUB_TOKEN).toBe('secreto-123')
+    expect(readFileSync(file, 'utf8')).toContain('local1:')
+    expect(r.get('github')?.env.GITHUB_TOKEN).toBe('secreto-123')
+    expect(keychainReads).toBe(1)
   })
 
   it('un valor vacío deja el guardado; cambiar cómo arranca lo apaga para todos', () => {

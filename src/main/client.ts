@@ -1,7 +1,7 @@
 // Modo cliente: esta instalación de kywai no ejecuta agentes; se empareja con otro kywai (el principal, por
 // ejemplo en un equipo encendido 24/7) y muestra su interfaz. Todo el trabajo, los archivos y los agentes siguen en
 // el servidor; aquí solo hay la ventana, la llave de este dispositivo y los puentes con el sistema de este equipo.
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, Notification, safeStorage, session, shell, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, Notification, session, shell, type IpcMainInvokeEvent } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import type { ClientUpdateState } from '@shared/types'
 import { createReadStream, existsSync, mkdirSync, promises as fsp } from 'node:fs'
@@ -14,6 +14,7 @@ import { CLIENT_RELEASE_PUBLIC_KEY } from './clientReleaseKey'
 import { SyncManager } from './syncManager'
 import { checkRelease, initUpdater, installRelease, isReleaseBuild } from './updater'
 import { defaultWorkspaceRoot } from './config'
+import { systemCipher } from './keys'
 import {
   parseServerAddress,
   pairingProblem,
@@ -92,20 +93,26 @@ function localizedPage(): string {
 
 function sealToken(token: string): { token: string; encrypted: boolean } {
   try {
-    if (safeStorage.isEncryptionAvailable()) return { token: safeStorage.encryptString(token).toString('base64'), encrypted: true }
+    if (systemCipher.available()) return { token: systemCipher.encrypt(token), encrypted: true }
   } catch {
-    /* sin llavero: se guarda en el archivo del usuario (solo él puede leerlo) */
+    /* sin cifrado: se guarda en el archivo del usuario (solo él puede leerlo) */
   }
   return { token, encrypted: false }
 }
 
 function openToken(server: ClientServer): string | null {
   if (!server.encrypted) return server.token
-  try {
-    return safeStorage.decryptString(Buffer.from(server.token, 'base64'))
-  } catch {
-    return null
+  const token = systemCipher.decrypt(server.token)
+  // En Mac, la llave cifrada antes con el llavero se pasa a la clave propia de kywai (así no vuelve a pedir nada).
+  if (token !== null && systemCipher.outdated?.(server.token)) {
+    try {
+      const saved = readClientFile(clientFilePath())
+      if (saved?.server?.token === server.token) writeClientFile(clientFilePath(), { ...saved, server: { ...server, ...sealToken(token) } })
+    } catch {
+      /* se reintenta en el próximo arranque */
+    }
   }
+  return token
 }
 
 // ---------- Páginas propias (elegir modo, conectar, sin conexión) ----------

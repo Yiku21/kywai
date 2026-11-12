@@ -267,9 +267,20 @@ copia y la abre. Necesita Node.js (lo instala con Homebrew si está).
 Mac, «AI Cowork (este Mac)», que crea la primera vez en un llavero aparte
 (`~/Library/Application Support/AI Cowork/firma-local.keychain-db`, con su contraseña aleatoria al lado), sin
 ventanas. Lo usan la instalación y cada actualización. Así macOS reconoce la app como la misma entre versiones y no
-olvida sus permisos de Privacidad (Acceso total al disco, Automatización…) ni vuelve a preguntar por el llavero.
+olvida sus permisos de Privacidad (Acceso total al disco, Automatización…).
 Si algo falla, firma «ad hoc» como antes y avisa. Al pasar de la firma ad hoc a esta, macOS pide los permisos una
 última vez.
+
+**Claves guardadas en Mac (sin aviso del llavero).** El llavero de macOS solo recuerda «Permitir siempre» de verdad
+para apps firmadas con una cuenta de desarrollador de Apple. Con la firma propia lo ata a la huella exacta de cada
+compilación, y como kywai se compila de nuevo en cada actualización, volvía a pedir la contraseña del llavero para
+«kywai Safe Storage» tras cada una. Por eso en Mac kywai ya no usa el llavero: cifra las claves de API de los
+agentes, las de los servidores MCP y la llave del modo cliente con una clave propia (AES-256-GCM) guardada en
+`clave-local.key` de la carpeta de datos, que solo puede leer tu usuario (`src/main/localCipher.ts`). Lo cifrado antes
+con el llavero se lee una última vez (sale el aviso una vez más; pulsa «Permitir siempre» o escribe la contraseña) y
+se vuelve a cifrar con la clave propia; después ya no se pide. Es algo menos seguro que el llavero: cualquier programa
+que corra con tu usuario puede leer ese archivo. Si se borra, hay que volver a escribir esas claves. En Windows y
+Linux sigue el cifrado del sistema.
 
 #### Linux (se compila en el propio equipo)
 
@@ -526,7 +537,8 @@ chat, sus proyectos y sus archivos, desde una app instalada y no desde el navega
 3. Escribe la dirección del servidor (la IP de Tailscale o su nombre, p. ej. `100.101.102.103` o `mac-mini`; vale
    pegar el enlace de acceso entero, que ya trae el código) y el código. Se reinicia una vez y queda emparejado.
 
-La llave de ese equipo se guarda cifrada con el llavero del sistema, es **solo suya** (aparece en la lista de
+La llave de ese equipo se guarda cifrada (en Mac con la clave propia de kywai, ver «Claves guardadas en Mac»; en
+Windows y Linux con el cifrado del sistema), es **solo suya** (aparece en la lista de
 dispositivos emparejados del servidor y se revoca desde allí sin tocar los demás) y deja de valer tras 90 días sin
 usarse. El cliente nunca recibe el código de acceso del servidor (ni en la configuración, ni en los avisos, ni en el
 enlace a la versión HTTPS), así que al revocarlo se queda fuera de verdad. La interfaz siempre es la del servidor, así que cliente y servidor nunca quedan desfasados. Si el servidor
@@ -713,8 +725,8 @@ Cómo trabaja un agente de catálogo: kywai lo lanza en la carpeta del proyecto,
 iniciada en su programa (tu suscripción), le entrega el encargo por stdin o por un archivo (el texto nunca va en la
 línea de órdenes) y recoge lo que responde. **DeepSeek** no tiene programa de terminal ni suscripción propios (es un modelo con clave de API, de pago por uso):
 se conecta a través de Aider con el modelo de DeepSeek fijado. Los agentes que funcionan con una **clave de API**
-(DeepSeek, Kiro, Junie, Factory Droid, Amp) piden la clave en el paso «Sesiones»: se guarda cifrada con el llavero del
-sistema, solo en el equipo servidor (nunca por el acceso web ni por el móvil), y se pasa únicamente al programa de ese
+(DeepSeek, Kiro, Junie, Factory Droid, Amp) piden la clave en el paso «Sesiones»: se guarda cifrada (en Mac con la clave
+propia de kywai, en Windows y Linux con el cifrado del sistema), solo en el equipo servidor (nunca por el acceso web ni por el móvil), y se pasa únicamente al programa de ese
 agente. Kiro también vale sin clave si ya iniciaste sesión con «kiro-cli login» (se comprueba con `kiro-cli whoami`).
 
 Los añadidos en octubre de 2026, con lo que hay que saber de cada uno:
@@ -943,7 +955,7 @@ lleva `permission` con su estado.
   esperando una ventana que solo se contesta delante del Mac, en Ajustes del Sistema → Privacidad y seguridad activa
   para «kywai» (y para Terminal, si lanzas cosas desde ahí): **Acceso total al disco** (Escritorio, Documentos,
   Descargas, iCloud y discos externos) y, solo si quieres que los agentes manejen otras apps, **Automatización** y
-  **Accesibilidad**. La primera vez que salga el aviso del llavero, pulsa «Permitir siempre». La app trae los textos
+  **Accesibilidad**. La app trae los textos
   que macOS pide para mostrar esas ventanas, y se firma con un certificado propio de este Mac (ver «Firma en Mac»)
   para que los permisos no se pierdan al actualizar. Riesgo: un agente que se equivoque, o un texto malicioso que lea
   en una web, puede tocar cualquier archivo del Mac sin que nadie lo pare.
@@ -1704,8 +1716,8 @@ cómo se arranca (orden, dirección o claves) también lo apaga: se vuelve a enc
 | Gemini | Con una extensión **kywai** en `~/.gemini/extensions/kywai` que lista los servidores encendidos para Gemini (sin sus claves: van como `${KYWAI_MCP_…}` y kywai se las pasa al lanzar la tarea) y `--allowed-mcp-server-names` con los de la tarea. Esa extensión también la verá tu Gemini cuando lo uses a mano (sin las claves). Los archivos de sistema de Gemini no sirven: solo los lee si son de root. |
 | Hermes | Solo en sus tareas de trabajo (al planificar sigue con herramientas de consulta). Hermes lee los servidores de su `config.yaml`, pero mezcla encima los de su «ámbito gestionado» (`HERMES_MANAGED_DIR`): kywai escribe ahí, en `mcp/hermes-…/config.yaml` de la carpeta de trabajo, solo `mcp_servers` (con sus claves; se borra al terminar), y añade sus nombres a `-t`. Tu configuración de Hermes no se toca. Si el equipo ya tiene un ámbito gestionado de verdad (`/etc/hermes`), no se pisa y la traza lo dice. Probado con Hermes Agent 0.19, que necesita su soporte MCP instalado (`hermes-agent[mcp]`, viene con `[all]`); sin él, o con un Hermes viejo, simplemente trabaja sin ellos. |
 
-**Las claves** se guardan en `mcp-servers.json` de la carpeta de datos de este equipo, cifradas con el llavero del
-sistema si se puede, y nunca vuelven a la interfaz: al cambiar un servidor salen como «Guardada»; déjala vacía para
+**Las claves** se guardan en `mcp-servers.json` de la carpeta de datos de este equipo, cifradas (en Mac con la clave
+propia de kywai, en Windows y Linux con el cifrado del sistema si se puede), y nunca vuelven a la interfaz: al cambiar un servidor salen como «Guardada»; déjala vacía para
 no cambiarla.
 
 **Hermes lo sabe.** La guía del coordinador lleva qué herramientas tiene cada agente («Claude: playwright (…)»):

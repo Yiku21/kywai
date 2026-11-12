@@ -8,6 +8,8 @@ export interface KeyCipher {
   available(): boolean
   encrypt(plain: string): string
   decrypt(sealed: string): string | null
+  /** Si lo cifrado se hizo con un sistema anterior y conviene volver a cifrarlo (por ejemplo, el llavero del Mac). */
+  outdated?(sealed: string): boolean
 }
 
 interface Stored {
@@ -48,9 +50,21 @@ export class AgentKeys {
   }
 
   get(agentId: string): string | null {
-    const s = this.read()[agentId]
+    const data = this.read()
+    const s = data[agentId]
     if (!s || typeof s.value !== 'string') return null
-    return s.encrypted ? this.cipher.decrypt(s.value) : s.value
+    if (!s.encrypted) return s.value
+    const plain = this.cipher.decrypt(s.value)
+    // Lo cifrado con el sistema anterior se vuelve a cifrar con el actual (así no vuelve a pedir nada).
+    if (plain !== null && this.cipher.outdated?.(s.value) && this.cipher.available()) {
+      data[agentId] = { value: this.cipher.encrypt(plain), encrypted: true }
+      try {
+        this.write(data)
+      } catch {
+        /* se reintenta en la próxima lectura */
+      }
+    }
+    return plain
   }
 
   has(agentId: string): boolean {

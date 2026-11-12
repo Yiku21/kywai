@@ -149,8 +149,37 @@ export class McpRegistry {
     return this.read().map((s) => this.info(s))
   }
 
+  /** Vuelve a cifrar con el sistema actual lo cifrado con uno anterior (por ejemplo, el llavero del Mac). */
+  private migrated(): StoredServer[] {
+    const servers = this.read()
+    const outdated = this.cipher.outdated
+    if (!outdated || !this.cipher.available()) return servers
+    let changed = false
+    const redo = (vals?: Record<string, Sealed>): void => {
+      for (const [k, v] of Object.entries(vals ?? {})) {
+        if (!v.encrypted || !outdated(v.value)) continue
+        const plain = this.cipher.decrypt(v.value)
+        if (plain === null) continue
+        vals![k] = this.seal(plain)
+        changed = true
+      }
+    }
+    for (const s of servers) {
+      redo(s.env)
+      redo(s.headers)
+    }
+    if (changed) {
+      try {
+        this.write(servers)
+      } catch {
+        /* se reintenta en la próxima lectura */
+      }
+    }
+    return servers
+  }
+
   resolved(): ResolvedMcpServer[] {
-    return this.read().map((s) => ({
+    return this.migrated().map((s) => ({
       id: s.id,
       title: s.title,
       transport: s.transport,

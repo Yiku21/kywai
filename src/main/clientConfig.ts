@@ -43,7 +43,7 @@ export interface ClientServer {
   /** Nombre del servidor (el del equipo), solo para mostrarlo. */
   name: string
   deviceId?: string
-  /** Token del dispositivo: cifrado con el llavero del sistema si se pudo (`encrypted`), si no, en claro. */
+  /** Token del dispositivo: cifrado (en Mac con la clave propia de kywai, en otros con el del sistema) si se pudo (`encrypted`), si no, en claro. */
   token: string
   encrypted: boolean
 }
