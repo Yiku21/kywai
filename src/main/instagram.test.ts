@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { __setInstagramFetchForTests, captionPrompt, cleanCaption, graphHost, instagramAccount, parseCaptionReply, parseInstagramRequest, publishReel, readInstagramSettings, temporaryLink, writeInstagramSettings } from './instagram'
+import { __setInstagramFetchForTests, captionPrompt, cleanCaption, graphHost, instagramAccount, parseCaptionReply, parseInstagramRequest, publishReel, readInstagramSettings, setInstagramLinkProvider, temporaryLink, writeInstagramSettings } from './instagram'
 
 type Call = { url: string; method: string; headers: Record<string, string>; body?: string | Uint8Array | FormData }
 
@@ -109,7 +109,7 @@ describe('el Instagram de kywai', () => {
           : { ok: true, status: 200, text: async () => JSON.stringify({ id: 'C3' }) },
       async () => undefined
     )
-    await expect(publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })).rejects.toThrow(/^Instagram respondió con un error 400 al subir el vídeo: Request processing failed \[ProcessingFailedError\]\. Con un enlace temporal tampoco: /)
+    await expect(publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x' })).rejects.toThrow(/^Instagram respondió con un error 400 al subir el vídeo: Request processing failed \[ProcessingFailedError\]\. Con un enlace público tampoco: /)
   })
 
   it('un 500 al subir se reintenta y un error de la API lleva su código y el paso', async () => {
@@ -218,6 +218,36 @@ describe('el Instagram de kywai', () => {
       async () => undefined
     )
     await expect(temporaryLink(file, 16)).rejects.toThrow('Litterbox: fetch failed (ECONNRESET); Uguu: fetch failed (ECONNRESET); tmpfiles.org: fetch failed (ECONNRESET)')
+  })
+
+  it('usa primero el enlace del propio equipo (Funnel), lo cierra al terminar y, si falla, va a los alojamientos', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-'))
+    const file = join(dir, 'reel.mp4')
+    writeFileSync(file, Buffer.alloc(16, 1))
+    let closed = 0
+    setInstagramLinkProvider(async () => ({ url: 'https://mac.ts.net:8443/kywai/x.mp4', close: async () => void closed++ }))
+    const calls = fakeGraph([
+      [/POST .*\/1\/media$/, (c) => (new URLSearchParams(c.body as string).get('video_url') === 'https://mac.ts.net:8443/kywai/x.mp4' ? { id: 'C5' } : { error: { message: 'otra url' } })],
+      [/GET .*\/C5\?/, () => ({ status_code: 'FINISHED' })],
+      [/POST .*\/media_publish$/, () => ({ id: 'M5' })],
+      [/GET .*\/M5\?/, () => ({})]
+    ])
+    try {
+      expect((await publishReel({ token: 'IGAAtok123', userId: '1', file, caption: 'x' })).id).toBe('M5')
+      expect(closed).toBe(1)
+      expect(calls.some((c) => /litterbox|uguu|tmpfiles/.test(c.url))).toBe(false)
+      setInstagramLinkProvider(async () => {
+        throw new Error('Funnel no está permitido')
+      })
+      fakeGraph([
+        [/litterbox/, () => ({ error: 'no' })],
+        [/uguu/, () => ({ error: 'no' })],
+        [/tmpfiles/, () => ({ error: 'no' })]
+      ])
+      await expect(publishReel({ token: 'IGAAtok123', userId: '1', file, caption: 'x' })).rejects.toThrow(/^Tailscale Funnel: Funnel no está permitido\. No se pudo dejar el vídeo en un enlace temporal/)
+    } finally {
+      setInstagramLinkProvider(null)
+    }
   })
 
   it('el texto cabe en Instagram y se limpia lo que añade el agente', () => {

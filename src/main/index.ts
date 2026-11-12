@@ -54,11 +54,11 @@ import { AccessLog, isInside, normalizePath, withinAny } from './serverFiles'
 import { bootClient, chooseMode, closeClientWindow, focusClient, prepareClientSwitches, savedMode } from './client'
 import { ensureWebCert } from './selfCert'
 import { mobileSigningKey } from './mobileAuth'
-import { disableHttps, enableHttps, httpsInfo } from './tailscale'
+import { disableHttps, enableHttps, httpsInfo, openFunnelLink } from './tailscale'
 import { setAgentKeyResolver } from './agents/generic'
 import { setColibriUrlSource } from './agents/colibri'
 import { agentKey, keys, systemCipher } from './keys'
-import { instagramAccount, readInstagramSettings, writeInstagramSettings } from './instagram'
+import { instagramAccount, readInstagramSettings, setInstagramLinkProvider, writeInstagramSettings } from './instagram'
 import { elevenAccount, setElevenKeyResolver } from './elevenlabs'
 import { TIKTOK_REDIRECT, authorizeUrl, codeFromRedirect, exchangeCode, pkcePair, readTikTokSettings, refreshTokens, tiktokUser, writeTikTokSettings, type TikTokTokens } from './tiktok'
 import { checkAuth, detectTools, installTool, openLogin, refreshPath, saveAgentKey, saveGeminiKey } from './setup'
@@ -885,6 +885,8 @@ function registerIpc(): void {
   // El Instagram de kywai: el token (de la API oficial de Meta) se guarda cifrado en el llavero; nunca la contraseña.
   const igFile = join(app.getPath('userData'), 'instagram.json')
   setInstagramBackend({ token: () => agentKey('instagram'), settings: () => readInstagramSettings(igFile) })
+  // El vídeo se le da a Instagram desde este equipo con Tailscale Funnel (si la red lo permite); si no, alojamientos temporales.
+  setInstagramLinkProvider(openFunnelLink)
   handle('instagramStatus', () => instagramStatusNow())
   handle('connectInstagram', async (token: unknown, userId: unknown) => {
     if (typeof token !== 'string' || !token.trim()) throw new Error(tr('Pega el token de acceso de la cuenta de Instagram'))

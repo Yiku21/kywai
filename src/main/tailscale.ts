@@ -2,7 +2,10 @@
 // Tailscale, solo dentro de tu red) y Tailscale lo pasa a kywai en 127.0.0.1. Los navegadores solo dejan
 // usar el micrófono en páginas HTTPS, así que sin esto el dictado no funciona desde el móvil.
 import { execFile } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { randomBytes } from 'node:crypto'
+import { createReadStream, existsSync, statSync } from 'node:fs'
+import { createServer, type Server } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import type { WebHttpsInfo } from '@shared/types'
 
@@ -111,4 +114,111 @@ export async function disableHttps(port: number): Promise<WebHttpsInfo> {
     if (!r.ok) throw new Error(`Tailscale no pudo quitar el HTTPS: ${lastLine(r.out)}`)
   }
   return httpsInfo(port)
+}
+
+// ---------- enlace público de un solo archivo con Tailscale Funnel (para que Instagram descargue un reel) ----------
+
+/** Puertos que Funnel admite. El 443 se deja siempre para el HTTPS privado de kywai (Serve): nunca se abre a internet. */
+const FUNNEL_PORTS = [8443, 10000]
+
+/** Puertos que Tailscale Serve/Funnel ya usa en este equipo (para no pisar ni abrir a internet nada que no sea nuestro). */
+export function usedServePorts(json: string): Set<number> {
+  const used = new Set<number>()
+  try {
+    const cfg = JSON.parse(json) as { TCP?: Record<string, unknown>; Web?: Record<string, unknown> }
+    for (const k of Object.keys(cfg.TCP ?? {})) used.add(Number(k))
+    for (const host of Object.keys(cfg.Web ?? {})) used.add(Number(host.split(':').pop()))
+  } catch {
+    // Sin configuración.
+  }
+  return used
+}
+
+type RunFn = (cli: string, args: string[], timeoutMs: number) => Promise<RunResult>
+let runImpl: RunFn = run
+let findCliImpl: () => Promise<string | null> = findCli
+
+export function __setTailscaleForTests(r: RunFn | null, cli?: () => Promise<string | null>): void {
+  runImpl = r ?? run
+  findCliImpl = cli ?? findCli
+}
+
+/**
+ * Sirve UN archivo en internet desde este equipo con Tailscale Funnel hasta que se llame a `close`: un servidor
+ * diminuto en 127.0.0.1 que solo entrega ese archivo en una dirección con un código al azar (todo lo demás da 404) y
+ * Funnel en un puerto propio (8443 o 10000). Nunca toca el 443, que es el acceso privado a kywai.
+ */
+export async function openFunnelLink(file: string, signal?: AbortSignal): Promise<{ url: string; close: () => Promise<void> }> {
+  const cli = await findCliImpl()
+  if (!cli) throw new Error('no encuentro Tailscale en este equipo')
+  const st = parseStatus((await runImpl(cli, ['status', '--json'], 8000)).stdout)
+  if (!st.running || !st.dnsName) throw new Error('Tailscale no está conectado en este equipo')
+  const used = usedServePorts((await runImpl(cli, ['serve', 'status', '--json'], 8000)).stdout)
+  const port = FUNNEL_PORTS.find((p) => !used.has(p))
+  if (!port) throw new Error(`los puertos de Funnel (${FUNNEL_PORTS.join(' y ')}) ya están ocupados en Tailscale`)
+  const token = randomBytes(24).toString('hex')
+  const path = `/kywai/${token}.mp4`
+  const server = await serveOneFile(file, path)
+  const local = server.address() as AddressInfo
+  const stopServer = (): Promise<void> => new Promise((r) => server.close(() => r()))
+  if (signal?.aborted) {
+    await stopServer()
+    throw new Error('Cancelado')
+  }
+  // Si la red no permite Funnel todavía, Tailscale da un enlace para permitirlo y espera: se corta y se dice.
+  const r = await runImpl(cli, ['funnel', '--bg', '--yes', `--https=${port}`, `http://127.0.0.1:${local.port}`], 25_000)
+  const on = usedServePorts((await runImpl(cli, ['serve', 'status', '--json'], 8000)).stdout).has(port)
+  if (!r.ok || !on) {
+    await runImpl(cli, ['funnel', '--yes', `--https=${port}`, 'off'], 15_000)
+    await stopServer()
+    const link = enableLink(r.out)
+    throw new Error(link ? `Funnel no está permitido en tu red de Tailscale; actívalo una vez aquí: ${link}` : `no se pudo abrir: ${lastLine(r.out)}`)
+  }
+  let closed = false
+  return {
+    url: `https://${st.dnsName}:${port}${path}`,
+    close: async () => {
+      if (closed) return
+      closed = true
+      await runImpl(cli, ['funnel', '--yes', `--https=${port}`, 'off'], 15_000)
+      await stopServer()
+    }
+  }
+}
+
+/** Servidor en 127.0.0.1 (puerto libre) que solo entrega `file` en `path` (GET/HEAD, con Range); lo demás, 404. */
+export function serveOneFile(file: string, path: string): Promise<Server> {
+  const size = statSync(file).size
+  const server = createServer((req, res) => {
+    const url = (req.url ?? '').split('?')[0]
+    if ((req.method !== 'GET' && req.method !== 'HEAD') || url !== path) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' }).end('no encontrado')
+      return
+    }
+    const m = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range ?? ''))
+    let start = 0
+    let end = size - 1
+    if (m && (m[1] || m[2])) {
+      if (m[1]) {
+        start = Number(m[1])
+        if (m[2]) end = Math.min(Number(m[2]), size - 1)
+      } else start = Math.max(0, size - Number(m[2]))
+      if (start > end || start >= size) {
+        res.writeHead(416, { 'Content-Range': `bytes */${size}` }).end()
+        return
+      }
+    }
+    const headers = { 'Content-Type': 'video/mp4', 'Content-Length': String(end - start + 1), 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store' }
+    if (m && (m[1] || m[2])) res.writeHead(206, { ...headers, 'Content-Range': `bytes ${start}-${end}/${size}` })
+    else res.writeHead(200, headers)
+    if (req.method === 'HEAD') {
+      res.end()
+      return
+    }
+    createReadStream(file, { start, end }).on('error', () => res.destroy()).pipe(res)
+  })
+  return new Promise((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => resolve(server))
+  })
 }

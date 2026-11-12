@@ -2192,9 +2192,20 @@ agente escribe el texto: gancho en la primera línea, una llamada a la acción y
 `/serie`, repite la pregunta para votar). Sale una tarjeta con el vídeo y el texto, que puedes **cambiar** antes de
 pulsar **Publicar** (también desde «Te necesita», en el escritorio, la web y Órbita). kywai le da el MP4 a Instagram:
 con un token de Facebook (EAA…) lo sube desde el equipo (subida reanudable de Meta); con uno de Instagram (IG…, el
-habitual), Meta no admite esa subida y solo acepta un enlace público, así que kywai deja el vídeo **1 hora** en un
-alojamiento temporal (Litterbox, Uguu o tmpfiles.org: el primero que responda, cada uno con un reintento) y le pasa ese enlace. Si Meta rechaza la subida directa
-con un token EAA (pasa con los de usuario del sistema), kywai también pasa al enlace temporal. Después espera a que Instagram lo procese y deja el **enlace** en el
+habitual), Meta no admite esa subida y solo acepta un **enlace público** (y lo mismo si rechaza la subida directa con un
+token EAA, como pasa con los de usuario del sistema). Ese enlace sale:
+
+1. **Del propio equipo con Tailscale Funnel**, si Tailscale está conectado y la red permite Funnel. kywai arranca un
+   servidor diminuto que solo entrega ese vídeo en una dirección con un código al azar (todo lo demás da «no
+   encontrado»), lo abre con Funnel en el puerto 8443 (o 10000 si está ocupado) y lo cierra en cuanto Instagram
+   termina. Nunca abre el 443, que es el acceso privado a kywai. Para permitirlo, una vez: en
+   [login.tailscale.com](https://login.tailscale.com) → **Access controls**, añade el atributo `funnel` al equipo (el
+   enlace exacto sale en el error si falta). Ojo: el nombre del equipo en Tailscale (`algo.ts.net`) es visible en
+   internet mientras dura la publicación.
+2. Si no, de un **alojamiento temporal** que lo borra solo (Litterbox 1 hora, Uguu 3 horas o tmpfiles.org 1 hora: el
+   primero que responda, cada uno con un reintento).
+
+Después espera a que Instagram lo procese y deja el **enlace** en el
 chat. Si falla, la tarjeta dice por qué y tiene **Reintentar**: el error nombra el paso (preparar la publicación,
 subir el vídeo, comprobarlo o publicar el reel), lo que contestó Meta y su código o `fbtrace_id`. Los errores 500
 pasajeros de la subida se reintentan solos dos veces. Ninguna petición se queda colgada: cada paso tiene un tope de

@@ -330,11 +330,60 @@ export async function temporaryLink(file: string, size: number, signal?: AbortSi
   throw new Error(`No se pudo dejar el vídeo en un enlace temporal para Instagram (${fails.join('; ')})`)
 }
 
+/** Un enlace público al vídeo que se cierra al terminar (lo da Tailscale Funnel desde el propio equipo). */
+export interface PublicLink {
+  url: string
+  close: () => Promise<void>
+}
+
+/** Quien abre el enlace desde el propio equipo (Tailscale Funnel); sin él, solo alojamientos temporales. */
+let linkProvider: ((file: string, signal?: AbortSignal) => Promise<PublicLink>) | null = null
+
+export function setInstagramLinkProvider(p: ((file: string, signal?: AbortSignal) => Promise<PublicLink>) | null): void {
+  linkProvider = p
+}
+
+/**
+ * El enlace público que se le da a Instagram: primero desde el propio equipo con Tailscale Funnel (el vídeo no pasa
+ * por nadie más) y, si no está disponible o falla, un alojamiento temporal. Lo que hay que cerrar va a `opened`.
+ */
+async function publicVideoLink(file: string, size: number, signal: AbortSignal | undefined, onStep: ((t: string) => void) | undefined, opened: Array<() => Promise<void>>): Promise<string> {
+  let funnelWhy = ''
+  if (linkProvider) {
+    onStep?.('Abriendo un enlace desde este equipo (Tailscale Funnel)')
+    try {
+      const link = await linkProvider(file, signal)
+      opened.push(link.close)
+      return link.url
+    } catch (e) {
+      if (signal?.aborted) throw e
+      funnelWhy = e instanceof Error ? e.message : String(e)
+    }
+  }
+  onStep?.('Subiendo el vídeo a un enlace temporal')
+  try {
+    return await temporaryLink(file, size, signal)
+  } catch (e) {
+    if (funnelWhy && !signal?.aborted) throw new Error(`Tailscale Funnel: ${funnelWhy}. ${e instanceof Error ? e.message : String(e)}`)
+    throw e
+  }
+}
+
 /**
  * Publica un reel: crea el contenedor y le da el vídeo (con un token de Facebook, subida reanudable desde el equipo; con
  * uno de Instagram, un enlace temporal), espera a que Instagram lo procese y lo publica. Devuelve el id y el enlace de la publicación.
  */
 export async function publishReel(input: PublishInput): Promise<{ id: string; permalink?: string }> {
+  const opened: Array<() => Promise<void>> = []
+  try {
+    return await publishReelSteps(input, opened)
+  } finally {
+    // El enlace del propio equipo (Tailscale Funnel) se cierra en cuanto Instagram termina, salga bien o mal.
+    for (const close of opened) await close().catch(() => undefined)
+  }
+}
+
+async function publishReelSteps(input: PublishInput, opened: Array<() => Promise<void>>): Promise<{ id: string; permalink?: string }> {
   const { token, userId, file, signal } = input
   if (!existsSync(file)) throw new Error('No encuentro el vídeo para publicarlo')
   const size = statSync(file).size
@@ -345,8 +394,7 @@ export async function publishReel(input: PublishInput): Promise<{ id: string; pe
   if (graphHost(token).includes('instagram')) {
     // Con un token de «Instagram Login» Meta no admite la subida directa (rupload responde ProcessingFailedError):
     // solo acepta un enlace público al vídeo, que descarga él. kywai lo deja en un alojamiento temporal (1 hora).
-    input.onStep?.('Subiendo el vídeo a un enlace temporal')
-    const videoUrl = await temporaryLink(file, size, signal)
+    const videoUrl = await publicVideoLink(file, size, signal, input.onStep, opened)
     input.onStep?.('Preparando la publicación en Instagram')
     box = await graph<{ id?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', video_url: videoUrl, caption, ...extra }, signal, 'preparar la publicación')
     if (!box.id) throw new Error('Instagram no creó la publicación')
@@ -361,14 +409,13 @@ export async function publishReel(input: PublishInput): Promise<{ id: string; pe
       // Algunos tokens EAA (los de usuario del sistema del inicio de sesión unificado) tampoco admiten la subida directa:
       // Meta la rechaza con ProcessingFailedError. Entonces se prueba con un enlace temporal y un contenedor nuevo.
       if (signal?.aborted || !(e instanceof Error) || !/ProcessingFailedError|error 4\d\d al subir/.test(e.message)) throw e
-      input.onStep?.('Subiendo el vídeo a un enlace temporal')
       try {
-        const videoUrl = await temporaryLink(file, size, signal)
+        const videoUrl = await publicVideoLink(file, size, signal, input.onStep, opened)
         input.onStep?.('Preparando la publicación en Instagram')
         box = await graph<{ id?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', video_url: videoUrl, caption, ...extra }, signal, 'preparar la publicación')
       } catch (e2) {
         if (signal?.aborted) throw e2
-        throw new Error(`${e.message}. Con un enlace temporal tampoco: ${e2 instanceof Error ? e2.message : String(e2)}`)
+        throw new Error(`${e.message}. Con un enlace público tampoco: ${e2 instanceof Error ? e2.message : String(e2)}`)
       }
       if (!box.id) throw new Error('Instagram no creó la publicación')
     }
