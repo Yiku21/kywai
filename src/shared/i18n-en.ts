@@ -3556,7 +3556,7 @@ export const en: Record<string, string> = {
   "Pulsa otra vez para borrarlo del todo": "Click again to delete it for good",
   "Ese archivo ya no está en el proyecto": "That file is no longer in the project",
   "No se encontró {name} en el disco": "{name} was not found on disk",
-  "Automático: la oficina se oscurece poco a poco con la hora de tu reloj": "Automatic: the office darkens little by little with your clock",
+  "Automático: el espacio anochece y amanece poco a poco con la hora de tu reloj": "Automatic: the space gets dark and light little by little with your clock",
   "Habilidades aprendidas": "Learned skills",
   "Procedimientos que escribieron los agentes al terminar una tarea. Mientras son provisionales solo los ven los agentes de este proyecto; al confirmarlos, los de todos tus proyectos.": "Procedures the agents wrote when finishing a task. While provisional, only this project's agents see them; once you confirm them, so do the agents of all your projects.",
   "Confirmada": "Confirmed",

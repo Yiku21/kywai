@@ -3527,20 +3527,28 @@ plataformas, su peana para el núcleo y sus colores de interfaz (`scene/worlds/c
   ventanal de suelo a techo con la ciudad iluminada detrás, pared de nogal con estantes iluminados, sala del consejo
   de cristal con mesa larga y sillas de piel, recepción y butacas. Interfaz azul marino con latón suave.
 
-**Auto** (el botón del reloj, junto a «Modo noche», solo en la Oficina): la oficina de día se va oscureciendo con la
+**Auto** (el botón del reloj, junto a «Modo noche»): en la Oficina, la oficina de día se va oscureciendo con la
 hora del reloj de este dispositivo. Atardece de 17:00 a 20:30: baja la luz, el cielo y la niebla pasan a casi negro y
 se van encendiendo las ventanas de los edificios de enfrente; de 20:30 a 6:00 es de noche y amanece de 6:00 a 8:00. La
-interfaz pasa a los colores oscuros cuando ya casi ha anochecido. Se recuerda en cada dispositivo (cada uno tiene su
-reloj). Tocar «Modo noche» deja el automático y fija el día o la noche a mano. Para probarlo sin esperar, en el
-navegador se puede abrir kywai con `?hora=19:30` (`lib/officeClock.ts`).
+interfaz pasa a los colores oscuros cuando ya casi ha anochecido. Para probarlo sin esperar, en el navegador se puede
+abrir kywai con `?hora=19:30` (`lib/officeClock.ts`).
 
 Son dos ids de tema, así que el cambio de día a noche se guarda en el servidor y lo siguen los demás dispositivos como
 cualquier cambio de tema. Los muebles se quitan solos si un puesto cae encima, y el vidrio es transparente de verdad
 (no da sombra). Órbita no tiene el interruptor: muestra «Oficina» y «Oficina · noche» en su lista, con sus colores.
 
+**Modo noche y Auto en todos los temas.** En la cabecera del espacio, junto a Música, todos los temas tienen el
+interruptor **Modo noche** y el botón **Auto** (el del reloj). Modo noche pone el escenario de noche: el mismo cielo,
+niebla y luces de su tema, pero oscuros y con luz de luna fría, así que las ventanas, los circuitos y el núcleo
+destacan (`nightOf` en `scene/palette.ts`). Con **Auto**, el escenario anochece y amanece poco a poco con la hora del
+reloj de ese dispositivo (de 17:00 a 20:30 y de 6:00 a 8:00). La Oficina usa su versión de noche y el Refugio Kywai su
+propia noche (con Auto, de noche desde que ha anochecido a medias). Las dos cosas se recuerdan en cada dispositivo
+(`aicowork.space.night` y `aicowork.oficina.auto`), y tocar «Modo noche» con Auto encendido vuelve al modo manual. Los
+colores de la interfaz no cambian, salvo en la Oficina y el Refugio Kywai.
+
 **Refugio Kywai** aparece en **⚙ → Ajustes → General → Mapas**. Es un observatorio-invernadero frente al mar: cúpula de madera y cristal, cielo panorámico con nubes y agua animadas, jardines, talleres individuales, mesa circular con árbol central y asiento turquesa para el usuario. Los robots tienen acabados de cerámica y ropa propia, conservando sus estados, gestos y bocadillos. La distribución se adapta a los agentes visibles sin cambiar las posiciones guardadas de los proyectos.
 
-El interruptor **Modo noche**, junto a Música en la cabecera del espacio, cambia este refugio a luna, estrellas e iluminación cálida, con colores oscuros en la interfaz. Se recuerda por dispositivo y no cambia otros mapas. **Reducir efectos** detiene las animaciones del cielo, agua y vegetación. El tema se elige y sincroniza por los mecanismos habituales del servidor; está disponible en escritorio, cliente conectado y navegador. Órbita todavía no dibuja este escenario 3D.
+El interruptor **Modo noche**, junto a Música en la cabecera del espacio, cambia este refugio a luna, estrellas e iluminación cálida, con colores oscuros en la interfaz. Se recuerda por dispositivo y no cambia otros mapas; con **Auto**, sigue la hora del reloj. **Reducir efectos** detiene las animaciones del cielo, agua y vegetación. El tema se elige y sincroniza por los mecanismos habituales del servidor; está disponible en escritorio, cliente conectado y navegador. Órbita todavía no dibuja este escenario 3D.
 
 ⚙ → Ajustes → General → **Tema** (justo debajo del idioma; se despliega con la flecha) cambia el aspecto de la app.
 Los temas van en tres grupos: los mapas (con la Ciudad digital), Empresa (la Oficina) y los decorados. Cada tema es una tarjeta pequeña,

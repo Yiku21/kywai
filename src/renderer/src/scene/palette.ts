@@ -763,3 +763,18 @@ export function mixColor(a: string, b: string, t: number): string {
   return t <= 0 ? a : t >= 1 ? b : mixHex(a, b, t)
 }
 
+/**
+ * La noche de cualquier tema (Modo noche o Auto): su mismo cielo, niebla y luces, pero oscuros y con luz de luna fría.
+ * Los brillos (ventanas, circuitos, núcleo) no cambian, así que de noche destacan. La Oficina tiene la suya (OFFICE_NIGHT).
+ */
+export function nightOf(p: ScenePalette): { bg: string; fog: string; lights: ScenePalette['lights'] } {
+  if (p.world === 'oficina') return OFFICE_NIGHT
+  const L = p.lights, dark = p.light ? 0.86 : 0.72
+  return {
+    bg: mixHex(p.bg, '#02040a', dark), fog: mixHex(p.fog, '#03060c', dark),
+    lights: { sky: mixHex(L.sky, '#1b2540', 0.7), ground: mixHex(L.ground, '#000000', 0.6), hemi: L.hemi * 0.4,
+      ambient: mixHex(L.ambient, '#8ea2d8', 0.5), ambientI: L.ambientI * 0.45, key: mixHex(L.key, '#a9bcff', 0.6), keyI: L.keyI * 0.42,
+      fill: mixHex(L.fill, '#4f6bb0', 0.4), fillI: L.fillI * 0.6, env: L.env.map((c) => mixHex(c, '#0a0f1c', 0.6)) as [string, string, string, string] }
+  }
+}
+

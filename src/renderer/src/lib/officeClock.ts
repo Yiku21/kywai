@@ -1,9 +1,11 @@
-// La Oficina en modo automático: el escenario de día se va oscureciendo con la hora del reloj de este dispositivo
-// (atardece de 17:00 a 20:30 y amanece de 6:00 a 8:00), hasta quedar de noche con la ciudad encendida.
-// La preferencia es de cada dispositivo (cada uno tiene su reloj); el tema sigue siendo «Oficina».
+// Noche del espacio 3D en todos los temas, por dispositivo (cada uno tiene su reloj):
+// - «Auto»: el escenario se va oscureciendo con la hora del reloj (atardece de 17:00 a 20:30 y amanece de 6:00 a 8:00);
+// - «Modo noche» a mano en los temas sin noche propia (la Oficina cambia de tema y el Refugio Kywai tiene la suya).
+// (El nombre del archivo y de la clave de «Auto» vienen de cuando solo la Oficina lo tenía.)
 import { useSyncExternalStore } from 'react'
 
 const KEY = 'aicowork.oficina.auto'
+const NIGHT_KEY = 'aicowork.space.night'
 const listeners = new Set<() => void>()
 const emit = () => listeners.forEach((l) => l())
 
@@ -26,6 +28,7 @@ function readAuto(): boolean {
 }
 
 let auto = readAuto()
+let manualNight = (() => { try { return localStorage.getItem(NIGHT_KEY) === 'true' } catch { return false } })()
 /** Para pruebas y capturas: una hora fija en vez del reloj (null = el reloj). */
 let fixedNow: Date | null = null
 let night = nightAt(new Date())
@@ -44,8 +47,9 @@ if (typeof window !== 'undefined') {
   // Cada minuto basta: el atardecer dura tres horas y media.
   window.setInterval(tick, 60_000)
   window.addEventListener('storage', (e) => {
-    if (e.key !== KEY && e.key !== null) return
+    if (e.key !== KEY && e.key !== NIGHT_KEY && e.key !== null) return
     auto = readAuto()
+    try { manualNight = localStorage.getItem(NIGHT_KEY) === 'true' } catch { /* igual */ }
     emit()
   })
   try {
@@ -87,3 +91,13 @@ export function useOfficeNight(): number {
 export function officeAuto(): boolean { return auto }
 export function officeNight(): number { return night }
 export function onOfficeClock(fn: () => void): () => void { return subscribe(fn) }
+
+/** «Modo noche» a mano en los temas sin noche propia (la Ciudad, los mapas, los decorados, el Fondo marino). */
+export function setSpaceNight(value: boolean): void {
+  manualNight = value
+  try { localStorage.setItem(NIGHT_KEY, String(value)) } catch { /* sigue en memoria */ }
+  emit()
+}
+export function useSpaceNight(): boolean {
+  return useSyncExternalStore(subscribe, () => manualNight, () => false)
+}

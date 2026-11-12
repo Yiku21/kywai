@@ -3433,7 +3433,7 @@ export const pt: Record<string, string> = {
   "Pulsa otra vez para borrarlo del todo": "Carrega outra vez para o apagar de vez",
   "Ese archivo ya no está en el proyecto": "Esse ficheiro já não está no projeto",
   "No se encontró {name} en el disco": "Não se encontrou {name} no disco",
-  "Automático: la oficina se oscurece poco a poco con la hora de tu reloj": "Automático: o escritório escurece aos poucos com a hora do seu relógio",
+  "Automático: el espacio anochece y amanece poco a poco con la hora de tu reloj": "Automático: o espaço anoitece e amanhece aos poucos com a hora do seu relógio",
   "Habilidades aprendidas": "Habilidades aprendidas",
   "Procedimientos que escribieron los agentes al terminar una tarea. Mientras son provisionales solo los ven los agentes de este proyecto; al confirmarlos, los de todos tus proyectos.": "Procedimentos que os agentes escreveram ao terminar uma tarefa. Enquanto são provisórios, só os agentes deste projeto os veem; ao confirmá-los, os de todos os seus projetos.",
   "Confirmada": "Confirmada",

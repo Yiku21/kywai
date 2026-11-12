@@ -3433,7 +3433,7 @@ export const zh: Record<string, string> = {
   "Pulsa otra vez para borrarlo del todo": "再点一次即可彻底删除",
   "Ese archivo ya no está en el proyecto": "该文件已不在项目中",
   "No se encontró {name} en el disco": "磁盘上找不到 {name}",
-  "Automático: la oficina se oscurece poco a poco con la hora de tu reloj": "自动：办公室随你的时钟逐渐变暗",
+  "Automático: el espacio anochece y amanece poco a poco con la hora de tu reloj": "自动：空间随你的时钟逐渐入夜和天亮",
   "Habilidades aprendidas": "学到的技能",
   "Procedimientos que escribieron los agentes al terminar una tarea. Mientras son provisionales solo los ven los agentes de este proyecto; al confirmarlos, los de todos tus proyectos.": "代理在完成任务时写下的流程。暂定期间只有本项目的代理能看到；确认后，你所有项目的代理都能看到。",
   "Confirmada": "已确认",

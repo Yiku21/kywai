@@ -7,7 +7,7 @@ import type { AgentConfig, StationConfig } from '@shared/types'
 import { currentData, useCowork, useData } from '@/store/cowork'
 import { musicLightLevel } from '@/lib/music'
 import { useHomeNight } from '@/lib/homeLighting'
-import { officeClock, useOfficeAuto, useOfficeNight } from '@/lib/officeClock'
+import { officeClock, useOfficeAuto, useOfficeNight, useSpaceNight } from '@/lib/officeClock'
 import { HOME_NIGHT_LIGHTS } from './worlds/homeNight'
 import { homeLayout } from './worlds/homeLayout'
 import { UnderseaWorld, underseaLayout } from './worlds/UnderseaWorld'
@@ -20,7 +20,7 @@ import { Backdrop } from './Backdrop'
 import { Circuits } from './Circuits'
 import { Zones } from './Zones'
 import { Decor } from './Decor'
-import { FOG_FAR, FOG_NEAR, OFFICE_NIGHT, mixColor, mixLights, palette } from './palette'
+import { FOG_FAR, FOG_NEAR, mixColor, mixLights, nightOf, palette } from './palette'
 import { Core } from './Core'
 import { Station } from './Station'
 import { Robot } from './Robot'
@@ -29,6 +29,7 @@ import { Sparks } from './Sparks'
 import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
 import { CinemaLights } from './CinemaLights'
+import { DuskGrade, DuskVeil } from './DuskGrade'
 import { LabelProjector } from './LabelProjector'
 import { frameDue, sceneFps } from './frameRate'
 import { useSceneRest } from './sceneRest'
@@ -261,11 +262,13 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
     return theme === 'kywai' ? homeLayout(all, agents) : theme === 'submarino' ? underseaLayout(all) : polygonLayout(all, agents)
   }, [theme, configuredStations, agents])
   const p = palette
-  // La Oficina en automático se oscurece con el reloj (0 de día, 1 de noche); las ventanas lo leen en officeClock.
-  const officeAutoOn = useOfficeAuto(), officeNightNow = useOfficeNight()
-  const dusk = theme === 'oficina' && officeAutoOn ? officeNightNow : 0
-  officeClock.night = dusk
-  const L = night ? HOME_NIGHT_LIGHTS : dusk ? mixLights(p.lights, OFFICE_NIGHT.lights, dusk) : p.lights
+  // Noche del espacio (0 de día, 1 de noche): con «Auto» sigue el reloj; si no, «Modo noche». La Oficina a mano cambia
+  // de tema ('sede') y el Refugio Kywai tiene su propia noche; las ventanas de la Oficina lo leen en officeClock.
+  const autoOn = useOfficeAuto(), clockNight = useOfficeNight(), manualNight = useSpaceNight()
+  const dusk = theme === 'kywai' || theme === 'sede' ? 0 : autoOn ? clockNight : theme === 'oficina' ? 0 : manualNight ? 1 : 0
+  officeClock.night = theme === 'oficina' ? dusk : 0
+  const N = useMemo(() => nightOf(p), [p])
+  const L = night ? HOME_NIGHT_LIGHTS : dusk ? mixLights(p.lights, N.lights, dusk) : p.lights
   // Los entornos nuevos usan materiales físicos también en el suelo y la arquitectura.
   const worldLight = p.world ? (p.light ? 0.85 : 2.4) : 1
   const fogNear = p.world === 'oficina' || p.world === 'sede' ? 70 : p.world === 'submarino' ? 30 : p.world === 'kywai' ? 160 : p.world === 'relicario' || p.world === 'telar' ? 68 : p.world === 'matrix' || p.world === 'clasico' ? 70 : p.world === 'grafito' ? 73 : p.world === 'marfil' ? 86 : p.world === 'bosque' ? 40 : p.world ? 48 : FOG_NEAR
@@ -294,8 +297,8 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
       onPointerMissed={() => useCowork.getState().select(null)}
       aria-label={t('Espacio digital con los agentes trabajando')}
     >
-      <color key={`bg-${theme}-${dusk.toFixed(3)}`} attach="background" args={[night ? '#050d1a' : mixColor(p.bg, OFFICE_NIGHT.bg, dusk)]} />
-      <fog key={`fog-${theme}-${dusk.toFixed(3)}`} attach="fog" args={[night ? '#0a1727' : mixColor(p.fog, OFFICE_NIGHT.fog, dusk), fogNear, fogFar]} />
+      <color key={`bg-${theme}-${dusk.toFixed(3)}`} attach="background" args={[night ? '#050d1a' : mixColor(p.bg, N.bg, dusk)]} />
+      <fog key={`fog-${theme}-${dusk.toFixed(3)}`} attach="fog" args={[night ? '#0a1727' : mixColor(p.fog, N.fog, dusk), fogNear, fogFar]} />
       <SceneClock />
       <Pacing visible={visible} focused={focused} adaptive={adaptive} />
       {meterOn && <PerfProbe />}
@@ -324,6 +327,7 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
         <SocialLife />
         <Decor stations={stations} q={q} reduced={reduced} />
       </group>
+      {!q.bloom && <DuskVeil dusk={theme === 'oficina' ? 0 : dusk} />}
       <CameraRig view={view} stations={stations} />
       <ViewShift view={view} />
       <LabelProjector />
@@ -331,8 +335,10 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
       {q.bloom && (
         <EffectComposer multisampling={q.msaa} enableNormalPass={false}>
           <N8AO enabled={!!p.world && q.ao} aoRadius={0.55} intensity={1.1} distanceFalloff={0.8} quality="medium" halfRes />
-          <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 + dusk * 1.1 : 1) * (night ? .8 : p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
+          <Bloom mipmapBlur intensity={(reduced ? 0.35 : 0.55) * (p.light ? 0.5 + dusk * 1.1 : 1 + dusk * 0.3) * (night ? .8 : p.bloom ?? 1)} luminanceThreshold={1} luminanceSmoothing={0.18} radius={0.6} />
           <Vignette offset={0.28} darkness={night ? .25 : p.vignette + dusk * 0.25} />
+          {/* La Oficina ya tiene su noche hecha a mano (cielo, ciudad y ventanas). */}
+          <DuskGrade dusk={theme === 'oficina' ? 0 : dusk} />
         </EffectComposer>
       )}
     </Canvas>

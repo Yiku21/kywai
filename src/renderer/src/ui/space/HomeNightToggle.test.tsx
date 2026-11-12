@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { applyTheme, setTheme, storedTheme } from '@/lib/theme'
 import { PALETTES, palette } from '@/scene/palette'
-import { setOfficeAuto, setOfficeClockTime } from '@/lib/officeClock'
+import { setOfficeAuto, setOfficeClockTime, setSpaceNight } from '@/lib/officeClock'
 import { setHomeNight, storedHomeNight } from '@/lib/homeLighting'
 import { HomeNightToggle } from './HomeNightToggle'
 
@@ -28,14 +28,14 @@ describe('Kywai night switch',()=>{
     await act(async()=>toggle.click())
     expect(storedHomeNight()).toBe(false)
   })
-  it('only appears in Kywai and preserves its preference while visiting other worlds',async()=>{
+  it('keeps the Kywai preference while visiting other worlds, where the switch is their own night',async()=>{
     await act(async()=>root.render(<HomeNightToggle/>))
-    await act(async()=>host.querySelector<HTMLButtonElement>('button')!.click())
+    await act(async()=>host.querySelector<HTMLButtonElement>('[role="switch"]')!.click())
     await act(async()=>setTheme('matrix'))
-    expect(host.querySelector('button')).toBeNull()
+    expect(host.querySelector('[role="switch"]')?.getAttribute('aria-checked')).toBe('false')
     expect(storedHomeNight()).toBe(true)
     await act(async()=>setTheme('kywai'))
-    expect(host.querySelector('button')?.getAttribute('aria-checked')).toBe('true')
+    expect(host.querySelector('[role="switch"]')?.getAttribute('aria-checked')).toBe('true')
   })
   it('follows a preference change from another window',async()=>{
     await act(async()=>root.render(<HomeNightToggle/>))
@@ -80,8 +80,25 @@ describe('Kywai night switch',()=>{
     expect(storedTheme()).toBe('oficina')
     expect(document.documentElement.dataset.theme).toBe('oficina')
   })
-  it('shows Auto only in the Office',async()=>{
+  it('gives every theme its own night and Auto, remembered on this device',async()=>{
+    await act(async()=>setTheme('mundo-grafito'))
     await act(async()=>root.render(<HomeNightToggle/>))
-    expect(host.querySelector('[aria-pressed]')).toBeNull()
+    const toggle=host.querySelector<HTMLButtonElement>('[role="switch"]')!
+    await act(async()=>toggle.click())
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    expect(localStorage.getItem('aicowork.space.night')).toBe('true')
+    expect(storedTheme()).toBe('mundo-grafito')
+    await act(async()=>setOfficeClockTime('12:00'))
+    const auto=host.querySelector<HTMLButtonElement>('[aria-pressed]')!
+    await act(async()=>auto.click())
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    await act(async()=>setOfficeClockTime('23:00'))
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    // En el Refugio Kywai, Auto también manda sobre su noche.
+    await act(async()=>setTheme('kywai'))
+    expect(document.documentElement.dataset.kywaiNight).toBe('true')
+    await act(async()=>setOfficeClockTime('10:00'))
+    expect(document.documentElement.dataset.kywaiNight).toBe('false')
+    await act(async()=>setSpaceNight(false))
   })
 })
