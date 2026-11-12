@@ -249,6 +249,8 @@ export interface Task {
    * rápido y un encargo corto, empieza aunque el agente esté ocupado y no toca archivos.
    */
   quick?: boolean
+  /** Habilidades del equipo que recibió completas en su encargo (las que encajaban con la tarea). */
+  skills?: string[]
   /** Lo que cambió en la carpeta del proyecto (instantáneas de antes y después): se puede ver y deshacer. */
   changes?: TaskChanges
   /**

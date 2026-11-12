@@ -81,7 +81,7 @@ import { testEvidence } from '@shared/testEvidence'
 import { mcpForTask, MCP_SERVER_NAME, releaseMcp, type McpLaunch } from './coworkMcp'
 import { claudeServers, codexMcp, geminiEnv, hermesMcp, guideLines, listMcp, removeFiles, serversFor, taskTag } from './extensions'
 import { repoInstructionLines } from './repoInstructions'
-import { listSkills, skillPromptLines, skillsDir, videoSkillPromptLines, videoSkillsDir } from './skills'
+import { fullSkillSections, listSkills, skillPromptLines, skillsDir, videoSkillPromptLines, videoSkillsDir, visibleIn } from './skills'
 import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { replyExcerpt, replyRequest } from '@shared/replyTo'
@@ -4359,6 +4359,7 @@ function previousWork(projectId: string, exceptRunId: string): string[] {
     const files = t.artifactIds.map((id) => st.artifacts.find((a) => a.id === id)?.relPath).filter((p): p is string => !!p)
     const state = t.status === 'done' ? 'hecha' : t.status === 'failed' ? `falló: ${t.error ?? ''}` : t.status
     out.push(`### «${t.title}» (${agentName(t.agentId)}, ${state})`, clip(t.result, RESULT_KEEP) || '(sin texto)')
+    if (t.skills?.length) out.push(`Recibió las habilidades: ${t.skills.join(', ')}`)
     if (files.length) out.push(`Archivos: ${files.join(', ')}`)
   }
   return out
@@ -4606,6 +4607,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
       : [
           '- "routine": si el usuario pide algo que se repite o para más tarde («cada mañana revisa…», «todos los lunes prepara…», «mañana a las 7 recuérdame…», «dentro de 2 horas comprueba…», «cuando llegue un PR, revísalo»), escribe aquí la orden de la rutina, con el horario y luego la petición que se enviará sola, completa y en la voz del usuario: «/rutina de lunes a viernes a las 8:30: revisa las dependencias y avísame de las que tengan fallos de seguridad». Horarios que se entienden: «cada día a las 9:00», «de lunes a viernes a las 8:30», «lunes y jueves a las 7:00», «cada 6 horas», «mañana a las 7:00», «el viernes a las 18:00», «el 15/11 a las 9:00», «dentro de 2 horas», «webhook», «al cambiar archivos de <carpeta>». kywai le enseña una tarjeta «Crear rutina»: no la des por creada en "reply" ni crees tareas para montar un cron o un script. Si además conviene hacerlo ya, añade las tareas de esta vez. Si no pide nada periódico ni para más tarde, "".'
         ]),
+    ...teamSkillsForPlanner(run.projectId),
     '- "video": si el usuario pide crear uno o varios vídeos (reels, clips, películas…) con sus palabras, escribe aquí la orden u órdenes «/video …» completas y kywai la lanza en el acto con su estudio de vídeo (no crees "tasks" para hacerlos ni le digas que use «/video»; en "reply", di en una frase que ya están en marcha). Pon primero las marcas que saques de lo que pide: «tipo:rapido|presentador|mixto», «personaje:robots-kywai» si quiere los personajes o robots de kywai, «estilo:<slug>» si pide un estilo de la biblioteca o te deja elegir (el estilo vale para todos los vídeos de esa orden: para estilos distintos, una orden por estilo), «voz:<id>» (la voz decide el idioma: en inglés, p. ej. «voz:kokoro-af_bella» o «voz:kokoro-am_adam»; en español, «voz:edge-es-ES-AlvaroNeural») y «vertical» si es para redes. Después, el tema. Si son varios, una línea por vídeo («1) …», «2) …», hasta 12: kywai hace como mucho 6 a la vez y el resto cuando acaban esos). Si un vídeo sale de un archivo del proyecto (un guion), pon su ruta tal cual: kywai lo lee y lo usa de guion. Si no pide vídeos, [].',
     ...(run.routine
       ? []
@@ -4613,6 +4615,15 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
           `- "skills": si la petición es de un campo especializado (un framework, un formato de archivo, un tipo de diseño, marketing, seguridad, datos…) y una habilidad ya escrita por otros ayudaría claramente a hacerlo mejor, escribe 1 a 4 palabras en inglés para buscarla en skills.sh (por ejemplo «nextjs», «pdf forms», «landing page copy», «security audit»). kywai la buscará y enseñará al usuario una tarjeta para instalarla si quiere: no la menciones en "reply" ni esperes a que se instale. Ya instaladas: ${installedSkillList().join(', ').slice(0, 1500) || 'ninguna'}. Si ya hay una que sirve, o es charla o algo sencillo, "".`
         ])
   ].join('\n')
+}
+
+/** Para el coordinador: qué habilidades tiene el equipo, para nombrarlas en las tareas a las que sirven. */
+function teamSkillsForPlanner(projectId: string): string[] {
+  const list = listSkills(skillsDir()).filter((s) => visibleIn(s, projectId))
+  if (!list.length) return []
+  return [
+    `- Habilidades del equipo (lo que el equipo ya sabe hacer): ${list.map((s) => `«${s.name}» (${oneLine(s.description, 90)})`).join('; ').slice(0, 2500)}. Si una sirve para una tarea, escribe su nombre exacto en la "description" de esa tarea: kywai se la pega entera al agente, sea cual sea su CLI. Si el usuario pregunta si los agentes saben algo, contesta con esto: cada tarea a la que le sirve una habilidad la recibe completa, y su detalle dice «Recibió las habilidades: …».`
+  ]
 }
 
 /** Nombres de las habilidades instaladas (las normales y las de vídeo). */
@@ -4965,6 +4976,19 @@ const NARRATE_RULE = '- Mientras trabajas, cuenta lo que haces en frases cortas 
  * Encargo de una consulta rápida: la pregunta, la conversación y pocas reglas. Sin lista de pasos, sin narrar el
  * avance, sin resumen final ni sección de memoria: eso es para el trabajo de verdad y aquí solo alarga la espera.
  */
+/**
+ * Las habilidades del equipo en el encargo: las que encajan con la tarea van enteras (todos los agentes reciben el
+ * mismo texto) y las demás, en la lista con su descripción. Apunta en la tarea cuáles recibió, y lo dice en su detalle.
+ */
+function teamSkillLines(run: Run, t: Task, tools: boolean): string[] {
+  const full = fullSkillSections(`${t.title}\n${t.description}\n${run.userText}`, run.projectId)
+  if (full.names.join('\n') !== (t.skills ?? []).join('\n')) {
+    t.skills = full.names.length ? full.names : undefined
+    if (full.names.length) traceNote(t.id, tr('Recibió las habilidades: {names}', { names: full.names.join(', ') }))
+  }
+  return [...full.lines, ...skillPromptLines(tools, skillsDir(), run.projectId, full.names)]
+}
+
 function quickPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null): string {
   const st = store.getProject(run.projectId)
   const atts = run.attachments.map((a) => `- ${attPath(run, a.relPath)} (adjunto del usuario: ${a.name})`)
@@ -4980,6 +5004,7 @@ function quickPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig |
     ...(atts.length ? ['', '## Archivos adjuntos (rutas relativas a la carpeta donde trabajas)', ...atts] : []),
     ...(conversation.length ? ['', '## Conversación reciente (lo que se habló antes de esta pregunta)', ...conversation] : []),
     ...memoryPromptSections(run.projectId),
+    ...fullSkillSections(`${t.title}\n${t.description}\n${run.userText}`, run.projectId).lines,
     '',
     '## Reglas',
     st.project.workDir
@@ -5235,7 +5260,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   }
   lines.push(...memoryPromptSections(run.projectId))
   lines.push(...repoInstructionLines(store.workRoot(run.projectId), exec.provider))
-  lines.push(...skillPromptLines(tools))
+  lines.push(...teamSkillLines(run, t, tools))
   if (!textOnly) lines.push(...ponytailPromptLines(leanCodeOf(run.projectId)))
   lines.push(
     '',

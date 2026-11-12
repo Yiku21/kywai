@@ -12,7 +12,7 @@ import { loadConfig } from './config'
 import { actInbox, initInbox, listInbox } from './inbox'
 import { memoryOf } from './memory'
 import * as store from './projects'
-import { initSkills, readSkill, skillPromptLines } from './skills'
+import { fullSkillSections, initSkills, readSkill, relevantSkills, skillPromptLines } from './skills'
 import { repoInstructionLines } from './repoInstructions'
 import { mcpForTask, releaseMcp, startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { claudeArgs } from './agents/claude'
@@ -152,6 +152,44 @@ describe('habilidades e instrucciones del repositorio', () => {
     expect(lines).not.toContain('LEEME')
     expect(skillPromptLines(false).join('\n')).toMatch(/publicar[/\\]SKILL\.md/)
     expect(readSkill('no-existe')).toBeNull()
+  })
+
+  it('las habilidades que encajan con la tarea van enteras en el encargo, para todos los CLI', () => {
+    const root = join(env.root, 'hab-relevantes')
+    mkdirSync(join(root, 'membresia-metabolica'), { recursive: true })
+    writeFileSync(
+      join(root, 'membresia-metabolica', 'SKILL.md'),
+      '---\nname: membresia-metabolica\ndescription: Usar en cualquier tarea de la Membresía Metabólica (precios, contrato, GHL, iHealth, bonos).\n---\n\nPrecio: $179 + 5 x $299.\n'
+    )
+    mkdirSync(join(root, 'publicar'), { recursive: true })
+    writeFileSync(join(root, 'publicar', 'SKILL.md'), '---\nname: publicar-version\ndescription: Cómo publicamos una versión nueva de la app\n---\n\n1. Subir el número.\n')
+    // Nombrada tal cual (con tildes o con guiones) o por sus palabras.
+    expect(relevantSkills('Revisa los precios de la membresía metabólica', undefined, root).map((s) => s.name)).toEqual(['membresia-metabolica'])
+    expect(relevantSkills('usa membresia-metabolica', undefined, root).map((s) => s.name)).toEqual(['membresia-metabolica'])
+    expect(relevantSkills('Publica la versión 2.0 de la app', undefined, root).map((s) => s.name)).toEqual(['publicar-version'])
+    expect(relevantSkills('Arregla el botón de enviar', undefined, root)).toEqual([])
+    const full = fullSkillSections('Calcula los bonos de la membresía metabólica', undefined, root)
+    expect(full.names).toEqual(['membresia-metabolica'])
+    expect(full.lines.join('\n')).toContain('Precio: $179 + 5 x $299.')
+    // La lista de las demás no repite la que ya va entera.
+    const rest = skillPromptLines(false, root, undefined, full.names).join('\n')
+    expect(rest).toContain('publicar-version')
+    expect(rest).not.toContain('membresia-metabolica')
+  })
+
+  it('una habilidad provisional solo la ven los agentes de su proyecto', () => {
+    const root = join(env.root, 'hab-provisional')
+    mkdirSync(join(root, 'despliegue'), { recursive: true })
+    writeFileSync(
+      join(root, 'despliegue', 'SKILL.md'),
+      '---\nname: despliegue-staging\ndescription: Cómo desplegar en staging con el script deploy\nestado: provisional\nproyecto: p1\norigen: Codex, «Desplegar»\n---\n\n1. npm run deploy\n'
+    )
+    expect(skillPromptLines(true, root, 'p1').join('\n')).toContain('despliegue-staging (provisional)')
+    expect(skillPromptLines(true, root, 'p2')).toEqual([])
+    expect(fullSkillSections('despliega en staging con deploy', 'p2', root).names).toEqual([])
+    const mine = fullSkillSections('despliega en staging con deploy', 'p1', root)
+    expect(mine.names).toEqual(['despliegue-staging'])
+    expect(mine.lines.join('\n')).toMatch(/provisional/)
   })
 
   it('cada CLI recibe los archivos de instrucciones que no lee por su cuenta, sin repetir', () => {
