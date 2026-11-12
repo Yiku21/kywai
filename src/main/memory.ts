@@ -234,9 +234,35 @@ export function updateMemory(projectId: string, id: string, patch: Partial<Memor
   if (isMemoryKind(patch.kind)) e.kind = patch.kind
   if (patch.status === 'confirmed' || patch.status === 'provisional' || patch.status === 'superseded') {
     e.status = patch.status
-    if (patch.status !== 'superseded') e.supersededBy = undefined
+    if (patch.status !== 'superseded') {
+      e.supersededBy = undefined
+      // «Volver a usarla» en un pendiente contestado: vuelve a estar abierto.
+      e.answer = undefined
+      e.answeredAt = undefined
+    }
   }
   e.updatedAt = Date.now()
+  changed(projectId)
+}
+
+/** El pendiente sin contestar al que va una respuesta (error legible si ya no está o no es un pendiente). */
+export function openPending(projectId: string, id: string): MemoryEntry {
+  const e = memoryOf(projectId).find((x) => x.id === id)
+  if (!e) throw new Error('Esa entrada ya no está en la memoria')
+  if (e.kind !== 'pending' || e.status === 'superseded') throw new Error('Ese pendiente ya está resuelto')
+  return e
+}
+
+/**
+ * «Responder» en un pendiente: queda resuelto (sustituido, con la respuesta guardada) y deja de salir en la lista
+ * y en los encargos. La respuesta ya la lleva el mensaje que recibe el coordinador.
+ */
+export function markAnswered(projectId: string, id: string, answer: string, now = Date.now()): void {
+  const e = openPending(projectId, id)
+  e.status = 'superseded'
+  e.answer = answer.replace(/\s+/g, ' ').trim().slice(0, 2000)
+  e.answeredAt = now
+  e.updatedAt = now
   changed(projectId)
 }
 

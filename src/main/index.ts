@@ -98,6 +98,7 @@ import {
   runState,
   schedule,
   sendMessage,
+  answerPending,
   sendVoiceNote
 } from './orchestrator'
 import { createTemplate, deleteTemplate, forgetProjectTemplates, initTemplates, listTemplates, restoreBuiltinTemplates, updateTemplate } from './templates'
@@ -689,6 +690,10 @@ function registerIpc(): void {
       kind: isMemoryKind(p.kind) ? p.kind : undefined,
       status: p.status === 'confirmed' || p.status === 'provisional' || p.status === 'superseded' ? p.status : undefined
     })
+  })
+  handle('answerMemory', (projectId: unknown, id: unknown, answer: unknown) => {
+    if (typeof id !== 'string' || typeof answer !== 'string' || answer.length > 20_000) throw new Error(tr('Respuesta no válida'))
+    return answerPending(projectArg(projectId), id, answer)
   })
   handle('deleteMemory', (projectId: unknown, id: unknown) => {
     if (typeof id !== 'string') throw new Error(tr('Entrada no válida'))

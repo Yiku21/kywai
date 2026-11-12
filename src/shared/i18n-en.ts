@@ -3580,4 +3580,14 @@ export const en: Record<string, string> = {
   "Conversación nueva hasta justo antes de este mensaje, con su texto listo para cambiarlo; esta no se toca": "A new conversation up to just before this message, with its text ready to change; this one is left as is",
   "Mensaje de {name}": "Message from {name}",
   "Tu mensaje": "Your message",
+
+  // Responder a un pendiente de la memoria
+  'Respuesta enviada al coordinador: la verás en el chat. El pendiente {id} queda resuelto.': 'Reply sent to the coordinator: you will see it in the chat. Pending item {id} is now resolved.',
+  'Tu respuesta: {text}': 'Your reply: {text}',
+  'Contesta aquí: tu respuesta va al coordinador y el pendiente queda resuelto': 'Answer here: your reply goes to the coordinator and the pending item is resolved',
+  'Tu respuesta… (Intro envía, Mayús+Intro salto de línea)': 'Your reply… (Enter sends, Shift+Enter new line)',
+  'Respuesta al pendiente {id}': 'Reply to pending item {id}',
+  'Escribe tu respuesta': 'Write your reply',
+  'Respuesta no válida': 'Invalid reply',
+  'Respuesta al pendiente {id} («{quote}»): {text}': 'Reply to pending item {id} (“{quote}”): {text}',
 }

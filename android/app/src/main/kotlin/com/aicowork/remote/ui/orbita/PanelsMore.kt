@@ -29,6 +29,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Build
@@ -182,12 +184,14 @@ private fun MemoryCard(m: MemoryEntry, snapshot: Snapshot, model: OrbitaModel, c
     var editing by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf(m.text) }
     var busy by remember { mutableStateOf<String?>(null) }
+    var answering by remember { mutableStateOf(false) }
+    var answer by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth().card(selected = review).padding(14.dp).animateContentSize().testTag("memory-${m.id}")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             when (m.status) {
                 "provisional" -> Badge(t("{v1} · Provisional", "v1" to (Labels.memoryKind(m.kind))), Orbita.Warn)
                 "confirmed" -> Badge(t("{v1} · Confirmada", "v1" to (Labels.memoryKind(m.kind))), Orbita.Success)
-                else -> Badge(t("{v1} · Archivada", "v1" to (Labels.memoryKind(m.kind))), Orbita.TextFaint)
+                else -> Badge(if (m.answer != null) t("{v1} · Respondido", "v1" to (Labels.memoryKind(m.kind))) else t("{v1} · Archivada", "v1" to (Labels.memoryKind(m.kind))), Orbita.TextFaint)
             }
             Spacer(Modifier.weight(1f))
             if (canEdit) Box {
@@ -203,6 +207,10 @@ private fun MemoryCard(m: MemoryEntry, snapshot: Snapshot, model: OrbitaModel, c
         Spacer(Modifier.height(8.dp))
         if (!editing) {
             Text(m.text, color = Orbita.Text, style = MaterialTheme.typography.bodyLarge)
+            if (m.status == "superseded" && m.answer != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(t("Tu respuesta: {text}", "text" to m.answer.orEmpty()), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium)
+            }
         } else {
             OrbitaField(draft, { draft = it }, t("Texto del recuerdo"), singleLine = false, minLines = 2, maxLines = 8, imeAction = ImeAction.Default, autoFocus = true)
             Spacer(Modifier.height(8.dp))
@@ -238,6 +246,24 @@ private fun MemoryCard(m: MemoryEntry, snapshot: Snapshot, model: OrbitaModel, c
                     busy = "discard"
                     model.run({ model.controller.setMemoryStatus(m.id, "superseded") }) { busy = null }
                 }, style = ButtonStyle.Secondary, busy = busy == "discard", height = 46.dp, modifier = Modifier.weight(1f))
+            }
+        }
+        // «Responder» en un pendiente: se contesta aquí mismo; la respuesta va al coordinador y el pendiente se resuelve.
+        val canAnswer = canEdit && snapshot.capabilities?.memoryAnswer == true && m.kind == "pending" && m.status != "superseded"
+        if (canAnswer) {
+            Spacer(Modifier.height(if (review) 8.dp else 12.dp))
+            if (!answering) {
+                OrbitaButton(t("Responder"), onClick = { answering = true }, icon = Icons.AutoMirrored.Outlined.Reply, style = ButtonStyle.Secondary, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.fillMaxWidth().testTag("memory-answer-${m.id}"))
+            } else {
+                OrbitaField(answer, { answer = it }, t("Tu respuesta"), singleLine = false, minLines = 2, maxLines = 8, imeAction = ImeAction.Default, autoFocus = true)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OrbitaButton(t("Cancelar"), onClick = { answering = false }, style = ButtonStyle.Ghost, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
+                    OrbitaButton(t("Enviar"), onClick = {
+                        busy = "answer"
+                        model.run({ model.controller.answerMemory(m.id, answer) }) { busy = null; if (it.ok) { answering = false; answer = "" } }
+                    }, icon = Icons.AutoMirrored.Outlined.Send, busy = busy == "answer", enabled = answer.isNotBlank(), height = 46.dp, modifier = Modifier.weight(1f).testTag("memory-answer-send-${m.id}"))
+                }
             }
         }
     }

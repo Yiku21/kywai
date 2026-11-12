@@ -953,6 +953,77 @@
         "description": "404 MEMORY_NOT_FOUND si ya no existe (un reintento puede tratarlo como borrada). Emite memory.updated."
       }
     },
+    "/api/mobile/v1/memory/{memoryId}/answer": {
+      "post": {
+        "operationId": "answerMobileMemory",
+        "summary": "Responder a un pendiente de la memoria",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "memoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryAnswerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operación aceptada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryAnswerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "401": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "404": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "405": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "413": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "415": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "500": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "503": {
+            "$ref": "#/components/responses/MobileError"
+          },
+          "409": {
+            "$ref": "#/components/responses/MobileError"
+          }
+        },
+        "description": "capabilities.memoryAnswer. La respuesta va al chat del proyecto como mensaje del usuario, con el pendiente citado («Respuesta al pendiente mN («…»): …»), y la entrada queda resuelta: status superseded con answer y answeredAt. 404 MEMORY_NOT_FOUND si no está en ese proyecto; 409 MEMORY_RESOLVED si no es un pendiente o ya está resuelto. Emite memory.updated y los eventos del mensaje."
+      }
+    },
     "/api/mobile/v1/instructions": {
       "post": {
         "operationId": "setMobileInstructions",
@@ -6083,6 +6154,15 @@
           },
           "supersededBy": {
             "type": "string"
+          },
+          "answer": {
+            "type": "string",
+            "description": "Un pendiente contestado con «Responder»: lo que respondió el usuario."
+          },
+          "answeredAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milisegundos Unix."
           }
         },
         "required": [
@@ -6592,6 +6672,10 @@
           "messageActions": {
             "type": "boolean",
             "description": "Mantener pulsado un mensaje: POST /chats/{chatId}/fork admite messageId (la copia llega hasta ese mensaje) y before (hasta justo antes: «Editar y reenviar»)."
+          },
+          "memoryAnswer": {
+            "type": "boolean",
+            "description": "«Responder» en un pendiente de la memoria: POST /memory/{memoryId}/answer."
           }
         },
         "required": [
@@ -7023,6 +7107,44 @@
         "minProperties": 2,
         "additionalProperties": false,
         "description": "conversationId y al menos uno de text, kind o status."
+      },
+      "MemoryAnswerRequest": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,80}$",
+            "maxLength": 81
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000,
+            "pattern": "\\S",
+            "description": "La respuesta del usuario."
+          }
+        },
+        "required": [
+          "conversationId",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "MemoryAnswerResponse": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "entry": {
+            "$ref": "#/components/schemas/MemoryEntry"
+          }
+        },
+        "required": [
+          "runId",
+          "entry"
+        ],
+        "additionalProperties": true
       },
       "ConversationIdRequest": {
         "type": "object",

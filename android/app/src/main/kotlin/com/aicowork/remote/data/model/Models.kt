@@ -300,6 +300,12 @@ data class TraceResponse(val taskId: String? = null, val entries: List<TraceEntr
 data class MemoryAddRequest(val conversationId: String, val kind: String, val text: String)
 
 @Serializable
+data class MemoryAnswerRequest(val conversationId: String, val text: String)
+
+@Serializable
+data class MemoryAnswerResponse(val runId: String? = null, val entry: MemoryEntry? = null)
+
+@Serializable
 data class MemoryUpdateRequest(
     val conversationId: String,
     val text: String? = null,
@@ -615,6 +621,8 @@ data class MemoryEntry(
     val taskTitle: String? = null,
     @Serializable(with = FlexibleTimeSerializer::class) val createdAt: Long? = null,
     val supersededBy: String? = null,
+    /** Un pendiente contestado con «Responder»: lo que respondió el usuario. */
+    val answer: String? = null,
 )
 
 @Serializable
@@ -732,6 +740,8 @@ data class Capabilities(
     val videoPicker: Boolean = false,
     /** «Responder» bajo la respuesta de un agente: replyTo en POST /chat/messages. */
     val replyTo: Boolean = false,
+    /** «Responder» en un pendiente de la memoria: POST /memory/{id}/answer. */
+    val memoryAnswer: Boolean = false,
     /** «/recuerda …» enviado como mensaje va a la memoria; la instantánea trae modCommands. */
     val chatCommands: Boolean = false,
     /** Varios chats por proyecto (GET/POST /chats, /chats/{id}/open|rename|delete). */

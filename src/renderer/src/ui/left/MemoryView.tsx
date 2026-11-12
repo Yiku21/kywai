@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
-import { Archive, BookOpen, Brain, Check, ChevronDown, Pencil, RotateCcw, Trash2, X } from 'lucide-react'
+import { Archive, BookOpen, Brain, Check, ChevronDown, Pencil, Reply, RotateCcw, Send, Trash2, X } from 'lucide-react'
 import type { LearnedSkill, MemoryEntry, MemoryKind } from '@shared/types'
 import { useCowork, useData } from '@/store/cowork'
 import { api } from '@/lib/api'
@@ -44,6 +44,7 @@ export function MemoryView() {
   const editable = !!api && mode === 'live' && !!project
   const [showOld, setShowOld] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const idI = useId()
   const idM = useId()
 
@@ -61,6 +62,7 @@ export function MemoryView() {
 
   async function call(fn: () => Promise<unknown>): Promise<boolean> {
     setError(null)
+    setNotice(null)
     try {
       await fn()
       return true
@@ -139,6 +141,11 @@ export function MemoryView() {
             {error}
           </p>
         )}
+        {notice && (
+          <p className={s.notice} role="status">
+            {notice}
+          </p>
+        )}
 
         {active.length === 0 ? (
           <div className={u.empty}>
@@ -161,6 +168,15 @@ export function MemoryView() {
                 editable={editable}
                 onUpdate={(patch) => call(() => api!.updateMemory(pid, e.id, patch))}
                 onDelete={() => call(() => api!.deleteMemory(pid, e.id))}
+                onAnswer={
+                  api?.answerMemory
+                    ? async (text) => {
+                        const ok = await call(() => api!.answerMemory!(pid, e.id, text))
+                        if (ok) setNotice(t('Respuesta enviada al coordinador: la verás en el chat. El pendiente {id} queda resuelto.', { id: e.id }))
+                        return ok
+                      }
+                    : undefined
+                }
               />
             ))}
           </ul>
@@ -365,16 +381,32 @@ function Entry({
   e,
   editable,
   onUpdate,
-  onDelete
+  onDelete,
+  onAnswer
 }: {
   e: MemoryEntry
   editable: boolean
   onUpdate: (patch: { text?: string; kind?: MemoryKind; status?: MemoryEntry['status'] }) => Promise<boolean>
   onDelete: () => Promise<boolean>
+  /** «Responder» en un pendiente (sin él, el servidor aún no lo sabe hacer). */
+  onAnswer?: (text: string) => Promise<boolean>
 }) {
   const [edit, setEdit] = useState<{ text: string; kind: MemoryKind } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [reply, setReply] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
   const old = e.status === 'superseded'
+  const canAnswer = editable && !old && e.kind === 'pending' && !!onAnswer
+
+  function send(): void {
+    const text = reply?.trim() ?? ''
+    if (!text || sending || !onAnswer) return
+    setSending(true)
+    void onAnswer(text).then((ok) => {
+      setSending(false)
+      if (ok) setReply(null)
+    })
+  }
 
   if (edit) {
     return (
@@ -419,54 +451,101 @@ function Entry({
         <span className={s.text}>{e.text}</span>
         <span className={s.meta}>
           <span className={cx(s.status, e.status === 'confirmed' && s.statusOk, e.status === 'provisional' && s.statusProv)}>
-            {e.status === 'confirmed' ? t('Confirmado') : e.status === 'provisional' ? t('Provisional') : (e.supersededBy ? t('Sustituido por {id}', { id: e.supersededBy }) : t('Sustituido'))}
+            {e.status === 'confirmed' ? t('Confirmado') : e.status === 'provisional' ? t('Provisional') : e.answeredAt ? t('Respondido') : (e.supersededBy ? t('Sustituido por {id}', { id: e.supersededBy }) : t('Sustituido'))}
           </span>
           <span>{source(e)}</span>
           <span>{day(e.createdAt)}</span>
           <span className={s.id}>{e.id}</span>
         </span>
+        {old && e.answer && <span className={s.answer}>{t('Tu respuesta: {text}', { text: e.answer })}</span>}
       </div>
       {editable && (
-        <div className={s.actions}>
-          {e.status === 'provisional' && (
-            <button type="button" className={cx(s.act, s.actOk)} title={t('Confirmar (lo validas tú)')} aria-label={t('Confirmar')} onClick={() => void onUpdate({ status: 'confirmed' })}>
-              <Check size={15} />
-            </button>
-          )}
-          {!old && (
-            <button type="button" className={s.act} title={t('Editar')} aria-label={t('Editar')} onClick={() => setEdit({ text: e.text, kind: e.kind })}>
-              <Pencil size={14} />
-            </button>
-          )}
-          {old ? (
-            <button type="button" className={s.act} title={t('Volver a usarla')} aria-label={t('Volver a usarla')} onClick={() => void onUpdate({ status: 'provisional' })}>
-              <RotateCcw size={14} />
-            </button>
-          ) : (
+        <div className={s.side}>
+          <div className={s.actions}>
+            {e.status === 'provisional' && (
+              <button type="button" className={cx(s.act, s.actOk)} title={t('Confirmar (lo validas tú)')} aria-label={t('Confirmar')} onClick={() => void onUpdate({ status: 'confirmed' })}>
+                <Check size={15} />
+              </button>
+            )}
+            {!old && (
+              <button type="button" className={s.act} title={t('Editar')} aria-label={t('Editar')} onClick={() => setEdit({ text: e.text, kind: e.kind })}>
+                <Pencil size={14} />
+              </button>
+            )}
+            {old ? (
+              <button type="button" className={s.act} title={t('Volver a usarla')} aria-label={t('Volver a usarla')} onClick={() => void onUpdate({ status: 'provisional' })}>
+                <RotateCcw size={14} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={s.act}
+                title={t('Ya no vale (pasa a «sustituido»: los agentes dejan de verla)')}
+                aria-label={t('Marcar como sustituida')}
+                onClick={() => void onUpdate({ status: 'superseded' })}
+              >
+                <Archive size={14} />
+              </button>
+            )}
             <button
               type="button"
-              className={s.act}
-              title={t('Ya no vale (pasa a «sustituido»: los agentes dejan de verla)')}
-              aria-label={t('Marcar como sustituida')}
-              onClick={() => void onUpdate({ status: 'superseded' })}
+              className={cx(s.act, confirmDelete && s.actDanger)}
+              title={confirmDelete ? t('Pulsa otra vez para borrarla') : t('Borrar')}
+              aria-label={confirmDelete ? t('Confirmar borrado') : t('Borrar')}
+              onBlur={() => setConfirmDelete(false)}
+              onClick={() => {
+                if (!confirmDelete) setConfirmDelete(true)
+                else void onDelete()
+              }}
             >
-              <Archive size={14} />
+              <Trash2 size={14} />
+            </button>
+          </div>
+          {canAnswer && reply === null && (
+            <button type="button" className={cx(u.btn, u.btnSm, s.replyBtn)} onClick={() => setReply('')} title={t('Contesta aquí: tu respuesta va al coordinador y el pendiente queda resuelto')}>
+              <Reply size={13} aria-hidden="true" />
+              {t('Responder')}
             </button>
           )}
-          <button
-            type="button"
-            className={cx(s.act, confirmDelete && s.actDanger)}
-            title={confirmDelete ? t('Pulsa otra vez para borrarla') : t('Borrar')}
-            aria-label={confirmDelete ? t('Confirmar borrado') : t('Borrar')}
-            onBlur={() => setConfirmDelete(false)}
-            onClick={() => {
-              if (!confirmDelete) setConfirmDelete(true)
-              else void onDelete()
-            }}
-          >
-            <Trash2 size={14} />
-          </button>
         </div>
+      )}
+      {canAnswer && reply !== null && (
+        <form
+          className={s.replyBox}
+          onSubmit={(ev) => {
+            ev.preventDefault()
+            send()
+          }}
+        >
+          <textarea
+            className={s.replyInput}
+            value={reply}
+            autoFocus
+            rows={3}
+            maxLength={20000}
+            placeholder={t('Tu respuesta… (Intro envía, Mayús+Intro salto de línea)')}
+            aria-label={t('Respuesta al pendiente {id}', { id: e.id })}
+            onChange={(ev) => setReply(ev.target.value)}
+            onKeyDown={(ev) => {
+              if (ev.key === 'Escape') {
+                ev.preventDefault()
+                setReply(null)
+              } else if (ev.key === 'Enter' && !ev.shiftKey && !ev.nativeEvent.isComposing) {
+                ev.preventDefault()
+                send()
+              }
+            }}
+          />
+          <div className={s.formRow}>
+            <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setReply(null)}>
+              {t('Cancelar')}
+            </button>
+            <button type="submit" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={sending || !reply.trim()}>
+              <Send size={13} aria-hidden="true" />
+              {sending ? t('Enviando…') : t('Enviar')}
+            </button>
+          </div>
+        </form>
       )}
     </li>
   )

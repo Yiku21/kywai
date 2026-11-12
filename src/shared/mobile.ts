@@ -154,6 +154,8 @@ export interface MobileSnapshot {
     videoPicker?: boolean
     /** «Responder» bajo la respuesta de un agente: replyTo (id de esa respuesta) en POST /chat/messages. */
     replyTo?: boolean
+    /** «Responder» en un pendiente de la memoria: POST /memory/{memoryId}/answer ({ conversationId, text }). */
+    memoryAnswer?: boolean
   }
 }
 

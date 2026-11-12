@@ -148,6 +148,7 @@ export class MobileBackend {
         chatCommands: true,
         usageCost: true,
         replyTo: true,
+        memoryAnswer: this.methods.has('answerMemory'),
         messageActions: this.methods.has('forkConversation'),
         videoPicker: ['listVideoCharacters', 'addVideoCharacter', 'removeVideoCharacter', 'listVideoVoices', 'previewVideoVoice'].every((m) => this.methods.has(m))
       }
@@ -597,6 +598,13 @@ export class MobileBackend {
       throw e
     }
     return this.memoryEntry(conversationId, id)
+  }
+
+  async answerMemory(conversationId: string, id: string, text: string): Promise<{ runId: string; entry: MemoryEntry }> {
+    const entry = await this.memoryEntry(conversationId, id)
+    if (entry.kind !== 'pending' || entry.status === 'superseded') throw new MobileError(409, 'MEMORY_RESOLVED', 'Ese pendiente ya está resuelto')
+    const { runId } = await this.call<{ runId: string }>('answerMemory', conversationId, id, text)
+    return { runId, entry: await this.memoryEntry(conversationId, id) }
   }
 
   async deleteMemory(conversationId: string, id: string): Promise<{ deleted: true }> {

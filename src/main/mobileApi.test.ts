@@ -18,7 +18,7 @@ import { emit, setRuntime } from './events'
 import { addMemory, deleteMemory, setInstructions, updateMemory } from './memory'
 import { MAX_FILE_BYTES, __setFileLimitsForChecks } from './mobileFiles'
 import { __setOrbitaReleaseDirForChecks } from './orbitaRelease'
-import { __setBackendsForChecks, activeRunsFor, allAgents, approvePlan, cancelAll, decideRoutineProposal, getTaskChanges, undoTask, cancelRun, discardRun, rejectPlan, resetAgent, resumeRun, runtimeSnapshot, sendMessage } from './orchestrator'
+import { __setBackendsForChecks, activeRunsFor, allAgents, answerPending, approvePlan, cancelAll, decideRoutineProposal, getTaskChanges, undoTask, cancelRun, discardRun, rejectPlan, resetAgent, resumeRun, runtimeSnapshot, sendMessage } from './orchestrator'
 import { actInbox, listInbox } from './inbox'
 import * as store from './projects'
 import * as conversations from './conversations'
@@ -249,6 +249,7 @@ beforeAll(() => {
   webMethods.set('addMemory', (id, input) => addMemory(id as string, input as Parameters<typeof addMemory>[1], { status: 'confirmed', by: 'user', byName: 'Tú' }))
   webMethods.set('updateMemory', (id, memoryId, patch) => updateMemory(id as string, memoryId as string, patch as Parameters<typeof updateMemory>[2]))
   webMethods.set('deleteMemory', (id, memoryId) => deleteMemory(id as string, memoryId as string))
+  webMethods.set('answerMemory', (id, memoryId, text) => answerPending(id as string, memoryId as string, text as string))
   webMethods.set('setInstructions', (id, text) => setInstructions(id as string, text as string))
   webMethods.set('setAgentAccess', (access) => {
     setAgentAccess(access as 'full' | 'project')
@@ -1221,6 +1222,26 @@ describe('API móvil integrada con el servidor y el motor existentes', () => {
     await vi.waitFor(() => expect(received(client.frames, 'memory.updated').at(-1)!.payload.instructions).toBe('Responde en español'))
     expect(await api('/instructions', { conversationId: id, text: '' })).toEqual({ status: 200, body: { instructions: '' } })
     expect((await api(`/snapshot?conversationId=${id}`)).body.conversation.instructions).toBe('')
+  })
+
+  it('«Responder» en un pendiente: la respuesta va al chat y el pendiente queda resuelto', async () => {
+    const id = (await api('/conversations', {})).body.conversation.id as string
+    expect((await api('/snapshot')).body.capabilities.memoryAnswer).toBe(true)
+    const pending = (await api('/memory', { conversationId: id, kind: 'pending', text: 'Falta decidir dónde se vende Mantenimiento' })).body.entry.id as string
+    const fact = (await api('/memory', { conversationId: id, kind: 'fact', text: 'El puerto es el 3100' })).body.entry.id as string
+    const answered = await api(`/memory/${pending}/answer`, { conversationId: id, text: 'En la Avanzada, y sí puede volver a la Inicial' })
+    expect(answered).toEqual({ status: 200, body: { runId: expect.any(String), entry: expect.objectContaining({ id: pending, status: 'superseded', answer: 'En la Avanzada, y sí puede volver a la Inicial', answeredAt: expect.any(Number) }) } })
+    const msg = store.snapshotProject(id).messages.find((m) => m.author.type === 'user' && m.runId === answered.body.runId)
+    expect(msg?.text).toBe(`Respuesta al pendiente ${pending} («Falta decidir dónde se vende Mantenimiento»): En la Avanzada, y sí puede volver a la Inicial`)
+    cancelRun(answered.body.runId as string)
+    const again = await api(`/memory/${pending}/answer`, { conversationId: id, text: 'Otra vez' })
+    expect(again.status).toBe(409)
+    expect(again.body.code).toBe('MEMORY_RESOLVED')
+    expect((await api(`/memory/${fact}/answer`, { conversationId: id, text: 'No es un pendiente' })).status).toBe(409)
+    expect((await api(`/memory/${pending}/answer`, { conversationId: id, text: '   ' })).status).toBe(400)
+    // «Volver a usarla» lo abre otra vez, sin la respuesta.
+    const reopened = await api(`/memory/${pending}`, { conversationId: id, status: 'provisional' })
+    expect(reopened.body.entry.answer).toBeUndefined()
   })
 
   it('sirve los resultados en bruto con su tipo y sin salir del proyecto', async () => {

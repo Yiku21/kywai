@@ -3457,4 +3457,14 @@ export const zh: Record<string, string> = {
   "Conversación nueva hasta justo antes de este mensaje, con su texto listo para cambiarlo; esta no se toca": "新建一个到此消息之前为止的对话，消息文字已放好可修改；当前对话保持不变",
   "Mensaje de {name}": "{name} 的消息",
   "Tu mensaje": "你的消息",
+
+  // Responder a un pendiente de la memoria
+  'Respuesta enviada al coordinador: la verás en el chat. El pendiente {id} queda resuelto.': '回复已发送给协调者：你会在聊天中看到。待办 {id} 已解决。',
+  'Tu respuesta: {text}': '你的回复：{text}',
+  'Contesta aquí: tu respuesta va al coordinador y el pendiente queda resuelto': '在此回答：你的回复会发给协调者，待办随即解决',
+  'Tu respuesta… (Intro envía, Mayús+Intro salto de línea)': '你的回复…（回车发送，Shift+回车换行）',
+  'Respuesta al pendiente {id}': '回复待办 {id}',
+  'Escribe tu respuesta': '请输入你的回复',
+  'Respuesta no válida': '回复无效',
+  'Respuesta al pendiente {id} («{quote}»): {text}': '回复待办 {id}（“{quote}”）：{text}',
 }

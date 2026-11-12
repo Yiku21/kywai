@@ -69,6 +69,7 @@ const api: CoworkApi = {
   addMemory: (projectId, input) => ipcRenderer.invoke('cowork:addMemory', projectId, { kind: input.kind, text: input.text }),
   updateMemory: (projectId, id, patch) =>
     ipcRenderer.invoke('cowork:updateMemory', projectId, id, { kind: patch.kind, text: patch.text, status: patch.status }),
+  answerMemory: (projectId, id, answer) => ipcRenderer.invoke('cowork:answerMemory', projectId, id, answer),
   deleteMemory: (projectId, id) => ipcRenderer.invoke('cowork:deleteMemory', projectId, id),
   setInstructions: (projectId, text) => ipcRenderer.invoke('cowork:setInstructions', projectId, text),
   setLeanCode: (projectId, on) => ipcRenderer.invoke('cowork:setLeanCode', projectId, on),

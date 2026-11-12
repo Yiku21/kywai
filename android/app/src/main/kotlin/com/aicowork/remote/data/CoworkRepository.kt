@@ -273,6 +273,7 @@ interface CoworkController {
     suspend fun setMemoryStatus(id: String, status: String): ActionResult = unsupported
     suspend fun editMemory(id: String, text: String): ActionResult = unsupported
     suspend fun deleteMemory(id: String): ActionResult = unsupported
+    suspend fun answerMemory(id: String, text: String): ActionResult = unsupported
     suspend fun setInstructions(text: String): ActionResult = unsupported
     suspend fun listFiles(query: String?): Result<FilesResponse> = Result.failure(IllegalStateException(unsupported.message))
     suspend fun fetchArtifact(artifactId: String): Result<RawContent> = Result.failure(IllegalStateException(unsupported.message))
@@ -1039,6 +1040,11 @@ class CoworkRepository(
 
     override suspend fun editMemory(id: String, text: String): ActionResult = action(t("Recuerdo actualizado")) { c ->
         c.updateMemory(MemoryUpdateRequest(needConversation(), text = text.trim()), id)
+        if (_state.value.connection != Connection.Online) resync(c)
+    }
+
+    override suspend fun answerMemory(id: String, text: String): ActionResult = action(t("Respuesta enviada al coordinador")) { c ->
+        c.answerMemory(needConversation(), id, text.trim())
         if (_state.value.connection != Connection.Online) resync(c)
     }
 

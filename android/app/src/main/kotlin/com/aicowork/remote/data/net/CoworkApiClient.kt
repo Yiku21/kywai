@@ -47,6 +47,8 @@ import com.aicowork.remote.data.model.InboxResponse
 import com.aicowork.remote.data.model.InstructionsRequest
 import com.aicowork.remote.data.model.InstructionsResponse
 import com.aicowork.remote.data.model.MemoryAddRequest
+import com.aicowork.remote.data.model.MemoryAnswerRequest
+import com.aicowork.remote.data.model.MemoryAnswerResponse
 import com.aicowork.remote.data.model.MemoryEntry
 import com.aicowork.remote.data.model.MemoryEntryResponse
 import com.aicowork.remote.data.model.MemoryUpdateRequest
@@ -380,6 +382,12 @@ class CoworkApiClient(
         }.toString(),
         MemoryEntryResponse.serializer(),
     ).entry
+
+    suspend fun answerMemory(conversationId: String, id: String, text: String): MemoryAnswerResponse = post(
+        "/memory/${id.encodeSegment()}/answer",
+        CoworkJson.encodeToString(MemoryAnswerRequest.serializer(), MemoryAnswerRequest(conversationId, text)),
+        MemoryAnswerResponse.serializer(),
+    )
 
     suspend fun deleteMemory(conversationId: String, id: String) {
         withContext(Dispatchers.IO) {

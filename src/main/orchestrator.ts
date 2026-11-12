@@ -66,7 +66,7 @@ import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpda
 import { withoutClosingNotes, workSteps } from '@shared/work'
 import { lang, locale, renderMsg, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
-import { addMemory, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNotes, planMemoryNotes, taskSummaryNote, type MemoryNote } from './memory'
+import { addMemory, markAnswered, openPending, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNotes, planMemoryNotes, taskSummaryNote, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
 import { CHAT_STYLE, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
 import { projectBrief, testCommand } from './projectBrief'
@@ -4002,6 +4002,21 @@ export function discardRun(projectId: string, runId: string): void {
     createdAt: Date.now(),
     tone: 'normal'
   })
+}
+
+/**
+ * «Responder» en un pendiente de la pestaña Memoria: la respuesta va al chat del proyecto como mensaje del usuario
+ * (con el pendiente citado, para que el coordinador sepa a qué contesta) y el pendiente queda resuelto. Si el envío
+ * falla, el pendiente sigue abierto.
+ */
+export async function answerPending(projectId: string, id: string, answer: string): Promise<{ runId: string }> {
+  const text = answer.trim()
+  if (!text) throw new Error(tr('Escribe tu respuesta'))
+  const entry = openPending(projectId, id)
+  const quote = entry.text.length > 160 ? `${entry.text.slice(0, 159).trimEnd()}…` : entry.text
+  const res = await sendMessage({ projectId, text: tr('Respuesta al pendiente {id} («{quote}»): {text}', { id: entry.id, quote, text }), filePaths: [] })
+  markAnswered(projectId, id, text)
+  return res
 }
 
 export function cancelRun(runId: string, reason: 'user' | 'quit' | 'pause' = 'user'): void {

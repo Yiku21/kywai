@@ -1093,4 +1093,8 @@ private fun part7(m: HashMap<String, String>) {
     m["Actualiza kywai en el ordenador para usar esto"] = "Update kywai on the computer to use this"
     m["Rama nueva: cambia el mensaje y envíalo"] = "New branch: change the message and send it"
     m["Chat bifurcado desde ese mensaje"] = "Chat branched from that message"
+    m["{v1} · Respondido"] = "{v1} · Answered"
+    m["Tu respuesta: {text}"] = "Your reply: {text}"
+    m["Tu respuesta"] = "Your reply"
+    m["Respuesta enviada al coordinador"] = "Reply sent to the coordinator"
 }

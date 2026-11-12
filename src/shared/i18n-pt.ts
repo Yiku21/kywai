@@ -3457,4 +3457,14 @@ export const pt: Record<string, string> = {
   "Conversación nueva hasta justo antes de este mensaje, con su texto listo para cambiarlo; esta no se toca": "Uma conversa nova até logo antes desta mensagem, com o texto pronto para mudar; esta não é alterada",
   "Mensaje de {name}": "Mensagem de {name}",
   "Tu mensaje": "Sua mensagem",
+
+  // Responder a un pendiente de la memoria
+  'Respuesta enviada al coordinador: la verás en el chat. El pendiente {id} queda resuelto.': 'Resposta enviada ao coordenador: você a verá no chat. O pendente {id} fica resolvido.',
+  'Tu respuesta: {text}': 'Sua resposta: {text}',
+  'Contesta aquí: tu respuesta va al coordinador y el pendiente queda resuelto': 'Responda aqui: sua resposta vai ao coordenador e o pendente fica resolvido',
+  'Tu respuesta… (Intro envía, Mayús+Intro salto de línea)': 'Sua resposta… (Enter envia, Shift+Enter nova linha)',
+  'Respuesta al pendiente {id}': 'Resposta ao pendente {id}',
+  'Escribe tu respuesta': 'Escreva sua resposta',
+  'Respuesta no válida': 'Resposta inválida',
+  'Respuesta al pendiente {id} («{quote}»): {text}': 'Resposta ao pendente {id} («{quote}»): {text}',
 }

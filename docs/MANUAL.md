@@ -1721,6 +1721,15 @@ reinicios:
   - **Sustituido**: una entrada más nueva la reemplaza («sustituye m3») o la marcaste como que ya no vale. Los
     agentes dejan de verla; sigue en «Ver lo sustituido». Un agente no puede sustituir lo que confirmaste tú:
     su nota queda como propuesta.
+  - **Responder a un pendiente**: cada pendiente abierto tiene abajo a la derecha el botón **Responder**. Se abre
+    ahí mismo un cuadro de texto, sin cambiar de pantalla (Intro envía, Mayús+Intro hace un salto de línea, Esc
+    cierra). Al enviar, tu respuesta llega al chat del proyecto como mensaje tuyo, con el pendiente citado
+    («Respuesta al pendiente m12 («…»): …»), y el coordinador la toma como tu decisión: la anota en la memoria y,
+    si desbloquea trabajo, lo reparte. El pendiente queda resuelto y desaparece de la lista (pasa a «Ver lo
+    sustituido» como **Respondido**, con tu respuesta debajo); si vuelve a hacer falta algo, aparecerá un pendiente
+    nuevo. «Volver a usarla» lo reabre. Si el envío falla, el pendiente sigue abierto. Funciona igual en el
+    navegador, el cliente de escritorio y Órbita (botón «Responder» en la tarjeta; API móvil
+    `POST /memory/{id}/answer`, `capabilities.memoryAnswer`).
 
 Se guarda en el `project.json` del proyecto (también el interruptor de Código escueto).
 

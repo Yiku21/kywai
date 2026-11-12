@@ -43,6 +43,7 @@ const ROUTES: Array<[RegExp, string, string[]]> = [
   [/^\/memory$/, 'memoryAdd', ['POST']],
   [/^\/memory\/([^/]+)$/, 'memoryUpdate', ['POST']],
   [/^\/memory\/([^/]+)\/delete$/, 'memoryDelete', ['POST']],
+  [/^\/memory\/([^/]+)\/answer$/, 'memoryAnswer', ['POST']],
   [/^\/instructions$/, 'instructions', ['POST']],
   [/^\/routines$/, 'routines', ['GET', 'POST']],
   [/^\/routines\/([^/]+)\/run$/, 'routineRun', ['POST']],
@@ -473,6 +474,13 @@ export class MobileApi {
           const input = await body(req)
           fields(input, ['conversationId'])
           mobileJson(res, 200, await this.backend.deleteMemory(projectId(input.conversationId), memoryId))
+          break
+        }
+        case 'memoryAnswer': {
+          const memoryId = id(param, 'memoryId')
+          const input = await body(req)
+          fields(input, ['conversationId', 'text'])
+          mobileJson(res, 200, await this.backend.answerMemory(projectId(input.conversationId), memoryId, string(input.text, 'text', 20_000)))
           break
         }
         case 'instructions': {

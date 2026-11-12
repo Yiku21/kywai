@@ -465,6 +465,9 @@ export interface MemoryEntry {
   updatedAt: number
   /** Entrada que la sustituye. */
   supersededBy?: string
+  /** Un pendiente que el usuario contestó con «Responder» (pasa a sustituido y su respuesta va al coordinador). */
+  answer?: string
+  answeredAt?: number
 }
 
 /** Una habilidad que escribió un agente al terminar una tarea (pestaña Memoria). */
@@ -1911,6 +1914,8 @@ export interface CoworkApi {
   addMemory(projectId: string, input: MemoryInput): Promise<MemoryEntry | null>
   /** Cambia el texto o el tipo, o la confirma / la marca como sustituida (status). */
   updateMemory(projectId: string, id: string, patch: Partial<MemoryInput> & { status?: MemoryStatus }): Promise<void>
+  /** «Responder» en un pendiente de la memoria: la respuesta va al chat como mensaje tuyo y el pendiente se da por resuelto. */
+  answerMemory?(projectId: string, id: string, answer: string): Promise<{ runId: string }>
   deleteMemory(projectId: string, id: string): Promise<void>
   setInstructions(projectId: string, text: string): Promise<void>
   /** Enciende o apaga «Código escueto (Ponytail)» en el proyecto; al encenderlo descarga sus reglas si no están. */
