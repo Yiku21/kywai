@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type DragEvent, type KeyboardEvent } from 'react'
-import { Ban, Brain, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, MessageSquare, Package, Paperclip, Puzzle, type LucideIcon } from 'lucide-react'
+import { Ban, Brain, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, MessageSquare, Package, Paperclip, Puzzle, SquareKanban, type LucideIcon } from 'lucide-react'
 import { useCowork, useData, type DataSlice, type LeftTab } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { cx } from '../common/util'
@@ -7,6 +7,7 @@ import { ChatView } from './ChatView'
 import { Composer } from './Composer'
 import { FilesView } from './FilesView'
 import { TasksView } from './TasksView'
+import { BoardView } from './BoardView'
 import { ResultsView } from './ResultsView'
 import { MemoryView } from './MemoryView'
 import { RoutinesView } from './RoutinesView'
@@ -20,6 +21,7 @@ const BASE_TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
   { id: 'chat', label: 'Chat', Icon: MessageSquare },
   { id: 'files', label: t('Archivos'), Icon: Paperclip },
   { id: 'tasks', label: t('Tareas'), Icon: ClipboardList },
+  { id: 'board', label: t('Tablero'), Icon: SquareKanban },
   { id: 'results', label: t('Resultados'), Icon: Package },
   { id: 'memory', label: t('Memoria'), Icon: Brain },
   { id: 'routines', label: t('Rutinas'), Icon: CalendarClock }
@@ -119,7 +121,7 @@ function hasFiles(e: DragEvent): boolean {
   return Array.from(e.dataTransfer?.types ?? []).includes('Files')
 }
 
-/** Panel izquierdo: Chat, Archivos, Tareas, Resultados, Memoria y Rutinas. Ocupa todo su contenedor. */
+/** Panel izquierdo: Chat, Archivos, Tareas, Tablero, Resultados, Memoria y Rutinas. Ocupa todo su contenedor. */
 export function LeftPanel() {
   const tab = useCowork((st) => st.leftTab)
   const setLeftTab = useCowork((st) => st.setLeftTab)
@@ -251,6 +253,8 @@ export function LeftPanel() {
           <FilesView />
         ) : tab === 'tasks' ? (
           <TasksView />
+        ) : tab === 'board' ? (
+          <BoardView />
         ) : tab === 'memory' ? (
           <MemoryView />
         ) : tab === 'routines' ? (

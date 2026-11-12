@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Bot,
   CalendarClock,
+  SquareKanban,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -39,6 +40,7 @@ import {
 } from 'lucide-react'
 import { INTERRUPTED_ERROR } from '@shared/defaults'
 import { describeTrigger } from '@shared/routines'
+import { isBoardRoutineId } from '@shared/board'
 import { replyExcerpt } from '@shared/replyTo'
 import { answerLine, hideQuestionsBlock } from '@shared/agentQuestions'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
@@ -110,18 +112,19 @@ function routineParts(text: string): { request: string; data: string | null } {
 
 /** Quién lo envió: tú, una rutina, directo a un agente; y con qué plantilla, si fue con una. */
 function userLabel(m: ChatMessage): string {
-  const who = m.routine ? t('Rutina: {name}', { name: m.routine.name }) : m.direct ? t('Tú → {name} (directo, sin Hermes)', { name: m.direct.name }) : t('Tú')
+  const who = isBoardRoutineId(m.routine?.id) ? t('Tablero de tareas') : m.routine ? t('Rutina: {name}', { name: m.routine.name }) : m.direct ? t('Tú → {name} (directo, sin Hermes)', { name: m.direct.name }) : t('Tú')
   return m.template ? t('{who} · plantilla «{name}»', { who, name: m.template.name }) : who
 }
 
 function UserMessage({ m }: { m: ChatMessage }) {
-  const parts = m.routine ? routineParts(m.text) : { request: m.text, data: null }
+  const fromBoard = isBoardRoutineId(m.routine?.id)
+  const parts = m.routine && !fromBoard ? routineParts(m.text) : { request: m.text, data: null }
   const menu = useMessageMenu(m, { user: { text: parts.request } })
   const editing = useComposer((c) => c.editing === m.id)
   return (
     <article className={s.msg} onContextMenu={menu.onContextMenu}>
       <span className={cx(s.avatar, s.userAvatar)} aria-hidden="true">
-        {m.routine ? <CalendarClock size={18} /> : <User size={18} />}
+        {fromBoard ? <SquareKanban size={18} /> : m.routine ? <CalendarClock size={18} /> : <User size={18} />}
       </span>
       <div className={s.main}>
         <Meta name={userLabel(m)} ts={m.createdAt} />

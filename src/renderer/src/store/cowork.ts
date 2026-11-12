@@ -23,6 +23,7 @@ import type {
   Transfer,
   UsageRun
 } from '@shared/types'
+import type { Board } from '@shared/board'
 import { localizeInbox } from '@shared/inbox'
 import { DEFAULT_CONFIG } from '@shared/defaults'
 import { upsertChatMessage } from '@shared/chatOrder'
@@ -80,7 +81,7 @@ export type CameraCommand =
 /** Pestañas de la ventana de Ajustes. */
 export type SettingsTab = 'general' | 'agents' | 'extensions' | 'connection' | 'about'
 
-export type LeftTab = 'chat' | 'files' | 'tasks' | 'results' | 'memory' | 'routines' | 'mods'
+export type LeftTab = 'chat' | 'files' | 'tasks' | 'board' | 'results' | 'memory' | 'routines' | 'mods'
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
 export type CameraInput = DistributiveOmit<CameraCommand, 'nonce'>
@@ -98,6 +99,8 @@ interface CoworkState {
   inbox: InboxItem[]
   /** Plantillas de tareas (de todos los proyectos): la fila de botones de encima del chat. Llegan por templates.updated. */
   templates: TaskTemplate[]
+  /** Tableros de tareas por proyecto (la pestaña Tablero los pide al abrirse; los cambios llegan por board.updated). */
+  boards: Record<string, Board>
   /** Ya llegó la configuración real del motor (antes solo hay valores por defecto). */
   configLoaded: boolean
   /** Asistente de configuración abierto a mano (en el primer arranque se abre solo). */
@@ -340,6 +343,7 @@ function reduce(d: DataSlice, e: CoworkEvent): DataSlice {
     case 'inbox.updated':
     case 'conversations.updated':
     case 'templates.updated':
+    case 'board.updated':
       return d
   }
 }
@@ -399,6 +403,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
   localPull: null,
   inbox: [],
   templates: [],
+  boards: {},
   configLoaded: false,
   setupOpen: false,
   setupLog: [],
@@ -498,6 +503,10 @@ export const useCowork = create<CoworkState>((set, get) => ({
     }
     if (e.kind === 'setup.log') {
       set((s) => ({ setupLog: [...s.setupLog, { toolId: e.toolId, line: e.line }].slice(-400) }))
+      return
+    }
+    if (e.kind === 'board.updated') {
+      if (!e.demo) set((st) => ({ boards: { ...st.boards, [e.board.projectId]: e.board } }))
       return
     }
     if (e.kind === 'templates.updated') {

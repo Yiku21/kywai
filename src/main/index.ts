@@ -9,6 +9,7 @@ import { pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { finished } from 'node:stream/promises'
+import type { BoardCommand } from '@shared/board'
 import type { AddAgentInput, AgentId, ConversationSummary, ElevenStatus, ImportResult, ProjectFileRef, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, VoiceNoteInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
@@ -103,6 +104,7 @@ import {
   sendVoiceNote
 } from './orchestrator'
 import { createTemplate, deleteTemplate, forgetProjectTemplates, initTemplates, listTemplates, restoreBuiltinTemplates, updateTemplate } from './templates'
+import { boardCommand, forgetProjectBoard, getBoard, initBoard, stopBoard } from './board'
 import { createRoutine, deleteRoutine, initRoutines, publicRoutines, routineWebhook, runRoutineNow, stopRoutines, updateRoutine } from './routines'
 import { addMemory, deleteMemory, isMemoryKind, setInstructions, setLeanCode, updateMemory } from './memory'
 import { ensurePonytail, initPonytail } from './ponytail'
@@ -447,6 +449,7 @@ async function removeProject(projectId: string): Promise<void> {
     }
   }
   forgetProjectTemplates(projectId)
+  forgetProjectBoard(projectId)
   store.ensureFirstProject()
   emit({ kind: 'project.deleted', projectId })
 }
@@ -811,6 +814,12 @@ function registerIpc(): void {
   handle('updateTemplate', (id: unknown, patch: unknown) => updateTemplate(id, patch))
   handle('deleteTemplate', (id: unknown) => deleteTemplate(id))
   handle('restoreTemplates', () => restoreBuiltinTemplates())
+  // Tablero de tareas del proyecto (Kanban): las tarjetas de «Por hacer» las va cogiendo el equipo, una tras otra.
+  handle('getBoard', (projectId: unknown) => getBoard(projectArg(projectId)))
+  handle('boardCommand', (projectId: unknown, cmd: unknown) => {
+    if (!cmd || typeof cmd !== 'object') throw new Error(tr('Orden del tablero no válida'))
+    return boardCommand(projectArg(projectId), cmd as BoardCommand)
+  })
   // Rutinas del proyecto (peticiones que se lanzan solas). El secreto del webhook solo sale con getRoutineWebhook.
   handle('createRoutine', (projectId: unknown, input: unknown) => {
     if (!input || typeof input !== 'object') throw new Error(tr('Rutina no válida'))
@@ -1495,6 +1504,13 @@ async function boot(): Promise<void> {
     }
   })
 
+  // Tablero: coge las tarjetas de «Por hacer» una tras otra y las envía al chat como si las escribieras tú.
+  initBoard(app.getPath('userData'), {
+    send: (input, routine) => sendMessage(input, { routine }),
+    runState,
+    projectExists: (projectId) => store.isValidProjectId(projectId) && store.listProjects().some((p) => p.id === projectId)
+  })
+
   mainWindow = createWindow()
   setEventWindow(mainWindow)
   closeClientWindow()
@@ -1524,6 +1540,7 @@ app.on('before-quit', () => {
   if (savedMode()?.mode === 'client') return
   // Antes de detener las peticiones: así las de las rutinas quedan como interrumpidas, no como fallidas.
   stopRoutines()
+  stopBoard()
   stopCoworkMcp()
   try {
     cancelAll()

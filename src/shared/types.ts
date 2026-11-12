@@ -1,6 +1,7 @@
 import type { Lang } from './i18n'
 import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
 import type { TaskTemplate, TaskTemplateInput } from './templates'
+import type { Board, BoardCommand } from './board'
 import type { ArchivePreview, ImportResult, ImportScan } from './imports'
 import type { SpotifastAction, SpotifastStatus } from './spotifast'
 export type { ArchivePreview, ImportResult, ImportScan } from './imports'
@@ -1747,6 +1748,7 @@ export type CoworkEvent = EventBase &
     | { kind: 'task.trace'; taskId: string; projectId: string; entry: TraceEntry }
     | { kind: 'memory.updated'; projectId: string; memory: MemoryEntry[]; instructions: string; leanCode?: boolean }
     | { kind: 'routines.updated'; projectId: string; routines: Routine[] }
+    | { kind: 'board.updated'; board: Board }
     | { kind: 'templates.updated'; templates: TaskTemplate[] }
     | { kind: 'project.deleted'; projectId: string }
     | { kind: 'local.pull'; pull: LocalPullState }
@@ -2049,6 +2051,10 @@ export interface CoworkApi {
   /** Enciende o apaga «Código escueto (Ponytail)» en el proyecto; al encenderlo descarga sus reglas si no están. */
   setLeanCode(projectId: string, on: boolean): Promise<void>
   /** Rutinas del proyecto (los cambios llegan por eventos routines.updated, sin el secreto del webhook). */
+  /** Tablero de tareas del proyecto (los cambios llegan por el evento board.updated). */
+  getBoard(projectId: string): Promise<Board>
+  /** Añadir, cambiar, ordenar, quitar o reintentar tarjetas del tablero, o ponerlo en pausa. */
+  boardCommand(projectId: string, cmd: BoardCommand): Promise<Board>
   createRoutine(projectId: string, input: RoutineInput): Promise<Routine>
   /** Cambia nombre, petición, disparador o la activa/desactiva. */
   updateRoutine(projectId: string, id: string, patch: Partial<RoutineInput>): Promise<Routine>

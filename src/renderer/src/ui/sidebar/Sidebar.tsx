@@ -20,6 +20,7 @@ import {
   Search,
   SquarePen,
   Star,
+  SquareKanban,
   StarOff,
   Trash2,
   X
@@ -438,6 +439,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
         badgeTitle={running === 1 ? t('1 tarea en curso') : t('{n} tareas en curso', { n: running })}
         onClick={() => go('tasks')}
       />
+      <NavItem icon={<SquareKanban size={17} />} label={t('Tablero')} rail={rail} active={leftTab === 'board'} onClick={() => go('board')} />
       <NavItem
         icon={<Package size={17} />}
         label={t('Resultados')}

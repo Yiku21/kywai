@@ -3053,6 +3053,29 @@ ese proyecto gana la suya). Una plantilla gana a la orden de un mod con el mismo
 `POST /templates/restore`. Para lanzar una con un toque, `POST /chat/messages` con el texto ya relleno y `templateId`.
 Los cambios llegan con el evento `templates.updated`.
 
+### Tablero de tareas: déjalas en cola y vuelve a por los resultados
+
+La pestaña **Tablero** del proyecto (también en la barra lateral, debajo de Tareas) es un Kanban con cuatro
+columnas: **Por hacer**, **En marcha**, **Te espera** y **Hecho**. Escribes lo que quieras que haga el equipo
+(Ctrl + Intro añade la tarjeta) y kywai coge la primera de «Por hacer», la envía al chat como si la escribieras tú
+(en el chat sale como «**Tablero de tareas**») y, cuando termina, pasa sola a la siguiente, aunque no estés delante.
+Cada tarjeta pasa por el plan de Hermes, los agentes, la verificación, las hasta 2 correcciones y el relevo a otro
+agente, igual que cualquier petición. También valen órdenes como `/video …`.
+
+- **Una a la vez por proyecto**: la siguiente no sale hasta que la anterior termina (o apruebas su plan).
+- **Te espera**: las que tienen el plan esperando tu visto bueno («Revisar en el chat») y las que no salieron
+  (fallaron, se detuvieron o se cerró kywai con ellas a medias). «Reintentar» la pone la primera de la cola. Una
+  terminada también se puede repetir con «Otra vez» o arrastrándola a «Por hacer».
+- En «Por hacer» se ordenan con ⇈ ↑ ↓, se editan con el lápiz y se quitan con la papelera (dos toques). La que está
+  en marcha no se quita desde el tablero: se detiene en el chat.
+- **Pausar el tablero**: el equipo termina la que tiene y no coge más hasta «Reanudar».
+- Al arrancar kywai, lo que estaba en marcha queda en «Te espera» como no terminado: no se relanza solo, para no
+  repetir cambios a medias.
+
+Se guarda en `tablero.json` de la carpeta de datos (todos los proyectos en un archivo) y se borra con el proyecto.
+Funciona en el escritorio, el cliente y el navegador (`getBoard` y `boardCommand`, evento `board.updated`); en
+Órbita todavía no.
+
 ### Rutinas: peticiones que se lanzan solas
 
 Como kywai corre 24/7 en el servidor, cada proyecto puede tener **rutinas**: una petición que se envía sola al
