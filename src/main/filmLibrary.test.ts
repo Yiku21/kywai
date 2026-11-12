@@ -46,6 +46,11 @@ describe('películas con estilo', () => {
     expect(r).not.toContain('kywaiRobot()')
   })
 
+  it('la estructura «Reel en 3 pasos» va en el encargo de la película', () => {
+    expect(filmPrompt({ ...base, style: filmStyle('kywai-voxel-bots')!, structure: 'pasos' })).toContain('beats.md, con sus segundos')
+    expect(filmPrompt({ ...base, style: filmStyle('kywai-voxel-bots')! })).not.toContain('Reel en 3 pasos')
+  })
+
   it('la voz elegida va en el encargo', () => {
     expect(filmPrompt({ ...base, style: filmStyle('watercolor')!, voice: 'kokoro-em_alex' })).toContain('-v em_alex')
     expect(filmPrompt({ ...base, style: filmStyle('watercolor')!, voice: 'gemini-kore' })).toContain('voiceName "Kore"')

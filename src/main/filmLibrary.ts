@@ -6,11 +6,11 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { FILM_STYLES, KYWAI_FILM, type FilmStyle } from '../shared/filmStyles'
-import { defaultVoiceFor, MAC_VOICES, parseVoiceId, type VideoKind } from '../shared/videoChoice'
+import { defaultVoiceFor, MAC_VOICES, parseVoiceId, type VideoKind, type VideoStructure } from '../shared/videoChoice'
 import { voiceboxUrl } from './voicebox'
 import { voicestudioUrl } from './voicestudio'
 import type { CharacterForVideo } from './videoCharacters'
-import { dialogueRules, HOOK_RULE } from './videoScript'
+import { dialogueRules, HOOK_RULE, STEPS_STRUCTURE } from './videoScript'
 import { chatterboxDir, chatterboxPython, chatterboxReady, CHATTERBOX_EMOTION } from './chatterbox'
 import { VOICE_EMOTIONS } from '../shared/voiceEmotion'
 import { episodeRules, type EpisodeBrief } from './series'
@@ -64,6 +64,8 @@ export interface FilmPromptInput {
   voice?: string
   /** Diálogo entre dos personajes, cada uno con su voz. */
   dialogue?: boolean
+  /** Estructura fija del guion («estructura:pasos»): sus tramos van en beats.md. */
+  structure?: VideoStructure
 }
 
 /**
@@ -252,6 +254,7 @@ export function filmPrompt(input: FilmPromptInput): string {
         ]
   const extra = [
     ...(input.kind ? [KIND_RULES[input.kind]] : []),
+    ...(input.structure === 'pasos' ? [...STEPS_STRUCTURE, '- Cada tramo es un beat (o varios) de beats.md, con sus segundos pasados a fotogramas.'] : []),
     ...voiceRule(input.voice ?? defaultVoiceFor(input.lang) ?? undefined, lib),
     ...emotionVoiceRules(input.studioDir),
     ...(input.dialogue ? [...dialogueRules(input.character ? { name: input.character.name } : undefined).filter((r) => !r.includes('"speakers"') && !r.includes('"narration"')), '- Cada personaje con su voz (otra del mismo idioma, de su género) y su emoción en cada frase; la cámara corta al que habla y a la reacción del otro.'] : []),

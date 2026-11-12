@@ -288,6 +288,8 @@ export interface Task {
     dialogue?: boolean
     /** «Repasar el guion antes de grabar»: el guion sale en el chat y se graba con tu «Grabar». */
     review?: boolean
+    /** Estructura fija del guion («estructura:pasos»: gancho, ¿te suena?, giro, 3 pasos y «comenta»). */
+    structure?: 'pasos'
     work?: string
     /** «personajes fijos»: las imágenes adjuntas se guardaron como personajes del proyecto (carpeta «personajes»). */
     saveCast?: boolean

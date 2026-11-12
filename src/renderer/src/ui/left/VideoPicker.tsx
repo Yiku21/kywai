@@ -312,7 +312,8 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
     style ? fname(style) : t('Estilo de kywai'),
     chosenVoice ? voiceName(chosenVoice) : value.voice ? t('Voz elegida') : '',
     value.dialogue ? t('Diálogo') : '',
-    value.review && !value.style ? t('Repasar guion') : ''
+    value.review && !value.style ? t('Repasar guion') : '',
+    value.structure && value.kind !== 'charla' ? t('Reel en 3 pasos') : ''
   ].filter(Boolean)
   const thumb = value.style ? THUMBS[value.style] : undefined
   const KindIcon = KINDS.find((k) => k.id === value.kind)!.icon
@@ -550,6 +551,18 @@ export function VideoPicker({ api, value, open, onOpen, onChoose }: Props) {
                   )}
                 </div>
               </section>
+
+              {value.kind !== 'charla' && (
+                <section>
+                  <div className={s.voiceGrid}>
+                    <button type="button" role="checkbox" aria-checked={!!value.structure} className={cx(s.card, s.voiceCard, value.structure && s.cardOn)} onClick={() => set({ structure: value.structure ? undefined : 'pasos' })}>
+                      <span className={s.name}>{t('Estructura: reel en 3 pasos')}</span>
+                      <span className={s.line}>{t('Gancho «Deja de…», «¿Te suena?», el giro, tres pasos numerados y «Comenta PALABRA», en 45 a 60 segundos. Vale con cualquier estilo.')}</span>
+                      {value.structure && <Check size={14} className={s.check} aria-hidden="true" />}
+                    </button>
+                  </div>
+                </section>
+              )}
 
               {!value.style && (
                 <section>

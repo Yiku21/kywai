@@ -98,4 +98,11 @@ describe('diálogo', () => {
     expect(speakerVoices('en', 'kokoro-am_adam', sp, { mac: false })).toEqual({ Claude: 'kokoro-am_adam', Hermes: 'kokoro-af_bella' })
     expect(speakerVoices('fr', null, [{ name: 'A' }, { name: 'B' }], { mac: false })).toEqual({ A: null, B: 'kokoro-ff_siwis' })
   })
+
+  it('la marca de estructura', () => {
+    expect(videoChoiceOf('/video estructura:pasos la luna').structure).toBe('pasos')
+    expect(videoChoiceOf('/video estructura:otra la luna').structure).toBeUndefined()
+    expect(stripVideoTags('/video estructura:pasos la luna')).toBe('/video la luna')
+    expect(withVideoChoice('/video la luna', { kind: 'rapido', character: null, style: null, structure: 'pasos' })).toBe('/video estructura:pasos la luna')
+  })
 })

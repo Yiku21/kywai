@@ -3,7 +3,7 @@
 // voz, imágenes, música y montaje los hace kywai siempre igual (videoStudio.ts), para que el resultado no dependa de
 // que el agente improvise.
 import { KYWAI_FILM, takeFilmStyle } from '../shared/filmStyles'
-import { ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, type VideoKind } from '../shared/videoChoice'
+import { ROBOTS_CHARACTER, stripVideoTags, videoChoiceOf, type VideoKind, type VideoStructure } from '../shared/videoChoice'
 import { narrationLines, voiceEmotion, VOICE_EMOTIONS, type VoiceLine } from '../shared/voiceEmotion'
 import { episodeRules, type EpisodeBrief } from './series'
 
@@ -209,6 +209,25 @@ export const HOOK_RULE =
 export const EMOTION_RULE =
   `- Voz con vida: delante de CADA frase de "narration" pon su emoción entre corchetes, una de ${VOICE_EMOTIONS.map((e) => `[${e}]`).join(', ')} («[sorprendido] ¿Diez minutos? [emocionado] ¡Y con música!»). La voz cambia de tono con ella, así que varíala como lo haría una persona contándolo: que no vayan más de dos frases seguidas con la misma, el gancho con fuerza, los problemas [triste] o [firme], las soluciones [alegre] o [emocionado], un secreto [susurro]. Los «…» hacen una pausa dramática. Las marcas no salen en pantalla ni se leen.`
 
+/**
+ * La estructura «Reel en 3 pasos» (marca «estructura:pasos»), sacada del ritmo de un reel de 56 s que gustó: tramos con
+ * sus segundos para que el guion los siga, con cualquier estilo. Manda sobre el orden normal del encargo.
+ */
+export const STEPS_STRUCTURE = [
+  '- ESTRUCTURA «Reel en 3 pasos» (la eligió el usuario; manda sobre el orden y la duración de arriba): de 45 a 60 segundos, la voz seguida y sin silencios largos, en estos tramos y en este orden:',
+  '  1. Gancho (0–2 s): una orden en negativo con lo que el espectador hace mal («Deja de…», «No vuelvas a…»).',
+  '  2. Autoridad (2–9 s): quién lo dice o de dónde sale, con una fuente real que hayas comprobado (si no la hay, salta este tramo; nunca la inventes). Funciona bien una frase que todos repiten tachada y lo que de verdad se dijo.',
+  '  3. «¿Te suena?» (9–16 s): el error contado como una escena del espectador que se va amontonando cosa a cosa («uno para el correo, otro para las facturas…») hasta un mal resultado con un número.',
+  '  4. Giro (16–25 s): «no es culpa tuya» y el porqué en una frase; luego la idea nueva en otra, y la palabra clave definida con algo que se ve («X = una carpeta»).',
+  '  5. Tres pasos numerados (25–48 s, unos 7 s cada uno): «1 · …», «2 · …», «3 · …», cada uno con un ejemplo concreto y un remate corto que se recuerde. Que se vea cuántos quedan (1/3, 2/3, 3/3).',
+  '  6. Si sale mal (opcional, 2–3 s): qué hacer cuando falla («no le riñas: corrige…»).',
+  '  7. Cierre (los últimos 6–8 s): «Comenta PALABRA» (una palabra corta en mayúsculas, sin prometer nada que no se pueda dar) y una frase final que recoge el número del principio (otros arreglan quince, tú arreglas uno).',
+  '  Frases de 2 a 6 palabras, una idea por frase. Cada cosa importante que se nombra sale en pantalla en ese momento: algo nuevo cada 1–1,5 s y el titular cambia cada 3–4 s, con la palabra clave en color (problema, pregunta, solución).'
+]
+
+/** Cómo encajan los tramos en las escenas de un guion de kywai (como mucho MAX_SCENES). */
+const STEPS_SCENES = `- Con esta estructura, una escena por tramo y una por paso (de 8 a ${MAX_SCENES} escenas): en "heading" va el titular del tramo («¿Te suena?», «1 · Que te entreviste»).`
+
 /** El personaje elegido son los robots de kywai (por su id o por su nombre en la biblioteca). */
 const isRobots = (name: string | undefined): boolean => name === ROBOTS_CHARACTER || /robots? de kywai/i.test(name ?? '')
 
@@ -249,6 +268,8 @@ type PromptInput = {
   episode?: EpisodeBrief
   /** Diálogo entre dos personajes, cada uno con su voz. */
   dialogue?: boolean
+  /** Estructura fija del guion (STEPS_STRUCTURE). */
+  structure?: VideoStructure
 }
 
 /** El vídeo lleva presentador (dibujos con presentador o mixto). */
@@ -321,6 +342,7 @@ export function videoScriptPrompt(input: PromptInput): string {
     '- "image": la imagen de fondo de la escena, descrita en inglés en una frase concreta (sujeto, ambiente, luz). Sin texto, letras ni logotipos en la imagen.',
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}, el que mejor le vaya al tema.`,
     '- "outro": frase final corta para la última pantalla.',
+    ...(input.structure === 'pasos' ? [...STEPS_STRUCTURE, STEPS_SCENES] : []),
     ...lookRules(input),
     ...castRules(input),
     ...(input.episode ? episodeRules(input.episode) : []),
@@ -366,6 +388,7 @@ function cartoonScriptPrompt(input: PromptInput): string {
       : []),
     `- "theme": uno de ${VIDEO_THEMES.map((t) => `"${t}"`).join(', ')}; para dibujos van mejor "papel", "amanecer" u "oceano".`,
     '- "outro": frase final corta y con gracia.',
+    ...(input.structure === 'pasos' ? [...STEPS_STRUCTURE, STEPS_SCENES, '- Los tres pasos llevan "step": 1, 2 y 3; los demás tramos, "step": 0.'] : []),
     ...lookRules(input),
     ...castRules(input),
     ...(input.episode ? episodeRules(input.episode) : []),
@@ -456,6 +479,8 @@ export interface VideoRequest {
   dialogue?: boolean
   /** «guion:repasar»: el guion sale en el chat para repasarlo y se graba con «Grabar». */
   review?: boolean
+  /** «estructura:pasos» o «estructura en 3 pasos»: el guion sigue STEPS_STRUCTURE (no en «Charla y tutorial»). */
+  structure?: VideoStructure
 }
 
 /** Piden dos personajes hablando: «un diálogo», «una conversación entre…», «charlando», «a dialogue between…». */
@@ -472,6 +497,9 @@ const CHARLA_RE = /(?:^|[\s,])(?:(?:al?|en|con|de)\s+)?(?:(?:estilo|tipo|formato
 
 /** Piden varios vídeos sin decir cuáles en el mismo mensaje: «cada uno de esos guiones», «uno por idea»… */
 const SEVERAL_RE = /(?:^|[\s,])(?:cada\s+un[oa]|por\s+cada|(?:(?:un[oa]?|v[ií]deo)\s+)?por\s+(?:cada\s+)?(?:gui[oó]n|idea|tema|archivo|punto|cap[ií]tulo|episodio)|(?:de|con|usando)\s+(?:esos|esas|estos|estas|todos\s+(?:esos|estos)|todas\s+(?:esas|estas))\s+(?!personajes?\b)\p{L}+)/iu
+
+/** Piden la estructura con palabras: «estructura en 3 pasos», «con la estructura de reel en tres pasos». */
+const STRUCTURE_RE = /(?:^|[\s,])(?:con\s+)?(?:la\s+)?estructura\s+(?:de\s+)?(?:reel\s+)?(?:en|de)\s+(?:3|tres)\s+pasos(?=[\s,.:;]|$)/i
 
 const VERTICAL_RE = /\b(vertical|tiktok|reels?|shorts?|9:16|historia de instagram)\b/i
 const HORIZONTAL_RE = /\b(horizontal|youtube|16:9|apaisado)\b/i
@@ -511,10 +539,18 @@ export function parseVideoRequest(text: string): VideoRequest | null {
   const voice = choice.voice ?? undefined
   const dialogue = !!choice.dialogue || DIALOGUE_RE.test(topic)
   const review = !!choice.review
-  if (kindTag || charTag || choice.dialogue || review || /(^|\s)voz:[a-z0-9_-]+(?=\s|$)/i.test(topic)) {
+  let structure = choice.structure
+  if (kindTag || charTag || choice.dialogue || review || structure || /(^|\s)voz:[a-z0-9_-]+(?=\s|$)/i.test(topic)) {
     const film = /(^|\s)estilo:([a-z0-9-]+)(?=\s|$)/i.exec(topic)
     topic = stripVideoTags(topic).replace(/\s{2,}/g, ' ').trim()
     if (film && choice.style) topic = `estilo:${choice.style} ${topic}`.trim()
+  }
+  // «estructura en 3 pasos» escrito con palabras vale como «estructura:pasos» (y no es parte del tema).
+  const structM = STRUCTURE_RE.exec(topic)
+  if (structM) {
+    structure = 'pasos'
+    topic = (topic.slice(0, structM.index) + ' ' + topic.slice(structM.index + structM[0].length)).replace(/\s{2,}/g, ' ').replace(/^[\s,:;]+|[\s,:;]+$/g, '').trim()
+    if (structM.index < 2) topic = topic.replace(/^(?:de|sobre|con|para|acerca de|about|on)\s+/i, '')
   }
   // «charla y tutorial» escrito con palabras vale como «tipo:charla» (y no es parte del tema).
   const charlaM = kindTag ? null : CHARLA_RE.exec(topic)
@@ -545,7 +581,7 @@ export function parseVideoRequest(text: string): VideoRequest | null {
     const prev = !rest || PREVIOUS_RE.test(rest)
     // El estilo pintado a mano, sin otro personaje, lleva los robots.
     const fc = charTag ? choice.character : film.style.slug === KYWAI_FILM ? ROBOTS_CHARACTER : null
-    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: kindStyle ?? 'dinamico', film: film.style.slug, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(fc ? { character: fc } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}) }
+    return { topic: prev ? '' : rest, format, fromPrevious: prev, style: kindStyle ?? 'dinamico', film: film.style.slug, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(fc ? { character: fc } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}), ...(structure ? { structure } : {}) }
   }
   // «estilo cartoon de…», «de dibujos animados sobre…»: el estilo no es parte del tema.
   const style: VideoStyle = kindStyle ?? (CARTOON_RE.test(tNoCast) ? 'cartoon' : 'dinamico')
@@ -555,7 +591,7 @@ export function parseVideoRequest(text: string): VideoRequest | null {
   const fromPrevious = !bare || PREVIOUS_RE.test(bare)
   const character = charTag ? choice.character : charla ? ROBOTS_CHARACTER : null
   if (charla) return { topic: fromPrevious ? '' : bare, format: HORIZONTAL_RE.test(t) ? 'horizontal' : 'vertical', fromPrevious, style, kind: 'charla', ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), dialogue: true, ...(review ? { review } : {}) }
-  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}), ...(review ? { review } : {}) }
+  return { topic: fromPrevious ? '' : bare, format, fromPrevious, style, ...(kind ? { kind } : {}), ...(saveCast ? { saveCast } : {}), ...(character ? { character } : {}), ...(voice ? { voice } : {}), ...(dialogue ? { dialogue } : {}), ...(review ? { review } : {}), ...(structure ? { structure } : {}) }
 }
 
 // ---------- composición ----------

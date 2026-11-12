@@ -90,7 +90,7 @@ import { cleanAnswers, extractQuestions, formatAnswers, QUESTIONS_RULE } from '@
 import { scriptFileOf, scriptSource } from './videoScriptFile'
 import { parseVideoRequest, parseVideoScript, synthMusic, videoScriptPrompt, videoSlug, type VideoFormat, type VideoScript, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
-import { videoLang, type VideoKind } from '../shared/videoChoice'
+import { videoLang, type VideoKind, type VideoStructure } from '../shared/videoChoice'
 import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
@@ -1955,7 +1955,7 @@ function withBatch(topic: string, batch: { brief: string } | undefined): string 
  */
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
-  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; review?: boolean; episode?: { n: number; total: number; vote?: string } },
+  req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; review?: boolean; structure?: VideoStructure; episode?: { n: number; total: number; vote?: string } },
   atts: Attachment[],
   clientMessageId: string | undefined,
   routine: { id: string; name: string } | undefined,
@@ -2052,6 +2052,7 @@ async function sendVideo(
         ...(req.voice ? { voice: req.voice } : {}),
         ...(req.dialogue ? { dialogue: true } : {}),
         ...(req.review && !film ? { review: true } : {}),
+        ...(req.structure ? { structure: req.structure } : {}),
         ...(req.episode ? { episode: req.episode } : {}),
         ...(batch ? { batch: { n, total, brief: batchBrief(n, total, batch.ideas) } } : {})
       }
@@ -5205,6 +5206,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
         ...(t.video.kind ? { kind: t.video.kind } : {}),
         ...(t.video.voice ? { voice: t.video.voice } : {}),
         ...(t.video.dialogue ? { dialogue: true } : {}),
+        ...(t.video.structure ? { structure: t.video.structure } : {}),
         ...(t.video.character ? { character: videoCharacter(t.video.character) ?? undefined } : {}),
         episode: seriesBriefFor(run, t),
         files: [
@@ -5217,7 +5219,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue }), ...learningLines(resultsFile(getConfig().workspaceRoot))].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue, ...(t.video.structure ? { structure: t.video.structure } : {}) }), ...learningLines(resultsFile(getConfig().workspaceRoot))].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)

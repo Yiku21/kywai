@@ -2436,6 +2436,22 @@ pone la voz, las imágenes y el montaje con tu texto. **Descartar** termina la t
 tarea mientras espera, la tarjeta dice que ya no espera respuesta. Desde Órbita se puede grabar o descartar en
 «Te necesita» (sin cambiar el texto).
 
+**Estructura «Reel en 3 pasos».** Al final del selector, la casilla «Estructura: reel en 3 pasos» (marca
+`estructura:pasos`, o con palabras: «estructura en 3 pasos»). Vale con el estilo de kywai y con cualquier estilo de
+película; no sale con «Charla y tutorial», que ya tiene su propio orden. El guion sigue los tramos de un reel de 56 s
+que mandó el usuario (solo su ritmo, nada de su contenido), de 45 a 60 s y con la voz seguida:
+1. **Gancho** (0–2 s): una orden en negativo con lo que el espectador hace mal («Deja de…»).
+2. **Autoridad** (2–9 s): quién lo dice, con una fuente real comprobada (si no la hay, se salta).
+3. **«¿Te suena?»** (9–16 s): el error del espectador amontonándose cosa a cosa hasta un mal resultado con número.
+4. **Giro** (16–25 s): «no es culpa tuya», el porqué y la idea nueva, con la palabra clave definida con algo que se ve.
+5. **Tres pasos numerados** (25–48 s, ~7 s cada uno, «1 · …» con 1/3, 2/3, 3/3) con un ejemplo y un remate.
+6. **Si sale mal** (opcional): qué hacer cuando falla.
+7. **Cierre** (6–8 s): «Comenta PALABRA» y una frase que recoge el número del principio.
+
+Las reglas están en `STEPS_STRUCTURE` (`src/main/videoScript.ts`): van en el encargo del guion (una escena por tramo
+y por paso, como mucho 10) y en el de las películas con estilo (cada tramo es un beat de `beats.md`). Combina muy
+bien con el estilo **Robots de bloques**.
+
 **Diálogo (dos personajes, dos voces).** En el paso 4 del selector, «Diálogo» (marca `dialogo:si`), o con palabras («un
 diálogo entre…», «una conversación entre…», «charlando»): el vídeo lo cuentan **dos personajes que se contestan**, como
 en los reels que más enganchan, con réplicas cortas («¿Yo?», «¿En serio?»). Con los robots de kywai elegidos, hablan

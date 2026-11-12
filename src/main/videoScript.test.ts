@@ -452,4 +452,17 @@ describe('diálogo entre dos personajes', () => {
     expect(parseVideoRequest('/video un diálogo entre un gato y un perro sobre el pan')?.dialogue).toBe(true)
     expect(parseVideoRequest('/video cómo hacer pan')?.dialogue).toBeUndefined()
   })
+
+  it('la estructura «Reel en 3 pasos» con marca o con palabras, y no en «Charla y tutorial»', () => {
+    expect(parseVideoRequest('/video estructura:pasos deja de montar un agente por tarea')).toMatchObject({ topic: 'deja de montar un agente por tarea', structure: 'pasos' })
+    expect(parseVideoRequest('/video con estructura en 3 pasos cómo ordenar el correo')).toMatchObject({ topic: 'cómo ordenar el correo', structure: 'pasos' })
+    expect(parseVideoRequest('/video estructura:pasos estilo:kywai-voxel-bots las skills')).toMatchObject({ film: 'kywai-voxel-bots', structure: 'pasos', topic: 'las skills' })
+    expect(parseVideoRequest('/video tipo:charla estructura:pasos el pan')?.structure).toBeUndefined()
+    expect(parseVideoRequest('/video cómo hacer pan en 3 pasos')).toMatchObject({ topic: 'cómo hacer pan en 3 pasos' })
+    expect(parseVideoRequest('/video cómo hacer pan en 3 pasos')?.structure).toBeUndefined()
+    const base = { topic: 'las skills', format: 'vertical' as const, lang: 'es' }
+    expect(videoScriptPrompt({ ...base, structure: 'pasos' })).toContain('«¿Te suena?»')
+    expect(videoScriptPrompt({ ...base, style: 'cartoon', structure: 'pasos' })).toContain('"step": 1, 2 y 3')
+    expect(videoScriptPrompt(base)).not.toContain('Reel en 3 pasos')
+  })
 })

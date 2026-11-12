@@ -29,7 +29,13 @@ export interface VideoChoice {
   dialogue?: boolean
   /** Repasar el guion antes de grabar («guion:repasar»): sale en el chat y se graba con tu «Grabar». */
   review?: boolean
+  /** Estructura fija del guion («estructura:pasos»: gancho, ¿te suena?, giro, 3 pasos y «comenta»); vale con cualquier estilo. */
+  structure?: VideoStructure
 }
+
+/** pasos: «Reel en 3 pasos» (gancho «deja de…» → autoridad → ¿te suena? → giro → 3 pasos → «comenta PALABRA»). */
+export const VIDEO_STRUCTURES = ['pasos'] as const
+export type VideoStructure = (typeof VIDEO_STRUCTURES)[number]
 
 /** Una voz elegida: el motor y la voz de ese motor. */
 export type VoiceEngine = 'gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven'
@@ -175,6 +181,7 @@ const STYLE_TAG = TAG('estilo')
 const VOICE_TAG = /(^|\s)voz:([a-z0-9_-]+)(?=\s|$)/i
 const DIALOGUE_TAG = /(^|\s)di[aá]logo:(si|sí|yes)(?=\s|$)/i
 const REVIEW_TAG = /(^|\s)gui[oó]n:(repasar|revisar|review)(?=\s|$)/i
+const STRUCTURE_TAG = TAG('estructura')
 
 /** Id válido de personaje: minúsculas, números y guiones (lo genera kywai al guardarlo). */
 export const CHARACTER_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
@@ -190,13 +197,15 @@ export function videoChoiceOf(text: string): VideoChoice {
   const character = c && c !== NO_CHARACTER && CHARACTER_ID.test(c) ? c : !c && style === KYWAI_FILM ? ROBOTS_CHARACTER : null
   const v = VOICE_TAG.exec(text)?.[2]
   const voice = v && parseVoiceId(v) ? v : null
-  return { kind, character, style, voice, ...(DIALOGUE_TAG.test(text) ? { dialogue: true } : {}), ...(REVIEW_TAG.test(text) ? { review: true } : {}) }
+  const st = STRUCTURE_TAG.exec(text)?.[2].toLowerCase()
+  const structure = VIDEO_STRUCTURES.includes(st as VideoStructure) ? (st as VideoStructure) : undefined
+  return { kind, character, style, voice, ...(DIALOGUE_TAG.test(text) ? { dialogue: true } : {}), ...(REVIEW_TAG.test(text) ? { review: true } : {}), ...(structure ? { structure } : {}) }
 }
 
 /** Quita las marcas del texto, cada una con su espacio de delante (así no quedan espacios de más). */
 export function stripVideoTags(text: string): string {
   let out = text
-  for (const re of [KIND_TAG, CHAR_TAG, STYLE_TAG, VOICE_TAG, DIALOGUE_TAG, REVIEW_TAG]) {
+  for (const re of [KIND_TAG, CHAR_TAG, STYLE_TAG, VOICE_TAG, DIALOGUE_TAG, REVIEW_TAG, STRUCTURE_TAG]) {
     for (let i = 0; i < 3 && re.test(out); i++) out = out.replace(re, '')
   }
   return out
@@ -213,7 +222,8 @@ export function withVideoChoice(text: string, choice: VideoChoice): string {
     choice.style ? `estilo:${choice.style}` : '',
     choice.voice ? `voz:${choice.voice}` : '',
     choice.dialogue ? 'dialogo:si' : '',
-    choice.review ? 'guion:repasar' : ''
+    choice.review ? 'guion:repasar' : '',
+    choice.structure ? `estructura:${choice.structure}` : ''
   ].filter(Boolean)
   return `${m[1]} ${tags.map((t) => `${t} `).join('')}${rest}`
 }
