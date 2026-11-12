@@ -93,13 +93,31 @@ export function characterRole(text: string): HomeRole | undefined {
 }
 
 const loader = new GLTFLoader()
+
+/**
+ * Carga un .glb. En la app de escritorio la interfaz se abre desde file://, donde fetch() no funciona
+ * (GLTFLoader lo usa): ahí se lee con XMLHttpRequest, que Electron sí permite, y se interpreta aparte.
+ */
+async function loadGlb(url: string): Promise<GLTF> {
+  const abs = new URL(url, location.href)
+  if (abs.protocol !== 'file:') return loader.loadAsync(url)
+  const buf = await new Promise<ArrayBuffer>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', abs.href)
+    xhr.responseType = 'arraybuffer'
+    xhr.onload = () => (xhr.response ? resolve(xhr.response as ArrayBuffer) : reject(new Error(`vacío: ${url}`)))
+    xhr.onerror = () => reject(new Error(`no se pudo leer ${url}`))
+    xhr.send()
+  })
+  return loader.parseAsync(buf, '')
+}
 const models = new Map<HomeRole, Promise<GLTF>>()
 let clips: Promise<Record<CharacterClip, THREE.AnimationClip>> | null = null
 
 function loadClips(): Promise<Record<CharacterClip, THREE.AnimationClip>> {
   clips ??= Promise.all(
     (Object.keys(CLIPS) as CharacterClip[]).map(async (k) => {
-      const g = await loader.loadAsync(CLIPS[k])
+      const g = await loadGlb(CLIPS[k])
       const clip = g.animations[0]
       clip.name = k
       return [k, clip] as const
@@ -112,7 +130,7 @@ function loadClips(): Promise<Record<CharacterClip, THREE.AnimationClip>> {
 function loadModel(role: HomeRole): Promise<GLTF> {
   let p = models.get(role)
   if (!p) {
-    p = loader.loadAsync(MODELS[role])
+    p = loadGlb(MODELS[role])
     p.catch(() => models.delete(role))
     models.set(role, p)
   }
@@ -157,14 +175,16 @@ export async function buildCharacter(role: HomeRole): Promise<Character> {
   const materials: THREE.Material[] = []
   model.traverse((o) => {
     if (o instanceof THREE.Mesh) {
+      // Sin recibir sombras: en sus caras pequeñas la sombra propia dibujaba rayas.
       o.castShadow = true
-      o.receiveShadow = true
+      o.receiveShadow = false
       // El puntero se comprueba contra el robot de siempre (invisible): mucho más barato que una malla con esqueleto.
       o.raycast = () => {}
       o.frustumCulled = false
       const m = (o.material as THREE.MeshStandardMaterial).clone()
       m.roughness = 0.72
       m.metalness = 0
+      if (m.map) m.map.anisotropy = 4
       o.material = m
       materials.push(m)
     }

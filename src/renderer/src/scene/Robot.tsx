@@ -83,6 +83,9 @@ export function Robot({ agent, station, stations, leaving }: Props) {
   // Personaje 3D (Meshy) del agente, si tiene uno y el aspecto es «Personajes». Mientras carga se ve el robot de siempre.
   const role = agent.isSubagent ? undefined : characterRole(`${agent.name} ${agent.id}`)
   const [character, setCharacter] = useState<Character | null>(null)
+  /** Altura del suelo bajo el personaje (plataforma, mesa…) y dónde se midió. */
+  const ground = useRef<{ y: number; x: number; z: number } | null>(null)
+  const groundRay = useMemo(() => new THREE.Raycaster(), [])
   const hiddenParts = useRef<{ prev: Map<THREE.Object3D, boolean>; keep: Set<THREE.Object3D> } | null>(null)
   useEffect(() => {
     if (skin !== 'personajes' || !role) return
@@ -111,6 +114,8 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     const k = ((span + 0.35) * 1.15) / character.height
     c.scale.setScalar(k)
     c.position.set(0, model.bottom - 0.3, 0)
+    c.userData.k = k
+    ground.current = null
     // Zona invisible para el puntero (los robots escondidos y la malla con esqueleto no la reciben).
     const hitGeo = new THREE.CapsuleGeometry(0.42, Math.max(0.1, span - 0.5), 4, 10)
     const hitMat = new THREE.MeshBasicMaterial({ visible: false })
@@ -312,6 +317,56 @@ export function Robot({ agent, station, stations, leaving }: Props) {
     }
   }, [model]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  /**
+   * Pone los pies del personaje sobre lo que tenga debajo (el robot flota, el personaje no) y lo mantiene derecho:
+   * del cabeceo y el balanceo del robot solo se queda una parte, y nada del aplastado al botar.
+   */
+  const _down = useMemo(() => new THREE.Vector3(0, -1, 0), [])
+  const _from = useMemo(() => new THREE.Vector3(), [])
+  const placeCharacter = (scene: THREE.Scene, camera: THREE.Camera, c: THREE.Object3D) => {
+    const g = outer.current
+    const r = model.root
+    const k = (c.userData.k as number) ?? 1
+    const still = brain.speed < 0.05
+    const gr = ground.current
+    // El suelo se mide al pararse en un sitio nuevo; mientras camina se queda con la última medida.
+    if (still && (!gr || Math.hypot(gr.x - g.position.x, gr.z - g.position.z) > 0.25)) {
+      _from.set(g.position.x, g.position.y + 0.2, g.position.z)
+      groundRay.set(_from, _down)
+      groundRay.far = 4
+      groundRay.camera = camera
+      let y: number | null = null
+      let hits: THREE.Intersection[] = []
+      try {
+        hits = groundRay.intersectObjects(scene.children, true)
+      } catch {
+        /* algún objeto a medio montar: se mide en el siguiente fotograma */
+        return
+      }
+      for (const hit of hits) {
+        let o: THREE.Object3D | null = hit.object
+        let ok = !(hit.object instanceof THREE.Sprite) && !(hit.object instanceof THREE.Points) && !(hit.object instanceof THREE.Line)
+        const mat = (hit.object as THREE.Mesh).material as THREE.Material | undefined
+        if (mat && (!mat.visible || (mat.transparent && mat.opacity < 0.3))) ok = false
+        while (ok && o) {
+          if (o === g || !o.visible) ok = false
+          o = o.parent
+        }
+        if (ok) {
+          y = hit.point.y
+          break
+        }
+      }
+      ground.current = { y: y ?? g.position.y + (model.bottom - 0.3) * g.scale.y, x: g.position.x, z: g.position.z }
+    }
+    const sy = Math.max(1e-4, g.scale.y * r.scale.y)
+    const targetY = ground.current ? (ground.current.y + 0.01 - g.position.y) / sy : c.position.y
+    // Parado pisa el suelo; al caminar entre estaciones sigue al robot (que da un saltito) con la última altura.
+    if (still) c.position.y += (targetY - c.position.y) * 0.35
+    c.rotation.set(-brain.pitch * 0.8, 0, -brain.roll * 0.8, 'ZXY')
+    c.scale.set(k / r.scale.x, k / r.scale.y, k / r.scale.z)
+  }
+
   useFrame((state, dt) => {
     const t = registry.time
     chatPoint(state.camera, t, brain.chatPos)
@@ -343,6 +398,7 @@ export function Robot({ agent, station, stations, leaving }: Props) {
         o.visible = false
       }
       character.update(dt, brain, t)
+      placeCharacter(state.scene, state.camera, character.root)
     }
 
     model.bodyMat.emissiveIntensity = ceramic ? .015 + brain.glow * .08 : 0.06 + brain.glow * 0.55 + h * 0.08
