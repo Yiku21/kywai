@@ -5363,7 +5363,7 @@
                 "maxItems": 8,
                 "items": {
                   "type": "object",
-                  "description": "choice: índice de la opción elegida; text: lo que escribiste (gana a choice); ni una ni otra = Omitir.",
+                  "description": "choice: índice de la opción elegida; choices: las marcadas en una pregunta de varias; text: lo que escribiste (en una de una, gana a choice; en una de varias, se suma); nada = Omitir.",
                   "properties": {
                     "choice": {
                       "type": "integer",
@@ -5375,6 +5375,15 @@
                     },
                     "skipped": {
                       "type": "boolean"
+                    },
+                    "choices": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "maxItems": 8,
+                      "description": "Las marcadas en una pregunta de varias (questions.items[].multiple); text se suma a ellas."
                     }
                   },
                   "additionalProperties": false
@@ -5674,6 +5683,10 @@
                           "label"
                         ]
                       }
+                    },
+                    "multiple": {
+                      "type": "boolean",
+                      "description": "Se pueden elegir varias opciones (casillas, con «Puedes elegir varias» y «Siguiente»)."
                     }
                   },
                   "required": [
@@ -5702,6 +5715,12 @@
                         },
                         "skipped": {
                           "type": "boolean"
+                        },
+                        "choices": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer"
+                          }
                         }
                       }
                     }

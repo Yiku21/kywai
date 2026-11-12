@@ -513,11 +513,11 @@ data class DirectTarget(val agentId: String, val name: String = agentId)
 data class QuestionOption(val label: String, val detail: String? = null, val recommended: Boolean = false)
 
 @Serializable
-data class AgentQuestion(val question: String, val options: List<QuestionOption> = emptyList())
+data class AgentQuestion(val question: String, val options: List<QuestionOption> = emptyList(), val multiple: Boolean = false)
 
-/** Tu respuesta a una pregunta: una opción ([choice]), lo que escribiste ([text]) o nada (Omitir). */
+/** Tu respuesta a una pregunta: una opción ([choice]), las marcadas en una de varias ([choices]), lo que escribiste ([text]) o nada (Omitir). */
 @Serializable
-data class QuestionAnswer(val choice: Int? = null, val text: String? = null, val skipped: Boolean = false)
+data class QuestionAnswer(val choice: Int? = null, val choices: List<Int>? = null, val text: String? = null, val skipped: Boolean = false)
 
 @Serializable
 data class AnsweredQuestions(@Serializable(with = FlexibleTimeSerializer::class) val at: Long? = null, val answers: List<QuestionAnswer> = emptyList())

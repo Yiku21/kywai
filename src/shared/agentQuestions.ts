@@ -16,7 +16,7 @@ export const ANSWER_TEXT_MAX = 2000
 export const QUESTIONS_RULE =
   '- Si te quedan dudas que solo el usuario puede decidir, NO las escribas como lista en el texto («Dudas abiertas»…): ponlas al final de tu respuesta en un bloque ```preguntas con JSON, así:\n' +
   '```preguntas\n[{"pregunta": "¿…?", "opciones": [{"titulo": "…", "detalle": "en una frase, qué pasa si la elige", "recomendada": true}, {"titulo": "…", "detalle": "…"}]}]\n```\n' +
-  '  De 1 a 6 preguntas, cada una con 2 a 4 opciones cortas y exactamente una "recomendada": la que tú elegirías. kywai las enseña como una tarjeta para elegir con un toque (con un campo para que escriba otra respuesta, así que no añadas «Otra»); lo que conteste te llega después. En el texto basta una frase («Te dejo N preguntas para decidir…»). Si no hay dudas, no pongas el bloque.'
+  '  De 1 a 6 preguntas, cada una con 2 a 4 opciones cortas (hasta 6 si se pueden elegir varias) y exactamente una "recomendada": la que tú elegirías. Si por su carácter tiene sentido elegir VARIAS a la vez (qué funciones incluir, en qué plataformas, qué idiomas…), añade "varias": true a esa pregunta y marca como "recomendada" todas las que elegirías; si las opciones se excluyen entre sí (una cosa u otra), no lo pongas. kywai las enseña como una tarjeta para elegir con un toque (con un campo para que escriba otra respuesta, así que no añadas «Otra»); lo que conteste te llega después. En el texto basta una frase («Te dejo N preguntas para decidir…»). Si no hay dudas, no pongas el bloque.'
 
 /** Lo mismo para el coordinador, que contesta en JSON: sus preguntas van en el campo "questions". */
 export const PLAN_QUESTIONS_FIELD = '"questions": [{"question": "¿…?", "options": [{"label": "…", "detail": "…", "recommended": true}]}]'
@@ -48,6 +48,8 @@ export function normalizeQuestions(raw: unknown): AgentQuestion[] {
     const question = str(pick(o, ['pregunta', 'question', 'q', 'texto', 'text']), QUESTION_MAX)
     const rawOpts = pick(o, ['opciones', 'options', 'choices'])
     if (question.length < 3 || !Array.isArray(rawOpts)) continue
+    // Se pueden elegir varias a la vez (qué incluir, en qué plataformas…): casillas en vez de un toque.
+    const multiple = truthy(pick(o, ['varias', 'multiple', 'múltiple', 'multiples', 'multi']))
     const options: AgentQuestionOption[] = []
     let rec = false
     for (const op of rawOpts) {
@@ -56,13 +58,13 @@ export function normalizeQuestions(raw: unknown): AgentQuestion[] {
       const label = str(pick(p, ['titulo', 'título', 'label', 'title', 'opcion', 'option', 'nombre']), LABEL_MAX)
       if (!label) continue
       const detail = str(pick(p, ['detalle', 'detail', 'description', 'descripcion', 'descripción', 'explicacion']), DETAIL_MAX)
-      const recommended = !rec && truthy(pick(p, ['recomendada', 'recomendado', 'recommended']))
+      const recommended = (multiple || !rec) && truthy(pick(p, ['recomendada', 'recomendado', 'recommended']))
       if (recommended) rec = true
       options.push({ label, ...(detail ? { detail } : {}), ...(recommended ? { recommended: true } : {}) })
       if (options.length >= MAX_OPTIONS) break
     }
     if (options.length < 2) continue
-    out.push({ question, options })
+    out.push({ question, options, ...(multiple ? { multiple: true } : {}) })
     if (out.length >= MAX_QUESTIONS) break
   }
   return out
@@ -94,11 +96,13 @@ export function hideQuestionsBlock(text: string): string {
 
 /** La respuesta a una pregunta en una línea («Personal», «Escrita: …» o sin respuesta). */
 export function answerLine(q: AgentQuestion, a: AgentQuestionAnswer | undefined): string {
-  const typed = a?.text?.trim()
-  if (typed) return typed
-  const op = typeof a?.choice === 'number' ? q.options[a.choice] : undefined
-  if (op) return op.detail ? `${op.label} (${op.detail})` : op.label
-  return ''
+  const typed = a?.text?.trim() ?? ''
+  const picked = (a?.choices ?? (typeof a?.choice === 'number' ? [a.choice] : []))
+    .map((i) => q.options[i])
+    .filter((op): op is AgentQuestionOption => !!op)
+    .map((op) => (op.detail ? `${op.label} (${op.detail})` : op.label))
+  // En una de varias, lo escrito se suma a lo marcado; en una de una, lo escrito es la respuesta.
+  return [...(q.multiple || !typed ? picked : []), ...(typed ? [typed] : [])].join('; ')
 }
 
 /** Lo que se envía al agente (y se ve en el chat como tu mensaje): cada pregunta con lo que contestaste. */
@@ -116,6 +120,12 @@ export function cleanAnswers(questions: AgentQuestion[], raw: unknown): AgentQue
   return questions.map((q, i) => {
     const a = list[i] && typeof list[i] === 'object' ? (list[i] as Record<string, unknown>) : {}
     const text = typeof a.text === 'string' ? a.text.trim().slice(0, ANSWER_TEXT_MAX) : ''
+    if (q.multiple) {
+      const raw = Array.isArray(a.choices) ? a.choices : typeof a.choice === 'number' ? [a.choice] : []
+      const choices = [...new Set(raw.filter((c): c is number => typeof c === 'number' && Number.isInteger(c) && c >= 0 && c < q.options.length))].sort((x, y) => x - y)
+      if (!choices.length && !text) return { skipped: true }
+      return { ...(choices.length ? { choices } : {}), ...(text ? { text } : {}) }
+    }
     if (text) return { text }
     const c = typeof a.choice === 'number' && Number.isInteger(a.choice) && a.choice >= 0 && a.choice < q.options.length ? a.choice : undefined
     return c === undefined ? { skipped: true } : { choice: c }

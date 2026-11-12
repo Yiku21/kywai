@@ -3632,4 +3632,6 @@ export const en: Record<string, string> = {
   "Mis respuestas a tus preguntas:": "My answers to your questions:",
   "Contestada": "Answered",
   "{first} (y {n} pregunta{s} más)": "{first} (and {n} more question{s})",
+  "Puedes elegir varias": "You can pick several",
+  "Algo más: escríbelo aquí": "Anything else: type it here",
 }

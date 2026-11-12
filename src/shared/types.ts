@@ -705,18 +705,22 @@ export interface AgentQuestionOption {
   label: string
   /** Qué pasa si la eliges, en una frase. */
   detail?: string
-  /** La que el agente elegiría (como mucho una por pregunta). */
+  /** La que el agente elegiría (una por pregunta; en las de varias, puede marcar más). */
   recommended?: boolean
 }
 
 export interface AgentQuestion {
   question: string
   options: AgentQuestionOption[]
+  /** Se pueden elegir varias opciones a la vez (casillas); si no, una sola. */
+  multiple?: boolean
 }
 
 /** Tu respuesta a una pregunta: una opción (su índice), lo que escribiste o nada (Omitir). */
 export interface AgentQuestionAnswer {
   choice?: number
+  /** Las elegidas en una pregunta de varias (con o sin texto escrito además). */
+  choices?: number[]
   text?: string
   skipped?: boolean
 }

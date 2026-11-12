@@ -3509,4 +3509,6 @@ export const pt: Record<string, string> = {
   "Mis respuestas a tus preguntas:": "Minhas respostas às suas perguntas:",
   "Contestada": "Respondida",
   "{first} (y {n} pregunta{s} más)": "{first} (e mais {n} pergunta{s})",
+  "Puedes elegir varias": "Você pode escolher várias",
+  "Algo más: escríbelo aquí": "Algo mais: escreva aqui",
 }

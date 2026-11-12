@@ -1688,6 +1688,10 @@ de su respuesta sale una **tarjeta de preguntas**, como la de Claude, en el escr
   botón «Contestar las 3 preguntas» para abrirla otra vez).
 - **Opciones numeradas** con una frase de qué pasa si la eliges. La que el agente cree mejor lleva la etiqueta
   **«Recomendada»**. Pulsa una (o su número en el teclado) y pasa a la siguiente pregunta.
+- **Preguntas de varias**: cuando por su carácter tiene sentido elegir más de una (qué funciones incluir, en qué
+  plataformas, qué idiomas…), debajo de la pregunta pone **«Puedes elegir varias»**: cada opción se marca y desmarca con
+  un toque (sale ✓), el agente puede recomendar varias, y se pasa con **«Siguiente»** (o «Enviar» en la última). Lo que
+  escribas en el campo de abajo se suma a lo marcado.
 - **Siempre al final, un campo para escribir tu propia respuesta** («Otra cosa: escribe tu respuesta», con Intro o
   «Enviar») u **«Omitir»** si no quieres decidir esa (el agente hará lo más razonable).
 - Al contestar la última, tus respuestas **vuelven a quien preguntó**: al agente de esa tarea o de ese mensaje directo
@@ -1697,9 +1701,9 @@ de su respuesta sale una **tarjeta de preguntas**, como la de Claude, en el escr
 - Mientras esperan respuesta, «Te necesita» avisa («Claude te pregunta…») y se cierra al contestar.
 
 Para desarrolladores: los agentes dejan sus preguntas al final de la respuesta en un bloque ` ```preguntas ` con JSON
-(`[{"pregunta", "opciones": [{"titulo", "detalle", "recomendada"}]}]`, regla `QUESTIONS_RULE` en las tareas, consultas
+(`[{"pregunta", "varias", "opciones": [{"titulo", "detalle", "recomendada"}]}]`; `varias: true` = se pueden elegir varias, regla `QUESTIONS_RULE` en las tareas, consultas
 y mensajes directos); Hermes, en el campo `"questions"` de su plan. `pushMessage` quita el bloque del texto y lo guarda en
-`ChatMessage.questions` (`src/shared/agentQuestions.ts`). Se contesta con `answers: { messageId, answers }` en
+`ChatMessage.questions` (`src/shared/agentQuestions.ts`). Se contesta con `answers: { messageId, answers }` (cada respuesta con `choice`, `choices` en las de varias, `text` u omitida) en
 `SendMessageInput` (`answerQuestions` en `src/main/orchestrator.ts`) y en POST `/chat/messages` de la API móvil
 (`capabilities.questions`; el texto lo arma el servidor). La tarjeta: `QuestionsBlock` en `Messages.tsx` y
 `QuestionsCard` en Órbita (`PanelsQuestions.kt`).

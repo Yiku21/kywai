@@ -157,12 +157,16 @@ function string(input: unknown, name: string, max: number): string {
 }
 
 /** answers de POST /chat/messages: el mensaje con la tarjeta y una respuesta por pregunta (elegida, escrita u omitida). */
-function questionAnswers(input: unknown): { messageId: string; answers: { choice?: number; text?: string; skipped?: boolean }[] } {
+function questionAnswers(input: unknown): { messageId: string; answers: { choice?: number; choices?: number[]; text?: string; skipped?: boolean }[] } {
   const o = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : null
   if (!o || !Array.isArray(o.answers) || o.answers.length > 8) throw new MobileError(400, 'INVALID_INPUT', 'answers debe ser { messageId, answers: [hasta 8 respuestas] }')
   const answers = o.answers.map((a) => {
     const r = a && typeof a === 'object' && !Array.isArray(a) ? (a as Record<string, unknown>) : {}
-    if (typeof r.text === 'string' && r.text.trim()) return { text: r.text.slice(0, 2000) }
+    const text = typeof r.text === 'string' && r.text.trim() ? r.text.slice(0, 2000) : ''
+    // Pregunta de varias: las marcadas (y, si quiere, algo escrito además).
+    const choices = Array.isArray(r.choices) ? r.choices.filter((c): c is number => typeof c === 'number' && Number.isInteger(c) && c >= 0 && c < 8).slice(0, 8) : []
+    if (choices.length) return { choices, ...(text ? { text } : {}) }
+    if (text) return { text }
     if (typeof r.choice === 'number' && Number.isInteger(r.choice) && r.choice >= 0 && r.choice < 8) return { choice: r.choice }
     return { skipped: true }
   })

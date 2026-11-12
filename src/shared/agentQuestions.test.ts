@@ -45,4 +45,16 @@ describe('preguntas del agente', () => {
     expect(text).toContain('2. ¿Puede cancelar la cita que agendó?\n   → Solo si avisa al paciente')
     expect(formatAnswers(questions, cleanAnswers(questions, [{ choice: 9 }]), 'Sin respuesta', 'R:')).toContain('Sin respuesta')
   })
+
+  it('preguntas de varias: casillas, varias recomendadas y lo escrito se suma a lo marcado', () => {
+    const [q] = normalizeQuestions([{ pregunta: '¿En qué plataformas?', varias: true, opciones: [{ titulo: 'Web', recomendada: true }, { titulo: 'Android', recomendada: true }, { titulo: 'iOS' }] }])
+    expect(q.multiple).toBe(true)
+    expect(q.options.filter((o) => o.recommended)).toHaveLength(2)
+    const [a] = cleanAnswers([q], [{ choices: [2, 0, 0, 9], text: 'y Linux' }])
+    expect(a).toEqual({ choices: [0, 2], text: 'y Linux' })
+    expect(formatAnswers([q], [a], 'Sin respuesta', 'R:')).toContain('→ Web; iOS; y Linux')
+    expect(cleanAnswers([q], [{ choices: [] }])).toEqual([{ skipped: true }])
+    // En una de una sola, no hay varias.
+    expect(normalizeQuestions([{ pregunta: '¿Cuál?', opciones: ['A', 'B'] }])[0].multiple).toBeUndefined()
+  })
 })

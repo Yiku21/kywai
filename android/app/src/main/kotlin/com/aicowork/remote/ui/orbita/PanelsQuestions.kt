@@ -52,9 +52,11 @@ import com.aicowork.remote.i18n.t
 
 /** La respuesta a una pregunta en una línea (lo escrito, la opción elegida o vacío si se omitió). */
 fun answerLine(q: AgentQuestion, a: QuestionAnswer?): String {
-    a?.text?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
-    val op = a?.choice?.let { q.options.getOrNull(it) } ?: return ""
-    return if (op.detail.isNullOrBlank()) op.label else "${op.label} (${op.detail})"
+    val typed = a?.text?.trim().orEmpty()
+    val picked = (a?.choices ?: listOfNotNull(a?.choice)).mapNotNull { q.options.getOrNull(it) }
+        .map { op -> if (op.detail.isNullOrBlank()) op.label else "${op.label} (${op.detail})" }
+    // En una de varias, lo escrito se suma a lo marcado; en una de una, lo escrito es la respuesta.
+    return ((if (q.multiple || typed.isEmpty()) picked else emptyList()) + listOfNotNull(typed.takeIf { it.isNotEmpty() })).joinToString("; ")
 }
 
 /**
@@ -93,6 +95,8 @@ fun QuestionsCard(message: ChatMessage, questions: ChatQuestions, snapshot: Snap
     var draft by remember(message.id) { mutableStateOf("") }
     var closed by remember(message.id) { mutableStateOf(false) }
     var busy by remember(message.id) { mutableStateOf(false) }
+    // Pregunta de varias: las marcadas de la pregunta abierta (se guardan al pasar con «Siguiente»).
+    var picked by remember(message.id) { mutableStateOf(listOf<Int>()) }
     val canAct = snapshot.capabilities.questions && !busy
 
     if (closed) {
@@ -116,6 +120,7 @@ fun QuestionsCard(message: ChatMessage, questions: ChatQuestions, snapshot: Snap
         if (go != null) {
             index = go
             draft = next[go]?.text.orEmpty()
+            picked = next[go]?.choices.orEmpty()
         } else {
             busy = true
             model.run({ model.controller.answerQuestions(message.id, next.map { it ?: QuestionAnswer(skipped = true) }) }) { busy = false }
@@ -125,16 +130,25 @@ fun QuestionsCard(message: ChatMessage, questions: ChatQuestions, snapshot: Snap
     fun move(to: Int) {
         index = to.coerceIn(0, items.size - 1)
         draft = answers[index]?.text.orEmpty()
+        picked = answers[index]?.choices.orEmpty()
     }
 
     val q = items[index.coerceIn(0, items.size - 1)]
     val current = answers[index]
+    val isLast = answers.indices.all { it == index || answers[it] != null }
+    fun choose(i: Int) {
+        if (!q.multiple) answer(QuestionAnswer(choice = i))
+        else if (canAct) picked = if (i in picked) picked - i else picked + i
+    }
     Column(
         Modifier.padding(top = 8.dp).fillMaxWidth().clip(shape).background(Orbita.Card).border(1.dp, Orbita.AccentEdge, shape).animateContentSize()
             .padding(start = 12.dp, end = 6.dp, top = 10.dp, bottom = 10.dp).testTag("questions-${message.id}"),
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            Text(q.question, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(top = 6.dp))
+            Column(Modifier.weight(1f).padding(top = 6.dp)) {
+                Text(q.question, color = Orbita.Text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                if (q.multiple) Text(t("Puedes elegir varias"), color = Orbita.Success, style = MaterialTheme.typography.labelMedium)
+            }
             if (items.size > 1) {
                 IconAction(Icons.Outlined.ChevronLeft, t("Pregunta anterior"), onClick = { if (index > 0) move(index - 1) }, size = 34.dp)
                 Text(t("{i} de {n}", "i" to index + 1, "n" to items.size), color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 9.dp))
@@ -145,15 +159,19 @@ fun QuestionsCard(message: ChatMessage, questions: ChatQuestions, snapshot: Snap
         Spacer(Modifier.height(4.dp))
         q.options.forEachIndexed { i, op ->
             if (i > 0) Box(Modifier.fillMaxWidth().padding(end = 6.dp).height(1.dp).background(Orbita.Divider))
+            val on = if (q.multiple) i in picked else current?.choice == i
             Row(
                 Modifier.fillMaxWidth().padding(end = 6.dp).clip(RoundedCornerShape(10.dp))
-                    .background(if (current?.choice == i) Orbita.AccentSoft else androidx.compose.ui.graphics.Color.Transparent)
-                    .tappable(enabled = canAct, haptic = Haptic.Select) { answer(QuestionAnswer(choice = i)) }
+                    .background(if (on) Orbita.AccentSoft else androidx.compose.ui.graphics.Color.Transparent)
+                    .tappable(enabled = canAct, haptic = Haptic.Select) { choose(i) }
                     .padding(horizontal = 4.dp, vertical = 9.dp)
                     .testTag("question-option-$i"),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                NumberTile { Text("${i + 1}", color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge) }
+                NumberTile {
+                    if (q.multiple && on) Icon(Icons.Outlined.CheckCircle, contentDescription = t("Elegida"), tint = Orbita.Success, modifier = Modifier.size(18.dp))
+                    else Text("${i + 1}", color = Orbita.TextSoft, style = MaterialTheme.typography.labelLarge)
+                }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -177,7 +195,12 @@ fun QuestionsCard(message: ChatMessage, questions: ChatQuestions, snapshot: Snap
         Row(Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             NumberTile { Icon(Icons.Outlined.Edit, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(16.dp)) }
             Spacer(Modifier.width(12.dp))
-            val send = { draft.trim().takeIf { it.isNotEmpty() }?.let { answer(QuestionAnswer(text = it.take(2000))) } }
+            val send = {
+                val text = draft.trim().take(2000).takeIf { it.isNotEmpty() }
+                if (q.multiple) {
+                    if (picked.isNotEmpty() || text != null) answer(QuestionAnswer(choices = picked.sorted().takeIf { it.isNotEmpty() }, text = text))
+                } else if (text != null) answer(QuestionAnswer(text = text))
+            }
             BasicTextField(
                 value = draft,
                 onValueChange = { draft = it },
@@ -190,14 +213,19 @@ fun QuestionsCard(message: ChatMessage, questions: ChatQuestions, snapshot: Snap
                 modifier = Modifier.weight(1f).testTag("question-other"),
                 decorationBox = { inner ->
                     Box {
-                        if (draft.isEmpty()) Text(t("Otra cosa: escribe tu respuesta"), color = Orbita.TextFaint, style = MaterialTheme.typography.bodyLarge)
+                        if (draft.isEmpty()) Text(if (q.multiple) t("Algo más: escríbelo aquí") else t("Otra cosa: escribe tu respuesta"), color = Orbita.TextFaint, style = MaterialTheme.typography.bodyLarge)
                         inner()
                     }
                 },
             )
             Spacer(Modifier.width(8.dp))
-            if (draft.isNotBlank()) {
-                OrbitaButton(t("Enviar"), onClick = { send() }, icon = Icons.AutoMirrored.Outlined.Send, enabled = canAct, busy = busy, height = 40.dp)
+            if (draft.isNotBlank() || (q.multiple && picked.isNotEmpty())) {
+                OrbitaButton(
+                    if (isLast) t("Enviar") else t("Siguiente"),
+                    onClick = { send() },
+                    icon = if (isLast) Icons.AutoMirrored.Outlined.Send else Icons.Outlined.ChevronRight,
+                    enabled = canAct, busy = busy, height = 40.dp,
+                )
             } else {
                 OrbitaButton(t("Omitir"), onClick = { answer(QuestionAnswer(skipped = true)) }, style = ButtonStyle.Secondary, enabled = canAct, busy = busy, haptic = Haptic.Tap, height = 40.dp)
             }

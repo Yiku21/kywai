@@ -250,8 +250,9 @@ class CoworkApiClient(
                     answers.forEach { a ->
                         addJsonObject {
                             a.choice?.let { put("choice", it) }
+                            a.choices?.takeIf { it.isNotEmpty() }?.let { list -> putJsonArray("choices") { list.forEach { add(it) } } }
                             a.text?.let { put("text", it) }
-                            if (a.choice == null && a.text == null) put("skipped", true)
+                            if (a.choice == null && a.choices.isNullOrEmpty() && a.text == null) put("skipped", true)
                         }
                     }
                 }

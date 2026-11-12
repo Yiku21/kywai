@@ -3509,4 +3509,6 @@ export const zh: Record<string, string> = {
   "Mis respuestas a tus preguntas:": "我对你的问题的回答：",
   "Contestada": "已回答",
   "{first} (y {n} pregunta{s} más)": "{first}（还有 {n} 个问题{s}）",
+  "Puedes elegir varias": "可以多选",
+  "Algo más: escríbelo aquí": "其他：写在这里",
 }

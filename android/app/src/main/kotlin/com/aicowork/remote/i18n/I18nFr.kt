@@ -1114,4 +1114,7 @@ private fun part7(m: HashMap<String, String>) {
     m["Otra cosa: escribe tu respuesta"] = "Autre chose : écrivez votre réponse"
     m["Omitir"] = "Passer"
     m["Respuestas enviadas"] = "Réponses envoyées"
+    m["Puedes elegir varias"] = "Vous pouvez en choisir plusieurs"
+    m["Algo más: escríbelo aquí"] = "Autre chose : écrivez-le ici"
+    m["Elegida"] = "Choisie"
 }

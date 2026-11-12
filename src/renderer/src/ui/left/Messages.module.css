@@ -2079,3 +2079,20 @@ button.itemHead:hover {
 .questionsSummaryA {
   color: var(--text-1);
 }
+
+.questionsTitleBox {
+  flex: 1;
+  min-width: 0;
+}
+
+.questionsHint {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--live);
+}
+
+.questionsNumOn {
+  background: var(--live-soft);
+  border-color: var(--live);
+  color: var(--live);
+}

@@ -1114,4 +1114,7 @@ private fun part7(m: HashMap<String, String>) {
     m["Otra cosa: escribe tu respuesta"] = "其他：写下你的回答"
     m["Omitir"] = "跳过"
     m["Respuestas enviadas"] = "回答已发送"
+    m["Puedes elegir varias"] = "可以多选"
+    m["Algo más: escríbelo aquí"] = "其他：写在这里"
+    m["Elegida"] = "已选"
 }

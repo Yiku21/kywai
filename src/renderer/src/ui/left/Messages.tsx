@@ -1194,6 +1194,8 @@ function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: Cha
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
+  // Pregunta de varias: las marcadas de la pregunta abierta (se guardan al pasar con «Siguiente»).
+  const [picked, setPicked] = useState<number[]>([])
   const done = questions.answered
 
   if (done) {
@@ -1229,6 +1231,7 @@ function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: Cha
   const q = items[Math.min(index, items.length - 1)]
   const current = answers[index]
   const canAct = !!api && live && !busy
+  const isLast = answers.every((x, i) => i === index || !!x)
 
   function submit(all: (AgentQuestionAnswer | undefined)[]): void {
     const a = api
@@ -1255,21 +1258,29 @@ function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: Cha
     const go = after >= 0 ? after : before
     if (go >= 0) {
       setIndex(go)
-      const typed = next[go]?.text ?? ''
-      setDraft(typed)
+      setDraft(next[go]?.text ?? '')
+      setPicked(next[go]?.choices ?? [])
       cardRef.current?.focus()
     } else submit(next)
   }
 
   function typed(): void {
     const text = draft.trim()
-    if (text) answer({ text })
+    if (q.multiple) {
+      if (picked.length || text) answer({ ...(picked.length ? { choices: [...picked].sort((a, b) => a - b) } : {}), ...(text ? { text } : {}) })
+    } else if (text) answer({ text })
+  }
+
+  function choose(i: number): void {
+    if (!q.multiple) return answer({ choice: i })
+    if (canAct) setPicked((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]))
   }
 
   function move(to: number): void {
     const i = Math.max(0, Math.min(items.length - 1, to))
     setIndex(i)
     setDraft(answers[i]?.text ?? '')
+    setPicked(answers[i]?.choices ?? [])
   }
 
   function onKey(e: KeyboardEvent<HTMLDivElement>): void {
@@ -1277,7 +1288,7 @@ function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: Cha
     const n = Number(e.key)
     if (Number.isInteger(n) && n >= 1 && n <= q.options.length) {
       e.preventDefault()
-      answer({ choice: n - 1 })
+      choose(n - 1)
     } else if (e.key === 'ArrowLeft' && index > 0) move(index - 1)
     else if (e.key === 'ArrowRight' && index < items.length - 1) move(index + 1)
   }
@@ -1285,7 +1296,10 @@ function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: Cha
   return (
     <div ref={cardRef} className={s.questions} role="group" aria-label={t('{name} te pregunta', { name })} tabIndex={-1} onKeyDown={onKey}>
       <div className={s.questionsHead}>
-        <p className={s.questionsTitle}>{q.question}</p>
+        <div className={s.questionsTitleBox}>
+          <p className={s.questionsTitle}>{q.question}</p>
+          {q.multiple && <p className={s.questionsHint}>{t('Puedes elegir varias')}</p>}
+        </div>
         {items.length > 1 && (
           <div className={s.questionsPager}>
             <button type="button" className={s.questionsNav} disabled={index === 0} onClick={() => move(index - 1)} aria-label={t('Pregunta anterior')}>
@@ -1304,8 +1318,16 @@ function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: Cha
       <ol className={s.questionsList}>
         {q.options.map((op, i) => (
           <li key={i}>
-            <button type="button" className={cx(s.questionsOption, current?.choice === i && s.questionsChosen)} disabled={!canAct} onClick={() => answer({ choice: i })}>
-              <span className={s.questionsNum}>{i + 1}</span>
+            <button
+              type="button"
+              className={cx(s.questionsOption, (q.multiple ? picked.includes(i) : current?.choice === i) && s.questionsChosen)}
+              disabled={!canAct}
+              onClick={() => choose(i)}
+              {...(q.multiple ? { role: 'checkbox', 'aria-checked': picked.includes(i) } : {})}
+            >
+              <span className={cx(s.questionsNum, q.multiple && picked.includes(i) && s.questionsNumOn)}>
+                {q.multiple && picked.includes(i) ? <CircleCheck size={15} aria-hidden="true" /> : i + 1}
+              </span>
               <span className={s.questionsText}>
                 <span className={s.questionsLabel}>
                   {op.label}
@@ -1325,7 +1347,7 @@ function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: Cha
           ref={inputRef}
           className={s.questionsInput}
           value={draft}
-          placeholder={t('Otra cosa: escribe tu respuesta')}
+          placeholder={q.multiple ? t('Algo más: escríbelo aquí') : t('Otra cosa: escribe tu respuesta')}
           aria-label={t('Tu propia respuesta')}
           maxLength={2000}
           disabled={!canAct}
@@ -1337,10 +1359,10 @@ function QuestionsBlock({ m, questions, name }: { m: ChatMessage; questions: Cha
             }
           }}
         />
-        {draft.trim() ? (
+        {draft.trim() || (q.multiple && picked.length) ? (
           <button type="button" className={cx(u.btn, u.btnPrimary)} disabled={!canAct} onClick={typed}>
-            {busy ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : <Send size={14} aria-hidden="true" />}
-            {t('Enviar')}
+            {busy ? <LoaderCircle size={14} aria-hidden="true" className={u.spin} /> : isLast ? <Send size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
+            {isLast ? t('Enviar') : t('Siguiente')}
           </button>
         ) : (
           <button type="button" className={u.btn} disabled={!canAct} onClick={() => answer({ skipped: true })}>
