@@ -587,6 +587,7 @@ export const en: Record<string, string> = {
   'Escribe un script que ordene mis fotos': 'Write a script that sorts my photos',
   'Conversación': 'Conversation',
   'Nuevos mensajes': 'New messages',
+  'Volver al 100 %': 'Back to 100 %',
   'Pide algo a tu equipo': 'Ask your team for something',
   'Describe una tarea: el equipo la dividirá en partes y cada agente se encargará de lo que mejor hace.': 'Describe a task: the team will split it into parts and each agent will take care of what it does best.',
   'Modo demo: verás una simulación, sin coste.': 'Demo mode: you\'ll see a simulation, at no cost.',

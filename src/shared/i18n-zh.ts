@@ -501,6 +501,7 @@ export const zh: Record<string, string> = {
   "Escribe un script que ordene mis fotos": "写一个整理我照片的脚本",
   "Conversación": "对话",
   "Nuevos mensajes": "新消息",
+  "Volver al 100 %": "恢复到 100%",
   "Pide algo a tu equipo": "向你的团队提出请求",
   "Describe una tarea: el equipo la dividirá en partes y cada agente se encargará de lo que mejor hace.": "描述一个任务：团队会把它拆成几部分，每个代理负责自己最擅长的。",
   "Modo demo: verás una simulación, sin coste.": "演示模式：你将看到一个模拟，不产生费用。",

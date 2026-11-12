@@ -7,6 +7,7 @@ import { MessageItem } from './Messages'
 import { useNow } from '../common/hooks'
 import { agentVars, cx, formatDuration } from '../common/util'
 import { useComposer } from './composerStore'
+import { loadChatZoom, saveChatZoom, zoomAfterWheel } from './chatZoom'
 import { markInElement } from '@/lib/searchText'
 import { planningRowAgent } from '@shared/planningRow'
 import s from './ChatView.module.css'
@@ -74,6 +75,46 @@ export function ChatView() {
   const unmark = useRef<() => void>(() => undefined)
   const flashTimer = useRef(0)
   const firstId = messages[0]?.id
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [zoom, setZoom] = useState(loadChatZoom)
+  const [zoomShown, setZoomShown] = useState(false)
+  const zoomTimer = useRef(0)
+  const lastStep = useRef(0)
+
+  /**
+   * Ctrl + rueda sobre el chat agranda o achica su letra (y no la de toda la ventana, que es lo que haría el navegador).
+   * Como mucho un paso cada 90 ms: el gesto de pellizcar del trackpad (que llega como Ctrl + rueda) manda decenas de
+   * avisos seguidos.
+   */
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent): void => {
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      if (Math.abs(e.deltaY) < 1 || e.timeStamp - lastStep.current < 90) return
+      lastStep.current = e.timeStamp
+      setZoom((z) => {
+        const next = zoomAfterWheel(z, e.deltaY)
+        saveChatZoom(next)
+        return next
+      })
+      setZoomShown(true)
+      window.clearTimeout(zoomTimer.current)
+      zoomTimer.current = window.setTimeout(() => setZoomShown(false), 1500)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [messages.length === 0])
+
+  useEffect(() => () => window.clearTimeout(zoomTimer.current), [])
+
+  const resetZoom = (): void => {
+    setZoom(100)
+    saveChatZoom(100)
+    window.clearTimeout(zoomTimer.current)
+    zoomTimer.current = window.setTimeout(() => setZoomShown(false), 900)
+  }
 
   const lastTop = useRef(0)
 
@@ -162,7 +203,7 @@ export function ChatView() {
   }
 
   return (
-    <div className={s.wrap}>
+    <div ref={wrapRef} className={s.wrap}>
       <div
         ref={scrollRef}
         className={s.scroller}
@@ -172,7 +213,7 @@ export function ChatView() {
         aria-relevant="additions"
         aria-label={t('Conversación')}
       >
-        <div ref={contentRef} className={s.list}>
+        <div ref={contentRef} className={s.list} style={zoom === 100 ? undefined : { zoom: zoom / 100 }}>
           {messages.map((m) => (
             <div key={m.id} data-message-id={m.id} className={m.id === flashId ? cx(s.item, s.flash) : s.item}>
               <MessageItem message={m} />
@@ -181,6 +222,19 @@ export function ChatView() {
           <PlanningRow />
         </div>
       </div>
+      {zoomShown && (
+        <button
+          type="button"
+          className={s.zoomPill}
+          onClick={resetZoom}
+          onMouseEnter={() => window.clearTimeout(zoomTimer.current)}
+          onMouseLeave={() => (zoomTimer.current = window.setTimeout(() => setZoomShown(false), 900))}
+          title={t('Volver al 100 %')}
+          aria-live="polite"
+        >
+          {zoom} %
+        </button>
+      )}
       {showNew && (
         <button
           type="button"

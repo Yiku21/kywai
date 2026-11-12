@@ -501,6 +501,7 @@ export const pt: Record<string, string> = {
   "Escribe un script que ordene mis fotos": "Escreva um script que organize minhas fotos",
   "Conversación": "Conversa",
   "Nuevos mensajes": "Mensagens novas",
+  "Volver al 100 %": "Voltar a 100 %",
   "Pide algo a tu equipo": "Peça algo à sua equipe",
   "Describe una tarea: el equipo la dividirá en partes y cada agente se encargará de lo que mejor hace.": "Descreva uma tarefa: a equipe vai dividi-la em partes e cada agente cuidará do que faz melhor.",
   "Modo demo: verás una simulación, sin coste.": "Modo demo: você verá uma simulação, sem custo.",
