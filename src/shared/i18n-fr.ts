@@ -3396,4 +3396,10 @@ export const fr: Record<string, string> = {
   "Ese guion ya no espera respuesta": "Ce script n’attend plus de réponse",
   "Alguna escena quedó vacía: escribe algo en cada una": "Une scène est vide : écrivez quelque chose dans chacune",
   "Grabando": "Enregistrement",
+  "VoiceStudio no está abierto o ya no tiene esa voz": "VoiceStudio n’est pas ouvert ou n’a plus cette voix",
+  "VoiceStudio no devolvió la muestra: mira que tenga un motor de voz cargado": "VoiceStudio n’a pas renvoyé l’échantillon : vérifiez qu’un moteur de voix est chargé",
+  "La voz por defecto de VoiceStudio (habla cualquier idioma)": "La voix par défaut de VoiceStudio (parle toutes les langues)",
+  "Tu voz de VoiceStudio": "Votre voix VoiceStudio",
+  "Abierto en tu equipo: tus voces creadas o clonadas, en cualquier idioma.": "Ouvert sur votre ordinateur : vos voix créées ou clonées, dans toutes les langues.",
+  "Abre VoiceStudio (app gratis aparte) para usar sus voces y las que clones en ella.": "Ouvrez VoiceStudio (une app gratuite à part) pour utiliser ses voix et celles que vous y clonez.",
 }

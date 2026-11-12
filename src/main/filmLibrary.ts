@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { FILM_STYLES, KYWAI_FILM, type FilmStyle } from '../shared/filmStyles'
 import { defaultVoiceFor, MAC_VOICES, parseVoiceId, type VideoKind } from '../shared/videoChoice'
 import { voiceboxUrl } from './voicebox'
+import { voicestudioUrl } from './voicestudio'
 import type { CharacterForVideo } from './videoCharacters'
 import { dialogueRules, HOOK_RULE } from './videoScript'
 import { chatterboxDir, chatterboxPython, chatterboxReady, CHATTERBOX_EMOTION } from './chatterbox'
@@ -95,6 +96,8 @@ function voiceRule(voice: string | undefined, lib: string): string[] {
     return [`- Voz elegida por el usuario: la voz «${v.id}» de Gemini TTS (modelo gemini-2.5-flash-preview-tts, prebuiltVoiceConfig.voiceName "${v.id}", con la clave de la variable GEMINI_API_KEY o de ~/.gemini/.env). Si no hay clave o falla, usa Kokoro y dilo al terminar.`]
   if (v.engine === 'voicebox')
     return [`- Voz elegida por el usuario: Voicebox (abierto en este equipo), perfil «${v.id}»: POST ${voiceboxUrl()}/v1/audio/speech con {"model": "tts-1", "input": texto, "voice": "${v.id}", "response_format": "wav"}. Si no responde, usa Kokoro y dilo al terminar.`]
+  if (v.engine === 'voicestudio')
+    return [`- Voz elegida por el usuario: VoiceStudio (abierto en este equipo), voz «${v.id}»: POST ${voicestudioUrl()}/v1/audio/speech con {"model": "tts-1", "input": texto, "voice": "${v.id}", "response_format": "wav", "language": código del idioma}. Si no responde, usa Kokoro y dilo al terminar.`]
   return ['- Voz elegida por el usuario: la del sistema operativo (say en macOS, espeak-ng en Linux, la de Windows).']
 }
 

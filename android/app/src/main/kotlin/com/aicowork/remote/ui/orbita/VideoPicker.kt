@@ -203,6 +203,8 @@ private fun voiceLine(v: VideoVoice): String = listOf(
             "Estados Unidos" -> t("Estados Unidos")
             "Reino Unido" -> t("Reino Unido")
             "Tu voz clonada" -> t("Tu voz clonada")
+            "Tu voz de VoiceStudio" -> t("Tu voz de VoiceStudio")
+            "La voz por defecto de VoiceStudio (habla cualquier idioma)" -> t("La voz por defecto de VoiceStudio (habla cualquier idioma)")
             else -> v.line
         }
     },
@@ -220,6 +222,7 @@ private fun foldText(s: String) = Normalizer.normalize(s, Normalizer.Form.NFD).r
 
 private val MISSING: Map<String, () -> String> = mapOf(
     "voicebox" to { t("Abre Voicebox para usar tus propias voces (o la tuya, clonada).") },
+    "voicestudio" to { t("Abre VoiceStudio (app gratis aparte) para usar sus voces y las que clones en ella.") },
     "gemini" to { t("Con una clave de API de Gemini tendrás 12 voces más.") },
     "kokoro" to { t("Instala Kokoro (gratis) en Ajustes → Extensiones → Estudio de vídeo para tener voces sin internet.") },
 )
@@ -500,9 +503,10 @@ fun VideoPickerSheet(model: OrbitaModel) {
             }
             // Con voces elegidas por idioma, un grupo por idioma (primero el de la app); si no, uno por motor.
             val groups: List<Pair<String, List<VideoVoice>>> = if (defaultVoice != null) {
-                voices.mapNotNull { it.lang }.distinct().map { l -> langName(l) to voices.filter { it.lang == l } }
+                voices.mapNotNull { it.lang }.distinct().map { l -> langName(l) to voices.filter { it.lang == l } } +
+                    listOf("VoiceStudio" to voices.filter { it.engine == "voicestudio" && it.lang == null })
             } else listOf(
-                "voicebox" to t("Tus voces (Voicebox)"), "gemini" to "Gemini", "kokoro" to "Kokoro", "sistema" to t("Sistema"),
+                "voicestudio" to "VoiceStudio", "voicebox" to t("Tus voces (Voicebox)"), "gemini" to "Gemini", "kokoro" to "Kokoro", "sistema" to t("Sistema"),
             ).map { (e, name) -> name to voices.filter { it.engine == e } }
             for ((title, list) in groups) {
                 if (list.isEmpty()) continue

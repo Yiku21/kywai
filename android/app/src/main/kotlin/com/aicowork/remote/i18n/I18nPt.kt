@@ -830,6 +830,9 @@ private fun part5(m: HashMap<String, String>) {
     m["Lo pagado es lo de los agentes que van por API; a precios de API es lo que valdría todo lo usado."] = "O pago é o dos agentes que vão por API; a preços de API é o que valeria tudo o que usou."
     m["Presupuesto"] = "Orçamento"
     m["Guion"] = "Roteiro"
+    m["Abre VoiceStudio (app gratis aparte) para usar sus voces y las que clones en ella."] = "Abra o VoiceStudio (um app gratuito à parte) para usar as vozes dele e as que você clonar nele."
+    m["Tu voz de VoiceStudio"] = "Sua voz do VoiceStudio"
+    m["La voz por defecto de VoiceStudio (habla cualquier idioma)"] = "A voz padrão do VoiceStudio (fala qualquer idioma)"
 }
 
 // Plantillas de tareas (TaskTemplates.kt).

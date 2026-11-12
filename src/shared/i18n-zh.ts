@@ -3396,4 +3396,10 @@ export const zh: Record<string, string> = {
   "Ese guion ya no espera respuesta": "该脚本不再等待回复",
   "Alguna escena quedó vacía: escribe algo en cada una": "有场景为空：请在每个场景中写点内容",
   "Grabando": "正在录制",
+  "VoiceStudio no está abierto o ya no tiene esa voz": "VoiceStudio 未打开或已没有该声音",
+  "VoiceStudio no devolvió la muestra: mira que tenga un motor de voz cargado": "VoiceStudio 没有返回试听：请确认它已加载语音引擎",
+  "La voz por defecto de VoiceStudio (habla cualquier idioma)": "VoiceStudio 的默认声音（支持任何语言）",
+  "Tu voz de VoiceStudio": "你的 VoiceStudio 声音",
+  "Abierto en tu equipo: tus voces creadas o clonadas, en cualquier idioma.": "在你的电脑上打开：你创建或克隆的声音，支持任何语言。",
+  "Abre VoiceStudio (app gratis aparte) para usar sus voces y las que clones en ella.": "打开 VoiceStudio（一个独立的免费应用），即可使用它的声音和你在其中克隆的声音。",
 }

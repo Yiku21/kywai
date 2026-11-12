@@ -2165,6 +2165,16 @@ edge-tts: gratis, necesita internet), y **en inglés**, **Bella** (Kokoro, af_be
   con esa voz (si falla, Kokoro); con una de Kokoro, Kokoro con esa voz; con una de Voicebox, ese perfil; con «Voz del
   sistema», la del sistema operativo.
 
+**Voces de VoiceStudio.** VoiceStudio (github.com/debpalash/VoiceStudio, AGPL-3.0) es una app gratis aparte que hace
+voces en más de 600 idiomas y clona la tuya. kywai **no la trae ni copia su código**: si está abierta en el equipo
+donde corren los agentes, le habla por su API local (`http://127.0.0.1:3900`, otra dirección con
+`KYWAI_VOICESTUDIO_URL`). Entonces, en el paso 4 del selector de «/video» sale el grupo **VoiceStudio** con las voces
+que creaste o clonaste en ella y su voz por defecto, cada una con ▶ para oír una muestra (marca
+`voz:voicestudio-<id>`). Con una elegida, kywai pide cada frase por `POST /v1/audio/speech` en WAV, con el idioma del
+vídeo y el tono de esa frase como instrucción (alegre, triste, en susurro…), una detrás de otra porque usa la gráfica.
+Si VoiceStudio se cierra o una frase no sale, todo el vídeo va con la voz por defecto del idioma (para no mezclar
+voces). Si no está abierta, el selector lo dice: «Abre VoiceStudio…».
+
 **Voz con emoción (Chatterbox).** Para que la voz no suene igual de principio a fin, **cada frase del guion lleva su
 emoción** entre corchetes: `[neutral]`, `[alegre]`, `[emocionado]`, `[sorprendido]`, `[triste]`, `[susurro]`,
 `[firme]`, `[calma]` o `[gracioso]` («[triste] Tres horas después… [emocionado] ¡Y en diez minutos!»). El agente del

@@ -38,6 +38,7 @@ import type { VideoStudioStatus, VideoVoiceInfo } from '@shared/types'
 import { EDGE_VOICES, GEMINI_VOICES, KOKORO_VOICE_LIST, MAC_VOICES, LANG_VOICES, parseVoiceId, defaultVoiceFor, speakerVoices, type VoiceEngine } from '@shared/videoChoice'
 import { tr } from '@shared/i18n'
 import { emotionInstruction, emotionPause, EMOTION_EN, type VoiceEmotion } from '@shared/voiceEmotion'
+import { VOICESTUDIO_DEFAULT_VOICE, voicestudioSpeak, voicestudioVoices } from './voicestudio'
 import { elevenDialogue, elevenKey, elevenLine, elevenPartner, elevenSpeak, elevenVoices } from './elevenlabs'
 import { chatterboxReady, chatterboxSpeak, CHATTERBOX_LANGS, installChatterbox } from './chatterbox'
 import {
@@ -1115,8 +1116,8 @@ export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoic
       missing: []
     }
     // Y las de pago, para compararlas de oído con el mismo guion: ElevenLabs v3 y Gemini (cada una con su clave).
-    const cloud = await cloudVoices()
-    return { voices: [...base.voices, ...cloud.voices], missing: cloud.missing }
+    const [cloud, studio] = await Promise.all([cloudVoices(), studioVoices()])
+    return { voices: [...base.voices, ...studio.voices, ...cloud.voices], missing: [...studio.missing, ...cloud.missing] }
   }
   const [vbox, kokoro, sys] = await Promise.all([voiceboxProfiles(), kokoroReady(), systemVoice()])
   const key = !!geminiApiKey()
@@ -1131,10 +1132,28 @@ export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoic
       : []),
     ...(sys ? [{ id: 'sistema', engine: 'sistema' as const, name: 'Voz del sistema', line: 'La del sistema operativo' }] : [])
   ]
+  const studio = await studioVoices()
+  voices.unshift(...studio.voices)
   const eleven = await elevenVoices(elevenKey(), lang)
   voices.unshift(...eleven.map((v): VideoVoiceInfo => ({ id: `eleven-${v.id}`, engine: 'eleven', name: v.name, line: v.accent ? `ElevenLabs · ${v.accent}` : 'ElevenLabs', ...(v.gender ? { gender: v.gender } : {}) })))
-  const missing: VoiceEngine[] = [...(vbox ? [] : ['voicebox' as const]), ...(key ? [] : ['gemini' as const]), ...(kokoro ? [] : ['kokoro' as const]), ...(elevenKey() ? [] : ['eleven' as const])]
+  const missing: VoiceEngine[] = [...(vbox ? [] : ['voicebox' as const]), ...(key ? [] : ['gemini' as const]), ...(kokoro ? [] : ['kokoro' as const]), ...(elevenKey() ? [] : ['eleven' as const]), ...studio.missing]
   return { voices, missing }
+}
+
+/** Las voces de VoiceStudio si está abierto en el equipo; si no, `missing` lo dice. */
+async function studioVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] }> {
+  const list = await voicestudioVoices()
+  if (!list) return { voices: [], missing: ['voicestudio'] }
+  return {
+    voices: list.map((v): VideoVoiceInfo => ({
+      id: `voicestudio-${v.id}`,
+      engine: 'voicestudio',
+      name: v.name,
+      // Sin idioma: en el selector van juntas en su grupo.
+      line: v.id === VOICESTUDIO_DEFAULT_VOICE ? 'La voz por defecto de VoiceStudio (habla cualquier idioma)' : 'Tu voz de VoiceStudio'
+    })),
+    missing: []
+  }
 }
 
 /** Las voces de ElevenLabs (las de la cuenta) y de Gemini, si hay clave; `missing`, las que no. */
@@ -1180,6 +1199,10 @@ export async function previewVideoVoice(id: unknown, lang: string, sentence: str
       const vb = await voiceboxById(v.id)
       if (!vb) throw new Error(tr('Voicebox no está abierto o ya no tiene esa voz'))
       ok = await voiceboxSpeak(vb, sentence, wav, { timeoutMs: 120_000 })
+    } else if (v.engine === 'voicestudio') {
+      if (!(await voicestudioVoices())?.some((x) => x.id === v.id)) throw new Error(tr('VoiceStudio no está abierto o ya no tiene esa voz'))
+      ok = await voicestudioSpeak(v.id, sentence, wav, { language: lang, instructions: 'Friendly and natural', timeoutMs: 120_000 })
+      if (!ok) throw new Error(tr('VoiceStudio no devolvió la muestra: mira que tenga un motor de voz cargado'))
     } else if (v.engine === 'eleven') {
       if (!elevenKey()) throw new Error(tr('Falta la clave de ElevenLabs: pégala en Ajustes → Extensiones → Estudio de vídeo'))
       const tmp = `${wav}.mp3`
@@ -1228,7 +1251,7 @@ export interface RenderedVideo {
   height: number
   /** Escenas con imagen generada. */
   images: number
-  voice: 'voicebox' | 'gemini' | 'kokoro' | 'system' | 'edge' | 'mac' | 'chatterbox' | 'eleven'
+  voice: 'voicebox' | 'voicestudio' | 'gemini' | 'kokoro' | 'system' | 'edge' | 'mac' | 'chatterbox' | 'eleven'
   /** Escenas que FreeVideo convirtió en clips con movimiento. */
   moving?: number
 }
@@ -1358,6 +1381,25 @@ export async function renderVideo(input: {
       await Promise.all([worker(), worker()])
       if (!failed && !signal?.aborted) {
         voiceUsed = 'eleven'
+        return
+      }
+      spoken = 0
+      chosen = parseVoiceId(defaultVoiceFor(script.lang))
+      bySpeaker = speakerVoices(script.lang, null, speakers, { mac: IS_MAC })
+    }
+    // VoiceStudio elegido (abierto en el equipo): frase a frase, con el tono de cada una, de una en una (usa la
+    // gráfica). Si una no sale, la voz por defecto del idioma para todo el vídeo.
+    if (chosen?.engine === 'voicestudio') {
+      const id = chosen.id
+      let ok = !!(await voicestudioVoices())?.some((x) => x.id === id)
+      for (let i = 0; i < n && ok && !signal?.aborted; i++) {
+        voiceStep()
+        const tone = voiceTone(script.style, !!script.scenes[i].joke)
+        ok = await speakScene(script.scenes[i], voices[i], (text, emotion, out) => voicestudioSpeak(id, text, out, { language: script.lang, instructions: `${tone}. Say it ${emotionInstruction(emotion)}`, signal }), signal)
+        if (ok) spoken++
+      }
+      if (ok && !signal?.aborted) {
+        voiceUsed = 'voicestudio'
         return
       }
       spoken = 0

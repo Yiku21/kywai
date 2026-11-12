@@ -830,6 +830,9 @@ private fun part5(m: HashMap<String, String>) {
     m["Lo pagado es lo de los agentes que van por API; a precios de API es lo que valdría todo lo usado."] = "已付是按 API 计费的智能体的花费；按 API 价格是全部用量的价值。"
     m["Presupuesto"] = "预算"
     m["Guion"] = "脚本"
+    m["Abre VoiceStudio (app gratis aparte) para usar sus voces y las que clones en ella."] = "打开 VoiceStudio（一个独立的免费应用），即可使用它的声音和你在其中克隆的声音。"
+    m["Tu voz de VoiceStudio"] = "你的 VoiceStudio 声音"
+    m["La voz por defecto de VoiceStudio (habla cualquier idioma)"] = "VoiceStudio 的默认声音（支持任何语言）"
 }
 
 // Plantillas de tareas (TaskTemplates.kt).

@@ -1710,7 +1710,7 @@ export interface VideoCharacterInfo {
 export interface VideoVoiceInfo {
   /** Lo que va en la marca «voz:…» («gemini-puck», «kokoro-ef_dora», «voicebox-<perfil>», «sistema»). */
   id: string
-  engine: 'gemini' | 'kokoro' | 'voicebox' | 'sistema' | 'edge' | 'mac' | 'eleven'
+  engine: 'gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven'
   name: string
   /** Cómo suena (en español; la interfaz lo traduce). */
   line: string
@@ -1983,7 +1983,7 @@ export interface CoworkApi {
   /** Borra un personaje creado por el usuario. */
   removeVideoCharacter(id: string): Promise<VideoCharacterInfo[]>
   /** Voces para los vídeos en el equipo donde se montan, y qué motores de voz le faltan. */
-  listVideoVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: ('gemini' | 'kokoro' | 'voicebox' | 'sistema' | 'edge' | 'mac' | 'eleven')[] }>
+  listVideoVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: ('gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven')[] }>
   /** Una muestra corta de una voz (data: URL de audio). */
   previewVideoVoice(id: string): Promise<string>
   /** Mods instalados: sus órdenes «/…», hooks y paneles. */

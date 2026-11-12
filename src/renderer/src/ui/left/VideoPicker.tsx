@@ -52,6 +52,7 @@ type VoiceEngine = VideoVoiceInfo['engine']
 const ENGINES: { id: VoiceEngine; name: string; line: string }[] = [
   { id: 'eleven', name: 'ElevenLabs v3', line: 'La que más actúa: de pago, con tu clave.' },
   { id: 'voicebox', name: 'Tus voces (Voicebox)', line: 'Las de Voicebox, abierto en tu equipo: también tu voz clonada.' },
+  { id: 'voicestudio', name: 'VoiceStudio', line: 'Abierto en tu equipo: tus voces creadas o clonadas, en cualquier idioma.' },
   { id: 'gemini', name: 'Gemini', line: 'En la nube, con tu clave: hablan en cualquier idioma.' },
   { id: 'kokoro', name: 'Kokoro', line: 'Gratis y en tu equipo, sin internet.' },
   { id: 'sistema', name: 'Sistema', line: 'La voz que trae tu ordenador.' }
@@ -62,6 +63,7 @@ const MISSING: Record<VoiceEngine, string> = {
   kokoro: 'Instala Kokoro (gratis) en Ajustes → Extensiones → Estudio de vídeo para tener voces sin internet.',
   sistema: '',
   eleven: 'Con una clave de ElevenLabs (Ajustes → Extensiones → Estudio de vídeo) tendrás sus voces, las que más actúan.',
+  voicestudio: 'Abre VoiceStudio (app gratis aparte) para usar sus voces y las que clones en ella.',
   edge: '',
   mac: ''
 }
