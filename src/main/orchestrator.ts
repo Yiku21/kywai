@@ -90,6 +90,7 @@ import { videoLang, type VideoKind } from '../shared/videoChoice'
 import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
+import { THUMB_FRAMES, parseThumbnailPlan, parseThumbnailRequest, renderThumbnails, thumbFrames, thumbnailPrompt, type ThumbRequest } from './thumbnail'
 import { demoPrompt, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoRequest } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
 import { isMediaFile, learnPrompt, parseLearnedSkill, parseLearnRequest, prepareLearnSource, saveLearnedSkill, type LearnRequest } from './learn'
@@ -1566,6 +1567,9 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     return sendFootage(st, footageReq, atts, input.clientMessageId, routine, text.trim())
   }
 
+  // «/miniatura»: tres portadas para el vídeo adjunto o el último del chat.
+  const thumbReq = fromMsg || tpl ? null : parseThumbnailRequest(text)
+  if (thumbReq) return sendThumbnail(st, thumbReq, atts, input.clientMessageId, routine, text.trim())
   // «/demo <web>»: vídeo de presentación de una web con fotos reales de la página.
   const demoReq = fromMsg || tpl ? null : parseDemoRequest(text)
   if (demoReq) {
@@ -2601,6 +2605,102 @@ async function sendFootage(
     }
   }
   return startSingleRun(st, run, t, shown)
+}
+
+/** «/miniatura»: una tarea. Antes se sacan fotogramas del vídeo (prepareThumbnail); el agente elige y escribe. */
+async function sendThumbnail(
+  st: ReturnType<typeof store.getProject>,
+  req: ThumbRequest,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  const attached = atts.find((a) => isVideoFile(a.relPath))
+  const found = attached ? null : latestVideo(st)
+  if (!attached && !found) throw new Error(tr('No hay ningún vídeo: haz uno con «/video …» o adjunta el vídeo a «/miniatura».'))
+  const agent = bestAgentFor('diseño gráfico miniaturas marketing redes sociales redacción')
+  if (!agent) throw new Error(tr('No hay ningún agente disponible para hacer las portadas.'))
+  const run = openSingleRun(st, shown, atts, clientMessageId, routine)
+  const name = attached ? attached.name : found!.artifact.name
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId: run.id,
+    seq: nextTaskSeq(projectId),
+    title: tr('Portadas de {name}', { name: oneLine(name, 60) }),
+    description: req.note || tr('Tres portadas distintas para elegir'),
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'file',
+    thumbnail: {
+      video: attached ? attached.relPath : found!.artifact.relPath,
+      name,
+      about: clip(found?.message.text || name, 1500),
+      note: req.note,
+      format: req.format ?? null,
+      work: `.ai-cowork/miniaturas/${Date.now().toString(36)}`
+    }
+  }
+  return startSingleRun(st, run, t, shown)
+}
+
+/** Saca los fotogramas del vídeo de «/miniatura» (una vez) y, si no se pidió, el formato según el vídeo. */
+async function prepareThumbnail(run: Run, t: Task): Promise<void> {
+  const th = t.thumbnail!
+  if (th.ready) return
+  const root = store.workRoot(run.projectId)
+  const file = join(root, th.video)
+  if (!existsSync(file)) throw new Error(tr('No encuentro el vídeo {name}', { name: th.name }))
+  t.lastActivity = tr('Sacando fotogramas del vídeo')
+  taskDirty(t)
+  const info = await probeMedia(file)
+  th.format ??= info.h > info.w ? 'vertical' : 'horizontal'
+  th.frames = await thumbFrames(file, info.seconds, join(root, th.work), THUMB_FRAMES, run.controllers.get(t.id)?.signal)
+  if (!th.frames.length) throw new Error(tr('No pude sacar fotogramas del vídeo'))
+  th.ready = true
+  pushTask(t)
+}
+
+/** «/miniatura»: con lo que eligió el agente, kywai hace las tres portadas en PNG. */
+async function completeThumbnail(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  const th = t.thumbnail!
+  const frames = th.frames ?? []
+  let covers
+  try {
+    covers = parseThumbnailPlan(res.text, frames.length)
+  } catch (e) {
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('Las portadas no valían: {message}', { message: (e as Error).message }) })
+    return
+  }
+  const root = store.workRoot(run.projectId)
+  const base = videoSlug(th.name.replace(/\.[^.]+$/, '')) || 'video'
+  try {
+    const files = await renderThumbnails(covers, frames, th.format ?? 'vertical', join(root, twoHandsBase(run.projectId), 'videos', `miniaturas-${base}`), htmlToPng, videoSlug)
+    const meta = run.meta.get(t.id)!
+    for (const f of files) {
+      const rel = store.toRelPath(root, f)
+      if (rel) meta.touched.add(rel)
+    }
+    const text = [
+      tr('Aquí tienes {n} portadas para «{name}»:', { n: files.length, name: th.name }),
+      covers.map((c, k) => `${k + 1}. «${c.text}»${c.sub ? ` (${c.sub})` : ''}`).join('\n'),
+      th.format === 'vertical' ? tr('Están a 1080×1920 para Reels y TikTok.') : tr('Están a 1280×720 para YouTube.')
+    ].join('\n\n')
+    await completeTask(run, t, exec, parent, { ...res, text })
+  } catch (e) {
+    if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+    t.status = 'failed'
+    t.error = tr('No se pudieron hacer las portadas: {message}', { message: (e as Error).message })
+    t.finishedAt = Date.now()
+    pushTask(t)
+    closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
+  }
 }
 
 /** «/demo <web>»: una tarea. Antes kywai fotografía la web (prepareDemo); el agente hace el guion de planos. */
@@ -4573,6 +4673,10 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       lang: userLanguageName()
     })
   }
+  if (t.thumbnail?.ready) {
+    const th = t.thumbnail
+    return thumbnailPrompt({ about: th.about, note: th.note, format: th.format ?? 'vertical', frames: th.frames ?? [], lang: userLanguageName() })
+  }
   if (t.demo?.ready) {
     let page: DemoPage | null = null
     try {
@@ -4883,28 +4987,19 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // Una consulta rápida solo lee: va a la carpeta tal cual, sin instantánea, sin ocuparla y sin copia aparte.
   const dir = t.video?.film && t.video.work ? await prepareFilm(run, t) : t.quick ? mainDir : await prepareWorkplace(run, t, meta, exec)
   if (t.video && !t.video.film && !t.video.refs) await prepareVideoRefs(run, t)
-  if (t.demo && !t.demo.ready) {
+  // Lo que una orden de una sola tarea prepara antes del agente (fotogramas, fotos de la web, transcripción).
+  const prep: [() => Promise<void>, string] | null =
+    t.thumbnail && !t.thumbnail.ready ? [() => prepareThumbnail(run, t), 'No pude preparar el vídeo: {message}']
+    : t.demo && !t.demo.ready ? [() => prepareDemo(run, t), 'No pude fotografiar la web: {message}']
+    : t.footage && !t.footage.ready ? [() => prepareFootage(run, t), 'No pude preparar la grabación: {message}']
+    : null
+  if (prep) {
     try {
-      await prepareDemo(run, t)
+      await prep[0]()
     } catch (e) {
       if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
       t.status = 'failed'
-      t.error = tr('No pude fotografiar la web: {message}', { message: tr((e as Error).message) })
-      t.finishedAt = Date.now()
-      pushTask(t)
-      setRuntime(exec.id, { activity: 'idle', taskId: undefined })
-      closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
-      schedule()
-      return
-    }
-  }
-  if (t.footage && !t.footage.ready) {
-    try {
-      await prepareFootage(run, t)
-    } catch (e) {
-      if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
-      t.status = 'failed'
-      t.error = tr('No pude preparar la grabación: {message}', { message: tr((e as Error).message) })
+      t.error = tr(prep[1], { message: tr((e as Error).message) })
       t.finishedAt = Date.now()
       pushTask(t)
       setRuntime(exec.id, { activity: 'idle', taskId: undefined })
@@ -5118,6 +5213,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     else if (res.ok && t.learn) await completeLearn(run, t, exec, parent, res)
     else if (res.ok && t.footage) await completeFootage(run, t, exec, parent, res)
     else if (res.ok && t.demo) await completeDemo(run, t, exec, parent, res)
+    else if (res.ok && t.thumbnail) await completeThumbnail(run, t, exec, parent, res)
     else if (res.ok && t.instagram) await completeInstagram(run, t, exec, parent, res)
     else if (res.ok && t.igReply) await completeIgReply(run, t, exec, parent, res)
     else if (res.ok) {

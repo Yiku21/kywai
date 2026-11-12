@@ -1065,4 +1065,6 @@ private fun part7(m: HashMap<String, String>) {
     m["Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos"] = "Tira os melhores momentos de um vídeo longo como clipes verticais com legendas"
     m["web [vertical]"] = "site [vertical]"
     m["Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos"] = "Um anúncio em vídeo de um site com capturas reais da página: aproximações, o celular e legendas"
+    m["[vertical|horizontal] qué quieres"] = "[vertical|horizontal] o que você quer"
+    m["Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha"] = "Três capas para o seu vídeo (anexado ou o último), com quadros dele e texto que prende"
 }

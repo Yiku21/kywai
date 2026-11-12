@@ -1892,6 +1892,23 @@ Hace falta la app de escritorio (las fotos las hace Electron). Idea de las ficha
 [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) (Apache-2.0), reimplementada sin Remotion.
 Código: `src/main/webDemo.ts` y `src/main/htmlShot.ts` (y `sendDemo`/`prepareDemo`/`completeDemo` en el orquestador).
 
+### Portadas para tu vídeo (`/miniatura`)
+
+**«/miniatura [vertical|horizontal] [lo que quieres]»** hace **tres portadas distintas** para el vídeo que adjuntes o,
+si no adjuntas ninguno, para el último vídeo del chat. Sale del tamaño del vídeo (vertical 1080×1920 para Reels y
+TikTok; horizontal 1280×720 para YouTube) salvo que digas otro. También vale «/portada» o «/thumbnail».
+
+1. kywai saca 8 fotogramas del vídeo a buena resolución (en `.ai-cowork/miniaturas/<id>/`).
+2. Un agente los mira y, para cada portada, elige el fotograma, el texto (de 2 a 5 palabras, cada portada con un
+   ángulo distinto), una línea opcional debajo, el color y el diseño: **grande** (texto enorme con contorno sobre el
+   fotograma), **lateral** (el fotograma a un lado y el texto en un bloque de color) o **caja** (el texto en franjas de
+   color inclinadas). En vertical deja libre el tercio de abajo, donde la app pone sus botones.
+3. kywai hace cada portada como una página y la fotografía (letra nítida; el titular se encoge solo si no cabe). Se
+   entregan en `videos/miniaturas-<vídeo>/1-<texto>.png`, `2-…` y `3-…`.
+
+Hace falta la app de escritorio. Código: `src/main/thumbnail.ts` (y `sendThumbnail`/`prepareThumbnail`/
+`completeThumbnail` en el orquestador).
+
 ### Series por episodios (`/serie`)
 
 **«/serie <idea> [en 5 episodios]»** cuenta una historia en vídeos cortos con **los mismos personajes**, para subirlos
@@ -2518,6 +2535,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/editar` (con un vídeo adjunto) | Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos (ver «Editar tus grabaciones») |
 | `/recortes [n]` (con un vídeo adjunto) | Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos |
 | `/demo <web> [vertical]` | Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos (ver «Vídeo de presentación de una web») |
+| `/miniatura [vertical\|horizontal]` | Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha (ver «Portadas para tu vídeo») |
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
 | `/tiktok qué quieres en el texto` | Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno (ver «El TikTok de kywai») |

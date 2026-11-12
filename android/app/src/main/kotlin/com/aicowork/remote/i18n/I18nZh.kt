@@ -1065,4 +1065,6 @@ private fun part7(m: HashMap<String, String>) {
     m["Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos"] = "把长视频中最精彩的时刻剪成带字幕的竖屏片段"
     m["web [vertical]"] = "网址 [vertical]"
     m["Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos"] = "用网页真实截图制作的网站视频广告：推近镜头、手机画面和字幕"
+    m["[vertical|horizontal] qué quieres"] = "[vertical|horizontal] 你想要什么"
+    m["Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha"] = "为你的视频（附加的或最新的）做三个封面，用它自己的画面和吸引人的文字"
 }

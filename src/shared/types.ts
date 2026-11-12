@@ -308,6 +308,20 @@ export interface Task {
    * «/editar» y «/recortes»: una grabación del usuario que kywai edita (src/main/footage.ts). Whisper la transcribe
    * palabra a palabra, el agente dice en JSON qué sobra (o qué momentos valen como clips) y kywai corta y monta.
    */
+  /** «/miniatura»: tres portadas para un vídeo (adjunto o el último del chat) con fotogramas suyos. */
+  thumbnail?: {
+    /** El vídeo, relativo al proyecto. */
+    video: string
+    name: string
+    /** De qué va (el mensaje que lo trajo o su nombre). */
+    about: string
+    note: string
+    format: 'vertical' | 'horizontal' | null
+    /** Carpeta de trabajo (relativa al proyecto) con los fotogramas. */
+    work: string
+    ready?: boolean
+    frames?: string[]
+  }
   /** «/demo <web>»: vídeo de presentación de una web con fotos reales de la página y el guion de planos del agente. */
   demo?: {
     url: string

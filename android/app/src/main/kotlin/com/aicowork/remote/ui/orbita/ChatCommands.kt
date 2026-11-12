@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Psychology
@@ -62,6 +63,7 @@ object ChatCommands {
         Command("editar", listOf("edita", "edit"), t("vídeo adjunto"), t("Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos"), Icons.Outlined.Movie),
         Command("recortes", listOf("recorta", "recortar", "clips", "clipify"), t("[n] vídeo adjunto"), t("Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos"), Icons.Outlined.Movie),
         Command("demo", emptyList(), t("web [vertical]"), t("Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos"), Icons.Outlined.Movie),
+        Command("miniatura", listOf("miniaturas", "portada", "portadas", "thumbnail"), t("[vertical|horizontal] qué quieres"), t("Tres portadas para tu vídeo (el adjunto o el último), con fotogramas suyos y texto que engancha"), Icons.Outlined.Image),
         Command("aprende", listOf("aprender", "learn"), t("enlace o vídeo"), t("Convierte lo que enseña un vídeo en una habilidad"), Icons.Outlined.School),
         Command("instagram", listOf("insta", "ig"), t("qué quieres en el texto"), t("Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno"), Icons.Outlined.Send),
         Command("tiktok", listOf("tt"), t("qué quieres en el texto"), t("Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno"), Icons.Outlined.Send),
