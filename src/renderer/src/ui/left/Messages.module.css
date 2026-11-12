@@ -145,8 +145,8 @@
 
 /*
  * La respuesta de un agente va sin caja, como en ChatGPT o Claude: el texto suelto, con letra un poco mayor, más
- * interlineado, aire entre párrafos y puntos de lista, y líneas de ~72 caracteres como mucho. Los errores sí
- * llevan su caja roja para que se vean.
+ * interlineado y aire entre párrafos y puntos de lista. El texto ocupa todo el ancho del chat, como las tarjetas: si
+ * la ventana se ensancha, las líneas también. Los errores sí llevan su caja roja para que se vean.
  */
 .agentBubble {
   --md-size: 15px;
@@ -161,7 +161,8 @@
 }
 
 .agentBubble .textRow > div {
-  max-width: 72ch;
+  flex: 1;
+  min-width: 0;
 }
 
 .errorBubble {
