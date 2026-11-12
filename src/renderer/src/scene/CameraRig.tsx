@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { CameraControls } from '@react-three/drei'
 import * as THREE from 'three'
@@ -8,7 +8,7 @@ import type { ViewInsets } from './World'
 import { useTheme } from '@/lib/theme'
 import { palette } from './palette'
 import { registry } from './registry'
-import { frontalOverview, framedFog, OVERVIEW_FOV, OVERVIEW_ELEVATION } from './cameraFraming'
+import { frontalOverview, framedFog, cameraLimits, OVERVIEW_FOV, OVERVIEW_ELEVATION } from './cameraFraming'
 
 /**
  * Cámara que respira: en la vista general, sin tocar nada, la cámara gira un pelo a un lado y a otro (unos 2,5° en
@@ -39,8 +39,15 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
   useEffect(() => { camera.fov = OVERVIEW_FOV; camera.updateProjectionMatrix() }, [camera, theme])
   // El mapa del tema (cada uno se encuadra a su manera; la Ciudad y los decorados, como siempre).
   const world = palette.world
-  // El arrecife crece al añadir puestos; el encuadre inicial debe incluirlos también.
-  const marineScale = theme === 'submarino' ? stations?.reduce((scale, { position: [x, z] }) => Math.max(scale, Math.abs(x) / 7.4, z / 5.6, -z / 18), 1) ?? 1 : 1
+  // La vista general de este escenario y tamaño de ventana, y hasta dónde se deja mover la cámara desde ella.
+  const width = size.width - (view?.left ?? 0)
+  const height = size.height - (view ? view.top + view.bottom : 0)
+  const frame = useMemo(() => {
+    // La zona libre es más pequeña que el lienzo: se aleja lo que haga falta para que el mundo quepa en ella.
+    const room = view ? Math.max(1, size.height / Math.max(1, height)) : 1
+    return frontalOverview(world, stations ?? [], width / Math.max(1, height), room)
+  }, [world, stations, width, height, size.height, view])
+  const limits = useMemo(() => cameraLimits(world, frame, stations ?? []), [world, frame, stations])
 
   const overview = useCallback(
     (smooth: boolean) => {
@@ -48,16 +55,11 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
       // Tras varias vueltas, vuelve por el arco corto en vez de deshacer todos los giros.
       controls.normalizeRotations()
       breath.current = { az: 0, polar: 0, amp: 0 }
-      const width = size.width - (view?.left ?? 0)
-      const height = size.height - (view ? view.top + view.bottom : 0)
-      const aspect = width / Math.max(1, height)
-      // La zona libre es más pequeña que el lienzo: se aleja lo que haga falta para que el mundo quepa en ella.
-      const room = view ? Math.max(1, size.height / Math.max(1, height)) : 1
-      const { eye, target } = frontalOverview(world, stations ?? [], aspect, room)
+      const { eye, target } = frame
       void controls.setLookAt(...eye, ...target, smooth)
       atOverview.current = true
     },
-    [controls, size.width, size.height, view?.left, view?.top, view?.bottom, world, stations]
+    [controls, frame]
   )
 
   // En la vista general y sin tocar nada, la cámara respira; al tocarla se queda donde está (no vuelve de golpe).
@@ -85,10 +87,10 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
 
   useEffect(() => {
     if (!controls) return
-    controls.setBoundary(new THREE.Box3(['kywai','relicario','telar','submarino'].includes(theme) ? new THREE.Vector3(-36,-4,-62) : new THREE.Vector3(-11,-.5,-9), ['kywai','relicario','telar','submarino'].includes(theme) ? new THREE.Vector3(36,18,16) : new THREE.Vector3(11,4,9)))
+    controls.setBoundary(new THREE.Box3(new THREE.Vector3(...limits.boundary[0]), new THREE.Vector3(...limits.boundary[1])))
     controls.boundaryEnclosesCamera = false
     if (import.meta.env.DEV) (window as unknown as { __cam: CameraControls }).__cam = controls
-  }, [controls, theme])
+  }, [controls, limits])
 
   const lastTheme = useRef(theme)
 
@@ -123,12 +125,12 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
     <CameraControls
       ref={setControls}
       makeDefault
-      minDistance={6}
-      maxDistance={Math.max(200, 64 * marineScale)}
-      minPolarAngle={0.32}
-      maxPolarAngle={1.32}
-      minAzimuthAngle={-0.95}
-      maxAzimuthAngle={0.95}
+      minDistance={limits.minDistance}
+      maxDistance={limits.maxDistance}
+      minPolarAngle={limits.minPolar}
+      maxPolarAngle={limits.maxPolar}
+      minAzimuthAngle={-limits.azimuth}
+      maxAzimuthAngle={limits.azimuth}
       smoothTime={reduced ? 0.12 : 0.55}
       draggingSmoothTime={reduced ? 0.06 : 0.18}
       dollyToCursor

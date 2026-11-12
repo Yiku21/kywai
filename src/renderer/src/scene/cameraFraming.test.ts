@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { DEFAULT_STATIONS } from '@shared/defaults'
-import { frontalOverview, framedFog, OVERVIEW_FOV } from './cameraFraming'
+import { frontalOverview, framedFog, cameraLimits, OVERVIEW_FOV } from './cameraFraming'
 import type { WorldStyle } from './worlds/models'
 
 const worlds: (WorldStyle | undefined)[] = [undefined, 'eva', 'clasico', 'grafito', 'bosque', 'matrix', 'marfil', 'orbita', 'kywai', 'submarino', 'relicario', 'telar', 'halloween', 'navidad', 'oficina', 'sede']
@@ -36,5 +36,28 @@ describe('cámara de frente ligeramente elevada', () => {
     const wide = frontalOverview('eva', [], 1.8), narrow = frontalOverview('eva', [], .65)
     expect(narrow.eye[2]).toBeGreaterThan(wide.eye[2])
     expect((narrow.eye[1] - narrow.target[1]) / (narrow.eye[2] - narrow.target[2])).toBeCloseTo((wide.eye[1] - wide.target[1]) / (wide.eye[2] - wide.target[2]))
+  })
+})
+
+describe('límites de la cámara', () => {
+  it.each(worlds)('%s deja ver la vista general entera y no deja alejarse ni meterse sin límite', world => {
+    for (const aspect of [.6, 1.4, 2.4]) for (const room of [1, 1.25]) {
+      const frame = frontalOverview(world, DEFAULT_STATIONS, aspect, room)
+      const limits = cameraLimits(world, frame, DEFAULT_STATIONS)
+      const distance = Math.hypot(...frame.eye.map((v, i) => v - frame.target[i]))
+      // La vista general cabe (si no, la cámara daría un salto al soltarla) y alejarse da como mucho un 20 % más.
+      expect(limits.maxDistance).toBeGreaterThanOrEqual(distance)
+      expect(limits.maxDistance).toBeLessThanOrEqual(distance * 1.2 + 1e-9)
+      expect(limits.minDistance).toBeGreaterThanOrEqual(9)
+      // La inclinación de la vista general (18°) queda dentro y el giro se queda por delante del escenario.
+      const polar = Math.PI / 2 - 18 * Math.PI / 180
+      expect(polar).toBeGreaterThan(limits.minPolar)
+      expect(polar).toBeLessThan(limits.maxPolar)
+      expect(limits.azimuth).toBeLessThanOrEqual(.6)
+      // El punto de mira de la vista general y todos los puestos (para «Ir al agente») están dentro de la caja.
+      const [min, max] = limits.boundary
+      for (const p of [frame.target, ...DEFAULT_STATIONS.map(s => [s.position[0], .9, s.position[1]] as const)])
+        for (let i = 0; i < 3; i++) { expect(p[i]).toBeGreaterThanOrEqual(min[i]); expect(p[i]).toBeLessThanOrEqual(max[i]) }
+    }
   })
 })
