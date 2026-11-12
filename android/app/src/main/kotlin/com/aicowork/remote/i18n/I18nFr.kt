@@ -1121,4 +1121,6 @@ private fun part7(m: HashMap<String, String>) {
     m["Un personaje en pixel art para tu juego: hoja de sprites animada en 4 u 8 direcciones (de una descripción, una imagen o un modelo 3D)"] = "Un personnage en pixel art pour ton jeu : une planche de sprites animée en 4 ou 8 directions (à partir d'une description, d'une image ou d'un modèle 3D)"
     m["[7 días] nicho"] = "[7 jours] niche"
     m["Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo"] = "Les sujets qui montent en ce moment sur YouTube et le web, notés, avec 5 titres, 3 angles et leur /video prêt"
+    m["[3] pregunta"] = "[3] question"
+    m["La misma pregunta a varios agentes a la vez; uno junta lo mejor y te dice en qué coinciden y en qué no"] = "La même question à plusieurs agents en même temps ; l'un rassemble le meilleur et vous dit où ils sont d'accord et où non"
 }

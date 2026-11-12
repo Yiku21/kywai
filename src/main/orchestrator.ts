@@ -99,6 +99,7 @@ import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
 import { DUB_LANGUAGES, applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, markedNarration, parseDubRequest, rawScript, type DubRequest } from './dub'
 import { parseSpriteRequest, spritePrompt } from './sprite'
 import { parseRadarRequest, RADAR_DIR, radarPrompt, radarStamp } from './radar'
+import { councilPlannerText, parseCouncilRequest, pickCouncil } from './council'
 import { THUMB_FRAMES, parseThumbnailPlan, parseThumbnailRequest, renderThumbnails, thumbFrames, thumbnailPrompt, type ThumbRequest } from './thumbnail'
 import { PRESENTER_ROBOTS, demoPrompt, fetchRepoFacts, fitToVoice, githubRepo, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoPresenter, type DemoRequest, type RepoFacts } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
@@ -1799,7 +1800,11 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
   // Hay un plan esperando tu visto bueno: un «sí» lo aprueba; cualquier otra cosa son cambios a ese plan.
   // Una rutina no responde a planes pendientes: su petición es aparte.
   // Una plantilla tampoco: es una petición nueva, no un cambio al plan.
-  const pending = routine || tpl ? undefined : pendingProposal(projectId)
+  // «/consejo pregunta»: la misma pregunta a varios agentes a la vez y uno junta lo mejor (council.ts). Es una
+  // petición nueva, no un cambio al plan que espere tu visto bueno.
+  const council = tpl ? null : parseCouncilRequest(text)
+  if (council && !council.question) throw new Error(tr('¿Qué le pregunto al consejo? Escríbelo detrás: «/consejo ¿qué base de datos uso para…?»'))
+  const pending = routine || tpl || council ? undefined : pendingProposal(projectId)
   if (pending && !atts.length && isPlanApproval(text)) {
     pushMessage({
       id: randomUUID(),
@@ -1829,7 +1834,9 @@ async function sendNow(input: SendMessageInput, opts: { routine?: { id: string; 
   })
   // «/orden …» de un mod: en el chat se ve lo que escribiste; al equipo le llega el texto de la orden.
   const modCommand = tpl ? null : expandModCommand(text)
-  let userText = tpl?.text || modCommand?.text || text.trim() || '(El usuario solo ha enviado archivos adjuntos.)'
+  let userText = council
+    ? councilPlannerText(council, pickCouncil(workers().filter(usable), council.size).map((a) => a.name))
+    : tpl?.text || modCommand?.text || text.trim() || '(El usuario solo ha enviado archivos adjuntos.)'
   let revision: Run['revision']
   const runAtts = [...atts]
   if (pending?.proposal) {

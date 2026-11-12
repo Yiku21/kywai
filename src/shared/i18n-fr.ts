@@ -3650,4 +3650,7 @@ export const fr: Record<string, string> = {
   "No hay ningún agente disponible para hacer el radar.": "Aucun agent n'est disponible pour faire le radar.",
   "[7 días] nicho": "[7 jours] niche",
   "Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo": "Les sujets qui montent en ce moment sur YouTube et le web, notés, avec 5 titres, 3 angles et leur /video prêt",
+  "¿Qué le pregunto al consejo? Escríbelo detrás: «/consejo ¿qué base de datos uso para…?»": "Que dois-je demander au conseil ? Écrivez-le après la commande : « /consejo quelle base de données utiliser pour… ? »",
+  "[3] pregunta": "[3] question",
+  "La misma pregunta a varios agentes a la vez; uno junta lo mejor y te dice en qué coinciden y en qué no": "La même question à plusieurs agents en même temps ; l'un rassemble le meilleur et vous dit où ils sont d'accord et où non",
 }

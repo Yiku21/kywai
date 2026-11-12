@@ -3773,4 +3773,7 @@ export const en: Record<string, string> = {
   "No hay ningún agente disponible para hacer el radar.": "No agent is available to run the radar.",
   "[7 días] nicho": "[7 days] niche",
   "Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo": "The topics rising right now on YouTube and the web, scored, with 5 titles, 3 angles and a ready /video",
+  "¿Qué le pregunto al consejo? Escríbelo detrás: «/consejo ¿qué base de datos uso para…?»": "What should I ask the council? Write it after the command: “/consejo which database should I use for…?”",
+  "[3] pregunta": "[3] question",
+  "La misma pregunta a varios agentes a la vez; uno junta lo mejor y te dice en qué coinciden y en qué no": "The same question to several agents at once; one combines the best and tells you where they agree and where they don't",
 }

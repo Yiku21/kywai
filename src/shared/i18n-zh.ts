@@ -3650,4 +3650,7 @@ export const zh: Record<string, string> = {
   "No hay ningún agente disponible para hacer el radar.": "没有可用的智能体来做趋势雷达。",
   "[7 días] nicho": "[7 天] 领域",
   "Los temas que suben ahora en YouTube y la web, puntuados, con 5 títulos, 3 ángulos y su /video listo": "YouTube 和网络上正在升温的话题，带评分、5 个标题、3 个角度和现成的 /video",
+  "¿Qué le pregunto al consejo? Escríbelo detrás: «/consejo ¿qué base de datos uso para…?»": "要问委员会什么？写在命令后面：“/consejo 我该用哪个数据库来……？”",
+  "[3] pregunta": "[3] 问题",
+  "La misma pregunta a varios agentes a la vez; uno junta lo mejor y te dice en qué coinciden y en qué no": "同一个问题同时问几个智能体；由一个汇总最好的答案，并告诉你它们哪里一致、哪里不同",
 }

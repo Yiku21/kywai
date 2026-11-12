@@ -2248,6 +2248,21 @@ del «/» (`isKywaiCommand` en `src/shared/chatCommands.ts`).
 
 Para que vigile solo: «/rutina cada 4 horas: /radar agentes de IA». Órbita tiene la orden en su lista del «/».
 
+### Consejo de agentes (`/consejo`)
+
+**«/consejo [N] pregunta»** hace la misma pregunta a varios agentes a la vez y luego uno junta lo mejor: «/consejo
+¿Postgres o SQLite para una app pequeña?», «/consejo 5 ¿cómo planteo la caché de esta API?». También valen `/panel`,
+`/mezcla` y `/mixture`. Por defecto son 3 consejeros (de 2 a 5). La idea sale del «Mixture of Agents» de un reel:
+varios modelos responden en paralelo y uno hace de presidente.
+
+No hay un motor aparte (`src/main/council.ts`). kywai elige los consejeros entre los agentes disponibles, primero de
+familias de modelos distintas (Claude, GPT, Gemini, Qwen…), y le pasa a Hermes un encargo con N tareas en paralelo
+con la misma pregunta. Cada consejero contesta por su cuenta en `consejo/<nombre>.md`. Después va una última tarea,
+que depende de todas, para el agente más fuerte: escribe `consejo/sintesis.md` con en qué coinciden, en qué
+discrepan y quién tiene razón, lo que solo vio uno y la respuesta final. En el chat se ve lo que escribiste. Es una
+petición normal: pasa por el plan (con tu visto bueno si lo pides), el reparto y la verificación, y nunca se toma
+como un cambio a un plan que espera. Órbita tiene la orden en su lista del «/».
+
 ### Doblar un vídeo a otro idioma (`/doblar`)
 
 **«/doblar <idioma> [lo que quieres]»** pasa el último vídeo hecho con `/video` (o el que adjuntes, si salió de este
