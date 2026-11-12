@@ -545,6 +545,83 @@ Paper foley on every placement (a soft paper tap or slide), a crinkle when a lab
 You decide the sets for each round, the mascot's costumes, the counters, the wall colours, the structure, opening and ending. Structures: a numbered top list (one stage per item); one problem dug deeper and deeper; a before/after on two stages side by side. Openings: a switchboard with every item plugged in; a curtain with the title on bunting; the counter at 0. Endings: all items on one key ring; the mascot waving from the full row of stages; a paper comment box with one word to type.
 `
   ].join('\n'),
+  'kywai-app-promo': [
+    HEAD(
+      'App Promo Reel',
+      'A fast vertical product ad on a dark starry background: every 3–4 s a new two-line claim (white line + accent line) sits above one big demo of the product doing its thing — a before/after slider, a numbered carousel, option chips, a mini editor, a result gallery, a real screen recording — and it ends on a solid brand-colour card with the logo, the address and one button.',
+      'app-store preview videos and short launch ads for creative tools; before/after comparison sliders; numbered feature carousels ("01/08"); end cards with a single call to action.'
+    ),
+    `## 1. Essence, and what it is not
+
+- **One promise per beat**: the whole ad is 6–9 beats of 3–4 s. Each beat has a headline of two short lines (line 1 white, the benefit; line 2 in the accent colour, the payoff or the number) and **one** demo in the centre that proves it. Nothing else on screen.
+- **Show, don't tell**: every claim is proven by the product working (a screenshot, a recording, a generated result). No feature lists, no paragraphs.
+- **Recurring demo formats** (pick 4–6 per ad, in this order of energy): the **transform hook** (the input turns into the output under a scanning line), **"in one click"** (one input explodes into a grid of results), the **before/after slider** (a vertical handle sweeps across a framed card with "BEFORE" and "AFTER" tags), the **numbered carousel** (items swap with a "03/08" counter and a pill label under each), **option chips** (a row of pills; the chosen one lights up and the demo changes with it), the **detail editor** (a small app window zooms in on one tool being used, with a before/after thumbnail), the **result gallery** (a sheet of outputs fills in, then export-format pills appear), the **real screen** (a browser or app window with a short recording and 2–3 ticked lines under it) and the **end card**.
+- **End card**: a full solid accent-colour background, the product logo big, the address, one line ("Try it free") and one button. Held 2.5–3.5 s.
+
+Not Dark Keynote (no stage, no presenter, no slow reveals: a beat every 3–4 s), not Living Screencast (the screen recording is only one beat of many), not Checklist (no running list), not Voxel Bots (no characters acting, the product is the hero).
+
+## 2. Materials & rendering
+
+- 1080×1920 by default (1920×1080 or 1080×1080 if asked). HTML/Canvas/SVG layers composited per frame; \`render(t)\` is a pure function of \`t\` (same frame for the same time).
+- **Background**: near-black indigo (#0b0a14 example) with one or two very soft nebula glows (radial gradients in the accent colours at 10–20 %), 60–120 tiny stars that twinkle, and a few slow-drifting accent-coloured square specks (2–4 px) that echo the product.
+- **Demo cards**: rounded rectangles (radius 20–28 px), a 1.5 px border in white at 12 %, a darker inner fill, a soft outer glow in the accent at 20 %; small uppercase tag pills in the top corners (e.g. "INPUT" left, "OUTPUT · 128" right in the accent).
+- **Before/after slider**: two layers of the same frame clipped by a vertical line; the handle is a white circle with ‹ › arrows on that line; the line sweeps right → left → centre with an ease-in-out.
+- **Pills and chips**: fully rounded, 26–34 px text, unselected = outline at 30 %, selected = solid accent with dark text.
+- **App windows**: a macOS-like title bar with three dots (generic, no brand), an address bar with a neutral URL, real screenshots or recordings of the user's own product inside; a round click ripple where the cursor taps.
+- Use the user's real screenshots, recordings and outputs whenever the topic is their product; otherwise build simple flat stand-ins. Never show other companies' logos or UI.
+
+## 3. Colour logic
+
+Dark neutral background plus **one or two accents** taken from the product (e.g. a violet and a pink): the second headline line, the selected chip, the tag pills, the slider handle glow and the specks use them. The end card flips the logic: solid accent background with white logo and text, and the button inverted (white with accent text). Results inside the cards keep their own colours.
+
+## 4. Type & subtitles
+
+- Headline: bold geometric sans (licence-free, e.g. Inter, Manrope, Poppins), 64–80 px, two lines max, centred in the top 18 %; line 2 can be a gradient of the two accents. Big numbers ("32px", "250+", "3×") go at 120–160 px in the accent.
+- Small print under the headline (optional): 26–30 px at 65 % white, one line ("3 sizes · 4 formats").
+- Headlines appear word by word (or letter by letter on the first beat) with a 60–90 ms stagger and a slight upward slide; they leave with a quick fade before the next beat.
+- No voice by default: the headlines are the narration. If there is a voice, captions follow §4 of the reel rules (short, centred, above the safe area) and the headline stays.
+- Keep the bottom 12 % clear of anything important (app UI covers it).
+
+## 5. Motion quality
+
+On ones, smooth and confident; ease-out on entries (220–320 ms), ease-in-out on sweeps. Beat changes are cuts on the music downbeat with a short cross-dissolve (6–8 frames) or a pixel-dissolve wipe that matches the product. Cards pop with a 0.96 → 1.0 scale; chips switch with a 120 ms colour fill; carousel items slide 40 px and fade. Idle life always: stars twinkle, specks drift, the card glow breathes, the demo keeps looping (a sprite walks, a value ticks).
+
+## 6. Camera grammar
+
+| Move | What it expresses | Can serve |
+|---|---|---|
+| Locked, centred card | here is the proof | most beats |
+| Slow push in (3–5 %) over the beat | keep looking | a result; a detail |
+| Snap zoom into one tool of an app window | this is how | the editor beat; a click |
+| Pull back from one result to the full gallery | and all of these | "in one go"; exports |
+| Hard cut to the solid end card | the offer | the ending |
+
+Transitions: cut on the beat, pixel-dissolve, a quick slide of the card, or the scanning line of the transform hook.
+
+## 7. Sound palette
+
+An upbeat electronic or chiptune-flavoured track with a clear downbeat every 3–4 s (cut on it), soft clicks for chips and taps, a whoosh for slides, a short shimmer or "pixel" sparkle on the transform, a riser into the end card and a bright final hit with the logo. Use the real effects bank (efectos/) before synthesizing. −14 LUFS.
+
+## 8. Native moves
+
+- **Transform hook.** The input (a photo, a model, a rough draft) turns into the output under a sweeping scan line or a pixel dissolve while the headline types "From … to …". *Fits content like:* the opening; the one-line promise.
+- **One into many.** A single input explodes into a grid of results that pop in a ripple. *Fits content like:* "in one click"; variations; batch output.
+- **Slider proof.** The before/after handle sweeps across the card. *Fits content like:* quality; a fix; an upgrade.
+- **Counter carousel.** Results swap with "01/08 … 07/08" and a pill name under each. *Fits content like:* a big preset count; a library; templates.
+- **Chip switch.** Choosing a chip changes the demo live ("S · M · L"). *Fits content like:* sizes; plans; styles; languages.
+- **Tick list on a screen.** A real app window with 2–3 lines that tick one by one under it. *Fits content like:* "no install"; requirements; formats.
+- **Brand card.** A solid colour card with the logo, the address and one button. *Fits content like:* the ending, always.
+
+## 9. Pitfalls of the medium
+
+- More than one claim per beat, or a headline longer than two short lines. - A static screenshot for a whole beat: something must move inside the card. - Fake results: use the product's real output, or say it is a mock-up. - Stock "AI" imagery or other brands' logos and UI: only the user's product and neutral stand-ins. - An end card with several buttons: one address, one action. - Running past 35 s: cut beats, not speed.
+`,
+    ENGINE('dark-keynote', "its dark background, typography timing and card helpers; drop the stage and presenter, make it vertical by default, and build the beat formats (transform hook, before/after slider, counter carousel, option chips, app window, result gallery and brand end card) as reusable components on top."),
+    `## 11. Variation space
+
+You decide the accents, which 4–6 demo formats to use and their order, the number of beats (6 to 9), the end-card wording and whether there is a voice. Structures: promise → one-click → proof slider → range (carousel) → control (chips or editor) → output (gallery + formats) → where (screen) → end card; or problem → transform → three proofs → end card. Openings: the transform hook; a big number; the before/after slider already moving. Endings: the brand card with one button; the gallery collapsing into the logo; the last result morphing into the logo.
+`
+  ].join('\n'),
   'kywai-voxel-bots': [
     HEAD(
       'Voxel Bots Explainer',

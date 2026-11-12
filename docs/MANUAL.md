@@ -2367,7 +2367,7 @@ plan que aprobar, sin informes ni archivos sueltos.
 - **Con el selector de cuatro pasos** (escritorio, web y Órbita): al escribir `/video` se abre encima del cuadro un panel con
   **1. Tipo de vídeo** (rápido con texto animado, dibujos con presentador o mixto), **2. Personaje** (ninguno, los
   robots de kywai, los que hayas creado o «Agregar personaje»), **3. Estilo de animación** (el de kywai, rápido, o
-  uno de los 76 estilos de película con su muestra) y **4. Voz** (automática o una concreta, con ▶ para oírla).
+  uno de los 77 estilos de película con su muestra) y **4. Voz** (automática o una concreta, con ▶ para oírla).
   Después solo escribes de qué va. Ver «Elegir tipo, personaje, estilo y voz» más abajo.
 
 - `/video cómo nace una estrella`, o con palabras: «créame un vídeo de…», «hazme un vídeo corto sobre…», «make a
@@ -2629,7 +2629,7 @@ que Órbita reduce antes de enviarlas. Las marcas se leen y se escriben como en 
 `src/shared/videoChoice.ts`: si cambian allí, cambian también aquí). Con un ordenador sin esta versión, `/video` sigue
 funcionando escribiendo las marcas a mano.
 
-**Estilos de película (76, con muestra).** En el paso 3 del selector, una tarjeta con **una muestra de cada estilo**
+**Estilos de película (77, con muestra).** En el paso 3 del selector, una tarjeta con **una muestra de cada estilo**
 (un fotograma de su película de ejemplo), por categorías y con buscador: **Pintado a mano (acuarela y tinta)** y los
 **8 estilos propios de kywai** (ver más abajo) y los **66 estilos de la biblioteca Lemo-Opuscar** (MIT, github.com/lemomo-ai/lemo-opuscar): acuarela, tinta china, óleo, pizarra, años 30, anime de los
 80, Pixel RPG, HD-2D, diseño suizo, plano técnico, infografía isométrica, risografía, xilografía, ukiyo-e, teatro de
@@ -2679,13 +2679,13 @@ Hermes, Claude, Codex u otro con sus colores, y `kywaiSpark()`, la chispa de una
 usarlos. El agente copia el kit a la carpeta de la película y trabaja en la copia. Con otro personaje, el agente lo
 dibuja con las técnicas del kit; con «Ninguno», inventa los que pida la historia. Sin tarjeta gráfica renderiza lento.
 
-**Estilos propios de kywai (9).** Garabatos de tinta, Garabatos en primera persona, Oficina en plano, Siluetas de
-neón, Cristales 3D adorables, Tiempo profundo, **Papel recortado**, **Lista de comprobación** y **Robots de bloques** (inspirados en lo que se ve en vídeos de estilos de animación con IA,
+**Estilos propios de kywai (10).** Garabatos de tinta, Garabatos en primera persona, Oficina en plano, Siluetas de
+neón, Cristales 3D adorables, Tiempo profundo, **Papel recortado**, **Lista de comprobación**, **Robots de bloques** y **Anuncio de app** (inspirados en lo que se ve en vídeos de estilos de animación con IA,
 escritos por kywai sin prompts ni código de nadie; en el selector llevan la etiqueta «Estilo de kywai»). Cada uno
 tiene su guía en `src/main/kywaiFilmGuides.ts`, con los mismos apartados que una guía de la biblioteca (esencia,
 materiales, color, letra, movimiento, cámara, sonido, jugadas propias, errores, motor y variaciones), y en el catálogo
 (`base` en `src/shared/filmStyles.ts`) el estilo de la biblioteca cuyo motor usa (pizarra blanca, años 50, créditos de
-espías, producto de cristal, isla low-poly, concurso de la tele, diseño suizo o piezas de construcción). Al empezar la película, kywai deja la guía en su carpeta
+espías, producto de cristal, isla low-poly, concurso de la tele, diseño suizo, piezas de construcción o presentación tecnológica). Al empezar la película, kywai deja la guía en su carpeta
 (`ESTILO-kywai.md`) y el agente trabaja como con un estilo propio del usuario de Lemo-Opuscar (`MY-STYLES.md`): baja
 el código del estilo base con `setup.sh demo <base>` y manda la guía de kywai. Sus muestras son fotogramas hechos por
 kywai. Para añadir otro: su entrada con `base` en el catálogo, su guía, su alias y su muestra de 320×180.
@@ -2711,6 +2711,19 @@ el problema, amarillo la pregunta, verde la solución, cian el concepto) y abajo
 que suena en una pastilla cian. Robots grises son «la forma de antes», uno naranja la solución y un muñeco con gafas
 eres tú; en los pasos salen puntos de progreso (■■□). Usa el motor de «Piezas de construcción» (`brick-toy`) y lleva
 la lista de escena 3D viva. También se pide con «estilo robots de bloques», «voxel» o «bloques».
+
+**Anuncio de app** (`kywai-app-promo`, desde el 12 de noviembre de 2026) sale de la estructura de un reel vertical de
+32 s que anunciaba una herramienta para convertir modelos 3D en sprites (solo su ritmo y sus recursos, nada de su
+marca, su arte ni sus textos). Es un anuncio rápido sobre fondo oscuro con estrellas: cada 3–4 s una frase de dos
+líneas (la primera en blanco, la segunda en el color de la marca) encima de una sola demostración del producto
+funcionando, y se cambia de una a otra al ritmo de la música. Las demostraciones son: la transformación del gancho
+(lo de entrada se convierte en el resultado bajo una línea que barre), «en un clic» (una entrada que se multiplica en
+una cuadrícula), el deslizador antes/después, el carrusel numerado «03/08» con su etiqueta, las pastillas de opciones
+(la elegida se enciende y la demo cambia), el editor en miniatura, la galería de resultados con los formatos de
+descarga y la pantalla real con 2–3 líneas que se marcan. Acaba siempre en una tarjeta de color liso con el logo, la
+dirección y un solo botón. Sin voz por defecto (los titulares cuentan la historia), 25–35 s. Usa el motor de la
+«Presentación tecnológica» (`dark-keynote`) y pide usar capturas y grabaciones reales del producto del usuario. Va muy
+bien para los reels de kywai. También se pide con «estilo anuncio», «promo» o «antes y después».
 
 **Instalación.** «Instalar lo que falta» (Ajustes → Extensiones → Estudio de vídeo, fila «Estilos de película») o, si
 no, el primer vídeo con estilo, descarga con git a `estudio-video/lemo-opuscar` una **versión fija** de la biblioteca
