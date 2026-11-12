@@ -3542,6 +3542,11 @@ con Pillow. Las dos de Órbita (`docs/img/movil-*.jpg`) se hacen a mano en un m�
 
 Lo que hace kywai para ir fluido sin que tengas que tocar nada:
 
+- **El 3D en reposo.** Si durante un minuto ningún agente trabaja, piensa ni espera, no suena música y no mueves
+  el ratón, la rueda ni tocas sobre el espacio 3D, la escena baja a 10 fotogramas por segundo. Los robots siguen
+  respirando y paseando, solo que con menos fotogramas, y eso es casi todo el tiempo que kywai está abierto. En
+  cuanto alguien empieza una tarea, llega un archivo, eliges algo, suena música o pasas el ratón por encima, vuelve
+  a 30 al momento (`scene/sceneRest.ts`, `REST_FPS` en `scene/frameRate.ts`).
 - **Calidad del 3D a tu elección.** En ⚙ → General → **Calidad del 3D** eliges, solo para ese dispositivo:
   **Automática** (la de siempre), **Ahorro** (sin brillo, sin sombras y a resolución normal: lo más ligero, bueno
   para un portátil o el cliente), **Normal** o **Máxima** (resolución ×1,75, suavizado ×4, sombras grandes y

@@ -23,3 +23,18 @@ export function frameDue(now: number, last: number, fps: number): number | null 
   if (since > interval * 3) return now
   return last + interval
 }
+
+/** Fotogramas por segundo con la escena en reposo: nadie trabaja, no suena música y no la tocas. */
+export const REST_FPS = 10
+
+/** Tiempo sin actividad tras el que la escena pasa a reposo. */
+export const REST_AFTER_MS = 60_000
+
+/**
+ * Fotogramas por segundo que tocan ahora. En reposo los robots siguen moviéndose (respiran, miran, pasean), pero
+ * a [REST_FPS]: la mayor parte del tiempo nadie está trabajando y no hace falta más.
+ */
+export function sceneFps(focused: boolean, resting: boolean): number {
+  if (resting) return REST_FPS
+  return focused ? MAX_FPS : IDLE_FPS
+}

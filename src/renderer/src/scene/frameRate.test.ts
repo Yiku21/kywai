@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { frameDue, MAX_FPS } from './frameRate'
+import { frameDue, IDLE_FPS, MAX_FPS, REST_FPS, sceneFps } from './frameRate'
 
 /** Cuántos fotogramas se dibujan en un segundo con una pantalla de [hz]. */
 function framesIn(hz: number, fps: number): number {
@@ -31,5 +31,21 @@ describe('frameDue', () => {
 
   it('tras un parón vuelve a contar desde ahora', () => {
     expect(frameDue(10_000, 0, 30)).toBe(10_000)
+  })
+})
+
+describe('sceneFps', () => {
+  it('en reposo baja a 10 tenga o no foco', () => {
+    expect(sceneFps(true, true)).toBe(REST_FPS)
+    expect(sceneFps(false, true)).toBe(REST_FPS)
+  })
+
+  it('con actividad, 30 con foco y 20 sin foco', () => {
+    expect(sceneFps(true, false)).toBe(MAX_FPS)
+    expect(sceneFps(false, false)).toBe(IDLE_FPS)
+  })
+
+  it('una pantalla de 60 Hz da 10 en reposo', () => {
+    expect(framesIn(60, REST_FPS)).toBe(10)
   })
 })

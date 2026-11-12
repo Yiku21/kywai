@@ -29,7 +29,8 @@ import { Transfers } from './Transfers'
 import { CameraRig } from './CameraRig'
 import { CinemaLights } from './CinemaLights'
 import { LabelProjector } from './LabelProjector'
-import { frameDue, IDLE_FPS, MAX_FPS } from './frameRate'
+import { frameDue, sceneFps } from './frameRate'
+import { useSceneRest } from './sceneRest'
 import { t } from '@/lib/i18n'
 import { withTempStations } from '@shared/tempStations'
 import { polygonLayout } from './polygonLayout'
@@ -164,6 +165,25 @@ function FrameLimiter({ active, fps }: { active: boolean; fps: number }) {
   return null
 }
 
+/**
+ * Ritmo de dibujo: [MAX_FPS] con foco, [IDLE_FPS] sin foco y [REST_FPS] en reposo (un minuto sin agentes trabajando,
+ * sin música y sin tocar el 3D; ver sceneRest.ts). El ajuste automático de calidad solo mide con foco y fuera de
+ * reposo: a menos fotogramas bajaría la calidad sin motivo. Con el tope de [MAX_FPS], baja si no llega a 24.
+ */
+function Pacing({ visible, focused, adaptive }: { visible: boolean; focused: boolean; adaptive: boolean }) {
+  const dom = useThree((st) => st.gl.domElement)
+  const lower = useQuality((s) => s.lower)
+  const raise = useQuality((s) => s.raise)
+  // El panel del espacio entero (también las etiquetas, que van por encima del lienzo).
+  const resting = useSceneRest(dom.parentElement?.parentElement ?? dom, visible)
+  return (
+    <>
+      <FrameLimiter active={visible} fps={sceneFps(focused, resting)} />
+      {adaptive && focused && visible && !resting && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [24, 29]} />}
+    </>
+  )
+}
+
 /** Veces por segundo que se recalculan las sombras (la escena se dibuja a [MAX_FPS]). */
 const SHADOW_FPS = 15
 
@@ -214,8 +234,6 @@ function useWindowFocus(): boolean {
  */
 export function World({ view, paused = false }: { view?: ViewInsets; paused?: boolean } = {}) {
   const level = useQuality((s) => s.level)
-  const lower = useQuality((s) => s.lower)
-  const raise = useQuality((s) => s.raise)
   const max = useQuality((s) => s.max)
   const adaptive = useQuality((s) => s.adaptive)
   const q = useMemo(() => sceneQuality(level, max), [level, max])
@@ -261,10 +279,8 @@ export function World({ view, paused = false }: { view?: ViewInsets; paused?: bo
       <color key={`bg-${theme}`} attach="background" args={[night ? '#050d1a' : p.bg]} />
       <fog key={`fog-${theme}`} attach="fog" args={[night ? '#0a1727' : p.fog, fogNear, fogFar]} />
       <SceneClock />
-      <FrameLimiter active={visible} fps={focused ? MAX_FPS : IDLE_FPS} />
+      <Pacing visible={visible} focused={focused} adaptive={adaptive} />
       <ShadowThrottle active={!!p.world && q.shadows} />
-      {/* Solo mide con foco: a [IDLE_FPS] bajaría la calidad sin motivo. Con el tope de [MAX_FPS], baja si no llega a 24. */}
-      {adaptive && focused && visible && <PerformanceMonitor onDecline={lower} onIncline={raise} flipflops={3} bounds={() => [24, 29]} />}
 
       <group key={theme}>
         <CinemaLights palette={p} lights={L} worldLight={worldLight} shadows={!!p.world && q.shadows} shadowSize={q.shadowMap}
