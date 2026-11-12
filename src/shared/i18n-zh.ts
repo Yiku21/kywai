@@ -3411,4 +3411,11 @@ export const zh: Record<string, string> = {
   "Filtrar por tipo de archivo": "按文件类型筛选",
   "{n} de {total} archivos": "{n} / {total} 个文件",
   "PDF": "PDF",
+  "Tareas a la vez en todo el equipo": "整个团队同时进行的任务数",
+  "Cuántas tareas pueden estar en marcha a la vez, sumando todos los agentes y sus copias": "同时可以运行多少个任务（包括所有智能体及其副本）",
+  "Tareas a la vez de {name}": "{name} 同时进行的任务数",
+  "Es un modelo local: hace una tarea a la vez para no saturar el equipo": "这是本地模型：一次只做一个任务，以免电脑过载",
+  "Si está ocupado, una copia suya con el mismo modelo empieza la siguiente a la vez. Sin copias si le queda poca cuota.": "如果它正忙，会由一个使用相同模型的副本同时开始下一个任务。配额不足时不创建副本。",
+  "Hace sus tareas de una en una": "一次做一个任务",
+  "Copia de {name}: lleva otra tarea a la vez": "{name} 的副本：同时处理另一个任务",
 }

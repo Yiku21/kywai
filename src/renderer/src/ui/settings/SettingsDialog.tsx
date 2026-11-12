@@ -31,11 +31,14 @@ import {
   Wand2,
   X,
   Gauge,
-  Activity
+  Activity,
+  Layers
 } from 'lucide-react'
 import { useQuality, type QualityChoice } from '../../scene/quality'
 import { useMeter } from '../../scene/perfStats'
-import type { AgentAccess, ClientUpdateState } from '@shared/types'
+import type { AgentAccess, AgentConfig, ClientUpdateState } from '@shared/types'
+import { MAX_INSTANCES, MAX_TEAM_PARALLEL, instancesFor } from '@shared/instances'
+import { isLocalEngine } from '@shared/localEngines'
 import { useCowork, type SettingsTab } from '@/store/cowork'
 import { api, clientActions, clientInfo, isWeb } from '@/lib/api'
 import { openServerFiles } from '@/lib/serverFiles'
@@ -333,6 +336,7 @@ function AgentsTab() {
       >
         <Switch on={approval} label={t('Pedir mi visto bueno a cada plan')} onChange={() => void call(() => api!.setPlanApproval(!approval))} />
       </Row>
+      <ParallelRows live={live} call={call} />
       <Row icon={<RefreshCw size={18} className={cx(refreshing && u.spin)} />} label={t('Cuotas')} hint={t('Consultar de nuevo las cuotas')}>
         <ActionButton
           disabled={!live || refreshing}
@@ -350,6 +354,59 @@ function AgentsTab() {
           {error}
         </p>
       )}
+    </>
+  )
+}
+
+const range = (n: number): number[] => Array.from({ length: n }, (_, i) => i + 1)
+
+/**
+ * Tareas a la vez: las de todo el equipo y las de cada agente. Si un agente ocupado recibe otra tarea, la hace una
+ * copia suya («Claude 2», mismo modelo y nivel) en una copia aparte de la carpeta, hasta su tope.
+ */
+function ParallelRows({ live, call }: { live: boolean; call: (fn: () => Promise<unknown>) => Promise<void> }) {
+  const team = useCowork((st) => st.config.maxParallel)
+  const all = useCowork((st) => st.config.agents)
+  const agents = all.filter((a: AgentConfig) => a.enabled && !a.isSubagent && !a.plannerOnly)
+  const off = !live ? t('No disponible en modo demo') : undefined
+  return (
+    <>
+      <Row icon={<Layers size={18} />} label={t('Tareas a la vez en todo el equipo')} hint={t('Cuántas tareas pueden estar en marcha a la vez, sumando todos los agentes y sus copias')}>
+        <select className={s.select} value={team} disabled={!live} title={off} aria-label={t('Tareas a la vez en todo el equipo')} onChange={(e) => void call(() => api!.setParallel(null, Number(e.currentTarget.value)))}>
+          {range(MAX_TEAM_PARALLEL).map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </Row>
+      {agents.map((a) => {
+        const local = isLocalEngine(a.provider)
+        const n = instancesFor(a)
+        const label = t('Tareas a la vez de {name}', { name: a.name })
+        return (
+          <Row
+            key={a.id}
+            icon={<span className={s.agentDot} style={{ background: a.color }} />}
+            label={label}
+            hint={
+              local
+                ? t('Es un modelo local: hace una tarea a la vez para no saturar el equipo')
+                : n > 1
+                  ? t('Si está ocupado, una copia suya con el mismo modelo empieza la siguiente a la vez. Sin copias si le queda poca cuota.')
+                  : t('Hace sus tareas de una en una')
+            }
+          >
+            <select className={s.select} value={n} disabled={!live || local} title={off} aria-label={label} onChange={(e) => void call(() => api!.setParallel(a.id, Number(e.currentTarget.value)))}>
+              {range(local ? 1 : MAX_INSTANCES).map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </Row>
+        )
+      })}
     </>
   )
 }

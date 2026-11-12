@@ -758,6 +758,9 @@ async function main(): Promise<void> {
     // ---------- K: una petición nueva mientras el equipo trabaja ----------
     await check('K: petición nueva con Codex ocupado → el coordinador lo sabe, lo libre empieza ya y se puede detener solo una', async () => {
       __clearBlocksForChecks()
+      // Codex con una tarea a la vez (Ajustes): lo suyo espera. Las copias de un agente ocupado, en «Y».
+      const codexOne = getConfig().agents.find((a) => a.id === 'codex')!
+      codexOne.maxInstances = 1
       let release: () => void = () => undefined
       const hold = new Promise<void>((r) => (release = r))
       workBehaviour = (o) =>
@@ -789,6 +792,7 @@ async function main(): Promise<void> {
       const planner2 = calls.slice(fromCalls).find((c) => c.mode === 'plan')!
       // El coordinador ve que Codex está ocupado (y con qué) y qué archivos se están tocando en la carpeta.
       assert.match(planner2.prompt, /id: "codex" · Codex — [^\n]*disponible: sí, pero ocupado ahora con «Motor largo» desde hace \d+ min/)
+      assert.match(planner2.prompt, /ocupado ahora con «Motor largo»[^\n]*no puede llevar más a la vez \(su tope en Ajustes es una tarea a la vez\)/)
       assert.match(planner2.prompt, /## Trabajo en marcha en esta carpeta[^\n]*\n- «Motor largo» \(Codex, en marcha desde hace \d+ min\) · archivos que está tocando: motor\/formulas\.js/)
       // Lo de Claude (libre) empieza ya y sabe qué archivos no tocar; lo de Codex espera a que termine.
       await waitFor(() => calls.slice(fromCalls).some((c) => c.prompt.includes('## Tu tarea: Documentación')), 5000, 'documentación empezada')
@@ -809,6 +813,7 @@ async function main(): Promise<void> {
       const fin = finished(first.runId)!
       assert.equal(fin.kind === 'run.finished' && fin.ok, true)
       workBehaviour = () => null
+      delete codexOne.maxInstances
     })
 
     await check('L: memoria del proyecto — el coordinador anota lo que decides, los agentes lo que descubren, y todos la leen', async () => {
@@ -1470,6 +1475,9 @@ async function main(): Promise<void> {
       }
       verdicts = []
       verifyDelay = 400
+      // Con una tarea a la vez (Ajustes): sin copias, Codex hace las dos una tras otra.
+      const codexCfg = getConfig().agents.find((a) => a.id === 'codex')!
+      codexCfg.maxInstances = 1
       const seenVerifying: number[] = []
       // Mientras Codex hace la segunda, la primera termina su revisión: Codex debe seguir «trabajando», no «disponible».
       let busyAfterFirst: string | undefined
@@ -1500,6 +1508,7 @@ async function main(): Promise<void> {
       } finally {
         verifyDelay = 0
         workBehaviour = () => null
+        delete codexCfg.maxInstances
       }
     })
 
@@ -1891,6 +1900,64 @@ async function main(): Promise<void> {
       assert.ok(existsSync(join(dir, 'abajo.txt')))
       assert.match(await undoTask(project.id, arriba.id), /ya se deshizo/)
       workBehaviour = () => null
+    })
+
+    await check('Y: Claude ocupado → otra tarea suya la hace a la vez «Claude 2», con su mismo modelo y en una copia aparte', async () => {
+      __clearBlocksForChecks()
+      const dir = store.workRoot(project.id)
+      const claude = getConfig().agents.find((a) => a.id === 'claude')!
+      const seen: { title: string; id: string; name: string; model: string; cwd: string; prompt: string }[] = []
+      let release: () => void = () => undefined
+      const hold = new Promise<void>((r) => (release = r))
+      workBehaviour = (o) => {
+        if (o.mode !== 'work') return null
+        const m = /## Tu tarea: (Cara [AB])/.exec(o.prompt)
+        if (!m) return null
+        seen.push({ title: m[1], id: o.agent.id, name: o.agent.name, model: o.model, cwd: o.cwd, prompt: o.prompt })
+        if (seen.length === 2) release()
+        return (async () => {
+          // Las dos esperan a que la otra haya empezado: solo terminan si de verdad van a la vez.
+          await Promise.race([hold, sleep(4000)])
+          const f = join(o.cwd, m[1] === 'Cara A' ? 'cara-a.txt' : 'cara-b.txt')
+          writeFileSync(f, `${m[1]}\n`)
+          o.onFile?.(f)
+          return { ok: true, text: `${m[1]} hecha`, usage: { input: 10, output: 5 } }
+        })()
+      }
+      const p = plan('Ok', [
+        { key: 'a', title: 'Cara A', description: 'crea cara-a.txt', agent: 'claude', difficulty: 'medium', dependsOn: [], deliverable: 'file', files: ['cara-a.txt'] },
+        { key: 'b', title: 'Cara B', description: 'crea cara-b.txt', agent: 'claude', difficulty: 'medium', dependsOn: [], deliverable: 'file', files: ['cara-b.txt'] }
+      ])
+      planResponses = { hermes: p, claude: p }
+      const fromEv = events.length
+      try {
+        const r = await sendMessage({ projectId: project.id, text: 'Haz las dos caras', filePaths: [] })
+        await waitFor(() => events.slice(fromEv).some((e) => e.kind === 'run.finished' && e.runId === r.runId), 15000, 'las dos caras terminan')
+        assert.equal(seen.length, 2, 'las dos tareas se lanzan')
+        const main = seen.find((x) => x.id === 'claude')
+        const twin = seen.find((x) => x.id !== 'claude')
+        assert.ok(main && twin, 'una la hace Claude y la otra una copia suya')
+        assert.match(twin.id, /^claude-becario-\d+$/)
+        assert.equal(twin.name, 'Claude 2')
+        assert.equal(twin.model, main.model, 'la copia usa el mismo modelo que Claude (no el ligero)')
+        assert.equal(twin.model, claude.model)
+        assert.notEqual(twin.cwd, main.cwd, 'la copia trabaja en una copia aparte de la carpeta')
+        assert.match(twin.prompt, /Eres Claude 2 \(otra instancia de Claude: Claude lleva otra tarea a la vez\)/)
+        // Las dos se integran en la carpeta del proyecto.
+        assert.equal(readFileSync(join(dir, 'cara-a.txt'), 'utf8'), 'Cara A\n')
+        assert.equal(readFileSync(join(dir, 'cara-b.txt'), 'utf8'), 'Cara B\n')
+        // La copia aparece en el espacio con el color de Claude y se va al terminar.
+        const spawned = events.slice(fromEv).find((e) => e.kind === 'agent.spawned' && e.agent.id === twin.id)
+        assert.ok(spawned && spawned.kind === 'agent.spawned' && spawned.agent.twin === true && spawned.agent.color === claude.color && spawned.agent.color !== SUBAGENT_COLOR)
+        await waitFor(() => events.slice(fromEv).some((e) => e.kind === 'agent.removed' && e.agentId === twin.id), 8000, 'la copia se va')
+        // En el chat, el bloque de la tarea es de Claude y dice que la hizo «Claude 2».
+        const msgs = store.snapshotProject(project.id).messages
+        const work = msgs.find((m) => m.work?.title === twin.title)
+        assert.equal(work?.author.type === 'agent' && work.author.agentId, 'claude')
+        assert.equal(work?.work?.by, 'Claude 2')
+      } finally {
+        workBehaviour = () => null
+      }
     })
 
     await check('mensaje directo: «@Codex …» llega tal cual, sin Hermes, sin verificador y sin relevo', async () => {

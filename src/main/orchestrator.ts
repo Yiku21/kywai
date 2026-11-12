@@ -40,7 +40,8 @@ import type {
   WorkFile,
   ScriptReview
 } from '@shared/types'
-import { INTERRUPTED_ERROR, SUBAGENT_COLOR } from '@shared/defaults'
+import { INTERRUPTED_ERROR, SUBAGENT_COLOR, avatarFor } from '@shared/defaults'
+import { instancesFor } from '@shared/instances'
 import { checkAgentPresence, isLocalProvider, isTextOnly, reportsNoTokens, runAgent } from './agents'
 import { safeModel, STALL_NOTICE } from './agents/spawn'
 import { GEMINI_LOGIN_STALL_NOTICE } from './agents/gemini'
@@ -1320,24 +1321,58 @@ function freeSubStation(): string | null {
   return null
 }
 
-function spawnBecario(parent: AgentConfig, stationId: string, model: string): AgentConfig {
+/** Copias de un agente que están haciendo una tarea ahora (ver instancesFor). */
+function busyTwins(parentId: AgentId): AgentConfig[] {
+  return [...subagents.values()].filter((b) => b.twin && b.parentId === parentId && busy.has(b.id))
+}
+
+/**
+ * Por qué una copia de este agente ocupado NO puede empezar ya la tarea (null: sí puede). Una copia trabaja con el
+ * mismo modelo y nivel en una copia aparte de la carpeta, y se integra al terminar (prepareWorkplace).
+ */
+function twinBlock(agent: AgentConfig, t?: Task): string | null {
+  const max = instancesFor(agent)
+  if (max <= 1) return isLocalProvider(agent.provider) ? 'es un modelo local: hace una tarea a la vez' : 'su tope en Ajustes es una tarea a la vez'
+  if (1 + busyTwins(agent.id).length >= max) return `ya lleva ${max} tareas a la vez, su tope en Ajustes`
+  // Continuar lo que hizo antes retoma su sesión del CLI, que está usando ahora: una sesión no se retoma dos veces.
+  if (t?.continues) return 'la tarea continúa su sesión anterior, que está usando ahora'
+  const q = latestQuotas().find((x) => x.id === agent.quotaGroupId)
+  if (q && !q.unlimited && q.remainingPct != null && q.remainingPct <= getConfig().thresholds.warn) return `le queda poca cuota (${Math.round(q.remainingPct)} %)`
+  if (!freeSubStation()) return 'no queda ningún puesto libre en el espacio'
+  return null
+}
+
+/** Siguiente número libre para una copia: «Claude 2», «Claude 3»… (el agente es el 1). */
+function twinNumber(parent: AgentConfig): number {
+  const used = new Set([...subagents.values()].filter((b) => b.twin && b.parentId === parent.id).map((b) => b.name))
+  let n = 2
+  while (used.has(`${parent.name} ${n}`)) n++
+  return n
+}
+
+function spawnBecario(parent: AgentConfig, stationId: string, model: string, twin = false): AgentConfig {
   const n = (becarioCounter.get(parent.id) ?? 0) + 1
   becarioCounter.set(parent.id, n)
   const light = !!parent.lightModel && model === parent.lightModel
+  const strong = !!parent.strongModel && model === parent.strongModel
+  // Una copia es el mismo agente (su color, su robot y su nombre con un número); un becario, el de apoyo de siempre.
+  const look: Pick<AgentConfig, 'name' | 'color' | 'role' | 'avatar' | 'twin'> = twin
+    ? { name: `${parent.name} ${twinNumber(parent)}`, color: parent.color, avatar: avatarFor(parent), role: tr('Copia de {name}: lleva otra tarea a la vez', { name: parent.name }), twin: true }
+    : { name: 'Becario', color: SUBAGENT_COLOR, role: tr('Sub-agente de {name}', { name: parent.name }) }
   const b: AgentConfig = {
     id: `${parent.id}-becario-${n}`,
-    name: 'Becario',
+    ...look,
     provider: parent.provider,
     model: model || parent.model,
-    modelLabel: light ? (parent.lightModelLabel ?? parent.lightModel ?? parent.modelLabel) : parent.modelLabel,
-    color: SUBAGENT_COLOR,
+    modelLabel: light ? (parent.lightModelLabel ?? parent.lightModel ?? parent.modelLabel) : strong ? (parent.strongModelLabel ?? parent.modelLabel) : parent.modelLabel,
     stationId,
-    role: tr('Sub-agente de {name}', { name: parent.name }),
     strengths: [],
     enabled: true,
     quotaGroupId: parent.quotaGroupId,
     isSubagent: true,
-    parentId: parent.id
+    parentId: parent.id,
+    ...(parent.cli ? { cli: parent.cli } : {}),
+    ...(parent.modelProvider ? { modelProvider: parent.modelProvider } : {})
   }
   subagents.set(b.id, b)
   stationUse.set(stationId, b.id)
@@ -4337,7 +4372,14 @@ function busyNote(a: AgentConfig): string | null {
   const tid = busy.get(a.id)
   const t = tid ? tasks.get(tid) : undefined
   const becario = !!a.lightModel && !!freeSubStation() ? '; sus tareas fáciles sí puede empezarlas ya un becario suyo' : ''
-  if (t) return `ocupado ahora con «${t.title}» desde hace ${minsAgo(t.startedAt)}: una tarea nueva para él esperaría a que termine${becario}`
+  if (t) {
+    const twins = busyTwins(a.id).length
+    const also = twins ? ` (y ${twins === 1 ? 'una copia suya' : `${twins} copias suyas`} con otras)` : ''
+    const why = twinBlock(a)
+    // Hay hueco: una copia suya (mismo modelo y nivel) empieza la tarea nueva ya, en una copia aparte de la carpeta.
+    if (!why) return `ocupado ahora con «${t.title}» desde hace ${minsAgo(t.startedAt)}${also}, pero puede llevar ${instancesFor(a)} tareas a la vez: una tarea nueva para él la empieza ya una copia suya con el mismo modelo (no hace falta dársela a otro)`
+    return `ocupado ahora con «${t.title}» desde hace ${minsAgo(t.startedAt)}${also}; no puede llevar más a la vez (${why}): una tarea nueva para él esperaría a que termine${becario}`
+  }
   if (planningAgents.has(a.id)) return 'ocupado planificando otra petición (termina enseguida)'
   return null
 }
@@ -4525,7 +4567,7 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
     '- Como máximo 6 tareas.',
     '- Asigna cada tarea al agente más adecuado según su ficha («se le da mejor» y «evitar») y SOLO a agentes disponibles. Al agente local, solo tareas cortas y sencillas: es más lento.',
     '- Si varios agentes sirven, elige el de mejor calidad según su ficha («calidad»: lo que le sirvió al usuario, verificaciones a la primera, pocas correcciones y pocos fallos, mirando la fila de la misma dificultad y, sobre todo, la de su «tipo de tarea»: imágenes, webs, código, textos o investigar); la calidad pesa más que la velocidad y el coste. Con calidad parecida, SIEMPRE el que tenga más cuota restante, salvo que el otro sea muchas veces más rápido. kywai lo aplica también después: si hay datos de que otro rinde igual en ese tipo de tarea y le queda bastante más cuota, se la pasa. A un agente con poca cuota, solo lo imprescindible.',
-    '- Mira «disponible» en cada ficha: si un agente está ocupado y otro libre puede hacerlo bien, dáselo al libre para que empiece ya; uno ocupado solo si es claramente el único adecuado (su tarea esperará a que termine).',
+    '- Mira «disponible» en cada ficha. Si un agente está ocupado pero «puede llevar N tareas a la vez», una copia suya con el mismo modelo empieza la tarea nueva ya (en una copia aparte de la carpeta que se integra al terminar): si es el más adecuado, dásela a él sin miedo a que espere, también entre tareas de este mismo plan. Si dice que «esperaría», y otro libre puede hacerlo bien, dáselo al libre para que empiece ya; uno así solo si es claramente el único adecuado (su tarea esperará a que termine).',
     '- Si hay trabajo en marcha en esta carpeta, no planifiques cambios en los archivos que está tocando: trabaja en otros archivos o, si la petición necesita esos mismos, dilo en "reply" y propón esperar a que termine.',
     '- Si lo que pide ya lo está haciendo una tarea de «Trabajo en marcha» (aunque lo diga con otras palabras), NO crees otra que lo repita: dos tareas sobre lo mismo se pisan y confunden en el chat. Díselo en "reply"; si añade algo nuevo, crea solo una tarea con eso, en otros archivos, o propón esperar a que termine la que está en marcha.',
     '- "dependsOn": keys de las tareas cuyo resultado o archivos necesita de verdad antes de empezar (deja [] si no hay); no encadenes tareas solo «por orden»: cada dependencia hace esperar a la siguiente hasta que la anterior termine y se verifique.',
@@ -4787,8 +4829,6 @@ export function schedule(): void {
         void startTask(run, t, agent, model, null)
         continue
       }
-      if (busy.has(agent.id)) continue
-      running++
       // Difícil → modelo potente; normal → habitual. Si el CLI rechazó alguno, se baja de nivel.
       const strong = strongModelBroken.has(agent.id) ? null : safeModel(agent.strongModel)
       const chosen = meta.forceCliDefault
@@ -4796,6 +4836,17 @@ export function schedule(): void {
         : t.difficulty === 'hard' && strong && !meta.forceMainModel
           ? strong
           : agent.model
+      // Ocupado con otra tarea (de esta petición, de otra o de otra conversación): la hace una copia suya, con el
+      // mismo modelo y nivel, si no ha llegado a su tope de tareas a la vez y le queda cuota. Si no, espera.
+      if (busy.has(agent.id)) {
+        if (twinBlock(agent, t)) continue
+        const station = freeSubStation()
+        if (!station) continue
+        running++
+        void startTask(run, t, agent, chosen, station, true)
+        continue
+      }
+      running++
       void startTask(run, t, agent, chosen, null)
     }
   }
@@ -4900,7 +4951,7 @@ function quickPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig |
   const conversation = recentConversation(run.projectId, run.id)
   const extra = t.description.trim() && t.description.trim() !== run.userText.trim() && t.description.trim() !== t.title.trim()
   return [
-    `Eres ${exec.name}${parent ? ` (becario de ${parent.name})` : ''}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". ${replyLanguage()}`,
+    `Eres ${exec.name}${parent ? (exec.twin ? ` (otra instancia de ${parent.name}: ${parent.name} lleva otra tarea a la vez)` : ` (becario de ${parent.name})`) : ''}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". ${replyLanguage()}`,
     'El usuario ha hecho una consulta rápida y espera la respuesta ya: mira solo lo necesario y contesta.',
     '',
     '## Pregunta del usuario',
@@ -5069,7 +5120,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       ]
 
   const lines = [
-    `Eres ${exec.name}${parent ? ` (becario de ${parent.name})` : ''}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". ${replyLanguage()}`,
+    `Eres ${exec.name}${parent ? (exec.twin ? ` (otra instancia de ${parent.name}: ${parent.name} lleva otra tarea a la vez)` : ` (becario de ${parent.name})`) : ''}, parte de un equipo de agentes de IA que trabajan juntos en el proyecto "${st.project.name}". ${replyLanguage()}`,
     '',
     '## Petición original del usuario',
     run.userText,
@@ -5181,9 +5232,9 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
   return lines.join('\n')
 }
 
-async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, becarioStation: string | null): Promise<void> {
+async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, becarioStation: string | null, twin = false): Promise<void> {
   const parent = becarioStation ? agent : null
-  const exec = becarioStation ? spawnBecario(agent, becarioStation, model) : agent
+  const exec = becarioStation ? spawnBecario(agent, becarioStation, model, twin) : agent
   const meta = run.meta.get(t.id)!
   const ctrl = new AbortController()
   run.controllers.set(t.id, ctrl)

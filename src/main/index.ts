@@ -21,6 +21,7 @@ import {
   setAgentThinking,
   setHermesModel,
   setPlanApproval,
+  setParallel,
   setCostSettings,
   setLanguage,
   setUiTheme,
@@ -95,6 +96,7 @@ import {
   resumeRun,
   runtimeSnapshot,
   runState,
+  schedule,
   sendMessage,
   sendVoiceNote
 } from './orchestrator'
@@ -1045,6 +1047,13 @@ function registerIpc(): void {
   handle('setCostSettings', (costs: unknown) => {
     setCostSettings(costs)
     emit({ kind: 'config.updated', config: getConfig() })
+  })
+  handle('setParallel', (agentId: unknown, n: unknown) => {
+    if ((agentId !== null && typeof agentId !== 'string') || typeof n !== 'number') throw new Error(tr('Valor no válido'))
+    setParallel(agentId, n)
+    emit({ kind: 'config.updated', config: getConfig() })
+    // Con más huecos, lo que esperaba puede empezar ya.
+    schedule()
   })
   handle('setPlanApproval', (on: unknown) => {
     if (typeof on !== 'boolean') throw new Error(tr('Valor no válido'))

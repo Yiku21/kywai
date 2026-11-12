@@ -131,6 +131,14 @@
   color: var(--text-2);
 }
 
+.agentDot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  margin: 3px;
+  border-radius: 50%;
+}
+
 .rowText {
   display: flex;
   flex: 1;

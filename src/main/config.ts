@@ -6,6 +6,7 @@ import { buildAgent } from '@shared/agentCatalog'
 import { cleanCostSettings } from '@shared/costs'
 import { isLang, langFromLocale, setCurrentLang, type Lang } from '@shared/i18n'
 import { cleanLocalUrl, isLocalEngine } from '@shared/localEngines'
+import { MAX_TEAM_PARALLEL, cleanInstances } from '@shared/instances'
 import { CONFIG_VERSION, DEFAULT_CONFIG, avatarFor, localLogoFor, upgradeAgentModels, upgradeAgentProfile, upgradeAgentRole } from '@shared/defaults'
 
 let config: AppConfig | null = null
@@ -103,8 +104,10 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
       enabled: a.enabled !== false,
       modelProvider: typeof a.modelProvider === 'string' && /^[\w.\-:]+$/.test(a.modelProvider) ? a.modelProvider : undefined,
       thinking: a.provider === 'lmstudio' && a.thinking === true ? true : undefined,
+      maxInstances: cleanInstances(a.maxInstances),
       isSubagent: undefined,
-      parentId: undefined
+      parentId: undefined,
+      twin: undefined
     }))
   // Versión 2: modelos por dificultad. Se completan los que falten sin pisar lo que eligió el usuario.
   if (version < 2) {
@@ -161,7 +164,7 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
   const thresholds = { ...d.thresholds, ...(isObj(u.thresholds) ? u.thresholds : {}) }
   const plannerOrder = Array.isArray(u.plannerOrder) ? u.plannerOrder.filter((x): x is string => typeof x === 'string') : d.plannerOrder
   if (version < 3 && !plannerOrder.includes('hermes')) plannerOrder.unshift('hermes')
-  const maxParallel = typeof u.maxParallel === 'number' && u.maxParallel >= 1 ? Math.min(8, Math.floor(u.maxParallel)) : d.maxParallel
+  const maxParallel = typeof u.maxParallel === 'number' && u.maxParallel >= 1 ? Math.min(MAX_TEAM_PARALLEL, Math.floor(u.maxParallel)) : d.maxParallel
   const root = typeof u.workspaceRoot === 'string' && u.workspaceRoot && isAbsolute(u.workspaceRoot) ? u.workspaceRoot : workspaceRoot
   return {
     configVersion: CONFIG_VERSION,
@@ -456,6 +459,21 @@ export function markBudgetAlerted(mark: string): void {
   const cfg = getConfig()
   if (!cfg.costs) return
   cfg.costs.budgetAlerted = mark
+  saveConfig()
+}
+
+/** Tareas a la vez: de un agente (agentId) o de todo el equipo (agentId null). Vale para las que empiecen. */
+export function setParallel(agentId: string | null, n: number): void {
+  const cfg = getConfig()
+  if (typeof n !== 'number' || !Number.isFinite(n) || n < 1) throw new Error('Valor no válido')
+  if (agentId === null) {
+    cfg.maxParallel = Math.min(MAX_TEAM_PARALLEL, Math.floor(n))
+  } else {
+    const a = cfg.agents.find((x) => x.id === agentId)
+    if (!a) throw new Error('Agente desconocido')
+    if (isLocalEngine(a.provider)) throw new Error('Un agente local hace una tarea a la vez')
+    a.maxInstances = cleanInstances(n)
+  }
   saveConfig()
 }
 

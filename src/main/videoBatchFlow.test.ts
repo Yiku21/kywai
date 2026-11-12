@@ -46,7 +46,8 @@ beforeAll(() => {
 describe('varios vídeos con un solo /video', () => {
   it('crea una tarea por vídeo y cada encargo dice cuál es y qué le toca', async () => {
     await sendMessage({ projectId, text: '/video genérame 3 vídeos para promocionar kywai, en inglés', filePaths: [] })
-    await vi.waitFor(() => expect(prompts.length).toBeGreaterThanOrEqual(3), { timeout: 10_000 })
+    // Codex y una copia suya hacen dos a la vez: se espera a que hayan empezado los tres (no a tres encargos cualesquiera).
+    await vi.waitFor(() => expect([1, 2, 3].every((n) => prompts.some((x) => x.includes(`vídeo ${n} de 3`)))).toBe(true), { timeout: 10_000 })
     const tasks = store.snapshotProject(projectId).tasks.filter((t) => t.video)
     expect(tasks.map((t) => t.title.slice(0, 13))).toEqual(['Vídeo 1 de 3:', 'Vídeo 2 de 3:', 'Vídeo 3 de 3:'])
     expect(tasks.map((t) => t.video?.batch?.n)).toEqual([1, 2, 3])

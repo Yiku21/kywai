@@ -3411,4 +3411,11 @@ export const fr: Record<string, string> = {
   "Filtrar por tipo de archivo": "Filtrer par type de fichier",
   "{n} de {total} archivos": "{n} sur {total} fichiers",
   "PDF": "PDF",
+  "Tareas a la vez en todo el equipo": "Tâches simultanées pour toute l’équipe",
+  "Cuántas tareas pueden estar en marcha a la vez, sumando todos los agentes y sus copias": "Combien de tâches peuvent tourner en même temps, en comptant tous les agents et leurs copies",
+  "Tareas a la vez de {name}": "Tâches simultanées de {name}",
+  "Es un modelo local: hace una tarea a la vez para no saturar el equipo": "C’est un modèle local : une tâche à la fois pour ne pas saturer l’ordinateur",
+  "Si está ocupado, una copia suya con el mismo modelo empieza la siguiente a la vez. Sin copias si le queda poca cuota.": "S’il est occupé, une copie de lui avec le même modèle commence la suivante en même temps. Pas de copies si son quota est bas.",
+  "Hace sus tareas de una en una": "Fait ses tâches une par une",
+  "Copia de {name}: lleva otra tarea a la vez": "Copie de {name} : mène une autre tâche en même temps",
 }

@@ -118,6 +118,9 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
     '### Agentes con muy poca cuota',
     '- Si la ficha de un agente dice que su cuota es muy pequeña (como Muse: 10–50 encargos cada 5 horas), dale solo lo que los demás no pueden hacer (en Muse, ver vídeos) o trabajo cuando los que sirven estén sin cuota o no disponibles. Ver imágenes y capturas, leer PDFs y buscar en internet lo hacen Claude y Codex.',
     '',
+    '### Varias tareas a la vez por agente',
+    '- Cada agente puede llevar varias tareas a la vez (Ajustes → Agentes → «Tareas a la vez de …», de 1 a 4; 2 si no se cambia; los modelos locales, siempre 1): si está ocupado y le llega otra, de esta petición, de otra o de otra conversación, la hace una copia suya («Claude 2») con el mismo modelo y nivel, en una copia aparte de la carpeta que se integra al terminar. No se crean copias si le queda poca cuota (por debajo del aviso) ni para continuar la sesión que está usando: entonces la tarea espera. El tope de todo el equipo está en el mismo sitio («Tareas a la vez en todo el equipo», hasta 8).',
+    '',
     '### Instalar herramientas y usar internet',
     opts.askAccess
       ? '- Ahora los agentes piden permiso al usuario («Preguntarme antes») para instalar, usar internet o salir de la carpeta del proyecto: él lo permite o lo deniega desde el chat, «Te necesita» u Órbita. Lanza las tareas igualmente: no esperes a que lo active ni le pidas que lo instale antes.'

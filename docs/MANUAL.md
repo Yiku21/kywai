@@ -786,10 +786,27 @@ documentación no confirma y pueden necesitar ajustes.
   entero (6 000 caracteres, antes 1 500) y el coordinador ve la misma conversación, no una línea por mensaje.
 - **Varias peticiones a la vez**: puedes pedir otra cosa mientras el equipo trabaja. La anterior no se detiene; la
   nueva se planifica al momento y el coordinador ve quién está ocupado (y con qué) y qué archivos se están tocando:
-  da lo nuevo a los agentes libres, que empiezan ya, y evita esos archivos (lo que toque a un agente ocupado espera a
-  que termine). Aun así, si dos tareas coinciden en el tiempo, la segunda trabaja en una copia aparte que se integra al
-  terminar (ver «Cambios de cada tarea»). Como mucho trabajan 3 tareas a la vez. Con varias peticiones en marcha, «Detener» deja elegir cuál
-  (o todas).
+  da lo nuevo a los agentes libres, que empiezan ya, y evita esos archivos (lo que toque a un agente ocupado lo hace
+  una copia suya, ver «Varias tareas a la vez por agente»). Si dos tareas coinciden en el tiempo, la segunda trabaja
+  en una copia aparte que se integra al terminar (ver «Cambios de cada tarea»). Como mucho trabajan 3 tareas a la vez
+  en todo el equipo (se cambia en Ajustes). Con varias peticiones en marcha, «Detener» deja elegir cuál (o todas).
+- **Varias tareas a la vez por agente**: si un agente ya está ocupado y le llega otra tarea (de la misma petición, de
+  otra o de otra conversación del proyecto), no espera: la empieza ya **una copia suya** («Claude 2», «Claude 3»…),
+  con el **mismo modelo, nivel y esfuerzo** que él (el fuerte si la tarea es difícil), no el modelo ligero de los
+  becarios. La copia sale en el 3D con el color y el robot de su agente, en un puesto de apoyo, y se va al terminar.
+  Trabaja en una **copia aparte de la carpeta** y sus cambios se integran al acabar, como cuando coinciden dos
+  tareas; si chocan, se resuelve igual. En el chat su trabajo sale con su agente y la marca **«Claude · Claude 2»**.
+  - **Cuántas a la vez**: ⚙ → Ajustes → **Agentes** → **«Tareas a la vez de …»**, de 1 a 4 por agente (2 si no lo
+    cambias; con 1 hace sus tareas de una en una, como antes). Ahí mismo está **«Tareas a la vez en todo el
+    equipo»** (de 1 a 8, 3 por defecto), que cuenta a todos los agentes y sus copias.
+  - **Cuándo espera**: si le queda poca cuota (por debajo de tu aviso de cuota) o está bloqueado; si es un modelo local
+    (Ollama, LM Studio, Colibri: siempre 1, para no saturar el equipo); si la tarea continúa la sesión del CLI que el
+    agente está usando en ese momento (una sesión no se puede retomar dos veces a la vez); o si no queda puesto libre.
+  - **El coordinador lo sabe**: en la ficha de cada agente ve «ocupado…, pero puede llevar 2 tareas a la vez», así que
+    le da la tarea al más adecuado aunque esté ocupado, en lugar de pasársela a otro peor solo por ir más rápido.
+  - Para desarrolladores: `src/shared/instances.ts` (`instancesFor`), `twinBlock`, `busyTwins` y `spawnBecario(…, twin)`
+    en `orchestrator.ts` (`AgentConfig.twin`, `AgentConfig.maxInstances`) y `setParallel` en `config.ts`. Prueba
+    «Y» de `src/main/__checks__/orchestrator.check.ts`.
 - **Fichas y modelos con datos verificados**: el coordinador ve de cada agente qué se le da mejor, qué evitar, qué
   modelo y esfuerzo usa en cada dificultad (con su velocidad y coste), la cuota que le queda y cómo le ha ido en AI
   Cowork. Esfuerzo: medio en lo fácil, alto en lo normal y alto (Claude) o muy alto (Codex) en lo difícil; nunca

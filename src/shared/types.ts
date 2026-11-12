@@ -131,9 +131,16 @@ export interface AgentConfig {
    * se enciende desde su tarjeta para lo que necesite pensar más.
    */
   thinking?: boolean
+  /**
+   * Tareas a la vez de este agente (1–4; sin indicar, 2). Si ya está ocupado y llega otra tarea, la hace una copia
+   * suya («Claude 2») con el mismo modelo y nivel, en una copia aparte de la carpeta. Los locales, siempre 1.
+   */
+  maxInstances?: number
   /** Solo en sub-agentes creados en tiempo de ejecución. */
   isSubagent?: boolean
   parentId?: AgentId
+  /** Sub-agente que es una copia de su agente (mismo modelo y nivel), no un becario de tareas fáciles. */
+  twin?: boolean
 }
 
 /** Estación en el espacio digital. Posición en el plano del suelo (x, z) en unidades de mundo. */
@@ -1936,6 +1943,8 @@ export interface CoworkApi {
   rejectPlan(projectId: string, messageId: string): Promise<void>
   /** Pedir (o no) tu visto bueno antes de ejecutar cada plan. */
   setPlanApproval(on: boolean): Promise<void>
+  /** Tareas a la vez: las de un agente (agentId, 1–4) o las de todo el equipo (agentId null, 1–8). */
+  setParallel(agentId: AgentId | null, n: number): Promise<void>
   /** Cómo pagas cada agente, precios por modelo y presupuesto (panel «Uso y coste»). */
   setCostSettings(costs: CostSettings): Promise<void>
   /** Extensiones (Ajustes › Extensiones): servidores MCP del usuario, sin sus claves. */
