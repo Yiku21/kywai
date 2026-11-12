@@ -961,7 +961,6 @@ export const zh: Record<string, string> = {
   "Cada agente funciona con su programa oficial (CLI). Lo que falte se instala desde aquí.": "每个代理都用它的官方程序（CLI）运行。缺少的部分可在这里安装。",
   "Buscando programas…": "正在查找程序…",
   "Instalado": "已安装",
-  "Recomendado en Mac: instala programas sin pedirte nada más": "Mac 上推荐：安装程序时不会再询问你其他问题",
   "Falta · necesita {tool}": "缺少 · 需要 {tool}",
   "No instalado": "未安装",
   "Instalando…": "正在安装…",

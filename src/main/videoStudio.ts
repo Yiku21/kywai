@@ -28,6 +28,7 @@ import {
 } from './videoScript'
 import { buildCartoonComposition } from './videoCartoon'
 import { buildStageData, stageLooks } from './charlaStage'
+import { macFfmpegInstall, macUserBin } from './macTools'
 import { buildCharlaComposition } from './videoCharla'
 import { contactSheetArgs, filmCheckArgs, flatFramesArgs, flatLookIssue, flatShare, parseFilmCheck, parsePpm } from './filmCheck'
 import { EARSHOT_DEPS, EARSHOT_PIP, earshotInstalledIn, ensureSfxBank, loadSfxBank, sfxBankSummary } from './sfxBank'
@@ -541,10 +542,20 @@ export async function autoInstallVideoStudio(now = Date.now()): Promise<'complet
 }
 
 /**
- * «Instalar lo que falta»: HyperFrames y GSAP en la carpeta del estudio, ffmpeg (Homebrew en macOS, winget en Windows)
+ * «Instalar lo que falta»: HyperFrames y GSAP en la carpeta del estudio, ffmpeg (Homebrew en macOS o, sin él, el ya
+ * compilado para su procesador; winget en Windows)
  * y la voz Kokoro en un entorno de Python propio. Cada paso dice cómo fue; un paso que falla no frena los demás.
  */
 let installing: Promise<VideoStudioStatus> | null = null
+
+/** ffmpeg y ffprobe sin Homebrew (macTools.ts) en ~/.local/bin, que se añade al PATH si aún no estaba. */
+async function macFfmpeg(onLine: (l: string) => void): Promise<{ code: number | null; out: string }> {
+  const r = await run('sh', ['-c', macFfmpegInstall()], { timeoutMs: 30 * 60_000, onLine })
+  const dir = macUserBin()
+  const path = (process.env.PATH ?? '').split(delimiter)
+  if (!path.includes(dir)) process.env.PATH = [dir, ...path].join(delimiter)
+  return r
+}
 
 /** Instala lo que falta una sola vez aunque lleguen varios vídeos a la vez (o se pulse el botón de Ajustes mientras). */
 export function ensureVideoStudio(onLine: (l: string) => void = () => undefined): Promise<VideoStudioStatus> {
@@ -567,7 +578,9 @@ export async function installVideoStudio(onLine: (l: string) => void = () => und
   if (!(await has('ffmpeg')) || !(await has('ffprobe'))) {
     onLine('Instalando ffmpeg…')
     const r = IS_MAC
-      ? await run('brew', ['install', 'ffmpeg'], { timeoutMs: 30 * 60_000, onLine })
+      ? (await has('brew', ['--version']))
+        ? await run('brew', ['install', 'ffmpeg'], { timeoutMs: 30 * 60_000, onLine })
+        : await macFfmpeg(onLine)
       : IS_WIN
         ? await run('winget', ['install', '-e', '--id', 'Gyan.FFmpeg', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity'], { timeoutMs: 30 * 60_000, onLine })
         : { code: 1, out: 'Instálalo con el gestor de paquetes (por ejemplo «sudo apt install ffmpeg»).' }

@@ -4,7 +4,7 @@
 // de Gemini, si el usuario la introduce, en el archivo donde la lee el propio Gemini CLI.
 import { spawn } from 'node:child_process'
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
+import os, { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import type { SetupAuth, SetupInstallResult, SetupTool, SetupToolId } from '@shared/types'
 import { emit } from './events'
@@ -15,10 +15,13 @@ import { readColibriSetup } from './agents/colibri'
 import { isGeminiKey } from './agents/gemini'
 import { asAdmin, detectPackageManager, findTerminal, LINUX_PACKAGES, nodeInstall, packageInstall, terminalArgs, which, withUserNpmPrefix, type LinuxPackageManager } from './linuxDesktop'
 import { tr } from '@shared/i18n'
+import { macLmStudioInstall, macNodeBin, macNodeInstall, macOllamaInstall, macPythonInstall, macUserBin, macUserPython } from './macTools'
 
 const IS_WIN = process.platform === 'win32'
 const IS_MAC = process.platform === 'darwin'
 const IS_LINUX = process.platform === 'linux'
+/** Mac con Apple silicon (también si kywai corre con Rosetta). LM Studio no tiene versión para los Mac Intel. */
+const MAC_ARM = IS_MAC && (process.arch === 'arm64' || os.cpus().some((c) => /Apple/i.test(c.model)))
 const HOME = homedir()
 
 interface Output {
@@ -91,7 +94,10 @@ export async function refreshPath(): Promise<void> {
     if (m) found.push(...m[1].split(':'))
     found.push('/opt/homebrew/bin', '/usr/local/bin', join(HOME, '.local', 'bin'), join(HOME, '.lmstudio', 'bin'), join(HOME, '.npm-global', 'bin'))
   }
-  const current = (process.env.PATH ?? '').split(delimiter)
+  // En Mac, lo que kywai instala sin Homebrew (Node.js, Python 3.12, ffmpeg, ollama…) va delante: si no, «python3»
+  // sería el 3.9 de macOS (o la ventana que pide las herramientas de desarrollo).
+  const first = IS_MAC ? [macNodeBin(HOME), macUserBin(HOME)].filter((d) => existsSync(d)) : []
+  const current = [...first, ...(process.env.PATH ?? '').split(delimiter).filter((p) => !first.includes(p))]
   const seen = new Set(current.map((p) => (IS_WIN ? p.toLowerCase() : p)))
   for (const p of found) {
     const dir = p.trim()
@@ -164,7 +170,7 @@ type FixedToolId = Exclude<SetupToolId, `cli:${string}`>
 const TOOLS: Record<FixedToolId, ToolDef> = {
   python: {
     label: 'Python',
-    version: IS_WIN ? 'python --version' : 'python3 --version',
+    version: IS_WIN ? 'python --version' : IS_MAC ? `"${macUserPython(HOME)}" --version 2>/dev/null || python3 --version` : 'python3 --version',
     url: 'https://www.python.org/downloads/',
     install: ({ brew, winget: wg, linuxPm }) =>
       IS_WIN
@@ -175,7 +181,9 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
           ? { cmd: asAdmin(packageInstall(linuxPm, LINUX_PACKAGES.python[linuxPm])) }
           : brew
             ? { cmd: 'brew install python' }
-            : null
+            : IS_MAC
+              ? { cmd: macPythonInstall() }
+              : null
   },
   uv: {
     label: 'uv',
@@ -190,13 +198,14 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
     version: 'node --version',
     url: 'https://nodejs.org/',
     install: ({ brew, winget: wg, linuxPm }) =>
-      IS_WIN ? (wg ? { cmd: winget('OpenJS.NodeJS.LTS') } : null) : linuxPm ? { cmd: asAdmin(nodeInstall(linuxPm)) } : brew ? { cmd: 'brew install node' } : null
+      IS_WIN ? (wg ? { cmd: winget('OpenJS.NodeJS.LTS') } : null) : linuxPm ? { cmd: asAdmin(nodeInstall(linuxPm)) } : brew ? { cmd: 'brew install node' } : IS_MAC ? { cmd: macNodeInstall() } : null
   },
   brew: {
     label: 'Homebrew',
     version: 'brew --version',
     url: 'https://brew.sh/',
-    // Su instalador pide la contraseña del Mac: se instala a mano desde brew.sh.
+    // Opcional: sin él, kywai baja los programas oficiales ya hechos (macTools.ts). Su instalador pide la contraseña del
+    // Mac, así que si alguien lo quiere se instala a mano desde brew.sh. El asistente solo lo enseña si ya está.
     install: () => null
   },
   claude: {
@@ -261,7 +270,9 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
           : null
         : brew
           ? { cmd: 'brew install --cask lm-studio && open -a "LM Studio" && for i in $(seq 60); do [ -x "$HOME/.lmstudio/bin/lms" ] && break; sleep 2; done' }
-          : null
+          : IS_MAC && MAC_ARM
+            ? { cmd: macLmStudioInstall() }
+            : null
   },
   ollama: {
     label: 'Ollama',
@@ -277,7 +288,9 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
           ? { cmd: asAdmin('curl -fsSL https://ollama.com/install.sh | sh') }
           : brew
             ? { cmd: 'brew install ollama && brew services start ollama' }
-            : null
+            : IS_MAC
+              ? { cmd: macOllamaInstall() }
+              : null
   },
   colibri: {
     label: 'Colibri',

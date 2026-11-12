@@ -99,12 +99,13 @@ export function SetupWizard() {
     return tool === 'claude' || tool === 'codex' || tool === 'gemini' || tool === 'hermes' || tool === 'muse'
   })
 
-  // Programas a mostrar: los de los agentes elegidos y lo que necesiten antes (Node.js, Homebrew).
+  // Programas a mostrar: los de los agentes elegidos y lo que necesiten antes (Node.js, Python). Homebrew solo se
+  // enseña si ya está: sin él, kywai baja los programas oficiales ya hechos (antes salía como si faltara algo).
   const shownTools = useMemo(() => {
     if (!tools) return []
     const byId = new Map(tools.map((tool) => [tool.id, tool]))
     const ids = new Set<SetupToolId>()
-    if (byId.has('brew')) ids.add('brew')
+    if (byId.get('brew')?.installed) ids.add('brew')
     for (const id of agentTools) {
       const tool = byId.get(id)
       if (tool?.needs && !tool.installed) ids.add(tool.needs)
@@ -487,9 +488,7 @@ export function SetupWizard() {
                         <span className={s.rowDetail}>
                           {tool.installed
                             ? t('Instalado') + (tool.version ? ` · ${tool.version}` : '')
-                            : tool.id === 'brew'
-                              ? t('Recomendado en Mac: instala programas sin pedirte nada más')
-                              : tool.needs && !tools.find((x) => x.id === tool.needs)?.installed
+                            : tool.needs && !tools.find((x) => x.id === tool.needs)?.installed
                                 ? t('Falta · necesita {tool}', { tool: tools.find((x) => x.id === tool.needs)?.label ?? tool.needs })
                                 : t('No instalado')}
                         </span>

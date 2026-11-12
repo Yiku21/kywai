@@ -7,13 +7,35 @@ cd "$(dirname "$0")/.."
 
 echo "== kywai · instalación en macOS =="
 
+# Node.js de kywai (el que deja el asistente de la app sin Homebrew), si ya está.
+[ -x "$HOME/.local/share/kywai/node/bin/node" ] && export PATH="$HOME/.local/share/kywai/node/bin:$PATH"
+
 if ! command -v node >/dev/null 2>&1; then
   if command -v brew >/dev/null 2>&1; then
     echo "Instalando Node.js con Homebrew…"
     brew install node
   else
-    echo "Falta Node.js. Instala Homebrew (https://brew.sh) o Node.js (https://nodejs.org) y vuelve a ejecutar este script."
-    exit 1
+    # Sin Homebrew: el Node.js oficial de nodejs.org para este procesador (Apple silicon o Intel), en la carpeta del
+    # usuario y sin contraseña. Node 24 pide macOS 13.5 o más nuevo; en uno más viejo, Node 22.
+    A=x64; { [ "$(uname -m)" = arm64 ] || [ "$(sysctl -in sysctl.proc_translated 2>/dev/null)" = 1 ]; } && A=arm64
+    L=22; [ "$(sw_vers -productVersion | cut -d. -f1)" -ge 14 ] && L=24
+    U="https://nodejs.org/dist/latest-v$L.x"
+    S="$(curl -fsSL "$U/SHASUMS256.txt" | grep " node-v[0-9.]*-darwin-$A.tar.gz$")"
+    F="${S##* }"
+    D="$HOME/.local/share/kywai"
+    echo "Instalando Node.js ($F)…"
+    mkdir -p "$D/node"
+    curl -fL --retry 3 -o "$D/node.tar.gz" "$U/$F"
+    if [ "$(shasum -a 256 "$D/node.tar.gz" | cut -d' ' -f1)" != "${S%% *}" ]; then
+      echo "La descarga de Node.js no coincide con su SHA-256. Vuelve a probar o instálalo desde https://nodejs.org"
+      rm -f "$D/node.tar.gz"
+      exit 1
+    fi
+    tar -xzf "$D/node.tar.gz" -C "$D/node" --strip-components 1
+    rm -f "$D/node.tar.gz"
+    grep -qs '.local/share/kywai/node/bin' "$HOME/.zprofile" ||
+      printf '\n# Node.js de kywai\nexport PATH="$HOME/.local/share/kywai/node/bin:$PATH"\n' >> "$HOME/.zprofile"
+    export PATH="$D/node/bin:$PATH"
   fi
 fi
 

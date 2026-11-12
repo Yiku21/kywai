@@ -961,7 +961,6 @@ export const pt: Record<string, string> = {
   "Cada agente funciona con su programa oficial (CLI). Lo que falte se instala desde aquí.": "Cada agente roda com o seu programa oficial (CLI). O que faltar é instalado daqui.",
   "Buscando programas…": "Procurando programas…",
   "Instalado": "Instalado",
-  "Recomendado en Mac: instala programas sin pedirte nada más": "Recomendado no Mac: instala os programas sem perguntar mais nada",
   "Falta · necesita {tool}": "Falta · precisa de {tool}",
   "No instalado": "Não instalado",
   "Instalando…": "Instalando…",

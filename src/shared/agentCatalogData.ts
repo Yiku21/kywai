@@ -165,7 +165,8 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
       url: 'https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically',
       install: {
         windows: 'winget install -e --id GitHub.Copilot --accept-package-agreements --accept-source-agreements --disable-interactivity',
-        mac: 'brew install copilot-cli',
+        // Sin Homebrew, el instalador oficial de GitHub (sirve también en Mac).
+        mac: 'if command -v brew >/dev/null 2>&1; then brew install copilot-cli; else curl -fsSL https://gh.io/copilot-install | bash; fi',
         linux: 'curl -fsSL https://gh.io/copilot-install | bash'
       }
     }
@@ -535,7 +536,7 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
       url: 'https://github.com/charmbracelet/crush',
       install: {
         windows: 'winget install -e --id charmbracelet.crush --accept-package-agreements --accept-source-agreements --disable-interactivity',
-        mac: 'brew install charmbracelet/tap/crush',
+        mac: 'npm install -g @charmland/crush',
         linux: 'npm install -g @charmland/crush',
         needs: 'node'
       }
@@ -594,7 +595,8 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
       login: 'gptme-auth openai-subscription',
       url: 'https://gptme.org/docs/getting-started.html',
       install: {
-        mac: 'brew install pipx && pipx install gptme',
+        // uv (instalador oficial de Astral) en vez de pipx de Homebrew: no pide contraseña.
+        mac: '(command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh) && PATH="$HOME/.local/bin:$PATH" uv tool install gptme',
         linux: 'pipx install gptme',
         needs: 'python'
       }
@@ -807,7 +809,9 @@ export const GENERIC_CATALOG: CatalogEntry[] = [
       login: 'acli rovodev auth login',
       url: 'https://support.atlassian.com/rovo/docs/rovo-dev-cli-commands/',
       install: {
-        mac: 'brew tap atlassian/homebrew-acli && brew install acli'
+        // Sin Homebrew, el binario oficial de Atlassian para el procesador del Mac, en ~/.local/bin.
+        mac:
+          'if command -v brew >/dev/null 2>&1; then brew tap atlassian/homebrew-acli && brew install acli; else R=amd64; { [ "$(uname -m)" = arm64 ] || [ "$(sysctl -in sysctl.proc_translated 2>/dev/null)" = 1 ]; } && R=arm64; mkdir -p "$HOME/.local/bin" && curl -fL --retry 3 -o "$HOME/.local/bin/acli" "https://acli.atlassian.com/darwin/latest/acli_darwin_$R/acli" && chmod +x "$HOME/.local/bin/acli"; fi'
       }
     }
   },

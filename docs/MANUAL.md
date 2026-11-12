@@ -221,7 +221,14 @@ Al abrir la app instalada por primera vez aparece el **asistente de configuraci�
    la de OpenRouter (para que Hermes coordine con un modelo `:free`; se elige en «Sesiones» → «Configurar»), y
    recuerda que el agente local siempre es gratis.
 2. **Programas**: comprueba si están sus CLIs y, si falta alguno, lo instala desde ahí con su instalador
-   oficial (y Node.js si hace falta). En Mac conviene tener [Homebrew](https://brew.sh).
+   oficial (y Node.js si hace falta). En Mac no hace falta [Homebrew](https://brew.sh) (ningún Mac lo trae de
+   serie): si no está, kywai baja los programas oficiales ya hechos para el procesador del Mac (Apple silicon o
+   Intel) y los deja en tu carpeta de usuario sin pedir la contraseña. Node.js, de nodejs.org (comprobado con su
+   SHA-256), en `~/.local/share/kywai/node` (Node 24, o Node 22 en un macOS anterior al 14) y añadido al PATH de
+   `~/.zprofile`. Python 3.12, con uv, en `~/.local/bin`. Ollama, su `.zip` oficial a Aplicaciones, con la orden
+   `ollama` en `~/.local/bin`. LM Studio, su `.dmg` a Aplicaciones (solo existe para Apple silicon; en un Mac Intel
+   sale «Descargar»). Copilot, Crush, gptme y Rovo Dev, con sus instaladores oficiales, npm o uv. Si Homebrew está,
+   se usa como antes, y el asistente solo lo enseña si ya está instalado (está en `src/main/macTools.ts`).
 3. **Sesiones**: abre el inicio de sesión oficial de cada CLI en una ventana aparte (normalmente en el
    navegador) y comprueba que quedó hecho. kywai no ve ni guarda contraseñas; para Gemini también puedes
    pegar una clave de API de Google AI Studio (gratis y sin tarjeta). Desde el 18 de junio de 2026, Google ya no deja
@@ -262,7 +269,8 @@ bash scripts/instalar-mac.sh
 ```
 
 Pregunta dónde instalar (por defecto `/Applications`), compila la app para ese Mac (chip Apple o Intel), la
-copia y la abre. Necesita Node.js (lo instala con Homebrew si está).
+copia y la abre. Necesita Node.js: lo instala con Homebrew si está y, si no, baja el oficial de nodejs.org para ese
+procesador a `~/.local/share/kywai/node`, como el asistente de la app.
 
 **Firma en Mac.** Sin certificado de Apple, `scripts/firmar-mac.sh` firma la app con un certificado propio de ese
 Mac, «AI Cowork (este Mac)», que crea la primera vez en un llavero aparte
@@ -901,7 +909,7 @@ En el código: `src/main/permissions.ts` (peticiones, respuestas y lo permitido 
 lleva `permission` con su estado.
 - **Instalar el motor local desde kywai**: en el indicador Local → «Agente local», la pestaña de un motor que no está
   instalado (LM Studio, Ollama o Colibri) tiene el botón **Instalar**, como los agentes en el asistente: usa la misma
-  instalación (Homebrew en Mac, winget en Windows, su instalador en Linux) y enseña la última línea de lo que va
+  instalación (Homebrew en Mac o, sin él, la descarga oficial; winget en Windows; su instalador en Linux) y enseña la última línea de lo que va
   haciendo. LM Studio se abre una vez al terminar, porque su CLI `lms` aparece la primera vez que se abre; Ollama
   queda en marcha.
 - **Colibri como motor local** (pestaña **Colibri** en el indicador Local → «Agente local», y en el paso Agentes del
@@ -2891,7 +2899,8 @@ entorno que ya estaba hecho con un Python viejo se rehace solo. Si Manim no se i
 **Instalar a mano.** ⚙ → Ajustes → Extensiones → **Estudio de vídeo** dice qué tiene el equipo (motor, ffmpeg, voz,
 imágenes) y **«Instalar lo que falta»** lo instala en el equipo donde corren los agentes (también si lo pulsas desde
 la web): HyperFrames y GSAP en la carpeta `estudio-video` de la carpeta de trabajo (versiones fijas, para que un guion
-se monte igual dentro de meses), ffmpeg (Homebrew en macOS, winget en Windows; en Linux, con tu gestor de paquetes),
+se monte igual dentro de meses), ffmpeg (Homebrew en macOS o, sin él, ffmpeg y ffprobe ya compilados para el procesador del Mac en `~/.local/bin`;
+winget en Windows; en Linux, con tu gestor de paquetes),
 la voz Kokoro en un entorno de Python propio (`estudio-video/.venv`) y el navegador del render. La primera voz
 descarga el modelo de Kokoro (unos cientos de MB). Si falta el motor o ffmpeg, pedir un vídeo dice qué instalar.
 
