@@ -1,0 +1,61 @@
+/* Movimiento común de kywai (principios de UX y animación, habilidad «principios-ux-animacion»).
+   Ventanas: el fondo funde en 160 ms y la ventana sube 10 px y se asienta en 200 ms; al cerrar, la copia que deja
+   lib/dialogMotion.ts se va en 140 ms (lo que sale tarda menos que lo que entra). Buscar (data-instant) sale al
+   instante porque se usa a diario. */
+
+:root {
+  --ease-in-ui: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out-ui: cubic-bezier(0.4, 0, 1, 1);
+  --dur-exit: 140ms;
+}
+
+:has(> [role='dialog'][aria-modal='true']):not([data-instant]):not([data-ghost]) {
+  animation: kwScrimIn 160ms var(--ease-in-ui) both;
+}
+
+[role='dialog'][aria-modal='true']:not([data-instant] *, [data-instant]) {
+  animation: kwDialogIn var(--dur) var(--ease-in-ui) both;
+}
+
+[data-ghost] {
+  animation: kwScrimOut var(--dur-exit) var(--ease-out-ui) both !important;
+}
+
+[data-ghost] [role='dialog'][aria-modal='true'],
+[data-ghost][role='dialog'] {
+  animation: kwDialogOut var(--dur-exit) var(--ease-out-ui) both !important;
+}
+
+@keyframes kwScrimIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes kwDialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+
+@keyframes kwScrimOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes kwDialogOut {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :has(> [role='dialog'][aria-modal='true']),
+  [role='dialog'][aria-modal='true'],
+  [data-ghost] {
+    animation: none !important;
+  }
+}

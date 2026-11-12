@@ -172,7 +172,7 @@ export function SearchDialog({ onClose, initialQuery = '' }: { onClose: () => vo
 
   let index = -1
   return (
-    <div className={s.backdrop} onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className={s.backdrop} data-instant onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={s.box} role="dialog" aria-modal="true" aria-label={t('Buscar')}>
         <div className={s.inputRow}>
           <Search size={18} aria-hidden="true" className={s.inputIcon} />

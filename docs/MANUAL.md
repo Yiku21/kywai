@@ -1903,6 +1903,14 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   al pulsarlos y los menús emergentes (`Popover`) aparecen en 120 ms en vez de 200 ms (se usan a cada rato); la lista
   del «/» y del «@» ya salía al instante. Con «reducir movimiento» del sistema no se mueve nada.
 
+**Movimiento y usabilidad de la interfaz** (repaso del 13 de noviembre de 2026 con esa habilidad; capturas en
+`ux-animacion/` de los archivos del proyecto):
+- **Ventanas suaves.** Toda ventana con `role="dialog"` y `aria-modal="true"` (Ajustes, Historial, Añadir agente,
+  asistente, Uso…) entra con el fondo fundiendo en 160 ms y la ventana subiendo 10 px y asentándose en 200 ms; al
+  cerrarla, `lib/dialogMotion.ts` deja una copia inerte que se va en 140 ms (lo que sale tarda menos que lo que
+  entra). Las reglas están en `styles/motion.css`. Buscar (Ctrl+K) lleva `data-instant` y sale al instante porque se
+  usa a diario. Con «reducir movimiento» no se anima nada.
+
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),
 `anotar_memoria` (queda provisional, como «Para la memoria»), `estado_equipo` (qué hacen ahora los compañeros,
