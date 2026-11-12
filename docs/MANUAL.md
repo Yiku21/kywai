@@ -1869,6 +1869,29 @@ Nada sale del equipo: sin claves de pago. Ideas de [video-use](https://github.co
 [Clipify](https://github.com/louisedesadeleer/clipify) (las dos MIT), reimplementadas. Código: `src/main/footage.ts`
 (y `sendFootage`/`prepareFootage`/`completeFootage` en el orquestador).
 
+### Vídeo de presentación de una web (`/demo`)
+
+**«/demo <web> [vertical] [lo que quieres destacar]»** hace un anuncio corto (de 18 a 35 s) de una web **con fotos
+reales de la página**, no con imágenes inventadas: se ve la web de verdad, nítida y con su marca. Por defecto sale
+horizontal (1920×1080); con «vertical» (o «reel», «tiktok», «9:16») sale para Reels y TikTok (1080×1920). Ejemplo:
+«/demo kywai.app vertical que se vea el espacio 3D».
+
+1. kywai abre la web en una ventana oculta (sesión aparte, sin permisos ni ventanas nuevas, sin salir de esa web), baja
+   hasta el final para que cargue todo y la fotografía entera en **ordenador** (1440 de ancho) y en **móvil** (390 de
+   ancho a doble resolución). Lee el título, la descripción, las secciones y el **color de la marca** (el
+   `theme-color` o el de sus botones). Queda en `.ai-cowork/demo/<id>/` (`escritorio.png`, `movil.png`, `pagina.json`).
+2. Un agente mira las fotos y hace el **guion de planos** eligiendo de las **fichas de planos**: `portada` (el gancho
+   sobre el color de la marca), `recorrido` (la web bajando de una sección a otra), `acercamiento` (de una sección
+   entera a un detalle), `detalle` (plano cerrado con rótulo), `movil` (la web en un teléfono sobre la web
+   desenfocada), `pareja` (ordenador y móvil a la vez), `rotulo` (una frase a pantalla completa) y `cierre` (llamada a
+   la acción y la dirección). Responde solo un JSON; si no vale, se reintenta con otro agente.
+3. kywai monta cada plano con ffmpeg (movimientos de cámara suaves sobre las fotos, rótulos que aparecen), los une con
+   fundidos y le pone música. Se entrega en `videos/<título>-demo.mp4` (o `-demo-vertical.mp4`).
+
+Hace falta la app de escritorio (las fotos las hace Electron). Idea de las fichas de planos de
+[video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) (Apache-2.0), reimplementada sin Remotion.
+Código: `src/main/webDemo.ts` y `src/main/htmlShot.ts` (y `sendDemo`/`prepareDemo`/`completeDemo` en el orquestador).
+
 ### Series por episodios (`/serie`)
 
 **«/serie <idea> [en 5 episodios]»** cuenta una historia en vídeos cortos con **los mismos personajes**, para subirlos
@@ -2494,6 +2517,7 @@ eliges, Intro o Tab la pone, Esc cierra la lista. Igual en el escritorio, la web
 | `/serie idea [en 5 episodios]` | Una historia en episodios con los mismos personajes, cada uno acaba en suspense (ver «Series por episodios») |
 | `/editar` (con un vídeo adjunto) | Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos (ver «Editar tus grabaciones») |
 | `/recortes [n]` (con un vídeo adjunto) | Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos |
+| `/demo <web> [vertical]` | Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos (ver «Vídeo de presentación de una web») |
 | `/aprende enlace o vídeo` | Convierte lo que enseña un vídeo en una habilidad (ver «Aprender de un vídeo») |
 | `/instagram qué quieres en el texto` | Prepara el último vídeo para el Instagram de kywai y lo publica con tu visto bueno (ver «El Instagram de kywai») |
 | `/tiktok qué quieres en el texto` | Prepara el último vídeo para el TikTok de kywai y lo envía como borrador o lo publica con tu visto bueno (ver «El TikTok de kywai») |

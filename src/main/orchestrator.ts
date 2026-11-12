@@ -84,11 +84,13 @@ import { ponytailPromptLines, ponytailReviewLines } from './ponytail'
 import { parseDirect } from '@shared/directMessage'
 import { replyExcerpt, replyRequest } from '@shared/replyTo'
 import { scriptFileOf, scriptSource } from './videoScriptFile'
-import { parseVideoRequest, parseVideoScript, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
+import { parseVideoRequest, parseVideoScript, synthMusic, videoScriptPrompt, videoSlug, type VideoFormat, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
 import { videoLang, type VideoKind } from '../shared/videoChoice'
 import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
+import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
+import { demoPrompt, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoRequest } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
 import { isMediaFile, learnPrompt, parseLearnedSkill, parseLearnRequest, prepareLearnSource, saveLearnedSkill, type LearnRequest } from './learn'
 import { BEATS_FILE, FILM_3D, filmPrompt, filmReady, filmTitle, findFilm, KYWAI_GUIDE_FILE } from './filmLibrary'
@@ -1564,6 +1566,13 @@ export async function sendMessage(input: SendMessageInput, opts: { routine?: { i
     return sendFootage(st, footageReq, atts, input.clientMessageId, routine, text.trim())
   }
 
+  // «/demo <web>»: vídeo de presentación de una web con fotos reales de la página.
+  const demoReq = fromMsg || tpl ? null : parseDemoRequest(text)
+  if (demoReq) {
+    if (!demoReq.url) throw new Error(tr('¿De qué web hago el vídeo? Pon su dirección: «/demo https://…».'))
+    return sendDemo(st, demoReq, atts, input.clientMessageId, routine, text.trim())
+  }
+
   // «/instagram [qué quieres en el texto]»: el último vídeo (o el adjunto) con su texto, listo para publicar.
   const igReq = fromMsg || tpl ? null : parseInstagramRequest(text)
   if (igReq) return sendInstagram(st, igReq.note, atts, input.clientMessageId, routine, text.trim())
@@ -2563,32 +2572,8 @@ async function sendFootage(
   const agent = bestAgentFor('edición de vídeo montaje guion redes sociales redacción')
   if (!agent) throw new Error(tr('No hay ningún agente disponible para editar ese vídeo.'))
   const video = atts.find((a) => isVideoFile(a.relPath))!
-  const runId = randomUUID()
-  pushMessage({
-    id: randomUUID(),
-    projectId,
-    runId,
-    ...(clientMessageId ? { clientMessageId } : {}),
-    author: { type: 'user' },
-    text: shown,
-    createdAt: Date.now(),
-    attachments: atts.length ? atts : undefined,
-    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
-  })
-  const run: Run = {
-    id: runId,
-    projectId,
-    userText: shown,
-    ...(routine ? { routine: routine.name } : {}),
-    attachments: atts,
-    attPaths: store.stageAttachments(projectId, atts),
-    planning: false,
-    taskIds: [],
-    meta: new Map(),
-    controllers: new Map(),
-    cancelled: false,
-    finished: false
-  }
+  const run = openSingleRun(st, shown, atts, clientMessageId, routine)
+  const { id: runId } = run
   const t: Task = {
     id: randomUUID(),
     projectId,
@@ -2615,6 +2600,157 @@ async function sendFootage(
       work: `.ai-cowork/edicion/${Date.now().toString(36)}`
     }
   }
+  return startSingleRun(st, run, t, shown)
+}
+
+/** «/demo <web>»: una tarea. Antes kywai fotografía la web (prepareDemo); el agente hace el guion de planos. */
+async function sendDemo(
+  st: ReturnType<typeof store.getProject>,
+  req: DemoRequest,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined,
+  shown: string
+): Promise<{ runId: string }> {
+  const projectId = st.project.id
+  const agent = bestAgentFor('marketing anuncios guion vídeo diseño web redacción')
+  if (!agent) throw new Error(tr('No hay ningún agente disponible para hacer ese vídeo.'))
+  const run = openSingleRun(st, shown, atts, clientMessageId, routine)
+  const host = new URL(req.url).host.replace(/^www\./, '')
+  const t: Task = {
+    id: randomUUID(),
+    projectId,
+    runId: run.id,
+    seq: nextTaskSeq(projectId),
+    title: tr('Vídeo de presentación de {host}', { host }),
+    description: req.note || tr('Un anuncio corto de la web con fotos reales de la página'),
+    agentId: agent.id,
+    dependsOn: [],
+    status: 'pending',
+    difficulty: 'medium',
+    createdAt: Date.now(),
+    artifactIds: [],
+    deliverable: 'file',
+    demo: { url: req.url, format: req.format, note: req.note, work: `.ai-cowork/demo/${Date.now().toString(36)}` }
+  }
+  return startSingleRun(st, run, t, shown)
+}
+
+type DemoPage = { desktop: PageCapture; mobile: PageCapture | null }
+
+/** Fotografía la web de «/demo» entera, en ordenador y en móvil (una vez). */
+async function prepareDemo(run: Run, t: Task): Promise<void> {
+  const d = t.demo!
+  if (d.ready) return
+  const dir = join(store.workRoot(run.projectId), d.work)
+  mkdirSync(dir, { recursive: true })
+  t.lastActivity = tr('Fotografiando la web')
+  taskDirty(t)
+  const desktop = await capturePage(d.url, join(dir, 'escritorio.png'))
+  if (!desktop) throw new Error(tr('No pude abrir {url} (¿está bien la dirección? Hace falta la app de escritorio)', { url: d.url }))
+  t.lastActivity = tr('Fotografiando la web en el móvil')
+  taskDirty(t)
+  const mobile = await capturePage(d.url, join(dir, 'movil.png'), { mobile: true })
+  writeFileSync(join(dir, 'pagina.json'), JSON.stringify({ desktop, mobile } satisfies DemoPage, null, 2), 'utf8')
+  d.mobile = !!mobile
+  d.ready = true
+  pushTask(t)
+}
+
+function demoPage(run: Run, t: Task): DemoPage {
+  return JSON.parse(readFileSync(join(store.workRoot(run.projectId), t.demo!.work, 'pagina.json'), 'utf8')) as DemoPage
+}
+
+/** «/demo»: con el guion de planos del agente, kywai monta el vídeo con las fotos de la web. */
+async function completeDemo(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
+  const d = t.demo!
+  const meta = run.meta.get(t.id)!
+  const root = store.workRoot(run.projectId)
+  let page: DemoPage
+  try {
+    page = demoPage(run, t)
+  } catch {
+    d.ready = false
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('Faltaban las fotos de la web: se vuelven a hacer.') })
+    return
+  }
+  let plan
+  try {
+    plan = parseDemoPlan(res.text, page.desktop.sections.length, !!page.mobile)
+  } catch (e) {
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('El guion de planos no valía: {message}', { message: (e as Error).message }) })
+    return
+  }
+  settleRuntime(exec.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Montando el vídeo'), context: undefined })
+  const out = join(root, twoHandsBase(run.projectId), 'videos', `${videoSlug(plan.title) || 'demo'}-demo${d.format === 'vertical' ? '-vertical' : ''}.mp4`)
+  try {
+    const secs = await renderDemo({
+      plan, desktop: page.desktop, mobile: page.mobile, format: d.format, url: d.url, music: synthMusic(planSeconds(plan), plan.title), out,
+      dir: join(root, d.work, 'montaje'), htmlToPng, signal: run.controllers.get(t.id)?.signal,
+      onStep: (text, p) => {
+        t.lastActivity = tr(text)
+        t.progress = p
+        taskDirty(t)
+      }
+    })
+    const rel = store.toRelPath(root, out)
+    if (rel) meta.touched.add(rel)
+    const text = [
+      tr('Aquí tienes «{title}»: {n} planos, {secs} s, hecho con fotos reales de {url}.', { title: plan.title, n: plan.shots.length, secs: Math.round(secs), url: d.url }),
+      plan.shots.map((s, k) => `${k + 1}. ${s.ficha}${s.text ? `: «${s.text}»` : ''}`).join('\n'),
+      tr('Para publicarlo, adjúntalo a «/instagram» o «/tiktok».')
+    ].join('\n\n')
+    await completeTask(run, t, exec, parent, { ...res, text })
+  } catch (e) {
+    if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+    t.status = 'failed'
+    t.error = tr('No se pudo montar el vídeo: {message}', { message: (e as Error).message })
+    t.finishedAt = Date.now()
+    pushTask(t)
+    closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
+  }
+}
+
+/** El mensaje del usuario y la ejecución de una orden que es una sola tarea («/editar», «/demo»…). */
+function openSingleRun(
+  st: ReturnType<typeof store.getProject>,
+  shown: string,
+  atts: Attachment[],
+  clientMessageId: string | undefined,
+  routine: { id: string; name: string } | undefined
+): Run {
+  const projectId = st.project.id
+  const runId = randomUUID()
+  pushMessage({
+    id: randomUUID(),
+    projectId,
+    runId,
+    ...(clientMessageId ? { clientMessageId } : {}),
+    author: { type: 'user' },
+    text: shown,
+    createdAt: Date.now(),
+    attachments: atts.length ? atts : undefined,
+    ...(routine ? { routine: { id: routine.id, name: routine.name } } : {})
+  })
+  return {
+    id: runId,
+    projectId,
+    userText: shown,
+    ...(routine ? { routine: routine.name } : {}),
+    attachments: atts,
+    attPaths: store.stageAttachments(projectId, atts),
+    planning: false,
+    taskIds: [],
+    meta: new Map(),
+    controllers: new Map(),
+    cancelled: false,
+    finished: false
+  }
+}
+
+/** Arranca la ejecución de `openSingleRun` con su única tarea, que entrega un archivo. */
+async function startSingleRun(st: ReturnType<typeof store.getProject>, run: Run, t: Task, shown: string): Promise<{ runId: string }> {
+  const { id: runId, projectId } = run
   run.meta.set(t.id, { key: t.id, deliverable: 'file', touched: new Set(), retried: false, forceMainModel: false })
   runs.set(runId, run)
   emit({ kind: 'run.started', runId, projectId, conversationId: conversationOfRun(projectId, runId) })
@@ -4437,6 +4573,16 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       lang: userLanguageName()
     })
   }
+  if (t.demo?.ready) {
+    let page: DemoPage | null = null
+    try {
+      page = demoPage(run, t)
+    } catch {
+      /* se vuelve a preparar si falta */
+    }
+    if (page)
+      return demoPrompt({ url: t.demo.url, note: t.demo.note, format: t.demo.format, page: page.desktop, desktop: page.desktop.file, ...(page.mobile ? { mobile: page.mobile.file } : {}), lang: userLanguageName() })
+  }
   if (t.footage?.ready) {
     const f = t.footage
     let words: Word[] = []
@@ -4737,6 +4883,21 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // Una consulta rápida solo lee: va a la carpeta tal cual, sin instantánea, sin ocuparla y sin copia aparte.
   const dir = t.video?.film && t.video.work ? await prepareFilm(run, t) : t.quick ? mainDir : await prepareWorkplace(run, t, meta, exec)
   if (t.video && !t.video.film && !t.video.refs) await prepareVideoRefs(run, t)
+  if (t.demo && !t.demo.ready) {
+    try {
+      await prepareDemo(run, t)
+    } catch (e) {
+      if (run.cancelled || (t.status as Task['status']) === 'cancelled') return
+      t.status = 'failed'
+      t.error = tr('No pude fotografiar la web: {message}', { message: tr((e as Error).message) })
+      t.finishedAt = Date.now()
+      pushTask(t)
+      setRuntime(exec.id, { activity: 'idle', taskId: undefined })
+      closeWork(run, t, 'failed', { text: t.error, tone: 'error' })
+      schedule()
+      return
+    }
+  }
   if (t.footage && !t.footage.ready) {
     try {
       await prepareFootage(run, t)
@@ -4956,6 +5117,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
     else if (res.ok && t.video) await completeVideo(run, t, exec, parent, res)
     else if (res.ok && t.learn) await completeLearn(run, t, exec, parent, res)
     else if (res.ok && t.footage) await completeFootage(run, t, exec, parent, res)
+    else if (res.ok && t.demo) await completeDemo(run, t, exec, parent, res)
     else if (res.ok && t.instagram) await completeInstagram(run, t, exec, parent, res)
     else if (res.ok && t.igReply) await completeIgReply(run, t, exec, parent, res)
     else if (res.ok) {

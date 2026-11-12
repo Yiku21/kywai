@@ -1063,4 +1063,6 @@ private fun part7(m: HashMap<String, String>) {
     m["[n] vídeo adjunto"] = "[n] vídeo anexado"
     m["Edita tu grabación: quita muletillas, silencios y tomas repetidas, limpia la voz y pone subtítulos"] = "Edita sua gravação: tira muletas, silêncios e tomadas repetidas, limpa a voz e põe legendas"
     m["Saca los mejores momentos de un vídeo largo como clips verticales con subtítulos"] = "Tira os melhores momentos de um vídeo longo como clipes verticais com legendas"
+    m["web [vertical]"] = "site [vertical]"
+    m["Un anuncio en vídeo de una web con fotos reales de la página: acercamientos, el móvil y rótulos"] = "Um anúncio em vídeo de um site com capturas reais da página: aproximações, o celular e legendas"
 }
