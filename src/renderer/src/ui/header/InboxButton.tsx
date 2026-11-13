@@ -51,6 +51,7 @@ export function InboxButton({ sidebar }: { sidebar?: { button: string; label: st
   const anchor = useRef<HTMLButtonElement>(null)
   // Algo nuevo sin mirar: la campanita palpita con un brillo suave hasta que abres la bandeja.
   const ringing = useInboxAlert((st) => st.ringing)
+  const calledAt = useInboxAlert((st) => st.calledAt)
   const openSeq = useInboxAlert((st) => st.openSeq)
   const firstSeq = useRef(openSeq)
   useEffect(() => {
@@ -105,7 +106,8 @@ export function InboxButton({ sidebar }: { sidebar?: { button: string; label: st
         aria-haspopup="dialog"
         onClick={() => setOpen((v) => !v)}
       >
-        <Icon size={sidebar ? 17 : 18} aria-hidden="true" className={b.bell} />
+        {/* key: con cada aviso nuevo la campanita vuelve a mecerse (las animaciones paran solas tras 3 veces). */}
+        <Icon key={calledAt} size={sidebar ? 17 : 18} aria-hidden="true" className={b.bell} />
         {sidebar && <span className={sidebar.label}>{t('Te necesita')}</span>}
         {count > 0 && (
           <span className={sidebar ? sidebar.badge : b.badge} aria-hidden="true">

@@ -336,7 +336,8 @@
 .robot.calling {
   position: relative;
   border-color: rgba(255, 201, 77, 0.75);
-  animation: call-glow 1.6s ease-in-out infinite;
+  /* Late tres veces y se queda dorado hasta que abres «Te necesita». */
+  animation: call-glow 1.6s ease-in-out 3;
 }
 
 .callBell {
@@ -353,7 +354,7 @@
   box-shadow: 0 0 0 2px rgba(var(--label-rgb, 9, 14, 25), 0.9);
   transform: translateX(-50%);
   transform-origin: 50% 20%;
-  animation: call-bell 1.6s ease-in-out infinite;
+  animation: call-bell 1.6s ease-in-out 3;
 }
 
 .robot.calling.static,

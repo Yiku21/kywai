@@ -1922,6 +1922,10 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   con el foco puesto para corregirlo. Ya lo hacen: «Nueva rutina» (antes, guardar sin nombre o sin petición no hacía
   nada; ahora dice qué falta debajo del campo), los argumentos de «Otro programa…» al añadir un agente y la línea
   pegada de Extensiones → «Pegar». Con «reducir movimiento» solo se pone en rojo.
+- **Avisos que no se mueven sin parar.** La campanita de «Te necesita» se mece y brilla tres veces y se queda quieta
+  en ámbar hasta que abres la bandeja; con cada aviso nuevo vuelve a mecerse (`key={calledAt}`). Igual la llamada
+  del coordinador en el 3D (late tres veces y queda dorada) y la rueda ⚙ con actualización pendiente (late tres
+  veces y queda amarilla con su punto). Las ruedas de «trabajando» sí siguen girando: dicen que algo está en marcha.
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),

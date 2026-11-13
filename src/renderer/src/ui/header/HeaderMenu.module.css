@@ -146,11 +146,12 @@
   color: var(--alert);
 }
 
-/* Actualización pendiente: la rueda ⚙ y la opción de actualizar brillan en amarillo. */
+/* Actualización pendiente: la rueda ⚙ y la opción de actualizar brillan en amarillo. Late tres veces y se queda
+   amarilla con su punto (nada se mueve solo sin parar mientras trabajas). */
 .glowBtn {
   position: relative;
   color: var(--update) !important;
-  animation: updateGlow 2.4s ease-in-out infinite;
+  animation: updateGlow 2.4s ease-in-out 3;
 }
 
 .glowBtn::after {

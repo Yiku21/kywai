@@ -58,6 +58,7 @@ export function RobotLabel({ agent }: Props) {
   const ringing = useInboxAlert((st) => st.ringing);
   const isCoordinator = useCowork((st) => st.config.plannerOrder?.[0] === agent.id);
   const callIn3d = useInboxAlert((st) => st.callIn3d);
+  const calledAt = useInboxAlert((st) => st.calledAt);
   const calling = ringing && isCoordinator && callIn3d && !agent.isSubagent;
 
   // Reposo: se evalúa cada pocos segundos (no en cada fotograma).
@@ -200,7 +201,7 @@ export function RobotLabel({ agent }: Props) {
         }}
       >
         {calling && (
-          <span className={s.callBell} title={t("Te necesita")} aria-hidden="true">
+          <span key={calledAt} className={s.callBell} title={t("Te necesita")} aria-hidden="true">
             <Bell size={13} />
           </span>
         )}

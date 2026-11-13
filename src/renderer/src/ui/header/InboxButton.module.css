@@ -131,7 +131,8 @@
   border-left-color: var(--live, #3fb950);
 }
 
-/* Algo nuevo en «Te necesita»: la campanita palpita con un brillo suave y se mece un poco (hasta abrir la bandeja). */
+/* Algo nuevo en «Te necesita»: la campanita palpita con un brillo suave y se mece un poco tres veces; luego se queda
+   quieta en ámbar hasta abrir la bandeja (nada se mueve solo sin parar). Con cada aviso nuevo vuelve a empezar. */
 .bell {
   transform-origin: 50% 8%;
 }
@@ -139,8 +140,8 @@
 .ringing .bell {
   color: var(--warn, #f5b13d) !important;
   animation:
-    inboxGlow 1.6s ease-in-out infinite,
-    inboxSwing 3.2s ease-in-out infinite;
+    inboxGlow 1.6s ease-in-out 6,
+    inboxSwing 3.2s ease-in-out 3;
 }
 
 @keyframes inboxGlow {
@@ -177,6 +178,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ringing .bell {
-    animation: inboxGlow 2.4s ease-in-out infinite;
+    animation: inboxGlow 2.4s ease-in-out 3;
   }
 }
