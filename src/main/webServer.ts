@@ -14,6 +14,7 @@ import { savePastedFile } from './local'
 import * as store from './projects'
 import { prepareArtifactDownload, writeArtifactDownload } from './artifactDownloads'
 import { modPanelResponse } from './mods'
+import { cachedPdf, previewCacheDir } from './officePreview'
 import type { TlsPair } from './selfCert'
 import { MobileApi } from './mobileApi'
 import { handleRoutineWebhook } from './routines'
@@ -564,6 +565,14 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return
   }
   if (path.startsWith('/api/file/') && req.method === 'GET') return serveProjectFile(req, res, path)
+  if (path.startsWith('/api/preview/') && req.method === 'GET') {
+    // PDF de vista previa de un .doc, .ppt… hecho con LibreOffice (lo pide readArtifact con { pdf: true }).
+    const pdf = cachedPdf(previewCacheDir(app.getPath('userData')), path.slice('/api/preview/'.length))
+    if (!pdf) return send(res, 404, 'Not found')
+    res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Length': statSync(pdf).size, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache' })
+    createReadStream(pdf).pipe(res)
+    return
+  }
   if (path.startsWith('/api/mod-panel/') && req.method === 'GET') {
     const r = modPanelResponse(path.slice('/api/mod-panel/'.length))
     res.writeHead(r.status, r.headers)

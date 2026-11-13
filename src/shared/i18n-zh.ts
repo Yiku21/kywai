@@ -3901,4 +3901,9 @@ export const zh: Record<string, string> = {
   "Se ven los primeros {n} elementos.": "仅显示前 {n} 项。",
   "No se pudo cargar la letra: {error}": "无法加载该字体：{error}",
   "No parece un cuaderno de Jupyter válido: {error}": "这似乎不是有效的 Jupyter 笔记本：{error}",
+  "Convirtiendo con LibreOffice… (la primera vez tarda unos segundos)": "正在用 LibreOffice 转换…（第一次需要几秒钟）",
+  "Para ver este archivo aquí hace falta LibreOffice": "要在这里查看此文件，需要安装 LibreOffice",
+  "Es gratis. Con él instalado en el equipo donde corre kywai, los .doc, .ppt y parecidos se ven aquí dentro, sin subir nada a internet. Mientras, puedes abrirlo con la aplicación del equipo.": "它是免费的。在运行 kywai 的电脑上装好后，.doc、.ppt 等文件就能直接在这里查看，无需上传到网上。在此之前，你可以用电脑上的应用打开它。",
+  "Descargar LibreOffice": "下载 LibreOffice",
+  "LibreOffice no pudo convertirlo: {error}": "LibreOffice 无法转换它：{error}",
 }

@@ -55,6 +55,8 @@ export type PreviewKind =
   | 'font'
   /** Cuaderno de Jupyter (.ipynb): celdas y resultados, o su JSON con el interruptor. */
   | 'notebook'
+  /** Lo demás de oficina (.doc, .ppt, Publisher, Visio…): PDF hecho con LibreOffice en el servidor. */
+  | 'office'
   | 'other'
 
 const IMAGE = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif'])
@@ -74,6 +76,11 @@ const ODF = new Set(['odt', 'ott', 'odp', 'otp', 'odg', 'otg'])
 const MODEL = new Set(['glb', 'gltf', 'obj', 'stl', 'ply', 'fbx', '3mf'])
 const ARCHIVE = new Set(['zip', 'jar', 'apk', 'aab', 'whl', 'xpi', 'nupkg', 'vsix', 'cbz', 'aar'])
 const FONT = new Set(['ttf', 'otf', 'woff', 'woff2'])
+// Lo que se ve convirtiéndolo a PDF con LibreOffice (si está instalado).
+const OFFICE = new Set([
+  'doc', 'dot', 'docb', 'wps', 'wpd', 'wri', 'lwp', 'hwp', 'abw', 'sxw', 'ppt', 'pps', 'pot', 'sxi', 'pub', 'vsd', 'vsdx',
+  'vdx', 'cdr', 'emf', 'wmf', 'cgm', 'tif', 'tiff', 'sxd', 'xps'
+])
 const SHEET = new Set(['xlsx', 'xlsm', 'xlsb', 'xls', 'xltx', 'xltm', 'ods', 'fods', 'numbers'])
 
 function ext(name: string): string {
@@ -103,6 +110,7 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (ARCHIVE.has(e)) return 'archive'
   if (FONT.has(e)) return 'font'
   if (e === 'ipynb') return 'notebook'
+  if (OFFICE.has(e)) return 'office'
   if (e === 'csv' || e === 'tsv') return 'table'
   if (VIDEO.has(e)) return 'video'
   if (AUDIO.has(e)) return 'audio'
@@ -117,6 +125,7 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (m === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || m === 'application/vnd.ms-excel') return 'sheet'
   if (m === 'text/csv') return 'table'
   if (m === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') return 'slides'
+  if (m === 'application/msword' || m === 'application/vnd.ms-powerpoint') return 'office'
   if (m.startsWith('text/') || (!e && !m)) return 'text'
   return 'other'
 }

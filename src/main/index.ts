@@ -44,6 +44,7 @@ import {
 import { applyUpdate, checkForUpdates, sourceDir, startUpdateWatch, updatePending } from './selfUpdate'
 import { getWhatsNew, latestWhatsNew, markWhatsNewSeen, noteConfiguredAtBoot } from './whatsNew'
 import { setGuideEnv } from './coordinatorGuide'
+import { cachedPdf, NoLibreOfficeError, officeToPdf, previewCacheDir } from './officePreview'
 import { transcribeAudio } from './voice'
 import { isLocalEngine } from '@shared/localEngines'
 import { lookupTempo, tempoResponse } from './musicTempo'
@@ -300,6 +301,11 @@ function registerProtocol(): void {
         const r = modPanelResponse(url.pathname)
         return new Response(r.body, { status: r.status, headers: r.headers })
       }
+      if (url.hostname === 'preview') {
+        // PDF de vista previa hecho con LibreOffice (officePreview.ts).
+        const pdf = cachedPdf(previewCacheDir(app.getPath('userData')), url.pathname.replace(/^\//, ''))
+        return pdf ? net.fetch(pathToFileURL(pdf).toString()) : new Response('Not found', { status: 404 })
+      }
       if (url.hostname !== 'file') return new Response('Not found', { status: 404 })
       const segments = url.pathname.split('/').filter(Boolean).map((s) => decodeURIComponent(s))
       const [projectId, ...rest] = segments
@@ -351,12 +357,24 @@ const TEXT_CAP = 400 * 1024
 async function readArtifact(projectId: unknown, relPath: unknown, opts?: unknown): Promise<{ text?: string; url?: string }> {
   // El panel de vista previa pide el texto de un HTML o un SVG para enseñar su código.
   const asText = !!opts && typeof opts === 'object' && (opts as { text?: unknown }).text === true
+  // …o un PDF hecho con LibreOffice para los documentos que no sabe pintar (.doc, .ppt…).
+  const asPdf = !!opts && typeof opts === 'object' && (opts as { pdf?: unknown }).pdf === true
   if (!store.isValidProjectId(projectId) || typeof relPath !== 'string') throw new Error(tr('Ruta no válida'))
   const rel = relPath.replace(/\\/g, '/')
   const abs = store.resolveProjectFile(projectId, rel)
   if (!abs) throw new Error(tr('No se encontró el archivo en el proyecto'))
   const st = await fsp.stat(abs)
   if (!st.isFile()) throw new Error('No es un archivo')
+  if (asPdf) {
+    try {
+      const name = await officeToPdf(abs, previewCacheDir(app.getPath('userData')))
+      return { url: `cowork://preview/${name}` }
+    } catch (e) {
+      // El panel reconoce este texto y explica cómo instalar LibreOffice.
+      if (e instanceof NoLibreOfficeError) throw new Error('NO_LIBREOFFICE')
+      throw e
+    }
+  }
   const kind = store.artifactKind(rel)
   const url = `cowork://file/${projectId}/${encodeRel(rel)}`
   if (!asText && (kind === 'html' || kind === 'image')) return { url }

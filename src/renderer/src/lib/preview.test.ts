@@ -61,6 +61,13 @@ describe('panel de vista previa', () => {
     expect(previewKind('esquema.graphql')).toBe('code')
   })
 
+  it('lo demás de oficina (.doc, .ppt, Visio…) va por LibreOffice', () => {
+    expect(previewKind('viejo.doc')).toBe('office')
+    expect(previewKind('charla.ppt')).toBe('office')
+    expect(previewKind('plano.vsdx')).toBe('office')
+    expect(previewKind('charla.pptm')).toBe('slides')
+  })
+
   it('sin extensión conocida, se fía del tipo MIME', () => {
     expect(previewKind('pegado', 'image/png')).toBe('image')
     expect(previewKind('archivo.raro', 'application/pdf')).toBe('pdf')

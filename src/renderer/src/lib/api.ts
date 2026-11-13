@@ -204,8 +204,11 @@ function createWebApi(): CoworkApi {
     // En el navegador un archivo soltado no tiene ruta en el Mac: se sube con savePastedFile.
     pathForFile: () => '',
     savePastedFile: (name: string, data: Uint8Array) => upload(name, new Blob([data as BlobPart])),
-    readArtifact: async (projectId: string, relPath: string, opts?: { text?: boolean }) => {
+    readArtifact: async (projectId: string, relPath: string, opts?: { text?: boolean; pdf?: boolean }) => {
       const r = (await call('readArtifact', opts ? [projectId, relPath, opts] : [projectId, relPath])) as { text?: string; url?: string }
+      // El PDF de vista previa de un .doc o un .ppt (hecho con LibreOffice en el servidor).
+      const preview = r.url?.startsWith('cowork://preview/') ? r.url.slice('cowork://preview/'.length) : null
+      if (preview) return { ...r, url: `/api/preview/${encodeURIComponent(preview)}` }
       return r.url ? { ...r, url: webFileUrl(projectId, relPath) } : r
     },
     downloadFile: async (projectId: string, relPath: string) => {

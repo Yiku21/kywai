@@ -2093,7 +2093,8 @@ export interface CoworkApi {
   /** Ruta absoluta de un archivo soltado en la ventana. */
   pathForFile(file: File): string
   /** Lee un archivo del proyecto: texto, o la dirección para verlo. Con `{ text: true }`, un HTML o un SVG llega como texto. */
-  readArtifact(projectId: string, relPath: string, opts?: { text?: boolean }): Promise<{ text?: string; url?: string }>
+  /** `text`: su texto (para ver el código). `pdf`: un PDF hecho con LibreOffice, para los .doc, .ppt… */
+  readArtifact(projectId: string, relPath: string, opts?: { text?: boolean; pdf?: boolean }): Promise<{ text?: string; url?: string }>
   /** Guarda una copia de un archivo del proyecto en el dispositivo desde el que se usa la app. */
   downloadFile?(projectId: string, relPath: string): Promise<void>
   /** Guarda un entregable, o varios como zip, en el dispositivo desde el que se usa la app. */

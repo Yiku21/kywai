@@ -38,6 +38,7 @@ const SheetView = lazy(() => import('./viewers/SheetView'))
 const SlidesView = lazy(() => import('./viewers/SlidesView'))
 const RichDocView = lazy(() => import('./viewers/RichDocView'))
 const ModelView = lazy(() => import('./viewers/ModelView'))
+const OfficePdfView = lazy(() => import('./viewers/OfficePdfView'))
 const ArchiveView = lazy(() => import('./viewers/MoreViews').then((m) => ({ default: m.ArchiveView })))
 const FontView = lazy(() => import('./viewers/MoreViews').then((m) => ({ default: m.FontView })))
 const NotebookView = lazy(() => import('./viewers/MoreViews').then((m) => ({ default: m.NotebookView })))
@@ -364,6 +365,8 @@ function PreviewContent({
     case 'iwork':
       if (url) return <Viewer><RichDocView url={url} format={kind} /></Viewer>
       break
+    case 'office':
+      return <Viewer><OfficePdfView item={item} /></Viewer>
     case 'model':
       if (url) return <Viewer><ModelView url={url} name={item.name} /></Viewer>
       break

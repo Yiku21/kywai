@@ -3901,4 +3901,9 @@ export const pt: Record<string, string> = {
   "Se ven los primeros {n} elementos.": "Mostrando os primeiros {n} itens.",
   "No se pudo cargar la letra: {error}": "Não foi possível carregar a fonte: {error}",
   "No parece un cuaderno de Jupyter válido: {error}": "Não parece um notebook Jupyter válido: {error}",
+  "Convirtiendo con LibreOffice… (la primera vez tarda unos segundos)": "Convertendo com o LibreOffice… (a primeira vez leva alguns segundos)",
+  "Para ver este archivo aquí hace falta LibreOffice": "Para ver este arquivo aqui é preciso o LibreOffice",
+  "Es gratis. Con él instalado en el equipo donde corre kywai, los .doc, .ppt y parecidos se ven aquí dentro, sin subir nada a internet. Mientras, puedes abrirlo con la aplicación del equipo.": "É gratuito. Com ele instalado no computador onde o kywai roda, os .doc, .ppt e parecidos aparecem aqui, sem enviar nada para a internet. Enquanto isso, você pode abri-lo com um aplicativo do computador.",
+  "Descargar LibreOffice": "Baixar o LibreOffice",
+  "LibreOffice no pudo convertirlo: {error}": "O LibreOffice não conseguiu convertê-lo: {error}",
 }

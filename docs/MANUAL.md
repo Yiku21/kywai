@@ -4176,6 +4176,12 @@ equipo, sin subirlos a ningún sitio ni tener Office instalado (y también desde
   con **👁 / `</>`** se ve el JSON.
 - **Más texto y código:** subtítulos (`.srt`, `.vtt`), GraphQL, Terraform, Nix, Scala, Elixir, Haskell, parches
   (`.diff`)… salen como código con números de línea; cualquier otro archivo que sea texto, también.
+- **Lo demás de oficina, con LibreOffice:** Word y PowerPoint antiguos (`.doc`, `.ppt`, `.pps`), Publisher (`.pub`),
+  Visio (`.vsd`, `.vsdx`), WordPerfect (`.wpd`), Works (`.wps`), dibujos `.emf`/`.wmf`/`.cdr`, imágenes `.tif` y `.xps`.
+  Si el equipo donde corre kywai (el servidor) tiene **LibreOffice** instalado, kywai lo usa por debajo, sin abrir su
+  ventana ni subir nada, para convertir el archivo a PDF y enseñarlo en el panel. La primera vez tarda unos segundos;
+  luego sale al momento (se guarda en caché hasta que el archivo cambie). Si no está instalado, el panel lo dice con un
+  botón **Descargar LibreOffice** (es gratis).
 
 Con la ventana estrecha (menos de 950 px) el panel ocupa toda la zona del chat. Al cambiar de proyecto se cierra.
 
@@ -4190,6 +4196,13 @@ escritorio; enlace de descarga en la web). La ventana de Electron tiene activado
 Los visores de documentos (`src/renderer/src/ui/preview/viewers/`) leen el archivo entero por esa misma dirección
 (hasta 80 MB; más grande, «Abrir con…») y se cargan la primera vez que hacen falta, para no hacer más lenta la app.
 Como los PDF y las imágenes, no pasan por el tapado de secretos (este solo se aplica a lo que se lee como texto).
+Los CSV y los cuadernos de Jupyter sí se leen como texto (y pasan por el tapado).
+
+La conversión con LibreOffice está en `src/main/officePreview.ts`: busca `soffice` donde se instala en cada sistema
+(en Mac, `/Applications/LibreOffice.app`) y en el PATH, convierte de uno en uno con un perfil propio (funciona aunque
+LibreOffice esté abierto) y guarda los PDF en `vista-previa/` dentro de la carpeta de datos de la app (los 60 últimos).
+`readArtifact(…, { pdf: true })` devuelve `cowork://preview/<clave>.pdf` (en un cliente o el navegador,
+`/api/preview/<clave>.pdf`); sin LibreOffice lanza `NO_LIBREOFFICE`.
 
 **En Órbita (móvil):** tus adjuntos del chat también salen en miniatura (las imágenes) o como fichas, y al tocarlos se
 abren en el lector a pantalla completa. El lector tiene **‹ 1 de 3 ›** para pasar a los demás archivos del mensaje
