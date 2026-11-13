@@ -86,6 +86,7 @@ src/
     client*.ts, sync*.ts, serverFiles.ts   modo cliente, explorador del servidor, sincronización de carpetas
     selfUpdate.ts, updater.ts, orbitaRelease.ts   actualizaciones (GitHub, cliente, APK)
     secrets.ts, keys.ts   claves de API de agentes, cifradas con el llavero del sistema
+    projectSecrets.ts pestaña «Secretos» por proyecto: cifrados, a las tareas como variables de entorno y tapados en lo que devuelven (agents/secretScope.ts)
     __checks__/       pruebas sin red del motor con CLIs falsos
   preload/     index.ts (escritorio) y client.ts (cliente instalado): dos puentes `window.cowork`
   renderer/src/

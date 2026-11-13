@@ -10,7 +10,8 @@ import { runMuse } from './muse'
 import { runQwen } from './qwen'
 import { runGeneric } from './generic'
 import { commandExists } from './spawn'
-import type { RunAgentOptions, RunAgentResult } from './types'
+import { redactSecrets, secretScope } from './secretScope'
+import type { RunAgentOptions, RunAgentResult, TraceUpdate } from './types'
 import { tr } from '@shared/i18n'
 import { isLocalEngine } from '@shared/localEngines'
 import { accountOf } from '@shared/accounts'
@@ -66,7 +67,45 @@ export function withEstimatedUsage(provider: ProviderKind, prompt: string, res: 
 }
 
 export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
-  return withEstimatedUsage(opts.agent.provider, opts.prompt, await runAgentRaw(withAccountQuota(opts)))
+  const run = (): Promise<RunAgentResult> => runAgentRaw(withAccountQuota(withRedaction(opts)))
+  const res = await (opts.secrets && Object.keys(opts.secrets).length ? secretScope.run(opts.secrets, run) : run())
+  return withEstimatedUsage(opts.agent.provider, opts.prompt, redactResult(res))
+}
+
+/**
+ * Todo lo que devuelve un agente (pasos, actividad, texto, error) pasa por redactSecrets: si imprime el valor de un
+ * secreto del proyecto (un echo, un error con la cabecera), en el chat, el registro y el 3D sale «[secreto NOMBRE]».
+ */
+function withRedaction(opts: RunAgentOptions): RunAgentOptions {
+  const r = redactSecrets
+  const trace = (u: TraceUpdate): TraceUpdate => {
+    switch (u.type) {
+      case 'thinking':
+      case 'text':
+        return { ...u, text: r(u.text) }
+      case 'note':
+        return { ...u, text: r(u.text) }
+      case 'tool':
+        return { ...u, title: r(u.title), ...(u.body !== undefined ? { body: r(u.body) } : {}) }
+      case 'result':
+        return u.output !== undefined ? { ...u, output: r(u.output) } : u
+    }
+  }
+  const { onActivity, onThinking, onText, onTrace } = opts
+  return {
+    ...opts,
+    ...(onActivity ? { onActivity: (text, kind) => onActivity(r(text), kind) } : {}),
+    ...(onThinking ? { onThinking: (text) => onThinking(r(text)) } : {}),
+    ...(onText ? { onText: (text) => onText(r(text)) } : {}),
+    ...(onTrace ? { onTrace: (u) => onTrace(trace(u)) } : {})
+  }
+}
+
+function redactResult(res: RunAgentResult): RunAgentResult {
+  const text = redactSecrets(res.text ?? '')
+  const errorMessage = res.errorMessage !== undefined ? redactSecrets(res.errorMessage) : undefined
+  if (text === res.text && errorMessage === res.errorMessage) return res
+  return { ...res, text, ...(errorMessage !== undefined ? { errorMessage } : {}) }
 }
 
 /** La cuota que informa una «otra cuenta» es la suya: se marca con su grupo para no pisar la de siempre. */

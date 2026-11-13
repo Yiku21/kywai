@@ -1,3 +1,4 @@
+import { parseSecretCommand } from './chatCommands'
 import { describe, expect, it } from 'vitest'
 import { commandSuggestions, rememberInput, REMEMBER_COMMAND } from './chatCommands'
 
@@ -10,7 +11,7 @@ describe('lista del «/»', () => {
 
   it('con «/» sola salen todas: primero las de kywai, luego plantillas y mods', () => {
     const all = commandSuggestions('', { templates, mods })
-    expect(all.map((c) => c.command)).toEqual(['video', 'serie', 'editar', 'recortes', 'demo', 'miniatura', 'doblar', 'sprite', 'radar', 'consejo', 'aprende', 'instagram', 'tiktok', 'ig-plan', 'ig-viral', 'ig-reel', 'turno-noche', 'ig-profile', 'ig-audit', 'ig-reply', 'ig-comment', 'rutina', 'directo', 'recuerda', 'model', 'uso', 'nuevo', 'revisar-pr', 'traducir'])
+    expect(all.map((c) => c.command)).toEqual(['video', 'serie', 'editar', 'recortes', 'demo', 'miniatura', 'doblar', 'sprite', 'radar', 'consejo', 'aprende', 'instagram', 'tiktok', 'ig-plan', 'ig-viral', 'ig-reel', 'turno-noche', 'ig-profile', 'ig-audit', 'ig-reply', 'ig-comment', 'rutina', 'directo', 'secreto', 'recuerda', 'model', 'uso', 'nuevo', 'revisar-pr', 'traducir'])
     expect(all.every((c) => c.description.length > 0)).toBe(true)
   })
 
@@ -38,5 +39,21 @@ describe('«/recuerda»', () => {
     const m = REMEMBER_COMMAND.exec('/recuerda decisión: usar MIT')
     expect(m && rememberInput(m[2])).toEqual({ kind: 'decision', text: 'usar MIT' })
     expect(rememberInput('el servidor es el Mac mini')).toEqual({ kind: 'fact', text: 'el servidor es el Mac mini' })
+  })
+})
+
+describe('«/secreto»', () => {
+  it('saca nombre y valor de las formas habituales', () => {
+    expect(parseSecretCommand('/secreto ghl-pit pit-1234-abcd')).toEqual({ name: 'GHL_PIT', value: 'pit-1234-abcd' })
+    expect(parseSecretCommand('/secreto GHL_PIT = pit-1234')).toEqual({ name: 'GHL_PIT', value: 'pit-1234' })
+    expect(parseSecretCommand('/secret API_KEY: sk 12 34')).toEqual({ name: 'API_KEY', value: 'sk 12 34' })
+    expect(parseSecretCommand('/secreto CRED {"a":\n1}')).toEqual({ name: 'CRED', value: '{"a":\n1}' })
+  })
+  it('sola abre la pestaña y sin valor explica cómo', () => {
+    expect(parseSecretCommand('/secreto')).toBeNull()
+    expect(parseSecretCommand('/secretos  ')).toBeNull()
+    expect(parseSecretCommand('/secreto GHL_PIT')).toEqual({ error: expect.stringContaining('/secreto GHL_PIT') })
+    expect(parseSecretCommand('hola /secreto X y')).toBeNull()
+    expect(parseSecretCommand('/secretaria algo')).toBeNull()
   })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type DragEvent, type KeyboardEvent, type RefObject } from 'react'
-import { Ban, Brain, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, MessageSquare, Package, Paperclip, Puzzle, SquareKanban, type LucideIcon } from 'lucide-react'
+import { Ban, Brain, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, KeyRound, MessageSquare, Package, Paperclip, Puzzle, SquareKanban, type LucideIcon } from 'lucide-react'
 import { useCowork, useData, type DataSlice, type LeftTab } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { cx } from '../common/util'
@@ -11,6 +11,7 @@ import { BoardView } from './BoardView'
 import { ResultsView } from './ResultsView'
 import { MemoryView } from './MemoryView'
 import { RoutinesView } from './RoutinesView'
+import { SecretsView } from './SecretsView'
 import { ModsView, modPanels, useMods } from './ModsView'
 import { useComposer } from './composerStore'
 import { droppedPaths } from './dropFiles'
@@ -24,7 +25,8 @@ const BASE_TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
   { id: 'board', label: t('Tablero'), Icon: SquareKanban },
   { id: 'results', label: t('Resultados'), Icon: Package },
   { id: 'memory', label: t('Memoria'), Icon: Brain },
-  { id: 'routines', label: t('Rutinas'), Icon: CalendarClock }
+  { id: 'routines', label: t('Rutinas'), Icon: CalendarClock },
+  { id: 'secrets', label: t('Secretos'), Icon: KeyRound }
 ]
 /** Solo si algún mod encendido trae paneles. */
 const MODS_TAB = { id: 'mods' as LeftTab, label: t('Mods'), Icon: Puzzle }
@@ -154,7 +156,7 @@ function hasFiles(e: DragEvent): boolean {
   return Array.from(e.dataTransfer?.types ?? []).includes('Files')
 }
 
-/** Panel izquierdo: Chat, Archivos, Tareas, Tablero, Resultados, Memoria y Rutinas. Ocupa todo su contenedor. */
+/** Panel izquierdo: Chat, Archivos, Tareas, Tablero, Resultados, Memoria, Rutinas y Secretos. Ocupa todo su contenedor. */
 export function LeftPanel() {
   const tab = useCowork((st) => st.leftTab)
   const setLeftTab = useCowork((st) => st.setLeftTab)
@@ -293,6 +295,8 @@ export function LeftPanel() {
           <MemoryView />
         ) : tab === 'routines' ? (
           <RoutinesView />
+        ) : tab === 'secrets' ? (
+          <SecretsView />
         ) : tab === 'mods' ? (
           <ModsView />
         ) : (

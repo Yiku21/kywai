@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { finished } from 'node:stream/promises'
 import type { BoardCommand } from '@shared/board'
-import type { AddAgentInput, AgentId, ConversationSummary, ElevenStatus, ImportResult, ProjectFileRef, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, VoiceNoteInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
+import type { AddAgentInput, AgentId, ConversationSummary, ElevenStatus, ImportResult, ProjectFileRef, ProjectSecretInput, ProjectState, SearchOptions, QuotaBudget, SendMessageInput, VoiceNoteInput, SetAgentModelsInput, SetLocalAgentInput, SetWebAccessInput, WebAccessInfo, WebHttpsInfo } from '@shared/types'
 import type { McpServerInput } from '@shared/extensions'
 import { parseSetupToolId } from '@shared/setupTool'
 import {
@@ -60,7 +60,9 @@ import { disableHttps, enableHttps, httpsInfo, openFunnelLink } from './tailscal
 import { setAgentKeyResolver } from './agents/generic'
 import { setAccountsRoot } from './agents/accounts'
 import { setColibriUrlSource } from './agents/colibri'
-import { agentKey, keys, systemCipher } from './keys'
+import { agentKey, keys, projectSecrets, systemCipher } from './keys'
+import { setSecretEnvProvider, setSecretRedactor } from './agents/secretScope'
+import { parseSecretCommand } from '@shared/chatCommands'
 import { instagramAccount, readInstagramSettings, setInstagramLinkProvider, writeInstagramSettings } from './instagram'
 import { elevenAccount, setElevenKeyResolver } from './elevenlabs'
 import { TIKTOK_REDIRECT, authorizeUrl, codeFromRedirect, exchangeCode, pkcePair, readTikTokSettings, refreshTokens, tiktokUser, writeTikTokSettings, type TikTokTokens } from './tiktok'
@@ -367,7 +369,8 @@ async function readArtifact(projectId: unknown, relPath: unknown, opts?: unknown
     if (kind === 'other' && buf.includes(0)) return { url } // binary
     let text = buf.toString('utf8')
     if (st.size > TEXT_CAP) text += tr('\n\n…(archivo truncado)')
-    return { text }
+    // Si un agente dejó el valor de un secreto en un archivo, la vista previa lo enseña tapado.
+    return { text: projectSecrets().redact(text) }
   } finally {
     await fh.close()
   }
@@ -463,6 +466,7 @@ async function removeProject(projectId: string): Promise<void> {
   }
   forgetProjectTemplates(projectId)
   forgetProjectBoard(projectId)
+  projectSecrets().forgetProject(projectId)
   store.ensureFirstProject()
   emit({ kind: 'project.deleted', projectId })
 }
@@ -680,6 +684,13 @@ function registerIpc(): void {
     // Chat al lado o en otra ventana: va a su conversación aunque no sea la abierta del proyecto.
     const { conversationId, ...rest } = input
     if (!store.isValidProjectId(rest.projectId)) throw new Error(tr('Proyecto no válido'))
+    // «/secreto NOMBRE valor» desde el móvil o una versión anterior de la interfaz: se guarda y no llega al chat.
+    const secret = typeof rest.text === 'string' ? parseSecretCommand(rest.text) : null
+    if (secret && !('error' in secret)) {
+      projectSecrets().set(rest.projectId, secret)
+      return { runId: '' }
+    }
+    if (secret) throw new Error(secret.error)
     return conversations.inConversation(rest.projectId, chatTarget(conversationId), () => sendMessage(rest))
   })
   handle('cancelRun', (runId: unknown) => {
@@ -887,6 +898,20 @@ function registerIpc(): void {
     if (typeof id !== 'string') throw new Error(tr('Rutina no válida'))
     deleteRoutine(projectArg(projectId), id)
   })
+  // Secretos del proyecto: el valor entra al guardarlo y no vuelve a salir (ni por la web ni por el móvil).
+  const secretInput = (input: unknown): ProjectSecretInput => {
+    const i = (input ?? {}) as Record<string, unknown>
+    if (typeof i.name !== 'string') throw new Error(tr('Secreto no válido'))
+    return {
+      name: i.name,
+      ...(typeof i.value === 'string' ? { value: i.value } : {}),
+      ...(typeof i.note === 'string' ? { note: i.note } : {}),
+      ...(typeof i.previous === 'string' ? { previous: i.previous } : {})
+    }
+  }
+  handle('listSecrets', (projectId: unknown) => projectSecrets().list(projectArg(projectId)))
+  handle('setSecret', (projectId: unknown, input: unknown) => projectSecrets().set(projectArg(projectId), secretInput(input)))
+  handle('deleteSecret', (projectId: unknown, name: unknown) => projectSecrets().remove(projectArg(projectId), name))
   handle('runRoutineNow', (projectId: unknown, id: unknown) => {
     if (typeof id !== 'string') throw new Error(tr('Rutina no válida'))
     return runRoutineNow(projectArg(projectId), id)
@@ -910,6 +935,9 @@ function registerIpc(): void {
     return decideRoutineProposal(projectArg(projectId), messageId, action === 'create' ? 'create' : 'dismiss')
   })
   // ElevenLabs (la voz que más actúa, de pago): la clave se guarda cifrada en el llavero, como la de Instagram.
+  // Secretos del proyecto: las tareas los reciben como variables y lo que devuelven los agentes sale tapado.
+  setSecretEnvProvider((projectId) => projectSecrets().env(projectId))
+  setSecretRedactor((text) => projectSecrets().redact(text))
   setElevenKeyResolver(() => agentKey('elevenlabs'))
   const elevenNow = async (): Promise<ElevenStatus> => {
     const key = agentKey('elevenlabs')

@@ -3512,6 +3512,41 @@ ya se decidió). Los cambios llegan por el evento `routines.updated` y los mensa
 
 Se guardan en el `project.json` del proyecto (`routines`) y las lanza `src/main/routines.ts`, que mira cada 30 s.
 
+### Secretos: claves y tokens que los agentes usan sin verlos
+
+Cada proyecto tiene la pestaña **Secretos** (la llave, junto a Rutinas) para guardar claves de API, tokens (por
+ejemplo el PIT de GHL) y contraseñas de cuentas que los agentes **pueden usar pero no leer**. Así no hace falta
+pegarlos en el chat ni crear un `.env` en la carpeta del proyecto.
+
+- **Guardar:** «Nuevo secreto» → nombre (como variable de entorno: `GHL_PIT`, `GHL_LOCATION_ID`; se pasa solo a
+  mayúsculas), valor y una nota opcional. También desde el chat: `/secreto GHL_PIT pit-…` (o `NOMBRE = valor`,
+  `NOMBRE: valor`). Esa orden no se envía al chat ni a los agentes: va directa a Secretos. `/secreto` sola abre la
+  pestaña. Si llega desde el móvil o una interfaz anterior, el servidor también la intercepta.
+- **Dónde se guardan:** en la carpeta de datos del servidor (`secretos-proyectos.json`, permisos 0600), cifrados igual
+  que las claves de los agentes (en Mac con la clave propia de kywai; en Windows y Linux con el cifrado del sistema).
+  Nunca en la carpeta del proyecto, en `config.json` ni en git. Al eliminar el proyecto se borran.
+- **Lo que ve la interfaz:** solo nombre, nota y fecha. El valor entra al guardarlo y no vuelve a salir: ni a la
+  pantalla, ni al acceso web, ni a la API móvil. «Cambiar» permite poner un valor nuevo, renombrar o cambiar la nota
+  sin volver a pegarlo.
+- **Cómo lo usan los agentes:** cada tarea (y su verificación) recibe los secretos de su proyecto como variables de
+  entorno del programa del agente (`$GHL_PIT`, `process.env.GHL_PIT`…). El encargo solo dice los nombres y les
+  prohíbe escribir el valor. En el navegador de kywai el agente escribe `{{secreto:NOMBRE}}` con
+  `navegador_escribir` y kywai pone el valor en el campo (en el permiso se ve el marcador, no el valor). Los modelos
+  locales (Ollama, LM Studio) no ejecutan órdenes, así que no los usan.
+- **Tapado:** todo lo que devuelve un agente (respuesta, pasos, actividad, errores), lo que guarda con las
+  herramientas de kywai (memoria, preguntas) y lo que lee de la página del navegador pasa por un filtro que cambia
+  cualquier valor guardado (también escapado en JSON o en una URL) por `[secreto NOMBRE]`. La vista previa de
+  archivos también sale tapada.
+- **Límites (con sinceridad):** un agente con terminal tiene el valor en su entorno, así que podría imprimirlo con
+  otra codificación (base64, al revés) o mandarlo a otra web: el filtro solo reconoce el valor tal cual y sus formas
+  escapadas. Si lo escribe en un archivo, el archivo lo conserva (solo la vista previa sale tapada; la descarga o la
+  carpeta no). Las capturas del navegador no se tapan. Y si alguien pega una clave en un mensaje normal, ese mensaje
+  ya lo leyó el coordinador: guárdala con `/secreto` y cámbiala en su servicio. Lo mejor es dar a los agentes claves
+  de solo lectura o con los permisos justos.
+- Código: `src/main/projectSecrets.ts` (guardar, cifrar, tapar y la nota del encargo), `src/main/agents/secretScope.ts`
+  (variables de la tarea y filtro en `runAgent`), `src/renderer/src/ui/left/SecretsView.tsx` (pestaña) y
+  `parseSecretCommand` en `src/shared/chatCommands.ts`. Órbita todavía no tiene la pestaña; el servidor también intercepta `/secreto` si llega desde su chat (sin probar en el móvil).
+
 ### Barra lateral y conversaciones
 
 A la izquierda, como en Claude, está la **barra lateral**. De arriba abajo:

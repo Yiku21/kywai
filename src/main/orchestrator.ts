@@ -122,6 +122,8 @@ import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, r
 import { ensureIgSkills, igAccountSnapshot, igPaths, igReplyPrompt, igSkillFile, igSkillPrompt, parseIgReplies, parseIgSkillRequest, type IgSkillRequest } from './igSkills'
 import { episodeBrief, episodeFromFilmReply, loadSeries, nextEpisode, parseSeriesRequest, recordEpisode, startSeries, type SeriesRequest } from './series'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
+import { secretEnvFor } from './agents/secretScope'
+import { secretsPromptNote } from './projectSecrets'
 
 /** ¿Es un aviso de «lleva 3 minutos sin dar señales»? (el general o el de Gemini con la sesión de Google) */
 function isStallNotice(text: string | undefined): boolean {
@@ -6055,13 +6057,18 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   }
   const extraNames = mcp ? mcp.extraNames : (extraMcp?.names ?? [])
   if (extraNames.length) traceNote(t.id, tr('Herramientas de Extensiones: {list}', { list: extraNames.join(', ') }))
+  // Secretos del proyecto: el programa los recibe como variables y el encargo solo dice sus nombres.
+  const secrets = secretEnvFor(run.projectId)
+  const secretNames = Object.keys(secrets)
+  if (secretNames.length) traceNote(t.id, tr('Secretos del proyecto disponibles: {list}', { list: secretNames.join(', ') }))
   const attempt = (resuming: string | undefined): Promise<RunAgentResult> => {
     meta.resume = resuming
     return runner({
       agent: exec,
       model,
       effort,
-      prompt: buildTaskPrompt(run, t, exec, parent, deps, !!mcp, !!mcp || (!!browserMcp && !!extraMcp?.names.includes(browserMcp.server.id))),
+      prompt: buildTaskPrompt(run, t, exec, parent, deps, !!mcp, !!mcp || (!!browserMcp && !!extraMcp?.names.includes(browserMcp.server.id))) + (t.igReply ? '' : secretsPromptNote(secretNames)),
+      ...(secretNames.length ? { secrets } : {}),
       ...(t.direct ? { direct: true } : {}),
       ...(mcp ? { mcp: { name: MCP_SERVER_NAME, command: mcp.command, args: mcp.args, env: mcp.env, configFile: mcp.configFile, extraNames: mcp.extraNames } } : {}),
       ...(extraMcp ? { extraMcp } : {}),
@@ -6510,11 +6517,13 @@ async function verifyTask(run: Run, t: Task, exec: AgentConfig, parent: AgentCon
   const ask = async (prompt: string, resume?: string): Promise<RunAgentResult> => {
     const agent = verifier!
     try {
+      const secrets = secretEnvFor(run.projectId)
       return await runner({
         agent,
         model: agent.model,
         effort,
-        prompt,
+        prompt: prompt + secretsPromptNote(Object.keys(secrets)),
+        ...(Object.keys(secrets).length ? { secrets } : {}),
         cwd: dir,
         ...(ui ? { images: ui.shots.map((s) => s.path) } : {}),
         ...(resume ? { resume } : {}),

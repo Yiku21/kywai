@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { waitForFolderAccess } from '../macPermissions'
 import type { JsonlParser, ProcessOutcome, RunAgentResult } from './types'
 import { tr } from '@shared/i18n'
+import { currentSecretEnv, redactSecrets } from './secretScope'
 
 const IS_WIN = process.platform === 'win32'
 const STDERR_KEEP = 4096
@@ -108,7 +109,8 @@ function runCliProcess(run: CliRun): Promise<RunAgentResult> {
       return
     }
 
-    const env: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', ...run.env }
+    // Los secretos del proyecto van como variables del programa (los de kywai, como la cuenta, mandan sobre ellos).
+    const env: NodeJS.ProcessEnv = { ...process.env, ...currentSecretEnv(), NO_COLOR: '1', FORCE_COLOR: '0', ...run.env }
     for (const k of run.unsetEnv ?? []) delete env[k]
     const child = spawn(cmdline, {
       shell: true,
@@ -204,7 +206,7 @@ function runCliProcess(run: CliRun): Promise<RunAgentResult> {
       run.signal.removeEventListener('abort', onAbort)
       if (stdoutBuf.trim()) handleLine(stdoutBuf)
       stdoutBuf = ''
-      const outcome: ProcessOutcome = { code, stderrTail, spawnError, cancelled, timedOut }
+      const outcome: ProcessOutcome = { code, stderrTail: redactSecrets(stderrTail), spawnError, cancelled, timedOut }
       let result: RunAgentResult
       try {
         result = run.parser.finish(outcome)

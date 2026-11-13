@@ -20,6 +20,7 @@ import { listSkills, readSkill } from './skills'
 import { askPermission, describeToolRequest } from './permissions'
 import { BROWSER_KEYS, captureRelPath, isBrowserKey, siteOf } from '@shared/browser'
 import * as browser from './browser'
+import { redactSecrets, secretEnvFor } from './agents/secretScope'
 
 export const MCP_SERVER_NAME = 'ai-cowork'
 
@@ -150,7 +151,7 @@ export const BROWSER_TOOLS: ToolDef[] = [
   },
   {
     name: 'navegador_escribir',
-    description: 'Escribe en un campo de la página (sustituye lo que tenga; en una lista elige la opción con ese texto). Con enviar=true pulsa Intro después. Pide permiso al usuario. Nunca sirve para contraseñas, códigos ni tarjetas: eso lo escribe el usuario.',
+    description: 'Escribe en un campo de la página (sustituye lo que tenga; en una lista elige la opción con ese texto). Con enviar=true pulsa Intro después. Pide permiso al usuario. Nunca sirve para contraseñas, códigos ni tarjetas: eso lo escribe el usuario. Para escribir una clave o token guardado en la pestaña «Secretos» del proyecto, pon {{secreto:NOMBRE}} en el texto: kywai lo cambia por el valor al escribir, sin que lo veas.',
     inputSchema: { type: 'object', properties: { ref: { type: 'string' }, texto: { type: 'string' }, enviar: { type: 'boolean' }, motivo: { type: 'string' } }, required: ['ref', 'texto', 'motivo'], additionalProperties: false }
   },
   {
@@ -269,11 +270,30 @@ async function handleHttp(req: import('node:http').IncomingMessage, res: import(
   try {
     const name = String(body.name ?? '')
     if (!toolsFor(ctx).some((t) => t.name === name)) throw new Error(`Herramienta desconocida: ${name}`)
-    const out = await callTool(ctx, name, (body.arguments ?? {}) as Record<string, unknown>)
-    reply(200, typeof out === 'string' ? { text: out } : out)
+    // Lo que un agente guarda, pregunta o lee (memoria, preguntas, la página del navegador) va con los secretos del
+    // proyecto tapados. Para escribir uno en el navegador usa {{secreto:NOMBRE}}, que se sustituye al escribir.
+    const out = await callTool(ctx, name, redactArgs((body.arguments ?? {}) as Record<string, unknown>))
+    reply(200, typeof out === 'string' ? { text: redactSecrets(out) } : { ...out, text: redactSecrets(out.text) })
   } catch (e) {
     reply(200, { text: (e as Error).message, isError: true })
   }
+}
+
+/** Cambia cada {{secreto:NOMBRE}} por el valor del secreto del proyecto (error si no existe). */
+export function withSecretValues(text: string, projectId: string, env: Record<string, string> = secretEnvFor(projectId)): string {
+  return text.replace(/\{\{\s*secreto\s*:\s*([A-Za-z][A-Za-z0-9_]*)\s*\}\}/g, (_m, raw: string) => {
+    const value = env[raw.toUpperCase()]
+    if (value === undefined) throw new Error(`No hay ningún secreto ${raw.toUpperCase()} en este proyecto: pide al usuario que lo añada en la pestaña «Secretos»`)
+    return value
+  })
+}
+
+/** Los textos de unos argumentos, con los secretos del proyecto tapados. */
+function redactArgs<T>(v: T): T {
+  if (typeof v === 'string') return redactSecrets(v) as T
+  if (Array.isArray(v)) return v.map(redactArgs) as T
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, redactArgs(x)])) as T
+  return v
 }
 
 /** Las herramientas de una tarea. */
@@ -447,9 +467,11 @@ async function browserTool(ctx: McpTaskContext, name: string, args: Record<strin
       const ref = str(args.ref, 12)
       const text = typeof args.texto === 'string' ? args.texto.slice(0, 5000) : ''
       const el = await browser.describeRef(ref)
+      // En el permiso se ve {{secreto:NOMBRE}}, no el valor; el valor solo llega a la página.
       const shown = text.length > 200 ? `${text.slice(0, 200)}…` : text
+      const typed = withSecretValues(text, ctx.projectId)
       await ask(tl('escribir en el navegador'), `Escribir «${shown}» en ${el.label}${args.enviar === true ? ' y pulsar Intro' : ''}`, 'escribe')
-      return browser.typeForAgent(ref, text, args.enviar === true)
+      return browser.typeForAgent(ref, typed, args.enviar === true)
     }
     case 'navegador_tecla': {
       const key = args.tecla

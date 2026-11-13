@@ -600,6 +600,24 @@ export interface Routine {
   nextAt?: number | null
 }
 
+/** Un secreto del proyecto tal como lo ve la interfaz: nunca lleva el valor. */
+export interface ProjectSecretInfo {
+  /** Nombre de la variable de entorno (GHL_PIT…). */
+  name: string
+  /** Para qué es («token PIT de GHL, solo lectura»). */
+  note?: string
+  updatedAt: number
+}
+
+/** Crear o cambiar un secreto. Sin `value` al cambiar uno existente, se conserva el valor guardado. */
+export interface ProjectSecretInput {
+  name: string
+  value?: string
+  note?: string
+  /** El nombre que tenía, si se renombra. */
+  previous?: string
+}
+
 export interface RoutineInput {
   name: string
   request: string
@@ -2124,6 +2142,13 @@ export interface CoworkApi {
   /** Cambia nombre, petición, disparador o la activa/desactiva. */
   updateRoutine(projectId: string, id: string, patch: Partial<RoutineInput>): Promise<Routine>
   deleteRoutine(projectId: string, id: string): Promise<void>
+  /**
+   * Secretos del proyecto (pestaña «Secretos»): los agentes los reciben como variables de entorno y no los ven. La
+   * interfaz solo recibe nombre y nota; el valor entra (al guardarlo) y no vuelve a salir nunca.
+   */
+  listSecrets?(projectId: string): Promise<ProjectSecretInfo[]>
+  setSecret?(projectId: string, input: ProjectSecretInput): Promise<ProjectSecretInfo[]>
+  deleteSecret?(projectId: string, name: string): Promise<ProjectSecretInfo[]>
   /** Plantillas de tareas de todos los proyectos (los cambios llegan por el evento templates.updated). */
   listTemplates(): Promise<TaskTemplate[]>
   createTemplate(input: TaskTemplateInput): Promise<TaskTemplate>

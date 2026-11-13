@@ -83,7 +83,7 @@ export type CameraCommand =
 /** Pestañas de la ventana de Ajustes. */
 export type SettingsTab = 'general' | 'agents' | 'extensions' | 'connection' | 'about'
 
-export type LeftTab = 'chat' | 'files' | 'tasks' | 'board' | 'results' | 'memory' | 'routines' | 'mods'
+export type LeftTab = 'chat' | 'files' | 'tasks' | 'board' | 'results' | 'memory' | 'routines' | 'secrets' | 'mods'
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
 export type CameraInput = DistributiveOmit<CameraCommand, 'nonce'>

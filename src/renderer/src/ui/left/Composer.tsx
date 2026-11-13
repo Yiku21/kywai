@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from 'react'
-import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, Grid3x3, ImagePlus, ListVideo, Send, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Volume2, VolumeX, Puzzle, Radar, Reply, UsersRound, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ArrowRight, AtSign, Brain, CalendarClock, Clapperboard, Cpu, Gauge, GraduationCap, Grid3x3, ImagePlus, KeyRound, ListVideo, Send, Info, LayoutTemplate, LoaderCircle, Mic, Paperclip, Volume2, VolumeX, Puzzle, Radar, Reply, UsersRound, Square, SquarePen, X, type LucideIcon } from 'lucide-react'
 import type { CoworkApi, HttpsLink, TaskTemplate } from '@shared/types'
 import { useCowork } from '@/store/cowork'
 import { describeQuota } from '../quota/quotaView'
@@ -14,7 +14,7 @@ import { useComposer } from './composerStore'
 import { describeTrigger, describeWhen, parseRoutineCommand } from '@shared/routines'
 import { insertMention, mentionMatches, mentionQuery } from '@shared/directMessage'
 import { commandQuery, templatesFor } from '@shared/templates'
-import { commandSuggestions, REMEMBER_COMMAND, rememberInput, type CommandIcon } from '@shared/chatCommands'
+import { commandSuggestions, parseSecretCommand, REMEMBER_COMMAND, rememberInput, SECRET_COMMAND, type CommandIcon } from '@shared/chatCommands'
 import { useMods } from './ModsView'
 import { TemplateBar } from './TemplateBar'
 import { VideoPicker } from './VideoPicker'
@@ -57,7 +57,8 @@ const COMMAND_ICONS: Record<CommandIcon, LucideIcon> = {
   mod: Puzzle,
   sprite: Grid3x3,
   radar: Radar,
-  council: UsersRound
+  council: UsersRound,
+  secret: KeyRound
 }
 
 function CommandGlyph({ icon }: { icon: CommandIcon }) {
@@ -283,6 +284,19 @@ export function Composer() {
       }
       else if (MODEL_COMMAND.test(trimmed)) useCowork.setState({ hermesModelOpen: true })
       else if (QUOTA_COMMAND.test(trimmed)) setQuotaNotice(await quotaSummary(a))
+      else if (SECRET_COMMAND.test(trimmed)) {
+        // «/secreto NOMBRE valor»: va directo a la pestaña Secretos (cifrado) y nunca al chat ni a los agentes.
+        const cmd = parseSecretCommand(trimmed)
+        if (!cmd) useCowork.getState().setLeftTab('secrets')
+        else if ('error' in cmd) {
+          setQuotaNotice({ lines: [cmd.error], fix: false })
+          return
+        } else {
+          if (!a.setSecret) throw new Error(t('El servidor todavía no tiene Secretos: actualízalo para usarlos.'))
+          await a.setSecret(project.id, { name: cmd.name, value: cmd.value })
+          setQuotaNotice({ lines: [t('Guardado en Secretos como {name}. Los agentes lo usan como ${name} sin verlo; el valor no se ha enviado al chat.', { name: cmd.name })], fix: false })
+        }
+      }
       else if (ROUTINE_COMMAND.test(trimmed)) {
         // Sin nada más: se abre la pestaña. Con horario y petición: se crea la rutina (activa).
         if (/^\/\w+\s*$/.test(trimmed)) useCowork.getState().setLeftTab('routines')

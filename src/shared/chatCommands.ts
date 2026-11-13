@@ -1,7 +1,7 @@
 // Las órdenes «/…» del chat, para la lista que sale al escribir «/» (cada una con lo que hace a la derecha).
 // La usan el cuadro de texto del escritorio y la web (Composer.tsx). Órbita tiene su copia en Kotlin
 // (android/.../orbita/ChatCommands.kt): si se añade o cambia una orden, cambiarla en los dos sitios.
-// Quien la ejecuta: «/nuevo», «/uso», «/model», «/recuerda» y «/rutina» el propio cuadro de texto (y el motor si llegan
+// Quien la ejecuta: «/nuevo», «/uso», «/model», «/recuerda», «/rutina» y «/secreto» el propio cuadro de texto (y el motor si llegan
 // como mensaje: src/main/orchestrator.ts); «/directo» src/shared/directMessage.ts; las plantillas src/shared/templates.ts;
 // las de los mods src/main/mods.ts.
 import { t } from './i18n'
@@ -21,7 +21,7 @@ export interface ChatCommand {
 }
 
 /** Los iconos de la lista del «/». */
-export type CommandIcon = 'video' | 'series' | 'learn' | 'publish' | 'routine' | 'direct' | 'memory' | 'model' | 'usage' | 'new' | 'template' | 'mod' | 'sprite' | 'radar' | 'council'
+export type CommandIcon = 'video' | 'series' | 'learn' | 'publish' | 'routine' | 'direct' | 'memory' | 'model' | 'usage' | 'new' | 'template' | 'mod' | 'sprite' | 'radar' | 'council' | 'secret'
 
 /** Las órdenes de kywai, en el orden en que salen. */
 export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
@@ -48,6 +48,7 @@ export const BUILTIN_COMMANDS: readonly ChatCommand[] = [
   { name: 'ig-comment', aliases: [], args: 'post de otra cuenta', description: 'Escribe dos comentarios para un post de otra cuenta (lo pegas tú)', icon: 'direct' },
   { name: 'rutina', aliases: ['rutinas', 'routine'], args: 'cuándo: qué', description: 'Programa una tarea a una hora o que se repita', icon: 'routine' },
   { name: 'directo', aliases: ['direct', 'dm'], args: 'Agente mensaje', description: 'Habla con un agente sin pasar por Hermes', icon: 'direct' },
+  { name: 'secreto', aliases: ['secretos', 'secret', 'secrets'], args: 'NOMBRE valor', description: 'Guarda una clave, token o contraseña en Secretos: los agentes la usan sin verla y el mensaje no llega a nadie', icon: 'secret' },
   { name: 'recuerda', aliases: ['recordar', 'memoria', 'remember'], args: 'texto', description: 'Guarda un dato en la memoria del proyecto', icon: 'memory' },
   { name: 'model', aliases: ['modelo', 'models', 'modelos'], description: 'Cambia el modelo de Hermes', icon: 'model' },
   { name: 'uso', aliases: ['usage', 'cuotas', 'cuota', 'quota', 'quotas', 'limits', 'limit'], description: 'Mira cuánta cuota le queda a cada agente', icon: 'usage' },
@@ -134,4 +135,21 @@ export function rememberInput(raw: string): MemoryInput {
   const w = m[1].toLowerCase()
   const kind: MemoryKind = w.startsWith('decisi') ? 'decision' : w.startsWith('pref') ? 'preference' : w === 'pendiente' ? 'pending' : 'fact'
   return { kind, text: m[2].trim() }
+}
+
+/** «/secreto», «/secretos», «/secret»: la orden de guardar un secreto del proyecto. */
+export const SECRET_COMMAND = /^\/(secreto|secretos|secret|secrets)(?=\s|$)/i
+
+/**
+ * «/secreto GHL_PIT pit-…», «/secreto GHL_PIT = pit-…» o «/secreto GHL_PIT: pit-…» → nombre y valor. Sola, null
+ * (se abre la pestaña Secretos). El valor puede llevar espacios o varias líneas (un JSON de credenciales).
+ */
+export function parseSecretCommand(text: string): { name: string; value: string } | { error: string } | null {
+  const m = SECRET_COMMAND.exec(text.trim())
+  if (!m) return null
+  const rest = text.trim().slice(m[0].length).trim()
+  if (!rest) return null
+  const parts = /^([A-Za-z][\w-]*)\s*(?:[:=]\s*|\s+)([\s\S]+)$/.exec(rest)
+  if (!parts) return { error: t('Escribe el nombre y el valor: /secreto GHL_PIT pit-xxxx') }
+  return { name: parts[1].toUpperCase().replace(/-/g, '_'), value: parts[2].trim() }
 }

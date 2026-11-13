@@ -92,6 +92,8 @@ export interface RunAgentOptions {
   /** Servidor MCP de kywai para esta tarea (solo los CLI que lo admiten por la línea de comandos). */
   mcp?: McpServerLaunch
   extraMcp?: ExtraMcp
+  /** Secretos del proyecto (pestaña «Secretos»): variables de entorno para el programa del agente. */
+  secrets?: Record<string, string>
   signal: AbortSignal
   /** Está esperando que el usuario conteste un permiso: no se le avisa ni se le corta por estar callado. */
   isWaitingUser?: () => boolean

@@ -3,6 +3,7 @@
 import { app, safeStorage } from 'electron'
 import { join } from 'node:path'
 import { fileKeyCipher, migratingCipher } from './localCipher'
+import { ProjectSecrets } from './projectSecrets'
 import { AgentKeys, type KeyCipher } from './secrets'
 
 let instance: AgentKeys | null = null
@@ -57,4 +58,11 @@ export function agentKey(agentId: string): string | null {
   } catch {
     return null
   }
+}
+
+let secretsInstance: ProjectSecrets | null = null
+
+/** Los secretos de los proyectos (pestaña «Secretos»), cifrados igual que las claves de los agentes. */
+export function projectSecrets(): ProjectSecrets {
+  return (secretsInstance ??= new ProjectSecrets(join(app.getPath('userData'), 'secretos-proyectos.json'), systemCipher))
 }

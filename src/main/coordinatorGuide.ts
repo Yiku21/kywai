@@ -55,7 +55,7 @@ export interface GuideOptions {
 
 /** Palabras con las que el usuario suele referirse a kywai y a sus funciones (sin tildes, en minúsculas). */
 const APP_WORDS =
-  /\b(ai ?cowork|cowork|hermes|coordinador|agentes?|robots?|orbita|movil|celular|telefono|apk|android|tailscale|acceso (web|remoto|desde)|navegador|cliente de escritorio|servidor|sincroniz\w*|actualiza\w*|cuotas?|consumo|tokens?|memoria|instrucciones del proyecto|\/model|modelo de hermes|voz|voces|microfono|dictado|musica|tema|temas|idiomas?|ingl[eé]s|english|language|modo demo|visto bueno|planes?|reiniciar|detener|reanudar|entregables?|espacio 3d|estacion|becarios?|rutinas?|webhooks?|programad[ao]s?|cron|plantillas?)\b/
+  /\b(ai ?cowork|cowork|hermes|coordinador|agentes?|robots?|orbita|movil|celular|telefono|apk|android|tailscale|acceso (web|remoto|desde)|navegador|cliente de escritorio|servidor|sincroniz\w*|actualiza\w*|cuotas?|consumo|tokens?|memoria|instrucciones del proyecto|\/model|modelo de hermes|voz|voces|microfono|dictado|musica|tema|temas|idiomas?|ingl[eé]s|english|language|modo demo|visto bueno|planes?|reiniciar|detener|reanudar|entregables?|espacio 3d|estacion|becarios?|rutinas?|webhooks?|programad[ao]s?|cron|plantillas?|secretos?|secrets?|claves? de api|api ?keys?|credenciales|contrasenas?)\b/
 
 /** ¿Habla de kywai (la app, el equipo, el móvil, las cuotas…)? Decide si el coordinador recibe la lista de funciones. */
 export function mentionsApp(text: string): boolean {
@@ -135,6 +135,10 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
         ]),
     '- Herramientas grandes (el SDK de Android, Xcode, Docker) ocupan varios GB y tardan en instalarse: avísalo al proponerlas.',
     ...(opts.extraTools ?? []),
+    '',
+    '### Secretos: claves y tokens que los agentes usan sin verlos',
+    '- Cada proyecto tiene una pestaña «Secretos» (junto a Rutinas) para claves de API, tokens (p. ej. el PIT de GHL) y contraseñas de cuentas. Se guardan cifrados en el servidor, fuera de la carpeta del proyecto, y nunca se vuelven a enseñar. Cada tarea los recibe como variables de entorno con su nombre ($GHL_PIT) y el encargo solo dice los nombres; si un agente imprime el valor, en el chat y en los pasos sale «[secreto NOMBRE]». En el navegador de kywai el agente escribe {{secreto:NOMBRE}} y kywai pone el valor.',
+    '- Para guardarlo desde el chat, el usuario escribe «/secreto NOMBRE valor» (p. ej. «/secreto GHL_PIT pit-…»): va directo a Secretos y el mensaje no llega a nadie. Si el usuario pregunta cómo pasaros una clave, un token o una contraseña, dile eso o que use la pestaña «Secretos»; NUNCA le pidas que la pegue en el chat ni que cree un archivo .env en la carpeta del proyecto. Si ya la pegó en un mensaje normal, dile que la guarde con «/secreto» y que conviene cambiarla en su servicio, porque ese mensaje ya lo leyó el coordinador.',
     '',
     '### Rutinas: lo que se repite o reacciona solo',
     '- kywai tiene rutinas por proyecto (pestaña Rutinas, o «/rutina …» en el chat): una petición que se envía sola al chat, como si la escribiera el usuario, cada día a una hora, unos días de la semana, cada N horas, una sola vez un día a una hora («/rutina mañana a las 7: …», «/rutina el viernes a las 18:00: …», «/rutina dentro de 2 horas: …»), al llegar un webhook (p. ej. un PR de GitHub) o al cambiar archivos de una carpeta. Corren en el servidor 24/7 y nunca se lanzan dos a la vez. Su plan no espera el visto bueno del usuario (aunque lo tenga encendido para el chat), salvo que esa rutina tenga marcada su casilla «Pedir mi visto bueno».',
