@@ -284,3 +284,202 @@
   border: none;
   background: #fff;
 }
+
+/* ---------- Modelo 3D ---------- */
+
+.model {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 50% 40%, rgba(var(--wash-rgb, 255, 255, 255), 0.07), transparent 70%), var(--bg-panel);
+}
+
+.modelCanvas {
+  flex: 1;
+  min-height: 0;
+}
+
+.modelCanvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.modelCanvas canvas:active {
+  cursor: grabbing;
+}
+
+.modelHint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  margin: 0;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* ---------- Zip ---------- */
+
+.listScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 0 16px;
+}
+
+.listSummary {
+  margin: 6px 14px 10px;
+  color: var(--text-3);
+  font-size: 12.5px;
+}
+
+.zipList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.zipList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px;
+  color: var(--text-2);
+}
+
+.zipList li:hover {
+  background: rgba(var(--wash-rgb, 255, 255, 255), 0.04);
+}
+
+.zipName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-1);
+}
+
+.zipSize {
+  flex: none;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+/* ---------- Letra ---------- */
+
+.fontScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 22px 26px 30px;
+  color: var(--text-1);
+}
+
+.fontName {
+  margin: 0 0 14px;
+  font-size: 34px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.fontSample {
+  margin: 0 0 14px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.fontSize {
+  display: inline-block;
+  min-width: 34px;
+  margin-right: 10px;
+  color: var(--text-3);
+  font: 11px var(--font-sans, system-ui);
+  vertical-align: middle;
+}
+
+/* ---------- Jupyter ---------- */
+
+.notebook {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 22px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nbMarkdown {
+  font-size: 14.5px;
+}
+
+.nbCode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nbIn {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.nbCount {
+  flex: none;
+  width: 40px;
+  padding-top: 9px;
+  color: var(--text-3);
+  font: 12px var(--mono);
+  text-align: right;
+}
+
+.nbIn pre,
+.nbOut,
+.nbError {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-ctl, 8px);
+  font: 12.5px/1.5 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.nbIn pre {
+  background: var(--code-bg, #070b14);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+}
+
+.nbOut,
+.nbError,
+.nbImage {
+  margin-left: 48px;
+}
+
+.nbOut {
+  color: var(--text-2);
+}
+
+.nbError {
+  background: rgba(220, 60, 60, 0.1);
+  color: #e87b7b;
+}
+
+.nbImage {
+  max-width: calc(100% - 48px);
+  background: #fff;
+  border-radius: 6px;
+  align-self: flex-start;
+}

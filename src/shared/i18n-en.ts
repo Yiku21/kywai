@@ -4016,4 +4016,13 @@ export const en: Record<string, string> = {
   "Objeto": "Object",
   "Este elemento solo se ve en PowerPoint": "This item can only be seen in PowerPoint",
   "No se pudo leer el documento: {error}": "Couldn't read the document: {error}",
+  "No se pudo abrir el modelo 3D: {error}": "Couldn't open the 3D model: {error}",
+  "Abriendo el modelo 3D…": "Opening the 3D model…",
+  "Arrastra para girar · rueda para acercar · botón derecho para mover": "Drag to rotate · scroll to zoom · right-click to pan",
+  "Leyendo el archivo comprimido…": "Reading the archive…",
+  "No parece un .zip válido: {error}": "This doesn't look like a valid .zip: {error}",
+  "{files} archivos · {size} sin comprimir": "{files} files · {size} uncompressed",
+  "Se ven los primeros {n} elementos.": "Showing the first {n} items.",
+  "No se pudo cargar la letra: {error}": "Couldn't load the font: {error}",
+  "No parece un cuaderno de Jupyter válido: {error}": "This doesn't look like a valid Jupyter notebook: {error}",
 }

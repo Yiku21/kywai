@@ -4167,6 +4167,15 @@ equipo, sin subirlos a ningún sitio ni tener Office instalado (y también desde
   libro que pueda ejecutarse (scripts, formularios, enlaces `javascript:`) se quita.
 - **Pages y Keynote** (Mac): la vista previa que guardan dentro (la imagen o el PDF de la primera página); para ver el
   resto, **Abrir con…**.
+- **Modelos 3D** (`.glb`, `.gltf`, `.obj`, `.stl`, `.ply`, `.fbx`, `.3mf`): con luz y suelo de referencia; se giran
+  arrastrando, se acercan con la rueda y se mueven con el botón derecho. Si el modelo trae animación, se reproduce.
+- **Comprimidos** (`.zip`, `.jar`, `.apk`, `.whl`…): la lista de lo que llevan, como árbol de carpetas, con el tamaño de
+  cada archivo y el total sin comprimir (no se descomprime nada).
+- **Letras** (`.ttf`, `.otf`, `.woff`, `.woff2`): el alfabeto, los números y una frase de muestra en varios tamaños.
+- **Cuadernos de Jupyter** (`.ipynb`): las celdas de texto y de código con sus resultados (texto, gráficos y errores);
+  con **👁 / `</>`** se ve el JSON.
+- **Más texto y código:** subtítulos (`.srt`, `.vtt`), GraphQL, Terraform, Nix, Scala, Elixir, Haskell, parches
+  (`.diff`)… salen como código con números de línea; cualquier otro archivo que sea texto, también.
 
 Con la ventana estrecha (menos de 950 px) el panel ocupa toda la zona del chat. Al cambiar de proyecto se cierra.
 

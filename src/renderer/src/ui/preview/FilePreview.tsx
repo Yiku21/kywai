@@ -37,6 +37,10 @@ const DocxView = lazy(() => import('./viewers/DocxView'))
 const SheetView = lazy(() => import('./viewers/SheetView'))
 const SlidesView = lazy(() => import('./viewers/SlidesView'))
 const RichDocView = lazy(() => import('./viewers/RichDocView'))
+const ModelView = lazy(() => import('./viewers/ModelView'))
+const ArchiveView = lazy(() => import('./viewers/MoreViews').then((m) => ({ default: m.ArchiveView })))
+const FontView = lazy(() => import('./viewers/MoreViews').then((m) => ({ default: m.FontView })))
+const NotebookView = lazy(() => import('./viewers/MoreViews').then((m) => ({ default: m.NotebookView })))
 
 /**
  * Panel de vista previa de archivos, como el de Claude: se abre a la derecha del chat (en el sitio del espacio 3D) al
@@ -88,7 +92,7 @@ function PreviewPanel({ item, index, count, maximized }: { item: PreviewItem; in
 
   // Lo que hace falta leer: el texto si se muestra como texto (o su código), la dirección para lo demás.
   // Un CSV se lee como texto también para la tabla (así pasa por el tapado de secretos).
-  const wantsText = isTextual(kind) && (source || !hasSourceView(kind)) || kind === 'markdown' || kind === 'table' || kind === 'other'
+  const wantsText = isTextual(kind) && (source || !hasSourceView(kind)) || kind === 'markdown' || kind === 'table' || kind === 'notebook' || kind === 'other'
   useEffect(() => {
     if (demo) {
       const kindLabel = artifact ? ARTIFACT_KIND_LABEL[artifact.kind].toLowerCase() : typeLabel(item.name).toLowerCase()
@@ -359,6 +363,18 @@ function PreviewContent({
     case 'epub':
     case 'iwork':
       if (url) return <Viewer><RichDocView url={url} format={kind} /></Viewer>
+      break
+    case 'model':
+      if (url) return <Viewer><ModelView url={url} name={item.name} /></Viewer>
+      break
+    case 'archive':
+      if (url) return <Viewer><ArchiveView url={url} /></Viewer>
+      break
+    case 'font':
+      if (url) return <Viewer><FontView url={url} name={item.name} /></Viewer>
+      break
+    case 'notebook':
+      if (text != null) return <Viewer><NotebookView text={text} /></Viewer>
       break
     case 'table':
       if (text != null) return <Viewer><SheetView text={text} /></Viewer>

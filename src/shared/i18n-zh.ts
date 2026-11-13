@@ -3892,4 +3892,13 @@ export const zh: Record<string, string> = {
   "Objeto": "对象",
   "Este elemento solo se ve en PowerPoint": "此元素只能在 PowerPoint 中查看",
   "No se pudo leer el documento: {error}": "无法读取该文档：{error}",
+  "No se pudo abrir el modelo 3D: {error}": "无法打开 3D 模型：{error}",
+  "Abriendo el modelo 3D…": "正在打开 3D 模型…",
+  "Arrastra para girar · rueda para acercar · botón derecho para mover": "拖动旋转 · 滚轮缩放 · 右键平移",
+  "Leyendo el archivo comprimido…": "正在读取压缩文件…",
+  "No parece un .zip válido: {error}": "这似乎不是有效的 .zip 文件：{error}",
+  "{files} archivos · {size} sin comprimir": "{files} 个文件 · 解压后 {size}",
+  "Se ven los primeros {n} elementos.": "仅显示前 {n} 项。",
+  "No se pudo cargar la letra: {error}": "无法加载该字体：{error}",
+  "No parece un cuaderno de Jupyter válido: {error}": "这似乎不是有效的 Jupyter 笔记本：{error}",
 }

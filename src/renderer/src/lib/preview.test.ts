@@ -50,6 +50,17 @@ describe('panel de vista previa', () => {
     expect(previewKind('charla.key')).toBe('iwork')
   })
 
+  it('abre modelos 3D, zip, letras y cuadernos de Jupyter', () => {
+    expect(previewKind('robot.glb')).toBe('model')
+    expect(previewKind('pieza.STL')).toBe('model')
+    expect(previewKind('fotos.zip')).toBe('archive')
+    expect(previewKind('Inter.woff2')).toBe('font')
+    expect(previewKind('analisis.ipynb')).toBe('notebook')
+    expect(hasSourceView('notebook')).toBe(true)
+    expect(previewKind('subtitulos.srt')).toBe('text')
+    expect(previewKind('esquema.graphql')).toBe('code')
+  })
+
   it('sin extensión conocida, se fía del tipo MIME', () => {
     expect(previewKind('pegado', 'image/png')).toBe('image')
     expect(previewKind('archivo.raro', 'application/pdf')).toBe('pdf')

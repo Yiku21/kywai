@@ -47,6 +47,14 @@ export type PreviewKind =
   | 'epub'
   /** Pages o Keynote de Mac: la vista previa que guardan dentro. */
   | 'iwork'
+  /** Modelo 3D (.glb, .obj, .stl…): se gira con el ratón. */
+  | 'model'
+  /** Archivo comprimido (.zip): la lista de lo que lleva. */
+  | 'archive'
+  /** Letra (.ttf, .otf, .woff): texto de muestra. */
+  | 'font'
+  /** Cuaderno de Jupyter (.ipynb): celdas y resultados, o su JSON con el interruptor. */
+  | 'notebook'
   | 'other'
 
 const IMAGE = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif'])
@@ -55,12 +63,17 @@ const AUDIO = new Set(['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'opus']
 const CODE = new Set([
   'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'py', 'css', 'scss', 'json', 'yml', 'yaml', 'toml', 'xml', 'sh', 'ps1', 'bat',
   'cmd', 'java', 'kt', 'kts', 'c', 'h', 'cpp', 'hpp', 'cs', 'go', 'rs', 'rb', 'php', 'swift', 'sql', 'lua', 'gd', 'vue',
-  'svelte', 'ini', 'gradle', 'dart', 'r', 'env', 'conf', 'dockerfile', 'makefile'
+  'svelte', 'ini', 'gradle', 'jsonl', 'ndjson', 'graphql', 'gql', 'proto', 'tf', 'hcl', 'nix', 'astro', 'scala', 'clj',
+  'ex', 'exs', 'erl', 'hs', 'ml', 'fs', 'pl', 'pm', 'zig', 'nim', 'cmake', 'm', 'mm', 'asm', 'less', 'bash', 'zsh', 'fish',
+  'diff', 'patch', 'properties', 'tex', 'bib', 'dart', 'r', 'env', 'conf', 'dockerfile', 'makefile'
 ])
-const TEXT = new Set(['txt', 'log', 'text', 'rst'])
+const TEXT = new Set(['txt', 'log', 'text', 'rst', 'srt', 'vtt', 'nfo', 'adoc'])
 const WORD = new Set(['docx', 'docm', 'dotx', 'dotm'])
 const SLIDES = new Set(['pptx', 'pptm', 'ppsx', 'ppsm', 'potx', 'potm'])
 const ODF = new Set(['odt', 'ott', 'odp', 'otp', 'odg', 'otg'])
+const MODEL = new Set(['glb', 'gltf', 'obj', 'stl', 'ply', 'fbx', '3mf'])
+const ARCHIVE = new Set(['zip', 'jar', 'apk', 'aab', 'whl', 'xpi', 'nupkg', 'vsix', 'cbz', 'aar'])
+const FONT = new Set(['ttf', 'otf', 'woff', 'woff2'])
 const SHEET = new Set(['xlsx', 'xlsm', 'xlsb', 'xls', 'xltx', 'xltm', 'ods', 'fods', 'numbers'])
 
 function ext(name: string): string {
@@ -86,6 +99,10 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (e === 'rtf') return 'rtf'
   if (e === 'epub') return 'epub'
   if (e === 'pages' || e === 'key') return 'iwork'
+  if (MODEL.has(e)) return 'model'
+  if (ARCHIVE.has(e)) return 'archive'
+  if (FONT.has(e)) return 'font'
+  if (e === 'ipynb') return 'notebook'
   if (e === 'csv' || e === 'tsv') return 'table'
   if (VIDEO.has(e)) return 'video'
   if (AUDIO.has(e)) return 'audio'
@@ -112,12 +129,12 @@ export function isImageFile(name: string, mime?: string): boolean {
 
 /** Tiene vista renderizada y vista de código (el interruptor 👁 / </>). */
 export function hasSourceView(kind: PreviewKind): boolean {
-  return kind === 'markdown' || kind === 'html' || kind === 'svg' || kind === 'table'
+  return kind === 'markdown' || kind === 'html' || kind === 'svg' || kind === 'table' || kind === 'notebook'
 }
 
 /** Se lee como texto (para mostrarlo, copiarlo o ver su código). */
 export function isTextual(kind: PreviewKind): boolean {
-  return kind === 'markdown' || kind === 'html' || kind === 'svg' || kind === 'table' || kind === 'code' || kind === 'text'
+  return kind === 'markdown' || kind === 'html' || kind === 'svg' || kind === 'table' || kind === 'notebook' || kind === 'code' || kind === 'text'
 }
 
 /** Etiqueta corta del tipo, como en Claude: «MD», «PNG», «PDF»… */
