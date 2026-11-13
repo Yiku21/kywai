@@ -14,12 +14,20 @@
   transition:
     background-color var(--dur) var(--ease),
     border-color var(--dur) var(--ease),
-    box-shadow var(--dur) var(--ease);
+    box-shadow var(--dur) var(--ease),
+    translate var(--spring-ms, 0ms) var(--spring, ease),
+    scale var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease);
 }
 
 .chip:hover {
   background: color-mix(in srgb, var(--q) 14%, var(--bg-panel));
   border-color: color-mix(in srgb, var(--q) 55%, transparent);
+  translate: 0 calc(var(--m, 1) * -1.5px);
+}
+
+.chip:active {
+  scale: calc(1 - var(--m, 1) * 0.04);
+  translate: 0 0;
 }
 
 .chip[aria-expanded='true'] {

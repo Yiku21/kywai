@@ -152,6 +152,8 @@ function PopoverSurface({
       role={role}
       aria-label={ariaLabel}
       tabIndex={-1}
+      data-exit-motion=""
+      data-glide=""
       className={cx(s.popover, className)}
       style={style}
       onPointerDown={() => {

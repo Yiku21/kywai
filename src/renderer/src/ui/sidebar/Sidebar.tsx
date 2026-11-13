@@ -469,7 +469,7 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
   const favAccepts = (key: string) => (d: Dragged): DropPlace[] => (keyOf(d) === key ? [] : ['before', 'after'])
 
   return (
-    <div className={s.scroll}>
+    <div className={s.scroll} data-glide="">
       <NavItem icon={<SquarePen size={17} />} label={t('Nuevo chat')} keys={NEW_CHAT_KEYS} rail={rail} disabled={!canNew} onClick={() => void newChat()} />
       <NavItem
         icon={<Search size={17} />}
@@ -1107,7 +1107,7 @@ function ProjectRow({
         {unseen && !p.busy && <span className={s.unseen} title={t('Tiene resultados sin ver')} />}
         {p.busy && <span className={s.busy} title={t('El equipo está trabajando aquí')} />}
       </button>
-      <span className={s.rowActions}>
+      <span className={s.rowActions} data-no-glide="">
         <button
           type="button"
           className={s.mini}
@@ -1297,7 +1297,7 @@ function ConversationRow({
         <span className={s.meta}>{meta ?? shortDate(c.updatedAt)}</span>
       </button>
       {!empty && (
-        <span className={s.rowActions}>
+        <span className={s.rowActions} data-no-glide="">
           <button
             type="button"
             className={s.mini}

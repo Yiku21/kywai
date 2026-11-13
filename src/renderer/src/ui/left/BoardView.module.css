@@ -153,10 +153,35 @@
   border-left: 3px solid var(--border-strong);
   background: var(--bg-surface);
   min-width: 0;
+  /* Cada tarjeta entra subiendo a su sitio; al pasar por encima se levanta un poco. */
+  animation: cardIn var(--spring-ms, 0ms) var(--spring, ease) both;
+  transition:
+    translate var(--spring-ms, 0ms) var(--spring, ease),
+    box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--m, 1) * 10px)) scale(calc(1 - var(--m, 1) * 0.03));
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.card:hover {
+  translate: 0 calc(var(--m, 1) * -2px);
+  box-shadow: 0 8px 18px -12px rgba(0, 0, 0, 0.6);
 }
 
 .card[draggable='true'] {
   cursor: grab;
+}
+
+.card[draggable='true']:active {
+  cursor: grabbing;
 }
 
 .card_doing {

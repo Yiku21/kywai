@@ -255,7 +255,7 @@ export function LeftPanel() {
           <ChevronLeft size={16} />
         </button>
       )}
-      <div ref={strip.ref} className={cx(s.tabs, s.tabsSliding, strip.compact && s.tabsCompact)} role="tablist" aria-label={t('Secciones del panel')} onKeyDown={onTabKey}>
+      <div ref={strip.ref} className={cx(s.tabs, s.tabsSliding, strip.compact && s.tabsCompact)} role="tablist" data-glide="" aria-label={t('Secciones del panel')} onKeyDown={onTabKey}>
         <TabIndicator listRef={strip.ref} tab={tab} compact={strip.compact} />
         {TABS.map(({ id, label, Icon }) => {
           const active = id === tab

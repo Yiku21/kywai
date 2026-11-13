@@ -158,6 +158,8 @@ function Surface({ at, items, label, onClose }: { at: MenuAt; items: MenuEntry[]
       ref={ref}
       className={s.menu}
       style={style}
+      data-exit-motion=""
+      data-glide=""
       role="menu"
       aria-label={label}
       onKeyDown={onKey}

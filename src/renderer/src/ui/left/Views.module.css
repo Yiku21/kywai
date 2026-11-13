@@ -452,13 +452,23 @@
   transition:
     background-color var(--dur) var(--ease),
     border-color var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
+    box-shadow var(--dur) var(--ease),
+    translate var(--spring-ms, 0ms) var(--spring, ease),
+    scale var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease);
 }
 
+/* Al pasar por encima, la tarjeta se levanta (con su sombra) y, al pulsarla, cede. */
 .card:hover {
   background: var(--bg-elevated);
   border-color: var(--border-strong);
-  transform: translateY(-1px);
+  translate: 0 calc(var(--m, 1) * -3px);
+  box-shadow: 0 10px 22px -12px rgba(0, 0, 0, 0.6);
+}
+
+.card:active {
+  scale: calc(1 - var(--m, 1) * 0.02);
+  translate: 0 0;
+  transition-duration: var(--dur), var(--dur), var(--dur), 90ms, 70ms;
 }
 
 .cardTop {

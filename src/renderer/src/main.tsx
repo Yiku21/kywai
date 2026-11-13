@@ -13,6 +13,7 @@ import { applyLang } from './lib/i18n'
 import { useCowork } from './store/cowork'
 import { startDialogMotion } from './lib/dialogMotion'
 import { startCalmSync } from './lib/motion'
+import { startTouchFeedback } from './lib/touchFeedback'
 
 // Acceso de depuración en desarrollo.
 if (import.meta.env.DEV) (window as unknown as { __cowork: typeof useCowork }).__cowork = useCowork
@@ -24,6 +25,8 @@ applyLang()
 // Las ventanas se van con suavidad (las entradas las hace styles/motion.css).
 startDialogMotion()
 startCalmSync()
+// Onda al pulsar y resalte que se desliza entre filas (lib/touchFeedback.ts).
+startTouchFeedback()
 
 // Un archivo soltado fuera del chat no hace nada: si no, la ventana se iría a ese archivo
 // (en el escritorio se quedaba en negro y en el navegador salía de kywai).

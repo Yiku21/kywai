@@ -136,11 +136,20 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    translate var(--spring-ms, 0ms) var(--spring, ease),
+    scale var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease);
 }
 
 .card:hover {
   border-color: var(--border-strong);
+  translate: 0 calc(var(--m, 1) * -3px);
+}
+
+.card:active {
+  scale: calc(1 - var(--m, 1) * 0.03);
 }
 
 .cardOn {

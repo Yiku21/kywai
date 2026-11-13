@@ -12,6 +12,8 @@ function reducedMotion(): boolean {
 /** Lo que hay que copiar al cerrarse: el fondo oscuro que envuelve la ventana, o null si no es una ventana animable. */
 export function exitTarget(removed: Node): HTMLElement | null {
   if (!(removed instanceof HTMLElement) || removed.dataset.ghost !== undefined) return null
+  // Menús y globos (data-exit-motion): se copia el propio menú.
+  if (removed.dataset.exitMotion !== undefined) return removed
   const sel = '[role="dialog"][aria-modal="true"]'
   const dialog = removed.matches(sel) ? removed : removed.querySelector<HTMLElement>(sel)
   if (!dialog || dialog.closest('[data-instant]')) return null

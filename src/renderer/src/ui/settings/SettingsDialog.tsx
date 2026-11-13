@@ -133,7 +133,7 @@ export function SettingsDialog() {
           <h2 id="settings-title" className={s.navTitle}>
             {t('Ajustes')}
           </h2>
-          <div role="tablist" aria-orientation="vertical" className={s.tabs}>
+          <div role="tablist" aria-orientation="vertical" data-glide="" className={s.tabs}>
             {tabs.map((x) => (
               <button
                 key={x.id}

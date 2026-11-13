@@ -3804,6 +3804,15 @@ pelo y se asienta.
   que eliges da un saltito, las filas de la barra ceden al pulsarlas, los menús crecen desde donde nacen (rápidos: se
   usan a diario) y lo que se despliega (pasos de una tarea, detalles) se abre y se cierra con suavidad.
 
+- **Onda al pulsar**: en cualquier botón, pestaña, fila u opción de menú sale una onda desde el punto exacto donde
+  pulsas y se queda dentro de su forma.
+- **Resalte que se desliza**: en las pestañas, la barra lateral, los menús y la lista de Ajustes, el fondo de «estás
+  encima» es una sola pieza que viaja de una fila a otra con muelle, en vez de encenderse y apagarse en cada una.
+- **Menús y globos** encogen un poco y funden al cerrarse (antes desaparecían de golpe); lo que recibe el foco del
+  teclado se marca con un aro que llega desde fuera.
+- **Tarjetas** (Resultados, Tablero, temas, cuotas): se levantan con su sombra al pasar por encima y ceden al pulsar.
+  Las secciones de la barra (Favoritos, Proyectos, Recientes) y los chats de un proyecto se despliegan desde su título.
+
 **Modo tranquilo.** Con **«Reducir efectos ambientales»** (Ajustes → General) nada se desplaza ni rebota: lo que
 aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo cambia al instante.
 
@@ -3811,7 +3820,10 @@ Cómo está hecho: las curvas de muelle están en `styles/motion.css` (`--spring
 como `linear()` de CSS) y la misma física en `lib/motion.ts` para lo que se anima desde JavaScript (`enter`); el cambio de pestaña es `useSwitchMotion`
 y la salida de los paneles `useExitGhost` (`ui/common/motion.ts`): al desmontarse deja una copia inerte en su sitio
 que se va (los iframes, vídeos y lienzos de la copia se cambian por su fondo para no recargarlos). Lo del arrastre está en `lib/dragMotion.ts`: `setDragCard` (la tarjeta) y `flipRows` (mide las
-filas con `data-slot` antes y después de soltar y anima la diferencia). Las
+filas con `data-slot` antes y después de soltar y anima la diferencia). La onda y el resalte que se desliza son
+`lib/touchFeedback.ts` (escucha en el documento: no hay que tocar cada botón; las listas se marcan con `data-glide` y
+lo que no debe llevarse el resalte, con `data-no-glide`). Los menús que se cierran llevan `data-exit-motion`
+(`lib/dialogMotion.ts`). Las
 distancias de las animaciones se multiplican por `--m`, que vale 0 en modo tranquilo (`<html data-calm>`, lo pone
 `startCalmSync` según `reducedEffects`).
 

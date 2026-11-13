@@ -165,6 +165,55 @@ details[open]::details-content {
   transition: opacity var(--dur) var(--ease), content-visibility var(--dur) allow-discrete;
 }
 
+/* Resalte que se desliza (lib/touchFeedback.ts): en una lista con data-glide, el fondo de «estás encima» es una sola
+   pieza que viaja de fila en fila con muelle. Las filas de dentro dejan de pintar su propio fondo al pasar. */
+:where([data-glide]) {
+  position: relative;
+  isolation: isolate;
+}
+
+[data-glide-pill] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  opacity: 0;
+  background: var(--bg-hover);
+  pointer-events: none;
+  transition-duration: 340ms, 340ms, 340ms, 140ms;
+  transition-timing-function: var(--spring), var(--spring), var(--spring), ease-out;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  [data-glide] :is(button, a[href], [role='tab'], [role='menuitem'], [role='option']):hover:not([aria-selected='true'], [aria-current], [aria-pressed='true'], [aria-checked='true'], [data-no-glide], [data-no-glide] *, :disabled) {
+    background-color: transparent !important;
+  }
+}
+
+/* Lo que tiene el foco del teclado se marca con un aro que llega desde fuera y se ajusta. */
+:focus-visible {
+  animation: kwFocusIn 220ms var(--ease);
+}
+
+@keyframes kwFocusIn {
+  from {
+    outline-offset: calc(2px + var(--m) * 5px);
+    outline-color: transparent;
+  }
+}
+
+/* Menús que se cierran (lib/dialogMotion.ts deja su copia): encogen un poco hacia donde nacieron y funden. */
+[data-ghost][data-exit-motion] {
+  animation: kwMenuOut 110ms var(--ease-out-ui) both !important;
+}
+
+@keyframes kwMenuOut {
+  to {
+    opacity: 0;
+    scale: calc(1 - var(--m) * 0.04);
+  }
+}
+
 /* Errores que se notan: el campo con aria-invalid se pone en rojo (lib/shake.ts lo hace temblar) y el aviso
    (role="alert") entra con una sacudida corta junto al campo. */
 :is(input, textarea, select)[aria-invalid='true'] {

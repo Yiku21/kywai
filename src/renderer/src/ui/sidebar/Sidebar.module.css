@@ -237,6 +237,22 @@
   margin-top: 12px;
 }
 
+/* Al desplegar una sección (Favoritos, Proyectos, Recientes), su contenido baja desde el título. */
+.section > :not(.sectionHead) {
+  animation: sectionIn var(--spring-ms, 0ms) var(--spring, ease) both;
+  transform-origin: 50% 0;
+}
+
+@keyframes sectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--m, 1) * -8px)) scaleY(calc(1 - var(--m, 1) * 0.06));
+  }
+  45% {
+    opacity: 1;
+  }
+}
+
 .sectionHead {
   display: flex;
   align-items: center;
@@ -390,6 +406,9 @@
   margin: 2px 0 4px 18px;
   padding-left: 8px;
   border-left: 1px solid var(--border);
+  /* Los chats de un proyecto se despliegan desde su fila. */
+  animation: sectionIn var(--spring-ms, 0ms) var(--spring, ease) both;
+  transform-origin: 50% 0;
 }
 
 .convItem {
