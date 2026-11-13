@@ -44,6 +44,7 @@ import { isBoardRoutineId } from '@shared/board'
 import { replyExcerpt } from '@shared/replyTo'
 import { answerLine, hideQuestionsBlock } from '@shared/agentQuestions'
 import { commonFolder, folderName, folderSummary } from '@shared/deliverables'
+import { splitMain } from '@shared/resultGroups'
 import type { AgentQuestionAnswer, Artifact, Attachment, ChatMessage, ChatPermission, ChatQuestions, PermissionAnswer, MessageRating, PlanProposal, RoutineProposal, SkillProposal, InstagramPost, InstagramReplies, ScriptReview, TikTokPost, Task, TaskChangeSet, TaskWork, TraceEntry, TraceTool, UsageRun, WorkFile, WorkStep, WorkToolRef } from '@shared/types'
 import { callTokens, compactTokens, deltaText, quotaDeltas, runDuration, shortDuration } from '@/lib/usageStats'
 import { useCowork, useData } from '@/store/cowork'
@@ -2176,8 +2177,29 @@ function ArtifactCards({ ids, projectId }: { ids: string[]; projectId: string })
       </>
     )
   }
+  // Lo que se pidió (el PDF, el vídeo, la página) va delante, listo para abrir; los archivos de trabajo (json,
+  // scripts, capturas) quedan plegados debajo y no le quitan el sitio.
+  const { main, work } = splitMain(list)
+  if (work.length > 0 && main.length <= MAX_MAIN_CARDS) {
+    // En la vista previa, ‹ › pasa por todos: primero lo principal y luego los de trabajo.
+    const ordered = [...main, ...work]
+    return (
+      <>
+        {main.length === 1 && VIDEO_EXT.test(main[0].relPath) && <InlineVideo a={main[0]} />}
+        <ul className={s.artifacts} aria-label={t('Resultados')}>
+          {main.map((a) => (
+            <ArtifactRow key={a.id} a={a} list={ordered} />
+          ))}
+        </ul>
+        <DeliverablesFolder list={work} projectId={projectId} title={t('Archivos de trabajo')} previewList={ordered} />
+      </>
+    )
+  }
   return <DeliverablesFolder list={list} projectId={projectId} />
 }
+
+/** Hasta cuántos resultados principales se enseñan sueltos; con más (una tanda de imágenes), todo va en la carpeta. */
+const MAX_MAIN_CARDS = 3
 
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v)$/i
 
@@ -2223,14 +2245,14 @@ function ArtifactRow({ a, list }: { a: Artifact; list: Artifact[] }) {
 }
 
 /** Varios entregables en una sola carpeta (plegada): al pulsarla se despliegan para abrir cada uno. */
-function DeliverablesFolder({ list, projectId }: { list: Artifact[]; projectId: string }) {
+function DeliverablesFolder({ list, projectId, title, previewList }: { list: Artifact[]; projectId: string; title?: string; previewList?: Artifact[] }) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lookup = useAgentLookup()
   const live = useCowork((st) => st.mode === 'live')
   const listId = useId()
   const folder = commonFolder(list.map((a) => a.relPath))
-  const name = folderName(folder)
+  const name = title ?? folderName(folder)
   const authors = [...new Set(list.map((a) => lookup(a.agentId).name))]
   // Desde el navegador no se puede abrir una carpeta del Mac.
   const canOpenFolder = !!api && live && !isWeb && !!folder
@@ -2277,7 +2299,7 @@ function DeliverablesFolder({ list, projectId }: { list: Artifact[]; projectId: 
       {open && (
         <ul id={listId} className={s.folderList} aria-label={t('Archivos de {name}', { name })}>
           {list.map((a) => (
-            <ArtifactRow key={a.id} a={a} list={list} />
+            <ArtifactRow key={a.id} a={a} list={previewList ?? list} />
           ))}
         </ul>
       )}

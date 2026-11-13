@@ -408,6 +408,17 @@ describe('chat del escritorio', () => {
     expect(p.index).toBe(1)
     expect(p.items[1].artifactId).toBe('a2')
   })
+
+  it('el archivo pedido sale suelto y delante; los de trabajo, plegados en «Archivos de trabajo»', async () => {
+    const list = [art('j1', 'api/a.json'), art('j2', 'api/b.json'), art('s1', 'scripts/generar_pdf.py'), art('p1', 'reporte-ghl.pdf')]
+    await show({ id: 'm5', projectId: 'p1', author: { type: 'agent', agentId: 'claude' }, text: 'Listo.', createdAt: 4, artifactIds: list.map((a) => a.id) }, list)
+    // El PDF se puede abrir sin desplegar nada; los json no se ven hasta abrir la carpeta.
+    expect(button('Abrir reporte-ghl.pdf')).toBeDefined()
+    expect(host.textContent).toContain('Archivos de trabajo')
+    expect(host.textContent).not.toContain('a.json')
+    await act(async () => (host.querySelector('button[aria-expanded]') as HTMLButtonElement).click())
+    expect(host.textContent).toContain('a.json')
+  })
 })
 
 describe('nota de voz enviada al momento', () => {
