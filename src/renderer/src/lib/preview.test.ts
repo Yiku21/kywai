@@ -16,6 +16,13 @@ describe('panel de vista previa', () => {
     expect(previewKind('datos.bin')).toBe('other')
   })
 
+  it('abre los documentos de Word con su visor', () => {
+    expect(previewKind('Informe final.DOCX')).toBe('word')
+    expect(previewKind('plantilla.dotx')).toBe('word')
+    expect(previewKind('sin-extension', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')).toBe('word')
+    expect(isTextual('word')).toBe(false)
+  })
+
   it('sin extensión conocida, se fía del tipo MIME', () => {
     expect(previewKind('pegado', 'image/png')).toBe('image')
     expect(previewKind('archivo.raro', 'application/pdf')).toBe('pdf')

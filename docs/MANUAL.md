@@ -4140,6 +4140,13 @@ Qué se ve en el panel: Markdown renderizado, imágenes (un clic las pone a tama
 (aisladas: no pueden usar la sesión de kywai), PDF con el visor del navegador, vídeo y audio con su reproductor, y
 código o texto con números de línea. Lo demás muestra «Vista previa no disponible» con el botón **Abrir con…**.
 
+**Documentos de oficina, sin nube:** los archivos de Office y similares se pintan dentro de kywai, en el propio
+equipo, sin subirlos a ningún sitio ni tener Office instalado (y también desde un cliente o el navegador):
+
+- **Word** (`.docx`, `.docm`, `.dotx`): con sus páginas, estilos, tablas, imágenes, encabezados, pies y notas. Si la
+  página es más ancha que el panel, se encoge para que quepa. Lo pinta `docx-preview` dentro de una caja aislada
+  (Shadow DOM), así los estilos del documento no cambian kywai; los enlaces se abren en el navegador del equipo.
+
 Con la ventana estrecha (menos de 950 px) el panel ocupa toda la zona del chat. Al cambiar de proyecto se cierra.
 
 **Miniaturas:** las **imágenes que adjuntas** se ven en pequeño dentro de tu mensaje (una sola, más grande; varias, en
@@ -4150,6 +4157,9 @@ lo muestra por `cowork://file/…` en el escritorio o por `/api/file/…` en el 
 admite peticiones por partes (para adelantar vídeos) y sirve los PDF sin el `sandbox` que se pone a lo demás (el
 visor de PDF del navegador no abre dentro de uno). «Descargar» usa `downloadFile` (diálogo de guardar en el
 escritorio; enlace de descarga en la web). La ventana de Electron tiene activado el visor de PDF (`plugins`).
+Los visores de documentos (`src/renderer/src/ui/preview/viewers/`) leen el archivo entero por esa misma dirección
+(hasta 80 MB; más grande, «Abrir con…») y se cargan la primera vez que hacen falta, para no hacer más lenta la app.
+Como los PDF y las imágenes, no pasan por el tapado de secretos (este solo se aplica a lo que se lee como texto).
 
 **En Órbita (móvil):** tus adjuntos del chat también salen en miniatura (las imágenes) o como fichas, y al tocarlos se
 abren en el lector a pantalla completa. El lector tiene **‹ 1 de 3 ›** para pasar a los demás archivos del mensaje

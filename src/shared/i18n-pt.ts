@@ -3869,4 +3869,9 @@ export const pt: Record<string, string> = {
   "Argentina": "Argentina",
   "No se pudo instalar Piper (las voces que funcionan sin internet)": "Não foi possível instalar o Piper (as vozes que funcionam sem internet)",
   "No se pudo descargar esa voz (solo hace falta internet la primera vez)": "Não foi possível baixar essa voz (só precisa de internet na primeira vez)",
+  "Es demasiado grande para verlo aquí. Ábrelo con la aplicación del equipo.": "É grande demais para ver aqui. Abra-o com um aplicativo do computador.",
+  "Preparando la vista previa…": "Preparando a pré-visualização…",
+  "No se pudo mostrar el archivo": "Não foi possível mostrar o arquivo",
+  "El documento parece dañado o no es un Word moderno (.docx): {error}": "O documento parece danificado ou não é um Word moderno (.docx): {error}",
+  "Abriendo el documento…": "Abrindo o documento…",
 }

@@ -3869,4 +3869,9 @@ export const zh: Record<string, string> = {
   "Argentina": "阿根廷",
   "No se pudo instalar Piper (las voces que funcionan sin internet)": "无法安装 Piper（可离线使用的声音）",
   "No se pudo descargar esa voz (solo hace falta internet la primera vez)": "无法下载该声音（仅首次需要联网）",
+  "Es demasiado grande para verlo aquí. Ábrelo con la aplicación del equipo.": "文件太大，无法在此查看。请用电脑上的应用打开。",
+  "Preparando la vista previa…": "正在准备预览…",
+  "No se pudo mostrar el archivo": "无法显示该文件",
+  "El documento parece dañado o no es un Word moderno (.docx): {error}": "文档似乎已损坏，或不是新版 Word 文件（.docx）：{error}",
+  "Abriendo el documento…": "正在打开文档…",
 }

@@ -21,7 +21,19 @@ export interface PreviewState {
   index: number
 }
 
-export type PreviewKind = 'markdown' | 'html' | 'svg' | 'image' | 'pdf' | 'video' | 'audio' | 'code' | 'text' | 'other'
+export type PreviewKind =
+  | 'markdown'
+  | 'html'
+  | 'svg'
+  | 'image'
+  | 'pdf'
+  | 'video'
+  | 'audio'
+  | 'code'
+  | 'text'
+  /** Documento de Word (.docx): lo pinta docx-preview. */
+  | 'word'
+  | 'other'
 
 const IMAGE = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif'])
 const VIDEO = new Set(['mp4', 'webm', 'mov', 'm4v', 'ogv'])
@@ -32,6 +44,7 @@ const CODE = new Set([
   'svelte', 'ini', 'csv', 'tsv', 'gradle', 'dart', 'r', 'env', 'conf', 'dockerfile', 'makefile'
 ])
 const TEXT = new Set(['txt', 'log', 'text', 'rst'])
+const WORD = new Set(['docx', 'docm', 'dotx', 'dotm'])
 
 function ext(name: string): string {
   const base = (name.split(/[\\/]/).pop() ?? name).toLowerCase()
@@ -49,6 +62,7 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (e === 'svg') return 'svg'
   if (IMAGE.has(e)) return 'image'
   if (e === 'pdf') return 'pdf'
+  if (WORD.has(e)) return 'word'
   if (VIDEO.has(e)) return 'video'
   if (AUDIO.has(e)) return 'audio'
   if (CODE.has(e)) return 'code'
@@ -58,6 +72,7 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (m.startsWith('video/')) return 'video'
   if (m.startsWith('audio/')) return 'audio'
   if (m === 'application/pdf') return 'pdf'
+  if (m === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'word'
   if (m.startsWith('text/') || (!e && !m)) return 'text'
   return 'other'
 }

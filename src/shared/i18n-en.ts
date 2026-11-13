@@ -3993,4 +3993,9 @@ export const en: Record<string, string> = {
   "Argentina": "Argentina",
   "No se pudo instalar Piper (las voces que funcionan sin internet)": "Couldn't install Piper (the voices that work offline)",
   "No se pudo descargar esa voz (solo hace falta internet la primera vez)": "Couldn't download that voice (internet is only needed the first time)",
+  "Es demasiado grande para verlo aquí. Ábrelo con la aplicación del equipo.": "It's too big to view here. Open it with an app on this computer.",
+  "Preparando la vista previa…": "Preparing the preview…",
+  "No se pudo mostrar el archivo": "Couldn't show the file",
+  "El documento parece dañado o no es un Word moderno (.docx): {error}": "The document seems damaged or isn't a modern Word file (.docx): {error}",
+  "Abriendo el documento…": "Opening the document…",
 }

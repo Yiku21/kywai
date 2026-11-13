@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   AlertCircle,
@@ -30,6 +30,10 @@ import { agentVars, cx, errorText, shortTime } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './FilePreview.module.css'
 import { t } from '@/lib/i18n'
+import { ViewerBusy } from './viewers/shared'
+
+// Los visores de documentos pesan (docx-preview, SheetJS…): se cargan la primera vez que hacen falta.
+const DocxView = lazy(() => import('./viewers/DocxView'))
 
 /**
  * Panel de vista previa de archivos, como el de Claude: se abre a la derecha del chat (en el sitio del espacio 3D) al
@@ -337,6 +341,9 @@ function PreviewContent({
         )
       }
       break
+    case 'word':
+      if (url) return <Viewer><DocxView url={url} /></Viewer>
+      break
     case 'audio':
       if (url) {
         return (
@@ -361,6 +368,11 @@ function PreviewContent({
       )}
     </div>
   )
+}
+
+/** Un visor que se carga aparte: mientras llega, el mismo «Preparando…» que mientras lee el archivo. */
+function Viewer({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<ViewerBusy />}>{children}</Suspense>
 }
 
 /** Código o texto con números de línea. */

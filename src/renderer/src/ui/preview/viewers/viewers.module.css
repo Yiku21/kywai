@@ -1,0 +1,44 @@
+/* Visores del panel de vista previa: Word, hojas de cálculo, presentaciones y demás formatos. */
+
+.state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+
+.stateError {
+  color: var(--text-2);
+}
+
+.stateTitle {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.stateText {
+  max-width: 420px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
+/* ---------- Documento (Word) ---------- */
+
+/* El papel se ve sobre un fondo gris claro en los dos modos, como en Word: el documento manda sus colores. */
+.paper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #e6e8ec;
+}
+
+.paperHost {
+  display: block;
+  min-height: 100%;
+}
