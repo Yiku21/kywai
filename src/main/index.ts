@@ -128,7 +128,7 @@ import { attachBrowser, browserCommand, browserFrame, browserRemoteInput, browse
 import { browserRtcOffer, initBrowserStream, rtcOfferArg } from './browserStream'
 import { addressToUrl, browserFrameArg, browserInputArg, browserRectArg } from '@shared/browser'
 import { confirmLearnedSkill, initSkills, learnedSkills, removeLearnedSkill } from './skills'
-import { initVideoStudio, ensureVideoStudio, listVideoVoices, listReadVoices, previewVideoVoice, readAloudClip, tryVideoLook, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
+import { initVideoStudio, ensureVideoStudio, ensureComfyUI, listVideoVoices, listReadVoices, previewVideoVoice, readAloudClip, tryVideoLook, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
 import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
 import { filmThumb, filmThumbSlugs } from './filmThumbs'
 // Las imágenes de los robots van empaquetadas con la app: son la referencia del personaje «Robots de kywai».
@@ -1231,6 +1231,11 @@ function registerIpc(): void {
       if (log.length < 400) log.push(l.slice(0, 300))
     })
     return { status, log: log.slice(-60) }
+  })
+  // «Instalar ComfyUI»: el motor de imágenes gratis y local (si no está, las imágenes van por el motor gratis de internet).
+  handle('installComfyUI', async () => {
+    const r = await ensureComfyUI()
+    return { ok: r.ok, status: await videoStudioStatus(), log: r.log }
   })
   // Personajes de los vídeos (para todos los proyectos): los robots y los que crea el usuario en el selector de «/video».
   handle('listVideoCharacters', () => listVideoCharacters())

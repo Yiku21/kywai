@@ -4033,4 +4033,13 @@ export const en: Record<string, string> = {
   "Portada: {text}": "Cover: {text}",
   "Elige la portada: sale en el perfil en vez del primer fotograma.": "Choose the cover: it shows on the profile instead of the first frame.",
   "Haciendo las portadas": "Making the covers",
+  "ComfyUI está instalado pero apagado: kywai lo enciende al pedir un vídeo. Mientras, el motor gratis de internet (una imagen cada 45 s)": "ComfyUI is installed but off: kywai starts it when you ask for a video. Until then, the free online engine (one image every 45 s)",
+  "Motor gratis de internet (Pollinations): una imagen cada 45 s y puede llevar una marca pequeña. Instala ComfyUI para hacerlas en este equipo, rápidas y sin marca": "Free online engine (Pollinations): one image every 45 s, and it may carry a small watermark. Install ComfyUI to make them on this computer, fast and without a watermark",
+  "No se pudo instalar ComfyUI: mira los detalles de abajo.": "ComfyUI could not be installed: see the details below.",
+  "Instalando ComfyUI… (varios GB, puede tardar bastante)": "Installing ComfyUI… (several GB, it can take a while)",
+  "Encender ComfyUI": "Start ComfyUI",
+  "Instalar ComfyUI": "Install ComfyUI",
+  "ComfyUI está instalado pero no arrancó a tiempo: ábrelo y prueba otra vez.": "ComfyUI is installed but did not start in time: open it and try again.",
+  "ComfyUI no está instalado en este equipo: instálalo en Ajustes → Extensiones → Estudio de vídeo → «Instalar ComfyUI».": "ComfyUI is not installed on this computer: install it in Settings → Extensions → Video studio → “Install ComfyUI”.",
+  "El motor gratis de internet tampoco la dio ({why}).": "The free online engine didn't make it either ({why}).",
 }

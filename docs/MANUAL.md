@@ -2802,9 +2802,24 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
    FLUX y SD3 necesitan otro flujo y se saltan) y le pide las imágenes de una en una en el formato del vídeo, con una
    semilla fija por texto (el mismo guion da las mismas imágenes). Si ComfyUI no está, no tiene modelo o una imagen
    falla, la pide **Gemini** (`gemini-2.5-flash-image`) si hay clave de API (la del asistente, en `~/.gemini/.env`),
-   tres a la vez; tras dos fallos seguidos de ComfyUI, el resto va directo a Gemini. Sin ninguno de los dos, esa
-   escena lleva un fondo de diseño animado. kywai no instala ComfyUI (pide gráfica y varios GB de modelos): instala
-   la app de escritorio de comfy.org y descarga un modelo SDXL. **No hace falta dejarlo abierto**: si está instalado
+   tres a la vez; tras dos fallos seguidos de ComfyUI, el resto va directo a Gemini. Si la clave de Gemini no puede
+   dibujar (plan gratis, clave mala o API apagada; `geminiImagesBlockedBy`), durante una hora no se le piden más
+   imágenes. **Sin ComfyUI ni Gemini que dibuje, va el motor gratis de internet** (Pollinations,
+   `src/main/freeImages.ts`): sin clave ni cuenta, pero **una imagen cada 45 s** (el límite del plan gratis por
+   conexión; kywai las pide de una en una para toda la app y, si el servidor pide esperar, espera lo que dice) y
+   puede llevar una marca pequeña en una esquina. El texto de la imagen sale del equipo. Para apagarlo:
+   `KYWAI_NO_FREE_IMAGES=1` (entonces, sin ComfyUI ni Gemini, cada escena lleva un fondo de diseño animado). Los
+   robots dibujados de «Charla y tutorial» no usan el motor gratis (no sabe mantenerlos iguales): sin ComfyUI ni
+   Gemini siguen en el plató 3D.
+   **Botón «Instalar ComfyUI»** (Ajustes → Extensiones → Estudio de vídeo, sale mientras las imágenes no van por
+   ComfyUI; «Encender ComfyUI» si ya está instalado): `installComfyUI` en `videoStudio.ts` lo instala en
+   `~/ComfyUI` (con git, o el `.tar.gz` de GitHub si no hay git), con su Python 3.12 aparte en `~/ComfyUI/venv`
+   (uv), PyTorch (en Mac, con la gráfica de Apple; en Windows con NVIDIA, la versión CUDA; sin NVIDIA en Windows o
+   Linux deja la marca `kywai-cpu` y ComfyUI arranca con `--cpu`, lento pero funciona) y el modelo **DreamShaper 8**
+   (SD 1.5, 2 GB, CreativeML OpenRAIL-M; la descarga sigue donde se cortó si se pulsa otra vez), y lo enciende. Si ya
+   hay un ComfyUI en carpeta, solo le pone el modelo si no tiene ninguno; la app de escritorio de ComfyUI no se toca.
+   Son varios GB: tarda. Una sola instalación a la vez (`ensureComfyUI`), también desde la web o el cliente.
+   **No hace falta dejarlo abierto**: si está instalado
    y apagado, kywai **lo enciende solo al pedir un vídeo** (`ensureComfy`/`startComfy`: abre la app de escritorio en
    macOS o Windows, o arranca `python main.py --port 8188` en su carpeta, con el Python de su `venv`/`.venv` o el
    portable de Windows; la busca en `KYWAI_COMFYUI_DIR` o en ComfyUI dentro de la carpeta personal, Documentos,
@@ -3028,8 +3043,10 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    El botón **«Probar con mi escena»** pinta el momento clave de lo que llevas escrito tras `/video`, con el personaje
    que elegiste en el paso 2, en los nueve aspectos (dos a la vez; con ComfyUI, de una en una). Cada tarjeta cambia su
    color de muestra por tu escena, y eliges viéndola. Va primero con ComfyUI de tu equipo (gratis) y, si no, con
-   Gemini y tu clave (gasta un poco por imagen). Cada prueba queda guardada en `<estudio>/pruebas-aspecto/` y no se
-   paga dos veces. Si cambias el tema o el personaje, las pruebas se vacían. Sin ComfyUI ni clave, el aviso lo dice.
+   Gemini y tu clave (gasta un poco por imagen) y, si tampoco, con el motor gratis de internet (una cada 45 s: los
+   nueve tardan unos 7 minutos). Cada prueba queda guardada en `<estudio>/pruebas-aspecto/` y no se
+   paga dos veces. Si cambias el tema o el personaje, las pruebas se vacían. Si no sale, el aviso dice el motivo de
+   cada motor, también si ComfyUI no está instalado o no arrancó a tiempo.
    Órbita todavía no tiene este grupo.
 4. **Voz.** **En español solo salen tres voces**, elegidas por Yil escuchando 28 muestras: **Álvaro** (Edge,
    España, `voz:edge-es-ES-AlvaroNeural`, la de por defecto, sin marca), **Jorge** (Edge, México,
@@ -3326,7 +3343,7 @@ está completo (HyperFrames, ffmpeg, la voz Kokoro, Manim, los estilos de pelíc
 en segundo plano mientras usas la app (Ajustes lo enseña como «Instalando…» y se pone al día solo). Si una vez no
 termina (sin red, sin Python…), lo vuelve a intentar al día siguiente, no en cada arranque; el registro queda en
 `estudio-video/instalacion.log`. Con la variable `KYWAI_NO_VIDEO_AUTOINSTALL=1` no se instala solo. FreeVideo, ComfyUI
-y Voicebox no entran: son opcionales y se instalan aparte.
+y Voicebox no entran: son opcionales y se instalan aparte (ComfyUI, con su propio botón «Instalar ComfyUI»).
 
 **Python.** Kokoro y Manim piden Python 3.10 o más nuevo, y el `python3` que trae macOS es el 3.9. El estudio usa
 el Python más nuevo que encuentre (3.13 a 3.10, también los de Homebrew); si solo hay uno viejo, crea su entorno

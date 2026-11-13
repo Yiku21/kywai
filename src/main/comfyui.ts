@@ -178,6 +178,9 @@ export async function comfyImage(
 
 // ---------- encenderlo solo al pedir un vídeo ----------
 
+/** Marca que deja el instalador de kywai cuando el equipo no tiene gráfica que sirva: ComfyUI arranca con --cpu. */
+export const COMFY_CPU_MARK = 'kywai-cpu'
+
 export type ComfyInstall = { kind: 'app'; path: string } | { kind: 'dir'; dir: string; python: string }
 
 /**
@@ -239,7 +242,8 @@ export function startComfy(): boolean {
       child.unref()
     } else {
       const log = openSync(join(inst.dir, 'kywai-comfyui.log'), 'a')
-      const child = spawn(inst.python, ['main.py', '--listen', '127.0.0.1', '--port', '8188'], { cwd: inst.dir, detached: true, stdio: ['ignore', log, log], windowsHide: true })
+      const cpu = existsSync(join(inst.dir, COMFY_CPU_MARK)) ? ['--cpu'] : []
+      const child = spawn(inst.python, ['main.py', '--listen', '127.0.0.1', '--port', '8188', ...cpu], { cwd: inst.dir, detached: true, stdio: ['ignore', log, log], windowsHide: true })
       child.on('error', () => undefined)
       child.unref()
     }

@@ -3909,4 +3909,13 @@ export const fr: Record<string, string> = {
   "Portada: {text}": "Couverture : {text}",
   "Elige la portada: sale en el perfil en vez del primer fotograma.": "Choisis la couverture : elle s'affiche sur le profil à la place de la première image.",
   "Haciendo las portadas": "Création des couvertures",
+  "ComfyUI está instalado pero apagado: kywai lo enciende al pedir un vídeo. Mientras, el motor gratis de internet (una imagen cada 45 s)": "ComfyUI est installé mais éteint : kywai le lance quand tu demandes une vidéo. En attendant, le moteur gratuit en ligne (une image toutes les 45 s)",
+  "Motor gratis de internet (Pollinations): una imagen cada 45 s y puede llevar una marca pequeña. Instala ComfyUI para hacerlas en este equipo, rápidas y sin marca": "Moteur gratuit en ligne (Pollinations) : une image toutes les 45 s, avec parfois un petit filigrane. Installe ComfyUI pour les faire sur cet ordinateur, rapides et sans filigrane",
+  "No se pudo instalar ComfyUI: mira los detalles de abajo.": "Impossible d'installer ComfyUI : regarde les détails ci-dessous.",
+  "Instalando ComfyUI… (varios GB, puede tardar bastante)": "Installation de ComfyUI… (plusieurs Go, cela peut prendre du temps)",
+  "Encender ComfyUI": "Lancer ComfyUI",
+  "Instalar ComfyUI": "Installer ComfyUI",
+  "ComfyUI está instalado pero no arrancó a tiempo: ábrelo y prueba otra vez.": "ComfyUI est installé mais n'a pas démarré à temps : ouvre-le et réessaie.",
+  "ComfyUI no está instalado en este equipo: instálalo en Ajustes → Extensiones → Estudio de vídeo → «Instalar ComfyUI».": "ComfyUI n'est pas installé sur cet ordinateur : installe-le dans Réglages → Extensions → Studio vidéo → « Installer ComfyUI ».",
+  "El motor gratis de internet tampoco la dio ({why}).": "Le moteur gratuit en ligne ne l'a pas faite non plus ({why}).",
 }

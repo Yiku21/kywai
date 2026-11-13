@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { geminiImageProblem, imagePromptText, isVideoFile, lookTrialPrompt, projectCast, saveCastImages, saveCastNotes } from './videoStudio'
+import { geminiImageProblem, geminiImagesBlockedBy, imagePromptText, isVideoFile, lookTrialPrompt, projectCast, saveCastImages, saveCastNotes } from './videoStudio'
 
 describe('personajes fijos y referencias', () => {
   it('guarda las imágenes una vez y la descripción solo la primera vez', () => {
@@ -45,6 +45,11 @@ describe('personajes fijos y referencias', () => {
     expect(geminiImageProblem(429, 'Resource exhausted')).toContain('límite')
     expect(geminiImageProblem(400, 'API key not valid. Please pass a valid API key.')).toContain('no acepta la clave')
     expect(geminiImageProblem(500, 'boom')).toContain('500')
+    // Los fallos que se repetirían con cada imagen: se deja de pedir a Gemini y se pasa al motor gratis.
+    expect(geminiImagesBlockedBy(429, 'generate_content_free_tier_requests, limit: 0')).toBe(true)
+    expect(geminiImagesBlockedBy(400, 'API key not valid')).toBe(true)
+    expect(geminiImagesBlockedBy(403, '')).toBe(true)
+    expect(geminiImagesBlockedBy(429, 'Resource exhausted')).toBe(false)
   })
 
   it('reconoce los vídeos adjuntos', () => {

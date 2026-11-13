@@ -165,6 +165,7 @@ const api: CoworkApi = {
   removeMarketplace: (repo) => ipcRenderer.invoke('cowork:removeMarketplace', repo),
   videoStudioStatus: () => ipcRenderer.invoke('cowork:videoStudioStatus'),
   installVideoStudio: () => ipcRenderer.invoke('cowork:installVideoStudio'),
+  installComfyUI: () => ipcRenderer.invoke('cowork:installComfyUI'),
   listVideoCharacters: () => ipcRenderer.invoke('cowork:listVideoCharacters'),
   addVideoCharacter: (input) => ipcRenderer.invoke('cowork:addVideoCharacter', input),
   removeVideoCharacter: (id) => ipcRenderer.invoke('cowork:removeVideoCharacter', id),

@@ -1966,10 +1966,11 @@ export interface VideoStudioStatus {
   kokoro: boolean
   /** Chatterbox instalado: la voz con emoción (interpreta cada frase con el timbre de la voz elegida). */
   chatterbox?: boolean
-  /** «comfyui» si hay un ComfyUI encendido con modelo (el de por defecto), «gemini» si hay clave; null: fondos de diseño. */
-  images: 'comfyui' | 'gemini' | null
-  /** ComfyUI en este equipo: si responde, el modelo que se usa y cuántos tiene. */
-  comfyui?: { running: boolean; checkpoint: string | null; models: number }
+  /** «comfyui» si hay un ComfyUI encendido con modelo (el de por defecto), «gemini» si hay una clave que dibuja,
+   * «gratis» el motor gratis de internet (Pollinations, una imagen cada 45 s); null: fondos de diseño. */
+  images: 'comfyui' | 'gemini' | 'gratis' | null
+  /** ComfyUI en este equipo: si responde, el modelo que se usa, cuántos tiene, si está instalado y si kywai lo instala ahora. */
+  comfyui?: { running: boolean; checkpoint: string | null; models: number; installed?: boolean; installing?: boolean }
   node: boolean
   python: boolean
   /** Lo imprescindible para montar un vídeo. */
@@ -2263,6 +2264,8 @@ export interface CoworkApi {
   videoStudioStatus(): Promise<VideoStudioStatus>
   /** Instala lo que falte del estudio de vídeo (puede tardar varios minutos) y dice cómo fue cada paso. */
   installVideoStudio(): Promise<{ status: VideoStudioStatus; log: string[] }>
+  /** Instala ComfyUI con un modelo en el equipo donde se montan los vídeos (varios GB: tarda) y lo enciende. */
+  installComfyUI?(): Promise<{ ok: boolean; status: VideoStudioStatus; log: string[] }>
   /** Personajes de los vídeos (para todos los proyectos): los robots de kywai y los creados por el usuario. */
   listVideoCharacters(): Promise<VideoCharacterInfo[]>
   /** Crea un personaje (nombre con descripción, imágenes o ambas) y devuelve la lista con él. */

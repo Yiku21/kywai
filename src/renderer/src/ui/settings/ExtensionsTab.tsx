@@ -891,10 +891,10 @@ function VideoSection() {
 
   // Mientras kywai lo instala solo, la lista se pone al día cada 15 s.
   useEffect(() => {
-    if (!live || busy || !status?.installing) return
+    if (!live || busy || (!status?.installing && !status?.comfyui?.installing)) return
     const id = setInterval(() => api!.videoStudioStatus().then(setStatus, () => undefined), 15_000)
     return () => clearInterval(id)
-  }, [live, busy, status?.installing])
+  }, [live, busy, status?.installing, status?.comfyui?.installing])
 
   useEffect(() => {
     if (!live) return
@@ -914,6 +914,24 @@ function VideoSection() {
       () => undefined
     )
   }, [live])
+
+  const [comfyBusy, setComfyBusy] = useState(false)
+  const installComfy = (): void => {
+    if (!api?.installComfyUI) return
+    setComfyBusy(true)
+    setError(null)
+    setLog([])
+    api.installComfyUI().then(
+      (r) => {
+        setStatus(r.status)
+        setLog(r.log)
+        if (!r.ok) setError(t('No se pudo instalar ComfyUI: mira los detalles de abajo.'))
+      },
+      (e) => setError(errorText(e))
+    ).finally(() => setComfyBusy(false))
+  }
+  const comfyWorking = comfyBusy || !!status?.comfyui?.installing
+  const showComfy = live && !!api?.installComfyUI && !!status && (status.images !== 'comfyui' || comfyWorking)
 
   const install = (): void => {
     setBusy(true)
@@ -1005,7 +1023,11 @@ function VideoSection() {
                 ? t('ComfyUI está encendido pero sin un modelo que sirva (descarga uno SDXL o SD 1.5 en ComfyUI)')
                 : status.images === 'gemini'
                   ? t('Las genera Gemini con tu clave de API (si enciendes ComfyUI, lo usa primero, gratis)')
-                  : t('Sin ComfyUI ni clave de Gemini: fondos de diseño animados. Enciende ComfyUI (comfy.org) o pon la clave de Gemini')
+                  : status.images === 'gratis'
+                    ? status.comfyui?.installed
+                      ? t('ComfyUI está instalado pero apagado: kywai lo enciende al pedir un vídeo. Mientras, el motor gratis de internet (una imagen cada 45 s)')
+                      : t('Motor gratis de internet (Pollinations): una imagen cada 45 s y puede llevar una marca pequeña. Instala ComfyUI para hacerlas en este equipo, rápidas y sin marca')
+                    : t('Sin ComfyUI ni clave de Gemini: fondos de diseño animados. Enciende ComfyUI (comfy.org) o pon la clave de Gemini')
         }
       ]
     : []
@@ -1039,6 +1061,15 @@ function VideoSection() {
             <button type="button" className={cx(u.btn, u.btnSm, !complete && u.btnPrimary)} disabled={busy || autoInstalling || !status} onClick={install}>
               {busy || autoInstalling ? t('Instalando… (puede tardar varios minutos)') : complete ? t('Comprobar e instalar otra vez') : t('Instalar lo que falta')}
             </button>
+            {showComfy && (
+              <button type="button" className={cx(u.btn, u.btnSm)} disabled={comfyWorking || busy} onClick={installComfy}>
+                {comfyWorking
+                  ? t('Instalando ComfyUI… (varios GB, puede tardar bastante)')
+                  : status?.comfyui?.installed
+                    ? t('Encender ComfyUI')
+                    : t('Instalar ComfyUI')}
+              </button>
+            )}
           </div>
         )}
         {live && autoInstalling && <p className={s.muted}>{t('kywai lo está instalando solo, en segundo plano: puedes seguir usando la app.')}</p>}

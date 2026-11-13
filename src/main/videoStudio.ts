@@ -33,7 +33,8 @@ import { macFfmpegInstall, macUserBin } from './macTools'
 import { buildCharlaComposition } from './videoCharla'
 import { contactSheetArgs, filmCheckArgs, flatFramesArgs, flatLookIssue, flatShare, parseFilmCheck, parsePpm } from './filmCheck'
 import { EARSHOT_DEPS, EARSHOT_PIP, earshotInstalledIn, ensureSfxBank, loadSfxBank, sfxBankSummary } from './sfxBank'
-import { comfyImage, comfyStatus, ensureComfy, findComfyInstall, startComfy } from './comfyui'
+import { comfyImage, comfyStatus, ensureComfy, findComfyInstall, startComfy, COMFY_CPU_MARK } from './comfyui'
+import { freeImage, freeImagesOn, lastFreeImageError } from './freeImages'
 import { videoCharacter } from './videoCharacters'
 import { imageLook } from '@shared/imageLooks'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
@@ -583,8 +584,9 @@ export async function videoStudioStatus(): Promise<VideoStudioStatus> {
   const engine = !!root && existsSync(bin('hyperframes')) && existsSync(join(root, 'node_modules', 'gsap', 'dist', 'gsap.min.js')) && existsSync(threeModule())
   const key = !!geminiApiKey()
   const voice = vbox?.length ? 'voicebox' : key ? 'gemini' : kokoro ? 'kokoro' : sys ? 'system' : null
-  return { engine, ffmpeg: ffmpeg && ffprobe, voice, kokoro, images: comfy.info ? 'comfyui' : key ? 'gemini' : null,
-    comfyui: { running: comfy.running, checkpoint: comfy.info?.checkpoint ?? null, models: comfy.models },
+  const images = comfy.info ? 'comfyui' : geminiDrawKey() ? 'gemini' : freeImagesOn() ? 'gratis' : null
+  return { engine, ffmpeg: ffmpeg && ffprobe, voice, kokoro, images,
+    comfyui: { running: comfy.running, checkpoint: comfy.info?.checkpoint ?? null, models: comfy.models, installed: !!findComfyInstall(), installing: !!comfyInstalling },
     voicebox: { running: !!vbox, voices: (vbox ?? []).map((p) => `${p.name} (${p.language})`) },
     manim: manimInstalled(),
     sfx: { installed: !!root && earshotInstalledIn(join(root, '.venv')), ...(root ? sfxBankSummary(sfxDir()) : { earshot: 0, openverse: 0 }) },
@@ -648,6 +650,119 @@ export function ensureVideoStudio(onLine: (l: string) => void = () => undefined)
     installing = null
   })
   return installing
+}
+
+// ---------- instalar ComfyUI (botón «Instalar ComfyUI» de Ajustes → Extensiones → Estudio de vídeo) ----------
+
+/** El modelo que trae kywai: DreamShaper 8 (SD 1.5, 2 GB, licencia CreativeML OpenRAIL-M), rápido también sin gran gráfica. */
+export const COMFY_MODEL = {
+  file: 'DreamShaper_8_pruned.safetensors',
+  url: 'https://huggingface.co/Lykon/DreamShaper/resolve/main/DreamShaper_8_pruned.safetensors',
+  bytes: 2_132_625_894
+}
+const COMFY_REPO = 'https://github.com/comfyanonymous/ComfyUI'
+
+let comfyInstalling: Promise<{ ok: boolean; log: string[] }> | null = null
+
+/** Instala ComfyUI una sola vez aunque se pulse el botón otra vez mientras (o desde otro equipo). */
+export function ensureComfyUI(onLine: (l: string) => void = () => undefined): Promise<{ ok: boolean; log: string[] }> {
+  comfyInstalling ??= installComfyUI(onLine).finally(() => {
+    comfyInstalling = null
+  })
+  return comfyInstalling
+}
+
+/**
+ * Instala ComfyUI en la carpeta personal (~/ComfyUI) con su Python aparte (uv, Python 3.12), PyTorch (con CUDA si hay
+ * una gráfica NVIDIA; en Mac, la de Apple) y un modelo, y lo enciende. Si ya hay un ComfyUI en carpeta, solo le pone
+ * el modelo si no tiene ninguno. La app de escritorio de ComfyUI no se toca. Son varios GB: tarda.
+ */
+export async function installComfyUI(onLine: (l: string) => void = () => undefined): Promise<{ ok: boolean; log: string[] }> {
+  const log: string[] = []
+  const say = (l: string): void => {
+    if (log.length < 400) log.push(l.slice(0, 300))
+    onLine(l)
+  }
+  const done = async (ok: boolean): Promise<{ ok: boolean; log: string[] }> => {
+    if (ok) {
+      startComfy()
+      say('Encendiendo ComfyUI (la primera vez tarda un poco en cargar el modelo)…')
+    }
+    return { ok, log: log.slice(-60) }
+  }
+  const found = findComfyInstall()
+  if (found?.kind === 'app') {
+    say('Ya tienes la app de ComfyUI: ábrela y, si no tiene ningún modelo, descarga uno SD 1.5 o SDXL desde ella.')
+    return done(true)
+  }
+  const dir = found?.dir ?? join(homedir(), 'ComfyUI')
+  if (!found) {
+    if (existsSync(dir) && readdirSync(dir).length) {
+      say(`Ya hay una carpeta ${dir} que no es ComfyUI: muévela o bórrala y prueba otra vez.`)
+      return done(false)
+    }
+    say('Descargando ComfyUI…')
+    const git = (await has('git', ['--version'])) ? await run('git', ['clone', '--depth', '1', `${COMFY_REPO}.git`, dir], { timeoutMs: 20 * 60_000, onLine: say }) : null
+    if (!git || git.code !== 0 || !existsSync(join(dir, 'main.py'))) {
+      // Sin git (o si falla): el .tar.gz de GitHub, que tar (también el de Windows 10+) sabe abrir.
+      rmSync(dir, { recursive: true, force: true })
+      mkdirSync(dir, { recursive: true })
+      const tgz = join(tmpdir(), `kywai-comfyui-${Date.now()}.tar.gz`)
+      const dl = await run('curl', ['-fL', '--retry', '3', '-o', tgz, `${COMFY_REPO}/archive/refs/heads/master.tar.gz`], { timeoutMs: 20 * 60_000 })
+      const un = dl.code === 0 ? await run('tar', ['-xzf', tgz, '-C', dir, '--strip-components=1'], { timeoutMs: 10 * 60_000 }) : dl
+      rmSync(tgz, { force: true })
+      if (un.code !== 0 || !existsSync(join(dir, 'main.py'))) {
+        say(`No se pudo descargar ComfyUI: ${un.out.trim().split('\n').slice(-2).join(' ') || '—'}`)
+        return done(false)
+      }
+    }
+  }
+  const python = join(dir, 'venv', IS_WIN ? 'Scripts/python.exe' : 'bin/python')
+  const nvidia = !IS_MAC && (await has('nvidia-smi', ['-L']))
+  if (!existsSync(python)) {
+    const uv = await ensureUv(say)
+    if (!uv) {
+      say('No se pudo preparar Python para ComfyUI (falta uv).')
+      return done(false)
+    }
+    say('Creando el Python de ComfyUI (3.12)…')
+    await run(uv, ['venv', '--seed', '--python', '3.12', join(dir, 'venv')], { timeoutMs: 15 * 60_000, onLine: say })
+    if (!existsSync(python)) {
+      say('No se pudo crear el Python de ComfyUI.')
+      return done(false)
+    }
+    say(nvidia ? 'Instalando PyTorch con CUDA para tu gráfica NVIDIA (unos 3 GB)…' : 'Instalando PyTorch (puede tardar)…')
+    const torch = await run(uv, ['pip', 'install', '--python', python, 'torch', 'torchvision', 'torchaudio', ...(nvidia && IS_WIN ? ['--index-url', 'https://download.pytorch.org/whl/cu128'] : [])], { timeoutMs: 60 * 60_000, onLine: say })
+    if (torch.code !== 0) {
+      rmSync(join(dir, 'venv'), { recursive: true, force: true })
+      say(`No se pudo instalar PyTorch: ${torch.out.trim().split('\n').slice(-2).join(' ') || '—'}`)
+      return done(false)
+    }
+    say('Instalando lo que necesita ComfyUI…')
+    const req = await run(uv, ['pip', 'install', '--python', python, '-r', join(dir, 'requirements.txt')], { timeoutMs: 30 * 60_000, onLine: say })
+    if (req.code !== 0) {
+      rmSync(join(dir, 'venv'), { recursive: true, force: true })
+      say(`No se pudo instalar lo que necesita ComfyUI: ${req.out.trim().split('\n').slice(-2).join(' ') || '—'}`)
+      return done(false)
+    }
+  }
+  // Sin gráfica que sirva (Windows o Linux sin NVIDIA): ComfyUI arranca con --cpu (lento, pero funciona).
+  if (!IS_MAC && !nvidia) writeFileSync(join(dir, COMFY_CPU_MARK), 'ComfyUI arranca con --cpu (puesto por kywai: no hay gráfica NVIDIA)\n')
+  const ckpts = join(dir, 'models', 'checkpoints')
+  mkdirSync(ckpts, { recursive: true })
+  const usable = readdirSync(ckpts).filter((f) => /\.(safetensors|ckpt)$/i.test(f))
+  if (!usable.length) {
+    say('Descargando el modelo de imágenes DreamShaper 8 (2 GB)…')
+    const part = join(ckpts, `${COMFY_MODEL.file}.part`)
+    const dl = await run('curl', ['-fL', '--retry', '3', '-C', '-', '-o', part, COMFY_MODEL.url], { timeoutMs: 90 * 60_000 })
+    if (dl.code !== 0 || !existsSync(part) || statSync(part).size < COMFY_MODEL.bytes * 0.99) {
+      say('No se pudo descargar el modelo (si se cortó, pulsa otra vez y sigue donde lo dejó).')
+      return done(false)
+    }
+    renameSync(part, join(ckpts, COMFY_MODEL.file))
+  }
+  say(`ComfyUI instalado en ${dir}.`)
+  return done(true)
 }
 
 export async function installVideoStudio(onLine: (l: string) => void = () => undefined): Promise<VideoStudioStatus> {
@@ -1103,6 +1218,7 @@ async function geminiImage(
     if (!res.ok) {
       const err = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
       lastGeminiImageError = geminiImageProblem(res.status, err?.error?.message ?? '')
+      if (geminiImagesBlockedBy(res.status, err?.error?.message ?? '')) geminiImagesBlockedAt = Date.now()
       return false
     }
     const json = (await res.json()) as {
@@ -1126,6 +1242,19 @@ async function geminiImage(
 
 /** Por qué falló la última imagen de Gemini (para decírselo al usuario en «Probar con mi escena»). */
 let lastGeminiImageError = ''
+/** Cuándo dijo Gemini que la clave no puede dibujar (plan gratis, clave mala, API apagada): durante una hora no se le
+ * piden más imágenes (cada intento fallido gasta tiempo) y van directas al motor gratis. */
+let geminiImagesBlockedAt = 0
+
+/** ¿Ese fallo se repetiría con cada imagen? (plan gratis sin imágenes, clave que no vale, 403). */
+export function geminiImagesBlockedBy(status: number, message: string): boolean {
+  return (status === 429 && /free[_ ]tier|limit: 0|billing/i.test(message)) || (status === 400 && /api key/i.test(message)) || status === 403
+}
+
+/** La clave de Gemini, si puede dibujar (la que el plan gratis no deja se salta: va directo al motor gratis). */
+function geminiDrawKey(): string | null {
+  return Date.now() - geminiImagesBlockedAt < 60 * 60_000 ? null : geminiApiKey()
+}
 
 /** Un fallo de la API de imágenes de Gemini, en palabras del usuario. */
 export function geminiImageProblem(status: number, message: string): string {
@@ -1429,19 +1558,29 @@ export async function tryVideoLook(input: unknown): Promise<string> {
   // Si ComfyUI está instalado pero apagado, se enciende (la primera vez tarda un poco en cargar el modelo).
   const comfy = await ensureComfy({ timeoutMs: 120_000 })
   const cs = await comfyStatus()
-  const key = geminiApiKey()
-  if (!comfy && !key) throw new Error(tr('Para probar aspectos hace falta ComfyUI abierto en este equipo o la clave de Gemini (Ajustes → Extensiones → Estudio de vídeo).'))
+  const key = geminiDrawKey()
+  const free = freeImagesOn()
+  if (!comfy && !key && !free) throw new Error(tr('Para probar aspectos hace falta ComfyUI abierto en este equipo o la clave de Gemini (Ajustes → Extensiones → Estudio de vídeo).'))
   mkdirSync(dir, { recursive: true })
   const prompt = lookTrialPrompt(topic, char)
   const castText = char ? char.look ?? char.about ?? char.name : undefined
   const cast = char ? { images: char.images.slice(0, 3), text: castText } : undefined
   const comfyOk = !!comfy && (await comfyImage(comfy, imagePromptText(prompt, false, look.prompt, true, castText), vertical, png, { timeoutMs: 180_000 }))
-  const ok = comfyOk || (!!key && (await geminiImage(prompt, vertical ? 'vertical' : 'horizontal', png, key, false, undefined, look.prompt, [], cast, true)))
+  const geminiOk = !comfyOk && !!key && (await geminiImage(prompt, vertical ? 'vertical' : 'horizontal', png, key, false, undefined, look.prompt, [], cast, true))
+  // Sin ComfyUI y sin Gemini que dibuje: el motor gratis de internet (de una en una, cada 45 s).
+  const ok = comfyOk || geminiOk || (free && (await freeImage(imagePromptText(prompt, false, look.prompt, true, castText), vertical, png, { signal: AbortSignal.timeout(10 * 60_000) })))
   if (!ok || !existsSync(png)) {
     // Por qué no salió, de cada uno: así se sabe qué arreglar.
     const why = [
-      comfy ? tr('ComfyUI no devolvió la imagen (mira su ventana por si dio un error).') : cs.running ? tr('ComfyUI está abierto pero no tiene ningún modelo de imagen instalado.') : '',
-      key ? lastGeminiImageError || tr('Gemini no devolvió la imagen.') : tr('No hay clave de Gemini para probar con ella.')
+      comfy
+        ? tr('ComfyUI no devolvió la imagen (mira su ventana por si dio un error).')
+        : cs.running
+          ? tr('ComfyUI está abierto pero no tiene ningún modelo de imagen instalado.')
+          : findComfyInstall()
+            ? tr('ComfyUI está instalado pero no arrancó a tiempo: ábrelo y prueba otra vez.')
+            : tr('ComfyUI no está instalado en este equipo: instálalo en Ajustes → Extensiones → Estudio de vídeo → «Instalar ComfyUI».'),
+      key ? lastGeminiImageError || tr('Gemini no devolvió la imagen.') : geminiApiKey() ? lastGeminiImageError : free ? '' : tr('No hay clave de Gemini para probar con ella.'),
+      free ? tr('El motor gratis de internet tampoco la dio ({why}).', { why: lastFreeImageError || tr('sin motivo') }) : ''
     ].filter(Boolean)
     throw new Error(`${tr('No salió la imagen de prueba.')} ${why.join(' ')}`)
   }
@@ -1873,8 +2012,11 @@ export async function renderVideo(input: {
   const wantImages = shotPrompts.some((l) => l.length)
   if (wantImages && !(await comfyStatus()).running && findComfyInstall()) step('Encendiendo ComfyUI para las imágenes', 0.05)
   const comfy = wantImages ? await ensureComfy({ signal }) : (await comfyStatus()).info
+  // Sin ComfyUI y sin una clave de Gemini que dibuje, el motor gratis de internet (una imagen cada 45 s).
+  const drawKey = geminiDrawKey()
+  const free = freeImagesOn()
   const doImages = async (): Promise<void> => {
-    if (!key && !comfy) return
+    if (!drawKey && !comfy && !free) return
     const jobs = shotPrompts.flatMap((list, i) => list.map((prompt, k) => ({ i, k, prompt })))
     let next = 0
     let comfyFails = 0
@@ -1897,13 +2039,15 @@ export async function renderVideo(input: {
           }
           comfyFails++
         }
-        if (key && (await geminiImage(prompt, format, out, key, cartoon, signal, script.look, refs, cast, lookWins))) shots[i][k] = rel
+        const geminiKey = geminiDrawKey()
+        if (geminiKey && (await geminiImage(prompt, format, out, geminiKey, cartoon, signal, script.look, refs, cast, lookWins))) shots[i][k] = rel
+        else if (free && (await freeImage(imagePromptText(prompt, cartoon, script.look, lookWins, castText), format === 'vertical', out, { signal }))) shots[i][k] = rel
       }
     }
-    // ComfyUI hace una imagen detrás de otra (una sola gráfica); Gemini, tres a la vez.
-    await Promise.all(comfy ? [worker()] : [worker(), worker(), worker()])
+    // ComfyUI hace una imagen detrás de otra (una sola gráfica) y el motor gratis también (una cada 45 s); Gemini, tres a la vez.
+    await Promise.all(comfy || !drawKey ? [worker()] : [worker(), worker(), worker()])
   }
-  if (key || comfy) step('Creando las imágenes y la voz', 0.05)
+  if (drawKey || comfy || free) step('Creando las imágenes y la voz', 0.05)
   // Animaciones de Manim, una detrás de otra (cada una usa todos los núcleos), mientras se hacen la voz y las imágenes.
   const rawClips: (string | null)[] = script.scenes.map(() => null)
   const doManim = async (): Promise<void> => {
@@ -1927,7 +2071,8 @@ export async function renderVideo(input: {
     const prompt = `${input.cast.name}, as the friendly host of a video, waist-up, facing the camera, smiling, one hand raised mid-gesture, centered, simple soft plain background`
     const out = join(dir, 'assets', 'presentador.png')
     if (comfy && (await comfyImage(comfy, imagePromptText(prompt, false, script.look, lookWins, castText), true, out, { signal }))) presenter = 'assets/presentador.png'
-    else if (key && (await geminiImage(prompt, 'vertical', out, key, false, signal, script.look, refs, cast, lookWins))) presenter = 'assets/presentador.png'
+    else if (drawKey && (await geminiImage(prompt, 'vertical', out, drawKey, false, signal, script.look, refs, cast, lookWins))) presenter = 'assets/presentador.png'
+    else if (!castImages.length && free && (await freeImage(imagePromptText(prompt, false, script.look, lookWins, castText), true, out, { signal }))) presenter = 'assets/presentador.png'
     else if (castImages.length) {
       const ext = castImages[0].split('.').pop()!.toLowerCase()
       copyFileSync(castImages[0], join(dir, 'assets', `presentador.${ext}`))

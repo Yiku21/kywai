@@ -3909,4 +3909,13 @@ export const zh: Record<string, string> = {
   "Portada: {text}": "封面：{text}",
   "Elige la portada: sale en el perfil en vez del primer fotograma.": "选择封面：在主页上显示它，而不是第一帧。",
   "Haciendo las portadas": "正在制作封面",
+  "ComfyUI está instalado pero apagado: kywai lo enciende al pedir un vídeo. Mientras, el motor gratis de internet (una imagen cada 45 s)": "ComfyUI 已安装但未运行：请求视频时 kywai 会自动启动它。在此之前使用免费在线引擎（每 45 秒一张图片）",
+  "Motor gratis de internet (Pollinations): una imagen cada 45 s y puede llevar una marca pequeña. Instala ComfyUI para hacerlas en este equipo, rápidas y sin marca": "免费在线引擎（Pollinations）：每 45 秒一张图片，可能带有小水印。安装 ComfyUI 可在本机快速生成且无水印",
+  "No se pudo instalar ComfyUI: mira los detalles de abajo.": "无法安装 ComfyUI：请查看下方详情。",
+  "Instalando ComfyUI… (varios GB, puede tardar bastante)": "正在安装 ComfyUI…（数 GB，可能需要较长时间）",
+  "Encender ComfyUI": "启动 ComfyUI",
+  "Instalar ComfyUI": "安装 ComfyUI",
+  "ComfyUI está instalado pero no arrancó a tiempo: ábrelo y prueba otra vez.": "ComfyUI 已安装但未能及时启动：请打开它后重试。",
+  "ComfyUI no está instalado en este equipo: instálalo en Ajustes → Extensiones → Estudio de vídeo → «Instalar ComfyUI».": "本机未安装 ComfyUI：请在 设置 → 扩展 → 视频工作室 →「安装 ComfyUI」中安装。",
+  "El motor gratis de internet tampoco la dio ({why}).": "免费在线引擎也没有生成（{why}）。",
 }

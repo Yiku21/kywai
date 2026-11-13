@@ -3909,4 +3909,13 @@ export const pt: Record<string, string> = {
   "Portada: {text}": "Capa: {text}",
   "Elige la portada: sale en el perfil en vez del primer fotograma.": "Escolhe a capa: aparece no perfil em vez do primeiro fotograma.",
   "Haciendo las portadas": "A fazer as capas",
+  "ComfyUI está instalado pero apagado: kywai lo enciende al pedir un vídeo. Mientras, el motor gratis de internet (una imagen cada 45 s)": "O ComfyUI está instalado mas desligado: o kywai liga-o quando pedes um vídeo. Entretanto, o motor grátis da internet (uma imagem a cada 45 s)",
+  "Motor gratis de internet (Pollinations): una imagen cada 45 s y puede llevar una marca pequeña. Instala ComfyUI para hacerlas en este equipo, rápidas y sin marca": "Motor grátis da internet (Pollinations): uma imagem a cada 45 s e pode levar uma pequena marca. Instala o ComfyUI para as fazer neste computador, rápidas e sem marca",
+  "No se pudo instalar ComfyUI: mira los detalles de abajo.": "Não foi possível instalar o ComfyUI: vê os detalhes abaixo.",
+  "Instalando ComfyUI… (varios GB, puede tardar bastante)": "A instalar o ComfyUI… (vários GB, pode demorar bastante)",
+  "Encender ComfyUI": "Ligar o ComfyUI",
+  "Instalar ComfyUI": "Instalar o ComfyUI",
+  "ComfyUI está instalado pero no arrancó a tiempo: ábrelo y prueba otra vez.": "O ComfyUI está instalado mas não arrancou a tempo: abre-o e tenta outra vez.",
+  "ComfyUI no está instalado en este equipo: instálalo en Ajustes → Extensiones → Estudio de vídeo → «Instalar ComfyUI».": "O ComfyUI não está instalado neste computador: instala-o em Definições → Extensões → Estúdio de vídeo → «Instalar o ComfyUI».",
+  "El motor gratis de internet tampoco la dio ({why}).": "O motor grátis da internet também não a fez ({why}).",
 }
