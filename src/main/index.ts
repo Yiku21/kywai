@@ -3,6 +3,7 @@ import { migrateWindowsLoginItem } from './dataDir'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, net, powerSaveBlocker, protocol, session, shell, systemPreferences, type OpenDialogOptions } from 'electron'
 import { copyFileSync, createWriteStream, existsSync, promises as fsp, statSync } from 'node:fs'
 import { prepareArtifactDownload, writeArtifactDownload } from './artifactDownloads'
+import { flushUiSettings, initUiSettings } from './uiSettings'
 import { basename, join } from 'node:path'
 import { hostname } from 'node:os'
 import { pathToFileURL } from 'node:url'
@@ -148,6 +149,8 @@ protocol.registerSchemesAsPrivileged([
 
 // Modo cliente: la dirección del servidor se marca como segura (micrófono) antes de que arranque la app.
 prepareClientSwitches()
+// Ajustes de la interfaz de este dispositivo en disco (también en modo cliente): no se pierden al actualizar.
+initUiSettings(join(app.getPath('userData'), 'ajustes-interfaz.json'))
 
 let mainWindow: BrowserWindow | null = null
 
@@ -1582,6 +1585,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  flushUiSettings()
   // Como cliente no se arrancó el motor: no hay nada que parar ni guardar.
   if (savedMode()?.mode === 'client') return
   // Antes de detener las peticiones: así las de las rutinas quedan como interrumpidas, no como fallidas.

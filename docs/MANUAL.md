@@ -357,6 +357,19 @@ hay que actualizar los cuatro. La imagen de vista previa de GitHub se sube a man
 
 ### Actualizar y reiniciar
 
+- **Tus ajustes se quedan al actualizar y reiniciar.** Lo que eliges en este dispositivo (música, efectos y avisos,
+  voces y su volumen, calidad del 3D, medidor, «Reducir efectos ambientales», tema propio, aspecto de los agentes,
+  anchos de la barra y del chat, filtros…) se guardaba solo en el `localStorage` de la ventana, que a veces se perdía
+  al actualizar o reiniciar. Ahora hay además una copia en la carpeta de datos, `ajustes-interfaz.json`
+  (`src/main/uiSettings.ts`). El preload (`src/preload/uiSettings.ts`) la lee antes de que arranque la interfaz y, si
+  el `localStorage` llega vacío o viejo, lo rellena; después manda al disco cada cambio (mira el `localStorage` cada
+  segundo y al cerrar la ventana). Se copian las claves que empiezan por `aicowork.`, `ai-cowork.` o `kywai.`
+  (`src/shared/uiSettings.ts`), así que los ajustes nuevos entran solos. La primera vez pasa al disco todo lo que ya
+  tenías. Al cerrar, el motor escribe lo pendiente y pide a Chromium que guarde también su `localStorage`.
+  «Reducir efectos ambientales» antes no se guardaba en ningún sitio: ahora se recuerda (`aicowork.reducedEffects`;
+  si nunca lo tocaste, sigue lo que pida el sistema). El «Modo demo» sigue sin recordarse a propósito: kywai abre
+  siempre con los agentes de verdad. En el navegador cada navegador guarda lo suyo, y el cliente de escritorio usa el
+  `localStorage` de la dirección del servidor (no cambia al actualizar).
 - **⚙ → «Buscar actualizaciones…»** compara con GitHub y, si hay cambios, los descarga, instala lo que haga
   falta, compila y reinicia. Si el código de ese equipo tiene cambios hechos allí (por ejemplo, por tus agentes),
   aparece **«Apartar cambios y actualizar»**: se guardan con `git stash` (no se borran; `git stash list` en la

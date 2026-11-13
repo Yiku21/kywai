@@ -1,5 +1,9 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { CoworkApi, CoworkEvent, RoutineInput } from '../shared/types'
+import { startUiSettingsMirror } from './uiSettings'
+
+// Tus ajustes de este dispositivo, del disco, antes de que arranque la interfaz (sobreviven a actualizar y reiniciar).
+startUiSettingsMirror()
 
 /** Copia simple (sin prototipos ni funciones) de lo que se manda al crear o cambiar una rutina. */
 function routineInput(input: Partial<RoutineInput>): Partial<RoutineInput> {

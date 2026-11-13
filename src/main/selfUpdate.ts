@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { app } from 'electron'
 import type { PendingUpdate, ReleaseUpdate, UpdateCommit, UpdateStatus } from '@shared/types'
+import { flushUiSettings } from './uiSettings'
 import { emit } from './events'
 import { sh } from './setup'
 import { launchCommand } from './linuxDesktop'
@@ -318,6 +319,7 @@ export async function applyUpdate(setAside = false): Promise<string> {
   } else {
     setTimeout(() => {
       app.relaunch()
+      flushUiSettings() // app.exit no pasa por before-quit: que tus ajustes queden en disco antes
       app.exit(0)
     }, 800)
   }
