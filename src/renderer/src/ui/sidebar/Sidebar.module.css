@@ -670,6 +670,12 @@
   backdrop-filter: blur(26px) saturate(160%);
 }
 
+/* Unida al logo, la barra sigue hacia arriba: sin el brillo de su borde de arriba, que marcaría una raya. */
+:global(:root[data-theme='orbita']) .bar[data-fused] {
+  border-top-color: transparent;
+  box-shadow: 0 0 30px rgba(64, 132, 255, 0.16), 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
 /* «Ver todo el historial» al pie de Recientes. */
 .seeAll {
   display: block;

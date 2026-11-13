@@ -165,6 +165,13 @@ export function LogoBridge({ joined }: { joined: boolean }) {
       const top = Math.max(hd.top + 2, l.top - side)
       const gap = n.top - l.bottom
       const barR = parseFloat(getComputedStyle(nav).borderBottomLeftRadius) || 16
+      // Tema de cristal: hueco exacto de la columna en el cristal de la cabecera (Header.module.css).
+      root.style.setProperty('--bridge-x', `${(cx - RAIL_W / 2 - hd.left).toFixed(2)}px`)
+      root.style.setProperty('--bridge-y', `${(top - hd.top).toFixed(2)}px`)
+      root.style.setProperty(
+        '--bridge-hole',
+        `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${RAIL_W}' height='400'%3E%3Crect width='${RAIL_W}' height='440' rx='${barR}'/%3E%3C/svg%3E")`
+      )
       setGeo(
         gap > 4 && gap < 140
           ? { left: cx - hd.left, top: top - hd.top, logoBottom: l.bottom - top, barTop: n.top - top, barHalf: RAIL_W / 2, barR }
@@ -180,8 +187,9 @@ export function LogoBridge({ joined }: { joined: boolean }) {
     return () => {
       ro.disconnect()
       window.removeEventListener('resize', measure)
-      for (const v of ['--logo-shift', '--logo-room']) root.style.removeProperty(v)
+      for (const v of ['--logo-shift', '--logo-room', '--bridge-x', '--bridge-y', '--bridge-hole']) root.style.removeProperty(v)
       root.removeAttribute('data-logo-joined')
+      root.removeAttribute('data-logo-fused')
       nav.style.removeProperty('--bar-join-r')
       nav.removeAttribute('data-fused')
     }
@@ -201,6 +209,7 @@ export function LogoBridge({ joined }: { joined: boolean }) {
     if (u > 0 && geo) nav.style.setProperty('--bar-join-r', `${(geo.barR * (1 - u)).toFixed(2)}px`)
     else nav.style.removeProperty('--bar-join-r')
     nav.toggleAttribute('data-fused', u >= 0.999)
+    document.documentElement.toggleAttribute('data-logo-fused', u >= 0.999 && p >= 0.999)
   }, [p, geo])
 
   // Anima el avance hacia 1 (unirse) o 0 (separarse).
@@ -226,6 +235,8 @@ export function LogoBridge({ joined }: { joined: boolean }) {
 
   const W = RAIL_W + 8
   const shape = geo ? bridgePaths(p, W, geo.logoBottom, geo.barTop, geo.barHalf, geo.barR, joined ? 1 : -1) : { fill: [], edges: [] }
+  // En el tema de cristal, el fondo de la barra no llega a la fila de su raya de arriba: unida, la cubre el líquido.
+  const glassBase = geo && p >= 0.999 ? ` M${W / 2 - geo.barHalf},${geo.barTop - 0.5} h${geo.barHalf * 2} v1.5 h${-geo.barHalf * 2} Z` : ''
   return (
     <>
       <span ref={anchor} hidden />
@@ -233,6 +244,9 @@ export function LogoBridge({ joined }: { joined: boolean }) {
         host &&
         shape.fill.length > 0 &&
         createPortal(
+          <>
+            {/* Solo en el tema de cristal: el mismo cristal que la barra, recortado con la forma del líquido. */}
+            <div className={s.glass} style={{ left: geo.left - W / 2, top: geo.top, width: W, height: geo.barTop + 1, clipPath: `path('${shape.fill.join(' ')}${glassBase}')` }} aria-hidden="true" />
           <svg className={s.bridge} width={W} height={geo.barTop} style={{ left: geo.left - W / 2, top: geo.top }} viewBox={`0 0 ${W} ${geo.barTop}`} aria-hidden="true">
             {/* El relleno y, encima y por dentro, la línea del borde: igual que el borde de la barra sobre su fondo. */}
             {shape.fill.map((d, i) => (
@@ -241,7 +255,8 @@ export function LogoBridge({ joined }: { joined: boolean }) {
             {shape.edges.map((d, i) => (
               <path key={`e${i}`} className={s.edge} d={d} />
             ))}
-          </svg>,
+          </svg>
+          </>,
           host
         )}
     </>

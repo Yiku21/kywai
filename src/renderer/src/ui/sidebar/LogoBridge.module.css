@@ -17,3 +17,25 @@
   stroke: var(--border);
   stroke-width: 1;
 }
+
+/* Tema Órbita (cristal): el líquido es el mismo cristal esmerilado que la barra, no un color liso. */
+.glass {
+  display: none;
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+
+:global(:root[data-theme='orbita']) .glass {
+  display: block;
+  background: rgba(20, 34, 66, 0.42);
+  backdrop-filter: blur(26px) saturate(160%);
+}
+
+:global(:root[data-theme='orbita']) .fill {
+  fill: none;
+}
+
+:global(:root[data-theme='orbita']) .edge {
+  stroke: rgba(130, 185, 255, 0.32);
+}

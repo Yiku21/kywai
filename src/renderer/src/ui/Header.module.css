@@ -406,3 +406,16 @@
   border-bottom: 1px solid rgba(130, 185, 255, 0.14);
   backdrop-filter: blur(20px) saturate(150%);
 }
+
+/* Con la barra plegada y unida al logo, el cristal de la cabecera deja libre la columna: ahí va el de la barra, que
+   sube hasta arriba, y así es una sola pieza del mismo color (el hueco lo mide LogoBridge.tsx). */
+:global(:root[data-theme='orbita'][data-logo-fused]) .header::before {
+  -webkit-mask:
+    linear-gradient(#000 0 0),
+    var(--bridge-hole) var(--bridge-x, 0) var(--bridge-y, 0) no-repeat;
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0),
+    var(--bridge-hole) var(--bridge-x, 0) var(--bridge-y, 0) no-repeat;
+  mask-composite: exclude;
+}
