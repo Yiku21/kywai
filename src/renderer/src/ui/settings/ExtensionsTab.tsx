@@ -83,27 +83,29 @@ export function ExtensionsTab() {
         <h3 className={s.title}>{t('Extensiones')}</h3>
         <p className={s.subtitle}>{t('Herramientas y habilidades para los agentes, con su catálogo para instalarlas con un clic.')}</p>
       </header>
-      <div className={s.seg} role="tablist" aria-label={t('Extensiones')}>
-        <button type="button" role="tab" aria-selected={section === 'mcp'} className={cx(s.segBtn, section === 'mcp' && s.segOn)} onClick={() => setSection('mcp')}>
-          <Server size={14} aria-hidden="true" />
-          {t('Servidores MCP')}
-        </button>
-        <button type="button" role="tab" aria-selected={section === 'skills'} className={cx(s.segBtn, section === 'skills' && s.segOn)} onClick={() => setSection('skills')}>
-          <BookOpen size={14} aria-hidden="true" />
-          {t('Habilidades')}
-        </button>
-        <button type="button" role="tab" aria-selected={section === 'plugins'} className={cx(s.segBtn, section === 'plugins' && s.segOn)} onClick={() => setSection('plugins')}>
-          <Package size={14} aria-hidden="true" />
-          {t('Plugins')}
-        </button>
-        <button type="button" role="tab" aria-selected={section === 'mods'} className={cx(s.segBtn, section === 'mods' && s.segOn)} onClick={() => setSection('mods')}>
-          <Puzzle size={14} aria-hidden="true" />
-          {t('Mods')}
-        </button>
-        <button type="button" role="tab" aria-selected={section === 'video'} className={cx(s.segBtn, section === 'video' && s.segOn)} onClick={() => setSection('video')}>
-          <Clapperboard size={14} aria-hidden="true" />
-          {t('Estudio de vídeo')}
-        </button>
+      <div className={s.segWrap}>
+        <div className={s.seg} role="tablist" aria-label={t('Extensiones')}>
+          <button type="button" role="tab" aria-selected={section === 'mcp'} className={cx(s.segBtn, section === 'mcp' && s.segOn)} onClick={() => setSection('mcp')}>
+            <Server size={14} aria-hidden="true" />
+            {t('Servidores MCP')}
+          </button>
+          <button type="button" role="tab" aria-selected={section === 'skills'} className={cx(s.segBtn, section === 'skills' && s.segOn)} onClick={() => setSection('skills')}>
+            <BookOpen size={14} aria-hidden="true" />
+            {t('Habilidades')}
+          </button>
+          <button type="button" role="tab" aria-selected={section === 'plugins'} className={cx(s.segBtn, section === 'plugins' && s.segOn)} onClick={() => setSection('plugins')}>
+            <Package size={14} aria-hidden="true" />
+            {t('Plugins')}
+          </button>
+          <button type="button" role="tab" aria-selected={section === 'mods'} className={cx(s.segBtn, section === 'mods' && s.segOn)} onClick={() => setSection('mods')}>
+            <Puzzle size={14} aria-hidden="true" />
+            {t('Mods')}
+          </button>
+          <button type="button" role="tab" aria-selected={section === 'video'} className={cx(s.segBtn, section === 'video' && s.segOn)} onClick={() => setSection('video')}>
+            <Clapperboard size={14} aria-hidden="true" />
+            {t('Estudio de vídeo')}
+          </button>
+        </div>
       </div>
       {section === 'mcp' ? <McpSection /> : section === 'skills' ? <SkillsSection /> : section === 'plugins' ? <PluginsSection /> : section === 'mods' ? <ModsSection /> : <VideoSection />}
     </>
