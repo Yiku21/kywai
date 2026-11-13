@@ -112,6 +112,8 @@
 
 .rail .scroll {
   padding: 8px 6px 10px;
+  /* Tan estrecha, la barra de desplazamiento le quitaría sitio a los iconos: se desplaza con la rueda o el dedo. */
+  scrollbar-width: none;
 }
 
 .item {
@@ -597,14 +599,17 @@
   padding: 0;
 }
 
+/* El número va fuera del dibujo, arriba a la derecha, sin pisarlo. */
 .rail .badge {
   position: absolute;
-  top: 1px;
-  right: 3px;
-  min-width: 15px;
-  height: 15px;
+  top: -2px;
+  right: -3px;
+  min-width: 14px;
+  height: 14px;
   padding: 0 3px;
-  font-size: 10px;
+  border-radius: 7px;
+  font-size: 9.5px;
+  line-height: 1;
 }
 
 /* Plegada: el chat actual y los proyectos, bajo una raya. */
