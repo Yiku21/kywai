@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Globe, Hand, LogOut, RotateCw, ShieldCheck, Squa
 import { api, isWeb } from '@/lib/api'
 import { useCowork } from '@/store/cowork'
 import { t } from '@/lib/i18n'
-import { isBrowserKey, type BrowserRect } from '@shared/browser'
+import { isRemoteKey, type BrowserRect, type BrowserRemoteInput as RemoteInput } from '@shared/browser'
 import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './BrowserPane.module.css'
@@ -212,7 +212,7 @@ export function BrowserPane() {
         {blank ? (
           <BrowserIntro />
         ) : remote ? (
-          <RemoteView />
+          <RemoteView loading={!!state?.loading} />
         ) : (
           snapshot && <img className={s.snapshot} src={snapshot} alt="" aria-hidden="true" />
         )}
@@ -248,34 +248,59 @@ function BrowserIntro() {
 }
 
 /**
- * Desde otro dispositivo (cliente de escritorio, navegador web): la pestaña del equipo de los agentes se ve con
- * capturas seguidas y se maneja con clics, la rueda y el teclado.
+ * Desde otro dispositivo (cliente de escritorio, navegador web): la pestaña del equipo de los agentes se ve casi en
+ * directo (cada petición espera a que la página cambie) y se maneja como una web: mover el ratón (los enlaces se
+ * iluminan y el puntero cambia), clic, doble clic, clic derecho, arrastrar, rueda, teclado y atajos (Ctrl+A…).
  */
-function RemoteView() {
-  const [frame, setFrame] = useState<{ image: string; width: number; height: number } | null>(null)
+function RemoteView({ loading }: { loading: boolean }) {
+  const [frame, setFrame] = useState<{ image: string; width: number; height: number; cursor: string } | null>(null)
   const [failed, setFailed] = useState(false)
+  const [waiting, setWaiting] = useState(false)
+  const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; right: boolean }>>([])
   const img = useRef<HTMLImageElement>(null)
   const box = useRef<HTMLDivElement>(null)
-  const fast = useRef(0)
+  const frameRef = useRef(frame)
+  frameRef.current = frame
   const pendingText = useRef('')
   const textTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const queue = useRef<RemoteInput[]>([])
+  const sending = useRef(false)
+  const wheel = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null)
+  const wheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const rippleId = useRef(0)
+  // Doble y triple clic: los eventos de puntero no traen la cuenta (detail es 0), así que se lleva aquí.
+  const lastDown = useRef({ at: 0, x: 0, y: 0, button: -1, count: 0 })
 
+  // Bucle de imágenes: cada petición vuelve cuando la página cambió (o a los ~1,5 s sin cambios).
   useEffect(() => {
     let alive = true
+    let version = -1
     let timer: ReturnType<typeof setTimeout> | null = null
     const tick = async (): Promise<void> => {
       if (!alive || !api) return
+      const started = Date.now()
       if (document.visibilityState === 'visible') {
         try {
-          const f = await api.browserFrame()
+          // El hueco de la imagen (sin la nota de abajo); antes de la primera, el de toda la vista.
+          const el = img.current ?? box.current
+          const dpr = window.devicePixelRatio || 1
+          const vp = el ? { width: Math.round(el.clientWidth), height: Math.round(el.clientHeight) } : undefined
+          const f = await api.browserFrame({ after: version, ...(vp ? { maxWidth: Math.round(vp.width * dpr), viewport: vp } : {}) })
           if (!alive) return
-          setFrame(f)
+          if (f) {
+            version = f.version
+            const image = f.image
+            setFrame((old) => (image ? { image, width: f.width, height: f.height, cursor: f.cursor } : old ? { ...old, width: f.width, height: f.height, cursor: f.cursor } : old))
+            if (image) setWaiting(false)
+          }
           setFailed(!f)
         } catch {
           if (alive) setFailed(true)
         }
       }
-      if (alive) timer = setTimeout(() => void tick(), Date.now() < fast.current ? 350 : 1200)
+      // Como mucho unas 15 imágenes por segundo; si falla o la pestaña está oculta, más despacio.
+      const gap = document.visibilityState !== 'visible' ? 1000 : Math.max(0, 66 - (Date.now() - started))
+      if (alive) timer = setTimeout(() => void tick(), gap)
     }
     void tick()
     return () => {
@@ -284,25 +309,63 @@ function RemoteView() {
     }
   }, [])
 
-  const toPage = (clientX: number, clientY: number): { x: number; y: number } | null => {
+  // Si la respuesta tarda, se nota (un punto que late arriba): sabes que el clic llegó y está en camino.
+  useEffect(() => {
+    if (!waiting) return
+    const tm = setTimeout(() => setWaiting(false), 4000)
+    return () => clearTimeout(tm)
+  }, [waiting])
+
+  const toPage = (clientX: number, clientY: number, clamp = false): { x: number; y: number } | null => {
     const el = img.current
-    if (!el || !frame) return null
+    const f = frameRef.current
+    if (!el || !f) return null
     // La imagen se encaja sin deformarse (arriba y centrada): solo cuenta la parte donde está dibujada.
     const r = el.getBoundingClientRect()
-    const nw = el.naturalWidth || frame.width
-    const nh = el.naturalHeight || frame.height
+    const nw = el.naturalWidth || f.width
+    const nh = el.naturalHeight || f.height
     const scale = Math.min(r.width / nw, r.height / nh)
     const w = nw * scale
     const h = nh * scale
     const left = r.left + (r.width - w) / 2
-    const x = (clientX - left) / w
-    const y = (clientY - r.top) / h
-    if (!(w > 1 && h > 1) || x < 0 || x > 1 || y < 0 || y > 1) return null
-    return { x: x * frame.width, y: y * frame.height }
+    let x = (clientX - left) / w
+    let y = (clientY - r.top) / h
+    if (!(w > 1 && h > 1)) return null
+    // Al arrastrar o soltar fuera de la imagen, cuenta el borde (si no, el botón se quedaría pulsado en la página).
+    if (clamp) {
+      x = Math.min(1, Math.max(0, x))
+      y = Math.min(1, Math.max(0, y))
+    } else if (x < 0 || x > 1 || y < 0 || y > 1) return null
+    return { x: x * f.width, y: y * f.height }
   }
-  const send = (input: Parameters<NonNullable<typeof api>['browserInput']>[0]): void => {
-    fast.current = Date.now() + 3000
-    void api?.browserInput(input).catch(() => undefined)
+  // Todo va en una sola cola y en orden (pulsar, mover, soltar…): lo que se junta mientras llega la respuesta
+  // anterior sale en un solo envío, y de los movimientos seguidos solo cuenta el último.
+  const send = (input: RemoteInput, feedback = true): void => {
+    if (feedback) setWaiting(true)
+    const q = queue.current
+    const last = q[q.length - 1]
+    if (input.type === 'mouse' && input.action === 'move' && last?.type === 'mouse' && last.action === 'move') q[q.length - 1] = input
+    else q.push(input)
+    void pump()
+  }
+  const pump = async (): Promise<void> => {
+    if (sending.current || !api) return
+    sending.current = true
+    try {
+      while (queue.current.length) {
+        const batch = queue.current.splice(0, 60)
+        await api.browserInput(batch).catch(() => undefined)
+      }
+    } finally {
+      sending.current = false
+    }
+  }
+  const ripple = (clientX: number, clientY: number, right: boolean): void => {
+    const r = box.current?.getBoundingClientRect()
+    if (!r) return
+    const id = ++rippleId.current
+    setRipples((list) => [...list.slice(-4), { id, x: clientX - r.left, y: clientY - r.top, right }])
+    setTimeout(() => setRipples((list) => list.filter((p) => p.id !== id)), 650)
   }
   const flushText = (): void => {
     if (textTimer.current) clearTimeout(textTimer.current)
@@ -311,24 +374,67 @@ function RemoteView() {
     pendingText.current = ''
     if (text) send({ type: 'text', text })
   }
+  const flushWheel = (): void => {
+    wheelTimer.current = null
+    const w = wheel.current
+    wheel.current = null
+    if (w && (w.dx || w.dy)) send({ type: 'scroll', x: w.x, y: w.y, dx: w.dx, dy: w.dy })
+  }
+
+  // La rueda con un oyente no pasivo: así la página de kywai no se desplaza a la vez.
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const onWheel = (e: WheelEvent): void => {
+      const p = toPage(e.clientX, e.clientY)
+      if (!p) return
+      e.preventDefault()
+      // Líneas o páginas (algunos ratones en Windows/Firefox) a píxeles.
+      const k = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? 800 : 1
+      const w = wheel.current ?? { x: p.x, y: p.y, dx: 0, dy: 0 }
+      w.x = p.x
+      w.y = p.y
+      w.dx += (e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX) * k
+      w.dy += (e.shiftKey && !e.deltaX ? 0 : e.deltaY) * k
+      wheel.current = w
+      wheelTimer.current ??= setTimeout(flushWheel, 40)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [frame != null])
+
+  const buttonOf = (b: number): 'left' | 'right' | 'middle' => (b === 2 ? 'right' : b === 1 ? 'middle' : 'left')
+  const pressedOf = (bits: number): Array<'left' | 'right' | 'middle'> => [
+    ...(bits & 1 ? (['left'] as const) : []),
+    ...(bits & 2 ? (['right'] as const) : []),
+    ...(bits & 4 ? (['middle'] as const) : [])
+  ]
   const onKey = (e: ReactKeyboardEvent<HTMLDivElement>): void => {
-    if (e.ctrlKey || e.metaKey || e.altKey) return
-    if (e.key.length === 1) {
+    const mods = [...(e.ctrlKey ? (['control'] as const) : []), ...(e.metaKey ? (['meta'] as const) : []), ...(e.altKey ? (['alt'] as const) : []), ...(e.shiftKey ? (['shift'] as const) : [])]
+    const combo = e.ctrlKey || e.metaKey || e.altKey
+    // Pegar va por el evento «paste» (con tu portapapeles); copiar y cortar se quedan en el equipo servidor.
+    if (combo && (e.key === 'v' || e.key === 'V')) return
+    if (!combo && e.key.length === 1) {
       e.preventDefault()
       pendingText.current += e.key
       if (textTimer.current) clearTimeout(textTimer.current)
-      textTimer.current = setTimeout(flushText, 150)
+      textTimer.current = setTimeout(flushText, 120)
       return
     }
-    const key = e.key === ' ' ? 'Space' : e.key
-    if (!isBrowserKey(key)) return
+    const key = e.key === ' ' ? 'Space' : e.key.length === 1 ? e.key.toLowerCase() : e.key
+    if (!isRemoteKey(key)) return
+    if (key.length === 1 && !combo) return
     e.preventDefault()
     flushText()
-    send({ type: 'key', key })
+    send({ type: 'key', key, modifiers: mods })
   }
 
   if (!frame) {
-    return <div className={s.remoteWait}>{failed ? t('No llega la imagen del navegador: la ventana de kywai debe estar abierta en el equipo servidor.') : t('Cargando el navegador del equipo servidor…')}</div>
+    return (
+      <div ref={box} className={s.remoteWait}>
+        {failed ? t('No llega la imagen del navegador: la ventana de kywai debe estar abierta en el equipo servidor.') : t('Cargando el navegador del equipo servidor…')}
+      </div>
+    )
   }
   return (
     <div
@@ -345,23 +451,43 @@ function RemoteView() {
           send({ type: 'text', text: text.slice(0, 2000) })
         }
       }}
-      onWheel={(e) => {
-        const p = toPage(e.clientX, e.clientY)
-        if (p) send({ type: 'scroll', x: p.x, y: p.y, dy: e.deltaY })
-      }}
+      onContextMenu={(e) => e.preventDefault()}
     >
+      {(loading || waiting) && <span className={s.remoteBusy} aria-hidden="true" />}
       <img
         ref={img}
         className={s.remoteImg}
+        style={{ cursor: frame.cursor || 'default' }}
         src={frame.image}
         alt={t('Lo que se ve en el navegador del equipo servidor')}
         draggable={false}
-        onClick={(e) => {
-          box.current?.focus()
+        onPointerDown={(e) => {
+          box.current?.focus({ preventScroll: true })
           const p = toPage(e.clientX, e.clientY)
-          if (p) send({ type: 'click', x: p.x, y: p.y })
+          if (!p) return
+          e.preventDefault()
+          e.currentTarget.setPointerCapture(e.pointerId)
+          flushText()
+          ripple(e.clientX, e.clientY, e.button === 2)
+          const last = lastDown.current
+          const again = e.button === last.button && Date.now() - last.at < 500 && Math.abs(e.clientX - last.x) < 6 && Math.abs(e.clientY - last.y) < 6
+          lastDown.current = { at: Date.now(), x: e.clientX, y: e.clientY, button: e.button, count: again ? Math.min(3, last.count + 1) : 1 }
+          send({ type: 'mouse', action: 'down', x: p.x, y: p.y, button: buttonOf(e.button), clickCount: lastDown.current.count })
+        }}
+        onPointerUp={(e) => {
+          const p = toPage(e.clientX, e.clientY, true)
+          if (!p) return
+          send({ type: 'mouse', action: 'up', x: p.x, y: p.y, button: buttonOf(e.button), clickCount: lastDown.current.count || 1 })
+        }}
+        onPointerMove={(e) => {
+          const p = toPage(e.clientX, e.clientY, e.buttons !== 0)
+          if (!p) return
+          send({ type: 'mouse', action: 'move', x: p.x, y: p.y, buttons: pressedOf(e.buttons) }, false)
         }}
       />
+      {ripples.map((r) => (
+        <span key={r.id} className={cx(s.ripple, r.right && s.rippleRight)} style={{ left: r.x, top: r.y }} aria-hidden="true" />
+      ))}
       <p className={s.remoteNote}>{t('Lo ves desde otro dispositivo: el navegador está en el equipo servidor. Haz clic en la imagen y escribe como en una web.')}</p>
     </div>
   )

@@ -24,12 +24,41 @@ export interface BrowserRect {
   height: number
 }
 
-/** Lo que manda la pestaña desde otro dispositivo (cliente, navegador web): ve capturas y pasa clics y teclas. */
+/** Botón del ratón (el central también sirve para abrir enlaces en pestaña nueva en muchas webs). */
+export type BrowserMouseButton = 'left' | 'right' | 'middle'
+/** Teclas que se mantienen pulsadas con otra (Ctrl+A, Mayús+Tab…). */
+export type BrowserModifier = 'shift' | 'control' | 'alt' | 'meta'
+
+/** Lo que manda la pestaña desde otro dispositivo (cliente, navegador web): ve imágenes y pasa ratón y teclado. */
 export type BrowserRemoteInput =
-  | { type: 'click'; x: number; y: number }
-  | { type: 'scroll'; x: number; y: number; dy: number }
+  | { type: 'click'; x: number; y: number; button?: BrowserMouseButton; clickCount?: number }
+  /** Ratón paso a paso: mover (con el botón pulsado si se arrastra), pulsar y soltar. */
+  | { type: 'mouse'; action: 'move' | 'down' | 'up'; x: number; y: number; button?: BrowserMouseButton; clickCount?: number; buttons?: BrowserMouseButton[] }
+  | { type: 'scroll'; x: number; y: number; dy: number; dx?: number }
   | { type: 'text'; text: string }
-  | { type: 'key'; key: string }
+  | { type: 'key'; key: string; modifiers?: BrowserModifier[] }
+
+/** Una imagen de la pestaña para otro dispositivo, con lo que hace falta para manejarla como una web normal. */
+export interface BrowserFrame {
+  /** JPEG en data URL (sin imagen si no cambió nada desde «after»). */
+  image?: string
+  /** Tamaño de la página en píxeles CSS (las coordenadas de ratón van en estos píxeles). */
+  width: number
+  height: number
+  /** Cuenta de imágenes: se pide la siguiente con «after» y el servidor espera a que cambie algo. */
+  version: number
+  /** Puntero que pide la página donde está el ratón (mano en un enlace, barra en un texto…), en CSS. */
+  cursor: string
+}
+
+/** Lo que pide la vista remota: la imagen siguiente a «after», a su tamaño, y el hueco que tiene para la página. */
+export interface BrowserFrameRequest {
+  after?: number
+  /** Ancho máximo de la imagen en píxeles de pantalla (su hueco por la densidad de la pantalla). */
+  maxWidth?: number
+  /** Hueco que tiene la vista remota (en píxeles CSS): si nadie la ve en el servidor, la página se maqueta a ese tamaño. */
+  viewport?: { width: number; height: number }
+}
 
 /** Teclas especiales que se pueden mandar (desde otro dispositivo o la herramienta navegador_tecla). */
 export const BROWSER_KEYS = ['Enter', 'Tab', 'Escape', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', 'Space'] as const
@@ -109,18 +138,62 @@ export function browserRectArg(raw: unknown): BrowserRect | null {
   return { x, y, width, height }
 }
 
-/** Un clic, rueda, texto o tecla de otro dispositivo, comprobado (null si no vale). */
+const BUTTONS: readonly BrowserMouseButton[] = ['left', 'right', 'middle']
+const MODIFIERS: readonly BrowserModifier[] = ['shift', 'control', 'alt', 'meta']
+const isButton = (v: unknown): v is BrowserMouseButton => typeof v === 'string' && (BUTTONS as readonly string[]).includes(v)
+
+/** Teclas que se pueden mandar desde otro dispositivo: las especiales, F1–F12 y una letra o cifra (con Ctrl, etc.). */
+export function isRemoteKey(k: unknown): k is string {
+  return isBrowserKey(k) || (typeof k === 'string' && (/^F([1-9]|1[0-2])$/.test(k) || /^[a-zA-Z0-9]$/.test(k)))
+}
+
+/** Un clic, ratón, rueda, texto o tecla de otro dispositivo, comprobado (null si no vale). */
 export function browserInputArg(raw: unknown): BrowserRemoteInput | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
   const x = num(r.x, 0, 20000)
   const y = num(r.y, 0, 20000)
-  if (r.type === 'click' && x !== null && y !== null) return { type: 'click', x, y }
+  const button = isButton(r.button) ? r.button : 'left'
+  const clickCount = num(r.clickCount, 1, 3) ?? 1
+  if (r.type === 'click' && x !== null && y !== null) return { type: 'click', x, y, button, clickCount }
+  if (r.type === 'mouse' && x !== null && y !== null && (r.action === 'move' || r.action === 'down' || r.action === 'up')) {
+    const buttons = Array.isArray(r.buttons) ? [...new Set(r.buttons.filter(isButton))] : []
+    return { type: 'mouse', action: r.action, x, y, button, clickCount, buttons }
+  }
   if (r.type === 'scroll' && x !== null && y !== null) {
     const dy = num(r.dy, -5000, 5000)
-    return dy === null ? null : { type: 'scroll', x, y, dy }
+    const dx = r.dx === undefined ? 0 : num(r.dx, -5000, 5000)
+    return dy === null || dx === null ? null : { type: 'scroll', x, y, dy, dx }
   }
   if (r.type === 'text' && typeof r.text === 'string' && r.text.length > 0 && r.text.length <= 2000) return { type: 'text', text: r.text }
-  if (r.type === 'key' && isBrowserKey(r.key)) return { type: 'key', key: r.key }
+  if (r.type === 'key' && isRemoteKey(r.key)) {
+    const modifiers = Array.isArray(r.modifiers) ? [...new Set(r.modifiers.filter((m): m is BrowserModifier => typeof m === 'string' && (MODIFIERS as readonly string[]).includes(m)))] : []
+    // Una letra sola sin Ctrl/Alt/Cmd es texto: va con «text».
+    if (/^[a-zA-Z0-9]$/.test(r.key) && !modifiers.some((m) => m !== 'shift')) return null
+    return { type: 'key', key: r.key, modifiers }
+  }
   return null
+}
+
+/** Lo que pide la vista remota, comprobado (lo que no valga se ignora). */
+export function browserFrameArg(raw: unknown): BrowserFrameRequest {
+  if (!raw || typeof raw !== 'object') return {}
+  const r = raw as Record<string, unknown>
+  const out: BrowserFrameRequest = {}
+  const after = num(r.after, 0, Number.MAX_SAFE_INTEGER)
+  if (after !== null) out.after = Math.floor(after)
+  const maxWidth = num(r.maxWidth, 200, 4000)
+  if (maxWidth !== null) out.maxWidth = Math.round(maxWidth)
+  const vp = r.viewport as Record<string, unknown> | undefined
+  const w = num(vp?.width, 1, 20000)
+  const h = num(vp?.height, 1, 20000)
+  if (w !== null && h !== null) out.viewport = { width: Math.round(w), height: Math.round(h) }
+  return out
+}
+
+/** El puntero de Electron («hand», «text»…) como cursor CSS. */
+export function cssCursor(type: string): string {
+  const map: Record<string, string> = { hand: 'pointer', pointer: 'pointer', nodrop: 'no-drop', 'not-allowed': 'not-allowed', 'vertical-text': 'vertical-text' }
+  if (map[type]) return map[type]
+  return /^(default|crosshair|text|wait|help|progress|move|grab|grabbing|cell|copy|alias|context-menu|zoom-in|zoom-out|col-resize|row-resize|all-scroll|[nsew]{1,2}-resize|nesw-resize|nwse-resize|ew-resize|ns-resize|none)$/.test(type) ? type : 'default'
 }

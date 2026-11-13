@@ -2007,9 +2007,18 @@ Sirve para lo que una API no da: por ejemplo, documentar los pasos de un workflo
   va a ellos ni en el plan ni en los relevos (`needsKywaiBrowser`, `hasKywaiBrowser`), y si aun así les llega
   responden «BLOQUEADA:» para que otro la haga.
 - **Desde el cliente de escritorio, la web u otro equipo:** el navegador vive en el equipo donde trabajan los agentes
-  (el servidor). La pestaña enseña sus capturas seguidas (cada ~1 s, más a menudo mientras haces algo) y pasa tus
-  clics, la rueda, lo que escribes y lo que pegas: puedes iniciar sesión desde el PC aunque los agentes estén en el Mac
-  mini. La ventana de kywai tiene que estar abierta en el servidor (aunque esté detrás de otras).
+  (el servidor). La pestaña se ve casi en directo: cada petición de la vista remota espera (hasta 1 s) a que pase
+  algo (un fotograma nuevo de la página, avisado con `beginFrameSubscription`; un clic, la rueda o una carga, tras los
+  que se mira cada ~90 ms durante 1,5 s), hace una captura y solo la manda si cambió (hasta ~15 por segundo cuando te
+  mueves; las imágenes de la suscripción no sirven: con la pestaña aparcada salen incompletas). Ratón y teclado van
+  en una sola cola y en orden, y lo que se junta mientras llega la respuesta anterior sale en un solo envío. La imagen llega al tamaño de tu hueco y, si nadie la
+  mira en el servidor, la página se maqueta a ese tamaño (sin franjas ni letra diminuta). Se maneja como una web:
+  al mover el ratón los menús se despliegan y el puntero cambia (mano en enlaces, barra en textos), clic, doble clic,
+  clic derecho, arrastrar, rueda (también horizontal con Mayús), teclado, atajos con Ctrl/Alt/Cmd y pegar desde tu
+  portapapeles. Al hacer clic sale un círculo donde pulsaste y una raya arriba mientras llega la respuesta o la
+  página carga. Copiar y cortar se quedan en el portapapeles del servidor. Puedes iniciar sesión desde el PC aunque
+  los agentes estén en el Mac mini. La ventana de kywai tiene que estar abierta en el servidor (aunque esté detrás
+  de otras).
 
 **Cómo está hecho** (`src/main/browser.ts`, `src/shared/browser.ts`, `src/renderer/src/ui/pane/BrowserPane.tsx`):
 es una `WebContentsView` pegada a la ventana principal que la interfaz coloca encima de su hueco (`browserShow`). Si

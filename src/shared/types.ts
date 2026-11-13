@@ -2,7 +2,7 @@ import type { Lang } from './i18n'
 import type { McpAgentKind, McpCatalogItem, McpServerInfo, McpServerInput, ModInfo, PluginCatalogItem, PluginInfo, SkillCatalogItem, SkillInfo } from './extensions'
 import type { TaskTemplate, TaskTemplateInput } from './templates'
 import type { Board, BoardCommand } from './board'
-import type { BrowserRect, BrowserRemoteInput, BrowserState } from './browser'
+import type { BrowserFrame, BrowserFrameRequest, BrowserRect, BrowserRemoteInput, BrowserState } from './browser'
 import type { ArchivePreview, ImportResult, ImportScan } from './imports'
 import type { SpotifastAction, SpotifastStatus } from './spotifast'
 export type { ArchivePreview, ImportResult, ImportScan } from './imports'
@@ -2108,8 +2108,10 @@ export interface CoworkApi {
   browserStopAgent(): Promise<BrowserState>
   /** «Cerrar sesión en todo»: borra cookies, almacenamiento y caché del navegador. */
   browserClearSession(): Promise<BrowserState>
-  browserFrame(): Promise<{ image: string; width: number; height: number } | null>
-  browserInput(input: BrowserRemoteInput): Promise<void>
+  /** La imagen siguiente a «after» (espera a que cambie algo; sin «image» si no cambió). */
+  browserFrame(req?: BrowserFrameRequest): Promise<BrowserFrame | null>
+  /** Ratón y teclado desde otro dispositivo: uno o varios, en orden. */
+  browserInput(input: BrowserRemoteInput | BrowserRemoteInput[]): Promise<void>
   /** Tablero de tareas del proyecto (los cambios llegan por el evento board.updated). */
   getBoard(projectId: string): Promise<Board>
   /** Añadir, cambiar, ordenar, quitar o reintentar tarjetas del tablero, o ponerlo en pausa. */

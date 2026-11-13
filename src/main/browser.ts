@@ -10,7 +10,7 @@
 // Comprobado con Electron: oculta con setVisible(false), en una ventana oculta o del todo fuera de la ventana, Chromium
 // no la maqueta (mide 0×0) o no da capturas de una página nueva tras navegar.
 import { BrowserWindow, WebContentsView, session, type WebContents, type WebFrameMain } from 'electron'
-import { BLANK_URL, safeUrl, siteOf, type BrowserRect, type BrowserRemoteInput, type BrowserState } from '@shared/browser'
+import { BLANK_URL, cssCursor, safeUrl, siteOf, type BrowserFrame, type BrowserFrameRequest, type BrowserModifier, type BrowserMouseButton, type BrowserRect, type BrowserRemoteInput, type BrowserState } from '@shared/browser'
 import { emit } from './events'
 
 const PARTITION = 'persist:kywai-navegador'
@@ -37,6 +37,8 @@ const stopped = new Set<string>()
 /** Marcos de la última lectura: «f2e7» es el elemento 7 del marco 2 (0 es la página). */
 let frames: WebFrameMain[] = []
 let stateTimer: ReturnType<typeof setTimeout> | null = null
+/** Puntero que pide la página donde está el ratón (para la vista remota). */
+let cursorNow = 'default'
 
 /** Google y otros no dejan iniciar sesión en «Electron»: se presenta como el Chrome en que se basa. */
 function chromeAgent(ua: string): string {
@@ -102,9 +104,15 @@ function ensureView(): WebContentsView {
     if (!safeUrl(url) && url !== BLANK_URL) e.preventDefault()
   })
   for (const ev of ['did-navigate', 'did-navigate-in-page', 'page-title-updated', 'did-start-loading', 'did-stop-loading'] as const) {
-    wc.on(ev as 'did-stop-loading', () => pushState())
+    wc.on(ev as 'did-stop-loading', () => {
+      pushState()
+      poke(150, true)
+    })
   }
   wc.on('render-process-gone', () => pushState())
+  wc.on('cursor-changed', (_e, type) => {
+    cursorNow = cssCursor(type)
+  })
   view = v
   if (host && !host.isDestroyed()) host.contentView.addChildView(v)
   place()
@@ -207,38 +215,178 @@ export async function clearBrowserSession(): Promise<BrowserState> {
   return browserState()
 }
 
-/** Una imagen de la pestaña para otro dispositivo (cliente o navegador web), que la ve así y manda clics. */
-export async function browserFrame(): Promise<{ image: string; width: number; height: number } | null> {
-  if (!view || view.webContents.isDestroyed()) ensureView()
-  const img = await capture()
-  if (!img) return null
-  const { width, height } = view!.getBounds()
-  const small = img.getSize().width > 1400 ? img.resize({ width: 1400 }) : img
-  return { image: `data:image/jpeg;base64,${small.toJPEG(70).toString('base64')}`, width, height }
+// ---------- Vista desde otro dispositivo (cliente de escritorio, navegador web) ----------
+//
+// Cada petición de la vista remota espera (hasta 1 s) a que pase algo: que la página pinte un fotograma nuevo
+// (beginFrameSubscription, solo como aviso), que llegue un clic o una tecla, o que cargue. Entonces se hace una
+// captura de verdad (capturePage: los fotogramas de la suscripción salen incompletos con la pestaña aparcada en la
+// esquina) y solo se manda si cambió algo. Así va casi en directo cuando te mueves y no gasta nada si está quieta.
+// Si nadie la mira en el servidor, la página se maqueta al tamaño del hueco remoto (sin franjas ni letra diminuta).
+
+const WAIT_MS = 1000
+let version = 0
+let lastJpeg: Buffer | null = null
+let subscribed: WebContents | null = null
+let lastViewer = 0
+let idleTimer: ReturnType<typeof setInterval> | null = null
+let waiters: Array<() => void> = []
+let remoteSize: { width: number; height: number } | null = null
+let pokeTimer: ReturnType<typeof setTimeout> | null = null
+/** Cuándo se verá lo último que pasó (un clic, un fotograma) y cuándo empezó la última captura. */
+let changeAt = 0
+let capturedAt = 0
+/** Hasta cuándo se mira a menudo (tras un clic, la rueda o una carga): el aviso de fotograma no siempre llega a tiempo. */
+let hotUntil = 0
+const HOT_MS = 1500
+const HOT_WAIT_MS = 90
+
+/** Algo cambió (o cambiará en «delay» ms): la próxima captura tiene que ser posterior. */
+function poke(delay = 0, hot = false): void {
+  if (hot) hotUntil = Date.now() + HOT_MS
+  changeAt = Math.max(changeAt, Date.now() + delay)
+  if (pokeTimer) clearTimeout(pokeTimer)
+  pokeTimer = setTimeout(
+    () => {
+      pokeTimer = null
+      const w = waiters
+      waiters = []
+      for (const fn of w) fn()
+    },
+    Math.max(0, changeAt - Date.now())
+  )
 }
 
-/** Clics, rueda y teclas desde otro dispositivo (en píxeles de la pestaña). */
+function subscribe(wc: WebContents): void {
+  if (subscribed === wc) return
+  unsubscribe()
+  try {
+    wc.beginFrameSubscription(false, () => poke(30))
+    subscribed = wc
+  } catch {
+    subscribed = null
+  }
+  idleTimer ??= setInterval(() => {
+    // Nadie la mira desde hace un rato: se deja de escuchar (y la pestaña vuelve a su tamaño de siempre).
+    if (Date.now() - lastViewer < 8000) return
+    unsubscribe()
+    lastJpeg = null
+    if (remoteSize) {
+      remoteSize = null
+      if (!shownRect) {
+        lastSize = { ...HIDDEN_SIZE }
+        place()
+      }
+    }
+  }, 3000)
+}
+
+function unsubscribe(): void {
+  if (subscribed && !subscribed.isDestroyed()) {
+    try {
+      subscribed.endFrameSubscription()
+    } catch {
+      /* ya no estaba */
+    }
+  }
+  subscribed = null
+  if (idleTimer) clearInterval(idleTimer)
+  idleTimer = null
+}
+
+/** Si nadie la ve en el servidor, la página toma el tamaño del hueco remoto. */
+function fitRemote(vp: { width: number; height: number } | undefined): void {
+  if (!vp || shownRect) return
+  const size = { width: Math.min(1920, Math.max(360, vp.width)), height: Math.min(1400, Math.max(320, vp.height)) }
+  if (remoteSize && Math.abs(remoteSize.width - size.width) < 4 && Math.abs(remoteSize.height - size.height) < 4) return
+  remoteSize = size
+  lastSize = size
+  place()
+}
+
+/** La imagen siguiente a «after» para otro dispositivo (espera a que cambie algo; null si no hay ventana). */
+export async function browserFrame(req: BrowserFrameRequest = {}): Promise<BrowserFrame | null> {
+  if (!view || view.webContents.isDestroyed()) ensureView()
+  if (!host || host.isDestroyed() || !view) return null
+  lastViewer = Date.now()
+  fitRemote(req.viewport)
+  subscribe(view.webContents)
+  const after = req.after ?? -1
+  // Si desde la última captura no pasó nada, se espera a que pase algo (o a 1 s).
+  if (after >= version && capturedAt >= changeAt) {
+    await new Promise<void>((done) => {
+      const fn = (): void => {
+        clearTimeout(t)
+        done()
+      }
+      const t = setTimeout(
+        () => {
+          waiters = waiters.filter((f) => f !== fn)
+          done()
+        },
+        Date.now() < hotUntil ? HOT_WAIT_MS : WAIT_MS
+      )
+      waiters.push(fn)
+    })
+  }
+  // Lo que acaba de pasar aún no se ha pintado: se espera a que se vea.
+  if (changeAt > Date.now()) await new Promise((r) => setTimeout(r, changeAt - Date.now()))
+  capturedAt = Date.now()
+  const img = await capture()
+  if (!img || !view) return null
+  const { width, height } = view.getBounds()
+  const max = Math.min(2400, req.maxWidth ?? 1400)
+  const small = img.getSize().width > max ? img.resize({ width: max, quality: 'good' }) : img
+  const jpeg = small.toJPEG(72)
+  if (!lastJpeg || !jpeg.equals(lastJpeg)) {
+    lastJpeg = jpeg
+    version++
+  }
+  if (version <= after) return { width, height, version, cursor: cursorNow }
+  return { image: `data:image/jpeg;base64,${jpeg.toString('base64')}`, width, height, version, cursor: cursorNow }
+}
+
+/** Ratón, rueda y teclado desde otro dispositivo (en píxeles CSS de la pestaña). */
 export function browserRemoteInput(input: BrowserRemoteInput): void {
   const wc = wcOf()
-  if (input.type === 'click') clickAt(wc, input.x, input.y)
-  else if (input.type === 'scroll') wc.sendInputEvent({ type: 'mouseWheel', x: Math.round(input.x), y: Math.round(input.y), deltaX: 0, deltaY: -Math.round(input.dy) })
-  else if (input.type === 'text') wc.insertText(input.text.slice(0, 2000))
-  else if (input.type === 'key') pressKey(wc, input.key)
+  lastViewer = Date.now()
+  // Lo que hagas se ve enseguida aunque la página no pinte nada nuevo (o el aviso de fotograma no llegue).
+  const hover = input.type === 'mouse' && input.action === 'move' && !input.buttons?.length
+  poke(hover ? 60 : 120, !hover)
+  if (input.type === 'click') clickAt(wc, input.x, input.y, input.button ?? 'left', input.clickCount ?? 1)
+  else if (input.type === 'mouse') {
+    const p = { x: Math.round(input.x), y: Math.round(input.y) }
+    const pressed = mouseModifiers(input.buttons ?? [])
+    if (input.action === 'move') wc.sendInputEvent({ type: 'mouseMove', ...p, ...(pressed.length ? { modifiers: pressed } : {}) })
+    else wc.sendInputEvent({ type: input.action === 'down' ? 'mouseDown' : 'mouseUp', ...p, button: input.button ?? 'left', clickCount: input.clickCount ?? 1 })
+  } else if (input.type === 'scroll') {
+    const p = { x: Math.round(input.x), y: Math.round(input.y) }
+    wc.sendInputEvent({ type: 'mouseMove', ...p })
+    wc.sendInputEvent({ type: 'mouseWheel', ...p, deltaX: -Math.round(input.dx ?? 0), deltaY: -Math.round(input.dy), canScroll: true })
+  } else if (input.type === 'text') wc.insertText(input.text.slice(0, 2000))
+  else if (input.type === 'key') pressKey(wc, input.key, input.modifiers ?? [])
 }
 
-function clickAt(wc: WebContents, x: number, y: number): void {
-  const p = { x: Math.round(x), y: Math.round(y), button: 'left' as const, clickCount: 1 }
+/** Arrastrar: Chromium sabe qué botón sigue pulsado por estos modificadores del movimiento. */
+function mouseModifiers(buttons: BrowserMouseButton[]): Array<'leftbuttondown' | 'rightbuttondown' | 'middlebuttondown'> {
+  return buttons.map((b) => (b === 'left' ? 'leftbuttondown' : b === 'right' ? 'rightbuttondown' : 'middlebuttondown'))
+}
+
+function clickAt(wc: WebContents, x: number, y: number, button: BrowserMouseButton = 'left', clickCount = 1): void {
+  const p = { x: Math.round(x), y: Math.round(y), button, clickCount }
   wc.sendInputEvent({ type: 'mouseMove', x: p.x, y: p.y })
   wc.sendInputEvent({ type: 'mouseDown', ...p })
   wc.sendInputEvent({ type: 'mouseUp', ...p })
 }
 
-function pressKey(wc: WebContents, key: string): void {
+function pressKey(wc: WebContents, key: string, modifiers: BrowserModifier[] = []): void {
   const code = key === 'Space' ? 'Space' : key
-  wc.sendInputEvent({ type: 'keyDown', keyCode: code })
-  if (key === 'Enter') wc.sendInputEvent({ type: 'char', keyCode: '\r' })
-  else if (key === 'Space') wc.sendInputEvent({ type: 'char', keyCode: ' ' })
-  wc.sendInputEvent({ type: 'keyUp', keyCode: code })
+  const mods = modifiers.length ? { modifiers } : {}
+  wc.sendInputEvent({ type: 'keyDown', keyCode: code, ...mods })
+  if (!modifiers.some((m) => m === 'control' || m === 'meta' || m === 'alt')) {
+    if (key === 'Enter') wc.sendInputEvent({ type: 'char', keyCode: '\r', ...mods })
+    else if (key === 'Space') wc.sendInputEvent({ type: 'char', keyCode: ' ', ...mods })
+  }
+  wc.sendInputEvent({ type: 'keyUp', keyCode: code, ...mods })
 }
 
 async function capture(): Promise<Electron.NativeImage | null> {

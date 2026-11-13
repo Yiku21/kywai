@@ -121,7 +121,7 @@ import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScr
 import { getSidebarOrder, initSidebarOrder, setSidebarOrder } from './sidebarOrder'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { attachBrowser, browserCommand, browserFrame, browserRemoteInput, browserState, clearBrowserSession, navigateBrowser, showBrowser, stopBrowserAgent } from './browser'
-import { addressToUrl, browserInputArg, browserRectArg } from '@shared/browser'
+import { addressToUrl, browserFrameArg, browserInputArg, browserRectArg } from '@shared/browser'
 import { confirmLearnedSkill, initSkills, learnedSkills, removeLearnedSkill } from './skills'
 import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, tryVideoLook, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
 import { addVideoCharacter, initVideoCharacters, listVideoCharacters, removeVideoCharacter } from './videoCharacters'
@@ -834,11 +834,12 @@ function registerIpc(): void {
   })
   handle('browserStopAgent', () => stopBrowserAgent())
   handle('browserClearSession', () => clearBrowserSession())
-  handle('browserFrame', () => browserFrame())
+  handle('browserFrame', (req: unknown) => browserFrame(browserFrameArg(req)))
+  // Uno o varios en orden (la vista remota junta lo que pasó mientras esperaba la respuesta anterior).
   handle('browserInput', (input: unknown) => {
-    const i = browserInputArg(input)
-    if (!i) throw new Error(tr('Orden no válida'))
-    browserRemoteInput(i)
+    const list = (Array.isArray(input) ? input.slice(0, 60) : [input]).map(browserInputArg)
+    if (!list.length || list.some((i) => !i)) throw new Error(tr('Orden no válida'))
+    for (const i of list) browserRemoteInput(i!)
   })
   handle('boardCommand', (projectId: unknown, cmd: unknown) => {
     if (!cmd || typeof cmd !== 'object') throw new Error(tr('Orden del tablero no válida'))
