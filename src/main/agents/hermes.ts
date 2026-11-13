@@ -23,6 +23,9 @@ const NOISE = /^(\s*[⚠✓✗→•…]|hermes:|Preparing the isolated|session_
  */
 export const HERMES_PLAN_TIMEOUT_MS = 6 * 60_000
 
+/** El gateway de Hermes rechaza la sesión por un toolset que no está en su configuración. */
+export const INVALID_TOOLSET_RE = /invalid toolset name|unknown toolset/i
+
 /** Nombre de un proveedor de Hermes (propio, como «anthropic», o de `providers:` en su config, como «omnirouter»). */
 const PROVIDER_RE = /^[\w.\-:]+$/
 
@@ -92,16 +95,23 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
   const slow = new AbortController()
   const timer = opts.mode === 'plan' ? setTimeout(() => slow.abort(), HERMES_PLAN_TIMEOUT_MS) : null
   try {
-    const res = await runCli({
-      command: 'hermes',
-      args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, opts.extraMcp?.names, !!opts.images?.length),
-      ...(opts.mode === 'work' && opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
-      cwd: opts.cwd,
-      stdin: '',
-      signal: AbortSignal.any([opts.signal, slow.signal]),
-      parser: createHermesParser(),
-      onStall: (text) => opts.onActivity?.(text, 'tool')
-    })
+    const call = (mcp: boolean) =>
+      runCli({
+        command: 'hermes',
+        args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, mcp ? opts.extraMcp?.names : [], !!opts.images?.length),
+        ...(mcp && opts.mode === 'work' && opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
+        cwd: opts.cwd,
+        stdin: '',
+        signal: AbortSignal.any([opts.signal, slow.signal]),
+        parser: createHermesParser(),
+        onStall: (text) => opts.onActivity?.(text, 'tool')
+      })
+    let res = await call(true)
+    // Su gateway valida las herramientas con ~/.hermes: si rechaza un servidor de Extensiones, se repite sin ellos.
+    if (!res.ok && opts.extraMcp?.names.length && INVALID_TOOLSET_RE.test(`${res.text}\n${res.errorMessage ?? ''}`)) {
+      opts.onActivity?.(tr('Hermes no admite esas herramientas: sigue sin ellas'), 'tool')
+      res = await call(false)
+    }
     if (slow.signal.aborted && !opts.signal.aborted) {
       const minutes = HERMES_PLAN_TIMEOUT_MS / 60_000
       return {

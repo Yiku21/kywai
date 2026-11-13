@@ -1555,6 +1555,7 @@ export const zh: Record<string, string> = {
   "\n\n*Anotado en la memoria del proyecto:* {v1}.": "\n\n*已保存到项目记忆：* {v1}。",
   "Ningún agente pudo planificar el trabajo.{detail}": "没有代理能规划这项工作。{detail}",
   "{first} no coordina esta vez ({why}): lo hace {name}.": "{first} 这次不负责协调（{why}）：由 {name} 协调。",
+  "Hermes no admite esas herramientas: sigue sin ellas": "Hermes 不接受这些工具：在没有它们的情况下继续",
   "no está disponible": "不可用",
   "No hay ningún agente disponible para planificar. Revisa que los CLI estén instalados y con la sesión iniciada.": "没有可用于规划的代理。请检查 CLI 是否已安装并登录。",
   "No pudo planificar": "无法规划",

@@ -37,7 +37,8 @@ export function isTextOnly(provider: ProviderKind): boolean {
  * Los modelos locales y los CLI genéricos no: una tarea que lo necesite va a otro.
  */
 export function hasKywaiBrowser(provider: ProviderKind): boolean {
-  return provider === 'claude' || provider === 'codex' || provider === 'gemini' || provider === 'hermes'
+  // Hermes no: su gateway solo admite los servidores de ~/.hermes y rechaza la sesión entera si le llega «kywai-navegador».
+  return provider === 'claude' || provider === 'codex' || provider === 'gemini'
 }
 
 /** Proveedores que se ejecutan en este equipo (se re-comprueban a menudo). */
