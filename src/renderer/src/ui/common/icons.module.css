@@ -11,6 +11,26 @@
 .done {
   color: var(--live);
 }
+
+/* Acción secundaria: al terminar una tarea, la ✓ se dibuja con un trazo (320 ms) dentro de su círculo. */
+.done svg path {
+  stroke-dasharray: 9;
+  stroke-dashoffset: 9;
+  animation: drawCheck 320ms 60ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@keyframes drawCheck {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .done svg path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
 .failed {
   color: var(--alert);
 }

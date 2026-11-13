@@ -73,6 +73,38 @@
   padding-right: 4px;
 }
 
+/* La rayita que se desliza (TabIndicator) sustituye a la de cada pestaña. Mide 100 px y se estira con scaleX. */
+.tabsSliding {
+  position: relative;
+}
+
+.tabsSliding .tab::after {
+  display: none;
+}
+
+.indicator {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--cyan);
+  transform-origin: 0 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.indicatorReady {
+  transition: transform 220ms var(--ease-in-ui, cubic-bezier(0.2, 0, 0, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicatorReady {
+    transition: none;
+  }
+}
+
 .tabs::-webkit-scrollbar {
   display: none;
 }

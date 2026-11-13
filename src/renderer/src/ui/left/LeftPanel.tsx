@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type DragEvent, type KeyboardEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type DragEvent, type KeyboardEvent, type RefObject } from 'react'
 import { Ban, Brain, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, MessageSquare, Package, Paperclip, Puzzle, SquareKanban, type LucideIcon } from 'lucide-react'
 import { useCowork, useData, type DataSlice, type LeftTab } from '@/store/cowork'
 import { api } from '@/lib/api'
@@ -49,6 +49,39 @@ function countArtifacts(d: DataSlice): number {
  * conserva su nombre); si aun así no caben, se desplaza con la rueda (también la vertical) o con las flechas ‹ ›
  * que salen en los bordes, y la pestaña abierta siempre queda a la vista.
  */
+/**
+ * La rayita de la pestaña abierta se desliza de una a otra en vez de saltar (inercia y arco, habilidad
+ * principios-ux-animacion). Es una sola pieza que se mueve con transform (sin animar el ancho): la primera vez se
+ * coloca sin moverse; con «reducir movimiento» salta.
+ */
+function TabIndicator({ listRef, tab, compact }: { listRef: RefObject<HTMLDivElement | null>; tab: string; compact: boolean }) {
+  const [box, setBox] = useState<{ x: number; w: number } | null>(null)
+  const [ready, setReady] = useState(false)
+  useLayoutEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const measure = (): void => {
+      const active = list.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+      if (!active) return setBox(null)
+      setBox((prev) => (prev && prev.x === active.offsetLeft && prev.w === active.offsetWidth ? prev : { x: active.offsetLeft, w: active.offsetWidth }))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(list)
+    for (const el of list.querySelectorAll('[role="tab"]')) ro.observe(el)
+    return () => ro.disconnect()
+  }, [listRef, tab, compact])
+  // Tras colocarse la primera vez, ya puede deslizarse.
+  useEffect(() => {
+    if (!box || ready) return
+    const id = requestAnimationFrame(() => setReady(true))
+    return () => cancelAnimationFrame(id)
+  }, [box, ready])
+  if (!box) return null
+  const inner = Math.max(0, box.w - 16)
+  return <span className={cx(s.indicator, ready && s.indicatorReady)} style={{ transform: `translateX(${box.x + 8}px) scaleX(${inner / 100})` }} aria-hidden="true" />
+}
+
 function useTabStrip(tab: string, count: number) {
   const ref = useRef<HTMLDivElement>(null)
   const [compact, setCompact] = useState(false)
@@ -201,7 +234,8 @@ export function LeftPanel() {
           <ChevronLeft size={16} />
         </button>
       )}
-      <div ref={strip.ref} className={cx(s.tabs, strip.compact && s.tabsCompact)} role="tablist" aria-label={t('Secciones del panel')} onKeyDown={onTabKey}>
+      <div ref={strip.ref} className={cx(s.tabs, s.tabsSliding, strip.compact && s.tabsCompact)} role="tablist" aria-label={t('Secciones del panel')} onKeyDown={onTabKey}>
+        <TabIndicator listRef={strip.ref} tab={tab} compact={strip.compact} />
         {TABS.map(({ id, label, Icon }) => {
           const active = id === tab
           const badge = badges[id]

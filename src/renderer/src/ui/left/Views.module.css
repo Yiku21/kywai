@@ -48,6 +48,57 @@
   list-style: none;
 }
 
+/* Las listas entran en cascada (40 ms entre una fila y la siguiente, hasta la octava): el ojo las sigue en orden. */
+.rows > li,
+.grid > li,
+.resultFolders > li {
+  animation: fadeUp var(--dur) var(--ease) both;
+}
+
+.rows > li:nth-child(2),
+.grid > li:nth-child(2),
+.resultFolders > li:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.rows > li:nth-child(3),
+.grid > li:nth-child(3),
+.resultFolders > li:nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.rows > li:nth-child(4),
+.grid > li:nth-child(4),
+.resultFolders > li:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+.rows > li:nth-child(5),
+.grid > li:nth-child(5),
+.resultFolders > li:nth-child(5) {
+  animation-delay: 160ms;
+}
+
+.rows > li:nth-child(6),
+.grid > li:nth-child(6),
+.resultFolders > li:nth-child(6) {
+  animation-delay: 200ms;
+}
+
+.rows > li:nth-child(n + 7),
+.grid > li:nth-child(n + 7),
+.resultFolders > li:nth-child(n + 7) {
+  animation-delay: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rows > li,
+  .grid > li,
+  .resultFolders > li {
+    animation: none;
+  }
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;

@@ -1930,6 +1930,10 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   (`--radius-panel`, `--radius-card`, `--radius-ctl`, `--radius-chip`, `--radius-sm` y `--radius-pill`; antes había
   diez valores escritos a mano) y las sombras de tres niveles (`--shadow-1`, `--shadow-2`, `--shadow-pop`). Así un
   tema (Órbita, por ejemplo) cambia todas las esquinas a la vez. Solo quedan a mano los detalles de 1–4 px.
+- **Detalles de movimiento.** La rayita de la pestaña abierta (Chat, Archivos, Tareas…) se desliza de una a otra en
+  220 ms en vez de saltar (`TabIndicator` en `LeftPanel.tsx`, solo con `transform`). Las filas de Tareas, Archivos y
+  Resultados entran en cascada, 40 ms una detrás de otra (hasta la séptima). Y la ✓ de una tarea terminada se dibuja
+  con un trazo dentro de su círculo (`icons.module.css`). Con «reducir movimiento», nada de esto se mueve.
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),
