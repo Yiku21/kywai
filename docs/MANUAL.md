@@ -1234,8 +1234,9 @@ Cuando entra algo nuevo en «Te necesita» (en cualquier proyecto), kywai te avi
   (con el borde de la etiqueta latiendo) y, al llegar el aviso, se vuelve hacia ti, saluda con la mano unos segundos
   (con «Personajes» hace su movimiento de saludo; con los robots «Clásico» o «Refugio Kywai» se balancea de lado a
   lado) y dice «¡Te necesito! Hay algo nuevo en «Te necesita».» con su voz. La voz va con el interruptor
-  **«Voces de los agentes»**. Hacer clic en la campanita (la de su cabeza o la de su etiqueta) abre solo «Te necesita»;
-  hacer clic en el coordinador o en su etiqueta abre solo su ficha, como con cualquier agente.
+  **«Voces de los agentes»**. Hacer clic en la campanita (la de su cabeza o la de su etiqueta) abre «Te necesita»;
+  mientras lleva la campanita, hacer clic en el coordinador o en cualquier parte de su etiqueta también abre
+  «Te necesita» (y no su ficha). Cuando ya no la lleva, hacer clic en él abre su ficha, como con cualquier agente.
   Si no lo quieres, apágalo en ⚙ → Ajustes → Agentes → **«El coordinador te avisa en el 3D»** (por dispositivo): el
   coordinador ya no lleva la campanita, ni saluda ni te llama; la campanita de la barra y su timbre siguen avisando.
 

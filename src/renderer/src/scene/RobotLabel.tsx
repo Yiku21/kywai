@@ -60,6 +60,10 @@ export function RobotLabel({ agent }: Props) {
   const callIn3d = useInboxAlert((st) => st.callIn3d);
   const calledAt = useInboxAlert((st) => st.calledAt);
   const calling = ringing && isCoordinator && callIn3d && !agent.isSubagent;
+  const open = (): void => {
+    if (calling) useInboxAlert.getState().requestOpen();
+    else select({ type: "agent", id: agent.id });
+  };
 
   // Reposo: se evalúa cada pocos segundos (no en cada fotograma).
   const [, tick] = useState(0);
@@ -188,15 +192,14 @@ export function RobotLabel({ agent }: Props) {
         style={{ ["--agent" as string]: agent.color }}
         role="button"
         tabIndex={0}
-        aria-label={`${agent.name}, ${modelText}: ${text}`}
+        aria-label={calling ? `${agent.name}: ${t("Te necesita")}` : `${agent.name}, ${modelText}: ${text}`}
         onClick={(e) => {
           e.stopPropagation();
-          // La etiqueta abre solo la ficha del agente; «Te necesita» se abre con su campanita.
-          select({ type: "agent", id: agent.id });
+          // Con la campanita encima, tocar la etiqueta abre «Te necesita» (no la ficha); sin ella, la ficha del agente.
+          open();
         }}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ")
-            select({ type: "agent", id: agent.id });
+          if (e.key === "Enter" || e.key === " ") open();
         }}
       >
         {calling && (

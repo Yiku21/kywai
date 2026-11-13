@@ -567,8 +567,9 @@ export function Robot({ agent, station, stations, leaving }: Props) {
         }}
         onClick={(e: { stopPropagation(): void }) => {
           e.stopPropagation()
-          // El cuerpo abre solo la ficha del agente; «Te necesita» se abre con la campanita de encima.
-          useCowork.getState().select({ type: 'agent', id: agent.id })
+          // Mientras lleva la campanita, tocarlo abre «Te necesita» (no su ficha); si no, abre su ficha.
+          if (ringing) useInboxAlert.getState().requestOpen()
+          else useCowork.getState().select({ type: 'agent', id: agent.id })
         }}
       />
       <group ref={indicators} position={[0, model.top + 0.2, 0]}>
