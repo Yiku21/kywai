@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { __setInstagramFetchForTests, captionPrompt, cleanCaption, graphHost, instagramAccount, parseCaptionReply, parseInstagramRequest, publishReel, readInstagramSettings, setInstagramLinkProvider, temporaryLink, writeInstagramSettings } from './instagram'
+import { __setInstagramFetchForTests, captionPrompt, cleanCaption, graphError, graphHost, redactLinks, instagramAccount, parseCaptionReply, parseInstagramRequest, publishReel, readInstagramSettings, setInstagramLinkProvider, temporaryLink, writeInstagramSettings } from './instagram'
 
 type Call = { url: string; method: string; headers: Record<string, string>; body?: string | Uint8Array | FormData }
 
@@ -318,6 +318,52 @@ describe('el Instagram de kywai', () => {
     expect(box.thumb_offset).toBe('4000')
     expect(box.cover_url).toBeUndefined()
     expect(steps).toContain('No se pudo subir la portada: va el fotograma elegido')
+  })
+
+  it('la portada va a un alojamiento temporal aunque haya Funnel, y si Instagram no la baja se publica sin ella', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-cover3-'))
+    const file = join(dir, 'v.mp4')
+    const cover = join(dir, 'v-portada.jpg')
+    writeFileSync(file, Buffer.alloc(64, 1))
+    writeFileSync(cover, Buffer.alloc(32, 2))
+    const opened: string[] = []
+    setInstagramLinkProvider(async (f) => (opened.push(f), { url: 'https://mac.tail1.ts.net:8443/kywai/v.mp4', close: async () => undefined }))
+    const boxes: Record<string, string>[] = []
+    __setInstagramFetchForTests(
+      async (url, init) => {
+        const json = (b: unknown, status = 200) => ({ ok: status === 200, status, text: async () => JSON.stringify(b) })
+        if (url.includes('litterbox')) return { ok: true, status: 200, text: async () => 'https://litter.catbox.moe/p.jpg' }
+        if (url.endsWith('/1/media')) {
+          const b = Object.fromEntries(new URLSearchParams(String(init?.body)))
+          boxes.push(b)
+          if (b.cover_url)
+            return json({ error: { message: 'Media download has failed. The media could not be fetched from this URI: https://mac.tail1.ts.net:10000/kywai/abc.jpg.', code: 9004, error_subcode: 2207052 } }, 400)
+          return json({ id: 'C1' })
+        }
+        if (url.includes('/C1?')) return json({ status_code: 'FINISHED' })
+        if (url.endsWith('media_publish')) return json({ id: 'M1' })
+        return json({})
+      },
+      async () => undefined
+    )
+    const steps: string[] = []
+    try {
+      expect((await publishReel({ token: 'IGAAtok123', userId: '1', file, caption: 'x', cover, coverAtMs: 1500, onStep: (s) => steps.push(s) })).id).toBe('M1')
+    } finally {
+      setInstagramLinkProvider(null)
+    }
+    expect(opened).toEqual([file])
+    expect(boxes[0].cover_url).toBe('https://litter.catbox.moe/p.jpg')
+    expect(boxes[1].cover_url).toBeUndefined()
+    expect(boxes[1].thumb_offset).toBe('1500')
+    expect(steps).toContain('Instagram no pudo bajar la portada: va el fotograma elegido')
+  })
+
+  it('los errores no enseñan la dirección del equipo', () => {
+    const e = graphError(400, JSON.stringify({ error: { message: 'The media could not be fetched from this URI: https://yils-mac-mini.tailcc32fb.ts.net:10000/kywai/0868.jpg. check the docs: https://developers.facebook.com/docs/x', code: 9004 } }))
+    expect(e.message).not.toMatch(/ts\.net|yils/)
+    expect(e.message).toContain('(enlace de este equipo). check the docs: https://developers.facebook.com/docs/x')
+    expect(redactLinks('host mac.tail1.ts.net y 100.64.1.2')).toBe('host (este equipo) y (este equipo)')
   })
 
   it('el encargo del texto pide la portada y la línea «PORTADA:» no acaba en el texto', () => {

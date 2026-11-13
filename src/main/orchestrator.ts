@@ -121,7 +121,7 @@ import { pickSkillSuggestions, proposedBefore, skillQueryKey } from './skillSugg
 import { cleanTikTokCaption, creatorInfo, parseTikTokRequest, uploadTikTok, type TikTokSettings } from './tiktok'
 import { learningLines, MIN_REELS_TO_LEARN, reelResults, resultsFile, savedReels, saveResults } from './instagramLearn'
 import { NIGHT_SHIFT_STYLES, nightShiftPaths, nightShiftPrompt, nightShiftSummary, parseNightShiftOrder, parseNightShiftRequest, type NightShiftRequest } from './nightShift'
-import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, replyToComment, unansweredComments, type IgComment, type InstagramSettings } from './instagram'
+import { captionPrompt, parseCaptionReply, parseInstagramRequest, publishReel, redactLinks, replyToComment, unansweredComments, type IgComment, type InstagramSettings } from './instagram'
 import { ensureIgSkills, igAccountSnapshot, igPaths, igReplyPrompt, igSkillFile, igSkillPrompt, parseIgReplies, parseIgSkillRequest, type IgSkillRequest } from './igSkills'
 import { episodeBrief, episodeFromFilmReply, loadSeries, nextEpisode, parseSeriesRequest, recordEpisode, startSeries, type SeriesRequest } from './series'
 import { describeTrigger, describeWhen, parseRoutineCommand, routineCommandHelp } from '@shared/routines'
@@ -2585,7 +2585,7 @@ async function publishPost(projectId: string, messageId: string, caption: string
     })
     set({ status: 'published', ...(r.permalink ? { permalink: r.permalink } : {}), decidedAt: Date.now() }, r.permalink ? tr('Publicado en Instagram: {url}', { url: r.permalink }) : tr('Publicado en Instagram.'))
   } catch (e) {
-    const error = e instanceof Error ? e.message : String(e)
+    const error = redactLinks(e instanceof Error ? e.message : String(e))
     set({ status: 'failed', error }, tr('No se pudo publicar en Instagram.'))
     addInbox({
       kind: 'failed',

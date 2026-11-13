@@ -52,8 +52,25 @@ export interface InstagramAccount {
   username: string
 }
 
-/** El error de la Graph API (o de la subida a rupload) en una frase, con el paso en el que falló. Nunca lleva el token. */
+/**
+ * Quita de un mensaje la dirección de este equipo en Tailscale (`algo.ts.net`, con su puerto y su ruta) y sus IP
+ * 100.x: Instagram la repite en sus errores y no debe salir en el chat.
+ */
+export function redactLinks(text: string): string {
+  return text
+    .replace(/https?:\/\/[^\s"'<>]*\.ts\.net(?::\d+)?[^\s"'<>]*?(?=[.,;)]?(?:\s|$))/gi, '(enlace de este equipo)')
+    .replace(/\b[\w-]+(?:\.[\w-]+)*\.ts\.net\b(?::\d+)?/gi, '(este equipo)')
+    .replace(/\b100\.(?:\d{1,3}\.){2}\d{1,3}\b/g, '(este equipo)')
+}
+
+/** El error de la Graph API (o de la subida a rupload) en una frase, con el paso en el que falló. Nunca lleva el token ni la dirección del equipo. */
 export function graphError(status: number, body: string, step?: string): Error {
+  const err = graphErrorRaw(status, body, step)
+  err.message = redactLinks(err.message)
+  return err
+}
+
+function graphErrorRaw(status: number, body: string, step?: string): Error {
   const where = step ? ` al ${step}` : ''
   try {
     const j = JSON.parse(body) as {
@@ -360,9 +377,23 @@ export function setInstagramLinkProvider(p: ((file: string, signal?: AbortSignal
  * por nadie más) y, si no está disponible o falla, un alojamiento temporal. Lo que hay que cerrar va a `opened`.
  */
 async function publicVideoLink(file: string, size: number, signal: AbortSignal | undefined, onStep: ((t: string) => void) | undefined, opened: Array<() => Promise<void>>, cover = false): Promise<string> {
+  // La portada, al revés: primero un alojamiento temporal. Instagram la descarga en el mismo momento de crear la
+  // publicación (el vídeo lo baja después, con calma) y un Funnel recién abierto en otro puerto todavía no responde:
+  // falló con «Media download has failed».
+  if (cover) {
+    onStep?.('Subiendo la portada a un enlace temporal')
+    try {
+      return await temporaryLink(file, size, signal)
+    } catch (e) {
+      if (signal?.aborted || !linkProvider) throw e
+      const link = await linkProvider(file, signal)
+      opened.push(link.close)
+      return link.url
+    }
+  }
   let funnelWhy = ''
   if (linkProvider) {
-    if (!cover) onStep?.('Abriendo un enlace desde este equipo (Tailscale Funnel)')
+    onStep?.('Abriendo un enlace desde este equipo (Tailscale Funnel)')
     try {
       const link = await linkProvider(file, signal)
       opened.push(link.close)
@@ -372,7 +403,7 @@ async function publicVideoLink(file: string, size: number, signal: AbortSignal |
       funnelWhy = e instanceof Error ? e.message : String(e)
     }
   }
-  onStep?.(cover ? 'Subiendo la portada a un enlace temporal' : 'Subiendo el vídeo a un enlace temporal')
+  onStep?.('Subiendo el vídeo a un enlace temporal')
   try {
     return await temporaryLink(file, size, signal)
   } catch (e) {
@@ -414,6 +445,25 @@ async function coverParams(input: PublishInput, opened: Array<() => Promise<void
   return out
 }
 
+/**
+ * Crea el contenedor del reel. Si Instagram no consigue bajar la portada (cover_url), se vuelve a crear sin ella, con
+ * el fotograma elegido: el reel no se queda sin publicar por la portada.
+ */
+async function createBox(input: PublishInput, extra: Record<string, string>, media: Record<string, string>): Promise<{ id?: string; uri?: string }> {
+  const { token, userId, signal } = input
+  const caption = cleanCaption(input.caption)
+  const create = (): Promise<{ id?: string; uri?: string }> => graph(token, 'POST', `${userId}/media`, { media_type: 'REELS', ...media, caption, ...extra }, signal, 'preparar la publicación')
+  try {
+    return await create()
+  } catch (e) {
+    const cover = extra.cover_url
+    if (!cover || signal?.aborted || !(e instanceof Error) || !(/download has failed|could not be fetched|2207052|cover/i.test(e.message) || e.message.includes(cover))) throw e
+    delete extra.cover_url
+    input.onStep?.(extra.thumb_offset ? 'Instagram no pudo bajar la portada: va el fotograma elegido' : 'Instagram no pudo bajar la portada')
+    return await create()
+  }
+}
+
 async function publishReelSteps(input: PublishInput, opened: Array<() => Promise<void>>): Promise<{ id: string; permalink?: string }> {
   const { token, userId, file, signal } = input
   if (!existsSync(file)) throw new Error('No encuentro el vídeo para publicarlo')
@@ -430,11 +480,11 @@ async function publishReelSteps(input: PublishInput, opened: Array<() => Promise
     // solo acepta un enlace público al vídeo, que descarga él. kywai lo deja en un alojamiento temporal (1 hora).
     const videoUrl = await publicVideoLink(file, size, signal, input.onStep, opened)
     input.onStep?.('Preparando la publicación en Instagram')
-    box = await graph<{ id?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', video_url: videoUrl, caption, ...extra }, signal, 'preparar la publicación')
+    box = await createBox(input, extra, { video_url: videoUrl })
     if (!box.id) throw new Error('Instagram no creó la publicación')
   } else {
     input.onStep?.('Preparando la publicación en Instagram')
-    box = await graph<{ id?: string; uri?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', upload_type: 'resumable', caption, ...extra }, signal, 'preparar la publicación')
+    box = await createBox(input, extra, { upload_type: 'resumable' })
     if (!box.id) throw new Error('Instagram no creó la publicación')
     input.onStep?.('Subiendo el vídeo a Instagram')
     try {
@@ -446,7 +496,7 @@ async function publishReelSteps(input: PublishInput, opened: Array<() => Promise
       try {
         const videoUrl = await publicVideoLink(file, size, signal, input.onStep, opened)
         input.onStep?.('Preparando la publicación en Instagram')
-        box = await graph<{ id?: string }>(token, 'POST', `${userId}/media`, { media_type: 'REELS', video_url: videoUrl, caption, ...extra }, signal, 'preparar la publicación')
+        box = await createBox(input, extra, { video_url: videoUrl })
       } catch (e2) {
         if (signal?.aborted) throw e2
         throw new Error(`${e.message}. Con un enlace público tampoco: ${e2 instanceof Error ? e2.message : String(e2)}`)

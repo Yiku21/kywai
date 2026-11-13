@@ -2584,8 +2584,11 @@ solo describen («DE TARJETA A CAMPAÑA»), el título y la primera línea del t
 «/miniatura» (diseño «grande» o «caja», 1080×1920 en JPG, `<vídeo>-portada-1.jpg`…), con el texto dentro del
 **recorte 3:4 de la cuadrícula del perfil** (Instagram quita 240 px arriba y abajo), y la tarjeta las enseña para
 **elegir una** (va marcada la primera; con «Publicar sin preguntar» va la primera). Al publicar, la elegida va a
-Instagram como `cover_url`, con un enlace público igual que el vídeo (Funnel o alojamiento temporal), y su fotograma
-como `thumb_offset`: si la imagen no se puede subir, el reel sale igual con ese fotograma. **Si adjuntas una imagen**
+Instagram como `cover_url`, con un enlace de un **alojamiento temporal** (Funnel solo si ninguno responde: Instagram
+baja la portada en el mismo momento de crear la publicación y un Funnel recién abierto en otro puerto aún no contesta,
+lo que daba «Media download has failed»), y su fotograma como `thumb_offset`. Si la imagen no se puede subir o
+Instagram no consigue bajarla, kywai vuelve a crear la publicación sin ella y el reel sale igual con ese fotograma.
+Los errores de Instagram nunca enseñan la dirección del equipo en Tailscale (se cambia por «enlace de este equipo»). **Si adjuntas una imagen**
 a «/instagram», esa es la portada (se recorta a 1080×1920) y el agente no diseña ninguna. Sin la app de escritorio (no
 hay ventana para hacer la imagen) queda solo el fotograma. Instagram no deja cambiar la portada de un reel ya publicado
 por la API: los publicados antes se cambian a mano en la app.
