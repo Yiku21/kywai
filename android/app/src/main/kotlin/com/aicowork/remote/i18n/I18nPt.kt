@@ -1002,6 +1002,8 @@ private fun part7(m: HashMap<String, String>) {
     m["El presentador y golpes de texto grande, alternados."] = "O apresentador e golpes de texto grande, alternados."
     m["Charla y tutorial"] = "Conversa e tutorial"
     m["Dos personajes charlan en 3D y arriba salen los pasos. Para Reels."] = "Dois personagens conversam em 3D e os passos aparecem em cima. Para Reels."
+    m["Sketch de humor"] = "Esquete de humor"
+    m["Los dos personajes en una escena cómica, sin pasos ni tarjetas. Para Reels."] = "Os dois personagens numa cena cómica, sem passos nem cartões. Para Reels."
     m["Elegir tipo, personaje, estilo y voz"] = "Escolher tipo, personagem, estilo e voz"
     m["Elige y luego escribe de qué va"] = "Escolha e depois escreva sobre o que é"
     m["Escuchar la voz «{name}»"] = "Ouvir a voz «{name}»"

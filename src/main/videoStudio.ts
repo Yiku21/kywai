@@ -200,6 +200,11 @@ async function has(cmd: string, args: string[] = ['-version']): Promise<boolean>
   return (await run(cmd, args, { timeoutMs: 15_000 })).code === 0
 }
 
+/** ¿Hay con qué dibujar las imágenes del vídeo? (ComfyUI encendido con un modelo o una clave de Gemini). */
+export async function canDrawImages(): Promise<boolean> {
+  return !!geminiApiKey() || !!(await comfyStatus()).info
+}
+
 /** Clave de API de Gemini: la del entorno o la que guarda Gemini CLI (~/.gemini/.env), donde la escribe el asistente. */
 export function geminiApiKey(): string | null {
   if (process.env.GEMINI_API_KEY?.trim()) return process.env.GEMINI_API_KEY.trim()
@@ -1413,6 +1418,11 @@ export async function renderVideo(input: {
    * sobre el «look» del guion y sobre el dibujo de siempre del presentador.
    */
   look?: string
+  /**
+   * Charla o sketch con los robots de kywai y un aspecto elegido: los robots se dibujan en ese aspecto en cada plano en
+   * vez de salir en el plató 3D. Si no sale ninguna imagen, vuelve al plató.
+   */
+  drawCast?: boolean
 }): Promise<RenderedVideo> {
   const { script, format, workDir: dir, signal } = input
   if (input.look) script.look = input.look
@@ -1441,7 +1451,10 @@ export async function renderVideo(input: {
   const charla = script.style === 'charla'
   // Con los robots de kywai, «Charla y tutorial» va en el plató 3D (charlaStage.ts): los robots se animan ahí y las
   // imágenes son solo lo que sale en la pantalla de detrás, así que no llevan a los personajes.
-  const stageBots = charla && existsSync(threeModule()) ? stageLooks(script) : null
+  const stageable = charla && existsSync(threeModule()) ? stageLooks(script) : null
+  // Robots dibujados en el aspecto elegido (o, al doblar, los planos ya dibujados de antes): sin plató.
+  const drawn = !!stageable && (!!input.drawCast || (!!input.reuseFrom && script.scenes.some((sc) => !!sc.shots?.length)))
+  let stageBots = drawn ? null : stageable
   if (stageBots) copyThree(join(dir, 'assets'))
   if (charla && !stageBots && !script.look) script.look = CHARLA_LOOK
   const refs = (input.refs ?? []).filter((f) => existsSync(f))
@@ -1772,6 +1785,12 @@ export async function renderVideo(input: {
   for (const v of voices) durations.push(await duration(v))
   const tl = buildTimeline(durations)
   const images = shots.map((list) => list.find((x) => !!x) ?? null)
+  // Robots dibujados que no salieron (ComfyUI sin modelo, clave de Gemini que no dibuja…): vuelven al plató 3D, mejor
+  // que dos personajes sin imagen.
+  if (drawn && !images.some(Boolean)) {
+    stageBots = stageable
+    copyThree(join(dir, 'assets'))
+  }
   const clips: (string | null)[] = script.scenes.map(() => null)
   for (let i = 0; i < n; i++) {
     const raw = rawClips[i]

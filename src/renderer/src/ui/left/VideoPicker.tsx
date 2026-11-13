@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AudioLines, Check, ChevronDown, Clapperboard, ImagePlus, Layers, Loader2, MessagesSquare, Play, Plus, Search, Smile, Sparkles, Square, Trash2, UserRound, Wand2, X } from 'lucide-react'
+import { AudioLines, Check, ChevronDown, Clapperboard, ImagePlus, Laugh, Layers, Loader2, MessagesSquare, Play, Plus, Search, Smile, Sparkles, Square, Trash2, UserRound, Wand2, X } from 'lucide-react'
 import { FILM_CATEGORIES, FILM_STYLES, filmStyle, type FilmStyle } from '@shared/filmStyles'
 import { IMAGE_LOOKS, imageLook, type ImageLook } from '@shared/imageLooks'
 import { defaultVoiceFor, ROBOTS_CHARACTER, type VideoChoice, type VideoKind } from '@shared/videoChoice'
@@ -50,8 +50,12 @@ const KINDS: { id: VideoKind; icon: typeof Clapperboard; name: string; line: str
   { id: 'rapido', icon: Clapperboard, name: 'Rápido: texto animado', line: 'Frases grandes con ritmo, al compás de la voz.' },
   { id: 'presentador', icon: Smile, name: 'Dibujos con presentador', line: 'Un personaje dibujado lo explica, con humor.' },
   { id: 'mixto', icon: Layers, name: 'Mixto', line: 'El presentador y golpes de texto grande, alternados.' },
-  { id: 'charla', icon: MessagesSquare, name: 'Charla y tutorial', line: 'Dos personajes charlan en 3D y arriba salen los pasos. Para Reels.' }
+  { id: 'charla', icon: MessagesSquare, name: 'Charla y tutorial', line: 'Dos personajes charlan en 3D y arriba salen los pasos. Para Reels.' },
+  { id: 'sketch', icon: Laugh, name: 'Sketch de humor', line: 'Los dos personajes en una escena cómica, sin pasos ni tarjetas. Para Reels.' }
 ]
+
+/** Charla y sketch: dos personajes en diálogo (los robots si no se elige otro), sin película ni estructura de pasos. */
+const isDuo = (k: VideoKind): boolean => k === 'charla' || k === 'sketch'
 
 const kindName = (k: VideoKind): string => t(KINDS.find((x) => x.id === k)!.name)
 const charName = (c: VideoCharacterInfo): string => (c.builtin ? t('Robots de kywai') : c.name)
@@ -363,7 +367,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose, topic = '' }: 
     chosenVoice ? voiceName(chosenVoice) : value.voice ? t('Voz elegida') : '',
     value.dialogue ? t('Diálogo') : '',
     value.review && !value.style ? t('Repasar guion') : '',
-    value.structure && value.kind !== 'charla' ? t('Reel en 3 pasos') : ''
+    value.structure && !isDuo(value.kind) ? t('Reel en 3 pasos') : ''
   ].filter(Boolean)
   const thumb = value.style ? THUMBS[value.style] : look ? trials[look.id]?.url : undefined
   const KindIcon = KINDS.find((k) => k.id === value.kind)!.icon
@@ -404,7 +408,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose, topic = '' }: 
                 </h4>
                 <div className={s.grid} role="radiogroup" aria-label={t('Tipo de vídeo')}>
                   {KINDS.map((k) => (
-                    <button key={k.id} type="button" role="radio" aria-checked={value.kind === k.id} className={cx(s.card, value.kind === k.id && s.cardOn)} onClick={() => set(k.id === 'charla' ? { kind: k.id, dialogue: true, style: null, character: value.character ?? ROBOTS_CHARACTER } : { kind: k.id }, charRef)}>
+                    <button key={k.id} type="button" role="radio" aria-checked={value.kind === k.id} className={cx(s.card, value.kind === k.id && s.cardOn)} onClick={() => set(isDuo(k.id) ? { kind: k.id, dialogue: true, style: null, character: value.character ?? ROBOTS_CHARACTER } : { kind: k.id }, charRef)}>
                       <span className={cx(s.thumb, s.quick, s.kindThumb)}>
                         <k.icon size={24} />
                       </span>
@@ -648,7 +652,7 @@ export function VideoPicker({ api, value, open, onOpen, onChoose, topic = '' }: 
                 </div>
               </section>
 
-              {value.kind !== 'charla' && (
+              {!isDuo(value.kind) && (
                 <section>
                   <div className={s.voiceGrid}>
                     <button type="button" role="checkbox" aria-checked={!!value.structure} className={cx(s.card, s.voiceCard, value.structure && s.cardOn)} onClick={() => set({ structure: value.structure ? undefined : 'pasos' })}>

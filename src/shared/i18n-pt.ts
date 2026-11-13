@@ -2830,6 +2830,8 @@ export const pt: Record<string, string> = {
   "El presentador y golpes de texto grande, alternados.": "O apresentador e golpes de texto grande, alternados.",
   "Charla y tutorial": "Conversa e tutorial",
   "Dos personajes charlan en 3D y arriba salen los pasos. Para Reels.": "Dois personagens conversam em 3D e os passos aparecem em cima. Para Reels.",
+  "Sketch de humor": "Esquete de humor",
+  "Los dos personajes en una escena cómica, sin pasos ni tarjetas. Para Reels.": "Os dois personagens numa cena cómica, sem passos nem cartões. Para Reels.",
   "Robots de kywai": "Robôs do kywai",
   "«{name}» no es una imagen PNG, JPG o WebP": "«{name}» não é uma imagem PNG, JPG ou WebP",
   "Nuevo personaje": "Nova personagem",

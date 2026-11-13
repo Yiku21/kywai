@@ -2830,6 +2830,8 @@ export const zh: Record<string, string> = {
   "El presentador y golpes de texto grande, alternados.": "主持人与大号文字交替出现。",
   "Charla y tutorial": "对话教程",
   "Dos personajes charlan en 3D y arriba salen los pasos. Para Reels.": "两个角色在 3D 场景中聊天，上方依次出现步骤。适合 Reels。",
+  "Sketch de humor": "搞笑小品",
+  "Los dos personajes en una escena cómica, sin pasos ni tarjetas. Para Reels.": "两个角色演一段搞笑场景，没有步骤和卡片。适合 Reels。",
   "Robots de kywai": "kywai 机器人",
   "«{name}» no es una imagen PNG, JPG o WebP": "“{name}”不是 PNG、JPG 或 WebP 图片",
   "Nuevo personaje": "新角色",

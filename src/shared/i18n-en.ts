@@ -2972,6 +2972,8 @@ export const en: Record<string, string> = {
   "El presentador y golpes de texto grande, alternados.": "The presenter and bursts of big text, taking turns.",
   "Charla y tutorial": "Talk and tutorial",
   "Dos personajes charlan en 3D y arriba salen los pasos. Para Reels.": "Two characters chat in 3D while the steps show up on top. For Reels.",
+  "Sketch de humor": "Comedy sketch",
+  "Los dos personajes en una escena cómica, sin pasos ni tarjetas. Para Reels.": "The two characters in a funny scene, with no steps or cards. For Reels.",
   "Robots de kywai": "kywai robots",
   "«{name}» no es una imagen PNG, JPG o WebP": "“{name}” isn't a PNG, JPG or WebP image",
   "Nuevo personaje": "New character",

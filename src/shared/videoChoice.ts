@@ -9,8 +9,9 @@ import { imageLook } from './imageLooks'
 /**
  * rapido: texto animado con ritmo. presentador: un personaje dibujado lo explica. mixto: las dos cosas alternadas.
  * charla: «Charla y tutorial», dos personajes charlando en una maqueta 3D con los pasos arriba (para Reels).
+ * sketch: «Sketch de humor», los mismos dos personajes en una escena cómica, sin pasos ni tarjetas (para Reels).
  */
-export const VIDEO_KINDS = ['rapido', 'presentador', 'mixto', 'charla'] as const
+export const VIDEO_KINDS = ['rapido', 'presentador', 'mixto', 'charla', 'sketch'] as const
 export type VideoKind = (typeof VIDEO_KINDS)[number]
 
 /** El personaje de fábrica: Hermes, Claude y Codex. */

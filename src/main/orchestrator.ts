@@ -94,7 +94,7 @@ import { scriptFileOf, scriptSource } from './videoScriptFile'
 import { parseVideoRequest, parseVideoScript, synthMusic, videoScriptPrompt, videoSlug, type VideoFormat, type VideoScript, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
 import { ROBOTS_CHARACTER, videoLang, type VideoKind, type VideoStructure } from '../shared/videoChoice'
-import { CAST_DIR, CAST_NOTES, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, speakLine, videoFrames, videoStudioDir } from './videoStudio'
+import { CAST_DIR, CAST_NOTES, canDrawImages, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, speakLine, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
 import { DUB_LANGUAGES, applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, markedNarration, parseDubRequest, rawScript, type DubRequest } from './dub'
@@ -2037,6 +2037,9 @@ async function sendVideo(
         ? tr('Para un vídeo con estilo hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.')
         : tr('No hay ningún agente disponible para escribir el guion del vídeo.')
     )
+  // Charla o sketch con los robots y un aspecto elegido: si hay con qué dibujar (ComfyUI o Gemini), los robots se
+  // dibujan en ese aspecto en cada plano; si no, salen en el plató 3D de siempre.
+  const drawCast = !film && req.style === 'charla' && !!imageLook(req.look) && req.character === ROBOTS_CHARACTER && (await canDrawImages())
   const runId = randomUUID()
   const label = req.topic || oneLine(req.source ?? '', 60) || tr('vídeo')
   // Lo lanza Hermes desde una petición con otras palabras: el mensaje del usuario ya está en el chat.
@@ -2111,6 +2114,7 @@ async function sendVideo(
         ...(req.saveCast ? { saveCast: true } : {}),
         ...(req.character && videoCharacter(req.character) ? { character: req.character } : {}),
         ...(req.kind ? { kind: req.kind } : {}),
+        ...(drawCast ? { drawCast: true } : {}),
         ...(req.voice ? { voice: req.voice } : {}),
         ...(req.dialogue ? { dialogue: true } : {}),
         ...(req.review && !film ? { review: true } : {}),
@@ -3823,6 +3827,12 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
   }
   // El estilo lo decide lo que pidió el usuario, no el agente.
   script.style = v.style ?? script.style
+  // El sketch de humor no lleva pasos ni tarjetas aunque el agente los escriba.
+  if (v.kind === 'sketch')
+    for (const sc of script.scenes) {
+      delete sc.step
+      delete sc.items
+    }
   // «Repasar el guion antes de grabar»: espera tu «Grabar» (con tus cambios) o «Descartar».
   if (v.review) {
     const reviewed = await reviewScript(run, t, exec, script)
@@ -3851,6 +3861,7 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
       cast: seriesCast(run, t),
       ...(v.voice ? { voice: v.voice } : {}),
       ...(imageLook(v.look) ? { look: imageLook(v.look)!.prompt } : {}),
+      ...(v.drawCast ? { drawCast: true } : {}),
       onStep: (text, p, vars) => {
         t.lastActivity = tr(text, vars)
         t.progress = p
@@ -5640,7 +5651,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     const extra = run.attachments.map((a) => `- ${attPath(run, a.relPath, !!meta.copy)} (adjunto del usuario: ${a.name})`)
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
-    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue, ...(t.video.structure ? { structure: t.video.structure } : {}), ...(imageLook(t.video.look) ? { lookName: imageLook(t.video.look)!.name } : {}) }), ...learningLines(resultsFile(getConfig().workspaceRoot))].join('\n')
+    const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue, ...(t.video.structure ? { structure: t.video.structure } : {}), ...(imageLook(t.video.look) ? { lookName: imageLook(t.video.look)!.name } : {}), ...(t.video.kind === 'sketch' ? { sketch: true } : {}), ...(t.video.drawCast ? { drawCast: true } : {}) }), ...learningLines(resultsFile(getConfig().workspaceRoot))].join('\n')
     return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
   }
   const textOnly = isTextOnly(exec.provider)

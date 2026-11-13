@@ -58,6 +58,52 @@ describe('Charla y tutorial: petición', () => {
   })
 })
 
+describe('Sketch de humor', () => {
+  it('«tipo:sketch» y «un sketch de humor» con palabras: la charla de los robots, en diálogo y vertical', () => {
+    expect(parseVideoRequest('/video tipo:sketch el wifi que no va')).toMatchObject({ topic: 'el wifi que no va', style: 'charla', kind: 'sketch', format: 'vertical', dialogue: true, character: 'robots-kywai' })
+    expect(parseVideoRequest('hazme un vídeo, un sketch de humor sobre los lunes')).toMatchObject({ topic: 'los lunes', style: 'charla', kind: 'sketch' })
+    expect(parseVideoRequest('/video tipo:sketch aspecto:chibi-3d el café')).toMatchObject({ kind: 'sketch', look: 'chibi-3d' })
+  })
+
+  it('el encargo pide una escena cómica sin pasos, ni puntos, ni tarjetas', () => {
+    const p = videoScriptPrompt({ topic: 'el wifi', format: 'vertical', lang: 'es', style: 'charla', dialogue: true, sketch: true, cast: { images: [], name: 'robots-kywai' } })
+    expect(p).toContain('sketch de humor')
+    expect(p).toContain('NO es un tutorial')
+    expect(p).toContain('Nada de pasos')
+    expect(p).not.toContain('"step": 1')
+    expect(p).not.toContain('"items": [')
+    expect(p).toContain('"image": "…"')
+  })
+
+  it('sin pasos, el montaje no pinta ninguna tarjeta «PASO»', () => {
+    const raw = JSON.parse(CHARLA)
+    for (const sc of raw.scenes) {
+      delete sc.step
+      delete sc.items
+    }
+    const script = parseVideoScript(JSON.stringify(raw))
+    const { html } = buildCharlaComposition({ script, format: 'vertical', timeline: buildTimeline([4, 3, 3]), images: [null, null, null], shots: [[null], [null], [null]], audio: 'a.wav', gsap: 'g.js' })
+    expect(html).not.toContain('PASO')
+    expect(html).toContain('class="tag"')
+  })
+})
+
+describe('Robots dibujados en el aspecto elegido', () => {
+  it('con drawCast, el guion describe a los robots en planos y no escribe «look»', () => {
+    const p = videoScriptPrompt({ topic: 'el café', format: 'vertical', lang: 'es', style: 'charla', dialogue: true, sketch: true, drawCast: true, lookName: 'Chibi 3D', cast: { images: ['/r/hermes.png'], name: 'robots-kywai' } })
+    expect(p).toContain('"shots"')
+    expect(p).toContain('Hermes y Claude, los robots de kywai: en cada plano')
+    expect(p).not.toContain('"look": "…"')
+    expect(p).not.toContain('PANTALLA GIGANTE')
+  })
+
+  it('sin drawCast, los robots siguen en el plató 3D', () => {
+    const p = videoScriptPrompt({ topic: 'el café', format: 'vertical', lang: 'es', style: 'charla', dialogue: true, lookName: 'Chibi 3D', cast: { images: [], name: 'robots-kywai' } })
+    expect(p).toContain('PANTALLA GIGANTE')
+    expect(p).not.toContain('"look": "…"')
+  })
+})
+
 describe('Charla y tutorial: guion y montaje', () => {
   it('lee puntos, burbujas (solo en el gancho) y la llamada a comentar, con sus límites', () => {
     const s = parseVideoScript(CHARLA)

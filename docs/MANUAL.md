@@ -2839,6 +2839,16 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    encargo pide «image» con lo que explica el paso, sin personajes) y no se usan los clips de FreeVideo. Necesita
    three.js en el estudio (`THREE_VERSION`, se instala con HyperFrames y GSAP; un estudio sin él se completa solo la
    próxima vez). Con otro personaje, el vídeo va con las imágenes a pantalla completa de antes.
+   **Con un aspecto elegido** (`aspecto:chibi-3d`…) y algo con qué dibujar (ComfyUI encendido con un modelo o clave de
+   Gemini) al pedir el vídeo, **los robots se dibujan en ese aspecto** en cada plano en vez de salir en el plató 3D: el
+   encargo pide planos de los dos (`shots`) y Gemini ve sus imágenes (`drawCast` en la tarea). Si al final no sale
+   ninguna imagen (por ejemplo, una clave de Gemini del plan gratis, que no dibuja), el vídeo vuelve al plató 3D. Sin
+   motor de imágenes, el aspecto solo cambiaría la pantalla gigante, que entonces lleva fondos de diseño.
+   **Sketch de humor** (`tipo:sketch`, o escribir «un sketch de humor» / «tipo sketch»): la misma charla de dos
+   personajes (plató, diálogo, vertical, burbujas en el gancho y «Comenta PALABRA»), pero **sin pasos, ni puntos, ni
+   tarjetas «PASO n/N»**: el encargo pide una situación cómica con conflicto, giros, réplicas rápidas, personalidades
+   distintas y un remate, y lo útil sale de pasada dentro de los chistes. Arriba solo sale un titular corto por
+   escena. Aunque el agente escriba pasos, kywai los quita. Para cuando se quiere entretener más que enseñar.
 2. **Personaje.** *Ninguno (genérico)*: sin personaje fijo. *Robots de kywai*: Hermes, Claude y Codex. Los que hayas
    creado. Y **«Agregar personaje»**: nombre y una descripción, imágenes (hasta 6) o las dos cosas; la interfaz reduce
    las imágenes (1024 px, WebP) y hace una miniatura. Se guardan en kywai **para todos los proyectos**, en

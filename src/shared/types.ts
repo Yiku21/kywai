@@ -283,7 +283,12 @@ export interface Task {
     /** Personaje elegido en el selector (id de src/main/videoCharacters.ts). */
     character?: string
     /** Tipo elegido en el selector (en una película: cómo se cuenta). */
-    kind?: 'rapido' | 'presentador' | 'mixto' | 'charla'
+    kind?: 'rapido' | 'presentador' | 'mixto' | 'charla' | 'sketch'
+    /**
+     * Con un aspecto elegido y un motor de imágenes (ComfyUI o Gemini) al pedirlo, los robots de la charla o el sketch
+     * se dibujan en ese aspecto en cada plano en vez de salir en el plató 3D.
+     */
+    drawCast?: boolean
     /** Voz elegida en el selector («gemini-puck», «kokoro-ef_dora»…). */
     voice?: string
     /** Diálogo entre dos personajes, cada uno con su voz. */
