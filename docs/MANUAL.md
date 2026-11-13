@@ -2795,7 +2795,8 @@ marcadas entre *asteriscos*, una descripción de la imagen de cada escena, un te
 escribe como un guion de cine en vez de en JSON), primero el mismo agente lo repite una vez sabiendo qué falló; si vuelve a
 fallar, pasa a otro agente, aunque la tarea ya viniera de un relevo. Para el relevo de un guion se prefieren los agentes
 que no dicen evitar el vídeo: Aider y los demás agentes de código del catálogo solo si no queda nadie más. kywai encuentra
-el JSON aunque venga con texto alrededor, entre varios bloques, dentro de una edición de Aider o con comas de más. Lo demás lo
+el JSON aunque venga con texto alrededor, entre varios bloques, dentro de una edición de Aider o con comas de más. El nombre de la
+tarea (y de sus avisos) sale limpio aunque el tema venga en Markdown: «Vídeo: The Wrong Address», sin «#» ni «**». Lo demás lo
 hace kywai siempre igual (`src/main/videoStudio.ts`):
 
 1. **Voz** de cada escena con Voicebox o Gemini si los hay (ver «Voz» más abajo) y si no con **Kokoro** (natural, gratis, en el propio equipo; español, inglés, francés, portugués,

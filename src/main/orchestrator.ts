@@ -1311,6 +1311,19 @@ function oneLine(s: string | undefined, n: number): string {
   return clip((s ?? '').replace(/\s+/g, ' '), n)
 }
 
+/**
+ * Un título limpio de un texto con Markdown (para las tareas y los avisos): si empieza por un encabezado, solo ese
+ * encabezado; si no, todo el texto en una línea. Sin «#», «**», «`» ni viñetas.
+ */
+export function plainLabel(s: string | undefined): string {
+  const text = (s ?? '').trim()
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^\s*(?:#{1,6}\s+|[-*+>]\s+|\d+[.)]\s+)/, '').replace(/\*\*|__|~~|`/g, '').trim())
+    .filter(Boolean)
+  return (/^#{1,6}\s/.test(text) ? lines.slice(0, 1) : lines).join(' ')
+}
+
 let rateTimer: NodeJS.Timeout | null = null
 function onRateLimit(info: RateLimitInfo): void {
   if (info.provider === 'claude') setClaudeRateLimit(info) // con quotaGroupId, la de esa «otra cuenta»
@@ -2068,7 +2081,7 @@ async function sendVideo(
   // dibujan en ese aspecto en cada plano; si no, salen en el plató 3D de siempre.
   const drawCast = robotsCharla && !!imageLook(req.look) && (await canDrawImages())
   const runId = randomUUID()
-  const label = req.topic || oneLine(req.source ?? '', 60) || tr('vídeo')
+  const label = plainLabel(req.topic) || oneLine(plainLabel(req.source), 60) || tr('vídeo')
   // Lo lanza Hermes desde una petición con otras palabras: el mensaje del usuario ya está en el chat.
   if (opts.echo !== false) pushMessage({
     id: randomUUID(),
@@ -2119,10 +2132,10 @@ async function sendVideo(
         ? tr('Episodio {n} de {total}: {label}', { n: req.episode.n, total: req.episode.total, label: oneLine(label, 50) })
         : film
           ? batch
-            ? tr('{one} «{style}»: {label}', { one, style: lang() === 'es' ? film.name : film.en, label: oneLine(batch.ideas[n - 1] ?? label, 50) })
+            ? tr('{one} «{style}»: {label}', { one, style: lang() === 'es' ? film.name : film.en, label: oneLine(plainLabel(batch.ideas[n - 1]) || label, 50) })
             : tr('Vídeo «{style}»: {label}', { style: lang() === 'es' ? film.name : film.en, label: oneLine(label, 50) })
           : batch
-            ? tr('{one}: {label}', { one, label: oneLine(batch.ideas[n - 1] ?? label, 60) })
+            ? tr('{one}: {label}', { one, label: oneLine(plainLabel(batch.ideas[n - 1]) || label, 60) })
             : tr('Vídeo: {label}', { label: oneLine(label, 60) }),
       description: req.topic || tr('Vídeo del mensaje elegido'),
       agentId: (film && batch ? directors[(n - 1) % directors.length] : agent).id,
