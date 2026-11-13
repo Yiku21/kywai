@@ -3693,6 +3693,11 @@ un poco antes de quedarse quieto. Al abrirla, el líquido baja, se estrecha y se
 y su sitio. Con «Reducir
 movimiento» del sistema cambia sin animación.
 
+**En Órbita (Android)** va igual: el logo de la barra la abre y la pliega (ya no hay un botón aparte) y da una vuelta
+al tocarlo; plegada, la columna enseña debajo de los accesos **tus proyectos con su inicial** (resaltado el abierto,
+punto azul si el equipo trabaja en él, verde si tiene algo terminado sin ver) y tocar uno abre su último chat. En la
+tableta, la barra se abre y se pliega con un movimiento elástico en vez de cambiar de golpe.
+
 **Volver al chat con la barra plegada.** Bajo los accesos (tras una raya) va el icono del **chat en el que estás**:
 desde Resultados, Tareas, Tablero o Rutinas, un clic te devuelve a él. Debajo salen **tus proyectos** con su inicial
 (el proyecto en el que estás, con borde de color); al pasar el ratón sale su nombre y un clic abre **su último chat**.

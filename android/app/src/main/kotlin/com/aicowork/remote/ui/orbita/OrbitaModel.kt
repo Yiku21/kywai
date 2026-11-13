@@ -511,6 +511,29 @@ class OrbitaModel(
         }
     }
 
+    /**
+     * Desde la barra plegada: abre el último chat con mensajes del proyecto (el más reciente). Sin chats en el
+     * ordenador (versión anterior) o sin ninguno con mensajes, abre el proyecto tal cual.
+     */
+    fun openLatestChat(projectId: String) {
+        drawerOpen = false
+        if (!chatsSupported()) {
+            openProject(projectId)
+            open(Section.Chat)
+            return
+        }
+        viewModelScope.launch {
+            val list = controller.listChats(projectId).getOrNull().orEmpty()
+            chats[projectId] = list
+            val latest = latestChat(list)
+            if (latest != null) openChat(projectId, latest.id)
+            else {
+                openProject(projectId)
+                open(Section.Chat)
+            }
+        }
+    }
+
     /** Abre un proyecto desde la barra lateral (su chat abierto). */
     fun openProject(projectId: String) {
         expandedProject = projectId
@@ -986,3 +1009,7 @@ class OrbitaModel(
         }
     }
 }
+
+/** El chat con mensajes tocado más recientemente (para abrir un proyecto por su último chat). */
+fun latestChat(chats: List<ChatSummary>): ChatSummary? =
+    chats.filter { it.messageCount > 0 }.maxByOrNull { it.updatedAt ?: it.createdAt ?: 0L }

@@ -3,6 +3,11 @@ package com.aicowork.remote.ui.orbita
 import com.aicowork.remote.i18n.t
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import com.aicowork.remote.data.model.ProjectSummary
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -54,7 +59,6 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.ViewSidebar
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -135,10 +139,10 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
             .testTag("sidebar"),
     ) {
         Row(Modifier.fillMaxWidth().padding(start = 8.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            LogoMark(28.dp)
-            Spacer(Modifier.width(10.dp))
+            // El logo abre y pliega la barra (antes había un botón aparte): da una vuelta al tocarlo.
+            SpinningLogo(28.dp, t("Abrir o plegar la barra lateral"), box = 44.dp, onClick = onCollapse, modifier = Modifier.testTag("sidebar-collapse"))
+            Spacer(Modifier.width(6.dp))
             Text("kywai", color = Orbita.Text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            IconAction(Icons.Outlined.ViewSidebar, t("Plegar la barra lateral"), onClick = onCollapse, size = 40.dp)
         }
 
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -409,11 +413,9 @@ fun SidebarRail(model: OrbitaModel, state: CoworkUiState, labels: Boolean, onOpe
             .testTag("sidebar-rail"),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(Modifier.size(if (labels) 48.dp else 40.dp).clip(CircleShape).tappable(haptic = Haptic.Tap, onClick = onOpen), contentAlignment = Alignment.Center) {
-            LogoMark(if (labels) 34.dp else 28.dp)
-        }
-        IconAction(Icons.Outlined.ViewSidebar, t("Abrir la barra lateral"), onClick = onOpen, size = 40.dp, modifier = Modifier.testTag(openTag))
-        Spacer(Modifier.height(4.dp))
+        // El logo abre la barra (ya no hay un botón aparte debajo): da una vuelta al tocarlo.
+        SpinningLogo(if (labels) 34.dp else 28.dp, t("Abrir o plegar la barra lateral"), box = if (labels) 48.dp else 44.dp, onClick = onOpen, modifier = Modifier.testTag(openTag))
+        Spacer(Modifier.height(6.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
             RailItem(Icons.Outlined.EditNote, t("Nuevo chat"), t("Nuevo"), labels, tag = "rail-new-chat") { model.newChat() }
             if (snapshot?.capabilities?.search == true) {
@@ -452,9 +454,74 @@ fun SidebarRail(model: OrbitaModel, state: CoworkUiState, labels: Boolean, onOpe
                     }
                 }
             }
+            // Tus proyectos, cada uno con su inicial: tocar uno abre su último chat.
+            val projects = sortProjects(snapshot?.projects.orEmpty(), model.preferences.projectSort)
+            if (projects.isNotEmpty()) {
+                Box(Modifier.fillMaxWidth(0.6f).padding(vertical = 6.dp).height(1.dp).background(Orbita.Divider))
+                val unseen = state.inbox.filter { !it.needsYou }.mapNotNull { it.projectId }.toSet()
+                projects.forEach { p -> RailProject(p, here = p.id == snapshot?.conversation?.id, unseen = p.id in unseen) { model.openLatestChat(p.id) } }
+            }
         }
         Box(Modifier.fillMaxWidth(0.7f).padding(vertical = 6.dp).height(1.dp).background(Orbita.Divider))
         RailItem(Icons.Outlined.Settings, t("Ajustes"), t("Ajustes"), labels, selected = model.section == Section.Settings, tag = "rail-Settings") { go(Section.Settings) }
+    }
+}
+
+/**
+ * Un proyecto en la barra plegada: su inicial en un círculo (resaltado si es el abierto), con un punto azul si el
+ * equipo trabaja en él o verde si tiene algo terminado sin ver.
+ */
+@Composable
+private fun RailProject(project: ProjectSummary, here: Boolean, unseen: Boolean, onClick: () -> Unit) {
+    val label = t("{name}: abrir su último chat", "name" to project.name)
+    Box(
+        Modifier
+            .padding(vertical = 3.dp)
+            .size(44.dp)
+            .clip(CircleShape)
+            .tappable(role = Role.Button, haptic = Haptic.Tap, onClick = onClick)
+            .semantics { selected = here; contentDescription = label }
+            .testTag("rail-project-${project.id}"),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier.size(32.dp).clip(CircleShape).background(if (here) Orbita.AccentSoft else Orbita.Divider),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(railInitial(project.name), color = if (here) Orbita.Text else Orbita.TextSoft, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        }
+        if (project.running || unseen) {
+            Box(Modifier.align(Alignment.TopEnd).offset(x = (-5).dp, y = 5.dp).size(9.dp).clip(CircleShape).background(if (project.running) Orbita.Accent else Orbita.Live))
+        }
+    }
+}
+
+/** La inicial de un proyecto para la barra plegada (primera letra o número de su nombre). */
+fun railInitial(name: String): String = name.trim().firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "·"
+
+/**
+ * El logo de kywai como botón de la barra: al tocarlo da una vuelta rápida sobre sí mismo (como el de la web, pero
+ * corta) y abre o pliega la barra.
+ */
+@Composable
+fun SpinningLogo(size: Dp, description: String, box: Dp, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val turn = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    Box(
+        modifier
+            .size(box)
+            .clip(CircleShape)
+            .tappable(haptic = Haptic.Tap) {
+                scope.launch {
+                    turn.snapTo(0f)
+                    turn.animateTo(360f, tween(620, easing = CubicBezierEasing(0.3f, 0.7f, 0.15f, 1f)))
+                }
+                onClick()
+            }
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.graphicsLayer { rotationZ = turn.value }) { LogoMark(size) }
     }
 }
 

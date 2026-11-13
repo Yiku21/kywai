@@ -157,6 +157,34 @@ class SidebarTest {
     }
 
     @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun collapsedItShowsTheProjectsAndTheLogoFoldsAndOpensIt() {
+        val controller = controller()
+        controller.chatList = controller.chatList + listOf(
+            com.aicowork.remote.data.model.ChatSummary("x1", "c2", "Viejo", updatedAt = 2, messageCount = 4),
+            com.aicowork.remote.data.model.ChatSummary("x2", "c2", "Reciente", updatedAt = 9, messageCount = 1),
+            com.aicowork.remote.data.model.ChatSummary("x3", "c2", "Vacío", updatedAt = 20, messageCount = 0),
+        )
+        val model = show(controller)
+        // El logo de la barra abierta la pliega (ya no hay botón aparte).
+        compose.onNodeWithTag("sidebar-collapse").performClick()
+        compose.waitForIdle()
+        assertTrue(!model.sidebarOpen)
+        compose.onNodeWithTag("sidebar-rail").assertIsDisplayed()
+        // Plegada salen los proyectos; tocar uno abre su último chat con mensajes.
+        compose.onNodeWithTag("rail-project-c2").performClick()
+        compose.waitUntil(5_000) { "openChat:c2:x2" in controller.calls }
+        compose.onNodeWithTag("sidebar-toggle").performClick()
+        compose.waitForIdle()
+        assertTrue(model.sidebarOpen)
+    }
+
+    @Test
+    fun theRailInitialIsTheFirstLetterOrDigit() {
+        assertTrue(railInitial("  kywai") == "K" && railInitial("«2026»") == "2" && railInitial("…") == "·")
+    }
+
+    @Test
     @Config(qualifiers = "w411dp-h891dp")
     fun onThePhoneTheSlimRailIsAlwaysThere() {
         val controller = controller()

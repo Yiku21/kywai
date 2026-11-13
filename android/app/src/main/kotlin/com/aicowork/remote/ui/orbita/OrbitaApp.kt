@@ -1,5 +1,7 @@
 package com.aicowork.remote.ui.orbita
 
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.SizeTransform
 import com.aicowork.remote.i18n.t
 
 import android.app.Activity
@@ -408,7 +410,8 @@ private fun WideLayout(
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.exclude(WindowInsets.ime)).padding(12.dp)) {
         val gap = 12.dp
         val aspect = maxWidth / maxHeight
-        val side = if (model.sidebarOpen) SidebarWidth else RailWidth
+        // Al abrir o plegar, el ancho cambia con un muelle suave (un poco de rebote, como un líquido) y lo demás lo sigue.
+        val side by animateDpAsState(if (model.sidebarOpen) SidebarWidth else RailWidth, spring(dampingRatio = 0.72f, stiffness = 380f), label = "sideW")
         val free = maxWidth - side - gap
         val sideWidth = (maxWidth * 0.42f).coerceIn(340.dp, 460.dp)
         // Sobre la mesa: arriba el mundo, abajo el panel a todo lo ancho (debajo de la bisagra).
@@ -425,11 +428,22 @@ private fun WideLayout(
             }
         }
 
-        if (model.sidebarOpen) {
-            Sidebar(model, state, onCollapse = { model.sidebarOpen = false }, modifier = Modifier.align(Alignment.TopStart))
-        } else {
-            // Plegada no desaparece: queda la columna estrecha con el logo y los accesos (con su nombre debajo).
-            SidebarRail(model, state, labels = true, onOpen = { model.sidebarOpen = true }, openTag = "sidebar-toggle", modifier = Modifier.align(Alignment.TopStart))
+        AnimatedContent(
+            model.sidebarOpen,
+            modifier = Modifier.align(Alignment.TopStart),
+            contentAlignment = Alignment.TopStart,
+            transitionSpec = {
+                (fadeIn(tween(170, delayMillis = 50)) togetherWith fadeOut(tween(110)))
+                    .using(SizeTransform(clip = true) { _, _ -> spring(dampingRatio = 0.72f, stiffness = 380f) })
+            },
+            label = "sidebar",
+        ) { open ->
+            if (open) {
+                Sidebar(model, state, onCollapse = { model.sidebarOpen = false })
+            } else {
+                // Plegada no desaparece: queda la columna estrecha con el logo y los accesos (con su nombre debajo).
+                SidebarRail(model, state, labels = true, onOpen = { model.sidebarOpen = true }, openTag = "sidebar-toggle")
+            }
         }
 
         // Barra superior sobre el mundo: marca, proyecto, estado en vivo (se adapta al hueco que deja el panel).
