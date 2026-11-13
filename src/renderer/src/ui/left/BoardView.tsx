@@ -9,6 +9,7 @@ import { ExampleChips } from '../common/ExampleChips'
 import v from './Views.module.css'
 import s from './BoardView.module.css'
 import { locale, t } from '@/lib/i18n'
+import { setDragCard } from '@/lib/dragMotion'
 
 const COLUMN_LABEL: Record<BoardColumnId, string> = {
   todo: t('Por hacer'),
@@ -272,7 +273,15 @@ function CardItem({ c, index, count, editable, run }: { c: BoardCard; index: num
     <li
       className={cx(s.card, s[`card_${c.status}`])}
       draggable={draggable}
-      onDragStart={draggable ? (e) => e.dataTransfer.setData('application/x-kywai-card', c.id) : undefined}
+      onDragStart={
+        draggable
+          ? (e) => {
+              e.dataTransfer.setData('application/x-kywai-card', c.id)
+              // Lo que llevas cogido: una tarjeta con el texto de la tarea.
+              setDragCard(e, c.text.trim().split('\n')[0].slice(0, 60))
+            }
+          : undefined
+      }
       title={draggable ? t('Arrástrala a «Por hacer» para hacerla otra vez') : undefined}
     >
       <p className={s.text}>{c.text}</p>

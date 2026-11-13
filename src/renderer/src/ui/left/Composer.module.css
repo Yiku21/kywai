@@ -74,13 +74,29 @@
   background: var(--bg-panel);
   font-size: 12.5px;
   color: var(--text-1);
-  animation: chipIn var(--dur) var(--ease);
+  /* Cada adjunto cae en su sitio con un saltito; si llegan varios a la vez, uno detrás de otro. */
+  animation: chipIn var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease) both;
+}
+
+.chip:nth-child(2) {
+  animation-delay: 45ms;
+}
+
+.chip:nth-child(3) {
+  animation-delay: 90ms;
+}
+
+.chip:nth-child(n + 4) {
+  animation-delay: 130ms;
 }
 
 @keyframes chipIn {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: translateY(calc(var(--m, 1) * -10px)) scale(calc(1 - var(--m, 1) * 0.25));
+  }
+  35% {
+    opacity: 1;
   }
 }
 

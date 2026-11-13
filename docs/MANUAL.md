@@ -3771,6 +3771,10 @@ pelo y se asienta.
   crece y brilla (dentro de un proyecto, el recuadro late). Si Favoritos está vacío, su pista late para invitarte. Al
   soltar, las filas se deslizan hasta su sitio nuevo y la que has soltado da un destello. La zona «Suelta aquí para
   abrirlo al lado» se abre con muelle y, con el chat encima, su icono bota.
+- **Arrastrar archivos al chat**: la zona «Suelta para adjuntar» se abre con muelle y su icono flota; al soltar se
+  encoge hacia la caja de escribir (ahí van los adjuntos) y cada adjunto cae en su sitio con un saltito, uno detrás
+  de otro; si te vas sin soltar, solo funde. En el Tablero, la tarea que arrastras también es una tarjeta con su
+  texto y la columna «Por hacer» se abre un pelo para recibirla.
 
 **Modo tranquilo.** Con **«Reducir efectos ambientales»** (Ajustes → General) nada se desplaza ni rebota: lo que
 aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo cambia al instante.

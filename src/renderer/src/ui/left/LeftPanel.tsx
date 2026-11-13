@@ -17,7 +17,8 @@ import { useComposer } from './composerStore'
 import { droppedPaths } from './dropFiles'
 import s from './LeftPanel.module.css'
 import { t } from '@/lib/i18n'
-import { useSwitchMotion } from '../common/motion'
+import { playGhost, useSwitchMotion } from '../common/motion'
+import { calm, reducedMotion } from '@/lib/motion'
 
 const BASE_TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
   { id: 'chat', label: 'Chat', Icon: MessageSquare },
@@ -172,6 +173,14 @@ export function LeftPanel() {
   const TABS = modPanels(mods).length ? [...BASE_TABS, MODS_TAB] : BASE_TABS
   const strip = useTabStrip(tab, TABS.length)
   const body = useRef<HTMLDivElement>(null)
+  // La zona de soltar archivos no desaparece de golpe: si sueltas, se encoge hacia la caja de escribir (ahí van los
+  // adjuntos); si te vas sin soltar, solo funde.
+  const dropZone = useRef<HTMLDivElement>(null)
+  const leaveDrop = (dropped: boolean): void => {
+    const el = dropZone.current
+    if (el && !reducedMotion()) playGhost(el, dropped && !calm() ? { y: Math.round(el.offsetHeight * 0.3), scale: 0.82 } : {})
+    setDragging(false)
+  }
   // Al cambiar de pestaña, el contenido nuevo llega desde el lado de la pestaña elegida (derecha si está más a la
   // derecha) y se asienta con muelle; el icono de la pestaña da un saltito. Al abrir la app no se mueve nada.
   useSwitchMotion(
@@ -220,13 +229,13 @@ export function LeftPanel() {
       onDragLeave={(e) => {
         if (!hasFiles(e)) return
         depth.current = Math.max(0, depth.current - 1)
-        if (depth.current === 0) setDragging(false)
+        if (depth.current === 0) leaveDrop(false)
       }}
       onDrop={(e) => {
         if (!hasFiles(e)) return
         e.preventDefault()
         depth.current = 0
-        setDragging(false)
+        leaveDrop(canAttach)
         const a = api
         if (!canAttach || !a) return
         const dropped = Array.from(e.dataTransfer.files)
@@ -317,7 +326,7 @@ export function LeftPanel() {
       </div>
 
       {dragging && (
-        <div className={cx(s.drop, !canAttach && s.dropDisabled)} aria-hidden="true">
+        <div ref={dropZone} className={cx(s.drop, !canAttach && s.dropDisabled)} aria-hidden="true">
           <div className={s.dropCard}>
             {canAttach ? <Paperclip size={22} /> : <Ban size={22} />}
             <span className={s.dropTitle}>{canAttach ? t('Suelta para adjuntar') : t('No se puede adjuntar aquí')}</span>

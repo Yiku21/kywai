@@ -99,6 +99,15 @@
 .dropping {
   outline: 2px dashed var(--cyan);
   outline-offset: 2px;
+  background: color-mix(in srgb, var(--cyan) 7%, transparent);
+  /* Con una tarjeta encima, la columna se abre un pelo para recibirla. */
+  animation: columnOpen var(--spring-bouncy-ms, 0ms) var(--spring-bouncy, ease) both;
+}
+
+@keyframes columnOpen {
+  from {
+    scale: calc(1 - var(--m, 1) * 0.02);
+  }
 }
 
 .colHead {
