@@ -3798,4 +3798,6 @@ export const zh: Record<string, string> = {
   "Otra clave de API de Google AI Studio (o una cuenta de empresa).": "另一个 Google AI Studio API 密钥（或企业账号）。",
   "Descartar este aviso": "忽略此通知",
   "Descartar: no volverá a salir (la tarea sigue igual)": "忽略：不会再出现（任务保持不变）",
+  // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
+  "En directo desde el equipo servidor: úsalo como una web normal.": "来自服务器电脑的实时画面：像普通网页一样使用。",
 }

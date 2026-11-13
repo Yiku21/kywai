@@ -3921,4 +3921,6 @@ export const en: Record<string, string> = {
   "Otra clave de API de Google AI Studio (o una cuenta de empresa).": "Another Google AI Studio API key (or a business account).",
   "Descartar este aviso": "Dismiss this notice",
   "Descartar: no volverá a salir (la tarea sigue igual)": "Dismiss: it won't show again (the task carries on as it was)",
+  // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
+  "En directo desde el equipo servidor: úsalo como una web normal.": "Live from the server computer: use it like a normal website.",
 }

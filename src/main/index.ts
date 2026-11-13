@@ -121,6 +121,7 @@ import { actInbox, flushInbox, initInbox, listInbox, notifyMacPermission, setScr
 import { getSidebarOrder, initSidebarOrder, setSidebarOrder } from './sidebarOrder'
 import { startCoworkMcp, stopCoworkMcp } from './coworkMcp'
 import { attachBrowser, browserCommand, browserFrame, browserRemoteInput, browserState, clearBrowserSession, navigateBrowser, showBrowser, stopBrowserAgent } from './browser'
+import { browserRtcOffer, initBrowserStream, rtcOfferArg } from './browserStream'
 import { addressToUrl, browserFrameArg, browserInputArg, browserRectArg } from '@shared/browser'
 import { confirmLearnedSkill, initSkills, learnedSkills, removeLearnedSkill } from './skills'
 import { initVideoStudio, ensureVideoStudio, listVideoVoices, previewVideoVoice, tryVideoLook, videoStudioStatus, autoInstallVideoStudio } from './videoStudio'
@@ -152,6 +153,11 @@ let mainWindow: BrowserWindow | null = null
 
 /** Icono de la ventana y la barra de tareas. */
 const APP_ICON = join(app.getAppPath(), 'build', 'icon.ico')
+
+// La vista en vídeo del navegador (browserStream.ts) va directa por Tailscale o la red de casa: hace falta que WebRTC
+// diga las IP de verdad (Chromium las esconde tras nombres «.local» que el otro equipo no puede resolver). Las webs del
+// navegador de kywai siguen sin verlas (setWebRTCIPHandlingPolicy en browser.ts).
+app.commandLine.appendSwitch('disable-features', 'WebRtcHideLocalIpsWithMdns')
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -835,6 +841,12 @@ function registerIpc(): void {
   handle('browserStopAgent', () => stopBrowserAgent())
   handle('browserClearSession', () => clearBrowserSession())
   handle('browserFrame', (req: unknown) => browserFrame(browserFrameArg(req)))
+  // Vista en vídeo (como AnyDesk): oferta WebRTC de la otra parte → respuesta del servidor (null: sigue con imágenes).
+  handle('browserRtc', async (offer: unknown) => {
+    const sdp = rtcOfferArg(offer)
+    if (!sdp) throw new Error(tr('Orden no válida'))
+    return browserRtcOffer(sdp).catch(() => null)
+  })
   // Uno o varios en orden (la vista remota junta lo que pasó mientras esperaba la respuesta anterior).
   handle('browserInput', (input: unknown) => {
     const list = (Array.isArray(input) ? input.slice(0, 60) : [input]).map(browserInputArg)
@@ -1508,6 +1520,7 @@ async function boot(): Promise<void> {
   })
   identifyToYouTube()
   allowOwnAudioForLights()
+  initBrowserStream()
   registerIpc()
   // Lo que el coordinador sabe de este equipo: dónde está el código de kywai y las direcciones del acceso web.
   setGuideEnv({

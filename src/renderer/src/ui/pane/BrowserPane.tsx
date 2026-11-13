@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { ArrowLeft, ArrowRight, Globe, Hand, LogOut, RotateCw, ShieldCheck, Square, X } from 'lucide-react'
 import { api, isWeb } from '@/lib/api'
 import { useCowork } from '@/store/cowork'
@@ -247,20 +247,47 @@ function BrowserIntro() {
   )
 }
 
+type PageInfo = { width: number; height: number; cursor: string }
+type Pressed = Array<'left' | 'right' | 'middle'>
+
+/** Espera a reunir las direcciones de este dispositivo (Tailscale, red de casa) para mandarlas de una vez. */
+function gathered(pc: RTCPeerConnection): Promise<void> {
+  return new Promise((done) => {
+    if (pc.iceGatheringState === 'complete') return done()
+    const tm = setTimeout(done, 2500)
+    pc.addEventListener('icegatheringstatechange', () => {
+      if (pc.iceGatheringState === 'complete') {
+        clearTimeout(tm)
+        done()
+      }
+    })
+  })
+}
+
 /**
- * Desde otro dispositivo (cliente de escritorio, navegador web): la pestaña del equipo de los agentes se ve casi en
- * directo (cada petición espera a que la página cambie) y se maneja como una web: mover el ratón (los enlaces se
- * iluminan y el puntero cambia), clic, doble clic, clic derecho, arrastrar, rueda, teclado y atajos (Ctrl+A…).
+ * Desde otro dispositivo (cliente de escritorio, navegador web): la pestaña del equipo de los agentes se ve en vídeo
+ * en directo, como AnyDesk (WebRTC directo por Tailscale o la red de casa; ratón y teclado por su canal de datos).
+ * Si el vídeo no conecta, se ve con imágenes que llegan en cuanto la página cambia. Se maneja como una web: mover el
+ * ratón (los enlaces se iluminan y el puntero cambia), clic, doble clic, clic derecho, arrastrar, rueda y atajos.
  */
 function RemoteView({ loading }: { loading: boolean }) {
-  const [frame, setFrame] = useState<{ image: string; width: number; height: number; cursor: string } | null>(null)
+  const canVideo = typeof RTCPeerConnection !== 'undefined' && !!api
+  const [rtc, setRtc] = useState<'connecting' | 'live' | 'off'>(canVideo ? 'connecting' : 'off')
+  const [videoReady, setVideoReady] = useState(false)
+  const [image, setImage] = useState<string | null>(null)
+  const [info, setInfo] = useState<PageInfo | null>(null)
   const [failed, setFailed] = useState(false)
   const [waiting, setWaiting] = useState(false)
   const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; right: boolean }>>([])
   const img = useRef<HTMLImageElement>(null)
+  const video = useRef<HTMLVideoElement>(null)
   const box = useRef<HTMLDivElement>(null)
-  const frameRef = useRef(frame)
-  frameRef.current = frame
+  const infoRef = useRef(info)
+  infoRef.current = info
+  const live = rtc === 'live' && videoReady
+  const liveRef = useRef(live)
+  liveRef.current = live
+  const channel = useRef<RTCDataChannel | null>(null)
   const pendingText = useRef('')
   const textTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const queue = useRef<RemoteInput[]>([])
@@ -271,8 +298,84 @@ function RemoteView({ loading }: { loading: boolean }) {
   // Doble y triple clic: los eventos de puntero no traen la cuenta (detail es 0), así que se lleva aquí.
   const lastDown = useRef({ at: 0, x: 0, y: 0, button: -1, count: 0 })
 
-  // Bucle de imágenes: cada petición vuelve cuando la página cambió (o a los ~1,5 s sin cambios).
+  /** El hueco donde se ve la página (sin la nota de abajo), en píxeles CSS. */
+  const viewport = (): { width: number; height: number } | undefined => {
+    const el = (liveRef.current ? video.current : img.current) ?? box.current
+    return el && el.clientWidth > 0 && el.clientHeight > 0 ? { width: Math.round(el.clientWidth), height: Math.round(el.clientHeight) } : undefined
+  }
+  const sendViewport = (): void => {
+    const ch = channel.current
+    const vp = viewport()
+    if (ch?.readyState === 'open' && vp) ch.send(JSON.stringify({ type: 'viewport', ...vp }))
+  }
+
+  // Vídeo en directo: oferta WebRTC → respuesta del servidor. Si en unos segundos no conecta, imágenes.
   useEffect(() => {
+    if (!canVideo || !api) return
+    let closed = false
+    const pc = new RTCPeerConnection({ iceServers: [] })
+    const off = (): void => {
+      if (closed) return
+      channel.current = null
+      setRtc('off')
+    }
+    pc.addTransceiver('video', { direction: 'recvonly' })
+    const ch = pc.createDataChannel('input', { ordered: true })
+    ch.onopen = () => {
+      channel.current = ch
+      sendViewport()
+    }
+    ch.onclose = off
+    ch.onmessage = (m) => {
+      try {
+        const d = JSON.parse(String(m.data)) as { type?: string; width?: number; height?: number; cursor?: string }
+        if (d.type === 'meta' && typeof d.width === 'number' && typeof d.height === 'number') setInfo({ width: d.width, height: d.height, cursor: d.cursor || 'default' })
+      } catch {
+        /* nada */
+      }
+    }
+    pc.ontrack = (e) => {
+      const v = video.current
+      if (v) v.srcObject = e.streams[0] ?? new MediaStream([e.track])
+    }
+    let dropTimer: ReturnType<typeof setTimeout> | null = null
+    pc.onconnectionstatechange = () => {
+      const st = pc.connectionState
+      if (st === 'connected') {
+        if (dropTimer) clearTimeout(dropTimer)
+        dropTimer = null
+        setRtc('live')
+      } else if (st === 'failed' || st === 'closed') off()
+      else if (st === 'disconnected') dropTimer ??= setTimeout(off, 4000)
+    }
+    const giveUp = setTimeout(() => {
+      if (pc.connectionState !== 'connected') off()
+    }, 9000)
+    void (async () => {
+      await pc.setLocalDescription(await pc.createOffer())
+      await gathered(pc)
+      const answer = await api!.browserRtc(pc.localDescription?.sdp ?? '')
+      if (!answer) return off()
+      if (!closed) await pc.setRemoteDescription({ type: 'answer', sdp: answer })
+    })().catch(off)
+    // El hueco cada pocos segundos (también dice al servidor que sigues mirando) y al cambiar de tamaño.
+    const beat = setInterval(sendViewport, 3000)
+    const ro = new ResizeObserver(() => sendViewport())
+    if (box.current) ro.observe(box.current)
+    return () => {
+      closed = true
+      clearTimeout(giveUp)
+      if (dropTimer) clearTimeout(dropTimer)
+      clearInterval(beat)
+      ro.disconnect()
+      channel.current = null
+      pc.close()
+    }
+  }, [])
+
+  // Imágenes mientras el vídeo conecta o si no hay vídeo: cada petición vuelve cuando la página cambió.
+  useEffect(() => {
+    if (live) return
     let alive = true
     let version = -1
     let timer: ReturnType<typeof setTimeout> | null = null
@@ -281,24 +384,23 @@ function RemoteView({ loading }: { loading: boolean }) {
       const started = Date.now()
       if (document.visibilityState === 'visible') {
         try {
-          // El hueco de la imagen (sin la nota de abajo); antes de la primera, el de toda la vista.
-          const el = img.current ?? box.current
+          const vp = viewport()
           const dpr = window.devicePixelRatio || 1
-          const vp = el ? { width: Math.round(el.clientWidth), height: Math.round(el.clientHeight) } : undefined
           const f = await api.browserFrame({ after: version, ...(vp ? { maxWidth: Math.round(vp.width * dpr), viewport: vp } : {}) })
           if (!alive) return
           if (f) {
             version = f.version
-            const image = f.image
-            setFrame((old) => (image ? { image, width: f.width, height: f.height, cursor: f.cursor } : old ? { ...old, width: f.width, height: f.height, cursor: f.cursor } : old))
-            if (image) setWaiting(false)
+            setInfo({ width: f.width, height: f.height, cursor: f.cursor })
+            if (f.image) {
+              setImage(f.image)
+              setWaiting(false)
+            }
           }
           setFailed(!f)
         } catch {
           if (alive) setFailed(true)
         }
       }
-      // Como mucho unas 15 imágenes por segundo; si falla o la pestaña está oculta, más despacio.
       const gap = document.visibilityState !== 'visible' ? 1000 : Math.max(0, 66 - (Date.now() - started))
       if (alive) timer = setTimeout(() => void tick(), gap)
     }
@@ -307,23 +409,24 @@ function RemoteView({ loading }: { loading: boolean }) {
       alive = false
       if (timer) clearTimeout(timer)
     }
-  }, [])
+  }, [live])
 
-  // Si la respuesta tarda, se nota (un punto que late arriba): sabes que el clic llegó y está en camino.
+  // Si la respuesta tarda, se nota (una raya que avanza arriba): sabes que el clic llegó y está en camino.
   useEffect(() => {
     if (!waiting) return
-    const tm = setTimeout(() => setWaiting(false), 4000)
+    const tm = setTimeout(() => setWaiting(false), live ? 250 : 4000)
     return () => clearTimeout(tm)
-  }, [waiting])
+  }, [waiting, live])
 
   const toPage = (clientX: number, clientY: number, clamp = false): { x: number; y: number } | null => {
-    const el = img.current
-    const f = frameRef.current
-    if (!el || !f) return null
+    const v = liveRef.current ? video.current : null
+    const el = v ?? img.current
+    const page = infoRef.current
+    if (!el || !page) return null
     // La imagen se encaja sin deformarse (arriba y centrada): solo cuenta la parte donde está dibujada.
     const r = el.getBoundingClientRect()
-    const nw = el.naturalWidth || f.width
-    const nh = el.naturalHeight || f.height
+    const nw = (v ? v.videoWidth : img.current?.naturalWidth) || page.width
+    const nh = (v ? v.videoHeight : img.current?.naturalHeight) || page.height
     const scale = Math.min(r.width / nw, r.height / nh)
     const w = nw * scale
     const h = nh * scale
@@ -336,12 +439,17 @@ function RemoteView({ loading }: { loading: boolean }) {
       x = Math.min(1, Math.max(0, x))
       y = Math.min(1, Math.max(0, y))
     } else if (x < 0 || x > 1 || y < 0 || y > 1) return null
-    return { x: x * f.width, y: y * f.height }
+    return { x: x * page.width, y: y * page.height }
   }
-  // Todo va en una sola cola y en orden (pulsar, mover, soltar…): lo que se junta mientras llega la respuesta
-  // anterior sale en un solo envío, y de los movimientos seguidos solo cuenta el último.
+  // Con vídeo, todo va al momento por su canal (en orden). Sin él, una sola cola: lo que se junta mientras llega la
+  // respuesta anterior sale en un solo envío, y de los movimientos seguidos solo cuenta el último.
   const send = (input: RemoteInput, feedback = true): void => {
     if (feedback) setWaiting(true)
+    const ch = channel.current
+    if (ch?.readyState === 'open' && !queue.current.length) {
+      ch.send(JSON.stringify(input))
+      return
+    }
     const q = queue.current
     const last = q[q.length - 1]
     if (input.type === 'mouse' && input.action === 'move' && last?.type === 'mouse' && last.action === 'move') q[q.length - 1] = input
@@ -378,7 +486,7 @@ function RemoteView({ loading }: { loading: boolean }) {
     wheelTimer.current = null
     const w = wheel.current
     wheel.current = null
-    if (w && (w.dx || w.dy)) send({ type: 'scroll', x: w.x, y: w.y, dx: w.dx, dy: w.dy })
+    if (w && (w.dx || w.dy)) send({ type: 'scroll', x: w.x, y: w.y, dx: w.dx, dy: w.dy }, false)
   }
 
   // La rueda con un oyente no pasivo: así la página de kywai no se desplaza a la vez.
@@ -397,18 +505,14 @@ function RemoteView({ loading }: { loading: boolean }) {
       w.dx += (e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX) * k
       w.dy += (e.shiftKey && !e.deltaX ? 0 : e.deltaY) * k
       wheel.current = w
-      wheelTimer.current ??= setTimeout(flushWheel, 40)
+      wheelTimer.current ??= setTimeout(flushWheel, liveRef.current ? 16 : 40)
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [frame != null])
+  }, [])
 
   const buttonOf = (b: number): 'left' | 'right' | 'middle' => (b === 2 ? 'right' : b === 1 ? 'middle' : 'left')
-  const pressedOf = (bits: number): Array<'left' | 'right' | 'middle'> => [
-    ...(bits & 1 ? (['left'] as const) : []),
-    ...(bits & 2 ? (['right'] as const) : []),
-    ...(bits & 4 ? (['middle'] as const) : [])
-  ]
+  const pressedOf = (bits: number): Pressed => [...(bits & 1 ? (['left'] as const) : []), ...(bits & 2 ? (['right'] as const) : []), ...(bits & 4 ? (['middle'] as const) : [])]
   const onKey = (e: ReactKeyboardEvent<HTMLDivElement>): void => {
     const mods = [...(e.ctrlKey ? (['control'] as const) : []), ...(e.metaKey ? (['meta'] as const) : []), ...(e.altKey ? (['alt'] as const) : []), ...(e.shiftKey ? (['shift'] as const) : [])]
     const combo = e.ctrlKey || e.metaKey || e.altKey
@@ -418,7 +522,7 @@ function RemoteView({ loading }: { loading: boolean }) {
       e.preventDefault()
       pendingText.current += e.key
       if (textTimer.current) clearTimeout(textTimer.current)
-      textTimer.current = setTimeout(flushText, 120)
+      textTimer.current = setTimeout(flushText, liveRef.current ? 30 : 120)
       return
     }
     const key = e.key === ' ' ? 'Space' : e.key.length === 1 ? e.key.toLowerCase() : e.key
@@ -428,14 +532,34 @@ function RemoteView({ loading }: { loading: boolean }) {
     flushText()
     send({ type: 'key', key, modifiers: mods })
   }
-
-  if (!frame) {
-    return (
-      <div ref={box} className={s.remoteWait}>
-        {failed ? t('No llega la imagen del navegador: la ventana de kywai debe estar abierta en el equipo servidor.') : t('Cargando el navegador del equipo servidor…')}
-      </div>
-    )
+  const pointer = {
+    onPointerDown: (e: ReactPointerEvent<HTMLElement>) => {
+      box.current?.focus({ preventScroll: true })
+      const p = toPage(e.clientX, e.clientY)
+      if (!p) return
+      e.preventDefault()
+      e.currentTarget.setPointerCapture(e.pointerId)
+      flushText()
+      ripple(e.clientX, e.clientY, e.button === 2)
+      const last = lastDown.current
+      const again = e.button === last.button && Date.now() - last.at < 500 && Math.abs(e.clientX - last.x) < 6 && Math.abs(e.clientY - last.y) < 6
+      lastDown.current = { at: Date.now(), x: e.clientX, y: e.clientY, button: e.button, count: again ? Math.min(3, last.count + 1) : 1 }
+      send({ type: 'mouse', action: 'down', x: p.x, y: p.y, button: buttonOf(e.button), clickCount: lastDown.current.count })
+    },
+    onPointerUp: (e: ReactPointerEvent<HTMLElement>) => {
+      const p = toPage(e.clientX, e.clientY, true)
+      if (!p) return
+      send({ type: 'mouse', action: 'up', x: p.x, y: p.y, button: buttonOf(e.button), clickCount: lastDown.current.count || 1 })
+    },
+    onPointerMove: (e: ReactPointerEvent<HTMLElement>) => {
+      const p = toPage(e.clientX, e.clientY, e.buttons !== 0)
+      if (!p) return
+      send({ type: 'mouse', action: 'move', x: p.x, y: p.y, buttons: pressedOf(e.buttons) }, false)
+    }
   }
+
+  const cursor = info?.cursor || 'default'
+  const nothing = !live && !image
   return (
     <div
       ref={box}
@@ -454,41 +578,30 @@ function RemoteView({ loading }: { loading: boolean }) {
       onContextMenu={(e) => e.preventDefault()}
     >
       {(loading || waiting) && <span className={s.remoteBusy} aria-hidden="true" />}
-      <img
-        ref={img}
-        className={s.remoteImg}
-        style={{ cursor: frame.cursor || 'default' }}
-        src={frame.image}
-        alt={t('Lo que se ve en el navegador del equipo servidor')}
-        draggable={false}
-        onPointerDown={(e) => {
-          box.current?.focus({ preventScroll: true })
-          const p = toPage(e.clientX, e.clientY)
-          if (!p) return
-          e.preventDefault()
-          e.currentTarget.setPointerCapture(e.pointerId)
-          flushText()
-          ripple(e.clientX, e.clientY, e.button === 2)
-          const last = lastDown.current
-          const again = e.button === last.button && Date.now() - last.at < 500 && Math.abs(e.clientX - last.x) < 6 && Math.abs(e.clientY - last.y) < 6
-          lastDown.current = { at: Date.now(), x: e.clientX, y: e.clientY, button: e.button, count: again ? Math.min(3, last.count + 1) : 1 }
-          send({ type: 'mouse', action: 'down', x: p.x, y: p.y, button: buttonOf(e.button), clickCount: lastDown.current.count })
-        }}
-        onPointerUp={(e) => {
-          const p = toPage(e.clientX, e.clientY, true)
-          if (!p) return
-          send({ type: 'mouse', action: 'up', x: p.x, y: p.y, button: buttonOf(e.button), clickCount: lastDown.current.count || 1 })
-        }}
-        onPointerMove={(e) => {
-          const p = toPage(e.clientX, e.clientY, e.buttons !== 0)
-          if (!p) return
-          send({ type: 'mouse', action: 'move', x: p.x, y: p.y, buttons: pressedOf(e.buttons) }, false)
-        }}
+      <video
+        ref={video}
+        className={cx(s.remoteImg, !live && s.remoteHidden)}
+        style={{ cursor }}
+        autoPlay
+        muted
+        playsInline
+        disablePictureInPicture
+        onLoadedData={() => setVideoReady(true)}
+        aria-label={t('Lo que se ve en el navegador del equipo servidor')}
+        {...(live ? pointer : {})}
       />
+      {!live && image && (
+        <img ref={img} className={s.remoteImg} style={{ cursor }} src={image} alt={t('Lo que se ve en el navegador del equipo servidor')} draggable={false} {...pointer} />
+      )}
+      {nothing && (
+        <div className={s.remoteWait}>{failed ? t('No llega la imagen del navegador: la ventana de kywai debe estar abierta en el equipo servidor.') : t('Cargando el navegador del equipo servidor…')}</div>
+      )}
       {ripples.map((r) => (
         <span key={r.id} className={cx(s.ripple, r.right && s.rippleRight)} style={{ left: r.x, top: r.y }} aria-hidden="true" />
       ))}
-      <p className={s.remoteNote}>{t('Lo ves desde otro dispositivo: el navegador está en el equipo servidor. Haz clic en la imagen y escribe como en una web.')}</p>
+      <p className={s.remoteNote}>
+        {live ? t('En directo desde el equipo servidor: úsalo como una web normal.') : t('Lo ves desde otro dispositivo: el navegador está en el equipo servidor. Haz clic en la imagen y escribe como en una web.')}
+      </p>
     </div>
   )
 }

@@ -3798,4 +3798,6 @@ export const fr: Record<string, string> = {
   "Otra clave de API de Google AI Studio (o una cuenta de empresa).": "Une autre clé d'API Google AI Studio (ou un compte entreprise).",
   "Descartar este aviso": "Ignorer cet avis",
   "Descartar: no volverá a salir (la tarea sigue igual)": "Ignorer : il ne reviendra plus (la tâche continue telle quelle)",
+  // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
+  "En directo desde el equipo servidor: úsalo como una web normal.": "En direct depuis l'ordinateur serveur : utilise-le comme un site normal.",
 }

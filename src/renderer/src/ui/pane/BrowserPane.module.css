@@ -226,6 +226,14 @@
   touch-action: none;
 }
 
+.remoteHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .remoteNote,
 .remoteWait {
   margin: 0;

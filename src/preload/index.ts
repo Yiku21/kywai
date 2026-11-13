@@ -101,6 +101,7 @@ const api: CoworkApi = {
   browserStopAgent: () => ipcRenderer.invoke('cowork:browserStopAgent'),
   browserClearSession: () => ipcRenderer.invoke('cowork:browserClearSession'),
   browserFrame: (req) => ipcRenderer.invoke('cowork:browserFrame', JSON.parse(JSON.stringify(req ?? {}))),
+  browserRtc: (offerSdp) => ipcRenderer.invoke('cowork:browserRtc', String(offerSdp ?? '')),
   browserInput: (input) => ipcRenderer.invoke('cowork:browserInput', JSON.parse(JSON.stringify(input ?? {}))),
   boardCommand: (projectId, cmd) => ipcRenderer.invoke('cowork:boardCommand', projectId, JSON.parse(JSON.stringify(cmd ?? {}))),
   createRoutine: (projectId, input) => ipcRenderer.invoke('cowork:createRoutine', projectId, routineInput(input)),

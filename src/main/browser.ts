@@ -81,6 +81,8 @@ function ensureView(): WebContentsView {
   v.setBackgroundColor('#ffffff')
   const wc = v.webContents
   wc.setBackgroundThrottling(false)
+  // kywai deja ver las IP locales a WebRTC (para la vista en vídeo por Tailscale): las webs de esta pestaña, no.
+  wc.setWebRTCIPHandlingPolicy('default_public_interface_only')
   // Solo webs (http/https). Las ventanitas de «Iniciar sesión con Google» se abren como ventana aparte en la misma
   // sesión; un enlace «en pestaña nueva» se abre aquí mismo.
   wc.setWindowOpenHandler(({ url, disposition }) => {
@@ -111,7 +113,10 @@ function ensureView(): WebContentsView {
   }
   wc.on('render-process-gone', () => pushState())
   wc.on('cursor-changed', (_e, type) => {
-    cursorNow = cssCursor(type)
+    const next = cssCursor(type)
+    if (next === cursorNow) return
+    cursorNow = next
+    emitMeta()
   })
   view = v
   if (host && !host.isDestroyed()) host.contentView.addChildView(v)
@@ -136,6 +141,7 @@ function place(): void {
     const [w, h] = host.getContentSize()
     view.setBounds({ x: w - 1, y: h - 1, ...lastSize })
   }
+  emitMeta()
 }
 
 function wcOf(): WebContents {
@@ -265,11 +271,17 @@ function subscribe(wc: WebContents): void {
   } catch {
     subscribed = null
   }
+  watchViewers()
+}
+
+/** Cada pocos segundos: si nadie la mira desde otro dispositivo, se deja de escuchar y vuelve a su tamaño. */
+function watchViewers(): void {
   idleTimer ??= setInterval(() => {
-    // Nadie la mira desde hace un rato: se deja de escuchar (y la pestaña vuelve a su tamaño de siempre).
     if (Date.now() - lastViewer < 8000) return
     unsubscribe()
     lastJpeg = null
+    if (idleTimer) clearInterval(idleTimer)
+    idleTimer = null
     if (remoteSize) {
       remoteSize = null
       if (!shownRect) {
@@ -289,8 +301,6 @@ function unsubscribe(): void {
     }
   }
   subscribed = null
-  if (idleTimer) clearInterval(idleTimer)
-  idleTimer = null
 }
 
 /** Si nadie la ve en el servidor, la página toma el tamaño del hueco remoto. */
@@ -301,6 +311,43 @@ function fitRemote(vp: { width: number; height: number } | undefined): void {
   remoteSize = size
   lastSize = size
   place()
+}
+
+/**
+ * La vista en vídeo (src/main/browserStream.ts) dice que alguien mira y el hueco que tiene: la página se maqueta a
+ * ese tamaño si nadie la ve en el servidor. Lo repite cada pocos segundos mientras siga abierta.
+ */
+export function browserRemoteViewport(vp: { width: number; height: number } | undefined): void {
+  if (!view || view.webContents.isDestroyed()) ensureView()
+  lastViewer = Date.now()
+  fitRemote(vp)
+  watchViewers()
+}
+
+/** Puntero y tamaño de la página para la vista en vídeo (cambian al mover el ratón o al recolocarla). */
+export interface BrowserMeta {
+  cursor: string
+  width: number
+  height: number
+}
+const metaListeners = new Set<(m: BrowserMeta) => void>()
+export function onBrowserMeta(fn: (m: BrowserMeta) => void): () => void {
+  metaListeners.add(fn)
+  return () => metaListeners.delete(fn)
+}
+export function browserMeta(): BrowserMeta {
+  const b = view && !view.webContents.isDestroyed() ? view.getBounds() : { width: lastSize.width, height: lastSize.height }
+  return { cursor: cursorNow, width: b.width, height: b.height }
+}
+function emitMeta(): void {
+  if (!metaListeners.size) return
+  const m = browserMeta()
+  for (const fn of metaListeners) fn(m)
+}
+
+/** La pestaña para grabarla en vídeo (la pide browserStream.ts al empezar cada vista remota). */
+export function browserWebContents(): WebContents {
+  return wcOf()
 }
 
 /** La imagen siguiente a «after» para otro dispositivo (espera a que cambie algo; null si no hay ventana). */

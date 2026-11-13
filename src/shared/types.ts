@@ -2112,6 +2112,8 @@ export interface CoworkApi {
   browserClearSession(): Promise<BrowserState>
   /** La imagen siguiente a «after» (espera a que cambie algo; sin «image» si no cambió). */
   browserFrame(req?: BrowserFrameRequest): Promise<BrowserFrame | null>
+  /** Vista en vídeo: la oferta WebRTC de este dispositivo → la respuesta del servidor (null: seguir con imágenes). */
+  browserRtc(offerSdp: string): Promise<string | null>
   /** Ratón y teclado desde otro dispositivo: uno o varios, en orden. */
   browserInput(input: BrowserRemoteInput | BrowserRemoteInput[]): Promise<void>
   /** Tablero de tareas del proyecto (los cambios llegan por el evento board.updated). */
