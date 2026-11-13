@@ -20,8 +20,8 @@ export function stageLooks(script: Pick<VideoScript, 'speakers'>): [RobotLook, R
   return a && b && a !== b ? [a, b] : null
 }
 
-export type ShotKind = 'wide' | 'close0' | 'close1' | 'ots0' | 'ots1' | 'xcu0' | 'xcu1' | 'low' | 'high' | 'side' | 'screen'
-export type ShotMove = 'push' | 'pull' | 'arcL' | 'arcR' | 'crane' | 'orbit' | 'dutch' | 'snap' | 'whip'
+export type ShotKind = 'wide' | 'two' | 'close0' | 'close1' | 'ots0' | 'ots1' | 'xcu0' | 'xcu1' | 'low' | 'high' | 'side' | 'screen'
+export type ShotMove = 'push' | 'pull' | 'arcL' | 'arcR' | 'crane' | 'orbit' | 'dutch' | 'snap' | 'whip' | 'hold' | 'drift'
 
 export interface StageShot {
   start: number
@@ -91,39 +91,81 @@ function sceneLines(sc: VideoScript['scenes'][number], words: TimedWord[], end: 
   return out
 }
 
+/** Un plano dura al menos esto: las réplicas más cortas se oyen sin cortar (la cámara se queda en quien estaba). */
+const MIN_SHOT_S = 1.5
+/** Emociones fuertes: la primera de la escena se remarca acercándose a la cara de golpe (una vez por escena). */
+const STRONG_RE = /sorprend|gracios|emocionad|asustad|enfadad|grit|pánico|panico|incr[eé]dul/i
+
 /**
- * El plan de cámara de una escena: el primer turno en plano general (o mirando a la pantalla si es un paso) y cada
- * cambio de quién habla, un corte a un primer plano o a un plano por encima del hombro del otro. Los turnos largos se
- * parten en dos para que la cámara no se quede en lo mismo.
+ * El plan de cámara de una escena, como se monta un diálogo en una serie: se abre con un plano de situación (cada
+ * escena uno distinto: general, de los dos, contrapicado, picado o de lado; en los pasos, mirando a la pantalla) y
+ * luego plano y contraplano: cada uno siempre desde su mismo lado, primero por encima del hombro del otro y, según
+ * avanza la charla, más cerca. La cámara casi no se mueve (respira o se acerca muy despacio); solo la primera emoción
+ * fuerte se remarca con un golpe de zoom a la cara, y el remate vuelve al plano de los dos para ver la reacción.
+ * Las réplicas cortas no cortan, y en un turno largo se corta a la cara de quien escucha.
  */
 export function planShots(lines: StageLine[], start: number, end: number, step: boolean, seed: number): StageShot[] {
-  const moves: ShotMove[] = ['push', 'whip', 'arcL', 'snap', 'pull', 'orbit', 'arcR', 'dutch', 'push', 'crane']
-  // Cada turno, un plano distinto: primer plano, por encima del hombro, muy de cerca, contrapicado, de lado, picado…
-  const turn = (k: number, who: number): ShotKind => {
-    const c = (['close', 'ots', 'xcu', 'low', 'close', 'side', 'ots', 'high'] as const)[(k - 1 + seed) % 8]
-    return (c === 'close' || c === 'ots' || c === 'xcu' ? `${c}${who}` : c) as ShotKind
-  }
-  const second: ShotKind[] = ['wide', 'low', 'side', 'high']
-  const runs: { who: number; start: number; end: number }[] = []
+  const runs: { who: number; start: number; end: number; emotion: string }[] = []
   for (const l of lines) {
     const last = runs[runs.length - 1]
-    if (last && last.who === l.who) last.end = l.end
-    else runs.push({ who: l.who, start: l.start, end: l.end })
+    const who = l.who < 0 ? 0 : l.who
+    if (last && last.who === who) last.end = l.end
+    else runs.push({ who, start: l.start, end: l.end, emotion: l.emotion })
   }
   if (!runs.length) return [{ start: round(start), end: round(end), kind: 'wide', move: 'crane' }]
   runs[0].start = start
   runs[runs.length - 1].end = end
+  // Las réplicas cortas («¿En serio?») se oyen sobre el plano de antes; si es la primera, se une a la siguiente.
+  const turns: typeof runs = []
+  for (const r of runs) {
+    const last = turns[turns.length - 1]
+    if (last && r.end - r.start < MIN_SHOT_S) last.end = r.end
+    else if (last && last.end - last.start < MIN_SHOT_S && turns.length === 1) {
+      last.end = r.end
+      last.who = r.who
+      last.emotion = r.emotion
+    } else turns.push({ ...r })
+  }
+  const openers: ShotKind[] = ['wide', 'two', 'low', 'two', 'high', 'wide', 'side']
+  const opener: ShotKind = step ? 'screen' : openers[seed % openers.length]
   const shots: StageShot[] = []
-  let m = seed
-  runs.forEach((r, k) => {
-    const who = r.who < 0 ? 0 : r.who
-    const kind: ShotKind = k === 0 ? (step ? 'screen' : 'wide') : turn(k, who)
-    const move: ShotMove = k === 0 ? (step ? 'push' : 'crane') : moves[m++ % moves.length]
+  let punched = false
+  turns.forEach((r, k) => {
+    let kind: ShotKind
+    let move: ShotMove
+    if (k === 0) {
+      kind = opener
+      move = step ? 'push' : opener === 'wide' || opener === 'high' ? 'crane' : 'drift'
+    } else {
+      // Plano y contraplano: por encima del hombro al principio, más cerca según avanza.
+      kind = `${k >= 3 ? 'close' : 'ots'}${r.who}` as ShotKind
+      move = k % 2 ? 'hold' : 'drift'
+      if (!punched && STRONG_RE.test(r.emotion)) {
+        kind = `xcu${r.who}` as ShotKind
+        move = 'snap'
+        punched = true
+      } else if (k === turns.length - 1 && turns.length > 2) {
+        // El remate: los dos en el plano, para ver la reacción entera.
+        kind = 'two'
+        move = 'drift'
+      }
+      const prev = shots[shots.length - 1]
+      if (prev && prev.kind === kind) kind = kind.startsWith('ots') ? (`close${r.who}` as ShotKind) : (`ots${r.who}` as ShotKind)
+    }
     const len = r.end - r.start
-    if (len > 4.2) {
-      const mid = round(r.start + len * 0.55)
-      shots.push({ start: round(r.start), end: mid, kind, move })
-      shots.push({ start: mid, end: round(r.end), kind: kind === 'wide' ? (`close${who}` as ShotKind) : second[(k + seed) % 4] === kind ? 'wide' : second[(k + seed) % 4], move: moves[m++ % moves.length] })
+    if (len > 5 && k > 0) {
+      // Turno largo: a mitad, la cara de quien escucha (su reacción) y vuelta.
+      const a = round(r.start + len * 0.5)
+      const b = round(Math.min(r.end - MIN_SHOT_S, a + 1.6))
+      shots.push({ start: round(r.start), end: a, kind, move })
+      shots.push({ start: a, end: b, kind: `close${1 - r.who}` as ShotKind, move: 'hold' })
+      if (r.end - b >= MIN_SHOT_S - 0.01) shots.push({ start: b, end: round(r.end), kind: kind === 'two' ? 'two' : (`ots${r.who}` as ShotKind), move: 'drift' })
+      else shots[shots.length - 1].end = round(r.end)
+    } else if (len > 5.5 && k === 0 && !step) {
+      // Una apertura larga: del plano de situación al de los dos, más cerca.
+      const a = round(r.start + len * 0.55)
+      shots.push({ start: round(r.start), end: a, kind, move })
+      shots.push({ start: a, end: round(r.end), kind: kind === 'two' ? 'wide' : 'two', move: 'drift' })
     } else shots.push({ start: round(r.start), end: round(r.end), kind, move })
   })
   return shots
@@ -656,6 +698,8 @@ function framing(kind) {
     // de lado: los dos de perfil, uno delante del otro
     case 'side': return v ? [[3.4, 1.3, 1.6], [-0.2, 1.5, 0]] : [[3.0, 1.1, 1.4], [-0.1, 0.85, 0]]
     case 'screen': return v ? [[0, 1.05, 6.6], [0, 2.0, -3.9]] : [[0.3, 1.3, 4.6], [0, 1.9, -3.9]]
+    // los dos, más cerca que el general (plano medio de los dos)
+    case 'two': return v ? [[0.15, 1.6, 5.0], [0, 1.5, 0]] : [[0.15, 1.25, 3.7], [0, 1.0, 0]]
     default: return v ? [[0, 1.95, 6.3], [0, 1.85, 0]] : [[0, 1.5, 4.6], [0, 1.0, 0]]
   }
 }
@@ -681,6 +725,8 @@ function placeCam(t) {
   if (sh.move === 'whip') T.x += (1 - ease(clamp(since / 0.35, 0, 1))) * (sh.kind.endsWith('1') ? -1.4 : 1.4)
   Q.copy(T).sub(V)
   if (sh.move === 'push') V.addScaledVector(Q, 0.16 * e)
+  // se acerca muy despacio, a ritmo constante (casi no se nota)
+  else if (sh.move === 'drift') V.addScaledVector(Q, 0.06 * p)
   else if (sh.move === 'pull') V.addScaledVector(Q, 0.12 - 0.2 * e)
   else if (sh.move === 'crane') { V.y += 0.9 * (1 - e); V.addScaledVector(Q, -0.1 * (1 - e)) }
   else if (sh.move === 'orbit') {

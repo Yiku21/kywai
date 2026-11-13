@@ -117,7 +117,7 @@ describe('Charla y tutorial: plató 3D con los robots', () => {
     expect(stageLooks({ speakers: [{ name: 'Claude' }] })).toBeNull()
   })
 
-  it('un plano por turno de palabra; el paso empieza mirando a la pantalla y los turnos largos se parten', () => {
+  it('plano y contraplano: las réplicas cortas no cortan y en un turno largo se ve a quien escucha', () => {
     const lines = [
       { who: 0, start: 1, end: 2, emotion: 'alegre' },
       { who: 0, start: 2, end: 3, emotion: 'firme' },
@@ -125,12 +125,29 @@ describe('Charla y tutorial: plató 3D con los robots', () => {
       { who: 0, start: 4, end: 9.5, emotion: 'alegre' }
     ]
     const shots = planShots(lines, 0.5, 10, true, 0)
-    expect(shots[0]).toMatchObject({ start: 0.5, end: 3, kind: 'screen' })
-    expect(shots[1]).toMatchObject({ start: 3, end: 4, kind: 'close1' })
-    expect(shots[2].kind).toBe('ots0')
-    expect(shots).toHaveLength(4)
-    expect(shots[3].end).toBe(10)
+    expect(shots[0]).toMatchObject({ start: 0.5, end: 4, kind: 'screen' })
+    expect(shots[1]).toMatchObject({ start: 4, kind: 'ots0' })
+    expect(shots[2]).toMatchObject({ kind: 'close1', move: 'hold' })
+    expect(shots[shots.length - 1].end).toBe(10)
+    for (const s of shots) expect(s.end - s.start).toBeGreaterThanOrEqual(1.49)
     expect(planShots([], 0, 3, false, 0)).toEqual([{ start: 0, end: 3, kind: 'wide', move: 'crane' }])
+  })
+
+  it('cada uno desde su lado, una sola emoción remarcada, remate con los dos y sin planos raros en la charla', () => {
+    const lines = [
+      { who: 0, start: 0, end: 2, emotion: 'alegre' },
+      { who: 1, start: 2, end: 4, emotion: 'sorprendido' },
+      { who: 0, start: 4, end: 6, emotion: 'sorprendido' },
+      { who: 1, start: 6, end: 8, emotion: 'neutral' },
+      { who: 0, start: 8, end: 10, emotion: 'gracioso' }
+    ]
+    const shots = planShots(lines, 0, 10, false, 0)
+    expect(shots.map((s) => s.kind)).toEqual(['wide', 'xcu1', 'ots0', 'close1', 'two'])
+    expect(shots.filter((s) => s.move === 'snap')).toHaveLength(1)
+    expect(shots.some((s) => s.move === 'dutch' || s.move === 'whip' || s.move === 'orbit')).toBe(false)
+    // Cada escena se abre con un plano de situación distinto.
+    const openers = new Set([0, 1, 2, 4, 6].map((seed) => planShots(lines, 0, 10, false, seed)[0].kind))
+    expect(openers.size).toBeGreaterThanOrEqual(4)
   })
 
   it('cada robot mueve la boca con sus sílabas y la pantalla cambia de imagen en cada escena', () => {

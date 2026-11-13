@@ -2827,9 +2827,14 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    **pantalla gigante** que muestra la imagen de cada escena) y se animan con la voz: la boca (una luz en el visor) y
    el cuerpo rebotan con cada sílaba, parpadean, miran a quien habla, asienten al acabar una frase y reaccionan con la
    emoción de cada frase (saltan al sorprenderse, se ríen, se agachan tristes, se inclinan para el susurro); en el
-   cierre saltan los dos. La **cámara** cambia de plano cuando cambia quién habla (`planShots`: general, primer plano,
-   por encima del hombro del otro y, al empezar un paso, la pantalla) y nunca está quieta (acercamiento, alejamiento,
-   arco, grúa y un temblor suave de cámara en mano). Todo depende solo del tiempo de la línea de GSAP, así que
+   cierre saltan los dos. La **cámara** monta el diálogo como una serie (`planShots`): cada escena se abre con un
+   plano de situación distinto (general, los dos más cerca, contrapicado, picado o de lado; en un paso, la pantalla) y
+   luego va **plano y contraplano**, cada robot siempre desde su mismo lado: primero por encima del hombro del otro y,
+   según avanza la charla, más cerca. Las réplicas de menos de 1,5 s no cortan (se oyen sobre el plano de antes), en
+   un turno largo se corta a la cara de quien escucha, solo la primera emoción fuerte de la escena (sorpresa, risa,
+   pánico…) se remarca con un golpe de zoom a la cara y el remate vuelve al plano de los dos para ver la reacción. En
+   la charla la cámara casi no se mueve (respira con un temblor suave o se acerca muy despacio): nada de barridos,
+   giros ni planos inclinados, que cansaban y se notaban repetidos. Todo depende solo del tiempo de la línea de GSAP, así que
    HyperFrames graba cada fotograma igual (graba WebGL). En este modo las imágenes son solo lo de la pantalla (el
    encargo pide «image» con lo que explica el paso, sin personajes) y no se usan los clips de FreeVideo. Necesita
    three.js en el estudio (`THREE_VERSION`, se instala con HyperFrames y GSAP; un estudio sin él se completa solo la
