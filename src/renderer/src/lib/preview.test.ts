@@ -41,6 +41,15 @@ describe('panel de vista previa', () => {
     expect(isTextual('slides')).toBe(false)
   })
 
+  it('abre OpenDocument, RTF, ePub, Pages y Keynote con su visor', () => {
+    expect(previewKind('carta.odt')).toBe('odf')
+    expect(previewKind('charla.odp')).toBe('odf')
+    expect(previewKind('viejo.rtf')).toBe('rtf')
+    expect(previewKind('novela.epub')).toBe('epub')
+    expect(previewKind('nota.pages')).toBe('iwork')
+    expect(previewKind('charla.key')).toBe('iwork')
+  })
+
   it('sin extensión conocida, se fía del tipo MIME', () => {
     expect(previewKind('pegado', 'image/png')).toBe('image')
     expect(previewKind('archivo.raro', 'application/pdf')).toBe('pdf')

@@ -4015,4 +4015,5 @@ export const en: Record<string, string> = {
   "Imagen o vídeo": "Image or video",
   "Objeto": "Object",
   "Este elemento solo se ve en PowerPoint": "This item can only be seen in PowerPoint",
+  "No se pudo leer el documento: {error}": "Couldn't read the document: {error}",
 }

@@ -39,6 +39,14 @@ export type PreviewKind =
   | 'table'
   /** Presentación de PowerPoint (.pptx): diapositivas que lee pptx.ts. */
   | 'slides'
+  /** Texto o presentación de LibreOffice (.odt, .odp): se pasa a HTML. */
+  | 'odf'
+  /** Texto enriquecido (.rtf). */
+  | 'rtf'
+  /** Libro electrónico (.epub). */
+  | 'epub'
+  /** Pages o Keynote de Mac: la vista previa que guardan dentro. */
+  | 'iwork'
   | 'other'
 
 const IMAGE = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif'])
@@ -52,6 +60,7 @@ const CODE = new Set([
 const TEXT = new Set(['txt', 'log', 'text', 'rst'])
 const WORD = new Set(['docx', 'docm', 'dotx', 'dotm'])
 const SLIDES = new Set(['pptx', 'pptm', 'ppsx', 'ppsm', 'potx', 'potm'])
+const ODF = new Set(['odt', 'ott', 'odp', 'otp', 'odg', 'otg'])
 const SHEET = new Set(['xlsx', 'xlsm', 'xlsb', 'xls', 'xltx', 'xltm', 'ods', 'fods', 'numbers'])
 
 function ext(name: string): string {
@@ -73,6 +82,10 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (WORD.has(e)) return 'word'
   if (SHEET.has(e)) return 'sheet'
   if (SLIDES.has(e)) return 'slides'
+  if (ODF.has(e)) return 'odf'
+  if (e === 'rtf') return 'rtf'
+  if (e === 'epub') return 'epub'
+  if (e === 'pages' || e === 'key') return 'iwork'
   if (e === 'csv' || e === 'tsv') return 'table'
   if (VIDEO.has(e)) return 'video'
   if (AUDIO.has(e)) return 'audio'

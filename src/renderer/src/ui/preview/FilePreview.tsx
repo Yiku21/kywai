@@ -36,6 +36,7 @@ import { ViewerBusy } from './viewers/shared'
 const DocxView = lazy(() => import('./viewers/DocxView'))
 const SheetView = lazy(() => import('./viewers/SheetView'))
 const SlidesView = lazy(() => import('./viewers/SlidesView'))
+const RichDocView = lazy(() => import('./viewers/RichDocView'))
 
 /**
  * Panel de vista previa de archivos, como el de Claude: se abre a la derecha del chat (en el sitio del espacio 3D) al
@@ -352,6 +353,12 @@ function PreviewContent({
       break
     case 'slides':
       if (url) return <Viewer><SlidesView url={url} /></Viewer>
+      break
+    case 'odf':
+    case 'rtf':
+    case 'epub':
+    case 'iwork':
+      if (url) return <Viewer><RichDocView url={url} format={kind} /></Viewer>
       break
     case 'table':
       if (text != null) return <Viewer><SheetView text={text} /></Viewer>

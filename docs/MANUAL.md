@@ -4159,6 +4159,14 @@ equipo, sin subirlos a ningún sitio ni tener Office instalado (y también desde
   recortadas, líneas, grupos y tablas, y lo fijo del patrón y del diseño (logos, franjas). Las diapositivas ocultas
   salen marcadas. Los gráficos, SmartArt y vídeos salen como un recuadro con su nombre («solo se ve en PowerPoint»).
   Lo lee kywai mismo (`viewers/pptx.ts`, sin librerías: el archivo es un zip con XML) y lo pinta `SlidesView`.
+- **LibreOffice** (`.odt` texto, `.odp` presentación, `.odg` dibujo): el texto con sus títulos, negritas, colores,
+  listas, tablas e imágenes, como una hoja de papel; las presentaciones, una tarjeta por diapositiva con su título,
+  textos e imágenes (sin su diseño). Las hojas `.ods` van con Excel, arriba.
+- **RTF** (`.rtf`): el texto con sus párrafos, alineación, negritas, cursivas y acentos.
+- **Libros ePub** (`.epub`): el libro entero en una página, capítulo tras capítulo y con sus imágenes. Lo que traiga el
+  libro que pueda ejecutarse (scripts, formularios, enlaces `javascript:`) se quita.
+- **Pages y Keynote** (Mac): la vista previa que guardan dentro (la imagen o el PDF de la primera página); para ver el
+  resto, **Abrir con…**.
 
 Con la ventana estrecha (menos de 950 px) el panel ocupa toda la zona del chat. Al cambiar de proyecto se cierra.
 

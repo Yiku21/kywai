@@ -275,3 +275,12 @@
   color: rgba(0, 0, 0, 0.5);
   font-size: 14px;
 }
+
+/* ---------- OpenDocument, RTF, ePub, Pages, Keynote ---------- */
+
+.pdfFrame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #fff;
+}

@@ -3891,4 +3891,5 @@ export const zh: Record<string, string> = {
   "Imagen o vídeo": "图片或视频",
   "Objeto": "对象",
   "Este elemento solo se ve en PowerPoint": "此元素只能在 PowerPoint 中查看",
+  "No se pudo leer el documento: {error}": "无法读取该文档：{error}",
 }
