@@ -2160,7 +2160,7 @@ Las direcciones `http://` solo se admiten si son de este equipo (`localhost`).
 La pestaña **Extensiones** tiene dos partes: **Servidores MCP** y **Habilidades**.
 
 **Catálogo de servidores.** «Explorar catálogo» enseña primero unos destacados con su orden comprobada (Playwright,
-GitHub, Context7, DeepWiki, Fetch, Sequential Thinking, Firecrawl, Perplexity, PostHog y PixelLab; los cuatro últimos piden una
+GitHub, Context7, DeepWiki, Fetch, Sequential Thinking, Lightpanda, Firecrawl, Perplexity, PostHog y PixelLab; los cuatro últimos piden una
 clave de su web y Perplexity es de pago; PixelLab da unas generaciones de prueba y la usa «/sprite»). Al buscar (notion, postgres, slack…) se consulta el
 **registro oficial de MCP** (registry.modelcontextprotocol.io, el directorio abierto del estándar, con miles de
 servidores) y «Más resultados» trae la página siguiente. Cada ficha dice si es **remoto** o **en este equipo**, qué
@@ -2168,6 +2168,20 @@ claves pide y lleva el enlace a su página. «Instalar» no instala nada aún: r
 con la orden (`npx -y paquete@versión`, `uvx paquete==versión` o `docker run -i --rm …`) o la dirección y las claves
 con su explicación debajo, para que lo revises; al guardar se prueba como cualquier otro. Si la ficha deja algo por
 rellenar (`<carpeta>`, `{región}`), sale un aviso amarillo. Los que solo funcionan por SSE no se pueden instalar.
+
+**Lightpanda (navegador sin ventana para agentes).** Es un navegador hecho desde cero para IA (github.com/lightpanda-io/browser,
+AGPL-3.0: kywai usa su programa tal cual, sin copiar código). Abre webs con JavaScript, las lee en Markdown, saca enlaces
+y datos, rellena formularios y hace capturas; mucho más rápido y ligero que Chrome. Se añade desde el catálogo (orden
+`lightpanda mcp`, con su telemetría apagada). Si el programa falta, la prueba sale en rojo con el botón **«Instalar
+Lightpanda»**: baja el programa oficial (versión «nightly») a `~/.local/bin` en Mac (Apple o Intel) y Linux, sin
+contraseña. En Windows no hay programa propio: solo dentro de WSL, a mano.
+Al encenderlo para **Hermes**, kywai lo apunta también en la configuración propia de Hermes (`~/.hermes/config.yaml`, en un
+bloque marcado `# kywai:lightpanda` que pone y quita él solo; el resto del archivo no se toca, y si ya tienes un servidor
+«lightpanda» propio, se respeta). Así Hermes lo puede usar **también al coordinar**: un enlace con JavaScript que su
+descarga normal (`web_extract`) no lee, lo abre con Lightpanda y responde en segundos, sin crear una tarea para otro
+agente. Hace falta porque el gateway de Hermes solo acepta herramientas que estén en su configuración (por eso Hermes
+no puede tener el navegador de kywai). Al apagarlo para Hermes o quitarlo, el bloque se borra. Código:
+`src/main/hermesHomeMcp.ts`; la instalación, `lightpandaInstallCommand` en `src/main/setup.ts`.
 
 **Verificados (✓).** En el registro puede publicar cualquiera, así que solo llevan ✓ los de publicadores conocidos
 (Microsoft, GitHub, Notion, Stripe, Cloudflare, Google… lista `TRUSTED_MCP_PUBLISHERS` en `src/main/catalog.ts`) y

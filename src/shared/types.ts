@@ -1742,7 +1742,7 @@ export interface SetWebAccessInput {
 // ---------- Asistente de configuración ----------
 
 /** Programas que el asistente comprueba e instala. */
-export type SetupToolId = 'node' | 'brew' | 'python' | 'uv' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | 'colibri' | `cli:${string}` | `account:${string}`
+export type SetupToolId = 'node' | 'brew' | 'python' | 'uv' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | 'colibri' | 'lightpanda' | `cli:${string}` | `account:${string}`
 
 export interface SetupTool {
   id: SetupToolId

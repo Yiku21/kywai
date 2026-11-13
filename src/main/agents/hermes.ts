@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { AUTH_RE, QUOTA_RE, clip, looksMissing, runCli, safeModel, stderrSummary } from './spawn'
 import { EMPTY_USAGE, type JsonlParser, type RunAgentOptions, type RunAgentResult } from './types'
 import { tr } from '@shared/i18n'
+import { hermesHomeToolsets } from '../hermesHomeMcp'
 
 /** Para planificar, solo herramientas de consulta: nada de archivos, terminal ni subagentes propios. */
 export const HERMES_PLAN_TOOLSETS = 'web,memory,skills,todo,session_search'
@@ -29,13 +30,15 @@ export const INVALID_TOOLSET_RE = /invalid toolset name|unknown toolset/i
 /** Nombre de un proveedor de Hermes (propio, como «anthropic», o de `providers:` en su config, como «omnirouter»). */
 const PROVIDER_RE = /^[\w.\-:]+$/
 
-export function hermesArgs(queryFile: string, model: string, mode: 'plan' | 'work', provider?: string, mcpNames: string[] = [], images = false): string[] {
+export function hermesArgs(queryFile: string, model: string, mode: 'plan' | 'work', provider?: string, mcpNames: string[] = [], images = false, homeToolsets: string[] = []): string[] {
   const args = ['chat', '-Q', '--query-file', queryFile.replace(/\\/g, '/'), '--ignore-rules']
   // Los servidores MCP de Extensiones entran como «toolsets» con su nombre (solo al trabajar, no al planificar). Al
   // planificar, ninguno: «hermes chat» abre la sesión en su gateway, que valida -t con SU configuración (~/.hermes) y
   // no con la de HERMES_MANAGED_DIR; un servidor que solo existe ahí («kywai-navegador») hace que rechace la sesión
   // entera («unknown or invalid toolset name», 13 nov) y Hermes no puede coordinar.
-  const extra = mode === 'work' ? mcpNames.filter((n) => /^[a-z][a-z0-9_-]{0,30}$/.test(n)) : []
+  // Los que kywai apuntó en ~/.hermes (Lightpanda, hermesHomeMcp.ts) sí valen en los dos modos: el gateway los conoce.
+  const valid = (n: string): boolean => /^[a-z][a-z0-9_-]{0,30}$/.test(n)
+  const extra = [...new Set([...(mode === 'work' ? mcpNames.filter(valid) : []), ...homeToolsets.filter(valid)])]
   // Con capturas adjuntas, Hermes planifica igual y las mira con su herramienta de visión (vision_analyze).
   if (mode === 'plan' && images) extra.push('vision')
   args.push('-t', [mode === 'plan' ? HERMES_PLAN_TOOLSETS : HERMES_WORK_TOOLSETS, ...extra].join(','))
@@ -95,10 +98,11 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
   const slow = new AbortController()
   const timer = opts.mode === 'plan' ? setTimeout(() => slow.abort(), HERMES_PLAN_TIMEOUT_MS) : null
   try {
+    const home = hermesHomeToolsets()
     const call = (mcp: boolean) =>
       runCli({
         command: 'hermes',
-        args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, mcp ? opts.extraMcp?.names : [], !!opts.images?.length),
+        args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, mcp ? opts.extraMcp?.names : [], !!opts.images?.length, mcp ? home : []),
         ...(mcp && opts.mode === 'work' && opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
         cwd: opts.cwd,
         stdin: '',
@@ -108,7 +112,7 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
       })
     let res = await call(true)
     // Su gateway valida las herramientas con ~/.hermes: si rechaza un servidor de Extensiones, se repite sin ellos.
-    if (!res.ok && opts.extraMcp?.names.length && INVALID_TOOLSET_RE.test(`${res.text}\n${res.errorMessage ?? ''}`)) {
+    if (!res.ok && (opts.extraMcp?.names.length || home.length) && INVALID_TOOLSET_RE.test(`${res.text}\n${res.errorMessage ?? ''}`)) {
       opts.onActivity?.(tr('Hermes no admite esas herramientas: sigue sin ellas'), 'tool')
       res = await call(false)
     }

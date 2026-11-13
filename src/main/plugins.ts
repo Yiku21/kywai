@@ -14,7 +14,7 @@ import { dirname, join, normalize, relative, sep } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 import { MCP_ID_RE, MCP_RESERVED_IDS, mcpIdFrom, type McpServerInput, type PluginCatalogItem, type PluginInfo, type PluginSource } from '@shared/extensions'
 import { tr } from '@shared/i18n'
-import { mcpRegistry, removeMcp, syncGemini } from './extensions'
+import { mcpRegistry, removeMcp, syncAgentConfigs } from './extensions'
 import { skillsDir, videoSkillsDir } from './skills'
 import { isVideoExtension, VIDEO_SKILLS_FOLDER } from '@shared/videoExtensions'
 
@@ -483,7 +483,7 @@ export async function installFiles(files: Map<string, Buffer>, source: PluginSou
       }
       // Los que traía antes y ya no trae se quitan.
       for (const s of mine) if (!mcp.includes(s.id)) registry.remove(s.id)
-      syncGemini()
+      syncAgentConfigs()
     }
   }
 

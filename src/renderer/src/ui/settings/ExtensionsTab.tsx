@@ -13,7 +13,7 @@ import s from './ExtensionsTab.module.css'
 import { MODS_CHANGED } from '../left/ModsView'
 
 /** Lo que instala el botón de un servidor que no arranca porque falta su programa. */
-const RUNTIME_LABEL: Record<McpRuntime, string> = { uv: 'uv', node: 'Node.js' }
+const RUNTIME_LABEL: Record<McpRuntime, string> = { uv: 'uv', node: 'Node.js', lightpanda: 'Lightpanda' }
 
 const KIND_LABEL: Record<string, string> = { claude: 'Claude', codex: 'Codex', gemini: 'Gemini', hermes: 'Hermes', qwen: 'Qwen' }
 

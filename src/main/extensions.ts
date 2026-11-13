@@ -32,6 +32,7 @@ import {
 import type { KeyCipher } from './secrets'
 import { quoteArg } from './agents/spawn'
 import type { ExtraMcp } from './agents/types'
+import { syncHermesHome } from './hermesHomeMcp'
 import { tr } from '@shared/i18n'
 
 const IS_WIN = process.platform === 'win32'
@@ -663,7 +664,7 @@ let geminiDir = join(homedir(), '.gemini', 'extensions', 'kywai')
 export function initExtensions(r: McpRegistry, opts: { geminiDir?: string } = {}): void {
   registry = r
   if (opts.geminiDir) geminiDir = opts.geminiDir
-  syncGemini()
+  syncAgentConfigs()
 }
 
 export function mcpRegistry(): McpRegistry | null {
@@ -678,6 +679,15 @@ export function serversFor(kind: string): ResolvedMcpServer[] {
   } catch {
     return []
   }
+}
+
+/**
+ * Tras cada cambio en Extensiones: la extensión «kywai» de Gemini y los servidores sin claves (Lightpanda) en la
+ * configuración propia de Hermes, para que también los pueda usar al coordinar (hermesHomeMcp.ts).
+ */
+export function syncAgentConfigs(): void {
+  syncGemini()
+  syncHermesHome(serversFor('hermes'))
 }
 
 /** Escribe (o quita) la extensión «kywai» de Gemini según lo encendido para Gemini. */
@@ -702,14 +712,14 @@ export function listMcp(): McpServerInfo[] {
 export function saveMcp(input: McpServerInput, replaces?: string): McpServerInfo[] {
   if (!registry) throw err(tr('Las extensiones no están disponibles'))
   registry.save(input, replaces)
-  syncGemini()
+  syncAgentConfigs()
   return registry.list()
 }
 
 export function removeMcp(id: string): McpServerInfo[] {
   if (!registry) throw err(tr('Las extensiones no están disponibles'))
   registry.remove(id)
-  syncGemini()
+  syncAgentConfigs()
   return registry.list()
 }
 
@@ -718,7 +728,7 @@ export async function testMcp(id: string): Promise<McpServerInfo[]> {
   const s = registry.get(id)
   if (!s) throw err(tr('Ese servidor ya no existe'))
   registry.setTest(id, await testServer(s))
-  syncGemini()
+  syncAgentConfigs()
   return registry.list()
 }
 
@@ -733,12 +743,12 @@ export async function setMcpAgents(id: string, agents: unknown): Promise<McpServ
     const test = await testServer(s)
     registry.setTest(id, test)
     if (!test.ok) {
-      syncGemini()
+      syncAgentConfigs()
       return registry.list()
     }
   }
   registry.setAgents(id, wanted)
-  syncGemini()
+  syncAgentConfigs()
   return registry.list()
 }
 

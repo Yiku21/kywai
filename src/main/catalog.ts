@@ -448,6 +448,19 @@ export const FEATURED_MCP: McpCatalogItem[] = [
     needsEdit: false
   },
   {
+    name: 'lightpanda-io/browser',
+    title: 'Lightpanda',
+    description: 'Navegador sin ventana hecho para agentes: abre webs con JavaScript, las lee en Markdown, saca enlaces y datos, y rellena formularios. Mucho más rápido y ligero que Chrome; también lo usa Hermes al coordinar (Mac y Linux; en Windows, solo dentro de WSL).',
+    version: '',
+    verified: true,
+    website: 'https://lightpanda.io',
+    repo: 'https://github.com/lightpanda-io/browser',
+    kind: 'stdio',
+    install: { id: 'lightpanda', title: 'Lightpanda', transport: 'stdio', command: 'lightpanda', args: ['mcp'], env: { LIGHTPANDA_DISABLE_TELEMETRY: 'true' } },
+    keys: [],
+    needsEdit: false
+  },
+  {
     name: 'perplexityai/modelcontextprotocol',
     title: 'Perplexity',
     description: 'Búsquedas e investigación a fondo en internet con fuentes y datos al día (de pago: pide clave de la API de Perplexity).',

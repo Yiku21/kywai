@@ -28,13 +28,14 @@ export interface McpTestResult {
 }
 
 /** Programas que lanzan servidores MCP y que kywai sabe instalar. */
-export type McpRuntime = 'uv' | 'node'
+export type McpRuntime = 'uv' | 'node' | 'lightpanda'
 
-/** Qué programa hace falta para una orden («uvx» → uv, «npx» → Node.js), o null si no es de esos. */
+/** Qué programa hace falta para una orden («uvx» → uv, «npx» → Node.js, «lightpanda» → su navegador), o null si no es de esos. */
 export function mcpRuntimeFor(command: string): McpRuntime | null {
   const base = command.trim().split(/[\\/]/).pop()!.toLowerCase().replace(/\.(exe|cmd|bat)$/, '')
   if (base === 'uv' || base === 'uvx') return 'uv'
   if (base === 'npx' || base === 'node' || base === 'npm') return 'node'
+  if (base === 'lightpanda') return 'lightpanda'
   return null
 }
 

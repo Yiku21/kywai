@@ -309,7 +309,39 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
     // este equipo, prepara el motor (lo compila o baja el ya hecho), descarga el modelo (de 19 GB en adelante, se
     // reanuda si se corta) y lo deja encendido en segundo plano, sin abrir el navegador. Se queda en ~/colibri.
     install: ({ brew }) => ({ cmd: colibriInstallCommand(brew), needs: 'python', timeoutMs: COLIBRI_INSTALL_TIMEOUT_MS })
+  },
+  lightpanda: {
+    label: 'Lightpanda',
+    version: 'lightpanda version',
+    url: 'https://github.com/lightpanda-io/browser#install',
+    // Navegador sin ventana para agentes (servidor MCP «lightpanda mcp» de Extensiones). Solo hay programa ya hecho
+    // para Mac y Linux: en Windows hay que ponerlo dentro de WSL, a mano.
+    install: () => {
+      const cmd = lightpandaInstallCommand()
+      return cmd ? { cmd } : null
+    }
   }
+}
+
+const LIGHTPANDA_RELEASES = 'https://github.com/lightpanda-io/browser/releases/download/nightly'
+
+/**
+ * Baja el programa oficial de Lightpanda (versión «nightly», la única que publican) a ~/.local/bin, sin administrador.
+ * Se baja a un archivo aparte y se cambia al final: si la descarga se corta, el que ya hubiera sigue funcionando.
+ * null en Windows (no tiene programa propio, solo dentro de WSL).
+ */
+export function lightpandaInstallCommand(platform: NodeJS.Platform = process.platform, arch: string = process.arch): string | null {
+  const sys = platform === 'darwin' ? 'macos' : platform === 'linux' ? 'linux' : null
+  if (!sys) return null
+  const asset = `lightpanda-${arch === 'arm64' ? 'aarch64' : 'x86_64'}-${sys}`
+  const bin = '"$HOME/.local/bin/lightpanda"'
+  return [
+    'mkdir -p "$HOME/.local/bin"',
+    `curl -fL --retry 3 -o "$HOME/.local/bin/lightpanda.part" ${LIGHTPANDA_RELEASES}/${asset}`,
+    'chmod +x "$HOME/.local/bin/lightpanda.part"',
+    `mv -f "$HOME/.local/bin/lightpanda.part" ${bin}`,
+    `${bin} version`
+  ].join(' && ')
 }
 
 /**
