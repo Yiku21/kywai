@@ -88,7 +88,17 @@ data class Preferences(
     val ownTheme: Boolean = false,
     /** El tema propio de este móvil (un id del escritorio: «mundo-bosque», «grafito»…). */
     val localTheme: String? = null,
+    /** Barra lateral, filtro de «Proyectos»: orden, estado y si se ven todos los chats (sin «Ver los X restantes»). */
+    val projectSort: ProjectSort = ProjectSort.Manual,
+    val projectStatus: ProjectStatus = ProjectStatus.All,
+    val showAllChats: Boolean = false,
 )
+
+/** Orden de «Proyectos»: el del ordenador (el que dejaste arrastrando), lo más reciente primero o por nombre. */
+enum class ProjectSort { Manual, Recent, Name }
+
+/** Qué proyectos salen: todos, los que tienen al equipo trabajando, con resultados sin ver o activos esta semana. */
+enum class ProjectStatus { All, Busy, Unseen, Week }
 
 interface PreferencesStore {
     val preferences: StateFlow<Preferences>

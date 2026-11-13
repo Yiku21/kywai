@@ -45,6 +45,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.MoreHoriz
@@ -57,6 +58,7 @@ import androidx.compose.material.icons.outlined.ViewSidebar
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -86,6 +88,8 @@ import androidx.compose.ui.unit.dp
 import com.aicowork.remote.data.Connection
 import com.aicowork.remote.data.CoworkUiState
 import com.aicowork.remote.data.model.ChatSummary
+import com.aicowork.remote.data.store.ProjectSort
+import com.aicowork.remote.data.store.ProjectStatus
 import com.aicowork.remote.ui.components.Format
 import kotlinx.coroutines.launch
 
@@ -172,18 +176,48 @@ fun Sidebar(model: OrbitaModel, state: CoworkUiState, onCollapse: () -> Unit, mo
             }
 
             PinnedSection(model, state)
-            ProjectsHeader(model)
-            snapshot?.projects?.forEach { p ->
+            val prefs = model.preferences
+            // Proyectos con algo terminado sin ver (lo que sale como nuevo en Resultados).
+            val unseen = state.inbox.filter { !it.needsYou }.mapNotNull { it.projectId }.toSet()
+            val shownProjects = filterProjects(sortProjects(snapshot?.projects.orEmpty(), prefs.projectSort), prefs.projectStatus, unseen)
+            var moreOpen by remember { mutableStateOf(setOf<String>()) }
+            ProjectsHeader(model, state, anyOpen = !expanded.isNullOrEmpty())
+            shownProjects.forEach { p ->
                 val open = expanded == p.id
                 ProjectRow(model, p, open = open, current = p.id == current) {
                     if (open && p.id == current) model.expandedProject = "" else model.openProject(p.id)
                 }
                 AnimatedVisibility(open && model.chatsSupported(), enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
                     Column(Modifier.padding(start = 18.dp)) {
-                        val list = model.chats[p.id].orEmpty().filter { it.current || it.messageCount > 0 }
-                        val openChat = if (p.id == current) snapshot.conversation.chat?.id else null
-                        list.forEach { c -> ChatRow(model, p.id, c, on = c.id == openChat) }
+                        val list = sortChats(model.chats[p.id].orEmpty().filter { it.current || it.messageCount > 0 }, prefs.projectSort)
+                        val openChat = if (p.id == current) snapshot?.conversation?.chat?.id else null
+                        val more = p.id in moreOpen
+                        val (shown, hidden) = previewChats(list, prefs.showAllChats || more, openChat)
+                        shown.forEach { c -> ChatRow(model, p.id, c, on = c.id == openChat) }
+                        // «Ver los X restantes» bajo los 3 más recientes; abierta, «Ver menos».
+                        if (!prefs.showAllChats && (hidden > 0 || more)) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .tappable(role = Role.Button, haptic = Haptic.Tap) { moreOpen = if (more) moreOpen - p.id else moreOpen + p.id }
+                                    .padding(horizontal = 10.dp)
+                                    .testTag("chats-more-${p.id}"),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Outlined.MoreHoriz, contentDescription = null, tint = Orbita.TextFaint, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Text(if (more) t("Ver menos") else t("Ver los {n} restantes", "n" to hidden), color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
+                }
+            }
+            if (shownProjects.isEmpty() && !snapshot?.projects.isNullOrEmpty()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(t("Ningún proyecto con este filtro."), color = Orbita.TextFaint, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { model.updatePreferences { it.copy(projectStatus = ProjectStatus.All) } }) { Text(t("Quitar el filtro"), color = Orbita.Accent) }
                 }
             }
         }
@@ -301,15 +335,16 @@ private fun SidebarBadge(count: Int, warn: Boolean) {
     }
 }
 
-/** «Proyectos» con el botón para crear uno (y su campo, al pulsarlo). */
+/** «Proyectos» con el filtro y el botón para crear uno (y su campo, al pulsarlo). */
 @Composable
-private fun ProjectsHeader(model: OrbitaModel) {
+private fun ProjectsHeader(model: OrbitaModel, state: CoworkUiState, anyOpen: Boolean) {
     var creating by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     Row(Modifier.fillMaxWidth().padding(start = 10.dp, top = 14.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(t("Proyectos"), color = Orbita.TextFaint, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+        ProjectFilterButton(model, state, anyOpen)
         IconAction(Icons.Outlined.Add, t("Nuevo proyecto"), onClick = { creating = !creating }, size = 34.dp, modifier = Modifier.testTag("side-new-project"))
     }
     AnimatedVisibility(creating) {
@@ -517,5 +552,78 @@ fun SidebarDrawer(model: OrbitaModel, state: CoworkUiState) {
             // Como cajón va por encima de la interfaz: cristal más tupido para que lo de debajo apenas se vea.
             Sidebar(model, state, onCollapse = { model.drawerOpen = false }, solid = true)
         }
+    }
+}
+
+/**
+ * Botón de filtro junto a «Proyectos» (como en el escritorio): orden, estado, mostrar todos los chats, restablecer,
+ * contraer todo y marcar todo como visto. Con algo distinto de lo de siempre lleva un punto.
+ */
+@Composable
+private fun ProjectFilterButton(model: OrbitaModel, state: CoworkUiState, anyOpen: Boolean) {
+    var open by remember { mutableStateOf(false) }
+    var sub by remember { mutableStateOf<String?>(null) }
+    val p = model.preferences
+    val active = p.projectSort != ProjectSort.Manual || p.projectStatus != ProjectStatus.All || p.showAllChats
+    val finished = state.inbox.filter { !it.needsYou }
+    val sorts = listOf(ProjectSort.Manual to t("Tu orden (arrastrando)"), ProjectSort.Recent to t("Lo más reciente primero"), ProjectSort.Name to t("Por nombre (A-Z)"))
+    val statuses = listOf(ProjectStatus.All to t("Todos"), ProjectStatus.Busy to t("Trabajando ahora"), ProjectStatus.Unseen to t("Con resultados sin ver"), ProjectStatus.Week to t("Activos esta semana"))
+    fun close() { open = false; sub = null }
+    Box {
+        Box {
+            IconAction(Icons.Outlined.FilterList, t("Filtrar y ordenar los proyectos"), onClick = { open = true }, size = 34.dp, modifier = Modifier.testTag("side-project-filter"))
+            if (active) Box(Modifier.align(Alignment.TopEnd).offset(x = (-6).dp, y = 6.dp).size(7.dp).clip(CircleShape).background(Orbita.Accent))
+        }
+        DropdownMenu(open, onDismissRequest = ::close, containerColor = Orbita.GlassPopover) {
+            when (sub) {
+                "sort" -> sorts.forEach { (k, label) ->
+                    DropdownMenuItem(text = { Text(label) }, onClick = { close(); model.updatePreferences { it.copy(projectSort = k) } }, leadingIcon = { RadioMark(p.projectSort == k) })
+                }
+                "status" -> statuses.forEach { (k, label) ->
+                    DropdownMenuItem(text = { Text(label) }, onClick = { close(); model.updatePreferences { it.copy(projectStatus = k) } }, leadingIcon = { RadioMark(p.projectStatus == k) })
+                }
+                else -> {
+                    DropdownMenuItem(
+                        text = { Text(t("Orden") + " · " + sorts.first { it.first == p.projectSort }.second.substringBefore(" (")) },
+                        onClick = { sub = "sort" },
+                        trailingIcon = { Icon(Icons.Outlined.ChevronRight, null) },
+                        modifier = Modifier.testTag("filter-sort"),
+                    )
+                    DropdownMenuItem(
+                        text = { Text(t("Estado") + " · " + statuses.first { it.first == p.projectStatus }.second) },
+                        onClick = { sub = "status" },
+                        trailingIcon = { Icon(Icons.Outlined.ChevronRight, null) },
+                        modifier = Modifier.testTag("filter-status"),
+                    )
+                    DropdownMenuItem(
+                        text = { Text(t("Mostrar todos los chats")) },
+                        onClick = { close(); model.updatePreferences { it.copy(showAllChats = !it.showAllChats) } },
+                        leadingIcon = { RadioMark(p.showAllChats) },
+                        modifier = Modifier.testTag("filter-show-all"),
+                    )
+                    DropdownMenuItem(
+                        text = { Text(t("Restablecer el filtro")) },
+                        enabled = active,
+                        onClick = { close(); model.updatePreferences { it.copy(projectSort = ProjectSort.Manual, projectStatus = ProjectStatus.All, showAllChats = false) } },
+                    )
+                    HorizontalDivider(color = Orbita.Divider)
+                    DropdownMenuItem(text = { Text(t("Contraer todo")) }, enabled = anyOpen, onClick = { close(); model.expandedProject = "" })
+                    DropdownMenuItem(
+                        text = { Text(t("Marcar todo como visto")) },
+                        enabled = finished.isNotEmpty(),
+                        onClick = { close(); finished.forEach(model::inboxSeen) },
+                        modifier = Modifier.testTag("filter-mark-seen"),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Punto de la opción elegida en los menús del filtro (hueco si no lo está, para que todo quede alineado). */
+@Composable
+private fun RadioMark(on: Boolean) {
+    Box(Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+        if (on) Box(Modifier.size(7.dp).clip(CircleShape).background(Orbita.Text))
     }
 }

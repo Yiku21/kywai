@@ -107,6 +107,9 @@ class PrefsPreferencesStore(context: Context) : PreferencesStore {
         language = runCatching { AppLanguage.valueOf(prefs.getString("language", null) ?: "System") }.getOrDefault(AppLanguage.System),
         ownTheme = prefs.getBoolean("ownTheme", false),
         localTheme = prefs.getString("localTheme", null),
+        projectSort = runCatching { ProjectSort.valueOf(prefs.getString("projectSort", null) ?: "Manual") }.getOrDefault(ProjectSort.Manual),
+        projectStatus = runCatching { ProjectStatus.valueOf(prefs.getString("projectStatus", null) ?: "All") }.getOrDefault(ProjectStatus.All),
+        showAllChats = prefs.getBoolean("showAllChats", false),
     )
 
     override fun update(transform: (Preferences) -> Preferences) {
@@ -126,6 +129,9 @@ class PrefsPreferencesStore(context: Context) : PreferencesStore {
             putString("language", next.language.name)
             putBoolean("ownTheme", next.ownTheme)
             if (next.localTheme != null) putString("localTheme", next.localTheme) else remove("localTheme")
+            putString("projectSort", next.projectSort.name)
+            putString("projectStatus", next.projectStatus.name)
+            putBoolean("showAllChats", next.showAllChats)
         }
         state.value = next
     }
