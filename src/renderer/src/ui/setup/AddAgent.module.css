@@ -271,3 +271,48 @@
   color: var(--alert);
   background: var(--alert-soft);
 }
+
+/* «Otra cuenta…»: el mismo agente otra vez, con otra sesión. */
+.footActions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.accountPane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 20px 18px;
+  overflow-y: auto;
+}
+
+.accountPane .list {
+  padding: 0;
+  min-height: 0;
+}
+
+.accountName {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.accountName input {
+  height: 38px;
+  padding: 0 10px;
+  border-radius: var(--radius-ctl);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+  color: var(--text-1);
+  font-size: 14px;
+}
+
+@media (max-width: 560px) {
+  .foot {
+    flex-wrap: wrap;
+  }
+}

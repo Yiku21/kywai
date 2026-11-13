@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process'
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os, { homedir } from 'node:os'
 import { delimiter, join } from 'node:path'
-import type { SetupAuth, SetupInstallResult, SetupTool, SetupToolId } from '@shared/types'
+import type { AgentConfig, SetupAuth, SetupInstallResult, SetupTool, SetupToolId } from '@shared/types'
 import { emit } from './events'
 import { getConfig } from './config'
 import { agentKey, keys } from './keys'
@@ -17,6 +17,8 @@ import { asAdmin, detectPackageManager, findTerminal, LINUX_PACKAGES, nodeInstal
 import { tr } from '@shared/i18n'
 import { platformOf } from '@shared/loginGuide'
 import { writeLoginScript } from './loginScript'
+import { accountDirOf, accountLaunch, prepareAccountDir, type AccountLaunch } from './agents/accounts'
+import { isAccountProvider } from '@shared/accounts'
 import { macLmStudioInstall, macNodeBin, macNodeInstall, macOllamaInstall, macPythonInstall, macUserBin, macUserPython } from './macTools'
 
 const IS_WIN = process.platform === 'win32'
@@ -31,12 +33,17 @@ interface Output {
   out: string
 }
 
-/** Ejecuta una orden de consola (sin ventana) y devuelve su salida. `onLine` recibe cada línea. */
-export function sh(command: string, timeoutMs: number, onLine?: (line: string) => void, cwd?: string): Promise<Output> {
+/**
+ * Ejecuta una orden de consola (sin ventana) y devuelve su salida. `onLine` recibe cada línea. `account` cambia las
+ * variables (la carpeta de sesión de una «otra cuenta»).
+ */
+export function sh(command: string, timeoutMs: number, onLine?: (line: string) => void, cwd?: string, account?: AccountLaunch | null): Promise<Output> {
   return new Promise((resolve) => {
     let out = ''
     let buf = ''
-    const child = spawn(command, { shell: true, windowsHide: true, env: process.env, cwd })
+    const env: NodeJS.ProcessEnv = account ? { ...process.env, ...account.env } : process.env
+    if (account) for (const k of account.unsetEnv) if (!(k in account.env)) delete env[k]
+    const child = spawn(command, { shell: true, windowsHide: true, env, cwd })
     const take = (chunk: Buffer) => {
       const text = chunk.toString('utf8')
       out = (out + text).slice(-20000)
@@ -167,7 +174,7 @@ const ps = (script: string): string => `powershell -NoProfile -ExecutionPolicy B
 const winget = (id: string): string =>
   `winget install -e --id ${id} --accept-package-agreements --accept-source-agreements --disable-interactivity`
 
-type FixedToolId = Exclude<SetupToolId, `cli:${string}`>
+type FixedToolId = Exclude<SetupToolId, `cli:${string}` | `account:${string}`>
 
 const TOOLS: Record<FixedToolId, ToolDef> = {
   python: {
@@ -309,7 +316,20 @@ const TOOLS: Record<FixedToolId, ToolDef> = {
  * Lo que se sabe de un programa: los de fábrica y, con el prefijo «cli:», el de un agente de catálogo (su ficha dice
  * cómo se comprueba, se instala y se inicia sesión).
  */
+/** El agente de una «otra cuenta» (`account:<id>`), si sigue en el equipo. */
+function accountAgent(id: SetupToolId): AgentConfig | null {
+  if (!id.startsWith('account:')) return null
+  const a = getConfig().agents.find((x) => x.id === id.slice(8))
+  return a && a.accountId && isAccountProvider(a.provider) ? a : null
+}
+
 function toolDef(id: SetupToolId): ToolDef | null {
+  if (id.startsWith('account:')) {
+    // El mismo programa que el de siempre, con el nombre de esta cuenta.
+    const a = accountAgent(id)
+    const base = a ? (TOOLS as Record<string, ToolDef>)[a.provider] : undefined
+    return a && base ? { ...base, label: a.name } : null
+  }
   if (!id.startsWith('cli:')) return (TOOLS as Record<string, ToolDef>)[id] ?? null
   const agent = getConfig().agents.find((a) => a.id === id.slice(4))
   const spec = agent?.cli
@@ -443,7 +463,11 @@ export async function openLogin(id: SetupToolId): Promise<void> {
   if (!def || !cmd) throw new Error(tr('Este agente no necesita iniciar sesión'))
   const title = `kywai - ${def.label}`
   const platform = platformOf(process.platform)
-  const file = writeLoginScript(id, def.label, platform, cmd)
+  // «Otra cuenta»: la ventana entra con su carpeta de sesión y explica los pasos de su programa.
+  const acc = accountAgent(id)
+  const launch = acc ? accountLaunch(acc) : null
+  if (acc && !launch) throw new Error(tr('No se encontró la carpeta de esta cuenta'))
+  const file = writeLoginScript(acc ? (acc.provider as SetupToolId) : id, def.label, platform, cmd, undefined, launch ?? undefined, !!acc)
   if (IS_WIN) {
     // «start» abre una ventana nueva; «cmd /k» la deja abierta al terminar para que se lea el final.
     const child = spawn('cmd.exe', ['/d', '/c', `start "${title}" cmd /k ""${file}""`], {
@@ -484,7 +508,9 @@ function envFileHas(file: string, name: string): boolean {
   }
 }
 
-async function geminiKeyConfigured(): Promise<boolean> {
+async function geminiKeyConfigured(home = HOME): Promise<boolean> {
+  // Otra cuenta: solo cuenta su propia clave (la de siempre no se le pasa).
+  if (home !== HOME) return envFileHas(join(home, '.gemini', '.env'), 'GEMINI_API_KEY')
   if (process.env.GEMINI_API_KEY) return true
   if (envFileHas(join(HOME, '.gemini', '.env'), 'GEMINI_API_KEY') || envFileHas(join(HOME, '.env'), 'GEMINI_API_KEY')) return true
   return IS_WIN ? !!(await regValue('HKCU\\Environment', 'GEMINI_API_KEY')) : false
@@ -513,9 +539,21 @@ export async function checkAuth(id: SetupToolId): Promise<SetupAuth> {
     }
     return res(true, tr('No se puede comprobar de antemano: si pide iniciar sesión, ábrelo una vez en una terminal'))
   }
+  if (id.startsWith('account:')) {
+    const a = accountAgent(id)
+    const launch = a ? accountLaunch(a) : null
+    const dir = a?.accountId ? accountDirOf(a.accountId) : null
+    if (!a || !launch || !dir) return res(false, tr('Esta cuenta ya no está en tu equipo'))
+    return builtinAuth(a.provider as 'claude' | 'codex' | 'gemini', res, launch, dir)
+  }
+  return builtinAuth(id, res)
+}
+
+/** La sesión de un programa de fábrica; con `account`, la de una «otra cuenta» (su carpeta y, en Gemini, su home). */
+async function builtinAuth(id: SetupToolId, res: (ok: boolean, detail: string) => SetupAuth, account?: AccountLaunch, home = HOME): Promise<SetupAuth> {
   switch (id) {
     case 'claude': {
-      const r = await sh('claude auth status --json', 20000)
+      const r = await sh('claude auth status --json', 20000, undefined, undefined, account)
       const m = r.out.match(/\{[\s\S]*\}/)
       try {
         const j = m ? (JSON.parse(m[0]) as { loggedIn?: boolean; email?: string; authMethod?: string }) : null
@@ -526,7 +564,7 @@ export async function checkAuth(id: SetupToolId): Promise<SetupAuth> {
       return res(false, r.code === null || r.code === -1 ? tr('Claude Code no responde') : tr('Sin sesión'))
     }
     case 'codex': {
-      const r = await sh('codex login status', 20000)
+      const r = await sh('codex login status', 20000, undefined, undefined, account)
       // Un config.toml con opciones antiguas o mal escritas impide arrancar a Codex: se muestra el motivo.
       const broken = r.out.match(/(Error loading configuration[^\n]*|invalid type[^\n]*)(\n[^\n]+)?/i)
       if (broken) return res(false, tr('Configuración de Codex con errores (~/.codex/config.toml): {v1}', { v1: broken[0].replace(/\s+/g, ' ').trim() }))
@@ -535,11 +573,11 @@ export async function checkAuth(id: SetupToolId): Promise<SetupAuth> {
         : res(false, tr('Sin sesión'))
     }
     case 'gemini': {
-      const s = readJson(join(HOME, '.gemini', 'settings.json'))
+      const s = readJson(join(home, '.gemini', 'settings.json'))
       const security = (s?.security as { auth?: { selectedType?: string } } | undefined)?.auth?.selectedType
       const type = security ?? (typeof s?.selectedAuthType === 'string' ? s.selectedAuthType : undefined)
-      if (type === 'oauth-personal' && existsSync(join(HOME, '.gemini', 'oauth_creds.json'))) return res(true, tr('Sesión iniciada con Google'))
-      if (type === 'gemini-api-key' && (await geminiKeyConfigured())) return res(true, tr('Usa una clave de API de Gemini'))
+      if (type === 'oauth-personal' && existsSync(join(home, '.gemini', 'oauth_creds.json'))) return res(true, tr('Sesión iniciada con Google'))
+      if (type === 'gemini-api-key' && (await geminiKeyConfigured(home))) return res(true, tr('Usa una clave de API de Gemini'))
       if (type === 'vertex-ai') return res(true, tr('Usa Vertex AI'))
       return res(false, tr('Sin sesión'))
     }
@@ -570,10 +608,16 @@ export async function saveAgentKey(agentId: string, key: string): Promise<SetupA
 }
 
 /** Guarda la clave de API de Gemini donde la lee Gemini CLI y la selecciona como método de acceso. */
-export async function saveGeminiKey(key: string): Promise<SetupAuth> {
+export async function saveGeminiKey(key: string, agentId?: string): Promise<SetupAuth> {
   const clean = typeof key === 'string' ? key.trim() : ''
   if (!isGeminiKey(clean)) throw new Error(tr('Esa clave no parece válida'))
-  const dir = join(HOME, '.gemini')
+  // «Otra cuenta» de Gemini: su clave va a su carpeta (la de siempre no se toca).
+  const acc = agentId ? accountAgent(`account:${agentId}` as SetupToolId) : null
+  if (agentId && (!acc || acc.provider !== 'gemini')) throw new Error(tr('Esa cuenta de Gemini no está en tu equipo'))
+  const home = acc?.accountId ? accountDirOf(acc.accountId) : HOME
+  if (!home) throw new Error(tr('No se encontró la carpeta de esta cuenta'))
+  if (acc) prepareAccountDir('gemini', home)
+  const dir = join(home, '.gemini')
   mkdirSync(dir, { recursive: true })
   const envFile = join(dir, '.env')
   let env = ''
@@ -593,6 +637,7 @@ export async function saveGeminiKey(key: string): Promise<SetupAuth> {
   const auth = (security.auth && typeof security.auth === 'object' ? security.auth : {}) as Record<string, unknown>
   settings.security = { ...security, auth: { ...auth, selectedType: 'gemini-api-key' } }
   writeFileSync(settingsFile, JSON.stringify(settings, null, 2), 'utf8')
+  if (acc) return checkAuth(`account:${acc.id}` as SetupToolId)
   process.env.GEMINI_API_KEY = clean
   return checkAuth('gemini')
 }

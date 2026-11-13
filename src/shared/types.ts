@@ -143,6 +143,12 @@ export interface AgentConfig {
   parentId?: AgentId
   /** Sub-agente que es una copia de su agente (mismo modelo y nivel), no un becario de tareas fáciles. */
   twin?: boolean
+  /**
+   * «Otra cuenta» (solo Claude, Codex y Gemini): nombre de su carpeta de sesión propia (en los datos de kywai,
+   * cuentas/<accountId>). Se lanza siempre con ella, así que inicia sesión con otra cuenta que el de siempre.
+   * Sus copias y becarios la heredan. Ver src/shared/accounts.ts.
+   */
+  accountId?: string
 }
 
 /** Estación en el espacio digital. Posición en el plano del suelo (x, z) en unidades de mundo. */
@@ -1701,6 +1707,8 @@ export interface AddAgentInput {
   name?: string
   /** Agente a medida: cualquier programa de terminal. */
   custom?: Pick<CliAgentSpec, 'command' | 'promptVia' | 'args'> & Partial<CliAgentSpec>
+  /** Otra cuenta de este programa (Claude, Codex o Gemini): un agente más con su propia sesión. */
+  accountOf?: 'claude' | 'codex' | 'gemini'
 }
 
 export interface SetWebAccessInput {
@@ -1716,7 +1724,7 @@ export interface SetWebAccessInput {
 // ---------- Asistente de configuración ----------
 
 /** Programas que el asistente comprueba e instala. */
-export type SetupToolId = 'node' | 'brew' | 'python' | 'uv' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | 'colibri' | `cli:${string}`
+export type SetupToolId = 'node' | 'brew' | 'python' | 'uv' | 'claude' | 'codex' | 'gemini' | 'hermes' | 'muse' | 'lmstudio' | 'ollama' | 'colibri' | `cli:${string}` | `account:${string}`
 
 export interface SetupTool {
   id: SetupToolId
@@ -2290,7 +2298,8 @@ export interface CoworkApi {
   setupInstall(id: SetupToolId): Promise<SetupInstallResult>
   setupLogin(id: SetupToolId): Promise<void>
   setupAuth(id: SetupToolId): Promise<SetupAuth>
-  setupGeminiKey(key: string): Promise<SetupAuth>
+  /** La clave de Gemini; con agentId, la de una «otra cuenta» de Gemini. */
+  setupGeminiKey(key: string, agentId?: AgentId): Promise<SetupAuth>
   /** Guarda la clave de API de un agente de catálogo (solo en el equipo servidor; nunca viaja por el acceso web). */
   setAgentKey(agentId: AgentId, key: string): Promise<SetupAuth>
   setAgentsEnabled(agentIds: AgentId[]): Promise<void>

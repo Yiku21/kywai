@@ -27,6 +27,7 @@ import type {
 } from './types'
 import { claudeToolTrace, resultText } from './traceText'
 import { locale, tr } from '@shared/i18n'
+import { withAccount } from './accounts'
 
 export const CLAUDE_AUTH_MESSAGE = 'Sesión de Claude expirada: abre una terminal, ejecuta `claude` e inicia sesión'
 
@@ -331,7 +332,8 @@ export function createClaudeParser(cb: ParserCallbacks): JsonlParser {
 }
 
 export function runClaude(opts: RunAgentOptions): Promise<RunAgentResult> {
-  return runCli({
+  // «Otra cuenta»: se lanza con su propia carpeta de sesión; el de siempre, tal cual (ver accounts.ts).
+  return runCli(withAccount(opts.agent, {
     command: 'claude',
     args: claudeArgs(opts.model, opts.mode, opts.access, opts.effort, opts.resume, opts.mcp),
     cwd: opts.cwd,
@@ -346,5 +348,5 @@ export function runClaude(opts: RunAgentOptions): Promise<RunAgentResult> {
       // Pedir permiso espera tu respuesta: que Claude no dé la herramienta por colgada (24 h).
       ...(opts.access === 'ask' ? { MCP_TOOL_TIMEOUT: String(24 * 60 * 60 * 1000) } : {})
     }
-  })
+  }))
 }

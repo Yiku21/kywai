@@ -3776,4 +3776,22 @@ export const fr: Record<string, string> = {
   "pulsa una tecla": "appuie sur une touche",
   // main/orchestrator.ts (reparto de tareas del navegador de kywai)
   "«{title}» la hace {name}: necesita el navegador de kywai y {agent} no lo tiene": "« {title} » est confiée à {name} : elle a besoin du navigateur de kywai et {agent} ne l'a pas",
+  // «Otra cuenta» de Claude, Codex o Gemini (AddAgent.tsx, setup.ts, quota.ts, loginGuide.ts)
+  "Elige el agente que quieres tener otra vez, con otra cuenta. Tendrá su propio nombre, su robot, su cuota y su inicio de sesión; tu agente de siempre sigue con la suya.": "Choisissez l'agent que vous voulez avoir une deuxième fois, avec un autre compte. Il aura son propre nom, son robot, son quota et sa connexion ; votre agent habituel garde les siens.",
+  "Nombre (opcional)": "Nom (facultatif)",
+  "Por ejemplo, «Claude B» o «Claude trabajo»": "Par exemple, « Claude B » ou « Claude travail »",
+  "ya tienes 1": "vous en avez 1",
+  "ya tienes {n}": "vous en avez {n}",
+  "Añadir otra cuenta": "Ajouter un autre compte",
+  "Solo salen los agentes que pueden guardar la sesión de cada cuenta por separado. Usar varias cuentas propias es decisión tuya: revisa las condiciones de cada servicio.": "Seuls les agents capables de garder la session de chaque compte séparément apparaissent. Utiliser plusieurs comptes à vous relève de votre choix : vérifiez les conditions de chaque service.",
+  "El mismo agente otra vez, con otra cuenta (Claude, Codex o Gemini)": "Le même agent une deuxième fois, avec un autre compte (Claude, Codex ou Gemini)",
+  "Otra cuenta…": "Autre compte…",
+  "La cuota de esta cuenta se verá en cuanto haga su primera tarea.": "Le quota de ce compte s'affichera dès sa première tâche.",
+  "No se encontró la carpeta de esta cuenta": "Le dossier de ce compte est introuvable",
+  "Esta cuenta ya no está en tu equipo": "Ce compte ne fait plus partie de votre équipe",
+  "Esa cuenta de Gemini no está en tu equipo": "Ce compte Gemini ne fait pas partie de votre équipe",
+  "Entra con la OTRA cuenta, no con la de siempre. Si el navegador entra solo con la de siempre, cierra sesión en {site} (o copia el enlace en una ventana privada) y vuelve a intentarlo.": "Connectez-vous avec l'AUTRE compte, pas celui d'habitude. Si le navigateur se connecte tout seul avec celui d'habitude, déconnectez-vous de {site} (ou copiez le lien dans une fenêtre privée) et réessayez.",
+  "Otra suscripción de Claude (Pro o Max).": "Un autre abonnement Claude (Pro ou Max).",
+  "Otra cuenta de ChatGPT.": "Un autre compte ChatGPT.",
+  "Otra clave de API de Google AI Studio (o una cuenta de empresa).": "Une autre clé d'API Google AI Studio (ou un compte entreprise).",
 }

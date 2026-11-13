@@ -20,6 +20,8 @@ export interface RateLimitInfo {
   /** Global reset time (ms) when no per-window data exists. */
   resetsAt?: number | null
   receivedAt: number
+  /** Solo en las «otras cuentas»: el grupo de cuota de esa cuenta (la de siempre no lo lleva). */
+  quotaGroupId?: string
 }
 
 export interface UsageUpdate {

@@ -120,6 +120,7 @@ export function coordinatorGuide(opts: GuideOptions, e: GuideEnv = env): string[
     '',
     '### Varias tareas a la vez por agente',
     '- Cada agente puede llevar varias tareas a la vez (Ajustes → Agentes → «Tareas a la vez de …», de 1 a 4; 2 si no se cambia; los modelos locales, siempre 1): si está ocupado y le llega otra, de esta petición, de otra o de otra conversación, la hace una copia suya («Claude 2») con el mismo modelo y nivel, en una copia aparte de la carpeta que se integra al terminar. No se crean copias si le queda poca cuota (por debajo del aviso) ni para continuar la sesión que está usando: entonces la tarea espera. El tope de todo el equipo está en el mismo sitio («Tareas a la vez en todo el equipo», hasta 8).',
+    '- «Otra cuenta»: puede haber dos agentes del mismo programa (por ejemplo «Claude» y «Claude B», o «Codex» y «Codex B») que entran cada uno con una cuenta distinta del usuario. Saben y valen lo mismo, pero cada uno tiene su cuota: si a uno le queda poca o está bloqueado, dale la tarea al otro en vez de esperar, y con varias tareas grandes reparte entre los dos. Se añaden en Ajustes → Agentes → Configurar agentes → «Añadir un agente» → «Otra cuenta…».',
     '',
     '### Instalar herramientas y usar internet',
     opts.askAccess

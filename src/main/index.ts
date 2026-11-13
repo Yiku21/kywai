@@ -57,6 +57,7 @@ import { ensureWebCert } from './selfCert'
 import { mobileSigningKey } from './mobileAuth'
 import { disableHttps, enableHttps, httpsInfo, openFunnelLink } from './tailscale'
 import { setAgentKeyResolver } from './agents/generic'
+import { setAccountsRoot } from './agents/accounts'
 import { setColibriUrlSource } from './agents/colibri'
 import { agentKey, keys, systemCipher } from './keys'
 import { instagramAccount, readInstagramSettings, setInstagramLinkProvider, writeInstagramSettings } from './instagram'
@@ -1229,8 +1230,9 @@ function registerIpc(): void {
   })
   ipcMain.handle('cowork:setupLogin', (_e, id: unknown) => openLogin(toolId(id)))
   handle('setupAuth', (id: unknown) => checkAuth(toolId(id)))
-  handle('setupGeminiKey', async (key: unknown) => {
-    const r = await saveGeminiKey(typeof key === 'string' ? key : '')
+  handle('setupGeminiKey', async (key: unknown, agentId?: unknown) => {
+    // Con agentId, la clave de una «otra cuenta» de Gemini (va a su carpeta).
+    const r = await saveGeminiKey(typeof key === 'string' ? key : '', typeof agentId === 'string' && agentId ? agentId : undefined)
     // Con la clave nueva, Gemini (y sus becarios) vuelven a estar disponibles sin esperar.
     if (r.ok) unblockProvider('gemini')
     return r
@@ -1476,6 +1478,8 @@ async function boot(): Promise<void> {
   registerProtocol()
   // Las claves de API de los agentes conectados salen de este equipo (cifradas) y solo van al suyo.
   setAgentKeyResolver(agentKey)
+  // «Otras cuentas» de Claude, Codex y Gemini: cada una con su carpeta de sesión aquí (src/main/agents/accounts.ts).
+  setAccountsRoot(join(app.getPath('userData'), 'cuentas'))
   // La dirección de Colibri que se eligió en el indicador Local (sin ella, la de su instalación).
   setColibriUrlSource(() => getConfig().colibriUrl)
   // Instalador del cliente de escritorio que este servidor ofrece a sus clientes (se publica con npm run publicar-cliente).

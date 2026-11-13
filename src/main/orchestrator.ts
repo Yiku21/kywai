@@ -1295,7 +1295,7 @@ function oneLine(s: string | undefined, n: number): string {
 
 let rateTimer: NodeJS.Timeout | null = null
 function onRateLimit(info: RateLimitInfo): void {
-  if (info.provider === 'claude') setClaudeRateLimit(info)
+  if (info.provider === 'claude') setClaudeRateLimit(info) // con quotaGroupId, la de esa «otra cuenta»
   if (rateTimer) return
   rateTimer = setTimeout(() => {
     rateTimer = null
@@ -1441,7 +1441,9 @@ function spawnBecario(parent: AgentConfig, stationId: string, model: string, twi
     isSubagent: true,
     parentId: parent.id,
     ...(parent.cli ? { cli: parent.cli } : {}),
-    ...(parent.modelProvider ? { modelProvider: parent.modelProvider } : {})
+    ...(parent.modelProvider ? { modelProvider: parent.modelProvider } : {}),
+    // Una «otra cuenta» trabaja con su sesión también en sus copias y becarios.
+    ...(parent.accountId ? { accountId: parent.accountId } : {})
   }
   subagents.set(b.id, b)
   stationUse.set(stationId, b.id)

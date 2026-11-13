@@ -3,6 +3,7 @@
 import type { AddAgentInput, AgentConfig, CliAgentSpec, ProviderKind, RobotAvatar, StationConfig } from './types'
 import { DEFAULT_AGENTS, DEFAULT_STATIONS } from './defaults'
 import { GENERIC_CATALOG } from './agentCatalogData'
+import { isAccountProvider } from './accounts'
 
 export interface CatalogEntry {
   id: string
@@ -196,6 +197,7 @@ export interface BuiltAgent {
  */
 export function buildAgent(input: AddAgentInput, existingAgents: AgentConfig[], existingStations: StationConfig[]): BuiltAgent {
   const taken = new Set(existingAgents.map((a) => a.id))
+  if (input.accountOf) return buildAccountAgent(input.accountOf, input.name, existingAgents, existingStations)
   const entry = input.presetId ? catalogEntry(input.presetId) : undefined
   if (input.presetId && !entry) throw new Error('Ese agente no está en el catálogo')
 
@@ -237,4 +239,70 @@ export function buildAgent(input: AddAgentInput, existingAgents: AgentConfig[], 
     cli: { ...spec, ...(entry ? { presetId: entry.id } : {}) }
   }
   return { agent, station }
+}
+
+// ---------- Otra cuenta ----------
+
+/** Letras para los nombres de las cuentas nuevas: «Claude B», «Claude C»… (el de siempre sería la A). */
+const ACCOUNT_LETTERS = 'BCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+/**
+ * Otra cuenta de Claude, Codex o Gemini: el mismo agente de fábrica (modelos, ficha y lo que se le da bien) con su
+ * propio identificador, nombre, color, robot, estación, grupo de cuota y carpeta de sesión (accountId = su id).
+ */
+export function buildAccountAgent(
+  provider: 'claude' | 'codex' | 'gemini',
+  name: string | undefined,
+  existingAgents: AgentConfig[],
+  existingStations: StationConfig[]
+): BuiltAgent {
+  if (!isAccountProvider(provider)) throw new Error('Ese agente no admite otra cuenta')
+  const def = DEFAULT_AGENTS.find((a) => a.provider === provider)
+  if (!def) throw new Error('Plantilla no encontrada')
+  const taken = new Set(existingAgents.map((a) => a.id))
+  const id = uniqueId(`${def.id}-cuenta`, taken)
+  const others = existingAgents.filter((a) => a.provider === provider && a.accountId).length
+  const letter = ACCOUNT_LETTERS[Math.min(others, ACCOUNT_LETTERS.length - 1)]
+  const fullName = (name?.trim() || `${def.name} ${letter}`).slice(0, 40)
+  const color = shiftHue(def.color, 40 + others * 35)
+  const stationId = `st-${id}`
+  const station = allocateStation(existingStations, stationId, fullName.length > 14 ? 'Agente' : fullName)
+  const base = clone(def)
+  // Su propio grupo de cuota (lo crea la configuración al guardar): la de la otra cuenta no es la de siempre.
+  delete base.quotaGroupId
+  const agent: AgentConfig = {
+    ...base,
+    id,
+    name: fullName,
+    color,
+    // El mismo robot que el de siempre (se reconoce de qué programa es) con otro color de ojos.
+    avatar: { ...(base.avatar ?? generatedAvatar(id, color)), eyeColor: color },
+    stationId,
+    enabled: true,
+    plannerOnly: undefined,
+    accountId: id
+  }
+  return { agent, station }
+}
+
+/** El mismo color con el tono girado (para distinguir la otra cuenta del de siempre). */
+export function shiftHue(hex: string, degrees: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex)
+  if (!m) return hex
+  const n = parseInt(m[1], 16)
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255)
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const d = max - min
+  let h = 0
+  const sat = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
+  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+  h = (h * 60 + degrees + 360) % 360
+  const c = (1 - Math.abs(2 * l - 1)) * sat
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const mm = l - c / 2
+  const [rr, gg, bb] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x]
+  const to = (v: number): string => Math.round((v + mm) * 255).toString(16).padStart(2, '0')
+  return `#${to(rr)}${to(gg)}${to(bb)}`
 }

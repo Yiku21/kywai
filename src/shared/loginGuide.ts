@@ -68,3 +68,18 @@ export function loginSteps(id: SetupToolId, label: string, p: LoginPlatform): st
       ]
   }
 }
+
+/**
+ * El primer paso de una «otra cuenta» (src/shared/accounts.ts): entrar con la otra, no con la que el navegador tenga
+ * abierta. Va delante de los pasos de su programa en la ventana y en kywai.
+ */
+export function accountLoginStep(provider: string): string {
+  const site = provider === 'claude' ? 'claude.ai' : provider === 'codex' ? 'chatgpt.com' : 'Google'
+  return t('Entra con la OTRA cuenta, no con la de siempre. Si el navegador entra solo con la de siempre, cierra sesión en {site} (o copia el enlace en una ventana privada) y vuelve a intentarlo.', { site })
+}
+
+/** Los pasos de un agente; en una «otra cuenta» (account:<id>), los de su programa con el aviso delante. */
+export function loginStepsOf(id: SetupToolId, agent: { provider: string } | undefined, label: string, p: LoginPlatform): string[] {
+  if (id.startsWith('account:') && agent) return [accountLoginStep(agent.provider), ...loginSteps(agent.provider as SetupToolId, label, p)]
+  return loginSteps(id, label, p)
+}

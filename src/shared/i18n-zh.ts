@@ -3776,4 +3776,22 @@ export const zh: Record<string, string> = {
   "pulsa una tecla": "正在按键",
   // main/orchestrator.ts (reparto de tareas del navegador de kywai)
   "«{title}» la hace {name}: necesita el navegador de kywai y {agent} no lo tiene": "「{title}」交给 {name}：它需要 kywai 浏览器，而 {agent} 没有",
+  // «Otra cuenta» de Claude, Codex o Gemini (AddAgent.tsx, setup.ts, quota.ts, loginGuide.ts)
+  "Elige el agente que quieres tener otra vez, con otra cuenta. Tendrá su propio nombre, su robot, su cuota y su inicio de sesión; tu agente de siempre sigue con la suya.": "选择你想再添加一次、使用另一个账号的智能体。它会有自己的名字、机器人、配额和登录；你原来的智能体保持不变。",
+  "Nombre (opcional)": "名称（可选）",
+  "Por ejemplo, «Claude B» o «Claude trabajo»": "例如「Claude B」或「Claude 工作」",
+  "ya tienes 1": "已有 1 个",
+  "ya tienes {n}": "已有 {n} 个",
+  "Añadir otra cuenta": "添加另一个账号",
+  "Solo salen los agentes que pueden guardar la sesión de cada cuenta por separado. Usar varias cuentas propias es decisión tuya: revisa las condiciones de cada servicio.": "只列出能分别保存每个账号会话的智能体。是否使用你自己的多个账号由你决定：请查看各服务的条款。",
+  "El mismo agente otra vez, con otra cuenta (Claude, Codex o Gemini)": "同一个智能体再来一个，使用另一个账号（Claude、Codex 或 Gemini）",
+  "Otra cuenta…": "另一个账号…",
+  "La cuota de esta cuenta se verá en cuanto haga su primera tarea.": "该账号完成第一项任务后就会显示配额。",
+  "No se encontró la carpeta de esta cuenta": "找不到该账号的文件夹",
+  "Esta cuenta ya no está en tu equipo": "该账号已不在你的团队中",
+  "Esa cuenta de Gemini no está en tu equipo": "该 Gemini 账号不在你的团队中",
+  "Entra con la OTRA cuenta, no con la de siempre. Si el navegador entra solo con la de siempre, cierra sesión en {site} (o copia el enlace en una ventana privada) y vuelve a intentarlo.": "请用「另一个」账号登录，而不是平时的账号。如果浏览器自动用平时的账号登录，请退出 {site}（或把链接复制到无痕窗口）后重试。",
+  "Otra suscripción de Claude (Pro o Max).": "另一个 Claude 订阅（Pro 或 Max）。",
+  "Otra cuenta de ChatGPT.": "另一个 ChatGPT 账号。",
+  "Otra clave de API de Google AI Studio (o una cuenta de empresa).": "另一个 Google AI Studio API 密钥（或企业账号）。",
 }

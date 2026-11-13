@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { tr } from '@shared/i18n'
-import { loginSteps, pasteHint, type LoginPlatform } from '@shared/loginGuide'
+import { accountLoginStep, loginSteps, pasteHint, type LoginPlatform } from '@shared/loginGuide'
 import type { SetupToolId } from '@shared/types'
 
 export interface LoginGuideText {
@@ -20,8 +20,9 @@ export interface LoginGuideText {
 }
 
 /** Los textos de la ventana: cabecera con los pasos, y el final si salió bien o mal. */
-export function loginGuideText(id: SetupToolId, label: string, p: LoginPlatform): LoginGuideText {
-  const steps = loginSteps(id, label, p)
+export function loginGuideText(id: SetupToolId, label: string, p: LoginPlatform, otherAccount = false): LoginGuideText {
+  // «Otra cuenta»: primero, que entre con la otra (el navegador suele tener abierta la de siempre).
+  const steps = [...(otherAccount ? [accountLoginStep(id)] : []), ...loginSteps(id, label, p)]
   const rule = '─'.repeat(60)
   return {
     title: `kywai - ${label}`,
@@ -53,10 +54,24 @@ export function loginGuideText(id: SetupToolId, label: string, p: LoginPlatform)
   }
 }
 
+/** Las variables de la «otra cuenta» al principio de la ventana (sus valores son rutas de kywai, sin comillas). */
+function envLines(env: AccountEnv | undefined, p: LoginPlatform): string[] {
+  if (!env) return []
+  const safe = (v: string): string => v.replace(/["'`$%^&|<>\r\n]/g, '')
+  const set = Object.entries(env.env).map(([k, v]) => (p === 'win' ? `set "${k}=${safe(v)}"` : `export ${k}='${safe(v)}'`))
+  const unset = env.unsetEnv.filter((k) => !(k in env.env)).map((k) => (p === 'win' ? `set "${k}="` : `unset ${k}`))
+  return [...set, ...unset]
+}
+
+export interface AccountEnv {
+  env: Record<string, string>
+  unsetEnv: string[]
+}
+
 /** Texto seguro dentro de un heredoc con comillas simples: solo hay que evitar la línea que lo cierra. */
 const HEREDOC = 'KYWAI_GUIA_FIN'
 
-function bashScript(text: LoginGuideText, cmd: string): string {
+function bashScript(text: LoginGuideText, cmd: string, env?: AccountEnv): string {
   const block = (lines: string[]) => `cat <<'${HEREDOC}'\n${lines.filter((l) => l !== HEREDOC).join('\n')}\n${HEREDOC}`
   return [
     '#!/usr/bin/env bash',
@@ -64,6 +79,7 @@ function bashScript(text: LoginGuideText, cmd: string): string {
     'clear 2>/dev/null',
     `printf '\\033]0;%s\\007' '${text.title.replace(/'/g, `'\\''`)}'`,
     block(text.header),
+    ...envLines(env, 'mac'),
     cmd,
     'if [ $? -eq 0 ]; then',
     block(text.ok),
@@ -80,7 +96,7 @@ export function cmdEcho(line: string): string {
   return `echo(${line.replace(/\^/g, '^^').replace(/[&|<>]/g, (c) => `^${c}`).replace(/%/g, '%%')}`
 }
 
-function cmdScript(text: LoginGuideText, cmd: string): string {
+function cmdScript(text: LoginGuideText, cmd: string, env?: AccountEnv): string {
   return [
     '@echo off',
     // UTF-8 para los acentos y las flechas; las líneas siguientes ya se leen así.
@@ -88,6 +104,7 @@ function cmdScript(text: LoginGuideText, cmd: string): string {
     `title ${text.title.replace(/[&|<>^%]/g, '')}`,
     'cls',
     ...text.header.map(cmdEcho),
+    ...envLines(env, 'win'),
     `call ${cmd}`,
     'if errorlevel 1 goto kywai_fallo',
     ...text.ok.map(cmdEcho),
@@ -99,15 +116,25 @@ function cmdScript(text: LoginGuideText, cmd: string): string {
 }
 
 /** El contenido del archivo que abre la terminal de cada sistema. */
-export function loginScript(id: SetupToolId, label: string, p: LoginPlatform, cmd: string): string {
-  const text = loginGuideText(id, label, p)
-  return p === 'win' ? cmdScript(text, cmd) : bashScript(text, cmd)
+export function loginScript(id: SetupToolId, label: string, p: LoginPlatform, cmd: string, env?: AccountEnv, otherAccount = false): string {
+  const text = loginGuideText(id, label, p, otherAccount)
+  return p === 'win' ? cmdScript(text, cmd, env) : bashScript(text, cmd, env)
 }
 
 /** Escribe el archivo en la carpeta temporal y devuelve su ruta. */
-export function writeLoginScript(id: SetupToolId, label: string, p: LoginPlatform, cmd: string, dir = join(tmpdir(), 'kywai-login')): string {
+export function writeLoginScript(
+  id: SetupToolId,
+  label: string,
+  p: LoginPlatform,
+  cmd: string,
+  dir = join(tmpdir(), 'kywai-login'),
+  env?: AccountEnv,
+  otherAccount = false
+): string {
   mkdirSync(dir, { recursive: true })
-  const file = join(dir, `${id.replace(/[^\w-]/g, '_')}.${p === 'win' ? 'cmd' : 'sh'}`)
-  writeFileSync(file, loginScript(id, label, p, cmd), { encoding: 'utf8', mode: 0o700 })
+  // Cada cuenta en su archivo (dos ventanas a la vez no se pisan).
+  const name = otherAccount && env ? `${id}-${label}` : id
+  const file = join(dir, `${name.replace(/[^\w-]/g, '_')}.${p === 'win' ? 'cmd' : 'sh'}`)
+  writeFileSync(file, loginScript(id, label, p, cmd, env, otherAccount), { encoding: 'utf8', mode: 0o700 })
   return file
 }

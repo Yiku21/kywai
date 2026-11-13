@@ -7,6 +7,7 @@ import { readCodexRateLimits, type CodexRateLimits, type CodexRateWindow } from 
 import type { RateLimitInfo } from './agents/types'
 import { emit } from './events'
 import { probeClaudeUsage, probeCodexRateLimits } from './quotaProbe'
+import { accountDirOf } from './agents/accounts'
 
 interface UsageRecord {
   g: string
@@ -23,6 +24,12 @@ let root = ''
 let records: UsageRecord[] = []
 let claudeRate: RateLimitInfo | null = null
 let codexRate: CodexRateLimits | null = null
+/**
+ * Cuota de las «otras cuentas» (src/shared/accounts.ts), por grupo: la de Claude llega con sus tareas; la de Codex se
+ * lee de los archivos de sesión de su carpeta. No se mezcla con la de siempre (claudeRate / codexRate).
+ */
+const accountClaudeRate = new Map<string, RateLimitInfo>()
+const accountCodexRate = new Map<string, CodexRateLimits>()
 let latest: QuotaInfo[] = []
 let timer: NodeJS.Timeout | null = null
 let usageSaveTimer: NodeJS.Timeout | null = null
@@ -58,8 +65,9 @@ export function initQuota(workspaceRoot: string, cfg: () => AppConfig, agents: (
   }
   try {
     if (existsSync(cacheFile())) {
-      const j = JSON.parse(readFileSync(cacheFile(), 'utf8')) as { claude?: RateLimitInfo }
+      const j = JSON.parse(readFileSync(cacheFile(), 'utf8')) as { claude?: RateLimitInfo; accounts?: Record<string, RateLimitInfo> }
       if (j.claude && Array.isArray(j.claude.windows)) claudeRate = j.claude
+      for (const [g, info] of Object.entries(j.accounts ?? {})) if (info && Array.isArray(info.windows)) accountClaudeRate.set(g, info)
     }
   } catch {
     claudeRate = null
@@ -105,7 +113,8 @@ let claudeOverride = false
 function probeAll(): Promise<void> {
   if (!probeEnabled) return Promise.resolve()
   if (probing) return probing
-  const providers = new Set(getAgents().map((a) => a.provider))
+  // Solo la cuenta de siempre: las «otras cuentas» informan de la suya en sus tareas (o sus archivos).
+  const providers = new Set(getAgents().filter((a) => !a.accountId).map((a) => a.provider))
   probing = (async () => {
     const [claude, codex] = await Promise.all([
       providers.has('claude') ? probeClaudeUsage().catch(() => null) : null,
@@ -146,12 +155,15 @@ export function recordUsage(groupId: string | undefined, tokens: number, request
 }
 
 export function setClaudeRateLimit(info: RateLimitInfo): void {
+  const group = info.quotaGroupId
+  const before = group ? accountClaudeRate.get(group) : claudeRate
   // Keep windows we already knew if this event only carries a status.
-  if (!info.windows.length && claudeRate) info = { ...info, windows: claudeRate.windows }
-  claudeRate = info
+  if (!info.windows.length && before) info = { ...info, windows: before.windows }
+  if (group) accountClaudeRate.set(group, info)
+  else claudeRate = info
   if (!root) return
   try {
-    writeJson(cacheFile(), { claude: claudeRate })
+    writeJson(cacheFile(), { claude: claudeRate, ...(accountClaudeRate.size ? { accounts: Object.fromEntries(accountClaudeRate) } : {}) })
   } catch {
     /* non fatal */
   }
@@ -340,8 +352,15 @@ function geminiNote(): string {
   return tr('Gemini CLI no informa la cuota restante. Puedes configurar un presupuesto para estimarla.')
 }
 
+/** Los grupos de cuota que son de una «otra cuenta» (sus agentes llevan accountId). */
+function accountGroups(agents: AgentConfig[]): Set<string> {
+  return new Set(agents.filter((a) => a.accountId && a.quotaGroupId).map((a) => a.quotaGroupId!))
+}
+
 export function computeQuotas(cfg: AppConfig, agents: AgentConfig[], now = Date.now()): QuotaInfo[] {
+  const accounts = accountGroups(agents)
   return cfg.quotaGroups.map((g): QuotaInfo => {
+    const ownAccount = accounts.has(g.id)
     const agentIds = agents.filter((a) => a.enabled && a.quotaGroupId === g.id).map((a) => a.id)
     const todayStart = periodWindow('diario', g.id, now).start
     const usedWindowStart = g.budget ? periodWindow(g.budget.period, g.id, now).start : todayStart
@@ -367,14 +386,17 @@ export function computeQuotas(cfg: AppConfig, agents: AgentConfig[], now = Date.
       return g.budget ? { ...base, ...estimate(g, g.budget, now) } : { ...base, kind: 'local', note: tr('Sin cuota configurada') }
     }
     if (g.provider === 'codex') {
-      const real = codexRate ? codexReal(codexRate, now) : null
+      const rate = ownAccount ? accountCodexRate.get(g.id) : codexRate
+      const real = rate ? codexReal(rate, now) : null
       if (real && real.source === 'real') return { ...base, ...real }
       if (g.budget) return { ...base, ...estimate(g, g.budget, now) }
       return { ...base, ...(real ?? {}), note: real?.note ?? 'No disponible' }
     }
     if (g.provider === 'claude') {
-      const real = claudeRate ? claudeReal(claudeRate, now) : null
+      const rate = ownAccount ? accountClaudeRate.get(g.id) : claudeRate
+      const real = rate ? claudeReal(rate, now) : null
       if (real) return { ...base, ...real }
+      if (ownAccount) return withBudgetOr(tr('La cuota de esta cuenta se verá en cuanto haga su primera tarea.'))
       const fallback = withBudgetOr(
         claudeProblem ?? tr('Claude Code no informa la cuota restante en modo automático. Puedes configurar un presupuesto para estimarla.')
       )
@@ -394,20 +416,31 @@ export function computeQuotas(cfg: AppConfig, agents: AgentConfig[], now = Date.
 export function quotaSnapshot(now = Date.now()): QuotaSnapshot {
   const snap: QuotaSnapshot = {}
   const groups = getCfg().quotaGroups
-  const claudeGroup = groups.find((g) => g.provider === 'claude')
-  if (claudeRate && claudeGroup) {
-    const windows = claudeRate.windows
+  const accounts = accountGroups(getAgents())
+  const claudeSnap = (g: QuotaGroupConfig, rate: RateLimitInfo): void => {
+    const windows = rate.windows
       .filter((w) => w.usedPct != null && (w.resetsAt == null || w.resetsAt > now))
       .map((w) => ({ name: w.name, label: claudeWindowLabel(w.name), usedPct: w.usedPct!, resetsAt: w.resetsAt ?? null }))
-    if (windows.length) snap[claudeGroup.id] = { label: claudeGroup.label, at: claudeRate.receivedAt, windows }
+    if (windows.length) snap[g.id] = { label: g.label, at: rate.receivedAt, windows }
   }
-  const codexGroup = groups.find((g) => g.provider === 'codex')
-  if (codexRate && codexGroup) {
+  const codexSnap = (g: QuotaGroupConfig, rate: CodexRateLimits): void => {
     const windows = (['primary', 'secondary'] as const)
-      .map((name) => ({ name, w: codexRate!.windows[name] }))
+      .map((name) => ({ name, w: rate.windows[name] }))
       .filter((x): x is { name: 'primary' | 'secondary'; w: CodexRateWindow } => !!x.w && (x.w.resetsAt == null || x.w.resetsAt > now))
       .map(({ name, w }) => ({ name, label: minutesLabel(w.windowMinutes), usedPct: w.usedPercent, resetsAt: w.resetsAt }))
-    if (windows.length) snap[codexGroup.id] = { label: codexGroup.label, at: codexRate.updatedAt, windows }
+    if (windows.length) snap[g.id] = { label: g.label, at: rate.updatedAt, windows }
+  }
+  // La de siempre va al primer grupo de cada proveedor que no es de una «otra cuenta»; cada cuenta, al suyo.
+  const claudeGroup = groups.find((g) => g.provider === 'claude' && !accounts.has(g.id))
+  if (claudeRate && claudeGroup) claudeSnap(claudeGroup, claudeRate)
+  const codexGroup = groups.find((g) => g.provider === 'codex' && !accounts.has(g.id))
+  if (codexRate && codexGroup) codexSnap(codexGroup, codexRate)
+  for (const g of groups) {
+    if (!accounts.has(g.id)) continue
+    const c = accountClaudeRate.get(g.id)
+    if (g.provider === 'claude' && c) claudeSnap(g, c)
+    const x = accountCodexRate.get(g.id)
+    if (g.provider === 'codex' && x) codexSnap(g, x)
   }
   return snap
 }
@@ -419,6 +452,22 @@ export async function freshQuotaSnapshot(maxWaitMs: number): Promise<QuotaSnapsh
 }
 
 let refreshing: Promise<QuotaInfo[]> | null = null
+
+/** La cuota de cada «otra cuenta» de Codex, de los archivos de sesión de su carpeta. */
+async function readAccountCodexRates(): Promise<void> {
+  for (const a of getAgents()) {
+    if (a.provider !== 'codex' || !a.accountId || !a.quotaGroupId || a.isSubagent) continue
+    const dir = accountDirOf(a.accountId)
+    if (!dir) continue
+    try {
+      const rl = await readCodexRateLimits(dir)
+      const before = accountCodexRate.get(a.quotaGroupId)
+      if (rl && (!before || rl.updatedAt >= before.updatedAt)) accountCodexRate.set(a.quotaGroupId, rl)
+    } catch {
+      /* sin datos todavía */
+    }
+  }
+}
 
 /** Publica los grupos del equipo actual sin esperar a consultas externas de cuota o presencia. */
 export function recomputeQuotas(): QuotaInfo[] {
@@ -441,6 +490,7 @@ export async function refreshQuotas(opts: { codex?: boolean; probe?: boolean } =
         } catch (e) {
           console.error('[cowork] no se pudo leer la cuota de Codex', e)
         }
+        await readAccountCodexRates()
         return latest
       })().finally(() => {
         refreshing = null

@@ -5,8 +5,8 @@
 // con su cuenta en el navegador y aceptar (o pegar la clave de Gemini o de un agente de catálogo aquí mismo).
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { CircleCheck, KeyRound, LoaderCircle, LogIn, PlugZap, RefreshCw } from 'lucide-react'
-import type { ChatMessage, ConnectGuide, ConnectGuideItem, SetupAuth, SetupTool } from '@shared/types'
-import { browserPlatform, loginSteps } from '@shared/loginGuide'
+import type { ChatMessage, ConnectGuide, ConnectGuideItem, SetupAuth, SetupTool, SetupToolId } from '@shared/types'
+import { browserPlatform, loginStepsOf } from '@shared/loginGuide'
 import { installOrder } from '@shared/setupTool'
 import { api, isWeb } from '@/lib/api'
 import { useCowork } from '@/store/cowork'
@@ -58,6 +58,10 @@ function ConnectRow({ item, canAct, onReady }: { item: ConnectGuideItem; canAct:
   const ok = !!auth && auth !== 'checking' && auth.ok
   const apiKey = agent?.cli?.apiKey
   const hasLogin = item.tool !== `cli:${item.agentId}` || !!agent?.cli?.login
+  // «Otra cuenta»: se instala el mismo programa que el de siempre; la clave de Gemini va a su carpeta.
+  const isAccount = item.tool.startsWith('account:')
+  const programId = (isAccount && agent ? agent.provider : item.tool) as SetupToolId
+  const geminiLike = item.tool === 'gemini' || (isAccount && agent?.provider === 'gemini')
 
   const check = useCallback(async (quiet = false): Promise<boolean> => {
     const a = api
@@ -104,7 +108,7 @@ function ConnectRow({ item, canAct, onReady }: { item: ConnectGuideItem; canAct:
   async function installIfMissing(): Promise<boolean> {
     const a = api!
     const tools: SetupTool[] = await a.setupDetect()
-    const me = tools.find((x) => x.id === item.tool)
+    const me = tools.find((x) => x.id === programId)
     if (!me || me.installed) return true
     if (!me.canInstall) throw new Error(t('{name} se instala desde su web: {url}', { name: item.name, url: me.url }))
     // Primero lo que necesita (Node.js o Python), luego el propio programa.
@@ -142,7 +146,7 @@ function ConnectRow({ item, canAct, onReady }: { item: ConnectGuideItem; canAct:
     setError(null)
     setAuth('checking')
     try {
-      const r = item.tool === 'gemini' ? await a.setupGeminiKey(k) : await a.setAgentKey(item.agentId, k)
+      const r = geminiLike ? await a.setupGeminiKey(k, isAccount ? item.agentId : undefined) : await a.setAgentKey(item.agentId, k)
       setAuth(r)
       setKey('')
     } catch (err) {
@@ -151,8 +155,8 @@ function ConnectRow({ item, canAct, onReady }: { item: ConnectGuideItem; canAct:
     }
   }
 
-  const lastLine = phase === 'installing' ? [...log].reverse().find((l) => l.toolId === item.tool || l.toolId === 'node' || l.toolId === 'python')?.line : undefined
-  const showKey = !ok && (item.tool === 'gemini' || !!apiKey)
+  const lastLine = phase === 'installing' ? [...log].reverse().find((l) => (l.toolId === item.tool || l.toolId === programId) || l.toolId === 'node' || l.toolId === 'python')?.line : undefined
+  const showKey = !ok && (geminiLike || !!apiKey)
 
   return (
     <li className={cx(s.row, ok && s.rowOk)}>
@@ -193,8 +197,8 @@ function ConnectRow({ item, canAct, onReady }: { item: ConnectGuideItem; canAct:
             type="password"
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            placeholder={item.tool === 'gemini' ? t('…o pega aquí una clave de API de Google AI Studio') : t('Pega aquí {label}', { label: apiKey!.label })}
-            aria-label={item.tool === 'gemini' ? t('Clave de API de Gemini') : apiKey!.label}
+            placeholder={geminiLike ? t('…o pega aquí una clave de API de Google AI Studio') : t('Pega aquí {label}', { label: apiKey!.label })}
+            aria-label={geminiLike ? t('Clave de API de Gemini') : apiKey!.label}
             autoComplete="off"
             disabled={!canAct}
           />
@@ -204,7 +208,7 @@ function ConnectRow({ item, canAct, onReady }: { item: ConnectGuideItem; canAct:
           <button
             type="button"
             className={cx(u.btn, u.btnSm, u.btnGhost)}
-            onClick={() => void api?.openExternal(item.tool === 'gemini' ? 'https://aistudio.google.com/apikey' : apiKey!.url)}
+            onClick={() => void api?.openExternal(geminiLike ? 'https://aistudio.google.com/apikey' : apiKey!.url)}
           >
             {t('Conseguir una')}
           </button>
@@ -214,7 +218,7 @@ function ConnectRow({ item, canAct, onReady }: { item: ConnectGuideItem; canAct:
         <div className={s.steps}>
           <p className={s.stepsLead}>{t('Se ha abierto una ventana aparte. Sigue allí estos pasos:')}</p>
           <ol>
-            {loginSteps(item.tool, item.name, browserPlatform()).map((step, i) => (
+            {loginStepsOf(item.tool, agent, item.name, browserPlatform()).map((step, i) => (
               <li key={i}>{step}</li>
             ))}
           </ol>

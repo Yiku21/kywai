@@ -1,7 +1,10 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react'
-import { AlertTriangle, ExternalLink, Gift, LoaderCircle, Plus, Search, Terminal, X } from 'lucide-react'
+import { AlertTriangle, ExternalLink, Gift, LoaderCircle, Plus, Search, Terminal, UserPlus, X } from 'lucide-react'
 import type { AgentConfig } from '@shared/types'
 import { AGENT_CATALOG, type CatalogEntry } from '@shared/agentCatalog'
+import { DEFAULT_AGENTS } from '@shared/defaults'
+import { ACCOUNT_PROVIDERS, type AccountProvider } from '@shared/accounts'
+import { RobotAvatar } from '@/lib/RobotAvatar'
 import { api } from '@/lib/api'
 import { cx, errorText } from '../common/util'
 import { shake } from '@/lib/shake'
@@ -18,6 +21,13 @@ function splitArgs(text: string): string[] | null {
 /** Orden de los gratis: de lo más fácil (sin cuenta ni tarjeta) a lo que pide más condiciones. */
 const FREE_FIRST = ['kilo', 'gemini', 'opencode', 'copilot', 'cline', 'aider', 'mistral-vibe', 'antigravity']
 const freeRank = (id: string): number => (FREE_FIRST.includes(id) ? FREE_FIRST.indexOf(id) : FREE_FIRST.length)
+
+/** Con qué cuenta entra cada programa (texto de «Otra cuenta»). */
+const ACCOUNT_KIND: Record<AccountProvider, string> = {
+  claude: 'Otra suscripción de Claude (Pro o Max).',
+  codex: 'Otra cuenta de ChatGPT.',
+  gemini: 'Otra clave de API de Google AI Studio (o una cuenta de empresa).'
+}
 
 /**
  * Elegir un agente para añadir: del catálogo (los que ya tienes con tu suscripción) o cualquier otro programa de
@@ -41,7 +51,11 @@ export function AddAgent({
   const [error, setError] = useState<string | null>(null)
   const [badArgs, setBadArgs] = useState(false)
   const argsRef = useRef<HTMLInputElement>(null)
-  const [custom, setCustom] = useState(false)
+  // Qué se enseña: el catálogo, el formulario de «Otro programa…» o la lista de «Otra cuenta…».
+  const [mode, setMode] = useState<'catalog' | 'custom' | 'account'>('catalog')
+  const custom = mode === 'custom'
+  const setCustom = (on: boolean) => setMode(on ? 'custom' : 'catalog')
+  const [accountName, setAccountName] = useState('')
   const [form, setForm] = useState({ name: '', command: '', promptVia: 'stdin' as 'stdin' | 'file' | 'arg', args: '', login: '' })
 
   const have = useMemo(() => new Set(existing.map((a) => a.cli?.presetId ?? a.id)), [existing])
@@ -67,6 +81,25 @@ export function AddAgent({
       onClose()
     } catch (e) {
       setError(errorText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  /** Otra cuenta de Claude, Codex o Gemini: un agente más con su propia sesión (inicia sesión en el paso «Sesiones»). */
+  async function addAccount(provider: AccountProvider): Promise<void> {
+    const a = api
+    if (!a || busy) return
+    setBusy(`account:${provider}`)
+    setError(null)
+    try {
+      const before = new Set(existing.map((x) => x.id))
+      const cfg = await a.addAgent({ accountOf: provider, ...(accountName.trim() ? { name: accountName.trim() } : {}) })
+      const created = cfg.agents.find((x) => !before.has(x.id))
+      onAdded(created?.id ?? provider)
+      onClose()
+    } catch (err) {
+      setError(errorText(err))
     } finally {
       setBusy(null)
     }
@@ -125,7 +158,50 @@ export function AddAgent({
           </button>
         </header>
 
-        {!custom ? (
+        {mode === 'account' ? (
+          <div className={s.accountPane}>
+            <p className={s.hint}>
+              {t('Elige el agente que quieres tener otra vez, con otra cuenta. Tendrá su propio nombre, su robot, su cuota y su inicio de sesión; tu agente de siempre sigue con la suya.')}
+            </p>
+            <label className={s.accountName}>
+              <span>{t('Nombre (opcional)')}</span>
+              <input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder={t('Por ejemplo, «Claude B» o «Claude trabajo»')} maxLength={40} />
+            </label>
+            <ul className={s.list}>
+              {ACCOUNT_PROVIDERS.map((p) => {
+                const def = DEFAULT_AGENTS.find((x) => x.provider === p)
+                if (!def) return null
+                const count = existing.filter((x) => x.provider === p).length
+                return (
+                  <li key={p} className={s.item} style={{ ['--agent' as string]: def.color }}>
+                    <RobotAvatar agent={def} size={36} />
+                    <span className={s.itemText}>
+                      <span className={s.itemName}>
+                        {def.name}
+                        {count > 0 && <span className={s.cmd}>{count === 1 ? t('ya tienes 1') : t('ya tienes {n}', { n: count })}</span>}
+                      </span>
+                      <span className={s.itemAccount}>{t(ACCOUNT_KIND[p])}</span>
+                    </span>
+                    <span className={s.itemActions}>
+                      <button type="button" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={!!busy} onClick={() => void addAccount(p)}>
+                        {busy === `account:${p}` ? <LoaderCircle size={13} className={u.spin} aria-hidden="true" /> : <UserPlus size={13} aria-hidden="true" />}
+                        {t('Añadir otra cuenta')}
+                      </button>
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className={s.hint}>
+              {t('Solo salen los agentes que pueden guardar la sesión de cada cuenta por separado. Usar varias cuentas propias es decisión tuya: revisa las condiciones de cada servicio.')}
+            </p>
+            <div className={s.formActions}>
+              <button type="button" className={cx(u.btn, u.btnGhost)} onClick={() => setMode('catalog')}>
+                {t('Volver al catálogo')}
+              </button>
+            </div>
+          </div>
+        ) : !custom ? (
           <>
             <div className={s.searchRow}>
               <label className={s.search}>
@@ -187,9 +263,14 @@ export function AddAgent({
             </ul>
             <footer className={s.foot}>
               <p className={s.hint}>{t('¿No está el tuyo? Cualquier programa de terminal que atienda un encargo sirve.')}</p>
-              <button type="button" className={u.btn} onClick={() => setCustom(true)}>
-                <Terminal size={14} aria-hidden="true" /> {t('Otro programa…')}
-              </button>
+              <span className={s.footActions}>
+                <button type="button" className={u.btn} onClick={() => setMode('account')} title={t('El mismo agente otra vez, con otra cuenta (Claude, Codex o Gemini)')}>
+                  <UserPlus size={14} aria-hidden="true" /> {t('Otra cuenta…')}
+                </button>
+                <button type="button" className={u.btn} onClick={() => setCustom(true)}>
+                  <Terminal size={14} aria-hidden="true" /> {t('Otro programa…')}
+                </button>
+              </span>
             </footer>
           </>
         ) : (

@@ -3776,4 +3776,22 @@ export const pt: Record<string, string> = {
   "pulsa una tecla": "está pressionando uma tecla",
   // main/orchestrator.ts (reparto de tareas del navegador de kywai)
   "«{title}» la hace {name}: necesita el navegador de kywai y {agent} no lo tiene": "«{title}» fica com {name}: precisa do navegador do kywai e {agent} não o tem",
+  // «Otra cuenta» de Claude, Codex o Gemini (AddAgent.tsx, setup.ts, quota.ts, loginGuide.ts)
+  "Elige el agente que quieres tener otra vez, con otra cuenta. Tendrá su propio nombre, su robot, su cuota y su inicio de sesión; tu agente de siempre sigue con la suya.": "Escolha o agente que você quer ter de novo, com outra conta. Ele terá seu próprio nome, robô, cota e login; seu agente de sempre continua com os dele.",
+  "Nombre (opcional)": "Nome (opcional)",
+  "Por ejemplo, «Claude B» o «Claude trabajo»": "Por exemplo, «Claude B» ou «Claude trabalho»",
+  "ya tienes 1": "você já tem 1",
+  "ya tienes {n}": "você já tem {n}",
+  "Añadir otra cuenta": "Adicionar outra conta",
+  "Solo salen los agentes que pueden guardar la sesión de cada cuenta por separado. Usar varias cuentas propias es decisión tuya: revisa las condiciones de cada servicio.": "Só aparecem os agentes que conseguem guardar a sessão de cada conta separadamente. Usar várias contas suas é decisão sua: confira os termos de cada serviço.",
+  "El mismo agente otra vez, con otra cuenta (Claude, Codex o Gemini)": "O mesmo agente de novo, com outra conta (Claude, Codex ou Gemini)",
+  "Otra cuenta…": "Outra conta…",
+  "La cuota de esta cuenta se verá en cuanto haga su primera tarea.": "A cota desta conta aparece assim que ela fizer a primeira tarefa.",
+  "No se encontró la carpeta de esta cuenta": "A pasta desta conta não foi encontrada",
+  "Esta cuenta ya no está en tu equipo": "Esta conta não está mais na sua equipe",
+  "Esa cuenta de Gemini no está en tu equipo": "Essa conta do Gemini não está na sua equipe",
+  "Entra con la OTRA cuenta, no con la de siempre. Si el navegador entra solo con la de siempre, cierra sesión en {site} (o copia el enlace en una ventana privada) y vuelve a intentarlo.": "Entre com a OUTRA conta, não com a de sempre. Se o navegador entrar sozinho com a de sempre, saia de {site} (ou copie o link numa janela anônima) e tente de novo.",
+  "Otra suscripción de Claude (Pro o Max).": "Outra assinatura do Claude (Pro ou Max).",
+  "Otra cuenta de ChatGPT.": "Outra conta do ChatGPT.",
+  "Otra clave de API de Google AI Studio (o una cuenta de empresa).": "Outra chave de API do Google AI Studio (ou uma conta empresarial).",
 }

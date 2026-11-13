@@ -20,6 +20,7 @@ import {
 import type { Effort, JsonlParser, ParserCallbacks, ProcessOutcome, RunAgentOptions, RunAgentResult } from './types'
 import { resultText, todoTrace, unwrapShell } from './traceText'
 import { tr } from '@shared/i18n'
+import { withAccount } from './accounts'
 
 export const CODEX_AUTH_MESSAGE = 'Sesión de Codex caducada: ejecuta `codex login` en una terminal'
 
@@ -255,7 +256,8 @@ export function createCodexParser(cb: ParserCallbacks): JsonlParser {
 }
 
 export function runCodex(opts: RunAgentOptions): Promise<RunAgentResult> {
-  return runCli({
+  // «Otra cuenta»: se lanza con su propia carpeta de sesión; el de siempre, tal cual (ver accounts.ts).
+  return runCli(withAccount(opts.agent, {
     command: 'codex',
     args: codexArgs(opts.model, opts.mode, opts.images, opts.access, opts.effort, opts.resume, opts.extraMcp?.args),
     cwd: opts.cwd,
@@ -264,7 +266,7 @@ export function runCodex(opts: RunAgentOptions): Promise<RunAgentResult> {
     signal: opts.signal,
     parser: createCodexParser(opts),
     onStall: (text) => opts.onActivity?.(text, 'tool')
-  })
+  }))
 }
 
 // ---------- Real rate limits from the persisted sessions (~/.codex/sessions) ----------

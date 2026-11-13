@@ -723,6 +723,26 @@ kywai no es solo para los agentes de fábrica: es una plataforma donde conectas 
   quitado), con la cuenta o suscripción con la que funciona cada uno. Elige uno y se añade con su robot y su estación en el
   espacio digital. **«Otro programa…»** conecta cualquiera: el comando, cómo recibe el encargo (por stdin, en un
   archivo o como argumento) y sus argumentos.
+- **Otra cuenta del mismo agente**: **«Otra cuenta…»** (junto a «Otro programa…») enseña los agentes que pueden
+  tenerse dos veces con cuentas distintas: **Claude**, **Codex** y **Gemini**. Eliges uno (y, si quieres, su nombre) y
+  se añade, por ejemplo, **«Claude B»**: los mismos modelos y la misma ficha que el de siempre, con otro color, su
+  propio puesto en el espacio digital, su tarjeta en Ajustes y su **propio inicio de sesión** en el paso «Sesiones».
+  En la ventana de «Iniciar sesión» entra con la **otra** cuenta: si el navegador entra solo con la de siempre, cierra
+  sesión en claude.ai o chatgpt.com (o copia el enlace en una ventana privada). En Gemini, lo más fácil es pegar otra
+  clave de Google AI Studio en su fila.
+  - Cada cuenta guarda su sesión en su carpeta (`cuentas/<id>` en los datos de kywai) y kywai lanza siempre su programa
+    con ella (`CLAUDE_CONFIG_DIR`, `CODEX_HOME` o `GEMINI_CLI_HOME`); en Mac, Claude Code separa también su entrada
+    del llavero. Tu agente de siempre no se toca.
+  - Comparte con el de siempre las habilidades, plugins, órdenes, instrucciones y ajustes de su programa (enlazados
+    desde `~/.claude`, `~/.codex` o `~/.gemini`), pero no la sesión, el historial ni la cuota.
+  - **Cuota aparte**: su indicador es el suyo (en Claude, con lo que informa en sus tareas; en Codex, con los archivos
+    de sesión de su carpeta). Hermes sabe que son dos cuentas del mismo programa y, si a una le queda poca, da la tarea a
+    la otra en vez de esperar.
+  - Sus **copias** («Claude B 2») y sus becarios trabajan con su misma cuenta.
+  - Usar varias cuentas propias es decisión tuya: revisa las condiciones de cada servicio.
+
+  Código: `src/shared/accounts.ts`, `src/main/agents/accounts.ts`, `buildAccountAgent` en `src/shared/agentCatalog.ts`
+  y las cuotas por grupo en `src/main/quota.ts`.
 - **Agentes gratis**: los que se pueden usar sin pagar una suscripción llevan la etiqueta verde **«Gratis»** en el
   catálogo y en las tarjetas del asistente, con la condición y el límite (pasa el ratón por encima en el asistente). El
   botón **«Solo gratis»** del catálogo deja solo esos. Comprobado en sus páginas oficiales en noviembre de 2026:

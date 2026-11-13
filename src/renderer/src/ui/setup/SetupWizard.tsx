@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { RobotAvatar } from '@/lib/RobotAvatar'
 import { catalogEntry } from '@shared/agentCatalog'
 import { installOrder } from '@shared/setupTool'
-import { browserPlatform, loginSteps } from '@shared/loginGuide'
+import { browserPlatform, loginStepsOf } from '@shared/loginGuide'
 import { LocalConfig } from '../quota/LocalConfig'
 import { AddAgent } from './AddAgent'
 import { cx, errorText } from '../common/util'
@@ -49,11 +49,18 @@ function freeOf(a: AgentConfig): string | undefined {
   return entry?.free ? t(entry.free) : undefined
 }
 
+/** Dónde inicia sesión cada agente (una «otra cuenta», en la suya: account:<id>). */
 function toolFor(a: AgentConfig, engine: LocalEngine): SetupToolId | null {
   if (isLocal(a)) return engine
   if (a.provider === 'cli') return `cli:${a.id}`
+  if (a.accountId && (a.provider === 'claude' || a.provider === 'codex' || a.provider === 'gemini')) return `account:${a.id}`
   if (a.provider === 'claude' || a.provider === 'codex' || a.provider === 'gemini' || a.provider === 'hermes' || a.provider === 'muse') return a.provider
   return null
+}
+
+/** El programa que necesita (una «otra cuenta» usa el mismo que el de siempre). */
+function programFor(a: AgentConfig, engine: LocalEngine): SetupToolId | null {
+  return a.accountId ? toolFor({ ...a, accountId: undefined }, engine) : toolFor(a, engine)
 }
 
 /** Asistente de primer arranque (y desde el menú ⚙): agentes, programas, inicio de sesión. */
@@ -72,7 +79,7 @@ export function SetupWizard() {
   const [detecting, setDetecting] = useState(false)
   const [installing, setInstalling] = useState<SetupToolId | null>(null)
   const [auth, setAuth] = useState<Partial<Record<SetupToolId, SetupAuth | 'checking'>>>({})
-  const [geminiKey, setGeminiKey] = useState('')
+  const [geminiKeys, setGeminiKeys] = useState<Partial<Record<SetupToolId, string>>>({})
   const [agentKeys, setAgentKeys] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   // Sesiones que el usuario ha pedido cambiar (lápiz): se enseñan como si faltaran hasta la siguiente comprobación.
@@ -93,8 +100,10 @@ export function SetupWizard() {
   }, [main])
 
   const selected = main.filter((a) => chosen.has(a.id))
-  const agentTools = selected.map((a) => toolFor(a, engine)).filter((tool): tool is SetupToolId => !!tool)
-  const loginTools: SetupToolId[] = agentTools.filter((tool) => {
+  const agentTools = [...new Set(selected.map((a) => programFor(a, engine)).filter((tool): tool is SetupToolId => !!tool))]
+  const accountTools = selected.map((a) => toolFor(a, engine)).filter((tool): tool is SetupToolId => !!tool && tool.startsWith('account:'))
+  const loginTools: SetupToolId[] = [...agentTools, ...accountTools].filter((tool) => {
+    if (tool.startsWith('account:')) return true
     if (tool.startsWith('cli:')) {
       const spec = selected.find((a) => a.id === tool.slice(4))?.cli
       return !!(spec?.login || spec?.authCheck || spec?.apiKey)
@@ -288,20 +297,22 @@ export function SetupWizard() {
     }
   }
 
-  async function saveKey(e: FormEvent): Promise<void> {
+  /** La clave de Gemini: la de siempre (id «gemini») o la de una «otra cuenta» de Gemini (account:<id>). */
+  async function saveKey(e: FormEvent, id: SetupToolId = 'gemini'): Promise<void> {
     e.preventDefault()
     const a = api
-    if (!a || !geminiKey.trim()) return
+    const key = (geminiKeys[id] ?? '').trim()
+    if (!a || !key) return
     setError(null)
-    setAuth((prev) => ({ ...prev, gemini: 'checking' }))
+    setAuth((prev) => ({ ...prev, [id]: 'checking' }))
     try {
-      const r = await a.setupGeminiKey(geminiKey)
-      setAuth((prev) => ({ ...prev, gemini: r }))
-      if (r.ok) setChanging((prev) => new Set([...prev].filter((x) => x !== 'gemini')))
-      setGeminiKey('')
+      const r = await a.setupGeminiKey(key, id.startsWith('account:') ? id.slice(8) : undefined)
+      setAuth((prev) => ({ ...prev, [id]: r }))
+      if (r.ok) setChanging((prev) => new Set([...prev].filter((x) => x !== id)))
+      setGeminiKeys((prev) => ({ ...prev, [id]: '' }))
     } catch (err) {
       setError(errorText(err))
-      void checkAuth(['gemini'])
+      void checkAuth([id])
     }
   }
 
@@ -317,8 +328,8 @@ export function SetupWizard() {
 
   const missing = shownTools.filter((tool) => !tool.installed)
   const localGroup = quotaGroups.find((g) => g.id === 'local')
-  const ready = (id: SetupToolId): boolean => {
-    const tool = tools?.find((x) => x.id === id)
+  const ready = (id: SetupToolId, program: SetupToolId = id): boolean => {
+    const tool = tools?.find((x) => x.id === program)
     const au = auth[id]
     const loggedIn = !loginTools.includes(id) || (!!au && au !== 'checking' && au.ok)
     return !!tool?.installed && loggedIn
@@ -538,7 +549,8 @@ export function SetupWizard() {
               <ul className={s.rows}>
                 {loginTools.map((id) => {
                   const st = auth[id]
-                  const agent = selected.find((a) => toolFor(a, engine) === id)
+                  const agent = selected.find((a) => toolFor(a, engine) === id) ?? selected.find((a) => programFor(a, engine) === id && !a.accountId)
+                  const geminiKeyRow = id === 'gemini' || (id.startsWith('account:') && agent?.provider === 'gemini')
                   const checking = st === 'checking'
                   const ok = !!st && st !== 'checking' && st.ok
                   const isChanging = changing.has(id)
@@ -577,19 +589,19 @@ export function SetupWizard() {
                             </button>
                           </form>
                         )}
-                        {id === 'gemini' && showFix && (
-                          <form className={s.keyForm} onSubmit={(e) => void saveKey(e)}>
+                        {geminiKeyRow && showFix && (
+                          <form className={s.keyForm} onSubmit={(e) => void saveKey(e, id)}>
                             <KeyRound size={13} aria-hidden="true" className={s.keyIcon} />
                             <input
                               className={s.input}
                               type="password"
-                              value={geminiKey}
-                              onChange={(e) => setGeminiKey(e.target.value)}
+                              value={geminiKeys[id] ?? ''}
+                              onChange={(e) => setGeminiKeys((prev) => ({ ...prev, [id]: e.target.value }))}
                               placeholder={t('…o pega aquí una clave de API de Google AI Studio')}
                               aria-label={t('Clave de API de Gemini')}
                               autoComplete="off"
                             />
-                            <button type="submit" className={cx(u.btn, u.btnSm)} disabled={!geminiKey.trim()}>
+                            <button type="submit" className={cx(u.btn, u.btnSm)} disabled={!(geminiKeys[id] ?? '').trim()}>
                               {t('Guardar')}
                             </button>
                           </form>
@@ -598,7 +610,7 @@ export function SetupWizard() {
                           <div className={s.loginGuide}>
                             <p className={s.loginGuideLead}>{t('Se ha abierto una ventana aparte. Sigue allí estos pasos:')}</p>
                             <ol className={s.loginGuideSteps}>
-                              {loginSteps(id, agent?.name ?? id, browserPlatform()).map((step, i) => (
+                              {loginStepsOf(id, agent, agent?.name ?? id, browserPlatform()).map((step, i) => (
                                 <li key={i}>{step}</li>
                               ))}
                             </ol>
@@ -660,7 +672,8 @@ export function SetupWizard() {
               <ul className={s.rows}>
                 {selected.map((a) => {
                   const id = toolFor(a, engine)
-                  const ok = !!id && ready(id)
+                  const program = programFor(a, engine)
+                  const ok = !!id && !!program && ready(id, program)
                   return (
                     <li key={a.id} className={s.row}>
                       <RobotAvatar agent={a} size={30} />

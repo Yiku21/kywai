@@ -21,6 +21,7 @@ import {
 import type { JsonlParser, ParserCallbacks, ProcessOutcome, RunAgentOptions, RunAgentResult } from './types'
 import { geminiToolTrace, resultText } from './traceText'
 import { tr } from '@shared/i18n'
+import { withAccount } from './accounts'
 
 export const GEMINI_AUTH_MESSAGE =
   'Gemini CLI no está autenticado: revisa tu API key (GEMINI_API_KEY) o ejecuta `gemini` para iniciar sesión'
@@ -244,7 +245,8 @@ export function createGeminiParser(cb: ParserCallbacks, cliName = 'Gemini'): Jso
 }
 
 export function runGemini(opts: RunAgentOptions): Promise<RunAgentResult> {
-  return runCli({
+  // «Otra cuenta»: se lanza con su propia carpeta de sesión; el de siempre, tal cual (ver accounts.ts).
+  return runCli(withAccount(opts.agent, {
     command: 'gemini',
     args: geminiArgs(opts.model, opts.mode, opts.access, opts.extraMcp?.names),
     cwd: opts.cwd,
@@ -253,5 +255,5 @@ export function runGemini(opts: RunAgentOptions): Promise<RunAgentResult> {
     signal: opts.signal,
     parser: createGeminiParser(opts),
     onStall: (text) => opts.onActivity?.(geminiStallNotice(text), 'tool')
-  })
+  }))
 }

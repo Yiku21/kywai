@@ -13,6 +13,7 @@ import { commandExists } from './spawn'
 import type { RunAgentOptions, RunAgentResult } from './types'
 import { tr } from '@shared/i18n'
 import { isLocalEngine } from '@shared/localEngines'
+import { accountOf } from '@shared/accounts'
 
 export type { RunAgentOptions, RunAgentResult, RateLimitInfo, AgentErrorKind } from './types'
 
@@ -64,7 +65,15 @@ export function withEstimatedUsage(provider: ProviderKind, prompt: string, res: 
 }
 
 export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
-  return withEstimatedUsage(opts.agent.provider, opts.prompt, await runAgentRaw(opts))
+  return withEstimatedUsage(opts.agent.provider, opts.prompt, await runAgentRaw(withAccountQuota(opts)))
+}
+
+/** La cuota que informa una «otra cuenta» es la suya: se marca con su grupo para no pisar la de siempre. */
+function withAccountQuota(opts: RunAgentOptions): RunAgentOptions {
+  const on = opts.onRateLimit
+  const group = opts.agent.quotaGroupId
+  if (!on || !group || !accountOf(opts.agent)) return opts
+  return { ...opts, onRateLimit: (info) => on({ ...info, quotaGroupId: group }) }
 }
 
 function runAgentRaw(opts: RunAgentOptions): Promise<RunAgentResult> {

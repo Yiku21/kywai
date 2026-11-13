@@ -7,6 +7,7 @@ import { cleanCostSettings } from '@shared/costs'
 import { isLang, langFromLocale, setCurrentLang, type Lang } from '@shared/i18n'
 import { cleanLocalUrl, isLocalEngine } from '@shared/localEngines'
 import { MAX_TEAM_PARALLEL, cleanInstances } from '@shared/instances'
+import { cleanAccountId, isAccountProvider } from '@shared/accounts'
 import { CONFIG_VERSION, DEFAULT_CONFIG, avatarFor, localLogoFor, upgradeAgentModels, upgradeAgentProfile, upgradeAgentRole } from '@shared/defaults'
 
 let config: AppConfig | null = null
@@ -105,6 +106,7 @@ export function mergeConfig(user: unknown, workspaceRoot: string): AppConfig {
       modelProvider: typeof a.modelProvider === 'string' && /^[\w.\-:]+$/.test(a.modelProvider) ? a.modelProvider : undefined,
       thinking: a.provider === 'lmstudio' && a.thinking === true ? true : undefined,
       maxInstances: cleanInstances(a.maxInstances),
+      accountId: isAccountProvider(a.provider) ? cleanAccountId(a.accountId) : undefined,
       isSubagent: undefined,
       parentId: undefined,
       twin: undefined

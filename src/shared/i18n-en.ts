@@ -3899,4 +3899,22 @@ export const en: Record<string, string> = {
   "pulsa una tecla": "is pressing a key",
   // main/orchestrator.ts (reparto de tareas del navegador de kywai)
   "«{title}» la hace {name}: necesita el navegador de kywai y {agent} no lo tiene": "“{title}” goes to {name}: it needs the kywai browser and {agent} doesn't have it",
+  // «Otra cuenta» de Claude, Codex o Gemini (AddAgent.tsx, setup.ts, quota.ts, loginGuide.ts)
+  "Elige el agente que quieres tener otra vez, con otra cuenta. Tendrá su propio nombre, su robot, su cuota y su inicio de sesión; tu agente de siempre sigue con la suya.": "Choose the agent you want to have again, with another account. It gets its own name, robot, quota and sign-in; your usual agent keeps its own.",
+  "Nombre (opcional)": "Name (optional)",
+  "Por ejemplo, «Claude B» o «Claude trabajo»": "For example, “Claude B” or “Claude work”",
+  "ya tienes 1": "you have 1",
+  "ya tienes {n}": "you have {n}",
+  "Añadir otra cuenta": "Add another account",
+  "Solo salen los agentes que pueden guardar la sesión de cada cuenta por separado. Usar varias cuentas propias es decisión tuya: revisa las condiciones de cada servicio.": "Only agents that can keep each account's session separately are listed. Using several accounts of your own is your choice: check each service's terms.",
+  "El mismo agente otra vez, con otra cuenta (Claude, Codex o Gemini)": "The same agent again, with another account (Claude, Codex or Gemini)",
+  "Otra cuenta…": "Another account…",
+  "La cuota de esta cuenta se verá en cuanto haga su primera tarea.": "This account's quota will show up as soon as it does its first task.",
+  "No se encontró la carpeta de esta cuenta": "This account's folder was not found",
+  "Esta cuenta ya no está en tu equipo": "This account is no longer in your team",
+  "Esa cuenta de Gemini no está en tu equipo": "That Gemini account is not in your team",
+  "Entra con la OTRA cuenta, no con la de siempre. Si el navegador entra solo con la de siempre, cierra sesión en {site} (o copia el enlace en una ventana privada) y vuelve a intentarlo.": "Sign in with the OTHER account, not your usual one. If the browser signs in with the usual one on its own, sign out of {site} (or copy the link into a private window) and try again.",
+  "Otra suscripción de Claude (Pro o Max).": "Another Claude subscription (Pro or Max).",
+  "Otra cuenta de ChatGPT.": "Another ChatGPT account.",
+  "Otra clave de API de Google AI Studio (o una cuenta de empresa).": "Another Google AI Studio API key (or a business account).",
 }
