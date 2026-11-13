@@ -2791,7 +2791,11 @@ plan que aprobar, sin informes ni archivos sueltos.
 **Qué pasa por dentro.** Un agente (el mejor para redactar que esté libre; mejor uno en la nube que un modelo local)
 escribe solo el **guion** en JSON, pensado para enganchar a quien tiene poca paciencia: título, de 5 a 9 escenas cortas
 (la primera, un gancho de menos de 3 segundos) con su etiqueta, una frase de voz por escena con sus palabras clave
-marcadas entre *asteriscos*, una descripción de la imagen de cada escena, un tema de color y la frase final. Si el guion no vale, la tarea pasa a otro agente. Lo demás lo
+marcadas entre *asteriscos*, una descripción de la imagen de cada escena, un tema de color y la frase final. Si el guion no vale (por ejemplo, el agente lo
+escribe como un guion de cine en vez de en JSON), primero el mismo agente lo repite una vez sabiendo qué falló; si vuelve a
+fallar, pasa a otro agente, aunque la tarea ya viniera de un relevo. Para el relevo de un guion se prefieren los agentes
+que no dicen evitar el vídeo: Aider y los demás agentes de código del catálogo solo si no queda nadie más. kywai encuentra
+el JSON aunque venga con texto alrededor, entre varios bloques, dentro de una edición de Aider o con comas de más. Lo demás lo
 hace kywai siempre igual (`src/main/videoStudio.ts`):
 
 1. **Voz** de cada escena con Voicebox o Gemini si los hay (ver «Voz» más abajo) y si no con **Kokoro** (natural, gratis, en el propio equipo; español, inglés, francés, portugués,

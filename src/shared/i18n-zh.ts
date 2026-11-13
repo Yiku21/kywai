@@ -3918,4 +3918,6 @@ export const zh: Record<string, string> = {
   "ComfyUI está instalado pero no arrancó a tiempo: ábrelo y prueba otra vez.": "ComfyUI 已安装但未能及时启动：请打开它后重试。",
   "ComfyUI no está instalado en este equipo: instálalo en Ajustes → Extensiones → Estudio de vídeo → «Instalar ComfyUI».": "本机未安装 ComfyUI：请在 设置 → 扩展 → 视频工作室 →「安装 ComfyUI」中安装。",
   "El motor gratis de internet tampoco la dio ({why}).": "免费在线引擎也没有生成（{why}）。",
+  "El guion de «{title}» no se pudo leer ({why}): {name} lo repite.": "无法读取「{title}」的脚本（{why}）：{name} 正在重写。",
+  "Repitiendo el guion: {title}": "正在重写脚本：{title}",
 }

@@ -3918,4 +3918,6 @@ export const fr: Record<string, string> = {
   "ComfyUI está instalado pero no arrancó a tiempo: ábrelo y prueba otra vez.": "ComfyUI est installé mais n'a pas démarré à temps : ouvre-le et réessaie.",
   "ComfyUI no está instalado en este equipo: instálalo en Ajustes → Extensiones → Estudio de vídeo → «Instalar ComfyUI».": "ComfyUI n'est pas installé sur cet ordinateur : installe-le dans Réglages → Extensions → Studio vidéo → « Installer ComfyUI ».",
   "El motor gratis de internet tampoco la dio ({why}).": "Le moteur gratuit en ligne ne l'a pas faite non plus ({why}).",
+  "El guion de «{title}» no se pudo leer ({why}): {name} lo repite.": "Le script de « {title} » n'a pas pu être lu ({why}) : {name} le réécrit.",
+  "Repitiendo el guion: {title}": "Réécriture du script : {title}",
 }

@@ -152,6 +152,12 @@ interface TaskMeta {
   updateTimer?: NodeJS.Timeout
   /** Lo que el verificador pidió corregir (la tarea se repite con esto; ver MAX_REVIEW_FIXES y el relevo). */
   fixRequest?: string
+  /** El guion de vídeo no valía: el agente lo repite una vez con esto delante (lo que falló y que responda solo con el JSON). */
+  scriptFix?: string
+  /** Agentes a los que ya se les pidió repetir el guion (una vez cada uno). */
+  scriptFixed?: Set<AgentId>
+  /** El guion falló también en el relevo: otro agente lo intenta una vez más aunque la tarea ya viniera de un relevo. */
+  scriptRelayed?: boolean
   /** Correcciones pedidas por el verificador en esta tarea. Cuenta por tarea: el relevo no lo reinicia. */
   fixesDone?: number
   /** La tarea ya pasó a otro agente fuerte por no superar la revisión (una sola vez por tarea). */
@@ -799,6 +805,13 @@ function relayAgent(t: Task, meta: TaskMeta, owner: AgentConfig, exec: AgentConf
     for (const a of workers()) if (isLocalProvider(a.provider)) exclude.add(a.id)
   }
   const text = `${t.title} ${t.description}`
+  // Un guion de vídeo, antes a quien no dice evitar el vídeo (Aider y los demás agentes de código del catálogo
+  // escriben el guion como texto en vez de en JSON): a ellos solo si no queda nadie más.
+  const noVideo = t.video ? workers().filter((a) => (a.avoid ?? []).some((x) => /v[ií]deo/i.test(x))).map((a) => a.id) : []
+  if (noVideo.length) {
+    const pick = bestAgentFor(text, new Set([...exclude, ...noVideo, ...poorAgents().keys()])) ?? bestAgentFor(text, new Set([...exclude, ...noVideo]))
+    if (pick) return pick
+  }
   return bestAgentFor(text, new Set([...exclude, ...poorAgents().keys()])) ?? bestAgentFor(text, exclude)
 }
 
@@ -3860,12 +3873,23 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
   const v = t.video!
   if (v.film && v.work) return completeFilm(run, t, exec, parent, res)
   let script
+  const meta = run.meta.get(t.id)!
   try {
     script = parseVideoScript(res.text)
   } catch (e) {
-    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('El guion no valía: {message}', { message: (e as Error).message }) })
+    const why = (e as Error).message
+    // Primero el mismo agente lo repite una vez, sabiendo qué falló; si vuelve a fallar, pasa a otro agente (una vez
+    // más aunque la tarea ya viniera de un relevo: que un agente no escriba el JSON no quiere decir que la tarea no se pueda hacer).
+    if (!meta.scriptFixed?.has(exec.id) && !run.cancelled) return requeueScriptFix(run, t, exec, parent, why)
+    delete meta.scriptFix
+    if (meta.retried && !meta.scriptRelayed) {
+      meta.scriptRelayed = true
+      meta.retried = false
+    }
+    handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('El guion no valía: {message}', { message: why }) })
     return
   }
+  delete meta.scriptFix
   // El estilo lo decide lo que pidió el usuario, no el agente.
   script.style = v.style ?? script.style
   // El sketch de humor no lleva pasos ni tarjetas aunque el agente los escriba.
@@ -3884,7 +3908,6 @@ async function completeVideo(run: Run, t: Task, exec: AgentConfig, parent: Agent
     }
     script = reviewed
   }
-  const meta = run.meta.get(t.id)!
   const root = store.workRoot(run.projectId)
   const outDir = join(root, twoHandsBase(run.projectId), 'videos')
   const workDir = join(root, '.ai-cowork', 'videos', `${Date.now().toString(36)}-${t.seq}`)
@@ -4076,6 +4099,36 @@ async function completeFilm(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     tr('El proyecto completo (guion, código y créditos de lo que usa) queda en {dir}.', { dir: v.work! })
   ].filter(Boolean).join('\n\n')
   await completeTask(run, t, exec, parent, { ...res, text })
+}
+
+/**
+ * El guion de vídeo no se pudo leer (no venía en JSON o le faltaba algo): el mismo agente lo repite una vez, con lo que
+ * falló delante del encargo. No sale en rojo: es un paso más de la tarea.
+ */
+function requeueScriptFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, why: string): void {
+  const meta = run.meta.get(t.id)!
+  const owner = parent ?? exec
+  meta.scriptFixed = new Set([...(meta.scriptFixed ?? []), exec.id, owner.id])
+  meta.scriptFix = [
+    `Tu respuesta anterior no valía: ${why}`,
+    'kywai lee el guion con un programa, así que necesita EXACTAMENTE el JSON del formato de abajo: no un guion de cine en Markdown, ni una tabla, ni el JSON guardado en un archivo.',
+    'Responde SOLO con ese JSON, sin nada antes ni después, y sin crear ni cambiar archivos.'
+  ].join('\n')
+  meta.resume = meta.sessionId
+  traceNote(t.id, tr('El guion de «{title}» no se pudo leer ({why}): {name} lo repite.', { title: t.title, why, name: owner.name }))
+  closeWork(run, t, 'stopped', {})
+  // Si lo hizo un becario, lo repite su jefe con su modelo principal (como las correcciones de la película).
+  if (parent) {
+    meta.forceMainModel = true
+    removeBecario(exec.id)
+    t.agentId = parent.id
+  }
+  settleRuntime(owner.id, t, { activity: 'idle', taskId: undefined, lastActivity: tr('Repitiendo el guion: {title}', { title: t.title }) })
+  t.status = 'pending'
+  t.startedAt = undefined
+  t.lastActivity = undefined
+  t.progress = undefined
+  pushTask(t)
 }
 
 /**
@@ -5712,7 +5765,8 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
     // Las habilidades de vídeo instaladas van delante: el final del encargo es el formato exacto de la respuesta.
     const skills = videoSkillPromptLines()
     const prompt = [...(skills.length ? [...skills.slice(1), ''] : []), videoScriptPrompt({ topic: withBatch(t.video.topic || tr('el mensaje de abajo'), t.video.batch), source: t.video.source, format: t.video.format, style: t.video.style, lang: videoLang(t.video.voice, t.video.topic, lang()), manim: manimSupport(), refs: t.video.refs ?? imageAttachments(run), motion: !!findFreeVideo(), cast: seriesCast(run, t), episode: seriesBriefFor(run, t), dialogue: !!t.video.dialogue, ...(t.video.structure ? { structure: t.video.structure } : {}), ...(imageLook(t.video.look) ? { lookName: imageLook(t.video.look)!.name } : {}), ...(t.video.kind === 'sketch' ? { sketch: true } : {}), ...(t.video.drawCast ? { drawCast: true } : {}) }), ...learningLines(resultsFile(getConfig().workspaceRoot))].join('\n')
-    return extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
+    const full = extra.length ? `${prompt}\n\nArchivos del usuario que puedes leer para el guion:\n${extra.join('\n')}` : prompt
+    return meta.scriptFix ? `## Corrección pedida\n${meta.scriptFix}\n\n## El encargo original\n${full}` : full
   }
   const textOnly = isTextOnly(exec.provider)
   const files: string[] = []
