@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +59,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error as semanticsError
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
@@ -146,6 +148,30 @@ fun OrbitaButton(
             Spacer(Modifier.width(10.dp))
         }
         Text(text, color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/**
+ * Ejemplo que se pulsa en una pantalla vacía (como ExampleChips del escritorio): un toque lo deja listo para
+ * cambiarlo, en vez de leer «por ejemplo…» y copiarlo a mano.
+ */
+@Composable
+fun ExampleChip(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clip(shape)
+            .background(Orbita.Card)
+            .border(1.dp, Orbita.GlassEdgeTop, shape)
+            .tappable(haptic = Haptic.Tap, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(androidx.compose.material.icons.Icons.Outlined.Add, contentDescription = null, tint = Orbita.Accent, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(text, color = Orbita.Text, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -337,11 +363,29 @@ fun OrbitaField(
     autoFocus: Boolean = false,
     leading: ImageVector? = null,
     enabled: Boolean = true,
+    error: String? = null,
+    shakeKey: Int = 0,
 ) {
     val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     if (autoFocus) androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    val edge by animateColorAsState(if (focused) Orbita.AccentEdge else Orbita.GlassEdgeTop, tween(160), label = "field")
+    // Un error que se nota: borde rojo, el motivo debajo y, cada vez que sube [shakeKey], tiembla y recibe el foco.
+    val shift = remember { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(shakeKey) {
+        if (shakeKey > 0) {
+            runCatching { focus.requestFocus() }
+            OrbitaMotion.shake(shift)
+        }
+    }
+    val edge by animateColorAsState(
+        when {
+            error != null -> Orbita.Danger
+            focused -> Orbita.AccentEdge
+            else -> Orbita.GlassEdgeTop
+        },
+        tween(160),
+        label = "field",
+    )
     val shape = RoundedCornerShape(if (singleLine) 26.dp else 22.dp)
     androidx.compose.foundation.text.BasicTextField(
         value = value,
@@ -359,25 +403,32 @@ fun OrbitaField(
         keyboardActions = androidx.compose.foundation.text.KeyboardActions(onAny = { onIme() }),
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer { translationX = shift.value * density }
             .focusRequester(focus)
-            .onFocusChanged { focused = it.isFocused },
+            .onFocusChanged { focused = it.isFocused }
+            .semantics { if (error != null) semanticsError(error) },
         decorationBox = { inner ->
-            Row(
-                Modifier
-                    .clip(shape)
-                    .background(Orbita.Card)
-                    .border(1.dp, edge, shape)
-                    .heightIn(min = 52.dp)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
-            ) {
-                if (leading != null) {
-                    Icon(leading, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(10.dp))
+            Column {
+                Row(
+                    Modifier
+                        .clip(shape)
+                        .background(Orbita.Card)
+                        .border(1.dp, edge, shape)
+                        .heightIn(min = 52.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
+                ) {
+                    if (leading != null) {
+                        Icon(leading, contentDescription = null, tint = Orbita.TextSoft, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                    }
+                    Box(Modifier.weight(1f)) {
+                        if (value.isEmpty()) Text(placeholder, color = Orbita.TextFaint, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        inner()
+                    }
                 }
-                Box(Modifier.weight(1f)) {
-                    if (value.isEmpty()) Text(placeholder, color = Orbita.TextFaint, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                    inner()
+                if (error != null) {
+                    Text(error, color = Orbita.Danger, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
                 }
             }
         },

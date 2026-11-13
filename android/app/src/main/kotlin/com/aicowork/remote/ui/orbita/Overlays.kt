@@ -11,12 +11,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -111,7 +105,7 @@ import java.io.File
 fun Overlays(model: OrbitaModel, state: CoworkUiState) {
     val covering = model.viewer != null || model.traceTaskId != null || model.newTaskOpen || model.hermesModelOpen || model.videoPickerOpen || model.inboxOpen || model.searchOpen || model.historyOpen || model.musicOpen
     // Velo oscuro detrás de lo que se abre (tocarlo cierra).
-    AnimatedVisibility(covering, enter = fadeIn(), exit = fadeOut()) {
+    AnimatedVisibility(covering, enter = OrbitaMotion.scrimEnter, exit = OrbitaMotion.scrimExit) {
         Box(
             Modifier
                 .fillMaxSize()
@@ -132,37 +126,37 @@ fun Overlays(model: OrbitaModel, state: CoworkUiState) {
         )
     }
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(12.dp), contentAlignment = Alignment.Center) {
-        AnimatedVisibility(model.viewer != null, enter = fadeIn() + scaleIn(initialScale = 0.97f), exit = fadeOut() + scaleOut(targetScale = 0.97f)) {
+        AnimatedVisibility(model.viewer != null, enter = OrbitaMotion.viewerEnter, exit = OrbitaMotion.viewerExit) {
             val target = remember { mutableStateOf(model.viewer) }
             if (model.viewer != null) target.value = model.viewer
             target.value?.let { Viewer(it, model) }
         }
-        AnimatedVisibility(model.traceTaskId != null, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+        AnimatedVisibility(model.traceTaskId != null, enter = OrbitaMotion.sheetEnter(), exit = OrbitaMotion.sheetExit()) {
             val id = remember { mutableStateOf(model.traceTaskId) }
             if (model.traceTaskId != null) id.value = model.traceTaskId
             id.value?.let { TraceSheet(it, model, state) }
         }
-        AnimatedVisibility(model.hermesModelOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+        AnimatedVisibility(model.hermesModelOpen, enter = OrbitaMotion.sheetEnter(), exit = OrbitaMotion.sheetExit()) {
             HermesModelSheet(model)
         }
-        AnimatedVisibility(model.videoPickerOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+        AnimatedVisibility(model.videoPickerOpen, enter = OrbitaMotion.sheetEnter(), exit = OrbitaMotion.sheetExit()) {
             VideoPickerSheet(model)
         }
-        AnimatedVisibility(model.inboxOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+        AnimatedVisibility(model.inboxOpen, enter = OrbitaMotion.sheetEnter(), exit = OrbitaMotion.sheetExit()) {
             InboxSheet(model, state)
         }
-        AnimatedVisibility(model.searchOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+        AnimatedVisibility(model.searchOpen, enter = OrbitaMotion.sheetEnter(), exit = OrbitaMotion.sheetExit()) {
             SearchSheet(model)
         }
-        AnimatedVisibility(model.historyOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+        AnimatedVisibility(model.historyOpen, enter = OrbitaMotion.sheetEnter(), exit = OrbitaMotion.sheetExit()) {
             HistorySheet(model)
         }
-        AnimatedVisibility(model.musicOpen, enter = fadeIn() + slideInVertically { it / 4 }, exit = fadeOut() + slideOutVertically { it / 4 }) {
+        AnimatedVisibility(model.musicOpen, enter = OrbitaMotion.sheetEnter(), exit = OrbitaMotion.sheetExit()) {
             MusicSheet(model)
         }
     }
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).windowInsetsPadding(WindowInsets.ime).padding(12.dp), contentAlignment = Alignment.BottomCenter) {
-        AnimatedVisibility(model.newTaskOpen, enter = fadeIn() + slideInVertically { it / 3 }, exit = fadeOut() + slideOutVertically { it / 3 }) {
+        AnimatedVisibility(model.newTaskOpen, enter = OrbitaMotion.sheetEnter(3), exit = OrbitaMotion.sheetExit(3)) {
             NewTaskSheet(model, state)
         }
     }

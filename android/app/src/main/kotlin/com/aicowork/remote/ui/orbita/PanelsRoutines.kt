@@ -151,6 +151,7 @@ fun RoutinesPanel(model: OrbitaModel, state: CoworkUiState) {
     val canEdit = snapshot?.capabilities?.routinesEdit == true
     val routines = if (state.routinesFor == conversation) state.routines else null
     var editing by remember { mutableStateOf<String?>(null) }
+    var seed by remember { mutableStateOf<RoutineSeed?>(null) }
     // Se piden al abrir la sección y al cambiar de proyecto; los cambios llegan después por el WebSocket.
     LaunchedEffect(conversation, supported) { if (supported && conversation != null) model.controller.loadRoutines() }
     PanelColumn {
@@ -167,10 +168,19 @@ fun RoutinesPanel(model: OrbitaModel, state: CoworkUiState) {
             } else if (!canEdit) item {
                 Note(Icons.Outlined.Info, t("Solo lectura"), t("Para crear y cambiar rutinas desde el móvil, actualiza kywai en el ordenador."))
             }
-            if (editing == "") item(key = "new") { RoutineForm(null, model, onDone = { editing = null }) }
+            if (editing == "") item(key = "new") { RoutineForm(null, model, onDone = { editing = null; seed = null }, seed = seed) }
             if (supported && routines == null) item { Text(t("Cargando…"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium) }
             if (routines != null && routines.isEmpty() && editing != "") item {
-                Text(t("Sin rutinas. Por ejemplo: cada mañana a las 8:30, «revisa las dependencias y avísame de las que tengan fallos de seguridad»."), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(t("Sin rutinas"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 4.dp))
+                    if (canEdit) {
+                        // Ejemplos que se pulsan: abren «Nueva rutina» ya rellena para cambiarla a tu gusto.
+                        Text(t("Elige una para empezar y cámbiala a tu gusto:"), color = Orbita.TextSoft, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
+                        routineExamples().forEach { ex ->
+                            ExampleChip(ex.label, Modifier.testTag("routine-example")) { seed = ex; editing = "" }
+                        }
+                    }
+                }
             }
             items(routines.orEmpty(), key = { it.id }) { r ->
                 if (editing == r.id) RoutineForm(r, model, onDone = { editing = null })
@@ -178,7 +188,7 @@ fun RoutinesPanel(model: OrbitaModel, state: CoworkUiState) {
             }
         }
         if (canEdit && editing == null) {
-            OrbitaButton(t("Nueva rutina"), onClick = { editing = "" }, icon = Icons.Outlined.Add, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("routine-new"))
+            OrbitaButton(t("Nueva rutina"), onClick = { seed = null; editing = "" }, icon = Icons.Outlined.Add, haptic = Haptic.Tap, modifier = Modifier.fillMaxWidth().padding(16.dp).testTag("routine-new"))
         }
     }
 }
@@ -243,19 +253,43 @@ private fun RoutineCard(r: Routine, model: OrbitaModel, canEdit: Boolean, onEdit
     )
 }
 
+/** Un ejemplo que rellena una rutina nueva (los mismos que en el escritorio). */
+private data class RoutineSeed(val name: String, val label: String, val request: String, val trigger: RoutineTrigger)
+
+/** En una función (no una lista fija) para que salgan en el idioma que esté puesto. */
+private fun routineExamples() = listOf(
+    RoutineSeed(
+        t("Revisión de dependencias"),
+        t("Cada mañana a las 8:30: revisar las dependencias"),
+        t("Revisa las dependencias del proyecto y dime cuáles tienen fallos de seguridad o versiones nuevas importantes."),
+        RoutineTrigger("daily", time = "08:30"),
+    ),
+    RoutineSeed(
+        t("Resumen del viernes"),
+        t("Los viernes a las 17:00: resumen de la semana"),
+        t("Resume lo que se ha hecho esta semana en el proyecto y lo que queda pendiente."),
+        RoutineTrigger("weekly", time = "17:00", days = listOf(5)),
+    ),
+)
+
 /** Crear (sin [initial]) o editar una rutina. Las de webhook o carpeta se editan sin tocar su disparador. */
 @Composable
-private fun RoutineForm(initial: Routine?, model: OrbitaModel, onDone: () -> Unit) {
+private fun RoutineForm(initial: Routine?, model: OrbitaModel, onDone: () -> Unit, seed: RoutineSeed? = null) {
     val scheduled = initial == null || initial.trigger.type in listOf("daily", "weekly", "interval", "once")
-    var name by remember { mutableStateOf(initial?.name.orEmpty()) }
-    var request by remember { mutableStateOf(initial?.request.orEmpty()) }
-    var type by remember { mutableStateOf(initial?.trigger?.type?.takeIf { scheduled } ?: "daily") }
-    var time by remember { mutableStateOf(initial?.trigger?.time ?: "09:00") }
-    var days by remember { mutableStateOf(initial?.trigger?.days ?: listOf(1, 2, 3, 4, 5)) }
+    val start = initial?.trigger ?: seed?.trigger
+    var name by remember { mutableStateOf(initial?.name ?: seed?.name.orEmpty()) }
+    var request by remember { mutableStateOf(initial?.request ?: seed?.request.orEmpty()) }
+    var type by remember { mutableStateOf(start?.type?.takeIf { scheduled } ?: "daily") }
+    var time by remember { mutableStateOf(start?.time ?: "09:00") }
+    var days by remember { mutableStateOf(start?.days ?: listOf(1, 2, 3, 4, 5)) }
     var hours by remember { mutableStateOf((initial?.trigger?.hours ?: 6).toString()) }
     var date by remember { mutableStateOf(initial?.trigger?.date ?: LocalDate.now().plusDays(1).toString()) }
     var askApproval by remember { mutableStateOf(initial?.askApproval == true) }
     var busy by remember { mutableStateOf(false) }
+    // Al pulsar «Crear» con algo que falta, el campo se marca, dice qué falta y tiembla (antes el botón se apagaba sin más).
+    var tried by remember { mutableStateOf(false) }
+    var nameShake by remember { mutableStateOf(0) }
+    var requestShake by remember { mutableStateOf(0) }
 
     val normalizedTime = RoutineText.normalizeTime(time)
     val trigger: RoutineTrigger? = when {
@@ -270,9 +304,15 @@ private fun RoutineForm(initial: Routine?, model: OrbitaModel, onDone: () -> Uni
     Column(Modifier.fillMaxWidth().card(selected = true).padding(14.dp).testTag("routine-form")) {
         Text(if (initial == null) t("Nueva rutina") else t("Editar la rutina"), color = Orbita.Text, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(10.dp))
-        OrbitaField(name, { name = it }, t("Nombre"), autoFocus = initial == null)
+        OrbitaField(
+            name, { name = it }, t("Nombre"), autoFocus = initial == null && seed == null,
+            error = if (tried && name.isBlank()) t("Ponle un nombre para encontrarla luego.") else null, shakeKey = nameShake,
+        )
         Spacer(Modifier.height(8.dp))
-        OrbitaField(request, { request = it }, t("Petición (lo que se enviará al chat)"), singleLine = false, minLines = 2, maxLines = 6, imeAction = ImeAction.Default)
+        OrbitaField(
+            request, { request = it }, t("Petición (lo que se enviará al chat)"), singleLine = false, minLines = 2, maxLines = 6, imeAction = ImeAction.Default,
+            error = if (tried && request.trim().length < 3) t("Escribe lo que tiene que pedir (al menos 3 letras).") else null, shakeKey = requestShake,
+        )
         Spacer(Modifier.height(10.dp))
         if (scheduled) {
             Segmented(listOf("daily" to t("Cada día"), "weekly" to t("Días"), "interval" to t("Cada N h"), "once" to t("Una vez")), type, { type = it })
@@ -315,11 +355,18 @@ private fun RoutineForm(initial: Routine?, model: OrbitaModel, onDone: () -> Uni
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OrbitaButton(t("Cancelar"), onClick = onDone, style = ButtonStyle.Ghost, haptic = Haptic.Tap, height = 46.dp, modifier = Modifier.weight(1f))
-            OrbitaButton(if (initial == null) t("Crear rutina") else t("Guardar"), onClick = {
+            OrbitaButton(if (initial == null) t("Crear rutina") else t("Guardar"), haptic = Haptic.None, onClick = {
+                if (name.isBlank() || request.trim().length < 3) {
+                    tried = true
+                    if (name.isBlank()) nameShake++ else requestShake++
+                    model.feedback.reject()
+                    return@OrbitaButton
+                }
                 val tr = trigger ?: return@OrbitaButton
+                model.feedback.confirm()
                 busy = true
                 model.run({ model.controller.saveRoutine(initial?.id, RoutineInput(name.trim(), request.trim(), tr, askApproval)) }) { busy = false; if (it.ok) onDone() }
-            }, busy = busy, enabled = valid && !busy, height = 46.dp, modifier = Modifier.weight(1f).testTag("routine-save"))
+            }, busy = busy, enabled = (trigger != null || !tried) && !busy, height = 46.dp, modifier = Modifier.weight(1f).testTag("routine-save"))
         }
     }
 }

@@ -1938,6 +1938,13 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   `prefers-reduced-motion`: ya lo tienen también el punto de grabación de la nota de voz (se queda rojo fijo), la
   rueda de la muestra de voz de /video y las etiquetas del 3D (sin rebote, barra quieta y llamada sin latir), aunque no
   se haya activado «Reducir efectos ambientales» en Ajustes.
+- **Órbita.** Las hojas (tarea nueva, bandeja, búsqueda, historial, música, actividad…) y el lector entran en
+  280 ms frenando al llegar y se van en 200 ms acelerando (`ui/orbita/Motion.kt`, `OrbitaMotion`); el velo funde en
+  180/140 ms. `OrbitaField` acepta `error` (borde rojo y el motivo debajo, también para TalkBack) y `shakeKey` (cada
+  vez que sube, tiembla ±6 dp en 300 ms y recibe el foco). En Rutinas, «Crear rutina» ya no se apaga sin explicar:
+  al pulsarlo con algo que falta lo dice en el campo, tiembla y vibra (rechazo); y sin rutinas salen dos ejemplos que
+  se pulsan (`ExampleChip`) y abren el formulario relleno. Los botones ya cedían al pulsar (`pressScale`) y Compose
+  ya amplía la zona táctil de lo pequeño a 48 dp; con «Quitar animaciones» de Android no se mueve nada.
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),
