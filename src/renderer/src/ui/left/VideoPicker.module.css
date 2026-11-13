@@ -11,7 +11,7 @@
   width: 100%;
   padding: 5px 10px 5px 5px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   background: var(--bg-surface);
   color: var(--text-1);
   font: inherit;
@@ -27,7 +27,7 @@
 .barThumb {
   width: 48px;
   height: 27px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
   flex: none;
 }
@@ -38,7 +38,7 @@
   justify-content: center;
   width: 48px;
   height: 27px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   background: var(--cyan-soft);
   color: var(--cyan);
   flex: none;
@@ -79,7 +79,7 @@
   max-height: min(620px, 74vh);
   background: rgba(var(--popover-rgb, 17, 25, 41), 0.98);
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-pop);
   backdrop-filter: blur(14px);
 }
@@ -112,7 +112,7 @@
   display: inline-flex;
   padding: 4px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-3);
   cursor: pointer;
@@ -149,7 +149,7 @@
   gap: 3px;
   padding: 5px 5px 7px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--radius-ctl);
   background: var(--bg-surface);
   color: var(--text-1);
   font: inherit;
@@ -172,7 +172,7 @@
 .thumb {
   display: block;
   aspect-ratio: 16 / 9;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: color-mix(in srgb, var(--text-1) 6%, transparent);
 }
@@ -214,7 +214,7 @@
   align-self: flex-start;
   margin: 2px 2px 0;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 10px;
   color: var(--text-2);
   border: 1px solid var(--border);
@@ -290,7 +290,7 @@
   margin: 0 0 8px;
   padding: 5px 9px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: var(--bg-surface);
 }
 
@@ -343,7 +343,7 @@
   display: inline-flex;
   padding: 4px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
   cursor: pointer;
@@ -364,7 +364,7 @@
 .ghost {
   flex: none;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
@@ -420,7 +420,7 @@
 .field textarea {
   padding: 7px 9px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: var(--bg-surface);
   color: var(--text-1);
   font: inherit;
@@ -439,7 +439,7 @@
   position: relative;
   width: 76px;
   height: 76px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   overflow: hidden;
 }
 

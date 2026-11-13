@@ -9,7 +9,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 16px;
-  border-radius: 14px;
+  border-radius: var(--radius-card);
   border: 1px solid var(--border-strong);
   background: rgba(var(--float-rgb, 11, 17, 28), 0.88);
   backdrop-filter: blur(16px) saturate(1.2);
@@ -101,7 +101,7 @@
   gap: 10px;
   margin-top: 14px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   background: color-mix(in srgb, var(--tone) 9%, transparent);
   border: 1px solid color-mix(in srgb, var(--tone) 24%, transparent);
 }
@@ -135,7 +135,7 @@
 .notice {
   margin-top: 10px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   background: color-mix(in srgb, var(--warn) 9%, transparent);
   border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
   font-size: 12.5px;
@@ -204,7 +204,7 @@
   gap: 12px;
   margin-top: 10px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border);
 }
 
@@ -229,7 +229,7 @@
   flex: none;
   display: inline-flex;
   padding: 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
 }
 
 .thinkingSwitch:disabled {
@@ -295,7 +295,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   background: rgba(var(--wash-rgb, 255, 255, 255), 0.03);
   border: 1px solid var(--border);
 }
@@ -316,7 +316,7 @@
   gap: 7px;
   margin: 2px -4px -2px;
   padding: 6px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--agent);
@@ -341,7 +341,7 @@
   width: 100%;
   margin: 0 -6px;
   padding: 0 6px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   text-align: left;
   box-sizing: content-box;
 }
@@ -461,7 +461,7 @@
   gap: 10px;
   width: 100%;
   padding: 6px 8px;
-  border-radius: 9px;
+  border-radius: var(--radius-ctl);
   border: 1px solid transparent;
   text-align: left;
   transition:
@@ -504,7 +504,7 @@
   place-items: center;
   width: 30px;
   height: 30px;
-  border-radius: 9px;
+  border-radius: var(--radius-ctl);
   background: rgba(var(--wash-rgb, 255, 255, 255), 0.04);
   border: 1px solid var(--border);
 }
@@ -536,7 +536,7 @@
   gap: 6px;
   height: 30px;
   padding: 0 10px 0 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   font-weight: 500;
   color: color-mix(in srgb, var(--agent) 55%, var(--text-1));

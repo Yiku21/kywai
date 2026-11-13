@@ -142,7 +142,7 @@
   flex: 1;
   min-height: 0;
   margin: 0 10px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   overflow: hidden;
   background: var(--stage, #050913);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 8%, transparent);
@@ -167,7 +167,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--badge-bg, rgba(30, 20, 4, 0.78));
   border: 1px solid rgba(245, 177, 61, 0.45);
   color: var(--badge-text, #ffd38a);

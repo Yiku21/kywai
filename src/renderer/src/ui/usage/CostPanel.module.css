@@ -32,7 +32,7 @@
 .chart {
   margin: 0;
   padding: 12px 14px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border);
   background: var(--bg-surface);
 }
@@ -141,7 +141,7 @@
 }
 
 .settings {
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border);
   background: var(--bg-surface);
 }

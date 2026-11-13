@@ -2,7 +2,7 @@
   display: inline-grid;
   place-items: center;
   flex: none;
-  border-radius: 11px;
+  border-radius: var(--radius-card);
   background: var(--logo-bg, linear-gradient(160deg, #18233a, #0d1422));
   border: 1px solid var(--border-strong);
   box-shadow:

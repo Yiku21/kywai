@@ -7,7 +7,7 @@
   min-width: 220px;
   max-width: 300px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
   background: rgba(8, 12, 20, 0.78);
   color: #e6edf7;

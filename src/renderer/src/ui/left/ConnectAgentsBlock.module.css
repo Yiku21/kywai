@@ -5,7 +5,7 @@
   gap: 10px;
   margin-top: 10px;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid color-mix(in srgb, var(--cyan) 35%, transparent);
   background: color-mix(in srgb, var(--cyan) 6%, var(--bg-panel));
 }
@@ -23,7 +23,7 @@
   flex: none;
   width: 36px;
   height: 36px;
-  border-radius: 9px;
+  border-radius: var(--radius-ctl);
   color: var(--cyan);
   background: var(--cyan-soft);
   border: 1px solid color-mix(in srgb, var(--cyan) 30%, transparent);
@@ -67,7 +67,7 @@
   gap: 8px;
   padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: var(--bg-panel);
 }
 
@@ -133,7 +133,7 @@
   min-width: 140px;
   height: 30px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   color: var(--text-1);
@@ -143,7 +143,7 @@
 
 .steps {
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: color-mix(in srgb, var(--cyan) 8%, var(--bg-surface));
   font-size: 12.5px;
   line-height: 1.5;

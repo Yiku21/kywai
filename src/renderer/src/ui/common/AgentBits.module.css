@@ -16,7 +16,7 @@
   height: 26px;
   max-width: 100%;
   padding: 0 10px 0 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--agent) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--agent) 22%, transparent);
   color: color-mix(in srgb, var(--agent) 55%, var(--text-1));

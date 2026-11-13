@@ -7,7 +7,7 @@
   overscroll-behavior: contain;
   background: rgba(var(--popover-rgb, 17, 25, 41), 0.97);
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-pop);
   backdrop-filter: blur(14px);
   color: var(--text-1);

@@ -9,7 +9,7 @@
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: var(--danger, #e5484d);
   color: #fff;
   font-size: 10px;
@@ -33,7 +33,7 @@
 .note {
   margin: 0 4px 8px;
   padding: 6px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: var(--bg-surface);
   color: var(--text-2);
 }
@@ -56,7 +56,7 @@
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-left: 3px solid var(--border-strong);
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   background: var(--bg-surface);
 }
 

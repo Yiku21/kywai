@@ -70,7 +70,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   background: color-mix(in srgb, var(--q) 7%, transparent);
   border: 1px solid color-mix(in srgb, var(--q) 20%, transparent);
 }
@@ -160,7 +160,7 @@
   gap: 5px;
   height: 22px;
   padding: 0 8px 0 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   color: color-mix(in srgb, var(--agent) 55%, var(--text-1));
   background: color-mix(in srgb, var(--agent) 16%, transparent);
@@ -171,7 +171,7 @@
   gap: 8px;
   margin: 0;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: var(--bg-hover);
   color: var(--text-2);
   font-size: 12.5px;
@@ -290,7 +290,7 @@
 .input {
   height: 32px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   color: var(--text-1);

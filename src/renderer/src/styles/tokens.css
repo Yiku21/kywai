@@ -40,7 +40,13 @@
   --radius-card: 12px;
   --radius-ctl: 10px;
   --radius-chip: 8px;
+  /* Detalles pequeños (casillas, etiquetas) y píldoras. Toda la interfaz usa solo estos radios. */
+  --radius-sm: 6px;
+  --radius-pill: 999px;
 
+  /* Tres niveles de sombra: lo que está más arriba proyecta más (1 apenas despegado, 2 flotante, pop ventanas y menús). */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-2: 0 6px 22px rgba(0, 0, 0, 0.42);
   --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
 
   --font: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;

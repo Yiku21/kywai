@@ -27,7 +27,7 @@
   gap: 8px;
   min-width: 0;
   padding: 5px 4px 5px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   border: 1px solid var(--border);
   border-left: 3px solid var(--cyan);
   background: var(--bg-panel);
@@ -69,7 +69,7 @@
   max-width: 200px;
   height: 28px;
   padding: 0 4px 0 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   border: 1px solid var(--border);
   background: var(--bg-panel);
   font-size: 12.5px;
@@ -96,7 +96,7 @@
   flex: none;
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--text-3);
   transition:
     background-color var(--dur) var(--ease),
@@ -135,7 +135,7 @@
   align-items: flex-end;
   gap: 6px;
   padding: 0 5px 0 0;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   transition:
@@ -215,7 +215,7 @@
   height: 28px;
   margin-bottom: 6px;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 12.5px;
   font-weight: 500;
   color: var(--alert-text, #ffc2ca);
@@ -247,7 +247,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   font-size: 13px;
   text-align: left;
   color: var(--text-1);
@@ -292,7 +292,7 @@
   list-style: none;
   background: rgba(var(--popover-rgb, 17, 25, 41), 0.97);
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-pop);
   backdrop-filter: blur(14px);
   font-size: 13px;
@@ -309,7 +309,7 @@
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   color: var(--text-1);
   cursor: pointer;
 }
@@ -325,7 +325,7 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: var(--radius-chip);
   color: var(--text-2);
   background: color-mix(in srgb, var(--text-1) 5%, transparent);
   border: 1px solid var(--border);
@@ -500,7 +500,7 @@
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   color: var(--text-3);
 }
 

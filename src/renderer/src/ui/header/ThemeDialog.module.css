@@ -90,7 +90,7 @@
   align-items: center;
   gap: 7px;
   padding: 5px 11px 5px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: var(--bg-raised, var(--bg-surface));
   color: var(--text-2);
@@ -210,7 +210,7 @@
   display: flex;
   aspect-ratio: 16 / 10;
   padding: 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: var(--pv-app);
   overflow: hidden;
 }

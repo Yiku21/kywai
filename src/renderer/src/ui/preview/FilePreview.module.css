@@ -65,7 +65,7 @@
   display: inline-flex;
   padding: 2px;
   gap: 2px;
-  border-radius: 9px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border);
   background: var(--bg-input);
 }
@@ -76,7 +76,7 @@
   width: 30px;
   height: 28px;
   border: none;
-  border-radius: 7px;
+  border-radius: var(--radius-chip);
   background: transparent;
   color: var(--text-3);
   cursor: pointer;
@@ -92,7 +92,7 @@
 .toggleOn {
   background: var(--bg-elevated);
   color: var(--text-1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-1);
 }
 
 .fileIcon {
@@ -101,7 +101,7 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: rgba(var(--wash-rgb, 255, 255, 255), 0.05);
   color: var(--text-2);
 }
@@ -164,7 +164,7 @@
   width: 24px;
   height: 24px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-2);
   cursor: pointer;
@@ -194,7 +194,7 @@
   align-items: center;
   gap: 5px;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-weight: 600;
   color: var(--demo);
   background: var(--demo-soft);
@@ -290,8 +290,8 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 6px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-pop);
   cursor: zoom-in;
 }
 

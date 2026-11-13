@@ -14,7 +14,7 @@
 .review {
   margin-left: 6px;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 600;
   text-transform: none;
@@ -39,7 +39,7 @@
   width: 100%;
   margin-top: 8px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border);
   background: var(--bg-surface);
   text-align: left;
@@ -77,7 +77,7 @@
   align-items: flex-start;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border);
   background: var(--bg-surface);
 }
@@ -106,7 +106,7 @@
   min-height: 120px;
   resize: vertical;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   color: var(--text-1);
@@ -141,7 +141,7 @@
   flex: none;
   height: 32px;
   padding: 0 6px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   color: var(--text-1);
@@ -154,7 +154,7 @@
   min-width: 0;
   height: 32px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   color: var(--text-1);
@@ -182,7 +182,7 @@
   align-items: flex-start;
   gap: 8px;
   padding: 9px 10px 9px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border);
   border-left: 3px solid var(--tone, var(--border-strong));
   background: var(--bg-surface);
@@ -285,7 +285,7 @@
   min-height: 68px;
   resize: vertical;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   color: var(--text-1);
@@ -318,7 +318,7 @@
   place-items: center;
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: var(--radius-chip);
   color: var(--text-3);
   transition:
     background-color var(--dur) var(--ease),
@@ -344,7 +344,7 @@
 .toggleOld {
   align-self: flex-start;
   padding: 4px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 12.5px;
   color: var(--text-3);
 }
@@ -408,7 +408,7 @@
 .skillText {
   margin-top: 4px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   background: var(--bg-hover);
   font-size: 12.5px;
   max-height: 360px;

@@ -127,7 +127,7 @@
   font-family: var(--mono);
   font-size: 0.88em;
   padding: 1px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: rgba(140, 180, 255, 0.1);
   color: var(--accent-text, #cfe2ff);
 }
@@ -135,7 +135,7 @@
 .md pre {
   margin: 0 0 var(--md-gap, 12px);
   padding: 13px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   background: var(--code-bg, #070b14);
   border: 1px solid var(--border);
   overflow-x: auto;
@@ -154,7 +154,7 @@
   margin: 0 0 var(--md-gap, 12px);
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
 }
 
 .md table {
@@ -184,7 +184,7 @@
 
 .md img {
   max-width: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
 }
 
 /* Nombre de un archivo del proyecto: se abre en el panel de vista previa al pulsarlo. */
@@ -248,7 +248,7 @@
   min-width: 30px;
   justify-content: center;
   padding: 0 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   border: 1px solid var(--border);
   background: var(--bg-elevated, #111a2b);
   color: var(--text-2);

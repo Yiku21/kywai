@@ -1926,6 +1926,10 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   en ámbar hasta que abres la bandeja; con cada aviso nuevo vuelve a mecerse (`key={calledAt}`). Igual la llamada
   del coordinador en el 3D (late tres veces y queda dorada) y la rueda ⚙ con actualización pendiente (late tres
   veces y queda amarilla con su punto). Las ruedas de «trabajando» sí siguen girando: dicen que algo está en marcha.
+- **El mismo estilo en todas partes.** Los radios de esquina salen solo de las variables de `styles/tokens.css`
+  (`--radius-panel`, `--radius-card`, `--radius-ctl`, `--radius-chip`, `--radius-sm` y `--radius-pill`; antes había
+  diez valores escritos a mano) y las sombras de tres niveles (`--shadow-1`, `--shadow-2`, `--shadow-pop`). Así un
+  tema (Órbita, por ejemplo) cambia todas las esquinas a la vez. Solo quedan a mano los detalles de 1–4 px.
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),

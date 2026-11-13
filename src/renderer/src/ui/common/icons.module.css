@@ -31,7 +31,7 @@
   display: inline-grid;
   place-items: center;
   flex: none;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   color: var(--k);
   background: color-mix(in srgb, var(--k) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--k) 22%, transparent);

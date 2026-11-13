@@ -13,7 +13,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 14px;
-  border-radius: 14px;
+  border-radius: var(--radius-card);
   border: 1px solid var(--border-strong);
   background: rgba(var(--float-rgb, 11, 17, 28), 0.92);
   backdrop-filter: blur(16px) saturate(1.2);
@@ -74,7 +74,7 @@
   min-width: 0;
   height: 32px;
   padding: 0 10px;
-  border-radius: 9px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   color: var(--text-1);
@@ -97,7 +97,7 @@
 
 .error {
   padding: 8px 10px;
-  border-radius: 9px;
+  border-radius: var(--radius-ctl);
   background: var(--alert-soft);
 }
 
@@ -115,7 +115,7 @@
   min-width: 200px;
   aspect-ratio: 16 / 9;
   min-height: 200px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   overflow: hidden;
   background: #000;
 }
@@ -146,8 +146,8 @@
   width: min(42%, 150px);
   aspect-ratio: 1;
   object-fit: cover;
-  border-radius: 8px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-chip);
+  box-shadow: var(--shadow-2);
 }
 
 .artworkText {
@@ -242,7 +242,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   background: rgba(var(--line-rgb, 150, 180, 230), 0.04);
   border: 1px solid var(--border);
 }
@@ -273,7 +273,7 @@
 .badge {
   --c: var(--text-2);
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 11.5px;
   font-weight: 600;
   color: color-mix(in srgb, var(--c) 85%, var(--mix-to, #fff));
@@ -423,7 +423,7 @@
 
 .sourceTab {
   padding: 5px 8px;
-  border-radius: 7px;
+  border-radius: var(--radius-chip);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text-2);
@@ -466,7 +466,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 6px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   border: 1px solid var(--border);
   background: var(--bg-surface);
 }
@@ -507,7 +507,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
 }
 
 .resultRow:hover,
@@ -528,7 +528,7 @@
   align-items: center;
   gap: 10px;
   padding: 5px 6px;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
   text-align: left;
   color: var(--text-1);
 }
@@ -537,7 +537,7 @@
   flex: none;
   width: 44px;
   height: 44px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
   background: var(--bg-elevated);
 }
@@ -729,7 +729,7 @@
 }
 
 .mini .playerBox {
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
 }
 
 .mini .volume {
@@ -848,7 +848,7 @@
   min-width: 0;
   min-height: 0;
   aspect-ratio: auto;
-  border-radius: 8px;
+  border-radius: var(--radius-chip);
 }
 
 /* El vídeo, recortado al centro como una carátula; los botones de YouTube no caben, así que no se tocan. */

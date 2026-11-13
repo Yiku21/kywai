@@ -273,7 +273,7 @@ summary.toolHead:hover {
   max-height: 340px;
   overflow: auto;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg-input);
   border: 1px solid var(--border);
   font-family: var(--mono);
@@ -321,7 +321,7 @@ summary.toolHead:hover {
   gap: 6px;
   height: 30px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border-strong);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-pop);

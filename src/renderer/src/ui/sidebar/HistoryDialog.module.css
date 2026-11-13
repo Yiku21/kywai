@@ -45,7 +45,7 @@
   margin: 8px 16px 0;
   padding: 4px 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--cyan);
   font: 12.5px var(--font);
