@@ -1,6 +1,6 @@
 import { BATCH_AT_ONCE, batchBrief, videoBatchOf } from '@shared/videoBatch'
 import { createHash, randomUUID } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, promises as fsp, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, promises as fsp, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import type {
   AgentQuestion,
@@ -100,7 +100,7 @@ import { DUB_LANGUAGES, applyDub, dubPrompt, findDubSource, loadDubSource, markD
 import { parseSpriteRequest, spritePrompt } from './sprite'
 import { parseRadarRequest, RADAR_DIR, radarPrompt, radarStamp } from './radar'
 import { councilPlannerText, parseCouncilRequest, pickCouncil } from './council'
-import { THUMB_FRAMES, parseThumbnailPlan, parseThumbnailRequest, renderThumbnails, thumbFrames, thumbnailPrompt, type ThumbRequest } from './thumbnail'
+import { THUMB_FRAMES, imageToCoverJpg, liveliestFrame, parseCoverReply, parseThumbnailPlan, parseThumbnailRequest, renderReelCover, renderThumbnails, thumbFrames, thumbFrameTimes, thumbnailPrompt, type ThumbRequest } from './thumbnail'
 import { PRESENTER_ROBOTS, demoPrompt, fetchRepoFacts, fitToVoice, githubRepo, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoPresenter, type DemoRequest, type RepoFacts } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
 import { isMediaFile, learnPrompt, parseLearnedSkill, parseLearnRequest, prepareLearnSource, saveLearnedSkill, type LearnRequest } from './learn'
@@ -2360,6 +2360,8 @@ async function sendInstagram(
   const video = attached ? attached.relPath : found!.artifact.relPath
   const root = store.workRoot(projectId)
   const question = loadSeries(root)?.episodes.find((e) => e.video === video)?.question
+  // Una imagen adjunta es la portada del reel (en TikTok no se puede: su API solo deja elegir un fotograma).
+  const coverImage = platform === 'tiktok' ? undefined : atts.find((a) => store.isImageName(a.relPath))?.relPath
   const t: Task = {
     id: randomUUID(),
     projectId,
@@ -2381,7 +2383,8 @@ async function sendInstagram(
       note,
       ...(question ? { question } : {}),
       ...(platform ? { platform } : {}),
-      ...(trial ? { trial: true } : {})
+      ...(trial ? { trial: true } : {}),
+      ...(coverImage ? { coverImage, ready: true } : {})
     }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
@@ -2405,10 +2408,11 @@ async function completeInstagram(run: Run, t: Task, exec: AgentConfig, parent: A
     handleFailure(run, t, exec, parent, { ...res, ok: false, errorKind: 'failed', errorMessage: tr('No escribió el texto: {why}', { why: oneLine(why || tr('respuesta vacía'), 200) }) })
     return
   }
-  if (ig.platform === 'tiktok') return completeTikTok(run, t, exec, parent, res, cleanTikTokCaption(caption))
+  const cover = await socialCover(run, t, res.text)
+  if (ig.platform === 'tiktok') return completeTikTok(run, t, exec, parent, res, cleanTikTokCaption(caption), cover.coverAtMs)
   await completeTask(run, t, exec, parent, { ...res, text: tr('Texto del reel listo.') })
   const status = instagramStatusNow()
-  const post: InstagramPost = { status: 'pending', video: ig.video, caption, ...(status.username ? { username: status.username } : {}), ...(ig.trial ? { trial: true } : {}) }
+  const post: InstagramPost = { status: 'pending', video: ig.video, caption, ...(status.username ? { username: status.username } : {}), ...(ig.trial ? { trial: true } : {}), ...cover }
   const m = agentMessage(
     run,
     exec.id,
@@ -2440,6 +2444,71 @@ async function completeInstagram(run: Run, t: Task, exec: AgentConfig, parent: A
     })
 }
 
+/**
+ * Antes del agente del texto: 8 fotogramas del vídeo para que elija la portada. Si no se puede (sin ffmpeg, vídeo raro),
+ * se sigue sin ellos: el texto y la publicación no dependen de la portada.
+ */
+async function prepareSocialCover(run: Run, t: Task): Promise<void> {
+  const ig = t.instagram!
+  ig.ready = true
+  const root = store.workRoot(run.projectId)
+  const file = join(root, ig.video)
+  try {
+    t.lastActivity = tr('Sacando fotogramas para la portada')
+    taskDirty(t)
+    const info = await probeMedia(file)
+    if (!(info.seconds > 0)) return
+    const frames = await thumbFrames(file, info.seconds, join(root, '.ai-cowork', 'portadas', t.id), THUMB_FRAMES, run.controllers.get(t.id)?.signal)
+    const times = thumbFrameTimes(info.seconds)
+    if (frames.length === times.length) {
+      ig.frames = frames
+      ig.frameTimes = times
+    }
+  } catch {
+    /* sin fotogramas: el agente escribe solo el texto */
+  }
+}
+
+/**
+ * La portada del reel con lo que eligió el agente (la línea «PORTADA:»): en Instagram una imagen con el gancho en
+ * grande (JPG junto al vídeo) y el fotograma por si no se puede subir; en TikTok, solo el fotograma. Una imagen adjunta
+ * a la orden manda sobre todo. Sin elección, el fotograma con más detalle (nunca uno negro).
+ */
+async function socialCover(run: Run, t: Task, reply: string): Promise<{ cover?: string; coverAtMs?: number }> {
+  const ig = t.instagram!
+  const root = store.workRoot(run.projectId)
+  const base = join(dirname(ig.video), `${basename(ig.video, extname(ig.video))}-portada.jpg`)
+  if (ig.coverImage) {
+    if (await imageToCoverJpg(join(root, ig.coverImage), join(root, base))) return { cover: base.replace(/\\/g, '/') }
+    return /\.jpe?g$/i.test(ig.coverImage) ? { cover: ig.coverImage } : {}
+  }
+  const frames = ig.frames ?? []
+  const times = ig.frameTimes ?? []
+  if (!frames.length) return {}
+  const pick = parseCoverReply(reply, frames.length)
+  let frame = pick?.frame
+  if (frame === undefined) {
+    const sizes = frames.map((f) => {
+      try {
+        return statSync(f).size
+      } catch {
+        return 0
+      }
+    })
+    frame = liveliestFrame(sizes)
+  }
+  const coverAtMs = Math.round((times[frame] ?? 0) * 1000)
+  if (ig.platform === 'tiktok' || !pick?.cover) return { coverAtMs }
+  try {
+    t.lastActivity = tr('Haciendo la portada')
+    taskDirty(t)
+    if (await renderReelCover(pick.cover, frames[frame], join(root, base), htmlToPng)) return { cover: base.replace(/\\/g, '/'), coverAtMs }
+  } catch {
+    /* sin la app de escritorio no hay imagen: queda el fotograma */
+  }
+  return { coverAtMs }
+}
+
 /** Sube y publica el reel de la tarjeta; el chat va contando cómo va y acaba con el enlace (o el error). */
 async function publishPost(projectId: string, messageId: string, caption: string, auto = false): Promise<void> {
   const get = (): ChatMessage | undefined => findMessage(projectId, messageId)
@@ -2459,7 +2528,17 @@ async function publishPost(projectId: string, messageId: string, caption: string
   }
   set({ status: 'publishing', caption, error: undefined, ...(auto ? { auto: true } : {}) }, tr('Publicando el reel en Instagram…'))
   try {
-    const r = await publishReel({ token, userId, file: join(store.workRoot(projectId), p.video), caption, ...(p.trial ? { trial: true } : {}), onStep: (step) => set({}, tr(step)) })
+    const root = store.workRoot(projectId)
+    const r = await publishReel({
+      token,
+      userId,
+      file: join(root, p.video),
+      caption,
+      ...(p.trial ? { trial: true } : {}),
+      ...(p.cover ? { cover: join(root, p.cover) } : {}),
+      ...(typeof p.coverAtMs === 'number' ? { coverAtMs: p.coverAtMs } : {}),
+      onStep: (step) => set({}, tr(step))
+    })
     set({ status: 'published', ...(r.permalink ? { permalink: r.permalink } : {}), decidedAt: Date.now() }, r.permalink ? tr('Publicado en Instagram: {url}', { url: r.permalink }) : tr('Publicado en Instagram.'))
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e)
@@ -2636,11 +2715,11 @@ export function tiktokStatusNow(redirectUri = ''): TikTokStatus {
 }
 
 /** El texto ya está: la tarjeta de TikTok (borrador o directo) y su aviso en «Te necesita» (o el borrador sale solo). */
-async function completeTikTok(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult, caption: string): Promise<void> {
+async function completeTikTok(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult, caption: string, coverAtMs?: number): Promise<void> {
   const ig = t.instagram!
   await completeTask(run, t, exec, parent, { ...res, text: tr('Texto del vídeo listo.') })
   const status = tiktokStatusNow()
-  let post: TikTokPost = { status: 'pending', video: ig.video, caption, direct: status.canDirect, ...(status.name ? { name: status.name } : {}) }
+  let post: TikTokPost = { status: 'pending', video: ig.video, caption, direct: status.canDirect, ...(status.name ? { name: status.name } : {}), ...(typeof coverAtMs === 'number' ? { coverAtMs } : {}) }
   // Para publicar directo, TikTok pide enseñar lo que permite la cuenta ahora (a quién, comentarios, dúos…).
   if (status.canDirect) {
     try {
@@ -2705,7 +2784,7 @@ async function sendTikTok(projectId: string, messageId: string, mode: 'draft' | 
       token,
       file: join(store.workRoot(projectId), p.video),
       ...(mode === 'direct'
-        ? { direct: { caption, privacy: choice.privacy!, allowComments: !!choice.allowComments, allowDuet: !!choice.allowDuet, allowStitch: !!choice.allowStitch, promotional: !!choice.promotional } }
+        ? { direct: { caption, privacy: choice.privacy!, allowComments: !!choice.allowComments, allowDuet: !!choice.allowDuet, allowStitch: !!choice.allowStitch, promotional: !!choice.promotional, ...(typeof p.coverAtMs === 'number' ? { coverAtMs: p.coverAtMs } : {}) } }
         : {}),
       onStep: (step) => set({}, tr(step))
     })
@@ -5458,6 +5537,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       note: t.instagram.note,
       ...(s?.username ? { username: s.username } : {}),
       ...(t.instagram.question ? { question: t.instagram.question } : {}),
+      ...(t.instagram.frames?.length && !t.instagram.coverImage ? { frames: t.instagram.frames } : {}),
       lang: userLanguageName()
     }) + (t.instagram.platform ? '' : learningLines(resultsFile(getConfig().workspaceRoot)).join('\n'))
   }
@@ -5797,6 +5877,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
   // Lo que una orden de una sola tarea prepara antes del agente (fotogramas, fotos de la web, transcripción).
   const prep: [() => Promise<void>, string] | null =
     t.thumbnail && !t.thumbnail.ready ? [() => prepareThumbnail(run, t), 'No pude preparar el vídeo: {message}']
+    : t.instagram && !t.instagram.ready ? [() => prepareSocialCover(run, t), 'No pude preparar el vídeo: {message}']
     : t.demo && !t.demo.ready ? [() => prepareDemo(run, t), 'No pude fotografiar la web: {message}']
     : t.footage && !t.footage.ready ? [() => prepareFootage(run, t), 'No pude preparar la grabación: {message}']
     : null

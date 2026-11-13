@@ -227,6 +227,8 @@ export interface DirectOptions {
   allowStitch: boolean
   /** «Contenido promocional» de la propia marca (brand_organic_toggle). */
   promotional?: boolean
+  /** El fotograma de portada (milisegundos desde el principio). */
+  coverAtMs?: number
 }
 
 export interface TikTokUploadInput {
@@ -265,7 +267,9 @@ export async function uploadTikTok(input: TikTokUploadInput): Promise<{ publishI
             brand_content_toggle: false,
             brand_organic_toggle: !!direct.promotional,
             // Los vídeos de kywai están hechos con IA: se marcan así, como piden las normas de TikTok.
-            is_aigc: true
+            is_aigc: true,
+            // La portada: el fotograma elegido (sin esto TikTok pone el primero, que suele salir negro).
+            ...(typeof direct.coverAtMs === 'number' && Number.isFinite(direct.coverAtMs) ? { video_cover_timestamp_ms: Math.max(0, Math.round(direct.coverAtMs)) } : {})
           },
           source_info
         },

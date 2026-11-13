@@ -3847,4 +3847,13 @@ export const en: Record<string, string> = {
   "Filtrar y ordenar los proyectos": "Filter and sort projects",
   "Filtrar y ordenar": "Filter and sort",
   "Tiene resultados sin ver": "Has unseen results",
+  "Portada del reel": "Reel cover",
+  "Portada: sale en el perfil en vez del primer fotograma.": "Cover: shows on the profile instead of the first frame.",
+  "Portada: el fotograma del segundo {n} (lo eligió el agente).": "Cover: the frame at second {n} (picked by the agent).",
+  "Sacando fotogramas para la portada": "Grabbing frames for the cover",
+  "Haciendo la portada": "Making the cover",
+  "Preparando la portada": "Preparing the cover",
+  "Subiendo la portada a un enlace temporal": "Uploading the cover to a temporary link",
+  "No se pudo subir la portada: va el fotograma elegido": "Couldn't upload the cover: using the chosen frame",
+  "No se pudo subir la portada": "Couldn't upload the cover",
 }

@@ -2400,6 +2400,18 @@ pasajeros de la subida se reintentan solos dos veces. Ninguna petición se queda
 tiempo (1 minuto; la subida, 2 minutos más 1 por cada 5 MB). Si cierras kywai a mitad de una publicación (de Instagram
 o de TikTok), al volver a abrirlo la tarjeta queda como fallida, con **Reintentar**, en vez de seguir dando vueltas.
 
+**Portada con gancho.** Sin portada, Instagram pone el primer fotograma, que en los vídeos de kywai suele salir negro
+(así salieron los primeros reels de kywai_app). Ahora, antes del texto, kywai saca 8 fotogramas del vídeo y el mismo
+agente que escribe el texto elige uno y escribe el **gancho de la portada** (de 2 a 5 palabras) en una última línea
+`PORTADA: {…}`, que no acaba en el texto publicado. kywai hace la portada como en «/miniatura» (diseño «grande» o
+«caja», 1080×1920 en JPG), con el texto dentro del **recorte 3:4 de la cuadrícula del perfil** (Instagram quita 240 px
+arriba y abajo), la deja junto al vídeo (`<vídeo>-portada.jpg`) y la enseña en la tarjeta. Al publicar se la da a
+Instagram como `cover_url`, con un enlace público igual que el vídeo (Funnel o alojamiento temporal), y además el
+fotograma elegido como `thumb_offset`: si la imagen no se puede subir, el reel sale igual con ese fotograma. **Si
+adjuntas una imagen** a «/instagram», esa es la portada (se recorta a 1080×1920) y el agente no diseña ninguna. Sin
+la app de escritorio (no hay ventana para hacer la imagen) queda solo el fotograma. Instagram no deja cambiar la
+portada de un reel ya publicado por la API: los publicados antes se cambian a mano en la app.
+
 **Publicar sin preguntar.** Con ese botón activado, lo que prepara «/instagram» se publica solo al terminar el texto,
 también desde una **rutina** («/rutina cada día a las 18:00: /serie siguiente» y otra «… /instagram»). «Volver a pedir
 mi visto bueno» lo desactiva. Por defecto está apagado.
@@ -2518,6 +2530,10 @@ renueva solo durante un año; todo se guarda **cifrado** con el llavero del sist
   rechaza y kywai lo explica en la tarjeta. Los borradores no tienen esa limitación. Cuando la aprueben,
   pulsa **«TikTok ya aprobó la app»** en Ajustes y aparecen las opciones públicas. Publicar directo siempre necesita tu
   clic en la tarjeta (regla de TikTok). Los vídeos van marcados como **hechos con IA**.
+- **Portada:** el agente que escribe el texto elige también el fotograma de portada entre 8 del vídeo (sin eso TikTok
+  pone el primero, que suele salir negro). Al publicar directo va como `video_cover_timestamp_ms` y la tarjeta dice de
+  qué segundo es. La API de TikTok no admite una imagen aparte, así que no lleva texto encima; en un **borrador** la
+  portada se elige en la app al publicarlo.
 
 Si TikTok falla, la tarjeta dice **en qué paso** (preparar, enviar el vídeo, comprobarlo) y qué contestó, con su
 `log_id` si lo trae. Los errores 500 pasajeros se reintentan solos dos veces.

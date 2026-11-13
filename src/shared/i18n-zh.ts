@@ -3724,4 +3724,13 @@ export const zh: Record<string, string> = {
   "Filtrar y ordenar los proyectos": "筛选和排序项目",
   "Filtrar y ordenar": "筛选和排序",
   "Tiene resultados sin ver": "有未查看的结果",
+  "Portada del reel": "Reel 封面",
+  "Portada: sale en el perfil en vez del primer fotograma.": "封面：在主页上显示它，而不是第一帧。",
+  "Portada: el fotograma del segundo {n} (lo eligió el agente).": "封面：第 {n} 秒的画面（由智能体选择）。",
+  "Sacando fotogramas para la portada": "正在为封面截取画面",
+  "Haciendo la portada": "正在制作封面",
+  "Preparando la portada": "正在准备封面",
+  "Subiendo la portada a un enlace temporal": "正在把封面上传到临时链接",
+  "No se pudo subir la portada: va el fotograma elegido": "无法上传封面：改用选定的画面",
+  "No se pudo subir la portada": "无法上传封面",
 }

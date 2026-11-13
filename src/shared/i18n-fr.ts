@@ -3724,4 +3724,13 @@ export const fr: Record<string, string> = {
   "Filtrar y ordenar los proyectos": "Filtrer et trier les projets",
   "Filtrar y ordenar": "Filtrer et trier",
   "Tiene resultados sin ver": "A des résultats non vus",
+  "Portada del reel": "Couverture du reel",
+  "Portada: sale en el perfil en vez del primer fotograma.": "Couverture : elle s'affiche sur le profil à la place de la première image.",
+  "Portada: el fotograma del segundo {n} (lo eligió el agente).": "Couverture : l'image à la seconde {n} (choisie par l'agent).",
+  "Sacando fotogramas para la portada": "Extraction d'images pour la couverture",
+  "Haciendo la portada": "Création de la couverture",
+  "Preparando la portada": "Préparation de la couverture",
+  "Subiendo la portada a un enlace temporal": "Envoi de la couverture vers un lien temporaire",
+  "No se pudo subir la portada: va el fotograma elegido": "Impossible d'envoyer la couverture : l'image choisie est utilisée",
+  "No se pudo subir la portada": "Impossible d'envoyer la couverture",
 }

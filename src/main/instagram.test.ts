@@ -250,6 +250,85 @@ describe('el Instagram de kywai', () => {
     }
   })
 
+  it('la portada va como cover_url (enlace público, como el vídeo) y el fotograma como thumb_offset', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-cover-'))
+    const file = join(dir, 'v.mp4')
+    const cover = join(dir, 'v-portada.jpg')
+    writeFileSync(file, Buffer.alloc(64, 1))
+    writeFileSync(cover, Buffer.alloc(32, 2))
+    const calls = fakeGraph([
+      [/POST https:\/\/tmpfiles/, () => ({ data: { url: 'http://tmpfiles.org/9/kywai.jpg' } })],
+      [/POST .*\/1\/media$/, () => ({ id: 'C1', uri: 'https://rupload.facebook.com/ig-api-upload/v21.0/C1' })],
+      [/rupload/, () => ({ success: true })],
+      [/GET .*\/C1\?/, () => ({ status_code: 'FINISHED' })],
+      [/media_publish/, () => ({ id: 'M1' })],
+      [/GET .*\/M1\?/, () => ({})]
+    ])
+    __setInstagramFetchForTests(
+      (() => {
+        const inner = calls
+        void inner
+        return async (url: string, init?: { method?: string; body?: string | Uint8Array | FormData; headers?: Record<string, string> }) => {
+          calls.push({ url, method: init?.method ?? 'GET', headers: init?.headers ?? {}, body: init?.body })
+          const json = (b: unknown) => ({ ok: true, status: 200, text: async () => JSON.stringify(b) })
+          if (url.includes('litterbox')) {
+            const f = (init?.body as FormData).get('fileToUpload') as File
+            expect(f.type).toBe('image/jpeg')
+            expect(f.name).toMatch(/\.jpg$/)
+            return { ok: true, status: 200, text: async () => 'https://litter.catbox.moe/abc.jpg' }
+          }
+          if (url.endsWith('/1/media')) return json({ id: 'C1', uri: 'https://rupload.facebook.com/ig-api-upload/v21.0/C1' })
+          if (url.includes('rupload')) return json({ success: true })
+          if (url.includes('/C1?')) return json({ status_code: 'FINISHED' })
+          if (url.endsWith('media_publish')) return json({ id: 'M1' })
+          return json({})
+        }
+      })(),
+      async () => undefined
+    )
+    const steps: string[] = []
+    await publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x', cover, coverAtMs: 2345.6, onStep: (s) => steps.push(s) })
+    const box = Object.fromEntries(new URLSearchParams(calls.find((c) => c.url.endsWith('/1/media'))!.body as string))
+    expect(box).toMatchObject({ media_type: 'REELS', upload_type: 'resumable', cover_url: 'https://litter.catbox.moe/abc.jpg', thumb_offset: '2346' })
+    expect(steps).toContain('Subiendo la portada a un enlace temporal')
+  })
+
+  it('si la portada no se puede subir, el reel sale igual con el fotograma elegido', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ig-cover2-'))
+    const file = join(dir, 'v.mp4')
+    const cover = join(dir, 'v-portada.jpg')
+    writeFileSync(file, Buffer.alloc(64, 1))
+    writeFileSync(cover, Buffer.alloc(32, 2))
+    const bodies: string[] = []
+    __setInstagramFetchForTests(
+      async (url, init) => {
+        const json = (b: unknown) => ({ ok: true, status: 200, text: async () => JSON.stringify(b) })
+        if (/litterbox|uguu|tmpfiles/.test(url)) return { ok: false, status: 503, text: async () => 'caído' }
+        if (url.endsWith('/1/media')) return bodies.push(String(init?.body)), json({ id: 'C1', uri: 'https://rupload.facebook.com/x' })
+        if (url.includes('rupload')) return json({ success: true })
+        if (url.includes('/C1?')) return json({ status_code: 'FINISHED' })
+        if (url.endsWith('media_publish')) return json({ id: 'M1' })
+        return json({})
+      },
+      async () => undefined
+    )
+    const steps: string[] = []
+    expect((await publishReel({ token: 'EAAx123456', userId: '1', file, caption: 'x', cover, coverAtMs: 4000, onStep: (s) => steps.push(s) })).id).toBe('M1')
+    const box = Object.fromEntries(new URLSearchParams(bodies[0]))
+    expect(box.thumb_offset).toBe('4000')
+    expect(box.cover_url).toBeUndefined()
+    expect(steps).toContain('No se pudo subir la portada: va el fotograma elegido')
+  })
+
+  it('el encargo del texto pide la portada y la línea «PORTADA:» no acaba en el texto', () => {
+    const p = captionPrompt({ video: '/p/v.mp4', about: 'Un gato', lang: 'español', frames: ['/f/0.jpg', '/f/1.jpg'] })
+    expect(p).toMatch(/PORTADA: \{"frame"/)
+    expect(p).toContain('1: /f/1.jpg')
+    expect(captionPrompt({ video: '/p/v.mp4', about: 'Un gato', lang: 'español' })).not.toContain('PORTADA')
+    expect(parseCaptionReply('Gancho\n\n#gato\n\nPORTADA: {"frame": 1, "text": "Mira esto"}')).toBe('Gancho\n\n#gato')
+    expect(parseCaptionReply('```\nGancho\n```\n**PORTADA:** {"frame": 1}')).toBe('Gancho')
+  })
+
   it('el texto cabe en Instagram y se limpia lo que añade el agente', () => {
     const tags = Array.from({ length: 35 }, (_, i) => `#t${i}`).join(' ')
     expect(cleanCaption(tags).match(/#/g)).toHaveLength(30)

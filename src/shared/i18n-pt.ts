@@ -3724,4 +3724,13 @@ export const pt: Record<string, string> = {
   "Filtrar y ordenar los proyectos": "Filtrar e ordenar os projetos",
   "Filtrar y ordenar": "Filtrar e ordenar",
   "Tiene resultados sin ver": "Tem resultados não vistos",
+  "Portada del reel": "Capa do reel",
+  "Portada: sale en el perfil en vez del primer fotograma.": "Capa: aparece no perfil em vez do primeiro fotograma.",
+  "Portada: el fotograma del segundo {n} (lo eligió el agente).": "Capa: o fotograma do segundo {n} (escolhido pelo agente).",
+  "Sacando fotogramas para la portada": "A extrair fotogramas para a capa",
+  "Haciendo la portada": "A fazer a capa",
+  "Preparando la portada": "A preparar a capa",
+  "Subiendo la portada a un enlace temporal": "A enviar a capa para um link temporário",
+  "No se pudo subir la portada: va el fotograma elegido": "Não foi possível enviar a capa: vai o fotograma escolhido",
+  "No se pudo subir la portada": "Não foi possível enviar a capa",
 }

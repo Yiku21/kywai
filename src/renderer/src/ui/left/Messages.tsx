@@ -1461,6 +1461,7 @@ function TikTokPostBlock({ m, post }: { m: ChatMessage; post: TikTokPost }) {
         post.status !== 'dismissed' && <p className={s.routineRequest}>{post.caption}</p>
       )}
       {post.status === 'drafted' && <p className={s.planSub}>{t('Un borrador de TikTok no lleva texto: cópialo de aquí al publicarlo desde la app.')}</p>}
+      {open && post.direct && typeof post.coverAtMs === 'number' && <p className={s.planSub}>{t('Portada: el fotograma del segundo {n} (lo eligió el agente).', { n: (post.coverAtMs / 1000).toFixed(1) })}</p>}
       {open && post.direct && (
         <div className={s.ttDirect}>
           <label className={s.ttRow}>
@@ -1570,6 +1571,12 @@ function InstagramPostBlock({ m, post }: { m: ChatMessage; post: InstagramPost }
           <span className={s.planSub}>{post.video}</span>
         </div>
       </div>
+      {post.cover && post.status !== 'dismissed' && (
+        <figure className={s.igCover}>
+          <img src={projectFileUrl(m.projectId, post.cover, isWeb)} alt={t('Portada del reel')} loading="lazy" />
+          <figcaption>{t('Portada: sale en el perfil en vez del primer fotograma.')}</figcaption>
+        </figure>
+      )}
       {open ? (
         <textarea className={s.igCaption} value={caption} maxLength={2200} rows={6} aria-label={t('Texto de la publicación')} disabled={!canAct || !!busy} onChange={(e) => setCaption(e.currentTarget.value)} />
       ) : (

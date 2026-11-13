@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { coverHtml, fitFont, parseThumbnailPlan, parseThumbnailRequest, thumbnailPrompt } from './thumbnail'
+import { coverHtml, coverPromptLines, fitFont, liveliestFrame, parseCoverReply, parseThumbnailPlan, parseThumbnailRequest, stripCoverLine, thumbFrameTimes, thumbnailPrompt } from './thumbnail'
 
 describe('/miniatura', () => {
   it('lee el formato y lo que se pide', () => {
@@ -38,5 +38,24 @@ describe('/miniatura', () => {
       expect(html).not.toContain('<no>')
     }
     expect(fitFont('Una frase bastante larga para la portada', 900, 3, 170)).toBeLessThan(170)
+  })
+
+  it('la portada de un reel: lo que elige el agente, dentro del recorte del perfil', () => {
+    expect(parseCoverReply('Texto\nPORTADA: {"frame": 9, "layout": "lateral", "text": "  Nadie   lo sabía ", "accent": "#00ff00"}', 8)).toEqual({
+      frame: 7,
+      cover: { frame: 7, text: 'Nadie lo sabía', layout: 'caja', accent: '#00ff00', x: 0.5, y: 0.4 }
+    })
+    expect(parseCoverReply('PORTADA: {"frame": 3}', 8)).toEqual({ frame: 3, cover: null })
+    expect(parseCoverReply('PORTADA: {roto', 8)).toBeNull()
+    expect(parseCoverReply('sin portada', 8)).toBeNull()
+    expect(stripCoverLine('Hola\n\nPORTADA: {"frame": 1}')).toBe('Hola')
+    expect(liveliestFrame([10, 900, 300])).toBe(1)
+    expect(thumbFrameTimes(10, 3).map((t) => +t.toFixed(2))).toEqual([0.6, 5, 9.4])
+    expect(coverPromptLines([], 'español')).toEqual([])
+    expect(coverPromptLines(['/a.jpg'], 'español', 'tiktok').join('\n')).toContain('PORTADA: {"frame": 2}')
+    const c = { frame: 0, text: 'Mira esto', layout: 'grande' as const, accent: '#ffd400', x: 0.5, y: 0.4 }
+    // En la cuadrícula del perfil se pierden 240 px arriba: el texto empieza más abajo.
+    expect(coverHtml(c, '/f.jpg', { w: 1080, h: 1920 }, { grid: true })).toContain(`top:${Math.round(1920 * 0.17)}px`)
+    expect(coverHtml(c, '/f.jpg', { w: 1080, h: 1920 })).toContain(`top:${Math.round(1920 * 0.1)}px`)
   })
 })

@@ -6,7 +6,7 @@
 //  3. kywai hace cada portada como una página HTML y la fotografía (htmlShot.htmlToPng): letras nítidas, del tamaño
 //     justo (1080×1920 en vertical, 1280×720 en horizontal).
 import { execFile } from 'node:child_process'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import type { HtmlToPng } from './webDemo'
 
@@ -122,9 +122,14 @@ export function fitFont(text: string, width: number, lines: number, max: number)
   return Math.round(Math.min(max, width / (perLine * 0.5)))
 }
 
-/** La portada como página HTML del tamaño exacto, con el fotograma de fondo (ruta absoluta). */
-export function coverHtml(c: ThumbCover, frame: string, size: { w: number; h: number }): string {
+/**
+ * La portada como página HTML del tamaño exacto, con el fotograma de fondo (ruta absoluta). Con `grid`, el texto de una
+ * portada vertical queda dentro del recorte 3:4 que hace la cuadrícula del perfil de Instagram (se pierden 240 px arriba
+ * y abajo): lo importante no se corta ni en el perfil ni en la pestaña de Reels.
+ */
+export function coverHtml(c: ThumbCover, frame: string, size: { w: number; h: number }, opts: { grid?: boolean } = {}): string {
   const vertical = size.h > size.w
+  const top = (share: number): number => Math.round(size.h * (vertical && opts.grid ? Math.max(share, 0.17) : share))
   const img = `url('file://${frame.replace(/\\/g, '/')}')`
   const pos = `${Math.round(c.x * 100)}% ${Math.round(c.y * 100)}%`
   const pad = Math.round(size.w * 0.06)
@@ -147,9 +152,9 @@ p{font-size:${Math.round(fs * 0.3)}px;margin-top:${Math.round(fs * 0.25)}px;opac
   }
   if (c.layout === 'caja') {
     const fs = fitFont(c.text, textW * 0.9, vertical ? 4 : 3, vertical ? 130 : 92)
-    const top = vertical ? Math.round(size.h * 0.12) : pad
+    const boxTop = vertical ? top(0.12) : pad
     return `${head}.shade{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%, rgba(0,0,0,0) 40%, rgba(0,0,0,.45) 100%)}
-.t{position:absolute;left:${pad}px;right:${pad}px;top:${top}px;transform:rotate(-2.5deg);transform-origin:left top}
+.t{position:absolute;left:${pad}px;right:${pad}px;top:${boxTop}px;transform:rotate(-2.5deg);transform-origin:left top}
 h1{display:inline;font-size:${fs}px;line-height:1.28;background:${c.accent};color:${on};padding:.02em .22em;box-decoration-break:clone;-webkit-box-decoration-break:clone;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 p{display:inline-block;margin-top:${Math.round(fs * 0.4)}px;font-size:${Math.round(fs * 0.34)}px;background:#0b0b0f;color:#fff;padding:.25em .55em}
 </style></head><body><div class="bg"></div><div class="shade"></div><div class="t"><h1>${esc(c.text)}</h1>${c.sub ? `<br><p>${esc(c.sub)}</p>` : ''}</div>${fitScript('.t', size.h * (vertical ? 0.5 : 0.8))}</body></html>`
@@ -158,7 +163,7 @@ p{display:inline-block;margin-top:${Math.round(fs * 0.4)}px;font-size:${Math.rou
   const fs = fitFont(c.text, textW, vertical ? 4 : 2, vertical ? 170 : 120)
   const stroke = Math.max(4, Math.round(fs * 0.06))
   return `${head}.shade{position:absolute;inset:0;background:linear-gradient(${vertical ? 'to bottom' : 'to top'}, rgba(0,0,0,.72) 0%, rgba(0,0,0,.25) 45%, rgba(0,0,0,0) 70%)}
-.t{position:absolute;left:${pad}px;right:${pad}px;${vertical ? `top:${Math.round(size.h * 0.1)}px` : `bottom:${pad}px`}}
+.t{position:absolute;left:${pad}px;right:${pad}px;${vertical ? `top:${top(0.1)}px` : `bottom:${pad}px`}}
 h1{font-size:${fs}px;color:#fff;-webkit-text-stroke:${stroke}px #000;paint-order:stroke fill;text-shadow:0 ${stroke}px ${stroke * 3}px rgba(0,0,0,.6)}
 h1 em{font-style:normal;color:${c.accent}}
 p{font-size:${Math.round(fs * 0.28)}px;color:#fff;margin-top:${Math.round(fs * 0.2)}px;text-shadow:0 2px 12px rgba(0,0,0,.8)}
@@ -187,12 +192,18 @@ function ffmpeg(args: string[], signal?: AbortSignal): Promise<boolean> {
   })
 }
 
+/** El segundo de cada uno de los `n` fotogramas de thumbFrames (sin el principio ni el final del vídeo). */
+export function thumbFrameTimes(seconds: number, n = THUMB_FRAMES): number[] {
+  return Array.from({ length: n }, (_, i) => seconds * (0.06 + (0.88 * i) / Math.max(1, n - 1)))
+}
+
 /** `n` fotogramas repartidos por el vídeo (sin el principio ni el final), en JPG de 1920 px como mucho. */
 export async function thumbFrames(video: string, seconds: number, dir: string, n = THUMB_FRAMES, signal?: AbortSignal): Promise<string[]> {
   mkdirSync(dir, { recursive: true })
   const out: string[] = []
+  const times = thumbFrameTimes(seconds, n)
   for (let i = 0; i < n && !signal?.aborted; i++) {
-    const at = seconds * (0.06 + (0.88 * i) / Math.max(1, n - 1))
+    const at = times[i]
     const file = join(dir, `fotograma-${i}.jpg`)
     if (await ffmpeg(['-ss', at.toFixed(2), '-i', video, '-frames:v', '1', '-vf', "scale='min(1920,iw)':-2", '-q:v', '2', file], signal)) {
       if (existsSync(file)) out.push(file)
@@ -212,4 +223,89 @@ export async function renderThumbnails(covers: ThumbCover[], frames: string[], f
   }
   if (!out.length) throw new Error('No se pudieron hacer las portadas (hace falta la app de escritorio)')
   return out
+}
+
+// ---------- la portada de un reel al publicarlo («/instagram», «/tiktok») ----------
+
+/**
+ * Lo que se añade al encargo del texto para que el agente elija también la portada: sin ella Instagram pone el primer
+ * fotograma, que en los vídeos de kywai suele salir negro. En TikTok solo se elige el fotograma (su API no admite una
+ * imagen aparte).
+ */
+export function coverPromptLines(frames: string[], lang: string, platform?: 'tiktok'): string[] {
+  if (!frames.length) return []
+  return [
+    '',
+    platform === 'tiktok'
+      ? 'Elige también la PORTADA del vídeo: el fotograma que verá la gente en el perfil antes de tocarlo (sin portada, TikTok pone el primero, que suele salir negro). Ábrelos y elige el más llamativo: nítido, con algo que se entienda de un vistazo.'
+      : 'Haz también la PORTADA del reel: la imagen que se ve en el perfil y en la pestaña de Reels (sin portada, Instagram pone el primer fotograma, que suele salir negro). Es lo que hace que alguien pare y lo abra.',
+    'Fotogramas del vídeo (mejor uno sin letras encima, o con pocas, para que no choquen con las de la portada):',
+    ...frames.map((f, i) => `${i}: ${f}`),
+    ...(platform === 'tiktok'
+      ? ['En la ÚLTIMA línea de tu respuesta, aparte del texto, escribe: PORTADA: {"frame": 2}']
+      : [
+          `- "text": el gancho de la portada, de 2 a 5 palabras en ${lang}, que dé ganas de verlo (curiosidad, resultado, número o reto). No copies la primera línea del texto: resúmela en grande.`,
+          '- "sub" (opcional): una línea corta debajo, como mucho 6 palabras.',
+          '- "layout": "grande" (el texto enorme con contorno) o "caja" (el texto en franjas de color). "accent": un color que contraste (#rrggbb). "x" e "y": dónde está lo importante del fotograma (0-1).',
+          'En la ÚLTIMA línea de tu respuesta, aparte del texto, escribe en una sola línea:',
+          'PORTADA: {"frame": 2, "layout": "grande", "text": "…", "sub": "…", "accent": "#ffd400", "x": 0.5, "y": 0.4}'
+        ])
+  ]
+}
+
+/** La portada que eligió el agente (la línea «PORTADA: {…}»), o null si no la trae o no vale. */
+export function parseCoverReply(text: string, frames: number): { frame: number; cover: ThumbCover | null } | null {
+  const m = /^[ \t*_`>-]*PORTADA\s*:\s*(\{.*\})\s*`*\s*$/im.exec(text)
+  if (!m || !frames) return null
+  let j: Record<string, unknown>
+  try {
+    j = JSON.parse(m[1]) as Record<string, unknown>
+  } catch {
+    return null
+  }
+  const frame = Math.round(clamp(j.frame, 0, frames - 1, 0))
+  let cover: ThumbCover | null = null
+  try {
+    // En la cuadrícula del perfil el diseño «lateral» se cortaría: se hace como «caja».
+    cover = parseThumbnailPlan(JSON.stringify({ covers: [{ ...j, frame, layout: j.layout === 'grande' ? 'grande' : 'caja' }] }), frames)[0] ?? null
+  } catch {
+    /* sin texto: solo el fotograma */
+  }
+  return { frame, cover }
+}
+
+/** Quita la línea «PORTADA: …» de la respuesta (lo demás es el texto de la publicación). */
+export function stripCoverLine(text: string): string {
+  return text.replace(/^[ \t*_`>-]*PORTADA\s*:.*$/gim, '').trim()
+}
+
+/** Sin elección del agente, el fotograma con más detalle (el JPG más pesado): nunca uno negro o casi vacío. */
+export function liveliestFrame(sizes: number[]): number {
+  let best = 0
+  sizes.forEach((v, i) => {
+    if (v > sizes[best]) best = i
+  })
+  return best
+}
+
+/** Pasa una imagen a JPG vertical 1080×1920 (recortada al centro), que es lo que admite Instagram como portada. */
+export function imageToCoverJpg(src: string, out: string, signal?: AbortSignal): Promise<boolean> {
+  const { w, h } = THUMB_SIZE.vertical
+  return ffmpeg(['-i', src, '-frames:v', '1', '-vf', `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}`, '-q:v', '3', out], signal).then((ok) => ok && existsSync(out))
+}
+
+/** Hace la portada del reel en JPG (1080×1920, texto dentro del recorte del perfil). */
+export async function renderReelCover(c: ThumbCover, frame: string, out: string, htmlToPng: HtmlToPng, signal?: AbortSignal): Promise<boolean> {
+  const size = THUMB_SIZE.vertical
+  const png = out.replace(/\.jpe?g$/i, '') + '.png'
+  if (!(await htmlToPng(coverHtml(c, frame, size, { grid: true }), size, png))) return false
+  try {
+    return await imageToCoverJpg(png, out, signal)
+  } finally {
+    try {
+      rmSync(png, { force: true })
+    } catch {
+      /* da igual */
+    }
+  }
 }

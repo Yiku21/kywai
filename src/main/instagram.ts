@@ -5,7 +5,8 @@
 // (rupload.facebook.com). Con uno de Instagram (IG…) Meta no la admite: el vídeo se deja 1 hora en un alojamiento
 // temporal (Litterbox, Uguu o tmpfiles.org, el primero que responda) y se le da ese enlace a Instagram.
 import { existsSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { dirname, extname } from 'node:path'
+import { coverPromptLines, stripCoverLine } from './thumbnail'
 
 export const GRAPH_VERSION = 'v21.0'
 /** Lo más largo que admite Instagram en el texto de una publicación. */
@@ -194,6 +195,13 @@ export interface PublishInput {
    * los seguidores (graduation_strategy SS_PERFORMANCE).
    */
   trial?: boolean
+  /**
+   * La portada (JPG 1080×1920): se le da a Instagram con un enlace público, como el vídeo (cover_url). Sin ella,
+   * Instagram pone el primer fotograma, que en los vídeos de kywai suele salir negro.
+   */
+  cover?: string
+  /** El fotograma de portada (milisegundos desde el principio): por si la imagen de portada no se puede subir. */
+  coverAtMs?: number
 }
 
 /** Tope de una subida: 2 minutos más 1 por cada 5 MB (una conexión muy lenta sigue subiendo; una colgada, no). */
@@ -251,7 +259,7 @@ const TEMP_HOSTS: TempHost[] = [
     field: 'fileToUpload',
     extra: { reqtype: 'fileupload', time: '1h' },
     max: 1000 * 1024 * 1024,
-    parse: (t) => (/^https:\/\/\S+\.mp4$/i.test(t.trim()) ? t.trim() : null)
+    parse: (t) => (/^https:\/\/\S+\.(mp4|jpe?g|png)$/i.test(t.trim()) ? t.trim() : null)
   },
   {
     name: 'Uguu',
@@ -291,15 +299,19 @@ function netReason(e: unknown): string {
   return `${err?.message ?? String(e)}${cause ? ` (${cause})` : ''}`
 }
 
-/** Sube el vídeo a un alojamiento temporal (caduca solo) y devuelve su enlace público de descarga. */
+const MIME: Record<string, string> = { '.mp4': 'video/mp4', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png' }
+
+/** Sube el vídeo (o la portada) a un alojamiento temporal (caduca solo) y devuelve su enlace público de descarga. */
 export async function temporaryLink(file: string, size: number, signal?: AbortSignal): Promise<string> {
   const bytes = readFileSync(file)
-  const name = `kywai-${Date.now().toString(36)}.mp4`
+  const ext = MIME[extname(file).toLowerCase()] ? extname(file).toLowerCase() : '.mp4'
+  const name = `kywai-${Date.now().toString(36)}${ext === '.jpeg' ? '.jpg' : ext}`
+  const what = ext === '.mp4' ? 'el vídeo' : 'la portada'
   const ms = uploadTimeout(size)
   const fails: string[] = []
   for (const host of TEMP_HOSTS) {
     if (size > host.max) {
-      fails.push(`${host.name}: el vídeo pasa de ${Math.round(host.max / 1024 / 1024)} MB`)
+      fails.push(`${host.name}: ${what} pasa de ${Math.round(host.max / 1024 / 1024)} MB`)
       continue
     }
     // Cada alojamiento se prueba dos veces: un 500 o un corte de red suelen ser pasajeros.
@@ -307,7 +319,7 @@ export async function temporaryLink(file: string, size: number, signal?: AbortSi
       if (signal?.aborted) throw new Error('Cancelado')
       const form = new FormData()
       for (const [k, v] of Object.entries(host.extra ?? {})) form.set(k, v)
-      form.set(host.field, new Blob([new Uint8Array(bytes)], { type: 'video/mp4' }), name)
+      form.set(host.field, new Blob([new Uint8Array(bytes)], { type: MIME[ext] }), name)
       let why: string
       try {
         const res = await doFetch(host.url, { method: 'POST', body: form, signal: timed(signal, ms) })
@@ -327,7 +339,7 @@ export async function temporaryLink(file: string, size: number, signal?: AbortSi
       else await sleepImpl(3000)
     }
   }
-  throw new Error(`No se pudo dejar el vídeo en un enlace temporal para Instagram (${fails.join('; ')})`)
+  throw new Error(`No se pudo dejar ${what} en un enlace temporal para Instagram (${fails.join('; ')})`)
 }
 
 /** Un enlace público al vídeo que se cierra al terminar (lo da Tailscale Funnel desde el propio equipo). */
@@ -347,10 +359,10 @@ export function setInstagramLinkProvider(p: ((file: string, signal?: AbortSignal
  * El enlace público que se le da a Instagram: primero desde el propio equipo con Tailscale Funnel (el vídeo no pasa
  * por nadie más) y, si no está disponible o falla, un alojamiento temporal. Lo que hay que cerrar va a `opened`.
  */
-async function publicVideoLink(file: string, size: number, signal: AbortSignal | undefined, onStep: ((t: string) => void) | undefined, opened: Array<() => Promise<void>>): Promise<string> {
+async function publicVideoLink(file: string, size: number, signal: AbortSignal | undefined, onStep: ((t: string) => void) | undefined, opened: Array<() => Promise<void>>, cover = false): Promise<string> {
   let funnelWhy = ''
   if (linkProvider) {
-    onStep?.('Abriendo un enlace desde este equipo (Tailscale Funnel)')
+    if (!cover) onStep?.('Abriendo un enlace desde este equipo (Tailscale Funnel)')
     try {
       const link = await linkProvider(file, signal)
       opened.push(link.close)
@@ -360,7 +372,7 @@ async function publicVideoLink(file: string, size: number, signal: AbortSignal |
       funnelWhy = e instanceof Error ? e.message : String(e)
     }
   }
-  onStep?.('Subiendo el vídeo a un enlace temporal')
+  onStep?.(cover ? 'Subiendo la portada a un enlace temporal' : 'Subiendo el vídeo a un enlace temporal')
   try {
     return await temporaryLink(file, size, signal)
   } catch (e) {
@@ -383,13 +395,35 @@ export async function publishReel(input: PublishInput): Promise<{ id: string; pe
   }
 }
 
+/**
+ * La portada del reel para el contenedor: cover_url (la imagen, con un enlace público como el vídeo) y thumb_offset (el
+ * fotograma elegido). Si la imagen no se puede subir, queda el fotograma: el reel se publica igual.
+ */
+async function coverParams(input: PublishInput, opened: Array<() => Promise<void>>): Promise<Record<string, string>> {
+  const out: Record<string, string> = {}
+  if (typeof input.coverAtMs === 'number' && Number.isFinite(input.coverAtMs)) out.thumb_offset = String(Math.max(0, Math.round(input.coverAtMs)))
+  const size = input.cover && existsSync(input.cover) ? statSync(input.cover).size : 0
+  if (!input.cover || !size) return out
+  input.onStep?.('Preparando la portada')
+  try {
+    out.cover_url = await publicVideoLink(input.cover, size, input.signal, input.onStep, opened, true)
+  } catch (e) {
+    if (input.signal?.aborted) throw e
+    input.onStep?.(out.thumb_offset ? 'No se pudo subir la portada: va el fotograma elegido' : 'No se pudo subir la portada')
+  }
+  return out
+}
+
 async function publishReelSteps(input: PublishInput, opened: Array<() => Promise<void>>): Promise<{ id: string; permalink?: string }> {
   const { token, userId, file, signal } = input
   if (!existsSync(file)) throw new Error('No encuentro el vídeo para publicarlo')
   const size = statSync(file).size
   if (!size) throw new Error('El vídeo está vacío')
   const caption = cleanCaption(input.caption)
-  const extra: Record<string, string> = input.trial ? { trial_params: JSON.stringify({ graduation_strategy: 'SS_PERFORMANCE' }) } : {}
+  const extra: Record<string, string> = {
+    ...(input.trial ? { trial_params: JSON.stringify({ graduation_strategy: 'SS_PERFORMANCE' }) } : {}),
+    ...(await coverParams(input, opened))
+  }
   let box: { id?: string; uri?: string }
   if (graphHost(token).includes('instagram')) {
     // Con un token de «Instagram Login» Meta no admite la subida directa (rupload responde ProcessingFailedError):
@@ -460,7 +494,7 @@ export function cleanCaption(text: string): string {
  * con «BLOQUEADA:», no hay texto.
  */
 export function parseCaptionReply(text: string): string | null {
-  let t = text.trim()
+  let t = stripCoverLine(text)
   if (/^BLOQUEADA\s*:/i.test(t)) return null
   const fence = /```(?:\w+)?\s*([\s\S]*?)```/.exec(t)
   if (fence) t = fence[1].trim()
@@ -469,7 +503,7 @@ export function parseCaptionReply(text: string): string | null {
 }
 
 /** Encargo para el agente que escribe el texto de la publicación. */
-export function captionPrompt(input: { video: string; about: string; note?: string; username?: string; question?: string; lang: string; platform?: 'tiktok' }): string {
+export function captionPrompt(input: { video: string; about: string; note?: string; username?: string; question?: string; lang: string; platform?: 'tiktok'; frames?: string[] }): string {
   const net = input.platform === 'tiktok' ? 'TikTok' : 'Instagram'
   return [
     `Escribe el texto (caption) para publicar este ${input.platform === 'tiktok' ? 'vídeo' : 'reel'} en la cuenta de ${net}${input.username ? ` ${input.platform === 'tiktok' ? '' : '@'}${input.username}` : ''}. Es la cuenta propia del proyecto: la publicación sale a su nombre.`,
@@ -486,7 +520,10 @@ export function captionPrompt(input: { video: string; about: string; note?: stri
     '- Al final, de 3 a 6 hashtags concretos del tema (nada de #fyp, #viral ni listas de 30).',
     '- Como mucho 1 o 2 emojis, solo si encajan. Nada inventado: ni cifras ni promesas que el vídeo no cumpla. Nada de nombres de terceros ni de menciones a otras cuentas.',
     '- No crees ni cambies archivos y no publiques nada: kywai lo publica después, con el visto bueno del usuario.',
-    '- Responde SOLO con el texto, listo para pegar. Si el vídeo no se puede publicar tal cual (contenido de terceros, algo engañoso), responde «BLOQUEADA:» y el motivo.'
+    input.frames?.length
+      ? '- Responde SOLO con el texto, listo para pegar, y la línea «PORTADA:» al final. Si el vídeo no se puede publicar tal cual (contenido de terceros, algo engañoso), responde «BLOQUEADA:» y el motivo.'
+      : '- Responde SOLO con el texto, listo para pegar. Si el vídeo no se puede publicar tal cual (contenido de terceros, algo engañoso), responde «BLOQUEADA:» y el motivo.',
+    ...coverPromptLines(input.frames ?? [], input.lang, input.platform)
   ]
     .filter(Boolean)
     .join('\n')

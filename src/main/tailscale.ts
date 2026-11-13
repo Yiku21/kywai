@@ -157,7 +157,8 @@ export async function openFunnelLink(file: string, signal?: AbortSignal): Promis
   const port = FUNNEL_PORTS.find((p) => !used.has(p))
   if (!port) throw new Error(`los puertos de Funnel (${FUNNEL_PORTS.join(' y ')}) ya están ocupados en Tailscale`)
   const token = randomBytes(24).toString('hex')
-  const path = `/kywai/${token}.mp4`
+  const ext = /\.(jpe?g|png)$/i.exec(file)?.[0].toLowerCase().replace('.jpeg', '.jpg') ?? '.mp4'
+  const path = `/kywai/${token}${ext}`
   const server = await serveOneFile(file, path)
   const local = server.address() as AddressInfo
   const stopServer = (): Promise<void> => new Promise((r) => server.close(() => r()))
@@ -208,7 +209,8 @@ export function serveOneFile(file: string, path: string): Promise<Server> {
         return
       }
     }
-    const headers = { 'Content-Type': 'video/mp4', 'Content-Length': String(end - start + 1), 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store' }
+    const type = /\.jpg$/i.test(path) ? 'image/jpeg' : /\.png$/i.test(path) ? 'image/png' : 'video/mp4'
+    const headers = { 'Content-Type': type, 'Content-Length': String(end - start + 1), 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store' }
     if (m && (m[1] || m[2])) res.writeHead(206, { ...headers, 'Content-Range': `bytes ${start}-${end}/${size}` })
     else res.writeHead(200, headers)
     if (req.method === 'HEAD') {

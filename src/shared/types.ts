@@ -306,7 +306,24 @@ export interface Task {
     afterwards?: 'ig-trial'
   }
   /** «/instagram»: el agente escribe el texto del reel (video, relativo al proyecto) y kywai lo prepara para publicar. */
-  instagram?: { video: string; artifactId?: string; about: string; note: string; question?: string; /** Por defecto Instagram. */ platform?: 'tiktok'; /** «/instagram prueba»: reel de prueba. */ trial?: boolean }
+  instagram?: {
+    video: string
+    artifactId?: string
+    about: string
+    note: string
+    question?: string
+    /** Por defecto Instagram. */
+    platform?: 'tiktok'
+    /** «/instagram prueba»: reel de prueba. */
+    trial?: boolean
+    /** Una imagen adjunta a la orden: es la portada (y el agente no la diseña). */
+    coverImage?: string
+    /** Fotogramas para que el agente elija la portada (rutas absolutas) y en qué segundo está cada uno. */
+    frames?: string[]
+    frameTimes?: number[]
+    /** Ya se sacaron los fotogramas (o no se pudo: se publica igual). */
+    ready?: boolean
+  }
   /** «/ig-reply» con la cuenta conectada: los comentarios sin responder (JSON en el proyecto) para escribir las respuestas. */
   igReply?: { file: string }
   /** «/turno-noche»: busca, desmonta y escribe; su respuesta acaba con la orden «/video …» que kywai lanza (src/main/nightShift.ts). */
@@ -946,6 +963,10 @@ export interface InstagramPost {
   auto?: boolean
   /** Reel de prueba («/instagram prueba»): primero solo para quien no sigue la cuenta. */
   trial?: boolean
+  /** La portada en JPG (ruta relativa al proyecto): sale en el perfil en vez del primer fotograma. */
+  cover?: string
+  /** El fotograma de portada, por si la imagen no se puede subir (milisegundos). */
+  coverAtMs?: number
   decidedAt?: number
 }
 
@@ -992,6 +1013,8 @@ export interface TikTokPost {
   postId?: string
   error?: string
   auto?: boolean
+  /** El fotograma de portada al publicar directo (milisegundos); en un borrador se elige en la app. */
+  coverAtMs?: number
   decidedAt?: number
 }
 
