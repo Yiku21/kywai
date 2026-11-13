@@ -172,8 +172,10 @@ export function LogoBridge({ joined }: { joined: boolean }) {
       )
     }
     measure()
+    // La cabecera cambia de alto sin que cambie la ventana (cuotas que llegan, avisos): se vigila ella, la barra y
+    // el logo, o el líquido se quedaría corto y la columna saldría partida.
     const ro = new ResizeObserver(measure)
-    ro.observe(document.body)
+    for (const el of [document.body, header, nav, logo]) ro.observe(el)
     window.addEventListener('resize', measure)
     return () => {
       ro.disconnect()

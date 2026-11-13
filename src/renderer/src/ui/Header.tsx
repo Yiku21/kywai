@@ -41,7 +41,11 @@ export function Header() {
           type="button"
           className={s.logoBtn}
           data-kywai-logo
-          onClick={() => window.dispatchEvent(new Event(TOGGLE_SIDEBAR_EVENT))}
+          onClick={(e) => {
+            // Con el ratón no se queda marcado con el aro de foco (con el teclado sí).
+            if (e.detail > 0) e.currentTarget.blur()
+            window.dispatchEvent(new Event(TOGGLE_SIDEBAR_EVENT))
+          }}
           title={t('Abrir o plegar la barra lateral')}
           aria-label={t('Abrir o plegar la barra lateral')}
         >
