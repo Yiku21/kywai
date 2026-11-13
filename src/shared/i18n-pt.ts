@@ -3874,4 +3874,10 @@ export const pt: Record<string, string> = {
   "No se pudo mostrar el archivo": "Não foi possível mostrar o arquivo",
   "El documento parece dañado o no es un Word moderno (.docx): {error}": "O documento parece danificado ou não é um Word moderno (.docx): {error}",
   "Abriendo el documento…": "Abrindo o documento…",
+  "No parece una hoja de cálculo válida: {error}": "Não parece uma planilha válida: {error}",
+  "Abriendo la hoja de cálculo…": "Abrindo a planilha…",
+  "El libro no tiene hojas.": "A pasta de trabalho não tem planilhas.",
+  "Hojas del libro": "Planilhas da pasta de trabalho",
+  "Esta hoja está vacía.": "Esta planilha está vazia.",
+  "Se ven las primeras {rows} filas y {cols} columnas. Para verla entera, ábrela con la aplicación del equipo.": "Mostrando as primeiras {rows} linhas e {cols} colunas. Para ver tudo, abra com um aplicativo do computador.",
 }

@@ -34,6 +34,7 @@ import { ViewerBusy } from './viewers/shared'
 
 // Los visores de documentos pesan (docx-preview, SheetJS…): se cargan la primera vez que hacen falta.
 const DocxView = lazy(() => import('./viewers/DocxView'))
+const SheetView = lazy(() => import('./viewers/SheetView'))
 
 /**
  * Panel de vista previa de archivos, como el de Claude: se abre a la derecha del chat (en el sitio del espacio 3D) al
@@ -84,7 +85,8 @@ function PreviewPanel({ item, index, count, maximized }: { item: PreviewItem; in
   }, [])
 
   // Lo que hace falta leer: el texto si se muestra como texto (o su código), la dirección para lo demás.
-  const wantsText = isTextual(kind) && (source || !hasSourceView(kind)) || kind === 'markdown' || kind === 'other'
+  // Un CSV se lee como texto también para la tabla (así pasa por el tapado de secretos).
+  const wantsText = isTextual(kind) && (source || !hasSourceView(kind)) || kind === 'markdown' || kind === 'table' || kind === 'other'
   useEffect(() => {
     if (demo) {
       const kindLabel = artifact ? ARTIFACT_KIND_LABEL[artifact.kind].toLowerCase() : typeLabel(item.name).toLowerCase()
@@ -343,6 +345,12 @@ function PreviewContent({
       break
     case 'word':
       if (url) return <Viewer><DocxView url={url} /></Viewer>
+      break
+    case 'sheet':
+      if (url) return <Viewer><SheetView url={url} /></Viewer>
+      break
+    case 'table':
+      if (text != null) return <Viewer><SheetView text={text} /></Viewer>
       break
     case 'audio':
       if (url) {

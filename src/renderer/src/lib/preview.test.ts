@@ -23,6 +23,18 @@ describe('panel de vista previa', () => {
     expect(isTextual('word')).toBe(false)
   })
 
+  it('abre las hojas de cálculo como tabla (y el CSV también como texto)', () => {
+    expect(previewKind('ventas.xlsx')).toBe('sheet')
+    expect(previewKind('antiguo.XLS')).toBe('sheet')
+    expect(previewKind('libre.ods')).toBe('sheet')
+    expect(previewKind('mac.numbers')).toBe('sheet')
+    expect(previewKind('datos.csv')).toBe('table')
+    expect(previewKind('datos.tsv')).toBe('table')
+    expect(hasSourceView('table')).toBe(true)
+    expect(isTextual('table')).toBe(true)
+    expect(isTextual('sheet')).toBe(false)
+  })
+
   it('sin extensión conocida, se fía del tipo MIME', () => {
     expect(previewKind('pegado', 'image/png')).toBe('image')
     expect(previewKind('archivo.raro', 'application/pdf')).toBe('pdf')

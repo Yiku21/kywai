@@ -3998,4 +3998,10 @@ export const en: Record<string, string> = {
   "No se pudo mostrar el archivo": "Couldn't show the file",
   "El documento parece dañado o no es un Word moderno (.docx): {error}": "The document seems damaged or isn't a modern Word file (.docx): {error}",
   "Abriendo el documento…": "Opening the document…",
+  "No parece una hoja de cálculo válida: {error}": "This doesn't look like a valid spreadsheet: {error}",
+  "Abriendo la hoja de cálculo…": "Opening the spreadsheet…",
+  "El libro no tiene hojas.": "The workbook has no sheets.",
+  "Hojas del libro": "Workbook sheets",
+  "Esta hoja está vacía.": "This sheet is empty.",
+  "Se ven las primeras {rows} filas y {cols} columnas. Para verla entera, ábrela con la aplicación del equipo.": "Showing the first {rows} rows and {cols} columns. To see all of it, open it with an app on this computer.",
 }

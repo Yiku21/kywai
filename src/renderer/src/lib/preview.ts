@@ -33,6 +33,10 @@ export type PreviewKind =
   | 'text'
   /** Documento de Word (.docx): lo pinta docx-preview. */
   | 'word'
+  /** Libro de Excel, OpenDocument o Numbers: tablas con SheetJS. */
+  | 'sheet'
+  /** CSV o TSV: se ve como tabla y, con el interruptor, como texto. */
+  | 'table'
   | 'other'
 
 const IMAGE = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif'])
@@ -41,10 +45,11 @@ const AUDIO = new Set(['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'opus']
 const CODE = new Set([
   'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'py', 'css', 'scss', 'json', 'yml', 'yaml', 'toml', 'xml', 'sh', 'ps1', 'bat',
   'cmd', 'java', 'kt', 'kts', 'c', 'h', 'cpp', 'hpp', 'cs', 'go', 'rs', 'rb', 'php', 'swift', 'sql', 'lua', 'gd', 'vue',
-  'svelte', 'ini', 'csv', 'tsv', 'gradle', 'dart', 'r', 'env', 'conf', 'dockerfile', 'makefile'
+  'svelte', 'ini', 'gradle', 'dart', 'r', 'env', 'conf', 'dockerfile', 'makefile'
 ])
 const TEXT = new Set(['txt', 'log', 'text', 'rst'])
 const WORD = new Set(['docx', 'docm', 'dotx', 'dotm'])
+const SHEET = new Set(['xlsx', 'xlsm', 'xlsb', 'xls', 'xltx', 'xltm', 'ods', 'fods', 'numbers'])
 
 function ext(name: string): string {
   const base = (name.split(/[\\/]/).pop() ?? name).toLowerCase()
@@ -63,6 +68,8 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (IMAGE.has(e)) return 'image'
   if (e === 'pdf') return 'pdf'
   if (WORD.has(e)) return 'word'
+  if (SHEET.has(e)) return 'sheet'
+  if (e === 'csv' || e === 'tsv') return 'table'
   if (VIDEO.has(e)) return 'video'
   if (AUDIO.has(e)) return 'audio'
   if (CODE.has(e)) return 'code'
@@ -73,6 +80,8 @@ export function previewKind(name: string, mime?: string): PreviewKind {
   if (m.startsWith('audio/')) return 'audio'
   if (m === 'application/pdf') return 'pdf'
   if (m === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'word'
+  if (m === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || m === 'application/vnd.ms-excel') return 'sheet'
+  if (m === 'text/csv') return 'table'
   if (m.startsWith('text/') || (!e && !m)) return 'text'
   return 'other'
 }
@@ -85,12 +94,12 @@ export function isImageFile(name: string, mime?: string): boolean {
 
 /** Tiene vista renderizada y vista de código (el interruptor 👁 / </>). */
 export function hasSourceView(kind: PreviewKind): boolean {
-  return kind === 'markdown' || kind === 'html' || kind === 'svg'
+  return kind === 'markdown' || kind === 'html' || kind === 'svg' || kind === 'table'
 }
 
 /** Se lee como texto (para mostrarlo, copiarlo o ver su código). */
 export function isTextual(kind: PreviewKind): boolean {
-  return kind === 'markdown' || kind === 'html' || kind === 'svg' || kind === 'code' || kind === 'text'
+  return kind === 'markdown' || kind === 'html' || kind === 'svg' || kind === 'table' || kind === 'code' || kind === 'text'
 }
 
 /** Etiqueta corta del tipo, como en Claude: «MD», «PNG», «PDF»… */

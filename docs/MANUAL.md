@@ -4146,6 +4146,14 @@ equipo, sin subirlos a ningún sitio ni tener Office instalado (y también desde
 - **Word** (`.docx`, `.docm`, `.dotx`): con sus páginas, estilos, tablas, imágenes, encabezados, pies y notas. Si la
   página es más ancha que el panel, se encoge para que quepa. Lo pinta `docx-preview` dentro de una caja aislada
   (Shadow DOM), así los estilos del documento no cambian kywai; los enlaces se abren en el navegador del equipo.
+- **Excel y hojas de cálculo** (`.xlsx`, `.xlsm`, `.xlsb`, `.xls` antiguo, `.ods` de LibreOffice, `.numbers` de Mac):
+  una tabla con las letras de las columnas y los números de fila (fijos al desplazarte), los valores como los formatea
+  el archivo (moneda, decimales, fechas), las celdas combinadas y el ancho de las columnas, y abajo una **pestaña por
+  hoja** (las ocultas no salen). Si una fórmula no tiene resultado guardado, se ve la fórmula. Se pintan hasta 2.000
+  filas y 120 columnas; si hay más, lo dice. Lo lee SheetJS (la versión de su web, `cdn.sheetjs.com`: la de npm está
+  abandonada y tiene fallos de seguridad).
+- **CSV y TSV:** como tabla, con el interruptor **👁 / `</>`** para ver el texto. Se lee tal cual: «007» sigue siendo
+  «007» y no se convierte en número ni en fecha.
 
 Con la ventana estrecha (menos de 950 px) el panel ocupa toda la zona del chat. Al cambiar de proyecto se cierra.
 

@@ -3874,4 +3874,10 @@ export const zh: Record<string, string> = {
   "No se pudo mostrar el archivo": "无法显示该文件",
   "El documento parece dañado o no es un Word moderno (.docx): {error}": "文档似乎已损坏，或不是新版 Word 文件（.docx）：{error}",
   "Abriendo el documento…": "正在打开文档…",
+  "No parece una hoja de cálculo válida: {error}": "这似乎不是有效的电子表格：{error}",
+  "Abriendo la hoja de cálculo…": "正在打开电子表格…",
+  "El libro no tiene hojas.": "该工作簿没有工作表。",
+  "Hojas del libro": "工作簿中的工作表",
+  "Esta hoja está vacía.": "此工作表为空。",
+  "Se ven las primeras {rows} filas y {cols} columnas. Para verla entera, ábrela con la aplicación del equipo.": "仅显示前 {rows} 行和 {cols} 列。要查看全部，请用电脑上的应用打开。",
 }

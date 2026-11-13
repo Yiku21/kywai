@@ -3874,4 +3874,10 @@ export const fr: Record<string, string> = {
   "No se pudo mostrar el archivo": "Impossible d'afficher le fichier",
   "El documento parece dañado o no es un Word moderno (.docx): {error}": "Le document semble endommagé ou n'est pas un Word moderne (.docx) : {error}",
   "Abriendo el documento…": "Ouverture du document…",
+  "No parece una hoja de cálculo válida: {error}": "Ceci ne ressemble pas à une feuille de calcul valide : {error}",
+  "Abriendo la hoja de cálculo…": "Ouverture de la feuille de calcul…",
+  "El libro no tiene hojas.": "Le classeur n'a aucune feuille.",
+  "Hojas del libro": "Feuilles du classeur",
+  "Esta hoja está vacía.": "Cette feuille est vide.",
+  "Se ven las primeras {rows} filas y {cols} columnas. Para verla entera, ábrela con la aplicación del equipo.": "Seules les {rows} premières lignes et {cols} colonnes sont affichées. Pour tout voir, ouvrez-la avec une application de l'ordinateur.",
 }
