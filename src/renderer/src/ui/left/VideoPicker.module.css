@@ -591,3 +591,10 @@
     transform: rotate(360deg);
   }
 }
+
+/* Con «reducir movimiento» la rueda de la muestra de voz no gira (el texto ya dice que está cargando). */
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}

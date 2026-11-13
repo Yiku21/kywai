@@ -519,3 +519,10 @@
     display: none;
   }
 }
+
+/* Con «reducir movimiento», el punto de grabación se queda rojo fijo (sigue diciendo que graba). */
+@media (prefers-reduced-motion: reduce) {
+  .recDot {
+    animation: none;
+  }
+}

@@ -1934,6 +1934,10 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   220 ms en vez de saltar (`TabIndicator` en `LeftPanel.tsx`, solo con `transform`). Las filas de Tareas, Archivos y
   Resultados entran en cascada, 40 ms una detrás de otra (hasta la séptima). Y la ✓ de una tarea terminada se dibuja
   con un trazo dentro de su círculo (`icons.module.css`). Con «reducir movimiento», nada de esto se mueve.
+- **Movimiento reducido en todo.** Cada hoja de estilos con animaciones tiene su bloque
+  `prefers-reduced-motion`: ya lo tienen también el punto de grabación de la nota de voz (se queda rojo fijo), la
+  rueda de la muestra de voz de /video y las etiquetas del 3D (sin rebote, barra quieta y llamada sin latir), aunque no
+  se haya activado «Reducir efectos ambientales» en Ajustes.
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),
