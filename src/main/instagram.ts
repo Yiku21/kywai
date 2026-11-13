@@ -507,6 +507,7 @@ export function captionPrompt(input: { video: string; about: string; note?: stri
   const net = input.platform === 'tiktok' ? 'TikTok' : 'Instagram'
   return [
     `Escribe el texto (caption) para publicar este ${input.platform === 'tiktok' ? 'vídeo' : 'reel'} en la cuenta de ${net}${input.username ? ` ${input.platform === 'tiktok' ? '' : '@'}${input.username}` : ''}. Es la cuenta propia del proyecto: la publicación sale a su nombre.`,
+    `IDIOMA: escribe TODO (el texto, los hashtags${input.frames?.length && input.platform !== 'tiktok' ? ' y los ganchos de las portadas' : ''}) en ${input.lang}, que es el idioma del vídeo, aunque este encargo esté escrito en español.`,
     '',
     `El vídeo: ${input.video} (puedes mirarlo si te ayuda).`,
     `De qué va: ${input.about}`,

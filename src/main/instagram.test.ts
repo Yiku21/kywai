@@ -325,6 +325,7 @@ describe('el Instagram de kywai', () => {
     expect(p).toMatch(/PORTADAS: \[\{"frame": N/)
     expect(p).toContain('1: /f/1.jpg')
     expect(p).toMatch(/PROHIBIDO: etiquetas/)
+    expect(captionPrompt({ video: '/p/v.mp4', about: 'x', lang: 'inglés', frames: ['/f/0.jpg'] })).toContain('IDIOMA: escribe TODO (el texto, los hashtags y los ganchos de las portadas) en inglés, que es el idioma del vídeo')
     expect(captionPrompt({ video: '/p/v.mp4', about: 'x', lang: 'español', frames: ['/f/0.jpg'], sheet: '/f/hoja.jpg' })).toMatch(/Tienes ADJUNTA una imagen con 1 fotogramas[\s\S]*\/f\/hoja\.jpg/)
     expect(captionPrompt({ video: '/p/v.mp4', about: 'x', lang: 'español', frames: ['/f/0.jpg'], platform: 'tiktok' })).toMatch(/PORTADA: \{"frame": N\}/)
     expect(parseCaptionReply('Gancho\n\nPORTADAS: [{"frame": 1, "text": "A"}]')).toBe('Gancho')

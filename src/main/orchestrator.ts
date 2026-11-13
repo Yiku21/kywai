@@ -2381,6 +2381,8 @@ async function sendInstagram(
   const video = attached ? attached.relPath : found!.artifact.relPath
   const root = store.workRoot(projectId)
   const question = loadSeries(root)?.episodes.find((e) => e.video === video)?.question
+  // El idioma del vídeo (si salió de «/video»): el texto y las portadas van en ese idioma, no en el de la app.
+  const videoLang = findDubSource(root, attached ? attached.name : video)?.script.lang
   // Una imagen adjunta es la portada del reel (en TikTok no se puede: su API solo deja elegir un fotograma).
   const coverImage = platform === 'tiktok' ? undefined : atts.find((a) => store.isImageName(a.relPath))?.relPath
   const t: Task = {
@@ -2405,7 +2407,8 @@ async function sendInstagram(
       ...(question ? { question } : {}),
       ...(platform ? { platform } : {}),
       ...(trial ? { trial: true } : {}),
-      ...(coverImage ? { coverImage, ready: true } : {})
+      ...(coverImage ? { coverImage, ready: true } : {}),
+      ...(videoLang ? { lang: videoLang } : {})
     }
   }
   run.meta.set(t.id, { key: t.id, deliverable: 'text', touched: new Set(), retried: false, forceMainModel: false })
@@ -5618,7 +5621,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       ...(s?.username ? { username: s.username } : {}),
       ...(t.instagram.question ? { question: t.instagram.question } : {}),
       ...(t.instagram.frames?.length && !t.instagram.coverImage ? { frames: t.instagram.frames, ...(t.instagram.sheet ? { sheet: join(store.workRoot(run.projectId), t.instagram.sheet) } : {}) } : {}),
-      lang: userLanguageName()
+      lang: DUB_LANGUAGES.find((l) => l.code === t.instagram!.lang)?.name ?? t.instagram.lang ?? `el idioma en que habla el vídeo (míralo en sus subtítulos o escúchalo; si no lo sabes, ${userLanguageName()})`
     }) + (t.instagram.platform ? '' : learningLines(resultsFile(getConfig().workspaceRoot)).join('\n'))
   }
   if (t.dub) {

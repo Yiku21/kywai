@@ -2590,6 +2590,10 @@ a «/instagram», esa es la portada (se recorta a 1080×1920) y el agente no dis
 hay ventana para hacer la imagen) queda solo el fotograma. Instagram no deja cambiar la portada de un reel ya publicado
 por la API: los publicados antes se cambian a mano en la app.
 
+**Idioma.** El texto, los hashtags y los ganchos de las portadas van en el **idioma del vídeo**, no en el de la app:
+si el vídeo salió de «/video», kywai lo sabe por su guion (`lang`); si no, el agente lo saca de los subtítulos o de la
+voz. Lo mismo en «/tiktok».
+
 **Publicar sin preguntar.** Con ese botón activado, lo que prepara «/instagram» se publica solo al terminar el texto,
 también desde una **rutina** («/rutina cada día a las 18:00: /serie siguiente» y otra «… /instagram»). «Volver a pedir
 mi visto bueno» lo desactiva. Por defecto está apagado.

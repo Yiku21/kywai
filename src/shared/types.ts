@@ -333,6 +333,8 @@ export interface Task {
     /** Fotogramas para que el agente elija la portada (rutas absolutas) y en qué segundo está cada uno. */
     frames?: string[]
     frameTimes?: number[]
+    /** El idioma del vídeo (código, «en»), si salió de «/video»: el texto y las portadas van en ese idioma. */
+    lang?: string
     /** La hoja con los fotogramas numerados (relativa al proyecto): se le adjunta al agente como imagen para que los vea. */
     sheet?: string
     /** Ya se sacaron los fotogramas (o no se pudo: se publica igual). */
