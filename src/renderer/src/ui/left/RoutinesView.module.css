@@ -401,3 +401,10 @@
   margin: 2px 0 0;
   accent-color: var(--accent);
 }
+
+/* Lo que falta en un campo, justo debajo de él (con aria-invalid el campo se pone en rojo). */
+.fieldError {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--alert);
+}

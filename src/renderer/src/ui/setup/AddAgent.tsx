@@ -1,9 +1,10 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { AlertTriangle, ExternalLink, Gift, LoaderCircle, Plus, Search, Terminal, X } from 'lucide-react'
 import type { AgentConfig } from '@shared/types'
 import { AGENT_CATALOG, type CatalogEntry } from '@shared/agentCatalog'
 import { api } from '@/lib/api'
 import { cx, errorText } from '../common/util'
+import { shake } from '@/lib/shake'
 import u from '../common/ui.module.css'
 import s from './AddAgent.module.css'
 import { t } from '@/lib/i18n'
@@ -38,6 +39,8 @@ export function AddAgent({
   const [freeOnly, setFreeOnly] = useState(startFree)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [badArgs, setBadArgs] = useState(false)
+  const argsRef = useRef<HTMLInputElement>(null)
   const [custom, setCustom] = useState(false)
   const [form, setForm] = useState({ name: '', command: '', promptVia: 'stdin' as 'stdin' | 'file' | 'arg', args: '', login: '' })
 
@@ -76,8 +79,11 @@ export function AddAgent({
     const args = splitArgs(form.args)
     if (!args) {
       setError(t('Los argumentos solo pueden llevar letras, números y . : - / = , @ (separados por espacios).'))
+      setBadArgs(true)
+      shake(argsRef.current)
       return
     }
+    setBadArgs(false)
     setBusy('custom')
     setError(null)
     try {
@@ -213,7 +219,18 @@ export function AddAgent({
             </label>
             <label>
               <span>{t('Argumentos de una consulta no interactiva')}</span>
-              <input value={form.args} onChange={(e) => setForm({ ...form, args: e.target.value })} placeholder="run --yes {promptFile}" autoComplete="off" />
+              <input
+                ref={argsRef}
+                value={form.args}
+                onChange={(e) => {
+                  setForm({ ...form, args: e.target.value })
+                  if (badArgs) setBadArgs(false)
+                }}
+                placeholder="run --yes {promptFile}"
+                autoComplete="off"
+                aria-invalid={badArgs || undefined}
+                aria-describedby={badArgs ? 'add-agent-error' : undefined}
+              />
             </label>
             <label>
               <span>{t('Para iniciar sesión (opcional)')}</span>
@@ -235,7 +252,7 @@ export function AddAgent({
         )}
 
         {error && (
-          <p className={s.error} role="alert">
+          <p className={s.error} role="alert" id="add-agent-error">
             {error}
           </p>
         )}

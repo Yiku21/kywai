@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { CalendarClock, Check, ChevronDown, Copy, KeyRound, LoaderCircle, Pencil, Play, Plus, Trash2, Webhook } from 'lucide-react'
 import type { Routine, RoutineInput, RoutineRun, RoutineTrigger, RoutineTriggerType, RoutineWebhookInfo } from '@shared/types'
 import { dateOf, normalizeDate, dayName, dayShort, describeTrigger, describeWhen, MAX_INTERVAL_HOURS, MAX_ROUTINE_NAME, MAX_ROUTINE_REQUEST, WEEK_ORDER } from '@shared/routines'
@@ -8,6 +8,7 @@ import { copyText } from '@/lib/clipboard'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import { ExampleChips } from '../common/ExampleChips'
+import { shake } from '@/lib/shake'
 import v from './Views.module.css'
 import s from './RoutinesView.module.css'
 import { locale, t } from '@/lib/i18n'
@@ -423,11 +424,21 @@ function RoutineForm({ initial, seed, onSave, onCancel }: { initial?: Routine; s
   const [trigger, setTrigger] = useState<RoutineTrigger>(initial?.trigger ?? seed?.trigger ?? { type: 'daily', time: '09:00' })
   const [askApproval, setAskApproval] = useState(initial?.askApproval === true)
   const [busy, setBusy] = useState(false)
+  const [tried, setTried] = useState(false)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const requestRef = useRef<HTMLTextAreaElement>(null)
   const id = useId()
+  const badName = tried && !name.trim()
+  const badRequest = tried && request.trim().length < 3
 
   function submit(e: FormEvent): void {
     e.preventDefault()
-    if (!name.trim() || request.trim().length < 3) return
+    // Antes no pasaba nada al guardar sin nombre o sin petición: ahora el campo se marca y dice qué falta.
+    if (!name.trim() || request.trim().length < 3) {
+      setTried(true)
+      shake(!name.trim() ? nameRef.current : requestRef.current)
+      return
+    }
     setBusy(true)
     // Al reprogramar una de una sola vez (se desactiva sola al lanzarse), vuelve a quedar activa.
     const replanned = !!initial && trigger.type === 'once' && JSON.stringify(trigger) !== JSON.stringify(initial.trigger)
@@ -440,25 +451,41 @@ function RoutineForm({ initial, seed, onSave, onCancel }: { initial?: Routine; s
         <span className={s.label}>{t('Nombre')}</span>
         <input
           id={`${id}-name`}
+          ref={nameRef}
           className={s.input}
+          aria-invalid={badName || undefined}
+          aria-describedby={badName ? `${id}-name-err` : undefined}
           value={name}
           maxLength={MAX_ROUTINE_NAME}
           placeholder={t('Revisión de dependencias')}
           autoFocus
           onChange={(e) => setName(e.target.value)}
         />
+        {badName && (
+          <p className={s.fieldError} role="alert" id={`${id}-name-err`}>
+            {t('Ponle un nombre para encontrarla luego.')}
+          </p>
+        )}
       </label>
       <label className={s.field} htmlFor={`${id}-req`}>
         <span className={s.label}>{t('Petición (lo que se enviará al chat)')}</span>
         <textarea
           id={`${id}-req`}
+          ref={requestRef}
           className={s.textarea}
+          aria-invalid={badRequest || undefined}
+          aria-describedby={badRequest ? `${id}-req-err` : undefined}
           value={request}
           rows={4}
           maxLength={MAX_ROUTINE_REQUEST}
           placeholder={t('Revisa las dependencias del proyecto y dime cuáles tienen fallos de seguridad o versiones nuevas importantes.')}
           onChange={(e) => setRequest(e.target.value)}
         />
+        {badRequest && (
+          <p className={s.fieldError} role="alert" id={`${id}-req-err`}>
+            {t('Escribe lo que tiene que pedir (al menos 3 letras).')}
+          </p>
+        )}
       </label>
       <label className={s.field} htmlFor={`${id}-type`}>
         <span className={s.label}>{t('Cuándo se lanza')}</span>
@@ -546,7 +573,7 @@ function RoutineForm({ initial, seed, onSave, onCancel }: { initial?: Routine; s
         <button type="button" className={cx(u.btn, u.btnSm)} onClick={onCancel}>
           {t('Cancelar')}
         </button>
-        <button type="submit" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy || !name.trim() || request.trim().length < 3}>
+        <button type="submit" className={cx(u.btn, u.btnSm, u.btnPrimary)} disabled={busy}>
           {initial ? t('Guardar') : t('Crear rutina')}
         </button>
       </div>

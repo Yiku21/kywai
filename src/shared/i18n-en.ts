@@ -3795,4 +3795,6 @@ export const en: Record<string, string> = {
   "Resumen del viernes": "Friday summary",
   "Los viernes a las 17:00: resumen de la semana": "Fridays at 17:00: weekly summary",
   "Resume lo que se ha hecho esta semana en el proyecto y lo que queda pendiente.": "Summarize what was done in the project this week and what's still pending.",
+  "Ponle un nombre para encontrarla luego.": "Give it a name so you can find it later.",
+  "Escribe lo que tiene que pedir (al menos 3 letras).": "Write what it should ask for (at least 3 letters).",
 }

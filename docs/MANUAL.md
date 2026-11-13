@@ -1917,6 +1917,11 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   precios», «Escribe las pruebas del carrito», «/video las novedades de la semana»): un toque lo deja escrito en
   «Nueva tarjeta» para cambiarlo o añadirlo. Sin rutinas salen tres (cada mañana revisar dependencias, al llegar un PR
   revisarlo, los viernes resumen de la semana) que abren «Nueva rutina» ya rellena. Componente `ExampleChips`.
+- **Errores que se notan.** Todo aviso de error (`p[role="alert"]`) entra con una sacudida corta, y el campo que
+  falla se marca con `aria-invalid` (borde rojo, `styles/motion.css`) y tiembla 3 veces en 300 ms (`lib/shake.ts`)
+  con el foco puesto para corregirlo. Ya lo hacen: «Nueva rutina» (antes, guardar sin nombre o sin petición no hacía
+  nada; ahora dice qué falta debajo del campo), los argumentos de «Otro programa…» al añadir un agente y la línea
+  pegada de Extensiones → «Pegar». Con «reducir movimiento» solo se pone en rojo.
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),

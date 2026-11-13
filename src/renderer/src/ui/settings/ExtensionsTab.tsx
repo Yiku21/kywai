@@ -6,6 +6,7 @@ import { MCP_AGENT_KINDS, parseMcpPaste, splitCommandLine, type McpAgentKind, ty
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { t } from '@/lib/i18n'
+import { shake } from '@/lib/shake'
 import { cx, errorText } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './ExtensionsTab.module.css'
@@ -121,6 +122,7 @@ function McpSection() {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [paste, setPaste] = useState<string | null>(null)
+  const [badPaste, setBadPaste] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [catalog, setCatalog] = useState(false)
 
@@ -169,8 +171,11 @@ function McpSection() {
     const r = parseMcpPaste(paste ?? '')
     if (typeof r === 'string') {
       setError(t(r))
+      setBadPaste(true)
+      shake(document.getElementById('mcp-paste'))
       return
     }
+    setBadPaste(false)
     setError(null)
     setPaste(null)
     open(r[0])
@@ -243,7 +248,11 @@ function McpSection() {
             spellCheck={false}
             placeholder={'npx -y @playwright/mcp@latest\n{ "mcpServers": { … } }\nhttps://…/mcp'}
             value={paste}
-            onChange={(e) => setPaste(e.target.value)}
+            onChange={(e) => {
+              setPaste(e.target.value)
+              if (badPaste) setBadPaste(false)
+            }}
+            aria-invalid={badPaste || undefined}
           />
           <div className={s.actions}>
             <button type="button" className={cx(u.btn, u.btnSm)} onClick={() => setPaste(null)}>

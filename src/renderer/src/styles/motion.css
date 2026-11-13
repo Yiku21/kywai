@@ -28,6 +28,37 @@
   animation: kwDialogOut var(--dur-exit) var(--ease-out-ui) both !important;
 }
 
+/* Errores que se notan: el campo con aria-invalid se pone en rojo (lib/shake.ts lo hace temblar) y el aviso
+   (role="alert") entra con una sacudida corta junto al campo. */
+:is(input, textarea, select)[aria-invalid='true'] {
+  border-color: var(--alert) !important;
+  box-shadow: 0 0 0 3px var(--alert-soft);
+}
+
+p[role='alert'] {
+  animation: kwAlertIn 300ms ease-out both;
+}
+
+@keyframes kwAlertIn {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  25% {
+    opacity: 1;
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 @media (pointer: coarse) {
   :root {
     --hit-min: 44px;
@@ -63,7 +94,8 @@
 @media (prefers-reduced-motion: reduce) {
   :has(> [role='dialog'][aria-modal='true']),
   [role='dialog'][aria-modal='true'],
-  [data-ghost] {
+  [data-ghost],
+  p[role='alert'] {
     animation: none !important;
   }
 }

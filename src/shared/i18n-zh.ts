@@ -3672,4 +3672,6 @@ export const zh: Record<string, string> = {
   "Resumen del viernes": "周五总结",
   "Los viernes a las 17:00: resumen de la semana": "每周五 17:00：本周总结",
   "Resume lo que se ha hecho esta semana en el proyecto y lo que queda pendiente.": "总结本周项目完成了什么、还有什么待办。",
+  "Ponle un nombre para encontrarla luego.": "起个名字，方便以后找到它。",
+  "Escribe lo que tiene que pedir (al menos 3 letras).": "写下它要发出的请求（至少 3 个字）。",
 }

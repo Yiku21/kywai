@@ -3672,4 +3672,6 @@ export const fr: Record<string, string> = {
   "Resumen del viernes": "Résumé du vendredi",
   "Los viernes a las 17:00: resumen de la semana": "Le vendredi à 17 h : résumé de la semaine",
   "Resume lo que se ha hecho esta semana en el proyecto y lo que queda pendiente.": "Résume ce qui a été fait cette semaine dans le projet et ce qui reste à faire.",
+  "Ponle un nombre para encontrarla luego.": "Donnez-lui un nom pour la retrouver plus tard.",
+  "Escribe lo que tiene que pedir (al menos 3 letras).": "Écrivez ce qu'elle doit demander (au moins 3 lettres).",
 }
