@@ -102,6 +102,21 @@ describe('parseVideoScript', () => {
     expect(s.scenes[1].image).toBe('')
   })
 
+  it('encuentra el guion entre varios bloques, en los bloques de edición de Aider y con comas de más', () => {
+    // Otro bloque con llaves antes del guion: se queda con el que trae «scenes».
+    const varios = parseVideoScript('Notas:\n```json\n{"nota": "x"}\n```\nGuion:\n```json\n' + SCRIPT + '\n```')
+    expect(varios.title).toBe('Cómo nace una estrella')
+    // Aider lo escribe como edición de un archivo (SEARCH/REPLACE).
+    const aider = parseVideoScript('guion.json\n```json\n<<<<<<< SEARCH\n=======\n' + SCRIPT + '\n>>>>>>> REPLACE\n```\nListo, guardé el guion.')
+    expect(aider.scenes).toHaveLength(3)
+    const comas = parseVideoScript(SCRIPT.replace(/\}\s*\]/, '},\n]'))
+    expect(comas.scenes).toHaveLength(3)
+  })
+
+  it('un guion de cine en Markdown no vale: se dice que no trae JSON', () => {
+    expect(() => parseVideoScript('# The Wrong Address\n**Format:** vertical\n\nBEN: That\'s our old address.\nLENA: It\'s on the flyer.')).toThrow(/JSON/)
+  })
+
   it('rechaza un guion sin escenas suficientes', () => {
     expect(() => parseVideoScript('{"title": "x", "scenes": [{"narration": "uno"}]}')).toThrow(/al menos 3 escenas/)
     expect(() => parseVideoScript('no hay json')).toThrow(/JSON/)

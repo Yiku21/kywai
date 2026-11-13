@@ -124,28 +124,64 @@ export const MAX_SCENES = 10
 const clean = (v: unknown, max: number): string =>
   typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : ''
 
-/** El primer objeto JSON del texto (suelto o en un bloque ```json). */
-function extractJson(text: string): unknown {
-  const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text)
-  const candidates = [fenced?.[1], text]
-  for (const c of candidates) {
-    if (!c) continue
-    const start = c.indexOf('{')
-    const end = c.lastIndexOf('}')
-    if (start < 0 || end <= start) continue
-    try {
-      return JSON.parse(c.slice(start, end + 1))
-    } catch {
-      /* el siguiente */
+/** Los objetos JSON de un texto, de izquierda a derecha (cada uno con sus llaves emparejadas, sin contar las de dentro de cadenas). */
+function* jsonObjects(text: string): Generator<unknown> {
+  let tries = 0
+  for (let start = text.indexOf('{'); start >= 0 && tries < 200; start = text.indexOf('{', start + 1)) {
+    let depth = 0
+    let inStr = false
+    let end = -1
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i]
+      if (inStr) {
+        if (ch === '\\') i++
+        else if (ch === '"') inStr = false
+      } else if (ch === '"') inStr = true
+      else if (ch === '{') depth++
+      else if (ch === '}' && --depth === 0) {
+        end = i
+        break
+      }
+    }
+    if (end < 0) continue
+    tries++
+    const body = text.slice(start, end + 1)
+    // Comas sobrantes antes de «}» o «]»: un fallo típico de los modelos pequeños.
+    for (const c of [body, body.replace(/,(\s*[}\]])/g, '$1')]) {
+      try {
+        yield JSON.parse(c)
+        start = end
+        break
+      } catch {
+        /* el siguiente */
+      }
     }
   }
-  return null
+}
+
+/**
+ * El guion en JSON del texto: suelto, en un bloque ```json o dentro de los bloques de edición de Aider
+ * (SEARCH/REPLACE), aunque lleve texto antes o después. Se queda con el primer objeto que trae «scenes»; si ninguno
+ * lo trae, con el primero que haya.
+ */
+function extractJson(text: string): unknown {
+  const t = text.replace(/^[ \t]*(?:<{5,9}\s*SEARCH|={5,9}|>{5,9}\s*REPLACE)[ \t]*$/gm, '')
+  const blocks = [...t.matchAll(/```[a-z]*\s*([\s\S]*?)```/gi)].map((m) => m[1])
+  let first: unknown = null
+  for (const c of [...blocks, t]) {
+    for (const o of jsonObjects(c)) {
+      if (!o || typeof o !== 'object' || Array.isArray(o)) continue
+      if (Array.isArray((o as Record<string, unknown>).scenes)) return o
+      first ??= o
+    }
+  }
+  return first
 }
 
 /** Lee y valida el guion que devolvió el agente. Lanza un error con lo que falla (se le pide otra vez). */
 export function parseVideoScript(text: string): VideoScript {
   const raw = extractJson(text) as Record<string, unknown> | null
-  if (!raw || typeof raw !== 'object') throw new Error('La respuesta no trae el guion en JSON.')
+  if (!raw || typeof raw !== 'object') throw new Error('La respuesta no trae el guion en JSON (escribió el guion como texto).')
   const title = clean(raw.title, 90)
   if (!title) throw new Error('Al guion le falta «title».')
   const list = Array.isArray(raw.scenes) ? raw.scenes : []
