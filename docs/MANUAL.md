@@ -2656,14 +2656,20 @@ hace kywai siempre igual (`src/main/videoStudio.ts`):
 1. **Voz** de cada escena con Voicebox o Gemini si los hay (ver «Voz» más abajo) y si no con **Kokoro** (natural, gratis, en el propio equipo; español, inglés, francés, portugués,
    italiano, japonés, chino e hindi). Sin Kokoro, la voz del sistema (`say` en macOS, la de Windows, espeak-ng en Linux).
 2. **Imágenes.** Por defecto, con **ComfyUI** (comfy.org) si está encendido en el equipo donde corren los agentes:
-   gratis, sin clave y sin salir del equipo. kywai lo busca en `http://127.0.0.1:8188` (otra dirección con la
-   variable `KYWAI_COMFYUI_URL`), usa el primer modelo SDXL que tenga (o SD 1.5; otro con `KYWAI_COMFYUI_CHECKPOINT`;
+   gratis, sin clave y sin salir del equipo. kywai lo busca en `http://127.0.0.1:8188` y, si no, en
+   `http://127.0.0.1:8000` (el de la app de escritorio; otra dirección con la variable `KYWAI_COMFYUI_URL`), usa el primer modelo SDXL que tenga (o SD 1.5; otro con `KYWAI_COMFYUI_CHECKPOINT`;
    FLUX y SD3 necesitan otro flujo y se saltan) y le pide las imágenes de una en una en el formato del vídeo, con una
    semilla fija por texto (el mismo guion da las mismas imágenes). Si ComfyUI no está, no tiene modelo o una imagen
    falla, la pide **Gemini** (`gemini-2.5-flash-image`) si hay clave de API (la del asistente, en `~/.gemini/.env`),
    tres a la vez; tras dos fallos seguidos de ComfyUI, el resto va directo a Gemini. Sin ninguno de los dos, esa
    escena lleva un fondo de diseño animado. kywai no instala ComfyUI (pide gráfica y varios GB de modelos): instala
-   la app de escritorio de comfy.org, descarga un modelo SDXL y déjala abierta. ComfyUI es GPL-3.0: kywai solo le
+   la app de escritorio de comfy.org y descarga un modelo SDXL. **No hace falta dejarlo abierto**: si está instalado
+   y apagado, kywai **lo enciende solo al pedir un vídeo** (`ensureComfy`/`startComfy`: abre la app de escritorio en
+   macOS o Windows, o arranca `python main.py --port 8188` en su carpeta, con el Python de su `venv`/`.venv` o el
+   portable de Windows; la busca en `KYWAI_COMFYUI_DIR` o en ComfyUI dentro de la carpeta personal, Documentos,
+   Escritorio o Descargas) mientras el agente escribe el guion, y espera hasta 3 minutos a que responda antes de
+   pedir las imágenes (el paso sale como «Encendiendo ComfyUI para las imágenes»). También al «Probar con mi
+   escena». Se queda encendido después. Para que no lo encienda: `KYWAI_NO_COMFY_AUTOSTART=1`. ComfyUI es GPL-3.0: kywai solo le
    habla por HTTP (`src/main/comfyui.ts`).
 3. **Música** propia generada para cada vídeo (acordes con pulso; sin derechos de nadie) que **baja sola cuando habla
    la voz**, y **efectos de sonido** de verdad: «whoosh» en cada transición, golpes en la portada y el cierre, un
@@ -2842,8 +2848,8 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    encargo pide «image» con lo que explica el paso, sin personajes) y no se usan los clips de FreeVideo. Necesita
    three.js en el estudio (`THREE_VERSION`, se instala con HyperFrames y GSAP; un estudio sin él se completa solo la
    próxima vez). Con otro personaje, el vídeo va con las imágenes a pantalla completa de antes.
-   **Con un aspecto elegido** (`aspecto:chibi-3d`…) y algo con qué dibujar (ComfyUI encendido con un modelo o clave de
-   Gemini) al pedir el vídeo, **los robots se dibujan en ese aspecto** en cada plano en vez de salir en el plató 3D: el
+   **Con un aspecto elegido** (`aspecto:chibi-3d`…) y algo con qué dibujar (ComfyUI encendido o instalado, que se
+   enciende solo, o clave de Gemini) al pedir el vídeo, **los robots se dibujan en ese aspecto** en cada plano en vez de salir en el plató 3D: el
    encargo pide planos de los dos (`shots`) y Gemini ve sus imágenes (`drawCast` en la tarea). Si al final no sale
    ninguna imagen (por ejemplo, una clave de Gemini del plan gratis, que no dibuja), el vídeo vuelve al plató 3D. Sin
    motor de imágenes, el aspecto solo cambiaría la pantalla gigante, que entonces lleva fondos de diseño.

@@ -7,9 +7,14 @@
  *
  * Se habla con él como un programa aparte (HTTP), sin copiar ni enlazar su código (ComfyUI es GPL-3.0).
  */
-import { writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { existsSync, openSync, readdirSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 
 export const COMFYUI_DEFAULT_URL = 'http://127.0.0.1:8188'
+/** La app de escritorio de ComfyUI escucha aquí por defecto. */
+export const COMFYUI_DESKTOP_URL = 'http://127.0.0.1:8000'
 
 export interface ComfyInfo {
   url: string
@@ -49,7 +54,14 @@ async function getJson<T>(url: string, ms: number, signal?: AbortSignal): Promis
  * ¿Hay un ComfyUI encendido y con algún modelo? null si no responde (en 2 s) o no tiene modelos que sirvan.
  * `models` dice cuántos tiene, para explicar por qué no se usa.
  */
-export async function comfyStatus(url = comfyUrl()): Promise<{ running: boolean; info: ComfyInfo | null; models: number }> {
+export async function comfyStatus(url?: string): Promise<{ running: boolean; info: ComfyInfo | null; models: number }> {
+  // Sin dirección fija se prueba la de siempre (8188, la de `python main.py`) y la de la app de escritorio (8000).
+  if (!url) {
+    const fixed = !!(process.env.KYWAI_COMFYUI_URL || process.env.COMFYUI_URL || '').trim()
+    const first = await comfyStatus(comfyUrl())
+    if (first.running || fixed) return first
+    return comfyStatus(COMFYUI_DESKTOP_URL)
+  }
   try {
     const obj = await getJson<Record<string, { input?: { required?: { ckpt_name?: unknown[] } } }>>(
       `${url}/object_info/CheckpointLoaderSimple`,
@@ -162,4 +174,102 @@ export async function comfyImage(
   } catch {
     return false
   }
+}
+
+// ---------- encenderlo solo al pedir un vídeo ----------
+
+export type ComfyInstall = { kind: 'app'; path: string } | { kind: 'dir'; dir: string; python: string }
+
+/**
+ * Dónde está ComfyUI instalado en este equipo: la app de escritorio (macOS y Windows) o una carpeta con `main.py`
+ * (KYWAI_COMFYUI_DIR, o ComfyUI en la carpeta personal, Documentos, Escritorio o Descargas; también la versión
+ * portable de Windows). null si no hay ninguno.
+ */
+export function findComfyInstall(home = homedir(), platform: NodeJS.Platform = process.platform, env = process.env): ComfyInstall | null {
+  const dirEnv = env.KYWAI_COMFYUI_DIR?.trim()
+  const roots = [home, join(home, 'Documents'), join(home, 'Desktop'), join(home, 'Downloads')]
+  const dirs = [
+    ...(dirEnv ? [dirEnv] : []),
+    ...roots.flatMap((r) => ['ComfyUI', 'comfyui', 'ComfyUI_windows_portable/ComfyUI', 'ComfyUI_windows_portable_nvidia/ComfyUI'].map((n) => join(r, n)))
+  ]
+  for (const dir of dirs) {
+    if (!existsSync(join(dir, 'main.py'))) continue
+    const win = platform === 'win32'
+    const pys = [
+      join(dir, '..', 'python_embeded', 'python.exe'),
+      ...['venv', '.venv'].map((v) => join(dir, v, win ? 'Scripts/python.exe' : 'bin/python'))
+    ]
+    const python = pys.find((f) => existsSync(f)) ?? (win ? 'python' : 'python3')
+    return { kind: 'dir', dir, python }
+  }
+  if (platform === 'darwin') {
+    for (const app of ['/Applications/ComfyUI.app', join(home, 'Applications', 'ComfyUI.app')]) if (existsSync(app)) return { kind: 'app', path: app }
+  }
+  if (platform === 'win32') {
+    const local = env.LOCALAPPDATA || join(home, 'AppData', 'Local')
+    const exe = join(local, 'Programs', 'ComfyUI', 'ComfyUI.exe')
+    if (existsSync(exe)) return { kind: 'app', path: exe }
+    // instalaciones de usuario con otro nombre de carpeta
+    try {
+      const progs = join(local, 'Programs')
+      for (const n of readdirSync(progs)) if (/comfy/i.test(n) && existsSync(join(progs, n, 'ComfyUI.exe'))) return { kind: 'app', path: join(progs, n, 'ComfyUI.exe') }
+    } catch {
+      /* no hay carpeta */
+    }
+  }
+  return null
+}
+
+let starting: Promise<boolean> | null = null
+let startedAt = 0
+
+/** Lo arranca (sin esperar a que esté listo). false si no hay ComfyUI instalado o se apagó con KYWAI_NO_COMFY_AUTOSTART=1. */
+export function startComfy(): boolean {
+  if (process.env.KYWAI_NO_COMFY_AUTOSTART === '1') return false
+  if (Date.now() - startedAt < 5 * 60_000) return true
+  const inst = findComfyInstall()
+  if (!inst) return false
+  try {
+    if (inst.kind === 'app') {
+      const child =
+        process.platform === 'darwin'
+          ? spawn('open', ['-g', '-a', inst.path], { detached: true, stdio: 'ignore' })
+          : spawn(inst.path, [], { detached: true, stdio: 'ignore' })
+      child.on('error', () => undefined)
+      child.unref()
+    } else {
+      const log = openSync(join(inst.dir, 'kywai-comfyui.log'), 'a')
+      const child = spawn(inst.python, ['main.py', '--listen', '127.0.0.1', '--port', '8188'], { cwd: inst.dir, detached: true, stdio: ['ignore', log, log], windowsHide: true })
+      child.on('error', () => undefined)
+      child.unref()
+    }
+    startedAt = Date.now()
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * ComfyUI listo para dibujar: si ya está encendido, al momento; si no, lo enciende (si está instalado) y espera a
+ * que responda con un modelo (como mucho `timeoutMs`; la primera vez carga el modelo y tarda). null si no hay.
+ */
+export async function ensureComfy(opts: { timeoutMs?: number; signal?: AbortSignal } = {}): Promise<ComfyInfo | null> {
+  const now = await comfyStatus()
+  if (now.info || now.running) return now.info
+  if (!starting) {
+    starting = (async () => {
+      if (!startComfy()) return false
+      const until = Date.now() + (opts.timeoutMs ?? 180_000)
+      while (Date.now() < until && !opts.signal?.aborted) {
+        await new Promise((ok) => setTimeout(ok, 3000))
+        if ((await comfyStatus()).running) return true
+      }
+      return false
+    })().finally(() => {
+      starting = null
+    })
+  }
+  await starting
+  return (await comfyStatus()).info
 }

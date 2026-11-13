@@ -1,9 +1,9 @@
 import { createServer, type Server } from 'node:http'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { comfyImage, comfySize, comfyStatus, pickCheckpoint, txt2imgWorkflow } from './comfyui'
+import { comfyImage, comfySize, comfyStatus, findComfyInstall, pickCheckpoint, txt2imgWorkflow } from './comfyui'
 
 let server: Server | null = null
 afterEach(() => {
@@ -99,5 +99,26 @@ describe('ComfyUI', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('encender ComfyUI al pedir un vídeo', () => {
+  it('encuentra la carpeta con main.py (y su entorno de Python) o la app de escritorio', () => {
+    const home = mkdtempSync(join(tmpdir(), 'comfy-'))
+    expect(findComfyInstall(home, 'linux', {})).toBeNull()
+    mkdirSync(join(home, 'Documents', 'ComfyUI', '.venv', 'bin'), { recursive: true })
+    writeFileSync(join(home, 'Documents', 'ComfyUI', 'main.py'), '')
+    writeFileSync(join(home, 'Documents', 'ComfyUI', '.venv', 'bin', 'python'), '')
+    expect(findComfyInstall(home, 'linux', {})).toEqual({ kind: 'dir', dir: join(home, 'Documents', 'ComfyUI'), python: join(home, 'Documents', 'ComfyUI', '.venv', 'bin', 'python') })
+    // KYWAI_COMFYUI_DIR manda
+    const other = join(home, 'otra')
+    mkdirSync(other)
+    writeFileSync(join(other, 'main.py'), '')
+    expect(findComfyInstall(home, 'linux', { KYWAI_COMFYUI_DIR: other })).toMatchObject({ kind: 'dir', dir: other, python: 'python3' })
+    // la app de escritorio en Windows
+    const win = mkdtempSync(join(tmpdir(), 'comfy-win-'))
+    mkdirSync(join(win, 'AppData', 'Local', 'Programs', 'ComfyUI'), { recursive: true })
+    writeFileSync(join(win, 'AppData', 'Local', 'Programs', 'ComfyUI', 'ComfyUI.exe'), '')
+    expect(findComfyInstall(win, 'win32', {})).toEqual({ kind: 'app', path: join(win, 'AppData', 'Local', 'Programs', 'ComfyUI', 'ComfyUI.exe') })
   })
 })

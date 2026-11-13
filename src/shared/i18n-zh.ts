@@ -2775,6 +2775,7 @@ export const zh: Record<string, string> = {
   "Animando y montando el vídeo": "正在制作动画并剪辑视频",
   "Comprobando el resultado": "正在检查结果",
   "Creando las imágenes y la voz": "正在生成图片和配音",
+  "Encendiendo ComfyUI para las imágenes": "正在启动 ComfyUI 生成图片",
   "Gemini: la más natural, con tu clave (Kokoro de reserva)": "Gemini：最自然，使用你的密钥（Kokoro 备用）",
   "Gemini: la más natural, con tu clave (instala Kokoro de reserva)": "Gemini：最自然，使用你的密钥（建议安装 Kokoro 备用）",
   "{engine} instalado. Elige el modelo abajo.": "{engine} 已安装。请在下方选择模型。",

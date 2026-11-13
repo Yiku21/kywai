@@ -33,7 +33,7 @@ import { macFfmpegInstall, macUserBin } from './macTools'
 import { buildCharlaComposition } from './videoCharla'
 import { contactSheetArgs, filmCheckArgs, flatFramesArgs, flatLookIssue, flatShare, parseFilmCheck, parsePpm } from './filmCheck'
 import { EARSHOT_DEPS, EARSHOT_PIP, earshotInstalledIn, ensureSfxBank, loadSfxBank, sfxBankSummary } from './sfxBank'
-import { comfyImage, comfyStatus } from './comfyui'
+import { comfyImage, comfyStatus, ensureComfy, findComfyInstall, startComfy } from './comfyui'
 import { videoCharacter } from './videoCharacters'
 import { imageLook } from '@shared/imageLooks'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
@@ -202,7 +202,9 @@ async function has(cmd: string, args: string[] = ['-version']): Promise<boolean>
 
 /** ¿Hay con qué dibujar las imágenes del vídeo? (ComfyUI encendido con un modelo o una clave de Gemini). */
 export async function canDrawImages(): Promise<boolean> {
-  return !!geminiApiKey() || !!(await comfyStatus()).info
+  if (geminiApiKey() || (await comfyStatus()).info) return true
+  // ComfyUI instalado pero apagado: se enciende ya (mientras el agente escribe el guion) y se espera al dibujar.
+  return !!findComfyInstall() && startComfy()
 }
 
 /** Clave de API de Gemini: la del entorno o la que guarda Gemini CLI (~/.gemini/.env), donde la escribe el asistente. */
@@ -1277,8 +1279,9 @@ export async function tryVideoLook(input: unknown): Promise<string> {
   if (existsSync(jpg)) return toData(jpg, 'image/jpeg')
   const png = join(dir, `${look.id}.png`)
   if (existsSync(png)) return toData(png, 'image/png')
+  // Si ComfyUI está instalado pero apagado, se enciende (la primera vez tarda un poco en cargar el modelo).
+  const comfy = await ensureComfy({ timeoutMs: 120_000 })
   const cs = await comfyStatus()
-  const comfy = cs.info
   const key = geminiApiKey()
   if (!comfy && !key) throw new Error(tr('Para probar aspectos hace falta ComfyUI abierto en este equipo o la clave de Gemini (Ajustes → Extensiones → Estudio de vídeo).'))
   mkdirSync(dir, { recursive: true })
@@ -1717,7 +1720,10 @@ export async function renderVideo(input: {
   )
   const shots: (string | null)[][] = shotPrompts.map((list) => list.map(() => null))
   // ComfyUI en este equipo va primero (gratis y local); si una imagen falla, la pide Gemini (con clave).
-  const comfy = (await comfyStatus()).info
+  // Si ComfyUI está instalado pero apagado, se enciende ahora (o ya se encendió al pedir el vídeo) y se espera.
+  const wantImages = shotPrompts.some((l) => l.length)
+  if (wantImages && !(await comfyStatus()).running && findComfyInstall()) step('Encendiendo ComfyUI para las imágenes', 0.05)
+  const comfy = wantImages ? await ensureComfy({ signal }) : (await comfyStatus()).info
   const doImages = async (): Promise<void> => {
     if (!key && !comfy) return
     const jobs = shotPrompts.flatMap((list, i) => list.map((prompt, k) => ({ i, k, prompt })))

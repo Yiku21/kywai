@@ -2775,6 +2775,7 @@ export const fr: Record<string, string> = {
   "Animando y montando el vídeo": "Animation et montage de la vidéo",
   "Comprobando el resultado": "Vérification du résultat",
   "Creando las imágenes y la voz": "Création des images et de la voix",
+  "Encendiendo ComfyUI para las imágenes": "Démarrage de ComfyUI pour les images",
   "Gemini: la más natural, con tu clave (Kokoro de reserva)": "Gemini : la plus naturelle, avec votre clé (Kokoro en secours)",
   "Gemini: la más natural, con tu clave (instala Kokoro de reserva)": "Gemini : la plus naturelle, avec votre clé (installez Kokoro en secours)",
   "{engine} instalado. Elige el modelo abajo.": "{engine} installé. Choisissez le modèle ci-dessous.",
