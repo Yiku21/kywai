@@ -1531,13 +1531,15 @@ function InstagramPostBlock({ m, post }: { m: ChatMessage; post: InstagramPost }
   useEffect(() => setCaption(post.caption), [post.caption])
   const open = post.status === 'pending' || post.status === 'failed'
   const canAct = !!api && live && open
+  // La portada elegida de las que propuso el agente (por defecto la que ya va en la publicación).
+  const [chosen, setChosen] = useState(() => Math.max(0, post.covers?.findIndex((c) => c.file === post.cover) ?? 0))
 
   function act(kind: 'publish' | 'dismiss'): void {
     const a = api
     if (!a || busy) return
     setBusy(kind)
     setError(null)
-    a.decideInstagramPost(m.projectId, m.id, kind, kind === 'publish' ? caption : undefined).then(
+    a.decideInstagramPost(m.projectId, m.id, kind, kind === 'publish' ? caption : undefined, kind === 'publish' && post.covers?.length ? chosen : undefined).then(
       () => setBusy(null),
       (e) => {
         setBusy(null)
@@ -1572,7 +1574,29 @@ function InstagramPostBlock({ m, post }: { m: ChatMessage; post: InstagramPost }
           <span className={s.planSub}>{post.video}</span>
         </div>
       </div>
-      {post.cover && post.status !== 'dismissed' && (
+      {post.covers && post.covers.length > 1 && post.status !== 'dismissed' ? (
+        <div className={s.igCovers} role="radiogroup" aria-label={t('Elige la portada')}>
+          {post.covers.map((c, i) => {
+            const on = open ? i === chosen : c.file === post.cover
+            return (
+              <button
+                key={c.file}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                className={cx(s.igCoverPick, on && s.igCoverOn)}
+                disabled={!open || !!busy}
+                title={c.text}
+                onClick={() => setChosen(i)}
+              >
+                <img src={projectFileUrl(m.projectId, c.file, isWeb)} alt={c.text ? t('Portada: {text}', { text: c.text }) : t('Portada del reel')} loading="lazy" />
+                {on && <CircleCheck size={18} aria-hidden="true" className={s.igCoverCheck} />}
+              </button>
+            )
+          })}
+          <p className={s.planSub}>{open ? t('Elige la portada: sale en el perfil en vez del primer fotograma.') : t('Portada: sale en el perfil en vez del primer fotograma.')}</p>
+        </div>
+      ) : post.cover && post.status !== 'dismissed' && (
         <figure className={s.igCover}>
           <img src={projectFileUrl(m.projectId, post.cover, isWeb)} alt={t('Portada del reel')} loading="lazy" />
           <figcaption>{t('Portada: sale en el perfil en vez del primer fotograma.')}</figcaption>

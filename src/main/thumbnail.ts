@@ -227,56 +227,132 @@ export async function renderThumbnails(covers: ThumbCover[], frames: string[], f
 
 // ---------- la portada de un reel al publicarlo («/instagram», «/tiktok») ----------
 
+/** Fotogramas que se le enseñan al agente para elegir la portada (en una sola hoja numerada). */
+export const COVER_FRAMES = 12
+/** Portadas que se proponen en la tarjeta para elegir. */
+export const COVER_OPTIONS = 3
+const SHEET_COLS = 4
+const TILE = { w: 270, h: 480 }
+
+/** La hoja de fotogramas como página HTML: 4 por fila, cada uno con su número bien grande en una esquina. */
+export function coverSheetHtml(frames: string[]): string {
+  const rows = Math.ceil(frames.length / SHEET_COLS)
+  const tiles = frames
+    .map((f, i) => `<div class="t" style="background-image:url('file://${f.replace(/\\/g, '/').replace(/'/g, '%27')}')"><b>${i}</b></div>`)
+    .join('')
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:${SHEET_COLS * TILE.w}px;height:${rows * TILE.h}px;overflow:hidden;background:#111}
+.g{display:grid;grid-template-columns:repeat(${SHEET_COLS},${TILE.w}px);grid-auto-rows:${TILE.h}px}
+.t{position:relative;background:#000 center/cover no-repeat;box-shadow:inset 0 0 0 2px #111}
+b{position:absolute;left:8px;top:8px;min-width:44px;height:44px;border-radius:22px;background:#ffd400;color:#000;font:900 30px/44px Arial,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+</style></head><body><div class="g">${tiles}</div></body></html>`
+}
+
+/**
+ * La hoja con todos los fotogramas en una imagen (numerados de 0 en adelante, por filas), para que el agente los VEA
+ * de una vez: se le adjunta como imagen. Sin la app de escritorio, ffmpeg la hace sin números (mismo orden).
+ */
+export async function coverSheet(frames: string[], out: string, htmlToPng: HtmlToPng, signal?: AbortSignal): Promise<string | null> {
+  if (!frames.length) return null
+  const rows = Math.ceil(frames.length / SHEET_COLS)
+  try {
+    if (await htmlToPng(coverSheetHtml(frames), { w: SHEET_COLS * TILE.w, h: rows * TILE.h }, out)) return out
+  } catch {
+    /* sin ventana: ffmpeg */
+  }
+  const inputs = frames.flatMap((f) => ['-i', f])
+  const scaled = frames.map((_, i) => `[${i}:v]scale=${TILE.w}:${TILE.h}:force_original_aspect_ratio=increase,crop=${TILE.w}:${TILE.h}[v${i}]`)
+  const pad = Array.from({ length: rows * SHEET_COLS - frames.length }, (_, k) => `color=c=black:s=${TILE.w}x${TILE.h}:d=1[p${k}]`)
+  const all = [...frames.map((_, i) => `[v${i}]`), ...pad.map((_, k) => `[p${k}]`)].join('')
+  const graph = [...scaled, ...pad, `${all}concat=n=${rows * SHEET_COLS}:v=1:a=0,tile=${SHEET_COLS}x${rows}[out]`].join(';')
+  return (await ffmpeg([...inputs, '-filter_complex', graph, '-map', '[out]', '-frames:v', '1', '-q:v', '3', out], signal)) && existsSync(out) ? out : null
+}
+
 /**
  * Lo que se añade al encargo del texto para que el agente elija también la portada: sin ella Instagram pone el primer
- * fotograma, que en los vídeos de kywai suele salir negro. En TikTok solo se elige el fotograma (su API no admite una
+ * fotograma, que en los vídeos de kywai suele salir negro. El agente ve la hoja de fotogramas (adjunta como imagen) y
+ * propone 3 portadas, cada una con un gancho distinto. En TikTok solo se elige el fotograma (su API no admite una
  * imagen aparte).
  */
-export function coverPromptLines(frames: string[], lang: string, platform?: 'tiktok'): string[] {
+export function coverPromptLines(frames: string[], lang: string, platform?: 'tiktok', sheet?: string): string[] {
   if (!frames.length) return []
+  const look = sheet
+    ? [
+        `Tienes ADJUNTA una imagen con ${frames.length} fotogramas del vídeo, numerados del 0 al ${frames.length - 1} (por filas, de izquierda a derecha; está también en ${sheet}). MÍRALA antes de elegir: no elijas un número sin haberlo visto.`,
+        `Si necesitas ver uno más grande: ${frames.map((f, i) => `${i}: ${f}`).join(' · ')}`
+      ]
+    : ['Fotogramas del vídeo (ábrelos y míralos antes de elegir; no elijas un número sin haberlo visto):', ...frames.map((f, i) => `${i}: ${f}`)]
+  const pick = [
+    'Cómo elegir el fotograma:',
+    '- El que mejor cuenta DE QUÉ VA el vídeo: la persona protagonista o el objeto del que habla el texto, grande y nítido. Una cara con expresión gana.',
+    '- Nada de fotogramas con subtítulos, rótulos, letreros, nombres de programas o logos encima, ni negros, borrosos o de transición. Si todos llevan algo de texto, el que menos.',
+    '- No pongas un personaje o un decorado que no sea el tema del vídeo solo porque llame la atención.'
+  ]
+  if (platform === 'tiktok')
+    return [
+      '',
+      'Elige también la PORTADA del vídeo: el fotograma que verá la gente en el perfil antes de tocarlo (sin portada, TikTok pone el primero, que suele salir negro).',
+      ...look,
+      ...pick,
+      'En la ÚLTIMA línea de tu respuesta, aparte del texto, escribe: PORTADA: {"frame": N} (N es el número del fotograma que elegiste).'
+    ]
   return [
     '',
-    platform === 'tiktok'
-      ? 'Elige también la PORTADA del vídeo: el fotograma que verá la gente en el perfil antes de tocarlo (sin portada, TikTok pone el primero, que suele salir negro). Ábrelos y elige el más llamativo: nítido, con algo que se entienda de un vistazo.'
-      : 'Haz también la PORTADA del reel: la imagen que se ve en el perfil y en la pestaña de Reels (sin portada, Instagram pone el primer fotograma, que suele salir negro). Es lo que hace que alguien pare y lo abra.',
-    'Fotogramas del vídeo (mejor uno sin letras encima, o con pocas, para que no choquen con las de la portada):',
-    ...frames.map((f, i) => `${i}: ${f}`),
-    ...(platform === 'tiktok'
-      ? ['En la ÚLTIMA línea de tu respuesta, aparte del texto, escribe: PORTADA: {"frame": 2}']
-      : [
-          `- "text": el gancho de la portada, de 2 a 5 palabras en ${lang}, que dé ganas de verlo (curiosidad, resultado, número o reto). No copies la primera línea del texto: resúmela en grande.`,
-          '- "sub" (opcional): una línea corta debajo, como mucho 6 palabras.',
-          '- "layout": "grande" (el texto enorme con contorno) o "caja" (el texto en franjas de color). "accent": un color que contraste (#rrggbb). "x" e "y": dónde está lo importante del fotograma (0-1).',
-          'En la ÚLTIMA línea de tu respuesta, aparte del texto, escribe en una sola línea:',
-          'PORTADA: {"frame": 2, "layout": "grande", "text": "…", "sub": "…", "accent": "#ffd400", "x": 0.5, "y": 0.4}'
-        ])
+    `Haz también ${COVER_OPTIONS} PORTADAS para el reel, para que el usuario elija una: la imagen que se ve en el perfil y en la pestaña de Reels (sin portada, Instagram pone el primer fotograma, que suele salir negro). Es lo que hace que alguien pare y lo abra.`,
+    ...look,
+    ...pick,
+    '- Si hay varios fotogramas buenos, usa uno distinto en cada portada.',
+    'Cómo escribir el gancho ("text"):',
+    `- De 2 a 5 palabras en ${lang}. Promete un resultado concreto o abre una duda que solo se cierra viendo el vídeo, y encaja con lo que se ve en el fotograma.`,
+    '- Cada portada con un ángulo distinto: un número o resultado («1 TARJETA = 4 ANUNCIOS»), una pregunta o problema («¿Y LA PROMOCIÓN?») y una sorpresa o reto («SIN DISEÑADOR»).',
+    '- PROHIBIDO: etiquetas que solo describen («DE TARJETA A CAMPAÑA», «MARKETING CON IA»), el título del vídeo, la primera línea del texto copiada y palabras genéricas («increíble», «descubre»).',
+    '- "sub" (opcional): una línea corta debajo, como mucho 6 palabras.',
+    '- "layout": "grande" (el texto enorme con contorno) o "caja" (el texto en franjas de color). "accent": un color que contraste (#rrggbb). "x" e "y": dónde está lo importante del fotograma (0-1).',
+    'En la ÚLTIMA línea de tu respuesta, aparte del texto, escribe las tres en una sola línea, la mejor primero (N es el número del fotograma):',
+    'PORTADAS: [{"frame": N, "layout": "grande", "text": "…", "sub": "…", "accent": "#ffd400", "x": 0.5, "y": 0.4}, {…}, {…}]'
   ]
 }
 
-/** La portada que eligió el agente (la línea «PORTADA: {…}»), o null si no la trae o no vale. */
-export function parseCoverReply(text: string, frames: number): { frame: number; cover: ThumbCover | null } | null {
-  const m = /^[ \t*_`>-]*PORTADA\s*:\s*(\{.*\})\s*`*\s*$/im.exec(text)
-  if (!m || !frames) return null
-  let j: Record<string, unknown>
-  try {
-    j = JSON.parse(m[1]) as Record<string, unknown>
-  } catch {
-    return null
-  }
-  const frame = Math.round(clamp(j.frame, 0, frames - 1, 0))
-  let cover: ThumbCover | null = null
-  try {
-    // En la cuadrícula del perfil el diseño «lateral» se cortaría: se hace como «caja».
-    cover = parseThumbnailPlan(JSON.stringify({ covers: [{ ...j, frame, layout: j.layout === 'grande' ? 'grande' : 'caja' }] }), frames)[0] ?? null
-  } catch {
-    /* sin texto: solo el fotograma */
-  }
-  return { frame, cover }
+export interface CoverPick {
+  frame: number
+  /** Sin texto válido: solo el fotograma. */
+  cover: ThumbCover | null
 }
 
-/** Quita la línea «PORTADA: …» de la respuesta (lo demás es el texto de la publicación). */
+/** Las portadas que propuso el agente (línea «PORTADAS: […]» o «PORTADA: {…}»), como mucho 3. [] si no trae ninguna válida. */
+export function parseCoverReply(text: string, frames: number): CoverPick[] {
+  if (!frames) return []
+  const m = /^[ \t*_`>-]*PORTADAS?\s*:\s*\**\s*([[{].*[\]}])\s*`*\s*$/im.exec(text)
+  if (!m) return []
+  let raw: unknown
+  try {
+    raw = JSON.parse(m[1])
+  } catch {
+    return []
+  }
+  const list = (Array.isArray(raw) ? raw : [raw]).filter((j): j is Record<string, unknown> => !!j && typeof j === 'object')
+  const out: CoverPick[] = []
+  for (const j of list) {
+    if (typeof j.frame !== 'number' || !Number.isFinite(j.frame)) continue
+    const frame = Math.round(clamp(j.frame, 0, frames - 1, 0))
+    let cover: ThumbCover | null = null
+    try {
+      // En la cuadrícula del perfil el diseño «lateral» se cortaría: se hace como «caja».
+      cover = parseThumbnailPlan(JSON.stringify({ covers: [{ ...j, frame, layout: j.layout === 'grande' ? 'grande' : 'caja' }] }), frames)[0] ?? null
+    } catch {
+      /* sin texto: solo el fotograma */
+    }
+    if (cover) cover = { ...cover, accent: typeof j.accent === 'string' && /^#[0-9a-f]{6}$/i.test(j.accent) ? cover.accent : ACCENTS[out.length % ACCENTS.length] }
+    if (out.some((o) => o.frame === frame && o.cover?.text === cover?.text)) continue
+    out.push({ frame, cover })
+    if (out.length >= COVER_OPTIONS) break
+  }
+  return out
+}
+
+/** Quita la línea «PORTADA(S): …» de la respuesta (lo demás es el texto de la publicación). */
 export function stripCoverLine(text: string): string {
-  return text.replace(/^[ \t*_`>-]*PORTADA\s*:.*$/gim, '').trim()
+  return text.replace(/^[ \t*_`>-]*PORTADAS?\s*:.*$/gim, '').trim()
 }
 
 /** Sin elección del agente, el fotograma con más detalle (el JPG más pesado): nunca uno negro o casi vacío. */

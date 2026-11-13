@@ -503,7 +503,7 @@ export function parseCaptionReply(text: string): string | null {
 }
 
 /** Encargo para el agente que escribe el texto de la publicación. */
-export function captionPrompt(input: { video: string; about: string; note?: string; username?: string; question?: string; lang: string; platform?: 'tiktok'; frames?: string[] }): string {
+export function captionPrompt(input: { video: string; about: string; note?: string; username?: string; question?: string; lang: string; platform?: 'tiktok'; frames?: string[]; sheet?: string }): string {
   const net = input.platform === 'tiktok' ? 'TikTok' : 'Instagram'
   return [
     `Escribe el texto (caption) para publicar este ${input.platform === 'tiktok' ? 'vídeo' : 'reel'} en la cuenta de ${net}${input.username ? ` ${input.platform === 'tiktok' ? '' : '@'}${input.username}` : ''}. Es la cuenta propia del proyecto: la publicación sale a su nombre.`,
@@ -521,9 +521,9 @@ export function captionPrompt(input: { video: string; about: string; note?: stri
     '- Como mucho 1 o 2 emojis, solo si encajan. Nada inventado: ni cifras ni promesas que el vídeo no cumpla. Nada de nombres de terceros ni de menciones a otras cuentas.',
     '- No crees ni cambies archivos y no publiques nada: kywai lo publica después, con el visto bueno del usuario.',
     input.frames?.length
-      ? '- Responde SOLO con el texto, listo para pegar, y la línea «PORTADA:» al final. Si el vídeo no se puede publicar tal cual (contenido de terceros, algo engañoso), responde «BLOQUEADA:» y el motivo.'
+      ? `- Responde SOLO con el texto, listo para pegar, y la línea «${input.platform === 'tiktok' ? 'PORTADA' : 'PORTADAS'}:» al final. Si el vídeo no se puede publicar tal cual (contenido de terceros, algo engañoso), responde «BLOQUEADA:» y el motivo.`
       : '- Responde SOLO con el texto, listo para pegar. Si el vídeo no se puede publicar tal cual (contenido de terceros, algo engañoso), responde «BLOQUEADA:» y el motivo.',
-    ...coverPromptLines(input.frames ?? [], input.lang, input.platform)
+    ...coverPromptLines(input.frames ?? [], input.lang, input.platform, input.sheet)
   ]
     .filter(Boolean)
     .join('\n')

@@ -3860,7 +3860,6 @@ export const en: Record<string, string> = {
   "Portada: sale en el perfil en vez del primer fotograma.": "Cover: shows on the profile instead of the first frame.",
   "Portada: el fotograma del segundo {n} (lo eligió el agente).": "Cover: the frame at second {n} (picked by the agent).",
   "Sacando fotogramas para la portada": "Grabbing frames for the cover",
-  "Haciendo la portada": "Making the cover",
   "Preparando la portada": "Preparing the cover",
   "Subiendo la portada a un enlace temporal": "Uploading the cover to a temporary link",
   "No se pudo subir la portada: va el fotograma elegido": "Couldn't upload the cover: using the chosen frame",
@@ -4030,4 +4029,8 @@ export const en: Record<string, string> = {
   "Es gratis. Con él instalado en el equipo donde corre kywai, los .doc, .ppt y parecidos se ven aquí dentro, sin subir nada a internet. Mientras, puedes abrirlo con la aplicación del equipo.": "It's free. Once it's installed on the computer that runs kywai, .doc, .ppt and similar files show up right here, without uploading anything. Meanwhile, you can open it with an app on this computer.",
   "Descargar LibreOffice": "Download LibreOffice",
   "LibreOffice no pudo convertirlo: {error}": "LibreOffice couldn't convert it: {error}",
+  "Elige la portada": "Choose the cover",
+  "Portada: {text}": "Cover: {text}",
+  "Elige la portada: sale en el perfil en vez del primer fotograma.": "Choose the cover: it shows on the profile instead of the first frame.",
+  "Haciendo las portadas": "Making the covers",
 }

@@ -20,6 +20,7 @@ import type {
   ProposedTask,
   RoutineProposal,
   SkillProposal,
+  InstagramCover,
   InstagramPost,
   InstagramReplies,
   InstagramReplyItem,
@@ -103,7 +104,7 @@ import { DUB_LANGUAGES, applyDub, dubPrompt, findDubSource, loadDubSource, markD
 import { parseSpriteRequest, spritePrompt } from './sprite'
 import { parseRadarRequest, RADAR_DIR, radarPrompt, radarStamp } from './radar'
 import { councilPlannerText, parseCouncilRequest, pickCouncil } from './council'
-import { THUMB_FRAMES, imageToCoverJpg, liveliestFrame, parseCoverReply, parseThumbnailPlan, parseThumbnailRequest, renderReelCover, renderThumbnails, thumbFrames, thumbFrameTimes, thumbnailPrompt, type ThumbRequest } from './thumbnail'
+import { COVER_FRAMES, THUMB_FRAMES, coverSheet, imageToCoverJpg, liveliestFrame, parseCoverReply, parseThumbnailPlan, parseThumbnailRequest, renderReelCover, renderThumbnails, thumbFrames, thumbFrameTimes, thumbnailPrompt, type ThumbRequest } from './thumbnail'
 import { PRESENTER_ROBOTS, demoPrompt, fetchRepoFacts, fitToVoice, githubRepo, parseDemoPlan, planSeconds, parseDemoRequest, renderDemo, type DemoPresenter, type DemoRequest, type RepoFacts } from './webDemo'
 import { clipsPrompt, editPrompt, isFiller, keptSegments, numberedTranscript, parseClipsPlan, parseEditPlan, parseFootageRequest, probeMedia, rangedTranscript, renderFootage, transcribeWords, type FootageRequest, type Word } from './footage'
 import { isMediaFile, learnPrompt, parseLearnedSkill, parseLearnRequest, prepareLearnSource, saveLearnedSkill, type LearnRequest } from './learn'
@@ -2465,49 +2466,64 @@ async function completeInstagram(run: Run, t: Task, exec: AgentConfig, parent: A
 }
 
 /**
- * Antes del agente del texto: 8 fotogramas del vídeo para que elija la portada. Si no se puede (sin ffmpeg, vídeo raro),
- * se sigue sin ellos: el texto y la publicación no dependen de la portada.
+ * Antes del agente del texto: 12 fotogramas del vídeo y una hoja con todos numerados, que se le adjunta como imagen
+ * para que los VEA al elegir la portada (con solo las rutas en el texto, algunos agentes elegían a ciegas). Si no se
+ * puede (sin ffmpeg, vídeo raro), se sigue sin ellos: el texto y la publicación no dependen de la portada.
  */
 async function prepareSocialCover(run: Run, t: Task): Promise<void> {
   const ig = t.instagram!
   ig.ready = true
   const root = store.workRoot(run.projectId)
   const file = join(root, ig.video)
+  const signal = run.controllers.get(t.id)?.signal
   try {
     t.lastActivity = tr('Sacando fotogramas para la portada')
     taskDirty(t)
     const info = await probeMedia(file)
     if (!(info.seconds > 0)) return
-    const frames = await thumbFrames(file, info.seconds, join(root, '.ai-cowork', 'portadas', t.id), THUMB_FRAMES, run.controllers.get(t.id)?.signal)
-    const times = thumbFrameTimes(info.seconds)
-    if (frames.length === times.length) {
-      ig.frames = frames
-      ig.frameTimes = times
-    }
+    const work = join('.ai-cowork', 'portadas', t.id)
+    const frames = await thumbFrames(file, info.seconds, join(root, work), COVER_FRAMES, signal)
+    const times = thumbFrameTimes(info.seconds, COVER_FRAMES)
+    if (frames.length !== times.length) return
+    ig.frames = frames
+    ig.frameTimes = times
+    const sheet = join(work, 'hoja-de-fotogramas.jpg')
+    if (await coverSheet(frames, join(root, sheet), htmlToPng, signal)) ig.sheet = sheet.replace(/\\/g, '/')
   } catch {
     /* sin fotogramas: el agente escribe solo el texto */
   }
 }
 
+/** La hoja de fotogramas de la portada como imagen adjunta del agente (relativa a su carpeta, si trabaja en la del proyecto). */
+function coverSheetImage(run: Run, t: Task, dir: string): string[] {
+  const sheet = t.instagram?.sheet
+  if (!sheet || t.instagram?.coverImage) return []
+  const abs = join(store.workRoot(run.projectId), sheet)
+  if (!existsSync(abs)) return []
+  return [resolve(dir) === resolve(store.workRoot(run.projectId)) ? sheet : abs]
+}
+
 /**
- * La portada del reel con lo que eligió el agente (la línea «PORTADA:»): en Instagram una imagen con el gancho en
- * grande (JPG junto al vídeo) y el fotograma por si no se puede subir; en TikTok, solo el fotograma. Una imagen adjunta
- * a la orden manda sobre todo. Sin elección, el fotograma con más detalle (nunca uno negro).
+ * Las portadas del reel con lo que propuso el agente (la línea «PORTADAS:»): en Instagram hasta 3 imágenes con el
+ * gancho en grande (JPG junto al vídeo), para elegir una en la tarjeta (la primera va si no tocas nada), cada una con su
+ * fotograma por si no se puede subir; en TikTok, solo el fotograma. Una imagen adjunta a la orden manda sobre todo.
+ * Sin elección, el fotograma con más detalle (nunca uno negro).
  */
-async function socialCover(run: Run, t: Task, reply: string): Promise<{ cover?: string; coverAtMs?: number }> {
+async function socialCover(run: Run, t: Task, reply: string): Promise<{ cover?: string; coverAtMs?: number; covers?: InstagramCover[] }> {
   const ig = t.instagram!
   const root = store.workRoot(run.projectId)
-  const base = join(dirname(ig.video), `${basename(ig.video, extname(ig.video))}-portada.jpg`)
+  const stem = join(dirname(ig.video), basename(ig.video, extname(ig.video)))
+  const rel = (f: string): string => f.replace(/\\/g, '/')
   if (ig.coverImage) {
-    if (await imageToCoverJpg(join(root, ig.coverImage), join(root, base))) return { cover: base.replace(/\\/g, '/') }
+    if (await imageToCoverJpg(join(root, ig.coverImage), join(root, `${stem}-portada.jpg`))) return { cover: rel(`${stem}-portada.jpg`) }
     return /\.jpe?g$/i.test(ig.coverImage) ? { cover: ig.coverImage } : {}
   }
   const frames = ig.frames ?? []
   const times = ig.frameTimes ?? []
   if (!frames.length) return {}
-  const pick = parseCoverReply(reply, frames.length)
-  let frame = pick?.frame
-  if (frame === undefined) {
+  const picks = parseCoverReply(reply, frames.length)
+  const atMs = (frame: number): number => Math.round((times[frame] ?? 0) * 1000)
+  if (!picks.length) {
     const sizes = frames.map((f) => {
       try {
         return statSync(f).size
@@ -2515,18 +2531,23 @@ async function socialCover(run: Run, t: Task, reply: string): Promise<{ cover?: 
         return 0
       }
     })
-    frame = liveliestFrame(sizes)
+    return { coverAtMs: atMs(liveliestFrame(sizes)) }
   }
-  const coverAtMs = Math.round((times[frame] ?? 0) * 1000)
-  if (ig.platform === 'tiktok' || !pick?.cover) return { coverAtMs }
-  try {
-    t.lastActivity = tr('Haciendo la portada')
-    taskDirty(t)
-    if (await renderReelCover(pick.cover, frames[frame], join(root, base), htmlToPng)) return { cover: base.replace(/\\/g, '/'), coverAtMs }
-  } catch {
-    /* sin la app de escritorio no hay imagen: queda el fotograma */
+  if (ig.platform === 'tiktok') return { coverAtMs: atMs(picks[0].frame) }
+  const covers: InstagramCover[] = []
+  t.lastActivity = tr('Haciendo las portadas')
+  taskDirty(t)
+  for (const [k, p] of picks.entries()) {
+    if (!p.cover) continue
+    const file = `${stem}-portada-${k + 1}.jpg`
+    try {
+      if (await renderReelCover(p.cover, frames[p.frame], join(root, file), htmlToPng)) covers.push({ file: rel(file), atMs: atMs(p.frame), text: p.cover.text })
+    } catch {
+      /* sin la app de escritorio no hay imagen: queda el fotograma */
+    }
   }
-  return { coverAtMs }
+  if (!covers.length) return { coverAtMs: atMs(picks[0].frame) }
+  return { cover: covers[0].file, coverAtMs: covers[0].atMs, ...(covers.length > 1 ? { covers } : {}) }
 }
 
 /** Sube y publica el reel de la tarjeta; el chat va contando cómo va y acaba con el enlace (o el error). */
@@ -2579,7 +2600,7 @@ async function publishPost(projectId: string, messageId: string, caption: string
 }
 
 /** «Publicar» (con el texto que dejes en la tarjeta) o «Descartar» el reel preparado. Publicar no espera a que acabe. */
-export function decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string): ChatMessage {
+export function decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string, cover?: number): ChatMessage {
   const m = findMessage(projectId, messageId)
   const p = m?.instagramPost
   if (!m || !p) throw new Error(tr('No se encontró ese reel'))
@@ -2594,9 +2615,13 @@ export function decideInstagramPost(projectId: string, messageId: string, action
   }
   if (action !== 'publish') throw new Error(tr('Acción no válida'))
   const text = cleanCaptionInput(caption) ?? p.caption
+  // La portada que elegiste en la tarjeta (de las que propuso el agente).
+  const chosen = typeof cover === 'number' ? p.covers?.[cover] : undefined
+  if (chosen) pushMessage({ ...m, instagramPost: { ...p, cover: chosen.file, ...(typeof chosen.atMs === 'number' ? { coverAtMs: chosen.atMs } : {}) } })
   resolveInboxWhere((i) => i.kind === 'failed' && i.messageId === messageId, tr('Reintentando'))
   void publishPost(projectId, messageId, text)
-  return { ...m, instagramPost: { ...p, status: 'publishing', caption: text } }
+  const cur = findMessage(projectId, messageId) ?? m
+  return { ...cur, instagramPost: { ...(cur.instagramPost ?? p), status: 'publishing', caption: text } }
 }
 
 function cleanCaptionInput(caption: unknown): string | null {
@@ -5592,7 +5617,7 @@ function buildTaskPrompt(run: Run, t: Task, exec: AgentConfig, parent: AgentConf
       note: t.instagram.note,
       ...(s?.username ? { username: s.username } : {}),
       ...(t.instagram.question ? { question: t.instagram.question } : {}),
-      ...(t.instagram.frames?.length && !t.instagram.coverImage ? { frames: t.instagram.frames } : {}),
+      ...(t.instagram.frames?.length && !t.instagram.coverImage ? { frames: t.instagram.frames, ...(t.instagram.sheet ? { sheet: join(store.workRoot(run.projectId), t.instagram.sheet) } : {}) } : {}),
       lang: userLanguageName()
     }) + (t.instagram.platform ? '' : learningLines(resultsFile(getConfig().workspaceRoot)).join('\n'))
   }
@@ -6085,7 +6110,7 @@ async function startTask(run: Run, t: Task, agent: AgentConfig, model: string, b
       cwd: dir,
       mode: 'work',
       access: accessFor(run, t, exec, parent, !!mcp),
-      images: imageAttachments(run, dir !== mainDir),
+      images: [...imageAttachments(run, dir !== mainDir), ...coverSheetImage(run, t, dir)],
       isWaitingUser: () => waitingPermission(t.id),
       resume: resuming,
       signal: ctrl.signal,

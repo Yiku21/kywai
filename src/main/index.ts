@@ -1008,9 +1008,9 @@ function registerIpc(): void {
       : undefined
     return decideScriptReview(projectArg(projectId), messageId, action === 'record' ? 'record' : 'dismiss', list)
   })
-  handle('decideInstagramPost', (projectId: unknown, messageId: unknown, action: unknown, caption: unknown) => {
+  handle('decideInstagramPost', (projectId: unknown, messageId: unknown, action: unknown, caption: unknown, cover: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('No se encontró ese reel'))
-    return decideInstagramPost(projectArg(projectId), messageId, action === 'publish' ? 'publish' : 'dismiss', typeof caption === 'string' ? caption : undefined)
+    return decideInstagramPost(projectArg(projectId), messageId, action === 'publish' ? 'publish' : 'dismiss', typeof caption === 'string' ? caption : undefined, typeof cover === 'number' && Number.isInteger(cover) ? cover : undefined)
   })
   handle('decideInstagramReply', (projectId: unknown, messageId: unknown, action: unknown, commentId: unknown, text: unknown) => {
     if (typeof messageId !== 'string') throw new Error(tr('No se encontraron esas respuestas'))

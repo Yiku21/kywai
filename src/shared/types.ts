@@ -333,6 +333,8 @@ export interface Task {
     /** Fotogramas para que el agente elija la portada (rutas absolutas) y en qué segundo está cada uno. */
     frames?: string[]
     frameTimes?: number[]
+    /** La hoja con los fotogramas numerados (relativa al proyecto): se le adjunta al agente como imagen para que los vea. */
+    sheet?: string
     /** Ya se sacaron los fotogramas (o no se pudo: se publica igual). */
     ready?: boolean
   }
@@ -982,6 +984,15 @@ export interface ScriptReview {
   decidedAt?: number
 }
 
+export interface InstagramCover {
+  /** JPG relativo al proyecto. */
+  file: string
+  /** El fotograma de esa portada (milisegundos), por si la imagen no se puede subir. */
+  atMs?: number
+  /** El gancho que lleva escrito. */
+  text?: string
+}
+
 export interface InstagramPost {
   status: 'pending' | 'publishing' | 'published' | 'failed' | 'dismissed'
   video: string
@@ -993,8 +1004,10 @@ export interface InstagramPost {
   auto?: boolean
   /** Reel de prueba («/instagram prueba»): primero solo para quien no sigue la cuenta. */
   trial?: boolean
-  /** La portada en JPG (ruta relativa al proyecto): sale en el perfil en vez del primer fotograma. */
+  /** La portada elegida en JPG (ruta relativa al proyecto): sale en el perfil en vez del primer fotograma. */
   cover?: string
+  /** Las portadas que propuso el agente (la primera es la elegida si no tocas nada); se elige una en la tarjeta. */
+  covers?: InstagramCover[]
   /** El fotograma de portada, por si la imagen no se puede subir (milisegundos). */
   coverAtMs?: number
   decidedAt?: number
@@ -2177,7 +2190,7 @@ export interface CoworkApi {
   disconnectInstagram(): Promise<InstagramStatus>
   setInstagramAutoPublish(on: boolean): Promise<InstagramStatus>
   /** «Publicar» (con el texto cambiado, si lo cambiaste) o «Descartar» el reel preparado con «/instagram». */
-  decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string): Promise<ChatMessage>
+  decideInstagramPost(projectId: string, messageId: string, action: 'publish' | 'dismiss', caption?: string, cover?: number): Promise<ChatMessage>
   /** Envía (`send`, con el texto que dejes) o salta (`skip`) una respuesta de «/ig-reply»; sin `commentId`, todas las pendientes. `dismiss` cierra la tarjeta. */
   decideInstagramReply(projectId: string, messageId: string, action: 'send' | 'skip' | 'dismiss', commentId?: string, text?: string): Promise<ChatMessage>
   /** «Grabar» (con las escenas cambiadas, si las cambiaste) o «Descartar» el guion para repasar. */

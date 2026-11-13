@@ -3737,7 +3737,6 @@ export const pt: Record<string, string> = {
   "Portada: sale en el perfil en vez del primer fotograma.": "Capa: aparece no perfil em vez do primeiro fotograma.",
   "Portada: el fotograma del segundo {n} (lo eligió el agente).": "Capa: o fotograma do segundo {n} (escolhido pelo agente).",
   "Sacando fotogramas para la portada": "A extrair fotogramas para a capa",
-  "Haciendo la portada": "A fazer a capa",
   "Preparando la portada": "A preparar a capa",
   "Subiendo la portada a un enlace temporal": "A enviar a capa para um link temporário",
   "No se pudo subir la portada: va el fotograma elegido": "Não foi possível enviar a capa: vai o fotograma escolhido",
@@ -3906,4 +3905,8 @@ export const pt: Record<string, string> = {
   "Es gratis. Con él instalado en el equipo donde corre kywai, los .doc, .ppt y parecidos se ven aquí dentro, sin subir nada a internet. Mientras, puedes abrirlo con la aplicación del equipo.": "É gratuito. Com ele instalado no computador onde o kywai roda, os .doc, .ppt e parecidos aparecem aqui, sem enviar nada para a internet. Enquanto isso, você pode abri-lo com um aplicativo do computador.",
   "Descargar LibreOffice": "Baixar o LibreOffice",
   "LibreOffice no pudo convertirlo: {error}": "O LibreOffice não conseguiu convertê-lo: {error}",
+  "Elige la portada": "Escolhe a capa",
+  "Portada: {text}": "Capa: {text}",
+  "Elige la portada: sale en el perfil en vez del primer fotograma.": "Escolhe a capa: aparece no perfil em vez do primeiro fotograma.",
+  "Haciendo las portadas": "A fazer as capas",
 }

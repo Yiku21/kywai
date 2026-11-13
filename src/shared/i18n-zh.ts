@@ -3737,7 +3737,6 @@ export const zh: Record<string, string> = {
   "Portada: sale en el perfil en vez del primer fotograma.": "封面：在主页上显示它，而不是第一帧。",
   "Portada: el fotograma del segundo {n} (lo eligió el agente).": "封面：第 {n} 秒的画面（由智能体选择）。",
   "Sacando fotogramas para la portada": "正在为封面截取画面",
-  "Haciendo la portada": "正在制作封面",
   "Preparando la portada": "正在准备封面",
   "Subiendo la portada a un enlace temporal": "正在把封面上传到临时链接",
   "No se pudo subir la portada: va el fotograma elegido": "无法上传封面：改用选定的画面",
@@ -3906,4 +3905,8 @@ export const zh: Record<string, string> = {
   "Es gratis. Con él instalado en el equipo donde corre kywai, los .doc, .ppt y parecidos se ven aquí dentro, sin subir nada a internet. Mientras, puedes abrirlo con la aplicación del equipo.": "它是免费的。在运行 kywai 的电脑上装好后，.doc、.ppt 等文件就能直接在这里查看，无需上传到网上。在此之前，你可以用电脑上的应用打开它。",
   "Descargar LibreOffice": "下载 LibreOffice",
   "LibreOffice no pudo convertirlo: {error}": "LibreOffice 无法转换它：{error}",
+  "Elige la portada": "选择封面",
+  "Portada: {text}": "封面：{text}",
+  "Elige la portada: sale en el perfil en vez del primer fotograma.": "选择封面：在主页上显示它，而不是第一帧。",
+  "Haciendo las portadas": "正在制作封面",
 }

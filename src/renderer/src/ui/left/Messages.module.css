@@ -1649,6 +1649,53 @@ button.itemHead:hover {
   opacity: 0.75;
 }
 
+.igCovers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+.igCovers p {
+  flex-basis: 100%;
+  margin: 0;
+}
+.igCoverPick {
+  position: relative;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.igCoverPick:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.igCoverPick:disabled {
+  cursor: default;
+}
+.igCoverPick img {
+  display: block;
+  width: 96px;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.igCoverPick:not(.igCoverOn) img {
+  opacity: 0.7;
+}
+.igCoverOn {
+  border-color: var(--accent);
+}
+.igCoverCheck {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  color: #fff;
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.7));
+}
+
 .igCaption {
   width: 100%;
   box-sizing: border-box;

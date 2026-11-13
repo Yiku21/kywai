@@ -322,8 +322,12 @@ describe('el Instagram de kywai', () => {
 
   it('el encargo del texto pide la portada y la línea «PORTADA:» no acaba en el texto', () => {
     const p = captionPrompt({ video: '/p/v.mp4', about: 'Un gato', lang: 'español', frames: ['/f/0.jpg', '/f/1.jpg'] })
-    expect(p).toMatch(/PORTADA: \{"frame"/)
+    expect(p).toMatch(/PORTADAS: \[\{"frame": N/)
     expect(p).toContain('1: /f/1.jpg')
+    expect(p).toMatch(/PROHIBIDO: etiquetas/)
+    expect(captionPrompt({ video: '/p/v.mp4', about: 'x', lang: 'español', frames: ['/f/0.jpg'], sheet: '/f/hoja.jpg' })).toMatch(/Tienes ADJUNTA una imagen con 1 fotogramas[\s\S]*\/f\/hoja\.jpg/)
+    expect(captionPrompt({ video: '/p/v.mp4', about: 'x', lang: 'español', frames: ['/f/0.jpg'], platform: 'tiktok' })).toMatch(/PORTADA: \{"frame": N\}/)
+    expect(parseCaptionReply('Gancho\n\nPORTADAS: [{"frame": 1, "text": "A"}]')).toBe('Gancho')
     expect(captionPrompt({ video: '/p/v.mp4', about: 'Un gato', lang: 'español' })).not.toContain('PORTADA')
     expect(parseCaptionReply('Gancho\n\n#gato\n\nPORTADA: {"frame": 1, "text": "Mira esto"}')).toBe('Gancho\n\n#gato')
     expect(parseCaptionReply('```\nGancho\n```\n**PORTADA:** {"frame": 1}')).toBe('Gancho')
