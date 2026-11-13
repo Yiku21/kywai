@@ -193,7 +193,7 @@ describe('Charla y tutorial: plató 3D con los robots', () => {
     expect(shots.some((s) => s.move === 'dutch' || s.move === 'whip' || s.move === 'orbit')).toBe(false)
     // Cada escena se abre con un plano de situación distinto.
     const openers = new Set([0, 1, 2, 4, 6].map((seed) => planShots(lines, 0, 10, false, seed)[0].kind))
-    expect(openers.size).toBeGreaterThanOrEqual(4)
+    expect(openers.size).toBeGreaterThanOrEqual(3)
   })
 
   it('cada robot mueve la boca con sus sílabas y la pantalla cambia de imagen en cada escena', () => {

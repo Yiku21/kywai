@@ -2823,8 +2823,11 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    `charlaScriptPrompt` en `src/main/videoScript.ts`. Este tipo no usa la biblioteca de películas (si se elige un
    estilo, se ignora) y el agente inventa su propia maqueta: nunca copia la de otro vídeo.
    **Con los robots de kywai, los personajes se mueven de verdad** (`src/main/charlaStage.ts`): Hermes, Claude y
-   Codex están hechos en three.js dentro de un plató de juguete (salita con alfombra, estantería, planta, lámpara y una
-   **pantalla gigante** que muestra la imagen de cada escena) y se animan con la voz: la boca (una luz en el visor) y
+   Codex están hechos en three.js dentro de un plató de juguete (salita con alfombra, papel pintado de rayas,
+   estantería, planta, lámpara, sofá, cuadros, una ventana con cielo de atardecer y cortinas, una guirnalda de
+   bombillas y una **pantalla gigante** que muestra la imagen de cada escena o, si no hay imagen, una tele
+   apagada con ambiente, sin texto, para no pisar el titular ni los subtítulos). El plástico de los robots brilla con
+   reflejos de verdad (un pequeño estudio de luz como mapa de entorno) y las sombras son suaves. Los robots se animan con la voz: la boca (una luz en el visor) y
    el cuerpo rebotan con cada sílaba, parpadean, miran a quien habla, asienten al acabar una frase y reaccionan con la
    emoción de cada frase (saltan al sorprenderse, se ríen, se agachan tristes, se inclinan para el susurro); en el
    cierre saltan los dos. La **cámara** monta el diálogo como una serie (`planShots`): cada escena se abre con un

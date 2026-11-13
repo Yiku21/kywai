@@ -126,7 +126,7 @@ export function planShots(lines: StageLine[], start: number, end: number, step: 
       last.emotion = r.emotion
     } else turns.push({ ...r })
   }
-  const openers: ShotKind[] = ['wide', 'two', 'low', 'two', 'high', 'wide', 'side']
+  const openers: ShotKind[] = ['wide', 'two', 'low', 'two', 'high', 'wide']
   const opener: ShotKind = step ? 'screen' : openers[seed % openers.length]
   const shots: StageShot[] = []
   let punched = false
@@ -285,7 +285,7 @@ const R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawing
 if (SOLO) R.setClearColor(0x000000, 0)
 R.setPixelRatio(1)
 R.shadowMap.enabled = true
-R.shadowMap.type = THREE.PCFShadowMap
+R.shadowMap.type = THREE.PCFSoftShadowMap
 R.toneMapping = THREE.ACESFilmicToneMapping
 R.toneMappingExposure = 1.08
 R.outputColorSpace = THREE.SRGBColorSpace
@@ -351,12 +351,103 @@ if (SOLO) {
   S.add(floor)
 }
 
+// ---------- más maqueta: ventana con cielo, cuadros, sofá, papel pintado y guirnalda de luces ----------
+function canvasTex(w, h, paint) {
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  paint(c.getContext('2d'), w, h)
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  return t
+}
+// papel pintado de rayas suaves en la pared del fondo (encima del zócalo)
+const paper = canvasTex(512, 512, (x, w, h) => {
+  x.fillStyle = '#e7c9a0'
+  x.fillRect(0, 0, w, h)
+  for (let i = 0; i < 16; i++) {
+    x.fillStyle = i % 2 ? 'rgba(255,255,255,0.10)' : 'rgba(150,95,60,0.07)'
+    x.fillRect((i * w) / 16, 0, w / 16, h)
+  }
+  x.fillStyle = 'rgba(255,255,255,0.18)'
+  for (let i = 0; i < 16; i += 2) for (let j = 0; j < 8; j++) { x.beginPath(); x.arc((i + 0.5) * (w / 16), (j + 0.5) * (h / 8), 5, 0, Math.PI * 2); x.fill() }
+})
+paper.wrapS = paper.wrapT = THREE.RepeatWrapping
+paper.repeat.set(3, 1.6)
+const wallPaper = put(SET, new THREE.PlaneGeometry(15.4, 8.4), new THREE.MeshStandardMaterial({ map: paper, roughness: 0.95 }), 0, 4.6, -4.04)
+wallPaper.castShadow = false
+// la ventana: marco, cielo de atardecer con nubes y cortinas
+const sky = canvasTex(256, 320, (x, w, h) => {
+  const g = x.createLinearGradient(0, 0, 0, h)
+  g.addColorStop(0, '#6aa8ff')
+  g.addColorStop(0.6, '#ffc58a')
+  g.addColorStop(1, '#ff8f6b')
+  x.fillStyle = g
+  x.fillRect(0, 0, w, h)
+  x.fillStyle = 'rgba(255,255,255,0.85)'
+  ;[[60, 70, 34], [95, 62, 26], [180, 120, 30], [205, 112, 22], [40, 190, 20]].forEach((c) => { x.beginPath(); x.arc(c[0], c[1], c[2], 0, Math.PI * 2); x.fill() })
+  x.fillStyle = '#c86a5a'
+  x.beginPath(); x.moveTo(0, h); x.lineTo(0, h * 0.82); x.lineTo(w * 0.3, h * 0.72); x.lineTo(w * 0.62, h * 0.84); x.lineTo(w, h * 0.74); x.lineTo(w, h); x.fill()
+})
+const winX = 4.25, winY = 4.0
+put(SET, new THREE.PlaneGeometry(1.7, 2.1), new THREE.MeshBasicMaterial({ map: sky, toneMapped: false }), winX, winY, -4.0).castShadow = false
+;[[0, 1.1, 1.95, 0.12], [0, -1.1, 1.95, 0.12], [-0.92, 0, 0.12, 2.32], [0.92, 0, 0.12, 2.32], [0, 0, 0.06, 2.1], [0, 0, 1.7, 0.06]].forEach((f) => put(SET, new THREE.BoxGeometry(f[2], f[3], 0.14), mat('#fff4e2'), winX + f[0], winY + f[1], -3.96))
+put(SET, new THREE.BoxGeometry(2.2, 0.1, 0.36), mat('#fff4e2'), winX, winY - 1.2, -3.86)
+;[-1, 1].forEach((sx) => {
+  for (let k = 0; k < 4; k++) put(SET, new THREE.CylinderGeometry(0.11, 0.13, 2.6, 8), mat(k % 2 ? '#d9534f' : '#e8665e'), winX + sx * (1.05 + k * 0.13), winY - 0.15, -3.8)
+})
+const winLight = new THREE.PointLight('#ffd2a6', 5, 6, 1.6)
+winLight.position.set(winX, winY - 0.4, -3.2)
+SET.add(winLight)
+// cuadros en la pared de la izquierda del fondo
+;[[-2.9, 4.6, 0.9, 0.7, '#3f8f8a'], [-2.0, 4.85, 0.6, 0.8, '#f2c14e'], [-2.25, 3.95, 0.7, 0.45, '#7c5cbf']].forEach((f) => {
+  put(SET, new THREE.BoxGeometry(f[2] + 0.12, f[3] + 0.12, 0.06), mat('#5b3a26'), f[0], f[1], -3.98)
+  put(SET, new THREE.PlaneGeometry(f[2], f[3]), mat(f[4], { roughness: 0.6 }), f[0], f[1], -3.94).castShadow = false
+})
+// sofá de juguete detrás, a la izquierda
+const sofa = mat('#5c7fd6', { flatShading: false, roughness: 0.9 })
+put(SET, rbox(2.4, 0.5, 0.9, 0.16), sofa, -3.1, 0.35, -3.1)
+put(SET, rbox(2.4, 0.8, 0.3, 0.13), sofa, -3.1, 0.85, -3.5)
+;[-1, 1].forEach((sx) => put(SET, rbox(0.3, 0.7, 0.95, 0.12), sofa, -3.1 + sx * 1.25, 0.55, -3.1))
+put(SET, rbox(0.55, 0.45, 0.16, 0.08), mat('#f2c14e', { flatShading: false }), -2.6, 0.82, -3.25, 0.2, 0, -0.15)
+// guirnalda de bombillas sobre la pantalla
+for (let i = 0; i <= 14; i++) {
+  const u = i / 14
+  const bx = -2.9 + u * 5.8, by = 4.45 - Math.sin(u * Math.PI) * 0.35
+  const b = put(SET, new THREE.SphereGeometry(0.055, 10, 8), glow(['#ffd166', '#ff8fab', '#8ee3ff'][i % 3], 2.4), bx, by, -3.85)
+  b.castShadow = false
+}
+
+// ---------- reflejos: un cuarto de estudio pequeño como mapa de entorno (brillos de verdad en el plástico) ----------
+{
+  const env = new THREE.Scene()
+  const room = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 10), new THREE.MeshBasicMaterial({ color: '#5a4652', side: THREE.BackSide }))
+  room.position.y = 2
+  env.add(room)
+  const panel = (c, k, x, y, z, w, h, ry) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k), side: THREE.DoubleSide }))
+    m.position.set(x, y, z)
+    m.rotation.y = ry || 0
+    m.lookAt(0, 1, 0)
+    env.add(m)
+  }
+  panel('#ffe2c0', 6, 3, 4.5, 3.5, 3, 2)
+  panel('#9fd0ff', 3, -4.5, 3, -2, 2.5, 3)
+  panel('#ffffff', 2.5, 0, 4.9, 0, 4, 4)
+  panel('#ffb98a', 2, 0, 1.5, -4.9, 6, 1.2)
+  const pm = new THREE.PMREMGenerator(R)
+  S.environment = pm.fromScene(env, 0.03).texture
+  S.environmentIntensity = 0.55
+  pm.dispose()
+}
+
 // ---------- luces de cine ----------
 S.add(new THREE.HemisphereLight('#ffe2c0', '#3a2a4a', 0.6))
 const key = new THREE.SpotLight('#ffd2a0', 150, 40, 0.55, 0.55, 1.6)
 key.position.set(4.5, 8.5, 6.5)
 key.castShadow = true
-key.shadow.mapSize.set(1024, 1024)
+key.shadow.mapSize.set(2048, 2048)
+key.shadow.radius = 4
 key.shadow.bias = -0.0004
 key.target.position.set(0, 0.8, 0)
 S.add(key, key.target)
@@ -508,30 +599,41 @@ const texs = imgs.map((im) => {
   t.colorSpace = THREE.SRGBColorSpace
   return t
 })
-const blank = (() => {
-  const c = document.createElement('canvas')
-  c.width = 512
-  c.height = 296
-  const x = c.getContext('2d')
-  const gr = x.createLinearGradient(0, 0, 512, 296)
-  gr.addColorStop(0, D.accent)
-  gr.addColorStop(1, D.accent2)
+/**
+ * Sin imagen, la pantalla hace de tele apagada con ambiente: degradado del tema con brillo, líneas de tele y unas
+ * estrellitas. Sin texto: el titular ya va en la etiqueta de arriba y dos textos a la vez se pisan.
+ */
+const idleTex = canvasTex(1024, 592, (x, w, h) => {
+  const gr = x.createLinearGradient(0, 0, w, h)
+  gr.addColorStop(0, '#1d1830')
+  gr.addColorStop(1, '#3a2547')
   x.fillStyle = gr
-  x.fillRect(0, 0, 512, 296)
-  x.fillStyle = 'rgba(255,255,255,0.85)'
-  for (let i = 0; i < 4; i++) x.fillRect(60, 70 + i * 48, 220 + ((i * 97) % 170), 22)
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  return t
-})()
+  x.fillRect(0, 0, w, h)
+  const halo = x.createRadialGradient(w * 0.5, h * 0.55, 20, w * 0.5, h * 0.55, w * 0.6)
+  halo.addColorStop(0, D.accent + '55')
+  halo.addColorStop(1, 'rgba(0,0,0,0)')
+  x.fillStyle = halo
+  x.fillRect(0, 0, w, h)
+  x.fillStyle = 'rgba(255,255,255,0.05)'
+  for (let y = 0; y < h; y += 6) x.fillRect(0, y, w, 2)
+  let r = 7
+  const rnd = () => (r = (r * 1664525 + 1013904223) >>> 0) / 4294967296
+  for (let i = 0; i < 40; i++) {
+    x.fillStyle = i % 3 ? 'rgba(255,255,255,0.55)' : D.accent2
+    x.beginPath()
+    x.arc(rnd() * w, rnd() * h, 1.5 + rnd() * 3.5, 0, Math.PI * 2)
+    x.fill()
+  }
+})
 let shown = null
 function screenAt(t) {
   let idx = -1
   for (const s of D.screens) if (t >= s[0]) idx = s[1]
   const im = idx >= 0 ? imgs[idx] : null
-  const tex = im && im.complete && im.naturalWidth ? texs[idx] : blank
+  const fallback = im && im.complete && im.naturalWidth ? null : idleTex
+  const tex = fallback || texs[idx]
   if (tex !== shown) {
-    if (tex !== blank) tex.needsUpdate = true
+    if (!fallback) tex.needsUpdate = true
     scrMat.map = tex
     scrMat.needsUpdate = true
     shown = tex
@@ -689,8 +791,8 @@ function framing(kind) {
     case 'ots0': return v ? [[X[1] + 0.35, 1.5, 3.4], [X[0], 1.35, 0]] : [[X[1] + 0.45, 1.25, 2.4], [X[0], 0.95, 0]]
     case 'ots1': return v ? [[X[0] - 0.35, 1.5, 3.5], [X[1], 1.35, 0.15]] : [[X[0] - 0.45, 1.25, 2.5], [X[1], 0.95, 0.15]]
     // muy de cerca: solo la cara (para remarcar una frase)
-    case 'xcu0': return v ? [[X[0] + 0.12, 1.0, 2.2], [X[0], 1.3, 0]] : [[X[0] + 0.12, 0.95, 1.5], [X[0], 0.92, 0]]
-    case 'xcu1': return v ? [[X[1] - 0.12, 1.0, 2.25], [X[1], 1.3, 0.15]] : [[X[1] - 0.12, 0.95, 1.55], [X[1], 0.92, 0.15]]
+    case 'xcu0': return v ? [[X[0] + 0.15, 1.15, 2.85], [X[0], 1.32, 0]] : [[X[0] + 0.12, 0.95, 1.5], [X[0], 0.92, 0]]
+    case 'xcu1': return v ? [[X[1] - 0.15, 1.15, 2.9], [X[1], 1.32, 0.15]] : [[X[1] - 0.12, 0.95, 1.55], [X[1], 0.92, 0.15]]
     // contrapicado desde el suelo: los dos parecen grandes
     case 'low': return v ? [[0.2, 0.28, 4.2], [0, 1.6, 0]] : [[0.2, 0.28, 3.4], [0, 1.1, 0]]
     // picado desde arriba: se ve la maqueta entera
