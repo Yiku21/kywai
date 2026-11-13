@@ -348,13 +348,25 @@
   place-items: center;
   width: 24px;
   height: 24px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: #ffc94d;
   color: #3a2700;
+  cursor: pointer;
   box-shadow: 0 0 0 2px rgba(var(--label-rgb, 9, 14, 25), 0.9);
   transform: translateX(-50%);
   transform-origin: 50% 20%;
   animation: call-bell 1.6s ease-in-out 3;
+}
+
+.callBell:hover {
+  background: #ffd773;
+}
+
+.callBell:focus-visible {
+  outline: 2px solid #ffc94d;
+  outline-offset: 2px;
 }
 
 .robot.calling.static,

@@ -567,9 +567,8 @@ export function Robot({ agent, station, stations, leaving }: Props) {
         }}
         onClick={(e: { stopPropagation(): void }) => {
           e.stopPropagation()
+          // El cuerpo abre solo la ficha del agente; «Te necesita» se abre con la campanita de encima.
           useCowork.getState().select({ type: 'agent', id: agent.id })
-          // Si te está llamando, el clic abre también «Te necesita».
-          if (ringing) useInboxAlert.getState().requestOpen()
         }}
       />
       <group ref={indicators} position={[0, model.top + 0.2, 0]}>
@@ -583,7 +582,26 @@ export function Robot({ agent, station, stations, leaving }: Props) {
         <sprite ref={zzz} material={moodMats.zzz} position={[0.32, 0.02, 0]} />
         <sprite ref={warn} material={moodMats.warn} position={[0.32, 0.02, 0]} />
         <sprite ref={question} material={moodMats.question} position={[0.3, 0.04, 0]} />
-        <sprite ref={bell} material={bellMat} position={[0, 0.34, 0]} visible={false} />
+        <sprite
+          ref={bell}
+          material={bellMat}
+          position={[0, 0.34, 0]}
+          visible={false}
+          // Clic en la campanita: abre solo «Te necesita» y no la ficha del agente que está debajo.
+          onPointerOver={(e: { stopPropagation(): void }) => {
+            if (!ringing) return
+            e.stopPropagation()
+            document.body.style.cursor = 'pointer'
+          }}
+          onPointerOut={() => {
+            if (ringing) document.body.style.cursor = ''
+          }}
+          onClick={(e: { stopPropagation(): void }) => {
+            if (!ringing) return
+            e.stopPropagation()
+            useInboxAlert.getState().requestOpen()
+          }}
+        />
       </group>
       <group ref={anchor} position={[0, labelY, 0]} />
     </group>

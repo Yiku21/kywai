@@ -191,9 +191,8 @@ export function RobotLabel({ agent }: Props) {
         aria-label={`${agent.name}, ${modelText}: ${text}`}
         onClick={(e) => {
           e.stopPropagation();
+          // La etiqueta abre solo la ficha del agente; «Te necesita» se abre con su campanita.
           select({ type: "agent", id: agent.id });
-          // Si te está llamando, el clic abre también «Te necesita».
-          if (calling) useInboxAlert.getState().requestOpen();
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ")
@@ -201,9 +200,22 @@ export function RobotLabel({ agent }: Props) {
         }}
       >
         {calling && (
-          <span key={calledAt} className={s.callBell} title={t("Te necesita")} aria-hidden="true">
+          <button
+            key={calledAt}
+            type="button"
+            className={s.callBell}
+            title={t("Te necesita")}
+            aria-label={t("Te necesita")}
+            // La campanita abre solo «Te necesita»: el clic no llega a la etiqueta (que abriría la ficha del agente).
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              useInboxAlert.getState().requestOpen();
+            }}
+          >
             <Bell size={13} />
-          </span>
+          </button>
         )}
         <div className={s.head}>
           <span className={s.dot} />
