@@ -3800,4 +3800,6 @@ export const fr: Record<string, string> = {
   "Descartar: no volverá a salir (la tarea sigue igual)": "Ignorer : il ne reviendra plus (la tâche continue telle quelle)",
   // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
   "En directo desde el equipo servidor: úsalo como una web normal.": "En direct depuis l'ordinateur serveur : utilise-le comme un site normal.",
+  // main/orchestrator.ts (el coordinador lee webs en el navegador de kywai)
+  "Coordinar la petición": "Coordonner la demande",
 }

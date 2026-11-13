@@ -3923,4 +3923,6 @@ export const en: Record<string, string> = {
   "Descartar: no volverá a salir (la tarea sigue igual)": "Dismiss: it won't show again (the task carries on as it was)",
   // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
   "En directo desde el equipo servidor: úsalo como una web normal.": "Live from the server computer: use it like a normal website.",
+  // main/orchestrator.ts (el coordinador lee webs en el navegador de kywai)
+  "Coordinar la petición": "Coordinate the request",
 }

@@ -3800,4 +3800,6 @@ export const zh: Record<string, string> = {
   "Descartar: no volverá a salir (la tarea sigue igual)": "忽略：不会再出现（任务保持不变）",
   // ui/pane/BrowserPane.tsx (vista en vídeo del navegador)
   "En directo desde el equipo servidor: úsalo como una web normal.": "来自服务器电脑的实时画面：像普通网页一样使用。",
+  // main/orchestrator.ts (el coordinador lee webs en el navegador de kywai)
+  "Coordinar la petición": "协调这个请求",
 }

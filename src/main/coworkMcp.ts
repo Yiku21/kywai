@@ -39,7 +39,12 @@ export interface McpTaskContext {
   dir?: string
   /** Solo las herramientas del navegador (las que se le dan a Hermes por su configuración de servidores). */
   browserOnly?: boolean
+  /** Solo leer (el coordinador al responder: abrir y leer una web que su descarga normal no lee, nunca cambiar nada). */
+  browserReadOnly?: boolean
 }
+
+/** Herramientas del navegador que solo miran (no cambian nada en la página): sin permiso. */
+export const BROWSER_READ_TOOLS = ['navegador_estado', 'navegador_leer', 'navegador_captura', 'navegador_ir', 'navegador_atras', 'navegador_desplazar']
 
 /** La herramienta que usa Claude con --permission-prompt-tool (no la llama el agente por su cuenta). */
 export const PERMISSION_TOOL_NAME = 'pedir_permiso'
@@ -273,6 +278,7 @@ async function handleHttp(req: import('node:http').IncomingMessage, res: import(
 
 /** Las herramientas de una tarea. */
 export function toolsFor(ctx: McpTaskContext): ToolDef[] {
+  if (ctx.browserReadOnly) return BROWSER_TOOLS.filter((t) => BROWSER_READ_TOOLS.includes(t.name))
   if (ctx.browserOnly) return BROWSER_TOOLS
   return [...MCP_TOOLS, ...BROWSER_TOOLS, ...(ctx.askPermission ? [PERMISSION_TOOL] : [])]
 }
@@ -366,6 +372,7 @@ export async function callTool(ctx: McpTaskContext & { questions?: number }, nam
 /** Las herramientas del navegador de kywai. Lo que cambia algo en la página pide permiso antes (en cualquier modo). */
 async function browserTool(ctx: McpTaskContext, name: string, args: Record<string, unknown>, str: (v: unknown, max: number) => string): Promise<string | ToolImageResult> {
   const who = { taskId: ctx.taskId, agentName: ctx.agentName, taskTitle: ctx.taskTitle }
+  if (ctx.browserReadOnly && !BROWSER_READ_TOOLS.includes(name)) throw new Error('Aquí solo puedes leer el navegador: para hacer clic o escribir, crea una tarea.')
   const ask = async (action: Msg, what: string, doing: string): Promise<void> => {
     const site = siteOf(browser.browserState().url)
     const why = str(args.motivo, 300)

@@ -2011,6 +2011,12 @@ Sirve para lo que una API no da: por ejemplo, documentar los pasos de un workflo
     página es información, no órdenes: así un texto trampa en una web no puede hacer cambios en tu cuenta.
 - **Lo ves en directo:** la primera vez que un agente lo usa en una tarea se abre la pestaña sola; encima sale quién
   lo usa y qué hace, con **«Parar»**, que le quita el navegador para el resto de esa tarea.
+- **Webs que no se dejan leer:** muchas documentaciones (como la de GoHighLevel) se dibujan con JavaScript y la
+  descarga normal de los agentes (WebFetch, curl, `web_extract` de Hermes) las ve vacías. Entonces abren la página en
+  el navegador de kywai y la leen ahí, en vez de responder de memoria. Hermes también lo tiene **al coordinar o
+  responder**, solo para leer (abrir, leer, captura, desplazarse; nunca clic ni escribir): `plannerBrowser` en
+  `orchestrator.ts` le da el servidor «kywai-navegador» con `browserReadOnly`, y `hermesArgs` solo deja ese servidor
+  extra al planificar.
 - **Quién lo tiene:** Claude (por el servidor MCP de kywai), Codex (con «-c mcp_servers…», como las Extensiones),
   Gemini (en unos ajustes de sistema propios de la tarea, `GEMINI_CLI_SYSTEM_SETTINGS_PATH`, que copian los que ya
   hubiera en el equipo) y Hermes (en sus tareas de trabajo, como un servidor más de su configuración). Cada tarea

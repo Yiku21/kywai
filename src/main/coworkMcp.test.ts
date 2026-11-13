@@ -60,6 +60,9 @@ describe('servidor MCP de kywai', () => {
     expect(BROWSER_TOOLS.map((t) => t.name)).toEqual(['navegador_estado', 'navegador_leer', 'navegador_captura', 'navegador_ir', 'navegador_atras', 'navegador_desplazar', 'navegador_clic', 'navegador_escribir', 'navegador_tecla'])
     const ctx = { projectId, runId: 'r1', taskId: 't-nav', taskTitle: 'Documentar', agentId: 'hermes', agentName: 'Hermes' }
     expect(toolsFor({ ...ctx, browserOnly: true }).map((t) => t.name)).toEqual(BROWSER_TOOLS.map((t) => t.name))
+    // El coordinador, al responder: solo leer (abrir una web que su descarga normal no lee), nunca clic ni escribir.
+    expect(toolsFor({ ...ctx, browserOnly: true, browserReadOnly: true }).map((t) => t.name)).toEqual(['navegador_estado', 'navegador_leer', 'navegador_captura', 'navegador_ir', 'navegador_atras', 'navegador_desplazar'])
+    await expect(callTool({ ...ctx, browserOnly: true, browserReadOnly: true }, 'navegador_clic', { ref: 'e1', motivo: 'x' })).rejects.toThrow(/solo puedes leer/)
     // Sin la ventana de kywai (aquí no hay Electron) el navegador lo dice claro, sin colgarse.
     await expect(callTool(ctx, 'navegador_leer', {})).rejects.toThrow(/ventana de kywai/)
     await expect(callTool(ctx, 'navegador_tecla', { tecla: 'F12', motivo: 'x' })).rejects.toThrow(/Tecla no admitida/)

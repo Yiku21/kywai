@@ -100,6 +100,13 @@ providers:
     expect(toolsets(hermesArgs('/tmp/q.txt', '', 'plan', undefined, [], true)).split(',')).toContain('vision')
   })
 
+  it('al coordinar, Hermes solo recibe el navegador de kywai (nada más de Extensiones)', () => {
+    const toolsets = (args: string[]): string[] => args[args.indexOf('-t') + 1].split(',')
+    expect(toolsets(hermesArgs('/tmp/q.txt', '', 'plan', undefined, ['kywai-navegador', 'github']))).toContain('kywai-navegador')
+    expect(toolsets(hermesArgs('/tmp/q.txt', '', 'plan', undefined, ['kywai-navegador', 'github']))).not.toContain('github')
+    expect(toolsets(hermesArgs('/tmp/q.txt', '', 'work', undefined, ['kywai-navegador', 'github']))).toContain('github')
+  })
+
   it('sin Hermes instalado: nada que listar', () => {
     const empty = mkdtempSync(join(tmpdir(), 'aicw-nohermes-'))
     try {
