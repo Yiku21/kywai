@@ -73,6 +73,7 @@ certificado propio del Mac y el texto que firma las actualizaciones del cliente.
   - [Rutinas: peticiones que se lanzan solas](#rutinas-peticiones-que-se-lanzan-solas)
   - [Barra lateral y conversaciones](#barra-lateral-y-conversaciones)
   - [La rueda ⚙ y los Ajustes](#la-rueda--y-los-ajustes)
+  - [Animaciones: la app responde a cada gesto](#animaciones-la-app-responde-a-cada-gesto)
   - [Buscar (Ctrl+K)](#buscar-ctrlk)
   - [Historial](#historial)
   - [Importar de otras apps](#importar-de-otras-apps)
@@ -3741,6 +3742,25 @@ están **Ajustes…** (también **Ctrl+,**; ⌘, en el Mac), **Uso y coste…**,
 Lo que tiene ventana propia (acceso desde otros dispositivos, actualizaciones, sincronizar) se abre en lugar de
 Ajustes, y al cerrarla vuelves a la misma pestaña. Esc o la ✕ cierran. Lo hacen `ui/settings/SettingsDialog.tsx` y
 `ui/header/HeaderMenu.tsx` (el menú corto).
+
+### Animaciones: la app responde a cada gesto
+
+Todo lo que haces se nota: lo que se pulsa cede y vuelve, lo que aparece llega desde su sitio y lo que se va sale
+antes de desaparecer. Se mueve con **muelles**, como el líquido del logo con la barra plegada: llega, se pasa un
+pelo y se asienta.
+
+- **Botones e interruptores.** Al pulsar, el botón cede al momento y al soltar vuelve con un pequeño rebote. La
+  bolita de los interruptores se estira mientras la pulsas y salta al otro lado.
+- **Ventanas** (Ajustes, Buscar, avisos…): suben y se asientan con muelle; al cerrarse se van más rápido de lo que
+  llegaron.
+
+**Modo tranquilo.** Con **«Reducir efectos ambientales»** (Ajustes → General) nada se desplaza ni rebota: lo que
+aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo cambia al instante.
+
+Cómo está hecho: las curvas de muelle están en `styles/motion.css` (`--spring`, `--spring-bouncy` y `--spring-soft`,
+como `linear()` de CSS) y la misma física en `lib/motion.ts` para lo que se anima desde JavaScript (`enter`). Las
+distancias de las animaciones se multiplican por `--m`, que vale 0 en modo tranquilo (`<html data-calm>`, lo pone
+`startCalmSync` según `reducedEffects`).
 
 ### Buscar (Ctrl+K)
 

@@ -9,6 +9,41 @@
   --ease-in-ui: cubic-bezier(0.2, 0, 0, 1);
   --ease-out-ui: cubic-bezier(0.4, 0, 1, 1);
   --dur-exit: 140ms;
+  /* Muelles (lib/motion.ts tiene la misma física para JavaScript): se pasan un poco, vuelven y se asientan, como el
+     líquido del logo con la barra plegada. --spring para casi todo, --spring-bouncy para lo que «salta» (insignias,
+     ✓, lo que se suelta) y --spring-soft para paneles grandes, que no deben rebotar mucho. */
+  --spring: linear(0, 0.029, 0.099, 0.195, 0.291, 0.403, 0.514, 0.606, 0.701, 0.783, 0.846, 0.905, 0.952, 0.987, 1.011, 1.03, 1.042, 1.048, 1.051, 1.05, 1.047, 1.043, 1.038, 1.032, 1.027, 1.021, 1.017, 1.013, 1.009, 1.006, 1.003, 1.001, 1);
+  --spring-ms: 520ms;
+  --spring-bouncy: linear(0, 0.062, 0.193, 0.364, 0.564, 0.738, 0.889, 1.01, 1.103, 1.154, 1.178, 1.178, 1.16, 1.133, 1.1, 1.067, 1.035, 1.01, 0.991, 0.978, 0.97, 0.967, 0.969, 0.973, 0.979, 0.985, 0.99, 0.995, 1, 1.003, 1.005, 1.006, 1.005, 1.003, 1.001, 1);
+  --spring-bouncy-ms: 700ms;
+  --spring-soft: linear(0, 0.019, 0.058, 0.111, 0.173, 0.247, 0.315, 0.382, 0.446, 0.515, 0.571, 0.623, 0.67, 0.713, 0.756, 0.79, 0.82, 0.846, 0.872, 0.891, 0.908, 0.923, 0.936, 0.948, 0.957, 0.964, 0.971, 0.977, 0.981, 0.985, 0.988, 0.99, 0.993, 0.996, 0.998, 1);
+  --spring-soft-ms: 480ms;
+  /* Cuánto se desplaza lo que se anima (las animaciones multiplican sus distancias por --m): 0 en modo tranquilo. */
+  --m: 1;
+}
+
+/* Modo tranquilo (lib/motion.ts): «Reducir efectos ambientales» o «Reducir movimiento». Nada se mueve ni rebota;
+   lo que aparece solo funde, más corto. */
+:root[data-calm] {
+  --m: 0;
+  --spring: var(--ease);
+  --spring-bouncy: var(--ease);
+  --spring-soft: var(--ease);
+  --spring-ms: var(--dur);
+  --spring-bouncy-ms: var(--dur);
+  --spring-soft-ms: var(--dur);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --m: 0;
+    --spring: linear(0, 1);
+    --spring-bouncy: linear(0, 1);
+    --spring-soft: linear(0, 1);
+    --spring-ms: 0ms;
+    --spring-bouncy-ms: 0ms;
+    --spring-soft-ms: 0ms;
+  }
 }
 
 :has(> [role='dialog'][aria-modal='true']):not([data-instant]):not([data-ghost]) {
@@ -16,7 +51,8 @@
 }
 
 [role='dialog'][aria-modal='true']:not([data-instant] *, [data-instant]) {
-  animation: kwDialogIn var(--dur) var(--ease-in-ui) both;
+  /* La ventana sube y se asienta con muelle (sin rebote exagerado: es grande). */
+  animation: kwDialogIn var(--spring-soft-ms) var(--spring-soft) both;
 }
 
 [data-ghost] {
@@ -74,7 +110,10 @@ p[role='alert'] {
 @keyframes kwDialogIn {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.97);
+    transform: translateY(calc(var(--m) * 14px)) scale(calc(1 - var(--m) * 0.04));
+  }
+  40% {
+    opacity: 1;
   }
 }
 
@@ -87,7 +126,7 @@ p[role='alert'] {
 @keyframes kwDialogOut {
   to {
     opacity: 0;
-    transform: translateY(6px) scale(0.98);
+    transform: translateY(calc(var(--m) * 6px)) scale(calc(1 - var(--m) * 0.02));
   }
 }
 

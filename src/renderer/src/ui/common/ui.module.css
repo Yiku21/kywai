@@ -31,7 +31,7 @@
     background-color var(--dur) var(--ease),
     color var(--dur) var(--ease),
     border-color var(--dur) var(--ease),
-    transform var(--dur-fast) var(--ease);
+    transform var(--spring-bouncy-ms, 200ms) var(--spring-bouncy, ease);
 }
 
 .iconBtn:hover:not(:disabled) {
@@ -41,8 +41,11 @@
 
 .iconBtn:active:not(:disabled) {
   background: var(--bg-active);
-  /* Lo que se pulsa cede un poco y vuelve (habilidad principios-ux-animacion, n.º 1). */
-  transform: scale(0.94);
+  /* Lo que se pulsa cede un poco al momento y, al soltar, vuelve con un pequeño rebote (habilidad
+     principios-ux-animacion, n.º 1; el muelle está en styles/motion.css). */
+  transform: scale(0.92);
+  transition-duration: 70ms;
+  transition-timing-function: ease-out;
 }
 
 .iconBtn[aria-expanded='true'],
@@ -81,7 +84,7 @@
     background-color var(--dur) var(--ease),
     border-color var(--dur) var(--ease),
     color var(--dur) var(--ease),
-    transform var(--dur-fast) var(--ease);
+    transform var(--spring-bouncy-ms, 200ms) var(--spring-bouncy, ease);
 }
 
 .btn:hover:not(:disabled) {
@@ -91,7 +94,9 @@
 
 .btn:active:not(:disabled) {
   background: var(--bg-surface);
-  transform: scale(0.97);
+  transform: scale(0.96);
+  transition-duration: 70ms;
+  transition-timing-function: ease-out;
 }
 
 .btn:disabled {
@@ -277,9 +282,20 @@
   height: 12px;
   border-radius: 50%;
   background: var(--text-2);
+  /* La bolita salta al otro lado con muelle y, mientras se pulsa, se estira hacia donde va (como un dedo que la
+     empuja). */
   transition:
-    transform var(--dur) var(--ease),
+    transform var(--spring-bouncy-ms, 200ms) var(--spring-bouncy, ease),
+    width var(--spring-ms, 200ms) var(--spring, ease),
     background-color var(--dur) var(--ease);
+}
+
+:active > .switch::after {
+  width: 16px;
+}
+
+:active > .switchOn::after {
+  transform: translateX(8px);
 }
 
 .switchOn {
