@@ -39,6 +39,7 @@ import s from './App.module.css'
 import { lang, t } from '@/lib/i18n'
 import { enter, reducedMotion, calm, SPRING_SOFT } from '@/lib/motion'
 import { playGhost } from '@/ui/common/motion'
+import { playUi } from '@/lib/audio'
 
 // El espacio 3D (Three.js y compañía, la mayor parte del código) se carga aparte: el chat aparece sin esperarlo.
 const World = lazy(() => import('@/scene/World').then((m) => ({ default: m.World })))
@@ -187,6 +188,7 @@ export function App() {
     wasGone.current = spaceGone
     const el = spaceRef.current
     if (before === spaceGone || !el || narrow) return
+    playUi(spaceGone ? 'close' : 'open')
     if (!spaceGone) enter(el, { x: 40, scale: 0.98, spring: SPRING_SOFT })
     else if (hidden && !reducedMotion()) playGhost(el, calm() ? {} : { x: 48, scale: 0.97 })
   }, [spaceGone, hidden, narrow])

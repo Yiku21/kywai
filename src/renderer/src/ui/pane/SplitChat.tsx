@@ -7,6 +7,7 @@ import { cx } from '../common/util'
 import u from '../common/ui.module.css'
 import s from './SplitChat.module.css'
 import { useExitGhost } from '../common/motion'
+import { playUi } from '@/lib/audio'
 
 /**
  * Chat de al lado: otro chat a la derecha, en lugar del espacio 3D (que se para mientras tanto). Es la misma
@@ -131,6 +132,7 @@ export function SplitDropZone({ wide }: { wide?: boolean }) {
         e.preventDefault()
         setDragging(false)
         setOver(false)
+        playUi('drop')
         useCowork.getState().setSplitChat(ref)
       }}
     >

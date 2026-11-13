@@ -21,6 +21,7 @@ import { VideoPicker } from './VideoPicker'
 import { isVideoCommand } from '@shared/filmStyles'
 import { stripVideoTags, videoChoiceOf, withVideoChoice } from '@shared/videoChoice'
 import u from '../common/ui.module.css'
+import { playUi } from '@/lib/audio'
 import s from './Composer.module.css'
 import { lang, t } from '@/lib/i18n'
 import { paneTarget } from '../pane/paneTarget'
@@ -257,6 +258,7 @@ export function Composer() {
     const trimmed = (typed ?? text).trim()
     const reply = typed || simulate || trimmed.startsWith('/') ? null : replyTo
     if ((!trimmed && !reply) || sending || blockedReason) return
+    playUi('send')
     setError(null)
     if (simulate) {
       try {
@@ -801,6 +803,7 @@ export function Composer() {
           <button
             type="button"
             className={s.send}
+            data-no-click-sound=""
             onClick={(e) => {
               // La flecha sale disparada (Composer.module.css): se quita y se vuelve a poner para repetirla cada vez.
               const btn = e.currentTarget

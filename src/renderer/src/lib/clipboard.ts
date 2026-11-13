@@ -1,3 +1,5 @@
+import { playUi } from './audio'
+
 /**
  * Copia texto al portapapeles. En http sin contexto seguro (el navegador del móvil por Tailscale) no hay
  * navigator.clipboard: se copia con un textarea oculto y execCommand. Lanza un error si no se pudo.
@@ -5,6 +7,7 @@
 export async function copyText(text: string, failMessage = 'copy failed'): Promise<void> {
   if (window.isSecureContext && navigator.clipboard) {
     await navigator.clipboard.writeText(text)
+    playUi('copy')
     return
   }
   const ta = document.createElement('textarea')
@@ -18,4 +21,5 @@ export async function copyText(text: string, failMessage = 'copy failed'): Promi
   const ok = document.execCommand('copy')
   ta.remove()
   if (!ok) throw new Error(failMessage)
+  playUi('copy')
 }

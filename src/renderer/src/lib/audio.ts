@@ -400,6 +400,8 @@ const queue: { name: SfxName; at: number }[] = []
 const lastPlayed = new Map<SfxName, number>()
 let effectTimer: ReturnType<typeof setTimeout> | undefined
 let effect: Sound | undefined
+/** El aviso que suena ahora (los soniditos de la interfaz solo callan ante avisos de verdad, no ante un clic). */
+let effectName: SfxName | undefined
 
 function synthesize(ctx: AudioContext, name: SfxName): number {
   const sound = group(ctx, sfxBus)
@@ -453,15 +455,79 @@ function synthesize(ctx: AudioContext, name: SfxName): number {
   }
 }
 
+/** Soniditos de la interfaz: muy cortos y muy bajos, uno por gesto (pulsar, pestaña, interruptor, coger, soltar…). */
+export type UiSound = 'tab' | 'toggleOn' | 'toggleOff' | 'open' | 'close' | 'pick' | 'drop' | 'send' | 'copy' | 'expand' | 'collapse'
+
+let lastUi = -Infinity
+
+/**
+ * Suena al momento (sin la cola de los avisos, que tienen prioridad: si hay uno sonando, calla) y como mucho uno cada
+ * 60 ms. Van por «Efectos y avisos»: con eso apagado o a cero no suena nada.
+ */
+export function playUi(name: UiSound): void {
+  if (isSfxMuted() || context?.state !== 'running') return
+  if ((effectTimer !== undefined && effectName !== undefined && effectName !== 'click') || queue.some((item) => item.name !== 'click')) return
+  const at = performance.now()
+  if (at - lastUi < 60) return
+  lastUi = at
+  const ctx = context
+  const sound = group(ctx, sfxBus)
+  const now = ctx.currentTime + 0.004
+  const tone = (frequency: number, delay: number, length: number, volume: number, end = frequency, type: OscillatorType = 'sine'): void =>
+    note(ctx, sound, frequency, now + delay, length, volume, type, end)
+  switch (name) {
+    case 'tab':
+      tone(620, 0, 0.05, 0.035, 760)
+      break
+    case 'toggleOn':
+      tone(520, 0, 0.045, 0.04)
+      tone(780, 0.045, 0.07, 0.04)
+      break
+    case 'toggleOff':
+      tone(700, 0, 0.045, 0.036)
+      tone(470, 0.045, 0.07, 0.036)
+      break
+    case 'open':
+      tone(330, 0, 0.11, 0.03, 520)
+      break
+    case 'close':
+      tone(500, 0, 0.09, 0.026, 320)
+      break
+    case 'expand':
+      tone(440, 0, 0.06, 0.026, 560)
+      break
+    case 'collapse':
+      tone(540, 0, 0.06, 0.024, 420)
+      break
+    case 'pick':
+      tone(400, 0, 0.06, 0.035, 620, 'triangle')
+      break
+    case 'drop':
+      tone(300, 0, 0.1, 0.06, 170)
+      tone(880, 0.012, 0.035, 0.022)
+      break
+    case 'send':
+      tone(440, 0, 0.16, 0.04, 1150)
+      tone(660, 0.05, 0.14, 0.018, 1500)
+      break
+    case 'copy':
+      tone(880, 0, 0.04, 0.03)
+      tone(1174.66, 0.05, 0.06, 0.03)
+      break
+  }
+}
+
 function drainEffects(): void {
   effectTimer = undefined
   effect = undefined
+  effectName = undefined
   if (isSfxMuted() || context?.state !== 'running') { queue.length = 0; return }
   const now = performance.now()
   const next = queue.shift()
   if (!next) return
   if (now - next.at > 2500) { drainEffects(); return }
   lastPlayed.set(next.name, now)
+  effectName = next.name
   const duration = synthesize(context, next.name)
   effectTimer = setTimeout(drainEffects, duration * 1000 + 70)
 }
@@ -714,7 +780,14 @@ export function initAudio(): () => void {
   }
   const click = (event: MouseEvent): void => {
     const target = event.target instanceof Element ? event.target.closest('button, a[href], [role="button"]') : null
-    if (event.isTrusted && target && !target.matches(':disabled, [aria-disabled="true"], [data-audio-toggle], [data-no-click-sound]')) playSfx('click')
+    if (!event.isTrusted || !target || target.matches(':disabled, [aria-disabled="true"], [data-audio-toggle], [data-no-click-sound]')) return
+    // Cada cosa suena a lo que es: un interruptor sube o baja, una pestaña pasa, lo que se despliega se abre o se
+    // cierra; lo demás, el clic de siempre.
+    if (target.matches('[role="switch"]')) playUi(target.getAttribute('aria-checked') === 'true' ? 'toggleOn' : 'toggleOff')
+    else if (target.matches('[role="tab"]')) playUi('tab')
+    else if (target.hasAttribute('aria-expanded') && !target.hasAttribute('aria-haspopup')) playUi(target.getAttribute('aria-expanded') === 'true' ? 'expand' : 'collapse')
+    else if (target.hasAttribute('aria-haspopup')) playUi(target.getAttribute('aria-expanded') === 'true' ? 'open' : 'close')
+    else playSfx('click')
   }
   const storage = (event: StorageEvent): void => {
     if (event.key === MUTE_KEY || event.key === VOLUME_KEY || event.key === LAST_VOLUME_KEY || event.key === null) {

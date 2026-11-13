@@ -3,6 +3,7 @@ import { cx } from '../common/util'
 import { dropPlace, type DropPlace, type Dragged } from './dragOrder'
 import s from './Sidebar.module.css'
 import { flipRows, setDragCard } from '@/lib/dragMotion'
+import { playUi } from '@/lib/audio'
 
 /**
  * Arrastrar en la barra lateral (mantener el clic y mover): chats y proyectos se reordenan, un chat soltado sobre
@@ -127,6 +128,7 @@ export function DragSlot({
         // Lo que llevas cogido: una tarjeta con su icono y su nombre (no la copia borrosa de la fila).
         const name = item.kind === 'chat' && item.title ? item.title : (e.currentTarget.innerText || '').trim().split('\n')[0]
         if (name) setDragCard(e, name.slice(0, 60))
+        playUi('pick')
         dnd.start(item)
       }}
       onDragEnd={() => dnd.end()}
@@ -144,6 +146,7 @@ export function DragSlot({
         // Al soltar, las filas se deslizan hasta su sitio nuevo y la que has soltado da un destello.
         const list = e.currentTarget.closest('nav')
         if (list) flipRows(list, { landed: `:${d.id}` })
+        playUi('drop')
         dnd.end()
         onDrop?.(d, place)
       }}

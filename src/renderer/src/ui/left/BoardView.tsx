@@ -10,6 +10,7 @@ import v from './Views.module.css'
 import s from './BoardView.module.css'
 import { locale, t } from '@/lib/i18n'
 import { setDragCard } from '@/lib/dragMotion'
+import { playUi } from '@/lib/audio'
 
 const COLUMN_LABEL: Record<BoardColumnId, string> = {
   todo: t('Por hacer'),
@@ -279,6 +280,7 @@ function CardItem({ c, index, count, editable, run }: { c: BoardCard; index: num
               e.dataTransfer.setData('application/x-kywai-card', c.id)
               // Lo que llevas cogido: una tarjeta con el texto de la tarea.
               setDragCard(e, c.text.trim().split('\n')[0].slice(0, 60))
+              playUi('pick')
             }
           : undefined
       }

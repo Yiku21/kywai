@@ -3813,6 +3813,12 @@ pelo y se asienta.
 - **Tarjetas** (Resultados, Tablero, temas, cuotas): se levantan con su sombra al pasar por encima y ceden al pulsar.
   Las secciones de la barra (Favoritos, Proyectos, Recientes) y los chats de un proyecto se despliegan desde su título.
 
+**Sonidos de la interfaz.** Cada gesto tiene un sonidito muy corto y muy bajo: los interruptores suben o bajan de
+tono, las pestañas «pasan», lo que se despliega se abre o se cierra, coger y soltar un chat o un archivo suenan a
+cogido y a posado, enviar un mensaje hace un pequeño «fiu» hacia arriba, copiar da dos toques, y abrir o cerrar un
+panel (vista previa, espacio 3D) suena hacia arriba o hacia abajo. Van con **«Efectos y avisos»** (Ajustes →
+General): con eso apagado o a cero no suena nada, y nunca pisan un aviso de verdad (tarea terminada, «Te necesita»).
+
 **Modo tranquilo.** Con **«Reducir efectos ambientales»** (Ajustes → General) nada se desplaza ni rebota: lo que
 aparece solo funde, más corto. Con **«Reducir movimiento»** del sistema todo cambia al instante.
 
@@ -3823,7 +3829,8 @@ que se va (los iframes, vídeos y lienzos de la copia se cambian por su fondo pa
 filas con `data-slot` antes y después de soltar y anima la diferencia). La onda y el resalte que se desliza son
 `lib/touchFeedback.ts` (escucha en el documento: no hay que tocar cada botón; las listas se marcan con `data-glide` y
 lo que no debe llevarse el resalte, con `data-no-glide`). Los menús que se cierran llevan `data-exit-motion`
-(`lib/dialogMotion.ts`). Las
+(`lib/dialogMotion.ts`). Los sonidos son `playUi` en `lib/audio.ts` (`tab`, `toggleOn`, `toggleOff`, `open`, `close`,
+`expand`, `collapse`, `pick`, `drop`, `send`, `copy`), sintetizados como el resto. Las
 distancias de las animaciones se multiplican por `--m`, que vale 0 en modo tranquilo (`<html data-calm>`, lo pone
 `startCalmSync` según `reducedEffects`).
 

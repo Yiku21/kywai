@@ -19,6 +19,7 @@ import s from './LeftPanel.module.css'
 import { t } from '@/lib/i18n'
 import { playGhost, useSwitchMotion } from '../common/motion'
 import { calm, reducedMotion } from '@/lib/motion'
+import { playUi } from '@/lib/audio'
 
 const BASE_TABS: Array<{ id: LeftTab; label: string; Icon: LucideIcon }> = [
   { id: 'chat', label: 'Chat', Icon: MessageSquare },
@@ -178,6 +179,7 @@ export function LeftPanel() {
   const dropZone = useRef<HTMLDivElement>(null)
   const leaveDrop = (dropped: boolean): void => {
     const el = dropZone.current
+    if (dropped) playUi('drop')
     if (el && !reducedMotion()) playGhost(el, dropped && !calm() ? { y: Math.round(el.offsetHeight * 0.3), scale: 0.82 } : {})
     setDragging(false)
   }

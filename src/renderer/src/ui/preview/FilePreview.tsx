@@ -31,6 +31,7 @@ import u from '../common/ui.module.css'
 import s from './FilePreview.module.css'
 import { t } from '@/lib/i18n'
 import { useExitGhost } from '../common/motion'
+import { playUi } from '@/lib/audio'
 import { ViewerBusy } from './viewers/shared'
 
 // Los visores de documentos pesan (docx-preview, SheetJS…): se cargan la primera vez que hacen falta.
@@ -92,13 +93,17 @@ function PreviewPanel({ item, index, count, maximized }: { item: PreviewItem; in
   // Cambiar de archivo con ‹ › no vuelve a hacer entrar el panel entero: solo el contenido, desde el lado al que vas.
   useLayoutEffect(() => {
     const el = rootRef.current
-    if (el && performance.now() - lastPanel.goneAt < 120) {
+    const switched = performance.now() - lastPanel.goneAt < 120
+    // Abrir un archivo suena; pasar de uno a otro, como una pestaña; cerrar, al revés que abrir.
+    playUi(switched ? 'tab' : 'open')
+    if (el && switched) {
       el.dataset.switched = ''
       el.style.setProperty('--switch-dir', String(Math.sign(index - lastPanel.index) || 1))
     }
     return () => {
       lastPanel.goneAt = performance.now()
       lastPanel.index = index
+      if (useCowork.getState().preview == null) playUi('close')
     }
   }, [index])
 
