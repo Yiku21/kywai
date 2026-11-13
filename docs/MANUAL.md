@@ -3686,7 +3686,8 @@ del chat (la ✕ o un clic fuera la cierra).
 **El logo queda dentro de la barra.** Al plegarla, el logo se coloca sobre la columna, cae de él una gota, sube otra
 de la barra y, al tocarse, el líquido crece hasta ser la misma barra: **sube recta hasta arriba**, con el mismo fondo
 y el mismo borde, y envuelve el logo (que pierde su recuadro). El nombre «kywai» se aparta a la derecha de la barra.
-Al pulsarlo, el logo da una vuelta rápida sobre sí mismo. En el tema Órbita la columna es del mismo cristal que la
+Al pulsarlo, el logo da una vuelta rápida sobre sí mismo. Con la barra plegada, el nombre «kywai» se recoge dentro
+del logo para que arriba quede limpio, y al abrirla sale de él y vuelve a su sitio. En el tema Órbita la columna es del mismo cristal que la
 barra, de una sola pieza. Se mueve como un líquido: la superficie se curva al subir, se balancea un momento al llegar arriba y el logo flota
 un poco antes de quedarse quieto. Al abrirla, el líquido baja, se estrecha y se corta, y el logo recupera su recuadro
 y su sitio. Con «Reducir

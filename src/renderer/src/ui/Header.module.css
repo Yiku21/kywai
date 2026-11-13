@@ -144,6 +144,52 @@
   background: var(--border-strong);
 }
 
+/* Barra plegada: el nombre se recoge dentro del logo (y la raya con él) para que arriba quede limpio; al abrirla
+   sale del logo y vuelve a su sitio, cuando el logo ya ha vuelto al suyo. */
+.title {
+  max-width: 90px;
+  transform-origin: left center;
+  transition:
+    transform 420ms cubic-bezier(0.3, 1.3, 0.5, 1) 360ms,
+    opacity 260ms var(--ease) 380ms,
+    max-width 360ms var(--ease) 300ms,
+    margin-left 360ms var(--ease) 300ms;
+}
+
+:global(:root[data-logo-joined]) .title {
+  max-width: 0;
+  margin-left: -12px;
+  opacity: 0;
+  transform: translateX(calc(-1 * var(--logo-room, 0px) - 34px)) scale(0.3);
+  pointer-events: none;
+  transition:
+    transform 300ms cubic-bezier(0.5, 0, 0.8, 0.4),
+    opacity 220ms var(--ease) 80ms,
+    max-width 300ms var(--ease) 60ms,
+    margin-left 300ms var(--ease) 60ms;
+}
+
+.divider {
+  transition:
+    opacity 220ms var(--ease) 420ms,
+    width 300ms var(--ease) 300ms,
+    margin 300ms var(--ease) 300ms;
+}
+
+:global(:root[data-logo-joined]) .divider {
+  width: 0;
+  margin: 0 -6px;
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title,
+  .divider {
+    transition: none !important;
+  }
+}
+
 .team {
   display: inline-flex;
   align-items: center;
