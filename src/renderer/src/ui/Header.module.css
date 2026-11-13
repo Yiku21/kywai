@@ -31,6 +31,90 @@
   transition: transform var(--dur-fast) var(--ease), filter var(--dur-fast) var(--ease);
 }
 
+.logoBtn {
+  /* Barra plegada: hueco para que el nombre no quede debajo de la barra, que sube hasta arriba (LogoBridge.tsx). */
+  margin-right: 0;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    filter var(--dur-fast) var(--ease),
+    margin-right var(--dur-slow) var(--ease) 380ms;
+}
+
+:global(:root[data-logo-joined]) .logoBtn {
+  margin-right: var(--logo-room, 0px);
+  transition-delay: 0ms;
+}
+
+/* La tesela del logo (fondo, borde y sombra) va en una capa aparte para poder desvanecerla: con la barra plegada
+   el dibujo queda directamente sobre la barra, que sube recta hasta arriba y lo envuelve. */
+.logoBtn > span {
+  position: relative;
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  transition: transform var(--dur-slow) var(--ease);
+  /* Al abrir la barra, el logo vuelve a su sitio cuando el líquido ya se ha retirado. */
+  transition-delay: 380ms;
+}
+
+:global(:root[data-logo-joined]) .logoBtn > span {
+  transform: translateX(var(--logo-shift, 0px));
+  transition-delay: 0ms;
+}
+
+.logoBtn > span::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--logo-bg, linear-gradient(160deg, #18233a, #0d1422));
+  box-shadow:
+    inset 0 1px 0 rgba(var(--wash-rgb, 255, 255, 255), 0.05),
+    0 4px 14px rgba(0, 0, 0, 0.35);
+  /* Al abrir vuelve enseguida, mientras el líquido baja. */
+  transition: opacity 240ms var(--ease);
+}
+
+/* Al plegar se desvanece cuando el líquido ya sube a envolverla. */
+:global(:root[data-logo-joined]) .logoBtn > span::before {
+  opacity: 0;
+  transition: opacity 260ms var(--ease) 330ms;
+}
+
+.logoBtn > span > svg {
+  position: relative;
+}
+
+/* Cuando el líquido lo envuelve, el dibujo flota un momento (y otro poco al soltarse). */
+:global(:root[data-logo-joined]) .logoBtn > span > svg {
+  animation: logoFloat 900ms var(--ease) 420ms both;
+}
+
+@keyframes logoFloat {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  28% {
+    transform: translateY(-3px) scale(1.04);
+  }
+  58% {
+    transform: translateY(1.5px) scale(0.99);
+  }
+  80% {
+    transform: translateY(-0.6px) scale(1);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(:root[data-logo-joined]) .logoBtn > span > svg {
+    animation: none;
+  }
+}
+
 .logoBtn:hover {
   filter: brightness(1.15);
 }

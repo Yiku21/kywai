@@ -8,6 +8,9 @@
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
+  /* Mientras el logo se une a la barra plegada, sus esquinas de arriba se cuadran (LogoBridge.tsx). */
+  border-top-left-radius: var(--bar-join-r, var(--radius-panel));
+  border-top-right-radius: var(--bar-join-r, var(--radius-panel));
   overflow: hidden;
   font-size: 13.5px;
   color: var(--text-1);
@@ -16,6 +19,11 @@
 
 .rail {
   width: 58px;
+}
+
+/* Unida del todo al logo: sin raya entre el cuello y la barra. */
+.bar[data-fused] {
+  border-top-color: transparent;
 }
 
 /* Mientras se arrastra el borde, el ancho sigue al ratón sin animación. */

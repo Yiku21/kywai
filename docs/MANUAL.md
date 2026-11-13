@@ -3682,6 +3682,14 @@ cada dispositivo. Si nunca la has tocado, en ventanas de menos de 1300 px empiez
 a lo largo de la izquierda, bajo el logo de la cabecera, y se usa sin abrirla; el logo abre la barra entera por encima
 del chat (la ✕ o un clic fuera la cierra).
 
+**El logo queda dentro de la barra.** Al plegarla, el logo se coloca sobre la columna, cae de él una gota, sube otra
+de la barra y, al tocarse, el líquido crece hasta ser la misma barra: **sube recta hasta arriba**, con el mismo fondo
+y el mismo borde, y envuelve el logo (que pierde su recuadro). El nombre «kywai» se aparta a la derecha de la barra.
+Se mueve como un líquido: la superficie se curva al subir, se balancea un momento al llegar arriba y el logo flota
+un poco antes de quedarse quieto. Al abrirla, el líquido baja, se estrecha y se corta, y el logo recupera su recuadro
+y su sitio. Con «Reducir
+movimiento» del sistema cambia sin animación.
+
 **Volver al chat con la barra plegada.** Bajo los accesos (tras una raya) va el icono del **chat en el que estás**:
 desde Resultados, Tareas, Tablero o Rutinas, un clic te devuelve a él. Debajo salen **tus proyectos** con su inicial
 (el proyecto en el que estás, con borde de color); al pasar el ratón sale su nombre y un clic abre **su último chat**.

@@ -40,6 +40,7 @@ import { isSettingsKey, openSettings } from '../settings/SettingsDialog'
 import { ContextMenu, menuPoint, type MenuAt, type MenuEntry } from './ContextMenu'
 import { NEW_CHAT_KEYS, SEARCH_KEYS, SIDEBAR_DEFAULT, TOGGLE_SIDEBAR_EVENT, isNewChatKey, isSearchKey, readCollapsed, readSidebarWidth, saveCollapsed, saveSidebarWidth, shortDate } from './sidebarState'
 import { SidebarResizer } from './SidebarResizer'
+import { LogoBridge } from './LogoBridge'
 import { DragProvider, DragSlot, useDragged } from './DragSlot'
 import { applyOrder, chatKey, placeKey, projectKey, type Dragged, type DropPlace } from './dragOrder'
 import { groupByDate } from './historyGroups'
@@ -125,6 +126,7 @@ export function Sidebar() {
       style={rail ? undefined : ({ '--side-w': `${width}px` } as CSSProperties)}
       aria-label={t('Barra lateral: conversaciones y proyectos')}
     >
+      <LogoBridge joined={rail} />
       <DragProvider>
         <SidebarBody rail={rail} />
       </DragProvider>

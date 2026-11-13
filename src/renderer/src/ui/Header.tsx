@@ -40,6 +40,7 @@ export function Header() {
         <button
           type="button"
           className={s.logoBtn}
+          data-kywai-logo
           onClick={() => window.dispatchEvent(new Event(TOGGLE_SIDEBAR_EVENT))}
           title={t('Abrir o plegar la barra lateral')}
           aria-label={t('Abrir o plegar la barra lateral')}

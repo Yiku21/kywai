@@ -1,0 +1,19 @@
+/* Líquido que une la barra plegada con el logo (LogoBridge.tsx): mismo fondo y mismo borde que la barra. Va dentro
+   de la cabecera, por detrás del logo y del resto de su contenido. */
+.bridge {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.fill {
+  fill: var(--bg-panel);
+}
+
+/* El contorno sin la base (ahí se funde con la barra): 1 px por dentro del relleno, como el borde de la barra. */
+.edge {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
