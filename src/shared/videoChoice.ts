@@ -45,7 +45,7 @@ export const VIDEO_STRUCTURES = ['pasos'] as const
 export type VideoStructure = (typeof VIDEO_STRUCTURES)[number]
 
 /** Una voz elegida: el motor y la voz de ese motor. */
-export type VoiceEngine = 'gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven'
+export type VoiceEngine = 'gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven' | 'piper'
 
 /** «gemini-puck» → { engine: 'gemini', id: 'Puck' }. null si no se entiende. */
 export function parseVoiceId(v: string | null | undefined): { engine: VoiceEngine; id: string } | null {
@@ -57,6 +57,8 @@ export function parseVoiceId(v: string | null | undefined): { engine: VoiceEngin
   // VoiceStudio: el id de su voz, tal cual («default» es la suya por defecto).
   const vs = /^voicestudio-([A-Za-z0-9_.:-]{1,80})$/i.exec(v)
   if (vs) return { engine: 'voicestudio', id: vs[1] }
+  const pv = /^piper-([a-z0-9-]+)$/i.exec(v)
+  if (pv) return PIPER_VOICES.some((x) => x.key === pv[1].toLowerCase()) ? { engine: 'piper', id: pv[1].toLowerCase() } : null
   const m = /^(gemini|kokoro|voicebox|edge|mac)-(.+)$/i.exec(v)
   if (!m) return null
   m[1] = m[1].toLowerCase()
@@ -92,6 +94,28 @@ export const MAC_VOICES: { key: string; identifier: string; name: string; lang: 
 ]
 
 /**
+ * Voces de Piper (gratis, en el propio equipo y sin internet una vez descargadas; cada una pesa entre 60 y 110 MB y
+ * se baja la primera vez que se usa). `model`: su archivo en huggingface.co/rhasspy/piper-voices; `speaker`: cuál de
+ * las voces del modelo, si trae varias. Los nombres son los de kywai (los modelos se llaman davefx, ald, claude…).
+ */
+export const PIPER_VOICES: { key: string; model: string; speaker?: number; name: string; lang: string; region: string; gender: 'f' | 'm' }[] = [
+  { key: 'dave', model: 'es/es_ES/davefx/medium/es_ES-davefx-medium', name: 'Dave', lang: 'es', region: 'España', gender: 'm' },
+  { key: 'mateo', model: 'es/es_ES/sharvard/medium/es_ES-sharvard-medium', speaker: 0, name: 'Mateo', lang: 'es', region: 'España', gender: 'm' },
+  { key: 'lucia', model: 'es/es_ES/sharvard/medium/es_ES-sharvard-medium', speaker: 1, name: 'Lucía', lang: 'es', region: 'España', gender: 'f' },
+  { key: 'aldo', model: 'es/es_MX/ald/medium/es_MX-ald-medium', name: 'Aldo', lang: 'es', region: 'México', gender: 'm' },
+  { key: 'claudia', model: 'es/es_MX/claude/high/es_MX-claude-high', name: 'Claudia', lang: 'es', region: 'México', gender: 'f' },
+  { key: 'daniela', model: 'es/es_AR/daniela/high/es_AR-daniela-high', name: 'Daniela', lang: 'es', region: 'Argentina', gender: 'f' }
+]
+
+/**
+ * Voces de más para «Leer las respuestas en voz alta», además de las de los vídeos: las que funcionan en el propio
+ * equipo sin internet (Piper y Kokoro). Por idioma de la app.
+ */
+export const READ_EXTRA_VOICES: Record<string, readonly string[]> = {
+  es: ['piper-dave', 'piper-mateo', 'piper-lucia', 'piper-aldo', 'piper-claudia', 'piper-daniela', 'kokoro-ef_dora', 'kokoro-em_alex', 'kokoro-em_santa']
+}
+
+/**
  * Las voces que se ofrecen en los vídeos de estos idiomas (las eligió el usuario de kywai escuchando muestras: 28 en
  * español, 60 en inglés). La primera va por defecto: sin marca «voz:», un vídeo en español sale con Álvaro y uno en
  * inglés con Bella. En los demás idiomas, todas las que haya y la automática.
@@ -120,6 +144,7 @@ export function voiceLang(voice: string | null | undefined): string | null {
   const v = parseVoiceId(voice)
   if (v?.engine === 'kokoro') return KOKORO_VOICE_LIST.find((x) => x.id === v.id)?.lang ?? null
   if (v?.engine === 'edge') return EDGE_VOICES.find((x) => x.id === v.id)?.lang ?? null
+  if (v?.engine === 'piper') return PIPER_VOICES.find((x) => x.key === v.id)?.lang ?? null
   if (v?.engine === 'mac') return MAC_VOICES.find((x) => x.key === v.id)?.lang.split('-')[0] ?? null
   return null
 }
@@ -244,6 +269,7 @@ export function voiceGender(voice: string | null | undefined): 'f' | 'm' | null 
   const v = parseVoiceId(voice)
   if (!v) return null
   if (v.engine === 'edge') return EDGE_VOICES.find((x) => x.id === v.id)?.gender ?? null
+  if (v.engine === 'piper') return PIPER_VOICES.find((x) => x.key === v.id)?.gender ?? null
   if (v.engine === 'mac') return MAC_VOICES.find((x) => x.key === v.id)?.gender ?? null
   if (v.engine === 'kokoro') return KOKORO_VOICE_LIST.find((x) => x.id === v.id)?.gender ?? null
   if (v.engine === 'gemini') return GEMINI_VOICES.find((x) => x.id === v.id)?.gender ?? null

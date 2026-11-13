@@ -19,7 +19,7 @@ export function useReadVoiceName(): string {
     let alive = true
     const id = voice ?? defaultVoiceFor(lang())
     if (!id) return setName('')
-    void api?.listVideoVoices?.().then(
+    void (api?.listReadVoices ?? api?.listVideoVoices)?.().then(
       (v) => alive && setName(((x) => (x ? voiceName(x) : ''))(v.voices.find((x) => x.id === id))),
       () => undefined
     )
@@ -43,7 +43,7 @@ export function ReadVoiceGrid() {
   const [tried, setTried] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
-    void (api?.listVideoVoices?.() ?? Promise.resolve({ voices: [], missing: [] } as Voices)).then(
+    void ((api?.listReadVoices ?? api?.listVideoVoices)?.() ?? Promise.resolve({ voices: [], missing: [] } as Voices)).then(
       (v) => alive && setVoices(v),
       () => alive && setVoices({ voices: [], missing: [] })
     )

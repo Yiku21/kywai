@@ -3862,4 +3862,8 @@ export const zh: Record<string, string> = {
   "Máximo {n} secretos por proyecto": "每个项目最多 {n} 个机密",
   "Escribe el nombre y el valor: /secreto GHL_PIT pit-xxxx": "请写出名称和值：/secreto GHL_PIT pit-xxxx",
   "NOMBRE valor": "名称 值",
+  "Piper · sin internet": "Piper · 离线",
+  "Argentina": "阿根廷",
+  "No se pudo instalar Piper (las voces que funcionan sin internet)": "无法安装 Piper（可离线使用的声音）",
+  "No se pudo descargar esa voz (solo hace falta internet la primera vez)": "无法下载该声音（仅首次需要联网）",
 }

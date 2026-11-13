@@ -39,7 +39,7 @@ import { imageLook } from '@shared/imageLooks'
 import { voiceboxProfiles, voiceboxSpeak, voiceboxUrl, voiceboxVoice, type VoiceboxVoice } from './voicebox'
 import { animateStill, findFreeVideo, freeVideoStatus, motionPrompt } from './freevideo'
 import type { VideoStudioStatus, VideoVoiceInfo } from '@shared/types'
-import { EDGE_VOICES, GEMINI_VOICES, KOKORO_VOICE_LIST, MAC_VOICES, LANG_VOICES, parseVoiceId, defaultVoiceFor, speakerVoices, type VoiceEngine } from '@shared/videoChoice'
+import { EDGE_VOICES, GEMINI_VOICES, KOKORO_VOICE_LIST, MAC_VOICES, LANG_VOICES, PIPER_VOICES, READ_EXTRA_VOICES, parseVoiceId, defaultVoiceFor, speakerVoices, type VoiceEngine } from '@shared/videoChoice'
 import { tr } from '@shared/i18n'
 import { emotionInstruction, emotionPause, EMOTION_EN, type VoiceEmotion } from '@shared/voiceEmotion'
 import { VOICESTUDIO_DEFAULT_VOICE, voicestudioSpeak, voicestudioVoices } from './voicestudio'
@@ -413,10 +413,78 @@ async function macSpeak(key: string, text: string, out: string, signal?: AbortSi
   return toWav(caf, out, signal)
 }
 
-/** Las voces elegidas a mano de Edge o de macOS: una frase. */
+// ---------- Piper: voces en el propio equipo, sin internet ----------
+
+/** piper-tts en el entorno de Python del estudio. */
+export async function piperReady(): Promise<boolean> {
+  if (!existsSync(venvPython())) return false
+  return (await run(venvPython(), ['-c', 'import piper'], { timeoutMs: 30_000 })).code === 0
+}
+
+/** Instala piper-tts si falta (se hace la primera vez que se usa una de sus voces). */
+async function ensurePiper(): Promise<boolean> {
+  if (await piperReady()) return true
+  if (!(await ensureVenv())) return false
+  await run(venvPython(), ['-m', 'pip', 'install', '--disable-pip-version-check', 'piper-tts'], { timeoutMs: 10 * 60_000 })
+  return piperReady()
+}
+
+const PIPER_REPO = 'https://huggingface.co/rhasspy/piper-voices/resolve/main'
+const piperDownloads = new Map<string, Promise<string | null>>()
+
+/** El modelo de una voz de Piper en <estudio>/piper/ (se baja la primera vez: .onnx y su .onnx.json). null si no se pudo. */
+function piperModel(model: string): Promise<string | null> {
+  const name = model.split('/').pop()!
+  const dir = join(root, 'piper')
+  const onnx = join(dir, `${name}.onnx`)
+  if (existsSync(onnx) && existsSync(`${onnx}.json`)) return Promise.resolve(onnx)
+  let job = piperDownloads.get(name)
+  if (!job) {
+    job = (async () => {
+      mkdirSync(dir, { recursive: true })
+      for (const ext of ['.onnx.json', '.onnx']) {
+        const res = await fetch(`${PIPER_REPO}/${model}${ext}`, { signal: AbortSignal.timeout(15 * 60_000) })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const tmp = join(dir, `${name}${ext}.descarga`)
+        writeFileSync(tmp, Buffer.from(await res.arrayBuffer()))
+        renameSync(tmp, join(dir, `${name}${ext}`))
+      }
+      return onnx
+    })()
+      .catch((e) => {
+        console.warn('[cowork] no se pudo bajar la voz de Piper', name, (e as Error).message)
+        return null
+      })
+      .finally(() => piperDownloads.delete(name))
+    piperDownloads.set(name, job)
+  }
+  return job
+}
+
+/** Una frase con una voz de Piper. Lanza un error que se puede enseñar si no se pudo preparar. */
+async function piperSpeak(key: string, text: string, out: string, signal?: AbortSignal): Promise<boolean> {
+  const v = PIPER_VOICES.find((x) => x.key === key)
+  if (!v) return false
+  if (!(await ensurePiper())) throw new Error(tr('No se pudo instalar Piper (las voces que funcionan sin internet)'))
+  const onnx = await piperModel(v.model)
+  if (!onnx) throw new Error(tr('No se pudo descargar esa voz (solo hace falta internet la primera vez)'))
+  const txt = `${out}.txt`
+  writeFileSync(txt, text, 'utf8')
+  const tmp = `${out}.piper.wav`
+  const r = await run(venvPython(), ['-m', 'piper', '-m', onnx, '-i', txt, '-f', tmp, ...(v.speaker !== undefined ? ['-s', String(v.speaker)] : [])], { timeoutMs: 5 * 60_000, signal })
+  rmSync(txt, { force: true })
+  if (r.code !== 0 || !existsSync(tmp)) {
+    rmSync(tmp, { force: true })
+    return false
+  }
+  return toWav(tmp, out, signal)
+}
+
+/** Las voces elegidas a mano de Edge, de macOS o de Piper: una frase. */
 async function pickedSpeak(v: { engine: VoiceEngine; id: string }, text: string, out: string, signal?: AbortSignal): Promise<boolean> {
   if (v.engine === 'edge') return edgeSpeak(v.id, text, out, signal)
   if (v.engine === 'mac') return macSpeak(v.id, text, out, signal)
+  if (v.engine === 'piper') return piperSpeak(v.id, text, out, signal).catch(() => false)
   return false
 }
 
@@ -1190,6 +1258,36 @@ export async function listVideoVoices(lang: string): Promise<{ voices: VideoVoic
   return { voices, missing }
 }
 
+/**
+ * Las voces para leer las respuestas del chat: las de los vídeos y, detrás de las de su idioma, las que funcionan en
+ * el propio equipo sin internet (Piper y Kokoro), que no están en la lista corta de los vídeos.
+ */
+export async function listReadVoices(lang: string): Promise<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] }> {
+  const base = await listVideoVoices(lang)
+  const have = new Set(base.voices.map((v) => v.id))
+  const extra = (READ_EXTRA_VOICES[lang] ?? [])
+    .filter((id) => !have.has(id))
+    .flatMap((id): VideoVoiceInfo[] => {
+      const v = parseVoiceId(id)
+      if (v?.engine === 'piper') {
+        const p = PIPER_VOICES.find((x) => x.key === v.id)!
+        return [{ id, engine: 'piper', name: p.name, line: p.region, lang: p.lang, gender: p.gender }]
+      }
+      if (v?.engine === 'kokoro') {
+        const k = KOKORO_VOICE_LIST.find((x) => x.id === v.id)!
+        return [{ id, engine: 'kokoro', name: k.name, line: 'En tu equipo', lang: k.lang, gender: k.gender }]
+      }
+      return []
+    })
+  // Detrás de la última voz de ese idioma, para que salgan en su grupo.
+  let at = -1
+  base.voices.forEach((v, i) => {
+    if (v.lang === lang) at = i
+  })
+  const voices = at < 0 ? [...extra, ...base.voices] : [...base.voices.slice(0, at + 1), ...extra, ...base.voices.slice(at + 1)]
+  return { voices, missing: base.missing }
+}
+
 /** Las voces de VoiceStudio si está abierto en el equipo; si no, `missing` lo dice. */
 async function studioVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: VoiceEngine[] }> {
   const list = await voicestudioVoices()
@@ -1377,6 +1475,8 @@ async function voiceLine(v: { engine: VoiceEngine; id: string }, sentence: strin
     const e = EDGE_VOICES.find((x) => x.id === v.id)!
     ok = await edgeSpeak(v.id, !sample || e.lang === lang ? sentence : (VOICE_SAMPLES[e.lang] ?? VOICE_SAMPLES.en), wav, signal)
     if (!ok) throw new Error(tr('La voz de Edge necesita internet: no se pudo conectar'))
+  } else if (v.engine === 'piper') {
+    ok = await piperSpeak(v.id, sentence, wav, signal)
   } else if (v.engine === 'mac') {
     if (!IS_MAC) throw new Error(tr('Carmen es una voz de Siri: solo está en macOS'))
     ok = await macSpeak(v.id, sentence, wav, signal)

@@ -170,6 +170,7 @@ const api: CoworkApi = {
   removeVideoCharacter: (id) => ipcRenderer.invoke('cowork:removeVideoCharacter', id),
   listVideoVoices: () => ipcRenderer.invoke('cowork:listVideoVoices'),
   previewVideoVoice: (id) => ipcRenderer.invoke('cowork:previewVideoVoice', id),
+  listReadVoices: () => ipcRenderer.invoke('cowork:listReadVoices'),
   readAloud: (text, voice) => ipcRenderer.invoke('cowork:readAloud', text, voice),
   tryVideoLook: (input) => ipcRenderer.invoke('cowork:tryVideoLook', input),
   listMods: () => ipcRenderer.invoke('cowork:listMods'),

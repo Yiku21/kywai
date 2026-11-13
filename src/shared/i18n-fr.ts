@@ -3862,4 +3862,8 @@ export const fr: Record<string, string> = {
   "Máximo {n} secretos por proyecto": "{n} secrets maximum par projet",
   "Escribe el nombre y el valor: /secreto GHL_PIT pit-xxxx": "Écrivez le nom et la valeur : /secreto GHL_PIT pit-xxxx",
   "NOMBRE valor": "NOM valeur",
+  "Piper · sin internet": "Piper · hors ligne",
+  "Argentina": "Argentine",
+  "No se pudo instalar Piper (las voces que funcionan sin internet)": "Impossible d'installer Piper (les voix qui fonctionnent sans internet)",
+  "No se pudo descargar esa voz (solo hace falta internet la primera vez)": "Impossible de télécharger cette voix (internet n'est nécessaire que la première fois)",
 }

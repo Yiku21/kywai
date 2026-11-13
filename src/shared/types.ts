@@ -1907,7 +1907,7 @@ export interface VideoCharacterInfo {
 export interface VideoVoiceInfo {
   /** Lo que va en la marca «voz:…» («gemini-puck», «kokoro-ef_dora», «voicebox-<perfil>», «sistema»). */
   id: string
-  engine: 'gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven'
+  engine: 'gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven' | 'piper'
   name: string
   /** Cómo suena (en español; la interfaz lo traduce). */
   line: string
@@ -2257,6 +2257,8 @@ export interface CoworkApi {
   listVideoVoices(): Promise<{ voices: VideoVoiceInfo[]; missing: ('gemini' | 'kokoro' | 'voicebox' | 'voicestudio' | 'sistema' | 'edge' | 'mac' | 'eleven')[] }>
   /** Una muestra corta de una voz (data: URL de audio). */
   previewVideoVoice(id: string): Promise<string>
+  /** Voces para leer las respuestas del chat: las de los vídeos y, además, las que funcionan en el equipo sin internet. */
+  listReadVoices?(): Promise<{ voices: VideoVoiceInfo[]; missing: VideoVoiceInfo['engine'][] }>
   /** Un trozo de texto leído en voz alta con una voz de las de los vídeos (sin voz, la del idioma de la app): data: URL de audio. */
   readAloud?(text: string, voice?: string | null): Promise<string>
   /** «Probar con mi escena»: la escena del tema (con el personaje elegido) en un aspecto de imagen con IA (data: URL JPEG). */

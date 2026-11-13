@@ -77,7 +77,8 @@ export const MISSING: Record<VoiceEngine, string> = {
   eleven: 'Con una clave de ElevenLabs (Ajustes → Extensiones → Estudio de vídeo) tendrás sus voces, las que más actúan.',
   voicestudio: 'Abre VoiceStudio (app gratis aparte) para usar sus voces y las que clones en ella.',
   edge: '',
-  mac: ''
+  mac: '',
+  piper: ''
 }
 
 /**
@@ -106,8 +107,8 @@ export const voiceName = (v: VideoVoiceInfo): string => (v.engine === 'sistema' 
 export const voiceLine = (v: VideoVoiceInfo): string =>
   [
     v.engine === 'kokoro' && v.line === 'Kokoro' ? '' : v.engine === 'sistema' ? t('La del sistema operativo') : t(v.line),
-    v.engine === 'edge' ? 'Microsoft Edge' : v.engine === 'mac' ? t('Siri (Mac)') : v.engine === 'kokoro' && v.line !== 'Kokoro' ? 'Kokoro' : '',
-    v.engine === 'gemini' || v.engine === 'edge' || v.engine === 'mac' || (v.engine === 'kokoro' && v.line !== 'Kokoro') ? '' : langName(v.lang),
+    v.engine === 'edge' ? 'Microsoft Edge' : v.engine === 'piper' ? t('Piper · sin internet') : v.engine === 'mac' ? t('Siri (Mac)') : v.engine === 'kokoro' && v.line !== 'Kokoro' ? 'Kokoro' : '',
+    v.engine === 'gemini' || v.engine === 'edge' || v.engine === 'piper' || v.engine === 'mac' || (v.engine === 'kokoro' && v.line !== 'Kokoro') ? '' : langName(v.lang),
     v.gender === 'f' ? t('voz de mujer') : v.gender === 'm' ? t('voz de hombre') : ''
   ]
     .filter(Boolean)

@@ -707,16 +707,22 @@ se queda en el cuadro sin enviar. La primera vez se prepara solo (instala `uv` s
 
 ### Leer las respuestas en voz alta
 
-Junto al micrófono hay un **altavoz**. Activado (se pone azul), kywai te **lee sola la respuesta final** de cada
-petición cuando el equipo termina: la respuesta del coordinador con todo delante o, si fue una sola tarea, su
-resultado; y también el plan cuando espera tu visto bueno. No lee los pasos intermedios, los bloques de código, las
+Junto al micrófono hay un **altavoz**. Activado (se pone azul), kywai te **lee sola la respuesta** de cada
+petición: lo que te dice el coordinador nada más llegar (su respuesta, el plan que reparte o que espera tu visto
+bueno, la respuesta final con todo delante) y, si la petición acaba con el resultado de una sola tarea, ese
+resultado. Si llega otra mientras lee, espera su turno. Con el altavoz activado los agentes no hacen sus
+soniditos al escribir (el balbuceo): solo se oye la voz que lee. No lee los pasos intermedios, los bloques de código, las
 tablas, las direcciones web ni la lista «Resumen del trabajo»; de una respuesta larguísima lee unos cuatro minutos.
 Mientras lee, el altavoz late y un toque lo calla (sigue activado para la siguiente); sin estar leyendo, el toque lo
 apaga. Al empezar una nota de voz se calla solo.
 
 La voz se elige en ⚙ → Ajustes → General → **«Voz para leer las respuestas»**: son las mismas voces de los vídeos
 (Álvaro, Jorge y Carmen en español; las de inglés; y las de ElevenLabs, Gemini, Voicebox o VoiceStudio si las
-tienes), cada una con ▶ para oír una muestra. Sin elegir, lee la del idioma de la app (Álvaro en español). Ahí mismo
+tienes), cada una con ▶ para oír una muestra. En español hay además nueve voces que funcionan **en tu equipo, sin
+internet**: seis de Piper (Dave, Mateo y Lucía de España; Aldo y Claudia de México; Daniela de Argentina) y tres
+de Kokoro (Dora, Álex y Santa). Las de Piper se bajan la primera vez que las usas (entre 60 y 110 MB cada una, a
+`estudio-video/piper/`; kywai instala `piper-tts` solo) y desde entonces no necesitan conexión; Álvaro y Jorge, de
+Edge, sí la necesitan siempre. Sin elegir, lee la del idioma de la app (Álvaro en español). Ahí mismo
 está el interruptor «Leer las respuestas en voz alta», que es el mismo altavoz. Suena con el volumen de «Voces de
 los agentes»; si silencias esas voces, deja de leer, y al activar el altavoz vuelven. El altavoz y la voz se
 recuerdan por dispositivo (escritorio, cliente y navegador; Órbita aún no lo tiene).
