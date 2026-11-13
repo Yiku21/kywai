@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { finalAnswerOf, READ_ALOUD_MAX, speechChunks, spokenText } from './readAloud'
+import { finalAnswerOf, isSpokenAnswer, READ_ALOUD_MAX, speechChunks, spokenText } from './readAloud'
 
 describe('spokenText', () => {
   it('se salta los bloques de código y deja lo demás', () => {
@@ -75,5 +75,17 @@ describe('finalAnswerOf', () => {
   it('no hay respuesta si aún se está escribiendo o no es de esa petición', () => {
     expect(finalAnswerOf([{ id: 'a', runId: 'r1', author: agent, text: 'Escribiendo', streaming: true }], 'r1')).toBeNull()
     expect(finalAnswerOf([{ id: 'a', runId: 'r1', author: agent, text: 'Hola' }], 'r9')).toBeNull()
+  })
+})
+
+describe('isSpokenAnswer', () => {
+  const agent = { type: 'agent' }
+  it('lee lo que dice el coordinador, no los mensajes de tarea ni lo que aún se escribe', () => {
+    expect(isSpokenAnswer({ id: 'a', author: agent, text: 'Claude retoma el reporte.' })).toBe(true)
+    expect(isSpokenAnswer({ id: 'b', author: agent, text: 'Resultado', work: { taskId: 't' } })).toBe(false)
+    expect(isSpokenAnswer({ id: 'c', author: agent, text: 'Escribien', streaming: true })).toBe(false)
+    expect(isSpokenAnswer({ id: 'd', author: { type: 'user' }, text: 'hola' })).toBe(false)
+    expect(isSpokenAnswer({ id: 'e', author: agent, text: '  ' })).toBe(false)
+    expect(isSpokenAnswer({ id: 'f', author: agent, text: 'De otra app', importedFrom: 'ChatGPT' })).toBe(false)
   })
 })

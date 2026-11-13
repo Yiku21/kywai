@@ -32,7 +32,7 @@ import { api } from '@/lib/api'
 import { fromArtifact, type PreviewItem, type PreviewState } from '@/lib/preview'
 import { playSfx, playVoice, voiceProfile } from '@/lib/audio'
 import { createEventAudio } from '@/lib/audioEvents'
-import { readFinalAnswer } from '@/lib/readAloud'
+import { canReadAloud, readArrived, readFinalAnswer, useReadAloud } from '@/lib/readAloud'
 import { lang, t } from '@/lib/i18n'
 import { readSpaceHidden, saveSpaceHidden } from '@/ui/left/chatWidth'
 import type { BrowserState } from '@shared/browser'
@@ -239,7 +239,10 @@ export function emptySlice(config: AppConfig, offlineReason?: string): DataSlice
 }
 
 const MAX_TRANSFERS = 40
-const eventAudio = createEventAudio(playSfx, (who, text, error) => playVoice(who.id, voiceProfile(who.provider, who.becario), text, { error }))
+// Con el altavoz del chat activado (kywai lee las respuestas con una voz de verdad), los agentes no balbucean.
+const eventAudio = createEventAudio(playSfx, (who, text, error) =>
+  useReadAloud.getState().on && canReadAloud() ? null : playVoice(who.id, voiceProfile(who.provider, who.becario), text, { error })
+)
 const seen = new Set<string>()
 const seenOrder: string[] = []
 
@@ -587,8 +590,10 @@ export const useCowork = create<CoworkState>((set, get) => ({
       // equipo (tareas, agentes) ya suenan en la ventana principal y no se oyen dos veces.
       if (!boundChat) eventAudio.handle(e, previous)
       else if (e.kind === 'message.upsert' || e.kind === 'conversation.message') eventAudio.handle({ ...e, kind: 'message.upsert' }, previous)
-      // El altavoz del chat: al terminar una petición se lee su respuesta final (solo si está en el chat de esta ventana).
-      if (e.kind === 'run.finished') readFinalAnswer(get()[target].messages, e.runId)
+      // El altavoz del chat: se lee lo que te dice el coordinador al llegar y, al terminar una petición, el resultado
+      // con el que acaba (solo lo del chat de esta ventana; los pasos de las tareas, no).
+      if (e.kind === 'message.upsert' || e.kind === 'conversation.message') readArrived(e.message, previous.messages)
+      else if (e.kind === 'run.finished') readFinalAnswer(get()[target].messages, e.runId)
       sceneBus.emit(e)
     }
   },

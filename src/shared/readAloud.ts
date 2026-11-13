@@ -8,6 +8,9 @@ export interface SpokenMessage {
   author: { type: string }
   text: string
   streaming?: boolean
+  /** Mensaje de una tarea (lo que el agente cuenta mientras trabaja y, al acabar, su resultado). */
+  work?: unknown
+  importedFrom?: string
 }
 
 /** Como mucho esto se lee de una respuesta (unos 4 minutos): lo demás se queda para leerlo en pantalla. */
@@ -119,4 +122,13 @@ export function finalAnswerOf<M extends SpokenMessage>(messages: M[], runId: str
     return m
   }
   return null
+}
+
+/**
+ * Un mensaje que se lee nada más llegar: lo que te dice un agente fuera de una tarea (la respuesta o el plan del
+ * coordinador, la respuesta final con todo delante, un aviso suyo). Los mensajes de tarea (sus pasos y su resultado)
+ * no: de esos solo se lee, al terminar la petición, el último si es con lo que acaba (ver finalAnswerOf).
+ */
+export function isSpokenAnswer(m: SpokenMessage): boolean {
+  return m.author.type === 'agent' && !m.work && !m.streaming && !m.importedFrom && !!m.text.trim()
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { ChatMessage } from '@shared/types'
-import { finalAnswerOf, speechChunks, spokenText } from '@shared/readAloud'
+import { finalAnswerOf, isSpokenAnswer, speechChunks, spokenText } from '@shared/readAloud'
 import { api } from './api'
 import { getVoiceVolume, isVoiceMuted, setVoiceMuted, subscribeAudio } from './audio'
 
@@ -91,12 +91,21 @@ let audio: HTMLAudioElement | null = null
 /** Cada lectura tiene su número: una nueva (o parar) deja sin efecto lo que quedaba de la anterior. */
 let session = 0
 
-/** Calla lo que se esté leyendo (el altavoz sigue como esté). */
-export function stopReading(): void {
+/** Lo que espera su turno mientras se lee otra respuesta (pocas: lo viejo deja sitio a lo nuevo). */
+const pending: { id: string; text: string }[] = []
+const MAX_PENDING = 3
+
+function halt(): void {
   session++
   audio?.pause()
   audio = null
   if (useReadAloud.getState().speaking) useReadAloud.setState({ speaking: null, loading: false })
+}
+
+/** Calla lo que se esté leyendo y lo que esperaba turno (el altavoz sigue como esté). */
+export function stopReading(): void {
+  pending.length = 0
+  halt()
 }
 
 function clip(text: string, voice: string | null): Promise<string> {
@@ -130,7 +139,7 @@ function playUrl(url: string, mine: number): Promise<void> {
 /** Lee un texto (Markdown de una respuesta) trozo a trozo; el siguiente se prepara mientras suena el de ahora. */
 export async function readText(id: string, markdown: string, voice: string | null = useReadAloud.getState().voice, opts: { sample?: boolean } = {}): Promise<void> {
   const chunks = speechChunks(spokenText(markdown))
-  stopReading()
+  halt()
   // La muestra de una voz en Ajustes suena aunque las voces estén silenciadas: se ha pedido oírla.
   if (!chunks.length || !canReadAloud() || (isVoiceMuted() && !opts.sample)) return
   const mine = session
@@ -156,21 +165,57 @@ export async function readText(id: string, markdown: string, voice: string | nul
     if (mine === session) {
       audio = null
       useReadAloud.setState({ speaking: null, loading: false })
+      const next = pending.shift()
+      if (next) void readText(next.id, next.text)
     }
   }
 }
 
+/** Las respuestas ya leídas (o en cola), para no repetirlas: también entre ventanas de kywai (chat de al lado, suelta). */
+function claim(id: string): boolean {
+  let done: string[] = []
+  try {
+    const raw: unknown = JSON.parse(read(LAST_KEY) ?? '[]')
+    if (Array.isArray(raw)) done = raw.filter((x): x is string => typeof x === 'string')
+  } catch {
+    /* lo guardado no vale: se empieza de cero */
+  }
+  if (done.includes(id)) return false
+  write(LAST_KEY, JSON.stringify([...done, id].slice(-40)))
+  return true
+}
+
+/** Pone una respuesta a leer: ya, o detrás de la que suena (sin cortarla). */
+function enqueue(m: ChatMessage, now: number): void {
+  if (!useReadAloud.getState().on || !canReadAloud() || isVoiceMuted()) return
+  if (now - m.createdAt > FRESH_MS || !speechChunks(spokenText(m.text)).length) return
+  if (!claim(m.id)) return
+  const speaking = useReadAloud.getState().speaking
+  if (speaking && !speaking.startsWith(SAMPLE)) {
+    pending.push({ id: m.id, text: m.text })
+    if (pending.length > MAX_PENDING) pending.shift()
+  } else void readText(m.id, m.text)
+}
+
 /**
- * Ha terminado una petición: si el altavoz está activado, lee su respuesta final. `messages` son los del chat que se
- * ve en esta ventana (si la petición era de otra conversación, aquí no está su respuesta y no se lee).
+ * Ha llegado (o se ha terminado de escribir) un mensaje al chat de esta ventana: si es lo que te dice un agente fuera
+ * de una tarea (la respuesta o el plan del coordinador, la respuesta final), se lee. `before`: los mensajes de antes.
+ */
+export function readArrived(m: ChatMessage, before: ChatMessage[], now = Date.now()): void {
+  if (!isSpokenAnswer(m)) return
+  const previous = before.find((x) => x.id === m.id)
+  // Un mensaje que ya estaba entero y solo cambia por otra cosa (una valoración, un plan aprobado) no se repite.
+  if (previous && isSpokenAnswer(previous)) return
+  enqueue(m, now)
+}
+
+/**
+ * Ha terminado una petición: si acaba con el resultado de una tarea (una sola tarea, sin respuesta del coordinador
+ * detrás), se lee ese resultado. `messages` son los del chat de esta ventana.
  */
 export function readFinalAnswer(messages: ChatMessage[], runId: string, now = Date.now()): void {
-  if (!useReadAloud.getState().on || !canReadAloud() || isVoiceMuted()) return
   const m = finalAnswerOf(messages, runId)
-  if (!m || now - m.createdAt > FRESH_MS) return
-  if (read(LAST_KEY) === m.id) return
-  write(LAST_KEY, m.id)
-  void readText(m.id, m.text)
+  if (m) enqueue(m, now)
 }
 
 /** Sigue el volumen y el silencio de «Voces de los agentes», y el altavoz que se cambie en otra ventana de kywai. */
