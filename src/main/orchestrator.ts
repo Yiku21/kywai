@@ -65,6 +65,7 @@ import { agentHistory, agentQualityFor, profileLines } from './agentProfile'
 import { agentQuality, compareVerifiers, freerPeerChoice, POOR_RECORD_DAYS, poorRecord, unreliableVerifier, verifierStats } from '@shared/agentQuality'
 import { EFFORT_LABEL, effortFor, isVisualTask, planEffortFor } from '@shared/modelCatalog'
 import { taskCategory, type TaskCategory } from '@shared/taskCategory'
+import { resultWeight } from '@shared/resultGroups'
 import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpdate } from './taskTrace'
 import { withoutClosingNotes, workSteps } from '@shared/work'
 import { lang, locale, renderMsg, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
@@ -6233,6 +6234,9 @@ function endTrace(taskId: string, res: RunAgentResult, start: number): void {
   finishTrace(taskId)
 }
 
+/** Archivos de una tarea que se registran como entregables (lo demás sigue en «N archivos cambiados»). */
+const MAX_TASK_ARTIFACTS = 60
+
 async function collectArtifacts(run: Run, t: Task, owner: AgentConfig): Promise<Artifact[]> {
   const dir = store.workRoot(run.projectId)
   const meta = run.meta.get(t.id)!
@@ -6265,8 +6269,13 @@ async function collectArtifacts(run: Run, t: Task, owner: AgentConfig): Promise<
   for (const rel of [...known.keys()]) if (!now.has(rel)) known.delete(rel)
   projectKnown.set(run.projectId, known)
 
+  // Si cambió más de lo que cabe, primero lo que se pidió (el PDF, el vídeo, la página): por orden alfabético, 60
+  // JSON de «api/» dejaban fuera «reporte.pdf».
+  const shown = [...claimed]
+    .sort((x, y) => resultWeight({ name: basename(y), relPath: y, kind: store.artifactKind(y) }) - resultWeight({ name: basename(x), relPath: x, kind: store.artifactKind(x) }))
+    .slice(0, MAX_TASK_ARTIFACTS)
   const out: Artifact[] = []
-  for (const rel of claimed.slice(0, 60)) {
+  for (const rel of shown) {
     const stamp = now.get(rel)!
     const existing = store.findArtifactByPath(run.projectId, rel)
     const a: Artifact = existing
