@@ -26,10 +26,12 @@ export const HERMES_PLAN_TIMEOUT_MS = 6 * 60_000
 /** Nombre de un proveedor de Hermes (propio, como «anthropic», o de `providers:` en su config, como «omnirouter»). */
 const PROVIDER_RE = /^[\w.\-:]+$/
 
-export function hermesArgs(queryFile: string, model: string, mode: 'plan' | 'work', provider?: string, mcpNames: string[] = []): string[] {
+export function hermesArgs(queryFile: string, model: string, mode: 'plan' | 'work', provider?: string, mcpNames: string[] = [], images = false): string[] {
   const args = ['chat', '-Q', '--query-file', queryFile.replace(/\\/g, '/'), '--ignore-rules']
   // Los servidores MCP de Extensiones entran como «toolsets» con su nombre (solo al trabajar, no al planificar).
   const extra = mode === 'work' ? mcpNames.filter((n) => /^[a-z][a-z0-9_-]{0,30}$/.test(n)) : []
+  // Con capturas adjuntas, Hermes planifica igual y las mira con su herramienta de visión (vision_analyze).
+  if (mode === 'plan' && images) extra.push('vision')
   args.push('-t', [mode === 'plan' ? HERMES_PLAN_TOOLSETS : HERMES_WORK_TOOLSETS, ...extra].join(','))
   const m = safeModel(model)
   if (m) args.push('-m', m)
@@ -88,7 +90,7 @@ export async function runHermes(opts: RunAgentOptions): Promise<RunAgentResult> 
   try {
     const res = await runCli({
       command: 'hermes',
-      args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, opts.extraMcp?.names),
+      args: hermesArgs(file, opts.model, opts.mode, opts.agent.modelProvider, opts.extraMcp?.names, !!opts.images?.length),
       ...(opts.mode === 'work' && opts.extraMcp && Object.keys(opts.extraMcp.env).length ? { env: opts.extraMcp.env } : {}),
       cwd: opts.cwd,
       stdin: '',

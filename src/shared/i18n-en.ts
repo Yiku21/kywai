@@ -1694,6 +1694,8 @@ export const en: Record<string, string> = {
   'Hecho.': 'Done.',
   '\n\n*Anotado en la memoria del proyecto:* {v1}.': '\n\n*Saved to the project memory:* {v1}.',
   'Ningún agente pudo planificar el trabajo.{detail}': 'No agent could plan the work.{detail}',
+  '{first} no coordina esta vez ({why}): lo hace {name}.': '{first} is not coordinating this time ({why}): {name} is doing it.',
+  'no está disponible': 'not available',
   'No hay ningún agente disponible para planificar. Revisa que los CLI estén instalados y con la sesión iniciada.': 'There\'s no agent available to plan. Check that the CLIs are installed and signed in.',
   'No pudo planificar': 'Couldn\'t plan',
   'No pude planificar: {msg}': 'I couldn\'t plan: {msg}',

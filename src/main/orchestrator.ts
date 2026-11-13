@@ -4715,15 +4715,31 @@ const seesImages = (a: AgentConfig): boolean => SEES_IMAGES.has(a.provider) || a
 const READS_WHEN_PLANNING = new Set<AgentConfig['provider']>(['claude', 'codex', 'gemini'])
 export const plannerReads = (a: Pick<AgentConfig, 'provider'>): boolean => READS_WHEN_PLANNING.has(a.provider)
 
-/** Quién planifica: el primero libre de la lista; con capturas adjuntas, antes uno que pueda verlas. */
-function pickPlanner(tried: Set<AgentId>, images = false): AgentConfig | null {
+/**
+ * Quién planifica: el primero de la lista que pueda (Hermes, salvo que el usuario cambie el orden). Coordina aunque
+ * haya capturas (las mira con su herramienta de visión o encarga a otro que las mire) y aunque esté planificando otra
+ * conversación: cada plan es una consulta aparte. Solo si no puede (apagado, sin sesión, apartado tras fallar) pasa
+ * al siguiente, y el chat lo dice (ver plannerFallbackNote).
+ */
+function pickPlanner(tried: Set<AgentId>): AgentConfig | null {
+  return plannerCandidates().find((a) => usable(a) && !tried.has(a.id)) ?? null
+}
+
+/** Coordinadores posibles en el orden elegido, puedan o no ahora. */
+function plannerCandidates(): AgentConfig[] {
   const cfg = getConfig()
-  const cands = cfg.plannerOrder
+  return cfg.plannerOrder
     .map((id) => cfg.agents.find((a) => a.id === id))
-    .filter((a): a is AgentConfig => !!a && a.enabled && !a.isSubagent && usable(a) && !tried.has(a.id))
-  const pick = (list: AgentConfig[]): AgentConfig | null => list.find((a) => !busy.has(a.id) && !planningAgents.has(a.id)) ?? list[0] ?? null
-  const seeing = cands.filter((a) => seesImages(a))
-  return images && seeing.length ? pick(seeing) : pick(cands)
+    .filter((a): a is AgentConfig => !!a && a.enabled && !a.isSubagent)
+}
+
+/** Si coordina otro y no el primero de la lista, por qué (para decirlo en el chat). null si coordina el primero. */
+function plannerFallbackNote(planner: AgentConfig, failures: string[]): string | null {
+  const first = plannerCandidates()[0]
+  if (!first || first.id === planner.id) return null
+  const failed = failures.find((f) => f.startsWith(`${first.name}:`))
+  const why = failed ? failed.slice(first.name.length + 1).trim() : (offlineReason(first) ?? tr('no está disponible'))
+  return tr('{first} no coordina esta vez ({why}): lo hace {name}.', { first: first.name, why, name: planner.name })
 }
 
 async function planRun(
@@ -4734,7 +4750,7 @@ async function planRun(
   const st = store.getProject(run.projectId)
   for (;;) {
     if (run.cancelled) return null
-    const planner = pickPlanner(tried, imageAttachments(run).length > 0)
+    const planner = pickPlanner(tried)
     if (!planner) {
       const detail = failures.length ? `\n\n${failures.map((f) => `- ${f}`).join('\n')}` : ''
       systemMessage(
@@ -4748,6 +4764,8 @@ async function planRun(
     }
     tried.add(planner.id)
     run.plannerId = planner.id
+    const fallback = plannerFallbackNote(planner, failures)
+    if (fallback) systemMessage(run, fallback)
     const sharedAgent = busy.has(planner.id) || planningAgents.has(planner.id)
     if (!sharedAgent) {
       planningAgents.set(planner.id, run.id)
@@ -4804,7 +4822,7 @@ async function planRun(
     const parsed = parsePlan(res.text)
     // Sin el JSON pedido (modelo débil o con poco contexto, como Hermes con un modelo local pequeño),
     // planifica el siguiente de la lista; si no hay otro, su texto se usa como respuesta.
-    if (!parsed.valid && pickPlanner(tried, imageAttachments(run).length > 0)) {
+    if (!parsed.valid && pickPlanner(tried)) {
       failures.push(tr('{name}: no devolvió un plan válido', { name: planner.name }))
       if (planner.plannerOnly) blockAgent(planner, 'failed', tr('No devolvió un plan válido (su modelo puede ser demasiado pequeño)'), COORDINATOR_REST_MS)
       else if (!sharedAgent) setRuntime(planner.id, { activity: 'idle', lastActivity: tr('Plan no válido'), context: undefined })
@@ -5029,7 +5047,9 @@ function buildPlanPrompt(run: Run, planner: AgentConfig): string {
       ? [
           seesImages(planner)
             ? 'Hay imágenes adjuntas (capturas, fotos): ábrelas y míralas antes de responder; el usuario suele preguntar por lo que se ve en ellas.'
-            : 'Hay imágenes adjuntas y tú no puedes verlas: si la respuesta depende de lo que se ve en ellas, crea UNA tarea corta (fácil, de texto) para Claude o Codex que las mire y responda. No le pidas al usuario que te las describa.'
+            : planner.provider === 'hermes'
+              ? `Hay imágenes adjuntas (capturas, fotos): míralas antes de responder con tu herramienta de visión (vision_analyze), con estas rutas: ${imageAttachments(run, true).join(', ')}. Si no puedes abrirlas y la respuesta depende de lo que se ve en ellas, crea UNA tarea corta (fácil, de texto, "quick": true) para Claude o Codex que las mire y responda. No le pidas al usuario que te las describa.`
+              : 'Hay imágenes adjuntas y tú no puedes verlas: si la respuesta depende de lo que se ve en ellas, crea UNA tarea corta (fácil, de texto) para Claude o Codex que las mire y responda. No le pidas al usuario que te las describa.'
         ]
       : []),
     '',

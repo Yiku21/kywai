@@ -94,6 +94,12 @@ providers:
     expect(hermesModelLabel('claude/claude-opus-5')).toBe('claude-opus-5')
   })
 
+  it('con capturas adjuntas, Hermes planifica con su herramienta de visión', () => {
+    const toolsets = (args: string[]): string => args[args.indexOf('-t') + 1]
+    expect(toolsets(hermesArgs('/tmp/q.txt', '', 'plan'))).not.toContain('vision')
+    expect(toolsets(hermesArgs('/tmp/q.txt', '', 'plan', undefined, [], true)).split(',')).toContain('vision')
+  })
+
   it('sin Hermes instalado: nada que listar', () => {
     const empty = mkdtempSync(join(tmpdir(), 'aicw-nohermes-'))
     try {

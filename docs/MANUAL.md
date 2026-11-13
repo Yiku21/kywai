@@ -825,6 +825,11 @@ documentación no confirma y pueden necesitar ajustes.
   propia configuración de modelos, que en este equipo pasa por **OmniRoute** (`localhost:20128`): si OmniRoute
   está apagado o Hermes falla, planifica Claude como respaldo. El orden se cambia en `plannerOrder` de
   `workspace/config.json`.
+- **Hermes coordina siempre que pueda**, también si el mensaje lleva capturas o fotos (las mira con su
+  herramienta de visión; si no puede abrirlas, encarga a Claude o Codex una consulta rápida que las mire) y
+  aunque esté planificando otra conversación a la vez. Solo coordina otro si Hermes no puede (apagado, sin
+  sesión, sin respuesta o apartado tras fallar), y entonces el chat lo dice con una línea como «Hermes no
+  coordina esta vez (motivo): lo hace Claude».
 - **La calidad manda**: el coordinador busca el mejor resultado posible y que cumpla exactamente lo pedido; el
   tiempo y el gasto son secundarios (así está escrito en sus reglas, y es el comportamiento por defecto, sin
   interruptor). Elige para cada parte al agente y la dificultad que den el mejor resultado, y en la duda sube la

@@ -1554,6 +1554,8 @@ export const pt: Record<string, string> = {
   "Hecho.": "Pronto.",
   "\n\n*Anotado en la memoria del proyecto:* {v1}.": "\n\n*Salvo na memória do projeto:* {v1}.",
   "Ningún agente pudo planificar el trabajo.{detail}": "Nenhum agente conseguiu planejar o trabalho.{detail}",
+  "{first} no coordina esta vez ({why}): lo hace {name}.": "{first} não coordena desta vez ({why}): quem coordena é {name}.",
+  "no está disponible": "não está disponível",
   "No hay ningún agente disponible para planificar. Revisa que los CLI estén instalados y con la sesión iniciada.": "Não há agente disponível para planejar. Verifique se as CLIs estão instaladas e logadas.",
   "No pudo planificar": "Não foi possível planejar",
   "No pude planificar: {msg}": "Não consegui planejar: {msg}",
