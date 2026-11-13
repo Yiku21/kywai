@@ -401,6 +401,27 @@ function rememberProject(id: string): void {
 const prefersReduced =
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
+const REDUCED_KEY = 'aicowork.reducedEffects'
+
+/** «Reducir efectos ambientales»: lo que elegiste en Ajustes; si nunca lo tocaste, lo que pida el sistema. */
+function readReducedEffects(): boolean {
+  try {
+    const v = localStorage.getItem(REDUCED_KEY)
+    if (v === '1' || v === '0') return v === '1'
+  } catch {
+    // Sin almacenamiento: como el sistema.
+  }
+  return !!prefersReduced
+}
+
+function saveReducedEffects(on: boolean): void {
+  try {
+    localStorage.setItem(REDUCED_KEY, on ? '1' : '0')
+  } catch {
+    // Sigue en memoria.
+  }
+}
+
 export const useCowork = create<CoworkState>((set, get) => ({
   mode: api ? 'live' : 'demo',
   hasBackend: !!api,
@@ -437,7 +458,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
   leftTab: 'chat',
   preview: null,
   previewMaximized: false,
-  reducedEffects: !!prefersReduced,
+  reducedEffects: readReducedEffects(),
   spaceExpanded: false,
   spaceHidden: readSpaceHidden(),
   mobileView: 'chat',
@@ -651,6 +672,7 @@ export const useCowork = create<CoworkState>((set, get) => ({
     set({ preview: null, previewMaximized: false })
   },
   setReducedEffects(reducedEffects) {
+    saveReducedEffects(reducedEffects)
     set({ reducedEffects })
   },
   setSpaceExpanded(spaceExpanded) {
