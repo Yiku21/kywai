@@ -56,8 +56,16 @@
 }
 
 .nameBtn {
+  position: relative;
   border-radius: 4px;
   transition: color var(--dur) var(--ease);
+}
+
+/* El nombre es pequeño: responde también un poco por encima y por debajo (32 px de alto, 44 con el dedo). */
+.nameBtn::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--hit-min, 32px)) / 2)) -4px;
 }
 
 .nameBtn:hover {
@@ -893,12 +901,13 @@
 .rating {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-top: 4px;
   padding-left: 4px;
 }
 
 .ratingBtn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -909,6 +918,13 @@
   background: transparent;
   color: var(--text-3);
   cursor: pointer;
+}
+
+/* Se ve de 26 × 24 px pero responde en 32 px (44 en pantallas táctiles). */
+.ratingBtn::after {
+  content: '';
+  position: absolute;
+  inset: calc((24px - var(--hit-min, 32px)) / 2) calc((26px - var(--hit-min, 32px)) / 2);
 }
 
 .ratingBtn:hover {

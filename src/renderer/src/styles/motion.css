@@ -4,6 +4,8 @@
    instante porque se usa a diario. */
 
 :root {
+  /* Zona de clic mínima de los botones (ui.module.css): 32 px con ratón, 44 px con el dedo. */
+  --hit-min: 32px;
   --ease-in-ui: cubic-bezier(0.2, 0, 0, 1);
   --ease-out-ui: cubic-bezier(0.4, 0, 1, 1);
   --dur-exit: 140ms;
@@ -24,6 +26,12 @@
 [data-ghost] [role='dialog'][aria-modal='true'],
 [data-ghost][role='dialog'] {
   animation: kwDialogOut var(--dur-exit) var(--ease-out-ui) both !important;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --hit-min: 44px;
+  }
 }
 
 @keyframes kwScrimIn {

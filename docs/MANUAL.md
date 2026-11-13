@@ -1910,6 +1910,9 @@ quién sabe qué (`relevantSkills` y `fullSkillSections` en `skills.ts`; las con
   cerrarla, `lib/dialogMotion.ts` deja una copia inerte que se va en 140 ms (lo que sale tarda menos que lo que
   entra). Las reglas están en `styles/motion.css`. Buscar (Ctrl+K) lleva `data-instant` y sale al instante porque se
   usa a diario. Con «reducir movimiento» no se anima nada.
+- **Zonas de clic más grandes.** Los botones (`.iconBtn`, `.btn`, «Me sirvió», el nombre del agente) responden en
+  un área de al menos 32 px aunque se vean más pequeños, y de 44 px en pantallas táctiles (`--hit-min` en
+  `styles/motion.css`, con `pointer: coarse`). El área crece con un `::after` invisible, sin cambiar el aspecto.
 
 **Herramientas de kywai (servidor MCP).** Claude trabaja con un servidor MCP propio de kywai
 (solo ese: nunca los tuyos) con cinco herramientas: `memoria_proyecto` (instrucciones y memoria al día),

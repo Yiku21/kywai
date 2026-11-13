@@ -2,6 +2,22 @@
 
 /* ---------- Botones ---------- */
 
+/* Zona de clic mínima (ley de Fitts, habilidad principios-ux-animacion n.º 13–14): un botón pequeño responde en un
+   área de 32 px aunque se vea más pequeño; en pantallas táctiles, 44 px. Solo crece hacia fuera si hace falta. */
+:where(.iconBtn, .btn) {
+  position: relative;
+}
+
+.iconBtn::after,
+.btn::after {
+  content: '';
+  position: absolute;
+  top: min(0px, calc((100% - var(--hit-min, 32px)) / 2));
+  bottom: min(0px, calc((100% - var(--hit-min, 32px)) / 2));
+  left: min(0px, calc((100% - var(--hit-min, 32px)) / 2));
+  right: min(0px, calc((100% - var(--hit-min, 32px)) / 2));
+}
+
 .iconBtn {
   display: inline-grid;
   place-items: center;
