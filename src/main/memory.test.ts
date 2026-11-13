@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MemoryEntry } from '@shared/types'
-import { memoryLines, parseMemoryNotes, planMemoryNotes, taskSummaryNote, withEntry } from './memory'
+import { memoryLines, parseMemoryNotes, planMemoryNotes, taskSummaryNote, withEntry, withoutMemoryNotes } from './memory'
 
 const agent = { status: 'provisional' as const, by: 'codex', byName: 'Codex', taskTitle: 'API' }
 const user = { status: 'confirmed' as const, by: 'user' as const, byName: 'Tú' }
@@ -94,5 +94,17 @@ describe('añadir a la memoria', () => {
     expect(lines).toHaveLength(2)
     expect(lines[0]).toMatch(/^- m2 · preferencia · confirmado · el usuario, \d+ oct\.?: Todo en TypeScript$/)
     expect(lines[1]).toMatch(/^- m3 · hecho · provisional · Codex \(«API»\), \d+ oct\.?: Hecho corregido$/)
+  })
+})
+
+describe('la respuesta en el chat sin las notas para la memoria', () => {
+  it('quita la sección entera y deja el resto', () => {
+    expect(withoutMemoryNotes('El informe está en reporte.pdf.\n\n## Para la memoria\n- hecho: Hecho en «PDF»: generé reporte.pdf.\n- pendiente: Falta el apartado 9.')).toBe('El informe está en reporte.pdf.')
+    expect(withoutMemoryNotes('Listo.\n\n**Para la memoria**\n- hecho: Node 22 instalado')).toBe('Listo.')
+  })
+
+  it('conserva lo que venga en otra sección y no toca una respuesta sin notas', () => {
+    expect(withoutMemoryNotes('Listo.\n\n## Para la memoria\n- hecho: x es y.\n\n## Cómo abrirlo\nDoble clic.')).toBe('Listo.\n\n## Cómo abrirlo\nDoble clic.')
+    expect(withoutMemoryNotes('Hablé de qué guardar para la memoria del proyecto.')).toBe('Hablé de qué guardar para la memoria del proyecto.')
   })
 })

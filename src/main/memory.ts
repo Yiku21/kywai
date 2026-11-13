@@ -78,6 +78,17 @@ export function parseMemoryNotes(text: string): MemoryNote[] {
 }
 
 /**
+ * La respuesta sin su sección «Para la memoria»: son notas para el siguiente agente (ya guardadas en la pestaña
+ * Memoria), no parte de lo que el usuario pidió. Lo que venga después en otra sección se conserva.
+ */
+export function withoutMemoryNotes(text: string): string {
+  return (text ?? '')
+    .replace(/^\s{0,3}(?:#{1,4}\s*|\*\*)para la memoria\b[^\n]*(?:\n(?!\s{0,3}#{1,4}\s)[^\n]*)*/im, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+/**
  * El resumen de lo hecho en una tarea, si el agente no lo dejó en «Para la memoria»: el último párrafo de su
  * respuesta (donde se le pide el resumen), en una línea. Null si ya lo dejó o no hay nada aprovechable.
  */

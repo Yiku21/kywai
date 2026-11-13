@@ -23,6 +23,7 @@ import {
   approvePlan,
   cancelAll,
   getTaskChanges,
+  verificationLine,
   undoTask,
   cancelRun,
   initOrchestrator,
@@ -1253,16 +1254,13 @@ async function main(): Promise<void> {
       const verify = calls.slice(from)[2]
       assert.ok(verify.prompt.includes('## Petición original del usuario') && verify.prompt.includes('Formulario de alta'), 'el verificador ve la petición y la tarea')
       const msgs = store.snapshotProject(up.id).messages
-      const review = msgs.find((m) => m.text.includes('Claude comprobó «Formulario de alta» y vio fallos; Codex los corrige'))
-      assert.ok(review, 'se cuenta la corrección')
-      // La revisión la firma quien la hizo, no el autor; y la corrección sigue en el mismo bloque, que baja al final.
-      assert.deepEqual(review.author, { type: 'agent', agentId: 'claude' })
-      assert.ok(!review.work, 'la revisión es un mensaje aparte, no el bloque de la tarea')
+      // El ir y venir de la revisión no sale en el chat (queda en el registro de la tarea): un solo bloque, sin
+      // mensaje del verificador ni la línea «✔ … comprobó el resultado».
+      assert.ok(!msgs.some((m) => m.text.includes('vio fallos')), 'la revisión no sale en el chat')
       const blocks = msgs.filter((m) => m.work && m.runId === runId)
       assert.equal(blocks.length, 1, 'un solo bloque para la tarea y su corrección')
-      assert.ok(msgs.indexOf(blocks[0]) > msgs.indexOf(review), 'el bloque corregido queda debajo de la revisión')
       const done = msgs.find((m) => m.work?.status === 'done')!
-      assert.ok(done.text.includes('✔ Claude comprobó el resultado tras una corrección: cumple, sin pruebas ejecutadas'), done.text)
+      assert.ok(!done.text.includes('comprobó el resultado'), done.text)
       const task = store.snapshotProject(up.id).tasks.find((t) => t.runId === runId)!
       assert.equal(task.status, 'done')
       assert.deepEqual([task.verification?.by, task.verification?.ok, task.verification?.fixes], ['claude', true, 1])
@@ -1364,15 +1362,16 @@ async function main(): Promise<void> {
       const b = await go('Haz el formulario de pago otra vez')
       assert.deepEqual(b.seq.slice(2), ['plan:claude', 'plan:gemini'])
       assert.deepEqual(b.task.verification?.status, 'passed')
-      assert.ok(b.done.includes('✔ Gemini comprobó el resultado: cumple, sin pruebas ejecutadas'), b.done)
+      assert.ok(!b.done.includes('comprobó el resultado'), b.done)
 
       // 3. Dos correcciones y a la tercera revisión cumple: no hay relevo.
       verdicts = ['VEREDICTO: FALLOS\n- falta el CVV', 'VEREDICTO: FALLOS\n- el CVV acepta letras', 'VEREDICTO: CUMPLE\nok']
       const c = await go('Haz el formulario de pago con CVV')
       assert.deepEqual(c.seq, ['plan:claude', 'work:codex', 'plan:claude', 'work:codex', 'plan:claude', 'work:codex', 'plan:claude'])
       assert.deepEqual([c.task.verification?.status, c.task.verification?.fixes, c.task.verification?.relayedTo], ['passed', 2, undefined])
-      assert.ok(c.done.includes('tras 2 correcciones: cumple'), c.done)
-      assert.ok(store.snapshotProject(pr.id).messages.some((m) => m.runId === c.runId && m.text.includes('(corrección 2 de 2)')))
+      assert.ok(!c.done.includes('comprobó el resultado') && verificationLine(c.task.verification!).includes('tras 2 correcciones: cumple'), c.done)
+      assert.ok(!store.snapshotProject(pr.id).messages.some((m) => m.runId === c.runId && m.text.includes('(corrección 2 de 2)')), 'la revisión no sale en el chat')
+      assert.ok(getTaskTrace(c.task.id).some((e) => JSON.stringify(e).includes('(corrección 2 de 2)')), 'la revisión queda en el registro de la tarea')
 
       // 4. Sigue fallando: un relevo a otro agente fuerte con las notas, y si tampoco pasa, «requiere intervención».
       verdicts = ['VEREDICTO: FALLOS\n- uno', 'VEREDICTO: FALLOS\n- dos', 'VEREDICTO: FALLOS\n- tres', 'VEREDICTO: FALLOS\n- cuatro: sigue sin validar']
@@ -1442,7 +1441,7 @@ async function main(): Promise<void> {
         assert.deepEqual(hostRuns, [])
         assert.deepEqual(a.task.verification?.tests, { status: 'passed', by: 'agent', commands: ['npm test'] })
         assert.ok(a.verifies[0].prompt.includes('Codex ejecutó «npm test» después del último cambio y pasaron.'), 'el verificador sabe qué se probó')
-        assert.ok(a.done.includes('cumple; las pruebas pasan (npm test)'), a.done)
+        assert.ok(!a.done.includes('comprobó el resultado') && verificationLine(a.task.verification!).includes('cumple; las pruebas pasan (npm test)'), a.done)
 
         // 2. Con «| tail» el resultado queda escondido: no cuenta. kywai ejecuta las pruebas, fallan, y la salida
         //    viaja con los fallos a la corrección; en la corrección el agente las pasa y queda aprobada.
@@ -1471,7 +1470,7 @@ async function main(): Promise<void> {
         assert.deepEqual(hostRuns, ['npm test'])
         assert.equal(c.task.verification?.tests?.status, 'none')
         assert.ok(c.verifies[0].prompt.includes('No se ejecutó ninguna prueba') && c.verifies[0].prompt.includes('no digas que las pruebas pasan'))
-        assert.ok(c.done.includes('cumple, sin pruebas ejecutadas (no se pudieron ejecutar «npm test»'), c.done)
+        assert.ok(verificationLine(c.task.verification!).includes('cumple, sin pruebas ejecutadas (no se pudieron ejecutar «npm test»'), c.done)
       } finally {
         __setProjectCheckRunnerForChecks(null)
         workBehaviour = () => null

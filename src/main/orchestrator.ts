@@ -70,7 +70,7 @@ import { finishTrace, getTaskTrace, startTrace, traceFiles, traceNote, traceUpda
 import { withoutClosingNotes, workSteps } from '@shared/work'
 import { lang, locale, renderMsg, replyLanguage, tl, tr, userLanguageName } from '@shared/i18n'
 import { findNewFiles, imagePathFromTrace, PROGRESS_EVERY_MS, PROGRESS_LIMITS } from './progressFiles'
-import { addMemory, markAnswered, openPending, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNotes, planMemoryNotes, taskSummaryNote, type MemoryNote } from './memory'
+import { addMemory, markAnswered, openPending, KIND_LABEL, leanCodeOf, memoryPromptSections, parseMemoryNotes, planMemoryNotes, taskSummaryNote, withoutMemoryNotes, type MemoryNote } from './memory'
 import { normalizeScope, outsideScope } from './scope'
 import { CHAT_STYLE, coordinatorGuide, mentionsApp, taskGuideRules } from './coordinatorGuide'
 import { projectBrief, testCommand } from './projectBrief'
@@ -4054,10 +4054,9 @@ function requeueFilmFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfi
   meta.forceMainModel = true
   meta.resume = meta.sessionId
   const note = tr('{byName} comprobó la película «{title}» y vio fallos; {name} los corrige (corrección {fixesDone} de {max}):\n\n{clip}', { byName, title: t.title, name: owner.name, fixesDone: meta.fixesDone, max: MAX_FILM_FIXES, clip: clip(issues, 1500) })
-  if (byId) {
-    closeWork(run, t, 'stopped', {})
-    agentMessage(run, byId, note)
-  } else closeWork(run, t, 'stopped', { text: note })
+  // Igual que las demás revisiones: al registro de la tarea, no al chat.
+  traceNote(t.id, note)
+  closeWork(run, t, 'stopped', {})
   if (parent) {
     removeBecario(exec.id)
     t.agentId = parent.id
@@ -6689,8 +6688,9 @@ function requeueForFix(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig
   // Corrige en la misma sesión del CLI: recuerda lo que hizo y por qué.
   meta.resume = meta.sessionId
   // La revisión la firma quien la hizo (no el autor de la tarea): sale como mensaje suyo, debajo del bloque de la tarea.
+  // El ir y venir de la revisión no sale en el chat: queda en el registro de la tarea («Abrir el registro completo»).
+  traceNote(t.id, tr('{byName} comprobó «{title}» y vio fallos; {name} los corrige (corrección {fixesDone} de {MAX_REVIEW_FIXES}):\n\n{clip}', { byName: v.byName, title: t.title, name: owner.name, fixesDone: meta.fixesDone, MAX_REVIEW_FIXES, clip: clip(v.notes, 1500) }))
   closeWork(run, t, 'stopped', {})
-  agentMessage(run, v.by, tr('{byName} comprobó «{title}» y vio fallos; {name} los corrige (corrección {fixesDone} de {MAX_REVIEW_FIXES}):\n\n{clip}', { byName: v.byName, title: t.title, name: owner.name, fixesDone: meta.fixesDone, MAX_REVIEW_FIXES, clip: clip(v.notes, 1500) }))
   if (parent) {
     transfer({ fromId: exec.id, toId: parent.id, label: tr('Corregir: {title}', { title: t.title }), taskId: t.id, payload: { title: t.title, summary: oneLine(v.notes, 200) } })
     removeBecario(exec.id)
@@ -6716,6 +6716,11 @@ export function verificationLine(v: TaskVerification): string {
   if (v.status === 'unverified')
     return tr('⚠ Sin verificar: {byName} revisó el resultado pero no dio un veredicto claro, ni al pedírselo otra vez. Los archivos están hechos; revísalos antes de darlos por buenos.', { byName: v.byName })
   return tr('⚠ Requiere intervención: {byName} sigue viendo fallos{v2}. Los archivos se quedan para que los abras o deshagas la tarea:\n\n{clip}', { byName: v.byName, v2: after ? ` ${after}` : '', clip: clip(v.notes, 800) })
+}
+
+/** La revisión solo sale en el chat si el usuario tiene que mirar algo: no cumple, quedó sin verificar o fallan las pruebas. */
+export function verificationNeedsUser(v: TaskVerification): boolean {
+  return v.status !== 'passed' || v.tests?.status === 'failed'
 }
 
 async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentConfig | null, res: RunAgentResult): Promise<void> {
@@ -6761,8 +6766,11 @@ async function completeTask(run: Run, t: Task, exec: AgentConfig, parent: AgentC
     payload: { title: t.title, summary: oneLine(text, 200), files }
   })
   const v = meta.verification
-  const verified = v ? `\n\n${verificationLine(v)}` : ''
-  const msgText = (savedTo ? tr('Guardé el resultado de «{title}» en `{savedTo}`.\n\n{clip}', { title: t.title, savedTo, clip: clip(text, 600) }) : clip(text, 8000)) + verified + (learned ? `\n\n${learned}` : '')
+  // En el chat, lo que el usuario pidió: las notas «Para la memoria» van a la pestaña Memoria y una revisión que
+  // salió bien se queda en el registro de la tarea. Solo se cuenta la revisión si necesita que mire algo.
+  const shown = withoutMemoryNotes(text) || tr('Tarea completada.')
+  const verified = v && verificationNeedsUser(v) ? `\n\n${verificationLine(v)}` : ''
+  const msgText = (savedTo ? tr('Guardé el resultado de «{title}» en `{savedTo}`.\n\n{clip}', { title: t.title, savedTo, clip: clip(shown, 600) }) : clip(shown, 8000)) + verified + (learned ? `\n\n${learned}` : '')
   const delivered = arts.length ? { artifactIds: arts.map((a) => a.id) } : {}
   if (!closeWork(run, t, 'done', { text: msgText, ...delivered }, !!res.text.trim())) agentMessage(run, owner.id, msgText, delivered)
 
