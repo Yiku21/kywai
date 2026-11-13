@@ -3257,7 +3257,11 @@ trucos, la gran idea). Con un estilo de película, las tareas se reparten entre 
 y se hacen a la vez; las que tocan al mismo agente esperan su turno solas. Cada MP4 llega al chat cuando termina y, al
 final, un resumen con todos. Con más de 6, kywai hace **6 a la vez** y los demás empiezan solos en cuanto acaban
 esos (por tandas, sin volver a pedirlo); el chat lo avisa. El número solo cuenta si va con una orden de crear («hazme 3 vídeos») o al principio:
-«/video los 5 vídeos más vistos» es un solo vídeo. Código: `src/shared/videoBatch.ts` y `sendVideo` en
+«/video los 5 vídeos más vistos» es un solo vídeo. Una lista **no** cuenta como varios vídeos si es un guion (lleva
+«Qué se dice:», «Texto en pantalla:», «Gancho:», «## Escena 2»…: son las partes de un mismo vídeo) ni si pides «un
+vídeo» («hazme un vídeo que cuente: - qué es - los temas 3D» es uno; «un vídeo por idea» sí son varios). Antes, cuando
+Hermes pasaba un guion entero al estudio, cada viñeta salía como un vídeo aparte («Vídeo 1 de 12: **Qué se dice:** …»).
+Código: `src/shared/videoBatch.ts` y `sendVideo` en
 `src/main/orchestrator.ts`.
 
 **Vídeos desde tus guiones.** Si un vídeo (o una idea de la lista) nombra un archivo de texto del proyecto

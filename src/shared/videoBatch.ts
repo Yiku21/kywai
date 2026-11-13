@@ -34,6 +34,19 @@ const SEVERAL_RE = new RegExp(
 const ASK_RE =
   /(?:^|[^\p{L}])(?:cr[eé]a(?:me|r)?|haz(?:me)?|hacer|gen[eé]ra(?:me|r)?|prep[aá]ra(?:me|r)?|quiero|necesito|dame|m[oó]nta(?:me|r)?|make|create|generate|produce|give\s+me|i\s+want|need)(?:\s+\p{L}+){0,3}\s*$/iu;
 
+/** Pide uno solo: «un vídeo», «1 reel», «a video»… (no «un vídeo por guion» ni «un vídeo de cada idea», que son varios). */
+const ONE_RE = new RegExp(
+  `(?:^|[^\\p{L}\\d])(?:un|una|1|one|a|an|single)\\s+(?:\\p{L}+\\s+)?(?:v[ií]deo|video|reel|clip|short|tiktok|pieza|pel[ií]cula|anuncio|promo)(?![\\p{L}])(?!\\s+(?:\\p{L}+\\s+)?(?:por|para\\s+cada|de\\s+cada|con\\s+cada|per|for\\s+each|each))`,
+  "iu",
+);
+
+/**
+ * El texto es un guion, no una lista de vídeos: Hermes a veces mete el guion entero en la orden «/video …» y sus
+ * viñetas («- **Qué se dice:** …», «- **Texto en pantalla:** …», «## Escena 2») no son vídeos distintos.
+ */
+const SCRIPT_RE =
+  /^\s*#{1,6}\s|\*\*[^*\n]{1,40}:\s*\*\*|\*\*[^*\n]{1,40}\*\*\s*:|(?:^|[^\p{L}])(?:qu[eé]\s+se\s+dice|texto\s+en\s+pantalla|voz\s+en\s+off|narraci[oó]n|gancho|escena\s+\d|plano\s+\d|on-?screen\s+text|voice-?over|scene\s+\d|hook)\s*:/imu;
+
 /** Una línea de lista: «1) …», «2. …», «- …», «• …». */
 const ITEM_RE = /^\s*(?:\d{1,2}\s*[).:-]|[-•*])\s+(.{3,})$/;
 
@@ -61,11 +74,13 @@ function inlineIdeas(text: string): string[] {
 
 /** Cuántos vídeos pide el texto (null si es uno solo). */
 export function videoBatchOf(text: string): VideoBatch | null {
-  const lines = text
+  // Un guion entero: sus viñetas son partes del mismo vídeo; solo cuenta un número pedido («hazme 3 vídeos»).
+  const script = SCRIPT_RE.test(text);
+  const lines = script ? [] : text
     .split("\n")
     .map((l) => ITEM_RE.exec(l)?.[1].trim())
     .filter((x): x is string => !!x);
-  const ideas = lines.length >= 2 ? lines : inlineIdeas(text);
+  const ideas = lines.length >= 2 ? lines : script ? [] : inlineIdeas(text);
   const asked = (re: RegExp): RegExpExecArray | null => {
     const m = re.exec(text);
     if (!m) return null;
@@ -81,7 +96,8 @@ export function videoBatchOf(text: string): VideoBatch | null {
     : asked(SEVERAL_RE)
       ? SEVERAL
       : 0;
-  if (!count && ideas.length >= 2) count = ideas.length;
+  // «Hazme un vídeo …» con una lista dentro: es uno solo (los puntos son lo que cuenta ese vídeo).
+  if (!count && ideas.length >= 2 && !asked(ONE_RE)) count = ideas.length;
   if (count < 2) return null;
   count = Math.min(count, MAX_BATCH);
   return { count, ideas: ideas.length >= 2 ? ideas.slice(0, count) : [] };

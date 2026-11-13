@@ -61,4 +61,42 @@ describe("varios vídeos con un solo /video", () => {
       "Al tuyo le toca: la voz.",
     );
   });
+
+  it("un guion con viñetas es un solo vídeo, no uno por viñeta", () => {
+    const guion = [
+      "tipo:charla personaje:robots-kywai The Dog's Party Planner",
+      "## Escena 1",
+      "- **Qué se dice:** “My dog invited everyone to a party”",
+      "- **Texto en pantalla:** “100 INVITES”",
+      "## Escena 2",
+      "- **Qué se dice:** “Then he ordered the cake”",
+      "- **Texto en pantalla:** “1 CAKE”",
+    ].join("\n");
+    expect(videoBatchOf(guion)).toBeNull();
+    expect(
+      videoBatchOf(
+        "1) **Qué se dice:** hola 2) **Texto en pantalla:** HOLA 3) **Qué se dice:** adiós",
+      ),
+    ).toBeNull();
+    expect(
+      videoBatchOf("Hook: stop scrolling\n- Scene 1: a dog\n- Scene 2: a cake"),
+    ).toBeNull();
+    // Si pide un número, sí son varios aunque traiga un guion.
+    expect(videoBatchOf(`hazme 2 vídeos\n${guion}`)?.count).toBe(2);
+  });
+
+  it("«un vídeo» con una lista dentro es uno solo", () => {
+    expect(
+      videoBatchOf(
+        "hazme un vídeo de kywai que cuente:\n- qué es\n- los temas 3D\n- el estudio de vídeo",
+      ),
+    ).toBeNull();
+    expect(
+      videoBatchOf("make a video covering:\n- the app\n- the 3D themes"),
+    ).toBeNull();
+    // «un vídeo por …» siguen siendo varios.
+    expect(
+      videoBatchOf("haz un vídeo por idea:\n- qué es\n- los temas 3D")?.count,
+    ).toBe(2);
+  });
 });
