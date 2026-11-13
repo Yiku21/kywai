@@ -715,6 +715,24 @@
   background: var(--bg-panel);
 }
 
+/* Archivos de trabajo: una línea pequeña bajo el archivo pedido; al pulsarla se despliegan. */
+.workFiles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Pueden ser decenas: la lista desplegada no se come el chat, se recorre dentro. */
+.workFiles .folderList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.workFilesActions {
+  display: flex;
+  padding-left: 12px;
+}
+
 /* ---------- Plan propuesto (espera tu visto bueno) ---------- */
 
 .proposal {

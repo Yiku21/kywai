@@ -2191,7 +2191,7 @@ function ArtifactCards({ ids, projectId }: { ids: string[]; projectId: string })
             <ArtifactRow key={a.id} a={a} list={ordered} />
           ))}
         </ul>
-        <DeliverablesFolder list={work} projectId={projectId} title={t('Archivos de trabajo')} previewList={ordered} />
+        <WorkFilesLine list={work} projectId={projectId} previewList={ordered} />
       </>
     )
   }
@@ -2244,15 +2244,54 @@ function ArtifactRow({ a, list }: { a: Artifact; list: Artifact[] }) {
   )
 }
 
+/**
+ * Los archivos de trabajo de una tarea (json, scripts, datos): una línea pequeña, plegada, que no compite con el
+ * archivo pedido. Al pulsarla se despliegan para abrir cada uno o bajarlos todos en un zip.
+ */
+function WorkFilesLine({ list, projectId, previewList }: { list: Artifact[]; projectId: string; previewList: Artifact[] }) {
+  const [open, setOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const listId = useId()
+  const name = t('Archivos de trabajo')
+  return (
+    <div className={s.workFiles}>
+      <button type="button" className={s.moreHead} aria-expanded={open} aria-controls={listId} onClick={() => setOpen((o) => !o)}>
+        <Folder size={13} aria-hidden="true" />
+        <span>
+          {name} · {list.length}
+        </span>
+        <ChevronRight size={14} className={cx(s.toolsChev, open && s.toolsChevOpen)} aria-hidden="true" />
+      </button>
+      {open && (
+        <>
+          <ul id={listId} className={s.folderList} aria-label={name}>
+            {list.map((a) => (
+              <ArtifactRow key={a.id} a={a} list={previewList} />
+            ))}
+          </ul>
+          <div className={s.workFilesActions}>
+            <ArtifactDownloadButton projectId={projectId} ids={list.map((a) => a.id)} name={name} onError={setError} />
+          </div>
+          {error && (
+            <p className={s.resumeError} role="alert">
+              {error}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 /** Varios entregables en una sola carpeta (plegada): al pulsarla se despliegan para abrir cada uno. */
-function DeliverablesFolder({ list, projectId, title, previewList }: { list: Artifact[]; projectId: string; title?: string; previewList?: Artifact[] }) {
+function DeliverablesFolder({ list, projectId }: { list: Artifact[]; projectId: string }) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lookup = useAgentLookup()
   const live = useCowork((st) => st.mode === 'live')
   const listId = useId()
   const folder = commonFolder(list.map((a) => a.relPath))
-  const name = title ?? folderName(folder)
+  const name = folderName(folder)
   const authors = [...new Set(list.map((a) => lookup(a.agentId).name))]
   // Desde el navegador no se puede abrir una carpeta del Mac.
   const canOpenFolder = !!api && live && !isWeb && !!folder
@@ -2299,7 +2338,7 @@ function DeliverablesFolder({ list, projectId, title, previewList }: { list: Art
       {open && (
         <ul id={listId} className={s.folderList} aria-label={t('Archivos de {name}', { name })}>
           {list.map((a) => (
-            <ArtifactRow key={a.id} a={a} list={previewList ?? list} />
+            <ArtifactRow key={a.id} a={a} list={list} />
           ))}
         </ul>
       )}

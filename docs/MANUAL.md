@@ -1574,7 +1574,8 @@ plegada. Si el coordinador está ocupado o no responde, se queda la lista de sie
 
 **Lo que pediste va delante.** Si entre los archivos de una tarea hay uno que destaca como resultado (el PDF, el
 vídeo, la página, el documento), sale **suelto, con Abrir y Descargar**, y el resto (json, scripts, datos, capturas)
-queda debajo en una carpeta plegada **«Archivos de trabajo»**. Es la misma regla de la pestaña Resultados. Con más de
+queda debajo en **una línea pequeña, «Archivos de trabajo · N»**: plegada no enseña nada más, y al pulsarla se
+despliegan (con su «Descargar como zip»). Es la misma regla de la pestaña Resultados. Con más de
 tres resultados principales (una tanda de imágenes) o si ninguno destaca, va todo en la carpeta, como abajo. Una
 tarea registra como mucho 60 archivos como entregables, y esos 60 se eligen empezando por los resultados: antes iban
 por orden alfabético y 60 JSON de `api/` dejaban fuera el `reporte.pdf` que se había pedido. En Órbita el chat sigue
