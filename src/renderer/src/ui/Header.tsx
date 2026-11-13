@@ -8,6 +8,7 @@ import { QuotaChip } from './quota/QuotaChip'
 import { CompactQuotas } from './header/CompactQuotas'
 import { LogoMark } from './header/LogoMark'
 import { ProjectSelector } from './header/ProjectSelector'
+import { TOGGLE_SIDEBAR_EVENT } from './sidebar/sidebarState'
 import u from './common/ui.module.css'
 import s from './Header.module.css'
 import { t } from '@/lib/i18n'
@@ -35,7 +36,16 @@ export function Header() {
   return (
     <header className={s.header}>
       <div className={s.brand}>
-        <LogoMark />
+        {/* El logo abre y pliega la barra lateral (antes había un botón aparte arriba de la barra). */}
+        <button
+          type="button"
+          className={s.logoBtn}
+          onClick={() => window.dispatchEvent(new Event(TOGGLE_SIDEBAR_EVENT))}
+          title={t('Abrir o plegar la barra lateral')}
+          aria-label={t('Abrir o plegar la barra lateral')}
+        >
+          <LogoMark />
+        </button>
         <span className={s.title}>kywai</span>
         <span className={s.divider} aria-hidden="true" />
         <span className={s.team} title={busy ? t('Hay agentes trabajando') : t('El equipo está en espera')}>

@@ -15,7 +15,6 @@ import {
   ListFilter,
   MessageSquare,
   Package,
-  PanelLeft,
   Pencil,
   Plus,
   Search,
@@ -39,7 +38,7 @@ import { cx, errorText } from '../common/util'
 import { TABS_QUERY } from '../left/chatWidth'
 import { isSettingsKey, openSettings } from '../settings/SettingsDialog'
 import { ContextMenu, menuPoint, type MenuAt, type MenuEntry } from './ContextMenu'
-import { NEW_CHAT_KEYS, SEARCH_KEYS, SIDEBAR_DEFAULT, isNewChatKey, isSearchKey, readCollapsed, readSidebarWidth, saveCollapsed, saveSidebarWidth, shortDate } from './sidebarState'
+import { NEW_CHAT_KEYS, SEARCH_KEYS, SIDEBAR_DEFAULT, TOGGLE_SIDEBAR_EVENT, isNewChatKey, isSearchKey, readCollapsed, readSidebarWidth, saveCollapsed, saveSidebarWidth, shortDate } from './sidebarState'
 import { SidebarResizer } from './SidebarResizer'
 import { DragProvider, DragSlot, useDragged } from './DragSlot'
 import { applyOrder, chatKey, placeKey, projectKey, type Dragged, type DropPlace } from './dragOrder'
@@ -65,7 +64,7 @@ const RECENT_LIMIT = 8
  * rutinas), proyectos fijados, proyectos con sus conversaciones y las conversaciones recientes de todos; abajo,
  * dónde estás conectado y la rueda de Ajustes. Plegada queda en una columna de iconos. En ventanas estrechas (móvil,
  * tableta en vertical) esa columna de iconos se queda siempre a la izquierda, y la barra entera se abre por encima
- * del chat con su primer botón.
+ * del chat. Se abre y se pliega con el logo de kywai de la cabecera.
  */
 export function Sidebar() {
   const narrow = useMediaQuery(TABS_QUERY)
@@ -106,13 +105,18 @@ export function Sidebar() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  function toggle(): void {
-    if (narrow) return useCowork.setState({ drawerOpen: true })
-    setCollapsed((c) => {
-      saveCollapsed(!c)
-      return !c
-    })
-  }
+  // El logo de kywai de la cabecera abre y pliega la barra (en ventana estrecha abre el cajón con la barra entera).
+  useEffect(() => {
+    const toggle = (): void => {
+      if (narrow) return useCowork.setState((st) => ({ drawerOpen: !st.drawerOpen }))
+      setCollapsed((c) => {
+        saveCollapsed(!c)
+        return !c
+      })
+    }
+    window.addEventListener(TOGGLE_SIDEBAR_EVENT, toggle)
+    return () => window.removeEventListener(TOGGLE_SIDEBAR_EVENT, toggle)
+  }, [narrow])
 
   const panel = (
     <nav
@@ -121,17 +125,6 @@ export function Sidebar() {
       style={rail ? undefined : ({ '--side-w': `${width}px` } as CSSProperties)}
       aria-label={t('Barra lateral: conversaciones y proyectos')}
     >
-      <div className={s.top}>
-        <button
-          type="button"
-          className={s.iconBtn}
-          onClick={toggle}
-          aria-label={rail ? t('Abrir la barra lateral') : t('Plegar la barra lateral')}
-          title={rail ? t('Abrir la barra lateral') : t('Plegar la barra lateral')}
-        >
-          <PanelLeft size={18} aria-hidden="true" />
-        </button>
-      </div>
       <DragProvider>
         <SidebarBody rail={rail} />
       </DragProvider>

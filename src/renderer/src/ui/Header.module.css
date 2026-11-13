@@ -20,6 +20,30 @@
   flex: 1 1 auto;
 }
 
+.logoBtn {
+  display: inline-grid;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: none;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease), filter var(--dur-fast) var(--ease);
+}
+
+.logoBtn:hover {
+  filter: brightness(1.15);
+}
+
+.logoBtn:active {
+  transform: scale(0.94);
+}
+
+.logoBtn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
 .title {
   font-size: 20px;
   font-weight: 600;

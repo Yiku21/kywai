@@ -3676,11 +3676,11 @@ misma tarjeta y con el color del tema que tengas.
 No hay «Marcar como no leído» ni «Archivar» como en Claude: aquí todas las conversaciones se guardan solas y no hay
 estado de leído.
 
-El botón de arriba de la barra la **pliega** a una columna de iconos (con los números de los avisos); se recuerda en
+El **logo de kywai** (arriba a la izquierda, en la cabecera) **abre y pliega** la barra a una columna de iconos (con los números de los avisos); se recuerda en
 cada dispositivo. Si nunca la has tocado, en ventanas de menos de 1300 px empieza plegada. En ventanas estrechas
 (navegador del móvil, tableta en vertical o menos de 950 px) la barra **siempre queda plegada en su columna de iconos**
-a lo largo de la izquierda, bajo el logo de la cabecera, y se usa sin abrirla; su botón de arriba abre la barra entera
-por encima del chat.
+a lo largo de la izquierda, bajo el logo de la cabecera, y se usa sin abrirla; el logo abre la barra entera por encima
+del chat (la ✕ o un clic fuera la cierra).
 
 **Volver al chat con la barra plegada.** Bajo los accesos (tras una raya) va el icono del **chat en el que estás**:
 desde Resultados, Tareas, Tablero o Rutinas, un clic te devuelve a él. Debajo salen **tus proyectos** con su inicial

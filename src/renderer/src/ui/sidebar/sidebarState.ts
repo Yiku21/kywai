@@ -15,6 +15,9 @@ export function readCollapsed(): boolean {
   return typeof window !== 'undefined' && window.innerWidth < AUTO_COLLAPSE_BELOW
 }
 
+/** Evento de ventana que lanza el logo de la cabecera para abrir o plegar la barra lateral. */
+export const TOGGLE_SIDEBAR_EVENT = 'cowork:toggle-sidebar'
+
 export function saveCollapsed(collapsed: boolean): void {
   try {
     localStorage.setItem(KEY, collapsed ? 'closed' : 'open')
