@@ -95,7 +95,7 @@ import { scriptFileOf, scriptSource } from './videoScriptFile'
 import { parseVideoRequest, parseVideoScript, synthMusic, videoScriptPrompt, videoSlug, type VideoFormat, type VideoScript, type VideoStyle } from './videoScript'
 import { saveCharacterLook, videoCharacter } from './videoCharacters'
 import { ROBOTS_CHARACTER, videoLang, type VideoKind, type VideoStructure } from '../shared/videoChoice'
-import { CAST_DIR, CAST_NOTES, canDrawImages, checkFilmFile, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, speakLine, videoFrames, videoStudioDir } from './videoStudio'
+import { CAST_DIR, CAST_NOTES, canDrawImages, checkFilmFile, comfyAvailable, ensureVideoStudio, filmContactSheet, isVideoFile, manimSupport, mediaSeconds, projectCast, renderVideo, saveCastImages, saveCastNotes, speakLine, videoFrames, videoStudioDir } from './videoStudio'
 import { findFreeVideo } from './freevideo'
 import { capturePage, htmlToPng, type PageCapture } from './htmlShot'
 import { DUB_LANGUAGES, applyDub, dubPrompt, findDubSource, loadDubSource, markDelivered, markedNarration, parseDubRequest, rawScript, type DubRequest } from './dub'
@@ -2020,6 +2020,9 @@ function withBatch(topic: string, batch: { brief: string } | undefined): string 
  * Petición de vídeo: una sola tarea en la que el agente escribe el guion (JSON) y, al terminar, kywai monta el vídeo
  * (completeVideo). Sin plan de Hermes ni resumen final: la respuesta es el vídeo. Si el agente falla, pasa a otro.
  */
+/** El aspecto con el que se dibujan los robots de «Charla y tutorial» cuando hay ComfyUI y no se eligió otro. */
+const CHARLA_COMFY_LOOK = 'cine-3d'
+
 async function sendVideo(
   st: ReturnType<typeof store.getProject>,
   req: { topic: string; format: VideoFormat; style: VideoStyle; source?: string; film?: string; saveCast?: boolean; character?: string; kind?: VideoKind; voice?: string; dialogue?: boolean; review?: boolean; structure?: VideoStructure; look?: string; episode?: { n: number; total: number; vote?: string }; afterwards?: 'ig-trial' },
@@ -2042,9 +2045,13 @@ async function sendVideo(
         ? tr('Para un vídeo con estilo hace falta un agente con terminal (Claude, Codex, Gemini…) que funcione ahora mismo.')
         : tr('No hay ningún agente disponible para escribir el guion del vídeo.')
     )
-  // Charla o sketch con los robots y un aspecto elegido: si hay con qué dibujar (ComfyUI o Gemini), los robots se
+  // Charla o sketch con los robots sin aspecto elegido: si hay ComfyUI en este equipo, los robots se dibujan en
+  // «Cine 3D» (lo pidió Yil); sin ComfyUI siguen en el plató 3D.
+  const robotsCharla = !film && req.style === 'charla' && req.character === ROBOTS_CHARACTER
+  if (robotsCharla && !imageLook(req.look) && (await comfyAvailable())) req = { ...req, look: CHARLA_COMFY_LOOK }
+  // Charla o sketch con los robots y un aspecto: si hay con qué dibujar (ComfyUI o Gemini), los robots se
   // dibujan en ese aspecto en cada plano; si no, salen en el plató 3D de siempre.
-  const drawCast = !film && req.style === 'charla' && !!imageLook(req.look) && req.character === ROBOTS_CHARACTER && (await canDrawImages())
+  const drawCast = robotsCharla && !!imageLook(req.look) && (await canDrawImages())
   const runId = randomUUID()
   const label = req.topic || oneLine(req.source ?? '', 60) || tr('vídeo')
   // Lo lanza Hermes desde una petición con otras palabras: el mensaje del usuario ya está en el chat.

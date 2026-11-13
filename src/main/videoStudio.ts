@@ -207,6 +207,13 @@ export async function canDrawImages(): Promise<boolean> {
   return !!findComfyInstall() && startComfy()
 }
 
+/** ¿Hay ComfyUI en este equipo? Encendido con un modelo, o instalado y apagado (se enciende ya, mientras el agente
+ * escribe el guion). Sin contar Gemini: decide si los robots de «Charla y tutorial» se dibujan por defecto. */
+export async function comfyAvailable(): Promise<boolean> {
+  if ((await comfyStatus()).info) return true
+  return !!findComfyInstall() && startComfy()
+}
+
 /** Clave de API de Gemini: la del entorno o la que guarda Gemini CLI (~/.gemini/.env), donde la escribe el asistente. */
 export function geminiApiKey(): string | null {
   if (process.env.GEMINI_API_KEY?.trim()) return process.env.GEMINI_API_KEY.trim()

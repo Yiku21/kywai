@@ -2961,6 +2961,9 @@ en las rutinas; lo de por defecto no lleva marca (`src/shared/videoChoice.ts`). 
    encargo pide planos de los dos (`shots`) y Gemini ve sus imágenes (`drawCast` en la tarea). Si al final no sale
    ninguna imagen (por ejemplo, una clave de Gemini del plan gratis, que no dibuja), el vídeo vuelve al plató 3D. Sin
    motor de imágenes, el aspecto solo cambiaría la pantalla gigante, que entonces lleva fondos de diseño.
+   **Sin aspecto elegido y con ComfyUI en el equipo** (encendido con un modelo, o instalado: se enciende solo), los
+   robots **también se dibujan con ComfyUI**, en «Cine 3D» (`CHARLA_COMFY_LOOK` en `sendVideo`, `comfyAvailable` en
+   `videoStudio.ts`). Solo con clave de Gemini y sin ComfyUI, sin aspecto siguen en el plató 3D.
    **Sketch de humor** (`tipo:sketch`, o escribir «un sketch de humor» / «tipo sketch»): la misma charla de dos
    personajes (plató, diálogo, vertical, burbujas en el gancho y «Comenta PALABRA»), pero **sin pasos, ni puntos, ni
    tarjetas «PASO n/N»**: el encargo pide una situación cómica con conflicto, giros, réplicas rápidas, personalidades
