@@ -103,6 +103,18 @@ export function CameraRig({ view, stations }: { view?: ViewInsets; stations?: St
     if (atOverview.current) overview(false)
   }, [overview, theme])
 
+  // Al redimensionar el panel con la cámara movida a mano, se acerca o aleja en la misma proporción que la vista
+  // general: lo que se estaba mirando sigue llenando el panel, sin volver de golpe al encuadre inicial.
+  const lastFrame = useRef(frame)
+  useEffect(() => {
+    const before = lastFrame.current
+    lastFrame.current = frame
+    if (!controls || atOverview.current || before === frame) return
+    const span = (f: typeof frame) => Math.hypot(f.eye[0] - f.target[0], f.eye[1] - f.target[1], f.eye[2] - f.target[2])
+    const ratio = span(frame) / span(before)
+    if (Math.abs(ratio - 1) > .01) void controls.dollyTo(controls.distance * ratio, false)
+  }, [controls, frame])
+
   useEffect(() => {
     if (!controls) return
     const handle = (cmd: CameraCommand) => {
