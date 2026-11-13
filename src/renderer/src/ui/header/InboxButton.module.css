@@ -85,6 +85,39 @@
   font-size: 11px;
 }
 
+.when {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* La X de cada aviso: discreta hasta que pasas por encima. */
+.hide {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -4px -6px -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-chip);
+  background: none;
+  color: var(--text-3, var(--text-2));
+  cursor: pointer;
+}
+
+.hide:hover:not(:disabled),
+.hide:focus-visible {
+  background: var(--bg-hover, var(--border));
+  color: var(--text-1);
+}
+
+.hide:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .kind {
   text-transform: uppercase;
   letter-spacing: 0.04em;

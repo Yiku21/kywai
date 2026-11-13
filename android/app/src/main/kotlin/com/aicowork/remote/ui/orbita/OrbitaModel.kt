@@ -576,6 +576,13 @@ class OrbitaModel(
         run({ controller.inboxAction(item.id, action.id) }) { inboxBusy = null }
     }
 
+    /** La X de un aviso: lo descarta para siempre en todas las apps sin tocar la tarea (servidor: actInbox «hide»). */
+    fun inboxHide(item: InboxItem) {
+        if (inboxBusy != null) return
+        inboxBusy = "${item.id}|$INBOX_HIDE"
+        run({ controller.inboxAction(item.id, INBOX_HIDE) }) { inboxBusy = null }
+    }
+
     /** «Visto» en un recién terminado de Resultados: se cierra el aviso (sin esperar a otro botón). */
     fun inboxSeen(item: InboxItem) {
         viewModelScope.launch { controller.inboxAction(item.id, item.actions.firstOrNull { it.id == "dismiss" }?.id ?: item.actions.firstOrNull()?.id ?: "dismiss") }

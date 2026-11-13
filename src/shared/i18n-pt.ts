@@ -3794,4 +3794,6 @@ export const pt: Record<string, string> = {
   "Otra suscripción de Claude (Pro o Max).": "Outra assinatura do Claude (Pro ou Max).",
   "Otra cuenta de ChatGPT.": "Outra conta do ChatGPT.",
   "Otra clave de API de Google AI Studio (o una cuenta de empresa).": "Outra chave de API do Google AI Studio (ou uma conta empresarial).",
+  "Descartar este aviso": "Descartar este aviso",
+  "Descartar: no volverá a salir (la tarea sigue igual)": "Descartar: não voltará a aparecer (a tarefa continua igual)",
 }

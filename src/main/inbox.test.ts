@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { setCurrentLang, tl } from '@shared/i18n'
-import { localizeInbox, needsYou } from '@shared/inbox'
-import { addInbox, initInbox } from './inbox'
+import { INBOX_HIDE, localizeInbox, needsYou } from '@shared/inbox'
+import { actInbox, addInbox, flushInbox, initInbox, onInboxAction, openInbox } from './inbox'
 
 describe('bandeja en el idioma de quien la lee', () => {
   afterEach(() => setCurrentLang('es'))
@@ -42,5 +42,43 @@ describe('bandeja en el idioma de quien la lee', () => {
   it('«Te necesita» es solo lo que espera algo de ti', () => {
     expect(needsYou({ kind: 'done' })).toBe(false)
     for (const kind of ['plan', 'question', 'stalled', 'mac-permission', 'verify-failed', 'conflict', 'failed', 'paused', 'budget'] as const) expect(needsYou({ kind })).toBe(true)
+  })
+})
+
+describe('la X de un aviso', () => {
+  it('lo quita para siempre, también tras reiniciar, y la misma clave no lo reabre', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'inbox-'))
+    initInbox(dir)
+    const item = addInbox({ kind: 'stalled', key: 'stall:t1', title: 'Claude ya terminó' })
+    expect(openInbox().map((i) => i.id)).toEqual([item.id])
+    const r = await actInbox(item.id, INBOX_HIDE)
+    expect(r.item.dismissedAt).toBeTypeOf('number')
+    expect(openInbox()).toEqual([])
+    // El mismo aviso otra vez (misma clave): se actualiza pero sigue descartado.
+    addInbox({ kind: 'stalled', key: 'stall:t1', title: 'Claude ya terminó (otra vez)' })
+    expect(openInbox()).toEqual([])
+    // Tras reiniciar sigue sin salir.
+    flushInbox()
+    initInbox(dir)
+    expect(openInbox()).toEqual([])
+    addInbox({ kind: 'stalled', key: 'stall:t1', title: 'Claude ya terminó' })
+    expect(openInbox()).toEqual([])
+  })
+
+  it('no toca la tarea, y sus botones (p. ej. desde el chat) siguen funcionando', async () => {
+    initInbox(mkdtempSync(join(tmpdir(), 'inbox-')))
+    const calls: string[] = []
+    onInboxAction('test-answer', (i) => {
+      calls.push(i.id)
+      return 'hecho'
+    })
+    const item = addInbox({ kind: 'permission', title: 'Permiso', actions: [{ id: 'test-answer', label: 'Permitir' }] })
+    await actInbox(item.id, INBOX_HIDE)
+    expect(calls).toEqual([])
+    const r = await actInbox(item.id, 'test-answer')
+    expect(calls).toEqual([item.id])
+    expect(r.message).toBe('hecho')
+    expect(r.item.dismissedAt).toBeUndefined()
+    expect(r.item.resolvedAt).toBeTypeOf('number')
   })
 })

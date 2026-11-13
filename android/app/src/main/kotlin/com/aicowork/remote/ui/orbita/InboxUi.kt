@@ -75,6 +75,9 @@ import kotlinx.coroutines.delay
 
 // ---------------------------------------------------------------------------------------------- Bandeja «Te necesita»
 
+/** La X de un aviso (POST /inbox/{id}/hide): lo descarta para siempre sin tocar la tarea. */
+const val INBOX_HIDE = "hide"
+
 /** Lo que muestra cada tipo de aviso: su nombre y su icono. */
 object InboxKinds {
     fun label(kind: String): String = when (kind) {
@@ -219,6 +222,16 @@ internal fun InboxCard(item: InboxItem, model: OrbitaModel, now: Long, onPress: 
             Spacer(Modifier.width(8.dp))
             Text(InboxKinds.label(item.kind), color = InboxKinds.tint(item.kind), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f), maxLines = 1)
             Text(Format.relative(item.createdAt, now), color = Orbita.TextFaint, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            // La X: el aviso no vuelve a salir (en ninguna app) y la tarea sigue igual.
+            IconAction(
+                Icons.Outlined.Close,
+                t("Descartar este aviso"),
+                onClick = { model.inboxHide(item) },
+                modifier = Modifier.offset(x = 8.dp).testTag("inbox-hide-${item.id}"),
+                tint = Orbita.TextFaint,
+                size = 36.dp,
+                enabled = model.inboxBusy == null,
+            )
         }
         Spacer(Modifier.height(6.dp))
         Row(

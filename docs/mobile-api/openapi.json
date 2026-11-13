@@ -2691,7 +2691,7 @@
     "/api/mobile/v1/inbox/{id}/{actionId}": {
       "post": {
         "operationId": "actMobileInbox",
-        "summary": "Pulsar un botón de un aviso",
+        "summary": "Pulsar un botón de un aviso (o «hide»: la X, que lo descarta para siempre sin tocar la tarea)",
         "tags": [
           "Mobile"
         ],
@@ -9181,6 +9181,10 @@
           },
           "resolution": {
             "type": "string"
+          },
+          "dismissedAt": {
+            "type": "integer",
+            "description": "Descartado con la X (POST …/inbox/{id}/hide): ya no sale en ninguna app y la tarea sigue igual."
           },
           "texts": {
             "type": "object",

@@ -305,7 +305,9 @@ class MockCoworkServer(
             val index = inbox.indexOfFirst { it.id == id }
             if (index < 0) return@synchronized error(404, "inbox_not_found", "No existe el aviso $id", false)
             val item = inbox[index]
-            val action = item.actions.firstOrNull { it.first == actionId && it.third == null }
+            // «hide» es la X de cualquier aviso: lo descarta sin acción propia.
+            val action = if (actionId == "hide") Triple("hide", "Descartado", null)
+            else item.actions.firstOrNull { it.first == actionId && it.third == null }
                 ?: return@synchronized error(404, "action_not_found", "El aviso no tiene la acción $actionId", false)
             val resolved = if (item.resolvedAt != null) item else item.copy(resolvedAt = clock(), resolution = actionId)
             inbox[index] = resolved

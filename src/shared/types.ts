@@ -1855,6 +1855,8 @@ export interface InboxItem {
   resolvedAt?: number
   /** Cómo se cerró («Aprobar», «La tarea terminó»…). */
   resolution?: string
+  /** Lo descartaste con la X: ya no sale (ni vuelve con la misma clave), pero la tarea sigue igual. */
+  dismissedAt?: number
   /**
    * El mismo aviso en cada idioma de la app («en», «pt»…): el motor del servidor lo escribe en el suyo, pero cada app
    * lo muestra en el de quien lo lee. Lo que escribió un agente con sus palabras va igual en todos.

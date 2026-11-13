@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Bell, BellDot } from 'lucide-react'
+import { Bell, BellDot, X } from 'lucide-react'
 import type { InboxItem } from '@shared/types'
-import { needsYou } from '@shared/inbox'
+import { INBOX_HIDE, needsYou } from '@shared/inbox'
 import { useCowork } from '@/store/cowork'
 import { api } from '@/lib/api'
 import { useInboxAlert } from '@/lib/inboxAlert'
@@ -134,7 +134,20 @@ export function InboxButton({ sidebar }: { sidebar?: { button: string; label: st
               <li key={item.id} className={cx(b.item, b[`k_${item.kind.replace('-', '_')}`])}>
                 <div className={b.meta}>
                   <span className={b.kind}>{KIND_LABEL[item.kind] ?? item.kind}</span>
-                  <span>{ago(item.createdAt)}</span>
+                  <span className={b.when}>
+                    {ago(item.createdAt)}
+                    {/* La X: lo descarta para siempre (también en la web y Órbita) sin tocar la tarea. */}
+                    <button
+                      type="button"
+                      className={b.hide}
+                      disabled={!!busy}
+                      aria-label={t('Descartar este aviso')}
+                      title={t('Descartar: no volverá a salir (la tarea sigue igual)')}
+                      onClick={() => void act(item, INBOX_HIDE)}
+                    >
+                      {busy === `${item.id}:${INBOX_HIDE}` ? '…' : <X size={14} aria-hidden="true" />}
+                    </button>
+                  </span>
                 </div>
                 <button type="button" className={b.title} onClick={() => void goTo(item)} title={item.projectId ? t('Ir al proyecto') : undefined}>
                   {item.title}

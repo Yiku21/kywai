@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { InboxAction, InboxItem, InboxKind, InboxTexts } from '@shared/types'
+import { INBOX_HIDE } from '@shared/inbox'
 import { emit } from './events'
 import { LANGS, lang, renderMsg, tl, tr, type Msg } from '@shared/i18n'
 
@@ -129,7 +130,10 @@ function written(input: InboxInput, actions: InboxActionInput[]): { title: strin
 
 /** Añade un aviso (o actualiza el abierto con la misma clave) y lo anuncia. */
 export function addInbox(input: InboxInput): InboxItem {
-  const existing = input.key ? items.find((i) => !i.resolvedAt && i.key === input.key) : undefined
+  // Si lo descartaste con la X, el mismo aviso (misma clave) no vuelve a salir: se actualiza sin reabrirse.
+  const existing = input.key
+    ? (items.find((i) => !i.resolvedAt && i.key === input.key) ?? items.find((i) => i.dismissedAt && i.key === input.key))
+    : undefined
   if (existing) {
     const w = written(input, input.actions ?? existing.actions)
     Object.assign(existing, { title: w.title, detail: w.detail, actions: w.actions, texts: w.texts })
@@ -180,11 +184,14 @@ export function onInboxAction(actionId: string, fn: (item: InboxItem) => Promise
 export async function actInbox(id: string, actionId: string): Promise<{ item: InboxItem; message?: string }> {
   const item = items.find((i) => i.id === id)
   if (!item) throw new Error(tr('Ese aviso ya no existe'))
+  if (actionId === INBOX_HIDE) return { item: dismissInbox(item) }
   const action = item.actions.find((a) => a.id === actionId)
   if (!action) throw new Error(tr('Esa acción no está en el aviso'))
-  if (item.resolvedAt) return { item: { ...item }, message: tr('Ese aviso ya estaba resuelto') }
+  // Uno descartado con la X sigue esperando lo suyo: sus botones (p. ej. el permiso desde el chat) aún funcionan.
+  if (item.resolvedAt && !item.dismissedAt) return { item: { ...item }, message: tr('Ese aviso ya estaba resuelto') }
   const fn = handlers.get(actionId)
   const message = fn ? ((await fn(item)) ?? undefined) : undefined
+  if (!action.url) delete item.dismissedAt
   // «Abrir» (un enlace) no resuelve nada por sí mismo: el aviso sigue hasta que se confirme.
   if (!action.url) {
     item.resolvedAt = Date.now()
@@ -192,6 +199,19 @@ export async function actInbox(id: string, actionId: string): Promise<{ item: In
     changed()
   }
   return { item: { ...item }, ...(message ? { message } : {}) }
+}
+
+/**
+ * La X de un aviso: lo quita de «Te necesita» en todas las apps (escritorio, cliente, web y Órbita) y no vuelve a salir,
+ * ni tras reiniciar. No toca la tarea: no aprueba, no deniega ni para nada; lo que esperaba sigue esperando en el chat.
+ */
+export function dismissInbox(item: InboxItem): InboxItem {
+  if (!item.resolvedAt) {
+    const now = Date.now()
+    Object.assign(item, { resolvedAt: now, dismissedAt: now, resolution: tr('Descartado') })
+    changed()
+  }
+  return { ...item }
 }
 
 /** Dirección para abrir Compartir pantalla con el servidor (la pone el acceso remoto cuando sabe su nombre). */

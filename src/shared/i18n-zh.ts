@@ -3794,4 +3794,6 @@ export const zh: Record<string, string> = {
   "Otra suscripción de Claude (Pro o Max).": "另一个 Claude 订阅（Pro 或 Max）。",
   "Otra cuenta de ChatGPT.": "另一个 ChatGPT 账号。",
   "Otra clave de API de Google AI Studio (o una cuenta de empresa).": "另一个 Google AI Studio API 密钥（或企业账号）。",
+  "Descartar este aviso": "忽略此通知",
+  "Descartar: no volverá a salir (la tarea sigue igual)": "忽略：不会再出现（任务保持不变）",
 }

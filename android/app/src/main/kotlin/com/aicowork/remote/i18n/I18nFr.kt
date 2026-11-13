@@ -242,6 +242,7 @@ private fun part2(m: HashMap<String, String>) {
     m["Todo en orden"] = "Tout va bien"
     m["Cuando un agente necesite tu visto bueno, una respuesta o un permiso en el Mac, aparecerá aquí."] = "Quand un agent aura besoin de votre accord, d'une réponse ou d'une autorisation sur le Mac, cela apparaîtra ici."
     m["Abrir la conversación"] = "Ouvrir la conversation"
+    m["Descartar este aviso"] = "Ignorer cet avis"
     m["Sin notificaciones: verás los avisos de «Te necesita» al abrir la app. Puedes activarlas en Ajustes › Aplicaciones › kywai."] = "Pas de notifications : vous verrez les avis « A besoin de vous » en ouvrant l'app. Vous pouvez les activer dans Réglages › Applications › kywai."
     m["imagen"] = "image"
     m["No es una imagen"] = "Ce n'est pas une image"

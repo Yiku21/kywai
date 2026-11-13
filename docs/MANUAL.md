@@ -1168,6 +1168,13 @@ Tocar el título lleva a su proyecto. Los avisos se cierran solos cuando ya no h
 la tarea termina o el agente vuelve a hablar). La lista se guarda en `inbox.json` de la carpeta de trabajo;
 la API del móvil la da en `GET /inbox` y `POST /inbox/{id}/{acción}`, y avisa con el evento `inbox.updated`.
 
+**La X de cada aviso** (arriba a la derecha, junto a «hace 1 min»; en Órbita igual) lo **descarta para siempre**: se
+quita en el escritorio, el cliente, la web y Órbita a la vez, no vuelve tras reiniciar y, si el mismo aviso se repite
+(misma clave, p. ej. el mismo agente callado en la misma tarea), se actualiza sin volver a salir. **No toca la tarea**:
+no aprueba, no deniega ni para nada. Lo que esperaba sigue esperando en el chat (por ejemplo, un permiso descartado aún
+se contesta con los botones del mensaje). Por dentro es `actInbox(id, 'hide')` (`POST /inbox/{id}/hide` en la API del
+móvil), que marca `dismissedAt` en `inbox.json` (`dismissInbox` en `src/main/inbox.ts`).
+
 #### El aviso cuando llega algo nuevo
 
 Cuando entra algo nuevo en «Te necesita» (en cualquier proyecto), kywai te avisa de tres maneras a la vez:

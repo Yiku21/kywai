@@ -242,6 +242,7 @@ private fun part2(m: HashMap<String, String>) {
     m["Todo en orden"] = "一切正常"
     m["Cuando un agente necesite tu visto bueno, una respuesta o un permiso en el Mac, aparecerá aquí."] = "当代理需要你的同意、回答或 Mac 上的权限时，会显示在这里。"
     m["Abrir la conversación"] = "打开对话"
+    m["Descartar este aviso"] = "忽略此通知"
     m["Sin notificaciones: verás los avisos de «Te necesita» al abrir la app. Puedes activarlas en Ajustes › Aplicaciones › kywai."] = "没有通知：打开应用时你会看到「需要你」的通知。可以在 设置 › 应用 › kywai 中开启。"
     m["imagen"] = "图片"
     m["No es una imagen"] = "这不是图片"

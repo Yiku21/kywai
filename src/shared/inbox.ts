@@ -2,6 +2,12 @@
 // idioma de cada app.
 import type { InboxItem, InboxKind } from './types'
 
+/**
+ * La X de un aviso (POST /inbox/{id}/hide en la API móvil, actInbox(id, 'hide') en las apps): lo descarta para siempre
+ * sin tocar la tarea. No es un botón del aviso: vale para todos.
+ */
+export const INBOX_HIDE = 'hide'
+
 /** Los avisos que no esperan nada de ti: van a Resultados (como «nuevo») y no cuentan en «Te necesita». */
 export const INBOX_INFO_KINDS: readonly InboxKind[] = ['done']
 
