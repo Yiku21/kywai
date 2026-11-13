@@ -1,12 +1,8 @@
 <div align="center">
 
-<img src="docs/img/logo/kywai-simbolo.svg" alt="kywai" width="112" height="112">
-
-# kywai
+<img src="docs/img/readme/cabecera-pt.svg" alt="kywai: qualquer agente de IA, de qualquer provedor, trabalhando como uma só equipe. Mais de 30 agentes, 79 estilos de vídeo, 28 comandos no chat, 5 idiomas e mais de 500 versões publicadas." width="100%">
 
 <sub>Pronuncia-se “ki-wai”. Antes se chamava <i>AI Cowork</i>.</sub>
-
-### Qualquer agente de IA, de qualquer provedor, quantos você quiser, trabalhando como uma só equipe.
 
 Peça uma vez. Um coordenador planeja o trabalho e entrega cada tarefa ao agente que a faz melhor: Claude, Codex, Gemini, DeepSeek, Qwen, Copilot, Cursor, um modelo local ou qualquer agente de linha de comando que você adicionar. Você acompanha cada robô trabalhando em um mundo 3D ao vivo, e os resultados voltam para você, já revisados.
 
@@ -40,7 +36,7 @@ Gravação real do app, música original e textos em inglês.
 <img src="src/renderer/src/assets/robots/qwen.png" alt="Modelo local" width="72" title="Modelo local">
 <img src="src/renderer/src/assets/robots/becario.png" alt="Estagiário" width="72" title="O estagiário: o mesmo agente com menos esforço">
 
-[O que é](#-o-que-é) · [Qualquer agente](#-qualquer-agente-qualquer-provedor) · [Por quê](#-por-que-o-kywai) · [Como funciona](#-como-funciona) · [Recursos](#-recursos) · [Extensões](#-extensões-mcp-skills-plugins-e-mods) · [De qualquer lugar](#-use-de-qualquer-lugar) · [Temas](#-temas) · [Instalação](#-instalação) · [Privacidade](#-privacidade-e-segurança) · [Apoiar](#-apoie-o-projeto)
+[O que é](#-o-que-é) · [Novidades](#-novidades) · [Qualquer agente](#-qualquer-agente-qualquer-provedor) · [Por quê](#-por-que-o-kywai) · [Como funciona](#-como-funciona) · [Recursos](#-recursos) · [Extensões](#-extensões-mcp-skills-plugins-e-mods) · [De qualquer lugar](#-use-de-qualquer-lugar) · [Temas](#-temas) · [Instalação](#-instalação) · [Privacidade](#-privacidade-e-segurança) · [Apoiar](#-apoie-o-projeto) · [Registro de mudanças](CHANGELOG.md)
 
 </div>
 
@@ -60,6 +56,20 @@ O kywai transforma os agentes e as assinaturas de IA que você já tem, de qualq
 
 O objetivo é simples: **deixar uma tarefa e voltar para encontrar um resultado, nunca um erro sem nada para mostrar.**
 
+## 🆕 Novidades
+
+O que chegou por último ao kywai (a lista completa, dia a dia e versão a versão, está no **[registro de mudanças](CHANGELOG.md)**, em espanhol):
+
+- **🌐 Um navegador para os agentes.** Você entra nas suas contas num navegador dentro do kywai e Claude, Codex, Gemini ou Hermes leem e percorrem essas páginas por você, sem nunca ver suas senhas. Clicar ou digitar sempre pede sua permissão.
+- **📋 Quadro de tarefas.** Deixe tarefas em “A fazer” e a equipe vai pegando sozinha, uma atrás da outra.
+- **🧑‍⚖️ `/consejo` e `/radar`.** A mesma pergunta a vários agentes ao mesmo tempo com uma resposta que junta o melhor, e os temas que estão subindo agora no seu nicho, com títulos e um vídeo pronto para fazer.
+- **🤖 Personagens.** Os agentes são personagens 3D animados, com quatro visuais à escolha: Personagens, Clássico, Refúgio Kywai e Pixel.
+- **💬 Dois chats ao mesmo tempo,** conversas que trabalham em paralelo e cópias do mesmo agente (“Claude 2”) para fazer mais coisas de uma vez.
+- **❓ Perguntas com opções.** Quando um agente tem dúvida, pergunta com botões, uma opção recomendada e um campo para a sua resposta.
+- **🎬 Mais estúdio de vídeo:** 79 estilos, “Conversa e tutorial” com robôs num estúdio 3D, voz com emoção, `/editar`, `/recortes`, `/demo`, `/miniatura`, `/doblar` e `/sprite`.
+- **🌙 Modo noite** com luz de verdade em todos os temas, ou “Auto” pelo relógio, e o tema **Escritório** para o trabalho.
+- **⚡ Mais leve.** O 3D roda a 30 quadros por segundo e cai para 10 quando nada acontece.
+
 ## 🎬 O que você pode pedir
 
 Alguns exemplos reais do que a equipe faz enquanto você cuida de outra coisa:
@@ -72,6 +82,9 @@ Alguns exemplos reais do que a equipe faz enquanto você cuida de outra coisa:
 | “Crie a imagem de capa do meu post” | A imagem é gerada com a ferramenta de imagens do Codex (não desenhada com código) e aparece no chat como miniatura para abrir, baixar ou pedir mudanças. |
 | “Toda manhã às 9, revise os PRs novos” | Uma rotina dispara todo dia no seu computador sempre ligado. Você lê o resultado no celular, e “Precisa de você” só toca se algo precisar da sua decisão. |
 | “Faça um vídeo vertical para o TikTok sobre como nasce uma estrela” | Um agente escreve o roteiro e o kywai faz o resto: voz, imagens, música, efeitos sonoros e edição. Você só recebe o MP4, que toca no chat, e `/tiktok` ou `/instagram` publicam. |
+| “Documente num PDF os passos do meu workflow do GoHighLevel” | Você entra uma vez com sua conta no navegador do kywai. Um agente percorre as telas, tira capturas e entrega o PDF, sem ver sua senha. |
+| “/consejo Que banco de dados uso para este app?” | A pergunta vai a vários agentes ao mesmo tempo, cada um responde por conta própria, e um junta o melhor e diz onde concordam e onde não. |
+| Deixar cinco tarefas no Quadro antes de dormir | A equipe pega uma atrás da outra, cada uma com sua revisão, e de manhã estão em “Feito”. |
 | “@Qwen escreva cinco títulos” | O que é rápido vai direto ao agente que você nomeia, sem plano nem revisão. Com um modelo local é grátis e nada sai do seu computador. |
 
 ## 🔌 Qualquer agente, qualquer provedor
@@ -186,6 +199,13 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 - **Retomada e repasse.** Tarefas interrompidas continuam de onde pararam. Se um agente falha, outro agente forte assume a tarefa, nunca um mais fraco. Os agentes também retomam a própria sessão nos acompanhamentos.
 - **Permissões dos agentes, do seu jeito.** Acesso total (instalar coisas e usar a internet sem perguntar), só a pasta do projeto ou **“Perguntar antes”**: os agentes perguntam no chat com **Negar / Permitir uma vez / Permitir nesta sessão**, como o Claude Code, em vez de travar.
 - **Travada não é erro.** Se um agente para porque falta algo (uma chave, uma decisão, um arquivo), você recebe o que ele já fez e decide em “Precisa de você”: aceitar, responder ou passar para outro agente.
+- **Quadro de tarefas.** Um Kanban por projeto com “A fazer”, “Em andamento”, “Esperando por você” e “Feito”. Deixe tarefas em “A fazer” e a equipe pega sozinha, uma atrás da outra; vazio, ele mostra exemplos para clicar.
+- **Mais mãos com o mesmo agente.** Em ⚙ → Configurações → Agentes você escolhe quantas tarefas cada agente faz ao mesmo tempo: o kywai abre cópias (“Claude 2”, “Claude 3”) que trabalham em paralelo com sua própria sessão.
+- **Perguntas com opções.** Quando um agente precisa decidir algo, pergunta com botões, marca a opção recomendada, aceita várias ao mesmo tempo e deixa um campo para escrever a sua.
+- **Responder a um agente.** Abaixo de cada resposta há um botão “Responder” para pedir que ele a revise ou continue, com a mensagem citada.
+- **Conselho de agentes (`/consejo`).** A mesma pergunta a vários agentes ao mesmo tempo; um junta o melhor e diz onde concordam e onde não.
+- **Radar de temas (`/radar`).** O que está subindo agora no YouTube e na web para o seu nicho, pontuado, com cinco títulos, três ângulos e seu `/video` pronto.
+- **Navegador do kywai.** Um navegador de verdade dentro do app, com sessão própria, onde você entra nas suas contas (um CRM, o painel do seu site, GoHighLevel…). Os agentes podem ler, tirar capturas e navegar sem perguntar; clicar, digitar ou apertar teclas sempre pede sua permissão, e eles nunca leem senhas, códigos nem cartões. Você acompanha ao vivo com um botão “Parar”, também pelo cliente ou pela web.
 - **Respostas rápidas para perguntas rápidas.** O Hermes responde ele mesmo o que é simples, sem plano nem divisão, e perguntas que só precisam olhar o projeto saem na hora. O que altera arquivos continua com plano e revisão completos.
 
 ### 📡 Acompanhando o trabalho
@@ -196,9 +216,11 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 - **Respostas, não só ✓.** Quando um pedido termina, o coordenador lê os resultados reais e escreve o que foi feito e onde está, como testar, o que foi decidido e o que ficou de fora. Abaixo de cada plano você vê tempo, tokens e cota usada (“14 min · 339 k tokens · Claude 5 h +5 %”).
 - **Cada tarefa no seu bloco.** No chat cada tarefa tem seu número, suas etapas reais (trabalhando, corrigindo, testes, revisão) e a revisão assinada pelo agente que a fez. Assim que você envia, uma linha mostra que o Hermes está preparando o plano, e se um agente fica em silêncio você vê "sem novidades há N min" em vez de uma barra de progresso inventada.
 - **Pré-visualização de arquivos ao lado do chat.** Clique num anexo, numa entrega ou no nome de um arquivo e ele abre num painel lateral, como no Claude: documentos, código, imagens e PDF, com miniaturas das imagens anexadas. O Órbita tem o mesmo leitor com ‹ ›, visão de código, copiar e "Abrir com outro app".
+- **Um aviso que não escapa.** Quando algo espera por você, o sininho pulsa com um toque próprio e o coordenador chama você no espaço 3D; um clique abre exatamente o que precisa de você.
 - **Sino "Precisa de você"** só com o que realmente espera por você (um plano, uma pergunta, uma permissão, um agente em silêncio ou uma tarefa pausada com Retomar / Remover), com seus botões e notificações no celular. O que terminou vai para Resultados como "Recém-terminado".
 - **Espaço digital 3D** que mostra cada estado: trabalhando, em revisão, esperando a revisão de outro agente, delegando a um estagiário, sem cota ou falhando, com arquivos viajando entre os robôs e uma faísca a cada passo real do agente. Os agentes formam um polígono regular ao redor do Projeto (triângulo com três, quadrado com quatro…), com os estagiários extras em fila atrás do original.
 - **Uma equipe que parece viva.** Os robôs livres brincam com um documento de brinquedo ou uma bola colorida, visitam os colegas e acordam um companheiro com um susto amigável. Reagem, sorriem e voltam ao posto quando o trabalho real precisa deles; reduzir efeitos desativa essas animações locais. Também dançam juntos, brincam de imitar, tocam as antenas e visitam o colega cansado para animá-lo. Com música tocando, os livres ficam acordados e dançam seguindo o pulso do player ou da música ambiente; a etiqueta mostra «Dançando».
+- **Personagens do seu jeito.** Em ⚙ → Configurações → Agentes → “Aspeto dos agentes” você escolhe como todos aparecem: **Personagens** (figuras 3D animadas de cada agente), **Clássico** (os robôs de sempre), **Refúgio Kywai** ou **Pixel**. O ícone do chat muda junto.
 - **Robôs com personalidade.** Os olhos mostram o que cada um está realmente fazendo (concentrado, pensando, cansado, dormindo, com erro, concluído), cada um tem sua personalidade e seus balões de fala no seu idioma, e quando você digita no chat eles acordam e se viram para olhar para você.
 
 <p align="center"><img src="docs/img/pt/robots.jpg" alt="O espaço digital 3D: os robôs em suas estações, com balões de fala e o estado em cada etiqueta" width="700"></p>
@@ -215,7 +237,12 @@ Qualquer agente que você adicionar pelo catálogo ou com "Outro programa…" fu
 - **Traga o trabalho que você já tem.** Importe sessões locais do Claude Code, Codex e Hermes (incluindo Hermes Desktop), ou exportações JSON/ZIP do ChatGPT e Claude.ai, em ⚙ → Importar de outros apps. Preserve conversas, recupere projetos e documentos do Claude incluídos e continue com sua equipe. Os originais são preservados; as sessões locais são lidas no servidor. Os chats do Claude.ai vão para o próprio projeto, e importar de novo nunca duplica nada.
 - **Conversas como no Claude.** Uma barra lateral com seus projetos, os fixados e os chats recentes. Ela se recolhe numa coluna de ícones, outro clique no projeto aberto o recolhe e o clique direito (toque longo no Órbita) permite fixar, renomear, bifurcar, mover ou excluir. "Novo chat" começa uma conversa nova sem perder a anterior, e qualquer uma pode ser retomada depois com suas tarefas e a sessão de cada agente. Ctrl+K busca em conversas, tarefas, resultados e memória de todos os projetos.
 - **Busca e histórico.** Ctrl+K busca de uma vez em todas as conversas, tarefas, resultados e notas de memória, com frase exata (“…”) e filtros de data e autor, e abre o chat direto na mensagem encontrada, destacada. A janela Histórico agrupa todas as conversas de todos os projetos por Hoje, Ontem, últimos 7 e 30 dias e por mês. Também no Órbita.
+- **Várias conversas ao mesmo tempo.** Troque de chat ou comece outro mesmo com a equipe trabalhando: cada conversa segue com o seu. Arraste um chat para a direita da janela para ter **dois chats lado a lado**, ou abra-o numa janela separada com a roda do mouse.
+- **Uma barra lateral do seu jeito.** Arraste chats e projetos para ordená-los ou levá-los aos **Favoritos**, alargue a barra arrastando a borda e filtre os projetos; cada projeto mostra seus três chats mais recentes e “Ver os X restantes”.
+- **Menu em cada mensagem.** Clique direito (ou toque longo no Órbita) para copiar, responder, ramificar a conversa dali ou editar sua mensagem num ramo novo. O lápis edita suas mensagens.
+- **Arquivos fáceis de achar.** Em Arquivos e Resultados você filtra por tipo (Fotos, Vídeos, Áudio, Documentos, Código e Outros), vê miniaturas de fotos e vídeos e as pastas vêm recolhidas por pedido.
 - **Memória do projeto** com instruções, decisões, preferências e pendências, cada uma com seu autor e status. Todo agente a lê em cada tarefa, mesmo depois que você limpa o chat.
+- **O que um aprende, todos sabem.** Quando um agente descobre como fazer algo, deixa isso como habilidade provisória em “Habilidades aprendidas” e o resto da equipe a recebe nas suas tarefas. Cada tarefa deixa um resumo “Feito em…” para a próxima.
 - **Um único AGENTS.md para toda a equipe.** Cada CLI lê apenas o próprio arquivo; o kywai repassa os outros, então um único `AGENTS.md` dá a todos os agentes as mesmas regras.
 - **Rotinas.** Programe um pedido uma única vez, em horário fixo, em certos dias, a cada N horas, por webhook assinado do GitHub ou quando arquivos de uma pasta mudarem. Crie com /rutina, consulte o histórico e escolha se exige aprovação. Propostas do coordenador só são salvas após sua confirmação.
 - **Modelos de tarefas.** Cartões acima do chat para revisar PRs, resumir pastas, encontrar falhas ou criar seus próprios pedidos. Preencha campos, use o comando /…, envie para a equipe ou direto a um agente e transforme os modelos compatíveis em rotinas.
@@ -238,12 +265,13 @@ Detalhes e exemplo de mod no [manual](docs/MANUAL.md#extensiones-tus-servidores-
 
 Digite **`/video`** e o assunto (ou toque em **“Criar vídeo disto”** abaixo de qualquer resposta) e você recebe **só o MP4 pronto**, tocando no chat. Sem plano para aprovar nem arquivos soltos. Tudo roda no seu computador.
 
-- **Escolha em quatro passos:** tipo (texto animado, desenho com apresentador ou misto), personagem (nenhum, os robôs do kywai ou um seu, reutilizável), estilo e voz, cada um com amostra. Depois escreva o tema. Vertical para TikTok, Reels ou Shorts com “vertical” ou “para TikTok”.
-- **75 estilos de filme** com amostra: aquarela, Pixel RPG, desenho dos anos 30, ukiyo-e, diorama de papel recortado, oito estilos próprios do kywai, uma checklist que se marca sozinha e mais. Anexe um reel ou suas imagens e ele copia o visual.
-- **Voz, música e som de verdade.** Vozes naturais para ouvir antes (Kokoro, Edge, Gemini ou Voicebox), e a voz escolhida define o idioma do vídeo. Música própria que abaixa quando a voz fala e efeitos sonoros reais (whoosh, pop, impactos) com licenças livres.
+- **Escolha em quatro passos:** tipo (texto animado, desenho com apresentador, misto, “Conversa e tutorial” com robôs num estúdio 3D ou “Esquete de humor”), personagem (nenhum, os robôs do kywai ou um seu, reutilizável), estilo e voz, cada um com amostra. Depois escreva o tema. Vertical para TikTok, Reels ou Shorts com “vertical” ou “para TikTok”.
+- **79 estilos de filme** com amostra (aquarela, Pixel RPG, desenho dos anos 30, ukiyo-e, papel recortado, anúncio de app, dez estilos próprios do kywai e mais) e **9 visuais de imagem com IA** que você testa com a sua própria cena antes de escolher. Anexe um reel ou suas imagens e ele copia o visual.
+- **Voz, música e som de verdade.** Vozes naturais para ouvir antes (Kokoro, Edge, Gemini, Voicebox, Chatterbox com emoção em cada frase e, para comparar, ElevenLabs v3), diálogos entre duas vozes, e a voz escolhida define o idioma do vídeo. Música própria que abaixa quando a voz fala e efeitos sonoros reais (whoosh, pop, impactos) com licenças livres.
 - **Imagens que se mexem.** Imagens com o **ComfyUI** no seu próprio computador, com Gemini de reserva, cenas 3D vivas, animações de fórmulas e diagramas com **Manim** e um gancho nos dois primeiros segundos.
+- **Edite e reaproveite o seu material.** **`/editar`** limpa sua gravação (vícios de linguagem, silêncios, tomadas repetidas) e coloca legendas; **`/recortes`** tira os melhores momentos de um vídeo longo como clipes verticais; **`/doblar`** passa o último vídeo para outro idioma; **`/miniatura`** faz três capas; **`/demo`** transforma um site ou repositório num anúncio, com um robô apresentador se você pedir; e **`/sprite`** desenha um personagem em pixel art para o seu jogo.
 - **Séries e lotes.** **`/serie`** faz episódios com os mesmos personagens, cada um terminando numa pergunta A/B para o público; “`/serie` próximo, B venceu” continua. “Faça 3 vídeos sobre…” cria vários de uma vez, de ângulos diferentes.
-- **Publique quando quiser.** **`/instagram`** e **`/tiktok`** escrevem a legenda e publicam na conta que você conectar, como rascunho ou direto, sempre depois do seu clique. Com uma rotina, toda segunda pode ter um vídeo novo pronto.
+- **Publique quando quiser.** **`/instagram`** e **`/tiktok`** escrevem a legenda e publicam na conta que você conectar, como rascunho ou direto, sempre depois do seu clique, com uma capa que prende. Os comandos **`/ig-plan`**, **`/ig-viral`**, **`/ig-reel`** e companhia cuidam da conta com dados reais, e **`/turno-noche`** procura de madrugada os reels que funcionam no seu nicho e deixa um novo reel de teste pela manhã.
 - **Instala sozinho.** O estúdio (HyperFrames, vozes, banco de sons) é instalado em segundo plano na primeira vez que o kywai inicia.
 
 ### 📊 Cota e custo
@@ -258,15 +286,18 @@ Digite **`/video`** e o assunto (ou toque em **“Criar vídeo disto”** abaixo
 
 **Refúgio Kywai** traz um observatório-estufa à beira-mar: cúpula de madeira e vidro, céu e água animados, oficinas individuais, árvore compartilhada e assento turquesa. Ative o modo noturno ao lado de Música; a preferência é lembrada por dispositivo.
 
+- **Novidades ao atualizar.** Depois de cada atualização, uma janela conta o que mudou (no desktop, na web, no cliente e no Órbita).
+- **Som separado.** “Música de fundo”, “Efeitos e avisos” e “Vozes dos agentes” têm cada um o seu interruptor.
 - **O chat em primeiro lugar.** Em janelas menores ele ocupa mais espaço, você pode arrastar a borda até a largura que quiser (clique duplo volta ao automático) e em janelas estreitas o chat e o mundo 3D viram duas abas.
+- **Letra do seu tamanho.** Ctrl + roda do mouse aumenta ou diminui a letra do chat, e o chat ocupa toda a largura disponível. O JSON solto de um agente aparece num cartão próprio com botão de copiar.
 - **Um chat fácil de ler,** com respostas sem caixa, mais espaço entre parágrafos e um botão de copiar no canto de cada bloco de código ou de comandos. O Hermes e os agentes escrevem curto, com o resultado primeiro.
 - **Ditado por voz local** com Whisper no seu próprio computador. Sem serviços externos, e o áudio é apagado em seguida.
 - **Mapas, cores e decorações.** Sete mapas 3D, a Cidade digital em sete cores e quatro decorações. Siga o tema do servidor ou escolha um por dispositivo; o Órbita adapta a paleta, sem reproduzir os mapas do desktop. O seletor de temas mostra uma foto real de cada mundo, quatro por linha.
 - **Vozes dos agentes,** cada uma com seu próprio timbre, e texto que vai sendo digitado no ritmo da voz, como em Animal Crossing.
-- **Player de música** com busca no YouTube Music, Audius e rádios da SomaFM sem anúncios, e fila de reprodução, e luzes que acompanham o BPM da música sem microfone.
+- **Player de música** com busca no YouTube Music, Audius, Spotifast e rádios da SomaFM sem anúncios (e sua conta do YouTube para o Premium), fila de reprodução e luzes que acompanham o BPM da música sem microfone.
 - **Assistente de configuração** que instala os programas que faltam com seus instaladores oficiais e abre cada login oficial.
 - **Modo demo** para mostrar o app sem gastar nada.
-- **Leve para o seu computador.** A qualidade do 3D se ajusta sozinha à sua máquina sem travadas, descansa com a janela oculta e desacelera quando você está em outro app, e “Reduzir efeitos” tira o supérfluo. A equipe continua trabalhando com a janela fechada.
+- **Leve para o seu computador.** O 3D desenha no máximo 30 quadros por segundo e cai para 10 quando nada acontece; você pode fechá-lo de vez e ver um medidor de desempenho nas Configurações. A qualidade se ajusta sozinha à sua máquina sem travadas, descansa com a janela oculta e desacelera quando você está em outro app, e “Reduzir efeitos” tira o supérfluo. A equipe continua trabalhando com a janela fechada.
 
 ### ⌨️ Comandos do chat
 
@@ -281,7 +312,13 @@ Digite **`/video`** e o assunto (ou toque em **“Criar vídeo disto”** abaixo
 | `/video …` | Criar um vídeo (abre o seletor de quatro passos) |
 | `/serie …` | Uma série de vídeos em episódios com os mesmos personagens |
 | `/aprende …` | Transformar um vídeo ou um link numa habilidade |
+| `/editar` · `/recortes` | Limpar sua gravação ou tirar clipes verticais de um vídeo longo |
+| `/demo` · `/miniatura` · `/doblar` | Anúncio de um site, três capas ou o último vídeo em outro idioma |
+| `/sprite …` | Um personagem em pixel art para o seu jogo, animado em 4 ou 8 direções |
+| `/radar …` | Os temas que estão subindo no seu nicho, com títulos e seu `/video` |
+| `/consejo …` | A mesma pergunta a vários agentes e uma resposta que junta o melhor |
 | `/instagram` · `/tiktok` | Preparar e publicar o último vídeo |
+| `/ig-plan` · `/ig-viral` · `/ig-reel` · `/turno-noche` | Cuidar do Instagram: plano da semana, o que funciona, roteiros e um reel novo toda noite |
 
 Digite `/` na caixa do chat para ver todos os comandos (inclusive seus modelos e mods) com o que cada um faz.
 
@@ -312,7 +349,7 @@ Um computador era cliente e você quer que ele seja o servidor? Toque em **"Usar
 
 ## 🎨 Temas
 
-A galeria de **Configurações → Temas** reúne sete mapas (Clásico, Órbita, Marfil, Grafito, Bosque, Matrix e EVA-01), a Cidade digital em sete cores e quatro decorações. Siga o tema do servidor ou escolha um por dispositivo. O Órbita adapta a paleta, não os cenários do desktop. As imagens mostram algumas cores e decorações:
+A galeria de **Configurações → Temas** reúne sete mapas (Clásico, Órbita, Marfil, Grafito, Bosque, Matrix e EVA-01), a Cidade digital em sete cores, o Refúgio Kywai, o Fundo do mar, o **Escritório** (sóbrio, para o trabalho) e quatro decorações. Todos têm **Modo noite** com luz de verdade (tochas, postes, bioluminescência…) ou **Auto**, que muda sozinho com a hora. Siga o tema do servidor ou escolha um por dispositivo. O Órbita adapta a paleta, não os cenários do desktop. As imagens mostram algumas cores e decorações:
 
 <table>
   <tr>
@@ -344,7 +381,7 @@ E quatro que decoram o mundo, remodelam o seu núcleo e, nos festivos, vestem os
 
 ### ⚡ Instalar com um só comando
 
-Cole uma linha em um terminal. Ela baixa das Releases a versão mais recente para o seu computador, instala e abre. Rode de novo quando quiser reinstalar ou atualizar: seus projetos e ajustes são mantidos.
+Cole uma linha em um terminal. Ela guia você passo a passo (“Passo 1 de 3… Pronto”), baixa das Releases a versão mais recente para o seu computador, instala e abre. Rode de novo quando quiser reinstalar ou atualizar: seus projetos e ajustes são mantidos.
 
 **Windows 10/11**: abra o **PowerShell** e cole:
 
@@ -359,7 +396,7 @@ curl -fsSL https://kywai.app/install.sh | bash
 ```
 
 - **Windows:** instala só para o seu usuário (sem permissão de administrador), com atalhos na Área de Trabalho e no menu Iniciar.
-- **macOS:** escolhe Apple silicon ou Intel, coloca `kywai.app` em Aplicativos e remove o bloqueio de "app danificado", então não precisa do clique direito → Abrir.
+- **macOS:** escolhe Apple silicon ou Intel (não precisa de Homebrew: o assistente instala o que faltar), coloca `kywai.app` em Aplicativos e remove o bloqueio de "app danificado", então não precisa do clique direito → Abrir.
 - **Linux** (x64 ou ARM): coloca o AppImage em `~/.local/share/kywai`, adiciona ao menu de aplicativos e cria o comando `kywai`. Só pede sua senha se precisar instalar a libfuse2.
 
 Quer ler antes? Aqui estão os scripts: [install.sh](https://github.com/Yiku21/kywai/blob/master/scripts/instalar-kywai.sh) e [install.ps1](https://github.com/Yiku21/kywai/blob/master/scripts/instalar-kywai.ps1).
@@ -420,7 +457,7 @@ O **assistente de configuração** abre na primeira inicialização (também em 
 
 1. Escolha quais agentes usar.
 2. Ele verifica os programas deles e instala os que faltam com seus instaladores oficiais.
-3. Ele abre o login oficial de cada agente. O kywai nunca vê nem armazena senhas.
+3. Ele abre o login oficial de cada agente, com os passos explicados para cada um. O kywai nunca vê nem armazena senhas. Se depois faltar algum, o Hermes coloca no chat um cartão “Conectar agentes”.
 4. Ele resume o que ainda estiver pendente.
 
 Para usá-lo a partir do celular ou do notebook, abra ⚙ → "Acesso a partir de outros dispositivos…".
@@ -461,6 +498,7 @@ docs/          manual, guia de modelos e API móvel
 A documentação detalhada está em espanhol:
 
 - **[Manual](docs/MANUAL.md)**: todos os recursos em detalhe.
+- **[Registro de mudanças](CHANGELOG.md)**: todas as melhorias desde o primeiro dia, por data e versão.
 - **[Guia de modelos](docs/GUIA-MODELOS.md)**: qual modelo e qual esforço cada agente usa conforme a dificuldade, com fontes.
 - **[Órbita](android/README.md)**: o app para Android, e como compilá-lo e publicá-lo.
 - **[API móvel](docs/mobile-api/README.md)**: o contrato entre o servidor e o Órbita.
