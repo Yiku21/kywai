@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import {
   AppWindow,
   CalendarClock,
@@ -287,6 +287,18 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
       go('chat')
     })
 
+  /** Barra plegada: abre el último chat del proyecto (el que se tocó más tarde); sin chats guardados, el proyecto. */
+  const openLatestChat = (p: ProjectSummary): Promise<void> =>
+    run(async () => {
+      if (!api) return
+      const list = (await api.listConversations(p.id)).filter((c) => c.messageCount > 0)
+      const last = list.reduce<ConversationSummary | null>((a, c) => (!a || c.updatedAt > a.updatedAt ? c : a), null)
+      if (last && !(project?.id === p.id && conversation?.id === last.id)) useCowork.getState().loadProjectState(await api.openConversation(p.id, last.id))
+      else if (!last && project?.id !== p.id) useCowork.getState().loadProjectState(await api.loadProject(p.id))
+      setExpanded((e) => ({ ...e, [p.id]: true }))
+      go('chat')
+    })
+
   async function newChat(): Promise<void> {
     setError(null)
     const err = await startNewChat()
@@ -507,15 +519,16 @@ function SidebarBody({ rail, onNavigate }: { rail: boolean; onNavigate?: () => v
       />
       <NavItem icon={<CalendarClock size={17} />} label={t('Rutinas')} rail={rail} active={leftTab === 'routines'} onClick={() => go('routines')} />
 
-      {/* Plegada: el chat en el que estás y los últimos, para volver a ellos sin abrir la barra. */}
+      {/* Plegada: el chat en el que estás y tus proyectos (clic = su último chat), sin abrir la barra. */}
       {live && rail && project && (
         <RailChats
           current={{ projectId: project.id, id: conversation?.id ?? '', title: conversation?.title ?? '', projectName: project.name }}
           recent={recent}
-          projects={projects}
+          projects={orderedProjects}
+          unseen={unseen}
           chatActive={leftTab === 'chat'}
           onCurrent={() => go('chat')}
-          onOpen={(c) => void openConversation(c)}
+          onProject={(p) => void openLatestChat(p)}
         />
       )}
 
@@ -859,52 +872,48 @@ function NavItem({
   )
 }
 
-/** Cuántos chats recientes salen en la barra plegada, además del actual. */
-const RAIL_RECENT = 5
-
 /**
- * Barra plegada: un icono para volver al chat en el que estás (desde Resultados, Tareas…) y debajo los últimos chats
- * con su inicial. Al pasar el ratón sale su nombre y su proyecto; clic con la rueda lo abre en otra ventana.
+ * Barra plegada: un icono para volver al chat en el que estás (desde Resultados, Tareas…) y debajo tus proyectos con
+ * su inicial. Clic en un proyecto = su último chat. Al pasar el ratón sale el nombre; punto azul = el equipo trabaja
+ * en él; punto verde = tiene resultados sin ver.
  */
 function RailChats({
   current,
   recent,
   projects,
+  unseen,
   chatActive,
   onCurrent,
-  onOpen
+  onProject
 }: {
   current: { projectId: string; id: string; title: string; projectName: string }
   recent: ConversationSummary[]
   projects: ProjectSummary[]
+  unseen: Set<string>
   chatActive: boolean
   onCurrent: () => void
-  onOpen: (c: ConversationSummary) => void
+  onProject: (p: ProjectSummary) => void
 }) {
-  const isCurrent = (c: ConversationSummary): boolean => c.projectId === current.projectId && c.id === current.id
-  const currentBusy = recent.some((c) => isCurrent(c) && c.busy)
-  const others = recent.filter((c) => !isCurrent(c) && c.messageCount > 0).slice(0, RAIL_RECENT)
+  const busyProjects = new Set(recent.filter((c) => c.busy).map((c) => c.projectId))
+  const currentBusy = recent.some((c) => c.projectId === current.projectId && c.id === current.id && c.busy)
   const currentTitle = current.title || t('Conversación nueva')
-  const projectName = (id: string): string => projects.find((p) => p.id === id)?.name ?? ''
-  const label = (title: string, project: string): string => (project ? `${title} · ${project}` : title)
-
-  function middleClick(e: MouseEvent, ref: ChatRef): void {
-    if (e.button !== 1) return
-    e.preventDefault()
-    openChatWindow(ref)
-  }
+  const currentLabel = `${t('Chat actual')}: ${currentTitle} · ${current.projectName}`
 
   return (
-    <div className={s.railChats} role="group" aria-label={t('Chats')}>
+    <div className={s.railChats} role="group" aria-label={t('Proyectos')}>
       <button
         type="button"
         className={cx(s.item, chatActive && s.active)}
         aria-current={chatActive ? 'page' : undefined}
-        title={`${t('Chat actual')}: ${label(currentTitle, current.projectName)}`}
-        aria-label={`${t('Chat actual')}: ${label(currentTitle, current.projectName)}`}
+        title={currentLabel}
+        aria-label={currentLabel}
         onClick={onCurrent}
         onMouseDown={(e) => e.button === 1 && e.preventDefault()}
-        onAuxClick={(e) => current.id && middleClick(e, { projectId: current.projectId, conversationId: current.id, title: currentTitle })}
+        onAuxClick={(e) => {
+          if (e.button !== 1 || !current.id) return
+          e.preventDefault()
+          openChatWindow({ projectId: current.projectId, conversationId: current.id, title: currentTitle })
+        }}
       >
         <span className={s.icon} aria-hidden="true">
           <MessageSquare size={17} />
@@ -912,24 +921,20 @@ function RailChats({
         <span className={s.label}>{currentTitle}</span>
         {currentBusy && <span className={cx(s.busy, s.railBusy)} aria-hidden="true" />}
       </button>
-      {others.map((c) => {
-        const name = label(c.title, projectName(c.projectId))
+      {projects.map((p) => {
+        const here = p.id === current.projectId
+        const name = t('{name}: abrir su último chat', { name: p.name })
         return (
-          <button
-            key={`${c.projectId}:${c.id}`}
-            type="button"
-            className={s.item}
-            title={name}
-            aria-label={name}
-            onClick={() => onOpen(c)}
-            onMouseDown={(e) => e.button === 1 && e.preventDefault()}
-            onAuxClick={(e) => middleClick(e, { projectId: c.projectId, conversationId: c.id, title: c.title })}
-          >
-            <span className={s.railInitial} aria-hidden="true">
-              {initialOf(c.title)}
+          <button key={p.id} type="button" className={s.item} title={name} aria-label={name} onClick={() => onProject(p)}>
+            <span className={cx(s.railInitial, here && s.railInitialHere)} aria-hidden="true">
+              {initialOf(p.name)}
             </span>
-            <span className={s.label}>{c.title}</span>
-            {c.busy && <span className={cx(s.busy, s.railBusy)} aria-hidden="true" />}
+            <span className={s.label}>{p.name}</span>
+            {busyProjects.has(p.id) ? (
+              <span className={cx(s.busy, s.railBusy)} aria-hidden="true" />
+            ) : unseen.has(p.id) ? (
+              <span className={cx(s.railBusy, s.railUnseen)} aria-hidden="true" />
+            ) : null}
           </button>
         )
       })}

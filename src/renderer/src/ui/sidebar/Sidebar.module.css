@@ -571,7 +571,7 @@
   font-size: 10px;
 }
 
-/* Plegada: el chat actual y los últimos, bajo una raya. */
+/* Plegada: el chat actual y los proyectos, bajo una raya. */
 .railChats {
   display: flex;
   flex-direction: column;
@@ -597,6 +597,17 @@
 
 .item:hover .railInitial {
   color: var(--text-1);
+}
+
+/* El proyecto en el que estás. */
+.railInitialHere {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.railUnseen {
+  border-radius: 50%;
+  background: var(--green, #3ddc84);
 }
 
 .railBusy {

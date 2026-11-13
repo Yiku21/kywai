@@ -3683,10 +3683,11 @@ a lo largo de la izquierda, bajo el logo de la cabecera, y se usa sin abrirla; s
 por encima del chat.
 
 **Volver al chat con la barra plegada.** Bajo los accesos (tras una raya) va el icono del **chat en el que estás**:
-desde Resultados, Tareas, Tablero o Rutinas, un clic te devuelve a él. Debajo salen tus **5 últimos chats** con la
-inicial de su nombre; al pasar el ratón sale el nombre entero y su proyecto, un clic lo abre y el clic con la rueda lo
-abre en una ventana aparte. Un punto azul que palpita marca los chats donde el equipo está trabajando. Igual en el
-escritorio, el cliente y el navegador.
+desde Resultados, Tareas, Tablero o Rutinas, un clic te devuelve a él. Debajo salen **tus proyectos** con su inicial
+(el proyecto en el que estás, con borde de color); al pasar el ratón sale su nombre y un clic abre **su último chat**.
+Un punto azul que palpita marca los proyectos donde el equipo está trabajando y uno verde los que tienen resultados sin
+ver. El clic con la rueda en el chat actual lo abre en una ventana aparte. Igual en el escritorio, el cliente y el
+navegador.
 
 **Nombre del ordenador.** Abajo en la barra sale dónde corren los agentes: el nombre del equipo en la red
 («macmini.lan») o el que tú le pongas. Pulsa el nombre (sale un lápiz al pasar por encima), escribe uno nuevo (hasta
